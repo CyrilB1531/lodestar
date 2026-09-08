@@ -21,7 +21,16 @@ is one sentence, the issue and the commit; see
 
 ## [Unreleased]
 
-### Lodestar.Text
+## Released — 2026-09-08
+
+Five deliverables in one cut. `Lodestar.Embeddings` reaches 0.6.0 rather than 0.5.0:
+that number went to the feed on 2026-09-03 and nuget.org is immutable, so the two
+public removals below could only land above it — the section for 0.5.0 is reconstructed
+further down. `Lodestar.Onnx` publishes the satellite it was split into, against that
+same published 0.5.0, and `Lodestar.Stats` its first release. `Lodestar.Decomposition`
+takes a patch: `Nmf.Fit`'s widened bound removes nothing a caller could hold.
+
+### Lodestar.Text — 0.5.0
 
 #### Added
 
@@ -43,21 +52,13 @@ is one sentence, the issue and the commit; see
 
 - The blocked bit-parallel equality table is sized from the pattern's characters above U+00FF rather than from its length, and a pattern too long to tabulate takes the dynamic program instead of wrapping the table's length in `int`. ([#413](https://github.com/CyrilB1531/lodestar/issues/413), [`52d68cc`](https://github.com/CyrilB1531/lodestar/commit/52d68cc))
 
-### Lodestar.Embeddings
+### Lodestar.Embeddings — 0.6.0
 
 #### Added
 
 - **`Mmr.Select` (`Lodestar.Embeddings.Search`) picks a diverse, relevance-weighted subset of candidate vectors — Maximal Marginal Relevance**, knowing nothing about text: the candidates are vectors and the result is their indices, in selection order. It replays `keybert` 0.9.0's own selection step, `keybert._mmr.mmr`, compared as a set rather than a sequence (`tests/oracles/mmr.json`) — [decision 0077](docs/decisions/0077-the-keyword-extractors-take-their-oracles-lists-and-not-their-own.md) has the three divergences, and [decision 0078](docs/decisions/0078-keybert-is-declared-nodeps-not-compiled-into-the-lock.md) why `keybert` itself stays out of the oracle lock file. Composes with `Rake` and `OnnxTextEmbedder` into a KeyBERT-style pipeline, walked through in [`docs/guides/keyword-extraction.md`](docs/guides/keyword-extraction.md). ([#525](https://github.com/CyrilB1531/lodestar/issues/525))
 
-- **`BatchEncoder.EncodeAll` and `BatchEncoder.Pad` are public**, so a caller that groups rows itself no longer needs a second copy of the padding. `EncodeAll` returns one unpadded row per text, template applied and truncation done; `Pad` lays a **window** of those rows out as one rectangle, widened to the longest row in that window rather than in the corpus — which is what makes grouping by length worth anything. `EncodeBatch` is unchanged, and is still the two of them over the whole corpus at once. ([#533](https://github.com/CyrilB1531/lodestar/issues/533))
-
-- `EmbeddingIndex.FromBlock` and `EmbeddingIndex.FromOwnedBlock` build an index from a contiguous block of vectors in one copy or none, where replaying the block through `Add` cost three times the read that produced it — the adopting factory keeps the caller's array for the life of the index, an invariant the caller keeps and [decision 0056](docs/decisions/0056-a-block-may-be-adopted-and-the-invariant-is-the-callers-to-keep.md) argues for. ([#474](https://github.com/CyrilB1531/lodestar/issues/474), [`13bdacc`](https://github.com/CyrilB1531/lodestar/commit/13bdacc))
-
-- `bench/Lodestar.Text.Benchmarks -- sidecar` prices a binary sidecar against the JSON artifact in bytes and in time, and [decision 0055](docs/decisions/0055-the-artifact-gets-a-binary-sidecar-once-a-block-can-be-ingested-whole.md) takes one — conditional on a bulk ingest into `EmbeddingIndex`, without which the sidecar route is slower than what it replaces. No shipped behaviour changes yet. ([#436](https://github.com/CyrilB1531/lodestar/issues/436), [`7ab80d1`](https://github.com/CyrilB1531/lodestar/commit/7ab80d1))
-
-- **numpy's `.npy` reads and writes, for the vector block only.** `NpyFile.Read` and `NpyFile.Write` carry a contiguous `float32` block in numpy's own format, returning an `NpyBlock` of the values and the shape; the header is parsed against a fixed grammar and never evaluated, so `descr: '|O'` — numpy's pickle-backed dtype — is refused by name before the payload is touched. It is interop and not a second artifact format: a `.npy` carries no ids, no normalize flag and no schema, so `EmbeddingIndex.Save` is untouched and [decision 0011](docs/decisions/0011-persistence-format.md) is not reopened. ([#450](https://github.com/CyrilB1531/lodestar/issues/450), [`0f05972`](https://github.com/CyrilB1531/lodestar/commit/0f05972))
-
-- **`byte_fallback` resolves an uncovered symbol into `<0xXX>` byte pieces instead of the unknown token, so Llama-2 and Mistral v0.1 both load.** `BpeVocabulary.ByteFallback` and `TokenizerJsonLoader.LoadBpe` require the vocabulary to carry all 256 pieces, refusing by name a file that does not rather than reproduce the silent degradation — or, with no unknown token declared, the dropped symbol — `tokenizers` 0.23.1 falls back to; the expansion runs before the merges, on the decorated symbol, so a `continuing_subword_prefix` or `end_of_word_suffix` on it is itself encoded as bytes. `BpeTokenizer.Decode` now reproduces such a file's `decoder` block too, a bare `ByteFallback` or Llama-2's own `Sequence[Replace, ByteFallback, Fuse, Strip]`, round-tripping the byte pieces and the whitespace escape together — [decision 0063](docs/decisions/0063-byte-fallback-requires-the-whole-alphabet-and-its-decoder-is-read-strictly-too.md) has the measurements against the reference, including an upstream ordering bug found and not reproduced. ([#317](https://github.com/CyrilB1531/lodestar/issues/317), [`6b4f2b6`](https://github.com/CyrilB1531/lodestar/commit/6b4f2b6))
+- **`LoadBpe` reads a `TemplateProcessing` post-processor instead of refusing the file, which is what let Llama-2 and Mistral v0.1 load at last.** Neither `Metaspace` nor `byte_fallback` was the obstacle — both shipped earlier — but a `post_processor` section was refused outright, and all three reference files carry one. `BpeVocabulary.PrefixTokens` and `BpeVocabulary.SuffixTokens` now carry what the `single` template puts around the text, `["<s>"]` and nothing for both models; they are public because the caller composes the `SpecialTokenTemplate` itself, that type needing a pad token the file does not declare. The `pair` template is read and discarded — [decision 0083](docs/decisions/0083-the-pair-template-is-read-and-discarded.md) has the three files measured before any code was written, and why reproducing a two-sequence encoding would mean inventing a type to express it. ([#548](https://github.com/CyrilB1531/lodestar/issues/548))
 
 #### Removed
 
@@ -65,33 +66,24 @@ is one sentence, the issue and the commit; see
 
 - **`OnnxTextEmbedder` moved to the new `Lodestar.Onnx` package, and this one now carries no external dependency at all.** `Microsoft.ML.OnnxRuntime` 1.28.0 was the repository's only external dependency and was reached by one file of 407 lines, while the four sub-word tokenizers, the batch encoder, the pooling, the `.npy` reader and the SIMD kNN index could not be had without it — `dotnet add package Lodestar.Embeddings` restored a native runtime for a caller who only tokenizes. Migration is one `using`: the type is `Lodestar.Onnx.OnnxTextEmbedder`, with the same members and the same behaviour, in a package that depends on this one. [Decision 0076](docs/decisions/0076-a-core-package-carries-no-external-dependency.md) states the rule it settles — a core package carries no external dependency, an external dependency earns its own satellite package — supersedes [0069](docs/decisions/0069-the-package-layout-as-built-and-what-enforces-it.md), and records what was refused. ([#533](https://github.com/CyrilB1531/lodestar/issues/533))
 
-#### Fixed
-
-- `NpyFile.Read` bounds a block by `ArtifactLoadOptions.MaxTotalBytes` rather than by `MaxArrayLength`, which that option documents as not applying to a vector block: a 2 605 × 384 block — small for embeddings — was refused at the default options while the same vectors loaded from an index artifact. ([#468](https://github.com/CyrilB1531/lodestar/issues/468), [`c480c1f`](https://github.com/CyrilB1531/lodestar/commit/c480c1f))
-
-#### Changed
-
-- **The `.npy` read copies the block once, and a second entry point copies it none.** `NpyFile.Read(Stream)` reads the payload straight into the `float[]` the returned block keeps, where it used to stage the same bytes through two buffers first, and names that array as `NpyBlock.OwnedArray` so `EmbeddingIndex.FromOwnedBlock` can adopt it rather than copy the block once more; `NpyFile.Read(ReadOnlyMemory<byte>)` serves a caller already holding the file by **aliasing** those bytes, which must not change while the block lives, and leaves `OwnedArray` null because a borrowed block has no array to hand on. Reading the same 15 360 128 bytes against `np.load` measured 0.21–0.23× of numpy's wall time with three copies between the stream and the block, and a fourth into the index that held it; on the adopting route it now measures **1.00–1.13× cpu and 1.21–1.25× wall** — parity in the first round and slightly ahead in the other two on cpu, the column this project trusts, where it was four to five times behind. The stream read is one copy on `net10.0` and two on `netstandard2.0`, which has no `Stream.Read(Span<byte>)` to read into a caller's array — one API and one behaviour at two speeds, as [decision 0057](docs/decisions/0057-the-npy-read-serves-a-stream-and-a-buffer-differently.md) records with the view on every path it refused. ([#466](https://github.com/CyrilB1531/lodestar/issues/466), [`a3d3145`](https://github.com/CyrilB1531/lodestar/commit/a3d3145))
-- **The payload buffer is rented, not allocated.** `EmbeddingIndex.Load(Stream)` takes its artifact buffer from `ArrayPool<byte>.Shared` and returns it once parsing is done, which removes 20.5 MB of allocation and three of the four collections a load provoked: renting is **42× the allocation and 1.74 ms a load**, about a tenth of one, because what cost was never the allocation but the large-object collection it triggered. The pool holds 33.5 MB for the life of the process in exchange — see [decision 0054](docs/decisions/0054-the-payload-buffer-is-pooled-after-all-because-the-collection-is-the-cost.md), which amends [0053](docs/decisions/0053-the-payload-buffer-is-not-pooled-because-residency-outlives-the-load.md) for refusing that trade without ever timing it. ([#470](https://github.com/CyrilB1531/lodestar/issues/470), [`f8de2ba`](https://github.com/CyrilB1531/lodestar/commit/f8de2ba))
-- **Half the allocation, same bytes on disk.** `EmbeddingIndex.Save` and `SaveAsync` write the vector block a slice at a time instead of handing `Utf8JsonWriter.WriteBase64String` the whole thing, so the writer's buffer no longer doubles its way up to the 20.48 MB the encoding occupies: `EmbeddingIndexSave` allocates **19.87 MB against 39.64**, with a third fewer collections in every generation, and the row against `numpy.save` moves **0.29× to 0.39×**. Slices are 245 760 bytes — a multiple of 12, so a whole number of base64 groups and of floats — which is what makes the artifact byte-for-byte what it was; `SaveAsync` loses its intermediate `MemoryStream` with it. The load pays part of it back, having been subsidised by the buffer the save used to leave behind — see [decision 0051](docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md), which also records why parallelising the base64 was refused: it runs at `memcpy` speed already. ([#430](https://github.com/CyrilB1531/lodestar/issues/430), [`2a50cc1`](https://github.com/CyrilB1531/lodestar/commit/2a50cc1))
-
-### Lodestar.Onnx
+### Lodestar.Onnx — 0.1.0
 
 #### Added
 
 - **First release, 0.1.0: ONNX inference, and the satellite tier's first member.** One type, `OnnxTextEmbedder`, moved verbatim from `Lodestar.Embeddings` into namespace `Lodestar.Onnx` — every package sets `RootNamespace` equal to its `PackageId`, and the rename is also what let the split land without colliding with the copy published in `Lodestar.Embeddings` 0.4.0 and 0.5.0. It depends on `Lodestar.Embeddings` 0.5.0 for the tokenizers, the encoding options and the pooling it feeds a session with, and on `Microsoft.ML.OnnxRuntime` 1.28.0, which no other package in the repository now references. Ships `net10.0;netstandard2.0` like the rest. ([#533](https://github.com/CyrilB1531/lodestar/issues/533))
 
-### Lodestar.Decomposition
+### Lodestar.Decomposition — 0.1.1
 
 #### Changed
 
 - **`Nmf.Fit(matrix, k)` accepts `k == min(rows, columns)`**, scikit-learn's own bound, where it refused any `k` at or above the column count — a bound inherited from the validation `TruncatedSvd` needs rather than from anything NMF does, so a square matrix at full rank was a fit there and an `ArgumentOutOfRangeException` here. The oracle corpus now freezes a `24 × 8` fit at `k = 8` against `NMF` itself, and `TruncatedSvd`'s own bound is untouched: `n_components >= n_features` is what scikit-learn refuses there too. ([#519](https://github.com/CyrilB1531/lodestar/issues/519))
 
-### Lodestar.Stats
+### Lodestar.Stats — 0.1.0
 
 #### Added
 
 - **`Lodestar.Stats` is a new package: ten families of classical hypothesis
+
   test at `scipy.stats` 1.18.0 parity.** Student and Welch *t*, Mann-Whitney
   *U*, Wilcoxon signed-rank, χ² goodness-of-fit and contingency, Fisher exact,
   two-sample Kolmogorov-Smirnov, one-way ANOVA, Kruskal-Wallis, Shapiro-Wilk,
@@ -107,13 +99,44 @@ is one sentence, the issue and the commit; see
   ([#442](https://github.com/CyrilB1531/lodestar/issues/442), decision
   [0081](docs/decisions/0081-the-stats-numerical-layer-stays-internal.md))
 
+## Released — 2026-09-03
+
+One package, published to nuget.org and never tagged, so it had no section here — the
+same gap the 2026-09-01 wave was reconstructed for, and filled the same way: each entry
+is filed under the release its own commit is an ancestor of. `Lodestar.Embeddings` 0.5.0
+is what `Lodestar.Onnx` 0.1.0 depends on, and `src/Directory.Packages.props` pins.
+
+### Lodestar.Embeddings — 0.5.0
+
+#### Added
+
+- **`BatchEncoder.EncodeAll` and `BatchEncoder.Pad` are public**, so a caller that groups rows itself no longer needs a second copy of the padding. `EncodeAll` returns one unpadded row per text, template applied and truncation done; `Pad` lays a **window** of those rows out as one rectangle, widened to the longest row in that window rather than in the corpus — which is what makes grouping by length worth anything. `EncodeBatch` is unchanged, and is still the two of them over the whole corpus at once. ([#533](https://github.com/CyrilB1531/lodestar/issues/533))
+
+- `EmbeddingIndex.FromBlock` and `EmbeddingIndex.FromOwnedBlock` build an index from a contiguous block of vectors in one copy or none, where replaying the block through `Add` cost three times the read that produced it — the adopting factory keeps the caller's array for the life of the index, an invariant the caller keeps and [decision 0056](docs/decisions/0056-a-block-may-be-adopted-and-the-invariant-is-the-callers-to-keep.md) argues for. ([#474](https://github.com/CyrilB1531/lodestar/issues/474), [`13bdacc`](https://github.com/CyrilB1531/lodestar/commit/13bdacc))
+
+- `bench/Lodestar.Text.Benchmarks -- sidecar` prices a binary sidecar against the JSON artifact in bytes and in time, and [decision 0055](docs/decisions/0055-the-artifact-gets-a-binary-sidecar-once-a-block-can-be-ingested-whole.md) takes one — conditional on a bulk ingest into `EmbeddingIndex`, without which the sidecar route is slower than what it replaces. No shipped behaviour changes yet. ([#436](https://github.com/CyrilB1531/lodestar/issues/436), [`7ab80d1`](https://github.com/CyrilB1531/lodestar/commit/7ab80d1))
+
+- **numpy's `.npy` reads and writes, for the vector block only.** `NpyFile.Read` and `NpyFile.Write` carry a contiguous `float32` block in numpy's own format, returning an `NpyBlock` of the values and the shape; the header is parsed against a fixed grammar and never evaluated, so `descr: '|O'` — numpy's pickle-backed dtype — is refused by name before the payload is touched. It is interop and not a second artifact format: a `.npy` carries no ids, no normalize flag and no schema, so `EmbeddingIndex.Save` is untouched and [decision 0011](docs/decisions/0011-persistence-format.md) is not reopened. ([#450](https://github.com/CyrilB1531/lodestar/issues/450), [`0f05972`](https://github.com/CyrilB1531/lodestar/commit/0f05972))
+
+- **`byte_fallback` resolves an uncovered symbol into `<0xXX>` byte pieces instead of the unknown token, so Llama-2 and Mistral v0.1 both load.** `BpeVocabulary.ByteFallback` and `TokenizerJsonLoader.LoadBpe` require the vocabulary to carry all 256 pieces, refusing by name a file that does not rather than reproduce the silent degradation — or, with no unknown token declared, the dropped symbol — `tokenizers` 0.23.1 falls back to; the expansion runs before the merges, on the decorated symbol, so a `continuing_subword_prefix` or `end_of_word_suffix` on it is itself encoded as bytes. `BpeTokenizer.Decode` now reproduces such a file's `decoder` block too, a bare `ByteFallback` or Llama-2's own `Sequence[Replace, ByteFallback, Fuse, Strip]`, round-tripping the byte pieces and the whitespace escape together — [decision 0063](docs/decisions/0063-byte-fallback-requires-the-whole-alphabet-and-its-decoder-is-read-strictly-too.md) has the measurements against the reference, including an upstream ordering bug found and not reproduced. ([#317](https://github.com/CyrilB1531/lodestar/issues/317), [`6b4f2b6`](https://github.com/CyrilB1531/lodestar/commit/6b4f2b6))
+
+#### Changed
+
+- **The `.npy` read copies the block once, and a second entry point copies it none.** `NpyFile.Read(Stream)` reads the payload straight into the `float[]` the returned block keeps, where it used to stage the same bytes through two buffers first, and names that array as `NpyBlock.OwnedArray` so `EmbeddingIndex.FromOwnedBlock` can adopt it rather than copy the block once more; `NpyFile.Read(ReadOnlyMemory<byte>)` serves a caller already holding the file by **aliasing** those bytes, which must not change while the block lives, and leaves `OwnedArray` null because a borrowed block has no array to hand on. Reading the same 15 360 128 bytes against `np.load` measured 0.21–0.23× of numpy's wall time with three copies between the stream and the block, and a fourth into the index that held it; on the adopting route it now measures **1.00–1.13× cpu and 1.21–1.25× wall** — parity in the first round and slightly ahead in the other two on cpu, the column this project trusts, where it was four to five times behind. The stream read is one copy on `net10.0` and two on `netstandard2.0`, which has no `Stream.Read(Span<byte>)` to read into a caller's array — one API and one behaviour at two speeds, as [decision 0057](docs/decisions/0057-the-npy-read-serves-a-stream-and-a-buffer-differently.md) records with the view on every path it refused. ([#466](https://github.com/CyrilB1531/lodestar/issues/466), [`a3d3145`](https://github.com/CyrilB1531/lodestar/commit/a3d3145))
+- **The payload buffer is rented, not allocated.** `EmbeddingIndex.Load(Stream)` takes its artifact buffer from `ArrayPool<byte>.Shared` and returns it once parsing is done, which removes 20.5 MB of allocation and three of the four collections a load provoked: renting is **42× the allocation and 1.74 ms a load**, about a tenth of one, because what cost was never the allocation but the large-object collection it triggered. The pool holds 33.5 MB for the life of the process in exchange — see [decision 0054](docs/decisions/0054-the-payload-buffer-is-pooled-after-all-because-the-collection-is-the-cost.md), which amends [0053](docs/decisions/0053-the-payload-buffer-is-not-pooled-because-residency-outlives-the-load.md) for refusing that trade without ever timing it. ([#470](https://github.com/CyrilB1531/lodestar/issues/470), [`f8de2ba`](https://github.com/CyrilB1531/lodestar/commit/f8de2ba))
+- **Half the allocation, same bytes on disk.** `EmbeddingIndex.Save` and `SaveAsync` write the vector block a slice at a time instead of handing `Utf8JsonWriter.WriteBase64String` the whole thing, so the writer's buffer no longer doubles its way up to the 20.48 MB the encoding occupies: `EmbeddingIndexSave` allocates **19.87 MB against 39.64**, with a third fewer collections in every generation, and the row against `numpy.save` moves **0.29× to 0.39×**. Slices are 245 760 bytes — a multiple of 12, so a whole number of base64 groups and of floats — which is what makes the artifact byte-for-byte what it was; `SaveAsync` loses its intermediate `MemoryStream` with it. The load pays part of it back, having been subsidised by the buffer the save used to leave behind — see [decision 0051](docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md), which also records why parallelising the base64 was refused: it runs at `memcpy` speed already. ([#430](https://github.com/CyrilB1531/lodestar/issues/430), [`2a50cc1`](https://github.com/CyrilB1531/lodestar/commit/2a50cc1))
+
+#### Fixed
+
+- `NpyFile.Read` bounds a block by `ArtifactLoadOptions.MaxTotalBytes` rather than by `MaxArrayLength`, which that option documents as not applying to a vector block: a 2 605 × 384 block — small for embeddings — was refused at the default options while the same vectors loaded from an index artifact. ([#468](https://github.com/CyrilB1531/lodestar/issues/468), [`c480c1f`](https://github.com/CyrilB1531/lodestar/commit/c480c1f))
+
 ## Released — 2026-09-01
 
 Four tags on one day, and none of them had a section here: the three packages below
 kept their entries under *Unreleased* while their releases were already on the feed.
 Each entry is filed under the tag its own commit is an ancestor of, which is how the
-2026-08-16 wave was reconstructed too. `Nmf.Fit`'s component bound stays unreleased —
-it landed after `Lodestar.Decomposition/v0.1.0` was cut.
+2026-08-16 wave was reconstructed too. `Nmf.Fit`'s component bound is not here because
+it landed after `Lodestar.Decomposition/v0.1.0` was cut; it ships in 0.1.1 above.
 
 ### Lodestar.Abstractions — 0.1.0
 
