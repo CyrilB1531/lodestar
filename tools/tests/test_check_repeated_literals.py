@@ -59,11 +59,12 @@ def test_a_literal_the_change_introduces_is_reported(rooted, capsys):
     assert "'the cat' now appears 4 times (new)" in capsys.readouterr().out
 
 
-def test_a_literal_whose_first_occurrence_is_old_is_not_reported(rooted):
-    """S1192 anchors its issue on the first occurrence, and only new code counts.
+def test_a_literal_already_at_the_threshold_is_not_reported(rooted):
+    """Its issue is not new: the gate raised it, if at all, before this change.
 
-    Measured on #488: two literals crossed the threshold in the same diff and
-    neither was raised, because each already appeared above the lines it added.
+    This is the shape #488 was read from -- literals that crossed while already
+    at three -- and it is why those went unreported there, rather than a threshold
+    of four.
     """
     write(rooted, "gen.py", 'A = "the cat"\nB = "the cat"\nC = "the cat"\n')
     base = commit(rooted, "three, none of them new")
@@ -85,14 +86,36 @@ def test_a_literal_already_over_the_threshold_is_never_reported(rooted):
     assert main(["prog", "--base", base]) == 0
 
 
-def test_three_occurrences_are_not_a_finding(rooted):
-    """Measured on pull request #488: S1192 fires past three, not at three."""
+def test_three_occurrences_are_a_finding(rooted):
+    """Measured on #559: the gate raised "naïve" at exactly three occurrences.
+
+    #488 had been read as "S1192 fires past three, not at three", from one issue
+    at four while three literals sat at three unreported. Those three were already
+    at three before that change, so their issues were not new -- which is the
+    new-code rule the test below pins, and not a threshold of four.
+    """
     write(rooted, "gen.py", "A = None\n")
     base = commit(rooted, "empty")
     write(rooted, "gen.py", 'A = "the cat"\nB = "the cat"\nC = "the cat"\n')
     commit(rooted, "three")
 
-    assert main(["prog", "--base", base]) == 0
+    assert main(["prog", "--base", base]) == 1
+
+
+def test_a_literal_crossing_on_an_untouched_line_is_reported(rooted):
+    """#559's shape: 2 -> 3, with the first occurrence on a line nobody edited.
+
+    S1192 anchors its issue on that first occurrence, and the guard used to require
+    it to be on an added line. The gate does not: it raised the issue because the
+    *issue* was new, not because its anchor was. This is the case that reached
+    SonarCloud on an otherwise green pull request.
+    """
+    write(rooted, "gen.py", 'A = "the cat"\nB = "the cat"\n')
+    base = commit(rooted, "two, below the threshold")
+    write(rooted, "gen.py", 'A = "the cat"\nB = "the cat"\nC = "the cat"\n')
+    commit(rooted, "a third, appended well below the first")
+
+    assert main(["prog", "--base", base]) == 1
 
 
 def test_naming_the_literal_clears_the_finding(rooted):
@@ -140,7 +163,7 @@ def test_report_lists_the_backlog_and_exits_zero(rooted, capsys):
     assert main(["prog", "--report"]) == 0
     out = capsys.readouterr().out
     assert "4x  'metadata'" in out
-    assert "1 literal(s) repeated 4 times or more" in out
+    assert "1 literal(s) repeated 3 times or more" in out
 
 
 def test_help_exits_zero_and_prints_to_stdout(capsys):
