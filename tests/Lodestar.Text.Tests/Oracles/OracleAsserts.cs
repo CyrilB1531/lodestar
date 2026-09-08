@@ -74,6 +74,17 @@ public sealed record MatchRatingCodexCase
     [JsonPropertyName("codex")] public string Codex { get; init; } = "";
 }
 
+/// <summary>A reference case for Double Metaphone: a word and its two doublemetaphone codes.</summary>
+/// <remarks><c>Secondary</c> is empty where the word has no alternate — the generator unwraps
+/// the reference's repeated primary, which is decision 0075's normalisation.</remarks>
+public sealed record DoubleMetaphoneCase
+{
+    [JsonPropertyName("id")] public int Id { get; init; }
+    [JsonPropertyName("word")] public string Word { get; init; } = "";
+    [JsonPropertyName("primary")] public string Primary { get; init; } = "";
+    [JsonPropertyName("secondary")] public string Secondary { get; init; } = "";
+}
+
 /// <summary>A reference case for the Match Rating comparison: two names and jellyfish's verdict.</summary>
 public sealed record MatchRatingComparisonCase
 {

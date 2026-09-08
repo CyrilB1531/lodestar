@@ -50,6 +50,7 @@ from difflib import SequenceMatcher
 import jellyfish
 import numpy as np
 import textdistance as td
+from doublemetaphone import doublemetaphone
 from rapidfuzz.distance import DamerauLevenshtein, Indel, Levenshtein, OSA
 from sklearn import metrics as skm
 from sklearn.feature_extraction.text import CountVectorizer as SkCountVectorizer
@@ -648,6 +649,49 @@ def generate_phonetics() -> dict:
             "library": "jellyfish",
             "library_version": version("jellyfish"),
             "reference_calls": ["jellyfish.soundex", "jellyfish.metaphone", "jellyfish.nysiis"],
+            "seed": SEED,
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
+# phonetic_words is ASCII-alphabetic throughout, so it pins the encoder and nothing
+# about what reaches it. These fix the input contract instead, from the reference.
+DOUBLE_METAPHONE_WORDS = [
+    "", " ", "  ", "123", "a1b2", "O'Brien", "Smith-Jones", "Zzzz zzzz",
+    "élan", "Ünal", "naïve", "ç", "日本",
+    "A", "x", "aeiou", "McDonald", "van der Berg",
+    "Constantinople", "Bhattacharya", "Schwarzenegger",
+]
+
+
+def double_metaphone_words(rng: SeededRandom):
+    yield from DOUBLE_METAPHONE_WORDS
+    yield from phonetic_words(rng)
+
+
+def generate_double_metaphone() -> dict:
+    rng = SeededRandom(SEED)
+    cases = []
+    for idx, word in enumerate(double_metaphone_words(rng)):
+        primary, secondary = doublemetaphone(word)
+        # doublemetaphone repeats the primary where there is no alternate; '' is what the
+        # siblings return and what the C# API exposes -- decision 0075, normalised on the way in.
+        cases.append({
+            "id": idx,
+            "word": word,
+            "primary": primary,
+            "secondary": "" if secondary == primary else secondary,
+        })
+    return {
+        "metadata": {
+            "algorithm": "DoubleMetaphone",
+            "library": "doublemetaphone",
+            "library_version": version("doublemetaphone"),
+            "reference_calls": ["doublemetaphone.doublemetaphone"],
+            "corpus": "the input-contract fixed points, plus phonetic_words -- the words decision 0075 compared the candidates over",
+            "secondary_convention": "'' for no alternate, unwrapped from the reference's repeated primary",
             "seed": SEED,
             "count": len(cases),
         },
@@ -8108,6 +8152,7 @@ def main() -> None:
         "set_similarity.json": generate_set_similarity,
         "phonetics.json": generate_phonetics,
         "metaphone.json": generate_metaphone,
+        "double_metaphone.json": generate_double_metaphone,
         "match_rating_codex.json": generate_match_rating_codex,
         "match_rating_comparison.json": generate_match_rating_comparison,
         "countvectorizer.json": generate_countvectorizer,

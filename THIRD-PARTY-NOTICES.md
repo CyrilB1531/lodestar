@@ -244,6 +244,7 @@ generate test data creates no license claim over the output.
 | --- | --- | --- |
 | rapidfuzz | MIT | Reference values for edit-distance / fuzzy metrics |
 | jellyfish | MIT | Reference values for phonetic / Jaro-family metrics |
+| doublemetaphone | Artistic-2.0 | Reference values for Double Metaphone, which `jellyfish` 1.2.1 does not export |
 | textdistance | MIT | Reference values for set/token similarity metrics |
 | scikit-learn | BSD-3-Clause | Reference values for the vectorizers |
 | nltk | Apache-2.0 | Reference values for Porter and the six Snowball stemmers |

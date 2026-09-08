@@ -30,6 +30,17 @@ protobuf==7.35.1
 # the graph grows by one package rather than by a tree.
 mapie==1.5.0
 
+# doublemetaphone -- the reference for Lodestar.Text's Double Metaphone (#177).
+# jellyfish, which oracles the other three phonetic encoders, exports no Double
+# Metaphone at all in 1.2.1, so this is a second phonetics oracle rather than a
+# reach for a function the existing one already has. Artistic 2.0, read from the
+# LICENSE in its own wheel and not from the PyPI classifier: free, GPL-compatible
+# and non-copyleft, so ADR 0003's hygiene rule -- the one that excludes abydos
+# here, and removed python-Levenshtein earlier -- does not reach it.
+# Decision 0075 has the 401-word comparison that chose it over metaphone 0.6 and
+# phonetics 1.0.5, and why the field narrowed to one.
+doublemetaphone==1.2
+
 # onnx is only needed to (re)build the tiny synthetic test model, not for
 # generate_oracles.py: onnx==1.16.0
 
