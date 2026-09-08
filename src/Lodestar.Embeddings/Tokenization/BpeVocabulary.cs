@@ -154,6 +154,29 @@ public sealed record BpeVocabulary(
     /// </remarks>
     public IReadOnlyList<NormalizationForm> NormalizationForms { get; init; } = [];
 
+    /// <summary>
+    /// The tokens the file's <c>post_processor</c> puts before the text, in that order,
+    /// empty when it declares none.
+    /// </summary>
+    /// <remarks>
+    /// Read from a <c>TemplateProcessing</c>'s <c>single</c> template: <c>["&lt;s&gt;"]</c> for
+    /// Llama-2 and Mistral v0.1. Public because the caller composes the
+    /// <see cref="SpecialTokenTemplate"/> — that type also needs a pad token, and the file
+    /// carries none (decision 0083).
+    /// </remarks>
+    public IReadOnlyList<string> PrefixTokens { get; init; } = [];
+
+    /// <summary>
+    /// The tokens the file's <c>post_processor</c> puts after the text, in that order,
+    /// empty when it declares none.
+    /// </summary>
+    /// <remarks>
+    /// Empty for Llama-2 and Mistral v0.1, which prepend and append nothing; a
+    /// RoBERTa-shaped template would put <c>&lt;/s&gt;</c> here. See
+    /// <see cref="PrefixTokens"/> for why both are public.
+    /// </remarks>
+    public IReadOnlyList<string> SuffixTokens { get; init; } = [];
+
     /// <summary>The whitespace escape the file declared, or <see langword="null"/> when it declared none.</summary>
     /// <remarks>
     /// A file writes it two ways — a <c>Metaspace</c> pre-tokenizer, or a <c>Prepend</c>

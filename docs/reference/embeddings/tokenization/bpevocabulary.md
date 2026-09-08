@@ -15,8 +15,11 @@ unknown tokens into one. `ByteFallback` resolves an uncovered symbol into `<0xXX
 instead, and `LoadBpe` requires the vocabulary to carry all 256 of them when it is set.
 `EndOfWordSuffix` and `ContinuingSubwordPrefix` are the classic-BPE
 markers. `UnkToken` is the fallback. `PreTokenizerPattern`, `NoPreTokenizer` and `PreSplit`
-decide what the merge loop sees. `NormalizationForms` are applied first. `Count` is the
-vocabulary size.
+decide what the merge loop sees. `NormalizationForms` are applied first. `PrefixTokens` and
+`SuffixTokens` are what the file's `post_processor` wraps a sequence in — `["<s>"]` and empty
+for Llama-2 and Mistral v0.1 — and they are the two lists a caller pairs with a pad token of
+their own to build a [`SpecialTokenTemplate`](specialtokentemplate.md), since the file states
+no such token. `Count` is the vocabulary size.
 
 **Example** — a byte-level model with three merges.
 

@@ -98,6 +98,11 @@ internal static class Lot3Embeddings
         BpeVocabulary fromBpeJson = TokenizerJsonLoader.LoadBpe(Utf8(BpeJson), bounds);
         Console.WriteLine($"  BPE tokenizer.json: {fromBpeJson.Count} tokens, {fromBpeJson.Merges.Count} merge");
 
+        // The file's post_processor, read into two lists; its `pair` template is discarded,
+        // so this prints the same whichever spelling a mirror used (decision 0083).
+        Console.WriteLine($"  BPE special tokens: prefix=[{string.Join(", ", fromBpeJson.PrefixTokens)}] "
+            + $"suffix=[{string.Join(", ", fromBpeJson.SuffixTokens)}]");
+
         SentencePieceVocabulary fromUnigramJson = TokenizerJsonLoader.LoadUnigram(Utf8(UnigramJson), bounds);
         Console.WriteLine($"  unigram json     : {fromUnigramJson.Count} pieces");
 
@@ -385,7 +390,14 @@ internal static class Lot3Embeddings
     private const string BpeJson =
         """
         {"version":"1.0","truncation":null,"padding":null,"added_tokens":[],
-         "normalizer":null,"pre_tokenizer":{"type":"Whitespace"},"post_processor":null,
+         "normalizer":null,"pre_tokenizer":{"type":"Whitespace"},
+         "post_processor":{"type":"TemplateProcessing",
+                           "single":[{"SpecialToken":{"id":"<s>","type_id":0}},
+                                     {"Sequence":{"id":"A","type_id":0}}],
+                           "pair":[{"SpecialToken":{"id":"<s>","type_id":0}},
+                                   {"Sequence":{"id":"A","type_id":0}},
+                                   {"Sequence":{"id":"B","type_id":0}}],
+                           "special_tokens":{"<s>":{"id":"<s>","ids":[1],"tokens":["<s>"]}}},
          "decoder":null,
          "model":{"type":"BPE","dropout":null,"unk_token":null,
                   "continuing_subword_prefix":null,"end_of_word_suffix":null,
