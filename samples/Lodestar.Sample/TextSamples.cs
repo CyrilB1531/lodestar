@@ -35,6 +35,7 @@ internal static class TextSamples
         NysiisSample.Run();
         MatchRatingApproachSample.Run();
         DoubleMetaphoneSample.Run();
+        DoubleMetaphoneCodeSample.Run();
         Console.WriteLine();
         Console.WriteLine("  stemmers — the Porter original, then the six Snowball languages");
         PorterStemmerSample.Run();

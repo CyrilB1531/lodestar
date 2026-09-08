@@ -12,10 +12,5 @@ internal static class DoubleMetaphoneSample
         Console.WriteLine($"  DoubleMetaphone(Smith)         = {smith.Primary} / {smith.Secondary}");
         Console.WriteLine($"  DoubleMetaphone(Schmidt)       = {schmidt.Primary} / {schmidt.Secondary}");
         Console.WriteLine($"  they meet on                   = {smith.Secondary == schmidt.Primary}");
-
-        // The pair is constructible, and compares by value -- which is what lets a caller
-        // group a corpus by sound with the code itself as the dictionary key.
-        DoubleMetaphoneCode byHand = new("SM0", "XMT");
-        Console.WriteLine($"  built by hand, equal to Smith  = {byHand == smith}");
     }
 }
