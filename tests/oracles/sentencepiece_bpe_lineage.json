@@ -1,0 +1,280 @@
+{
+ "metadata": {
+  "algorithm": "SentencePiece BPE (Metaspace + byte_fallback)",
+  "library": "tokenizers",
+  "library_version": "0.23.1",
+  "models": {
+   "llama2": "llama2_tokenizer.json (vendored by tools/fetch_llama2_mistral_tokenizers.py)",
+   "mistral_v01": "mistral_v01_tokenizer.json (vendored by tools/fetch_llama2_mistral_tokenizers.py)"
+  },
+  "count": 16
+ },
+ "cases": [
+  {
+   "id": 0,
+   "model": "llama2",
+   "text": "",
+   "tokens": [],
+   "ids": [],
+   "decoded": ""
+  },
+  {
+   "id": 1,
+   "model": "llama2",
+   "text": "the cat",
+   "tokens": [
+    "▁the",
+    "▁cat"
+   ],
+   "ids": [
+    278,
+    6635
+   ],
+   "decoded": "the cat"
+  },
+  {
+   "id": 2,
+   "model": "llama2",
+   "text": " the cat",
+   "tokens": [
+    "▁",
+    "▁the",
+    "▁cat"
+   ],
+   "ids": [
+    29871,
+    278,
+    6635
+   ],
+   "decoded": " the cat"
+  },
+  {
+   "id": 3,
+   "model": "llama2",
+   "text": "  spaced  out  ",
+   "tokens": [
+    "▁▁",
+    "▁spac",
+    "ed",
+    "▁",
+    "▁out",
+    "▁▁"
+   ],
+   "ids": [
+    259,
+    26325,
+    287,
+    29871,
+    714,
+    259
+   ],
+   "decoded": "  spaced  out  "
+  },
+  {
+   "id": 4,
+   "model": "llama2",
+   "text": "aujourd'hui",
+   "tokens": [
+    "▁aujourd",
+    "'",
+    "hui"
+   ],
+   "ids": [
+    22572,
+    29915,
+    15669
+   ],
+   "decoded": "aujourd'hui"
+  },
+  {
+   "id": 5,
+   "model": "llama2",
+   "text": "héllo",
+   "tokens": [
+    "▁h",
+    "él",
+    "lo"
+   ],
+   "ids": [
+    298,
+    3610,
+    417
+   ],
+   "decoded": "héllo"
+  },
+  {
+   "id": 6,
+   "model": "llama2",
+   "text": "🦙",
+   "tokens": [
+    "▁",
+    "<0xF0>",
+    "<0x9F>",
+    "<0xA6>",
+    "<0x99>"
+   ],
+   "ids": [
+    29871,
+    243,
+    162,
+    169,
+    156
+   ],
+   "decoded": "🦙"
+  },
+  {
+   "id": 7,
+   "model": "llama2",
+   "text": "😀ok",
+   "tokens": [
+    "▁",
+    "<0xF0>",
+    "<0x9F>",
+    "<0x98>",
+    "<0x80>",
+    "ok"
+   ],
+   "ids": [
+    29871,
+    243,
+    162,
+    155,
+    131,
+    554
+   ],
+   "decoded": "😀ok"
+  },
+  {
+   "id": 8,
+   "model": "mistral_v01",
+   "text": "",
+   "tokens": [],
+   "ids": [],
+   "decoded": ""
+  },
+  {
+   "id": 9,
+   "model": "mistral_v01",
+   "text": "the cat",
+   "tokens": [
+    "▁the",
+    "▁cat"
+   ],
+   "ids": [
+    272,
+    5255
+   ],
+   "decoded": "the cat"
+  },
+  {
+   "id": 10,
+   "model": "mistral_v01",
+   "text": " the cat",
+   "tokens": [
+    "▁the",
+    "▁cat"
+   ],
+   "ids": [
+    272,
+    5255
+   ],
+   "decoded": "the cat"
+  },
+  {
+   "id": 11,
+   "model": "mistral_v01",
+   "text": "  spaced  out  ",
+   "tokens": [
+    "▁",
+    "▁sp",
+    "aced",
+    "▁",
+    "▁out",
+    "▁▁"
+   ],
+   "ids": [
+    28705,
+    668,
+    2701,
+    28705,
+    575,
+    259
+   ],
+   "decoded": " spaced  out  "
+  },
+  {
+   "id": 12,
+   "model": "mistral_v01",
+   "text": "aujourd'hui",
+   "tokens": [
+    "▁au",
+    "jour",
+    "d",
+    "'",
+    "hui"
+   ],
+   "ids": [
+    2505,
+    18777,
+    28715,
+    28742,
+    24281
+   ],
+   "decoded": "aujourd'hui"
+  },
+  {
+   "id": 13,
+   "model": "mistral_v01",
+   "text": "héllo",
+   "tokens": [
+    "▁h",
+    "é",
+    "ll",
+    "o"
+   ],
+   "ids": [
+    295,
+    28797,
+    584,
+    28709
+   ],
+   "decoded": "héllo"
+  },
+  {
+   "id": 14,
+   "model": "mistral_v01",
+   "text": "🦙",
+   "tokens": [
+    "▁",
+    "<0xF0>",
+    "<0x9F>",
+    "<0xA6>",
+    "<0x99>"
+   ],
+   "ids": [
+    28705,
+    243,
+    162,
+    169,
+    156
+   ],
+   "decoded": "🦙"
+  },
+  {
+   "id": 15,
+   "model": "mistral_v01",
+   "text": "😀ok",
+   "tokens": [
+    "▁",
+    "😀",
+    "ok"
+   ],
+   "ids": [
+    28705,
+    30575,
+    493
+   ],
+   "decoded": "😀ok"
+  }
+ ]
+}

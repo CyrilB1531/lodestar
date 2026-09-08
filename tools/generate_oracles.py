@@ -5209,6 +5209,97 @@ def generate_bpe_byte_fallback() -> dict:
     }
 
 
+# The two files #175 names, vendored by tools/fetch_llama2_mistral_tokenizers.py.
+LINEAGE_MODELS = {
+    "llama2": "llama2_tokenizer.json",
+    "mistral_v01": "mistral_v01_tokenizer.json",
+}
+
+# Chosen so every text reaches the path this corpus is about (#208, ADR 0004);
+# each row says which half it exercises.
+LINEAGE_TEXTS = [
+    "",                       # the empty control
+    "the cat",                # Metaspace: the escape and the leading prepend
+    " the cat",               # not the same ids: the prepend runs, then the space escapes
+    "  spaced  out  ",        # the whitespace-run merges, where the mirrors parted
+    "aujourd'hui",            # a French elision, deep in the merge table
+    "héllo",             # the two models' merge tables answer differently
+    "\U0001f999",             # byte_fallback: four byte pieces on both models
+    "\U0001f600ok",           # covered by Mistral, byte-resolved by Llama-2
+]
+
+
+def generate_sentencepiece_bpe_lineage() -> dict:
+    """Llama-2 and Mistral v0.1 encoding their own texts, the two files #175 names.
+
+    This is the lot that makes #175's opening sentence false rather than true:
+    "files a user actually has, and neither tokenizer here loads them". Both are
+    SentencePiece-BPE -- a Metaspace whitespace escape over byte_fallback -- and
+    they write that pipeline **two different ways**, which is why the corpus needs
+    both files and not one of them twice. Llama-2 carries a `Prepend` plus
+    `Replace` normalizer with a null pre_tokenizer; Mistral a `Metaspace`
+    pre-tokenizer with `split` off and no normalizer. Decision 0050 section 2 calls
+    those two writings of one value, and this is where that claim meets two real
+    files rather than a synthetic pair.
+
+    `add_special_tokens` is off. The files declare a `TemplateProcessing` that
+    prepends `<s>`, which decision 0083 reads into `BpeVocabulary.PrefixTokens`
+    for a caller to apply through `SpecialTokenTemplate` -- `BpeTokenizer.Encode`
+    does not apply it, so a corpus recording the reference's prefixed stream would
+    compare two different operations.
+
+    `skip_special_tokens` is off on the decode side too, so `decoded` and
+    `BpeTokenizer.Decode` are the same operation: the reference skips them by
+    default, which would compare an id stream against a shorter one.
+
+    **No row carries a special token as ordinary text.** `"<s>"` was in this list
+    and came out: the two models answer it differently from each other and from
+    Lodestar -- Mistral emits `['<s>']` with no escape, Llama-2 `['▁<s>']` for the
+    single id 1, where Lodestar emits `['▁', '<s>']` as ids 29871 and 1. That is the
+    added-token-times-metaspace-prepend interaction decision 0062 governs, not the
+    loading this corpus is about, and it is filed on its own rather than frozen here
+    as though it were settled -- issue #551.
+
+    The discriminating row is `\U0001f600ok`: Mistral's vocabulary carries that emoji
+    where Llama-2's does not, so one model answers a whole token and the other four
+    byte pieces. Without it the two halves of this corpus could both pass while
+    measuring the same thing twice.
+
+    Llama-2 is vendored under decision 0084's named exception to 0003's allowed-source
+    list -- the LLAMA 2 COMMUNITY LICENSE, for this artifact alone, with the licence,
+    the notice and the acceptable-use policy vendored beside it.
+    """
+    from tokenizers import Tokenizer  # noqa: PLC0415
+
+    cases = []
+    for name, fixture in LINEAGE_MODELS.items():
+        tokenizer = Tokenizer.from_file(str(ORACLE_DIR / fixture))
+        for text in LINEAGE_TEXTS:
+            encoded = tokenizer.encode(text, add_special_tokens=False)
+            cases.append({
+                "id": len(cases),
+                "model": name,
+                "text": text,
+                "tokens": encoded.tokens,
+                "ids": encoded.ids,
+                "decoded": tokenizer.decode(encoded.ids, skip_special_tokens=False),
+            })
+
+    return {
+        "metadata": {
+            "algorithm": "SentencePiece BPE (Metaspace + byte_fallback)",
+            "library": "tokenizers",
+            "library_version": version("tokenizers"),
+            "models": {
+                name: f"{fixture} (vendored by tools/fetch_llama2_mistral_tokenizers.py)"
+                for name, fixture in LINEAGE_MODELS.items()
+            },
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
 # Two CJK texts, an emoji sequence and two controls: a byte-level token is a
 # fragment of a multi-byte character far more often than not.
 BYTELEVEL_STREAM_TEXTS = [
@@ -8075,6 +8166,7 @@ def main() -> None:
         "bpe_normalizer.json": generate_bpe_normalizer,
         "bpe_metaspace.json": generate_bpe_metaspace,
         "bpe_byte_fallback.json": generate_bpe_byte_fallback,
+        "sentencepiece_bpe_lineage.json": generate_sentencepiece_bpe_lineage,
         "bytelevel_decode_stream.json": generate_bytelevel_decode_stream,
         "unicode_forms.json": generate_unicode_forms,
         "bpe_added_tokens.json": generate_bpe_added_tokens,
