@@ -22,6 +22,7 @@ public sealed class SentencePieceBpeLineageOracleTests
 
     private static readonly Dictionary<string, string> Fixtures = new(StringComparer.Ordinal)
     {
+        ["llama2"] = "llama2_tokenizer.json",
         ["mistral_v01"] = "mistral_v01_tokenizer.json",
     };
 
@@ -66,12 +67,13 @@ public sealed class SentencePieceBpeLineageOracleTests
             }
         }
 
-        Assert.Equal(8, replayed);
+        Assert.Equal(16, replayed);
         Assert.Empty(failures);
     }
 
     /// <summary>Both files load at all, with the flags that make them this lineage.</summary>
     [Theory]
+    [InlineData("llama2")]
     [InlineData("mistral_v01")]
     public void Each_file_loads_as_the_third_pipeline(string model)
     {
@@ -119,6 +121,26 @@ public sealed class SentencePieceBpeLineageOracleTests
 
         Assert.Equal(Fixtures.Keys.Order(), escaped.Order());
         Assert.Equal(Fixtures.Keys.Order(), byteResolved.Order());
+    }
+
+    /// <summary>
+    /// The one row where the two models answer differently, so the corpus cannot pass
+    /// while measuring the same thing twice.
+    /// </summary>
+    [Fact]
+    public void The_two_models_part_on_a_symbol_only_one_of_them_covers()
+    {
+        using JsonDocument doc = OracleLoader.Load(Corpus);
+
+        var byModel = doc.RootElement.GetProperty("cases").EnumerateArray()
+            .Where(c => c.GetProperty("text").GetString() == "\U0001F600ok")
+            .ToDictionary(
+                c => c.GetProperty("model").GetString()!,
+                c => c.GetProperty("tokens").EnumerateArray().Select(e => e.GetString()!).ToArray(),
+                StringComparer.Ordinal);
+
+        Assert.Equal(["▁", "<0xF0>", "<0x9F>", "<0x98>", "<0x80>", "ok"], byModel["llama2"]);
+        Assert.Equal(["▁", "\U0001F600", "ok"], byModel["mistral_v01"]);
     }
 
     private static BpeVocabulary Load(string fixture) =>

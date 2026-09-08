@@ -49,18 +49,22 @@ corroborating reading of the parts that decide encoding -- its own export is old
 spells the pipeline differently, so it is held to VOCABULARY_AGREEMENT rather than to
 the full set.
 
-Why Llama-2 is verified here and not written
---------------------------------------------
-`meta-llama/Llama-2-7b-hf` is `license:llama2` -- the Llama 2 Community License,
-bespoke and non-OSS -- and **both ungated mirrors declare no licence at all**, which
-is not the same as declaring a permissive one. Decision 0003 names only permissive
-sources, and the two model artifacts THIRD-PARTY-NOTICES.md carries are both MIT. So
-this tool downloads the Llama-2 file, checks the two mirrors agree, and stops there:
-the claim stays reproducible by anyone who runs it, without the repository
-redistributing the vocabulary. Issue #552 holds the decision; flipping the `vendored`
-flag below is the whole change if it goes the other way.
+Why Llama-2 is vendored, and from which mirror
+----------------------------------------------
+`meta-llama/Llama-2-7b-hf` is `license:llama2` -- the LLAMA 2 COMMUNITY LICENSE, which
+is not one of the permissive licences decision 0003 names. Decision 0084 accepts it as
+a named exception **for this artifact alone**, and the conditions it attaches are met
+by the three files this tool also writes into docs/vendored/llama2/ and pins beside
+the vocabulary.
 
-Mistral v0.1 is Apache-2.0 on the original and on its mirror, and is vendored.
+`TheBloke/Llama-2-7B-fp16` is the primary rather than `daryl149/llama-2-7b-chat-hf`
+because it ships `LICENSE`, `Notice` and `USE_POLICY.md` next to the artifact, so the
+licence travels from the same place as the file. Its `LICENSE` is byte-identical to
+`NousResearch/Llama-2-7b-hf`'s -- the two-source discipline applied to the licence text
+as well as to the vocabulary. The two mirrors part on `post_processor`, which decision
+0083 discards and which MIRROR_AGREEMENT therefore does not check.
+
+Mistral v0.1 is Apache-2.0 on the original and on its mirror, and needs no exception.
 """
 
 
@@ -82,12 +86,12 @@ VOCABULARY_AGREEMENT = ("vocab", "merges")
 # local name -> (primary (repo, sha256), corroborating (repo, sha256), full agreement?, vendored?)
 MODELS = {
     "llama2_tokenizer.json": (
-        ("daryl149/llama-2-7b-chat-hf",
-         "f9ffc4aede0845ab65324ce5dccb823dca2427f9a0710981e5bc2398d73d8162"),
         ("TheBloke/Llama-2-7B-fp16",
          "8eea70c4866c4f1320ba096fc986ac82038a8374dbe135212ba7628835b4a6f1"),
+        ("daryl149/llama-2-7b-chat-hf",
+         "f9ffc4aede0845ab65324ce5dccb823dca2427f9a0710981e5bc2398d73d8162"),
         True,
-        False,   # verified, never written -- see the licence note below and issue #552
+        True,
     ),
     "mistral_v01_tokenizer.json": (
         ("mistralai/Mistral-7B-v0.1",
@@ -98,6 +102,20 @@ MODELS = {
         True,
     ),
 }
+
+
+# The licence the vendored file ships under, pinned beside it. TheBloke is the
+# primary source precisely because it carries these next to the artifact.
+LICENCE_FILES = {
+    "LICENSE": ("LICENSE",
+                "8c17c2ebb0ea011be9981cc3922db8ca8fa61e828c5d3f44cb6ae342bf80460b"),
+    "NOTICE": ("Notice",
+               "62889ddbf7d51e8b94c8fcdf620577db870bcd25fddbf0da698734b500b614ea"),
+    "USE_POLICY.txt": ("USE_POLICY.md",
+                       "7c23fb36d80141c4ab8cdbb61ee4790102ebd2bf7aeff414453177d4f2110e5d"),
+}
+LICENCE_REPO = "TheBloke/Llama-2-7B-fp16"
+LICENCE_DIR = Path(__file__).resolve().parent.parent / "docs" / "vendored" / "llama2"
 
 
 def url(repo: str) -> str:
@@ -126,9 +144,32 @@ def disagreements(primary: bytes, other: bytes, full: bool) -> list[str]:
     return found
 
 
+def check_licence(check: bool) -> list[str]:
+    """The Llama 2 Community License and its two companions, verified or written."""
+    failures: list[str] = []
+    for local, (remote, pinned) in LICENCE_FILES.items():
+        with urllib.request.urlopen(  # noqa: S310
+                f"https://huggingface.co/{LICENCE_REPO}/raw/main/{remote}") as response:
+            payload = response.read()
+        digest = hashlib.sha256(payload).hexdigest()
+        if digest != pinned:
+            failures.append(f"{LICENCE_REPO}/{remote}\n  expected sha256 {pinned}\n"
+                            f"  got      sha256 {digest}")
+            continue
+        path = LICENCE_DIR / local
+        if check:
+            if not path.exists() or path.read_bytes() != payload:
+                failures.append(f"{path} differs from the verified upstream licence.")
+        else:
+            path.write_bytes(payload)
+            print(f"{local}: {len(payload)} bytes from {LICENCE_REPO} -> {path}")
+    return failures
+
+
 def main() -> int:
     check = "--check" in sys.argv[1:]
     failures: list[str] = []
+    failures += check_licence(check)
     for local, (primary, corroborating, full, vendored) in MODELS.items():
         payloads = [download(repo, pinned) for repo, pinned in (primary, corroborating)]
         failures += [p for p in payloads if isinstance(p, str)]

@@ -5211,6 +5211,7 @@ def generate_bpe_byte_fallback() -> dict:
 
 # The two files #175 names, vendored by tools/fetch_llama2_mistral_tokenizers.py.
 LINEAGE_MODELS = {
+    "llama2": "llama2_tokenizer.json",
     "mistral_v01": "mistral_v01_tokenizer.json",
 }
 
@@ -5259,15 +5260,14 @@ def generate_sentencepiece_bpe_lineage() -> dict:
     loading this corpus is about, and it is filed on its own rather than frozen here
     as though it were settled -- issue #551.
 
-    **Only Mistral is here.** Llama-2 is Apache-2.0's opposite: `license:llama2` on
-    the gated original and no declared licence at all on either ungated mirror, so
-    the repository does not redistribute its vocabulary -- issue #552 holds that
-    decision, and `tools/fetch_llama2_mistral_tokenizers.py` still downloads and
-    verifies the file so the claim stays reproducible. What that costs this corpus
-    is the discriminating row: `\U0001f600ok` is a whole token to Mistral and four
-    byte pieces to Llama-2, and it was the pair that proved the two halves were not
-    measuring the same thing twice. Adding Llama-2 back is a one-line flip in the
-    fetch tool and a key here.
+    The discriminating row is `\U0001f600ok`: Mistral's vocabulary carries that emoji
+    where Llama-2's does not, so one model answers a whole token and the other four
+    byte pieces. Without it the two halves of this corpus could both pass while
+    measuring the same thing twice.
+
+    Llama-2 is vendored under decision 0084's named exception to 0003's allowed-source
+    list -- the LLAMA 2 COMMUNITY LICENSE, for this artifact alone, with the licence,
+    the notice and the acceptable-use policy vendored beside it.
     """
     from tokenizers import Tokenizer  # noqa: PLC0415
 

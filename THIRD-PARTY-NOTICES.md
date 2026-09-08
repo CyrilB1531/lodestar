@@ -83,6 +83,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 | `xlm-roberta-base` SentencePiece vocabulary | MIT | `tests/oracles/xlmr_fairseq.model` | `https://huggingface.co/xlm-roberta-base/resolve/main/sentencepiece.bpe.model` |
 | `gpt2` byte-level BPE vocabulary and merge table | MIT | `tests/oracles/gpt2_vocab.json`, `tests/oracles/gpt2_merges.txt` | `https://huggingface.co/openai-community/gpt2/resolve/main/vocab.json`, `.../merges.txt` |
 | `Mistral-7B-v0.1` SentencePiece-BPE vocabulary and merge table | Apache-2.0 | `tests/oracles/mistral_v01_tokenizer.json` | `https://huggingface.co/mistralai/Mistral-7B-v0.1/resolve/main/tokenizer.json` |
+| `Llama-2` SentencePiece-BPE vocabulary and merge table | LLAMA 2 Community License | `tests/oracles/llama2_tokenizer.json` | `https://huggingface.co/TheBloke/Llama-2-7B-fp16/resolve/main/tokenizer.json` |
 
 The **vocabulary only** — the 250 000 pieces, their scores, their types and the
 `nmt_nfkc` character map the file's `normalizer_spec` carries (a table compiled
@@ -171,11 +172,46 @@ format. It is downloaded verbatim by
 `tools/fetch_llama2_mistral_tokenizers.py`, which pins its upstream SHA-256 and
 corroborates it against a second mirror.
 
-**Llama-2 is deliberately absent.** Its gated original is `license:llama2` — the
-Llama 2 Community License, which is not one of the permissive licenses decision
-0003 names — and both ungated mirrors declare no license at all. The fetch tool
-downloads and verifies it so the claim stays reproducible, and writes nothing.
-Issue #552 holds that decision.
+### `Llama-2` tokenizer
+
+The **vocabulary and merge table only** — the 32 000 entries and 61 249 ranked
+pairs of `tokenizer.json`, with the `Prepend` plus `Replace` normalizer and
+`byte_fallback` flags that make it the other spelling of the SentencePiece-BPE
+lineage. **No model weights are redistributed**, per
+[`docs/decisions/0003-provenance-and-licensing.md`](docs/decisions/0003-provenance-and-licensing.md)
+and `CLAUDE.md`'s hard rule.
+
+Llama 2 is licensed under the **LLAMA 2 COMMUNITY LICENSE AGREEMENT**, which is not
+one of the permissive licenses decision 0003 names.
+[`docs/decisions/0084-the-llama-2-tokenizer-is-vendored-under-a-bespoke-licence.md`](docs/decisions/0084-the-llama-2-tokenizer-is-vendored-under-a-bespoke-licence.md)
+accepts it **for this artifact alone**; 0003's allowed-source list is unchanged, and
+every future non-permissive source needs its own decision. The Agreement's conditions
+are met here:
+
+- the complete Agreement is at [`docs/vendored/llama2/LICENSE`](docs/vendored/llama2/LICENSE),
+  unmodified;
+- the required attribution notice is at [`docs/vendored/llama2/NOTICE`](docs/vendored/llama2/NOTICE),
+  reproduced verbatim below;
+- the Acceptable Use Policy is at [`docs/vendored/llama2/USE_POLICY.txt`](docs/vendored/llama2/USE_POLICY.txt),
+  renamed from its upstream `.md` only so that `markdownlint` does not lint a third
+  party's document to this repository's house style.
+
+```text
+Llama 2 is licensed under the LLAMA 2 Community License, Copyright © Meta Platforms, Inc. All Rights Reserved.
+```
+
+The file is compiled into no package: it lives under `tests/`, is copied to the test
+output, and exists so `SentencePieceBpeLineageOracleTests` checks the normalizer
+spelling of the whitespace escape against a file a user actually has. It is downloaded
+verbatim by `tools/fetch_llama2_mistral_tokenizers.py`, which pins its upstream
+SHA-256 and corroborates it against `daryl149/llama-2-7b-chat-hf` under
+[`docs/decisions/0017-bpe-parity-scope.md`](docs/decisions/0017-bpe-parity-scope.md)
+§5's two-mirror method — the original, `meta-llama/Llama-2-7b-hf`, is gated and answers
+HTTP 401. `TheBloke/Llama-2-7B-fp16` is the source rather than the other mirror because
+it ships the Agreement, the notice and the policy beside the artifact, so the license
+travels from the same place as the file. That same tool pins the three license files
+too, so an upstream change to the Agreement fails the fetch rather than drifting from
+what is committed here.
 
 `mistralai/Mistral-7B-v0.1` is published under the Apache License 2.0 by Mistral
 AI, as declared on its model card. The full license text is at
