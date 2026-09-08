@@ -76,6 +76,9 @@ BOS_TOKEN = "<s>"
 # Two spellings of one fixture phrase. THE_CAT is separate because four corpora
 # reach for it and Sonar's S1192 counts them together (issue #487's quality gate).
 THE_CAT = "the cat"
+# The accented word three corpora reach for: the two transliteration pairs and the
+# Double Metaphone input contract, which is what took it to S1192's threshold (#177).
+NAIVE = "naïve"
 # The conformal corpus's own key names. S1192 counts a JSON key like any other
 # literal, and these are written once per case in three places each (#441).
 CALIB_SIZE = "calib"
@@ -227,7 +230,7 @@ def build_pairs(rng: SeededRandom):
         ("Levenshtein", "Levenstein"),
         ("café", "cafe"),
         ("Straße", "Strasse"),
-        ("naïve", "naive"),
+        (NAIVE, "naive"),
         ("😀", "😀"),
         ("😀", "😁"),
         ("a😀b", "ab"),
@@ -660,7 +663,7 @@ def generate_phonetics() -> dict:
 # about what reaches it. These fix the input contract instead, from the reference.
 DOUBLE_METAPHONE_WORDS = [
     "", " ", "  ", "123", "a1b2", "O'Brien", "Smith-Jones", "Zzzz zzzz",
-    "élan", "Ünal", "naïve", "ç", "日本",
+    "élan", "Ünal", NAIVE, "ç", "日本",
     "A", "x", "aeiou", "McDonald", "van der Berg",
     "Constantinople", "Bhattacharya", "Schwarzenegger",
 ]
@@ -1308,7 +1311,7 @@ FUZZ_PAIRS = [
     ("kitten", "sitting"), ("levenshtein", "levenstein"),
     ("this is a test", "this is a test!"),
     ("one two three four", "four three two one"),
-    ("café", "cafe"), ("naïve", "naive"),
+    ("café", "cafe"), (NAIVE, "naive"),
     ("abcdefgh", "abcdefgh"), ("abcdefgh", "hgfedcba"),
     ("python programming", "programming in python"),
     (THE_CAT, "cat"), ("supercalifragilistic", "super"),
