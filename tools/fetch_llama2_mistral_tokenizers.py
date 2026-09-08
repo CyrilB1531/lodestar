@@ -157,45 +157,52 @@ def check_licence(check: bool) -> list[str]:
                             f"  got      sha256 {digest}")
             continue
         path = LICENCE_DIR / local
-        if check:
-            if not path.exists() or path.read_bytes() != payload:
-                failures.append(f"{path} differs from the verified upstream licence.")
-        else:
-            path.write_bytes(payload)
-            print(f"{local}: {len(payload)} bytes from {LICENCE_REPO} -> {path}")
+        failures += write_or_verify(
+            path, payload, check,
+            f"{local}: {len(payload)} bytes from {LICENCE_REPO} -> {path}")
     return failures
+
+
+def write_or_verify(path: Path, payload: bytes, check: bool, said: str) -> list[str]:
+    """Write the verified bytes, or check what is on disk already matches them."""
+    if not check:
+        path.write_bytes(payload)
+        print(said)
+        return []
+    if not path.exists() or path.read_bytes() != payload:
+        return [f"{path} differs from the verified upstream file."]
+    return []
+
+
+def vendor_model(local: str, entry: tuple, check: bool) -> list[str]:
+    """One model: both sources fetched, held to their agreement, then written."""
+    primary, corroborating, full, vendored = entry
+    payloads = [download(repo, pinned) for repo, pinned in (primary, corroborating)]
+    complaints = [p for p in payloads if isinstance(p, str)]
+    if complaints:
+        return complaints
+
+    parted = disagreements(payloads[0], payloads[1], full)
+    if parted:
+        return [f"{primary[0]} and {corroborating[0]} disagree on {', '.join(parted)}; "
+                "two sources standing in for one file have to agree on what it encodes to"]
+
+    if not vendored:
+        print(f"{local}: {primary[0]} verified against {corroborating[0]}, not written")
+        return []
+
+    path = ORACLE_DIR / local
+    return write_or_verify(
+        path, payloads[0], check,
+        f"{local}: {len(payloads[0])} bytes from {primary[0]}, "
+        f"agreeing with {corroborating[0]} -> {path}")
 
 
 def main() -> int:
     check = "--check" in sys.argv[1:]
-    failures: list[str] = []
-    failures += check_licence(check)
-    for local, (primary, corroborating, full, vendored) in MODELS.items():
-        payloads = [download(repo, pinned) for repo, pinned in (primary, corroborating)]
-        failures += [p for p in payloads if isinstance(p, str)]
-        if any(isinstance(p, str) for p in payloads):
-            continue
-
-        parted = disagreements(payloads[0], payloads[1], full)
-        if parted:
-            failures.append(
-                f"{primary[0]} and {corroborating[0]} disagree on {', '.join(parted)}; "
-                "two sources standing in for one file have to agree on what it encodes to")
-            continue
-
-        if not vendored:
-            print(f"{local}: {primary[0]} verified against {corroborating[0]}, not written "
-                  "(licence undecided -- issue #552)")
-            continue
-
-        path = ORACLE_DIR / local
-        if check:
-            if not path.exists() or path.read_bytes() != payloads[0]:
-                failures.append(f"{path} differs from the verified upstream file.")
-        else:
-            path.write_bytes(payloads[0])
-            print(f"{local}: {len(payloads[0])} bytes from {primary[0]}, "
-                  f"agreeing with {corroborating[0]} -> {path}")
+    failures = check_licence(check)
+    for local, entry in MODELS.items():
+        failures += vendor_model(local, entry, check)
 
     for failure in failures:
         print(failure, file=sys.stderr)
