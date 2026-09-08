@@ -1,23 +1,28 @@
 #!/usr/bin/env python3
 """Refuse a pull request that pushes a Python string literal past S1192's threshold.
 
-SonarCloud's S1192 fires on a literal repeated more than three times in one file,
+SonarCloud's S1192 fires on a literal repeated three times or more in one file,
 and it is reported only after the push: `AnalysisMode=All` covers this
 repository's C# in the build, but nothing looks at its Python before the
-quality gate does. tools/generate_oracles.py has tripped it twice -- the second
-time failing an otherwise green pull request, where three added corpus texts
-took "the cat" from four occurrences to eight.
+quality gate does. tools/generate_oracles.py has tripped it repeatedly, most
+recently on #559, where "naïve" reached a third occurrence and failed an
+otherwise green pull request.
 
 The file already holds some 108 literals past that threshold, mostly
 JSON keys like "metadata" and "count". Reporting those would drown the signal,
 and the gate itself tolerates them because only new code counts. So this script
 compares against a base revision and reports a literal only when the change
-pushes it *across* the threshold **and** its first occurrence is on a line the
-change added. Both halves were measured on pull request #488, where the gate
-raised one issue: a literal new to the file at four occurrences. Two others
-crossed the threshold in the same diff and were not raised, because the line
-S1192 anchors the issue to -- the first occurrence -- was already there, and
-only new code counts.
+takes it from under three occurrences to three or more.
+
+What it deliberately does **not** require is that the literal's first occurrence
+be on a line the change added. It did, between #488 and #560, on the reading that
+S1192 anchors its issue there and only new code counts -- but the gate treats the
+*issue* as new rather than its anchor. "naïve" crossed 2 -> 3 in #559 with its
+first occurrence on a line nobody had edited, and was raised. That same reading
+had also put the threshold at four, from one issue at four occurrences on #488
+while three literals sat at three unreported; those three were already at three
+before that change, so their issues were not new -- which this rule covers, and a
+threshold of four does not.
 
 A literal already over it and merely growing is not reported. That is the rule
 this repository applies by hand anyway: META_SYMBOL, THE_CAT and BOS_TOKEN in
@@ -58,9 +63,14 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-# Measured on #488, not assumed: a literal at four was the gate's only issue
-# while three others sat at exactly three, unreported.
-THRESHOLD = 4
+# long-comment: this constant was 4 for nine days on a measurement that read one
+# observation the wrong way, so the reading is written beside it rather than left
+# to the commit log. Measured on #559: the gate raised "naïve" at exactly three
+# occurrences. #488 had been read as "fires past three", from one issue at four
+# while three literals sat at three unreported -- but those three were already at
+# three before that change, so their issues were not new. That is the new-code
+# rule in crossed() below, and not a threshold of four.
+THRESHOLD = 3
 
 # Shorter literals are noise -- a repeated "ok" or "id" is not the duplication
 # the rule is about, and Sonar does not report them either.
@@ -77,25 +87,6 @@ EXCLUDED = "tools/tests/"
 # --base reaches git, so it is validated before it gets there rather than quoted
 # after -- check_adr_immutable.py's guard: a leading '-' would read as an option.
 REVISION = re.compile(r"^[0-9A-Za-z][0-9A-Za-z._/~^-]{0,254}$")
-
-
-# The +side line numbers of a unified diff hunk header, which is where the added
-# lines of that hunk start and how many there are.
-HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
-
-
-def added_lines(base: str, path: str) -> set[int]:
-    """The line numbers this change added to `path`, as they read in the working tree."""
-    out = subprocess.run(
-        ["git", "diff", "-U0", base, "--", path],
-        cwd=ROOT, capture_output=True, text=True, check=True)
-    lines: set[int] = set()
-    for line in out.stdout.splitlines():
-        found = HUNK.match(line)
-        if found:
-            start = int(found.group(1))
-            lines.update(range(start, start + int(found.group(2) or 1)))
-    return lines
 
 
 def _docstring_ids(tree: ast.AST) -> set[int]:
@@ -175,10 +166,10 @@ def crossed(base: str) -> list[tuple[str, str, int, int]]:
         if not after:
             continue
         before = counts(at_base(base, path))
-        added = added_lines(base, path)
-        first = {literal: found[1] for literal, found in literals(source).items()}
         for literal, count in sorted(after.items()):
-            if before.get(literal, 0) < THRESHOLD and first.get(literal) in added:
+            # The issue is what has to be new, not the line it is anchored to --
+            # "naïve" crossed 2 -> 3 in #559 with its first occurrence untouched.
+            if before.get(literal, 0) < THRESHOLD:
                 findings.append((path, literal, before.get(literal, 0), count))
     return findings
 
