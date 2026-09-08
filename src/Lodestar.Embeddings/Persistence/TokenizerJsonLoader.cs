@@ -532,7 +532,7 @@ public static class TokenizerJsonLoader
             ReadBpeNormalizer(root, out MetaspaceEscape? normalizerEscape);
         RejectNonNull(root, "truncation", "Lodestar tokenizers do not truncate");
         RejectNonNull(root, "padding", "Lodestar tokenizers do not pad");
-        RejectNonNull(root, "post_processor", "Lodestar tokenizers do not insert special tokens such as [CLS] and [SEP]");
+        ReadBpePostProcessor(root, out IReadOnlyList<string> prefixTokens, out IReadOnlyList<string> suffixTokens);
         (bool byteLevel, bool addPrefixSpace, BpeSplitStep? preSplit, string? pattern, bool noPreTokenizer) =
             ReadBpePreTokenizer(root, out MetaspaceEscape? preTokenizerEscape);
         EnsureDecoderMatchesModel(root, byteLevel);
@@ -568,9 +568,117 @@ public static class TokenizerJsonLoader
             PreTokenizerPattern = pattern,
             NoPreTokenizer = noPreTokenizer,
             NormalizationForms = normalizationForms,
+            PrefixTokens = prefixTokens,
+            SuffixTokens = suffixTokens,
             Metaspace = escape,
             Decoder = ReadBpeDecoder(root, byteFallback),
         };
+    }
+
+    /// <summary>
+    /// Reads a <c>TemplateProcessing</c> post-processor into the tokens it wraps a single
+    /// sequence in, refusing every other kind of post-processor by name.
+    /// </summary>
+    /// <remarks>
+    /// Only <c>single</c> is read; <c>pair</c> and <c>type_id</c> are discarded, and the pad
+    /// token is not read at all — decision 0083 has why, and the two Llama-2 mirrors that
+    /// disagree on <c>pair</c> while agreeing on everything else.
+    /// </remarks>
+    private static void ReadBpePostProcessor(
+        JsonElement root,
+        out IReadOnlyList<string> prefixTokens,
+        out IReadOnlyList<string> suffixTokens)
+    {
+        prefixTokens = [];
+        suffixTokens = [];
+        if (!root.TryGetProperty("post_processor", out JsonElement processor)
+            || processor.ValueKind == JsonValueKind.Null)
+        {
+            return;
+        }
+
+        string? kind = OptionalString(processor, "type");
+        if (!string.Equals(kind, "TemplateProcessing", StringComparison.Ordinal))
+        {
+            throw Unsupported(
+                $"its post_processor is '{kind ?? "unnamed"}'",
+                "only TemplateProcessing is reproduced, and the others insert tokens this loader would have to guess at");
+        }
+
+        if (!processor.TryGetProperty("single", out JsonElement single)
+            || single.ValueKind != JsonValueKind.Array)
+        {
+            throw Unsupported(
+                "its TemplateProcessing post_processor declares no 'single' template",
+                "that template is what says which tokens wrap one sequence");
+        }
+
+        List<string> prefix = [];
+        List<string> suffix = [];
+        bool seenSequence = false;
+        foreach (JsonElement step in single.EnumerateArray())
+        {
+            seenSequence = ReadTemplateStep(step, prefix, suffix, seenSequence);
+        }
+
+        if (!seenSequence)
+        {
+            throw Unsupported(
+                "its 'single' template never names the sequence it wraps",
+                "a template of special tokens alone would drop the text it is applied to");
+        }
+
+        prefixTokens = prefix;
+        suffixTokens = suffix;
+    }
+
+    /// <summary>
+    /// Places one step of a <c>single</c> template, and reports whether the sequence
+    /// has been seen once this step is placed.
+    /// </summary>
+    /// <remarks>
+    /// A special token before the sequence is a prefix and after it a suffix, which is
+    /// the whole of what the two lists mean; that is why the flag is both the argument
+    /// and the return rather than a field.
+    /// </remarks>
+    private static bool ReadTemplateStep(
+        JsonElement step,
+        List<string> prefix,
+        List<string> suffix,
+        bool seenSequence)
+    {
+        if (step.TryGetProperty("SpecialToken", out JsonElement special))
+        {
+            string id = OptionalString(special, "id")
+                ?? throw Unsupported(
+                    "its 'single' template has a SpecialToken with no id",
+                    "a token is resolved by name, so an unnamed one names nothing");
+            (seenSequence ? suffix : prefix).Add(id);
+            return seenSequence;
+        }
+
+        if (!step.TryGetProperty("Sequence", out JsonElement sequence))
+        {
+            throw Unsupported(
+                "its 'single' template holds a step that is neither a SpecialToken nor a Sequence",
+                "those two are what a template is made of, and a third kind would insert something unmeasured");
+        }
+
+        if (seenSequence)
+        {
+            throw Unsupported(
+                "its 'single' template names more than one Sequence",
+                "one sequence is what 'single' means, and a second would be a pair template in the wrong field");
+        }
+
+        string? name = OptionalString(sequence, "id");
+        if (!string.Equals(name, "A", StringComparison.Ordinal))
+        {
+            throw Unsupported(
+                $"its 'single' template names sequence '{name ?? "unnamed"}' rather than 'A'",
+                "'A' is the first sequence, and a 'single' template placing another one has not been measured");
+        }
+        return true;
     }
 
     /// <summary>Joins the two spellings of one escape, refusing a file that writes both.</summary>

@@ -27,9 +27,12 @@ public sealed record SpecialTokenTemplate(
 
     /// <summary>No special tokens at all; padding still needs a token, and uses <c>[PAD]</c>.</summary>
     /// <remarks>
-    /// The equivalent of a HuggingFace tokenizer with no <c>post_processor</c> —
-    /// which is what Lodestar's loaders accept, since they refuse a file that
-    /// carries one.
+    /// The equivalent of a HuggingFace tokenizer with no <c>post_processor</c>. A file
+    /// that carries a <c>TemplateProcessing</c> one lands in
+    /// <see cref="BpeVocabulary.PrefixTokens"/> and <see cref="BpeVocabulary.SuffixTokens"/>
+    /// instead, which the caller pairs with a pad token of their own — the file states no
+    /// such token. <c>LoadWordPiece</c> and <c>LoadUnigram</c> still refuse any
+    /// post-processor outright.
     /// </remarks>
     public static SpecialTokenTemplate None { get; } = new([], [], "[PAD]");
 
