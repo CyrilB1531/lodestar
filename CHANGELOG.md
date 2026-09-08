@@ -21,6 +21,12 @@ is one sentence, the issue and the commit; see
 
 ## [Unreleased]
 
+### Lodestar.Text
+
+#### Added
+
+- **`Lodestar.Text.Phonetics` adds `DoubleMetaphone`, which answers with two codes rather than one.** A spelling with more than one plausible reading no longer has to be forced into a single verdict: `Smith` encodes to `SM0` with `XMT` alongside it, and `XMT` is what `Schmidt` encodes to, so the two meet without every `S`-word joining them. `Encode` returns a `DoubleMetaphoneCode` whose `Secondary` is empty — not a repeat of the primary — where a word has only one reading, which is 321 of the 423 words the corpus pins. Codes are not truncated to four characters, because the reference does not truncate. Its oracle is **`doublemetaphone` 1.2 rather than `jellyfish`**, which exports no Double Metaphone at all: [decision 0075](docs/decisions/0075-double-metaphone-takes-doublemetaphone-as-its-oracle.md) measured the permissive candidates against each other over the phonetics corpus, found `metaphone` 0.6 and `doublemetaphone` 1.2 agreeing on 401 of 401 primaries — so the corpus freezes an algorithm and not one library's dialect — and excluded `abydos` on GPLv3+ per [decision 0003](docs/decisions/0003-provenance-and-licensing.md). Only ASCII letters are read, so `élan` encodes as `lan` does; that contract is frozen in the corpus rather than asserted in C#. ([#177](https://github.com/CyrilB1531/lodestar/issues/177))
+
 ## Released — 2026-09-08
 
 Five deliverables in one cut. `Lodestar.Embeddings` reaches 0.6.0 rather than 0.5.0:

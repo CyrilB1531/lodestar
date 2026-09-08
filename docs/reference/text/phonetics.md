@@ -10,6 +10,11 @@ adds the one thing the other three cannot answer on their own: not just a code, 
 codes count as a match — its `Compare` reads a minimum-rating table keyed by both codices'
 combined length, which is not something a caller can derive from either code alone.
 
+A fifth, [`DoubleMetaphone`](phonetics/doublemetaphone.md), breaks the shape the other four share:
+it returns **two** codes rather than one, so a spelling with more than one plausible reading does
+not have to be forced into a single verdict. That is what lets `Smith` meet `Schmidt` without
+merging every `S`-word with them.
+
 ## Which encoder?
 
 ```mermaid
@@ -81,6 +86,8 @@ is usually the one that matters.
 
 | Type | What it is |
 | --- | --- |
+| [`DoubleMetaphone`](phonetics/doublemetaphone.md) | Two codes rather than one, so a name with two readings matches on either. |
+| [`DoubleMetaphoneCode`](phonetics/doublemetaphonecode.md) | The pair `DoubleMetaphone.Encode` returns. |
 | [`MatchRatingApproach`](phonetics/matchratingapproach.md) | A codex, and the rule for deciding whether two of them match. |
 | [`Metaphone`](phonetics/metaphone.md) | English spelling modelled as sound; silent letters dropped. |
 | [`Nysiis`](phonetics/nysiis.md) | The finest of the three, built for names. |

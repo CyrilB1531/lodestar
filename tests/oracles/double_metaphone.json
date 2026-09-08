@@ -1,0 +1,2554 @@
+{
+ "metadata": {
+  "algorithm": "DoubleMetaphone",
+  "library": "doublemetaphone",
+  "library_version": "1.2",
+  "reference_calls": [
+   "doublemetaphone.doublemetaphone"
+  ],
+  "corpus": "the input-contract fixed points, plus phonetic_words -- the words decision 0075 compared the candidates over",
+  "secondary_convention": "'' for no alternate, unwrapped from the reference's repeated primary",
+  "seed": 20260801,
+  "count": 423
+ },
+ "cases": [
+  {
+   "id": 0,
+   "word": "",
+   "primary": "",
+   "secondary": ""
+  },
+  {
+   "id": 1,
+   "word": " ",
+   "primary": "",
+   "secondary": ""
+  },
+  {
+   "id": 2,
+   "word": "  ",
+   "primary": "",
+   "secondary": ""
+  },
+  {
+   "id": 3,
+   "word": "123",
+   "primary": "",
+   "secondary": ""
+  },
+  {
+   "id": 4,
+   "word": "a1b2",
+   "primary": "AP",
+   "secondary": ""
+  },
+  {
+   "id": 5,
+   "word": "O'Brien",
+   "primary": "APRN",
+   "secondary": ""
+  },
+  {
+   "id": 6,
+   "word": "Smith-Jones",
+   "primary": "SM0JNS",
+   "secondary": "XMTJNS"
+  },
+  {
+   "id": 7,
+   "word": "Zzzz zzzz",
+   "primary": "SSSS",
+   "secondary": ""
+  },
+  {
+   "id": 8,
+   "word": "élan",
+   "primary": "LN",
+   "secondary": ""
+  },
+  {
+   "id": 9,
+   "word": "Ünal",
+   "primary": "NL",
+   "secondary": ""
+  },
+  {
+   "id": 10,
+   "word": "naïve",
+   "primary": "NF",
+   "secondary": ""
+  },
+  {
+   "id": 11,
+   "word": "ç",
+   "primary": "",
+   "secondary": ""
+  },
+  {
+   "id": 12,
+   "word": "日本",
+   "primary": "",
+   "secondary": ""
+  },
+  {
+   "id": 13,
+   "word": "A",
+   "primary": "A",
+   "secondary": ""
+  },
+  {
+   "id": 14,
+   "word": "x",
+   "primary": "S",
+   "secondary": ""
+  },
+  {
+   "id": 15,
+   "word": "aeiou",
+   "primary": "A",
+   "secondary": ""
+  },
+  {
+   "id": 16,
+   "word": "McDonald",
+   "primary": "MKTNLT",
+   "secondary": ""
+  },
+  {
+   "id": 17,
+   "word": "van der Berg",
+   "primary": "FNTRPRK",
+   "secondary": ""
+  },
+  {
+   "id": 18,
+   "word": "Constantinople",
+   "primary": "KNSTNTNPL",
+   "secondary": ""
+  },
+  {
+   "id": 19,
+   "word": "Bhattacharya",
+   "primary": "PTKR",
+   "secondary": ""
+  },
+  {
+   "id": 20,
+   "word": "Schwarzenegger",
+   "primary": "XRSNKR",
+   "secondary": "XFRTSNKR"
+  },
+  {
+   "id": 21,
+   "word": "Robert",
+   "primary": "RPRT",
+   "secondary": ""
+  },
+  {
+   "id": 22,
+   "word": "Rupert",
+   "primary": "RPRT",
+   "secondary": ""
+  },
+  {
+   "id": 23,
+   "word": "Rubin",
+   "primary": "RPN",
+   "secondary": ""
+  },
+  {
+   "id": 24,
+   "word": "Ashcraft",
+   "primary": "AXKRFT",
+   "secondary": ""
+  },
+  {
+   "id": 25,
+   "word": "Ashcroft",
+   "primary": "AXKRFT",
+   "secondary": ""
+  },
+  {
+   "id": 26,
+   "word": "Tymczak",
+   "primary": "TMSK",
+   "secondary": "TMXK"
+  },
+  {
+   "id": 27,
+   "word": "Pfister",
+   "primary": "PFSTR",
+   "secondary": ""
+  },
+  {
+   "id": 28,
+   "word": "Honeyman",
+   "primary": "HNMN",
+   "secondary": ""
+  },
+  {
+   "id": 29,
+   "word": "Washington",
+   "primary": "AXNKTN",
+   "secondary": "FXNKTN"
+  },
+  {
+   "id": 30,
+   "word": "Lee",
+   "primary": "L",
+   "secondary": ""
+  },
+  {
+   "id": 31,
+   "word": "Gutierrez",
+   "primary": "KTRS",
+   "secondary": ""
+  },
+  {
+   "id": 32,
+   "word": "Jackson",
+   "primary": "JKSN",
+   "secondary": "AKSN"
+  },
+  {
+   "id": 33,
+   "word": "VanDeusen",
+   "primary": "FNTSN",
+   "secondary": ""
+  },
+  {
+   "id": 34,
+   "word": "Deusen",
+   "primary": "TSN",
+   "secondary": ""
+  },
+  {
+   "id": 35,
+   "word": "Knuth",
+   "primary": "N0",
+   "secondary": "NT"
+  },
+  {
+   "id": 36,
+   "word": "Euler",
+   "primary": "ALR",
+   "secondary": ""
+  },
+  {
+   "id": 37,
+   "word": "Gauss",
+   "primary": "KS",
+   "secondary": ""
+  },
+  {
+   "id": 38,
+   "word": "Kant",
+   "primary": "KNT",
+   "secondary": ""
+  },
+  {
+   "id": 39,
+   "word": "Lloyd",
+   "primary": "LT",
+   "secondary": ""
+  },
+  {
+   "id": 40,
+   "word": "Bob",
+   "primary": "PP",
+   "secondary": ""
+  },
+  {
+   "id": 41,
+   "word": "a",
+   "primary": "A",
+   "secondary": ""
+  },
+  {
+   "id": 42,
+   "word": "MacDonald",
+   "primary": "MKTNLT",
+   "secondary": ""
+  },
+  {
+   "id": 43,
+   "word": "Christina",
+   "primary": "KRSTN",
+   "secondary": ""
+  },
+  {
+   "id": 44,
+   "word": "Catherine",
+   "primary": "K0RN",
+   "secondary": "KTRN"
+  },
+  {
+   "id": 45,
+   "word": "Smith",
+   "primary": "SM0",
+   "secondary": "XMT"
+  },
+  {
+   "id": 46,
+   "word": "Smyth",
+   "primary": "SM0",
+   "secondary": "XMT"
+  },
+  {
+   "id": 47,
+   "word": "Schmidt",
+   "primary": "XMT",
+   "secondary": "SMT"
+  },
+  {
+   "id": 48,
+   "word": "Jefferson",
+   "primary": "JFRSN",
+   "secondary": "AFRSN"
+  },
+  {
+   "id": 49,
+   "word": "Adams",
+   "primary": "ATMS",
+   "secondary": ""
+  },
+  {
+   "id": 50,
+   "word": "Wojcik",
+   "primary": "AJSK",
+   "secondary": "FJSK"
+  },
+  {
+   "id": 51,
+   "word": "Nguyen",
+   "primary": "NKN",
+   "secondary": ""
+  },
+  {
+   "id": 52,
+   "word": "Johnson",
+   "primary": "JNSN",
+   "secondary": "ANSN"
+  },
+  {
+   "id": 53,
+   "word": "Williams",
+   "primary": "ALMS",
+   "secondary": "FLMS"
+  },
+  {
+   "id": 54,
+   "word": "Brown",
+   "primary": "PRN",
+   "secondary": ""
+  },
+  {
+   "id": 55,
+   "word": "Garcia",
+   "primary": "KRS",
+   "secondary": "KRX"
+  },
+  {
+   "id": 56,
+   "word": "Martinez",
+   "primary": "MRTNS",
+   "secondary": ""
+  },
+  {
+   "id": 57,
+   "word": "Anderson",
+   "primary": "ANTRSN",
+   "secondary": ""
+  },
+  {
+   "id": 58,
+   "word": "Thompson",
+   "primary": "TMPSN",
+   "secondary": ""
+  },
+  {
+   "id": 59,
+   "word": "Phillip",
+   "primary": "FLP",
+   "secondary": ""
+  },
+  {
+   "id": 60,
+   "word": "Xavier",
+   "primary": "SF",
+   "secondary": "SFR"
+  },
+  {
+   "id": 61,
+   "word": "Yvonne",
+   "primary": "AFN",
+   "secondary": ""
+  },
+  {
+   "id": 62,
+   "word": "Zachary",
+   "primary": "SKR",
+   "secondary": ""
+  },
+  {
+   "id": 63,
+   "word": "Quinn",
+   "primary": "KN",
+   "secondary": ""
+  },
+  {
+   "id": 64,
+   "word": "Wright",
+   "primary": "RT",
+   "secondary": ""
+  },
+  {
+   "id": 65,
+   "word": "Knight",
+   "primary": "NT",
+   "secondary": ""
+  },
+  {
+   "id": 66,
+   "word": "Gnome",
+   "primary": "NM",
+   "secondary": ""
+  },
+  {
+   "id": 67,
+   "word": "Psalm",
+   "primary": "SLM",
+   "secondary": ""
+  },
+  {
+   "id": 68,
+   "word": "Thomas",
+   "primary": "TMS",
+   "secondary": ""
+  },
+  {
+   "id": 69,
+   "word": "Theodore",
+   "primary": "0TR",
+   "secondary": "TTR"
+  },
+  {
+   "id": 70,
+   "word": "Czar",
+   "primary": "SR",
+   "secondary": "XR"
+  },
+  {
+   "id": 71,
+   "word": "Pizza",
+   "primary": "PS",
+   "secondary": "PTS"
+  },
+  {
+   "id": 72,
+   "word": "Aegean",
+   "primary": "AJN",
+   "secondary": "AKN"
+  },
+  {
+   "id": 73,
+   "word": "Wvirvedwhi",
+   "primary": "FRFT",
+   "secondary": ""
+  },
+  {
+   "id": 74,
+   "word": "Sw",
+   "primary": "S",
+   "secondary": "X"
+  },
+  {
+   "id": 75,
+   "word": "Wofztxrwjr",
+   "primary": "AFSTKSRJR",
+   "secondary": "FFTSTKSRJR"
+  },
+  {
+   "id": 76,
+   "word": "eckhy",
+   "primary": "AK",
+   "secondary": ""
+  },
+  {
+   "id": 77,
+   "word": "xvbnv",
+   "primary": "SFPNF",
+   "secondary": ""
+  },
+  {
+   "id": 78,
+   "word": "Bfcpialp",
+   "primary": "PFKPLP",
+   "secondary": ""
+  },
+  {
+   "id": 79,
+   "word": "Dmtpbf",
+   "primary": "TMTPF",
+   "secondary": ""
+  },
+  {
+   "id": 80,
+   "word": "Rysct",
+   "primary": "RSK",
+   "secondary": ""
+  },
+  {
+   "id": 81,
+   "word": "igw",
+   "primary": "AK",
+   "secondary": ""
+  },
+  {
+   "id": 82,
+   "word": "laykfjyq",
+   "primary": "LKFJK",
+   "secondary": ""
+  },
+  {
+   "id": 83,
+   "word": "Nohplufwqe",
+   "primary": "NPLFK",
+   "secondary": ""
+  },
+  {
+   "id": 84,
+   "word": "eufgneh",
+   "primary": "AFN",
+   "secondary": "AFKN"
+  },
+  {
+   "id": 85,
+   "word": "mai",
+   "primary": "M",
+   "secondary": ""
+  },
+  {
+   "id": 86,
+   "word": "margeljg",
+   "primary": "MRJLK",
+   "secondary": "MRKLK"
+  },
+  {
+   "id": 87,
+   "word": "Sfookq",
+   "primary": "SFKK",
+   "secondary": ""
+  },
+  {
+   "id": 88,
+   "word": "pms",
+   "primary": "PMS",
+   "secondary": ""
+  },
+  {
+   "id": 89,
+   "word": "lnvppqfv",
+   "primary": "LNFPKFF",
+   "secondary": ""
+  },
+  {
+   "id": 90,
+   "word": "hv",
+   "primary": "F",
+   "secondary": ""
+  },
+  {
+   "id": 91,
+   "word": "jil",
+   "primary": "JL",
+   "secondary": "AL"
+  },
+  {
+   "id": 92,
+   "word": "Pqymsruh",
+   "primary": "PKMSR",
+   "secondary": ""
+  },
+  {
+   "id": 93,
+   "word": "vongtph",
+   "primary": "FNKTF",
+   "secondary": ""
+  },
+  {
+   "id": 94,
+   "word": "Tjrizselyme",
+   "primary": "TJRSSLM",
+   "secondary": ""
+  },
+  {
+   "id": 95,
+   "word": "Ocso",
+   "primary": "AKS",
+   "secondary": ""
+  },
+  {
+   "id": 96,
+   "word": "Iy",
+   "primary": "A",
+   "secondary": ""
+  },
+  {
+   "id": 97,
+   "word": "nkwpkqosftt",
+   "primary": "NKPKKSFT",
+   "secondary": ""
+  },
+  {
+   "id": 98,
+   "word": "Sfgobknjiaj",
+   "primary": "SFKPKNJJ",
+   "secondary": "SFKPKNJ"
+  },
+  {
+   "id": 99,
+   "word": "Jgdlorez",
+   "primary": "JKTLRS",
+   "secondary": "AKTLRS"
+  },
+  {
+   "id": 100,
+   "word": "Itbbwb",
+   "primary": "ATPP",
+   "secondary": ""
+  },
+  {
+   "id": 101,
+   "word": "Cqdlljwm",
+   "primary": "KTLM",
+   "secondary": ""
+  },
+  {
+   "id": 102,
+   "word": "Ruxistgq",
+   "primary": "RKSSTKK",
+   "secondary": ""
+  },
+  {
+   "id": 103,
+   "word": "Atdaulkzuri",
+   "primary": "ATLKSR",
+   "secondary": "ATLKTSR"
+  },
+  {
+   "id": 104,
+   "word": "Unz",
+   "primary": "ANS",
+   "secondary": ""
+  },
+  {
+   "id": 105,
+   "word": "jiv",
+   "primary": "JF",
+   "secondary": "AF"
+  },
+  {
+   "id": 106,
+   "word": "crnkxv",
+   "primary": "KRNKKSF",
+   "secondary": ""
+  },
+  {
+   "id": 107,
+   "word": "xg",
+   "primary": "SK",
+   "secondary": ""
+  },
+  {
+   "id": 108,
+   "word": "mkgdjokkf",
+   "primary": "MKKTJKF",
+   "secondary": ""
+  },
+  {
+   "id": 109,
+   "word": "ohlwhyq",
+   "primary": "ALK",
+   "secondary": ""
+  },
+  {
+   "id": 110,
+   "word": "Sysdouwaw",
+   "primary": "SST",
+   "secondary": "SSTF"
+  },
+  {
+   "id": 111,
+   "word": "Jnfghybzvsv",
+   "primary": "JNFKPSFSF",
+   "secondary": "ANFKPSFSF"
+  },
+  {
+   "id": 112,
+   "word": "kxarjkcpa",
+   "primary": "KKSRKKP",
+   "secondary": ""
+  },
+  {
+   "id": 113,
+   "word": "qn",
+   "primary": "KN",
+   "secondary": ""
+  },
+  {
+   "id": 114,
+   "word": "Wyzwt",
+   "primary": "AST",
+   "secondary": "FTST"
+  },
+  {
+   "id": 115,
+   "word": "Tdlosxsy",
+   "primary": "TLSKSS",
+   "secondary": ""
+  },
+  {
+   "id": 116,
+   "word": "Ksxnav",
+   "primary": "KSKSNF",
+   "secondary": ""
+  },
+  {
+   "id": 117,
+   "word": "Jgsnm",
+   "primary": "JKSNM",
+   "secondary": "AKSNM"
+  },
+  {
+   "id": 118,
+   "word": "Gbnfyafonjb",
+   "primary": "KPNFFNP",
+   "secondary": ""
+  },
+  {
+   "id": 119,
+   "word": "klxyjbbzhrm",
+   "primary": "KLKSPJRM",
+   "secondary": ""
+  },
+  {
+   "id": 120,
+   "word": "Zpqdghkeyf",
+   "primary": "SPKTKKF",
+   "secondary": ""
+  },
+  {
+   "id": 121,
+   "word": "Xruyh",
+   "primary": "SR",
+   "secondary": ""
+  },
+  {
+   "id": 122,
+   "word": "vwgalatsfvr",
+   "primary": "FKLTSFFR",
+   "secondary": ""
+  },
+  {
+   "id": 123,
+   "word": "rocxkange",
+   "primary": "RKKSKNJ",
+   "secondary": "RKKSKNK"
+  },
+  {
+   "id": 124,
+   "word": "Ul",
+   "primary": "AL",
+   "secondary": ""
+  },
+  {
+   "id": 125,
+   "word": "Hduqnylngi",
+   "primary": "TKNLNJ",
+   "secondary": "TKNLNK"
+  },
+  {
+   "id": 126,
+   "word": "Nduj",
+   "primary": "NTJ",
+   "secondary": "NT"
+  },
+  {
+   "id": 127,
+   "word": "fytvkfrecqc",
+   "primary": "FTFKFRKK",
+   "secondary": ""
+  },
+  {
+   "id": 128,
+   "word": "Sl",
+   "primary": "SL",
+   "secondary": "XL"
+  },
+  {
+   "id": 129,
+   "word": "Wdbliugoljg",
+   "primary": "TPLKLK",
+   "secondary": ""
+  },
+  {
+   "id": 130,
+   "word": "Andsyvnwt",
+   "primary": "ANTSFNT",
+   "secondary": ""
+  },
+  {
+   "id": 131,
+   "word": "Zpt",
+   "primary": "SPT",
+   "secondary": ""
+  },
+  {
+   "id": 132,
+   "word": "Uvkmemopq",
+   "primary": "AFKMMPK",
+   "secondary": ""
+  },
+  {
+   "id": 133,
+   "word": "Wsrhemiyb",
+   "primary": "SRMP",
+   "secondary": ""
+  },
+  {
+   "id": 134,
+   "word": "ikzywazurbm",
+   "primary": "AKSSRPM",
+   "secondary": "AKTSTSRPM"
+  },
+  {
+   "id": 135,
+   "word": "Ijqupddcmmp",
+   "primary": "AJKPTKMP",
+   "secondary": ""
+  },
+  {
+   "id": 136,
+   "word": "Nhlqaprl",
+   "primary": "NLKPRL",
+   "secondary": ""
+  },
+  {
+   "id": 137,
+   "word": "nfntoykmbk",
+   "primary": "NFNTKMPK",
+   "secondary": ""
+  },
+  {
+   "id": 138,
+   "word": "nlyois",
+   "primary": "NL",
+   "secondary": "NLS"
+  },
+  {
+   "id": 139,
+   "word": "Pqxiy",
+   "primary": "PKKS",
+   "secondary": ""
+  },
+  {
+   "id": 140,
+   "word": "Ajhxmitkow",
+   "primary": "AJKSMTK",
+   "secondary": "AJKSMTKF"
+  },
+  {
+   "id": 141,
+   "word": "Engqanhfez",
+   "primary": "ANKKNFS",
+   "secondary": ""
+  },
+  {
+   "id": 142,
+   "word": "mqjar",
+   "primary": "MKJR",
+   "secondary": ""
+  },
+  {
+   "id": 143,
+   "word": "Dakv",
+   "primary": "TKF",
+   "secondary": ""
+  },
+  {
+   "id": 144,
+   "word": "Avzcz",
+   "primary": "AFSS",
+   "secondary": "AFTSX"
+  },
+  {
+   "id": 145,
+   "word": "utwx",
+   "primary": "ATKS",
+   "secondary": ""
+  },
+  {
+   "id": 146,
+   "word": "qqpvxtqwjjg",
+   "primary": "KPFKSTKJK",
+   "secondary": ""
+  },
+  {
+   "id": 147,
+   "word": "ccl",
+   "primary": "KL",
+   "secondary": ""
+  },
+  {
+   "id": 148,
+   "word": "heyxtfewq",
+   "primary": "HKSTFK",
+   "secondary": ""
+  },
+  {
+   "id": 149,
+   "word": "fuuhes",
+   "primary": "FHS",
+   "secondary": ""
+  },
+  {
+   "id": 150,
+   "word": "kjvbr",
+   "primary": "KFPR",
+   "secondary": ""
+  },
+  {
+   "id": 151,
+   "word": "dujuz",
+   "primary": "TJS",
+   "secondary": ""
+  },
+  {
+   "id": 152,
+   "word": "Bu",
+   "primary": "P",
+   "secondary": ""
+  },
+  {
+   "id": 153,
+   "word": "Ccznwiceow",
+   "primary": "KSNS",
+   "secondary": "KTSNSF"
+  },
+  {
+   "id": 154,
+   "word": "fvyghxtwvlg",
+   "primary": "FFKKSTFLK",
+   "secondary": ""
+  },
+  {
+   "id": 155,
+   "word": "Ff",
+   "primary": "F",
+   "secondary": ""
+  },
+  {
+   "id": 156,
+   "word": "Ylhm",
+   "primary": "ALM",
+   "secondary": ""
+  },
+  {
+   "id": 157,
+   "word": "tj",
+   "primary": "TJ",
+   "secondary": "T"
+  },
+  {
+   "id": 158,
+   "word": "nxdn",
+   "primary": "NKSTN",
+   "secondary": ""
+  },
+  {
+   "id": 159,
+   "word": "Fxxkuw",
+   "primary": "FKSK",
+   "secondary": "FKSKF"
+  },
+  {
+   "id": 160,
+   "word": "Hpaceholgtm",
+   "primary": "PSHLKTM",
+   "secondary": ""
+  },
+  {
+   "id": 161,
+   "word": "Mwneqmlce",
+   "primary": "MNKMLS",
+   "secondary": ""
+  },
+  {
+   "id": 162,
+   "word": "Jesbgmd",
+   "primary": "JSPKMT",
+   "secondary": "ASPKMT"
+  },
+  {
+   "id": 163,
+   "word": "Viymay",
+   "primary": "FM",
+   "secondary": ""
+  },
+  {
+   "id": 164,
+   "word": "Rwg",
+   "primary": "RK",
+   "secondary": ""
+  },
+  {
+   "id": 165,
+   "word": "ffkgzihfz",
+   "primary": "FKKSFS",
+   "secondary": "FKKTSFTS"
+  },
+  {
+   "id": 166,
+   "word": "Lkg",
+   "primary": "LKK",
+   "secondary": ""
+  },
+  {
+   "id": 167,
+   "word": "upv",
+   "primary": "APF",
+   "secondary": ""
+  },
+  {
+   "id": 168,
+   "word": "Hplft",
+   "primary": "PLFT",
+   "secondary": ""
+  },
+  {
+   "id": 169,
+   "word": "xttxzc",
+   "primary": "STKSSK",
+   "secondary": ""
+  },
+  {
+   "id": 170,
+   "word": "Nnayyviqh",
+   "primary": "NFK",
+   "secondary": ""
+  },
+  {
+   "id": 171,
+   "word": "dbjb",
+   "primary": "TPP",
+   "secondary": ""
+  },
+  {
+   "id": 172,
+   "word": "adc",
+   "primary": "ATK",
+   "secondary": ""
+  },
+  {
+   "id": 173,
+   "word": "Izbwu",
+   "primary": "ASP",
+   "secondary": "ATSP"
+  },
+  {
+   "id": 174,
+   "word": "adnzman",
+   "primary": "ATNSMN",
+   "secondary": ""
+  },
+  {
+   "id": 175,
+   "word": "jpiz",
+   "primary": "JPS",
+   "secondary": "APS"
+  },
+  {
+   "id": 176,
+   "word": "dm",
+   "primary": "TM",
+   "secondary": ""
+  },
+  {
+   "id": 177,
+   "word": "clmfqolv",
+   "primary": "KLMFKLF",
+   "secondary": ""
+  },
+  {
+   "id": 178,
+   "word": "Sczlbxaowb",
+   "primary": "SKLPKSP",
+   "secondary": ""
+  },
+  {
+   "id": 179,
+   "word": "Tcacmoa",
+   "primary": "TKKM",
+   "secondary": ""
+  },
+  {
+   "id": 180,
+   "word": "jzbhit",
+   "primary": "JSPT",
+   "secondary": "ASPT"
+  },
+  {
+   "id": 181,
+   "word": "Iv",
+   "primary": "AF",
+   "secondary": ""
+  },
+  {
+   "id": 182,
+   "word": "fgtrek",
+   "primary": "FKTRK",
+   "secondary": ""
+  },
+  {
+   "id": 183,
+   "word": "jamdcz",
+   "primary": "JMTS",
+   "secondary": "AMTX"
+  },
+  {
+   "id": 184,
+   "word": "Oesjwleiu",
+   "primary": "ASL",
+   "secondary": ""
+  },
+  {
+   "id": 185,
+   "word": "uoxsevy",
+   "primary": "AKSSF",
+   "secondary": ""
+  },
+  {
+   "id": 186,
+   "word": "uirhw",
+   "primary": "AR",
+   "secondary": ""
+  },
+  {
+   "id": 187,
+   "word": "upfqy",
+   "primary": "APFK",
+   "secondary": ""
+  },
+  {
+   "id": 188,
+   "word": "yzt",
+   "primary": "AST",
+   "secondary": ""
+  },
+  {
+   "id": 189,
+   "word": "dxiftzjxb",
+   "primary": "TKSFTSJKSP",
+   "secondary": ""
+  },
+  {
+   "id": 190,
+   "word": "Uab",
+   "primary": "AP",
+   "secondary": ""
+  },
+  {
+   "id": 191,
+   "word": "lqen",
+   "primary": "LKN",
+   "secondary": ""
+  },
+  {
+   "id": 192,
+   "word": "aspc",
+   "primary": "ASPK",
+   "secondary": ""
+  },
+  {
+   "id": 193,
+   "word": "stsjomyece",
+   "primary": "STSMS",
+   "secondary": ""
+  },
+  {
+   "id": 194,
+   "word": "jabwqaqjvvj",
+   "primary": "JPKKJFJ",
+   "secondary": "APKKJF"
+  },
+  {
+   "id": 195,
+   "word": "wghsop",
+   "primary": "KSP",
+   "secondary": ""
+  },
+  {
+   "id": 196,
+   "word": "qrs",
+   "primary": "KRS",
+   "secondary": ""
+  },
+  {
+   "id": 197,
+   "word": "Jrm",
+   "primary": "JRM",
+   "secondary": "ARM"
+  },
+  {
+   "id": 198,
+   "word": "umkydqja",
+   "primary": "AMKTKJ",
+   "secondary": ""
+  },
+  {
+   "id": 199,
+   "word": "Uyjrx",
+   "primary": "AJRKS",
+   "secondary": ""
+  },
+  {
+   "id": 200,
+   "word": "Qva",
+   "primary": "KF",
+   "secondary": ""
+  },
+  {
+   "id": 201,
+   "word": "Jihwvuqpg",
+   "primary": "JFKPK",
+   "secondary": "AFKPK"
+  },
+  {
+   "id": 202,
+   "word": "Lwwpegpolit",
+   "primary": "LPKPLT",
+   "secondary": ""
+  },
+  {
+   "id": 203,
+   "word": "Mzthytrwv",
+   "primary": "MS0TRF",
+   "secondary": "MTSTTRF"
+  },
+  {
+   "id": 204,
+   "word": "Jlswd",
+   "primary": "JLST",
+   "secondary": "ALST"
+  },
+  {
+   "id": 205,
+   "word": "zaydwn",
+   "primary": "STN",
+   "secondary": ""
+  },
+  {
+   "id": 206,
+   "word": "Ejv",
+   "primary": "AJF",
+   "secondary": ""
+  },
+  {
+   "id": 207,
+   "word": "Ogylxkqy",
+   "primary": "AJLKSKK",
+   "secondary": "AKLKSKK"
+  },
+  {
+   "id": 208,
+   "word": "Tmr",
+   "primary": "TMR",
+   "secondary": ""
+  },
+  {
+   "id": 209,
+   "word": "ukclyemzgwl",
+   "primary": "AKKLMSKL",
+   "secondary": "AKKLMTSKL"
+  },
+  {
+   "id": 210,
+   "word": "Ebkjz",
+   "primary": "APKS",
+   "secondary": "APKTS"
+  },
+  {
+   "id": 211,
+   "word": "Rwpwxeskw",
+   "primary": "RPKSSK",
+   "secondary": ""
+  },
+  {
+   "id": 212,
+   "word": "lifwvizihfa",
+   "primary": "LFFSF",
+   "secondary": "LFFTSF"
+  },
+  {
+   "id": 213,
+   "word": "jossdzzzl",
+   "primary": "JSTSSL",
+   "secondary": "ASTSSL"
+  },
+  {
+   "id": 214,
+   "word": "wdeqkwvi",
+   "primary": "TKKF",
+   "secondary": ""
+  },
+  {
+   "id": 215,
+   "word": "ulmcncaj",
+   "primary": "ALMKNKJ",
+   "secondary": "ALMKNK"
+  },
+  {
+   "id": 216,
+   "word": "Qaormva",
+   "primary": "KRMF",
+   "secondary": ""
+  },
+  {
+   "id": 217,
+   "word": "Ajr",
+   "primary": "AJR",
+   "secondary": ""
+  },
+  {
+   "id": 218,
+   "word": "Mt",
+   "primary": "MT",
+   "secondary": ""
+  },
+  {
+   "id": 219,
+   "word": "Fzc",
+   "primary": "FSK",
+   "secondary": ""
+  },
+  {
+   "id": 220,
+   "word": "Inesvax",
+   "primary": "ANSFKS",
+   "secondary": ""
+  },
+  {
+   "id": 221,
+   "word": "euelja",
+   "primary": "AL",
+   "secondary": ""
+  },
+  {
+   "id": 222,
+   "word": "Ntwabraznc",
+   "primary": "NTPRSNK",
+   "secondary": "NTPRTSNK"
+  },
+  {
+   "id": 223,
+   "word": "Opm",
+   "primary": "APM",
+   "secondary": ""
+  },
+  {
+   "id": 224,
+   "word": "ehekp",
+   "primary": "AHKP",
+   "secondary": ""
+  },
+  {
+   "id": 225,
+   "word": "Dxmekfeaqxc",
+   "primary": "TKSMKFKKS",
+   "secondary": ""
+  },
+  {
+   "id": 226,
+   "word": "Jpscffzn",
+   "primary": "JPSKFSN",
+   "secondary": "APSKFSN"
+  },
+  {
+   "id": 227,
+   "word": "Vx",
+   "primary": "FKS",
+   "secondary": ""
+  },
+  {
+   "id": 228,
+   "word": "Dhesizhkch",
+   "primary": "TSJKX",
+   "secondary": "TSJKK"
+  },
+  {
+   "id": 229,
+   "word": "vhdh",
+   "primary": "FT",
+   "secondary": ""
+  },
+  {
+   "id": 230,
+   "word": "Xwsmtb",
+   "primary": "SSMTP",
+   "secondary": ""
+  },
+  {
+   "id": 231,
+   "word": "Jybz",
+   "primary": "JPS",
+   "secondary": "APS"
+  },
+  {
+   "id": 232,
+   "word": "Hodrfkdv",
+   "primary": "HTRFKTF",
+   "secondary": ""
+  },
+  {
+   "id": 233,
+   "word": "awnqtbb",
+   "primary": "ANKTP",
+   "secondary": ""
+  },
+  {
+   "id": 234,
+   "word": "aogyejiyss",
+   "primary": "AJJS",
+   "secondary": "AKJS"
+  },
+  {
+   "id": 235,
+   "word": "Edolyxrm",
+   "primary": "ATLKSRM",
+   "secondary": ""
+  },
+  {
+   "id": 236,
+   "word": "Oibqghegbd",
+   "primary": "APKKKPT",
+   "secondary": ""
+  },
+  {
+   "id": 237,
+   "word": "Ajpd",
+   "primary": "AJPT",
+   "secondary": ""
+  },
+  {
+   "id": 238,
+   "word": "ymyytyvaj",
+   "primary": "AMTFJ",
+   "secondary": "AMTF"
+  },
+  {
+   "id": 239,
+   "word": "Ychhjgxip",
+   "primary": "AXJKKSP",
+   "secondary": "AKJKKSP"
+  },
+  {
+   "id": 240,
+   "word": "Szywad",
+   "primary": "ST",
+   "secondary": "XT"
+  },
+  {
+   "id": 241,
+   "word": "Wsyidyzxudp",
+   "primary": "STSKSTP",
+   "secondary": "STTSKSTP"
+  },
+  {
+   "id": 242,
+   "word": "Khtllse",
+   "primary": "KTLS",
+   "secondary": ""
+  },
+  {
+   "id": 243,
+   "word": "bhxafxrsn",
+   "primary": "PKSFKSRSN",
+   "secondary": ""
+  },
+  {
+   "id": 244,
+   "word": "Ci",
+   "primary": "S",
+   "secondary": ""
+  },
+  {
+   "id": 245,
+   "word": "doxrk",
+   "primary": "TKSRK",
+   "secondary": ""
+  },
+  {
+   "id": 246,
+   "word": "Vhayjtteliz",
+   "primary": "FTLS",
+   "secondary": ""
+  },
+  {
+   "id": 247,
+   "word": "gxezpxo",
+   "primary": "KKSSPKS",
+   "secondary": ""
+  },
+  {
+   "id": 248,
+   "word": "suq",
+   "primary": "SK",
+   "secondary": ""
+  },
+  {
+   "id": 249,
+   "word": "Hl",
+   "primary": "L",
+   "secondary": ""
+  },
+  {
+   "id": 250,
+   "word": "lxtzpkdac",
+   "primary": "LKSTSPKTK",
+   "secondary": ""
+  },
+  {
+   "id": 251,
+   "word": "kmkxralu",
+   "primary": "KMKKSRL",
+   "secondary": ""
+  },
+  {
+   "id": 252,
+   "word": "epkt",
+   "primary": "APKT",
+   "secondary": ""
+  },
+  {
+   "id": 253,
+   "word": "Ar",
+   "primary": "AR",
+   "secondary": ""
+  },
+  {
+   "id": 254,
+   "word": "uw",
+   "primary": "A",
+   "secondary": "AF"
+  },
+  {
+   "id": 255,
+   "word": "Fgwwljfmmd",
+   "primary": "FKLFMT",
+   "secondary": ""
+  },
+  {
+   "id": 256,
+   "word": "Bg",
+   "primary": "PK",
+   "secondary": ""
+  },
+  {
+   "id": 257,
+   "word": "Qmnqiupjluj",
+   "primary": "KMNKPLJ",
+   "secondary": "KMNKPL"
+  },
+  {
+   "id": 258,
+   "word": "Qbjo",
+   "primary": "KPJ",
+   "secondary": ""
+  },
+  {
+   "id": 259,
+   "word": "nuv",
+   "primary": "NF",
+   "secondary": ""
+  },
+  {
+   "id": 260,
+   "word": "Eansmzzvdcl",
+   "primary": "ANSMSFTKL",
+   "secondary": ""
+  },
+  {
+   "id": 261,
+   "word": "dfncqvm",
+   "primary": "TFNKFM",
+   "secondary": ""
+  },
+  {
+   "id": 262,
+   "word": "pokotuxpjx",
+   "primary": "PKTKSPJKS",
+   "secondary": ""
+  },
+  {
+   "id": 263,
+   "word": "Gx",
+   "primary": "KKS",
+   "secondary": ""
+  },
+  {
+   "id": 264,
+   "word": "alq",
+   "primary": "ALK",
+   "secondary": ""
+  },
+  {
+   "id": 265,
+   "word": "Tulueulr",
+   "primary": "TLLR",
+   "secondary": ""
+  },
+  {
+   "id": 266,
+   "word": "Cg",
+   "primary": "K",
+   "secondary": ""
+  },
+  {
+   "id": 267,
+   "word": "ybuxcx",
+   "primary": "APKSKS",
+   "secondary": ""
+  },
+  {
+   "id": 268,
+   "word": "Zlnygt",
+   "primary": "SLNKT",
+   "secondary": ""
+  },
+  {
+   "id": 269,
+   "word": "plosi",
+   "primary": "PLS",
+   "secondary": ""
+  },
+  {
+   "id": 270,
+   "word": "qorrqa",
+   "primary": "KRK",
+   "secondary": ""
+  },
+  {
+   "id": 271,
+   "word": "ho",
+   "primary": "H",
+   "secondary": ""
+  },
+  {
+   "id": 272,
+   "word": "Pmytpui",
+   "primary": "PMTP",
+   "secondary": ""
+  },
+  {
+   "id": 273,
+   "word": "aoagqjxjx",
+   "primary": "AKKJKSJKS",
+   "secondary": ""
+  },
+  {
+   "id": 274,
+   "word": "zicqv",
+   "primary": "SKF",
+   "secondary": ""
+  },
+  {
+   "id": 275,
+   "word": "grfcm",
+   "primary": "KRFKM",
+   "secondary": ""
+  },
+  {
+   "id": 276,
+   "word": "ugdtmg",
+   "primary": "AKTMK",
+   "secondary": ""
+  },
+  {
+   "id": 277,
+   "word": "Gaicrudver",
+   "primary": "KKRTFR",
+   "secondary": ""
+  },
+  {
+   "id": 278,
+   "word": "Xqkflt",
+   "primary": "SKKFLT",
+   "secondary": ""
+  },
+  {
+   "id": 279,
+   "word": "Tdym",
+   "primary": "TM",
+   "secondary": ""
+  },
+  {
+   "id": 280,
+   "word": "xsf",
+   "primary": "SSF",
+   "secondary": ""
+  },
+  {
+   "id": 281,
+   "word": "qdh",
+   "primary": "KT",
+   "secondary": ""
+  },
+  {
+   "id": 282,
+   "word": "vba",
+   "primary": "FP",
+   "secondary": ""
+  },
+  {
+   "id": 283,
+   "word": "Vren",
+   "primary": "FRN",
+   "secondary": ""
+  },
+  {
+   "id": 284,
+   "word": "izzz",
+   "primary": "ASS",
+   "secondary": ""
+  },
+  {
+   "id": 285,
+   "word": "ulnbg",
+   "primary": "ALNPK",
+   "secondary": ""
+  },
+  {
+   "id": 286,
+   "word": "Ujd",
+   "primary": "AJT",
+   "secondary": ""
+  },
+  {
+   "id": 287,
+   "word": "Xcj",
+   "primary": "SKJ",
+   "secondary": "SK"
+  },
+  {
+   "id": 288,
+   "word": "ayddotbn",
+   "primary": "ATTPN",
+   "secondary": ""
+  },
+  {
+   "id": 289,
+   "word": "Abg",
+   "primary": "APK",
+   "secondary": ""
+  },
+  {
+   "id": 290,
+   "word": "wjfgpqnmd",
+   "primary": "JFKPKNMT",
+   "secondary": ""
+  },
+  {
+   "id": 291,
+   "word": "Vjmoxqr",
+   "primary": "FMKSKR",
+   "secondary": ""
+  },
+  {
+   "id": 292,
+   "word": "Uoht",
+   "primary": "AT",
+   "secondary": ""
+  },
+  {
+   "id": 293,
+   "word": "Muomyvwp",
+   "primary": "MMFP",
+   "secondary": ""
+  },
+  {
+   "id": 294,
+   "word": "ldogxdgobh",
+   "primary": "LTKKSTKP",
+   "secondary": ""
+  },
+  {
+   "id": 295,
+   "word": "Txrwohqlger",
+   "primary": "TKSRKLKR",
+   "secondary": "TKSRKLJR"
+  },
+  {
+   "id": 296,
+   "word": "Tlqmcgpz",
+   "primary": "TLKMKPS",
+   "secondary": ""
+  },
+  {
+   "id": 297,
+   "word": "lrfepflpekk",
+   "primary": "LRFPFLPK",
+   "secondary": ""
+  },
+  {
+   "id": 298,
+   "word": "aj",
+   "primary": "AJ",
+   "secondary": "A"
+  },
+  {
+   "id": 299,
+   "word": "xkt",
+   "primary": "SKT",
+   "secondary": ""
+  },
+  {
+   "id": 300,
+   "word": "Ya",
+   "primary": "A",
+   "secondary": ""
+  },
+  {
+   "id": 301,
+   "word": "htgu",
+   "primary": "TK",
+   "secondary": ""
+  },
+  {
+   "id": 302,
+   "word": "Pfwrhpu",
+   "primary": "PFRP",
+   "secondary": ""
+  },
+  {
+   "id": 303,
+   "word": "Pswtyqb",
+   "primary": "STKP",
+   "secondary": ""
+  },
+  {
+   "id": 304,
+   "word": "Ywvmfvwbyk",
+   "primary": "AFMFFPK",
+   "secondary": ""
+  },
+  {
+   "id": 305,
+   "word": "Yrys",
+   "primary": "ARS",
+   "secondary": ""
+  },
+  {
+   "id": 306,
+   "word": "Jwbminoy",
+   "primary": "JPMN",
+   "secondary": "APMN"
+  },
+  {
+   "id": 307,
+   "word": "Klxyzheqb",
+   "primary": "KLKSJKP",
+   "secondary": ""
+  },
+  {
+   "id": 308,
+   "word": "nqipkgvpg",
+   "primary": "NKPKKFPK",
+   "secondary": ""
+  },
+  {
+   "id": 309,
+   "word": "osfvgxykyd",
+   "primary": "ASFFKKSKT",
+   "secondary": ""
+  },
+  {
+   "id": 310,
+   "word": "obmswenxj",
+   "primary": "APMSNKSJ",
+   "secondary": "APMSNKS"
+  },
+  {
+   "id": 311,
+   "word": "Xtoqjrnp",
+   "primary": "STKJRNP",
+   "secondary": ""
+  },
+  {
+   "id": 312,
+   "word": "blpwz",
+   "primary": "PLPS",
+   "secondary": "PLPTS"
+  },
+  {
+   "id": 313,
+   "word": "Rjs",
+   "primary": "RS",
+   "secondary": ""
+  },
+  {
+   "id": 314,
+   "word": "Pd",
+   "primary": "PT",
+   "secondary": ""
+  },
+  {
+   "id": 315,
+   "word": "spdz",
+   "primary": "SPTS",
+   "secondary": ""
+  },
+  {
+   "id": 316,
+   "word": "fxsrmeluwg",
+   "primary": "FKSSRMLK",
+   "secondary": ""
+  },
+  {
+   "id": 317,
+   "word": "mdpjilwrx",
+   "primary": "MTPJLRKS",
+   "secondary": ""
+  },
+  {
+   "id": 318,
+   "word": "Vqbbvfh",
+   "primary": "FKPFF",
+   "secondary": ""
+  },
+  {
+   "id": 319,
+   "word": "Jbtmkvfc",
+   "primary": "JPTMKFFK",
+   "secondary": "APTMKFFK"
+  },
+  {
+   "id": 320,
+   "word": "mlg",
+   "primary": "MLK",
+   "secondary": ""
+  },
+  {
+   "id": 321,
+   "word": "dbioxq",
+   "primary": "TPKSK",
+   "secondary": ""
+  },
+  {
+   "id": 322,
+   "word": "wof",
+   "primary": "AF",
+   "secondary": "FF"
+  },
+  {
+   "id": 323,
+   "word": "Kcjqbit",
+   "primary": "KKJKPT",
+   "secondary": ""
+  },
+  {
+   "id": 324,
+   "word": "Nch",
+   "primary": "NX",
+   "secondary": "NK"
+  },
+  {
+   "id": 325,
+   "word": "wpbczgtr",
+   "primary": "PSKTR",
+   "secondary": "PXKTR"
+  },
+  {
+   "id": 326,
+   "word": "wnndsazxfl",
+   "primary": "NTSSKSFL",
+   "secondary": "NTSTSKSFL"
+  },
+  {
+   "id": 327,
+   "word": "qquk",
+   "primary": "KK",
+   "secondary": ""
+  },
+  {
+   "id": 328,
+   "word": "Ki",
+   "primary": "K",
+   "secondary": ""
+  },
+  {
+   "id": 329,
+   "word": "duwf",
+   "primary": "TF",
+   "secondary": ""
+  },
+  {
+   "id": 330,
+   "word": "Uugb",
+   "primary": "AKP",
+   "secondary": ""
+  },
+  {
+   "id": 331,
+   "word": "Lvqymi",
+   "primary": "LFKM",
+   "secondary": ""
+  },
+  {
+   "id": 332,
+   "word": "eeweaj",
+   "primary": "AJ",
+   "secondary": "A"
+  },
+  {
+   "id": 333,
+   "word": "nbumgo",
+   "primary": "NPMK",
+   "secondary": ""
+  },
+  {
+   "id": 334,
+   "word": "Fesofxhv",
+   "primary": "FSFKSF",
+   "secondary": ""
+  },
+  {
+   "id": 335,
+   "word": "yjjondqf",
+   "primary": "AJNTKF",
+   "secondary": ""
+  },
+  {
+   "id": 336,
+   "word": "Jso",
+   "primary": "JS",
+   "secondary": "AS"
+  },
+  {
+   "id": 337,
+   "word": "fyhjya",
+   "primary": "FJ",
+   "secondary": ""
+  },
+  {
+   "id": 338,
+   "word": "Hckmmlkiu",
+   "primary": "KMLK",
+   "secondary": ""
+  },
+  {
+   "id": 339,
+   "word": "xhdzhumzj",
+   "primary": "STJMSJ",
+   "secondary": "STJMS"
+  },
+  {
+   "id": 340,
+   "word": "rsngy",
+   "primary": "RSNK",
+   "secondary": "RSNJ"
+  },
+  {
+   "id": 341,
+   "word": "mhnakeyva",
+   "primary": "MNKF",
+   "secondary": ""
+  },
+  {
+   "id": 342,
+   "word": "ilmitv",
+   "primary": "ALMTF",
+   "secondary": ""
+  },
+  {
+   "id": 343,
+   "word": "kpapahru",
+   "primary": "KPPR",
+   "secondary": ""
+  },
+  {
+   "id": 344,
+   "word": "Xnmbd",
+   "primary": "SNMPT",
+   "secondary": ""
+  },
+  {
+   "id": 345,
+   "word": "kijcvtrpor",
+   "primary": "KJKFTRPR",
+   "secondary": ""
+  },
+  {
+   "id": 346,
+   "word": "rdttnfso",
+   "primary": "RTTNFS",
+   "secondary": ""
+  },
+  {
+   "id": 347,
+   "word": "spq",
+   "primary": "SPK",
+   "secondary": ""
+  },
+  {
+   "id": 348,
+   "word": "khc",
+   "primary": "KK",
+   "secondary": ""
+  },
+  {
+   "id": 349,
+   "word": "Axdplm",
+   "primary": "AKSTPLM",
+   "secondary": ""
+  },
+  {
+   "id": 350,
+   "word": "Vrcnh",
+   "primary": "FRKN",
+   "secondary": ""
+  },
+  {
+   "id": 351,
+   "word": "Glxd",
+   "primary": "KLKST",
+   "secondary": ""
+  },
+  {
+   "id": 352,
+   "word": "kzaeyq",
+   "primary": "KSK",
+   "secondary": "KTSK"
+  },
+  {
+   "id": 353,
+   "word": "Rgiadbwezpg",
+   "primary": "RJTPSPK",
+   "secondary": "RKTPTSPK"
+  },
+  {
+   "id": 354,
+   "word": "Mqvb",
+   "primary": "MKFP",
+   "secondary": ""
+  },
+  {
+   "id": 355,
+   "word": "Nfgttt",
+   "primary": "NFKTT",
+   "secondary": ""
+  },
+  {
+   "id": 356,
+   "word": "qappjvg",
+   "primary": "KPJFK",
+   "secondary": ""
+  },
+  {
+   "id": 357,
+   "word": "Awqjznn",
+   "primary": "AKSN",
+   "secondary": "AKTSN"
+  },
+  {
+   "id": 358,
+   "word": "Liwcfi",
+   "primary": "LKF",
+   "secondary": ""
+  },
+  {
+   "id": 359,
+   "word": "Ml",
+   "primary": "ML",
+   "secondary": ""
+  },
+  {
+   "id": 360,
+   "word": "Kgoi",
+   "primary": "KK",
+   "secondary": ""
+  },
+  {
+   "id": 361,
+   "word": "Axxo",
+   "primary": "AKS",
+   "secondary": ""
+  },
+  {
+   "id": 362,
+   "word": "Vovoxbhlzui",
+   "primary": "FFKSPLS",
+   "secondary": ""
+  },
+  {
+   "id": 363,
+   "word": "Eazvm",
+   "primary": "ASFM",
+   "secondary": ""
+  },
+  {
+   "id": 364,
+   "word": "rxfm",
+   "primary": "RKSFM",
+   "secondary": ""
+  },
+  {
+   "id": 365,
+   "word": "Rsuhx",
+   "primary": "RSKS",
+   "secondary": ""
+  },
+  {
+   "id": 366,
+   "word": "bjtgwgibmpz",
+   "primary": "PTKJPMPS",
+   "secondary": "PTKKPMPTS"
+  },
+  {
+   "id": 367,
+   "word": "by",
+   "primary": "P",
+   "secondary": ""
+  },
+  {
+   "id": 368,
+   "word": "aophzwij",
+   "primary": "AFSJ",
+   "secondary": "AFTS"
+  },
+  {
+   "id": 369,
+   "word": "havpobdjbe",
+   "primary": "HFPPTP",
+   "secondary": ""
+  },
+  {
+   "id": 370,
+   "word": "Rccjwbxvqj",
+   "primary": "RKJPKSFKJ",
+   "secondary": "RKJPKSFK"
+  },
+  {
+   "id": 371,
+   "word": "Cj",
+   "primary": "KJ",
+   "secondary": "K"
+  },
+  {
+   "id": 372,
+   "word": "ghhh",
+   "primary": "K",
+   "secondary": ""
+  },
+  {
+   "id": 373,
+   "word": "Enkiahmryl",
+   "primary": "ANKMRL",
+   "secondary": ""
+  },
+  {
+   "id": 374,
+   "word": "Jtvx",
+   "primary": "JTFKS",
+   "secondary": "ATFKS"
+  },
+  {
+   "id": 375,
+   "word": "Cgmdngg",
+   "primary": "KMTNK",
+   "secondary": ""
+  },
+  {
+   "id": 376,
+   "word": "kncz",
+   "primary": "NS",
+   "secondary": "NX"
+  },
+  {
+   "id": 377,
+   "word": "Ciykhvututc",
+   "primary": "SKFTTK",
+   "secondary": ""
+  },
+  {
+   "id": 378,
+   "word": "ixdgc",
+   "primary": "AKSTKK",
+   "secondary": ""
+  },
+  {
+   "id": 379,
+   "word": "hkxobvgtd",
+   "primary": "KKSPFKT",
+   "secondary": ""
+  },
+  {
+   "id": 380,
+   "word": "Bclsmc",
+   "primary": "PKLSMK",
+   "secondary": ""
+  },
+  {
+   "id": 381,
+   "word": "ypcleb",
+   "primary": "APKLP",
+   "secondary": ""
+  },
+  {
+   "id": 382,
+   "word": "Lwulfxyw",
+   "primary": "LLFKS",
+   "secondary": "LLFKSF"
+  },
+  {
+   "id": 383,
+   "word": "Mebgbeu",
+   "primary": "MPKP",
+   "secondary": ""
+  },
+  {
+   "id": 384,
+   "word": "Oc",
+   "primary": "AK",
+   "secondary": ""
+  },
+  {
+   "id": 385,
+   "word": "mgscedfcd",
+   "primary": "MKSTFKT",
+   "secondary": ""
+  },
+  {
+   "id": 386,
+   "word": "Vx",
+   "primary": "FKS",
+   "secondary": ""
+  },
+  {
+   "id": 387,
+   "word": "Wibhlyw",
+   "primary": "APL",
+   "secondary": "FPLF"
+  },
+  {
+   "id": 388,
+   "word": "Omgjzbc",
+   "primary": "AMKSPK",
+   "secondary": ""
+  },
+  {
+   "id": 389,
+   "word": "hlrzadlzze",
+   "primary": "LRSTLS",
+   "secondary": ""
+  },
+  {
+   "id": 390,
+   "word": "Jfthooxpn",
+   "primary": "JF0KSPN",
+   "secondary": "AFTKSPN"
+  },
+  {
+   "id": 391,
+   "word": "Nuss",
+   "primary": "NS",
+   "secondary": ""
+  },
+  {
+   "id": 392,
+   "word": "Wkbvxuqung",
+   "primary": "KPFKSKNK",
+   "secondary": ""
+  },
+  {
+   "id": 393,
+   "word": "sp",
+   "primary": "SP",
+   "secondary": ""
+  },
+  {
+   "id": 394,
+   "word": "Kbfbtgujb",
+   "primary": "KPFPTKP",
+   "secondary": ""
+  },
+  {
+   "id": 395,
+   "word": "lqmims",
+   "primary": "LKMMS",
+   "secondary": ""
+  },
+  {
+   "id": 396,
+   "word": "Yeuafi",
+   "primary": "AF",
+   "secondary": ""
+  },
+  {
+   "id": 397,
+   "word": "Nlhdo",
+   "primary": "NLT",
+   "secondary": ""
+  },
+  {
+   "id": 398,
+   "word": "oeosyvaoq",
+   "primary": "ASFK",
+   "secondary": ""
+  },
+  {
+   "id": 399,
+   "word": "Lo",
+   "primary": "L",
+   "secondary": ""
+  },
+  {
+   "id": 400,
+   "word": "Ehrx",
+   "primary": "ARKS",
+   "secondary": ""
+  },
+  {
+   "id": 401,
+   "word": "Dr",
+   "primary": "TR",
+   "secondary": ""
+  },
+  {
+   "id": 402,
+   "word": "Kentlaaidrw",
+   "primary": "KNTLTR",
+   "secondary": ""
+  },
+  {
+   "id": 403,
+   "word": "Ihlr",
+   "primary": "ALR",
+   "secondary": ""
+  },
+  {
+   "id": 404,
+   "word": "Kd",
+   "primary": "KT",
+   "secondary": ""
+  },
+  {
+   "id": 405,
+   "word": "aayxoojfy",
+   "primary": "AKSJF",
+   "secondary": ""
+  },
+  {
+   "id": 406,
+   "word": "Ict",
+   "primary": "AKT",
+   "secondary": ""
+  },
+  {
+   "id": 407,
+   "word": "fikboc",
+   "primary": "FKPK",
+   "secondary": ""
+  },
+  {
+   "id": 408,
+   "word": "Rwkveovuxqs",
+   "primary": "RKFFKSKS",
+   "secondary": ""
+  },
+  {
+   "id": 409,
+   "word": "pinxplz",
+   "primary": "PNKSPLS",
+   "secondary": ""
+  },
+  {
+   "id": 410,
+   "word": "Odxg",
+   "primary": "ATKSK",
+   "secondary": ""
+  },
+  {
+   "id": 411,
+   "word": "ctsj",
+   "primary": "KTSJ",
+   "secondary": "KTS"
+  },
+  {
+   "id": 412,
+   "word": "Fydpqmg",
+   "primary": "FTPKMK",
+   "secondary": ""
+  },
+  {
+   "id": 413,
+   "word": "kqjerp",
+   "primary": "KKJRP",
+   "secondary": ""
+  },
+  {
+   "id": 414,
+   "word": "kohouytivo",
+   "primary": "KHTF",
+   "secondary": ""
+  },
+  {
+   "id": 415,
+   "word": "Yjedgiunku",
+   "primary": "AJJNK",
+   "secondary": ""
+  },
+  {
+   "id": 416,
+   "word": "zzlmmqgmk",
+   "primary": "SLMKKMK",
+   "secondary": ""
+  },
+  {
+   "id": 417,
+   "word": "joximhg",
+   "primary": "JKSMK",
+   "secondary": "AKSMK"
+  },
+  {
+   "id": 418,
+   "word": "zfvp",
+   "primary": "SFFP",
+   "secondary": ""
+  },
+  {
+   "id": 419,
+   "word": "Kcbwt",
+   "primary": "KKPT",
+   "secondary": ""
+  },
+  {
+   "id": 420,
+   "word": "Zjrxvgwnzd",
+   "primary": "SJRKSFKNST",
+   "secondary": "SJRKSFKNTST"
+  },
+  {
+   "id": 421,
+   "word": "Pfxhfg",
+   "primary": "PFKSFK",
+   "secondary": ""
+  },
+  {
+   "id": 422,
+   "word": "la",
+   "primary": "L",
+   "secondary": ""
+  }
+ ]
+}

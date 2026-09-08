@@ -50,6 +50,7 @@ from difflib import SequenceMatcher
 import jellyfish
 import numpy as np
 import textdistance as td
+from doublemetaphone import doublemetaphone
 from rapidfuzz.distance import DamerauLevenshtein, Indel, Levenshtein, OSA
 from sklearn import metrics as skm
 from sklearn.feature_extraction.text import CountVectorizer as SkCountVectorizer
@@ -75,6 +76,9 @@ BOS_TOKEN = "<s>"
 # Two spellings of one fixture phrase. THE_CAT is separate because four corpora
 # reach for it and Sonar's S1192 counts them together (issue #487's quality gate).
 THE_CAT = "the cat"
+# The accented word three corpora reach for: the two transliteration pairs and the
+# Double Metaphone input contract, which is what took it to S1192's threshold (#177).
+NAIVE = "naïve"
 # The conformal corpus's own key names. S1192 counts a JSON key like any other
 # literal, and these are written once per case in three places each (#441).
 CALIB_SIZE = "calib"
@@ -226,7 +230,7 @@ def build_pairs(rng: SeededRandom):
         ("Levenshtein", "Levenstein"),
         ("café", "cafe"),
         ("Straße", "Strasse"),
-        ("naïve", "naive"),
+        (NAIVE, "naive"),
         ("😀", "😀"),
         ("😀", "😁"),
         ("a😀b", "ab"),
@@ -648,6 +652,49 @@ def generate_phonetics() -> dict:
             "library": "jellyfish",
             "library_version": version("jellyfish"),
             "reference_calls": ["jellyfish.soundex", "jellyfish.metaphone", "jellyfish.nysiis"],
+            "seed": SEED,
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
+# phonetic_words is ASCII-alphabetic throughout, so it pins the encoder and nothing
+# about what reaches it. These fix the input contract instead, from the reference.
+DOUBLE_METAPHONE_WORDS = [
+    "", " ", "  ", "123", "a1b2", "O'Brien", "Smith-Jones", "Zzzz zzzz",
+    "élan", "Ünal", NAIVE, "ç", "日本",
+    "A", "x", "aeiou", "McDonald", "van der Berg",
+    "Constantinople", "Bhattacharya", "Schwarzenegger",
+]
+
+
+def double_metaphone_words(rng: SeededRandom):
+    yield from DOUBLE_METAPHONE_WORDS
+    yield from phonetic_words(rng)
+
+
+def generate_double_metaphone() -> dict:
+    rng = SeededRandom(SEED)
+    cases = []
+    for idx, word in enumerate(double_metaphone_words(rng)):
+        primary, secondary = doublemetaphone(word)
+        # doublemetaphone repeats the primary where there is no alternate; '' is what the
+        # siblings return and what the C# API exposes -- decision 0075, normalised on the way in.
+        cases.append({
+            "id": idx,
+            "word": word,
+            "primary": primary,
+            "secondary": "" if secondary == primary else secondary,
+        })
+    return {
+        "metadata": {
+            "algorithm": "DoubleMetaphone",
+            "library": "doublemetaphone",
+            "library_version": version("doublemetaphone"),
+            "reference_calls": ["doublemetaphone.doublemetaphone"],
+            "corpus": "the input-contract fixed points, plus phonetic_words -- the words decision 0075 compared the candidates over",
+            "secondary_convention": "'' for no alternate, unwrapped from the reference's repeated primary",
             "seed": SEED,
             "count": len(cases),
         },
@@ -1264,7 +1311,7 @@ FUZZ_PAIRS = [
     ("kitten", "sitting"), ("levenshtein", "levenstein"),
     ("this is a test", "this is a test!"),
     ("one two three four", "four three two one"),
-    ("café", "cafe"), ("naïve", "naive"),
+    ("café", "cafe"), (NAIVE, "naive"),
     ("abcdefgh", "abcdefgh"), ("abcdefgh", "hgfedcba"),
     ("python programming", "programming in python"),
     (THE_CAT, "cat"), ("supercalifragilistic", "super"),
@@ -8108,6 +8155,7 @@ def main() -> None:
         "set_similarity.json": generate_set_similarity,
         "phonetics.json": generate_phonetics,
         "metaphone.json": generate_metaphone,
+        "double_metaphone.json": generate_double_metaphone,
         "match_rating_codex.json": generate_match_rating_codex,
         "match_rating_comparison.json": generate_match_rating_comparison,
         "countvectorizer.json": generate_countvectorizer,
