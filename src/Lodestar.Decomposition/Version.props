@@ -4,12 +4,23 @@
     Lodestar.Decomposition owns its version here, independently of the other
     packages (see docs/decisions/0012-per-package-versioning.md).
 
-    0.1.0 is this package's first release. It carries one inter-package edge, to
+    0.1.0 was this package's first release. It carries one inter-package edge, to
     Lodestar.Abstractions, whose floor lives in src/Directory.Packages.props and
     is deliberately decoupled from this number.
+
+    0.1.1 is a patch because Nmf.Fit's widened component bound (#519) takes
+    nothing away: no signature moved and no member was removed, so every call
+    that compiled against 0.1.0 still compiles and still returns what it did.
+    What changed is a precondition relaxed — componentCount at
+    min(RowCount, ColumnCount) threw ArgumentOutOfRangeException and now fits,
+    which is scikit-learn's own bound and therefore a parity defect repaired
+    rather than a feature added. This number must stay ahead of the feed: 0.1.0
+    shipped on 2026-09-01, and nuget.org is immutable, so a declared version
+    that collides with a published one makes two different assemblies answer to
+    the same identity.
   -->
   <PropertyGroup>
-    <LodestarDecompositionVersion>0.1.0</LodestarDecompositionVersion>
+    <LodestarDecompositionVersion>0.1.1</LodestarDecompositionVersion>
   </PropertyGroup>
 
 </Project>
