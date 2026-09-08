@@ -1,0 +1,145 @@
+{
+ "metadata": {
+  "algorithm": "SentencePiece BPE (Metaspace + byte_fallback)",
+  "library": "tokenizers",
+  "library_version": "0.23.1",
+  "models": {
+   "mistral_v01": "mistral_v01_tokenizer.json (vendored by tools/fetch_llama2_mistral_tokenizers.py)"
+  },
+  "count": 8
+ },
+ "cases": [
+  {
+   "id": 0,
+   "model": "mistral_v01",
+   "text": "",
+   "tokens": [],
+   "ids": [],
+   "decoded": ""
+  },
+  {
+   "id": 1,
+   "model": "mistral_v01",
+   "text": "the cat",
+   "tokens": [
+    "▁the",
+    "▁cat"
+   ],
+   "ids": [
+    272,
+    5255
+   ],
+   "decoded": "the cat"
+  },
+  {
+   "id": 2,
+   "model": "mistral_v01",
+   "text": " the cat",
+   "tokens": [
+    "▁the",
+    "▁cat"
+   ],
+   "ids": [
+    272,
+    5255
+   ],
+   "decoded": "the cat"
+  },
+  {
+   "id": 3,
+   "model": "mistral_v01",
+   "text": "  spaced  out  ",
+   "tokens": [
+    "▁",
+    "▁sp",
+    "aced",
+    "▁",
+    "▁out",
+    "▁▁"
+   ],
+   "ids": [
+    28705,
+    668,
+    2701,
+    28705,
+    575,
+    259
+   ],
+   "decoded": " spaced  out  "
+  },
+  {
+   "id": 4,
+   "model": "mistral_v01",
+   "text": "aujourd'hui",
+   "tokens": [
+    "▁au",
+    "jour",
+    "d",
+    "'",
+    "hui"
+   ],
+   "ids": [
+    2505,
+    18777,
+    28715,
+    28742,
+    24281
+   ],
+   "decoded": "aujourd'hui"
+  },
+  {
+   "id": 5,
+   "model": "mistral_v01",
+   "text": "héllo",
+   "tokens": [
+    "▁h",
+    "é",
+    "ll",
+    "o"
+   ],
+   "ids": [
+    295,
+    28797,
+    584,
+    28709
+   ],
+   "decoded": "héllo"
+  },
+  {
+   "id": 6,
+   "model": "mistral_v01",
+   "text": "🦙",
+   "tokens": [
+    "▁",
+    "<0xF0>",
+    "<0x9F>",
+    "<0xA6>",
+    "<0x99>"
+   ],
+   "ids": [
+    28705,
+    243,
+    162,
+    169,
+    156
+   ],
+   "decoded": "🦙"
+  },
+  {
+   "id": 7,
+   "model": "mistral_v01",
+   "text": "😀ok",
+   "tokens": [
+    "▁",
+    "😀",
+    "ok"
+   ],
+   "ids": [
+    28705,
+    30575,
+    493
+   ],
+   "decoded": "😀ok"
+  }
+ ]
+}

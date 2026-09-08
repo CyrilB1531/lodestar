@@ -82,6 +82,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 | --- | --- | --- | --- |
 | `xlm-roberta-base` SentencePiece vocabulary | MIT | `tests/oracles/xlmr_fairseq.model` | `https://huggingface.co/xlm-roberta-base/resolve/main/sentencepiece.bpe.model` |
 | `gpt2` byte-level BPE vocabulary and merge table | MIT | `tests/oracles/gpt2_vocab.json`, `tests/oracles/gpt2_merges.txt` | `https://huggingface.co/openai-community/gpt2/resolve/main/vocab.json`, `.../merges.txt` |
+| `Mistral-7B-v0.1` SentencePiece-BPE vocabulary and merge table | Apache-2.0 | `tests/oracles/mistral_v01_tokenizer.json` | `https://huggingface.co/mistralai/Mistral-7B-v0.1/resolve/main/tokenizer.json` |
 
 The **vocabulary only** — the 250 000 pieces, their scores, their types and the
 `nmt_nfkc` character map the file's `normalizer_spec` carries (a table compiled
@@ -153,6 +154,33 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
+
+### `Mistral-7B-v0.1` tokenizer
+
+The **vocabulary and merge table only** — the 32 000 entries and 58 980 ranked
+pairs of `tokenizer.json`, with the `Metaspace` pre-tokenizer and `byte_fallback`
+flags that make it the SentencePiece-BPE lineage. No model weights are
+redistributed, per
+[`docs/decisions/0003-provenance-and-licensing.md`](docs/decisions/0003-provenance-and-licensing.md).
+
+The file is compiled into no package: it lives under `tests/`, is copied to the
+test output, and exists so `SentencePieceBpeLineageOracleTests` checks the
+whitespace escape and the byte fallback against a file a user actually has,
+rather than a synthetic model built from this project's own understanding of the
+format. It is downloaded verbatim by
+`tools/fetch_llama2_mistral_tokenizers.py`, which pins its upstream SHA-256 and
+corroborates it against a second mirror.
+
+**Llama-2 is deliberately absent.** Its gated original is `license:llama2` — the
+Llama 2 Community License, which is not one of the permissive licenses decision
+0003 names — and both ungated mirrors declare no license at all. The fetch tool
+downloads and verifies it so the claim stays reproducible, and writes nothing.
+Issue #552 holds that decision.
+
+`mistralai/Mistral-7B-v0.1` is published under the Apache License 2.0 by Mistral
+AI, as declared on its model card. The full license text is at
+<https://www.apache.org/licenses/LICENSE-2.0>; its redistribution conditions are
+met here by this notice, which states the component, its license and its source.
 
 ## Build-time dependencies (not shipped)
 
