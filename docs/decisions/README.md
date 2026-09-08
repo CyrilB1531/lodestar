@@ -96,10 +96,10 @@ a later decision uses instead.
 
 ## What `accepted` means here
 
-All eighty-two carry `accepted`. None has been rejected or withdrawn — a status this table
+All eighty-three carry `accepted`. None has been rejected or withdrawn — a status this table
 would otherwise need a second word for. `0004` read a progress sentence
 (`single-word and blocked shipped`) where a status belongs; that sentence is now the opening line
-of its own `## Done` section, and its status reads `accepted` like the other eighty-one.
+of its own `## Done` section, and its status reads `accepted` like the other eighty-two.
 
 ## Relationships not stated on a `**Status:**` line
 
