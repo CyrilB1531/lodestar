@@ -195,6 +195,26 @@ internal abstract class SnowballWorkerBase
         return best;
     }
 
+    /// <summary>The longest candidate that ends the word and starts at or after R2, or null.</summary>
+    /// <remarks>
+    /// Finnish states its fourth step's region the way the Scandinavian steps
+    /// state theirs — "the longest among the following suffixes in R2" — so R2
+    /// qualifies the search here too, and a candidate reaching past R2 does not
+    /// hide a shorter one that lies inside it.
+    /// </remarks>
+    protected string? LongestSuffixInR2(string[] candidates)
+    {
+        string? best = null;
+        foreach (string c in candidates)
+        {
+            if (Ends(c) && InR2(c.Length) && (best is null || c.Length > best.Length))
+            {
+                best = c;
+            }
+        }
+        return best;
+    }
+
     /// <summary>The longest candidate that ends the word, or null.</summary>
     protected string? LongestSuffix(string[] candidates)
     {

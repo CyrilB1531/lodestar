@@ -1,0 +1,1098 @@
+{
+ "metadata": {
+  "algorithm": "FinnishSnowballStemmer",
+  "library": "nltk",
+  "library_version": "3.10.1",
+  "reference_calls": [
+   "nltk.stem.snowball.SnowballStemmer('finnish')"
+  ],
+  "count": 217
+ },
+ "cases": [
+  {
+   "id": 0,
+   "word": "talokin",
+   "stem": "talo"
+  },
+  {
+   "id": 1,
+   "word": "kirjakin",
+   "stem": "kirj"
+  },
+  {
+   "id": 2,
+   "word": "onkin",
+   "stem": "on"
+  },
+  {
+   "id": 3,
+   "word": "kaikkikin",
+   "stem": "kaik"
+  },
+  {
+   "id": 4,
+   "word": "sittenkin",
+   "stem": "sit"
+  },
+  {
+   "id": 5,
+   "word": "eikään",
+   "stem": "eikä"
+  },
+  {
+   "id": 6,
+   "word": "mikään",
+   "stem": "mikä"
+  },
+  {
+   "id": 7,
+   "word": "kukaan",
+   "stem": "kuka"
+  },
+  {
+   "id": 8,
+   "word": "taloonkaan",
+   "stem": "talo"
+  },
+  {
+   "id": 9,
+   "word": "kenenkään",
+   "stem": "kene"
+  },
+  {
+   "id": 10,
+   "word": "menetkö",
+   "stem": "mene"
+  },
+  {
+   "id": 11,
+   "word": "tuletko",
+   "stem": "tule"
+  },
+  {
+   "id": 12,
+   "word": "onko",
+   "stem": "on"
+  },
+  {
+   "id": 13,
+   "word": "eikö",
+   "stem": "eikö"
+  },
+  {
+   "id": 14,
+   "word": "sinäkö",
+   "stem": "sinä"
+  },
+  {
+   "id": 15,
+   "word": "tulehan",
+   "stem": "tule"
+  },
+  {
+   "id": 16,
+   "word": "otahan",
+   "stem": "ota"
+  },
+  {
+   "id": 17,
+   "word": "mikähän",
+   "stem": "mikä"
+  },
+  {
+   "id": 18,
+   "word": "kukahan",
+   "stem": "kuka"
+  },
+  {
+   "id": 19,
+   "word": "otapa",
+   "stem": "ota"
+  },
+  {
+   "id": 20,
+   "word": "menepä",
+   "stem": "mene"
+  },
+  {
+   "id": 21,
+   "word": "tulepa",
+   "stem": "tule"
+  },
+  {
+   "id": 22,
+   "word": "nopeasti",
+   "stem": "nopeast"
+  },
+  {
+   "id": 23,
+   "word": "hitaasti",
+   "stem": "hitaast"
+  },
+  {
+   "id": 24,
+   "word": "kauniisti",
+   "stem": "kauniist"
+  },
+  {
+   "id": 25,
+   "word": "varmasti",
+   "stem": "varmast"
+  },
+  {
+   "id": 26,
+   "word": "erityisesti",
+   "stem": "erityis"
+  },
+  {
+   "id": 27,
+   "word": "helposti",
+   "stem": "helpost"
+  },
+  {
+   "id": 28,
+   "word": "vaikeasti",
+   "stem": "vaikeast"
+  },
+  {
+   "id": 29,
+   "word": "hyvästi",
+   "stem": "hyväst"
+  },
+  {
+   "id": 30,
+   "word": "kovasti",
+   "stem": "kovast"
+  },
+  {
+   "id": 31,
+   "word": "talosi",
+   "stem": "talo"
+  },
+  {
+   "id": 32,
+   "word": "kirjasi",
+   "stem": "kirj"
+  },
+  {
+   "id": 33,
+   "word": "kotisi",
+   "stem": "koti"
+  },
+  {
+   "id": 34,
+   "word": "äitisi",
+   "stem": "äiti"
+  },
+  {
+   "id": 35,
+   "word": "isäsi",
+   "stem": "isä"
+  },
+  {
+   "id": 36,
+   "word": "kätesi",
+   "stem": "käte"
+  },
+  {
+   "id": 37,
+   "word": "taloni",
+   "stem": "talo"
+  },
+  {
+   "id": 38,
+   "word": "kirjani",
+   "stem": "kirj"
+  },
+  {
+   "id": 39,
+   "word": "kotini",
+   "stem": "koti"
+  },
+  {
+   "id": 40,
+   "word": "äitini",
+   "stem": "äiti"
+  },
+  {
+   "id": 41,
+   "word": "käteni",
+   "stem": "käte"
+  },
+  {
+   "id": 42,
+   "word": "talonsa",
+   "stem": "talo"
+  },
+  {
+   "id": 43,
+   "word": "kirjansa",
+   "stem": "kirj"
+  },
+  {
+   "id": 44,
+   "word": "kotinsa",
+   "stem": "koti"
+  },
+  {
+   "id": 45,
+   "word": "äitinsä",
+   "stem": "äiti"
+  },
+  {
+   "id": 46,
+   "word": "kätensä",
+   "stem": "käte"
+  },
+  {
+   "id": 47,
+   "word": "lapsensa",
+   "stem": "laps"
+  },
+  {
+   "id": 48,
+   "word": "talomme",
+   "stem": "talo"
+  },
+  {
+   "id": 49,
+   "word": "kirjamme",
+   "stem": "kirj"
+  },
+  {
+   "id": 50,
+   "word": "kotimme",
+   "stem": "koti"
+  },
+  {
+   "id": 51,
+   "word": "talonne",
+   "stem": "talo"
+  },
+  {
+   "id": 52,
+   "word": "kotinne",
+   "stem": "koti"
+  },
+  {
+   "id": 53,
+   "word": "lapsenne",
+   "stem": "laps"
+  },
+  {
+   "id": 54,
+   "word": "talossaan",
+   "stem": "talo"
+  },
+  {
+   "id": 55,
+   "word": "talostaan",
+   "stem": "talo"
+  },
+  {
+   "id": 56,
+   "word": "talollaan",
+   "stem": "talo"
+  },
+  {
+   "id": 57,
+   "word": "taloltaan",
+   "stem": "talo"
+  },
+  {
+   "id": 58,
+   "word": "kotonaan",
+   "stem": "koto"
+  },
+  {
+   "id": 59,
+   "word": "kädessään",
+   "stem": "käde"
+  },
+  {
+   "id": 60,
+   "word": "kädestään",
+   "stem": "käde"
+  },
+  {
+   "id": 61,
+   "word": "kädellään",
+   "stem": "käde"
+  },
+  {
+   "id": 62,
+   "word": "kädeltään",
+   "stem": "käde"
+  },
+  {
+   "id": 63,
+   "word": "äitinään",
+   "stem": "äit"
+  },
+  {
+   "id": 64,
+   "word": "talolleen",
+   "stem": "talo"
+  },
+  {
+   "id": 65,
+   "word": "äidilleen",
+   "stem": "äid"
+  },
+  {
+   "id": 66,
+   "word": "kirjoineen",
+   "stem": "kirj"
+  },
+  {
+   "id": 67,
+   "word": "lapsineen",
+   "stem": "laps"
+  },
+  {
+   "id": 68,
+   "word": "maahan",
+   "stem": "maaha"
+  },
+  {
+   "id": 69,
+   "word": "puuhun",
+   "stem": "puuhu"
+  },
+  {
+   "id": 70,
+   "word": "työhön",
+   "stem": "työhö"
+  },
+  {
+   "id": 71,
+   "word": "tiehen",
+   "stem": "tiehe"
+  },
+  {
+   "id": 72,
+   "word": "päähän",
+   "stem": "päähä"
+  },
+  {
+   "id": 73,
+   "word": "suuhun",
+   "stem": "suuhu"
+  },
+  {
+   "id": 74,
+   "word": "yöhön",
+   "stem": "yöhö"
+  },
+  {
+   "id": 75,
+   "word": "vapaisiin",
+   "stem": "vapa"
+  },
+  {
+   "id": 76,
+   "word": "korkeisiin",
+   "stem": "kork"
+  },
+  {
+   "id": 77,
+   "word": "maiden",
+   "stem": "maide"
+  },
+  {
+   "id": 78,
+   "word": "töiden",
+   "stem": "töide"
+  },
+  {
+   "id": 79,
+   "word": "teiden",
+   "stem": "teide"
+  },
+  {
+   "id": 80,
+   "word": "maitten",
+   "stem": "mait"
+  },
+  {
+   "id": 81,
+   "word": "töitten",
+   "stem": "töit"
+  },
+  {
+   "id": 82,
+   "word": "teitten",
+   "stem": "teit"
+  },
+  {
+   "id": 83,
+   "word": "taloihin",
+   "stem": "talo"
+  },
+  {
+   "id": 84,
+   "word": "vapaaseen",
+   "stem": "vapa"
+  },
+  {
+   "id": 85,
+   "word": "huoneeseen",
+   "stem": "huone"
+  },
+  {
+   "id": 86,
+   "word": "maaseen",
+   "stem": "maase"
+  },
+  {
+   "id": 87,
+   "word": "taloa",
+   "stem": "talo"
+  },
+  {
+   "id": 88,
+   "word": "kirjaa",
+   "stem": "kirj"
+  },
+  {
+   "id": 89,
+   "word": "kissaa",
+   "stem": "kis"
+  },
+  {
+   "id": 90,
+   "word": "koiraa",
+   "stem": "koira"
+  },
+  {
+   "id": 91,
+   "word": "päätä",
+   "stem": "päätä"
+  },
+  {
+   "id": 92,
+   "word": "kättä",
+   "stem": "kät"
+  },
+  {
+   "id": 93,
+   "word": "vettä",
+   "stem": "vet"
+  },
+  {
+   "id": 94,
+   "word": "talossa",
+   "stem": "talo"
+  },
+  {
+   "id": 95,
+   "word": "talosta",
+   "stem": "talo"
+  },
+  {
+   "id": 96,
+   "word": "talolla",
+   "stem": "talo"
+  },
+  {
+   "id": 97,
+   "word": "talolta",
+   "stem": "talo"
+  },
+  {
+   "id": 98,
+   "word": "talolle",
+   "stem": "talo"
+  },
+  {
+   "id": 99,
+   "word": "talona",
+   "stem": "talo"
+  },
+  {
+   "id": 100,
+   "word": "taloksi",
+   "stem": "talo"
+  },
+  {
+   "id": 101,
+   "word": "taloine",
+   "stem": "talo"
+  },
+  {
+   "id": 102,
+   "word": "kädessä",
+   "stem": "käde"
+  },
+  {
+   "id": 103,
+   "word": "kädestä",
+   "stem": "käde"
+  },
+  {
+   "id": 104,
+   "word": "kädellä",
+   "stem": "käde"
+  },
+  {
+   "id": 105,
+   "word": "kädeltä",
+   "stem": "käde"
+  },
+  {
+   "id": 106,
+   "word": "kädelle",
+   "stem": "käde"
+  },
+  {
+   "id": 107,
+   "word": "kätenä",
+   "stem": "käte"
+  },
+  {
+   "id": 108,
+   "word": "kädeksi",
+   "stem": "käde"
+  },
+  {
+   "id": 109,
+   "word": "kaupungissa",
+   "stem": "kaupung"
+  },
+  {
+   "id": 110,
+   "word": "kaupungista",
+   "stem": "kaupung"
+  },
+  {
+   "id": 111,
+   "word": "huonetta",
+   "stem": "huone"
+  },
+  {
+   "id": 112,
+   "word": "perhettä",
+   "stem": "perh"
+  },
+  {
+   "id": 113,
+   "word": "aluetta",
+   "stem": "alue"
+  },
+  {
+   "id": 114,
+   "word": "osoitetta",
+   "stem": "osoit"
+  },
+  {
+   "id": 115,
+   "word": "talon",
+   "stem": "talo"
+  },
+  {
+   "id": 116,
+   "word": "kirjan",
+   "stem": "kirj"
+  },
+  {
+   "id": 117,
+   "word": "kissan",
+   "stem": "kis"
+  },
+  {
+   "id": 118,
+   "word": "koiran",
+   "stem": "koira"
+  },
+  {
+   "id": 119,
+   "word": "miehen",
+   "stem": "miehe"
+  },
+  {
+   "id": 120,
+   "word": "kaupungin",
+   "stem": "kaupung"
+  },
+  {
+   "id": 121,
+   "word": "maan",
+   "stem": "maan"
+  },
+  {
+   "id": 122,
+   "word": "puun",
+   "stem": "puun"
+  },
+  {
+   "id": 123,
+   "word": "tien",
+   "stem": "tien"
+  },
+  {
+   "id": 124,
+   "word": "työn",
+   "stem": "työn"
+  },
+  {
+   "id": 125,
+   "word": "suun",
+   "stem": "suun"
+  },
+  {
+   "id": 126,
+   "word": "pään",
+   "stem": "pään"
+  },
+  {
+   "id": 127,
+   "word": "veden",
+   "stem": "vede"
+  },
+  {
+   "id": 128,
+   "word": "lapsen",
+   "stem": "laps"
+  },
+  {
+   "id": 129,
+   "word": "isompi",
+   "stem": "isomp"
+  },
+  {
+   "id": 130,
+   "word": "isompaa",
+   "stem": "isomp"
+  },
+  {
+   "id": 131,
+   "word": "suurempi",
+   "stem": "suuremp"
+  },
+  {
+   "id": 132,
+   "word": "vanhempi",
+   "stem": "vanhemp"
+  },
+  {
+   "id": 133,
+   "word": "nuorempi",
+   "stem": "nuoremp"
+  },
+  {
+   "id": 134,
+   "word": "parempi",
+   "stem": "paremp"
+  },
+  {
+   "id": 135,
+   "word": "kauniimpi",
+   "stem": "kauniimp"
+  },
+  {
+   "id": 136,
+   "word": "kauniimpaa",
+   "stem": "kauniimp"
+  },
+  {
+   "id": 137,
+   "word": "pienempi",
+   "stem": "pienemp"
+  },
+  {
+   "id": 138,
+   "word": "kylmempi",
+   "stem": "kylmemp"
+  },
+  {
+   "id": 139,
+   "word": "vanhimpia",
+   "stem": "vanhimp"
+  },
+  {
+   "id": 140,
+   "word": "isoimpia",
+   "stem": "isoimp"
+  },
+  {
+   "id": 141,
+   "word": "kauneimpia",
+   "stem": "kauneimp"
+  },
+  {
+   "id": 142,
+   "word": "suurimmat",
+   "stem": "suurim"
+  },
+  {
+   "id": 143,
+   "word": "vanhimmat",
+   "stem": "vanhim"
+  },
+  {
+   "id": 144,
+   "word": "talot",
+   "stem": "talo"
+  },
+  {
+   "id": 145,
+   "word": "kirjat",
+   "stem": "kirj"
+  },
+  {
+   "id": 146,
+   "word": "kissat",
+   "stem": "kis"
+  },
+  {
+   "id": 147,
+   "word": "miehet",
+   "stem": "miehe"
+  },
+  {
+   "id": 148,
+   "word": "lapset",
+   "stem": "laps"
+  },
+  {
+   "id": 149,
+   "word": "kaupungit",
+   "stem": "kaupung"
+  },
+  {
+   "id": 150,
+   "word": "taloissa",
+   "stem": "talo"
+  },
+  {
+   "id": 151,
+   "word": "kirjoissa",
+   "stem": "kirj"
+  },
+  {
+   "id": 152,
+   "word": "taloista",
+   "stem": "talo"
+  },
+  {
+   "id": 153,
+   "word": "kirjoista",
+   "stem": "kirj"
+  },
+  {
+   "id": 154,
+   "word": "vapaa",
+   "stem": "vapa"
+  },
+  {
+   "id": 155,
+   "word": "korkea",
+   "stem": "kork"
+  },
+  {
+   "id": 156,
+   "word": "huone",
+   "stem": "huone"
+  },
+  {
+   "id": 157,
+   "word": "perhe",
+   "stem": "perh"
+  },
+  {
+   "id": 158,
+   "word": "alue",
+   "stem": "alue"
+  },
+  {
+   "id": 159,
+   "word": "kirje",
+   "stem": "kirj"
+  },
+  {
+   "id": 160,
+   "word": "matkoja",
+   "stem": "matko"
+  },
+  {
+   "id": 161,
+   "word": "poikia",
+   "stem": "poik"
+  },
+  {
+   "id": 162,
+   "word": "taloja",
+   "stem": "talo"
+  },
+  {
+   "id": 163,
+   "word": "kirjoja",
+   "stem": "kirj"
+  },
+  {
+   "id": 164,
+   "word": "todellisesti",
+   "stem": "todellis"
+  },
+  {
+   "id": 165,
+   "word": "yleisesti",
+   "stem": "yleis"
+  },
+  {
+   "id": 166,
+   "word": "luonnollisesti",
+   "stem": "luonnollis"
+  },
+  {
+   "id": 167,
+   "word": "yksinkertaisesti",
+   "stem": "yksinkertais"
+  },
+  {
+   "id": 168,
+   "word": "kotimaahan",
+   "stem": "kotim"
+  },
+  {
+   "id": 169,
+   "word": "isänmaahan",
+   "stem": "isänm"
+  },
+  {
+   "id": 170,
+   "word": "kirjoihin",
+   "stem": "kirj"
+  },
+  {
+   "id": 171,
+   "word": "ihmisiin",
+   "stem": "ihmis"
+  },
+  {
+   "id": 172,
+   "word": "ystäviin",
+   "stem": "ystäv"
+  },
+  {
+   "id": 173,
+   "word": "taloiden",
+   "stem": "talo"
+  },
+  {
+   "id": 174,
+   "word": "kirjoiden",
+   "stem": "kirj"
+  },
+  {
+   "id": 175,
+   "word": "asioiden",
+   "stem": "asio"
+  },
+  {
+   "id": 176,
+   "word": "taloitten",
+   "stem": "talo"
+  },
+  {
+   "id": 177,
+   "word": "kirjoitten",
+   "stem": "kirj"
+  },
+  {
+   "id": 178,
+   "word": "taloon",
+   "stem": "talo"
+  },
+  {
+   "id": 179,
+   "word": "kirjaan",
+   "stem": "kirj"
+  },
+  {
+   "id": 180,
+   "word": "kotiin",
+   "stem": "kot"
+  },
+  {
+   "id": 181,
+   "word": "kaupunkiin",
+   "stem": "kaupunk"
+  },
+  {
+   "id": 182,
+   "word": "kaupunkien",
+   "stem": "kaupunk"
+  },
+  {
+   "id": 183,
+   "word": "huoneen",
+   "stem": "huone"
+  },
+  {
+   "id": 184,
+   "word": "perheiden",
+   "stem": "perh"
+  },
+  {
+   "id": 185,
+   "word": "mielenkiintoisempi",
+   "stem": "mielenkiintois"
+  },
+  {
+   "id": 186,
+   "word": "kansainvälisempi",
+   "stem": "kansainvälis"
+  },
+  {
+   "id": 187,
+   "word": "hyödyllisempi",
+   "stem": "hyödyllis"
+  },
+  {
+   "id": 188,
+   "word": "ymmärtäväisempi",
+   "stem": "ymmärtäväis"
+  },
+  {
+   "id": 189,
+   "word": "ihmiset",
+   "stem": "ihmis"
+  },
+  {
+   "id": 190,
+   "word": "opiskelijat",
+   "stem": "opiskelij"
+  },
+  {
+   "id": 191,
+   "word": "kirjastot",
+   "stem": "kirjasto"
+  },
+  {
+   "id": 192,
+   "word": "ihmisden",
+   "stem": "ihmisd"
+  },
+  {
+   "id": 193,
+   "word": "ihmistten",
+   "stem": "ihmist"
+  },
+  {
+   "id": 194,
+   "word": "ihmiseseen",
+   "stem": "ihmises"
+  },
+  {
+   "id": 195,
+   "word": "kotimaahon",
+   "stem": "kotimaahon"
+  },
+  {
+   "id": 196,
+   "word": "kissatta",
+   "stem": "kissat"
+  },
+  {
+   "id": 197,
+   "word": "ja",
+   "stem": "ja"
+  },
+  {
+   "id": 198,
+   "word": "on",
+   "stem": "on"
+  },
+  {
+   "id": 199,
+   "word": "ei",
+   "stem": "ei"
+  },
+  {
+   "id": 200,
+   "word": "se",
+   "stem": "se"
+  },
+  {
+   "id": 201,
+   "word": "ne",
+   "stem": "ne"
+  },
+  {
+   "id": 202,
+   "word": "me",
+   "stem": "me"
+  },
+  {
+   "id": 203,
+   "word": "te",
+   "stem": "te"
+  },
+  {
+   "id": 204,
+   "word": "hän",
+   "stem": "hän"
+  },
+  {
+   "id": 205,
+   "word": "minä",
+   "stem": "minä"
+  },
+  {
+   "id": 206,
+   "word": "sinä",
+   "stem": "sinä"
+  },
+  {
+   "id": 207,
+   "word": "kun",
+   "stem": "kun"
+  },
+  {
+   "id": 208,
+   "word": "niin",
+   "stem": "niin"
+  },
+  {
+   "id": 209,
+   "word": "mutta",
+   "stem": "mut"
+  },
+  {
+   "id": 210,
+   "word": "myös",
+   "stem": "myös"
+  },
+  {
+   "id": 211,
+   "word": "vain",
+   "stem": "vain"
+  },
+  {
+   "id": 212,
+   "word": "kuin",
+   "stem": "kuin"
+  },
+  {
+   "id": 213,
+   "word": "a",
+   "stem": "a"
+  },
+  {
+   "id": 214,
+   "word": "ab",
+   "stem": "ab"
+  },
+  {
+   "id": 215,
+   "word": "abc",
+   "stem": "abc"
+  },
+  {
+   "id": 216,
+   "word": "abcd",
+   "stem": "abcd"
+  }
+ ]
+}
