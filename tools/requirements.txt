@@ -41,6 +41,15 @@ mapie==1.5.0
 # phonetics 1.0.5, and why the field narrowed to one.
 doublemetaphone==1.2
 
+# snowballstemmer -- the reference for Lodestar.Text's Hungarian stemmer (#310).
+# nltk oracles the other Snowball languages and cannot oracle this one: its
+# Hungarian omits 'ő' and 'ű' from the vowel set and 'től', 'ről', 'ből' from
+# step 2, so it leaves "nők", "szőlők", "gyűrűk" and every -ből form unstemmed.
+# This is the Snowball project's own generated Python package, so the corpus
+# freezes the published algorithm rather than one library's transcription of it.
+# BSD-3-Clause, no dependencies of its own. Decision 0090 has the measurement.
+snowballstemmer==3.1.1
+
 # onnx is only needed to (re)build the tiny synthetic test model, not for
 # generate_oracles.py: onnx==1.16.0
 
