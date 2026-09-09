@@ -35,15 +35,18 @@ internal abstract class SnowballWorkerBase
     /// <param name="word">The word, already carrying any language-specific preprocessing.</param>
     /// <param name="isVowel">That language's vowel set.</param>
     /// <param name="minR1">
-    /// A floor for R1. German requires the region before R1 to hold at least three
-    /// letters; the Romance algorithms impose no floor.
+    /// A floor for R1. German and Dutch require the region before R1 to hold at
+    /// least three letters; the Romance algorithms impose no floor.
     /// </param>
     protected SnowballWorkerBase(string word, Func<char, bool> isVowel, int minR1 = 0)
     {
         S = word;
         _isVowel = isVowel;
-        R1 = Math.Max(Region(word, 0, isVowel), minR1);
-        R2 = Region(word, R1, isVowel);
+        // Both regions are set up the standard way, and only then is the floor
+        // applied to R1: measuring R2 from a floored R1 stems "opening" to itself.
+        int standardR1 = Region(word, 0, isVowel);
+        R2 = Region(word, standardR1, isVowel);
+        R1 = Math.Max(standardR1, minR1);
     }
 
     /// <summary>Whether <paramref name="c"/> is a vowel in this language.</summary>
