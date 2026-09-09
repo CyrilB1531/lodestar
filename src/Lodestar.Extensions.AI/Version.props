@@ -1,0 +1,16 @@
+<Project>
+
+  <!--
+    Lodestar.Extensions.AI owns its version here, independently of the other
+    packages (see docs/decisions/0012-per-package-versioning.md).
+
+    0.1.0 is this package's first release. It carries two edges — to
+    Lodestar.Onnx, whose OnnxTextEmbedder it adapts, and to Lodestar.Embeddings,
+    whose BatchEncoder its constructor names — so each floor moves when one of
+    those publishes API this package needs, which so far neither has.
+  -->
+  <PropertyGroup>
+    <LodestarExtensionsAIVersion>0.1.0</LodestarExtensionsAIVersion>
+  </PropertyGroup>
+
+</Project>

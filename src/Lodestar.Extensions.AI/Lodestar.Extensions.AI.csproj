@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- This package's version, owned here rather than repository-wide. -->
+  <Import Project="Version.props" />
+
+  <PropertyGroup>
+    <Version>$(LodestarExtensionsAIVersion)</Version>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+    <RootNamespace>Lodestar.Extensions.AI</RootNamespace>
+
+    <PackageId>Lodestar.Extensions.AI</PackageId>
+    <Description>Microsoft.Extensions.AI interoperability for Lodestar: exposes the ONNX embedding path as an IEmbeddingGenerator&lt;string, Embedding&lt;float&gt;&gt;, so a Microsoft.Extensions.AI or Semantic Kernel consumer can take Lodestar embeddings without a service running anywhere.</Description>
+    <PackageTags>microsoft-extensions-ai;iembeddinggenerator;embeddings;onnx;semantic-kernel;interop;lodestar</PackageTags>
+  </PropertyGroup>
+
+  <!-- The dependency this package exists for. A core package carries none, so an
+       external dependency earns its own satellite named for it — this is the
+       second member of that tier, after Lodestar.Onnx
+       (decision 0076). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+  </ItemGroup>
+
+  <!--
+    Two Lodestar edges, and both are load-bearing rather than transitive
+    conveniences: OnnxEmbeddingGenerator adapts Lodestar.Onnx's OnnxTextEmbedder,
+    and its constructor names Lodestar.Embeddings' BatchEncoder, which is the
+    overload of EmbedBatch that owns the padding.
+
+    Expressed as PackageReferences against the published packages, like every
+    other src/ edge, so the build graph is the graph consumers see
+    (decision 0012).
+
+    The opt-in below exists only so that editing several packages in one branch
+    does not require a pack-and-restore cycle per edit:
+
+        export LodestarUseProjectRefs=true
+
+    It is never set in CI, and the packed .nuspec is asserted there.
+  -->
+  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
+    <ProjectReference Include="../Lodestar.Onnx/Lodestar.Onnx.csproj" />
+    <ProjectReference Include="../Lodestar.Embeddings/Lodestar.Embeddings.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
+    <PackageReference Include="Lodestar.Onnx" />
+    <PackageReference Include="Lodestar.Embeddings" />
+  </ItemGroup>
+
+  <!-- Loud on purpose: a local build that silently differed from the shipped one
+       is the failure mode this whole arrangement is designed to avoid. -->
+  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
+          Condition="'$(LodestarUseProjectRefs)' == 'true'">
+    <Message Importance="high"
+             Text="Lodestar.Extensions.AI: LodestarUseProjectRefs=true — referencing Lodestar.Onnx and Lodestar.Embeddings by project, not by package. This is the developer loop, not what ships." />
+  </Target>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lodestar.Extensions.AI.Tests" />
+    <!-- Same suite, replayed against the netstandard2.0 build. -->
+    <InternalsVisibleTo Include="Lodestar.Extensions.AI.NetStandard.Tests" />
+  </ItemGroup>
+
+</Project>
