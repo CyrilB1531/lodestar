@@ -1318,6 +1318,70 @@ SNOWBALL_RU_WORDS = [
 ]
 
 
+SNOWBALL_DA_WORDS = [
+    # step 1(a), the -hed family: -hed -heden -heder -hedens, and -ethed
+    "kærlighed", "kærligheden", "kærligheder", "kærlighedens",
+    "sandhed", "sandheden", "sandheder", "sandhedens",
+    "mulighed", "muligheden", "muligheder", "mulighedens",
+    "virkelighed", "virkeligheden", "hemmelighed", "hemmeligheder",
+    "frihed", "friheden", "sundhed", "sundheden", "nyhed", "nyheder",
+    "enkelthed", "enkeltheden", "offentlighed", "offentligheden",
+    # step 1(a), the -er family: -ere -eren -erens -erne -ernes -erer -ered
+    "lærere", "læreren", "lærerens", "lærerne", "lærernes", "lærer",
+    "arbejdere", "arbejderen", "arbejderne", "arbejdernes", "arbejder",
+    "spillere", "spilleren", "spillerne", "spiller",
+    "undervisere", "underviseren", "underviser",
+    # step 1(a), the -erede / -erende / -erendes / -eret / -erets family
+    "leverede", "leverendes", "leveret", "leverets", "levere", "leverer",
+    "markerede", "markeret", "markerer", "noterede", "noteret",
+    "studerende", "studerendes", "regerende", "regerendes", "beregnede",
+    # step 1(a), the plain endings: -e -en -ende -ene -ens -er -ers -es -et -ets
+    "husene", "husets", "huset", "huse",
+    "bilerne", "bilernes", "bilen", "biler", "bilens", "bile",
+    "bogen", "bøger", "bøgerne", "bogens",
+    "barnet", "barnets", "børnene", "børns",
+    "manden", "mandens", "mændene", "mænds",
+    "landet", "landets", "landene", "lande",
+    "kvinden", "kvinder", "kvinderne", "kvindens", "kvinde",
+    "dagen", "dagene", "dagens", "tiden", "tider", "tiderne", "tidens",
+    "løbende", "siddende", "stående", "gående",
+    # step 1(b): a bare s, kept unless the letter before it is a valid s-ending
+    "hjems", "folks", "bords", "hunds", "bjergs", "kiosks", "chefs",
+    "radios", "fotos", "taxas", "banks", "films", "sofas", "korts", "jobs",
+    # the letters outside the s-ending set, which leave the s in place
+    "virus", "kursus", "bonus", "campus", "paradis", "nervøs", "religiøs",
+    "kaos", "gris", "hus",
+    # step 2: a gd / dt / gt / kt in R1 loses its last letter
+    "sagt", "lagt", "bragt", "vagt", "magt", "søgt", "vægt", "godt",
+    "perfekt", "punkt", "projekt", "tænkt", "friskt", "frisk",
+    # step 3, the igst rule: the final st goes before the suffix search runs
+    "hurtigst", "vigtigst", "billigst", "dejligst", "venligst", "tidligst",
+    # step 3(a): -ig -lig -elig -els deleted, then step 2 runs again
+    "hurtig", "hurtigt", "vigtig", "vigtigt", "billig", "billigt",
+    "rigtig", "rigtigt", "tidlig", "dejlig", "dejligt", "venlig", "venligt",
+    "kærlig", "kærligt", "synlig", "synligt", "farlig", "farligt",
+    "endelig", "virkelig", "egentlig", "forskellig", "sandsynlig",
+    "middels", "handels", "fjendtligt",
+    # step 3(b): -løst rewritten to -løs, so the stem stays a Danish word
+    "hjælpeløst", "meningsløst", "endeløst", "trådløst", "arbejdsløst",
+    "hjælpeløs", "løst", "løs",
+    # step 4: the double consonant a deletion or a rewrite uncovers
+    "bestemmelse", "bestemmelsen", "bestemmelser", "bestemme", "bestemmer",
+    "stemme", "stemmer", "stemmen", "hammeren", "hammer",
+    "nummeret", "nummer", "sommeren", "sommer", "vinteren", "vinter",
+    "villig", "villige", "hyggelig", "hyggeligt", "kaffen", "kaffe",
+    "oplevelse", "oplevelser", "bevægelse", "bevægelser",
+    "forbindelse", "forbindelser", "afgørelse", "ændringer",
+    # the apostrophe the published description gives R1 to and nltk does not --
+    # decision 0087 follows nltk, and these are what pin that
+    "pc'er", "cd'er", "tv'et", "bil'er", "computer'en", "a'ere",
+    # words that must come back whole: too short for R1, or nothing to strip
+    "og", "at", "det", "en", "et", "er", "som", "på", "med", "for",
+    "ikke", "han", "hun", "den", "var", "jeg", "til", "af",
+    "a", "ab", "abc", "abcd",
+]
+
+
 def _snowball_corpus(language: str, algorithm: str, words: list[str]) -> dict:
     """Freeze nltk's Snowball output for one language into an oracle payload.
 
@@ -1368,6 +1432,10 @@ def generate_snowball_sv() -> dict:
 
 def generate_snowball_ru() -> dict:
     return _snowball_corpus("russian", "RussianSnowballStemmer", SNOWBALL_RU_WORDS)
+
+
+def generate_snowball_da() -> dict:
+    return _snowball_corpus("danish", "DanishSnowballStemmer", SNOWBALL_DA_WORDS)
 
 
 WORDPIECE_VOCAB = [
@@ -8358,6 +8426,7 @@ def main() -> None:
         "snowball_nl.json": generate_snowball_nl,
         "snowball_sv.json": generate_snowball_sv,
         "snowball_ru.json": generate_snowball_ru,
+        "snowball_da.json": generate_snowball_da,
         "wordpiece.json": generate_wordpiece,
         "batch_encoding.json": generate_batch_encoding,
         "pooling.json": generate_pooling,

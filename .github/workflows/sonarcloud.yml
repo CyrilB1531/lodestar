@@ -129,6 +129,20 @@ jobs:
       # integration puts them in is not worth a CI round-trip to discover.
       # Neither bucket has anything here to analyse.
       #
+      # cpd.exclusions covers the stemmers, and only them: CPD normalises every
+      # literal to one token before it compares, so two suffix tables of similar
+      # length are identical to it however different the suffixes are. Measured on
+      # #574 — the 105-token run it reported over Danish and Swedish is
+      # `$LIT or $LIT ... ; private static readonly string[] Step1Suffixes = [ $LIT,
+      # ... ]`, which is the s-ending predicate and the step 1 table, i.e. the two
+      # places those two languages differ most. A single ~35-entry table is already
+      # ~77 tokens, so no ordering of the members keeps two of them under the
+      # 100-token minimum; the duplication the shared shape really did carry was
+      # factored into ScandinavianSnowballWorker instead, which took the density
+      # from 11.0% to 7.7% before this. Decision 0088 has the measurement and the
+      # scope. Every other duplication finding in the repository still fails the
+      # gate — this is the one directory whose files are transcribed tables.
+      #
       # projectBaseDir is pinned because those two exclusions are *relative*: they
       # are matched against whatever directory the scanner decided was the base,
       # and Scanner for .NET warns that its auto-detection of that directory
@@ -180,7 +194,8 @@ jobs:
             /d:sonar.projectBaseDir="$GITHUB_WORKSPACE" \
             /d:sonar.coverage.exclusions="tools/**,bench/**,samples/**,.claude/**" \
             /d:sonar.exclusions="tests/oracles/**,samples/Lodestar.DocSnippets/Generated/**,tools/tests/**,assets/**,.claude/**" \
-            /d:sonar.test.exclusions="tests/oracles/**"
+            /d:sonar.test.exclusions="tests/oracles/**" \
+            /d:sonar.cpd.exclusions="src/Lodestar.Text/Stemming/**"
 
       - name: Build the solution
         run: dotnet build Lodestar.slnx --configuration Release
