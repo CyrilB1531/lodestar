@@ -6,6 +6,7 @@ using Lodestar.Abstractions;
 using Lodestar.Conformal;
 using Lodestar.Decomposition;
 using Lodestar.Embeddings.Tokenization;
+using Lodestar.Extensions.AI;
 using Lodestar.Fuzzy;
 using Lodestar.Metrics;
 using Lodestar.Onnx;
@@ -60,6 +61,10 @@ internal static class PackagingGate
         ["Lodestar.Onnx.OnnxTextEmbedder"] =
             "constructing it loads an ONNX model, and model weights are never committed "
             + "(CONTRIBUTING.md); ADR 0009 already records that the sample stops at the tokenizer",
+        ["Lodestar.Extensions.AI.OnnxEmbeddingGenerator"] =
+            "it wraps an OnnxTextEmbedder, so building one loads the same ONNX model this list "
+            + "already excludes that type for. The exclusion is inherited rather than new: there "
+            + "is no constructor of it a sample could reach without the weights",
         ["Lodestar.Metrics.UndefinedMetricException"] =
             "Lot5Metrics does catch it, under ZeroDivision.Throw — but its entire public surface "
             + "is constructors, and a consumer catches rather than constructs. A catch clause emits "
@@ -138,6 +143,7 @@ internal static class PackagingGate
             typeof(CsrMatrix).Assembly,
             typeof(TruncatedSvd).Assembly,
             typeof(OnnxTextEmbedder).Assembly,
+            typeof(OnnxEmbeddingGenerator).Assembly,
             typeof(TTest).Assembly,
         ];
 

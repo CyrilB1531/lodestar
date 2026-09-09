@@ -27,15 +27,21 @@ persisting a fitted model does not mean hand-rolling a JSON writer);
 on ``Indel``, and since 0.5.0 ``Lodestar.Text`` depends on
 ``Lodestar.Abstractions`` because that is where ``CsrMatrix`` moved --
 ``Lodestar.Decomposition`` depends on ``Lodestar.Abstractions`` the same way,
-for the same matrix -- and ``Lodestar.Onnx`` depends on ``Lodestar.Embeddings``
-for the tokenizers and the pooling it feeds a session with: the four
-inter-package edges that exist. The ranges are asserted too, not only the ids: a
-bare ``"0.2.0"`` is NuGet's shorthand for ``[0.2.0, )``, and an edge with the
-wrong floor is a different edge.
+for the same matrix -- ``Lodestar.Onnx`` depends on ``Lodestar.Embeddings``
+for the tokenizers and the pooling it feeds a session with, and
+``Lodestar.Extensions.AI`` depends on both of those: on ``Lodestar.Onnx`` for the
+embedder it adapts, and on ``Lodestar.Embeddings`` because its constructor names
+``BatchEncoder``, which is the ``EmbedBatch`` overload that owns the padding. Six
+inter-package edges, and those are all of them. The ranges are asserted too, not
+only the ids: a bare ``"0.2.0"`` is NuGet's shorthand for ``[0.2.0, )``, and an
+edge with the wrong floor is a different edge.
 
-``Microsoft.ML.OnnxRuntime`` appears exactly once, under ``Lodestar.Onnx``. That
-is the tier rule of #533 in assertable form: a core package carries no external
-dependency, and this file is what fails when one reappears.
+Each external dependency appears exactly once: ``Microsoft.ML.OnnxRuntime`` under
+``Lodestar.Onnx``, ``Microsoft.Extensions.AI.Abstractions`` under
+``Lodestar.Extensions.AI``. That is the tier rule of #533, restated by decision
+0076 -- a core package carries no external dependency, and an external dependency
+earns its own satellite named for it -- in assertable form. This file is what
+fails when one reappears where it should not.
 """
 
 from __future__ import annotations
@@ -57,7 +63,9 @@ CONFORMAL = "Lodestar.Conformal"
 DECOMPOSITION = "Lodestar.Decomposition"
 STATS = "Lodestar.Stats"
 ONNX = "Lodestar.Onnx"
+EXTENSIONS_AI = "Lodestar.Extensions.AI"
 ONNX_RUNTIME = "Microsoft.ML.OnnxRuntime"
+MS_EXTENSIONS_AI = "Microsoft.Extensions.AI.Abstractions"
 STJ = "System.Text.Json"
 
 # Span/Memory/Vector<T> are in-box on net10.0, packaged on netstandard2.0 --
@@ -75,9 +83,13 @@ TEXT_FLOOR = "0.4.0"
 # added: Lodestar.Text stopped declaring CsrMatrix and consumes it from here.
 ABSTRACTIONS_FLOOR = "0.1.1"
 
-# Directory.Packages.props' PackageVersion for the edge #533 added. 0.5.0 is
-# where BatchEncoder.EncodeAll and Pad became public, and Lodestar.Onnx calls both.
+# Directory.Packages.props' PackageVersion for the edges #533 and #570 added. 0.5.0 is
+# where BatchEncoder.EncodeAll and Pad became public, and both dependents reach them.
 EMBEDDINGS_FLOOR = "0.5.0"
+
+# Directory.Packages.props' PackageVersion for the edge #570 added. 0.1.0 is
+# Lodestar.Onnx's first release, and OnnxTextEmbedder has been public since it.
+ONNX_FLOOR = "0.1.0"
 
 # package id -> target framework -> {dependency id: declared version range}.
 # See this module's docstring for what EXPECTED's shape and ranges prove.
@@ -107,6 +119,17 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         # carries one. That is what makes this package worth its release checklist.
         NET: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.28.0"},
         NETSTANDARD: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.28.0", **POLYFILLS},
+    },
+    EXTENSIONS_AI: {
+        # The second satellite, and the second external dependency. Two Lodestar edges:
+        # the embedder it adapts, and the package whose BatchEncoder its constructor names.
+        NET: {ONNX: ONNX_FLOOR, EMBEDDINGS: EMBEDDINGS_FLOOR, MS_EXTENSIONS_AI: "10.9.0"},
+        NETSTANDARD: {
+            ONNX: ONNX_FLOOR,
+            EMBEDDINGS: EMBEDDINGS_FLOOR,
+            MS_EXTENSIONS_AI: "10.9.0",
+            **POLYFILLS,
+        },
     },
     METRICS: {
         # Nothing on net10.0, only the polyfills on netstandard2.0: metrics

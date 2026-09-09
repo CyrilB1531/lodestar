@@ -5,10 +5,11 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The nine packages (`Lodestar.Text`, `Lodestar.Embeddings`, `Lodestar.Fuzzy`,
+The ten packages (`Lodestar.Text`, `Lodestar.Embeddings`, `Lodestar.Fuzzy`,
 `Lodestar.Metrics` — published as `DataNet.*` up to 2026-08-15 — plus
 `Lodestar.Conformal`, `Lodestar.Abstractions`, `Lodestar.Decomposition`,
-`Lodestar.Onnx` and `Lodestar.Stats`, all newer than that rename)
+`Lodestar.Onnx`, `Lodestar.Stats` and `Lodestar.Extensions.AI`, all newer than
+that rename)
 version and release **independently**, each from its own
 `src/<Package>/Version.props`, so entries are grouped per package. Releases up to
 and including `0.2.0` predate the split and covered all three at once — see
@@ -36,6 +37,12 @@ is one sentence, the issue and the commit; see
 #### Fixed
 
 - **A special token written as ordinary text no longer encodes two ways on Llama-2, and no longer becomes a control token in the middle of a sentence.** `tokenizers` normalizes a `normalized: true` added token's **content** with the file's declared normalizer, so Llama-2 — whose whitespace escape is a `Prepend`+`Replace` normalizer — matches on `▁<s>`, not `<s>`. `BpeTokenizer` built that pattern from the Unicode forms alone while escaping the text it searched, which parted two ways: `"<s>"` encoded to `['▁', '<s>']` where the reference answers the single id `1`, and `"the cat<s>"` matched the added token where the reference does **not** — so a caller's own `<s>` silently became the BOS id. The escape now joins the pattern only where the file spelled it as a normalizer; Mistral v0.1, which declares its entries raw under a `Metaspace` pre-tokenizer, is unchanged and was already exact. A `Metaspace` pre-tokenizer carrying a `normalized: true` entry is refused at construction rather than approximated — the escape would depend on the piece's position, which a fixed pattern cannot carry. [Decision 0085](docs/decisions/0085-a-normalized-added-tokens-pattern-carries-the-normalizers-escape.md) amends [0062](docs/decisions/0062-the-two-metaspace-spellings-part-on-the-prepend-twice.md) with the third place the two spellings part, and `sentencepiece_bpe_lineage.json` grows from 16 rows to 26, freezing the five texts [#318](https://github.com/CyrilB1531/lodestar/issues/318) had taken out rather than settle. **Llama-2 ids change**: an embedding produced through this lineage by 0.6.0 carries the extra `▁` and must be regenerated. ([#551](https://github.com/CyrilB1531/lodestar/issues/551))
+
+### Lodestar.Extensions.AI
+
+#### Added
+
+- **`Lodestar.Extensions.AI` 0.1.0 — the ONNX embedding path, behind `Microsoft.Extensions.AI`'s own interface.** `OnnxEmbeddingGenerator` implements `IEmbeddingGenerator<string, Embedding<float>>` over an `OnnxTextEmbedder` and a `BatchEncoder`, so a Semantic Kernel pipeline or any `Microsoft.Extensions.AI` chain can hold Lodestar embeddings without knowing Lodestar. It adds **no arithmetic**: every vector is what `OnnxTextEmbedder.EmbedBatch` returned for that text, which is why the suite asserts identity with that overload exactly rather than within a tolerance, and why this package carries no oracle corpus of its own. It is the **second satellite**, and it exists rather than being a second dependency on `Lodestar.Onnx` because [decision 0076](docs/decisions/0076-a-core-package-carries-no-external-dependency.md) says an external dependency earns its own package named for it — so a caller who wants inference and not the AI abstractions still restores nothing extra. Three things are stated rather than left to be discovered: the returned task is **already completed**, since the model runs in the calling process and `Task.Run` would move the same CPU without telling the caller anything true; `EmbeddingGenerationOptions.Dimensions` is **checked, not honoured**, because an ONNX model's width is fixed at export, and a width the model provably does not produce is refused instead of silently ignored; and the generator **takes ownership** of the embedder, because `IEmbeddingGenerator` is `IDisposable` and a consumer holding it through the interface cannot see that disposing would otherwise leave a native session open. `GetService` answers for the metadata, for the generator itself, and for the underlying `OnnxTextEmbedder` — the only way to reach the single-sequence entry point through an interface that has no shape for it. ([#570](https://github.com/CyrilB1531/lodestar/issues/570))
 
 ## Released — 2026-09-08
 

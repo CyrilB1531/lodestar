@@ -68,6 +68,17 @@
       },
       "exceptionsUnchecked": []
     },
+    "Lodestar.Extensions.AI": {
+      "wiki": "ExtensionsAI",
+      "pages": [
+        "docs/reference/extensions-ai/*.md",
+        "docs/reference/extensions-ai/*/*.md"
+      ],
+      "covered": {
+        "Lodestar.Extensions.AI": "docs/reference/extensions-ai/generation"
+      },
+      "exceptionsUnchecked": []
+    },
     "Lodestar.Fuzzy": {
       "wiki": "Fuzzy",
       "pages": [

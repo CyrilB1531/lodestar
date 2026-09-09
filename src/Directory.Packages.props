@@ -6,10 +6,11 @@
   </PropertyGroup>
 
   <!--
-    Three packages here are floors on a sibling: Lodestar.Fuzzy on Lodestar.Text,
-    since 0.5.0 Lodestar.Text on Lodestar.Abstractions (decision 0071), and
+    Four packages here are floors on a sibling: Lodestar.Fuzzy on Lodestar.Text,
+    since 0.5.0 Lodestar.Text on Lodestar.Abstractions (decision 0071),
     Lodestar.Onnx on Lodestar.Embeddings, whose tokenizers and pooling it feeds
-    an ONNX session with. Each number is a deliberately chosen *floor* — the
+    an ONNX session with, and Lodestar.Extensions.AI on both Lodestar.Onnx and
+    that same Lodestar.Embeddings. Each number is a deliberately chosen *floor* — the
     minimum a consumer is required to take — and is therefore written in full
     rather than tracking the sibling's $(Lodestar*Version).
 
@@ -22,7 +23,12 @@
   <ItemGroup>
     <PackageVersion Include="Lodestar.Abstractions" Version="0.1.1" />
     <PackageVersion Include="Lodestar.Embeddings" Version="0.5.0" />
+    <PackageVersion Include="Lodestar.Onnx" Version="0.1.0" />
     <PackageVersion Include="Lodestar.Text" Version="0.4.0" />
+    <!-- Abstractions only: the interfaces a consumer already has, and no
+         implementation. Carried by Lodestar.Extensions.AI alone, which is the
+         satellite it earns under decision 0076. -->
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.9.0" />
     <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.28.0" />
     <PackageVersion Include="PolySharp" Version="1.15.0" />
     <!-- Analyzer only, pinned in the root Directory.Build.props so src/, tests/

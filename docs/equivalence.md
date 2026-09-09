@@ -319,6 +319,20 @@ No canonical Python library exposes a BK-tree; there is nothing to map against.
 | — (no counterpart) | — | [`MultipleComparisons.Bonferroni(p)`](reference/stats/tests/multiplecomparisons-bonferroni.md) | scipy has no `bonferroni` method under `false_discovery_control`, or elsewhere in `scipy.stats`. There is nothing to replay, so the oracle corpus states the definition instead of freezing a reference call: `min(p × n, 1)` per value. |
 | `nan_policy='propagate' \| 'raise' \| 'omit'` | scipy | — (no counterpart) | Every test above takes `nan_policy` in scipy, a three-valued convenience over its array API. None of the ten families here offers it, and nine of them follow scipy's own default (`'propagate'`) exactly: a NaN anywhere in an input propagates to the statistic and the p-value. **[`ChiSquare.Contingency`](reference/stats/tests/chisquare-contingency.md) is the one exception** — a contingency table's cells are counts, not measurements, and the expected-frequency table divides by their marginals, so a NaN cell is refused (`ArgumentException`) rather than carried through a division it would corrupt; the same refusal covers an infinite cell for the same reason. A caller wanting `'omit'`'s behaviour filters the array before calling. |
 
+## Lodestar.Extensions.AI — Microsoft.Extensions.AI interoperability
+
+This package adds no arithmetic, so the rows below map an **ecosystem adapter**, not a computation:
+the Python column names the class a framework asks for when it wants embeddings from a local model,
+and the C# column names the interface .NET's own AI stack asks for. The vectors are
+`Lodestar.Onnx`'s either way — see the ONNX rows above for what they are and how they are checked.
+
+| Python | Library | C# | Differences |
+| --- | --- | --- | --- |
+| `HuggingFaceEmbeddings(model_name=...).embed_documents(texts)` | langchain-huggingface | [`OnnxEmbeddingGenerator.GenerateAsync(values)`](reference/extensions-ai/generation/onnxembeddinggenerator-generateasync.md) | Both hand a framework a local embedder behind that framework's interface. The task comes back already completed — the model runs in-process, so there is nothing to wait for — where the Python call is plainly synchronous and says so in its signature. `EmbeddingGenerationOptions.Dimensions` is **checked, not honoured**: an ONNX model's output width is fixed at export, so a width the model does not produce is refused rather than silently ignored, and `ModelId` is not read at all because this generator holds exactly one model. |
+| `embeddings.embed_query(text)` | langchain-core | [`OnnxEmbeddingGenerator.GenerateAsync(values)`](reference/extensions-ai/generation/onnxembeddinggenerator-generateasync.md) with one text | There is no single-text member: `Microsoft.Extensions.AI` ships `GenerateVectorAsync` as an extension over the same interface, so adding one here would be a second spelling of a call the abstraction already offers. |
+| — (no counterpart) | — | [`OnnxEmbeddingGenerator.GetService(serviceType)`](reference/extensions-ai/generation/onnxembeddinggenerator-getservice.md) | Service resolution is how `Microsoft.Extensions.AI` lets a consumer reach past the abstraction; LangChain has no equivalent, since a Python caller holds the concrete object. It answers for `EmbeddingGeneratorMetadata`, for the underlying `OnnxTextEmbedder` — which is the only way to reach the single-sequence entry point through the interface — and for the generator itself. |
+| `del embeddings` | — | [`OnnxEmbeddingGenerator.Dispose()`](reference/extensions-ai/generation/onnxembeddinggenerator-dispose.md) | The generator **owns** the embedder it was given, so disposing it closes the native session. Python's reference counting makes the question invisible; here it is a promise the page states, because a consumer holding the interface cannot see what is underneath. |
+
 ## Conventions
 
 - **Comparison unit.** Unless stated otherwise, string distances compare `char`
