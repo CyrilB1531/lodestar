@@ -21,7 +21,7 @@ namespace Lodestar.Text.Stemming;
 internal abstract class ScandinavianSnowballWorker : SnowballWorkerBase
 {
     /// <summary>The bare <c>s</c> that ends group (b) of each language's first step.</summary>
-    protected const string BareS = "s";
+    internal const string BareS = "s";
 
     /// <param name="word">The word, already lowercased and composed.</param>
     /// <param name="isVowel">That language's vowel set.</param>
@@ -53,6 +53,57 @@ internal abstract class ScandinavianSnowballWorker : SnowballWorkerBase
         worker.Run();
         return worker.S;
     }
+
+    /// <summary>Stems one word by running <paramref name="steps"/>, with no worker of its own.</summary>
+    /// <param name="word">The word to stem.</param>
+    /// <param name="isVowel">That language's vowel set.</param>
+    /// <param name="steps">That language's steps, in the order its description states them.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="word"/> is null.</exception>
+    /// <remarks>
+    /// A nested worker is scaffolding repeated once per algorithm — declaration,
+    /// vowel field, constructor and <c>Run</c> override, identical every time. A
+    /// language whose steps are static methods takes this overload and adds none.
+    /// </remarks>
+    internal static string Stem(string word, Func<char, bool> isVowel, Action<ScandinavianSnowballWorker> steps) =>
+        Stem(word, s => new StepWorker(s, isVowel, steps));
+
+    /// <summary>The worker for a language that supplies its steps rather than a subclass.</summary>
+    private sealed class StepWorker : ScandinavianSnowballWorker
+    {
+        private readonly Action<ScandinavianSnowballWorker> _steps;
+
+        public StepWorker(string word, Func<char, bool> isVowel, Action<ScandinavianSnowballWorker> steps)
+            : base(word, isVowel) => _steps = steps;
+
+        protected override void Run() => _steps(this);
+    }
+
+    /// <summary>The word as the steps have left it.</summary>
+    internal string Word => S;
+
+    /// <summary>The longest of <paramref name="suffixes"/> lying in R1, or null.</summary>
+    internal string? LongestInR1(string[] suffixes) => LongestSuffixInR1(suffixes);
+
+    /// <summary>Removes the last <paramref name="count"/> characters.</summary>
+    internal void Remove(int count) => Delete(count);
+
+    /// <summary>Replaces a suffix of <paramref name="suffixLength"/> characters.</summary>
+    internal void Rewrite(int suffixLength, string replacement) => Replace(suffixLength, replacement);
+
+    /// <summary>Whether the letter at <paramref name="index"/> exists and is a vowel.</summary>
+    internal bool IsVowelAt(int index) => index >= 0 && index < S.Length && IsVowel(S[index]);
+
+    /// <summary>Deletes the longest of <paramref name="suffixes"/> that lies in R1.</summary>
+    internal void StripInR1(string[] suffixes)
+    {
+        if (LongestSuffixInR1(suffixes) is { } hit)
+        {
+            Delete(hit.Length);
+        }
+    }
+
+    /// <summary>A consonant pair in R1 loses its second letter, for a step supplied as a delegate.</summary>
+    internal void StripPair(string[] pairs) => StripConsonantPair(pairs);
 
     /// <summary>
     /// The first step of both algorithms: delete the longest of
