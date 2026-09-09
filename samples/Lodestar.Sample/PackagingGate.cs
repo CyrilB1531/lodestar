@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Lodestar.Abstractions;
+using Lodestar.Cluster;
 using Lodestar.Conformal;
 using Lodestar.Decomposition;
 using Lodestar.Embeddings.Tokenization;
@@ -141,6 +142,7 @@ internal static class PackagingGate
             typeof(WordPieceTokenizer).Assembly,
             typeof(Fuzz).Assembly,
             typeof(ConfusionMatrix).Assembly,
+            typeof(KMeans).Assembly,
             typeof(SplitConformal).Assembly,
             typeof(CsrMatrix).Assembly,
             typeof(TruncatedSvd).Assembly,

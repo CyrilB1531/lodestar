@@ -1,0 +1,15 @@
+<Project>
+
+  <!--
+    Lodestar.Cluster owns its version here, independently of the other packages
+    (see docs/decisions/0012-per-package-versioning.md).
+
+    0.1.0 is this package's first release. Like Lodestar.Metrics, Lodestar.Conformal
+    and Lodestar.Preprocessing it creates no inter-package edge — nothing depends on
+    it and it depends on nothing — so it releases on its own schedule.
+  -->
+  <PropertyGroup>
+    <LodestarClusterVersion>0.1.0</LodestarClusterVersion>
+  </PropertyGroup>
+
+</Project>

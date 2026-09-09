@@ -65,6 +65,7 @@ CONFORMAL = "Lodestar.Conformal"
 DECOMPOSITION = "Lodestar.Decomposition"
 STATS = "Lodestar.Stats"
 PREPROCESSING = "Lodestar.Preprocessing"
+CLUSTER = "Lodestar.Cluster"
 ONNX = "Lodestar.Onnx"
 EXTENSIONS_AI = "Lodestar.Extensions.AI"
 EXTENSIONS_MATHNET = "Lodestar.Extensions.MathNet"
@@ -141,6 +142,12 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         # because converting that type is the whole of this package's surface.
         NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0"},
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0", **POLYFILLS},
+    },
+    CLUSTER: {
+        # Nothing on net10.0, only the polyfills on netstandard2.0: Lloyd's algorithm is
+        # arithmetic over spans, and the scoring half lives in Lodestar.Metrics.
+        NET: {},
+        NETSTANDARD: {**POLYFILLS},
     },
     PREPROCESSING: {
         # Nothing on net10.0, only the polyfills on netstandard2.0: a scaler is

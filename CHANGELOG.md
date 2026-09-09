@@ -5,11 +5,12 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The twelve packages (`Lodestar.Text`, `Lodestar.Embeddings`, `Lodestar.Fuzzy`,
+The thirteen packages (`Lodestar.Text`, `Lodestar.Embeddings`, `Lodestar.Fuzzy`,
 `Lodestar.Metrics` — published as `DataNet.*` up to 2026-08-15 — plus
 `Lodestar.Conformal`, `Lodestar.Abstractions`, `Lodestar.Decomposition`,
 `Lodestar.Onnx`, `Lodestar.Stats`, `Lodestar.Extensions.AI` and
-`Lodestar.Extensions.MathNet` and `Lodestar.Preprocessing`, all newer than
+`Lodestar.Extensions.MathNet`, `Lodestar.Preprocessing` and `Lodestar.Cluster`,
+all newer than
 that rename)
 version and release **independently**, each from its own
 `src/<Package>/Version.props`, so entries are grouped per package. Releases up to
@@ -70,6 +71,12 @@ is one sentence, the issue and the commit; see
 #### Added
 
 - **`Lodestar.Preprocessing` 0.1.0 — `StandardScaler`, at scikit-learn parity, with spans instead of an `IDataView`.** `Fit` takes a row-major span and a feature count — the shape `Lodestar.Metrics` already uses — and returns a scaler whose `Mean`, `Variance` and `Scale` are readable and **nullable exactly where the reference reports `None`**: `with_mean=False` still fits a mean, and only turning both steps off drops it. `Transform` and `InverseTransform` return new arrays and never write to the input. **A near-constant feature scales by 1, and the test is not `variance == 0`**: scikit-learn compares the variance against the two-pass error bound of Chan, Golub and LeVeque, `var <= n·eps·var + (n·mean·eps)²`, so a feature with a large mean and a tiny variance is constant to within what the computation could resolve. `tests/oracles/preprocessing_standard_scaler.json` freezes eight cases against scikit-learn 1.9.0, including the pair that separates the two readings — `1e8 ± 1e-8`, whose variance is `1.48e-16` and whose scale is 1, against `1e8 ± 1e-7`, scaled by `8.5e-08`. An implementation testing `variance == 0` passes every other case and fails those two by eight orders of magnitude. The threshold is read from `sklearn.preprocessing._data._is_constant_feature` (BSD-3, allowed by [decision 0003](docs/decisions/0003-provenance-and-licensing.md)) and attributed in the source: the papers give the error analysis, not the number. Core tier — no external dependency, no inter-package edge. ([#568](https://github.com/CyrilB1531/lodestar/issues/568))
+
+### Lodestar.Cluster
+
+#### Added
+
+- **`Lodestar.Cluster` 0.1.0 — k-means by Lloyd's algorithm, at scikit-learn parity, with the starting centres as an input.** `KMeans.Fit` takes a row-major span and returns `Centres`, `Labels`, `Inertia` and `Iterations`, the four things scikit-learn reports; `Predict` assigns unseen rows without refitting. `Labels` is the shape `Lodestar.Metrics` already scores, so a clustering arrives with silhouette, adjusted Rand, AMI and V-measure on day one rather than needing them built — which is the argument [#442](https://github.com/CyrilB1531/lodestar/issues/442) made for this domain, and it held. The loop is the reference's: assign, update, stop on unchanged labels or on a centre shift within the tolerance, and when it stops on the shift a final assignment runs so `Labels` matches `Centres` rather than trailing one update behind. `Tolerance` is scaled by the mean feature variance, as `_tolerance` scales it, so the same number means the same thing at any scale. An empty cluster is relocated onto the sample furthest from its own centre. **`KMeansOptions.InitialCentres` is an input, not a seed** — [decision 0072](docs/decisions/0072-omega-is-an-input-not-a-seed.md)'s move, applied here: given a starting block the run is an ordinary parity target, and `tests/oracles/cluster_kmeans.json` compares every centre, label, inertia and iteration count across eight cases rather than comparing distributions. Left alone, k-means++ draws from this package's own generator and reproduces a run of Lodestar, never one of scikit-learn. **One measured divergence, and it is recorded rather than papered over**: a sample exactly equidistant from two centres takes the lowest-indexed one here, where the reference was observed choosing the second on one configuration and the first on another; [decision 0093](docs/decisions/0093-an-exact-tie-between-centres-is-not-part-of-k-means-parity.md) has both, and the two corpus fixtures that hinged on a tie were replaced so no frozen case rests on a convention. Core tier — no external dependency, no inter-package edge. ([#567](https://github.com/CyrilB1531/lodestar/issues/567))
 
 ## Released — 2026-09-08
 

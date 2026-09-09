@@ -1,0 +1,357 @@
+{
+ "metadata": {
+  "algorithm": "KMeans",
+  "library": "scikit-learn",
+  "library_version": "1.9.0",
+  "reference_calls": [
+   "sklearn.cluster.KMeans(init=..., n_init=1, algorithm=\"lloyd\")"
+  ],
+  "count": 8
+ },
+ "cases": [
+  {
+   "name": "three blobs from centres on them",
+   "samples": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    10.0,
+    10.0,
+    10.0,
+    11.0,
+    5.0,
+    5.0
+   ],
+   "feature_count": 2,
+   "cluster_count": 3,
+   "initial_centres": [
+    0.0,
+    0.0,
+    10.0,
+    10.0,
+    5.0,
+    5.0
+   ],
+   "max_iter": 300,
+   "tol": 0.0001,
+   "centres": [
+    0.0,
+    0.5,
+    10.0,
+    10.5,
+    5.0,
+    5.0
+   ],
+   "labels": [
+    0,
+    0,
+    1,
+    1,
+    2
+   ],
+   "inertia": 1.0,
+   "iterations": 2
+  },
+  {
+   "name": "a cluster that starts empty",
+   "samples": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    10.0,
+    10.0,
+    10.0,
+    11.0,
+    5.0,
+    5.0
+   ],
+   "feature_count": 2,
+   "cluster_count": 3,
+   "initial_centres": [
+    0.0,
+    0.0,
+    10.0,
+    10.0,
+    -500.0,
+    -500.0
+   ],
+   "max_iter": 300,
+   "tol": 0.0001,
+   "centres": [
+    0.0,
+    0.5,
+    10.0,
+    10.5,
+    5.0,
+    5.0
+   ],
+   "labels": [
+    0,
+    0,
+    1,
+    1,
+    2
+   ],
+   "inertia": 1.0,
+   "iterations": 2
+  },
+  {
+   "name": "stopped at one iteration",
+   "samples": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    10.0,
+    10.0,
+    10.0,
+    11.0,
+    5.0,
+    5.0
+   ],
+   "feature_count": 2,
+   "cluster_count": 3,
+   "initial_centres": [
+    0.3,
+    0.2,
+    1.4,
+    1.1,
+    2.6,
+    2.3
+   ],
+   "max_iter": 1,
+   "tol": 0.0001,
+   "centres": [
+    0.0,
+    0.5,
+    10.0,
+    11.0,
+    7.5,
+    7.5
+   ],
+   "labels": [
+    0,
+    0,
+    1,
+    1,
+    2
+   ],
+   "inertia": 14.0,
+   "iterations": 1
+  },
+  {
+   "name": "zero tolerance runs to strict convergence",
+   "samples": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    10.0,
+    10.0,
+    10.0,
+    11.0,
+    5.0,
+    5.0
+   ],
+   "feature_count": 2,
+   "cluster_count": 3,
+   "initial_centres": [
+    0.3,
+    0.2,
+    1.4,
+    1.1,
+    2.6,
+    2.3
+   ],
+   "max_iter": 300,
+   "tol": 0.0,
+   "centres": [
+    0.0,
+    0.5,
+    10.0,
+    10.5,
+    5.0,
+    5.0
+   ],
+   "labels": [
+    0,
+    0,
+    1,
+    1,
+    2
+   ],
+   "inertia": 1.0,
+   "iterations": 3
+  },
+  {
+   "name": "stopped by the scaled tolerance",
+   "samples": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    10.0,
+    10.0,
+    10.0,
+    11.0,
+    5.0,
+    5.0
+   ],
+   "feature_count": 2,
+   "cluster_count": 3,
+   "initial_centres": [
+    0.3,
+    0.2,
+    1.4,
+    1.1,
+    2.6,
+    2.3
+   ],
+   "max_iter": 300,
+   "tol": 0.5,
+   "centres": [
+    0.0,
+    0.5,
+    10.0,
+    10.5,
+    5.0,
+    5.0
+   ],
+   "labels": [
+    0,
+    0,
+    1,
+    1,
+    2
+   ],
+   "inertia": 1.0,
+   "iterations": 3
+  },
+  {
+   "name": "as many clusters as samples",
+   "samples": [
+    1.0,
+    2.0,
+    3.0
+   ],
+   "feature_count": 1,
+   "cluster_count": 3,
+   "initial_centres": [
+    1.0,
+    2.0,
+    3.0
+   ],
+   "max_iter": 300,
+   "tol": 0.0001,
+   "centres": [
+    1.0,
+    2.0,
+    3.0
+   ],
+   "labels": [
+    0,
+    1,
+    2
+   ],
+   "inertia": 0.0,
+   "iterations": 1
+  },
+  {
+   "name": "duplicate samples",
+   "samples": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    9.0,
+    9.0
+   ],
+   "feature_count": 2,
+   "cluster_count": 2,
+   "initial_centres": [
+    0.5,
+    0.5,
+    8.0,
+    8.0
+   ],
+   "max_iter": 300,
+   "tol": 0.0001,
+   "centres": [
+    1.0,
+    1.0,
+    9.0,
+    9.0
+   ],
+   "labels": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "inertia": 0.0,
+   "iterations": 2
+  },
+  {
+   "name": "four features, centres off the groups",
+   "samples": [
+    -1.0,
+    2.0,
+    -3.0,
+    4.0,
+    -1.2,
+    2.1,
+    -2.9,
+    4.2,
+    8.0,
+    -7.0,
+    6.0,
+    -5.0,
+    8.3,
+    -6.8,
+    6.1,
+    -5.2,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "feature_count": 4,
+   "cluster_count": 2,
+   "initial_centres": [
+    5.0,
+    4.0,
+    5.0,
+    6.0,
+    -5.0,
+    -4.0,
+    -6.0,
+    -5.0
+   ],
+   "max_iter": 300,
+   "tol": 0.0001,
+   "centres": [
+    -0.733333333333333,
+    1.3666666666666667,
+    -1.9666666666666663,
+    2.733333333333333,
+    8.15,
+    -6.9,
+    6.049999999999999,
+    -5.1
+   ],
+   "labels": [
+    0,
+    0,
+    1,
+    1,
+    0
+   ],
+   "inertia": 20.756666666666668,
+   "iterations": 3
+  }
+ ]
+}
