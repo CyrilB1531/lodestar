@@ -1,0 +1,140 @@
+{
+ "metadata": {
+  "library": "scipy",
+  "version": "1.18.0",
+  "family": "distributions",
+  "count": 14
+ },
+ "cases": [
+  {
+   "name": "the body, where every hypothesis test here already lives",
+   "call": "t.sf",
+   "args": {
+    "x": 2.0,
+    "df": 10.0
+   },
+   "value": 0.03669401738537018
+  },
+  {
+   "name": "the median of a Cauchy",
+   "call": "t.sf",
+   "args": {
+    "x": 0.0,
+    "df": 1.0
+   },
+   "value": 0.5
+  },
+  {
+   "name": "the lower half, by symmetry",
+   "call": "t.sf",
+   "args": {
+    "x": -1.5,
+    "df": 7.0
+   },
+   "value": 0.911350756505015
+  },
+  {
+   "name": "the far tail at 1e-24",
+   "call": "t.sf",
+   "args": {
+    "x": 30.0,
+    "df": 30.0
+   },
+   "value": 3.125895815304445e-24
+  },
+  {
+   "name": "a heavy tail, three degrees of freedom",
+   "call": "t.sf",
+   "args": {
+    "x": 200.0,
+    "df": 3.0
+   },
+   "value": 1.3781981995204582e-07
+  },
+  {
+   "name": "a million degrees of freedom, all but normal",
+   "call": "t.sf",
+   "args": {
+    "x": 8.0,
+    "df": 1000000.0
+   },
+   "value": 6.227531716601252e-16
+  },
+  {
+   "name": "the multiplier a 95% interval asks for",
+   "call": "t.ppf",
+   "args": {
+    "x": 0.975,
+    "df": 12.0
+   },
+   "value": 2.1788128296672284
+  },
+  {
+   "name": "the multiplier a 99% interval asks for",
+   "call": "t.ppf",
+   "args": {
+    "x": 0.995,
+    "df": 5.0
+   },
+   "value": 4.032142983555228
+  },
+  {
+   "name": "the median",
+   "call": "t.ppf",
+   "args": {
+    "x": 0.5,
+    "df": 3.0
+   },
+   "value": 0.0
+  },
+  {
+   "name": "a quantile far into the lower tail",
+   "call": "t.ppf",
+   "args": {
+    "x": 1e-08,
+    "df": 4.0
+   },
+   "value": -131.59473694062356
+  },
+  {
+   "name": "a regression's overall test",
+   "call": "f.sf",
+   "args": {
+    "x": 4.0,
+    "dfn": 2.0,
+    "dfd": 20.0
+   },
+   "value": 0.03457161303360778
+  },
+  {
+   "name": "one and one degree of freedom",
+   "call": "f.sf",
+   "args": {
+    "x": 1.0,
+    "dfn": 1.0,
+    "dfd": 1.0
+   },
+   "value": 0.5000000000000001
+  },
+  {
+   "name": "far into the upper tail",
+   "call": "f.sf",
+   "args": {
+    "x": 500.0,
+    "dfn": 3.0,
+    "dfd": 100.0
+   },
+   "value": 4.846696230808535e-60
+  },
+  {
+   "name": "near zero, where the tail is all but one",
+   "call": "f.sf",
+   "args": {
+    "x": 0.001,
+    "dfn": 5.0,
+    "dfd": 5.0
+   },
+   "value": 0.9999998288217309
+  }
+ ]
+}

@@ -45,6 +45,8 @@ TextRankOptionsSample.Run();
 KeywordMatchSample.Run();
 SplitConformalSample.Run();
 DecompositionSamples.Run();
+DistributionsSample.Run();
+QrDecompositionSample.Run();
 KMeansSample.Run();
 KMeansOptionsSample.Run();
 StandardScalerSample.Run();
