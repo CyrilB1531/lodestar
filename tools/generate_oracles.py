@@ -1194,6 +1194,59 @@ SNOWBALL_NL_WORDS = [
 ]
 
 
+SNOWBALL_SV_WORDS = [
+    # step 1(a), the -het family: -het -heten -heter -heterna -hetens
+    "möjlighet", "möjligheten", "möjligheter", "möjligheterna", "möjlighetens",
+    "verklighet", "verkligheten", "skyldighet", "oskyldighet", "sanningen",
+    "härlighet", "härligheten", "nyhet", "nyheter", "nyheterna",
+    "enhet", "enheter", "enheten", "enhetens",
+    # step 1(a), the -ande family: -ande -anden -andes -andet
+    "vandrande", "vandranden", "vandrandes", "vandrandet",
+    "skrivande", "skrivandet", "leende", "boende", "glädjande",
+    # step 1(a), the -ar / -are / -aren / -arens / -arna / -arnas family
+    "högtalare", "högtalaren", "högtalarens", "högtalarna", "högtalarnas",
+    "läsare", "läsaren", "läsarens", "läsarna", "artiklar", "vandringar",
+    "vandringarna", "pojkarna", "fiskarne", "spelare", "spelarna",
+    # step 1(a), the -er / -ern / -erns / -erna / -ernas family
+    "fängelser", "vintern", "vinterns", "länderna", "ländernas", "systern",
+    "bäckens", "kanalen", "kapitlet", "kapitlets",
+    # step 1(a), the -or / -orna / -ornas family
+    "flickor", "flickorna", "flickornas", "stjärnorna", "människorna",
+    # step 1(a), the plain endings: -a -e -ad -ade -ades -as -at -ast -aste -en -es -ens
+    "människa", "flicka", "glädje", "begynnelse", "fängelse",
+    "älskad", "älskade", "älskades", "kallad", "kallat", "bilas",
+    "snabbast", "snabbaste", "sjukhusen", "byggnaderna", "glädjens",
+    "tjänstemännens", "tjänstemän", "heres", "andes", "arens",
+    # step 1(b): a bare s, kept unless the letter before it is a valid s-ending
+    "husets", "huset", "hus", "bordets", "landets", "fartygets", "kappsäcks",
+    "radios", "fotos", "artikels", "kapitels", "tidsels",
+    "chefs", "arkivs", "partys", "chips", "bajs", "picknicks", "bergs", "hems",
+    # the letters outside the s-ending set, which leave the s in place
+    "ovanpås", "sjös", "sås", "cirkus", "hos", "ros", "os",
+    # a suffix that reaches past R1 while a shorter one inside it does not
+    "arne", "aste", "ades", "ernas", "ornas", "arnas", "hetens", "erns",
+    # step 2: the doubled consonant a deletion or an inflection leaves behind
+    "friskt", "frisk", "byggd", "byggt", "bygg", "stängd", "stängt", "stänga",
+    "sagt", "lagt", "nätt", "vitt", "glad", "gladd", "vann", "vinna",
+    "kändt", "blandat", "fullständigt", "fullständig",
+    "otäckt", "otäck", "perfekt", "gott", "brett", "trött",
+    # verbs, whose participles are where the consonant pairs come from
+    "springa", "springer", "sprang", "sprungit", "köpa", "köper", "köpte", "köpt",
+    "säga", "säger", "sade", "göra", "gjorde", "gjort", "läsa", "läser", "läste",
+    # step 3: -lig -ig -els deleted, -löst and -fullt replaced
+    "härlig", "härligt", "vänlig", "vänligt", "vänligheten",
+    "möjlig", "möjliga", "verklig", "verkliga", "rolig", "roliga", "roligt",
+    "händelse", "händelsen", "händelser", "rörelse", "rörelser", "medels",
+    "tvivelaktigt", "tvivelaktig", "viktig", "viktigt", "viktigare",
+    "hemlöst", "hjälplöst", "ändlöst", "trolös", "löst",
+    "kärleksfullt", "kärleksfull", "fullt", "full",
+    # words that must come back whole: too short for R1, or nothing to strip
+    "kärlek", "hus", "sjö", "träd", "bok", "och", "att", "det", "som",
+    "med", "för", "inte", "han", "hon", "den", "var", "ett", "jag",
+    "a", "ab", "abc", "abcd",
+]
+
+
 def _snowball_corpus(language: str, algorithm: str, words: list[str]) -> dict:
     """Freeze nltk's Snowball output for one language into an oracle payload.
 
@@ -1236,6 +1289,10 @@ def generate_snowball_de() -> dict:
 
 def generate_snowball_nl() -> dict:
     return _snowball_corpus("dutch", "DutchSnowballStemmer", SNOWBALL_NL_WORDS)
+
+
+def generate_snowball_sv() -> dict:
+    return _snowball_corpus("swedish", "SwedishSnowballStemmer", SNOWBALL_SV_WORDS)
 
 
 WORDPIECE_VOCAB = [
@@ -8224,6 +8281,7 @@ def main() -> None:
         "snowball_it.json": generate_snowball_it,
         "snowball_de.json": generate_snowball_de,
         "snowball_nl.json": generate_snowball_nl,
+        "snowball_sv.json": generate_snowball_sv,
         "wordpiece.json": generate_wordpiece,
         "batch_encoding.json": generate_batch_encoding,
         "pooling.json": generate_pooling,

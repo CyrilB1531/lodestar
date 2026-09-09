@@ -86,6 +86,7 @@ implemented, never retrofitted at the end (§6.1 of the brief).
 | `SnowballStemmer("italian").stem(w)` | nltk | [`ItalianSnowballStemmer.Stem(w)`](reference/text/stemming/italiansnowballstemmer-stem.md) | Italian Snowball: acute→grave folding, `u`/`i` marking. Exact parity (96 words); `enza`→`te` follows nltk over the published text, see [0008](decisions/0008-italian-enza-nltk-divergence.md). |
 | `SnowballStemmer("german").stem(w)` | nltk | [`GermanSnowballStemmer.Stem(w)`](reference/text/stemming/germansnowballstemmer-stem.md) | German Snowball: `ß`→`ss`, `u`/`y` marking, R1 floored at 3, no RV region. Exact parity (88 words). |
 | `SnowballStemmer("dutch").stem(w)` | nltk | [`DutchSnowballStemmer.Stem(w)`](reference/text/stemming/dutchsnowballstemmer-stem.md) | Dutch Snowball: umlauts and acutes folded first (`è` kept), `y`/`i` marking, R1 floored at 3 as in German, `kk`/`dd`/`tt` undoubled after a deletion, and a stressed `aa`/`ee`/`oo`/`uu` undoubled last. Exact parity (177 words). |
+| `SnowballStemmer("swedish").stem(w)` | nltk | [`SwedishSnowballStemmer.Stem(w)`](reference/text/stemming/swedishsnowballstemmer-stem.md) | Swedish Snowball: three steps, all in R1, with R1 floored at 3 as in German and no R2 or RV region. The region qualifies the *search* — the longest suffix **inside R1**, not the longest suffix tested against it — and `ä`/`å`/`ö` are neither marked nor folded. Exact parity (211 words). |
 
 ## Lodestar.Embeddings — sub-word tokenization & pooling
 
