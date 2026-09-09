@@ -1632,6 +1632,82 @@ SNOWBALL_NO_WORDS = [
 ]
 
 
+SNOWBALL_RO_WORDS = [
+    # step 0: the enclitic article and the plurals it attaches to
+    "băiatul", "băiatului", "omul", "omului", "copilul", "copilului",
+    "drumul", "drumului", "lucrul", "lucrului", "timpul", "timpului",
+    "fata", "fetele", "fetelor", "casele", "caselor", "florile", "florilor",
+    "cartea", "cărţile", "cărţilor", "familiei", "familiile", "familiilor",
+    "steaua", "stelele", "cafeaua", "zilele", "zilelor",
+    "băieţii", "copiii", "fiii", "ochii", "oamenii", "oamenilor",
+    "elevilor", "studenţilor", "prietenii", "prietenilor",
+    "informaţie", "naţie", "naţia", "relaţie", "relaţia",
+    "abilitatei", "cetatei",
+    # step 1: the combining derivational suffixes, which loop
+    "abilitate", "abilităţi", "responsabilitate", "sensibilitate",
+    "posibilitate", "imposibilitate", "stabilitate", "mobilitate",
+    "activitate", "activităţi", "creativitate", "productivitate",
+    "obiectivitate", "electricitate", "publicitate", "simplicitate",
+    "autenticitate", "capacitate", "educativ", "educativă", "educative",
+    "informativ", "informativă", "decorativ", "operativ", "operativă",
+    "creator", "creatori", "creatoare", "cititor", "cititori", "cititoare",
+    "muncitor", "muncitori", "muncitoare", "vânzător", "vânzători",
+    "vânzătoare", "învăţător", "învăţătoare", "conducător", "conducători",
+    "definitiv", "definitivă", "primitiv", "primitivă", "pozitiv", "pozitivă",
+    "negativ", "negativă", "administraţiune", "poziţiune",
+    "comunicativ", "clasical", "clasicale", "practicală",
+    # step 2: the standard suffixes, all of them measured against R2
+    "naţiune", "naţiuni", "raţiune", "raţiuni", "lecţiune",
+    "comunism", "comunisme", "comunist", "comunista", "comuniste",
+    "comunişti", "comunistă", "artist", "artista", "artiste", "artişti",
+    "jurnalist", "jurnalişti", "realism", "realist", "realişti",
+    "frumoasa", "frumoasă", "frumoase", "credincioasă", "bucuroasă",
+    "frumos", "bucuros", "bucuroşi", "curajos", "curajoşi",
+    "important", "importanta", "importante", "importanţi", "importantă",
+    "elegant", "eleganta", "elegante", "elegantă",
+    "cântat", "cântată", "cântaţi", "cântate", "lucrat", "lucrată",
+    "născut", "născută", "născuţi", "născute", "cunoscut", "cunoscută",
+    "citit", "citită", "cititi", "citite", "dormit", "dormită",
+    "politic", "politica", "politice", "politici", "politică",
+    "istoric", "istorica", "istorice", "istorici", "istorică",
+    "public", "publica", "publice", "publici", "publică",
+    "activa", "active", "activi", "activă", "pasiv", "pasivă",
+    "capabil", "capabile", "capabili", "capabilă",
+    "posibil", "posibile", "posibili", "posibilă",
+    "vizibil", "vizibilă", "flexibil", "flexibilă",
+    # step 3: the verb endings, the largest table and the only one with a
+    # condition on the letter before the suffix
+    "cânta", "cântare", "cântam", "cântai", "cântau", "cântăm",
+    "cântase", "cântasem", "cântaseşi", "cântaseră", "cântaserăm",
+    "cântaserăţi", "cântară", "cântarăm", "cântarăţi", "cântaşi",
+    "cântând", "cântându", "cântează", "cântezi", "cânteze",
+    "vorbeşte", "vorbeşti", "vorbesc", "vorbeam", "vorbeai", "vorbeau",
+    "vorbeaţi", "vorbind", "vorbire", "vorbiră", "vorbirăm",
+    "citeşte", "citeşti", "citesc", "citeaţi", "citind", "citire",
+    "citiră", "citirăm", "citirăţi", "citiseşi", "citiseră", "citiserăm",
+    "dormim", "dormiţi", "dormind", "dormire", "dormiră", "dormeam",
+    "iubesc", "iubeşti", "iubeşte", "iubim", "iubiţi", "iubind", "iubire",
+    "hotărăsc", "hotărăşte", "hotărăşti", "vorbiţi", "vorbim",
+    "coborâm", "coborâţi", "coborând", "coborâre", "coborâră", "coborâşi",
+    "coborâsem", "coborâse", "hotărâm", "hotărâţi", "hotărând",
+    # step 4: the final vowel, and words too short for RV to reach
+    "carte", "cărţi", "floare", "flori", "masă", "mese", "casă", "case",
+    "apă", "ape", "ţară", "ţări", "şcoală", "şcoli", "viaţă", "vieţi",
+    "mare", "mari", "bine", "rău", "nou", "noi", "vechi", "greu", "uşor",
+    # i and u between vowels, which the algorithm marks before the rules
+    "aceia", "aceea", "băiat", "băieţi", "ziua", "zeii", "voiau", "beau",
+    "continuare", "continuu", "individual", "actual", "actuală",
+    "ploaie", "ploaia", "femeie", "femeia", "femei", "cheie", "cheia",
+    # the two Unicode spellings of the same two letters, cedilla and comma
+    "ştiinţă", "știință", "ştiinţe", "științe", "mulţumesc", "mulțumesc",
+    "aceştia", "aceștia", "româneşte", "românește", "naţiunea", "națiunea",
+    "informaţia", "informația", "frumoşi", "frumoși", "greşeală", "greșeală",
+    # short words and words with nothing to strip
+    "om", "an", "zi", "el", "ea", "eu", "voi", "şi", "și", "cu",
+    "de", "la", "un", "o", "nu", "da", "mai", "sau", "dar",
+]
+
+
 def generate_snowball_sv() -> dict:
     return _snowball_corpus("swedish", "SwedishSnowballStemmer", SNOWBALL_SV_WORDS)
 
@@ -1650,6 +1726,8 @@ def generate_snowball_fi() -> dict:
     return _snowball_corpus("finnish", "FinnishSnowballStemmer", SNOWBALL_FI_WORDS)
 def generate_snowball_hu() -> dict:
     return _snowball_reference_corpus("hungarian", "HungarianSnowballStemmer", SNOWBALL_HU_WORDS)
+def generate_snowball_ro() -> dict:
+    return _snowball_corpus("romanian", "RomanianSnowballStemmer", SNOWBALL_RO_WORDS)
 
 
 WORDPIECE_VOCAB = [
@@ -8730,6 +8808,7 @@ def main() -> None:
         "snowball_no.json": generate_snowball_no,
         "snowball_fi.json": generate_snowball_fi,
         "snowball_hu.json": generate_snowball_hu,
+        "snowball_ro.json": generate_snowball_ro,
         "wordpiece.json": generate_wordpiece,
         "batch_encoding.json": generate_batch_encoding,
         "pooling.json": generate_pooling,

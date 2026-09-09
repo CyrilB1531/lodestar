@@ -1,0 +1,1758 @@
+{
+ "metadata": {
+  "algorithm": "RomanianSnowballStemmer",
+  "library": "nltk",
+  "library_version": "3.10.1",
+  "reference_calls": [
+   "nltk.stem.snowball.SnowballStemmer('romanian')"
+  ],
+  "count": 349
+ },
+ "cases": [
+  {
+   "id": 0,
+   "word": "băiatul",
+   "stem": "băiat"
+  },
+  {
+   "id": 1,
+   "word": "băiatului",
+   "stem": "băiat"
+  },
+  {
+   "id": 2,
+   "word": "omul",
+   "stem": "om"
+  },
+  {
+   "id": 3,
+   "word": "omului",
+   "stem": "om"
+  },
+  {
+   "id": 4,
+   "word": "copilul",
+   "stem": "copil"
+  },
+  {
+   "id": 5,
+   "word": "copilului",
+   "stem": "copil"
+  },
+  {
+   "id": 6,
+   "word": "drumul",
+   "stem": "drum"
+  },
+  {
+   "id": 7,
+   "word": "drumului",
+   "stem": "drum"
+  },
+  {
+   "id": 8,
+   "word": "lucrul",
+   "stem": "lucr"
+  },
+  {
+   "id": 9,
+   "word": "lucrului",
+   "stem": "lucr"
+  },
+  {
+   "id": 10,
+   "word": "timpul",
+   "stem": "timp"
+  },
+  {
+   "id": 11,
+   "word": "timpului",
+   "stem": "timp"
+  },
+  {
+   "id": 12,
+   "word": "fata",
+   "stem": "fat"
+  },
+  {
+   "id": 13,
+   "word": "fetele",
+   "stem": "fet"
+  },
+  {
+   "id": 14,
+   "word": "fetelor",
+   "stem": "fet"
+  },
+  {
+   "id": 15,
+   "word": "casele",
+   "stem": "cas"
+  },
+  {
+   "id": 16,
+   "word": "caselor",
+   "stem": "cas"
+  },
+  {
+   "id": 17,
+   "word": "florile",
+   "stem": "flor"
+  },
+  {
+   "id": 18,
+   "word": "florilor",
+   "stem": "flor"
+  },
+  {
+   "id": 19,
+   "word": "cartea",
+   "stem": "cart"
+  },
+  {
+   "id": 20,
+   "word": "cărţile",
+   "stem": "cărţ"
+  },
+  {
+   "id": 21,
+   "word": "cărţilor",
+   "stem": "cărţ"
+  },
+  {
+   "id": 22,
+   "word": "familiei",
+   "stem": "famil"
+  },
+  {
+   "id": 23,
+   "word": "familiile",
+   "stem": "famil"
+  },
+  {
+   "id": 24,
+   "word": "familiilor",
+   "stem": "famil"
+  },
+  {
+   "id": 25,
+   "word": "steaua",
+   "stem": "steau"
+  },
+  {
+   "id": 26,
+   "word": "stelele",
+   "stem": "stel"
+  },
+  {
+   "id": 27,
+   "word": "cafeaua",
+   "stem": "cafeau"
+  },
+  {
+   "id": 28,
+   "word": "zilele",
+   "stem": "zil"
+  },
+  {
+   "id": 29,
+   "word": "zilelor",
+   "stem": "zil"
+  },
+  {
+   "id": 30,
+   "word": "băieţii",
+   "stem": "băi"
+  },
+  {
+   "id": 31,
+   "word": "copiii",
+   "stem": "copii"
+  },
+  {
+   "id": 32,
+   "word": "fiii",
+   "stem": "fii"
+  },
+  {
+   "id": 33,
+   "word": "ochii",
+   "stem": "ochi"
+  },
+  {
+   "id": 34,
+   "word": "oamenii",
+   "stem": "oamen"
+  },
+  {
+   "id": 35,
+   "word": "oamenilor",
+   "stem": "oamen"
+  },
+  {
+   "id": 36,
+   "word": "elevilor",
+   "stem": "elev"
+  },
+  {
+   "id": 37,
+   "word": "studenţilor",
+   "stem": "studenţ"
+  },
+  {
+   "id": 38,
+   "word": "prietenii",
+   "stem": "prieten"
+  },
+  {
+   "id": 39,
+   "word": "prietenilor",
+   "stem": "prieten"
+  },
+  {
+   "id": 40,
+   "word": "informaţie",
+   "stem": "inform"
+  },
+  {
+   "id": 41,
+   "word": "naţie",
+   "stem": "naţ"
+  },
+  {
+   "id": 42,
+   "word": "naţia",
+   "stem": "naţi"
+  },
+  {
+   "id": 43,
+   "word": "relaţie",
+   "stem": "rel"
+  },
+  {
+   "id": 44,
+   "word": "relaţia",
+   "stem": "rel"
+  },
+  {
+   "id": 45,
+   "word": "abilitatei",
+   "stem": "abilit"
+  },
+  {
+   "id": 46,
+   "word": "cetatei",
+   "stem": "cetat"
+  },
+  {
+   "id": 47,
+   "word": "abilitate",
+   "stem": "abil"
+  },
+  {
+   "id": 48,
+   "word": "abilităţi",
+   "stem": "abil"
+  },
+  {
+   "id": 49,
+   "word": "responsabilitate",
+   "stem": "respons"
+  },
+  {
+   "id": 50,
+   "word": "sensibilitate",
+   "stem": "sensibil"
+  },
+  {
+   "id": 51,
+   "word": "posibilitate",
+   "stem": "posibil"
+  },
+  {
+   "id": 52,
+   "word": "imposibilitate",
+   "stem": "impos"
+  },
+  {
+   "id": 53,
+   "word": "stabilitate",
+   "stem": "stabil"
+  },
+  {
+   "id": 54,
+   "word": "mobilitate",
+   "stem": "mobil"
+  },
+  {
+   "id": 55,
+   "word": "activitate",
+   "stem": "activ"
+  },
+  {
+   "id": 56,
+   "word": "activităţi",
+   "stem": "activ"
+  },
+  {
+   "id": 57,
+   "word": "creativitate",
+   "stem": "creativ"
+  },
+  {
+   "id": 58,
+   "word": "productivitate",
+   "stem": "product"
+  },
+  {
+   "id": 59,
+   "word": "obiectivitate",
+   "stem": "obiect"
+  },
+  {
+   "id": 60,
+   "word": "electricitate",
+   "stem": "electr"
+  },
+  {
+   "id": 61,
+   "word": "publicitate",
+   "stem": "public"
+  },
+  {
+   "id": 62,
+   "word": "simplicitate",
+   "stem": "simplic"
+  },
+  {
+   "id": 63,
+   "word": "autenticitate",
+   "stem": "autent"
+  },
+  {
+   "id": 64,
+   "word": "capacitate",
+   "stem": "capac"
+  },
+  {
+   "id": 65,
+   "word": "educativ",
+   "stem": "educ"
+  },
+  {
+   "id": 66,
+   "word": "educativă",
+   "stem": "educ"
+  },
+  {
+   "id": 67,
+   "word": "educative",
+   "stem": "educ"
+  },
+  {
+   "id": 68,
+   "word": "informativ",
+   "stem": "inform"
+  },
+  {
+   "id": 69,
+   "word": "informativă",
+   "stem": "inform"
+  },
+  {
+   "id": 70,
+   "word": "decorativ",
+   "stem": "decor"
+  },
+  {
+   "id": 71,
+   "word": "operativ",
+   "stem": "oper"
+  },
+  {
+   "id": 72,
+   "word": "operativă",
+   "stem": "oper"
+  },
+  {
+   "id": 73,
+   "word": "creator",
+   "stem": "creator"
+  },
+  {
+   "id": 74,
+   "word": "creatori",
+   "stem": "creator"
+  },
+  {
+   "id": 75,
+   "word": "creatoare",
+   "stem": "creatoar"
+  },
+  {
+   "id": 76,
+   "word": "cititor",
+   "stem": "citit"
+  },
+  {
+   "id": 77,
+   "word": "cititori",
+   "stem": "citit"
+  },
+  {
+   "id": 78,
+   "word": "cititoare",
+   "stem": "citit"
+  },
+  {
+   "id": 79,
+   "word": "muncitor",
+   "stem": "muncit"
+  },
+  {
+   "id": 80,
+   "word": "muncitori",
+   "stem": "muncit"
+  },
+  {
+   "id": 81,
+   "word": "muncitoare",
+   "stem": "muncit"
+  },
+  {
+   "id": 82,
+   "word": "vânzător",
+   "stem": "vânzat"
+  },
+  {
+   "id": 83,
+   "word": "vânzători",
+   "stem": "vânzat"
+  },
+  {
+   "id": 84,
+   "word": "vânzătoare",
+   "stem": "vânzat"
+  },
+  {
+   "id": 85,
+   "word": "învăţător",
+   "stem": "învăţ"
+  },
+  {
+   "id": 86,
+   "word": "învăţătoare",
+   "stem": "învăţ"
+  },
+  {
+   "id": 87,
+   "word": "conducător",
+   "stem": "conduc"
+  },
+  {
+   "id": 88,
+   "word": "conducători",
+   "stem": "conduc"
+  },
+  {
+   "id": 89,
+   "word": "definitiv",
+   "stem": "defin"
+  },
+  {
+   "id": 90,
+   "word": "definitivă",
+   "stem": "defin"
+  },
+  {
+   "id": 91,
+   "word": "primitiv",
+   "stem": "primit"
+  },
+  {
+   "id": 92,
+   "word": "primitivă",
+   "stem": "primit"
+  },
+  {
+   "id": 93,
+   "word": "pozitiv",
+   "stem": "pozit"
+  },
+  {
+   "id": 94,
+   "word": "pozitivă",
+   "stem": "pozit"
+  },
+  {
+   "id": 95,
+   "word": "negativ",
+   "stem": "negat"
+  },
+  {
+   "id": 96,
+   "word": "negativă",
+   "stem": "negat"
+  },
+  {
+   "id": 97,
+   "word": "administraţiune",
+   "stem": "administr"
+  },
+  {
+   "id": 98,
+   "word": "poziţiune",
+   "stem": "pozit"
+  },
+  {
+   "id": 99,
+   "word": "comunicativ",
+   "stem": "comunic"
+  },
+  {
+   "id": 100,
+   "word": "clasical",
+   "stem": "clasic"
+  },
+  {
+   "id": 101,
+   "word": "clasicale",
+   "stem": "clasic"
+  },
+  {
+   "id": 102,
+   "word": "practicală",
+   "stem": "practic"
+  },
+  {
+   "id": 103,
+   "word": "naţiune",
+   "stem": "naţiun"
+  },
+  {
+   "id": 104,
+   "word": "naţiuni",
+   "stem": "naţiun"
+  },
+  {
+   "id": 105,
+   "word": "raţiune",
+   "stem": "raţiun"
+  },
+  {
+   "id": 106,
+   "word": "raţiuni",
+   "stem": "raţiun"
+  },
+  {
+   "id": 107,
+   "word": "lecţiune",
+   "stem": "lecţiun"
+  },
+  {
+   "id": 108,
+   "word": "comunism",
+   "stem": "comunist"
+  },
+  {
+   "id": 109,
+   "word": "comunisme",
+   "stem": "comunist"
+  },
+  {
+   "id": 110,
+   "word": "comunist",
+   "stem": "comunist"
+  },
+  {
+   "id": 111,
+   "word": "comunista",
+   "stem": "comunist"
+  },
+  {
+   "id": 112,
+   "word": "comuniste",
+   "stem": "comunist"
+  },
+  {
+   "id": 113,
+   "word": "comunişti",
+   "stem": "comunist"
+  },
+  {
+   "id": 114,
+   "word": "comunistă",
+   "stem": "comunist"
+  },
+  {
+   "id": 115,
+   "word": "artist",
+   "stem": "artist"
+  },
+  {
+   "id": 116,
+   "word": "artista",
+   "stem": "artist"
+  },
+  {
+   "id": 117,
+   "word": "artiste",
+   "stem": "artist"
+  },
+  {
+   "id": 118,
+   "word": "artişti",
+   "stem": "artişt"
+  },
+  {
+   "id": 119,
+   "word": "jurnalist",
+   "stem": "jurnalist"
+  },
+  {
+   "id": 120,
+   "word": "jurnalişti",
+   "stem": "jurnalist"
+  },
+  {
+   "id": 121,
+   "word": "realism",
+   "stem": "realism"
+  },
+  {
+   "id": 122,
+   "word": "realist",
+   "stem": "realist"
+  },
+  {
+   "id": 123,
+   "word": "realişti",
+   "stem": "realişt"
+  },
+  {
+   "id": 124,
+   "word": "frumoasa",
+   "stem": "frumoas"
+  },
+  {
+   "id": 125,
+   "word": "frumoasă",
+   "stem": "frumoas"
+  },
+  {
+   "id": 126,
+   "word": "frumoase",
+   "stem": "frumoas"
+  },
+  {
+   "id": 127,
+   "word": "credincioasă",
+   "stem": "credinc"
+  },
+  {
+   "id": 128,
+   "word": "bucuroasă",
+   "stem": "bucur"
+  },
+  {
+   "id": 129,
+   "word": "frumos",
+   "stem": "frumos"
+  },
+  {
+   "id": 130,
+   "word": "bucuros",
+   "stem": "bucur"
+  },
+  {
+   "id": 131,
+   "word": "bucuroşi",
+   "stem": "bucur"
+  },
+  {
+   "id": 132,
+   "word": "curajos",
+   "stem": "curaj"
+  },
+  {
+   "id": 133,
+   "word": "curajoşi",
+   "stem": "curaj"
+  },
+  {
+   "id": 134,
+   "word": "important",
+   "stem": "import"
+  },
+  {
+   "id": 135,
+   "word": "importanta",
+   "stem": "import"
+  },
+  {
+   "id": 136,
+   "word": "importante",
+   "stem": "import"
+  },
+  {
+   "id": 137,
+   "word": "importanţi",
+   "stem": "importanţ"
+  },
+  {
+   "id": 138,
+   "word": "importantă",
+   "stem": "import"
+  },
+  {
+   "id": 139,
+   "word": "elegant",
+   "stem": "eleg"
+  },
+  {
+   "id": 140,
+   "word": "eleganta",
+   "stem": "eleg"
+  },
+  {
+   "id": 141,
+   "word": "elegante",
+   "stem": "eleg"
+  },
+  {
+   "id": 142,
+   "word": "elegantă",
+   "stem": "eleg"
+  },
+  {
+   "id": 143,
+   "word": "cântat",
+   "stem": "cântat"
+  },
+  {
+   "id": 144,
+   "word": "cântată",
+   "stem": "cântat"
+  },
+  {
+   "id": 145,
+   "word": "cântaţi",
+   "stem": "cânt"
+  },
+  {
+   "id": 146,
+   "word": "cântate",
+   "stem": "cântat"
+  },
+  {
+   "id": 147,
+   "word": "lucrat",
+   "stem": "lucrat"
+  },
+  {
+   "id": 148,
+   "word": "lucrată",
+   "stem": "lucrat"
+  },
+  {
+   "id": 149,
+   "word": "născut",
+   "stem": "născut"
+  },
+  {
+   "id": 150,
+   "word": "născută",
+   "stem": "născut"
+  },
+  {
+   "id": 151,
+   "word": "născuţi",
+   "stem": "născuţ"
+  },
+  {
+   "id": 152,
+   "word": "născute",
+   "stem": "născut"
+  },
+  {
+   "id": 153,
+   "word": "cunoscut",
+   "stem": "cunosc"
+  },
+  {
+   "id": 154,
+   "word": "cunoscută",
+   "stem": "cunosc"
+  },
+  {
+   "id": 155,
+   "word": "citit",
+   "stem": "citit"
+  },
+  {
+   "id": 156,
+   "word": "citită",
+   "stem": "citit"
+  },
+  {
+   "id": 157,
+   "word": "cititi",
+   "stem": "citit"
+  },
+  {
+   "id": 158,
+   "word": "citite",
+   "stem": "citit"
+  },
+  {
+   "id": 159,
+   "word": "dormit",
+   "stem": "dormit"
+  },
+  {
+   "id": 160,
+   "word": "dormită",
+   "stem": "dormit"
+  },
+  {
+   "id": 161,
+   "word": "politic",
+   "stem": "polit"
+  },
+  {
+   "id": 162,
+   "word": "politica",
+   "stem": "polit"
+  },
+  {
+   "id": 163,
+   "word": "politice",
+   "stem": "polit"
+  },
+  {
+   "id": 164,
+   "word": "politici",
+   "stem": "polit"
+  },
+  {
+   "id": 165,
+   "word": "politică",
+   "stem": "polit"
+  },
+  {
+   "id": 166,
+   "word": "istoric",
+   "stem": "istor"
+  },
+  {
+   "id": 167,
+   "word": "istorica",
+   "stem": "istor"
+  },
+  {
+   "id": 168,
+   "word": "istorice",
+   "stem": "istor"
+  },
+  {
+   "id": 169,
+   "word": "istorici",
+   "stem": "istor"
+  },
+  {
+   "id": 170,
+   "word": "istorică",
+   "stem": "istor"
+  },
+  {
+   "id": 171,
+   "word": "public",
+   "stem": "public"
+  },
+  {
+   "id": 172,
+   "word": "publica",
+   "stem": "public"
+  },
+  {
+   "id": 173,
+   "word": "publice",
+   "stem": "public"
+  },
+  {
+   "id": 174,
+   "word": "publici",
+   "stem": "public"
+  },
+  {
+   "id": 175,
+   "word": "publică",
+   "stem": "public"
+  },
+  {
+   "id": 176,
+   "word": "activa",
+   "stem": "activ"
+  },
+  {
+   "id": 177,
+   "word": "active",
+   "stem": "activ"
+  },
+  {
+   "id": 178,
+   "word": "activi",
+   "stem": "activ"
+  },
+  {
+   "id": 179,
+   "word": "activă",
+   "stem": "activ"
+  },
+  {
+   "id": 180,
+   "word": "pasiv",
+   "stem": "pasiv"
+  },
+  {
+   "id": 181,
+   "word": "pasivă",
+   "stem": "pasiv"
+  },
+  {
+   "id": 182,
+   "word": "capabil",
+   "stem": "capabil"
+  },
+  {
+   "id": 183,
+   "word": "capabile",
+   "stem": "capabil"
+  },
+  {
+   "id": 184,
+   "word": "capabili",
+   "stem": "capabil"
+  },
+  {
+   "id": 185,
+   "word": "capabilă",
+   "stem": "capabil"
+  },
+  {
+   "id": 186,
+   "word": "posibil",
+   "stem": "posibil"
+  },
+  {
+   "id": 187,
+   "word": "posibile",
+   "stem": "posib"
+  },
+  {
+   "id": 188,
+   "word": "posibili",
+   "stem": "posibil"
+  },
+  {
+   "id": 189,
+   "word": "posibilă",
+   "stem": "posibil"
+  },
+  {
+   "id": 190,
+   "word": "vizibil",
+   "stem": "vizibil"
+  },
+  {
+   "id": 191,
+   "word": "vizibilă",
+   "stem": "vizibil"
+  },
+  {
+   "id": 192,
+   "word": "flexibil",
+   "stem": "flexibil"
+  },
+  {
+   "id": 193,
+   "word": "flexibilă",
+   "stem": "flexibil"
+  },
+  {
+   "id": 194,
+   "word": "cânta",
+   "stem": "cânt"
+  },
+  {
+   "id": 195,
+   "word": "cântare",
+   "stem": "cânt"
+  },
+  {
+   "id": 196,
+   "word": "cântam",
+   "stem": "cânt"
+  },
+  {
+   "id": 197,
+   "word": "cântai",
+   "stem": "cânt"
+  },
+  {
+   "id": 198,
+   "word": "cântau",
+   "stem": "cânt"
+  },
+  {
+   "id": 199,
+   "word": "cântăm",
+   "stem": "cânt"
+  },
+  {
+   "id": 200,
+   "word": "cântase",
+   "stem": "cânt"
+  },
+  {
+   "id": 201,
+   "word": "cântasem",
+   "stem": "cânt"
+  },
+  {
+   "id": 202,
+   "word": "cântaseşi",
+   "stem": "cânt"
+  },
+  {
+   "id": 203,
+   "word": "cântaseră",
+   "stem": "cânt"
+  },
+  {
+   "id": 204,
+   "word": "cântaserăm",
+   "stem": "cânt"
+  },
+  {
+   "id": 205,
+   "word": "cântaserăţi",
+   "stem": "cânt"
+  },
+  {
+   "id": 206,
+   "word": "cântară",
+   "stem": "cânt"
+  },
+  {
+   "id": 207,
+   "word": "cântarăm",
+   "stem": "cânt"
+  },
+  {
+   "id": 208,
+   "word": "cântarăţi",
+   "stem": "cânt"
+  },
+  {
+   "id": 209,
+   "word": "cântaşi",
+   "stem": "cânt"
+  },
+  {
+   "id": 210,
+   "word": "cântând",
+   "stem": "cânt"
+  },
+  {
+   "id": 211,
+   "word": "cântându",
+   "stem": "cânt"
+  },
+  {
+   "id": 212,
+   "word": "cântează",
+   "stem": "cânt"
+  },
+  {
+   "id": 213,
+   "word": "cântezi",
+   "stem": "cânt"
+  },
+  {
+   "id": 214,
+   "word": "cânteze",
+   "stem": "cânt"
+  },
+  {
+   "id": 215,
+   "word": "vorbeşte",
+   "stem": "vorb"
+  },
+  {
+   "id": 216,
+   "word": "vorbeşti",
+   "stem": "vorb"
+  },
+  {
+   "id": 217,
+   "word": "vorbesc",
+   "stem": "vorb"
+  },
+  {
+   "id": 218,
+   "word": "vorbeam",
+   "stem": "vorb"
+  },
+  {
+   "id": 219,
+   "word": "vorbeai",
+   "stem": "vorb"
+  },
+  {
+   "id": 220,
+   "word": "vorbeau",
+   "stem": "vorb"
+  },
+  {
+   "id": 221,
+   "word": "vorbeaţi",
+   "stem": "vorb"
+  },
+  {
+   "id": 222,
+   "word": "vorbind",
+   "stem": "vorb"
+  },
+  {
+   "id": 223,
+   "word": "vorbire",
+   "stem": "vorb"
+  },
+  {
+   "id": 224,
+   "word": "vorbiră",
+   "stem": "vorb"
+  },
+  {
+   "id": 225,
+   "word": "vorbirăm",
+   "stem": "vorb"
+  },
+  {
+   "id": 226,
+   "word": "citeşte",
+   "stem": "citeşt"
+  },
+  {
+   "id": 227,
+   "word": "citeşti",
+   "stem": "citeşt"
+  },
+  {
+   "id": 228,
+   "word": "citesc",
+   "stem": "citesc"
+  },
+  {
+   "id": 229,
+   "word": "citeaţi",
+   "stem": "citeaţ"
+  },
+  {
+   "id": 230,
+   "word": "citind",
+   "stem": "citind"
+  },
+  {
+   "id": 231,
+   "word": "citire",
+   "stem": "citir"
+  },
+  {
+   "id": 232,
+   "word": "citiră",
+   "stem": "citir"
+  },
+  {
+   "id": 233,
+   "word": "citirăm",
+   "stem": "citirăm"
+  },
+  {
+   "id": 234,
+   "word": "citirăţi",
+   "stem": "citirăţ"
+  },
+  {
+   "id": 235,
+   "word": "citiseşi",
+   "stem": "citiseş"
+  },
+  {
+   "id": 236,
+   "word": "citiseră",
+   "stem": "citiser"
+  },
+  {
+   "id": 237,
+   "word": "citiserăm",
+   "stem": "citiserăm"
+  },
+  {
+   "id": 238,
+   "word": "dormim",
+   "stem": "dorm"
+  },
+  {
+   "id": 239,
+   "word": "dormiţi",
+   "stem": "dorm"
+  },
+  {
+   "id": 240,
+   "word": "dormind",
+   "stem": "dorm"
+  },
+  {
+   "id": 241,
+   "word": "dormire",
+   "stem": "dorm"
+  },
+  {
+   "id": 242,
+   "word": "dormiră",
+   "stem": "dorm"
+  },
+  {
+   "id": 243,
+   "word": "dormeam",
+   "stem": "dorm"
+  },
+  {
+   "id": 244,
+   "word": "iubesc",
+   "stem": "iubesc"
+  },
+  {
+   "id": 245,
+   "word": "iubeşti",
+   "stem": "iubeşt"
+  },
+  {
+   "id": 246,
+   "word": "iubeşte",
+   "stem": "iubeşt"
+  },
+  {
+   "id": 247,
+   "word": "iubim",
+   "stem": "iub"
+  },
+  {
+   "id": 248,
+   "word": "iubiţi",
+   "stem": "iub"
+  },
+  {
+   "id": 249,
+   "word": "iubind",
+   "stem": "iubind"
+  },
+  {
+   "id": 250,
+   "word": "iubire",
+   "stem": "iubir"
+  },
+  {
+   "id": 251,
+   "word": "hotărăsc",
+   "stem": "hotăr"
+  },
+  {
+   "id": 252,
+   "word": "hotărăşte",
+   "stem": "hotăr"
+  },
+  {
+   "id": 253,
+   "word": "hotărăşti",
+   "stem": "hotăr"
+  },
+  {
+   "id": 254,
+   "word": "vorbiţi",
+   "stem": "vorb"
+  },
+  {
+   "id": 255,
+   "word": "vorbim",
+   "stem": "vorb"
+  },
+  {
+   "id": 256,
+   "word": "coborâm",
+   "stem": "cobor"
+  },
+  {
+   "id": 257,
+   "word": "coborâţi",
+   "stem": "cobor"
+  },
+  {
+   "id": 258,
+   "word": "coborând",
+   "stem": "cobor"
+  },
+  {
+   "id": 259,
+   "word": "coborâre",
+   "stem": "cobor"
+  },
+  {
+   "id": 260,
+   "word": "coborâră",
+   "stem": "cobor"
+  },
+  {
+   "id": 261,
+   "word": "coborâşi",
+   "stem": "cobor"
+  },
+  {
+   "id": 262,
+   "word": "coborâsem",
+   "stem": "cobor"
+  },
+  {
+   "id": 263,
+   "word": "coborâse",
+   "stem": "cobor"
+  },
+  {
+   "id": 264,
+   "word": "hotărâm",
+   "stem": "hotăr"
+  },
+  {
+   "id": 265,
+   "word": "hotărâţi",
+   "stem": "hotăr"
+  },
+  {
+   "id": 266,
+   "word": "hotărând",
+   "stem": "hotăr"
+  },
+  {
+   "id": 267,
+   "word": "carte",
+   "stem": "cart"
+  },
+  {
+   "id": 268,
+   "word": "cărţi",
+   "stem": "cărţ"
+  },
+  {
+   "id": 269,
+   "word": "floare",
+   "stem": "floar"
+  },
+  {
+   "id": 270,
+   "word": "flori",
+   "stem": "flor"
+  },
+  {
+   "id": 271,
+   "word": "masă",
+   "stem": "mas"
+  },
+  {
+   "id": 272,
+   "word": "mese",
+   "stem": "mes"
+  },
+  {
+   "id": 273,
+   "word": "casă",
+   "stem": "cas"
+  },
+  {
+   "id": 274,
+   "word": "case",
+   "stem": "cas"
+  },
+  {
+   "id": 275,
+   "word": "apă",
+   "stem": "apă"
+  },
+  {
+   "id": 276,
+   "word": "ape",
+   "stem": "ape"
+  },
+  {
+   "id": 277,
+   "word": "ţară",
+   "stem": "ţar"
+  },
+  {
+   "id": 278,
+   "word": "ţări",
+   "stem": "ţăr"
+  },
+  {
+   "id": 279,
+   "word": "şcoală",
+   "stem": "şcoal"
+  },
+  {
+   "id": 280,
+   "word": "şcoli",
+   "stem": "şcol"
+  },
+  {
+   "id": 281,
+   "word": "viaţă",
+   "stem": "viaţ"
+  },
+  {
+   "id": 282,
+   "word": "vieţi",
+   "stem": "vieţ"
+  },
+  {
+   "id": 283,
+   "word": "mare",
+   "stem": "mar"
+  },
+  {
+   "id": 284,
+   "word": "mari",
+   "stem": "mar"
+  },
+  {
+   "id": 285,
+   "word": "bine",
+   "stem": "bin"
+  },
+  {
+   "id": 286,
+   "word": "rău",
+   "stem": "rău"
+  },
+  {
+   "id": 287,
+   "word": "nou",
+   "stem": "nou"
+  },
+  {
+   "id": 288,
+   "word": "noi",
+   "stem": "noi"
+  },
+  {
+   "id": 289,
+   "word": "vechi",
+   "stem": "vech"
+  },
+  {
+   "id": 290,
+   "word": "greu",
+   "stem": "greu"
+  },
+  {
+   "id": 291,
+   "word": "uşor",
+   "stem": "uşor"
+  },
+  {
+   "id": 292,
+   "word": "aceia",
+   "stem": "acei"
+  },
+  {
+   "id": 293,
+   "word": "aceea",
+   "stem": "ace"
+  },
+  {
+   "id": 294,
+   "word": "băiat",
+   "stem": "băiat"
+  },
+  {
+   "id": 295,
+   "word": "băieţi",
+   "stem": "băi"
+  },
+  {
+   "id": 296,
+   "word": "ziua",
+   "stem": "ziu"
+  },
+  {
+   "id": 297,
+   "word": "zeii",
+   "stem": "zei"
+  },
+  {
+   "id": 298,
+   "word": "voiau",
+   "stem": "voiau"
+  },
+  {
+   "id": 299,
+   "word": "beau",
+   "stem": "beau"
+  },
+  {
+   "id": 300,
+   "word": "continuare",
+   "stem": "continu"
+  },
+  {
+   "id": 301,
+   "word": "continuu",
+   "stem": "continuu"
+  },
+  {
+   "id": 302,
+   "word": "individual",
+   "stem": "individual"
+  },
+  {
+   "id": 303,
+   "word": "actual",
+   "stem": "actual"
+  },
+  {
+   "id": 304,
+   "word": "actuală",
+   "stem": "actual"
+  },
+  {
+   "id": 305,
+   "word": "ploaie",
+   "stem": "ploai"
+  },
+  {
+   "id": 306,
+   "word": "ploaia",
+   "stem": "ploai"
+  },
+  {
+   "id": 307,
+   "word": "femeie",
+   "stem": "femei"
+  },
+  {
+   "id": 308,
+   "word": "femeia",
+   "stem": "femei"
+  },
+  {
+   "id": 309,
+   "word": "femei",
+   "stem": "feme"
+  },
+  {
+   "id": 310,
+   "word": "cheie",
+   "stem": "chei"
+  },
+  {
+   "id": 311,
+   "word": "cheia",
+   "stem": "chei"
+  },
+  {
+   "id": 312,
+   "word": "ştiinţă",
+   "stem": "ştiinţ"
+  },
+  {
+   "id": 313,
+   "word": "știință",
+   "stem": "științ"
+  },
+  {
+   "id": 314,
+   "word": "ştiinţe",
+   "stem": "ştiinţ"
+  },
+  {
+   "id": 315,
+   "word": "științe",
+   "stem": "științ"
+  },
+  {
+   "id": 316,
+   "word": "mulţumesc",
+   "stem": "mulţum"
+  },
+  {
+   "id": 317,
+   "word": "mulțumesc",
+   "stem": "mulțum"
+  },
+  {
+   "id": 318,
+   "word": "aceştia",
+   "stem": "aceşt"
+  },
+  {
+   "id": 319,
+   "word": "aceștia",
+   "stem": "aceșt"
+  },
+  {
+   "id": 320,
+   "word": "româneşte",
+   "stem": "român"
+  },
+  {
+   "id": 321,
+   "word": "românește",
+   "stem": "româneșt"
+  },
+  {
+   "id": 322,
+   "word": "naţiunea",
+   "stem": "naţiun"
+  },
+  {
+   "id": 323,
+   "word": "națiunea",
+   "stem": "națiun"
+  },
+  {
+   "id": 324,
+   "word": "informaţia",
+   "stem": "inform"
+  },
+  {
+   "id": 325,
+   "word": "informația",
+   "stem": "informaț"
+  },
+  {
+   "id": 326,
+   "word": "frumoşi",
+   "stem": "frumoş"
+  },
+  {
+   "id": 327,
+   "word": "frumoși",
+   "stem": "frumoș"
+  },
+  {
+   "id": 328,
+   "word": "greşeală",
+   "stem": "greşeal"
+  },
+  {
+   "id": 329,
+   "word": "greșeală",
+   "stem": "greșeal"
+  },
+  {
+   "id": 330,
+   "word": "om",
+   "stem": "om"
+  },
+  {
+   "id": 331,
+   "word": "an",
+   "stem": "an"
+  },
+  {
+   "id": 332,
+   "word": "zi",
+   "stem": "zi"
+  },
+  {
+   "id": 333,
+   "word": "el",
+   "stem": "el"
+  },
+  {
+   "id": 334,
+   "word": "ea",
+   "stem": "ea"
+  },
+  {
+   "id": 335,
+   "word": "eu",
+   "stem": "eu"
+  },
+  {
+   "id": 336,
+   "word": "voi",
+   "stem": "voi"
+  },
+  {
+   "id": 337,
+   "word": "şi",
+   "stem": "şi"
+  },
+  {
+   "id": 338,
+   "word": "și",
+   "stem": "și"
+  },
+  {
+   "id": 339,
+   "word": "cu",
+   "stem": "cu"
+  },
+  {
+   "id": 340,
+   "word": "de",
+   "stem": "de"
+  },
+  {
+   "id": 341,
+   "word": "la",
+   "stem": "la"
+  },
+  {
+   "id": 342,
+   "word": "un",
+   "stem": "un"
+  },
+  {
+   "id": 343,
+   "word": "o",
+   "stem": "o"
+  },
+  {
+   "id": 344,
+   "word": "nu",
+   "stem": "nu"
+  },
+  {
+   "id": 345,
+   "word": "da",
+   "stem": "da"
+  },
+  {
+   "id": 346,
+   "word": "mai",
+   "stem": "mai"
+  },
+  {
+   "id": 347,
+   "word": "sau",
+   "stem": "sau"
+  },
+  {
+   "id": 348,
+   "word": "dar",
+   "stem": "dar"
+  }
+ ]
+}
