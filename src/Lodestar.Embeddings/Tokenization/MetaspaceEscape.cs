@@ -22,12 +22,14 @@ internal sealed class MetaspaceEscape
         char replacement,
         MetaspacePrependScheme prependScheme,
         bool removeExtraWhitespaces,
-        bool skipPrependWhenAlreadyPrefixed)
+        bool skipPrependWhenAlreadyPrefixed,
+        bool declaredAsNormalizer = false)
     {
         Replacement = replacement;
         PrependScheme = prependScheme;
         RemoveExtraWhitespaces = removeExtraWhitespaces;
         SkipPrependWhenAlreadyPrefixed = skipPrependWhenAlreadyPrefixed;
+        DeclaredAsNormalizer = declaredAsNormalizer;
     }
 
     public char Replacement { get; }
@@ -45,6 +47,17 @@ internal sealed class MetaspaceEscape
     /// 0050 §2's "two writings of one value" to hold everywhere but here.
     /// </remarks>
     public bool SkipPrependWhenAlreadyPrefixed { get; }
+
+    /// <summary>Whether the file spelled this escape as a normalizer rather than as a pre-tokenizer.</summary>
+    /// <remarks>
+    /// The third place the two spellings part, and the one <see cref="BpeTokenizer"/> reads
+    /// when it builds a <c>normalized: true</c> added token's pattern: <c>tokenizers</c>
+    /// normalizes that content with the declared normalizer and not with a pre-tokenizer, so
+    /// Llama-2 matches on <c>▁&lt;s&gt;</c> where Mistral matches on <c>&lt;s&gt;</c>.
+    /// Not the same question as <see cref="SkipPrependWhenAlreadyPrefixed"/>, which the
+    /// unigram path also leaves false without being a normalizer. Decision 0085.
+    /// </remarks>
+    public bool DeclaredAsNormalizer { get; }
 
     /// <summary>Applies the escape to <paramref name="text"/>.</summary>
     /// <param name="text">The piece to escape.</param>

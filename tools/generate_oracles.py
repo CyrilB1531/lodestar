@@ -5273,6 +5273,13 @@ LINEAGE_TEXTS = [
     "héllo",             # the two models' merge tables answer differently
     "\U0001f999",             # byte_fallback: four byte pieces on both models
     "\U0001f600ok",           # covered by Mistral, byte-resolved by Llama-2
+    # A special token as ordinary text: #551, settled by decision 0085. The two models
+    # answer these differently on purpose, which is the point of freezing them.
+    BOS_TOKEN,                # the token alone: one id on both, two before 0085
+    "</s>",                   # its sibling, so the rule is not pinned on one entry
+    BOS_TOKEN + THE_CAT,      # at the head, where Llama-2's pattern does match
+    THE_CAT + BOS_TOKEN,      # mid-text, where it does not: '<', 's', '>' on Llama-2
+    " " + BOS_TOKEN,          # after a space, which the escape turns into the prefix
 ]
 
 
@@ -5299,13 +5306,15 @@ def generate_sentencepiece_bpe_lineage() -> dict:
     `BpeTokenizer.Decode` are the same operation: the reference skips them by
     default, which would compare an id stream against a shorter one.
 
-    **No row carries a special token as ordinary text.** `"<s>"` was in this list
-    and came out: the two models answer it differently from each other and from
-    Lodestar -- Mistral emits `['<s>']` with no escape, Llama-2 `['▁<s>']` for the
-    single id 1, where Lodestar emits `['▁', '<s>']` as ids 29871 and 1. That is the
-    added-token-times-metaspace-prepend interaction decision 0062 governs, not the
-    loading this corpus is about, and it is filed on its own rather than frozen here
-    as though it were settled -- issue #551.
+    **Five rows carry a special token as ordinary text**, which is what #551 was
+    filed for and decision 0085 settled. The two models answer them differently on
+    purpose: Llama-2 declares its added tokens `normalized`, so `tokenizers`
+    normalizes the pattern too and matches `▁<s>` -- which matches at the head of a
+    text and *not* after a letter, where the model spells `<`, `s`, `>` instead.
+    Mistral declares them raw and matches `<s>` anywhere. Both are frozen here now
+    that Lodestar reproduces them; before 0085 it matched `<s>` on both files while
+    escaping only the text, which cost a leading `▁` on one side and turned a
+    caller's `<s>` into the BOS id on the other.
 
     The discriminating row is `\U0001f600ok`: Mistral's vocabulary carries that emoji
     where Llama-2's does not, so one model answers a whole token and the other four

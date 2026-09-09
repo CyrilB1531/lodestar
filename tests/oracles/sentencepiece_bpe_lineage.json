@@ -7,7 +7,7 @@
    "llama2": "llama2_tokenizer.json (vendored by tools/fetch_llama2_mistral_tokenizers.py)",
    "mistral_v01": "mistral_v01_tokenizer.json (vendored by tools/fetch_llama2_mistral_tokenizers.py)"
   },
-  "count": 16
+  "count": 26
  },
  "cases": [
   {
@@ -146,6 +146,80 @@
   },
   {
    "id": 8,
+   "model": "llama2",
+   "text": "<s>",
+   "tokens": [
+    "▁<s>"
+   ],
+   "ids": [
+    1
+   ],
+   "decoded": "<s>"
+  },
+  {
+   "id": 9,
+   "model": "llama2",
+   "text": "</s>",
+   "tokens": [
+    "▁</s>"
+   ],
+   "ids": [
+    2
+   ],
+   "decoded": "</s>"
+  },
+  {
+   "id": 10,
+   "model": "llama2",
+   "text": "<s>the cat",
+   "tokens": [
+    "▁<s>",
+    "the",
+    "▁cat"
+   ],
+   "ids": [
+    1,
+    1552,
+    6635
+   ],
+   "decoded": "<s>the cat"
+  },
+  {
+   "id": 11,
+   "model": "llama2",
+   "text": "the cat<s>",
+   "tokens": [
+    "▁the",
+    "▁cat",
+    "<",
+    "s",
+    ">"
+   ],
+   "ids": [
+    278,
+    6635,
+    29966,
+    29879,
+    29958
+   ],
+   "decoded": "the cat<s>"
+  },
+  {
+   "id": 12,
+   "model": "llama2",
+   "text": " <s>",
+   "tokens": [
+    "▁",
+    "▁<s>"
+   ],
+   "ids": [
+    29871,
+    1
+   ],
+   "decoded": " <s>"
+  },
+  {
+   "id": 13,
    "model": "mistral_v01",
    "text": "",
    "tokens": [],
@@ -153,7 +227,7 @@
    "decoded": ""
   },
   {
-   "id": 9,
+   "id": 14,
    "model": "mistral_v01",
    "text": "the cat",
    "tokens": [
@@ -167,7 +241,7 @@
    "decoded": "the cat"
   },
   {
-   "id": 10,
+   "id": 15,
    "model": "mistral_v01",
    "text": " the cat",
    "tokens": [
@@ -181,7 +255,7 @@
    "decoded": "the cat"
   },
   {
-   "id": 11,
+   "id": 16,
    "model": "mistral_v01",
    "text": "  spaced  out  ",
    "tokens": [
@@ -203,7 +277,7 @@
    "decoded": " spaced  out  "
   },
   {
-   "id": 12,
+   "id": 17,
    "model": "mistral_v01",
    "text": "aujourd'hui",
    "tokens": [
@@ -223,7 +297,7 @@
    "decoded": "aujourd'hui"
   },
   {
-   "id": 13,
+   "id": 18,
    "model": "mistral_v01",
    "text": "héllo",
    "tokens": [
@@ -241,7 +315,7 @@
    "decoded": "héllo"
   },
   {
-   "id": 14,
+   "id": 19,
    "model": "mistral_v01",
    "text": "🦙",
    "tokens": [
@@ -261,7 +335,7 @@
    "decoded": "🦙"
   },
   {
-   "id": 15,
+   "id": 20,
    "model": "mistral_v01",
    "text": "😀ok",
    "tokens": [
@@ -275,6 +349,76 @@
     493
    ],
    "decoded": "😀ok"
+  },
+  {
+   "id": 21,
+   "model": "mistral_v01",
+   "text": "<s>",
+   "tokens": [
+    "<s>"
+   ],
+   "ids": [
+    1
+   ],
+   "decoded": "<s>"
+  },
+  {
+   "id": 22,
+   "model": "mistral_v01",
+   "text": "</s>",
+   "tokens": [
+    "</s>"
+   ],
+   "ids": [
+    2
+   ],
+   "decoded": "</s>"
+  },
+  {
+   "id": 23,
+   "model": "mistral_v01",
+   "text": "<s>the cat",
+   "tokens": [
+    "<s>",
+    "the",
+    "▁cat"
+   ],
+   "ids": [
+    1,
+    1237,
+    5255
+   ],
+   "decoded": "<s>the cat"
+  },
+  {
+   "id": 24,
+   "model": "mistral_v01",
+   "text": "the cat<s>",
+   "tokens": [
+    "▁the",
+    "▁cat",
+    "<s>"
+   ],
+   "ids": [
+    272,
+    5255,
+    1
+   ],
+   "decoded": "the cat<s>"
+  },
+  {
+   "id": 25,
+   "model": "mistral_v01",
+   "text": " <s>",
+   "tokens": [
+    "▁",
+    "<s>"
+   ],
+   "ids": [
+    28705,
+    1
+   ],
+   "decoded": "<s>"
   }
  ]
 }

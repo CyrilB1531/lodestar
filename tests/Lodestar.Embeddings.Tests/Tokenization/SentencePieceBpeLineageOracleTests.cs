@@ -67,8 +67,10 @@ public sealed class SentencePieceBpeLineageOracleTests
             }
         }
 
-        Assert.Equal(16, replayed);
+        // Failures first: a count that moved is the cheaper fault to read, and asserting it
+        // ahead of them hides what actually diverged behind "expected 16, actual 26".
         Assert.Empty(failures);
+        Assert.Equal(26, replayed);
     }
 
     /// <summary>Both files load at all, with the flags that make them this lineage.</summary>
