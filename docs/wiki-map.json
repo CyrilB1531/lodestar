@@ -128,6 +128,17 @@
       },
       "exceptionsUnchecked": []
     },
+    "Lodestar.Cluster": {
+      "wiki": "Cluster",
+      "pages": [
+        "docs/reference/cluster/*.md",
+        "docs/reference/cluster/*/*.md"
+      ],
+      "covered": {
+        "Lodestar.Cluster": "docs/reference/cluster/partitioning"
+      },
+      "exceptionsUnchecked": []
+    },
     "Lodestar.Conformal": {
       "wiki": "Conformal",
       "pages": [

@@ -93,6 +93,8 @@ COLUMNS = "columns"
 # The three keys every StandardScaler case carries (#568). Named here rather than
 # repeated, which is what S1192 asks once a literal reaches three uses in a file.
 FEATURE_COUNT = "feature_count"
+SAMPLES = "samples"
+MAX_ITER = "max_iter"
 WITH_MEAN = "with_mean"
 WITH_STD = "with_std"
 DENSE = "dense"
@@ -4121,7 +4123,7 @@ def generate_preprocessing_standard_scaler() -> dict:
         transformed = scaler.transform(matrix)
         cases.append({
             "name": fixture["name"],
-            "samples": [float(v) for row in fixture["rows"] for v in row],
+            SAMPLES: [float(v) for row in fixture["rows"] for v in row],
             FEATURE_COUNT: int(matrix.shape[1]),
             WITH_MEAN: fixture[WITH_MEAN],
             WITH_STD: fixture[WITH_STD],
@@ -4144,6 +4146,92 @@ def generate_preprocessing_standard_scaler() -> dict:
                 "sklearn.preprocessing.StandardScaler.transform",
                 "sklearn.preprocessing.StandardScaler.inverse_transform",
             ],
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
+def _kmeans_fixtures() -> list[dict]:
+    """Sample matrices with their starting centres, each chosen for a branch of Lloyd."""
+    blobs = [[0.0, 0.0], [0.0, 1.0], [10.0, 10.0], [10.0, 11.0], [5.0, 5.0]]
+    return [
+        # Three separated groups from centres already on them: strict convergence, fast.
+        {"name": "three blobs from centres on them", "rows": blobs,
+         "init": [[0.0, 0.0], [10.0, 10.0], [5.0, 5.0]], MAX_ITER: 300, "tol": 1e-4},
+        # A centre no sample is nearest to, so its cluster starts empty and the reference
+        # relocates it onto the sample furthest from its own centre.
+        {"name": "a cluster that starts empty", "rows": blobs,
+         "init": [[0.0, 0.0], [10.0, 10.0], [-500.0, -500.0]], MAX_ITER: 300, "tol": 1e-4},
+        # One iteration only, so the final assignment is what makes labels and centres
+        # agree. Centres unequal and off the groups: no tie to decide (decision 0090).
+        {"name": "stopped at one iteration", "rows": blobs,
+         "init": [[0.3, 0.2], [1.4, 1.1], [2.6, 2.3]], MAX_ITER: 1, "tol": 1e-4},
+        # tol = 0 keeps going until the labels stop moving, with no shift test at all.
+        {"name": "zero tolerance runs to strict convergence", "rows": blobs,
+         "init": [[0.3, 0.2], [1.4, 1.1], [2.6, 2.3]], MAX_ITER: 300, "tol": 0.0},
+        # A tolerance large enough to stop on the shift rather than on the labels.
+        {"name": "stopped by the scaled tolerance", "rows": blobs,
+         "init": [[0.3, 0.2], [1.4, 1.1], [2.6, 2.3]], MAX_ITER: 300, "tol": 0.5},
+        # Every sample its own cluster: inertia is zero and nothing moves.
+        {"name": "as many clusters as samples", "rows": [[1.0], [2.0], [3.0]],
+         "init": [[1.0], [2.0], [3.0]], MAX_ITER: 300, "tol": 1e-4},
+        # Repeated points: a centre lands exactly on three identical samples, so that
+        # cluster's inertia is zero. The two starting centres differ, so nothing ties.
+        {"name": "duplicate samples", "rows": [[1.0, 1.0], [1.0, 1.0], [1.0, 1.0], [9.0, 9.0]],
+         "init": [[0.5, 0.5], [8.0, 8.0]], MAX_ITER: 300, "tol": 1e-4},
+        # Four features, negative values, centres deliberately off the groups.
+        {"name": "four features, centres off the groups",
+         "rows": [[-1.0, 2.0, -3.0, 4.0], [-1.2, 2.1, -2.9, 4.2], [8.0, -7.0, 6.0, -5.0],
+                  [8.3, -6.8, 6.1, -5.2], [0.0, 0.0, 0.0, 0.0]],
+         "init": [[5.0, 4.0, 5.0, 6.0], [-5.0, -4.0, -6.0, -5.0]], MAX_ITER: 300, "tol": 1e-4},
+    ]
+
+
+def generate_cluster_kmeans() -> dict:
+    """KMeans by Lloyd, from centres given rather than drawn (#567).
+
+    ``inertia_`` is recomputed here from the centres and labels the fit returns, rather
+    than read off the estimator. It is the same quantity -- the summed squared distance
+    from each sample to its centre -- but scikit-learn accumulates it in an OpenMP
+    reduction whose order varies run to run: measured on the four-feature fixture, four
+    regenerations of this file gave 20.756666666666668 twice, ...675 once and ...67 once.
+    Every value is within 2e-15 of the others, so the numeric gate of decision 0073 would
+    never have failed on it -- but the committed file would have changed on every run for
+    no reason, which is the friction that gate was written to remove rather than to hide.
+    """
+    import numpy as np
+    from sklearn.cluster import KMeans as SkKMeans
+
+    cases = []
+    for fixture in _kmeans_fixtures():
+        matrix = np.array(fixture["rows"], dtype=np.float64)
+        init = np.array(fixture["init"], dtype=np.float64)
+        # Nothing draws from random_state here -- init is an array and n_init=1 -- but
+        # stating it says the run is deterministic rather than leaving that inferred.
+        model = SkKMeans(
+            n_clusters=init.shape[0], init=init, n_init=1, random_state=0,
+            max_iter=fixture[MAX_ITER], tol=fixture["tol"], algorithm="lloyd").fit(matrix)
+        cases.append({
+            "name": fixture["name"],
+            SAMPLES: [float(v) for row in fixture["rows"] for v in row],
+            FEATURE_COUNT: int(matrix.shape[1]),
+            "cluster_count": int(init.shape[0]),
+            "initial_centres": [float(v) for row in fixture["init"] for v in row],
+            MAX_ITER: fixture[MAX_ITER],
+            "tol": fixture["tol"],
+            "centres": [float(v) for row in model.cluster_centers_ for v in row],
+            "labels": [int(v) for v in model.labels_],
+            "inertia": float(((matrix - model.cluster_centers_[model.labels_]) ** 2).sum()),
+            "iterations": int(model.n_iter_),
+        })
+
+    return {
+        "metadata": {
+            "algorithm": "KMeans",
+            "library": "scikit-learn",
+            "library_version": version("scikit-learn"),
+            "reference_calls": ['sklearn.cluster.KMeans(init=..., n_init=1, algorithm="lloyd")'],
             "count": len(cases),
         },
         "cases": cases,
@@ -6426,7 +6514,7 @@ def generate_regression_conditioning() -> dict:
                 "sklearn.metrics.mean_squared_error",
                 "sklearn.metrics.mean_absolute_error",
             ],
-            "samples": CONDITIONING_SAMPLES,
+            SAMPLES: CONDITIONING_SAMPLES,
             "offset": CONDITIONING_OFFSET,
             "spread": CONDITIONING_SPREAD,
             "perturbation": CONDITIONING_PERTURBATION,
@@ -8829,6 +8917,7 @@ def main() -> None:
         "clustering_agreement.json": generate_clustering_agreement,
         "silhouette.json": generate_silhouette,
         "internal_validity.json": generate_internal_validity,
+        "cluster_kmeans.json": generate_cluster_kmeans,
         "preprocessing_standard_scaler.json": generate_preprocessing_standard_scaler,
         "ranking.json": generate_ranking,
         "ranking_weighted.json": generate_ranking_weighted,

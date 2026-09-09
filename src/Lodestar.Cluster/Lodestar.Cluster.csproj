@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- This package's version, owned here rather than repository-wide. -->
+  <Import Project="Version.props" />
+
+  <PropertyGroup>
+    <Version>$(LodestarClusterVersion)</Version>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+    <RootNamespace>Lodestar.Cluster</RootNamespace>
+
+    <PackageId>Lodestar.Cluster</PackageId>
+    <Description>Clustering for .NET at scikit-learn parity: k-means by Lloyd's algorithm over a row-major span, with the initial centres accepted as an input so a run is reproducible entry by entry. Scores with Lodestar.Metrics, which already ships silhouette, adjusted Rand, AMI and V-measure. No dependencies.</Description>
+    <PackageTags>clustering;kmeans;k-means;lloyd;unsupervised;scikit-learn;lodestar</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lodestar.Cluster.Tests" />
+    <!-- Same suite, replayed against the netstandard2.0 build. -->
+    <InternalsVisibleTo Include="Lodestar.Cluster.NetStandard.Tests" />
+  </ItemGroup>
+
+</Project>

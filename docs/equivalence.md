@@ -365,6 +365,19 @@ compressed sparse row form, as `CsrMatrix` does, so what changes is whose type h
 | `StandardScaler().fit(sparse)` | scikit-learn | — (no counterpart yet) | scikit-learn accepts a sparse matrix with `with_mean=False` and refuses it otherwise, because centring destroys sparsity. `Fit` takes a dense span; a `CsrMatrix` overload would be its own lot. |
 | `MinMaxScaler`, `RobustScaler`, `OneHotEncoder`, `SimpleImputer`, `train_test_split`, `StratifiedKFold` | scikit-learn | — (no counterpart yet) | The rest of what [#568](https://github.com/CyrilB1531/lodestar/issues/568) names. ML.NET has each of them, reachable only through an `IDataView` or a catalog naming columns — the coupling this package answers, not an absence. |
 
+## Lodestar.Cluster — k-means
+
+| Python | Library | C# | Differences |
+| --- | --- | --- | --- |
+| `KMeans(n_clusters=k, init=C, n_init=1, algorithm="lloyd").fit(X)` | scikit-learn | [`KMeans.Fit(samples, featureCount, clusterCount)`](reference/cluster/partitioning/kmeans-fit.md) | Identical over a given `init`, the empty-cluster relocation and the final assignment included. `tol` is scaled by the mean feature variance on both sides. **One measured divergence**: a sample exactly equidistant from two centres takes the lowest-indexed one here, where the reference's choice was observed going both ways ([decision 0093](decisions/0093-an-exact-tie-between-centres-is-not-part-of-k-means-parity.md)). No frozen case turns on a tie. |
+| `init=` as an array | scikit-learn | [`KMeansOptions.InitialCentres`](reference/cluster/partitioning/kmeansoptions.md) | Identical, and it is what makes the row above a parity target rather than a distribution — the same move [decision 0072](decisions/0072-omega-is-an-input-not-a-seed.md) made for Ω. |
+| `init="k-means++"`, `random_state=` | scikit-learn | `KMeansOptions.Seed` | **Not comparable.** k-means++ runs here over this package's own generator; a seed reproduces a run of Lodestar and never a run of scikit-learn. Pass `InitialCentres` to compare against Python. |
+| `kmeans.cluster_centers_`, `labels_`, `inertia_`, `n_iter_` | scikit-learn | `Centres`, `Labels`, `Inertia`, `Iterations` | Identical. `Centres` is row-major rather than 2-D. |
+| `kmeans.predict(X_new)` | scikit-learn | [`KMeans.Predict(samples)`](reference/cluster/partitioning/kmeans-predict.md) | Identical: the assignment step alone, over the fitted centres. |
+| `n_init=` above 1 | scikit-learn | — (no counterpart) | Restarting from several draws is a loop over the choice, and the choice is an input here. A caller wanting it runs `Fit` per starting block and keeps the lowest `Inertia`. |
+| `algorithm="elkan"`, `sample_weight=` | scikit-learn | — (no counterpart) | Elkan's variant reaches the same partition by fewer distance computations; it is an optimisation, not a different answer, and out of scope for 0.1.0. |
+| `MiniBatchKMeans`, `DBSCAN`, `AgglomerativeClustering`, `SpectralClustering`, `GaussianMixture` | scikit-learn | — (no counterpart yet) | The rest of what [#442](https://github.com/CyrilB1531/lodestar/issues/442) names for this domain. Spectral clustering additionally needs an eigendecomposition this repository does not have. |
+
 ## Conventions
 
 - **Comparison unit.** Unless stated otherwise, string distances compare `char`
