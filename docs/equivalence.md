@@ -349,6 +349,19 @@ compressed sparse row form, as `CsrMatrix` does, so what changes is whose type h
 | `scipy.sparse.csc_matrix`, `coo_matrix`, `dok_matrix` | scipy | — (no counterpart) | `CsrMatrix` is the one layout this repository has, so there is nothing to convert *to*. A Math.NET matrix in another storage still converts *from*, through the walking path. |
 | `numpy.asarray(sparse.todense())` | numpy | [`CsrMatrix.ToDense()`](reference/abstractions/sparse/csrmatrix-todense.md) (`Lodestar.Abstractions`) | Already there, and Math.NET builds a `DenseMatrix` from a `double[,]` unaided — which is why this package offers no dense pair. |
 
+## Lodestar.Preprocessing — feature scaling
+
+| Python | Library | C# | Differences |
+| --- | --- | --- | --- |
+| `StandardScaler().fit(X)` | scikit-learn | [`StandardScaler.Fit(samples, featureCount)`](reference/preprocessing/scaling/standardscaler-fit.md) | Identical, the near-constant rule included: `scale_` is 1 wherever `var <= n·eps·var + (n·mean·eps)²`, the two-pass error bound from Chan, Golub and LeVeque — not wherever the variance is zero. The corpus freezes the pair that separates the two readings (`1e8 ± 1e-8` against `1e8 ± 1e-7`). `X` is a row-major span here rather than a 2-D array, and `n_samples_seen_` is `SampleCount`. |
+| `scaler.transform(X)` | scikit-learn | [`StandardScaler.Transform(samples)`](reference/preprocessing/scaling/standardscaler-transform.md) | Identical. Never writes to the input; scikit-learn's `copy=False` has no counterpart, since a span the caller owns is not this package's to overwrite. |
+| `scaler.inverse_transform(X)` | scikit-learn | [`StandardScaler.InverseTransform(samples)`](reference/preprocessing/scaling/standardscaler-inversetransform.md) | Identical. |
+| `scaler.mean_`, `var_`, `scale_` | scikit-learn | `Mean`, `Variance`, `Scale` | Identical, `None` included: each is nullable and null exactly where the reference reports `None`. `with_mean=False` still fits a mean; only turning both steps off drops it. |
+| `with_mean=`, `with_std=` | scikit-learn | [`StandardScalerOptions`](reference/preprocessing/scaling/standardscaleroptions.md) | Both, same defaults. |
+| `StandardScaler().partial_fit(X)` | scikit-learn | — (no counterpart yet) | Incremental fitting over several batches is out of scope for 0.1.0; `Fit` sees the whole matrix. |
+| `StandardScaler().fit(sparse)` | scikit-learn | — (no counterpart yet) | scikit-learn accepts a sparse matrix with `with_mean=False` and refuses it otherwise, because centring destroys sparsity. `Fit` takes a dense span; a `CsrMatrix` overload would be its own lot. |
+| `MinMaxScaler`, `RobustScaler`, `OneHotEncoder`, `SimpleImputer`, `train_test_split`, `StratifiedKFold` | scikit-learn | — (no counterpart yet) | The rest of what [#568](https://github.com/CyrilB1531/lodestar/issues/568) names. ML.NET has each of them, reachable only through an `IDataView` or a catalog naming columns — the coupling this package answers, not an absence. |
+
 ## Conventions
 
 - **Comparison unit.** Unless stated otherwise, string distances compare `char`

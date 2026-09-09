@@ -117,6 +117,17 @@
         ]
       }
     },
+    "Lodestar.Preprocessing": {
+      "wiki": "Preprocessing",
+      "pages": [
+        "docs/reference/preprocessing/*.md",
+        "docs/reference/preprocessing/*/*.md"
+      ],
+      "covered": {
+        "Lodestar.Preprocessing": "docs/reference/preprocessing/scaling"
+      },
+      "exceptionsUnchecked": []
+    },
     "Lodestar.Conformal": {
       "wiki": "Conformal",
       "pages": [

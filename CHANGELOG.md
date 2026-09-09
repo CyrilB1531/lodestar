@@ -5,11 +5,12 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The eleven packages (`Lodestar.Text`, `Lodestar.Embeddings`, `Lodestar.Fuzzy`,
+The twelve packages (`Lodestar.Text`, `Lodestar.Embeddings`, `Lodestar.Fuzzy`,
 `Lodestar.Metrics` — published as `DataNet.*` up to 2026-08-15 — plus
 `Lodestar.Conformal`, `Lodestar.Abstractions`, `Lodestar.Decomposition`,
 `Lodestar.Onnx`, `Lodestar.Stats`, `Lodestar.Extensions.AI` and
-`Lodestar.Extensions.MathNet`, all newer than that rename)
+`Lodestar.Extensions.MathNet` and `Lodestar.Preprocessing`, all newer than
+that rename)
 version and release **independently**, each from its own
 `src/<Package>/Version.props`, so entries are grouped per package. Releases up to
 and including `0.2.0` predate the split and covered all three at once — see
@@ -54,6 +55,12 @@ is one sentence, the issue and the commit; see
 #### Added
 
 - **`Lodestar.Extensions.MathNet` 0.1.0 — `CsrMatrix` to and from Math.NET's sparse matrix, in one pass over the stored values.** `MathNetInterop.ToSparseMatrix` and `MathNetInterop.ToCsrMatrix` move the three compressed-row arrays rather than visiting `rows x columns` cells, because both sides store a matrix the same way and both expose it; neither result shares an array with its source, since Math.NET's storage is mutable through `At`. The dense pair is deliberately absent: `CsrMatrix.ToDense()` already returns a `double[,]` and Math.NET builds a `DenseMatrix` from one unaided, so the sparse pair is the one conversion neither side can do for itself. **The conversion sorts.** `CsrMatrix` validates four things and the order of column indices within a row is not among them, while Math.NET reaches a cell by searching that row — so a hand-built matrix handed over unsorted would convert without complaint and then answer zero for values it holds. Each row is sorted and duplicate columns are added together, after a pass that detects the already-sorted case and copies straight through, which is what every vectorizer here produces. [Decision 0089](docs/decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md) records that, and two things beside it: the interop family is now `Lodestar.Extensions.*` — so `Lodestar.Extensions.AI` becomes an instance of a convention rather than a one-off — and an interop satellite **may** take a dependency a core package refused, because converting to a caller's own types is not the same decision as computing with them. `Lodestar.Decomposition`'s refusal of Math.NET stands unchanged, re-measured on 2026-09-09: 5.0.0 is still the only stable release, dated 2022-04-03. ([#571](https://github.com/CyrilB1531/lodestar/issues/571))
+
+### Lodestar.Preprocessing
+
+#### Added
+
+- **`Lodestar.Preprocessing` 0.1.0 — `StandardScaler`, at scikit-learn parity, with spans instead of an `IDataView`.** `Fit` takes a row-major span and a feature count — the shape `Lodestar.Metrics` already uses — and returns a scaler whose `Mean`, `Variance` and `Scale` are readable and **nullable exactly where the reference reports `None`**: `with_mean=False` still fits a mean, and only turning both steps off drops it. `Transform` and `InverseTransform` return new arrays and never write to the input. **A near-constant feature scales by 1, and the test is not `variance == 0`**: scikit-learn compares the variance against the two-pass error bound of Chan, Golub and LeVeque, `var <= n·eps·var + (n·mean·eps)²`, so a feature with a large mean and a tiny variance is constant to within what the computation could resolve. `tests/oracles/preprocessing_standard_scaler.json` freezes eight cases against scikit-learn 1.9.0, including the pair that separates the two readings — `1e8 ± 1e-8`, whose variance is `1.48e-16` and whose scale is 1, against `1e8 ± 1e-7`, scaled by `8.5e-08`. An implementation testing `variance == 0` passes every other case and fails those two by eight orders of magnitude. The threshold is read from `sklearn.preprocessing._data._is_constant_feature` (BSD-3, allowed by [decision 0003](docs/decisions/0003-provenance-and-licensing.md)) and attributed in the source: the papers give the error analysis, not the number. Core tier — no external dependency, no inter-package edge. ([#568](https://github.com/CyrilB1531/lodestar/issues/568))
 
 ## Released — 2026-09-08
 

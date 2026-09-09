@@ -45,6 +45,8 @@ TextRankOptionsSample.Run();
 KeywordMatchSample.Run();
 SplitConformalSample.Run();
 DecompositionSamples.Run();
+StandardScalerSample.Run();
+StandardScalerOptionsSample.Run();
 MathNetInteropSample.Run();
 BkTreeSample.Run();
 BkTreeMatchSample.Run();

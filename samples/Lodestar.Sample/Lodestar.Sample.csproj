@@ -37,6 +37,7 @@
   <Import Project="../../src/Lodestar.Embeddings/Version.props" />
   <Import Project="../../src/Lodestar.Fuzzy/Version.props" />
   <Import Project="../../src/Lodestar.Metrics/Version.props" />
+  <Import Project="../../src/Lodestar.Preprocessing/Version.props" />
   <Import Project="../../src/Lodestar.Conformal/Version.props" />
   <Import Project="../../src/Lodestar.Abstractions/Version.props" />
   <Import Project="../../src/Lodestar.Decomposition/Version.props" />
@@ -50,6 +51,7 @@
     <PackageReference Include="Lodestar.Fuzzy" Version="$(LodestarFuzzyVersion)" />
     <PackageReference Include="Lodestar.Embeddings" Version="$(LodestarEmbeddingsVersion)" />
     <PackageReference Include="Lodestar.Metrics" Version="$(LodestarMetricsVersion)" />
+    <PackageReference Include="Lodestar.Preprocessing" Version="$(LodestarPreprocessingVersion)" />
     <PackageReference Include="Lodestar.Conformal" Version="$(LodestarConformalVersion)" />
     <PackageReference Include="Lodestar.Abstractions" Version="$(LodestarAbstractionsVersion)" />
     <PackageReference Include="Lodestar.Decomposition" Version="$(LodestarDecompositionVersion)" />

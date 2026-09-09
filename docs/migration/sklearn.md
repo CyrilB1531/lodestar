@@ -12,6 +12,7 @@ estimators that work on a sparse matrix.
 | `CountVectorizer` / `TfidfVectorizer` **to the character** | **`Lodestar.Text`** |
 | `classification_report`, `roc_auc_score`, the averaging modes | **`Lodestar.Metrics`** |
 | `TruncatedSVD`, `NMF(solver="mu")` on a sparse matrix | **`Lodestar.Decomposition`** |
+| `StandardScaler` on arrays rather than on an `IDataView` | **`Lodestar.Preprocessing`** |
 
 ```bash
 dotnet add package Microsoft.ML
@@ -34,6 +35,15 @@ var model = pipeline.Fit(data);
   `FeaturizeText` does not reproduce it. That is exactly the reason for
   `Lodestar.Text`. See [`../equivalence.md`](../equivalence.md).
 - **`min_df` / `max_df`, n-gram bounds**: on the Lodestar side, not ML.NET.
+- **Preprocessing is a coupling gap, not an absence.** ML.NET has
+  `NormalizeMeanVariance`, `NormalizeMinMax`, `OneHotEncoding`, `ReplaceMissingValues`,
+  `TrainTestSplit` and `CrossValidationSplit` — read on `Microsoft.ML` 5.0.0's exported
+  surface, every one of them is reached through an `IDataView` or through a catalog naming
+  columns. `NormalizeMeanVariance(TransformsCatalog, string inputColumn, string
+  outputColumn, …)` never sees a value. `Lodestar.Preprocessing` answers the entry point,
+  not the capability: a caller holding a `double[]` gets a `double[]` back. Only
+  `StandardScaler` ships in 0.1.0; for the rest, ML.NET remains the answer if you are
+  already inside a pipeline.
 
 ## Metrics: the averaging mode is not a formatting choice
 
