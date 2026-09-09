@@ -173,6 +173,28 @@ internal abstract class SnowballWorkerBase
         }
     }
 
+    /// <summary>The longest candidate that ends the word and starts at or after R1, or null.</summary>
+    /// <remarks>
+    /// The Scandinavian steps read "the longest among the following suffixes in
+    /// R1", where the region qualifies the *search* rather than the action —
+    /// unlike the German and Romance steps, whose conditions hang off the action.
+    /// "nyheter" ends with "heter", which reaches past R1, and with "er", which
+    /// does not; it is "er" that goes, and the word stems to "nyhet". Choosing the
+    /// longest first and testing the region afterwards leaves it whole.
+    /// </remarks>
+    protected string? LongestSuffixInR1(string[] candidates)
+    {
+        string? best = null;
+        foreach (string c in candidates)
+        {
+            if (Ends(c) && InR1(c.Length) && (best is null || c.Length > best.Length))
+            {
+                best = c;
+            }
+        }
+        return best;
+    }
+
     /// <summary>The longest candidate that ends the word, or null.</summary>
     protected string? LongestSuffix(string[] candidates)
     {
