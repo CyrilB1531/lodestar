@@ -1152,6 +1152,48 @@ SNOWBALL_DE_WORDS = [
 ]
 
 
+SNOWBALL_NL_WORDS = [
+    # Dutch preprocessing: umlauts and acutes folded, grave kept, y and i marked
+    "café", "cafés", "coördinatie", "reünie", "één", "privé",
+    "ijs", "ijsje", "lijn", "lijnen", "mijn", "mijnen", "zijde", "wijn",
+    "draaien", "draaide", "zaaien", "gooien", "yoga", "yoghurt", "typisch",
+    # step 1: -heden / -ene / -en / -se / -s
+    "mogelijkheden", "mogelijkheid", "gelegenheden", "gelegenheid",
+    "waarheden", "waarheid", "schoonheden", "schoonheid", "vrijheden", "vrijheid",
+    "overheden", "overheid", "gezondheid", "eenheden", "eenheid",
+    "huizen", "huis", "boeken", "boek", "kinderen", "kind", "mensen", "mens",
+    "deuren", "deur", "ramen", "raam", "tafels", "tafel",
+    "jongens", "jongen", "meisjes", "meisje", "huisjes", "huisje",
+    # step 1 undoubling: a kk / dd / tt the deletion uncovers
+    "bakken", "bakt", "pakken", "redden", "redt", "zitten", "zat", "likken",
+    # step 2: a final e in R1 after a non-vowel
+    "grote", "groot", "kleine", "klein", "goede", "goed", "mooie", "mooi",
+    "snelle", "snel", "oude", "oud", "nieuwe", "nieuw", "ziekte", "ziektes",
+    # step 3a: -heid in R2, and the -en that can follow it out
+    "moeilijkheid", "moeilijkheden", "wetenschappelijkheid",
+    # step 3b: -end / -ing / -ig / -lijk / -baar / -bar
+    "lopend", "lopende", "zittend", "wandelend",
+    "opening", "openingen", "regering", "regeringen", "woning", "woningen",
+    "koning", "koningen", "wandeling", "wandelingen", "rekening", "tekening",
+    "verandering", "veranderingen", "behandeling", "verzameling",
+    "machtig", "machtige", "prachtig", "gelukkig", "nodig", "bezig", "vorig",
+    "vriendelijk", "vriendelijke", "natuurlijk", "eindelijk", "duidelijk",
+    "werkelijke", "persoonlijk", "wetenschappelijk",
+    "dankbaar", "dankbare", "zichtbaar", "leesbaar", "openbaar", "openbare",
+    "houdbaar", "wonderbaar",
+    # step 4: the undoubled vowel
+    "maan", "manen", "boot", "boten", "brood", "broden", "uur", "uren",
+    "zaak", "zaken", "paard", "paarden", "kaas", "kazen", "been", "benen",
+    "muur", "muren", "aap", "apen", "baas", "bazen",
+    # verbs and their participles
+    "lopen", "loopt", "liep", "gelopen", "werken", "werkt", "gewerkt",
+    "maken", "maakt", "gemaakt", "spreken", "spreekt", "gesproken",
+    "bouwen", "bouwde", "gebouwd", "gebouw", "gebouwen",
+    # short / residual
+    "de", "het", "een", "en", "van", "in", "op", "is", "zijn", "niet", "gem",
+]
+
+
 def _snowball_corpus(language: str, algorithm: str, words: list[str]) -> dict:
     """Freeze nltk's Snowball output for one language into an oracle payload.
 
@@ -1190,6 +1232,10 @@ def generate_snowball_it() -> dict:
 
 def generate_snowball_de() -> dict:
     return _snowball_corpus("german", "GermanSnowballStemmer", SNOWBALL_DE_WORDS)
+
+
+def generate_snowball_nl() -> dict:
+    return _snowball_corpus("dutch", "DutchSnowballStemmer", SNOWBALL_NL_WORDS)
 
 
 WORDPIECE_VOCAB = [
@@ -8177,6 +8223,7 @@ def main() -> None:
         "snowball_pt.json": generate_snowball_pt,
         "snowball_it.json": generate_snowball_it,
         "snowball_de.json": generate_snowball_de,
+        "snowball_nl.json": generate_snowball_nl,
         "wordpiece.json": generate_wordpiece,
         "batch_encoding.json": generate_batch_encoding,
         "pooling.json": generate_pooling,
