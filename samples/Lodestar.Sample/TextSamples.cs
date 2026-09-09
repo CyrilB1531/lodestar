@@ -37,7 +37,7 @@ internal static class TextSamples
         DoubleMetaphoneSample.Run();
         DoubleMetaphoneCodeSample.Run();
         Console.WriteLine();
-        Console.WriteLine("  stemmers — the Porter original, then the ten Snowball languages");
+        Console.WriteLine("  stemmers — the Porter original, then the eleven Snowball languages");
         PorterStemmerSample.Run();
         EnglishSnowballStemmerSample.Run();
         FrenchSnowballStemmerSample.Run();
@@ -49,6 +49,7 @@ internal static class TextSamples
         SwedishSnowballStemmerSample.Run();
         RussianSnowballStemmerSample.Run();
         DanishSnowballStemmerSample.Run();
+        NorwegianSnowballStemmerSample.Run();
         Console.WriteLine();
         Console.WriteLine("  vectorization, and the artifacts it persists");
         CountVectorizerOptionsSample.Run();

@@ -79,6 +79,10 @@ THE_CAT = "the cat"
 # The accented word three corpora reach for: the two transliteration pairs and the
 # Double Metaphone input contract, which is what took it to S1192's threshold (#177).
 NAIVE = "naïve"
+# "the house", definite and genitive, which all three Scandinavian corpora reach
+# for -- and that is what takes both spellings to S1192's threshold (#308).
+HUSET = "huset"
+HUSETS = "husets"
 # The conformal corpus's own key names. S1192 counts a JSON key like any other
 # literal, and these are written once per case in three places each (#441).
 CALIB_SIZE = "calib"
@@ -1218,7 +1222,7 @@ SNOWBALL_SV_WORDS = [
     "snabbast", "snabbaste", "sjukhusen", "byggnaderna", "glädjens",
     "tjänstemännens", "tjänstemän", "heres", "andes", "arens",
     # step 1(b): a bare s, kept unless the letter before it is a valid s-ending
-    "husets", "huset", "hus", "bordets", "landets", "fartygets", "kappsäcks",
+    HUSETS, HUSET, "hus", "bordets", "landets", "fartygets", "kappsäcks",
     "radios", "fotos", "artikels", "kapitels", "tidsels",
     "chefs", "arkivs", "partys", "chips", "bajs", "picknicks", "bergs", "hems",
     # the letters outside the s-ending set, which leave the s in place
@@ -1336,7 +1340,7 @@ SNOWBALL_DA_WORDS = [
     "markerede", "markeret", "markerer", "noterede", "noteret",
     "studerende", "studerendes", "regerende", "regerendes", "beregnede",
     # step 1(a), the plain endings: -e -en -ende -ene -ens -er -ers -es -et -ets
-    "husene", "husets", "huset", "huse",
+    "husene", HUSETS, HUSET, "huse",
     "bilerne", "bilernes", "bilen", "biler", "bilens", "bile",
     "bogen", "bøger", "bøgerne", "bogens",
     "barnet", "barnets", "børnene", "børns",
@@ -1426,6 +1430,66 @@ def generate_snowball_nl() -> dict:
     return _snowball_corpus("dutch", "DutchSnowballStemmer", SNOWBALL_NL_WORDS)
 
 
+SNOWBALL_NO_WORDS = [
+    # step 1 (a): the definite, plural and genitive families
+    "hus", HUSET, "husene", HUSETS, "huses",
+    "bok", "boken", "bokens", "bøkene",
+    "gutt", "gutten", "gutter", "guttene", "guttenes",
+    "jente", "jenta", "jenter", "jentene",
+    "barn", "barnet", "barna", "barnets",
+    "dag", "dagen", "dager", "dagene", "dagens",
+    "vei", "veien", "veier", "veiene",
+    "lærer", "læreren", "lærere", "lærerne",
+    "arbeider", "arbeidere", "arbeiderne",
+    "regjering", "regjeringen", "regjeringer", "regjeringene",
+    # step 1 (a): the -het family, including hetene / hetens / hetenes
+    "mulighet", "muligheten", "muligheter", "mulighetene", "mulighetens", "mulighetenes",
+    "sannhet", "sannheten", "sannheter", "sannhetene", "sannhetens",
+    "frihet", "friheten", "friheter", "frihetene",
+    "kjærlighet", "kjærligheten", "virkelighet", "virkeligheten",
+    # step 1 (a): comparatives and superlatives
+    "større", "størst", "største", "mindre", "minst",
+    "raskere", "raskest", "raskeste", "sterkere", "sterkest",
+    "vakrere", "vakrest", "billigere", "dårligere",
+    # step 1 (a): the endings Bokmal produces rarely, which the algorithm carries anyway
+    "elskede", "elskedes", "elskande", "dansande", "guttane", "bilane",
+    "bilar", "dagar", "husas", "raskast", "lærers", "arbeiders",
+    "kommendes", "sittendes", "arbeidendes",
+    # step 1 (b): the bare s, and the k that is valid only after a non-vowel
+    "folks", "boks", "bokser", "norsks", "fisks", "melks", "kalks", "sjokks",
+    # step 1 (c): ert / erte rewritten to er
+    "servert", "serverte", "sortert", "sorterte", "importert", "importerte",
+    "studert", "studerte", "reservert", "konsentrert", "kontrollert",
+    # step 2: a dt or vt in R1 loses the t
+    "halvt", "levt", "godt", "bredt", "hardt", "kaldt", "rundt", "blindt", "vondt",
+    # step 3: the -lig family and its neighbours
+    "viktig", "viktige", "riktig", "ferdig", "mulig", "umulig",
+    "naturlig", "naturlige", "lykkelig", "lykkelige", "tydelig", "farlig",
+    "ærlig", "lovlig", "ulovlig", "forferdelig", "vanskelig", "alvorlig",
+    "følelse", "følelsen", "følelser", "hendelse", "hendelsen", "bevegelse",
+    "frelse", "frelsen", "tilgivelse",
+    # step 3: lov / elov / slov / hetslov / leg / eleg / eig, the seven without a -lig
+    "lov", "loven", "lover", "lovene", "kjærlighetslov", "hetslov",
+    "grunnlov", "grunnloven", "straffelov", "avtalelov",
+    "kollega", "kollegaer", "venleg", "fyrsteleg", "pizzadeig", "kjempedeig",
+    # verbs and their participles
+    "snakke", "snakker", "snakket", "snakkende", "snakkes",
+    "lese", "leser", "leste", "lest",
+    "skrive", "skriver", "skrevet", "kjøre", "kjører", "kjørte", "kjørt",
+    "høre", "hører", "hørte", "hørt", "lære", "lærte", "lært",
+    "bygge", "bygger", "bygde", "bygget", "kjenne", "kjenner", "kjente", "kjent",
+    "elske", "elsker", "elsket", "elskende", "arbeide", "arbeidet", "arbeidende",
+    "begynne", "begynner", "begynte", "begynt",
+    # the letters æ, å and ø, which are letters here rather than accented forms
+    "hånd", "hånden", "hender", "øye", "øyet", "øyne", "øynene",
+    "år", "året", "årene", "årets", "dør", "døra", "døren", "dører",
+    "sjø", "sjøen", "vår", "våren", "måned", "måneden",
+    # short / residual
+    "og", "i", "det", "at", "en", "et", "den", "til", "er", "som", "på", "de",
+    "med", "av", "ikke", "var", "har", "kan", "vil", "ble",
+]
+
+
 def generate_snowball_sv() -> dict:
     return _snowball_corpus("swedish", "SwedishSnowballStemmer", SNOWBALL_SV_WORDS)
 
@@ -1436,6 +1500,8 @@ def generate_snowball_ru() -> dict:
 
 def generate_snowball_da() -> dict:
     return _snowball_corpus("danish", "DanishSnowballStemmer", SNOWBALL_DA_WORDS)
+def generate_snowball_no() -> dict:
+    return _snowball_corpus("norwegian", "NorwegianSnowballStemmer", SNOWBALL_NO_WORDS)
 
 
 WORDPIECE_VOCAB = [
@@ -8427,6 +8493,7 @@ def main() -> None:
         "snowball_sv.json": generate_snowball_sv,
         "snowball_ru.json": generate_snowball_ru,
         "snowball_da.json": generate_snowball_da,
+        "snowball_no.json": generate_snowball_no,
         "wordpiece.json": generate_wordpiece,
         "batch_encoding.json": generate_batch_encoding,
         "pooling.json": generate_pooling,
