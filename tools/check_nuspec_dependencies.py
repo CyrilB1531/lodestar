@@ -64,6 +64,7 @@ ABSTRACTIONS = "Lodestar.Abstractions"
 CONFORMAL = "Lodestar.Conformal"
 DECOMPOSITION = "Lodestar.Decomposition"
 STATS = "Lodestar.Stats"
+PREPROCESSING = "Lodestar.Preprocessing"
 ONNX = "Lodestar.Onnx"
 EXTENSIONS_AI = "Lodestar.Extensions.AI"
 EXTENSIONS_MATHNET = "Lodestar.Extensions.MathNet"
@@ -140,6 +141,12 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         # because converting that type is the whole of this package's surface.
         NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0"},
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0", **POLYFILLS},
+    },
+    PREPROCESSING: {
+        # Nothing on net10.0, only the polyfills on netstandard2.0: a scaler is
+        # arithmetic over spans, with no model file and nothing to serialise.
+        NET: {},
+        NETSTANDARD: {**POLYFILLS},
     },
     METRICS: {
         # Nothing on net10.0, only the polyfills on netstandard2.0: metrics

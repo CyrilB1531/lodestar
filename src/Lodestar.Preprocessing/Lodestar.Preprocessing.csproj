@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- This package's version, owned here rather than repository-wide. -->
+  <Import Project="Version.props" />
+
+  <PropertyGroup>
+    <Version>$(LodestarPreprocessingVersion)</Version>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+    <RootNamespace>Lodestar.Preprocessing</RootNamespace>
+
+    <PackageId>Lodestar.Preprocessing</PackageId>
+    <Description>Feature preprocessing for .NET at scikit-learn parity: fit a scaler on arrays and transform arrays, with the fitted statistics readable. Spans in, arrays out — no IDataView, no pipeline object, no dependencies, and nothing to adopt beyond the call.</Description>
+    <PackageTags>preprocessing;standardscaler;scaling;normalization;scikit-learn;feature-engineering;lodestar</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lodestar.Preprocessing.Tests" />
+    <!-- Same suite, replayed against the netstandard2.0 build. -->
+    <InternalsVisibleTo Include="Lodestar.Preprocessing.NetStandard.Tests" />
+  </ItemGroup>
+
+</Project>

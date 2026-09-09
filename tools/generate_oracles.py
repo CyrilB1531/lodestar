@@ -89,6 +89,12 @@ CALIB_SIZE = "calib"
 # The sparse-dense corpus's fixture keys, named for the same reason the conformal
 # ones above are: S1192 counts a dict key like any other literal (#440).
 COLUMNS = "columns"
+
+# The three keys every StandardScaler case carries (#568). Named here rather than
+# repeated, which is what S1192 asks once a literal reaches three uses in a file.
+FEATURE_COUNT = "feature_count"
+WITH_MEAN = "with_mean"
+WITH_STD = "with_std"
 DENSE = "dense"
 WIDTH = "width"
 QUANTILE = "quantile"
@@ -3838,6 +3844,92 @@ def _internal_validity_fixtures() -> list[dict]:
     ]
 
 
+def _standard_scaler_fixtures() -> list[dict]:
+    """Sample matrices, each chosen for a branch of the fit rather than for variety."""
+    return [
+        # A constant second feature: variance is exactly zero, so the near-constant rule
+        # fires on its easy end and the feature scales by 1 rather than by nothing.
+        {"name": "a constant feature beside a varying one",
+         "rows": [[1.0, 10.0], [2.0, 10.0], [4.0, 10.0]],
+         WITH_MEAN: True, WITH_STD: True},
+        # The other three option pairs on the same matrix: mean_ survives with_mean=False
+        # and disappears only when both are off.
+        {"name": "with_mean off, with_std on",
+         "rows": [[1.0, 10.0], [2.0, 10.0], [4.0, 10.0]],
+         WITH_MEAN: False, WITH_STD: True},
+        {"name": "with_mean on, with_std off",
+         "rows": [[1.0, 10.0], [2.0, 10.0], [4.0, 10.0]],
+         WITH_MEAN: True, WITH_STD: False},
+        {"name": "both off",
+         "rows": [[1.0, 10.0], [2.0, 10.0], [4.0, 10.0]],
+         WITH_MEAN: False, WITH_STD: False},
+        # 1e8 +/- 1e-8: variance 1.48e-16, not zero, yet under the Chan-Golub-LeVeque bound.
+        # An implementation testing `variance == 0` disagrees here by eight decades.
+        {"name": "near constant under the two-pass error bound",
+         "rows": [[1e8], [1e8 + 1e-8], [1e8 - 1e-8]],
+         WITH_MEAN: True, WITH_STD: True},
+        # 1e8 +/- 1e-7, one decade up: the same shape, above the bound, scaled normally.
+        # The pair is what pins the threshold rather than the direction.
+        {"name": "just above the same bound",
+         "rows": [[1e8], [1e8 + 1e-7], [1e8 - 1e-7]],
+         WITH_MEAN: True, WITH_STD: True},
+        # One row: every variance is zero, so every feature is constant.
+        {"name": "a single sample",
+         "rows": [[3.0, -4.0, 0.0]],
+         WITH_MEAN: True, WITH_STD: True},
+        # Negative values and three very different spreads in one matrix.
+        {"name": "mixed signs and three scales",
+         "rows": [[-1.0, 100.0, 0.001], [3.0, -250.0, 0.002],
+                  [-7.0, 40.0, 0.0015], [11.0, 0.0, 0.0025]],
+         WITH_MEAN: True, WITH_STD: True},
+    ]
+
+
+def generate_preprocessing_standard_scaler() -> dict:
+    """StandardScaler: the fitted statistics, the transform and its inverse (#568)."""
+    import numpy as np
+    from sklearn.preprocessing import StandardScaler
+
+    def column(values) -> list | None:
+        return None if values is None else [float(v) for v in values]
+
+    cases = []
+    for fixture in _standard_scaler_fixtures():
+        matrix = np.array(fixture["rows"], dtype=np.float64)
+        scaler = StandardScaler(
+            with_mean=fixture[WITH_MEAN], with_std=fixture[WITH_STD]).fit(matrix)
+        transformed = scaler.transform(matrix)
+        cases.append({
+            "name": fixture["name"],
+            "samples": [float(v) for row in fixture["rows"] for v in row],
+            FEATURE_COUNT: int(matrix.shape[1]),
+            WITH_MEAN: fixture[WITH_MEAN],
+            WITH_STD: fixture[WITH_STD],
+            "n_samples_seen": int(scaler.n_samples_seen_),
+            "mean": column(scaler.mean_),
+            "var": column(scaler.var_),
+            "scale": column(scaler.scale_),
+            "transformed": [float(v) for row in transformed for v in row],
+            "inverse_transformed": [
+                float(v) for row in scaler.inverse_transform(transformed) for v in row],
+        })
+
+    return {
+        "metadata": {
+            "algorithm": "StandardScaler",
+            "library": "scikit-learn",
+            "library_version": version("scikit-learn"),
+            "reference_calls": [
+                "sklearn.preprocessing.StandardScaler.fit",
+                "sklearn.preprocessing.StandardScaler.transform",
+                "sklearn.preprocessing.StandardScaler.inverse_transform",
+            ],
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
 def generate_internal_validity() -> dict:
     """Calinski-Harabasz and Davies-Bouldin, which score a clustering with no reference (#192)."""
     import numpy as np
@@ -3852,7 +3944,7 @@ def generate_internal_validity() -> dict:
             cases.append({
                 "name": fixture["name"],
                 "features": [v for row in fixture["features"] for v in row],
-                "feature_count": int(features.shape[1]),
+                FEATURE_COUNT: int(features.shape[1]),
                 "labels": fixture["labels"],
                 "calinski_harabasz": float(calinski_harabasz_score(features, labels)),
                 "davies_bouldin": float(davies_bouldin_score(features, labels)),
@@ -4635,7 +4727,7 @@ def generate_silhouette() -> dict:
         cases.append({
             "name": fixture["name"],
             "features": [value for row in fixture["features"] for value in row],
-            "feature_count": features.shape[1],
+            FEATURE_COUNT: features.shape[1],
             "labels": labels,
             "distances": [float(value) for row in distances for value in row],
             # random_state is inert without sample_size, and named anyway: S6709 asks
@@ -8514,6 +8606,7 @@ def main() -> None:
         "clustering_agreement.json": generate_clustering_agreement,
         "silhouette.json": generate_silhouette,
         "internal_validity.json": generate_internal_validity,
+        "preprocessing_standard_scaler.json": generate_preprocessing_standard_scaler,
         "ranking.json": generate_ranking,
         "ranking_weighted.json": generate_ranking_weighted,
         "label_ranking.json": generate_label_ranking,

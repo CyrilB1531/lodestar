@@ -10,6 +10,7 @@ using Lodestar.Extensions.AI;
 using Lodestar.Extensions.MathNet;
 using Lodestar.Fuzzy;
 using Lodestar.Metrics;
+using Lodestar.Preprocessing;
 using Lodestar.Onnx;
 using Lodestar.Stats;
 using Lodestar.Text.Distances;
@@ -146,6 +147,7 @@ internal static class PackagingGate
             typeof(OnnxTextEmbedder).Assembly,
             typeof(OnnxEmbeddingGenerator).Assembly,
             typeof(MathNetInterop).Assembly,
+            typeof(StandardScaler).Assembly,
             typeof(TTest).Assembly,
         ];
 

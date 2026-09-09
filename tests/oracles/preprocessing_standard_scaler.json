@@ -1,0 +1,335 @@
+{
+ "metadata": {
+  "algorithm": "StandardScaler",
+  "library": "scikit-learn",
+  "library_version": "1.9.0",
+  "reference_calls": [
+   "sklearn.preprocessing.StandardScaler.fit",
+   "sklearn.preprocessing.StandardScaler.transform",
+   "sklearn.preprocessing.StandardScaler.inverse_transform"
+  ],
+  "count": 8
+ },
+ "cases": [
+  {
+   "name": "a constant feature beside a varying one",
+   "samples": [
+    1.0,
+    10.0,
+    2.0,
+    10.0,
+    4.0,
+    10.0
+   ],
+   "feature_count": 2,
+   "with_mean": true,
+   "with_std": true,
+   "n_samples_seen": 3,
+   "mean": [
+    2.3333333333333335,
+    10.0
+   ],
+   "var": [
+    1.5555555555555554,
+    0.0
+   ],
+   "scale": [
+    1.247219128924647,
+    1.0
+   ],
+   "transformed": [
+    -1.0690449676496978,
+    0.0,
+    -0.2672612419124245,
+    0.0,
+    1.3363062095621219,
+    0.0
+   ],
+   "inverse_transformed": [
+    1.0,
+    10.0,
+    2.0,
+    10.0,
+    4.0,
+    10.0
+   ]
+  },
+  {
+   "name": "with_mean off, with_std on",
+   "samples": [
+    1.0,
+    10.0,
+    2.0,
+    10.0,
+    4.0,
+    10.0
+   ],
+   "feature_count": 2,
+   "with_mean": false,
+   "with_std": true,
+   "n_samples_seen": 3,
+   "mean": [
+    2.3333333333333335,
+    10.0
+   ],
+   "var": [
+    1.5555555555555554,
+    0.0
+   ],
+   "scale": [
+    1.247219128924647,
+    1.0
+   ],
+   "transformed": [
+    0.8017837257372732,
+    10.0,
+    1.6035674514745464,
+    10.0,
+    3.2071349029490928,
+    10.0
+   ],
+   "inverse_transformed": [
+    1.0,
+    10.0,
+    2.0,
+    10.0,
+    4.0,
+    10.0
+   ]
+  },
+  {
+   "name": "with_mean on, with_std off",
+   "samples": [
+    1.0,
+    10.0,
+    2.0,
+    10.0,
+    4.0,
+    10.0
+   ],
+   "feature_count": 2,
+   "with_mean": true,
+   "with_std": false,
+   "n_samples_seen": 3,
+   "mean": [
+    2.3333333333333335,
+    10.0
+   ],
+   "var": null,
+   "scale": null,
+   "transformed": [
+    -1.3333333333333335,
+    0.0,
+    -0.3333333333333335,
+    0.0,
+    1.6666666666666665,
+    0.0
+   ],
+   "inverse_transformed": [
+    1.0,
+    10.0,
+    2.0,
+    10.0,
+    4.0,
+    10.0
+   ]
+  },
+  {
+   "name": "both off",
+   "samples": [
+    1.0,
+    10.0,
+    2.0,
+    10.0,
+    4.0,
+    10.0
+   ],
+   "feature_count": 2,
+   "with_mean": false,
+   "with_std": false,
+   "n_samples_seen": 3,
+   "mean": null,
+   "var": null,
+   "scale": null,
+   "transformed": [
+    1.0,
+    10.0,
+    2.0,
+    10.0,
+    4.0,
+    10.0
+   ],
+   "inverse_transformed": [
+    1.0,
+    10.0,
+    2.0,
+    10.0,
+    4.0,
+    10.0
+   ]
+  },
+  {
+   "name": "near constant under the two-pass error bound",
+   "samples": [
+    100000000.0,
+    100000000.00000001,
+    99999999.99999999
+   ],
+   "feature_count": 1,
+   "with_mean": true,
+   "with_std": true,
+   "n_samples_seen": 3,
+   "mean": [
+    100000000.0
+   ],
+   "var": [
+    1.4802973661668753e-16
+   ],
+   "scale": [
+    1.0
+   ],
+   "transformed": [
+    0.0,
+    1.4901161193847656e-08,
+    -1.4901161193847656e-08
+   ],
+   "inverse_transformed": [
+    100000000.0,
+    100000000.00000001,
+    99999999.99999999
+   ]
+  },
+  {
+   "name": "just above the same bound",
+   "samples": [
+    100000000.0,
+    100000000.0000001,
+    99999999.9999999
+   ],
+   "feature_count": 1,
+   "with_mean": true,
+   "with_std": true,
+   "n_samples_seen": 3,
+   "mean": [
+    100000000.0
+   ],
+   "var": [
+    7.253457094217689e-15
+   ],
+   "scale": [
+    8.516723016640666e-08
+   ],
+   "transformed": [
+    0.0,
+    1.2247448713915892,
+    -1.2247448713915892
+   ],
+   "inverse_transformed": [
+    100000000.0,
+    100000000.0000001,
+    99999999.9999999
+   ]
+  },
+  {
+   "name": "a single sample",
+   "samples": [
+    3.0,
+    -4.0,
+    0.0
+   ],
+   "feature_count": 3,
+   "with_mean": true,
+   "with_std": true,
+   "n_samples_seen": 1,
+   "mean": [
+    3.0,
+    -4.0,
+    0.0
+   ],
+   "var": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "transformed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "inverse_transformed": [
+    3.0,
+    -4.0,
+    0.0
+   ]
+  },
+  {
+   "name": "mixed signs and three scales",
+   "samples": [
+    -1.0,
+    100.0,
+    0.001,
+    3.0,
+    -250.0,
+    0.002,
+    -7.0,
+    40.0,
+    0.0015,
+    11.0,
+    0.0,
+    0.0025
+   ],
+   "feature_count": 3,
+   "with_mean": true,
+   "with_std": true,
+   "n_samples_seen": 4,
+   "mean": [
+    1.5,
+    -27.5,
+    0.0017500000000000003
+   ],
+   "var": [
+    42.75,
+    17768.75,
+    3.125e-07
+   ],
+   "scale": [
+    6.5383484153110105,
+    133.29947486768282,
+    0.0005590169943749475
+   ],
+   "transformed": [
+    -0.3823595564509363,
+    0.9564928903625498,
+    -1.341640786499874,
+    0.22941573387056177,
+    -1.66917386749543,
+    0.44721359549995754,
+    -1.3000224919331833,
+    0.5063785890154675,
+    -0.4472135954999583,
+    1.4529663145135578,
+    0.2063023881174127,
+    1.3416407864998734
+   ],
+   "inverse_transformed": [
+    -1.0,
+    100.0,
+    0.001,
+    3.0,
+    -250.0,
+    0.002,
+    -7.0,
+    40.0,
+    0.0015,
+    11.0,
+    0.0,
+    0.0025
+   ]
+  }
+ ]
+}
