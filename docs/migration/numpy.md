@@ -18,6 +18,17 @@ but a beta in the four years since, its sparse SVD request has been open since 2
 densifying a term-document matrix to reach `Svd()` is the cost the sparse representation existed
 to avoid. See [`docs/guides/decomposition.md`](../guides/decomposition.md).
 
+**You do not have to choose one side.** `Lodestar.Extensions.MathNet` converts a `CsrMatrix` to and
+from Math.NET's `SparseMatrix` in one pass over the stored values, so a matrix can be vectorized and
+factorized here and then solved, inverted or eigendecomposed there — without a densify-and-rebuild
+round trip in between. It is the only package in this repository that references Math.NET, and it
+references it _to convert to it_ rather than to compute with it, which is why the paragraph above
+still stands ([decision 0089](../decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)).
+
+```bash
+dotnet add package Lodestar.Extensions.MathNet
+```
+
 ```bash
 dotnet add package MathNet.Numerics
 dotnet add package MathNet.Numerics.MKL.Win-x64   # or .Linux-x64: native acceleration

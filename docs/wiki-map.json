@@ -79,6 +79,17 @@
       },
       "exceptionsUnchecked": []
     },
+    "Lodestar.Extensions.MathNet": {
+      "wiki": "ExtensionsMathNet",
+      "pages": [
+        "docs/reference/extensions-mathnet/*.md",
+        "docs/reference/extensions-mathnet/*/*.md"
+      ],
+      "covered": {
+        "Lodestar.Extensions.MathNet": "docs/reference/extensions-mathnet/conversion"
+      },
+      "exceptionsUnchecked": []
+    },
     "Lodestar.Fuzzy": {
       "wiki": "Fuzzy",
       "pages": [

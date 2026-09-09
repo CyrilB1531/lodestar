@@ -68,7 +68,7 @@ class Floor:
 FLOORS = (
     Floor("Lodestar.Text", "LodestarTextVersion", "TEXT_FLOOR", ("Lodestar.Fuzzy",)),
     Floor("Lodestar.Abstractions", "LodestarAbstractionsVersion", "ABSTRACTIONS_FLOOR",
-          ("Lodestar.Text", "Lodestar.Decomposition")),
+          ("Lodestar.Text", "Lodestar.Decomposition", "Lodestar.Extensions.MathNet")),
     Floor("Lodestar.Embeddings", "LodestarEmbeddingsVersion", "EMBEDDINGS_FLOOR",
           ("Lodestar.Onnx", "Lodestar.Extensions.AI")),
     Floor("Lodestar.Onnx", "LodestarOnnxVersion", "ONNX_FLOOR",

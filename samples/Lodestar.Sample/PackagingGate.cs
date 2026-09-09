@@ -7,6 +7,7 @@ using Lodestar.Conformal;
 using Lodestar.Decomposition;
 using Lodestar.Embeddings.Tokenization;
 using Lodestar.Extensions.AI;
+using Lodestar.Extensions.MathNet;
 using Lodestar.Fuzzy;
 using Lodestar.Metrics;
 using Lodestar.Onnx;
@@ -144,6 +145,7 @@ internal static class PackagingGate
             typeof(TruncatedSvd).Assembly,
             typeof(OnnxTextEmbedder).Assembly,
             typeof(OnnxEmbeddingGenerator).Assembly,
+            typeof(MathNetInterop).Assembly,
             typeof(TTest).Assembly,
         ];
 

@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- This package's version, owned here rather than repository-wide. -->
+  <Import Project="Version.props" />
+
+  <PropertyGroup>
+    <Version>$(LodestarExtensionsMathNetVersion)</Version>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+    <RootNamespace>Lodestar.Extensions.MathNet</RootNamespace>
+
+    <PackageId>Lodestar.Extensions.MathNet</PackageId>
+    <Description>Math.NET Numerics interoperability for Lodestar: converts a CsrMatrix to and from Math.NET's sparse matrix in one pass over the stored values, so a caller already holding Math.NET types can reach Lodestar.Decomposition and the sparse vectorizers without rebuilding a matrix cell by cell.</Description>
+    <PackageTags>mathnet;mathnet-numerics;sparse-matrix;csr;interop;linear-algebra;lodestar</PackageTags>
+  </PropertyGroup>
+
+  <!-- The dependency this package exists for, and the reason it is a satellite:
+       a core package carries none, and Lodestar.Decomposition refused this very
+       library for its own kernels on freshness grounds. Converting to a caller's
+       types is not computing with them — decision 0086. -->
+  <ItemGroup>
+    <PackageReference Include="MathNet.Numerics" />
+  </ItemGroup>
+
+  <!--
+    One Lodestar edge: CsrMatrix is the type being converted.
+
+    Expressed as a PackageReference against the published package, like every
+    other src/ edge, so the build graph is the graph consumers see
+    (decision 0012). The opt-in below exists only so that editing two packages in
+    one branch does not require a pack-and-restore cycle per edit:
+
+        export LodestarUseProjectRefs=true
+
+    It is never set in CI, and the packed .nuspec is asserted there.
+  -->
+  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
+    <PackageReference Include="Lodestar.Abstractions" />
+  </ItemGroup>
+
+  <!-- Loud on purpose: a local build that silently differed from the shipped one
+       is the failure mode this whole arrangement is designed to avoid. -->
+  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
+          Condition="'$(LodestarUseProjectRefs)' == 'true'">
+    <Message Importance="high"
+             Text="Lodestar.Extensions.MathNet: LodestarUseProjectRefs=true — referencing Lodestar.Abstractions by project, not by package. This is the developer loop, not what ships." />
+  </Target>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lodestar.Extensions.MathNet.Tests" />
+    <!-- Same suite, replayed against the netstandard2.0 build. -->
+    <InternalsVisibleTo Include="Lodestar.Extensions.MathNet.NetStandard.Tests" />
+  </ItemGroup>
+
+</Project>
