@@ -100,9 +100,12 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         (_vocab, _modelVocab, _tokens) = BuildVocabulary(vocabulary);
         EnsureByteFallbackAlphabetIsComplete(vocabulary, _modelVocab);
 
+        EnsureNormalizedEntriesHaveAnExpressiblePattern(vocabulary);
+
         _rawScanner = new AddedTokenScanner([.. vocabulary.AddedTokens.Where(t => !t.Normalized)]);
         _normalizedScanner = new AddedTokenScanner(
-            [.. vocabulary.AddedTokens.Where(t => t.Normalized).Select(t => t with { Content = Normalize(t.Content) })]);
+            [.. vocabulary.AddedTokens.Where(t => t.Normalized)
+                .Select(t => t with { Content = NormalizeAddedTokenContent(t.Content) })]);
         _addedIds = [.. vocabulary.AddedTokens.Where(a => a.Special).Select(a => a.Id)];
 
         if (vocabulary.UnkToken is { } unk)
@@ -301,7 +304,9 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         }
         foreach (AddedToken added in vocabulary.AddedTokens)
         {
-            tokens[added.Id] = added.Normalized ? Normalize(added.Content) : added.Content;
+            // The pattern the scanner matches, which is what id_to_token reports. Handing
+            // Decode the unescaped content instead costs a space its Strip was going to take.
+            tokens[added.Id] = added.Normalized ? NormalizeAddedTokenContent(added.Content) : added.Content;
         }
 
         return (vocab, modelVocab, tokens);
@@ -399,12 +404,47 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         }
     }
 
+    /// <summary>The pattern a <c>normalized: true</c> added token is matched by.</summary>
+    /// <remarks>
+    /// <c>tokenizers</c> normalizes such an entry's content with the declared **normalizer**,
+    /// and a pre-tokenizer never reaches it. So the escape joins the pattern only where the
+    /// file spelled it as a normalizer: Llama-2 matches on <c>▁&lt;s&gt;</c>, Mistral on
+    /// <c>&lt;s&gt;</c>. Decision 0085, which is the third place the two spellings part.
+    /// </remarks>
+    private string NormalizeAddedTokenContent(string content) =>
+        _metaspace is { DeclaredAsNormalizer: true }
+            ? _metaspace.Apply(Normalize(content), isFirstSplit: true)
+            : Normalize(content);
+
+    /// <summary>Refuses the one shape a static pattern cannot carry.</summary>
+    /// <remarks>
+    /// A pre-tokenizer escape never reaches an added token's content, so a
+    /// <c>normalized: true</c> entry under one would be matched against text the escape has
+    /// changed with a pattern it has not — and under <c>first</c>, or under the guard, what it
+    /// does depends on where the piece sits, which a pattern fixed before the first piece is
+    /// read cannot express. Refused rather than approximated, per decision 0050 §4: a wrong
+    /// answer is worse than a missing one. Neither reference file carries the shape.
+    /// </remarks>
+    private static void EnsureNormalizedEntriesHaveAnExpressiblePattern(BpeVocabulary vocabulary)
+    {
+        if (vocabulary.Metaspace is { DeclaredAsNormalizer: false }
+            && vocabulary.AddedTokens.Any(t => t.Normalized))
+        {
+            throw new ArgumentException(
+                "This tokenizer declares a Metaspace pre-tokenizer and an added token with " +
+                "'normalized': true. The escape a pre-tokenizer applies depends on the piece's " +
+                "position, so the entry's pattern cannot be spelled ahead of the text it is " +
+                "matched against. See docs/decisions/0085.",
+                nameof(vocabulary));
+        }
+    }
+
     /// <summary>Normalizes, then escapes whitespace when the model declared an escape.</summary>
     /// <remarks>
     /// The order <see cref="SentencePieceTokenizer"/> already runs: the escape reads the
     /// normalized text, since both spellings decision 0050 §2 accepts sit at or after the
-    /// normalizer. Added-token content goes through <see cref="Normalize"/> alone —
-    /// escaping it would spell the entry with a symbol the file did not put there.
+    /// normalizer. Added-token content takes <see cref="NormalizeAddedTokenContent"/> instead,
+    /// which is the same only for the pre-tokenizer spelling.
     /// </remarks>
     private string Preprocess(string text, bool isFirstSplit)
     {

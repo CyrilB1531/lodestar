@@ -158,6 +158,48 @@ public sealed class BpeMetaspaceLoaderTests
         Load("\"pre_tokenizer\": { \"type\": \"Metaspace\", \"replacement\": \"\u2581\", \"add_prefix_space\": "
             + declared + ", \"split\": false },");
 
+    [Fact]
+    public void The_two_spellings_are_told_apart_for_an_added_tokens_pattern()
+    {
+        // Decision 0085's third parting: tokenizers normalizes a normalized entry's content
+        // with the declared normalizer, and never with a pre-tokenizer.
+        Assert.True(Load(
+            "\"normalizer\": { \"type\": \"Sequence\", \"normalizers\": [ { \"type\": \"Prepend\", \"prepend\": \"▁\" }, "
+            + "{ \"type\": \"Replace\", \"pattern\": { \"String\": \" \" }, \"content\": \"▁\" } ] },")
+            .Metaspace!.DeclaredAsNormalizer);
+
+        Assert.False(Load(
+            "\"pre_tokenizer\": { \"type\": \"Metaspace\", \"replacement\": \"▁\", \"prepend_scheme\": \"first\", \"split\": false },")
+            .Metaspace!.DeclaredAsNormalizer);
+    }
+
+    [Fact]
+    public void A_normalized_added_token_under_a_Metaspace_pre_tokenizer_is_refused()
+    {
+        // The shape no reference file carries and a static pattern cannot express: what the
+        // escape does to the content would depend on the piece's position (decision 0085).
+        BpeVocabulary vocabulary = Load(
+            "\"pre_tokenizer\": { \"type\": \"Metaspace\", \"replacement\": \"▁\", \"prepend_scheme\": \"first\", \"split\": false }, "
+            + "\"added_tokens\": [ { \"id\": 3, \"content\": \"<s>\", \"single_word\": false, \"lstrip\": false, "
+            + "\"rstrip\": false, \"normalized\": true, \"special\": true } ],");
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => new BpeTokenizer(vocabulary));
+        Assert.Contains("normalized", error.Message, StringComparison.Ordinal);
+        Assert.Contains("0085", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_raw_added_token_under_a_Metaspace_pre_tokenizer_is_accepted()
+    {
+        // The Mistral shape, which the refusal above must not reach.
+        BpeVocabulary vocabulary = Load(
+            "\"pre_tokenizer\": { \"type\": \"Metaspace\", \"replacement\": \"▁\", \"prepend_scheme\": \"first\", \"split\": false }, "
+            + "\"added_tokens\": [ { \"id\": 3, \"content\": \"<s>\", \"single_word\": false, \"lstrip\": false, "
+            + "\"rstrip\": false, \"normalized\": false, \"special\": true } ],");
+
+        Assert.NotNull(new BpeTokenizer(vocabulary));
+    }
+
     private static BpeVocabulary Load(string block) =>
         Load(block, "\"model\": { \"type\": \"BPE\", \"vocab\": { \"a\": 0, \"b\": 1, \"ab\": 2 }, \"merges\": [\"a b\"] }");
 

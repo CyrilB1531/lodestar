@@ -831,7 +831,8 @@ public static class TokenizerJsonLoader
             SingleReplacementChar(prepended, "normalizer Sequence's Prepend"),
             MetaspacePrependScheme.Always,
             removeExtraWhitespaces: false,
-            skipPrependWhenAlreadyPrefixed: false);
+            skipPrependWhenAlreadyPrefixed: false,
+            declaredAsNormalizer: true);
     }
 
     /// <summary>The one character a replacement must be, or a refusal naming what was found.</summary>
