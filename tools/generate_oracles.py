@@ -1436,6 +1436,70 @@ def generate_snowball_nl() -> dict:
     return _snowball_corpus("dutch", "DutchSnowballStemmer", SNOWBALL_NL_WORDS)
 
 
+SNOWBALL_FI_WORDS = [
+    # step 1, particles: -kin -kaan -kään -ko -kö -han -hän -pa -pä, after n, t or a vowel
+    "talokin", "kirjakin", "onkin", "kaikkikin", "sittenkin",
+    "eikään", "mikään", "kukaan", "taloonkaan", "kenenkään",
+    "menetkö", "tuletko", "onko", "eikö", "sinäkö",
+    "tulehan", "otahan", "mikähän", "kukahan", "otapa", "menepä", "tulepa",
+    # step 1, -sti, the one particle that has to sit in R2
+    "nopeasti", "hitaasti", "kauniisti", "varmasti", "erityisesti",
+    "helposti", "vaikeasti", "hyvästi", "kovasti",
+    # step 2, the possessives: -si -ni -nsa -nsä -mme -nne
+    "talosi", "kirjasi", "kotisi", "äitisi", "isäsi", "kätesi",
+    "taloni", "kirjani", "kotini", "äitini", "käteni",
+    "talonsa", "kirjansa", "kotinsa", "äitinsä", "kätensä", "lapsensa",
+    "talomme", "kirjamme", "kotimme", "talonne", "kotinne", "lapsenne",
+    # step 2, -an / -än / -en, each admitted only after its own case endings
+    "talossaan", "talostaan", "talollaan", "taloltaan", "kotonaan",
+    "kädessään", "kädestään", "kädellään", "kädeltään", "äitinään",
+    "talolleen", "äidilleen", "kirjoineen", "lapsineen",
+    # step 3, hXn: the vowel repeats across the h
+    "maahan", "puuhun", "työhön", "tiehen", "päähän", "suuhun", "yöhön",
+    # step 3, -siin -den -tten, admitted after Vi
+    "vapaisiin", "korkeisiin", "maiden", "töiden", "teiden",
+    "maitten", "töitten", "teitten", "taloihin",
+    # step 3, -seen after a long vowel
+    "vapaaseen", "huoneeseen", "maaseen",
+    # step 3, the partitive -a / -ä after a consonant and a vowel
+    "taloa", "kirjaa", "kissaa", "koiraa", "päätä", "kättä", "vettä",
+    # step 3, the plain case endings
+    "talossa", "talosta", "talolla", "talolta", "talolle", "talona",
+    "taloksi", "taloine", "kädessä", "kädestä", "kädellä", "kädeltä",
+    "kädelle", "kätenä", "kädeksi", "kaupungissa", "kaupungista",
+    # step 3, -tta / -ttä, admitted only after e
+    "huonetta", "perhettä", "aluetta", "osoitetta",
+    # step 3, the genitive -n, and the long vowel or ie it uncovers
+    "talon", "kirjan", "kissan", "koiran", "miehen", "kaupungin",
+    "maan", "puun", "tien", "työn", "suun", "pään", "veden", "lapsen",
+    # step 4, the comparative and superlative families, both in R2
+    "isompi", "isompaa", "suurempi", "vanhempi", "nuorempi", "parempi",
+    "kauniimpi", "kauniimpaa", "pienempi", "kylmempi",
+    "vanhimpia", "isoimpia", "kauneimpia", "suurimmat", "vanhimmat",
+    # step 5, the plurals: a final i or j after step 3, a final t otherwise
+    "talot", "kirjat", "kissat", "miehet", "lapset", "kaupungit",
+    "taloissa", "kirjoissa", "taloista", "kirjoista",
+    # step 6, tidying: a long vowel, a consonant and one of a ä e i, -oj -uj -jo
+    "vapaa", "korkea", "huone", "perhe", "alue", "kirje",
+    "matkoja", "poikia", "taloja", "kirjoja",
+    # the same rules again on longer stems, where the suffix reaches R1 or R2 --
+    # a short word leaves several steps untested, which is what these are for
+    "todellisesti", "yleisesti", "luonnollisesti", "yksinkertaisesti",
+    "kotimaahan", "isänmaahan", "kirjoihin", "ihmisiin", "ystäviin",
+    "taloiden", "kirjoiden", "asioiden", "taloitten", "kirjoitten",
+    "taloon", "kirjaan", "kotiin", "kaupunkiin", "kaupunkien", "huoneen",
+    "perheiden", "mielenkiintoisempi", "kansainvälisempi", "hyödyllisempi",
+    "ymmärtäväisempi", "ihmiset", "opiskelijat", "kirjastot",
+    # constructed forms pinning where a failed condition ends the search, from
+    # both sides -- decision 0090; "ihmisiin" above is the one real word for it
+    "ihmisden", "ihmistten", "ihmiseseen", "kotimaahon", "kissatta",
+    # words that must come back whole, or nearly: too short, or nothing to strip
+    "ja", "on", "ei", "se", "ne", "me", "te", "hän", "minä", "sinä",
+    "kun", "niin", "mutta", "myös", "vain", "kuin",
+    "a", "ab", "abc", "abcd",
+]
+
+
 SNOWBALL_NO_WORDS = [
     # step 1 (a): the definite, plural and genitive families
     "hus", HUSET, "husene", HUSETS, "huses",
@@ -1508,6 +1572,10 @@ def generate_snowball_da() -> dict:
     return _snowball_corpus("danish", "DanishSnowballStemmer", SNOWBALL_DA_WORDS)
 def generate_snowball_no() -> dict:
     return _snowball_corpus("norwegian", "NorwegianSnowballStemmer", SNOWBALL_NO_WORDS)
+
+
+def generate_snowball_fi() -> dict:
+    return _snowball_corpus("finnish", "FinnishSnowballStemmer", SNOWBALL_FI_WORDS)
 
 
 WORDPIECE_VOCAB = [
@@ -8586,6 +8654,7 @@ def main() -> None:
         "snowball_ru.json": generate_snowball_ru,
         "snowball_da.json": generate_snowball_da,
         "snowball_no.json": generate_snowball_no,
+        "snowball_fi.json": generate_snowball_fi,
         "wordpiece.json": generate_wordpiece,
         "batch_encoding.json": generate_batch_encoding,
         "pooling.json": generate_pooling,
