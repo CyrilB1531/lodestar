@@ -49,6 +49,23 @@ internal abstract class SnowballWorkerBase
         R1 = Math.Max(standardR1, minR1);
     }
 
+    /// <param name="word">The word, already carrying any language-specific preprocessing.</param>
+    /// <param name="isVowel">That language's vowel set.</param>
+    /// <param name="r1">The region this language computed for itself.</param>
+    /// <param name="r2">The same, or the word's length where the language has no R2.</param>
+    /// <remarks>
+    /// For a language whose regions are neither of the two standard shapes —
+    /// Hungarian opens R1 after the first consonant or after the first vowel
+    /// depending on which the word starts with, and has no R2 at all.
+    /// </remarks>
+    protected SnowballWorkerBase(string word, Func<char, bool> isVowel, int r1, int r2)
+    {
+        S = word;
+        _isVowel = isVowel;
+        R1 = r1;
+        R2 = r2;
+    }
+
     /// <summary>Whether <paramref name="c"/> is a vowel in this language.</summary>
     protected bool IsVowel(char c) => _isVowel(c);
 
@@ -140,6 +157,15 @@ internal abstract class SnowballWorkerBase
         if (InR2(suffixLen))
         {
             Delete(suffixLen);
+        }
+    }
+
+    /// <summary>Replaces the suffix if it lies in R1.</summary>
+    protected void ReplaceIfInR1(int suffixLen, string replacement)
+    {
+        if (InR1(suffixLen))
+        {
+            Replace(suffixLen, replacement);
         }
     }
 

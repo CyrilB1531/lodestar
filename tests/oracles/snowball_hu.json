@@ -1,0 +1,1068 @@
+{
+ "metadata": {
+  "algorithm": "HungarianSnowballStemmer",
+  "library": "snowballstemmer",
+  "library_version": "3.1.1",
+  "reference_calls": [
+   "snowballstemmer.stemmer('hungarian').stemWord(w)"
+  ],
+  "count": 211
+ },
+ "cases": [
+  {
+   "id": 0,
+   "word": "ház",
+   "stem": "ház"
+  },
+  {
+   "id": 1,
+   "word": "házban",
+   "stem": "ház"
+  },
+  {
+   "id": 2,
+   "word": "házba",
+   "stem": "ház"
+  },
+  {
+   "id": 3,
+   "word": "házból",
+   "stem": "ház"
+  },
+  {
+   "id": 4,
+   "word": "házra",
+   "stem": "ház"
+  },
+  {
+   "id": 5,
+   "word": "házról",
+   "stem": "ház"
+  },
+  {
+   "id": 6,
+   "word": "háztól",
+   "stem": "ház"
+  },
+  {
+   "id": 7,
+   "word": "háznál",
+   "stem": "ház"
+  },
+  {
+   "id": 8,
+   "word": "házhoz",
+   "stem": "ház"
+  },
+  {
+   "id": 9,
+   "word": "házig",
+   "stem": "ház"
+  },
+  {
+   "id": 10,
+   "word": "házért",
+   "stem": "ház"
+  },
+  {
+   "id": 11,
+   "word": "házként",
+   "stem": "ház"
+  },
+  {
+   "id": 12,
+   "word": "házkor",
+   "stem": "ház"
+  },
+  {
+   "id": 13,
+   "word": "házzal",
+   "stem": "ház"
+  },
+  {
+   "id": 14,
+   "word": "házon",
+   "stem": "ház"
+  },
+  {
+   "id": 15,
+   "word": "házat",
+   "stem": "ház"
+  },
+  {
+   "id": 16,
+   "word": "kert",
+   "stem": "ker"
+  },
+  {
+   "id": 17,
+   "word": "kertben",
+   "stem": "kert"
+  },
+  {
+   "id": 18,
+   "word": "kertbe",
+   "stem": "kert"
+  },
+  {
+   "id": 19,
+   "word": "kertből",
+   "stem": "kert"
+  },
+  {
+   "id": 20,
+   "word": "kertre",
+   "stem": "kert"
+  },
+  {
+   "id": 21,
+   "word": "kertről",
+   "stem": "kert"
+  },
+  {
+   "id": 22,
+   "word": "kerttől",
+   "stem": "kert"
+  },
+  {
+   "id": 23,
+   "word": "kertnél",
+   "stem": "kert"
+  },
+  {
+   "id": 24,
+   "word": "kerthez",
+   "stem": "kert"
+  },
+  {
+   "id": 25,
+   "word": "kertig",
+   "stem": "kert"
+  },
+  {
+   "id": 26,
+   "word": "kerten",
+   "stem": "kert"
+  },
+  {
+   "id": 27,
+   "word": "kertet",
+   "stem": "kert"
+  },
+  {
+   "id": 28,
+   "word": "kertnek",
+   "stem": "kert"
+  },
+  {
+   "id": 29,
+   "word": "kertté",
+   "stem": "kert"
+  },
+  {
+   "id": 30,
+   "word": "könyv",
+   "stem": "könyv"
+  },
+  {
+   "id": 31,
+   "word": "könyvben",
+   "stem": "könyv"
+  },
+  {
+   "id": 32,
+   "word": "könyvből",
+   "stem": "könyv"
+  },
+  {
+   "id": 33,
+   "word": "könyvhöz",
+   "stem": "könyv"
+  },
+  {
+   "id": 34,
+   "word": "könyvet",
+   "stem": "könyv"
+  },
+  {
+   "id": 35,
+   "word": "könyvvel",
+   "stem": "könyv"
+  },
+  {
+   "id": 36,
+   "word": "könyvön",
+   "stem": "könyv"
+  },
+  {
+   "id": 37,
+   "word": "város",
+   "stem": "város"
+  },
+  {
+   "id": 38,
+   "word": "városban",
+   "stem": "város"
+  },
+  {
+   "id": 39,
+   "word": "városból",
+   "stem": "város"
+  },
+  {
+   "id": 40,
+   "word": "városra",
+   "stem": "város"
+  },
+  {
+   "id": 41,
+   "word": "városról",
+   "stem": "város"
+  },
+  {
+   "id": 42,
+   "word": "városnak",
+   "stem": "város"
+  },
+  {
+   "id": 43,
+   "word": "várossá",
+   "stem": "város"
+  },
+  {
+   "id": 44,
+   "word": "ember",
+   "stem": "ember"
+  },
+  {
+   "id": 45,
+   "word": "embernek",
+   "stem": "ember"
+  },
+  {
+   "id": 46,
+   "word": "emberrel",
+   "stem": "ember"
+  },
+  {
+   "id": 47,
+   "word": "embert",
+   "stem": "ember"
+  },
+  {
+   "id": 48,
+   "word": "emberként",
+   "stem": "ember"
+  },
+  {
+   "id": 49,
+   "word": "emberül",
+   "stem": "ember"
+  },
+  {
+   "id": 50,
+   "word": "emberré",
+   "stem": "ember"
+  },
+  {
+   "id": 51,
+   "word": "erdőből",
+   "stem": "erdő"
+  },
+  {
+   "id": 52,
+   "word": "vízből",
+   "stem": "víz"
+  },
+  {
+   "id": 53,
+   "word": "tejből",
+   "stem": "tej"
+  },
+  {
+   "id": 54,
+   "word": "időtől",
+   "stem": "idő"
+  },
+  {
+   "id": 55,
+   "word": "mezőről",
+   "stem": "mező"
+  },
+  {
+   "id": 56,
+   "word": "kőről",
+   "stem": "kő"
+  },
+  {
+   "id": 57,
+   "word": "fűtől",
+   "stem": "fű"
+  },
+  {
+   "id": 58,
+   "word": "vassal",
+   "stem": "vas"
+  },
+  {
+   "id": 59,
+   "word": "ésszel",
+   "stem": "ész"
+  },
+  {
+   "id": 60,
+   "word": "hússal",
+   "stem": "hús"
+  },
+  {
+   "id": 61,
+   "word": "kézzel",
+   "stem": "kéz"
+  },
+  {
+   "id": 62,
+   "word": "tejjel",
+   "stem": "tej"
+  },
+  {
+   "id": 63,
+   "word": "lábbal",
+   "stem": "láb"
+  },
+  {
+   "id": 64,
+   "word": "nappal",
+   "stem": "nap"
+  },
+  {
+   "id": 65,
+   "word": "hússá",
+   "stem": "hús"
+  },
+  {
+   "id": 66,
+   "word": "vízzé",
+   "stem": "víz"
+  },
+  {
+   "id": 67,
+   "word": "kézzé",
+   "stem": "kéz"
+  },
+  {
+   "id": 68,
+   "word": "tejjé",
+   "stem": "tej"
+  },
+  {
+   "id": 69,
+   "word": "kővé",
+   "stem": "kő"
+  },
+  {
+   "id": 70,
+   "word": "sóvá",
+   "stem": "só"
+  },
+  {
+   "id": 71,
+   "word": "fává",
+   "stem": "fá"
+  },
+  {
+   "id": 72,
+   "word": "házán",
+   "stem": "ház"
+  },
+  {
+   "id": 73,
+   "word": "kertjén",
+   "stem": "kert"
+  },
+  {
+   "id": 74,
+   "word": "barátján",
+   "stem": "barát"
+  },
+  {
+   "id": 75,
+   "word": "házánként",
+   "stem": "ház"
+  },
+  {
+   "id": 76,
+   "word": "házastul",
+   "stem": "házast"
+  },
+  {
+   "id": 77,
+   "word": "kertestül",
+   "stem": "kertest"
+  },
+  {
+   "id": 78,
+   "word": "családostul",
+   "stem": "családost"
+  },
+  {
+   "id": 79,
+   "word": "mindenestül",
+   "stem": "mindenest"
+  },
+  {
+   "id": 80,
+   "word": "házé",
+   "stem": "ház"
+  },
+  {
+   "id": 81,
+   "word": "házaké",
+   "stem": "ház"
+  },
+  {
+   "id": 82,
+   "word": "házéi",
+   "stem": "ház"
+  },
+  {
+   "id": 83,
+   "word": "kerté",
+   "stem": "kert"
+  },
+  {
+   "id": 84,
+   "word": "kertéi",
+   "stem": "kert"
+  },
+  {
+   "id": 85,
+   "word": "könyvé",
+   "stem": "köny"
+  },
+  {
+   "id": 86,
+   "word": "házam",
+   "stem": "ház"
+  },
+  {
+   "id": 87,
+   "word": "házad",
+   "stem": "ház"
+  },
+  {
+   "id": 88,
+   "word": "háza",
+   "stem": "ház"
+  },
+  {
+   "id": 89,
+   "word": "házunk",
+   "stem": "ház"
+  },
+  {
+   "id": 90,
+   "word": "házatok",
+   "stem": "házat"
+  },
+  {
+   "id": 91,
+   "word": "házuk",
+   "stem": "ház"
+  },
+  {
+   "id": 92,
+   "word": "kertem",
+   "stem": "kert"
+  },
+  {
+   "id": 93,
+   "word": "kerted",
+   "stem": "kert"
+  },
+  {
+   "id": 94,
+   "word": "kertje",
+   "stem": "kert"
+  },
+  {
+   "id": 95,
+   "word": "kertünk",
+   "stem": "kert"
+  },
+  {
+   "id": 96,
+   "word": "kertetek",
+   "stem": "kertet"
+  },
+  {
+   "id": 97,
+   "word": "kertjük",
+   "stem": "kert"
+  },
+  {
+   "id": 98,
+   "word": "házaim",
+   "stem": "ház"
+  },
+  {
+   "id": 99,
+   "word": "házaid",
+   "stem": "ház"
+  },
+  {
+   "id": 100,
+   "word": "házai",
+   "stem": "ház"
+  },
+  {
+   "id": 101,
+   "word": "házaink",
+   "stem": "ház"
+  },
+  {
+   "id": 102,
+   "word": "házaitok",
+   "stem": "ház"
+  },
+  {
+   "id": 103,
+   "word": "házaik",
+   "stem": "ház"
+  },
+  {
+   "id": 104,
+   "word": "kertjeim",
+   "stem": "kert"
+  },
+  {
+   "id": 105,
+   "word": "kertjeid",
+   "stem": "kert"
+  },
+  {
+   "id": 106,
+   "word": "kertjei",
+   "stem": "kert"
+  },
+  {
+   "id": 107,
+   "word": "kertjeink",
+   "stem": "kert"
+  },
+  {
+   "id": 108,
+   "word": "kertjeitek",
+   "stem": "kert"
+  },
+  {
+   "id": 109,
+   "word": "kertjeik",
+   "stem": "kert"
+  },
+  {
+   "id": 110,
+   "word": "házak",
+   "stem": "ház"
+  },
+  {
+   "id": 111,
+   "word": "kertek",
+   "stem": "kert"
+  },
+  {
+   "id": 112,
+   "word": "könyvek",
+   "stem": "könyv"
+  },
+  {
+   "id": 113,
+   "word": "városok",
+   "stem": "város"
+  },
+  {
+   "id": 114,
+   "word": "emberek",
+   "stem": "ember"
+  },
+  {
+   "id": 115,
+   "word": "ablakok",
+   "stem": "ablak"
+  },
+  {
+   "id": 116,
+   "word": "üstök",
+   "stem": "üst"
+  },
+  {
+   "id": 117,
+   "word": "almák",
+   "stem": "alma"
+  },
+  {
+   "id": 118,
+   "word": "körték",
+   "stem": "körte"
+  },
+  {
+   "id": 119,
+   "word": "fák",
+   "stem": "fák"
+  },
+  {
+   "id": 120,
+   "word": "nők",
+   "stem": "nő"
+  },
+  {
+   "id": 121,
+   "word": "kövek",
+   "stem": "köv"
+  },
+  {
+   "id": 122,
+   "word": "erdők",
+   "stem": "erdő"
+  },
+  {
+   "id": 123,
+   "word": "idők",
+   "stem": "idő"
+  },
+  {
+   "id": 124,
+   "word": "tetők",
+   "stem": "tető"
+  },
+  {
+   "id": 125,
+   "word": "erdő",
+   "stem": "erdő"
+  },
+  {
+   "id": 126,
+   "word": "idő",
+   "stem": "idő"
+  },
+  {
+   "id": 127,
+   "word": "mező",
+   "stem": "mező"
+  },
+  {
+   "id": 128,
+   "word": "első",
+   "stem": "első"
+  },
+  {
+   "id": 129,
+   "word": "tető",
+   "stem": "tető"
+  },
+  {
+   "id": 130,
+   "word": "felhő",
+   "stem": "felhő"
+  },
+  {
+   "id": 131,
+   "word": "szőlő",
+   "stem": "szőlő"
+  },
+  {
+   "id": 132,
+   "word": "szőlők",
+   "stem": "szőlő"
+  },
+  {
+   "id": 133,
+   "word": "nő",
+   "stem": "nő"
+  },
+  {
+   "id": 134,
+   "word": "kő",
+   "stem": "kő"
+  },
+  {
+   "id": 135,
+   "word": "tűz",
+   "stem": "tűz"
+  },
+  {
+   "id": 136,
+   "word": "fű",
+   "stem": "fű"
+  },
+  {
+   "id": 137,
+   "word": "gyűrű",
+   "stem": "gyűrű"
+  },
+  {
+   "id": 138,
+   "word": "gyűrűk",
+   "stem": "gyűrű"
+  },
+  {
+   "id": 139,
+   "word": "tükör",
+   "stem": "tükör"
+  },
+  {
+   "id": 140,
+   "word": "tükrök",
+   "stem": "tükr"
+  },
+  {
+   "id": 141,
+   "word": "hő",
+   "stem": "hő"
+  },
+  {
+   "id": 142,
+   "word": "hőben",
+   "stem": "hő"
+  },
+  {
+   "id": 143,
+   "word": "bőr",
+   "stem": "bőr"
+  },
+  {
+   "id": 144,
+   "word": "bőrök",
+   "stem": "bőr"
+  },
+  {
+   "id": 145,
+   "word": "tő",
+   "stem": "tő"
+  },
+  {
+   "id": 146,
+   "word": "tövek",
+   "stem": "töv"
+  },
+  {
+   "id": 147,
+   "word": "sző",
+   "stem": "sző"
+  },
+  {
+   "id": 148,
+   "word": "nőtt",
+   "stem": "nőt"
+  },
+  {
+   "id": 149,
+   "word": "csoport",
+   "stem": "csopor"
+  },
+  {
+   "id": 150,
+   "word": "csoportok",
+   "stem": "csoport"
+  },
+  {
+   "id": 151,
+   "word": "gyerek",
+   "stem": "gyer"
+  },
+  {
+   "id": 152,
+   "word": "gyerekek",
+   "stem": "gyerek"
+  },
+  {
+   "id": 153,
+   "word": "nyelv",
+   "stem": "nyelv"
+  },
+  {
+   "id": 154,
+   "word": "nyelvek",
+   "stem": "nyelv"
+  },
+  {
+   "id": 155,
+   "word": "szoba",
+   "stem": "szo"
+  },
+  {
+   "id": 156,
+   "word": "szobák",
+   "stem": "szoba"
+  },
+  {
+   "id": 157,
+   "word": "zseb",
+   "stem": "zseb"
+  },
+  {
+   "id": 158,
+   "word": "zsebek",
+   "stem": "zseb"
+  },
+  {
+   "id": 159,
+   "word": "tyúk",
+   "stem": "tyú"
+  },
+  {
+   "id": 160,
+   "word": "tyúkok",
+   "stem": "tyúk"
+  },
+  {
+   "id": 161,
+   "word": "lyuk",
+   "stem": "lyu"
+  },
+  {
+   "id": 162,
+   "word": "lyukak",
+   "stem": "lyuk"
+  },
+  {
+   "id": 163,
+   "word": "dzsungel",
+   "stem": "dzsungel"
+  },
+  {
+   "id": 164,
+   "word": "dzsungelek",
+   "stem": "dzsungel"
+  },
+  {
+   "id": 165,
+   "word": "gyertya",
+   "stem": "gyerty"
+  },
+  {
+   "id": 166,
+   "word": "gyertyák",
+   "stem": "gyertya"
+  },
+  {
+   "id": 167,
+   "word": "olvas",
+   "stem": "olvas"
+  },
+  {
+   "id": 168,
+   "word": "olvasok",
+   "stem": "olvas"
+  },
+  {
+   "id": 169,
+   "word": "olvasunk",
+   "stem": "olvas"
+  },
+  {
+   "id": 170,
+   "word": "olvasnak",
+   "stem": "olvas"
+  },
+  {
+   "id": 171,
+   "word": "olvasott",
+   "stem": "olvasot"
+  },
+  {
+   "id": 172,
+   "word": "tanul",
+   "stem": "tan"
+  },
+  {
+   "id": 173,
+   "word": "tanulok",
+   "stem": "tanul"
+  },
+  {
+   "id": 174,
+   "word": "tanulunk",
+   "stem": "tanul"
+  },
+  {
+   "id": 175,
+   "word": "tanulnak",
+   "stem": "tanul"
+  },
+  {
+   "id": 176,
+   "word": "tanult",
+   "stem": "tanul"
+  },
+  {
+   "id": 177,
+   "word": "beszél",
+   "stem": "beszél"
+  },
+  {
+   "id": 178,
+   "word": "beszélek",
+   "stem": "beszél"
+  },
+  {
+   "id": 179,
+   "word": "beszélünk",
+   "stem": "beszél"
+  },
+  {
+   "id": 180,
+   "word": "beszélnek",
+   "stem": "beszél"
+  },
+  {
+   "id": 181,
+   "word": "beszélt",
+   "stem": "beszél"
+  },
+  {
+   "id": 182,
+   "word": "ír",
+   "stem": "ír"
+  },
+  {
+   "id": 183,
+   "word": "írok",
+   "stem": "ír"
+  },
+  {
+   "id": 184,
+   "word": "írunk",
+   "stem": "ír"
+  },
+  {
+   "id": 185,
+   "word": "írnak",
+   "stem": "ír"
+  },
+  {
+   "id": 186,
+   "word": "írt",
+   "stem": "ír"
+  },
+  {
+   "id": 187,
+   "word": "lát",
+   "stem": "lá"
+  },
+  {
+   "id": 188,
+   "word": "látok",
+   "stem": "lát"
+  },
+  {
+   "id": 189,
+   "word": "látunk",
+   "stem": "lát"
+  },
+  {
+   "id": 190,
+   "word": "látják",
+   "stem": "látja"
+  },
+  {
+   "id": 191,
+   "word": "és",
+   "stem": "és"
+  },
+  {
+   "id": 192,
+   "word": "de",
+   "stem": "de"
+  },
+  {
+   "id": 193,
+   "word": "hogy",
+   "stem": "hogy"
+  },
+  {
+   "id": 194,
+   "word": "nem",
+   "stem": "nem"
+  },
+  {
+   "id": 195,
+   "word": "igen",
+   "stem": "ig"
+  },
+  {
+   "id": 196,
+   "word": "ez",
+   "stem": "ez"
+  },
+  {
+   "id": 197,
+   "word": "az",
+   "stem": "az"
+  },
+  {
+   "id": 198,
+   "word": "itt",
+   "stem": "it"
+  },
+  {
+   "id": 199,
+   "word": "ott",
+   "stem": "ot"
+  },
+  {
+   "id": 200,
+   "word": "már",
+   "stem": "már"
+  },
+  {
+   "id": 201,
+   "word": "én",
+   "stem": "én"
+  },
+  {
+   "id": 202,
+   "word": "te",
+   "stem": "te"
+  },
+  {
+   "id": 203,
+   "word": "ő",
+   "stem": "ő"
+  },
+  {
+   "id": 204,
+   "word": "mi",
+   "stem": "mi"
+  },
+  {
+   "id": 205,
+   "word": "ti",
+   "stem": "ti"
+  },
+  {
+   "id": 206,
+   "word": "ők",
+   "stem": "ők"
+  },
+  {
+   "id": 207,
+   "word": "egy",
+   "stem": "egy"
+  },
+  {
+   "id": 208,
+   "word": "két",
+   "stem": "ké"
+  },
+  {
+   "id": 209,
+   "word": "három",
+   "stem": "hár"
+  },
+  {
+   "id": 210,
+   "word": "öt",
+   "stem": "öt"
+  }
+ ]
+}

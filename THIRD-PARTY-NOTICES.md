@@ -247,7 +247,8 @@ generate test data creates no license claim over the output.
 | doublemetaphone | Artistic-2.0 | Reference values for Double Metaphone, which `jellyfish` 1.2.1 does not export |
 | textdistance | MIT | Reference values for set/token similarity metrics |
 | scikit-learn | BSD-3-Clause | Reference values for the vectorizers |
-| nltk | Apache-2.0 | Reference values for Porter and the six Snowball stemmers |
+| nltk | Apache-2.0 | Reference values for Porter and every Snowball stemmer but Hungarian |
+| snowballstemmer | BSD-3-Clause | Reference values for the Hungarian stemmer, which `nltk` 3.10.1 stems incorrectly (decision 0091) |
 | tokenizers | Apache-2.0 | Reference values for WordPiece |
 | sentencepiece | Apache-2.0 | Reference values for the unigram tokenizer |
 | numpy | BSD-3-Clause | Reference values for pooling and kNN |

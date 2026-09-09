@@ -1392,6 +1392,53 @@ SNOWBALL_DA_WORDS = [
 ]
 
 
+# Hungarian is oracled by snowballstemmer rather than nltk -- decision 0090 has
+# the two omissions in nltk's Hungarian that made it unusable as a reference.
+SNOWBALL_HU_WORDS = [
+    # step 2, remove frequent cases: the case endings, both vowel harmonies
+    "ház", "házban", "házba", "házból", "házra", "házról", "háztól", "háznál",
+    "házhoz", "házig", "házért", "házként", "házkor", "házzal", "házon", "házat",
+    "kert", "kertben", "kertbe", "kertből", "kertre", "kertről", "kerttől",
+    "kertnél", "kerthez", "kertig", "kerten", "kertet", "kertnek", "kertté",
+    "könyv", "könyvben", "könyvből", "könyvhöz", "könyvet", "könyvvel", "könyvön",
+    "város", "városban", "városból", "városra", "városról", "városnak", "várossá",
+    "ember", "embernek", "emberrel", "embert", "emberként", "emberül", "emberré",
+    # the front-vowel suffixes nltk omits, which is why this corpus exists
+    "erdőből", "vízből", "tejből", "időtől", "mezőről", "kőről", "fűtől",
+    # step 1 and step 5, the double consonant undoubled
+    "vassal", "ésszel", "hússal", "kézzel", "tejjel", "lábbal", "nappal",
+    "hússá", "vízzé", "kézzé", "tejjé", "kővé", "sóvá", "fává",
+    # step 3, the special cases án / ánként / én
+    "házán", "kertjén", "barátján", "házánként",
+    # step 4, astul / estül / stul / stül / ástul / éstül
+    "házastul", "kertestül", "családostul", "mindenestül",
+    # steps 6 to 9, the possessive and plural families
+    "házé", "házaké", "házéi", "kerté", "kertéi", "könyvé",
+    "házam", "házad", "háza", "házunk", "házatok", "házuk",
+    "kertem", "kerted", "kertje", "kertünk", "kertetek", "kertjük",
+    "házaim", "házaid", "házai", "házaink", "házaitok", "házaik",
+    "kertjeim", "kertjeid", "kertjei", "kertjeink", "kertjeitek", "kertjeik",
+    "házak", "kertek", "könyvek", "városok", "emberek", "ablakok", "üstök",
+    "almák", "körték", "fák", "nők", "kövek", "erdők", "idők", "tetők",
+    # the two vowels nltk does not carry, in ordinary words
+    "erdő", "idő", "mező", "első", "tető", "felhő", "szőlő", "szőlők",
+    "nő", "kő", "tűz", "fű", "gyűrű", "gyűrűk", "tükör", "tükrök",
+    "hő", "hőben", "bőr", "bőrök", "tő", "tövek", "sző", "nőtt",
+    # digraphs, which the alphabet counts as single consonants
+    "csoport", "csoportok", "gyerek", "gyerekek", "nyelv", "nyelvek",
+    "szoba", "szobák", "zseb", "zsebek", "tyúk", "tyúkok", "lyuk", "lyukak",
+    "dzsungel", "dzsungelek", "gyertya", "gyertyák",
+    # verbs and their persons
+    "olvas", "olvasok", "olvasunk", "olvasnak", "olvasott",
+    "tanul", "tanulok", "tanulunk", "tanulnak", "tanult",
+    "beszél", "beszélek", "beszélünk", "beszélnek", "beszélt",
+    "ír", "írok", "írunk", "írnak", "írt", "lát", "látok", "látunk", "látják",
+    # short and residual
+    "és", "de", "hogy", "nem", "igen", "ez", "az", "itt", "ott", "már",
+    "én", "te", "ő", "mi", "ti", "ők", "egy", "két", "három", "öt",
+]
+
+
 def _snowball_corpus(language: str, algorithm: str, words: list[str]) -> dict:
     """Freeze nltk's Snowball output for one language into an oracle payload.
 
@@ -1410,6 +1457,31 @@ def _snowball_corpus(language: str, algorithm: str, words: list[str]) -> dict:
             "library": "nltk",
             "library_version": version("nltk"),
             "reference_calls": [f"nltk.stem.snowball.SnowballStemmer('{language}')"],
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
+def _snowball_reference_corpus(language: str, algorithm: str, words: list[str]) -> dict:
+    """Freeze snowballstemmer's output for one language into an oracle payload.
+
+    The Snowball project's own generated package, used where nltk's transcription
+    of an algorithm is incomplete -- decision 0090 has the measurement that took
+    Hungarian off nltk, and why no other language moved with it.
+    """
+    import snowballstemmer  # noqa: PLC0415
+
+    stemmer = snowballstemmer.stemmer(language)
+    seen = set()
+    unique = [w for w in words if not (w in seen or seen.add(w))]
+    cases = [{"id": i, "word": w, "stem": stemmer.stemWord(w)} for i, w in enumerate(unique)]
+    return {
+        "metadata": {
+            "algorithm": algorithm,
+            "library": "snowballstemmer",
+            "library_version": version("snowballstemmer"),
+            "reference_calls": [f"snowballstemmer.stemmer('{language}').stemWord(w)"],
             "count": len(cases),
         },
         "cases": cases,
@@ -1576,6 +1648,8 @@ def generate_snowball_no() -> dict:
 
 def generate_snowball_fi() -> dict:
     return _snowball_corpus("finnish", "FinnishSnowballStemmer", SNOWBALL_FI_WORDS)
+def generate_snowball_hu() -> dict:
+    return _snowball_reference_corpus("hungarian", "HungarianSnowballStemmer", SNOWBALL_HU_WORDS)
 
 
 WORDPIECE_VOCAB = [
@@ -8655,6 +8729,7 @@ def main() -> None:
         "snowball_da.json": generate_snowball_da,
         "snowball_no.json": generate_snowball_no,
         "snowball_fi.json": generate_snowball_fi,
+        "snowball_hu.json": generate_snowball_hu,
         "wordpiece.json": generate_wordpiece,
         "batch_encoding.json": generate_batch_encoding,
         "pooling.json": generate_pooling,
