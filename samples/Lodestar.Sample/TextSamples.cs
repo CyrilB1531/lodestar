@@ -37,7 +37,7 @@ internal static class TextSamples
         DoubleMetaphoneSample.Run();
         DoubleMetaphoneCodeSample.Run();
         Console.WriteLine();
-        Console.WriteLine("  stemmers — the Porter original, then the fourteen Snowball languages");
+        Console.WriteLine("  stemmers — the Porter original, then the fifteen Snowball languages");
         PorterStemmerSample.Run();
         EnglishSnowballStemmerSample.Run();
         FrenchSnowballStemmerSample.Run();
@@ -50,6 +50,7 @@ internal static class TextSamples
         SwedishSnowballStemmerSample.Run();
         RussianSnowballStemmerSample.Run();
         DanishSnowballStemmerSample.Run();
+        ArabicSnowballStemmerSample.Run();
         FinnishSnowballStemmerSample.Run();
         NorwegianSnowballStemmerSample.Run();
         RomanianSnowballStemmerSample.Run();

@@ -1465,6 +1465,48 @@ def _snowball_corpus(language: str, algorithm: str, words: list[str]) -> dict:
     }
 
 
+# Arabic is oracled by snowballstemmer rather than nltk -- decision 0094: nltk's
+# Arabic carries state between calls, which no thread-safe stemmer can reproduce.
+SNOWBALL_AR_WORDS = [
+    # normalisation, which the algorithm does before any stripping: the
+    # vocalisation marks go, and so does the kasheeda that stretches a word
+    "مُحَمَّد", "محمد", "طَيِّب", "طيب", "كِتَاب", "الْكِتَابُ", "مـــدرسة",
+    # normalisation: the hamza forms and the alef madda fold onto a bare alef
+    "إسلام", "اسلام", "أحمد", "احمد", "آمن", "امن", "أول", "اول",
+    "مسؤول", "مسئول", "شيء", "سماء", "قرأ", "بدأ",
+    # normalisation: alef maksura, teh marbuta, and the Arabic-Indic digits
+    "على", "مصطفى", "ليلى", "مدرسة", "مدينة", "شجرة", "١٢٣", "٤٥٦",
+    # the definite article, alone and behind a preposition or a conjunction
+    "كتاب", "الكتاب", "بالكتاب", "كالكتاب", "للكتاب", "والكتاب", "فالكتاب",
+    "المدرسة", "بالمدرسة", "للمدرسة",
+    "بيت", "البيت", "بالبيت", "والبيت", "المدينة", "بالمدينة",
+    # the conjunction prefixes on their own
+    "وكتاب", "فكتاب", "وبيت", "فبيت", "ومدرسة", "وأحمد",
+    # the possessive suffixes: -y -k -h -ha -hm -hn -km -kn -hma -kma -na
+    "كتابي", "كتابك", "كتابه", "كتابها", "كتابهم", "كتابهن",
+    "كتابكم", "كتابكن", "كتابهما", "كتابكما", "كتابنا",
+    "بيتي", "بيتك", "بيته", "بيتها", "بيتهم", "بيتنا",
+    "مدرستي", "مدرستك", "مدرسته", "مدرستها", "مدرستهم", "مدرستنا",
+    # the sound plurals, and the feminine plural -at
+    "كتب", "الكتب", "كاتبون", "كاتبين", "معلمون", "معلمين",
+    "معلمات", "مدرسات", "طالبات", "مكتبات", "سيارات", "لغات",
+    # the nisba adjective, which the last noun step removes
+    "عربي", "عربية", "مصري", "مصرية", "علمي", "علمية", "وطني", "وطنية",
+    # the verb prefixes: the imperfect markers and the future s-
+    "يكتب", "تكتب", "نكتب", "أكتب", "سيكتب", "ستكتب", "سنكتب", "سأكتب",
+    "يستخدم", "نستخدم", "تستخدم", "استخدم",
+    # the verb suffixes: person, number and the object pronouns
+    "كتبت", "كتبنا", "كتبوا", "كتبتم", "كتبتن", "كتبا", "كتبتا",
+    "يكتبون", "يكتبان", "تكتبين", "تكتبون", "يكتبن",
+    "كتبه", "كتبها", "كتبهم", "كتبني", "كتبك", "كتبكم",
+    # words the length guards are supposed to protect: too short to strip
+    "من", "في", "إلى", "عن", "هو", "هي", "هم", "لا", "ما",
+    "يد", "دم", "أب", "أم", "ابن", "بنت", "علم", "قلم", "باب",
+    # text the algorithm has no rule for, which must come back unchanged
+    "hello", "café", "123", "abc",
+]
+
+
 def _snowball_reference_corpus(language: str, algorithm: str, words: list[str]) -> dict:
     """Freeze snowballstemmer's output for one language into an oracle payload.
 
@@ -1730,6 +1772,10 @@ def generate_snowball_hu() -> dict:
     return _snowball_reference_corpus("hungarian", "HungarianSnowballStemmer", SNOWBALL_HU_WORDS)
 def generate_snowball_ro() -> dict:
     return _snowball_corpus("romanian", "RomanianSnowballStemmer", SNOWBALL_RO_WORDS)
+
+
+def generate_snowball_ar() -> dict:
+    return _snowball_reference_corpus("arabic", "ArabicSnowballStemmer", SNOWBALL_AR_WORDS)
 
 
 WORDPIECE_VOCAB = [
@@ -8897,6 +8943,7 @@ def main() -> None:
         "snowball_fi.json": generate_snowball_fi,
         "snowball_hu.json": generate_snowball_hu,
         "snowball_ro.json": generate_snowball_ro,
+        "snowball_ar.json": generate_snowball_ar,
         "wordpiece.json": generate_wordpiece,
         "batch_encoding.json": generate_batch_encoding,
         "pooling.json": generate_pooling,

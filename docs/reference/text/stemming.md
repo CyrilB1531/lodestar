@@ -4,7 +4,7 @@
 three terms cannot match a query that uses the fourth. A stemmer cuts each word down to a shared
 key so they collide on purpose.
 
-`Lodestar.Text.Stemming` holds fifteen stemmers, one static class each, all with the same single
+`Lodestar.Text.Stemming` holds sixteen stemmers, one static class each, all with the same single
 method: a `string` in, a `string` out.
 
 ## Which stemmer?
@@ -12,14 +12,14 @@ method: a `string` in, a `string` out.
 ```mermaid
 flowchart TD
     A["What language is the text?"] --> B["English"]
-    A --> C["Danish, Dutch, Finnish, French, German,<br/>Hungarian, Italian, Norwegian, Portuguese,<br/>Romanian, Russian, Spanish, Swedish"]
+    A --> C["Arabic, Danish, Dutch, Finnish, French,<br/>German, Hungarian, Italian, Norwegian,<br/>Portuguese, Romanian, Russian, Spanish, Swedish"]
     B --> D{"Matching an existing<br/>Porter index?"}
     D -->|"no — this is a new index"| E["EnglishSnowballStemmer"]
     D -->|"yes"| F["PorterStemmer"]
     C --> G["the Snowball stemmer<br/>for that language"]
 ```
 
-Language picks the stemmer, and for fourteen of the fifteen that is the whole decision. A stemmer is
+Language picks the stemmer, and for fifteen of the sixteen that is the whole decision. A stemmer is
 built from one language's suffix rules and has nothing sensible to say about another's:
 [`GermanSnowballStemmer.Stem`](stemming/germansnowballstemmer-stem.md) applied to French returns
 *something*, and that something is noise.
@@ -91,6 +91,7 @@ keys never meet.
 
 | Type | What it is |
 | --- | --- |
+| [`ArabicSnowballStemmer`](stemming/arabicsnowballstemmer.md) | Arabic Snowball — the one right-to-left script, and the one with no R1 or R2. |
 | [`DanishSnowballStemmer`](stemming/danishsnowballstemmer.md) | Danish Snowball. |
 | [`DutchSnowballStemmer`](stemming/dutchsnowballstemmer.md) | Dutch Snowball. |
 | [`EnglishSnowballStemmer`](stemming/englishsnowballstemmer.md) | English Porter2 — the one to use for new English text. |
