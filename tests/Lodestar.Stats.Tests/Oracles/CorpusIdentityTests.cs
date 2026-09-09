@@ -26,6 +26,7 @@ public sealed class CorpusIdentityTests
         { "stats_kruskal.json", "kruskal" },
         { "stats_shapiro.json", "shapiro" },
         { "stats_multiple_comparisons.json", "multiple_comparisons" },
+        { "stats_distributions.json", "distributions" },
     };
 
     [Theory]

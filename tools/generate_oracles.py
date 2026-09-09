@@ -95,6 +95,7 @@ COLUMNS = "columns"
 FEATURE_COUNT = "feature_count"
 SAMPLES = "samples"
 MAX_ITER = "max_iter"
+T_PPF = "t.ppf"
 WITH_MEAN = "with_mean"
 WITH_STD = "with_std"
 DENSE = "dense"
@@ -4278,6 +4279,66 @@ def generate_cluster_kmeans() -> dict:
             "library": "scikit-learn",
             "library_version": version("scikit-learn"),
             "reference_calls": ['sklearn.cluster.KMeans(init=..., n_init=1, algorithm="lloyd")'],
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
+def _distribution_fixtures() -> list[dict]:
+    """Points chosen for the range a general-purpose caller reaches, not the one the tests do."""
+    return [
+        {"name": "the body, where every hypothesis test here already lives",
+         "call": "t.sf", "args": {"x": 2.0, "df": 10.0}},
+        {"name": "the median of a Cauchy", "call": "t.sf", "args": {"x": 0.0, "df": 1.0}},
+        {"name": "the lower half, by symmetry", "call": "t.sf", "args": {"x": -1.5, "df": 7.0}},
+        # The far tail: the closed forms the internal tests use do not reach it, and no
+        # corpus of p-values near 0.05 would ever have exercised it.
+        {"name": "the far tail at 1e-24", "call": "t.sf", "args": {"x": 30.0, "df": 30.0}},
+        {"name": "a heavy tail, three degrees of freedom",
+         "call": "t.sf", "args": {"x": 200.0, "df": 3.0}},
+        {"name": "a million degrees of freedom, all but normal",
+         "call": "t.sf", "args": {"x": 8.0, "df": 1000000.0}},
+        {"name": "the multiplier a 95% interval asks for",
+         "call": T_PPF, "args": {"x": 0.975, "df": 12.0}},
+        {"name": "the multiplier a 99% interval asks for",
+         "call": T_PPF, "args": {"x": 0.995, "df": 5.0}},
+        {"name": "the median", "call": T_PPF, "args": {"x": 0.5, "df": 3.0}},
+        {"name": "a quantile far into the lower tail",
+         "call": T_PPF, "args": {"x": 1e-08, "df": 4.0}},
+        {"name": "a regression's overall test",
+         "call": "f.sf", "args": {"x": 4.0, "dfn": 2.0, "dfd": 20.0}},
+        {"name": "one and one degree of freedom",
+         "call": "f.sf", "args": {"x": 1.0, "dfn": 1.0, "dfd": 1.0}},
+        {"name": "far into the upper tail",
+         "call": "f.sf", "args": {"x": 500.0, "dfn": 3.0, "dfd": 100.0}},
+        {"name": "near zero, where the tail is all but one",
+         "call": "f.sf", "args": {"x": 0.001, "dfn": 5.0, "dfd": 5.0}},
+    ]
+
+
+def generate_stats_distributions() -> dict:
+    """The three tails Lodestar.Stats publishes, at the range a caller reaches (#566)."""
+    from scipy import stats as sps
+
+    cases = []
+    for fixture in _distribution_fixtures():
+        args = fixture["args"]
+        call = fixture["call"]
+        if call == "t.sf":
+            value = float(sps.t.sf(args["x"], args["df"]))
+        elif call == T_PPF:
+            value = float(sps.t.ppf(args["x"], args["df"]))
+        else:
+            value = float(sps.f.sf(args["x"], args["dfn"], args["dfd"]))
+        cases.append({
+            "name": fixture["name"], "call": call, "args": args, "value": value})
+
+    return {
+        "metadata": {
+            "library": "scipy",
+            "version": version("scipy"),
+            "family": "distributions",
             "count": len(cases),
         },
         "cases": cases,
@@ -8964,6 +9025,7 @@ def main() -> None:
         "clustering_agreement.json": generate_clustering_agreement,
         "silhouette.json": generate_silhouette,
         "internal_validity.json": generate_internal_validity,
+        "stats_distributions.json": generate_stats_distributions,
         "cluster_kmeans.json": generate_cluster_kmeans,
         "preprocessing_standard_scaler.json": generate_preprocessing_standard_scaler,
         "ranking.json": generate_ranking,

@@ -20,7 +20,7 @@
     the same identity.
   -->
   <PropertyGroup>
-    <LodestarDecompositionVersion>0.1.1</LodestarDecompositionVersion>
+    <LodestarDecompositionVersion>0.2.0</LodestarDecompositionVersion>
   </PropertyGroup>
 
 </Project>

@@ -379,6 +379,26 @@ compressed sparse row form, as `CsrMatrix` does, so what changes is whose type h
 | `algorithm="elkan"`, `sample_weight=` | scikit-learn | — (no counterpart) | Elkan's variant reaches the same partition by fewer distance computations; it is an optimisation, not a different answer, and out of scope for 0.1.0. |
 | `MiniBatchKMeans`, `DBSCAN`, `AgglomerativeClustering`, `SpectralClustering`, `GaussianMixture` | scikit-learn | — (no counterpart yet) | The rest of what [#442](https://github.com/CyrilB1531/lodestar/issues/442) names for this domain. Spectral clustering additionally needs an eigendecomposition this repository does not have. |
 
+## Lodestar.Stats — distribution tails
+
+Published for a caller holding its own statistic, rather than handing this package its groups.
+[Decision 0095](decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)
+records why these three and no more.
+
+| Python | Library | C# | Differences |
+| --- | --- | --- | --- |
+| `scipy.stats.t.sf(t, df)` | scipy | [`Distributions.StudentSf(t, df)`](reference/stats/tails/distributions-studentsf.md) | Identical, into the far tail: the corpus reaches `3.1e-24` and is compared relatively. `df` of NaN is refused rather than propagated. |
+| `scipy.stats.t.ppf(p, df)` | scipy | [`Distributions.StudentQuantile(p, df)`](reference/stats/tails/distributions-studentquantile.md) | Identical. The endpoints are refused rather than answered with the two infinities, which scipy returns. |
+| `scipy.stats.f.sf(f, dfn, dfd)` | scipy | [`Distributions.FisherSf(f, dfn, dfd)`](reference/stats/tails/distributions-fishersf.md) | Identical. |
+| `scipy.stats.t.isf(p, df)`, `t.cdf`, `f.cdf`, `norm.*`, `chi2.*` | scipy | — (no counterpart) | Only what one caller needed is published. `isf(p, df)` is `-StudentQuantile(p, df)` by symmetry; the rest stay internal until something asks. |
+
+## Lodestar.Decomposition — QR
+
+| Python | Library | C# | Differences |
+| --- | --- | --- | --- |
+| `numpy.linalg.qr(A, mode="reduced")` | numpy | [`QrDecomposition.Householder(matrix, rowCount, columnCount)`](reference/decomposition/factorization/qrdecomposition-householder.md) | Same thin shape. **The signs are not normalised on either side**: a QR is unique only up to the sign of each column, so compare `Q · R`, or column by column up to sign, rather than entry for entry. A wide matrix is refused here where numpy returns a factorization of a different shape. |
+| `scipy.linalg.qr`, `numpy.linalg.qr(mode="complete")`, pivoting | numpy, scipy | — (no counterpart) | The full factorization, column pivoting and the `raw` mode are out of scope: the thin one is what a least-squares solve wants. |
+
 ## Conventions
 
 - **Comparison unit.** Unless stated otherwise, string distances compare `char`

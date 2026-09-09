@@ -169,7 +169,10 @@
         "docs/reference/stats/*/*.md"
       ],
       "covered": {
-        "Lodestar.Stats": "docs/reference/stats/tests"
+        "Lodestar.Stats": [
+          "docs/reference/stats/tests",
+          "docs/reference/stats/tails"
+        ]
       }
     }
   }

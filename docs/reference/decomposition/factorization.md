@@ -53,6 +53,19 @@ initialisation decides which one.
 | [`NmfBetaLoss`](factorization/nmfbetaloss.md) | What the factorization minimises — a Gaussian noise model or a Poisson one. |
 | [`NmfInitialization`](factorization/nmfinitialization.md) | Where the iteration starts — the two NNDSVD variants this package ships. |
 
+## The kernel underneath, now published
+
+The randomized SVD needs an orthonormal basis for a projected block, and this package writes its
+own QR rather than take Math.NET — 5.0.0 dates from April 2022 and nothing stable has followed
+([`decisions/0059`](../../decisions/0059-phase-0-verifications-two-confirmed-voids-do-not-survive-nuget.md)).
+That kernel is published now, because a second package needs it rather than a second copy of it.
+The LU and the one-sided Jacobi SVD beside it stay internal: nothing has asked for them, and an
+unpublished API can still be published later where the reverse is not true.
+
+| Type | What it is |
+| --- | --- |
+| [`QrDecomposition`](factorization/qrdecomposition.md) | A thin QR by Householder reflections: the orthonormal factor and the triangular one. |
+
 The whole procedure is one call, [`Nmf.Fit`](factorization/nmf-fit.md), in either of two forms:
 hand it a rank and it computes the initialisation, or hand it `W₀` and `H₀` and it runs the
 updates on exactly those.
