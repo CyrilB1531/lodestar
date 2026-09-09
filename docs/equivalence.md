@@ -336,6 +336,19 @@ and the C# column names the interface .NET's own AI stack asks for. The vectors 
 | — (no counterpart) | — | [`OnnxEmbeddingGenerator.GetService(serviceType)`](reference/extensions-ai/generation/onnxembeddinggenerator-getservice.md) | Service resolution is how `Microsoft.Extensions.AI` lets a consumer reach past the abstraction; LangChain has no equivalent, since a Python caller holds the concrete object. It answers for `EmbeddingGeneratorMetadata`, for the underlying `OnnxTextEmbedder` — which is the only way to reach the single-sequence entry point through the interface — and for the generator itself. |
 | `del embeddings` | — | [`OnnxEmbeddingGenerator.Dispose()`](reference/extensions-ai/generation/onnxembeddinggenerator-dispose.md) | The generator **owns** the embedder it was given, so disposing it closes the native session. Python's reference counting makes the question invisible; here it is a promise the page states, because a consumer holding the interface cannot see what is underneath. |
 
+## Lodestar.Extensions.MathNet — Math.NET matrix interoperability
+
+No Python call maps here either: the rows below name the **layout change** a SciPy user makes
+without thinking about it, and its C# counterpart. `scipy.sparse` and Math.NET both store a matrix in
+compressed sparse row form, as `CsrMatrix` does, so what changes is whose type holds it.
+
+| Python | Library | C# | Differences |
+| --- | --- | --- | --- |
+| `scipy.sparse.csr_matrix((values, indices, indptr), shape=(m, n))` | scipy | [`MathNetInterop.ToSparseMatrix(matrix)`](reference/extensions-mathnet/conversion/mathnetinterop-tosparsematrix.md) | Both take the three compressed-row arrays as they are. scipy leaves an unsorted row alone until something asks — `has_sorted_indices` is a flag a caller checks and `sort_indices()` is a call a caller makes. This **always** sorts, and adds duplicate columns together, because Math.NET reaches a cell by searching the row and would otherwise answer zero for a value it holds. The cost is one comparison per stored value on a matrix already in order, which is everything the vectorizers produce ([decision 0089](decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)). |
+| `sparse.toarray()` then rebuilding | scipy | [`MathNetInterop.ToCsrMatrix(matrix)`](reference/extensions-mathnet/conversion/mathnetinterop-tocsrmatrix.md) | The densify-and-rebuild round trip has no counterpart here and does not need one: a Math.NET matrix already in compressed-row form hands over its three arrays directly, and only a dense or compressed-column one is walked cell by cell. |
+| `scipy.sparse.csc_matrix`, `coo_matrix`, `dok_matrix` | scipy | — (no counterpart) | `CsrMatrix` is the one layout this repository has, so there is nothing to convert *to*. A Math.NET matrix in another storage still converts *from*, through the walking path. |
+| `numpy.asarray(sparse.todense())` | numpy | [`CsrMatrix.ToDense()`](reference/abstractions/sparse/csrmatrix-todense.md) (`Lodestar.Abstractions`) | Already there, and Math.NET builds a `DenseMatrix` from a `double[,]` unaided — which is why this package offers no dense pair. |
+
 ## Conventions
 
 - **Comparison unit.** Unless stated otherwise, string distances compare `char`

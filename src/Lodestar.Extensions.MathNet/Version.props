@@ -1,0 +1,16 @@
+<Project>
+
+  <!--
+    Lodestar.Extensions.MathNet owns its version here, independently of the other
+    packages (see docs/decisions/0012-per-package-versioning.md).
+
+    0.1.0 is this package's first release. It carries one edge, to
+    Lodestar.Abstractions, because CsrMatrix is the type it converts — so its
+    floor moves when that package publishes API this one needs, which so far it
+    has not.
+  -->
+  <PropertyGroup>
+    <LodestarExtensionsMathNetVersion>0.1.0</LodestarExtensionsMathNetVersion>
+  </PropertyGroup>
+
+</Project>

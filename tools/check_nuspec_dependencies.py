@@ -38,10 +38,12 @@ edge with the wrong floor is a different edge.
 
 Each external dependency appears exactly once: ``Microsoft.ML.OnnxRuntime`` under
 ``Lodestar.Onnx``, ``Microsoft.Extensions.AI.Abstractions`` under
-``Lodestar.Extensions.AI``. That is the tier rule of #533, restated by decision
+``Lodestar.Extensions.AI``, ``MathNet.Numerics`` under
+``Lodestar.Extensions.MathNet``. That is the tier rule of #533, restated by decision
 0076 -- a core package carries no external dependency, and an external dependency
-earns its own satellite named for it -- in assertable form. This file is what
-fails when one reappears where it should not.
+earns its own satellite named for it -- in assertable form, and decision 0087 adds
+that an interop satellite may take a dependency a core package refused. This file is
+what fails when one reappears where it should not.
 """
 
 from __future__ import annotations
@@ -64,8 +66,10 @@ DECOMPOSITION = "Lodestar.Decomposition"
 STATS = "Lodestar.Stats"
 ONNX = "Lodestar.Onnx"
 EXTENSIONS_AI = "Lodestar.Extensions.AI"
+EXTENSIONS_MATHNET = "Lodestar.Extensions.MathNet"
 ONNX_RUNTIME = "Microsoft.ML.OnnxRuntime"
 MS_EXTENSIONS_AI = "Microsoft.Extensions.AI.Abstractions"
+MATHNET = "MathNet.Numerics"
 STJ = "System.Text.Json"
 
 # Span/Memory/Vector<T> are in-box on net10.0, packaged on netstandard2.0 --
@@ -130,6 +134,12 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
             MS_EXTENSIONS_AI: "10.9.0",
             **POLYFILLS,
         },
+    },
+    EXTENSIONS_MATHNET: {
+        # The third satellite. One Lodestar edge, to the package that owns CsrMatrix,
+        # because converting that type is the whole of this package's surface.
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0"},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0", **POLYFILLS},
     },
     METRICS: {
         # Nothing on net10.0, only the polyfills on netstandard2.0: metrics

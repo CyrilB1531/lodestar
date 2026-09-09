@@ -10,6 +10,7 @@
     <Project Path="src/Lodestar.Decomposition/Lodestar.Decomposition.csproj" />
     <Project Path="src/Lodestar.Embeddings/Lodestar.Embeddings.csproj" />
     <Project Path="src/Lodestar.Extensions.AI/Lodestar.Extensions.AI.csproj" />
+    <Project Path="src/Lodestar.Extensions.MathNet/Lodestar.Extensions.MathNet.csproj" />
     <Project Path="src/Lodestar.Fuzzy/Lodestar.Fuzzy.csproj" />
     <Project Path="src/Lodestar.Metrics/Lodestar.Metrics.csproj" />
     <Project Path="src/Lodestar.Onnx/Lodestar.Onnx.csproj" />
@@ -27,6 +28,8 @@
     <Project Path="tests/Lodestar.Embeddings.Tests/Lodestar.Embeddings.Tests.csproj" />
     <Project Path="tests/Lodestar.Extensions.AI.NetStandard.Tests/Lodestar.Extensions.AI.NetStandard.Tests.csproj" />
     <Project Path="tests/Lodestar.Extensions.AI.Tests/Lodestar.Extensions.AI.Tests.csproj" />
+    <Project Path="tests/Lodestar.Extensions.MathNet.NetStandard.Tests/Lodestar.Extensions.MathNet.NetStandard.Tests.csproj" />
+    <Project Path="tests/Lodestar.Extensions.MathNet.Tests/Lodestar.Extensions.MathNet.Tests.csproj" />
     <Project Path="tests/Lodestar.Fuzzy.NetStandard.Tests/Lodestar.Fuzzy.NetStandard.Tests.csproj" />
     <Project Path="tests/Lodestar.Metrics.NetStandard.Tests/Lodestar.Metrics.NetStandard.Tests.csproj" />
     <Project Path="tests/Lodestar.Metrics.Tests/Lodestar.Metrics.Tests.csproj" />
