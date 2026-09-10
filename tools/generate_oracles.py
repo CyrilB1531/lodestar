@@ -97,6 +97,7 @@ SAMPLES = "samples"
 MAX_ITER = "max_iter"
 T_PPF = "t.ppf"
 CHI2_SF = "chi2.sf"
+NORM_PPF = "norm.ppf"
 FAMILY = "family"
 # The OLS corpus repeats its own field names once per fixture and once per emitted case.
 CONFIDENCE_LEVEL = "confidenceLevel"
@@ -4330,11 +4331,19 @@ def _distribution_fixtures() -> list[dict]:
         {"name": "the far tail at 1e-23", "call": CHI2_SF, "args": {"x": 120.0, "df": 3.0}},
         {"name": "below the support, where the tail is one", "call": CHI2_SF, "args": {"x": 0.0, "df": 2.0}},
         {"name": "a hundred degrees of freedom, near its mean", "call": CHI2_SF, "args": {"x": 100.0, "df": 100.0}},
+        # The normal quantile (#569): a Student one at a huge degrees of freedom reaches
+        # it only to about 9e-9, which is why decision 0098 publishes its own member.
+        {"name": "the multiplier a 95% large-sample interval asks for", "call": NORM_PPF, "args": {"x": 0.975}},
+        {"name": "the multiplier a 99% one asks for", "call": NORM_PPF, "args": {"x": 0.995}},
+        {"name": "the median, which is exactly zero", "call": NORM_PPF, "args": {"x": 0.5}},
+        {"name": "the lower half, by symmetry", "call": NORM_PPF, "args": {"x": 0.025}},
+        {"name": "far into the lower tail", "call": NORM_PPF, "args": {"x": 1e-08}},
+        {"name": "far into the upper tail", "call": NORM_PPF, "args": {"x": 0.99999999}},
     ]
 
 
 def generate_stats_distributions() -> dict:
-    """The four tails Lodestar.Stats publishes, at the range a caller reaches (#566, #569)."""
+    """The tails and quantiles Lodestar.Stats publishes, at the range a caller reaches."""
     from scipy import stats as sps
 
     cases = []
@@ -4347,6 +4356,8 @@ def generate_stats_distributions() -> dict:
             value = float(sps.t.ppf(args["x"], args["df"]))
         elif call == CHI2_SF:
             value = float(sps.chi2.sf(args["x"], args["df"]))
+        elif call == NORM_PPF:
+            value = float(sps.norm.ppf(args["x"]))
         else:
             value = float(sps.f.sf(args["x"], args["dfn"], args["dfd"]))
         cases.append({

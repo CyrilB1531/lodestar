@@ -3,8 +3,8 @@ using Lodestar.Stats.Internal;
 namespace Lodestar.Stats;
 
 /// <summary>
-/// The four tail probabilities a caller holding its own statistic needs, and the one
-/// quantile that turns a confidence level into a bound.
+/// The four tail probabilities a caller holding its own statistic needs, and the two
+/// quantiles that turn a confidence level into a bound.
 /// </summary>
 /// <remarks>
 /// Published narrowly under decision 0095, which exercises the condition decision 0081 wrote
@@ -42,12 +42,7 @@ public static class Distributions
     /// </remarks>
     public static double StudentQuantile(double p, double df)
     {
-        if (double.IsNaN(p) || p <= 0.0 || p >= 1.0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(p), p, "A probability lies strictly inside (0, 1).");
-        }
-
+        RequireProbability(p, nameof(p));
         RequirePositive(df, nameof(df));
         return -Beta.StudentQuantile(p, df);
     }
@@ -82,6 +77,37 @@ public static class Distributions
         // Below the support the tail is the whole mass. The regularized Q underneath
         // validates its own argument and would throw on a negative rather than say one.
         return x <= 0.0 ? 1.0 : Gamma.RegularizedQ(df / 2.0, x / 2.0);
+    }
+
+    /// <summary>The value a standard normal falls below with probability <paramref name="p"/>.</summary>
+    /// <param name="p">A probability strictly inside <c>(0, 1)</c>.</param>
+    /// <returns><c>scipy.stats.norm.ppf(p)</c>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="p"/> is not strictly inside <c>(0, 1)</c>.</exception>
+    /// <remarks>
+    /// The multiplier a large-sample confidence interval takes, where a Student one would
+    /// need degrees of freedom it does not have: <c>NormalQuantile(0.975)</c> is 1.959963…
+    /// <strong>This is the quantile, not the inverse survival function</strong> — the
+    /// internal helper solves <c>P(Z &gt; z) = p</c> and carries the opposite sign, so the
+    /// negation below is the distribution's symmetry rather than a correction, exactly as
+    /// <see cref="StudentQuantile"/> does. Published under decision 0098.
+    /// </remarks>
+    public static double NormalQuantile(double p)
+    {
+        RequireProbability(p, nameof(p));
+        // The + 0.0 is not redundant: the internal helper answers exactly zero at the
+        // median, and negating it would hand a caller -0 from a published method.
+        return -Normal.Quantile(p) + 0.0;
+    }
+
+    /// <summary>A probability is strictly inside the unit interval; the endpoints are refused.</summary>
+    /// <remarks>Shared by the two quantiles so the two cannot drift apart on what they accept.</remarks>
+    private static void RequireProbability(double value, string name)
+    {
+        if (double.IsNaN(value) || value <= 0.0 || value >= 1.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                name, value, "A probability lies strictly inside (0, 1).");
+        }
     }
 
     /// <summary>Degrees of freedom are counts of freedom, so zero and below are not values.</summary>

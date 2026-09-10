@@ -72,6 +72,7 @@ public sealed class DistributionsEdgeTests
     public void A_probability_outside_the_open_unit_interval_is_refused(double p)
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.StudentQuantile(p, 5.0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.NormalQuantile(p));
     }
 
     /// <summary>
@@ -96,5 +97,33 @@ public sealed class DistributionsEdgeTests
         double symmetric = Distributions.StudentSf(-2.0, 10.0);
 
         Assert.Equal(1.0, oneSided + symmetric, 1e-12);
+    }
+
+    /// <summary>
+    /// The median is exactly zero, and not negative zero: the internal helper answers
+    /// zero there and a bare negation would publish -0 from a public method.
+    /// </summary>
+    [Fact]
+    public void The_normal_quantile_of_a_half_is_positive_zero()
+    {
+        double median = Distributions.NormalQuantile(0.5);
+
+        Assert.Equal(0.0, median);
+        Assert.False(double.IsNegative(median));
+    }
+
+    /// <summary>
+    /// The Student quantile approaches this one as its degrees of freedom grow, but it
+    /// stops closing at about 9e-9 -- the measurement decision 0098 records, and the
+    /// reason the normal one is published rather than approximated by a large df.
+    /// </summary>
+    [Fact]
+    public void The_student_quantile_does_not_reach_the_normal_one()
+    {
+        double normal = Distributions.NormalQuantile(0.975);
+        double student = Distributions.StudentQuantile(0.975, 1.0e8);
+
+        Assert.NotEqual(normal, student, 1e-12);
+        Assert.Equal(normal, student, 1e-7);
     }
 }
