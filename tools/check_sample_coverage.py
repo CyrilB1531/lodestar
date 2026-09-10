@@ -33,7 +33,7 @@ SAMPLES = ROOT / "samples" / "Lodestar.Sample"
 # name here, and this list emptying of its "waiting" half is what closes #280.
 CONVERTED = ["Lodestar.Text", "Lodestar.Conformal", "Lodestar.Abstractions",
              "Lodestar.Decomposition", "Lodestar.Stats", "Lodestar.Preprocessing",
-             "Lodestar.Cluster"]
+             "Lodestar.Cluster", "Lodestar.Stats.Regression"]
 WAITING = ["Lodestar.Fuzzy", "Lodestar.Embeddings", "Lodestar.Metrics"]
 
 DECLARATION = re.compile(

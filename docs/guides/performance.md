@@ -2605,6 +2605,46 @@ result list comes to dominate both sides' allocation. [`docs/guides/dictionary-l
 the reader-facing version of this table and its conclusion: the tree is worth using at `k = 1`,
 and a length-filtered scan is the better answer past it.
 
+## Lodestar.Stats.Regression against Accord.Statistics (issue #566)
+
+Full method, what the pair does and does not compare, and why `MathNet.Numerics` is not a candidate
+here:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#19-lodestarstatsregression-against-accordstatistics-issue-566).
+This section carries only the numbers, per this repository's own rule for where a fact belongs
+(`CLAUDE.md`'s "Where a fact belongs" table).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.112, .NET 10.0.12 runtime — a
+developer workstation shared with other checkouts of this repository, so **this row is indicative,
+not authoritative**. Window: one `BenchmarkDotNet` run, `ShortRun` job (`IterationCount=3`,
+`WarmupCount=3`, `LaunchCount=1`), 2026-09-10; run time 28.65 s across the 4 benchmarks
+(2 pairs × 2 sample sizes). Four regressors throughout, on a seeded design.
+
+| Method | SampleSize | Mean | Ratio | Allocated |
+| --- | ---: | ---: | ---: | ---: |
+| `Lodestar_Ols` | 100 | 49.75 μs | 1.00 | 68.84 KB |
+| `Accord_Ols` | 100 | 136.55 μs | 2.74 | 43 KB |
+| `Lodestar_Ols` | 10,000 | 3,700.63 μs | 1.00 | 6,490.19 KB |
+| `Accord_Ols` | 10,000 | 2,779.11 μs | 0.75 | 3,523.47 KB |
+
+**The two rows are not doing the same work, and that is the finding rather than a caveat.**
+`Accord.Statistics` exports no variance inflation factor anywhere in its 4 796 members — decision
+0096's reading established that — so `MultipleLinearRegressionAnalysis.Learn` performs one solve.
+[`OrdinaryLeastSquares.Fit`](../reference/stats-regression/ols/ordinaryleastsquares-fit.md)
+performs **five** at four regressors: the model, plus one auxiliary regression per regressor for
+the VIFs, each with its own Householder QR over the full design.
+
+Read that way the numbers are consistent. At 100 rows the fixed per-call overhead dominates and
+this package is 2.7× faster despite doing five times the factorisation. At 10,000 rows the
+`O(mn²)` work dominates instead, and doing it five times costs 1.33× Accord's single solve. The
+allocation follows the same shape — 1.8× Accord's at both sizes — because each auxiliary
+regression materialises a standardised copy of the design and its own `Q`.
+
+**So the honest summary is a shape rather than a winner**: below roughly a thousand rows this
+package is faster and returns strictly more; above it, the extra diagnostic is what you are paying
+for. A caller who does not want VIFs has no way to say so today, and that is the obvious next
+measurement rather than a defect — the table is one call by design.
+
 ## Lodestar.Stats against Accord.Statistics (issue #442)
 
 Full method, correctness cross-check, and how `Accord`'s 2017-era API names were resolved against

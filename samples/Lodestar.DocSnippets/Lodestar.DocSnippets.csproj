@@ -54,6 +54,7 @@
   <Import Project="../../src/Lodestar.Extensions.AI/Version.props" />
   <Import Project="../../src/Lodestar.Extensions.MathNet/Version.props" />
   <Import Project="../../src/Lodestar.Stats/Version.props" />
+  <Import Project="../../src/Lodestar.Stats.Regression/Version.props" />
 
   <ItemGroup>
     <PackageReference Include="Lodestar.Text" Version="$(LodestarTextVersion)" />
@@ -69,6 +70,7 @@
     <PackageReference Include="Lodestar.Extensions.AI" Version="$(LodestarExtensionsAIVersion)" />
     <PackageReference Include="Lodestar.Extensions.MathNet" Version="$(LodestarExtensionsMathNetVersion)" />
     <PackageReference Include="Lodestar.Stats" Version="$(LodestarStatsVersion)" />
+    <PackageReference Include="Lodestar.Stats.Regression" Version="$(LodestarStatsRegressionVersion)" />
   </ItemGroup>
 
 </Project>

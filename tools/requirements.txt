@@ -50,6 +50,22 @@ doublemetaphone==1.2
 # BSD-3-Clause, no dependencies of its own. Decision 0090 has the measurement.
 snowballstemmer==3.1.1
 
+# statsmodels -- the reference for Lodestar.Stats.Regression's OLS table (#566).
+# BSD-3-Clause, on the same footing as scikit-learn and (since decision 0082) scipy.
+# sm.OLS(y, X).fit() publishes .bse, .tvalues, .pvalues, .conf_int(), .rsquared_adj,
+# .fvalue and .f_pvalue, and statsmodels.stats.outliers_influence the VIF -- the whole
+# table from one call. sklearn.linear_model.LinearRegression, already pinned, computes
+# no standard error at all, so it can cross-check the coefficients and oracle nothing else.
+#
+# This is the largest single addition this file has taken: numpy, scipy and packaging
+# were already resolved, but pandas, patsy and formulaic arrive with it, and pandas
+# brings its own date leaves. It does not qualify for requirements-nodeps.txt --
+# decision 0078's test admits a package only when everything it imports is already on
+# the lock's graph, and pandas is not. The cost is shared rather than paid twice:
+# lifelines, the reference the survival lot (#569) will need, depends on pandas and
+# formulaic as well.
+statsmodels==0.15.0
+
 # onnx is only needed to (re)build the tiny synthetic test model, not for
 # generate_oracles.py: onnx==1.16.0
 

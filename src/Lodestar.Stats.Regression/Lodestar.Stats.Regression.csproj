@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- This package's version, owned here rather than repository-wide. -->
+  <Import Project="Version.props" />
+
+  <PropertyGroup>
+    <Version>$(LodestarStatsRegressionVersion)</Version>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+    <RootNamespace>Lodestar.Stats.Regression</RootNamespace>
+
+    <PackageId>Lodestar.Stats.Regression</PackageId>
+    <Description>Ordinary least squares with inference for .NET, at statsmodels parity: standard errors, t statistics, p-values, confidence intervals, R-squared and its adjusted form, the overall F test and a variance inflation factor per regressor. Solved through a Householder QR rather than the normal equations. Spans in, one summary out, and no dependencies outside Lodestar.</Description>
+    <PackageTags>regression;ols;least-squares;inference;p-value;statistics;statsmodels;vif;lodestar</PackageTags>
+  </PropertyGroup>
+
+  <!--
+    Two edges, both to core packages and both real: the Student and Fisher tails that
+    turn an estimate into a p-value, and the thin QR that keeps a near-collinear design
+    from losing digits the normal equations would square away. Decision 0095 published
+    exactly those four members for this package and no others.
+
+    PackageReference against the published floors, like every other src/ edge, so the
+    build graph is the graph consumers see (decision 0012). The opt-in below exists only
+    so that editing two packages in one branch does not need a pack-and-restore per edit:
+
+        export LodestarUseProjectRefs=true
+
+    It is never set in CI, and the packed .nuspec is asserted there.
+  -->
+  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
+    <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
+    <ProjectReference Include="../Lodestar.Decomposition/Lodestar.Decomposition.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
+    <PackageReference Include="Lodestar.Stats" />
+    <PackageReference Include="Lodestar.Decomposition" />
+  </ItemGroup>
+
+  <!-- Loud on purpose: a local build that silently differed from the shipped one
+       is the failure mode this whole arrangement is designed to avoid. -->
+  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
+          Condition="'$(LodestarUseProjectRefs)' == 'true'">
+    <Message Importance="high"
+             Text="Lodestar.Stats.Regression: LodestarUseProjectRefs=true — referencing Lodestar.Stats and Lodestar.Decomposition by project, not by package. This is the developer loop, not what ships." />
+  </Target>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lodestar.Stats.Regression.Tests" />
+    <!-- Same suite, replayed against the netstandard2.0 build. -->
+    <InternalsVisibleTo Include="Lodestar.Stats.Regression.NetStandard.Tests" />
+  </ItemGroup>
+
+</Project>

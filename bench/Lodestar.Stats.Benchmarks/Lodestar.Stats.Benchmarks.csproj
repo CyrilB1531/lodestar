@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Lodestar.Stats/Lodestar.Stats.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Stats.Regression/Lodestar.Stats.Regression.csproj" />
   </ItemGroup>
 
 </Project>

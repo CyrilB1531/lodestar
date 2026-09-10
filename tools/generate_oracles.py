@@ -96,6 +96,13 @@ FEATURE_COUNT = "feature_count"
 SAMPLES = "samples"
 MAX_ITER = "max_iter"
 T_PPF = "t.ppf"
+FAMILY = "family"
+# The OLS corpus repeats its own field names once per fixture and once per emitted case.
+CONFIDENCE_LEVEL = "confidenceLevel"
+DESIGN = "design"
+OLS_FEATURE_COUNT = "featureCount"
+RESPONSE = "response"
+WITH_INTERCEPT = "withIntercept"
 WITH_MEAN = "with_mean"
 WITH_STD = "with_std"
 DENSE = "dense"
@@ -4338,7 +4345,121 @@ def generate_stats_distributions() -> dict:
         "metadata": {
             "library": "scipy",
             "version": version("scipy"),
-            "family": "distributions",
+            FAMILY: "distributions",
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
+def _ols_fixtures() -> list[dict]:
+    """Designs chosen for what an inference table can get wrong, not for what a solve can."""
+    return [
+        {
+            "name": "simple regression, intercept fitted",
+            DESIGN: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+            RESPONSE: [2.1, 3.9, 6.2, 7.8, 10.1, 12.2, 13.8, 16.1],
+            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            # Three regressors on twelve rows: the residual degrees of freedom (8) are
+            # small enough that the t multiplier is visibly not 1.96.
+            "name": "three regressors, twelve rows",
+            DESIGN: [
+                1.0, 4.0, 0.5, 2.0, 3.0, 1.5, 3.0, 5.0, 2.5, 4.0, 2.0, 0.5,
+                5.0, 6.0, 3.5, 6.0, 1.0, 1.0, 7.0, 7.0, 4.5, 8.0, 3.0, 2.0,
+                9.0, 8.0, 5.5, 10.0, 4.0, 2.5, 11.0, 9.0, 6.5, 12.0, 5.0, 3.0,
+            ],
+            RESPONSE: [
+                7.2, 9.1, 12.4, 10.8, 16.3, 14.1, 20.7, 18.2, 24.9, 22.4, 29.1, 26.8,
+            ],
+            OLS_FEATURE_COUNT: 3, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            # No constant column. R-squared is then the uncentred one, which statsmodels
+            # reports without saying so, and the F test loses a degree of freedom.
+            "name": "two regressors, no intercept",
+            DESIGN: [1.0, 1.0, 2.0, 1.0, 3.0, 2.0, 4.0, 2.0, 5.0, 3.0, 6.0, 3.0, 7.0, 4.0, 8.0, 4.0],
+            RESPONSE: [3.1, 5.2, 8.4, 10.1, 13.3, 15.2, 18.4, 20.1],
+            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            # x2 is x1 plus a hundredth: a five-figure VIF, which is both what the
+            # diagnostic exists to report and what normal equations would round away.
+            "name": "near-collinear regressors, a VIF near 6e4",
+            DESIGN: [
+                1.0, 1.01, 2.0, 2.02, 3.0, 2.99, 4.0, 4.01, 5.0, 5.02,
+                6.0, 5.99, 7.0, 7.01, 8.0, 8.02, 9.0, 8.99, 10.0, 10.01,
+            ],
+            RESPONSE: [2.2, 4.1, 6.3, 7.9, 10.2, 12.1, 14.3, 15.9, 18.2, 20.1],
+            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            "name": "a 99% interval, where the multiplier is the wider one",
+            DESIGN: [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0],
+            RESPONSE: [1.9, 4.2, 5.8, 8.3, 9.7, 12.4, 13.9],
+            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
+        },
+        {
+            # 9.4 is load-bearing: at 9.0 the third row is exactly the sum of the first
+            # two, the fit is exact, and every standard error below divides by zero.
+            "name": "one residual degree of freedom",
+            DESIGN: [1.0, 3.0, 2.0, 1.0, 3.0, 4.0],
+            RESPONSE: [5.0, 4.0, 9.4],
+            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+        },
+    ]
+
+
+def generate_stats_ols() -> dict:
+    """OLS with the inference table statsmodels prints and MathNet does not have (#566)."""
+    import numpy as np
+    import statsmodels.api as sm
+    from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+    cases = []
+    for fixture in _ols_fixtures():
+        feature_count = fixture[OLS_FEATURE_COUNT]
+        design = np.array(fixture[DESIGN]).reshape(-1, feature_count)
+        response = np.array(fixture[RESPONSE])
+        exog = sm.add_constant(design, prepend=True) if fixture[WITH_INTERCEPT] else design
+
+        fitted = sm.OLS(response, exog).fit()
+        interval = fitted.conf_int(alpha=1.0 - fixture[CONFIDENCE_LEVEL])
+
+        # variance_inflation_factor adds no constant of its own, so the model's own
+        # constant column is what centres the auxiliary fit. The constant has no VIF.
+        first = 1 if fixture[WITH_INTERCEPT] else 0
+        vif = [float(variance_inflation_factor(exog, i))
+               for i in range(first, exog.shape[1])]
+
+        cases.append({
+            "name": fixture["name"],
+            DESIGN: fixture[DESIGN],
+            RESPONSE: fixture[RESPONSE],
+            OLS_FEATURE_COUNT: feature_count,
+            WITH_INTERCEPT: fixture[WITH_INTERCEPT],
+            CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
+            "coefficients": [float(v) for v in fitted.params],
+            "standardErrors": [float(v) for v in fitted.bse],
+            "tStatistics": [float(v) for v in fitted.tvalues],
+            "pValues": [float(v) for v in fitted.pvalues],
+            "confidenceLower": [float(v) for v in interval[:, 0]],
+            "confidenceUpper": [float(v) for v in interval[:, 1]],
+            "rSquared": float(fitted.rsquared),
+            "adjustedRSquared": float(fitted.rsquared_adj),
+            "fStatistic": float(fitted.fvalue),
+            "fPValue": float(fitted.f_pvalue),
+            "residualDegreesOfFreedom": int(fitted.df_resid),
+            "residualStandardError": float(np.sqrt(fitted.mse_resid)),
+            "varianceInflationFactors": vif,
+        })
+
+    return {
+        "metadata": {
+            "library": "statsmodels",
+            "version": version("statsmodels"),
+            FAMILY: "ols",
             "count": len(cases),
         },
         "cases": cases,
@@ -8552,7 +8673,7 @@ def _stats_metadata(family: str, count: int) -> dict:
     return {
         "library": STATS_LIBRARY,
         "version": version(STATS_LIBRARY),
-        "family": family,
+        FAMILY: family,
         "count": count,
     }
 
@@ -9026,6 +9147,7 @@ def main() -> None:
         "silhouette.json": generate_silhouette,
         "internal_validity.json": generate_internal_validity,
         "stats_distributions.json": generate_stats_distributions,
+        "stats_ols.json": generate_stats_ols,
         "cluster_kmeans.json": generate_cluster_kmeans,
         "preprocessing_standard_scaler.json": generate_preprocessing_standard_scaler,
         "ranking.json": generate_ranking,

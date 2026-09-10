@@ -14,13 +14,28 @@
     "bench/Lodestar.Text.Benchmarks/Program.cs": "switch"
   },
   "diagnostics": [
-    { "subcommand": "roc-parallel" },
-    { "subcommand": "save-phases" },
-    { "subcommand": "heap-warmth", "python": "bench/python/bench_heap_warmth.py" },
-    { "subcommand": "pool-cost" },
-    { "subcommand": "sidecar" },
-    { "subcommand": "ingest-phases" },
-    { "subcommand": "tensor-primitives" }
+    {
+      "subcommand": "roc-parallel"
+    },
+    {
+      "subcommand": "save-phases"
+    },
+    {
+      "subcommand": "heap-warmth",
+      "python": "bench/python/bench_heap_warmth.py"
+    },
+    {
+      "subcommand": "pool-cost"
+    },
+    {
+      "subcommand": "sidecar"
+    },
+    {
+      "subcommand": "ingest-phases"
+    },
+    {
+      "subcommand": "tensor-primitives"
+    }
   ],
   "benchmarks": {
     "BatchEmbeddingBenchmarks": [
@@ -115,6 +130,11 @@
     ],
     "StatsBenchmarks": [
       "src/Lodestar.Stats/**"
+    ],
+    "OlsBenchmarks": [
+      "src/Lodestar.Stats.Regression/**",
+      "src/Lodestar.Stats/**",
+      "src/Lodestar.Decomposition/**"
     ]
   },
   "harnesses": {
