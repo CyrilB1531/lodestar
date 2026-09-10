@@ -18,6 +18,8 @@ given:
   (decision 0073).
 - `check_version_floor.py` verifies that the version numbers the source tree
   keeps in three places still agree.
+- `check_requirements_lock_sync.py` refuses a `requirements.txt` pin that
+  `requirements.lock.txt` has never heard of, which is what CI installs from.
 - `check_netstandard_guards.py` refuses a netstandard2.0 mirror that carries no
   assembly guard, or that leaves one of its library's Lodestar dependencies
   unpinned and therefore loaded from net10.0.
@@ -296,6 +298,35 @@ The floor must not exceed the declared version, and must already be on nuget.org
 naming an unpublished version still builds for whoever raised it, whose cache is
 warm, and fails for everyone else. `--check-feed` is what turns that into a CI
 failure rather than a contributor's bug report.
+
+## `check_requirements_lock_sync.py`
+
+`requirements.txt` is written by hand and `requirements.lock.txt` is `pip-compile`
+output, so they drift in exactly one direction: a pin added to the first and never
+compiled into the second.
+
+```bash
+python tools/check_requirements_lock_sync.py   # offline, instant
+```
+
+CI installs from the **lock**, so that drift is invisible locally to anyone whose
+virtual environment already holds the new package. Measured on 2026-09-10: #604 added
+`datasketch` and `simhash` to `requirements.txt` alone, every local check passed, and
+the `Oracles are reproducible` job stopped on `ModuleNotFoundError`.
+
+Only the **direct** pins are compared, and names are folded per PEP 503 — `pip-compile`
+writes `rake_nltk` where `requirements.txt` says `rake-nltk`, and those are one name.
+Three things it deliberately leaves alone:
+
+- **Transitive pins.** The lock holds far more than `requirements.txt` names, which is
+  the whole point of compiling it.
+- **Hashes.** `pip install --require-hashes` verifies those and already runs.
+- **Whether the lock is a *current* compile.** Asserting that means resolving the index,
+  which an offline guard cannot do, and the install step catches a stale resolution.
+
+A dependency `requirements.txt` declares without pinning is reported rather than
+skipped: it cannot be compared against a lock, and silence would make the guard weaker
+than it looks.
 
 ## `generate_sonar_globalconfig.py`
 
