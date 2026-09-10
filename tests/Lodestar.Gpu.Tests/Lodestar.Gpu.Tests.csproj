@@ -26,13 +26,14 @@
     Lodestar.Embeddings and Lodestar.Abstractions are referenced by the *tests*,
     never by src/Lodestar.Gpu: decision 0101 forbids an edge into this package, and
     this suite's job is to prove each kernel agrees with the CPU path it replaces
-    (EmbeddingIndex.Search, CsrMatrix.Multiply), which means having both in one
+    (EmbeddingIndex.Search, CsrMatrix.Multiply, Levenshtein.Distance), which means having both in one
     process.
   -->
   <ItemGroup>
     <ProjectReference Include="../../src/Lodestar.Gpu/Lodestar.Gpu.csproj" />
     <ProjectReference Include="../../src/Lodestar.Embeddings/Lodestar.Embeddings.csproj" />
     <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Text/Lodestar.Text.csproj" />
   </ItemGroup>
 
 </Project>
