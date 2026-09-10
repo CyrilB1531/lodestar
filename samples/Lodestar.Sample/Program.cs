@@ -55,6 +55,11 @@ OrdinaryLeastSquaresSample.Run();
 OlsSummarySample.Run();
 OlsOptionsSample.Run();
 
+Bm25IndexSample.Run();
+Bm25OptionsSample.Run();
+SearchHitSample.Run();
+RankFusionSample.Run();
+
 SurvivalStepSample.Run();
 KaplanMeierSample.Run();
 KaplanMeierCurveSample.Run();

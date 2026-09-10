@@ -79,6 +79,13 @@ lifelines==0.30.3
 # otherwise unchanged by the pin.
 autograd-gamma==0.4.2
 
+# rank_bm25 -- the reference for Lodestar.Text.Search's BM25 (#573). Apache-2.0, read
+# from the wheel; #573 named it MIT, which the METADATA does not say. Permissive either
+# way, so ADR 0003 allows it. Frozen since 2022 and four releases old, which is what a
+# behaviour reference wants. bm25s was the other candidate and is not pinned: one oracle
+# per algorithm, and this is the better-known dialect of the two.
+rank_bm25==0.2.2
+
 # onnx is only needed to (re)build the tiny synthetic test model, not for
 # generate_oracles.py: onnx==1.16.0
 

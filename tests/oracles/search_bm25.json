@@ -1,0 +1,523 @@
+{
+ "metadata": {
+  "library": "rank_bm25",
+  "version": "0.2.2",
+  "family": "search-bm25",
+  "variant": "BM25Okapi: Robertson IDF, negatives floored at epsilon * average_idf",
+  "count": 8
+ },
+ "cases": [
+  {
+   "name": "a term in every document, where Robertson's IDF goes negative",
+   "vocabulary": [
+    "away",
+    "bird",
+    "cat",
+    "dog",
+    "far",
+    "flew",
+    "sat",
+    "the",
+    "today"
+   ],
+   "counts": [
+    [
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     1,
+     1,
+     0
+    ],
+    [
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     2,
+     1,
+     0
+    ],
+    [
+     1,
+     1,
+     0,
+     0,
+     1,
+     1,
+     0,
+     1,
+     1
+    ]
+   ],
+   "query": [
+    "sat"
+   ],
+   "queryColumns": [
+    6
+   ],
+   "queryHasUnknownTerm": false,
+   "k1": 1.5,
+   "b": 0.75,
+   "epsilon": 0.25,
+   "averageDocumentLength": 4.333333333333333,
+   "scores": [
+    0.036080274593323906,
+    0.045532290191011585,
+    0.0
+   ]
+  },
+  {
+   "name": "the same corpus, a query term that is rare",
+   "vocabulary": [
+    "away",
+    "bird",
+    "cat",
+    "dog",
+    "far",
+    "flew",
+    "sat",
+    "the",
+    "today"
+   ],
+   "counts": [
+    [
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     1,
+     1,
+     0
+    ],
+    [
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     2,
+     1,
+     0
+    ],
+    [
+     1,
+     1,
+     0,
+     0,
+     1,
+     1,
+     0,
+     1,
+     1
+    ]
+   ],
+   "query": [
+    "cat"
+   ],
+   "queryColumns": [
+    2
+   ],
+   "queryHasUnknownTerm": false,
+   "k1": 1.5,
+   "b": 0.75,
+   "epsilon": 0.25,
+   "averageDocumentLength": 4.333333333333333,
+   "scores": [
+    0.5929225990140963,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "a query term absent from the corpus, scoring zero everywhere",
+   "vocabulary": [
+    "alpha",
+    "bravo",
+    "charlie",
+    "delta"
+   ],
+   "counts": [
+    [
+     1,
+     1,
+     0,
+     0
+    ],
+    [
+     0,
+     1,
+     1,
+     0
+    ],
+    [
+     0,
+     0,
+     1,
+     1
+    ]
+   ],
+   "query": [
+    "omega"
+   ],
+   "queryColumns": [],
+   "queryHasUnknownTerm": true,
+   "k1": 1.5,
+   "b": 0.75,
+   "epsilon": 0.25,
+   "averageDocumentLength": 2.0,
+   "scores": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "several query terms, one of them absent",
+   "vocabulary": [
+    "alpha",
+    "bravo",
+    "charlie",
+    "delta"
+   ],
+   "counts": [
+    [
+     1,
+     1,
+     0,
+     0
+    ],
+    [
+     0,
+     1,
+     1,
+     0
+    ],
+    [
+     0,
+     0,
+     1,
+     1
+    ]
+   ],
+   "query": [
+    "bravo",
+    "omega",
+    "charlie"
+   ],
+   "queryColumns": [
+    1,
+    2
+   ],
+   "queryHasUnknownTerm": true,
+   "k1": 1.5,
+   "b": 0.75,
+   "epsilon": 0.25,
+   "averageDocumentLength": 2.0,
+   "scores": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "a repeated query term, which counts twice",
+   "vocabulary": [
+    "alpha",
+    "bravo",
+    "charlie",
+    "delta"
+   ],
+   "counts": [
+    [
+     1,
+     1,
+     0,
+     0
+    ],
+    [
+     0,
+     1,
+     1,
+     0
+    ],
+    [
+     0,
+     0,
+     1,
+     1
+    ]
+   ],
+   "query": [
+    "bravo",
+    "bravo"
+   ],
+   "queryColumns": [
+    1,
+    1
+   ],
+   "queryHasUnknownTerm": false,
+   "k1": 1.5,
+   "b": 0.75,
+   "epsilon": 0.25,
+   "averageDocumentLength": 2.0,
+   "scores": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "documents of very different length",
+   "vocabulary": [
+    "filler",
+    "term"
+   ],
+   "counts": [
+    [
+     0,
+     1
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     20,
+     1
+    ],
+    [
+     0,
+     3
+    ]
+   ],
+   "query": [
+    "term"
+   ],
+   "queryColumns": [
+    1
+   ],
+   "queryHasUnknownTerm": false,
+   "k1": 1.5,
+   "b": 0.75,
+   "epsilon": 0.25,
+   "averageDocumentLength": 7.75,
+   "scores": [
+    -0.45168409746301597,
+    -0.3057179618376248,
+    -0.1552278074234795,
+    -0.5405869991858953
+   ]
+  },
+  {
+   "name": "a larger corpus with repeated vocabulary",
+   "vocabulary": [
+    "and",
+    "by",
+    "cat",
+    "deep",
+    "documents",
+    "fun",
+    "information",
+    "is",
+    "learning",
+    "machine",
+    "mat",
+    "on",
+    "rank",
+    "ranking",
+    "relevance",
+    "retrieval",
+    "sat",
+    "the",
+    "to"
+   ],
+   "counts": [
+    [
+     0,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     1,
+     2,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     2,
+     0
+    ],
+    [
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     1
+    ],
+    [
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     1,
+     0,
+     0,
+     0
+    ],
+    [
+     0,
+     1,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0
+    ]
+   ],
+   "query": [
+    "learning",
+    "documents"
+   ],
+   "queryColumns": [
+    8,
+    4
+   ],
+   "queryHasUnknownTerm": false,
+   "k1": 1.5,
+   "b": 0.75,
+   "epsilon": 0.25,
+   "averageDocumentLength": 4.5,
+   "scores": [
+    0.0,
+    0.0,
+    0.0,
+    0.6187228051601253,
+    0.0,
+    0.6187228051601253
+   ]
+  },
+  {
+   "name": "one document only, where every term is in every document",
+   "vocabulary": [
+    "document",
+    "here",
+    "solo"
+   ],
+   "counts": [
+    [
+     1,
+     1,
+     1
+    ]
+   ],
+   "query": [
+    "solo"
+   ],
+   "queryColumns": [
+    2
+   ],
+   "queryHasUnknownTerm": false,
+   "k1": 1.5,
+   "b": 0.75,
+   "epsilon": 0.25,
+   "averageDocumentLength": 3.0,
+   "scores": [
+    -0.2746530721670274
+   ]
+  }
+ ]
+}

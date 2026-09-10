@@ -1801,7 +1801,53 @@ ordinary trial's shape rather than a best case.
 Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
 this section documents how to measure, not what was measured.
 
-## 21. `Lodestar.Stats` and `Lodestar.Stats.Regression` against scipy and statsmodels (issue #595)
+## 21. BM25 against LuceneSharp (issue #573)
+
+The #427 protocol reads an incumbent's exported surface through a `MetadataLoadContext` rather
+than its README, and here it settles which Lucene. **`Lucene.Net` has never shipped a stable
+release** — `4.8.0-beta00018`, published 2026-06-22, is still the newest, twelve years after
+Lucene 4.8.0 shipped in Java, and it carries no `net10.0` asset.
+**`LuceneSharp.Core` 26.8.4415** (Apache-2.0, `curiosity-ai/lucene-sharp`) is the .NET 10 port,
+and loading it names `BM25Similarity` as the default scorer — the same Okapi formula this
+package computes, so the two rows price one algorithm rather than two.
+
+Its API is not Lucene.Net's, and three differences cost a session: `ByteBuffersDirectory` is the
+in-memory store, `IndexSearcher.SetSimilarity` is a method rather than a property, and
+`BooleanQuery` exposes no public constructor. A single `TermQuery` sidesteps the last of those
+and is the same shape of work on both sides — what is being priced is the index, not the query
+language.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*Bm25Benchmarks*' --job short
+```
+
+### Two phases, because one ratio would lie
+
+**These are not like-for-like, and that is the measurement.** Lucene needs an index — a directory,
+a writer, an analyzer, a commit — where `Bm25Index` scores a `CsrMatrix` a caller already built to
+vectorize with. Pricing only the query flatters this package by hiding the index it never builds;
+pricing only the build flatters Lucene by hiding what that index buys on the hundredth query. So
+both are rows:
+
+- `LodestarQuery` / `LuceneQuery` — one query against a structure already standing.
+- `LodestarFromText` / `LuceneFromText` — text in, ranking out, index included.
+
+The ratio worth reading is neither of those alone: it is where the two cross, which depends on how
+many queries one corpus answers. A corpus rebuilt per request never reaches Lucene's crossing
+point; one answering thousands of queries passes it early.
+
+Lucene also answers a different question — a real query language, an index on disk, and the
+Block-Max WAND top-k this package does not have. [#440](https://github.com/CyrilB1531/lodestar/issues/440)
+lot 4 closed on exactly that point, and nothing here reopens it.
+
+A seeded corpus (`Random(573)`) of 500 vocabulary terms and 40 tokens per document, at 1 000 and
+20 000 documents: a thousand is where a matrix is rebuilt per request, twenty thousand is where
+the index starts to pay for itself.
+
+Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
+this section documents how to measure, not what was measured.
+
+## 22. `Lodestar.Stats` and `Lodestar.Stats.Regression` against scipy and statsmodels (issue #595)
 
 Sections 18 and 19 measure both packages against `Accord.Statistics`, which answers whether this
 is the better .NET choice. This one answers the question `CLAUDE.md`'s thesis actually makes —

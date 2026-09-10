@@ -33,6 +33,17 @@ given:
   package by package as each is split (decision 0041). The packaging gate already
   asks that a type be *referenced*; this asks which file references it, so an
   example stays where its name says it is.
+- `check_readme_pack_loop.py` refuses a README whose pack loop cannot restore the
+  sample it is followed by. Seven hard-coded pack lists exist in this repository;
+  the six that something reads stayed current, and this one packed nine of fifteen
+  until #597. `samples/Lodestar.Sample.csproj`'s own references are the source of
+  truth, and order is not compared.
+- `check_claude_md_packages.py` refuses a CLAUDE.md architecture table that has
+  drifted from `src/`. It checks three things against what owns them: the row set
+  against the directories under `src/`, the count in the prose against that same
+  set, and the inter-package edge count against
+  `check_nuspec_dependencies.py`'s `EXPECTED`. The *Holds* column is prose and is
+  deliberately not checked.
 - All of those but `check_nuspec_dependencies.py`, which needs a packed
   `./artifacts`, also run before a commit for whoever installs
   `.githooks/pre-commit` with `git config core.hooksPath .githooks` —

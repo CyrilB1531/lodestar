@@ -128,8 +128,10 @@ A runnable version of the above, consuming the packages exactly as you would:
 
 ```bash
 for p in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings \
-         src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal \
-         src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Stats; do
+        src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal \
+        src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI \
+        src/Lodestar.Extensions.MathNet src/Lodestar.Cluster src/Lodestar.Preprocessing \
+        src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Survival; do
   dotnet pack "$p" -c Release -o ./artifacts
 done
 NUGET_PACKAGES=$(mktemp -d) dotnet run -c Release --project samples/Lodestar.Sample
