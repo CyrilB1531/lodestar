@@ -87,9 +87,10 @@ without listing the release it waits on, and because the alternative routes are 
 
 Issue #572 records that "the API is asynchronous and `IAsyncEnumerable`-centred, which nothing in
 this repository uses today." Half of that is stale and the half that stands is the expensive half.
-`async Task` is already here — `EmbeddingIndex.SaveAsync` / `LoadAsync` and four persistence
-loaders — so the asynchronous entry points are ordinary. **`IAsyncEnumerable<T>` genuinely is
-absent**, and every `Get`/`Search` on this surface returns one.
+`async Task` is already here — [`EmbeddingIndex.SaveAsync`](../reference/embeddings/search/embeddingindex-saveasync.md),
+[`EmbeddingIndex.LoadAsync`](../reference/embeddings/search/embeddingindex-loadasync.md) and four
+persistence loaders — so the asynchronous entry points are ordinary. **`IAsyncEnumerable<T>`
+genuinely is absent**, and every `Get`/`Search` on this surface returns one.
 
 It costs no new declared dependency: on `netstandard2.0` the type comes from
 `Microsoft.Bcl.AsyncInterfaces`, which is already in the restore graph transitively, and
