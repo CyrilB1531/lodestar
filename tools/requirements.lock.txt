@@ -114,6 +114,10 @@ cycler==0.12.1 \
     --hash=sha256:85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30 \
     --hash=sha256:88bb128f02ba341da8ef447245a9e138fae777f6a23943da4540077d3601eb1c
     # via matplotlib
+datasketch==1.6.5 \
+    --hash=sha256:59311b2925b2f37536e9f7c2f46bbc25e8e54379c8635a3fa7ca55d2abb66d1b \
+    --hash=sha256:ba2848cb74f23d6d3dd444cf24edcbc47b1c34a171b1803231793ed4d74d4fcf
+    # via -r tools/requirements.txt
 defusedxml==0.7.1 \
     --hash=sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69 \
     --hash=sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61
@@ -694,6 +698,7 @@ numpy==2.5.1 \
     #   -r tools/requirements.txt
     #   autograd
     #   contourpy
+    #   datasketch
     #   formulaic
     #   lifelines
     #   mapie
@@ -703,6 +708,7 @@ numpy==2.5.1 \
     #   rank-bm25
     #   scikit-learn
     #   scipy
+    #   simhash
     #   statsmodels
 packaging==26.3 \
     --hash=sha256:94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79 \
@@ -1267,6 +1273,7 @@ scipy==1.18.0 \
     --hash=sha256:f351e0dd702687d12a402b867a1b4146a256923e1c38317cbc472f6372b94707
     # via
     #   autograd-gamma
+    #   datasketch
     #   formulaic
     #   lifelines
     #   mapie
@@ -1330,6 +1337,11 @@ sentencepiece==0.2.2 \
     --hash=sha256:f7c06c751c19d923435a54bff4f7e66e728fad160e8da28254f133abc9725820 \
     --hash=sha256:fa9f5ef0e2a82233dd0b8b32ea3f5710e0c44afbc07ed3620219f32601e56090 \
     --hash=sha256:fd523c4992041faa5c2b3cde62253d11a96c30d73a34afe48a486e8e2254cd1c
+    # via -r tools/requirements.txt
+simhash==2.1.2 \
+    --hash=sha256:49c5d81f31254f7e3f71dc2f5a245625c3d6143584478fdf4ffd2e63e4929366 \
+    --hash=sha256:533bc8cf41e4e6dd83f0b1847363516bf3323e0fa92e63d9e6df4e281e882e1b \
+    --hash=sha256:968de16c82c227a631aa00e57ab58f9e4ee9e47e8408486199a9eb59c1d6979b
     # via -r tools/requirements.txt
 six==1.17.0 \
     --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \

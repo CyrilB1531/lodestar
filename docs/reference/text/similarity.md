@@ -68,6 +68,29 @@ flowchart TD
 | [`SorensenDice`](similarity/sorensendice.md) | Shared grams counted twice, over the two bag sizes added. |
 | [`Tversky`](similarity/tversky.md) | Shared grams against the two sides' surpluses, weighted separately. |
 
+## Sketches, for when the corpus is too big to compare pair by pair
+
+The five measures above compare **two** inputs exactly. A corpus of a million documents holds half
+a trillion pairs, and no exact measure survives that. The four types below trade exactness for a
+sketch that fits in a few hundred bytes and a lookup that never sees most pairs.
+
+| Type | What it measures |
+| --- | --- |
+| [`MinHash`](similarity/minhash.md) | Jaccard over a **set**, estimated from one minimum per permutation. |
+| [`MinHashPermutations`](similarity/minhashpermutations.md) | The coefficients a signature is built from, supplied rather than seeded. |
+| [`SimHash`](similarity/simhash.md) | Cosine over a **weighted bag**, as one 64-bit fingerprint. |
+| [`LshBanding`](similarity/lshbanding.md) | How a signature is cut into bands, and the solve that picks the cut. |
+| [`LshIndex`](similarity/lshindex.md) | Candidates sharing a band, so a query never scans the corpus. |
+
+**Set or bag is the choice that matters**, and it is not a matter of taste. `MinHash` takes a
+minimum, which is idempotent, so a token repeated changes nothing; `SimHash` sums weights, so it
+does. Deduplicating near-identical documents wants the bag; comparing sets of tags or shingles
+wants the set.
+
+Both are **estimates**, and both return candidates rather than answers — which is why
+[`Jaccard`](similarity/jaccard.md) above stays the right call whenever the two inputs are in hand
+and small enough to compare directly.
+
 ## What every one of them does with an empty input
 
 Two empty inputs share nothing and disagree about nothing, and all five answer `1` — the reference

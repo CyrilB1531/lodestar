@@ -4623,6 +4623,112 @@ def generate_survival_logrank() -> dict:
     }
 
 
+# --- Lodestar.Text.Similarity, oracled by datasketch and simhash (#602) -------
+
+SIM_TOKENS = "tokens"
+SIM_SIGNATURE = "signature"
+HAMMING = "hamming"
+# The one sentence four documents are variations on; spelled once so its words stay
+# under S1192 rather than reaching three occurrences apiece.
+SIM_SENTENCE = ["the", "quick", "brown", "fox"]
+
+
+def _similarity_documents() -> list[dict]:
+    """Token sets chosen for what a sketch gets wrong, not for what a hash does."""
+    return [
+        {"key": "a", SIM_TOKENS: SIM_SENTENCE},
+        # One token apart from "a": the pair a near-duplicate detector exists for.
+        {"key": "b", SIM_TOKENS: SIM_SENTENCE[:3] + ["dog"]},
+        {"key": "c", SIM_TOKENS: SIM_SENTENCE + ["jumps"]},
+        # Disjoint from every other set, so its estimate must be exactly zero.
+        {"key": "d", SIM_TOKENS: ["entirely", "different", "words", "here"]},
+        # The same set as "a" written in another order: a set sketch cannot see the order.
+        {"key": "e", SIM_TOKENS: list(reversed(SIM_SENTENCE))},
+        # A repeated token, which MinHash ignores and SimHash weighs.
+        {"key": "f", SIM_TOKENS: [SIM_SENTENCE[0]] + SIM_SENTENCE},
+        {"key": "g", SIM_TOKENS: ["\u00e9clair", "na\u00efve", "caf\u00e9"]},
+        {"key": "h", SIM_TOKENS: []},
+    ]
+
+
+def generate_text_similarity() -> dict:
+    """Freeze MinHash signatures, SimHash fingerprints and the LSH banding solve.
+
+    The permutation coefficients are frozen with the signatures rather than derived
+    from the seed: reproducing numpy's generator stream in C# would make the parity
+    claim depend on a random number generator instead of on the algorithm, which is
+    the call decision 0072 already made for randomized SVD's omega.
+    """
+    from datasketch import MinHash as DsMinHash
+    from datasketch.lsh import _optimal_param
+    from simhash import Simhash
+
+    documents = _similarity_documents()
+    permutation_count = 32
+    reference = DsMinHash(num_perm=permutation_count, seed=1)
+    multipliers, addends = reference.permutations
+
+    signatures: dict[str, list[int]] = {}
+    cases = []
+    for document in documents:
+        sketch = DsMinHash(num_perm=permutation_count, seed=1)
+        for token in document[SIM_TOKENS]:
+            sketch.update(token.encode("utf-8"))
+        signature = [int(value) for value in sketch.hashvalues]
+        signatures[document["key"]] = signature
+        cases.append({
+            "key": document["key"],
+            SIM_TOKENS: document[SIM_TOKENS],
+            SIM_SIGNATURE: signature,
+            "simHash": int(Simhash(document[SIM_TOKENS]).value),
+        })
+
+    pairs = []
+    keys = [document["key"] for document in documents]
+    for left in range(len(keys)):
+        for right in range(left + 1, len(keys)):
+            first, second = keys[left], keys[right]
+            estimate = sum(
+                1 for a, b in zip(signatures[first], signatures[second]) if a == b
+            ) / permutation_count
+            pairs.append({
+                "left": first,
+                "right": second,
+                "jaccard": float(estimate),
+                HAMMING: bin(
+                    int(Simhash(documents[left][SIM_TOKENS]).value)
+                    ^ int(Simhash(documents[right][SIM_TOKENS]).value)
+                ).count("1"),
+            })
+
+    bandings = []
+    for threshold in (0.5, 0.7, 0.8, 0.9, 0.95):
+        for length in (32, 64, 128):
+            bands, rows = _optimal_param(threshold, length, 0.5, 0.5)
+            bandings.append({
+                "threshold": threshold,
+                "permutations": length,
+                "bands": int(bands),
+                "rowsPerBand": int(rows),
+            })
+
+    return {
+        "metadata": {
+            "library": "datasketch + simhash",
+            "version": f'{version("datasketch")} + {version("simhash")}',
+            FAMILY: "text-similarity",
+            "variant": "MinHash(seed=1, sha1_hash32), Simhash(f=64, md5), MinHashLSH optimal banding",
+            "count": len(cases),
+        },
+        "permutationCount": permutation_count,
+        "multipliers": [int(value) for value in multipliers],
+        "addends": [int(value) for value in addends],
+        "cases": cases,
+        "pairs": pairs,
+        "bandings": bandings,
+    }
+
+
 # --- Lodestar.Text.Search, oracled by rank_bm25 (#573) -------------------------
 
 BM25_QUERY = "query"
@@ -5130,7 +5236,7 @@ def generate_label_losses() -> dict:
                 "y_true": fixture["true"],
                 "y_pred": fixture["pred"],
                 "sample_weight": fixture["weight"],
-                "hamming": float(hamming_loss(true, pred, **kw)),
+                HAMMING: float(hamming_loss(true, pred, **kw)),
                 "zero_one": float(zero_one_loss(true, pred, **kw)),
                 "zero_one_count": float(zero_one_loss(true, pred, normalize=False, **kw)),
                 "jaccard_per_class": [
@@ -5152,7 +5258,7 @@ def generate_label_losses() -> dict:
         "y_pred": [v for row in multi_pred for v in row],
         "label_count": 3,
         "sample_weight": [1.0, 3.0],
-        "hamming": float(hamming_loss(mt, mp)),
+        HAMMING: float(hamming_loss(mt, mp)),
         "hamming_weighted": float(hamming_loss(mt, mp, sample_weight=weight)),
         "zero_one": float(zero_one_loss(mt, mp)),
         "zero_one_count": float(zero_one_loss(mt, mp, normalize=False)),
@@ -9489,6 +9595,7 @@ def main() -> None:
         "internal_validity.json": generate_internal_validity,
         "stats_distributions.json": generate_stats_distributions,
         "search_bm25.json": generate_search_bm25,
+        "text_similarity.json": generate_text_similarity,
         "survival_curves.json": generate_survival_curves,
         "survival_logrank.json": generate_survival_logrank,
         "stats_ols.json": generate_stats_ols,

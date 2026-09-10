@@ -1895,3 +1895,41 @@ clock alone would credit Python with work it spread across cores.
 
 Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md)
 — this section documents how to measure, not what was measured.
+
+## 23. The sketches against the exact measure (issue #602)
+
+`Lodestar.Text.Similarity`'s five exact measures compare **two** inputs. A corpus of a million
+documents holds half a trillion pairs, and no exact measure survives that — which is the whole
+reason `MinHash`, `SimHash` and `LshIndex` exist. This section prices that claim rather than
+asserting it.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*SimilaritySketch*' --job short
+```
+
+**These do not compute the same thing, and that is the measurement.** `ExactPairwise` answers
+every pair correctly at a quadratic number of set comparisons; `SketchThenVerify` answers most
+pairs at one signature per document plus a banded lookup. Reporting only the query would hide the
+signatures, and reporting only the signatures would hide what they buy on the millionth pair — so
+both are rows, and `SignaturesOnly` and `FingerprintsOnly` sit beside them to show where the
+sketch's own time goes.
+
+The corpus is seeded (`Random(602)`), 24 tokens per document over a vocabulary of 2 000, at 500
+and 2 000 documents — the smaller is where an exact scan is still reasonable and the larger is
+where it stops being. `Permutations` is a parameter at 64 and 128 because a signature's length is
+also its resolution: the estimate can only take `1 / Permutations` steps, so the two axes are
+chosen together rather than separately.
+
+**`SketchThenVerify` and `ExactPairwise` do not return the same count**, and a run where they did
+would mean the corpus was too easy to be interesting. The gap is the false negatives the banding
+accepts, and [`LshBanding.CollisionProbability`](../docs/reference/text/similarity/lshbanding-collisionprobability.md)
+predicts it before the run.
+
+**No incumbent row.** `MinHashSharp` 1.1.1 is the .NET incumbent and it ships `net6.0` only, so a
+`net10.0` benchmark could price it while the shipped library cannot use it —
+[#602](https://github.com/CyrilB1531/lodestar/issues/602) opened on exactly that asymmetry.
+Benchmarking a package this repository refuses on framework coverage would measure something no
+caller of `Lodestar.Text` can reach on one of its two targets.
+
+Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
+this section documents how to measure, not what was measured.

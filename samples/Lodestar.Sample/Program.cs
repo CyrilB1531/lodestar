@@ -55,6 +55,12 @@ OrdinaryLeastSquaresSample.Run();
 OlsSummarySample.Run();
 OlsOptionsSample.Run();
 
+MinHashPermutationsSample.Run();
+MinHashSample.Run();
+SimHashSample.Run();
+LshBandingSample.Run();
+LshIndexSample.Run();
+
 Bm25IndexSample.Run();
 Bm25OptionsSample.Run();
 SearchHitSample.Run();
