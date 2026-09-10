@@ -126,26 +126,43 @@ done
 
 ## Architecture
 
-Eight independently versioned packages under `src/`. Seven are **core tier** and carry
-no external dependency at all; `Lodestar.Onnx` is the one satellite, and carrying ONNX
-Runtime is the whole reason it is a package
+Fifteen independently versioned packages under `src/`, in three tiers. **Core** carries no
+external dependency at all
 ([decision 0076](docs/decisions/0076-a-core-package-carries-no-external-dependency.md)).
-Adding an external dependency to a core package fails
+`Lodestar.Onnx` is the **satellite**, and carrying ONNX Runtime is the whole reason it is a
+package. `Lodestar.Extensions.*` is the **interop** tier, which
+[decision 0089](docs/decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)
+allows a dependency a core package refused, because converting to a foreign type is not
+computing with it. Adding an external dependency to a core package fails
 `tools/check_nuspec_dependencies.py`, not a review.
+
+The table below is asserted, not maintained by hand:
+`python3 tools/check_claude_md_packages.py` fails when it drifts from `src/` or from that
+script's `EXPECTED` edge map.
 
 | Package | Tier | Holds |
 | --- | --- | --- |
 | `Lodestar.Abstractions` | core | `CsrMatrix`, `SparseNorm` and the dense-block products — the sparse primitive the others share (decision 0071). |
-| `Lodestar.Text` | core | distances, phonetics, set similarity, stemmers, tokenizers, sparse vectorizers, persistence, `BkTree`. |
+| `Lodestar.Text` | core | distances, phonetics, set similarity, stemmers, tokenizers, sparse vectorizers, persistence, `BkTree`, keyword extraction. |
 | `Lodestar.Embeddings` | core | sub-word tokenizers (WordPiece, SentencePiece, BPE/byte-level BPE), batch encoding pipeline, pooling, SIMD kNN `EmbeddingIndex`, `.npy` interop. |
 | `Lodestar.Fuzzy` | core | `fuzz.*`, `process.extract`, blocking deduplication. |
 | `Lodestar.Metrics` | core | classification, regression, clustering and ranking metrics at scikit-learn parity. |
 | `Lodestar.Conformal` | core | split conformal intervals and prediction sets, at MAPIE parity. |
-| `Lodestar.Decomposition` | core | truncated SVD and NMF over a `CsrMatrix`, with the dense kernels written here. |
-| `Lodestar.Onnx` | satellite | `OnnxTextEmbedder`, and **the repository's only external dependency**, `Microsoft.ML.OnnxRuntime`. |
+| `Lodestar.Decomposition` | core | truncated SVD, NMF and the Householder QR over a `CsrMatrix`, with the dense kernels written here. |
+| `Lodestar.Cluster` | core | k-means by Lloyd's algorithm over a row-major span, at scikit-learn parity. |
+| `Lodestar.Preprocessing` | core | feature scaling fitted on arrays and applied to spans, at scikit-learn parity. |
+| `Lodestar.Stats` | core | classical hypothesis tests at scipy parity, plus the four tail members decisions 0095, 0097 and 0098 published for its neighbours. |
+| `Lodestar.Stats.Regression` | core | ordinary least squares with the whole inference table, at statsmodels parity. |
+| `Lodestar.Survival` | core | Kaplan-Meier, Nelson-Aalen and the log-rank test at lifelines parity, right-censored. |
+| `Lodestar.Onnx` | satellite | `OnnxTextEmbedder`, and the reason the tier exists: `Microsoft.ML.OnnxRuntime`. |
+| `Lodestar.Extensions.AI` | interop | the ONNX embedding path behind `IEmbeddingGenerator`; carries `Microsoft.Extensions.AI.Abstractions`. |
+| `Lodestar.Extensions.MathNet` | interop | `CsrMatrix` to and from Math.NET's sparse matrix; carries `MathNet.Numerics`. |
 
-The edges: `Text` → `Abstractions`, `Decomposition` → `Abstractions`, `Fuzzy` → `Text`,
-`Onnx` → `Embeddings`. Four, all asserted per target framework and per version range.
+The edges: **ten**, all asserted per target framework and per version range —
+`Text`, `Decomposition` and `Extensions.MathNet` → `Abstractions`; `Fuzzy` → `Text`;
+`Onnx` → `Embeddings`; `Extensions.AI` → `Embeddings` and `Onnx`; `Stats.Regression` →
+`Stats` and `Decomposition`; `Survival` → `Stats`. `tools/check_nuspec_dependencies.py`'s
+`EXPECTED` is the authority, and the count above is checked against it.
 
 Four cross-cutting facts explain most of the layout, and none of them is visible
 from a single file.
