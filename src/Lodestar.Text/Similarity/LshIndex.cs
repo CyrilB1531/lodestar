@@ -3,13 +3,10 @@ namespace Lodestar.Text.Similarity;
 /// <summary>A banded index over MinHash signatures: candidates without comparing every pair.</summary>
 /// <remarks>
 /// Reference behavior: <c>datasketch</c> 1.6.5's <c>MinHashLSH</c>. Two signatures are
-/// candidates when they agree on **every slot of at least one band**, which is what turns a
-/// quadratic scan into a lookup. <see cref="Query"/> returns candidates, not matches —
-/// scoring them with <see cref="MinHash.Jaccard"/> is the caller's step, and the banding
-/// decides how often that step is wasted.
-/// <para>
-/// Adding is not thread-safe; concurrent <see cref="Query"/> calls are.
-/// </para>
+/// candidates when they agree on every slot of at least one band, which turns a quadratic
+/// scan into a lookup. <see cref="Query"/> returns candidates rather than matches — scoring
+/// them with <see cref="MinHash.Jaccard"/> is the caller's step, and the banding decides how
+/// often it is wasted. Adding is not thread-safe; concurrent queries are.
 /// </remarks>
 public sealed class LshIndex
 {

@@ -4627,21 +4627,25 @@ def generate_survival_logrank() -> dict:
 
 SIM_TOKENS = "tokens"
 SIM_SIGNATURE = "signature"
+HAMMING = "hamming"
+# The one sentence four documents are variations on; spelled once so its words stay
+# under S1192 rather than reaching three occurrences apiece.
+SIM_SENTENCE = ["the", "quick", "brown", "fox"]
 
 
 def _similarity_documents() -> list[dict]:
     """Token sets chosen for what a sketch gets wrong, not for what a hash does."""
     return [
-        {"key": "a", SIM_TOKENS: ["the", "quick", "brown", "fox"]},
+        {"key": "a", SIM_TOKENS: SIM_SENTENCE},
         # One token apart from "a": the pair a near-duplicate detector exists for.
-        {"key": "b", SIM_TOKENS: ["the", "quick", "brown", "dog"]},
-        {"key": "c", SIM_TOKENS: ["the", "quick", "brown", "fox", "jumps"]},
+        {"key": "b", SIM_TOKENS: SIM_SENTENCE[:3] + ["dog"]},
+        {"key": "c", SIM_TOKENS: SIM_SENTENCE + ["jumps"]},
         # Disjoint from every other set, so its estimate must be exactly zero.
         {"key": "d", SIM_TOKENS: ["entirely", "different", "words", "here"]},
         # The same set as "a" written in another order: a set sketch cannot see the order.
-        {"key": "e", SIM_TOKENS: ["fox", "brown", "quick", "the"]},
+        {"key": "e", SIM_TOKENS: list(reversed(SIM_SENTENCE))},
         # A repeated token, which MinHash ignores and SimHash weighs.
-        {"key": "f", SIM_TOKENS: ["the", "the", "quick", "brown", "fox"]},
+        {"key": "f", SIM_TOKENS: [SIM_SENTENCE[0]] + SIM_SENTENCE},
         {"key": "g", SIM_TOKENS: ["\u00e9clair", "na\u00efve", "caf\u00e9"]},
         {"key": "h", SIM_TOKENS: []},
     ]
@@ -4691,7 +4695,7 @@ def generate_text_similarity() -> dict:
                 "left": first,
                 "right": second,
                 "jaccard": float(estimate),
-                "hamming": bin(
+                HAMMING: bin(
                     int(Simhash(documents[left][SIM_TOKENS]).value)
                     ^ int(Simhash(documents[right][SIM_TOKENS]).value)
                 ).count("1"),
@@ -5232,7 +5236,7 @@ def generate_label_losses() -> dict:
                 "y_true": fixture["true"],
                 "y_pred": fixture["pred"],
                 "sample_weight": fixture["weight"],
-                "hamming": float(hamming_loss(true, pred, **kw)),
+                HAMMING: float(hamming_loss(true, pred, **kw)),
                 "zero_one": float(zero_one_loss(true, pred, **kw)),
                 "zero_one_count": float(zero_one_loss(true, pred, normalize=False, **kw)),
                 "jaccard_per_class": [
@@ -5254,7 +5258,7 @@ def generate_label_losses() -> dict:
         "y_pred": [v for row in multi_pred for v in row],
         "label_count": 3,
         "sample_weight": [1.0, 3.0],
-        "hamming": float(hamming_loss(mt, mp)),
+        HAMMING: float(hamming_loss(mt, mp)),
         "hamming_weighted": float(hamming_loss(mt, mp, sample_weight=weight)),
         "zero_one": float(zero_one_loss(mt, mp)),
         "zero_one_count": float(zero_one_loss(mt, mp, normalize=False)),
