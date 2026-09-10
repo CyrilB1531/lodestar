@@ -75,6 +75,14 @@ jobs:
       # so it is hand-written and this is what keeps it complete.
       - name: Every benchmark class is in the bench map
         run: python tools/check_bench_map.py
+      # Seven hard-coded pack lists exist; the six something reads stayed current and
+      # the README's did not, so the command it calls runnable could not restore the
+      # sample it is followed by (#597). These two give both documents a source of
+      # truth, the way check_bench_map.py gave the nightly one after #586.
+      - name: The README packs what the sample references
+        run: python tools/check_readme_pack_loop.py
+      - name: CLAUDE.md's package table matches src/
+        run: python tools/check_claude_md_packages.py
       # Decision 0041 names a sample after its class, so a public type without one is a
       # type nobody can find an example of. Only the packages already split are enforced;
       # the rest still carry their Lot* files, and #280 closes when that list is empty.
