@@ -1933,3 +1933,40 @@ caller of `Lodestar.Text` can reach on one of its two targets.
 
 Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
 this section documents how to measure, not what was measured.
+
+## 24. Myers on the accelerator, against a bit-parallel CPU path (issue #444, kernel 3)
+
+**This is the section expected to say a kernel does not ship.** Decision 0102 asks for a
+measured 5–10× gain, transfers included, against this repository's own path — and the path here
+is `Levenshtein.Distance`, which is Myers' bit-parallel algorithm already. Both sides collapse a
+dynamic-programming row into one machine word, so the CPU spends tens of nanoseconds on a short
+pair while the accelerator has to amortise a renaming, two transfers and a launch on top.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Gpu.Benchmarks -- --filter '*BitParallel*' --job short
+```
+
+The parallelism is **across pairs, not inside one**. There is nothing left to widen within a
+comparison, so the kernel runs one whole distance per thread in registers and wins — if it wins —
+only by running many at once.
+
+Three rows, as the other two kernels have:
+
+- `CpuBaseline` — one `Levenshtein.Distance` call per string. The gate's baseline.
+- `GpuResident` — the gate row, with the batch already renamed and resident. The equality table
+  upload and the distance read-back are inside the measurement.
+- `GpuFromHost` — not the gate. It prices the renaming a resident batch avoids, and on **this**
+  kernel that is the half likely to decide the answer: renaming is a pass over every character,
+  on the host, in the language the baseline is already written in.
+
+A seeded corpus (`Random(4444)`) over a 26-letter alphabet, a 24-character pattern, at 10 000 and
+200 000 strings by 32 and 256 characters. Text length is a parameter because Myers costs one word
+per character of *text* regardless of pattern length, so it is the axis that moves both sides
+together — and the one where the accelerator's fixed costs are amortised or are not.
+
+**A failed gate is published rather than deleted.** A kernel that reaches 2× is a row in
+[`docs/guides/performance.md`](../docs/guides/performance.md) and a kernel that does not ship,
+which tells the next reader more than an absence would.
+
+Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
+this section documents how to measure, not what was measured.

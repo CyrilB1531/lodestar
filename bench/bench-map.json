@@ -145,6 +145,10 @@
       "src/Lodestar.Gpu/**",
       "src/Lodestar.Abstractions/**"
     ],
+    "BitParallelEditDistanceBenchmarks": [
+      "src/Lodestar.Gpu/**",
+      "src/Lodestar.Text/Distances/**"
+    ],
     "StatsBenchmarks": [
       "src/Lodestar.Stats/**"
     ],

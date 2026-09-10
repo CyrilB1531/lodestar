@@ -14,14 +14,15 @@
   </ItemGroup>
 
   <!--
-    Lodestar.Embeddings and Lodestar.Abstractions are the baselines, not dependencies
-    of the package: decision 0102 prices a kernel against this repository's own CPU
-    path in the same process, and decision 0101 forbids those edges inside src/.
+    Lodestar.Embeddings, Lodestar.Abstractions and Lodestar.Text are the baselines, not
+    dependencies of the package: decision 0102 prices a kernel against this repository's
+    own CPU path in the same process, and decision 0101 forbids those edges inside src/.
   -->
   <ItemGroup>
     <ProjectReference Include="../../src/Lodestar.Gpu/Lodestar.Gpu.csproj" />
     <ProjectReference Include="../../src/Lodestar.Embeddings/Lodestar.Embeddings.csproj" />
     <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Text/Lodestar.Text.csproj" />
   </ItemGroup>
 
 </Project>
