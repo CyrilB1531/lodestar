@@ -38,6 +38,8 @@
     <ProjectReference Include="../../src/Lodestar.Metrics/Lodestar.Metrics.csproj" />
     <ProjectReference Include="../../src/Lodestar.Decomposition/Lodestar.Decomposition.csproj" />
     <ProjectReference Include="../../src/Lodestar.Onnx/Lodestar.Onnx.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Stats/Lodestar.Stats.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Stats.Regression/Lodestar.Stats.Regression.csproj" />
   </ItemGroup>
 
   <!--

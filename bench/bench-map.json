@@ -191,6 +191,30 @@
         "src/Lodestar.Text/Persistence/**",
         "bench/Lodestar.Text.Benchmarks/CrossLang/PersistenceCrossLang.cs"
       ]
+    },
+    "stats": {
+      "subcommand": "compare-stats",
+      "python": "bench/python/bench_stats.py",
+      "compare": "stats",
+      "generate": [
+        "bench/corpus/generate_stats.py"
+      ],
+      "sources": [
+        "src/Lodestar.Stats/**",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/StatsCrossLang.cs"
+      ]
+    },
+    "ols": {
+      "subcommand": "compare-ols",
+      "python": "bench/python/bench_stats.py",
+      "compare": "ols",
+      "generate": [
+        "bench/corpus/generate_stats.py"
+      ],
+      "sources": [
+        "src/Lodestar.Stats.Regression/**",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/StatsCrossLang.cs"
+      ]
     }
   }
 }

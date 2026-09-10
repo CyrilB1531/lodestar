@@ -22,6 +22,12 @@ switch (args.Length > 0 ? args[0] : string.Empty)
     case "compare-metrics":
         MetricsCrossLang.Run(args);
         return;
+    case "compare-stats":
+        StatsCrossLang.Run(args);
+        return;
+    case "compare-ols":
+        StatsCrossLang.RunOls(args);
+        return;
     case "roc-parallel":
         RocParallelBench.Run();
         return;
