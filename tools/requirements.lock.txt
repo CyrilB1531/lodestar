@@ -700,6 +700,7 @@ numpy==2.5.1 \
     #   matplotlib
     #   pandas
     #   patsy
+    #   rank-bm25
     #   scikit-learn
     #   scipy
     #   statsmodels
@@ -981,6 +982,10 @@ pyyaml==6.0.3 \
 rake-nltk==1.0.6 \
     --hash=sha256:1c1ffdb64cae8cb99d169d53a5ffa4635f1c4abd3a02c6e22d5d083136bdc5c1 \
     --hash=sha256:7813d680b2ce77b51cdac1757f801a87ff47682c9dbd2982aea3b66730346122
+    # via -r tools/requirements.txt
+rank-bm25==0.2.2 \
+    --hash=sha256:096ccef76f8188563419aaf384a02f0ea459503fdf77901378d4fd9d87e5e51d \
+    --hash=sha256:7bd4a95571adadfc271746fa146a4bcfd89c0cf731e49c3d1ad863290adbe8ae
     # via -r tools/requirements.txt
 rapidfuzz==3.14.5 \
     --hash=sha256:0084b687b02b4e569b46d8d6d4ad25659528e6081cd6d067ca453a69035f07e4 \

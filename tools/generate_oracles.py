@@ -4623,6 +4623,135 @@ def generate_survival_logrank() -> dict:
     }
 
 
+# --- Lodestar.Text.Search, oracled by rank_bm25 (#573) -------------------------
+
+BM25_QUERY = "query"
+BM25_DOCUMENTS = "documents"
+BM25_FILLER = "filler"
+BM25_LEARNING = "learning"
+# One vocabulary, each word spelled once: the fixtures index into it rather than
+# repeating a literal, which is what keeps them under S1192's threshold.
+BM25_WORDS = ["alpha", "bravo", "charlie", "delta"]
+BM25_CHAIN = [BM25_WORDS[i:i + 2] for i in range(3)]
+
+
+def _bm25_fixtures() -> list[dict]:
+    """Corpora chosen for what BM25 gets wrong, not for what a sum does.
+
+    The first carries a term in every document, which drives Robertson's IDF
+    negative -- rank_bm25 floors those at epsilon * average_idf rather than letting
+    a match subtract, and that floor is the single place a plain reading of the
+    paper disagrees with this reference.
+    """
+    animals = [
+        ["the", "cat", "sat"],
+        ["the", "dog", "sat", "sat"],
+        ["the", "bird", "flew", "far", "away", "today"],
+    ]
+    return [
+        {
+            "name": "a term in every document, where Robertson's IDF goes negative",
+            BM25_DOCUMENTS: animals,
+            BM25_QUERY: ["sat"],
+        },
+        {
+            "name": "the same corpus, a query term that is rare",
+            BM25_DOCUMENTS: animals,
+            BM25_QUERY: ["cat"],
+        },
+        {
+            "name": "a query term absent from the corpus, scoring zero everywhere",
+            BM25_DOCUMENTS: BM25_CHAIN,
+            BM25_QUERY: [OMEGA_KEY],
+        },
+        {
+            "name": "several query terms, one of them absent",
+            BM25_DOCUMENTS: BM25_CHAIN,
+            BM25_QUERY: [BM25_WORDS[1], OMEGA_KEY, BM25_WORDS[2]],
+        },
+        {
+            # A repeated query term counts twice: rank_bm25 sums per occurrence rather
+            # than per distinct term, and a set-based implementation would halve this.
+            "name": "a repeated query term, which counts twice",
+            BM25_DOCUMENTS: BM25_CHAIN,
+            BM25_QUERY: [BM25_WORDS[1], BM25_WORDS[1]],
+        },
+        {
+            # Length normalization is the whole point of b: the same term frequency in
+            # a short and a long document must not score the same.
+            "name": "documents of very different length",
+            BM25_DOCUMENTS: [
+                ["term"],
+                ["term"] + [BM25_FILLER] * 5,
+                [BM25_FILLER] * 20 + ["term"],
+                ["term"] * 3,
+            ],
+            BM25_QUERY: ["term"],
+        },
+        {
+            "name": "a larger corpus with repeated vocabulary",
+            BM25_DOCUMENTS: [
+                ["machine", BM25_LEARNING, "is", "fun"],
+                ["deep", BM25_LEARNING, "is", "machine", BM25_LEARNING],
+                ["the", "cat", "sat", "on", "the", "mat"],
+                [BM25_LEARNING, "to", "rank", BM25_DOCUMENTS],
+                ["information", "retrieval", "and", "ranking"],
+                ["ranking", BM25_DOCUMENTS, "by", "relevance"],
+            ],
+            BM25_QUERY: [BM25_LEARNING, BM25_DOCUMENTS],
+        },
+        {
+            "name": "one document only, where every term is in every document",
+            BM25_DOCUMENTS: [["solo", "document", "here"]],
+            BM25_QUERY: ["solo"],
+        },
+    ]
+
+
+def generate_search_bm25() -> dict:
+    """Freeze rank_bm25's Okapi scores, the vocabulary, and the parameters it used.
+
+    The corpus carries the column order so the C# side scores the same matrix: the
+    vocabulary is sorted, which is what CountVectorizer's feature order is, and the
+    query is frozen as indices into it as well as as terms.
+    """
+    from rank_bm25 import BM25Okapi  # noqa: PLC0415
+
+    cases = []
+    for fixture in _bm25_fixtures():
+        documents = fixture[BM25_DOCUMENTS]
+        okapi = BM25Okapi(documents)
+        vocabulary = sorted({term for document in documents for term in document})
+        column = {term: index for index, term in enumerate(vocabulary)}
+        counts = [[document.count(term) for term in vocabulary] for document in documents]
+        query = fixture[BM25_QUERY]
+
+        cases.append({
+            "name": fixture["name"],
+            "vocabulary": vocabulary,
+            "counts": counts,
+            BM25_QUERY: query,
+            "queryColumns": [column[term] for term in query if term in column],
+            "queryHasUnknownTerm": any(term not in column for term in query),
+            "k1": float(okapi.k1),
+            "b": float(okapi.b),
+            "epsilon": float(okapi.epsilon),
+            "averageDocumentLength": float(okapi.avgdl),
+            "scores": [float(s) for s in okapi.get_scores(query)],
+        })
+
+    return {
+        "metadata": {
+            "library": "rank_bm25",
+            "version": version("rank_bm25"),
+            FAMILY: "search-bm25",
+            "variant": "BM25Okapi: Robertson IDF, negatives floored at epsilon * average_idf",
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
 def generate_stats_ols() -> dict:
     """OLS with the inference table statsmodels prints and MathNet does not have (#566)."""
     import numpy as np
@@ -9359,6 +9488,7 @@ def main() -> None:
         "silhouette.json": generate_silhouette,
         "internal_validity.json": generate_internal_validity,
         "stats_distributions.json": generate_stats_distributions,
+        "search_bm25.json": generate_search_bm25,
         "survival_curves.json": generate_survival_curves,
         "survival_logrank.json": generate_survival_logrank,
         "stats_ols.json": generate_stats_ols,
