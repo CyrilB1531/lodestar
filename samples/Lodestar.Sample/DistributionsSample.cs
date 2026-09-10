@@ -2,7 +2,7 @@ using Lodestar.Stats;
 
 namespace Lodestar.Sample;
 
-/// <summary>The two numbers a regression table prints beside an estimate.</summary>
+/// <summary>The tails a caller holding its own statistic reaches for.</summary>
 internal static class DistributionsSample
 {
     public static void Run()
@@ -18,6 +18,9 @@ internal static class DistributionsSample
 
         // The overall F test of a model with two regressors and twenty residual df.
         Console.WriteLine($"  overall F tail   = {Inv.F5(Distributions.FisherSf(4.0, 2.0, 20.0))}");
+
+        // A log-rank test's p-value, on one degree of freedom.
+        Console.WriteLine($"  log-rank tail    = {Inv.F5(Distributions.ChiSquaredSf(3.84, 1.0))}");
 
         // Far into the tail, where an absolute tolerance would accept a zero.
         Console.WriteLine($"  far tail         = {Inv.E3(Distributions.StudentSf(30.0, 30.0))}");
