@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -966,8 +965,11 @@ internal static class ReferenceDocumentation
             return "net10.0";
         }
 
-        Match version = Regex.Match(name, @"Version=v(?<version>\d+\.\d+)");
-        return version.Success ? $"netstandard{version.Groups["version"].Value}" : "netstandard2.0";
+        // Parsed rather than matched: the attribute's shape is fixed (".NETStandard,Version=v2.1"),
+        // and a regex here would be compiled once per test project that links this file.
+        const string marker = "Version=v";
+        int at = name.IndexOf(marker, StringComparison.Ordinal);
+        return at < 0 ? "netstandard2.0" : $"netstandard{name[(at + marker.Length)..]}";
     }
 
     /// <summary>Every (namespace, page) pair a package declares covered.</summary>

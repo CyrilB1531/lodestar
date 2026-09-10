@@ -91,8 +91,11 @@ public sealed class DeviceTextBlock : IDisposable
 
         offsets[texts.Count] = at;
         Accelerator accelerator = context.Accelerator;
-        MemoryBuffer1D<byte, Stride1D.Dense> deviceSymbols =
-            accelerator.Allocate1D(symbols.Length == 0 ? new byte[1] : symbols);
+        // Same measured reason as DeviceTokenHashes: ILGPU's array overload throws on a
+        // zero-length array where the length overload returns an empty buffer.
+        MemoryBuffer1D<byte, Stride1D.Dense> deviceSymbols = symbols.Length == 0
+            ? accelerator.Allocate1D<byte>(0)
+            : accelerator.Allocate1D(symbols);
         MemoryBuffer1D<int, Stride1D.Dense> deviceOffsets = accelerator.Allocate1D(offsets);
         return new DeviceTextBlock(deviceSymbols, deviceOffsets, texts.Count, alphabet);
     }

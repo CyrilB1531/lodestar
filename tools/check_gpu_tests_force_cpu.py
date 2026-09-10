@@ -63,33 +63,44 @@ def enclosing(text: str, position: int) -> str:
     return name
 
 
+def sources(suite: pathlib.Path) -> list[pathlib.Path]:
+    """The suite's own sources. obj/ and bin/ hold generated copies of the same files."""
+    return [source for source in sorted(suite.rglob("*.cs"))
+            if "obj" not in source.parts and "bin" not in source.parts]
+
+
+def findings_in(source: pathlib.Path) -> list[str]:
+    """Every bare Create() in one file, named by the member that holds it."""
+    found: list[str] = []
+    text = source.read_text(encoding="utf-8")
+    for call in CREATE.finditer(text):
+        if "preferCpu" in call.group("arguments"):
+            continue
+
+        member = enclosing(text, call.start())
+        if member in EXEMPT:
+            continue
+
+        line = text.count("\n", 0, call.start()) + 1
+        found.append(
+            f"{source.relative_to(ROOT)}:{line}: {member} opens a context without "
+            f"preferCpu: true, so it uses whatever device the machine has. Pass "
+            f"preferCpu: true, or add the test to EXEMPT in "
+            f"tools/check_gpu_tests_force_cpu.py with the reason its subject is "
+            f"the preferred device.")
+
+    return found
+
+
 def findings() -> list[str]:
     """Every bare Create() outside the exemptions, so one fix does not hide the next."""
-    found: list[str] = []
     suites = sorted(SUITES.glob(PATTERN))
     if not suites:
         return [f"tests/: no {PATTERN} directory, so this guard is watching nothing."]
 
-    for suite in suites:
-        for source in sorted(suite.rglob("*.cs")):
-            if "obj" in source.parts or "bin" in source.parts:
-                continue
-            text = source.read_text(encoding="utf-8")
-            for call in CREATE.finditer(text):
-                if "preferCpu" in call.group("arguments"):
-                    continue
-                member = enclosing(text, call.start())
-                if member in EXEMPT:
-                    continue
-                line = text.count("\n", 0, call.start()) + 1
-                found.append(
-                    f"{source.relative_to(ROOT)}:{line}: {member} opens a context without "
-                    f"preferCpu: true, so it uses whatever device the machine has. Pass "
-                    f"preferCpu: true, or add the test to EXEMPT in "
-                    f"tools/check_gpu_tests_force_cpu.py with the reason its subject is "
-                    f"the preferred device.")
-
-    return found
+    return [finding for suite in suites
+            for source in sources(suite)
+            for finding in findings_in(source)]
 
 
 def main() -> int:

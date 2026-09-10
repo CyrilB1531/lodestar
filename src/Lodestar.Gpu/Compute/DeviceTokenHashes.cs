@@ -70,11 +70,19 @@ public sealed class DeviceTokenHashes : IDisposable
 
         offsets[documents.Count] = at;
         Accelerator accelerator = context.Accelerator;
-        return new DeviceTokenHashes(
-            accelerator.Allocate1D(flat.Length == 0 ? new uint[1] : flat),
-            accelerator.Allocate1D(offsets),
+        return new DeviceTokenHashes(Upload(accelerator, flat), accelerator.Allocate1D(offsets),
             documents.Count);
     }
+
+    /// <summary>Allocates a buffer for a host array, tolerating an empty one.</summary>
+    /// <remarks>
+    /// Measured: ILGPU's array overload throws a <see cref="NullReferenceException"/> on a
+    /// zero-length array, while the length overload returns an empty buffer. A batch of nothing
+    /// but empty documents reaches the first, so the two cases are separated here rather than
+    /// papered over with a one-element array nothing reads.
+    /// </remarks>
+    private static MemoryBuffer1D<uint, Stride1D.Dense> Upload(Accelerator accelerator, uint[] values) =>
+        values.Length == 0 ? accelerator.Allocate1D<uint>(0) : accelerator.Allocate1D(values);
 
     /// <summary>Frees the two device buffers.</summary>
     public void Dispose()
