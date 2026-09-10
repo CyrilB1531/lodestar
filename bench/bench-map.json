@@ -128,6 +128,9 @@
       "src/Lodestar.Text/Vectorization/**",
       "src/Lodestar.Text/Text/**"
     ],
+    "SurvivalBenchmarks": [
+      "src/Lodestar.Survival/**"
+    ],
     "StatsBenchmarks": [
       "src/Lodestar.Stats/**"
     ],

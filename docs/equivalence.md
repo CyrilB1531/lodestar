@@ -415,6 +415,17 @@ records why these three and no more.
 | `.summary()` | statsmodels | — (no counterpart) | The formatted text block is a presentation concern; every number in it is a property of [`OlsSummary`](reference/stats-regression/ols/olssummary.md). |
 | `sm.WLS`, `sm.GLS`, `.get_robustcov_results("HC3")` | statsmodels | — (no counterpart yet) | Weighted and generalised least squares, and the HC0–HC3 robust covariances, are out of scope for 0.1.0. |
 
+## Lodestar.Survival — survival analysis
+
+Oracled by **`lifelines` 0.30.3 (MIT)** rather than scipy. `scikit-survival` is refused on
+GPL-3.0-or-later — [decision 0099](decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md).
+
+| Python | Library | C# | Differences |
+| --- | --- | --- | --- |
+| `KaplanMeierFitter().fit(d, event_observed=e)` | lifelines | [`KaplanMeier.Estimate(d, e)`](reference/survival/estimators/kaplanmeier-estimate.md) | Right censoring only. Confidence bounds on the **log-log transform**, which is lifelines' default and not the plain Greenwood interval — the latter reaches 1.0067 at `S = 0.857` on 21 subjects. Where the curve reaches zero both bounds collapse to zero, as lifelines reports. Survival and hazard compared absolutely at `1e-12`, bounds **relatively**, because the transform pushes them into the far tail. The critical value is [`Distributions.NormalQuantile`](reference/stats/tails/distributions-normalquantile.md), not a large-`df` Student one ([decision 0098](decisions/0098-the-normal-quantile-is-the-third-member-decision-0095s-rule-publishes.md)). Exact parity (8 samples). |
+| `NelsonAalenFitter().fit(d, event_observed=e)` | lifelines | [`NelsonAalen.Estimate(d, e)`](reference/survival/estimators/nelsonaalen-estimate.md) | The plain estimator, smoothing left off, as the fitter reports by default. **The tie increment is not `d/n`**: with `d` events at one time it is `Σ 1/(n - i)`, so three events among 21 at risk give `0.150251` and not `0.142857`. Shares its step table with Kaplan-Meier by construction. Exact parity (8 samples). |
+| `statistics.logrank_test(dA, dB, event_observed_A=eA, event_observed_B=eB)` | lifelines | [`LogRank.Test(dA, eA, dB, eB)`](reference/survival/estimators/logrank-test.md) | Mantel-Haenszel form with the **hypergeometric variance** under ties, which carries the `(n - d)/(n - 1)` factor a naive implementation drops. The p-value is [`Distributions.ChiSquaredSf`](reference/stats/tails/distributions-chisquaredsf.md) on one degree of freedom rather than a second approximation ([decision 0097](decisions/0097-the-chi-squared-tail-joins-the-published-four.md)). Where no time compares both arms the result is a statistic of zero and a p-value of one rather than an error. Statistic absolutely at `1e-10`, p-value **relatively**. Exact parity (5 comparisons). |
+
 ## Conventions
 
 - **Comparison unit.** Unless stated otherwise, string distances compare `char`

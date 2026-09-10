@@ -74,7 +74,7 @@ FLOORS = (
     Floor("Lodestar.Onnx", "LodestarOnnxVersion", "ONNX_FLOOR",
           ("Lodestar.Extensions.AI",)),
     Floor("Lodestar.Stats", "LodestarStatsVersion", "STATS_FLOOR",
-          ("Lodestar.Stats.Regression",)),
+          ("Lodestar.Stats.Regression", "Lodestar.Survival")),
     Floor("Lodestar.Decomposition", "LodestarDecompositionVersion", "DECOMPOSITION_FLOOR",
           ("Lodestar.Stats.Regression",)),
 )

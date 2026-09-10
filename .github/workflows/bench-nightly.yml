@@ -164,7 +164,7 @@ jobs:
           # Each project is given only the classes it declares, so no run is ever handed
           # a selection it cannot match: a zero-match invocation is the thing being fixed,
           # not a state worth reaching deliberately.
-          for project in bench/Lodestar.Text.Benchmarks bench/Lodestar.Stats.Benchmarks; do
+          for project in bench/Lodestar.Text.Benchmarks bench/Lodestar.Stats.Benchmarks bench/Lodestar.Survival.Benchmarks; do
             filters=""
             while read -r name; do
               [ -n "$name" ] || continue

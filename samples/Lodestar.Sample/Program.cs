@@ -54,6 +54,14 @@ StandardScalerOptionsSample.Run();
 OrdinaryLeastSquaresSample.Run();
 OlsSummarySample.Run();
 OlsOptionsSample.Run();
+
+SurvivalStepSample.Run();
+KaplanMeierSample.Run();
+KaplanMeierCurveSample.Run();
+NelsonAalenSample.Run();
+NelsonAalenCurveSample.Run();
+LogRankSample.Run();
+LogRankResultSample.Run();
 MathNetInteropSample.Run();
 BkTreeSample.Run();
 BkTreeMatchSample.Run();

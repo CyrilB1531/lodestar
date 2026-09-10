@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- This package's version, owned here rather than repository-wide. -->
+  <Import Project="Version.props" />
+
+  <PropertyGroup>
+    <Version>$(LodestarSurvivalVersion)</Version>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+    <RootNamespace>Lodestar.Survival</RootNamespace>
+
+    <PackageId>Lodestar.Survival</PackageId>
+    <Description>Survival analysis for .NET, at lifelines parity: the Kaplan-Meier survival function with Greenwood variance and log-log confidence intervals, the Nelson-Aalen cumulative hazard, and the two-sample log-rank test. Right-censored data, ties handled as the references handle them. Spans in, curves and numbers out, and no dependencies outside Lodestar.</Description>
+    <PackageTags>survival;survival-analysis;kaplan-meier;nelson-aalen;log-rank;censoring;hazard;statistics;lifelines;lodestar</PackageTags>
+  </PropertyGroup>
+
+  <!--
+    One edge, to a core package, and it is real: the log-rank test's p-value is a
+    chi-squared tail, and decision 0097 published exactly that member for this
+    package rather than letting a second far-tail approximation into the tree.
+
+    PackageReference against the published floor, like every other src/ edge, so the
+    build graph is the graph consumers see (decision 0012). The opt-in below exists only
+    so that editing two packages in one branch does not need a pack-and-restore per edit:
+
+        export LodestarUseProjectRefs=true
+
+    It is never set in CI, and the packed .nuspec is asserted there.
+  -->
+  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
+    <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
+    <PackageReference Include="Lodestar.Stats" />
+  </ItemGroup>
+
+  <!-- Loud on purpose: a local build that silently differed from the shipped one
+       is the failure mode this whole arrangement is designed to avoid. -->
+  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
+          Condition="'$(LodestarUseProjectRefs)' == 'true'">
+    <Message Importance="high"
+             Text="Lodestar.Survival: LodestarUseProjectRefs=true — referencing Lodestar.Stats by project, not by package. This is the developer loop, not what ships." />
+  </Target>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lodestar.Survival.Tests" />
+    <!-- Same suite, replayed against the netstandard2.0 build. -->
+    <InternalsVisibleTo Include="Lodestar.Survival.NetStandard.Tests" />
+  </ItemGroup>
+
+</Project>
