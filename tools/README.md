@@ -20,6 +20,8 @@ given:
   keeps in three places still agree.
 - `check_requirements_lock_sync.py` refuses a `requirements.txt` pin that
   `requirements.lock.txt` has never heard of, which is what CI installs from.
+- `check_gpu_tests_force_cpu.py` refuses a `Lodestar.Gpu` test that uses whatever
+  accelerator the machine happens to have.
 - `check_netstandard_guards.py` refuses a netstandard2.0 mirror that carries no
   assembly guard, or that leaves one of its library's Lodestar dependencies
   unpinned and therefore loaded from net10.0.
@@ -327,6 +329,28 @@ Three things it deliberately leaves alone:
 A dependency `requirements.txt` declares without pinning is reported rather than
 skipped: it cannot be compared against a lock, and silence would make the guard weaker
 than it looks.
+
+## `check_gpu_tests_force_cpu.py`
+
+`Lodestar.Gpu`'s suites run in CI on a runner with no graphics hardware, and
+`GpuContext.Create()` falls back to the CPU accelerator rather than throwing.
+
+```bash
+python tools/check_gpu_tests_force_cpu.py   # offline, instant
+```
+
+**That fallback is deliberate and it is also the trap.** A test written with a bare
+`Create()` passes on a developer machine *using the GPU* and passes on the runner *using
+the processor*, so the suite silently asserts different things in different places.
+Nothing else catches it: both outcomes are green, the difference is invisible in a log,
+and what it hides is the class of bug that only appears on a card — a group size, a
+memory limit, a synchronisation the CPU accelerator happens to serialise.
+
+So a correctness test passes `preferCpu: true`, and the few whose subject *is* the
+preferred device are named in the script's `EXEMPT` set with the reason. Benchmarks are
+deliberately out of scope: their whole purpose is the device a machine actually has, and
+[decision 0102](../docs/decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md)
+requires them to report which one produced a figure rather than to force one.
 
 ## `generate_sonar_globalconfig.py`
 
