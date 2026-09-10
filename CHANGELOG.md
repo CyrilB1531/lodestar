@@ -5,12 +5,12 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The fourteen packages (`Lodestar.Text`, `Lodestar.Embeddings`, `Lodestar.Fuzzy`,
+The sixteen packages (`Lodestar.Text`, `Lodestar.Embeddings`, `Lodestar.Fuzzy`,
 `Lodestar.Metrics` — published as `DataNet.*` up to 2026-08-15 — plus
 `Lodestar.Conformal`, `Lodestar.Abstractions`, `Lodestar.Decomposition`,
 `Lodestar.Onnx`, `Lodestar.Stats`, `Lodestar.Extensions.AI`,
-`Lodestar.Extensions.MathNet`, `Lodestar.Preprocessing`, `Lodestar.Cluster` and
-`Lodestar.Stats.Regression`, all newer than
+`Lodestar.Extensions.MathNet`, `Lodestar.Preprocessing`, `Lodestar.Cluster`,
+`Lodestar.Stats.Regression`, `Lodestar.Survival` and `Lodestar.Gpu`, all newer than
 that rename)
 version and release **independently**, each from its own
 `src/<Package>/Version.props`, so entries are grouped per package. Releases up to
@@ -24,7 +24,40 @@ is one sentence, the issue and the commit; see
 
 ## [Unreleased]
 
-### Lodestar.Gpu
+## Released — 2026-09-10
+
+Thirteen cuts across eleven packages, and the end of milestone 0.6.0 — thirty-three
+issues, the last of them [#444](https://github.com/CyrilB1531/lodestar/issues/444), with
+the [#427](https://github.com/CyrilB1531/lodestar/issues/427) roadmap going out alongside
+it. Seven of the thirteen are a package's first release, which takes the repository from
+nine published packages to sixteen: `Lodestar.Gpu`, `Lodestar.Survival`,
+`Lodestar.Stats.Regression`, `Lodestar.Cluster`, `Lodestar.Preprocessing`,
+`Lodestar.Extensions.AI` and `Lodestar.Extensions.MathNet`.
+
+`Lodestar.Embeddings` 0.7.0 is a **minor** bump and not a patch, because it carries a data
+break: a `normalized: true` added token now matches on the pattern its normalizer makes, so
+**Llama-2 ids change** — an embedding produced through that lineage by 0.6.0 carries an
+extra `▁` and has to be regenerated. The version number is where a caller who reads nothing
+else will see that, which is why the fix did not go out as 0.6.1.
+
+`Lodestar.Stats` appears three times on one date, and that is
+[decision 0095](docs/decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)'s
+rule in practice rather than three changes of mind: it published four members and wrote
+that publishing later is always available, so the chi-squared tail (0.3.0) and the normal
+quantile (0.4.0) each went out when a caller asked for it. `src/` reaches its neighbours
+through published packages, so each of those numbers is what stood between a caller and its
+floor — 0.2.0 for `Lodestar.Stats.Regression`, 0.4.0 for `Lodestar.Survival`.
+
+`Lodestar.Text` 0.6.0 is the largest cut this package has had: nine Snowball languages,
+Double Metaphone, BM25 with reciprocal rank fusion, and the MinHash, SimHash and LSH
+sketches — twelve entries, which is what
+[#176](https://github.com/CyrilB1531/lodestar/issues/176)'s nine languages plus two new
+namespaces come to. It is also a floor something is waiting on —
+[#526](https://github.com/CyrilB1531/lodestar/issues/526) pulled `Process.ExtractIndexed`
+back out until this version existed, and #444's MinHash kernel could not reference an
+algorithm no published package carried.
+
+### Lodestar.Gpu — 0.1.0
 
 #### Added
 
@@ -34,37 +67,37 @@ is one sentence, the issue and the commit; see
 
 - **The CPU accelerator is forced in CI, and a guard keeps it that way.** The substance was already in place — both GPU suites are in `Lodestar.slnx`, so `dotnet test` runs them on a runner with no card — and what was missing was the thing that notices when it stops being true. `GpuContext.Create()` falls back to ILGPU's CPU accelerator rather than throwing, which is deliberate and is also the trap: **a test written with a bare `Create()` is green on a developer machine using the GPU and green on the runner using the processor**, so the suite silently asserts different things in each place. Nothing else catches that — both outcomes pass, the difference is invisible in a log, and what it hides is the class of defect that only appears on a card, a group size or a synchronisation the CPU accelerator happens to serialise. `tools/check_gpu_tests_force_cpu.py` reads every `GpuContext.Create` call in the suites and names the member that omitted `preferCpu: true`, with an `EXEMPT` set for the one test whose subject *is* the preferred device. Benchmarks are out of scope on purpose: their whole point is the device a machine actually has, and [decision 0102](docs/decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md) requires them to report which one produced a figure rather than to force one. Ten tests, including the proof that the guard fires on a bare call and that a build output under `obj/` does not double every finding. ([#444](https://github.com/CyrilB1531/lodestar/issues/444))
 
-### Lodestar.Embeddings
+### Lodestar.Embeddings — 0.7.0
 
 #### Fixed
 
 - **A special token written as ordinary text no longer encodes two ways on Llama-2, and no longer becomes a control token in the middle of a sentence.** `tokenizers` normalizes a `normalized: true` added token's **content** with the file's declared normalizer, so Llama-2 — whose whitespace escape is a `Prepend`+`Replace` normalizer — matches on `▁<s>`, not `<s>`. `BpeTokenizer` built that pattern from the Unicode forms alone while escaping the text it searched, which parted two ways: `"<s>"` encoded to `['▁', '<s>']` where the reference answers the single id `1`, and `"the cat<s>"` matched the added token where the reference does **not** — so a caller's own `<s>` silently became the BOS id. The escape now joins the pattern only where the file spelled it as a normalizer; Mistral v0.1, which declares its entries raw under a `Metaspace` pre-tokenizer, is unchanged and was already exact. A `Metaspace` pre-tokenizer carrying a `normalized: true` entry is refused at construction rather than approximated — the escape would depend on the piece's position, which a fixed pattern cannot carry. [Decision 0085](docs/decisions/0085-a-normalized-added-tokens-pattern-carries-the-normalizers-escape.md) amends [0062](docs/decisions/0062-the-two-metaspace-spellings-part-on-the-prepend-twice.md) with the third place the two spellings part, and `sentencepiece_bpe_lineage.json` grows from 16 rows to 26, freezing the five texts [#318](https://github.com/CyrilB1531/lodestar/issues/318) had taken out rather than settle. **Llama-2 ids change**: an embedding produced through this lineage by 0.6.0 carries the extra `▁` and must be regenerated. ([#551](https://github.com/CyrilB1531/lodestar/issues/551))
 
-### Lodestar.Extensions.AI
+### Lodestar.Extensions.AI — 0.1.0
 
 #### Added
 
 - **`Lodestar.Extensions.AI` 0.1.0 — the ONNX embedding path, behind `Microsoft.Extensions.AI`'s own interface.** `OnnxEmbeddingGenerator` implements `IEmbeddingGenerator<string, Embedding<float>>` over an `OnnxTextEmbedder` and a `BatchEncoder`, so a Semantic Kernel pipeline or any `Microsoft.Extensions.AI` chain can hold Lodestar embeddings without knowing Lodestar. It adds **no arithmetic**: every vector is what `OnnxTextEmbedder.EmbedBatch` returned for that text, which is why the suite asserts identity with that overload exactly rather than within a tolerance, and why this package carries no oracle corpus of its own. It is the **second satellite**, and it exists rather than being a second dependency on `Lodestar.Onnx` because [decision 0076](docs/decisions/0076-a-core-package-carries-no-external-dependency.md) says an external dependency earns its own package named for it — so a caller who wants inference and not the AI abstractions still restores nothing extra. Three things are stated rather than left to be discovered: the returned task is **already completed**, since the model runs in the calling process and `Task.Run` would move the same CPU without telling the caller anything true; `EmbeddingGenerationOptions.Dimensions` is **checked, not honoured**, because an ONNX model's width is fixed at export, and a width the model provably does not produce is refused instead of silently ignored; and the generator **takes ownership** of the embedder, because `IEmbeddingGenerator` is `IDisposable` and a consumer holding it through the interface cannot see that disposing would otherwise leave a native session open. `GetService` answers for the metadata, for the generator itself, and for the underlying `OnnxTextEmbedder` — the only way to reach the single-sequence entry point through an interface that has no shape for it. ([#570](https://github.com/CyrilB1531/lodestar/issues/570))
 
-### Lodestar.Extensions.MathNet
+### Lodestar.Extensions.MathNet — 0.1.0
 
 #### Added
 
 - **`Lodestar.Extensions.MathNet` 0.1.0 — `CsrMatrix` to and from Math.NET's sparse matrix, in one pass over the stored values.** `MathNetInterop.ToSparseMatrix` and `MathNetInterop.ToCsrMatrix` move the three compressed-row arrays rather than visiting `rows x columns` cells, because both sides store a matrix the same way and both expose it; neither result shares an array with its source, since Math.NET's storage is mutable through `At`. The dense pair is deliberately absent: `CsrMatrix.ToDense()` already returns a `double[,]` and Math.NET builds a `DenseMatrix` from one unaided, so the sparse pair is the one conversion neither side can do for itself. **The conversion sorts.** `CsrMatrix` validates four things and the order of column indices within a row is not among them, while Math.NET reaches a cell by searching that row — so a hand-built matrix handed over unsorted would convert without complaint and then answer zero for values it holds. Each row is sorted and duplicate columns are added together, after a pass that detects the already-sorted case and copies straight through, which is what every vectorizer here produces. [Decision 0089](docs/decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md) records that, and two things beside it: the interop family is now `Lodestar.Extensions.*` — so `Lodestar.Extensions.AI` becomes an instance of a convention rather than a one-off — and an interop satellite **may** take a dependency a core package refused, because converting to a caller's own types is not the same decision as computing with them. `Lodestar.Decomposition`'s refusal of Math.NET stands unchanged, re-measured on 2026-09-09: 5.0.0 is still the only stable release, dated 2022-04-03. ([#571](https://github.com/CyrilB1531/lodestar/issues/571))
 
-### Lodestar.Preprocessing
+### Lodestar.Preprocessing — 0.1.0
 
 #### Added
 
 - **`Lodestar.Preprocessing` 0.1.0 — `StandardScaler`, at scikit-learn parity, with spans instead of an `IDataView`.** `Fit` takes a row-major span and a feature count — the shape `Lodestar.Metrics` already uses — and returns a scaler whose `Mean`, `Variance` and `Scale` are readable and **nullable exactly where the reference reports `None`**: `with_mean=False` still fits a mean, and only turning both steps off drops it. `Transform` and `InverseTransform` return new arrays and never write to the input. **A near-constant feature scales by 1, and the test is not `variance == 0`**: scikit-learn compares the variance against the two-pass error bound of Chan, Golub and LeVeque, `var <= n·eps·var + (n·mean·eps)²`, so a feature with a large mean and a tiny variance is constant to within what the computation could resolve. `tests/oracles/preprocessing_standard_scaler.json` freezes eight cases against scikit-learn 1.9.0, including the pair that separates the two readings — `1e8 ± 1e-8`, whose variance is `1.48e-16` and whose scale is 1, against `1e8 ± 1e-7`, scaled by `8.5e-08`. An implementation testing `variance == 0` passes every other case and fails those two by eight orders of magnitude. The threshold is read from `sklearn.preprocessing._data._is_constant_feature` (BSD-3, allowed by [decision 0003](docs/decisions/0003-provenance-and-licensing.md)) and attributed in the source: the papers give the error analysis, not the number. Core tier — no external dependency, no inter-package edge. ([#568](https://github.com/CyrilB1531/lodestar/issues/568))
 
-### Lodestar.Cluster
+### Lodestar.Cluster — 0.1.0
 
 #### Added
 
 - **`Lodestar.Cluster` 0.1.0 — k-means by Lloyd's algorithm, at scikit-learn parity, with the starting centres as an input.** `KMeans.Fit` takes a row-major span and returns `Centres`, `Labels`, `Inertia` and `Iterations`, the four things scikit-learn reports; `Predict` assigns unseen rows without refitting. `Labels` is the shape `Lodestar.Metrics` already scores, so a clustering arrives with silhouette, adjusted Rand, AMI and V-measure on day one rather than needing them built — which is the argument [#442](https://github.com/CyrilB1531/lodestar/issues/442) made for this domain, and it held. The loop is the reference's: assign, update, stop on unchanged labels or on a centre shift within the tolerance, and when it stops on the shift a final assignment runs so `Labels` matches `Centres` rather than trailing one update behind. `Tolerance` is scaled by the mean feature variance, as `_tolerance` scales it, so the same number means the same thing at any scale. An empty cluster is relocated onto the sample furthest from its own centre. **`KMeansOptions.InitialCentres` is an input, not a seed** — [decision 0072](docs/decisions/0072-omega-is-an-input-not-a-seed.md)'s move, applied here: given a starting block the run is an ordinary parity target, and `tests/oracles/cluster_kmeans.json` compares every centre, label, inertia and iteration count across eight cases rather than comparing distributions. Left alone, k-means++ draws from this package's own generator and reproduces a run of Lodestar, never one of scikit-learn. **One measured divergence, and it is recorded rather than papered over**: a sample exactly equidistant from two centres takes the lowest-indexed one here, where the reference was observed choosing the second on one configuration and the first on another; [decision 0093](docs/decisions/0093-an-exact-tie-between-centres-is-not-part-of-k-means-parity.md) has both, and the two corpus fixtures that hinged on a tie were replaced so no frozen case rests on a convention. Core tier — no external dependency, no inter-package edge. ([#567](https://github.com/CyrilB1531/lodestar/issues/567))
 
-### Lodestar.Stats.Regression
+### Lodestar.Stats.Regression — 0.1.0
 
 #### Changed
 
@@ -74,15 +107,7 @@ is one sentence, the issue and the commit; see
 
 - **A fourteenth package: ordinary least squares with the table that makes it inference.** `OrdinaryLeastSquares.Fit` takes a row-major design and a response and returns an `OlsSummary` carrying the coefficients, their standard errors, t statistics, two-sided p-values and confidence intervals at a stated level, alongside R-squared and its adjusted form, the overall *F* and its p-value, the residual standard error and degrees of freedom, and a variance inflation factor per regressor — at `statsmodels` 0.15.0 parity, replayed over six frozen cases and compared **relatively**, as [decision 0081](docs/decisions/0081-the-stats-numerical-layer-stays-internal.md) established for p-values. Solved through the Householder QR `Lodestar.Decomposition` 0.2.0 publishes rather than the normal equations, whose `XᵀX` squares the condition number of exactly the near-collinear designs a VIF exists to report; the tails come from `Lodestar.Stats` 0.2.0. Core tier holds: two Lodestar edges and nothing external. **The #427 protocol was run before the code, and it replaced the gap claim rather than confirming it** — read through a `MetadataLoadContext`, `Accord.Statistics` 3.8.0 exports the whole inference table and has been archived under LGPL-2.1 since 2017, while `MathNet.Numerics` 5.0.0 carries coefficient standard errors only in `Optimization.NonlinearMinimizationResult`, for the non-linear minimisers, unreachable from `LinearRegression` and followed by no t, no p-value, no interval, no adjusted R-squared, no *F* and no VIF across 5 333 exported members. [Decision 0096](docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md) has the reading, and records that **`statsmodels` 0.15.0 changed what a VIF is**: `standardize=True` centres and scales each column before the auxiliary regression, which is a no-op with an intercept and moves the no-intercept answer from `87.43` to `21.0`. One divergence, in `docs/equivalence.md`: a single regressor with no intercept leaves the auxiliary design empty, where the reference raises and this reports `NaN`. ([#566](https://github.com/CyrilB1531/lodestar/issues/566))
 
-### Lodestar.Stats
-
-#### Added
-
-- **`Distributions.ChiSquaredSf` joins the four tails `Lodestar.Stats` already publishes.** [Decision 0095](docs/decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md) published four members and wrote that *publishing later is always available*; [#569](https://github.com/CyrilB1531/lodestar/issues/569)'s log-rank test is the second caller to ask, so [decision 0097](docs/decisions/0097-the-chi-squared-tail-joins-the-published-four.md) applies that rule rather than amending it. The member is the same tail `ChiSquare.GoodnessOfFit` and `ChiSquare.Contingency` already report, so a statistic routed either way gives the same p-value to the last bit — asserted by a test, and the reason re-deriving a tail inside the new package was refused on [decision 0081](docs/decisions/0081-the-stats-numerical-layer-stays-internal.md)'s own ground. Unlike the three before it, **`x` is not validated**: the distribution has no mass below zero, so a non-positive statistic returns one instead of surfacing an internal helper's parameter name from a public method. Six cases join `tests/oracles/stats_distributions.json`, reaching `7.7e-26` and compared relatively. Everything else in the numerical layer stays internal. ([#569](https://github.com/CyrilB1531/lodestar/issues/569))
-
-- **`Distributions.NormalQuantile` joins them, and `Lodestar.Stats` reaches 0.4.0.** [#569](https://github.com/CyrilB1531/lodestar/issues/569)'s Kaplan-Meier confidence bounds are built on the log-log transform of the estimate, and their multiplier is `scipy.stats.norm.ppf`. The obvious way to avoid publishing anything — a Student quantile at a very large degrees of freedom, which is already public — was tried and **measured**: its accuracy has an optimum near 1e8 degrees of freedom and a floor around **9e-9**, because below that the convergence to the normal is incomplete and above it the bisection loses more than it gains. The transform amplifies that into the seventh digit of a bound, past the `1e-9` the corpora compare at, and the frozen corpus is what caught it. This member answers to about `1e-15`. Two details carry over from publishing `StudentQuantile`: it is the **quantile, not the inverse survival function**, so the published member negates the internal helper — symmetry, not a correction — and the median returns **positive** zero rather than `-0`. A test pins the substitute's failure alongside the member's success, so the measurement cannot rot silently. Everything else in the numerical layer stays internal ([decision 0098](docs/decisions/0098-the-normal-quantile-is-the-third-member-decision-0095s-rule-publishes.md)). ([#569](https://github.com/CyrilB1531/lodestar/issues/569))
-
-### Lodestar.Survival
+### Lodestar.Survival — 0.1.0
 
 #### Added
 
@@ -91,23 +116,6 @@ is one sentence, the issue and the commit; see
   **Core tier holds**: one Lodestar edge, to `Lodestar.Stats` 0.4.0 for the two members [decision 0097](docs/decisions/0097-the-chi-squared-tail-joins-the-published-four.md) and [decision 0098](docs/decisions/0098-the-normal-quantile-is-the-third-member-decision-0095s-rule-publishes.md) published for it, and nothing external.
 
   **There is no incumbent to compare against, and that is recorded rather than assumed.** A NuGet search on 2026-09-09 returned 0 packages for `survival analysis` and 0 for `kaplan meier`, so [decision 0099](docs/decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md) discharges [ADR 0074](docs/decisions/0074-the-phase-2-gaps-restated-on-what-the-packages-export.md)'s protocol by recording the searches — there was no assembly to read through a `MetadataLoadContext` — and `bench/README.md` section 20 is that absence rather than a blank. **`scikit-survival` is refused** on GPL-3.0-or-later per [decision 0003](docs/decisions/0003-provenance-and-licensing.md); `lifelines` 0.30.3 is MIT, read from the wheel because `autograd` and `autograd-gamma` both report `License: UNKNOWN` in legacy metadata. Adding it drops `pandas` to 2.3.3 with **all 127 corpora unmoved**, and pins `autograd-gamma` to 0.4.2 because 0.5.0 ships no wheel. Replays `tests/oracles/survival_curves.json` (8 samples) and `survival_logrank.json` (5 comparisons), with ties on purpose in half of them. ([#569](https://github.com/CyrilB1531/lodestar/issues/569))
-
-## Released — 2026-09-10
-
-Three bumps. Two are the numerical members
-[decision 0095](docs/decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)
-published so that `Lodestar.Stats.Regression` could floor on them — `src/` reaches its
-neighbours through published packages, so that pair is what stands between the two pull
-requests [#566](https://github.com/CyrilB1531/lodestar/issues/566) needed.
-
-The third is `Lodestar.Text` 0.6.0, and it is the largest cut this package has had: nine
-Snowball languages, Double Metaphone, BM25 with reciprocal rank fusion, and the MinHash,
-SimHash and LSH sketches — twelve entries, which is what
-[#176](https://github.com/CyrilB1531/lodestar/issues/176)'s nine languages plus two new
-namespaces come to. It is also a floor something is waiting on —
-[#526](https://github.com/CyrilB1531/lodestar/issues/526) pulled `Process.ExtractIndexed`
-back out until this version existed, and [#444](https://github.com/CyrilB1531/lodestar/issues/444)'s
-MinHash kernel cannot reference an algorithm no published package carries.
 
 ### Lodestar.Text — 0.6.0
 
@@ -142,6 +150,18 @@ MinHash kernel cannot reference an algorithm no published package carries.
 #### Added
 
 - **`Distributions` publishes three tails, and no more.** `StudentSf`, `StudentQuantile` and `FisherSf` are what an OLS table needs — a p-value per coefficient, a multiplier per interval, and the overall *F* — and they become public so `Lodestar.Stats.Regression` can reach them rather than carry a second copy. [Decision 0081](docs/decisions/0081-the-stats-numerical-layer-stays-internal.md) kept this layer internal and named the condition for changing that; [decision 0095](docs/decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md) exercises it and holds the line at four members: the log-gamma, the incomplete beta and gamma, the normal tail and the Kolmogorov machinery stay internal. **Paying 0081's stated price found a defect.** It asked for "a corpus at the tolerance a general-purpose caller would need, not the one the ten tests above it happen to need" — and that corpus, reaching `3.1e-24` and compared relatively, showed that the internal `Beta.StudentQuantile` solves `P(T > x) = p` and therefore carries the **opposite sign to a quantile**. Nothing internal noticed, because its one caller wanted exactly that; published unchanged it would have handed a reader `-2.1788` where every table prints `+2.1788`, and an interval built on it would have been reflected through its own estimate. `Distributions.StudentQuantile` publishes `scipy.stats.t.ppf`'s meaning, and the negation is the distribution's symmetry rather than a correction. ([#566](https://github.com/CyrilB1531/lodestar/issues/566))
+
+### Lodestar.Stats — 0.3.0
+
+#### Added
+
+- **`Distributions.ChiSquaredSf` joins the four tails `Lodestar.Stats` already publishes.** [Decision 0095](docs/decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md) published four members and wrote that *publishing later is always available*; [#569](https://github.com/CyrilB1531/lodestar/issues/569)'s log-rank test is the second caller to ask, so [decision 0097](docs/decisions/0097-the-chi-squared-tail-joins-the-published-four.md) applies that rule rather than amending it. The member is the same tail `ChiSquare.GoodnessOfFit` and `ChiSquare.Contingency` already report, so a statistic routed either way gives the same p-value to the last bit — asserted by a test, and the reason re-deriving a tail inside the new package was refused on [decision 0081](docs/decisions/0081-the-stats-numerical-layer-stays-internal.md)'s own ground. Unlike the three before it, **`x` is not validated**: the distribution has no mass below zero, so a non-positive statistic returns one instead of surfacing an internal helper's parameter name from a public method. Six cases join `tests/oracles/stats_distributions.json`, reaching `7.7e-26` and compared relatively. Everything else in the numerical layer stays internal. ([#569](https://github.com/CyrilB1531/lodestar/issues/569))
+
+### Lodestar.Stats — 0.4.0
+
+#### Added
+
+- **`Distributions.NormalQuantile` joins them, and `Lodestar.Stats` reaches 0.4.0.** [#569](https://github.com/CyrilB1531/lodestar/issues/569)'s Kaplan-Meier confidence bounds are built on the log-log transform of the estimate, and their multiplier is `scipy.stats.norm.ppf`. The obvious way to avoid publishing anything — a Student quantile at a very large degrees of freedom, which is already public — was tried and **measured**: its accuracy has an optimum near 1e8 degrees of freedom and a floor around **9e-9**, because below that the convergence to the normal is incomplete and above it the bisection loses more than it gains. The transform amplifies that into the seventh digit of a bound, past the `1e-9` the corpora compare at, and the frozen corpus is what caught it. This member answers to about `1e-15`. Two details carry over from publishing `StudentQuantile`: it is the **quantile, not the inverse survival function**, so the published member negates the internal helper — symmetry, not a correction — and the median returns **positive** zero rather than `-0`. A test pins the substitute's failure alongside the member's success, so the measurement cannot rot silently. Everything else in the numerical layer stays internal ([decision 0098](docs/decisions/0098-the-normal-quantile-is-the-third-member-decision-0095s-rule-publishes.md)). ([#569](https://github.com/CyrilB1531/lodestar/issues/569))
 
 ### Lodestar.Decomposition — 0.2.0
 

@@ -48,6 +48,13 @@ given:
   set, and the inter-package edge count against
   `check_nuspec_dependencies.py`'s `EXPECTED`. The *Holds* column is prose and is
   deliberately not checked.
+- `check_release_workflow_packages.py` refuses a release workflow whose hard-coded
+  package list has drifted from `src/`. `release-nuget-org.yml`'s `options:` and
+  `release.yml`'s `case` allow-list must each name every `src/Lodestar.*` holding a
+  `Version.props`, and may name nothing else; four packages were missing from both
+  until #610, so a third of the 0.6.0 milestone could not be published. It also
+  refuses a `case` pattern wrapped with a backslash, which keeps the next line's
+  indentation instead of joining the alternatives. Order is not compared.
 - All of those but `check_nuspec_dependencies.py`, which needs a packed
   `./artifacts`, also run before a commit for whoever installs
   `.githooks/pre-commit` with `git config core.hooksPath .githooks` —
