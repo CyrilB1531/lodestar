@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- This package's version, owned here rather than repository-wide. -->
+  <Import Project="Version.props" />
+
+  <PropertyGroup>
+    <!--
+      net10.0 alone, and the only package here that does not ship netstandard2.0.
+      ILGPU publishes no netstandard2.0 asset, so the target is absent upstream
+      rather than a gap a polyfill could close — and no polyfill produces an
+      accelerator (decision 0101). net10.0 rather than the net8.0 #444 proposed:
+      ILGPU's newest asset is net7.0 and both consume it identically, so a second
+      target framework would add a matrix dimension ILGPU does not distinguish.
+    -->
+    <TargetFramework>net10.0</TargetFramework>
+    <Version>$(LodestarGpuVersion)</Version>
+    <RootNamespace>Lodestar.Gpu</RootNamespace>
+
+    <PackageId>Lodestar.Gpu</PackageId>
+    <Description>GPU kernels for Lodestar over ILGPU: a device-resident embedding matrix swept by a batch of queries, with cosine similarity and top-k computed on the accelerator. Additive — no Lodestar package depends on this one, so the SIMD path stays complete on every target framework.</Description>
+    <PackageTags>gpu;gpgpu;ilgpu;cuda;opencl;cosine-similarity;top-k;knn;embeddings;lodestar</PackageTags>
+  </PropertyGroup>
+
+  <!-- The dependency this package exists for. A core package carries none, so
+       ILGPU earns its own satellite (decision 0076). NCSA-licensed, read from
+       LICENSE.txt inside the package because no SPDX expression is declared. -->
+  <ItemGroup>
+    <PackageReference Include="ILGPU" />
+  </ItemGroup>
+
+  <!--
+    No Lodestar edge, deliberately, and not only because kernel 1 needs none: an
+    edge inwards is forbidden by decision 0101, and every edge outwards is a floor
+    on a published sibling that this package would have to carry for one kernel.
+    Kernels take spans and dimensions; the callers that own Lodestar types adapt.
+  -->
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lodestar.Gpu.Tests" />
+  </ItemGroup>
+
+</Project>

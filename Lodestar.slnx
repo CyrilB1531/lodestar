@@ -15,6 +15,7 @@
     <Project Path="src/Lodestar.Fuzzy/Lodestar.Fuzzy.csproj" />
     <Project Path="src/Lodestar.Metrics/Lodestar.Metrics.csproj" />
     <Project Path="src/Lodestar.Preprocessing/Lodestar.Preprocessing.csproj" />
+    <Project Path="src/Lodestar.Gpu/Lodestar.Gpu.csproj" />
     <Project Path="src/Lodestar.Onnx/Lodestar.Onnx.csproj" />
     <Project Path="src/Lodestar.Stats.Regression/Lodestar.Stats.Regression.csproj" />
     <Project Path="src/Lodestar.Survival/Lodestar.Survival.csproj" />
@@ -41,6 +42,7 @@
     <Project Path="tests/Lodestar.Metrics.Tests/Lodestar.Metrics.Tests.csproj" />
     <Project Path="tests/Lodestar.Preprocessing.NetStandard.Tests/Lodestar.Preprocessing.NetStandard.Tests.csproj" />
     <Project Path="tests/Lodestar.Preprocessing.Tests/Lodestar.Preprocessing.Tests.csproj" />
+    <Project Path="tests/Lodestar.Gpu.Tests/Lodestar.Gpu.Tests.csproj" />
     <Project Path="tests/Lodestar.Onnx.NetStandard.Tests/Lodestar.Onnx.NetStandard.Tests.csproj" />
     <Project Path="tests/Lodestar.Onnx.Tests/Lodestar.Onnx.Tests.csproj" />
     <Project Path="tests/Lodestar.Stats.Regression.NetStandard.Tests/Lodestar.Stats.Regression.NetStandard.Tests.csproj" />

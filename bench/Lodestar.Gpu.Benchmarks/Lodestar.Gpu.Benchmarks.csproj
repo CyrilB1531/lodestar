@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- BenchmarkDotNet requires an optimized, non-debug build to run. -->
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+  </ItemGroup>
+
+  <!--
+    Lodestar.Embeddings and Lodestar.Abstractions are the baselines, not dependencies
+    of the package: decision 0102 prices a kernel against this repository's own CPU
+    path in the same process, and decision 0101 forbids those edges inside src/.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/Lodestar.Gpu/Lodestar.Gpu.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Embeddings/Lodestar.Embeddings.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

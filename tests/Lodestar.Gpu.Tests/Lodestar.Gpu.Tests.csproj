@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    net10.0 only, like the package it tests, and with no netstandard2.0 mirror:
+    ILGPU publishes no netstandard2.0 asset, so there is nothing to mirror
+    (decision 0101). tools/check_netstandard_guards.py iterates the mirrors that
+    exist and would report nothing, which is why the absence is written down.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <!--
+    Lodestar.Embeddings and Lodestar.Abstractions are referenced by the *tests*,
+    never by src/Lodestar.Gpu: decision 0101 forbids an edge into this package, and
+    this suite's job is to prove each kernel agrees with the CPU path it replaces
+    (EmbeddingIndex.Search, CsrMatrix.Multiply), which means having both in one
+    process.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/Lodestar.Gpu/Lodestar.Gpu.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Embeddings/Lodestar.Embeddings.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

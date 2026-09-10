@@ -73,6 +73,8 @@ CLUSTER = "Lodestar.Cluster"
 ONNX = "Lodestar.Onnx"
 EXTENSIONS_AI = "Lodestar.Extensions.AI"
 EXTENSIONS_MATHNET = "Lodestar.Extensions.MathNet"
+GPU = "Lodestar.Gpu"
+ILGPU = "ILGPU"
 ONNX_RUNTIME = "Microsoft.ML.OnnxRuntime"
 MS_EXTENSIONS_AI = "Microsoft.Extensions.AI.Abstractions"
 MATHNET = "MathNet.Numerics"
@@ -109,6 +111,11 @@ DECOMPOSITION_FLOOR = "0.2.0"
 # package id -> target framework -> {dependency id: declared version range}.
 # See this module's docstring for what EXPECTED's shape and ranges prove.
 EXPECTED: dict[str, dict[str, dict[str, str]]] = {
+    # One target framework, and no sibling may depend on it: ILGPU ships no
+    # netstandard2.0 asset, so there is no second row rather than a reduced one (0101).
+    GPU: {
+        NET: {ILGPU: "1.5.3"},
+    },
     ABSTRACTIONS: {
         # A sparse matrix and its products serialise nothing, so no System.Text.Json
         # here: persistence stays in the packages that persist.

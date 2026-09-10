@@ -138,6 +138,13 @@
     "SurvivalBenchmarks": [
       "src/Lodestar.Survival/**"
     ],
+    "TiledCosineTopKBenchmarks": [
+      "src/Lodestar.Gpu/**"
+    ],
+    "TiledSparseDenseProductBenchmarks": [
+      "src/Lodestar.Gpu/**",
+      "src/Lodestar.Abstractions/**"
+    ],
     "StatsBenchmarks": [
       "src/Lodestar.Stats/**"
     ],

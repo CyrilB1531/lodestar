@@ -1,0 +1,16 @@
+<Project>
+
+  <!--
+    Lodestar.Gpu owns its version here, independently of the other packages
+    (see docs/decisions/0012-per-package-versioning.md).
+
+    0.1.0 is this package's first release. It carries no inter-package edge at
+    all: the kernels take spans and dimensions rather than Lodestar types, so
+    nothing here floors on a sibling. Decision 0101 is why nothing may floor on
+    *this* one either.
+  -->
+  <PropertyGroup>
+    <LodestarGpuVersion>0.1.0</LodestarGpuVersion>
+  </PropertyGroup>
+
+</Project>
