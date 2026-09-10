@@ -153,14 +153,38 @@ jobs:
         if: steps.select.outputs.count != '0'
         run: |
           set -euo pipefail
-          filters=""
-          while read -r name; do
-            [ -n "$name" ] && filters="$filters *$name*"
-          done < selected.txt
-          # --job short: a hosted runner cannot support the default job's iteration count
-          # inside a nightly window, and the ratio it reports is what this page publishes.
-          dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- \
-            --filter $filters --job short --exporters github
+          # One run per project that can declare a [Benchmark] class, not just the one
+          # twenty-three of the twenty-four live in. A filter naming a class the project
+          # does not contain matches nothing and BenchmarkDotNet still exits 0, so
+          # StatsBenchmarks -- which lives in bench/Lodestar.Stats.Benchmarks -- was
+          # selected, listed on the page as re-run, and never measured (#586).
+          # This list is tools/check_bench_map.py's CLASS_DIRS, and that gate fails when
+          # a directory it scans for classes is missing from this file.
+          #
+          # Each project is given only the classes it declares, so no run is ever handed
+          # a selection it cannot match: a zero-match invocation is the thing being fixed,
+          # not a state worth reaching deliberately.
+          for project in bench/Lodestar.Text.Benchmarks bench/Lodestar.Stats.Benchmarks; do
+            filters=""
+            while read -r name; do
+              [ -n "$name" ] || continue
+              if grep -q "public class $name" "$project"/*.cs 2>/dev/null; then
+                filters="$filters *$name*"
+              fi
+            done < selected.txt
+            [ -n "$filters" ] || continue
+            echo "::group::$project -- $filters"
+            # --job short: a hosted runner cannot support the default job's iteration count
+            # inside a nightly window, and the ratio it reports is what this page publishes.
+            #
+            # Run from the repository root, not the project directory: BenchmarkDotNet
+            # writes BenchmarkDotNet.Artifacts/ under the working directory, and
+            # render_nightly.py reads exactly one such directory at the root. Both
+            # projects' reports have to land in it.
+            dotnet run -c Release --project "$project" -- \
+              --filter $filters --job short --exporters github
+            echo "::endgroup::"
+          done
 
       # The claim this project makes -- faster than rapidfuzz -- lives here and nowhere
       # else: a BenchmarkDotNet class measures us against ourselves. Both sides run in

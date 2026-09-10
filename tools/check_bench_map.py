@@ -34,6 +34,10 @@ BENCH_DIR = ROOT / "bench" / "Lodestar.Text.Benchmarks"
 PROGRAM = BENCH_DIR / "Program.cs"
 PYTHON_DIR = ROOT / "bench" / "python"
 WORKFLOWS = ROOT / ".github" / "workflows"
+NIGHTLY = WORKFLOWS / "bench-nightly.yml"
+# Every finding here names a workflow by its repository-relative path, and S1192
+# fires on the third spelling of one literal. `label(path)` is that one spelling.
+WORKFLOW_DIR = ".github/workflows"
 # Directories a [Benchmark] class can live in. Lodestar.NetStandard.Benchmarks is absent:
 # it links Lodestar.Text.Benchmarks' own .cs files rather than declaring classes of its own.
 CLASS_DIRS = [
@@ -52,6 +56,14 @@ INVOCATION = re.compile(r"dotnet run\b.*?\s--\s+(\S+)")
 CONTINUATION = re.compile(r"\\\n\s*")
 # Whether Program.cs's default arm lets an option through to BenchmarkSwitcher (#478).
 FORWARDS_OPTIONS = re.compile(r"StartsWith\('-'\)")
+# The projects `Run them` iterates. The list itself, not a mention of a path anywhere in
+# the file: the comment above the loop names both, and matching that proves nothing (#586).
+RUN_LOOP = re.compile(r"for project in ([^\n;]+); do")
+
+
+def label(path: pathlib.Path) -> str:
+    """A workflow named the way a finding has to name it: relative to the repository."""
+    return f"{WORKFLOW_DIR}/{path.name}"
 
 
 def declared_classes() -> dict[str, pathlib.Path]:
@@ -225,14 +237,54 @@ def invocation_findings() -> list[str]:
             if token.startswith("-"):
                 if not forwards_options:
                     findings.append(
-                        f".github/workflows/{path.name}: passes '{token}' first, which "
+                        f"{label(path)}: passes '{token}' first, which "
                         f"bench/Lodestar.Text.Benchmarks/Program.cs refuses as an unknown "
                         f"subcommand rather than forwarding to BenchmarkDotNet")
             elif token not in dispatched:
                 findings.append(
-                    f".github/workflows/{path.name}: passes '{token}' first, which "
+                    f"{label(path)}: passes '{token}' first, which "
                     f"bench/Lodestar.Text.Benchmarks/Program.cs does not dispatch")
     return findings
+
+
+def measured_project_findings() -> list[str]:
+    """Every directory a [Benchmark] class can live in, against the nightly that runs them.
+
+    #586: `Run them` named bench/Lodestar.Text.Benchmarks and nothing else, so
+    `*StatsBenchmarks*` -- a class declared in bench/Lodestar.Stats.Benchmarks -- was
+    passed as a filter to a project that does not contain it. BenchmarkDotNet matches
+    nothing and exits 0 for that, and render_nightly.py lists the selection rather than
+    the reports, so the published page said a class had been re-measured on a night it
+    had not. Measured: run 34198050949 selected it, named it under "Classes re-run", and
+    carried no report for it.
+
+    CLASS_DIRS is the set this file already scans for classes, which makes it the set the
+    nightly has to run. A third benchmark project then fails here, on the commit that adds
+    it, instead of going quiet until somebody reads a page closely.
+
+    The list the loop iterates, not the file's text: the paragraph above `Run them` names
+    both projects in prose, and a substring test over the whole file is satisfied by that
+    comment alone -- it passed with the loop emptied, which is the exact bug.
+    """
+    if not NIGHTLY.exists():
+        return [f"{label(NIGHTLY)}: missing"]
+
+    text = NIGHTLY.read_text(encoding="utf-8")
+    match = RUN_LOOP.search(text)
+    if not match:
+        return [
+            f"{label(NIGHTLY)}: no `for project in ...; do` loop in "
+            f"`Run them`, so this file cannot tell which projects the nightly measures"
+        ]
+
+    measured = set(match.group(1).split())
+    return [
+        f"{label(NIGHTLY)}: `Run them` never runs {relative}, so a "
+        f"[Benchmark] class declared there is selected, published as re-run, "
+        f"and never measured"
+        for relative in (d.relative_to(ROOT).as_posix() for d in CLASS_DIRS)
+        if relative not in measured
+    ]
 
 
 def main() -> int:
@@ -250,6 +302,7 @@ def main() -> int:
     findings += harness_findings(data.get("harnesses", {}), diagnostics)
     findings += diagnostic_findings(diagnostics)
     findings += invocation_findings()
+    findings += measured_project_findings()
     findings += glob_findings(data)
     findings += dispatch_only_findings(data)
 
