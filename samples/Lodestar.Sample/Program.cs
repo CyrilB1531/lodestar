@@ -61,6 +61,18 @@ SimHashSample.Run();
 LshBandingSample.Run();
 LshIndexSample.Run();
 
+GpuContextSample.Run();
+GpuSearchResultSample.Run();
+DeviceEmbeddingMatrixSample.Run();
+TiledCosineTopKSample.Run();
+DeviceSparseMatrixSample.Run();
+TiledSparseDenseProductSample.Run();
+DeviceDenseBlockSample.Run();
+DeviceTextBlockSample.Run();
+BitParallelEditDistanceSample.Run();
+DeviceTokenHashesSample.Run();
+TiledMinHashSignaturesSample.Run();
+
 Bm25IndexSample.Run();
 Bm25OptionsSample.Run();
 SearchHitSample.Run();

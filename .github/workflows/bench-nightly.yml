@@ -164,7 +164,14 @@ jobs:
           # Each project is given only the classes it declares, so no run is ever handed
           # a selection it cannot match: a zero-match invocation is the thing being fixed,
           # not a state worth reaching deliberately.
-          for project in bench/Lodestar.Text.Benchmarks bench/Lodestar.Stats.Benchmarks bench/Lodestar.Survival.Benchmarks; do
+          #
+          # bench/Lodestar.Gpu.Benchmarks is here so its classes are selected and run,
+          # not so its numbers are believed: this runner has no GPU, so ILGPU falls back
+          # to its CPU accelerator and the row measures correctness-under-load rather
+          # than the 5-10x gate. That gate is measured on a named machine and published
+          # by hand -- decision 0102 has the protocol, and the benchmark prints which
+          # accelerator produced each figure.
+          for project in bench/Lodestar.Text.Benchmarks bench/Lodestar.Stats.Benchmarks bench/Lodestar.Survival.Benchmarks bench/Lodestar.Gpu.Benchmarks; do
             filters=""
             while read -r name; do
               [ -n "$name" ] || continue

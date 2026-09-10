@@ -48,6 +48,7 @@
   <Import Project="../../src/Lodestar.Stats/Version.props" />
   <Import Project="../../src/Lodestar.Stats.Regression/Version.props" />
   <Import Project="../../src/Lodestar.Survival/Version.props" />
+  <Import Project="../../src/Lodestar.Gpu/Version.props" />
 
   <ItemGroup>
     <PackageReference Include="Lodestar.Text" Version="$(LodestarTextVersion)" />
@@ -65,6 +66,7 @@
     <PackageReference Include="Lodestar.Stats" Version="$(LodestarStatsVersion)" />
     <PackageReference Include="Lodestar.Stats.Regression" Version="$(LodestarStatsRegressionVersion)" />
     <PackageReference Include="Lodestar.Survival" Version="$(LodestarSurvivalVersion)" />
+    <PackageReference Include="Lodestar.Gpu" Version="$(LodestarGpuVersion)" />
   </ItemGroup>
 
 </Project>

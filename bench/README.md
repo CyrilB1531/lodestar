@@ -1933,3 +1933,130 @@ caller of `Lodestar.Text` can reach on one of its two targets.
 
 Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
 this section documents how to measure, not what was measured.
+
+## 24. Myers on the accelerator, against a bit-parallel CPU path (issue #444, kernel 3)
+
+**This section was written expecting to report a kernel that does not ship, and the measurement
+said otherwise — by two orders of magnitude.** The reasoning was that decision 0102 prices a
+kernel against this repository's own path, that the path here is `Levenshtein.Distance`, and that
+Myers is bit-parallel on both sides: one machine word per dynamic-programming row, tens of
+nanoseconds for a short pair, against an accelerator amortising a renaming, two transfers and a
+launch.
+
+Every step of that is true and the conclusion was still wrong. What it missed is that
+**the baseline is one thread** and the kernel is tens of thousands, over a workload with no
+dependency between pairs. The measured gain is 28× to 146×
+([`docs/guides/performance.md`](../docs/guides/performance.md) has the table), and the honest
+caveat travels with it: a `Parallel.For` over the CPU path would close much of that gap, and
+decision 0102's baseline does not ask for one. A reader comparing against a parallel CPU
+implementation should expect a smaller number.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Gpu.Benchmarks -- --filter '*BitParallel*' --job short
+```
+
+The parallelism is **across pairs, not inside one**. There is nothing left to widen within a
+comparison, so the kernel runs one whole distance per thread in registers and wins — if it wins —
+only by running many at once.
+
+Three rows, as the other two kernels have:
+
+- `CpuBaseline` — one `Levenshtein.Distance` call per string. The gate's baseline.
+- `GpuResident` — the gate row, with the batch already renamed and resident. The equality table
+  upload and the distance read-back are inside the measurement.
+- `GpuFromHost` — not the gate. It prices the renaming a resident batch avoids, and on **this**
+  kernel that is the half likely to decide the answer: renaming is a pass over every character,
+  on the host, in the language the baseline is already written in.
+
+A seeded corpus (`Random(4444)`) over a 26-letter alphabet, a 24-character pattern, at 10 000 and
+200 000 strings by 32 and 256 characters. Text length is a parameter because Myers costs one word
+per character of *text* regardless of pattern length, so it is the axis that moves both sides
+together — and the one where the accelerator's fixed costs are amortised or are not.
+
+**A failed gate is published rather than deleted.** A kernel that reaches 2× is a row in
+[`docs/guides/performance.md`](../docs/guides/performance.md) and a kernel that does not ship,
+which tells the next reader more than an absence would.
+
+Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
+this section documents how to measure, not what was measured.
+
+## 25. What residency buys across two operations (issue #444, kernel 4)
+
+Decision 0102 deferred the chainable device-resident types until three kernels existed, on the
+ground that **chainability is a claim about two operations sharing a residency** and cannot be
+measured with one. Three exist, so here it is priced.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Gpu.Benchmarks -- --filter '*ChainedProduct*' --job short
+```
+
+**`RoundTripped` is the baseline, not `CpuBaseline`, and that is deliberate.** The question this
+section asks is not whether an accelerator beats a processor — section 24's kernel already asks
+that one — it is what a caller loses by letting an intermediate cross the bus. Putting the
+round-tripped version in the denominator makes the ratio read as *what residency is worth*
+directly, with no subtraction.
+
+| row | what it does |
+| --- | --- |
+| `RoundTripped` | two sparse-dense products, with a download and a re-upload between them |
+| `Chained` | the same two, the intermediate never leaving the accelerator |
+| `CpuBaseline` | `CsrMatrix.Multiply` composed twice, for the absolute scale the ratio sits on |
+
+`CpuBaseline` is there so the ratio cannot be read in a vacuum. A chain twice as fast as a round
+trip is worth nothing if both are slower than the CPU path, and that is a reading only the third
+row makes possible.
+
+The intermediate is what the parameters are chosen to size: a 4 000-column inner dimension by
+`Width` ∈ {32, 128} puts 128 000 to 512 000 doubles — one to four megabytes — on the bus per step
+that is not chained, and `Rows` ∈ {2 000, 20 000} moves the work without moving that transfer.
+
+**This section first predicted the gap would be roughly flat in `Rows`, and the measurement
+contradicts it: the gap shrinks, from 2.23× to 1.24× at `Width` 32.** The premise was right and
+the conclusion did not follow from it. A fixed transfer against work that grows with `Rows` makes
+the transfer a smaller *share* of the total, so the ratio must fall — flat was never what the
+arithmetic predicted. The prediction in `Width` does hold: 2.23× to 2.94× at 2 000 rows, as a
+transfer growing with the operand's width should.
+
+What that means for a caller is the useful half: **residency is worth most where the work is
+smallest**, which is the opposite of the intuition that a bigger job justifies more machinery.
+
+Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
+this section documents how to measure, not what was measured.
+
+## 26. MinHash signatures, and the half that turned out to dominate (issue #444, kernel 5)
+
+`Lodestar.Text.Similarity.MinHash` does two things per document: hash each token, then minimise
+each hash through every permutation. Only the second is parallel, so that is the half the kernel
+took — and the split is why this section has two rows rather than one.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Gpu.Benchmarks -- --filter '*MinHashSignatures*' --job short
+```
+
+| row | what it measures |
+| --- | --- |
+| `CpuBaseline` | `MinHash.Signature` per document: hash and minimise in one pass |
+| `GpuResident` | the minimisation alone, over hashes the host already holds |
+| `GpuWithHashing` | the host's hashing pass *and* the upload *and* the minimisation |
+
+**Read `GpuWithHashing`. It is what a caller starting from tokens pays, and it is the row that
+matters.** Measured: the minimisation is **34× to 66×** faster on the accelerator, and end to end a
+caller sees **1.27× to 1.57×** — because hashing is most of the work and it stays on the host. The
+kernel clears decision 0102's 5–10× gate on the part it took and **misses it on the part a caller
+experiences.**
+
+That is not a disappointing result, it is a located one. The obvious next move is to hash on the
+accelerator too, and it is a different kernel rather than an extension of this one: parity requires
+the first four bytes of SHA-1 little-endian, which is what `datasketch` exports as `sha1_hash32`, and
+a SHA-1 implementation that agrees with it bit for bit is its own piece of work. Until that exists,
+this kernel is worth using by a caller who **already holds hashes** — one who sketches the same
+corpus under several permutation sets, for instance, where the hashing is paid once and the
+minimisation many times.
+
+A seeded corpus (`Random(4446)`), 24 tokens per document over a vocabulary of 5 000, at 5 000 and
+50 000 documents by 64 and 128 permutations. Permutation count is a parameter because it is also the
+estimate's resolution — the two are chosen together, never separately — and because it is the axis
+the kernel's own work scales on while the hashing does not.
+
+Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
+this section documents how to measure, not what was measured.

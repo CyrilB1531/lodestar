@@ -44,6 +44,7 @@ CLASS_DIRS = [
     BENCH_DIR,
     ROOT / "bench" / "Lodestar.Stats.Benchmarks",
     ROOT / "bench" / "Lodestar.Survival.Benchmarks",
+    ROOT / "bench" / "Lodestar.Gpu.Benchmarks",
 ]
 
 CLASS = re.compile(r"^\s*public\s+class\s+(\w+)", re.MULTILINE)

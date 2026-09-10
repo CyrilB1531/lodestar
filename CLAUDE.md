@@ -126,11 +126,11 @@ done
 
 ## Architecture
 
-Fifteen independently versioned packages under `src/`, in three tiers. **Core** carries no
+Sixteen independently versioned packages under `src/`, in three tiers. **Core** carries no
 external dependency at all
 ([decision 0076](docs/decisions/0076-a-core-package-carries-no-external-dependency.md)).
-`Lodestar.Onnx` is the **satellite**, and carrying ONNX Runtime is the whole reason it is a
-package. `Lodestar.Extensions.*` is the **interop** tier, which
+`Lodestar.Onnx` and `Lodestar.Gpu` are the **satellites**, each carrying the one dependency
+that is its whole reason to be a package. `Lodestar.Extensions.*` is the **interop** tier, which
 [decision 0089](docs/decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)
 allows a dependency a core package refused, because converting to a foreign type is not
 computing with it. Adding an external dependency to a core package fails
@@ -157,6 +157,7 @@ script's `EXPECTED` edge map.
 | `Lodestar.Onnx` | satellite | `OnnxTextEmbedder`, and the reason the tier exists: `Microsoft.ML.OnnxRuntime`. |
 | `Lodestar.Extensions.AI` | interop | the ONNX embedding path behind `IEmbeddingGenerator`; carries `Microsoft.Extensions.AI.Abstractions`. |
 | `Lodestar.Extensions.MathNet` | interop | `CsrMatrix` to and from Math.NET's sparse matrix; carries `MathNet.Numerics`. |
+| `Lodestar.Gpu` | satellite | ILGPU kernels over device-resident matrices and text. **The one package on `net10.0;netstandard2.1`** — ILGPU publishes no `netstandard2.0` asset and does publish a 2.1 one ([decisions 0101](docs/decisions/0101-lodestar-gpu-is-the-one-package-that-does-not-ship-netstandard2-0.md) and [0103](docs/decisions/0103-lodestar-gpu-ships-netstandard2-1-beside-net10.md)). Nothing under `src/` may depend on it, so the SIMD path stays complete. |
 
 The edges: **ten**, all asserted per target framework and per version range —
 `Text`, `Decomposition` and `Extensions.MathNet` → `Abstractions`; `Fuzzy` → `Text`;

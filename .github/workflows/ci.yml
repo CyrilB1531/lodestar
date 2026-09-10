@@ -58,6 +58,12 @@ jobs:
       # measured on #604, where it cost a red `Oracles are reproducible` job (#605).
       - name: requirements.txt and its lock agree
         run: python tools/check_requirements_lock_sync.py
+      # Lodestar.Gpu's suites run where there is no card, and GpuContext.Create() falls
+      # back rather than throwing -- so a bare Create() is green on a developer machine
+      # using the GPU and green on the runner using the processor, asserting different
+      # things in each place (#444).
+      - name: GPU correctness tests force the CPU accelerator
+        run: python tools/check_gpu_tests_force_cpu.py
       # Wired once the tree could pass it (#155). The report line prints how many
       # blocks carry a long-comment: marker -- nine when this landed -- and does not
       # fail on that number: the marker is a judgment a review reads, not a quota.
@@ -157,7 +163,7 @@ jobs:
       # and that declaration is authoritative everywhere — here and at release.
       - name: Pack
         run: |
-          for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Survival; do
+          for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Survival src/Lodestar.Gpu; do
             dotnet pack "$proj" --configuration Release --no-build --output ./artifacts
           done
 
@@ -168,7 +174,7 @@ jobs:
       # can, and this job never sets the property.
       - name: src/ ships PackageReference only
         run: |
-          for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Survival; do
+          for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Survival src/Lodestar.Gpu; do
             refs=$(dotnet msbuild "$proj" -getItem:ProjectReference -p:TargetFramework=net10.0 \
               | python3 -c 'import sys, json; print(" ".join(i["Identity"] for i in json.load(sys.stdin)["Items"]["ProjectReference"]))')
             if [ -n "$refs" ]; then
@@ -232,7 +238,7 @@ jobs:
         env:
           NUGET_PACKAGES: ${{ runner.temp }}/pack-packages
         run: |
-          for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Survival; do
+          for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Survival src/Lodestar.Gpu; do
             dotnet pack "$proj" --configuration Release -o ./artifacts
           done
 
@@ -267,7 +273,7 @@ jobs:
         env:
           NUGET_PACKAGES: ${{ runner.temp }}/pack-packages
         run: |
-          for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Survival; do
+          for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Survival src/Lodestar.Gpu; do
             dotnet pack "$proj" --configuration Release -o ./artifacts
           done
 
