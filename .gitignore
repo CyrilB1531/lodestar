@@ -20,6 +20,9 @@ bench/corpus/vocabs/
 # Benchmark metrics corpus is generated (bench/corpus/generate_metrics.py)
 bench/corpus/metrics/
 
+# Benchmark stats corpus is generated (bench/corpus/generate_stats.py)
+bench/corpus/stats/
+
 # BK-tree benchmark dictionary is generated (bench/corpus/generate_dictionary.py).
 # Named rather than a *.json glob: bench/corpus/pairs.json is committed and must stay tracked.
 bench/corpus/dictionary.json

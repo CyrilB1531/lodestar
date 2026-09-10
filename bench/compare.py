@@ -222,6 +222,70 @@ def persistence(fmt: str = "text") -> None:
         print("carries none, and the two columns then disappear rather than read zero.")
 
 
+def fold_rows(py: dict, keys: dict[str, str]) -> None:
+    """Adds each `extra` row's times into the `into` row it belongs to, then drops it.
+
+    statsmodels leaves the VIF outside `.fit()`, so bench_stats.py measures ols_summary_*
+    and ols_vif_* separately; Lodestar's Fit computes both in the one call and reports one
+    row. Without folding, the division would price a whole summary table against a fit
+    that skipped a fifth of it. Splitting the C# side to match would mean fitting twice.
+    """
+    by_op = {row["operation"]: row for row in py["results"]}
+    for extra, into in keys.items():
+        # by_op is not the list being mutated -- the removal below is from
+        # py["results"], so iterating the dict directly is safe (python:S7504).
+        for op, row in by_op.items():
+            if not op.startswith(extra):
+                continue
+            target = by_op.get(into + op[len(extra):])
+            if target is not None:
+                target["ms_per_op"] += row["ms_per_op"]
+                target["cpu_ms_per_op"] += row["cpu_ms_per_op"]
+                py["results"].remove(row)
+
+
+def stats(fmt: str = "text") -> None:
+    """Lodestar.Stats against scipy, over the corpus generate_stats.py writes."""
+    wallcpu_report("stats", fmt)
+
+
+def ols(fmt: str = "text") -> None:
+    """Lodestar.Stats.Regression against statsmodels, over that same corpus."""
+    wallcpu_report("ols", fmt, fold={"ols_vif_": "ols_summary_"})
+
+
+def wallcpu_report(bench: str, fmt: str = "text", fold: dict[str, str] | None = None) -> None:
+    """Load, fold, print -- the shape stats() and ols() share with metrics()."""
+    py = load("python", bench)
+    cs = load("csharp", bench)
+    if fold:
+        fold_rows(py, fold)
+    cs_by_op = {r["operation"]: r for r in cs["results"]}
+    rows = [wallcpu_row(row["operation"], cs_by_op[row["operation"]], row)
+            for row in py["results"] if row["operation"] in cs_by_op]
+
+    filtered = cs["metadata"].get("filtered")
+    if filtered:
+        raise SystemExit(
+            f"the C# results are from a filtered run ({filtered}); the comparison needs "
+            f"every size -- rerun `compare-{bench}` with no --sizes"
+        )
+
+    metadata_block(
+        fmt,
+        f"Python: {py['metadata']['libraries']} (py {py['metadata']['python']})",
+        f"C#:     Lodestar on .NET {cs['metadata']['runtime']}",
+    )
+    if fmt == "gfm":
+        print_wallcpu_gfm(rows)
+    else:
+        print_wallcpu_text(rows, op_width=32, num_width=10)
+    print()
+    print("ratio > 1 means Lodestar is faster. cpu is the honest one on both sides:")
+    print("elapsed time hides .NET's background GC threads, and numpy's BLAS")
+    print("threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.")
+
+
 def metrics(fmt: str = "text") -> None:
     py, cs, rows = wallcpu_rows("metrics")
 
@@ -271,6 +335,10 @@ if __name__ == "__main__":
         persistence(output_format)
     elif selected == "metrics":
         metrics(output_format)
+    elif selected == "stats":
+        stats(output_format)
+    elif selected == "ols":
+        ols(output_format)
     elif selected == "indel":
         indel(output_format, bucket_kind)
     else:

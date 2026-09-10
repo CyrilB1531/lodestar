@@ -1846,3 +1846,52 @@ the index starts to pay for itself.
 
 Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
 this section documents how to measure, not what was measured.
+
+## 22. `Lodestar.Stats` and `Lodestar.Stats.Regression` against scipy and statsmodels (issue #595)
+
+Sections 18 and 19 measure both packages against `Accord.Statistics`, which answers whether this
+is the better .NET choice. This one answers the question `CLAUDE.md`'s thesis actually makes —
+whether it replaces the Python script that exists today — and it is the fifth and sixth
+cross-language harness, alongside `levenshtein`, `indel`, `metrics` and `persistence`.
+
+Two harnesses over one corpus. `stats` is the three hypothesis tests against `scipy.stats`;
+`ols` is the summary table against `statsmodels`. They are mapped separately in
+`bench/bench-map.json` so a change to one package does not re-run the other.
+
+```bash
+python bench/corpus/generate_stats.py          # ~15 MB, three sizes, git-ignored
+python bench/python/bench_stats.py             # writes python-stats.json and python-ols.json
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-stats
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-ols
+python bench/compare.py stats
+python bench/compare.py ols
+```
+
+`--sizes 1000,10000` on either subcommand skips the rest; the merge gate in `bench/compare.py`
+refuses a filtered run, the way `compare-metrics` already does.
+
+Three things about the corpus are deliberate, and each was a correction to a first draft:
+
+- **The contingency table's shape grows with the sample size** (4×5, 12×15, 40×50). Chi-square
+  costs what the table's shape costs, not what its counts hold, so a fixed table measured the
+  same work three times and reported it as three rows — at an implausible 668×.
+- **The two samples have unequal variances.** Welch's test is what is being measured, and a
+  pair Student's would answer identically would not exercise it.
+- **The design is written once, row-major and without a constant column.** Each side adds its
+  own intercept — `sm.add_constant` on one, `Fit`'s own leading column on the other — rather
+  than the generator writing two shapes.
+
+**`statsmodels` splits the VIF out of `.fit()`, and Lodestar does not.** `OrdinaryLeastSquares.Fit`
+computes the coefficients, their errors, the tails, the intervals *and* the VIFs in one call
+whether or not a caller reads them. `bench_stats.py` therefore measures `ols_summary_*` and
+`ols_vif_*` separately and `bench/compare.py` sums the two before dividing, so the ratio prices
+one table against one table. Splitting the C# side to match would mean fitting twice.
+
+**Read the `cpu` column here, not just `wall`.** The note the other harnesses carry — that
+elapsed time hides .NET's background GC threads while CPython is single-threaded — is only half
+true on this corpus: `statsmodels` reaches LAPACK through numpy, which is threaded. At 100 000
+rows its OLS rows measure roughly ten times more processor time than elapsed. Reporting the wall
+clock alone would credit Python with work it spread across cores.
+
+Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md)
+— this section documents how to measure, not what was measured.
