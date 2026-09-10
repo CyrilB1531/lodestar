@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.0",
   "family": "distributions",
-  "count": 20
+  "count": 26
  },
  "cases": [
   {
@@ -189,6 +189,54 @@
     "df": 100.0
    },
    "value": 0.48119168452795674
+  },
+  {
+   "name": "the multiplier a 95% large-sample interval asks for",
+   "call": "norm.ppf",
+   "args": {
+    "x": 0.975
+   },
+   "value": 1.959963984540054
+  },
+  {
+   "name": "the multiplier a 99% one asks for",
+   "call": "norm.ppf",
+   "args": {
+    "x": 0.995
+   },
+   "value": 2.5758293035489004
+  },
+  {
+   "name": "the median, which is exactly zero",
+   "call": "norm.ppf",
+   "args": {
+    "x": 0.5
+   },
+   "value": 0.0
+  },
+  {
+   "name": "the lower half, by symmetry",
+   "call": "norm.ppf",
+   "args": {
+    "x": 0.025
+   },
+   "value": -1.9599639845400545
+  },
+  {
+   "name": "far into the lower tail",
+   "call": "norm.ppf",
+   "args": {
+    "x": 1e-08
+   },
+   "value": -5.612001244174789
+  },
+  {
+   "name": "far into the upper tail",
+   "call": "norm.ppf",
+   "args": {
+    "x": 0.99999999
+   },
+   "value": 5.612001243305505
   }
  ]
 }
