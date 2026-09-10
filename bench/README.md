@@ -1703,3 +1703,55 @@ belongs" table).
 Numbers are published in
 [`docs/guides/performance.md`](../docs/guides/performance.md#lodestarstats-against-accordstatistics-issue-442)
 — this section documents how to measure, not what was measured.
+
+## 19. `Lodestar.Stats.Regression` against `Accord.Statistics` (issue #566)
+
+[#566](https://github.com/CyrilB1531/lodestar/issues/566) expected this section to say there is no
+.NET incumbent for regression inference. **The reading it also asked for says otherwise**, and the
+measurement replaces the explanation:
+[decision 0096](../docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md) loaded both
+candidates through a `MetadataLoadContext` and found `Accord.Statistics` 3.8.0 exporting the whole
+summary table — `MultipleLinearRegressionAnalysis` with `StandardErrors`, `Confidences`, `FTest`,
+`RSquareAdjusted`, and a `Coefficients` collection whose row carries `TTest` and its interval.
+
+`MathNet.Numerics` 5.0.0 is not a candidate here and the reason is worth stating, because it is not
+"it has no regression". It has four families of them, and every one returns coefficients. Its only
+coefficient standard errors live in `Optimization.NonlinearMinimizationResult`, for the non-linear
+minimisers, unreachable from `LinearRegression` — so there is no MathNet call that produces the
+thing this row prices.
+
+Section 18 already resolves `Accord.Statistics` in this project, so the plumbing is unchanged: the
+package is archived and LGPL-2.1, which bars it from `src/` under
+[decision 0076](../docs/decisions/0076-a-core-package-carries-no-external-dependency.md) and does
+not bar it from a benchmark project that ships nothing.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*OlsBenchmarks*' --job short
+```
+
+### What the pair does and does not compare
+
+Both rows compute a whole table, and **the two tables are not the same table.** Accord exports no
+variance inflation factor anywhere in its 4 796 members, so `Learn` performs one solve. `Fit`
+performs five at four regressors — the model, plus one auxiliary regression per regressor — because
+its table carries the VIFs. Neither library offers a cheaper shape, so this is the only comparison
+available; there is no coefficients-only row either, since adding one would have measured `Fit`
+twice under two names.
+
+That asymmetry is what the numbers show, and it inverts with size: this package wins at 100 rows
+and loses at 10 000, which is exactly what doing five factorisations instead of one predicts once
+the `O(mn²)` term overtakes the fixed per-call overhead. Read the ratio next to what each side
+returns, not on its own.
+
+The shapes differ on purpose and the difference is part of the cost. `Lodestar.Stats.Regression`
+takes a row-major `ReadOnlySpan<double>` — one allocation the caller already has — where Accord
+takes `double[][]`, one array per row. At ten thousand rows that is ten thousand allocations before
+any arithmetic happens, which `[MemoryDiagnoser]` reports rather than hides.
+
+Four regressors throughout, on a seeded design (`Random(566)`), at 100 and 10 000 rows: a hundred
+rows is where a table is actually read, and ten thousand is where the QR's `O(mn²)` starts to show
+against the per-row allocation.
+
+Numbers are published in
+[`docs/guides/performance.md`](../docs/guides/performance.md#lodestarstatsregression-against-accordstatistics-issue-566)
+— this section documents how to measure, not what was measured.

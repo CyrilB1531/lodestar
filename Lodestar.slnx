@@ -16,6 +16,7 @@
     <Project Path="src/Lodestar.Metrics/Lodestar.Metrics.csproj" />
     <Project Path="src/Lodestar.Preprocessing/Lodestar.Preprocessing.csproj" />
     <Project Path="src/Lodestar.Onnx/Lodestar.Onnx.csproj" />
+    <Project Path="src/Lodestar.Stats.Regression/Lodestar.Stats.Regression.csproj" />
     <Project Path="src/Lodestar.Stats/Lodestar.Stats.csproj" />
     <Project Path="src/Lodestar.Text/Lodestar.Text.csproj" />
   </Folder>
@@ -41,6 +42,8 @@
     <Project Path="tests/Lodestar.Preprocessing.Tests/Lodestar.Preprocessing.Tests.csproj" />
     <Project Path="tests/Lodestar.Onnx.NetStandard.Tests/Lodestar.Onnx.NetStandard.Tests.csproj" />
     <Project Path="tests/Lodestar.Onnx.Tests/Lodestar.Onnx.Tests.csproj" />
+    <Project Path="tests/Lodestar.Stats.Regression.NetStandard.Tests/Lodestar.Stats.Regression.NetStandard.Tests.csproj" />
+    <Project Path="tests/Lodestar.Stats.Regression.Tests/Lodestar.Stats.Regression.Tests.csproj" />
     <Project Path="tests/Lodestar.Stats.NetStandard.Tests/Lodestar.Stats.NetStandard.Tests.csproj" />
     <Project Path="tests/Lodestar.Stats.Tests/Lodestar.Stats.Tests.csproj" />
     <Project Path="tests/Lodestar.Text.NetStandard.Tests/Lodestar.Text.NetStandard.Tests.csproj" />

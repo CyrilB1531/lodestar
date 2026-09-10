@@ -5,12 +5,12 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The thirteen packages (`Lodestar.Text`, `Lodestar.Embeddings`, `Lodestar.Fuzzy`,
+The fourteen packages (`Lodestar.Text`, `Lodestar.Embeddings`, `Lodestar.Fuzzy`,
 `Lodestar.Metrics` — published as `DataNet.*` up to 2026-08-15 — plus
 `Lodestar.Conformal`, `Lodestar.Abstractions`, `Lodestar.Decomposition`,
-`Lodestar.Onnx`, `Lodestar.Stats`, `Lodestar.Extensions.AI` and
-`Lodestar.Extensions.MathNet`, `Lodestar.Preprocessing` and `Lodestar.Cluster`,
-all newer than
+`Lodestar.Onnx`, `Lodestar.Stats`, `Lodestar.Extensions.AI`,
+`Lodestar.Extensions.MathNet`, `Lodestar.Preprocessing`, `Lodestar.Cluster` and
+`Lodestar.Stats.Regression`, all newer than
 that rename)
 version and release **independently**, each from its own
 `src/<Package>/Version.props`, so entries are grouped per package. Releases up to
@@ -80,13 +80,27 @@ is one sentence, the issue and the commit; see
 
 - **`Lodestar.Cluster` 0.1.0 — k-means by Lloyd's algorithm, at scikit-learn parity, with the starting centres as an input.** `KMeans.Fit` takes a row-major span and returns `Centres`, `Labels`, `Inertia` and `Iterations`, the four things scikit-learn reports; `Predict` assigns unseen rows without refitting. `Labels` is the shape `Lodestar.Metrics` already scores, so a clustering arrives with silhouette, adjusted Rand, AMI and V-measure on day one rather than needing them built — which is the argument [#442](https://github.com/CyrilB1531/lodestar/issues/442) made for this domain, and it held. The loop is the reference's: assign, update, stop on unchanged labels or on a centre shift within the tolerance, and when it stops on the shift a final assignment runs so `Labels` matches `Centres` rather than trailing one update behind. `Tolerance` is scaled by the mean feature variance, as `_tolerance` scales it, so the same number means the same thing at any scale. An empty cluster is relocated onto the sample furthest from its own centre. **`KMeansOptions.InitialCentres` is an input, not a seed** — [decision 0072](docs/decisions/0072-omega-is-an-input-not-a-seed.md)'s move, applied here: given a starting block the run is an ordinary parity target, and `tests/oracles/cluster_kmeans.json` compares every centre, label, inertia and iteration count across eight cases rather than comparing distributions. Left alone, k-means++ draws from this package's own generator and reproduces a run of Lodestar, never one of scikit-learn. **One measured divergence, and it is recorded rather than papered over**: a sample exactly equidistant from two centres takes the lowest-indexed one here, where the reference was observed choosing the second on one configuration and the first on another; [decision 0093](docs/decisions/0093-an-exact-tie-between-centres-is-not-part-of-k-means-parity.md) has both, and the two corpus fixtures that hinged on a tie were replaced so no frozen case rests on a convention. Core tier — no external dependency, no inter-package edge. ([#567](https://github.com/CyrilB1531/lodestar/issues/567))
 
-### Lodestar.Stats
+### Lodestar.Stats.Regression
+
+#### Added
+
+- **A fourteenth package: ordinary least squares with the table that makes it inference.** `OrdinaryLeastSquares.Fit` takes a row-major design and a response and returns an `OlsSummary` carrying the coefficients, their standard errors, t statistics, two-sided p-values and confidence intervals at a stated level, alongside R-squared and its adjusted form, the overall *F* and its p-value, the residual standard error and degrees of freedom, and a variance inflation factor per regressor — at `statsmodels` 0.15.0 parity, replayed over six frozen cases and compared **relatively**, as [decision 0081](docs/decisions/0081-the-stats-numerical-layer-stays-internal.md) established for p-values. Solved through the Householder QR `Lodestar.Decomposition` 0.2.0 publishes rather than the normal equations, whose `XᵀX` squares the condition number of exactly the near-collinear designs a VIF exists to report; the tails come from `Lodestar.Stats` 0.2.0. Core tier holds: two Lodestar edges and nothing external. **The #427 protocol was run before the code, and it replaced the gap claim rather than confirming it** — read through a `MetadataLoadContext`, `Accord.Statistics` 3.8.0 exports the whole inference table and has been archived under LGPL-2.1 since 2017, while `MathNet.Numerics` 5.0.0 carries coefficient standard errors only in `Optimization.NonlinearMinimizationResult`, for the non-linear minimisers, unreachable from `LinearRegression` and followed by no t, no p-value, no interval, no adjusted R-squared, no *F* and no VIF across 5 333 exported members. [Decision 0096](docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md) has the reading, and records that **`statsmodels` 0.15.0 changed what a VIF is**: `standardize=True` centres and scales each column before the auxiliary regression, which is a no-op with an intercept and moves the no-intercept answer from `87.43` to `21.0`. One divergence, in `docs/equivalence.md`: a single regressor with no intercept leaves the auxiliary design empty, where the reference raises and this reports `NaN`. ([#566](https://github.com/CyrilB1531/lodestar/issues/566))
+
+## Released — 2026-09-10
+
+Two minor bumps and nothing else: the numerical members
+[decision 0095](docs/decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)
+published so that `Lodestar.Stats.Regression` could floor on them. `src/` reaches its
+neighbours through published packages, so this cut is what stands between the two pull
+requests [#566](https://github.com/CyrilB1531/lodestar/issues/566) needed.
+
+### Lodestar.Stats — 0.2.0
 
 #### Added
 
 - **`Distributions` publishes three tails, and no more.** `StudentSf`, `StudentQuantile` and `FisherSf` are what an OLS table needs — a p-value per coefficient, a multiplier per interval, and the overall *F* — and they become public so `Lodestar.Stats.Regression` can reach them rather than carry a second copy. [Decision 0081](docs/decisions/0081-the-stats-numerical-layer-stays-internal.md) kept this layer internal and named the condition for changing that; [decision 0095](docs/decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md) exercises it and holds the line at four members: the log-gamma, the incomplete beta and gamma, the normal tail and the Kolmogorov machinery stay internal. **Paying 0081's stated price found a defect.** It asked for "a corpus at the tolerance a general-purpose caller would need, not the one the ten tests above it happen to need" — and that corpus, reaching `3.1e-24` and compared relatively, showed that the internal `Beta.StudentQuantile` solves `P(T > x) = p` and therefore carries the **opposite sign to a quantile**. Nothing internal noticed, because its one caller wanted exactly that; published unchanged it would have handed a reader `-2.1788` where every table prints `+2.1788`, and an interval built on it would have been reflected through its own estimate. `Distributions.StudentQuantile` publishes `scipy.stats.t.ppf`'s meaning, and the negation is the distribution's symmetry rather than a correction. ([#566](https://github.com/CyrilB1531/lodestar/issues/566))
 
-### Lodestar.Decomposition
+### Lodestar.Decomposition — 0.2.0
 
 #### Added
 

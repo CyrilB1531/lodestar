@@ -31,8 +31,10 @@ for the same matrix -- ``Lodestar.Onnx`` depends on ``Lodestar.Embeddings``
 for the tokenizers and the pooling it feeds a session with, and
 ``Lodestar.Extensions.AI`` depends on both of those: on ``Lodestar.Onnx`` for the
 embedder it adapts, and on ``Lodestar.Embeddings`` because its constructor names
-``BatchEncoder``, which is the ``EmbedBatch`` overload that owns the padding. Six
-inter-package edges, and those are all of them. The ranges are asserted too, not
+``BatchEncoder``, which is the ``EmbedBatch`` overload that owns the padding, and
+``Lodestar.Stats.Regression`` depends on ``Lodestar.Stats`` for the Student and Fisher
+tails and on ``Lodestar.Decomposition`` for the Householder QR -- the four members
+decision 0095 published for it. Eight inter-package edges, and those are all of them. The ranges are asserted too, not
 only the ids: a bare ``"0.2.0"`` is NuGet's shorthand for ``[0.2.0, )``, and an
 edge with the wrong floor is a different edge.
 
@@ -64,6 +66,7 @@ ABSTRACTIONS = "Lodestar.Abstractions"
 CONFORMAL = "Lodestar.Conformal"
 DECOMPOSITION = "Lodestar.Decomposition"
 STATS = "Lodestar.Stats"
+STATS_REGRESSION = "Lodestar.Stats.Regression"
 PREPROCESSING = "Lodestar.Preprocessing"
 CLUSTER = "Lodestar.Cluster"
 ONNX = "Lodestar.Onnx"
@@ -96,6 +99,11 @@ EMBEDDINGS_FLOOR = "0.5.0"
 # Directory.Packages.props' PackageVersion for the edge #570 added. 0.1.0 is
 # Lodestar.Onnx's first release, and OnnxTextEmbedder has been public since it.
 ONNX_FLOOR = "0.1.0"
+
+# Directory.Packages.props' PackageVersion for the two edges #566 added: 0.2.0 is where
+# decision 0095 published the four members Lodestar.Stats.Regression calls.
+STATS_FLOOR = "0.2.0"
+DECOMPOSITION_FLOOR = "0.2.0"
 
 # package id -> target framework -> {dependency id: declared version range}.
 # See this module's docstring for what EXPECTED's shape and ranges prove.
@@ -166,6 +174,16 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         # arithmetic over spans, with no model and nothing to serialise.
         NET: {},
         NETSTANDARD: {**POLYFILLS},
+    },
+    STATS_REGRESSION: {
+        # Two Lodestar edges and nothing external, which is what keeps this core tier:
+        # the tails that make a p-value, and the QR that solves without squaring XtX.
+        NET: {STATS: STATS_FLOOR, DECOMPOSITION: DECOMPOSITION_FLOOR},
+        NETSTANDARD: {
+            STATS: STATS_FLOOR,
+            DECOMPOSITION: DECOMPOSITION_FLOOR,
+            **POLYFILLS,
+        },
     },
     DECOMPOSITION: {
         # The one edge of this package, and the reason Lodestar.Abstractions exists:
