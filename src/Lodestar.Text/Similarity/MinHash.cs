@@ -110,10 +110,15 @@ public sealed class MinHash
     /// SHA-1 is used as a hash function here and not as a signature; the reference exports
     /// this as <c>sha1_hash32</c>, so it is part of the contract rather than an internal.
     /// </remarks>
-    // CA5350 (weak cryptographic algorithm): SHA-1 is a hash function here and never a
-    // signature or a credential. The reference exports it as sha1_hash32, so every frozen
-    // value depends on it -- a stronger digest would be a different algorithm, not a fix.
-#pragma warning disable CA5350
+    // long-comment: CA5350 and S4790 both read this as weak cryptography, and neither
+    // applies. SHA-1 is used here to spread tokens over 32 bits, never to sign, seal or
+    // authenticate anything: nothing downstream trusts a signature, and a collision costs
+    // an over-estimated similarity rather than a forged one. The reference exports the
+    // same construction as sha1_hash32, so every frozen value in the corpus depends on it
+    // -- a stronger digest would be a different algorithm and would fail the parity tests
+    // that give this type its meaning, not fix a weakness. Both branches below are the one
+    // call, so both rules are disabled across the pair.
+#pragma warning disable CA5350, S4790
     private static ulong Hash32(string token)
     {
         byte[] bytes = Encoding.UTF8.GetBytes(token);
@@ -129,5 +134,5 @@ public sealed class MinHash
             | ((ulong)digest[2] << 16)
             | ((ulong)digest[3] << 24);
     }
-#pragma warning restore CA5350
+#pragma warning restore CA5350, S4790
 }

@@ -108,10 +108,15 @@ public static class SimHash
         return fingerprint;
     }
 
-    // CA5351 (broken cryptographic algorithm): MD5 is a hash function here and never a
-    // signature or a credential. The reference hashes with it, so every frozen fingerprint
-    // depends on it -- a stronger digest would be a different algorithm, not a fix.
-#pragma warning disable CA5351
+    // long-comment: CA5351 and S4790 both read this as broken cryptography, and neither
+    // applies. MD5 is used here to spread tokens over 64 bits, never to sign, seal or
+    // authenticate anything: a collision costs two documents an equal fingerprint, which
+    // this type already treats as a candidate to verify rather than an answer. The
+    // reference hashes with MD5, so every frozen fingerprint in the corpus depends on it
+    // -- a stronger digest would be a different algorithm and would fail the parity tests
+    // that give this type its meaning, not fix a weakness. Both branches below are the one
+    // call, so both rules are disabled across the pair.
+#pragma warning disable CA5351, S4790
     /// <summary>The reference's hash: MD5 read as a big integer, of which the low 64 bits are used.</summary>
     /// <remarks>
     /// The digest is big-endian as a number, so its low 64 bits are its <em>last</em> eight
@@ -136,5 +141,5 @@ public static class SimHash
 
         return low;
     }
-#pragma warning restore CA5351
+#pragma warning restore CA5351, S4790
 }
