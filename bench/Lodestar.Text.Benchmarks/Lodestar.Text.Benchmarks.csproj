@@ -27,6 +27,10 @@
     <PackageReference Include="Quickenshtein" Version="1.5.1" />
     <PackageReference Include="F23.StringSimilarity" Version="7.0.1" />
     <PackageReference Include="Raffinert.FuzzySharp" Version="6.0.0" />
+    <!-- The BM25 incumbent #573 names: the whole Lucene surface, index and all, which is
+         the asymmetry Bm25Benchmarks exists to price rather than to hide. Apache-2.0, and
+         it ships nothing from here, being a benchmark project like the four above it. -->
+    <PackageReference Include="LuceneSharp.Core" Version="26.8.4415" />
     <PackageReference Include="Microsoft.ML.Tokenizers" Version="2.0.0" />
     <PackageReference Include="Microsoft.ML" Version="5.0.0" />
   </ItemGroup>

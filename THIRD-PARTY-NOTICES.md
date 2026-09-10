@@ -252,6 +252,8 @@ generate test data creates no license claim over the output.
 | tokenizers | Apache-2.0 | Reference values for WordPiece |
 | sentencepiece | Apache-2.0 | Reference values for the unigram tokenizer |
 | numpy | BSD-3-Clause | Reference values for pooling and kNN |
+| lifelines | MIT | Reference values for Kaplan-Meier, Nelson-Aalen and the log-rank test |
+| rank_bm25 | Apache-2.0 | Reference values for BM25 Okapi, including its floor on a negative IDF |
 
 > The Apache-2.0 above covers the `nltk` *code* we execute. It does not extend to
 > the `nltk_data` corpora, which are licensed individually — the `stopwords`
