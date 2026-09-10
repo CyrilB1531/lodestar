@@ -254,6 +254,8 @@ generate test data creates no license claim over the output.
 | numpy | BSD-3-Clause | Reference values for pooling and kNN |
 | lifelines | MIT | Reference values for Kaplan-Meier, Nelson-Aalen and the log-rank test |
 | rank_bm25 | Apache-2.0 | Reference values for BM25 Okapi, including its floor on a negative IDF |
+| datasketch | MIT | Reference values for MinHash and the LSH banding solve |
+| simhash | MIT | Reference values for the 64-bit SimHash fingerprint |
 
 > The Apache-2.0 above covers the `nltk` *code* we execute. It does not extend to
 > the `nltk_data` corpora, which are licensed individually — the `stopwords`

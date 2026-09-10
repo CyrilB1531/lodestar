@@ -127,3 +127,11 @@ colorama==0.4.6
 # tzdata is a standalone leaf (PyPI metadata lists no dependencies at all) and
 # on Linux pandas reads the system zoneinfo instead, so the wheel is inert.
 tzdata==2026.3
+
+# datasketch -- the reference for MinHash and its banded LSH index (#602). MIT, read
+# from the wheel's METADATA rather than from PyPI's field, which decision 0075 found
+# unreliable. Its permutation coefficients are frozen into the corpus rather than
+# reproduced from numpy's generator, so nothing here depends on that stream.
+datasketch==1.6.5
+# simhash -- the reference for the 64-bit fingerprint (#602). MIT, read the same way.
+simhash==2.1.2
