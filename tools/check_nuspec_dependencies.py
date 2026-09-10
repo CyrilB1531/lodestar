@@ -67,6 +67,7 @@ CONFORMAL = "Lodestar.Conformal"
 DECOMPOSITION = "Lodestar.Decomposition"
 STATS = "Lodestar.Stats"
 STATS_REGRESSION = "Lodestar.Stats.Regression"
+SURVIVAL = "Lodestar.Survival"
 PREPROCESSING = "Lodestar.Preprocessing"
 CLUSTER = "Lodestar.Cluster"
 ONNX = "Lodestar.Onnx"
@@ -100,9 +101,9 @@ EMBEDDINGS_FLOOR = "0.5.0"
 # Lodestar.Onnx's first release, and OnnxTextEmbedder has been public since it.
 ONNX_FLOOR = "0.1.0"
 
-# Directory.Packages.props' PackageVersion for the two edges #566 added: 0.2.0 is where
-# decision 0095 published the four members Lodestar.Stats.Regression calls.
-STATS_FLOOR = "0.2.0"
+# Directory.Packages.props' PackageVersion for the edges #566 and #569 added. One floor
+# per package id, so both consume 0.4.0 -- additive over the 0.2.0 Regression asked for.
+STATS_FLOOR = "0.4.0"
 DECOMPOSITION_FLOOR = "0.2.0"
 
 # package id -> target framework -> {dependency id: declared version range}.
@@ -184,6 +185,12 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
             DECOMPOSITION: DECOMPOSITION_FLOOR,
             **POLYFILLS,
         },
+    },
+    SURVIVAL: {
+        # One Lodestar edge and nothing external, which keeps this core tier: the
+        # chi-squared tail and the normal quantile, published for it (0097, 0098).
+        NET: {STATS: STATS_FLOOR},
+        NETSTANDARD: {STATS: STATS_FLOOR, **POLYFILLS},
     },
     DECOMPOSITION: {
         # The one edge of this package, and the reason Lodestar.Abstractions exists:

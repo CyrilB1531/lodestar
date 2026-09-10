@@ -186,6 +186,18 @@
         "Lodestar.Stats.Regression": "docs/reference/stats-regression/ols"
       },
       "exceptionsUnchecked": []
+    },
+    "Lodestar.Survival": {
+      "wiki": "Survival",
+      "pages": [
+        "docs/guides/survival-analysis.md",
+        "docs/reference/survival/*.md",
+        "docs/reference/survival/*/*.md"
+      ],
+      "covered": {
+        "Lodestar.Survival": "docs/reference/survival/estimators"
+      },
+      "exceptionsUnchecked": []
     }
   }
 }

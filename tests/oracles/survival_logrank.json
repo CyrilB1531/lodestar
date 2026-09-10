@@ -1,0 +1,244 @@
+{
+ "metadata": {
+  "library": "lifelines",
+  "version": "0.30.3",
+  "family": "survival-logrank",
+  "count": 5
+ },
+ "cases": [
+  {
+   "name": "Freireich, treatment against control",
+   "durationsA": [
+    6,
+    6,
+    6,
+    7,
+    10,
+    13,
+    16,
+    22,
+    23,
+    6,
+    9,
+    10,
+    11,
+    17,
+    19,
+    20,
+    25,
+    32,
+    32,
+    34,
+    35
+   ],
+   "eventsA": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "durationsB": [
+    1,
+    1,
+    2,
+    2,
+    3,
+    4,
+    4,
+    5,
+    5,
+    8,
+    8,
+    8,
+    8,
+    11,
+    11,
+    12,
+    12,
+    15,
+    17,
+    22,
+    23
+   ],
+   "eventsB": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "statistic": 16.792940989216547,
+   "pValue": 4.168809109334511e-05,
+   "degreesOfFreedom": 1
+  },
+  {
+   "name": "two arms with tied event times across groups",
+   "durationsA": [
+    4,
+    4,
+    6,
+    6,
+    9
+   ],
+   "eventsA": [
+    1,
+    1,
+    1,
+    0,
+    1
+   ],
+   "durationsB": [
+    4,
+    6,
+    6,
+    10,
+    10
+   ],
+   "eventsB": [
+    1,
+    1,
+    1,
+    1,
+    0
+   ],
+   "statistic": 0.599124726477024,
+   "pValue": 0.43891217757460943,
+   "degreesOfFreedom": 1
+  },
+  {
+   "name": "identical arms, where the statistic is zero",
+   "durationsA": [
+    2,
+    4,
+    6,
+    8
+   ],
+   "eventsA": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "durationsB": [
+    2,
+    4,
+    6,
+    8
+   ],
+   "eventsB": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "statistic": 0.0,
+   "pValue": 1.0,
+   "degreesOfFreedom": 1
+  },
+  {
+   "name": "one arm entirely censored",
+   "durationsA": [
+    3,
+    5,
+    7,
+    9
+   ],
+   "eventsA": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "durationsB": [
+    3,
+    5,
+    7,
+    9
+   ],
+   "eventsB": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "statistic": 4.0,
+   "pValue": 0.04550026389635857,
+   "degreesOfFreedom": 1
+  },
+  {
+   "name": "arms of very different size",
+   "durationsA": [
+    1,
+    2,
+    3
+   ],
+   "eventsA": [
+    1,
+    1,
+    1
+   ],
+   "durationsB": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "eventsB": [
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    1,
+    0,
+    1
+   ],
+   "statistic": 17.32313937753721,
+   "pValue": 3.1532374592854344e-05,
+   "degreesOfFreedom": 1
+  }
+ ]
+}

@@ -22,7 +22,8 @@ import check_bench_map  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 
-BOTH = "bench/Lodestar.Text.Benchmarks bench/Lodestar.Stats.Benchmarks"
+# Every directory CLASS_DIRS scans, which is what the loop has to name (#586, #569).
+ALL = " ".join(d.relative_to(ROOT).as_posix() for d in check_bench_map.CLASS_DIRS)
 
 
 def _nightly(monkeypatch, tmp_path, body):
@@ -39,8 +40,12 @@ def test_the_shipped_nightly_measures_every_project_that_can_declare_a_benchmark
 def test_a_forgotten_project_is_a_finding(monkeypatch, tmp_path):
     _nightly(monkeypatch, tmp_path, "for project in bench/Lodestar.Text.Benchmarks; do\n")
     findings = check_bench_map.measured_project_findings()
-    assert len(findings) == 1
-    assert "bench/Lodestar.Stats.Benchmarks" in findings[0]
+
+    # One per directory the loop leaves out, so adding a benchmark project without
+    # adding it to the nightly is a finding on the commit that adds it.
+    assert len(findings) == len(check_bench_map.CLASS_DIRS) - 1
+    assert any("bench/Lodestar.Stats.Benchmarks" in f for f in findings)
+    assert any("bench/Lodestar.Survival.Benchmarks" in f for f in findings)
 
 
 def test_naming_the_project_only_in_a_comment_is_not_running_it(monkeypatch, tmp_path):
@@ -52,8 +57,9 @@ def test_naming_the_project_only_in_a_comment_is_not_running_it(monkeypatch, tmp
         "for project in bench/Lodestar.Text.Benchmarks; do\n",
     )
     findings = check_bench_map.measured_project_findings()
-    assert len(findings) == 1
-    assert "bench/Lodestar.Stats.Benchmarks" in findings[0]
+
+    assert len(findings) == len(check_bench_map.CLASS_DIRS) - 1
+    assert any("bench/Lodestar.Stats.Benchmarks" in f for f in findings)
 
 
 def test_no_loop_at_all_is_a_finding(monkeypatch, tmp_path):
@@ -64,8 +70,8 @@ def test_no_loop_at_all_is_a_finding(monkeypatch, tmp_path):
     assert "no `for project in ...; do` loop" in findings[0]
 
 
-def test_both_projects_present_is_clean(monkeypatch, tmp_path):
-    _nightly(monkeypatch, tmp_path, f"for project in {BOTH}; do\n")
+def test_every_project_present_is_clean(monkeypatch, tmp_path):
+    _nightly(monkeypatch, tmp_path, f"for project in {ALL}; do\n")
     assert check_bench_map.measured_project_findings() == []
 
 

@@ -1755,3 +1755,48 @@ against the per-row allocation.
 Numbers are published in
 [`docs/guides/performance.md`](../docs/guides/performance.md#lodestarstatsregression-against-accordstatistics-issue-566)
 — this section documents how to measure, not what was measured.
+
+## 20. `Lodestar.Survival` against nothing, deliberately (issue #569)
+
+**There is no incumbent, and that absence is the section.** A NuGet capability search on
+2026-09-09 returned **0 packages** for `survival analysis` and **0** for `kaplan meier`; the
+searches are recorded in
+[decision 0099](../docs/decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)
+with their queries and counts. The #427 protocol reads an incumbent's exported surface through a
+`MetadataLoadContext` rather than its README — and where there is no assembly to load, the protocol
+is discharged by recording the searches instead of by pretending to run it.
+
+`scikit-survival` is the nearest reference in any language and is **refused**, not unavailable: its
+licence is GPL-3.0-or-later, which [decision 0003](../docs/decisions/0003-provenance-and-licensing.md)
+excludes outright. `lifelines` (MIT) is the oracle the corpora are frozen from, in
+`tools/generate_oracles.py`, and it is a Python library — not a .NET package this could race.
+
+So `SurvivalBenchmarks` measures the three estimators against **each other and against input
+shape**, which is the only comparison available:
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Survival.Benchmarks -- --filter '*SurvivalBenchmarks*' --job short
+```
+
+### Why ties are a parameter and not an accident
+
+`SampleSize` alone does not move these estimators the way it looks like it should. Both curves walk
+a **step table**, one entry per distinct duration, so a sample of a hundred thousand subjects with
+four thousand distinct durations does less per-step work than its size suggests and more per step.
+`DistinctPercent` is therefore a parameter beside it — 100 for every duration distinct, 4 for heavy
+ties — and it is what separates the two curves:
+
+- Kaplan-Meier multiplies **once per step**, so a tied sample costs it less.
+- Nelson-Aalen's tie correction sums `1 / (n - i)` **once per event**, so a tied sample costs it the
+  same as an untied one of the same size. The two therefore converge as ties thin out and part as
+  they thicken, and `KaplanMeierEstimate` is the baseline so the ratio reads directly.
+
+`LogRankTest` is given the sample split in half, which is what a two-arm trial is. It walks both
+arms once per distinct **event** time — censoring-only times carry no information and are skipped —
+so its cost tracks the number of events rather than the number of subjects.
+
+A third of the subjects are censored throughout, on a seeded corpus (`Random(569)`), which is an
+ordinary trial's shape rather than a best case.
+
+Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
+this section documents how to measure, not what was measured.

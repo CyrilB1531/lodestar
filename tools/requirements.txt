@@ -66,6 +66,19 @@ snowballstemmer==3.1.1
 # formulaic as well.
 statsmodels==0.15.0
 
+# lifelines -- the reference for Lodestar.Survival's Kaplan-Meier, Nelson-Aalen and
+# log-rank (#569). MIT, read from the wheel rather than the PyPI classifier. Its own
+# Python floor is 3.11, below the 3.12 ADR 0065 sets, so it does not raise ours.
+#
+# scikit-survival is deliberately absent: its licence is GPL-3.0-or-later, which ADR 0003
+# refuses outright. Decision 0098 records that so the question is not reopened.
+lifelines==0.30.3
+# autograd-gamma is lifelines' own dependency, pinned here rather than left to the
+# resolver: pip-compile selects 0.5.0, which publishes no wheel, and every install site
+# passes --only-binary :all:. 0.4.2 is the newest that does, and the lock's graph is
+# otherwise unchanged by the pin.
+autograd-gamma==0.4.2
+
 # onnx is only needed to (re)build the tiny synthetic test model, not for
 # generate_oracles.py: onnx==1.16.0
 

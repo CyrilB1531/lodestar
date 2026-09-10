@@ -27,7 +27,7 @@
     <PackageVersion Include="Lodestar.Decomposition" Version="0.2.0" />
     <PackageVersion Include="Lodestar.Embeddings" Version="0.5.0" />
     <PackageVersion Include="Lodestar.Onnx" Version="0.1.0" />
-    <PackageVersion Include="Lodestar.Stats" Version="0.2.0" />
+    <PackageVersion Include="Lodestar.Stats" Version="0.4.0" />
     <PackageVersion Include="Lodestar.Text" Version="0.4.0" />
     <!-- Abstractions only: the interfaces a consumer already has, and no
          implementation. Carried by Lodestar.Extensions.AI alone, which is the

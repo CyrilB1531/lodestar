@@ -97,6 +97,8 @@ SAMPLES = "samples"
 MAX_ITER = "max_iter"
 T_PPF = "t.ppf"
 CHI2_SF = "chi2.sf"
+# A bound key three corpora write, which is what takes it to S1192's threshold (#569).
+UPPER = "upper"
 NORM_PPF = "norm.ppf"
 FAMILY = "family"
 # The OLS corpus repeats its own field names once per fixture and once per emitted case.
@@ -3509,7 +3511,7 @@ def generate_conformal() -> dict:
         regression_cases.append({
             "name": fx["name"], "alpha": fx["alpha"], Y_CALIB: y_calib,
             Y_CALIB_PRED: calib_pred, QUANTILE: q, Y_TEST_PRED: test_pred,
-            "lower": lower, "upper": upper})
+            "lower": lower, UPPER: upper})
 
     for fx in _conformal_classification_fixtures():
         case = _conformal_classification_case(fx, frozen_classifier, SplitConformalClassifier)
@@ -3660,7 +3662,7 @@ def generate_decomposition_lu() -> dict:
         cases.append({
             **fixture,
             "permuted_lower": [settled(v) for v in pl.ravel()],
-            "upper": [settled(v) for v in u.ravel()],
+            UPPER: [settled(v) for v in u.ravel()],
         })
     return {"metadata": {"library": "scipy", "version": version("scipy"),
                          "reference_calls": ["scipy.linalg.lu"],
@@ -4431,6 +4433,194 @@ def _ols_fixtures() -> list[dict]:
             OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
         },
     ]
+
+
+# --- Lodestar.Survival, oracled by lifelines rather than scipy (#569) -----------
+
+DURATIONS = "durations"
+EVENTS = "eventObserved"
+# The two-arm keys, named because each appears once per fixture and once per case, and
+# S1192 counts a JSON key like any other literal (#569).
+DURATIONS_A = "durationsA"
+DURATIONS_B = "durationsB"
+EVENTS_A = "eventsA"
+EVENTS_B = "eventsB"
+# The library that oracles this family, named for the same reason as the keys above.
+LIFELINES = "lifelines"
+OBSERVED = "observed"
+
+
+def _survival_fixtures() -> list[dict]:
+    """Right-censored samples, chosen for what ties and censoring can get wrong.
+
+    The first is Freireich's leukaemia trial, the data every survival text opens
+    with, and the rest exist for one boundary each: a time carrying both an event
+    and a censoring, a sample with no event at all, and the shortest input a curve
+    can be drawn from.
+    """
+    return [
+        {
+            "name": "Freireich, the treatment arm",
+            DURATIONS: [6, 6, 6, 7, 10, 13, 16, 22, 23, 6, 9, 10, 11, 17, 19, 20, 25, 32, 32, 34, 35],
+            EVENTS: [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        },
+        {
+            "name": "Freireich, the control arm, every duration observed",
+            DURATIONS: [1, 1, 2, 2, 3, 4, 4, 5, 5, 8, 8, 8, 8, 11, 11, 12, 12, 15, 17, 22, 23],
+            EVENTS: [1] * 21,
+        },
+        {
+            # An event and a censoring at one time: the step Kaplan-Meier is most
+            # often got wrong on, the censoring moving the risk set and not the curve.
+            "name": "events and censorings tied at the same time",
+            DURATIONS: [2, 2, 2, 5, 5, 5, 8, 8, 11],
+            EVENTS: [1, 0, 1, 0, 1, 0, 1, 1, 0],
+        },
+        {
+            "name": "every observation censored, so the curve never falls",
+            DURATIONS: [3, 5, 5, 9, 12],
+            EVENTS: [0, 0, 0, 0, 0],
+        },
+        {
+            "name": "a single observed duration",
+            DURATIONS: [4],
+            EVENTS: [1],
+        },
+        {
+            "name": "a single censored duration",
+            DURATIONS: [4],
+            EVENTS: [0],
+        },
+        {
+            # The last duration observed takes the curve to zero, where the log-log
+            # transform's interval is degenerate and lifelines reports NaN.
+            "name": "the curve reaches zero at the last time",
+            DURATIONS: [1, 2, 3],
+            EVENTS: [1, 1, 1],
+        },
+        {
+            "name": "heavy ties, four events at one time",
+            DURATIONS: [7, 7, 7, 7, 9, 9, 14, 20, 20],
+            EVENTS: [1, 1, 1, 1, 0, 1, 1, 0, 1],
+        },
+    ]
+
+
+def _logrank_fixtures() -> list[dict]:
+    """Two-arm comparisons, including the pair every text uses and two degenerate ones."""
+    return [
+        {
+            "name": "Freireich, treatment against control",
+            DURATIONS_A: [6, 6, 6, 7, 10, 13, 16, 22, 23, 6, 9, 10, 11, 17, 19, 20, 25, 32, 32, 34, 35],
+            EVENTS_A: [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            DURATIONS_B: [1, 1, 2, 2, 3, 4, 4, 5, 5, 8, 8, 8, 8, 11, 11, 12, 12, 15, 17, 22, 23],
+            EVENTS_B: [1] * 21,
+        },
+        {
+            "name": "two arms with tied event times across groups",
+            DURATIONS_A: [4, 4, 6, 6, 9],
+            EVENTS_A: [1, 1, 1, 0, 1],
+            DURATIONS_B: [4, 6, 6, 10, 10],
+            EVENTS_B: [1, 1, 1, 1, 0],
+        },
+        {
+            "name": "identical arms, where the statistic is zero",
+            DURATIONS_A: [2, 4, 6, 8],
+            EVENTS_A: [1, 1, 1, 1],
+            DURATIONS_B: [2, 4, 6, 8],
+            EVENTS_B: [1, 1, 1, 1],
+        },
+        {
+            "name": "one arm entirely censored",
+            DURATIONS_A: [3, 5, 7, 9],
+            EVENTS_A: [1, 1, 1, 1],
+            DURATIONS_B: [3, 5, 7, 9],
+            EVENTS_B: [0, 0, 0, 0],
+        },
+        {
+            "name": "arms of very different size",
+            DURATIONS_A: [1, 2, 3],
+            EVENTS_A: [1, 1, 1],
+            DURATIONS_B: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+            EVENTS_B: [1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1],
+        },
+    ]
+
+
+def generate_survival_curves() -> dict:
+    """Kaplan-Meier and Nelson-Aalen over the same samples, frozen from lifelines.
+
+    The confidence interval is the one lifelines reports by default: built on the
+    log-log transform of the estimate rather than on the estimate itself, verified
+    numerically and stated on the reference page, because the two differ visibly.
+    """
+    from lifelines import KaplanMeierFitter, NelsonAalenFitter  # noqa: PLC0415
+
+    cases = []
+    for fixture in _survival_fixtures():
+        durations = fixture[DURATIONS]
+        events = fixture[EVENTS]
+
+        kmf = KaplanMeierFitter()
+        kmf.fit(durations, event_observed=events)
+        naf = NelsonAalenFitter()
+        naf.fit(durations, event_observed=events)
+
+        table = kmf.event_table
+        lower, upper = kmf.confidence_interval_.columns
+        cases.append({
+            "name": fixture["name"],
+            DURATIONS: durations,
+            EVENTS: events,
+            "timeline": [float(t) for t in kmf.survival_function_.index],
+            "survival": [float(v) for v in kmf.survival_function_.iloc[:, 0]],
+            "cumulativeHazard": [float(v) for v in naf.cumulative_hazard_.iloc[:, 0]],
+            "atRisk": [int(v) for v in table["at_risk"]],
+            OBSERVED: [int(v) for v in table[OBSERVED]],
+            "censored": [int(v) for v in table["censored"]],
+            "lower": [float(v) for v in kmf.confidence_interval_[lower]],
+            UPPER: [float(v) for v in kmf.confidence_interval_[upper]],
+        })
+
+    return {
+        "metadata": {
+            "library": LIFELINES,
+            "version": version(LIFELINES),
+            FAMILY: "survival-curves",
+            "confidenceInterval": "log-log transform at 0.95, lifelines' default",
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
+def generate_survival_logrank() -> dict:
+    """The two-sample log-rank test, frozen from lifelines.statistics."""
+    from lifelines.statistics import logrank_test  # noqa: PLC0415
+
+    cases = []
+    for fixture in _logrank_fixtures():
+        result = logrank_test(
+            fixture[DURATIONS_A], fixture[DURATIONS_B],
+            event_observed_A=fixture[EVENTS_A], event_observed_B=fixture[EVENTS_B])
+        cases.append({
+            "name": fixture["name"],
+            DURATIONS_A: fixture[DURATIONS_A], EVENTS_A: fixture[EVENTS_A],
+            DURATIONS_B: fixture[DURATIONS_B], EVENTS_B: fixture[EVENTS_B],
+            "statistic": float(result.test_statistic),
+            "pValue": float(result.p_value),
+            "degreesOfFreedom": int(result.degrees_of_freedom),
+        })
+
+    return {
+        "metadata": {
+            "library": LIFELINES,
+            "version": version(LIFELINES),
+            FAMILY: "survival-logrank",
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
 
 
 def generate_stats_ols() -> dict:
@@ -9169,6 +9359,8 @@ def main() -> None:
         "silhouette.json": generate_silhouette,
         "internal_validity.json": generate_internal_validity,
         "stats_distributions.json": generate_stats_distributions,
+        "survival_curves.json": generate_survival_curves,
+        "survival_logrank.json": generate_survival_logrank,
         "stats_ols.json": generate_stats_ols,
         "cluster_kmeans.json": generate_cluster_kmeans,
         "preprocessing_standard_scaler.json": generate_preprocessing_standard_scaler,
