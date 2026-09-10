@@ -149,6 +149,10 @@
       "src/Lodestar.Gpu/**",
       "src/Lodestar.Text/Distances/**"
     ],
+    "ChainedProductBenchmarks": [
+      "src/Lodestar.Gpu/**",
+      "src/Lodestar.Abstractions/**"
+    ],
     "StatsBenchmarks": [
       "src/Lodestar.Stats/**"
     ],

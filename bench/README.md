@@ -1970,3 +1970,38 @@ which tells the next reader more than an absence would.
 
 Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
 this section documents how to measure, not what was measured.
+
+## 25. What residency buys across two operations (issue #444, kernel 4)
+
+Decision 0102 deferred the chainable device-resident types until three kernels existed, on the
+ground that **chainability is a claim about two operations sharing a residency** and cannot be
+measured with one. Three exist, so here it is priced.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Gpu.Benchmarks -- --filter '*ChainedProduct*' --job short
+```
+
+**`RoundTripped` is the baseline, not `CpuBaseline`, and that is deliberate.** The question this
+section asks is not whether an accelerator beats a processor — section 24's kernel already asks
+that one — it is what a caller loses by letting an intermediate cross the bus. Putting the
+round-tripped version in the denominator makes the ratio read as *what residency is worth*
+directly, with no subtraction.
+
+| row | what it does |
+| --- | --- |
+| `RoundTripped` | two sparse-dense products, with a download and a re-upload between them |
+| `Chained` | the same two, the intermediate never leaving the accelerator |
+| `CpuBaseline` | `CsrMatrix.Multiply` composed twice, for the absolute scale the ratio sits on |
+
+`CpuBaseline` is there so the ratio cannot be read in a vacuum. A chain twice as fast as a round
+trip is worth nothing if both are slower than the CPU path, and that is a reading only the third
+row makes possible.
+
+The intermediate is what the parameters are chosen to size: a 4 000-column inner dimension by
+`Width` ∈ {32, 128} puts 128 000 to 512 000 doubles — one to four megabytes — on the bus per step
+that is not chained, and `Rows` ∈ {2 000, 20 000} moves the work without moving that transfer.
+**The gap between the two rows should therefore be roughly flat in `Rows` and roughly linear in
+`Width`**, and a run where it is not means the transfer is not what separates them.
+
+Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
+this section documents how to measure, not what was measured.

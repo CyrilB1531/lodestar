@@ -61,19 +61,46 @@ public sealed class TiledSparseDenseProduct
                 $"block holds {block.Length} values, not {matrix.ColumnCount} x {width}.", nameof(block));
         }
 
-        Accelerator accelerator = _context.Accelerator;
-        using MemoryBuffer1D<double, Stride1D.Dense> dense = accelerator.Allocate1D(block.ToArray());
-        using MemoryBuffer1D<double, Stride1D.Dense> result =
-            accelerator.Allocate1D<double>((long)matrix.RowCount * width);
+        using DeviceDenseBlock dense =
+            DeviceDenseBlock.Upload(_context, block, matrix.ColumnCount, width);
+        using DeviceDenseBlock product = Multiply(matrix, dense);
+        return product.Download();
+    }
 
-        int tiles = (width + _groupSize - 1) / _groupSize;
+    /// <summary>Computes <c>matrix · block</c> and leaves the result on the accelerator.</summary>
+    /// <param name="matrix">The resident sparse left operand.</param>
+    /// <param name="block">The resident dense right operand, as many rows as the matrix has columns.</param>
+    /// <returns>A resident block of <c>matrix.RowCount</c> rows and <c>block.ColumnCount</c> columns.</returns>
+    /// <exception cref="ArgumentNullException">An argument is null.</exception>
+    /// <exception cref="ArgumentException">The two operands do not compose.</exception>
+    /// <remarks>
+    /// The chaining entry point: its result is the type its own operand is, so a second product
+    /// consumes it without crossing the bus. The caller ends the chain with
+    /// <see cref="DeviceDenseBlock.Download"/> and pays one copy for however many steps it held.
+    /// </remarks>
+    public DeviceDenseBlock Multiply(DeviceSparseMatrix matrix, DeviceDenseBlock block)
+    {
+        ArgumentNullException.ThrowIfNull(matrix);
+        ArgumentNullException.ThrowIfNull(block);
+        if (block.RowCount != matrix.ColumnCount)
+        {
+            throw new ArgumentException(
+                $"a matrix of {matrix.RowCount} x {matrix.ColumnCount} does not multiply a block "
+                + $"of {block.RowCount} rows.", nameof(block));
+        }
+
+        Accelerator accelerator = _context.Accelerator;
+        MemoryBuffer1D<double, Stride1D.Dense> result =
+            accelerator.Allocate1D<double>((long)matrix.RowCount * block.ColumnCount);
+
+        int tiles = (block.ColumnCount + _groupSize - 1) / _groupSize;
         _product(
             new KernelConfig(new Index2D(tiles, matrix.RowCount), new Index2D(_groupSize, 1)),
             matrix.RowPointers.View, matrix.ColumnIndices.View, matrix.Values.View,
-            dense.View, result.View, width);
+            block.Buffer.View, result.View, block.ColumnCount);
         accelerator.Synchronize();
 
-        return result.GetAsArray1D();
+        return new DeviceDenseBlock(result, matrix.RowCount, block.ColumnCount);
     }
 
     /// <summary>One group per row and column tile, the row's non-zeros tiled through shared memory.</summary>
