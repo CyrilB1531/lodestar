@@ -30,7 +30,7 @@ public sealed class BitParallelEditDistance
     /// <remarks>Loading compiles, so build this once and reuse it (decision 0102).</remarks>
     public BitParallelEditDistance(GpuContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
+        Guard.NotNull(context);
         _context = context;
         _kernel = context.Accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<ulong>,
             ArrayView<byte>, ArrayView<int>, ArrayView<int>, int>(DistanceKernel);
@@ -47,8 +47,8 @@ public sealed class BitParallelEditDistance
     /// </exception>
     public int[] Distance(string pattern, DeviceTextBlock texts)
     {
-        ArgumentNullException.ThrowIfNull(pattern);
-        ArgumentNullException.ThrowIfNull(texts);
+        Guard.NotNull(pattern);
+        Guard.NotNull(texts);
         if (pattern.Length is 0 or > MaxPatternLength)
         {
             throw new ArgumentException(

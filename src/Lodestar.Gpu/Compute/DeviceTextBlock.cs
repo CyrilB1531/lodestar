@@ -49,9 +49,9 @@ public sealed class DeviceTextBlock : IDisposable
     /// <exception cref="ArgumentException"><paramref name="texts"/> is empty, or the pattern holds too many distinct characters.</exception>
     public static DeviceTextBlock Upload(GpuContext context, string pattern, IReadOnlyList<string> texts)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(pattern);
-        ArgumentNullException.ThrowIfNull(texts);
+        Guard.NotNull(context);
+        Guard.NotNull(pattern);
+        Guard.NotNull(texts);
         if (texts.Count == 0)
         {
             throw new ArgumentException("A batch holds at least one string.", nameof(texts));
@@ -73,7 +73,7 @@ public sealed class DeviceTextBlock : IDisposable
         int total = 0;
         foreach (string text in texts)
         {
-            ArgumentNullException.ThrowIfNull(text);
+            Guard.NotNull(text);
             total += text.Length;
         }
 

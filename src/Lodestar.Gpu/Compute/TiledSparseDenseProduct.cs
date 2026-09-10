@@ -33,7 +33,7 @@ public sealed class TiledSparseDenseProduct
     /// <remarks>Loading compiles, so build this once and reuse it (decision 0102).</remarks>
     public TiledSparseDenseProduct(GpuContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
+        Guard.NotNull(context);
         _context = context;
         _groupSize = Math.Min(MaxGroupSize, context.Accelerator.MaxGroupSize.X);
         _product = context.Accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>,
@@ -53,8 +53,8 @@ public sealed class TiledSparseDenseProduct
     /// <exception cref="ArgumentException"><paramref name="block"/> is not that shape.</exception>
     public double[] Multiply(DeviceSparseMatrix matrix, ReadOnlySpan<double> block, int width)
     {
-        ArgumentNullException.ThrowIfNull(matrix);
-        ArgumentOutOfRangeException.ThrowIfLessThan(width, 1);
+        Guard.NotNull(matrix);
+        Guard.NotLessThan(width, 1);
         if (block.Length != (long)matrix.ColumnCount * width)
         {
             throw new ArgumentException(
@@ -80,8 +80,8 @@ public sealed class TiledSparseDenseProduct
     /// </remarks>
     public DeviceDenseBlock Multiply(DeviceSparseMatrix matrix, DeviceDenseBlock block)
     {
-        ArgumentNullException.ThrowIfNull(matrix);
-        ArgumentNullException.ThrowIfNull(block);
+        Guard.NotNull(matrix);
+        Guard.NotNull(block);
         if (block.RowCount != matrix.ColumnCount)
         {
             throw new ArgumentException(

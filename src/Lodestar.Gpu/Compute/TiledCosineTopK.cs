@@ -37,7 +37,7 @@ public sealed class TiledCosineTopK
     /// </remarks>
     public TiledCosineTopK(GpuContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
+        Guard.NotNull(context);
         _context = context;
         _groupSize = LargestPowerOfTwo(Math.Min(MaxGroupSize, context.Accelerator.MaxGroupSize.X));
         _score = context.Accelerator
@@ -61,9 +61,9 @@ public sealed class TiledCosineTopK
     public IReadOnlyList<IReadOnlyList<GpuSearchResult>> Search(
         DeviceEmbeddingMatrix matrix, ReadOnlySpan<float> queries, int queryCount, int k)
     {
-        ArgumentNullException.ThrowIfNull(matrix);
-        ArgumentOutOfRangeException.ThrowIfLessThan(queryCount, 1);
-        ArgumentOutOfRangeException.ThrowIfLessThan(k, 1);
+        Guard.NotNull(matrix);
+        Guard.NotLessThan(queryCount, 1);
+        Guard.NotLessThan(k, 1);
         if (queries.Length != (long)queryCount * matrix.Dimension)
         {
             throw new ArgumentException(

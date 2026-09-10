@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Replays the entire Lodestar.Gpu.Tests suite against the *netstandard2.1* build
+    of the library, instead of the net10.0 one the original project references.
+
+    The only mirror in this repository pinned to 2.1 rather than 2.0, because
+    Lodestar.Gpu is the only package targeting it: ILGPU publishes no
+    netstandard2.0 asset and does publish a 2.1 one (decisions 0101 and 0103).
+    netstandard2.1 is a contract rather than a runtime, so the tests run on
+    net10.0 and only the assembly under test changes.
+
+    Without this the assembly shipped to .NET 8, Mono and Unity consumers would be
+    compile-verified and never executed, which is the gap #529 was about.
+
+    The test sources are linked, never copied: one suite, two builds.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AssemblyName>Lodestar.Gpu.NetStandard.Tests</AssemblyName>
+    <RootNamespace>Lodestar.Gpu.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <!--
+    SetTargetFramework pins the library under test to its netstandard2.1 build. The
+    three baselines this suite compares against are deliberately *not* pinned: they
+    are the CPU paths, and what is being replayed is the GPU assembly.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/Lodestar.Gpu/Lodestar.Gpu.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.1" />
+    <ProjectReference Include="../../src/Lodestar.Embeddings/Lodestar.Embeddings.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Text/Lodestar.Text.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Lodestar.Gpu.Tests/**/*.cs"
+             Exclude="../Lodestar.Gpu.Tests/bin/**;../Lodestar.Gpu.Tests/obj/**"
+             Link="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!-- The gate's engine is shared by every package's suite, so it is linked rather
+       than copied; the pages and the map are read from the output directory. -->
+  <ItemGroup>
+    <Compile Include="../Shared/ReferenceDocumentation.cs" Link="Documentation/ReferenceDocumentation.cs" />
+    <None Include="../../docs/reference/gpu/**/*.md" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="reference" />
+    <None Include="../../docs/wiki-map.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../docs/**/*.md" Exclude="../../docs/superpowers/**"
+          CopyToOutputDirectory="PreserveNewest" LinkBase="docs" />
+  </ItemGroup>
+
+</Project>

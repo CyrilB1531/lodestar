@@ -42,6 +42,7 @@
     <Project Path="tests/Lodestar.Metrics.Tests/Lodestar.Metrics.Tests.csproj" />
     <Project Path="tests/Lodestar.Preprocessing.NetStandard.Tests/Lodestar.Preprocessing.NetStandard.Tests.csproj" />
     <Project Path="tests/Lodestar.Preprocessing.Tests/Lodestar.Preprocessing.Tests.csproj" />
+    <Project Path="tests/Lodestar.Gpu.NetStandard.Tests/Lodestar.Gpu.NetStandard.Tests.csproj" />
     <Project Path="tests/Lodestar.Gpu.Tests/Lodestar.Gpu.Tests.csproj" />
     <Project Path="tests/Lodestar.Onnx.NetStandard.Tests/Lodestar.Onnx.NetStandard.Tests.csproj" />
     <Project Path="tests/Lodestar.Onnx.Tests/Lodestar.Onnx.Tests.csproj" />

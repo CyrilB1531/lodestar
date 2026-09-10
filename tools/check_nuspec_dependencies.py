@@ -57,6 +57,8 @@ import zipfile
 
 NET = "net10.0"
 NETSTANDARD = ".NETStandard2.0"
+# Lodestar.Gpu alone: ILGPU publishes no netstandard2.0 asset and does publish this one.
+NETSTANDARD21 = ".NETStandard2.1"
 
 TEXT = "Lodestar.Text"
 FUZZY = "Lodestar.Fuzzy"
@@ -111,10 +113,11 @@ DECOMPOSITION_FLOOR = "0.2.0"
 # package id -> target framework -> {dependency id: declared version range}.
 # See this module's docstring for what EXPECTED's shape and ranges prove.
 EXPECTED: dict[str, dict[str, dict[str, str]]] = {
-    # One target framework, and no sibling may depend on it: ILGPU ships no
-    # netstandard2.0 asset, so there is no second row rather than a reduced one (0101).
+    # The only package on netstandard2.1 and the only one no sibling may depend on:
+    # ILGPU ships no netstandard2.0 asset and does ship this one (0101).
     GPU: {
         NET: {ILGPU: "1.5.3"},
+        NETSTANDARD21: {ILGPU: "1.5.3"},
     },
     ABSTRACTIONS: {
         # A sparse matrix and its products serialise nothing, so no System.Text.Json

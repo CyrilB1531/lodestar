@@ -12,7 +12,7 @@
       ILGPU's newest asset is net7.0 and both consume it identically, so a second
       target framework would add a matrix dimension ILGPU does not distinguish.
     -->
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;netstandard2.1</TargetFrameworks>
     <Version>$(LodestarGpuVersion)</Version>
     <RootNamespace>Lodestar.Gpu</RootNamespace>
 

@@ -59,9 +59,9 @@ public sealed class DeviceSparseMatrix : IDisposable
         int rowCount,
         int columnCount)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentOutOfRangeException.ThrowIfLessThan(rowCount, 1);
-        ArgumentOutOfRangeException.ThrowIfLessThan(columnCount, 1);
+        Guard.NotNull(context);
+        Guard.NotLessThan(rowCount, 1);
+        Guard.NotLessThan(columnCount, 1);
         if (rowPointers.Length != rowCount + 1)
         {
             throw new ArgumentException(

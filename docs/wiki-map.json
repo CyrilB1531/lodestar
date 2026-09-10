@@ -200,6 +200,18 @@
         "Lodestar.Survival": "docs/reference/survival/estimators"
       },
       "exceptionsUnchecked": []
+    },
+    "Lodestar.Gpu": {
+      "wiki": "Gpu",
+      "pages": [
+        "docs/guides/gpu-kernels.md",
+        "docs/reference/gpu/*.md",
+        "docs/reference/gpu/*/*.md"
+      ],
+      "covered": {
+        "Lodestar.Gpu.Compute": "docs/reference/gpu/compute"
+      },
+      "exceptionsUnchecked": []
     }
   }
 }

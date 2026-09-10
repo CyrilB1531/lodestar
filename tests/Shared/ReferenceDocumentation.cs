@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -951,12 +952,22 @@ internal static class ReferenceDocumentation
     };
 
     /// <summary>The target framework of the build under test, as a page spells it.</summary>
+    /// <remarks>
+    /// The netstandard version is read rather than assumed. Every package contracts on 2.0
+    /// except <c>Lodestar.Gpu</c>, whose dependency publishes no such asset and does publish a
+    /// 2.1 one (decision 0103) — and a hard-coded 2.0 told its pages they were wrong about a
+    /// framework they named correctly.
+    /// </remarks>
     private static string Moniker(Assembly assembly)
     {
         string? name = assembly.GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName;
-        return name is null || !name.Contains("NETStandard", StringComparison.Ordinal)
-            ? "net10.0"
-            : "netstandard2.0";
+        if (name is null || !name.Contains("NETStandard", StringComparison.Ordinal))
+        {
+            return "net10.0";
+        }
+
+        Match version = Regex.Match(name, @"Version=v(?<version>\d+\.\d+)");
+        return version.Success ? $"netstandard{version.Groups["version"].Value}" : "netstandard2.0";
     }
 
     /// <summary>Every (namespace, page) pair a package declares covered.</summary>

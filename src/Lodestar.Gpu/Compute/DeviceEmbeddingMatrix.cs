@@ -43,9 +43,9 @@ public sealed class DeviceEmbeddingMatrix : IDisposable
     public static DeviceEmbeddingMatrix Upload(
         GpuContext context, ReadOnlySpan<float> rows, int count, int dimension, bool normalize = true)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
-        ArgumentOutOfRangeException.ThrowIfLessThan(dimension, 1);
+        Guard.NotNull(context);
+        Guard.NotLessThan(count, 1);
+        Guard.NotLessThan(dimension, 1);
         if (rows.Length != (long)count * dimension)
         {
             throw new ArgumentException(

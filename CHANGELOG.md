@@ -24,6 +24,12 @@ is one sentence, the issue and the commit; see
 
 ## [Unreleased]
 
+### Lodestar.Gpu
+
+#### Added
+
+- **A sixteenth package, `Lodestar.Gpu`, puts four operations on an accelerator through ILGPU — and it is the one package nothing under `src/` may depend on.** That constraint is the point rather than a limitation: the SIMD and scalar paths stay the complete answer on every target framework, so a `netstandard2.0` caller loses nothing by this package existing ([decision 0101](docs/decisions/0101-lodestar-gpu-is-the-one-package-that-does-not-ship-netstandard2-0.md)). It carries no Lodestar edge in either direction — kernels take spans and dimensions because a kernel parameter has to be blittable, which also means no floor on a published sibling. **`TiledCosineTopK`** sweeps a resident matrix with a batch of queries, tiling the query through shared memory and selecting the best *k* by repeated parallel argmax, with ties broken by row index ascending so it agrees with `EmbeddingIndex.Search` by construction. **`TiledSparseDenseProduct`** multiplies a resident CSR matrix by a dense block, walking each row in stored order — the order `CsrMatrix.Multiply` walks it — so the two agree far inside the asserted tolerance. **`BitParallelEditDistance`** runs Myers' algorithm one thread per string: the parallelism is across pairs, not inside one, because a dynamic-programming row already fits in a machine word. **`DeviceDenseBlock`** is what makes a chain a chain, and [decision 0102](docs/decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md) deferred it until three kernels existed because chainability is a claim about two operations sharing a residency. **Residency is not an optimisation**: the same cosine kernel measured 6.6× faster than the CPU path with its corpus resident and **9.25× slower** when that corpus was uploaded to answer one query. Measured on a named machine per decision 0102 — an RTX 5070 Ti — and [`docs/guides/performance.md`](docs/guides/performance.md) carries the four tables with three caveats ahead of them, of which the load-bearing one is that every baseline is single-threaded. Two predictions this package published were refuted by its own numbers and are corrected where they were written: the edit-distance kernel was expected to fail the 5–10× gate and cleared it by 28× to 146×, and the chaining gain was predicted flat in row count where it shrinks. ([#444](https://github.com/CyrilB1531/lodestar/issues/444))
+
 ### Lodestar.Embeddings
 
 #### Fixed

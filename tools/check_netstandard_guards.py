@@ -36,21 +36,43 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 GUARD = "NetStandardAssemblyGuardTests.cs"
 
+# The suffix every mirror's directory carries, spelled once.
+SUFFIX = ".NetStandard.Tests"
+
 # A library's dependencies, as the src project declares them.
 SRC_PACKAGE_REFERENCE = re.compile(r'<PackageReference\s+Include="(Lodestar\.[A-Za-z.]+)"')
 
-# A mirror's pins, as the test project declares them.
-MIRROR_PROJECT_REFERENCE = re.compile(
-    r'<ProjectReference\s+Include="[^"]*/(Lodestar\.[A-Za-z.]+)\.csproj"'
-    r'\s+SetTargetFramework="TargetFramework=netstandard2\.0"')
+# long-comment: why the contract is a table rather than a constant. Every package
+# targets netstandard2.0 except Lodestar.Gpu, whose dependency publishes no such asset
+# and does publish a 2.1 one (decisions 0101 and 0103). Read against a constant, a 2.1
+# mirror passed this guard vacuously: it has no Lodestar dependency to pin, so the loop
+# below had nothing to iterate and nothing to report, while the guard printed "16
+# netstandard2.0 mirrors" and one of them was not.
+MIRRORED = {"Lodestar.Gpu": "netstandard2.1"}
+DEFAULT_CONTRACT = "netstandard2.0"
+
+SRC_TARGETS = re.compile(r"<TargetFrameworks?>([^<]+)</TargetFrameworks?>")
+
+
+def contract_of(package: str) -> str:
+    """The netstandard moniker this package's mirror has to pin."""
+    return MIRRORED.get(package, DEFAULT_CONTRACT)
+
+
+def mirror_pins(text: str, contract: str) -> set[str]:
+    """The Lodestar projects a mirror pins to <paramref name="contract"/>."""
+    pattern = re.compile(
+        r'<ProjectReference\s+Include="[^"]*/(Lodestar\.[A-Za-z.]+)\.csproj"'
+        rf'\s+SetTargetFramework="TargetFramework={re.escape(contract)}"')
+    return set(pattern.findall(text))
 
 
 def mirrors() -> list[pathlib.Path]:
-    return sorted((ROOT / "tests").glob("*.NetStandard.Tests"))
+    return sorted((ROOT / "tests").glob(f"*{SUFFIX}"))
 
 
 def failures_in(mirror: pathlib.Path) -> list[str]:
-    package = mirror.name[: -len(".NetStandard.Tests")]
+    package = mirror.name[: -len(SUFFIX)]
     found = []
 
     if not (mirror / GUARD).is_file():
@@ -69,15 +91,40 @@ def failures_in(mirror: pathlib.Path) -> list[str]:
         found.append(f"{mirror.relative_to(ROOT)}: no library at src/{package}.")
         return found
 
-    pinned = set(MIRROR_PROJECT_REFERENCE.findall(project.read_text(encoding="utf-8")))
-    for dependency in sorted(set(SRC_PACKAGE_REFERENCE.findall(source.read_text(encoding="utf-8")))):
+    contract = contract_of(package)
+    body = project.read_text(encoding="utf-8")
+    library = source.read_text(encoding="utf-8")
+
+    # long-comment: the library has to declare the contract its mirror claims to replay,
+    # or a mirror pinning a framework that does not exist reads as a pass with an
+    # unexecuted assembly behind it. A csproj declaring no framework at all is left
+    # alone: it does not build, so the compiler reports it long before this does, and
+    # the fixtures in tools/tests deliberately do not model one.
+    declared = {target.strip() for group in SRC_TARGETS.findall(library)
+                for target in group.split(";")}
+    if declared and contract not in declared:
+        found.append(
+            f"src/{package}/{package}.csproj: targets {sorted(declared)} and its mirror "
+            f"replays {contract}. One of the two is wrong, and tools/"
+            f"check_netstandard_guards.py's MIRRORED is where the intended one is written.")
+        return found
+
+    if declared and not mirror_pins(body, contract) and (
+            package in MIRRORED or SRC_PACKAGE_REFERENCE.search(library)):
+        found.append(
+            f"{project.relative_to(ROOT)}: pins nothing to {contract}, so this suite replays "
+            f"the net10.0 build of {package} and its guard asserts a framework the assembly "
+            f"does not carry.")
+
+    pinned = mirror_pins(body, contract)
+    for dependency in sorted(set(SRC_PACKAGE_REFERENCE.findall(library))):
         if dependency not in pinned:
             found.append(
                 f"{project.relative_to(ROOT)}: {package} depends on {dependency}, which is not "
                 f"pinned here. SetTargetFramework does not cross a PackageReference, so this "
                 f"suite loads {dependency}'s net10.0 build. Add a ProjectReference to "
                 f"../../src/{dependency}/{dependency}.csproj with "
-                f"SetTargetFramework=\"TargetFramework=netstandard2.0\".")
+                f"SetTargetFramework=\"TargetFramework={contract}\".")
     return found
 
 
@@ -96,8 +143,11 @@ def main() -> int:
     if found:
         return 1
 
-    print(f"ok  {len(projects)} netstandard2.0 mirrors carry a guard and pin every "
-          f"Lodestar dependency they load")
+    contracts = ", ".join(
+        f"{mirror.name[: -len(SUFFIX)]} on {contract_of(mirror.name[: -len(SUFFIX)])}"
+        for mirror in projects if mirror.name[: -len(".NetStandard.Tests")] in MIRRORED)
+    print(f"ok  {len(projects)} netstandard mirrors carry a guard and pin every Lodestar "
+          f"dependency they load ({contracts or 'all on ' + DEFAULT_CONTRACT})")
     return 0
 
 

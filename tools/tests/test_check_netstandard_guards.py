@@ -107,3 +107,71 @@ def test_the_real_repository_passes():
     guard.ROOT = Path(__file__).resolve().parents[2]
 
     assert guard.main() == 0
+
+
+def _library(tmp_path, package, targets, body=""):
+    """A src/ csproj declaring a framework list, which the contract checks read."""
+    path = tmp_path / "src" / package
+    path.mkdir(parents=True, exist_ok=True)
+    (path / f"{package}.csproj").write_text(
+        f"<Project><PropertyGroup><TargetFrameworks>{targets}"
+        f"</TargetFrameworks></PropertyGroup>{body}</Project>", encoding="utf-8")
+
+
+def _mirror(tmp_path, package, pin):
+    """A mirror carrying its guard file and one pinned project reference."""
+    path = tmp_path / "tests" / f"{package}.NetStandard.Tests"
+    path.mkdir(parents=True, exist_ok=True)
+    (path / "NetStandardAssemblyGuardTests.cs").write_text("// guard", encoding="utf-8")
+    (path / "mirror.csproj").write_text(
+        f'<Project><ItemGroup><ProjectReference Include="../../src/{package}/{package}.csproj" '
+        f'SetTargetFramework="TargetFramework={pin}" /></ItemGroup></Project>', encoding="utf-8")
+    return path
+
+
+def test_the_contract_is_read_per_package_not_from_a_constant(monkeypatch, tmp_path):
+    """Lodestar.Gpu replays 2.1, because ILGPU ships no 2.0 asset (#444, decision 0103)."""
+    monkeypatch.setattr(guard, "ROOT", tmp_path)
+    _library(tmp_path, "Lodestar.Gpu", "net10.0;netstandard2.1")
+    mirror = _mirror(tmp_path, "Lodestar.Gpu", "netstandard2.1")
+
+    assert guard.contract_of("Lodestar.Gpu") == "netstandard2.1"
+    assert guard.failures_in(mirror) == []
+
+
+def test_a_mirror_pinning_the_wrong_contract_is_reported(monkeypatch, tmp_path):
+    """The finding that did not exist before: a 2.1 library mirrored as if it were 2.0.
+
+    This passed vacuously under the old guard. Lodestar.Gpu has no Lodestar dependency
+    to pin, so the loop over dependencies had nothing to iterate, nothing was reported,
+    and the mirror's own assembly guard asserted a framework the assembly did not carry.
+    """
+    monkeypatch.setattr(guard, "ROOT", tmp_path)
+    _library(tmp_path, "Lodestar.Gpu", "net10.0;netstandard2.1")
+    mirror = _mirror(tmp_path, "Lodestar.Gpu", "netstandard2.0")
+
+    failures = guard.failures_in(mirror)
+
+    assert len(failures) == 1
+    assert "pins nothing to netstandard2.1" in failures[0]
+
+
+def test_a_library_that_does_not_ship_its_mirror_contract_is_reported(monkeypatch, tmp_path):
+    """The other direction: the table says 2.1 and the library never declares it."""
+    monkeypatch.setattr(guard, "ROOT", tmp_path)
+    _library(tmp_path, "Lodestar.Gpu", "net10.0")
+    mirror = _mirror(tmp_path, "Lodestar.Gpu", "netstandard2.1")
+
+    failures = guard.failures_in(mirror)
+
+    assert len(failures) == 1
+    assert "MIRRORED" in failures[0]
+
+
+def test_a_default_package_still_replays_netstandard2_0(monkeypatch, tmp_path):
+    monkeypatch.setattr(guard, "ROOT", tmp_path)
+    _library(tmp_path, "Lodestar.Text", "net10.0;netstandard2.0")
+    mirror = _mirror(tmp_path, "Lodestar.Text", "netstandard2.0")
+
+    assert guard.contract_of("Lodestar.Text") == "netstandard2.0"
+    assert guard.failures_in(mirror) == []
