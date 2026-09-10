@@ -94,3 +94,16 @@ pyyaml==6.0.3
 # is a standalone leaf package (no further dependencies) that click only
 # imports and calls on Windows; installing it on Linux is inert.
 colorama==0.4.6
+
+# tzdata — the same bug as colorama above, one package further down: pandas
+# (statsmodels') declares `tzdata; sys_platform == "win32"`, so pip-compile on
+# Linux evaluates that marker false, never pins it, and --require-hashes then
+# refuses the whole install on Windows. Measured, not predicted: the Windows job
+# of #588 failed with "In --require-hashes mode, all requirements must have
+# their versions pinned with ==" naming tzdata, on a branch whose Linux jobs
+# were all green.
+#
+# Pinned unconditionally for colorama's reason, which holds identically here:
+# tzdata is a standalone leaf (PyPI metadata lists no dependencies at all) and
+# on Linux pandas reads the system zoneinfo instead, so the wheel is inert.
+tzdata==2026.3
