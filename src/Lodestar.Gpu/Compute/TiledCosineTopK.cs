@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -112,6 +113,14 @@ public sealed class TiledCosineTopK
     }
 
     /// <summary>One thread per row, one group per row block, the query tiled through shared memory.</summary>
+    // long-comment: why a kernel is excluded from coverage instrumentation. Coverlet
+    // rewrites an instrumented method to record each hit through a mutable static array,
+    // and ILGPU refuses device code that reads a static field which is not read only. So
+    // every kernel in this package failed to compile under coverage while passing without
+    // it: measured, thirty-six of forty-six tests failed in that job and none locally.
+    // The exclusion covers the device method alone; the host code around it is
+    // instrumented as usual.
+    [ExcludeFromCodeCoverage]
     private static void ScoreKernel(
         ArrayView<float> matrix, ArrayView<float> queries, ArrayView<float> scores, int dimension, int count)
     {
@@ -154,6 +163,8 @@ public sealed class TiledCosineTopK
     /// The taken row is masked to negative infinity so the next pass cannot see it, which
     /// is why <c>scores</c> is scratch and never read again by the caller.
     /// </remarks>
+        // Same reason as the kernel above: coverage instrumentation reads a mutable static.
+    [ExcludeFromCodeCoverage]
     private static void SelectKernel(
         ArrayView<float> scores, ArrayView<int> hitIndices, ArrayView<float> hitScores, int count, int take)
     {
@@ -221,6 +232,8 @@ public sealed class TiledCosineTopK
     }
 
     /// <summary>Keeps the better of two candidates in <paramref name="lane"/>, lower index on a tie.</summary>
+    // Called from a kernel, so it is device code and carries the same exclusion.
+    [ExcludeFromCodeCoverage]
     private static void Merge(ArrayView<float> bestScore, ArrayView<int> bestIndex, int lane, int other)
     {
         // S1244: an exact tie is the case this decides, and the CPU path's sort decides it

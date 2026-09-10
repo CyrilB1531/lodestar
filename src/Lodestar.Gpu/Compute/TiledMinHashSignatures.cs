@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -94,6 +95,14 @@ public sealed class TiledMinHashSignatures
     }
 
     /// <summary>One thread per permutation, the document's hashes tiled through shared memory.</summary>
+    // long-comment: why a kernel is excluded from coverage instrumentation. Coverlet
+    // rewrites an instrumented method to record each hit through a mutable static array,
+    // and ILGPU refuses device code that reads a static field which is not read only. So
+    // every kernel in this package failed to compile under coverage while passing without
+    // it: measured, thirty-six of forty-six tests failed in that job and none locally.
+    // The exclusion covers the device method alone; the host code around it is
+    // instrumented as usual.
+    [ExcludeFromCodeCoverage]
     private static void SignatureKernel(
         ArrayView<uint> hashes, ArrayView<int> offsets, ArrayView<ulong> multipliers,
         ArrayView<ulong> addends, ArrayView<uint> signatures, int permutations)
