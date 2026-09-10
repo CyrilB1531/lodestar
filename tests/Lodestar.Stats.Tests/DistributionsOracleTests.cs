@@ -5,7 +5,7 @@ using Xunit;
 namespace Lodestar.Stats.Tests;
 
 /// <summary>
-/// The three published tails against <c>scipy.stats</c>, over the range a caller reaching
+/// The four published tails against <c>scipy.stats</c>, over the range a caller reaching
 /// for them directly would use.
 /// </summary>
 /// <remarks>
@@ -49,6 +49,9 @@ public sealed class DistributionsOracleTests
                 break;
             case "t.ppf":
                 Assert.Equal(expected, Distributions.StudentQuantile(x, Arg(args, "df")), Relative);
+                break;
+            case "chi2.sf":
+                AssertRelative(expected, Distributions.ChiSquaredSf(x, Arg(args, "df")));
                 break;
             default:
                 AssertRelative(

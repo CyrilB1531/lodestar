@@ -390,6 +390,7 @@ records why these three and no more.
 | `scipy.stats.t.sf(t, df)` | scipy | [`Distributions.StudentSf(t, df)`](reference/stats/tails/distributions-studentsf.md) | Identical, into the far tail: the corpus reaches `3.1e-24` and is compared relatively. `df` of NaN is refused rather than propagated. |
 | `scipy.stats.t.ppf(p, df)` | scipy | [`Distributions.StudentQuantile(p, df)`](reference/stats/tails/distributions-studentquantile.md) | Identical. The endpoints are refused rather than answered with the two infinities, which scipy returns. |
 | `scipy.stats.f.sf(f, dfn, dfd)` | scipy | [`Distributions.FisherSf(f, dfn, dfd)`](reference/stats/tails/distributions-fishersf.md) | Identical. |
+| `scipy.stats.chi2.sf(x, df)` | scipy | [`Distributions.ChiSquaredSf(x, df)`](reference/stats/tails/distributions-chisquaredsf.md) | The upper tail of the chi-squared distribution, published for a log-rank test ([decision 0097](decisions/0097-the-chi-squared-tail-joins-the-published-four.md)). Compared **relatively**, reaching `7.7e-26`. `df` must be positive; `x` is not validated and a non-positive statistic returns one, because the distribution has no mass below zero. |
 | `scipy.stats.t.isf(p, df)`, `t.cdf`, `f.cdf`, `norm.*`, `chi2.*` | scipy | — (no counterpart) | Only what one caller needed is published. `isf(p, df)` is `-StudentQuantile(p, df)` by symmetry; the rest stay internal until something asks. |
 
 ## Lodestar.Decomposition — QR

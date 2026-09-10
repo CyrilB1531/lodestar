@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.0",
   "family": "distributions",
-  "count": 14
+  "count": 20
  },
  "cases": [
   {
@@ -135,6 +135,60 @@
     "dfd": 5.0
    },
    "value": 0.9999998288217309
+  },
+  {
+   "name": "a log-rank test on two groups",
+   "call": "chi2.sf",
+   "args": {
+    "x": 3.84,
+    "df": 1.0
+   },
+   "value": 0.05004352124870519
+  },
+  {
+   "name": "one degree of freedom, at the median",
+   "call": "chi2.sf",
+   "args": {
+    "x": 0.4549,
+    "df": 1.0
+   },
+   "value": 0.5000171607517765
+  },
+  {
+   "name": "a k-sample test, four degrees of freedom",
+   "call": "chi2.sf",
+   "args": {
+    "x": 9.488,
+    "df": 4.0
+   },
+   "value": 0.04999440557799463
+  },
+  {
+   "name": "the far tail at 1e-23",
+   "call": "chi2.sf",
+   "args": {
+    "x": 120.0,
+    "df": 3.0
+   },
+   "value": 7.716790355634162e-26
+  },
+  {
+   "name": "below the support, where the tail is one",
+   "call": "chi2.sf",
+   "args": {
+    "x": 0.0,
+    "df": 2.0
+   },
+   "value": 1.0
+  },
+  {
+   "name": "a hundred degrees of freedom, near its mean",
+   "call": "chi2.sf",
+   "args": {
+    "x": 100.0,
+    "df": 100.0
+   },
+   "value": 0.48119168452795674
   }
  ]
 }

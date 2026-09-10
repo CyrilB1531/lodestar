@@ -3,7 +3,7 @@ using Lodestar.Stats.Internal;
 namespace Lodestar.Stats;
 
 /// <summary>
-/// The three tail probabilities a caller holding its own statistic needs, and the one
+/// The four tail probabilities a caller holding its own statistic needs, and the one
 /// quantile that turns a confidence level into a bound.
 /// </summary>
 /// <remarks>
@@ -64,6 +64,24 @@ public static class Distributions
         RequirePositive(numeratorDf, nameof(numeratorDf));
         RequirePositive(denominatorDf, nameof(denominatorDf));
         return Beta.FisherSf(f, numeratorDf, denominatorDf);
+    }
+
+    /// <summary>The upper tail of the chi-squared distribution: <c>P(X &gt; x)</c>.</summary>
+    /// <param name="x">The statistic; negative values are below the support and return one.</param>
+    /// <param name="df">Degrees of freedom; must be positive.</param>
+    /// <returns><c>scipy.stats.chi2.sf(x, df)</c>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="df"/> is not positive.</exception>
+    /// <remarks>
+    /// What a log-rank test reports, and what the chi-squared tests here already use
+    /// internally. Published under decision 0097 on the same terms as the three above:
+    /// one caller asked, and the layer underneath stays internal.
+    /// </remarks>
+    public static double ChiSquaredSf(double x, double df)
+    {
+        RequirePositive(df, nameof(df));
+        // Below the support the tail is the whole mass. The regularized Q underneath
+        // validates its own argument and would throw on a negative rather than say one.
+        return x <= 0.0 ? 1.0 : Gamma.RegularizedQ(df / 2.0, x / 2.0);
     }
 
     /// <summary>Degrees of freedom are counts of freedom, so zero and below are not values.</summary>

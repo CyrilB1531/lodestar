@@ -96,6 +96,7 @@ FEATURE_COUNT = "feature_count"
 SAMPLES = "samples"
 MAX_ITER = "max_iter"
 T_PPF = "t.ppf"
+CHI2_SF = "chi2.sf"
 FAMILY = "family"
 # The OLS corpus repeats its own field names once per fixture and once per emitted case.
 CONFIDENCE_LEVEL = "confidenceLevel"
@@ -4321,11 +4322,19 @@ def _distribution_fixtures() -> list[dict]:
          "call": "f.sf", "args": {"x": 500.0, "dfn": 3.0, "dfd": 100.0}},
         {"name": "near zero, where the tail is all but one",
          "call": "f.sf", "args": {"x": 0.001, "dfn": 5.0, "dfd": 5.0}},
+        # Chi-squared, published for the log-rank test (#569). One degree of freedom is
+        # the two-sample case; the far tail is where a closed form would stop agreeing.
+        {"name": "a log-rank test on two groups", "call": CHI2_SF, "args": {"x": 3.84, "df": 1.0}},
+        {"name": "one degree of freedom, at the median", "call": CHI2_SF, "args": {"x": 0.4549, "df": 1.0}},
+        {"name": "a k-sample test, four degrees of freedom", "call": CHI2_SF, "args": {"x": 9.488, "df": 4.0}},
+        {"name": "the far tail at 1e-23", "call": CHI2_SF, "args": {"x": 120.0, "df": 3.0}},
+        {"name": "below the support, where the tail is one", "call": CHI2_SF, "args": {"x": 0.0, "df": 2.0}},
+        {"name": "a hundred degrees of freedom, near its mean", "call": CHI2_SF, "args": {"x": 100.0, "df": 100.0}},
     ]
 
 
 def generate_stats_distributions() -> dict:
-    """The three tails Lodestar.Stats publishes, at the range a caller reaches (#566)."""
+    """The four tails Lodestar.Stats publishes, at the range a caller reaches (#566, #569)."""
     from scipy import stats as sps
 
     cases = []
@@ -4336,6 +4345,8 @@ def generate_stats_distributions() -> dict:
             value = float(sps.t.sf(args["x"], args["df"]))
         elif call == T_PPF:
             value = float(sps.t.ppf(args["x"], args["df"]))
+        elif call == CHI2_SF:
+            value = float(sps.chi2.sf(args["x"], args["df"]))
         else:
             value = float(sps.f.sf(args["x"], args["dfn"], args["dfd"]))
         cases.append({
