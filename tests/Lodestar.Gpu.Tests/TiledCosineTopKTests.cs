@@ -116,7 +116,27 @@ public sealed class TiledCosineTopKTests
     public void The_cpu_accelerator_is_what_these_tests_run_on()
     {
         using var context = GpuContext.Create(preferCpu: true);
-        Assert.True(context.IsCpuAccelerator);
+
+        Assert.False(context.IsHardwareGpu);
+        Assert.NotEmpty(context.DeviceName);
+    }
+
+    [Fact]
+    public void A_runtime_over_a_processor_is_not_reported_as_graphics_hardware()
+    {
+        // long-comment: the defect this pins cost a whole benchmark run. ILGPU enumerated
+        // an OpenCL device named cpu-skylake-avx512 beside a CUDA card, and the earlier
+        // check asked only for the accelerator's type -- which is OpenCL, not CPU -- so it
+        // called a processor a GPU and the report carried its figures under a graphics
+        // heading. IsHardwareGpu asks OpenCL for the device type instead.
+        using var forced = GpuContext.Create(preferCpu: true);
+        using var preferred = GpuContext.Create();
+
+        Assert.False(forced.IsHardwareGpu);
+        if (!preferred.IsHardwareGpu)
+        {
+            Assert.Equal(forced.DeviceName, preferred.DeviceName);
+        }
     }
 
     [Fact]

@@ -42,8 +42,23 @@ public class BitParallelEditDistanceBenchmarks
     [Params(32, 256)]
     public int TextLength { get; set; }
 
-    /// <summary>Which accelerator produced the numbers, so a report cannot omit it.</summary>
-    public string Accelerator => _context.IsCpuAccelerator ? "CPU (no GPU present)" : "GPU";
+    /// <summary>The device each figure came from, which BenchmarkDotNet prints as a column.</summary>
+    /// <remarks>
+    /// A property alone was not enough: BenchmarkDotNet reports [Params] and columns, not
+    /// arbitrary properties, so the first run of these published numbers with no way to
+    /// tell which device produced them.
+    /// </remarks>
+    [ParamsSource(nameof(Devices))]
+    public string Device { get; set; } = string.Empty;
+
+    /// <summary>The one device this run uses, named so the report carries it.</summary>
+    public static IEnumerable<string> Devices() => [Describe()];
+
+    private static string Describe()
+    {
+        using var probe = GpuContext.Create();
+        return probe.IsHardwareGpu ? probe.DeviceName : $"{probe.DeviceName} (NOT a GPU)";
+    }
 
     [GlobalSetup]
     public void Setup()

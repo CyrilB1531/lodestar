@@ -1936,11 +1936,20 @@ this section documents how to measure, not what was measured.
 
 ## 24. Myers on the accelerator, against a bit-parallel CPU path (issue #444, kernel 3)
 
-**This is the section expected to say a kernel does not ship.** Decision 0102 asks for a
-measured 5–10× gain, transfers included, against this repository's own path — and the path here
-is `Levenshtein.Distance`, which is Myers' bit-parallel algorithm already. Both sides collapse a
-dynamic-programming row into one machine word, so the CPU spends tens of nanoseconds on a short
-pair while the accelerator has to amortise a renaming, two transfers and a launch on top.
+**This section was written expecting to report a kernel that does not ship, and the measurement
+said otherwise — by two orders of magnitude.** The reasoning was that decision 0102 prices a
+kernel against this repository's own path, that the path here is `Levenshtein.Distance`, and that
+Myers is bit-parallel on both sides: one machine word per dynamic-programming row, tens of
+nanoseconds for a short pair, against an accelerator amortising a renaming, two transfers and a
+launch.
+
+Every step of that is true and the conclusion was still wrong. What it missed is that
+**the baseline is one thread** and the kernel is tens of thousands, over a workload with no
+dependency between pairs. The measured gain is 28× to 146×
+([`docs/guides/performance.md`](../docs/guides/performance.md) has the table), and the honest
+caveat travels with it: a `Parallel.For` over the CPU path would close much of that gap, and
+decision 0102's baseline does not ask for one. A reader comparing against a parallel CPU
+implementation should expect a smaller number.
 
 ```bash
 dotnet run -c Release --project bench/Lodestar.Gpu.Benchmarks -- --filter '*BitParallel*' --job short
@@ -2000,8 +2009,16 @@ row makes possible.
 The intermediate is what the parameters are chosen to size: a 4 000-column inner dimension by
 `Width` ∈ {32, 128} puts 128 000 to 512 000 doubles — one to four megabytes — on the bus per step
 that is not chained, and `Rows` ∈ {2 000, 20 000} moves the work without moving that transfer.
-**The gap between the two rows should therefore be roughly flat in `Rows` and roughly linear in
-`Width`**, and a run where it is not means the transfer is not what separates them.
+
+**This section first predicted the gap would be roughly flat in `Rows`, and the measurement
+contradicts it: the gap shrinks, from 2.23× to 1.24× at `Width` 32.** The premise was right and
+the conclusion did not follow from it. A fixed transfer against work that grows with `Rows` makes
+the transfer a smaller *share* of the total, so the ratio must fall — flat was never what the
+arithmetic predicted. The prediction in `Width` does hold: 2.23× to 2.94× at 2 000 rows, as a
+transfer growing with the operand's width should.
+
+What that means for a caller is the useful half: **residency is worth most where the work is
+smallest**, which is the opposite of the intuition that a bigger job justifies more machinery.
 
 Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
 this section documents how to measure, not what was measured.
