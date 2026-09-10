@@ -53,6 +53,11 @@ jobs:
       # before anything looked for them.
       - name: No machine paths in tracked files
         run: python tools/check_machine_paths.py
+      # CI installs the oracle dependencies from the lock, so a pin added to
+      # requirements.txt alone is invisible to anyone whose venv already holds it --
+      # measured on #604, where it cost a red `Oracles are reproducible` job (#605).
+      - name: requirements.txt and its lock agree
+        run: python tools/check_requirements_lock_sync.py
       # Wired once the tree could pass it (#155). The report line prints how many
       # blocks carry a long-comment: marker -- nine when this landed -- and does not
       # fail on that number: the marker is a judgment a review reads, not a quota.
