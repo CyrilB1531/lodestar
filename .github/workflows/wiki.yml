@@ -47,12 +47,16 @@ jobs:
       # The tag is <PackageId>/v<Version>, so the latest release of each package is
       # the highest such tag. Read from git rather than from Version.props, which
       # declares the NEXT version and would name something nobody can install.
+      #
+      # The packages come from docs/wiki-map.json rather than a list here: it already
+      # says which pages ship with which package, and a hard-coded copy went eight
+      # packages stale while sixteen shipped. A package with no tag yet is skipped.
       - name: The released version of each package
         id: released
         run: |
           set -euo pipefail
           args=""
-          for package in Lodestar.Abstractions Lodestar.Text Lodestar.Embeddings Lodestar.Fuzzy Lodestar.Metrics Lodestar.Conformal Lodestar.Decomposition Lodestar.Onnx; do
+          for package in $(python -c "import json; print(' '.join(sorted(json.load(open('docs/wiki-map.json'))['packages'])))"); do
             version=$(git tag --list "$package/v*" | sed "s|$package/v||" | sort -V | tail -1)
             if [ -n "$version" ]; then
               args="$args --released $package=$version"
