@@ -23,10 +23,12 @@ Two facts run through the whole namespace, and knowing them saves reading every 
 | [`TiledCosineTopK`](compute/tiledcosinetopk.md) | Sweeps a resident matrix with a batch of queries: cosine, then top-k. |
 | [`TiledSparseDenseProduct`](compute/tiledsparsedenseproduct.md) | A resident CSR matrix times a dense block, tiled through shared memory. |
 | [`BitParallelEditDistance`](compute/bitparalleleditdistance.md) | Myers' edit distance from one pattern to a batch of strings. |
+| [`TiledMinHashSignatures`](compute/tiledminhashsignatures.md) | MinHash signatures for a batch, one thread per permutation. |
 | [`DeviceEmbeddingMatrix`](compute/deviceembeddingmatrix.md) | A row-major embedding matrix held across many queries. |
 | [`DeviceSparseMatrix`](compute/devicesparsematrix.md) | A CSR matrix held across many products. |
 | [`DeviceDenseBlock`](compute/devicedenseblock.md) | A dense block held **between** two operations, which is what makes a chain. |
 | [`DeviceTextBlock`](compute/devicetextblock.md) | A batch of strings renamed to a dense alphabet and held on the device. |
+| [`DeviceTokenHashes`](compute/devicetokenhashes.md) | One document's token hashes per row, held flat. |
 | [`GpuSearchResult`](compute/gpusearchresult.md) | One hit from a device sweep: a row index and its score. |
 
 ## Which device runs, and how to be sure

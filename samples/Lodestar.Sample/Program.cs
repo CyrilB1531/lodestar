@@ -70,6 +70,8 @@ TiledSparseDenseProductSample.Run();
 DeviceDenseBlockSample.Run();
 DeviceTextBlockSample.Run();
 BitParallelEditDistanceSample.Run();
+DeviceTokenHashesSample.Run();
+TiledMinHashSignaturesSample.Run();
 
 Bm25IndexSample.Run();
 Bm25OptionsSample.Run();

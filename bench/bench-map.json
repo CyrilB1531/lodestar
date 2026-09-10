@@ -153,6 +153,10 @@
       "src/Lodestar.Gpu/**",
       "src/Lodestar.Abstractions/**"
     ],
+    "TiledMinHashSignaturesBenchmarks": [
+      "src/Lodestar.Gpu/**",
+      "src/Lodestar.Text/Similarity/**"
+    ],
     "StatsBenchmarks": [
       "src/Lodestar.Stats/**"
     ],

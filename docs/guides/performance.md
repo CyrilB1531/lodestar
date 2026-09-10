@@ -2789,6 +2789,30 @@ hardest here.
 batch is a pass over every character, on the host, in the language the baseline is written in.
 That prediction held.
 
+### MinHash signatures, against [`MinHash.Signature`](../reference/text/similarity/minhash-signature.md)
+
+24 tokens per document over a vocabulary of 5 000, seeded corpus, the same coefficients on both
+sides. Three rows because the two sides divide the work differently: the CPU path hashes and
+minimises in one pass, while the kernel takes hashes the host already computed.
+
+| Documents | Permutations | `CpuBaseline` | `GpuResident` | gain | `GpuWithHashing` | gain |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 5 000 | 64 | 63.2 ms | 0.95 ms | 66× | 49.6 ms | **1.27×** |
+| 5 000 | 128 | 79.8 ms | 1.94 ms | 41× | 50.8 ms | **1.57×** |
+| 50 000 | 64 | 637.1 ms | 15.1 ms | 42× | 503.2 ms | **1.27×** |
+| 50 000 | 128 | 779.6 ms | 23.2 ms | 34× | 537.4 ms | **1.45×** |
+
+**`GpuWithHashing` is the row that matters, and it is the one that misses the gate.** The
+minimisation is 34× to 66× faster on the accelerator; a caller starting from tokens sees 1.27× to
+1.57×, because hashing is most of the work and it stays on the host. This kernel clears decision
+0102's gate on the part it took and misses it on the part a caller experiences.
+
+Located rather than disappointing: the next move is to hash on the accelerator, which is a separate
+kernel because parity requires the first four bytes of SHA-1 little-endian and a device
+implementation agreeing bit for bit is its own piece of work. Until then the kernel earns its place
+for a caller who **already holds hashes** — sketching one corpus under several permutation sets, for
+instance, where hashing is paid once and minimisation many times.
+
 ### What residency buys across two operations
 
 Two sparse-dense products; `RoundTripped` is the baseline because the question is what an

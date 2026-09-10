@@ -2022,3 +2022,41 @@ smallest**, which is the opposite of the intuition that a bigger job justifies m
 
 Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
 this section documents how to measure, not what was measured.
+
+## 26. MinHash signatures, and the half that turned out to dominate (issue #444, kernel 5)
+
+`Lodestar.Text.Similarity.MinHash` does two things per document: hash each token, then minimise
+each hash through every permutation. Only the second is parallel, so that is the half the kernel
+took — and the split is why this section has two rows rather than one.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Gpu.Benchmarks -- --filter '*MinHashSignatures*' --job short
+```
+
+| row | what it measures |
+| --- | --- |
+| `CpuBaseline` | `MinHash.Signature` per document: hash and minimise in one pass |
+| `GpuResident` | the minimisation alone, over hashes the host already holds |
+| `GpuWithHashing` | the host's hashing pass *and* the upload *and* the minimisation |
+
+**Read `GpuWithHashing`. It is what a caller starting from tokens pays, and it is the row that
+matters.** Measured: the minimisation is **34× to 66×** faster on the accelerator, and end to end a
+caller sees **1.27× to 1.57×** — because hashing is most of the work and it stays on the host. The
+kernel clears decision 0102's 5–10× gate on the part it took and **misses it on the part a caller
+experiences.**
+
+That is not a disappointing result, it is a located one. The obvious next move is to hash on the
+accelerator too, and it is a different kernel rather than an extension of this one: parity requires
+the first four bytes of SHA-1 little-endian, which is what `datasketch` exports as `sha1_hash32`, and
+a SHA-1 implementation that agrees with it bit for bit is its own piece of work. Until that exists,
+this kernel is worth using by a caller who **already holds hashes** — one who sketches the same
+corpus under several permutation sets, for instance, where the hashing is paid once and the
+minimisation many times.
+
+A seeded corpus (`Random(4446)`), 24 tokens per document over a vocabulary of 5 000, at 5 000 and
+50 000 documents by 64 and 128 permutations. Permutation count is a parameter because it is also the
+estimate's resolution — the two are chosen together, never separately — and because it is the axis
+the kernel's own work scales on while the hashing does not.
+
+Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
+this section documents how to measure, not what was measured.

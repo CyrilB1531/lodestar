@@ -22,6 +22,19 @@ internal static class GpuCorpus
     /// <summary>The stored values themselves.</summary>
     public static readonly double[] Values = [2.0, 3.0];
 
+    /// <summary>Three documents of token hashes, the third deliberately empty.</summary>
+    /// <remarks>
+    /// Hashes rather than tokens, because that is what the kernel takes. Real ones come from
+    /// the same construction <c>MinHash</c> uses; these are chosen for readability.
+    /// </remarks>
+    public static readonly uint[][] DocumentHashes = [[11u, 22u, 33u], [22u, 44u], []];
+
+    /// <summary>The <c>a</c> coefficient of each permutation, supplied rather than seeded.</summary>
+    public static readonly ulong[] Multipliers = [3UL, 5UL, 7UL, 11UL];
+
+    /// <summary>The <c>b</c> coefficient of each.</summary>
+    public static readonly ulong[] Addends = [13UL, 17UL, 19UL, 23UL];
+
     /// <summary>Opens ILGPU's CPU accelerator, which is what a runner without a card has.</summary>
     public static GpuContext Open() => GpuContext.Create(preferCpu: true);
 }
