@@ -232,7 +232,9 @@ def fold_rows(py: dict, keys: dict[str, str]) -> None:
     """
     by_op = {row["operation"]: row for row in py["results"]}
     for extra, into in keys.items():
-        for op, row in list(by_op.items()):
+        # by_op is not the list being mutated -- the removal below is from
+        # py["results"], so iterating the dict directly is safe (python:S7504).
+        for op, row in by_op.items():
             if not op.startswith(extra):
                 continue
             target = by_op.get(into + op[len(extra):])
