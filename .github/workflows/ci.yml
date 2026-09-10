@@ -94,6 +94,14 @@ jobs:
         run: python tools/check_readme_pack_loop.py
       - name: CLAUDE.md's package table matches src/
         run: python tools/check_claude_md_packages.py
+      # Two of those hard-coded lists decide what can be released, and src/ had grown
+      # past both: four of the eight packages 0.6.0 meant to publish could not be
+      # published at all (#610). Neither list can read a source of truth the way
+      # wiki.yml now reads docs/wiki-map.json -- GitHub wants `options:` literal, and
+      # the `case` arm must not derive what it accepts from what the tag says -- so
+      # they stay hand-written and this is what keeps them current.
+      - name: Both release workflows list every package in src/
+        run: python tools/check_release_workflow_packages.py
       # Decision 0041 names a sample after its class, so a public type without one is a
       # type nobody can find an example of. Only the packages already split are enforced;
       # the rest still carry their Lot* files, and #280 closes when that list is empty.
