@@ -36,7 +36,7 @@ OlsSummary summary = OrdinaryLeastSquares.Fit(design, response, featureCount: 2)
 
 double explained = summary.RSquared;               // => 0.9995494585696385
 double firstP = summary.PValues[1];                // => 0.13402447032528716
-double firstVif = summary.VarianceInflationFactors[0];  // => 59483.301181029856
+double firstVif = summary.VarianceInflationFactors[0];  // => 59483.30118110545
 ```
 
 The model explains 99.95% of the variance and neither slope reaches significance, because the two

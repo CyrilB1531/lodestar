@@ -285,7 +285,7 @@ public static class OrdinaryLeastSquares
         return 1.0 - ((1.0 - rSquared) * total / (rowCount - parameterCount));
     }
 
-    /// <summary>One VIF per regressor: each column explained by the others the model carries.</summary>
+    /// <summary>One VIF per regressor, read off a single decomposition of the standardised block.</summary>
     /// <remarks>
     /// The design is standardised first, which is what
     /// <c>statsmodels.stats.outliers_influence.variance_inflation_factor</c> does since 0.15.0.
@@ -296,8 +296,9 @@ public static class OrdinaryLeastSquares
     private static double[] Vif(double[] matrix, int rowCount, int parameterCount, bool withIntercept)
     {
         int first = withIntercept ? 1 : 0;
-        var factors = new double[parameterCount - first];
-        if (parameterCount - first == 1 && !withIntercept)
+        int regressorCount = parameterCount - first;
+        var factors = new double[regressorCount];
+        if (regressorCount == 1 && !withIntercept)
         {
             // statsmodels raises a ValueError here: nothing is left to explain the only
             // regressor. NaN, because one undefined diagnostic does not sink a valid fit.
@@ -305,51 +306,64 @@ public static class OrdinaryLeastSquares
             return factors;
         }
 
-        double[] working = Standardise(matrix, rowCount, parameterCount);
-        var auxiliary = new double[rowCount * (parameterCount - 1)];
-        var target = new double[rowCount];
-        for (int column = first; column < parameterCount; column++)
+        // long-comment: why one decomposition replaces one regression per regressor (#591).
+        // For standardised Z the correlation matrix is ZᵀZ/n, and a VIF is a diagonal entry of
+        // its inverse — the same number the auxiliary regression of a column on the others
+        // reaches the long way round. Through the QR that is Zᵀ Z = RᵀR, so (ZᵀZ)⁻¹ = R⁻¹R⁻ᵀ and
+        // the j-th diagonal is the squared norm of R⁻¹'s j-th row. The intercept's column drops
+        // out rather than being held out: standardised regressors are centred, so a constant
+        // explains none of them. Measured against tests/oracles/stats_ols.json, the identity
+        // agrees with the regressions to 1.3e-12 relative on the near-collinear case whose VIF
+        // is 6e4, and to 3.4e-15 or better on the other five — inside the corpus's own 1e-9.
+        double[] standardised = StandardiseRegressors(matrix, rowCount, parameterCount, first);
+        QrDecomposition qr = QrDecomposition.Householder(standardised, rowCount, regressorCount);
+        double[] inverseUpper = InvertUpper(qr.R, regressorCount);
+
+        for (int column = 0; column < regressorCount; column++)
         {
-            for (int row = 0; row < rowCount; row++)
+            double total = 0.0;
+            for (int k = column; k < regressorCount; k++)
             {
-                target[row] = working[(row * parameterCount) + column];
-                int written = 0;
-                for (int other = 0; other < parameterCount; other++)
-                {
-                    if (other != column)
-                    {
-                        auxiliary[(row * (parameterCount - 1)) + written++] = working[(row * parameterCount) + other];
-                    }
-                }
+                double entry = inverseUpper[(column * regressorCount) + k];
+                total += entry * entry;
             }
 
-            double explained = AuxiliaryRSquared(auxiliary, rowCount, parameterCount - 1, target, withIntercept);
-
-            // The reference clips before dividing, which caps a perfectly collinear pair at
-            // 1e15 instead of returning an infinity.
-            explained = Math.Min(Math.Max(explained, 0.0), 1.0 - 1e-15);
-            factors[column - first] = 1.0 / (1.0 - explained);
+            factors[column] = Clip(rowCount * total);
         }
 
         return factors;
     }
 
-    /// <summary>Each column centred and scaled to unit spread, leaving a constant one alone.</summary>
+    /// <summary>The ceiling a perfectly collinear pair reaches, rather than an infinity.</summary>
+    /// <remarks>
+    /// The reference clips the explained fraction at <c>1 - 1e-15</c> before dividing, so this
+    /// is that quotient rather than a round number: subtracting 1e-15 from one lands on the
+    /// neighbouring double, not on 1e-15 exactly, and the cap inherits the difference.
+    /// </remarks>
+    private const double MaximumFactor = 1.0 / (1.0 - (1.0 - 1e-15));
+
+    /// <summary>A factor held inside the range an explained fraction in [0, 1) can produce.</summary>
+    private static double Clip(double factor) =>
+        double.IsNaN(factor) ? MaximumFactor : Math.Min(Math.Max(factor, 1.0), MaximumFactor);
+
+    /// <summary>The regressor columns alone, each centred and scaled to unit spread.</summary>
     /// <remarks>
     /// The spread is the population standard deviation, and the 1e-10 floor is the reference's:
-    /// it is what exempts the intercept's column of ones from being divided by zero.
+    /// a column that does not vary is left as it stands rather than divided by zero.
     /// </remarks>
-    private static double[] Standardise(double[] matrix, int rowCount, int parameterCount)
+    private static double[] StandardiseRegressors(
+        double[] matrix, int rowCount, int parameterCount, int first)
     {
-        var working = new double[matrix.Length];
-        Array.Copy(matrix, working, matrix.Length);
+        int regressorCount = parameterCount - first;
+        var working = new double[rowCount * regressorCount];
 
-        for (int column = 0; column < parameterCount; column++)
+        for (int column = 0; column < regressorCount; column++)
         {
+            int source = column + first;
             double mean = 0.0;
             for (int row = 0; row < rowCount; row++)
             {
-                mean += matrix[(row * parameterCount) + column];
+                mean += matrix[(row * parameterCount) + source];
             }
 
             mean /= rowCount;
@@ -357,33 +371,20 @@ public static class OrdinaryLeastSquares
             double variance = 0.0;
             for (int row = 0; row < rowCount; row++)
             {
-                double deviation = matrix[(row * parameterCount) + column] - mean;
+                double deviation = matrix[(row * parameterCount) + source] - mean;
                 variance += deviation * deviation;
             }
 
             double spread = Math.Sqrt(variance / rowCount);
-            if (spread <= 1e-10)
-            {
-                continue;
-            }
-
+            bool varies = spread > 1e-10;
             for (int row = 0; row < rowCount; row++)
             {
-                working[(row * parameterCount) + column] =
-                    (matrix[(row * parameterCount) + column] - mean) / spread;
+                double value = matrix[(row * parameterCount) + source];
+                working[(row * regressorCount) + column] = varies ? (value - mean) / spread : value;
             }
         }
 
         return working;
-    }
-
-    /// <summary>The R-squared of one column on the others, which is all a VIF reads.</summary>
-    private static double AuxiliaryRSquared(
-        double[] auxiliary, int rowCount, int parameterCount, double[] target, bool withIntercept)
-    {
-        double[] coefficients = Solve(auxiliary, rowCount, parameterCount, target, out _);
-        double[] residuals = Residuals(auxiliary, rowCount, parameterCount, target, coefficients);
-        return RSquared(target, Dot(residuals, residuals), withIntercept);
     }
 
     /// <summary>A plain inner product; the two arrays here are always the same length.</summary>
