@@ -1,5 +1,5 @@
 #!/bin/sh
-# The six offline guards, run against the index instead of after the push.
+# The twelve offline guards, run against the index instead of after the push.
 #
 #   install:  git config core.hooksPath .githooks
 #   skip once:  git commit --no-verify

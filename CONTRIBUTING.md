@@ -184,8 +184,8 @@ and keeps the named shapes enforcing.
 
 ## Before committing: the guards, one command earlier
 
-The four guards above are CI steps, so by default the first thing that tells you
-a machine path reached a tracked file is a red job on a pull request. A tracked
+The guards above are CI steps, so by default the first thing that tells you a
+machine path reached a tracked file is a red job on a pull request. A tracked
 hook removes that round trip, and installing it is one command with no
 dependency:
 
@@ -197,14 +197,16 @@ git config core.hooksPath .githooks
 git config core.hooksPath .githooks
 ```
 
-`.githooks/pre-commit` then runs `check_machine_paths.py`,
-`check_comment_length.py`, `check_version_floor.py`, `check_sample_culture.py`,
-`check_bench_map.py`, `check_sample_coverage.py` and
-`check_no_console_writeline.py` before every commit, reports every one that failed
-rather than the first, and refuses the commit if any did. It resolves `python3`
-then `python` — neither name is safe to assume on both platforms — and, on a
-machine with neither, says so and lets the commit through rather than blocking
-work over a development dependency.
+`.githooks/pre-commit` then runs the twelve offline guards —
+`check_machine_paths.py`, `check_comment_length.py`, `check_version_floor.py`,
+`check_sample_culture.py`, `check_bench_map.py`, `check_sample_coverage.py`,
+`check_netstandard_guards.py`, `check_no_console_writeline.py`,
+`check_readme_pack_loop.py`, `check_claude_md_packages.py`,
+`check_requirements_lock_sync.py` and `check_gpu_tests_force_cpu.py` — before
+every commit, reports every one that failed rather than the first, and refuses
+the commit if any did. It resolves `python3` then `python` — neither name is
+safe to assume on both platforms — and, on a machine with neither, says so and
+lets the commit through rather than blocking work over a development dependency.
 
 **It is skippable, on purpose.** `git commit --no-verify` bypasses it for one
 commit, and its failure message says so. A hook that presents itself as
@@ -226,10 +228,20 @@ Three things are worth knowing before relying on it.
   does not do. Their contents are then read from disk, so a file staged in one
   state and edited in another is judged in its worktree state.
 
-Two guards CI runs stay out of it: `check_nuspec_dependencies.py` needs a packed
-`./artifacts`, and `check_version_floor.py --check-feed` reaches nuget.org. The
-reasoning, and the alternative of adopting `pre-commit` instead, are in
-[decision 0037](docs/decisions/0037-the-guards-run-before-the-commit.md).
+Three guards CI runs stay out of it: `check_nuspec_dependencies.py` reads the
+`.nuspec` files inside a packed `./artifacts`, and `check_adr_immutable.py` and
+`check_repeated_literals.py` both take `--base`, the pull request's own base
+commit, which a commit made before a pull request exists has none to name.
+
+`check_version_floor.py` needs no exclusion. CI passes it `--check-feed`, which
+reaches nuget.org, and the hook does not — but that is a flag rather than a
+guard, and its two offline rules run in both places. The reasoning, and the
+alternative of adopting `pre-commit` instead, are in
+[decision 0037](docs/decisions/0037-the-guards-run-before-the-commit.md), with
+the two later exclusions in
+[decision 0046](docs/decisions/0046-check-adr-immutable-runs-in-ci-only.md) and
+[decision 0064](docs/decisions/0064-check-repeated-literals-runs-in-ci-only-not-the-pre-commit-hook.md),
+each its own record rather than an edit to 0037.
 
 ## Before pushing: the half the build cannot see
 
