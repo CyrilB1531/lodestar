@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0020 — `normalize=` is a projection, and `ZeroDivision` keeps a default per metric
 
 **Status:** accepted · **Date:** 2026-08-10

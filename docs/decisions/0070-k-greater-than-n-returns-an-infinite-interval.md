@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0070 — When the calibration set is too small for the level, the answer is infinite, not the widest score
 
 **Status:** accepted · **Date:** 2026-09-01

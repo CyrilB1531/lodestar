@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0069"]
+applies: []
+---
 # 0071 — `CsrMatrix` moves to a `Lodestar.Abstractions` package
 
 **Status:** accepted · **Amends:** [0069](0069-the-package-layout-as-built-and-what-enforces-it.md) · **Date:** 2026-09-01

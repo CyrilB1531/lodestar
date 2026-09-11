@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0066 — The nightly's publish holds the elevated token, and runs no branch code
 
 **Status:** accepted · **Date:** 2026-08-31

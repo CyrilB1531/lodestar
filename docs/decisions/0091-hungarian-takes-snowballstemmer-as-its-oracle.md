@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0075"]
+---
 # 0091 — Hungarian takes `snowballstemmer` as its oracle, not `nltk`
 
 **Status:** accepted · **Date:** 2026-09-09

@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0068 — The tokenizer gap is the loader, not the encode kernel
 
 **Status:** accepted · **Date:** 2026-08-31

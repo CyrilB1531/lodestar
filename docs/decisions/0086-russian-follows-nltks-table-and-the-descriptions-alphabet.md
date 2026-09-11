@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0086 — Russian follows nltk's ending table, and the published description's alphabet
 
 **Status:** accepted · **Date:** 2026-09-09

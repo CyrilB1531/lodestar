@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0038 — The gate confronts an exception tag with the page that documents it
 
 **Status:** accepted · **Date:** 2026-08-18

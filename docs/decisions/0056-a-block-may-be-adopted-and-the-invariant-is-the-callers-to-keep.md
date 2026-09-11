@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0056 — A block may be adopted, and the invariant is the caller's to keep
 
 **Status:** accepted · **Date:** 2026-08-29 · **Refines:** [`0053`](0053-the-payload-buffer-is-not-pooled-because-residency-outlives-the-load.md)

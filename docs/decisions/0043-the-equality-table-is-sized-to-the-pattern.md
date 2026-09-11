@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0004"]
+applies: []
+---
 # 0043 — The equality table is sized to the pattern, not to Latin-1
 
 **Status:** accepted · **Date:** 2026-08-20 · **Amends:** [`0004`](0004-levenshtein-myers-backlog.md)

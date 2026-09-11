@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0050", "0062"]
+applies: []
+---
 # 0063 — `byte_fallback` requires the whole alphabet, and its decoder is read strictly too
 
 **Status:** accepted · **Date:** 2026-08-31 · **Amends:** [`0050`](0050-the-sentencepiece-bpe-lineage-stays-a-bpe-model.md) §3 and [`0062`](0062-the-two-metaspace-spellings-part-on-the-prepend-twice.md)

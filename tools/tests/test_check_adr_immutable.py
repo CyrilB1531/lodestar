@@ -145,3 +145,63 @@ def test_a_base_that_looks_like_an_option_is_refused_itself(tmp_path):
     commit(repo, "init")
     guard.ROOT = repo
     assert main(["prog", "--base", "-rf"]) == 2
+
+
+# Decision 0106's one exception: the block is metadata for index.yaml, the body
+# is the decision, and immutability is for the reasoning rather than the file.
+BLOCK = '---\nstatus: accepted\nsupersedes: []\namends: []\napplies: []\n---\n'
+BODY = "# 0001 -- Old\n\nOriginal claim.\n"
+
+
+def test_a_frontmatter_block_above_an_untouched_body_is_allowed(tmp_path):
+    repo = make_repo(tmp_path)
+    adr = repo / "docs" / "decisions" / "0001-old.md"
+    adr.write_text(BODY)
+    base = commit(repo, "add 0001")
+
+    adr.write_text(BLOCK + BODY)
+    commit(repo, "give 0001 its frontmatter")
+
+    assert check(repo, base) == 0
+
+
+def test_a_frontmatter_block_with_one_body_word_changed_is_refused(tmp_path, capsys):
+    """The exception's whole content is that the body did not move. A commit that
+    inserts a block and edits a sentence is the edit this guard exists for,
+    wearing the one change it allows."""
+    repo = make_repo(tmp_path)
+    adr = repo / "docs" / "decisions" / "0001-old.md"
+    adr.write_text(BODY)
+    base = commit(repo, "add 0001")
+
+    adr.write_text(BLOCK + BODY.replace("Original", "Revised"))
+    commit(repo, "frontmatter, and a word while nobody is looking")
+
+    assert check(repo, base) == 1
+    assert "decision 0106" in capsys.readouterr().err
+
+
+def test_changing_a_block_that_is_already_there_is_refused(tmp_path):
+    """What makes the exception self-limiting: it tests that there was no block
+    before, so a record carrying one can never take the path again."""
+    repo = make_repo(tmp_path)
+    adr = repo / "docs" / "decisions" / "0001-old.md"
+    adr.write_text(BLOCK + BODY)
+    base = commit(repo, "add 0001 with its frontmatter")
+
+    adr.write_text(BLOCK.replace("amends: []", 'amends: ["0002"]') + BODY)
+    commit(repo, "rewrite 0001's declared relations")
+
+    assert check(repo, base) == 1
+
+
+def test_removing_a_block_is_refused(tmp_path):
+    repo = make_repo(tmp_path)
+    adr = repo / "docs" / "decisions" / "0001-old.md"
+    adr.write_text(BLOCK + BODY)
+    base = commit(repo, "add 0001 with its frontmatter")
+
+    adr.write_text(BODY)
+    commit(repo, "drop 0001's frontmatter")
+
+    assert check(repo, base) == 1

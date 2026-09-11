@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0053 — The payload buffer is not pooled, because residency outlives the load
 
 **Status:** accepted · **Date:** 2026-08-29 · **Refines:** [`0051`](0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)

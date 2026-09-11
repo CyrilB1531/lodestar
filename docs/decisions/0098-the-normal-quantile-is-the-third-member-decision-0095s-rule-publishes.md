@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0095"]
+---
 # 0098 — The normal quantile is the third member decision 0095's rule publishes
 
 **Status:** accepted · **Date:** 2026-09-10

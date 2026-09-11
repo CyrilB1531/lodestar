@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0062"]
+applies: []
+---
 # 0085 — A normalized added token's pattern carries the normalizer's escape, not the pre-tokenizer's
 
 **Status:** accepted · **Date:** 2026-09-08 · **Amends:** [`0062`](0062-the-two-metaspace-spellings-part-on-the-prepend-twice.md)

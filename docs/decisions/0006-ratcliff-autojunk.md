@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0006 — Ratcliff-Obershelp: difflib's autojunk heuristic
 
 **Status:** accepted · **Date:** 2026-08-01

@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0029 — `BalancedAccuracy`'s `adjusted` is left to IEEE 754 at the one-class edge
 
 **Status:** accepted · **Date:** 2026-08-14

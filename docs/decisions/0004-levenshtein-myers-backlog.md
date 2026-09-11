@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0004 — Levenshtein: bit-parallel (Myers) optimization
 
 **Status:** accepted · **Date:** 2026-08-01 · **Revised:** 2026-08-19

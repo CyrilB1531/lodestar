@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0015 — The Sonar rules run in the build, not only after the push
 
 **Status:** accepted · **Date:** 2026-08-06

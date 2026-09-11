@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0013 — What `SentencePieceTokenizer` promises, and where it knowingly differs
 
 **Status:** accepted, superseded in part by [`0014`](0014-precompiled-normalizer.md) · **Date:** 2026-08-06

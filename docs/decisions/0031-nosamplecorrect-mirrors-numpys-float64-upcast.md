@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0031 — `NoSampleCorrect` mirrors NumPy's float64 upcast, not requested-label accuracy
 
 **Status:** accepted · **Date:** 2026-08-14

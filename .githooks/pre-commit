@@ -1,5 +1,5 @@
 #!/bin/sh
-# The fourteen offline guards, run against the index instead of after the push.
+# The seventeen offline guards, run against the index instead of after the push.
 #
 #   install:  git config core.hooksPath .githooks
 #   skip once:  git commit --no-verify
@@ -48,7 +48,10 @@ for guard in \
     tools/check_release_workflow_packages.py \
     tools/check_unreleased.py \
     tools/check_requirements_lock_sync.py \
-    tools/check_gpu_tests_force_cpu.py
+    tools/check_gpu_tests_force_cpu.py \
+    tools/check_adr_frontmatter.py \
+    tools/check_adr_index_sync.py \
+    tools/check_adr_index_is_cited.py
 do
     "$interpreter" "$guard" || failed="$failed $(basename "$guard" .py)"
 done

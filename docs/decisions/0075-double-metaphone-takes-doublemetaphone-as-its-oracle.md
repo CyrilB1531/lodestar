@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0075 — Double Metaphone ships, with `doublemetaphone` 1.2 as its oracle
 
 **Status:** accepted · **Date:** 2026-09-02

@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: ["0013"]
+amends: []
+applies: []
+---
 # 0014 — Interpret the `precompiled_charsmap`, do not reimplement the rules
 
 **Status:** accepted · **Date:** 2026-08-06

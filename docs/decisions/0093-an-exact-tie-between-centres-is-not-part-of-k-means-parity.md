@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0074"]
+---
 # 0093 — An exact tie between two centres is not part of k-means parity
 
 **Status:** accepted · **Date:** 2026-09-09

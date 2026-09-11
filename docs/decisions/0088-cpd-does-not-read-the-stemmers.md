@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0088 — CPD does not read the stemmers, and is excluded from that one directory
 
 **Status:** accepted · **Date:** 2026-09-09

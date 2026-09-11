@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0003 — Code provenance and license
 
 **Status:** accepted · **Date:** 2026-08-01

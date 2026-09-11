@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0009 — The sample restores from a local feed, not nuget.org
 
 **Status:** accepted · **Date:** 2026-08-05

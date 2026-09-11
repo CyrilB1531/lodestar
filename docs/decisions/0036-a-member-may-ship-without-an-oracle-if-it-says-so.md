@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0036 — A member may ship without an oracle, if the documentation says so
 
 **Status:** accepted · **Date:** 2026-08-16

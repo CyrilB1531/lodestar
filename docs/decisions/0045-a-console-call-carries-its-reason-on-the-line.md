@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0037"]
+---
 # 0045 — A `Console` call carries its reason on the line, not in an exemption list
 
 **Status:** accepted · **Date:** 2026-08-21

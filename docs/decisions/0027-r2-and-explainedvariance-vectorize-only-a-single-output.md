@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0027 — R²'s and ExplainedVariance's unweighted accumulation vectorizes only for a single output
 
 **Status:** accepted · **Date:** 2026-08-14

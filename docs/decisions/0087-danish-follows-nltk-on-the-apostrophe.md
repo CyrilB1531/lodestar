@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0087 — Danish's apostrophe rule: follow nltk, not the published description
 
 **Status:** accepted · **Date:** 2026-09-09

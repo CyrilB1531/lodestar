@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0074", "0075"]
+---
 # 0104 — Generalized linear models are written natively: Accord is LGPL-2.1, ML.NET stops at logistic
 
 **Status:** accepted · **Date:** 2026-09-11

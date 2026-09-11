@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0084 — The Llama-2 tokenizer is vendored under a bespoke licence, as a named exception
 
 **Status:** accepted · **Date:** 2026-09-08

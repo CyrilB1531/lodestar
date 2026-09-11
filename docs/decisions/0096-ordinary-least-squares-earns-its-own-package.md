@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0074"]
+---
 # 0096 — Ordinary least squares earns its own package
 
 **Status:** accepted · **Date:** 2026-09-10

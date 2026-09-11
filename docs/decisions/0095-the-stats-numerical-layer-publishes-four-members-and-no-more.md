@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0081"]
+---
 # 0095 — The numerical layer publishes what one caller needs, and no more
 
 **Status:** accepted · **Date:** 2026-09-10

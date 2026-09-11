@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0095"]
+---
 # 0097 — The chi-squared tail joins the published four, by the rule 0095 already set
 
 **Status:** accepted · **Date:** 2026-09-10

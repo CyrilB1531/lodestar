@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0011"]
+applies: []
+---
 # 0055 — The artifact gets a binary sidecar, once a block can be ingested whole
 
 **Status:** accepted · **Date:** 2026-08-29 · **Amends:** [`0011`](0011-persistence-format.md)

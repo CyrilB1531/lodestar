@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0081 — The stats numerical layer stays internal
 
 **Status:** accepted · **Date:** 2026-09-05

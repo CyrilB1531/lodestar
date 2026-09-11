@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0079 — Tied TextRank scores in the oracle canonicalize by phrase, not by BLAS
 
 **Status:** accepted · **Date:** 2026-09-04

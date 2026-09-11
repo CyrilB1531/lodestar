@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0043"]
+applies: []
+---
 # 0047 — One bit-parallel gate per kernel, not one per alphabet
 
 **Status:** accepted · **Date:** 2026-08-21 · **Amends:** [`0043`](0043-the-equality-table-is-sized-to-the-pattern.md)

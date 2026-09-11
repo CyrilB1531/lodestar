@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0037"]
+---
 # 0064 — `check_repeated_literals.py` runs in CI only, not the pre-commit hook
 
 **Status:** accepted · **Date:** 2026-08-31

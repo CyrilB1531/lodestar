@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0009"]
+applies: []
+---
 # 0012 — Each package versions and releases on its own
 
 **Status:** accepted · **Date:** 2026-08-05

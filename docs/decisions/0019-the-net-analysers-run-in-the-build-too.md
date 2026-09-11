@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0015"]
+applies: []
+---
 # 0019 — The .NET code-quality analysers run in the build too, and `samples/` is analysed at all
 
 **Status:** accepted · **Date:** 2026-08-10

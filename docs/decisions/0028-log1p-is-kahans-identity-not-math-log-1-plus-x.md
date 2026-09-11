@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0028 — `Log1P` is Kahan's identity, not `Math.Log(1 + x)`
 
 **Status:** accepted · **Date:** 2026-08-14

@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0066"]
+applies: []
+---
 # 0067 — `workflows` is not a permission scope, so the nightly stands down instead
 
 **Status:** accepted · **Date:** 2026-08-31 ·

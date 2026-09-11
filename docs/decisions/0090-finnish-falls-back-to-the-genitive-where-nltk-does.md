@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0090 — Finnish falls back to the genitive where nltk does, and nowhere else
 
 **Status:** accepted · **Date:** 2026-09-09

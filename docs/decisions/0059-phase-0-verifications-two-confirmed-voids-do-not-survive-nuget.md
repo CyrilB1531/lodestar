@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0059 — Phase 0's verifications: two confirmed voids do not survive a NuGet search
 
 **Status:** accepted · **Date:** 2026-08-30

@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0047"]
+applies: []
+---
 # 0048 — The bit-parallel gate depends on the kernel *and* the alphabet
 
 **Status:** accepted · **Date:** 2026-08-21 · **Amends:** [`0047`](0047-one-gate-per-kernel-not-one-per-alphabet.md)

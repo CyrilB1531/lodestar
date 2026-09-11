@@ -470,3 +470,35 @@ def test_no_link_in_the_published_wiki_names_a_page_it_does_not_hold(tmp_path):
     broken = broken_links(out)
 
     assert not broken, "links naming no published page:\n" + "\n".join(broken)
+
+
+def test_a_published_page_carries_no_yaml_frontmatter(tmp_path):
+    """Every ADR carries one since decision 0106, and docs/decisions/*.md is
+    published -- a wiki renders the block as a rule and a paragraph of keys, so
+    106 pages would open with their own metadata."""
+    page = tmp_path / "0001-a.md"
+    page.write_text(
+        "---\nstatus: accepted\nsupersedes: []\namends: []\napplies: []\n---\n"
+        "# 0001 — A decision\n\nIts body.\n", encoding="utf-8")
+
+    assert build_wiki.page_body(page) == "# 0001 — A decision\n\nIts body.\n"
+
+
+def test_a_page_without_frontmatter_is_returned_whole(tmp_path):
+    page = tmp_path / "guide.md"
+    page.write_text("# A guide\n\n---\n\nA rule mid-page stays.\n", encoding="utf-8")
+
+    assert build_wiki.page_body(page) == "# A guide\n\n---\n\nA rule mid-page stays.\n"
+
+
+def test_the_published_adrs_open_on_their_heading(tmp_path):
+    # The real tree, because the fixture above cannot catch a mapping that stops
+    # publishing the decisions or a block shape the stripper does not match.
+    out = tmp_path / "wiki"
+    mapping = build_wiki.load_map(REPO / "docs" / "wiki-map.json")
+    build_wiki.build(REPO, out, mapping, released={})
+
+    published = sorted(out.glob("0*.md"))
+    assert published, "no ADR reached the wiki, so this asserts nothing"
+    for page in published:
+        assert "status: accepted" not in page.read_text(encoding="utf-8")

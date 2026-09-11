@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0074"]
+---
 # 0105 — The time-series forecast is delegated to `Microsoft.ML.TimeSeries`, and the diagnostics are the gap
 
 **Status:** accepted · **Date:** 2026-09-11

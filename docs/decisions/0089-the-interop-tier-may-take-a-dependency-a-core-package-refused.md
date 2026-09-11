@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0089 — The interop tier is `Lodestar.Extensions.*`, and it may take a dependency a core package refused
 
 **Status:** accepted · **Date:** 2026-09-09

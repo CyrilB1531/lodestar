@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: ["0069"]
+amends: []
+applies: []
+---
 # 0076 — A core package carries no external dependency, so ONNX Runtime gets its own
 
 **Status:** accepted · **Date:** 2026-09-03 · **Supersedes:** [0069](0069-the-package-layout-as-built-and-what-enforces-it.md)

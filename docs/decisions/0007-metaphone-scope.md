@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0007 — Metaphone: validation scope (real words)
 
 **Status:** accepted · **Date:** 2026-08-01

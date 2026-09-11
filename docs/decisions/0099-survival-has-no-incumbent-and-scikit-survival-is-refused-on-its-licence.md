@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0074", "0075"]
+---
 # 0099 — Survival has no .NET incumbent, and `scikit-survival` is refused on its licence
 
 **Status:** accepted · **Date:** 2026-09-10

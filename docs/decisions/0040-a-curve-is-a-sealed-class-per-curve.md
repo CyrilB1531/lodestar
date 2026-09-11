@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0040 — A curve is a sealed class per curve, not a record and not out-parameters
 
 **Status:** accepted · **Date:** 2026-08-18

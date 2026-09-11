@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0101"]
+applies: []
+---
 # 0103 — `Lodestar.Gpu` ships `netstandard2.1` beside `net10.0`
 
 **Status:** accepted · **Date:** 2026-09-10 · **Amends:** [0101](0101-lodestar-gpu-is-the-one-package-that-does-not-ship-netstandard2-0.md)

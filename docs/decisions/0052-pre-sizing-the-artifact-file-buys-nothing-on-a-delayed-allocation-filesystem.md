@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0052 — Pre-sizing the artifact file buys nothing on a delayed-allocation filesystem
 
 **Status:** accepted · **Date:** 2026-08-28

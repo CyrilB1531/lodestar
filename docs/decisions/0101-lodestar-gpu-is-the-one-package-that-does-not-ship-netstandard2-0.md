@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0074", "0075"]
+---
 # 0101 — `Lodestar.Gpu` is the one package that does not ship `netstandard2.0`
 
 **Status:** accepted · **Date:** 2026-09-10
