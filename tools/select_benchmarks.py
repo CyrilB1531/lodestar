@@ -165,11 +165,29 @@ def select(data: dict, files: list[str], kind: str = "benchmarks",
             if any(matches(path, glob) for glob in globs(name) for path in files)]
 
 
+def with_owed(data: dict, kind: str, owed: str, selected) -> list[str]:
+    """The selection, plus what a previous run was selected for and did not reach.
+
+    #650: the baseline marker advances to the commit that was measured, so a class a
+    truncated run skipped would otherwise be forgotten -- nothing changed since, so
+    nothing selects it again. Carried here instead, and only names the map still knows,
+    so a class deleted between two nights drops out rather than being asked for forever.
+
+    Returned in the map's own order, not the concatenation's, so two nights that owe the
+    same set ask for it the same way.
+    """
+    mapped = data.get(kind, {})
+    wanted = set(selected) | {name for name in owed.split() if name in mapped}
+    return [name for name in mapped if name in wanted]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(add_help=True, description=__doc__)
     parser.add_argument("--since", help="baseline commit; omit with --all")
     parser.add_argument("--head", default="HEAD")
     parser.add_argument("--all", action="store_true", help="select every mapped entry")
+    parser.add_argument("--owed", default="",
+                        help="space-separated classes a previous run did not reach")
     parser.add_argument("--harnesses", action="store_true",
                         help="the cross-language pairs instead of the BenchmarkDotNet classes")
     args = parser.parse_args()
@@ -194,8 +212,10 @@ def main() -> int:
         print_all(data, kind)
         return 0
 
-    for name in select(data, changed_files(args.since, args.head), kind,
-                       since=args.since, head=args.head):
+    for name in with_owed(
+            data, kind, args.owed,
+            select(data, changed_files(args.since, args.head), kind,
+                   since=args.since, head=args.head)):
         print(name)
     return 0
 

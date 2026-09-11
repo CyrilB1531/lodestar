@@ -72,18 +72,25 @@ jobs:
           TARGET_REF: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+          owed=""
           if [ "$TARGET_REF" = "main" ]; then
             page=docs/guides/nightly_run.md
             sha=""
             if [ -f "$page" ]; then
               sha=$(sed -n 's/.*<!-- nightly-baseline: \([0-9a-f]\{7,40\}\) -->.*/\1/p' "$page" | head -1)
+              # What the previous run was selected for and did not reach. The baseline
+              # advances to the commit that was measured, so without this those classes
+              # are never asked for again -- nothing changed since (#650).
+              owed=$(sed -n 's/.*<!-- nightly-owed: \([^>]*\) -->.*/\1/p' "$page" | head -1)
             fi
           else
             git fetch origin main --quiet
             sha=$(git merge-base origin/main HEAD)
           fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "owed=$owed" >> "$GITHUB_OUTPUT"
           echo "baseline: ${sha:-none}"
+          echo "owed by the previous run: ${owed:-none}"
 
       - name: Which classes and comparisons that makes worth re-running
         id: select
@@ -94,7 +101,8 @@ jobs:
             python tools/select_benchmarks.py --all --harnesses > harnesses.txt
           else
             since="${{ steps.baseline.outputs.sha }}"
-            python tools/select_benchmarks.py --since "$since" > selected.txt
+            owed="${{ steps.baseline.outputs.owed }}"
+            python tools/select_benchmarks.py --since "$since" --owed "$owed" > selected.txt
             python tools/select_benchmarks.py --since "$since" --harnesses > harnesses.txt
           fi
           count=$(wc -l < selected.txt | tr -d ' ')
@@ -151,6 +159,14 @@ jobs:
 
       - name: Run them
         if: steps.select.outputs.count != '0'
+        env:
+          # The deadline is when the last class may *start*, never when the step must end --
+          # a class already running is not interrupted, because a half-measured benchmark is
+          # worse than an unmeasured one. So the margin under timeout-minutes: 120 has to
+          # hold the whole tail plus one class: about two minutes of setup before this step,
+          # nine for the comparisons, page, wiki clone and pull request after it, and a GPU
+          # class on a runner with no GPU, which is the longest thing here by far.
+          BUDGET_MINUTES: 60
         run: |
           set -euo pipefail
           # One run per project that can declare a [Benchmark] class, not just the one
@@ -171,15 +187,26 @@ jobs:
           # than the 5-10x gate. That gate is measured on a named machine and published
           # by hand -- decision 0102 has the protocol, and the benchmark prints which
           # accelerator produced each figure.
+          # One class at a time, against a deadline. The job's timeout-minutes is 120 and a
+          # full sweep needs about three hours -- measured on 2026-09-11, where 33 classes
+          # were selected because a shared build file moved: Text took 40 minutes, Stats and
+          # Survival 8 between them, and Gpu was past 70 and half done when the runner killed
+          # the job. A killed job writes no page, so the baseline never advanced and the next
+          # night selected the same 33 (#650).
+          #
+          # Stopping deliberately is what makes that impossible. The cost is one `dotnet run`
+          # per class rather than per project -- seconds each, against hours of exposure.
+          deadline=$(( $(date +%s) + BUDGET_MINUTES * 60 ))
+          : > owed.txt
           for project in bench/Lodestar.Text.Benchmarks bench/Lodestar.Stats.Benchmarks bench/Lodestar.Survival.Benchmarks bench/Lodestar.Gpu.Benchmarks; do
-            filters=""
             while read -r name; do
               [ -n "$name" ] || continue
-              if grep -q "public class $name" "$project"/*.cs 2>/dev/null; then
-                filters="$filters *$name*"
+              grep -q "public class $name" "$project"/*.cs 2>/dev/null || continue
+              if [ "$(date +%s)" -ge "$deadline" ]; then
+                echo "$name" >> owed.txt
+                continue
               fi
-            done < selected.txt
-            [ -n "$filters" ] || continue
+              filters="*$name*"
             echo "::group::$project -- $filters"
             # --job short: a hosted runner cannot support the default job's iteration count
             # inside a nightly window, and the ratio it reports is what this page publishes.
@@ -191,7 +218,15 @@ jobs:
             dotnet run -c Release --project "$project" -- \
               --filter $filters --job short --exporters github
             echo "::endgroup::"
+            done < selected.txt
           done
+
+          if [ -s owed.txt ]; then
+            echo "::warning::out of budget with $(wc -l < owed.txt) class(es) unmeasured; \
+              they are carried to the next run"
+            sort -u owed.txt -o owed.txt
+            cat owed.txt
+          fi
 
       # The claim this project makes -- faster than rapidfuzz -- lives here and nowhere
       # else: a BenchmarkDotNet class measures us against ourselves. Both sides run in
@@ -250,6 +285,7 @@ jobs:
             --runner "${{ runner.os }} / ${{ runner.arch }} (GitHub hosted)" \
             --selected $(cat selected.txt | tr '\n' ' ') \
             --harnesses $(cat harnesses.txt | tr '\n' ' ') \
+            --owed $(cat owed.txt 2>/dev/null | tr '\n' ' ') \
             $branch_flag
 
       # Cloned here, ahead of "Open the pull request", so the aggregate below can read

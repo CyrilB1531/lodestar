@@ -47,6 +47,10 @@ HEADER = "# Nightly benchmark run"
 
 MARKER = "<!-- nightly-baseline: {sha} -->"
 
+# What the run selected and did not reach. The baseline above advances to the commit that
+# was measured, so without this a truncated night loses the classes it skipped (#650).
+OWED = "<!-- nightly-owed: {classes} -->"
+
 PREAMBLE = """
 > **Generated. Do not edit.** Produced by `.github/workflows/bench-nightly.yml`; every edit is
 > overwritten by the next run. The curated figures, measured on a named machine, are in
@@ -140,7 +144,8 @@ def nothing_ran(reason: str) -> list[str]:
 def render(args: argparse.Namespace,
            reports: list[pathlib.Path],
            comparisons: list[pathlib.Path] | None = None) -> str:
-    lines = [HEADER, "", MARKER.format(sha=args.baseline or "none"), ""]
+    lines = [HEADER, "", MARKER.format(sha=args.baseline or "none"),
+             OWED.format(classes=" ".join(args.owed)), ""]
     lines.append(PREAMBLE.format(performance="performance").strip())
     lines += ["", "## This run", "", f"- Commit: `{args.commit}`",
               f"- Previous run: `{args.baseline or 'none — every entry was selected'}`",
@@ -163,6 +168,14 @@ def render(args: argparse.Namespace,
             "where the absolutes are not.", args.harnesses)
         lines += included_reports(comparisons or [])
 
+    if args.owed:
+        lines += listing(
+            "Selected, and not reached tonight",
+            "The run stops starting classes when the budget left cannot hold one, so these "
+            "were carried to the next run rather than measured badly or killed mid-flight. "
+            "They are selected again tomorrow whether or not anything else changes.",
+            args.owed)
+
     return collapse(lines)
 
 
@@ -183,6 +196,8 @@ def main() -> None:
     parser.add_argument("--runner", default="ubuntu-latest")
     parser.add_argument("--selected", nargs="*", default=[])
     parser.add_argument("--harnesses", nargs="*", default=[])
+    parser.add_argument("--owed", nargs="*", default=[],
+                        help="classes selected and not reached, carried to the next run")
     parser.add_argument("--reason", default="")
     parser.add_argument("--branch", action="store_true",
                         help="write BRANCH_PAGE instead of PAGE (a workflow_dispatch off main)")
