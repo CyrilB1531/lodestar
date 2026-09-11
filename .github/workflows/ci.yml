@@ -94,6 +94,13 @@ jobs:
         run: python tools/check_readme_pack_loop.py
       - name: CLAUDE.md's package table matches src/
         run: python tools/check_claude_md_packages.py
+      # Lodestar.Fuzzy carried two commits merged on 2026-09-01 and never published, and
+      # nothing said so for ten days (#628). This reads the tags and main, which cannot
+      # drift, against what src/<Package>/Version.props declares. Unpublished work is the
+      # normal state between a merge and a release, so the table is printed and only a
+      # version declared past its own tag fails.
+      - name: What each package has merged and not published
+        run: python tools/check_unreleased.py
       # Two of those hard-coded lists decide what can be released, and src/ had grown
       # past both: four of the eight packages 0.6.0 meant to publish could not be
       # published at all (#610). Neither list can read a source of truth the way

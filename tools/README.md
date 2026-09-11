@@ -48,6 +48,19 @@ given:
   set, and the inter-package edge count against
   `check_nuspec_dependencies.py`'s `EXPECTED`. The *Holds* column is prose and is
   deliberately not checked.
+- `classify_change.py` answers two questions from a change's file paths, and keeps them
+  apart: **ships** is `src/<Package>/` only, which decides the milestone because a milestone
+  names a release; **about** also counts `tests/`, `bench/` and the documentation pages
+  `docs/wiki-map.json` attributes, which decides the boards and the labels. It resolves
+  `DataNet.*` to its post-rename name, refuses a bare prefix like `DataNet.NetStandard` that
+  names no package, and reports a path it cannot attribute rather than folding it into the
+  cross-cutting bucket. #628 has the three defects each of those closes.
+- `check_unreleased.py` reads what each package has merged and not published, from the tags,
+  `main` and `src/<Package>/Version.props` — none of which can drift. Unpublished work is the
+  normal state between a merge and a release, so it is reported; only a version declared past
+  its own tag fails, which is a release prepared and never cut. A missing `## [Unreleased]`
+  entry is a note rather than a failure, because a commit touching only XML comments owes the
+  changelog nothing and nothing here can tell the two apart.
 - `changelog_section.py` prints the `CHANGELOG.md` section for one package release, which is
   what `release.yml` hands to `gh release create` as the Release body. A missing section is an
   error rather than an empty body: CONTRIBUTING.md makes the entry item 7 of the definition of

@@ -218,13 +218,14 @@ git config core.hooksPath .githooks
 git config core.hooksPath .githooks
 ```
 
-`.githooks/pre-commit` then runs the thirteen offline guards —
+`.githooks/pre-commit` then runs the fourteen offline guards —
 `check_machine_paths.py`, `check_comment_length.py`, `check_version_floor.py`,
 `check_sample_culture.py`, `check_bench_map.py`, `check_sample_coverage.py`,
 `check_netstandard_guards.py`, `check_no_console_writeline.py`,
 `check_readme_pack_loop.py`, `check_claude_md_packages.py`,
-`check_release_workflow_packages.py`, `check_requirements_lock_sync.py` and
-`check_gpu_tests_force_cpu.py` — before every commit, reports every one
+`check_release_workflow_packages.py`, `check_unreleased.py`,
+`check_requirements_lock_sync.py` and `check_gpu_tests_force_cpu.py` — before
+every commit, reports every one
 that failed rather than the first, and refuses the commit if any did. It
 resolves `python3` then `python` — neither name is safe to assume on both
 platforms — and, on a machine with neither, says so and lets the commit
