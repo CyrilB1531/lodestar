@@ -103,6 +103,15 @@ That caller needs a `using` alias. Creating an edge to remove it would put a dep
 satellite tier for an enum, which is the thing the tier exists to refuse — so the alias is the
 price, named here rather than discovered.
 
+**What is not paid twice is the coefficient refusal.** The first draft wrote those thirty lines
+into both packages on the same "no edge" reasoning, and SonarCloud counted them: 61 of 565 new
+lines, **10.8%** duplication on new code against a gate that allows 3. An enum of two members is
+worth spelling twice; a validation loop is not. It lives in `src/Shared/MinHashCoefficients.cs`
+now, compiled into each assembly under `Lodestar.Internal` the way `Guard` and `StringCompat`
+already are — shared *source*, which is exactly the mechanism this repository has for wanting one
+copy without wanting an edge. The satellite tier's rule is about what a consumer restores, and
+shared source changes nothing a consumer restores.
+
 The finalizer runs **inside the kernel**, as the shared tile fills: once per token per group
 rather than once per token per thread. Mixing before upload would be cheaper still and would make
 a `DeviceTokenHashes` belong to one family, which is what residency exists not to do.

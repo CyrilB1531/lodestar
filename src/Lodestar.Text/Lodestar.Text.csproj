@@ -12,6 +12,7 @@
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     <!-- Pulls in the shared persistence plumbing (and System.Text.Json on ns2.0). -->
     <LodestarIncludesPersistence>true</LodestarIncludesPersistence>
+    <LodestarIncludesMinHash>true</LodestarIncludesMinHash>
 
     <!-- NuGet package identity. System.Text.Json on netstandard2.0 is the single,
          deliberate runtime dependency (in-box on net10) — everything else in this

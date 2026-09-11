@@ -104,7 +104,8 @@ public sealed class TiledMinHashSignatures
 
         if (scheme == MinHashScheme.Affine32)
         {
-            RefuseCoefficientsAffine32CannotRead(multipliers, addends);
+            MinHashCoefficients.RefuseWhatAffine32CannotRead(
+                multipliers, addends, nameof(multipliers));
         }
 
         int permutations = multipliers.Length;
@@ -224,34 +225,5 @@ public sealed class TiledMinHashSignatures
         hash ^= hash >> 13;
         hash *= 0xC2B2AE35;
         return hash ^ (hash >> 16);
-    }
-
-    /// <summary>The two things an affine-32 coefficient pair has to be, checked on the host.</summary>
-    /// <remarks>
-    /// The same refusal <c>MinHashPermutations</c> makes, for the same reason and spelled again
-    /// because this package carries no edge to it: a multiplier past 32 bits belongs to the other
-    /// family entirely, and an even one collapses the value range instead of permuting it.
-    /// </remarks>
-    private static void RefuseCoefficientsAffine32CannotRead(
-        ReadOnlySpan<ulong> multipliers, ReadOnlySpan<ulong> addends)
-    {
-        for (int i = 0; i < multipliers.Length; i++)
-        {
-            if (multipliers[i] > uint.MaxValue || addends[i] > uint.MaxValue)
-            {
-                throw new ArgumentException(
-                    $"permutation {i} carries {multipliers[i]} and {addends[i]}, and "
-                    + $"{nameof(MinHashScheme.Affine32)} reads 32-bit coefficients.",
-                    nameof(multipliers));
-            }
-
-            if ((multipliers[i] & 1UL) == 0UL)
-            {
-                throw new ArgumentException(
-                    $"permutation {i} carries the even multiplier {multipliers[i]}, which maps "
-                    + "distinct hashes onto each other instead of permuting them.",
-                    nameof(multipliers));
-            }
-        }
     }
 }

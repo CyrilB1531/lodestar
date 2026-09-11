@@ -29,6 +29,14 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shared/StringCompat.cs" Link="Internal/StringCompat.cs" />
   </ItemGroup>
 
+  <!-- The affine-32 coefficient refusal, compiled into the two libraries that sketch.
+       Lodestar.Gpu carries no edge to any Lodestar package and Lodestar.Text is where the
+       CPU path lives, so shared source is the only way the two hold one copy (#645). -->
+  <ItemGroup Condition="'$(LodestarIncludesMinHash)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/MinHashCoefficients.cs"
+             Link="Internal/MinHashCoefficients.cs" />
+  </ItemGroup>
+
   <!-- Persistence plumbing, compiled only into the libraries that ship artifacts
        (Lodestar.Text, Lodestar.Embeddings). It needs System.Text.Json, which those
        two opt into individually — Lodestar.Fuzzy stays dependency-free.

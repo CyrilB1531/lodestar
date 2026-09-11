@@ -19,6 +19,7 @@
     <PackageId>Lodestar.Gpu</PackageId>
     <Description>GPU kernels for Lodestar over ILGPU: a device-resident embedding matrix swept by a batch of queries, with cosine similarity and top-k computed on the accelerator. Additive — no Lodestar package depends on this one, so the SIMD path stays complete on every target framework.</Description>
     <PackageTags>gpu;gpgpu;ilgpu;cuda;opencl;cosine-similarity;top-k;knn;embeddings;lodestar</PackageTags>
+    <LodestarIncludesMinHash>true</LodestarIncludesMinHash>
   </PropertyGroup>
 
   <!-- The dependency this package exists for. A core package carries none, so

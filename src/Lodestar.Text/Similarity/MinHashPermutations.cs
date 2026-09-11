@@ -59,44 +59,13 @@ public sealed class MinHashPermutations
 
         if (scheme == MinHashScheme.Affine32)
         {
-            RefuseCoefficientsAffine32CannotRead(multipliers, addends);
+            MinHashCoefficients.RefuseWhatAffine32CannotRead(
+                multipliers, addends, nameof(multipliers));
         }
 
         Scheme = scheme;
         _a = multipliers.ToArray();
         _b = addends.ToArray();
-    }
-
-    /// <summary>The two things an affine-32 coefficient pair has to be, checked once at construction.</summary>
-    /// <remarks>
-    /// The reference generates both and checks neither, because it generates them itself. Here they
-    /// arrive from a caller (decision 0072), so a pair that cannot mean what it says is refused
-    /// rather than computed: a multiplier past 32 bits is read through the wrong family entirely,
-    /// and an even one collapses the value range instead of permuting it — every hash sharing a
-    /// low bit maps to the same place, which shows up as a similarity estimate that is merely
-    /// wrong rather than as a failure.
-    /// </remarks>
-    private static void RefuseCoefficientsAffine32CannotRead(
-        ReadOnlySpan<ulong> multipliers, ReadOnlySpan<ulong> addends)
-    {
-        for (int i = 0; i < multipliers.Length; i++)
-        {
-            if (multipliers[i] > uint.MaxValue || addends[i] > uint.MaxValue)
-            {
-                throw new ArgumentException(
-                    $"permutation {i} carries {multipliers[i]} and {addends[i]}, and "
-                    + $"{nameof(MinHashScheme.Affine32)} reads 32-bit coefficients.",
-                    nameof(multipliers));
-            }
-
-            if ((multipliers[i] & 1UL) == 0UL)
-            {
-                throw new ArgumentException(
-                    $"permutation {i} carries the even multiplier {multipliers[i]}, which maps "
-                    + "distinct hashes onto each other instead of permuting them.",
-                    nameof(multipliers));
-            }
-        }
     }
 
     /// <summary>The multiplier of one permutation.</summary>
