@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0030 — `CohenKappa` keeps scikit-learn's expected-matrix orientation, and weighting only orders
 
 **Status:** accepted · **Date:** 2026-08-14

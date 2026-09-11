@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0033 — `CompensatedSum` is Neumaier's variant, and its SIMD lanes are not bit-identical to it
 
 **Status:** accepted · **Date:** 2026-08-14

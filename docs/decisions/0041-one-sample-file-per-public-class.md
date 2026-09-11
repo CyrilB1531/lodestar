@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0041 — One sample file per public class, named after it
 
 **Status:** accepted · **Date:** 2026-08-19

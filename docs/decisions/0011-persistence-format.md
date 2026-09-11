@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0011 — Persisted artifacts are versioned JSON, written with `System.Text.Json`
 
 **Status:** accepted · **Date:** 2026-08-05

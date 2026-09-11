@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0042 — Phonetic encoders refuse a `null` word
 
 **Status:** accepted · **Date:** 2026-08-20

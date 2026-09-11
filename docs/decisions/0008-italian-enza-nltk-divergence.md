@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0008 — Italian `enza`/`enze`: follow nltk, not the published description
 
 **Status:** accepted · **Date:** 2026-08-05

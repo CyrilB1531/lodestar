@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0083 — A TemplateProcessing's `pair` template is read and discarded
 
 **Status:** accepted · **Date:** 2026-09-08

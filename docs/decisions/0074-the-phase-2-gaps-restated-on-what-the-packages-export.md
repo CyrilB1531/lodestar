@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0074 — Phase 2's gaps restated on what the packages export, not what they advertise
 
 **Status:** accepted · **Date:** 2026-09-02

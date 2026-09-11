@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0065 — The oracle generators' Python floor is the CI interpreter, not the oldest one that parses
 
 **Status:** accepted · **Date:** 2026-08-31

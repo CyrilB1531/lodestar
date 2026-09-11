@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0034 — Distributional proof is admissible, and `dropout` is still refused
 
 **Status:** accepted · **Date:** 2026-08-14

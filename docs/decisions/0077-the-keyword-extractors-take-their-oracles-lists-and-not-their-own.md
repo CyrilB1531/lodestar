@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0077 — The keyword extractors take their oracles' lists, and not their own
 
 **Status:** accepted · **Date:** 2026-09-04

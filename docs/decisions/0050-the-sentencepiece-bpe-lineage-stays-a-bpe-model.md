@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0017"]
+applies: []
+---
 # 0050 — The SentencePiece-BPE lineage stays a BPE model, and metaspace becomes one transform
 
 **Status:** accepted · **Date:** 2026-08-21 · **Amends:** [`0017`](0017-bpe-parity-scope.md) §3

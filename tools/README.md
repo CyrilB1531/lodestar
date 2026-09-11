@@ -86,8 +86,15 @@ given:
 - `check_adr_immutable.py` refuses a pull request that touches a
   `docs/decisions/` ADR that already existed at its base commit, addition
   included — an accepted decision is never edited, only amended by a new one.
-  Not part of the pre-commit set above: it needs the pull request's own base
-  commit, not something a commit made before one exists can name.
+  One exception, decision 0106: a YAML frontmatter block inserted above the title
+  with the body below it byte-identical. Not part of the pre-commit set above: it
+  needs the pull request's own base commit, not something a commit made before one
+  exists can name.
+- `check_adr_frontmatter.py`, `check_adr_index_sync.py` and
+  `check_adr_index_is_cited.py` hold `docs/decisions/index.yaml` to the records it
+  is generated from, and hold the two process documents to sending a reader there.
+  All three are offline and run before a commit; `## The ADR index` below has what
+  each one refuses.
 - `check_repeated_literals.py` refuses a pull request that pushes a Python string
   literal in `tools/` past SonarCloud's S1192 threshold — measured on
   [#488](https://github.com/CyrilB1531/lodestar/pull/488) as more than three
@@ -657,6 +664,14 @@ absent at `--base` is a new ADR and is unrestricted, and so is
 `docs/decisions/README.md`, the index rather than a decision, which gains a row
 on every one added.
 
+One change to a record that already existed is allowed, and only one: a YAML
+frontmatter block added above the title, with the body below it byte-identical.
+That is decision 0106's exception, and it is self-limiting — the rule tests that
+there was no block before, so a record that carries one can never take the path
+again, and `check_adr_frontmatter.py` refuses a new ADR without one. Appending a
+line to an accepted body still fails, with a message saying the exception exists
+and that this change is not it.
+
 Exit codes:
 
 - `0` — clean.
@@ -683,6 +698,46 @@ the patterns they search for to exist; nothing else is, because an exemption
 list that grows is a guard being switched off one file at a time. See
 [`../docs/superpowers/specs/2026-08-12_0133_machine-path-guard.md`](../docs/superpowers/specs/2026-08-12_0133_machine-path-guard.md)
 for the measurement that shaped the two-probe-set design.
+
+## The ADR index
+
+`docs/decisions/index.yaml` is generated, never hand-edited. Each record declares
+`supersedes`, `amends` and `applies` in its own YAML frontmatter;
+`regen_adr_index.py` crosses those into `superseded_by`, `amended_by` and
+`applied_by` — the direction an immutable record cannot carry, because naming the
+decision that amended you is an edit. Decision 0106 has the whole reasoning, and
+`adr_index.py` is the reader and emitter the generator and both guards share.
+
+```bash
+python3 tools/regen_adr_index.py           # rewrite docs/decisions/index.yaml
+python3 tools/regen_adr_index.py --check   # print whether it would change, exit 1 if so
+python3 tools/check_adr_frontmatter.py
+python3 tools/check_adr_index_sync.py
+python3 tools/check_adr_index_is_cited.py
+```
+
+- `check_adr_frontmatter.py` refuses a record whose block is missing, unreadable,
+  missing one of `status`, `supersedes`, `amends` or `applies`, carrying a key that
+  is none of those, disagreeing with the first word of its own `**Status:**` line,
+  or naming a decision that does not exist or is itself.
+- `check_adr_index_sync.py` regenerates in memory and compares the **whole text**
+  against what is committed, printing the first lines that differ. The emitter is
+  deterministic, so any difference at all means the file was hand-edited or a new
+  record was added without regenerating.
+- `check_adr_index_is_cited.py` refuses `CLAUDE.md` or `CONTRIBUTING.md` that no
+  longer has one paragraph naming `docs/decisions/index.yaml` together with both
+  `amended_by` and `applied_by`. Not an exact sentence — rewording prose is normal,
+  and a guard that forbids it gets deleted — but a reader told to follow one edge
+  and not the other is told half of it.
+
+Standard library only, like every guard here, because `.githooks/pre-commit` runs
+them through whichever of `python3` or `python` a contributor's machine resolves
+rather than through `.venv-oracles`. Nothing parses arbitrary YAML: the block is a
+fixed four-key shape read by a strict reader, and the index is emitted and compared
+as bytes. Every four-digit reference is quoted because PyYAML reads YAML 1.1, where
+a bare `0010` is octal and resolves to `8`.
+
+Exit codes, all three: `0` clean, `1` findings printed, `2` bad usage.
 
 ## Rules
 

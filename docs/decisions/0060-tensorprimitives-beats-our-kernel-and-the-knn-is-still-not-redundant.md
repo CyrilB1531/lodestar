@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0060 — `TensorPrimitives` beats our kernel, and the kNN is still not redundant
 
 **Status:** accepted · **Date:** 2026-08-30 · **Completes:** [`0059`](0059-phase-0-verifications-two-confirmed-voids-do-not-survive-nuget.md)

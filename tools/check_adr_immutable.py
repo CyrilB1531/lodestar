@@ -18,6 +18,16 @@ Only files that already existed at --base are covered: a brand-new ADR in the
 same pull request is unrestricted, and so is docs/decisions/README.md, which is
 the index rather than a decision and is expected to gain a row on every ADR.
 
+One narrow exception, decision 0106: inserting a YAML frontmatter block above the
+title is allowed when the body below it is byte-identical. docs/decisions/index.yaml
+is generated from those blocks, and an immutable record cannot be edited to name the
+decision that later amended it -- so the 105 records that predate the index were
+given their block in one pass, verified the only way that claim can be: the body did
+not move by one byte. Changing a block that is already there is refused like any
+other edit, which makes the exception self-limiting -- once a record carries
+frontmatter it can never take this path again, and tools/check_adr_frontmatter.py
+refuses a new ADR without one.
+
 Usage:  python tools/check_adr_immutable.py --base <commit>
         python tools/check_adr_immutable.py --help
 
@@ -35,6 +45,12 @@ import pathlib
 import re
 import subprocess
 import sys
+
+# PYTHONSAFEPATH=1 keeps this script's own directory off sys.path, the way
+# generate_oracles.py documents -- appended, so nothing here shadows a package.
+sys.path.append(str(pathlib.Path(__file__).resolve().parent))
+
+import adr_index  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -72,6 +88,45 @@ def line_counts(base: str, path: str) -> tuple[int, int]:
     return int(added), int(removed)
 
 
+def text_at(base: str, path: str) -> str | None:
+    """`path` as it reads at `base`, or None when it cannot be read as text."""
+    result = subprocess.run(
+        ["git", "show", f"{base}:{path}"],
+        cwd=ROOT, capture_output=True, check=False)
+    if result.returncode != 0:
+        return None
+    try:
+        return result.stdout.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+
+
+def is_frontmatter_insertion(base: str, path: str) -> bool:
+    """Whether the only change is a frontmatter block added above an untouched body.
+
+    Decision 0106's one exception, and the whole of it. The block is metadata for
+    docs/decisions/index.yaml; the body is the decision, and what immutability is
+    for is that the historical reasoning is not rewritten. So the test is exactly
+    that: the record had no block, it has one now, and the text below it is the
+    same bytes it was. A record that already carries a block fails here, which is
+    what keeps this from becoming a way to edit one.
+    """
+    was = text_at(base, path)
+    if was is None:
+        return False
+    now_path = ROOT / path
+    if not now_path.is_file():
+        return False
+    try:
+        now = now_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
+
+    had_block, old_body = adr_index.split_frontmatter(was)
+    has_block, new_body = adr_index.split_frontmatter(now)
+    return had_block is None and has_block is not None and old_body == new_body
+
+
 def main(argv: list[str]) -> int:
     arguments = argv[1:]
     if "--help" in arguments or "-h" in arguments:
@@ -89,6 +144,8 @@ def main(argv: list[str]) -> int:
     for path in changed_adr_files(base):
         if not existed_at(base, path):
             continue
+        if is_frontmatter_insertion(base, path):
+            continue
         added, removed = line_counts(base, path)
         findings.append((path, added, removed))
 
@@ -101,7 +158,9 @@ def main(argv: list[str]) -> int:
             "allows -- not even a `> **#<issue> update:**` blockquote, per "
             "\"Amend 0004 in a decision of its own instead of editing it\". Revert "
             "the change and record it as a new ADR instead, indexed in "
-            "docs/decisions/README.md.",
+            "docs/decisions/README.md. Adding a YAML frontmatter block above an "
+            "untouched body is the one exception (decision 0106), and these "
+            "changes are not that.",
             file=sys.stderr)
         return 1
     return 0

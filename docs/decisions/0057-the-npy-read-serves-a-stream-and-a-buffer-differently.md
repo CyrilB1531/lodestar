@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0057 — The `.npy` read serves a stream and a buffer differently
 
 **Status:** accepted · **Date:** 2026-08-30 · **Refines:** [`0056`](0056-a-block-may-be-adopted-and-the-invariant-is-the-callers-to-keep.md)

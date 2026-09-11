@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0021 — Eleven regression metrics first, and `multioutput` as a method rather than an enum
 
 **Status:** accepted · **Date:** 2026-08-10

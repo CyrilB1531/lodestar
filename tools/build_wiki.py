@@ -115,6 +115,20 @@ def pages_for(patterns: list[str], repo: pathlib.Path) -> list[pathlib.Path]:
     return list(dict.fromkeys(found))
 
 
+FRONTMATTER = re.compile(r"\A---\n.*?\n---\n", re.DOTALL)
+
+
+def page_body(page: pathlib.Path) -> str:
+    """A page's text with any YAML frontmatter removed.
+
+    Every ADR carries one since decision 0106, and `docs/decisions/*.md` is
+    published here: a wiki renders the block as a horizontal rule and a paragraph
+    of keys, so 106 pages would open with their own metadata. The block is for
+    docs/decisions/index.yaml, not for a reader.
+    """
+    return FRONTMATTER.sub("", page.read_text(encoding="utf-8"), count=1)
+
+
 def page_stem(page: pathlib.Path) -> str:
     """The name a page is known by, which is not always its file name.
 
@@ -322,7 +336,7 @@ def entry_page(repo: pathlib.Path, package: dict, version: str | None = None) ->
         lines += ["## Guides", ""]
         for pattern in guides:
             path = _guard(repo / pattern, repo)
-            title = path.read_text(encoding="utf-8").splitlines()[0].lstrip("#").strip()
+            title = page_body(path).splitlines()[0].lstrip("#").strip()
             lines.append(f"- [{title}]({wiki_name(page_stem(path), channel, version)})")
         lines.append("")
         linked = True
@@ -529,7 +543,7 @@ def _write(
     names[name] = page
     target = _guard(out / f"{name}.md", out)
     target.write_text(
-        prefix + rewrite_links(page.read_text(encoding="utf-8"), page, repo, index),
+        prefix + rewrite_links(page_body(page), page, repo, index),
         encoding="utf-8",
     )
     return target

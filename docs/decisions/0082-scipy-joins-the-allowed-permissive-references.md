@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0003"]
+---
 # 0082 — scipy joins the allowed permissive references, for the Kolmogorov branch table
 
 **Status:** accepted · **Date:** 2026-09-05

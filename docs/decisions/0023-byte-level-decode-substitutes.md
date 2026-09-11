@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0023 — Byte-level `Decode` substitutes U+FFFD instead of throwing
 
 **Status:** accepted · **Date:** 2026-08-14

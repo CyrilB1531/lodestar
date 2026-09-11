@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0018 — Multiclass ROC-AUC parallelism is opt-in, and the caller names the worker count
 
 **Status:** accepted · **Date:** 2026-08-10

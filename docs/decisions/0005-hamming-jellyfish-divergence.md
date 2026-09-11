@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0005 — Accepted divergence from jellyfish on combining marks (Hamming, Jaro)
 
 **Status:** accepted · **Date:** 2026-08-01

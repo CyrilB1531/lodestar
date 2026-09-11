@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0016 — Classification metrics ship as `DataNet.Metrics`, not inside `DataNet.Text`
 
 **Status:** accepted · **Date:** 2026-08-06

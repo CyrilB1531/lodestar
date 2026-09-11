@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0032 — `FScore` substitutes tp/predicted/support algebraically, not via precision and recall
 
 **Status:** accepted · **Date:** 2026-08-14

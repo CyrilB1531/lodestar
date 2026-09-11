@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0010 — Stop-word lists come from Snowball, not from the `nltk` corpus
 
 **Status:** accepted · **Date:** 2026-08-05

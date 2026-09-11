@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0022 — How an added token matches, and what it costs the round trip
 
 **Status:** accepted · **Date:** 2026-08-10

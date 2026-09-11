@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0073 — The oracle gate compares numbers at the suites' tolerance, not bytes
 
 **Status:** accepted · **Date:** 2026-09-01

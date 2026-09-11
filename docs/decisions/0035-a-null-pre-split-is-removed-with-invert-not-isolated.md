@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0035 — A null pre-split drives `Apply` as Removed with invert, not Isolated
 
 **Status:** accepted · **Date:** 2026-08-15

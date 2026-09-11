@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0002 — Unicode comparison unit
 
 **Status:** accepted · **Date:** 2026-08-01

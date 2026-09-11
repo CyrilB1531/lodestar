@@ -29,7 +29,7 @@ you whether to correct the document itself or something upstream of it.
 | `docs/reference/` | the exported types and public methods of the namespaces `docs/wiki-map.json` declares covered, replayed against both target frameworks' assemblies | what each function is for, entry by entry — declaration, parameters, returns, example, remarks |
 | `docs/wiki-map.json` | the packages and the pages that ship with each, hand-maintained | which page belongs to which package, and which namespaces the reference gate enforces |
 | `CHANGELOG.md` | the merged pull requests, per release | what changed, per release |
-| `docs/decisions/` | the ADRs' own `**Status:**` lines, indexed in [`docs/decisions/README.md`](docs/decisions/README.md) | a decision, with its options and its loser |
+| `docs/decisions/` | each ADR's own frontmatter and `**Status:**` line, crossed into [`docs/decisions/index.yaml`](docs/decisions/index.yaml) and read in prose in [`docs/decisions/README.md`](docs/decisions/README.md) | a decision, with its options and its loser |
 | root `README.md` | the project as it stands, hand-maintained | what the project is, and where to go next |
 | `.claude/skills/` | [obra/superpowers](https://github.com/obra/superpowers), vendored at a pinned commit | how a spec and a plan are written; `.claude/skills/README.md` says what was taken and what was not |
 
@@ -250,6 +250,15 @@ Three traps, each of which has already cost a session:
   more than any assertion tolerates, so believe it. On failure the job still
   uploads the regenerated corpora as an artefact so the comparison can be made
   off the runner.
+
+**Before citing decision NNNN, read [`docs/decisions/index.yaml`](docs/decisions/index.yaml) and
+follow its `amended_by` and `applied_by` entries.** An ADR is immutable, so the decision that was
+amended cannot say so itself: `0101` reads "`Lodestar.Gpu` is the one package that does not ship
+`netstandard2.0`" and `0103` amended it to ship `netstandard2.1`, so citing 0101 alone states the
+opposite of what was decided. `amended_by` is the decision changing; `applied_by` is it being used
+again unchanged, which is why `0095` shows `0097` and `0098` without having moved. The index is
+generated from every record's frontmatter by `tools/regen_adr_index.py`
+([decision 0106](docs/decisions/0106-the-frontmatter-is-inserted-once-and-the-body-does-not-move.md)).
 
 Where behaviour deliberately diverges from the Python reference, it goes in
 [`docs/decisions/`](docs/decisions/README.md), the fastest way to understand why

@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0078 — keybert is declared `--no-deps`, not compiled into the lock
 
 **Status:** accepted · **Date:** 2026-09-04

@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0094 — Arabic takes `snowballstemmer` as its oracle, and stands outside `SnowballWorkerBase`
 
 **Status:** accepted · **Date:** 2026-09-10

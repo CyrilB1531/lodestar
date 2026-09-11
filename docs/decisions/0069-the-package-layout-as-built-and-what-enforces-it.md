@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0069 — The package layout as built, and what enforces it
 
 **Status:** accepted · **Date:** 2026-09-01

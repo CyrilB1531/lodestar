@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0039 — `MutualInformation` returns `0.0` on an empty input; scikit-learn raises
 
 **Status:** accepted · **Date:** 2026-08-18

@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0044"]
+applies: []
+---
 # 0051 — The save path's cost is the buffer, not the encoding
 
 **Status:** accepted · **Date:** 2026-08-27 · **Amends:** [`0044`](0044-compression-belongs-to-the-caller.md)

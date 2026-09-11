@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: ["0074"]
+---
 # 0100 — `VectorData` is its own satellite, and its `Lodestar.Text` edge waits on a release
 
 **Status:** accepted · **Date:** 2026-09-10

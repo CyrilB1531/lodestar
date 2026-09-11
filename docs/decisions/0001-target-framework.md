@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0001 — Target frameworks: `net10.0` and `netstandard2.0`
 
 **Status:** accepted · **Date:** 2026-08-01 · **Revised:** 2026-08-04

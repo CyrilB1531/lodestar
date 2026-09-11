@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0025 — Quickselect, with an introselect fallback and a branchless partition, replaces a full sort for the unweighted median
 
 **Status:** accepted · **Date:** 2026-08-14

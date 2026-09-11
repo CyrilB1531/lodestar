@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0026 — R² and ExplainedVariance split their undefined cases differently
 
 **Status:** accepted · **Date:** 2026-08-14

@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0057"]
+applies: []
+---
 # 0058 — The `.npy` ingest is `memcpy`-bound, and the allocation is not the cost
 
 **Status:** accepted · **Date:** 2026-08-30 · **Amends:** [`0057`](0057-the-npy-read-serves-a-stream-and-a-buffer-differently.md)

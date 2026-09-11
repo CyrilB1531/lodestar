@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0048"]
+applies: []
+---
 # 0049 — Two gates per kernel, the second tested where the width is already known
 
 **Status:** accepted · **Date:** 2026-08-21 · **Amends:** [`0048`](0048-the-gate-depends-on-the-kernel-and-the-alphabet.md)

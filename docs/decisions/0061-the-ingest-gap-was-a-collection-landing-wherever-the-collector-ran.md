@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0058"]
+applies: []
+---
 # 0061 — The ingest gap was a collection, landing wherever the collector ran
 
 **Status:** accepted · **Date:** 2026-08-30 · **Amends:** [`0058`](0058-the-npy-ingest-is-memcpy-bound-and-the-allocation-is-not-the-cost.md)

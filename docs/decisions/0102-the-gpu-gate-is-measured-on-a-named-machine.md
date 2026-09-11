@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0102 — The GPU gate is measured on a named machine, and the kernels are ordered by what they need
 
 **Status:** accepted · **Date:** 2026-09-10

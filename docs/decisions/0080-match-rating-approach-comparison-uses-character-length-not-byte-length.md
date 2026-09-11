@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0080 — MatchRatingApproach.Compare measures codex length in characters, not bytes
 
 **Status:** accepted · **Date:** 2026-09-04

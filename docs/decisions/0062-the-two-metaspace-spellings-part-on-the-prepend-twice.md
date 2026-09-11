@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0050"]
+applies: []
+---
 # 0062 — The two metaspace spellings part on the prepend, twice
 
 **Status:** accepted · **Date:** 2026-08-30 · **Amends:** [`0050`](0050-the-sentencepiece-bpe-lineage-stays-a-bpe-model.md) §2

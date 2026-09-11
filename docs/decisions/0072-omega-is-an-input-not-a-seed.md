@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0072 — Ω is an input, not a seed, and two options that need one are not offered
 
 **Status:** accepted · **Date:** 2026-09-01

@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0037 — The guards run before the commit, through `core.hooksPath` and no framework
 
 **Status:** accepted · **Date:** 2026-08-18

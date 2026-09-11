@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0092 — Romanian keeps the cedilla alphabet the description writes, and reads its regions off the word
 
 **Status:** accepted · **Date:** 2026-09-09

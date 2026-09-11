@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: ["0053"]
+applies: []
+---
 # 0054 — The payload buffer is pooled after all, because the collection is the cost
 
 **Status:** accepted · **Date:** 2026-08-29 · **Amends:** [`0053`](0053-the-payload-buffer-is-not-pooled-because-residency-outlives-the-load.md)

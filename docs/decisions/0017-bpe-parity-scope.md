@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: []
+amends: []
+applies: []
+---
 # 0017 — What `BpeTokenizer` promises, and where it knowingly differs
 
 **Status:** accepted · **Date:** 2026-08-09
