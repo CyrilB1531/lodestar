@@ -83,10 +83,14 @@ given:
   selected and reads that map to decide which, so a class missing from it is
   never selected and stops being measured with nothing going red. The map cannot
   be derived — `FuzzBenchmarks` names only `Fuzz`, which reaches `Indel`, then
-  `Lcs`, then `Affixes` — so it is hand-written, and this guard holds it to the
-  one thing it can check: completeness. Whether a class's globs are *right* is
-  not checked, and being too narrow is invisible here; `bench/README.md` has why
-  they are written at directory granularity.
+  `Lcs`, then `Affixes` — so it is hand-written, and this guard holds it to what
+  it can check: completeness. Whether a class's globs are *right* is not, and
+  being too narrow is invisible here; `bench/README.md` has why they are written
+  at directory granularity. Since
+  [#649](https://github.com/CyrilB1531/lodestar/issues/649) it also refuses a
+  `bench/*/*.csproj` that `Lodestar.slnx` does not list, which is the same
+  silence one layer down: `bench/Lodestar.Gpu.Benchmarks` was outside the
+  solution, so no build reached it and raising the analyser broke it unseen.
 - `classify_change.py` answers two questions from a change's file paths, and keeps them
   apart: **ships** is `src/<Package>/` only, which decides the milestone because a milestone
   names a release; **about** also counts `tests/`, `bench/` and the documentation pages
