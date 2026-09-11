@@ -143,17 +143,32 @@ jobs:
                  "milestone and the labels were. A token with the 'project' scope enables this."
             exit 0
           fi
-          # `--owner <name>` asks GitHub whether that name is a user or an organisation, and
-          # that lookup needs a scope PROJECTS_TOKEN does not carry: it answered
-          # `unknown owner type` on every run. `@me` is the authenticated owner, no lookup.
-          owner="@me"
-          url="https://github.com/$GITHUB_REPOSITORY/pull/$PR"
+          # No `gh project` here, and the two errors it gave are why. With an explicit owner
+          # it answered `unknown owner type`, which looks like a naming problem; with `@me`
+          # it answered `missing required scopes [read:org read:discussion]`, which is the
+          # real one. The CLI wants more than `project` whatever owner it is given, and
+          # `item-add` wants the same, so no spelling of the owner would have worked.
+          #
+          # These three queries touch no organisation and no discussion, so `project` plus
+          # repository read covers them -- and the node ids they return are what the mutation
+          # wants anyway, which the CLI was only hiding.
+          owner_projects=$(gh api graphql -f query='
+            query { viewer { projectsV2(first: 100) { nodes { id title } } } }' \
+            --jq '.data.viewer.projectsV2.nodes[] | "\(.title)\t\(.id)"')
+          content=$(gh api graphql -F owner="${GITHUB_REPOSITORY%%/*}" \
+            -F name="${GITHUB_REPOSITORY#*/}" -F number="$PR" -f query='
+            query($owner:String!,$name:String!,$number:Int!) {
+              repository(owner:$owner, name:$name) { pullRequest(number:$number) { id } } }' \
+            --jq '.data.repository.pullRequest.id')
+
           targets="$ABOUT"
           [ -z "$targets" ] && targets="Lodestar — cross-cutting"
           IFS=','; for board in $targets; do
-            number=$(gh project list --owner "$owner" --format json \
-                     --jq ".projects[] | select(.title == \"$board\") | .number")
-            if [ -z "$number" ]; then echo "::warning::no board named $board"; continue; fi
-            gh project item-add "$number" --owner "$owner" --url "$url" >/dev/null
+            project=$(printf '%s\n' "$owner_projects" | awk -F'\t' -v b="$board" '$1==b{print $2}')
+            if [ -z "$project" ]; then echo "::warning::no board named $board"; continue; fi
+            gh api graphql -F project="$project" -F content="$content" -f query='
+              mutation($project:ID!,$content:ID!) {
+                addProjectV2ItemById(input:{projectId:$project, contentId:$content}) {
+                  item { id } } }' >/dev/null
             echo "$PR -> board $board"
           done
