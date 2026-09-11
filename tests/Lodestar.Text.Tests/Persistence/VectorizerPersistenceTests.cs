@@ -195,9 +195,9 @@ public sealed class VectorizerPersistenceTests
         var original = new TfidfVectorizer(new TfidfVectorizerOptions { Count = NonDefaultCountOptions }).Fit(TrainingCorpus);
 
         using var stream = new MemoryStream();
-        await original.SaveAsync(stream);
+        await original.SaveAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         stream.Position = 0;
-        TfidfVectorizer reloaded = await TfidfVectorizer.LoadAsync(stream);
+        TfidfVectorizer reloaded = await TfidfVectorizer.LoadAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
 
         AssertIdentical(original.Transform(HoldoutCorpus), reloaded.Transform(HoldoutCorpus));
     }
@@ -217,7 +217,7 @@ public sealed class VectorizerPersistenceTests
 #pragma warning restore S6966
 
         using var asyncBytes = new MemoryStream();
-        await original.SaveAsync(asyncBytes);
+        await original.SaveAsync(asyncBytes, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(syncBytes.ToArray(), asyncBytes.ToArray());
     }

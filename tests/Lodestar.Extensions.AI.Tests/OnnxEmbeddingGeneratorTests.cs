@@ -45,11 +45,11 @@ public sealed class OnnxEmbeddingGeneratorTests
     public async Task Generates_exactly_what_the_embedder_returns()
     {
         using var reference = Embedder();
-        float[][] expected = reference.EmbedBatch(Texts, Encoder());
+        float[][] expected = reference.EmbedBatch(Texts, Encoder(), cancellationToken: TestContext.Current.CancellationToken);
 
         using var embedder = Embedder();
         using var generator = new OnnxEmbeddingGenerator(embedder, Encoder(), ModelId);
-        GeneratedEmbeddings<Embedding<float>> actual = await generator.GenerateAsync(Texts);
+        GeneratedEmbeddings<Embedding<float>> actual = await generator.GenerateAsync(Texts, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(expected.Length, actual.Count);
         for (int i = 0; i < expected.Length; i++)
@@ -75,7 +75,7 @@ public sealed class OnnxEmbeddingGeneratorTests
             new OnnxEmbeddingGenerator(embedder, Encoder());
 #pragma warning restore CA1859
 
-        GeneratedEmbeddings<Embedding<float>> embeddings = await generator.GenerateAsync(Texts);
+        GeneratedEmbeddings<Embedding<float>> embeddings = await generator.GenerateAsync(Texts, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(Texts.Length, embeddings.Count);
         Assert.All(embeddings, embedding => Assert.Equal(embedding.Vector.Length, embedding.Dimensions));
@@ -91,7 +91,7 @@ public sealed class OnnxEmbeddingGeneratorTests
 
         using var generator = new OnnxEmbeddingGenerator(embedder, Encoder(), ModelId);
         var metadata = (EmbeddingGeneratorMetadata?)generator.GetService(typeof(EmbeddingGeneratorMetadata));
-        GeneratedEmbeddings<Embedding<float>> embeddings = await generator.GenerateAsync(Texts);
+        GeneratedEmbeddings<Embedding<float>> embeddings = await generator.GenerateAsync(Texts, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(metadata);
         Assert.Equal(declared, metadata.DefaultModelDimensions);
@@ -164,7 +164,7 @@ public sealed class OnnxEmbeddingGeneratorTests
         using var generator = new OnnxEmbeddingGenerator(embedder, Encoder(), ModelId);
 
         ArgumentException error = await Assert.ThrowsAsync<ArgumentException>(
-            () => generator.GenerateAsync(Texts, new EmbeddingGenerationOptions { Dimensions = declared + 1 }));
+            () => generator.GenerateAsync(Texts, new EmbeddingGenerationOptions { Dimensions = declared + 1 }, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal("options", error.ParamName);
     }
@@ -178,7 +178,7 @@ public sealed class OnnxEmbeddingGeneratorTests
         using var generator = new OnnxEmbeddingGenerator(embedder, Encoder(), ModelId);
 
         GeneratedEmbeddings<Embedding<float>> embeddings = await generator.GenerateAsync(
-            Texts, new EmbeddingGenerationOptions { Dimensions = declared });
+            Texts, new EmbeddingGenerationOptions { Dimensions = declared }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(Texts.Length, embeddings.Count);
     }
@@ -208,8 +208,8 @@ public sealed class OnnxEmbeddingGeneratorTests
         generator.Dispose();
         generator.Dispose();
 
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => generator.GenerateAsync(Texts));
-        Assert.Throws<ObjectDisposedException>(() => embedder.EmbedBatch(Texts, Encoder()));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => generator.GenerateAsync(Texts, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Throws<ObjectDisposedException>(() => embedder.EmbedBatch(Texts, Encoder(), cancellationToken: TestContext.Current.CancellationToken));
     }
 
     /// <summary>Neither half of the pipeline may be null: both are used on every call.</summary>
@@ -229,6 +229,6 @@ public sealed class OnnxEmbeddingGeneratorTests
         using var embedder = Embedder();
         using var generator = new OnnxEmbeddingGenerator(embedder, Encoder(), ModelId);
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() => generator.GenerateAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => generator.GenerateAsync(null!, cancellationToken: TestContext.Current.CancellationToken));
     }
 }

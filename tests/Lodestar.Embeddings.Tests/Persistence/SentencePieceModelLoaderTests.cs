@@ -106,7 +106,7 @@ public sealed class SentencePieceModelLoaderTests
     {
         using FileStream file = File.OpenRead(ModelPath);
 
-        SentencePieceVocabulary vocabulary = await SentencePieceModelLoader.LoadAsync(file);
+        SentencePieceVocabulary vocabulary = await SentencePieceModelLoader.LoadAsync(file, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(LoadModel().Count, vocabulary.Count);
     }

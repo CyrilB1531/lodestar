@@ -161,7 +161,7 @@ public sealed class BpeFilesLoaderTests
 #pragma warning disable S6966
         BpeVocabulary sync = BpeFilesLoader.Load(Utf8(Vocab), Utf8(Merges));
 #pragma warning restore S6966
-        BpeVocabulary viaAsync = await BpeFilesLoader.LoadAsync(Utf8(Vocab), Utf8(Merges));
+        BpeVocabulary viaAsync = await BpeFilesLoader.LoadAsync(Utf8(Vocab), Utf8(Merges), cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(sync, viaAsync);
     }
 }

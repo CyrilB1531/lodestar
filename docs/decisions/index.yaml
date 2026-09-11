@@ -751,7 +751,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105"]
+  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105", "0109"]
 
 "0075":
   title: "Double Metaphone ships, with `doublemetaphone` 1.2 as its oracle"
@@ -1080,7 +1080,7 @@
   amends: []
   applies: ["0015", "0019"]
   superseded_by: []
-  amended_by: []
+  amended_by: ["0109"]
   applied_by: []
 
 "0108":
@@ -1089,6 +1089,16 @@
   supersedes: []
   amends: []
   applies: ["0072", "0076", "0102"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0109":
+  title: "The cancellation token was never an overload, and 0107 said it was"
+  status: "accepted"
+  supersedes: []
+  amends: ["0107"]
+  applies: ["0074"]
   superseded_by: []
   amended_by: []
   applied_by: []

@@ -44,9 +44,9 @@ public sealed class PersistenceOverloadTests : IDisposable
         var original = new CountVectorizer(Options).Fit(Corpus);
 
         using var stream = new MemoryStream();
-        await original.SaveAsync(stream);
+        await original.SaveAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         stream.Position = 0;
-        CountVectorizer reloaded = await CountVectorizer.LoadAsync(stream);
+        CountVectorizer reloaded = await CountVectorizer.LoadAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(original.GetFeatureNames(), reloaded.GetFeatureNames());
         AssertIdentical(original.Transform(Holdout), reloaded.Transform(Holdout));
@@ -64,7 +64,7 @@ public sealed class PersistenceOverloadTests : IDisposable
         original.Save(written);
 #pragma warning restore S6966
         using var writtenAsync = new MemoryStream();
-        await original.SaveAsync(writtenAsync);
+        await original.SaveAsync(writtenAsync, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(written.ToArray(), writtenAsync.ToArray());
     }
@@ -88,9 +88,9 @@ public sealed class PersistenceOverloadTests : IDisposable
         var original = new HashingVectorizer(new HashingVectorizerOptions { NumFeatures = 64, AlternateSign = false });
 
         using var stream = new MemoryStream();
-        await original.SaveAsync(stream);
+        await original.SaveAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         stream.Position = 0;
-        HashingVectorizer reloaded = await HashingVectorizer.LoadAsync(stream);
+        HashingVectorizer reloaded = await HashingVectorizer.LoadAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
 
         AssertIdentical(original.Transform(Holdout), reloaded.Transform(Holdout));
     }
@@ -107,7 +107,7 @@ public sealed class PersistenceOverloadTests : IDisposable
         original.Save(written);
 #pragma warning restore S6966
         using var writtenAsync = new MemoryStream();
-        await original.SaveAsync(writtenAsync);
+        await original.SaveAsync(writtenAsync, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(written.ToArray(), writtenAsync.ToArray());
     }
@@ -121,9 +121,9 @@ public sealed class PersistenceOverloadTests : IDisposable
         TfidfVectorizer fromFile = TfidfVectorizer.Load(_path);
 
         using var stream = new MemoryStream();
-        await original.SaveAsync(stream);
+        await original.SaveAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         stream.Position = 0;
-        TfidfVectorizer fromStream = await TfidfVectorizer.LoadAsync(stream);
+        TfidfVectorizer fromStream = await TfidfVectorizer.LoadAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
 
         AssertIdentical(original.Transform(Holdout), fromFile.Transform(Holdout));
         AssertIdentical(original.Transform(Holdout), fromStream.Transform(Holdout));

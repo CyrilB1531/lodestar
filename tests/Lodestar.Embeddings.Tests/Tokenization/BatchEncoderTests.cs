@@ -112,7 +112,7 @@ public sealed class BatchEncoderTests
     [Fact]
     public void The_batch_is_padded_to_its_own_longest_row()
     {
-        EncodedBatch batch = Encoder().EncodeBatch(["cat", "the cat sat"]);
+        EncodedBatch batch = Encoder().EncodeBatch(["cat", "the cat sat"], cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(2, batch.Count);
         Assert.Equal(5, batch.SequenceLength);
@@ -126,7 +126,7 @@ public sealed class BatchEncoderTests
     [Fact]
     public void Sequence_returns_a_row_without_its_padding()
     {
-        EncodedBatch batch = Encoder().EncodeBatch(["cat", "the cat sat"]);
+        EncodedBatch batch = Encoder().EncodeBatch(["cat", "the cat sat"], cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal([7, 2, 8], batch.Sequence(0).ToArray());
         Assert.Equal([7, 1, 2, 3, 8], batch.Sequence(1).ToArray());
@@ -137,7 +137,7 @@ public sealed class BatchEncoderTests
     [Fact]
     public void EncodeAll_leaves_every_row_its_own_length()
     {
-        IReadOnlyList<long[]> sequences = Encoder().EncodeAll(["cat", "the cat sat"]);
+        IReadOnlyList<long[]> sequences = Encoder().EncodeAll(["cat", "the cat sat"], cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(2, sequences.Count);
         Assert.Equal([7, 2, 8], sequences[0]);
@@ -147,7 +147,7 @@ public sealed class BatchEncoderTests
     [Fact]
     public void Pad_widens_to_the_window_rather_than_to_the_corpus()
     {
-        IReadOnlyList<long[]> sequences = Encoder().EncodeAll(["cat", "the cat sat"]);
+        IReadOnlyList<long[]> sequences = Encoder().EncodeAll(["cat", "the cat sat"], cancellationToken: TestContext.Current.CancellationToken);
 
         // The whole point of splitting EncodeBatch in two: a window holding only the
         // short row costs 3 columns, where the corpus-wide call costs 5 for both rows.
@@ -162,7 +162,7 @@ public sealed class BatchEncoderTests
     [Fact]
     public void Pad_reads_its_window_through_order_when_one_is_given()
     {
-        IReadOnlyList<long[]> sequences = Encoder().EncodeAll(["cat", "the cat sat"]);
+        IReadOnlyList<long[]> sequences = Encoder().EncodeAll(["cat", "the cat sat"], cancellationToken: TestContext.Current.CancellationToken);
 
         EncodedBatch batch = Encoder().Pad(sequences, 0, 1, [1, 0]);
 
@@ -172,7 +172,7 @@ public sealed class BatchEncoderTests
     [Fact]
     public void Pad_refuses_a_window_that_runs_past_what_it_was_given()
     {
-        IReadOnlyList<long[]> sequences = Encoder().EncodeAll(["cat", "the cat sat"]);
+        IReadOnlyList<long[]> sequences = Encoder().EncodeAll(["cat", "the cat sat"], cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => Encoder().Pad(sequences, 1, 2));
         Assert.Throws<ArgumentOutOfRangeException>(() => Encoder().Pad(sequences, -1, 1));
@@ -185,7 +185,7 @@ public sealed class BatchEncoderTests
     [Fact]
     public void An_empty_batch_is_empty_rather_than_a_zero_width_tensor()
     {
-        EncodedBatch batch = Encoder().EncodeBatch([]);
+        EncodedBatch batch = Encoder().EncodeBatch([], cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(0, batch.Count);
         Assert.Equal(0, batch.SequenceLength);
@@ -207,7 +207,7 @@ public sealed class BatchEncoderTests
     {
         Assert.Throws<ArgumentNullException>(() => new BatchEncoder(null!));
         Assert.Throws<ArgumentNullException>(() => Encoder().Encode(null!));
-        Assert.Throws<ArgumentNullException>(() => Encoder().EncodeBatch(null!));
+        Assert.Throws<ArgumentNullException>(() => Encoder().EncodeBatch(null!, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     /// <summary>
