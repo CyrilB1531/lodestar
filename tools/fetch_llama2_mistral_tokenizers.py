@@ -9,11 +9,12 @@ ways, which is why the corpus needs both rather than one file twice:
     Llama-2       normalizer Sequence[Prepend, Replace], pre_tokenizer null
     Mistral v0.1  normalizer null, pre_tokenizer Metaspace(split=false)
 
-Only Mistral v0.1 is written into tests/oracles/, and only its vocabulary and merge
-table -- never weights, per docs/decisions/0003-provenance-and-licensing.md. It is
-Apache-2.0, and its attribution is recorded in THIRD-PARTY-NOTICES.md. Llama-2 is
-downloaded and verified but **not** written; the note at the end of this docstring
-says why.
+Both are written into tests/oracles/, and only the vocabulary and merge table --
+never weights, per docs/decisions/0003-provenance-and-licensing.md. Mistral v0.1 is
+Apache-2.0 and needs no exception; Llama-2 is under the LLAMA 2 COMMUNITY LICENSE,
+which decision 0084 admits as a named exception for this artifact alone. The note at
+the end of this docstring says what that obliges and which mirror it is read from.
+Both attributions are recorded in THIRD-PARTY-NOTICES.md.
 
     python tools/fetch_llama2_mistral_tokenizers.py           # vendor and verify
     python tools/fetch_llama2_mistral_tokenizers.py --check   # verify the fixtures
