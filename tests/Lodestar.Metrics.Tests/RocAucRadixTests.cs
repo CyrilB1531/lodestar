@@ -126,7 +126,13 @@ public sealed class RocAucRadixTests
             truePositives += yTrue[s] == 1 ? 1.0 : 0.0;
             falsePositives += yTrue[s] == 1 ? 0.0 : 1.0;
 
+            // S1244: the exact comparison is the algorithm, not an oversight. This is the
+            // reference implementation the radix path is checked against, and ROC-AUC groups
+            // samples sharing a threshold -- scikit-learn does the same, on exact equality.
+            // A tolerance here would make the reference differ from what it verifies.
+#pragma warning disable S1244
             bool lastOfGroup = i == n - 1 || !scores[order[i + 1]].Equals(scores[s]);
+#pragma warning restore S1244
             if (!lastOfGroup)
             {
                 continue;

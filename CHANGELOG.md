@@ -24,6 +24,41 @@ is one sentence, the issue and the commit; see
 
 ## [Unreleased]
 
+### Lodestar.Text
+
+#### Changed
+
+- **`System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`.** The dependency a
+  consumer restores changes; nothing in the public surface does.
+  ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+
+### Lodestar.Embeddings
+
+#### Changed
+
+- **`System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`.** The dependency a
+  consumer restores changes; nothing in the public surface does.
+  ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+
+### Lodestar.Onnx
+
+#### Changed
+
+- **`Microsoft.ML.OnnxRuntime` moves from 1.28.0 to 1.30.0.** It is the one dependency whose
+  size is a stated concern — 132.7 MB on a caller's restore path, which is why the satellite
+  tier exists ([decision 0076](docs/decisions/0076-a-core-package-carries-no-external-dependency.md)).
+  ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+
+### Lodestar.Extensions.AI
+
+#### Changed
+
+- **`Microsoft.Extensions.AI.Abstractions` moves from 10.9.0 to 10.10.0.** Checked against
+  [decision 0100](docs/decisions/0100-vectordata-is-its-own-satellite-and-its-text-edge-waits-on-a-release.md),
+  which measured that `Microsoft.Extensions.VectorData.Abstractions` pins the same version:
+  VectorData 10.10.0 requires `[10.10.0, )`, so the two still move together and the alignment
+  that decision relied on holds. ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+
 ## Released — 2026-09-10
 
 Thirteen cuts across eleven packages, and the end of milestone 0.6.0 — thirty-three
