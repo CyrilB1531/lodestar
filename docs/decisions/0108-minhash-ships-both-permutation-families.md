@@ -20,7 +20,7 @@ _VALID_SCHEMES = (_SCHEME_AFFINE32, _SCHEME_AFFINE64, _SCHEME_LEGACY)
     scheme = _SCHEME_AFFINE32          # the new default
 ```
 
-`Lodestar.Text.Similarity.MinHash` computes what 2.0.0 now calls `legacy`, and #643 kept the
+[`Lodestar.Text.Similarity.MinHash`](../reference/text/similarity/minhash.md) computes what 2.0.0 now calls `legacy`, and #643 kept the
 corpus still by naming it — `scheme="legacy"` reproduces the frozen coefficients exactly. That was
 the right move for a dependency bump and it settled nothing about the package.
 
@@ -44,14 +44,20 @@ On an AMD Ryzen 7 8700G (16 cores), 24 tokens per document, BenchmarkDotNet:
 
 The second family costs **less than half** the first in the loop that runs once per token per
 permutation — no division by a prime, just a multiply that wraps. And it barely moves what a
-caller pays, because SHA-1 hashing is **74% to 78%** of `MinHash.Signature` and neither family
+caller pays, because SHA-1 hashing is **74% to 78%** of [`MinHash.Signature`](../reference/text/similarity/minhash-signature.md) and neither family
 touches it. That is the same finding `bench/README.md` §26 recorded for the GPU kernel, arriving
 from the other side: the minimisation is not where the time is.
 
-`affine32` is not merely "the same thing without the modulo". It applies the MurmurHash3 finalizer
-to each hash first — `fmix32`, fixed constants — so that a weakly hashed input cannot ride its own
+`affine32` is not merely "the same thing without the modulo". It applies the
+MurmurHash3 finalizer to each hash first —
+fixed constants, a bijection on `[0, 2^32)` — so that a weakly hashed input cannot ride its own
 structure through an affine map, which the prime modulus used to absorb. Reproducing it bit for
 bit means reproducing that too.
+
+`Lodestar.Text` already had that finalizer, privately, inside its internal `MurmurHash3` — same
+shifts, same two constants, because scikit-learn's feature hashing needs the same algorithm. The
+first draft of this work wrote a second copy in `MinHash`. There is one in the assembly now and
+`MinHash` calls it; `Lodestar.Gpu` keeps its own, necessarily, which is the next section.
 
 ## Decision
 
@@ -65,8 +71,8 @@ Keeping only `Legacy` was the other option, and it is what leaves the parity cla
 The package exists to match the reference; the reference moved its default; following it is in
 thesis rather than scope creep.
 
-**The scheme travels with the coefficients**, on `MinHashPermutations`, not on `MinHash` or the
-call. They are chosen together: an `affine32` multiplier is odd and fits 32 bits where a `legacy`
+**The scheme travels with the coefficients**, on
+[`MinHashPermutations`](../reference/text/similarity/minhashpermutations.md), not on `MinHash` or the call. They are chosen together: an `affine32` multiplier is odd and fits 32 bits where a `legacy`
 one spans 61. A pair that cannot mean what it says is refused at construction —
 [decision 0072](0072-omega-is-an-input-not-a-seed.md) makes the coefficients an input, so unlike
 the reference, which generates and therefore trusts them, this has a caller to protect. An even
@@ -85,7 +91,7 @@ a third value of this enum. It waits for a use, not for a release.
 `Lodestar.Gpu` carries no edge to any Lodestar package
 ([decision 0076](0076-a-core-package-carries-no-external-dependency.md),
 [0102](0102-the-gpu-gate-is-measured-on-a-named-machine.md)), so it declares its own
-`MinHashScheme` beside its own `MersennePrime` and mask. The duplication is two members, and it is
+[`MinHashScheme`](../reference/text/similarity/minhashscheme.md) beside its own `MersennePrime` and mask. The duplication is two members, and it is
 visible to a caller:
 
 ```csharp

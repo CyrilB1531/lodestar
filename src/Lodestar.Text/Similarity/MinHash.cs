@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Lodestar.Text.Vectorization;
 
 namespace Lodestar.Text.Similarity;
 
@@ -62,7 +63,7 @@ public sealed class MinHash
             ulong hash = Hash32(token);
             // Once per token, not per permutation: a weakly hashed input must not ride its
             // own structure through an affine map, which the prime modulus used to absorb.
-            uint mixed = affine ? Fmix32((uint)hash) : 0u;
+            uint mixed = affine ? MurmurHash3.Fmix((uint)hash) : 0u;
 
             for (int i = 0; i < signature.Length; i++)
             {
@@ -90,24 +91,6 @@ public sealed class MinHash
         return signature;
     }
 
-    /// <summary>The MurmurHash3 finalizer on 32 bits, which <c>affine32</c> pre-mixes with.</summary>
-    /// <remarks>
-    /// A fixed avalanching bijection on <c>[0, 2^32)</c>, constants and all, so it changes which
-    /// value a token reaches the permutations as and never how many there are. The reference
-    /// applies it inside <c>update</c>; the parity is bit for bit, so the constants below are the
-    /// contract rather than a choice.
-    /// </remarks>
-    private static uint Fmix32(uint hash)
-    {
-        unchecked
-        {
-            hash ^= hash >> 16;
-            hash *= 0x85EBCA6B;
-            hash ^= hash >> 13;
-            hash *= 0xC2B2AE35;
-            return hash ^ (hash >> 16);
-        }
-    }
 
     /// <summary>The estimated Jaccard similarity of two signatures.</summary>
     /// <param name="left">One signature.</param>

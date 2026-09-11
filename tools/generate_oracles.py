@@ -62,6 +62,11 @@ ORACLE_DIR = Path(__file__).resolve().parent.parent / "tests" / "oracles"
 # The metadata key every numeric corpus carries, named once because S1192 counts a
 # JSON key like any other literal and the decomposition corpora made it a fourth.
 TOLERANCE_KEY = "tolerance"
+# The second MinHash permutation family, named where datasketch names it and where the
+# corpus block that freezes it does -- three spellings of one string past S1192 (#645).
+AFFINE32 = "affine32"
+# Which call produced a block, beside the library version that produced it.
+VARIANT = "variant"
 
 # Fixture strings reused across several corpora.
 QUICK_FOX = "the quick brown fox"
@@ -4724,11 +4729,11 @@ def generate_text_similarity() -> dict:
     # -- is what every existing assertion replays, and this one is what a caller comparing
     # against a current datasketch needs. The two share the documents and nothing else:
     # different coefficients, different widths, different values, by construction.
-    affine_reference = DsMinHash(num_perm=permutation_count, seed=1, scheme="affine32")
+    affine_reference = DsMinHash(num_perm=permutation_count, seed=1, scheme=AFFINE32)
     affine_a, affine_b = affine_reference.permutations
     affine_cases = []
     for document in documents:
-        sketch = DsMinHash(num_perm=permutation_count, seed=1, scheme="affine32")
+        sketch = DsMinHash(num_perm=permutation_count, seed=1, scheme=AFFINE32)
         for token in document[SIM_TOKENS]:
             sketch.update(token.encode("utf-8"))
         affine_cases.append({
@@ -4741,7 +4746,7 @@ def generate_text_similarity() -> dict:
             "library": "datasketch + simhash",
             "version": f'{version("datasketch")} + {version("simhash")}',
             FAMILY: "text-similarity",
-            "variant": "MinHash(seed=1, sha1_hash32, scheme=legacy), Simhash(f=64, md5), "
+            VARIANT: "MinHash(seed=1, sha1_hash32, scheme=legacy), Simhash(f=64, md5), "
                        "MinHashLSH optimal banding",
             "count": len(cases),
         },
@@ -4751,8 +4756,8 @@ def generate_text_similarity() -> dict:
         "cases": cases,
         "pairs": pairs,
         "bandings": bandings,
-        "affine32": {
-            "variant": "MinHash(seed=1, sha1_hash32, scheme=affine32)",
+        AFFINE32: {
+            VARIANT: "MinHash(seed=1, sha1_hash32, scheme=affine32)",
             "multipliers": [int(value) for value in affine_a],
             "addends": [int(value) for value in affine_b],
             "cases": affine_cases,
@@ -4882,7 +4887,7 @@ def generate_search_bm25() -> dict:
             "library": "rank_bm25",
             "version": version("rank_bm25"),
             FAMILY: "search-bm25",
-            "variant": "BM25Okapi: Robertson IDF, negatives floored at epsilon * average_idf",
+            VARIANT: "BM25Okapi: Robertson IDF, negatives floored at epsilon * average_idf",
             "count": len(cases),
         },
         "cases": cases,
