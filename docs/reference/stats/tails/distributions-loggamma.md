@@ -32,9 +32,9 @@ needs `log Γ(y + 1)` to agree with the reference's constant term
 listed it among the internals that stay so while nothing had asked; #616 is what asked).
 
 Unlike the four members decision 0095 first published, this one carries no separate corpus: its
-internal implementation is already checked against closed forms — `LogGamma(n)` against `log((n
-- 1)!)`, and the reflection formula's own identity — which is what a log-gamma at a handful of
-digits calls for, rather than the far-tail precision a p-value needs.
+internal implementation is already checked against closed forms — `LogGamma(n)` against the
+factorial identity `log((n - 1)!)`, and the reflection formula's own identity — which is what a
+log-gamma at a handful of digits calls for, rather than the far-tail precision a p-value needs.
 
 **Applies to** — net10.0, netstandard2.0.
 
