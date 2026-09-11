@@ -69,7 +69,7 @@ public static class GeneralizedLinearModel
             upper[j] = fit.Coefficients[j] + (multiplier * errors[j]);
         }
 
-        double nullDeviance = NullDeviance(family, response, settings);
+        double nullDeviance = NullDeviance(family, response);
         double logLikelihood = LogLikelihood.Of(family, response, fit.Mean);
         double akaike = (2.0 * parameterCount) - (2.0 * logLikelihood);
 
@@ -94,22 +94,17 @@ public static class GeneralizedLinearModel
         };
     }
 
-    /// <summary>The deviance of the intercept-only fit, which is the mean response everywhere.</summary>
-    private static double NullDeviance(
-        GlmFamily family, ReadOnlySpan<double> response, GlmOptions settings)
+    /// <summary>The deviance of the constant-only fit, whatever the model beside it carried.</summary>
+    /// <remarks>
+    /// <c>GLMResults.null_deviance</c> is the intercept-only model whether or not the fit it
+    /// reports on had an intercept, so there is no second arm here. Its fitted mean is the
+    /// response mean in every row: that is the fixed point constant-only IRLS converges to,
+    /// and with no offset or exposure the reference reaches it directly, through a weighted
+    /// least squares of the response on a column of ones. Taking the mean rather than running
+    /// the loop is therefore the reference's own value exactly, not to a tolerance.
+    /// </remarks>
+    private static double NullDeviance(GlmFamily family, ReadOnlySpan<double> response)
     {
-        if (!settings.WithIntercept)
-        {
-            // Without an intercept the null model is the link's zero, not the mean.
-            var atZero = new double[response.Length];
-            for (int row = 0; row < atZero.Length; row++)
-            {
-                atZero[row] = Families.InverseLink(family, 0.0);
-            }
-
-            return Irls.Deviance(family, response, atZero);
-        }
-
         double total = 0.0;
         for (int row = 0; row < response.Length; row++)
         {

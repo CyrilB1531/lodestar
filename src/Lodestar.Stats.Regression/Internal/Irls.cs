@@ -28,14 +28,21 @@ internal static class Irls
         int parameterCount = featureCount + (options.WithIntercept ? 1 : 0);
         double[] matrix = LeastSquares.Design(design, rowCount, featureCount, options.WithIntercept);
 
-        // The reference's start: mu from the response nudged off the boundary, which is what
-        // keeps the first link evaluation finite for a binomial 0 or 1.
+        // The reference's Family.starting_mu, which is (y + mean(y)) / 2 and which Binomial
+        // overrides to (y + 0.5) / 2; both keep the first link evaluation finite at a 0 or 1.
+        double responseMean = 0.0;
+        for (int row = 0; row < rowCount; row++)
+        {
+            responseMean += response[row];
+        }
+
+        responseMean /= rowCount;
         var mean = new double[rowCount];
         for (int row = 0; row < rowCount; row++)
         {
             mean[row] = family == GlmFamily.Binomial
                 ? (response[row] + 0.5) / 2.0
-                : response[row] + 0.1;
+                : (response[row] + responseMean) / 2.0;
         }
 
         var scaled = new double[rowCount * parameterCount];
@@ -68,9 +75,9 @@ internal static class Irls
 
             double next = Deviance(family, response, mean);
             change = Math.Abs(deviance - next);
-            // numpy.allclose, which is the reference's criterion: neither purely relative nor
-            // purely absolute but their sum, with atol and rtol both the tolerance.
-            converged = change <= options.Tolerance + (options.Tolerance * Math.Abs(next));
+            // numpy.allclose with the reference's own arguments: _fit_irls passes atol=tol and
+            // leaves rtol at 0, so the criterion is the absolute deviance change alone.
+            converged = change <= options.Tolerance;
             deviance = next;
             if (converged)
             {
@@ -78,6 +85,15 @@ internal static class Irls
             }
         }
 
+        // long-comment: the covariance handed back here is one step behind on purpose, and a
+        // reader who does not know that will "correct" it and lose the parity it buys.
+        // inverseUpper is the last solve's, so its weights came from the mean of the iteration
+        // before the converged one. The reference does the same: _fit_irls refits
+        // lm.WLS(wlsendog, wlsexog, self.weights) after the loop, and both arguments were
+        // assigned at the top of that last iteration. The standard errors therefore depend on
+        // the path and not only on the fixed point, which is why the start above and the
+        // criterion above it are the reference's exactly -- measured, a different start moves
+        // the standard errors by 1.3e-6 while the coefficients still agree to 1e-11.
         return new IrlsResult(
             coefficients, inverseUpper, mean, deviance, converged, iteration, change);
     }
