@@ -26,6 +26,14 @@ name: Classify a pull request
 on:
   pull_request_target:
     types: [opened, reopened, synchronize, closed]
+  # `pull_request_target` always runs the default branch's copy, so a change to this file is
+  # only testable after it merges -- three merges went into getting one step right. A manual
+  # run takes a ref, and runs that ref's copy, which is the loop broken.
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: 'Pull request number to classify'
+        required: true
 
 # pull_request_target runs the base branch's workflow with the base repository's token, so a
 # fork cannot alter what runs here. No branch code is executed and nothing is checked out
@@ -41,6 +49,33 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # One place resolves which pull request this is, so every step below reads the same
+      # pair whether the run came from an event or from a manual dispatch. The dispatch
+      # input is user-supplied and reaches the shell through the environment rather than
+      # through interpolation, which is how release.yml treats a tag for the same reason.
+      - name: Which pull request
+        id: target
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ASKED: ${{ inputs.pull_request }}
+          EVENT_PR: ${{ steps.target.outputs.pr }}
+          EVENT_AUTHOR: ${{ steps.target.outputs.author }}
+        run: |
+          if [ -n "$ASKED" ]; then
+            case "$ASKED" in
+              ''|*[!0-9]*) echo "::error::'$ASKED' is not a pull request number."; exit 1 ;;
+            esac
+            pr="$ASKED"
+            author=$(gh pr view "$pr" --repo "$GITHUB_REPOSITORY" --json author --jq .author.login)
+          else
+            pr="$EVENT_PR"
+            author="$EVENT_AUTHOR"
+          fi
+          [ -n "$pr" ] || { echo "::error::no pull request to classify."; exit 1; }
+          echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          echo "author=$author" >> "$GITHUB_OUTPUT"
+          echo "#$pr by $author"
+
       # A generated pull request gets a label and nothing else. The 35
       # `Nightly benchmark run for <date>` ones were noise on both the milestone and the
       # boards. The test is the author, not the title -- six human pull requests carry
@@ -48,7 +83,7 @@ jobs:
       - name: Is this a bot's pull request
         id: bot
         env:
-          AUTHOR: ${{ github.event.pull_request.user.login }}
+          AUTHOR: ${{ steps.target.outputs.author }}
         run: |
           case "$AUTHOR" in
             github-actions*|*[bot]) echo "generated=true" >> "$GITHUB_OUTPUT" ;;
@@ -60,7 +95,7 @@ jobs:
         if: steps.bot.outputs.generated == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR: ${{ github.event.pull_request.number }}
+          PR: ${{ steps.target.outputs.pr }}
         run: gh pr edit "$PR" --add-label bench --repo "$GITHUB_REPOSITORY"
 
       - name: Read what the pull request changed
@@ -68,7 +103,7 @@ jobs:
         id: files
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR: ${{ github.event.pull_request.number }}
+          PR: ${{ steps.target.outputs.pr }}
         run: |
           gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files?per_page=100" --paginate \
             --jq '.[].filename' > changed.txt
@@ -87,7 +122,7 @@ jobs:
         if: steps.bot.outputs.generated == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR: ${{ github.event.pull_request.number }}
+          PR: ${{ steps.target.outputs.pr }}
           SHIPS: ${{ steps.files.outputs.ships }}
         run: |
           current=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json milestone \
@@ -108,7 +143,7 @@ jobs:
         if: steps.bot.outputs.generated == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR: ${{ github.event.pull_request.number }}
+          PR: ${{ steps.target.outputs.pr }}
           ABOUT: ${{ steps.files.outputs.about }}
         run: |
           have=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels \
@@ -135,7 +170,7 @@ jobs:
         if: steps.bot.outputs.generated == 'false'
         env:
           GH_TOKEN: ${{ secrets.PROJECTS_TOKEN }}
-          PR: ${{ github.event.pull_request.number }}
+          PR: ${{ steps.target.outputs.pr }}
           ABOUT: ${{ steps.files.outputs.about }}
         run: |
           if [ -z "${GH_TOKEN:-}" ]; then
@@ -143,17 +178,32 @@ jobs:
                  "milestone and the labels were. A token with the 'project' scope enables this."
             exit 0
           fi
-          # `--owner <name>` asks GitHub whether that name is a user or an organisation, and
-          # that lookup needs a scope PROJECTS_TOKEN does not carry: it answered
-          # `unknown owner type` on every run. `@me` is the authenticated owner, no lookup.
-          owner="@me"
-          url="https://github.com/$GITHUB_REPOSITORY/pull/$PR"
+          # No `gh project` here, and the two errors it gave are why. With an explicit owner
+          # it answered `unknown owner type`, which looks like a naming problem; with `@me`
+          # it answered `missing required scopes [read:org read:discussion]`, which is the
+          # real one. The CLI wants more than `project` whatever owner it is given, and
+          # `item-add` wants the same, so no spelling of the owner would have worked.
+          #
+          # These three queries touch no organisation and no discussion, so `project` plus
+          # repository read covers them -- and the node ids they return are what the mutation
+          # wants anyway, which the CLI was only hiding.
+          owner_projects=$(gh api graphql -f query='
+            query { viewer { projectsV2(first: 100) { nodes { id title } } } }' \
+            --jq '.data.viewer.projectsV2.nodes[] | "\(.title)\t\(.id)"')
+          content=$(gh api graphql -F owner="${GITHUB_REPOSITORY%%/*}" \
+            -F name="${GITHUB_REPOSITORY#*/}" -F number="$PR" -f query='
+            query($owner:String!,$name:String!,$number:Int!) {
+              repository(owner:$owner, name:$name) { pullRequest(number:$number) { id } } }' \
+            --jq '.data.repository.pullRequest.id')
+
           targets="$ABOUT"
           [ -z "$targets" ] && targets="Lodestar — cross-cutting"
           IFS=','; for board in $targets; do
-            number=$(gh project list --owner "$owner" --format json \
-                     --jq ".projects[] | select(.title == \"$board\") | .number")
-            if [ -z "$number" ]; then echo "::warning::no board named $board"; continue; fi
-            gh project item-add "$number" --owner "$owner" --url "$url" >/dev/null
+            project=$(printf '%s\n' "$owner_projects" | awk -F'\t' -v b="$board" '$1==b{print $2}')
+            if [ -z "$project" ]; then echo "::warning::no board named $board"; continue; fi
+            gh api graphql -F project="$project" -F content="$content" -f query='
+              mutation($project:ID!,$content:ID!) {
+                addProjectV2ItemById(input:{projectId:$project, contentId:$content}) {
+                  item { id } } }' >/dev/null
             echo "$PR -> board $board"
           done
