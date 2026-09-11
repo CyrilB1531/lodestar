@@ -1,4 +1,5 @@
 using Lodestar.Decomposition;
+using Lodestar.Stats.Regression.Internal;
 
 namespace Lodestar.Stats.Regression;
 
@@ -45,15 +46,15 @@ public static class OrdinaryLeastSquares
                 nameof(design));
         }
 
-        double[] matrix = Design(design, rowCount, featureCount, settings.WithIntercept);
-        double[] coefficients = Solve(matrix, rowCount, parameterCount, response, out double[] inverseUpper);
+        double[] matrix = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept);
+        double[] coefficients = LeastSquares.Solve(matrix, rowCount, parameterCount, response, out double[] inverseUpper);
 
         double[] residuals = Residuals(matrix, rowCount, parameterCount, response, coefficients);
         double residualSumOfSquares = Dot(residuals, residuals);
         double residualVariance = residualSumOfSquares / residualDegreesOfFreedom;
         double residualStandardError = Math.Sqrt(residualVariance);
 
-        double[] standardErrors = StandardErrors(inverseUpper, parameterCount, residualVariance);
+        double[] standardErrors = LeastSquares.StandardErrors(inverseUpper, parameterCount, residualVariance);
         var tStatistics = new double[parameterCount];
         var pValues = new double[parameterCount];
         var lower = new double[parameterCount];
@@ -116,92 +117,6 @@ public static class OrdinaryLeastSquares
         return rowCount;
     }
 
-    /// <summary>The design as the fit sees it: a leading column of ones when an intercept is wanted.</summary>
-    private static double[] Design(
-        ReadOnlySpan<double> design, int rowCount, int featureCount, bool withIntercept)
-    {
-        int parameterCount = featureCount + (withIntercept ? 1 : 0);
-        var matrix = new double[rowCount * parameterCount];
-
-        for (int row = 0; row < rowCount; row++)
-        {
-            int target = row * parameterCount;
-            if (withIntercept)
-            {
-                matrix[target++] = 1.0;
-            }
-
-            for (int column = 0; column < featureCount; column++)
-            {
-                matrix[target + column] = design[(row * featureCount) + column];
-            }
-        }
-
-        return matrix;
-    }
-
-    /// <summary>Least squares through a thin QR, reporting the inverse of R the covariance needs.</summary>
-    private static double[] Solve(
-        double[] matrix,
-        int rowCount,
-        int parameterCount,
-        ReadOnlySpan<double> response,
-        out double[] inverseUpper)
-    {
-        QrDecomposition qr = QrDecomposition.Householder(matrix, rowCount, parameterCount);
-        IReadOnlyList<double> q = qr.Q;
-        IReadOnlyList<double> r = qr.R;
-
-        var projected = new double[parameterCount];
-        for (int column = 0; column < parameterCount; column++)
-        {
-            double total = 0.0;
-            for (int row = 0; row < rowCount; row++)
-            {
-                total += q[(row * parameterCount) + column] * response[row];
-            }
-
-            projected[column] = total;
-        }
-
-        inverseUpper = InvertUpper(r, parameterCount);
-        var coefficients = new double[parameterCount];
-        for (int i = 0; i < parameterCount; i++)
-        {
-            double total = 0.0;
-            for (int k = i; k < parameterCount; k++)
-            {
-                total += inverseUpper[(i * parameterCount) + k] * projected[k];
-            }
-
-            coefficients[i] = total;
-        }
-
-        return coefficients;
-    }
-
-    /// <summary>The inverse of an upper-triangular matrix, by back substitution column by column.</summary>
-    private static double[] InvertUpper(IReadOnlyList<double> upper, int order)
-    {
-        var inverse = new double[order * order];
-        for (int column = order - 1; column >= 0; column--)
-        {
-            inverse[(column * order) + column] = 1.0 / upper[(column * order) + column];
-            for (int row = column - 1; row >= 0; row--)
-            {
-                double total = 0.0;
-                for (int k = row + 1; k <= column; k++)
-                {
-                    total += upper[(row * order) + k] * inverse[(k * order) + column];
-                }
-
-                inverse[(row * order) + column] = -total / upper[(row * order) + row];
-            }
-        }
-
-        return inverse;
-    }
-
     /// <summary>What the model leaves unexplained, row by row.</summary>
     private static double[] Residuals(
         double[] matrix,
@@ -223,25 +138,6 @@ public static class OrdinaryLeastSquares
         }
 
         return residuals;
-    }
-
-    /// <summary>The diagonal of σ²(XᵀX)⁻¹, reached through R⁻¹ rather than through XᵀX.</summary>
-    private static double[] StandardErrors(double[] inverseUpper, int order, double residualVariance)
-    {
-        var errors = new double[order];
-        for (int row = 0; row < order; row++)
-        {
-            double total = 0.0;
-            for (int k = row; k < order; k++)
-            {
-                double entry = inverseUpper[(row * order) + k];
-                total += entry * entry;
-            }
-
-            errors[row] = Math.Sqrt(residualVariance * total);
-        }
-
-        return errors;
     }
 
     /// <summary>Explained fraction — centred against the mean, or against zero with no intercept.</summary>
@@ -317,7 +213,7 @@ public static class OrdinaryLeastSquares
         // is 6e4, and to 3.4e-15 or better on the other five — inside the corpus's own 1e-9.
         double[] standardised = StandardiseRegressors(matrix, rowCount, parameterCount, first);
         QrDecomposition qr = QrDecomposition.Householder(standardised, rowCount, regressorCount);
-        double[] inverseUpper = InvertUpper(qr.R, regressorCount);
+        double[] inverseUpper = LeastSquares.InvertUpper(qr.R, regressorCount);
 
         for (int column = 0; column < regressorCount; column++)
         {
