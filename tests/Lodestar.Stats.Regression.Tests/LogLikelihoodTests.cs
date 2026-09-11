@@ -35,6 +35,7 @@ public sealed class LogLikelihoodTests
         double[] mean = [1.0, 3.0];
         double[] response = [2.0, 4.0];
 
+        // long-comment: hand-computed expectations for each row; third line shows why accumulation matters.
         // Row 0: 2 log 1 - 1 - log(2!) = -1 - log 2.
         // Row 1: 4 log 3 - 3 - log(4!) = 4 log 3 - 3 - log 24.
         // The second row's table entry is reached only by accumulating past the first.
