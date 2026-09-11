@@ -1,0 +1,425 @@
+{
+ "metadata": {
+  "library": "statsmodels",
+  "version": "0.15.0",
+  "family": "glm",
+  "variant": "GLM(family=Binomial|Poisson).fit(), IRLS, canonical links",
+  "count": 6
+ },
+ "binomial": {
+  "cases": [
+   {
+    "name": "logistic, one regressor, intercept fitted",
+    "design": [
+     0.0,
+     1.0,
+     2.0,
+     3.0,
+     4.0,
+     5.0,
+     6.0,
+     7.0,
+     8.0,
+     9.0
+    ],
+    "response": [
+     0.0,
+     0.0,
+     0.0,
+     1.0,
+     0.0,
+     1.0,
+     1.0,
+     0.0,
+     1.0,
+     1.0
+    ],
+    "featureCount": 1,
+    "withIntercept": true,
+    "confidenceLevel": 0.95,
+    "coefficients": [
+     -2.4466352117122154,
+     0.5436967137138256
+    ],
+    "standardErrors": [
+     1.7052755360716638,
+     0.33616192832074804
+    ],
+    "zStatistics": [
+     -1.4347448022085483,
+     1.6173655250902141
+    ],
+    "pValues": [
+     0.15135983226641808,
+     0.10579940281641753
+    ],
+    "confidenceLower": [
+     -5.78891384612991,
+     -0.11516855876837584
+    ],
+    "confidenceUpper": [
+     0.8956434227054793,
+     1.2025619861960268
+    ],
+    "deviance": 9.883159966868604,
+    "nullDeviance": 13.862943611198908,
+    "dispersion": 1.0,
+    "logLikelihood": -4.941579983434302,
+    "akaike": 13.883159966868604,
+    "residualDegreesOfFreedom": 8,
+    "converged": true,
+    "iterations": 4
+   },
+   {
+    "name": "logistic, two regressors, 99%",
+    "design": [
+     1.0,
+     0.5,
+     2.0,
+     1.5,
+     3.0,
+     0.5,
+     4.0,
+     2.5,
+     5.0,
+     1.0,
+     6.0,
+     3.5,
+     7.0,
+     2.0,
+     8.0,
+     4.5,
+     9.0,
+     3.0,
+     10.0,
+     5.5
+    ],
+    "response": [
+     0.0,
+     0.0,
+     0.0,
+     1.0,
+     0.0,
+     1.0,
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "featureCount": 2,
+    "withIntercept": true,
+    "confidenceLevel": 0.99,
+    "coefficients": [
+     -81.9824788216607,
+     5.499292780414863,
+     32.6557243836223
+    ],
+    "standardErrors": [
+     67435.16239694484,
+     9626.414426621313,
+     28904.770895978985
+    ],
+    "zStatistics": [
+     -0.0012157230131527783,
+     0.0005712711438234858,
+     0.0011297693554168638
+    ],
+    "pValues": [
+     0.9990299936165348,
+     0.9995441915991032,
+     0.9990985746658048
+    ],
+    "confidenceLower": [
+     -173783.44987045106,
+     -24790.50107541665,
+     -74421.10016184645
+    ],
+    "confidenceUpper": [
+     173619.48491280776,
+     24801.499660977483,
+     74486.41161061371
+    ],
+    "deviance": 2.672571052899512e-09,
+    "nullDeviance": 13.460233340185129,
+    "dispersion": 1.0,
+    "logLikelihood": -1.3362874141489586e-09,
+    "akaike": 6.000000002672575,
+    "residualDegreesOfFreedom": 7,
+    "converged": true,
+    "iterations": 23
+   },
+   {
+    "name": "logistic, no intercept",
+    "design": [
+     -2.0,
+     -1.5,
+     -0.5,
+     0.5,
+     1.0,
+     1.5,
+     2.0,
+     2.5
+    ],
+    "response": [
+     0.0,
+     0.0,
+     1.0,
+     0.0,
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "featureCount": 1,
+    "withIntercept": false,
+    "confidenceLevel": 0.95,
+    "coefficients": [
+     1.5324559721132724
+    ],
+    "standardErrors": [
+     0.9542994557614587
+    ],
+    "zStatistics": [
+     1.6058439128947093
+    ],
+    "pValues": [
+     0.10830820943636425
+    ],
+    "confidenceLower": [
+     -0.33793659164536116
+    ],
+    "confidenceUpper": [
+     3.402848535871906
+    ],
+    "deviance": 5.590803152257362,
+    "nullDeviance": 10.585011810527712,
+    "dispersion": 1.0,
+    "logLikelihood": -2.795401576128681,
+    "akaike": 7.590803152257362,
+    "residualDegreesOfFreedom": 7,
+    "converged": true,
+    "iterations": 5
+   }
+  ]
+ },
+ "poisson": {
+  "cases": [
+   {
+    "name": "poisson, one regressor, intercept fitted",
+    "design": [
+     0.0,
+     1.0,
+     2.0,
+     3.0,
+     4.0,
+     5.0,
+     6.0,
+     7.0,
+     8.0,
+     9.0
+    ],
+    "response": [
+     1.0,
+     0.0,
+     2.0,
+     3.0,
+     4.0,
+     3.0,
+     7.0,
+     6.0,
+     9.0,
+     11.0
+    ],
+    "featureCount": 1,
+    "withIntercept": true,
+    "confidenceLevel": 0.95,
+    "coefficients": [
+     0.020640091855753218,
+     0.2709656563981113
+    ],
+    "standardErrors": [
+     0.4212745800936003,
+     0.06071236705454156
+    ],
+    "zStatistics": [
+     0.04899439185522973,
+     4.463104793043016
+    ],
+    "pValues": [
+     0.960923765225297,
+     8.078052069086113e-06
+    ],
+    "confidenceLower": [
+     -0.8050429127299378,
+     0.15197160355503375
+    ],
+    "confidenceUpper": [
+     0.8463230964414442,
+     0.3899597092411889
+    ],
+    "deviance": 4.157534209543448,
+    "nullDeviance": 27.696705264798833,
+    "dispersion": 1.0,
+    "logLikelihood": -16.895092359994912,
+    "akaike": 37.790184719989824,
+    "residualDegreesOfFreedom": 8,
+    "converged": true,
+    "iterations": 5
+   },
+   {
+    "name": "poisson, zeros in the response",
+    "design": [
+     0.0,
+     0.5,
+     1.0,
+     1.5,
+     2.0,
+     2.5,
+     3.0,
+     3.5
+    ],
+    "response": [
+     0.0,
+     0.0,
+     1.0,
+     0.0,
+     2.0,
+     1.0,
+     3.0,
+     4.0
+    ],
+    "featureCount": 1,
+    "withIntercept": true,
+    "confidenceLevel": 0.95,
+    "coefficients": [
+     -1.8908553794375207,
+     0.9549868707496755
+    ],
+    "standardErrors": [
+     1.0375501762602855,
+     0.3580498608390463
+    ],
+    "zStatistics": [
+     -1.822423071868064,
+     2.667189615747315
+    ],
+    "pValues": [
+     0.06839081645411771,
+     0.00764885040176712
+    ],
+    "confidenceLower": [
+     -3.9244163570608652,
+     0.2532220388355665
+    ],
+    "confidenceUpper": [
+     0.14270559818582385,
+     1.6567517026637844
+    ],
+    "deviance": 3.799236575103652,
+    "nullDeviance": 13.448635258599802,
+    "dispersion": 1.0,
+    "logLikelihood": -8.33527009608399,
+    "akaike": 20.67054019216798,
+    "residualDegreesOfFreedom": 6,
+    "converged": true,
+    "iterations": 5
+   },
+   {
+    "name": "poisson, two regressors",
+    "design": [
+     1.0,
+     0.5,
+     2.0,
+     1.0,
+     3.0,
+     1.5,
+     4.0,
+     2.0,
+     5.0,
+     2.5,
+     6.0,
+     3.0,
+     7.0,
+     3.5,
+     8.0,
+     4.0,
+     9.0,
+     4.5,
+     10.0,
+     5.0
+    ],
+    "response": [
+     1.0,
+     2.0,
+     2.0,
+     4.0,
+     5.0,
+     7.0,
+     8.0,
+     12.0,
+     15.0,
+     20.0
+    ],
+    "featureCount": 2,
+    "withIntercept": true,
+    "confidenceLevel": 0.95,
+    "coefficients": [
+     0.060495835195168546,
+     0.23697785854151376,
+     0.11848892927075688
+    ],
+    "standardErrors": [
+     0.3890610214493344,
+     0.03890434408706672,
+     0.01945217204353336
+    ],
+    "zStatistics": [
+     0.15549189422730858,
+     6.091295563579343,
+     6.091295563579343
+    ],
+    "pValues": [
+     0.8764335436940514,
+     1.1200054830449718e-09,
+     1.1200054830449718e-09
+    ],
+    "confidenceLower": [
+     -0.7020497546338924,
+     0.16072674528870917,
+     0.08036337264435459
+    ],
+    "confidenceUpper": [
+     0.8230414250242295,
+     0.31322897179431836,
+     0.15661448589715918
+    ],
+    "deviance": 0.5465683003551314,
+    "nullDeviance": 45.67374119314202,
+    "dispersion": 1.0,
+    "logLikelihood": -18.000853297709682,
+    "akaike": 40.001706595419364,
+    "residualDegreesOfFreedom": 8,
+    "converged": true,
+    "iterations": 5
+   }
+  ]
+ },
+ "separable": {
+  "design": [
+   -2.0,
+   -1.0,
+   1.0,
+   2.0
+  ],
+  "response": [
+   0.0,
+   0.0,
+   1.0,
+   1.0
+  ],
+  "featureCount": 1,
+  "maximumIterations": 15,
+  "converged": false,
+  "iterations": 15
+ }
+}

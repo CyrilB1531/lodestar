@@ -112,6 +112,12 @@ DESIGN = "design"
 OLS_FEATURE_COUNT = "featureCount"
 RESPONSE = "response"
 WITH_INTERCEPT = "withIntercept"
+# The GLM corpus beside the OLS one above, past the same threshold (#616): a family
+# literal, the library name, and "iterations", which NMF and k-means already write.
+STATSMODELS = "statsmodels"
+BINOMIAL = "binomial"
+POISSON = "poisson"
+ITERATIONS = "iterations"
 WITH_MEAN = "with_mean"
 WITH_STD = "with_std"
 DENSE = "dense"
@@ -3253,7 +3259,7 @@ def _deviance_case(fixture: dict) -> dict:
         ],
     }
     if _tweedie_admits(1.0, fixture["true"], fixture["pred"]):
-        case["poisson"] = float(mean_poisson_deviance(true, pred, **kw))
+        case[POISSON] = float(mean_poisson_deviance(true, pred, **kw))
     if _tweedie_admits(2.0, fixture["true"], fixture["pred"]):
         case["gamma"] = float(mean_gamma_deviance(true, pred, **kw))
     return case
@@ -4084,7 +4090,7 @@ def _nmf_update_cases() -> list[dict]:
             INITIAL_H_KEY: [settled(v) for v in h0.ravel()],
             "weights": [settled(v) for v in w.ravel()],
             "components": [settled(v) for v in model.components_.ravel()],
-            "iterations": int(model.n_iter_),
+            ITERATIONS: int(model.n_iter_),
             "reconstruction_error": settled(model.reconstruction_err_),
         })
     return cases
@@ -4286,7 +4292,7 @@ def generate_cluster_kmeans() -> dict:
             "centres": [float(v) for row in model.cluster_centers_ for v in row],
             "labels": [int(v) for v in model.labels_],
             "inertia": float(((matrix - model.cluster_centers_[model.labels_]) ** 2).sum()),
-            "iterations": int(model.n_iter_),
+            ITERATIONS: int(model.n_iter_),
         })
 
     return {
@@ -4940,12 +4946,154 @@ def generate_stats_ols() -> dict:
 
     return {
         "metadata": {
-            "library": "statsmodels",
-            "version": version("statsmodels"),
+            "library": STATSMODELS,
+            "version": version(STATSMODELS),
             FAMILY: "ols",
             "count": len(cases),
         },
         "cases": cases,
+    }
+
+
+def _glm_fixtures() -> list[dict]:
+    """Designs chosen for what a link can get wrong, not for what a solve can.
+
+    Hand-written rather than drawn: `_ols_fixtures` beside this is the idiom, and a
+    generator sharing the module's random stream makes an unrelated corpus move when a
+    case is added here.
+    """
+    return [
+        {
+            "name": "logistic, one regressor, intercept fitted",
+            FAMILY: BINOMIAL,
+            DESIGN: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
+            RESPONSE: [0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0],
+            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            # Two regressors at 99%, so the multiplier is visibly not 1.96 -- an
+            # interval using the wrong one fails on its own, not on the coefficient it wraps.
+            "name": "logistic, two regressors, 99%",
+            FAMILY: BINOMIAL,
+            DESIGN: [
+                1.0, 0.5, 2.0, 1.5, 3.0, 0.5, 4.0, 2.5, 5.0, 1.0,
+                6.0, 3.5, 7.0, 2.0, 8.0, 4.5, 9.0, 3.0, 10.0, 5.5,
+            ],
+            RESPONSE: [0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
+        },
+        {
+            # No intercept: the null deviance is the link's zero rather than the mean,
+            # which is the arm of NullDeviance nothing else reaches.
+            "name": "logistic, no intercept",
+            FAMILY: BINOMIAL,
+            DESIGN: [-2.0, -1.5, -0.5, 0.5, 1.0, 1.5, 2.0, 2.5],
+            RESPONSE: [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0],
+            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            "name": "poisson, one regressor, intercept fitted",
+            FAMILY: POISSON,
+            DESIGN: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
+            RESPONSE: [1.0, 0.0, 2.0, 3.0, 4.0, 3.0, 7.0, 6.0, 9.0, 11.0],
+            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            # A zero response, which is where the deviance's x-log-y term is 0 * -inf and
+            # NaN in floating point if the limit is not taken.
+            "name": "poisson, zeros in the response",
+            FAMILY: POISSON,
+            DESIGN: [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
+            RESPONSE: [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0, 4.0],
+            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            "name": "poisson, two regressors",
+            FAMILY: POISSON,
+            DESIGN: [
+                1.0, 0.5, 2.0, 1.0, 3.0, 1.5, 4.0, 2.0, 5.0, 2.5,
+                6.0, 3.0, 7.0, 3.5, 8.0, 4.0, 9.0, 4.5, 10.0, 5.0,
+            ],
+            RESPONSE: [1.0, 2.0, 2.0, 4.0, 5.0, 7.0, 8.0, 12.0, 15.0, 20.0],
+            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+    ]
+
+
+def generate_stats_glm() -> dict:
+    """statsmodels' GLM, one block per family (#616).
+
+    Separate blocks rather than one flat list, the shape #645 settled for two MinHash
+    schemes: a family added later grows the file instead of rewriting it.
+
+    The separable block's budget is 15, not the 25 the plan first reached for: at 25,
+    and from 21 on, statsmodels' own deviance criterion is satisfied even though the
+    coefficients have not stabilised (measured, not assumed — see the task report).
+    Fifteen is where statsmodels' own IRLS genuinely exhausts its budget rather than
+    reaching a criterion, so the non-converged branch this fixture exists to exercise
+    is the one actually replayed.
+    """
+    import numpy as np
+    import statsmodels.api as sm
+
+    families = {BINOMIAL: sm.families.Binomial(), POISSON: sm.families.Poisson()}
+    blocks: dict = {name: {"cases": []} for name in families}
+    for fixture in _glm_fixtures():
+        feature_count = fixture[OLS_FEATURE_COUNT]
+        design = np.array(fixture[DESIGN]).reshape(-1, feature_count)
+        response = np.array(fixture[RESPONSE])
+        exog = sm.add_constant(design, prepend=True) if fixture[WITH_INTERCEPT] else design
+        fit = sm.GLM(response, exog, family=families[fixture[FAMILY]]).fit()
+        interval = fit.conf_int(alpha=1.0 - fixture[CONFIDENCE_LEVEL])
+        blocks[fixture[FAMILY]]["cases"].append({
+            "name": fixture["name"],
+            DESIGN: [float(v) for v in fixture[DESIGN]],
+            RESPONSE: [float(v) for v in fixture[RESPONSE]],
+            OLS_FEATURE_COUNT: feature_count,
+            WITH_INTERCEPT: fixture[WITH_INTERCEPT],
+            CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
+            "coefficients": [float(v) for v in fit.params],
+            "standardErrors": [float(v) for v in fit.bse],
+            "zStatistics": [float(v) for v in fit.tvalues],
+            "pValues": [float(v) for v in fit.pvalues],
+            "confidenceLower": [float(v) for v in interval[:, 0]],
+            "confidenceUpper": [float(v) for v in interval[:, 1]],
+            "deviance": float(fit.deviance),
+            "nullDeviance": float(fit.null_deviance),
+            "dispersion": float(fit.scale),
+            "logLikelihood": float(fit.llf),
+            "akaike": float(fit.aic),
+            "residualDegreesOfFreedom": int(fit.df_resid),
+            "converged": bool(fit.converged),
+            ITERATIONS: int(fit.fit_history["iteration"]),
+        })
+
+    # One separable design, which does not converge at this budget. Frozen like any
+    # other case so the non-converged branch is replayed rather than asserted by hand.
+    separable_x = np.array([[-2.0], [-1.0], [1.0], [2.0]])
+    separable_y = np.array([0.0, 0.0, 1.0, 1.0])
+    separable_maxiter = 15
+    separable = sm.GLM(
+        separable_y, sm.add_constant(separable_x), family=sm.families.Binomial()
+    ).fit(maxiter=separable_maxiter)
+    blocks["separable"] = {
+        DESIGN: [float(v) for v in separable_x.ravel()],
+        RESPONSE: [float(v) for v in separable_y],
+        OLS_FEATURE_COUNT: 1,
+        "maximumIterations": separable_maxiter,
+        "converged": bool(separable.converged),
+        ITERATIONS: int(separable.fit_history["iteration"]),
+    }
+
+    return {
+        "metadata": {
+            "library": STATSMODELS,
+            "version": version(STATSMODELS),
+            FAMILY: "glm",
+            VARIANT: "GLM(family=Binomial|Poisson).fit(), IRLS, canonical links",
+            "count": sum(len(b["cases"]) for b in blocks.values() if "cases" in b),
+        },
+        **blocks,
     }
 
 
@@ -9635,6 +9783,7 @@ def main() -> None:
         "survival_curves.json": generate_survival_curves,
         "survival_logrank.json": generate_survival_logrank,
         "stats_ols.json": generate_stats_ols,
+        "stats_glm.json": generate_stats_glm,
         "cluster_kmeans.json": generate_cluster_kmeans,
         "preprocessing_standard_scaler.json": generate_preprocessing_standard_scaler,
         "ranking.json": generate_ranking,
