@@ -95,7 +95,7 @@ public sealed class EmbeddingIndexPersistenceTests
 #pragma warning disable S6966
         index.Save(synchronous);
 #pragma warning restore S6966
-        await index.SaveAsync(asynchronous);
+        await index.SaveAsync(asynchronous, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(synchronous.ToArray(), asynchronous.ToArray());
     }
@@ -279,7 +279,7 @@ public sealed class EmbeddingIndexPersistenceTests
 #pragma warning restore S6966
         stream.Position = 0;
 
-        EmbeddingIndex reloaded = await EmbeddingIndex.LoadAsync(stream);
+        EmbeddingIndex reloaded = await EmbeddingIndex.LoadAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(2, reloaded.Count);
         Assert.Equal(3, reloaded.Dimension);

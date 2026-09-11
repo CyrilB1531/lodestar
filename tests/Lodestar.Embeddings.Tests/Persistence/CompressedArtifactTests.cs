@@ -45,7 +45,7 @@ public sealed class CompressedArtifactTests
 
         using var source = new MemoryStream(compressed);
         using var decompressing = new GZipStream(source, CompressionMode.Decompress);
-        EmbeddingIndex reloaded = await EmbeddingIndex.LoadAsync(decompressing);
+        EmbeddingIndex reloaded = await EmbeddingIndex.LoadAsync(decompressing, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(original.Count, reloaded.Count);
         Assert.Equal(original.Dimension, reloaded.Dimension);

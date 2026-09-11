@@ -148,7 +148,7 @@ public sealed class VocabTxtLoaderTests
     {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("[UNK]\nalpha\nbeta\n"));
 
-        WordPieceVocabulary vocabulary = await VocabTxtLoader.LoadAsync(stream);
+        WordPieceVocabulary vocabulary = await VocabTxtLoader.LoadAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(3, vocabulary.Count);
         Assert.Equal(2, vocabulary.Vocab["beta"]);

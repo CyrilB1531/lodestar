@@ -20,7 +20,7 @@ public sealed class SegmentedAsyncArtifactTests
     public async Task The_asynchronous_segmented_read_carries_the_same_bytes()
     {
         using var stream = new MemoryStream();
-        await Index().SaveAsync(stream);
+        await Index().SaveAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         byte[] whole = stream.ToArray();
 
         stream.Position = 0;
@@ -36,7 +36,7 @@ public sealed class SegmentedAsyncArtifactTests
     {
         EmbeddingIndex original = Index();
         using var stream = new MemoryStream();
-        await original.SaveAsync(stream);
+        await original.SaveAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         byte[] artifact = stream.ToArray();
 
         EmbeddingIndex synchronous = EmbeddingIndex.Load(new MemoryStream(artifact), Limits(1024));
@@ -57,7 +57,7 @@ public sealed class SegmentedAsyncArtifactTests
     public async Task The_asynchronous_segmented_read_still_refuses_an_artifact_past_MaxTotalBytes()
     {
         using var stream = new MemoryStream();
-        await Index().SaveAsync(stream);
+        await Index().SaveAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         stream.Position = 0;
 
         await Assert.ThrowsAsync<InvalidDataException>(
@@ -69,7 +69,7 @@ public sealed class SegmentedAsyncArtifactTests
     public async Task A_cancelled_read_throws_rather_than_parsing_a_partial_chain()
     {
         using var stream = new MemoryStream();
-        await Index().SaveAsync(stream);
+        await Index().SaveAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         stream.Position = 0;
 
         using var source = new CancellationTokenSource();
@@ -84,12 +84,12 @@ public sealed class SegmentedAsyncArtifactTests
     {
         EmbeddingIndex original = Index();
         using var stream = new MemoryStream();
-        await original.SaveAsync(stream);
+        await original.SaveAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         stream.Position = 0;
 
         // The default ceiling, which nothing a test can afford comes near: the dispatch
         // must fall through to the read that was there before #396.
-        EmbeddingIndex reloaded = await EmbeddingIndex.LoadAsync(stream);
+        EmbeddingIndex reloaded = await EmbeddingIndex.LoadAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(original.Count, reloaded.Count);
     }

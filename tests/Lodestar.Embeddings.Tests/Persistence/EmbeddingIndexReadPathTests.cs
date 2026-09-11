@@ -27,7 +27,7 @@ public sealed class EmbeddingIndexReadPathTests
         byte[] artifact = Artifact();
 
         using var pipe = new UnseekableStream(artifact);
-        AssertSameIndex(Reference(artifact), await EmbeddingIndex.LoadAsync(pipe));
+        AssertSameIndex(Reference(artifact), await EmbeddingIndex.LoadAsync(pipe, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class EmbeddingIndexReadPathTests
         byte[] artifact = Artifact();
 
         using var liar = new ShortLengthStream(artifact, declared: artifact.Length - 16);
-        AssertSameIndex(Reference(artifact), await EmbeddingIndex.LoadAsync(liar));
+        AssertSameIndex(Reference(artifact), await EmbeddingIndex.LoadAsync(liar, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]

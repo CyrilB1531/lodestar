@@ -227,7 +227,7 @@ public sealed class TokenizerJsonLoaderTests
         JsonElement meta = doc.RootElement.GetProperty("metadata");
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(meta.GetProperty("wordpiece_tokenizer_json").GetRawText()));
 
-        WordPieceVocabulary vocabulary = await TokenizerJsonLoader.LoadWordPieceAsync(stream);
+        WordPieceVocabulary vocabulary = await TokenizerJsonLoader.LoadWordPieceAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(LoadWordPiece(meta).Count, vocabulary.Count);
     }
@@ -239,7 +239,7 @@ public sealed class TokenizerJsonLoaderTests
         JsonElement meta = doc.RootElement.GetProperty("metadata");
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(meta.GetProperty("unigram_tokenizer_json").GetRawText()));
 
-        SentencePieceVocabulary vocabulary = await TokenizerJsonLoader.LoadUnigramAsync(stream);
+        SentencePieceVocabulary vocabulary = await TokenizerJsonLoader.LoadUnigramAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(LoadUnigram(meta).Count, vocabulary.Count);
     }

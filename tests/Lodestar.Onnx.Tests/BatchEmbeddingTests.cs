@@ -82,7 +82,7 @@ public sealed class BatchEmbeddingTests
         BatchCase expected = BatchCorpus.Oracle.Named(name);
         using OnnxTextEmbedder embedder = Embedder();
 
-        float[][] actual = embedder.EmbedBatch(expected.Texts, expected.Options);
+        float[][] actual = embedder.EmbedBatch(expected.Texts, expected.Options, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(expected.Texts.Length, actual.Length);
         for (int row = 0; row < actual.Length; row++)
@@ -110,7 +110,7 @@ public sealed class BatchEmbeddingTests
         var encoder = new BatchEncoder(BatchCorpus.Tokenizer(), mixed.Options);
         using OnnxTextEmbedder embedder = Embedder();
 
-        float[][] batched = embedder.EmbedBatch(mixed.Texts, mixed.Options);
+        float[][] batched = embedder.EmbedBatch(mixed.Texts, mixed.Options, cancellationToken: TestContext.Current.CancellationToken);
 
         for (int i = 0; i < mixed.Texts.Length; i++)
         {
@@ -140,10 +140,10 @@ public sealed class BatchEmbeddingTests
         BatchCase mixed = BatchCorpus.Oracle.Named("mixed_lengths");
         using OnnxTextEmbedder embedder = Embedder();
 
-        float[][] reference = embedder.EmbedBatch(mixed.Texts, mixed.Options);
+        float[][] reference = embedder.EmbedBatch(mixed.Texts, mixed.Options, cancellationToken: TestContext.Current.CancellationToken);
         float[][] actual = embedder.EmbedBatch(
             mixed.Texts,
-            mixed.Options with { BatchSize = batchSize, SortByLength = sortByLength });
+            mixed.Options with { BatchSize = batchSize, SortByLength = sortByLength }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(reference.Length, actual.Length);
         for (int i = 0; i < reference.Length; i++)
@@ -169,11 +169,11 @@ public sealed class BatchEmbeddingTests
         var options = new EncodingOptions { BatchSize = 2, SortByLength = true };
         using OnnxTextEmbedder embedder = Embedder();
 
-        float[][] bucketed = embedder.EmbedBatch(texts, options);
+        float[][] bucketed = embedder.EmbedBatch(texts, options, cancellationToken: TestContext.Current.CancellationToken);
 
         for (int i = 0; i < texts.Length; i++)
         {
-            float[] alone = embedder.EmbedBatch([texts[i]], options)[0];
+            float[] alone = embedder.EmbedBatch([texts[i]], options, cancellationToken: TestContext.Current.CancellationToken)[0];
             Assert.Equal(alone, bucketed[i]);
         }
     }
@@ -182,7 +182,7 @@ public sealed class BatchEmbeddingTests
     public void An_empty_corpus_returns_no_vectors()
     {
         using OnnxTextEmbedder embedder = Embedder();
-        Assert.Empty(embedder.EmbedBatch([]));
+        Assert.Empty(embedder.EmbedBatch([], cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public sealed class BatchEmbeddingTests
         using var embedder = new OnnxTextEmbedder(EmbedderPath);
 
         InvalidOperationException error =
-            Assert.Throws<InvalidOperationException>(() => embedder.EmbedBatch(["the cat"]));
+            Assert.Throws<InvalidOperationException>(() => embedder.EmbedBatch(["the cat"], cancellationToken: TestContext.Current.CancellationToken));
         Assert.Contains("tokenizer", error.Message, StringComparison.Ordinal);
     }
 
@@ -266,7 +266,7 @@ public sealed class BatchEmbeddingTests
     {
         using var embedder = new OnnxTextEmbedder(EncoderPath, BatchCorpus.Tokenizer());
 
-        float[][] vectors = embedder.EmbedBatch(["the cat", "the dog runs and the cat plays", ""]);
+        float[][] vectors = embedder.EmbedBatch(["the cat", "the dog runs and the cat plays", ""], cancellationToken: TestContext.Current.CancellationToken);
 
         double norm = Math.Sqrt(0.01 + 0.04 + 0.09 + 0.16);
         Assert.Equal(3, vectors.Length);

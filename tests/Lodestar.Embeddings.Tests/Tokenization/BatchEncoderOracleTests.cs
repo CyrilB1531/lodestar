@@ -29,7 +29,7 @@ public sealed class BatchEncoderOracleTests
         BatchCase expected = BatchCorpus.Oracle.Named(name);
         var encoder = new BatchEncoder(BatchCorpus.Tokenizer(), expected.Options);
 
-        EncodedBatch actual = encoder.EncodeBatch(expected.Texts);
+        EncodedBatch actual = encoder.EncodeBatch(expected.Texts, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(expected.Texts.Length, actual.Count);
         Assert.Equal(expected.SequenceLength, actual.SequenceLength);
