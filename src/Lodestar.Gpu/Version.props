@@ -10,7 +10,7 @@
     *this* one either.
   -->
   <PropertyGroup>
-    <LodestarGpuVersion>0.1.0</LodestarGpuVersion>
+    <LodestarGpuVersion>0.2.0</LodestarGpuVersion>
   </PropertyGroup>
 
 </Project>

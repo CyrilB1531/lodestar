@@ -17,11 +17,29 @@ public sealed class MinHashPermutations
     /// <summary>How many permutations, and so how long a signature is.</summary>
     public int Count => _a.Length;
 
-    /// <summary>Takes one multiplier and one addend per permutation.</summary>
+    /// <summary>Which arithmetic these coefficients are to be read through.</summary>
+    public MinHashScheme Scheme { get; }
+
+    /// <summary>Takes one multiplier and one addend per permutation, read as
+    /// <see cref="MinHashScheme.Legacy"/>.</summary>
     /// <param name="multipliers">The <c>a</c> coefficients.</param>
     /// <param name="addends">The <c>b</c> coefficients, one per multiplier.</param>
     /// <exception cref="ArgumentException">The two are not the same non-zero length.</exception>
     public MinHashPermutations(ReadOnlySpan<ulong> multipliers, ReadOnlySpan<ulong> addends)
+        : this(multipliers, addends, MinHashScheme.Legacy)
+    {
+    }
+
+    /// <summary>Takes one multiplier and one addend per permutation, and the scheme that reads them.</summary>
+    /// <param name="multipliers">The <c>a</c> coefficients.</param>
+    /// <param name="addends">The <c>b</c> coefficients, one per multiplier.</param>
+    /// <param name="scheme">Which arithmetic the coefficients belong to.</param>
+    /// <exception cref="ArgumentException">
+    /// The two are not the same non-zero length, <paramref name="scheme"/> is not a declared
+    /// member, or a coefficient does not fit the scheme it is given.
+    /// </exception>
+    public MinHashPermutations(
+        ReadOnlySpan<ulong> multipliers, ReadOnlySpan<ulong> addends, MinHashScheme scheme)
     {
         if (multipliers.Length == 0)
         {
@@ -34,6 +52,18 @@ public sealed class MinHashPermutations
                 $"{multipliers.Length} multipliers and {addends.Length} addends.", nameof(addends));
         }
 
+        if (scheme is not (MinHashScheme.Legacy or MinHashScheme.Affine32))
+        {
+            throw new ArgumentException($"{scheme} is not a permutation scheme.", nameof(scheme));
+        }
+
+        if (scheme == MinHashScheme.Affine32)
+        {
+            MinHashCoefficients.RefuseWhatAffine32CannotRead(
+                multipliers, addends, nameof(multipliers));
+        }
+
+        Scheme = scheme;
         _a = multipliers.ToArray();
         _b = addends.ToArray();
     }

@@ -60,7 +60,13 @@ internal static class MurmurHash3
 
     private static uint Rotl(uint x, int r) => (x << r) | (x >> (32 - r));
 
-    private static uint Fmix(uint h)
+    /// <summary>The algorithm's 32-bit finalizer, a fixed avalanching bijection on <c>[0, 2^32)</c>.</summary>
+    /// <remarks>
+    /// Internal rather than private because <c>MinHash</c>'s <c>affine32</c> scheme pre-mixes with
+    /// exactly this function — <c>datasketch</c> calls it <c>_fmix</c> and its constants are these
+    /// (#645). One copy per assembly: a second would be a second thing to keep right.
+    /// </remarks>
+    internal static uint Fmix(uint h)
     {
         unchecked
         {

@@ -21,6 +21,14 @@ public sealed class TiledMinHashSignatures
     /// <summary>The Mersenne prime the permutation reduces through, <c>2^61 - 1</c>.</summary>
     private const ulong MersennePrime = (1UL << 61) - 1UL;
 
+    /// <summary><see cref="MinHashScheme.Affine32"/> as the kernel sees it.</summary>
+    /// <remarks>
+    /// A kernel parameter, not a captured field: ILGPU refuses device code reading a mutable
+    /// static, and a constant compared against the argument keeps the branch uniform across a
+    /// group, so no thread diverges from another on it.
+    /// </remarks>
+    private const int Affine32Code = (int)MinHashScheme.Affine32;
+
     /// <summary>The 32-bit mask a permuted value is cut to, with an AND and not a modulo.</summary>
     /// <remarks>
     /// The reference masks rather than divides, and the two agree only below the mask — so the
@@ -32,7 +40,7 @@ public sealed class TiledMinHashSignatures
     private readonly GpuContext _context;
     private readonly int _groupSize;
     private readonly Action<KernelConfig, ArrayView<uint>, ArrayView<int>, ArrayView<ulong>,
-        ArrayView<ulong>, ArrayView<uint>, int> _kernel;
+        ArrayView<ulong>, ArrayView<uint>, int, int> _kernel;
 
     /// <summary>Loads the kernel onto the accelerator.</summary>
     /// <param name="context">The accelerator to compile for.</param>
@@ -44,7 +52,7 @@ public sealed class TiledMinHashSignatures
         _context = context;
         _groupSize = Math.Min(MaxGroupSize, context.Accelerator.MaxGroupSize.X);
         _kernel = context.Accelerator.LoadStreamKernel<ArrayView<uint>, ArrayView<int>,
-            ArrayView<ulong>, ArrayView<ulong>, ArrayView<uint>, int>(SignatureKernel);
+            ArrayView<ulong>, ArrayView<ulong>, ArrayView<uint>, int, int>(SignatureKernel);
     }
 
     /// <summary>The signature of every document in a resident batch.</summary>
@@ -61,13 +69,43 @@ public sealed class TiledMinHashSignatures
     /// </remarks>
     public IReadOnlyList<uint[]> Signatures(
         DeviceTokenHashes documents, ReadOnlySpan<ulong> multipliers, ReadOnlySpan<ulong> addends)
+        => Signatures(documents, multipliers, addends, MinHashScheme.Legacy);
+
+    /// <summary>The signature of every document in a resident batch, under one permutation scheme.</summary>
+    /// <param name="documents">The resident token hashes, which belong to no scheme.</param>
+    /// <param name="multipliers">The <c>a</c> coefficient of each permutation.</param>
+    /// <param name="addends">The <c>b</c> coefficient of each, one per multiplier.</param>
+    /// <param name="scheme">Which arithmetic the coefficients belong to.</param>
+    /// <returns>One signature per document, each as long as there are permutations.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
+    /// <exception cref="ArgumentException">
+    /// The two coefficient spans are not the same non-zero length, <paramref name="scheme"/> is
+    /// not a declared member, or a coefficient does not fit the scheme it is given.
+    /// </exception>
+    /// <remarks>
+    /// The batch is deliberately not re-uploaded per scheme: the finalizer <c>affine32</c> needs
+    /// runs inside the kernel, as the shared tile fills, so one residency serves both families.
+    /// </remarks>
+    public IReadOnlyList<uint[]> Signatures(
+        DeviceTokenHashes documents, ReadOnlySpan<ulong> multipliers, ReadOnlySpan<ulong> addends,
+        MinHashScheme scheme)
     {
         Guard.NotNull(documents);
+        if (scheme is not (MinHashScheme.Legacy or MinHashScheme.Affine32))
+        {
+            throw new ArgumentException($"{scheme} is not a permutation scheme.", nameof(scheme));
+        }
         if (multipliers.Length == 0 || multipliers.Length != addends.Length)
         {
             throw new ArgumentException(
                 $"{multipliers.Length} multipliers and {addends.Length} addends cannot describe "
                 + "one permutation set.", nameof(addends));
+        }
+
+        if (scheme == MinHashScheme.Affine32)
+        {
+            MinHashCoefficients.RefuseWhatAffine32CannotRead(
+                multipliers, addends, nameof(multipliers));
         }
 
         int permutations = multipliers.Length;
@@ -81,7 +119,7 @@ public sealed class TiledMinHashSignatures
         _kernel(
             new KernelConfig(new Index2D(tiles, documents.Count), new Index2D(_groupSize, 1)),
             documents.Hashes.View, documents.Offsets.View, a.View, b.View,
-            signatures.View, permutations);
+            signatures.View, permutations, (int)scheme);
         accelerator.Synchronize();
 
         uint[] flat = signatures.GetAsArray1D();
@@ -105,8 +143,9 @@ public sealed class TiledMinHashSignatures
     [ExcludeFromCodeCoverage]
     private static void SignatureKernel(
         ArrayView<uint> hashes, ArrayView<int> offsets, ArrayView<ulong> multipliers,
-        ArrayView<ulong> addends, ArrayView<uint> signatures, int permutations)
+        ArrayView<ulong> addends, ArrayView<uint> signatures, int permutations, int scheme)
     {
+        bool affine = scheme == Affine32Code;
         ArrayView<uint> tile = SharedMemory.Allocate1D<uint>(MaxGroupSize);
         int width = Group.DimX;
         int document = Grid.IdxY;
@@ -124,23 +163,14 @@ public sealed class TiledMinHashSignatures
             int span = Math.Min(width, end - at);
             if (Group.IdxX < span)
             {
-                tile[Group.IdxX] = hashes[at + Group.IdxX];
+                uint hash = hashes[at + Group.IdxX];
+                tile[Group.IdxX] = affine ? Fmix32(hash) : hash;
             }
 
             Group.Barrier();
             if (live)
             {
-                for (int i = 0; i < span; i++)
-                {
-                    // Unchecked on purpose: the reference multiplies in 64-bit unsigned
-                    // arithmetic and relies on the wrap, so overflow is the specification.
-                    ulong permuted = ((multiplier * tile[i]) + addend) % MersennePrime;
-                    uint candidate = (uint)(permuted & Mask32);
-                    if (candidate < best)
-                    {
-                        best = candidate;
-                    }
-                }
+                best = Minimise(tile, span, multiplier, addend, affine, best);
             }
 
             Group.Barrier();
@@ -150,5 +180,50 @@ public sealed class TiledMinHashSignatures
         {
             signatures[((long)document * permutations) + permutation] = best;
         }
+    }
+
+    /// <summary>One thread's reduction over the tile, under one permutation and one scheme.</summary>
+    /// <remarks>
+    /// Extracted from the kernel because the second scheme took its cognitive complexity past
+    /// the bar S3776 sets — a loop inside a branch inside a loop, twice over. ILGPU inlines a
+    /// device method, so this is a reading change and not a call.
+    /// </remarks>
+    [ExcludeFromCodeCoverage]
+    private static uint Minimise(
+        ArrayView<uint> tile, int span, ulong multiplier, ulong addend, bool affine, uint best)
+    {
+        for (int i = 0; i < span; i++)
+        {
+            // long-comment: which wrap is the specification, and why one branch divides.
+            // The reference multiplies in unsigned arithmetic and relies on the overflow, so it
+            // is the contract rather than an accident -- in 64 bits for the Mersenne reduction,
+            // and in 32 for the affine one, where the wrap is the modulo and this kernel divides
+            // by nothing at all.
+            uint candidate = affine
+                ? ((uint)multiplier * tile[i]) + (uint)addend
+                : (uint)((((multiplier * tile[i]) + addend) % MersennePrime) & Mask32);
+            if (candidate < best)
+            {
+                best = candidate;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>The MurmurHash3 finalizer on 32 bits, which <c>affine32</c> pre-mixes with.</summary>
+    /// <remarks>
+    /// The same fixed bijection and the same constants the CPU path carries — they are the
+    /// reference's, so they are the contract rather than a choice. Applied as the tile fills,
+    /// which costs once per token per group instead of once per token per thread.
+    /// </remarks>
+    [ExcludeFromCodeCoverage]
+    private static uint Fmix32(uint hash)
+    {
+        hash ^= hash >> 16;
+        hash *= 0x85EBCA6B;
+        hash ^= hash >> 13;
+        hash *= 0xC2B2AE35;
+        return hash ^ (hash >> 16);
     }
 }

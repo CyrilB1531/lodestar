@@ -731,7 +731,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0108"]
 
 "0073":
   title: "The oracle gate compares numbers at the suites' tolerance, not bytes"
@@ -771,7 +771,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0108"]
 
 "0077":
   title: "The keyword extractors take their oracles' lists, and not their own"
@@ -1031,7 +1031,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0108"]
 
 "0103":
   title: "`Lodestar.Gpu` ships `netstandard2.1` beside `net10.0`"
@@ -1079,6 +1079,16 @@
   supersedes: []
   amends: []
   applies: ["0015", "0019"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0108":
+  title: "MinHash ships both permutation families, and neither replaces the other"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0072", "0076", "0102"]
   superseded_by: []
   amended_by: []
   applied_by: []
