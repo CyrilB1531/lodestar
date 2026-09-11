@@ -57,6 +57,11 @@ SIDE_DIR = re.compile(
     r"(?:\.Tests|\.Benchmarks)/")
 REFERENCE = re.compile(r"^docs/reference/([^/]+)/")
 GUIDE = re.compile(r"^docs/guides/([^/]+)\.md$")
+# Directly under `src/`, and resolved or compiled by every package. A change here ships:
+# #635 moved three shipped dependencies this way and read as shipping nothing (#638).
+SHARED = re.compile(r"^src/(Directory\.[A-Za-z.]+\.props|Shared/)")
+# Not a package name, and deliberately not one: it is the answer to "does this ship".
+SHARED_MARKER = "(shared build files)"
 
 
 def known_packages() -> set[str]:
@@ -109,7 +114,14 @@ def attribute(path: str, docs: dict[str, str]) -> tuple[bool, str | None]:
 
 
 def classify(paths: list[str]) -> tuple[set[str], set[str], list[str]]:
-    """(ships, about, unattributed) for a list of repository-relative paths."""
+    """(ships, about, unattributed) for a list of repository-relative paths.
+
+    A shared build file under `src/` puts `SHARED` in `ships` rather than all sixteen package
+    names. The milestone asks *whether* a change ships, not which packages -- and naming all
+    sixteen would put a routine pin bump on sixteen boards, burying the pull requests that
+    concern one. The board and the label answer "what is this about", and a file every package
+    compiles under is about none of them in particular.
+    """
     packages = known_packages()
     docs = documentation_map()
     ships: set[str] = set()
@@ -119,6 +131,9 @@ def classify(paths: list[str]) -> tuple[set[str], set[str], list[str]]:
     for raw in paths:
         path = raw.strip()
         if not path:
+            continue
+        if SHARED.match(path):
+            ships.add(SHARED_MARKER)
             continue
         publishes, named = attribute(path, docs)
         # `named` is checked against src/ rather than trusted: `tests/DataNet.NetStandard.Tests`
