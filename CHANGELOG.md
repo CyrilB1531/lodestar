@@ -76,14 +76,6 @@ is one sentence, the issue and the commit; see
   VectorData 10.10.0 requires `[10.10.0, )`, so the two still move together and the alignment
   that decision relied on holds. ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
 
-### Lodestar.Stats
-
-#### Added
-
-- **`Distributions.LogGamma`.** Published for `Lodestar.Stats.Regression`'s Poisson
-  log-likelihood, whose AIC needs `log Γ(y + 1)` to agree with the reference's constant term.
-  ([#616](https://github.com/CyrilB1531/lodestar/issues/616))
-
 ## Released — 2026-09-10
 
 Thirteen cuts across eleven packages, and the end of milestone 0.6.0 — thirty-three

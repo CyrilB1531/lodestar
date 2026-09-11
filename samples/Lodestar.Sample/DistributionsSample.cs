@@ -27,9 +27,6 @@ internal static class DistributionsSample
 
         // Far into the tail, where an absolute tolerance would accept a zero.
         Console.WriteLine($"  far tail         = {Inv.E3(Distributions.StudentSf(30.0, 30.0))}");
-
-        // The factorial term a Poisson log-likelihood's AIC carries: log(3!).
-        Console.WriteLine($"  log(3!)          = {Inv.F5(Distributions.LogGamma(4.0))}");
         Console.WriteLine();
     }
 }
