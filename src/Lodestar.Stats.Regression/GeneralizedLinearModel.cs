@@ -1,0 +1,171 @@
+using Lodestar.Stats.Regression.Internal;
+
+namespace Lodestar.Stats.Regression;
+
+/// <summary>A generalized linear model, fitted by IRLS, with the whole inference table.</summary>
+/// <remarks>
+/// Reference behavior: <c>statsmodels</c> 0.15.0's <c>GLM(...).fit()</c>. The response is a
+/// count or a 0/1 outcome; for a real-valued one, <see cref="OrdinaryLeastSquares"/> is the
+/// same table without a link.
+/// </remarks>
+public static class GeneralizedLinearModel
+{
+    /// <summary>Fits one model and reports its inference table.</summary>
+    /// <param name="design">The regressors, row-major, <paramref name="featureCount"/> per row.</param>
+    /// <param name="response">One value per row: 0 or 1 for binomial, a count for Poisson.</param>
+    /// <param name="featureCount">How many regressors a row carries.</param>
+    /// <param name="family">The response distribution, with its canonical link.</param>
+    /// <param name="options">The fit's settings, or null for the defaults.</param>
+    /// <exception cref="ArgumentException">The lengths disagree, or a response is outside its family.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one.</exception>
+    /// <exception cref="InvalidOperationException">IRLS did not converge and the option says throw.</exception>
+    public static GlmSummary Fit(
+        ReadOnlySpan<double> design,
+        ReadOnlySpan<double> response,
+        int featureCount,
+        GlmFamily family,
+        GlmOptions? options = null)
+    {
+        Guard.NotLessThan(featureCount, 1);
+        GlmOptions settings = options ?? new GlmOptions();
+        int rowCount = Rows(design, response, featureCount);
+        int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
+        RefuseResponseOutsideTheFamily(family, response);
+
+        int residualDegreesOfFreedom = rowCount - parameterCount;
+        if (residualDegreesOfFreedom < 1)
+        {
+            throw new ArgumentException(
+                $"{rowCount} rows and {parameterCount} parameters leave no residual degree of "
+                + "freedom, so no standard error exists.", nameof(response));
+        }
+
+        IrlsResult fit = Irls.Fit(design, response, featureCount, family, settings);
+        if (!fit.Converged && settings.ThrowOnNonConvergence)
+        {
+            throw new InvalidOperationException(
+                $"IRLS reached {fit.Iterations} iterations with a deviance change of "
+                + $"{fit.DevianceChange:G3}, above the {settings.Tolerance:G3} tolerance. The "
+                + $"fit is not usable; set {nameof(GlmOptions.ThrowOnNonConvergence)} to false "
+                + "to inspect it.");
+        }
+
+        const double dispersion = 1.0;
+        double[] errors = LeastSquares.StandardErrors(fit.InverseUpper, parameterCount, dispersion);
+        var z = new double[parameterCount];
+        var p = new double[parameterCount];
+        var lower = new double[parameterCount];
+        var upper = new double[parameterCount];
+        double multiplier = Distributions.NormalQuantile(
+            1.0 - ((1.0 - settings.ConfidenceLevel) / 2.0));
+
+        for (int j = 0; j < parameterCount; j++)
+        {
+            z[j] = fit.Coefficients[j] / errors[j];
+            // The two-sided normal tail, through chi-square(1): z^2 is chi-square(1) distributed,
+            // and Lodestar.Stats publishes ChiSquaredSf but no normal CDF to read it off directly.
+            p[j] = Distributions.ChiSquaredSf(z[j] * z[j], 1.0);
+            lower[j] = fit.Coefficients[j] - (multiplier * errors[j]);
+            upper[j] = fit.Coefficients[j] + (multiplier * errors[j]);
+        }
+
+        double nullDeviance = NullDeviance(family, response, settings);
+        double logLikelihood = LogLikelihood.Of(family, response, fit.Mean);
+        double akaike = (2.0 * parameterCount) - (2.0 * logLikelihood);
+
+        return new GlmSummary
+        {
+            Coefficients = fit.Coefficients,
+            StandardErrors = errors,
+            ZStatistics = z,
+            PValues = p,
+            ConfidenceLower = lower,
+            ConfidenceUpper = upper,
+            Deviance = fit.Deviance,
+            NullDeviance = nullDeviance,
+            Dispersion = dispersion,
+            LogLikelihood = logLikelihood,
+            Akaike = akaike,
+            ResidualDegreesOfFreedom = residualDegreesOfFreedom,
+            HasIntercept = settings.WithIntercept,
+            Converged = fit.Converged,
+            Iterations = fit.Iterations,
+            DevianceChange = fit.DevianceChange,
+        };
+    }
+
+    /// <summary>The deviance of the intercept-only fit, which is the mean response everywhere.</summary>
+    private static double NullDeviance(
+        GlmFamily family, ReadOnlySpan<double> response, GlmOptions settings)
+    {
+        if (!settings.WithIntercept)
+        {
+            // Without an intercept the null model is the link's zero, not the mean.
+            var atZero = new double[response.Length];
+            for (int row = 0; row < atZero.Length; row++)
+            {
+                atZero[row] = Families.InverseLink(family, 0.0);
+            }
+
+            return Irls.Deviance(family, response, atZero);
+        }
+
+        double total = 0.0;
+        for (int row = 0; row < response.Length; row++)
+        {
+            total += response[row];
+        }
+
+        double mean = total / response.Length;
+        var constant = new double[response.Length];
+        for (int row = 0; row < constant.Length; row++)
+        {
+            constant[row] = mean;
+        }
+
+        return Irls.Deviance(family, response, constant);
+    }
+
+    /// <summary>
+    /// Refuses a response value its family cannot fit: binomial takes only 0 or 1, and Poisson's
+    /// <c>log(y!)</c> makes a count of it, so a negative or fractional value is refused there too.
+    /// </summary>
+    private static void RefuseResponseOutsideTheFamily(
+        GlmFamily family, ReadOnlySpan<double> response)
+    {
+        for (int row = 0; row < response.Length; row++)
+        {
+            double y = response[row];
+            // S1244: a count is exactly its own truncation or it is not a count at all --
+            // there is no tolerance band a fractional response could fall inside of.
+#pragma warning disable S1244
+            bool ok = family switch
+            {
+                GlmFamily.Binomial => y is 0.0 or 1.0,
+                GlmFamily.Poisson => y >= 0.0 && y == Math.Truncate(y),
+                _ => throw new ArgumentOutOfRangeException(nameof(family), family, null),
+            };
+#pragma warning restore S1244
+
+            if (!ok)
+            {
+                throw new ArgumentException(
+                    $"row {row} carries {y}, which {family} cannot fit: binomial takes 0 or 1 "
+                    + "and Poisson a non-negative integer count.", nameof(response));
+            }
+        }
+    }
+
+    private static int Rows(
+        ReadOnlySpan<double> design, ReadOnlySpan<double> response, int featureCount)
+    {
+        if (design.Length != response.Length * featureCount)
+        {
+            throw new ArgumentException(
+                $"{design.Length} design values and {response.Length} responses do not describe "
+                + $"rows of {featureCount}.", nameof(design));
+        }
+
+        return response.Length;
+    }
+}
