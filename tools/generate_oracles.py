@@ -4971,20 +4971,22 @@ def _glm_fixtures() -> list[dict]:
             OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
         {
-            # Two regressors at 99%, so the multiplier is visibly not 1.96 -- an
-            # interval using the wrong one fails on its own, not on the coefficient it wraps.
+            # Two regressors at 99%, so a wrong multiplier fails on the interval rather than
+            # on the coefficient it wraps; well conditioned, and y is not monotone in either x.
             "name": "logistic, two regressors, 99%",
             FAMILY: BINOMIAL,
             DESIGN: [
-                1.0, 0.5, 2.0, 1.5, 3.0, 0.5, 4.0, 2.5, 5.0, 1.0,
-                6.0, 3.5, 7.0, 2.0, 8.0, 4.5, 9.0, 3.0, 10.0, 5.5,
+                2.0, 1.0, 5.0, 0.5, 1.0, 2.0, 4.0, 1.5, 3.0, 0.5, 6.0, 2.5,
+                2.5, 1.5, 5.5, 1.0, 1.5, 0.5, 4.5, 2.0, 3.5, 1.0, 6.5, 2.5,
             ],
-            RESPONSE: [0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            RESPONSE: [
+                0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0,
+            ],
             OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
         },
         {
-            # No intercept: the null deviance is the link's zero rather than the mean,
-            # which is the arm of NullDeviance nothing else reaches.
+            # No intercept, the arm of the fit nothing else reaches -- and whose null
+            # deviance is still the constant-only model's, exactly as the reference's is.
             "name": "logistic, no intercept",
             FAMILY: BINOMIAL,
             DESIGN: [-2.0, -1.5, -0.5, 0.5, 1.0, 1.5, 2.0, 2.5],
@@ -5008,11 +5010,13 @@ def _glm_fixtures() -> list[dict]:
             OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
         {
+            # Two independent regressors: the second is not a multiple of the first, so the
+            # design and its intercept span three directions and one solve reaches the fit.
             "name": "poisson, two regressors",
             FAMILY: POISSON,
             DESIGN: [
-                1.0, 0.5, 2.0, 1.0, 3.0, 1.5, 4.0, 2.0, 5.0, 2.5,
-                6.0, 3.0, 7.0, 3.5, 8.0, 4.0, 9.0, 4.5, 10.0, 5.0,
+                1.0, 0.5, 2.0, 2.0, 3.0, 1.0, 4.0, 3.0, 5.0, 1.5,
+                6.0, 2.5, 7.0, 0.5, 8.0, 3.5, 9.0, 2.0, 10.0, 1.0,
             ],
             RESPONSE: [1.0, 2.0, 2.0, 4.0, 5.0, 7.0, 8.0, 12.0, 15.0, 20.0],
             OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
