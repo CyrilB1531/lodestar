@@ -57,6 +57,8 @@ given:
   cross-cutting bucket. #628 has the three defects each of those closes.
   `.github/workflows/classify-pull-request.yml` calls it when a pull request opens and
   on every push to it, so the attribution follows the diff rather than a first guess.
+  Its `unattributed` count is for a reader, not a label: a pull request always has its
+  file list, so touching no package is an answer rather than a gap.
 - `check_unreleased.py` reads what each package has merged and not published, from the tags,
   `main` and `src/<Package>/Version.props` — none of which can drift. Unpublished work is the
   normal state between a merge and a release, so it is reported; only a version declared past
