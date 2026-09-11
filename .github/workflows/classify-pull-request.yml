@@ -15,6 +15,13 @@ name: Classify a pull request
 # Running on every push means the attribution follows the diff: a pull request that grows a
 # `src/` change becomes `Next release`, one that loses its last package change stops claiming
 # that package. So labels are **reconciled** rather than only added.
+#
+# There is deliberately no `unclassified` label. That idea belonged to the historical backfill,
+# where 49 issues had no closing commit and so no evidence at all -- naming them cross-cutting
+# would have been a guess. A pull request always has its file list, so "touches no package" is
+# a determination: the `Cross-cutting` milestone states it, and no package label states it
+# again. Applied to every CI, docs and tooling change it fired on about 40% of this
+# repository and carried no information.
 
 on:
   pull_request_target:
@@ -117,26 +124,6 @@ jobs:
           done
         shell: bash
 
-      # A pull request whose every path is unattributed is not necessarily cross-cutting --
-      # it may be a path shape this does not know. Saying so is the point: writing
-      # `Cross-cutting` on a guess is the defect that left 49 issues indistinguishable from
-      # the 109 that had evidence. The label is removed again once a path does attribute.
-      - name: Say so when nothing could be attributed
-        if: steps.bot.outputs.generated == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR: ${{ github.event.pull_request.number }}
-          ABOUT: ${{ steps.files.outputs.about }}
-        run: |
-          if [ -z "$ABOUT" ]; then
-            gh label create unclassified --color ededed --force \
-              --description "Touched no path this repository can attribute to a package" \
-              --repo "$GITHUB_REPOSITORY" || true
-            gh pr edit "$PR" --add-label unclassified --repo "$GITHUB_REPOSITORY"
-          else
-            gh pr edit "$PR" --remove-label unclassified --repo "$GITHUB_REPOSITORY" || true
-          fi
-
       # Boards are user-level Projects v2, which GITHUB_TOKEN cannot write: that needs a
       # personal access token carrying the `project` scope. The step is skipped rather than
       # failed when the secret is absent, so the milestone and the labels still land.
@@ -156,7 +143,10 @@ jobs:
                  "milestone and the labels were. A token with the 'project' scope enables this."
             exit 0
           fi
-          owner="${GITHUB_REPOSITORY%%/*}"
+          # `--owner <name>` asks GitHub whether that name is a user or an organisation, and
+          # that lookup needs a scope PROJECTS_TOKEN does not carry: it answered
+          # `unknown owner type` on every run. `@me` is the authenticated owner, no lookup.
+          owner="@me"
           url="https://github.com/$GITHUB_REPOSITORY/pull/$PR"
           targets="$ABOUT"
           [ -z "$targets" ] && targets="Lodestar — cross-cutting"
