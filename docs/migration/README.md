@@ -20,7 +20,7 @@ native code where .NET has a real gap: **text** (similarity, vectorization).
 | **scikit-learn** | classical ML, pipelines, metrics | [ML.NET](https://dotnet.microsoft.com/apps/machinelearning-ai/ml-dotnet); [SharpLearning](https://github.com/mdabros/SharpLearning) | ✅ **Use** *except* text vectorization → **Lodestar.Text**, classification metrics → **Lodestar.Metrics**, and the two sparse decompositions (`TruncatedSVD`, `NMF`) → **Lodestar.Decomposition** |
 | **MAPIE** | conformal prediction: intervals and prediction sets with a coverage guarantee | none — no C# implementation exists | 🔴 **Write** — split conformal is **Lodestar.Conformal** |
 | **pandas** | DataFrame, groupby, IO | [`Microsoft.Data.Analysis`](https://www.nuget.org/packages/Microsoft.Data.Analysis); [Deedle](https://fslab.org/Deedle/) | 🟡 **Use** (rougher) |
-| **statsmodels** | econometric regression, time series, tests | Math.NET (basics) — *not* Accord.NET, see below | 🟠 **Decide** — rich econometrics is a gap |
+| **statsmodels** | econometric regression, time series, tests | Math.NET (basics) — *not* Accord.NET, see below; [`Microsoft.ML.TimeSeries`](https://www.nuget.org/packages/Microsoft.ML.TimeSeries) for forecasting | 🔴 **Write** — the tests and the OLS table ship as **Lodestar.Stats** and **Lodestar.Stats.Regression**; forecasting delegates; GLMs and the time-series diagnostics are being written |
 | **seaborn** | tidy statistical viz | ScottPlot / Plotly.NET (charts rebuilt) | 🟠 **Decide** — statistical presets missing |
 
 **Legend.** ✅ a solid equivalent exists, use it as is. 🟡 an equivalent exists but
