@@ -86,6 +86,28 @@ def _rename(name: str) -> str:
     return "Lodestar." + name[len("DataNet."):] if name.startswith("DataNet.") else name
 
 
+def attribute(path: str, docs: dict[str, str]) -> tuple[bool, str | None]:
+    """(does it ship, which package) for one path, from its shape alone.
+
+    Four shapes, in the order a path can only match one of them: the publishable tree, the
+    suites beside it, a reference directory, a guide page. The last two are looked up rather
+    than parsed, because docs/wiki-map.json owns that mapping.
+    """
+    match = SRC_DIR.match(path)
+    if match:
+        return True, _rename(match.group(1))
+    match = SIDE_DIR.match(path)
+    if match:
+        return False, _rename(match.group(1))
+    match = REFERENCE.match(path)
+    if match:
+        return False, docs.get(f"reference/{match.group(1)}")
+    match = GUIDE.match(path)
+    if match:
+        return False, docs.get(f"guide/{match.group(1)}")
+    return False, None
+
+
 def classify(paths: list[str]) -> tuple[set[str], set[str], list[str]]:
     """(ships, about, unattributed) for a list of repository-relative paths."""
     packages = known_packages()
@@ -94,33 +116,19 @@ def classify(paths: list[str]) -> tuple[set[str], set[str], list[str]]:
     about: set[str] = set()
     unattributed: list[str] = []
 
-    for path in paths:
-        path = path.strip()
+    for raw in paths:
+        path = raw.strip()
         if not path:
             continue
-        named = None
-        match = SRC_DIR.match(path)
-        if match:
-            named = _rename(match.group(1))
-            if named in packages:
-                ships.add(named)
-                about.add(named)
-                continue
-        else:
-            match = SIDE_DIR.match(path)
-            if match:
-                named = _rename(match.group(1))
-            else:
-                match = REFERENCE.match(path)
-                key = f"reference/{match.group(1)}" if match else None
-                if key is None:
-                    match = GUIDE.match(path)
-                    key = f"guide/{match.group(1)}" if match else None
-                named = docs.get(key) if key else None
-        if named is not None and named in packages:
-            about.add(named)
-        else:
+        publishes, named = attribute(path, docs)
+        # `named` is checked against src/ rather than trusted: `tests/DataNet.NetStandard.Tests`
+        # strips to a prefix that names no package, and an unchecked mapper acted on it.
+        if named is None or named not in packages:
             unattributed.append(path)
+            continue
+        about.add(named)
+        if publishes:
+            ships.add(named)
 
     return ships, about, unattributed
 

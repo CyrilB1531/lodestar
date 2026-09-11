@@ -46,9 +46,9 @@ SRC = ROOT / "src"
 CHANGELOG = ROOT / "CHANGELOG.md"
 
 VERSION = re.compile(r"<Lodestar[A-Za-z]*Version>([^<]+)</")
-# `## [Unreleased]` runs to the next `## ` heading; `### <Package>` beneath it is an entry.
-UNRELEASED = re.compile(r"^## \[Unreleased\]$(.*?)(?=^## )", re.MULTILINE | re.DOTALL)
-ENTRY = re.compile(r"^### ((?:Lodestar|DataNet)\.[A-Za-z.]+)", re.MULTILINE)
+# `### <Package>` under the `## [Unreleased]` heading. The section is found by walking the
+# headings rather than by one regex: `## ` opens and closes it, which a scan states plainly.
+ENTRY = re.compile(r"^### ((?:Lodestar|DataNet)\.[A-Za-z.]+)")
 
 
 def git(*args: str) -> str:
@@ -82,8 +82,16 @@ def unreleased_entries() -> set[str]:
     """The packages `## [Unreleased]` names, if the section is there at all."""
     if not CHANGELOG.exists():
         return set()
-    section = UNRELEASED.search(CHANGELOG.read_text(encoding="utf-8"))
-    return set(ENTRY.findall(section.group(1))) if section else set()
+    found: set[str] = set()
+    inside = False
+    for line in CHANGELOG.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            inside = line.strip() == "## [Unreleased]"
+            continue
+        match = ENTRY.match(line) if inside else None
+        if match:
+            found.add(match.group(1))
+    return found
 
 
 def survey() -> list[tuple[str, str, str, int]]:
@@ -101,7 +109,6 @@ def survey() -> list[tuple[str, str, str, int]]:
 
 
 def findings(rows: list[tuple[str, str, str, int]]) -> list[str]:
-    named = unreleased_entries()
     found = []
     for package, version, tag, commits in rows:
         shipped = tag.rsplit("/v", 1)[1] if tag else ""
@@ -125,6 +132,15 @@ def notices(rows: list[tuple[str, str, str, int]]) -> list[str]:
     ]
 
 
+def print_table(rows: list[tuple[str, str, str, int]]) -> None:
+    """The survey as a table, which is what a release cut reads."""
+    print(f"{'package':<30} {'declared':<10} {'last tag':<10} unpublished")
+    for package, version, tag, commits in rows:
+        shipped = tag.rsplit("/v", 1)[1] if tag else "-"
+        print(f"{package:<30} {version:<10} {shipped:<10} {commits or '-'}")
+    print()
+
+
 def main() -> int:
     args = sys.argv[1:]
     if args and args[0] in ("--help", "-h"):
@@ -137,11 +153,7 @@ def main() -> int:
     rows = survey()
     waiting = [r for r in rows if r[3]]
     if args[:1] == ["--report"] or waiting:
-        print(f"{'package':<30} {'declared':<10} {'last tag':<10} unpublished")
-        for package, version, tag, commits in rows:
-            shipped = tag.rsplit("/v", 1)[1] if tag else "-"
-            print(f"{package:<30} {version:<10} {shipped:<10} {commits or '-'}")
-        print()
+        print_table(rows)
 
     if args[:1] == ["--report"]:
         return 0
