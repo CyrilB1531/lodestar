@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "BPE added-token coverage",
   "library": "tokenizers",
-  "library_version": "0.23.1",
+  "library_version": "0.23.2",
   "model": "hand-built: one 4-entry classic BPE, twice, defined in tools/generate_oracles.py",
   "models": {
    "single_word": {

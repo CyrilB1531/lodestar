@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "ByteLevelBPE",
   "library": "tokenizers",
-  "library_version": "0.23.1",
+  "library_version": "0.23.2",
   "model": "gpt2 (vendored by tools/fetch_gpt2_bpe.py)",
   "alphabet": [
    "Ā",

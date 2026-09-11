@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "BPE merge table with a duplicated pair",
   "library": "tokenizers",
-  "library_version": "0.23.1",
+  "library_version": "0.23.2",
   "model": "hand-built: seven entries and four merges, defined in tools/generate_oracles.py",
   "models": {
    "duplicate": {

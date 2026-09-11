@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "BPE Sequence Split step behavior and invert",
   "library": "tokenizers",
-  "library_version": "0.23.1",
+  "library_version": "0.23.2",
   "model": "hand-built: the byte-level alphabet with no merges, defined in tools/generate_oracles.py",
   "models": {
    "isolated": {

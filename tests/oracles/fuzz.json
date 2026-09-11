@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "Fuzz",
   "library": "rapidfuzz",
-  "library_version": "3.14.5",
+  "library_version": "3.14.6",
   "reference_calls": [
    "rapidfuzz.fuzz.{ratio,partial_ratio,token_sort_ratio,token_set_ratio,WRatio}"
   ],

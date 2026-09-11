@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "BPE",
   "library": "tokenizers",
-  "library_version": "0.23.1",
+  "library_version": "0.23.2",
   "model": "orphan_bpe_model.json (hand-constructed, one orphaned entry)",
   "count": 5
  },

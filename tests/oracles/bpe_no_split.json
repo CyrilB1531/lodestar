@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "BPE with a pre-tokenizer that does not split",
   "library": "tokenizers",
-  "library_version": "0.23.1",
+  "library_version": "0.23.2",
   "model": "hand-built: a 4-entry classic BPE and a byte-level one, defined in tools/generate_oracles.py",
   "models": {
    "absent": {

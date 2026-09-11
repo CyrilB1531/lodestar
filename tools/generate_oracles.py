@@ -4665,13 +4665,20 @@ def generate_text_similarity() -> dict:
 
     documents = _similarity_documents()
     permutation_count = 32
-    reference = DsMinHash(num_perm=permutation_count, seed=1)
+    # long-comment: which permutation family the corpus freezes, and why it is now named.
+    # scheme="legacy" is (a*h + b) mod (2^61 - 1), what Lodestar.Text's MinHash and
+    # Lodestar.Gpu's TiledMinHashSignatures compute. It was datasketch's only scheme through
+    # 1.6.5 and arrived as the default; 2.0.0 added affine32 and affine64 and made affine32
+    # the default, so this same call silently changed families (#643). Named rather than
+    # inherited -- #645 holds whether the shipped packages should follow the new default.
+    scheme = "legacy"
+    reference = DsMinHash(num_perm=permutation_count, seed=1, scheme=scheme)
     multipliers, addends = reference.permutations
 
     signatures: dict[str, list[int]] = {}
     cases = []
     for document in documents:
-        sketch = DsMinHash(num_perm=permutation_count, seed=1)
+        sketch = DsMinHash(num_perm=permutation_count, seed=1, scheme=scheme)
         for token in document[SIM_TOKENS]:
             sketch.update(token.encode("utf-8"))
         signature = [int(value) for value in sketch.hashvalues]
@@ -4717,7 +4724,8 @@ def generate_text_similarity() -> dict:
             "library": "datasketch + simhash",
             "version": f'{version("datasketch")} + {version("simhash")}',
             FAMILY: "text-similarity",
-            "variant": "MinHash(seed=1, sha1_hash32), Simhash(f=64, md5), MinHashLSH optimal banding",
+            "variant": "MinHash(seed=1, sha1_hash32, scheme=legacy), Simhash(f=64, md5), "
+                       "MinHashLSH optimal banding",
             "count": len(cases),
         },
         "permutationCount": permutation_count,
