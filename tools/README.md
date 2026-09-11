@@ -4,10 +4,40 @@ Scripts under `tools/`, each responsible for one input the test suite treats as
 given:
 
 - `generate_oracles.py` produces the reference values the test suite replays.
+- `seeded_random.py` is not a script and has no command line: it is the seeded
+  `random.Random` that `generate_oracles.py` and the five
+  `bench/corpus/generate_*.py` draw every number through. Each method delegates
+  unchanged, which is what keeps every existing seed's sequence — and therefore
+  every committed corpus — intact. It exists because Sonar's S2245 cannot know
+  that test data protects nothing and fires once per call site, so the waiver
+  belongs in one file rather than in thirty pragmas scattered over the
+  generators, where they drift away from the code they were meant to cover.
 - `fetch_stopwords.py` produces source that is *shipped*, which is why it
   verifies what it downloaded before writing anything.
 - `fetch_xlmr_vocab.py` and `build_normalizer_fixtures.py` produce fixtures
   `generate_oracles.py` reads.
+- `fetch_gpt2_bpe.py` vendors GPT-2's 50 257-entry vocabulary and its merge
+  table into `tests/oracles/` — those two files only, never weights (decision
+  0003). The size is the point: a self-trained toy model exercises no merge
+  table with 50 000 ranks and proves nothing about reading the `merges.txt`
+  layout a real model ships, so `ByteLevelBpeTests`' byte-exact parity claim
+  rests on the real vocabulary. `--check` verifies the checked-in fixtures
+  against upstream instead of writing them.
+- `fetch_llama2_mistral_tokenizers.py` vendors the Llama-2 and Mistral v0.1
+  `tokenizer.json` — the two files [#175](https://github.com/CyrilB1531/lodestar/issues/175)
+  opens on, which spell the same SentencePiece-BPE pipeline two different ways,
+  which is why the corpus needs both rather than one file twice.
+  `meta-llama/Llama-2-7b-hf` is gated and answers 401 without credentials this
+  project does not have, so decision 0017 section 5's method applies: two
+  ungated mirrors, held to agreeing on the sections that decide what a text
+  encodes to, stand in for reading the original — and that agreement is
+  re-asserted on every fetch rather than recorded once. Decision 0084 admits the
+  Llama 2 Community License as a named exception for this artifact alone, which
+  is why the tool also writes its three licence files into
+  `docs/vendored/llama2/`, from the same mirror as the artifact. `--check`
+  verifies rather than writes. Its docstring has why
+  `NousResearch/Llama-2-7b-hf` is the right mirror for Llama-3 and the wrong one
+  here — 119 merges in a different order, and merge order is rank in BPE.
 - `build_tiny_models.py` builds fixtures too small for that pipeline to bother
   with — two ONNX graphs, a trained BPE, and a hand-constructed BPE — and
   commits them directly.
@@ -48,6 +78,15 @@ given:
   set, and the inter-package edge count against
   `check_nuspec_dependencies.py`'s `EXPECTED`. The *Holds* column is prose and is
   deliberately not checked.
+- `check_bench_map.py` refuses a `[Benchmark]` class that `bench/bench-map.json`
+  does not name. The nightly run (#11) measures only the classes a night's diff
+  selected and reads that map to decide which, so a class missing from it is
+  never selected and stops being measured with nothing going red. The map cannot
+  be derived — `FuzzBenchmarks` names only `Fuzz`, which reaches `Indel`, then
+  `Lcs`, then `Affixes` — so it is hand-written, and this guard holds it to the
+  one thing it can check: completeness. Whether a class's globs are *right* is
+  not checked, and being too narrow is invisible here; `bench/README.md` has why
+  they are written at directory granularity.
 - `classify_change.py` answers two questions from a change's file paths, and keeps them
   apart: **ships** is `src/<Package>/` only, which decides the milestone because a milestone
   names a release; **about** also counts `tests/`, `bench/` and the documentation pages
@@ -110,15 +149,69 @@ given:
 - `generate_sonar_globalconfig.py` writes the `.globalconfig` that raises the
   Sonar rules `SonarAnalyzer.CSharp` ships disabled, from the SonarCloud
   quality profile that gates the pull request.
+- `count_cited_claims.py` counts the comment blocks that name a reference
+  library and how many of them point at something a reader can open — a corpus
+  file, an oracle case, an ADR, an issue, a test class, a stated measurement. It
+  reports and exits 0 whatever it finds; the guard that blocks is
+  `check_comment_length.py`, whose block parser this borrows rather than
+  re-implementing. It exists because the rule needs a home: #151's sweep
+  reported "162 claims, 0 cited" counting *lines* and looking for the citation
+  on the same line, which a block almost never satisfies, and the corrected
+  figure was then quoted as prose in a commit message where it did not reproduce
+  for a reviewer, because nothing said what counted as a citation. A
+  `<see cref>` does not — it points at another member of this library, not at
+  what checks the claim, and counting it reads 45% where the honest figure is
+  12%. Takes path prefixes to narrow the sweep.
 - `extract_doc_snippets.py` turns the ` ```csharp ` fences in `README.md` and
   `docs/` into a project the compiler — and, for the reference pages, the
   runtime — can judge.
 - `build_wiki.py` produces what the GitHub wiki publishes: `docs/` turned into
   a flat page per package channel and per released version.
+- `select_benchmarks.py` names the benchmark classes a range of commits makes
+  worth re-running (#11): it reads `bench/bench-map.json`, asks git what moved
+  since the baseline, and prints one class per line — empty when nothing
+  relevant moved. Both of its biases run toward measuring too much. An entry
+  under `always` selects every class, and the globs are directory-wide, because
+  a benchmark run for nothing costs minutes while one not run hides a regression
+  and nothing goes red when it does. An absent baseline selects everything, so a
+  run that never happened cannot silently narrow the next one. Takes
+  `--since <commit>` with an optional `--head`, or `--all`, and `--harnesses`
+  for the Python comparison harnesses the same diff selects.
+- `render_nightly.py` renders the page the nightly run publishes to the wiki,
+  from the BenchmarkDotNet reports and `bench/compare.py` output the job left on
+  disk. It carries the baseline commit the *next* run reads, which is why the
+  result is a file under `docs/guides/` rather than an artefact: the series has
+  to remember where it stopped. It is deliberately not `docs/guides/performance.md`, whose
+  numbers are comparable to each other because the machine is named — a hosted
+  runner is a shared VM whose hardware differs between runs, so what survives
+  here is the ratio inside one run, never the absolute figure. Takes `--commit`
+  and `--baseline` with the run's two shas, `--runner` for the label, and
+  `--selected`/`--harnesses` for what the night measured; `--branch` writes the
+  copy under `docs/guides/branch/` instead, which is what a
+  `workflow_dispatch` off another ref uses so its numbers never touch the page a
+  merge into `main` could carry along
+  ([#379](https://github.com/CyrilB1531/lodestar/issues/379)); `--stdout` is
+  what a local check uses.
+- `render_benchmark_latest.py` answers what that page cannot: when each method
+  was last measured at all. A class quiet for weeks does not reappear on
+  `nightly_run.md` until something near it moves, so this walks the wiki clone's
+  own git log for that page and keeps the newest occurrence per section, with
+  tonight's fresh reports taking priority over the history. Run it *alongside*
+  `render_nightly.py` rather than after its wiki push, or a class measured
+  tonight waits for tomorrow's aggregate to notice it. Numbers from different
+  nights ran on different VMs and rank nothing against each other; the page says
+  "as of when". Takes `--wiki <path to a lodestar.wiki.git clone>`, with
+  `--commit` and `--max-commits` to stamp and bound the walk, and the same
+  `--branch` and `--stdout` as its neighbour.
 - `sonarqube-local/` holds the compose file for a disposable local SonarQube
   server, covering the Python rules, duplication and coverage that no local
   `dotnet build` reaches — see
   [`../CONTRIBUTING.md`](../CONTRIBUTING.md#before-pushing-the-half-the-build-cannot-see).
+- `tests/` holds the pytest suite CI runs over these scripts, and one of its
+  files holds *this page* to them: `test_readme_covers_the_tools.py` fails when
+  a `tools/*.py` is named nowhere here. The list above is the document's
+  contract rather than a courtesy, so a new script arrives with its row
+  ([#652](https://github.com/CyrilB1531/lodestar/issues/652)).
 
 ## `generate_oracles.py`
 
