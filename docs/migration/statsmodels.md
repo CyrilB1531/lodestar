@@ -18,7 +18,7 @@ nobody's, and are still a gap.
 | Forecasting, seasonality and anomaly detection | **Microsoft.ML.TimeSeries** 5.0.0 (`ForecastBySsa`, `DetectSeasonality`) — first-party and MIT; [`decisions/0105`](../decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md) |
 | Time-series diagnostics: ACF/PACF, Ljung-Box, stationarity, decomposition | **being written** — no maintained .NET package carries them; [#617](https://github.com/CyrilB1531/lodestar/issues/617) |
 | ARIMA / SARIMAX estimation, VAR, state-space | ⚠️ **gap** — a later lot, not the first ([#617](https://github.com/CyrilB1531/lodestar/issues/617)) |
-| Mixed and hierarchical models | ⚠️ **gap** — write or work around ([#338](https://github.com/CyrilB1531/lodestar/issues/338)) |
+| Mixed and hierarchical models | ⚠️ **gap**, and the only one still unread — no .NET package has been loaded for it ([#621](https://github.com/CyrilB1531/lodestar/issues/621)) |
 
 ```csharp
 using MathNet.Numerics;

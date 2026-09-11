@@ -161,5 +161,7 @@ this one, and #617 names it as a follow-up rather than leaving it implied.
 - `bench/README.md` gains a section when the lot ships, measuring against `Cortex.TimeSeries`
   where the capabilities overlap. Its 240 downloads are a reason to prefer our own, not a reason
   to skip the measurement — 0096's rule.
-- #338 stays open over #616 and #617. Mixed and hierarchical models are claimed by neither and
-  remain its own subject.
+- With 0104, this discharges #338, which closes. The third subject neither decision read —
+  mixed and hierarchical models — leaves as
+  [#621](https://github.com/CyrilB1531/lodestar/issues/621) rather than staying implied in a
+  closed issue's body.

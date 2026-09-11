@@ -214,5 +214,11 @@ nothing. That is 0096's precedent and #616 carries it as an acceptance criterion
 - The member counts here are not comparable with 0096's, because neither states a basis that the
   other shares. [#619](https://github.com/CyrilB1531/lodestar/issues/619) is where that stops
   being true for the sixth reading.
-- #338 stays open. It is now a meta-issue over #616 and #617, and the one subject neither takes —
-  mixed and hierarchical models — remains its own, unclaimed.
+- #338 is discharged by this decision and 0105 together, and closes: it asked for a
+  reconnaissance, a decision per subject and a roadmap, and all three now exist. Its three
+  subjects leave as [#616](https://github.com/CyrilB1531/lodestar/issues/616),
+  [#617](https://github.com/CyrilB1531/lodestar/issues/617) and
+  [#621](https://github.com/CyrilB1531/lodestar/issues/621).
+- **Mixed and hierarchical models were not read.** Neither this decision nor 0105 covers them, no
+  capability search was run for them, and #621 exists so that closing #338 does not turn an
+  unexamined subject into a settled one. Its verdict is allowed to be "not written".
