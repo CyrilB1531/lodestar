@@ -50,9 +50,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # One place resolves which pull request this is, so every step below reads the same
-      # pair whether the run came from an event or from a manual dispatch. The dispatch
+      # triple whether the run came from an event or from a manual dispatch. The dispatch
       # input is user-supplied and reaches the shell through the environment rather than
       # through interpolation, which is how release.yml treats a tag for the same reason.
+      #
+      # Whether the author is a bot is resolved here too, and read from each API's own field
+      # rather than matched against a name, because the two paths do not see the same name:
+      # REST says `dependabot[bot]` where GraphQL says `app/dependabot` (#642). One flag
+      # crosses both.
       - name: Which pull request
         id: target
         env:
@@ -60,46 +65,52 @@ jobs:
           ASKED: ${{ inputs.pull_request }}
           EVENT_PR: ${{ github.event.pull_request.number }}
           EVENT_AUTHOR: ${{ github.event.pull_request.user.login }}
+          EVENT_TYPE: ${{ github.event.pull_request.user.type }}
         run: |
           if [ -n "$ASKED" ]; then
             case "$ASKED" in
               ''|*[!0-9]*) echo "::error::'$ASKED' is not a pull request number."; exit 1 ;;
             esac
             pr="$ASKED"
-            author=$(gh pr view "$pr" --repo "$GITHUB_REPOSITORY" --json author --jq .author.login)
+            gh pr view "$pr" --repo "$GITHUB_REPOSITORY" --json author > author.json
+            author=$(jq -r .author.login author.json)
+            bot=$(jq -r .author.is_bot author.json)
           else
             pr="$EVENT_PR"
             author="$EVENT_AUTHOR"
+            case "$EVENT_TYPE" in Bot) bot=true ;; *) bot=false ;; esac
           fi
           [ -n "$pr" ] || { echo "::error::no pull request to classify."; exit 1; }
           echo "pr=$pr" >> "$GITHUB_OUTPUT"
           echo "author=$author" >> "$GITHUB_OUTPUT"
-          echo "#$pr by $author"
+          echo "bot=$bot" >> "$GITHUB_OUTPUT"
+          echo "#$pr by $author (bot: $bot)"
 
       # A generated pull request gets a label and nothing else. The 35
       # `Nightly benchmark run for <date>` ones were noise on both the milestone and the
       # boards. The test is the author, not the title -- six human pull requests carry
       # "nightly" or "benchmark" in theirs and must be classified normally.
-      - name: Is this a bot's pull request
-        id: bot
-        env:
-          AUTHOR: ${{ steps.target.outputs.author }}
-        run: |
-          case "$AUTHOR" in
-            github-actions*|*[bot]) echo "generated=true" >> "$GITHUB_OUTPUT" ;;
-            *) echo "generated=false" >> "$GITHUB_OUTPUT" ;;
-          esac
-          echo "author: $AUTHOR"
-
+      #
+      # Which bot it is decides the label, and only here. `bench` is a claim about the diff:
+      # it fits a benchmark run and not a dependency bump, and Dependabot already labels its
+      # own with `dependencies` and the ecosystem. So another bot stops here unlabelled,
+      # which is still the whole point -- no milestone and no board.
       - name: Label the generated pull request and stop
-        if: steps.bot.outputs.generated == 'true'
+        if: steps.target.outputs.bot == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ steps.target.outputs.pr }}
-        run: gh pr edit "$PR" --add-label bench --repo "$GITHUB_REPOSITORY"
+          AUTHOR: ${{ steps.target.outputs.author }}
+        run: |
+          case "$AUTHOR" in
+            github-actions*|app/github-actions)
+              gh pr edit "$PR" --add-label bench --repo "$GITHUB_REPOSITORY" ;;
+            *)
+              echo "$AUTHOR is a bot, but not the benchmark runner: no label to add." ;;
+          esac
 
       - name: Read what the pull request changed
-        if: steps.bot.outputs.generated == 'false'
+        if: steps.target.outputs.bot == 'false'
         id: files
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -119,7 +130,7 @@ jobs:
       # means a human choosing `Release 2026-09-11` by hand would otherwise be overwritten by
       # the next commit, which is worse than the gap this closes.
       - name: Milestone
-        if: steps.bot.outputs.generated == 'false'
+        if: steps.target.outputs.bot == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ steps.target.outputs.pr }}
@@ -140,7 +151,7 @@ jobs:
       # Reconciled, not merely added: a push that drops a package's last file should drop its
       # label too, or the board and the label keep claiming work the diff no longer contains.
       - name: Package labels
-        if: steps.bot.outputs.generated == 'false'
+        if: steps.target.outputs.bot == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ steps.target.outputs.pr }}
@@ -167,7 +178,7 @@ jobs:
       # person may have set, and dropping it on a push that momentarily loses a path would
       # throw both away -- an addition is cheap to undo by hand, a deletion is not.
       - name: Boards
-        if: steps.bot.outputs.generated == 'false'
+        if: steps.target.outputs.bot == 'false'
         env:
           GH_TOKEN: ${{ secrets.PROJECTS_TOKEN }}
           PR: ${{ steps.target.outputs.pr }}
