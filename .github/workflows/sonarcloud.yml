@@ -179,6 +179,13 @@ jobs:
       # assets/** is the same "Invalid character ... UTF-8" warning as
       # tests/oracles/'s binary fixtures above, on assets/icon.png: a PNG has
       # nothing for a text-encoding sensor to read.
+      # `tests/**` joined the coverage exclusions with #623, and it changes no number today:
+      # the Microsoft.Testing.Platform collector reports the modules a run loaded and attributes
+      # them to src/ alone, so no test file appears in a report any more. It is declared anyway,
+      # because the exclusion should be a decision rather than a property of whichever collector
+      # is installed. coverlet did report test sources, and that is most of why `lines_to_cover`
+      # falls from 14 533 to 12 539 between the two: 1 994 of those lines were tests measuring
+      # themselves. The 95.4% that replaces 92.6% is production code only.
       - name: Begin analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -189,10 +196,10 @@ jobs:
             /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.host.url="https://sonarcloud.io" \
             /d:sonar.qualitygate.wait=true \
-            /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" \
+            /d:sonar.cs.vscoveragexml.reportsPaths="**/TestResults/*.xml" \
             /d:sonar.python.version="3.12" \
             /d:sonar.projectBaseDir="$GITHUB_WORKSPACE" \
-            /d:sonar.coverage.exclusions="tools/**,bench/**,samples/**,.claude/**" \
+            /d:sonar.coverage.exclusions="tools/**,bench/**,samples/**,tests/**,.claude/**" \
             /d:sonar.exclusions="tests/oracles/**,samples/Lodestar.DocSnippets/Generated/**,tools/tests/**,assets/**,.claude/**" \
             /d:sonar.test.exclusions="tests/oracles/**" \
             /d:sonar.cpd.exclusions="src/Lodestar.Text/Stemming/**"
@@ -228,13 +235,21 @@ jobs:
           dotnet build samples/Lodestar.Sample --configuration Release
           dotnet build samples/Lodestar.DocSnippets --configuration Release
 
-      # Coverage must be written before `end` collects it. OpenCover, not the
-      # default Cobertura: the .NET path of SonarQube Cloud reads OpenCover, and
-      # a format or path mismatch fails silently as 0% coverage.
+      # Coverage must be written before `end` collects it, and a format or path mismatch
+      # fails silently as 0% coverage -- which is why the format is named on both sides
+      # and neither side is a default.
+      #
+      # Visual Studio coverage XML, not OpenCover: xunit v3 runs on Microsoft.Testing
+      # .Platform, whose coverage extension emits `xml`, `coverage` and `cobertura` and
+      # no OpenCover at all (#623). `xml` is the one SonarQube Cloud's .NET path reads,
+      # through sonar.cs.vscoveragexml.reportsPaths above.
+      #
+      # One file per test assembly, under each project's TestResults/. Pinning a single
+      # name collapses them onto each other -- see ci.yml, where that was measured.
       - name: Test with coverage
         run: |
           dotnet test Lodestar.slnx --configuration Release --no-build \
-            --collect:"XPlat Code Coverage;Format=opencover"
+            -- --coverage --coverage-output-format xml
 
       - name: End analysis
         env:

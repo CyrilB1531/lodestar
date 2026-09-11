@@ -71,8 +71,14 @@ dotnet test Lodestar.slnx -c Release --filter "FullyQualifiedName~SpanishSnowbal
 dotnet test tests/Lodestar.Text.Tests -c Release --filter "FullyQualifiedName~Levenshtein"
 ```
 
-**Read the test count, not the colour.** A `--filter` that matches nothing exits
-zero and reports success. This has produced false confidence here more than once.
+**Read the test count, not the colour.** This has produced false confidence here more
+than once, though the specific trap is now closed: under VSTest a `--filter` matching
+nothing exited zero and reported success, and under Microsoft.Testing.Platform — which
+xunit v3 runs on since [#623](https://github.com/CyrilB1531/lodestar/issues/623) — it
+exits **8** and says `Zéro tests exécutés`. The habit is still the right one, because a
+count is what tells you a *suite* went missing, and that failure has no exit code at all:
+`dotnet test Lodestar.slnx -c Release` must report **32 assemblies**, sixteen suites and
+their sixteen mirrors.
 
 Oracle corpora (see *Oracle validation* below), run from outside the repository:
 

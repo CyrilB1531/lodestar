@@ -161,7 +161,7 @@
   applies: []
   superseded_by: []
   amended_by: ["0019"]
-  applied_by: []
+  applied_by: ["0107"]
 
 "0016":
   title: "Classification metrics ship as `DataNet.Metrics`, not inside `DataNet.Text`"
@@ -201,7 +201,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0107"]
 
 "0020":
   title: "`normalize=` is a projection, and `ZeroDivision` keeps a default per metric"
@@ -1069,6 +1069,16 @@
   supersedes: []
   amends: []
   applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0107":
+  title: "xunit v3 arrives whole, and takes the coverage format with it"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0015", "0019"]
   superseded_by: []
   amended_by: []
   applied_by: []

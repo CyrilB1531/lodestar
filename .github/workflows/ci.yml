@@ -185,11 +185,22 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
+      # Everything after `--` goes to Microsoft.Testing.Platform, which xunit v3 runs on
+      # instead of VSTest (#623). `--collect` and `--logger` were VSTest's, and the data
+      # collector behind the first was coverlet, which collects nothing here now.
+      #
+      # Both reports are deliberately left to their generated names. These options take a
+      # path, not a pattern, so one name makes all 32 processes write to the same file and
+      # the last writer wins. Measured, twice: a pinned `--coverage-output` reported ONE
+      # module instead of sixteen, and a pinned `--report-trx-filename` reported 777 tests
+      # instead of 6904 -- both green, both nearly empty, which is the failure this
+      # repository has been bitten by before.
       - name: Test (with coverage)
         run: >
           dotnet test --configuration Release --no-build
-          --collect:"XPlat Code Coverage"
-          --logger "trx;LogFileName=test-results.trx"
+          --
+          --coverage --coverage-output-format xml
+          --report-trx
 
       # No -p:Version: each project declares its own in a sibling Version.props,
       # and that declaration is authoritative everywhere — here and at release.
