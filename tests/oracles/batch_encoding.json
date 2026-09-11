@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "BatchEncoding",
   "library": "tokenizers",
-  "library_version": "0.23.1",
+  "library_version": "0.23.2",
   "reference_calls": [
    "tokenizers.Tokenizer.encode_batch, TemplateProcessing(single='[CLS] $A [SEP]'), enable_padding(longest), enable_truncation(max_length)",
    "mean pool with attention mask + L2 normalize (sentence-transformers recipe)"

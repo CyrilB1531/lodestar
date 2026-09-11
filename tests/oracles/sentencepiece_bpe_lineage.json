@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "SentencePiece BPE (Metaspace + byte_fallback)",
   "library": "tokenizers",
-  "library_version": "0.23.1",
+  "library_version": "0.23.2",
   "models": {
    "llama2": "llama2_tokenizer.json (vendored by tools/fetch_llama2_mistral_tokenizers.py)",
    "mistral_v01": "mistral_v01_tokenizer.json (vendored by tools/fetch_llama2_mistral_tokenizers.py)"

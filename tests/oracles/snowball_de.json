@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "GermanSnowballStemmer",
   "library": "nltk",
-  "library_version": "3.10.1",
+  "library_version": "3.10.3",
   "reference_calls": [
    "nltk.stem.snowball.SnowballStemmer('german')"
   ],

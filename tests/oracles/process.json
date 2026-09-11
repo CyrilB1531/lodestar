@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "Process",
   "library": "rapidfuzz",
-  "library_version": "3.14.5",
+  "library_version": "3.14.6",
   "reference_calls": [
    "rapidfuzz.process.extract (default scorer WRatio)"
   ],

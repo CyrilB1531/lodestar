@@ -38,7 +38,7 @@ public sealed class CorpusIdentityTests
         JsonElement metadata = document.RootElement.GetProperty("metadata");
 
         Assert.Equal("scipy", metadata.GetProperty("library").GetString());
-        Assert.Equal("1.18.0", metadata.GetProperty("version").GetString());
+        Assert.Equal("1.18.1", metadata.GetProperty("version").GetString());
         Assert.Equal(family, metadata.GetProperty("family").GetString());
 
         int declared = metadata.GetProperty("count").GetInt32();

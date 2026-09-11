@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "BPE tokenizer.json",
   "library": "tokenizers",
-  "library_version": "0.23.1",
+  "library_version": "0.23.2",
   "count": 3
  },
  "cases": [

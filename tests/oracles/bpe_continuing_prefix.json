@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "BPE continuing_subword_prefix",
   "library": "tokenizers",
-  "library_version": "0.23.1",
+  "library_version": "0.23.2",
   "model": "hand-built: ten classic BPE shapes, defined in tools/generate_oracles.py",
   "models": {
    "base": {

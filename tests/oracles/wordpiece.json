@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "WordPiece",
   "library": "tokenizers",
-  "library_version": "0.23.1",
+  "library_version": "0.23.2",
   "vocab": {
    "[UNK]": 0,
    "the": 1,

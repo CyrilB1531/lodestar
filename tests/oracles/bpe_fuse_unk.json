@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "BPE fuse_unk",
   "library": "tokenizers",
-  "library_version": "0.23.1",
+  "library_version": "0.23.2",
   "model": "hand-built: six classic BPE shapes and one byte-level, all defined in tools/generate_oracles.py",
   "models": {
    "in_piece_unfused": {

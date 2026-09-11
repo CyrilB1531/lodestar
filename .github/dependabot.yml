@@ -44,10 +44,19 @@ updates:
         update-types: [minor, patch]
 
   # tools/requirements.txt is the human-edited input and requirements.lock.txt the hashed
-  # compile of it; check_requirements_lock_sync.py refuses a pin the lock has never heard of.
-  # Dependabot edits the first and cannot regenerate the second, so every pull request here
-  # arrives failing that guard until someone runs pip-compile. Watched anyway: a red pull
-  # request naming a new version is still how the news arrives, and silence was worse.
+  # compile of it. Dependabot edits both -- measured on #636, #637 and #640, which each
+  # changed the two files -- but it does not *compile* the second: it rewrites the pin and
+  # its hashes in place, so the lock stops being a resolution and becomes an assertion.
+  # #639 is what that costs. It raised pandas to 3.0.5 in the lock alone, where pandas is
+  # transitive, and lifelines 0.30.3 declares `pandas<3.0,>=2.1` -- a pin the resolver would
+  # never have produced.
+  #
+  # A pull request here is therefore a notification and not a merge, and the header of
+  # tools/requirements.txt says why it cannot be one: the corpora under tests/oracles/ ARE
+  # these libraries' output, and nothing generates them but tools/generate_oracles.py.
+  # Watched anyway -- #622 found nine of thirteen pins behind precisely because nothing
+  # watched, and a red pull request naming a new version is still how the news arrives.
+  # #643 is the shape the bump then takes by hand.
   - package-ecosystem: pip
     directory: /tools
     schedule:
@@ -58,3 +67,14 @@ updates:
       pip:
         patterns: ['*']
         update-types: [minor, patch]
+    # Two that are not bumps at all, so they are refused once here rather than every month.
+    ignore:
+      # 0.5.0 publishes an sdist and no wheel, and all five install sites in this repository
+      # pass --only-binary :all:. #636 offered it and failed on every job with
+      # "Could not find a version that satisfies the requirement autograd-gamma==0.5.0".
+      # tools/requirements.txt pins 0.4.2 with that reason written above it.
+      - dependency-name: autograd-gamma
+      # Transitive, through statsmodels and lifelines, and capped by the latter at <3.0.
+      # Dependabot reached past the resolver into its output (#639). A recompile from an
+      # unchanged requirements.txt keeps 2.3.3, which is also what ADR 0099 recorded.
+      - dependency-name: pandas

@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "Levenshtein",
   "library": "rapidfuzz",
-  "library_version": "3.14.5",
+  "library_version": "3.14.6",
   "reference_calls": [
    "rapidfuzz.distance.Levenshtein.distance",
    "rapidfuzz.distance.Levenshtein.normalized_distance",

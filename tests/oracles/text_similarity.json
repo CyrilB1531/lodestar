@@ -1,9 +1,9 @@
 {
  "metadata": {
   "library": "datasketch + simhash",
-  "version": "1.6.5 + 2.1.2",
+  "version": "2.0.0 + 2.1.2",
   "family": "text-similarity",
-  "variant": "MinHash(seed=1, sha1_hash32), Simhash(f=64, md5), MinHashLSH optimal banding",
+  "variant": "MinHash(seed=1, sha1_hash32, scheme=legacy), Simhash(f=64, md5), MinHashLSH optimal banding",
   "count": 8
  },
  "permutationCount": 32,

@@ -9,14 +9,14 @@
 # Bump deliberately, and regenerate the corpora in the same commit.
 #
 # Install with --only-binary :all: so that no source distribution runs setup.py.
-rapidfuzz==3.14.5
+rapidfuzz==3.14.6
 jellyfish==1.2.1
 textdistance==4.6.3
 scikit-learn==1.9.0
-nltk==3.10.1
+nltk==3.10.3
 rake-nltk==1.0.6
-tokenizers==0.23.1
-numpy==2.5.1
+tokenizers==0.23.2
+numpy==2.5.3
 sentencepiece==0.2.2
 # sentencepiece_model_pb2 — the generated protobuf module the spiece.model and
 # tokenizer.json generators read, and that fetch_xlmr_vocab.py writes the XLM-R
@@ -24,7 +24,7 @@ sentencepiece==0.2.2
 # does not declare as a dependency. Without it here the lock omits it and CI fails
 # with "No module named 'google'" while a developer machine that happens to have
 # protobuf installed passes.
-protobuf==7.35.1
+protobuf==7.36.1
 # mapie -- the reference for Lodestar.Conformal's split-conformal corpus (#441).
 # Its own dependencies (numpy, scikit-learn, scipy) were already resolved here, so
 # the graph grows by one package rather than by a tree.
@@ -92,7 +92,7 @@ rank_bm25==0.2.2
 # pytest — the only test runner in tools/. tools/generate_sonar_globalconfig.py
 # parses two foreign formats and writes a file the build reads; a drift check
 # proves that generator stable, never that it is right.
-pytest==8.4.2
+pytest==9.1.1
 
 # pyyaml -- tools/tests/test_bench_nightly_permissions.py parses a workflow file to
 # assert that `workflows: write` stays in the job that runs no repository code (#464).
@@ -132,6 +132,16 @@ tzdata==2026.3
 # from the wheel's METADATA rather than from PyPI's field, which decision 0075 found
 # unreliable. Its permutation coefficients are frozen into the corpus rather than
 # reproduced from numpy's generator, so nothing here depends on that stream.
-datasketch==1.6.5
+#
+# 2.0.0 introduced named permutation schemes and made `affine32` the default, so the
+# same call that returned the Mersenne-prime permutation under 1.6.5 now returns
+# `h -> a*h + b mod 2^32`. That is the family Lodestar.Text's MinHash and
+# Lodestar.Gpu's TiledMinHashSignatures do NOT implement -- both compute modulo
+# (2^61 - 1), which 2.0.0 still offers as `scheme="legacy"` and still computes
+# identically. generate_oracles.py asks for it by name rather than inheriting a
+# default, the same reason colorama and tzdata are pinned unconditionally above:
+# a tool's default moved, so what was implicit is written down. Whether the shipped
+# packages should follow affine32 is #645, not a pin.
+datasketch==2.0.0
 # simhash -- the reference for the 64-bit fingerprint (#602). MIT, read the same way.
 simhash==2.1.2

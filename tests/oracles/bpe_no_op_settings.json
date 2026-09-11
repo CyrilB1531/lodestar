@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "BPE model settings that change nothing, and the ByteLevel field with no default",
   "library": "tokenizers",
-  "library_version": "0.23.1",
+  "library_version": "0.23.2",
   "model": "hand-built: a 7-entry classic BPE and a 4-entry byte-level BPE, both defined in tools/generate_oracles.py",
   "models": {
    "baseline": {
