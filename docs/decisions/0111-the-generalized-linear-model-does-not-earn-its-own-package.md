@@ -117,9 +117,10 @@ This settles 0104's open question the way 0104 said it would be settled: by meas
 
 ## Consequences
 
-- The public surface `Lodestar.Stats.Regression` ships past 0.1.0 gains `GeneralizedLinearModel`,
-  `GlmFamily`, `GlmOptions` and `GlmSummary` alongside `OrdinaryLeastSquares` and `OlsSummary` — one
-  package, five public types doing regression.
+- The public surface `Lodestar.Stats.Regression` ships past 0.1.0 now carries
+  `GeneralizedLinearModel`, `GlmFamily`, `GlmOptions` and `GlmSummary` next to
+  `OrdinaryLeastSquares`, `OlsOptions` and `OlsSummary` — one package, seven public types doing
+  regression.
 - Nothing here is a package move, so none of #616's remaining documentation debt (a
   `bench/README.md` section against `Accord.Statistics`, a `docs/wiki-map.json` entry, reference
   pages, a sample, equivalence rows, a guide) is a second package's cost. It is
