@@ -51,6 +51,10 @@
     <Compile Include="../Lodestar.Stats.Regression.Tests/**/*.cs"
              Exclude="../Lodestar.Stats.Regression.Tests/bin/**;../Lodestar.Stats.Regression.Tests/obj/**"
              Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <!-- Decision 0081: StatsOracleAsserts is the one place the relative p-value tolerance
+         is defined, so it is linked here rather than reinvented. -->
+    <Compile Include="../Lodestar.Stats.Tests/Oracles/StatsOracleAsserts.cs"
+             Link="Oracles/StatsOracleAsserts.cs" />
   </ItemGroup>
 
   <ItemGroup>
