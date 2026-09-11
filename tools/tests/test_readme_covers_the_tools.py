@@ -1,4 +1,4 @@
-"""Every `tools/*.py` is named somewhere in `tools/README.md`.
+"""Every `tools/*.py` and `tools/*.cs` is named somewhere in `tools/README.md`.
 
 CLAUDE.md's *Where a fact belongs* table gives that README one subject -- "what
 each tool does and how to run it" -- and one source: "the scripts under tools/,
@@ -26,6 +26,11 @@ grows is a guard being switched off one file at a time.
 AT_LEAST is a floor rather than a pin. The count rises whenever a tool is added,
 so pinning it would fail every such commit for no finding; a floor catches only
 the glob breaking and the guard passing vacuously.
+
+`*.cs` joined `*.py` with #619, which put a file-based app beside the scripts --
+`survey.cs`, run as `dotnet run tools/survey.cs`. The contract is the language's
+only by accident: what the README owes is a reader's account of every tool in the
+directory, and a second glob is cheaper than discovering the first one's silence.
 """
 
 from __future__ import annotations
@@ -49,7 +54,8 @@ AT_LEAST = 40
 
 def scripts() -> list[str]:
     """The scripts the README owns: tools/*.py, not tools/tests/."""
-    return sorted(p.name for p in TOOLS.glob("*.py") if p.name not in UNDOCUMENTED)
+    return sorted(p.name for p in [*TOOLS.glob("*.py"), *TOOLS.glob("*.cs")]
+                  if p.name not in UNDOCUMENTED)
 
 
 def names(name: str) -> bool:

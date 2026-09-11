@@ -751,7 +751,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105", "0109"]
+  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105", "0109", "0110"]
 
 "0075":
   title: "Double Metaphone ships, with `doublemetaphone` 1.2 as its oracle"
@@ -971,7 +971,7 @@
   applies: ["0074"]
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0110"]
 
 "0097":
   title: "The chi-squared tail joins the published four, by the rule 0095 already set"
@@ -1061,7 +1061,7 @@
   applies: ["0074"]
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0110"]
 
 "0106":
   title: "The frontmatter is inserted once, and the body does not move"
@@ -1099,6 +1099,16 @@
   supersedes: []
   amends: ["0107"]
   applies: ["0074"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0110":
+  title: "The surveyor is a file-based app, and it names which members it counted"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0074", "0096", "0105"]
   superseded_by: []
   amended_by: []
   applied_by: []

@@ -213,9 +213,52 @@ given:
   [`../CONTRIBUTING.md`](../CONTRIBUTING.md#before-pushing-the-half-the-build-cannot-see).
 - `tests/` holds the pytest suite CI runs over these scripts, and one of its
   files holds *this page* to them: `test_readme_covers_the_tools.py` fails when
-  a `tools/*.py` is named nowhere here. The list above is the document's
-  contract rather than a courtesy, so a new script arrives with its row
-  ([#652](https://github.com/CyrilB1531/lodestar/issues/652)).
+  a `tools/*.py` or `tools/*.cs` is named nowhere here. The list above is the
+  document's contract rather than a courtesy, so a new script arrives with its row
+  ([#652](https://github.com/CyrilB1531/lodestar/issues/652),
+  [#619](https://github.com/CyrilB1531/lodestar/issues/619)).
+
+## `survey.cs`
+
+The one tool here that is not Python, because `MetadataLoadContext` is a .NET API.
+It reads a NuGet package's **exported surface**, which is what
+[decision 0074](../docs/decisions/0074-the-phase-2-gaps-restated-on-what-the-packages-export.md)
+requires before a gap claim may be written down — against the assembly, never against
+the README.
+
+```bash
+dotnet run tools/survey.cs -- <package> <version> [regex]
+dotnet run tools/survey.cs -- Microsoft.ML.TimeSeries 5.0.0 'Arima|Acf|Stationar'
+```
+
+A **file-based app**, so there is no `.csproj`, no entry in `Lodestar.slnx` and nothing
+for CI to build. The `#:package` and `#:property` directives at the top are the whole
+project file; the trim and single-file analysers are off because reading an arbitrary
+assembly's surface cannot satisfy them by construction.
+
+**It publishes the package before reading it**, and that is the point rather than an
+implementation detail. A bare `lib/*.dll` cannot be opened — `GetExportedTypes` needs
+every assembly its signatures mention — and that trap has now been paid twice, on
+`Mosaik.Core` (0074) and on `Microsoft.ML.TimeSeries`, which drags `Microsoft.ML`, an
+MKL redistributable and `Newtonsoft.Json` behind it.
+
+**Three member counts, one of them named.** Type counts reproduced exactly across five
+decisions; member counts did not, and the difference was what each ad-hoc run happened
+to include. Measured while writing this:
+
+| package | types | quote this | with accessors and operators | without constructors |
+| --- | --- | --- | --- | --- |
+| `Microsoft.ML.TimeSeries` 5.0.0 | 34 | **124** | 155 | 111 |
+| `MathNet.Numerics` 5.0.0 | 336 | 5 707 | 6 938 | **5 335** |
+
+Decision 0105's "124 members" is the third column and reproduces on the nose; decision
+0096's "5 333 members" is the fifth, two apart on a different SDK. Neither was wrong and
+neither said which it was, so all three are printed and **a new record quotes the third
+column** — declared public members, accessors and operators excluded, constructors kept,
+because a caller calls those.
+
+A package that installs no assembly is reported with the closure's actual contents rather
+than as a blank, which is the finding 0104 recorded for `cs-glm` 1.0.1.
 
 ## `generate_oracles.py`
 
