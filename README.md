@@ -5,8 +5,11 @@
 A **data-science toolkit for C#/.NET**, built on an honest premise:
 
 > Don't rewrite Python. Use the .NET ecosystem where it's strong, and write native
-> code only where .NET has a real gap: **text** (similarity, vectorization,
-> semantic search). All of it **with no Python at runtime**.
+> code only where .NET has no maintained equivalent at the reference's parity. Measured
+> package by package, that keeps turning out to be the **apparatus around a computation**
+> rather than the computation: the loader and not the encoder, the inference and not the
+> estimate, the diagnostics and not the forecast, sparse and not dense. All of it **with no
+> Python at runtime**.
 
 ## Why
 
@@ -48,15 +51,32 @@ The claim this project is judged on, strongest first.
    rather than because .NET is empty here — it is not, and the table below says by
    how much.
 
+6. **The inference table, not the estimate.** Ordinary least squares is in Math.NET, in
+   ML.NET and in half a dozen other places; the standard errors, t and p values,
+   confidence intervals, adjusted R², F test and VIF are in none of them. The reading
+   behind [decision 0096](docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md)
+   found coefficients everywhere and inference nowhere — and **replaced this project's own
+   claim** that nobody in .NET does inference, which was false as written. Ships as
+   `Lodestar.Stats.Regression`, beside ten scipy-parity test families in `Lodestar.Stats`.
+7. **Right-censored survival.** Kaplan-Meier, Nelson-Aalen and the log-rank test, at
+   lifelines parity, with no .NET incumbent at all —
+   [#442](https://github.com/CyrilB1531/lodestar/issues/442) called it the largest void it
+   surveyed. `scikit-survival` is the nearest reference in any language and is refused on
+   its **licence**, not its capability
+   ([decision 0099](docs/decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)).
+
 All of it **with no Python at runtime**, on **.NET 10** and **.NET Standard 2.0**
 from a single package (also .NET Framework 4.6.1+, Mono, Xamarin, Unity — see
 [`docs/decisions/0001`](docs/decisions/0001-target-framework.md)).
 
-The second deliverable is the **migration guides** for people arriving from Python:
-[`docs/migration/`](docs/migration/README.md) points each need (NumPy, pandas,
-scikit-learn, statsmodels, PyTorch, matplotlib, seaborn) at the right .NET building
-block and its pitfalls, marks the libraries that are no longer maintained with the
-dates that prove it, and says when calling Python is still the right answer. Its
+The second deliverable is the **migration inventory** for people arriving from Python:
+[`docs/migration/`](docs/migration/README.md) points each need at the right .NET
+building block, marks the libraries that are no longer maintained with the dates that
+prove it, and says when calling Python is still the right answer. Seven of its rows
+carry a per-library guide with the glue and the pitfalls — NumPy, pandas, scikit-learn,
+statsmodels, PyTorch, matplotlib, seaborn — and the rows whose verdict is **write** do
+not, because there the answer is a Lodestar package and
+[`docs/equivalence.md`](docs/equivalence.md) maps the calls. Its
 [four-column inventory](docs/migration/README.md) is the project map — use, build,
 decide.
 
