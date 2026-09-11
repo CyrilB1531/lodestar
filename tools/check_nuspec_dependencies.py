@@ -87,7 +87,7 @@ STJ = "System.Text.Json"
 POLYFILLS = {"System.Memory": "4.6.3", "System.Numerics.Vectors": "4.6.1"}
 
 # netstandard2.0-only, two-package status: docs/decisions/0011-persistence-format.md.
-PERSISTENCE = {STJ: "10.0.10"}
+PERSISTENCE = {STJ: "10.0.12"}
 
 # Must equal Directory.Packages.props' PackageVersion: a PackageReference
 # emits this floor, but LodestarUseProjectRefs emits Text's own version instead -- catching the escape hatch left on.
@@ -142,17 +142,17 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
     ONNX: {
         # The repository's only external dependency, and the only package that
         # carries one. That is what makes this package worth its release checklist.
-        NET: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.28.0"},
-        NETSTANDARD: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.28.0", **POLYFILLS},
+        NET: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.30.0"},
+        NETSTANDARD: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.30.0", **POLYFILLS},
     },
     EXTENSIONS_AI: {
         # The second satellite, and the second external dependency. Two Lodestar edges:
         # the embedder it adapts, and the package whose BatchEncoder its constructor names.
-        NET: {ONNX: ONNX_FLOOR, EMBEDDINGS: EMBEDDINGS_FLOOR, MS_EXTENSIONS_AI: "10.9.0"},
+        NET: {ONNX: ONNX_FLOOR, EMBEDDINGS: EMBEDDINGS_FLOOR, MS_EXTENSIONS_AI: "10.10.0"},
         NETSTANDARD: {
             ONNX: ONNX_FLOOR,
             EMBEDDINGS: EMBEDDINGS_FLOOR,
-            MS_EXTENSIONS_AI: "10.9.0",
+            MS_EXTENSIONS_AI: "10.10.0",
             **POLYFILLS,
         },
     },

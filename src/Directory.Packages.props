@@ -36,13 +36,13 @@
     <!-- Abstractions only: the interfaces a consumer already has, and no
          implementation. Carried by Lodestar.Extensions.AI alone, which is the
          satellite it earns under decision 0076. -->
-    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.9.0" />
-    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.28.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.0" />
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />
     <!-- 5.0.0 (2022-04-03) is still the only stable release; carried by
          Lodestar.Extensions.MathNet alone, which converts to its types rather
          than computing with them (decision 0087). -->
     <PackageVersion Include="MathNet.Numerics" Version="5.0.0" />
-    <PackageVersion Include="PolySharp" Version="1.15.0" />
+    <PackageVersion Include="PolySharp" Version="1.16.0" />
     <!-- Analyzer only, pinned in the root Directory.Build.props so src/, tests/
          and bench/ cannot drift apart. -->
     <PackageVersion Include="SonarAnalyzer.CSharp" Version="$(LodestarSonarAnalyzerVersion)" />
@@ -53,7 +53,7 @@
     <!-- In-box on net10; referenced only for the netstandard2.0 target. The one
          deliberate runtime dependency of the persistence layer — see
          docs/decisions/0011-persistence-format.md. -->
-    <PackageVersion Include="System.Text.Json" Version="10.0.10" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.12" />
   </ItemGroup>
 
 </Project>

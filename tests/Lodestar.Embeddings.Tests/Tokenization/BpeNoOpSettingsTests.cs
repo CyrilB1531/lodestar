@@ -167,7 +167,7 @@ public sealed class BpeNoOpSettingsTests
         Dictionary<string, Dictionary<string, string>> streams, string model)
     {
         Assert.True(streams.TryGetValue(model, out Dictionary<string, string>? texts), $"{Corpus} carries no case for model '{model}'.");
-        return texts!;
+        return texts;
     }
 
     private static BpeVocabulary Vocabulary(JsonElement model) => Load(model.GetProperty("tokenizer_json").GetString()!);

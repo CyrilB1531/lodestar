@@ -20,3 +20,41 @@ updates:
       actions:
         patterns: ['*']
         update-types: [minor, patch]
+
+  # Nine of thirteen pins were behind when #622 measured them, and the reason was structural:
+  # this file declared one ecosystem. Every dependency pull request in the repository's
+  # history is an Actions bump, because Actions were the only thing anything watched.
+  - package-ecosystem: nuget
+    directories:
+      - /src
+      - /tests
+      - /bench
+      - /samples
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+    groups:
+      # Same split as the actions group above, for the same reason: a minor or patch bump is
+      # routine and reviewing six of them separately buys nothing, while a major can change
+      # behaviour and deserves its own merits. `xunit.runner.visualstudio` going 2.8.2 to
+      # 4.0.0 is the case in point -- it crossed two majors and still runs v1, v2 and v3.
+      nuget:
+        patterns: ['*']
+        update-types: [minor, patch]
+
+  # tools/requirements.txt is the human-edited input and requirements.lock.txt the hashed
+  # compile of it; check_requirements_lock_sync.py refuses a pin the lock has never heard of.
+  # Dependabot edits the first and cannot regenerate the second, so every pull request here
+  # arrives failing that guard until someone runs pip-compile. Watched anyway: a red pull
+  # request naming a new version is still how the news arrives, and silence was worse.
+  - package-ecosystem: pip
+    directory: /tools
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: chore
+    groups:
+      pip:
+        patterns: ['*']
+        update-types: [minor, patch]

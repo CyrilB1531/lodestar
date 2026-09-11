@@ -47,7 +47,7 @@
          samples/ have none and name the version on the PackageReference itself.
          See docs/decisions/0015-sonar-rules-in-the-build.md and
          docs/decisions/0019-the-net-analysers-run-in-the-build-too.md. -->
-    <LodestarSonarAnalyzerVersion>10.20.0.135146</LodestarSonarAnalyzerVersion>
+    <LodestarSonarAnalyzerVersion>10.34.0.3385</LodestarSonarAnalyzerVersion>
 
     <!-- Package identity / provenance (§10). Everything genuinely shared lives
          here; <Version> deliberately does not, because the three packages

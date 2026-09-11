@@ -23,7 +23,7 @@ public sealed class BpeMetaspaceLoaderTests
             "\"pre_tokenizer\": { \"type\": \"Metaspace\", \"replacement\": \"▁\", \"prepend_scheme\": \"first\", \"split\": false },");
 
         Assert.NotNull(vocabulary.Metaspace);
-        Assert.Equal('▁', vocabulary.Metaspace!.Replacement);
+        Assert.Equal('▁', vocabulary.Metaspace.Replacement);
         Assert.False(vocabulary.Metaspace.RemoveExtraWhitespaces);
         Assert.Equal(MetaspacePrependScheme.First, vocabulary.Metaspace.PrependScheme);
         Assert.True(vocabulary.Metaspace.SkipPrependWhenAlreadyPrefixed);
@@ -36,7 +36,7 @@ public sealed class BpeMetaspaceLoaderTests
             "\"normalizer\": { \"type\": \"Sequence\", \"normalizers\": [ { \"type\": \"Prepend\", \"prepend\": \"▁\" }, { \"type\": \"Replace\", \"pattern\": { \"String\": \" \" }, \"content\": \"▁\" } ] },");
 
         Assert.NotNull(vocabulary.Metaspace);
-        Assert.Equal('▁', vocabulary.Metaspace!.Replacement);
+        Assert.Equal('▁', vocabulary.Metaspace.Replacement);
         Assert.False(vocabulary.Metaspace.RemoveExtraWhitespaces);
         Assert.Equal(MetaspacePrependScheme.Always, vocabulary.Metaspace.PrependScheme);
         Assert.False(vocabulary.Metaspace.SkipPrependWhenAlreadyPrefixed);
