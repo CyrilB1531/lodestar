@@ -45,6 +45,9 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
 CHANGELOG = ROOT / "CHANGELOG.md"
 
+# Named because it is spelled three times below, which is S1192's threshold.
+REPORT = "--report"
+
 VERSION = re.compile(r"<Lodestar[A-Za-z]*Version>([^<]+)</")
 # `### <Package>` under the `## [Unreleased]` heading. The section is found by walking the
 # headings rather than by one regex: `## ` opens and closes it, which a scan states plainly.
@@ -156,7 +159,7 @@ def main() -> int:
     if args and args[0] in ("--help", "-h"):
         print(__doc__)
         return 0
-    if args and args[0] not in ("--report",):
+    if args and args[0] != REPORT:
         print(__doc__)
         return 2
 
@@ -168,10 +171,10 @@ def main() -> int:
 
     rows = survey()
     waiting = [r for r in rows if r[3]]
-    if args[:1] == ["--report"] or waiting:
+    if args[:1] == [REPORT] or waiting:
         print_table(rows)
 
-    if args[:1] == ["--report"]:
+    if args[:1] == [REPORT]:
         return 0
 
     for notice in notices(rows):
