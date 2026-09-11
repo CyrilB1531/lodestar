@@ -55,14 +55,17 @@ FORWARD = ("supersedes", "amends", "applies")
 # The reverse of each, computed here and never written by hand.
 REVERSE = {"supersedes": "superseded_by", "amends": "amended_by", "applies": "applied_by"}
 
-FRONTMATTER = re.compile(r"\A---\n(.*?\n)---\n", re.DOTALL)
-# `status: accepted` or `amends: ["0095", "0097"]` -- one key per line, nothing nested.
-ENTRY = re.compile(r"^([a-z_]+):[ \t]*(.*)$")
+# The block's delimiters, found by string search rather than by a pattern: a lazy
+# `.*?` across newlines backtracks, and this is a fence, not a grammar.
+FENCE = "---\n"
 QUOTED = re.compile(r'"(\d{4})"')
+# A frontmatter key, which is the whole of what one may look like.
+KEY = re.compile(r"\A[a-z_]+\Z")
 # `# 0095 — The numerical layer publishes ...`, the title's one source of truth.
-TITLE = re.compile(r"^#\s+(\d{4})\s+—\s+(.+?)\s*$", re.MULTILINE)
+# Trailing space is stripped in code: `\s*$` after a group is S8786's backtracking.
+TITLE = re.compile(r"^#[ \t]+(\d{4})[ \t]+—[ \t]+(.+)$", re.MULTILINE)
 # `**Status:** accepted · **Date:** ...`, whose first word the frontmatter repeats.
-STATUS_LINE = re.compile(r"^\*\*Status:\*\*\s*(.+?)\s*$", re.MULTILINE)
+STATUS_LINE = re.compile(r"^\*\*Status:\*\*[ \t]*(.+)$", re.MULTILINE)
 
 # Prose, commented at emit time rather than here: a block of `#` lines in this
 # file reads to tools/check_comment_length.py as a comment, which it is not.
@@ -108,10 +111,12 @@ def number_of(path: pathlib.Path) -> str:
 
 def split_frontmatter(text: str) -> tuple[str | None, str]:
     """The frontmatter block and the body below it, or (None, text) when there is none."""
-    match = FRONTMATTER.match(text)
-    if match is None:
+    if not text.startswith(FENCE):
         return None, text
-    return match.group(1), text[match.end():]
+    end = text.find(f"\n{FENCE}", len(FENCE) - 1)
+    if end < 0:
+        return None, text
+    return text[len(FENCE):end + 1], text[end + 1 + len(FENCE):]
 
 
 def read_frontmatter(block: str) -> dict[str, object]:
@@ -127,16 +132,15 @@ def read_frontmatter(block: str) -> dict[str, object]:
     for line in block.splitlines():
         if not line.strip():
             continue
-        entry = ENTRY.match(line)
-        if entry is None:
+        key, separator, raw = line.partition(":")
+        if not separator or KEY.match(key) is None:
             raise AdrError(f"cannot read frontmatter line {line!r}")
-        key, raw = entry.group(1), entry.group(2).strip()
         if key in found:
             raise AdrError(f"frontmatter declares {key!r} twice")
         if key in FORWARD:
-            found[key] = read_list(key, raw)
+            found[key] = read_list(key, raw.strip())
         else:
-            found[key] = unquote(raw)
+            found[key] = unquote(raw.strip())
     return found
 
 
@@ -165,14 +169,14 @@ def title_of(number: str, text: str) -> str:
     """The title from the record's own `# NNNN — Title` heading."""
     for match in TITLE.finditer(text):
         if match.group(1) == number:
-            return match.group(2)
+            return match.group(2).rstrip()
     raise AdrError(f"{number}: no `# {number} — <title>` heading")
 
 
 def status_line_of(text: str) -> str | None:
     """The record's `**Status:**` text, which the frontmatter's `status` opens."""
     match = STATUS_LINE.search(text)
-    return None if match is None else match.group(1)
+    return None if match is None else match.group(1).rstrip()
 
 
 def read_record(path: pathlib.Path) -> dict[str, object]:
@@ -203,32 +207,36 @@ def build(records: list[dict[str, object]]) -> dict[str, dict[str, object]]:
     index says what the records say; it is not the place a dangling reference is
     argued about.
     """
-    known = {str(record[KEY_NUMBER]) for record in records}
-    entries: dict[str, dict[str, object]] = {}
+    entries = {str(record[KEY_NUMBER]): declared(record) for record in records}
+    reverse_edges(entries)
+    return entries
 
-    for record in records:
-        frontmatter = record["frontmatter"] or {}
-        entry: dict[str, object] = {
-            KEY_TITLE: record[KEY_TITLE],
-            KEY_STATUS: frontmatter.get(KEY_STATUS, "") or "",
-        }
-        for relation in FORWARD:
-            entry[relation] = list(frontmatter.get(relation, []) or [])
-        for reverse in REVERSE.values():
-            entry[reverse] = []
-        entries[str(record[KEY_NUMBER])] = entry
 
+def declared(record: dict[str, object]) -> dict[str, object]:
+    """One record's own entry: what it says, with its reverse edges still empty."""
+    frontmatter = record["frontmatter"] or {}
+    entry: dict[str, object] = {
+        KEY_TITLE: record[KEY_TITLE],
+        KEY_STATUS: frontmatter.get(KEY_STATUS, "") or "",
+    }
+    for relation in FORWARD:
+        entry[relation] = list(frontmatter.get(relation, []) or [])
+    for reverse in REVERSE.values():
+        entry[reverse] = []
+    return entry
+
+
+def reverse_edges(entries: dict[str, dict[str, object]]) -> None:
+    """Fill each entry's reverse edges from every entry that names it."""
     for number, entry in entries.items():
         for relation, reverse in REVERSE.items():
             for target in entry[relation]:
-                if target in known:
+                if target in entries:
                     entries[target][reverse].append(number)
 
     for entry in entries.values():
         for reverse in REVERSE.values():
             entry[reverse] = sorted(set(entry[reverse]))
-
-    return entries
 
 
 def quote(value: str) -> str:
