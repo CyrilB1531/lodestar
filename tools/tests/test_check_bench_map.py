@@ -79,3 +79,33 @@ def test_every_class_dir_the_gate_scans_is_a_real_directory():
     # CLASS_DIRS is what makes the guard above meaningful; a stale path would empty it.
     for directory in check_bench_map.CLASS_DIRS:
         assert directory.is_dir(), f"{directory.relative_to(ROOT)} does not exist"
+
+
+def test_every_bench_project_is_in_the_solution():
+    """#649: two of the five were not, and an analyser bump broke one of them unseen.
+
+    `dotnet build Lodestar.slnx` is the only thing that compiles a benchmark project
+    between nightly runs, so a project the solution does not list is one nothing checks
+    until the night a change happens to select it.
+    """
+    assert check_bench_map.solution_findings() == []
+
+
+def test_a_project_the_solution_omits_is_a_finding(monkeypatch, tmp_path):
+    solution = tmp_path / "Lodestar.slnx"
+    solution.write_text(
+        '<Solution>\n  <Project Path="bench/Lodestar.Text.Benchmarks/'
+        'Lodestar.Text.Benchmarks.csproj" />\n</Solution>\n', encoding="utf-8")
+    monkeypatch.setattr(check_bench_map, "SOLUTION", solution)
+    findings = check_bench_map.solution_findings()
+
+    # One per project under bench/ the solution leaves out -- all of them but the one
+    # named above, whatever that set grows to.
+    projects = sorted((check_bench_map.ROOT / "bench").glob("*/*.csproj"))
+    assert len(findings) == len(projects) - 1
+    assert any("Lodestar.Gpu.Benchmarks" in f for f in findings)
+
+
+def test_a_missing_solution_is_a_finding(monkeypatch, tmp_path):
+    monkeypatch.setattr(check_bench_map, "SOLUTION", tmp_path / "absent.slnx")
+    assert check_bench_map.solution_findings() == ["absent.slnx: missing"]
