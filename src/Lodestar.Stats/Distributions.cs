@@ -8,8 +8,8 @@ namespace Lodestar.Stats;
 /// </summary>
 /// <remarks>
 /// Published narrowly under decision 0095, which exercises the condition decision 0081 wrote
-/// for itself. The log-gamma, the incomplete beta and gamma and the normal tail underneath
-/// these stay internal.
+/// for itself. The incomplete beta and gamma and the normal tail underneath these stay
+/// internal; log-gamma joined the published members for a Poisson log-likelihood (#616).
 /// </remarks>
 public static class Distributions
 {
@@ -98,6 +98,18 @@ public static class Distributions
         // median, and negating it would hand a caller -0 from a published method.
         return -Normal.Quantile(p) + 0.0;
     }
+
+    /// <summary>The natural log of the gamma function.</summary>
+    /// <param name="x">A positive argument.</param>
+    /// <returns><c>log Γ(x)</c>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="x"/> is not positive.</exception>
+    /// <remarks>
+    /// Published for <c>Lodestar.Stats.Regression</c>'s Poisson log-likelihood, whose AIC needs
+    /// <c>log Γ(y + 1)</c> and therefore this member (#616). Decision 0095 listed it among the
+    /// internals that stay so while nothing had asked; 0081's asymmetry is why asking is what
+    /// changes it.
+    /// </remarks>
+    public static double LogGamma(double x) => Internal.Gamma.LogGamma(x);
 
     /// <summary>A probability is strictly inside the unit interval; the endpoints are refused.</summary>
     /// <remarks>Shared by the two quantiles so the two cannot drift apart on what they accept.</remarks>
