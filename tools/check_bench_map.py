@@ -35,6 +35,9 @@ PROGRAM = BENCH_DIR / "Program.cs"
 PYTHON_DIR = ROOT / "bench" / "python"
 WORKFLOWS = ROOT / ".github" / "workflows"
 NIGHTLY = WORKFLOWS / "bench-nightly.yml"
+SOLUTION = ROOT / "Lodestar.slnx"
+# Three findings say a file this gate reads is not there, and S1192 counts the third.
+MISSING = ": missing"
 # Every finding here names a workflow by its repository-relative path, and S1192
 # fires on the third spelling of one literal. `label(path)` is that one spelling.
 WORKFLOW_DIR = ".github/workflows"
@@ -269,7 +272,7 @@ def measured_project_findings() -> list[str]:
     comment alone -- it passed with the loop emptied, which is the exact bug.
     """
     if not NIGHTLY.exists():
-        return [f"{label(NIGHTLY)}: missing"]
+        return [f"{label(NIGHTLY)}{MISSING}"]
 
     text = NIGHTLY.read_text(encoding="utf-8")
     match = RUN_LOOP.search(text)
@@ -289,13 +292,39 @@ def measured_project_findings() -> list[str]:
     ]
 
 
+def solution_findings() -> list[str]:
+    """Every project under bench/, against the solution that would compile it.
+
+    #649: Lodestar.slnx listed three of the four benchmark projects, and
+    bench/Lodestar.Gpu.Benchmarks was the fourth. So `dotnet build Lodestar.slnx` never
+    touched it, and when #622 raised SonarAnalyzer.CSharp from 10.20 to 10.34 the new
+    S4790 broke it silently -- a bump validated against every project the solution knows
+    about, which was all of them but that one. The nightly is what would have found it,
+    on whichever night a change first touched src/Lodestar.Gpu or Similarity.
+
+    A project outside the solution is not forbidden -- samples/ is deliberately outside
+    (ADR 0009) -- but a benchmark project is compiled by the nightly and so has to stay
+    compilable, which only a build reaching it can promise.
+    """
+    if not SOLUTION.exists():
+        return [f"{SOLUTION.name}{MISSING}"]
+
+    listed = SOLUTION.read_text(encoding="utf-8")
+    return [
+        f"{project.relative_to(ROOT).as_posix()} is not in {SOLUTION.name}, so no build "
+        f"reaches it and an analyser bump can break it unseen (#649)"
+        for project in sorted((ROOT / "bench").glob("*/*.csproj"))
+        if project.relative_to(ROOT).as_posix() not in listed
+    ]
+
+
 def main() -> int:
     if len(sys.argv) > 1:
         print(__doc__)
         return 0 if sys.argv[1] in ("--help", "-h") else 2
 
     if not MAP.exists():
-        print(f"{MAP.relative_to(ROOT)}: missing")
+        print(f"{MAP.relative_to(ROOT)}{MISSING}")
         return 1
 
     data = json.loads(MAP.read_text(encoding="utf-8"))
@@ -305,6 +334,7 @@ def main() -> int:
     findings += diagnostic_findings(diagnostics)
     findings += invocation_findings()
     findings += measured_project_findings()
+    findings += solution_findings()
     findings += glob_findings(data)
     findings += dispatch_only_findings(data)
 
