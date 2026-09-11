@@ -1,0 +1,169 @@
+name: Classify a pull request
+
+# Puts a pull request on the milestone, labels and boards its own changed files earn it,
+# when it opens and again on every push to it (#628).
+#
+# Doing this by hand went wrong three times: `src/` as the only criterion filed every
+# tests-only change as cross-cutting; a filter matching only `src/Lodestar.*` missed
+# everything from before the rename; and "I cannot tell" was written as `Cross-cutting`,
+# which reads exactly like a decision. tools/classify_change.py encodes all three.
+#
+# Two questions, two answers. **Ships** is `src/` only and decides the milestone, because a
+# milestone names a release. **About** also counts tests, benchmarks and the documentation
+# pages docs/wiki-map.json attributes, and decides the boards and labels.
+#
+# Running on every push means the attribution follows the diff: a pull request that grows a
+# `src/` change becomes `Next release`, one that loses its last package change stops claiming
+# that package. So labels are **reconciled** rather than only added.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, closed]
+
+# pull_request_target runs the base branch's workflow with the base repository's token, so a
+# fork cannot alter what runs here. No branch code is executed and nothing is checked out
+# from the head: the only thing read from the pull request is its list of changed file names.
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # A generated pull request gets a label and nothing else. The 35
+      # `Nightly benchmark run for <date>` ones were noise on both the milestone and the
+      # boards. The test is the author, not the title -- six human pull requests carry
+      # "nightly" or "benchmark" in theirs and must be classified normally.
+      - name: Is this a bot's pull request
+        id: bot
+        env:
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          case "$AUTHOR" in
+            github-actions*|*[bot]) echo "generated=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "generated=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+          echo "author: $AUTHOR"
+
+      - name: Label the generated pull request and stop
+        if: steps.bot.outputs.generated == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr edit "$PR" --add-label bench --repo "$GITHUB_REPOSITORY"
+
+      - name: Read what the pull request changed
+        if: steps.bot.outputs.generated == 'false'
+        id: files
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files?per_page=100" --paginate \
+            --jq '.[].filename' > changed.txt
+          python3 tools/classify_change.py < changed.txt | tee attribution.txt
+          while IFS='=' read -r key value; do
+            echo "$key=$value" >> "$GITHUB_OUTPUT"
+          done < attribution.txt
+
+      # `Next release` rather than a dated one: nothing is shipped until a tag says so, and
+      # release.yml moves it on when every package it ships has one.
+      #
+      # **A milestone this workflow did not set is left alone.** Re-running on every push
+      # means a human choosing `Release 2026-09-11` by hand would otherwise be overwritten by
+      # the next commit, which is worse than the gap this closes.
+      - name: Milestone
+        if: steps.bot.outputs.generated == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          SHIPS: ${{ steps.files.outputs.ships }}
+        run: |
+          current=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json milestone \
+                    --jq '.milestone.title // ""')
+          case "$current" in
+            ""|"Next release"|"Cross-cutting") ;;
+            *) echo "::notice::milestone is '$current', set outside this workflow. Left alone."
+               exit 0 ;;
+          esac
+          if [ -n "$SHIPS" ]; then wanted="Next release"; else wanted="Cross-cutting"; fi
+          if [ "$current" = "$wanted" ]; then echo "milestone already $wanted"; exit 0; fi
+          gh pr edit "$PR" --milestone "$wanted" --repo "$GITHUB_REPOSITORY"
+          echo "$PR -> $wanted (ships: ${SHIPS:-nothing})"
+
+      # Reconciled, not merely added: a push that drops a package's last file should drop its
+      # label too, or the board and the label keep claiming work the diff no longer contains.
+      - name: Package labels
+        if: steps.bot.outputs.generated == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          ABOUT: ${{ steps.files.outputs.about }}
+        run: |
+          have=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels \
+                 --jq '.labels[].name | select(startswith("Lodestar."))' | sort)
+          want=$(printf '%s' "$ABOUT" | tr ',' '\n' | grep . | sort || true)
+          for stale in $(comm -23 <(echo "$have") <(echo "$want")); do
+            gh pr edit "$PR" --remove-label "$stale" --repo "$GITHUB_REPOSITORY"
+            echo "- $stale"
+          done
+          for fresh in $(comm -13 <(echo "$have") <(echo "$want")); do
+            gh pr edit "$PR" --add-label "$fresh" --repo "$GITHUB_REPOSITORY"
+            echo "+ $fresh"
+          done
+        shell: bash
+
+      # A pull request whose every path is unattributed is not necessarily cross-cutting --
+      # it may be a path shape this does not know. Saying so is the point: writing
+      # `Cross-cutting` on a guess is the defect that left 49 issues indistinguishable from
+      # the 109 that had evidence. The label is removed again once a path does attribute.
+      - name: Say so when nothing could be attributed
+        if: steps.bot.outputs.generated == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          ABOUT: ${{ steps.files.outputs.about }}
+        run: |
+          if [ -z "$ABOUT" ]; then
+            gh label create unclassified --color ededed --force \
+              --description "Touched no path this repository can attribute to a package" \
+              --repo "$GITHUB_REPOSITORY" || true
+            gh pr edit "$PR" --add-label unclassified --repo "$GITHUB_REPOSITORY"
+          else
+            gh pr edit "$PR" --remove-label unclassified --repo "$GITHUB_REPOSITORY" || true
+          fi
+
+      # Boards are user-level Projects v2, which GITHUB_TOKEN cannot write: that needs a
+      # personal access token carrying the `project` scope. The step is skipped rather than
+      # failed when the secret is absent, so the milestone and the labels still land.
+      #
+      # Items are added and never removed. A board item carries Status and a position that a
+      # person may have set, and dropping it on a push that momentarily loses a path would
+      # throw both away -- an addition is cheap to undo by hand, a deletion is not.
+      - name: Boards
+        if: steps.bot.outputs.generated == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.PROJECTS_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          ABOUT: ${{ steps.files.outputs.about }}
+        run: |
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::notice::PROJECTS_TOKEN is not set, so the boards were not updated. The"\
+                 "milestone and the labels were. A token with the 'project' scope enables this."
+            exit 0
+          fi
+          owner="${GITHUB_REPOSITORY%%/*}"
+          url="https://github.com/$GITHUB_REPOSITORY/pull/$PR"
+          targets="$ABOUT"
+          [ -z "$targets" ] && targets="Lodestar — cross-cutting"
+          IFS=','; for board in $targets; do
+            number=$(gh project list --owner "$owner" --format json \
+                     --jq ".projects[] | select(.title == \"$board\") | .number")
+            if [ -z "$number" ]; then echo "::warning::no board named $board"; continue; fi
+            gh project item-add "$number" --owner "$owner" --url "$url" >/dev/null
+            echo "$PR -> board $board"
+          done

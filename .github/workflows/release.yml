@@ -24,6 +24,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The `Next release` step asks `git tag --contains` which releases carry a
+          # merge commit, and a shallow clone has neither the tags nor the history to
+          # answer. Without this it reports every pull request as still waiting.
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -113,6 +118,54 @@ jobs:
             --title "$PACKAGE $VERSION" \
             --notes-file release-notes.md \
             artifacts/*.nupkg
+
+      # `Next release` holds what has merged and not shipped (#628). A tag moves the items
+      # this package has now published onto the dated milestone -- but only the ones whose
+      # every package has shipped. #490 touched Embeddings, Metrics and Text; tagging two of
+      # the three left its Metrics half waiting, and moving it off `Next release` then would
+      # have said the opposite. So an item leaves only when no package it ships is still
+      # behind, which is the rule the manual pass reached the hard way.
+      - name: Move what this tag published off `Next release`
+        env:
+          PACKAGE: ${{ steps.tag.outputs.package }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          date=$(git log -1 --format=%ad --date=short "$GITHUB_REF_NAME")
+          target="Release $date"
+          if ! gh api "repos/$GITHUB_REPOSITORY/milestones?state=all&per_page=100" \
+                 --jq '.[].title' | grep -qxF "$target"; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/milestones" \
+              -f title="$target" -f state=closed -f due_on="${date}T00:00:00Z" \
+              -f description="The batch published on $date." >/dev/null
+          fi
+          next=$(gh api "repos/$GITHUB_REPOSITORY/milestones?state=all&per_page=100" \
+                 --jq '.[] | select(.title=="Next release") | .number')
+          [ -z "$next" ] && { echo "no 'Next release' milestone; nothing to move."; exit 0; }
+
+          gh api "repos/$GITHUB_REPOSITORY/issues?milestone=$next&state=all&per_page=100" \
+            --paginate --jq '.[] | select(.pull_request != null) | .number' > pending.txt || true
+          while read -r pr; do
+            [ -z "$pr" ] && continue
+            sha=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr" --jq '.merge_commit_sha // empty')
+            [ -z "$sha" ] && continue
+            gh api "repos/$GITHUB_REPOSITORY/pulls/$pr/files?per_page=100" --paginate \
+              --jq '.[].filename' > files.txt
+            ships=$(python3 tools/classify_change.py < files.txt | sed -n 's/^ships=//p')
+            [ -z "$ships" ] && continue
+            waiting=no
+            IFS=','; for p in $ships; do
+              git tag --list "$p/v*" --contains "$sha" | grep -q . || waiting=yes
+            done; unset IFS
+            if [ "$waiting" = "no" ]; then
+              number=$(gh api "repos/$GITHUB_REPOSITORY/milestones?state=all&per_page=100" \
+                       --jq ".[] | select(.title==\"$target\") | .number")
+              gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$pr" \
+                -F milestone="$number" >/dev/null
+              echo "#$pr fully shipped -> $target"
+            else
+              echo "#$pr still waiting on a package, stays on 'Next release'"
+            fi
+          done < pending.txt
 
       - name: Upload packages as build artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
