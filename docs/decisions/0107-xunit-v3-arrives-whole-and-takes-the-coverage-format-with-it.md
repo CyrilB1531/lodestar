@@ -98,3 +98,16 @@ oracle gate and the `--filter` habit already exist to catch, arriving through a 
   command can discharge.
 - `coverlet.collector`, `Microsoft.NET.Test.Sdk`, `xunit` and `xunit.runner.visualstudio` leave
   `tests/Directory.Packages.props` entirely. Four pins become three.
+- **Coverage stops counting test code, and the headline number moves because of it.** Measured on
+  the first run: `lines_to_cover` falls from 14 533 to 12 539 and `coverage` rises from 92.6% to
+  95.4%. Nothing was lost — all 265 files under `src/` that hold an executable body appear in the
+  reports, and the 19 that do not are enums, interfaces, positional records and `GlobalUsings`,
+  which have nothing to cover. The 1 994 lines that left were **test sources**, which coverlet
+  reported and `sonar.coverage.exclusions` never excluded; the platform's collector attributes
+  loaded modules to `src/` alone. `tests/**` joins that exclusion list anyway, so the scope is a
+  decision rather than a property of whichever collector happens to be installed.
+- **Coverage on new code reads as 0% for a pull request that changes no C#**, which this one does
+  not. The measure is *absent*, not zero — `new_lines_to_cover` has no value — and SonarQube
+  Cloud renders an absent measure as 0%. The quality gate carries no coverage condition, so
+  nothing fails on it; the line-level import is proven by the 95.4% computed from the same
+  reports.
