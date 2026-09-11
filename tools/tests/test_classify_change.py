@@ -87,6 +87,52 @@ def test_the_worked_example_from_the_issue():
     assert about == {"Lodestar.Fuzzy", "Lodestar.Text"}
 
 
+def test_a_shared_build_file_ships_without_naming_a_package():
+    # #638: this file carries the pinned versions every package resolves, shipped included.
+    # #635 moved three of them and read as shipping nothing.
+    ships, about, unattributed = classify_change.classify(["src/Directory.Packages.props"])
+
+    assert ships == {classify_change.SHARED_MARKER}
+    assert about == set()
+    assert unattributed == []
+
+
+def test_shared_sources_ship_too():
+    # src/Shared/ is compiled into every library, so a change there reaches every nupkg.
+    ships, about, _ = classify_change.classify(["src/Shared/Guard.cs"])
+
+    assert ships == {classify_change.SHARED_MARKER}
+    assert about == set()
+
+
+def test_the_shared_marker_is_not_a_package_name():
+    # It answers "does this ship", and must never be mistaken for a board or a label target.
+    assert classify_change.SHARED_MARKER not in classify_change.known_packages()
+
+
+def test_a_shared_file_beside_a_package_change_keeps_both():
+    ships, about, _ = classify_change.classify(
+        ["src/Directory.Packages.props", "src/Lodestar.Onnx/OnnxTextEmbedder.cs"])
+
+    assert ships == {classify_change.SHARED_MARKER, "Lodestar.Onnx"}
+    assert about == {"Lodestar.Onnx"}
+
+
+def test_the_pull_request_that_found_this():
+    # #635's own file list: a pin bump plus test fixes in two packages. It shipped three
+    # dependencies and was filed Cross-cutting.
+    ships, about, _ = classify_change.classify([
+        "src/Directory.Packages.props",
+        "tests/Directory.Packages.props",
+        "tests/Lodestar.Embeddings.Tests/Tokenization/BpeMetaspaceLoaderTests.cs",
+        "tests/Lodestar.Metrics.Tests/RocAucRadixTests.cs",
+        ".github/dependabot.yml",
+    ])
+
+    assert ships, "a change to three shipped dependencies must report that it ships"
+    assert about == {"Lodestar.Embeddings", "Lodestar.Metrics"}
+
+
 def test_a_path_it_cannot_attribute_is_reported_rather_than_swallowed():
     # Defect 3: writing "unknown" as Cross-cutting reads exactly like a decision. Of 158
     # cross-cutting issues, 49 had no evidence at all behind that label.

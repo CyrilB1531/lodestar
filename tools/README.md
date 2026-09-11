@@ -54,7 +54,10 @@ given:
   `docs/wiki-map.json` attributes, which decides the boards and the labels. It resolves
   `DataNet.*` to its post-rename name, refuses a bare prefix like `DataNet.NetStandard` that
   names no package, and reports a path it cannot attribute rather than folding it into the
-  cross-cutting bucket. #628 has the three defects each of those closes.
+  cross-cutting bucket, and reports a shared build file under `src/` — `Directory.*.props`,
+  `Shared/` — as shipping without naming a package, since those reach every `.nupkg` and
+  the milestone asks whether a change ships rather than which packages (#638).
+  #628 has the three defects each of the others closes.
   `.github/workflows/classify-pull-request.yml` calls it when a pull request opens and
   on every push to it, so the attribution follows the diff rather than a first guess.
   Its `unattributed` count is for a reader, not a label: a pull request always has its
