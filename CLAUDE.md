@@ -3,10 +3,15 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 Lodestar is a data-science toolkit for C#/.NET whose thesis is deliberately narrow.
-Don't rewrite Python's ecosystem, write native code only where .NET has a real gap
-— text (distances, vectorization, tokenizers, embeddings) and scikit-learn-parity
-metrics — with **no Python at runtime**. Everything else is delegated to existing
-.NET libraries, and that delegation is documented in `docs/migration/`.
+Don't rewrite Python's ecosystem, write native code only where .NET has no maintained
+equivalent at the reference's parity — with **no Python at runtime**. Measured package by
+package, that gap is consistently the **apparatus around a computation** rather than the
+computation: the tokenizer loader and not its encoder ([0068](docs/decisions/0068-the-tokenizer-gap-is-the-loader-not-the-encode-kernel.md)),
+the regression's inference table and not its coefficients ([0096](docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md)),
+the time-series diagnostics and not the forecast ([0105](docs/decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md)),
+sparse decomposition and not dense ([0072](docs/decisions/0072-omega-is-an-input-not-a-seed.md)).
+Everything else is delegated to existing .NET libraries, and that delegation is documented
+in `docs/migration/`.
 
 `CONTRIBUTING.md` is the authoritative process document. This file covers what a
 session needs in order to be productive quickly, and the traps that cost time.

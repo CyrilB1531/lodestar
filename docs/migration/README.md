@@ -8,7 +8,13 @@ The project's guiding principle (see the
 **honest**: we don't rewrite Python's data-science ecosystem. Most of it already
 exists in .NET, and Python's dense linear algebra relies on Fortran BLAS/LAPACK
 kernels there's no point reimplementing. We **use** what exists, and only **write**
-native code where .NET has a real gap: **text** (similarity, vectorization).
+native code where .NET has no maintained equivalent at the reference's parity.
+
+Sixteen packages in, that gap has a shape. It is almost never the computation — .NET
+ships those — and almost always the **apparatus around it**: the tokenizer loader and
+not its encoder, the regression's inference table and not its coefficients, the
+time-series diagnostics and not the forecast, sparse decomposition and not dense. Each
+of those is a decision record with a reading behind it, linked from the rows below.
 
 ## The four columns
 
@@ -21,6 +27,8 @@ native code where .NET has a real gap: **text** (similarity, vectorization).
 | **MAPIE** | conformal prediction: intervals and prediction sets with a coverage guarantee | none — no C# implementation exists | 🔴 **Write** — split conformal is **Lodestar.Conformal** |
 | **pandas** | DataFrame, groupby, IO | [`Microsoft.Data.Analysis`](https://www.nuget.org/packages/Microsoft.Data.Analysis); [Deedle](https://fslab.org/Deedle/) | 🟡 **Use** (rougher) |
 | **statsmodels** | econometric regression, time series, tests | Math.NET (basics) — *not* Accord.NET, see below; [`Microsoft.ML.TimeSeries`](https://www.nuget.org/packages/Microsoft.ML.TimeSeries) for forecasting | 🔴 **Write** — the tests and the OLS table ship as **Lodestar.Stats** and **Lodestar.Stats.Regression**; forecasting delegates; GLMs and the time-series diagnostics are being written |
+| **scipy.stats** | hypothesis tests, distributions, tails | [Math.NET Numerics](https://numerics.mathdotnet.com/) for the distributions and their tails | 🔴 **Write** — ten test families at scipy parity ship as **Lodestar.Stats**. Math.NET has the distributions and no test battery over them, so the gap is the test and not the tail; [decision 0082](../decisions/0082-scipy-joins-the-allowed-permissive-references.md) admitted scipy as a permissive reference and [0095](../decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md) says which four tail members this publishes for its neighbours |
+| **lifelines** | survival analysis: Kaplan-Meier, Nelson-Aalen, log-rank | **none** — the largest void [#442](https://github.com/CyrilB1531/lodestar/issues/442) surveyed | 🔴 **Write** — right-censored estimators and the log-rank test ship as **Lodestar.Survival**, at lifelines parity. `scikit-survival` is the nearest reference in any language and is refused on its **licence**, not its capability — GPL-3.0-or-later, which [decision 0003](../decisions/0003-provenance-and-licensing.md) excludes ([0099](../decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)) |
 | **seaborn** | tidy statistical viz | ScottPlot / Plotly.NET (charts rebuilt) | 🟠 **Decide** — statistical presets missing |
 
 **Legend.** ✅ a solid equivalent exists, use it as is. 🟡 an equivalent exists but
@@ -65,11 +73,13 @@ artifact, and the GIL between your threads and theirs.
 
 ## What Lodestar writes natively
 
-One area truly justifies native code — **text** — and two more turned out to be
-gaps the .NET options do not fill honestly: the **evaluation metrics** every
-sklearn user reaches for, and the **decompositions a sparse matrix needs**. That's
-[`Lodestar.Text`](https://github.com/CyrilB1531/lodestar/blob/main/src/Lodestar.Text)
-and its siblings, delivered as lots (see the brief):
+Text was the first area that justified native code, and it stopped being the only one
+some time ago: **sixteen packages** ship now. Each lot below was opened by a reading of
+what .NET already exports — never by an assumption that nothing existed — and the ones
+that found an incumbent delegated instead. That protocol is
+[decision 0074](../decisions/0074-the-phase-2-gaps-restated-on-what-the-packages-export.md),
+and it has **replaced** a gap claim this project made about itself twice, so the readings
+are worth more than the list.
 
 1. **String distances & similarity** — Levenshtein, Damerau-Levenshtein,
    Jaro-Winkler, Jaccard, Ratcliff-Obershelp, phonetics… *(done)*
@@ -99,6 +109,38 @@ and its siblings, delivered as lots (see the brief):
    which densifies the very matrix the sparse representation exists to keep sparse —
    [decision 0072](../decisions/0072-omega-is-an-input-not-a-seed.md) and
    [its guide](https://github.com/CyrilB1531/lodestar/blob/main/docs/guides/decomposition.md).
+8. **Classical hypothesis tests** — ten families at scipy parity, plus the four tail
+   members [decision 0095](../decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)
+   publishes for its neighbours. *(done, `Lodestar.Stats`)* Math.NET has the distributions
+   and no battery of tests over them, so the gap is the test and not the tail.
+9. **The OLS inference table** — standard errors, t and p values, confidence intervals,
+   adjusted R², F and its p value, and the VIF, at statsmodels parity. *(done,
+   `Lodestar.Stats.Regression`)* The clearest case of the shape above:
+   [decision 0096](../decisions/0096-ordinary-least-squares-earns-its-own-package.md)'s
+   reading found coefficients everywhere in .NET and **inference nowhere**, which replaced
+   this project's own sentence that "nobody in .NET does inference".
+10. **Right-censored survival** — Kaplan-Meier, Nelson-Aalen and the log-rank test at
+   lifelines parity. *(done, `Lodestar.Survival`)* The largest void
+   [#442](https://github.com/CyrilB1531/lodestar/issues/442) surveyed; `scikit-survival` is
+   refused on its **licence** rather than its capability
+   ([decision 0099](../decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)).
+11. **Feature scaling** — fitted on arrays, applied to spans, at scikit-learn parity.
+   *(done, `Lodestar.Preprocessing`)* ML.NET scales inside a pipeline over an `IDataView`;
+   this is the same arithmetic with nothing between the caller and a `double[]`.
+12. **k-means** — Lloyd's algorithm over a row-major span, at scikit-learn parity.
+   *(done, `Lodestar.Cluster`)* Same reason as the scaling above, and the same measurement.
+13. **GPU kernels** — ILGPU over device-resident matrices and text. *(done,
+   `Lodestar.Gpu`)* The one package that does not ship `netstandard2.0`, and the one whose
+   figures are **not** measured by CI: a hosted runner has no GPU, so the 5–10× gate is
+   measured on a named machine and published by hand
+   ([decision 0102](../decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md)).
+
+Three more packages carry no lot of their own. `Lodestar.Abstractions` holds the
+`CsrMatrix` the others share; `Lodestar.Onnx` exists to carry the one dependency that is
+its whole reason to be a package; `Lodestar.Extensions.AI` and `Lodestar.Extensions.MathNet`
+convert to foreign types, which
+[decision 0089](../decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)
+distinguishes from computing with them.
 
 ## Per-library guides
 
@@ -111,6 +153,13 @@ and its siblings, delivered as lots (see the brief):
 | [PyTorch → .NET](pytorch.md) | draft |
 | [matplotlib → .NET](matplotlib.md) | draft |
 | [seaborn → .NET](seaborn.md) | draft |
+
+**There is no `scipy.md`, `lifelines.md` or `mapie.md`, and none is owed.** A per-library
+guide earns its place where the answer is *another .NET library* and the reader needs the
+glue and the pitfalls — NumPy to Math.NET has real traps, and the page is where they live.
+For those three the verdict is **write**: the answer is a Lodestar package, the row above
+says which and why, and [`equivalence.md`](../equivalence.md) maps each call to its
+counterpart with the divergences named. A page between them would carry nothing of its own.
 
 The **detailed equivalence table** (Python call → C# call, behavioral differences,
 performance notes), filled in as we go, is in [`equivalence.md`](../equivalence.md).
