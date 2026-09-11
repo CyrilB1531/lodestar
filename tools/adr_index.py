@@ -61,11 +61,11 @@ FENCE = "---\n"
 QUOTED = re.compile(r'"(\d{4})"')
 # A frontmatter key, which is the whole of what one may look like.
 KEY = re.compile(r"\A[a-z_]+\Z")
-# `# 0095 — The numerical layer publishes ...`, the title's one source of truth.
-# Trailing space is stripped in code: `\s*$` after a group is S8786's backtracking.
-TITLE = re.compile(r"^#[ \t]+(\d{4})[ \t]+—[ \t]+(.+)$", re.MULTILINE)
-# `**Status:** accepted · **Date:** ...`, whose first word the frontmatter repeats.
-STATUS_LINE = re.compile(r"^\*\*Status:\*\*[ \t]*(.+)$", re.MULTILINE)
+# The title's one source of truth and the status the frontmatter repeats, both read
+# line by line: a run of blanks in front of `(.+)` is S8786's ambiguity.
+HEADING = "# "
+HEADING_SEPARATOR = " — "
+STATUS_PREFIX = "**Status:**"
 
 # Prose, commented at emit time rather than here: a block of `#` lines in this
 # file reads to tools/check_comment_length.py as a comment, which it is not.
@@ -167,16 +167,21 @@ def read_list(key: str, raw: str) -> list[str]:
 
 def title_of(number: str, text: str) -> str:
     """The title from the record's own `# NNNN — Title` heading."""
-    for match in TITLE.finditer(text):
-        if match.group(1) == number:
-            return match.group(2).rstrip()
-    raise AdrError(f"{number}: no `# {number} — <title>` heading")
+    for line in text.splitlines():
+        if not line.startswith(HEADING):
+            continue
+        found, separator, title = line[len(HEADING):].partition(HEADING_SEPARATOR)
+        if separator and found.strip() == number and title.strip():
+            return title.strip()
+    raise AdrError(f"{number}: no `{HEADING}{number}{HEADING_SEPARATOR}<title>` heading")
 
 
 def status_line_of(text: str) -> str | None:
     """The record's `**Status:**` text, which the frontmatter's `status` opens."""
-    match = STATUS_LINE.search(text)
-    return None if match is None else match.group(1).rstrip()
+    for line in text.splitlines():
+        if line.startswith(STATUS_PREFIX):
+            return line[len(STATUS_PREFIX):].strip() or None
+    return None
 
 
 def read_record(path: pathlib.Path) -> dict[str, object]:
