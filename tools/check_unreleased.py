@@ -94,6 +94,16 @@ def unreleased_entries() -> set[str]:
     return found
 
 
+def has_tags() -> bool:
+    """Whether this checkout carries the release tags at all.
+
+    A CI checkout is shallow and fetches none, and every package then reads as though its
+    whole history were unpublished. Reporting that is worse than reporting nothing, so the
+    caller is told to fetch them instead.
+    """
+    return bool(git("tag", "--list", "Lodestar.*"))
+
+
 def survey() -> list[tuple[str, str, str, int]]:
     """(package, declared version, last tag, unpublished commit count) for every package."""
     rows = []
@@ -149,6 +159,12 @@ def main() -> int:
     if args and args[0] not in ("--report",):
         print(__doc__)
         return 2
+
+    if not has_tags():
+        print("This checkout carries no Lodestar.* tag, so nothing here can say what has "
+              "shipped. Fetch them -- `git fetch --tags`, or `fetch-tags: true` on "
+              "actions/checkout -- and run this again.")
+        return 0
 
     rows = survey()
     waiting = [r for r in rows if r[3]]

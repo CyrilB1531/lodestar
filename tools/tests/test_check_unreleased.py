@@ -76,10 +76,24 @@ def test_versions_compare_numerically_not_as_strings():
         rows(("Lodestar.Text", "0.9.0", "Lodestar.Text/v0.10.0", 0))) == []
 
 
-def test_the_latest_tag_is_the_highest_version_not_the_last_string():
-    tag = check_unreleased.latest_tag("Lodestar.Text")
+def test_the_latest_tag_is_the_highest_version_not_the_last_string(monkeypatch):
+    # Asserting a tag exists tests the checkout, not the code -- CI carries none, which is
+    # how this failed on two runners. The ordering is what is worth pinning.
+    monkeypatch.setattr(
+        check_unreleased, "git",
+        lambda *a: "Lodestar.Text/v0.9.0\nLodestar.Text/v0.10.0\nLodestar.Text/v0.2.0")
 
-    assert tag.startswith("Lodestar.Text/v"), f"no tag found for Lodestar.Text: {tag!r}"
+    assert check_unreleased.latest_tag("Lodestar.Text") == "Lodestar.Text/v0.10.0"
+
+
+def test_a_checkout_without_tags_refuses_to_answer(monkeypatch, capsys):
+    # A shallow clone makes every package look entirely unpublished. Saying so beats
+    # printing a table that is confidently wrong.
+    monkeypatch.setattr(check_unreleased, "git", lambda *a: "")
+    monkeypatch.setattr(sys, "argv", ["check_unreleased.py"])
+
+    assert check_unreleased.main() == 0
+    assert "no Lodestar.* tag" in capsys.readouterr().out
 
 
 def test_the_shipped_tree_declares_no_version_past_its_own_tag():
