@@ -17,11 +17,29 @@ public sealed class MinHashPermutations
     /// <summary>How many permutations, and so how long a signature is.</summary>
     public int Count => _a.Length;
 
-    /// <summary>Takes one multiplier and one addend per permutation.</summary>
+    /// <summary>Which arithmetic these coefficients are to be read through.</summary>
+    public MinHashScheme Scheme { get; }
+
+    /// <summary>Takes one multiplier and one addend per permutation, read as
+    /// <see cref="MinHashScheme.Legacy"/>.</summary>
     /// <param name="multipliers">The <c>a</c> coefficients.</param>
     /// <param name="addends">The <c>b</c> coefficients, one per multiplier.</param>
     /// <exception cref="ArgumentException">The two are not the same non-zero length.</exception>
     public MinHashPermutations(ReadOnlySpan<ulong> multipliers, ReadOnlySpan<ulong> addends)
+        : this(multipliers, addends, MinHashScheme.Legacy)
+    {
+    }
+
+    /// <summary>Takes one multiplier and one addend per permutation, and the scheme that reads them.</summary>
+    /// <param name="multipliers">The <c>a</c> coefficients.</param>
+    /// <param name="addends">The <c>b</c> coefficients, one per multiplier.</param>
+    /// <param name="scheme">Which arithmetic the coefficients belong to.</param>
+    /// <exception cref="ArgumentException">
+    /// The two are not the same non-zero length, <paramref name="scheme"/> is not a declared
+    /// member, or a coefficient does not fit the scheme it is given.
+    /// </exception>
+    public MinHashPermutations(
+        ReadOnlySpan<ulong> multipliers, ReadOnlySpan<ulong> addends, MinHashScheme scheme)
     {
         if (multipliers.Length == 0)
         {
@@ -34,8 +52,51 @@ public sealed class MinHashPermutations
                 $"{multipliers.Length} multipliers and {addends.Length} addends.", nameof(addends));
         }
 
+        if (scheme is not (MinHashScheme.Legacy or MinHashScheme.Affine32))
+        {
+            throw new ArgumentException($"{scheme} is not a permutation scheme.", nameof(scheme));
+        }
+
+        if (scheme == MinHashScheme.Affine32)
+        {
+            RefuseCoefficientsAffine32CannotRead(multipliers, addends);
+        }
+
+        Scheme = scheme;
         _a = multipliers.ToArray();
         _b = addends.ToArray();
+    }
+
+    /// <summary>The two things an affine-32 coefficient pair has to be, checked once at construction.</summary>
+    /// <remarks>
+    /// The reference generates both and checks neither, because it generates them itself. Here they
+    /// arrive from a caller (decision 0072), so a pair that cannot mean what it says is refused
+    /// rather than computed: a multiplier past 32 bits is read through the wrong family entirely,
+    /// and an even one collapses the value range instead of permuting it — every hash sharing a
+    /// low bit maps to the same place, which shows up as a similarity estimate that is merely
+    /// wrong rather than as a failure.
+    /// </remarks>
+    private static void RefuseCoefficientsAffine32CannotRead(
+        ReadOnlySpan<ulong> multipliers, ReadOnlySpan<ulong> addends)
+    {
+        for (int i = 0; i < multipliers.Length; i++)
+        {
+            if (multipliers[i] > uint.MaxValue || addends[i] > uint.MaxValue)
+            {
+                throw new ArgumentException(
+                    $"permutation {i} carries {multipliers[i]} and {addends[i]}, and "
+                    + $"{nameof(MinHashScheme.Affine32)} reads 32-bit coefficients.",
+                    nameof(multipliers));
+            }
+
+            if ((multipliers[i] & 1UL) == 0UL)
+            {
+                throw new ArgumentException(
+                    $"permutation {i} carries the even multiplier {multipliers[i]}, which maps "
+                    + "distinct hashes onto each other instead of permuting them.",
+                    nameof(multipliers));
+            }
+        }
     }
 
     /// <summary>The multiplier of one permutation.</summary>

@@ -4719,6 +4719,23 @@ def generate_text_similarity() -> dict:
                 "rowsPerBand": int(rows),
             })
 
+    # long-comment: why the corpus grows a block instead of moving one (#645).
+    # datasketch 2.0.0 made `affine32` its default, so the block above -- which names `legacy`
+    # -- is what every existing assertion replays, and this one is what a caller comparing
+    # against a current datasketch needs. The two share the documents and nothing else:
+    # different coefficients, different widths, different values, by construction.
+    affine_reference = DsMinHash(num_perm=permutation_count, seed=1, scheme="affine32")
+    affine_a, affine_b = affine_reference.permutations
+    affine_cases = []
+    for document in documents:
+        sketch = DsMinHash(num_perm=permutation_count, seed=1, scheme="affine32")
+        for token in document[SIM_TOKENS]:
+            sketch.update(token.encode("utf-8"))
+        affine_cases.append({
+            "key": document["key"],
+            SIM_SIGNATURE: [int(value) for value in sketch.hashvalues],
+        })
+
     return {
         "metadata": {
             "library": "datasketch + simhash",
@@ -4734,6 +4751,12 @@ def generate_text_similarity() -> dict:
         "cases": cases,
         "pairs": pairs,
         "bandings": bandings,
+        "affine32": {
+            "variant": "MinHash(seed=1, sha1_hash32, scheme=affine32)",
+            "multipliers": [int(value) for value in affine_a],
+            "addends": [int(value) for value in affine_b],
+            "cases": affine_cases,
+        },
     }
 
 

@@ -55,21 +55,31 @@ public sealed class MinHash
             signature[i] = uint.MaxValue;
         }
 
+        bool affine = _permutations.Scheme == MinHashScheme.Affine32;
         foreach (string token in tokens)
         {
             Guard.NotNull(token);
             ulong hash = Hash32(token);
+            // Once per token, not per permutation: a weakly hashed input must not ride its
+            // own structure through an affine map, which the prime modulus used to absorb.
+            uint mixed = affine ? Fmix32((uint)hash) : 0u;
+
             for (int i = 0; i < signature.Length; i++)
             {
-                // Unchecked on purpose: the reference multiplies in 64-bit unsigned
-                // arithmetic and relies on the wrap, so overflow is the specification.
-                ulong permuted;
+                // long-comment: which wrap is the specification, and why one branch divides.
+                // The reference multiplies in unsigned arithmetic and relies on the overflow,
+                // so it is the contract rather than an accident -- in 64 bits for the Mersenne
+                // reduction below, and in 32 for the affine one, where the wrap *is* the modulo
+                // and nothing is divided at all.
+                uint candidate;
                 unchecked
                 {
-                    permuted = ((_permutations.Multiplier(i) * hash) + _permutations.Addend(i)) % MersennePrime;
+                    candidate = affine
+                        ? ((uint)_permutations.Multiplier(i) * mixed) + (uint)_permutations.Addend(i)
+                        : (uint)((((_permutations.Multiplier(i) * hash) + _permutations.Addend(i))
+                            % MersennePrime) & Mask32);
                 }
 
-                uint candidate = (uint)(permuted & Mask32);
                 if (candidate < signature[i])
                 {
                     signature[i] = candidate;
@@ -78,6 +88,25 @@ public sealed class MinHash
         }
 
         return signature;
+    }
+
+    /// <summary>The MurmurHash3 finalizer on 32 bits, which <c>affine32</c> pre-mixes with.</summary>
+    /// <remarks>
+    /// A fixed avalanching bijection on <c>[0, 2^32)</c>, constants and all, so it changes which
+    /// value a token reaches the permutations as and never how many there are. The reference
+    /// applies it inside <c>update</c>; the parity is bit for bit, so the constants below are the
+    /// contract rather than a choice.
+    /// </remarks>
+    private static uint Fmix32(uint hash)
+    {
+        unchecked
+        {
+            hash ^= hash >> 16;
+            hash *= 0x85EBCA6B;
+            hash ^= hash >> 13;
+            hash *= 0xC2B2AE35;
+            return hash ^ (hash >> 16);
+        }
     }
 
     /// <summary>The estimated Jaccard similarity of two signatures.</summary>

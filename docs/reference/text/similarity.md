@@ -78,6 +78,7 @@ sketch that fits in a few hundred bytes and a lookup that never sees most pairs.
 | --- | --- |
 | [`MinHash`](similarity/minhash.md) | Jaccard over a **set**, estimated from one minimum per permutation. |
 | [`MinHashPermutations`](similarity/minhashpermutations.md) | The coefficients a signature is built from, supplied rather than seeded. |
+| [`MinHashScheme`](similarity/minhashscheme.md) | Which permutation family a signature is built from: the reference's original, or the one it now defaults to. |
 | [`SimHash`](similarity/simhash.md) | Cosine over a **weighted bag**, as one 64-bit fingerprint. |
 | [`LshBanding`](similarity/lshbanding.md) | How a signature is cut into bands, and the solve that picks the cut. |
 | [`LshIndex`](similarity/lshindex.md) | Candidates sharing a band, so a query never scans the corpus. |

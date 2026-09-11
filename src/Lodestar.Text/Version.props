@@ -21,7 +21,7 @@
     src/Directory.Packages.props.
   -->
   <PropertyGroup>
-    <LodestarTextVersion>0.6.0</LodestarTextVersion>
+    <LodestarTextVersion>0.7.0</LodestarTextVersion>
   </PropertyGroup>
 
 </Project>

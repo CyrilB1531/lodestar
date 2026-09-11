@@ -26,11 +26,28 @@ is one sentence, the issue and the commit; see
 
 ### Lodestar.Text
 
+#### Added
+
+- **`MinHashScheme`, and the `MinHashPermutations` overload that takes one.** `datasketch` 2.0.0
+  named three permutation families and made `affine32` its default, so the reference call that
+  once returned the Mersenne-prime family now returns a different one; `MinHash` computes both and
+  `Legacy` stays the default, so no existing signature moves.
+  ([#645](https://github.com/CyrilB1531/lodestar/issues/645))
+
 #### Changed
 
 - **`System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`.** The dependency a
   consumer restores changes; nothing in the public surface does.
   ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+
+### Lodestar.Gpu
+
+#### Added
+
+- **`MinHashScheme`, and the `TiledMinHashSignatures.Signatures` overload that takes one.** The
+  finalizer `affine32` needs is applied as the shared tile fills, so one `DeviceTokenHashes`
+  serves both families rather than belonging to one.
+  ([#645](https://github.com/CyrilB1531/lodestar/issues/645))
 
 ### Lodestar.Embeddings
 

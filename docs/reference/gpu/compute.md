@@ -29,6 +29,7 @@ Two facts run through the whole namespace, and knowing them saves reading every 
 | [`DeviceDenseBlock`](compute/devicedenseblock.md) | A dense block held **between** two operations, which is what makes a chain. |
 | [`DeviceTextBlock`](compute/devicetextblock.md) | A batch of strings renamed to a dense alphabet and held on the device. |
 | [`DeviceTokenHashes`](compute/devicetokenhashes.md) | One document's token hashes per row, held flat. |
+| [`MinHashScheme`](compute/minhashscheme.md) | Which permutation family a signature is built from. |
 | [`GpuSearchResult`](compute/gpusearchresult.md) | One hit from a device sweep: a row index and its score. |
 
 ## Which device runs, and how to be sure
