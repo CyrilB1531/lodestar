@@ -31,6 +31,27 @@ open an issue rather than widening the branch.
 
 Reference the issue from the pull request (`Closes #12`) so it closes on merge.
 
+### `gh` 2.73.0 or later
+
+The commands above use the GitHub CLI, and an old one **fails silently against
+this repository**. Up to early 2025 `gh` asked for `projectCards` in its own
+GraphQL queries; GitHub sunset Projects (classic) in 2024 and that field is now
+an error, whether or not a repository ever had a classic project — this one
+never did.
+
+Measured on 2026-09-11: `gh 2.46.0` (the Ubuntu ESM build) answers
+`gh issue view --comments` and `gh pr view --comments` with
+`GraphQL: Projects (classic) is being deprecated …`, and — the part that costs
+something — `gh pr edit --body-file` prints the same line, **exits without
+applying the edit**, and looks like a warning. The change only landed after
+being re-applied through `gh api --method PATCH`. `gh 2.100.0` does all three
+cleanly.
+
+The floor is **2.73.0**, the first release (2025-05-19) after the last of the
+three fixes merged upstream on 2025-05-08 — inferred from merge and release
+dates rather than from a release note, which is why the two versions actually
+measured are named above.
+
 ### Review, with a single maintainer
 
 The project currently has one maintainer, who reviews and merges every pull
