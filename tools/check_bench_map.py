@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
-"""Refuse a benchmark class that bench/bench-map.json does not know about.
+"""Refuse a benchmark that no night selects, or that no build reaches.
 
-The nightly run (#11) executes only the benchmark classes whose sources changed
-since the previous run, and it reads bench/bench-map.json to decide which those
-are. A class missing from that map is never selected, so it would stop being
-measured without anything going red -- the same silence as a benchmark that
-compiles and is never run, which is the gap #11 exists to close.
+Two silences, and they end the same way: a benchmark that exists, compiles in
+someone's editor, and is never measured, with nothing going red. That is the gap
+#11 exists to close.
 
-The map cannot be derived. FuzzBenchmarks names only Fuzz, which reaches Indel,
-then Lcs, then Affixes; LevenshteinCodePointBenchmarks depends on the decoder in
-Text/. Naming conventions do not carry that, so the map is hand-written and this
-guard keeps it honest about the one thing it can check: completeness.
+The first is a class bench/bench-map.json does not name. The nightly run (#11)
+executes only the benchmark classes whose sources changed since the previous
+run, and it reads that map to decide which those are, so a class missing from it
+is never selected. The map cannot be derived: FuzzBenchmarks names only Fuzz,
+which reaches Indel, then Lcs, then Affixes; LevenshteinCodePointBenchmarks
+depends on the decoder in Text/. Naming conventions do not carry that, so the
+map is hand-written, and this keeps it honest about the one thing it can check
+there: completeness.
+
+The second is a project Lodestar.slnx does not list, which is the same silence
+one layer down -- no build reaches it, so it is never compiled rather than never
+measured. That is what #649 cost, and solution_findings() below has the
+reasoning and the case.
 
 What it does NOT check is whether a class's globs are *right*. Being too narrow
 is invisible here and is why the map is written at directory granularity: a
