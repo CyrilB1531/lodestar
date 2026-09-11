@@ -16,7 +16,7 @@ on:
     tags: ['Lodestar.*/v*']
 
 permissions:
-  contents: read
+  contents: write   # required to create the GitHub Release at the end
   packages: write
 
 jobs:
@@ -63,6 +63,17 @@ jobs:
           fi
           echo "$PACKAGE $declared"
 
+      # The Release body is the changelog entry, and a missing one stops the job here
+      # rather than after the push -- the same reasoning as the two version checks above,
+      # where the fix is still cheap. CONTRIBUTING.md makes the entry item 7 of the
+      # definition of done and notes that nothing gates it, "precisely because four lots
+      # shipped without it"; this is that gate, at the one moment it can still be applied.
+      - name: The changelog carries this release
+        env:
+          PACKAGE: ${{ steps.tag.outputs.package }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: python3 tools/changelog_section.py "$PACKAGE" "$VERSION" > release-notes.md
+
       - name: Test
         run: dotnet test --configuration Release
 
@@ -89,6 +100,19 @@ jobs:
           dotnet nuget push "artifacts/*.nupkg" \
             --source "https://nuget.pkg.github.com/$OWNER/index.json" \
             --api-key "$GITHUB_TOKEN"
+
+      # After the push, so a Release exists only for a version that actually shipped.
+      # 35 tags had 4 Releases before this step existed (#626).
+      - name: Publish the GitHub Release
+        env:
+          PACKAGE: ${{ steps.tag.outputs.package }}
+          VERSION: ${{ steps.tag.outputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$PACKAGE $VERSION" \
+            --notes-file release-notes.md \
+            artifacts/*.nupkg
 
       - name: Upload packages as build artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

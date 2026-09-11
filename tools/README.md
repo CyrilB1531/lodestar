@@ -48,6 +48,11 @@ given:
   set, and the inter-package edge count against
   `check_nuspec_dependencies.py`'s `EXPECTED`. The *Holds* column is prose and is
   deliberately not checked.
+- `changelog_section.py` prints the `CHANGELOG.md` section for one package release, which is
+  what `release.yml` hands to `gh release create` as the Release body. A missing section is an
+  error rather than an empty body: CONTRIBUTING.md makes the entry item 7 of the definition of
+  done and says nothing gates it, so this is that gate. `--list` prints every release the
+  changelog carries, which is what the #626 backfill read.
 - `check_release_workflow_packages.py` refuses a release workflow whose hard-coded
   package list has drifted from `src/`. `release-nuget-org.yml`'s `options:` and
   `release.yml`'s `case` allow-list must each name every `src/Lodestar.*` holding a
