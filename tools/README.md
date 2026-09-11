@@ -55,6 +55,8 @@ given:
   `DataNet.*` to its post-rename name, refuses a bare prefix like `DataNet.NetStandard` that
   names no package, and reports a path it cannot attribute rather than folding it into the
   cross-cutting bucket. #628 has the three defects each of those closes.
+  `.github/workflows/classify-pull-request.yml` calls it when a pull request opens and
+  on every push to it, so the attribution follows the diff rather than a first guess.
 - `check_unreleased.py` reads what each package has merged and not published, from the tags,
   `main` and `src/<Package>/Version.props` — none of which can drift. Unpublished work is the
   normal state between a merge and a release, so it is reported; only a version declared past
