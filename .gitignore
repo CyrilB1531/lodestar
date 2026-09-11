@@ -50,3 +50,7 @@ tools/__pycache__/
 # Any sample project, not the one that has it today: naming a single project left the
 # vestige of an older name showing as untracked noise in every git status (#260).
 samples/*/Generated/
+
+# Microsoft.Testing.Platform writes coverage and trx reports here, one file per
+# test assembly (#623). Previously VSTest wrote them under each project.
+TestResults/

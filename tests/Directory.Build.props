@@ -14,11 +14,24 @@
          CA2007 — a test awaits with no synchronization context to capture, so
                   ConfigureAwait is noise; the rule reaches this repository only
                   through `dotnet format`'s own Roslyn workspace, never through
-                  the build, because Microsoft.NET.Test.Sdk makes these projects
-                  OutputType=Exe and CA2007 skips executables there.
+                  the build, because these projects are OutputType=Exe and CA2007
+                  skips executables there. xunit v3 requires that OutputType; it
+                  used to arrive with Microsoft.NET.Test.Sdk (#623).
        See docs/decisions/0019-the-net-analysers-run-in-the-build-too.md. -->
   <PropertyGroup>
     <NoWarn>$(NoWarn);CA1707;CA1515;CA1062;CA1849;CA2007</NoWarn>
+  </PropertyGroup>
+
+  <!-- xUnit1051 — pass TestContext.Current.CancellationToken to any call that accepts one.
+       It arrived with xunit v3 and fires at 54 sites across 14 files (#623). Suppressed for
+       the area rather than fixed in the migration, for one reason that makes a blanket fix
+       wrong: eight of those sites are PersistenceOverloadTests, whose whole subject is that
+       the overload *without* a token exists and behaves like the one with it. Threading a
+       token through them deletes what they assert.
+       The other 46 should take the token, which is #647 — a change to test bodies, not to
+       the framework they run on, and it does not belong in the same branch. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
   </PropertyGroup>
 
   <!-- Test code is held to the same rules as the code it tests: a test is read

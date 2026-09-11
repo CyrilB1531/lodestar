@@ -189,7 +189,7 @@ jobs:
             /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.host.url="https://sonarcloud.io" \
             /d:sonar.qualitygate.wait=true \
-            /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" \
+            /d:sonar.cs.vscoveragexml.reportsPaths="**/TestResults/*.xml" \
             /d:sonar.python.version="3.12" \
             /d:sonar.projectBaseDir="$GITHUB_WORKSPACE" \
             /d:sonar.coverage.exclusions="tools/**,bench/**,samples/**,.claude/**" \
@@ -228,13 +228,21 @@ jobs:
           dotnet build samples/Lodestar.Sample --configuration Release
           dotnet build samples/Lodestar.DocSnippets --configuration Release
 
-      # Coverage must be written before `end` collects it. OpenCover, not the
-      # default Cobertura: the .NET path of SonarQube Cloud reads OpenCover, and
-      # a format or path mismatch fails silently as 0% coverage.
+      # Coverage must be written before `end` collects it, and a format or path mismatch
+      # fails silently as 0% coverage -- which is why the format is named on both sides
+      # and neither side is a default.
+      #
+      # Visual Studio coverage XML, not OpenCover: xunit v3 runs on Microsoft.Testing
+      # .Platform, whose coverage extension emits `xml`, `coverage` and `cobertura` and
+      # no OpenCover at all (#623). `xml` is the one SonarQube Cloud's .NET path reads,
+      # through sonar.cs.vscoveragexml.reportsPaths above.
+      #
+      # One file per test assembly, under each project's TestResults/. Pinning a single
+      # name collapses them onto each other -- see ci.yml, where that was measured.
       - name: Test with coverage
         run: |
           dotnet test Lodestar.slnx --configuration Release --no-build \
-            --collect:"XPlat Code Coverage;Format=opencover"
+            -- --coverage --coverage-output-format xml
 
       - name: End analysis
         env:
