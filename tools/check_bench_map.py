@@ -36,6 +36,8 @@ PYTHON_DIR = ROOT / "bench" / "python"
 WORKFLOWS = ROOT / ".github" / "workflows"
 NIGHTLY = WORKFLOWS / "bench-nightly.yml"
 SOLUTION = ROOT / "Lodestar.slnx"
+# Three findings say a file this gate reads is not there, and S1192 counts the third.
+MISSING = ": missing"
 # Every finding here names a workflow by its repository-relative path, and S1192
 # fires on the third spelling of one literal. `label(path)` is that one spelling.
 WORKFLOW_DIR = ".github/workflows"
@@ -270,7 +272,7 @@ def measured_project_findings() -> list[str]:
     comment alone -- it passed with the loop emptied, which is the exact bug.
     """
     if not NIGHTLY.exists():
-        return [f"{label(NIGHTLY)}: missing"]
+        return [f"{label(NIGHTLY)}{MISSING}"]
 
     text = NIGHTLY.read_text(encoding="utf-8")
     match = RUN_LOOP.search(text)
@@ -305,7 +307,7 @@ def solution_findings() -> list[str]:
     compilable, which only a build reaching it can promise.
     """
     if not SOLUTION.exists():
-        return [f"{SOLUTION.name}: missing"]
+        return [f"{SOLUTION.name}{MISSING}"]
 
     listed = SOLUTION.read_text(encoding="utf-8")
     return [
@@ -322,7 +324,7 @@ def main() -> int:
         return 0 if sys.argv[1] in ("--help", "-h") else 2
 
     if not MAP.exists():
-        print(f"{MAP.relative_to(ROOT)}: missing")
+        print(f"{MAP.relative_to(ROOT)}{MISSING}")
         return 1
 
     data = json.loads(MAP.read_text(encoding="utf-8"))
