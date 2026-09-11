@@ -92,7 +92,7 @@ rank_bm25==0.2.2
 # pytest — the only test runner in tools/. tools/generate_sonar_globalconfig.py
 # parses two foreign formats and writes a file the build reads; a drift check
 # proves that generator stable, never that it is right.
-pytest==8.4.2
+pytest==9.1.1
 
 # pyyaml -- tools/tests/test_bench_nightly_permissions.py parses a workflow file to
 # assert that `workflows: write` stays in the job that runs no repository code (#464).
