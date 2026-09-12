@@ -27,6 +27,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Guard.cs" Link="Internal/Guard.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/RegexDefaults.cs" Link="Internal/RegexDefaults.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/StringCompat.cs" Link="Internal/StringCompat.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/ValueEquality.cs" Link="Internal/ValueEquality.cs" />
   </ItemGroup>
 
   <!-- The affine-32 coefficient refusal, compiled into the two libraries that sketch.

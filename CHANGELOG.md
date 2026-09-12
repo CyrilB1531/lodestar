@@ -98,6 +98,15 @@ is one sentence, the issue and the commit; see
   instance after constructing it must use an object initializer instead.
   ([#616](https://github.com/CyrilB1531/lodestar/issues/616))
 
+### Lodestar.Cluster
+
+#### Changed
+
+- **`KMeansOptions` compares its centres by value.** Two option sets built from separate arrays
+  holding the same centres were unequal and now are equal, with `GetHashCode` agreeing; decision
+  0112 has the rule for every record whose member compares by reference.
+  ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
+
 ## Released — 2026-09-10
 
 Thirteen cuts across eleven packages, and the end of milestone 0.6.0 — thirty-three

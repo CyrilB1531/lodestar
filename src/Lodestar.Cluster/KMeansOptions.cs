@@ -37,4 +37,49 @@ public sealed record KMeansOptions
 #pragma warning disable CA1819
     public double[]? InitialCentres { get; init; }
 #pragma warning restore CA1819
+
+    /// <summary>Compares every option, the centres element by element.</summary>
+    /// <param name="other">The options to compare against.</param>
+    /// <remarks>
+    /// The generated equality would compare <see cref="InitialCentres"/> by reference, so two
+    /// option sets built from separate arrays holding the same centres would be unequal.
+    /// Decision 0112 has the rule and the six records that reached it first.
+    /// </remarks>
+    public bool Equals(KMeansOptions? other)
+    {
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+        if (other is null
+            || MaxIterations != other.MaxIterations
+            || Seed != other.Seed
+            // S1244 warns against exact floating-point comparison, which is right for
+            // arithmetic and wrong here: this is value equality between two configurations,
+            // where "the same tolerance" means the same bits. double.Equals also makes NaN
+            // equal to NaN, which a record's equality needs and == gets wrong.
+#pragma warning disable S1244
+            || !Tolerance.Equals(other.Tolerance))
+#pragma warning restore S1244
+        {
+            return false;
+        }
+        return ValueEquality.Same(InitialCentres, other.InitialCentres);
+    }
+
+    /// <summary>Hashes the scalars and the centre count, which is O(1).</summary>
+    /// <remarks>
+    /// Equal options necessarily agree on the count; unequal ones are allowed to collide.
+    /// Hashing the centres themselves would make the cheap operation the expensive one.
+    /// </remarks>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + MaxIterations;
+            hash = (hash * 31) + Seed;
+            hash = (hash * 31) + Tolerance.GetHashCode();
+            return (hash * 31) + ValueEquality.CountOf(InitialCentres);
+        }
+    }
 }
