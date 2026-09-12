@@ -5,7 +5,7 @@ namespace Lodestar.Stats.Internal;
 
 /// <summary>Applies a <see cref="NanPolicy"/> to a sample before a test sees it.</summary>
 /// <remarks>
-/// Decision 0115: omission is a filter, so a family's own guards run afterwards on what
+/// Decision 0116: omission is a filter, so a family's own guards run afterwards on what
 /// survives. Nothing here decides what a degenerate sample means.
 /// </remarks>
 internal static class NanFilter

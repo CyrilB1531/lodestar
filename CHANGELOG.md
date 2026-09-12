@@ -91,13 +91,31 @@ is one sentence, the issue and the commit; see
   ([#617](https://github.com/CyrilB1531/lodestar/issues/617))
 - **`NanPolicy`, on the eleven test entry points whose scipy counterpart takes `nan_policy`.**
   `Propagate` stays the default, so no existing call changes; `Omit` drops pairs where the inputs
-  are aligned and values where they are not; decision 0115 has the rule and the five entry points
+  are aligned and values where they are not; decision 0116 has the rule and the five entry points
   that deliberately do not take it.
   ([#687](https://github.com/CyrilB1531/lodestar/issues/687))
 
 ### Lodestar.Stats.Regression
 
 #### Added
+
+- **`CovarianceType` gives `OrdinaryLeastSquares` the four heteroskedasticity-consistent
+  estimators**, `Hc0` through `Hc3`, chosen on `OlsOptions` and echoed on `OlsSummary`. A robust
+  covariance is what an analyst reaches for when the assumption behind the standard errors fails,
+  which is the ordinary case rather than the exotic one — shipping the inference table without one
+  shipped the numbers that are easiest to compute and hardest to defend. **The distribution moves
+  with it, as it does in statsmodels**: the coefficient tests become *z* against the normal and the
+  interval multiplier with them, while the overall test stays on the F. That asymmetry is
+  reproduced rather than tidied, on [decision 0008](docs/decisions/0008-italian-enza-nltk-divergence.md)'s
+  parity rule, and `OlsSummary.CovarianceType` is what tells a reader holding only the summary
+  which distribution its p-values came from. The normal tail it needed did **not** cost a
+  publication from `Lodestar.Stats`: the square of a standard normal is chi-squared on one degree
+  of freedom, so the two-sided p-value is the `ChiSquaredSf` decision 0097 already published —
+  exact, and agreeing with scipy to 1.1e-13 relative at a p-value of 1e-299.
+  [Decision 0115](docs/decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md)
+  fixes the order of what follows and what each lot waits for. It joins the GLM in an unshipped
+  0.2.0 rather than bumping again: the number this package declares has never been published.
+  ([#686](https://github.com/CyrilB1531/lodestar/issues/686))
 
 - **`GeneralizedLinearModel.Fit`, with `GlmFamily`, `GlmOptions` and `GlmSummary`.** A `Binomial`
   or `Poisson` response fitted by IRLS through its canonical link, over the same Householder-QR

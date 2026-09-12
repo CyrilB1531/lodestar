@@ -9,11 +9,13 @@
     to Lodestar.Decomposition for the Householder QR; both floors live in
     src/Directory.Packages.props and are deliberately decoupled from this number.
 
-    0.2.0 is minor rather than a patch: GeneralizedLinearModel, GlmFamily,
-    GlmOptions and GlmSummary are new public surface and nothing existing moved
-    or was removed (decision 0111). No new inter-package edge came with them —
-    the IRLS loop reuses the same internal least-squares core the OLS half
-    already had.
+    0.2.0 is minor rather than a patch, and it now carries two lots because
+    neither has shipped: GeneralizedLinearModel, GlmFamily, GlmOptions and
+    GlmSummary (decision 0111), and CovarianceType with the two properties that
+    select and echo it (decision 0115). Both are new public surface and nothing
+    existing moved or was removed. No new inter-package edge came with either:
+    the IRLS loop and the robust covariance reuse the same internal
+    least-squares core the OLS half already had.
   -->
   <PropertyGroup>
     <LodestarStatsRegressionVersion>0.2.0</LodestarStatsRegressionVersion>

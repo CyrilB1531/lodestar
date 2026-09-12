@@ -27,9 +27,10 @@ public sealed record LjungBoxOptions
 
     /// <summary>Whether the Box-Pierce statistic is reported beside Ljung-Box. Default false.</summary>
     /// <remarks>
-    /// Box-Pierce is the same sum without the <c>n/(n - k)</c> weight, so it is the smaller of the
-    /// two and the less powerful in a short series. It is here because the reference offers it and
-    /// a reader comparing an old paper's numbers needs it.
+    /// Box-Pierce is <c>n·Σ r_k²</c>, where Ljung-Box is <c>n·(n + 2)·Σ r_k²/(n − k)</c> -- the
+    /// factor <c>(n + 2)/(n − k)</c> is at least 1 at every lag, so Box-Pierce is the smaller of
+    /// the two. It is here because the reference offers it and a reader comparing an old paper's
+    /// numbers needs it.
     /// </remarks>
     public bool BoxPierce { get; init; }
 }

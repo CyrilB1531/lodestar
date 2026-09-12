@@ -35,6 +35,7 @@ reading and what it decided.
 | [`OrdinaryLeastSquares`](ols/ordinaryleastsquares.md) | Fits the model and builds the table. |
 | [`OlsSummary`](ols/olssummary.md) | The fitted model, its errors, its p-values and its diagnostics. |
 | [`OlsOptions`](ols/olsoptions.md) | Whether to fit an intercept, and at what confidence. |
+| [`CovarianceType`](ols/covariancetype.md) | How the covariance of the estimates is estimated. |
 
 ## See also
 

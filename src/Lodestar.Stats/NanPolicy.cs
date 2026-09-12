@@ -4,7 +4,7 @@ namespace Lodestar.Stats;
 /// <remarks>
 /// Offered on the eleven entry points whose scipy counterpart takes the parameter, and on no
 /// others — <c>chi2_contingency</c>, <c>fisher_exact</c> and <c>false_discovery_control</c> do not
-/// take it, so neither do their counterparts here. Decision 0115 has the rule.
+/// take it, so neither do their counterparts here. Decision 0116 has the rule.
 /// </remarks>
 public enum NanPolicy
 {

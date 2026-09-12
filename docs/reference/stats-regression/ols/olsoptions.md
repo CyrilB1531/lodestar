@@ -10,7 +10,9 @@ public sealed record OlsOptions
 
 **Properties** — `WithIntercept` fits a constant term, as `statsmodels.api.add_constant` would;
 `true` by default. `ConfidenceLevel` is the level of the reported intervals; 0.95 by default, and
-it must lie strictly inside (0, 1).
+it must lie strictly inside (0, 1). [`CovarianceType`](covariancetype.md) chooses how the
+covariance of the estimates is estimated; `Nonrobust` by default, and anything else also moves the
+coefficient tests from Student's t to the normal.
 
 **Example** — a wider level widens both ends without moving the estimate.
 
@@ -38,4 +40,4 @@ bar.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`OrdinaryLeastSquares.Fit`](ordinaryleastsquares-fit.md),
-[`OlsSummary`](olssummary.md).
+[`OlsSummary`](olssummary.md), [`CovarianceType`](covariancetype.md).

@@ -1,5 +1,5 @@
 #!/bin/sh
-# The seventeen offline guards, run against the index instead of after the push.
+# The eighteen offline guards, run against the index instead of after the push.
 #
 #   install:  git config core.hooksPath .githooks
 #   skip once:  git commit --no-verify
@@ -45,6 +45,7 @@ for guard in \
     tools/check_no_console_writeline.py \
     tools/check_readme_pack_loop.py \
     tools/check_claude_md_packages.py \
+    tools/check_readme_packages.py \
     tools/check_release_workflow_packages.py \
     tools/check_unreleased.py \
     tools/check_requirements_lock_sync.py \

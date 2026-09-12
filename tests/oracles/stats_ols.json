@@ -3,7 +3,7 @@
   "library": "statsmodels",
   "version": "0.15.0",
   "family": "ols",
-  "count": 6
+  "count": 12
  },
  "cases": [
   {
@@ -31,6 +31,7 @@
    "featureCount": 1,
    "withIntercept": true,
    "confidenceLevel": 0.95,
+   "covarianceType": "nonrobust",
    "coefficients": [
     0.03571428571428892,
     1.997619047619047
@@ -122,6 +123,7 @@
    "featureCount": 3,
    "withIntercept": true,
    "confidenceLevel": 0.95,
+   "covarianceType": "nonrobust",
    "coefficients": [
     3.4369618334366985,
     1.5494584810757233,
@@ -203,6 +205,7 @@
    "featureCount": 2,
    "withIntercept": false,
    "confidenceLevel": 0.95,
+   "covarianceType": "nonrobust",
    "coefficients": [
     1.8285714285714256,
     1.3942857142857186
@@ -277,6 +280,7 @@
    "featureCount": 2,
    "withIntercept": true,
    "confidenceLevel": 0.95,
+   "covarianceType": "nonrobust",
    "coefficients": [
     0.21286089238844852,
     6.6102362204726575,
@@ -341,6 +345,7 @@
    "featureCount": 1,
    "withIntercept": true,
    "confidenceLevel": 0.99,
+   "covarianceType": "nonrobust",
    "coefficients": [
     -0.014285714285717788,
     1.0053571428571435
@@ -393,6 +398,7 @@
    "featureCount": 2,
    "withIntercept": false,
    "confidenceLevel": 0.95,
+   "covarianceType": "nonrobust",
    "coefficients": [
     1.4533333333333331,
     1.2266666666666668
@@ -426,6 +432,421 @@
    "varianceInflationFactors": [
     1.12,
     1.12
+   ]
+  },
+  {
+   "name": "heteroskedastic funnel, HC0",
+   "design": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0,
+    11.0,
+    12.0,
+    13.0,
+    14.0
+   ],
+   "response": [
+    2.1,
+    4.3,
+    5.7,
+    8.4,
+    9.6,
+    13.1,
+    13.4,
+    17.9,
+    17.2,
+    22.8,
+    20.9,
+    26.4,
+    24.1,
+    31.6
+   ],
+   "featureCount": 1,
+   "withIntercept": true,
+   "confidenceLevel": 0.95,
+   "covarianceType": "HC0",
+   "coefficients": [
+    -0.2538461538461565,
+    2.1052747252747257
+   ],
+   "standardErrors": [
+    0.547260316664343,
+    0.11179657571456288
+   ],
+   "tStatistics": [
+    -0.46384900588699296,
+    18.831298828417406
+   ],
+   "pValues": [
+    0.6427559299605431,
+    4.183727376972783e-79
+   ],
+   "confidenceLower": [
+    -1.3264566646762541,
+    1.8861574632792772
+   ],
+   "confidenceUpper": [
+    0.8187643569839411,
+    2.3243919872701744
+   ],
+   "rSquared": 0.970013421072008,
+   "adjustedRSquared": 0.9675145394946754,
+   "fStatistic": 354.61781556515473,
+   "fPValue": 2.8138453836333023e-10,
+   "residualDegreesOfFreedom": 12,
+   "residualStandardError": 1.6116971693118298,
+   "varianceInflationFactors": [
+    1.0000000000000002
+   ]
+  },
+  {
+   "name": "heteroskedastic funnel, HC1",
+   "design": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0,
+    11.0,
+    12.0,
+    13.0,
+    14.0
+   ],
+   "response": [
+    2.1,
+    4.3,
+    5.7,
+    8.4,
+    9.6,
+    13.1,
+    13.4,
+    17.9,
+    17.2,
+    22.8,
+    20.9,
+    26.4,
+    24.1,
+    31.6
+   ],
+   "featureCount": 1,
+   "withIntercept": true,
+   "confidenceLevel": 0.95,
+   "covarianceType": "HC1",
+   "coefficients": [
+    -0.2538461538461565,
+    2.1052747252747257
+   ],
+   "standardErrors": [
+    0.5911087011383636,
+    0.12075410302933391
+   ],
+   "tStatistics": [
+    -0.42944073290969464,
+    17.434394960172135
+   ],
+   "pValues": [
+    0.667602516185352,
+    4.523214363454993e-68
+   ],
+   "confidenceLower": [
+    -1.4123979190255995,
+    1.8686010323517923
+   ],
+   "confidenceUpper": [
+    0.9047056113332865,
+    2.341948418197659
+   ],
+   "rSquared": 0.970013421072008,
+   "adjustedRSquared": 0.9675145394946754,
+   "fStatistic": 303.9581276272754,
+   "fPValue": 6.883554818358872e-10,
+   "residualDegreesOfFreedom": 12,
+   "residualStandardError": 1.6116971693118298,
+   "varianceInflationFactors": [
+    1.0000000000000002
+   ]
+  },
+  {
+   "name": "heteroskedastic funnel, HC2",
+   "design": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0,
+    11.0,
+    12.0,
+    13.0,
+    14.0
+   ],
+   "response": [
+    2.1,
+    4.3,
+    5.7,
+    8.4,
+    9.6,
+    13.1,
+    13.4,
+    17.9,
+    17.2,
+    22.8,
+    20.9,
+    26.4,
+    24.1,
+    31.6
+   ],
+   "featureCount": 1,
+   "withIntercept": true,
+   "confidenceLevel": 0.95,
+   "covarianceType": "HC2",
+   "coefficients": [
+    -0.2538461538461565,
+    2.1052747252747257
+   ],
+   "standardErrors": [
+    0.6158543880168775,
+    0.12594462521988217
+   ],
+   "tStatistics": [
+    -0.4121853457333811,
+    16.71587589862769
+   ],
+   "pValues": [
+    0.6802035773006263,
+    1.0043339613834682e-62
+   ],
+   "confidenceLower": [
+    -1.4608985740801923,
+    1.8584277957973616
+   ],
+   "confidenceUpper": [
+    0.9532062663878793,
+    2.35212165475209
+   ],
+   "rSquared": 0.970013421072008,
+   "adjustedRSquared": 0.9675145394946754,
+   "fStatistic": 279.42050705832213,
+   "fPValue": 1.1196598766065853e-09,
+   "residualDegreesOfFreedom": 12,
+   "residualStandardError": 1.6116971693118298,
+   "varianceInflationFactors": [
+    1.0000000000000002
+   ]
+  },
+  {
+   "name": "heteroskedastic funnel, HC3",
+   "design": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0,
+    11.0,
+    12.0,
+    13.0,
+    14.0
+   ],
+   "response": [
+    2.1,
+    4.3,
+    5.7,
+    8.4,
+    9.6,
+    13.1,
+    13.4,
+    17.9,
+    17.2,
+    22.8,
+    20.9,
+    26.4,
+    24.1,
+    31.6
+   ],
+   "featureCount": 1,
+   "withIntercept": true,
+   "confidenceLevel": 0.95,
+   "covarianceType": "HC3",
+   "coefficients": [
+    -0.2538461538461565,
+    2.1052747252747257
+   ],
+   "standardErrors": [
+    0.6945451210595766,
+    0.14211839172191726
+   ],
+   "tStatistics": [
+    -0.36548547552806454,
+    14.813527649497415
+   ],
+   "pValues": [
+    0.714749046898985,
+    1.19785258751158e-49
+   ],
+   "confidenceLower": [
+    -1.6151295767609384,
+    1.8267277959590125
+   ],
+   "confidenceUpper": [
+    1.1074372690686254,
+    2.383821654590439
+   ],
+   "rSquared": 0.970013421072008,
+   "adjustedRSquared": 0.9675145394946754,
+   "fStatistic": 219.44060142242435,
+   "fPValue": 4.483745935901386e-09,
+   "residualDegreesOfFreedom": 12,
+   "residualStandardError": 1.6116971693118298,
+   "varianceInflationFactors": [
+    1.0000000000000002
+   ]
+  },
+  {
+   "name": "two regressors, no intercept, HC1",
+   "design": [
+    1.0,
+    1.0,
+    2.0,
+    1.0,
+    3.0,
+    2.0,
+    4.0,
+    2.0,
+    5.0,
+    3.0,
+    6.0,
+    3.0,
+    7.0,
+    4.0,
+    8.0,
+    4.0
+   ],
+   "response": [
+    3.4,
+    4.8,
+    8.9,
+    9.6,
+    12.7,
+    15.9,
+    19.2,
+    19.4
+   ],
+   "featureCount": 2,
+   "withIntercept": false,
+   "confidenceLevel": 0.95,
+   "covarianceType": "HC1",
+   "coefficients": [
+    1.4428571428571395,
+    2.1114285714285757
+   ],
+   "standardErrors": [
+    0.407122346166383,
+    0.742919937541797
+   ],
+   "tStatistics": [
+    3.5440381901008986,
+    2.842067448633771
+   ],
+   "pValues": [
+    0.0003940481625633219,
+    0.004482200780905463
+   ],
+   "confidenceLower": [
+    0.6449120070695803,
+    0.6553322504499073
+   ],
+   "confidenceUpper": [
+    2.240802278644699,
+    3.567524892407244
+   ],
+   "rSquared": 0.9980515912841728,
+   "adjustedRSquared": 0.9974021217122303,
+   "fStatistic": 1112.6283552481252,
+   "fPValue": 1.9444873956686056e-08,
+   "residualDegreesOfFreedom": 6,
+   "residualStandardError": 0.6657970518752053,
+   "varianceInflationFactors": [
+    21.000000000000025,
+    20.999999999999975
+   ]
+  },
+  {
+   "name": "a 99% interval under HC3, where the multiplier is the normal one",
+   "design": [
+    2.0,
+    4.0,
+    6.0,
+    8.0,
+    10.0,
+    12.0,
+    14.0
+   ],
+   "response": [
+    1.9,
+    4.2,
+    5.8,
+    8.3,
+    9.7,
+    12.4,
+    13.9
+   ],
+   "featureCount": 1,
+   "withIntercept": true,
+   "confidenceLevel": 0.99,
+   "covarianceType": "HC3",
+   "coefficients": [
+    -0.014285714285717788,
+    1.0053571428571435
+   ],
+   "standardErrors": [
+    0.20977338775882592,
+    0.028763557027558347
+   ],
+   "tStatistics": [
+    -0.06810069875089166,
+    34.95246230825734
+   ],
+   "pValues": [
+    0.9457054741272402,
+    1.1880484143771932e-267
+   ],
+   "confidenceLower": [
+    -0.5546261535796277,
+    0.9312671297912588
+   ],
+   "confidenceUpper": [
+    0.5260547250081922,
+    1.0794471559230283
+   ],
+   "rSquared": 0.996206502061752,
+   "adjustedRSquared": 0.9954478024741024,
+   "fStatistic": 1221.6746214101495,
+   "fPValue": 3.6067303520615057e-07,
+   "residualDegreesOfFreedom": 5,
+   "residualStandardError": 0.2936226927781398,
+   "varianceInflationFactors": [
+    1.0
    ]
   }
  ]

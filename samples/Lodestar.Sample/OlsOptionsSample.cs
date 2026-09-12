@@ -2,7 +2,7 @@ using Lodestar.Stats.Regression;
 
 namespace Lodestar.Sample;
 
-/// <summary>The two choices a fit takes, and what each one changes.</summary>
+/// <summary>The three choices a fit takes, and what each one changes.</summary>
 internal static class OlsOptionsSample
 {
     public static void Run()
@@ -28,6 +28,15 @@ internal static class OlsOptionsSample
 
         Console.WriteLine($"  R2 centred       : {Inv.F4(ninetyFive.RSquared)}");
         Console.WriteLine($"  R2 uncentred     : {Inv.F4(noIntercept.RSquared)}");
+
+        // A robust covariance leaves the estimate alone and widens what it claims to know.
+        // It also moves the tests to the normal, which OlsSummary.CovarianceType is what says.
+        OlsSummary robust = OrdinaryLeastSquares.Fit(
+            design, response, featureCount: 1,
+            new OlsOptions { CovarianceType = CovarianceType.Hc3 });
+
+        Console.WriteLine($"  SE ordinary      : {Inv.F4(ninetyFive.StandardErrors[1])}");
+        Console.WriteLine($"  SE {robust.CovarianceType,-14}: {Inv.F4(robust.StandardErrors[1])}");
         Console.WriteLine();
     }
 }

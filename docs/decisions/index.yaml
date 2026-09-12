@@ -91,7 +91,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0115"]
+  applied_by: ["0115", "0116"]
 
 "0009":
   title: "The sample restores from a local feed, not nuget.org"
@@ -961,7 +961,7 @@
   applies: ["0081"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0097", "0098"]
+  applied_by: ["0097", "0098", "0115"]
 
 "0096":
   title: "Ordinary least squares earns its own package"
@@ -1154,6 +1154,16 @@
   applied_by: []
 
 "0115":
+  title: "The robust covariances come first, and the tail they need was already published"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0008", "0095"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0116":
   title: "`nan_policy` is offered where scipy offers it, and omission is a filter"
   status: "accepted"
   supersedes: []

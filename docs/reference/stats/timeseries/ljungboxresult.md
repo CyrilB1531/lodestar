@@ -36,8 +36,7 @@ assembles by hand.
 
 `BoxPierceStatistics` and `BoxPiercePValues` are empty lists, not lists of `NaN`, when
 [`LjungBoxOptions.BoxPierce`](ljungboxoptions.md) was left at its `false` default — a reader
-indexing them by mistake gets an `IndexOutOfRangeException` naming the omission rather than a
-silent `NaN`.
+indexing them by mistake gets an `ArgumentOutOfRangeException` rather than a silent `NaN`.
 
 A class rather than a record, for the reason [`AutocorrelationResult`](autocorrelationresult.md)
 gives: a record's equality would compare these five lists by reference.

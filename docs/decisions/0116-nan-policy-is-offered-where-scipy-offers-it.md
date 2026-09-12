@@ -4,7 +4,7 @@ supersedes: []
 amends: []
 applies: ["0008"]
 ---
-# 0115 — `nan_policy` is offered where scipy offers it, and omission is a filter
+# 0116 — `nan_policy` is offered where scipy offers it, and omission is a filter
 
 **Status:** accepted · **Date:** 2026-09-12
 

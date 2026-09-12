@@ -70,7 +70,7 @@ public static class KruskalWallis
     /// <exception cref="ArgumentException">
     /// When <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and a group holds a
     /// <c>NaN</c>, or when the filtered groups fail this test's own requirements — a pooled
-    /// sample left fully tied by omission is still refused (decision 0115).
+    /// sample left fully tied by omission is still refused (decision 0116).
     /// </exception>
     /// <remarks>
     /// The policy comes first because the groups are a <c>params</c> array and C# allows no
