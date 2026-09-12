@@ -1,6 +1,6 @@
 namespace Lodestar.Stats.Regression;
 
-/// <summary>What a GeneralizedLinearModel fit may be told.</summary>
+/// <summary>What a <see cref="GeneralizedLinearModel"/> fit may be told.</summary>
 public sealed class GlmOptions
 {
     /// <summary>Whether a column of ones is prepended to the design. Default true.</summary>
@@ -19,7 +19,7 @@ public sealed class GlmOptions
     /// <remarks>
     /// A non-converged inference table is plausible and wrong — enormous standard errors and
     /// p-values that read like p-values. Turn this off to inspect one, or to freeze one in a
-    /// corpus, and read <c>GlmSummary.Converged</c> before anything else (#616).
+    /// corpus, and read <see cref="GlmSummary.Converged"/> before anything else (#616).
     /// </remarks>
     public bool ThrowOnNonConvergence { get; init; } = true;
 }

@@ -434,6 +434,26 @@ records why these three and no more.
 | `.summary()` | statsmodels | — (no counterpart) | The formatted text block is a presentation concern; every number in it is a property of [`OlsSummary`](reference/stats-regression/ols/olssummary.md). |
 | `sm.WLS`, `sm.GLS`, `.get_robustcov_results("HC3")` | statsmodels | — (no counterpart yet) | Weighted and generalised least squares, and the HC0–HC3 robust covariances, are out of scope for 0.1.0. |
 
+## Lodestar.Stats.Regression — generalized linear models
+
+Fitted by IRLS over the same Householder-QR least-squares core
+[`OrdinaryLeastSquares.Fit`](reference/stats-regression/ols/ordinaryleastsquares-fit.md) uses
+([decision 0111](decisions/0111-the-generalized-linear-model-does-not-earn-its-own-package.md)).
+
+| Python | Library | C# | Differences |
+| --- | --- | --- | --- |
+| `sm.GLM(y, X, family=sm.families.Binomial()).fit()`, `sm.GLM(y, X, family=sm.families.Poisson()).fit()` | statsmodels | [`GeneralizedLinearModel.Fit(design, response, featureCount, family)`](reference/stats-regression/glm/generalizedlinearmodel-fit.md) | Identical over the whole table. `X` is a row-major span here rather than a 2-D array. The family argument is [`GlmFamily.Binomial`](reference/stats-regression/glm/glmfamily.md) or `.Poisson` — a closed enum rather than a `family=` object, so an internally inconsistent family cannot be constructed. Only these two links (logit, log) are wired; the other families `sm.families` publishes (Gamma, inverse Gaussian, negative binomial, Tweedie) have no counterpart yet. |
+| `.params`, `.bse`, `.tvalues`, `.pvalues` | statsmodels | [`GlmSummary.Coefficients`](reference/stats-regression/glm/glmsummary.md), `.StandardErrors`, `.ZStatistics`, `.PValues` | Identical, compared relatively at the same `2.9e-11` regime the OLS table above uses ([decision 0081](decisions/0081-the-stats-numerical-layer-stays-internal.md)). statsmodels names the Wald statistic `tvalues` on every `GLM` result; it is a z statistic against the normal tail, which `ZStatistics` names directly. |
+| `.conf_int(alpha)` | statsmodels | [`GlmSummary.ConfidenceLower`](reference/stats-regression/glm/glmsummary.md) and `.ConfidenceUpper` | Identical. Stated as a *level* rather than an alpha, through [`GlmOptions.ConfidenceLevel`](reference/stats-regression/glm/glmoptions.md): `0.95` is `alpha=0.05`. Two parallel lists rather than an `n × 2` array. |
+| `.deviance`, `.null_deviance` | statsmodels | [`GlmSummary.Deviance`](reference/stats-regression/glm/glmsummary.md), `.NullDeviance` | Identical. Both are twice the log-likelihood gap to a saturated fit — the fitted model and the intercept-only one, whichever was fitted, respectively. |
+| `.scale` | statsmodels | [`GlmSummary.Dispersion`](reference/stats-regression/glm/glmsummary.md) | Identical: fixed at `1` for both `Binomial` and `Poisson`, which have no free dispersion parameter. Estimated rather than fixed once a Gamma family lands. |
+| `.llf`, `.aic` | statsmodels | [`GlmSummary.LogLikelihood`](reference/stats-regression/glm/glmsummary.md), `.Akaike` | Identical. `Akaike` is `2k - 2 logL`, `k` the parameter count `ResidualDegreesOfFreedom` is computed against. |
+| `.df_resid` | statsmodels | [`GlmSummary.ResidualDegreesOfFreedom`](reference/stats-regression/glm/glmsummary.md) | Identical. A design leaving no residual degree of freedom is refused here rather than answered with zeros, as `OlsSummary.ResidualDegreesOfFreedom` already is. |
+| `.converged`, `.fit_history["iteration"]` | statsmodels | [`GlmSummary.Converged`](reference/stats-regression/glm/glmsummary.md), `.Iterations` | Identical. **One addition**: `GlmSummary.DevianceChange` reports the absolute deviance change at the last iteration, which statsmodels does not expose — read alongside `Converged` to see how far a non-convergent fit still is. **One divergence**: a non-converged fit throws an `InvalidOperationException` here by default ([`GlmOptions.ThrowOnNonConvergence`](reference/stats-regression/glm/glmoptions.md)), where statsmodels prints a `ConvergenceWarning` and returns the table anyway; setting the option to `false` returns it here too. |
+| `sm.add_constant` | statsmodels | [`GlmOptions.WithIntercept`](reference/stats-regression/glm/glmoptions.md) | Identical in effect: prepends a column of ones rather than requiring the caller to. `GlmSummary.HasIntercept` reports back whether one was fitted. |
+| `.fit(maxiter=100, tol=1e-8)` | statsmodels | [`GlmOptions.MaximumIterations`](reference/stats-regression/glm/glmoptions.md), `.Tolerance` | Identical defaults: 100 iterations, `1e-8` used as both the absolute and relative convergence term. |
+| `.summary()` | statsmodels | — (no counterpart) | The formatted text block is a presentation concern; every number in it is a property of [`GlmSummary`](reference/stats-regression/glm/glmsummary.md). |
+
 ## Lodestar.Survival — survival analysis
 
 Oracled by **`lifelines` 0.30.3 (MIT)** rather than scipy. `scikit-survival` is refused on

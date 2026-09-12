@@ -185,7 +185,10 @@
         "docs/reference/stats-regression/*/*.md"
       ],
       "covered": {
-        "Lodestar.Stats.Regression": "docs/reference/stats-regression/ols"
+        "Lodestar.Stats.Regression": [
+          "docs/reference/stats-regression/ols",
+          "docs/reference/stats-regression/glm"
+        ]
       },
       "exceptionsUnchecked": []
     },

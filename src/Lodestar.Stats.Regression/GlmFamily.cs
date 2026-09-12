@@ -1,6 +1,6 @@
 namespace Lodestar.Stats.Regression;
 
-/// <summary>The response distribution a GeneralizedLinearModel fits, with its canonical link.</summary>
+/// <summary>The response distribution a <see cref="GeneralizedLinearModel"/> fits, with its canonical link.</summary>
 /// <remarks>
 /// Closed on purpose. IRLS cannot check that a caller-supplied family is internally consistent,
 /// and an incoherent one produces a plausible inference table rather than an error — so a family

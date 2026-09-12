@@ -76,6 +76,19 @@ is one sentence, the issue and the commit; see
   VectorData 10.10.0 requires `[10.10.0, )`, so the two still move together and the alignment
   that decision relied on holds. ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
 
+### Lodestar.Stats.Regression
+
+#### Added
+
+- **`GeneralizedLinearModel.Fit`, with `GlmFamily`, `GlmOptions` and `GlmSummary`.** A `Binomial`
+  or `Poisson` response fitted by IRLS through its canonical link, over the same Householder-QR
+  least-squares core `OrdinaryLeastSquares.Fit` uses, and reporting the same shape of inference
+  table beside it — coefficients, standard errors, z statistics, p-values, confidence intervals,
+  deviance and the rest of what a `statsmodels` `GLM(...).fit()` summary holds.
+  [Decision 0111](docs/decisions/0111-the-generalized-linear-model-does-not-earn-its-own-package.md)
+  kept it in this package rather than a new one.
+  ([#616](https://github.com/CyrilB1531/lodestar/issues/616))
+
 ## Released — 2026-09-10
 
 Thirteen cuts across eleven packages, and the end of milestone 0.6.0 — thirty-three

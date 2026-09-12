@@ -2060,3 +2060,48 @@ the kernel's own work scales on while the hashing does not.
 
 Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
 this section documents how to measure, not what was measured.
+
+## 27. `Lodestar.Stats.Regression`'s generalized linear model against `Accord.Statistics` (issue #616)
+
+[Decision 0111](../docs/decisions/0111-the-generalized-linear-model-does-not-earn-its-own-package.md)
+kept the GLM inside `Lodestar.Stats.Regression` rather than a new package, on the same reading
+[decision 0096](../docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md) gave the
+OLS half. Section 19 already resolves `Accord.Statistics` in this project for that half; the GLM
+reaches the same incumbent through a different corner of its surface —
+`GeneralizedLinearRegression` fitted by `IterativeReweightedLeastSquares`, the constructor-and-`Run`
+pair rather than the `LogisticRegression`-typed generic overload, because a `LogitLinkFunction`
+passed to the untyped constructor is what lets one benchmark class drive either family through the
+same shape.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*GlmBenchmarks*' --job short
+```
+
+### What the pair does and does not compare
+
+Both rows fit a `Binomial` model — a logit link — to convergence and read the first regressor's
+Wald p-value off it: `GeneralizedLinearModel.Fit(...).PValues[1]` against
+`regression.GetWaldTest(1).PValue`. Both are given the same 100-iteration, `1e-8` budget
+`GlmOptions`'s own defaults use, so neither side is favoured by a looser convergence criterion.
+
+**`Accord.Statistics` 3.8.0's own recommended replacement for the API this benchmark drives,
+`IterativeReweightedLeastSquares.Learn(x, y)`, does not terminate within any bound this project
+could measure on the corpus below** — observed directly by running it, not assumed from its
+signature. The constructor-and-`Run` pair this benchmark uses instead accepts an explicit
+iteration budget and is what `Accord.Statistics`' own `LogisticRegression`-typed generic overload
+does not expose for an arbitrary link function, which is why the untyped
+`GeneralizedLinearRegression` is the one benchmarked rather than the typed one section 19 loads for
+its own comparison — `IterativeReweightedLeastSquares.Learn` on the typed class does terminate, but
+only fits the logit link.
+
+The shapes differ on purpose, the same way section 19 records for the OLS pair:
+`Lodestar.Stats.Regression` takes a row-major `ReadOnlySpan<double>`, where Accord takes
+`double[][]`, one array per row — an allocation the design generation pays once per row that
+`[MemoryDiagnoser]` reports rather than hides.
+
+A seeded logistic design (`Random(616)`), at 200 and 2 000 rows by 1 and 3 regressors — enough
+rows for the table in section 19's own reading to be worth reading, and few enough regressors that
+neither side pays for a design this package's own test corpus does not also exercise.
+
+Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
+this section documents how to measure, not what was measured.
