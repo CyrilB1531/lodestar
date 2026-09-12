@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Replays the entire Lodestar.Extensions.VectorData.Tests suite against the
+    *netstandard2.0* build of the library, instead of the net10.0 one the original
+    project references.
+
+    netstandard2.0 is a contract, not a runtime, so the tests cannot run *on* it.
+    They run on net10.0 — identical host — and only the assembly under test
+    changes. Without this, the assemblies shipped to .NET Framework, Mono and
+    Unity consumers are compile-verified but never executed.
+
+    The test sources are linked, never copied: one suite, two builds.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AssemblyName>Lodestar.Extensions.VectorData.NetStandard.Tests</AssemblyName>
+    <RootNamespace>Lodestar.Extensions.VectorData.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <!--
+    SetTargetFramework is what pins the reference to the netstandard2.0 build.
+
+    Lodestar.Embeddings and Lodestar.Text are listed explicitly, and that is not
+    redundant. Lodestar.Extensions.VectorData reaches both through a
+    PackageReference, and SetTargetFramework does not travel across one: NuGet
+    resolves package assets against *this* project's target framework (net10.0),
+    so the transitive dependencies would come from lib/net10.0 and the mirror
+    would stop mirroring — silently, since a guard that only inspected the
+    Lodestar.Extensions.VectorData assembly would still pass. A direct
+    ProjectReference takes precedence over the package of the same id, which
+    restores the netstandard2.0 build; the extended guard proves it (#529).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/Lodestar.Extensions.VectorData/Lodestar.Extensions.VectorData.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
+    <ProjectReference Include="../../src/Lodestar.Embeddings/Lodestar.Embeddings.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
+    <ProjectReference Include="../../src/Lodestar.Text/Lodestar.Text.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Lodestar.Extensions.VectorData.Tests/**/*.cs"
+             Exclude="../Lodestar.Extensions.VectorData.Tests/bin/**;../Lodestar.Extensions.VectorData.Tests/obj/**"
+             Link="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!-- The gate's engine is shared by every package's suite, so it is linked rather
+       than copied; the pages and the map are read from the output directory. -->
+  <ItemGroup>
+    <Compile Include="../Shared/ReferenceDocumentation.cs" Link="Documentation/ReferenceDocumentation.cs" />
+    <None Include="../../docs/reference/extensions-vectordata/**/*.md" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="reference" />
+    <None Include="../../docs/wiki-map.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../docs/**/*.md" Exclude="../../docs/superpowers/**"
+          CopyToOutputDirectory="PreserveNewest" LinkBase="docs" />
+  </ItemGroup>
+
+</Project>

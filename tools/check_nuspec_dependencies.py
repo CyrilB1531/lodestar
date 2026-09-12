@@ -74,11 +74,13 @@ PREPROCESSING = "Lodestar.Preprocessing"
 CLUSTER = "Lodestar.Cluster"
 ONNX = "Lodestar.Onnx"
 EXTENSIONS_AI = "Lodestar.Extensions.AI"
+EXTENSIONS_VECTORDATA = "Lodestar.Extensions.VectorData"
 EXTENSIONS_MATHNET = "Lodestar.Extensions.MathNet"
 GPU = "Lodestar.Gpu"
 ILGPU = "ILGPU"
 ONNX_RUNTIME = "Microsoft.ML.OnnxRuntime"
 MS_EXTENSIONS_AI = "Microsoft.Extensions.AI.Abstractions"
+MS_VECTORDATA = "Microsoft.Extensions.VectorData.Abstractions"
 MATHNET = "MathNet.Numerics"
 STJ = "System.Text.Json"
 
@@ -91,7 +93,7 @@ PERSISTENCE = {STJ: "10.0.12"}
 
 # Must equal Directory.Packages.props' PackageVersion: a PackageReference
 # emits this floor, but LodestarUseProjectRefs emits Text's own version instead -- catching the escape hatch left on.
-TEXT_FLOOR = "0.4.0"
+TEXT_FLOOR = "0.6.0"
 
 # Must equal Directory.Packages.props' PackageVersion, for the edge decision 0071
 # added: Lodestar.Text stopped declaring CsrMatrix and consumes it from here.
@@ -109,6 +111,10 @@ ONNX_FLOOR = "0.1.0"
 # per package id, so both consume 0.4.0 -- additive over the 0.2.0 Regression asked for.
 STATS_FLOOR = "0.4.0"
 DECOMPOSITION_FLOOR = "0.2.0"
+
+# Directory.Packages.props' PackageVersion for both Microsoft.Extensions.*.Abstractions
+# pins: Extensions.AI and Extensions.VectorData agree on it without a range to reconcile.
+MS_ABSTRACTIONS_FLOOR = "10.10.0"
 
 # package id -> target framework -> {dependency id: declared version range}.
 # See this module's docstring for what EXPECTED's shape and ranges prove.
@@ -148,16 +154,27 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
     EXTENSIONS_AI: {
         # The second satellite, and the second external dependency. Two Lodestar edges:
         # the embedder it adapts, and the package whose BatchEncoder its constructor names.
-        NET: {ONNX: ONNX_FLOOR, EMBEDDINGS: EMBEDDINGS_FLOOR, MS_EXTENSIONS_AI: "10.10.0"},
+        NET: {ONNX: ONNX_FLOOR, EMBEDDINGS: EMBEDDINGS_FLOOR, MS_EXTENSIONS_AI: MS_ABSTRACTIONS_FLOOR},
         NETSTANDARD: {
             ONNX: ONNX_FLOOR,
             EMBEDDINGS: EMBEDDINGS_FLOOR,
-            MS_EXTENSIONS_AI: "10.10.0",
+            MS_EXTENSIONS_AI: MS_ABSTRACTIONS_FLOOR,
+            **POLYFILLS,
+        },
+    },
+    EXTENSIONS_VECTORDATA: {
+        # The third satellite: two Lodestar edges, one per half of hybrid search --
+        # Embeddings for the vectors, Text for the BM25 index and the fusion.
+        NET: {EMBEDDINGS: EMBEDDINGS_FLOOR, TEXT: TEXT_FLOOR, MS_VECTORDATA: MS_ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {
+            EMBEDDINGS: EMBEDDINGS_FLOOR,
+            TEXT: TEXT_FLOOR,
+            MS_VECTORDATA: MS_ABSTRACTIONS_FLOOR,
             **POLYFILLS,
         },
     },
     EXTENSIONS_MATHNET: {
-        # The third satellite. One Lodestar edge, to the package that owns CsrMatrix,
+        # The fourth satellite. One Lodestar edge, to the package that owns CsrMatrix,
         # because converting that type is the whole of this package's surface.
         NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0"},
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0", **POLYFILLS},

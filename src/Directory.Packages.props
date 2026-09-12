@@ -28,7 +28,7 @@
     <PackageVersion Include="Lodestar.Embeddings" Version="0.5.0" />
     <PackageVersion Include="Lodestar.Onnx" Version="0.1.0" />
     <PackageVersion Include="Lodestar.Stats" Version="0.4.0" />
-    <PackageVersion Include="Lodestar.Text" Version="0.4.0" />
+    <PackageVersion Include="Lodestar.Text" Version="0.6.0" />
     <!-- 1.5.3 (2025-07-12) is the newest, and its newest asset is net7.0.
          Carried by Lodestar.Gpu alone, which is net10.0 only because ILGPU
          publishes no netstandard2.0 asset at all (decision 0101). -->
@@ -38,6 +38,10 @@
          satellite it earns under decision 0076. -->
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.0" />
     <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />
+    <!-- The dependency Lodestar.Extensions.VectorData exists for. Its own single
+         dependency is Microsoft.Extensions.AI.Abstractions at this same 10.10.0,
+         so the two satellites agree without a range to reconcile. -->
+    <PackageVersion Include="Microsoft.Extensions.VectorData.Abstractions" Version="10.10.0" />
     <!-- 5.0.0 (2022-04-03) is still the only stable release; carried by
          Lodestar.Extensions.MathNet alone, which converts to its types rather
          than computing with them (decision 0087). -->

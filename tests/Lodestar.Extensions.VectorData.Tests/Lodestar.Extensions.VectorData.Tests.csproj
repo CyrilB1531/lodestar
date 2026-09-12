@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Lodestar.Extensions.VectorData/Lodestar.Extensions.VectorData.csproj" />
+  </ItemGroup>
+
+  <!-- The reference gate reads the published pages and the map beside the assembly,
+       the way the oracle corpora already are. -->
+  <ItemGroup>
+    <Compile Include="../Shared/ReferenceDocumentation.cs" Link="Documentation/ReferenceDocumentation.cs" />
+    <None Include="../../docs/reference/extensions-vectordata/**/*.md" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="reference" />
+    <None Include="../../docs/wiki-map.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../docs/**/*.md" Exclude="../../docs/superpowers/**"
+          CopyToOutputDirectory="PreserveNewest" LinkBase="docs" />
+  </ItemGroup>
+
+</Project>
