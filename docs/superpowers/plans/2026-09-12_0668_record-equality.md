@@ -1801,8 +1801,14 @@ for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings 
   dotnet pack "$proj" --configuration Release --no-build --output ./artifacts
 done
 python3 tools/extract_doc_snippets.py
-dotnet build samples/Lodestar.DocSnippets -c Release
+NUGET_PACKAGES=$(mktemp -d) dotnet build samples/Lodestar.DocSnippets -c Release
 ```
+
+`NUGET_PACKAGES` is isolated deliberately. Without it the global cache serves the previously
+published package for these versions rather than what `pack` just wrote, so the snippets are
+compiled against the code as it shipped and not as the branch leaves it — ADR 0009, and the
+failure it produces is a page "promising True" while the stale assembly returns False, which
+reads as a code defect and is not one.
 
 Expected: clean. Every `// =>` in the twelve new reference pages is an assertion that runs, so a
 `True` promised by a page and not delivered by the code fails here.
