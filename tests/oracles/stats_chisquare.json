@@ -368,7 +368,7 @@
     "NaN",
     40.0
    ],
-   "expected": [],
+   "expected_input": [],
    "statistic": "NaN",
    "pvalue": "NaN"
   },
@@ -384,7 +384,7 @@
     "NaN",
     40.0
    ],
-   "expected": [],
+   "expected_input": [],
    "statistic": 20.0,
    "pvalue": 4.539992976248486e-05
   },
@@ -401,7 +401,7 @@
     "NaN",
     40.0
    ],
-   "expected": []
+   "expected_input": []
   }
  ]
 }

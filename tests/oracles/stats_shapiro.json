@@ -344,7 +344,7 @@
    "args": {
     "nan_policy": "propagate"
    },
-   "sample": [
+   "x": [
     1.0,
     2.0,
     "NaN",
@@ -362,7 +362,7 @@
    "args": {
     "nan_policy": "omit"
    },
-   "sample": [
+   "x": [
     1.0,
     2.0,
     "NaN",
@@ -381,7 +381,7 @@
    "args": {
     "nan_policy": "raise"
    },
-   "sample": [
+   "x": [
     1.0,
     2.0,
     "NaN",

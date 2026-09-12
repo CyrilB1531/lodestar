@@ -9301,9 +9301,8 @@ SERIES = "series"
 LAG_COUNT = "lag_count"
 BARTLETT = "bartlett"
 
-# nan_policy (#687): one spelling each for the policy key and its values, and
-# for the "call" names the nan_policy cases now use often enough to cross
-# tools/check_repeated_literals.py's threshold.
+# nan_policy (#687): one spelling each for the policy key, its values, and the
+# "call" names the new cases repeat past check_repeated_literals.py's threshold.
 NAN_POLICY = "nan_policy"
 PROPAGATE = "propagate"
 RAISE_POLICY = "raise"
@@ -9320,6 +9319,7 @@ F_ONEWAY = "f_oneway"
 KRUSKAL = "kruskal"
 SHAPIRO = "shapiro"
 CHISQUARE = "chisquare"
+EXPECTED_INPUT = "expected_input"
 
 
 def _stats_metadata(family: str, count: int) -> dict:
@@ -9582,13 +9582,13 @@ def generate_stats_mannwhitney() -> dict:
             cases.append({
                 "name": f"{fx['name']} | nan_policy={policy}",
                 "call": MANNWHITNEYU, "args": {NAN_POLICY: policy},
-                "x": _stats_nan_list(fx["a"]), "y": _stats_nan_list(fx["b"]),
+                "a": _stats_nan_list(fx["a"]), "b": _stats_nan_list(fx["b"]),
                 STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
             })
         cases.append({
             "name": f"{fx['name']} | nan_policy=raise",
             "call": MANNWHITNEYU, RAISES: True, "args": {NAN_POLICY: RAISE_POLICY},
-            "x": _stats_nan_list(fx["a"]), "y": _stats_nan_list(fx["b"]),
+            "a": _stats_nan_list(fx["a"]), "b": _stats_nan_list(fx["b"]),
         })
 
     return {"metadata": _stats_metadata("mannwhitney", len(cases)), CASES: cases}
@@ -9666,7 +9666,7 @@ def generate_stats_chisquare() -> dict:
             "name": f"{fx['name']} | chisquare",
             "call": CHISQUARE,
             "args": {"f_exp": fx["expected"]},
-            OBSERVED: fx[OBSERVED], "expected_input": fx["expected"],
+            OBSERVED: fx[OBSERVED], EXPECTED_INPUT: fx["expected"],
             STATISTIC: float(r.statistic), PVALUE: float(r.pvalue),
         })
 
@@ -9689,13 +9689,13 @@ def generate_stats_chisquare() -> dict:
         cases.append({
             "name": f"one nan, uniform expectation | nan_policy={policy}",
             "call": CHISQUARE, "args": {NAN_POLICY: policy},
-            OBSERVED: _stats_nan_list(nan_observed), "expected": [],
+            OBSERVED: _stats_nan_list(nan_observed), EXPECTED_INPUT: [],
             STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
         })
     cases.append({
         "name": "one nan, uniform expectation | nan_policy=raise",
         "call": CHISQUARE, RAISES: True, "args": {NAN_POLICY: RAISE_POLICY},
-        OBSERVED: _stats_nan_list(nan_observed), "expected": [],
+        OBSERVED: _stats_nan_list(nan_observed), EXPECTED_INPUT: [],
     })
 
     return {"metadata": _stats_metadata(CHISQUARE, len(cases)), CASES: cases}
@@ -9884,13 +9884,13 @@ def generate_stats_shapiro() -> dict:
         r = sps.shapiro(nan_sample, nan_policy=policy)
         cases.append({
             "name": f"one nan | nan_policy={policy}",
-            "call": SHAPIRO, "args": {NAN_POLICY: policy}, "sample": _stats_nan_list(nan_sample),
+            "call": SHAPIRO, "args": {NAN_POLICY: policy}, "x": _stats_nan_list(nan_sample),
             STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
         })
     cases.append({
         "name": "one nan | nan_policy=raise",
         "call": SHAPIRO, RAISES: True, "args": {NAN_POLICY: RAISE_POLICY},
-        "sample": _stats_nan_list(nan_sample),
+        "x": _stats_nan_list(nan_sample),
     })
 
     return {"metadata": _stats_metadata(SHAPIRO, len(cases)), CASES: cases}
