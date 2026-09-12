@@ -2684,10 +2684,10 @@ seven timed loops after a 2,000-call warm-up:
 
 | call | per call |
 | --- | ---: |
-| `Distributions.StudentQuantile(0.975, 95)` | 16.77 μs |
-| `Distributions.NormalQuantile(0.975)` | 11.53 μs |
-| `Distributions.StudentSf(2.1, 95)` | 0.267 μs |
-| `Distributions.ChiSquaredSf(4.41, 1)` | 0.186 μs |
+| [`Distributions.StudentQuantile`](../reference/stats/tails/distributions-studentquantile.md) `(0.975, 95)` | 16.77 μs |
+| [`Distributions.NormalQuantile`](../reference/stats/tails/distributions-normalquantile.md) `(0.975)` | 11.53 μs |
+| [`Distributions.StudentSf`](../reference/stats/tails/distributions-studentsf.md) `(2.1, 95)` | 0.267 μs |
+| [`Distributions.ChiSquaredSf`](../reference/stats/tails/distributions-chisquaredsf.md) `(4.41, 1)` | 0.186 μs |
 
 One quantile and five p-values per fit, so the robust path saves `5.24 + 5 × 0.081 ≈ 5.6 μs` on
 tails. The table shows a net 3.7 μs, which leaves roughly 2 μs for the filling and the sandwich at
