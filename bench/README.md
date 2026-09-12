@@ -2167,10 +2167,43 @@ recursion inside `PartialAutocorrelation` does real work at both sizes, and well
 AR(1)-like series from a fixed seed (617, this issue's own number) so every benchmark measures the
 same input, and so the correctness table above is reproducible from the same seed.
 
-**The measurement has not been taken yet.** `BenchmarkDotNet`'s own project generator resolves a
-benchmark's containing `.csproj` by name across the whole repository tree, and this checkout has
-more than one `Lodestar.Stats.Benchmarks.csproj` on disk — a second worktree beside the primary
-checkout — which it refuses as ambiguous before a single iteration runs, on every benchmark class
-in this project, not only this one. [`docs/guides/performance.md`](../docs/guides/performance.md)
-carries no section for this benchmark: this section is the protocol, and the numbers land there
-when someone runs the command above from a checkout with no sibling worktree of the same name.
+The numbers, on a named machine and with the default job rather than `ShortRun`, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md#lodestarstats-serial-correlation-diagnostics-against-cortextimeseries-issue-617).
+They were taken from a checkout with sibling worktrees carrying the same benchmark project, which
+`BenchmarkDotNet` 0.14.0 accepted.
+
+## 29. The four robust covariances, against the ordinary one (issue #705)
+
+[Decision 0115](../docs/decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md)
+gave `OrdinaryLeastSquares` the `Hc0` to `Hc3` heteroskedasticity-consistent covariances.
+`RobustCovarianceBenchmarks` prices them against the ordinary covariance on the same fit.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*RobustCovarianceBenchmarks*'
+```
+
+### Why it is its own class
+
+It is not a parameter on section 19's `OlsBenchmarks`. `Accord.Statistics` has no robust mode, so
+five covariance values there would multiply an Accord row that cannot move. This class has no
+incumbent; `Nonrobust` is the baseline, and every row is the same `OrdinaryLeastSquares.Fit` call
+with a different `OlsOptions.CovarianceType`.
+
+### What the rows mean
+
+A robust covariance adds a pass over the design building the filling `Xᵀ Ω X`, which is
+`O(n·k²)`, two `k×k` products for the sandwich, and a `k×k` solve for the Wald statistic. `Hc2` and
+`Hc3` also need the leverages, an `O(n·k)` pass over `Q`. It also moves the coefficient tests
+from Student's t to the normal, so a robust row runs different tail functions from the baseline.
+At small sizes that second difference is larger than the first, and
+[`docs/guides/performance.md`](../docs/guides/performance.md#the-four-robust-covariances-against-the-ordinary-one-issue-705)
+separates the two.
+
+### Configuration
+
+`[Params(100, 10_000)]` on `SampleSize`, the same two sizes section 19 sweeps, and the five
+`CovarianceType` values. Four regressors and the seeded design `OlsBenchmarks` builds, so the
+`Nonrobust` row reads beside section 19's. Each benchmark returns the first regressor's p-value.
+
+Run it with the default job. `ShortRun` put `Nonrobust` at 10,000 rows at 1,727 μs ± 1,027 μs, an
+error bar wider than the effect being measured.
