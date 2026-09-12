@@ -2645,6 +2645,100 @@ package is faster and returns strictly more; above it, the extra diagnostic is w
 for. A caller who does not want VIFs has no way to say so today, and that is the obvious next
 measurement rather than a defect — the table is one call by design.
 
+## The four robust covariances, against the ordinary one (issue #705)
+
+Full method and what the rows mean:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#29-the-four-robust-covariances-against-the-ordinary-one-issue-705).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: one `BenchmarkDotNet` run, **default job** — not `ShortRun` — on 2026-09-12,
+10 benchmarks. Four regressors throughout, the same seeded design
+`OlsBenchmarks` uses so the two sections read side by side.
+
+`ShortRun` was tried first and discarded: it put `Nonrobust` at 10,000 rows at 1,727 μs **± 1,027**,
+an error bar wider than the effect being measured. The numbers below carry ±0.1 to ±0.3 μs at
+100 rows and ±25 to ±61 μs at 10,000.
+
+| Covariance | SampleSize | Mean | vs Nonrobust | Allocated |
+| --- | ---: | ---: | ---: | ---: |
+| `Nonrobust` | 100 | 31.83 μs | 1.00 | 30.78 KB |
+| `Hc0` | 100 | 28.02 μs | **0.88** | 33.65 KB |
+| `Hc1` | 100 | 28.33 μs | **0.89** | 33.65 KB |
+| `Hc2` | 100 | 28.20 μs | **0.89** | 33.65 KB |
+| `Hc3` | 100 | 28.12 μs | **0.88** | 33.65 KB |
+| `Nonrobust` | 10,000 | 1,746.63 μs | 1.00 | 2,892.91 KB |
+| `Hc0` | 10,000 | 1,885.47 μs | 1.08 | 2,973.15 KB |
+| `Hc1` | 10,000 | 1,891.29 μs | 1.08 | 2,973.48 KB |
+| `Hc2` | 10,000 | 1,888.23 μs | 1.08 | 2,973.09 KB |
+| `Hc3` | 10,000 | 1,898.17 μs | 1.09 | 2,973.40 KB |
+
+**At 100 rows a robust covariance is 12 % *faster* than the ordinary one**, and the confidence
+intervals do not overlap. That is not noise and it is not the sandwich being free — it is a second
+difference between the two paths that has nothing to do with covariance at all.
+
+Choosing a robust type also moves the coefficient tests from Student's t to the normal
+([decision 0115](../decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md)),
+which changes **which tail functions run**. Measured on the same machine in one process, best of
+seven timed loops after a 2,000-call warm-up:
+
+| call | per call |
+| --- | ---: |
+| `Distributions.StudentQuantile(0.975, 95)` | 16.77 μs |
+| `Distributions.NormalQuantile(0.975)` | 11.53 μs |
+| `Distributions.StudentSf(2.1, 95)` | 0.267 μs |
+| `Distributions.ChiSquaredSf(4.41, 1)` | 0.186 μs |
+
+One quantile and five p-values per fit, so the robust path saves `5.24 + 5 × 0.081 ≈ 5.6 μs` on
+tails. The table shows a net 3.7 μs, which leaves roughly 2 μs for the filling and the sandwich at
+100 rows. Both quantiles bisect; the Student route's per-iteration cost is higher because each
+step evaluates a regularized incomplete **beta** where the normal route evaluates an incomplete
+**gamma**.
+
+At 10,000 rows the `O(n·k²)` filling dominates and the tail saving is noise against it: the robust
+types cost **8 to 9 %**, flat across all four, and allocate 2.8 % more. `Hc2` and `Hc3` additionally
+walk `Q` for the leverages and are not measurably slower than `Hc0` for it, which says that pass is
+lost in the same memory traffic.
+
+**So the practical answer is that the choice is statistical, not computational.** Nothing here
+argues for reaching past `Hc3` on cost grounds at either size.
+
+**One number in this section is not about robustness at all**: a single quantile call is 11.5 to
+16.8 μs, or **roughly half of an entire 100-row fit**, paid whether or not a robust covariance was
+asked for. The same call computes the serial-correlation band, and the section below shows it is the whole
+of what separates those two functions from their incumbent.
+
+## Lodestar.Stats' serial-correlation diagnostics against Cortex.TimeSeries (issue #617)
+
+Full method, and why the partial autocorrelations of the two libraries differ:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#28-lodestarstatstimeseriess-serial-correlation-diagnostics-against-cortextimeseries-issue-617).
+
+Machine: the one named above. Window: one `BenchmarkDotNet` run, **default job**, on 2026-09-13,
+12 benchmarks, 20 lags throughout.
+
+| Method | SampleSize | Mean | Ratio | Allocated |
+| --- | ---: | ---: | ---: | ---: |
+| `LodestarAutocorrelation` | 200 | 18.582 μs | 1.00 | 1,000 B |
+| `CortexAutocorrelation` | 200 | 7.308 μs | 0.39 | 192 B |
+| `LodestarPartialAutocorrelation` | 200 | 18.829 μs | 1.01 | 1,192 B |
+| `CortexPartialAutocorrelation` | 200 | 7.696 μs | 0.41 | 768 B |
+| `LodestarLjungBox` | 200 | 8.407 μs | 0.45 | 720 B |
+| `CortexLjungBox` | 200 | 7.375 μs | 0.40 | 224 B |
+| `LodestarAutocorrelation` | 2,000 | 88.121 μs | 1.00 | 1,000 B |
+| `CortexAutocorrelation` | 2,000 | 76.709 μs | 0.87 | 192 B |
+| `LodestarPartialAutocorrelation` | 2,000 | 88.041 μs | 1.00 | 1,192 B |
+| `CortexPartialAutocorrelation` | 2,000 | 77.123 μs | 0.88 | 768 B |
+| `LodestarLjungBox` | 2,000 | 77.513 μs | 0.88 | 720 B |
+| `CortexLjungBox` | 2,000 | 76.915 μs | 0.87 | 224 B |
+
+**The gap is one function call.** Lodestar's ACF and PACF are 11.3 and 11.1 μs slower at 200
+points and 11.4 and 10.9 μs slower at 2,000 — constant while the series grows tenfold, which a
+kernel difference could not be. Both compute the confidence band `Cortex.TimeSeries` does not,
+through one `NormalQuantile` call, and the Ljung-Box pair, which has no band, is 1.14× at 200
+points and **level at 2,000**. Subtracting the 11.5 μs quantile leaves 7.1 μs against Cortex's
+7.3 at 200 points and 76.6 μs against 76.7 at 2,000. The allocation difference is the band and
+the result record that carries it.
+
 ## Lodestar.Stats against Accord.Statistics (issue #442)
 
 Full method, correctness cross-check, and how `Accord`'s 2017-era API names were resolved against
