@@ -10,6 +10,34 @@ namespace Lodestar.Stats.Regression.Internal;
 /// </remarks>
 internal static class LeastSquares
 {
+    /// <summary>The row count, with the shapes that are not a design refused.</summary>
+    /// <remarks>
+    /// Shared rather than written per model: an empty design is <c>0 != 0 * featureCount</c>,
+    /// which a length comparison alone admits, and it then fails further in as a missing
+    /// residual degree of freedom — a diagnosis of the wrong input (#616).
+    /// </remarks>
+    public static int Rows(
+        ReadOnlySpan<double> design, ReadOnlySpan<double> response, int featureCount)
+    {
+        if (design.Length == 0 || design.Length % featureCount != 0)
+        {
+            throw new ArgumentException(
+                $"design holds {design.Length} values, which is not a positive whole number of "
+                + $"rows of {featureCount}.",
+                nameof(design));
+        }
+
+        int rowCount = design.Length / featureCount;
+        if (response.Length != rowCount)
+        {
+            throw new ArgumentException(
+                $"design has {rowCount} rows and response holds {response.Length} values.",
+                nameof(response));
+        }
+
+        return rowCount;
+    }
+
     /// <summary>The design matrix, with an intercept column prepended when asked.</summary>
     public static double[] Design(
         ReadOnlySpan<double> design, int rowCount, int featureCount, bool withIntercept)

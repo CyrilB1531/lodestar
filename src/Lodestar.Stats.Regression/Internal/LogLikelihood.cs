@@ -32,7 +32,7 @@ internal static class LogLikelihood
             {
                 GlmFamily.Binomial => (y * Math.Log(mu)) + ((1.0 - y) * Math.Log(1.0 - mu)),
                 GlmFamily.Poisson => (y * Math.Log(mu)) - mu - logFactorial[(int)y],
-                _ => throw new ArgumentOutOfRangeException(nameof(family), family, null),
+                _ => throw Families.Undeclared(family),
             };
         }
 

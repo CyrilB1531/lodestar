@@ -18,11 +18,19 @@ the intercept, the confidence level and the IRLS budget; `null` fits an intercep
 **Returns** — the fitted model, with its standard errors, z statistics, p-values, confidence
 intervals, deviance and the rest of the table `GlmSummary` carries.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is below one.
-`ArgumentException` when the lengths disagree, when a response value is outside its family — a
-`Binomial` response that is not `0` or `1`, or a `Poisson` one that is negative or fractional — or
-when no residual degree of freedom is left. `InvalidOperationException` when IRLS did not
-converge and `GlmOptions.ThrowOnNonConvergence` says throw.
+**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is below one, or when `family`
+is not a declared `GlmFamily` member; a setting outside its own range throws from
+[`GlmOptions`](glmoptions.md) itself. `ArgumentException` when `design` is empty or is not a whole
+number of rows, when the lengths disagree, when a response value is outside its family — a
+`Binomial` response that is not `0` or `1`, or a `Poisson` one that is negative, fractional or
+above one million — when no residual degree of freedom is left, or when the design is rank
+deficient and the weighted least squares has no unique solution. `InvalidOperationException` when
+IRLS did not converge and `GlmOptions.ThrowOnNonConvergence` says throw.
+
+The Poisson bound is this implementation's and not the reference's: the log-likelihood sums an
+exact `log(k!)` table indexed by the largest count, 8 MB at a million and unbounded above it, where
+statsmodels evaluates `gammaln(y + 1)` in constant time
+([#665](https://github.com/CyrilB1531/lodestar/issues/665)).
 
 **Example** — the same design fit through both families reads differently: `Poisson`'s count
 response through the log link, against `Binomial`'s `{0, 1}` one through the logit link.

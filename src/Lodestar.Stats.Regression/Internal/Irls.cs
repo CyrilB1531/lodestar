@@ -29,7 +29,7 @@ internal static class Irls
         double[] matrix = LeastSquares.Design(design, rowCount, featureCount, options.WithIntercept);
 
         // The reference's Family.starting_mu, which is (y + mean(y)) / 2 and which Binomial
-        // overrides to (y + 0.5) / 2; both keep the first link evaluation finite at a 0 or 1.
+        // overrides to (y + 0.5) / 2, through the same Clamp the loop below applies.
         double responseMean = 0.0;
         for (int row = 0; row < rowCount; row++)
         {
@@ -40,9 +40,13 @@ internal static class Irls
         var mean = new double[rowCount];
         for (int row = 0; row < rowCount; row++)
         {
-            mean[row] = family == GlmFamily.Binomial
-                ? (response[row] + 0.5) / 2.0
-                : (response[row] + responseMean) / 2.0;
+            // Clamped here and not only in the loop: an all-zero Poisson response starts at
+            // mu = 0, where Link is -Infinity and the first weight is NaN for 100 iterations.
+            mean[row] = Clamp(
+                family,
+                family == GlmFamily.Binomial
+                    ? (response[row] + 0.5) / 2.0
+                    : (response[row] + responseMean) / 2.0);
         }
 
         var scaled = new double[rowCount * parameterCount];
@@ -61,6 +65,15 @@ internal static class Irls
 
             coefficients = LeastSquares.Solve(
                 scaled, rowCount, parameterCount, working, out inverseUpper);
+
+            if (!AllFinite(coefficients))
+            {
+                throw new ArgumentException(
+                    $"the weighted least squares of IRLS iteration {iteration} solved to a "
+                    + "non-finite coefficient, which a rank-deficient or collinear design does: "
+                    + "a zero pivot in the QR leaves the system without a unique solution. Drop "
+                    + "the dependent regressor rather than reading this fit.", nameof(design));
+            }
 
             for (int row = 0; row < rowCount; row++)
             {
@@ -137,6 +150,25 @@ internal static class Irls
         }
     }
 
+    /// <summary>Whether every solved coefficient is a number the next iteration can use.</summary>
+    /// <remarks>
+    /// <c>double.IsFinite</c> is not on netstandard2.0, so the two halves are asked separately
+    /// rather than through a polyfill for one call site.
+    /// </remarks>
+    private static bool AllFinite(double[] values)
+    {
+        for (int i = 0; i < values.Length; i++)
+        {
+            double value = values[i];
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /// <summary>Keeps a mean away from the boundary its family's link cannot take.</summary>
     private static double Clamp(GlmFamily family, double mu) => family switch
     {
@@ -149,6 +181,6 @@ internal static class Irls
     {
         GlmFamily.Binomial => Math.Log(mu / (1.0 - mu)),
         GlmFamily.Poisson => Math.Log(mu),
-        _ => throw new ArgumentOutOfRangeException(nameof(family), family, null),
+        _ => throw Families.Undeclared(family),
     };
 }

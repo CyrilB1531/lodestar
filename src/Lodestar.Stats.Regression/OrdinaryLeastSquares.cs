@@ -34,7 +34,7 @@ public static class OrdinaryLeastSquares
     {
         Guard.NotLessThan(featureCount, 1);
         OlsOptions settings = options ?? new OlsOptions();
-        int rowCount = Rows(design, response, featureCount);
+        int rowCount = LeastSquares.Rows(design, response, featureCount);
         int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
 
         int residualDegreesOfFreedom = rowCount - parameterCount;
@@ -93,28 +93,6 @@ public static class OrdinaryLeastSquares
             ResidualDegreesOfFreedom = residualDegreesOfFreedom,
             ResidualStandardError = residualStandardError,
         };
-    }
-
-    /// <summary>The row count, with the shapes that are not a design refused.</summary>
-    private static int Rows(ReadOnlySpan<double> design, ReadOnlySpan<double> response, int featureCount)
-    {
-        if (design.Length == 0 || design.Length % featureCount != 0)
-        {
-            throw new ArgumentException(
-                $"design holds {design.Length} values, which is not a positive whole number of "
-                + $"rows of {featureCount}.",
-                nameof(design));
-        }
-
-        int rowCount = design.Length / featureCount;
-        if (response.Length != rowCount)
-        {
-            throw new ArgumentException(
-                $"design has {rowCount} rows and response holds {response.Length} values.",
-                nameof(response));
-        }
-
-        return rowCount;
     }
 
     /// <summary>What the model leaves unexplained, row by row.</summary>

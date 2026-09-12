@@ -11,9 +11,14 @@ public sealed class GlmOptions
 **Properties** — `WithIntercept` prepends a column of ones; `true` by default. `ConfidenceLevel`
 is the two-sided level the intervals are reported at; `0.95` by default. `MaximumIterations` is
 how many IRLS iterations are allowed; `100` by default, which is the reference's own budget.
-`Tolerance` is used as both the absolute and relative convergence term; `1e-8` by default.
-`ThrowOnNonConvergence` says whether a fit that did not converge throws instead of returning;
-`true` by default.
+`Tolerance` is the absolute bound on the change in deviance between iterations — the reference's
+`atol` with its `rtol` left at zero; `1e-8` by default. `ThrowOnNonConvergence` says whether a fit
+that did not converge throws instead of returning; `true` by default.
+
+**Exceptions** — `ArgumentOutOfRangeException` when `ConfidenceLevel` does not lie strictly inside
+`(0, 1)`, when `MaximumIterations` is below one, or when `Tolerance` is not above zero. Each is
+thrown where the setting is set, not where the fit reads it: a budget of zero would otherwise skip
+the IRLS loop entirely and reach the caller as a table of `0/0`.
 
 **Example** — a wider level widens both ends without moving the estimate, the same way it does for
 [`OlsOptions`](../ols/olsoptions.md).

@@ -43,6 +43,11 @@ internal static class Families
     /// <summary><c>x log(y)</c>, and zero where <c>x</c> is, which is the limit rather than NaN.</summary>
     private static double Xlogy(double x, double y) => x == 0.0 ? 0.0 : x * Math.Log(y);
 
-    private static ArgumentOutOfRangeException Undeclared(GlmFamily family) =>
+    /// <summary>The refusal every family switch in this package ends on.</summary>
+    /// <remarks>
+    /// Shared so that no arm throws the parameterless <c>null</c> message: a caller who casts an
+    /// undeclared integer to <see cref="GlmFamily"/> reads which value was refused (#616).
+    /// </remarks>
+    public static ArgumentOutOfRangeException Undeclared(GlmFamily family) =>
         new(nameof(family), family, $"{family} is not a declared {nameof(GlmFamily)}.");
 }

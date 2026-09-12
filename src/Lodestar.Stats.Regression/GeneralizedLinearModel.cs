@@ -10,14 +10,25 @@ namespace Lodestar.Stats.Regression;
 /// </remarks>
 public static class GeneralizedLinearModel
 {
+    // The largest Poisson count this fit takes: Internal/LogLikelihood builds an exact log(k!)
+    // table up to it -- 8 MB here, 80 MB at 1e7, a wrapped index past 2^31. Lifted by #665.
+    private const double PoissonCountBound = 1_000_000.0;
+
     /// <summary>Fits one model and reports its inference table.</summary>
     /// <param name="design">The regressors, row-major, <paramref name="featureCount"/> per row.</param>
     /// <param name="response">One value per row: 0 or 1 for binomial, a count for Poisson.</param>
     /// <param name="featureCount">How many regressors a row carries.</param>
     /// <param name="family">The response distribution, with its canonical link.</param>
     /// <param name="options">The fit's settings, or null for the defaults.</param>
-    /// <exception cref="ArgumentException">The lengths disagree, or a response is outside its family.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="design"/> is not a positive whole number of rows, the lengths disagree, a
+    /// response is outside its family or is a Poisson count above one million, no residual degree
+    /// of freedom is left, or the design is rank deficient.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="featureCount"/> is below one, or <paramref name="family"/> is not a declared
+    /// member. A setting outside its own range throws from <see cref="GlmOptions"/> itself.
+    /// </exception>
     /// <exception cref="InvalidOperationException">IRLS did not converge and the option says throw.</exception>
     public static GlmSummary Fit(
         ReadOnlySpan<double> design,
@@ -28,7 +39,7 @@ public static class GeneralizedLinearModel
     {
         Guard.NotLessThan(featureCount, 1);
         GlmOptions settings = options ?? new GlmOptions();
-        int rowCount = Rows(design, response, featureCount);
+        int rowCount = LeastSquares.Rows(design, response, featureCount);
         int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
         RefuseResponseOutsideTheFamily(family, response);
 
@@ -37,7 +48,7 @@ public static class GeneralizedLinearModel
         {
             throw new ArgumentException(
                 $"{rowCount} rows and {parameterCount} parameters leave no residual degree of "
-                + "freedom, so no standard error exists.", nameof(response));
+                + "freedom, so no standard error exists.", nameof(design));
         }
 
         IrlsResult fit = Irls.Fit(design, response, featureCount, family, settings);
@@ -123,7 +134,8 @@ public static class GeneralizedLinearModel
 
     /// <summary>
     /// Refuses a response value its family cannot fit: binomial takes only 0 or 1, and Poisson's
-    /// <c>log(y!)</c> makes a count of it, so a negative or fractional value is refused there too.
+    /// <c>log(y!)</c> makes a count of it, so a negative, fractional or unboundedly large value is
+    /// refused there too.
     /// </summary>
     private static void RefuseResponseOutsideTheFamily(
         GlmFamily family, ReadOnlySpan<double> response)
@@ -138,7 +150,7 @@ public static class GeneralizedLinearModel
             {
                 GlmFamily.Binomial => y is 0.0 or 1.0,
                 GlmFamily.Poisson => y >= 0.0 && y == Math.Truncate(y),
-                _ => throw new ArgumentOutOfRangeException(nameof(family), family, null),
+                _ => throw Families.Undeclared(family),
             };
 #pragma warning restore S1244
 
@@ -148,19 +160,15 @@ public static class GeneralizedLinearModel
                     $"row {row} carries {y}, which {family} cannot fit: binomial takes 0 or 1 "
                     + "and Poisson a non-negative integer count.", nameof(response));
             }
-        }
-    }
 
-    private static int Rows(
-        ReadOnlySpan<double> design, ReadOnlySpan<double> response, int featureCount)
-    {
-        if (design.Length != response.Length * featureCount)
-        {
-            throw new ArgumentException(
-                $"{design.Length} design values and {response.Length} responses do not describe "
-                + $"rows of {featureCount}.", nameof(design));
+            if (family == GlmFamily.Poisson && y > PoissonCountBound)
+            {
+                throw new ArgumentException(
+                    $"row {row} carries a Poisson count of {y}, above the {PoissonCountBound} "
+                    + "this fit bounds the response at: its log-likelihood sums an exact "
+                    + "log-factorial table indexed by the largest count, which is 8 MB at the "
+                    + "bound and unbounded above it (#665).", nameof(response));
+            }
         }
-
-        return response.Length;
     }
 }
