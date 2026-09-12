@@ -50,6 +50,7 @@ public static class Wilcoxon
     /// <see cref="ExactMethod.Auto"/> falls back to asymptotic rather than building the
     /// table -- it never throws.
     /// </param>
+    /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>The smaller signed-rank sum, and the p-value.</returns>
     /// <exception cref="ArgumentException">The samples differ in length, or are empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -62,19 +63,29 @@ public static class Wilcoxon
         ZeroMethod zeroMethod = ZeroMethod.Wilcox,
         Alternative alternative = Alternative.TwoSided,
         Continuity continuity = Continuity.None,
-        ExactMethod method = ExactMethod.Auto)
+        ExactMethod method = ExactMethod.Auto,
+        NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        if (x.Length != y.Length)
+        ReadOnlySpan<double> left = x;
+        ReadOnlySpan<double> right = y;
+        if (nanPolicy != NanPolicy.Propagate)
+        {
+            (double[] l, double[] rr) = NanFilter.ApplyAligned(x, y, nanPolicy, nameof(x), nameof(y));
+            left = l;
+            right = rr;
+        }
+
+        if (left.Length != right.Length)
         {
             throw new ArgumentException(
-                $"A paired test needs the same number of values in both samples; got {x.Length} and {y.Length}.",
+                $"A paired test needs the same number of values in both samples; got {left.Length} and {right.Length}.",
                 nameof(y));
         }
 
-        double[] differences = new double[x.Length];
-        for (int i = 0; i < x.Length; i++)
+        double[] differences = new double[left.Length];
+        for (int i = 0; i < left.Length; i++)
         {
-            differences[i] = x[i] - y[i];
+            differences[i] = left[i] - right[i];
         }
 
         return OneSample(differences, zeroMethod, alternative, continuity, method);
@@ -90,6 +101,7 @@ public static class Wilcoxon
     /// size bound <see cref="ExactMethod.Exact"/> is refused for, <see cref="ExactMethod.Auto"/>
     /// falls back to asymptotic rather than building the table -- it never throws.
     /// </param>
+    /// <param name="nanPolicy">What to do with a <c>NaN</c> in the sample.</param>
     /// <returns>The smaller signed-rank sum, and the p-value.</returns>
     /// <exception cref="ArgumentException"><paramref name="differences"/> is empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -102,16 +114,21 @@ public static class Wilcoxon
         ZeroMethod zeroMethod = ZeroMethod.Wilcox,
         Alternative alternative = Alternative.TwoSided,
         Continuity continuity = Continuity.None,
-        ExactMethod method = ExactMethod.Auto)
+        ExactMethod method = ExactMethod.Auto,
+        NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        if (differences.Length == 0)
+        ReadOnlySpan<double> values = nanPolicy == NanPolicy.Propagate
+            ? differences
+            : NanFilter.Apply(differences, nanPolicy, nameof(differences));
+
+        if (values.Length == 0)
         {
             throw new ArgumentException("The sample is empty.", nameof(differences));
         }
 
         // Checked before the zero-drop below: a NaN difference is neither > 0,
         // < 0 nor == 0, so ComputeRankSums would fold it into the zero group.
-        if (Ranks.HasNaN(differences))
+        if (Ranks.HasNaN(values))
         {
             return new TestResult(double.NaN, double.NaN);
         }
@@ -122,8 +139,8 @@ public static class Wilcoxon
         // on, not a value with a tolerance band.
 #pragma warning disable S1244
         double[] ranked = zeroMethod == ZeroMethod.Wilcox
-            ? [.. differences.ToArray().Where(d => d != 0.0)]
-            : differences.ToArray();
+            ? [.. values.ToArray().Where(d => d != 0.0)]
+            : values.ToArray();
 #pragma warning restore S1244
 
         if (ranked.Length == 0)
@@ -149,10 +166,10 @@ public static class Wilcoxon
             ? Math.Min(positive, negative)
             : positive;
 
-        int zeroCount = CountZeros(differences);
+        int zeroCount = CountZeros(values);
 
         NullDistribution distribution = ChooseDistribution(
-            method, differences.Length, Ranks.HasTies(magnitudes), zeroCount);
+            method, values.Length, Ranks.HasTies(magnitudes), zeroCount);
 
         if (distribution == NullDistribution.Exact && ranked.Length > MaxExactSampleSize)
         {
