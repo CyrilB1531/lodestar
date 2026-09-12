@@ -36,7 +36,7 @@ sample independently would silently change what a paired test is testing.
 
 Omission is a filter, not a second policy: a family's own guards run afterwards on what survives,
 so `ShapiroWilk.Test` still refuses fewer than three observations and `KruskalWallis.Test` still
-refuses a fully tied pool. Decision 0116 has the reasoning.
+refuses a fully tied pool. Decision 0117 has the reasoning.
 
 **Applies to** — net10.0, netstandard2.0.
 

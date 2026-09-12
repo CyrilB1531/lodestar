@@ -30,6 +30,7 @@ import os
 import sys
 import tempfile
 import warnings
+from collections.abc import Callable
 from importlib.metadata import version
 from pathlib import Path
 
@@ -9498,6 +9499,111 @@ def _stats_nan_paired() -> list[dict]:
     ]
 
 
+def _stats_nan_policy_cases(
+        fixtures: list[dict],
+        build: Callable[[dict, str], dict]) -> list[dict]:
+    """The three cases every nan fixture owes: a value under each policy, then a refusal.
+
+    Stated once here because five entry points across three families owe the same three,
+    and a second spelling of the rule is how the corpora drift apart. `build` is handed
+    the fixture and the policy, and answers with the case; "raise" asks it for the
+    refusal record, which carries no numbers because scipy produced none.
+    """
+    cases: list[dict] = []
+    for fx in fixtures:
+        for policy in (PROPAGATE, "omit", RAISE_POLICY):
+            cases.append(build(fx, policy))
+    return cases
+
+
+def _ttest_ind_nan_case(fx: dict, policy: str) -> dict:
+    """One Welch two-sample case under one policy. Welch, because omission moves its df."""
+    from scipy import stats as sps
+
+    name = f"{fx['name']} | ind | nan_policy={policy}"
+    args = {EQUAL_VAR: False, ALTERNATIVE: TWO_SIDED, NAN_POLICY: policy}
+    a, b = _stats_nan_list(fx["a"]), _stats_nan_list(fx["b"])
+    if policy == RAISE_POLICY:
+        return {"name": name, "call": TTEST_IND, RAISES: True,
+                "args": args, "a": a, "b": b}
+    r = sps.ttest_ind(fx["a"], fx["b"], equal_var=False, nan_policy=policy)
+    return {
+        "name": name, "call": TTEST_IND, "args": args, "a": a, "b": b,
+        STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
+        "df": _stats_number(r.df), "ci_low": None, "ci_high": None,
+    }
+
+
+def _ttest_rel_nan_case(fx: dict, policy: str) -> dict:
+    """One paired case under one policy, where omission drops the pair and not the value."""
+    from scipy import stats as sps
+
+    name = f"{fx['name']} | rel | nan_policy={policy}"
+    args = {ALTERNATIVE: TWO_SIDED, NAN_POLICY: policy}
+    a, b = _stats_nan_list(fx["x"]), _stats_nan_list(fx["y"])
+    if policy == RAISE_POLICY:
+        return {"name": name, "call": TTEST_REL, RAISES: True,
+                "args": args, "a": a, "b": b}
+    r = sps.ttest_rel(fx["x"], fx["y"], nan_policy=policy)
+    return {
+        "name": name, "call": TTEST_REL, "args": args, "a": a, "b": b,
+        STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
+        "df": _stats_number(r.df), "ci_low": None, "ci_high": None,
+    }
+
+
+def _ttest_1samp_nan_case(fx: dict, policy: str) -> dict:
+    """One one-sample case under one policy, against a population mean of zero."""
+    from scipy import stats as sps
+
+    name = f"{fx['name']} | 1samp | nan_policy={policy}"
+    args = {POPMEAN: 0.0, ALTERNATIVE: TWO_SIDED, NAN_POLICY: policy}
+    a = _stats_nan_list(fx["a"])
+    if policy == RAISE_POLICY:
+        return {"name": name, "call": TTEST_1SAMP, RAISES: True,
+                "args": args, "a": a, "b": []}
+    r = sps.ttest_1samp(fx["a"], 0.0, nan_policy=policy)
+    return {
+        "name": name, "call": TTEST_1SAMP, "args": args, "a": a, "b": [],
+        STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
+        "df": _stats_number(r.df), "ci_low": None, "ci_high": None,
+    }
+
+
+def _mannwhitney_nan_case(fx: dict, policy: str) -> dict:
+    """One Mann-Whitney case under one policy, at scipy's own defaults."""
+    from scipy import stats as sps
+
+    name = f"{fx['name']} | nan_policy={policy}"
+    args = {NAN_POLICY: policy}
+    a, b = _stats_nan_list(fx["a"]), _stats_nan_list(fx["b"])
+    if policy == RAISE_POLICY:
+        return {"name": name, "call": MANNWHITNEYU, RAISES: True,
+                "args": args, "a": a, "b": b}
+    r = sps.mannwhitneyu(fx["a"], fx["b"], nan_policy=policy)
+    return {
+        "name": name, "call": MANNWHITNEYU, "args": args, "a": a, "b": b,
+        STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
+    }
+
+
+def _wilcoxon_nan_case(fx: dict, policy: str) -> dict:
+    """One Wilcoxon paired case under one policy, dropping the pair rather than the value."""
+    from scipy import stats as sps
+
+    name = f"{fx['name']} | paired | nan_policy={policy}"
+    args = {NAN_POLICY: policy}
+    x, y = _stats_nan_list(fx["x"]), _stats_nan_list(fx["y"])
+    if policy == RAISE_POLICY:
+        return {"name": name, "call": WILCOXON, RAISES: True,
+                "args": args, "x": x, "y": y}
+    r = sps.wilcoxon(fx["x"], fx["y"], nan_policy=policy)
+    return {
+        "name": name, "call": WILCOXON, "args": args, "x": x, "y": y,
+        STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
+    }
+
+
 def generate_stats_ttest() -> dict:
     """Student, Welch, paired and one-sample t, against scipy.stats (#442)."""
     from scipy import stats as sps
@@ -9548,59 +9654,9 @@ def generate_stats_ttest() -> dict:
                     "ci_low": _stats_number(low), "ci_high": _stats_number(high),
                 })
 
-    for fx in _stats_nan_samples():
-        for policy in (PROPAGATE, "omit"):
-            r = sps.ttest_ind(fx["a"], fx["b"], equal_var=False, nan_policy=policy)
-            cases.append({
-                "name": f"{fx['name']} | ind | nan_policy={policy}",
-                "call": TTEST_IND,
-                "args": {EQUAL_VAR: False, ALTERNATIVE: TWO_SIDED, NAN_POLICY: policy},
-                "a": _stats_nan_list(fx["a"]), "b": _stats_nan_list(fx["b"]),
-                STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
-                "df": _stats_number(r.df), "ci_low": None, "ci_high": None,
-            })
-        cases.append({
-            "name": f"{fx['name']} | ind | nan_policy=raise",
-            "call": TTEST_IND, RAISES: True,
-            "args": {EQUAL_VAR: False, ALTERNATIVE: TWO_SIDED, NAN_POLICY: RAISE_POLICY},
-            "a": _stats_nan_list(fx["a"]), "b": _stats_nan_list(fx["b"]),
-        })
-
-    for fx in _stats_nan_paired():
-        for policy in (PROPAGATE, "omit"):
-            r = sps.ttest_rel(fx["x"], fx["y"], nan_policy=policy)
-            cases.append({
-                "name": f"{fx['name']} | rel | nan_policy={policy}",
-                "call": TTEST_REL,
-                "args": {ALTERNATIVE: TWO_SIDED, NAN_POLICY: policy},
-                "a": _stats_nan_list(fx["x"]), "b": _stats_nan_list(fx["y"]),
-                STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
-                "df": _stats_number(r.df), "ci_low": None, "ci_high": None,
-            })
-        cases.append({
-            "name": f"{fx['name']} | rel | nan_policy=raise",
-            "call": TTEST_REL, RAISES: True,
-            "args": {ALTERNATIVE: TWO_SIDED, NAN_POLICY: RAISE_POLICY},
-            "a": _stats_nan_list(fx["x"]), "b": _stats_nan_list(fx["y"]),
-        })
-
-    for fx in _stats_nan_samples():
-        for policy in (PROPAGATE, "omit"):
-            r = sps.ttest_1samp(fx["a"], 0.0, nan_policy=policy)
-            cases.append({
-                "name": f"{fx['name']} | 1samp | nan_policy={policy}",
-                "call": TTEST_1SAMP,
-                "args": {POPMEAN: 0.0, ALTERNATIVE: TWO_SIDED, NAN_POLICY: policy},
-                "a": _stats_nan_list(fx["a"]), "b": [],
-                STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
-                "df": _stats_number(r.df), "ci_low": None, "ci_high": None,
-            })
-        cases.append({
-            "name": f"{fx['name']} | 1samp | nan_policy=raise",
-            "call": TTEST_1SAMP, RAISES: True,
-            "args": {POPMEAN: 0.0, ALTERNATIVE: TWO_SIDED, NAN_POLICY: RAISE_POLICY},
-            "a": _stats_nan_list(fx["a"]), "b": [],
-        })
+    cases.extend(_stats_nan_policy_cases(_stats_nan_samples(), _ttest_ind_nan_case))
+    cases.extend(_stats_nan_policy_cases(_stats_nan_paired(), _ttest_rel_nan_case))
+    cases.extend(_stats_nan_policy_cases(_stats_nan_samples(), _ttest_1samp_nan_case))
 
     return {"metadata": _stats_metadata("ttest", len(cases)), CASES: cases}
 
@@ -9641,20 +9697,7 @@ def generate_stats_mannwhitney() -> dict:
                 STATISTIC: float(r.statistic), PVALUE: float(r.pvalue),
             })
 
-    for fx in _stats_nan_samples():
-        for policy in (PROPAGATE, "omit"):
-            r = sps.mannwhitneyu(fx["a"], fx["b"], nan_policy=policy)
-            cases.append({
-                "name": f"{fx['name']} | nan_policy={policy}",
-                "call": MANNWHITNEYU, "args": {NAN_POLICY: policy},
-                "a": _stats_nan_list(fx["a"]), "b": _stats_nan_list(fx["b"]),
-                STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
-            })
-        cases.append({
-            "name": f"{fx['name']} | nan_policy=raise",
-            "call": MANNWHITNEYU, RAISES: True, "args": {NAN_POLICY: RAISE_POLICY},
-            "a": _stats_nan_list(fx["a"]), "b": _stats_nan_list(fx["b"]),
-        })
+    cases.extend(_stats_nan_policy_cases(_stats_nan_samples(), _mannwhitney_nan_case))
 
     return {"metadata": _stats_metadata("mannwhitney", len(cases)), CASES: cases}
 
@@ -9682,20 +9725,7 @@ def generate_stats_wilcoxon() -> dict:
                             STATISTIC: float(r.statistic), PVALUE: float(r.pvalue),
                         })
 
-    for fx in _stats_nan_paired():
-        for policy in (PROPAGATE, "omit"):
-            r = sps.wilcoxon(fx["x"], fx["y"], nan_policy=policy)
-            cases.append({
-                "name": f"{fx['name']} | paired | nan_policy={policy}",
-                "call": WILCOXON, "args": {NAN_POLICY: policy},
-                "x": _stats_nan_list(fx["x"]), "y": _stats_nan_list(fx["y"]),
-                STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
-            })
-        cases.append({
-            "name": f"{fx['name']} | paired | nan_policy=raise",
-            "call": WILCOXON, RAISES: True, "args": {NAN_POLICY: RAISE_POLICY},
-            "x": _stats_nan_list(fx["x"]), "y": _stats_nan_list(fx["y"]),
-        })
+    cases.extend(_stats_nan_policy_cases(_stats_nan_paired(), _wilcoxon_nan_case))
 
     return {"metadata": _stats_metadata(WILCOXON, len(cases)), CASES: cases}
 

@@ -69,7 +69,7 @@ public static class OneWayAnova
     /// The policy comes first because the groups are a <c>params</c> array and C# allows no
     /// parameter after one — the shape <c>string.Join</c> uses, for the same reason. Omission is
     /// per group and runs before this test's guards, so a group emptied by it is refused here
-    /// exactly as an empty group passed directly would be (decision 0116).
+    /// exactly as an empty group passed directly would be (decision 0117).
     /// </remarks>
     public static TestResult Test(NanPolicy nanPolicy, params double[][] groups)
     {

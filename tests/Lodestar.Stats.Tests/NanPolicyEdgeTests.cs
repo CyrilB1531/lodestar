@@ -3,7 +3,7 @@ using Xunit;
 namespace Lodestar.Stats.Tests;
 
 /// <summary>
-/// Decision 0116: omission is a filter, so a family's own guards run afterwards. scipy answers
+/// Decision 0117: omission is a filter, so a family's own guards run afterwards. scipy answers
 /// (nan, nan) with a warning in both cases below; this package raises, and omission does not
 /// change that.
 /// </summary>

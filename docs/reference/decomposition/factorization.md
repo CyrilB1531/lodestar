@@ -12,6 +12,15 @@ matrix fills it in, and a corpus that fitted in memory as a `CsrMatrix` does not
 one. That is also what separates this from PCA, which centres and is therefore a different
 answer.
 
+**So PCA is not offered here, and that is a refusal rather than a gap.** For a dense matrix,
+reach for ML.NET's `ProjectToPrincipalComponents` on any target this repository supports, or
+[NumFlat](https://www.nuget.org/packages/NumFlat)'s `PrincipalComponentAnalysis` on `net8.0` and
+above. One thing neither gives you below `net8.0`: **how much variance each component explains.**
+ML.NET's fourteen public PCA members expose the eigenvectors and the mean and no eigenvalue, and
+NumFlat's `EigenValues` ships `net8.0` only —
+[decision 0116](../../decisions/0116-the-pca-gap-is-the-explained-variance-not-the-projection.md)
+has the reading and what would reopen it.
+
 The factorization is randomized, not exact. A thin random block Ω probes the matrix's range, a
 few power iterations sharpen it, and the singular values fall out of a small dense problem whose
 size is the rank you asked for rather than the size of the corpus. The cost is that two runs from

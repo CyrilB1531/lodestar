@@ -36,7 +36,7 @@ public static class ShapiroWilk
     /// Fewer than 3 or more than 5000 values, or every value identical -- both checked after
     /// <paramref name="nanPolicy"/> has run, so omission that drops the sample below three
     /// values still raises rather than answering with a warning the way scipy does
-    /// (decision 0116). When <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and
+    /// (decision 0117). When <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and
     /// the sample holds a <c>NaN</c>.
     /// </exception>
     public static TestResult Test(

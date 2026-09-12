@@ -18,7 +18,7 @@ public static class ChiSquare
     /// expectations that do not sum to the observations. An explicit <paramref
     /// name="expected"/> is filtered together with <paramref name="observed"/>, so omission
     /// usually raises here -- it drops matched pairs and so breaks the sum-agreement check
-    /// by construction (decision 0116). When <paramref name="nanPolicy"/> is
+    /// by construction (decision 0117). When <paramref name="nanPolicy"/> is
     /// <see cref="NanPolicy.Raise"/> and either span holds a <c>NaN</c>.
     /// </exception>
     public static TestResult GoodnessOfFit(

@@ -91,7 +91,7 @@ is one sentence, the issue and the commit; see
   ([#617](https://github.com/CyrilB1531/lodestar/issues/617))
 - **`NanPolicy`, on the eleven test entry points whose scipy counterpart takes `nan_policy`.**
   `Propagate` stays the default, so no existing call changes; `Omit` drops pairs where the inputs
-  are aligned and values where they are not; decision 0116 has the rule and the five entry points
+  are aligned and values where they are not; decision 0117 has the rule and the five entry points
   that deliberately do not take it.
   ([#687](https://github.com/CyrilB1531/lodestar/issues/687))
 

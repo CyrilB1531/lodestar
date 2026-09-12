@@ -235,9 +235,16 @@ requires before a gap claim may be written down — against the assembly, never 
 the README.
 
 ```bash
-dotnet run tools/survey.cs -- <package> <version> [regex]
+dotnet run tools/survey.cs -- <package> <version> [regex] [--assembly <name>]
 dotnet run tools/survey.cs -- Microsoft.ML.TimeSeries 5.0.0 'Arima|Acf|Stationar'
+dotnet run tools/survey.cs -- Microsoft.ML 5.0.0 'Pca' --assembly Microsoft.ML.PCA
 ```
+
+**`--assembly` because a package id is not an assembly name.** `Microsoft.ML` 5.0.0 installs no
+`Microsoft.ML.dll` at all: its surface is spread over `Microsoft.ML.Data`, `Microsoft.ML.PCA` and
+six more, and `Microsoft.ML.PCA` is not a package id anyone can install. Deriving the target from
+the package id made that surface unreadable, which was found on the tool's second use (#685). The
+error lists the closure, so the name to pass is one it printed.
 
 A **file-based app**, so there is no `.csproj`, no entry in `Lodestar.slnx` and nothing
 for CI to build. The `#:package` and `#:property` directives at the top are the whole
