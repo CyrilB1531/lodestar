@@ -74,10 +74,14 @@ trap rather than a convenience. The two rules are documented on the members and 
 ### `AutocorrelationResult`
 
 ```csharp
-public sealed record AutocorrelationResult(
-    double[] Values,
-    double[] ConfidenceLower,
-    double[] ConfidenceUpper);
+public sealed class AutocorrelationResult
+{
+    internal AutocorrelationResult() { }
+
+    public IReadOnlyList<double> Values { get; init; } = [];
+    public IReadOnlyList<double> ConfidenceLower { get; init; } = [];
+    public IReadOnlyList<double> ConfidenceUpper { get; init; } = [];
+}
 ```
 
 All three have length `lagCount + 1` and are indexed by lag, so `Values[0]` is `1.0` — the
@@ -88,20 +92,39 @@ The band is **centred on the estimate, not on zero**, which is what the referenc
 worth stating because the band a reader draws on a correlogram is usually the zero-centred one.
 `ConfidenceLower[0] == ConfidenceUpper[0] == 1.0`: lag zero has no variance.
 
-`double[]` rather than `IReadOnlyList<double>`, and this record's equality is therefore reference
-equality on three arrays — the trap [#668](https://github.com/CyrilB1531/lodestar/issues/668)
-catalogues. Whichever rule #668 settles applies here too; this spec does not pre-empt it, and the
-type carries no hand-written `Equals` until it does.
+**A class rather than a record, and that is the decision, not an omission.** A record's
+synthesized `Equals` compares reference-typed members by reference, so two results holding the
+same numbers in different arrays compare unequal — the trap
+[#668](https://github.com/CyrilB1531/lodestar/issues/668) catalogues across a dozen types. The
+three ways out were weighed:
+
+- **a named tuple** does not help. `ValueTuple`'s equality goes through
+  `EqualityComparer<double[]>.Default`, which is reference equality again, and a tuple carries no
+  per-member XML documentation for the reference gate to check.
+- **a record with a hand-written `Equals` and `GetHashCode`** is correct but buys a second trap:
+  the arrays are handed to the caller, so a hash taken before they write into one does not match
+  it afterwards. A hash code that changes under its own dictionary is worse than no equality.
+- **no equality at all**, which is what ships. Nobody compares two correlograms. The shape is
+  `GlmSummary`'s, which #616 landed for the same reason: `sealed`, init-only properties, an
+  `internal` constructor so no caller can build one that a function did not return.
+
+The options types stay records: every member of both is a value type, so their equality compares
+what a reader expects. That is the same condition #616 applied when converting `OlsOptions`, and
+this spec is a data point for #668 rather than a pre-emption of it.
 
 ### `LjungBoxResult`
 
 ```csharp
-public sealed record LjungBoxResult(
-    double[] Statistics,
-    double[] PValues,
-    double[] BoxPierceStatistics,
-    double[] BoxPierceValues,
-    int[] DegreesOfFreedom);
+public sealed class LjungBoxResult
+{
+    internal LjungBoxResult() { }
+
+    public IReadOnlyList<double> Statistics { get; init; } = [];
+    public IReadOnlyList<double> PValues { get; init; } = [];
+    public IReadOnlyList<double> BoxPierceStatistics { get; init; } = [];
+    public IReadOnlyList<double> BoxPiercePValues { get; init; } = [];
+    public IReadOnlyList<int> DegreesOfFreedom { get; init; } = [];
+}
 ```
 
 Length `lagCount`, indexed from lag 1 — the reference indexes its frame the same way, and a
@@ -109,8 +132,9 @@ Ljung-Box statistic at lag 0 is not defined. The Box-Pierce arrays are empty whe
 `LjungBoxOptions.BoxPierce` is false, which is the default, matching the reference's own
 `boxpierce=False`.
 
-Five parallel arrays rather than an array of a five-field record: a caller plots a column, and
-`Lodestar.Stats`' existing results are shaped the same way.
+Five parallel lists rather than a list of five-field rows: a caller plots a column, and
+`Lodestar.Stats`' existing results are shaped the same way. Same class-not-record reasoning as
+above.
 
 ### Options
 
