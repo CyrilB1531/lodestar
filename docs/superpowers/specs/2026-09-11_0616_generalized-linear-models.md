@@ -143,18 +143,20 @@ The covariance is `phi * (X' W X)^-1`, and through the QR of the scaled design `
 reuses that arithmetic rather than restating it.
 
 **Convergence is the oracle's criterion, read from its source rather than described.**
-`statsmodels` stops when successive deviances satisfy `numpy.allclose`, which is neither a relative
-test nor an absolute one but their sum:
+`statsmodels` stops when successive deviances satisfy `numpy.allclose`, whose test is the sum of an
+absolute and a relative term:
 
 ```text
 |D_i - D_{i+1}|  <=  atol + rtol * |D_{i+1}|
 ```
 
-with `tol_criterion="deviance"`, `maxiter=100` and `atol = rtol = tol = 1e-8` as defaults. `Tolerance`
-is used as both here, which reproduces the oracle's default path exactly; splitting them is a second
-option nothing has asked for. `MaximumIterations` is 100 for the same reason — a smaller budget
-would make this report a non-convergence where the oracle reports a fit, and the corpus could not
-freeze the difference.
+The relative term is switched off. `GLM.fit` reads `atol = kwargs.get("atol")` and
+`rtol = kwargs.get("rtol", 0.0)`, then substitutes `tol` for `atol` when it was not given — so with
+`tol_criterion="deviance"`, `maxiter=100` and `tol=1e-8`, the default path is
+`|D_i - D_{i+1}| <= 1e-8` and nothing else. `Tolerance` is therefore an absolute bound on the change
+in deviance, not a mixed one; offering `rtol` is a second option nothing has asked for.
+`MaximumIterations` is 100 for the same reason — a smaller budget would make this report a
+non-convergence where the oracle reports a fit, and the corpus could not freeze the difference.
 
 `DevianceChange` is the left side of that inequality at the last iteration, so a caller who turns
 the throw off reads the quantity that failed rather than a proxy for it, and the exception message

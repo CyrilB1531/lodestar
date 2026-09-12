@@ -29,8 +29,9 @@ extracts that arithmetic into one internal helper both use rather than writing i
   `StatsOracleAsserts` in `tests/Lodestar.Stats.Tests/Oracles/` — reused, never restated.
 - Commit messages carry no `feat:`/`fix:` prefix.
 - `docs/equivalence.md` rows land in the same commit as the function they describe.
-- Convergence is the oracle's: `|D_i - D_{i+1}| <= atol + rtol * |D_{i+1}|`, `atol = rtol = 1e-8`,
-  `maxiter = 100`, criterion = deviance.
+- Convergence is the oracle's: `numpy.allclose` over successive deviances with `rtol` defaulting to
+  `0.0`, so the test is the absolute one `|D_i - D_{i+1}| <= 1e-8`, `maxiter = 100`, criterion =
+  deviance.
 
 ---
 
