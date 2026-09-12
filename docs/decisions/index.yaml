@@ -771,7 +771,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0108", "0111"]
+  applied_by: ["0108", "0111", "0114"]
 
 "0077":
   title: "The keyword extractors take their oracles' lists, and not their own"
@@ -971,7 +971,7 @@
   applies: ["0074"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0110", "0111"]
+  applied_by: ["0110", "0111", "0114"]
 
 "0097":
   title: "The chi-squared tail joins the published four, by the rule 0095 already set"
@@ -1061,7 +1061,7 @@
   applies: ["0074"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0110"]
+  applied_by: ["0110", "0114"]
 
 "0106":
   title: "The frontmatter is inserted once, and the body does not move"
@@ -1121,7 +1121,7 @@
   applies: ["0076", "0096", "0104"]
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0114"]
 
 "0112":
   title: "An analyzer rule below warning is raised where it has escaped, not everywhere"
@@ -1139,6 +1139,16 @@
   supersedes: []
   amends: []
   applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0114":
+  title: "The serial-correlation diagnostics stay in `Lodestar.Stats`, and the second lot re-measures"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0076", "0096", "0105", "0111"]
   superseded_by: []
   amended_by: []
   applied_by: []
