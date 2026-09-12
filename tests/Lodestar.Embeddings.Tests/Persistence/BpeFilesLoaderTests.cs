@@ -19,8 +19,8 @@ public sealed class BpeFilesLoaderTests
 
         Assert.Equal(4, vocab.Count);
         Assert.Equal(2, vocab.Vocab["ab"]);
-        Assert.Single(vocab.Merges);
-        Assert.Equal(new MergePair("a", "b"), vocab.Merges[0]);
+        MergePair merge = Assert.Single(vocab.Merges);
+        Assert.Equal(new MergePair("a", "b"), merge);
         Assert.True(vocab.ByteLevel);
         Assert.Null(vocab.PreSplit);
         Assert.Equal(BpePatterns.Gpt2, vocab.PreTokenizerPattern);
@@ -30,8 +30,8 @@ public sealed class BpeFilesLoaderTests
     public void The_version_comment_is_not_a_merge()
     {
         BpeVocabulary vocab = BpeFilesLoader.Load(Utf8(Vocab), Utf8(Merges));
-        Assert.Single(vocab.Merges);
-        Assert.Equal(new MergePair("a", "b"), vocab.Merges[0]);
+        MergePair merge = Assert.Single(vocab.Merges);
+        Assert.Equal(new MergePair("a", "b"), merge);
     }
 
     [Fact]
@@ -82,8 +82,8 @@ public sealed class BpeFilesLoaderTests
     {
         BpeVocabulary vocab = BpeFilesLoader.Load(Utf8(Vocab), Utf8("#version: 0.2\na \n"));
 
-        Assert.Single(vocab.Merges);
-        Assert.Equal(new MergePair("a", string.Empty), vocab.Merges[0]);
+        MergePair merge = Assert.Single(vocab.Merges);
+        Assert.Equal(new MergePair("a", string.Empty), merge);
     }
 
     [Fact]
@@ -115,8 +115,8 @@ public sealed class BpeFilesLoaderTests
         BpeVocabulary withoutBom = BpeFilesLoader.Load(Utf8(Vocab), Utf8(Merges));
 
         Assert.Equal(withoutBom.Merges, vocab.Merges);
-        Assert.Single(vocab.Merges);
-        Assert.Equal(new MergePair("a", "b"), vocab.Merges[0]);
+        MergePair merge = Assert.Single(vocab.Merges);
+        Assert.Equal(new MergePair("a", "b"), merge);
     }
 
     [Fact]

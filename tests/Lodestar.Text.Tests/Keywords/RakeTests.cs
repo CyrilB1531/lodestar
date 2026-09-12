@@ -106,8 +106,8 @@ public sealed class RakeTests
         IReadOnlyList<KeywordMatch> hits =
             Extractor(new RakeOptions { MinLength = 2 }).Extract("linear constraints and linear");
 
-        Assert.Single(hits);
-        Assert.Equal(4.0, hits[0].Score, 12);
+        KeywordMatch hit = Assert.Single(hits);
+        Assert.Equal(4.0, hit.Score, 12);
     }
 
     [Fact]
@@ -116,8 +116,8 @@ public sealed class RakeTests
         var options = new RakeOptions { IncludeRepeatedPhrases = false };
         IReadOnlyList<KeywordMatch> hits = Extractor(options).Extract("linear constraints and linear constraints");
 
-        Assert.Single(hits);
-        Assert.Equal("linear constraints", hits[0].Phrase, StringComparer.Ordinal);
+        KeywordMatch hit = Assert.Single(hits);
+        Assert.Equal("linear constraints", hit.Phrase, StringComparer.Ordinal);
     }
 
     [Theory]

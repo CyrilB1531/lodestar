@@ -34,6 +34,14 @@
     <NoWarn>$(NoWarn);xUnit1051</NoWarn>
   </PropertyGroup>
 
+  <!-- Raises an analyzer diagnostic that ships below warning, so TreatWarningsAsErrors
+       sees it. Named rather than auto-discovered: DiscoverGlobalAnalyzerConfigFiles looks
+       for a file called `.globalconfig` beside each project, and this file must not carry
+       that name, because the root one is generated and diffed in CI. Decision 0112. -->
+  <ItemGroup>
+    <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)analyzers.globalconfig" />
+  </ItemGroup>
+
   <!-- Test code is held to the same rules as the code it tests: a test is read
        more often than it is written, and SonarCloud already reports on it. The
        version comes from the root Directory.Build.props, the package from
