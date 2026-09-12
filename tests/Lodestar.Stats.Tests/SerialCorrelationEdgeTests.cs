@@ -179,4 +179,68 @@ public sealed class SerialCorrelationEdgeTests
 
         Assert.Equal(6, result.Values.Count);
     }
+
+    [Fact]
+    public void The_statistic_is_indexed_from_lag_one_and_never_decreases()
+    {
+        LjungBoxResult result = SerialCorrelation.LjungBox(Series, lagCount: 4);
+
+        Assert.Equal(4, result.Statistics.Count);
+        Assert.Equal(4, result.PValues.Count);
+        Assert.Equal([1, 2, 3, 4], result.DegreesOfFreedom);
+        for (int i = 1; i < result.Statistics.Count; i++)
+        {
+            Assert.True(
+                result.Statistics[i] >= result.Statistics[i - 1],
+                $"lag {i + 1}: {result.Statistics[i]} is below {result.Statistics[i - 1]}.");
+        }
+    }
+
+    [Fact]
+    public void Box_pierce_is_empty_unless_it_is_asked_for()
+    {
+        LjungBoxResult without = SerialCorrelation.LjungBox(Series, lagCount: 3);
+        LjungBoxResult with = SerialCorrelation.LjungBox(
+            Series, 3, new LjungBoxOptions { BoxPierce = true });
+
+        Assert.Empty(without.BoxPierceStatistics);
+        Assert.Empty(without.BoxPiercePValues);
+        Assert.Equal(3, with.BoxPierceStatistics.Count);
+        Assert.Equal(3, with.BoxPiercePValues.Count);
+
+        // Ljung-Box weights each squared correlation by n/(n - k), so it is the larger of the two.
+        for (int i = 0; i < 3; i++)
+        {
+            Assert.True(with.Statistics[i] >= with.BoxPierceStatistics[i]);
+        }
+    }
+
+    [Fact]
+    public void A_model_degrees_of_freedom_that_swallows_a_lag_gives_NaN_at_that_lag_only()
+    {
+        LjungBoxResult result = SerialCorrelation.LjungBox(
+            Series, 4, new LjungBoxOptions { ModelDegreesOfFreedom = 2 });
+
+        Assert.Equal(double.NaN, result.PValues[0]);
+        Assert.Equal(double.NaN, result.PValues[1]);
+        Assert.False(double.IsNaN(result.PValues[2]));
+        Assert.Equal([-1, 0, 1, 2], result.DegreesOfFreedom);
+        Assert.False(double.IsNaN(result.Statistics[0]));
+    }
+
+    [Fact]
+    public void A_negative_model_degrees_of_freedom_is_refused()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => new LjungBoxOptions { ModelDegreesOfFreedom = -1 });
+    }
+
+    [Fact]
+    public void A_constant_series_is_refused_by_ljung_box_too()
+    {
+        ArgumentException refusal = Assert.Throws<ArgumentException>(
+            () => SerialCorrelation.LjungBox([3.0, 3.0, 3.0, 3.0], lagCount: 2));
+
+        Assert.Equal("series", refusal.ParamName);
+    }
 }

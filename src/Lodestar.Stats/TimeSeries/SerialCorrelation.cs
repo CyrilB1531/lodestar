@@ -104,6 +104,65 @@ public static class SerialCorrelation
         };
     }
 
+    /// <summary>The Ljung-Box test for serial dependence, cumulated lag by lag.</summary>
+    /// <param name="series">The observations, or a model's residuals, in time order.</param>
+    /// <param name="lagCount">The highest lag to test, at most one below the series length.</param>
+    /// <param name="options">The model's parameter count and whether Box-Pierce comes too.</param>
+    /// <returns>Five lists of length <paramref name="lagCount"/>, indexed from lag 1.</returns>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="series"/> holds fewer than two points, is constant, or carries a non-finite
+    /// value; or <paramref name="lagCount"/> is below one or reaches the series length.
+    /// </exception>
+    public static LjungBoxResult LjungBox(
+        ReadOnlySpan<double> series, int lagCount, LjungBoxOptions? options = null)
+    {
+        LjungBoxOptions settings = options ?? new LjungBoxOptions();
+        RefuseUnusableSeries(series, lagCount, series.Length - 1);
+
+        int n = series.Length;
+        double[] covariance = Autocovariance.Of(series, lagCount, adjusted: false);
+
+        var statistics = new double[lagCount];
+        var pValues = new double[lagCount];
+        var degreesOfFreedom = new int[lagCount];
+        double[] boxPierce = settings.BoxPierce ? new double[lagCount] : [];
+        double[] boxPierceP = settings.BoxPierce ? new double[lagCount] : [];
+
+        double ljung = 0.0;
+        double pierce = 0.0;
+        for (int lag = 1; lag <= lagCount; lag++)
+        {
+            double r = covariance[lag] / covariance[0];
+            ljung += r * r / (n - lag);
+            pierce += r * r;
+
+            int index = lag - 1;
+            int df = lag - settings.ModelDegreesOfFreedom;
+            statistics[index] = n * (n + 2) * ljung;
+            degreesOfFreedom[index] = df;
+            pValues[index] = df > 0
+                ? Distributions.ChiSquaredSf(statistics[index], df)
+                : double.NaN;
+
+            if (settings.BoxPierce)
+            {
+                boxPierce[index] = n * pierce;
+                boxPierceP[index] = df > 0
+                    ? Distributions.ChiSquaredSf(boxPierce[index], df)
+                    : double.NaN;
+            }
+        }
+
+        return new LjungBoxResult
+        {
+            Statistics = statistics,
+            PValues = pValues,
+            BoxPierceStatistics = boxPierce,
+            BoxPiercePValues = boxPierceP,
+            DegreesOfFreedom = degreesOfFreedom,
+        };
+    }
+
     /// <summary>Bartlett's widening variance, or the flat one.</summary>
     /// <remarks>
     /// Bartlett's is <c>(1 + 2*sum_{j&lt;k} r_j^2) / n</c> past lag one, which is the reference's
