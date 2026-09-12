@@ -32,3 +32,10 @@ The last value above is `1/3 + 1/2 + 1/1`. Kaplan-Meier on that sample ends at z
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`NelsonAalen.Estimate`](nelsonaalen-estimate.md), [`SurvivalStep`](survivalstep.md).
+
+## Members
+
+| member | what it does |
+| --- | --- |
+| [`NelsonAalenCurve.Equals`](nelsonaalencurve-equals.md) | Value equality over the steps and the hazard. |
+| [`NelsonAalenCurve.GetHashCode`](nelsonaalencurve-gethashcode.md) | A hash consistent with it. |

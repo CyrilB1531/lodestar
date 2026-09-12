@@ -43,3 +43,10 @@ the shift test and iterates until the labels settle.
 
 **See also** — [`KMeans.Fit`](kmeans-fit.md), [`KMeans`](kmeans.md),
 [`decisions/0072`](../../../decisions/0072-omega-is-an-input-not-a-seed.md).
+
+## Members
+
+| member | what it does |
+| --- | --- |
+| [`KMeansOptions.Equals`](kmeansoptions-equals.md) | Value equality, the centres element by element. |
+| [`KMeansOptions.GetHashCode`](kmeansoptions-gethashcode.md) | A hash consistent with it. |

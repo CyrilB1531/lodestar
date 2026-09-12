@@ -45,3 +45,10 @@ that distance — the two are different quantities.
 
 **See also** — [`TextRank`](textrank.md), [`KeywordMatch`](keywordmatch.md),
 the [Python equivalence table](../../../equivalence.md).
+
+## Members
+
+| member | what it does |
+| --- | --- |
+| [`TextRankOptions.Equals`](textrankoptions-equals.md) | Value equality, the stop words as a set. |
+| [`TextRankOptions.GetHashCode`](textrankoptions-gethashcode.md) | A hash consistent with it. |

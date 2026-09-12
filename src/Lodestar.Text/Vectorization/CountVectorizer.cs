@@ -73,12 +73,7 @@ public sealed record CountVectorizerOptions
         {
             return false;
         }
-        if (StopWords is null || other.StopWords is null)
-        {
-            return StopWords is null && other.StopWords is null;
-        }
-        var mine = new HashSet<string>(StopWords, StringComparer.Ordinal);
-        return mine.SetEquals(other.StopWords);
+        return ValueEquality.SameSet(StopWords, other.StopWords);
     }
 
     /// <summary>Hashes the scalars, which is O(1).</summary>
@@ -102,7 +97,7 @@ public sealed record CountVectorizerOptions
             hash = (hash * 31) + MaxDf.GetHashCode();
             hash = (hash * 31) + (Binary ? 1 : 0);
             hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(TokenPattern);
-            return (hash * 31) + (StopWords is null ? -1 : 0);
+            return (hash * 31) + ValueEquality.PresenceOf(StopWords);
         }
     }
 }

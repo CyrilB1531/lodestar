@@ -35,11 +35,20 @@ independent, each cell `rowTotal * columnTotal / grandTotal`; comparing it again
 cell by cell is what the statistic itself does. It shares `table`'s exact shape rather than a
 flattened form, so `result.ExpectedFrequencies[i][j]` lines up directly with `table[i][j]`.
 
-Being a `record`, and `double[][]` comparing by reference rather than by value, two
-`Chi2ContingencyResult`s are equal only when they share the very same expected-frequencies array
-— a detail that matters for a unit test comparing two results, and not otherwise.
+Being a `record`, equality would otherwise compare `double[][]` by reference; `Equals` and
+`GetHashCode` are written by hand instead, so two results holding the same expected frequencies
+compare equal. [Decision
+0113](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
+has the rule.
 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`ChiSquare.Contingency`](chisquare-contingency.md), [`TestResult`](testresult.md),
 the [Python equivalence table](../../../equivalence.md).
+
+## Members
+
+| member | what it does |
+| --- | --- |
+| [`Chi2ContingencyResult.Equals`](chi2contingencyresult-equals.md) | Value equality, the table row by row. |
+| [`Chi2ContingencyResult.GetHashCode`](chi2contingencyresult-gethashcode.md) | A hash consistent with it. |

@@ -39,4 +39,49 @@ public sealed record RakeOptions
     /// boundary rather than being a stop word, and dropping it would merge two candidates.
     /// </remarks>
     public string TokenPattern { get; init; } = @"\b\w+\b";
+
+    /// <summary>Compares every option, treating <see cref="StopWords"/> as a set.</summary>
+    /// <param name="other">The options to compare against.</param>
+    /// <remarks>
+    /// <see cref="StopWords"/> compares as a set, not by reference or sequence — the generated
+    /// equality would otherwise treat two lists of the same words as unequal. Decision 0113 has
+    /// the rule, and <see cref="Lodestar.Text.Vectorization.CountVectorizerOptions"/> the
+    /// same member.
+    /// </remarks>
+    public bool Equals(RakeOptions? other)
+    {
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+        if (other is null
+            || Metric != other.Metric
+            || MinLength != other.MinLength
+            || MaxLength != other.MaxLength
+            || IncludeRepeatedPhrases != other.IncludeRepeatedPhrases
+            || !string.Equals(TokenPattern, other.TokenPattern, StringComparison.Ordinal))
+        {
+            return false;
+        }
+        return ValueEquality.SameSet(StopWords, other.StopWords);
+    }
+
+    /// <summary>Hashes the scalars, which is O(1).</summary>
+    /// <remarks>
+    /// <see cref="StopWords"/> contributes only whether it is present. Its <em>count</em> cannot
+    /// be used: equality compares as a set, so <c>["the", "the"]</c> equals <c>["the"]</c> while
+    /// the counts differ, and equal objects must hash alike.
+    /// </remarks>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + (int)Metric;
+            hash = (hash * 31) + MinLength;
+            hash = (hash * 31) + MaxLength;
+            hash = (hash * 31) + (IncludeRepeatedPhrases ? 1 : 0);
+            hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(TokenPattern);
+            return (hash * 31) + ValueEquality.PresenceOf(StopWords);
+        }
+    }
 }

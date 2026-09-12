@@ -35,3 +35,10 @@ estimate.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`KaplanMeier.Estimate`](kaplanmeier-estimate.md), [`SurvivalStep`](survivalstep.md).
+
+## Members
+
+| member | what it does |
+| --- | --- |
+| [`KaplanMeierCurve.Equals`](kaplanmeiercurve-equals.md) | Value equality over the steps and the three curves. |
+| [`KaplanMeierCurve.GetHashCode`](kaplanmeiercurve-gethashcode.md) | A hash consistent with it. |

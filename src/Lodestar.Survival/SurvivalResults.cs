@@ -25,13 +25,55 @@ public sealed record SurvivalStep(double Time, int AtRisk, int Events, int Censo
 /// default and is not the same as the estimate plus or minus its own standard error — the
 /// reference page has the two numbers side by side.
 /// </remarks>
+// CA1819 (properties should not return arrays): the curves hand back the arrays the fitter produced, and a caller reads them positionally against Steps.
+// Copying them defensively would allocate a second copy of every curve to protect values the type only ever returns.
 #pragma warning disable CA1819
 public sealed record KaplanMeierCurve(
     SurvivalStep[] Steps,
     double[] Survival,
     double[] Lower,
     double[] Upper,
-    double ConfidenceLevel);
+    double ConfidenceLevel)
+{
+    /// <summary>Compares the steps and all three curves, element by element.</summary>
+    /// <param name="other">The curve to compare against.</param>
+    /// <remarks>
+    /// The generated equality would compare the four arrays by reference, so two curves fitted
+    /// from the same data would be unequal. Decision 0113 has the rule.
+    /// </remarks>
+    public bool Equals(KaplanMeierCurve? other)
+    {
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+        // S1244: the level is a stored configuration, compared by bits so NaN stays reflexive.
+#pragma warning disable S1244
+        if (other is null || !ConfidenceLevel.Equals(other.ConfidenceLevel))
+#pragma warning restore S1244
+        {
+            return false;
+        }
+        return ValueEquality.Same(Steps, other.Steps)
+            && ValueEquality.Same(Survival, other.Survival)
+            && ValueEquality.Same(Lower, other.Lower)
+            && ValueEquality.Same(Upper, other.Upper);
+    }
+
+    /// <summary>Hashes the level and the step count, which is O(1).</summary>
+    /// <remarks>
+    /// The four arrays share one index, so the step count stands for all of them. A curve can
+    /// hold thousands of steps, which is the walk this avoids.
+    /// </remarks>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + ConfidenceLevel.GetHashCode();
+            return (hash * 31) + ValueEquality.CountOf(Steps);
+        }
+    }
+}
 
 /// <summary>A Nelson-Aalen cumulative-hazard curve.</summary>
 /// <param name="Steps">The curve's steps, ascending in time, starting at zero.</param>
@@ -41,7 +83,38 @@ public sealed record KaplanMeierCurve(
 /// fractions, so it keeps rising where a Kaplan-Meier curve that has reached zero can
 /// no longer move.
 /// </remarks>
-public sealed record NelsonAalenCurve(SurvivalStep[] Steps, double[] CumulativeHazard);
+public sealed record NelsonAalenCurve(SurvivalStep[] Steps, double[] CumulativeHazard)
+{
+    /// <summary>Compares the steps and the hazard, element by element.</summary>
+    /// <param name="other">The curve to compare against.</param>
+    /// <remarks>
+    /// The generated equality would compare both arrays by reference, so two curves fitted from
+    /// the same data would be unequal. Decision 0113 has the rule.
+    /// </remarks>
+    public bool Equals(NelsonAalenCurve? other)
+    {
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+        return other is not null
+            && ValueEquality.Same(Steps, other.Steps)
+            && ValueEquality.Same(CumulativeHazard, other.CumulativeHazard);
+    }
+
+    /// <summary>Hashes the step count, which is O(1).</summary>
+    /// <remarks>
+    /// Both arrays share one index, so the step count stands for both. Equal curves agree on it;
+    /// unequal ones are allowed to collide.
+    /// </remarks>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            return (17 * 31) + ValueEquality.CountOf(Steps);
+        }
+    }
+}
 #pragma warning restore CA1819
 
 /// <summary>The outcome of a two-sample log-rank test.</summary>

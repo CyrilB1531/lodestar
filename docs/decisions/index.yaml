@@ -1132,3 +1132,13 @@
   superseded_by: []
   amended_by: []
   applied_by: []
+
+"0113":
+  title: "A record whose member compares by reference writes its own equality"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []

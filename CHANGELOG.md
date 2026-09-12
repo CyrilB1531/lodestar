@@ -39,6 +39,10 @@ is one sentence, the issue and the commit; see
 - **`System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`.** The dependency a
   consumer restores changes; nothing in the public surface does.
   ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+- **`RakeOptions` and `TextRankOptions` compare their stop words as a set.** Two option sets
+  holding the same words were unequal and now are equal, with `GetHashCode` agreeing —
+  `CountVectorizerOptions` already behaved this way, and decision 0113 makes it the rule.
+  ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
 
 ### Lodestar.Gpu
 
@@ -97,6 +101,31 @@ is one sentence, the issue and the commit; see
   the equality a record brings compares what a reader would expect it to. Code that mutated an
   instance after constructing it must use an object initializer instead.
   ([#616](https://github.com/CyrilB1531/lodestar/issues/616))
+
+### Lodestar.Cluster
+
+#### Changed
+
+- **`KMeansOptions` compares its centres by value.** Two option sets built from separate arrays
+  holding the same centres were unequal and now are equal, with `GetHashCode` agreeing; decision
+  0113 has the rule for every record whose member compares by reference.
+  ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
+
+### Lodestar.Stats
+
+#### Changed
+
+- **`Chi2ContingencyResult` compares its expected table by value.** Two results holding the same
+  table were unequal and now are equal, with `GetHashCode` agreeing; decision 0113 has the rule.
+  ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
+
+### Lodestar.Survival
+
+#### Changed
+
+- **`KaplanMeierCurve` and `NelsonAalenCurve` compare their arrays by value.** Two curves fitted
+  from the same data were unequal and now are equal, with `GetHashCode` agreeing; decision 0113
+  has the rule. ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
 
 ## Released — 2026-09-10
 
