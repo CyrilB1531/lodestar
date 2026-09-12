@@ -115,6 +115,14 @@ is one sentence, the issue and the commit; see
   table were unequal and now are equal, with `GetHashCode` agreeing; decision 0112 has the rule.
   ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
 
+### Lodestar.Survival
+
+#### Changed
+
+- **`KaplanMeierCurve` and `NelsonAalenCurve` compare their arrays by value.** Two curves fitted
+  from the same data were unequal and now are equal, with `GetHashCode` agreeing; decision 0112
+  has the rule. ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
+
 ## Released — 2026-09-10
 
 Thirteen cuts across eleven packages, and the end of milestone 0.6.0 — thirty-three
