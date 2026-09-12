@@ -40,7 +40,7 @@
 **Interfaces:**
 
 - Consumes: `Lodestar.Stats.Distributions.NormalQuantile(double p)`, already public.
-- Produces: `Autocovariance.Of(ReadOnlySpan<double> series, int lagCount, bool adjusted)` returning `double[]` of length `lagCount + 1`; `SerialCorrelation.Autocorrelation(ReadOnlySpan<double>, int, AutocorrelationOptions?)` returning `AutocorrelationResult`; `AutocorrelationResult.Values/ConfidenceLower/ConfidenceUpper` as `IReadOnlyList<double>`; `SerialCorrelation.RefuseUnusableSeries(ReadOnlySpan<double>, int, int, string)` as an internal shared guard Tasks 2 and 3 call.
+- Produces: `Autocovariance.Of(ReadOnlySpan<double> series, int lagCount, bool adjusted)` returning `double[]` of length `lagCount + 1`; `SerialCorrelation.Autocorrelation(ReadOnlySpan<double>, int, AutocorrelationOptions?)` returning `AutocorrelationResult`; `AutocorrelationResult.Values/ConfidenceLower/ConfidenceUpper` as `IReadOnlyList<double>`; `SerialCorrelation.RefuseUnusableSeries(ReadOnlySpan<double> series, int lagCount, int lagCeiling)` as an internal shared guard Tasks 2 and 3 call.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -340,15 +340,14 @@ public static class SerialCorrelation
         AutocorrelationOptions settings = options ?? new AutocorrelationOptions();
         RefuseUnusableSeries(series, lagCount, series.Length - 1);
 
+        // Lag zero divides by n - 0, which is n, whichever flag was passed -- so the adjusted
+        // estimator is a bigger numerator over the same denominator, as the reference's is.
         double[] covariance = Autocovariance.Of(series, lagCount, settings.Adjusted);
-        double[] zeroLag = settings.Adjusted
-            ? Autocovariance.Of(series, 0, adjusted: false)
-            : covariance;
 
         var values = new double[lagCount + 1];
         for (int lag = 0; lag <= lagCount; lag++)
         {
-            values[lag] = covariance[lag] / zeroLag[0];
+            values[lag] = covariance[lag] / covariance[0];
         }
 
         double multiplier = Distributions.NormalQuantile(
@@ -416,7 +415,9 @@ public static class SerialCorrelation
 
         for (int row = 0; row < series.Length; row++)
         {
-            if (!double.IsFinite(series[row]))
+            // double.IsFinite is not on netstandard2.0, so the two halves are asked separately --
+            // Lodestar.Stats.Regression's Irls.AllFinite records the same constraint.
+            if (double.IsNaN(series[row]) || double.IsInfinity(series[row]))
             {
                 throw new ArgumentException(
                     $"row {row} carries {series[row]}, which would propagate through every lag. "
@@ -519,7 +520,7 @@ Append to `tests/Lodestar.Stats.Tests/SerialCorrelationEdgeTests.cs`, inside the
     public void The_first_partial_coefficient_equals_the_first_autocorrelation()
     {
         // Levinson-Durbin's first reflection coefficient is r1/r0 by construction, and the
-        // adjusted denominators cancel at lag 1 only because both divide by n - 1 there.
+        // adjusted autocorrelation is the same ratio: numerator over n - 1, denominator over n.
         AutocorrelationResult partial =
             SerialCorrelation.PartialAutocorrelation(Series, lagCount: 3);
         AutocorrelationResult adjusted = SerialCorrelation.Autocorrelation(
@@ -1542,4 +1543,4 @@ The pull request body carries `Closes #617`. **One pull request for this issue.*
 
 **3. Type consistency.** `AutocorrelationResult` is produced by both `Autocorrelation` (Task 1) and `PartialAutocorrelation` (Task 2) and consumed by Task 5's `ReplayBand`. `LjungBoxResult`'s five members are named identically in Task 3's definition, Task 3's tests, Task 5's `ReplayLjungBox` and Task 7's sample — `BoxPiercePValues`, not `BoxPierceValues`. `RefuseUnusableSeries` takes three arguments in its definition and all three call sites. `Autocovariance.Of`'s `adjusted` argument is `false` in `Autocorrelation` and `LjungBox`, `true` in `PartialAutocorrelation`, which is what the reference does and what the corpus checks.
 
-One asymmetry is deliberate and stated where it bites: `Autocorrelation` with `Adjusted = true` divides the numerator by `n - k` and the denominator by `n`, so it calls `Autocovariance.Of` twice. A reader who "simplifies" that to one call changes the answer, and Task 1's `The_adjusted_estimator_divides_by_a_smaller_denominator` test is what catches them.
+One thing a reader will want to "fix": `Autocorrelation` divides every lag by `covariance[0]` from the *same* array, adjusted flag included. That is correct rather than sloppy — lag zero divides by `n - 0`, which is `n`, so the adjusted estimator is a bigger numerator over an unchanged denominator, exactly as the reference's is. Task 1's `The_adjusted_estimator_divides_by_a_smaller_denominator` asserts the resulting ratio is `n / (n - k)`, which is what would break if someone normalised both sides.
