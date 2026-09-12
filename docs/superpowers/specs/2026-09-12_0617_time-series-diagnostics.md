@@ -90,7 +90,10 @@ statsmodels plot.
 
 The band is **centred on the estimate, not on zero**, which is what the reference returns and is
 worth stating because the band a reader draws on a correlogram is usually the zero-centred one.
-`ConfidenceLower[0] == ConfidenceUpper[0] == 1.0`: lag zero has no variance.
+Under Bartlett's formula (the default), `ConfidenceLower[0] == ConfidenceUpper[0] == 1.0`: lag
+zero has no variance there. The flat band is a scalar in the reference (`varacf = 1.0 / nobs`,
+applied at every lag including zero), so with `BartlettConfidenceInterval: false` lag zero's
+interval is not a point — it is `1.0 ± z * sqrt(1/n)`, the same width as every other lag.
 
 **A class rather than a record, and that is the decision, not an omission.** A record's
 synthesized `Equals` compares reference-typed members by reference, so two results holding the

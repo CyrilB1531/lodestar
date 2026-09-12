@@ -166,14 +166,16 @@ public static class SerialCorrelation
     /// <summary>Bartlett's widening variance, or the flat one.</summary>
     /// <remarks>
     /// Bartlett's is <c>(1 + 2*sum_{j&lt;k} r_j^2) / n</c> past lag one, which is the reference's
-    /// default. Lag zero is exactly zero either way, so its interval is the point 1.
+    /// default; lag zero is exactly zero under it, so its interval is the point 1. The flat
+    /// variance is a scalar in the reference (<c>varacf = 1.0 / nobs</c>), applied uniformly, lag
+    /// zero included -- so under <c>bartlett: false</c> lag zero's interval is not a point.
     /// </remarks>
     private static double[] BandVariance(double[] values, int n, bool bartlett)
     {
         var variance = new double[values.Length];
         if (!bartlett)
         {
-            for (int lag = 1; lag < values.Length; lag++)
+            for (int lag = 0; lag < values.Length; lag++)
             {
                 variance[lag] = 1.0 / n;
             }
