@@ -751,7 +751,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105", "0109", "0110"]
+  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105", "0109", "0110", "0116"]
 
 "0075":
   title: "Double Metaphone ships, with `doublemetaphone` 1.2 as its oracle"
@@ -761,7 +761,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0091", "0099", "0101", "0104"]
+  applied_by: ["0091", "0099", "0101", "0104", "0116"]
 
 "0076":
   title: "A core package carries no external dependency, so ONNX Runtime gets its own"
@@ -771,7 +771,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0108", "0111", "0114"]
+  applied_by: ["0108", "0111", "0114", "0116"]
 
 "0077":
   title: "The keyword extractors take their oracles' lists, and not their own"
@@ -1159,6 +1159,16 @@
   supersedes: []
   amends: []
   applies: ["0008", "0095"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0116":
+  title: "The PCA gap is the explained variance, not the projection"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0074", "0075", "0076"]
   superseded_by: []
   amended_by: []
   applied_by: []
