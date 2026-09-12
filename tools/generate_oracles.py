@@ -92,6 +92,9 @@ HUSETS = "husets"
 # The conformal corpus's own key names. S1192 counts a JSON key like any other
 # literal, and these are written once per case in three places each (#441).
 CALIB_SIZE = "calib"
+# The normalised score's two extra columns, named for the same reason (#683).
+CALIB_SIGMA = "calibResidualEstimates"
+TEST_SIGMA = "testResidualEstimates"
 # The sparse-dense corpus's fixture keys, named for the same reason the conformal
 # ones above are: S1192 counts a dict key like any other literal (#440).
 COLUMNS = "columns"
@@ -3489,9 +3492,44 @@ def _conformal_classification_case(fx: dict, frozen_classifier, split_classifier
     }
 
 
+def _conformal_normalised_fixtures() -> list[dict]:
+    """Calibration splits for the normalised score, where the width has to vary.
+
+    The residual estimates are the point of every case: a constant one reduces the
+    score to the absolute residual divided by a number, which would pass while
+    testing nothing. These grow with the index, so the interval a point gets is
+    visibly its own.
+    """
+    rng = SeededRandom(SEED + 683)
+    y_calib = [round(rng.gauss(10.0, 3.0), 6) for _ in range(30)]
+    predicted = [round(v + rng.gauss(0.0, 1.5), 6) for v in y_calib]
+    # A spread that grows across the calibration set, floored well above zero so the
+    # fixture says nothing about the refusal at zero -- that is an edge test's job.
+    sigma = [round(0.5 + (0.15 * i), 6) for i in range(30)]
+    test = [round(rng.gauss(10.0, 3.0), 6) for _ in range(6)]
+    test_sigma = [0.5, 1.25, 2.0, 3.5, 5.0, 8.0]
+    return [
+        {"name": "thirty points, widths growing with the index, at 90 %",
+         "alpha": 0.1, Y_CALIB: y_calib, Y_CALIB_PRED: predicted, CALIB_SIGMA: sigma,
+         Y_TEST_PRED: test, TEST_SIGMA: test_sigma},
+        {"name": "the same points and estimates at 50 %",
+         "alpha": 0.5, Y_CALIB: y_calib, Y_CALIB_PRED: predicted, CALIB_SIGMA: sigma,
+         Y_TEST_PRED: test, TEST_SIGMA: test_sigma},
+        # Estimates on both sides of one: the score divides by r, so a small estimate
+        # narrows and a large one widens, which is the direction readers get backwards.
+        {"name": "estimates on both sides of one",
+         "alpha": 0.2,
+         Y_CALIB: [float(v) for v in range(1, 13)],
+         Y_CALIB_PRED: [1.5, 2.5, 4.0, 5.0, 4.0, 5.75, 9.0, 8.5, 8.0, 9.75, 13.0, 11.5],
+         CALIB_SIGMA: [0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0],
+         Y_TEST_PRED: [0.0, 6.25, 100.0], TEST_SIGMA: [0.1, 1.0, 10.0]},
+    ]
+
+
 def generate_conformal() -> dict:
     """Split conformal prediction, against MAPIE 1.5.0 (#441)."""
     from mapie.classification import SplitConformalClassifier
+    from mapie.conformity_scores import ResidualNormalisedScore
     from mapie.regression import SplitConformalRegressor
 
     frozen_regressor, frozen_classifier = _frozen_estimators()
@@ -3527,6 +3565,42 @@ def generate_conformal() -> dict:
             Y_CALIB_PRED: calib_pred, QUANTILE: q, Y_TEST_PRED: test_pred,
             LOWER: lower, UPPER: upper})
 
+    normalised_cases: list[dict] = []
+    for fx in _conformal_normalised_fixtures():
+        y_calib = fx[Y_CALIB]
+        calib_pred = fx[Y_CALIB_PRED]
+        test_pred = fx[Y_TEST_PRED]
+        calib_sigma = fx[CALIB_SIGMA]
+        test_sigma = fx[TEST_SIGMA]
+        n = len(y_calib)
+        scores = [abs(y - p) / s for y, p, s in zip(y_calib, calib_pred, calib_sigma)]
+        k, q = _conformal_quantile(scores, fx["alpha"])
+
+        # Two frozen tables. The residual estimator's predict returns the residual and
+        # not its log, which is MAPIE's prefit contract and its own warning's subject.
+        estimator = frozen_regressor(table=np.array(calib_pred + test_pred)).fit(np.zeros((1, 1)))
+        residual = frozen_regressor(table=np.array(calib_sigma + test_sigma)).fit(np.zeros((1, 1)))
+        mapie = SplitConformalRegressor(
+            estimator=estimator,
+            confidence_level=1.0 - fx["alpha"],
+            conformity_score=ResidualNormalisedScore(
+                residual_estimator=residual, prefit=True, sym=True),
+            prefit=True)
+        mapie.conformalize(np.arange(n).reshape(-1, 1), np.array(y_calib))
+        _, interval = mapie.predict_interval(np.arange(n, n + len(test_pred)).reshape(-1, 1))
+
+        lower = [p - (q * s) for p, s in zip(test_pred, test_sigma)]
+        upper = [p + (q * s) for p, s in zip(test_pred, test_sigma)]
+        assert np.allclose(interval[:, 0, 0], lower, rtol=0, atol=1e-12), fx["name"]
+        assert np.allclose(interval[:, 1, 0], upper, rtol=0, atol=1e-12), fx["name"]
+
+        quantile_cases.append({
+            "name": fx["name"], "alpha": fx["alpha"], "scores": scores, "k": k, QUANTILE: q})
+        normalised_cases.append({
+            "name": fx["name"], "alpha": fx["alpha"], Y_CALIB: y_calib,
+            Y_CALIB_PRED: calib_pred, CALIB_SIGMA: calib_sigma, QUANTILE: q,
+            Y_TEST_PRED: test_pred, TEST_SIGMA: test_sigma, LOWER: lower, UPPER: upper})
+
     for fx in _conformal_classification_fixtures():
         case = _conformal_classification_case(fx, frozen_classifier, SplitConformalClassifier)
         classification_cases.append(case)
@@ -3536,9 +3610,11 @@ def generate_conformal() -> dict:
 
     return {
         "metadata": {"library": "mapie", "version": version("mapie"),
-                     "count": len(regression_cases) + len(classification_cases)},
+                     "count": len(regression_cases) + len(normalised_cases)
+                     + len(classification_cases)},
         QUANTILE: quantile_cases,
         "regression": regression_cases,
+        "normalised": normalised_cases,
         "classification": classification_cases,
     }
 

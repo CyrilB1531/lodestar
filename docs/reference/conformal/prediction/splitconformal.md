@@ -10,5 +10,7 @@ each. Static, stateless, and it never sees your model.
 | [`SplitConformal.Quantile`](splitconformal-quantile.md) | The calibrated quantile: the `k`-th smallest calibration score. |
 | [`SplitConformal.AbsoluteResiduals`](splitconformal-absoluteresiduals.md) | A regressor's calibration scores, `\|y − ŷ\|`. |
 | [`SplitConformal.Interval`](splitconformal-interval.md) | `[ŷ − q, ŷ + q]` around a point prediction. |
+| [`SplitConformal.NormalisedResiduals`](splitconformal-normalisedresiduals.md) | A regressor's scores divided by a predicted residual, `\|y − ŷ\| / r̂`. |
+| [`SplitConformal.NormalisedInterval`](splitconformal-normalisedinterval.md) | `[ŷ − q·r̂, ŷ + q·r̂]`, whose width varies with the input. |
 | [`SplitConformal.LeastAmbiguousScores`](splitconformal-leastambiguousscores.md) | A classifier's LAC calibration scores, `1 − p̂(true class)`. |
 | [`SplitConformal.PredictionSet`](splitconformal-predictionset.md) | Every class whose probability clears `1 − q`. Possibly none. |

@@ -711,7 +711,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0118"]
 
 "0071":
   title: "`CsrMatrix` moves to a `Lodestar.Abstractions` package"
@@ -961,7 +961,7 @@
   applies: ["0081"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0097", "0098", "0115"]
+  applied_by: ["0097", "0098", "0115", "0118"]
 
 "0096":
   title: "Ordinary least squares earns its own package"
@@ -1179,6 +1179,16 @@
   supersedes: []
   amends: []
   applies: ["0008"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0118":
+  title: "A residual estimate is refused rather than floored, and the interval width varies"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0070", "0095"]
   superseded_by: []
   amended_by: []
   applied_by: []

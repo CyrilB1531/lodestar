@@ -10,6 +10,8 @@ public sealed class SplitConformalOracleTests
 
     public static TheoryData<int> RegressionCases() => ConformalCorpus.Indices("regression");
 
+    public static TheoryData<int> NormalisedCases() => ConformalCorpus.Indices("normalised");
+
     public static TheoryData<int> ClassificationCases() => ConformalCorpus.Indices("classification");
 
     [Theory]
@@ -57,6 +59,55 @@ public sealed class SplitConformalOracleTests
             Assert.Equal(lower[i], interval.Lower, ConformalCorpus.Tolerance);
             Assert.Equal(upper[i], interval.Upper, ConformalCorpus.Tolerance);
         }
+    }
+
+    [Theory]
+    [MemberData(nameof(NormalisedCases))]
+    public void Normalised_intervals_match_MAPIE(int index)
+    {
+        JsonElement c = ConformalCorpus.Section("normalised")[index];
+        double[] scores = SplitConformal.NormalisedResiduals(
+            ConformalCorpus.Doubles(c, "y_calib"),
+            ConformalCorpus.Doubles(c, "y_calib_pred"),
+            ConformalCorpus.Doubles(c, "calibResidualEstimates"));
+        double quantile = SplitConformal.Quantile(scores, ConformalCorpus.Alpha(c));
+
+        Assert.Equal(ConformalCorpus.Frozen(c, "quantile"), quantile, ConformalCorpus.Tolerance);
+
+        double[] predictions = ConformalCorpus.Doubles(c, "y_test_pred");
+        double[] sigma = ConformalCorpus.Doubles(c, "testResidualEstimates");
+        double[] lower = ConformalCorpus.Doubles(c, "lower");
+        double[] upper = ConformalCorpus.Doubles(c, "upper");
+        for (int i = 0; i < predictions.Length; i++)
+        {
+            (double Lower, double Upper) interval =
+                SplitConformal.NormalisedInterval(predictions[i], sigma[i], quantile);
+            Assert.Equal(lower[i], interval.Lower, ConformalCorpus.Tolerance);
+            Assert.Equal(upper[i], interval.Upper, ConformalCorpus.Tolerance);
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(NormalisedCases))]
+    public void Normalised_intervals_are_not_all_the_same_width(int index)
+    {
+        // The point of the score, and what a corpus alone cannot catch: equal widths
+        // would match a corpus generated from equal widths.
+        JsonElement c = ConformalCorpus.Section("normalised")[index];
+        double quantile = ConformalCorpus.Frozen(c, "quantile");
+        double[] predictions = ConformalCorpus.Doubles(c, "y_test_pred");
+        double[] sigma = ConformalCorpus.Doubles(c, "testResidualEstimates");
+
+        var widths = new List<double>();
+        for (int i = 0; i < predictions.Length; i++)
+        {
+            (double Lower, double Upper) interval =
+                SplitConformal.NormalisedInterval(predictions[i], sigma[i], quantile);
+            widths.Add(interval.Upper - interval.Lower);
+        }
+
+        Assert.True(widths.Max() > widths.Min() * 2.0,
+                    $"widths {widths.Min()} to {widths.Max()} barely vary");
     }
 
     [Theory]

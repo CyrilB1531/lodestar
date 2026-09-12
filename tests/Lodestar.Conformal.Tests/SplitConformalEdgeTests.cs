@@ -101,4 +101,51 @@ public sealed class SplitConformalEdgeTests
     [Fact]
     public void A_zero_quantile_keeps_only_a_certain_class() =>
         Assert.Equal([false, true], SplitConformal.PredictionSet([0.0, 1.0], 0.0));
+
+    [Fact]
+    public void Normalised_scores_refuse_spans_of_different_lengths() =>
+        Assert.Throws<ArgumentException>(
+            () => SplitConformal.NormalisedResiduals([1.0, 2.0], [1.0, 2.0], [1.0]));
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-1.0)]
+    [InlineData(double.NaN)]
+    public void A_residual_estimate_that_is_not_positive_is_refused(double estimate) =>
+        // MAPIE floors it at 1e-8 instead. Here the estimate is the caller's own argument,
+        // so flooring would turn their bug into an interval that reads as certainty (0118).
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => SplitConformal.NormalisedResiduals([1.0], [0.0], [estimate]));
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-1.0)]
+    [InlineData(double.NaN)]
+    public void A_normalised_interval_refuses_the_same_estimate(double estimate) =>
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => SplitConformal.NormalisedInterval(1.0, estimate, 0.5));
+
+    [Fact]
+    public void An_infinite_quantile_makes_a_normalised_interval_the_whole_line()
+    {
+        // Carried through the multiplication rather than becoming NaN, which is what
+        // an infinite quantile times a finite estimate has to do for decision 0070 to hold.
+        (double Lower, double Upper) interval =
+            SplitConformal.NormalisedInterval(3.0, 2.0, double.PositiveInfinity);
+
+        Assert.Equal(double.NegativeInfinity, interval.Lower);
+        Assert.Equal(double.PositiveInfinity, interval.Upper);
+    }
+
+    [Fact]
+    public void A_constant_estimate_reduces_the_normalised_score_to_the_absolute_one()
+    {
+        // The identity that says the two scores are the same operation up to a scale,
+        // and the reason a corpus with a constant estimate would test nothing.
+        double[] absolute = SplitConformal.AbsoluteResiduals([1.0, 4.0, 9.0], [0.0, 0.0, 0.0]);
+        double[] normalised =
+            SplitConformal.NormalisedResiduals([1.0, 4.0, 9.0], [0.0, 0.0, 0.0], [2.0, 2.0, 2.0]);
+
+        Assert.Equal([.. absolute.Select(v => v / 2.0)], normalised);
+    }
 }

@@ -41,13 +41,31 @@ one you had last month.
 the only arithmetic left, and doing it with a quantile obtained some other way produces a band with
 no guarantee and no way to tell from the output.
 
-The interval has the same width for every prediction, because
+### The width is a choice, and the default is the same for every prediction
+
 [`SplitConformal.AbsoluteResiduals`](../reference/conformal/prediction/splitconformal-absoluteresiduals.md)
-scores every calibration point the same way. That is a real limitation, not a simplification: a
-model whose error grows with the target gets intervals too wide where it is confident and too
-narrow where it is not, while still covering at the rate asked for **overall**. The fix is a
-normalised conformity score, which divides the residual by a second model's estimate of the local
-spread; this package does not ship one yet.
+scores every calibration point the same way, so the interval has one width. That is a real
+limitation, not a simplification: a model whose error grows with the target gets intervals too wide
+where it is confident and too narrow where it is not, while still covering at the rate asked for
+**overall** — which is what makes a constant width easy to mistake for an adequate one.
+
+[`SplitConformal.NormalisedResiduals`](../reference/conformal/prediction/splitconformal-normalisedresiduals.md)
+is the other choice. It divides each residual by `r̂`, a second model's estimate of the local
+spread, and
+[`NormalisedInterval`](../reference/conformal/prediction/splitconformal-normalisedinterval.md)
+multiplies it back — so the same calibrated quantile gives a narrow interval where the second model
+expects a small error and a wide one where it does not.
+
+**Where `r̂` comes from is yours**, and there is one way to get it wrong that costs real time: fit
+the second regressor on `log |y − ŷ|`, over data the first model did not see, and **exponentiate
+its prediction**. The log is what keeps the estimate positive. Handing this package the log itself
+produces estimates near zero, and dividing by those produces scores eight orders of magnitude too
+large.
+
+A `r̂` that is zero, negative or `NaN` is **refused** rather than floored, which is where this
+diverges from MAPIE —
+[decision 0118](../decisions/0118-a-residual-estimate-is-refused-rather-than-floored.md) says why:
+flooring would turn the mistake above into an interval so narrow it reads as certainty.
 
 ## Classification: a class becomes a set
 

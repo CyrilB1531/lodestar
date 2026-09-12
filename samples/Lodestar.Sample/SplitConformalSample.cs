@@ -44,6 +44,20 @@ internal static class SplitConformalSample
         // The set is allowed to be empty, and this row is what that looks like.
         Console.WriteLine($"  an undecided row      = {Describe(Undecided, classQuantile)}");
 
+        // The same calibration, scored against a second model's estimate of the local
+        // spread: one quantile, and an interval whose width is the point's own.
+        double[] spread = [0.5, 1.0, 0.5, 2.0, 1.0, 0.5, 1.5, 2.0, 0.5];
+        double[] normalised = SplitConformal.NormalisedResiduals(Observed, Predicted, spread);
+        double adaptive = SplitConformal.Quantile(normalised, 0.2);
+        (double Lower, double Upper) confident = SplitConformal.NormalisedInterval(11.0, 0.5, adaptive);
+        (double Lower, double Upper) unsure = SplitConformal.NormalisedInterval(11.0, 2.0, adaptive);
+
+        Console.WriteLine($"  normalised quantile   = {Inv.F3(adaptive)}");
+        Console.WriteLine(
+            $"  width at r = 0.5      = {Inv.F3(confident.Upper - confident.Lower)}");
+        Console.WriteLine(
+            $"  width at r = 2.0      = {Inv.F3(unsure.Upper - unsure.Lower)}");
+
         // The one thing the numbers above cannot say. See docs/guides/conformal.md.
         Console.WriteLine("  coverage holds only if calibration and test data are exchangeable");
         Console.WriteLine();

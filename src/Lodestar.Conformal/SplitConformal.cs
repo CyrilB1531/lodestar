@@ -76,6 +76,85 @@ public static class SplitConformal
         return residuals;
     }
 
+    /// <summary>The normalised calibration scores of a regressor, <c>|y − ŷ| / r̂</c>.</summary>
+    /// <remarks>
+    /// MAPIE's <c>ResidualNormalisedScore</c>. <paramref name="residualEstimates"/> is a second
+    /// model's prediction of <c>|y − ŷ|</c> at each calibration point, and dividing by it is what
+    /// makes the interval width vary with the input — <see cref="AbsoluteResiduals"/> gives every
+    /// point the same width, which is a real limitation and not a simplification. Hand the result
+    /// to <see cref="Quantile"/> and the same estimates to <see cref="NormalisedInterval"/>.
+    /// <b>Exchangeability</b> — see the type's remarks.
+    /// </remarks>
+    /// <param name="yTrue">The observed values.</param>
+    /// <param name="yPredicted">The model's predictions, same length as <paramref name="yTrue"/>.</param>
+    /// <param name="residualEstimates">The predicted absolute residual at each point, all strictly positive.</param>
+    /// <exception cref="ArgumentException">The spans have different lengths.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">An estimate is not strictly positive, or is NaN.</exception>
+    public static double[] NormalisedResiduals(
+        ReadOnlySpan<double> yTrue,
+        ReadOnlySpan<double> yPredicted,
+        ReadOnlySpan<double> residualEstimates)
+    {
+        if (yTrue.Length != yPredicted.Length || yTrue.Length != residualEstimates.Length)
+        {
+            throw new ArgumentException(
+                $"There are {yTrue.Length} observed values, {yPredicted.Length} predictions and "
+                + $"{residualEstimates.Length} residual estimates.",
+                nameof(residualEstimates));
+        }
+
+        double[] scores = new double[yTrue.Length];
+        for (int i = 0; i < yTrue.Length; i++)
+        {
+            scores[i] = Math.Abs(yTrue[i] - yPredicted[i]) / Positive(residualEstimates[i], i);
+        }
+        return scores;
+    }
+
+    /// <summary>The normalised interval <c>[ŷ − q·r̂, ŷ + q·r̂]</c> around a point prediction.</summary>
+    /// <remarks>
+    /// The quantile comes from <see cref="Quantile"/> over <see cref="NormalisedResiduals"/>, and
+    /// <paramref name="residualEstimate"/> from the same second model, at the point being
+    /// predicted. An infinite <paramref name="quantile"/> yields the whole line, as
+    /// <see cref="Interval"/> does. <b>Exchangeability</b> — see the type's remarks.
+    /// </remarks>
+    /// <param name="prediction">The model's point prediction.</param>
+    /// <param name="residualEstimate">The predicted absolute residual at this point, strictly positive.</param>
+    /// <param name="quantile">The calibrated quantile from <see cref="Quantile"/>.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="quantile"/> is negative or NaN, or <paramref name="residualEstimate"/> is not strictly positive.</exception>
+    public static (double Lower, double Upper) NormalisedInterval(
+        double prediction, double residualEstimate, double quantile)
+    {
+        if (double.IsNaN(quantile) || quantile < 0.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(quantile), quantile, "A calibrated quantile is a non-negative score.");
+        }
+
+        double width = quantile * Positive(residualEstimate, null);
+        return (prediction - width, prediction + width);
+    }
+
+    /// <summary>A residual estimate, refused unless it is strictly positive.</summary>
+    /// <remarks>
+    /// MAPIE floors it at 1e-8 instead, because its own residual model may predict a negative
+    /// and it has nowhere to send the complaint. Here the estimate is the caller's own argument,
+    /// so flooring would turn their bug into an interval of width <c>q · 1e-8</c> — which reads
+    /// as certainty. Decision 0118 has why this diverges.
+    /// </remarks>
+    private static double Positive(double estimate, int? index)
+    {
+        if (double.IsNaN(estimate) || estimate <= 0.0)
+        {
+            string where = index is null ? "The residual estimate" : $"Residual estimate {index}";
+            throw new ArgumentOutOfRangeException(
+                nameof(estimate), estimate,
+                $"{where} is not strictly positive, and the score divides by it.");
+        }
+
+        return estimate;
+    }
+
     /// <summary>The prediction interval <c>[ŷ − q, ŷ + q]</c> around a point prediction.</summary>
     /// <remarks>
     /// An infinite <paramref name="quantile"/> — see <see cref="Quantile"/> — yields the whole
