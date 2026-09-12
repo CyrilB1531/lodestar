@@ -34,17 +34,19 @@ public static class MannWhitney
     /// <param name="x">The first sample; at least one value.</param>
     /// <param name="y">The second sample; at least one value.</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
-    /// <param name="continuity">
-    /// Whether the normal approximation gets the half-unit correction. Ignored
-    /// on the exact branch, where there is nothing to approximate.
-    /// </param>
+    /// <param name="continuity">Whether the normal approximation gets the half-unit
+    /// correction, ignored on the exact branch.</param>
     /// <param name="method">
     /// Exact, asymptotic, or chosen by sample size and ties. Past the same size bound
     /// <see cref="ExactMethod.Exact"/> is refused for, <see cref="ExactMethod.Auto"/>
     /// falls back to asymptotic rather than building the table -- it never throws.
     /// </param>
+    /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>U for the first sample, and the p-value.</returns>
-    /// <exception cref="ArgumentException">Either sample is empty.</exception>
+    /// <exception cref="ArgumentException">
+    /// Either sample is empty. When <paramref name="nanPolicy"/> is
+    /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
+    /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/> and
     /// <c>x.Length * y.Length</c> exceeds 20,000; the table's build cost is quadratic
@@ -55,26 +57,34 @@ public static class MannWhitney
         ReadOnlySpan<double> y,
         Alternative alternative = Alternative.TwoSided,
         Continuity continuity = Continuity.Applied,
-        ExactMethod method = ExactMethod.Auto)
+        ExactMethod method = ExactMethod.Auto,
+        NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        if (x.Length == 0)
+        ReadOnlySpan<double> left = nanPolicy == NanPolicy.Propagate
+            ? x
+            : NanFilter.Apply(x, nanPolicy, nameof(x));
+        ReadOnlySpan<double> right = nanPolicy == NanPolicy.Propagate
+            ? y
+            : NanFilter.Apply(y, nanPolicy, nameof(y));
+
+        if (left.Length == 0)
         {
             throw new ArgumentException("The first sample is empty.", nameof(x));
         }
-        if (y.Length == 0)
+        if (right.Length == 0)
         {
             throw new ArgumentException("The second sample is empty.", nameof(y));
         }
 
-        int n = x.Length;
-        int m = y.Length;
+        int n = left.Length;
+        int m = right.Length;
 
         double[] pooled = new double[n + m];
-        x.CopyTo(pooled);
-        y.CopyTo(pooled.AsSpan(n));
+        left.CopyTo(pooled);
+        right.CopyTo(pooled.AsSpan(n));
 
-        // The spec's rule: no nan_policy parameter exists, so a NaN anywhere
-        // propagates rather than taking a false finite rank (Ranks.HasNaN's remark).
+        // Under the default NanPolicy.Propagate a NaN anywhere propagates rather
+        // than taking a false finite rank (Ranks.HasNaN's remark).
         if (Ranks.HasNaN(pooled))
         {
             return new TestResult(double.NaN, double.NaN);

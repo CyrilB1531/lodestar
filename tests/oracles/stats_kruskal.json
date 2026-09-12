@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "kruskal",
-  "count": 4
+  "count": 7
  },
  "cases": [
   {
@@ -186,6 +186,92 @@
    ],
    "statistic": 78.85802197802201,
    "pvalue": 7.51965820060691e-18
+  },
+  {
+   "name": "nan in the first group | nan_policy=propagate",
+   "call": "kruskal",
+   "args": {
+    "nan_policy": "propagate"
+   },
+   "groups": [
+    [
+     1.0,
+     2.0,
+     "NaN",
+     4.0
+    ],
+    [
+     2.0,
+     3.0,
+     4.0,
+     5.0
+    ],
+    [
+     5.0,
+     6.0,
+     7.0,
+     8.0
+    ]
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN"
+  },
+  {
+   "name": "nan in the first group | nan_policy=omit",
+   "call": "kruskal",
+   "args": {
+    "nan_policy": "omit"
+   },
+   "groups": [
+    [
+     1.0,
+     2.0,
+     "NaN",
+     4.0
+    ],
+    [
+     2.0,
+     3.0,
+     4.0,
+     5.0
+    ],
+    [
+     5.0,
+     6.0,
+     7.0,
+     8.0
+    ]
+   ],
+   "statistic": 7.15437788018433,
+   "pvalue": 0.02795416875397852
+  },
+  {
+   "name": "nan in the first group | nan_policy=raise",
+   "call": "kruskal",
+   "raises": true,
+   "args": {
+    "nan_policy": "raise"
+   },
+   "groups": [
+    [
+     1.0,
+     2.0,
+     "NaN",
+     4.0
+    ],
+    [
+     2.0,
+     3.0,
+     4.0,
+     5.0
+    ],
+    [
+     5.0,
+     6.0,
+     7.0,
+     8.0
+    ]
+   ]
   }
  ]
 }

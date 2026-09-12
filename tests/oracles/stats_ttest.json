@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "ttest",
-  "count": 57
+  "count": 75
  },
  "cases": [
   {
@@ -2207,6 +2207,438 @@
    "df": 39.0,
    "ci_low": -0.26304116445020564,
    "ci_high": "Infinity"
+  },
+  {
+   "name": "one nan in a | ind | nan_policy=propagate",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": false,
+    "alternative": "two-sided",
+    "nan_policy": "propagate"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    7.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "df": "NaN",
+   "ci_low": null,
+   "ci_high": null
+  },
+  {
+   "name": "one nan in a | ind | nan_policy=omit",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": false,
+    "alternative": "two-sided",
+    "nan_policy": "omit"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    7.0
+   ],
+   "statistic": -0.9566892062149213,
+   "pvalue": 0.37186722121649946,
+   "df": 6.7196042749565175,
+   "ci_low": null,
+   "ci_high": null
+  },
+  {
+   "name": "one nan in a | ind | nan_policy=raise",
+   "call": "ttest_ind",
+   "raises": true,
+   "args": {
+    "equal_var": false,
+    "alternative": "two-sided",
+    "nan_policy": "raise"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    7.0
+   ]
+  },
+  {
+   "name": "nan in both | ind | nan_policy=propagate",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": false,
+    "alternative": "two-sided",
+    "nan_policy": "propagate"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0
+   ],
+   "b": [
+    2.0,
+    "NaN",
+    3.0,
+    5.0,
+    9.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "df": "NaN",
+   "ci_low": null,
+   "ci_high": null
+  },
+  {
+   "name": "nan in both | ind | nan_policy=omit",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": false,
+    "alternative": "two-sided",
+    "nan_policy": "omit"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0
+   ],
+   "b": [
+    2.0,
+    "NaN",
+    3.0,
+    5.0,
+    9.0
+   ],
+   "statistic": -1.356562782202465,
+   "pvalue": 0.23839638494459708,
+   "df": 4.54543278124796,
+   "ci_low": null,
+   "ci_high": null
+  },
+  {
+   "name": "nan in both | ind | nan_policy=raise",
+   "call": "ttest_ind",
+   "raises": true,
+   "args": {
+    "equal_var": false,
+    "alternative": "two-sided",
+    "nan_policy": "raise"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0
+   ],
+   "b": [
+    2.0,
+    "NaN",
+    3.0,
+    5.0,
+    9.0
+   ]
+  },
+  {
+   "name": "listwise differs from per-sample | rel | nan_policy=propagate",
+   "call": "ttest_rel",
+   "args": {
+    "alternative": "two-sided",
+    "nan_policy": "propagate"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [
+    2.0,
+    "NaN",
+    3.0,
+    5.0,
+    7.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "df": "NaN",
+   "ci_low": null,
+   "ci_high": null
+  },
+  {
+   "name": "listwise differs from per-sample | rel | nan_policy=omit",
+   "call": "ttest_rel",
+   "args": {
+    "alternative": "two-sided",
+    "nan_policy": "omit"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [
+    2.0,
+    "NaN",
+    3.0,
+    5.0,
+    7.0
+   ],
+   "statistic": -4.0,
+   "pvalue": 0.05719095841793663,
+   "df": 2.0,
+   "ci_low": null,
+   "ci_high": null
+  },
+  {
+   "name": "listwise differs from per-sample | rel | nan_policy=raise",
+   "call": "ttest_rel",
+   "raises": true,
+   "args": {
+    "alternative": "two-sided",
+    "nan_policy": "raise"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [
+    2.0,
+    "NaN",
+    3.0,
+    5.0,
+    7.0
+   ]
+  },
+  {
+   "name": "one nan, same index | rel | nan_policy=propagate",
+   "call": "ttest_rel",
+   "args": {
+    "alternative": "two-sided",
+    "nan_policy": "propagate"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [
+    2.0,
+    3.0,
+    "NaN",
+    5.0,
+    7.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "df": "NaN",
+   "ci_low": null,
+   "ci_high": null
+  },
+  {
+   "name": "one nan, same index | rel | nan_policy=omit",
+   "call": "ttest_rel",
+   "args": {
+    "alternative": "two-sided",
+    "nan_policy": "omit"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [
+    2.0,
+    3.0,
+    "NaN",
+    5.0,
+    7.0
+   ],
+   "statistic": -5.0,
+   "pvalue": 0.015392438073302294,
+   "df": 3.0,
+   "ci_low": null,
+   "ci_high": null
+  },
+  {
+   "name": "one nan, same index | rel | nan_policy=raise",
+   "call": "ttest_rel",
+   "raises": true,
+   "args": {
+    "alternative": "two-sided",
+    "nan_policy": "raise"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [
+    2.0,
+    3.0,
+    "NaN",
+    5.0,
+    7.0
+   ]
+  },
+  {
+   "name": "one nan in a | 1samp | nan_policy=propagate",
+   "call": "ttest_1samp",
+   "args": {
+    "popmean": 0.0,
+    "alternative": "two-sided",
+    "nan_policy": "propagate"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "df": "NaN",
+   "ci_low": null,
+   "ci_high": null
+  },
+  {
+   "name": "one nan in a | 1samp | nan_policy=omit",
+   "call": "ttest_1samp",
+   "args": {
+    "popmean": 0.0,
+    "alternative": "two-sided",
+    "nan_policy": "omit"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [],
+   "statistic": 3.286335345030997,
+   "pvalue": 0.046205091353363266,
+   "df": 3.0,
+   "ci_low": null,
+   "ci_high": null
+  },
+  {
+   "name": "one nan in a | 1samp | nan_policy=raise",
+   "call": "ttest_1samp",
+   "raises": true,
+   "args": {
+    "popmean": 0.0,
+    "alternative": "two-sided",
+    "nan_policy": "raise"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": []
+  },
+  {
+   "name": "nan in both | 1samp | nan_policy=propagate",
+   "call": "ttest_1samp",
+   "args": {
+    "popmean": 0.0,
+    "alternative": "two-sided",
+    "nan_policy": "propagate"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0
+   ],
+   "b": [],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "df": "NaN",
+   "ci_low": null,
+   "ci_high": null
+  },
+  {
+   "name": "nan in both | 1samp | nan_policy=omit",
+   "call": "ttest_1samp",
+   "args": {
+    "popmean": 0.0,
+    "alternative": "two-sided",
+    "nan_policy": "omit"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0
+   ],
+   "b": [],
+   "statistic": 2.645751311064591,
+   "pvalue": 0.11808289631180308,
+   "df": 2.0,
+   "ci_low": null,
+   "ci_high": null
+  },
+  {
+   "name": "nan in both | 1samp | nan_policy=raise",
+   "call": "ttest_1samp",
+   "raises": true,
+   "args": {
+    "popmean": 0.0,
+    "alternative": "two-sided",
+    "nan_policy": "raise"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0
+   ],
+   "b": []
   }
  ]
 }

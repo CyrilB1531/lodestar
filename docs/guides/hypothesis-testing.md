@@ -3,6 +3,15 @@
 `Lodestar.Stats` answers one question in ten forms: **is this difference more
 than noise?**
 
+## What happens to a missing value
+
+By default a `NaN` anywhere in a sample reaches the statistic and the p-value, which is scipy's
+`nan_policy='propagate'` and what every test here did before the parameter existed. Pass
+[`NanPolicy.Omit`](../reference/stats/nanpolicy.md) to drop the missing observations instead, or
+`NanPolicy.Raise` to refuse the input. For a paired test, `Omit` drops the **pair** — filtering the
+two samples separately would change what is being tested, which is the mistake the parameter
+exists to prevent.
+
 ## Which test
 
 | you have | and you assume | use |

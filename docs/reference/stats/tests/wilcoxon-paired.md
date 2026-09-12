@@ -5,20 +5,22 @@ Compares two paired samples by the ranks of their differences.
 <!-- docs-declaration -->
 
 ```csharp
-public static TestResult Paired(ReadOnlySpan<double> x, ReadOnlySpan<double> y, ZeroMethod zeroMethod = ZeroMethod.Wilcox, Alternative alternative = Alternative.TwoSided, Continuity continuity = Continuity.None, ExactMethod method = ExactMethod.Auto)
+public static TestResult Paired(ReadOnlySpan<double> x, ReadOnlySpan<double> y, ZeroMethod zeroMethod = ZeroMethod.Wilcox, Alternative alternative = Alternative.TwoSided, Continuity continuity = Continuity.None, ExactMethod method = ExactMethod.Auto, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
 **Parameters** — `x` is the first measurement of each pair. `y` is the second measurement of
 each pair, in the same order as `x`. `zeroMethod` says what to do with pairs whose difference is
 zero. `alternative` says which tail the p-value covers. `continuity` says whether the normal
 approximation gets the half-unit correction. `method` chooses the exact null distribution, the
-exhaustive permutation test, its normal approximation, or a choice between them.
+exhaustive permutation test, its normal approximation, or a choice between them. `nanPolicy` says
+what to do with a `NaN`; scipy's `nan_policy`, defaulting to
+[`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TestResult`: the smaller of the two signed-rank sums, and the p-value.
 
-**Exceptions** — `ArgumentException` when the two samples differ in length, or are empty.
-`ArgumentOutOfRangeException` when `method` is `ExactMethod.Exact` and the ranked sample exceeds
-500 values.
+**Exceptions** — `ArgumentException` when the two samples differ in length, are empty, or
+`nanPolicy` is `NanPolicy.Raise` and either sample holds a `NaN`. `ArgumentOutOfRangeException`
+when `method` is `ExactMethod.Exact` and the ranked sample exceeds 500 values.
 
 **Example** — seven pairs, two of them unchanged: what the three zero methods disagree about.
 
@@ -55,6 +57,9 @@ it divides would silently become exactly zero rather than throwing. `ExactMethod
 reaches that bound on its own — it is unconditionally asymptotic above 50 values, exact only
 below that and free of both ties and zeros, and falls to an exhaustive permutation test at 13
 values or fewer when ties or zeros rule out the plain exact table.
+
+Under [`NanPolicy.Omit`](../nanpolicy.md) the two inputs are filtered **together**: an index is
+kept only when neither side holds a `NaN`, so a pair survives or neither value does.
 
 **Applies to** — net10.0, netstandard2.0.
 

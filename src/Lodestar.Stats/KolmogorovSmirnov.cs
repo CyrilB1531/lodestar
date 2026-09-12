@@ -36,8 +36,12 @@ public static class KolmogorovSmirnov
     /// direction; the one-sided values take the largest gap in one.
     /// </param>
     /// <param name="method">Exact, asymptotic, or chosen by the sample sizes.</param>
+    /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>The distance, the p-value, where the distance was reached and its sign.</returns>
-    /// <exception cref="ArgumentException">Either sample is empty.</exception>
+    /// <exception cref="ArgumentException">
+    /// Either sample is empty. When <paramref name="nanPolicy"/> is
+    /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
+    /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/> and <c>a.Length * b.Length</c>
     /// exceeds 1,000,000; the lattice-path recurrence allocates one row per iteration, an
@@ -47,29 +51,37 @@ public static class KolmogorovSmirnov
         ReadOnlySpan<double> a,
         ReadOnlySpan<double> b,
         Alternative alternative = Alternative.TwoSided,
-        ExactMethod method = ExactMethod.Auto)
+        ExactMethod method = ExactMethod.Auto,
+        NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        if (a.Length == 0)
+        ReadOnlySpan<double> left = nanPolicy == NanPolicy.Propagate
+            ? a
+            : NanFilter.Apply(a, nanPolicy, nameof(a));
+        ReadOnlySpan<double> right = nanPolicy == NanPolicy.Propagate
+            ? b
+            : NanFilter.Apply(b, nanPolicy, nameof(b));
+
+        if (left.Length == 0)
         {
             throw new ArgumentException("The first sample is empty.", nameof(a));
         }
-        if (b.Length == 0)
+        if (right.Length == 0)
         {
             throw new ArgumentException("The second sample is empty.", nameof(b));
         }
 
         // Checked before sorting: sorted[index] == value is false for NaN, which
         // never advances AdvancePast and spins Walk forever otherwise.
-        if (Ranks.HasNaN(a) || Ranks.HasNaN(b))
+        if (Ranks.HasNaN(left) || Ranks.HasNaN(right))
         {
             return new KsResult(double.NaN, double.NaN, double.NaN, 0);
         }
 
-        int n = a.Length;
-        int m = b.Length;
+        int n = left.Length;
+        int m = right.Length;
 
-        double[] sortedA = a.ToArray();
-        double[] sortedB = b.ToArray();
+        double[] sortedA = left.ToArray();
+        double[] sortedB = right.ToArray();
         Array.Sort(sortedA);
         Array.Sort(sortedB);
 

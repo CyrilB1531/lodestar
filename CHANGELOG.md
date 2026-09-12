@@ -89,6 +89,11 @@ is one sentence, the issue and the commit; see
   [Decision 0114](docs/decisions/0114-the-serial-correlation-diagnostics-stay-in-lodestar-stats.md)
   kept the three inside this package rather than a new one.
   ([#617](https://github.com/CyrilB1531/lodestar/issues/617))
+- **`NanPolicy`, on the eleven test entry points whose scipy counterpart takes `nan_policy`.**
+  `Propagate` stays the default, so no existing call changes; `Omit` drops pairs where the inputs
+  are aligned and values where they are not; decision 0117 has the rule and the five entry points
+  that deliberately do not take it.
+  ([#687](https://github.com/CyrilB1531/lodestar/issues/687))
 
 ### Lodestar.Stats.Regression
 

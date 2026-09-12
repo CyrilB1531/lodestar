@@ -8,43 +8,66 @@ public static class ChiSquare
     /// <summary>Tests observed counts against an expected distribution.</summary>
     /// <param name="observed">The observed counts; at least two categories.</param>
     /// <param name="expected">
-    /// The expected counts, which must sum to the observed total. Omit them for
-    /// a uniform expectation, which is what <c>scipy.stats.chisquare</c> does
-    /// with <c>f_exp=None</c>.
+    /// The expected counts, which must sum to the observed total; omit them for a uniform
+    /// expectation, matching <c>scipy.stats.chisquare</c> with <c>f_exp=None</c>.
     /// </param>
+    /// <param name="nanPolicy">What to do with a <c>NaN</c>; scipy's <c>nan_policy</c>.</param>
     /// <returns>The statistic and the upper-tail p-value.</returns>
     /// <exception cref="ArgumentException">
-    /// Fewer than two categories, mismatched lengths, a non-positive expectation,
-    /// or expectations that do not sum to the observations.
+    /// Fewer than two categories, mismatched lengths, a non-positive expectation, or
+    /// expectations that do not sum to the observations. An explicit <paramref
+    /// name="expected"/> is filtered together with <paramref name="observed"/>, so omission
+    /// usually raises here -- it drops matched pairs and so breaks the sum-agreement check
+    /// by construction (decision 0117). When <paramref name="nanPolicy"/> is
+    /// <see cref="NanPolicy.Raise"/> and either span holds a <c>NaN</c>.
     /// </exception>
     public static TestResult GoodnessOfFit(
-        ReadOnlySpan<double> observed, ReadOnlySpan<double> expected = default)
+        ReadOnlySpan<double> observed,
+        ReadOnlySpan<double> expected = default,
+        NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        if (observed.Length < 2)
+        ReadOnlySpan<double> counts = observed;
+        ReadOnlySpan<double> expectation = expected;
+        if (nanPolicy != NanPolicy.Propagate)
+        {
+            if (expected.IsEmpty)
+            {
+                counts = NanFilter.Apply(observed, nanPolicy, nameof(observed));
+            }
+            else
+            {
+                (double[] o, double[] e) = NanFilter.ApplyAligned(
+                    observed, expected, nanPolicy, nameof(observed), nameof(expected));
+                counts = o;
+                expectation = e;
+            }
+        }
+
+        if (counts.Length < 2)
         {
             throw new ArgumentException(
-                $"A goodness-of-fit test needs at least two categories; got {observed.Length}.",
+                $"A goodness-of-fit test needs at least two categories; got {counts.Length}.",
                 nameof(observed));
         }
 
         double observedTotal = 0.0;
-        for (int i = 0; i < observed.Length; i++)
+        for (int i = 0; i < counts.Length; i++)
         {
-            observedTotal += observed[i];
+            observedTotal += counts[i];
         }
 
-        double[] target = expected.IsEmpty
-            ? UniformExpectation(observed.Length, observedTotal)
-            : ExplicitExpectation(observed.Length, expected, observedTotal);
+        double[] target = expectation.IsEmpty
+            ? UniformExpectation(counts.Length, observedTotal)
+            : ExplicitExpectation(counts.Length, expectation, observedTotal);
 
         double statistic = 0.0;
-        for (int i = 0; i < observed.Length; i++)
+        for (int i = 0; i < counts.Length; i++)
         {
-            double deviation = observed[i] - target[i];
+            double deviation = counts[i] - target[i];
             statistic += deviation * deviation / target[i];
         }
 
-        int dof = observed.Length - 1;
+        int dof = counts.Length - 1;
 
         // statistic is already NaN here for a NaN or an infinite observation (inf - inf,
         // then inf / inf, above); Gamma.RegularizedQ's Validate would otherwise throw on it.

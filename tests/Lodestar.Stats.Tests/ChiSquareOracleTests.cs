@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json;
 using Lodestar.Stats.Tests.Oracles;
 using Xunit;
@@ -15,6 +16,11 @@ public sealed class ChiSquareOracleTests
 
         foreach (JsonElement c in document.RootElement.GetProperty("cases").EnumerateArray())
         {
+            if (StatsCorpus.HasNanPolicy(c.GetProperty("args")))
+            {
+                continue;
+            }
+
             string name = c.GetProperty("name").GetString()!;
             double expectedStatistic = c.GetProperty("statistic").GetDouble();
             double expectedP = c.GetProperty("pvalue").GetDouble();
@@ -31,8 +37,49 @@ public sealed class ChiSquareOracleTests
             replayed++;
         }
 
-        Assert.Equal(document.RootElement.GetProperty("metadata").GetProperty("count").GetInt32(),
-                     replayed);
+        // Every case without a nan_policy was replayed; those are covered by
+        // Every_nan_policy_case_matches_scipy instead.
+        int expected = document.RootElement.GetProperty("cases").EnumerateArray()
+            .Count(c => !StatsCorpus.HasNanPolicy(c.GetProperty("args")));
+        Assert.Equal(expected, replayed);
+    }
+
+    [Fact]
+    public void Every_nan_policy_case_matches_scipy()
+    {
+        using JsonDocument document = StatsCorpus.Load("stats_chisquare.json");
+        int replayed = 0;
+
+        foreach (JsonElement c in document.RootElement.GetProperty("cases").EnumerateArray())
+        {
+            JsonElement args = c.GetProperty("args");
+            if (!StatsCorpus.HasNanPolicy(args))
+            {
+                continue;
+            }
+
+            string name = c.GetProperty("name").GetString()!;
+            NanPolicy policy = StatsCorpus.NanPolicy(args);
+            double[] observed = StatsCorpus.Doubles(c.GetProperty("observed"));
+            double[] expectedInput = StatsCorpus.Doubles(c.GetProperty("expected_input"));
+
+            if (c.TryGetProperty("raises", out JsonElement r) && r.GetBoolean())
+            {
+                Assert.Throws<ArgumentException>(
+                    () => ChiSquare.GoodnessOfFit(observed, expectedInput, policy));
+                replayed++;
+                continue;
+            }
+
+            TestResult actual = ChiSquare.GoodnessOfFit(observed, expectedInput, policy);
+            double statistic = StatsCorpus.Number(c.GetProperty("statistic"));
+            double pValue = StatsCorpus.Number(c.GetProperty("pvalue"));
+            StatsOracleAsserts.Statistic(statistic, actual.Statistic, name);
+            StatsOracleAsserts.PValue(pValue, actual.PValue, name);
+            replayed++;
+        }
+
+        Assert.True(replayed >= 3, $"only {replayed} nan_policy cases replayed");
     }
 
     private static void AssertGoodnessOfFit(

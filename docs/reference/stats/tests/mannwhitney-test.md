@@ -5,19 +5,21 @@ Compares two independent samples by their ranks.
 <!-- docs-declaration -->
 
 ```csharp
-public static TestResult Test(ReadOnlySpan<double> x, ReadOnlySpan<double> y, Alternative alternative = Alternative.TwoSided, Continuity continuity = Continuity.Applied, ExactMethod method = ExactMethod.Auto)
+public static TestResult Test(ReadOnlySpan<double> x, ReadOnlySpan<double> y, Alternative alternative = Alternative.TwoSided, Continuity continuity = Continuity.Applied, ExactMethod method = ExactMethod.Auto, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
 **Parameters** — `x` and `y` are the two samples, each at least one value; both spans are read,
 never modified. `alternative` says which tail the p-value covers. `continuity` says whether the
 normal approximation gets the half-unit correction; it is ignored on the exact branch, where
 there is nothing to approximate. `method` chooses the exact null distribution, its normal
-approximation, or a choice between them by sample size and ties.
+approximation, or a choice between them by sample size and ties. `nanPolicy` says what to do with
+a `NaN`; scipy's `nan_policy`, defaulting to [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TestResult`: *U* for `x`, and the p-value.
 
-**Exceptions** — `ArgumentException` when either sample is empty. `ArgumentOutOfRangeException`
-when `method` is `ExactMethod.Exact` and `x.Length * y.Length` exceeds 20,000.
+**Exceptions** — `ArgumentException` when either sample is empty, or `nanPolicy` is
+`NanPolicy.Raise` and either sample holds a `NaN`. `ArgumentOutOfRangeException` when `method`
+is `ExactMethod.Exact` and `x.Length * y.Length` exceeds 20,000.
 
 **Example** — a control group and a treated group, one value tied across them.
 
@@ -41,9 +43,9 @@ not the same number: on this data it gives `0.004329` rather than `0.006392`, be
 computes an exact p-value on tied data too instead of refusing, and this package matches that
 rather than raising on a case scipy accepts.
 
-**A NaN propagates.** There is no `nan_policy` here: a NaN anywhere in either sample makes the
-statistic and the p-value `NaN`, checked before `Ranks.Average` ever runs — unguarded, `Array.Sort`
-sorts a NaN to the front and it would take a finite rank like any other value.
+**Under `NanPolicy.Propagate`, a NaN reaches the statistic and the p-value.** The check runs
+before `Ranks.Average` ever does — unguarded, `Array.Sort` sorts a NaN to the front and it would
+take a finite rank like any other value.
 
 **The exact route has a size bound `Auto` cannot cross.** `x.Length * y.Length` above 20,000 costs
 tens of seconds to enumerate — the table is `(m + 1) × (n·m + 1)` and grows with the square of

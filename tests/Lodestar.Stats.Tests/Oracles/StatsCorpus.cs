@@ -65,4 +65,28 @@ internal static class StatsCorpus
             "asymptotic" or "asymp" => ExactMethod.Asymptotic,
             var other => throw new InvalidDataException($"Unknown method '{other}'."),
         };
+
+    /// <summary>Whether a case carries a <c>nan_policy</c> at all.</summary>
+    /// <remarks>
+    /// Here rather than in each replay, alongside <see cref="Alternative"/>: seven of the
+    /// ten families spell this same presence check twice each -- once to skip a nan-policy
+    /// case in the plain replay, once to count how many the nan-policy replay should cover --
+    /// and a check spelled fourteen times is one that drifts thirteen ways.
+    /// </remarks>
+    internal static bool HasNanPolicy(JsonElement args) => args.TryGetProperty("nan_policy", out _);
+
+    /// <summary>The <c>nan_policy</c> a case was generated with.</summary>
+    /// <remarks>
+    /// Here rather than in each replay, for the same reason as <see cref="Alternative"/>: seven
+    /// of the ten families read the same three spellings, and a switch written seven times is a
+    /// switch that drifts six ways.
+    /// </remarks>
+    internal static NanPolicy NanPolicy(JsonElement args) =>
+        args.GetProperty("nan_policy").GetString() switch
+        {
+            "propagate" => Lodestar.Stats.NanPolicy.Propagate,
+            "raise" => Lodestar.Stats.NanPolicy.Raise,
+            "omit" => Lodestar.Stats.NanPolicy.Omit,
+            var other => throw new InvalidDataException($"Unknown nan_policy '{other}'."),
+        };
 }

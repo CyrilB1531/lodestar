@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "mannwhitney",
-  "count": 57
+  "count": 63
  },
  "cases": [
   {
@@ -2345,6 +2345,139 @@
    ],
    "statistic": 7.0,
    "pvalue": 0.9730269730269729
+  },
+  {
+   "name": "one nan in a | nan_policy=propagate",
+   "call": "mannwhitneyu",
+   "args": {
+    "nan_policy": "propagate"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    7.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN"
+  },
+  {
+   "name": "one nan in a | nan_policy=omit",
+   "call": "mannwhitneyu",
+   "args": {
+    "nan_policy": "omit"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    7.0
+   ],
+   "statistic": 6.5,
+   "pvalue": 0.4567504024231692
+  },
+  {
+   "name": "one nan in a | nan_policy=raise",
+   "call": "mannwhitneyu",
+   "raises": true,
+   "args": {
+    "nan_policy": "raise"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "b": [
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    7.0
+   ]
+  },
+  {
+   "name": "nan in both | nan_policy=propagate",
+   "call": "mannwhitneyu",
+   "args": {
+    "nan_policy": "propagate"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0
+   ],
+   "b": [
+    2.0,
+    "NaN",
+    3.0,
+    5.0,
+    9.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN"
+  },
+  {
+   "name": "nan in both | nan_policy=omit",
+   "call": "mannwhitneyu",
+   "args": {
+    "nan_policy": "omit"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0
+   ],
+   "b": [
+    2.0,
+    "NaN",
+    3.0,
+    5.0,
+    9.0
+   ],
+   "statistic": 2.5,
+   "pvalue": 0.2845026979112075
+  },
+  {
+   "name": "nan in both | nan_policy=raise",
+   "call": "mannwhitneyu",
+   "raises": true,
+   "args": {
+    "nan_policy": "raise"
+   },
+   "a": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0
+   ],
+   "b": [
+    2.0,
+    "NaN",
+    3.0,
+    5.0,
+    9.0
+   ]
   }
  ]
 }

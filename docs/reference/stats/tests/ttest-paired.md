@@ -5,17 +5,21 @@ The paired *t*-test: a one-sample test on the differences.
 <!-- docs-declaration -->
 
 ```csharp
-public static TTestResult Paired(ReadOnlySpan<double> a, ReadOnlySpan<double> b, Alternative alternative = Alternative.TwoSided)
+public static TTestResult Paired(ReadOnlySpan<double> a, ReadOnlySpan<double> b, Alternative alternative = Alternative.TwoSided, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
 **Parameters** — `a` is the first measurement of each pair. `b` is the second measurement of each
-pair, in the same order as `a`. `alternative` says which tail the p-value covers.
+pair, in the same order as `a`. `alternative` says which tail the p-value covers. `nanPolicy` says
+what to do with a `NaN`; scipy's `nan_policy`, defaulting to
+[`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TTestResult`: the t statistic of the differences `a[i] - b[i]`, its p-value, and
-the degrees of freedom, `a.Length - 1`.
+the degrees of freedom — one less than the number of pairs actually tested. That is
+`a.Length - 1` under the default [`NanPolicy.Propagate`](../nanpolicy.md), and one less than the
+aligned-filtered pair count under [`NanPolicy.Omit`](../nanpolicy.md).
 
-**Exceptions** — `ArgumentException` when the two samples differ in length, or hold fewer than
-two pairs.
+**Exceptions** — `ArgumentException` when the two samples differ in length, hold fewer than
+two pairs, or `nanPolicy` is `NanPolicy.Raise` and either sample holds a `NaN`.
 
 **Example** — the same seven machines, measured before and after a configuration change.
 
@@ -40,6 +44,9 @@ carry their own variance, and a paired test has one sample of differences.
 **Order matters, sign included.** `Paired(a, b)` and `Paired(b, a)` report the same magnitude and
 the opposite sign, so a one-sided `alternative` answers a different question depending on which
 argument is `a`.
+
+Under [`NanPolicy.Omit`](../nanpolicy.md) the two inputs are filtered **together**: an index is
+kept only when neither side holds a `NaN`, so a pair survives or neither value does.
 
 **Applies to** — net10.0, netstandard2.0.
 

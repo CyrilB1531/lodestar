@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "shapiro",
-  "count": 5
+  "count": 8
  },
  "cases": [
   {
@@ -337,6 +337,59 @@
    ],
    "statistic": 0.8336352936870549,
    "pvalue": 0.037006971705384764
+  },
+  {
+   "name": "one nan | nan_policy=propagate",
+   "call": "shapiro",
+   "args": {
+    "nan_policy": "propagate"
+   },
+   "x": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0,
+    6.0,
+    7.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN"
+  },
+  {
+   "name": "one nan | nan_policy=omit",
+   "call": "shapiro",
+   "args": {
+    "nan_policy": "omit"
+   },
+   "x": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0,
+    6.0,
+    7.0
+   ],
+   "statistic": 0.957542206241578,
+   "pvalue": 0.8006123831577923
+  },
+  {
+   "name": "one nan | nan_policy=raise",
+   "call": "shapiro",
+   "raises": true,
+   "args": {
+    "nan_policy": "raise"
+   },
+   "x": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0,
+    6.0,
+    7.0
+   ]
   }
  ]
 }

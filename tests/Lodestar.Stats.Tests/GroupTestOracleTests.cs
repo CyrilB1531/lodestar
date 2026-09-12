@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json;
 using Lodestar.Stats.Tests.Oracles;
 using Xunit;
@@ -17,6 +18,11 @@ public sealed class GroupTestOracleTests
 
         foreach (JsonElement c in document.RootElement.GetProperty("cases").EnumerateArray())
         {
+            if (StatsCorpus.HasNanPolicy(c.GetProperty("args")))
+            {
+                continue;
+            }
+
             string name = $"{fileName}: {c.GetProperty("name").GetString()}";
             double[][] groups = StatsCorpus.Table(c.GetProperty("groups"));
 
@@ -30,7 +36,53 @@ public sealed class GroupTestOracleTests
             replayed++;
         }
 
-        Assert.Equal(document.RootElement.GetProperty("metadata").GetProperty("count").GetInt32(),
-                     replayed);
+        // Every case without a nan_policy was replayed; those cases are covered
+        // by Every_nan_policy_case_matches_scipy instead.
+        int expected = document.RootElement.GetProperty("cases").EnumerateArray()
+            .Count(c => !StatsCorpus.HasNanPolicy(c.GetProperty("args")));
+        Assert.Equal(expected, replayed);
+    }
+
+    [Theory]
+    [InlineData("stats_anova.json")]
+    [InlineData("stats_kruskal.json")]
+    public void Every_nan_policy_case_matches_scipy(string fileName)
+    {
+        using JsonDocument document = StatsCorpus.Load(fileName);
+        int replayed = 0;
+
+        foreach (JsonElement c in document.RootElement.GetProperty("cases").EnumerateArray())
+        {
+            JsonElement args = c.GetProperty("args");
+            if (!StatsCorpus.HasNanPolicy(args))
+            {
+                continue;
+            }
+
+            string name = $"{fileName}: {c.GetProperty("name").GetString()}";
+            NanPolicy policy = StatsCorpus.NanPolicy(args);
+            double[][] groups = StatsCorpus.Table(c.GetProperty("groups"));
+            bool isAnova = c.GetProperty("call").GetString() == "f_oneway";
+
+            if (c.TryGetProperty("raises", out JsonElement r) && r.GetBoolean())
+            {
+                Assert.Throws<ArgumentException>(() => isAnova
+                    ? OneWayAnova.Test(policy, groups)
+                    : KruskalWallis.Test(policy, groups));
+                replayed++;
+                continue;
+            }
+
+            TestResult actual = isAnova
+                ? OneWayAnova.Test(policy, groups)
+                : KruskalWallis.Test(policy, groups);
+            double statistic = StatsCorpus.Number(c.GetProperty("statistic"));
+            double pValue = StatsCorpus.Number(c.GetProperty("pvalue"));
+            StatsOracleAsserts.Statistic(statistic, actual.Statistic, name);
+            StatsOracleAsserts.PValue(pValue, actual.PValue, name);
+            replayed++;
+        }
+
+        Assert.True(replayed >= 3, $"only {replayed} nan_policy cases replayed in {fileName}");
     }
 }

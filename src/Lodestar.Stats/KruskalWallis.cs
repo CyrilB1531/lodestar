@@ -33,8 +33,8 @@ public static class KruskalWallis
         int total = ValidatedTotal(groups);
         double[] pooled = Pool(groups, total);
 
-        // The spec's rule: no nan_policy parameter exists, so a NaN anywhere
-        // propagates rather than taking a false finite rank (Ranks.HasNaN's remark).
+        // Under the default NanPolicy.Propagate a NaN anywhere propagates rather
+        // than taking a false finite rank (Ranks.HasNaN's remark).
         if (Ranks.HasNaN(pooled))
         {
             return new TestResult(double.NaN, double.NaN);
@@ -61,6 +61,27 @@ public static class KruskalWallis
         double dof = groups.Length - 1;
 
         return new TestResult(h, Gamma.RegularizedQ(dof / 2.0, h / 2.0));
+    }
+
+    /// <summary>The same test, with a policy for the <c>NaN</c> values in the groups.</summary>
+    /// <param name="nanPolicy">What to do with a <c>NaN</c>; scipy's <c>nan_policy</c>.</param>
+    /// <param name="groups">Two or more groups of observations.</param>
+    /// <returns>The H statistic and its p-value.</returns>
+    /// <exception cref="ArgumentException">
+    /// When <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and a group holds a
+    /// <c>NaN</c>, or when the filtered groups fail this test's own requirements — a pooled
+    /// sample left fully tied by omission is still refused (decision 0117).
+    /// </exception>
+    /// <remarks>
+    /// The policy comes first because the groups are a <c>params</c> array and C# allows no
+    /// parameter after one — the shape <c>string.Join</c> uses, for the same reason.
+    /// </remarks>
+    public static TestResult Test(NanPolicy nanPolicy, params double[][] groups)
+    {
+        Guard.NotNull(groups);
+        return nanPolicy == NanPolicy.Propagate
+            ? Test(groups)
+            : Test(NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups)));
     }
 
     private static int ValidatedTotal(double[][] groups)

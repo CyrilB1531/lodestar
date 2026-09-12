@@ -5,7 +5,7 @@ Compares a sample of differences against a median of zero.
 <!-- docs-declaration -->
 
 ```csharp
-public static TestResult OneSample(ReadOnlySpan<double> differences, ZeroMethod zeroMethod = ZeroMethod.Wilcox, Alternative alternative = Alternative.TwoSided, Continuity continuity = Continuity.None, ExactMethod method = ExactMethod.Auto)
+public static TestResult OneSample(ReadOnlySpan<double> differences, ZeroMethod zeroMethod = ZeroMethod.Wilcox, Alternative alternative = Alternative.TwoSided, Continuity continuity = Continuity.None, ExactMethod method = ExactMethod.Auto, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
 **Parameters** — `differences` is the sample, at least one value; the span is read, never
@@ -13,11 +13,14 @@ modified. `zeroMethod` says what to do with differences that are exactly zero. `
 which tail the p-value covers. `continuity` says whether the normal approximation gets the
 half-unit correction. `method` chooses the exact null distribution, the exhaustive permutation
 test, its normal approximation, or a choice between them by the number of non-zero differences.
+`nanPolicy` says what to do with a `NaN`; scipy's `nan_policy`, defaulting to
+[`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TestResult`: the smaller of the two signed-rank sums, and the p-value.
 
-**Exceptions** — `ArgumentException` when `differences` is empty. `ArgumentOutOfRangeException`
-when `method` is `ExactMethod.Exact` and the zero-method-processed sample exceeds 500 values.
+**Exceptions** — `ArgumentException` when `differences` is empty, or `nanPolicy` is
+`NanPolicy.Raise` and the sample holds a `NaN`. `ArgumentOutOfRangeException` when `method` is
+`ExactMethod.Exact` and the zero-method-processed sample exceeds 500 values.
 
 **Example** — seven differences, two of them exactly zero.
 
@@ -37,10 +40,9 @@ double p = result.PValue;      // => 0.0625
 either way, and this returns a statistic of `0.0` and a p-value of `1.0` rather than throwing;
 scipy answers the same way on the same input.
 
-**A NaN propagates.** There is no `nan_policy` here: a NaN anywhere in `differences` makes the
-statistic and the p-value `NaN`, checked before ranking — a NaN difference is neither greater
-than, less than nor equal to zero, so unguarded it would fall into the zero group along with
-every genuine tie at zero.
+**Under `NanPolicy.Propagate`, a NaN reaches the statistic and the p-value.** The check runs
+before ranking — a NaN difference is neither greater than, less than nor equal to zero, so
+unguarded it would fall into the zero group along with every genuine tie at zero.
 
 **The exact route has a size bound this package added.** scipy's own signed-rank table is exact
 for any `n`, but its total, `2^n`, overflows a `double` to `+Infinity` past `n = 1023`, and every

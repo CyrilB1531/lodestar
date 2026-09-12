@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "wilcoxon",
-  "count": 108
+  "count": 114
  },
  "cases": [
   {
@@ -4757,6 +4757,142 @@
    ],
    "statistic": 120.0,
    "pvalue": 0.9908466703951904
+  },
+  {
+   "name": "listwise differs from per-sample | paired | nan_policy=propagate",
+   "call": "wilcoxon",
+   "args": {
+    "nan_policy": "propagate"
+   },
+   "x": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "y": [
+    2.0,
+    "NaN",
+    3.0,
+    5.0,
+    7.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN"
+  },
+  {
+   "name": "listwise differs from per-sample | paired | nan_policy=omit",
+   "call": "wilcoxon",
+   "args": {
+    "nan_policy": "omit"
+   },
+   "x": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "y": [
+    2.0,
+    "NaN",
+    3.0,
+    5.0,
+    7.0
+   ],
+   "statistic": 0.0,
+   "pvalue": 0.25
+  },
+  {
+   "name": "listwise differs from per-sample | paired | nan_policy=raise",
+   "call": "wilcoxon",
+   "raises": true,
+   "args": {
+    "nan_policy": "raise"
+   },
+   "x": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "y": [
+    2.0,
+    "NaN",
+    3.0,
+    5.0,
+    7.0
+   ]
+  },
+  {
+   "name": "one nan, same index | paired | nan_policy=propagate",
+   "call": "wilcoxon",
+   "args": {
+    "nan_policy": "propagate"
+   },
+   "x": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "y": [
+    2.0,
+    3.0,
+    "NaN",
+    5.0,
+    7.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN"
+  },
+  {
+   "name": "one nan, same index | paired | nan_policy=omit",
+   "call": "wilcoxon",
+   "args": {
+    "nan_policy": "omit"
+   },
+   "x": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "y": [
+    2.0,
+    3.0,
+    "NaN",
+    5.0,
+    7.0
+   ],
+   "statistic": 0.0,
+   "pvalue": 0.125
+  },
+  {
+   "name": "one nan, same index | paired | nan_policy=raise",
+   "call": "wilcoxon",
+   "raises": true,
+   "args": {
+    "nan_policy": "raise"
+   },
+   "x": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "y": [
+    2.0,
+    3.0,
+    "NaN",
+    5.0,
+    7.0
+   ]
   }
  ]
 }

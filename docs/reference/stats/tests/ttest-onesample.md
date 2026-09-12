@@ -5,18 +5,22 @@ The one-sample *t*-test against a stated population mean.
 <!-- docs-declaration -->
 
 ```csharp
-public static TTestResult OneSample(ReadOnlySpan<double> sample, double populationMean, Alternative alternative = Alternative.TwoSided)
+public static TTestResult OneSample(ReadOnlySpan<double> sample, double populationMean, Alternative alternative = Alternative.TwoSided, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
 **Parameters** — `sample` is the data, at least two values; the span is read, never modified.
 `populationMean` is the mean the null hypothesis states. `alternative` says which tail the
-p-value covers.
+p-value covers. `nanPolicy` says what to do with a `NaN`; scipy's `nan_policy`, defaulting to
+[`NanPolicy.Propagate`](../nanpolicy.md).
 
-**Returns** — `TTestResult`: the t statistic, the p-value, and the degrees of freedom,
-`sample.Length - 1`.
+**Returns** — `TTestResult`: the t statistic, the p-value, and the degrees of freedom — one less
+than the count of values actually tested. That is `sample.Length - 1` under the default
+[`NanPolicy.Propagate`](../nanpolicy.md), and one less than the filtered length under
+[`NanPolicy.Omit`](../nanpolicy.md).
 
-**Exceptions** — `ArgumentException` when `sample` holds fewer than two values.
-`ArgumentOutOfRangeException` when `populationMean` is `NaN` or infinite.
+**Exceptions** — `ArgumentException` when `sample` holds fewer than two values, or `nanPolicy`
+is `NanPolicy.Raise` and the sample holds a `NaN`. `ArgumentOutOfRangeException` when
+`populationMean` is `NaN` or infinite.
 
 **Example** — a sample tested against a stated mean of `10.0`.
 
