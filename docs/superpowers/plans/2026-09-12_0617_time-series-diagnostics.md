@@ -1329,7 +1329,7 @@ git commit -m "Replay the serial-correlation corpus, and assert what it cannot s
 
 **Files:**
 
-- Create: `docs/decisions/<next free number>-<slug decided by the verdict>.md`
+- Create: `docs/decisions/0113-<slug decided by the verdict>.md`
 - Modify: `docs/decisions/index.yaml` (generated, not hand-edited)
 - Modify: `docs/decisions/README.md` (one relationship row, and the two spelled-out counts)
 
@@ -1357,16 +1357,19 @@ Answer each in a sentence, with the measurement behind it:
 
 - [ ] **Step 3: Write the record**
 
-**Take the next free number at the moment you write it, and do not trust this plan for it.**
-Records land on `main` from other branches while this one is open, so:
+**This record is `0113`.** `main` stops at `0111` today, but `0112` is reserved for a record
+landing from another branch, so do not take "the next free number" literally here.
+
+Check the reservation still holds before you write:
 
 ```bash
 git fetch origin && git rebase origin/main
 ls docs/decisions/ | grep -E '^[0-9]{4}' | tail -3
 ```
 
-The highest number that comes back plus one is yours. `tools/check_adr_immutable.py --base origin/main`
-proves you renumbered rather than overwrote if you had to shift. Title states the verdict, not the question, in this repository's house style ("Ordinary least squares earns its own package"). Frontmatter carries `status`, `supersedes`, `amends`, `applies`; `applies: ["0076", "0111"]` at minimum, since this reuses 0111's method.
+If `0112` has arrived, `0113` is yours as planned. If `0113` has *also* arrived, take the next one
+above it and say so in your report. `tools/check_adr_immutable.py --base origin/main` proves you
+renumbered rather than overwrote. Title states the verdict, not the question, in this repository's house style ("Ordinary least squares earns its own package"). Frontmatter carries `status`, `supersedes`, `amends`, `applies`; `applies: ["0076", "0111"]` at minimum, since this reuses 0111's method.
 
 Sections: Context (what #617 asked, what 0105 decided, what 0111's method is), The measurement (the numbers), Decision (in bold, with the package named if it splits), Consequences.
 
