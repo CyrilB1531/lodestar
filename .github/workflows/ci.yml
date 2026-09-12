@@ -99,6 +99,12 @@ jobs:
         run: python tools/check_readme_pack_loop.py
       - name: CLAUDE.md's package table matches src/
         run: python tools/check_claude_md_packages.py
+      # Three hand-written texts understated the repository by seven packages, each true
+      # when written and each sitting next to a list something already gated: the README's
+      # Publishing prose beside its checked pack loop, its Structure tree, and CLAUDE.md's
+      # quick-commands loop beside the table above (#688).
+      - name: README prose and CLAUDE.md's pack loop name every package
+        run: python tools/check_readme_packages.py
       # Lodestar.Fuzzy carried two commits merged on 2026-09-01 and never published, and
       # nothing said so for ten days (#628). This reads the tags and main, which cannot
       # drift, against what src/<Package>/Version.props declares. Unpublished work is the
