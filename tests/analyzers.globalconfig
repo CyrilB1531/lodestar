@@ -1,0 +1,13 @@
+is_global = true
+
+# Hand-maintained, unlike the generated .globalconfig at the repository root. That one
+# is the SonarCloud profile's rules; this one raises an analyzer diagnostic that ships
+# below warning and therefore never reaches TreatWarningsAsErrors.
+#
+# xUnit2033 is Info in xunit.analyzers, so the build never mentions it and the quality
+# gate -- which is on new code -- does not fail on an imported INFO code smell either.
+# Ten of them reached main that way (#690). Raised here rather than in the root file
+# because it is a test-only rule and because tools/generate_sonar_globalconfig.py
+# rewrites that file wholesale. See docs/decisions/0112.
+
+dotnet_diagnostic.xUnit2033.severity = warning

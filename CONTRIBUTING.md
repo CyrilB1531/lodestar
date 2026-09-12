@@ -578,6 +578,16 @@ full command, including where it reads the SARIF error log from. `dotnet build` 
 compiled file for a file with exactly that name, so nothing declares it, and
 nothing should.
 
+A third case reaches neither mechanism: an analyzer diagnostic that ships **below
+warning**. `TreatWarningsAsErrors` acts on warnings, so an `Info` rule is invisible
+to the build, and SonarCloud imports it as an INFO code smell that does not move the
+new-code gate either. Ten `xUnit2033` findings reached `main` that way (issue #690).
+Those are raised in **`tests/analyzers.globalconfig`**, which is hand-written, named
+explicitly in `tests/Directory.Build.props`, and cannot take the root file's name
+because that one is generated. One rule is raised per measured escape rather than the
+whole `Info` category — [`decisions/0112`](docs/decisions/0112-an-analyzer-rule-below-warning-is-raised-where-it-has-escaped.md)
+has the options that lost.
+
 CI's `Lint` job runs the same generator with `--check` on every pull request,
 comparing against the committed file without writing it. A red **`Sonar
 globalconfig is current`** step means the SonarCloud profile has moved since the

@@ -77,8 +77,8 @@ public sealed class OlsEdgeTests
         OlsSummary summary = OrdinaryLeastSquares.Fit(
             Design, Response, 1, new OlsOptions { WithIntercept = false });
 
-        Assert.Single(summary.VarianceInflationFactors);
-        Assert.True(double.IsNaN(summary.VarianceInflationFactors[0]));
+        double inflation = Assert.Single(summary.VarianceInflationFactors);
+        Assert.True(double.IsNaN(inflation));
         Assert.False(double.IsNaN(summary.Coefficients[0]));
     }
 
