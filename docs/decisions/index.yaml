@@ -91,7 +91,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0115"]
 
 "0009":
   title: "The sample restores from a local feed, not nuget.org"
@@ -1149,6 +1149,16 @@
   supersedes: []
   amends: []
   applies: ["0076", "0096", "0105", "0111"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0115":
+  title: "`nan_policy` is offered where scipy offers it, and omission is a filter"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0008"]
   superseded_by: []
   amended_by: []
   applied_by: []
