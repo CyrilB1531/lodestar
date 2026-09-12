@@ -25,6 +25,8 @@ public sealed record SurvivalStep(double Time, int AtRisk, int Events, int Censo
 /// default and is not the same as the estimate plus or minus its own standard error — the
 /// reference page has the two numbers side by side.
 /// </remarks>
+// CA1819 (properties should not return arrays): the curves hand back the arrays the fitter produced, and a caller reads them positionally against Steps.
+// Copying them defensively would allocate a second copy of every curve to protect values the type only ever returns.
 #pragma warning disable CA1819
 public sealed record KaplanMeierCurve(
     SurvivalStep[] Steps,
@@ -105,7 +107,13 @@ public sealed record NelsonAalenCurve(SurvivalStep[] Steps, double[] CumulativeH
     /// Both arrays share one index, so the step count stands for both. Equal curves agree on it;
     /// unequal ones are allowed to collide.
     /// </remarks>
-    public override int GetHashCode() => ValueEquality.CountOf(Steps);
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            return (17 * 31) + ValueEquality.CountOf(Steps);
+        }
+    }
 }
 #pragma warning restore CA1819
 

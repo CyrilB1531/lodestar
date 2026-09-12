@@ -27,7 +27,7 @@ The issue reports "None of these overrides `Equals` or `GetHashCode` — verifie
 assumed." That is wrong on five of its eleven rows, and the correction is what shapes this
 decision: **the repository already has a house pattern, applied to six public records.**
 
-Surveyed 2026-09-12 over every `public sealed record` in `src/` — of the thirty, twelve hold at
+Surveyed 2026-09-12 over every `public sealed record` in `src/` — of the thirty-two, twelve hold at
 least one member that compares by reference. `string` is excluded throughout, being a reference
 type with value equality already:
 

@@ -24,7 +24,7 @@ That is worse than no equality at all, because a record's shape advertises value
 
 [#668](https://github.com/CyrilB1531/lodestar/issues/668) opened on this as an open question with
 three options. The survey that answered it found the question already settled in the tree: of the
-thirty public records in `src/`, twelve hold a member that compares by reference, and **six
+thirty-two public records in `src/`, twelve hold a member that compares by reference, and **six
 already write their own equality** — `BpeVocabulary`, `SentencePieceVocabulary`,
 `WordPieceVocabulary`, `SpecialTokenTemplate`, `TokenizationResult` and `CountVectorizerOptions`.
 All six spell it the same way. `TokenizationResult` gives the reason in its own `<remarks>`.
