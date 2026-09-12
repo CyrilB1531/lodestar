@@ -9731,6 +9731,10 @@ def _timeseries_fixtures() -> list[dict]:
          SERIES: [round(v, 10) for v in seasonal], LAG_COUNT: 14},
         {"name": "short series, 12 points", SERIES: [round(v, 10) for v in noise[:12]],
          LAG_COUNT: 5},
+        # LAG_COUNT here is len(x) // 2 exactly, so pacf's min(lags, len(x) // 2) binds --
+        # the seasonal series is the harshest fixture, near-singular at high order (#617 review).
+        {"name": "seasonal period 12, 96 points, at the pacf ceiling",
+         SERIES: [round(v, 10) for v in seasonal], LAG_COUNT: 48},
     ]
 
 
@@ -9751,7 +9755,7 @@ def generate_stats_timeseries() -> dict:
                 for bartlett in (True, False):
                     values, confint = acf(
                         x, nlags=lags, adjusted=adjusted, fft=False,
-                        alpha=alpha, bartlett_confint=bartlett)
+                        alpha=alpha, bartlett_confint=bartlett, result_object=False)
                     cases.append({
                         "name": f"{fx['name']} | acf | {level} | "
                                 f"adjusted={adjusted} | bartlett={bartlett}",
