@@ -24,6 +24,28 @@ is one sentence, the issue and the commit; see
 
 ## [Unreleased]
 
+### Lodestar.Conformal
+
+#### Added
+
+- **`SplitConformal.NormalisedResiduals` and `NormalisedInterval` make the interval width vary with
+  the input**, which is MAPIE's `ResidualNormalisedScore` and the one thing
+  `docs/guides/conformal.md` called *"a real limitation, not a simplification"*. Every interval this
+  package produced had the same width, and on data whose error varies with the input — most data —
+  that is too wide where the model is confident and too narrow where it is not, **while still
+  covering at the rate asked for**, which is what makes a constant width easy to mistake for an
+  adequate one. Reproduced against MAPIE 1.5.0 with both estimators prefit and the bounds agree to
+  **0.0 — not a tolerance, exactly**. Takes `r̂` rather than the model that produced it, the shape
+  every member here has. **One divergence, deliberate**: a zero, negative or `NaN` estimate is
+  refused where MAPIE floors it at `1e-8` — the floor is MAPIE's defence against its own residual
+  model, and here the estimate is the caller's argument, so flooring turns their bug into an
+  interval of width `q · 1e-8` that reads as certainty. That is
+  [decision 0070](docs/decisions/0070-k-greater-than-n-returns-an-infinite-interval.md)'s reasoning
+  with its direction reversed, said out loud in
+  [decision 0118](docs/decisions/0118-a-residual-estimate-is-refused-rather-than-floored.md), which
+  also defers `GammaConformityScore` under decision 0095's rule.
+  ([#683](https://github.com/CyrilB1531/lodestar/issues/683))
+
 ### Lodestar.Text
 
 #### Added
@@ -91,7 +113,7 @@ is one sentence, the issue and the commit; see
   ([#617](https://github.com/CyrilB1531/lodestar/issues/617))
 - **`NanPolicy`, on the eleven test entry points whose scipy counterpart takes `nan_policy`.**
   `Propagate` stays the default, so no existing call changes; `Omit` drops pairs where the inputs
-  are aligned and values where they are not; decision 0117 has the rule and the five entry points
+  are aligned and values where they are not; decision 0118 has the rule and the five entry points
   that deliberately do not take it.
   ([#687](https://github.com/CyrilB1531/lodestar/issues/687))
 

@@ -30,5 +30,7 @@ The whole procedure is three calls:
 | [`SplitConformal.Quantile`](prediction/splitconformal-quantile.md) | The calibrated quantile: the `k`-th smallest score, with `k = ceil((n + 1)(1 − α))`. |
 | [`SplitConformal.AbsoluteResiduals`](prediction/splitconformal-absoluteresiduals.md) | A regressor's calibration scores, `\|y − ŷ\|`. |
 | [`SplitConformal.Interval`](prediction/splitconformal-interval.md) | `[ŷ − q, ŷ + q]` around a point prediction. |
+| [`SplitConformal.NormalisedResiduals`](prediction/splitconformal-normalisedresiduals.md) | A regressor's scores divided by a predicted residual, `\|y − ŷ\| / r̂`. |
+| [`SplitConformal.NormalisedInterval`](prediction/splitconformal-normalisedinterval.md) | `[ŷ − q·r̂, ŷ + q·r̂]`, whose width varies with the input. |
 | [`SplitConformal.LeastAmbiguousScores`](prediction/splitconformal-leastambiguousscores.md) | A classifier's LAC calibration scores, `1 − p̂(true class)`. |
 | [`SplitConformal.PredictionSet`](prediction/splitconformal-predictionset.md) | Every class whose probability clears `1 − q`. Possibly none. |

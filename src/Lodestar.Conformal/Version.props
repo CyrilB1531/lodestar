@@ -9,7 +9,7 @@
     releases on its own schedule rather than matching the others.
   -->
   <PropertyGroup>
-    <LodestarConformalVersion>0.1.0</LodestarConformalVersion>
+    <LodestarConformalVersion>0.2.0</LodestarConformalVersion>
   </PropertyGroup>
 
 </Project>
