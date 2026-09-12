@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "anova",
-  "count": 4
+  "count": 7
  },
  "cases": [
   {
@@ -186,6 +186,92 @@
    ],
    "statistic": 470.8995372815668,
    "pvalue": 2.1513343666115613e-47
+  },
+  {
+   "name": "nan in the first group | nan_policy=propagate",
+   "call": "f_oneway",
+   "args": {
+    "nan_policy": "propagate"
+   },
+   "groups": [
+    [
+     1.0,
+     2.0,
+     "NaN",
+     4.0
+    ],
+    [
+     2.0,
+     3.0,
+     4.0,
+     5.0
+    ],
+    [
+     5.0,
+     6.0,
+     7.0,
+     8.0
+    ]
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN"
+  },
+  {
+   "name": "nan in the first group | nan_policy=omit",
+   "call": "f_oneway",
+   "args": {
+    "nan_policy": "omit"
+   },
+   "groups": [
+    [
+     1.0,
+     2.0,
+     "NaN",
+     4.0
+    ],
+    [
+     2.0,
+     3.0,
+     4.0,
+     5.0
+    ],
+    [
+     5.0,
+     6.0,
+     7.0,
+     8.0
+    ]
+   ],
+   "statistic": 9.140495867768593,
+   "pvalue": 0.00858604082815143
+  },
+  {
+   "name": "nan in the first group | nan_policy=raise",
+   "call": "f_oneway",
+   "raises": true,
+   "args": {
+    "nan_policy": "raise"
+   },
+   "groups": [
+    [
+     1.0,
+     2.0,
+     "NaN",
+     4.0
+    ],
+    [
+     2.0,
+     3.0,
+     4.0,
+     5.0
+    ],
+    [
+     5.0,
+     6.0,
+     7.0,
+     8.0
+    ]
+   ]
   }
  ]
 }

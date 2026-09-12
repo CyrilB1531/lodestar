@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "chisquare",
-  "count": 11
+  "count": 14
  },
  "cases": [
   {
@@ -355,6 +355,53 @@
      15.81081081081081
     ]
    ]
+  },
+  {
+   "name": "one nan, uniform expectation | nan_policy=propagate",
+   "call": "chisquare",
+   "args": {
+    "nan_policy": "propagate"
+   },
+   "observed": [
+    10.0,
+    20.0,
+    "NaN",
+    40.0
+   ],
+   "expected": [],
+   "statistic": "NaN",
+   "pvalue": "NaN"
+  },
+  {
+   "name": "one nan, uniform expectation | nan_policy=omit",
+   "call": "chisquare",
+   "args": {
+    "nan_policy": "omit"
+   },
+   "observed": [
+    10.0,
+    20.0,
+    "NaN",
+    40.0
+   ],
+   "expected": [],
+   "statistic": 20.0,
+   "pvalue": 4.539992976248486e-05
+  },
+  {
+   "name": "one nan, uniform expectation | nan_policy=raise",
+   "call": "chisquare",
+   "raises": true,
+   "args": {
+    "nan_policy": "raise"
+   },
+   "observed": [
+    10.0,
+    20.0,
+    "NaN",
+    40.0
+   ],
+   "expected": []
   }
  ]
 }
