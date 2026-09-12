@@ -208,7 +208,8 @@ public sealed class SerialCorrelationEdgeTests
         Assert.Equal(3, with.BoxPierceStatistics.Count);
         Assert.Equal(3, with.BoxPiercePValues.Count);
 
-        // Ljung-Box weights each squared correlation by n/(n - k), so it is the larger of the two.
+        // Box-Pierce is n*sum(r_k^2), where Ljung-Box is n*(n + 2)*sum(r_k^2)/(n - k) -- the
+        // factor (n + 2)/(n - k) is at least 1 at every lag, so Box-Pierce is the smaller of the two.
         for (int i = 0; i < 3; i++)
         {
             Assert.True(with.Statistics[i] >= with.BoxPierceStatistics[i]);

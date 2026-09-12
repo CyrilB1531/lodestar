@@ -56,8 +56,9 @@ bool noDegreesOfFreedomLeft = double.IsNaN(result.PValues[1]);  // => True
 double pAtLag4 = Math.Round(result.PValues[3], 4);      // => 0.0027
 ```
 
-**Box-Pierce is the same sum without the `n/(n - k)` weight** — smaller, and less powerful in a
-short series — reported alongside Ljung-Box only when
+**Box-Pierce is `n·Σ r_k²`, where Ljung-Box is `n·(n + 2)·Σ r_k²/(n − k)`** — the factor
+`(n + 2)/(n − k)` is at least 1 at every lag, so Box-Pierce is the smaller of the two — reported
+alongside Ljung-Box only when
 [`LjungBoxOptions.BoxPierce`](ljungboxoptions.md) asks for it.
 
 ```csharp

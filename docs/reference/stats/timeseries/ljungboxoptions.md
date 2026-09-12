@@ -34,9 +34,9 @@ double rawP = Math.Round(raw.PValues[3], 4);                    // => 0.019
 double residualP = Math.Round(residuals.PValues[3], 4);         // => 0.0027
 ```
 
-**Remarks** — Box-Pierce is the same sum `Ljung-Box` forms, without the `n/(n - k)` weight — the
-smaller of the two, and the less powerful one on a short series; it is here because the reference
-offers it and a reader comparing an old paper's numbers needs it.
+**Remarks** — Box-Pierce is `n·Σ r_k²`, where Ljung-Box is `n·(n + 2)·Σ r_k²/(n − k)` — the factor
+`(n + 2)/(n − k)` is at least 1 at every lag, so Box-Pierce is the smaller of the two; it is here
+because the reference offers it and a reader comparing an old paper's numbers needs it.
 
 ```csharp
 using Lodestar.Stats.TimeSeries;

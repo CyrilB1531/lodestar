@@ -4,9 +4,11 @@ namespace Lodestar.Stats.TimeSeries.Internal;
 /// autocorrelations.</summary>
 /// <remarks>
 /// The reference solves a separate Yule-Walker system per order and keeps each solution's last
-/// coefficient, which is quartic in the order. This recursion produces the same numbers in
-/// <c>O(order^2)</c>, because solving order <c>k</c> from order <c>k - 1</c> is what it does --
-/// the corpus in task 5 is what proves the two agree rather than this sentence.
+/// coefficient, quartic in the order; this recursion is the same numbers in <c>O(order^2)</c>,
+/// solving order <c>k</c> from order <c>k - 1</c>. Near a series' own ceiling the Toeplitz system
+/// can be singular and <c>error</c> can pass through zero with no guard -- seasonal fixture at
+/// <c>len(x) / 2</c>: error -0.068, one coefficient +3.71. The reference returns numbers there
+/// too rather than refusing, so this does not guard either.
 /// </remarks>
 internal static class LevinsonDurbin
 {
