@@ -56,6 +56,54 @@ public static class SerialCorrelation
         };
     }
 
+    /// <summary>The partial autocorrelation function, with its confidence band.</summary>
+    /// <param name="series">The observations, in time order.</param>
+    /// <param name="lagCount">
+    /// How many lags past zero to report, at most half the series length. The reference defaults
+    /// it to <c>min(10*log10(n), n/2 - 1)</c>; this asks rather than defaulting, for the reason
+    /// <see cref="Autocorrelation"/> gives.
+    /// </param>
+    /// <param name="options">
+    /// Only <see cref="AutocorrelationOptions.ConfidenceLevel"/> is read. <c>Adjusted</c> is fixed
+    /// here — the reference's <c>ywadjusted</c> method is the adjusted estimator by definition —
+    /// and Bartlett's formula does not apply to a partial autocorrelation.
+    /// </param>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="series"/> holds fewer than two points, is constant, or carries a non-finite
+    /// value; or <paramref name="lagCount"/> is below one or above half the series length.
+    /// </exception>
+    public static AutocorrelationResult PartialAutocorrelation(
+        ReadOnlySpan<double> series, int lagCount, AutocorrelationOptions? options = null)
+    {
+        AutocorrelationOptions settings = options ?? new AutocorrelationOptions();
+        RefuseUnusableSeries(series, lagCount, series.Length / 2);
+
+        double[] covariance = Autocovariance.Of(series, lagCount, adjusted: true);
+        double[] values = LevinsonDurbin.ReflectionCoefficients(covariance, lagCount);
+
+        // Quenouille: a partial autocorrelation past the true order is asymptotically N(0, 1/n),
+        // so the band is flat rather than Bartlett's widening one.
+        double half = Distributions.NormalQuantile(
+            1.0 - ((1.0 - settings.ConfidenceLevel) / 2.0)) / Math.Sqrt(series.Length);
+
+        var lower = new double[lagCount + 1];
+        var upper = new double[lagCount + 1];
+        lower[0] = values[0];
+        upper[0] = values[0];
+        for (int lag = 1; lag <= lagCount; lag++)
+        {
+            lower[lag] = values[lag] - half;
+            upper[lag] = values[lag] + half;
+        }
+
+        return new AutocorrelationResult
+        {
+            Values = values,
+            ConfidenceLower = lower,
+            ConfidenceUpper = upper,
+        };
+    }
+
     /// <summary>Bartlett's widening variance, or the flat one.</summary>
     /// <remarks>
     /// Bartlett's is <c>(1 + 2*sum_{j&lt;k} r_j^2) / n</c> past lag one, which is the reference's

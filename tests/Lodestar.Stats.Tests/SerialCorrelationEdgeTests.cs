@@ -124,4 +124,59 @@ public sealed class SerialCorrelationEdgeTests
             previous = width;
         }
     }
+
+    [Fact]
+    public void The_partial_function_reports_lag_zero_as_one()
+    {
+        AutocorrelationResult result =
+            SerialCorrelation.PartialAutocorrelation(Series, lagCount: 4);
+
+        Assert.Equal(1.0, result.Values[0]);
+        Assert.Equal(1.0, result.ConfidenceLower[0]);
+        Assert.Equal(1.0, result.ConfidenceUpper[0]);
+    }
+
+    [Fact]
+    public void The_first_partial_coefficient_equals_the_first_autocorrelation()
+    {
+        // Levinson-Durbin's first reflection coefficient is r1/r0 by construction, and the
+        // adjusted autocorrelation is the same ratio: numerator over n - 1, denominator over n.
+        AutocorrelationResult partial =
+            SerialCorrelation.PartialAutocorrelation(Series, lagCount: 3);
+        AutocorrelationResult adjusted = SerialCorrelation.Autocorrelation(
+            Series, 3, new AutocorrelationOptions { Adjusted = true });
+
+        Assert.Equal(adjusted.Values[1], partial.Values[1], 12);
+    }
+
+    [Fact]
+    public void The_partial_band_is_flat_even_though_the_autocorrelation_band_is_not()
+    {
+        AutocorrelationResult result =
+            SerialCorrelation.PartialAutocorrelation(Series, lagCount: 4);
+
+        double width = result.ConfidenceUpper[1] - result.ConfidenceLower[1];
+        for (int lag = 2; lag <= 4; lag++)
+        {
+            Assert.Equal(width, result.ConfidenceUpper[lag] - result.ConfidenceLower[lag], 12);
+        }
+    }
+
+    [Fact]
+    public void A_partial_lag_count_past_half_the_series_is_refused()
+    {
+        ArgumentException refusal = Assert.Throws<ArgumentException>(
+            () => SerialCorrelation.PartialAutocorrelation(Series, lagCount: 6));
+
+        Assert.Equal("lagCount", refusal.ParamName);
+    }
+
+    [Fact]
+    public void A_partial_lag_count_at_half_the_series_is_allowed()
+    {
+        AutocorrelationResult result =
+            SerialCorrelation.PartialAutocorrelation(Series, lagCount: 5);
+
+        Assert.Equal(6, result.Values.Count);
+    }
 }

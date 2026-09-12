@@ -20,10 +20,8 @@ public sealed record AutocorrelationOptions
     /// reference's. False gives the flat band a correlogram usually draws.
     /// </summary>
     /// <remarks>
-    /// <c>SerialCorrelation.PartialAutocorrelation</c> ignores this: its band is flat at
+    /// <see cref="SerialCorrelation.PartialAutocorrelation"/> ignores this: its band is flat at
     /// <c>1/n</c> whatever it says, because Bartlett's formula is about an autocorrelation.
-    /// Not a <c>cref</c>: that method does not exist until Task 2 adds it, and an unresolved
-    /// cref is CS1574, which <c>TreatWarningsAsErrors</c> turns into a build failure here.
     /// </remarks>
     public bool BartlettConfidenceInterval { get; init; } = true;
 
