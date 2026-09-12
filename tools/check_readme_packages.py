@@ -132,7 +132,6 @@ def publishing_findings(text: str, packages: set[str], core: int) -> list[str]:
                 "a reader believes about what ships, so it states the count and this holds "
                 "it to src/."]
 
-    opening = text.rfind("\n", 0, marker) + 1
     listing = text.index(":", marker) + 1
     end = sentence_end(text, listing)
 
