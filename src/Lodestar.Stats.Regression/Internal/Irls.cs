@@ -68,9 +68,10 @@ internal static class Irls
             {
                 throw new ArgumentException(
                     $"the weighted least squares of IRLS iteration {iteration} solved to a "
-                    + "non-finite coefficient, which a rank-deficient or collinear design does: "
-                    + "a zero pivot in the QR leaves the system without a unique solution. Drop "
-                    + "the dependent regressor rather than reading this fit.", nameof(design));
+                    + "non-finite coefficient. The usual cause is a rank-deficient or collinear "
+                    + "design, whose zero pivot in the QR leaves the system without a unique "
+                    + "solution: look for a dependent regressor before reading this fit.",
+                    nameof(design));
             }
 
             for (int row = 0; row < rowCount; row++)

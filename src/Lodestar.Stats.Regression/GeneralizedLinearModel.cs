@@ -134,9 +134,10 @@ public static class GeneralizedLinearModel
     }
 
     /// <summary>
-    /// Refuses a response value its family cannot fit: binomial takes only 0 or 1, and Poisson's
+    /// Refuses a response its family cannot fit: binomial takes only 0 or 1, and Poisson's
     /// <c>log(y!)</c> makes a count of it, so a negative, fractional or unboundedly large value is
-    /// refused there too.
+    /// refused there too. The last check reads the response whole rather than a value -- an
+    /// all-zero Poisson response is each value's own family and none of them together.
     /// </summary>
     private static void RefuseResponseOutsideTheFamily(
         GlmFamily family, ReadOnlySpan<double> response)
