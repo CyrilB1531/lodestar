@@ -61,8 +61,8 @@ internal static class Irls
             iteration++;
             BuildWeightedSystem(family, matrix, response, mean, parameterCount, scaled, working);
 
-            coefficients = LeastSquares.Solve(
-                scaled, rowCount, parameterCount, working, out inverseUpper);
+            (coefficients, inverseUpper) = LeastSquares.Solve(
+                scaled, rowCount, parameterCount, working);
 
             if (!AllFinite(coefficients))
             {

@@ -62,12 +62,12 @@ internal static class LeastSquares
     }
 
     /// <summary>Least squares through a thin QR, reporting the inverse of R the covariance needs.</summary>
-    public static double[] Solve(
+    /// <returns>The coefficients, and the inverse of R that the standard errors are read from.</returns>
+    public static (double[] Coefficients, double[] InverseUpper) Solve(
         double[] matrix,
         int rowCount,
         int parameterCount,
-        ReadOnlySpan<double> response,
-        out double[] inverseUpper)
+        ReadOnlySpan<double> response)
     {
         QrDecomposition qr = QrDecomposition.Householder(matrix, rowCount, parameterCount);
         IReadOnlyList<double> q = qr.Q;
@@ -84,7 +84,7 @@ internal static class LeastSquares
             projected[column] = total;
         }
 
-        inverseUpper = InvertUpper(qr.R, parameterCount);
+        double[] inverseUpper = InvertUpper(qr.R, parameterCount);
         var coefficients = new double[parameterCount];
         for (int i = 0; i < parameterCount; i++)
         {
@@ -97,7 +97,7 @@ internal static class LeastSquares
             coefficients[i] = total;
         }
 
-        return coefficients;
+        return (coefficients, inverseUpper);
     }
 
     /// <summary>The inverse of an upper-triangular matrix, by back substitution.</summary>

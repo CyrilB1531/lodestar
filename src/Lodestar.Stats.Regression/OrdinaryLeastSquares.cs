@@ -47,7 +47,8 @@ public static class OrdinaryLeastSquares
         }
 
         double[] matrix = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept);
-        double[] coefficients = LeastSquares.Solve(matrix, rowCount, parameterCount, response, out double[] inverseUpper);
+        (double[] coefficients, double[] inverseUpper) =
+            LeastSquares.Solve(matrix, rowCount, parameterCount, response);
 
         double[] residuals = Residuals(matrix, rowCount, parameterCount, response, coefficients);
         double residualSumOfSquares = Dot(residuals, residuals);
