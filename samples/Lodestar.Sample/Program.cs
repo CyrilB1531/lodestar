@@ -105,6 +105,11 @@ KruskalWallisSample.Run();
 ShapiroWilkSample.Run();
 MultipleComparisonsSample.Run();
 TestResultSample.Run();
+SerialCorrelationSample.Run();
+AutocorrelationOptionsSample.Run();
+AutocorrelationResultSample.Run();
+LjungBoxOptionsSample.Run();
+LjungBoxResultSample.Run();
 
 if (!PackagingGate.Verify())
 {

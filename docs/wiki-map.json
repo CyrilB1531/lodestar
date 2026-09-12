@@ -174,7 +174,8 @@
         "Lodestar.Stats": [
           "docs/reference/stats/tests",
           "docs/reference/stats/tails"
-        ]
+        ],
+        "Lodestar.Stats.TimeSeries": "docs/reference/stats/timeseries"
       }
     },
     "Lodestar.Stats.Regression": {

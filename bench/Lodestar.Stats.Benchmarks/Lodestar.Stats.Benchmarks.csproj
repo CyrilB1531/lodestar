@@ -14,6 +14,17 @@
     <!-- The incumbent: archived November 2020, last published October 2017, and
          still the only .NET library that carried these tests. -->
     <PackageReference Include="Accord.Statistics" Version="3.8.0" />
+    <!-- bench/ only: its Cortex.ML edge bars it from src/ under decision 0076
+         (tools/check_nuspec_dependencies.py enforces that boundary, not this file). -->
+    <PackageReference Include="Cortex.TimeSeries" Version="1.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Transitive through Cortex.ML, pulled in by Cortex.TimeSeries above. Neither
+         advisory reaches code this benchmark calls (AngleSharp's HTML parser, Snappier's
+         compression codec), and nothing under src/ ever references either package. -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-pgww-w46g-26qg" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-pggp-6c3x-2xmx" />
   </ItemGroup>
 
   <ItemGroup>

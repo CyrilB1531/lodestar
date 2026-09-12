@@ -80,6 +80,16 @@ is one sentence, the issue and the commit; see
   VectorData 10.10.0 requires `[10.10.0, )`, so the two still move together and the alignment
   that decision relied on holds. ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
 
+### Lodestar.Stats
+
+#### Added
+
+- **`SerialCorrelation`, with `Autocorrelation`, `PartialAutocorrelation` and `LjungBox`**, in the
+  new `Lodestar.Stats.TimeSeries` namespace, at `statsmodels` 0.15.0 parity.
+  [Decision 0114](docs/decisions/0114-the-serial-correlation-diagnostics-stay-in-lodestar-stats.md)
+  kept the three inside this package rather than a new one.
+  ([#617](https://github.com/CyrilB1531/lodestar/issues/617))
+
 ### Lodestar.Stats.Regression
 
 #### Added

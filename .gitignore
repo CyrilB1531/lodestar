@@ -54,3 +54,8 @@ samples/*/Generated/
 # Microsoft.Testing.Platform writes coverage and trx reports here, one file per
 # test assembly (#623). Previously VSTest wrote them under each project.
 TestResults/
+
+# The SonarQube scanner writes its analysis input here, 30 MB of it, including a
+# properties file carrying absolute paths under the contributor's home directory
+# -- which is exactly what check_machine_paths.py refuses (#617).
+.sonarqube/
