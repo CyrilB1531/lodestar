@@ -88,24 +88,8 @@ public sealed class WilcoxonOracleTests
             TestResult actual = Wilcoxon.Paired(x, y, nanPolicy: policy);
             double statistic = StatsCorpus.Number(c.GetProperty("statistic"));
             double pValue = StatsCorpus.Number(c.GetProperty("pvalue"));
-            if (double.IsNaN(statistic))
-            {
-                Assert.True(double.IsNaN(actual.Statistic), $"{name}: expected NaN statistic");
-            }
-            else
-            {
-                Assert.True(Math.Abs(statistic - actual.Statistic) <= 1e-9 * Math.Max(1.0, Math.Abs(statistic)),
-                    $"{name}: statistic expected {statistic}, got {actual.Statistic}");
-            }
-            if (double.IsNaN(pValue))
-            {
-                Assert.True(double.IsNaN(actual.PValue), $"{name}: expected NaN p-value");
-            }
-            else
-            {
-                Assert.True(Math.Abs(pValue - actual.PValue) <= 1e-9 * Math.Max(1.0, Math.Abs(pValue)),
-                    $"{name}: p-value expected {pValue}, got {actual.PValue}");
-            }
+            StatsOracleAsserts.Statistic(statistic, actual.Statistic, name);
+            StatsOracleAsserts.PValue(pValue, actual.PValue, name);
             replayed++;
         }
 

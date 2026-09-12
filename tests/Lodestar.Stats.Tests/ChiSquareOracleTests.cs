@@ -80,23 +80,12 @@ public sealed class ChiSquareOracleTests
             TestResult actual = ChiSquare.GoodnessOfFit(observed, expectedInput, policy);
             double statistic = StatsCorpus.Number(c.GetProperty("statistic"));
             double pValue = StatsCorpus.Number(c.GetProperty("pvalue"));
-            AssertClose(statistic, actual.Statistic, name);
-            AssertClose(pValue, actual.PValue, name);
+            StatsOracleAsserts.Statistic(statistic, actual.Statistic, name);
+            StatsOracleAsserts.PValue(pValue, actual.PValue, name);
             replayed++;
         }
 
         Assert.True(replayed >= 3, $"only {replayed} nan_policy cases replayed");
-    }
-
-    private static void AssertClose(double expected, double actual, string name)
-    {
-        if (double.IsNaN(expected))
-        {
-            Assert.True(double.IsNaN(actual), $"{name}: expected NaN, got {actual}");
-            return;
-        }
-        Assert.True(Math.Abs(expected - actual) <= 1e-9 * Math.Max(1.0, Math.Abs(expected)),
-            $"{name}: expected {expected}, got {actual}");
     }
 
     private static void AssertGoodnessOfFit(

@@ -101,8 +101,8 @@ public sealed class TTestOracleTests
             TTestResult actual = Run(call, a, b, policy);
             double statistic = StatsCorpus.Number(c.GetProperty("statistic"));
             double pValue = StatsCorpus.Number(c.GetProperty("pvalue"));
-            AssertClose(statistic, actual.Statistic, name);
-            AssertClose(pValue, actual.PValue, name);
+            StatsOracleAsserts.Statistic(statistic, actual.Statistic, name);
+            StatsOracleAsserts.PValue(pValue, actual.PValue, name);
             replayed++;
         }
 
@@ -116,15 +116,4 @@ public sealed class TTestOracleTests
         "ttest_1samp" => TTest.OneSample(a, 0.0, nanPolicy: policy),
         _ => throw new InvalidOperationException($"unknown call {call}"),
     };
-
-    private static void AssertClose(double expected, double actual, string name)
-    {
-        if (double.IsNaN(expected))
-        {
-            Assert.True(double.IsNaN(actual), $"{name}: expected NaN, got {actual}");
-            return;
-        }
-        Assert.True(Math.Abs(expected - actual) <= 1e-9 * Math.Max(1.0, Math.Abs(expected)),
-            $"{name}: expected {expected}, got {actual}");
-    }
 }
