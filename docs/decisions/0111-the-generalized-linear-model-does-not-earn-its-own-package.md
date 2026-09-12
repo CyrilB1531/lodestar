@@ -62,9 +62,10 @@ Four new public types, twenty-four new public members: `GeneralizedLinearModel` 
 properties), `GlmSummary` (sixteen init-only properties). Everything else the diff adds —
 `Families`, `Irls`, `LeastSquares`, `LogLikelihood` — is `internal static`, reachable only inside
 the assembly and its two `InternalsVisibleTo` test projects
-(`Lodestar.Stats.Regression.Tests` and its `NetStandard` mirror). None of it is a public member by
-`tools/survey.cs`'s own counting basis — declared, accessors and operators excluded, constructors
-kept — because none of it is declared `public` on a `public` type.
+(`Lodestar.Stats.Regression.Tests` and its `NetStandard` mirror). None of it is a public member
+because none of it is declared `public` on a `public` type. The twenty-four count is the members a
+reader can find in source code: source-declared, with accessors excluded, and constructors counted
+only when explicitly written (not compiler-synthesized parameterless constructors or backing fields).
 
 No neighbour's surface opened. `Lodestar.Stats/Internal/Gamma.cs`'s `LogGamma` (line 37) is still
 `internal`, unchanged by this branch. `src/Lodestar.Stats.Regression.csproj` still declares exactly
