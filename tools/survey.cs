@@ -14,22 +14,41 @@
 // project, because tools/ is otherwise Python and a .csproj here is either in Lodestar.slnx
 // for no reason or outside it, which is what #649 had just finished paying for.
 //
-//   dotnet run tools/survey.cs -- <package> <version> [regex]
+//   dotnet run tools/survey.cs -- <package> <version> [regex] [--assembly <name>]
 //   dotnet run tools/survey.cs -- Microsoft.ML.TimeSeries 5.0.0 'Arima|Acf|Stationar'
+//   dotnet run tools/survey.cs -- Microsoft.ML 5.0.0 'Pca' --assembly Microsoft.ML.PCA
 
 using System.Diagnostics;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
-if (args.Length is < 2 or > 3)
+// long-comment: why the assembly is nameable and not derived from the package.
+// A package id is not an assembly name. Microsoft.ML 5.0.0 installs no Microsoft.ML.dll at
+// all: its surface is spread over Microsoft.ML.Data, Microsoft.ML.PCA and six more, and
+// Microsoft.ML.PCA is not a package id anyone can install. Deriving the target from the
+// package id made that surface unreadable by this tool, found on its second use (#685).
+// The error below lists the closure, so the name to pass is the one it printed.
+string[] positional = [.. args.Where(a => !a.StartsWith("--", StringComparison.Ordinal))];
+string? assemblyName = null;
+for (int i = 0; i < args.Length - 1; i++)
 {
-    Console.Error.WriteLine("usage: dotnet run tools/survey.cs -- <package> <version> [regex]");
+    if (args[i] == "--assembly")
+    {
+        assemblyName = args[i + 1];
+        positional = [.. positional.Where(a => a != assemblyName)];
+    }
+}
+
+if (positional.Length is < 2 or > 3)
+{
+    Console.Error.WriteLine(
+        "usage: dotnet run tools/survey.cs -- <package> <version> [regex] [--assembly <name>]");
     return 2;
 }
 
-string package = args[0];
-string version = args[1];
-Regex? wanted = args.Length == 3 ? new Regex(args[2], RegexOptions.IgnoreCase) : null;
+string package = positional[0];
+string version = positional[1];
+Regex? wanted = positional.Length == 3 ? new Regex(positional[2], RegexOptions.IgnoreCase) : null;
 
 string work = Directory.CreateTempSubdirectory("lodestar-survey-").FullName;
 try
@@ -57,12 +76,14 @@ try
         .. Directory.GetFiles(Path.GetDirectoryName(typeof(object).Assembly.Location)!, "*.dll"),
     ];
 
-    string target = Path.Combine(closure, package + ".dll");
+    string target = Path.Combine(closure, (assemblyName ?? package) + ".dll");
     if (!File.Exists(target))
     {
         // A package that installs no assembly is a finding, not a blank: 0104 records
         // cs-glm 1.0.1 as exactly that.
-        Console.Error.WriteLine($"{package}.dll is not in the published closure. It holds:");
+        Console.Error.WriteLine(
+            $"{assemblyName ?? package}.dll is not in the published closure. Pass one of these "
+            + "to --assembly:");
         foreach (string candidate in Directory.GetFiles(closure, "*.dll").Order())
         {
             Console.Error.WriteLine($"  {Path.GetFileName(candidate)}");
