@@ -98,29 +98,44 @@ public sealed class SerialCorrelationOracleTests
     }
 
     [Fact]
-    public void An_AR_one_has_a_decaying_autocorrelation_and_a_partial_one_that_cuts_off()
+    public void The_ACF_and_PACF_hold_more_mass_past_lag_one_in_opposite_fixtures()
     {
-        // A fixed 2/sqrt(n) band asserted this draw's noise, not the code -- the oracle matched
-        // its lag-8 value bit for bit. This asserts the cutoff: the largest past lag 1 is below lag 1.
+        // Which of the two holds more mass past lag 1 reverses between the fixtures, so a swap of
+        // Autocorrelation and PartialAutocorrelation flips both comparisons below, not just one.
         using JsonDocument document = StatsCorpus.Load("stats_timeseries.json");
-        JsonElement c = First(document, "AR(1) at 0.7, 40 points | pacf | 0.95");
+
+        (double arFull, double arPartial) = MeanAbsolutePastLagOne(document, "AR(1) at 0.7, 40 points");
+        Assert.True(
+            arFull > arPartial,
+            $"AR(1): mean|full[2..8]| is {arFull}, mean|partial[2..8]| is {arPartial}.");
+
+        (double maFull, double maPartial) = MeanAbsolutePastLagOne(document, "MA(1) at 0.6, 60 points");
+        Assert.True(
+            maPartial > maFull,
+            $"MA(1): mean|partial[2..8]| is {maPartial}, mean|full[2..8]| is {maFull}.");
+    }
+
+    private static (double FullMean, double PartialMean) MeanAbsolutePastLagOne(
+        JsonDocument document, string fixtureName)
+    {
+        JsonElement c = First(document, $"{fixtureName} | pacf | 0.95");
         double[] series = StatsCorpus.Doubles(c.GetProperty("series"));
 
-        AutocorrelationResult partial = SerialCorrelation.PartialAutocorrelation(series, 8);
         AutocorrelationResult full = SerialCorrelation.Autocorrelation(series, 8);
+        AutocorrelationResult partial = SerialCorrelation.PartialAutocorrelation(series, 8);
 
-        double largestPastLagOne = 0.0;
+        return (MeanAbsolute(full.Values), MeanAbsolute(partial.Values));
+    }
+
+    private static double MeanAbsolute(IReadOnlyList<double> values)
+    {
+        double sum = 0.0;
         for (int lag = 2; lag <= 8; lag++)
         {
-            largestPastLagOne = Math.Max(largestPastLagOne, Math.Abs(partial.Values[lag]));
+            sum += Math.Abs(values[lag]);
         }
 
-        Assert.True(
-            largestPastLagOne < Math.Abs(partial.Values[1]),
-            $"the largest partial past lag 1 is {largestPastLagOne}, "
-            + $"the lag-1 partial is {partial.Values[1]}.");
-
-        Assert.True(full.Values[1] > 0.5, $"the lag-1 autocorrelation is {full.Values[1]}.");
+        return sum / 7.0;
     }
 
     [Fact]
