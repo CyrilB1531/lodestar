@@ -89,6 +89,15 @@ is one sentence, the issue and the commit; see
   kept it in this package rather than a new one.
   ([#616](https://github.com/CyrilB1531/lodestar/issues/616))
 
+#### Changed
+
+- **`OlsOptions` is a record, and its two properties are `init` rather than `set`.** Every other
+  options type in the repository — `KMeansOptions`, `StandardScalerOptions`, and now `GlmOptions`
+  — was already a `sealed record` with `init`, and both of this one's members are value types, so
+  the equality a record brings compares what a reader would expect it to. Code that mutated an
+  instance after constructing it must use an object initializer instead.
+  ([#616](https://github.com/CyrilB1531/lodestar/issues/616))
+
 ## Released — 2026-09-10
 
 Thirteen cuts across eleven packages, and the end of milestone 0.6.0 — thirty-three

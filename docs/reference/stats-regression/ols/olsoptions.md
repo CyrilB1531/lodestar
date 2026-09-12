@@ -5,7 +5,7 @@ What an ordinary least-squares fit should estimate, and at what confidence.
 <!-- docs-declaration -->
 
 ```csharp
-public sealed class OlsOptions
+public sealed record OlsOptions
 ```
 
 **Properties** — `WithIntercept` fits a constant term, as `statsmodels.api.add_constant` would;
