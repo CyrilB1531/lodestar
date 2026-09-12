@@ -43,6 +43,7 @@ public static class MannWhitney
     /// <see cref="ExactMethod.Exact"/> is refused for, <see cref="ExactMethod.Auto"/>
     /// falls back to asymptotic rather than building the table -- it never throws.
     /// </param>
+    /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>U for the first sample, and the p-value.</returns>
     /// <exception cref="ArgumentException">Either sample is empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -55,23 +56,31 @@ public static class MannWhitney
         ReadOnlySpan<double> y,
         Alternative alternative = Alternative.TwoSided,
         Continuity continuity = Continuity.Applied,
-        ExactMethod method = ExactMethod.Auto)
+        ExactMethod method = ExactMethod.Auto,
+        NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        if (x.Length == 0)
+        ReadOnlySpan<double> left = nanPolicy == NanPolicy.Propagate
+            ? x
+            : NanFilter.Apply(x, nanPolicy, nameof(x));
+        ReadOnlySpan<double> right = nanPolicy == NanPolicy.Propagate
+            ? y
+            : NanFilter.Apply(y, nanPolicy, nameof(y));
+
+        if (left.Length == 0)
         {
             throw new ArgumentException("The first sample is empty.", nameof(x));
         }
-        if (y.Length == 0)
+        if (right.Length == 0)
         {
             throw new ArgumentException("The second sample is empty.", nameof(y));
         }
 
-        int n = x.Length;
-        int m = y.Length;
+        int n = left.Length;
+        int m = right.Length;
 
         double[] pooled = new double[n + m];
-        x.CopyTo(pooled);
-        y.CopyTo(pooled.AsSpan(n));
+        left.CopyTo(pooled);
+        right.CopyTo(pooled.AsSpan(n));
 
         // The spec's rule: no nan_policy parameter exists, so a NaN anywhere
         // propagates rather than taking a false finite rank (Ranks.HasNaN's remark).
