@@ -50,16 +50,15 @@ ROOT = tiers.ROOT
 README = ROOT / "README.md"
 CLAUDE = ROOT / "CLAUDE.md"
 
-# `Sixteen NuGet packages are produced: `A`, `B` ... and `P`.` -- the count and the list
-# are one sentence, so they are read as one and reported apart.
-PUBLISHING = re.compile(
-    r"^(\w+) NuGet packages are produced:(.*?)\.\s", re.MULTILINE | re.DOTALL)
+# `Sixteen NuGet packages are produced: `A`, `B` ... and `P`.` -- found by string search
+# rather than a pattern: the sentence spans lines, and a lazy `.*?` across them backtracks.
+PUBLISHING = " NuGet packages are produced:"
 # `Twelve are **core tier**` -- the tier sentence that follows it.
 CORE_COUNT = re.compile(r"(\w+) are \*\*core tier\*\*")
-# A line of the Structure tree: `├── src/Lodestar.Text/    distances, ...`
-TREE_LINE = re.compile(r"^[^\n]*?src/(Lodestar\.[A-Za-z.]+)/", re.MULTILINE)
 # The quick-commands pack loop in CLAUDE.md, which is not the README's runnable one.
 PACK_LOOP = re.compile(r"for p in([^;]*);\s*do")
+# `src/Lodestar.Text` in a loop and `src/Lodestar.Text/` in the tree, one shape for both.
+# `src/*/Version.props` does not match, which is right: it is a line about every package.
 PACKAGE = re.compile(r"src/(Lodestar\.[A-Za-z.]+)")
 NAME = re.compile(r"`(Lodestar\.[A-Za-z.]+)`")
 
@@ -79,6 +78,18 @@ def spelled(word: str) -> int | None:
 def in_words(count: int) -> str:
     """16 -> `sixteen`, so a failure message can quote the correction."""
     return WORDS[count] if 0 <= count < len(WORDS) else str(count)
+
+
+def sentence_end(text: str, start: int) -> int:
+    """Where the sentence opening at `start` ends: the first `.` before whitespace.
+
+    A period inside `Lodestar.Text` is followed by a letter, which is what tells the
+    two apart without a pattern that has to look backwards.
+    """
+    at = text.find(".", start)
+    while at >= 0 and at + 1 < len(text) and not text[at + 1].isspace():
+        at = text.find(".", at + 1)
+    return len(text) if at < 0 else at
 
 
 def count_finding(word: str, real: int, where: str) -> list[str]:
@@ -108,16 +119,20 @@ def names_finding(found: set[str], packages: set[str], where: str) -> list[str]:
 def publishing_findings(text: str, packages: set[str], core: int) -> list[str]:
     """The Publishing paragraph: its count, its list, and its core-tier count."""
     where = "README.md's Publishing section"
-    match = PUBLISHING.search(text)
-    if match is None:
+    marker = text.find(PUBLISHING)
+    if marker < 0:
         return [f"{where} no longer opens `<count> NuGet packages are produced:`. It is what "
                 "a reader believes about what ships, so it states the count and this holds "
                 "it to src/."]
 
-    found = count_finding(match.group(1), len(packages), where)
-    found += names_finding(set(NAME.findall(match.group(2))), packages, where)
+    opening = text.rfind("\n", 0, marker) + 1
+    listing = text.index(":", marker) + 1
+    end = sentence_end(text, listing)
 
-    tier = CORE_COUNT.search(text, match.end())
+    found = count_finding(text[opening:marker].split()[-1], len(packages), where)
+    found += names_finding(set(NAME.findall(text[listing:end])), packages, where)
+
+    tier = CORE_COUNT.search(text, end)
     if tier is None:
         found.append(f"{where} no longer says how many packages are core tier. The tier split "
                      "is what decision 0076 is about, so the sentence stays.")
@@ -135,9 +150,7 @@ def tree_findings(text: str, packages: set[str]) -> list[str]:
     tree = section[1].split("```", 2)
     if len(tree) < 3:
         return [f"{where} has no fenced block to read."]
-    # `src/*/Version.props` is a line about every package rather than one of them.
-    named = {name for name in TREE_LINE.findall(tree[1])}
-    return names_finding(named, packages, where)
+    return names_finding(set(PACKAGE.findall(tree[1])), packages, where)
 
 
 def loop_findings(text: str, packages: set[str]) -> list[str]:

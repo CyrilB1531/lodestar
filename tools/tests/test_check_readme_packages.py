@@ -154,3 +154,20 @@ def test_a_pack_loop_that_is_gone_is_refused():
 def test_the_repository_as_it_stands_is_clean():
     # The real texts, because a fixture cannot notice a seventeenth package arriving.
     assert guard.findings() == []
+
+
+def test_a_dot_inside_a_package_name_does_not_end_the_sentence():
+    """`Lodestar.Stats.Regression` carries two periods, and neither closes the list.
+
+    What tells them apart is the character after: a period inside a name is followed by
+    a letter, the one that ends the sentence by whitespace. The sentence also ends at a
+    newline rather than a space, which is how the real README wraps it.
+    """
+    packages = {"Lodestar.Stats", "Lodestar.Stats.Regression"}
+    text = (
+        "Two NuGet packages are produced: `Lodestar.Stats` and\n"
+        "`Lodestar.Stats.Regression`.\n"
+        "Two are **core tier** and carry no external dependency.\n"
+    )
+
+    assert guard.publishing_findings(text, packages, 2) == []
