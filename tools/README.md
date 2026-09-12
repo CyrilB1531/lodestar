@@ -78,6 +78,14 @@ given:
   set, and the inter-package edge count against
   `check_nuspec_dependencies.py`'s `EXPECTED`. The *Holds* column is prose and is
   deliberately not checked.
+- `check_readme_packages.py` refuses the prose beside those two lists when it has
+  drifted instead. `README.md`'s Publishing paragraph, its Structure tree and
+  `CLAUDE.md`'s quick-commands pack loop each understated the repository by seven
+  packages until #688 — every one of them next to a list a guard already held
+  current, which is why none was noticed. `src/` is the source of truth for which
+  packages exist and CLAUDE.md's architecture table for which tier each is in, so the
+  core-tier count is checked too. The counts are spelled out, and that is the half a
+  contributor forgets.
 - `check_bench_map.py` refuses a `[Benchmark]` class that `bench/bench-map.json`
   does not name. The nightly run (#11) measures only the classes a night's diff
   selected and reads that map to decide which, so a class missing from it is

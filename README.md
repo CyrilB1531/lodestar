@@ -212,9 +212,16 @@ Lodestar.slnx
 ├── src/Lodestar.Fuzzy/                     fuzz.*, process.extract, deduplication
 ├── src/Lodestar.Metrics/                   confusion matrix, precision/recall/F1, report, ROC-AUC
 ├── src/Lodestar.Conformal/                 split conformal intervals and prediction sets (no dependencies)
-├── src/Lodestar.Decomposition/             truncated SVD and non-negative matrix factorization over a CsrMatrix
-├── src/Lodestar.Onnx/                      ONNX inference — the one package with an external dependency (decision 0076)
+├── src/Lodestar.Decomposition/             truncated SVD, NMF and the Householder QR over a CsrMatrix
+├── src/Lodestar.Cluster/                   k-means by Lloyd's algorithm over a row-major span
+├── src/Lodestar.Preprocessing/             feature scaling fitted on arrays and applied to spans
 ├── src/Lodestar.Stats/                     classical hypothesis tests, at scipy.stats parity (no dependencies)
+├── src/Lodestar.Stats.Regression/          ordinary least squares with the whole inference table
+├── src/Lodestar.Survival/                  Kaplan-Meier, Nelson-Aalen and the log-rank test, right-censored
+├── src/Lodestar.Onnx/                      ONNX inference — satellite, carries Microsoft.ML.OnnxRuntime (decision 0076)
+├── src/Lodestar.Gpu/                       ILGPU kernels — satellite, the one package on net10.0;netstandard2.1
+├── src/Lodestar.Extensions.AI/             interop: the ONNX embedding path behind IEmbeddingGenerator
+├── src/Lodestar.Extensions.MathNet/        interop: CsrMatrix to and from Math.NET's sparse matrix
 ├── tests/                                  xUnit: two projects per package — net10.0, and a mirror linking the same sources against netstandard2.0
 ├── tests/oracles/                          frozen JSON corpora (generated from Python) + a synthetic ONNX model
 ├── bench/Lodestar.Text.Benchmarks/         BenchmarkDotNet: every non-netstandard benchmark, whatever package it measures
@@ -250,11 +257,17 @@ you whether to correct the document itself or something upstream of it.
 
 ## Publishing
 
-Nine NuGet packages are produced: `Lodestar.Abstractions`, `Lodestar.Text`,
+Sixteen NuGet packages are produced: `Lodestar.Abstractions`, `Lodestar.Text`,
 `Lodestar.Embeddings`, `Lodestar.Fuzzy`, `Lodestar.Metrics`, `Lodestar.Conformal`,
-`Lodestar.Decomposition`, `Lodestar.Onnx` and `Lodestar.Stats`. Eight of them are **core tier**
-and carry no external dependency; `Lodestar.Onnx` is the satellite that carries ONNX Runtime,
-which is the whole reason it is a package — [`decisions/0076`](docs/decisions/0076-a-core-package-carries-no-external-dependency.md).
+`Lodestar.Decomposition`, `Lodestar.Cluster`, `Lodestar.Preprocessing`, `Lodestar.Stats`,
+`Lodestar.Stats.Regression`, `Lodestar.Survival`, `Lodestar.Onnx`, `Lodestar.Gpu`,
+`Lodestar.Extensions.AI` and `Lodestar.Extensions.MathNet`. Twelve are **core tier** and carry no
+external dependency — [`decisions/0076`](docs/decisions/0076-a-core-package-carries-no-external-dependency.md).
+`Lodestar.Onnx` and `Lodestar.Gpu` are the two **satellites**, each carrying the one dependency
+that is its whole reason to be a package; the two `Lodestar.Extensions.*` are the **interop** tier,
+which [`decisions/0089`](docs/decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)
+allows a dependency a core package refused, because converting to a foreign type is not computing
+with it.
 **Each versions and releases on its own**: shared metadata
 (license, README, repository) lives in `Directory.Build.props`, while the version
 is declared per project in `src/<Package>/Version.props`. `Lodestar.Fuzzy` depends

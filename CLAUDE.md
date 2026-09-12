@@ -130,7 +130,10 @@ dotnet build samples/Lodestar.DocSnippets -c Release
 ```bash
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*Levenshtein*'
 for p in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy \
-         src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx; do
+         src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Cluster \
+         src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression \
+         src/Lodestar.Survival src/Lodestar.Onnx src/Lodestar.Gpu src/Lodestar.Extensions.AI \
+         src/Lodestar.Extensions.MathNet; do
   dotnet pack "$p" -c Release -o ./artifacts
 done
 ```
