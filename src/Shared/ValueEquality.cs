@@ -14,35 +14,6 @@ namespace Lodestar.Internal;
 /// </remarks>
 internal static class ValueEquality
 {
-    /// <summary>Whether two blocks hold the same values, with <c>NaN</c> equal to <c>NaN</c>.</summary>
-    /// <remarks>
-    /// <c>SequenceEqual</c> compares with <c>==</c>, under which <c>NaN</c> equals nothing — and
-    /// an equality that is not reflexive is not one a record may have. S1244 fires on the element
-    /// comparison and is wrong here for the usual reason: this is value equality between two
-    /// stored numbers, where "the same" means the same bits.
-    /// </remarks>
-    public static bool Same(double[]? left, double[]? right)
-    {
-        if (ReferenceEquals(left, right))
-        {
-            return true;
-        }
-        if (left is null || right is null || left.Length != right.Length)
-        {
-            return false;
-        }
-        for (int i = 0; i < left.Length; i++)
-        {
-#pragma warning disable S1244
-            if (!left[i].Equals(right[i]))
-#pragma warning restore S1244
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
     /// <summary>Whether two jagged tables hold the same values, row by row.</summary>
     /// <remarks>
     /// Comparing the outer length alone would pass two tables that agree on their row count and
@@ -70,8 +41,10 @@ internal static class ValueEquality
 
     /// <summary>Whether two arrays hold equal elements, in order.</summary>
     /// <remarks>
-    /// The constraint is what keeps this off the <c>double[]</c> overload above, which has its
-    /// own reason to exist, and off any element type whose own equality is by reference.
+    /// <c>EqualityComparer&lt;T&gt;.Default</c> reaches <c>IEquatable&lt;T&gt;.Equals</c>, which for
+    /// <c>double</c> makes <c>NaN</c> equal <c>NaN</c> and <c>+0.0</c> equal <c>-0.0</c> — the
+    /// first is what keeps a record's equality reflexive. The constraint keeps this off any
+    /// element type whose own equality is by reference.
     /// </remarks>
     public static bool Same<T>(T[]? left, T[]? right)
         where T : IEquatable<T>
