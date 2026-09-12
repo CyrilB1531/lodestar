@@ -46,3 +46,10 @@ and `TokenPattern`
 
 **See also** — [`Rake`](rake.md), [`RakeMetric`](rakemetric.md), [`KeywordMatch`](keywordmatch.md),
 the [Python equivalence table](../../../equivalence.md).
+
+## Members
+
+| member | what it does |
+| --- | --- |
+| [`RakeOptions.Equals`](rakeoptions-equals.md) | Value equality, the stop words as a set. |
+| [`RakeOptions.GetHashCode`](rakeoptions-gethashcode.md) | A hash consistent with it. |

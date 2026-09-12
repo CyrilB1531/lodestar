@@ -39,6 +39,10 @@ is one sentence, the issue and the commit; see
 - **`System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`.** The dependency a
   consumer restores changes; nothing in the public surface does.
   ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+- **`RakeOptions` and `TextRankOptions` compare their stop words as a set.** Two option sets
+  holding the same words were unequal and now are equal, with `GetHashCode` agreeing —
+  `CountVectorizerOptions` already behaved this way, and decision 0112 makes it the rule.
+  ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
 
 ### Lodestar.Gpu
 
