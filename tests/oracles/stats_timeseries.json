@@ -1,7 +1,7 @@
 {
  "metadata": {
-  "library": "scipy",
-  "version": "1.18.1",
+  "library": "statsmodels",
+  "version": "0.15.0",
   "family": "timeseries",
   "count": 72
  },

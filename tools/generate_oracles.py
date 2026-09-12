@@ -9787,7 +9787,15 @@ def generate_stats_timeseries() -> dict:
                 "bp_pvalues": [_stats_number(v) for v in frame["bp_pvalue"]],
             })
 
-    return {"metadata": _stats_metadata("timeseries", len(cases)), CASES: cases}
+    return {
+        "metadata": {
+            "library": STATSMODELS,
+            "version": version(STATSMODELS),
+            FAMILY: "timeseries",
+            "count": len(cases),
+        },
+        CASES: cases,
+    }
 
 
 def main() -> None:
