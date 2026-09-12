@@ -35,8 +35,7 @@ public static class SerialCorrelation
             values[lag] = covariance[lag] / covariance[0];
         }
 
-        double multiplier = Distributions.NormalQuantile(
-            1.0 - ((1.0 - settings.ConfidenceLevel) / 2.0));
+        double multiplier = TwoSidedMultiplier(settings.ConfidenceLevel);
         double[] variance = BandVariance(values, series.Length, settings.BartlettConfidenceInterval);
 
         var lower = new double[lagCount + 1];
@@ -83,8 +82,7 @@ public static class SerialCorrelation
 
         // Quenouille: a partial autocorrelation past the true order is asymptotically N(0, 1/n),
         // so the band is flat rather than Bartlett's widening one.
-        double half = Distributions.NormalQuantile(
-            1.0 - ((1.0 - settings.ConfidenceLevel) / 2.0)) / Math.Sqrt(series.Length);
+        double half = TwoSidedMultiplier(settings.ConfidenceLevel) / Math.Sqrt(series.Length);
 
         var lower = new double[lagCount + 1];
         var upper = new double[lagCount + 1];
@@ -163,6 +161,10 @@ public static class SerialCorrelation
         };
     }
 
+    /// <summary>The z-score for a two-sided band at the given confidence level.</summary>
+    private static double TwoSidedMultiplier(double confidenceLevel) =>
+        Distributions.NormalQuantile(1.0 - ((1.0 - confidenceLevel) / 2.0));
+
     /// <summary>Bartlett's widening variance, or the flat one.</summary>
     /// <remarks>
     /// Bartlett's is <c>(1 + 2*sum_{j&lt;k} r_j^2) / n</c> past lag one, which is the reference's
@@ -197,7 +199,7 @@ public static class SerialCorrelation
     /// <param name="series">The observations.</param>
     /// <param name="lagCount">The requested lag count.</param>
     /// <param name="lagCeiling">The largest lag this member can answer for.</param>
-    internal static void RefuseUnusableSeries(
+    private static void RefuseUnusableSeries(
         ReadOnlySpan<double> series, int lagCount, int lagCeiling)
     {
         if (series.Length < 2)
