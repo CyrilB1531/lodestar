@@ -8,9 +8,19 @@ Compares the means of two or more groups.
 public static TestResult Test(double[][] groups)
 ```
 
+<!-- docs-declaration -->
+
+```csharp
+public static TestResult Test(NanPolicy nanPolicy, double[][] groups)
+```
+
+The policy comes first because the groups are a `params` array and C# allows no parameter after
+one — the shape `string.Join` uses, for the same reason.
+
 **Parameters** — `groups` are the samples to compare, at least two, each holding at least one
 value, and at least one holding more than one — `scipy.stats.f_oneway` takes its samples the same
-way, one array per group, which `groups` is `params` for.
+way, one array per group, which `groups` is `params` for. `nanPolicy` says what to do with a
+`NaN`; scipy's `nan_policy`, defaulting to [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TestResult`: the F statistic, and the upper-tail p-value.
 

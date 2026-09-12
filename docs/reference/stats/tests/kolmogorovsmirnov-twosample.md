@@ -5,14 +5,15 @@ Compares two samples by the largest gap between their empirical distributions.
 <!-- docs-declaration -->
 
 ```csharp
-public static KsResult TwoSample(ReadOnlySpan<double> a, ReadOnlySpan<double> b, Alternative alternative = Alternative.TwoSided, ExactMethod method = ExactMethod.Auto)
+public static KsResult TwoSample(ReadOnlySpan<double> a, ReadOnlySpan<double> b, Alternative alternative = Alternative.TwoSided, ExactMethod method = ExactMethod.Auto, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
 **Parameters** — `a` and `b` are the two samples, each at least one value; both spans are read,
 never modified. `alternative` says which direction of gap counts: `Alternative.TwoSided` takes
 the largest gap in either direction, the one-sided values take the largest gap in one.
 `method` chooses the exact null distribution, its asymptotic approximation, or a choice between
-them by the sample sizes.
+them by the sample sizes. `nanPolicy` says what to do with a `NaN`; scipy's `nan_policy`,
+defaulting to [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `KsResult`: the distance, the p-value, where that supremum is attained, and its
 sign.
@@ -53,11 +54,11 @@ allocates 673 MB and climbs quadratically with the product from there. Passing
 asymptotic answer instead, because nothing the caller wrote asked for an exact result — and
 `Auto`'s own 10,000 threshold keeps it two orders of magnitude clear of the bound regardless.
 
-**A NaN propagates.** There is no `nan_policy` here: a NaN anywhere in either sample makes the
-statistic, the p-value and `StatisticLocation` all `NaN`. `StatisticSign` becomes `0`, the
-closest an `int` comes to carrying scipy's own `nan` there. Before this guard existed, a NaN
-input span both samples and hung `Walk` forever instead: `sorted[index] == value` is `false` for
-a NaN `value`, so neither sample's cursor ever advances.
+**Under `NanPolicy.Propagate`, a NaN reaches the statistic, the p-value and `StatisticLocation`.**
+All three become `NaN`; `StatisticSign` becomes `0`, the closest an `int` comes to carrying
+scipy's own `nan` there. Before this guard existed, a NaN anywhere in either sample hung `Walk`
+forever instead: `sorted[index] == value` is `false` for a NaN `value`, so neither sample's cursor
+ever advances.
 
 **Applies to** — net10.0, netstandard2.0.
 

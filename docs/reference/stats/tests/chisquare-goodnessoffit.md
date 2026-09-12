@@ -5,13 +5,14 @@ Tests observed counts against an expected distribution.
 <!-- docs-declaration -->
 
 ```csharp
-public static TestResult GoodnessOfFit(ReadOnlySpan<double> observed, ReadOnlySpan<double> expected = default)
+public static TestResult GoodnessOfFit(ReadOnlySpan<double> observed, ReadOnlySpan<double> expected = default, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
 **Parameters** — `observed` are the observed counts, at least two categories; the span is read,
 never modified. `expected` are the expected counts, which must sum to the observed total; omit
 them for a uniform expectation across every category, which is what `scipy.stats.chisquare` does
-with `f_exp=None`.
+with `f_exp=None`. `nanPolicy` says what to do with a `NaN`; scipy's `nan_policy`, defaulting to
+[`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TestResult`: the statistic, and the upper-tail p-value.
 
@@ -38,12 +39,15 @@ explicit `expected` answers a different question — not "is this uniform?" but 
 *this* distribution?" — and it must sum to within `1e-8` of the observed total, relative to that
 total, or the p-value would be comparing tables of different sizes.
 
-**A NaN or an infinity propagates.** There is no `nan_policy` here: a NaN or an infinite value
-anywhere in `observed` drives `statistic` itself to `NaN` (an `inf - inf`, then an `inf / inf`,
-inside the loop above), and the p-value follows it rather than throwing the
+**Under `NanPolicy.Propagate`, a NaN or an infinity reaches the statistic.** A NaN or an infinite
+value anywhere in `observed` drives `statistic` itself to `NaN` (an `inf - inf`, then an
+`inf / inf`, inside the loop above), and the p-value follows it rather than throwing the
 `ArgumentOutOfRangeException` calling the incomplete gamma function on a `NaN` would otherwise
 raise. Compare [`ChiSquare.Contingency`](chisquare-contingency.md), which raises
 `ArgumentException` on a NaN cell instead, unchanged by this rule.
+
+Under [`NanPolicy.Omit`](../nanpolicy.md) the two inputs are filtered **together**: an index is
+kept only when neither side holds a `NaN`, so a pair survives or neither value does.
 
 **Applies to** — net10.0, netstandard2.0.
 

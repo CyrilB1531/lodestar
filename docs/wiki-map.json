@@ -167,11 +167,14 @@
       "wiki": "Stats",
       "pages": [
         "docs/guides/hypothesis-testing.md",
+        "docs/reference/stats.md",
         "docs/reference/stats/*.md",
         "docs/reference/stats/*/*.md"
       ],
       "covered": {
         "Lodestar.Stats": [
+          "docs/reference/stats.md",
+          "docs/reference/stats/nanpolicy.md",
           "docs/reference/stats/tests",
           "docs/reference/stats/tails"
         ],

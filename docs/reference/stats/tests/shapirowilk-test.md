@@ -5,11 +5,12 @@ Tests whether a sample could have come from a normal distribution.
 <!-- docs-declaration -->
 
 ```csharp
-public static TestResult Test(ReadOnlySpan<double> sample)
+public static TestResult Test(ReadOnlySpan<double> sample, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
 **Parameters** — `sample` is the data, between 3 and 5000 values, not all equal; the span is
-read, never modified.
+read, never modified. `nanPolicy` says what to do with a `NaN`; scipy's `nan_policy`, defaulting
+to [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TestResult`: Royston's W statistic, and its p-value.
 
@@ -59,6 +60,9 @@ string what = message;   // => Royston's approximation covers 3 to 5000 values�
 
 scipy warns on the same input and answers anyway; this package treats the fitted range as a hard
 boundary instead.
+
+Omission runs before this test's own requirements, which are unchanged by it — a sample left too
+short, or a pool left fully tied, is refused exactly as it would be if passed directly.
 
 **Applies to** — net10.0, netstandard2.0.
 

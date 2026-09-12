@@ -8,9 +8,19 @@ Compares two or more groups by their ranks in the pooled sample.
 public static TestResult Test(double[][] groups)
 ```
 
+<!-- docs-declaration -->
+
+```csharp
+public static TestResult Test(NanPolicy nanPolicy, double[][] groups)
+```
+
+The policy comes first because the groups are a `params` array and C# allows no parameter after
+one — the shape `string.Join` uses, for the same reason.
+
 **Parameters** — `groups` are the samples to compare, at least two, each holding at least one
 value — `scipy.stats.kruskal` takes its samples the same way, one array per group, which
-`groups` is `params` for.
+`groups` is `params` for. `nanPolicy` says what to do with a `NaN`; scipy's `nan_policy`,
+defaulting to [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TestResult`: the H statistic, and the upper-tail p-value.
 
@@ -57,10 +67,13 @@ exactly `0` — not close to zero, not a value a tolerance would need to catch �
 that would follow is refused instead of silently producing an infinite or NaN statistic from
 ranks that carry no information at all.
 
-**A NaN propagates.** There is no `nan_policy` here: a NaN anywhere in any group makes the
-statistic and the p-value `NaN`, checked before ranking — unguarded, `Array.Sort` sorts a NaN to
-the front and it would take a finite rank like any other value, the same failure mode
-[`MannWhitney.Test`](mannwhitney-test.md) shares and guards against the same way.
+**Under `NanPolicy.Propagate`, a NaN reaches the statistic and the p-value.** The check runs
+before ranking — unguarded, `Array.Sort` sorts a NaN to the front and it would take a finite rank
+like any other value, the same failure mode [`MannWhitney.Test`](mannwhitney-test.md) shares and
+guards against the same way.
+
+Omission runs before this test's own requirements, which are unchanged by it — a sample left too
+short, or a pool left fully tied, is refused exactly as it would be if passed directly.
 
 **Applies to** — net10.0, netstandard2.0.
 

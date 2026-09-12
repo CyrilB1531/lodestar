@@ -17,7 +17,8 @@ real data arrives with missing values, and this package had no answer:
 Two facts shaped the answer, both measured rather than read.
 
 **`'propagate'` is already the shipped behaviour.** `docs/equivalence.md` records that nine of the
-ten families follow scipy's default exactly, and that `ChiSquare.Contingency` is the exception,
+ten families follow scipy's default exactly, and that
+[`ChiSquare.Contingency`](../reference/stats/tests/chisquare-contingency.md) is the exception,
 refusing a `NaN` cell because a contingency table's cells are counts whose marginals are divided
 by.
 
@@ -36,8 +37,9 @@ public enum NanPolicy { Propagate = 0, Raise, Omit }
 
 `Propagate = 0` makes `default(NanPolicy)` the same thing, and no existing call changes behaviour.
 
-`ChiSquare.Contingency`, `FisherExact.Test` and the three `MultipleComparisons` methods do **not**
-take it. That is parity, not an omission.
+[`ChiSquare.Contingency`](../reference/stats/tests/chisquare-contingency.md),
+[`FisherExact.Test`](../reference/stats/tests/fisherexact-test.md) and the three
+`MultipleComparisons` methods do **not** take it. That is parity, not an omission.
 
 Parity with the library a caller migrates from is this repository's tie-breaker
 ([`0008`](0008-italian-enza-nltk-divergence.md)). It settles the argument that `'propagate'` and
@@ -49,8 +51,8 @@ subset of a three-valued parameter is a divergence to explain.
 
 | entry point | omission |
 | --- | --- |
-| `TTest.Paired`, `Wilcoxon.Paired` | listwise — drop the index when either side is `NaN` |
-| `ChiSquare.GoodnessOfFit` with `expected` given | listwise |
+| [`TTest.Paired`](../reference/stats/tests/ttest-paired.md), [`Wilcoxon.Paired`](../reference/stats/tests/wilcoxon-paired.md) | listwise — drop the index when either side is `NaN` |
+| [`ChiSquare.GoodnessOfFit`](../reference/stats/tests/chisquare-goodnessoffit.md) with `expected` given | listwise |
 | the other eight | per-sample |
 
 Measured, not reasoned: `ttest_rel` on `[1, 2, NaN, 4, 5]` against `[2, NaN, 3, 5, 7]` with
@@ -59,23 +61,27 @@ not what dropping each sample independently gives.
 
 ### Omission is a filter, not a second policy
 
-The family's own guards run afterwards, unchanged. `ShapiroWilk.Test` still raises below `n = 3`
-and `KruskalWallis.Test` still raises on a fully tied pool, where scipy returns `(nan, nan)` with
-a warning — the two divergences `docs/equivalence.md` already records.
+The family's own guards run afterwards, unchanged.
+[`ShapiroWilk.Test`](../reference/stats/tests/shapirowilk-test.md) still raises below `n = 3`
+and [`KruskalWallis.Test`](../reference/stats/tests/kruskalwallis-test.md) still raises on a
+fully tied pool, where scipy returns `(nan, nan)` with a warning — the two divergences
+`docs/equivalence.md` already records.
 
 Answering scipy's `(nan, nan)` on a path reached only through omission was rejected: it would make
 one degenerate input raise or not according to how it arrived.
 
 ### Two consequences worth recording
 
-`ChiSquare.GoodnessOfFit` with an explicit `expected` will commonly raise under `Omit`, because
-`chisquare` requires the two to sum alike and omission breaks that by construction. scipy raises
-`ValueError`; this package already raises for the same reason.
+[`ChiSquare.GoodnessOfFit`](../reference/stats/tests/chisquare-goodnessoffit.md) with an explicit
+`expected` will commonly raise under `Omit`, because `chisquare` requires the two to sum alike and
+omission breaks that by construction. scipy raises `ValueError`; this package already raises for
+the same reason.
 
-`OneWayAnova.Test` and `KruskalWallis.Test` are `params double[][]`, and C# forbids a parameter
-after a `params` array. They take an overload with the policy **first** —
-`Test(NanPolicy nanPolicy, params double[][] groups)` — which is `string.Join`'s shape and keeps
-the varargs form a caller already uses.
+[`OneWayAnova.Test`](../reference/stats/tests/onewayanova-test.md) and
+[`KruskalWallis.Test`](../reference/stats/tests/kruskalwallis-test.md) are `params double[][]`,
+and C# forbids a parameter after a `params` array. They take an overload with the policy
+**first** — `Test(NanPolicy nanPolicy, params double[][] groups)` — which is `string.Join`'s
+shape and keeps the varargs form a caller already uses.
 
 ## Consequences
 

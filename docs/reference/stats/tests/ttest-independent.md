@@ -5,12 +5,13 @@ Compares the means of two independent samples.
 <!-- docs-declaration -->
 
 ```csharp
-public static TTestResult Independent(ReadOnlySpan<double> a, ReadOnlySpan<double> b, Alternative alternative = Alternative.TwoSided, Variance variance = Variance.Welch)
+public static TTestResult Independent(ReadOnlySpan<double> a, ReadOnlySpan<double> b, Alternative alternative = Alternative.TwoSided, Variance variance = Variance.Welch, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
 **Parameters** — `a` and `b` are the two samples, each at least two values; both spans are read,
 never modified. `alternative` says which tail the p-value covers. `variance` says whether to pool
-the two sample variances.
+the two sample variances. `nanPolicy` says what to do with a `NaN`; scipy's `nan_policy`,
+defaulting to [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TTestResult`: the t statistic, the p-value, and the degrees of freedom, which are
 fractional under `Variance.Welch`.
@@ -37,11 +38,6 @@ default that is wrong in the common case costs more than a word at the call
 site. Pass `Variance.Equal` for scipy's default. Both are covered by
 `tests/oracles/stats_ttest.json`, and the divergence has a row in the
 [equivalence table](../../../equivalence.md).
-
-**A NaN propagates.** There is no `nan_policy` here: a NaN anywhere in either
-sample makes the statistic and the p-value NaN. `scipy`'s three-valued policy is
-a convenience for its array API rather than part of the test, and a caller who
-wants `'omit'` filters the array in one line.
 
 **Applies to** — net10.0, netstandard2.0.
 
