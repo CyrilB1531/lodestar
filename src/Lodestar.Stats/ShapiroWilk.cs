@@ -30,13 +30,24 @@ public static class ShapiroWilk
 
     /// <summary>Tests whether a sample could have come from a normal distribution.</summary>
     /// <param name="sample">The sample; between 3 and 5000 values, not all equal.</param>
+    /// <param name="nanPolicy">What to do with a <c>NaN</c>; scipy's <c>nan_policy</c>.</param>
     /// <returns>Royston's W statistic and its p-value.</returns>
     /// <exception cref="ArgumentException">
-    /// Fewer than 3 or more than 5000 values, or every value identical.
+    /// Fewer than 3 or more than 5000 values, or every value identical -- both checked after
+    /// <paramref name="nanPolicy"/> has run, so omission that drops the sample below three
+    /// values still raises rather than answering with a warning the way scipy does
+    /// (decision 0115). When <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and
+    /// the sample holds a <c>NaN</c>.
     /// </exception>
-    public static TestResult Test(ReadOnlySpan<double> sample)
+    public static TestResult Test(
+        ReadOnlySpan<double> sample,
+        NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        int n = sample.Length;
+        ReadOnlySpan<double> values = nanPolicy == NanPolicy.Propagate
+            ? sample
+            : NanFilter.Apply(sample, nanPolicy, nameof(sample));
+
+        int n = values.Length;
         if (n < MinimumSample || n > MaximumSample)
         {
             throw new ArgumentException(
@@ -44,7 +55,7 @@ public static class ShapiroWilk
                 nameof(sample));
         }
 
-        double[] sorted = sample.ToArray();
+        double[] sorted = values.ToArray();
         Array.Sort(sorted);
 
         double[] weights = Weights(n);
