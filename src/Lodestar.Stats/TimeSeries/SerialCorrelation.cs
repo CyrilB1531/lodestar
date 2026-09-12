@@ -1,3 +1,4 @@
+using System.Globalization;
 using Lodestar.Stats.TimeSeries.Internal;
 
 namespace Lodestar.Stats.TimeSeries;
@@ -104,7 +105,7 @@ public static class SerialCorrelation
             if (double.IsNaN(series[row]) || double.IsInfinity(series[row]))
             {
                 throw new ArgumentException(
-                    $"row {row} carries {series[row]}, which would propagate through every lag. "
+                    $"row {row} carries {series[row].ToString(CultureInfo.InvariantCulture)}, which would propagate through every lag. "
                     + "A gapped series needs the interpolation this does not do.", nameof(series));
             }
         }
@@ -122,7 +123,7 @@ public static class SerialCorrelation
         if (constant)
         {
             throw new ArgumentException(
-                $"every value is {series[0]}, so the lag-zero autocovariance is zero and every "
+                $"every value is {series[0].ToString(CultureInfo.InvariantCulture)}, so the lag-zero autocovariance is zero and every "
                 + "correlation would be 0/0. The reference answers NaN; this refuses, as "
                 + "KruskalWallis.Test refuses a fully tied sample.", nameof(series));
         }
