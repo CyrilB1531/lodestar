@@ -4476,11 +4476,20 @@ def _robust_fixtures() -> list[dict]:
         for kind in ("HC0", "HC1", "HC2", "HC3")
     ]
     fixtures.append({
+        # long-comment: what this case is for, and why its response is its own.
         # No intercept: the Wald test then restricts every coefficient rather than all
         # but one, which is where the block the statistic inverts changes shape.
+        # The design is shared with the nonrobust case above, the response is not. On the
+        # near-noiseless response above it (R2 = 0.99995) the Wald statistic reaches
+        # 97 533, and tools/compare_oracles.py compares floats at 1e-9 *absolute*
+        # (decision 0073) -- so a last-bit BLAS disagreement of 7e-14 relative is
+        # 7e-9 absolute and the reproducibility gate fails on a different machine.
+        # The ordinary F on the same rows is safe at 60 493 only because it is read
+        # off R-squared rather than by inverting a covariance block. Visible residuals
+        # bring the statistic to 1 113 and the headroom back to two orders of magnitude.
         "name": "two regressors, no intercept, HC1",
         DESIGN: [1.0, 1.0, 2.0, 1.0, 3.0, 2.0, 4.0, 2.0, 5.0, 3.0, 6.0, 3.0, 7.0, 4.0, 8.0, 4.0],
-        RESPONSE: [3.1, 5.2, 8.4, 10.1, 13.3, 15.2, 18.4, 20.1],
+        RESPONSE: [3.4, 4.8, 8.9, 9.6, 12.7, 15.9, 19.2, 19.4],
         OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
         COVARIANCE_TYPE: "HC1",
     })
