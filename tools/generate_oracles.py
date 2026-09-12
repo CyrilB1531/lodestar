@@ -109,6 +109,7 @@ NORM_PPF = "norm.ppf"
 FAMILY = "family"
 # The OLS corpus repeats its own field names once per fixture and once per emitted case.
 CONFIDENCE_LEVEL = "confidenceLevel"
+COVARIANCE_TYPE = "covarianceType"
 DESIGN = "design"
 OLS_FEATURE_COUNT = "featureCount"
 RESPONSE = "response"
@@ -4444,7 +4445,55 @@ def _ols_fixtures() -> list[dict]:
             RESPONSE: [5.0, 4.0, 9.4],
             OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
         },
+        *_robust_fixtures(),
     ]
+
+
+def _robust_fixtures() -> list[dict]:
+    """One heteroskedastic design, fitted four ways, and two boundaries (#686).
+
+    The spread of the response grows with the regressor -- residuals of roughly
+    +-0.2 at the first row and +-3 at the last -- which is the shape the ordinary
+    standard errors get wrong and the whole reason these estimators exist. Fitting
+    the same rows under all four types is deliberate: HC0 to HC3 differ only in the
+    weight each row's squared residual carries, so one design tells them apart where
+    four designs would confound the estimator with the data.
+
+    Hand-written rather than drawn, like the fixtures above, so the funnel is visible
+    in the literal.
+    """
+    funnel = {
+        DESIGN: [
+            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0,
+        ],
+        RESPONSE: [
+            2.1, 4.3, 5.7, 8.4, 9.6, 13.1, 13.4, 17.9, 17.2, 22.8, 20.9, 26.4, 24.1, 31.6,
+        ],
+        OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+    }
+    fixtures = [
+        {"name": f"heteroskedastic funnel, {kind}", COVARIANCE_TYPE: kind, **funnel}
+        for kind in ("HC0", "HC1", "HC2", "HC3")
+    ]
+    fixtures.append({
+        # No intercept: the Wald test then restricts every coefficient rather than all
+        # but one, which is where the block the statistic inverts changes shape.
+        "name": "two regressors, no intercept, HC1",
+        DESIGN: [1.0, 1.0, 2.0, 1.0, 3.0, 2.0, 4.0, 2.0, 5.0, 3.0, 6.0, 3.0, 7.0, 4.0, 8.0, 4.0],
+        RESPONSE: [3.1, 5.2, 8.4, 10.1, 13.3, 15.2, 18.4, 20.1],
+        OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+        COVARIANCE_TYPE: "HC1",
+    })
+    fixtures.append({
+        # A 99% interval under a robust covariance, where the multiplier is the normal
+        # one rather than Student's -- 2.5758 rather than 3.4995 on five rows.
+        "name": "a 99% interval under HC3, where the multiplier is the normal one",
+        DESIGN: [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0],
+        RESPONSE: [1.9, 4.2, 5.8, 8.3, 9.7, 12.4, 13.9],
+        OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
+        COVARIANCE_TYPE: "HC3",
+    })
+    return fixtures
 
 
 # --- Lodestar.Survival, oracled by lifelines rather than scipy (#569) -----------
@@ -4914,7 +4963,9 @@ def generate_stats_ols() -> dict:
         response = np.array(fixture[RESPONSE])
         exog = sm.add_constant(design, prepend=True) if fixture[WITH_INTERCEPT] else design
 
-        fitted = sm.OLS(response, exog).fit()
+        kind = fixture.get(COVARIANCE_TYPE, "nonrobust")
+        model = sm.OLS(response, exog)
+        fitted = model.fit() if kind == "nonrobust" else model.fit(cov_type=kind)
         interval = fitted.conf_int(alpha=1.0 - fixture[CONFIDENCE_LEVEL])
 
         # variance_inflation_factor adds no constant of its own, so the model's own
@@ -4930,6 +4981,7 @@ def generate_stats_ols() -> dict:
             OLS_FEATURE_COUNT: feature_count,
             WITH_INTERCEPT: fixture[WITH_INTERCEPT],
             CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
+            COVARIANCE_TYPE: kind,
             "coefficients": [float(v) for v in fitted.params],
             "standardErrors": [float(v) for v in fitted.bse],
             "tStatistics": [float(v) for v in fitted.tvalues],

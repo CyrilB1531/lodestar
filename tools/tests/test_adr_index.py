@@ -166,9 +166,17 @@ def test_the_committed_index_is_what_the_records_generate():
 
 
 def test_the_0095_chain_reconstitutes_from_the_index_alone():
+    """Containment rather than equality: `applied_by` is a list that grows.
+
+    It was written as equality and broke on the first record to apply 0095 after
+    0098 -- which is the index working, not the chain changing. What the test is
+    about is that following `applied_by` from 0095 finds the two records that
+    exercised its escape hatch, and that `amended_by` stays empty because neither
+    of them changed it.
+    """
     entries = adr_index.build(adr_index.read_all())
 
-    assert entries["0095"]["applied_by"] == ["0097", "0098"]
+    assert {"0097", "0098"} <= set(entries["0095"]["applied_by"])
     assert entries["0095"]["amended_by"] == []
     assert entries["0097"]["applies"] == ["0095"]
     assert entries["0098"]["applies"] == ["0095"]

@@ -62,8 +62,13 @@ internal static class LeastSquares
     }
 
     /// <summary>Least squares through a thin QR, reporting the inverse of R the covariance needs.</summary>
-    /// <returns>The coefficients, and the inverse of R that the standard errors are read from.</returns>
-    public static (double[] Coefficients, double[] InverseUpper) Solve(
+    /// <returns>The coefficients, the inverse of R the standard errors are read from, and the factorization itself.</returns>
+    /// <remarks>
+    /// The QR is returned rather than discarded because a robust covariance needs the leverages,
+    /// which are a row of Q against itself. Computing them here instead would charge every IRLS
+    /// iteration for something only one caller in one mode wants (#686).
+    /// </remarks>
+    public static (double[] Coefficients, double[] InverseUpper, QrDecomposition Factorization) Solve(
         double[] matrix,
         int rowCount,
         int parameterCount,
@@ -97,7 +102,7 @@ internal static class LeastSquares
             coefficients[i] = total;
         }
 
-        return (coefficients, inverseUpper);
+        return (coefficients, inverseUpper, qr);
     }
 
     /// <summary>The inverse of an upper-triangular matrix, by back substitution.</summary>

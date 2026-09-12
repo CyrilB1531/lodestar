@@ -4,13 +4,14 @@ using Xunit;
 namespace Lodestar.Stats.Regression.Tests;
 
 /// <summary>
-/// Replays <c>statsmodels.api.OLS(...).fit()</c> over the six frozen cases of
+/// Replays <c>statsmodels.api.OLS(...).fit()</c> over the twelve frozen cases of
 /// <c>tests/oracles/stats_ols.json</c>.
 /// </summary>
 /// <remarks>
 /// Each case is chosen for something an inference table can get wrong rather than for
 /// something a solve can: a fitted intercept and none, a 99% level, a near-collinear pair
-/// whose VIF reaches 6e4, and one residual degree of freedom.
+/// whose VIF reaches 6e4, and one residual degree of freedom. Six of the twelve carry a robust
+/// covariance and replay the distribution switch as much as the arithmetic (#686).
 /// </remarks>
 public sealed class OlsOracleTests
 {
@@ -36,6 +37,17 @@ public sealed class OlsOracleTests
     private static double[] Doubles(JsonElement element, string name) =>
         [.. element.GetProperty(name).EnumerateArray().Select(v => v.GetDouble())];
 
+    /// <summary>The estimator a case names, spelled as statsmodels' own `cov_type` string.</summary>
+    private static CovarianceType Covariance(JsonElement frozen) =>
+        frozen.GetProperty("covarianceType").GetString() switch
+        {
+            "HC0" => CovarianceType.Hc0,
+            "HC1" => CovarianceType.Hc1,
+            "HC2" => CovarianceType.Hc2,
+            "HC3" => CovarianceType.Hc3,
+            _ => CovarianceType.Nonrobust,
+        };
+
     private static OlsSummary Fit(JsonElement frozen) => OrdinaryLeastSquares.Fit(
         Doubles(frozen, "design"),
         Doubles(frozen, "response"),
@@ -44,7 +56,19 @@ public sealed class OlsOracleTests
         {
             WithIntercept = frozen.GetProperty("withIntercept").GetBoolean(),
             ConfidenceLevel = frozen.GetProperty("confidenceLevel").GetDouble(),
+            CovarianceType = Covariance(frozen),
         });
+
+    [Theory]
+    [MemberData(nameof(Indices))]
+    public void The_summary_echoes_the_estimator_it_was_asked_for(int index)
+    {
+        // Which distribution the p-values came from follows from this and nothing else
+        // on the summary, so a reader who has only the summary needs it to be right.
+        JsonElement frozen = Cases[index];
+
+        Assert.Equal(Covariance(frozen), Fit(frozen).CovarianceType);
+    }
 
     [Theory]
     [MemberData(nameof(Indices))]

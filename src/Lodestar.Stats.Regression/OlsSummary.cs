@@ -43,6 +43,15 @@ public sealed class OlsSummary
     /// </remarks>
     public IReadOnlyList<double> VarianceInflationFactors { get; init; } = [];
 
+    /// <summary>Which covariance estimator produced the standard errors above.</summary>
+    /// <remarks>
+    /// Read it before reading <see cref="TStatistics"/> and <see cref="PValues"/>: anything but
+    /// <see cref="Lodestar.Stats.Regression.CovarianceType.Nonrobust"/> makes them <em>z</em>
+    /// statistics against the normal rather than <em>t</em> against Student's, and the intervals
+    /// take their multiplier from the same place. <see cref="FPValue"/> stays on the F either way.
+    /// </remarks>
+    public CovarianceType CovarianceType { get; init; }
+
     /// <summary>Whether an intercept was fitted, which is what shifts the lists by one.</summary>
     public bool HasIntercept { get; init; }
 
