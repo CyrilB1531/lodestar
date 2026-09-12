@@ -5,7 +5,7 @@ What a `GeneralizedLinearModel` fit may be told.
 <!-- docs-declaration -->
 
 ```csharp
-public sealed class GlmOptions
+public sealed record GlmOptions
 ```
 
 **Properties** — `WithIntercept` prepends a column of ones; `true` by default. `ConfidenceLevel`

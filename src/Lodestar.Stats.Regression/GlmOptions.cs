@@ -6,7 +6,7 @@ namespace Lodestar.Stats.Regression;
 /// <see cref="OlsOptions"/> already does: a budget of zero or a tolerance of zero reaches the
 /// caller as a table of <c>0/0</c> instead of an exception naming the setting (#616).
 /// </remarks>
-public sealed class GlmOptions
+public sealed record GlmOptions
 {
     private double _confidenceLevel = 0.95;
     private int _maximumIterations = 100;
