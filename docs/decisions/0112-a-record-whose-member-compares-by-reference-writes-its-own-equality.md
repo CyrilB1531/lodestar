@@ -44,6 +44,13 @@ The trigger is the member's equality, not its declaration. A collection member â
 struct or a `string` already compares by value, and the synthesised equality delegating to it is
 correct. `SurvivalStep` needs no help; the `SurvivalStep[]` holding it does.
 
+A third case fires the trigger and gets no arm below: a member that compares by reference and is
+neither a collection nor value-equal â€” a mutable class of its own.
+[#668](https://github.com/CyrilB1531/lodestar/issues/668) named it, as "a collection or a mutable
+object". It is left unarmed deliberately, because what equality means for such a member is that
+member's question rather than this rule's. No record in `src/` holds one today; a record that
+grows one answers the question in the same commit.
+
 Two arms, by what the member means:
 
 | member | compared | contributes to the hash |
