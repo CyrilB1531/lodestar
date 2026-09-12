@@ -26,7 +26,7 @@ of those is a decision record with a reading behind it, linked from the rows bel
 | **scikit-learn** | classical ML, pipelines, metrics | [ML.NET](https://dotnet.microsoft.com/apps/machinelearning-ai/ml-dotnet); [SharpLearning](https://github.com/mdabros/SharpLearning) | ✅ **Use** *except* text vectorization → **Lodestar.Text**, classification metrics → **Lodestar.Metrics**, and the two sparse decompositions (`TruncatedSVD`, `NMF`) → **Lodestar.Decomposition** |
 | **MAPIE** | conformal prediction: intervals and prediction sets with a coverage guarantee | none — no C# implementation exists | 🔴 **Write** — split conformal is **Lodestar.Conformal** |
 | **pandas** | DataFrame, groupby, IO | [`Microsoft.Data.Analysis`](https://www.nuget.org/packages/Microsoft.Data.Analysis); [Deedle](https://fslab.org/Deedle/) | 🟡 **Use** (rougher) |
-| **statsmodels** | econometric regression, time series, tests | Math.NET (basics) — *not* Accord.NET, see below; [`Microsoft.ML.TimeSeries`](https://www.nuget.org/packages/Microsoft.ML.TimeSeries) for forecasting | 🔴 **Write** — the tests and the OLS table ship as **Lodestar.Stats** and **Lodestar.Stats.Regression**; forecasting delegates; GLMs and the time-series diagnostics are being written |
+| **statsmodels** | econometric regression, time series, tests | Math.NET (basics) — *not* Accord.NET, see below; [`Microsoft.ML.TimeSeries`](https://www.nuget.org/packages/Microsoft.ML.TimeSeries) for forecasting | 🔴 **Write** — the tests and the OLS table ship as **Lodestar.Stats** and **Lodestar.Stats.Regression**; forecasting delegates; the GLM table ships beside the OLS one, and the time-series diagnostics are being written |
 | **scipy.stats** | hypothesis tests, distributions, tails | [Math.NET Numerics](https://numerics.mathdotnet.com/) for the distributions and their tails | 🔴 **Write** — ten test families at scipy parity ship as **Lodestar.Stats**. Math.NET has the distributions and no test battery over them, so the gap is the test and not the tail; [decision 0082](../decisions/0082-scipy-joins-the-allowed-permissive-references.md) admitted scipy as a permissive reference and [0095](../decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md) says which four tail members this publishes for its neighbours |
 | **lifelines** | survival analysis: Kaplan-Meier, Nelson-Aalen, log-rank | **none** — the largest void [#442](https://github.com/CyrilB1531/lodestar/issues/442) surveyed | 🔴 **Write** — right-censored estimators and the log-rank test ship as **Lodestar.Survival**, at lifelines parity. `scikit-survival` is the nearest reference in any language and is refused on its **licence**, not its capability — GPL-3.0-or-later, which [decision 0003](../decisions/0003-provenance-and-licensing.md) excludes ([0099](../decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)) |
 | **seaborn** | tidy statistical viz | ScottPlot / Plotly.NET (charts rebuilt) | 🟠 **Decide** — statistical presets missing |
@@ -134,6 +134,13 @@ are worth more than the list.
    figures are **not** measured by CI: a hosted runner has no GPU, so the 5–10× gate is
    measured on a named machine and published by hand
    ([decision 0102](../decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md)).
+14. **The generalized linear model** — binomial and Poisson fitted by IRLS, with the same
+   inference table entry 9 describes, at statsmodels parity. *(done,
+   `Lodestar.Stats.Regression`)* A GLM exists in .NET three times and none of them is
+   reachable: `Accord.Statistics` ships the whole stack under **LGPL-2.1** and archived in
+   2017, `Microsoft.ML` reports coefficient statistics for binary logistic **only**, and
+   `cs-glm` installs no assembly at all
+   ([decision 0104](../decisions/0104-generalized-linear-models-are-written-natively.md)).
 
 Three more packages carry no lot of their own. `Lodestar.Abstractions` holds the
 `CsrMatrix` the others share; `Lodestar.Onnx` exists to carry the one dependency that is

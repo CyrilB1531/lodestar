@@ -5,16 +5,16 @@ regression, distributions, basic tests) exists, and **the OLS summary table is
 now native**. Past it the answer differs by subject, which is what the readings
 in [`decisions/0104`](../decisions/0104-generalized-linear-models-are-written-natively.md)
 and [`decisions/0105`](../decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md)
-settled: **forecasting is already first-party** and is delegated; **GLMs and the
-time-series diagnostics are not, and are being written**; **mixed models** remain
-nobody's, and are still a gap.
+settled: **forecasting is already first-party** and is delegated; **the GLM table is
+now native too**, and the **time-series diagnostics** are still being written; **mixed
+models** remain nobody's, and are still a gap.
 
 | statsmodels need | .NET |
 | --- | --- |
 | Linear regression, least squares | **Math.NET Numerics** (`Fit`, `MultipleRegression`) — the estimate only |
 | `OLS(...).fit()` with its summary table | **native**: [`Lodestar.Stats.Regression`](../reference/stats-regression/ols.md) |
 | Distributions, basic hypothesis tests | **Math.NET** (`Distributions`). ⛔ *not* Accord.NET — last package October 2017, last commit November 2020; [README](README.md#unmaintained-and-why-that-is-stated-with-dates) |
-| GLMs with the inference table (logit, Poisson, …) | **being written** — ML.NET fits them, and reports coefficient statistics for *binary logistic only*; [`decisions/0104`](../decisions/0104-generalized-linear-models-are-written-natively.md), [#616](https://github.com/CyrilB1531/lodestar/issues/616) |
+| GLMs with the inference table (logit, Poisson, …) | **native**: [`Lodestar.Stats.Regression`](../reference/stats-regression/glm.md), binomial and Poisson. ML.NET fits them too, but reports coefficient statistics for *binary logistic only*; [`decisions/0104`](../decisions/0104-generalized-linear-models-are-written-natively.md), [#616](https://github.com/CyrilB1531/lodestar/issues/616) |
 | Forecasting, seasonality and anomaly detection | **Microsoft.ML.TimeSeries** 5.0.0 (`ForecastBySsa`, `DetectSeasonality`) — first-party and MIT; [`decisions/0105`](../decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md) |
 | Time-series diagnostics: ACF/PACF, Ljung-Box, stationarity, decomposition | **being written** — no maintained .NET package carries them; [#617](https://github.com/CyrilB1531/lodestar/issues/617) |
 | ARIMA / SARIMAX estimation, VAR, state-space | ⚠️ **gap** — a later lot, not the first ([#617](https://github.com/CyrilB1531/lodestar/issues/617)) |
@@ -59,10 +59,10 @@ double r2 = GoodnessOfFit.RSquared(xs.Select(x => a + b * x), ys);
   [`decisions/0104`](../decisions/0104-generalized-linear-models-are-written-natively.md)
   has the member listings.
 
-> Before any native development beyond the OLS table, weigh the **real need**: a
-> regression plus a few tests is often enough, and that much now ships. Two lots
-> are scoped past it — [#616](https://github.com/CyrilB1531/lodestar/issues/616)
-> and [#617](https://github.com/CyrilB1531/lodestar/issues/617) — and both start
-> from a reading rather than from a claim.
+> Before any native development beyond the tables that ship, weigh the **real
+> need**: a regression plus a few tests is often enough, and that much now ships,
+> with the GLM beside it since [#616](https://github.com/CyrilB1531/lodestar/issues/616).
+> One lot is scoped past them — [#617](https://github.com/CyrilB1531/lodestar/issues/617)
+> — and it starts from a reading rather than from a claim.
 
 *Guide to be expanded as real needs arise.*

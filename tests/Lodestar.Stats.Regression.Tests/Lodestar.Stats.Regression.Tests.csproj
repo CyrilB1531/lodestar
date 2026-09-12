@@ -20,6 +20,15 @@
   <ItemGroup>
     <None Include="../oracles/stats_ols.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
+    <None Include="../oracles/stats_glm.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
+  </ItemGroup>
+
+  <!-- Decision 0081: StatsOracleAsserts is the one place the relative p-value tolerance
+       is defined, so it is linked here rather than reinvented. -->
+  <ItemGroup>
+    <Compile Include="../Lodestar.Stats.Tests/Oracles/StatsOracleAsserts.cs"
+             Link="Oracles/StatsOracleAsserts.cs" />
   </ItemGroup>
 
   <!-- The reference gate reads the published pages and the map beside the assembly,

@@ -4,13 +4,19 @@
     Lodestar.Stats.Regression owns its version here, independently of the other
     packages (see docs/decisions/0012-per-package-versioning.md).
 
-    0.1.0 is this package's first release. It carries two inter-package edges, to
-    Lodestar.Stats for the Student and Fisher tails and to Lodestar.Decomposition
-    for the Householder QR; both floors live in src/Directory.Packages.props and
-    are deliberately decoupled from this number.
+    0.1.0 shipped on 2026-09-10, this package's first release. It carries two
+    inter-package edges, to Lodestar.Stats for the Student and Fisher tails and
+    to Lodestar.Decomposition for the Householder QR; both floors live in
+    src/Directory.Packages.props and are deliberately decoupled from this number.
+
+    0.2.0 is minor rather than a patch: GeneralizedLinearModel, GlmFamily,
+    GlmOptions and GlmSummary are new public surface and nothing existing moved
+    or was removed (decision 0111). No new inter-package edge came with them —
+    the IRLS loop reuses the same internal least-squares core the OLS half
+    already had.
   -->
   <PropertyGroup>
-    <LodestarStatsRegressionVersion>0.1.0</LodestarStatsRegressionVersion>
+    <LodestarStatsRegressionVersion>0.2.0</LodestarStatsRegressionVersion>
   </PropertyGroup>
 
 </Project>

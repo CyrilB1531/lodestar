@@ -54,6 +54,9 @@ StandardScalerOptionsSample.Run();
 OrdinaryLeastSquaresSample.Run();
 OlsSummarySample.Run();
 OlsOptionsSample.Run();
+GeneralizedLinearModelSample.Run();
+GlmSummarySample.Run();
+GlmOptionsSample.Run();
 
 MinHashPermutationsSample.Run();
 MinHashSample.Run();

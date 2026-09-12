@@ -1,7 +1,7 @@
 namespace Lodestar.Stats.Regression;
 
 /// <summary>What an ordinary least-squares fit should estimate, and at what confidence.</summary>
-public sealed class OlsOptions
+public sealed record OlsOptions
 {
     private double _confidenceLevel = 0.95;
 
@@ -11,14 +11,14 @@ public sealed class OlsOptions
     /// <see cref="OlsSummary.RSquared"/> becomes the <em>uncentred</em> one and the overall
     /// F test gains a degree of freedom, both of which follow statsmodels.
     /// </remarks>
-    public bool WithIntercept { get; set; } = true;
+    public bool WithIntercept { get; init; } = true;
 
     /// <summary>The confidence level of the reported intervals; 0.95 by default.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The value does not lie strictly inside (0, 1).</exception>
     public double ConfidenceLevel
     {
         get => _confidenceLevel;
-        set
+        init
         {
             if (double.IsNaN(value) || value <= 0.0 || value >= 1.0)
             {

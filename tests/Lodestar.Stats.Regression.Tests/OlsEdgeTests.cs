@@ -49,9 +49,8 @@ public sealed class OlsEdgeTests
     [InlineData(double.NaN)]
     public void A_confidence_level_outside_the_open_unit_interval_is_refused(double level)
     {
-        var options = new OlsOptions();
-
-        Assert.Throws<ArgumentOutOfRangeException>(() => options.ConfidenceLevel = level);
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => new OlsOptions { ConfidenceLevel = level });
     }
 
     [Fact]

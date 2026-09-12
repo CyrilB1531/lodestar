@@ -9,7 +9,8 @@ return the estimate and stop. What follows is the other half.
 
 ## The whole surface
 
-One call, one object:
+One call, one object —
+[`OrdinaryLeastSquares.Fit`](../reference/stats-regression/ols/ordinaryleastsquares-fit.md):
 
 ```csharp
 using Lodestar.Stats.Regression;
