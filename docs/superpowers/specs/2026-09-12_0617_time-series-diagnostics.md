@@ -206,9 +206,10 @@ Quenouille's result, that a partial autocorrelation beyond the true order is asy
 `N(0, 1/n)` — and the interval is `pacf[k] ± z_{1-α/2}/sqrt(n)`. Lag zero's interval is the point
 `[1, 1]`, which the reference sets explicitly after the fact.
 
-Only `ywadjusted` ships. The reference offers eight more spellings across four methods — `ywm`,
-`ols`, `ols-inefficient`, `ols-adjusted`, `ld`, `ldbiased`, `burg` — and none of them is what a
-caller gets by not choosing. Adding them is an options enum later, not a reason to widen this lot.
+`ywadjusted` (also spelled `yw`, `ywa`, `yw_adjusted`) is the reference's own default and the only
+method shipped; the reference offers seven other estimators — `ywm`, `ols`, `ols-inefficient`,
+`ols-adjusted`, `ld`, `ldbiased`, `burg` — across four families. Adding them is an options enum
+later, not a reason to widen this lot.
 
 ### Ljung-Box
 

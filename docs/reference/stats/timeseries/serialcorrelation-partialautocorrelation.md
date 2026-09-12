@@ -37,12 +37,12 @@ double lower3 = Math.Round(result.ConfidenceLower[3], 4);  // => -1.2309
 double upper3 = Math.Round(result.ConfidenceUpper[3], 4);  // => -0.0993
 ```
 
-**Remarks — `ywadjusted` is the only partial method shipped, where the reference offers eight more
-spellings across four methods** (`ywm`, `ols`, `ols-inefficient`, `ols-adjusted`, `ld`, `ldbiased`,
-`burg`, plus the plain `yw` this one corresponds to). Yule-Walker with the adjusted autocovariance,
-solved by the Levinson-Durbin recursion, is what a caller gets by not choosing — none of the eight
-is a default here, because none of them is the reference's own default either. Widening this to an
-options enum is a later change, not a reason to hold this one back.
+**Remarks** — `ywadjusted` (also spelled `yw`, `ywa`, `yw_adjusted`) is the reference's own default
+and the only method shipped; the reference offers seven other estimators — `ywm`, `ols`,
+`ols-inefficient`, `ols-adjusted`, `ld`, `ldbiased`, `burg` — across four families. Yule-Walker with
+the adjusted autocovariance, solved by the Levinson-Durbin recursion, is what a caller gets by not
+choosing, and it is the reference's default too. Widening this to an options enum is a later
+change, not a reason to hold this one back.
 
 **The band does not use Bartlett's formula.** Its variance is `1/n` at every lag past zero —
 Quenouille's result, that a partial autocorrelation past the true order is asymptotically

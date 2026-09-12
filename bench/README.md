@@ -2149,8 +2149,9 @@ ACF and Ljung-Box agree to noise-level precision — the same shared reason sect
 records for the hypothesis tests, a second implementation converging on the same textbook
 arithmetic. **The partial autocorrelation does not**, and the gap is not close to floating-point
 noise at either size. [`SerialCorrelation.PartialAutocorrelation`](../docs/reference/stats/timeseries/serialcorrelation-partialautocorrelation.md)
-documents that only the `ywadjusted` method ships, where the reference offers eight more spellings
-across four methods (`docs/equivalence.md`'s serial-correlation section) — `Cortex.TimeSeries`'s own
+documents that `ywadjusted` (also spelled `yw`, `ywa`, `yw_adjusted`) is the reference's own default
+and the only method shipped, where the reference offers seven other estimators across four
+families (`docs/equivalence.md`'s serial-correlation section) — `Cortex.TimeSeries`'s own
 `PACF` does not publish which of those it solves, and this gap is consistent with it being a
 different one. This is a correctness note for a reader comparing the two libraries' numbers
 directly, not a defect: the oracle this package answers to is `statsmodels`, checked on the frozen
