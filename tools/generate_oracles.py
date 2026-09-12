@@ -9419,9 +9419,13 @@ def _stats_nan_samples() -> list[dict]:
 def _stats_nan_paired() -> list[dict]:
     """Aligned samples whose listwise and per-sample filtering differ (#687).
 
-    The first fixture is the one that catches a wrong implementation: dropping
-    each sample independently leaves four and five values, which a paired test
-    cannot even consume, while listwise leaves three pairs.
+    The first fixture is the one that catches a wrong implementation: x and y
+    each hold exactly one NaN, at different indices, so dropping each sample
+    independently leaves four and four values -- which a paired test consumes
+    perfectly well, giving t=-5.0, df=3 -- while listwise deletion drops both
+    indices together and leaves three pairs, giving t=-4.0, df=2. The fixture
+    discriminates by producing a different number, not by raising where the
+    other implementation does not.
     """
     return [
         {"name": "listwise differs from per-sample",

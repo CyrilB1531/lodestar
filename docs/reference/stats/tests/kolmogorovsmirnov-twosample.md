@@ -18,8 +18,9 @@ defaulting to [`NanPolicy.Propagate`](../nanpolicy.md).
 **Returns** — `KsResult`: the distance, the p-value, where that supremum is attained, and its
 sign.
 
-**Exceptions** — `ArgumentException` when either sample is empty. `ArgumentOutOfRangeException`
-when `method` is `ExactMethod.Exact` and `a.Length * b.Length` exceeds 1,000,000.
+**Exceptions** — `ArgumentException` when either sample is empty, or `nanPolicy` is
+`NanPolicy.Raise` and either sample holds a `NaN`. `ArgumentOutOfRangeException` when `method`
+is `ExactMethod.Exact` and `a.Length * b.Length` exceeds 1,000,000.
 
 **Example** — two samples of the same size, shifted apart.
 

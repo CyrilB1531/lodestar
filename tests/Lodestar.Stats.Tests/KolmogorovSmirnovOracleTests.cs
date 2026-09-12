@@ -16,7 +16,7 @@ public sealed class KolmogorovSmirnovOracleTests
 
         foreach (JsonElement c in document.RootElement.GetProperty("cases").EnumerateArray())
         {
-            if (c.GetProperty("args").TryGetProperty("nan_policy", out _))
+            if (StatsCorpus.HasNanPolicy(c.GetProperty("args")))
             {
                 continue;
             }
@@ -43,7 +43,7 @@ public sealed class KolmogorovSmirnovOracleTests
         // Every case without a nan_policy was replayed; those cases are covered
         // by Every_nan_policy_case_matches_scipy instead.
         int expected = document.RootElement.GetProperty("cases").EnumerateArray()
-            .Count(c => !c.GetProperty("args").TryGetProperty("nan_policy", out _));
+            .Count(c => !StatsCorpus.HasNanPolicy(c.GetProperty("args")));
         Assert.Equal(expected, replayed);
     }
 
@@ -56,19 +56,13 @@ public sealed class KolmogorovSmirnovOracleTests
         foreach (JsonElement c in document.RootElement.GetProperty("cases").EnumerateArray())
         {
             JsonElement args = c.GetProperty("args");
-            if (!args.TryGetProperty("nan_policy", out JsonElement policyElement))
+            if (!StatsCorpus.HasNanPolicy(args))
             {
                 continue;
             }
 
             string name = c.GetProperty("name").GetString()!;
-            NanPolicy policy = policyElement.GetString() switch
-            {
-                "propagate" => NanPolicy.Propagate,
-                "raise" => NanPolicy.Raise,
-                "omit" => NanPolicy.Omit,
-                _ => throw new InvalidOperationException($"unknown nan_policy in {name}"),
-            };
+            NanPolicy policy = StatsCorpus.NanPolicy(args);
             double[] a = StatsCorpus.Doubles(c.GetProperty("a"));
             double[] b = StatsCorpus.Doubles(c.GetProperty("b"));
 

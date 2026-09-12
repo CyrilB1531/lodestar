@@ -34,10 +34,8 @@ public static class MannWhitney
     /// <param name="x">The first sample; at least one value.</param>
     /// <param name="y">The second sample; at least one value.</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
-    /// <param name="continuity">
-    /// Whether the normal approximation gets the half-unit correction. Ignored
-    /// on the exact branch, where there is nothing to approximate.
-    /// </param>
+    /// <param name="continuity">Whether the normal approximation gets the half-unit
+    /// correction, ignored on the exact branch.</param>
     /// <param name="method">
     /// Exact, asymptotic, or chosen by sample size and ties. Past the same size bound
     /// <see cref="ExactMethod.Exact"/> is refused for, <see cref="ExactMethod.Auto"/>
@@ -45,7 +43,10 @@ public static class MannWhitney
     /// </param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>U for the first sample, and the p-value.</returns>
-    /// <exception cref="ArgumentException">Either sample is empty.</exception>
+    /// <exception cref="ArgumentException">
+    /// Either sample is empty. When <paramref name="nanPolicy"/> is
+    /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
+    /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/> and
     /// <c>x.Length * y.Length</c> exceeds 20,000; the table's build cost is quadratic
@@ -82,8 +83,8 @@ public static class MannWhitney
         left.CopyTo(pooled);
         right.CopyTo(pooled.AsSpan(n));
 
-        // The spec's rule: no nan_policy parameter exists, so a NaN anywhere
-        // propagates rather than taking a false finite rank (Ranks.HasNaN's remark).
+        // Under the default NanPolicy.Propagate a NaN anywhere propagates rather
+        // than taking a false finite rank (Ranks.HasNaN's remark).
         if (Ranks.HasNaN(pooled))
         {
             return new TestResult(double.NaN, double.NaN);

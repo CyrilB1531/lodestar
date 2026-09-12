@@ -33,8 +33,8 @@ public static class KruskalWallis
         int total = ValidatedTotal(groups);
         double[] pooled = Pool(groups, total);
 
-        // The spec's rule: no nan_policy parameter exists, so a NaN anywhere
-        // propagates rather than taking a false finite rank (Ranks.HasNaN's remark).
+        // Under the default NanPolicy.Propagate a NaN anywhere propagates rather
+        // than taking a false finite rank (Ranks.HasNaN's remark).
         if (Ranks.HasNaN(pooled))
         {
             return new TestResult(double.NaN, double.NaN);

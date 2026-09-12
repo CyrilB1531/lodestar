@@ -51,12 +51,14 @@ public sealed class NanPolicyEdgeTests
     }
 
     [Fact]
-    public void Omitting_an_aligned_expectation_breaks_the_sum_agreement()
+    public void Omitting_an_aligned_expectation_drops_the_pair_and_tests_the_rest()
     {
         double[] observed = [10.0, 20.0, double.NaN, 40.0];
-        double[] expected = [15.0, 25.0, 30.0, 40.0];
+        double[] expected = [15.0, 25.0, 30.0, 30.0];
 
-        Assert.Throws<ArgumentException>(
-            () => ChiSquare.GoodnessOfFit(observed, expected, NanPolicy.Omit));
+        TestResult result = ChiSquare.GoodnessOfFit(observed, expected, NanPolicy.Omit);
+
+        Assert.Equal(6.0, result.Statistic, 9);
+        Assert.Equal(0.04978706836786395, result.PValue, 9);
     }
 }

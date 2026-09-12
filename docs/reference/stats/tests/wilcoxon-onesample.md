@@ -18,8 +18,9 @@ test, its normal approximation, or a choice between them by the number of non-ze
 
 **Returns** — `TestResult`: the smaller of the two signed-rank sums, and the p-value.
 
-**Exceptions** — `ArgumentException` when `differences` is empty. `ArgumentOutOfRangeException`
-when `method` is `ExactMethod.Exact` and the zero-method-processed sample exceeds 500 values.
+**Exceptions** — `ArgumentException` when `differences` is empty, or `nanPolicy` is
+`NanPolicy.Raise` and the sample holds a `NaN`. `ArgumentOutOfRangeException` when `method` is
+`ExactMethod.Exact` and the zero-method-processed sample exceeds 500 values.
 
 **Example** — seven differences, two of them exactly zero.
 

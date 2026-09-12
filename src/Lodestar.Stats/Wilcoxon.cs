@@ -52,7 +52,10 @@ public static class Wilcoxon
     /// </param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>The smaller signed-rank sum, and the p-value.</returns>
-    /// <exception cref="ArgumentException">The samples differ in length, or are empty.</exception>
+    /// <exception cref="ArgumentException">
+    /// The samples differ in length, or are empty. When <paramref name="nanPolicy"/> is
+    /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
+    /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/> and the ranked sample
     /// exceeds 500 values. Pass <see cref="ExactMethod.Asymptotic"/> instead.
@@ -103,7 +106,10 @@ public static class Wilcoxon
     /// </param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in the sample.</param>
     /// <returns>The smaller signed-rank sum, and the p-value.</returns>
-    /// <exception cref="ArgumentException"><paramref name="differences"/> is empty.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="differences"/> is empty. When <paramref name="nanPolicy"/> is
+    /// <see cref="NanPolicy.Raise"/> and the sample holds a <c>NaN</c>.
+    /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/> and the zero-method-processed
     /// sample exceeds 500 values -- <c>2^n</c> overflows past <c>n = 1023</c>, silently zeroing

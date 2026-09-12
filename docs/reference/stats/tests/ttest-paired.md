@@ -14,10 +14,12 @@ what to do with a `NaN`; scipy's `nan_policy`, defaulting to
 [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TTestResult`: the t statistic of the differences `a[i] - b[i]`, its p-value, and
-the degrees of freedom, `a.Length - 1`.
+the degrees of freedom — one less than the number of pairs actually tested. That is
+`a.Length - 1` under the default [`NanPolicy.Propagate`](../nanpolicy.md), and one less than the
+aligned-filtered pair count under [`NanPolicy.Omit`](../nanpolicy.md).
 
-**Exceptions** — `ArgumentException` when the two samples differ in length, or hold fewer than
-two pairs.
+**Exceptions** — `ArgumentException` when the two samples differ in length, hold fewer than
+two pairs, or `nanPolicy` is `NanPolicy.Raise` and either sample holds a `NaN`.
 
 **Example** — the same seven machines, measured before and after a configuration change.
 

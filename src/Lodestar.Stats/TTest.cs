@@ -19,7 +19,10 @@ public static class TTest
     /// <param name="variance">Whether to pool the two variances.</param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>The statistic, the p-value and the degrees of freedom.</returns>
-    /// <exception cref="ArgumentException">Either sample holds fewer than two values.</exception>
+    /// <exception cref="ArgumentException">
+    /// Either sample holds fewer than two values. When <paramref name="nanPolicy"/> is
+    /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
+    /// </exception>
     public static TTestResult Independent(
         ReadOnlySpan<double> a,
         ReadOnlySpan<double> b,
@@ -73,7 +76,9 @@ public static class TTest
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>The statistic, the p-value and the degrees of freedom.</returns>
     /// <exception cref="ArgumentException">
-    /// The samples differ in length, or hold fewer than two pairs.
+    /// The samples differ in length, or hold fewer than two pairs. When <paramref
+    /// name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and either sample holds a
+    /// <c>NaN</c>.
     /// </exception>
     public static TTestResult Paired(
         ReadOnlySpan<double> a,
@@ -114,7 +119,10 @@ public static class TTest
     /// <param name="alternative">Which tail the p-value covers.</param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in the sample.</param>
     /// <returns>The statistic, the p-value and the degrees of freedom.</returns>
-    /// <exception cref="ArgumentException"><paramref name="sample"/> holds fewer than two values.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="sample"/> holds fewer than two values. When <paramref name="nanPolicy"/>
+    /// is <see cref="NanPolicy.Raise"/> and the sample holds a <c>NaN</c>.
+    /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="populationMean"/> is NaN or infinite.
     /// </exception>

@@ -17,8 +17,9 @@ a `NaN`; scipy's `nan_policy`, defaulting to [`NanPolicy.Propagate`](../nanpolic
 
 **Returns** — `TestResult`: *U* for `x`, and the p-value.
 
-**Exceptions** — `ArgumentException` when either sample is empty. `ArgumentOutOfRangeException`
-when `method` is `ExactMethod.Exact` and `x.Length * y.Length` exceeds 20,000.
+**Exceptions** — `ArgumentException` when either sample is empty, or `nanPolicy` is
+`NanPolicy.Raise` and either sample holds a `NaN`. `ArgumentOutOfRangeException` when `method`
+is `ExactMethod.Exact` and `x.Length * y.Length` exceeds 20,000.
 
 **Example** — a control group and a treated group, one value tied across them.
 

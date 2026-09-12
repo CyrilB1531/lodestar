@@ -38,7 +38,10 @@ public static class KolmogorovSmirnov
     /// <param name="method">Exact, asymptotic, or chosen by the sample sizes.</param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>The distance, the p-value, where the distance was reached and its sign.</returns>
-    /// <exception cref="ArgumentException">Either sample is empty.</exception>
+    /// <exception cref="ArgumentException">
+    /// Either sample is empty. When <paramref name="nanPolicy"/> is
+    /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
+    /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/> and <c>a.Length * b.Length</c>
     /// exceeds 1,000,000; the lattice-path recurrence allocates one row per iteration, an

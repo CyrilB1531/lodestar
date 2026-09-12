@@ -12,7 +12,10 @@ public sealed record TTestResult(double Statistic, double PValue, double Df)
 `Df` is the degrees of freedom: integral for Student and for the paired and one-sample tests,
 fractional for Welch, whose Satterthwaite denominator is not a count of anything.
 
-**Example** — a one-sample test's degrees of freedom, which is always `sample.Length - 1`.
+**Example** — a one-sample test's degrees of freedom: one less than the number of values
+actually tested, `sample.Length - 1` here since the default
+[`NanPolicy.Propagate`](../nanpolicy.md) tests every value — one less than the filtered length
+under [`NanPolicy.Omit`](../nanpolicy.md) instead.
 
 ```csharp
 using Lodestar.Stats;

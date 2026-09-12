@@ -16,7 +16,8 @@ defaulting to [`NanPolicy.Propagate`](../nanpolicy.md).
 **Returns** — `TTestResult`: the t statistic, the p-value, and the degrees of freedom, which are
 fractional under `Variance.Welch`.
 
-**Exceptions** — `ArgumentException` when either sample holds fewer than two values.
+**Exceptions** — `ArgumentException` when either sample holds fewer than two values, or
+`nanPolicy` is `NanPolicy.Raise` and either sample holds a `NaN`.
 
 **Example** — two samples with clearly different means.
 

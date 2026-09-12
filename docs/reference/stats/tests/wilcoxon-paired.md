@@ -18,9 +18,9 @@ what to do with a `NaN`; scipy's `nan_policy`, defaulting to
 
 **Returns** — `TestResult`: the smaller of the two signed-rank sums, and the p-value.
 
-**Exceptions** — `ArgumentException` when the two samples differ in length, or are empty.
-`ArgumentOutOfRangeException` when `method` is `ExactMethod.Exact` and the ranked sample exceeds
-500 values.
+**Exceptions** — `ArgumentException` when the two samples differ in length, are empty, or
+`nanPolicy` is `NanPolicy.Raise` and either sample holds a `NaN`. `ArgumentOutOfRangeException`
+when `method` is `ExactMethod.Exact` and the ranked sample exceeds 500 values.
 
 **Example** — seven pairs, two of them unchanged: what the three zero methods disagree about.
 
