@@ -15,6 +15,9 @@ first when one was fitted: `Coefficients`, `StandardErrors`, `TStatistics`, `PVa
 *regressor*, so it is shorter by one whenever `HasIntercept` is true. The whole-model figures are
 `RSquared`, `AdjustedRSquared`, `FStatistic`, `FPValue`, `ResidualDegreesOfFreedom` and
 `ResidualStandardError`, and `ConfidenceLevel` says what the two interval lists were computed at.
+[`CovarianceType`](covariancetype.md) echoes the estimator that produced the standard errors, and
+is what tells a reader holding only this summary whether `TStatistics` and `PValues` are *t*
+against Student's or *z* against the normal.
 
 **Example** — the whole-model half of the table.
 

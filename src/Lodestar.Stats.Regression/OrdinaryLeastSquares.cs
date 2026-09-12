@@ -47,7 +47,7 @@ public static class OrdinaryLeastSquares
         }
 
         double[] matrix = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept);
-        (double[] coefficients, double[] inverseUpper) =
+        (double[] coefficients, double[] inverseUpper, QrDecomposition factorization) =
             LeastSquares.Solve(matrix, rowCount, parameterCount, response);
 
         double[] residuals = Residuals(matrix, rowCount, parameterCount, response, coefficients);
@@ -55,26 +55,50 @@ public static class OrdinaryLeastSquares
         double residualVariance = residualSumOfSquares / residualDegreesOfFreedom;
         double residualStandardError = Math.Sqrt(residualVariance);
 
-        double[] standardErrors = LeastSquares.StandardErrors(inverseUpper, parameterCount, residualVariance);
+        bool robust = settings.CovarianceType != CovarianceType.Nonrobust;
+        double[]? covariance = robust
+            ? RobustCovariance.Sandwich(
+                matrix,
+                inverseUpper,
+                residuals,
+                RobustCovariance.Leverages(factorization.Q, rowCount, parameterCount),
+                rowCount,
+                parameterCount,
+                settings.CovarianceType)
+            : null;
+
+        double[] standardErrors = covariance is null
+            ? LeastSquares.StandardErrors(inverseUpper, parameterCount, residualVariance)
+            : Diagonal(covariance, parameterCount);
+
         var tStatistics = new double[parameterCount];
         var pValues = new double[parameterCount];
         var lower = new double[parameterCount];
         var upper = new double[parameterCount];
-        double multiplier = Distributions.StudentQuantile(
-            1.0 - ((1.0 - settings.ConfidenceLevel) / 2.0), residualDegreesOfFreedom);
+        double half = 1.0 - ((1.0 - settings.ConfidenceLevel) / 2.0);
+        double multiplier = robust
+            ? Distributions.NormalQuantile(half)
+            : Distributions.StudentQuantile(half, residualDegreesOfFreedom);
 
         for (int j = 0; j < parameterCount; j++)
         {
             tStatistics[j] = coefficients[j] / standardErrors[j];
-            pValues[j] = 2.0 * Distributions.StudentSf(Math.Abs(tStatistics[j]), residualDegreesOfFreedom);
+            // The square of a standard normal is chi-squared on one degree of freedom, so the
+            // two-sided normal p-value is a tail this package already publishes (decision 0115).
+            pValues[j] = robust
+                ? Distributions.ChiSquaredSf(tStatistics[j] * tStatistics[j], 1.0)
+                : 2.0 * Distributions.StudentSf(
+                    Math.Abs(tStatistics[j]), residualDegreesOfFreedom);
             lower[j] = coefficients[j] - (multiplier * standardErrors[j]);
             upper[j] = coefficients[j] + (multiplier * standardErrors[j]);
         }
 
         double rSquared = RSquared(response, residualSumOfSquares, settings.WithIntercept);
         int modelDegreesOfFreedom = parameterCount - (settings.WithIntercept ? 1 : 0);
-        double fStatistic = rSquared / modelDegreesOfFreedom
-            / ((1.0 - rSquared) / residualDegreesOfFreedom);
+        double fStatistic = covariance is null
+            ? rSquared / modelDegreesOfFreedom / ((1.0 - rSquared) / residualDegreesOfFreedom)
+            : RobustCovariance.Wald(
+                covariance, coefficients, parameterCount, settings.WithIntercept);
 
         return new OlsSummary
         {
@@ -85,6 +109,7 @@ public static class OrdinaryLeastSquares
             ConfidenceLower = lower,
             ConfidenceUpper = upper,
             VarianceInflationFactors = Vif(matrix, rowCount, parameterCount, settings.WithIntercept),
+            CovarianceType = settings.CovarianceType,
             HasIntercept = settings.WithIntercept,
             ConfidenceLevel = settings.ConfidenceLevel,
             RSquared = rSquared,
@@ -94,6 +119,18 @@ public static class OrdinaryLeastSquares
             ResidualDegreesOfFreedom = residualDegreesOfFreedom,
             ResidualStandardError = residualStandardError,
         };
+    }
+
+    /// <summary>The square roots of a covariance's diagonal, which are its standard errors.</summary>
+    private static double[] Diagonal(double[] covariance, int order)
+    {
+        var errors = new double[order];
+        for (int i = 0; i < order; i++)
+        {
+            errors[i] = Math.Sqrt(covariance[(i * order) + i]);
+        }
+
+        return errors;
     }
 
     /// <summary>What the model leaves unexplained, row by row.</summary>

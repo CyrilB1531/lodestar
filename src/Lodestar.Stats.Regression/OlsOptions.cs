@@ -13,6 +13,15 @@ public sealed record OlsOptions
     /// </remarks>
     public bool WithIntercept { get; init; } = true;
 
+    /// <summary>How the covariance of the estimates is estimated; the ordinary one by default.</summary>
+    /// <remarks>
+    /// Anything but <see cref="CovarianceType.Nonrobust"/> also moves the coefficient tests from
+    /// Student's t to the normal, following <c>statsmodels</c>, and the overall F becomes a Wald
+    /// statistic on the robust covariance. <see cref="OlsSummary.CovarianceType"/> echoes what was
+    /// used, so a reader of the summary alone can tell which distribution its p-values came from.
+    /// </remarks>
+    public CovarianceType CovarianceType { get; init; } = CovarianceType.Nonrobust;
+
     /// <summary>The confidence level of the reported intervals; 0.95 by default.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The value does not lie strictly inside (0, 1).</exception>
     public double ConfidenceLevel

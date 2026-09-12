@@ -13,6 +13,8 @@ models** remain nobody's, and are still a gap.
 | --- | --- |
 | Linear regression, least squares | **Math.NET Numerics** (`Fit`, `MultipleRegression`) — the estimate only |
 | `OLS(...).fit()` with its summary table | **native**: [`Lodestar.Stats.Regression`](../reference/stats-regression/ols.md) |
+| `OLS(...).fit(cov_type="HC0".."HC3")` | **native**: [`CovarianceType`](../reference/stats-regression/ols/covariancetype.md). The distribution moves with it as it does in statsmodels — *z* for the coefficients, F for the overall test; [`decisions/0115`](../decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md), [#686](https://github.com/CyrilB1531/lodestar/issues/686) |
+| `WLS`, `GLS`, cluster-robust covariances | ⚠️ **gap** — decision 0115 puts WLS next and GLS after the GLM families; cluster-robust is unscoped |
 | Distributions, basic hypothesis tests | **Math.NET** (`Distributions`). ⛔ *not* Accord.NET — last package October 2017, last commit November 2020; [README](README.md#unmaintained-and-why-that-is-stated-with-dates) |
 | GLMs with the inference table (logit, Poisson, …) | **native**: [`Lodestar.Stats.Regression`](../reference/stats-regression/glm.md), binomial and Poisson. ML.NET fits them too, but reports coefficient statistics for *binary logistic only*; [`decisions/0104`](../decisions/0104-generalized-linear-models-are-written-natively.md), [#616](https://github.com/CyrilB1531/lodestar/issues/616) |
 | Forecasting, seasonality and anomaly detection | **Microsoft.ML.TimeSeries** 5.0.0 (`ForecastBySsa`, `DetectSeasonality`) — first-party and MIT; [`decisions/0105`](../decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md) |
