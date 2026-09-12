@@ -453,7 +453,7 @@ public sealed class GlmOptions
     /// <summary>How many IRLS iterations are allowed. Default 100, which is the reference's.</summary>
     public int MaximumIterations { get; init; } = 100;
 
-    /// <summary>The tolerance, used as both the absolute and relative term. Default 1e-8.</summary>
+    /// <summary>The absolute bound on the change in deviance between iterations. Default 1e-8.</summary>
     public double Tolerance { get; init; } = 1e-8;
 
     /// <summary>Whether a fit that did not converge throws instead of returning. Default true.</summary>
@@ -549,9 +549,9 @@ internal static class Irls
 
             double next = Deviance(family, response, mean);
             change = Math.Abs(deviance - next);
-            // numpy.allclose, which is the reference's criterion: neither purely relative nor
-            // purely absolute but their sum, with atol and rtol both the tolerance.
-            converged = change <= options.Tolerance + (options.Tolerance * Math.Abs(next));
+            // numpy.allclose with the reference's own arguments: _fit_irls passes atol=tol and
+            // leaves rtol at 0, so the criterion is the absolute deviance change alone.
+            converged = change <= options.Tolerance;
             deviance = next;
             if (converged)
             {
