@@ -5,7 +5,7 @@ A hash consistent with the equality, in constant time.
 <!-- docs-declaration -->
 
 ```csharp
-public override int GetHashCode()
+public int GetHashCode()
 ```
 
 **Returns** — a hash over the scalars and the number of centres.

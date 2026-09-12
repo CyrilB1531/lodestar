@@ -5,7 +5,7 @@ Compares the steps and all three curves, element by element.
 <!-- docs-declaration -->
 
 ```csharp
-public bool Equals(KaplanMeierCurve? other)
+public bool Equals(KaplanMeierCurve other)
 ```
 
 **Parameters** — `other` is the curve to compare against, or `null`.

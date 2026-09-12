@@ -5,7 +5,7 @@ Compares every option, treating the stop words as a set.
 <!-- docs-declaration -->
 
 ```csharp
-public bool Equals(TextRankOptions? other)
+public bool Equals(TextRankOptions other)
 ```
 
 **Parameters** — `other` is the options to compare against, or `null`.

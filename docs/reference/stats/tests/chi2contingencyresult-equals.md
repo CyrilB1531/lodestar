@@ -5,7 +5,7 @@ Compares the scalars and the expected table, row by row.
 <!-- docs-declaration -->
 
 ```csharp
-public bool Equals(Chi2ContingencyResult? other)
+public bool Equals(Chi2ContingencyResult other)
 ```
 
 **Parameters** — `other` is the result to compare against, or `null`.

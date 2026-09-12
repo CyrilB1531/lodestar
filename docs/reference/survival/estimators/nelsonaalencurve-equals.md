@@ -5,7 +5,7 @@ Compares the steps and the cumulative hazard, element by element.
 <!-- docs-declaration -->
 
 ```csharp
-public bool Equals(NelsonAalenCurve? other)
+public bool Equals(NelsonAalenCurve other)
 ```
 
 **Parameters** — `other` is the curve to compare against, or `null`.

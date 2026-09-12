@@ -5,7 +5,7 @@ Compares every option, the centres element by element.
 <!-- docs-declaration -->
 
 ```csharp
-public bool Equals(KMeansOptions? other)
+public bool Equals(KMeansOptions other)
 ```
 
 **Parameters** — `other` is the options to compare against, or `null`.
