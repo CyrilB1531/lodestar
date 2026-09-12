@@ -1829,10 +1829,17 @@ entry and this is what checks the twelve pages exist and match the assemblies.
 
 ```bash
 sh .githooks/pre-commit
+python3 -m pytest tools/tests -q
 npx markdownlint-cli2 "README.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "bench/README.md"
 dotnet format Lodestar.slnx --verify-no-changes
 python3 tools/check_repeated_literals.py --base origin/main
 ```
+
+`pytest tools/tests` is in this list because the pre-commit hook does **not** run it, and it holds
+the only check that an added ADR was written into `docs/decisions/README.md` — both its table and
+the two counts spelled out in words under *What `accepted` means here*. `regen_adr_index.py`
+rebuilds `index.yaml` and leaves that README alone, so a new decision passes every other gate and
+fails this one.
 
 Expected: all exit 0.
 
