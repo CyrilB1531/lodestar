@@ -2106,3 +2106,70 @@ neither side pays for a design this package's own test corpus does not also exer
 **The measurement has not been taken yet**, so [`docs/guides/performance.md`](../docs/guides/performance.md)
 carries no GLM section: this section is the protocol, and the numbers land there when someone runs
 the command above on a named machine.
+
+## 28. `Lodestar.Stats.TimeSeries`'s serial-correlation diagnostics against `Cortex.TimeSeries` (issue #617)
+
+[Decision 0114](../docs/decisions/0114-the-serial-correlation-diagnostics-stay-in-lodestar-stats.md)
+kept the autocorrelation function, the partial autocorrelation function and the Ljung-Box test
+inside `Lodestar.Stats` rather than a new package. `Cortex.TimeSeries` 1.1.0 is the one .NET
+library carrying the same three functions — `Cortex.TimeSeries.Diagnostics.AutocorrelationTests`'s
+`ACF`, `PACF` and `LjungBox` — through its own `Cortex.ML` dependency, which is exactly the edge
+[decision 0076](../docs/decisions/0076-a-core-package-carries-no-external-dependency.md) bars from
+`src/`: it goes in this project only, and `tools/check_nuspec_dependencies.py` is what fails the
+build if that boundary is ever confused.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*SerialCorrelationBenchmarks*' --job short
+```
+
+### What the six-way pair compares, and what it does not
+
+`Cortex.TimeSeries`'s own `ACF`/`PACF` return the bare sequence with no confidence band, and its
+`LjungBox` returns a single statistic and p-value at the requested lag rather than a list cumulated
+lag by lag. Each pair here is timed on the capability the two sides share — the sequence itself, or
+the one-lag statistic — not on the band or the cumulative list only this package computes; a wider
+comparison would be timing this package against nothing, since `Cortex.TimeSeries` has nothing on
+the other side of it. Three pairs, six benchmarks: `LodestarAutocorrelation`/`CortexAutocorrelation`,
+`LodestarPartialAutocorrelation`/`CortexPartialAutocorrelation`, and
+`LodestarLjungBox`/`CortexLjungBox`, each read at the last of 20 lags on a seeded AR(1)-like series
+(`Random(617)`, `value = 0.6 * value + random.NextDouble()`) at 200 and 2,000 points.
+
+### Two of the three families agree closely; the partial one does not
+
+Run once directly (not through `BenchmarkDotNet`, to separate correctness from timing) on the same
+seeded series this benchmark generates:
+
+| function | `Lodestar.Stats.TimeSeries`, n=200 | `Cortex.TimeSeries`, n=200 | `Lodestar.Stats.TimeSeries`, n=2,000 | `Cortex.TimeSeries`, n=2,000 |
+| --- | --- | --- | --- | --- |
+| ACF (lag 20) | -0.070256300056411 | -0.070256300056411 | 0.073705585471248 | 0.073705585471248 |
+| PACF (lag 20) | -0.074734834234328 | -0.066452471794550 | 0.025064907419327 | 0.024797721466792 |
+| Ljung-Box Q (lag 20) | 217.742254206699 | 217.742254206699 | 1138.997880702452 | 1138.997880702452 |
+
+ACF and Ljung-Box agree to noise-level precision — the same shared reason section 18 already
+records for the hypothesis tests, a second implementation converging on the same textbook
+arithmetic. **The partial autocorrelation does not**, and the gap is not close to floating-point
+noise at either size. [`SerialCorrelation.PartialAutocorrelation`](../docs/reference/stats/timeseries/serialcorrelation-partialautocorrelation.md)
+documents that only the `ywadjusted` method ships, where the reference offers eight more spellings
+across four methods (`docs/equivalence.md`'s serial-correlation section) — `Cortex.TimeSeries`'s own
+`PACF` does not publish which of those it solves, and this gap is consistent with it being a
+different one. This is a correctness note for a reader comparing the two libraries' numbers
+directly, not a defect: the oracle this package answers to is `statsmodels`, checked on the frozen
+corpus in `tests/oracles/stats_timeseries.json`, and `Cortex.TimeSeries` was not checked against
+that corpus.
+
+### Configuration
+
+`[Params(200, 2_000)]` on `SampleSize`, the same two sizes section 18 and section 27 sweep.
+`LagCount` is fixed at 20 rather than parameterised — large enough that the Levinson-Durbin
+recursion inside `PartialAutocorrelation` does real work at both sizes, and well under the
+`n/2 - 1` ceiling `PartialAutocorrelation` enforces at `n = 200`. `[GlobalSetup]` builds an
+AR(1)-like series from a fixed seed (617, this issue's own number) so every benchmark measures the
+same input, and so the correctness table above is reproducible from the same seed.
+
+**The measurement has not been taken yet.** `BenchmarkDotNet`'s own project generator resolves a
+benchmark's containing `.csproj` by name across the whole repository tree, and this checkout has
+more than one `Lodestar.Stats.Benchmarks.csproj` on disk — a second worktree beside the primary
+checkout — which it refuses as ambiguous before a single iteration runs, on every benchmark class
+in this project, not only this one. [`docs/guides/performance.md`](../docs/guides/performance.md)
+carries no section for this benchmark: this section is the protocol, and the numbers land there
+when someone runs the command above from a checkout with no sibling worktree of the same name.

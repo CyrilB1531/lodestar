@@ -12,13 +12,15 @@ internal static class LjungBoxResultSample
     {
         Console.WriteLine("The Ljung-Box result (Lodestar.Stats.TimeSeries)");
 
-        LjungBoxResult result = SerialCorrelation.LjungBox(Series, lagCount: 4);
+        LjungBoxResult result = SerialCorrelation.LjungBox(
+            Series, lagCount: 4, new LjungBoxOptions { BoxPierce = true });
 
         for (int i = 0; i < result.Statistics.Count; i++)
         {
             Console.WriteLine(
                 $"  lag {i + 1} (df {result.DegreesOfFreedom[i]}): "
-                + $"Q = {Inv.F3(result.Statistics[i])}, p = {Inv.F3(result.PValues[i])}");
+                + $"Q = {Inv.F3(result.Statistics[i])}, p = {Inv.F3(result.PValues[i])}, "
+                + $"Box-Pierce p = {Inv.F3(result.BoxPiercePValues[i])}");
         }
 
         Console.WriteLine();

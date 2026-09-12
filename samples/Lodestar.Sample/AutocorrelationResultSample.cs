@@ -21,6 +21,11 @@ internal static class AutocorrelationResultSample
                 + $"[{Inv.F3(result.ConfidenceLower[lag])}, {Inv.F3(result.ConfidenceUpper[lag])}]");
         }
 
+        // The same result type, produced by the partial function instead: the shorter
+        // lags' influence on the longer ones is removed before this is reported.
+        AutocorrelationResult partial = SerialCorrelation.PartialAutocorrelation(Series, lagCount: 4);
+        Console.WriteLine($"  partial lag 1: {Inv.F3(partial.Values[1])}");
+
         Console.WriteLine();
     }
 }
