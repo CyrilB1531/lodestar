@@ -17,21 +17,30 @@ public static class TTest
     /// <param name="b">The second sample; at least two values.</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
     /// <param name="variance">Whether to pool the two variances.</param>
+    /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>The statistic, the p-value and the degrees of freedom.</returns>
     /// <exception cref="ArgumentException">Either sample holds fewer than two values.</exception>
     public static TTestResult Independent(
         ReadOnlySpan<double> a,
         ReadOnlySpan<double> b,
         Alternative alternative = Alternative.TwoSided,
-        Variance variance = Variance.Welch)
+        Variance variance = Variance.Welch,
+        NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        RequireAtLeastTwo(a, nameof(a));
-        RequireAtLeastTwo(b, nameof(b));
+        ReadOnlySpan<double> x = nanPolicy == NanPolicy.Propagate
+            ? a
+            : NanFilter.Apply(a, nanPolicy, nameof(a));
+        ReadOnlySpan<double> y = nanPolicy == NanPolicy.Propagate
+            ? b
+            : NanFilter.Apply(b, nanPolicy, nameof(b));
 
-        (double meanA, double varianceA) = MeanAndVariance(a);
-        (double meanB, double varianceB) = MeanAndVariance(b);
-        int n = a.Length;
-        int m = b.Length;
+        RequireAtLeastTwo(x, nameof(a));
+        RequireAtLeastTwo(y, nameof(b));
+
+        (double meanA, double varianceA) = MeanAndVariance(x);
+        (double meanB, double varianceB) = MeanAndVariance(y);
+        int n = x.Length;
+        int m = y.Length;
 
         double standardError;
         double df;
@@ -61,6 +70,7 @@ public static class TTest
     /// <param name="a">The first measurement of each pair.</param>
     /// <param name="b">The second measurement of each pair, in the same order.</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
+    /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>The statistic, the p-value and the degrees of freedom.</returns>
     /// <exception cref="ArgumentException">
     /// The samples differ in length, or hold fewer than two pairs.
@@ -68,21 +78,31 @@ public static class TTest
     public static TTestResult Paired(
         ReadOnlySpan<double> a,
         ReadOnlySpan<double> b,
-        Alternative alternative = Alternative.TwoSided)
+        Alternative alternative = Alternative.TwoSided,
+        NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        if (a.Length != b.Length)
+        ReadOnlySpan<double> x = a;
+        ReadOnlySpan<double> y = b;
+        if (nanPolicy != NanPolicy.Propagate)
+        {
+            (double[] left, double[] right) = NanFilter.ApplyAligned(a, b, nanPolicy, nameof(a), nameof(b));
+            x = left;
+            y = right;
+        }
+
+        if (x.Length != y.Length)
         {
             throw new ArgumentException(
-                $"A paired test needs the same number of values in both samples; got {a.Length} and {b.Length}.",
+                $"A paired test needs the same number of values in both samples; got {x.Length} and {y.Length}.",
                 nameof(b));
         }
 
-        RequireAtLeastTwo(a, nameof(a));
+        RequireAtLeastTwo(x, nameof(a));
 
-        double[] differences = new double[a.Length];
-        for (int i = 0; i < a.Length; i++)
+        double[] differences = new double[x.Length];
+        for (int i = 0; i < x.Length; i++)
         {
-            differences[i] = a[i] - b[i];
+            differences[i] = x[i] - y[i];
         }
 
         return OneSample(differences, 0.0, alternative);
@@ -92,6 +112,7 @@ public static class TTest
     /// <param name="sample">The sample; at least two values.</param>
     /// <param name="populationMean">The mean the null hypothesis states.</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
+    /// <param name="nanPolicy">What to do with a <c>NaN</c> in the sample.</param>
     /// <returns>The statistic, the p-value and the degrees of freedom.</returns>
     /// <exception cref="ArgumentException"><paramref name="sample"/> holds fewer than two values.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -100,9 +121,14 @@ public static class TTest
     public static TTestResult OneSample(
         ReadOnlySpan<double> sample,
         double populationMean,
-        Alternative alternative = Alternative.TwoSided)
+        Alternative alternative = Alternative.TwoSided,
+        NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        RequireAtLeastTwo(sample, nameof(sample));
+        ReadOnlySpan<double> values = nanPolicy == NanPolicy.Propagate
+            ? sample
+            : NanFilter.Apply(sample, nanPolicy, nameof(sample));
+
+        RequireAtLeastTwo(values, nameof(sample));
 
         if (double.IsNaN(populationMean) || double.IsInfinity(populationMean))
         {
@@ -110,13 +136,13 @@ public static class TTest
                 nameof(populationMean), populationMean, "The population mean must be finite.");
         }
 
-        (double mean, double variance) = MeanAndVariance(sample);
-        double standardError = Math.Sqrt(variance / sample.Length);
+        (double mean, double variance) = MeanAndVariance(values);
+        double standardError = Math.Sqrt(variance / values.Length);
         double statistic = (mean - populationMean) / standardError;
 
         // A confidence interval centres on the sample mean, not the statistic's
         // offset from populationMean: scipy brackets the population mean itself.
-        return Build(statistic, mean, standardError, sample.Length - 1, alternative);
+        return Build(statistic, mean, standardError, values.Length - 1, alternative);
     }
 
     private static void RequireAtLeastTwo(ReadOnlySpan<double> values, string name)

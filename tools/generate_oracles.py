@@ -9485,7 +9485,7 @@ def generate_stats_ttest() -> dict:
 
     for fx in _stats_nan_samples():
         for policy in (PROPAGATE, "omit"):
-            r = sps.ttest_ind(fx["a"], fx["b"], nan_policy=policy)
+            r = sps.ttest_ind(fx["a"], fx["b"], equal_var=False, nan_policy=policy)
             cases.append({
                 "name": f"{fx['name']} | ind | nan_policy={policy}",
                 "call": TTEST_IND,
