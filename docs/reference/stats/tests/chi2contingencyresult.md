@@ -38,7 +38,7 @@ flattened form, so `result.ExpectedFrequencies[i][j]` lines up directly with `ta
 Being a `record`, equality would otherwise compare `double[][]` by reference; `Equals` and
 `GetHashCode` are written by hand instead, so two results holding the same expected frequencies
 compare equal. [Decision
-0112](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0112-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
+0113](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
 has the rule.
 
 **Applies to** — net10.0, netstandard2.0.

@@ -2,7 +2,7 @@ using Xunit;
 
 namespace Lodestar.Survival.Tests;
 
-/// <summary>Decision 0112: the curves compare their arrays by value.</summary>
+/// <summary>Decision 0113: the curves compare their arrays by value.</summary>
 public sealed class SurvivalCurveEqualityTests
 {
     private static SurvivalStep[] Steps() =>

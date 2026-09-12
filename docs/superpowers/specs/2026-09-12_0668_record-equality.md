@@ -151,7 +151,7 @@ mirrored onto `netstandard2.0` without further work:
 - One `CHANGELOG.md` entry per affected package under `[Unreleased]` — four, for `Lodestar.Cluster`,
   `Lodestar.Stats`, `Lodestar.Survival` and `Lodestar.Text`. Flipping `a == b` from `false` to
   `true` is observable to a caller, which is what item 7 of the definition of done asks about.
-- ADR **0112**, the next free number, carrying this decision. `tools/regen_adr_index.py` regenerates
+- ADR **0113**, the next free number, carrying this decision. `tools/regen_adr_index.py` regenerates
   `docs/decisions/index.yaml` in the same commit.
 
 ## Not in scope

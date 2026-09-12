@@ -2,7 +2,7 @@ using Xunit;
 
 namespace Lodestar.Stats.Tests;
 
-/// <summary>Decision 0112: the expected table compares by value, row by row.</summary>
+/// <summary>Decision 0113: the expected table compares by value, row by row.</summary>
 public sealed class Chi2ContingencyResultEqualityTests
 {
     private static Chi2ContingencyResult Result(double[][] expected) =>

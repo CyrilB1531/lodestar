@@ -6,7 +6,7 @@ namespace Lodestar.Internal;
 
 /// <summary>
 /// The comparisons a record needs when one of its members compares by reference, and the
-/// O(1) hash contributions that stay consistent with them (decision 0112).
+/// O(1) hash contributions that stay consistent with them (decision 0113).
 /// </summary>
 /// <remarks>
 /// Twelve records need these, and six wrote them independently before the rule was stated;

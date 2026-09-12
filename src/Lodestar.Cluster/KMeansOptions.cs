@@ -43,7 +43,7 @@ public sealed record KMeansOptions
     /// <remarks>
     /// The generated equality would compare <see cref="InitialCentres"/> by reference, so two
     /// option sets built from separate arrays holding the same centres would be unequal.
-    /// Decision 0112 has the rule and the six records that reached it first.
+    /// Decision 0113 has the rule and the six records that reached it first.
     /// </remarks>
     public bool Equals(KMeansOptions? other)
     {

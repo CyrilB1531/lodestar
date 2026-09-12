@@ -4,7 +4,7 @@ supersedes: []
 amends: []
 applies: []
 ---
-# 0112 — A record whose member compares by reference writes its own equality
+# 0113 — A record whose member compares by reference writes its own equality
 
 **Status:** accepted · **Date:** 2026-09-12
 

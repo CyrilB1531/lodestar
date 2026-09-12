@@ -37,17 +37,17 @@ record then writes `public bool Equals(T? other)` — the record's own virtual m
 
 ---
 
-### Task 1: ADR 0112, the rule
+### Task 1: ADR 0113, the rule
 
 **Files:**
 
-- Create: `docs/decisions/0112-a-record-whose-member-compares-by-reference-writes-its-own-equality.md`
+- Create: `docs/decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md`
 - Modify: `docs/decisions/index.yaml` (regenerated, never hand-edited)
 
 **Interfaces:**
 
 - Consumes: nothing.
-- Produces: the decision number `0112`, cited by every `<remarks>` in Tasks 2–6.
+- Produces: the decision number `0113`, cited by every `<remarks>` in Tasks 2–6.
 
 - [ ] **Step 1: Write the ADR**
 
@@ -58,7 +58,7 @@ supersedes: []
 amends: []
 applies: []
 ---
-# 0112 — A record whose member compares by reference writes its own equality
+# 0113 — A record whose member compares by reference writes its own equality
 
 **Status:** accepted · **Date:** 2026-09-12
 
@@ -151,7 +151,7 @@ Expected: all three exit 0, and `git diff --stat docs/decisions/index.yaml` show
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/decisions/0112-a-record-whose-member-compares-by-reference-writes-its-own-equality.md docs/decisions/index.yaml
+git add docs/decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md docs/decisions/index.yaml
 git commit -m "State when a record writes its own equality, and why six already did"
 ```
 
@@ -177,7 +177,7 @@ records that use it — which is what the acceptance criteria ask for anyway.
 
 **Interfaces:**
 
-- Consumes: decision `0112` from Task 1.
+- Consumes: decision `0113` from Task 1.
 - Verified before relying on it: only `Lodestar.Abstractions` sets
   `LodestarIncludesSharedHelpers` to `false`, so all four packages here receive the helper and
   reach it unqualified through `src/Shared/GlobalUsings.cs`.
@@ -198,7 +198,7 @@ using Xunit;
 
 namespace Lodestar.Cluster.Tests;
 
-/// <summary>Decision 0112: the centres compare by value, and the hash agrees.</summary>
+/// <summary>Decision 0113: the centres compare by value, and the hash agrees.</summary>
 public sealed class KMeansOptionsEqualityTests
 {
     [Fact]
@@ -294,7 +294,7 @@ namespace Lodestar.Internal;
 
 /// <summary>
 /// The comparisons a record needs when one of its members compares by reference, and the
-/// O(1) hash contributions that stay consistent with them (decision 0112).
+/// O(1) hash contributions that stay consistent with them (decision 0113).
 /// </summary>
 /// <remarks>
 /// Twelve records need these, and six wrote them independently before the rule was stated;
@@ -434,7 +434,7 @@ In `src/Lodestar.Cluster/KMeansOptions.cs`, after the `InitialCentres` property 
     /// <remarks>
     /// The generated equality would compare <see cref="InitialCentres"/> by reference, so two
     /// option sets built from separate arrays holding the same centres would be unequal.
-    /// Decision 0112 has the rule and the six records that reached it first.
+    /// Decision 0113 has the rule and the six records that reached it first.
     /// </remarks>
     public bool Equals(KMeansOptions? other)
     {
@@ -517,7 +517,7 @@ bool same = left == right;  // => True
 above would be unequal without this, in the one place a caller has reason to compare: asserting
 that a configuration built twice is the same configuration. `Tolerance` compares by bits, which
 makes `NaN` equal `NaN` and keeps equality reflexive. [Decision
-0112](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0112-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
+0113](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
 has the rule.
 
 **Applies to** — net10.0, netstandard2.0.
@@ -590,7 +590,7 @@ In `CHANGELOG.md`, under `## [Unreleased]`, add a `### Lodestar.Cluster` section
 
 - **`KMeansOptions` compares its centres by value.** Two option sets built from separate arrays
   holding the same centres were unequal and now are equal, with `GetHashCode` agreeing; decision
-  0112 has the rule for every record whose member compares by reference.
+  0113 has the rule for every record whose member compares by reference.
   ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
 ```
 
@@ -633,7 +633,7 @@ using Xunit;
 
 namespace Lodestar.Stats.Tests;
 
-/// <summary>Decision 0112: the expected table compares by value, row by row.</summary>
+/// <summary>Decision 0113: the expected table compares by value, row by row.</summary>
 public sealed class Chi2ContingencyResultEqualityTests
 {
     private static Chi2ContingencyResult Result(double[][] expected) =>
@@ -716,7 +716,7 @@ public sealed record Chi2ContingencyResult(
     /// <param name="other">The result to compare against.</param>
     /// <remarks>
     /// The generated equality would compare <see cref="ExpectedFrequencies"/> by reference, so
-    /// two results holding the same table would be unequal. Decision 0112 has the rule.
+    /// two results holding the same table would be unequal. Decision 0113 has the rule.
     /// </remarks>
     public bool Equals(Chi2ContingencyResult? other)
     {
@@ -801,7 +801,7 @@ bool same = left == right;  // => True
 
 **Remarks** — the comparison descends into each row rather than stopping at the row count, which
 is what a table differing inside one row needs. [Decision
-0112](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0112-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
+0113](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
 has the rule.
 
 **Applies to** — net10.0, netstandard2.0.
@@ -866,7 +866,7 @@ with a `#### Changed` heading if absent):
 
 ```markdown
 - **`Chi2ContingencyResult` compares its expected table by value.** Two results holding the same
-  table were unequal and now are equal, with `GetHashCode` agreeing; decision 0112 has the rule.
+  table were unequal and now are equal, with `GetHashCode` agreeing; decision 0113 has the rule.
   ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
 ```
 
@@ -912,7 +912,7 @@ using Xunit;
 
 namespace Lodestar.Survival.Tests;
 
-/// <summary>Decision 0112: the curves compare their arrays by value.</summary>
+/// <summary>Decision 0113: the curves compare their arrays by value.</summary>
 public sealed class SurvivalCurveEqualityTests
 {
     private static SurvivalStep[] Steps() =>
@@ -1020,7 +1020,7 @@ public sealed record KaplanMeierCurve(
     /// <param name="other">The curve to compare against.</param>
     /// <remarks>
     /// The generated equality would compare the four arrays by reference, so two curves fitted
-    /// from the same data would be unequal. Decision 0112 has the rule.
+    /// from the same data would be unequal. Decision 0113 has the rule.
     /// </remarks>
     public bool Equals(KaplanMeierCurve? other)
     {
@@ -1072,7 +1072,7 @@ public sealed record NelsonAalenCurve(SurvivalStep[] Steps, double[] CumulativeH
     /// <param name="other">The curve to compare against.</param>
     /// <remarks>
     /// The generated equality would compare both arrays by reference, so two curves fitted from
-    /// the same data would be unequal. Decision 0112 has the rule.
+    /// the same data would be unequal. Decision 0113 has the rule.
     /// </remarks>
     public bool Equals(NelsonAalenCurve? other)
     {
@@ -1140,7 +1140,7 @@ bool same = left == right;  // => True
 
 **Remarks** — `SurvivalStep` is a record of value types, so its own equality is already correct;
 what needed writing is the comparison of the arrays holding it. [Decision
-0112](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0112-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
+0113](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
 has the rule.
 
 **Applies to** — net10.0, netstandard2.0.
@@ -1216,7 +1216,7 @@ bool same = left == right;  // => True
 
 **Remarks** — a record's generated equality compares both arrays by reference, so the two above
 would be unequal without this. [Decision
-0112](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0112-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
+0113](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
 has the rule.
 
 **Applies to** — net10.0, netstandard2.0.
@@ -1293,7 +1293,7 @@ In `CHANGELOG.md`, under `## [Unreleased]`, in a `### Lodestar.Survival` section
 
 ```markdown
 - **`KaplanMeierCurve` and `NelsonAalenCurve` compare their arrays by value.** Two curves fitted
-  from the same data were unequal and now are equal, with `GetHashCode` agreeing; decision 0112
+  from the same data were unequal and now are equal, with `GetHashCode` agreeing; decision 0113
   has the rule. ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
 ```
 
@@ -1338,7 +1338,7 @@ using Lodestar.Text.Keywords;
 
 namespace Lodestar.Text.Tests.Keywords;
 
-/// <summary>Decision 0112: StopWords compares as a set, and the hash carries presence only.</summary>
+/// <summary>Decision 0113: StopWords compares as a set, and the hash carries presence only.</summary>
 public sealed class KeywordOptionsEqualityTests
 {
     [Fact]
@@ -1449,7 +1449,7 @@ In `src/Lodestar.Text/Keywords/RakeOptions.cs`, before the record's closing brac
     /// <param name="other">The options to compare against.</param>
     /// <remarks>
     /// <see cref="StopWords"/> compares as a set, not by reference or sequence — the generated
-    /// equality would otherwise treat two lists of the same words as unequal. Decision 0112 has
+    /// equality would otherwise treat two lists of the same words as unequal. Decision 0113 has
     /// the rule, and <see cref="Lodestar.Text.Vectorization.CountVectorizerOptions"/> the
     /// same member.
     /// </remarks>
@@ -1501,7 +1501,7 @@ In `src/Lodestar.Text/Keywords/TextRankOptions.cs`, before the record's closing 
     /// <param name="other">The options to compare against.</param>
     /// <remarks>
     /// <see cref="StopWords"/> compares as a set, not by reference or sequence — the generated
-    /// equality would otherwise treat two lists of the same words as unequal. Decision 0112 has
+    /// equality would otherwise treat two lists of the same words as unequal. Decision 0113 has
     /// the rule.
     /// </remarks>
     public bool Equals(TextRankOptions? other)
@@ -1594,7 +1594,7 @@ bool same = left == right;  // => True
 
 **Remarks** — the stop words are a set, so order and repetition do not count, and an absent
 collection is not an empty one. [Decision
-0112](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0112-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
+0113](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
 has the rule.
 
 **Applies to** — net10.0, netstandard2.0.
@@ -1669,7 +1669,7 @@ bool same = left == right;  // => True
 
 **Remarks** — `Damping`, `Tolerance` and `Ratio` compare by bits, which makes `NaN` equal `NaN`
 and keeps equality reflexive. [Decision
-0112](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0112-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
+0113](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
 has the rule.
 
 **Applies to** — net10.0, netstandard2.0.
@@ -1748,7 +1748,7 @@ heading:
 ```markdown
 - **`RakeOptions` and `TextRankOptions` compare their stop words as a set.** Two option sets
   holding the same words were unequal and now are equal, with `GetHashCode` agreeing —
-  `CountVectorizerOptions` already behaved this way, and decision 0112 makes it the rule.
+  `CountVectorizerOptions` already behaved this way, and decision 0113 makes it the rule.
   ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
 ```
 
@@ -1843,6 +1843,6 @@ reports duplication anyway, the answer is a further extraction, never a suppress
 git push -u origin fix/668-record-equality
 ```
 
-The body closes the issue with `Closes #668`, names decision 0112, and states the correction the
+The body closes the issue with `Closes #668`, names decision 0113, and states the correction the
 spec records: six records already did this, so the change ratifies a house pattern rather than
 inventing one. No version bumps — releasing is a separate act.

@@ -92,7 +92,7 @@ public sealed record Chi2ContingencyResult(
     /// <param name="other">The result to compare against.</param>
     /// <remarks>
     /// The generated equality would compare <see cref="ExpectedFrequencies"/> by reference, so
-    /// two results holding the same table would be unequal. Decision 0112 has the rule.
+    /// two results holding the same table would be unequal. Decision 0113 has the rule.
     /// </remarks>
     public bool Equals(Chi2ContingencyResult? other)
     {

@@ -28,7 +28,7 @@ bool same = left == right;  // => True
 
 **Remarks** — `SurvivalStep` is a record of value types, so its own equality is already correct;
 what needed writing is the comparison of the arrays holding it. [Decision
-0112](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0112-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
+0113](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
 has the rule.
 
 **Applies to** — net10.0, netstandard2.0.

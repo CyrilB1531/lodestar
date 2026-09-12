@@ -2,7 +2,7 @@ using Xunit;
 
 namespace Lodestar.Cluster.Tests;
 
-/// <summary>Decision 0112: the centres compare by value, and the hash agrees.</summary>
+/// <summary>Decision 0113: the centres compare by value, and the hash agrees.</summary>
 public sealed class KMeansOptionsEqualityTests
 {
     [Fact]

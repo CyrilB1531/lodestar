@@ -1123,7 +1123,7 @@
   amended_by: []
   applied_by: []
 
-"0112":
+"0113":
   title: "A record whose member compares by reference writes its own equality"
   status: "accepted"
   supersedes: []

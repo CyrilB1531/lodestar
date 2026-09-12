@@ -37,7 +37,7 @@ public sealed record TextRankOptions
     /// <param name="other">The options to compare against.</param>
     /// <remarks>
     /// <see cref="StopWords"/> compares as a set, not by reference or sequence — the generated
-    /// equality would otherwise treat two lists of the same words as unequal. Decision 0112 has
+    /// equality would otherwise treat two lists of the same words as unequal. Decision 0113 has
     /// the rule.
     /// </remarks>
     public bool Equals(TextRankOptions? other)
