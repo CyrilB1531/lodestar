@@ -2163,7 +2163,7 @@ that corpus.
 `[Params(200, 2_000)]` on `SampleSize`, the same two sizes section 18 and section 27 sweep.
 `LagCount` is fixed at 20 rather than parameterised — large enough that the Levinson-Durbin
 recursion inside `PartialAutocorrelation` does real work at both sizes, and well under the
-`n/2 - 1` ceiling `PartialAutocorrelation` enforces at `n = 200`. `[GlobalSetup]` builds an
+`n/2` ceiling `PartialAutocorrelation` enforces at `n = 200`. `[GlobalSetup]` builds an
 AR(1)-like series from a fixed seed (617, this issue's own number) so every benchmark measures the
 same input, and so the correctness table above is reproducible from the same seed.
 
