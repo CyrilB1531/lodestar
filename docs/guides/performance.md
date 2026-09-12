@@ -2739,6 +2739,38 @@ points and **level at 2,000**. Subtracting the 11.5 μs quantile leaves 7.1 μs 
 7.3 at 200 points and 76.6 μs against 76.7 at 2,000. The allocation difference is the band and
 the result record that carries it.
 
+## The variance principal components explain, against NumFlat (issue #701)
+
+Full method and what the pair does and does not compare:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#30-the-variance-principal-components-explain-against-numflat-issue-701).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: one `BenchmarkDotNet` run, **default job**, on 2026-09-13, 8 benchmarks. NumFlat
+1.3.4. Both sides were checked to return the same spectrum before either was timed.
+
+| Shape | [`PrincipalComponentVariance`](../reference/decomposition/factorization/principalcomponentvariance.md) | NumFlat `PrincipalComponentAnalysis` | NumFlat / Lodestar | Allocated, Lodestar | Allocated, NumFlat |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 200 × 10 | 14.74 μs | 15.35 μs | 1.04 | 2.38 KB | 1.94 KB |
+| 2,000 × 10 | 82.53 μs | 111.83 μs | **1.36** | 2.38 KB | 1.94 KB |
+| 2,000 × 50 | 1,977.65 μs | 1,634.81 μs | **0.83** | 42.07 KB | 40.06 KB |
+| 100 × 200 | 7,834.02 μs | 9,306.55 μs | **1.19** | 318.27 KB | 628.54 KB |
+
+**This package is faster on three shapes of four and slower on one**, while NumFlat's row also
+computes the eigenvectors and the mean. The one it loses is the one where the eigen solve
+dominates: 50 × 50 is where a one-sided Jacobi, several sweeps of `O(p³)`, falls behind a
+tridiagonal solver. At 10 columns the Gram matrix is most of the work, and centring each row into
+a buffer of one row's width keeps it in cache.
+
+The wide block is solved through the 100 × 100 Gram matrix of its rows rather than the 200 × 200
+one of its columns, which is where the 1.19 and half the allocation come from.
+
+The path to these numbers is in
+[decision 0119](../decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md): a
+Jacobi solve over the whole centred block measured 13× slower than NumFlat at 2,000 × 50 before
+the Gram route replaced it. **The comparison that matters below `net8.0` has no second row**:
+NumFlat does not install there, and ML.NET, which does, reports no eigenvalue.
+
 ## Lodestar.Stats against Accord.Statistics (issue #442)
 
 Full method, correctness cross-check, and how `Accord`'s 2017-era API names were resolved against
