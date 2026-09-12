@@ -161,7 +161,7 @@
   applies: []
   superseded_by: []
   amended_by: ["0019"]
-  applied_by: ["0107"]
+  applied_by: ["0107", "0112"]
 
 "0016":
   title: "Classification metrics ship as `DataNet.Metrics`, not inside `DataNet.Text`"
@@ -1119,6 +1119,16 @@
   supersedes: []
   amends: []
   applies: ["0076", "0096", "0104"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0112":
+  title: "An analyzer rule below warning is raised where it has escaped, not everywhere"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0015"]
   superseded_by: []
   amended_by: []
   applied_by: []

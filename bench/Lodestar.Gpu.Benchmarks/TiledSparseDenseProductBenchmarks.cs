@@ -71,7 +71,9 @@ public class TiledSparseDenseProductBenchmarks
         {
             pointers[row] = values.Count;
             int column = 0;
-            for (int taken = 0; taken < perRow && column < Terms; taken++)
+            // The break below is the bound, not a second guard: it fires between the
+            // increment and the Add, which is the only place an out-of-range column exists.
+            for (int taken = 0; taken < perRow; taken++)
             {
                 column += 1 + random.Next(Terms / perRow);
                 if (column >= Terms)

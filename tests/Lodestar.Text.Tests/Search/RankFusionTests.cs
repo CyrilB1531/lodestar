@@ -71,8 +71,8 @@ public sealed class RankFusionTests
     {
         IReadOnlyList<SearchHit> fused = RankFusion.Rrf([[8, 8, 8]], k: 60);
 
-        Assert.Single(fused);
-        Assert.Equal(1.0 / 61.0, fused[0].Score, 1e-15);
+        SearchHit hit = Assert.Single(fused);
+        Assert.Equal(1.0 / 61.0, hit.Score, 1e-15);
     }
 
     /// <summary>Larger k flattens the advantage of a top position.</summary>

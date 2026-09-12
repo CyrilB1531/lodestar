@@ -945,8 +945,8 @@ public sealed class TokenizerJsonLoaderTests
         """;
         BpeVocabulary vocabulary = TokenizerJsonLoader.LoadBpe(Bytes(Json), OracleReplay.BpeBounds());
 
-        Assert.Single(vocabulary.Merges);
-        Assert.Equal(new MergePair("a", "b"), vocabulary.Merges[0]);
+        MergePair merge = Assert.Single(vocabulary.Merges);
+        Assert.Equal(new MergePair("a", "b"), merge);
     }
 
     [Fact]

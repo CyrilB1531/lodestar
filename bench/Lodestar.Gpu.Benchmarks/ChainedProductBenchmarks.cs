@@ -127,7 +127,9 @@ public class ChainedProductBenchmarks
         {
             pointers[row] = values.Count;
             int column = 0;
-            for (int taken = 0; taken < perRow && column < columns; taken++)
+            // Same bound as TiledSparseDenseProductBenchmarks: the break fires between the
+            // increment and the Add, so the loop condition never reaches a column past the end.
+            for (int taken = 0; taken < perRow; taken++)
             {
                 column += 1 + random.Next(columns / perRow);
                 if (column >= columns)

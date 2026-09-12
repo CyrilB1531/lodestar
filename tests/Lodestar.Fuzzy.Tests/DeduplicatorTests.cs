@@ -59,7 +59,7 @@ public sealed class DeduplicatorTests
         var records = new[] { "aaaaa", "aaaab", "aaabb" };
         IReadOnlyList<IReadOnlyList<int>> clusters =
             Deduplicator.FindClusters(records, _ => "block", (a, b) => Fuzz.Ratio(a, b), threshold: 80);
-        Assert.Single(clusters);
-        Assert.Equal(3, clusters[0].Count);
+        IReadOnlyList<int> cluster = Assert.Single(clusters);
+        Assert.Equal(3, cluster.Count);
     }
 }
