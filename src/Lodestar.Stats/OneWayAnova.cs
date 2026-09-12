@@ -57,6 +57,28 @@ public static class OneWayAnova
         return new TestResult(statistic, Beta.FisherSf(statistic, dfBetween, dfWithin));
     }
 
+    /// <summary>The same test, with a policy for the <c>NaN</c> values in the groups.</summary>
+    /// <param name="nanPolicy">What to do with a <c>NaN</c>; scipy's <c>nan_policy</c>.</param>
+    /// <param name="groups">Two or more groups of observations.</param>
+    /// <returns>The F statistic and its p-value.</returns>
+    /// <exception cref="ArgumentException">
+    /// When <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and a group holds a
+    /// <c>NaN</c>, or when the filtered groups fail this test's own requirements.
+    /// </exception>
+    /// <remarks>
+    /// The policy comes first because the groups are a <c>params</c> array and C# allows no
+    /// parameter after one — the shape <c>string.Join</c> uses, for the same reason. Omission is
+    /// per group and runs before this test's guards, so a group emptied by it is refused here
+    /// exactly as an empty group passed directly would be (decision 0115).
+    /// </remarks>
+    public static TestResult Test(NanPolicy nanPolicy, params double[][] groups)
+    {
+        Guard.NotNull(groups);
+        return nanPolicy == NanPolicy.Propagate
+            ? Test(groups)
+            : Test(NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups)));
+    }
+
     private static (int Total, double GrandSum) ValidatedTotals(double[][] groups)
     {
         int total = 0;
