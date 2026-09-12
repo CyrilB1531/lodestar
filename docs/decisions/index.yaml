@@ -961,7 +961,7 @@
   applies: ["0081"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0097", "0098", "0115", "0118"]
+  applied_by: ["0097", "0098", "0115", "0118", "0119"]
 
 "0096":
   title: "Ordinary least squares earns its own package"
@@ -1171,7 +1171,7 @@
   applies: ["0074", "0075", "0076"]
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0119"]
 
 "0117":
   title: "`nan_policy` is offered where scipy offers it, and omission is a filter"
@@ -1189,6 +1189,16 @@
   supersedes: []
   amends: []
   applies: ["0070", "0095"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0119":
+  title: "The explained variance lives in Lodestar.Decomposition"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0095", "0116"]
   superseded_by: []
   amended_by: []
   applied_by: []

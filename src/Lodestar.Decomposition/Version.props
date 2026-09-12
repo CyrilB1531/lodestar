@@ -18,9 +18,14 @@
     shipped on 2026-09-01, and nuget.org is immutable, so a declared version
     that collides with a published one makes two different assemblies answer to
     the same identity.
+
+    0.3.0 is a minor release because PrincipalComponentVariance (#701) is a new
+    public type and nothing was removed or changed: every call that compiled
+    against 0.2.0 still compiles and still returns what it did. 0.2.0 is
+    published, so the addition takes the next minor number rather than joining it.
   -->
   <PropertyGroup>
-    <LodestarDecompositionVersion>0.2.0</LodestarDecompositionVersion>
+    <LodestarDecompositionVersion>0.3.0</LodestarDecompositionVersion>
   </PropertyGroup>
 
 </Project>

@@ -67,6 +67,82 @@ internal static class JacobiSvd
         return Finish(work, v, rows, columns);
     }
 
+    /// <summary>The singular values of a tall row-major block, largest first, with no vectors.</summary>
+    /// <remarks>
+    /// The same sweeps as <see cref="Decompose"/>, without accumulating <c>V</c>: a caller who reads
+    /// only the spectrum would otherwise pay a second rotation per pair to build a factor it drops.
+    /// </remarks>
+    internal static double[] SingularValues(ReadOnlySpan<double> a, int rows, int columns)
+    {
+        if (rows < columns || a.Length != checked(rows * columns))
+        {
+            throw new ArgumentException(
+                $"Block length {a.Length} is not a tall {rows} × {columns}.", nameof(a));
+        }
+
+        double[] work = a.ToArray();
+        double[] squared = new double[columns];
+        for (int j = 0; j < columns; j++)
+        {
+            double norm = DenseBlock.ColumnNorm(work, rows, columns, j);
+            squared[j] = norm * norm;
+        }
+
+        for (int sweep = 0; sweep < MaximumSweeps; sweep++)
+        {
+            bool rotated = false;
+            for (int p = 0; p < columns - 1; p++)
+            {
+                for (int q = p + 1; q < columns; q++)
+                {
+                    rotated |= RotateTrackedPair(work, squared, rows, columns, p, q);
+                }
+            }
+            if (!rotated)
+            {
+                break;
+            }
+        }
+
+        // The tracked norms steered the sweeps; the answer is read off the columns themselves,
+        // so rounding accumulated in the updates never reaches it.
+        double[] norms = new double[columns];
+        for (int j = 0; j < columns; j++)
+        {
+            norms[j] = DenseBlock.ColumnNorm(work, rows, columns, j);
+        }
+        Array.Sort(norms, (left, right) => right.CompareTo(left));
+        return norms;
+    }
+
+    /// <summary><see cref="RotatePair"/> with the two squared norms carried rather than recomputed.</summary>
+    /// <remarks>
+    /// The rotation that zeroes <c>γ</c> moves <c>tγ</c> of squared norm from one column to the
+    /// other, so <c>α − tγ</c> and <c>β + tγ</c> are exact up to rounding and one product over
+    /// the rows replaces three.
+    /// </remarks>
+    private static bool RotateTrackedPair(
+        double[] work, double[] squared, int rows, int columns, int p, int q)
+    {
+        double alpha = squared[p];
+        double beta = squared[q];
+        double gamma = 0;
+        for (int i = 0; i < rows; i++)
+        {
+            gamma += work[(i * columns) + p] * work[(i * columns) + q];
+        }
+
+        if (!Rotation(alpha, beta, gamma, out double t, out double cosine, out double sine))
+        {
+            return false;
+        }
+
+        Rotate(work, rows, columns, p, q, cosine, sine);
+        squared[p] = alpha - (t * gamma);
+        squared[q] = beta + (t * gamma);
+        return true;
+    }
+
     /// <summary>Orthogonalizes one pair of columns, and reports whether it had to.</summary>
     private static bool RotatePair(
         double[] work, double[] v, int rows, int columns, int p, int q)
@@ -83,6 +159,24 @@ internal static class JacobiSvd
             gamma += left * right;
         }
 
+        if (!Rotation(alpha, beta, gamma, out _, out double cosine, out double sine))
+        {
+            return false;
+        }
+
+        Rotate(work, rows, columns, p, q, cosine, sine);
+        Rotate(v, columns, columns, p, q, cosine, sine);
+        return true;
+    }
+
+    /// <summary>The rotation that orthogonalizes a pair, or false when the pair already is.</summary>
+    /// <remarks><paramref name="t"/> is its tangent, which the tracked variant also needs for the norms.</remarks>
+    private static bool Rotation(
+        double alpha, double beta, double gamma, out double t, out double cosine, out double sine)
+    {
+        t = 0;
+        cosine = 1;
+        sine = 0;
         // S1244: whether the pair is already orthogonal (gamma vanished entirely), not
         // whether two computed quantities are close.
 #pragma warning disable S1244
@@ -93,7 +187,7 @@ internal static class JacobiSvd
         }
 
         double zeta = (beta - alpha) / (2.0 * gamma);
-        double t = Math.Sign(zeta) / (Math.Abs(zeta) + Math.Sqrt(1.0 + (zeta * zeta)));
+        t = Math.Sign(zeta) / (Math.Abs(zeta) + Math.Sqrt(1.0 + (zeta * zeta)));
         // S1244: whether the columns already have equal norm (zeta vanished entirely),
         // not whether two computed quantities are close.
 #pragma warning disable S1244
@@ -102,11 +196,8 @@ internal static class JacobiSvd
         {
             t = 1.0;
         }
-        double cosine = 1.0 / Math.Sqrt(1.0 + (t * t));
-        double sine = cosine * t;
-
-        Rotate(work, rows, columns, p, q, cosine, sine);
-        Rotate(v, columns, columns, p, q, cosine, sine);
+        cosine = 1.0 / Math.Sqrt(1.0 + (t * t));
+        sine = cosine * t;
         return true;
     }
 

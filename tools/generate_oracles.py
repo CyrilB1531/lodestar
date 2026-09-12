@@ -3687,6 +3687,8 @@ def generate_sparse_matmul() -> dict:
 MATRIX_KEY = "matrix"
 ROWS_KEY = "rows"
 COLUMNS_KEY = "columns"
+# The SVD, PCA and regression corpora all name an explained variance; one spelling for three keys.
+EXPLAINED_VARIANCE_KEY = "explained_variance"
 
 
 def _dense_fixtures() -> list[dict]:
@@ -3894,7 +3896,7 @@ def _randomized_cases() -> list[dict]:
             "left_singular_vectors": [settled(v) for v in u.ravel()],
             "singular_values": [settled(v) for v in s],
             "components": [settled(v) for v in vt.ravel()],
-            "explained_variance": [settled(v) for v in svd.explained_variance_],
+            EXPLAINED_VARIANCE_KEY: [settled(v) for v in svd.explained_variance_],
             "explained_variance_ratio": [settled(v) for v in svd.explained_variance_ratio_],
             "transform": [settled(v) for v in svd.transform(a).ravel()],
         })
@@ -4186,6 +4188,71 @@ def generate_decomposition_nmf() -> dict:
             "initialization": initialization,
             "updates": updates}
 
+
+# --- The variance each principal component explains (#701) -------------------
+
+
+def _pca_fixtures() -> list[dict]:
+    """Tall, square and wide blocks, plus the three shapes a scree plot is read on.
+
+    ``(5, 12)`` and ``(2, 3)`` are the ``n < p`` edge: scikit-learn keeps
+    ``min(n_samples, n_features)`` components, and centring leaves the last of them at
+    zero. The correlated block has a steep curve, the scaled one is dominated by its last
+    column, and the one with a constant column shows that column contributing nothing.
+    """
+    rng = SeededRandom(SEED + 70100)
+    fixtures = []
+    for rows, columns in [(20, 4), (50, 10), (8, 8), (5, 12), (30, 1), (2, 3)]:
+        values = [rng.gauss(0.0, 1.0) for _ in range(rows * columns)]
+        fixtures.append({ROWS_KEY: rows, COLUMNS_KEY: columns, MATRIX_KEY: values})
+
+    rows, columns = 40, 6
+    correlated = []
+    for _ in range(rows):
+        first, second = rng.gauss(0.0, 2.0), rng.gauss(0.0, 1.0)
+        loadings = [first, second, first + second, first - second, 0.5 * first, 2.0 * second]
+        correlated.extend(value + rng.gauss(0.0, 0.05) for value in loadings)
+    fixtures.append({ROWS_KEY: rows, COLUMNS_KEY: columns, MATRIX_KEY: correlated})
+
+    rows, columns = 25, 5
+    scaled = [rng.gauss(0.0, 1.0) * 3.0 ** (index % columns) for index in range(rows * columns)]
+    fixtures.append({ROWS_KEY: rows, COLUMNS_KEY: columns, MATRIX_KEY: scaled})
+
+    rows, columns = 15, 4
+    constant = [7.0 if index % columns == 2 else rng.gauss(0.0, 1.0)
+                for index in range(rows * columns)]
+    fixtures.append({ROWS_KEY: rows, COLUMNS_KEY: columns, MATRIX_KEY: constant})
+    return fixtures
+
+
+def generate_decomposition_pca() -> dict:
+    """PCA's explained variance, its ratio and the cumulative curve, against scikit-learn.
+
+    ``svd_solver="full"`` is pinned rather than left to ``"auto"``, which picks
+    ``covariance_eigh`` for tall blocks and would freeze a different computation of the
+    same numbers. Only variances are frozen: a component's sign is a convention
+    (``svd_flip``), and nothing this corpus asserts depends on one.
+    """
+    from sklearn.decomposition import PCA
+
+    cases = []
+    for fixture in _pca_fixtures():
+        rows, columns = fixture[ROWS_KEY], fixture[COLUMNS_KEY]
+        a = np.array(fixture[MATRIX_KEY]).reshape(rows, columns)
+        model = PCA(svd_solver="full", random_state=0).fit(a)
+        ratio = model.explained_variance_ratio_
+        cases.append({
+            **fixture,
+            COMPONENT_COUNT_KEY: int(model.n_components_),
+            EXPLAINED_VARIANCE_KEY: [settled(v) for v in model.explained_variance_],
+            "explained_variance_ratio": [settled(v) for v in ratio],
+            "cumulative_explained_variance_ratio": [settled(v) for v in np.cumsum(ratio)],
+            "total_variance": settled(np.sum(model.explained_variance_)),
+        })
+    return {"metadata": {"library": "scikit-learn", "version": version("scikit-learn"),
+                         "reference_calls": ["sklearn.decomposition.PCA"],
+                         "seed": SEED, "count": len(cases), TOLERANCE_KEY: 1e-9},
+            "cases": cases}
 
 def _internal_validity_fixtures() -> list[dict]:
     """Clusterings chosen where a plausible implementation and the reference part company."""
@@ -7501,7 +7568,7 @@ def generate_regression_conditioning() -> dict:
 
     values = {
         "r2": stable(float(skm.r2_score(yt, yp))),
-        "explained_variance": stable(float(skm.explained_variance_score(yt, yp))),
+        EXPLAINED_VARIANCE_KEY: stable(float(skm.explained_variance_score(yt, yp))),
         "mse": stable(float(skm.mean_squared_error(yt, yp))),
         "mae": stable(float(skm.mean_absolute_error(yt, yp))),
     }
@@ -10304,6 +10371,7 @@ def main() -> None:
         "decomposition_lu.json": generate_decomposition_lu,
         "decomposition_svd.json": generate_decomposition_svd,
         "decomposition_nmf.json": generate_decomposition_nmf,
+        "decomposition_pca.json": generate_decomposition_pca,
         "bpe.json": generate_bpe,
         "orphan_bpe.json": generate_orphan_bpe,
         "bytelevel_bpe.json": generate_bytelevel_bpe,
