@@ -171,3 +171,12 @@ def test_a_dot_inside_a_package_name_does_not_end_the_sentence():
     )
 
     assert guard.publishing_findings(text, packages, 2) == []
+
+
+def test_a_publishing_section_with_no_core_tier_sentence_is_refused():
+    text = PUBLISHING.replace("One are **core tier**", "All of them are core")
+
+    findings = guard.publishing_findings(text, PACKAGES, 1)
+
+    assert len(findings) == 1
+    assert "no longer says how many packages are core tier" in findings[0]

@@ -53,8 +53,9 @@ CLAUDE = ROOT / "CLAUDE.md"
 # `Sixteen NuGet packages are produced: `A`, `B` ... and `P`.` -- found by string search
 # rather than a pattern: the sentence spans lines, and a lazy `.*?` across them backtracks.
 PUBLISHING = " NuGet packages are produced:"
-# `Twelve are **core tier**` -- the tier sentence that follows it.
-CORE_COUNT = re.compile(r"(\w+) are \*\*core tier\*\*")
+# The tier sentence, found the same way: `(\w+) are ...` is S8786's polynomial shape,
+# and the word wanted is the one immediately before a fixed phrase.
+CORE_TIER = " are **core tier**"
 # The quick-commands pack loop in CLAUDE.md, which is not the README's runnable one.
 PACK_LOOP = re.compile(r"for p in([^;]*);\s*do")
 # `src/Lodestar.Text` in a loop and `src/Lodestar.Text/` in the tree, one shape for both.
@@ -90,6 +91,12 @@ def sentence_end(text: str, start: int) -> int:
     while at >= 0 and at + 1 < len(text) and not text[at + 1].isspace():
         at = text.find(".", at + 1)
     return len(text) if at < 0 else at
+
+
+def word_before(text: str, at: int) -> str | None:
+    """The last word before `at`, or None when nothing precedes it."""
+    words = text[:at].split()
+    return words[-1] if words else None
 
 
 def count_finding(word: str, real: int, where: str) -> list[str]:
@@ -129,15 +136,17 @@ def publishing_findings(text: str, packages: set[str], core: int) -> list[str]:
     listing = text.index(":", marker) + 1
     end = sentence_end(text, listing)
 
-    found = count_finding(text[opening:marker].split()[-1], len(packages), where)
+    counted = word_before(text, marker)
+    found = [] if counted is None else count_finding(counted, len(packages), where)
     found += names_finding(set(NAME.findall(text[listing:end])), packages, where)
 
-    tier = CORE_COUNT.search(text, end)
-    if tier is None:
+    tier = text.find(CORE_TIER, end)
+    said = None if tier < 0 else word_before(text, tier)
+    if said is None:
         found.append(f"{where} no longer says how many packages are core tier. The tier split "
                      "is what decision 0076 is about, so the sentence stays.")
     else:
-        found += count_finding(tier.group(1), core, f"{where}'s core-tier sentence")
+        found += count_finding(said, core, f"{where}'s core-tier sentence")
     return found
 
 
