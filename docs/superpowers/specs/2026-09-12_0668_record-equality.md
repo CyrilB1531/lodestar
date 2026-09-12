@@ -162,8 +162,14 @@ mirrored onto `netstandard2.0` without further work:
   separate act.
 - **No `docs/equivalence.md` rows.** Equality here is a .NET concern with no Python call to map;
   scikit-learn's options objects are not compared for equality by their callers either.
-- **No new samples.** The six types are public already and reachable from `samples/` as they
-  stand; no new public *type* is introduced, only members on existing ones.
+- **No new sample code, but the packaging gate still has to be told.** That gate counts exported
+  **members**, not types, so eight new `Equals`/`GetHashCode` land in it unreferenced even though
+  no new type appears — which is what this bullet originally got wrong. A sample cannot reference
+  them idiomatically either: `==` reaches equality through `op_Equality`, so comparing two options
+  produces no member reference to `Equals`. The house answer is already in the tree, unanimous
+  across fourteen entries — `PackagingGate.Excluded` with the `RecordPlumbing` reason — and these
+  eight join it. `Lodestar.Survival` is outside the gate's thirteen scanned assemblies, so the two
+  curves need nothing.
 
 ## Risk
 

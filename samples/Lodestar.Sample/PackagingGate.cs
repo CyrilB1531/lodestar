@@ -37,10 +37,10 @@ internal static class PackagingGate
         + "empty blob and a four-zero-byte header are refused with different sentences — so there "
         + "is no input a sample could pass, and Normalize needs the instance it cannot build";
 
-    /// <summary>A record's synthesised equality: compared with, never called.</summary>
+    /// <summary>A record's equality, synthesised or written: compared with, never called.</summary>
     private const string RecordPlumbing =
-        "a record's value equality — the synthesised member a consumer compares WITH rather than "
-        + "calls, so no sample line produces a member reference to it";
+        "a record's value equality — the member a consumer compares WITH rather than calls, since "
+        + "== reaches it through op_Equality, so no sample line produces a member reference to it";
 
     /// <summary>The awaitable twin of a loader the sample reads synchronously.</summary>
     private const string AsyncCounterpart =
@@ -78,6 +78,8 @@ internal static class PackagingGate
         ["Lodestar.Embeddings.Tokenization.PrecompiledNormalizer.FromCharsMap"] = NoCharsMap,
         ["Lodestar.Embeddings.Tokenization.PrecompiledNormalizer.Normalize"] = NoCharsMap,
 
+        ["Lodestar.Cluster.KMeansOptions.Equals"] = RecordPlumbing,
+        ["Lodestar.Cluster.KMeansOptions.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Embeddings.Tokenization.AddedToken.Equals"] = RecordPlumbing,
         ["Lodestar.Embeddings.Tokenization.AddedToken.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Embeddings.Tokenization.BpeVocabulary.Equals"] = RecordPlumbing,
@@ -93,6 +95,12 @@ internal static class PackagingGate
         ["Lodestar.Embeddings.Tokenization.WordPieceVocabulary.Equals"] = RecordPlumbing,
         ["Lodestar.Embeddings.Tokenization.WordPieceVocabulary.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Metrics.ClassificationReport.ToString"] = RecordPlumbing,
+        ["Lodestar.Stats.Chi2ContingencyResult.Equals"] = RecordPlumbing,
+        ["Lodestar.Stats.Chi2ContingencyResult.GetHashCode"] = RecordPlumbing,
+        ["Lodestar.Text.Keywords.RakeOptions.Equals"] = RecordPlumbing,
+        ["Lodestar.Text.Keywords.RakeOptions.GetHashCode"] = RecordPlumbing,
+        ["Lodestar.Text.Keywords.TextRankOptions.Equals"] = RecordPlumbing,
+        ["Lodestar.Text.Keywords.TextRankOptions.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Text.Vectorization.CountVectorizerOptions.Equals"] = RecordPlumbing,
         ["Lodestar.Text.Vectorization.CountVectorizerOptions.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Embeddings.Persistence.BpeFilesLoader.LoadAsync"] = AsyncCounterpart,
