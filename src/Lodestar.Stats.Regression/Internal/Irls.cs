@@ -29,7 +29,7 @@ internal static class Irls
         double[] matrix = LeastSquares.Design(design, rowCount, featureCount, options.WithIntercept);
 
         // The reference's Family.starting_mu, which is (y + mean(y)) / 2 and which Binomial
-        // overrides to (y + 0.5) / 2, through the same Clamp the loop below applies.
+        // overrides to (y + 0.5) / 2.
         double responseMean = 0.0;
         for (int row = 0; row < rowCount; row++)
         {
@@ -40,13 +40,11 @@ internal static class Irls
         var mean = new double[rowCount];
         for (int row = 0; row < rowCount; row++)
         {
-            // Clamped here and not only in the loop: an all-zero Poisson response starts at
-            // mu = 0, where Link is -Infinity and the first weight is NaN for 100 iterations.
-            mean[row] = Clamp(
-                family,
-                family == GlmFamily.Binomial
-                    ? (response[row] + 0.5) / 2.0
-                    : (response[row] + responseMean) / 2.0);
+            // Unclamped, as the reference is: both starts sit strictly inside the link's
+            // domain once an all-zero Poisson response is refused, which Fit does.
+            mean[row] = family == GlmFamily.Binomial
+                ? (response[row] + 0.5) / 2.0
+                : (response[row] + responseMean) / 2.0;
         }
 
         var scaled = new double[rowCount * parameterCount];

@@ -94,15 +94,24 @@ public sealed class GlmEdgeTests
     }
 
     [Fact]
-    public void An_all_zero_poisson_response_is_fitted_rather_than_looping()
+    public void An_all_zero_poisson_response_is_refused_rather_than_answered()
     {
-        // The starting mean is mean(y) = 0 here, where the log link is -Infinity: clamped, the
-        // first weight is a number and the fit converges instead of exhausting its budget.
+        // Clamping the start would make this converge, and on a number set by the tolerance
+        // rather than by the data: the maximum is at minus infinity. The reference refuses too.
+        ArgumentException refusal = Assert.Throws<ArgumentException>(
+            () => GeneralizedLinearModel.Fit(
+                Design, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], featureCount: 1, GlmFamily.Poisson));
+
+        Assert.Contains("every count is zero", refusal.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_poisson_response_with_one_positive_count_is_fitted()
+    {
         GlmSummary summary = GeneralizedLinearModel.Fit(
-            Design, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], featureCount: 1, GlmFamily.Poisson);
+            Design, [0.0, 0.0, 0.0, 0.0, 0.0, 1.0], featureCount: 1, GlmFamily.Poisson);
 
         Assert.True(summary.Converged);
-        Assert.Equal(0.0, summary.Deviance, 1e-9);
     }
 
     [Theory]

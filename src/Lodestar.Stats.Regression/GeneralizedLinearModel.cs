@@ -22,8 +22,9 @@ public static class GeneralizedLinearModel
     /// <param name="options">The fit's settings, or null for the defaults.</param>
     /// <exception cref="ArgumentException">
     /// <paramref name="design"/> is not a positive whole number of rows, the lengths disagree, a
-    /// response is outside its family or is a Poisson count above one million, no residual degree
-    /// of freedom is left, or the design is rank deficient.
+    /// response is outside its family, is a Poisson count above one million or is a Poisson
+    /// response that is zero in every row, no residual degree of freedom is left, or the design
+    /// is rank deficient.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="featureCount"/> is below one, or <paramref name="family"/> is not a declared
@@ -140,6 +141,7 @@ public static class GeneralizedLinearModel
     private static void RefuseResponseOutsideTheFamily(
         GlmFamily family, ReadOnlySpan<double> response)
     {
+        bool anyPositive = false;
         for (int row = 0; row < response.Length; row++)
         {
             double y = response[row];
@@ -169,6 +171,17 @@ public static class GeneralizedLinearModel
                     + "log-factorial table indexed by the largest count, which is 8 MB at the "
                     + "bound and unbounded above it (#665).", nameof(response));
             }
+
+            anyPositive |= y > 0.0;
+        }
+
+        if (family == GlmFamily.Poisson && !anyPositive && response.Length > 0)
+        {
+            throw new ArgumentException(
+                "every count is zero, so the log link sends the fitted mean to zero and the "
+                + "maximum lies at minus infinity: what a fit would report is the iteration the "
+                + "tolerance stopped at, not an estimate. The reference refuses the same input.",
+                nameof(response));
         }
     }
 }

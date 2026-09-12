@@ -23,14 +23,19 @@ is not a declared `GlmFamily` member; a setting outside its own range throws fro
 [`GlmOptions`](glmoptions.md) itself. `ArgumentException` when `design` is empty or is not a whole
 number of rows, when the lengths disagree, when a response value is outside its family — a
 `Binomial` response that is not `0` or `1`, or a `Poisson` one that is negative, fractional or
-above one million — when no residual degree of freedom is left, or when the design is rank
-deficient and the weighted least squares has no unique solution. `InvalidOperationException` when
+above one million — when a `Poisson` response is zero in every row, when no residual degree of
+freedom is left, or when the design is rank deficient and the weighted least squares has no unique
+solution. `InvalidOperationException` when
 IRLS did not converge and `GlmOptions.ThrowOnNonConvergence` says throw.
 
 The Poisson bound is this implementation's and not the reference's: the log-likelihood sums an
 exact `log(k!)` table indexed by the largest count, 8 MB at a million and unbounded above it, where
 statsmodels evaluates `gammaln(y + 1)` in constant time
 ([#665](https://github.com/CyrilB1531/lodestar/issues/665)).
+
+An all-zero `Poisson` response is refused on both sides, for the same reason stated differently:
+its likelihood is maximised at minus infinity, so a fit would report where the tolerance stopped
+rather than an estimate. statsmodels raises `ValueError` from the first deviance evaluation.
 
 **Example** — the same design fit through both families reads differently: `Poisson`'s count
 response through the log link, against `Binomial`'s `{0, 1}` one through the logit link.
