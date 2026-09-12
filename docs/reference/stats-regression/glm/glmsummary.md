@@ -12,8 +12,8 @@ public sealed class GlmSummary
 first when one was fitted: `Coefficients`, `StandardErrors`, `ZStatistics`, `PValues`,
 `ConfidenceLower` and `ConfidenceUpper`. `Deviance` and `NullDeviance` are twice the log-likelihood
 gap to a saturated fit, for the fitted model and for the intercept-only one. `Dispersion` is fixed
-at `1` for both families here — the corpus reaches `2.9e-11`; it is estimated once a Gamma family
-lands. `LogLikelihood` is the fitted log-likelihood and `Akaike` is `2k - 2 logL`.
+at `1` for both families here, neither having a free dispersion parameter; it is estimated once a
+Gamma family lands. `LogLikelihood` is the fitted log-likelihood and `Akaike` is `2k - 2 logL`.
 `ResidualDegreesOfFreedom` is rows less parameters, and `HasIntercept` says whether a column of
 ones was fitted. `Converged` says whether IRLS reached the tolerance — **read this first** —
 `Iterations` is how many it took, and `DevianceChange` is the absolute deviance change at the last

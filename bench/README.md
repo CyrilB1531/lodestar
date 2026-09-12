@@ -2103,5 +2103,6 @@ A seeded logistic design (`Random(616)`), at 200 and 2 000 rows by 1 and 3 regre
 rows for the table in section 19's own reading to be worth reading, and few enough regressors that
 neither side pays for a design this package's own test corpus does not also exercise.
 
-Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
-this section documents how to measure, not what was measured.
+**The measurement has not been taken yet**, so [`docs/guides/performance.md`](../docs/guides/performance.md)
+carries no GLM section: this section is the protocol, and the numbers land there when someone runs
+the command above on a named machine.
