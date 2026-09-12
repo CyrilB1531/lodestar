@@ -104,6 +104,7 @@ T_PPF = "t.ppf"
 CHI2_SF = "chi2.sf"
 # A bound key three corpora write, which is what takes it to S1192's threshold (#569).
 UPPER = "upper"
+LOWER = "lower"
 NORM_PPF = "norm.ppf"
 FAMILY = "family"
 # The OLS corpus repeats its own field names once per fixture and once per emitted case.
@@ -3522,7 +3523,7 @@ def generate_conformal() -> dict:
         regression_cases.append({
             "name": fx["name"], "alpha": fx["alpha"], Y_CALIB: y_calib,
             Y_CALIB_PRED: calib_pred, QUANTILE: q, Y_TEST_PRED: test_pred,
-            "lower": lower, UPPER: upper})
+            LOWER: lower, UPPER: upper})
 
     for fx in _conformal_classification_fixtures():
         case = _conformal_classification_case(fx, frozen_classifier, SplitConformalClassifier)
@@ -4589,7 +4590,7 @@ def generate_survival_curves() -> dict:
             "atRisk": [int(v) for v in table["at_risk"]],
             OBSERVED: [int(v) for v in table[OBSERVED]],
             "censored": [int(v) for v in table["censored"]],
-            "lower": [float(v) for v in kmf.confidence_interval_[lower]],
+            LOWER: [float(v) for v in kmf.confidence_interval_[lower]],
             UPPER: [float(v) for v in kmf.confidence_interval_[upper]],
         })
 
@@ -9296,6 +9297,9 @@ TWO_SIDED = "two-sided"
 OBSERVED = "observed"
 GROUPS = "groups"
 TABLE = "table"
+SERIES = "series"
+LAG_COUNT = "lag_count"
+BARTLETT = "bartlett"
 
 
 def _stats_metadata(family: str, count: int) -> dict:
@@ -9701,6 +9705,91 @@ def generate_stats_multiple_comparisons() -> dict:
     return {"metadata": _stats_metadata("multiple_comparisons", len(cases)), CASES: cases}
 
 
+def _timeseries_fixtures() -> list[dict]:
+    """Series whose correlograms differ in ways a wrong implementation cannot fake."""
+    rng = SeededRandom(SEED + 617)
+
+    ar1 = [0.0]
+    for _ in range(39):
+        ar1.append(0.7 * ar1[-1] + rng.gauss(0.0, 1.0))
+
+    shocks = [rng.gauss(0.0, 1.0) for _ in range(61)]
+    ma1 = [shocks[i] + 0.6 * shocks[i - 1] for i in range(1, 61)]
+
+    noise = [rng.gauss(0.0, 1.0) for _ in range(100)]
+    trend = [0.05 * i + rng.gauss(0.0, 0.3) for i in range(80)]
+    seasonal = [
+        math.sin(2.0 * math.pi * i / 12.0) + rng.gauss(0.0, 0.2) for i in range(96)
+    ]
+
+    return [
+        {"name": "AR(1) at 0.7, 40 points", SERIES: [round(v, 10) for v in ar1], LAG_COUNT: 8},
+        {"name": "MA(1) at 0.6, 60 points", SERIES: [round(v, 10) for v in ma1], LAG_COUNT: 8},
+        {"name": "white noise, 100 points", SERIES: [round(v, 10) for v in noise], LAG_COUNT: 10},
+        {"name": "linear trend, 80 points", SERIES: [round(v, 10) for v in trend], LAG_COUNT: 10},
+        {"name": "seasonal period 12, 96 points",
+         SERIES: [round(v, 10) for v in seasonal], LAG_COUNT: 14},
+        {"name": "short series, 12 points", SERIES: [round(v, 10) for v in noise[:12]],
+         LAG_COUNT: 5},
+    ]
+
+
+def generate_stats_timeseries() -> dict:
+    """ACF, PACF and Ljung-Box, against statsmodels 0.15.0 (#617)."""
+    import numpy as np
+    from statsmodels.stats.diagnostic import acorr_ljungbox
+    from statsmodels.tsa.stattools import acf, pacf
+
+    cases: list[dict] = []
+    for fx in _timeseries_fixtures():
+        x = np.array(fx[SERIES])
+        lags = fx[LAG_COUNT]
+
+        for level in (0.95, 0.99):
+            alpha = round(1.0 - level, 10)
+            for adjusted in (False, True):
+                for bartlett in (True, False):
+                    values, confint = acf(
+                        x, nlags=lags, adjusted=adjusted, fft=False,
+                        alpha=alpha, bartlett_confint=bartlett)
+                    cases.append({
+                        "name": f"{fx['name']} | acf | {level} | "
+                                f"adjusted={adjusted} | bartlett={bartlett}",
+                        "call": "acf",
+                        SERIES: fx[SERIES], LAG_COUNT: lags,
+                        "level": level, "adjusted": adjusted, BARTLETT: bartlett,
+                        "values": [float(v) for v in values],
+                        LOWER: [float(row[0]) for row in confint],
+                        UPPER: [float(row[1]) for row in confint],
+                    })
+
+            pvalues, pconfint = pacf(x, nlags=min(lags, len(x) // 2), alpha=alpha)
+            cases.append({
+                "name": f"{fx['name']} | pacf | {level}",
+                "call": "pacf",
+                SERIES: fx[SERIES], LAG_COUNT: min(lags, len(x) // 2),
+                "level": level,
+                "values": [float(v) for v in pvalues],
+                LOWER: [float(row[0]) for row in pconfint],
+                UPPER: [float(row[1]) for row in pconfint],
+            })
+
+        for model_df in (0, 2):
+            frame = acorr_ljungbox(
+                x, lags=list(range(1, lags + 1)), model_df=model_df, boxpierce=True)
+            cases.append({
+                "name": f"{fx['name']} | ljungbox | model_df={model_df}",
+                "call": "acorr_ljungbox",
+                SERIES: fx[SERIES], LAG_COUNT: lags, "model_df": model_df,
+                "statistics": [float(v) for v in frame["lb_stat"]],
+                "pvalues": [_stats_number(v) for v in frame["lb_pvalue"]],
+                "bp_statistics": [float(v) for v in frame["bp_stat"]],
+                "bp_pvalues": [_stats_number(v) for v in frame["bp_pvalue"]],
+            })
+
+    return {"metadata": _stats_metadata("timeseries", len(cases)), CASES: cases}
+
+
 def main() -> None:
     """Write every oracle deterministically, byte for byte.
 
@@ -9788,6 +9877,7 @@ def main() -> None:
         "survival_logrank.json": generate_survival_logrank,
         "stats_ols.json": generate_stats_ols,
         "stats_glm.json": generate_stats_glm,
+        "stats_timeseries.json": generate_stats_timeseries,
         "cluster_kmeans.json": generate_cluster_kmeans,
         "preprocessing_standard_scaler.json": generate_preprocessing_standard_scaler,
         "ranking.json": generate_ranking,
