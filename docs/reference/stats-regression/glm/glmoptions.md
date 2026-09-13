@@ -33,8 +33,8 @@ GlmSummary ninetyFive = GeneralizedLinearModel.Fit(design, response, 1, GlmFamil
 GlmSummary ninetyNine = GeneralizedLinearModel.Fit(
     design, response, 1, GlmFamily.Binomial, new GlmOptions { ConfidenceLevel = 0.99 });
 
-double narrow = ninetyFive.ConfidenceLower[1];  // => -0.5746058300782446
-double wide = ninetyNine.ConfidenceLower[1];    // => -1.1366351826479073
+double narrow = ninetyFive.ConfidenceLower[1];  // => -0.57460583007824…
+double wide = ninetyNine.ConfidenceLower[1];    // => -1.13663518264790…
 ```
 
 **Remarks** — **turning `ThrowOnNonConvergence` off does not fix a bad fit; it lets you inspect

@@ -166,6 +166,9 @@
     "StatsBenchmarks": [
       "src/Lodestar.Stats/**"
     ],
+    "DistributionTailBenchmarks": [
+      "src/Lodestar.Stats/**"
+    ],
     "SerialCorrelationBenchmarks": [
       "src/Lodestar.Stats/**"
     ],
