@@ -133,7 +133,7 @@ for p in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src
          src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Cluster \
          src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression \
          src/Lodestar.Survival src/Lodestar.Onnx src/Lodestar.Gpu src/Lodestar.Extensions.AI \
-         src/Lodestar.Extensions.MathNet; do
+         src/Lodestar.Extensions.MathNet src/Lodestar.Extensions.VectorData; do
   dotnet pack "$p" -c Release -o ./artifacts
 done
 ```

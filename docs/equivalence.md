@@ -374,6 +374,17 @@ compressed sparse row form, as `CsrMatrix` does, so what changes is whose type h
 | `scipy.sparse.csc_matrix`, `coo_matrix`, `dok_matrix` | scipy | — (no counterpart) | `CsrMatrix` is the one layout this repository has, so there is nothing to convert *to*. A Math.NET matrix in another storage still converts *from*, through the walking path. |
 | `numpy.asarray(sparse.todense())` | numpy | [`CsrMatrix.ToDense()`](reference/abstractions/sparse/csrmatrix-todense.md) (`Lodestar.Abstractions`) | Already there, and Math.NET builds a `DenseMatrix` from a `double[,]` unaided — which is why this package offers no dense pair. |
 
+## Lodestar.Extensions.VectorData — Microsoft.Extensions.VectorData provider
+
+No Python call maps here: the rows below map an **interface a .NET consumer asks for** onto the
+store that answers it. The rankings inside are `Lodestar.Embeddings`' and `Lodestar.Text`'s, checked
+by their own rows above — [`Bm25Index.Top`](reference/text/search/bm25index-top.md) and
+[`RankFusion.Rrf`](reference/text/search/rankfusion-rrf.md) among them.
+
+| Python | Library | C# | Differences |
+| --- | --- | --- | --- |
+| `Microsoft.Extensions.VectorData` provider conformance | — (no Python reference) | [`LodestarVectorStore`](reference/extensions-vectordata/store/lodestarvectorstore.md) | **There is no Python call to map.** This is an interface adapter, so conformance is proven by driving the abstractions as a consumer does — constructing a store, upserting typed records, searching, filtering and fusing — rather than by replaying a frozen corpus. Two deliberate refusals: [`LodestarVectorStore.GetDynamicCollection`](reference/extensions-vectordata/store/lodestarvectorstore-getdynamiccollection.md) throws, because a dictionary record has no properties for the compiled filter to bind to, and a `string` search value throws, because this package generates no embeddings. [`LodestarVectorStoreCollection.HybridSearchAsync`](reference/extensions-vectordata/store/lodestarvectorstorecollection-hybridsearchasync.md) fuses a vector ranking with a BM25 ranking through reciprocal rank at `k = 60`, keeping in the keyword ranking only the documents the keywords matched ([decision 0123](decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)). |
+
 ## Lodestar.Preprocessing — feature scaling
 
 | Python | Library | C# | Differences |

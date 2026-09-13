@@ -28,6 +28,7 @@ on:
           - Lodestar.Gpu
           - Lodestar.Extensions.AI
           - Lodestar.Extensions.MathNet
+          - Lodestar.Extensions.VectorData
           - Lodestar.Cluster
           - Lodestar.Preprocessing
       version:
