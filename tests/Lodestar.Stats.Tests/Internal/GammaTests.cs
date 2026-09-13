@@ -64,6 +64,26 @@ public sealed class GammaTests
         Assert.Equal(1.0, Gamma.RegularizedP(a, x) + Gamma.RegularizedQ(a, x), 1e-14);
     }
 
+    [Theory]
+    // Both sides of the finite sum's bounds (2a <= 100, x <= 700), so a seam with the iteration
+    // shows; relative, as the tail reaches 1e-228. Values: scipy.special.gammaincc.
+    [InlineData(0.5, 2.205, 0.03572884112563301)]
+    [InlineData(1.0, 3.0, 0.04978706836786395)]
+    [InlineData(1.5, 60.0, 7.716790355634162e-26)]
+    [InlineData(2.0, 4.744, 0.04999440557799463)]
+    [InlineData(2.5, 0.001, 0.9999999904914654)]
+    [InlineData(50.0, 300.0, 2.41882858334655e-72)]
+    [InlineData(50.0, 700.0, 4.4774296035996127e-228)]
+    [InlineData(50.0, 701.0, 1.766309187969092e-228)]
+    [InlineData(50.0, 55.0, 0.23220478050085636)]
+    [InlineData(50.5, 55.0, 0.25400482476574116)]
+    [InlineData(51.0, 55.0, 0.2767563591543263)]
+    public void RegularizedQ_matches_scipy_on_both_sides_of_the_closed_form(
+        double a, double x, double expected)
+    {
+        Assert.Equal(1.0, Gamma.RegularizedQ(a, x) / expected, 1e-12);
+    }
+
     [Fact]
     public void RegularizedP_is_zero_at_the_origin_and_one_far_out()
     {

@@ -3,8 +3,9 @@ namespace Lodestar.Stats.Internal;
 /// <summary>The log-gamma function and the two regularized incomplete gammas.</summary>
 /// <remarks>
 /// Lanczos (1964) for the log-gamma; the series-below / continued-fraction-above
-/// split, evaluated by modified Lentz (1976), for the incomplete pair. No
-/// reference implementation is transcribed (ADR 0003). The upper tail
+/// split, evaluated by modified Lentz (1976), for the incomplete pair -- except
+/// <c>Q</c> at an integer or half-integer shape, a finite sum (<see cref="HalfIntegerQ"/>).
+/// No reference implementation is transcribed (ADR 0003). The upper tail
 /// <c>Q</c> is a chi-square p-value: with <c>a = dof/2</c>, <c>x = statistic/2</c>,
 /// <c>Q(a, x)</c> is the probability of a statistic at least this large.
 /// </remarks>
@@ -33,6 +34,13 @@ internal static class Gamma
     // A floor well above where the recurrence's denominator would underflow: Lentz
     // divides by it, so a zero one is nudged here instead of an infinity that never recovers.
     private const double Tiny = 1e-300;
+
+    // At 2a = 100 the sum beat the iteration at x = a and x = 2a (default job: 44 vs 177 and 71 ns,
+    // a short run had the fraction ahead at 160). Past x = 700 e^-x nears the subnormals, Q need not.
+    private const double MaxClosedFormTwiceA = 100.0;
+    private const double MaxClosedFormX = 700.0;
+
+    private const double TwoOverSqrtPi = 1.1283791670955126;
 
     internal static double LogGamma(double x)
     {
@@ -102,7 +110,72 @@ internal static class Gamma
             return 1.0;
         }
 
+        // S1244: 2a landing on an integer exactly is what a chi-squared tail's a = dof/2
+        // always does; a shape near one without being one takes the iterative path below.
+        double twiceA = 2.0 * a;
+#pragma warning disable S1244
+        if (twiceA <= MaxClosedFormTwiceA && x <= MaxClosedFormX && twiceA == Math.Floor(twiceA))
+#pragma warning restore S1244
+        {
+            return HalfIntegerQ((int)twiceA, x);
+        }
+
         return x < a + 1.0 ? 1.0 - SeriesP(a, x) : ContinuedFractionQ(a, x);
+    }
+
+    /// <summary>e^(x^2) Q(1/2, x^2), which is erfcx(x): what <see cref="Normal"/> samples its table from.</summary>
+    /// <remarks>
+    /// The prefactor x^a e^-s / Gamma(a) is (x / sqrt(pi)) e^-s at a = 1/2 and s = x^2, so the
+    /// scaling cancels its exponential instead of multiplying one back in -- which overflows
+    /// past x = 26.6, where the table still has to reach.
+    /// </remarks>
+    internal static double ScaledUpperHalf(double x)
+    {
+        double s = x * x;
+        double prefactor = x / Math.Sqrt(Math.PI);
+        return s < 1.5
+            ? Math.Exp(s) - (prefactor * SeriesSum(0.5, s))
+            : prefactor * ContinuedFraction(0.5, s);
+    }
+
+    // Q(b+1, x) = Q(b, x) + x^b e^-x / Gamma(b+1) by parts, from Q(1, x) = e^-x or Q(1/2, x) =
+    // erfc(sqrt x): positive terms only, so the error grows with the term count and not with x.
+    private static double HalfIntegerQ(int twiceA, double x)
+    {
+        double sum;
+        double term;
+        double b;
+        int increments;
+        if ((twiceA & 1) == 1)
+        {
+            sum = Normal.ErfcOfSquareRoot(x);
+            if (twiceA == 1)
+            {
+                return sum;
+            }
+
+            // x^(1/2) e^-x / Gamma(3/2), taking Q(1/2, x) to Q(3/2, x).
+            term = TwoOverSqrtPi * Math.Sqrt(x) * Math.Exp(-x);
+            sum += term;
+            b = 1.5;
+            increments = ((twiceA - 1) / 2) - 1;
+        }
+        else
+        {
+            term = Math.Exp(-x);
+            sum = term;
+            b = 1.0;
+            increments = (twiceA / 2) - 1;
+        }
+
+        for (; increments > 0; increments--)
+        {
+            term *= x / b;
+            sum += term;
+            b += 1.0;
+        }
+
+        return sum;
     }
 
     private static void Validate(double a, double x)
@@ -118,7 +191,11 @@ internal static class Gamma
     }
 
     // P(a, x) = x^a e^-x / Gamma(a) * sum_{n>=0} x^n / (a(a+1)...(a+n)).
-    private static double SeriesP(double a, double x)
+    private static double SeriesP(double a, double x) =>
+        SeriesSum(a, x) * Math.Exp((a * Math.Log(x)) - x - LogGamma(a));
+
+    // The sum above without its prefactor, so ScaledUpperHalf can supply its own.
+    private static double SeriesSum(double a, double x)
     {
         double term = 1.0 / a;
         double sum = term;
@@ -132,12 +209,16 @@ internal static class Gamma
             }
         }
 
-        return sum * Math.Exp((a * Math.Log(x)) - x - LogGamma(a));
+        return sum;
     }
 
     // Q(a, x) = x^a e^-x / Gamma(a) * 1/(x+1-a - 1(1-a)/(x+3-a - 2(2-a)/(x+5-a - ...))),
     // evaluated by modified Lentz.
-    private static double ContinuedFractionQ(double a, double x)
+    private static double ContinuedFractionQ(double a, double x) =>
+        Math.Exp((a * Math.Log(x)) - x - LogGamma(a)) * ContinuedFraction(a, x);
+
+    // The fraction above without its prefactor, for the same reason as SeriesSum.
+    private static double ContinuedFraction(double a, double x)
     {
         double b = x + 1.0 - a;
         double c = 1.0 / Tiny;
@@ -171,6 +252,6 @@ internal static class Gamma
             }
         }
 
-        return Math.Exp((a * Math.Log(x)) - x - LogGamma(a)) * h;
+        return h;
     }
 }

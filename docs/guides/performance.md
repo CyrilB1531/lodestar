@@ -3195,12 +3195,49 @@ subsection below has what it costs now, on a different machine. `Accord` is fast
 [`ChiSquare.Contingency`](../reference/stats/tests/chisquare-contingency.md) (roughly 380 ns against 294 ns, flat with
 sample size since a 2×2 table has four cells regardless of how many observations produced it) — the
 one family where this package's richer result (`Chi2ContingencyResult` carries the expected-value
-table; `Accord`'s `ChiSquareTest` does not expose one) costs more than it buys at this shape.
+table; `Accord`'s `ChiSquareTest` does not expose one) costs more than it buys at this shape. That
+reading was wrong about the cause: the gap was the chi-squared tail, not the result, and the
+subsection below measures it closed.
 
 **Correctness, not just speed.** All three families were checked against `scipy` on frozen
 `tests/oracles/stats_*.json` corpus cases through both implementations; no case disagreed beyond
 floating-point noise (the last one or two digits of a `double`, inside the `1e-9` tolerance
 `docs/equivalence.md` already uses). `bench/README.md` has the three cases and the exact figures.
+
+### The chi-squared tail, before and after its finite sum
+
+The [`ChiSquare.Contingency`](../reference/stats/tests/chisquare-contingency.md) rows above were mostly the chi-squared tail: one degree of freedom went
+through the incomplete gamma's continued fraction, iterated to convergence on every call. The tail
+now reads an integer or half-integer degree of freedom up to 100 as a finite sum from
+`Q(1, x) = e^-x` or `Q(1/2, x) = erfc(sqrt x)`, and `erfc` as a piecewise Chebyshev interpolant of
+`e^(x^2) erfc(x)` sampled from that same continued fraction once, at type initialization; the 2×2
+table's marginals moved to the stack. Correctness against scipy is unchanged or tighter: 60,001
+`erfc` points over `[-6, 27.5]` agree to a relative 7e-15 (1e-13 before), and 22,500 `chi2.sf`
+points at 1 to 250 degrees of freedom to 1.7e-13 (2.2e-13 before).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores (BenchmarkDotNet's
+own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime. Window: 2026-09-13, the
+default job, before and after run back to back under the repository's machine lock, from the same
+`DistributionTailBenchmarks` and `StatsBenchmarks` sources; commands in `bench/README.md`.
+
+| Method | before | after | Allocated before | Allocated after |
+| --- | ---: | ---: | ---: | ---: |
+| `LodestarChiSquare`, SampleSize 100 | 192.3 ns | 66.52 ns | 200 B | 168 B |
+| `AccordChiSquare`, SampleSize 100 | 123.4 ns | 121.7 ns | 168 B | 168 B |
+| `LodestarChiSquare`, SampleSize 10,000 | 199.3 ns | 63.42 ns | 200 B | 168 B |
+| `AccordChiSquare`, SampleSize 10,000 | 122.9 ns | 121.7 ns | 168 B | 168 B |
+| `ChiSquaredSf(4.41, 1)` | 197.90 ns | 16.23 ns | — | — |
+| `ChiSquaredSf(9.488, 4)` | 36.75 ns | 6.66 ns | — | — |
+| `ChiSquaredSf(120, 3)` | 50.55 ns | 20.27 ns | — | — |
+| `ChiSquaredSf(100, 100)` | 175.79 ns | 43.24 ns | — | — |
+| `ChiSquaredSf(4.41, 2.5)`, the control no closed form covers | 66.46 ns | 67.59 ns | — | — |
+| `NormalQuantile(0.975)` | 11,022.86 ns | 653.81 ns | — | — |
+
+On this machine [`ChiSquare.Contingency`](../reference/stats/tests/chisquare-contingency.md) goes from 1.6× slower than `Accord` to 1.8–1.9× faster, at the
+same allocation, which reverses the one row the section above conceded. The fractional-df control
+not moving is what says the other rows measure the new path rather than machine drift. The
+`NormalQuantile` row was taken while that quantile still bisected on the tail; #729 has since
+replaced the bisection with Newton's method, so a run today prices both changes together.
 
 ### The Mann-Whitney ranking merges two samples rather than pooling them
 

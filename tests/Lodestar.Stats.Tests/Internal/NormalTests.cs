@@ -37,6 +37,28 @@ public sealed class NormalTests
         Assert.Equal(1.0, Normal.Sf(10.0) / 7.61985302416047e-24, 1e-9);
     }
 
+    [Theory]
+    // Relative, for Sf's reason; 1.105665 is near the sweep's worst point and 26.5 the last half
+    // step before erfc leaves the normal doubles. Values: scipy.special.erfc.
+    [InlineData(1.105665, 0.11790062272966388)]
+    [InlineData(5.0, 1.5374597944280347e-12)]
+    [InlineData(10.0, 2.0884875837625446e-45)]
+    [InlineData(26.0, 5.663192408856145e-296)]
+    [InlineData(26.5, 2.2109076642637343e-307)]
+    public void Erfc_stays_accurate_to_the_last_normal_double(double x, double expected)
+    {
+        Assert.Equal(1.0, Normal.Erfc(x) / expected, 1e-12);
+    }
+
+    [Theory]
+    // erfc(27.3) is 4e-326, under half the smallest subnormal: zero is the rounded value.
+    [InlineData(27.3)]
+    [InlineData(40.0)]
+    public void Erfc_rounds_to_zero_past_the_subnormals(double x)
+    {
+        Assert.Equal(0.0, Normal.Erfc(x));
+    }
+
     [Fact]
     public void Erfc_and_Sf_are_zero_at_positive_infinity()
     {
