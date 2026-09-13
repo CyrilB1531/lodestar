@@ -38,7 +38,10 @@ reading a record by key never rebuilds anything.
   with `OrderBy` throws, because a dictionary has no order of its own to sort from.
 - [`LodestarVectorStoreCollection.HybridSearchAsync`](store/lodestarvectorstorecollection-hybridsearchasync.md)
   throws on a record type that marks no `IsFullTextIndexed` property: there is no keyword half to
-  fuse.
+  fuse. It also throws when `ScoreThreshold` is set, because a fused score is not a similarity.
+- A vector property declaring a `DistanceFunction` other than `CosineSimilarity` is refused when the
+  [`LodestarVectorStoreCollection`](store/lodestarvectorstorecollection.md) is constructed: the index
+  scores cosine only, and a declared distance would also turn `ScoreThreshold` around.
 
 ## Not trimming- or AOT-safe on the filter path
 

@@ -17,7 +17,7 @@ public sealed class DerivedIndexesTests
             Doc("b", "the dog ran", 0f, 1f, 0f),
         ];
 
-        DerivedIndexes<string> built = DerivedIndexes<string>.Build(
+        DerivedIndexes<string, Document> built = DerivedIndexes<string, Document>.Build(
             records, RecordSchema<string, Document>.Create(null), new LodestarVectorStoreOptions());
 
         Assert.Equal(2, built.Vectors.Count);
@@ -34,7 +34,7 @@ public sealed class DerivedIndexesTests
             Doc("b", "the dog ran", 0f, 1f, 0f),
         ];
 
-        DerivedIndexes<string> built = DerivedIndexes<string>.Build(
+        DerivedIndexes<string, Document> built = DerivedIndexes<string, Document>.Build(
             records, RecordSchema<string, Document>.Create(null), new LodestarVectorStoreOptions());
 
         Assert.NotNull(built.Keywords);
@@ -50,7 +50,7 @@ public sealed class DerivedIndexesTests
             new() { Id = 1, Embedding = new float[] { 1f, 0f } },
         ];
 
-        DerivedIndexes<int> built = DerivedIndexes<int>.Build(
+        DerivedIndexes<int, VectorOnly> built = DerivedIndexes<int, VectorOnly>.Build(
             records, RecordSchema<int, VectorOnly>.Create(null), new LodestarVectorStoreOptions());
 
         Assert.Equal(1, built.Vectors.Count);
@@ -61,7 +61,7 @@ public sealed class DerivedIndexesTests
     [Fact]
     public void An_empty_collection_builds_an_empty_index_rather_than_throwing()
     {
-        DerivedIndexes<string> built = DerivedIndexes<string>.Build(
+        DerivedIndexes<string, Document> built = DerivedIndexes<string, Document>.Build(
             [], RecordSchema<string, Document>.Create(null), new LodestarVectorStoreOptions());
 
         Assert.Equal(0, built.Vectors.Count);
@@ -74,7 +74,7 @@ public sealed class DerivedIndexesTests
     {
         Document[] records = [Doc("a", "the cat sat", 1f, 0f)];
 
-        ArgumentException error = Assert.Throws<ArgumentException>(() => DerivedIndexes<string>.Build(
+        ArgumentException error = Assert.Throws<ArgumentException>(() => DerivedIndexes<string, Document>.Build(
             records, RecordSchema<string, Document>.Create(null), new LodestarVectorStoreOptions()));
 
         Assert.Contains("a", error.Message, StringComparison.Ordinal);

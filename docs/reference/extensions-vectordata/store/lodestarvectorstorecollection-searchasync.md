@@ -18,7 +18,8 @@ record and its cosine similarity to the query. At most `top` results, fewer only
 pass the filter and the threshold after `Skip`.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `top` is less than 1. `ArgumentException` when
-the query, or a record written since the last search, is not the collection's vector width.
+the query is not the collection's vector width, or when a held record's vector was changed in place
+to another width since it was written.
 `NotSupportedException` when `searchValue` is not a vector — a `string` included.
 `OperationCanceledException` when `cancellationToken` is cancelled between results. All of them are
 raised when enumeration begins, not when the method is called.
@@ -57,9 +58,10 @@ and filtered afterwards would return nothing at all.
 **Remarks** — **with a filter, every record is scored and the filter runs before the cut**, so `top`
 means `top`: asking for the five nearest records in French returns five whenever five are in French.
 Filtering the top `k` after the fact is the cheaper design and is refused, because it returns fewer
-results than asked — sometimes none — for a reason the caller cannot see. The exactness costs an
-ordering over the whole collection, `O(n log n)`, where a search without a filter orders only
-`top + Skip`.
+results than asked — sometimes none — for a reason the caller cannot see. The exactness costs
+nothing extra in ordering: [`EmbeddingIndex.Search`](../../embeddings/search/embeddingindex-search.md)
+scores and sorts all `n` records whatever count it is asked for, so a search without a filter pays
+the same `O(n log n)` and only returns fewer of them.
 
 `Skip` and `ScoreThreshold` both count over the records the filter admitted, and `Skip` counts after
 the threshold. A threshold is a cosine similarity, so it lies in `[-1, 1]`.

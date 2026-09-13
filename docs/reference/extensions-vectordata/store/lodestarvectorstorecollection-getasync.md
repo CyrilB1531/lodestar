@@ -65,8 +65,10 @@ boundaries do not have to be stable.
 overload is not available under trimming or ahead-of-time compilation.
 
 `IncludeVectors` does not apply. The record returned is the one the collection holds, vector
-included — the same instance, not a copy, so a change made to it is not indexed until it is
-upserted again.
+included — the same instance, not a copy, so a change made to it changes the stored record without
+marking the indexes stale. The next search picks it up only when the indexes are rebuilt — after any
+write, or at once if a write had already made them stale; upsert the changed record to be sure of
+it.
 
 **Applies to** — net10.0, netstandard2.0.
 

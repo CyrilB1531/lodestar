@@ -40,7 +40,7 @@ public sealed class HybridSearchTests
     {
         using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
         // "a" is nearest the query vector but inserted LAST: a fusion that kept zero-scoring
-        // keyword hits in insertion order would rank "b" first instead (task-6-report.md).
+        // keyword hits in insertion order would rank "b" first instead.
         await collection.UpsertAsync([
             Doc("b", "the dog ran in the park", 0f, 1f, 0f),
             Doc("c", "a fish swam in the sea", 0f, 0f, 1f),
@@ -79,29 +79,99 @@ public sealed class HybridSearchTests
         Assert.Contains("IsFullTextIndexed", error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task A_filter_applies_to_the_fused_ranking_too()
+    // Vector ranking for [1,0,0]: a, b, c (b and c tie at zero, index order). Keyword ranking for
+    // "elephant": b, c. At k=60 that fuses to b (1/62 + 1/61), c (1/63 + 1/62), a (1/61).
+    private static async Task<LodestarVectorStoreCollection<string, Document>> TwoElephants()
     {
-        using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+        var collection = new LodestarVectorStoreCollection<string, Document>("documents");
         await collection.UpsertAsync([
             Doc("a", "the cat sat on the mat", 1f, 0f, 0f),
             Doc("b", "an elephant in the park", 0f, 1f, 0f),
             Doc("c", "an elephant crossed the river", 0f, 0f, 1f),
         ]);
+        return collection;
+    }
 
-        // CA1859 asks for the concrete type here, which would delete the fact: what is under
-        // test is that IKeywordHybridSearchable alone is enough to fuse a search with.
-#pragma warning disable CA1859
-        IKeywordHybridSearchable<Document> hybrid = collection;
-#pragma warning restore CA1859
-        List<VectorSearchResult<Document>> hits = await hybrid.HybridSearchAsync(
+    [Fact]
+    public async Task A_filter_applies_to_the_fused_ranking_too()
+    {
+        using LodestarVectorStoreCollection<string, Document> collection = await TwoElephants();
+
+        List<VectorSearchResult<Document>> hits = await collection.HybridSearchAsync(
             new ReadOnlyMemory<float>([1f, 0f, 0f]),
             ["elephant"],
             3,
             new HybridSearchOptions<Document> { Filter = d => d.Id != "c" })
             .ToListAsync();
 
-        Assert.DoesNotContain(hits, hit => hit.Record.Id == "c");
+        Assert.Equal(["b", "a"], hits.Select(hit => hit.Record.Id));
+    }
+
+    [Fact]
+    public async Task Skip_drops_the_leading_fused_results()
+    {
+        using LodestarVectorStoreCollection<string, Document> collection = await TwoElephants();
+
+        List<VectorSearchResult<Document>> hits = await collection.HybridSearchAsync(
+            new ReadOnlyMemory<float>([1f, 0f, 0f]),
+            ["elephant"],
+            2,
+            new HybridSearchOptions<Document> { Skip = 1 })
+            .ToListAsync();
+
+        Assert.Equal(["c", "a"], hits.Select(hit => hit.Record.Id));
+    }
+
+    [Fact]
+    public async Task A_score_threshold_is_refused_with_the_reason()
+    {
+        using LodestarVectorStoreCollection<string, Document> collection = await TwoElephants();
+
+        NotSupportedException error = await Assert.ThrowsAsync<NotSupportedException>(async () =>
+            await collection.HybridSearchAsync(
+                new ReadOnlyMemory<float>([1f, 0f, 0f]),
+                ["elephant"],
+                3,
+                new HybridSearchOptions<Document> { ScoreThreshold = 0.01 })
+                .ToListAsync());
+
+        Assert.Contains("ScoreThreshold", error.Message, StringComparison.Ordinal);
+        Assert.Contains("not a similarity", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Texts_that_yield_no_tokens_degrade_to_the_vector_ranking()
+    {
+        // Single letters are dropped, so the vocabulary is empty. Vector order is c, a, b; keeping the
+        // keyword half's zero-scoring ties would reward insertion order a, b, c and put a first.
+        using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+        await collection.UpsertAsync([
+            Doc("a", "a", 1f, 0f, 0f),
+            Doc("b", "I", 0f, 1f, 0f),
+            Doc("c", "x y", 0f, 0f, 1f),
+        ]);
+
+        List<VectorSearchResult<Document>> hits = await collection
+            .HybridSearchAsync(new ReadOnlyMemory<float>([0.2f, 0.1f, 1f]), ["x"], 3)
+            .ToListAsync();
+
+        Assert.Equal(["c", "a", "b"], hits.Select(hit => hit.Record.Id));
+    }
+
+    [Fact]
+    public async Task A_delete_while_a_hybrid_search_is_enumerated_changes_nothing_already_answered()
+    {
+        using LodestarVectorStoreCollection<string, Document> collection = await TwoElephants();
+        var seen = new List<string>();
+
+        await foreach (VectorSearchResult<Document> hit in collection.HybridSearchAsync(
+            new ReadOnlyMemory<float>([1f, 0f, 0f]), ["elephant"], 3))
+        {
+            seen.Add(hit.Record.Id);
+            await collection.DeleteAsync(["a", "c"]);
+        }
+
+        Assert.Equal(["b", "c", "a"], seen);
     }
 
     [Fact]

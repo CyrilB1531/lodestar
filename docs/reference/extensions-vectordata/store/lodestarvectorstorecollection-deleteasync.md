@@ -14,7 +14,9 @@ abstraction's sake and not observed.
 
 **Returns** — a completed `Task`.
 
-**Exceptions** — `ArgumentNullException` when `keys` is null.
+**Exceptions** — `ArgumentNullException` when `key` or `keys` is null, or when `keys` holds a null
+key. The batch overload reads and checks every key before it removes any, so a refused batch removes
+nothing.
 
 **Example** — a deleted record is gone from reads and from searches alike.
 

@@ -11,7 +11,8 @@ public IAsyncEnumerable<VectorSearchResult<TRecord>> HybridSearchAsync<TInput>(T
 **Parameters** — `searchValue` is the query vector, as a `ReadOnlyMemory<float>` or a `float[]`.
 `keywords` are the terms the keyword half scores, joined into one query document. `top` is the most
 results returned. `options` carries `Filter` and `Skip`, both applied to the fused ranking;
-`ScoreThreshold`, `VectorProperty`, `AdditionalProperty` and `IncludeVectors` are not read.
+`ScoreThreshold` is refused, and `VectorProperty`, `AdditionalProperty` and `IncludeVectors` are not
+read.
 `cancellationToken` is checked between results.
 
 **Returns** — `IAsyncEnumerable<VectorSearchResult<TRecord>>`, best first. Each score is the record's
@@ -19,9 +20,10 @@ results returned. `options` carries `Filter` and `Skip`, both applied to the fus
 similarity. An empty collection returns no results.
 
 **Exceptions** — `ArgumentNullException` when `keywords` is null. `ArgumentOutOfRangeException` when
-`top` is less than 1. `ArgumentException` when the query, or a record written since the last search,
-is not the collection's vector width. `NotSupportedException` when `TRecord` marks no
-`IsFullTextIndexed` property, or when `searchValue` is not a vector. `OperationCanceledException`
+`top` is less than 1. `ArgumentException` when the query is not the collection's vector width, or
+when a held record's vector was changed in place to another width since it was written.
+`NotSupportedException` when `TRecord` marks no `IsFullTextIndexed` property, when `searchValue` is
+not a vector, or when `options` sets `ScoreThreshold`. `OperationCanceledException`
 when `cancellationToken` is cancelled between results. All of them are raised when enumeration
 begins, not when the method is called.
 
@@ -76,9 +78,11 @@ degrades to the vector ranking alone, scored through the fusion.
 
 **`Filter` and `Skip` apply after the fusion**, and since the vector ranking holds every record, the
 fused ranking does too — so a filter never shortens the results below `top` for want of candidates.
-`ScoreThreshold` is **ignored, not refused**. A fusion score depends on `k` and on a record's rank in
-each list, so a threshold written for similarities would not mean the same thing against it — but a
-caller who sets one gets every result, with nothing to say so.
+`ScoreThreshold` is **refused, not ignored**: setting it throws `NotSupportedException`. A fused score
+is a sum of `1 / (k + rank)` over the rankings, not a similarity — it depends on `k` and on a record's
+rank in each list — so no threshold written for similarities means anything against it, and ignoring
+one would hand the caller every result with nothing to say so. Cut the fused results by count with
+`top` instead.
 
 **Only vectors are accepted**, as in
 [`LodestarVectorStoreCollection.SearchAsync`](lodestarvectorstorecollection-searchasync.md). The

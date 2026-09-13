@@ -5,23 +5,26 @@ using Lodestar.Text.Vectorization;
 
 namespace Lodestar.Extensions.VectorData;
 
-/// <summary>The three structures a collection's records are searched through.</summary>
+/// <summary>The structures a collection's records are searched through, and the records they index.</summary>
 /// <remarks>
 /// Built whole, never mutated. <c>EmbeddingIndex</c> only appends and <c>Bm25Index</c> takes
 /// no document at all, so a store that must honour delete and replace keeps its records and
-/// rebuilds these from them. One rebuild produces all three, because they share an index:
-/// position <c>i</c> of the block, row <c>i</c> of the count matrix and <c>Keys[i]</c> are
-/// the same record.
+/// rebuilds these from them. One rebuild produces all of them, because they share an index:
+/// position <c>i</c> of the block, row <c>i</c> of the count matrix, <c>Keys[i]</c> and
+/// <c>Records[i]</c> are the same record.
 /// </remarks>
-internal sealed class DerivedIndexes<TKey>
+internal sealed class DerivedIndexes<TKey, TRecord>
     where TKey : notnull
+    where TRecord : class
 {
-    private DerivedIndexes(EmbeddingIndex vectors, Bm25Index? keywords, CountVectorizer? vectorizer, TKey[] keys)
+    private DerivedIndexes(
+        EmbeddingIndex vectors, Bm25Index? keywords, CountVectorizer? vectorizer, TKey[] keys, TRecord[] records)
     {
         Vectors = vectors;
         Keywords = keywords;
         Vectorizer = vectorizer;
         Keys = keys;
+        Records = records;
     }
 
     /// <summary>The vector half.</summary>
@@ -36,20 +39,27 @@ internal sealed class DerivedIndexes<TKey>
     /// <summary>The key at each index position, which is how a hit becomes a record.</summary>
     public IReadOnlyList<TKey> Keys { get; }
 
-    /// <summary>Builds all three from the records as they stand.</summary>
+    /// <summary>The record at each index position, as it stood when these were built.</summary>
+    /// <remarks>
+    /// A search resolves its hits here rather than through the collection's dictionary, so a
+    /// write made while the results are being enumerated cannot pair a score with another record.
+    /// </remarks>
+    public IReadOnlyList<TRecord> Records { get; }
+
+    /// <summary>Builds every structure from the records as they stand.</summary>
     /// <param name="records">The collection's records, in the order the indexes will report.</param>
     /// <param name="schema">Where each record keeps its key, vector and text.</param>
     /// <param name="options">How the keyword half is tokenized and scored.</param>
-    /// <exception cref="ArgumentException">A record's vector is not <see cref="RecordSchema{TKey, TRecord}.Dimension"/> long.</exception>
-    public static DerivedIndexes<TKey> Build<TRecord>(
+    /// <exception cref="ArgumentException">A record's vector is not <see cref="RecordSchema{TKey, TRecord}.Dimension"/> long, which only a record changed in place after its upsert can be.</exception>
+    public static DerivedIndexes<TKey, TRecord> Build(
         IReadOnlyCollection<TRecord> records,
         RecordSchema<TKey, TRecord> schema,
         LodestarVectorStoreOptions options)
-        where TRecord : class
     {
         int dimension = schema.Dimension;
         float[] block = new float[records.Count * dimension];
         TKey[] keys = new TKey[records.Count];
+        TRecord[] held = new TRecord[records.Count];
         List<string> documents = schema.HasFullText ? new List<string>(records.Count) : [];
 
         int row = 0;
@@ -66,6 +76,7 @@ internal sealed class DerivedIndexes<TKey>
 
             vector.CopyTo(block.AsSpan(row * dimension, dimension));
             keys[row] = key;
+            held[row] = record;
             if (schema.HasFullText)
             {
                 documents.Add(schema.FullTextOf(record));
@@ -81,11 +92,12 @@ internal sealed class DerivedIndexes<TKey>
 
         if (documents.Count == 0)
         {
-            return new DerivedIndexes<TKey>(vectors, null, null, keys);
+            return new DerivedIndexes<TKey, TRecord>(vectors, null, null, keys, held);
         }
 
         var vectorizer = new CountVectorizer(options.Vectorizer);
         CsrMatrix counts = vectorizer.FitTransform(documents);
-        return new DerivedIndexes<TKey>(vectors, new Bm25Index(counts, options.Bm25), vectorizer, keys);
+        return new DerivedIndexes<TKey, TRecord>(
+            vectors, new Bm25Index(counts, options.Bm25), vectorizer, keys, held);
     }
 }

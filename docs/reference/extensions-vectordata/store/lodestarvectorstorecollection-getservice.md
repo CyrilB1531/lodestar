@@ -11,6 +11,8 @@ public object GetService(Type serviceType, object serviceKey = null)
 **Parameters** — `serviceType` is the service being asked for. `serviceKey` names a keyed
 registration; nothing here is registered under one, so a keyed lookup answers `null`.
 
+**Exceptions** — `ArgumentNullException` when `serviceType` is null.
+
 **Returns** — a `VectorStoreCollectionMetadata` whose `VectorStoreSystemName` is `lodestar` and whose
 `CollectionName` is the collection's `Name`, when `serviceType` is that type and `serviceKey` is
 `null`; `null` for anything else.
@@ -31,8 +33,8 @@ string described = $"{about.VectorStoreSystemName}/{about.CollectionName}";  // 
 method here, so a consumer holding either interface gets the same answer. `VectorStoreName` is not
 set, since a collection constructed directly belongs to no store.
 
-A new metadata object is returned on each call. A `null` `serviceType` answers `null` rather than
-throwing.
+A new metadata object is returned on each call. A `null` `serviceType` throws, as the abstraction's
+contract for `GetService` says it must.
 
 **Applies to** — net10.0, netstandard2.0.
 

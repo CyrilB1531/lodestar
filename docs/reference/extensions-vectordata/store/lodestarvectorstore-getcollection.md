@@ -17,7 +17,9 @@ to reach [`LodestarVectorStoreCollection.HybridSearchAsync`](lodestarvectorstore
 
 **Exceptions** — `ArgumentNullException` when `name` is null. `ArgumentException` when `name` is
 already held over a different `TKey` or `TRecord`, or when the schema is unusable: no key property,
-no vector property, or a vector property that does not hold `ReadOnlyMemory<float>`.
+no vector property, a vector property that does not hold `ReadOnlyMemory<float>`, or a definition
+naming a property `TRecord` lacks. `NotSupportedException` when the vector property declares a
+`DistanceFunction` other than `CosineSimilarity`.
 
 **Example** — the same name twice is the same collection, and asking for it does not create it.
 

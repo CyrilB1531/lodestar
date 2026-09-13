@@ -118,8 +118,10 @@ documents in French" means. Without a filter it is `Search(query, top + Skip)` a
 
 Post-filtering the top-k is rejected: it silently returns fewer than `top` — sometimes zero —
 whenever the filter is selective, and a caller reads that as a bug rather than as a documented
-design. The exactness costs an O(n log n) ordering instead of O(n log k), which an in-memory store
-holding every record already has the data for.
+design. **Correction, found in the whole-branch review:** this said the exactness costs an
+O(n log n) ordering instead of O(n log k). It does not: `EmbeddingIndex.Search` sorts all n records
+whatever count it is asked for, so both paths pay the same ordering, and the filter adds only one
+predicate call per record — which leaves post-filtering no cost argument to stand on.
 
 `Expression.Compile` needs dynamic code, so this package is not trim- or AOT-safe on that path. That
 is stated in its README and in the reference page rather than discovered, and it is not a new

@@ -57,6 +57,56 @@ public sealed class StoreTests
     }
 
     [Fact]
+    public async Task A_deleted_collection_stays_retrievable_by_name_without_being_listed()
+    {
+        using var store = new LodestarVectorStore();
+        VectorStoreCollection<string, Document> first = store.GetCollection<string, Document>("documents");
+        await first.EnsureCollectionExistsAsync();
+
+        await store.EnsureCollectionDeletedAsync("documents");
+        VectorStoreCollection<string, Document> again = store.GetCollection<string, Document>("documents");
+
+        Assert.Same(first, again);
+        Assert.Empty(await store.ListCollectionNamesAsync().ToListAsync());
+
+        await again.UpsertAsync(new Document { Id = "a", Text = "a note", Embedding = new ReadOnlyMemory<float>([1f, 0f, 0f]) });
+        Assert.Equal(["documents"], await store.ListCollectionNamesAsync().ToListAsync());
+    }
+
+    [Fact]
+    public async Task Requesting_a_collection_while_the_names_are_enumerated_does_not_throw()
+    {
+        using var store = new LodestarVectorStore();
+        await store.GetCollection<string, Document>("first").EnsureCollectionExistsAsync();
+        await store.GetCollection<string, Document>("second").EnsureCollectionExistsAsync();
+        var seen = new List<string>();
+
+        await foreach (string name in store.ListCollectionNamesAsync())
+        {
+            seen.Add(name);
+            await store.GetCollection<string, Document>("during-" + name).EnsureCollectionExistsAsync();
+        }
+
+        Assert.Equal(["first", "second"], seen.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void Asking_the_store_for_a_null_service_type_throws()
+    {
+        using var store = new LodestarVectorStore();
+
+        Assert.Throws<ArgumentNullException>(() => store.GetService(null!));
+    }
+
+    [Fact]
+    public void Asking_a_collection_for_a_null_service_type_throws()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+
+        Assert.Throws<ArgumentNullException>(() => collection.GetService(null!));
+    }
+
+    [Fact]
     public void A_dynamic_collection_is_refused_with_its_reason()
     {
         using var store = new LodestarVectorStore();

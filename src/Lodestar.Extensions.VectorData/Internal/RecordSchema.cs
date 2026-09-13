@@ -36,7 +36,8 @@ internal sealed class RecordSchema<TKey, TRecord>
 
     /// <summary>Reads the schema from <paramref name="definition"/> when one is given, else from the attributes.</summary>
     /// <param name="definition">An explicit description, or <see langword="null"/> to read the attributes.</param>
-    /// <exception cref="ArgumentException">No key property, no vector property, or a vector of a type other than <c>ReadOnlyMemory&lt;float&gt;</c>.</exception>
+    /// <exception cref="ArgumentException">No key property, no vector property, a vector of a type other than <c>ReadOnlyMemory&lt;float&gt;</c>, or a definition naming a property the type lacks.</exception>
+    /// <exception cref="NotSupportedException">The vector declares a distance function other than cosine similarity.</exception>
     public static RecordSchema<TKey, TRecord> Create(VectorStoreCollectionDefinition? definition)
     {
         PropertyInfo[] properties = typeof(TRecord).GetProperties(
@@ -46,7 +47,38 @@ internal sealed class RecordSchema<TKey, TRecord>
     }
 
     /// <summary>The record's key, as the dictionary keys it.</summary>
-    public TKey KeyOf(TRecord record) => (TKey)_key.GetValue(record)!;
+    /// <exception cref="ArgumentException">The record's key is null, which no dictionary can hold.</exception>
+    public TKey KeyOf(TRecord record) =>
+        _key.GetValue(record) is { } key
+            ? (TKey)key
+            : throw new ArgumentException(
+                $"A {typeof(TRecord).Name} carries a null {_key.Name}, and a record is addressed by its key.",
+                nameof(record));
+
+    /// <summary>The record's key, once its vector has been checked against <see cref="Dimension"/>.</summary>
+    /// <remarks>What a write calls before it changes anything, so a refused record leaves nothing behind.</remarks>
+    /// <param name="record">The record about to be written.</param>
+    /// <param name="paramName">The caller's parameter, which the exception names.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="record"/> is null.</exception>
+    /// <exception cref="ArgumentException">The key is null, or the vector is not <see cref="Dimension"/> long.</exception>
+    public TKey Admit(TRecord record, string paramName)
+    {
+        if (record is null)
+        {
+            throw new ArgumentNullException(paramName, "A null record cannot be written.");
+        }
+
+        TKey key = KeyOf(record);
+        int width = VectorOf(record).Length;
+        if (width != Dimension)
+        {
+            throw new ArgumentException(
+                $"The record keyed {key} carries a vector of {width} where this collection is "
+                + $"{Dimension} wide.", paramName);
+        }
+
+        return key;
+    }
 
     /// <summary>The record's vector, which the index holds a copy of.</summary>
     public ReadOnlyMemory<float> VectorOf(TRecord record) =>
@@ -62,20 +94,21 @@ internal sealed class RecordSchema<TKey, TRecord>
         PropertyInfo? text = Array.Find(properties, p =>
             p.GetCustomAttribute<VectorStoreDataAttribute>() is { IsFullTextIndexed: true });
 
-        (PropertyInfo Property, int Dimensions) vector = VectorProperty(properties);
-        return Build(key, vector.Property, text, vector.Dimensions);
+        (PropertyInfo Property, VectorStoreVectorAttribute Attribute) vector = VectorProperty(properties);
+        return Build(
+            key, vector.Property, text, vector.Attribute.Dimensions, vector.Attribute.DistanceFunction);
     }
 
-    // Reads the property and its Dimensions in one pass: re-reading the attribute a second
+    // Reads the property and its attribute in one pass: re-reading the attribute a second
     // time would need a null-forgiving operator that only one target framework allows.
-    private static (PropertyInfo Property, int Dimensions) VectorProperty(PropertyInfo[] properties)
+    private static (PropertyInfo Property, VectorStoreVectorAttribute Attribute) VectorProperty(PropertyInfo[] properties)
     {
         foreach (PropertyInfo property in properties)
         {
             VectorStoreVectorAttribute? attribute = property.GetCustomAttribute<VectorStoreVectorAttribute>();
             if (attribute is not null)
             {
-                return (property, attribute.Dimensions);
+                return (property, attribute);
             }
         }
 
@@ -101,11 +134,12 @@ internal sealed class RecordSchema<TKey, TRecord>
             Named(properties, key.Name),
             Named(properties, vector.Name),
             text is null ? null : Named(properties, text.Name),
-            vector.Dimensions);
+            vector.Dimensions,
+            vector.DistanceFunction);
     }
 
     private static RecordSchema<TKey, TRecord> Build(
-        PropertyInfo key, PropertyInfo vector, PropertyInfo? text, int dimension)
+        PropertyInfo key, PropertyInfo vector, PropertyInfo? text, int dimension, string? distanceFunction)
     {
         if (vector.PropertyType != typeof(ReadOnlyMemory<float>))
         {
@@ -114,11 +148,14 @@ internal sealed class RecordSchema<TKey, TRecord>
                 + "holds ReadOnlyMemory<float>, which is what EmbeddingIndex takes.", nameof(vector));
         }
 
-        if (dimension < 1)
+        // EmbeddingIndex scores cosine over normalised vectors, and nothing else. Answering a
+        // declared distance with a similarity would also turn ScoreThreshold's direction around.
+        if (distanceFunction is not null && distanceFunction != DistanceFunction.CosineSimilarity)
         {
-            throw new ArgumentException(
-                $"{typeof(TRecord).Name}.{vector.Name} declares no dimension, and the index is "
-                + "built to a fixed width.", nameof(vector));
+            throw new NotSupportedException(
+                $"{typeof(TRecord).Name}.{vector.Name} declares {distanceFunction}; this store scores "
+                + "cosine similarity over normalised vectors only, and a distance function would also "
+                + "invert what ScoreThreshold means. Declare DistanceFunction.CosineSimilarity or none.");
         }
 
         return new RecordSchema<TKey, TRecord>(key, vector, text, dimension);

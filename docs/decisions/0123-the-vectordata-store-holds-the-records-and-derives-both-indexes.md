@@ -84,8 +84,11 @@ records gets five whenever five match. Without a filter the index is asked for `
 usual.
 
 Post-filtering the top `k` lost: it returns fewer than `top` — sometimes none — whenever the filter
-is selective, and a caller reads that as a bug. Exactness costs an `O(n log n)` ordering instead of
-`O(n log k)`, which an in-memory store holding every record can afford.
+is selective, and a caller reads that as a bug. **Exactness costs no extra ordering**, which an
+earlier draft of this record got wrong by claiming `O(n log n)` against `O(n log k)`:
+`EmbeddingIndex.Search` scores and sorts all `n` records whatever `k` it is asked for, so the
+unfiltered search pays the same `O(n log n)` and only copies fewer results out. The filter adds one
+predicate call per record and nothing else, which leaves post-filtering no cost argument at all.
 
 `Expression.Compile` needs dynamic code, so the filter path is not available under trimming or
 ahead-of-time compilation. The reference pages say so.
@@ -112,6 +115,15 @@ counts over the records the filter admits, as a filtered search counts it. `Orde
 reason: a dictionary has no order of its own, and ordering by an arbitrary property expression is a
 feature this package has not decided. Refusing it now leaves implementing it later additive, where
 un-ignoring an option once silently dropped would change behaviour under a caller.
+
+**Two more options are refused rather than ignored, on the same reasoning**, both found in the
+whole-branch review. `HybridSearchOptions.ScoreThreshold` throws `NotSupportedException`: a fused
+score is a sum of `1 / (k + rank)`, not a similarity, so no threshold a caller writes for similarities
+means anything against it. And a vector property declaring a `DistanceFunction` other than
+`CosineSimilarity` is refused when the collection is constructed: `EmbeddingIndex` computes cosine
+over normalised vectors only, and answering a declared distance with a similarity would also invert
+which side of `ScoreThreshold` a result must fall on. `IndexKind` stays unread, because an exact
+search is what every index kind approximates.
 
 ## Decision 4 — hybrid search joins three published pieces, and keeps only what the keywords matched
 

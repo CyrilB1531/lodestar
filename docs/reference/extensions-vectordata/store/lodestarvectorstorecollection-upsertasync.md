@@ -15,7 +15,9 @@ abstraction's sake and not observed.
 
 **Returns** — a completed `Task`.
 
-**Exceptions** — `ArgumentNullException` when `record` or `records` is null.
+**Exceptions** — `ArgumentNullException` when `record` or `records` is null, or when `records` holds a
+null record. `ArgumentException` when a record's key is null, or when its vector is not the width the
+schema declares; the message names the key and both widths.
 
 **Example** — writing the same key twice replaces the record, and its old vector with it.
 
@@ -52,12 +54,14 @@ collection as existing, and marks the indexes stale; the next
 rebuilds them once, however many writes came first. Prefer the batch overload for a bulk load only
 for readability — a hundred single upserts followed by one search cost the same single rebuild.
 
-**A vector of the wrong width is not refused here.** It is found by the rebuild, so the search that
-follows throws `ArgumentException` naming the record's key, and keeps throwing until that record is
-replaced or deleted. Reading records by key still works in the meantime, since it rebuilds nothing.
+**A vector of the wrong width is refused here, at the write.** A record whose vector is not the
+schema's `Dimensions` long throws `ArgumentException` naming its key and both widths, and nothing is
+stored. The batch overload checks **every** record before it writes any, so a batch holding one bad
+record — a wrong width, a null key, a null record — leaves the collection exactly as it was.
 
 The record is **held, not copied**: mutating it after the upsert changes what the collection holds
-without marking the indexes stale. Upsert it again after changing it.
+without marking the indexes stale. Upsert it again after changing it — a vector changed in place to
+another width is the one case the write cannot see, and the next rebuild refuses it instead.
 
 **Applies to** — net10.0, netstandard2.0.
 

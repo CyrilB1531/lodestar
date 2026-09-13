@@ -21,7 +21,8 @@ public sealed class LodestarVectorStore : VectorStore
 
     /// <inheritdoc />
     /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="name"/> is already held under a different key or record type.</exception>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is already held under a different key or record type, or the schema is unusable.</exception>
+    /// <exception cref="NotSupportedException">The vector declares a distance function other than cosine similarity.</exception>
     public override VectorStoreCollection<TKey, TRecord> GetCollection<TKey, TRecord>(
         string name, VectorStoreCollectionDefinition? definition = null)
     {
@@ -57,13 +58,16 @@ public sealed class LodestarVectorStore : VectorStore
     public override async IAsyncEnumerable<string> ListCollectionNamesAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        foreach (KeyValuePair<string, object> entry in _collections)
+        // Materialised before the first yield: a collection requested while the caller
+        // enumerates would otherwise invalidate the dictionary enumerator mid-walk.
+        List<string> names = [.. _collections
+            .Where(entry => entry.Value is IExistingCollection { Exists: true })
+            .Select(entry => entry.Key)];
+
+        foreach (string name in names)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (entry.Value is IExistingCollection { Exists: true })
-            {
-                yield return entry.Key;
-            }
+            yield return name;
         }
 
         await Task.CompletedTask.ConfigureAwait(false);
@@ -86,10 +90,16 @@ public sealed class LodestarVectorStore : VectorStore
     }
 
     /// <inheritdoc />
-    public override object? GetService(Type serviceType, object? serviceKey = null) =>
-        serviceType == typeof(VectorStoreMetadata) && serviceKey is null
-            ? new VectorStoreMetadata { VectorStoreSystemName = "lodestar" }
-            : null;
+    /// <exception cref="ArgumentNullException"><paramref name="serviceType"/> is null.</exception>
+    public override object? GetService(Type serviceType, object? serviceKey = null)
+    {
+        Guard.NotNull(serviceType);
+        return serviceType == typeof(VectorStoreMetadata) && serviceKey is null ? Metadata() : null;
+    }
+
+    // Its own method so the guard above runs even where the init-only setter below fails to bind:
+    // the netstandard2.0 build loaded beside a newer target's abstractions throws MissingMethodException.
+    private static VectorStoreMetadata Metadata() => new() { VectorStoreSystemName = "lodestar" };
 
     /// <summary>Disposes every collection the store has ever handed out.</summary>
     /// <param name="disposing"><see langword="true"/> when called from <see cref="IDisposable.Dispose"/> rather than a finalizer.</param>

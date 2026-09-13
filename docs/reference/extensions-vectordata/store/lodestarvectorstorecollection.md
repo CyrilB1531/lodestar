@@ -12,8 +12,10 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord> : VectorStoreCo
 `name` is what `Name` reports. `options` configures the keyword half and the fusion; `null` takes the
 defaults. `definition` is an explicit schema; `null` reads `TRecord`'s `VectorStoreKey`,
 `VectorStoreVector` and `VectorStoreData` attributes. It throws `ArgumentNullException` when `name`
-is null, and `ArgumentException` when the schema has no key property, no vector property, or a vector
-property that does not hold `ReadOnlyMemory<float>`. A collection constructed directly belongs to no
+is null; `ArgumentException` when the schema has no key property, no vector property, a vector
+property that does not hold `ReadOnlyMemory<float>`, or a definition naming a property `TRecord`
+lacks; and `NotSupportedException` when the vector property declares a `DistanceFunction` other than
+`CosineSimilarity`. A collection constructed directly belongs to no
 store; one from [`LodestarVectorStore.GetCollection`](lodestarvectorstore-getcollection.md) is the
 same type, held by name.
 
@@ -57,6 +59,11 @@ never rebuild.
 
 **Scores are cosine similarities.** The vector index normalizes each vector and the query, so a
 vector's length never moves its rank — see [`EmbeddingIndex`](../../embeddings/search/embeddingindex.md).
+A vector property that declares any other `DistanceFunction` — Euclidean, dot product, a distance of
+any kind — is **refused at construction** rather than answered with cosine: a caller who declared a
+distance would read a similarity as the wrong measure, and would also set `ScoreThreshold` in the
+wrong direction, since a distance keeps what lies below it. Declaring `CosineSimilarity`, or nothing,
+is accepted. `IndexKind` is not read: every search here is exact, which any index kind approximates.
 
 **The collection hands back the records it holds, not copies.** Changing a record returned by
 [`LodestarVectorStoreCollection.GetAsync`](lodestarvectorstorecollection-getasync.md) or a search
@@ -64,7 +71,9 @@ changes the stored one without marking the caches stale, so its old vector and t
 until the next write. Upsert the changed record to have it indexed.
 
 **Every asynchronous member completes synchronously.** The work is done in memory before the task or
-the first element comes back, and nothing pretends otherwise with a `Task.Yield`. A `Task` returned
+the first element comes back, and nothing pretends otherwise with a `Task.Yield`. Because an
+enumerating member's results are complete before the first is yielded, a write made while a caller
+enumerates them changes nothing already answered, and never throws out of the enumeration. A `Task` returned
 here is already completed; an `IAsyncEnumerable` does its work when enumeration begins, which is
 also when its arguments are checked.
 
