@@ -1705,6 +1705,21 @@ not taken here. `docs/guides/performance.md` carries the resulting numbers, the 
 window, per this repository's own rule for where a fact belongs (`CLAUDE.md`'s "Where a fact
 belongs" table).
 
+### The tails underneath: `DistributionTailBenchmarks`
+
+`ChiSquare.Contingency`'s row above is mostly the chi-squared tail, which no whole-test row can
+separate out. `DistributionTailBenchmarks`, in the same project, times one published tail call per
+row and has no incumbent: `Distributions.ChiSquaredSf` at one, three, four, a hundred and a
+fractional 2.5 degrees of freedom (arguments from `tests/oracles/stats_distributions.json`, plus
+4.41 for the two without a corpus case), and `Distributions.NormalQuantile`, which inverts the
+normal tail. The
+fractional row is the control: no closed form covers it, so it moves only when the iteration does.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- \
+  --filter '*StatsBenchmarks.*ChiSquare*' '*DistributionTailBenchmarks*'
+```
+
 Numbers are published in
 [`docs/guides/performance.md`](../docs/guides/performance.md#lodestarstats-against-accordstatistics-issue-442)
 — this section documents how to measure, not what was measured.

@@ -2,13 +2,29 @@ namespace Lodestar.Stats.Internal;
 
 /// <summary>The complementary error function, and the standard normal's upper tail.</summary>
 /// <remarks>
-/// Built on the regularized incomplete gamma rather than on a rational
-/// approximation of its own: erfc(x) = Q(1/2, x^2) for x >= 0 is an identity,
-/// not a fit, so the accuracy this reaches in the far tail is the accuracy
-/// <see cref="Gamma"/> already has to have for the chi-square tests.
+/// Accuracy still comes from erfc(x) = Q(1/2, x^2): <see cref="Gamma"/>'s continued fraction is
+/// sampled once, at type initialization, into piecewise Chebyshev interpolants of the slowly varying
+/// erfcx(x) = e^(x^2) erfc(x) over y = 4/(4+x), the substitution S. G. Johnson's Faddeeva package
+/// (MIT) uses -- nothing else is shared, ADR 0003. A call runs one polynomial and one exponential.
+/// Against scipy.special.erfc on 60,001 points over [-6, 27.5] the worst relative gap is 7e-15,
+/// where the iteration alone reached 1e-13.
 /// </remarks>
 internal static class Normal
 {
+    // Against scipy.special.erfcx, 16 intervals of degree 8 already reached its 2e-15 rounding,
+    // 64 of degree 5 stopped at 6e-14, and 32 of degree 8 doubles the smallest that sufficed.
+    private const int Intervals = 32;
+    private const int Coefficients = 9;
+
+    // erfc(27.3) is 4e-326, under half the smallest subnormal (2.5e-324), so it rounds to zero.
+    private const double Cutoff = 27.3;
+
+    private const double LowestY = 4.0 / (4.0 + Cutoff);
+
+    private const double IntervalsPerY = Intervals / (1.0 - LowestY);
+
+    private static readonly double[] Table = SampleScaledErfc();
+
     internal static double Erfc(double x)
     {
         if (double.IsNaN(x))
@@ -16,19 +32,31 @@ internal static class Normal
             return double.NaN;
         }
 
-        // erfc(-x) = 2 - erfc(x). Reflecting rather than evaluating at a negative
-        // argument keeps the identity above valid, since Q takes x^2 either way.
+        // erfc(-x) = 2 - erfc(x): the table covers the non-negative half only.
         if (x < 0.0)
         {
             return 2.0 - Erfc(-x);
         }
 
-        // Exact sentinel: erfc(0) = 1 is the definition, not an approximation
-        // that could have accumulated rounding error to compare against.
+        // Exact sentinel: erfc(0) = 1 is the definition, and it keeps Sf(0) the exact one half
+        // Quantile's own sentinel states, rather than the interpolant's value there.
 #pragma warning disable S1244
-        return x == 0.0 ? 1.0 : Gamma.RegularizedQ(0.5, x * x);
+        if (x == 0.0)
 #pragma warning restore S1244
+        {
+            return 1.0;
+        }
+
+        return x > Cutoff ? 0.0 : ScaledErfc(x) * Math.Exp(-x * x);
     }
+
+    /// <summary>erfc(sqrt(s)), which is Q(1/2, s): the chi-squared tail at one degree of freedom.</summary>
+    /// <remarks>
+    /// Taking s rather than its root keeps the exponent exact: squaring sqrt(s) back would
+    /// round, and in the far tail e^(-s) turns that rounding into a relative error.
+    /// </remarks>
+    internal static double ErfcOfSquareRoot(double s) =>
+        s > Cutoff * Cutoff ? 0.0 : ScaledErfc(Math.Sqrt(s)) * Math.Exp(-s);
 
     /// <summary>The standard normal's upper tail: P(Z &gt; z).</summary>
     internal static double Sf(double z) => 0.5 * Erfc(z / Math.Sqrt(2.0));
@@ -61,6 +89,97 @@ internal static class Normal
         return p > 0.5
             ? -TailInversion.InvertUpperTail(default(UpperTail), 1.0 - p, RationalUpperQuantile(1.0 - p))
             : TailInversion.InvertUpperTail(default(UpperTail), p, RationalUpperQuantile(p));
+    }
+
+    // x lies in [0, Cutoff]; y = 4/(4+x) then lies in [LowestY, 1], and each interval's
+    // polynomial is in u = 2t - 1, t being y's position inside it.
+    private static double ScaledErfc(double x)
+    {
+        double position = ((4.0 / (4.0 + x)) - LowestY) * IntervalsPerY;
+        int interval = Math.Min((int)position, Intervals - 1);
+        double u = (2.0 * (position - interval)) - 1.0;
+
+        int offset = interval * Coefficients;
+        double sum = Table[offset + Coefficients - 1];
+        for (int k = Coefficients - 2; k >= 0; k--)
+        {
+            sum = (sum * u) + Table[offset + k];
+        }
+
+        return sum;
+    }
+
+    // Chebyshev interpolation at each interval's first-kind nodes, converted to power form in u
+    // so a call runs Horner's rule; the sweep the class remarks cite went through the conversion.
+    private static double[] SampleScaledErfc()
+    {
+        double[] table = new double[Intervals * Coefficients];
+        for (int interval = 0; interval < Intervals; interval++)
+        {
+            double[] chebyshev = ChebyshevCoefficients(SampleInterval(interval));
+            AddPowerForm(chebyshev, table.AsSpan(interval * Coefficients, Coefficients));
+        }
+
+        return table;
+    }
+
+    // erfcx at the interval's first-kind Chebyshev nodes, taken in y and mapped back to x.
+    private static double[] SampleInterval(int interval)
+    {
+        double[] values = new double[Coefficients];
+        for (int k = 0; k < Coefficients; k++)
+        {
+            double node = Math.Cos(Math.PI * (k + 0.5) / Coefficients);
+            double y = LowestY + ((interval + ((node + 1.0) / 2.0)) / IntervalsPerY);
+            values[k] = Gamma.ScaledUpperHalf((4.0 / y) - 4.0);
+        }
+
+        return values;
+    }
+
+    // The discrete cosine transform of those samples: the interpolant's coefficients in T_m(u).
+    private static double[] ChebyshevCoefficients(double[] values)
+    {
+        double[] chebyshev = new double[Coefficients];
+        for (int m = 0; m < Coefficients; m++)
+        {
+            double sum = 0.0;
+            for (int k = 0; k < Coefficients; k++)
+            {
+                sum += values[k] * Math.Cos(Math.PI * m * (k + 0.5) / Coefficients);
+            }
+
+            chebyshev[m] = (m == 0 ? 1.0 : 2.0) * sum / Coefficients;
+        }
+
+        return chebyshev;
+    }
+
+    // T_0 = 1, T_1 = u, T_(m+1) = 2u T_m - T_(m-1), each kept as power coefficients.
+    private static void AddPowerForm(double[] chebyshev, Span<double> power)
+    {
+        double[] previous = new double[Coefficients];
+        double[] current = new double[Coefficients];
+        double[] next = new double[Coefficients];
+        previous[0] = 1.0;
+        current[1] = 1.0;
+        power[0] = chebyshev[0];
+        power[1] = chebyshev[1];
+        for (int m = 2; m < Coefficients; m++)
+        {
+            next[0] = -previous[0];
+            for (int p = 1; p < Coefficients; p++)
+            {
+                next[p] = (2.0 * current[p - 1]) - previous[p];
+            }
+
+            for (int p = 0; p <= m; p++)
+            {
+                power[p] += chebyshev[m] * next[p];
+            }
+
+            (previous, current, next) = (current, next, previous);
+        }
     }
 
     /// <summary>Wichura's AS 241 (PPND16) on the upper tail, for p in (0, 0.5).</summary>
