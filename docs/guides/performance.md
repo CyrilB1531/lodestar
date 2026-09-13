@@ -2812,7 +2812,9 @@ trust the last digit of a ratio.
 to 3.2× at 10,000, as `Accord`'s fixed per-call overhead is amortised over more work) and on
 [`MannWhitney.Test`](../reference/stats/tests/mannwhitney-test.md) (5.1× at 100, 2.9× at 10,000,
 allocating 61-62% less at both sizes — both sides take the guarded asymptotic path at 10,000, past
-`MannWhitney`'s own `20_000`-product exact-method bound). `Accord` is faster on
+`MannWhitney`'s own `20_000`-product exact-method bound). Those two `MannWhitney` rows predate
+[#711](https://github.com/CyrilB1531/lodestar/issues/711): it no longer allocates, and the
+subsection below has what it costs now, on a different machine. `Accord` is faster on
 [`ChiSquare.Contingency`](../reference/stats/tests/chisquare-contingency.md) (roughly 380 ns against 294 ns, flat with
 sample size since a 2×2 table has four cells regardless of how many observations produced it) — the
 one family where this package's richer result (`Chi2ContingencyResult` carries the expected-value
@@ -2822,6 +2824,34 @@ table; `Accord`'s `ChiSquareTest` does not expose one) costs more than it buys a
 `tests/oracles/stats_*.json` corpus cases through both implementations; no case disagreed beyond
 floating-point noise (the last one or two digits of a `double`, inside the `1e-9` tolerance
 `docs/equivalence.md` already uses). `bench/README.md` has the three cases and the exact figures.
+
+### The Mann-Whitney ranking merges two samples rather than pooling them
+
+[`MannWhitney.Test`](../reference/stats/tests/mannwhitney-test.md) used to copy both samples into
+one pooled array and sort it three times: once with an index array for the mid-ranks, once more for
+the tie term, once more to ask whether any tie existed — six arrays of the pooled length per call. It now keys each sample on its own (a `ulong`
+whose unsigned order is the double's order, both zeros folded onto one key), sorts the keys —
+`Array.Sort` below 3,072 values, an eight-pass LSD radix sort on the key's bytes from there — and
+walks the two sorted samples together: a tie group's mid-rank times its members from the first
+sample is the rank sum, and the tie term and the ties flag fall out of the same walk. The three
+buffers are rented. The rank sum and the tie term are equal to the old ones bit for bit, pinned by
+`TwoSampleRanksTests` on both sides of the radix threshold, with signed zeros and infinities.
+
+Machine: AMD Ryzen 7 8700G, Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime.
+Window: two `BenchmarkDotNet` runs, default job, 2026-09-13, `--filter '*LodestarMannWhitney*'`,
+with `SampleSize` temporarily widened to 100,000 for the two runs:
+
+| SampleSize (each sample) | Before | After | Speed-up | Allocated before | Allocated after |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 100 | 4.566 μs | 1.559 μs | 2.9× | 8.73 KB | — |
+| 10,000 | 3,040.7 μs | 254.0 μs | 12.0× | 859.68 KB | — |
+| 100,000 | 34,342.3 μs | 2,923.4 μs | 11.7× | 8,594.87 KB | — |
+
+The radix threshold was read off a `Stopwatch` sweep over two equal samples on the same machine:
+the radix loses at 2,048 values each (51 μs against `Array.Sort`'s 40) and wins at 4,096 (100 μs
+against 181). Sixteen-bit digits, the choice `BinaryRoc` made in `Lodestar.Metrics`, were 10%
+faster at 100,000 and 1.7× slower at 10,000, where clearing a 1 MB histogram costs more than the
+four passes it saves.
 
 ## Lodestar.Gpu — four kernels against their CPU paths (issue #444)
 

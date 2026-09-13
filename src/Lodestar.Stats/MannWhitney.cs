@@ -79,29 +79,19 @@ public static class MannWhitney
         int n = left.Length;
         int m = right.Length;
 
-        double[] pooled = new double[n + m];
-        left.CopyTo(pooled);
-        right.CopyTo(pooled.AsSpan(n));
-
         // Under the default NanPolicy.Propagate a NaN anywhere propagates rather
         // than taking a false finite rank (Ranks.HasNaN's remark).
-        if (Ranks.HasNaN(pooled))
+        if (Ranks.HasNaN(left) || Ranks.HasNaN(right))
         {
             return new TestResult(double.NaN, double.NaN);
         }
 
-        double[] ranks = Ranks.Average(pooled);
-        double rankSumX = 0.0;
-        for (int i = 0; i < n; i++)
-        {
-            rankSumX += ranks[i];
-        }
+        (double rankSumX, double tieCorrection, bool ties) = TwoSampleRanks.Compute(left, right);
 
         // U counts the pairs (xi, yj) with xi > yj, recovered from the rank sum by subtracting
         // the ranks x would hold if it sorted first; in double, as n * (n + 1) overflows int.
         double u = rankSumX - (n * (n + 1.0) / 2.0);
 
-        bool ties = Ranks.HasTies(pooled);
         bool wantsExact = method switch
         {
             ExactMethod.Exact => true,
@@ -125,7 +115,7 @@ public static class MannWhitney
 
         double pValue = exact
             ? ExactPValue(u, n, m, alternative)
-            : AsymptoticPValue(u, n, m, pooled, alternative, continuity);
+            : AsymptoticPValue(u, n, m, tieCorrection, alternative, continuity);
 
         return new TestResult(u, pValue);
     }
@@ -181,7 +171,7 @@ public static class MannWhitney
         double u,
         int n,
         int m,
-        ReadOnlySpan<double> pooled,
+        double tieCorrection,
         Alternative alternative,
         Continuity continuity)
     {
@@ -190,7 +180,7 @@ public static class MannWhitney
 
         // The tie correction shrinks the variance: tied values carry less
         // information about the ordering than distinct ones do.
-        double tieTerm = Ranks.TieCorrection(pooled) / (total * (total - 1.0));
+        double tieTerm = tieCorrection / (total * (total - 1.0));
         double variance = (double)n * m / 12.0 * (total + 1.0 - tieTerm);
         double deviation = u - mean;
 
