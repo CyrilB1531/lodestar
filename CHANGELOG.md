@@ -128,6 +128,13 @@ is one sentence, the issue and the commit; see
   size is a stated concern — 132.7 MB on a caller's restore path, which is why the satellite
   tier exists ([decision 0076](docs/decisions/0076-a-core-package-carries-no-external-dependency.md)).
   ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+- **The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0.** Nothing in this package
+  needs the newer API: the floor is one Central Package Management pin shared by every consumer, and
+  `Lodestar.Extensions.VectorData` needs the first `Lodestar.Embeddings` that no longer declares
+  `Microsoft.ML.OnnxRuntime` — 0.5.0 still carried it at 1.28.0, a stale lower edge beside this
+  package's own 1.30.0
+  ([decision 0123](docs/decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)).
+  ([#682](https://github.com/CyrilB1531/lodestar/issues/682))
 
 ### Lodestar.Extensions.AI
 
@@ -138,6 +145,12 @@ is one sentence, the issue and the commit; see
   which measured that `Microsoft.Extensions.VectorData.Abstractions` pins the same version:
   VectorData 10.10.0 requires `[10.10.0, )`, so the two still move together and the alignment
   that decision relied on holds. ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+- **The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0.** Nothing in this package
+  needs the newer API: the floor is one Central Package Management pin shared by every consumer, and
+  `Lodestar.Extensions.VectorData` needs the first `Lodestar.Embeddings` that no longer declares
+  `Microsoft.ML.OnnxRuntime`
+  ([decision 0123](docs/decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)).
+  ([#682](https://github.com/CyrilB1531/lodestar/issues/682))
 
 ### Lodestar.Extensions.VectorData
 

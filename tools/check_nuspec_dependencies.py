@@ -99,9 +99,9 @@ TEXT_FLOOR = "0.6.0"
 # added: Lodestar.Text stopped declaring CsrMatrix and consumes it from here.
 ABSTRACTIONS_FLOOR = "0.1.1"
 
-# Directory.Packages.props' PackageVersion for the edges #533 and #570 added. 0.5.0 is
-# where BatchEncoder.EncodeAll and Pad became public, and both dependents reach them.
-EMBEDDINGS_FLOOR = "0.5.0"
+# Directory.Packages.props' PackageVersion for the edges #533, #570 and #682 added. 0.6.0,
+# not 0.5.0 (which made EncodeAll and Pad public): 0.5.0 still declares OnnxRuntime (0123).
+EMBEDDINGS_FLOOR = "0.6.0"
 
 # Directory.Packages.props' PackageVersion for the edge #570 added. 0.1.0 is
 # Lodestar.Onnx's first release, and OnnxTextEmbedder has been public since it.
@@ -140,7 +140,7 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {TEXT: TEXT_FLOOR, **POLYFILLS},
     },
     EMBEDDINGS: {
-        # Nothing external since 0.5.0: ONNX Runtime left with OnnxTextEmbedder,
+        # Nothing external since 0.6.0: ONNX Runtime left with OnnxTextEmbedder,
         # so tokenizing, pooling or searching no longer restores a native runtime.
         NET: {},
         NETSTANDARD: {**POLYFILLS, **PERSISTENCE},
@@ -152,7 +152,7 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.30.0", **POLYFILLS},
     },
     EXTENSIONS_AI: {
-        # The second satellite, and the second external dependency. Two Lodestar edges:
+        # The first interop package, and the second external dependency. Two Lodestar edges:
         # the embedder it adapts, and the package whose BatchEncoder its constructor names.
         NET: {ONNX: ONNX_FLOOR, EMBEDDINGS: EMBEDDINGS_FLOOR, MS_EXTENSIONS_AI: MS_ABSTRACTIONS_FLOOR},
         NETSTANDARD: {
@@ -163,7 +163,7 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         },
     },
     EXTENSIONS_VECTORDATA: {
-        # The third satellite: two Lodestar edges, one per half of hybrid search --
+        # The third interop package: two Lodestar edges, one per half of hybrid search --
         # Embeddings for the vectors, Text for the BM25 index and the fusion.
         NET: {EMBEDDINGS: EMBEDDINGS_FLOOR, TEXT: TEXT_FLOOR, MS_VECTORDATA: MS_ABSTRACTIONS_FLOOR},
         NETSTANDARD: {
@@ -174,7 +174,7 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         },
     },
     EXTENSIONS_MATHNET: {
-        # The fourth satellite. One Lodestar edge, to the package that owns CsrMatrix,
+        # The second interop package. One Lodestar edge, to the package that owns CsrMatrix,
         # because converting that type is the whole of this package's surface.
         NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0"},
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0", **POLYFILLS},

@@ -49,7 +49,7 @@ Read today:
 
 | package | pinned floor | latest tag | exports what this needs? |
 | --- | --- | --- | --- |
-| `Lodestar.Embeddings` | **0.5.0** | 0.7.0 | **yes at 0.5.0** — the full `EmbeddingIndex`: `Add`, `Search`, `Count`, `Dimension`, `FromBlock`, `FromOwnedBlock`, `Save`/`Load` |
+| `Lodestar.Embeddings` | **0.5.0** | 0.7.0 | **exports yes at 0.5.0** — the full `EmbeddingIndex`: `Add`, `Search`, `Count`, `Dimension`, `FromBlock`, `FromOwnedBlock`, `Save`/`Load` — **but 0.5.0 still depends on `Microsoft.ML.OnnxRuntime` 1.28.0; 0.6.0 is the first that does not** |
 | `Lodestar.Text` | **0.4.0** | 0.6.0 | **no at 0.4.0** — the keyword half arrives at 0.6.0 |
 
 So this work raises the `Lodestar.Text` floor from **0.4.0 to 0.6.0**, and that raise is not private
@@ -57,9 +57,16 @@ to the new package: `Lodestar.Fuzzy` reaches `Lodestar.Text` through the same pi
 against 0.6.0 too. That is a consequence to state in the ADR and to check, not a detail — and it is
 the reason `tools/check_version_floor.py` asserts the relationship rather than trusting it.
 
-The `Lodestar.Embeddings` floor **does not move**, which is the cheaper half of the same reading and
-was worth taking rather than assuming: 0100 says "0.6.0 is published and exports it", which is true
-and would have raised a floor that did not need raising.
+**Correction, found in the whole-branch review: the `Lodestar.Embeddings` floor rises from 0.5.0 to
+0.6.0 too.** This section first said the floor did not move, and that 0100's "0.6.0 is published and
+exports it" would have raised a floor for nothing. That reading checked what 0.5.0 **exports** and
+missed what it **depends on**: the 0.5.0 `.nuspec` still declares `Microsoft.ML.OnnxRuntime` 1.28.0,
+because the split that moved `OnnxTextEmbedder` into `Lodestar.Onnx` first ships in 0.6.0, so a
+restore of this package at 0.5.0 resolved the native runtime this spec's *Not in scope* refuses.
+0.6.0 is the floor that keeps `Microsoft.ML.OnnxRuntime` off this package's restore path. Under
+Central Package Management it moves `Lodestar.Onnx` and `Lodestar.Extensions.AI` as well, at no cost
+to either. No gate caught it because `tools/check_nuspec_dependencies.py` asserts direct edges only,
+and the runtime arrived one hop down.
 
 ## Decision 1 — the shape: records are the truth, indexes are caches
 
@@ -82,7 +89,7 @@ scoring. A write is O(1); a batch of writes pays for exactly one rebuild, becaus
 not counted.
 
 The rebuild uses `EmbeddingIndex.FromOwnedBlock` rather than `Count` calls to `Add`, since the whole
-block is known at that moment. That member is in the 0.5.0 floor, checked above.
+block is known at that moment. That member is in 0.5.0 already, and so in the 0.6.0 floor.
 
 ### The two rejected alternatives, with what each costs
 
@@ -253,4 +260,5 @@ untested:
   giving this package that edge would pull `Microsoft.ML.OnnxRuntime`'s 132.7 MB onto the restore
   path of a caller who wanted a store and no model — the measured cost 0100 refused folding on.
 - **No version bump anywhere but the new package's own 0.1.0**, and no release: the
-  `Lodestar.Text` floor raise consumes an already-published 0.6.0 and asks for no new tag.
+  `Lodestar.Text` and `Lodestar.Embeddings` floor raises each consume an already-published 0.6.0 and
+  ask for no new tag.

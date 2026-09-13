@@ -172,9 +172,20 @@ alone.** 0100 argued about availability — whether a published package carried 
 did not price is that `src/Directory.Packages.props` is Central Package Management, where a
 `PackageVersion` is one version for every consumer: `Lodestar.Fuzzy` reaches `Lodestar.Text`
 through the same pin and restores against 0.6.0 too. `tools/check_version_floor.py` asserts the
-relationship rather than trusting it. The `Lodestar.Embeddings` floor does not move: 0.5.0 already
-exports `FromOwnedBlock`, `Search`, `Count` and `Dimension`, and 0100's mention of 0.6.0 would have
-raised a floor that did not need raising.
+relationship rather than trusting it.
+
+**The `Lodestar.Embeddings` floor rises from 0.5.0 to 0.6.0, for the same shared-pin reason.** The
+first reading of this record kept it at 0.5.0, and that reading was wrong: it checked what 0.5.0
+**exports** — `FromOwnedBlock`, `Search`, `Count` and `Dimension` are all there — and missed what
+0.5.0 **depends on**. Its `.nuspec` still declares `Microsoft.ML.OnnxRuntime` 1.28.0 on both target
+frameworks, because the split that moved `OnnxTextEmbedder` into `Lodestar.Onnx` first ships in
+`Lodestar.Embeddings` 0.6.0. At 0.5.0 this package's restore graph resolved the native runtime —
+the very dependency Decision 2 refuses to take — so 0100's "0.6.0" was the right floor, not a raise
+for nothing. 0.6.0 is the floor that keeps `Microsoft.ML.OnnxRuntime` off this package's restore path;
+the pin moves `Lodestar.Onnx` and `Lodestar.Extensions.AI` with it, which costs them nothing, since
+0.6.0 exports everything 0.5.0 did and `Lodestar.Onnx` carries `Microsoft.ML.OnnxRuntime` 1.30.0
+directly. **No gate caught it** because `tools/check_nuspec_dependencies.py` asserts a package's
+direct edges only: this package's own `.nuspec` never named the runtime, which arrived one hop down.
 
 - A seventeenth package, `net10.0;netstandard2.0`, in the interop tier, versioned 0.1.0, and the
   repository's eleventh and twelfth inter-package edges — to `Lodestar.Embeddings` and to
