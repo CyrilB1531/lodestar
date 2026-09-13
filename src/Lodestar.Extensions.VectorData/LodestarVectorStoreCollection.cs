@@ -1,6 +1,9 @@
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using Lodestar.Abstractions;
 using Lodestar.Embeddings.Search;
+using Lodestar.Text.Search;
+using Lodestar.Text.Vectorization;
 using Microsoft.Extensions.VectorData;
 
 namespace Lodestar.Extensions.VectorData;
@@ -18,7 +21,8 @@ namespace Lodestar.Extensions.VectorData;
 // Every provider of this abstraction names its collection type after the base class it
 // extends; CA1711 flags the suffix, but matching Microsoft.Extensions.VectorData is the point.
 #pragma warning disable CA1711
-public sealed class LodestarVectorStoreCollection<TKey, TRecord> : VectorStoreCollection<TKey, TRecord>
+public sealed class LodestarVectorStoreCollection<TKey, TRecord>
+    : VectorStoreCollection<TKey, TRecord>, IKeywordHybridSearchable<TRecord>
     where TKey : notnull
     where TRecord : class
 {
@@ -295,6 +299,102 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord> : VectorStoreCo
                 $"{typeof(TInput).Name} is not a vector, and this package generates none: supply a "
                 + "ReadOnlyMemory<float> or a float[], or embed the text with Lodestar.Extensions.AI first."),
         };
+
+    /// <summary>Fuses the vector ranking with a BM25 ranking over the keywords.</summary>
+    /// <typeparam name="TInput">The search value's type; a vector, since this package generates none.</typeparam>
+    /// <param name="searchValue">The query vector.</param>
+    /// <param name="keywords">The terms the keyword half scores, taken as one query document.</param>
+    /// <param name="top">How many fused results to return.</param>
+    /// <param name="options">A filter and a skip, applied to the fused ranking.</param>
+    /// <param name="cancellationToken">Checked between results.</param>
+    /// <exception cref="NotSupportedException">The record type marks no <c>IsFullTextIndexed</c> property, or the search value is not a vector.</exception>
+    /// <remarks>
+    /// A term the collection never saw scores nothing rather than failing. A document the
+    /// keywords do not match is dropped from the keyword ranking, rather than kept at score
+    /// zero in index order, because <see cref="RankFusion.Rrf"/> reads rank position, not
+    /// score. Fusion is reciprocal rank at <see cref="LodestarVectorStoreOptions.RankFusionK"/>.
+    /// </remarks>
+    public async IAsyncEnumerable<VectorSearchResult<TRecord>> HybridSearchAsync<TInput>(
+        TInput searchValue,
+        ICollection<string> keywords,
+        int top,
+        HybridSearchOptions<TRecord>? options = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        where TInput : notnull
+    {
+        Guard.NotNull(keywords);
+        Guard.NotLessThan(top, 1);
+        ReadOnlyMemory<float> query = AsVector(searchValue);
+        DerivedIndexes<TKey> indexes = Current();
+
+        if (indexes.Keywords is null || indexes.Vectorizer is null)
+        {
+            throw new NotSupportedException(
+                $"{typeof(TRecord).Name} marks no property [VectorStoreData(IsFullTextIndexed = true)], "
+                + "so this collection has no keyword half to fuse with.");
+        }
+
+        HybridSearchOptions<TRecord> settings = options ?? new HybridSearchOptions<TRecord>();
+        Func<TRecord, bool>? admits = RecordFilter.Compile(settings.Filter);
+
+        int[] byVector = [.. Scored(indexes, query, indexes.Vectors.Count).Select(hit => hit.Index)];
+
+        // Top(..) scores every document; a zero-scoring one is dropped below rather than
+        // passed through, since Rrf reads rank position and not score.
+        int[] byKeyword = [.. indexes.Keywords
+            .Top(QueryTerms(indexes.Vectorizer, keywords), indexes.Keywords.DocumentCount)
+            .Where(hit => hit.Score > 0)
+            .Select(hit => hit.Document)];
+
+        int skipped = 0;
+        int taken = 0;
+        foreach (SearchHit fused in RankFusion.Rrf([byVector, byKeyword], Options.RankFusionK))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            TRecord record = _records[indexes.Keys[fused.Document]];
+            if (admits is not null && !admits(record))
+            {
+                continue;
+            }
+
+            if (skipped < settings.Skip)
+            {
+                skipped++;
+                continue;
+            }
+
+            yield return new VectorSearchResult<TRecord>(record, fused.Score);
+            if (++taken == top)
+            {
+                break;
+            }
+        }
+
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    /// <summary>The keywords as column indices of the fitted vocabulary, unseen terms dropped.</summary>
+    /// <remarks>
+    /// <see cref="CsrMatrix"/> publishes no per-row column enumerator, so this walks
+    /// <see cref="CsrMatrix.RowPointers"/> and <see cref="CsrMatrix.ColumnIndices"/> directly —
+    /// the same pattern <c>Bm25Index</c> itself uses to enumerate a row's non-zeros.
+    /// </remarks>
+    private static List<int> QueryTerms(CountVectorizer vectorizer, ICollection<string> keywords)
+    {
+        CsrMatrix row = vectorizer.Transform([string.Join(" ", keywords)]);
+        if (row.RowCount == 0)
+        {
+            return [];
+        }
+
+        var terms = new List<int>();
+        for (int k = row.RowPointers[0]; k < row.RowPointers[1]; k++)
+        {
+            terms.Add(row.ColumnIndices[k]);
+        }
+
+        return terms;
+    }
 
     /// <summary>Releases resources — none, here: the base class declares the pattern and a consumer's <c>using</c> has to reach something.</summary>
     /// <param name="disposing"><see langword="true"/> when called from <see cref="IDisposable.Dispose"/> rather than a finalizer.</param>
