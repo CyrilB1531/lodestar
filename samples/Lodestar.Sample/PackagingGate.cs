@@ -9,6 +9,7 @@ using Lodestar.Decomposition;
 using Lodestar.Embeddings.Tokenization;
 using Lodestar.Extensions.AI;
 using Lodestar.Extensions.MathNet;
+using Lodestar.Extensions.VectorData;
 using Lodestar.Fuzzy;
 using Lodestar.Gpu.Compute;
 using Lodestar.Metrics;
@@ -173,6 +174,7 @@ internal static class PackagingGate
             typeof(OrdinaryLeastSquares).Assembly,
             typeof(KaplanMeier).Assembly,
             typeof(GpuContext).Assembly,
+            typeof(LodestarVectorStore).Assembly,
         ];
 
         References(out HashSet<string> typeRefs, out HashSet<string> memberRefs);

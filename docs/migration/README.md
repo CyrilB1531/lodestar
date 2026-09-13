@@ -10,7 +10,7 @@ exists in .NET, and Python's dense linear algebra relies on Fortran BLAS/LAPACK
 kernels there's no point reimplementing. We **use** what exists, and only **write**
 native code where .NET has no maintained equivalent at the reference's parity.
 
-Sixteen packages in, that gap has a shape. It is almost never the computation — .NET
+Seventeen packages in, that gap has a shape. It is almost never the computation — .NET
 ships those — and almost always the **apparatus around it**: the tokenizer loader and
 not its encoder, the regression's inference table and not its coefficients, the
 time-series diagnostics and not the forecast, sparse decomposition and not dense. Each
@@ -29,6 +29,7 @@ of those is a decision record with a reading behind it, linked from the rows bel
 | **statsmodels** | econometric regression, time series, tests | Math.NET (basics) — *not* Accord.NET, see below; [`Microsoft.ML.TimeSeries`](https://www.nuget.org/packages/Microsoft.ML.TimeSeries) for forecasting | 🔴 **Write** — the tests and the OLS table ship as **Lodestar.Stats** and **Lodestar.Stats.Regression**; forecasting delegates; the GLM table ships beside the OLS one, and the time-series diagnostics are being written |
 | **scipy.stats** | hypothesis tests, distributions, tails | [Math.NET Numerics](https://numerics.mathdotnet.com/) for the distributions and their tails | 🔴 **Write** — ten test families at scipy parity ship as **Lodestar.Stats**. Math.NET has the distributions and no test battery over them, so the gap is the test and not the tail; [decision 0082](../decisions/0082-scipy-joins-the-allowed-permissive-references.md) admitted scipy as a permissive reference and [0095](../decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md) says which four tail members this publishes for its neighbours |
 | **lifelines** | survival analysis: Kaplan-Meier, Nelson-Aalen, log-rank | **none** — the largest void [#442](https://github.com/CyrilB1531/lodestar/issues/442) surveyed | 🔴 **Write** — right-censored estimators and the log-rank test ship as **Lodestar.Survival**, at lifelines parity. `scikit-survival` is the nearest reference in any language and is refused on its **licence**, not its capability — GPL-3.0-or-later, which [decision 0003](../decisions/0003-provenance-and-licensing.md) excludes ([0099](../decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)) |
+| **rank_bm25** beside a vector index | hybrid keyword-and-vector retrieval, fused in process | `Microsoft.Extensions.VectorData` and its connectors. Read on 2026-09-13 at `CommunityToolkit/AI` `215a5bad`: six of the ten connectors implement hybrid search, and all six are clients of a server; the two in-process ones, `InMemory` and `SqliteVec`, implement none | 🔴 **Write** — BM25 and reciprocal rank fusion ship in **Lodestar.Text**, and the in-process hybrid store behind the abstraction as **Lodestar.Extensions.VectorData** ([decision 0123](../decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)) |
 | **seaborn** | tidy statistical viz | ScottPlot / Plotly.NET (charts rebuilt) | 🟠 **Decide** — statistical presets missing |
 
 **Legend.** ✅ a solid equivalent exists, use it as is. 🟡 an equivalent exists but
@@ -74,7 +75,7 @@ artifact, and the GIL between your threads and theirs.
 ## What Lodestar writes natively
 
 Text was the first area that justified native code, and it stopped being the only one
-some time ago: **sixteen packages** ship now. Each lot below was opened by a reading of
+some time ago: **seventeen packages** ship now. Each lot below was opened by a reading of
 what .NET already exports — never by an assumption that nothing existed — and the ones
 that found an incumbent delegated instead. That protocol is
 [decision 0074](../decisions/0074-the-phase-2-gaps-restated-on-what-the-packages-export.md),
@@ -143,6 +144,12 @@ are worth more than the list.
    2017, `Microsoft.ML` reports coefficient statistics for binary logistic **only**, and
    `cs-glm` installs no assembly at all
    ([decision 0104](../decisions/0104-generalized-linear-models-are-written-natively.md)).
+15. **Hybrid retrieval with no database** — a vector ranking and a BM25 ranking fused by reciprocal
+   rank, behind `Microsoft.Extensions.VectorData`'s `IKeywordHybridSearchable`. *(written,
+   `Lodestar.Extensions.VectorData`)* Every connector of that abstraction that offers hybrid search
+   is a client of a server, and the two that run in process offer none; the arithmetic was already
+   published in `Lodestar.Embeddings` and `Lodestar.Text`, so the package is the store around it
+   ([decision 0123](../decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)).
 
 Three more packages carry no lot of their own. `Lodestar.Abstractions` holds the
 `CsrMatrix` the others share; `Lodestar.Onnx` exists to carry the one dependency that is

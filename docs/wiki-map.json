@@ -81,6 +81,17 @@
       },
       "exceptionsUnchecked": []
     },
+    "Lodestar.Extensions.VectorData": {
+      "wiki": "ExtensionsVectorData",
+      "pages": [
+        "docs/reference/extensions-vectordata/*.md",
+        "docs/reference/extensions-vectordata/*/*.md"
+      ],
+      "covered": {
+        "Lodestar.Extensions.VectorData": "docs/reference/extensions-vectordata/store"
+      },
+      "exceptionsUnchecked": []
+    },
     "Lodestar.Extensions.MathNet": {
       "wiki": "ExtensionsMathNet",
       "pages": [

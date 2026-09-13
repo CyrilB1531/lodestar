@@ -74,11 +74,13 @@ PREPROCESSING = "Lodestar.Preprocessing"
 CLUSTER = "Lodestar.Cluster"
 ONNX = "Lodestar.Onnx"
 EXTENSIONS_AI = "Lodestar.Extensions.AI"
+EXTENSIONS_VECTORDATA = "Lodestar.Extensions.VectorData"
 EXTENSIONS_MATHNET = "Lodestar.Extensions.MathNet"
 GPU = "Lodestar.Gpu"
 ILGPU = "ILGPU"
 ONNX_RUNTIME = "Microsoft.ML.OnnxRuntime"
 MS_EXTENSIONS_AI = "Microsoft.Extensions.AI.Abstractions"
+MS_VECTORDATA = "Microsoft.Extensions.VectorData.Abstractions"
 MATHNET = "MathNet.Numerics"
 STJ = "System.Text.Json"
 
@@ -91,15 +93,15 @@ PERSISTENCE = {STJ: "10.0.12"}
 
 # Must equal Directory.Packages.props' PackageVersion: a PackageReference
 # emits this floor, but LodestarUseProjectRefs emits Text's own version instead -- catching the escape hatch left on.
-TEXT_FLOOR = "0.4.0"
+TEXT_FLOOR = "0.6.0"
 
 # Must equal Directory.Packages.props' PackageVersion, for the edge decision 0071
 # added: Lodestar.Text stopped declaring CsrMatrix and consumes it from here.
 ABSTRACTIONS_FLOOR = "0.1.1"
 
-# Directory.Packages.props' PackageVersion for the edges #533 and #570 added. 0.5.0 is
-# where BatchEncoder.EncodeAll and Pad became public, and both dependents reach them.
-EMBEDDINGS_FLOOR = "0.5.0"
+# Directory.Packages.props' PackageVersion for the edges #533, #570 and #682 added. 0.6.0,
+# not 0.5.0 (which made EncodeAll and Pad public): 0.5.0 still declares OnnxRuntime (0123).
+EMBEDDINGS_FLOOR = "0.6.0"
 
 # Directory.Packages.props' PackageVersion for the edge #570 added. 0.1.0 is
 # Lodestar.Onnx's first release, and OnnxTextEmbedder has been public since it.
@@ -109,6 +111,10 @@ ONNX_FLOOR = "0.1.0"
 # per package id, so both consume 0.4.0 -- additive over the 0.2.0 Regression asked for.
 STATS_FLOOR = "0.4.0"
 DECOMPOSITION_FLOOR = "0.2.0"
+
+# Directory.Packages.props' PackageVersion for both Microsoft.Extensions.*.Abstractions
+# pins: Extensions.AI and Extensions.VectorData agree on it without a range to reconcile.
+MS_ABSTRACTIONS_FLOOR = "10.10.0"
 
 # package id -> target framework -> {dependency id: declared version range}.
 # See this module's docstring for what EXPECTED's shape and ranges prove.
@@ -134,7 +140,7 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {TEXT: TEXT_FLOOR, **POLYFILLS},
     },
     EMBEDDINGS: {
-        # Nothing external since 0.5.0: ONNX Runtime left with OnnxTextEmbedder,
+        # Nothing external since 0.6.0: ONNX Runtime left with OnnxTextEmbedder,
         # so tokenizing, pooling or searching no longer restores a native runtime.
         NET: {},
         NETSTANDARD: {**POLYFILLS, **PERSISTENCE},
@@ -146,18 +152,29 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.30.0", **POLYFILLS},
     },
     EXTENSIONS_AI: {
-        # The second satellite, and the second external dependency. Two Lodestar edges:
+        # The first interop package, and the second external dependency. Two Lodestar edges:
         # the embedder it adapts, and the package whose BatchEncoder its constructor names.
-        NET: {ONNX: ONNX_FLOOR, EMBEDDINGS: EMBEDDINGS_FLOOR, MS_EXTENSIONS_AI: "10.10.0"},
+        NET: {ONNX: ONNX_FLOOR, EMBEDDINGS: EMBEDDINGS_FLOOR, MS_EXTENSIONS_AI: MS_ABSTRACTIONS_FLOOR},
         NETSTANDARD: {
             ONNX: ONNX_FLOOR,
             EMBEDDINGS: EMBEDDINGS_FLOOR,
-            MS_EXTENSIONS_AI: "10.10.0",
+            MS_EXTENSIONS_AI: MS_ABSTRACTIONS_FLOOR,
+            **POLYFILLS,
+        },
+    },
+    EXTENSIONS_VECTORDATA: {
+        # The third interop package: two Lodestar edges, one per half of hybrid search --
+        # Embeddings for the vectors, Text for the BM25 index and the fusion.
+        NET: {EMBEDDINGS: EMBEDDINGS_FLOOR, TEXT: TEXT_FLOOR, MS_VECTORDATA: MS_ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {
+            EMBEDDINGS: EMBEDDINGS_FLOOR,
+            TEXT: TEXT_FLOOR,
+            MS_VECTORDATA: MS_ABSTRACTIONS_FLOOR,
             **POLYFILLS,
         },
     },
     EXTENSIONS_MATHNET: {
-        # The third satellite. One Lodestar edge, to the package that owns CsrMatrix,
+        # The second interop package. One Lodestar edge, to the package that owns CsrMatrix,
         # because converting that type is the whole of this package's surface.
         NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0"},
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0", **POLYFILLS},

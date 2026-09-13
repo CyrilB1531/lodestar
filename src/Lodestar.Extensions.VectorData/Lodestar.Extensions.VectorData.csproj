@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- This package's version, owned here rather than repository-wide. -->
+  <Import Project="Version.props" />
+
+  <PropertyGroup>
+    <Version>$(LodestarExtensionsVectorDataVersion)</Version>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+    <RootNamespace>Lodestar.Extensions.VectorData</RootNamespace>
+
+    <PackageId>Lodestar.Extensions.VectorData</PackageId>
+    <Description>Microsoft.Extensions.VectorData provider for Lodestar: an in-process vector store with hybrid keyword and vector search, over Lodestar's own EmbeddingIndex and BM25 index, so a Semantic Kernel or Microsoft.Extensions.AI consumer gets hybrid retrieval with no database and no service running anywhere.</Description>
+    <PackageTags>microsoft-extensions-vectordata;vector-store;hybrid-search;bm25;embeddings;semantic-kernel;interop;lodestar</PackageTags>
+  </PropertyGroup>
+
+  <!-- The dependency this package exists for. A core package carries none, so an
+       external dependency earns its own satellite named for it — this is the
+       third member of the interop tier (decisions 0076 and 0100). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.VectorData.Abstractions" />
+  </ItemGroup>
+
+  <!--
+    Two Lodestar edges, both load-bearing: Lodestar.Embeddings' EmbeddingIndex is
+    the vector half and Lodestar.Text's Bm25Index, CountVectorizer and RankFusion
+    are the keyword half. Neither is a transitive convenience — decision 0100
+    parked this package until the second was published.
+
+    Expressed as PackageReferences against the published packages, like every
+    other src/ edge, so the build graph is the graph consumers see
+    (decision 0012).
+
+    The opt-in below exists only so that editing several packages in one branch
+    does not require a pack-and-restore cycle per edit:
+
+        export LodestarUseProjectRefs=true
+
+    It is never set in CI, and the packed .nuspec is asserted there.
+  -->
+  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
+    <ProjectReference Include="../Lodestar.Embeddings/Lodestar.Embeddings.csproj" />
+    <ProjectReference Include="../Lodestar.Text/Lodestar.Text.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
+    <PackageReference Include="Lodestar.Embeddings" />
+    <PackageReference Include="Lodestar.Text" />
+  </ItemGroup>
+
+  <!-- Loud on purpose: a local build that silently differed from the shipped one
+       is the failure mode this whole arrangement is designed to avoid. -->
+  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
+          Condition="'$(LodestarUseProjectRefs)' == 'true'">
+    <Message Importance="high"
+             Text="Lodestar.Extensions.VectorData: LodestarUseProjectRefs=true — referencing Lodestar.Embeddings and Lodestar.Text by project, not by package. This is the developer loop, not what ships." />
+  </Target>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lodestar.Extensions.VectorData.Tests" />
+    <!-- Same suite, replayed against the netstandard2.0 build. -->
+    <InternalsVisibleTo Include="Lodestar.Extensions.VectorData.NetStandard.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -5,13 +5,13 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The sixteen packages (`Lodestar.Text`, `Lodestar.Embeddings`, `Lodestar.Fuzzy`,
+The seventeen packages (`Lodestar.Text`, `Lodestar.Embeddings`, `Lodestar.Fuzzy`,
 `Lodestar.Metrics` — published as `DataNet.*` up to 2026-08-15 — plus
 `Lodestar.Conformal`, `Lodestar.Abstractions`, `Lodestar.Decomposition`,
 `Lodestar.Onnx`, `Lodestar.Stats`, `Lodestar.Extensions.AI`,
-`Lodestar.Extensions.MathNet`, `Lodestar.Preprocessing`, `Lodestar.Cluster`,
-`Lodestar.Stats.Regression`, `Lodestar.Survival` and `Lodestar.Gpu`, all newer than
-that rename)
+`Lodestar.Extensions.MathNet`, `Lodestar.Extensions.VectorData`, `Lodestar.Preprocessing`,
+`Lodestar.Cluster`, `Lodestar.Stats.Regression`, `Lodestar.Survival` and `Lodestar.Gpu`, all
+newer than that rename)
 version and release **independently**, each from its own
 `src/<Package>/Version.props`, so entries are grouped per package. Releases up to
 and including `0.2.0` predate the split and covered all three at once — see
@@ -67,6 +67,11 @@ is one sentence, the issue and the commit; see
 - `Fuzz.PartialRatio` scores a needle of up to 64 characters from one equality table per call and
   skips the windows that cannot win, returning the same scores faster.
   ([#714](https://github.com/CyrilB1531/lodestar/issues/714))
+- **The `Lodestar.Text` dependency floor rises from 0.4.0 to 0.6.0.** Nothing in this package needs
+  the newer API: the floor is one Central Package Management pin shared by every consumer, and
+  `Lodestar.Extensions.VectorData` needs the `Lodestar.Text.Search` types 0.6.0 first published
+  ([decision 0123](docs/decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)).
+  ([#682](https://github.com/CyrilB1531/lodestar/issues/682))
 
 ### Lodestar.Text
 
@@ -123,6 +128,13 @@ is one sentence, the issue and the commit; see
   size is a stated concern — 132.7 MB on a caller's restore path, which is why the satellite
   tier exists ([decision 0076](docs/decisions/0076-a-core-package-carries-no-external-dependency.md)).
   ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+- **The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0.** Nothing in this package
+  needs the newer API: the floor is one Central Package Management pin shared by every consumer, and
+  `Lodestar.Extensions.VectorData` needs the first `Lodestar.Embeddings` that no longer declares
+  `Microsoft.ML.OnnxRuntime` — 0.5.0 still carried it at 1.28.0, a stale lower edge beside this
+  package's own 1.30.0
+  ([decision 0123](docs/decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)).
+  ([#682](https://github.com/CyrilB1531/lodestar/issues/682))
 
 ### Lodestar.Extensions.AI
 
@@ -133,6 +145,26 @@ is one sentence, the issue and the commit; see
   which measured that `Microsoft.Extensions.VectorData.Abstractions` pins the same version:
   VectorData 10.10.0 requires `[10.10.0, )`, so the two still move together and the alignment
   that decision relied on holds. ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+- **The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0.** Nothing in this package
+  needs the newer API: the floor is one Central Package Management pin shared by every consumer, and
+  `Lodestar.Extensions.VectorData` needs the first `Lodestar.Embeddings` that no longer declares
+  `Microsoft.ML.OnnxRuntime`
+  ([decision 0123](docs/decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)).
+  ([#682](https://github.com/CyrilB1531/lodestar/issues/682))
+
+### Lodestar.Extensions.VectorData
+
+#### Added
+
+- **The package.** An in-process `Microsoft.Extensions.VectorData` provider: `LodestarVectorStore`,
+  `LodestarVectorStoreCollection<TKey, TRecord>` and `LodestarVectorStoreOptions`. Records are the
+  collection's state and the vector and BM25 indexes are caches rebuilt on the first search after a
+  write, so upsert and delete are exact rather than masked. `HybridSearchAsync` fuses both halves
+  through reciprocal rank, which is hybrid retrieval with no database and no service running
+  anywhere. `GetDynamicCollection`, a `string` search value and a filtered `GetAsync` with `OrderBy`
+  are refused, each naming its reason
+  ([decision 0123](docs/decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)).
+  ([#682](https://github.com/CyrilB1531/lodestar/issues/682))
 
 ### Lodestar.Stats
 

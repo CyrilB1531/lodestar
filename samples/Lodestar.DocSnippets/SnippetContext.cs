@@ -1,4 +1,5 @@
 using Lodestar.Embeddings.Tokenization;
+using Microsoft.Extensions.VectorData;
 
 namespace Lodestar.DocSnippets;
 
@@ -72,4 +73,25 @@ internal static class SnippetVocabulary
             ["[PAD]"] = 3,
         },
         "[UNK]");
+}
+
+/// <summary>The record the <c>Lodestar.Extensions.VectorData</c> reference pages store.</summary>
+/// <remarks>
+/// Declared here because a fence becomes a method body, and a class carrying attributes cannot
+/// be declared inside one. The pages show the same properties and attributes, without the
+/// <c>internal</c> modifier and these documentation comments.
+/// </remarks>
+internal sealed class Note
+{
+    /// <summary>The key each upsert replaces by.</summary>
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>The text the keyword half of a hybrid search is built over.</summary>
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Text { get; set; } = string.Empty;
+
+    /// <summary>A three-wide embedding, small enough to read in an example.</summary>
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
 }

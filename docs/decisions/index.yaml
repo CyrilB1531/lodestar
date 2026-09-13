@@ -1011,7 +1011,7 @@
   applies: ["0074"]
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0123"]
 
 "0101":
   title: "`Lodestar.Gpu` is the one package that does not ship `netstandard2.0`"
@@ -1229,6 +1229,16 @@
   supersedes: []
   amends: ["0081"]
   applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0123":
+  title: "The `VectorData` store holds the records and derives both indexes from them"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0100"]
   superseded_by: []
   amended_by: []
   applied_by: []

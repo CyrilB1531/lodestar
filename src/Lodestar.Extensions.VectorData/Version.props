@@ -1,0 +1,16 @@
+<Project>
+
+  <!--
+    Lodestar.Extensions.VectorData owns its version here, independently of the
+    other packages (see docs/decisions/0012-per-package-versioning.md).
+
+    0.1.0 is this package's first release. It carries two edges — to
+    Lodestar.Embeddings, whose EmbeddingIndex holds the vectors, and to
+    Lodestar.Text, whose Bm25Index and RankFusion are the keyword half — so each
+    floor moves when one of those publishes API this package needs.
+  -->
+  <PropertyGroup>
+    <LodestarExtensionsVectorDataVersion>0.1.0</LodestarExtensionsVectorDataVersion>
+  </PropertyGroup>
+
+</Project>

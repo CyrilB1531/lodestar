@@ -34,7 +34,7 @@ SAMPLES = ROOT / "samples" / "Lodestar.Sample"
 CONVERTED = ["Lodestar.Text", "Lodestar.Conformal", "Lodestar.Abstractions",
              "Lodestar.Decomposition", "Lodestar.Stats", "Lodestar.Preprocessing",
              "Lodestar.Cluster", "Lodestar.Stats.Regression",
-             "Lodestar.Survival", "Lodestar.Gpu"]
+             "Lodestar.Survival", "Lodestar.Gpu", "Lodestar.Extensions.VectorData"]
 WAITING = ["Lodestar.Fuzzy", "Lodestar.Embeddings", "Lodestar.Metrics"]
 
 DECLARATION = re.compile(

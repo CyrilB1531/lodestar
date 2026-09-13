@@ -150,7 +150,8 @@ A runnable version of the above, consuming the packages exactly as you would:
 for p in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings \
         src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal \
         src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI \
-        src/Lodestar.Extensions.MathNet src/Lodestar.Cluster src/Lodestar.Preprocessing \
+        src/Lodestar.Extensions.MathNet src/Lodestar.Extensions.VectorData \
+        src/Lodestar.Cluster src/Lodestar.Preprocessing \
         src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Survival \
         src/Lodestar.Gpu; do
   dotnet pack "$p" -c Release -o ./artifacts
@@ -222,6 +223,7 @@ Lodestar.slnx
 ├── src/Lodestar.Gpu/                       ILGPU kernels — satellite, the one package on net10.0;netstandard2.1
 ├── src/Lodestar.Extensions.AI/             interop: the ONNX embedding path behind IEmbeddingGenerator
 ├── src/Lodestar.Extensions.MathNet/        interop: CsrMatrix to and from Math.NET's sparse matrix
+├── src/Lodestar.Extensions.VectorData/     interop: an in-process Microsoft.Extensions.VectorData store with hybrid search
 ├── tests/                                  xUnit: two projects per package — net10.0, and a mirror linking the same sources against netstandard2.0
 ├── tests/oracles/                          frozen JSON corpora (generated from Python) + a synthetic ONNX model
 ├── bench/Lodestar.Text.Benchmarks/         BenchmarkDotNet: every non-netstandard benchmark, whatever package it measures
@@ -257,14 +259,15 @@ you whether to correct the document itself or something upstream of it.
 
 ## Publishing
 
-Sixteen NuGet packages are produced: `Lodestar.Abstractions`, `Lodestar.Text`,
+Seventeen NuGet packages are produced: `Lodestar.Abstractions`, `Lodestar.Text`,
 `Lodestar.Embeddings`, `Lodestar.Fuzzy`, `Lodestar.Metrics`, `Lodestar.Conformal`,
 `Lodestar.Decomposition`, `Lodestar.Cluster`, `Lodestar.Preprocessing`, `Lodestar.Stats`,
 `Lodestar.Stats.Regression`, `Lodestar.Survival`, `Lodestar.Onnx`, `Lodestar.Gpu`,
-`Lodestar.Extensions.AI` and `Lodestar.Extensions.MathNet`. Twelve are **core tier** and carry no
+`Lodestar.Extensions.AI`, `Lodestar.Extensions.MathNet` and `Lodestar.Extensions.VectorData`.
+Twelve are **core tier** and carry no
 external dependency — [`decisions/0076`](docs/decisions/0076-a-core-package-carries-no-external-dependency.md).
 `Lodestar.Onnx` and `Lodestar.Gpu` are the two **satellites**, each carrying the one dependency
-that is its whole reason to be a package; the two `Lodestar.Extensions.*` are the **interop** tier,
+that is its whole reason to be a package; the three `Lodestar.Extensions.*` are the **interop** tier,
 which [`decisions/0089`](docs/decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)
 allows a dependency a core package refused, because converting to a foreign type is not computing
 with it.
