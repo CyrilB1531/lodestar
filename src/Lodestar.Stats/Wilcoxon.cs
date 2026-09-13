@@ -391,8 +391,8 @@ public static class Wilcoxon
     // tail it is about to ask for -- ceiling before a CDF, floor before a
     // survival function. Untied, rounding is a no-op and the negative sum
     // would have agreed by symmetry; under ties neither is true, which is
-    // exactly what no corpus case exercised (task-6-report.md, fix round 1,
-    // Finding 2).
+    // exactly what no corpus case exercised (commit ddfe5a3d; RankTestEdgeTests'
+    // Wilcoxon_exact_matches_scipy_on_tied_data_* pin it).
     private static double ExactPValue(double positive, int n, Alternative alternative)
     {
         double[] counts = RankDistributions.SignedRankCounts(n);

@@ -57,6 +57,10 @@ given:
   unpinned and therefore loaded from net10.0.
 - `check_machine_paths.py` refuses a tracked file that holds a path under
   someone's home directory.
+- `check_sdd_citations.py` refuses a file that cites a task's report or brief from a
+  plan's workspace, which git ignores and the plan deletes when it finishes. Plans
+  under `docs/superpowers/`, the vendored `.claude/skills/` and the one accepted ADR
+  that already carries such a citation are exempt.
 - `check_comment_length.py` refuses a comment block that runs past its budget
   without saying why.
 - `check_no_console_writeline.py` refuses a `Console` call in a shipped package,
@@ -801,6 +805,28 @@ time from `$HOME` — the path itself, the account name bounded by a separator o
 a dash, and the dashed form a session scratch directory is named after — which
 catch shapes no fixed list enumerates, on the machine where a path is actually
 created.
+
+## `check_sdd_citations.py`
+
+Refuses a file that cites a task's report or brief — a `task-` number followed by
+`-report.md` or `-brief.md` — or any path into the subagent-driven-development
+workspace under `.superpowers/`. That workspace is kept out of the repository by
+`.git/info/exclude` and deleted when a plan finishes, so a citation of it is
+dangling from the commit that writes it. Seventeen comments and one ADR carried
+one before [#730](https://github.com/CyrilB1531/lodestar/issues/730).
+
+```bash
+python3 tools/check_sdd_citations.py
+python3 tools/check_sdd_citations.py --help
+```
+
+The fix for a finding keeps the claim and points at something tracked instead —
+the test that pins it, the oracle case, the commit whose message holds the
+measurement, or the issue — per CONTRIBUTING.md's
+[*Claims in comments*](../CONTRIBUTING.md#claims-in-comments). Exempt:
+`docs/superpowers/`, where plans describe the workspace while it exists; the
+vendored `.claude/skills/` that create it; decision 0082, which cites a report and
+cannot be edited; and the guard and its test.
 
 ## `check_adr_immutable.py`
 

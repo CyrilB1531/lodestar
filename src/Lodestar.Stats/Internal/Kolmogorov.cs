@@ -46,9 +46,9 @@ internal static class Kolmogorov
         return q > 1.0 ? 1.0 : q;
     }
 
-    // long-comment: this is the complete dispatch table (task-8-report.md's
-    //     fix-round-3), not a per-bound note -- fix-round-1 shipped because
-    //     one cutoff was applied outside its branch, fix-round-2 shipped
+    // long-comment: this is the complete dispatch table (commit bfe1a1f0),
+    //     not a per-bound note -- fix-round-1 shipped because one cutoff
+    //     was applied outside its branch, fix-round-2 shipped
     //     because the branch it was restored to had no upper bound of its
     //     own. Both were a single bound read out of context; this comment
     //     exists so the next change sees every bound scipy has, together.
@@ -90,7 +90,8 @@ internal static class Kolmogorov
     // territory, where 1 - DurbinCdf collapses the identical way row 8's
     // direct formula exists to prevent -- FiniteTwoSidedSf(140, 0.495) gave
     // 1.44e-15 against scipy's 3.36e-32, a floor at 2^-51, not an answer
-    // (task-8-report.md's fix-round-3 sweep has the full measurement).
+    // (commit bfe1a1f0 has the 33,539-point sweep against scipy; KolmogorovTests'
+    // FiniteTwoSidedSf_does_not_collapse_past_the_exact_route_ceiling_below_n_140 pins it).
     private const int LargeSampleBranch = 140;
     private const double UnderflowThreshold = 370.0;
     private const double DirectSurvivalThreshold = 2.2;
@@ -230,10 +231,10 @@ internal static class Kolmogorov
     private static readonly double Sqrt3 = Math.Sqrt(3.0);
 
     // long-comment: attribution CONTRIBUTING.md's Licensing and provenance
-    //     requires travel with the code, not only live in a report -- this
-    //     structure was read from scipy's own _kolmogn_PelzGood (ADR 0003
+    //     requires travel with the code, not only live in a commit message --
+    //     this structure was read from scipy's own _kolmogn_PelzGood (ADR 0003
     //     permits scipy, BSD-3, as a behavioural reference) and that has to
-    //     be visible here, not merely in task-8-report.md's fix-round-2.
+    //     be visible here, not merely in commit 995ba607.
     // Pelz & Good (1976): transforms the Li-Chien/Korolyuk large-n asymptotic
     // expansion of the two-sided one-sample Kolmogorov CDF into a form that
     // converges quickly for the small z = sqrt(n)*d this method is reached at

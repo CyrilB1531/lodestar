@@ -218,8 +218,8 @@ git config core.hooksPath .githooks
 git config core.hooksPath .githooks
 ```
 
-`.githooks/pre-commit` then runs the eighteen offline guards —
-`check_machine_paths.py`, `check_comment_length.py`, `check_version_floor.py`,
+`.githooks/pre-commit` then runs the nineteen offline guards —
+`check_machine_paths.py`, `check_sdd_citations.py`, `check_comment_length.py`, `check_version_floor.py`,
 `check_sample_culture.py`, `check_bench_map.py`, `check_sample_coverage.py`,
 `check_netstandard_guards.py`, `check_no_console_writeline.py`,
 `check_readme_pack_loop.py`, `check_claude_md_packages.py`,

@@ -59,7 +59,7 @@ public sealed class GroupTestEdgeTests
     }
 
     // Deleting KruskalWallis's tieCorrection<=0 guard still throws, but the wrong thing --
-    // Gamma.Validate's ArgumentOutOfRangeException on NaN, since h becomes 0.0/0.0 (task-8-report.md).
+    // Gamma.Validate's ArgumentOutOfRangeException on NaN, since h becomes 0.0/0.0.
     [Fact]
     public void Kruskal_refuses_a_pooled_sample_where_every_value_is_tied()
     {

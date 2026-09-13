@@ -26,7 +26,7 @@ public static class FisherExact
     // however long that takes rather than fail fast, and every term underflows
     // to a harmless exact 0.0 in the far tail rather than corrupting the sum
     // (verified in Python at total = 1,000,000, a 450,001-wide range: the sum
-    // over the range still lands at 1.0000000008, task-7-report.md). 1,000,000
+    // over the range still lands at 1.0000000008, commit cfee53ed). 1,000,000
     // keeps the loop itself comfortably sub-second while leaving two clear
     // orders of magnitude below where the margin additions (rowOne = a + b,
     // columnOne = a + c) computed in `int` after the guard could themselves
