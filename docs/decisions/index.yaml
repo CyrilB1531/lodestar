@@ -990,7 +990,7 @@
   amends: []
   applies: ["0095"]
   superseded_by: []
-  amended_by: []
+  amended_by: ["0121"]
   applied_by: []
 
 "0099":
@@ -1208,6 +1208,16 @@
   status: "accepted"
   supersedes: []
   amends: ["0054"]
+  applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0121":
+  title: "The quantiles invert by Newton, and the large-`df` residual is the tail's"
+  status: "accepted"
+  supersedes: []
+  amends: ["0098"]
   applies: []
   superseded_by: []
   amended_by: []

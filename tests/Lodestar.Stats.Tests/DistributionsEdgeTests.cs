@@ -114,7 +114,7 @@ public sealed class DistributionsEdgeTests
 
     /// <summary>
     /// The Student quantile approaches this one as its degrees of freedom grow, but it
-    /// stops closing at about 9e-9 -- the measurement decision 0098 records, and the
+    /// stops closing at about 1e-8 -- the measurement decisions 0098 and 0121 record, and the
     /// reason the normal one is published rather than approximated by a large df.
     /// </summary>
     [Fact]

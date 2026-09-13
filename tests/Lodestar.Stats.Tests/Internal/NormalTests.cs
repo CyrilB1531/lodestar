@@ -55,6 +55,28 @@ public sealed class NormalTests
         Assert.Equal(expected, Normal.Quantile(p), 1e-9);
     }
 
+    [Theory]
+    // scipy.stats.norm.isf at each p. Relative, because an absolute 1e-9 on z = 37 says
+    // nothing about the eleventh digit the far tail is resolved to.
+    [InlineData(1e-20, 9.262340089798409)]
+    [InlineData(1e-100, 21.273453560965322)]
+    [InlineData(1e-300, 37.0470962993612)]
+    public void Quantile_reaches_the_far_tail(double p, double expected)
+    {
+        Assert.Equal(1.0, Normal.Quantile(p) / expected, 1e-13);
+    }
+
+    [Fact]
+    public void The_rational_seed_already_agrees_with_the_inverted_tail()
+    {
+        // A mistyped AS 241 coefficient would still converge after Newton; this is what
+        // catches it, in each of the approximation's three regions.
+        foreach (double p in new[] { 0.3, 0.075, 0.025, 1e-8, 1e-12, 1e-50, 1e-300 })
+        {
+            Assert.Equal(1.0, Normal.RationalUpperQuantile(p) / Normal.Quantile(p), 1e-14);
+        }
+    }
+
     [Fact]
     public void Quantile_refuses_a_probability_outside_the_open_unit_interval()
     {
