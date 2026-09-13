@@ -97,9 +97,9 @@ public static class MannWhitney
             rankSumX += ranks[i];
         }
 
-        // U counts the pairs (xi, yj) with xi > yj, recovered from the rank sum
-        // by subtracting the ranks x would hold if it sorted first.
-        double u = rankSumX - (n * (n + 1) / 2.0);
+        // U counts the pairs (xi, yj) with xi > yj, recovered from the rank sum by subtracting
+        // the ranks x would hold if it sorted first; in double, as n * (n + 1) overflows int.
+        double u = rankSumX - (n * (n + 1.0) / 2.0);
 
         bool ties = Ranks.HasTies(pooled);
         bool wantsExact = method switch
@@ -186,12 +186,12 @@ public static class MannWhitney
         Continuity continuity)
     {
         double total = n + m;
-        double mean = n * m / 2.0;
+        double mean = (double)n * m / 2.0;
 
         // The tie correction shrinks the variance: tied values carry less
         // information about the ordering than distinct ones do.
         double tieTerm = Ranks.TieCorrection(pooled) / (total * (total - 1.0));
-        double variance = n * m / 12.0 * (total + 1.0 - tieTerm);
+        double variance = (double)n * m / 12.0 * (total + 1.0 - tieTerm);
         double deviation = u - mean;
 
         double correction = continuity == Continuity.Applied ? 0.5 : 0.0;
