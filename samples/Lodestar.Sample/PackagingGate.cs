@@ -10,16 +10,19 @@ using Lodestar.Embeddings.Tokenization;
 using Lodestar.Extensions.AI;
 using Lodestar.Extensions.MathNet;
 using Lodestar.Fuzzy;
+using Lodestar.Gpu.Compute;
 using Lodestar.Metrics;
 using Lodestar.Preprocessing;
 using Lodestar.Onnx;
 using Lodestar.Stats;
+using Lodestar.Stats.Regression;
+using Lodestar.Survival;
 using Lodestar.Text.Distances;
 
 namespace Lodestar.Sample;
 
 /// <summary>
-/// Fails the build when a public <em>member</em> of the four packages is not
+/// Fails the build when a public <em>member</em> of the packages is not
 /// reachable from this sample (ADR 0009, amended by #265).
 /// </summary>
 /// <remarks>
@@ -97,6 +100,10 @@ internal static class PackagingGate
         ["Lodestar.Metrics.ClassificationReport.ToString"] = RecordPlumbing,
         ["Lodestar.Stats.Chi2ContingencyResult.Equals"] = RecordPlumbing,
         ["Lodestar.Stats.Chi2ContingencyResult.GetHashCode"] = RecordPlumbing,
+        ["Lodestar.Survival.KaplanMeierCurve.Equals"] = RecordPlumbing,
+        ["Lodestar.Survival.KaplanMeierCurve.GetHashCode"] = RecordPlumbing,
+        ["Lodestar.Survival.NelsonAalenCurve.Equals"] = RecordPlumbing,
+        ["Lodestar.Survival.NelsonAalenCurve.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Text.Keywords.RakeOptions.Equals"] = RecordPlumbing,
         ["Lodestar.Text.Keywords.RakeOptions.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Text.Keywords.TextRankOptions.Equals"] = RecordPlumbing,
@@ -130,6 +137,10 @@ internal static class PackagingGate
         ["Lodestar.Stats.KsResult..ctor"] = ResultRecordCtor,
         ["Lodestar.Stats.TTestResult..ctor"] = ResultRecordCtor,
         ["Lodestar.Stats.TestResult..ctor"] = ResultRecordCtor,
+        ["Lodestar.Survival.KaplanMeierCurve..ctor"] = ResultRecordCtor,
+        ["Lodestar.Survival.LogRankResult..ctor"] = ResultRecordCtor,
+        ["Lodestar.Survival.NelsonAalenCurve..ctor"] = ResultRecordCtor,
+        ["Lodestar.Survival.SurvivalStep..ctor"] = ResultRecordCtor,
         ["Lodestar.Text.Keywords.KeywordMatch..ctor"] = ResultRecordCtor,
     };
 
@@ -159,10 +170,12 @@ internal static class PackagingGate
             typeof(MathNetInterop).Assembly,
             typeof(StandardScaler).Assembly,
             typeof(TTest).Assembly,
+            typeof(OrdinaryLeastSquares).Assembly,
+            typeof(KaplanMeier).Assembly,
+            typeof(GpuContext).Assembly,
         ];
 
-        var packagedNames = packaged.Select(a => a.GetName().Name!).ToHashSet(StringComparer.Ordinal);
-        References(packagedNames, out HashSet<string> typeRefs, out HashSet<string> memberRefs);
+        References(out HashSet<string> typeRefs, out HashSet<string> memberRefs);
 
         Surface surface = Inspect(packaged, typeRefs, memberRefs);
         string[] stale = [.. Excluded.Keys.Where(k => !surface.Exported.Contains(k)).Order(StringComparer.Ordinal)];
@@ -189,7 +202,7 @@ internal static class PackagingGate
                 continue;
             }
 
-            InspectMembers(type, memberRefs, exported, uncovered, ref covered);
+            InspectMembers(type, typeRefs, memberRefs, exported, uncovered, ref covered);
         }
 
         return new Surface(exported, covered, uncovered);
@@ -210,6 +223,7 @@ internal static class PackagingGate
     /// <summary>Every public member of one type, against what the sample referenced.</summary>
     private static void InspectMembers(
         Type type,
+        HashSet<string> typeRefs,
         HashSet<string> memberRefs,
         HashSet<string> exported,
         List<string> uncovered,
@@ -218,6 +232,8 @@ internal static class PackagingGate
         string typeName = type.FullName!;
         exported.Add(typeName);
         bool wholeTypeExcluded = Excluded.ContainsKey(typeName);
+        bool named = typeRefs.Contains(typeName);
+        ILookup<string, string> declarations = CalledThrough(type);
 
         foreach (string member in PublicMembers(type))
         {
@@ -230,12 +246,62 @@ internal static class PackagingGate
 
             // A property is reached by either accessor: read in a Console line, or
             // written in an object initializer, which is how the options records are used.
-            bool reached = memberRefs.Contains(name)
-                || (member.StartsWith("get_", StringComparison.Ordinal)
-                    && memberRefs.Contains($"{typeName}.set_{member[4..]}"));
+            bool reached = Referenced(member)
+                || (member.StartsWith("get_", StringComparison.Ordinal) && Referenced("set_" + member[4..]));
 
             Judge(name, "is never referenced", reached, exported, uncovered, ref covered);
         }
+
+        // An override is only visible as its base declaration, so the sample must also name
+        // the type — otherwise a call through any other subclass would count for this one.
+        bool Referenced(string member) =>
+            memberRefs.Contains($"{typeName}.{member}")
+            || (named && declarations[member].Any(memberRefs.Contains));
+    }
+
+    /// <summary>What a call to each member of <paramref name="type"/> is emitted against instead.</summary>
+    /// <remarks>
+    /// Roslyn emits a virtual call against the least-derived declaration, so an override of
+    /// <c>VectorStore.CollectionExistsAsync</c> is referenced as that, and a <c>using</c> as
+    /// <c>IDisposable.Dispose</c>: neither appears as a member reference of its own. Measured
+    /// on #731 with <c>ilspycmd</c>.
+    /// </remarks>
+    private static ILookup<string, string> CalledThrough(Type type)
+    {
+        const BindingFlags Declared =
+            BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+
+        var pairs = new List<(string Member, string Declaration)>();
+        foreach (MethodInfo method in type.GetMethods(Declared))
+        {
+            MethodInfo definition = method.GetBaseDefinition();
+            if (definition.DeclaringType != type)
+            {
+                pairs.Add((method.Name, MemberName(definition)));
+            }
+        }
+
+        foreach (Type contract in type.IsInterface ? [] : type.GetInterfaces())
+        {
+            InterfaceMapping map = type.GetInterfaceMap(contract);
+            for (int i = 0; i < map.TargetMethods.Length; i++)
+            {
+                if (map.TargetMethods[i] is { IsPublic: true } target && target.DeclaringType == type)
+                {
+                    pairs.Add((target.Name, MemberName(map.InterfaceMethods[i])));
+                }
+            }
+        }
+
+        return pairs.ToLookup(p => p.Member, p => p.Declaration, StringComparer.Ordinal);
+    }
+
+    /// <summary>A method named the way <see cref="References"/> names a member reference.</summary>
+    private static string MemberName(MethodInfo method)
+    {
+        Type declaring = method.DeclaringType!;
+        Type definition = declaring.IsGenericType ? declaring.GetGenericTypeDefinition() : declaring;
+        return $"{definition.FullName}.{method.Name}";
     }
 
     /// <summary>
@@ -332,19 +398,14 @@ internal static class PackagingGate
         }
     }
 
-    /// <summary>
-    /// Reads this assembly's own metadata for what it references in the three
-    /// packages.
-    /// </summary>
+    /// <summary>Reads this assembly's own metadata for every type and member it references.</summary>
     /// <remarks>
-    /// Compiled metadata rather than a source scan: a name in a comment, a string
-    /// or a <c>using</c> is not a reference, and only the tables the compiler
-    /// emitted can tell the difference.
+    /// Compiled metadata rather than a source scan: a name in a comment, a string or a
+    /// <c>using</c> is not a reference, and only the emitted tables tell the difference.
+    /// References outside the packages are kept, because an override is called through a
+    /// declaration that usually lives in the framework (<see cref="CalledThrough"/>).
     /// </remarks>
-    private static void References(
-        HashSet<string> packagedNames,
-        out HashSet<string> typeRefs,
-        out HashSet<string> memberRefs)
+    private static void References(out HashSet<string> typeRefs, out HashSet<string> memberRefs)
     {
         typeRefs = new HashSet<string>(StringComparer.Ordinal);
         memberRefs = new HashSet<string>(StringComparer.Ordinal);
@@ -355,30 +416,61 @@ internal static class PackagingGate
 
         foreach (TypeReferenceHandle handle in metadata.TypeReferences)
         {
-            if (FullNameOf(metadata, handle, packagedNames) is { } name)
+            if (FullNameOf(metadata, handle) is { } name)
             {
                 typeRefs.Add(name);
             }
         }
         foreach (MemberReferenceHandle handle in metadata.MemberReferences)
         {
-            EntityHandle parent = metadata.GetMemberReference(handle).Parent;
-            if (parent.Kind == HandleKind.TypeReference
-                && FullNameOf(metadata, (TypeReferenceHandle)parent, packagedNames) is { } name)
+            MemberReference member = metadata.GetMemberReference(handle);
+            if (ParentName(metadata, member.Parent) is { } name)
             {
-                memberRefs.Add($"{name}.{metadata.GetString(metadata.GetMemberReference(handle).Name)}");
+                memberRefs.Add($"{name}.{metadata.GetString(member.Name)}");
             }
         }
     }
 
     /// <summary>
-    /// The full name of a type reference, or <c>null</c> when it does not resolve
-    /// to one of the three packages.
+    /// The full name of the type a member reference hangs off, or <c>null</c> when
+    /// it is not a type defined in another assembly.
     /// </summary>
-    private static string? FullNameOf(
-        MetadataReader metadata,
-        TypeReferenceHandle handle,
-        HashSet<string> packagedNames)
+    /// <remarks>
+    /// A call through <c>Box&lt;int&gt;</c> hangs off a <see cref="TypeSpecification"/>
+    /// encoding the instantiation, not a <see cref="TypeReference"/>; it is named after
+    /// the open definition underneath, the way <see cref="Type.FullName"/> names the
+    /// exported <c>Box`1</c>.
+    /// </remarks>
+    private static string? ParentName(MetadataReader metadata, EntityHandle parent)
+    {
+        if (parent.Kind == HandleKind.TypeReference)
+        {
+            return FullNameOf(metadata, (TypeReferenceHandle)parent);
+        }
+        if (parent.Kind != HandleKind.TypeSpecification)
+        {
+            return null;
+        }
+
+        BlobReader signature = metadata.GetBlobReader(
+            metadata.GetTypeSpecification((TypeSpecificationHandle)parent).Signature);
+        if (signature.ReadSignatureTypeCode() != SignatureTypeCode.GenericTypeInstance)
+        {
+            return null;
+        }
+
+        _ = signature.ReadSignatureTypeCode(); // CLASS or VALUETYPE, which the name does not carry
+        EntityHandle definition = signature.ReadTypeHandle();
+        return definition.Kind == HandleKind.TypeReference
+            ? FullNameOf(metadata, (TypeReferenceHandle)definition)
+            : null;
+    }
+
+    /// <summary>
+    /// The full name of a type reference, or <c>null</c> when it does not resolve
+    /// to another assembly.
+    /// </summary>
+    private static string? FullNameOf(MetadataReader metadata, TypeReferenceHandle handle)
     {
         TypeReference reference = metadata.GetTypeReference(handle);
         string name = metadata.GetString(reference.Name);
@@ -388,15 +480,10 @@ internal static class PackagingGate
             case HandleKind.TypeReference:
                 // A nested type: qualify it with its declaring type, the way
                 // Type.FullName does.
-                string? declaring = FullNameOf(metadata, (TypeReferenceHandle)reference.ResolutionScope, packagedNames);
+                string? declaring = FullNameOf(metadata, (TypeReferenceHandle)reference.ResolutionScope);
                 return declaring is null ? null : declaring + "+" + name;
 
             case HandleKind.AssemblyReference:
-                var assembly = metadata.GetAssemblyReference((AssemblyReferenceHandle)reference.ResolutionScope);
-                if (!packagedNames.Contains(metadata.GetString(assembly.Name)))
-                {
-                    return null;
-                }
                 string @namespace = metadata.GetString(reference.Namespace);
                 return string.IsNullOrEmpty(@namespace) ? name : @namespace + "." + name;
 

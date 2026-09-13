@@ -25,6 +25,8 @@ internal static class OlsSummarySample
         // the fit cannot tell which of two interchangeable regressors earns the credit.
         Console.WriteLine($"  slope p-values   : {Inv.E3(summary.PValues[1])}, {Inv.E3(summary.PValues[2])}");
         Console.WriteLine($"  VIF per regressor: {Inv.List(summary.VarianceInflationFactors)}");
+        Console.WriteLine(
+            $"  intervals        : {Inv.F3(summary.ConfidenceLevel)}, intercept fitted {summary.HasIntercept}");
         Console.WriteLine();
     }
 }
