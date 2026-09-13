@@ -82,8 +82,8 @@ nothing exited zero and reported success, and under Microsoft.Testing.Platform �
 xunit v3 runs on since [#623](https://github.com/CyrilB1531/lodestar/issues/623) — it
 exits **8** and says `Zéro tests exécutés`. The habit is still the right one, because a
 count is what tells you a *suite* went missing, and that failure has no exit code at all:
-`dotnet test Lodestar.slnx -c Release` must report **32 assemblies**, sixteen suites and
-their sixteen mirrors.
+`dotnet test Lodestar.slnx -c Release` must report **34 assemblies**, seventeen suites and
+their seventeen mirrors.
 
 Oracle corpora (see *Oracle validation* below), run from outside the repository:
 

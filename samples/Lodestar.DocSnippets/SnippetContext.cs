@@ -78,7 +78,8 @@ internal static class SnippetVocabulary
 /// <summary>The record the <c>Lodestar.Extensions.VectorData</c> reference pages store.</summary>
 /// <remarks>
 /// Declared here because a fence becomes a method body, and a class carrying attributes cannot
-/// be declared inside one. The pages show this declaration in prose, word for word.
+/// be declared inside one. The pages show the same properties and attributes, without the
+/// <c>internal</c> modifier and these documentation comments.
 /// </remarks>
 internal sealed class Note
 {

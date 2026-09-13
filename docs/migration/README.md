@@ -10,7 +10,7 @@ exists in .NET, and Python's dense linear algebra relies on Fortran BLAS/LAPACK
 kernels there's no point reimplementing. We **use** what exists, and only **write**
 native code where .NET has no maintained equivalent at the reference's parity.
 
-Sixteen packages in, that gap has a shape. It is almost never the computation — .NET
+Seventeen packages in, that gap has a shape. It is almost never the computation — .NET
 ships those — and almost always the **apparatus around it**: the tokenizer loader and
 not its encoder, the regression's inference table and not its coefficients, the
 time-series diagnostics and not the forecast, sparse decomposition and not dense. Each
@@ -75,7 +75,7 @@ artifact, and the GIL between your threads and theirs.
 ## What Lodestar writes natively
 
 Text was the first area that justified native code, and it stopped being the only one
-some time ago: **sixteen packages** ship now. Each lot below was opened by a reading of
+some time ago: **seventeen packages** ship now. Each lot below was opened by a reading of
 what .NET already exports — never by an assumption that nothing existed — and the ones
 that found an incumbent delegated instead. That protocol is
 [decision 0074](../decisions/0074-the-phase-2-gaps-restated-on-what-the-packages-export.md),
