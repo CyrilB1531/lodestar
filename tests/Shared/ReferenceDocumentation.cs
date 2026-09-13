@@ -112,6 +112,15 @@ internal static class ReferenceDocumentation
         return new Sheet(source, text, Page.Parse(text));
     }
 
+    /// <summary>A type as a page titles it, without the arity a generic type carries in metadata.</summary>
+    /// <remarks>
+    /// Reflection names <c>LodestarVectorStoreCollection&lt;TKey, TRecord&gt;</c>
+    /// <c>LodestarVectorStoreCollection`2</c>, and a heading, a link label and a file name
+    /// holding that backtick would each break as Markdown. The documentation file already
+    /// drops it in <see cref="MemberKey"/>, so the two sides key a generic type alike.
+    /// </remarks>
+    private static string Title(Type type) => WithoutArity(type.Name);
+
     /// <summary>The type's row in the opening table of the page that carries its entry.</summary>
     /// <remarks>
     /// This is the third level of D10's hierarchy: the table already existed, and what it
@@ -123,11 +132,11 @@ internal static class ReferenceDocumentation
     /// </remarks>
     private static void CheckTypeTable(Type type, Sheet sheet, List<string> complaints)
     {
-        string link = $"[`{type.Name}`](#{Anchor(type.Name)})";
+        string link = $"[`{Title(type)}`](#{Anchor(Title(type))})";
         if (!sheet.Text.Contains(link, StringComparison.Ordinal))
         {
             complaints.Add(
-                $"{sheet.Source}: the opening table does not link {type.Name} to its entry as {link}.");
+                $"{sheet.Source}: the opening table does not link {Title(type)} to its entry as {link}.");
         }
     }
 
@@ -248,10 +257,10 @@ internal static class ReferenceDocumentation
         string pages = string.Join(", ", sheets.Select(sheet => sheet.Source));
         foreach (Type type in Documented(assembly, space))
         {
-            Sheet? carrier = sheets.Find(sheet => sheet.Parsed.Entries.ContainsKey(type.Name));
+            Sheet? carrier = sheets.Find(sheet => sheet.Parsed.Entries.ContainsKey(Title(type)));
             if (carrier is null)
             {
-                complaints.Add($"{pages}: no entry for the type {type.Name}.");
+                complaints.Add($"{pages}: no entry for the type {Title(type)}.");
                 continue;
             }
 
@@ -277,10 +286,10 @@ internal static class ReferenceDocumentation
     private static void CheckIndexLinksTheType(Type type, Sheet index, List<string> complaints)
     {
         string directory = Path.GetFileNameWithoutExtension(index.Source);
-        string link = $"[`{type.Name}`]({directory}/{Anchor(type.Name)}.md)";
+        string link = $"[`{Title(type)}`]({directory}/{Anchor(Title(type))}.md)";
         if (!index.Text.Contains(link, StringComparison.Ordinal))
         {
-            complaints.Add($"{index.Source}: the type table does not link {type.Name} as {link}.");
+            complaints.Add($"{index.Source}: the type table does not link {Title(type)} as {link}.");
         }
     }
 
@@ -289,8 +298,8 @@ internal static class ReferenceDocumentation
     {
         foreach (IGrouping<string, MethodInfo> overloads in Methods(type))
         {
-            string title = $"{type.Name}.{overloads.Key}";
-            string link = $"[`{title}`]({Anchor(type.Name)}-{Anchor(overloads.Key)}.md)";
+            string title = $"{Title(type)}.{overloads.Key}";
+            string link = $"[`{title}`]({Anchor(Title(type))}-{Anchor(overloads.Key)}.md)";
             if (!page.Text.Contains(link, StringComparison.Ordinal))
             {
                 complaints.Add($"{page.Source}: the member table does not link {title} as {link}.");
@@ -305,7 +314,7 @@ internal static class ReferenceDocumentation
         bool enforced = !context.Exempt.Contains(type.Namespace ?? string.Empty);
         foreach (IGrouping<string, MethodInfo> overloads in Methods(type))
         {
-            string title = $"{type.Name}.{overloads.Key}";
+            string title = $"{Title(type)}.{overloads.Key}";
             Sheet? sheet = sheets.Find(candidate => candidate.Parsed.Entries.ContainsKey(title));
             if (sheet is null)
             {
@@ -425,8 +434,8 @@ internal static class ReferenceDocumentation
         Assembly assembly, string space, Sheet sheet, string moniker, List<string> complaints)
     {
         HashSet<string> exported = Documented(assembly, space)
-            .SelectMany(type => Methods(type).Select(group => $"{type.Name}.{group.Key}")
-                .Append(type.Name))
+            .SelectMany(type => Methods(type).Select(group => $"{Title(type)}.{group.Key}")
+                .Append(Title(type)))
             .ToHashSet(StringComparer.Ordinal);
 
         foreach ((string title, Entry entry) in sheet.Parsed.Entries)
@@ -477,7 +486,7 @@ internal static class ReferenceDocumentation
             {
                 foreach (IGrouping<string, MethodInfo> overloads in Methods(type))
                 {
-                    members.Add($"{type.Name}.{overloads.Key}");
+                    members.Add($"{Title(type)}.{overloads.Key}");
                 }
             }
         }
