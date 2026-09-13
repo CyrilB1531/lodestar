@@ -96,6 +96,9 @@ is one sentence, the issue and the commit; see
 - **`System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`.** The dependency a
   consumer restores changes; nothing in the public surface does.
   ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+- **`SentencePieceTokenizer` and `WordPieceTokenizer` find their pieces by walking a trie** rather
+  than hashing every candidate substring, returning the same tokens and ids.
+  ([#713](https://github.com/CyrilB1531/lodestar/issues/713))
 
 ### Lodestar.Onnx
 

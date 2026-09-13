@@ -2771,6 +2771,46 @@ Jacobi solve over the whole centred block measured 13× slower than NumFlat at 2
 the Gram route replaced it. **The comparison that matters below `net8.0` has no second row**:
 NumFlat does not install there, and ML.NET, which does, reports no eigenvalue.
 
+## SentencePiece and WordPiece encode, against Microsoft.ML.Tokenizers (issue #713)
+
+Full method, and the check that both sides return the same ids:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#15-against-the-net-incumbents-issue-438).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: two `BenchmarkDotNet` 0.14.0 runs of `TokenizerIncumbentBenchmarks`, **default
+job**, on 2026-09-13 — `origin/main` before, this branch after — encoding all 5 000 documents of
+the corpus per operation. Microsoft.ML.Tokenizers 2.0.0. `spiece_30k.model` is a unigram model.
+
+| Model | Lodestar before | Lodestar after | Microsoft.ML.Tokenizers | Allocated before | Allocated after | Allocated, Microsoft.ML.Tokenizers |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| [`WordPieceTokenizer`](../reference/embeddings/tokenization/wordpiecetokenizer.md) | 37.67 ms | **20.26 ms** | 30.12 ms / 29.96 ms | 68.25 MB | **8.71 MB** | 3.55 MB |
+| [`SentencePieceTokenizer`](../reference/embeddings/tokenization/sentencepiecetokenizer.md) | 202.88 ms | **26.21 ms** | 29.74 ms / 29.51 ms | 30.33 MB | **5.44 MB** | 3.09 MB |
+
+The incumbent column gives its before-run and after-run means. **Both encoders now run ahead of
+the incumbent, where SentencePiece was 6.8× behind it** — the nightly, on another machine, had
+measured 327.8 ms against 50.8 ms. Tokens and ids over the whole corpus are byte-identical to
+`origin/main`'s, and the ids to the incumbent's.
+
+Both encoders used to probe a hash table once per candidate substring, rehashing it from its first
+character: the unigram lattice for every length up to the longest piece at every position, WordPiece
+while shortening its candidate. A double-array trie finds every piece starting at a position in one
+walk. The allocation that is left is the result lists, the normalized text and, for WordPiece, the
+lowercased copy; a matched token is now the vocabulary's own string rather than a new one.
+
+**What it costs the loader, which decision 0068 makes the product.** Building the trie makes
+constructing a tokenizer slower. Measured with a `Stopwatch` over the same two vocabularies on the
+same machine, not by BenchmarkDotNet:
+
+| Constructor | Before, first call | Before, warm | After, first call | After, warm |
+| --- | ---: | ---: | ---: | ---: |
+| `new SentencePieceTokenizer(vocabulary)` | 7.6 ms | 2.5–3.7 ms | 35.1 ms | 5.6–7.3 ms |
+| `new WordPieceTokenizer(vocabulary)` | 9.1 ms | 2.0–2.6 ms | 31.8 ms | 6.6–8.1 ms |
+
+**Construction goes from about 2.5 ms to 6–7 ms warm, and from under 10 ms to about 35 ms on the
+first call in a process.** Where the first call's extra time goes was not measured apart. It is
+paid once per tokenizer; reading `spiece_30k.model` itself takes 14 ms on the same run.
+
 ## Lodestar.Stats against Accord.Statistics (issue #442)
 
 Full method, correctness cross-check, and how `Accord`'s 2017-era API names were resolved against
