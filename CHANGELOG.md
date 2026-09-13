@@ -131,6 +131,12 @@ is one sentence, the issue and the commit; see
   that deliberately do not take it.
   ([#687](https://github.com/CyrilB1531/lodestar/issues/687))
 
+#### Fixed
+
+- **`MannWhitney.Test` no longer returns a wrong statistic and p-value past about 46,340 values
+  per sample**, where two sample-size products wrapped in `int`.
+  ([#712](https://github.com/CyrilB1531/lodestar/issues/712))
+
 ### Lodestar.Stats.Regression
 
 #### Added

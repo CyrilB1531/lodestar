@@ -14,6 +14,28 @@ public sealed class RankTestEdgeTests
     }
 
     [Fact]
+    public void MannWhitney_statistic_and_variance_survive_samples_past_int_range()
+    {
+        // n * (n + 1) and n * m both pass int.MaxValue at n = m = 50,000; computed in int,
+        // U and the null mean wrapped to garbage. Every x above every y gives U = n * m.
+        const int size = 50_000;
+        double[] low = new double[size];
+        double[] high = new double[size];
+        for (int i = 0; i < size; i++)
+        {
+            low[i] = i;
+            high[i] = size + i;
+        }
+
+        Assert.Equal((double)size * size, MannWhitney.Test(high, low).Statistic);
+
+        // Identical samples: U sits exactly on the null mean, so the two-sided p is 1.
+        TestResult same = MannWhitney.Test(low, low);
+        Assert.Equal((double)size * size / 2.0, same.Statistic);
+        Assert.Equal(1.0, same.PValue);
+    }
+
+    [Fact]
     public void MannWhitney_auto_takes_the_exact_branch_only_when_small_and_untied()
     {
         double[] small = [1.0, 4.0, 7.0];
