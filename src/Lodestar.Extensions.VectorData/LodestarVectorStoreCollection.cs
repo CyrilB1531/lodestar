@@ -340,26 +340,20 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         Guard.NotNull(keywords);
         Guard.NotLessThan(top, 1);
         ReadOnlyMemory<float> query = AsVector(searchValue);
-        DerivedIndexes<TKey> indexes = Current();
-
-        if (indexes.Keywords is null || indexes.Vectorizer is null)
+        if (!Schema.HasFullText)
         {
             throw new NotSupportedException(
                 $"{typeof(TRecord).Name} marks no property [VectorStoreData(IsFullTextIndexed = true)], "
                 + "so this collection has no keyword half to fuse with.");
         }
 
+        DerivedIndexes<TKey> indexes = Current();
         HybridSearchOptions<TRecord> settings = options ?? new HybridSearchOptions<TRecord>();
         Func<TRecord, bool>? admits = RecordFilter.Compile(settings.Filter);
 
         int[] byVector = [.. Scored(indexes, query, indexes.Vectors.Count).Select(hit => hit.Index)];
 
-        // Top(..) scores every document; a zero-scoring one is dropped below rather than
-        // passed through, since Rrf reads rank position and not score.
-        int[] byKeyword = [.. indexes.Keywords
-            .Top(QueryTerms(indexes.Vectorizer, keywords), indexes.Keywords.DocumentCount)
-            .Where(hit => hit.Score > 0)
-            .Select(hit => hit.Document)];
+        int[] byKeyword = KeywordRanking(indexes, keywords);
 
         int skipped = 0;
         int taken = 0;
@@ -386,6 +380,26 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         }
 
         await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    /// <summary>The documents the keywords matched, best first; none when nothing is held.</summary>
+    /// <remarks>
+    /// A marked schema over no records builds no keyword index, so the empty ranking is the
+    /// answer rather than a refusal. <c>Top</c> scores every document; a zero-scoring one is
+    /// dropped rather than passed through, since <see cref="RankFusion.Rrf"/> reads rank
+    /// position and not score.
+    /// </remarks>
+    private static int[] KeywordRanking(DerivedIndexes<TKey> indexes, ICollection<string> keywords)
+    {
+        if (indexes.Keywords is null || indexes.Vectorizer is null)
+        {
+            return [];
+        }
+
+        return [.. indexes.Keywords
+            .Top(QueryTerms(indexes.Vectorizer, keywords), indexes.Keywords.DocumentCount)
+            .Where(hit => hit.Score > 0)
+            .Select(hit => hit.Document)];
     }
 
     /// <summary>The keywords as column indices of the fitted vocabulary, unseen terms dropped.</summary>

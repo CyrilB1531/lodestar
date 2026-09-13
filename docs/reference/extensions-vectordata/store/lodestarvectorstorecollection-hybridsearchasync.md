@@ -16,7 +16,7 @@ results returned. `options` carries `Filter` and `Skip`, both applied to the fus
 
 **Returns** — `IAsyncEnumerable<VectorSearchResult<TRecord>>`, best first. Each score is the record's
 **reciprocal-rank fusion score**, `Σ 1 / (k + rank)` over the rankings it appears in, not a
-similarity.
+similarity. An empty collection returns no results.
 
 **Exceptions** — `ArgumentNullException` when `keywords` is null. `ArgumentOutOfRangeException` when
 `top` is less than 1. `ArgumentException` when the query, or a record written since the last search,

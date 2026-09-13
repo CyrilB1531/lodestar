@@ -103,4 +103,18 @@ public sealed class HybridSearchTests
 
         Assert.DoesNotContain(hits, hit => hit.Record.Id == "c");
     }
+
+    [Fact]
+    public async Task An_empty_collection_of_a_full_text_record_returns_nothing_rather_than_refusing()
+    {
+        // Document marks Text as full-text indexed, but no record has been written, so the
+        // rebuild builds no keyword index. That is an empty collection, not a missing property.
+        using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+
+        List<VectorSearchResult<Document>> hits = await collection
+            .HybridSearchAsync(new ReadOnlyMemory<float>([1f, 0f, 0f]), ["elephant"], 3)
+            .ToListAsync();
+
+        Assert.Empty(hits);
+    }
 }

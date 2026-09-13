@@ -3,8 +3,9 @@
 An in-process [`Microsoft.Extensions.VectorData`](https://www.nuget.org/packages/Microsoft.Extensions.VectorData.Abstractions)
 provider. A consumer written against that abstraction — a Semantic Kernel pipeline, a
 retrieval-augmented chain, anything that takes a `VectorStore` — gets **hybrid keyword and vector
-search with no database and no service running anywhere**. Every other provider of the abstraction
-talks to a server; this one holds the records in the calling process.
+search with no database and no service running anywhere**. Every other provider that offers hybrid
+search talks to a server, and the providers that run in process offer none; this one holds the
+records in the calling process and fuses both rankings there.
 
 It adds **no retrieval arithmetic of its own**. The vector half is
 [`EmbeddingIndex`](../embeddings/search/embeddingindex.md), the keyword half is
