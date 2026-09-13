@@ -70,8 +70,8 @@ Selected by `tools/select_benchmarks.py` from the sources that changed since the
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -105,8 +105,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -148,8 +148,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -202,8 +202,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -224,8 +224,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -248,8 +248,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -272,8 +272,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -295,8 +295,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -320,8 +320,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -351,8 +351,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -410,8 +410,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -484,8 +484,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -515,8 +515,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -570,8 +570,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -604,8 +604,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -654,8 +654,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -685,8 +685,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -759,8 +759,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -789,8 +789,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -820,8 +820,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -848,8 +848,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -887,8 +887,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -916,8 +916,8 @@ WarmupCount=3
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
 AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 10.0.401
-  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
-  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX2
+  [Host]   : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun : .NET 10.0.12 (10.0.1226.42308), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 Job=ShortRun  IterationCount=3  LaunchCount=1  
 WarmupCount=3
@@ -1169,6 +1169,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 The run stops starting classes when the budget left cannot hold one, so these were carried to the next run rather than measured badly or killed mid-flight. They are selected again tomorrow whether or not anything else changes.
 
 - `BitParallelEditDistanceBenchmarks`
+- `Bm25Benchmarks`
 - `ChainedProductBenchmarks`
 - `DistributionTailBenchmarks`
 - `GlmBenchmarks`
