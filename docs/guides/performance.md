@@ -783,9 +783,58 @@ Short-job measurement, `[MemoryDiagnoser]` (dev machine — indicative).
 | [`Fuzz.WRatio`](../reference/fuzzy/matching/fuzz-wratio.md) | ~25 µs | 7.0 KB |
 | [`Fuzz.PartialRatio`](../reference/fuzzy/matching/fuzz-partialratio.md) | ~460 µs | 0 B |
 
-> `PartialRatio` is markedly slower: the current sliding-window scan is `O(n·m²)`
-> (a full Indel per window). It is correct and zero-alloc, but a bit-parallel or
-> block-based optimization is a clear backlog item for long inputs.
+> The `PartialRatio` row above predates two changes and no longer describes it: see
+> [The partial ratio's windows](#the-partial-ratios-windows-issue-714) below.
+
+## The partial ratio's windows (issue #714)
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*FuzzIncumbentBenchmarks*' '*FuzzBenchmarks*'
+```
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Windows: **default job**, all on 2026-09-13. `origin/main`'s `Fuzz.cs` and the change were
+run back to back under one lock from 01:35; the change was then split into smaller methods to meet
+S3776 and its side re-run alone from 09:07, which is the column below. The first run of that side
+read 402.65 ns and 391.11 ns on the two `PartialRatio` rows, and 86.1 ns on the shortest needle
+below, where the column now reads about 10 ns more; that difference was not investigated.
+Both operands are the 43-character pair the two classes share, which are the same length,
+so both orientations are slid.
+
+The old [`Fuzz.PartialRatio`](../reference/fuzzy/matching/fuzz-partialratio.md) scan paid a full [`Indel.NormalizedSimilarity`](../reference/text/distances/indel-normalizedsimilarity.md)
+per surviving window, rebuilding the needle's equality table each time. A needle of up to 64
+characters now builds that table once per call, reads every edge-truncated window from one scan
+per side, and skips a full window that starts on a character the needle lacks or that sliding one
+place at a time cannot lift past the best so far. The result is the same double scoring every
+window gives, which `PartialRatioWindowTests` asserts on random pairs.
+
+| Row | Before | After | Speed-up |
+| --- | ---: | ---: | ---: |
+| `FuzzIncumbentBenchmarks` — Lodestar `PartialRatio` | 6,873.56 ns ± 26.99 | **403.76 ns** ± 8.05 | 17.0× |
+| `FuzzIncumbentBenchmarks` — FuzzySharp `PartialRatio` | 5,720.40 ns ± 34.17 | 5,759.90 ns ± 66.99 | control |
+| `FuzzBenchmarks.PartialRatio` | 6,742.19 ns ± 28.83 | **400.13 ns** ± 1.88 | 16.8× |
+| `FuzzBenchmarks.TokenSetRatio` | 647.87 ns ± 12.69 | 641.21 ns ± 10.37 | control |
+| `FuzzBenchmarks.WRatio` | 1,229.74 ns ± 12.84 | 1,277.04 ns ± 24.28 | control |
+
+Against Raffinert.FuzzySharp the row moves from **0.83×** (FuzzySharp ahead) to **14.3×** in Lodestar's favour. The
+`TokenSetRatio` and `WRatio` rows are controls rather than beneficiaries: on this pair the token
+set ratio compares with `Ratio`, and the length ratio is under 1.5, so `WRatio` never reaches a
+partial ratio either. Neither allocates differently.
+
+Unequal lengths are not covered by a committed class, so they were measured in the same runs with a
+throwaway one, not kept:
+
+| Shape | Before | After |
+| --- | ---: | ---: |
+| `"brown fox"` in the 43-character sentence | 278.8 ns | 96.2 ns |
+| the sentence in a 118-character paragraph | 3,546.7 ns | 686.2 ns |
+| a 25-character Cyrillic needle in a 72-character Cyrillic text | 5,780.8 ns | 336.0 ns |
+| `PartialTokenSetRatio`, the sentence against the paragraph | 3,510.7 ns | 2,135.4 ns |
+| an 82-character needle in a 237-character text | 17,149.2 ns | 17,717.1 ns |
+
+The last row is past one machine word and keeps the per-window Indel, so it is unchanged by design;
+the 3 % between its two columns is the drift between the two windows. That path is [#720](https://github.com/CyrilB1531/lodestar/issues/720).
 
 ## Batched embedding — what the number is, and what it is not
 
