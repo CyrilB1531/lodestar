@@ -189,6 +189,14 @@ branch — 0082 amends 0003's rule without 0003 being allowed to say so itself. 
 allowed to be — learns that its list was extended, rather than reading a rule one revision behind
 what the repository actually does.
 
+0082's Context also cites a task report as the evidence that `DurbinCdf`'s comment had overstated
+its own provenance. That report lived in a plan's workspace, which git ignores and the plan deleted,
+so the path cannot be followed and the record cannot be edited to say so
+([#730](https://github.com/CyrilB1531/lodestar/issues/730)). The same finding, stated in full, is the
+message of commit `2efe0e8a` ("Fix round 1: KS asymptotic tail thresholds, tie-break construction,
+provenance"), merged with [#545](https://github.com/CyrilB1531/lodestar/pull/545) — read that when
+checking what was read from scipy.
+
 `0013`'s partial supersession by `0014` is the one relationship already on a status line; its
 body adds the detail that only §1 (the oracle's normalizer scope) is superseded — §2 (the
 unknown-piece penalty floor) stands, unaffected by 0014.

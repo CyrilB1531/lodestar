@@ -22,6 +22,11 @@ internal static class TiledMinHashSignaturesSample
         // The third document is empty, so every slot keeps the maximum a minimum starts from.
         bool empty = signatures[2].All(slot => slot == uint.MaxValue);
         Console.WriteLine($"  empty doc at max : {empty}");
+
+        // The same residency serves the other family: fmix32 runs in the kernel, not at upload.
+        IReadOnlyList<uint[]> affine =
+            kernel.Signatures(resident, GpuCorpus.Multipliers, GpuCorpus.Addends, MinHashScheme.Affine32);
+        Console.WriteLine($"  Affine32 differs : {!affine[0].SequenceEqual(signatures[0])}");
         Console.WriteLine();
     }
 }

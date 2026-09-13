@@ -127,8 +127,8 @@ public static class MannWhitney
     // Less reads U2's survival rather than U1's CDF; the null distribution's
     // symmetry makes the two equivalent when untied, but under ties the
     // truncation and the choice of which U feeds the lookup both matter,
-    // and no corpus case exercised that (task-6-report.md, fix round 1,
-    // Finding 2).
+    // and no corpus case exercised that (commit ddfe5a3d; RankTestEdgeTests'
+    // MannWhitney_exact_matches_scipy_on_tied_data pins it).
     private static double ExactPValue(double u, int n, int m, Alternative alternative)
     {
         double[] counts = RankDistributions.MannWhitneyCounts(n, m);

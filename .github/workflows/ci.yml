@@ -58,6 +58,10 @@ jobs:
       # before anything looked for them.
       - name: No machine paths in tracked files
         run: python tools/check_machine_paths.py
+      # A plan's task reports live in an ignored workspace deleted when the plan
+      # finishes, so a comment citing one is dangling from its first commit (#730).
+      - name: No citation of a plan workspace file
+        run: python tools/check_sdd_citations.py
       # CI installs the oracle dependencies from the lock, so a pin added to
       # requirements.txt alone is invisible to anyone whose venv already holds it --
       # measured on #604, where it cost a red `Oracles are reproducible` job (#605).

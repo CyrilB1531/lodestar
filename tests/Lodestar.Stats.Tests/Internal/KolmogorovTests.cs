@@ -47,7 +47,7 @@ public sealed class KolmogorovTests
         }
     }
 
-    // Against scipy 1.18.0's kstwo.sf(d, n) (task-8-report.md): rows exercise the Durbin/Birnbaum
+    // Against scipy 1.18.0's kstwo.sf(d, n) (commit bfe1a1f0): rows exercise the Durbin/Birnbaum
     // dispatch by n*d^2, the Pelz-Good band (fix-round-2), and the fix-round-3 seam/regression cases.
     [Theory]
     [InlineData(2.0, 0.4, 0.82)]
@@ -127,7 +127,7 @@ public sealed class KolmogorovTests
     //     3.36e-32 -- it is exactly 2^-51, a double's cancellation floor for
     //     1 - x once x has rounded to 1.0. That distinction is the reason
     //     ExactRouteCeiling exists, so it needs to survive here, not just in
-    //     task-8-report.md's fix-round-3 transcript.
+    //     commit bfe1a1f0's message.
     // Fix-round-3's own defect: fix-round-2's exact route for n <= 140 (the fact above) had no
     // upper bound, reaching the same 1-CDF collapse from underneath n=140 instead of above it.
     // Delete-and-confirm: removing ExactRouteCeiling (routing every n<=140 through DurbinCdf
@@ -142,7 +142,7 @@ public sealed class KolmogorovTests
     }
 
     // DirectSurvivalThreshold's seam (n > 140), pinned separately from ExactRouteCeiling's
-    // (rows 5-6): delete-and-confirm reproduces the identical collapse shape (task-8-report.md).
+    // (rows 5-6): deleting DirectSurvivalThreshold reproduces the identical collapse shape.
     [Fact]
     public void FiniteTwoSidedSf_does_not_collapse_past_direct_survival_threshold_above_n_140()
     {

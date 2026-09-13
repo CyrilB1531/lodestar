@@ -136,8 +136,7 @@ public sealed class TableTestEdgeTests
     public void FisherExact_matches_scipy_when_the_observed_probability_underflows()
     {
         // long-comment: pins scipy's own answer rather than a derived "small
-        // positive" one, because scipy is degenerate here too -- task-7-report.md,
-        // fix round 2, has the search that established that.
+        // positive" one, because scipy is degenerate here too (commit 0b2f0732).
         // Reachable inside the 1,000,000 guard (rowOne = columnOne = 500,000): the
         // observed table's own log-probability is about -693,140, a hard double
         // underflow. scipy 1.18.0 gives exactly 0.0 for both alternatives below,
