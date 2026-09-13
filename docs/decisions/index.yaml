@@ -550,7 +550,7 @@
   amends: ["0053"]
   applies: []
   superseded_by: []
-  amended_by: []
+  amended_by: ["0120"]
   applied_by: []
 
 "0055":
@@ -1199,6 +1199,16 @@
   supersedes: []
   amends: []
   applies: ["0095", "0116"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0120":
+  title: "A stream with no declared length is pooled too"
+  status: "accepted"
+  supersedes: []
+  amends: ["0054"]
+  applies: []
   superseded_by: []
   amended_by: []
   applied_by: []
