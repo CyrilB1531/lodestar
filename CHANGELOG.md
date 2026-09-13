@@ -205,6 +205,9 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- **Faster, same answers.** `MannWhitney.Test` ranks each sample on its own and merges the two
+  instead of sorting the pooled sample three times, and no longer allocates.
+  ([#711](https://github.com/CyrilB1531/lodestar/issues/711))
 - **`Chi2ContingencyResult` compares its expected table by value.** Two results holding the same
   table were unequal and now are equal, with `GetHashCode` agreeing; decision 0113 has the rule.
   ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
