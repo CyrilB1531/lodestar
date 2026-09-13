@@ -29,6 +29,25 @@
   </ItemGroup>
 
   <!--
+    The same "SetTargetFramework does not travel across a PackageReference" trap
+    above, one hop further down the graph: restoring *this* net10.0 project sees
+    Microsoft.Extensions.VectorData.Abstractions's net10.0 dependency group (empty),
+    not its netstandard2.0 one, so it never learns that the netstandard2.0 build
+    it actually loads at runtime (Lodestar.Extensions.VectorData.dll, forced above)
+    was compiled against Microsoft.Bcl.AsyncInterfaces 10.0.12, reached through
+    Microsoft.Extensions.AI.Abstractions and then System.Text.Json 10.0.12 on that
+    target. Left alone, this project's own graph resolves the package to whatever
+    lower floor xunit.v3 asks for and copies that version instead, and every test
+    that constructs a LodestarVectorStoreCollection fails with FileNotFoundException:
+    its vtable carries an IAsyncEnumerable-returning override, which needs this type
+    resolved at class-load time, against the version the assembly actually
+    references. A direct reference forces the version the compiled output needs.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+  </ItemGroup>
+
+  <!--
     SetTargetFramework is what pins the reference to the netstandard2.0 build.
 
     Lodestar.Embeddings and Lodestar.Text are listed explicitly, and that is not
