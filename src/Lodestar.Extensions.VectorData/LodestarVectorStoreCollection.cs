@@ -1,4 +1,6 @@
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using Lodestar.Embeddings.Search;
 using Microsoft.Extensions.VectorData;
 
 namespace Lodestar.Extensions.VectorData;
@@ -165,12 +167,34 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord> : VectorStoreCo
     }
 
     /// <inheritdoc />
-    public override IAsyncEnumerable<TRecord> GetAsync(
-        System.Linq.Expressions.Expression<Func<TRecord, bool>> filter,
+    public override async IAsyncEnumerable<TRecord> GetAsync(
+        Expression<Func<TRecord, bool>> filter,
         int top,
         FilteredRecordRetrievalOptions<TRecord>? options = null,
-        CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException("Filtered retrieval arrives with the filter, in the next task.");
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        Guard.NotNull(filter);
+        Guard.NotLessThan(top, 1);
+        Func<TRecord, bool> admits = filter.Compile();
+        int taken = 0;
+
+        foreach (TRecord record in _records.Values)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!admits(record))
+            {
+                continue;
+            }
+
+            yield return record;
+            if (++taken == top)
+            {
+                break;
+            }
+        }
+
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
 
     /// <inheritdoc />
     public override object? GetService(Type serviceType, object? serviceKey = null) =>
@@ -179,12 +203,76 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord> : VectorStoreCo
             : null;
 
     /// <inheritdoc />
-    public override IAsyncEnumerable<VectorSearchResult<TRecord>> SearchAsync<TInput>(
+    /// <exception cref="NotSupportedException"><paramref name="searchValue"/> is not a vector, and this package generates none.</exception>
+    /// <remarks>
+    /// With a filter, every record is scored and the filter runs before the cut, so
+    /// <paramref name="top"/> means <paramref name="top"/>: a caller asking for five matching
+    /// records gets five whenever five match. Post-filtering a top-k would return fewer
+    /// without saying why.
+    /// </remarks>
+    public override async IAsyncEnumerable<VectorSearchResult<TRecord>> SearchAsync<TInput>(
         TInput searchValue,
         int top,
         VectorSearchOptions<TRecord>? options = null,
-        CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException("Vector search arrives in the next task.");
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        Guard.NotLessThan(top, 1);
+        ReadOnlyMemory<float> query = AsVector(searchValue);
+        VectorSearchOptions<TRecord> settings = options ?? new VectorSearchOptions<TRecord>();
+        Func<TRecord, bool>? admits = RecordFilter.Compile(settings.Filter);
+        DerivedIndexes<TKey> indexes = Current();
+
+        // With a filter the whole collection is scored, because the records the filter keeps
+        // are not known before it runs and a short list would silently return too few.
+        int wanted = admits is null ? top + settings.Skip : indexes.Vectors.Count;
+        int skipped = 0;
+        int taken = 0;
+
+        foreach (SearchResult hit in Scored(indexes, query, wanted))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            TRecord record = _records[indexes.Keys[hit.Index]];
+            if (admits is not null && !admits(record))
+            {
+                continue;
+            }
+
+            if (settings.ScoreThreshold is { } threshold && hit.Score < threshold)
+            {
+                continue;
+            }
+
+            if (skipped < settings.Skip)
+            {
+                skipped++;
+                continue;
+            }
+
+            yield return new VectorSearchResult<TRecord>(record, hit.Score);
+            if (++taken == top)
+            {
+                break;
+            }
+        }
+
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private static IReadOnlyList<SearchResult> Scored(
+        DerivedIndexes<TKey> indexes, ReadOnlyMemory<float> query, int wanted) =>
+        indexes.Vectors.Count == 0
+            ? []
+            : indexes.Vectors.Search(query.Span, Math.Min(wanted, indexes.Vectors.Count));
+
+    private static ReadOnlyMemory<float> AsVector<TInput>(TInput searchValue)
+        where TInput : notnull => searchValue switch
+        {
+            ReadOnlyMemory<float> memory => memory,
+            float[] array => array,
+            _ => throw new NotSupportedException(
+                $"{typeof(TInput).Name} is not a vector, and this package generates none: supply a "
+                + "ReadOnlyMemory<float> or a float[], or embed the text with Lodestar.Extensions.AI first."),
+        };
 
     /// <summary>Releases resources — none, here: the base class declares the pattern and a consumer's <c>using</c> has to reach something.</summary>
     /// <param name="disposing"><see langword="true"/> when called from <see cref="IDisposable.Dispose"/> rather than a finalizer.</param>
