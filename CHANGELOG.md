@@ -79,6 +79,10 @@ is one sentence, the issue and the commit; see
   holding the same words were unequal and now are equal, with `GetHashCode` agreeing —
   `CountVectorizerOptions` already behaved this way, and decision 0113 makes it the rule.
   ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
+- **Faster, same answers.** `Lcs.SubsequenceLength`, and therefore `Indel` and `fuzz.ratio`, run
+  patterns longer than one machine word through a two-word kernel or a word-grouped loop that
+  keeps the words in registers.
+  ([#717](https://github.com/CyrilB1531/lodestar/issues/717))
 
 ### Lodestar.Gpu
 

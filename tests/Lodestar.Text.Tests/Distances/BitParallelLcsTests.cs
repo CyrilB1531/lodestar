@@ -29,7 +29,11 @@ public sealed class BitParallelLcsTests
     [InlineData(128)]
     [InlineData(129)]
     [InlineData(255)]
+    [InlineData(256)]
+    [InlineData(257)]
     [InlineData(512)]
+    [InlineData(577)]
+    [InlineData(1100)]
     public void The_kernel_agrees_with_the_dynamic_program(int length)
     {
         var rng = new Random(length);
@@ -58,6 +62,30 @@ public sealed class BitParallelLcsTests
         {
             string a = Random(rng, length);
             string b = Random(rng, length);
+
+            Assert.Equal(
+                Lcs.SubsequenceLength<char>(a.AsSpan(), b.AsSpan()),
+                Lcs.SubsequenceLength(a.AsSpan(), b.AsSpan(), TextElement.Utf16Unit));
+        }
+    }
+
+    /// <summary>A pattern far shorter than its text, on the two-word kernel and across group boundaries.</summary>
+    /// <remarks>
+    /// Four words advance per text pass above 128, the carry out of each group stored per text
+    /// position for the next; a text several times the pattern is where a carry dropped between
+    /// two passes would compound rather than wash out.
+    /// </remarks>
+    [Theory]
+    [InlineData(100, 700)]
+    [InlineData(300, 1500)]
+    [InlineData(700, 2000)]
+    public void The_kernel_agrees_when_the_text_is_much_longer(int patternLength, int textLength)
+    {
+        var rng = new Random(patternLength ^ textLength);
+        for (int trial = 0; trial < 30; trial++)
+        {
+            string a = Random(rng, textLength);
+            string b = Random(rng, patternLength);
 
             Assert.Equal(
                 Lcs.SubsequenceLength<char>(a.AsSpan(), b.AsSpan()),
