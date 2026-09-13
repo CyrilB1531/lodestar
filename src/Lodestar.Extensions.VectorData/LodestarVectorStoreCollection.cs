@@ -22,7 +22,7 @@ namespace Lodestar.Extensions.VectorData;
 // extends; CA1711 flags the suffix, but matching Microsoft.Extensions.VectorData is the point.
 #pragma warning disable CA1711
 public sealed class LodestarVectorStoreCollection<TKey, TRecord>
-    : VectorStoreCollection<TKey, TRecord>, IKeywordHybridSearchable<TRecord>
+    : VectorStoreCollection<TKey, TRecord>, IKeywordHybridSearchable<TRecord>, IExistingCollection
     where TKey : notnull
     where TRecord : class
 {
@@ -399,6 +399,13 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <summary>Releases resources — none, here: the base class declares the pattern and a consumer's <c>using</c> has to reach something.</summary>
     /// <param name="disposing"><see langword="true"/> when called from <see cref="IDisposable.Dispose"/> rather than a finalizer.</param>
     protected override void Dispose(bool disposing) => base.Dispose(disposing);
+
+    /// <inheritdoc />
+    bool IExistingCollection.Exists => _exists;
+
+    /// <inheritdoc />
+    Task IExistingCollection.EnsureDeletedAsync(CancellationToken cancellationToken) =>
+        EnsureCollectionDeletedAsync(cancellationToken);
 
     private void Invalidate() => _indexes = null;
 }
