@@ -2257,6 +2257,115 @@ The two long buckets were 2.03× and about 2.1× behind before this lot. **What 
 is no longer a factor of two.** Whether the remainder is worth a third lot is a
 question for a measurement, not for this page.
 
+*(#717 revisits "the gap is what the JIT will not emit": it was partly the source after all.
+The carry compiles without comparisons once it is written as the full-adder identity, and
+most of the rest was the words living in an array. See the next section.)*
+
+## Keeping the words in registers (issue #717)
+
+The nightly still put blocked `Indel` on Latin text behind rapidfuzz, **884 ns against 469
+at length 128 and 7 534 against 4 453 at 512**, while CJK was ahead at both. The row-major
+loop kept its words in a rented array. Every text character loaded each word and stored it
+back, and the next character had to wait for that store before it could read it.
+
+Three changes, each derived from the recurrence rather than from an implementation:
+
+- **The carry without comparisons.** `u` is a bit-subset of `v`, so the carry out of
+  `v + u + c` is bit 63 of `u | (v & ~sum)`, the full-adder identity with `v & u = u` and
+  `v | u = v` substituted. `DOTNET_JitDisasm` showed the old two comparisons as
+  `cmp`/`setb` twice and never `adc`. The identity compiles to `andn`, `or` and `shr`.
+- **Two words in registers from 65 to 128.** A Latin-1 pattern of that length now has a
+  kernel of its own, with an interleaved `peq[2c]`, `peq[2c + 1]` table on the stack and no
+  array for `v`.
+- **The loops swapped past 128.** Word `b` at text position `j` needs only word `b` at
+  `j − 1` and the carry out of word `b − 1` at `j`. Four words therefore run the whole text
+  together in registers, and the carry leaving the group waits in `carries[j]` for the next
+  four. That is one store per character per group, where the old loop made one per word.
+
+A pattern holding a character above Latin-1 keeps the row-major kernel and its side table,
+now using the new carry.
+
+### What was tried, over the scattered pair
+
+A scratch project held each candidate beside a copy of the old kernel, with the same trim
+and dispatch in front of both, on the `ScatteredPair` operands. BenchmarkDotNet default job,
+one process, ratio against the copy:
+
+| candidate | 128 | 512 |
+| --- | ---: | ---: |
+| row-major, new carry only | 0.84 | 0.78 |
+| row-major, new carry, words on the stack | 0.80 | 0.78 |
+| one word per text pass | 0.67 | 0.83 |
+| one word per pass, table held per thread | 0.83 | 1.04 |
+| two words per pass | 0.63 | 0.71 |
+| **four words per pass** | 0.91 | **0.59** |
+| four words, table interleaved per character | — | 0.71 |
+| two, then four words, text translated to row indices first | 0.61 | 0.71 |
+| eight words per pass | 1.64 | 0.64 |
+| two words in registers, one table per word | 0.46 | — |
+| **two words in registers, table interleaved** | **0.43** | — |
+
+- **Four and not eight.** At eight words the JIT runs out of registers and spills them to
+  the stack. Two words per pass leaves twice the stored carries.
+- **The held table loses at 512.** Restoring costs one write per pattern position, and the
+  vectorised clear it replaces is cheaper than that at every length measured.
+- **Affix stripping was already there**, in `Affixes.Trim`. A score-bounded band has no
+  cutoff to work from, because [`Indel.Distance`](../reference/text/distances/indel-distance.md) takes none.
+
+### The wide route is its own method, and has to stay one
+
+The first after state inlined the wide half of `TryBlocked` beside the Latin-1 dispatch, and
+the corpus's CJK buckets regressed: 128 read 1 092 / 1 120 / 1 068 ns against 958 / 1 010 /
+971 before. A driver replaying the committed CJK buckets after a Latin warm-up, the order the
+harness runs them in, showed the reason. The CJK bucket of 128 read 964 to 973 ns on the
+parent and 1 072 to 1 191 on that state. Split into `TryBlockedWide`, it read **784 to 892**.
+The JIT profiled `TryBlocked` while only Latin input reached it, so the wide half was
+compiled as cold code. Merging the two methods back brings that regression back without
+changing any answer. Testing the width before the two-word method's `stackalloc` matters for
+the same bucket: a CJK pattern of 128 otherwise zeroes a 4 KB table it never uses.
+
+### Before and after
+
+AMD Ryzen 7 8700G, Ubuntu 26.04.1, .NET 10.0.12, X64 RyuJIT AVX-512. BenchmarkDotNet
+default job run in-process, and the cross-language harness's `compare-indel`. Each state was
+published once and only the runs alternated, over three rounds in alternating order
+(before → after, after → before, before → after), 2026-09-13 07:03 to 07:42, one-minute
+load average 2.3 to 5.2. All three runs are shown. `Levenshtein` takes Myers, which nothing
+here touches, and serves as the control.
+
+| | before | after | change |
+| --- | ---: | ---: | ---: |
+| `IndelBenchmarks` 128 | 477.6 / 488.4 / 504.5 ns | 226.3 / 226.0 / 228.1 ns | **2.14×** |
+| `IndelBenchmarks` 512 | 4 506 / 4 537 / 4 622 ns | 2 812 / 2 811 / 2 818 ns | **1.61×** |
+| corpus latin 128 | 476.9 / 471.8 / 486.9 ns | 230.7 / 229.3 / 230.1 ns | **2.07×** |
+| corpus latin 512 | 4 682 / 4 664 / 4 843 ns | 3 085 / 3 103 / 3 093 ns | **1.52×** |
+| corpus cjk 128 | 979 / 984 / 973 ns | 776 / 817 / 782 ns | **1.24×** |
+| corpus cjk 512 | 6 877 / 6 815 / 6 835 ns | 5 227 / 5 277 / 5 222 ns | **1.31×** |
+| corpus latin 8 / 32 | 13.1 / 38.1 ns | 13.0 / 38.5 ns | unchanged |
+| corpus cjk 8 / 32 | 13.1 / 77.5–80.6 ns | 13.1 / 78.1–81.2 ns | unchanged |
+| `LevenshteinBenchmarks` 64 — control | 185.8 / 174.6 / 177.9 ns | 175.2 / 177.0 / 174.9 ns | unchanged |
+| `LevenshteinBenchmarks` 512 — control | 8 544 / 8 873 / 8 686 ns | 8 600 / 8 641 / 8 806 ns | unchanged |
+
+**No overlap between the two series on any changed row.** The CJK rows moved even though no
+CJK pattern takes the new kernels, and the split above is what moved them. Before the split,
+the new carry held CJK 512 level with before (6 715 / 6 749 / 6 729 ns). Putting the old
+carry back in that state cost 12% (7 586 / 7 660 / 7 655), so the carry stays on the wide
+route too.
+
+Against rapidfuzz 3.14.6 (Python 3.12), measured on the same machine at 02:55 the same night:
+
+| bucket | rapidfuzz | Lodestar, after | |
+| --- | ---: | ---: | --- |
+| latin 128 | 258.2 ns | 229.3 – 230.7 ns | **1.12× C# faster** |
+| latin 512 | 2 712.8 ns | 3 085 – 3 103 ns | 1.14× Python faster |
+| cjk 128 | 1 127.8 ns | 776 – 817 ns | **1.38× C# faster** |
+| cjk 512 | 9 423.5 ns | 5 222 – 5 277 ns | **1.79× C# faster** |
+
+What remains at Latin 512 is the four-word group's stored carry and the table clear. Blocked
+Myers has the same row-major shape and carries two chains instead of one;
+[#718](https://github.com/CyrilB1531/lodestar/issues/718) tracks whether the loop order pays
+there too.
+
 ## Compressing an index (issue #378)
 
 The artifact is base64 inside JSON, which spends eight bits to carry six, so it is
