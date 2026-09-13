@@ -31,14 +31,23 @@ public sealed class SearchTests
         Assert.Equal("a", hits[0].Record.Id);
     }
 
+    // Three non-matches outrank the two matches, and top (2) is fewer than that. A post-filter
+    // implementation fetches only the non-matching three and returns nothing; the exact one scores everything first.
     [Fact]
-    public async Task A_filter_that_admits_two_of_three_still_returns_two_when_top_is_five()
+    public async Task Records_ranked_ahead_of_the_matches_do_not_starve_the_filtered_search()
     {
-        using LodestarVectorStoreCollection<string, Document> collection = await Seeded();
+        using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+        await collection.UpsertAsync([
+            Doc("n1", "a quiet morning by the lake", 1f, 0f, 0f),
+            Doc("n2", "a train crossing the bridge", 0.95f, 0.05f, 0f),
+            Doc("n3", "an old clock on the wall", 0.9f, 0.1f, 0f),
+            Doc("m1", "children playing in the park", 0.1f, 0.9f, 0f),
+            Doc("m2", "a bench near the park entrance", 0f, 0.1f, 0.9f),
+        ]);
 
         List<VectorSearchResult<Document>> hits = await collection.SearchAsync(
             new ReadOnlyMemory<float>([1f, 0f, 0f]),
-            5,
+            2,
             new VectorSearchOptions<Document> { Filter = d => d.Text.Contains("park") })
             .ToListAsync();
 
@@ -94,5 +103,40 @@ public sealed class SearchTests
         List<Document> found = await collection.GetAsync(d => d.Text.Contains("park"), 5).ToListAsync();
 
         Assert.Equal(2, found.Count);
+    }
+
+    [Fact]
+    public async Task Skip_drops_the_leading_matching_records_from_filtered_retrieval()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+        await collection.UpsertAsync([
+            Doc("m1", "a walk in the park", 1f, 0f, 0f),
+            Doc("m2", "a bench in the park", 0f, 1f, 0f),
+            Doc("m3", "trees in the park", 0f, 0f, 1f),
+        ]);
+
+        List<Document> found = await collection.GetAsync(
+            d => d.Text.Contains("park"),
+            2,
+            new FilteredRecordRetrievalOptions<Document> { Skip = 1 })
+            .ToListAsync();
+
+        Assert.Equal(2, found.Count);
+        Assert.DoesNotContain(found, d => d.Id == "m1");
+    }
+
+    [Fact]
+    public async Task Filtered_retrieval_refuses_an_order_by()
+    {
+        using LodestarVectorStoreCollection<string, Document> collection = await Seeded();
+
+        NotSupportedException error = await Assert.ThrowsAsync<NotSupportedException>(async () =>
+            await collection.GetAsync(
+                d => d.Text.Contains("park"),
+                5,
+                new FilteredRecordRetrievalOptions<Document> { OrderBy = o => o.Ascending(d => d.Id) })
+                .ToListAsync());
+
+        Assert.Contains("order", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

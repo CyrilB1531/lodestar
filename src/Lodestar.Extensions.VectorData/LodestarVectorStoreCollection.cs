@@ -167,6 +167,13 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord> : VectorStoreCo
     }
 
     /// <inheritdoc />
+    /// <exception cref="NotSupportedException"><paramref name="options"/> sets <c>OrderBy</c>.</exception>
+    /// <remarks>
+    /// <c>Skip</c> counts over the records the filter admits, the same way
+    /// <see cref="SearchAsync{TInput}"/> counts it. <c>OrderBy</c> throws rather than being
+    /// silently ignored: a dictionary-backed collection has no order of its own, and ordering
+    /// by an arbitrary property expression is not implemented here.
+    /// </remarks>
     public override async IAsyncEnumerable<TRecord> GetAsync(
         Expression<Func<TRecord, bool>> filter,
         int top,
@@ -175,7 +182,16 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord> : VectorStoreCo
     {
         Guard.NotNull(filter);
         Guard.NotLessThan(top, 1);
+        if (options?.OrderBy is not null)
+        {
+            throw new NotSupportedException(
+                "OrderBy is not supported: a dictionary-backed collection has no order of its "
+                + "own, and ordering by an arbitrary property expression is not implemented here.");
+        }
+
         Func<TRecord, bool> admits = filter.Compile();
+        int skip = options?.Skip ?? 0;
+        int skipped = 0;
         int taken = 0;
 
         foreach (TRecord record in _records.Values)
@@ -183,6 +199,12 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord> : VectorStoreCo
             cancellationToken.ThrowIfCancellationRequested();
             if (!admits(record))
             {
+                continue;
+            }
+
+            if (skipped < skip)
+            {
+                skipped++;
                 continue;
             }
 
