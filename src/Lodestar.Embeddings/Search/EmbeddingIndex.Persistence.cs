@@ -42,7 +42,11 @@ public sealed partial class EmbeddingIndex
         // destroy a good artifact and leave a header where it used to be.
         EnsureFinite();
         using FileStream file = JsonArtifact.OpenWrite(path);
-        Save(file);
+
+        // WriteHeadChecked, not Save(file): the scan above already ran, and a second pass
+        // over the block is a whole-block memory sweep that finds nothing new.
+        ArtifactIo.SaveWithBlock(
+            file, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty, _data.AsSpan(0, _length));
     }
 
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
@@ -66,6 +70,12 @@ public sealed partial class EmbeddingIndex
     private void WriteHead(Utf8JsonWriter writer)
     {
         EnsureFinite();
+        WriteHeadChecked(writer);
+    }
+
+    /// <summary>As <see cref="WriteHead"/>, for a caller that has already run <see cref="EnsureFinite()"/>.</summary>
+    private void WriteHeadChecked(Utf8JsonWriter writer)
+    {
         writer.WriteNumber(DimensionProperty, _dim);
         writer.WriteBoolean(NormalizeProperty, _normalize);
 

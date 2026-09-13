@@ -119,9 +119,88 @@ internal static class JsonArtifact
             return Buffers.RentedPayload.Rented(rented, filled);
         }
 
-        // Nothing to rent against without a declared length: the growable path sizes itself
-        // as it reads and owns the buffer it grows, which is not the pool's to take back.
-        return Buffers.RentedPayload.Borrowed(ReadGrowable(stream, limits));
+        return ReadGrowablePooled(stream, limits);
+    }
+
+    /// <summary>How much of an undeclared-length stream one rented segment holds: 1 MiB.</summary>
+    /// <remarks>
+    /// Small enough that the pool's power-of-two rounding wastes nothing, large enough that a
+    /// 20 MB index is a score of reads rather than thousands.
+    /// </remarks>
+    private const int GrowableSegmentBytes = 1 << 20;
+
+    /// <summary>Reads a stream with no declared length into rented segments, then one rented buffer.</summary>
+    /// <remarks>
+    /// The growable <see cref="MemoryStream"/> this replaces doubled into fresh zeroed arrays, so a
+    /// 20 MB payload paid ~40 MB of allocation, page commits and copies of everything read so far —
+    /// ~13 ms over the inflate on a gzip-wrapped index. Segments are never copied until the length is
+    /// known, and then once. Decision 0120 is the record, amending 0054's carve-out for this path.
+    /// </remarks>
+    private static Buffers.RentedPayload ReadGrowablePooled(Stream stream, in ArtifactLimits limits)
+    {
+        var segments = new List<byte[]>();
+        byte[]? current = ArrayPool<byte>.Shared.Rent(GrowableSegmentBytes);
+        byte[]? payload = null;
+        try
+        {
+            int inCurrent = 0;
+            long total = 0;
+            int read;
+            while ((read = stream.Read(current, inCurrent, current.Length - inCurrent)) > 0)
+            {
+                total += read;
+                limits.CheckTotalBytes(total);
+                inCurrent += read;
+                if (inCurrent == current.Length)
+                {
+                    segments.Add(current);
+                    current = ArrayPool<byte>.Shared.Rent(GrowableSegmentBytes);
+                    inCurrent = 0;
+                }
+            }
+
+            if (segments.Count == 0)
+            {
+                // One segment held it all: that segment is the payload, and is not copied.
+                Buffers.RentedPayload whole = Buffers.RentedPayload.Rented(current, inCurrent);
+                current = null;
+                return whole;
+            }
+
+            // The growable MemoryStream refused past this ceiling too, as "Stream was too long".
+            if (total > ArtifactLimits.DefaultMaxSingleBuffer)
+            {
+                throw new IOException($"A {total}-byte artifact from a stream of undeclared length does not fit one buffer.");
+            }
+
+            payload = ArrayPool<byte>.Shared.Rent((int)total);
+            int offset = 0;
+            foreach (byte[] segment in segments)
+            {
+                segment.AsSpan().CopyTo(payload.AsSpan(offset));
+                offset += segment.Length;
+            }
+            current.AsSpan(0, inCurrent).CopyTo(payload.AsSpan(offset));
+
+            Buffers.RentedPayload assembled = Buffers.RentedPayload.Rented(payload, (int)total);
+            payload = null;
+            return assembled;
+        }
+        finally
+        {
+            foreach (byte[] segment in segments)
+            {
+                ArrayPool<byte>.Shared.Return(segment);
+            }
+            if (current is not null)
+            {
+                ArrayPool<byte>.Shared.Return(current);
+            }
+            if (payload is not null)
+            {
+                ArrayPool<byte>.Shared.Return(payload);
+            }
+        }
     }
 
     /// <summary>Reads to the end of a stream whose length is not known up front.</summary>

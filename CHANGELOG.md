@@ -96,6 +96,9 @@ is one sentence, the issue and the commit; see
 - **`System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`.** The dependency a
   consumer restores changes; nothing in the public surface does.
   ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+- **`EmbeddingIndex.Load` reads a stream of undeclared length into pooled segments, and
+  `Save(string)` scans the block for non-finite values once instead of twice.**
+  ([#716](https://github.com/CyrilB1531/lodestar/issues/716))
 
 ### Lodestar.Onnx
 

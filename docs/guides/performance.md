@@ -2332,6 +2332,77 @@ by hand and could not be re-checked. Every persistence row carries `artifact_byt
 on both sides, and the comparison prints it next to the time — which is the only way
 a compressed row reads honestly.
 
+## What the index rows against numpy are measuring, and the two paths that did move
+
+The nightly's `compare-persistence` of 2026-09-12 has Lodestar at 0.13–0.34× numpy on every
+uncompressed index row. **Most of that is not code on either side: it is whose allocator keeps a
+freed 15–20 MB block's pages.** glibc raises its mmap threshold after the first free of a block
+that size, so a `Harness.Measure` loop of `np.load` refills warm pages; the .NET GC decommits a
+dead large-object region, so every iteration of the C# loop page-faults its 15 MB again.
+
+**Conditions.** AMD Ryzen 7 8700G, 8 cores / 16 threads, Ubuntu 26.04.1, .NET 10.0.12, numpy
+2.5.3 on Python 3.12, a workstation shared with other sessions under the machine lock, one-minute
+load average 2.2–4.1. The probes are a `Harness.Measure`-shaped Stopwatch loop, median of five
+rounds, and are not BenchmarkDotNet; read their ratios.
+
+Each side, with its allocator's retention turned off or on:
+
+| row | default | retention flipped | flip |
+| --- | ---: | ---: | --- |
+| `np.load`, `BytesIO` | 1.073 ms | 7.276 ms | `MALLOC_MMAP_THRESHOLD_=65536`, pages fresh |
+| `np.load`, file | 1.728 ms | 2.798 ms | the same |
+| [`EmbeddingIndex.Load`](../reference/embeddings/search/embeddingindex-load.md), memory | 4.409 ms | 2.236 ms | `DOTNET_GCRetainVM=1`, pages kept |
+| [`EmbeddingIndex.Load`](../reference/embeddings/search/embeddingindex-load.md), `MemoryStream` | 5.207 ms | 3.177 ms | the same |
+| [`EmbeddingIndex.Load`](../reference/embeddings/search/embeddingindex-load.md), file | 6.484 ms | 4.348 ms | the same |
+| 15.36 MB `memcpy` into a fresh `float[]` | 4.531 ms | 1.239 ms | the same |
+| the save row's own `new MemoryStream(capacity)` plus one `memcpy`, no library code | 3.911 ms | 1.543 ms | the same |
+
+- **numpy pays 6.8× on its load the moment its pages are fresh**, and a `memcpy` into a fresh
+  `float[]` costs 3.7× one into kept pages. A caller who loads one index once pays those faults
+  on both sides; only a loop of loads collects the difference, and the harness is a loop.
+- **The save rows charge the C# side for the harness's sink.** `new MemoryStream(indexArtifact.Length)`
+  allocates and zeroes 20.6 MB inside the timed window: 3.911 ms of the 4.057 ms
+  `embedding_index_save` measures here, against 0.568 ms for the whole chunked base64 encode.
+  `io.BytesIO()` grows on pages glibc kept.
+- **What remains with retention on both sides is the format's own work**, which ADR 0011 and
+  0055 already price: a JSON scan of the 20.6 MB document with its 10 000 ids (0.581 ms), a base64
+  decode (0.760 ms into warm pages), and the finite scan numpy does not promise (0.235 ms).
+  `embedding_index_ingest_npy` stays the like-for-like row.
+
+Two levers inside that remainder were measured and **not taken**: a `Vector512` exponent-bits
+finite scan, 0.235 to 0.167 ms, is 1.5% of a load; decoding and scanning in L2-sized slices,
+3.711 to 3.655 ms, is noise.
+
+### A stream with no length, and a save that scanned twice
+
+Two real costs were on paths no BenchmarkDotNet row reached, so `PersistenceBenchmarks` now
+carries `EmbeddingIndexSaveFile` and `EmbeddingIndexLoadGzip`, the nightly rows
+`embedding_index_save_file` and `embedding_index_load_gzip` measure.
+
+- **A non-seekable stream grew a `MemoryStream` by doubling**, so a gzip-wrapped index allocated
+  91.6 MB of zeroed arrays and copied everything read so far at each growth. The probe put the
+  inflate alone at 37.3 ms and the accumulation at 13 ms more. It now reads into rented 1 MiB
+  segments and copies once into one rented buffer.
+  [Decision 0120](../decisions/0120-a-stream-with-no-declared-length-is-pooled-too.md) amends
+  [0054](../decisions/0054-the-payload-buffer-is-pooled-after-all-because-the-collection-is-the-cost.md),
+  which had left this path unpooled.
+- **`Save(string)` ran the finite scan twice**: once before opening the file so a refusal cannot
+  truncate it, and again inside `Save(Stream)`. The second pass is gone.
+
+BenchmarkDotNet `DefaultJob`, same machine and window, before and after interleaved
+before → after → before → after:
+
+| row | before | after | change | allocated before → after |
+| --- | ---: | ---: | --- | --- |
+| `EmbeddingIndexLoadGzip` | 50.678 / 50.383 ms | **43.078 / 43.048 ms** | **1.17× faster** | 91 562.54 → **16 095.15 KB**, gen2 500 → 0 |
+| `EmbeddingIndexSaveFile` | 8.865 / 8.727 ms | **8.448 / 8.488 ms** | 1.04× | 323.38 → 323.44 KB |
+| `EmbeddingIndexSave` — control | 2.807 / 2.842 ms | 2.843 / 2.837 ms | unchanged | 20 349.83 KB both |
+| `EmbeddingIndexLoad` — control | 4.796 / 4.872 ms | 4.887 / 4.747 ms | unchanged | 16 094.45 KB both |
+
+**No overlap on either changed row, and the controls cross in both directions.** The residency the
+gzip change adds is the segments the pool keeps — about the artifact's size in 1 MiB arrays —
+beside the 32 MiB bucket 0054 already accepted.
+
 ## Multiclass ROC-AUC, sequential against parallel (issue #86)
 
 ```bash
