@@ -36,20 +36,20 @@ caller `-0` from a published method — true of `0.0 == -0.0`, but not something
 
 **Why this exists rather than a Student quantile at a large degrees of freedom.** Student converges
 on the normal, so the obvious substitute is `StudentQuantile(p, df)` with `df` very large. Measured
-against `scipy.stats.norm.ppf(0.975)`, that substitute stops improving at about **9e-9** relative:
+against `scipy.stats.norm.ppf(0.975)`, that substitute stops improving at about **1e-8** relative:
 
 | `df` | relative error |
 | --- | --- |
 | 1e6 | 1.2e-6 |
 | 1e7 | 1.2e-7 |
-| **1e8** | **9.1e-9** |
+| **1e8** | **1.2e-8** |
 | 1e9 | 1.5e-7 |
 | 1e12 | 3.3e-5 |
 
-Below the best point the convergence is incomplete; above it the bisection loses ground. A
+Below the best point the convergence is incomplete; above it the Student tail being inverted loses ground. A
 Kaplan-Meier confidence bound is built on the log-log transform of the estimate, which amplifies
 that error into the seventh digit of a bound — past the `1e-9` its corpus compares at. This member
-answers to about `1e-15` instead. [Decision 0098](../../../decisions/0098-the-normal-quantile-is-the-third-member-decision-0095s-rule-publishes.md)
+answers to about `1e-15` instead. [Decision 0098](../../../decisions/0098-the-normal-quantile-is-the-third-member-decision-0095s-rule-publishes.md), as [decision 0121](../../../decisions/0121-the-quantiles-invert-by-newton-and-the-large-df-residual-is-the-tails.md) amended it,
 has the whole measurement.
 
 **Applies to** — net10.0, netstandard2.0.

@@ -2248,3 +2248,38 @@ than flat.
 
 The numbers, on a named machine and with the default job, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md#the-variance-principal-components-explain-against-numflat-issue-701).
+
+## 31. The two published quantiles, and what they cost their callers (issue #709)
+
+[Decision 0121](../docs/decisions/0121-the-quantiles-invert-by-newton-and-the-large-df-residual-is-the-tails.md)
+replaced the bisection behind `Distributions.NormalQuantile` and `Distributions.StudentQuantile` with
+a safeguarded Newton inversion. `QuantileBenchmarks` times one call of each, so the cost is read
+directly rather than subtracted out of a larger benchmark.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*QuantileBenchmarks*'
+```
+
+### What the rows mean
+
+`NormalQuantile` and `StudentQuantile` are the arguments a caller actually passes: `0.975`, and
+`df = 95` for Student, the residual degrees of freedom of the 100-row fit in `OlsBenchmarks`.
+`NormalQuantileFarTail` (`p = 1e-300`) and `StudentQuantileCauchyFarTail` (`p = 1e-12`, `df = 1`)
+are where an iterative inverse is most likely to spend steps. None allocates.
+
+**A quantile's cost follows its tail's.** Each call evaluates `Normal.Sf` or `StudentSf` one to four
+times, so a change to the incomplete gamma or beta underneath moves these rows as well — the tail
+is the thing to measure when they move.
+
+### Measuring the callers with it
+
+The change is only visible in a caller that takes a quantile, so a before/after run adds
+`SerialCorrelationBenchmarks`' two autocorrelation pairs and `OlsBenchmarks.Lodestar_Ols`:
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- \
+  --filter '*QuantileBenchmarks*' '*SerialCorrelationBenchmarks.*Autocorrelation*' '*OlsBenchmarks.Lodestar_Ols*'
+```
+
+The numbers, on a named machine and with the default job, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md#the-two-published-quantiles-without-bisection-issue-709).

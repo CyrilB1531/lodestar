@@ -33,7 +33,7 @@ GlmSummary ninetyFive = GeneralizedLinearModel.Fit(design, response, 1, GlmFamil
 GlmSummary ninetyNine = GeneralizedLinearModel.Fit(
     design, response, 1, GlmFamily.Binomial, new GlmOptions { ConfidenceLevel = 0.99 });
 
-double narrow = ninetyFive.ConfidenceLower[1];  // => -0.5746058300782455
+double narrow = ninetyFive.ConfidenceLower[1];  // => -0.5746058300782446
 double wide = ninetyNine.ConfidenceLower[1];    // => -1.1366351826479073
 ```
 

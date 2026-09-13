@@ -2982,9 +2982,11 @@ seven timed loops after a 2,000-call warm-up:
 
 One quantile and five p-values per fit, so the robust path saves `5.24 + 5 × 0.081 ≈ 5.6 μs` on
 tails. The table shows a net 3.7 μs, which leaves roughly 2 μs for the filling and the sandwich at
-100 rows. Both quantiles bisect; the Student route's per-iteration cost is higher because each
-step evaluates a regularized incomplete **beta** where the normal route evaluates an incomplete
-**gamma**.
+100 rows. In this window both quantiles still bisected; the Student route's per-iteration cost is
+higher because each step evaluates a regularized incomplete **beta** where the normal route
+evaluates an incomplete **gamma**. [Issue #709](https://github.com/CyrilB1531/lodestar/issues/709)
+replaced the bisection — [the quantile section](#the-two-published-quantiles-without-bisection-issue-709)
+has the run after it.
 
 At 10,000 rows the `O(n·k²)` filling dominates and the tail saving is noise against it: the robust
 types cost **8 to 9 %**, flat across all four, and allocate 2.8 % more. `Hc2` and `Hc3` additionally
@@ -2997,7 +2999,9 @@ argues for reaching past `Hc3` on cost grounds at either size.
 **One number in this section is not about robustness at all**: a single quantile call is 11.5 to
 16.8 μs, or **roughly half of an entire 100-row fit**, paid whether or not a robust covariance was
 asked for. The same call computes the serial-correlation band, and the section below shows it is the whole
-of what separates those two functions from their incumbent.
+of what separates those two functions from their incumbent. Both figures are this window's:
+[the quantile section](#the-two-published-quantiles-without-bisection-issue-709) has them after
+issue #709.
 
 ## Lodestar.Stats' serial-correlation diagnostics against Cortex.TimeSeries (issue #617)
 
@@ -3028,7 +3032,8 @@ kernel difference could not be. Both compute the confidence band `Cortex.TimeSer
 through one `NormalQuantile` call, and the Ljung-Box pair, which has no band, is 1.14× at 200
 points and **level at 2,000**. Subtracting the 11.5 μs quantile leaves 7.1 μs against Cortex's
 7.3 at 200 points and 76.6 μs against 76.7 at 2,000. The allocation difference is the band and
-the result record that carries it.
+the result record that carries it. [The quantile section](#the-two-published-quantiles-without-bisection-issue-709)
+confirms it by removing the cost: after #709 the pairs are level.
 
 ## The variance principal components explain, against NumFlat (issue #701)
 
@@ -3061,6 +3066,47 @@ The path to these numbers is in
 Jacobi solve over the whole centred block measured 13× slower than NumFlat at 2,000 × 50 before
 the Gram route replaced it. **The comparison that matters below `net8.0` has no second row**:
 NumFlat does not install there, and ML.NET, which does, reports no eigenvalue.
+
+## The two published quantiles, without bisection (issue #709)
+
+Full method and what the rows mean:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#31-the-two-published-quantiles-and-what-they-cost-their-callers-issue-709).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: two `BenchmarkDotNet` runs, **default job**, on 2026-09-13, one per state and
+back to back, 14 benchmarks each. *Before* is `main` at `750da89d` with `QuantileBenchmarks` added;
+*after* is the same tree with
+[decision 0121](../decisions/0121-the-quantiles-invert-by-newton-and-the-large-df-residual-is-the-tails.md)'s
+inversion. Both were built before either ran.
+
+| Call | Before | After |
+| --- | ---: | ---: |
+| [`Distributions.NormalQuantile`](../reference/stats/tails/distributions-normalquantile.md) `(0.975)` | 11.424 μs | **249.40 ns** |
+| `NormalQuantile(1e-300)` | 2.814 μs | 66.53 ns |
+| [`Distributions.StudentQuantile`](../reference/stats/tails/distributions-studentquantile.md) `(0.975, 95)` | 16.557 μs | **366.47 ns** |
+| `StudentQuantile(1e-12, 1)` | 5.702 μs | 120.28 ns |
+
+The error on every row is under 0.5 %, and none allocates. The callers, in the same two runs:
+
+| Method | SampleSize | Before | After | `Cortex.TimeSeries` (after run) |
+| --- | ---: | ---: | ---: | ---: |
+| `LodestarAutocorrelation` | 200 | 18.418 μs | **7.645 μs** | 7.264 μs |
+| `LodestarPartialAutocorrelation` | 200 | 18.767 μs | **7.985 μs** | 7.651 μs |
+| `LodestarAutocorrelation` | 2,000 | 87.425 μs | 76.574 μs | 76.362 μs |
+| `LodestarPartialAutocorrelation` | 2,000 | 87.624 μs | 76.924 μs | 76.754 μs |
+| [`OrdinaryLeastSquares.Fit`](../reference/stats-regression/ols/ordinaryleastsquares-fit.md) | 100 | 31.41 μs | **15.08 μs** | — |
+| [`OrdinaryLeastSquares.Fit`](../reference/stats-regression/ols/ordinaryleastsquares-fit.md) | 10,000 | 1,626.68 μs | 1,607.73 μs | — |
+
+**The serial-correlation gap was the quantile and nothing else**: removing 10.8 μs from one call
+brings both functions within 5 % of `Cortex.TimeSeries` at 200 points and level at 2,000, while
+they still compute the confidence band Cortex does not. **A 100-row fit halves**, which is the
+"roughly half of an entire 100-row fit" the robust-covariance section estimated.
+
+The quantile now costs one to four tail evaluations where bisection spent about sixty, so its time
+follows `Normal.Sf` and `StudentSf`: a faster tail moves these rows too. The shortcut of AS 241
+alone, with no tail evaluation, measured about 55 ns for the normal outside `BenchmarkDotNet`, and
+decision 0121 has why it was refused.
 
 ## SentencePiece and WordPiece encode, against Microsoft.ML.Tokenizers (issue #713)
 

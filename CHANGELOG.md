@@ -214,6 +214,9 @@ is one sentence, the issue and the commit; see
 - **`Chi2ContingencyResult` compares its expected table by value.** Two results holding the same
   table were unequal and now are equal, with `GetHashCode` agreeing; decision 0113 has the rule.
   ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
+- **`Distributions.NormalQuantile` and `Distributions.StudentQuantile` invert their tail by Newton
+  from a seed instead of by bisection**, still returning the root of the package's own tail.
+  ([#709](https://github.com/CyrilB1531/lodestar/issues/709))
 
 ### Lodestar.Survival
 
