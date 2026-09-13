@@ -1,5 +1,5 @@
 #!/bin/sh
-# The eighteen offline guards, run against the index instead of after the push.
+# The nineteen offline guards, run against the index instead of after the push.
 #
 #   install:  git config core.hooksPath .githooks
 #   skip once:  git commit --no-verify
@@ -36,6 +36,7 @@ cd "$root" || exit 1
 failed=''
 for guard in \
     tools/check_machine_paths.py \
+    tools/check_sdd_citations.py \
     tools/check_comment_length.py \
     tools/check_version_floor.py \
     tools/check_sample_culture.py \

@@ -114,7 +114,7 @@ public sealed class RankTestEdgeTests
         // Ranks.HasTies(pooled) is true, and wantsExact is already false
         // through the ties clause -- the tableTooLarge guard is never
         // consulted and this test cannot fail regardless of its state
-        // (verified by deletion -- see task-6-report.md, fix round 2).
+        // (verified by deletion in commit c0957a4b).
         double[] small = [1.0, 4.0, 7.0, 9.0, 11.0, 13.0, 15.0, 17.0];
         double[] large = new double[3000];
         for (int i = 0; i < large.Length; i++)

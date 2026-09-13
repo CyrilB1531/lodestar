@@ -117,7 +117,7 @@ public static class KolmogorovSmirnov
     }
 
     // Walks every value across BOTH samples, not until one is exhausted: stopping early
-    // reported the wrong D-/location past the shorter sample's end (task-8-report.md).
+    // reported the wrong D-/location past the shorter sample's end (commit 184419cc).
     private static (double Statistic, double Location, int Sign) Statistic(
         double[] sortedA, double[] sortedB, Alternative alternative)
     {
@@ -211,7 +211,7 @@ public static class KolmogorovSmirnov
         };
 
     // Tracks escaped mass directly: for a well-separated pair, the complementary inside mass
-    // collapses to 1.0, and 1 - that returned 0 where the true p-value was representable (task-8-report.md).
+    // collapses to 1.0, and 1 - that returned 0 where the true p-value was representable (commit 184419cc).
     private static double ExactPValue(double d, int n, int m, Alternative alternative)
     {
         double bound = d - (0.5 / ((double)n * m));
