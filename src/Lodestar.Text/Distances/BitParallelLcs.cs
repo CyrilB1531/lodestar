@@ -22,10 +22,41 @@ internal static class BitParallelLcs
     public static bool TrySubsequenceLength(
         ReadOnlySpan<char> pattern, ReadOnlySpan<char> text, out int length)
     {
-        return pattern.Length <= 64
-            ? TrySingleWord(pattern, text, out length)
+        if (pattern.Length <= 64)
+        {
+            return TrySingleWord(pattern, text, out length);
+        }
+
+        // Width is tested before the two-word method is entered, not inside it: its stackalloc
+        // zeroes on entry, and a CJK pattern paid that 4 KB for nothing, +10% at 128.
+        return pattern.Length <= 2 * 64 && IsLatin1(pattern)
+            ? TryTwoWords(pattern, text, out length)
             : TryBlocked(pattern, text, out length);
     }
+
+    private static bool IsLatin1(ReadOnlySpan<char> pattern)
+    {
+#if NET
+        return pattern.IndexOfAnyExceptInRange('\0', '\u00FF') < 0;
+#else
+        foreach (char c in pattern)
+        {
+            if (c > 0xFF)
+            {
+                return false;
+            }
+        }
+        return true;
+#endif
+    }
+
+    /// <summary>Words advanced together per text pass on the Latin-1 blocked route.</summary>
+    /// <remarks>
+    /// Swept over the scattered pair at 512 on a Ryzen 7 8700G: one word per pass read 0.83 of
+    /// the row-major kernel, two 0.71, four 0.59 and eight 0.64. Past four the JIT runs out of
+    /// registers for the words and spills them to the stack.
+    /// </remarks>
+    private const int GroupWords = 4;
 
     /// <summary>One entry per Latin-1 code unit: a text character above it reads no match.</summary>
     private const int Entries = 256;
@@ -175,15 +206,90 @@ internal static class BitParallelLcs
         return m - PopCount(v & mask);
     }
 
+    /// <summary>A Latin-1 pattern of 65 to 128 characters, both words held in registers.</summary>
+    /// <remarks>
+    /// The blocked loop kept its words in an array, so every text character loaded and stored
+    /// each one and the next character waited on that store. Two words need no array: 0.43 of
+    /// the blocked kernel's time at 128 on a Ryzen 7 8700G. The caller has established the
+    /// pattern is Latin-1; a wide one takes the blocked route and its side table.
+    /// </remarks>
+    private static bool TryTwoWords(ReadOnlySpan<char> pattern, ReadOnlySpan<char> text, out int length)
+    {
+        // Interleaved, peq[2c] then peq[2c + 1], so one slice and one bounds check serve both.
+        Span<ulong> peq = stackalloc ulong[2 * Entries];
+        for (int i = 0; i < pattern.Length; i++)
+        {
+            peq[(pattern[i] << 1) + (i >> 6)] |= 1UL << (i & 63);
+        }
+
+        ulong v0 = ulong.MaxValue;
+        ulong v1 = ulong.MaxValue;
+        foreach (char tc in text)
+        {
+            // A character the table cannot hold matches nothing: no bit moves, no carry forms.
+            if (tc > 0xFF)
+            {
+                continue;
+            }
+
+            ReadOnlySpan<ulong> p = peq.Slice(tc << 1, 2);
+            ulong u0 = v0 & p[0];
+            ulong t0 = v0 + u0;
+            ulong carry = CarryOut(v0, u0, t0);
+            v0 = t0 | (v0 & ~u0);
+
+            ulong u1 = v1 & p[1];
+            v1 = (v1 + u1 + carry) | (v1 & ~u1);
+        }
+
+        length = pattern.Length - PopCount(v0) - PopCount(v1 & TailMask(pattern.Length - 64));
+        return true;
+    }
+
+    /// <summary>The carry out of <c>v + u + carryIn</c>, given that <c>u</c> is a bit-subset of <c>v</c>.</summary>
+    /// <remarks>
+    /// A full adder carries out of bit 63 of <c>(v &amp; u) | ((v | u) &amp; ~sum)</c>, which the
+    /// subset reduces to <c>u | (v &amp; ~sum)</c>. The two comparisons it replaces compiled to
+    /// <c>cmp</c>/<c>setb</c> twice, never to <c>adc</c>; this compiles to <c>andn</c>, <c>or</c>
+    /// and <c>shr</c>, and read 0.78 of the blocked kernel's time at 512 on its own.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ulong CarryOut(ulong v, ulong u, ulong sum) => (u | (v & ~sum)) >> 63;
+
+    /// <summary>The bits of a word that hold pattern positions, given how many remain from it.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ulong TailMask(int remaining)
+    {
+        if (remaining <= 0)
+        {
+            return 0UL;
+        }
+
+        return remaining >= 64 ? ulong.MaxValue : (1UL << remaining) - 1;
+    }
+
     private static bool TryBlocked(ReadOnlySpan<char> pattern, ReadOnlySpan<char> text, out int length)
+    {
+        // Sized from the pattern's characters above Latin-1, not from its length: a Latin-1
+        // pattern gets no side rows at all, which is the table this route had before #302.
+        int slots = WideAlphabet.CapacityFor(WideAlphabet.CountWide(pattern));
+        return slots == 0
+            ? TryGrouped(pattern, text, out length)
+            : TryBlockedWide(pattern, text, slots, out length);
+    }
+
+    /// <summary>The row-major kernel over the dense table and its side rows, for a pattern that leaves Latin-1.</summary>
+    /// <remarks>
+    /// Its own method so it gets its own profile. Inlined in <see cref="TryBlocked"/>, a Latin
+    /// run tiered that method up with this half cold, and the CJK bucket of 128 then read 1 072
+    /// to 1 191 ns against the parent's 964 to 973; split out, 784 to 892 (committed corpus).
+    /// </remarks>
+    private static bool TryBlockedWide(ReadOnlySpan<char> pattern, ReadOnlySpan<char> text, int slots, out int length)
     {
         length = 0;
         int m = pattern.Length;
         int blocks = (m + 63) / 64;
 
-        // Sized from the pattern's characters above Latin-1, not from its length: a Latin-1
-        // pattern gets no side rows at all, which is the table this route had before #302.
-        int slots = WideAlphabet.CapacityFor(WideAlphabet.CountWide(pattern));
         long rows = (long)(Entries + slots) * blocks;
         if (rows > WideAlphabet.MaxTableLength)
         {
@@ -250,13 +356,116 @@ internal static class BitParallelLcs
         }
     }
 
+    /// <summary>A Latin-1 pattern past two words, advanced <see cref="GroupWords"/> words per text pass.</summary>
+    /// <remarks>
+    /// The recurrence at word <c>b</c> and text position <c>j</c> needs only word <c>b</c> at
+    /// <c>j - 1</c> and the carry out of word <c>b - 1</c> at <c>j</c>, so the loops may be
+    /// swapped. Each group then runs the whole text with its words in registers, and the carry
+    /// leaving it waits in <c>carries[j]</c> for the next group: one store per character per
+    /// group, against one per word per character. 0.58 of the row-major kernel at 512.
+    /// </remarks>
+    private static bool TryGrouped(ReadOnlySpan<char> pattern, ReadOnlySpan<char> text, out int length)
+    {
+        length = 0;
+        int m = pattern.Length;
+        int groups = (((m + 63) / 64) + GroupWords - 1) / GroupWords;
+
+        // Padded to whole groups: a word past the pattern has an all-zero column, and its
+        // bits are masked from the count, so the kernel needs no case for a short group.
+        long cells = (long)groups * GroupWords * Entries;
+        if (cells > WideAlphabet.MaxTableLength)
+        {
+            return false;
+        }
+
+        int peqLength = (int)cells;
+        ulong[] peqRented = ArrayPool<ulong>.Shared.Rent(peqLength);
+        ulong[] carriesRented = ArrayPool<ulong>.Shared.Rent(text.Length);
+        try
+        {
+            // Column-major, peq[word * 256 + c]: interleaving each group's four words per
+            // character measured slower here (0.71 against 0.58), unlike the two-word kernel.
+            Span<ulong> peq = peqRented.AsSpan(0, peqLength);
+            Span<ulong> carries = carriesRented.AsSpan(0, text.Length);
+            peq.Clear();
+            carries.Clear();
+            for (int i = 0; i < m; i++)
+            {
+                peq[((i >> 6) * Entries) + pattern[i]] |= 1UL << (i & 63);
+            }
+
+            int set = 0;
+            for (int g = 0; g < groups; g++)
+            {
+                int word = g * GroupWords;
+                set += SweepGroup(peq.Slice(word * Entries, GroupWords * Entries), text, carries, m - (word * 64));
+            }
+
+            length = m - set;
+            return true;
+        }
+        finally
+        {
+            ArrayPool<ulong>.Shared.Return(peqRented);
+            ArrayPool<ulong>.Shared.Return(carriesRented);
+        }
+    }
+
+    /// <summary>One group of four words over the whole text; returns the set bits that are pattern positions.</summary>
+    /// <remarks>Written out word by word: a loop over the group would put the words back in memory.</remarks>
+    private static int SweepGroup(ReadOnlySpan<ulong> columns, ReadOnlySpan<char> text, Span<ulong> carries, int remaining)
+    {
+        ReadOnlySpan<ulong> p0 = columns.Slice(0, Entries);
+        ReadOnlySpan<ulong> p1 = columns.Slice(Entries, Entries);
+        ReadOnlySpan<ulong> p2 = columns.Slice(2 * Entries, Entries);
+        ReadOnlySpan<ulong> p3 = columns.Slice(3 * Entries, Entries);
+        ulong v0 = ulong.MaxValue;
+        ulong v1 = ulong.MaxValue;
+        ulong v2 = ulong.MaxValue;
+        ulong v3 = ulong.MaxValue;
+
+        for (int j = 0; j < carries.Length; j++)
+        {
+            char tc = text[j];
+            if (tc > 0xFF)
+            {
+                continue;
+            }
+
+            ulong u = v0 & p0[tc];
+            ulong t = v0 + u + carries[j];
+            ulong carry = CarryOut(v0, u, t);
+            v0 = t | (v0 & ~u);
+
+            u = v1 & p1[tc];
+            t = v1 + u + carry;
+            carry = CarryOut(v1, u, t);
+            v1 = t | (v1 & ~u);
+
+            u = v2 & p2[tc];
+            t = v2 + u + carry;
+            carry = CarryOut(v2, u, t);
+            v2 = t | (v2 & ~u);
+
+            u = v3 & p3[tc];
+            t = v3 + u + carry;
+            carries[j] = CarryOut(v3, u, t);
+            v3 = t | (v3 & ~u);
+        }
+
+        return PopCount(v0 & TailMask(remaining))
+            + PopCount(v1 & TailMask(remaining - 64))
+            + PopCount(v2 & TailMask(remaining - 128))
+            + PopCount(v3 & TailMask(remaining - 192));
+    }
+
     /// <summary>One text character, with only the add's carry crossing words.</summary>
     /// <remarks>
     /// <c>u</c> is <c>v &amp; peq</c>, a bit-subset of <c>v</c>, and subtracting a subset
     /// cannot borrow: <c>v - u</c> is <c>v &amp; ~u</c>, so the borrow this threaded between
     /// words was provably zero (#357). The addition still carries — an asymmetry the LCS
     /// recurrence owns, <c>Myers</c> carrying substitution and rightly keeping both chains.
-    /// Inlined because it runs once per text character (#320).
+    /// Inlined because it runs once per text character (#320). Only a wide pattern reaches it.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Advance(Span<ulong> v, ReadOnlySpan<ulong> peqRow, int blocks)
@@ -266,12 +475,9 @@ internal static class BitParallelLcs
         {
             ulong value = v[b];
             ulong u = value & peqRow[b];
-
-            ulong sum = value + u;
-            ulong carriedSum = sum + carry;
-            carry = (sum < value ? 1UL : 0UL) | (carriedSum < sum ? 1UL : 0UL);
-
-            v[b] = carriedSum | (value & ~u);
+            ulong sum = value + u + carry;
+            carry = CarryOut(value, u, sum);
+            v[b] = sum | (value & ~u);
         }
     }
 

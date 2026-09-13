@@ -79,6 +79,10 @@ is one sentence, the issue and the commit; see
   holding the same words were unequal and now are equal, with `GetHashCode` agreeing —
   `CountVectorizerOptions` already behaved this way, and decision 0113 makes it the rule.
   ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
+- **Faster, same answers.** `Lcs.SubsequenceLength`, and therefore `Indel` and `fuzz.ratio`, run
+  patterns longer than one machine word through a two-word kernel or a word-grouped loop that
+  keeps the words in registers.
+  ([#717](https://github.com/CyrilB1531/lodestar/issues/717))
 
 ### Lodestar.Gpu
 
@@ -96,6 +100,9 @@ is one sentence, the issue and the commit; see
 - **`System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`.** The dependency a
   consumer restores changes; nothing in the public surface does.
   ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+- **`SentencePieceTokenizer` and `WordPieceTokenizer` find their pieces by walking a trie** rather
+  than hashing every candidate substring, returning the same tokens and ids.
+  ([#713](https://github.com/CyrilB1531/lodestar/issues/713))
 
 ### Lodestar.Onnx
 
