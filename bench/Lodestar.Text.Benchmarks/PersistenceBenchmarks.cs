@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
 using Lodestar.Embeddings.Persistence;
@@ -27,6 +28,8 @@ public class PersistenceBenchmarks
     private TfidfVectorizer _fitted = null!;
     private EmbeddingIndex _index = null!;
     private byte[] _indexArtifact = [];
+    private byte[] _indexGzip = [];
+    private string _saveFile = "";
 
     [GlobalSetup]
     public void Setup()
@@ -48,6 +51,14 @@ public class PersistenceBenchmarks
         using var indexStream = new MemoryStream();
         _index.Save(indexStream);
         _indexArtifact = indexStream.ToArray();
+
+        using var gzipped = new MemoryStream();
+        using (var gzip = new GZipStream(gzipped, CompressionLevel.Optimal, leaveOpen: true))
+        {
+            _index.Save(gzip);
+        }
+        _indexGzip = gzipped.ToArray();
+        _saveFile = Path.Combine(Path.GetTempPath(), $"lodestar-bdn-index-{Environment.ProcessId}.json");
     }
 
     [Benchmark]
@@ -107,6 +118,32 @@ public class PersistenceBenchmarks
         using var stream = new MemoryStream(_indexArtifact);
         return EmbeddingIndex.Load(stream);
     }
+
+    /// <summary>
+    /// The call a caller makes, and compare-persistence's <c>embedding_index_save_file</c>: the
+    /// only save row here that pays <see cref="EmbeddingIndex.Save(string)"/>'s own work.
+    /// </summary>
+    [Benchmark]
+    public string EmbeddingIndexSaveFile()
+    {
+        _index.Save(_saveFile);
+        return _saveFile;
+    }
+
+    /// <summary>
+    /// compare-persistence's <c>embedding_index_load_gzip</c>: a stream with no length, which is
+    /// the read path none of the rows above reaches.
+    /// </summary>
+    [Benchmark]
+    public EmbeddingIndex EmbeddingIndexLoadGzip()
+    {
+        using var stream = new MemoryStream(_indexGzip);
+        using var gzip = new GZipStream(stream, CompressionMode.Decompress);
+        return EmbeddingIndex.Load(gzip);
+    }
+
+    [GlobalCleanup]
+    public void Cleanup() => File.Delete(_saveFile);
 
     /// <summary>
     /// Ten thousand vectors of 384 dimensions — the shape a sentence-transformer

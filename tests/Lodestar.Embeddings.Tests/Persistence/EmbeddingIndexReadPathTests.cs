@@ -1,4 +1,5 @@
 using System.Text;
+using Lodestar.Embeddings.Persistence;
 using Lodestar.Embeddings.Search;
 using Xunit;
 
@@ -19,6 +20,61 @@ public sealed class EmbeddingIndexReadPathTests
 
         using var pipe = new UnseekableStream(artifact);
         AssertSameIndex(Reference(artifact), EmbeddingIndex.Load(pipe));
+    }
+
+    [Fact]
+    public void A_non_seekable_source_spanning_several_read_segments_loads_the_same_index()
+    {
+        // Past 1 MiB the undeclared-length read rents more than one segment and assembles
+        // them; the tiny artifact above never leaves the first.
+        byte[] artifact = Artifact(count: 2_000, dimension: 384);
+        Assert.True(artifact.Length > 3 << 20, $"The artifact is {artifact.Length} bytes, not past three segments.");
+
+        using var pipe = new UnseekableStream(artifact, chunk: 65_521);
+        AssertSameIndex(Reference(artifact), EmbeddingIndex.Load(pipe));
+    }
+
+    [Fact]
+    public void A_non_seekable_source_ending_on_a_segment_boundary_loads_the_same_index()
+    {
+        // Padded with trailing whitespace to exactly two segments, so the read rotates to a
+        // fresh segment that then stays empty.
+        byte[] artifact = Artifact(count: 800, dimension: 384);
+        byte[] padded = new byte[2 << 20];
+        artifact.CopyTo(padded, 0);
+        padded.AsSpan(artifact.Length).Fill((byte)' ');
+
+        using var pipe = new UnseekableStream(padded);
+        AssertSameIndex(Reference(artifact), EmbeddingIndex.Load(pipe));
+    }
+
+    [Fact]
+    public void A_non_seekable_source_past_the_byte_limit_is_refused_mid_read()
+    {
+        byte[] artifact = Artifact(count: 2_000, dimension: 384);
+
+        using var pipe = new UnseekableStream(artifact);
+        InvalidDataException error = Assert.Throws<InvalidDataException>(
+            () => EmbeddingIndex.Load(pipe, new ArtifactLoadOptions { MaxTotalBytes = 2 << 20 }));
+
+        Assert.Contains("MaxTotalBytes", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_short_non_seekable_load_after_a_long_one_carries_no_trailing_bytes()
+    {
+        // The segments and the assembled buffer are rented, so the long load leaves its bytes in
+        // arrays the short one is then handed; only the byte count may bound what is parsed.
+        byte[] longer = Artifact(count: 2_000, dimension: 384);
+        byte[] shorter = Artifact();
+
+        using (var first = new UnseekableStream(longer))
+        {
+            GC.KeepAlive(EmbeddingIndex.Load(first));
+        }
+
+        using var second = new UnseekableStream(shorter);
+        AssertSameIndex(Reference(shorter), EmbeddingIndex.Load(second));
     }
 
     [Fact]
@@ -98,6 +154,25 @@ public sealed class EmbeddingIndexReadPathTests
         return stream.ToArray();
     }
 
+    /// <summary>A deterministic index large enough to need several read segments.</summary>
+    private static byte[] Artifact(int count, int dimension)
+    {
+        var index = new EmbeddingIndex(dimension);
+        var vector = new float[dimension];
+        for (int item = 0; item < count; item++)
+        {
+            for (int i = 0; i < dimension; i++)
+            {
+                // Deterministic and never all-zero; the values matter only in being reproducible.
+                vector[i] = ((item * 31 + i * 17) % 97) - 48.5f;
+            }
+            index.Add(vector, $"item-{item}");
+        }
+        using var stream = new MemoryStream();
+        index.Save(stream);
+        return stream.ToArray();
+    }
+
     /// <summary>
     /// Equality by re-serialization: the artifact is the whole observable state,
     /// so two indexes that save to the same bytes are the same index.
@@ -115,8 +190,13 @@ public sealed class EmbeddingIndexReadPathTests
     private sealed class UnseekableStream : Stream
     {
         private readonly MemoryStream _inner;
+        private readonly int _chunk;
 
-        public UnseekableStream(byte[] bytes) => _inner = new MemoryStream(bytes);
+        public UnseekableStream(byte[] bytes, int chunk = int.MaxValue)
+        {
+            _inner = new MemoryStream(bytes);
+            _chunk = chunk;
+        }
 
         public override bool CanRead => true;
 
@@ -132,7 +212,8 @@ public sealed class EmbeddingIndexReadPathTests
             set => throw new NotSupportedException();
         }
 
-        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override int Read(byte[] buffer, int offset, int count) =>
+            _inner.Read(buffer, offset, Math.Min(count, _chunk));
 
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 

@@ -34,6 +34,51 @@ internal struct CompensatedSum
     public readonly double Value => _sum + _compensation;
 }
 
+/// <summary>
+/// Four <see cref="CompensatedSum"/>s taking consecutive terms in turn — the scalar
+/// counterpart of a four-lane <c>VectorCompensatedSum</c>.
+/// </summary>
+/// <remarks>
+/// One running sum makes every addition wait for the one before it; four let the
+/// processor carry four chains at once. The stripes take the terms a four-lane
+/// <c>VectorCompensatedSum</c> would, and <see cref="Reduce"/> folds them in its lane order;
+/// no test asserts the two targets agree to the bit, only both to the oracles at 1e-9.
+/// </remarks>
+internal struct StripedCompensatedSum
+{
+    // S3459: each stripe is a mutable struct written through its own Add, which the rule misses.
+#pragma warning disable S3459
+    private CompensatedSum _stripe0;
+    private CompensatedSum _stripe1;
+    private CompensatedSum _stripe2;
+    private CompensatedSum _stripe3;
+#pragma warning restore S3459
+
+    /// <summary>Adds four consecutive terms, one to each stripe.</summary>
+    /// <param name="first">The term for stripe 0.</param>
+    /// <param name="second">The term for stripe 1.</param>
+    /// <param name="third">The term for stripe 2.</param>
+    /// <param name="fourth">The term for stripe 3.</param>
+    public void Add(double first, double second, double third, double fourth)
+    {
+        _stripe0.Add(first);
+        _stripe1.Add(second);
+        _stripe2.Add(third);
+        _stripe3.Add(fourth);
+    }
+
+    /// <summary>Rounds each stripe to one double, then compensated-adds the four.</summary>
+    public readonly CompensatedSum Reduce()
+    {
+        CompensatedSum result = default;
+        result.Add(_stripe0.Value);
+        result.Add(_stripe1.Value);
+        result.Add(_stripe2.Value);
+        result.Add(_stripe3.Value);
+        return result;
+    }
+}
+
 #if NET5_0_OR_GREATER
 /// <summary>
 /// <see cref="CompensatedSum"/> per SIMD lane — <see cref="Vector{T}"/> on

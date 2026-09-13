@@ -80,9 +80,9 @@ public static class KaplanMeier
     /// <remarks>
     /// The published normal quantile, not a Student one at a large degrees of freedom.
     /// That substitute was tried and measured: its accuracy peaks near 1e8 degrees of
-    /// freedom at about 9e-9 and worsens on either side, which the log-log transform
-    /// below amplifies into the seventh digit of a bound — decision 0098 has the table,
-    /// and this corpus is what caught it.
+    /// freedom at about 1e-8 and worsens on either side, which the log-log transform
+    /// below amplifies into the seventh digit of a bound — decisions 0098 and 0121 have
+    /// the table, and this corpus is what caught it.
     /// </remarks>
     private static double Critical(double level) =>
         Distributions.NormalQuantile(1.0 - ((1.0 - level) / 2.0));

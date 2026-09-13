@@ -61,7 +61,19 @@ public static class Fuzz
         {
             return 0.0;
         }
+        if (m <= ShortNeedleWindows.MaxNeedle)
+        {
+            return ShortNeedleWindows.SlideMax(pattern, text);
+        }
 
+        return SlideMaxLongNeedle(pattern, text);
+    }
+
+    /// <summary>The same windows past one machine word, each scored by a full <see cref="Indel"/> call.</summary>
+    private static double SlideMaxLongNeedle(string pattern, string text)
+    {
+        int m = pattern.Length;
+        int n = text.Length;
         Span<int> wanted = stackalloc int[Buckets];
         Span<int> inWindow = stackalloc int[Buckets];
         var bound = new MatchCeiling(pattern, wanted, inWindow);

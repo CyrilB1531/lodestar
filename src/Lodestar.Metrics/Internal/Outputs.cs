@@ -1,4 +1,7 @@
 using System.Numerics;
+#if NET5_0_OR_GREATER
+using System.Runtime.InteropServices;
+#endif
 
 namespace Lodestar.Metrics.Internal;
 
@@ -171,6 +174,12 @@ internal static class Outputs
         TKernel kernel = default)
         where TKernel : struct, IVectorResidualKernel
     {
+        if (outputCount == 1 && sampleWeight.IsEmpty && OnlyTargetsNeedScanning(yTrue, yPred, outputWeights)
+            && TryUnweightedMean(yTrue, yPred, kernel, out double mean))
+        {
+            return Reduce([mean], outputWeights);
+        }
+
         int samples = Validate(yTrue, yPred, outputCount, sampleWeight, outputWeights);
         return Reduce(WeightedMeanVectorized(yTrue, yPred, outputCount, sampleWeight, samples, kernel), outputWeights);
     }
@@ -190,8 +199,151 @@ internal static class Outputs
         TKernel kernel = default)
         where TKernel : struct, IVectorResidualKernel
     {
+        if (outputCount == 1 && sampleWeight.IsEmpty && OnlyTargetsNeedScanning(yTrue, yPred, default)
+            && TryUnweightedMean(yTrue, yPred, kernel, out double mean))
+        {
+            return [mean];
+        }
+
         int samples = Validate(yTrue, yPred, outputCount, sampleWeight, default);
         return WeightedMeanVectorized(yTrue, yPred, outputCount, sampleWeight, samples, kernel);
+    }
+
+    /// <summary>
+    /// Whether an unweighted single-output input passes every check <see cref="Validate"/> makes
+    /// that does not read the targets, answered without throwing.
+    /// </summary>
+    /// <param name="yTrue">The true values.</param>
+    /// <param name="yPred">The predicted values.</param>
+    /// <param name="outputWeights">A weight per output, or empty.</param>
+    /// <remarks>
+    /// The targets' finiteness is then folded into the metric's own walk, so the data is read once
+    /// rather than three times. Whatever this or that walk refuses goes to <see cref="Validate"/>,
+    /// which throws in its own order, so a caller sees the exception it always saw.
+    /// </remarks>
+    public static bool OnlyTargetsNeedScanning(
+        ReadOnlySpan<double> yTrue, ReadOnlySpan<double> yPred, ReadOnlySpan<double> outputWeights) =>
+        yTrue.Length == yPred.Length && !yTrue.IsEmpty
+        && (outputWeights.IsEmpty || (outputWeights.Length == 1 && IsNormalizable(outputWeights[0])));
+
+    // S1244: RequireNormalizable's own exact-zero test, over one weight; a NaN passes both.
+#pragma warning disable S1244
+    private static bool IsNormalizable(double weight) => weight != 0.0;
+#pragma warning restore S1244
+
+    /// <summary>
+    /// The unweighted mean of <typeparamref name="TKernel"/> over one output, which also reports
+    /// whether every target was finite.
+    /// </summary>
+    /// <typeparam name="TKernel">The per-pair quantity to average.</typeparam>
+    /// <param name="yTrue">The true values, as long as <paramref name="yPred"/> and not empty.</param>
+    /// <param name="yPred">The predicted values.</param>
+    /// <param name="kernel">The kernel instance.</param>
+    /// <param name="mean">The mean, meaningful only when the method returns <see langword="true"/>.</param>
+    /// <remarks>
+    /// Accumulated per lane on <c>net10.0</c> and in four stripes elsewhere, which
+    /// <see cref="StripedCompensatedSum"/> relates.
+    /// </remarks>
+    private static bool TryUnweightedMean<TKernel>(
+        ReadOnlySpan<double> yTrue,
+        ReadOnlySpan<double> yPred,
+        TKernel kernel,
+        out double mean)
+        where TKernel : struct, IVectorResidualKernel
+    {
+#if NET5_0_OR_GREATER
+        bool finite = Vector.IsHardwareAccelerated
+            ? TryLaneSum(yTrue, yPred, kernel, out CompensatedSum sum, out int i)
+            : TryStripeSum(yTrue, yPred, kernel, out sum, out i);
+#else
+        bool finite = TryStripeSum(yTrue, yPred, kernel, out CompensatedSum sum, out int i);
+#endif
+        int samples = yTrue.Length;
+        long nonFinite = 0;
+        for (; i < samples; i++)
+        {
+            nonFinite |= Inputs.NonFiniteBits(yTrue[i]) | Inputs.NonFiniteBits(yPred[i]);
+            sum.Add(kernel.Apply(yTrue[i], yPred[i]));
+        }
+
+        // Exact: n additions of 1.0 land on n for every n below 2^53.
+        mean = sum.Value / samples;
+        return finite && nonFinite == 0;
+    }
+
+#if NET5_0_OR_GREATER
+    /// <summary>
+    /// <see cref="TryUnweightedMean{TKernel}"/>'s whole blocks, one <see cref="Vector{T}"/> lane per element.
+    /// </summary>
+    /// <typeparam name="TKernel">The per-pair quantity to add.</typeparam>
+    /// <param name="yTrue">The true values.</param>
+    /// <param name="yPred">The predicted values, as long as <paramref name="yTrue"/>.</param>
+    /// <param name="kernel">The kernel instance.</param>
+    /// <param name="sum">The lanes, reduced to one sum.</param>
+    /// <param name="consumed">How many leading elements the blocks covered.</param>
+    /// <returns>Whether every element the blocks covered was finite.</returns>
+    private static bool TryLaneSum<TKernel>(
+        ReadOnlySpan<double> yTrue,
+        ReadOnlySpan<double> yPred,
+        TKernel kernel,
+        out CompensatedSum sum,
+        out int consumed)
+        where TKernel : struct, IVectorResidualKernel
+    {
+        ReadOnlySpan<Vector<double>> truths = MemoryMarshal.Cast<double, Vector<double>>(yTrue);
+        ReadOnlySpan<Vector<double>> predictions = MemoryMarshal.Cast<double, Vector<double>>(yPred);
+        VectorCompensatedSum acc = default;
+        Vector<long> laneBits = Vector<long>.Zero;
+        for (int block = 0; block < truths.Length; block++)
+        {
+            Vector<double> truth = truths[block];
+            Vector<double> prediction = predictions[block];
+            laneBits |= Inputs.NonFiniteBits(truth) | Inputs.NonFiniteBits(prediction);
+            acc.Add(kernel.Apply(truth, prediction));
+        }
+
+        sum = acc.Reduce();
+        consumed = truths.Length * Vector<double>.Count;
+        return laneBits == Vector<long>.Zero;
+    }
+#endif
+
+    /// <summary><see cref="TryUnweightedMean{TKernel}"/>'s whole groups of four, one stripe per element.</summary>
+    /// <typeparam name="TKernel">The per-pair quantity to add.</typeparam>
+    /// <param name="yTrue">The true values.</param>
+    /// <param name="yPred">The predicted values, as long as <paramref name="yTrue"/>.</param>
+    /// <param name="kernel">The kernel instance.</param>
+    /// <param name="sum">The stripes, reduced to one sum.</param>
+    /// <param name="consumed">How many leading elements the groups covered.</param>
+    /// <returns>Whether every element the groups covered was finite.</returns>
+    /// <remarks>Internal so the <c>net10.0</c> tests, where the lanes route around it, reach it.</remarks>
+    internal static bool TryStripeSum<TKernel>(
+        ReadOnlySpan<double> yTrue,
+        ReadOnlySpan<double> yPred,
+        TKernel kernel,
+        out CompensatedSum sum,
+        out int consumed)
+        where TKernel : struct, IResidualKernel
+    {
+        StripedCompensatedSum acc = default;
+        long nonFinite = 0;
+        int i = 0;
+        for (; i <= yTrue.Length - 4; i += 4)
+        {
+            nonFinite |= Inputs.NonFiniteBits(yTrue[i]) | Inputs.NonFiniteBits(yPred[i])
+                | Inputs.NonFiniteBits(yTrue[i + 1]) | Inputs.NonFiniteBits(yPred[i + 1])
+                | Inputs.NonFiniteBits(yTrue[i + 2]) | Inputs.NonFiniteBits(yPred[i + 2])
+                | Inputs.NonFiniteBits(yTrue[i + 3]) | Inputs.NonFiniteBits(yPred[i + 3]);
+            acc.Add(
+                kernel.Apply(yTrue[i], yPred[i]),
+                kernel.Apply(yTrue[i + 1], yPred[i + 1]),
+                kernel.Apply(yTrue[i + 2], yPred[i + 2]),
+                kernel.Apply(yTrue[i + 3], yPred[i + 3]));
+        }
+
+        sum = acc.Reduce();
+        consumed = i;
+        return nonFinite == 0;
     }
 
     /// <summary>The same walk without the reduction — <c>multioutput="raw_values"</c>.</summary>
@@ -308,9 +460,11 @@ internal static class Outputs
         where TKernel : struct, IVectorResidualKernel
     {
 #if NET5_0_OR_GREATER
-        if (outputCount == 1 && Vector.IsHardwareAccelerated)
+        // Unweighted single-output input does not reach here unless Validate refused it:
+        // ScoreVectorized and PerOutputVectorized walk it with TryUnweightedMean instead.
+        if (outputCount == 1 && !sampleWeight.IsEmpty && Vector.IsHardwareAccelerated)
         {
-            return [SingleOutputVectorized(yTrue, yPred, sampleWeight, samples, kernel)];
+            return [SingleOutputWeightedVectorized(yTrue, yPred, sampleWeight, samples, kernel)];
         }
 #endif
         return WeightedMean(yTrue, yPred, outputCount, sampleWeight, samples, kernel);
@@ -324,7 +478,7 @@ internal static class Outputs
     /// terms and the lanes are combined in a different order. Both sides pass the
     /// oracle corpus at its 1e-9 comparison.
     /// </remarks>
-    private static double SingleOutputVectorized<TKernel>(
+    private static double SingleOutputWeightedVectorized<TKernel>(
         ReadOnlySpan<double> yTrue,
         ReadOnlySpan<double> yPred,
         ReadOnlySpan<double> sampleWeight,
@@ -334,28 +488,8 @@ internal static class Outputs
     {
         int width = Vector<double>.Count;
         VectorCompensatedSum acc = default;
-        int i = 0;
-
-        if (sampleWeight.IsEmpty)
-        {
-            for (; i <= samples - width; i += width)
-            {
-                acc.Add(kernel.Apply(
-                    new Vector<double>(yTrue.Slice(i, width)),
-                    new Vector<double>(yPred.Slice(i, width))));
-            }
-
-            CompensatedSum sum = acc.Reduce();
-            for (; i < samples; i++)
-            {
-                sum.Add(kernel.Apply(yTrue[i], yPred[i]));
-            }
-
-            // Exact: n additions of 1.0 land on n for every n below 2^53.
-            return sum.Value / samples;
-        }
-
         VectorCompensatedSum weightAcc = default;
+        int i = 0;
         for (; i <= samples - width; i += width)
         {
             var weights = new Vector<double>(sampleWeight.Slice(i, width));

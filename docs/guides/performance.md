@@ -783,9 +783,58 @@ Short-job measurement, `[MemoryDiagnoser]` (dev machine — indicative).
 | [`Fuzz.WRatio`](../reference/fuzzy/matching/fuzz-wratio.md) | ~25 µs | 7.0 KB |
 | [`Fuzz.PartialRatio`](../reference/fuzzy/matching/fuzz-partialratio.md) | ~460 µs | 0 B |
 
-> `PartialRatio` is markedly slower: the current sliding-window scan is `O(n·m²)`
-> (a full Indel per window). It is correct and zero-alloc, but a bit-parallel or
-> block-based optimization is a clear backlog item for long inputs.
+> The `PartialRatio` row above predates two changes and no longer describes it: see
+> [The partial ratio's windows](#the-partial-ratios-windows-issue-714) below.
+
+## The partial ratio's windows (issue #714)
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*FuzzIncumbentBenchmarks*' '*FuzzBenchmarks*'
+```
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Windows: **default job**, all on 2026-09-13. `origin/main`'s `Fuzz.cs` and the change were
+run back to back under one lock from 01:35; the change was then split into smaller methods to meet
+S3776 and its side re-run alone from 09:07, which is the column below. The first run of that side
+read 402.65 ns and 391.11 ns on the two `PartialRatio` rows, and 86.1 ns on the shortest needle
+below, where the column now reads about 10 ns more; that difference was not investigated.
+Both operands are the 43-character pair the two classes share, which are the same length,
+so both orientations are slid.
+
+The old [`Fuzz.PartialRatio`](../reference/fuzzy/matching/fuzz-partialratio.md) scan paid a full [`Indel.NormalizedSimilarity`](../reference/text/distances/indel-normalizedsimilarity.md)
+per surviving window, rebuilding the needle's equality table each time. A needle of up to 64
+characters now builds that table once per call, reads every edge-truncated window from one scan
+per side, and skips a full window that starts on a character the needle lacks or that sliding one
+place at a time cannot lift past the best so far. The result is the same double scoring every
+window gives, which `PartialRatioWindowTests` asserts on random pairs.
+
+| Row | Before | After | Speed-up |
+| --- | ---: | ---: | ---: |
+| `FuzzIncumbentBenchmarks` — Lodestar `PartialRatio` | 6,873.56 ns ± 26.99 | **403.76 ns** ± 8.05 | 17.0× |
+| `FuzzIncumbentBenchmarks` — FuzzySharp `PartialRatio` | 5,720.40 ns ± 34.17 | 5,759.90 ns ± 66.99 | control |
+| `FuzzBenchmarks.PartialRatio` | 6,742.19 ns ± 28.83 | **400.13 ns** ± 1.88 | 16.8× |
+| `FuzzBenchmarks.TokenSetRatio` | 647.87 ns ± 12.69 | 641.21 ns ± 10.37 | control |
+| `FuzzBenchmarks.WRatio` | 1,229.74 ns ± 12.84 | 1,277.04 ns ± 24.28 | control |
+
+Against Raffinert.FuzzySharp the row moves from **0.83×** (FuzzySharp ahead) to **14.3×** in Lodestar's favour. The
+`TokenSetRatio` and `WRatio` rows are controls rather than beneficiaries: on this pair the token
+set ratio compares with `Ratio`, and the length ratio is under 1.5, so `WRatio` never reaches a
+partial ratio either. Neither allocates differently.
+
+Unequal lengths are not covered by a committed class, so they were measured in the same runs with a
+throwaway one, not kept:
+
+| Shape | Before | After |
+| --- | ---: | ---: |
+| `"brown fox"` in the 43-character sentence | 278.8 ns | 96.2 ns |
+| the sentence in a 118-character paragraph | 3,546.7 ns | 686.2 ns |
+| a 25-character Cyrillic needle in a 72-character Cyrillic text | 5,780.8 ns | 336.0 ns |
+| `PartialTokenSetRatio`, the sentence against the paragraph | 3,510.7 ns | 2,135.4 ns |
+| an 82-character needle in a 237-character text | 17,149.2 ns | 17,717.1 ns |
+
+The last row is past one machine word and keeps the per-window Indel, so it is unchanged by design;
+the 3 % between its two columns is the drift between the two windows. That path is [#720](https://github.com/CyrilB1531/lodestar/issues/720).
 
 ## Batched embedding — what the number is, and what it is not
 
@@ -1496,6 +1545,68 @@ because nothing in this change touches it:
   `Math.Pow` and the log errors `Math.Log`, neither of which `Vector<T>` offers;
   `MeanAbsolutePercentageError` divides and clamps and was not measured. Only the two
   kernels that are arithmetic all the way down implement the lane-wise form.
+
+#### Validation folded into the walk (issue #715)
+
+The nightly compare had `mse` and `mae` below the gate again at a million rows — 0.81×–0.85×
+against scikit-learn on 2026-09-13 — with `r2` at 1.23×–1.45×. #321 had vectorized the sum, and
+the sum was no longer where the time went: before any arithmetic, `Inputs.Validate` walked
+`yTrue` and `yPred` once each, testing every value against `NaN` and against infinity with a
+branch apiece. A Stopwatch probe on the machine below, one million values, best of seven,
+priced each piece of `mse` separately:
+
+| Piece | ms |
+| --- | ---: |
+| the two validation passes, as they were | 0.797 |
+| the same two passes, branch-free per lane | 0.183 |
+| the compensated `Vector<double>` sum, as it was | 0.264 |
+| that sum with a branchless TwoSum over four accumulators | 0.238 |
+| that sum with a branchless TwoSum on `Vector512<double>` | 0.228 |
+| an uncompensated sum over four accumulators — the floor | 0.179 |
+
+**Validation was three quarters of the call**, and nothing done to the sum could recover more
+than a tenth of what remained, so the sum's Neumaier lanes are unchanged. What changed:
+
+- **A finite `x` gives `x - x` = +0.0, whose bits are all zero; infinity and `NaN` give `NaN`.**
+  OR-ing those bits and testing once replaces two branches per value, on every regression metric's
+  validation.
+- **An unweighted single output tests finiteness inside the pass that scores it**, so `mse` and
+  `mae` read the data once instead of three times, and `r2` twice instead of four. Only an input
+  that fails takes the old validation, which throws the exception it always threw.
+- **`netstandard2.0` sums those three metrics in four Neumaier stripes** instead of one, so no
+  addition waits on the previous one; the stripes take the terms a four-lane
+  `VectorCompensatedSum` does and fold in its order.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores,
+Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime, AVX-512 (`Vector<double>` holds four
+lanes). `RegressionMetricsBenchmarks`, BenchmarkDotNet **default job**, in-process toolchain on
+both harnesses. Two windows on 2026-09-13, each under the machine's benchmark lock: *before*,
+built from `main`, 01:14–01:19; *after*, 05:54–05:59.
+
+| Operation | n | net10 before | net10 after | change | netstandard2.0 before | netstandard2.0 after | change |
+| --- | ---: | ---: | ---: | --- | ---: | ---: | --- |
+| `mse` | 100 000 | 105.6 μs | **27.3 μs** | **3.9× faster** | 320.4 μs | **85.2 μs** | **3.8× faster** |
+| `mae` | 100 000 | 105.1 μs | **26.9 μs** | **3.9× faster** | 317.5 μs | **84.8 μs** | **3.7× faster** |
+| `r2` | 100 000 | 148.0 μs | **69.3 μs** | **2.1× faster** | 568.6 μs | **212.7 μs** | **2.7× faster** |
+| `median_ae` | 100 000 | 365.7 μs | 293.4 μs | 1.25× | 347.3 μs | 338.6 μs | unchanged |
+| `mse` | 1 000 000 | 1,086.5 μs | **282.9 μs** | **3.8× faster** | 3,212.7 μs | **852.1 μs** | **3.8× faster** |
+| `mae` | 1 000 000 | 1,071.7 μs | **285.7 μs** | **3.8× faster** | 3,191.0 μs | **850.6 μs** | **3.8× faster** |
+| `r2` | 1 000 000 | 1,504.1 μs | **694.4 μs** | **2.2× faster** | 5,703.9 μs | **2,134.5 μs** | **2.7× faster** |
+| `median_ae` | 1 000 000 | 4,526.9 μs | 4,053.9 μs | 1.1× | 4,271.4 μs | 4,165.4 μs | unchanged |
+
+- **`median_ae` is the nearest thing to a control**, not a clean one: it sorts, and gained only
+  the branch-free validation, which is what its net10 rows show and its `netstandard2.0` rows,
+  where the sort dominates, barely do.
+- **The two windows are hours apart**, so a drift of the machine would sit inside every ratio; it
+  would have to be several-fold to matter against changes of 2×–3.9×.
+- **The ratio against scikit-learn is not measured here.** This harness is not the nightly's, and
+  the next nightly is what places `mse` and `mae` against the gate.
+- **numpy's pairwise sum is not what the lanes approximate.** On this distribution scikit-learn's
+  `mse` and `mae` land within one ulp of `math.fsum`, the correctly rounded sum, and so does any
+  compensated sum whatever its lane order; a plain sequential sum is about `1e-14` relative away.
+- **`ExplainedVariance` keeps its separate validation passes.** The same fold applies, but its
+  second pass is a residual centred on its own mean, and restructuring it was left out of this
+  change.
 
 ## Persisting an embedding index — the save path (issue #323)
 
@@ -2257,6 +2368,115 @@ The two long buckets were 2.03× and about 2.1× behind before this lot. **What 
 is no longer a factor of two.** Whether the remainder is worth a third lot is a
 question for a measurement, not for this page.
 
+*(#717 revisits "the gap is what the JIT will not emit": it was partly the source after all.
+The carry compiles without comparisons once it is written as the full-adder identity, and
+most of the rest was the words living in an array. See the next section.)*
+
+## Keeping the words in registers (issue #717)
+
+The nightly still put blocked `Indel` on Latin text behind rapidfuzz, **884 ns against 469
+at length 128 and 7 534 against 4 453 at 512**, while CJK was ahead at both. The row-major
+loop kept its words in a rented array. Every text character loaded each word and stored it
+back, and the next character had to wait for that store before it could read it.
+
+Three changes, each derived from the recurrence rather than from an implementation:
+
+- **The carry without comparisons.** `u` is a bit-subset of `v`, so the carry out of
+  `v + u + c` is bit 63 of `u | (v & ~sum)`, the full-adder identity with `v & u = u` and
+  `v | u = v` substituted. `DOTNET_JitDisasm` showed the old two comparisons as
+  `cmp`/`setb` twice and never `adc`. The identity compiles to `andn`, `or` and `shr`.
+- **Two words in registers from 65 to 128.** A Latin-1 pattern of that length now has a
+  kernel of its own, with an interleaved `peq[2c]`, `peq[2c + 1]` table on the stack and no
+  array for `v`.
+- **The loops swapped past 128.** Word `b` at text position `j` needs only word `b` at
+  `j − 1` and the carry out of word `b − 1` at `j`. Four words therefore run the whole text
+  together in registers, and the carry leaving the group waits in `carries[j]` for the next
+  four. That is one store per character per group, where the old loop made one per word.
+
+A pattern holding a character above Latin-1 keeps the row-major kernel and its side table,
+now using the new carry.
+
+### What was tried, over the scattered pair
+
+A scratch project held each candidate beside a copy of the old kernel, with the same trim
+and dispatch in front of both, on the `ScatteredPair` operands. BenchmarkDotNet default job,
+one process, ratio against the copy:
+
+| candidate | 128 | 512 |
+| --- | ---: | ---: |
+| row-major, new carry only | 0.84 | 0.78 |
+| row-major, new carry, words on the stack | 0.80 | 0.78 |
+| one word per text pass | 0.67 | 0.83 |
+| one word per pass, table held per thread | 0.83 | 1.04 |
+| two words per pass | 0.63 | 0.71 |
+| **four words per pass** | 0.91 | **0.59** |
+| four words, table interleaved per character | — | 0.71 |
+| two, then four words, text translated to row indices first | 0.61 | 0.71 |
+| eight words per pass | 1.64 | 0.64 |
+| two words in registers, one table per word | 0.46 | — |
+| **two words in registers, table interleaved** | **0.43** | — |
+
+- **Four and not eight.** At eight words the JIT runs out of registers and spills them to
+  the stack. Two words per pass leaves twice the stored carries.
+- **The held table loses at 512.** Restoring costs one write per pattern position, and the
+  vectorised clear it replaces is cheaper than that at every length measured.
+- **Affix stripping was already there**, in `Affixes.Trim`. A score-bounded band has no
+  cutoff to work from, because [`Indel.Distance`](../reference/text/distances/indel-distance.md) takes none.
+
+### The wide route is its own method, and has to stay one
+
+The first after state inlined the wide half of `TryBlocked` beside the Latin-1 dispatch, and
+the corpus's CJK buckets regressed: 128 read 1 092 / 1 120 / 1 068 ns against 958 / 1 010 /
+971 before. A driver replaying the committed CJK buckets after a Latin warm-up, the order the
+harness runs them in, showed the reason. The CJK bucket of 128 read 964 to 973 ns on the
+parent and 1 072 to 1 191 on that state. Split into `TryBlockedWide`, it read **784 to 892**.
+The JIT profiled `TryBlocked` while only Latin input reached it, so the wide half was
+compiled as cold code. Merging the two methods back brings that regression back without
+changing any answer. Testing the width before the two-word method's `stackalloc` matters for
+the same bucket: a CJK pattern of 128 otherwise zeroes a 4 KB table it never uses.
+
+### Before and after
+
+AMD Ryzen 7 8700G, Ubuntu 26.04.1, .NET 10.0.12, X64 RyuJIT AVX-512. BenchmarkDotNet
+default job run in-process, and the cross-language harness's `compare-indel`. Each state was
+published once and only the runs alternated, over three rounds in alternating order
+(before → after, after → before, before → after), 2026-09-13 07:03 to 07:42, one-minute
+load average 2.3 to 5.2. All three runs are shown. `Levenshtein` takes Myers, which nothing
+here touches, and serves as the control.
+
+| | before | after | change |
+| --- | ---: | ---: | ---: |
+| `IndelBenchmarks` 128 | 477.6 / 488.4 / 504.5 ns | 226.3 / 226.0 / 228.1 ns | **2.14×** |
+| `IndelBenchmarks` 512 | 4 506 / 4 537 / 4 622 ns | 2 812 / 2 811 / 2 818 ns | **1.61×** |
+| corpus latin 128 | 476.9 / 471.8 / 486.9 ns | 230.7 / 229.3 / 230.1 ns | **2.07×** |
+| corpus latin 512 | 4 682 / 4 664 / 4 843 ns | 3 085 / 3 103 / 3 093 ns | **1.52×** |
+| corpus cjk 128 | 979 / 984 / 973 ns | 776 / 817 / 782 ns | **1.24×** |
+| corpus cjk 512 | 6 877 / 6 815 / 6 835 ns | 5 227 / 5 277 / 5 222 ns | **1.31×** |
+| corpus latin 8 / 32 | 13.1 / 38.1 ns | 13.0 / 38.5 ns | unchanged |
+| corpus cjk 8 / 32 | 13.1 / 77.5–80.6 ns | 13.1 / 78.1–81.2 ns | unchanged |
+| `LevenshteinBenchmarks` 64 — control | 185.8 / 174.6 / 177.9 ns | 175.2 / 177.0 / 174.9 ns | unchanged |
+| `LevenshteinBenchmarks` 512 — control | 8 544 / 8 873 / 8 686 ns | 8 600 / 8 641 / 8 806 ns | unchanged |
+
+**No overlap between the two series on any changed row.** The CJK rows moved even though no
+CJK pattern takes the new kernels, and the split above is what moved them. Before the split,
+the new carry held CJK 512 level with before (6 715 / 6 749 / 6 729 ns). Putting the old
+carry back in that state cost 12% (7 586 / 7 660 / 7 655), so the carry stays on the wide
+route too.
+
+Against rapidfuzz 3.14.6 (Python 3.12), measured on the same machine at 02:55 the same night:
+
+| bucket | rapidfuzz | Lodestar, after | |
+| --- | ---: | ---: | --- |
+| latin 128 | 258.2 ns | 229.3 – 230.7 ns | **1.12× C# faster** |
+| latin 512 | 2 712.8 ns | 3 085 – 3 103 ns | 1.14× Python faster |
+| cjk 128 | 1 127.8 ns | 776 – 817 ns | **1.38× C# faster** |
+| cjk 512 | 9 423.5 ns | 5 222 – 5 277 ns | **1.79× C# faster** |
+
+What remains at Latin 512 is the four-word group's stored carry and the table clear. Blocked
+Myers has the same row-major shape and carries two chains instead of one;
+[#718](https://github.com/CyrilB1531/lodestar/issues/718) tracks whether the loop order pays
+there too.
+
 ## Compressing an index (issue #378)
 
 The artifact is base64 inside JSON, which spends eight bits to carry six, so it is
@@ -2331,6 +2551,77 @@ Two things the pair says that the plain rows cannot:
 by hand and could not be re-checked. Every persistence row carries `artifact_bytes`
 on both sides, and the comparison prints it next to the time — which is the only way
 a compressed row reads honestly.
+
+## What the index rows against numpy are measuring, and the two paths that did move
+
+The nightly's `compare-persistence` of 2026-09-12 has Lodestar at 0.13–0.34× numpy on every
+uncompressed index row. **Most of that is not code on either side: it is whose allocator keeps a
+freed 15–20 MB block's pages.** glibc raises its mmap threshold after the first free of a block
+that size, so a `Harness.Measure` loop of `np.load` refills warm pages; the .NET GC decommits a
+dead large-object region, so every iteration of the C# loop page-faults its 15 MB again.
+
+**Conditions.** AMD Ryzen 7 8700G, 8 cores / 16 threads, Ubuntu 26.04.1, .NET 10.0.12, numpy
+2.5.3 on Python 3.12, a workstation shared with other sessions under the machine lock, one-minute
+load average 2.2–4.1. The probes are a `Harness.Measure`-shaped Stopwatch loop, median of five
+rounds, and are not BenchmarkDotNet; read their ratios.
+
+Each side, with its allocator's retention turned off or on:
+
+| row | default | retention flipped | flip |
+| --- | ---: | ---: | --- |
+| `np.load`, `BytesIO` | 1.073 ms | 7.276 ms | `MALLOC_MMAP_THRESHOLD_=65536`, pages fresh |
+| `np.load`, file | 1.728 ms | 2.798 ms | the same |
+| [`EmbeddingIndex.Load`](../reference/embeddings/search/embeddingindex-load.md), memory | 4.409 ms | 2.236 ms | `DOTNET_GCRetainVM=1`, pages kept |
+| [`EmbeddingIndex.Load`](../reference/embeddings/search/embeddingindex-load.md), `MemoryStream` | 5.207 ms | 3.177 ms | the same |
+| [`EmbeddingIndex.Load`](../reference/embeddings/search/embeddingindex-load.md), file | 6.484 ms | 4.348 ms | the same |
+| 15.36 MB `memcpy` into a fresh `float[]` | 4.531 ms | 1.239 ms | the same |
+| the save row's own `new MemoryStream(capacity)` plus one `memcpy`, no library code | 3.911 ms | 1.543 ms | the same |
+
+- **numpy pays 6.8× on its load the moment its pages are fresh**, and a `memcpy` into a fresh
+  `float[]` costs 3.7× one into kept pages. A caller who loads one index once pays those faults
+  on both sides; only a loop of loads collects the difference, and the harness is a loop.
+- **The save rows charge the C# side for the harness's sink.** `new MemoryStream(indexArtifact.Length)`
+  allocates and zeroes 20.6 MB inside the timed window: 3.911 ms of the 4.057 ms
+  `embedding_index_save` measures here, against 0.568 ms for the whole chunked base64 encode.
+  `io.BytesIO()` grows on pages glibc kept.
+- **What remains with retention on both sides is the format's own work**, which ADR 0011 and
+  0055 already price: a JSON scan of the 20.6 MB document with its 10 000 ids (0.581 ms), a base64
+  decode (0.760 ms into warm pages), and the finite scan numpy does not promise (0.235 ms).
+  `embedding_index_ingest_npy` stays the like-for-like row.
+
+Two levers inside that remainder were measured and **not taken**: a `Vector512` exponent-bits
+finite scan, 0.235 to 0.167 ms, is 1.5% of a load; decoding and scanning in L2-sized slices,
+3.711 to 3.655 ms, is noise.
+
+### A stream with no length, and a save that scanned twice
+
+Two real costs were on paths no BenchmarkDotNet row reached, so `PersistenceBenchmarks` now
+carries `EmbeddingIndexSaveFile` and `EmbeddingIndexLoadGzip`, the nightly rows
+`embedding_index_save_file` and `embedding_index_load_gzip` measure.
+
+- **A non-seekable stream grew a `MemoryStream` by doubling**, so a gzip-wrapped index allocated
+  91.6 MB of zeroed arrays and copied everything read so far at each growth. The probe put the
+  inflate alone at 37.3 ms and the accumulation at 13 ms more. It now reads into rented 1 MiB
+  segments and copies once into one rented buffer.
+  [Decision 0120](../decisions/0120-a-stream-with-no-declared-length-is-pooled-too.md) amends
+  [0054](../decisions/0054-the-payload-buffer-is-pooled-after-all-because-the-collection-is-the-cost.md),
+  which had left this path unpooled.
+- **`Save(string)` ran the finite scan twice**: once before opening the file so a refusal cannot
+  truncate it, and again inside `Save(Stream)`. The second pass is gone.
+
+BenchmarkDotNet `DefaultJob`, same machine and window, before and after interleaved
+before → after → before → after:
+
+| row | before | after | change | allocated before → after |
+| --- | ---: | ---: | --- | --- |
+| `EmbeddingIndexLoadGzip` | 50.678 / 50.383 ms | **43.078 / 43.048 ms** | **1.17× faster** | 91 562.54 → **16 095.15 KB**, gen2 500 → 0 |
+| `EmbeddingIndexSaveFile` | 8.865 / 8.727 ms | **8.448 / 8.488 ms** | 1.04× | 323.38 → 323.44 KB |
+| `EmbeddingIndexSave` — control | 2.807 / 2.842 ms | 2.843 / 2.837 ms | unchanged | 20 349.83 KB both |
+| `EmbeddingIndexLoad` — control | 4.796 / 4.872 ms | 4.887 / 4.747 ms | unchanged | 16 094.45 KB both |
+
+**No overlap on either changed row, and the controls cross in both directions.** The residency the
+gzip change adds is the segments the pool keeps — about the artifact's size in 1 MiB arrays —
+beside the 32 MiB bucket 0054 already accepted.
 
 ## Multiclass ROC-AUC, sequential against parallel (issue #86)
 
@@ -2691,9 +2982,11 @@ seven timed loops after a 2,000-call warm-up:
 
 One quantile and five p-values per fit, so the robust path saves `5.24 + 5 × 0.081 ≈ 5.6 μs` on
 tails. The table shows a net 3.7 μs, which leaves roughly 2 μs for the filling and the sandwich at
-100 rows. Both quantiles bisect; the Student route's per-iteration cost is higher because each
-step evaluates a regularized incomplete **beta** where the normal route evaluates an incomplete
-**gamma**.
+100 rows. In this window both quantiles still bisected; the Student route's per-iteration cost is
+higher because each step evaluates a regularized incomplete **beta** where the normal route
+evaluates an incomplete **gamma**. [Issue #709](https://github.com/CyrilB1531/lodestar/issues/709)
+replaced the bisection — [the quantile section](#the-two-published-quantiles-without-bisection-issue-709)
+has the run after it.
 
 At 10,000 rows the `O(n·k²)` filling dominates and the tail saving is noise against it: the robust
 types cost **8 to 9 %**, flat across all four, and allocate 2.8 % more. `Hc2` and `Hc3` additionally
@@ -2706,7 +2999,9 @@ argues for reaching past `Hc3` on cost grounds at either size.
 **One number in this section is not about robustness at all**: a single quantile call is 11.5 to
 16.8 μs, or **roughly half of an entire 100-row fit**, paid whether or not a robust covariance was
 asked for. The same call computes the serial-correlation band, and the section below shows it is the whole
-of what separates those two functions from their incumbent.
+of what separates those two functions from their incumbent. Both figures are this window's:
+[the quantile section](#the-two-published-quantiles-without-bisection-issue-709) has them after
+issue #709.
 
 ## Lodestar.Stats' serial-correlation diagnostics against Cortex.TimeSeries (issue #617)
 
@@ -2737,7 +3032,121 @@ kernel difference could not be. Both compute the confidence band `Cortex.TimeSer
 through one `NormalQuantile` call, and the Ljung-Box pair, which has no band, is 1.14× at 200
 points and **level at 2,000**. Subtracting the 11.5 μs quantile leaves 7.1 μs against Cortex's
 7.3 at 200 points and 76.6 μs against 76.7 at 2,000. The allocation difference is the band and
-the result record that carries it.
+the result record that carries it. [The quantile section](#the-two-published-quantiles-without-bisection-issue-709)
+confirms it by removing the cost: after #709 the pairs are level.
+
+## The variance principal components explain, against NumFlat (issue #701)
+
+Full method and what the pair does and does not compare:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#30-the-variance-principal-components-explain-against-numflat-issue-701).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: one `BenchmarkDotNet` run, **default job**, on 2026-09-13, 8 benchmarks. NumFlat
+1.3.4. Both sides were checked to return the same spectrum before either was timed.
+
+| Shape | [`PrincipalComponentVariance`](../reference/decomposition/factorization/principalcomponentvariance.md) | NumFlat `PrincipalComponentAnalysis` | NumFlat / Lodestar | Allocated, Lodestar | Allocated, NumFlat |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 200 × 10 | 14.74 μs | 15.35 μs | 1.04 | 2.38 KB | 1.94 KB |
+| 2,000 × 10 | 82.53 μs | 111.83 μs | **1.36** | 2.38 KB | 1.94 KB |
+| 2,000 × 50 | 1,977.65 μs | 1,634.81 μs | **0.83** | 42.07 KB | 40.06 KB |
+| 100 × 200 | 7,834.02 μs | 9,306.55 μs | **1.19** | 318.27 KB | 628.54 KB |
+
+**This package is faster on three shapes of four and slower on one**, while NumFlat's row also
+computes the eigenvectors and the mean. The one it loses is the one where the eigen solve
+dominates: 50 × 50 is where a one-sided Jacobi, several sweeps of `O(p³)`, falls behind a
+tridiagonal solver. At 10 columns the Gram matrix is most of the work, and centring each row into
+a buffer of one row's width keeps it in cache.
+
+The wide block is solved through the 100 × 100 Gram matrix of its rows rather than the 200 × 200
+one of its columns, which is where the 1.19 and half the allocation come from.
+
+The path to these numbers is in
+[decision 0119](../decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md): a
+Jacobi solve over the whole centred block measured 13× slower than NumFlat at 2,000 × 50 before
+the Gram route replaced it. **The comparison that matters below `net8.0` has no second row**:
+NumFlat does not install there, and ML.NET, which does, reports no eigenvalue.
+
+## The two published quantiles, without bisection (issue #709)
+
+Full method and what the rows mean:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#31-the-two-published-quantiles-and-what-they-cost-their-callers-issue-709).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: two `BenchmarkDotNet` runs, **default job**, on 2026-09-13, one per state and
+back to back, 14 benchmarks each. *Before* is `main` at `750da89d` with `QuantileBenchmarks` added;
+*after* is the same tree with
+[decision 0121](../decisions/0121-the-quantiles-invert-by-newton-and-the-large-df-residual-is-the-tails.md)'s
+inversion. Both were built before either ran.
+
+| Call | Before | After |
+| --- | ---: | ---: |
+| [`Distributions.NormalQuantile`](../reference/stats/tails/distributions-normalquantile.md) `(0.975)` | 11.424 μs | **249.40 ns** |
+| `NormalQuantile(1e-300)` | 2.814 μs | 66.53 ns |
+| [`Distributions.StudentQuantile`](../reference/stats/tails/distributions-studentquantile.md) `(0.975, 95)` | 16.557 μs | **366.47 ns** |
+| `StudentQuantile(1e-12, 1)` | 5.702 μs | 120.28 ns |
+
+The error on every row is under 0.5 %, and none allocates. The callers, in the same two runs:
+
+| Method | SampleSize | Before | After | `Cortex.TimeSeries` (after run) |
+| --- | ---: | ---: | ---: | ---: |
+| `LodestarAutocorrelation` | 200 | 18.418 μs | **7.645 μs** | 7.264 μs |
+| `LodestarPartialAutocorrelation` | 200 | 18.767 μs | **7.985 μs** | 7.651 μs |
+| `LodestarAutocorrelation` | 2,000 | 87.425 μs | 76.574 μs | 76.362 μs |
+| `LodestarPartialAutocorrelation` | 2,000 | 87.624 μs | 76.924 μs | 76.754 μs |
+| [`OrdinaryLeastSquares.Fit`](../reference/stats-regression/ols/ordinaryleastsquares-fit.md) | 100 | 31.41 μs | **15.08 μs** | — |
+| [`OrdinaryLeastSquares.Fit`](../reference/stats-regression/ols/ordinaryleastsquares-fit.md) | 10,000 | 1,626.68 μs | 1,607.73 μs | — |
+
+**The serial-correlation gap was the quantile and nothing else**: removing 10.8 μs from one call
+brings both functions within 5 % of `Cortex.TimeSeries` at 200 points and level at 2,000, while
+they still compute the confidence band Cortex does not. **A 100-row fit halves**, which is the
+"roughly half of an entire 100-row fit" the robust-covariance section estimated.
+
+The quantile now costs one to four tail evaluations where bisection spent about sixty, so its time
+follows `Normal.Sf` and `StudentSf`: a faster tail moves these rows too. The shortcut of AS 241
+alone, with no tail evaluation, measured about 55 ns for the normal outside `BenchmarkDotNet`, and
+decision 0121 has why it was refused.
+
+## SentencePiece and WordPiece encode, against Microsoft.ML.Tokenizers (issue #713)
+
+Full method, and the check that both sides return the same ids:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#15-against-the-net-incumbents-issue-438).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: two `BenchmarkDotNet` 0.14.0 runs of `TokenizerIncumbentBenchmarks`, **default
+job**, on 2026-09-13 — `origin/main` before, this branch after — encoding all 5 000 documents of
+the corpus per operation. Microsoft.ML.Tokenizers 2.0.0. `spiece_30k.model` is a unigram model.
+
+| Model | Lodestar before | Lodestar after | Microsoft.ML.Tokenizers | Allocated before | Allocated after | Allocated, Microsoft.ML.Tokenizers |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| [`WordPieceTokenizer`](../reference/embeddings/tokenization/wordpiecetokenizer.md) | 37.67 ms | **20.26 ms** | 30.12 ms / 29.96 ms | 68.25 MB | **8.71 MB** | 3.55 MB |
+| [`SentencePieceTokenizer`](../reference/embeddings/tokenization/sentencepiecetokenizer.md) | 202.88 ms | **26.21 ms** | 29.74 ms / 29.51 ms | 30.33 MB | **5.44 MB** | 3.09 MB |
+
+The incumbent column gives its before-run and after-run means. **Both encoders now run ahead of
+the incumbent, where SentencePiece was 6.8× behind it** — the nightly, on another machine, had
+measured 327.8 ms against 50.8 ms. Tokens and ids over the whole corpus are byte-identical to
+`origin/main`'s, and the ids to the incumbent's.
+
+Both encoders used to probe a hash table once per candidate substring, rehashing it from its first
+character: the unigram lattice for every length up to the longest piece at every position, WordPiece
+while shortening its candidate. A double-array trie finds every piece starting at a position in one
+walk. The allocation that is left is the result lists, the normalized text and, for WordPiece, the
+lowercased copy; a matched token is now the vocabulary's own string rather than a new one.
+
+**What it costs the loader, which decision 0068 makes the product.** Building the trie makes
+constructing a tokenizer slower. Measured with a `Stopwatch` over the same two vocabularies on the
+same machine, not by BenchmarkDotNet:
+
+| Constructor | Before, first call | Before, warm | After, first call | After, warm |
+| --- | ---: | ---: | ---: | ---: |
+| `new SentencePieceTokenizer(vocabulary)` | 7.6 ms | 2.5–3.7 ms | 35.1 ms | 5.6–7.3 ms |
+| `new WordPieceTokenizer(vocabulary)` | 9.1 ms | 2.0–2.6 ms | 31.8 ms | 6.6–8.1 ms |
+
+**Construction goes from about 2.5 ms to 6–7 ms warm, and from under 10 ms to about 35 ms on the
+first call in a process.** Where the first call's extra time goes was not measured apart. It is
+paid once per tokenizer; reading `spiece_30k.model` itself takes 14 ms on the same run.
 
 ## Lodestar.Stats against Accord.Statistics (issue #442)
 
@@ -2780,7 +3189,9 @@ trust the last digit of a ratio.
 to 3.2× at 10,000, as `Accord`'s fixed per-call overhead is amortised over more work) and on
 [`MannWhitney.Test`](../reference/stats/tests/mannwhitney-test.md) (5.1× at 100, 2.9× at 10,000,
 allocating 61-62% less at both sizes — both sides take the guarded asymptotic path at 10,000, past
-`MannWhitney`'s own `20_000`-product exact-method bound). `Accord` is faster on
+`MannWhitney`'s own `20_000`-product exact-method bound). Those two `MannWhitney` rows predate
+[#711](https://github.com/CyrilB1531/lodestar/issues/711): it no longer allocates, and the
+subsection below has what it costs now, on a different machine. `Accord` is faster on
 [`ChiSquare.Contingency`](../reference/stats/tests/chisquare-contingency.md) (roughly 380 ns against 294 ns, flat with
 sample size since a 2×2 table has four cells regardless of how many observations produced it) — the
 one family where this package's richer result (`Chi2ContingencyResult` carries the expected-value
@@ -2790,6 +3201,34 @@ table; `Accord`'s `ChiSquareTest` does not expose one) costs more than it buys a
 `tests/oracles/stats_*.json` corpus cases through both implementations; no case disagreed beyond
 floating-point noise (the last one or two digits of a `double`, inside the `1e-9` tolerance
 `docs/equivalence.md` already uses). `bench/README.md` has the three cases and the exact figures.
+
+### The Mann-Whitney ranking merges two samples rather than pooling them
+
+[`MannWhitney.Test`](../reference/stats/tests/mannwhitney-test.md) used to copy both samples into
+one pooled array and sort it three times: once with an index array for the mid-ranks, once more for
+the tie term, once more to ask whether any tie existed — six arrays of the pooled length per call. It now keys each sample on its own (a `ulong`
+whose unsigned order is the double's order, both zeros folded onto one key), sorts the keys —
+`Array.Sort` below 3,072 values, an eight-pass LSD radix sort on the key's bytes from there — and
+walks the two sorted samples together: a tie group's mid-rank times its members from the first
+sample is the rank sum, and the tie term and the ties flag fall out of the same walk. The three
+buffers are rented. The rank sum and the tie term are equal to the old ones bit for bit, pinned by
+`TwoSampleRanksTests` on both sides of the radix threshold, with signed zeros and infinities.
+
+Machine: AMD Ryzen 7 8700G, Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime.
+Window: two `BenchmarkDotNet` runs, default job, 2026-09-13, `--filter '*LodestarMannWhitney*'`,
+with `SampleSize` temporarily widened to 100,000 for the two runs:
+
+| SampleSize (each sample) | Before | After | Speed-up | Allocated before | Allocated after |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 100 | 4.566 μs | 1.559 μs | 2.9× | 8.73 KB | — |
+| 10,000 | 3,040.7 μs | 254.0 μs | 12.0× | 859.68 KB | — |
+| 100,000 | 34,342.3 μs | 2,923.4 μs | 11.7× | 8,594.87 KB | — |
+
+The radix threshold was read off a `Stopwatch` sweep over two equal samples on the same machine:
+the radix loses at 2,048 values each (51 μs against `Array.Sort`'s 40) and wins at 4,096 (100 μs
+against 181). Sixteen-bit digits, the choice `BinaryRoc` made in `Lodestar.Metrics`, were 10%
+faster at 100,000 and 1.7× slower at 10,000, where clearing a 1 MB histogram costs more than the
+four passes it saves.
 
 ## Lodestar.Gpu — four kernels against their CPU paths (issue #444)
 

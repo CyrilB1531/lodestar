@@ -63,6 +63,9 @@
     "DecompositionBenchmarks": [
       "src/Lodestar.Decomposition/**"
     ],
+    "PrincipalComponentVarianceBenchmarks": [
+      "src/Lodestar.Decomposition/**"
+    ],
     "FuzzBenchmarks": [
       "src/Lodestar.Fuzzy/**",
       "src/Lodestar.Text/Distances/**",
@@ -104,6 +107,9 @@
       "src/Lodestar.Text/Text/**"
     ],
     "MetricsBenchmarks": [
+      "src/Lodestar.Metrics/**"
+    ],
+    "RegressionMetricsBenchmarks": [
       "src/Lodestar.Metrics/**"
     ],
     "MyersGateBenchmarks": [
@@ -161,6 +167,9 @@
       "src/Lodestar.Stats/**"
     ],
     "SerialCorrelationBenchmarks": [
+      "src/Lodestar.Stats/**"
+    ],
+    "QuantileBenchmarks": [
       "src/Lodestar.Stats/**"
     ],
     "OlsBenchmarks": [

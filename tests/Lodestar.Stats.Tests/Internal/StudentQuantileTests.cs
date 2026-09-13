@@ -23,6 +23,21 @@ public sealed class StudentQuantileTests
         Assert.Equal(1.0, Beta.StudentSf(t, df) / p, 1e-9);
     }
 
+    [Theory]
+    // scipy.stats.t.isf, covering each seed the inversion starts from: the Cauchy and df = 2
+    // closed forms, the power-law tail past z^2 = df, and the Cornish-Fisher expansion inside it.
+    [InlineData(1e-12, 1.0, 318309886183.7907)]
+    [InlineData(1e-10, 2.0, 70710.67810804816)]
+    [InlineData(1e-100, 3.0, 2.225769823822442e+33)]
+    [InlineData(0.01, 5.0, 3.364929998907218)]
+    [InlineData(1e-20, 30.0, 22.658878371940183)]
+    [InlineData(0.05, 12.0, 1.7822875556493194)]
+    [InlineData(0.025, 95.0, 1.985251003505498)]
+    public void Quantile_matches_scipy_from_every_seed(double p, double df, double expected)
+    {
+        Assert.Equal(1.0, Beta.StudentQuantile(p, df) / expected, 1e-12);
+    }
+
     [Fact]
     public void Quantile_is_zero_at_one_half()
     {

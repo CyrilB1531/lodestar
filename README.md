@@ -94,7 +94,7 @@ timed; `bench/README.md`'s section 15 has the harness and the agreement checks.
 | `Lodestar.Embeddings` | `Microsoft.ML.Tokenizers`, `TensorPrimitives` | **Behind on encoding**, and the gap that justifies the package is the loader above — [decision 0068](docs/decisions/0068-the-tokenizer-gap-is-the-loader-not-the-encode-kernel.md) |
 | `Lodestar.Metrics` | ML.NET metrics | Coverage, not speed: the advantage narrows with size and the shape does not |
 | `Lodestar.Conformal` | — | **No incumbent exists**, which is the finding rather than a gap in the harness — `bench/README.md` section 15 says what would change that |
-| `Lodestar.Decomposition` | ML.NET `ProjectToPrincipalComponents` | **Not like-for-like.** Centred dense PCA against uncentred sparse truncated SVD and a non-negative factorization — three different decompositions, so each side is checked against its own reconstruction error rather than against the other's numbers. Read through a `MetadataLoadContext`, ML.NET's PCA is **fourteen public members with no eigenvalue among them**: it projects, and cannot say how much variance a component explains |
+| `Lodestar.Decomposition` | ML.NET `ProjectToPrincipalComponents` | **Not like-for-like.** Centred dense PCA against uncentred sparse truncated SVD and a non-negative factorization — three different decompositions, so each side is checked against its own reconstruction error rather than against the other's numbers. Read through a `MetadataLoadContext`, ML.NET's PCA is **fourteen public members with no eigenvalue among them**: it projects, and cannot say how much variance a component explains. [`PrincipalComponentVariance`](docs/reference/decomposition/factorization/principalcomponentvariance.md) is that number, and against NumFlat, the one library reporting it (`net8.0` only), it is **1.04× to 1.36× faster on three shapes of four and 0.83 on 2,000 × 50** ([performance](docs/guides/performance.md#the-variance-principal-components-explain-against-numflat-issue-701)) |
 | `Lodestar.Onnx` | ONNX Runtime itself | **Nothing to beat.** The package is a caller of the runtime, not a rival to it; what it adds is the pooling and the batching, which `bench/Lodestar.Text.Benchmarks -- '*BatchEmbedding*'` measures against a single-sequence loop |
 | `Lodestar.Stats` | `Accord.Statistics` (archived, no longer maintained) | No case found where `Accord` and `scipy` (and therefore `Lodestar.Stats`) disagree; faster on the t-test and Mann-Whitney, behind on the fixed-size chi-square table — see [`docs/guides/hypothesis-testing.md`](docs/guides/hypothesis-testing.md#no-incumbent-to-compare-against) |
 
@@ -212,7 +212,7 @@ Lodestar.slnx
 ├── src/Lodestar.Fuzzy/                     fuzz.*, process.extract, deduplication
 ├── src/Lodestar.Metrics/                   confusion matrix, precision/recall/F1, report, ROC-AUC
 ├── src/Lodestar.Conformal/                 split conformal intervals and prediction sets (no dependencies)
-├── src/Lodestar.Decomposition/             truncated SVD, NMF and the Householder QR over a CsrMatrix
+├── src/Lodestar.Decomposition/             truncated SVD, NMF, the Householder QR, and PCA explained variance
 ├── src/Lodestar.Cluster/                   k-means by Lloyd's algorithm over a row-major span
 ├── src/Lodestar.Preprocessing/             feature scaling fitted on arrays and applied to spans
 ├── src/Lodestar.Stats/                     classical hypothesis tests, at scipy.stats parity (no dependencies)

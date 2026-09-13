@@ -610,6 +610,11 @@ This tier is not the nine-operation cross-language set: `MetricsBenchmarks` time
 `Matrix`, `MatrixWeighted`, `AccuracyScore`, `F1Macro` and `Report` only, and the
 three issue-#93 metrics have no BenchmarkDotNet method of their own.
 
+The four regression rows of the cross-language set — `mse`, `mae`, `median_ae` and `r2` —
+have theirs in `RegressionMetricsBenchmarks`, at n = 100 000 and 1 000 000 over the corpus's
+own distribution generated in-process, so it needs no corpus file. Both harnesses link it,
+and it takes the same pair of commands with `'*RegressionMetricsBenchmarks*'` as the filter.
+
 **`--inProcess` on the first command is not decoration.** Without it the two
 commands do not measure the same way: `Lodestar.NetStandard.Benchmarks` pins
 `InProcessEmitToolchain` (its `Program.cs` needs it, or BenchmarkDotNet's
@@ -2207,3 +2212,74 @@ separates the two.
 
 Run it with the default job. `ShortRun` put `Nonrobust` at 10,000 rows at 1,727 μs ± 1,027 μs, an
 error bar wider than the effect being measured.
+
+## 30. The variance principal components explain, against NumFlat (issue #701)
+
+[Decision 0119](../docs/decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md)
+put `PrincipalComponentVariance` in `Lodestar.Decomposition`.
+[Decision 0116](../docs/decisions/0116-the-pca-gap-is-the-explained-variance-not-the-projection.md)
+found one .NET library reporting the same number: NumFlat 1.3.4, whose
+`PrincipalComponentAnalysis.EigenValues` ships `net8.0` only. It is MIT-licensed and referenced by
+`Lodestar.Text.Benchmarks` alone. ML.NET's `ProjectToPrincipalComponents` exposes no eigenvalue,
+so it has no row here.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*PrincipalComponentVarianceBenchmarks*'
+```
+
+### What the pair does and does not compare
+
+`Lodestar_ExplainedVariance` calls `PrincipalComponentVariance.Compute` and reads the first
+explained variance. `NumFlat_Pca` constructs `PrincipalComponentAnalysis` and reads its first
+eigenvalue. **The asymmetry favours NumFlat's row**: its constructor also computes the
+eigenvectors and the mean, which this package does not. Its input is a `Vec<double>[]`, one per
+row, built once in `[GlobalSetup]`, so neither side pays for the other's layout inside the
+measured call.
+
+The two agree before they are timed. Run once outside `BenchmarkDotNet` on the same seeded blocks,
+the largest difference anywhere in the spectrum was `1.1e-14` of the first eigenvalue.
+
+### Configuration
+
+`[Params]` on `Shape`: 200 × 10, 2,000 × 10, 2,000 × 50, and 100 × 200. The last is wide, so this
+package solves the 100 × 100 Gram matrix of the rows rather than the 200 × 200 one of the columns.
+Each column of the `Random(701)` block is scaled by its index, so the spectrum is spread rather
+than flat.
+
+The numbers, on a named machine and with the default job, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md#the-variance-principal-components-explain-against-numflat-issue-701).
+
+## 31. The two published quantiles, and what they cost their callers (issue #709)
+
+[Decision 0121](../docs/decisions/0121-the-quantiles-invert-by-newton-and-the-large-df-residual-is-the-tails.md)
+replaced the bisection behind `Distributions.NormalQuantile` and `Distributions.StudentQuantile` with
+a safeguarded Newton inversion. `QuantileBenchmarks` times one call of each, so the cost is read
+directly rather than subtracted out of a larger benchmark.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*QuantileBenchmarks*'
+```
+
+### What the rows mean
+
+`NormalQuantile` and `StudentQuantile` are the arguments a caller actually passes: `0.975`, and
+`df = 95` for Student, the residual degrees of freedom of the 100-row fit in `OlsBenchmarks`.
+`NormalQuantileFarTail` (`p = 1e-300`) and `StudentQuantileCauchyFarTail` (`p = 1e-12`, `df = 1`)
+are where an iterative inverse is most likely to spend steps. None allocates.
+
+**A quantile's cost follows its tail's.** Each call evaluates `Normal.Sf` or `StudentSf` one to four
+times, so a change to the incomplete gamma or beta underneath moves these rows as well — the tail
+is the thing to measure when they move.
+
+### Measuring the callers with it
+
+The change is only visible in a caller that takes a quantile, so a before/after run adds
+`SerialCorrelationBenchmarks`' two autocorrelation pairs and `OlsBenchmarks.Lodestar_Ols`:
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- \
+  --filter '*QuantileBenchmarks*' '*SerialCorrelationBenchmarks.*Autocorrelation*' '*OlsBenchmarks.Lodestar_Ols*'
+```
+
+The numbers, on a named machine and with the default job, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md#the-two-published-quantiles-without-bisection-issue-709).

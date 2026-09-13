@@ -121,10 +121,10 @@ internal static class Beta
 
     /// <summary>The t with <c>P(T &gt; t) = p</c>: the inverse of <see cref="StudentSf"/>.</summary>
     /// <remarks>
-    /// By bisection on a strictly decreasing function rather than by a rational
-    /// approximation of its own. Fifty-odd halvings reach the last bit of a
-    /// double, the bracket is found by doubling rather than assumed, and there
-    /// is no second approximation to keep in agreement with the tail.
+    /// The root of <see cref="StudentSf"/> itself, reached by <see cref="TailInversion"/>
+    /// rather than read off a rational approximation of its own: the seed only decides how
+    /// many tail evaluations Newton needs, so there is no second approximation to keep in
+    /// agreement with the tail. Bisection took about sixty; this takes one to three.
     /// </remarks>
     internal static double StudentQuantile(double p, double df)
     {
@@ -149,52 +149,92 @@ internal static class Beta
             return 0.0;
         }
 
-        // Symmetric about zero, so p > 1/2 reduces to its mirror 1 - p < 1/2:
-        // BisectUpperTail's bracket only ever grows on the positive side.
-        return p > 0.5
-            ? -BisectUpperTail(1.0 - p, df)
-            : BisectUpperTail(p, df);
+        // Symmetric about zero, so p > 1/2 reduces to its mirror 1 - p < 1/2: the
+        // inversion's lower bound of zero holds only on the positive side.
+        double tail = p > 0.5 ? 1.0 - p : p;
+        var student = new StudentTail(df);
+        double t = TailInversion.InvertUpperTail(student, tail, student.Seed(tail));
+        return p > 0.5 ? -t : t;
     }
 
-    // p is already known to lie in (0, 0.5); the caller's symmetry reduction is
-    // what keeps that promise for the other half of the domain.
-    private static double BisectUpperTail(double p, double df)
+    /// <summary>Student's upper tail and log density, and a seed for inverting it.</summary>
+    private readonly struct StudentTail : IUpperTail
     {
-        // Widen until bracketed, by doubling: a Cauchy tail (df = 1) at
-        // p = 1e-300 needs a bound near 1e300, so a fixed one would fail there.
-        double high = 1.0;
-        while (StudentSf(high, df) > p && high < 1e300)
+        private readonly double _df;
+
+        // log of Gamma((df+1)/2) / (Gamma(df/2) sqrt(df pi)), the density's constant.
+        private readonly double _logNormalizer;
+
+        internal StudentTail(double df)
         {
-            high *= 2.0;
+            _df = df;
+            _logNormalizer = Gamma.LogGamma((df + 1.0) / 2.0) - Gamma.LogGamma(df / 2.0)
+                - (0.5 * Math.Log(df * Math.PI));
         }
 
-        double low = -high;
-        for (int i = 0; i < 200; i++)
+        public double Survival(double x) => StudentSf(x, _df);
+
+        public double LogDensity(double x)
         {
-            double middle = 0.5 * (low + high);
-
-            // S1244: this is the bisection's own fixed-point test, not a
-            // tolerance check -- middle stops moving once it lands on one of
-            // its bounds, and a range comparison would spin the remaining
-            // iterations for no further precision.
-#pragma warning disable S1244
-            if (middle == low || middle == high)
-#pragma warning restore S1244
+            // log(1 + r^2) three ways: a series where 1 + r^2 rounds away r^2, the log of r
+            // where squaring would overflow, and the plain form between the two.
+            double r = x / Math.Sqrt(_df);
+            double r2 = r * r;
+            double log1pR2;
+            if (r2 < 1e-4)
             {
-                break;
+                log1pR2 = r2 * (1.0 - (r2 * (0.5 - (r2 / 3.0))));
             }
-
-            if (StudentSf(middle, df) > p)
+            else if (r > 1e8)
             {
-                low = middle;
+                log1pR2 = 2.0 * Math.Log(r);
             }
             else
             {
-                high = middle;
+                log1pR2 = Math.Log(1.0 + r2);
             }
+
+            return _logNormalizer - (0.5 * (_df + 1.0) * log1pR2);
         }
 
-        return 0.5 * (low + high);
+        /// <summary>Where Newton starts for p in (0, 0.5); its accuracy costs steps, not digits.</summary>
+        /// <remarks>
+        /// df = 1 and df = 2 have closed forms. Otherwise the Cornish-Fisher expansion in 1/df
+        /// about the normal quantile (Abramowitz and Stegun 26.7.5) while z^2 &lt;= df, and past
+        /// that the power-law tail Sf(t) ~ exp(logNormalizer) df^((df-1)/2) t^-df solved for t,
+        /// which bounds the root from above and so also caps an overshooting expansion. Over 24
+        /// df in [0.01, 1e12] by 36 p in [5e-324, 1 - 1e-16] this averages 1.84 tail evaluations
+        /// for 1 &lt;= df &lt;= 1e6 and 1e-20 &lt;= p &lt;= 0.49, four at most.
+        /// </remarks>
+        internal double Seed(double p)
+        {
+            // S1244: the two closed forms hold at these exact degrees of freedom only.
+#pragma warning disable S1244
+            if (_df == 1.0)
+            {
+                return 1.0 / Math.Tan(Math.PI * p);
+            }
+            if (_df == 2.0)
+            {
+                return (1.0 - (2.0 * p)) / Math.Sqrt(2.0 * p * (1.0 - p));
+            }
+#pragma warning restore S1244
+
+            double z = Normal.RationalUpperQuantile(p);
+            double z2 = z * z;
+            double g1 = z * (z2 + 1.0) / 4.0;
+            double g2 = z * ((((5.0 * z2) + 16.0) * z2) + 3.0) / 96.0;
+            double g3 = z * ((((((3.0 * z2) + 19.0) * z2) + 17.0) * z2) - 15.0) / 384.0;
+            double g4 = z * ((((((((79.0 * z2) + 776.0) * z2) + 1482.0) * z2) - 1920.0) * z2) - 945.0)
+                / 92160.0;
+            double inverse = 1.0 / _df;
+            double expansion = z + (inverse * (g1 + (inverse * (g2 + (inverse * (g3 + (inverse * g4)))))));
+
+            double powerLaw = Math.Exp(
+                (_logNormalizer + (0.5 * (_df - 1.0) * Math.Log(_df)) - Math.Log(p)) / _df);
+
+            return z2 <= _df && expansion > 0.0 && expansion < powerLaw ? expansion : powerLaw;
+        }
     }
 
     // CF = 1 + d1/(1 + d2/(1 + ...)) from Abramowitz & Stegun 26.5.8, evaluated

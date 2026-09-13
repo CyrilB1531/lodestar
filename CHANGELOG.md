@@ -46,6 +46,28 @@ is one sentence, the issue and the commit; see
   also defers `GammaConformityScore` under decision 0095's rule.
   ([#683](https://github.com/CyrilB1531/lodestar/issues/683))
 
+### Lodestar.Decomposition
+
+#### Added
+
+- **[`PrincipalComponentVariance.Compute`](docs/reference/decomposition/factorization/principalcomponentvariance-compute.md) reports how much variance each principal component of a
+  dense matrix explains**, the number a scree plot is drawn from and the one nothing in .NET
+  reported below `net8.0`: ML.NET's PCA exposes no eigenvalue and NumFlat ships `net8.0` only.
+  It returns the explained variance, its ratio, the cumulative curve and the total, and agrees with
+  scikit-learn's `PCA(svd_solver="full")` at `1e-9`, the `n < p` edge included. It is not a PCA:
+  the projection stays delegated under decision 0116, and
+  [decision 0119](docs/decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md)
+  records why it lives in this package rather than `Lodestar.Preprocessing`.
+  ([#701](https://github.com/CyrilB1531/lodestar/issues/701))
+
+### Lodestar.Fuzzy
+
+#### Changed
+
+- `Fuzz.PartialRatio` scores a needle of up to 64 characters from one equality table per call and
+  skips the windows that cannot win, returning the same scores faster.
+  ([#714](https://github.com/CyrilB1531/lodestar/issues/714))
+
 ### Lodestar.Text
 
 #### Added
@@ -65,6 +87,10 @@ is one sentence, the issue and the commit; see
   holding the same words were unequal and now are equal, with `GetHashCode` agreeing —
   `CountVectorizerOptions` already behaved this way, and decision 0113 makes it the rule.
   ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
+- **Faster, same answers.** `Lcs.SubsequenceLength`, and therefore `Indel` and `fuzz.ratio`, run
+  patterns longer than one machine word through a two-word kernel or a word-grouped loop that
+  keeps the words in registers.
+  ([#717](https://github.com/CyrilB1531/lodestar/issues/717))
 
 ### Lodestar.Gpu
 
@@ -82,6 +108,12 @@ is one sentence, the issue and the commit; see
 - **`System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`.** The dependency a
   consumer restores changes; nothing in the public surface does.
   ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
+- **`EmbeddingIndex.Load` reads a stream of undeclared length into pooled segments, and
+  `Save(string)` scans the block for non-finite values once instead of twice.**
+  ([#716](https://github.com/CyrilB1531/lodestar/issues/716))
+- **`SentencePieceTokenizer` and `WordPieceTokenizer` find their pieces by walking a trie** rather
+  than hashing every candidate substring, returning the same tokens and ids.
+  ([#713](https://github.com/CyrilB1531/lodestar/issues/713))
 
 ### Lodestar.Onnx
 
@@ -113,9 +145,15 @@ is one sentence, the issue and the commit; see
   ([#617](https://github.com/CyrilB1531/lodestar/issues/617))
 - **`NanPolicy`, on the eleven test entry points whose scipy counterpart takes `nan_policy`.**
   `Propagate` stays the default, so no existing call changes; `Omit` drops pairs where the inputs
-  are aligned and values where they are not; decision 0118 has the rule and the five entry points
+  are aligned and values where they are not; decision 0117 has the rule and the five entry points
   that deliberately do not take it.
   ([#687](https://github.com/CyrilB1531/lodestar/issues/687))
+
+#### Fixed
+
+- **`MannWhitney.Test` no longer returns a wrong statistic and p-value past about 46,340 values
+  per sample**, where two sample-size products wrapped in `int`.
+  ([#712](https://github.com/CyrilB1531/lodestar/issues/712))
 
 ### Lodestar.Stats.Regression
 
@@ -170,9 +208,15 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- **Faster, same answers.** `MannWhitney.Test` ranks each sample on its own and merges the two
+  instead of sorting the pooled sample three times, and no longer allocates.
+  ([#711](https://github.com/CyrilB1531/lodestar/issues/711))
 - **`Chi2ContingencyResult` compares its expected table by value.** Two results holding the same
   table were unequal and now are equal, with `GetHashCode` agreeing; decision 0113 has the rule.
   ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
+- **`Distributions.NormalQuantile` and `Distributions.StudentQuantile` invert their tail by Newton
+  from a seed instead of by bisection**, still returning the root of the package's own tail.
+  ([#709](https://github.com/CyrilB1531/lodestar/issues/709))
 
 ### Lodestar.Survival
 
@@ -181,6 +225,16 @@ is one sentence, the issue and the commit; see
 - **`KaplanMeierCurve` and `NelsonAalenCurve` compare their arrays by value.** Two curves fitted
   from the same data were unequal and now are equal, with `GetHashCode` agreeing; decision 0113
   has the rule. ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
+
+### Lodestar.Metrics
+
+#### Changed
+
+- **`MeanSquaredError`, `MeanAbsoluteError` and `R2` read their input once to validate and score
+  it.** An unweighted single output tests finiteness inside the pass that computes the metric, and
+  `netstandard2.0` accumulates in four compensated stripes, so the last bits of a result can move
+  within the corpora's `1e-9`; the exception a non-finite input raises does not change.
+  ([#715](https://github.com/CyrilB1531/lodestar/issues/715))
 
 ## Released — 2026-09-10
 

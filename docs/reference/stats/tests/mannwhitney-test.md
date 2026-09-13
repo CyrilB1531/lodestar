@@ -35,7 +35,7 @@ double u = result.Statistic;                    // => 0.5
 double p = Math.Round(result.PValue, 6);         // => 0.006392
 ```
 
-**Remarks** — `control` and `treated` share the value `8`, so `Ranks.HasTies` is true and
+**Remarks** — `control` and `treated` share the value `8`, so the pooled sample holds a tie and
 `ExactMethod.Auto` falls straight to the normal approximation — untied, both samples here are
 small enough (six values each, at or under the eight-value bound `Auto` checks) that it would
 have taken the exact route instead. Asking for `ExactMethod.Exact` explicitly still answers, just
@@ -44,8 +44,8 @@ computes an exact p-value on tied data too instead of refusing, and this package
 rather than raising on a case scipy accepts.
 
 **Under `NanPolicy.Propagate`, a NaN reaches the statistic and the p-value.** The check runs
-before `Ranks.Average` ever does — unguarded, `Array.Sort` sorts a NaN to the front and it would
-take a finite rank like any other value.
+before either sample is ranked — unguarded, a NaN would sort to one end of its sample and take a
+finite rank like any other value.
 
 **The exact route has a size bound `Auto` cannot cross.** `x.Length * y.Length` above 20,000 costs
 tens of seconds to enumerate — the table is `(m + 1) × (n·m + 1)` and grows with the square of
