@@ -19,6 +19,8 @@ internal static class GlmSummarySample
         Console.WriteLine($"  Akaike           : {Inv.F4(fit.Akaike)}");
         Console.WriteLine($"  dispersion       : {Inv.F1(fit.Dispersion)}");
         Console.WriteLine(
+            $"  slope s.e. / z   : {Inv.F4(fit.StandardErrors[1])} / {Inv.F4(fit.ZStatistics[1])}");
+        Console.WriteLine(
             $"  has intercept    : {fit.HasIntercept}, on {fit.ResidualDegreesOfFreedom} residual d.f.");
         Console.WriteLine();
     }

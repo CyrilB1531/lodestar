@@ -31,6 +31,17 @@ internal static class GlmOptionsSample
             new GlmOptions { MaximumIterations = 15, ThrowOnNonConvergence = false });
 
         Console.WriteLine($"  converged        : {notConverged.Converged} after {notConverged.Iterations} iterations");
+        Console.WriteLine($"  last change      : {Inv.E3(notConverged.DevianceChange)}");
+
+        // A looser Tolerance accepts a larger last step, so IRLS stops sooner on the same fit.
+        GlmSummary loose = GeneralizedLinearModel.Fit(
+            design, response, 1, GlmFamily.Binomial, new GlmOptions { Tolerance = 1e-2 });
+        Console.WriteLine($"  iterations       : {ninetyFive.Iterations} at 1e-8, {loose.Iterations} at 1e-2");
+
+        // Without the intercept the slope is the only coefficient, so the lists shrink by one.
+        GlmSummary throughOrigin = GeneralizedLinearModel.Fit(
+            design, response, 1, GlmFamily.Binomial, new GlmOptions { WithIntercept = false });
+        Console.WriteLine($"  no intercept     : {throughOrigin.Coefficients.Count} coefficient");
         Console.WriteLine();
     }
 }
