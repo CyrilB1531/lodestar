@@ -86,7 +86,7 @@ usual.
 Post-filtering the top `k` lost: it returns fewer than `top` — sometimes none — whenever the filter
 is selective, and a caller reads that as a bug. **Exactness costs no extra ordering**, which an
 earlier draft of this record got wrong by claiming `O(n log n)` against `O(n log k)`:
-`EmbeddingIndex.Search` scores and sorts all `n` records whatever `k` it is asked for, so the
+[`EmbeddingIndex.Search`](../reference/embeddings/search/embeddingindex-search.md) scores and sorts all `n` records whatever `k` it is asked for, so the
 unfiltered search pays the same `O(n log n)` and only copies fewer results out. The filter adds one
 predicate call per record and nothing else, which leaves post-filtering no cost argument at all.
 
