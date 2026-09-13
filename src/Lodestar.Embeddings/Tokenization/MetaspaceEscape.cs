@@ -1,3 +1,5 @@
+using System.Buffers;
+
 namespace Lodestar.Embeddings.Tokenization;
 
 /// <summary>Where the replacement is prepended, which a file spells three ways.</summary>
@@ -16,8 +18,6 @@ internal enum MetaspacePrependScheme
 /// <summary>Escapes whitespace to a meta symbol, the way SentencePiece does.</summary>
 internal sealed class MetaspaceEscape
 {
-    private static readonly char[] Spaces = [' '];
-
     public MetaspaceEscape(
         char replacement,
         MetaspacePrependScheme prependScheme,
@@ -69,7 +69,11 @@ internal sealed class MetaspaceEscape
     /// </param>
     public string Apply(string text, bool isFirstSplit)
     {
-        string escaped = RemoveExtraWhitespaces ? Collapse(text) : text.Replace(' ', Replacement);
+        if (RemoveExtraWhitespaces)
+        {
+            return CollapseAndPrepend(text, isFirstSplit);
+        }
+        string escaped = text.Replace(' ', Replacement);
 
         // Nothing survived the collapse, so there is nothing to prefix — the unigram path
         // has always returned empty here rather than a lone symbol.
@@ -90,15 +94,49 @@ internal sealed class MetaspaceEscape
         PrependScheme == MetaspacePrependScheme.Always
         || (PrependScheme == MetaspacePrependScheme.First && isFirstSplit);
 
-    /// <summary>Runs of U+0020 become one replacement, and the ends lose theirs.</summary>
+    /// <summary>Runs of U+0020 become one replacement and the ends lose theirs, then the prepend applies as in <see cref="Apply"/>.</summary>
     /// <remarks>
-    /// Splitting on the space and dropping the empties collapses and trims in one pass.
-    /// U+0020 only: a tab no normalizer rewrote stays as it is, which is what
+    /// What splitting on the space, dropping the empties and joining gives, written as one
+    /// pass into one buffer: the split built a string per word and the prepend a second copy
+    /// of the whole. U+0020 only: a tab no normalizer rewrote stays as it is, which is what
     /// <c>docs/equivalence.md</c>'s Unigram row records.
     /// </remarks>
-    private string Collapse(string text)
+    private string CollapseAndPrepend(string text, bool isFirstSplit)
     {
-        string[] parts = text.Split(Spaces, StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length == 0 ? string.Empty : string.Join(Replacement.ToString(), parts);
+        // Slot 0 is held for the prepend, so either answer is one string over the buffer.
+        char[] buffer = ArrayPool<char>.Shared.Rent(text.Length + 1);
+        try
+        {
+            int length = 1;
+            bool gap = false;
+            foreach (char c in text)
+            {
+                if (c == ' ')
+                {
+                    gap = length > 1;
+                    continue;
+                }
+                if (gap)
+                {
+                    buffer[length++] = Replacement;
+                    gap = false;
+                }
+                buffer[length++] = c;
+            }
+
+            // Nothing survived the collapse, so there is nothing to prefix — the unigram path
+            // has always returned empty here rather than a lone symbol.
+            if (length == 1)
+            {
+                return string.Empty;
+            }
+            bool prepend = Prepends(isFirstSplit) && !(SkipPrependWhenAlreadyPrefixed && buffer[1] == Replacement);
+            buffer[0] = Replacement;
+            return prepend ? new string(buffer, 0, length) : new string(buffer, 1, length - 1);
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(buffer);
+        }
     }
 }

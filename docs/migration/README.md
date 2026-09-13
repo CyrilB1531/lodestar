@@ -88,9 +88,11 @@ are worth more than the list.
 3. **Embeddings & semantic search** — ONNX Runtime + sub-word tokenizers. *(done)*
    Native for one measured reason: [`Microsoft.ML.Tokenizers`](https://www.nuget.org/packages/Microsoft.ML.Tokenizers)
    builds every tokenizer from a vocabulary, a merges file or a `spiece.model`, and cannot
-   read the `tokenizer.json` that Llama-2 and Mistral v0.1 actually ship. Its encode paths
-   are faster than ours; the gap is the loader, not the arithmetic —
-   [decision 0068](../decisions/0068-the-tokenizer-gap-is-the-loader-not-the-encode-kernel.md).
+   read the `tokenizer.json` that Llama-2 and Mistral v0.1 actually ship. The gap is the
+   loader, not the arithmetic —
+   [decision 0068](../decisions/0068-the-tokenizer-gap-is-the-loader-not-the-encode-kernel.md) —
+   and the encode paths no longer trail it either
+   ([performance guide](../guides/performance.md#sentencepiece-and-wordpiece-encode-against-microsoftmltokenizers-issue-713)).
 4. **Applied fuzzy matching** — `rapidfuzz.fuzz` / `process` equivalents. *(done)*
 5. **Classification metrics** — sklearn-parity precision, recall, F1, confusion
    matrix, report and ROC-AUC. *(done)*
