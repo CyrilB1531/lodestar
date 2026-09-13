@@ -60,6 +60,14 @@ is one sentence, the issue and the commit; see
   records why it lives in this package rather than `Lodestar.Preprocessing`.
   ([#701](https://github.com/CyrilB1531/lodestar/issues/701))
 
+### Lodestar.Fuzzy
+
+#### Changed
+
+- `Fuzz.PartialRatio` scores a needle of up to 64 characters from one equality table per call and
+  skips the windows that cannot win, returning the same scores faster.
+  ([#714](https://github.com/CyrilB1531/lodestar/issues/714))
+
 ### Lodestar.Text
 
 #### Added
