@@ -1,3 +1,8 @@
+#if NET5_0_OR_GREATER
+using System.Numerics;
+using System.Runtime.InteropServices;
+#endif
+
 namespace Lodestar.Metrics.Internal;
 
 /// <summary>
@@ -106,17 +111,103 @@ internal static class Inputs
     /// <summary>Reproduces scikit-learn's two <c>check_array</c> messages, which differ.</summary>
     private static void RequireFinite(ReadOnlySpan<double> values, string paramName)
     {
-        foreach (double value in values)
+        if (!AllFinite(values))
         {
-            if (double.IsNaN(value))
-            {
-                throw new ArgumentException("Input contains NaN.", paramName);
-            }
-            if (double.IsInfinity(value))
-            {
-                throw new ArgumentException(
-                    "Input contains infinity or a value too large for dtype('float64').", paramName);
-            }
+            throw NonFinite(values, paramName);
         }
+    }
+
+    // S1764: in both overloads x - x is the test itself, zero only for a finite x; .NET does not
+    // reassociate or fold floating-point arithmetic (docs/decisions/0033), so it survives the JIT.
+#pragma warning disable S1764
+    /// <summary>Zero exactly when <paramref name="value"/> is finite, and nonzero otherwise.</summary>
+    /// <param name="value">The value to test.</param>
+    /// <remarks>
+    /// A finite <c>x</c> gives <c>x - x</c> = +0.0, whose bits are all zero, and an infinity or a
+    /// NaN gives NaN, whose bits are not. OR-ing these over a span and testing once replaces two
+    /// branches per value; only an input that fails pays a second, scalar, pass for its message.
+    /// </remarks>
+    public static long NonFiniteBits(double value) => BitConverter.DoubleToInt64Bits(value - value);
+
+#if NET5_0_OR_GREATER
+    /// <summary><see cref="NonFiniteBits(double)"/> per lane.</summary>
+    /// <param name="values">The values to test, one per lane.</param>
+    public static Vector<long> NonFiniteBits(Vector<double> values) => Vector.AsVectorInt64(values - values);
+#endif
+#pragma warning restore S1764
+
+    /// <summary>Whether every value is finite, tested without a branch per value.</summary>
+    /// <param name="values">The values to test.</param>
+    private static bool AllFinite(ReadOnlySpan<double> values)
+    {
+#if NET5_0_OR_GREATER
+        long bits = Vector.IsHardwareAccelerated
+            ? LaneNonFiniteBits(values, out int i)
+            : GroupNonFiniteBits(values, out i);
+#else
+        long bits = GroupNonFiniteBits(values, out int i);
+#endif
+        for (; i < values.Length; i++)
+        {
+            bits |= NonFiniteBits(values[i]);
+        }
+        return bits == 0;
+    }
+
+#if NET5_0_OR_GREATER
+    /// <summary>Tests the whole <see cref="Vector{T}"/> blocks of <paramref name="values"/>.</summary>
+    /// <param name="values">The values to test.</param>
+    /// <param name="consumed">How many leading values the blocks covered.</param>
+    /// <returns>Zero when every value the blocks covered is finite, and nonzero otherwise.</returns>
+    private static long LaneNonFiniteBits(ReadOnlySpan<double> values, out int consumed)
+    {
+        ReadOnlySpan<Vector<double>> blocks = MemoryMarshal.Cast<double, Vector<double>>(values);
+        Vector<long> laneBits = Vector<long>.Zero;
+        foreach (Vector<double> block in blocks)
+        {
+            laneBits |= NonFiniteBits(block);
+        }
+
+        consumed = blocks.Length * Vector<double>.Count;
+        return laneBits == Vector<long>.Zero ? 0 : 1;
+    }
+#endif
+
+    /// <summary>Tests the whole groups of four of <paramref name="values"/>, four values per step.</summary>
+    /// <param name="values">The values to test.</param>
+    /// <param name="consumed">How many leading values the groups covered.</param>
+    /// <returns>Zero when every value the groups covered is finite, and nonzero otherwise.</returns>
+    /// <remarks>
+    /// The walk <c>netstandard2.0</c> takes. Internal rather than private so the <c>net10.0</c> tests,
+    /// where the lanes route around it, can reach it directly.
+    /// </remarks>
+    internal static long GroupNonFiniteBits(ReadOnlySpan<double> values, out int consumed)
+    {
+        long bits = 0;
+        int i = 0;
+        for (; i <= values.Length - 4; i += 4)
+        {
+            bits |= NonFiniteBits(values[i]) | NonFiniteBits(values[i + 1])
+                | NonFiniteBits(values[i + 2]) | NonFiniteBits(values[i + 3]);
+        }
+
+        consumed = i;
+        return bits;
+    }
+
+    /// <summary>scikit-learn's message for the first non-finite value, which decides between its two.</summary>
+    /// <param name="values">Values holding at least one that is not finite.</param>
+    /// <param name="paramName">The argument the values came from.</param>
+    private static ArgumentException NonFinite(ReadOnlySpan<double> values, string paramName)
+    {
+        int index = 0;
+        while (NonFiniteBits(values[index]) == 0)
+        {
+            index++;
+        }
+
+        return double.IsNaN(values[index])
+            ? new ArgumentException("Input contains NaN.", paramName)
+            : new ArgumentException("Input contains infinity or a value too large for dtype('float64').", paramName);
     }
 }

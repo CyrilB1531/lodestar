@@ -1,5 +1,6 @@
 #if NET5_0_OR_GREATER
 using System.Numerics;
+using System.Runtime.InteropServices;
 #endif
 using Lodestar.Metrics.Internal;
 
@@ -48,9 +49,8 @@ public static class R2
         bool forceFinite = true,
         ZeroDivision zeroDivision = ZeroDivision.NaN)
     {
-        int samples = Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, outputWeights);
         (double[] scores, _) =
-            Compute(yTrue, yPred, outputCount, sampleWeight, samples, forceFinite, zeroDivision);
+            ValidateAndCompute(yTrue, yPred, outputCount, sampleWeight, outputWeights, forceFinite, zeroDivision);
         return Outputs.Reduce(scores, outputWeights);
     }
 
@@ -78,8 +78,7 @@ public static class R2
         bool forceFinite = true,
         ZeroDivision zeroDivision = ZeroDivision.NaN)
     {
-        int samples = Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, default);
-        return Compute(yTrue, yPred, outputCount, sampleWeight, samples, forceFinite, zeroDivision).Scores;
+        return ValidateAndCompute(yTrue, yPred, outputCount, sampleWeight, default, forceFinite, zeroDivision).Scores;
     }
 
     /// <summary>
@@ -110,10 +109,30 @@ public static class R2
         bool forceFinite = true,
         ZeroDivision zeroDivision = ZeroDivision.NaN)
     {
-        int samples = Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, default);
         (double[] scores, double[] denominators) =
-            Compute(yTrue, yPred, outputCount, sampleWeight, samples, forceFinite, zeroDivision);
+            ValidateAndCompute(yTrue, yPred, outputCount, sampleWeight, default, forceFinite, zeroDivision);
         return Outputs.ReduceByVariance(scores, denominators);
+    }
+
+    private static (double[] Scores, double[] Denominators) ValidateAndCompute(
+        ReadOnlySpan<double> yTrue,
+        ReadOnlySpan<double> yPred,
+        int outputCount,
+        ReadOnlySpan<double> sampleWeight,
+        ReadOnlySpan<double> outputWeights,
+        bool forceFinite,
+        ZeroDivision zeroDivision)
+    {
+        // A single contiguous output is the only shape that vectorizes. See docs/decisions/0027.
+        if (outputCount == 1 && sampleWeight.IsEmpty && Outputs.OnlyTargetsNeedScanning(yTrue, yPred, outputWeights)
+            && TryAccumulateSingleOutput(yTrue, yPred, out CompensatedSum numerator, out CompensatedSum centredSquare))
+        {
+            double denominator = centredSquare.Value;
+            return ([Resolve(numerator.Value, denominator, yTrue.Length, forceFinite, zeroDivision)], [denominator]);
+        }
+
+        int samples = Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, outputWeights);
+        return Compute(yTrue, yPred, outputCount, sampleWeight, samples, forceFinite, zeroDivision);
     }
 
     // One pass returns both arrays: VarianceWeighted needs the denominators,
@@ -160,16 +179,6 @@ public static class R2
     {
         int outputCount = numerators.Length;
 
-        // Vectorizes only for a single contiguous output; falls through to the
-        // scalar loop below otherwise. See docs/decisions/0027.
-#if NET5_0_OR_GREATER
-        if (outputCount == 1 && Vector.IsHardwareAccelerated)
-        {
-            AccumulateUnweightedVectorized(yTrue, yPred, samples, numerators, centredSquares);
-            return;
-        }
-#endif
-
         CompensatedSum[] meanSums = new CompensatedSum[outputCount];
         for (int row = 0; row < samples; row++)
         {
@@ -201,59 +210,189 @@ public static class R2
         }
     }
 
-#if NET5_0_OR_GREATER
-    // Not guaranteed bit-identical with the scalar loop above — see
-    // VectorCompensatedSum's remarks for why.
-    private static void AccumulateUnweightedVectorized(
+    /// <summary>
+    /// R²'s two sums over one unweighted output, which also report whether every target was finite.
+    /// </summary>
+    /// <param name="yTrue">The true values, as long as <paramref name="yPred"/> and not empty.</param>
+    /// <param name="yPred">The predicted values.</param>
+    /// <param name="numerator">The sum of squared residuals.</param>
+    /// <param name="centredSquare">The sum of squared deviations of the truth from its mean.</param>
+    /// <returns>Whether both spans were finite; when not, the sums mean nothing.</returns>
+    /// <remarks>
+    /// The mean pass reads the truth and the second pass both spans, each testing what it reads, in
+    /// place of two more passes spent only on validation. Per lane on <c>net10.0</c> and in four
+    /// stripes elsewhere; not guaranteed bit-identical with the multi-output loop, for
+    /// <c>docs/decisions/0033</c>'s reason.
+    /// </remarks>
+    private static bool TryAccumulateSingleOutput(
         ReadOnlySpan<double> yTrue,
         ReadOnlySpan<double> yPred,
-        int samples,
-        CompensatedSum[] numerators,
-        CompensatedSum[] centredSquares)
+        out CompensatedSum numerator,
+        out CompensatedSum centredSquare)
     {
-        int width = Vector<double>.Count;
-        VectorCompensatedSum meanAcc = default;
-        int i = 0;
-        for (; i <= samples - width; i += width)
-        {
-            meanAcc.Add(new Vector<double>(yTrue.Slice(i, width)));
-        }
-
-        CompensatedSum meanSum = meanAcc.Reduce();
+#if NET5_0_OR_GREATER
+        bool truthFinite = Vector.IsHardwareAccelerated
+            ? TryLaneTotal(yTrue, out CompensatedSum meanSum, out int i)
+            : TryStripeTotal(yTrue, out meanSum, out i);
+#else
+        bool truthFinite = TryStripeTotal(yTrue, out CompensatedSum meanSum, out int i);
+#endif
+        int samples = yTrue.Length;
+        long nonFinite = 0;
         for (; i < samples; i++)
         {
+            nonFinite |= Inputs.NonFiniteBits(yTrue[i]);
             meanSum.Add(yTrue[i]);
         }
 
+        // No total to accumulate: the sum of n ones is exactly n below 2^53.
         double mean = meanSum.Value / samples;
-        var meanVec = new Vector<double>(mean);
+#if NET5_0_OR_GREATER
+        bool predictionFinite = Vector.IsHardwareAccelerated
+            ? TryLaneSquares(yTrue, yPred, mean, out numerator, out centredSquare, out i)
+            : TryStripeSquares(yTrue, yPred, mean, out numerator, out centredSquare, out i);
+#else
+        bool predictionFinite = TryStripeSquares(yTrue, yPred, mean, out numerator, out centredSquare, out i);
+#endif
+        for (; i < samples; i++)
+        {
+            nonFinite |= Inputs.NonFiniteBits(yPred[i]);
+            double residual = yTrue[i] - yPred[i];
+            double centred = yTrue[i] - mean;
+            numerator.Add(residual * residual);
+            centredSquare.Add(centred * centred);
+        }
 
+        return truthFinite && predictionFinite && nonFinite == 0;
+    }
+
+#if NET5_0_OR_GREATER
+    /// <summary>The whole blocks of <paramref name="values"/>, added per lane.</summary>
+    /// <param name="values">The values to add.</param>
+    /// <param name="sum">The lanes, reduced to one sum.</param>
+    /// <param name="consumed">How many leading elements the blocks covered.</param>
+    /// <returns>Whether every element the blocks covered was finite.</returns>
+    private static bool TryLaneTotal(ReadOnlySpan<double> values, out CompensatedSum sum, out int consumed)
+    {
+        ReadOnlySpan<Vector<double>> blocks = MemoryMarshal.Cast<double, Vector<double>>(values);
+        VectorCompensatedSum acc = default;
+        Vector<long> laneBits = Vector<long>.Zero;
+        foreach (Vector<double> block in blocks)
+        {
+            laneBits |= Inputs.NonFiniteBits(block);
+            acc.Add(block);
+        }
+
+        sum = acc.Reduce();
+        consumed = blocks.Length * Vector<double>.Count;
+        return laneBits == Vector<long>.Zero;
+    }
+
+    /// <summary>The second pass's whole blocks, per lane; only the prediction is still untested.</summary>
+    /// <param name="yTrue">The true values, already tested by the mean pass.</param>
+    /// <param name="yPred">The predicted values, as long as <paramref name="yTrue"/>.</param>
+    /// <param name="mean">The truth's mean.</param>
+    /// <param name="numerator">The squared residuals, reduced to one sum.</param>
+    /// <param name="centredSquare">The squared deviations from the mean, reduced to one sum.</param>
+    /// <param name="consumed">How many leading elements the blocks covered.</param>
+    /// <returns>Whether every prediction the blocks covered was finite.</returns>
+    private static bool TryLaneSquares(
+        ReadOnlySpan<double> yTrue,
+        ReadOnlySpan<double> yPred,
+        double mean,
+        out CompensatedSum numerator,
+        out CompensatedSum centredSquare,
+        out int consumed)
+    {
+        ReadOnlySpan<Vector<double>> truths = MemoryMarshal.Cast<double, Vector<double>>(yTrue);
+        ReadOnlySpan<Vector<double>> predictions = MemoryMarshal.Cast<double, Vector<double>>(yPred);
+        var meanVec = new Vector<double>(mean);
         VectorCompensatedSum numeratorAcc = default;
         VectorCompensatedSum centredSquareAcc = default;
-        i = 0;
-        for (; i <= samples - width; i += width)
+        Vector<long> laneBits = Vector<long>.Zero;
+        for (int block = 0; block < truths.Length; block++)
         {
-            var truth = new Vector<double>(yTrue.Slice(i, width));
-            var prediction = new Vector<double>(yPred.Slice(i, width));
+            Vector<double> truth = truths[block];
+            Vector<double> prediction = predictions[block];
+            laneBits |= Inputs.NonFiniteBits(prediction);
             Vector<double> residual = truth - prediction;
             Vector<double> centred = truth - meanVec;
             numeratorAcc.Add(residual * residual);
             centredSquareAcc.Add(centred * centred);
         }
 
-        CompensatedSum numerator = numeratorAcc.Reduce();
-        CompensatedSum centredSquare = centredSquareAcc.Reduce();
-        for (; i < samples; i++)
-        {
-            double residual = yTrue[i] - yPred[i];
-            double centred = yTrue[i] - mean;
-            numerator.Add(residual * residual);
-            centredSquare.Add(centred * centred);
-        }
-        numerators[0] = numerator;
-        centredSquares[0] = centredSquare;
+        numerator = numeratorAcc.Reduce();
+        centredSquare = centredSquareAcc.Reduce();
+        consumed = truths.Length * Vector<double>.Count;
+        return laneBits == Vector<long>.Zero;
     }
 #endif
+
+    /// <summary>The whole groups of four of <paramref name="values"/>, one stripe per element.</summary>
+    /// <param name="values">The values to add.</param>
+    /// <param name="sum">The stripes, reduced to one sum.</param>
+    /// <param name="consumed">How many leading elements the groups covered.</param>
+    /// <returns>Whether every element the groups covered was finite.</returns>
+    /// <remarks>Internal so the <c>net10.0</c> tests, where the lanes route around it, reach it.</remarks>
+    internal static bool TryStripeTotal(ReadOnlySpan<double> values, out CompensatedSum sum, out int consumed)
+    {
+        StripedCompensatedSum acc = default;
+        long nonFinite = 0;
+        int i = 0;
+        for (; i <= values.Length - 4; i += 4)
+        {
+            nonFinite |= Inputs.NonFiniteBits(values[i]) | Inputs.NonFiniteBits(values[i + 1])
+                | Inputs.NonFiniteBits(values[i + 2]) | Inputs.NonFiniteBits(values[i + 3]);
+            acc.Add(values[i], values[i + 1], values[i + 2], values[i + 3]);
+        }
+
+        sum = acc.Reduce();
+        consumed = i;
+        return nonFinite == 0;
+    }
+
+    /// <summary>The second pass's whole groups of four, one stripe per element.</summary>
+    /// <param name="yTrue">The true values, already tested by the mean pass.</param>
+    /// <param name="yPred">The predicted values, as long as <paramref name="yTrue"/>.</param>
+    /// <param name="mean">The truth's mean.</param>
+    /// <param name="numerator">The squared residuals, reduced to one sum.</param>
+    /// <param name="centredSquare">The squared deviations from the mean, reduced to one sum.</param>
+    /// <param name="consumed">How many leading elements the groups covered.</param>
+    /// <returns>Whether every prediction the groups covered was finite.</returns>
+    /// <remarks>Internal so the <c>net10.0</c> tests, where the lanes route around it, reach it.</remarks>
+    internal static bool TryStripeSquares(
+        ReadOnlySpan<double> yTrue,
+        ReadOnlySpan<double> yPred,
+        double mean,
+        out CompensatedSum numerator,
+        out CompensatedSum centredSquare,
+        out int consumed)
+    {
+        StripedCompensatedSum numeratorAcc = default;
+        StripedCompensatedSum centredSquareAcc = default;
+        long nonFinite = 0;
+        int i = 0;
+        for (; i <= yTrue.Length - 4; i += 4)
+        {
+            nonFinite |= Inputs.NonFiniteBits(yPred[i]) | Inputs.NonFiniteBits(yPred[i + 1])
+                | Inputs.NonFiniteBits(yPred[i + 2]) | Inputs.NonFiniteBits(yPred[i + 3]);
+            double r0 = yTrue[i] - yPred[i];
+            double r1 = yTrue[i + 1] - yPred[i + 1];
+            double r2 = yTrue[i + 2] - yPred[i + 2];
+            double r3 = yTrue[i + 3] - yPred[i + 3];
+            numeratorAcc.Add(r0 * r0, r1 * r1, r2 * r2, r3 * r3);
+            double c0 = yTrue[i] - mean;
+            double c1 = yTrue[i + 1] - mean;
+            double c2 = yTrue[i + 2] - mean;
+            double c3 = yTrue[i + 3] - mean;
+            centredSquareAcc.Add(c0 * c0, c1 * c1, c2 * c2, c3 * c3);
+        }
+
+        numerator = numeratorAcc.Reduce();
+        centredSquare = centredSquareAcc.Reduce();
+        consumed = i;
+        return nonFinite == 0;
+    }
 
     private static void AccumulateWeighted(
         ReadOnlySpan<double> yTrue,
