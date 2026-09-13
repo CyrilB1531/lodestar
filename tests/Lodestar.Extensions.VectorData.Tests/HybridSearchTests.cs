@@ -9,14 +9,13 @@ public sealed class HybridSearchTests
         new() { Id = id, Text = text, Embedding = vector };
 
     [Fact]
-    public async Task The_fusion_surfaces_a_record_only_the_keyword_half_ranks_first()
+    public async Task The_fused_order_matches_neither_ranking_taken_alone()
     {
         using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
         await collection.UpsertAsync([
-            // "a" is nearest the query vector and says nothing about elephants.
+            // Vector ranking alone (query [1,0,0]): a, b, c. Keyword ranking alone ("elephant"): c.
             Doc("a", "the cat sat on the mat", 1f, 0f, 0f),
             Doc("b", "the dog ran in the park", 0f, 1f, 0f),
-            // "c" is furthest from the query vector and is the only elephant document.
             Doc("c", "an elephant crossed the river", 0f, 0f, 1f),
         ]);
 
@@ -26,13 +25,14 @@ public sealed class HybridSearchTests
         IKeywordHybridSearchable<Document> hybrid = collection;
 #pragma warning restore CA1859
         List<VectorSearchResult<Document>> hits = await hybrid
-            .HybridSearchAsync(new ReadOnlyMemory<float>([1f, 0f, 0f]), ["elephant"], 3)
+            .HybridSearchAsync(new ReadOnlyMemory<float>([1f, 0f, 0f]), ["elephant"], 2)
             .ToListAsync();
 
-        // Vector search alone would never put "c" this high; keyword search alone would never
-        // rank "a" at all. Both appearing is what says the two rankings were fused.
-        Assert.Contains(hits, hit => hit.Record.Id == "c");
-        Assert.Contains(hits, hit => hit.Record.Id == "a");
+        // At k=60: fused(c) = 1/63 + 1/61 ≈ 0.03227, fused(a) = 1/61 ≈ 0.01639, fused(b) ≈
+        // 0.01613 -- [c, a]. Vector alone gives [a, b]; keyword alone gives [c]; this is neither.
+        Assert.Equal(2, hits.Count);
+        Assert.Equal("c", hits[0].Record.Id);
+        Assert.Equal("a", hits[1].Record.Id);
     }
 
     [Fact]
