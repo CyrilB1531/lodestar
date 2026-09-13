@@ -47,6 +47,7 @@ SplitConformalSample.Run();
 DecompositionSamples.Run();
 DistributionsSample.Run();
 QrDecompositionSample.Run();
+PrincipalComponentVarianceSample.Run();
 KMeansSample.Run();
 KMeansOptionsSample.Run();
 StandardScalerSample.Run();

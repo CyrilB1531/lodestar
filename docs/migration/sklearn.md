@@ -13,7 +13,7 @@ estimators that work on a sparse matrix.
 | `classification_report`, `roc_auc_score`, the averaging modes | **`Lodestar.Metrics`** |
 | `TruncatedSVD`, `NMF(solver="mu")` on a sparse matrix | **`Lodestar.Decomposition`** |
 | `PCA` on a dense matrix | **ML.NET** `ProjectToPrincipalComponents` on any target, or [NumFlat](https://www.nuget.org/packages/NumFlat) `PrincipalComponentAnalysis` on `net8.0`+. Not `Lodestar.Decomposition`: centring densifies a `CsrMatrix`, so PCA is refused for sparse input by name ([`decisions/0116`](../decisions/0116-the-pca-gap-is-the-explained-variance-not-the-projection.md)) |
-| `PCA().explained_variance_ratio_` | ⚠️ **gap below `net8.0`** — ML.NET's fourteen public PCA members carry no eigenvalue, and NumFlat's `EigenValues` ships `net8.0` only. Scoped, unwritten, waiting on a caller ([#685](https://github.com/CyrilB1531/lodestar/issues/685)) |
+| `PCA().explained_variance_ratio_` | `Lodestar.Decomposition` [`PrincipalComponentVariance.Compute`](../reference/decomposition/factorization/principalcomponentvariance-compute.md) on any target — ML.NET's fourteen public PCA members carry no eigenvalue, and NumFlat's `EigenValues` ships `net8.0` only ([`decisions/0119`](../decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md)) |
 | `StandardScaler` on arrays rather than on an `IDataView` | **`Lodestar.Preprocessing`** |
 
 ```bash

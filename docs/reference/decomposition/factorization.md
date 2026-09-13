@@ -1,7 +1,8 @@
 # Factorization — `Lodestar.Decomposition`
 
 Two factorizations of a sparse matrix, and the settings each takes. Both take a `CsrMatrix`
-and neither centres it; what separates them is whether the components may be negative.
+and neither centres it; what separates them is whether the components may be negative. A third
+section answers the one PCA question .NET leaves open below `net8.0`, over a dense block.
 
 ## Truncated SVD
 
@@ -12,14 +13,11 @@ matrix fills it in, and a corpus that fitted in memory as a `CsrMatrix` does not
 one. That is also what separates this from PCA, which centres and is therefore a different
 answer.
 
-**So PCA is not offered here, and that is a refusal rather than a gap.** For a dense matrix,
-reach for ML.NET's `ProjectToPrincipalComponents` on any target this repository supports, or
-[NumFlat](https://www.nuget.org/packages/NumFlat)'s `PrincipalComponentAnalysis` on `net8.0` and
-above. One thing neither gives you below `net8.0`: **how much variance each component explains.**
-ML.NET's fourteen public PCA members expose the eigenvectors and the mean and no eigenvalue, and
-NumFlat's `EigenValues` ships `net8.0` only —
-[decision 0116](../../decisions/0116-the-pca-gap-is-the-explained-variance-not-the-projection.md)
-has the reading and what would reopen it.
+**So PCA's projection is not offered here, and that is a refusal rather than a gap.** For a dense
+matrix, reach for ML.NET's `ProjectToPrincipalComponents` on any target this repository supports,
+or [NumFlat](https://www.nuget.org/packages/NumFlat)'s `PrincipalComponentAnalysis` on `net8.0`
+and above. The one thing neither gives you below `net8.0` — **how much variance each component
+explains** — is the section further down.
 
 The factorization is randomized, not exact. A thin random block Ω probes the matrix's range, a
 few power iterations sharpen it, and the singular values fall out of a small dense problem whose
@@ -61,6 +59,22 @@ initialisation decides which one.
 | [`NmfOptions`](factorization/nmfoptions.md) | The loss, the initialisation, the iteration cap, the tolerance, and Ω. |
 | [`NmfBetaLoss`](factorization/nmfbetaloss.md) | What the factorization minimises — a Gaussian noise model or a Poisson one. |
 | [`NmfInitialization`](factorization/nmfinitialization.md) | Where the iteration starts — the two NNDSVD variants this package ships. |
+
+## The variance principal components explain
+
+ML.NET's fourteen public PCA members expose the eigenvectors and the mean and no eigenvalue, and
+NumFlat's `EigenValues` ships `net8.0` only, so below `net8.0` nothing in .NET could say how many
+components a projection should keep
+([decision 0116](../../decisions/0116-the-pca-gap-is-the-explained-variance-not-the-projection.md)).
+This is that number and nothing more: centre a dense block, take the eigenvalues of its Gram
+matrix, and read the share of the total variance each one carries. It takes a row-major span
+rather than a `CsrMatrix`, because centring is exactly the step that densifies one —
+[decision 0119](../../decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md)
+has why it lives in this package all the same.
+
+| Type | What it is |
+| --- | --- |
+| [`PrincipalComponentVariance`](factorization/principalcomponentvariance.md) | The variance, the ratio and the cumulative curve, one entry per component. |
 
 ## The kernel underneath, now published
 

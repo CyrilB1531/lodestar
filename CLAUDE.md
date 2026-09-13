@@ -162,7 +162,7 @@ script's `EXPECTED` edge map.
 | `Lodestar.Fuzzy` | core | `fuzz.*`, `process.extract`, blocking deduplication. |
 | `Lodestar.Metrics` | core | classification, regression, clustering and ranking metrics at scikit-learn parity. |
 | `Lodestar.Conformal` | core | split conformal intervals and prediction sets, at MAPIE parity. |
-| `Lodestar.Decomposition` | core | truncated SVD, NMF and the Householder QR over a `CsrMatrix`, with the dense kernels written here. |
+| `Lodestar.Decomposition` | core | truncated SVD and NMF over a `CsrMatrix`, the Householder QR, and the variance principal components explain, with the dense kernels written here. |
 | `Lodestar.Cluster` | core | k-means by Lloyd's algorithm over a row-major span, at scikit-learn parity. |
 | `Lodestar.Preprocessing` | core | feature scaling fitted on arrays and applied to spans, at scikit-learn parity. |
 | `Lodestar.Stats` | core | classical hypothesis tests at scipy parity, plus the four tail members decisions 0095, 0097 and 0098 published for its neighbours. |

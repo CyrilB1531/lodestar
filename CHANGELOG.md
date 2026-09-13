@@ -46,6 +46,20 @@ is one sentence, the issue and the commit; see
   also defers `GammaConformityScore` under decision 0095's rule.
   ([#683](https://github.com/CyrilB1531/lodestar/issues/683))
 
+### Lodestar.Decomposition
+
+#### Added
+
+- **[`PrincipalComponentVariance.Compute`](docs/reference/decomposition/factorization/principalcomponentvariance-compute.md) reports how much variance each principal component of a
+  dense matrix explains**, the number a scree plot is drawn from and the one nothing in .NET
+  reported below `net8.0`: ML.NET's PCA exposes no eigenvalue and NumFlat ships `net8.0` only.
+  It returns the explained variance, its ratio, the cumulative curve and the total, and agrees with
+  scikit-learn's `PCA(svd_solver="full")` at `1e-9`, the `n < p` edge included. It is not a PCA:
+  the projection stays delegated under decision 0116, and
+  [decision 0119](docs/decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md)
+  records why it lives in this package rather than `Lodestar.Preprocessing`.
+  ([#701](https://github.com/CyrilB1531/lodestar/issues/701))
+
 ### Lodestar.Text
 
 #### Added
@@ -113,7 +127,7 @@ is one sentence, the issue and the commit; see
   ([#617](https://github.com/CyrilB1531/lodestar/issues/617))
 - **`NanPolicy`, on the eleven test entry points whose scipy counterpart takes `nan_policy`.**
   `Propagate` stays the default, so no existing call changes; `Omit` drops pairs where the inputs
-  are aligned and values where they are not; decision 0118 has the rule and the five entry points
+  are aligned and values where they are not; decision 0117 has the rule and the five entry points
   that deliberately do not take it.
   ([#687](https://github.com/CyrilB1531/lodestar/issues/687))
 

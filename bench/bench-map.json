@@ -63,6 +63,9 @@
     "DecompositionBenchmarks": [
       "src/Lodestar.Decomposition/**"
     ],
+    "PrincipalComponentVarianceBenchmarks": [
+      "src/Lodestar.Decomposition/**"
+    ],
     "FuzzBenchmarks": [
       "src/Lodestar.Fuzzy/**",
       "src/Lodestar.Text/Distances/**",
