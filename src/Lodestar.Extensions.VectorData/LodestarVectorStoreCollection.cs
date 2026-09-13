@@ -94,6 +94,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException"><paramref name="record"/> is null.</exception>
     public override Task UpsertAsync(TRecord record, CancellationToken cancellationToken = default)
     {
         Guard.NotNull(record);
@@ -104,6 +105,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException"><paramref name="records"/> is null.</exception>
     public override Task UpsertAsync(IEnumerable<TRecord> records, CancellationToken cancellationToken = default)
     {
         Guard.NotNull(records);
@@ -129,6 +131,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException"><paramref name="keys"/> is null.</exception>
     public override Task DeleteAsync(IEnumerable<TKey> keys, CancellationToken cancellationToken = default)
     {
         Guard.NotNull(keys);
@@ -152,6 +155,8 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         Task.FromResult(_records.TryGetValue(key, out TRecord? record) ? record : null);
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException"><paramref name="keys"/> is null.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> is cancelled between records.</exception>
     public override async IAsyncEnumerable<TRecord> GetAsync(
         IEnumerable<TKey> keys,
         RecordRetrievalOptions? options = null,
@@ -171,7 +176,10 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException"><paramref name="filter"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="top"/> is less than 1.</exception>
     /// <exception cref="NotSupportedException"><paramref name="options"/> sets <c>OrderBy</c>.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> is cancelled between records.</exception>
     /// <remarks>
     /// <c>Skip</c> counts over the records the filter admits, the same way
     /// <see cref="SearchAsync{TInput}"/> counts it. <c>OrderBy</c> throws rather than being
@@ -229,7 +237,10 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
             : null;
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="top"/> is less than 1.</exception>
+    /// <exception cref="ArgumentException">The query, or a record written since the last read, is not the collection's vector width.</exception>
     /// <exception cref="NotSupportedException"><paramref name="searchValue"/> is not a vector, and this package generates none.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> is cancelled between results.</exception>
     /// <remarks>
     /// With a filter, every record is scored and the filter runs before the cut, so
     /// <paramref name="top"/> means <paramref name="top"/>: a caller asking for five matching
@@ -307,7 +318,11 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <param name="top">How many fused results to return.</param>
     /// <param name="options">A filter and a skip, applied to the fused ranking.</param>
     /// <param name="cancellationToken">Checked between results.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="keywords"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="top"/> is less than 1.</exception>
+    /// <exception cref="ArgumentException">The query, or a record written since the last read, is not the collection's vector width.</exception>
     /// <exception cref="NotSupportedException">The record type marks no <c>IsFullTextIndexed</c> property, or the search value is not a vector.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> is cancelled between results.</exception>
     /// <remarks>
     /// A term the collection never saw scores nothing rather than failing. A document the
     /// keywords do not match is dropped from the keyword ranking, rather than kept at score

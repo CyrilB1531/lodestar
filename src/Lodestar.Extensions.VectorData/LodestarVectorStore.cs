@@ -20,6 +20,7 @@ public sealed class LodestarVectorStore : VectorStore
         _options = options ?? new LodestarVectorStoreOptions();
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="name"/> is already held under a different key or record type.</exception>
     public override VectorStoreCollection<TKey, TRecord> GetCollection<TKey, TRecord>(
         string name, VectorStoreCollectionDefinition? definition = null)
@@ -52,6 +53,7 @@ public sealed class LodestarVectorStore : VectorStore
             + "record's properties, which a dictionary does not have.");
 
     /// <inheritdoc />
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> is cancelled while the names are read.</exception>
     public override async IAsyncEnumerable<string> ListCollectionNamesAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
