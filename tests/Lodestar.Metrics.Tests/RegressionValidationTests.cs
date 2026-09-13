@@ -30,6 +30,69 @@ public sealed class RegressionValidationTests
         Assert.Contains("Input contains infinity", error.Message, StringComparison.Ordinal);
     }
 
+    // 37 values put a position in a SIMD block of any width up to 32, in a group of four,
+    // and in the scalar tail: the three places the single-output walks test finiteness.
+    public static TheoryData<string, bool, int, double> NonFiniteAnywhere()
+    {
+        var data = new TheoryData<string, bool, int, double>();
+        foreach (string metric in new[] { "mse", "mae", "r2", "r2_per_output", "r2_variance_weighted", "mse_per_output" })
+        {
+            foreach (bool inTruth in new[] { true, false })
+            {
+                foreach (int position in new[] { 0, 17, 36 })
+                {
+                    data.Add(metric, inTruth, position, double.NaN);
+                    data.Add(metric, inTruth, position, double.NegativeInfinity);
+                }
+            }
+        }
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(NonFiniteAnywhere))]
+    public void A_non_finite_value_is_refused_wherever_it_sits_and_named_after_its_span(
+        string metric, bool inTruth, int position, double value)
+    {
+        double[] yTrue = [.. Enumerable.Range(0, 37).Select(i => i * 0.5)];
+        double[] yPred = [.. Enumerable.Range(0, 37).Select(i => (i * 0.5) + 0.25)];
+        (inTruth ? yTrue : yPred)[position] = value;
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => Score(metric, yTrue, yPred));
+
+        Assert.Equal(inTruth ? "yTrue" : "yPred", error.ParamName);
+        Assert.StartsWith(
+            double.IsNaN(value) ? "Input contains NaN." : "Input contains infinity",
+            error.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_non_finite_target_is_reported_before_output_weights_that_cannot_normalize()
+    {
+        // The single-output walks test finiteness after the checks that read no data, and
+        // the order a caller sees must still be the one Validate throws in.
+        double[] yTrue = [.. Enumerable.Range(0, 37).Select(i => i * 0.5)];
+        double[] yPred = [.. yTrue];
+        yPred[20] = double.NaN;
+
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => MeanSquaredError.Score(yTrue, yPred, outputWeights: [0.0]));
+
+        Assert.Equal("yPred", error.ParamName);
+    }
+
+    private static object Score(string metric, double[] yTrue, double[] yPred) => metric switch
+    {
+        "mse" => MeanSquaredError.Score(yTrue, yPred),
+        "mae" => MeanAbsoluteError.Score(yTrue, yPred),
+        "r2" => R2.Score(yTrue, yPred),
+        "r2_per_output" => R2.PerOutput(yTrue, yPred),
+        "r2_variance_weighted" => R2.VarianceWeighted(yTrue, yPred, 1),
+        "mse_per_output" => MeanSquaredError.PerOutput(yTrue, yPred),
+        _ => throw new ArgumentOutOfRangeException(nameof(metric), metric, "no such metric in this test"),
+    };
+
     [Fact]
     public void A_length_that_does_not_divide_by_the_output_count_is_refused()
     {

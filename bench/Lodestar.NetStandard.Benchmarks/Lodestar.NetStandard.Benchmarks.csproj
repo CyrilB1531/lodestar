@@ -52,6 +52,7 @@
     <Compile Include="../Lodestar.Text.Benchmarks/PersistenceBenchmarks.cs" Link="PersistenceBenchmarks.cs" />
     <Compile Include="../Lodestar.Text.Benchmarks/BatchEmbeddingBenchmarks.cs" Link="BatchEmbeddingBenchmarks.cs" />
     <Compile Include="../Lodestar.Text.Benchmarks/MetricsBenchmarks.cs" Link="MetricsBenchmarks.cs" />
+    <Compile Include="../Lodestar.Text.Benchmarks/RegressionMetricsBenchmarks.cs" Link="RegressionMetricsBenchmarks.cs" />
   </ItemGroup>
 
   <!--

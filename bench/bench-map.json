@@ -109,6 +109,9 @@
     "MetricsBenchmarks": [
       "src/Lodestar.Metrics/**"
     ],
+    "RegressionMetricsBenchmarks": [
+      "src/Lodestar.Metrics/**"
+    ],
     "MyersGateBenchmarks": [
       "src/Lodestar.Text/Distances/**",
       "src/Lodestar.Text/Text/**"

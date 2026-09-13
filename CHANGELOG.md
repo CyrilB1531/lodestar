@@ -223,6 +223,16 @@ is one sentence, the issue and the commit; see
   from the same data were unequal and now are equal, with `GetHashCode` agreeing; decision 0113
   has the rule. ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
 
+### Lodestar.Metrics
+
+#### Changed
+
+- **`MeanSquaredError`, `MeanAbsoluteError` and `R2` read their input once to validate and score
+  it.** An unweighted single output tests finiteness inside the pass that computes the metric, and
+  `netstandard2.0` accumulates in four compensated stripes, so the last bits of a result can move
+  within the corpora's `1e-9`; the exception a non-finite input raises does not change.
+  ([#715](https://github.com/CyrilB1531/lodestar/issues/715))
+
 ## Released — 2026-09-10
 
 Thirteen cuts across eleven packages, and the end of milestone 0.6.0 — thirty-three

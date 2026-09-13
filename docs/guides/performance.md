@@ -1546,6 +1546,68 @@ because nothing in this change touches it:
   `MeanAbsolutePercentageError` divides and clamps and was not measured. Only the two
   kernels that are arithmetic all the way down implement the lane-wise form.
 
+#### Validation folded into the walk (issue #715)
+
+The nightly compare had `mse` and `mae` below the gate again at a million rows — 0.81×–0.85×
+against scikit-learn on 2026-09-13 — with `r2` at 1.23×–1.45×. #321 had vectorized the sum, and
+the sum was no longer where the time went: before any arithmetic, `Inputs.Validate` walked
+`yTrue` and `yPred` once each, testing every value against `NaN` and against infinity with a
+branch apiece. A Stopwatch probe on the machine below, one million values, best of seven,
+priced each piece of `mse` separately:
+
+| Piece | ms |
+| --- | ---: |
+| the two validation passes, as they were | 0.797 |
+| the same two passes, branch-free per lane | 0.183 |
+| the compensated `Vector<double>` sum, as it was | 0.264 |
+| that sum with a branchless TwoSum over four accumulators | 0.238 |
+| that sum with a branchless TwoSum on `Vector512<double>` | 0.228 |
+| an uncompensated sum over four accumulators — the floor | 0.179 |
+
+**Validation was three quarters of the call**, and nothing done to the sum could recover more
+than a tenth of what remained, so the sum's Neumaier lanes are unchanged. What changed:
+
+- **A finite `x` gives `x - x` = +0.0, whose bits are all zero; infinity and `NaN` give `NaN`.**
+  OR-ing those bits and testing once replaces two branches per value, on every regression metric's
+  validation.
+- **An unweighted single output tests finiteness inside the pass that scores it**, so `mse` and
+  `mae` read the data once instead of three times, and `r2` twice instead of four. Only an input
+  that fails takes the old validation, which throws the exception it always threw.
+- **`netstandard2.0` sums those three metrics in four Neumaier stripes** instead of one, so no
+  addition waits on the previous one; the stripes take the terms a four-lane
+  `VectorCompensatedSum` does and fold in its order.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores,
+Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime, AVX-512 (`Vector<double>` holds four
+lanes). `RegressionMetricsBenchmarks`, BenchmarkDotNet **default job**, in-process toolchain on
+both harnesses. Two windows on 2026-09-13, each under the machine's benchmark lock: *before*,
+built from `main`, 01:14–01:19; *after*, 05:54–05:59.
+
+| Operation | n | net10 before | net10 after | change | netstandard2.0 before | netstandard2.0 after | change |
+| --- | ---: | ---: | ---: | --- | ---: | ---: | --- |
+| `mse` | 100 000 | 105.6 μs | **27.3 μs** | **3.9× faster** | 320.4 μs | **85.2 μs** | **3.8× faster** |
+| `mae` | 100 000 | 105.1 μs | **26.9 μs** | **3.9× faster** | 317.5 μs | **84.8 μs** | **3.7× faster** |
+| `r2` | 100 000 | 148.0 μs | **69.3 μs** | **2.1× faster** | 568.6 μs | **212.7 μs** | **2.7× faster** |
+| `median_ae` | 100 000 | 365.7 μs | 293.4 μs | 1.25× | 347.3 μs | 338.6 μs | unchanged |
+| `mse` | 1 000 000 | 1,086.5 μs | **282.9 μs** | **3.8× faster** | 3,212.7 μs | **852.1 μs** | **3.8× faster** |
+| `mae` | 1 000 000 | 1,071.7 μs | **285.7 μs** | **3.8× faster** | 3,191.0 μs | **850.6 μs** | **3.8× faster** |
+| `r2` | 1 000 000 | 1,504.1 μs | **694.4 μs** | **2.2× faster** | 5,703.9 μs | **2,134.5 μs** | **2.7× faster** |
+| `median_ae` | 1 000 000 | 4,526.9 μs | 4,053.9 μs | 1.1× | 4,271.4 μs | 4,165.4 μs | unchanged |
+
+- **`median_ae` is the nearest thing to a control**, not a clean one: it sorts, and gained only
+  the branch-free validation, which is what its net10 rows show and its `netstandard2.0` rows,
+  where the sort dominates, barely do.
+- **The two windows are hours apart**, so a drift of the machine would sit inside every ratio; it
+  would have to be several-fold to matter against changes of 2×–3.9×.
+- **The ratio against scikit-learn is not measured here.** This harness is not the nightly's, and
+  the next nightly is what places `mse` and `mae` against the gate.
+- **numpy's pairwise sum is not what the lanes approximate.** On this distribution scikit-learn's
+  `mse` and `mae` land within one ulp of `math.fsum`, the correctly rounded sum, and so does any
+  compensated sum whatever its lane order; a plain sequential sum is about `1e-14` relative away.
+- **`ExplainedVariance` keeps its separate validation passes.** The same fold applies, but its
+  second pass is a residual centred on its own mean, and restructuring it was left out of this
+  change.
+
 ## Persisting an embedding index — the save path (issue #323)
 
 The nightly reported `embedding_index_save` at **0.27× cpu** against `numpy.save`

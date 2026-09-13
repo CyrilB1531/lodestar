@@ -610,6 +610,11 @@ This tier is not the nine-operation cross-language set: `MetricsBenchmarks` time
 `Matrix`, `MatrixWeighted`, `AccuracyScore`, `F1Macro` and `Report` only, and the
 three issue-#93 metrics have no BenchmarkDotNet method of their own.
 
+The four regression rows of the cross-language set — `mse`, `mae`, `median_ae` and `r2` —
+have theirs in `RegressionMetricsBenchmarks`, at n = 100 000 and 1 000 000 over the corpus's
+own distribution generated in-process, so it needs no corpus file. Both harnesses link it,
+and it takes the same pair of commands with `'*RegressionMetricsBenchmarks*'` as the filter.
+
 **`--inProcess` on the first command is not decoration.** Without it the two
 commands do not measure the same way: `Lodestar.NetStandard.Benchmarks` pins
 `InProcessEmitToolchain` (its `Program.cs` needs it, or BenchmarkDotNet's
