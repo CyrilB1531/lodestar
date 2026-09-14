@@ -72,8 +72,13 @@ internal static class Myers
             return false;
         }
 
-        return m <= 64
-            ? TrySingleWord(pattern, text, out distance)
+        if (m <= 64)
+        {
+            return TrySingleWord(pattern, text, out distance);
+        }
+
+        return BitParallelLcs.IsLatin1(pattern)
+            ? TryPaired(pattern, text, out distance)
             : TryBlocked(pattern, text, out distance);
     }
 
@@ -254,7 +259,8 @@ internal static class Myers
     }
 
     /// <summary>
-    /// The blocked (multi-word) variant, for patterns longer than one machine word.
+    /// The blocked (multi-word) variant, for a pattern longer than one machine word that leaves
+    /// Latin-1; a Latin-1 one takes <see cref="TryPaired"/>.
     /// </summary>
     /// <remarks>
     /// The bit vectors span <c>⌈m/64⌉</c> words with horizontal deltas carried
@@ -381,5 +387,117 @@ internal static class Myers
             ArrayPool<ulong>.Shared.Return(vpRented);
             ArrayPool<ulong>.Shared.Return(vnRented);
         }
+    }
+
+    /// <summary>One row per Latin-1 code unit, and a last all-zero row every character above it reads.</summary>
+    private const int PairedEntries = 257;
+
+    /// <summary>A Latin-1 pattern past one word, its words advanced two at a time over the whole text.</summary>
+    /// <remarks>
+    /// Word <c>b</c> at text position <c>j</c> needs itself at <c>j - 1</c> and the two horizontal bits
+    /// leaving word <c>b - 1</c> at <c>j</c>, so the loops swap, as <c>BitParallelLcs</c>' did (#717).
+    /// On a Ryzen 7 8700G pairs read 0.62 to 0.85 of the row-major kernel from 128 to 1,024, four
+    /// words no better, one slower from 512: twice the LCS state per word (#718). The distance is
+    /// the last column's, <c>n + Σ vp - Σ vn</c> over the pattern's bits, so no pair keeps a score.
+    /// </remarks>
+    private static bool TryPaired(ReadOnlySpan<char> pattern, ReadOnlySpan<char> text, out int distance)
+    {
+        distance = 0;
+        int m = pattern.Length;
+        int pairs = (m + 127) / 128;
+
+        // Padded to whole pairs: a word past the pattern reads all-zero rows, and nothing above
+        // bit m - 1 reaches a lower bit or the masked counts.
+        long cells = (long)pairs * 2 * PairedEntries;
+        if (cells > WideAlphabet.MaxTableLength)
+        {
+            return false;
+        }
+
+        int peqLength = (int)cells;
+        ulong[] peqRented = ArrayPool<ulong>.Shared.Rent(peqLength);
+        byte[] carriesRented = ArrayPool<byte>.Shared.Rent(Math.Max(1, text.Length));
+        try
+        {
+            Span<ulong> peq = peqRented.AsSpan(0, peqLength);
+            Span<byte> carries = carriesRented.AsSpan(0, text.Length);
+            peq.Clear();
+
+            // D[0][j] = j: the horizontal delta entering the first word is +1 at every position.
+            carries.Fill(1);
+            for (int i = 0; i < m; i++)
+            {
+                peq[((i >> 6) * PairedEntries) + pattern[i]] |= 1UL << (i & 63);
+            }
+
+            long delta = 0;
+            for (int pair = 0; pair < pairs; pair++)
+            {
+                int word = 2 * pair;
+                delta += SweepPair(peq.Slice(word * PairedEntries, 2 * PairedEntries), text, carries, m - (word * 64));
+            }
+
+            distance = (int)(text.Length + delta);
+            return true;
+        }
+        finally
+        {
+            ArrayPool<ulong>.Shared.Return(peqRented);
+            ArrayPool<byte>.Shared.Return(carriesRented);
+        }
+    }
+
+    /// <summary>Two words over the whole text; returns their pattern bits' vertical deltas, summed.</summary>
+    /// <remarks>
+    /// <c>carries[j]</c> holds the horizontal bits entering the pair at <c>j</c>, bit 0 the positive
+    /// one and bit 1 the negative, and leaves holding those the pair passes up. Written out word by
+    /// word, as <c>TryBlocked</c>'s inner loop is, so the four vectors stay in registers.
+    /// </remarks>
+    private static long SweepPair(ReadOnlySpan<ulong> columns, ReadOnlySpan<char> text, Span<byte> carries, int remaining)
+    {
+        ReadOnlySpan<ulong> peq0 = columns.Slice(0, PairedEntries);
+        ReadOnlySpan<ulong> peq1 = columns.Slice(PairedEntries, PairedEntries);
+        ulong vp0 = ulong.MaxValue;
+        ulong vn0 = 0;
+        ulong vp1 = ulong.MaxValue;
+        ulong vn1 = 0;
+
+        for (int j = 0; j < carries.Length; j++)
+        {
+            char tc = text[j];
+            int row = tc > 0xFF ? PairedEntries - 1 : tc;
+            ulong hp = carries[j] & 1UL;
+            ulong hn = (ulong)carries[j] >> 1;
+
+            ulong eq = peq0[row];
+            ulong xv = eq | vn0;
+            eq |= hn;
+            ulong xh = (((eq & vp0) + vp0) ^ vp0) | eq;
+            ulong ph = vn0 | ~(xh | vp0);
+            ulong mh = vp0 & xh;
+            ulong hpBetween = ph >> 63;
+            ulong hnBetween = mh >> 63;
+            ph = (ph << 1) | hp;
+            mh = (mh << 1) | hn;
+            vp0 = mh | ~(xv | ph);
+            vn0 = ph & xv;
+
+            eq = peq1[row];
+            xv = eq | vn1;
+            eq |= hnBetween;
+            xh = (((eq & vp1) + vp1) ^ vp1) | eq;
+            ph = vn1 | ~(xh | vp1);
+            mh = vp1 & xh;
+            carries[j] = (byte)((ph >> 63) | ((mh >> 63) << 1));
+            ph = (ph << 1) | hpBetween;
+            mh = (mh << 1) | hnBetween;
+            vp1 = mh | ~(xv | ph);
+            vn1 = ph & xv;
+        }
+
+        ulong mask0 = BitParallelLcs.TailMask(remaining);
+        ulong mask1 = BitParallelLcs.TailMask(remaining - 64);
+        return (long)BitParallelLcs.PopCount(vp0 & mask0) - BitParallelLcs.PopCount(vn0 & mask0)
+            + BitParallelLcs.PopCount(vp1 & mask1) - BitParallelLcs.PopCount(vn1 & mask1);
     }
 }

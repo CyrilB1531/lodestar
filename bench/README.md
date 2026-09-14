@@ -19,7 +19,11 @@ point of having both.
 That is the near-duplicate matching case, and it is ASCII — so its
 `Distance_CodePoint` row decodes into a sequence identical to the UTF-16 one and
 measures the decode over a 27-symbol alphabet. It is not a measurement of the
-code-point mode.
+code-point mode. Its `Distance_Utf16_Cjk` row builds the same scattered pair from a
+27-symbol CJK alphabet, which leaves Latin-1: past one word that takes the row-major
+blocked kernel and its side table, where the ASCII rows take the paired column-major
+one, so the two rows move apart when either route does (#718). `Length = 128` is
+there for the same reason: it is the first pattern of two words.
 
 `LevenshteinCodePointBenchmarks` is that measurement (#208). Both operands are
 drawn from U+1F300..U+1FAFF, so every character is a surrogate pair and the two

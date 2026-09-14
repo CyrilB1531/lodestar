@@ -15,10 +15,9 @@ namespace Lodestar.Text.Benchmarks;
 internal static class ScatteredPair
 {
     /// <summary>Builds two strings of <paramref name="length"/> differing in about a tenth of their positions.</summary>
-    internal static (string A, string B) Build(int length, int seed = 42)
+    internal static (string A, string B) Build(int length, int seed = 42, string alphabet = Alphabets.Latin)
     {
         var rng = new Random(seed);
-        const string alphabet = Alphabets.Latin;
         char[] a = new char[length];
         for (int i = 0; i < length; i++)
         {

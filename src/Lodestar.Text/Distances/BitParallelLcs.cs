@@ -34,7 +34,7 @@ internal static class BitParallelLcs
             : TryBlocked(pattern, text, out length);
     }
 
-    private static bool IsLatin1(ReadOnlySpan<char> pattern)
+    internal static bool IsLatin1(ReadOnlySpan<char> pattern)
     {
 #if NET
         return pattern.IndexOfAnyExceptInRange('\0', '\u00FF') < 0;
@@ -258,7 +258,7 @@ internal static class BitParallelLcs
 
     /// <summary>The bits of a word that hold pattern positions, given how many remain from it.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ulong TailMask(int remaining)
+    internal static ulong TailMask(int remaining)
     {
         if (remaining <= 0)
         {
@@ -496,10 +496,10 @@ internal static class BitParallelLcs
     }
 
 #if NET
-    private static int PopCount(ulong value) => System.Numerics.BitOperations.PopCount(value);
+    internal static int PopCount(ulong value) => System.Numerics.BitOperations.PopCount(value);
 #else
     /// <summary>The SWAR population count, netstandard2.0 having no BitOperations.</summary>
-    private static int PopCount(ulong value)
+    internal static int PopCount(ulong value)
     {
         value -= (value >> 1) & 0x5555555555555555UL;
         value = (value & 0x3333333333333333UL) + ((value >> 2) & 0x3333333333333333UL);

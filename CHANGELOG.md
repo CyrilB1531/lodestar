@@ -85,6 +85,11 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- **`Levenshtein.Distance` over a Latin-1 pattern past 64 characters advances its words two at a
+  time**, the column-major order the blocked LCS kernel took in #717, returning the same distances:
+  0.64 of the time at 128 and 0.77 at 512, and ahead of rapidfuzz at 512 where it trailed.
+  ([#718](https://github.com/CyrilB1531/lodestar/issues/718))
+
 - **`Indel` and `Lcs.SubsequenceLength` in `TextElement.CodePoint` mode reach the bit-parallel
   kernel** instead of the dynamic program, returning the same lengths. Text with no surrogate takes
   the UTF-16 kernel directly; astral code points are renamed first. `Indel.Distance` over code
