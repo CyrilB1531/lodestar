@@ -62,8 +62,8 @@ public sealed class TwoSampleRanksTests
     {
         for (int i = 1; i < Specials.Length; i++)
         {
-            ulong below = TwoSampleRanks.OrderKey(Specials[i - 1]);
-            ulong above = TwoSampleRanks.OrderKey(Specials[i]);
+            ulong below = RankKeys.OrderKey(Specials[i - 1]);
+            ulong above = RankKeys.OrderKey(Specials[i]);
             // S1244: -0.0 and +0.0 are the one pair exact equality is meant to catch.
 #pragma warning disable S1244
             if (Specials[i] == 0.0 && Specials[i - 1] == 0.0)

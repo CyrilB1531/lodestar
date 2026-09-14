@@ -31,24 +31,19 @@ public static class KruskalWallis
         }
 
         int total = ValidatedTotal(groups);
-        double[] pooled = Pool(groups, total);
-
         // Under the default NanPolicy.Propagate a NaN anywhere propagates rather
         // than taking a false finite rank (Ranks.HasNaN's remark).
-        if (Ranks.HasNaN(pooled))
+        if (Array.Exists(groups, group => Ranks.HasNaN(group)))
         {
             return new TestResult(double.NaN, double.NaN);
         }
 
-        double[] ranks = Ranks.Average(pooled);
-
-        double weighted = WeightedRankSum(groups, ranks);
+        (double weighted, double tieTerm) = RankSumsAndTies(groups, total);
         double h = (12.0 / (total * (total + 1.0)) * weighted) - (3.0 * (total + 1.0));
 
         // Every value tied leaves nothing: with t = n (one tie group spanning the whole
         // sample), 1 - (t^3-t)/(n^3-n) is exactly 0, not merely close to it.
-        double tieCorrection = 1.0 -
-            (Ranks.TieCorrection(pooled) / (((double)total * total * total) - total));
+        double tieCorrection = 1.0 - (tieTerm / (((double)total * total * total) - total));
 
         if (tieCorrection <= 0.0)
         {
@@ -111,6 +106,30 @@ public static class KruskalWallis
         }
 
         return pooled;
+    }
+
+    /// <summary>The weighted rank sum and the tie term, by merging sorted groups where there are few of them.</summary>
+    /// <remarks>
+    /// Past <see cref="KSampleRanks.MaxGroups"/> groups the pooled sample is ranked by sorting it, as it
+    /// always was. Both routes return the same doubles: KSampleRanks' remarks have why.
+    /// </remarks>
+    private static (double Weighted, double TieTerm) RankSumsAndTies(double[][] groups, int total)
+    {
+        if (groups.Length > KSampleRanks.MaxGroups)
+        {
+            double[] pooled = Pool(groups, total);
+            return (WeightedRankSum(groups, Ranks.Average(pooled)), Ranks.TieCorrection(pooled));
+        }
+
+        Span<double> sums = stackalloc double[groups.Length];
+        double tieTerm = KSampleRanks.Compute(groups, total, sums);
+        double weighted = 0.0;
+        for (int g = 0; g < groups.Length; g++)
+        {
+            weighted += sums[g] * sums[g] / groups[g].Length;
+        }
+
+        return (weighted, tieTerm);
     }
 
     private static double WeightedRankSum(double[][] groups, double[] ranks)

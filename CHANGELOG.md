@@ -271,6 +271,11 @@ is one sentence, the issue and the commit; see
 - **Faster, same answers.** `MannWhitney.Test` ranks each sample on its own and merges the two
   instead of sorting the pooled sample three times, and no longer allocates.
   ([#711](https://github.com/CyrilB1531/lodestar/issues/711))
+- **Faster, same answers.** `KruskalWallis.Test` merges its sorted groups the same way, up to 16 of
+  them, and `Wilcoxon` merges the sorted positive and negative magnitudes wherever the normal
+  approximation is taken on up to 180,000 values: 4.8× to 7.0× and 5.2× to 6.7× at 10,000 and
+  100,000, allocating none of the pooled ranking.
+  ([#719](https://github.com/CyrilB1531/lodestar/issues/719))
 - **`Chi2ContingencyResult` compares its expected table by value.** Two results holding the same
   table were unequal and now are equal, with `GetHashCode` agreeing; decision 0113 has the rule.
   ([#668](https://github.com/CyrilB1531/lodestar/issues/668))

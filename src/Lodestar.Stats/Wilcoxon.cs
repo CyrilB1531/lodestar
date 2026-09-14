@@ -139,6 +139,12 @@ public static class Wilcoxon
             return new TestResult(double.NaN, double.NaN);
         }
 
+        // Where the normal approximation is certain, the ranks are never needed one by one.
+        if (IsAsymptoticForCertain(method, values.Length) && values.Length <= SignedRanks.MaxRanked)
+        {
+            return AsymptoticByMerge(values, zeroMethod, alternative, continuity);
+        }
+
         // Wilcox drops the zeros before ranking; the other two rank them and
         // differ only in what they do with the ranks afterwards. S1244: a
         // difference of exactly zero is the sentinel the three rules disagree
@@ -211,7 +217,7 @@ public static class Wilcoxon
             // ranked.Length, not nonZeroRanks.Length: scipy's own table size
             // is the full zero-method-processed length, zero group included.
             NullDistribution.Exact => ExactPValue(positive, ranked.Length, alternative),
-            _ => AsymptoticPValue(positive, negative, varianceRanks, alternative, continuity),
+            _ => AsymptoticPValue(positive, negative, SumOfSquares(varianceRanks), alternative, continuity),
         };
 
         return new TestResult(statistic, pValue);
@@ -432,21 +438,58 @@ public static class Wilcoxon
         return sum;
     }
 
-    private static double AsymptoticPValue(
-        double positive,
-        double negative,
-        double[] ranks,
-        Alternative alternative,
-        Continuity continuity)
+    /// <summary>The asymptotic test from merged sorted magnitudes, the ranks never held one by one (#719).</summary>
+    /// <remarks>
+    /// The same sums the ranked path adds up, as SignedRanks' remarks show, so the same doubles:
+    /// WilcoxonMergedRanksTests replays both. The zero group joins the sums as ComputeRankSums has it.
+    /// </remarks>
+    private static TestResult AsymptoticByMerge(
+        ReadOnlySpan<double> values, ZeroMethod zeroMethod, Alternative alternative, Continuity continuity)
     {
-        double total = positive + negative;
-        double mean = total / 2.0;
+        bool rankZeros = zeroMethod != ZeroMethod.Wilcox;
+        if (!rankZeros && CountZeros(values) == values.Length)
+        {
+            return new TestResult(0.0, 1.0);
+        }
 
+        SignedRanks.Sums sums = SignedRanks.Compute(values, rankZeros);
+        double positive = sums.Positive;
+        double negative = sums.Negative;
+        if (zeroMethod == ZeroMethod.ZSplit)
+        {
+            positive += sums.ZeroRankSum / 2.0;
+            negative += sums.ZeroRankSum / 2.0;
+        }
+
+        double statistic = alternative == Alternative.TwoSided ? Math.Min(positive, negative) : positive;
+        double squares = zeroMethod == ZeroMethod.Pratt ? sums.NonZeroSquares : sums.Squares;
+        return new TestResult(statistic, AsymptoticPValue(positive, negative, squares, alternative, continuity));
+    }
+
+    /// <summary>Whether <see cref="ChooseDistribution"/> answers asymptotic whatever the ties and zeros.</summary>
+    private static bool IsAsymptoticForCertain(ExactMethod method, int sampleLength) =>
+        method == ExactMethod.Asymptotic || (method != ExactMethod.Exact && sampleLength > AutoAsymptoticThreshold);
+
+    private static double SumOfSquares(double[] ranks)
+    {
         double squares = 0.0;
         for (int i = 0; i < ranks.Length; i++)
         {
             squares += ranks[i] * ranks[i];
         }
+
+        return squares;
+    }
+
+    private static double AsymptoticPValue(
+        double positive,
+        double negative,
+        double squares,
+        Alternative alternative,
+        Continuity continuity)
+    {
+        double total = positive + negative;
+        double mean = total / 2.0;
 
         // The variance is the sum of squared ranks over four, which reduces to
         // n(n+1)(2n+1)/24 only when the ranks are untied.

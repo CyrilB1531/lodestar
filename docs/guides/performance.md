@@ -3769,6 +3769,52 @@ against 181). Sixteen-bit digits, the choice `BinaryRoc` made in `Lodestar.Metri
 faster at 100,000 and 1.7× slower at 10,000, where clearing a 1 MB histogram costs more than the
 four passes it saves.
 
+### Kruskal-Wallis and Wilcoxon merge the same way (issue #719)
+
+[`KruskalWallis.Test`](../reference/stats/tests/kruskalwallis-test.md) still pooled its groups and
+sorted them twice, with an index array for the mid-ranks, and
+[`Wilcoxon.OneSample`](../reference/stats/tests/wilcoxon-onesample.md) sorted the absolute
+differences twice. Both now take the keys and the sort above.
+
+- **Kruskal-Wallis** sorts each group's keys in place in one rented buffer and walks the groups'
+  heads together. Each tie group adds its mid-rank times its members to each group's sum, and t³ − t
+  to the tie term. Up to 16 groups; past that, a scan over the heads for every value costs more than
+  it saves, and the pooled sort stays.
+- **Wilcoxon** sorts the positive and the negative differences apart, by magnitude, and merges them
+  after the zeros where the zero method ranks them. The walk yields both signed sums, the zeros' sum
+  and the sum of squared ranks the variance reads. It runs where the normal approximation is taken
+  whatever the ties, `ExactMethod.Asymptotic` or `Auto` past 50 values, and on at most 180,000 values.
+  Up to there every partial sum of squared ranks is a quarter-integer below 2^51, exact in any order,
+  so it is the double the ranked path adds up in input order. The exact and permutation paths keep
+  the ranks themselves, and so does a larger sample.
+
+The totals are the old ones bit for bit, which `KSampleRanksTests` and `SignedRanksTests` replay
+against `Ranks.Average` on both sides of the radix threshold, with signed zeros, infinities, zeros
+and ties across signs.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores (BenchmarkDotNet's
+own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime. Window: three
+`BenchmarkDotNet` runs of `RankTestBenchmarks`, **default job**, 2026-09-14, `origin/main`, this
+branch, `origin/main` again. `SampleSize` is each sample, so Kruskal-Wallis ranks three times it;
+`Ties` rounds every value to hundredths.
+
+| Row | `origin/main` | this branch | `origin/main` again | Allocated before | Allocated after |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `KruskalWallisTest`, 10,000 | 3,313.4 μs | **693.3 μs** | 3,230.5 μs | 1,080,426 B | 81 B |
+| `KruskalWallisTest`, 10,000, ties | 2,194.1 μs | **312.4 μs** | 2,201.3 μs | 1,080,426 B | 81 B |
+| `KruskalWallisTest`, 100,000 | 37,985.6 μs | **6,917.7 μs** | 37,943.2 μs | 10,800,623 B | 88 B |
+| `KruskalWallisTest`, 100,000, ties | 21,307.2 μs | **3,056.5 μs** | 21,433.6 μs | 10,800,628 B | 84 B |
+| `WilcoxonPaired`, 10,000 | 928.2 μs | **138.1 μs** | 920.4 μs | 680,265 B | 80,056 B |
+| `WilcoxonPaired`, 10,000, ties | 728.8 μs | **117.4 μs** | 724.5 μs | 676,057 B | 80,056 B |
+| `WilcoxonPaired`, 100,000 | 12,372.2 μs | **2,060.1 μs** | 12,471.9 μs | 6,801,202 B | 800,229 B |
+| `WilcoxonPaired`, 100,000, ties | 7,956.4 μs | **1,532.8 μs** | 7,971.9 μs | 6,752,026 B | 800,231 B |
+| `MannWhitneyTest`, 100,000, control | 2,967.4 μs | 2,949.0 μs | 2,962.6 μs | — | — |
+
+**Kruskal-Wallis is 4.8× to 7.0× faster, Wilcoxon 5.2× to 6.7×.** On Kruskal-Wallis ties widen the
+gain, 7.0× against 4.8× and 5.5×, since a tie group costs the walk one step whatever its size; on
+Wilcoxon they narrow it, and that was not looked into. What Wilcoxon still
+allocates is `Paired`'s own array of differences, eight bytes a pair, and not the ranking.
+
 ## Lodestar.Gpu — four kernels against their CPU paths (issue #444)
 
 Measured 2026-09-10, on the one machine [decision 0102](../decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md)
