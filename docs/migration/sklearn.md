@@ -15,6 +15,10 @@ estimators that work on a sparse matrix.
 | `PCA` on a dense matrix | **ML.NET** `ProjectToPrincipalComponents` on any target, or [NumFlat](https://www.nuget.org/packages/NumFlat) `PrincipalComponentAnalysis` on `net8.0`+, or [Meta.Numerics](https://www.nuget.org/packages/Meta.Numerics) `PrincipalComponentAnalysis` (MS-PL, `netstandard2.0`). Not `Lodestar.Decomposition`: centring densifies a `CsrMatrix`, so PCA is refused for sparse input by name ([`decisions/0116`](../decisions/0116-the-pca-gap-is-the-explained-variance-not-the-projection.md)) |
 | `PCA().explained_variance_ratio_` | `Lodestar.Decomposition` [`PrincipalComponentVariance.Compute`](../reference/decomposition/factorization/principalcomponentvariance-compute.md) on any target, at scikit-learn parity — ML.NET's fourteen public PCA members carry no eigenvalue, and NumFlat's `EigenValues` ships `net8.0` only ([`decisions/0119`](../decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md)). Meta.Numerics' `PrincipalComponent.VarianceFraction` reports it on `netstandard2.0` too, not yet measured against this ([`decisions/0129`](../decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md), [#756](https://github.com/CyrilB1531/lodestar/issues/756)) |
 | `StandardScaler` on arrays rather than on an `IDataView` | **`Lodestar.Preprocessing`** |
+| `KFold`, `StratifiedKFold`, `train_test_split` | **being written** in `Lodestar.Preprocessing` ([#762](https://github.com/CyrilB1531/lodestar/issues/762)), at scikit-learn's folds. Today: ML.NET `TrainTestSplit`/`CrossValidationSplit` group by key and do not stratify; [SharpLearning.CrossValidation](https://www.nuget.org/packages/SharpLearning.CrossValidation) `StratifiedIndexSampler` stratifies over arrays, seeded, last released 2020; [`decisions/0132`](../decisions/0132-preprocessing-writes-splitters-scalers-and-encoders-and-not-smote.md) |
+| `MinMaxScaler`, `RobustScaler`, `MaxAbsScaler` on arrays | **being written** ([#763](https://github.com/CyrilB1531/lodestar/issues/763)); inside a pipeline, **ML.NET** `NormalizeMinMax`, `NormalizeRobustScaling`; [`decisions/0132`](../decisions/0132-preprocessing-writes-splitters-scalers-and-encoders-and-not-smote.md) |
+| `OneHotEncoder`, `OrdinalEncoder`, `SimpleImputer` on arrays | **being written** ([#764](https://github.com/CyrilB1531/lodestar/issues/764)); inside a pipeline, **ML.NET** `OneHotEncoding`, `MapValueToKey`, `ReplaceMissingValues`; [`decisions/0132`](../decisions/0132-preprocessing-writes-splitters-scalers-and-encoders-and-not-smote.md) |
+| `imblearn` SMOTE and resampling | ⚠️ **gap, not scheduled** — nothing maintained in .NET, and no reproducible reference to hold one to; [`decisions/0132`](../decisions/0132-preprocessing-writes-splitters-scalers-and-encoders-and-not-smote.md) |
 | `KMeans(algorithm="lloyd")` on arrays | **`Lodestar.Cluster`** [`KMeans.Fit`](../reference/cluster/partitioning/kmeans-fit.md) on any target — ahead of NumFlat and Meta.Numerics on the same data ([performance](../guides/performance.md#k-means-against-numflat-and-metanumerics-issue-681)) |
 | `DBSCAN` | **being written** in `Lodestar.Cluster` ([#759](https://github.com/CyrilB1531/lodestar/issues/759)). Today: [NumFlat](https://www.nuget.org/packages/NumFlat) `Clustering.DbScan` on `net8.0`+, or [Dbscan](https://www.nuget.org/packages/Dbscan) on any target for two-dimensional points only; [`decisions/0131`](../decisions/0131-lodestar-cluster-writes-what-netstandard2-0-lacks.md) |
 | `AgglomerativeClustering` | **being written** in `Lodestar.Cluster` ([#760](https://github.com/CyrilB1531/lodestar/issues/760)). Today: [Aglomera](https://www.nuget.org/packages/Aglomera) (MIT, `netstandard1.3`, last released 2020), not compared with scikit-learn; [`decisions/0131`](../decisions/0131-lodestar-cluster-writes-what-netstandard2-0-lacks.md) |
@@ -43,15 +47,17 @@ var model = pipeline.Fit(data);
   `FeaturizeText` does not reproduce it. That is exactly the reason for
   `Lodestar.Text`. See [`../equivalence.md`](../equivalence.md).
 - **`min_df` / `max_df`, n-gram bounds**: on the Lodestar side, not ML.NET.
-- **Preprocessing is a coupling gap, not an absence.** ML.NET has
+- **Preprocessing is mostly a coupling gap, not an absence.** ML.NET has
   `NormalizeMeanVariance`, `NormalizeMinMax`, `OneHotEncoding`, `ReplaceMissingValues`,
   `TrainTestSplit` and `CrossValidationSplit` — read on `Microsoft.ML` 5.0.0's exported
   surface, every one of them is reached through an `IDataView` or through a catalog naming
   columns. `NormalizeMeanVariance(TransformsCatalog, string inputColumn, string
   outputColumn, …)` never sees a value. `Lodestar.Preprocessing` answers the entry point,
-  not the capability: a caller holding a `double[]` gets a `double[]` back. Only
-  `StandardScaler` ships in 0.1.0; for the rest, ML.NET remains the answer if you are
-  already inside a pipeline.
+  not the capability: a caller holding a `double[]` gets a `double[]` back. Two exceptions
+  are real: ML.NET cannot **stratify** a split — `samplingKeyColumnName` groups — and nothing
+  in .NET does **SMOTE**. [`decisions/0132`](../decisions/0132-preprocessing-writes-splitters-scalers-and-encoders-and-not-smote.md)
+  has the reading and the order the rest is written in; until then, ML.NET remains the answer
+  if you are already inside a pipeline.
 
 ## Metrics: the averaging mode is not a formatting choice
 
