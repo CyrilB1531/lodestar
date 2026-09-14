@@ -67,6 +67,9 @@ is one sentence, the issue and the commit; see
 - `Fuzz.PartialRatio` scores a needle of up to 64 characters from one equality table per call and
   skips the windows that cannot win, returning the same scores faster.
   ([#714](https://github.com/CyrilB1531/lodestar/issues/714))
+- `Fuzz.PartialRatio` does the same for a needle past 64 characters, over an equality table of one
+  row per word, instead of a full `Indel` per window; the scores are the same doubles.
+  ([#720](https://github.com/CyrilB1531/lodestar/issues/720))
 - **The `Lodestar.Text` dependency floor rises from 0.4.0 to 0.6.0.** Nothing in this package needs
   the newer API: the floor is one Central Package Management pin shared by every consumer, and
   `Lodestar.Extensions.VectorData` needs the `Lodestar.Text.Search` types 0.6.0 first published

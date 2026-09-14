@@ -834,7 +834,49 @@ throwaway one, not kept:
 | an 82-character needle in a 237-character text | 17,149.2 ns | 17,717.1 ns |
 
 The last row is past one machine word and keeps the per-window Indel, so it is unchanged by design;
-the 3 % between its two columns is the drift between the two windows. That path is [#720](https://github.com/CyrilB1531/lodestar/issues/720).
+the 3 % between its two columns is the drift between the two windows. That path is [#720](https://github.com/CyrilB1531/lodestar/issues/720),
+[measured below](#the-partial-ratios-windows-past-one-word-issue-720).
+
+## The partial ratio's windows past one word (issue #720)
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*PartialRatioLongNeedleBenchmarks*' '*FuzzBenchmarks*'
+```
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: **default job**, 2026-09-14, `origin/main` with the new benchmark class copied in,
+this branch, then `origin/main` again, under one lock.
+
+A needle past 64 characters still paid a full
+[`Indel.NormalizedSimilarity`](../reference/text/distances/indel-normalizedsimilarity.md) per window
+that survived a bound on the characters two operands can share, each call rebuilding the needle's
+equality table. It now takes the passes of the section above over a table of one row per 64-bit
+word, the addition's carry threaded from word to word: one scan per side for every edge window, and
+the same skips and slide bound for the full ones. The scores are the same doubles, which
+`PartialRatioWindowTests` asserts over needles of 65 to 600 characters.
+
+| Row | `origin/main` | this branch | `origin/main` again |
+| --- | ---: | ---: | ---: |
+| `Embedded`, 65 | 9.346 μs | **5.560 μs** | 9.354 μs |
+| `EqualLength`, 65 | 9.895 μs | **1.643 μs** | 9.332 μs |
+| `Embedded`, 128 | 39.075 μs | **20.409 μs** | 41.281 μs |
+| `EqualLength`, 128 | 45.566 μs | **3.084 μs** | 45.635 μs |
+| `Embedded`, 512 | 2,649.010 μs | **802.166 μs** | 2,643.650 μs |
+| `EqualLength`, 512 | 2,493.208 μs | **27.013 μs** | 2,463.806 μs |
+| `FuzzBenchmarks.PartialRatio`, control | 466.47 ns | 447.68 ns | 395.28 ns |
+| `FuzzBenchmarks.WRatio`, control | 1,259.71 ns | 1,315.85 ns | 1,277.20 ns |
+
+No row allocates on either side. The `FuzzBenchmarks` pair is 43 characters and takes the short
+route, so those rows only bound the noise; `PartialRatio` moves 18% between the two `origin/main`
+runs on unchanged code.
+
+- **An equal-length pair gains the most, 92× at 512.** Every window is an edge window there, and both
+  orientations are slid, so a call that paid close to 4m full Indel scores now pays four scans.
+- **An embedded needle gains 1.7× at 65 and 3.3× at 512.** Its edge windows are cheap now, but the full
+  windows before the one holding the needle's copy each still cost a scan of `m` characters over
+  `⌈m/64⌉` words: 802 μs at 512 is almost all of them. Scanning them in a better order, or over the
+  register-held kernel #717 gave `Lcs`, is what is left.
 
 ## Batched embedding — what the number is, and what it is not
 

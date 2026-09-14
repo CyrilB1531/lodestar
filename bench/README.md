@@ -366,6 +366,12 @@ against the dynamic program, extended for it in #302.
 `FuzzBenchmarks.Ratio` also runs this path, on one fixed pair of 43-character
 sentences. That is a point, not a curve; `IndelBenchmarks` is the sweep.
 
+`FuzzBenchmarks.PartialRatio` is 43 characters too, under the 64 past which a needle takes
+`LongNeedleWindows`' table of one row per word. `PartialRatioLongNeedleBenchmarks` measures that
+route at needles of 65, 128 and 512 characters, in two shapes: `Embedded`, the needle's scattered
+copy inside a text twice its length, which is what a partial ratio is for, and `EqualLength`, where
+every window is an edge window and both orientations are slid (#720).
+
 ### Reading the numbers
 
 The comparison is deliberately honest about methodology: the Python side times the
