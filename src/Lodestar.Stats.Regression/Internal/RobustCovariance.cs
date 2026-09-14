@@ -14,10 +14,13 @@ internal static class RobustCovariance
     /// <summary>The leverage of each row, <c>hᵢᵢ</c>, read off the thin Q.</summary>
     /// <remarks>
     /// <c>H = QQᵀ</c> for a thin QR, so the diagonal this needs is a row of Q against itself —
-    /// the whole hat matrix is never formed, which for 50 000 rows would be 20 GB.
+    /// the whole hat matrix is never formed, which for 50 000 rows would be 20 GB. Q is read into
+    /// a local here rather than taken as a parameter: behind an inlined getter the JIT sees the
+    /// array and devirtualizes the reads without PGO, which a parameter hides (decision 0125).
     /// </remarks>
-    public static double[] Leverages(IReadOnlyList<double> q, int rowCount, int parameterCount)
+    public static double[] Leverages(QrDecomposition factorization, int rowCount, int parameterCount)
     {
+        IReadOnlyList<double> q = factorization.Q;
         var leverages = new double[rowCount];
         for (int row = 0; row < rowCount; row++)
         {
