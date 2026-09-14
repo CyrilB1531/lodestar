@@ -91,21 +91,31 @@ falling back to the asymptotic answer instead. The three reference pages
 [`KolmogorovSmirnov.TwoSample`](../reference/stats/tests/kolmogorovsmirnov-twosample.md))
 each state their own bound, because it is not the same number twice.
 
-## No *maintained* incumbent to compare against
+## The incumbents, and the one measured
 
 `MathNet.Numerics` 5.0.0 (2022-04-03, 74.7M downloads) is the dominant
 third-party numerical library for .NET, and it ships probability distributions
-and descriptive statistics — no hypothesis tests. `Accord.Statistics` 3.8.0,
-the one .NET library that did carry them, was last published on
-**2017-10-19**; its framework, `accord-net/framework` (4.5k stars), was
-**archived by its owner on 2020-11-19**. ML.NET does prediction: a t-test
+and descriptive statistics — no hypothesis tests. ML.NET does prediction: a t-test
 exists only in Azure ML Studio (classic), a retired hosted product, and
 Mann-Whitney only in Kusto/KQL — neither is a .NET library a project can
-reference. There is nothing *maintained* to benchmark against, which is itself
-the finding, the same shape as [`Lodestar.Conformal`](conformal.md)'s survey —
-but unlike `Lodestar.Conformal`'s case, `Accord.Statistics` is still
-installable, and #442's own constraint asks for a named .NET incumbent where
-one exists at all. [`TTest.Independent`](../reference/stats/tests/ttest-independent.md),
+reference.
+
+Three .NET libraries do carry the tests, and this page said for a while that only the first did
+([decision 0129](../decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md)
+has the reading that corrected it):
+
+- **`Accord.Statistics` 3.8.0**, LGPL-2.1, last published on **2017-10-19**; its framework,
+  `accord-net/framework` (4.5k stars), was **archived by its owner on 2020-11-19**.
+- **`Meta.Numerics` 4.2.0**, MS-PL, `netstandard2.0`, published 2025-07-14 after five years
+  without a release. It carries eight of this package's ten families — the t-tests,
+  Mann-Whitney, Wilcoxon, Kruskal-Wallis, Kolmogorov-Smirnov, one-way ANOVA, Fisher's exact test
+  and the chi-square table — and Shapiro-Francia rather than Shapiro-Wilk. It is **not measured
+  yet**: [#756](https://github.com/CyrilB1531/lodestar/issues/756).
+- **`Numerics.NET` 10.7.0**, formerly Extreme Optimization, maintained and **commercial**. Named
+  so its absence from the benchmarks is not mistaken for an absence from .NET.
+
+`Accord.Statistics` is the one measured so far, because #442's own constraint asks for a named
+.NET incumbent where one exists at all. [`TTest.Independent`](../reference/stats/tests/ttest-independent.md),
 [`MannWhitney.Test`](../reference/stats/tests/mannwhitney-test.md) and
 [`ChiSquare.Contingency`](../reference/stats/tests/chisquare-contingency.md) are benchmarked and
 cross-checked against it in

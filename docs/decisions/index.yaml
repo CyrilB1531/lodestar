@@ -751,7 +751,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105", "0109", "0110", "0116"]
+  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105", "0109", "0110", "0116", "0129"]
 
 "0075":
   title: "Double Metaphone ships, with `doublemetaphone` 1.2 as its oracle"
@@ -761,7 +761,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0091", "0099", "0101", "0104", "0116"]
+  applied_by: ["0091", "0099", "0101", "0104", "0116", "0129"]
 
 "0076":
   title: "A core package carries no external dependency, so ONNX Runtime gets its own"
@@ -1060,7 +1060,7 @@
   amends: []
   applies: ["0074"]
   superseded_by: []
-  amended_by: []
+  amended_by: ["0129"]
   applied_by: ["0110", "0114"]
 
 "0106":
@@ -1170,7 +1170,7 @@
   amends: []
   applies: ["0074", "0075", "0076"]
   superseded_by: []
-  amended_by: []
+  amended_by: ["0129"]
   applied_by: ["0119"]
 
 "0117":
@@ -1289,6 +1289,16 @@
   supersedes: []
   amends: []
   applies: ["0095", "0111"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0129":
+  title: "Four .NET numerics libraries read, and three absence claims withdrawn"
+  status: "accepted"
+  supersedes: []
+  amends: ["0105", "0116"]
+  applies: ["0074", "0075"]
   superseded_by: []
   amended_by: []
   applied_by: []
