@@ -38,6 +38,60 @@ public sealed class PartialRatioWindowTests
         }
     }
 
+    [Theory]
+    [InlineData(11, 3)]
+    [InlineData(12, 6)]
+    [InlineData(13, int.MaxValue)]
+    public void LongNeedles_MatchEveryWindowScored(int seed, int symbols)
+    {
+        // Past one word, where the table holds a row per word and the carry crosses between them
+        // (#720): lengths either side of 128 and 192, and texts that embed a mutated copy.
+        var random = new Random(seed);
+        for (int trial = 0; trial < 60; trial++)
+        {
+            // The needle draws from fewer symbols than the text: over the whole alphabet a long needle
+            // holds every symbol, so no text character is one it lacks and no skip rule would run.
+            int m = trial < 12 ? 64 + (trial % 6) + (64 * (trial % 3)) : random.Next(65, 600);
+            string needle = Draw(random, m, Math.Min(symbols, 3));
+            string text = random.Next(3) switch
+            {
+                0 => Mutate(random, needle, symbols),
+                1 => Draw(random, random.Next(0, 40), symbols) + Mutate(random, needle, symbols) + Draw(random, random.Next(0, 40), symbols),
+                _ => Draw(random, m + random.Next(0, 300), symbols),
+            };
+
+            AssertSameAsExhaustive(needle, text);
+            AssertSameAsExhaustive(text, needle);
+        }
+    }
+
+    [Fact]
+    public void LongNeedleWhoseBestWindowEndsOnAnAbsentCharacter_MatchesEveryWindowScored()
+    {
+        // ("abc", "xxxxaxxxx") scaled past one word: the only window that scores ends on characters
+        // the needle lacks, which is why a full window is skipped on its first character, never its last.
+        string needle = new string('a', 70) + "bc";
+        string text = new string('x', 90) + "a" + new string('x', 90);
+
+        AssertSameAsExhaustive(needle, text);
+        AssertSameAsExhaustive(needle, new string('x', 80) + new string('a', 30) + new string('x', 80));
+    }
+
+    [Fact]
+    public void LongWideNeedleWithManyDistinctCharacters_MatchesEveryWindowScored()
+    {
+        // 300 distinct characters above Latin-1, more than a byte slot or the short path's probe holds.
+        var needle = new StringBuilder();
+        for (int k = 0; k < 300; k++)
+        {
+            needle.Append((char)(0x4E00 + (k * 37)));
+        }
+        string text = "x" + needle.ToString(20, 200) + "中" + needle.ToString(0, 150) + "y";
+
+        AssertSameAsExhaustive(needle.ToString(), text);
+        AssertSameAsExhaustive(needle.ToString(0, 180), text);
+    }
+
     [Fact]
     public void TextPastTheStackBuffer_MatchesEveryWindowScored()
     {
@@ -84,6 +138,16 @@ public sealed class PartialRatioWindowTests
         for (int i = 0; i < length; i++)
         {
             chars[i] = Alphabet[random.Next(Math.Min(symbols, Alphabet.Length))];
+        }
+        return new string(chars);
+    }
+
+    private static string Mutate(Random random, string source, int symbols)
+    {
+        char[] chars = source.ToCharArray();
+        for (int i = 0; i < Math.Max(1, chars.Length / 10); i++)
+        {
+            chars[random.Next(chars.Length)] = Alphabet[random.Next(Math.Min(symbols, Alphabet.Length))];
         }
         return new string(chars);
     }

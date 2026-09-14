@@ -125,6 +125,11 @@
       "src/Lodestar.Text/Distances/**",
       "src/Lodestar.Text/Text/**"
     ],
+    "PartialRatioLongNeedleBenchmarks": [
+      "src/Lodestar.Fuzzy/**",
+      "src/Lodestar.Text/Distances/**",
+      "src/Lodestar.Text/Text/**"
+    ],
     "PersistenceBenchmarks": [
       "src/Lodestar.Embeddings/Persistence/**",
       "src/Lodestar.Embeddings/Search/**",
