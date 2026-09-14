@@ -3928,6 +3928,90 @@ stopped keeping.
 `86.3 ms + 10.6 μs·q`, which crosses near 18,000 queries. From text, Lucene stays ahead: that row is
 the vectorizer's, and this change does not touch it.
 
+## The .NET incumbents, on a named machine (issue #679)
+
+Five of the comparisons against other .NET libraries had only ever been published in the nightly
+pages, measured on a hosted runner whose hardware changes night to night. They are measured here on
+one named machine. Each class and its agreement check are described in
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#15-against-the-net-incumbents-issue-438)
+section 15, and the decomposition class in section 16.
+
+The other comparisons against a .NET library have their own sections in this guide:
+
+- Microsoft.ML.Tokenizers: the SentencePiece and WordPiece section (#713) and the byte-level BPE section (#673).
+- [`Fuzz.PartialRatio`](../reference/fuzzy/matching/fuzz-partialratio.md) against FuzzySharp: #714 and #720.
+- Accord.Statistics: `Lodestar.Stats` (#442) and `Lodestar.Stats.Regression` (#566, #678).
+- NumFlat: #701. Cortex.TimeSeries: #617. LuceneSharp: #677 and #751.
+
+[`VectorMath.Dot`](../reference/embeddings/search/vectormath-dot.md) against `TensorPrimitives` is not published here. Run on this machine, it read the
+opposite of [decision 0060](../decisions/0060-tensorprimitives-beats-our-kernel-and-the-knn-is-still-not-redundant.md),
+and [#754](https://github.com/CyrilB1531/lodestar/issues/754) re-measures it before anything is concluded.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: `BenchmarkDotNet` 0.14.0, **default job**, 2026-09-14, one run per class.
+
+### [`Levenshtein.Distance`](../reference/text/distances/levenshtein-distance.md) against Fastenshtein 1.0.12, Quickenshtein 1.5.1 and F23.StringSimilarity 7.0.1
+
+| Length | Lodestar | Fastenshtein | Quickenshtein | F23.StringSimilarity |
+| ---: | ---: | ---: | ---: | ---: |
+| 8 | **15.71 ns**, 0 B | 46.11 ns, 56 B | 48.27 ns, 0 B | 103.42 ns, 128 B |
+| 64 | **178.57 ns**, 0 B | 3,339.85 ns, 280 B | 727.63 ns, 0 B | 5,443.03 ns, 576 B |
+| 512 | **7,097.59 ns**, 0 B | 239,725.19 ns, 2,072 B | 19,810.70 ns, 0 B | 452,681.32 ns, 4,160 B |
+
+**Ahead of all three at every length**: 2.8× to 4.1× against Quickenshtein, the closest, and 2.9× to
+63.8× against the other two. Neither Lodestar nor Quickenshtein allocates.
+
+### `Fuzz` against Raffinert.FuzzySharp 6.0.0
+
+| Operation | Lodestar | FuzzySharp | Faster |
+| --- | ---: | ---: | ---: |
+| [`Fuzz.Ratio`](../reference/fuzzy/matching/fuzz-ratio.md) | 62.18 ns, 0 B | 129.69 ns, 80 B | Lodestar, 2.09× |
+| [`Fuzz.PartialRatio`](../reference/fuzzy/matching/fuzz-partialratio.md) | 452.36 ns, 0 B | 5,767.01 ns, 160 B | Lodestar, 12.75× |
+| [`Fuzz.TokenSetRatio`](../reference/fuzzy/matching/fuzz-tokensetratio.md) | 653.21 ns, 1,448 B | 1,159.41 ns, 1,944 B | Lodestar, 1.78× |
+| [`Fuzz.WRatio`](../reference/fuzzy/matching/fuzz-wratio.md) | 1,346.20 ns, 2,760 B | 2,938.48 ns, 3,128 B | Lodestar, 2.18× |
+
+**Ahead on all four**, and allocating less on each.
+
+### [`TfidfVectorizer`](../reference/text/vectorizers/tfidfvectorizer.md) against ML.NET 5.0.0's `FeaturizeText`
+
+| Documents | Lodestar | `FeaturizeText` | Ratio |
+| ---: | ---: | ---: | ---: |
+| 200 | 5.057 ms, 5.13 MB | 28.875 ms, 28.80 MB | 5.71 |
+| 1,000 | 22.294 ms, 24.92 MB | 244.044 ms, 325.26 MB | 10.95 |
+
+**This is not like-for-like**, and section 15 of `bench/README.md` counts the difference.
+`FeaturizeText` adds character n-grams, so it produces 70,307 non-zero features at 200 documents
+where this package stores 7,996, and 351,217 at 1,000 against 39,974. Per non-zero feature produced,
+that is 0.63 μs against 0.41 μs at 200 documents, ML.NET ahead, and 0.56 μs against 0.69 μs at 1,000.
+The claim is the sparse representation, not a faster kernel.
+
+### `Lodestar.Metrics` against ML.NET 5.0.0's binary evaluator
+
+| Samples | Request | Lodestar | ML.NET | Faster |
+| ---: | --- | ---: | ---: | ---: |
+| 100,000 | the six numbers ML.NET returns | 4,744.17 μs, 998 B | 22,914.88 μs, 5,089,338 B | Lodestar, 4.84× |
+| 100,000 | accuracy alone | 69.09 μs, 0 B | 22,143.43 μs, 5,089,337 B | Lodestar, 321.81× |
+| 1,000,000 | the six numbers ML.NET returns | 89,431.29 μs, 0 B | 140,625.56 μs, 23,229,318 B | Lodestar, 1.57× |
+| 1,000,000 | accuracy alone | 1,661.99 μs, 0 B | 144,519.97 μs, 23,229,318 B | Lodestar, 86.96× |
+
+**Ahead on every row, by less as the sample grows**: 4.84× at 100,000 samples to 1.57× at a million for
+the full bundle. ML.NET computes the bundle whatever is asked, so accuracy alone costs a caller the six.
+
+### Truncated SVD and NMF against ML.NET 5.0.0's `ProjectToPrincipalComponents`
+
+A 2,000 × 500 term-document matrix at 2% density, rank 20:
+
+| Row | Mean | Ratio |
+| --- | ---: | ---: |
+| `TruncatedSvd`, over the sparse matrix | 17.58 ms | 1.00 |
+| `Nmf`, capped at 50 iterations | 118.72 ms | 6.76 |
+| ML.NET's centred PCA, over the dense twin | **14.85 ms** | 0.85 |
+
+**ML.NET's PCA is 1.18× faster, and it is a different decomposition**: centred and dense against
+uncentred and sparse. Section 16 of `bench/README.md` says what is checked instead of agreement, and
+decision 0116 why the gap that matters is the explained variance, which ML.NET does not report.
+
 ## Lodestar.Gpu — four kernels against their CPU paths (issue #444)
 
 Measured 2026-09-10, on the one machine [decision 0102](../decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md)

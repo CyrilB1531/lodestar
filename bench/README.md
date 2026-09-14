@@ -379,10 +379,11 @@ The comparison is deliberately honest about methodology: the Python side times t
 (`process.cdist`) that amortise the Python→C boundary; those are faster than the
 loop measured here.
 
-Current headline (see `docs/guides/performance.md` for a captured table): C# wins
-on short strings (no interpreter overhead), but rapidfuzz's **bit-parallel Myers**
-core scales far better on long strings than our naive O(nm) DP. Closing that gap
-is tracked in `docs/decisions/0004-levenshtein-myers-backlog.md`.
+The C# side runs bit-parallel kernels too, Myers since
+[decision 0004](../docs/decisions/0004-levenshtein-myers-backlog.md) and blocked for patterns past one
+word; [0043](../docs/decisions/0043-the-equality-table-is-sized-to-the-pattern.md) amends it and retired
+the backlog items it left open. The current standing against rapidfuzz is in `docs/guides/performance.md`,
+most recently *Blocked Myers, two words at a time (issue #718)*.
 
 ## 4. The persistence layer (issue #58)
 
@@ -1545,8 +1546,12 @@ The `AccuracyAlone` row is that difference made measurable rather than argued.
 exception — [ADR 0051](../docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)
 withdrew a 1.61× taken on a shared container, and section 14 records the container *inverting* every
 `TensorPrimitives` ratio. A container run of these two classes is a smoke test that the harness
-works, and nothing else. `docs/guides/performance.md` takes them from a named machine; the nightly
-publishes their ratios to `docs/guides/nightly_run.md` on its own, since all five classes are in
+works, and nothing else. `docs/guides/performance.md` takes them from a named machine, in
+[*The .NET incumbents, on a named machine*](../docs/guides/performance.md#the-net-incumbents-on-a-named-machine-issue-679)
+and the per-issue sections it links (#679). The nightly publishes their ratios to
+`docs/guides/nightly_run.md` on its own, and `docs/guides/benchmark_latest.md` carries each class's last
+reading forward until a change selects it again, dated by the night it was measured rather than the
+night the page was written, since all five classes are in
 `bench-map.json` and are selected by any change under `src/Lodestar.Fuzzy/`,
 `src/Lodestar.Text/Distances/`, `src/Lodestar.Text/Vectorization/`,
 `src/Lodestar.Embeddings/Tokenization/` or `src/Lodestar.Metrics/`.
@@ -1614,9 +1619,9 @@ runs is a cheap dense projection over an already-fitted model.
 **No numbers are published from a container.** Per
 [decision 0051](../docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md), a
 run on a shared cloud container is not the machine `docs/guides/performance.md` reports — the same
-row there has read 3× slower on one. `docs/guides/performance.md` carries no row for this class
-yet. A row lands once the three numbers above are taken on a named machine, the way every other
-section's did.
+row there has read 3× slower on one. The three rows taken on a named machine are in
+[`docs/guides/performance.md`](../docs/guides/performance.md#truncated-svd-and-nmf-against-mlnet-500s-projecttoprincipalcomponents)
+(#679).
 
 ## 17. BK-tree vs a length-filtered scan (issue #526)
 
