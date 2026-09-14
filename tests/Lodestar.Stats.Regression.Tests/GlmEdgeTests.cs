@@ -59,23 +59,25 @@ public sealed class GlmEdgeTests
     }
 
     [Fact]
-    public void A_poisson_count_above_the_bound_is_refused()
+    public void A_poisson_count_past_the_old_bound_is_fitted()
     {
-        // 2e6 is past the million this fit bounds the response at; the refusal is what stops
-        // Internal/LogLikelihood allocating a log-factorial table indexed by it.
-        ArgumentException refusal = Assert.Throws<ArgumentException>(() => GeneralizedLinearModel.Fit(
-            Design, [0.0, 1.0, 2.0, 0.0, 1.0, 2_000_000.0], featureCount: 1, GlmFamily.Poisson));
+        // 2e9 is past the million the fit refused until #665 and past int.MaxValue, where the table
+        // it indexed would have wrapped; log(y!) is constant-time now, so the fit simply runs.
+        GlmSummary summary = GeneralizedLinearModel.Fit(
+            Design, [0.0, 1.0, 2.0, 0.0, 1.0, 2_000_000_000.0], featureCount: 1, GlmFamily.Poisson);
 
-        Assert.Contains("log-factorial", refusal.Message, StringComparison.Ordinal);
+        Assert.True(summary.Converged);
+        Assert.True(double.IsFinite(summary.LogLikelihood));
     }
 
     [Fact]
-    public void A_count_at_the_bound_is_still_fitted()
+    public void An_infinite_poisson_count_is_refused()
     {
-        GlmSummary summary = GeneralizedLinearModel.Fit(
-            Design, [0.0, 1.0, 2.0, 0.0, 1.0, 1_000_000.0], featureCount: 1, GlmFamily.Poisson);
+        // Infinity truncates to itself, so only its own check stops it now the bound is gone.
+        ArgumentException refusal = Assert.Throws<ArgumentException>(() => GeneralizedLinearModel.Fit(
+            Design, [0.0, 1.0, 2.0, 0.0, 1.0, double.PositiveInfinity], featureCount: 1, GlmFamily.Poisson));
 
-        Assert.True(summary.Converged);
+        Assert.Contains("finite non-negative integer", refusal.Message, StringComparison.Ordinal);
     }
 
     [Fact]

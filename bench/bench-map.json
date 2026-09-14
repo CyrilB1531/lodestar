@@ -210,6 +210,11 @@
       "src/Lodestar.Stats.Regression/**",
       "src/Lodestar.Stats/**",
       "src/Lodestar.Decomposition/**"
+    ],
+    "GlmPoissonBenchmarks": [
+      "src/Lodestar.Stats.Regression/**",
+      "src/Lodestar.Stats/**",
+      "src/Lodestar.Decomposition/**"
     ]
   },
   "harnesses": {

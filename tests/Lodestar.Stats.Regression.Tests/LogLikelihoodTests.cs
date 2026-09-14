@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Lodestar.Stats.Regression.Internal;
 using Xunit;
 
@@ -44,5 +45,43 @@ public sealed class LogLikelihoodTests
             ((4.0 * Math.Log(3.0)) - 3.0 - Math.Log(24.0));
 
         Assert.Equal(expected, LogLikelihood.Of(GlmFamily.Poisson, response, mean), 12);
+    }
+
+    public static TheoryData<int> LogFactorialCases()
+    {
+        using JsonDocument corpus = OracleLoader.Load("regression_log_factorial.json");
+        var data = new TheoryData<int>();
+        for (int i = 0; i < corpus.RootElement.GetProperty("cases").GetArrayLength(); i++)
+        {
+            data.Add(i);
+        }
+
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(LogFactorialCases))]
+    public void The_log_factorial_matches_scipy_gammaln_relatively(int index)
+    {
+        // Relative, as the GLM corpus beside it: the counts reach 2^53, where log(k!) is 3e17 (#665).
+        using JsonDocument corpus = OracleLoader.Load("regression_log_factorial.json");
+        JsonElement frozen = corpus.RootElement.GetProperty("cases")[index];
+        double count = frozen.GetProperty("count").GetDouble();
+        double expected = frozen.GetProperty("logFactorial").GetDouble();
+
+        double actual = LogLikelihood.LogFactorial(count);
+
+        double error = expected == 0.0 ? Math.Abs(actual) : Math.Abs(actual - expected) / Math.Abs(expected);
+        Assert.True(error <= 1e-9, $"log({count}!) = {actual:R}, gammaln gives {expected:R}, relative error {error:R}");
+    }
+
+    [Fact]
+    public void The_series_takes_over_from_the_table_without_a_step()
+    {
+        // log(256!) - log(255!) is log 256; a series and a table disagreeing at the boundary would show here.
+        double last = LogLikelihood.LogFactorial(LogLikelihood.TabulatedCounts - 1);
+        double first = LogLikelihood.LogFactorial(LogLikelihood.TabulatedCounts);
+
+        Assert.Equal(Math.Log(LogLikelihood.TabulatedCounts), first - last, 10);
     }
 }

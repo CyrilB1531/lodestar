@@ -1,0 +1,219 @@
+{
+ "metadata": {
+  "library": "scipy",
+  "version": "1.18.1",
+  "family": "gammaln",
+  "variant": "gammaln(k + 1)",
+  "count": 52
+ },
+ "cases": [
+  {
+   "count": 0.0,
+   "logFactorial": 0.0
+  },
+  {
+   "count": 1.0,
+   "logFactorial": 0.0
+  },
+  {
+   "count": 2.0,
+   "logFactorial": 0.6931471805599453
+  },
+  {
+   "count": 3.0,
+   "logFactorial": 1.791759469228055
+  },
+  {
+   "count": 4.0,
+   "logFactorial": 3.1780538303479458
+  },
+  {
+   "count": 5.0,
+   "logFactorial": 4.787491742782046
+  },
+  {
+   "count": 6.0,
+   "logFactorial": 6.579251212010101
+  },
+  {
+   "count": 7.0,
+   "logFactorial": 8.525161361065415
+  },
+  {
+   "count": 8.0,
+   "logFactorial": 10.60460290274525
+  },
+  {
+   "count": 9.0,
+   "logFactorial": 12.801827480081469
+  },
+  {
+   "count": 10.0,
+   "logFactorial": 15.104412573075516
+  },
+  {
+   "count": 11.0,
+   "logFactorial": 17.502307845873887
+  },
+  {
+   "count": 12.0,
+   "logFactorial": 19.987214495661885
+  },
+  {
+   "count": 13.0,
+   "logFactorial": 22.55216385312342
+  },
+  {
+   "count": 14.0,
+   "logFactorial": 25.191221182738683
+  },
+  {
+   "count": 15.0,
+   "logFactorial": 27.899271383840894
+  },
+  {
+   "count": 16.0,
+   "logFactorial": 30.671860106080675
+  },
+  {
+   "count": 17.0,
+   "logFactorial": 33.50507345013689
+  },
+  {
+   "count": 18.0,
+   "logFactorial": 36.39544520803305
+  },
+  {
+   "count": 19.0,
+   "logFactorial": 39.339884187199495
+  },
+  {
+   "count": 20.0,
+   "logFactorial": 42.335616460753485
+  },
+  {
+   "count": 21.0,
+   "logFactorial": 45.38013889847691
+  },
+  {
+   "count": 22.0,
+   "logFactorial": 48.47118135183523
+  },
+  {
+   "count": 23.0,
+   "logFactorial": 51.60667556776438
+  },
+  {
+   "count": 24.0,
+   "logFactorial": 54.78472939811232
+  },
+  {
+   "count": 25.0,
+   "logFactorial": 58.00360522298052
+  },
+  {
+   "count": 26.0,
+   "logFactorial": 61.261701761002
+  },
+  {
+   "count": 27.0,
+   "logFactorial": 64.55753862700632
+  },
+  {
+   "count": 28.0,
+   "logFactorial": 67.88974313718154
+  },
+  {
+   "count": 29.0,
+   "logFactorial": 71.257038967168
+  },
+  {
+   "count": 30.0,
+   "logFactorial": 74.65823634883016
+  },
+  {
+   "count": 99.0,
+   "logFactorial": 359.1342053695754
+  },
+  {
+   "count": 100.0,
+   "logFactorial": 363.73937555556347
+  },
+  {
+   "count": 254.0,
+   "logFactorial": 1156.1708375732421
+  },
+  {
+   "count": 255.0,
+   "logFactorial": 1161.7121011184006
+  },
+  {
+   "count": 256.0,
+   "logFactorial": 1167.2572785628804
+  },
+  {
+   "count": 257.0,
+   "logFactorial": 1172.8063546477754
+  },
+  {
+   "count": 1000.0,
+   "logFactorial": 5912.128178488164
+  },
+  {
+   "count": 65535.0,
+   "logFactorial": 661276.8717651855
+  },
+  {
+   "count": 65536.0,
+   "logFactorial": 661287.9621200745
+  },
+  {
+   "count": 999999.0,
+   "logFactorial": 12815504.569147611
+  },
+  {
+   "count": 1000000.0,
+   "logFactorial": 12815518.384658169
+  },
+  {
+   "count": 1000001.0,
+   "logFactorial": 12815532.200169727
+  },
+  {
+   "count": 1234567.0,
+   "logFactorial": 16081762.68530234
+  },
+  {
+   "count": 10000000.0,
+   "logFactorial": 151180965.48756957
+  },
+  {
+   "count": 123456789.0,
+   "logFactorial": 2176716257.854672
+  },
+  {
+   "count": 2147483647.0,
+   "logFactorial": 43996705655.378525
+  },
+  {
+   "count": 2147483648.0,
+   "logFactorial": 43996705676.86609
+  },
+  {
+   "count": 1000000000000.0,
+   "logFactorial": 26631021115943.28
+  },
+  {
+   "count": 1099511627777.0,
+   "logFactorial": 29385423763698.926
+  },
+  {
+   "count": 1000000000000000.0,
+   "logFactorial": 3.35387763949107e+16
+  },
+  {
+   "count": 9007199254740992.0,
+   "logFactorial": 3.2188848345802304e+17
+  }
+ ]
+}

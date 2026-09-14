@@ -243,6 +243,14 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- **A Poisson count above one million is fitted rather than refused.** The log-likelihood's `log(y!)`
+  reads a fixed table below 256 and Stirling's series above it, held to `scipy.special.gammaln` at a
+  relative `1e-9` up to `2^53`, instead of a table as long as the largest count: at a mean count of
+  50,000 a fit takes 283 µs instead of 684 µs and allocates 486 KB instead of 944 KB. An infinite
+  count is refused by name. [Decision 0128](docs/decisions/0128-the-poisson-log-factorial-stays-in-lodestar-stats-regression.md)
+  has why it was not published from `Lodestar.Stats`.
+  ([#665](https://github.com/CyrilB1531/lodestar/issues/665))
+
 - **The HC2 and HC3 covariances no longer read Q through an interface the JIT cannot see behind.**
   On a runtime without dynamic PGO they are 3.7% to 4.7% faster, and with PGO nothing moves. The
   results are bit-for-bit identical. [Decision 0125](docs/decisions/0125-the-factorization-types-keep-ireadonlylist-and-consumers-read-a-local.md)

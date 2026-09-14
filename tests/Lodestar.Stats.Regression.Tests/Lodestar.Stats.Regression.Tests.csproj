@@ -22,6 +22,8 @@
           LinkBase="oracles" />
     <None Include="../oracles/stats_glm.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
+    <None Include="../oracles/regression_log_factorial.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
   </ItemGroup>
 
   <!-- Decision 0081: StatsOracleAsserts is the one place the relative p-value tolerance

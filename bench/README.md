@@ -2180,6 +2180,14 @@ within `1e-9`. The timed rows keep the shared `1e-8`, so neither side is handed 
 The numbers, on a named machine and with the default job, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md#lodestarstatsregressions-generalized-linear-model-against-accordstatistics-issue-678).
 
+`GlmPoissonBenchmarks` fits the Poisson family alone, one regressor over 2,000 rows, at a mean count
+of 5, 50,000 and 5,000,000: the one axis the log-likelihood's `log(y!)` sees, on its table below 256,
+on Stirling's series above it, and past the million the fit refused until #665. It has no incumbent.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*GlmPoissonBenchmarks*'
+```
+
 ## 28. `Lodestar.Stats.TimeSeries`'s serial-correlation diagnostics against `Cortex.TimeSeries` (issue #617)
 
 [Decision 0114](../docs/decisions/0114-the-serial-correlation-diagnostics-stay-in-lodestar-stats.md)
