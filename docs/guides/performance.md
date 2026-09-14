@@ -2936,6 +2936,65 @@ package is faster and returns strictly more; above it, the extra diagnostic is w
 for. A caller who does not want VIFs has no way to say so today, and that is the obvious next
 measurement rather than a defect — the table is one call by design.
 
+## Lodestar.Stats.Regression's generalized linear model against Accord.Statistics (issue #678)
+
+Full method, and why the untyped `GeneralizedLinearRegression` is the one driven:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#27-lodestarstatsregressions-generalized-linear-model-against-accordstatistics-issue-616).
+**Accord.Statistics 3.8.0 is archived.** Its last package shipped on 2017-10-19 and the repository
+was archived on 2020-11-18 ([`docs/migration/README.md`](../migration/README.md)). A lead over it is
+a smaller claim than a lead over a maintained library, and a deficit against it is still a deficit.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime, AVX-512.
+Window: one `BenchmarkDotNet` run, **default job**, on 2026-09-14, 8 benchmarks. A binomial model with
+a logit link and an intercept, both sides given 100 iterations and a `1e-8` tolerance. The benchmark
+project builds `Lodestar.Stats` 0.5.0 from source. Its normal quantile is inverted by Newton (#709)
+on the `erfc` [decision 0122](../decisions/0122-erfc-is-an-interpolant-sampled-from-the-incomplete-gamma.md)
+describes. `Lodestar.Stats.Regression`'s published floor, `Lodestar.Stats` 0.4.0, carries neither
+yet.
+
+| SampleSize | Regressors | `Lodestar_Glm` | `Accord_Glm` | Accord / Lodestar | Allocated, Lodestar | Allocated, Accord |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 200 | 1 | 29.48 μs | 29.61 μs | 1.00 | 50.54 KB | 117.67 KB |
+| 200 | 3 | 59.40 μs | 61.64 μs | 1.04 | 95.51 KB | 168.44 KB |
+| 2,000 | 1 | 292.42 μs | 213.73 μs | **0.73** | 486.48 KB | 881.77 KB |
+| 2,000 | 3 | 579.36 μs | 406.43 μs | **0.70** | 925.2 KB | 1,265.51 KB |
+
+**At 200 rows the two are level, and at 2,000 Accord is 1.4× faster.** This package allocates less
+in every cell, by 1.4× to 2.3×.
+
+**The 200-row result moved, and one call moved it.** On 2026-09-13, before the quantiles stopped
+bisecting ([issue #709](https://github.com/CyrilB1531/lodestar/issues/709)), the same cells read
+41.19 μs against Accord's 30.33 μs and 71.31 μs against 60.31 μs. The gap was 10.9 and 11.0 μs,
+flat across the regressor count. That is the one
+[`Distributions.NormalQuantile`](../reference/stats/tails/distributions-normalquantile.md) call the
+intervals need, which `Accord`'s `GetWaldTest` does not make, and it then cost about 11.5 μs. It now
+costs 654 ns, and the two 200-row rows fell by 11.7 and 11.9 μs. The 2,000-row rows fell by 14.7 and
+24.6 μs, where `Accord`'s control rows moved by 3% to 4% the same way, so part of that is the window.
+
+**At 2,000 rows the gap is per iteration, not iteration count.** The two stop on different
+quantities: this package when the absolute change in deviance falls to the tolerance, statsmodels'
+`atol` with `rtol` at zero; `Accord`'s `Run` when the largest relative change in the coefficients
+does. On these designs this package stops after 4 iterations and `Accord` after 4 to 6. So at
+2,000 × 1, where both take 4, each of this package's iterations costs about 73 μs against `Accord`'s
+53 μs. This run does not attribute that difference. Each iteration here is a Householder
+factorization of the weighted design, and reading its `Q` through `IReadOnlyList<double>` is one
+cost [issue #670](https://github.com/CyrilB1531/lodestar/issues/670) already names.
+
+**Both sides return the same fit, and the check that says so is not the timed call.** Run once
+outside `BenchmarkDotNet` on the same seeded designs:
+
+| stopping rule | coefficients, relative | standard errors, relative | first p-values, relative |
+| --- | ---: | ---: | ---: |
+| the benchmark's `1e-8` on both sides | 1.4e-10 | 5.1e-7 | 8.8e-5 |
+| this package at `1e-13`, `Accord` at `1e-15` | 1.4e-10 | 6.1e-11 | 4.3e-10 |
+
+The coefficients agree at the oracle tolerance under either rule. The standard errors do not under the
+benchmark's: each side computes its covariance from the IRLS weights of its own last iterate, and the
+two last iterates differ because the stopping rules do. Tightened, every quantity agrees within `1e-9`.
+What this package computes beyond `Accord`'s coefficients and standard errors — every interval, every
+p-value, the deviance, the null deviance, the log-likelihood and the AIC — is in the timed call.
+
 ## The four robust covariances, against the ordinary one (issue #705)
 
 Full method and what the rows mean:

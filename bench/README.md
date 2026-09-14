@@ -2123,9 +2123,19 @@ A seeded logistic design (`Random(616)`), at 200 and 2 000 rows by 1 and 3 regre
 rows for the table in section 19's own reading to be worth reading, and few enough regressors that
 neither side pays for a design this package's own test corpus does not also exercise.
 
-**The measurement has not been taken yet**, so [`docs/guides/performance.md`](../docs/guides/performance.md)
-carries no GLM section: this section is the protocol, and the numbers land there when someone runs
-the command above on a named machine.
+### Agreement, and why the timed budget is not the agreement budget
+
+The two stop on different quantities. `GeneralizedLinearModel.Fit` stops when the absolute change in
+deviance falls to its `Tolerance`, which is statsmodels' `atol` with `rtol` at zero. `Accord`'s `Run`
+returns the largest relative change in the coefficients, and the loop above stops on that. At the
+shared `1e-8` the coefficients agree within `1.4e-10` relative on all four designs. The standard
+errors and p-values do not: each side takes its covariance from the IRLS weights of its own last
+iterate. So agreement is checked once, outside `BenchmarkDotNet`, with this package at `Tolerance =
+1e-13` and `Accord` looping to `1e-15`, where every coefficient, standard error and p-value agrees
+within `1e-9`. The timed rows keep the shared `1e-8`, so neither side is handed a looser budget.
+
+The numbers, on a named machine and with the default job, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md#lodestarstatsregressions-generalized-linear-model-against-accordstatistics-issue-678).
 
 ## 28. `Lodestar.Stats.TimeSeries`'s serial-correlation diagnostics against `Cortex.TimeSeries` (issue #617)
 
