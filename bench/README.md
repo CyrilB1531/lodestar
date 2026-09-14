@@ -2305,10 +2305,13 @@ error bar wider than the effect being measured.
 [Decision 0119](../docs/decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md)
 put `PrincipalComponentVariance` in `Lodestar.Decomposition`.
 [Decision 0116](../docs/decisions/0116-the-pca-gap-is-the-explained-variance-not-the-projection.md)
-found one .NET library reporting the same number: NumFlat 1.3.4, whose
+read two PCA incumbents and found one reporting the same number: NumFlat 1.3.4, whose
 `PrincipalComponentAnalysis.EigenValues` ships `net8.0` only. It is MIT-licensed and referenced by
 `Lodestar.Text.Benchmarks` alone. ML.NET's `ProjectToPrincipalComponents` exposes no eigenvalue,
 so it has no row here.
+[Decision 0129](../docs/decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md)
+found two more: Meta.Numerics 4.2.0 (MS-PL, `netstandard2.0`) and the commercial Numerics.NET. Neither
+has a row yet; Meta.Numerics' is [#756](https://github.com/CyrilB1531/lodestar/issues/756).
 
 ```bash
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*PrincipalComponentVarianceBenchmarks*'

@@ -2,7 +2,8 @@
 
 Two factorizations of a sparse matrix, and the settings each takes. Both take a `CsrMatrix`
 and neither centres it; what separates them is whether the components may be negative. A third
-section answers the one PCA question .NET leaves open below `net8.0`, over a dense block.
+section answers the one PCA question the projections delegated to below leave open, over a dense
+block.
 
 ## Truncated SVD
 
@@ -17,7 +18,8 @@ answer.
 matrix, reach for ML.NET's `ProjectToPrincipalComponents` on any target this repository supports,
 or [NumFlat](https://www.nuget.org/packages/NumFlat)'s `PrincipalComponentAnalysis` on `net8.0`
 and above. The one thing neither gives you below `net8.0` — **how much variance each component
-explains** — is the section further down.
+explains** — is the section further down. [Meta.Numerics](https://www.nuget.org/packages/Meta.Numerics)
+(MS-PL, `netstandard2.0`) projects and reports that number too, and is not measured here yet.
 
 The factorization is randomized, not exact. A thin random block Ω probes the matrix's range, a
 few power iterations sharpen it, and the singular values fall out of a small dense problem whose
@@ -63,9 +65,12 @@ initialisation decides which one.
 ## The variance principal components explain
 
 ML.NET's fourteen public PCA members expose the eigenvectors and the mean and no eigenvalue, and
-NumFlat's `EigenValues` ships `net8.0` only, so below `net8.0` nothing in .NET could say how many
-components a projection should keep
+NumFlat's `EigenValues` ships `net8.0` only
 ([decision 0116](../../decisions/0116-the-pca-gap-is-the-explained-variance-not-the-projection.md)).
+Below `net8.0` the number is not absent: Meta.Numerics' `PrincipalComponent.VarianceFraction`
+reports it under MS-PL, and Numerics.NET's `ProportionOfVariance` under a commercial licence
+([decision 0129](../../decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md),
+which corrects what this paragraph used to say).
 This is that number and nothing more: centre a dense block, take the eigenvalues of its Gram
 matrix, and read the share of the total variance each one carries. It takes a row-major span
 rather than a `CsrMatrix`, because centring is exactly the step that densifies one —

@@ -38,7 +38,9 @@ NumFlat's `PrincipalComponentAnalysis` on `net8.0` and above
 ([`decisions/0116`](../../../decisions/0116-the-pca-gap-is-the-explained-variance-not-the-projection.md)).
 What neither answers below `net8.0` is how many of those components are worth keeping, and that is
 all this type does. Compute it here, choose the count off `CumulativeExplainedVarianceRatio`, and
-hand the count to whichever projection you use.
+hand the count to whichever projection you use. Meta.Numerics, on `netstandard2.0`, reports it
+beside its own projection
+([`decisions/0129`](../../../decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md)).
 
 **Dense, and the input's own scale.** Nothing is standardised: a feature measured in thousands
 dominates one measured in units, which is PCA's behaviour and scikit-learn's. Standardise first with

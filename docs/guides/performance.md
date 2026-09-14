@@ -3165,8 +3165,11 @@ one of its columns, which is where the 1.19 and half the allocation come from.
 The path to these numbers is in
 [decision 0119](../decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md): a
 Jacobi solve over the whole centred block measured 13× slower than NumFlat at 2,000 × 50 before
-the Gram route replaced it. **The comparison that matters below `net8.0` has no second row**:
-NumFlat does not install there, and ML.NET, which does, reports no eigenvalue.
+the Gram route replaced it. **The comparison that matters below `net8.0` has no second row yet**:
+NumFlat does not install there, ML.NET reports no eigenvalue, and Meta.Numerics, which installs
+there and reports it, is not measured
+([decision 0129](../decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md),
+[#756](https://github.com/CyrilB1531/lodestar/issues/756)).
 
 ## The two published quantiles, without bisection (issue #709)
 
