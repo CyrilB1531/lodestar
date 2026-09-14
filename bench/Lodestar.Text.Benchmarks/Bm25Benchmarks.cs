@@ -26,10 +26,9 @@ namespace Lodestar.Text.Benchmarks;
 /// <summary>BM25 against LuceneSharp.Core, priced at the level a caller actually pays.</summary>
 /// <remarks>
 /// <strong>These are not like-for-like, and that is the measurement.</strong> Lucene needs an
-/// index; this scores a matrix a caller already built for other reasons. Pricing only the query
-/// flatters this package, pricing only the build flatters Lucene, so both are rows and the ratio
-/// to read depends on how many queries one corpus answers. bench/README.md section 21 has the
-/// rest, including what Lucene answers that this does not.
+/// index; this scores a matrix a caller already built for other reasons, so both phases are rows.
+/// Measured, Lucene leads both (#677), the query most. bench/README.md section 21 has the rest,
+/// including what Lucene answers that this does not.
 /// </remarks>
 [MemoryDiagnoser]
 public class Bm25Benchmarks

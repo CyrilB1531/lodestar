@@ -90,6 +90,7 @@ timed; `bench/README.md`'s section 15 has the harness and the agreement checks.
 | package | incumbent | how it reads |
 | --- | --- | --- |
 | `Lodestar.Text` | ML.NET `FeaturizeText` | **Not like-for-like.** Per feature produced the two are within ~11 % — the advantage is the sparse representation, not a faster kernel |
+| `Lodestar.Text`, `Bm25Index` | LuceneSharp.Core | **Behind on both phases**, same ranking: Lucene answers a query 7.7× to 77.6× faster, most of it `Top` sorting every document ([#751](https://github.com/CyrilB1531/lodestar/issues/751)), and goes from text to ranking 2.1× to 2.7× faster. What `Bm25Index` offers is no index of its own: over a `CsrMatrix` a caller already has, it builds 12× to 27× cheaper than Lucene's index, which pays off below roughly a hundred to three hundred queries ([performance](docs/guides/performance.md#bm25-against-lucenesharp-issue-677)) |
 | `Lodestar.Fuzzy` | Fastenshtein, Quickenshtein, F23.StringSimilarity, Raffinert.FuzzySharp | Ahead on Levenshtein at every length, and on all four `fuzz` ratios |
 | `Lodestar.Embeddings` | `Microsoft.ML.Tokenizers`, `TensorPrimitives` | **Behind on encoding**, and the gap that justifies the package is the loader above — [decision 0068](docs/decisions/0068-the-tokenizer-gap-is-the-loader-not-the-encode-kernel.md) |
 | `Lodestar.Metrics` | ML.NET metrics | Coverage, not speed: the advantage narrows with size and the shape does not |

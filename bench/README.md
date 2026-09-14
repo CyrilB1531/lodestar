@@ -1888,16 +1888,20 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*Bm2
 
 **These are not like-for-like, and that is the measurement.** Lucene needs an index — a directory,
 a writer, an analyzer, a commit — where `Bm25Index` scores a `CsrMatrix` a caller already built to
-vectorize with. Pricing only the query flatters this package by hiding the index it never builds;
-pricing only the build flatters Lucene by hiding what that index buys on the hundredth query. So
-both are rows:
+vectorize with. One ratio would hide one of the two costs, so both are rows.
+
+This section first predicted which way each row would lean: the query favouring this package, the
+build favouring Lucene. **The measurement refuted the first half**
+([#677](https://github.com/CyrilB1531/lodestar/issues/677)). Lucene answers the query 7.7× faster at
+1,000 documents and 77.6× at 20,000, because `Bm25Index.Top` sorts every document to keep ten
+([#751](https://github.com/CyrilB1531/lodestar/issues/751)). The two rows stand; the prediction does not.
 
 - `LodestarQuery` / `LuceneQuery` — one query against a structure already standing.
 - `LodestarFromText` / `LuceneFromText` — text in, ranking out, index included.
 
-The ratio worth reading is neither of those alone: it is where the two cross, which depends on how
-many queries one corpus answers. A corpus rebuilt per request never reaches Lucene's crossing
-point; one answering thousands of queries passes it early.
+The reading is neither row alone. From text, Lucene is ahead on both. For a caller who already holds
+the matrix, the index is cheaper to build than Lucene's and each query dearer, so the two cross after a
+number of queries; `performance.md` has where.
 
 Lucene also answers a different question — a real query language, an index on disk, and the
 Block-Max WAND top-k this package does not have. [#440](https://github.com/CyrilB1531/lodestar/issues/440)
@@ -1907,7 +1911,7 @@ A seeded corpus (`Random(573)`) of 500 vocabulary terms and 40 tokens per docume
 20 000 documents: a thousand is where a matrix is rebuilt per request, twenty thousand is where
 the index starts to pay for itself.
 
-Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md) —
+Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md#bm25-against-lucenesharp-issue-677) —
 this section documents how to measure, not what was measured.
 
 ## 22. `Lodestar.Stats` and `Lodestar.Stats.Regression` against scipy and statsmodels (issue #595)

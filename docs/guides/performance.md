@@ -3841,6 +3841,56 @@ and 2.4× the time. At a mean of 5 it was a few hundred bytes and the two column
 5,000,000 could not run before. It allocates about twice what the others do; `log(y!)` allocates
 nothing, and where the rest goes was not measured.
 
+## BM25 against LuceneSharp (issue #677)
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*Bm25Benchmarks*'
+```
+
+[`Bm25Index`](../reference/text/search/bm25index.md) against LuceneSharp.Core 26.8.4415's `BM25Similarity`,
+by `Bm25Benchmarks`: one query term, the top ten, over a seeded corpus of 500 terms and 40 tokens a document.
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#21-bm25-against-lucenesharp-issue-573)
+section 21 has the method.
+
+**Both sides return the same ten documents in the same order**, checked at 1,000 and at 20,000 documents
+before either was timed. This package's `K1` is 1.5 and Lucene's 1.2. With one term and documents of
+equal length the ranking follows the term's frequency alone, whatever `K1` is.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: one `BenchmarkDotNet` 0.14.0 run, **default job**, 2026-09-14.
+
+| Documents | Row | Lodestar | LuceneSharp | Faster |
+| ---: | --- | ---: | ---: | --- |
+| 1,000 | query only | 16.202 μs, 12.27 KB | **2.092 μs**, 5.14 KB | Lucene, 7.7× |
+| 1,000 | text to ranking | 9,280.8 μs, 21,362.8 KB | **4,451.2 μs**, 1,346.0 KB | Lucene, 2.1× |
+| 20,000 | query only | 817.669 μs, 234.96 KB | **10.540 μs**, 8.45 KB | Lucene, 77.6× |
+| 20,000 | text to ranking | 228,889 μs ± 23,916, 418,588.8 KB | **86,301 μs**, 21,897.3 KB | Lucene, 2.7× |
+
+**Lucene is faster on all four rows**, and on the query most of all. Section 21 expected the query row to
+favour this package and the build row to favour Lucene. It was wrong about the query.
+
+Each phase was split with a `Stopwatch` on the same machine and corpus, lowest of several runs:
+
+| Documents | [`CountVectorizer.FitTransform`](../reference/text/vectorizers/countvectorizer-fittransform.md) | `new Bm25Index(counts)` | [`Bm25Index.Score`](../reference/text/search/bm25index-score.md) | [`Bm25Index.Top`](../reference/text/search/bm25index-top.md), ten |
+| ---: | ---: | ---: | ---: | ---: |
+| 1,000 | 9.39 ms, 20.4 MB | 0.360 ms, 0.46 MB | 1.3 μs | 16.4 μs |
+| 20,000 | 175.6 ms, 399.6 MB | 3.233 ms, 8.97 MB | 10.1 μs | 594.3 μs |
+
+- **The text-to-ranking row is the vectorizer's.** It takes almost all of `LodestarFromText`'s time and
+  allocation. The index built from its counts costs 0.36 ms at 1,000 documents and 3.2 ms at 20,000,
+  where Lucene's whole build and query cost 4.5 ms and 86 ms.
+- **The query row is a sort.** Scoring the postings takes 1.3 μs and 10.1 μs. `Top` then sorts every
+  document to keep ten, 92% and 98% of its time. Lucene keeps a bounded queue of the best ten, and
+  [#751](https://github.com/CyrilB1531/lodestar/issues/751) is that change.
+
+**The two-sided reading, for a caller who already holds the matrix.** Such a caller has vectorized for
+something else, TF-IDF or a classifier. Building `Bm25Index` and answering `q` queries then costs
+`0.36 ms + 16.2 μs·q` at 1,000 documents, against Lucene's `4.45 ms + 2.09 μs·q`, which crosses near 290
+queries. At 20,000 documents it is `3.23 ms + 818 μs·q` against `86.3 ms + 10.5 μs·q`, near 100 queries.
+Past that Lucene is cheaper, and from text it is cheaper from the first query. These crossings mix the
+`Stopwatch` build figures with `BenchmarkDotNet` query figures, so read them as orders of magnitude.
+
 ## Lodestar.Gpu — four kernels against their CPU paths (issue #444)
 
 Measured 2026-09-10, on the one machine [decision 0102](../decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md)
