@@ -1262,3 +1262,13 @@
   superseded_by: []
   amended_by: []
   applied_by: []
+
+"0126":
+  title: "The nightly reports a ratio that steps past its own noise, or drifts over ten days"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
