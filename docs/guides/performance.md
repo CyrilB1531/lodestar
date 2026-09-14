@@ -3267,6 +3267,66 @@ The step from 2,048 to 4,096 costs 3.1×, where the others cost about 2×. It is
 curve: a `Stopwatch` taken further measured each doubling from 4,096 to 32,768 characters at 2.0
 to 2.2×.
 
+## Blocked Myers, two words at a time (issue #718)
+
+Issue #717 swapped `BitParallelLcs`' loops for Latin patterns past 128 characters, so a group of words runs
+through the whole text in registers and only the carry leaving it is stored per character. Myers'
+blocked kernel was still row-major, every word loaded and stored for every text character, and
+[`Levenshtein.Distance`](../reference/text/distances/levenshtein-distance.md) on Latin text at 512
+trailed rapidfuzz.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512, 2026-09-14. `BenchmarkDotNet` 0.14.0, **default job**.
+
+**Myers carries two horizontal bits between words where the LCS recurrence carries one carry**, so a
+group holds twice the state. A group size was swept on `LevenshteinBenchmarks.Distance_Utf16`, each
+size selected through a temporary switch in one build, run in the order row-major, 2, 4-with-a-pair-remainder,
+4, 2, row-major:
+
+| Length | row-major | groups of 2 | groups of 4 | 4, remainder as 2 |
+| ---: | ---: | ---: | ---: | ---: |
+| 128 | 864.5 / 836.0 ns | **529.4 / 527.0 ns** | 966.5 ns | 557.3 ns |
+| 256 | 2,661.0 / 2,703.9 ns | **1,745.4 / 1,832.2 ns** | 1,770.5 ns | 1,847.3 ns |
+| 512 | 9,737.0 / 9,308.8 ns | **6,642.8 / 6,605.5 ns** | 6,783.5 ns | 6,785.2 ns |
+| 1,024 | 31,979.8 / 32,163.7 ns | **27,571.6 / 26,982.5 ns** | 26,936.3 ns | 26,988.3 ns |
+
+Four words bought nothing over two, and pay for padding at 128, where half the group is empty. A
+single word per pass, measured with a `Stopwatch` beforehand, ran slower than row-major from 512.
+**The kernel takes pairs.** The distance is read from the last column once the text is done,
+`n + Σ vp − Σ vn` over the pattern's bits, so no pair keeps a score.
+
+`LevenshteinBenchmarks`, `origin/main`, this branch, then `origin/main` again:
+
+| Row | `origin/main` | this branch | `origin/main` again |
+| --- | ---: | ---: | ---: |
+| `Distance_Utf16` 128 | 877.12 ns | **560.00 ns** | 878.64 ns |
+| `Distance_Utf16` 512 | 9,031.01 ns | **6,986.02 ns** | 9,209.25 ns |
+| `Distance_CodePoint` 128 | 1,313.16 ns | **939.58 ns** | 1,243.76 ns |
+| `Distance_CodePoint` 512 | 10,012.06 ns | **8,354.00 ns** | 10,103.27 ns |
+| `Distance_Utf16_Cjk` 128 | 1,104.35 ns | 1,134.52 ns | 1,168.20 ns |
+| `Distance_Utf16_Cjk` 512 | 10,351.73 ns | 10,207.67 ns | 10,560.04 ns |
+
+Lengths 8 and 64 do not reach the kernel and did not move. **The code-point rows gain too**: Myers
+renames code points into a dense alphabet below U+0100 before its kernel, so a renamed pattern is a
+Latin-1 one. **The CJK rows are the control**: their patterns leave Latin-1 and keep the row-major
+kernel, and they sit between the two `origin/main` runs.
+
+**Against rapidfuzz 3.14.6**, the cross-language harness over `bench/corpus/pairs.json`, the C#
+side run on `origin/main`, this branch and `origin/main` again, one Python run:
+
+| Alphabet, length | rapidfuzz | `origin/main` | this branch |
+| --- | ---: | ---: | ---: |
+| Latin, 128 | 994.2 ns | 915.3 / 925.1 ns | **536.4 ns**, 1.85× ahead |
+| Latin, 512 | 8,711.5 ns | 10,147.7 / 10,225.5 ns, 1.16× behind | **7,535.7 ns**, 1.16× ahead |
+| CJK, 128 | 1,671.8 ns | 1,462.7 / 1,441.5 ns | 1,245.1 ns |
+| CJK, 512 | 14,632.2 ns | 12,283.0 / 12,233.4 ns | 11,393.5 ns |
+
+**The CJK column moved, and this change is not why.** Every CJK pattern in those buckets leaves
+Latin-1 once its affixes are trimmed, 993 of 1,000 at 128 past one word and all 1,000 at 512, so none
+reaches the new kernel. The harness times both alphabets in one process; BenchmarkDotNet, a process
+per benchmark, shows those rows flat. What moved them was not measured.
+
 ## Indel and LCS over code points, on the bit-parallel kernel (issue #675)
 
 Full method, and which row takes which route:
