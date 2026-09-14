@@ -184,6 +184,9 @@
     "StatsBenchmarks": [
       "src/Lodestar.Stats/**"
     ],
+    "RankTestBenchmarks": [
+      "src/Lodestar.Stats/**"
+    ],
     "DistributionTailBenchmarks": [
       "src/Lodestar.Stats/**"
     ],

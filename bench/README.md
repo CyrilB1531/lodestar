@@ -1753,6 +1753,16 @@ dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- \
   --filter '*StatsBenchmarks.*ChiSquare*' '*DistributionTailBenchmarks*'
 ```
 
+`RankTestBenchmarks` is the rank tests alone, past the sizes `StatsBenchmarks` reaches and with no
+incumbent: `KruskalWallis.Test` over three groups, `Wilcoxon.Paired` and `MannWhitney.Test`, each
+sample `SampleSize` values at 10,000 and 100,000, `Ties` rounding them to hundredths so most share
+a rank. It exists to watch the merged rankings of #711 and #719; Mann-Whitney is the row that did not
+change the second time.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*RankTestBenchmarks*'
+```
+
 Numbers are published in
 [`docs/guides/performance.md`](../docs/guides/performance.md#lodestarstats-against-accordstatistics-issue-442)
 — this section documents how to measure, not what was measured.
