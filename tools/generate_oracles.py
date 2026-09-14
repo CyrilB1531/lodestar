@@ -5356,6 +5356,35 @@ def _glm_fixtures() -> list[dict]:
     ]
 
 
+def generate_regression_log_factorial() -> dict:
+    """``scipy.special.gammaln(k + 1)``, the ``log(y!)`` statsmodels' Poisson log-likelihood reads (#665).
+
+    Internal to Lodestar.Stats.Regression, so compared relatively at the tolerance the GLM corpus
+    uses: the counts reach 2**53, where ``log(k!)`` is 3e17 and an absolute 1e-9 would be meaningless.
+    The table-to-series boundary at 256 is covered on both sides. This corpus, and not a GLM fit with
+    counts that large, is the oracle: such a fit's log-likelihood cancels terms near ``y log y`` and
+    regenerates 3.7e-9 apart between two hosts, past the absolute 1e-9 the reproducibility gate reads.
+    """
+    import scipy
+    from scipy.special import gammaln
+
+    counts = sorted({
+        *range(0, 31), 99, 100, 254, 255, 256, 257, 1_000, 65_535, 65_536,
+        999_999, 1_000_000, 1_000_001, 1_234_567, 10_000_000, 123_456_789,
+        2**31 - 1, 2**31, 10**12, 2**40 + 1, 10**15, 2**53,
+    })
+    return {
+        "metadata": {
+            "library": "scipy",
+            "version": scipy.__version__,
+            FAMILY: "gammaln",
+            VARIANT: "gammaln(k + 1)",
+            "count": len(counts),
+        },
+        "cases": [{"count": float(k), "logFactorial": float(gammaln(k + 1.0))} for k in counts],
+    }
+
+
 def generate_stats_glm() -> dict:
     """statsmodels' GLM, one block per family (#616).
 
@@ -10477,6 +10506,7 @@ def main() -> None:
         "survival_cox.json": generate_survival_cox,
         "stats_ols.json": generate_stats_ols,
         "stats_glm.json": generate_stats_glm,
+        "regression_log_factorial.json": generate_regression_log_factorial,
         "stats_timeseries.json": generate_stats_timeseries,
         "cluster_kmeans.json": generate_cluster_kmeans,
         "preprocessing_standard_scaler.json": generate_preprocessing_standard_scaler,

@@ -3815,6 +3815,32 @@ gain, 7.0× against 4.8× and 5.5×, since a tie group costs the walk one step w
 Wilcoxon they narrow it, and that was not looked into. What Wilcoxon still
 allocates is `Paired`'s own array of differences, eight bytes a pair, and not the ranking.
 
+### A Poisson fit's log-factorial, without a table as long as the largest count (issue #665)
+
+[`GeneralizedLinearModel.Fit`](../reference/stats-regression/glm/generalizedlinearmodel-fit.md)
+refused a Poisson count above one million, because its log-likelihood built an exact `log(k!)` table
+indexed by the largest count. `log(y!)` now reads a fixed table below 256 and Stirling's series
+above it; [decision 0128](../decisions/0128-the-poisson-log-factorial-stays-in-lodestar-stats-regression.md)
+has the precision each option reached against `scipy.special.gammaln`, and why the function stays in
+`Lodestar.Stats.Regression`.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores (BenchmarkDotNet's
+own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime. Window: three
+`BenchmarkDotNet` runs of `GlmPoissonBenchmarks`, **default job**, 2026-09-14, `origin/main` with the
+new class copied in, this branch, `origin/main` again. One regressor, 2,000 rows, counts around
+`MeanCount`.
+
+| `MeanCount` | `origin/main` | this branch | `origin/main` again | Allocated before | Allocated after |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 5 | 273.7 μs | 275.3 μs | 274.7 μs | 486.63 KB | 486.48 KB |
+| 50,000 | 683.5 μs | **283.1 μs** | 701.5 μs | 943.73 KB | **486.48 KB** |
+| 5,000,000 | refused | 579.7 μs | refused | — | 957.06 KB |
+
+**At a mean of 50,000 the table was most of the fit**: 457 KB and the gen-2 collections it forced,
+and 2.4× the time. At a mean of 5 it was a few hundred bytes and the two columns agree. The row at
+5,000,000 could not run before. It allocates about twice what the others do; `log(y!)` allocates
+nothing, and where the rest goes was not measured.
+
 ## Lodestar.Gpu — four kernels against their CPU paths (issue #444)
 
 Measured 2026-09-10, on the one machine [decision 0102](../decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md)

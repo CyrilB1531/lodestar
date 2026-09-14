@@ -10,10 +10,6 @@ namespace Lodestar.Stats.Regression;
 /// </remarks>
 public static class GeneralizedLinearModel
 {
-    // The largest Poisson count this fit takes: Internal/LogLikelihood builds an exact log(k!)
-    // table up to it -- 8 MB here, 80 MB at 1e7, a wrapped index past 2^31. Lifted by #665.
-    private const double PoissonCountBound = 1_000_000.0;
-
     /// <summary>Fits one model and reports its inference table.</summary>
     /// <param name="design">The regressors, row-major, <paramref name="featureCount"/> per row.</param>
     /// <param name="response">One value per row: 0 or 1 for binomial, a count for Poisson.</param>
@@ -22,8 +18,8 @@ public static class GeneralizedLinearModel
     /// <param name="options">The fit's settings, or null for the defaults.</param>
     /// <exception cref="ArgumentException">
     /// <paramref name="design"/> is not a positive whole number of rows, the lengths disagree, a
-    /// response is outside its family, is a Poisson count above one million or is a Poisson
-    /// response that is zero in every row, no residual degree of freedom is left, or the design
+    /// response is outside its family, is an infinite Poisson count, or is a Poisson response that
+    /// is zero in every row, no residual degree of freedom is left, or the design
     /// is rank deficient.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -152,7 +148,9 @@ public static class GeneralizedLinearModel
             bool ok = family switch
             {
                 GlmFamily.Binomial => y is 0.0 or 1.0,
-                GlmFamily.Poisson => y >= 0.0 && y == Math.Truncate(y),
+                // Infinity truncates to itself, so it is refused by name; the count bound that used
+                // to catch it went with #665, and an infinite count has no likelihood to maximise.
+                GlmFamily.Poisson => y >= 0.0 && !double.IsPositiveInfinity(y) && y == Math.Truncate(y),
                 _ => throw Families.Undeclared(family),
             };
 #pragma warning restore S1244
@@ -161,16 +159,7 @@ public static class GeneralizedLinearModel
             {
                 throw new ArgumentException(
                     $"row {row} carries {y}, which {family} cannot fit: binomial takes 0 or 1 "
-                    + "and Poisson a non-negative integer count.", nameof(response));
-            }
-
-            if (family == GlmFamily.Poisson && y > PoissonCountBound)
-            {
-                throw new ArgumentException(
-                    $"row {row} carries a Poisson count of {y}, above the {PoissonCountBound} "
-                    + "this fit bounds the response at: its log-likelihood sums an exact "
-                    + "log-factorial table indexed by the largest count, which is 8 MB at the "
-                    + "bound and unbounded above it (#665).", nameof(response));
+                    + "and Poisson a finite non-negative integer count.", nameof(response));
             }
 
             anyPositive |= y > 0.0;

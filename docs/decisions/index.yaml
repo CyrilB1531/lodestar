@@ -961,7 +961,7 @@
   applies: ["0081"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0097", "0098", "0115", "0118", "0119", "0124", "0125"]
+  applied_by: ["0097", "0098", "0115", "0118", "0119", "0124", "0125", "0128"]
 
 "0096":
   title: "Ordinary least squares earns its own package"
@@ -1121,7 +1121,7 @@
   applies: ["0076", "0096", "0104"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0114"]
+  applied_by: ["0114", "0128"]
 
 "0112":
   title: "An analyzer rule below warning is raised where it has escaped, not everywhere"
@@ -1279,6 +1279,16 @@
   supersedes: []
   amends: ["0017"]
   applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0128":
+  title: "The Poisson log-factorial stays in `Lodestar.Stats.Regression`, a table below 256 and a series above"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0095", "0111"]
   superseded_by: []
   amended_by: []
   applied_by: []
