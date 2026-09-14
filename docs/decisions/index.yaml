@@ -961,7 +961,7 @@
   applies: ["0081"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0097", "0098", "0115", "0118", "0119", "0124"]
+  applied_by: ["0097", "0098", "0115", "0118", "0119", "0124", "0125"]
 
 "0096":
   title: "Ordinary least squares earns its own package"
@@ -1249,6 +1249,16 @@
   supersedes: []
   amends: []
   applies: ["0081", "0095", "0099"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0125":
+  title: "The factorization types keep `IReadOnlyList<double>`, and a hot consumer reads the property into a local"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0095"]
   superseded_by: []
   amended_by: []
   applied_by: []
