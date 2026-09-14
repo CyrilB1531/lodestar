@@ -751,7 +751,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105", "0109", "0110", "0116", "0129", "0130", "0131"]
+  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105", "0109", "0110", "0116", "0129", "0130", "0131", "0132"]
 
 "0075":
   title: "Double Metaphone ships, with `doublemetaphone` 1.2 as its oracle"
@@ -761,7 +761,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0091", "0099", "0101", "0104", "0116", "0129", "0130", "0131"]
+  applied_by: ["0091", "0099", "0101", "0104", "0116", "0129", "0130", "0131", "0132"]
 
 "0076":
   title: "A core package carries no external dependency, so ONNX Runtime gets its own"
@@ -1319,6 +1319,16 @@
   supersedes: []
   amends: []
   applies: ["0074", "0075", "0093", "0129"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0132":
+  title: "`Lodestar.Preprocessing` writes splitters, scalers and encoders, and not SMOTE"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0074", "0075"]
   superseded_by: []
   amended_by: []
   applied_by: []
