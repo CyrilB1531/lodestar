@@ -3306,6 +3306,36 @@ move. `Leverages` took the list as a parameter, and HC3 lost 4%. C, which only m
 local, recovered all of it. **No runtime without devirtualization was measured**: .NET Framework, Mono
 and Unity are not installed on this machine, and decision 0125 names that as its reopening condition.
 
+## Reading Q into a local for the leverages (issue #670)
+
+[Decision 0125](../decisions/0125-the-factorization-types-keep-ireadonlylist-and-consumers-read-a-local.md)
+found one consumer that paid for reading `QrDecomposition.Q` through `IReadOnlyList<double>`:
+`RobustCovariance.Leverages`, which took the list as a parameter, so the JIT could not see the array
+behind it without PGO. It now takes the factorization and reads `Q` into a local. The HC2 and HC3
+outputs are bit-for-bit identical to `origin/main` on 24 fits (HC0 to HC3; 12, 100 and 2,000 rows; one
+and four regressors).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores, Ubuntu
+26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime, AVX-512. Window: 2026-09-14, BenchmarkDotNet
+**default job**, `RobustCovarianceBenchmarks` for HC2 and HC3, the published package floors (no
+`LodestarUseProjectRefs`). **A** is `origin/main`, **B** this change.
+
+With `--envVars DOTNET_TieredPGO:0`, passes ran A, B, A:
+
+| fit | A, first | B | A, second | B / mean A |
+| --- | ---: | ---: | ---: | ---: |
+| HC2, 100 rows | 17.25 μs | 16.31 μs | 16.97 μs | **0.953** |
+| HC3, 100 rows | 17.08 μs | 16.40 μs | 17.12 μs | **0.959** |
+| HC2, 10,000 rows | 1,936.63 μs | 1,853.02 μs | 1,911.73 μs | **0.963** |
+| HC3, 10,000 rows | 1,914.00 μs | 1,843.51 μs | 1,915.09 μs | **0.963** |
+
+The drift between the two A passes is 0.984 to 1.002.
+
+With dynamic PGO on, the default, B over A is 1.012, 1.009, 0.998 and 1.005 for the same four fits,
+inside their error bars. That is the result decision 0125 predicted: the default runtime already
+devirtualized the reads, and a runtime without PGO no longer pays the 4% on the covariances that use
+leverages. Allocation did not move.
+
 ## Lodestar.Stats against Accord.Statistics (issue #442)
 
 Full method, correctness cross-check, and how `Accord`'s 2017-era API names were resolved against

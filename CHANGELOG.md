@@ -220,6 +220,11 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- **The HC2 and HC3 covariances no longer read Q through an interface the JIT cannot see behind.**
+  On a runtime without dynamic PGO they are 3.7% to 4.7% faster, and with PGO nothing moves. The
+  results are bit-for-bit identical. [Decision 0125](docs/decisions/0125-the-factorization-types-keep-ireadonlylist-and-consumers-read-a-local.md)
+  has the measurement. ([#670](https://github.com/CyrilB1531/lodestar/issues/670))
+
 - **`OlsOptions` is a record, and its two properties are `init` rather than `set`.** Every other
   options type in the repository — `KMeansOptions`, `StandardScalerOptions`, and now `GlmOptions`
   — was already a `sealed record` with `init`, and both of this one's members are value types, so

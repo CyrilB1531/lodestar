@@ -61,7 +61,7 @@ public static class OrdinaryLeastSquares
                 matrix,
                 inverseUpper,
                 residuals,
-                RobustCovariance.Leverages(factorization.Q, rowCount, parameterCount),
+                RobustCovariance.Leverages(factorization, rowCount, parameterCount),
                 rowCount,
                 parameterCount,
                 settings.CovarianceType)
