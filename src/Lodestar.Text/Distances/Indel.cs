@@ -1,6 +1,3 @@
-using System.Buffers;
-using Lodestar.Text.Internal;
-
 namespace Lodestar.Text.Distances;
 
 // SonarLint S4136: the overloads are grouped by concern, with the generic core deliberately last.
@@ -18,9 +15,6 @@ namespace Lodestar.Text.Distances;
 /// </remarks>
 public static class Indel
 {
-    // Cached so the code-point path allocates no delegate per call.
-    private static readonly CodePointPair.Measure MeasureCodePoints = Distance<int>;
-
     /// <summary>Computes the Indel distance between <paramref name="a"/> and <paramref name="b"/>.</summary>
     public static int Distance(ReadOnlySpan<char> a, ReadOnlySpan<char> b, TextElement element = TextElement.Utf16Unit)
     {
@@ -70,6 +64,9 @@ public static class Indel
         return a.Length + b.Length - 2 * Lcs.SubsequenceLength(a, b);
     }
 
-    private static int DistanceCodePoints(ReadOnlySpan<char> a, ReadOnlySpan<char> b, out int lenA, out int lenB) =>
-        CodePointPair.Distance(a, b, MeasureCodePoints, out lenA, out lenB);
+    private static int DistanceCodePoints(ReadOnlySpan<char> a, ReadOnlySpan<char> b, out int lenA, out int lenB)
+    {
+        int common = CodePointLcs.SubsequenceLength(a, b, out lenA, out lenB);
+        return lenA + lenB - (2 * common);
+    }
 }

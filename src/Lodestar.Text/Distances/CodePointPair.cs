@@ -7,9 +7,9 @@ namespace Lodestar.Text.Distances;
 /// Decoding both operands to code points once, for the distances measured over them.
 /// </summary>
 /// <remarks>
-/// Four distances need the same fifteen lines — rent, decode, measure, return — and
-/// wrote them four times, which is what Sonar flagged when Indel became the fourth
-/// (#273). The measurement itself is passed in, cached as a static delegate by each
+/// Distances measured over decoded code points need the same fifteen lines — rent, decode,
+/// measure, return — and wrote them four times, which is what Sonar flagged when Indel became
+/// the fourth (#273). Indel has since left for <see cref="CodePointLcs"/>, which never decodes (#675). The measurement itself is passed in, cached as a static delegate by each
 /// caller so the shared path allocates nothing the copies did not.
 /// </remarks>
 internal static class CodePointPair

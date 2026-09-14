@@ -39,6 +39,18 @@ number as though it were the mode's.
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*LevenshteinCodePoint*'
 ```
 
+`IndelBenchmarks` and `IndelCodePointBenchmarks` split the same way for `Indel`, with one
+difference: the code-point `Indel` takes two routes, not one gate. An operand holding no surrogate
+decodes to itself, so `IndelBenchmarks`' ASCII `Distance_CodePoint` row measures the check that
+proves it and then the UTF-16 kernel. `IndelCodePointBenchmarks` draws every character from
+U+1F300..U+1FAFF, 32 distinct, so each operand is renamed into surrogate values the bit-parallel
+kernel can compare before it runs (#675). It has no `Distinct` parameter: the renaming's ceiling is 2,048
+distinct astral code points, and a pair of 512 cannot reach it.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*IndelCodePoint*'
+```
+
 ### Where the bit-parallel gate belongs, and why a benchmark cannot say
 
 `MyersGateBenchmarks` and `LcsGateBenchmarks` parameterise the differing middle

@@ -3267,6 +3267,65 @@ The step from 2,048 to 4,096 costs 3.1×, where the others cost about 2×. It is
 curve: a `Stopwatch` taken further measured each doubling from 4,096 to 32,768 characters at 2.0
 to 2.2×.
 
+## Indel and LCS over code points, on the bit-parallel kernel (issue #675)
+
+Full method, and which row takes which route:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#the-levenshtein-corpora-and-which-one-reaches-what).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: `BenchmarkDotNet` 0.14.0 runs of `IndelBenchmarks` and `IndelCodePointBenchmarks`,
+**default job**, on 2026-09-14, `origin/main` before and this branch after.
+
+**The code-point mode never reached the kernel.** #675 read its ratio to the UTF-16 mode rising and
+asked whether a gate re-calibration had not been carried across. It was not a gate: the mode decoded
+both operands to `int` and ran the dynamic program at every length, so each improvement to the
+character kernel widened the gap. A code point equals another exactly when their renamings do, so the
+mode now reaches that kernel with the same lengths, by one of two routes.
+
+`IndelBenchmarks`, ASCII operands, which hold no surrogate and take the UTF-16 kernel as they are:
+
+| Length | `Distance_CodePoint` before | after | `Distance_Utf16` after | ratio before | ratio after |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 8 | 74.16 ns | **19.99 ns** | 16.94 ns | 4.38 | **1.18** |
+| 12 | 78.44 ns | **21.32 ns** | 18.35 ns | 4.39 | **1.16** |
+| 16 | 83.16 ns | **22.59 ns** | 20.13 ns | 4.32 | **1.12** |
+| 20 | 104.55 ns | **24.78 ns** | 21.91 ns | 4.61 | **1.13** |
+| 24 | 481.46 ns | **36.30 ns** | 35.45 ns | 14.05 | **1.02** |
+| 32 | 643.96 ns | **41.93 ns** | 38.74 ns | 16.53 | **1.08** |
+| 128 | 10,270.80 ns | **231.73 ns** | 222.42 ns | 45.29 | **1.04** |
+| 512 | 173,409.50 ns | **2,977.04 ns** | 2,814.00 ns | 61.63 | **1.06** |
+
+What is left of the ratio is the search for a surrogate and the call around it. The UTF-16 rows did
+not move.
+
+`IndelCodePointBenchmarks`, every character one of 32 emoji, so every operand is renamed first:
+
+| Length | `Distance_CodePoint` before | after | `Distance_Utf16` after, context |
+| ---: | ---: | ---: | ---: |
+| 20 | 499.2 ns | **235.8 ns** | 115.9 ns |
+| 128 | 11,660.6 ns | **1,377.6 ns** | 3,173.3 ns |
+| 512 | 259,255.2 ns | **8,174.1 ns** | 21,707.0 ns |
+
+From 128 code points the code-point mode now runs ahead of the UTF-16 one over the same text, which
+has twice as many units to compare. Neither row allocates.
+
+**What the renaming costs.** Each distinct astral code point is named by a surrogate value that no
+lone surrogate in either operand holds, so a name can never equal a character it did not come from.
+That takes a probe table and two passes. Past 2,048 distinct astral code points there are no names
+left, and the dynamic program runs as before.
+
+A `Stopwatch` on the same machine, 2026-09-14, over random pairs of Latin letters mixed with CJK and
+with emoji, best of five:
+
+| Operands | 20 before / after | 128 before / after | 512 before / after |
+| --- | ---: | ---: | ---: |
+| Latin and CJK, no surrogate | 451.4 / **63.8 ns** | 10,570.6 / **907.7 ns** | 341,697.6 / **5,900.4 ns** |
+| Latin and emoji, renamed | 346.6 / **157.0 ns** | 6,323.9 / **1,011.7 ns** | 126,464.5 / **4,988.5 ns** |
+
+**`LcsGateBenchmarks.Kernel_Cjk` was never this path.** #675 cited it rising at a band of 18, but the
+row measures `TextElement.Utf16Unit` over CJK, so nothing here moves it.
+
 ## BPE's piece cache (issue #743)
 
 Full method, and why `BpeBenchmarks` cannot show it:
