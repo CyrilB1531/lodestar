@@ -3244,6 +3244,68 @@ the table now scales with what it should.
 Allocation rose by about 60% at 1,000 subjects, and not 60% of anything large: the ordering array
 and sorted durations the walk needs.
 
+## Reading a factorization through `IReadOnlyList<double>` (issue #669)
+
+What it costs to read [`QrDecomposition`](../reference/decomposition/factorization/qrdecomposition.md)'s
+`Q` and `R` through their `IReadOnlyList<double>` properties rather than as spans.
+[Decision 0125](../decisions/0125-the-factorization-types-keep-ireadonlylist-and-consumers-read-a-local.md)
+was taken on these numbers.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores, Ubuntu
+26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime, AVX-512. Window: 2026-09-14, BenchmarkDotNet
+**default job**. The existing `OlsBenchmarks.Lodestar_Ols`, `GlmBenchmarks.Lodestar_Glm` and
+`RobustCovarianceBenchmarks` were run from `bench/Lodestar.Stats.Benchmarks` with
+`LodestarUseProjectRefs=true`, so the builds differ only in the read path:
+
+- **A** is `origin/main`.
+- **B** types `Q` and `R` as `ReadOnlySpan<double>`, and the three consumers in
+  `Lodestar.Stats.Regression` read them as spans.
+- **C** keeps `IReadOnlyList<double>` and changes `RobustCovariance.Leverages` to read `Q` into a local
+  instead of taking it as a parameter.
+
+Passes ran A, B, A so the drift between the two A passes bounds the comparison. Neither prototype was
+merged.
+
+**With dynamic PGO (the default).** B over the mean of the two A passes, across all 16 fits, lies
+between **0.984 and 1.012**. The A-to-A drift is 0.994 to 1.020. No row moved.
+
+| fit | A, first pass | B | A, second pass |
+| --- | ---: | ---: | ---: |
+| GLM 2,000 × 3 | 578.70 μs | 576.19 μs | 583.70 μs |
+| OLS 10,000 | 1,567.66 μs | 1,565.20 μs | 1,584.38 μs |
+| HC3 10,000 | 1,856.66 μs | 1,848.73 μs | 1,876.44 μs |
+
+**With `--envVars DOTNET_TieredPGO:0`.**
+
+| fit | A (mean of two) | B | C | B / A |
+| --- | ---: | ---: | ---: | ---: |
+| OLS 100 | 14.95 μs | 14.93 μs | — | 0.999 |
+| OLS 10,000 | 1,588.19 μs | 1,586.81 μs | — | 0.999 |
+| GLM 200 × 1 | 33.04 μs | 33.19 μs | — | 1.005 |
+| GLM 200 × 3 | 62.97 μs | 63.19 μs | — | 1.004 |
+| GLM 2,000 × 1 | 325.23 μs | 340.64 μs | — | 1.047 |
+| GLM 2,000 × 3 | 616.02 μs | 617.32 μs | — | 1.002 |
+| HC3 100 | 17.09 μs | 16.34 μs | 16.41 μs | **0.956** |
+| HC3 10,000 | 1,933.33 μs | 1,855.71 μs | 1,855.96 μs | **0.960** |
+
+C was measured beside a third A pass, which read 17.08 μs and 1,924.70 μs. GLM 2,000 × 1's 1.047 has
+B slower, the wrong direction for a read-path gain, and is counted as noise.
+
+**The read loop alone** is the `Qᵀy` projection, with the list passed into a method that is not
+inlined. It was timed with a `Stopwatch`, as the best of seven loops after a warm-up:
+
+| rows × columns | PGO on, list / span | `DOTNET_TieredPGO=0` | `DOTNET_TieredCompilation=0` |
+| --- | ---: | ---: | ---: |
+| 2,000 × 4 | 4.71 / 4.65 μs (1.01) | 18.80 / 4.67 μs (**4.03**) | 18.86 / 4.74 μs (3.98) |
+| 10,000 × 5 | 29.69 / 29.78 μs (1.00) | 118.09 / 29.42 μs (**4.01**) | 118.16 / 29.39 μs (4.02) |
+
+**So the 4× is real, and it reaches a fit only where the list crosses a method boundary.**
+`LeastSquares.Solve` reads `qr.Q` into a local in the method holding the factorization, so the JIT
+sees the array through the inlined getter and devirtualizes the reads without PGO; OLS and GLM did not
+move. `Leverages` took the list as a parameter, and HC3 lost 4%. C, which only moves that read into a
+local, recovered all of it. **No runtime without devirtualization was measured**: .NET Framework, Mono
+and Unity are not installed on this machine, and decision 0125 names that as its reopening condition.
+
 ## Lodestar.Stats against Accord.Statistics (issue #442)
 
 Full method, correctness cross-check, and how `Accord`'s 2017-era API names were resolved against
