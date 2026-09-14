@@ -95,6 +95,10 @@
       "src/Lodestar.Text/Distances/**",
       "src/Lodestar.Text/Text/**"
     ],
+    "IndelCodePointBenchmarks": [
+      "src/Lodestar.Text/Distances/**",
+      "src/Lodestar.Text/Text/**"
+    ],
     "LcsGateBenchmarks": [
       "src/Lodestar.Text/Distances/**",
       "src/Lodestar.Text/Text/**"

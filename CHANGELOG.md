@@ -85,6 +85,12 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- **`Indel` and `Lcs.SubsequenceLength` in `TextElement.CodePoint` mode reach the bit-parallel
+  kernel** instead of the dynamic program, returning the same lengths. Text with no surrogate takes
+  the UTF-16 kernel directly; astral code points are renamed first. `Indel.Distance` over code
+  points is 3.7× to 58× faster on ASCII operands and 2.1× to 32× on emoji.
+  ([#675](https://github.com/CyrilB1531/lodestar/issues/675))
+
 - **`System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`.** The dependency a
   consumer restores changes; nothing in the public surface does.
   ([#622](https://github.com/CyrilB1531/lodestar/issues/622))

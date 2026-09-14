@@ -31,7 +31,7 @@ public static class Lcs
     public static int SubsequenceLength(ReadOnlySpan<char> a, ReadOnlySpan<char> b, TextElement element = TextElement.Utf16Unit)
     {
         return element == TextElement.CodePoint
-            ? OverCodePoints(a, b, static (x, y) => SubsequenceLength<int>(x, y))
+            ? CodePointLcs.SubsequenceLength(a, b, out _, out _)
             : SubsequenceLengthChars(a, b);
     }
 
