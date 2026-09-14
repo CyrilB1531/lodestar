@@ -57,6 +57,11 @@
       "src/Lodestar.Embeddings/Tokenization/**",
       "src/Lodestar.Embeddings/Persistence/**"
     ],
+    "BpeWordCacheBenchmarks": [
+      "src/Lodestar.Embeddings/Tokenization/**",
+      "src/Lodestar.Embeddings/Persistence/**",
+      "tests/oracles/gpt2_*"
+    ],
     "BucketRouteDiagnostics": [
       "src/Lodestar.Text/Distances/**"
     ],
