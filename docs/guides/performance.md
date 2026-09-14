@@ -3267,6 +3267,48 @@ The step from 2,048 to 4,096 costs 3.1×, where the others cost about 2×. It is
 curve: a `Stopwatch` taken further measured each doubling from 4,096 to 32,768 characters at 2.0
 to 2.2×.
 
+## BPE's piece cache (issue #743)
+
+Full method, and why `BpeBenchmarks` cannot show it:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#33-what-bpes-piece-cache-buys-a-long-lived-tokenizer-issue-743).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: `BenchmarkDotNet` 0.14.0 runs, **default job**, on 2026-09-14, `origin/main` before
+and this branch after.
+
+| Row | Before | After | StdDev after | Allocated before | Allocated after |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `BpeWordCacheBenchmarks.EncodeUnseenProse` | 14.16 ms | **7.61 ms** | 0.23 ms | 6.68 MB | 7.50 MB |
+| `BpeBenchmarks.Bpe`, repeated corpus | 58.81 ms | 48.27 ms | 0.33 ms | 28.47 MB | 28.47 MB |
+| `TokenizerIncumbentBenchmarks`, `ByteLevelBpe`, Lodestar | 61.73 ms | 48.53 ms | 0.68 ms | 28.47 MB | 28.47 MB |
+
+**Prose a warmed tokenizer has not seen encodes in 46% less time.** That is GPT-2's vocabulary over
+the second half of decisions 0001 to 0100, after the first half. Allocation rises by the entries the
+timed half adds to the cache.
+
+**The other two rows are not the cache's gain on their corpus.** Both build their tokenizer once, so
+from the second iteration on, the cache holds the words each iteration reads. Measured with a
+`Stopwatch` instead, a fresh tokenizer per pass, median of 15 or more:
+
+| Workload | No cache | Cache |
+| --- | ---: | ---: |
+| `BpeBenchmarks`' corpus, random words | 59.9 ms | 61.4 ms |
+| the paragraphs of every decision, GPT-2's vocabulary | 34.5 ms | 27.3 ms |
+| warmed on the first half of those, timed on the second | 16.4 ms | 11.4 ms |
+
+On random words a cache filled with the first 10,000 of 34,274 distinct words is rarely hit, and
+the lookup costs about what it saves. The nightly series will record `BpeBenchmarks`' ratio moving,
+3.38 to 2.73, and that movement is the repetition, not the corpus.
+
+**A full cache holds about 1.5 MB** per tokenizer, measured with `GC.GetTotalMemory` after encoding
+either corpus. Nothing is released while the tokenizer lives.
+
+**Long pieces are neither cached nor looked up.** A first version looked every piece up, and hashing
+a 4,096-character miss slowed `BpeScalingBenchmarks`' longest row: in an A/B/A, 178.54 and 171.86 μs
+on `origin/main` against 191.03 μs. Skipping the lookup past 255 characters gave 129.16 and 152.98 μs
+against 150.24 μs. That row moves between 126 and 178 μs on unchanged code, so only the A/B/A reads.
+
 ## What a Cox fit costs (issue #684)
 
 Full method and what the rows mean:

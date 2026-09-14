@@ -2355,3 +2355,36 @@ roughly a third censored, as `SurvivalBenchmarks` has it.
 
 The numbers, on a named machine, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md#what-a-cox-fit-costs-issue-684).
+
+## 33. What BPE's piece cache buys a long-lived tokenizer (issue #743)
+
+`BpeTokenizer` caches each piece's merged ids, as HuggingFace `tokenizers`' `BPE` does: up to 10,000
+pieces shorter than 256 characters, never evicted. `BpeWordCacheBenchmarks` measures what that buys.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*BpeWordCacheBenchmarks*'
+```
+
+### Why not `BpeBenchmarks`
+
+Its corpus is random letter strings, 34,274 distinct words, so a cache filled with the first
+10,000 is rarely hit by the rest. A fresh tokenizer over it gains nothing. `BpeBenchmarks` and the
+`ByteLevelBpe` row of `TokenizerIncumbentBenchmarks` still read faster with the cache, and **that
+gain is an artefact of repetition**: both build their tokenizer once, so from the second iteration
+on, the cache holds the very words each iteration reads.
+
+### The configuration that does not time its own warm-up
+
+GPT-2's vendored vocabulary (`tests/oracles/gpt2_vocab.json`, `gpt2_merges.txt`) over the paragraphs
+of decisions 0001 to 0100, split at blank lines. Decisions are immutable, so the text does not drift.
+The first half warms the cache, the second half is timed.
+
+The tokenizer is rebuilt and warmed in `[IterationSetup]`, before every iteration. The first half
+does not fill the 10,000 entries, so a tokenizer warmed once would take the timed half's own pieces
+into its cache on the first iteration and time a cache filled by the text it reads from then on.
+`[IterationSetup]` sets one invocation per iteration, and at about 7 ms an encode BenchmarkDotNet warns
+that the iteration is short. The warning stands: the measured standard deviation is what says whether
+the row can be read, and `performance.md` gives it.
+
+The numbers, on a named machine, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md#bpes-piece-cache-issue-743).

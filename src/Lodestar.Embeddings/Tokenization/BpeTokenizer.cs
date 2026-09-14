@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Text;
 using Lodestar.Internal.Persistence;
 
@@ -9,11 +10,14 @@ namespace Lodestar.Embeddings.Tokenization;
 /// The algorithm — symbol assignment, the added-token pre-pass, the merge loop — is the
 /// guide's BPE section and equivalence.md's BPE rows; this type does not restate it. Merge
 /// pairs are resolved to pairs of ids once, at construction, so the loop compares integers
-/// rather than looking candidates up by string. Thread-safe after construction.
+/// rather than looking candidates up by string. Thread-safe after construction. It keeps the
+/// ids of up to 10 000 pieces and never releases them; see <see cref="Remember"/>.
 /// </remarks>
 public sealed class BpeTokenizer : ISubwordTokenizer
 {
     private const int StackThreshold = 256;
+    private const int WordCacheCapacity = 10_000;
+    private const int LongestCachedPiece = 255;
     private const int MergeStackThreshold = 64;
 
     /// <summary>What each byte of a run that is not well-formed UTF-8 decodes to — see <see cref="FlushBytes"/>.</summary>
@@ -77,6 +81,11 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     private readonly bool _ignoreMerges;
     private readonly bool _fuseUnk;
 
+    // Piece -> its merged ids. Concurrent: Encode is thread-safe, and a hit is a lock-free read.
+    private readonly ConcurrentDictionary<string, int[]> _wordCache = new(StringComparer.Ordinal);
+    private readonly int _wordCacheCapacity;
+    private int _wordCacheCount;
+
     /// <summary>Creates a tokenizer from a loaded BPE model.</summary>
     /// <param name="vocabulary">A vocabulary from <see cref="Persistence.BpeFilesLoader"/> or <see cref="Persistence.TokenizerJsonLoader"/>.</param>
     /// <exception cref="ArgumentException">
@@ -90,8 +99,15 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// all 256 <c>&lt;0xXX&gt;</c> byte pieces — see <see cref="EnsureByteFallbackAlphabetIsComplete"/>.
     /// </exception>
     public BpeTokenizer(BpeVocabulary vocabulary)
+        : this(vocabulary, WordCacheCapacity)
+    {
+    }
+
+    /// <summary>Creates a tokenizer whose piece cache holds at most <paramref name="wordCacheCapacity"/> entries; 0 turns it off.</summary>
+    internal BpeTokenizer(BpeVocabulary vocabulary, int wordCacheCapacity)
     {
         Guard.NotNull(vocabulary);
+        _wordCacheCapacity = wordCacheCapacity;
         EnsureByteLevelDeclaresNoContinuingPrefix(vocabulary);
         EnsureSplitBehaviorIsDefined(vocabulary);
         EnsurePreTokenizerIsDeclared(vocabulary);
@@ -513,6 +529,14 @@ public sealed class BpeTokenizer : ISubwordTokenizer
             return;
         }
 
+        // A piece Remember never caches is never looked up either: hashing 4,096 characters to miss
+        // cost BpeScalingBenchmarks' longest row about 9%, in an A/B/A.
+        if (piece.Length <= LongestCachedPiece && _wordCache.TryGetValue(piece, out int[]? hit))
+        {
+            Emit(hit, tokens, ids);
+            return;
+        }
+
         // ignore_merges: a piece that is itself a vocabulary entry is emitted whole,
         // as Llama-3 declares it — see equivalence.md's `BPE(...)` row.
         if (_ignoreMerges)
@@ -538,11 +562,8 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         {
             int count = _byteLevel ? ByteLevelSymbols(piece, symbols) : InitialSymbols(piece, symbols);
             count = Merge(symbols, count);
-            for (int i = 0; i < count; i++)
-            {
-                ids.Add(symbols[i]);
-                tokens.Add(_tokens[symbols[i]]);
-            }
+            Remember(piece, symbols.Slice(0, count));
+            Emit(symbols.Slice(0, count), tokens, ids);
         }
         finally
         {
@@ -550,6 +571,36 @@ public sealed class BpeTokenizer : ISubwordTokenizer
             {
                 ArrayPool<int>.Shared.Return(rented);
             }
+        }
+    }
+
+    /// <summary>Caches a piece's merged ids while the cache has room; once full, it only answers.</summary>
+    /// <remarks>
+    /// The ids depend on the piece alone, because the merges run inside one piece. As in
+    /// <c>tokenizers</c>' <c>BPE::tokenize</c>, a long piece is never cached (its cut-off is 256 UTF-8
+    /// bytes of the mapped piece, this one 256 characters) and no entry is ever removed. Two
+    /// threads may both pass the capacity check, so the count can end a few entries past it.
+    /// Full, it holds about 1.5 MB on GPT-2's vocabulary; docs/guides/performance.md has what it buys.
+    /// </remarks>
+    private void Remember(string piece, ReadOnlySpan<int> merged)
+    {
+        if (piece.Length <= LongestCachedPiece
+            && _wordCacheCount < _wordCacheCapacity
+            && _wordCache.TryAdd(piece, merged.ToArray()))
+        {
+            Interlocked.Increment(ref _wordCacheCount);
+        }
+    }
+
+    /// <summary>How many pieces the cache holds.</summary>
+    internal int WordCacheCount => _wordCacheCount;
+
+    private void Emit(ReadOnlySpan<int> merged, List<string> tokens, List<int> ids)
+    {
+        foreach (int id in merged)
+        {
+            ids.Add(id);
+            tokens.Add(_tokens[id]);
         }
     }
 

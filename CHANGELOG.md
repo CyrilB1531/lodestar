@@ -124,6 +124,10 @@ is one sentence, the issue and the commit; see
   Microsoft.ML.Tokenizers on identical ids. The split pattern is compiled, which moves about 2 ms of
   code generation to a tokenizer's first encode.
   ([#673](https://github.com/CyrilB1531/lodestar/issues/673))
+- **`BpeTokenizer` caches each piece's merged ids**, as `tokenizers` does: up to 10,000 pieces
+  shorter than 256 characters, about 1.5 MB, never released. A warmed tokenizer encodes unseen prose
+  in 46% less time; on random words it gains nothing. Tokens and ids are unchanged.
+  ([#743](https://github.com/CyrilB1531/lodestar/issues/743))
 
 ### Lodestar.Onnx
 
