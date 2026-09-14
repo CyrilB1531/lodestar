@@ -106,12 +106,70 @@ the other arm's expected counts, which is the opposite of dropping them.
 Two sanity properties worth knowing: the statistic is a square, so it is never negative and the order
 of the two arms cannot change it; and identical arms give exactly zero.
 
+## When covariates matter: the Cox model
+
+**Read the assumption before the table.** A Cox model says each covariate multiplies the hazard by
+a fixed factor, the same factor at every time. That is the "proportional hazards" in its name. A
+hazard ratio of 4 for a treatment means four times the hazard in the first month and in the
+twentieth. If the effect fades or reverses, the one number the table reports is an average of
+something that changed, and its p-value tests that average.
+
+**This release does not test the assumption for you.** Before trusting a table, look for its
+failure:
+
+- **Plot the curves first.** Fit [`KaplanMeier`](../reference/survival/estimators/kaplanmeier.md) on
+  each level of a binary covariate. Curves that cross are the clearest sign that its hazards are not
+  proportional.
+- **Fit an early window and a late one.** Censor everyone at a midpoint for the first fit, then fit
+  only those still at risk after it. A coefficient that moves materially between the two is not
+  constant in time.
+
+Schoenfeld residuals, the formal test, are a later lot.
+
+```csharp
+using Lodestar.Survival;
+
+// One row per patient: dose in mg, then 1 if on the new treatment.
+double[] design = [1.0, 0.0, 2.0, 1.0, 1.5, 0.0, 3.0, 1.0, 2.5, 0.0,
+                   0.5, 1.0, 2.0, 0.0, 1.0, 1.0, 3.5, 0.0, 0.5, 1.0];
+double[] months = [12, 5, 20, 3, 15, 9, 8, 14, 2, 18];
+bool[] died = [true, true, false, true, true, true, true, false, true, true];
+
+CoxSummary summary = CoxProportionalHazards.Fit(design, months, died, featureCount: 2);
+
+double perMilligram = summary.HazardRatios[0];  // 4.07: each mg multiplies the hazard by about four
+double dosePValue = summary.PValues[0];         // 0.027
+double treatment = summary.HazardRatios[1];     // 4.29, and its interval runs from 0.61 to 30.3
+double concordance = summary.ConcordanceIndex;  // 0.774
+```
+
+[`CoxProportionalHazards.Fit`](../reference/survival/estimators/coxproportionalhazards-fit.md) takes
+the same durations and event flags as the curves, plus a row-major design with one row per subject.
+It reports each coefficient's hazard ratio with its interval, the likelihood-ratio test of the model
+against no covariates, and Harrell's concordance: the share of comparable pairs whose ordering the
+model gets right. A concordance of 0.5 is chance.
+
+**Ten subjects cannot carry two covariates**, and the interval on the treatment above says so: it
+covers both a protective and a harmful effect. The table is honest about that. It is the reader who
+has to look at the interval before the ratio.
+
+**Two designs are refused rather than fitted.**
+
+- **A covariate the others determine**, such as a duplicated column or a column of ones, has no
+  identifiable coefficient.
+- **A covariate that separates the events**, where every higher value fails before every lower one,
+  has an infinite coefficient.
+
+Both throw `ArgumentException` naming the cause. `lifelines` would return a table behind a warning
+there.
+
 ## What is not here
 
 Right censoring only. **Left truncation** (subjects who enter late), **interval censoring** (an event
-known only to fall between two visits), **Cox regression** and the **accelerated-failure-time**
-models are each their own lot — and each changes the risk table rather than adding a step on top of
-it, which is why none of them is a flag on these three calls.
+known only to fall between two visits) and the **accelerated-failure-time** models are each their own
+lot — and each changes the risk table rather than adding a step on top of it, which is why none of
+them is a flag on these calls. The Cox model has no strata, time-varying covariates, weights or
+penalty, no prediction for a new subject, and no test of its own assumption.
 
 ## See also
 
@@ -119,3 +177,5 @@ it, which is why none of them is a flag on these three calls.
 - [Python → C# equivalence](../equivalence.md) — the `lifelines` call each of these replaces.
 - [`decisions/0099`](../decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)
   — why `lifelines` is the oracle and `scikit-survival` is refused.
+- [`decisions/0124`](../decisions/0124-the-cox-model-stays-in-lodestar-survival-and-refuses-what-it-cannot-estimate.md)
+  — where the Cox model lives, and the three places it parts from `lifelines`.

@@ -11,8 +11,9 @@ have survived *at least* 20 months. Averaging durations throws that away, and dr
 subject throws away more. **Right censoring** is a subject whose duration is a lower bound, and
 the three estimators below are the ones that use it rather than discard it.
 
-Left truncation, interval censoring, Cox regression and the accelerated-failure-time models are
-each their own lot; nothing here does them.
+The Cox proportional hazards model adds covariates: by how much each changes the hazard. Left
+truncation, interval censoring and the accelerated-failure-time models are each their own lot;
+nothing here does them.
 
 ## Which estimator?
 
@@ -21,9 +22,11 @@ flowchart TD
     A["What do you want to read off?"] --> B["the probability of surviving past t"]
     A --> C["the accumulated risk by t"]
     A --> D["whether two groups differ"]
+    A --> H["how much a covariate moves the hazard"]
     B --> E["KaplanMeier"]
     C --> F["NelsonAalen"]
     D --> G["LogRank"]
+    H --> I["CoxProportionalHazards"]
 ```
 
 `KaplanMeier` and `NelsonAalen` are two readings of one table, and they share a timeline by
@@ -49,6 +52,9 @@ keeps the size of that last step.
 
 | Type | What it is |
 | --- | --- |
+| [`CoxOptions`](estimators/coxoptions.md) | The interval level and the iteration budget a Cox fit takes. |
+| [`CoxProportionalHazards`](estimators/coxproportionalhazards.md) | The Cox model, on Efron's partial likelihood. |
+| [`CoxSummary`](estimators/coxsummary.md) | What it returns: the coefficient table, the likelihood-ratio test and the concordance. |
 | [`KaplanMeier`](estimators/kaplanmeier.md) | The survival function, with Greenwood variance and log-log bounds. |
 | [`KaplanMeierCurve`](estimators/kaplanmeiercurve.md) | What it returns: the estimate, its bounds and its steps. |
 | [`LogRank`](estimators/logrank.md) | The two-sample test comparing two survival curves. |

@@ -3148,6 +3148,43 @@ same machine, not by BenchmarkDotNet:
 first call in a process.** Where the first call's extra time goes was not measured apart. It is
 paid once per tokenizer; reading `spiece_30k.model` itself takes 14 ms on the same run.
 
+## What a Cox fit costs (issue #684)
+
+Full method and what the rows mean:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#32-what-a-cox-fit-costs-issue-684).
+No incumbent: no .NET package fits a Cox model.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: two `BenchmarkDotNet` runs, **default job**, on 2026-09-14, 4 benchmarks each.
+Each row is one whole [`CoxProportionalHazards.Fit`](../reference/survival/estimators/coxproportionalhazards-fit.md)
+on the seeded design, about a third censored, durations tied to whole months.
+
+| SampleSize | Covariates | concordance by pairs | concordance by Fenwick tree | Allocated, after |
+| ---: | ---: | ---: | ---: | ---: |
+| 1,000 | 2 | 1.894 ms | **0.183 ms** | 130.61 KB |
+| 1,000 | 8 | 2.835 ms | **1.122 ms** | 198.49 KB |
+| 10,000 | 2 | 273.650 ms | **3.588 ms** | 1,219.53 KB |
+| 10,000 | 8 | 270.019 ms | **11.917 ms** | 1,781.72 KB |
+
+**The first draft spent almost all its time on one statistic.** At 10,000 subjects the fit took
+the same 270 ms with 2 covariates as with 8, and a cost that ignores the model's size is not the
+model's. It was Harrell's concordance, counted pair by pair: every event against every later subject,
+about 67 million comparisons, where the whole Newton-Raphson fit takes a few milliseconds.
+
+Walking the subjects in time order against a Fenwick tree of the events already passed makes it
+`n log n`, with the same tie rules. A property test holds it to the pairwise definition on draws with
+ties in both durations and predictors. That cut the 10,000-subject fit 76× with 2 covariates, and
+the table now scales with what it should.
+
+- **Covariates, quadratically.** The likelihood pass accumulates the risk set's `p × p` second
+  moments per subject, per iteration. Going from 2 to 8 covariates costs 3.3× at 10,000 subjects
+  and 6.1× at 1,000.
+- **The sample, roughly linearly.** Ten times the subjects costs 11× to 20×.
+
+Allocation rose by about 60% at 1,000 subjects, and not 60% of anything large: the ordering array
+and sorted durations the walk needs.
+
 ## Lodestar.Stats against Accord.Statistics (issue #442)
 
 Full method, correctness cross-check, and how `Accord`'s 2017-era API names were resolved against

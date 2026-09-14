@@ -256,6 +256,23 @@ is one sentence, the issue and the commit; see
 
 ### Lodestar.Survival
 
+#### Added
+
+- **[`CoxProportionalHazards.Fit`](docs/reference/survival/estimators/coxproportionalhazards-fit.md)
+  fits the Cox proportional hazards model**: by how much each covariate multiplies the hazard, which is
+  what survival analysis is usually asked once there are covariates, and which no .NET package offered.
+  - **The table.** It returns `CoxSummary`: coefficients, standard errors, z statistics, p-values,
+    intervals and hazard ratios, the likelihood-ratio test and Harrell's concordance, with Efron's
+    handling of ties.
+  - **Parity.** It matches `lifelines` 0.30.3 at 1e-9 on five fixtures, with lifelines fitted to its
+    maximum: at its defaults it stops up to 8.6e-6 short.
+  - **Refusals.** A collinear or separated design throws, naming the cause, where lifelines returns
+    numbers behind a warning.
+  - **Not tested.** The proportional-hazards assumption is not tested by this release, and the guide
+    says so first. [Decision 0124](docs/decisions/0124-the-cox-model-stays-in-lodestar-survival-and-refuses-what-it-cannot-estimate.md)
+    has the placement and the three divergences.
+  ([#684](https://github.com/CyrilB1531/lodestar/issues/684))
+
 #### Changed
 
 - **`KaplanMeierCurve` and `NelsonAalenCurve` compare their arrays by value.** Two curves fitted

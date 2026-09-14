@@ -2298,3 +2298,39 @@ dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- \
 
 The numbers, on a named machine and with the default job, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md#the-two-published-quantiles-without-bisection-issue-709).
+
+## 32. What a Cox fit costs (issue #684)
+
+[Decision 0124](../docs/decisions/0124-the-cox-model-stays-in-lodestar-survival-and-refuses-what-it-cannot-estimate.md)
+added `CoxProportionalHazards.Fit` to `Lodestar.Survival`. There is no incumbent to race, for the
+reason section 20's `SurvivalBenchmarks` records:
+[decision 0099](../docs/decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)
+found no .NET survival package. `CoxBenchmarks` measures the shape of the cost instead.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Survival.Benchmarks -- --filter '*CoxBenchmarks*'
+```
+
+### What the rows mean
+
+Each row is one whole fit: Newton-Raphson to convergence, the null log-likelihood, the table and
+the concordance. Two terms compete.
+
+- **The likelihood pass** is linear in the sample and quadratic in the covariates, once per
+  iteration. It accumulates the risk set's second moments, a `p × p` sum per subject.
+- **Harrell's concordance** is `n log n` in the sample and independent of the covariates. It walks
+  the subjects in time order against a Fenwick tree of earlier events.
+
+`[Params(1_000, 10_000)]` on `SampleSize` and `[Params(2, 8)]` on `Covariates` separate them. The
+covariate axis moves the first term only. **A row that stops moving with the covariate count
+means the concordance dominates again.** That is how the first draft's pairwise concordance showed
+itself: 270 ms at 10,000 subjects for 2 covariates and for 8.
+
+### Configuration
+
+A seeded design (`Random(684)`) with covariates uniform on `[-1, 1]`, alternating log hazard ratios
+of `+0.5` and `-0.5`, exponential durations rounded up to whole months so ties are ordinary, and
+roughly a third censored, as `SurvivalBenchmarks` has it.
+
+The numbers, on a named machine, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md#what-a-cox-fit-costs-issue-684).

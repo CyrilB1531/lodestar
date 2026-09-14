@@ -118,6 +118,14 @@ DESIGN = "design"
 OLS_FEATURE_COUNT = "featureCount"
 RESPONSE = "response"
 WITH_INTERCEPT = "withIntercept"
+# The inference table's own field names, shared by the OLS, GLM and Cox corpora (#684).
+COEFFICIENTS = "coefficients"
+STANDARD_ERRORS = "standardErrors"
+P_VALUES = "pValues"
+CONFIDENCE_LOWER = "confidenceLower"
+CONFIDENCE_UPPER = "confidenceUpper"
+# scikit-learn's metric name and lifelines' stopping option, spelled alike.
+PRECISION = "precision"
 # The GLM corpus beside the OLS one above, past the same threshold (#616): a family
 # literal, the library name, and "iterations", which NMF and k-means already write.
 STATSMODELS = "statsmodels"
@@ -2773,7 +2781,7 @@ def _metric_case(fx: dict, weighted: bool) -> dict:
                 y_true, y_pred, labels=labels, average=avg, pos_label=pos_label,
                 sample_weight=sw, zero_division=zd)
             case["averaged"][f"{avg}|{zd}"] = {
-                "precision": stable(p), "recall": stable(r), "f1": stable(f)}
+                PRECISION: stable(p), "recall": stable(r), "f1": stable(f)}
             for beta in BETAS:
                 case["fbeta"][f"{beta}|{avg}|{zd}"] = stable(skm.fbeta_score(
                     y_true, y_pred, beta=beta, labels=labels, average=avg,
@@ -2782,7 +2790,7 @@ def _metric_case(fx: dict, weighted: bool) -> dict:
             y_true, y_pred, labels=labels, average=None, sample_weight=sw,
             zero_division=zd)
         case["per_class"][str(zd)] = {
-            "precision": [stable(v) for v in p],
+            PRECISION: [stable(v) for v in p],
             "recall": [stable(v) for v in r],
             "f1": [stable(v) for v in f],
             "support": [stable(v) for v in s],
@@ -4837,6 +4845,124 @@ def generate_survival_logrank() -> dict:
     }
 
 
+# The default precision stops lifelines 8.6e-6 relative from the maximum; at 1e-20 all five fixtures
+# are within 3.1e-13 of an independent Newton-Raphson (#684, the specification has the table).
+COX_FIT_OPTIONS = {PRECISION: 1e-20, "r_precision": 0.0}
+
+
+NORMAL_COVARIATE = "normal"
+BINARY_COVARIATE = "binary"
+COX_DURATION_COLUMN = "duration"
+COX_EVENT_COLUMN = "event"
+
+
+def _cox_fixture(rng: SeededRandom, name: str, rows: int, columns: list[str],
+                 event_rate: float, time_scale: float, tied: bool) -> dict:
+    """One seeded design. A binary column is a 0/1 group, a normal one a standard draw.
+
+    Durations are exponential with a log hazard that depends on the design, so every
+    coefficient is away from zero; `tied` rounds them up to whole units, which is where
+    Efron's handling of ties differs from Breslow's.
+    """
+    effects = [0.6, -0.8, 0.4]
+    design, durations, events = [], [], []
+    seen = set()
+    for _ in range(rows):
+        row = [float(rng.random() < 0.5) if kind == BINARY_COVARIATE else rng.gauss(0.0, 1.0)
+               for kind in columns]
+        rate = math.exp(sum(effect * value for effect, value in zip(effects, row, strict=False)))
+        duration = -math.log(1.0 - rng.random()) / rate * time_scale
+        duration = float(math.ceil(duration)) if tied else round(duration, 6)
+        while not tied and duration in seen:
+            duration = round(duration + 1e-6, 6)
+        seen.add(duration)
+        design.extend(row)
+        durations.append(duration)
+        events.append(1 if rng.random() < event_rate else 0)
+    return {"name": name, OLS_FEATURE_COUNT: len(columns), DESIGN: design,
+            DURATIONS: durations, EVENTS: events}
+
+
+def _cox_fixtures() -> list[dict]:
+    """Five designs, each catching what the others would not (the #684 specification)."""
+    rng = SeededRandom(SEED + 68400)
+    return [
+        # Ties are where Efron and Breslow part company, so this one proves which is written.
+        _cox_fixture(rng, "heavy ties, one continuous and one binary covariate",
+                     80, [NORMAL_COVARIATE, BINARY_COVARIATE], 0.8, 5.0, tied=True),
+        # Where Efron and Breslow coincide: pins the untied path rather than discriminating.
+        _cox_fixture(rng, "no ties at all", 40, [NORMAL_COVARIATE, BINARY_COVARIATE], 0.75, 10.0, tied=False),
+        # Around 70% censored: the risk sets move and the events do not.
+        _cox_fixture(rng, "heavy censoring", 60, [NORMAL_COVARIATE, BINARY_COVARIATE], 0.3, 5.0, tied=True),
+        # The p x p algebra degenerates to a scalar, where a Cholesky bug would hide.
+        _cox_fixture(rng, "a single covariate", 50, [NORMAL_COVARIATE], 0.8, 5.0, tied=True),
+        # The smallest case where the inverse is not a closed formula.
+        _cox_fixture(rng, "three covariates", 90, [NORMAL_COVARIATE, BINARY_COVARIATE, NORMAL_COVARIATE], 0.8, 5.0,
+                     tied=True),
+    ]
+
+
+def generate_survival_cox() -> dict:
+    """The Cox proportional hazards table, frozen from lifelines' CoxPHFitter (#684).
+
+    lifelines standardises the design before its Newton-Raphson and reports the answer
+    rescaled, so nothing here depends on that; what does is the stopping rule, which
+    COX_FIT_OPTIONS tightens. Efron is the only tie handling CoxPHFitter offers.
+    """
+    import pandas as pd  # noqa: PLC0415
+    from lifelines import CoxPHFitter  # noqa: PLC0415
+    from lifelines.utils import concordance_index  # noqa: PLC0415
+
+    cases = []
+    for fixture in _cox_fixtures():
+        width = fixture[OLS_FEATURE_COUNT]
+        names = [f"x{index}" for index in range(width)]
+        frame = pd.DataFrame(np.array(fixture[DESIGN]).reshape(-1, width), columns=names)
+        frame[COX_DURATION_COLUMN] = fixture[DURATIONS]
+        frame[COX_EVENT_COLUMN] = fixture[EVENTS]
+
+        model = CoxPHFitter().fit(frame, COX_DURATION_COLUMN, COX_EVENT_COLUMN, fit_options=COX_FIT_OPTIONS)
+        summary = model.summary
+        ratio = model.log_likelihood_ratio_test()
+        # lifelines' concordance_index_ is this call on the negated partial hazard; checked
+        # here so the frozen value names what it is rather than which attribute it came from.
+        concordance = concordance_index(
+            frame[COX_DURATION_COLUMN], -model.predict_partial_hazard(frame), frame[COX_EVENT_COLUMN])
+        assert concordance == model.concordance_index_, fixture["name"]
+
+        cases.append({
+            **fixture,
+            CONFIDENCE_LEVEL: 1.0 - model.alpha,
+            COEFFICIENTS: [float(v) for v in summary["coef"]],
+            STANDARD_ERRORS: [float(v) for v in summary["se(coef)"]],
+            "zStatistics": [float(v) for v in summary["z"]],
+            P_VALUES: [float(v) for v in summary["p"]],
+            CONFIDENCE_LOWER: [float(v) for v in summary["coef lower 95%"]],
+            CONFIDENCE_UPPER: [float(v) for v in summary["coef upper 95%"]],
+            "hazardRatios": [float(v) for v in summary["exp(coef)"]],
+            "hazardRatioLower": [float(v) for v in summary["exp(coef) lower 95%"]],
+            "hazardRatioUpper": [float(v) for v in summary["exp(coef) upper 95%"]],
+            "logLikelihood": float(model.log_likelihood_),
+            "nullLogLikelihood": float(model.log_likelihood_ - ratio.test_statistic / 2.0),
+            "likelihoodRatioStatistic": float(ratio.test_statistic),
+            "likelihoodRatioPValue": float(ratio.p_value),
+            "likelihoodRatioDegreesOfFreedom": int(ratio.degrees_freedom),
+            "concordanceIndex": float(model.concordance_index_),
+        })
+
+    return {
+        "metadata": {
+            "library": LIFELINES,
+            "version": version(LIFELINES),
+            FAMILY: "survival-cox",
+            "ties": "Efron, the only handling CoxPHFitter offers",
+            "fitOptions": COX_FIT_OPTIONS,
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
 # --- Lodestar.Text.Similarity, oracled by datasketch and simhash (#602) -------
 
 SIM_TOKENS = "tokens"
@@ -5135,12 +5261,12 @@ def generate_stats_ols() -> dict:
             WITH_INTERCEPT: fixture[WITH_INTERCEPT],
             CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
             COVARIANCE_TYPE: kind,
-            "coefficients": [float(v) for v in fitted.params],
-            "standardErrors": [float(v) for v in fitted.bse],
+            COEFFICIENTS: [float(v) for v in fitted.params],
+            STANDARD_ERRORS: [float(v) for v in fitted.bse],
             "tStatistics": [float(v) for v in fitted.tvalues],
-            "pValues": [float(v) for v in fitted.pvalues],
-            "confidenceLower": [float(v) for v in interval[:, 0]],
-            "confidenceUpper": [float(v) for v in interval[:, 1]],
+            P_VALUES: [float(v) for v in fitted.pvalues],
+            CONFIDENCE_LOWER: [float(v) for v in interval[:, 0]],
+            CONFIDENCE_UPPER: [float(v) for v in interval[:, 1]],
             "rSquared": float(fitted.rsquared),
             "adjustedRSquared": float(fitted.rsquared_adj),
             "fStatistic": float(fitted.fvalue),
@@ -5262,12 +5388,12 @@ def generate_stats_glm() -> dict:
             OLS_FEATURE_COUNT: feature_count,
             WITH_INTERCEPT: fixture[WITH_INTERCEPT],
             CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
-            "coefficients": [float(v) for v in fit.params],
-            "standardErrors": [float(v) for v in fit.bse],
+            COEFFICIENTS: [float(v) for v in fit.params],
+            STANDARD_ERRORS: [float(v) for v in fit.bse],
             "zStatistics": [float(v) for v in fit.tvalues],
-            "pValues": [float(v) for v in fit.pvalues],
-            "confidenceLower": [float(v) for v in interval[:, 0]],
-            "confidenceUpper": [float(v) for v in interval[:, 1]],
+            P_VALUES: [float(v) for v in fit.pvalues],
+            CONFIDENCE_LOWER: [float(v) for v in interval[:, 0]],
+            CONFIDENCE_UPPER: [float(v) for v in interval[:, 1]],
             "deviance": float(fit.deviance),
             "nullDeviance": float(fit.null_deviance),
             "dispersion": float(fit.scale),
@@ -10348,6 +10474,7 @@ def main() -> None:
         "text_similarity.json": generate_text_similarity,
         "survival_curves.json": generate_survival_curves,
         "survival_logrank.json": generate_survival_logrank,
+        "survival_cox.json": generate_survival_cox,
         "stats_ols.json": generate_stats_ols,
         "stats_glm.json": generate_stats_glm,
         "stats_timeseries.json": generate_stats_timeseries,

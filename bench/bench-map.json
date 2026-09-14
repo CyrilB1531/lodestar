@@ -141,6 +141,10 @@
       "src/Lodestar.Text/Search/**",
       "src/Lodestar.Text/Vectorization/**"
     ],
+    "CoxBenchmarks": [
+      "src/Lodestar.Survival/**",
+      "src/Lodestar.Stats/**"
+    ],
     "SurvivalBenchmarks": [
       "src/Lodestar.Survival/**"
     ],
