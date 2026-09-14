@@ -3843,6 +3843,9 @@ nothing, and where the rest goes was not measured.
 
 ## BM25 against LuceneSharp (issue #677)
 
+> The query rows and the two-sided reading below predate the heap that replaced `Top`'s sort: see
+> [BM25's top ten without sorting the corpus](#bm25s-top-ten-without-sorting-the-corpus-issue-751).
+
 ```bash
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*Bm25Benchmarks*'
 ```
@@ -3890,6 +3893,40 @@ something else, TF-IDF or a classifier. Building `Bm25Index` and answering `q` q
 queries. At 20,000 documents it is `3.23 ms + 818 μs·q` against `86.3 ms + 10.5 μs·q`, near 100 queries.
 Past that Lucene is cheaper, and from text it is cheaper from the first query. These crossings mix the
 `Stopwatch` build figures with `BenchmarkDotNet` query figures, so read them as orders of magnitude.
+
+## BM25's top ten without sorting the corpus (issue #751)
+
+The section above found [`Bm25Index.Top`](../reference/text/search/bm25index-top.md) spending 92% and
+98% of its time sorting every document to keep ten. It now scores into a rented buffer, keeps the best
+`count` in a bounded heap as it walks the documents, and sorts only those. The order is unchanged:
+score descending, and document index ascending on a tie. A document enters the heap only on a strictly
+higher score than the worst one held, since every later document loses a tie on its index.
+`Bm25TopSelectionTests` replays the full sort on corpora of 1 to 257 documents, with ties, empty
+queries and counts past the corpus.
+
+Machine and job as the section above: AMD Ryzen 7 8700G, Ubuntu 26.04.1 LTS, .NET 10.0.12,
+`BenchmarkDotNet` 0.14.0 **default job**, 2026-09-14. `Bm25Benchmarks`' query rows, this branch then
+`origin/main`; the first `origin/main` column is the section above's run.
+
+| Documents | Row | `origin/main` | this branch | `origin/main` again |
+| ---: | --- | ---: | ---: | ---: |
+| 1,000 | `LodestarQuery` | 16.202 μs, 12.27 KB | **1.223 μs, 424 B** | 16.377 μs, 12.27 KB |
+| 1,000 | `LuceneQuery` | 2.092 μs | 1.943 μs | 1.970 μs |
+| 20,000 | `LodestarQuery` | 817.669 μs, 234.96 KB | **15.166 μs, 424 B** | 814.263 μs, 234.96 KB |
+| 20,000 | `LuceneQuery` | 10.540 μs | 10.614 μs | 10.683 μs |
+
+**The query is 13× faster at 1,000 documents and 54× at 20,000**, and it no longer allocates in
+proportion to the corpus. Against Lucene it now reads **1.6× faster at 1,000 documents and 1.4× slower
+at 20,000**. What is left at 20,000 is the pass over every document's score, 20,000 comparisons against
+the heap's root. Lucene never reads a document without the term, and skips postings blocks whose best
+score cannot enter its top ten, as its design has it; its `TotalHits` of `1001+` is the exact count it
+stopped keeping.
+
+**The two-sided reading moves with it.** For a caller who already holds the matrix, building
+`Bm25Index` and answering `q` queries costs `0.36 ms + 1.22 μs·q` at 1,000 documents, against Lucene's
+`4.45 ms + 1.94 μs·q`: cheaper at every `q`. At 20,000 documents it is `3.23 ms + 15.2 μs·q` against
+`86.3 ms + 10.6 μs·q`, which crosses near 18,000 queries. From text, Lucene stays ahead: that row is
+the vectorizer's, and this change does not touch it.
 
 ## Lodestar.Gpu — four kernels against their CPU paths (issue #444)
 

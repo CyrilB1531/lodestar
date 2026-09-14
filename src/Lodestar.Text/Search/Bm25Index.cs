@@ -1,3 +1,4 @@
+using System.Buffers;
 using Lodestar.Abstractions;
 
 namespace Lodestar.Text.Search;
@@ -216,6 +217,13 @@ public sealed class Bm25Index
         Guard.NotNull(queryTerms);
 
         double[] scores = new double[_counts.RowCount];
+        Accumulate(queryTerms, scores);
+        return scores;
+    }
+
+    /// <summary>Adds every query term's contribution into <paramref name="scores"/>, which starts at zero.</summary>
+    private void Accumulate(IEnumerable<int> queryTerms, Span<double> scores)
+    {
         foreach (int term in queryTerms)
         {
             if (term < 0 || term >= _counts.ColumnCount)
@@ -225,12 +233,10 @@ public sealed class Bm25Index
 
             AccumulateTerm(term, scores);
         }
-
-        return scores;
     }
 
     /// <summary>Adds one query term's contribution to the documents that hold it.</summary>
-    private void AccumulateTerm(int term, double[] scores)
+    private void AccumulateTerm(int term, Span<double> scores)
     {
         double idf = _idf[term];
         int end = _postingStart[term + 1];
@@ -262,25 +268,122 @@ public sealed class Bm25Index
             throw new ArgumentOutOfRangeException(nameof(count), count, "A count of documents is not negative.");
         }
 
-        double[] scores = Score(queryTerms);
-        int[] order = new int[scores.Length];
-        for (int i = 0; i < order.Length; i++)
+        Guard.NotNull(queryTerms);
+
+        int documents = _counts.RowCount;
+        int taken = Math.Min(count, documents);
+        if (taken == 0)
         {
-            order[i] = i;
+            return [];
         }
 
-        Array.Sort(order, (left, right) =>
+        double[] rented = ArrayPool<double>.Shared.Rent(documents);
+        int[] heldRented = ArrayPool<int>.Shared.Rent(taken);
+        try
         {
-            int byScore = scores[right].CompareTo(scores[left]);
-            return byScore != 0 ? byScore : left.CompareTo(right);
+            Span<double> scores = rented.AsSpan(0, documents);
+            scores.Clear();
+            Accumulate(queryTerms, scores);
+
+            Span<int> held = heldRented.AsSpan(0, taken);
+            SelectBest(scores, held);
+            return Hits(scores, held);
+        }
+        finally
+        {
+            ArrayPool<int>.Shared.Return(heldRented);
+            ArrayPool<double>.Shared.Return(rented);
+        }
+    }
+
+    /// <summary>Keeps the <c>held.Length</c> best documents in a heap whose root is the worst of them.</summary>
+    /// <remarks>
+    /// Documents arrive in index order, so a later one ties with the root only to lose on its index:
+    /// it enters exactly when its score is higher. That is the order the full sort gave, score
+    /// descending and index ascending on a tie, without ordering the documents that never enter (#751).
+    /// </remarks>
+    private static void SelectBest(ReadOnlySpan<double> scores, Span<int> held)
+    {
+        int size = 0;
+        for (int document = 0; document < scores.Length; document++)
+        {
+            if (size < held.Length)
+            {
+                held[size] = document;
+                SiftUp(scores, held, size);
+                size++;
+            }
+            else if (scores[document].CompareTo(scores[held[0]]) > 0)
+            {
+                held[0] = document;
+                SiftDown(scores, held, 0);
+            }
+        }
+    }
+
+    /// <summary>Whether <paramref name="left"/> ranks below <paramref name="right"/>: a lower score, or the same score and a later index.</summary>
+    private static bool RanksBelow(ReadOnlySpan<double> scores, int left, int right)
+    {
+        int byScore = scores[left].CompareTo(scores[right]);
+        return byScore != 0 ? byScore < 0 : left > right;
+    }
+
+    private static void SiftUp(ReadOnlySpan<double> scores, Span<int> heap, int at)
+    {
+        while (at > 0)
+        {
+            int parent = (at - 1) / 2;
+            if (!RanksBelow(scores, heap[at], heap[parent]))
+            {
+                return;
+            }
+
+            (heap[at], heap[parent]) = (heap[parent], heap[at]);
+            at = parent;
+        }
+    }
+
+    private static void SiftDown(ReadOnlySpan<double> scores, Span<int> heap, int at)
+    {
+        while (true)
+        {
+            int lowest = at;
+            int left = (2 * at) + 1;
+            int right = left + 1;
+            if (left < heap.Length && RanksBelow(scores, heap[left], heap[lowest]))
+            {
+                lowest = left;
+            }
+
+            if (right < heap.Length && RanksBelow(scores, heap[right], heap[lowest]))
+            {
+                lowest = right;
+            }
+
+            if (lowest == at)
+            {
+                return;
+            }
+
+            (heap[at], heap[lowest]) = (heap[lowest], heap[at]);
+            at = lowest;
+        }
+    }
+
+    /// <summary>The held documents as hits, best first, sorting only those.</summary>
+    private static SearchHit[] Hits(ReadOnlySpan<double> scores, ReadOnlySpan<int> held)
+    {
+        var hits = new SearchHit[held.Length];
+        for (int i = 0; i < held.Length; i++)
+        {
+            hits[i] = new SearchHit(held[i], scores[held[i]]);
+        }
+
+        Array.Sort(hits, static (left, right) =>
+        {
+            int byScore = right.Score.CompareTo(left.Score);
+            return byScore != 0 ? byScore : left.Document.CompareTo(right.Document);
         });
-
-        int taken = Math.Min(count, order.Length);
-        SearchHit[] hits = new SearchHit[taken];
-        for (int i = 0; i < taken; i++)
-        {
-            hits[i] = new SearchHit(order[i], scores[order[i]]);
-        }
 
         return hits;
     }

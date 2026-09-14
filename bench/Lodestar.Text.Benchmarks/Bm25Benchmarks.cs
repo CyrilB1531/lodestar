@@ -27,7 +27,8 @@ namespace Lodestar.Text.Benchmarks;
 /// <remarks>
 /// <strong>These are not like-for-like, and that is the measurement.</strong> Lucene needs an
 /// index; this scores a matrix a caller already built for other reasons, so both phases are rows.
-/// Measured, Lucene leads both (#677), the query most. bench/README.md section 21 has the rest,
+/// Measured, Lucene leads the text-to-ranking rows, and the query rows split by corpus size since #751.
+/// bench/README.md section 21 has the rest,
 /// including what Lucene answers that this does not.
 /// </remarks>
 [MemoryDiagnoser]

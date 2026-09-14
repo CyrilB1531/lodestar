@@ -1892,16 +1892,18 @@ vectorize with. One ratio would hide one of the two costs, so both are rows.
 
 This section first predicted which way each row would lean: the query favouring this package, the
 build favouring Lucene. **The measurement refuted the first half**
-([#677](https://github.com/CyrilB1531/lodestar/issues/677)). Lucene answers the query 7.7× faster at
-1,000 documents and 77.6× at 20,000, because `Bm25Index.Top` sorts every document to keep ten
-([#751](https://github.com/CyrilB1531/lodestar/issues/751)). The two rows stand; the prediction does not.
+([#677](https://github.com/CyrilB1531/lodestar/issues/677)). Lucene answered the query 7.7× faster at
+1,000 documents and 77.6× at 20,000, because `Bm25Index.Top` sorted every document to keep ten. Since
+[#751](https://github.com/CyrilB1531/lodestar/issues/751) it keeps a bounded heap instead, and the query
+row reads 1.6× in this package's favour at 1,000 documents and 1.4× in Lucene's at 20,000. The two rows
+stand; neither reading is a prediction any more.
 
 - `LodestarQuery` / `LuceneQuery` — one query against a structure already standing.
 - `LodestarFromText` / `LuceneFromText` — text in, ranking out, index included.
 
-The reading is neither row alone. From text, Lucene is ahead on both. For a caller who already holds
-the matrix, the index is cheaper to build than Lucene's and each query dearer, so the two cross after a
-number of queries; `performance.md` has where.
+The reading is neither row alone. From text, Lucene is ahead. For a caller who already holds the
+matrix, the index is cheaper to build than Lucene's, and whether each query is dearer depends on the
+corpus's size; `performance.md` has where the two cross.
 
 Lucene also answers a different question — a real query language, an index on disk, and the
 Block-Max WAND top-k this package does not have. [#440](https://github.com/CyrilB1531/lodestar/issues/440)
