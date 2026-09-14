@@ -1526,6 +1526,14 @@ publishes their ratios to `docs/guides/nightly_run.md` on its own, since all fiv
 `src/Lodestar.Text/Distances/`, `src/Lodestar.Text/Vectorization/`,
 `src/Lodestar.Embeddings/Tokenization/` or `src/Lodestar.Metrics/`.
 
+**The nightly remembers its ratios.** Every `Ratio` it publishes is appended to
+`bench/nightly/ratios.csv`, and `tools/nightly_series.py` reports at the end of the page each
+ratio that stepped past its own noise or drifted over ten days
+([decision 0126](../docs/decisions/0126-the-nightly-reports-a-ratio-that-steps-past-its-noise-or-drifts-over-ten-days.md)).
+That is how measuring a class tells anyone it moved, where before a movement was rendered and
+overwritten the next night (#672). A class with no `[Benchmark(Baseline = true)]` has no ratio,
+so it has no memory either.
+
 ### `Lodestar.Conformal` has no incumbent, and that is the measurement
 
 [#438](https://github.com/CyrilB1531/lodestar/issues/438) attaches "one benchmark against a named

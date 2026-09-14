@@ -125,3 +125,36 @@ def test_the_measurement_job_cannot_open_a_pull_request(workflow):
     # It runs the measured branch's own code; the token it holds is the smallest that
     # still lets it publish the wiki.
     assert workflow["jobs"]["measure"]["permissions"] == {"contents": "write"}
+
+
+def _measure_step_names(workflow):
+    return [step.get("name") for step in workflow["jobs"]["measure"]["steps"]]
+
+
+def test_the_series_is_compared_before_tonight_joins_it_and_against_the_wiki(workflow):
+    # Decision 0126: compare, then record, both between the wiki clone (whose history carries
+    # unmerged nights) and the wiki publish (which would put tonight into that history).
+    names = _measure_step_names(workflow)
+    order = [names.index(name) for name in (
+        "Clone the wiki", "Report the ratios that moved", "Record tonight in the series",
+        "Publish the page")]
+    assert order == sorted(order), f"out of order: {names}"
+    steps = {step.get("name"): step for step in workflow["jobs"]["measure"]["steps"]}
+    assert "--wiki wiki" in steps["Report the ratios that moved"]["run"]
+    assert "--wiki wiki" in steps["Record tonight in the series"]["run"]
+
+
+def test_only_a_run_on_main_records_into_the_series(workflow):
+    steps = {step.get("name"): step for step in workflow["jobs"]["measure"]["steps"]}
+    assert steps["Record tonight in the series"].get("if") == "github.ref_name == 'main'"
+    assert "if" not in steps["Report the ratios that moved"]
+
+
+def test_the_series_travels_to_the_pull_request(workflow):
+    upload = next(
+        step for step in workflow["jobs"]["measure"]["steps"]
+        if step.get("name") == "Hand the pages to the publish job")
+    assert "bench/nightly/ratios.csv" in upload["with"]["path"]
+    scripts = "\n".join(step.get("run", "") for step in workflow["jobs"]["publish"]["steps"])
+    assert "bench/nightly/ratios.csv" in scripts
+    assert workflow["jobs"]["measure"]["outputs"]["moved"] == "${{ steps.moved.outputs.moved }}"

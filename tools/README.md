@@ -219,6 +219,25 @@ given:
   "as of when". Takes `--wiki <path to a lodestar.wiki.git clone>`, with
   `--commit` and `--max-commits` to stamp and bound the walk, and the same
   `--branch` and `--stdout` as its neighbour.
+- `nightly_series.py` is the nightly's memory
+  ([#672](https://github.com/CyrilB1531/lodestar/issues/672)). It keeps every BenchmarkDotNet `Ratio`
+  the nightly page publishes in `bench/nightly/ratios.csv`, with the runner's CPU, and reports the
+  ratios that moved. A movement is a step past the larger of 30% and four times the key's own noise,
+  or a drift past 20% over ten days, as
+  [decision 0126](../docs/decisions/0126-the-nightly-reports-a-ratio-that-steps-past-its-noise-or-drifts-over-ten-days.md)
+  measured. It has three subcommands:
+  - `compare` appends the "Ratios that moved" section to `docs/guides/nightly_run.md`, or to the
+    branch copy with `--branch`, and prints one `::warning::` per new movement;
+  - `record --date <YYYY-MM-DD>` appends main's page to the series;
+  - `backfill` rebuilds the series from the git history of `docs/guides/nightly_run.md`.
+
+  Every path it writes is a constant chosen by a flag, never an argument, as its neighbours'
+  are.
+
+  `compare` and `record` take `--wiki <clone>`, and `backfill` accepts it too. With it, a night
+  whose pull request never merged still reaches the series from the wiki's history. Runs of
+  commits that are not in this checkout's history are skipped.
+  The nightly runs `compare` before `record`, and records only on `main`.
 - `sonarqube-local/` holds the compose file for a disposable local SonarQube
   server, covering the Python rules, duplication and coverage that no local
   `dotnet build` reaches — see
