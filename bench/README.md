@@ -2442,3 +2442,46 @@ the row can be read, and `performance.md` gives it.
 
 The numbers, on a named machine, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md#bpes-piece-cache-issue-743).
+
+## 34. k-means against NumFlat and Meta.Numerics (issue #681)
+
+`Lodestar.Cluster` ships `KMeans` alone. NumFlat 1.3.4 (MIT, `net8.0` only) ships k-means, k-medoids,
+DBSCAN and two Gaussian mixtures; Meta.Numerics 4.2.0 (MS-PL, `netstandard2.0`) ships k-means as
+`Multivariate.MeansClustering`. Both are referenced by `Lodestar.Text.Benchmarks` alone.
+[Decision 0131](../docs/decisions/0131-lodestar-cluster-writes-what-netstandard2-0-lacks.md) has the
+reading and what the package does next.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*KMeans*Incumbent*'
+```
+
+### Two classes, because only one pair is like-for-like
+
+**`KMeansLloydIncumbentBenchmarks` times Lloyd's iterations alone.** NumFlat's `KMeans.Update` runs
+one iteration from given centroids, so `NumFlat_Lloyd` starts from the same centres as
+`Lodestar_Lloyd` — the first `k` rows, one per blob — and runs exactly as many iterations as
+`KMeans.Fit` did with `Tolerance = 0`, which stops when the labels settle. Neither side's
+initialisation is inside the measured call. Meta.Numerics has no row: `MeansClustering` takes neither
+starting centres nor a seed.
+
+**`KMeansFitIncumbentBenchmarks` times what a caller pays**, k-means++ included, under each library's
+own stopping rule: `KMeans.Fit` with `Seed = 681`, NumFlat's `KMeans` constructor with
+`TryCount = 1` (its default is three; this package and scikit-learn's default start once), and
+`MeansClustering`. **The rule is part of the price and is not the same rule.** This package stops on
+scikit-learn's tolerance, scaled by the mean feature variance, and on these blobs that is one or two
+iterations; neither incumbent exports how many it ran.
+
+### The blocks, and the agreement checked before timing
+
+`ClusterBlobs` draws `k` centres uniformly from `[-spread, spread]` per feature and unit-variance
+Gaussian noise around them, row `i` from blob `i mod k`, seeded with 681. The Lloyd class uses
+`spread = 4`, so the blobs overlap and the loop runs 101, 4 and 8 iterations on the three shapes;
+the fit class uses `spread = 1000`, so any k-means++ draw finds the same partition.
+
+`GlobalSetup` refuses to time anything unless the centres agree at `1e-9` — in order for the Lloyd
+pair, matched to the nearest unused centre for the fit rows. Run once outside `BenchmarkDotNet`, the
+largest difference on every shape and every pair was **exactly zero**: the same partition gives the
+same means, summed in the same order.
+
+The numbers, on a named machine and with the default job, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md#k-means-against-numflat-and-metanumerics-issue-681).

@@ -3931,6 +3931,45 @@ stopped keeping.
 `86.3 ms + 10.6 μs·q`, which crosses near 18,000 queries. From text, Lucene stays ahead: that row is
 the vectorizer's, and this change does not touch it.
 
+## k-means against NumFlat and Meta.Numerics (issue #681)
+
+Full method, the two classes and why only one is like-for-like:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#34-k-means-against-numflat-and-metanumerics-issue-681).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: one `BenchmarkDotNet` 0.14.0 run, **default job**, on 2026-09-14, 15 benchmarks.
+NumFlat 1.3.4, Meta.Numerics 4.2.0. Every pair was checked to return the same centres before either
+side was timed; the largest difference was zero.
+
+**Lloyd's iterations from the same centres** — the like-for-like pair:
+
+| Shape (rows × features × k) | Iterations | [`KMeans.Fit`](../reference/cluster/partitioning/kmeans-fit.md) | NumFlat `KMeans.Update` | NumFlat / Lodestar | Allocated, Lodestar | Allocated, NumFlat |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10,000 × 2 × 8 | 101 | 19.21 ms | 70.34 ms | **3.66** | 98.92 KB | 96.40 KB |
+| 10,000 × 16 × 16 | 4 | 6.51 ms | 9.87 ms | **1.52** | 88.70 KB | 13.58 KB |
+| 50,000 × 8 × 32 | 8 | 64.02 ms | 127.26 ms | **1.99** | 410.24 KB | 36.39 KB |
+
+**This package is ahead on every shape, 1.52× to 3.66×**, and allocates more on the two wider ones:
+its current and previous labels are one `int` per row each, 80 KB at 10,000 rows, where NumFlat's
+allocation grows with the iteration count instead — which is why the 101-iteration row is level.
+
+**A whole fit, k-means++ included**, under each library's own stopping rule:
+
+| Shape | [`KMeans.Fit`](../reference/cluster/partitioning/kmeans-fit.md) | NumFlat `KMeans` | Meta.Numerics `MeansClustering` | NumFlat / Lodestar | Meta.Numerics / Lodestar |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 10,000 × 2 × 8 | 0.41 ms | 3.10 ms | 1.69 ms | 7.49 | 4.09 |
+| 10,000 × 16 × 16 | 3.93 ms | 21.53 ms | 54.62 ms | 5.48 | 13.90 |
+| 50,000 × 8 × 32 | 19.98 ms | 260.88 ms | 408.07 ms | 13.06 | 20.42 |
+
+**Read this table as what a caller pays, not as a kernel ratio.** On these well-separated blobs
+scikit-learn's scaled tolerance stops this package after one or two iterations, and neither incumbent
+reports how many it ran. The second table is the one that compares arithmetic; this one says that a
+default fit here is 4× to 20× cheaper, and part of that is when it decides to stop.
+
+**Meta.Numerics is the comparison that holds below `net8.0`**, and the only one: NumFlat does not
+install there.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly

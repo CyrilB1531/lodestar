@@ -68,6 +68,12 @@
     "DecompositionBenchmarks": [
       "src/Lodestar.Decomposition/**"
     ],
+    "KMeansFitIncumbentBenchmarks": [
+      "src/Lodestar.Cluster/**"
+    ],
+    "KMeansLloydIncumbentBenchmarks": [
+      "src/Lodestar.Cluster/**"
+    ],
     "PrincipalComponentVarianceBenchmarks": [
       "src/Lodestar.Decomposition/**"
     ],
