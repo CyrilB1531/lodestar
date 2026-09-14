@@ -88,6 +88,10 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- **`Bm25Index.Top` keeps the best documents in a bounded heap** instead of sorting the whole corpus,
+  returning the same hits in the same order: a one-term query over 20,000 documents from 818 μs to
+  15.2 μs, allocating 424 B instead of 235 KB. ([#751](https://github.com/CyrilB1531/lodestar/issues/751))
+
 - **`Levenshtein.Distance` over a Latin-1 pattern past 64 characters advances its words two at a
   time**, the column-major order the blocked LCS kernel took in #717, returning the same distances:
   0.64 of the time at 128 and 0.77 at 512, and ahead of rapidfuzz at 512 where it trailed.
