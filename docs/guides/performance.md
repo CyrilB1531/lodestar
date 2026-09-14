@@ -3326,6 +3326,57 @@ with emoji, best of five:
 **`LcsGateBenchmarks.Kernel_Cjk` was never this path.** #675 cited it rising at a band of 18, but the
 row measures `TextElement.Utf16Unit` over CJK, so nothing here moves it.
 
+## What moved `Indel`'s code-point ratio at 512 in August (issue #674)
+
+Issue #674 read `IndelBenchmarks.Distance_CodePoint` at length 512 rising against its `Distance_Utf16`
+baseline, **36.90 on 2026-08-19 to 44.79 on 2026-09-03**, with the absolute time going from 277 to
+346 µs. It suspected the side table of `649b8e67` and the sizing of `52d68ccb`. Neither was the cause,
+and nothing slowed the code-point path.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12
+runtime, AVX-512, 2026-09-14. One harness, [`Indel.Distance`](../reference/text/distances/indel-distance.md) over `ScatteredPair`'s operands at 512,
+built against each commit and timed with a `Stopwatch`, best of seven. The commits ran in turn, three
+rounds, and each cell gives the lowest and highest round.
+
+| Commit | What it is | `Distance_CodePoint` | `Distance_Utf16` |
+| --- | --- | ---: | ---: |
+| `824aea54` | measured by the 2026-08-19 nightly | 174–187 µs | 6.52–6.87 µs |
+| `abfaf002` | measured on 2026-08-20, ratio **29.74** on AMD EPYC 7763 | 174–188 µs | 6.51–6.61 µs |
+| `1fa65f35^` | | 177–188 µs | 6.46–6.52 µs |
+| `1fa65f35` | *Stop calling a helper once per text character in the blocked LCS kernel* | 164–221 µs | 6.17–6.22 µs |
+| `5a448a98` | *Drop the borrow chain the LCS recurrence never needed* | 178–189 µs | **4.37–4.40 µs** |
+| `9f66a0b2` | measured on 2026-08-20, ratio **41.14** on AMD EPYC 7763 | 179–191 µs | 4.37–4.39 µs |
+| `649b8e67^` | | 173–189 µs | 6.48–6.56 µs |
+| `649b8e67` | the side table | 173–187 µs | 6.48–6.51 µs |
+| `52d68ccb` | the side table sized from wide symbols | 175–194 µs | 4.54–4.84 µs |
+| `2483f1a0` | measured by the 2026-08-26 nightly | 169–177 µs | 4.52–4.60 µs |
+| `3aab1281` | measured by the 2026-09-03 nightly | 172–178 µs | 4.55–4.63 µs |
+
+`649b8e67` and `52d68ccb` sit on a line that does not yet hold `5a448a98`, which is why their baseline
+reads 6.5 µs; `52d68ccb` holds it.
+
+- **The code-point path did not move.** Every commit reads 164 to 221 µs, a spread each round's noise
+  already covers. At that time it ran the dynamic program at every length, which is what #675 changed,
+  and none of these commits touched it.
+- **The baseline did.** `5a448a98` took `Distance_Utf16` at 512 from 6.5 µs to 4.4 µs, 1.49× faster,
+  and the ratio rose by about that factor. On the one processor the nightly series holds on both sides of
+  it, AMD EPYC 7763, it reads 29.74 on `abfaf002` and 41.14 on `9f66a0b2`, the step `5a448a98` falls between.
+- **The side table cost this row nothing.** `649b8e67` against its parent is 6.48–6.51 µs against
+  6.48–6.56 µs. The price the banded sweep above records, 1.6× to 1.9× on the LCS kernel, is a CJK
+  band against a Latin one; `IndelBenchmarks`' operands are ASCII and never fill a side row.
+- **The absolute 277 → 346 µs compares two processors.** `bench/nightly/ratios.csv` records the
+  2026-08-19 reading on an Intel Xeon 6973P-C and the 2026-09-03 one on an AMD EPYC 7763.
+
+**The ratio has since come back for a different reason.** [#675](#indel-and-lcs-over-code-points-on-the-bit-parallel-kernel-issue-675) put the code-point mode on the
+bit-parallel kernel, and the same row now reads 2,977.04 ns against 2,814.00 ns, a ratio of 1.06; that
+section has the table.
+
+**Decision 0004's "right-sizing the table to the pattern's own alphabet is still open"** is not open.
+[Decision 0043](../decisions/0043-the-equality-table-is-sized-to-the-pattern.md) amends 0004's backlog
+bullets on lifting the Latin-1 restriction, which 0004 calls the same change, and on the table's fixed
+cost, and retires both. 0004 cannot say so itself, and `docs/decisions/index.yaml` lists 0043 under its
+`amended_by`.
+
 ## BPE's piece cache (issue #743)
 
 Full method, and why `BpeBenchmarks` cannot show it:
