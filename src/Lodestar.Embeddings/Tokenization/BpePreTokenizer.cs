@@ -79,8 +79,10 @@ internal sealed class BpePreTokenizer
         }
     }
 
+    // Compiled: across #673's corpus the interpreter took 17 of an encode's 71 ms and compiled
+    // code 5, for about 2 ms of code generation once per tokenizer, at its first encode.
     private static Regex Compile(string pattern) =>
-        new(pattern, RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
+        new(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
 
     /// <summary>Appends the pieces of <paramref name="text"/> to <paramref name="pieces"/>.</summary>
     public void Split(string text, List<string> pieces)
@@ -178,7 +180,13 @@ internal sealed class BpePreTokenizer
         int carried = NoOpenPiece;   // start of a piece still open, or NoOpenPiece
         // Not .Cast<Match>(): MatchCollection's own enumerator binds directly to
         // Match on both target frameworks, so .Cast<Match>() would only add an iterator.
+#if NET7_0_OR_GREATER
+        // A ValueMatch is a position and a length, where a Match is an object per match: across
+        // a byte-level encode that was one allocation for every piece of every input (#673).
+        foreach (ValueMatch match in pattern.EnumerateMatches(shadow))
+#else
         foreach (Match match in pattern.Matches(shadow))
+#endif
         {
             int start = originalIndex is null ? match.Index : originalIndex[match.Index];
             int end = originalIndex is null

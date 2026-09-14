@@ -119,6 +119,11 @@ is one sentence, the issue and the commit; see
 - **`SentencePieceTokenizer` and `WordPieceTokenizer` find their pieces by walking a trie** rather
   than hashing every candidate substring, returning the same tokens and ids.
   ([#713](https://github.com/CyrilB1531/lodestar/issues/713))
+- **`BpeTokenizer` encodes byte-level text 5.4× faster, allocating a quarter as much**, returning the
+  same tokens and ids: 315 ms to 58 ms over the benchmark corpus, now 2.57× faster than
+  Microsoft.ML.Tokenizers on identical ids. The split pattern is compiled, which moves about 2 ms of
+  code generation to a tokenizer's first encode.
+  ([#673](https://github.com/CyrilB1531/lodestar/issues/673))
 
 ### Lodestar.Onnx
 

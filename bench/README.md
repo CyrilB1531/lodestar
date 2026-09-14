@@ -1413,7 +1413,7 @@ Incumbents are referenced by `bench/` and by nothing under `src/`, pinned exactl
 | --- | --- | --- |
 | `LevenshteinIncumbentBenchmarks` | `Levenshtein.Distance` | Fastenshtein 1.0.12, Quickenshtein 1.5.1, F23.StringSimilarity 7.0.1 |
 | `FuzzIncumbentBenchmarks` | `Fuzz.*` | Raffinert.FuzzySharp 6.0.0 |
-| `TokenizerIncumbentBenchmarks` | `WordPieceTokenizer`, `SentencePieceTokenizer` | Microsoft.ML.Tokenizers 2.0.0 |
+| `TokenizerIncumbentBenchmarks` | `WordPieceTokenizer`, `SentencePieceTokenizer`, `BpeTokenizer` | Microsoft.ML.Tokenizers 2.0.0 |
 | `VectorizerIncumbentBenchmarks` | `TfidfVectorizer` | ML.NET 5.0.0 `FeaturizeText` |
 | `MetricsIncumbentBenchmarks` | `Lodestar.Metrics` | ML.NET 5.0.0 binary evaluator |
 
@@ -1424,7 +1424,10 @@ same distance on all five, and Lodestar and FuzzySharp return the same ratio on 
 to the last digit of the double. The tokenizers were checked the same way, over 200 documents of
 the corpus: identical ids, both models, once `Microsoft.ML.Tokenizers` is told not to prepend a
 beginning-of-sentence piece — which is the sort of thing an unchecked table would have silently
-measured. Section 14's rule, applied here as a precondition rather than a footnote.
+measured. The byte-level BPE row, added for [#673](https://github.com/CyrilB1531/lodestar/issues/673),
+was checked over all 5 000 documents: identical ids against `CodeGenTokenizer`, the incumbent's GPT-2
+byte-level BPE, once its vocabulary carries the `<|endoftext|>` its `Create` insists on, appended past
+the last id where no encode reaches it. Section 14's rule, applied here as a precondition rather than a footnote.
 
 Five shapes, for five reasons:
 

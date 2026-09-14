@@ -14,6 +14,7 @@ namespace Lodestar.Embeddings.Tokenization;
 public sealed class BpeTokenizer : ISubwordTokenizer
 {
     private const int StackThreshold = 256;
+    private const int MergeStackThreshold = 64;
 
     /// <summary>What each byte of a run that is not well-formed UTF-8 decodes to — see <see cref="FlushBytes"/>.</summary>
     private const char Replacement = '\uFFFD';
@@ -49,8 +50,11 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// </remarks>
     private readonly Dictionary<string, int> _modelVocab;
     private readonly string[] _tokens;          // id -> token, the inverse of _vocab
-    private readonly Dictionary<long, int> _ranks;   // (left << 32 | right) -> rank
+    private readonly PairRanks _ranks;          // (left, right) -> rank
     private readonly int[] _merged;             // rank -> the id the pair becomes
+    // rank -> the pair's two ids, so a queued candidate is validated by two reads, not a lookup.
+    private readonly int[] _mergeLeft;
+    private readonly int[] _mergeRight;
     private readonly BpePreTokenizer _split;
     // Two scanners: AddedToken.Normalized decides which one an entry joins, and
     // the two are matched against different strings. See EncodeGap.
@@ -65,6 +69,10 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     private readonly int _unkId;
     private readonly bool _hasUnk;
     private readonly bool _byteLevel;
+
+    // A byte-level model's id per byte, -1 where missing: the encode path used to hash a new
+    // one-character string per input byte, the waste 8de0da96 removed from the unigram (#673).
+    private readonly int[] _byteIds = [];
     private readonly bool _byteFallback;
     private readonly bool _ignoreMerges;
     private readonly bool _fuseUnk;
@@ -98,6 +106,14 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         _metaspace = vocabulary.Metaspace;
         _decoder = vocabulary.Decoder;
         (_vocab, _modelVocab, _tokens) = BuildVocabulary(vocabulary);
+        if (_byteLevel)
+        {
+            _byteIds = new int[256];
+            for (int b = 0; b < 256; b++)
+            {
+                _byteIds[b] = _modelVocab.TryGetValue(ByteLevelAlphabet.ToChar((byte)b).ToString(), out int id) ? id : -1;
+            }
+        }
         EnsureByteFallbackAlphabetIsComplete(vocabulary, _modelVocab);
 
         EnsureNormalizedEntriesHaveAnExpressiblePattern(vocabulary);
@@ -120,8 +136,10 @@ public sealed class BpeTokenizer : ISubwordTokenizer
             _hasUnk = true;
         }
 
-        _ranks = new Dictionary<long, int>(vocabulary.Merges.Count);
+        _ranks = new PairRanks(vocabulary.Merges.Count);
         _merged = new int[vocabulary.Merges.Count];
+        _mergeLeft = new int[vocabulary.Merges.Count];
+        _mergeRight = new int[vocabulary.Merges.Count];
         for (int rank = 0; rank < vocabulary.Merges.Count; rank++)
         {
             MergePair pair = vocabulary.Merges[rank];
@@ -145,8 +163,10 @@ public sealed class BpeTokenizer : ISubwordTokenizer
             }
             // A pair listed twice keeps its LAST occurrence, as the reference does:
             // tests/oracles/bpe_duplicate_merge.json, model "duplicate".
-            _ranks[Key(left, right)] = rank;
+            _ranks.Set(left, right, rank);
             _merged[rank] = result;
+            _mergeLeft[rank] = left;
+            _mergeRight[rank] = right;
         }
 
         _split = new BpePreTokenizer(
@@ -364,8 +384,6 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         Guard.NotNull(token);
         return _vocab.TryGetValue(token, out id);
     }
-
-    private static long Key(int left, int right) => ((long)left << 32) | (uint)right;
 
     /// <summary>Normalizes <c>text[from..to]</c>, which holds no raw added token, then splits it at the normalized ones.</summary>
     /// <remarks>
@@ -666,18 +684,39 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// </exception>
     private int ByteLevelSymbols(string piece, Span<int> symbols)
     {
+        // An ASCII piece's UTF-8 bytes are its characters, so the common case needs no byte[].
+        int ascii = 0;
+        while (ascii < piece.Length && piece[ascii] < 0x80)
+        {
+            ascii++;
+        }
+        if (ascii == piece.Length)
+        {
+            for (int i = 0; i < piece.Length; i++)
+            {
+                symbols[i] = ByteId((byte)piece[i]);
+            }
+            return piece.Length;
+        }
+
         byte[] bytes = JsonArtifact.Utf8NoBom.GetBytes(piece);
         for (int i = 0; i < bytes.Length; i++)
         {
-            string symbol = ByteLevelAlphabet.ToChar(bytes[i]).ToString();
-            if (!_modelVocab.TryGetValue(symbol, out int id))
-            {
-                throw new ArgumentException(
-                    $"The vocabulary has no entry for byte 0x{bytes[i]:X2} ('{symbol}'); it is not a byte-level model.");
-            }
-            symbols[i] = id;
+            symbols[i] = ByteId(bytes[i]);
         }
         return bytes.Length;
+    }
+
+    /// <summary>The byte-level id of one byte, refusing a vocabulary that lacks it.</summary>
+    private int ByteId(byte value)
+    {
+        int id = _byteIds[value];
+        if (id < 0)
+        {
+            throw new ArgumentException(
+                $"The vocabulary has no entry for byte 0x{value:X2} ('{ByteLevelAlphabet.ToChar(value)}'); it is not a byte-level model.");
+        }
+        return id;
     }
 
     /// <summary>The piece as the byte alphabet renders it, which is how the vocabulary spells it.</summary>
@@ -708,9 +747,16 @@ public sealed class BpeTokenizer : ISubwordTokenizer
             return count;
         }
 
-        // Always rented, never stackalloc'd below a threshold, unlike EncodePiece: simpler
-        // control flow, and one array for both spans is one fewer rental to give back.
         int capacity = QueueCapacity(count);
+        // Most pieces are a word: two rentals per word was measurable across a corpus, so a
+        // piece this short takes its scratch space from the stack instead.
+        if (count <= MergeStackThreshold)
+        {
+            Span<int> stackLinks = stackalloc int[2 * count];
+            Span<long> stackQueue = stackalloc long[capacity];
+            return MergeQueued(symbols, count, stackLinks, stackQueue);
+        }
+
         int[] links = ArrayPool<int>.Shared.Rent(2 * count);
         try
         {
@@ -788,7 +834,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// <summary>Queues the pair at <paramref name="left"/> and <paramref name="right"/>, if the merge table knows it.</summary>
     private void Offer(ReadOnlySpan<int> symbols, Span<long> queue, ref int size, int left, int right)
     {
-        if (!_ranks.TryGetValue(Key(symbols[left], symbols[right]), out int rank))
+        if (!_ranks.TryGetRank(symbols[left], symbols[right], out int rank))
         {
             return;
         }
@@ -808,10 +854,12 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// </remarks>
     private bool Applies(ReadOnlySpan<int> symbols, ReadOnlySpan<int> next, int at, int rank)
     {
+        // Same answer as looking the pair up again: every queued rank came from _ranks, which
+        // maps each pair to one rank, so it still applies exactly when it is still that pair.
         int right = next[at];
         return right != End
-            && _ranks.TryGetValue(Key(symbols[at], symbols[right]), out int current)
-            && current == rank;
+            && symbols[at] == _mergeLeft[rank]
+            && symbols[right] == _mergeRight[rank];
     }
 
     /// <summary>Drops <paramref name="right"/> out of the list, joining its neighbour to <paramref name="left"/>.</summary>

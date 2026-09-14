@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
 using Lodestar.Embeddings.Persistence;
@@ -16,10 +17,13 @@ public enum TokenizerModel
 
     /// <summary>SentencePiece unigram, both sides reading <c>spiece_30k.model</c>.</summary>
     SentencePiece,
+
+    /// <summary>GPT-2 byte-level BPE, both sides reading <c>tokenizer_30k_bpe.json</c>'s vocabulary and merges.</summary>
+    ByteLevelBpe,
 }
 
 /// <summary>
-/// Our two sub-word tokenizers against `Microsoft.ML.Tokenizers`, the first-party
+/// Our three sub-word tokenizers against `Microsoft.ML.Tokenizers`, the first-party
 /// incumbent issue #438 names for this package.
 /// </summary>
 /// <remarks>
@@ -35,9 +39,11 @@ public class TokenizerIncumbentBenchmarks
     private SentencePieceTokenizer _sentencePiece = null!;
     private Microsoft.ML.Tokenizers.WordPieceTokenizer _theirWordPiece = null!;
     private Microsoft.ML.Tokenizers.SentencePieceTokenizer _theirSentencePiece = null!;
+    private BpeTokenizer _bpe = null!;
+    private Microsoft.ML.Tokenizers.CodeGenTokenizer _theirBpe = null!;
 
     /// <summary>The model this row measures on both libraries.</summary>
-    [Params(TokenizerModel.WordPiece, TokenizerModel.SentencePiece)]
+    [Params(TokenizerModel.WordPiece, TokenizerModel.SentencePiece, TokenizerModel.ByteLevelBpe)]
     public TokenizerModel Model { get; set; }
 
     [GlobalSetup]
@@ -62,10 +68,43 @@ public class TokenizerIncumbentBenchmarks
             _theirWordPiece = Microsoft.ML.Tokenizers.WordPieceTokenizer.Create(vocabulary);
         }
 
-        using var model = File.OpenRead(BenchCorpus.Path("spiece_30k.model"));
-        // Positionally: addBeginOfSentence, addEndOfSentence. Left on, every document
-        // would carry a leading <s> ours does not emit, and the ids would not compare.
-        _theirSentencePiece = Microsoft.ML.Tokenizers.SentencePieceTokenizer.Create(model, false, false);
+        using (var model = File.OpenRead(BenchCorpus.Path("spiece_30k.model")))
+        {
+            // Positionally: addBeginOfSentence, addEndOfSentence. Left on, every document
+            // would carry a leading <s> ours does not emit, and the ids would not compare.
+            _theirSentencePiece = Microsoft.ML.Tokenizers.SentencePieceTokenizer.Create(model, false, false);
+        }
+
+        _bpe = new BpeTokenizer(TokenizerJsonLoader.LoadBpe(BenchCorpus.Path("tokenizer_30k_bpe.json"), bounds));
+        _theirBpe = LoadTheirBpe(BenchCorpus.Path("tokenizer_30k_bpe.json"));
+    }
+
+    /// <summary>Hands <c>CodeGenTokenizer</c>, the incumbent's GPT-2 byte-level BPE, the file's vocabulary and merges as <c>vocab.json</c> and <c>merges.txt</c>.</summary>
+    /// <remarks>
+    /// Its <c>Create</c> refuses a vocabulary without <c>&lt;|endoftext|&gt;</c>, its default unknown
+    /// token. The file has none, so one is appended past the last id: a byte-level model never
+    /// produces the unknown token, and no id this class encodes moves.
+    /// </remarks>
+    private static Microsoft.ML.Tokenizers.CodeGenTokenizer LoadTheirBpe(string path)
+    {
+        using JsonDocument file = JsonDocument.Parse(File.ReadAllBytes(path));
+        JsonElement model = file.RootElement.GetProperty("model");
+        var vocabulary = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (JsonProperty entry in model.GetProperty("vocab").EnumerateObject())
+        {
+            vocabulary[entry.Name] = entry.Value.GetInt32();
+        }
+        vocabulary["<|endoftext|>"] = vocabulary.Count;
+
+        var merges = new StringBuilder("#version: 0.2\n");
+        foreach (JsonElement pair in model.GetProperty("merges").EnumerateArray())
+        {
+            merges.Append(pair[0].GetString()).Append(' ').Append(pair[1].GetString()).Append('\n');
+        }
+
+        using var vocabularyStream = new MemoryStream(JsonSerializer.SerializeToUtf8Bytes(vocabulary));
+        using var mergesStream = new MemoryStream(Encoding.UTF8.GetBytes(merges.ToString()));
+        return Microsoft.ML.Tokenizers.CodeGenTokenizer.Create(vocabularyStream, mergesStream);
     }
 
     [Benchmark(Baseline = true)]
@@ -74,9 +113,12 @@ public class TokenizerIncumbentBenchmarks
         int total = 0;
         foreach (string document in _documents)
         {
-            total += Model == TokenizerModel.WordPiece
-                ? _wordPiece.Encode(document).Ids.Count
-                : _sentencePiece.Encode(document).Ids.Count;
+            total += Model switch
+            {
+                TokenizerModel.WordPiece => _wordPiece.Encode(document).Ids.Count,
+                TokenizerModel.SentencePiece => _sentencePiece.Encode(document).Ids.Count,
+                _ => _bpe.Encode(document).Ids.Count,
+            };
         }
         return total;
     }
@@ -87,9 +129,12 @@ public class TokenizerIncumbentBenchmarks
         int total = 0;
         foreach (string document in _documents)
         {
-            total += Model == TokenizerModel.WordPiece
-                ? _theirWordPiece.EncodeToIds(document).Count
-                : _theirSentencePiece.EncodeToIds(document).Count;
+            total += Model switch
+            {
+                TokenizerModel.WordPiece => _theirWordPiece.EncodeToIds(document).Count,
+                TokenizerModel.SentencePiece => _theirSentencePiece.EncodeToIds(document).Count,
+                _ => _theirBpe.EncodeToIds(document).Count,
+            };
         }
         return total;
     }

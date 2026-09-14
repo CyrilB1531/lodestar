@@ -6,10 +6,11 @@ using Lodestar.Embeddings.Tokenization;
 namespace Lodestar.Text.Benchmarks;
 
 /// <summary>
-/// The #59 acceptance bar: byte-level BPE at a cost comparable to the unigram
-/// tokenizer already shipped, same documents, same vocabulary size. Both
-/// tokenizers build once in <see cref="Setup"/>, so the numbers are encoding
-/// cost, not model loading. See <see cref="BpeScalingBenchmarks"/> for the
+/// Byte-level BPE against the unigram tokenizer, same documents, same vocabulary
+/// size: a record of a fix reaching one and not the other, no longer a bar. Decision
+/// 0127 moved the bar to TokenizerIncumbentBenchmarks, since the unigram model emits
+/// one token per corpus word. Both tokenizers build once in <see cref="Setup"/>, so
+/// the numbers are encoding cost, not model loading. See <see cref="BpeScalingBenchmarks"/> for the
 /// pathological-token case, split out so it does not also rerun this class's
 /// two benchmarks at each of its four lengths.
 /// </summary>

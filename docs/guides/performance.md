@@ -3207,6 +3207,66 @@ same machine, not by BenchmarkDotNet:
 first call in a process.** Where the first call's extra time goes was not measured apart. It is
 paid once per tokenizer; reading `spiece_30k.model` itself takes 14 ms on the same run.
 
+## Byte-level BPE encode, against its unigram baseline and Microsoft.ML.Tokenizers (issue #673)
+
+Full method, and the check that both sides return the same ids:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#15-against-the-net-incumbents-issue-438).
+[Decision 0127](../decisions/0127-bpe-is-held-to-the-incumbent-computing-the-same-ids.md) was taken
+on these numbers.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: two `BenchmarkDotNet` 0.14.0 runs, **default job**, on 2026-09-14, `origin/main`
+before and this branch after, of `BpeBenchmarks`, `BpeScalingBenchmarks` and
+`TokenizerIncumbentBenchmarks`. Every document of the corpus is encoded per operation, with
+`tokenizer_30k_bpe.json`'s byte-level model. Microsoft.ML.Tokenizers 2.0.0.
+
+| Row | Before | After | Allocated before | Allocated after |
+| --- | ---: | ---: | ---: | ---: |
+| [`BpeTokenizer`](../reference/embeddings/tokenization/bpetokenizer.md) | 315.17 ms | **58.33 ms** | 112.18 MB | **28.47 MB** |
+| `SentencePieceTokenizer`, the `Unigram` baseline | 17.54 ms | 17.34 ms | 5.43 MB | 5.43 MB |
+| ratio | 17.97 | **3.36** | 20.64 | 5.24 |
+| `CodeGenTokenizer`, Microsoft.ML.Tokenizers | 146.77 ms | 148.73 ms | 59.08 MB | 59.08 MB |
+| Lodestar against it, `TokenizerIncumbentBenchmarks` | 312.60 ms, 0.47× | **57.95 ms, 2.57×** | | |
+
+The last column of the incumbent row is how many times faster Lodestar is. **Byte-level BPE was
+twice as slow as the incumbent and is now 2.57× faster.** Tokens and ids over the whole corpus
+are byte-identical to `origin/main`'s, and the ids to the incumbent's.
+
+**Each step, measured on `BenchmarkDotNet`'s short job as it landed:**
+
+| Step | `Bpe` | Allocated |
+| --- | ---: | ---: |
+| `origin/main` | 318.49 ms | 112.18 MB |
+| a byte-level model's 256 byte ids read from a table, not a one-character string hashed per byte | 273.59 ms | 80.55 MB |
+| a queued merge validated by its pair's two ids; merge scratch on the stack up to 64 symbols; an ASCII piece mapped without a UTF-8 buffer | 227.07 ms | 74.02 MB |
+| the merge ranks in their own open-addressing table | 77.71 ms | 74.02 MB |
+| `Regex.EnumerateMatches` on `net10.0`, not a `Match` per piece | 70.80 ms | 28.47 MB |
+| the split pattern compiled | 58.88 ms | 28.47 MB |
+
+**The largest step was a hash function.** The ranks were a `Dictionary<long, int>` keyed by the two
+ids packed into a `long`, and `long.GetHashCode` is the exclusive or of the two halves. Every pair
+whose two ids have the same exclusive or collided, `(1, 2)` with `(2, 1)` and `(0, 3)` among them. A table
+with a Fibonacci hash removed two thirds of what was left.
+
+**What compiling the pattern costs.** Matching it over the corpus took 17 ms interpreted and 5
+compiled. Code generation moves to the tokenizer's first encode, about 2 ms, measured with a
+`Stopwatch`. Building the tokenizer stays at 5 to 6 ms warm either way. The `netstandard2.0`
+build compiles it too, and that cost was not measured on .NET Framework.
+
+**One token with no split point**, `BpeScalingBenchmarks`:
+
+| Length | Before | After | Allocated before | Allocated after |
+| ---: | ---: | ---: | ---: | ---: |
+| 512 | 57.69 μs | **10.20 μs** | 20.38 KB | **7.48 KB** |
+| 1,024 | 118.51 μs | **21.49 μs** | 39.93 KB | **14.53 KB** |
+| 2,048 | 270.49 μs | **48.49 μs** | 78.98 KB | **28.58 KB** |
+| 4,096 | 592.28 μs | **152.17 μs** | 157.03 KB | **56.63 KB** |
+
+The step from 2,048 to 4,096 costs 3.1×, where the others cost about 2×. It is one step, not a
+curve: a `Stopwatch` taken further measured each doubling from 4,096 to 32,768 characters at 2.0
+to 2.2×.
+
 ## What a Cox fit costs (issue #684)
 
 Full method and what the rows mean:
