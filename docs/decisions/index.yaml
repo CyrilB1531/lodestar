@@ -180,7 +180,7 @@
   amends: []
   applies: []
   superseded_by: []
-  amended_by: ["0050"]
+  amended_by: ["0050", "0127"]
   applied_by: []
 
 "0018":
@@ -1268,6 +1268,16 @@
   status: "accepted"
   supersedes: []
   amends: []
+  applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0127":
+  title: "Byte-level BPE is held to the incumbent computing the same ids, and its unigram ratio is a record"
+  status: "accepted"
+  supersedes: []
+  amends: ["0017"]
   applies: []
   superseded_by: []
   amended_by: []
