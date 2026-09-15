@@ -64,7 +64,8 @@ public class StationarityBenchmarks
 
     private static void Agree(double ours, double theirs, string what)
     {
-        if (Math.Abs(ours - theirs) > 1e-9 * Math.Max(1.0, Math.Abs(ours)))
+        // Negated, so a NaN on either side refuses too: every ordered comparison with NaN is false.
+        if (!(Math.Abs(ours - theirs) <= 1e-9 * Math.Max(1.0, Math.Abs(ours))))
         {
             throw new InvalidOperationException($"{what}: Lodestar {ours:R} against Cortex {theirs:R}.");
         }
