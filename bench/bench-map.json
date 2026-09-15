@@ -246,6 +246,11 @@
       "src/Lodestar.Stats.Regression/**",
       "src/Lodestar.Stats/**",
       "src/Lodestar.Decomposition/**"
+    ],
+    "MultinomialLogitBenchmarks": [
+      "src/Lodestar.Stats.Regression/**",
+      "src/Lodestar.Stats/**",
+      "src/Lodestar.Decomposition/**"
     ]
   },
   "harnesses": {

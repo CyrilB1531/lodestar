@@ -1,3 +1,5 @@
+using Lodestar.Stats.Regression.Internal;
+
 namespace Lodestar.Stats.Regression;
 
 /// <summary>What a <see cref="GeneralizedLinearModel"/> fit may be told.</summary>
@@ -22,16 +24,7 @@ public sealed record GlmOptions
     public double ConfidenceLevel
     {
         get => _confidenceLevel;
-        init
-        {
-            if (double.IsNaN(value) || value <= 0.0 || value >= 1.0)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(value), value, "A confidence level lies strictly inside (0, 1).");
-            }
-
-            _confidenceLevel = value;
-        }
+        init => _confidenceLevel = OptionGuards.ConfidenceLevel(value);
     }
 
     /// <summary>How many IRLS iterations are allowed. Default 100, which is the reference's.</summary>
@@ -39,16 +32,7 @@ public sealed record GlmOptions
     public int MaximumIterations
     {
         get => _maximumIterations;
-        init
-        {
-            if (value < 1)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(value), value, "An iteration budget is one or more.");
-            }
-
-            _maximumIterations = value;
-        }
+        init => _maximumIterations = OptionGuards.MaximumIterations(value);
     }
 
     /// <summary>
@@ -59,16 +43,7 @@ public sealed record GlmOptions
     public double Tolerance
     {
         get => _tolerance;
-        init
-        {
-            if (double.IsNaN(value) || value <= 0.0)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(value), value, "A convergence tolerance is above zero.");
-            }
-
-            _tolerance = value;
-        }
+        init => _tolerance = OptionGuards.Tolerance(value);
     }
 
     /// <summary>

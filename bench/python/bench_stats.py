@@ -158,6 +158,18 @@ def poisson_exposure_summary(exog, endog, exposure) -> object:
             fitted.deviance, fitted.null_deviance, fitted.llf, fitted.aic)
 
 
+# The multinomial row's categories, derived from the corpus's counts on both sides (#788).
+MNLOGIT_CATEGORIES = 3
+
+
+def mnlogit_summary(exog, labels) -> object:
+    """The Newton fit and what `MultinomialLogitSummary` carries, the null log-likelihood and its test included (#788)."""
+    from statsmodels.discrete.discrete_model import MNLogit
+    fitted = MNLogit(labels, exog).fit(disp=0)
+    return (fitted.params, fitted.bse, fitted.tvalues, fitted.pvalues, fitted.conf_int(),
+            fitted.llf, fitted.llnull, fitted.prsquared, fitted.llr, fitted.llr_pvalue, fitted.aic, fitted.bic)
+
+
 def gamma_summary(exog, endog) -> object:
     """The Gamma fit through the log link, with the Pearson scale and the quantities `GlmSummary` carries (#770)."""
     fitted = sm.GLM(endog, exog, family=sm.families.Gamma(link=sm.families.links.Log())).fit()
@@ -195,10 +207,12 @@ def measure_size(n: int) -> tuple[list[dict], list[dict], list[dict]]:
     counts, alpha = data["counts"], data["count_alpha"]
     positive = data["gamma_response"]
     exposure = 1.0 + (np.arange(len(counts)) % EXPOSURE_CYCLE)
+    categories = counts.astype(np.int64) % MNLOGIT_CATEGORIES
     glm = [
         measure(f"glm_negative_binomial_{suffix}", lambda: negative_binomial_summary(exog, counts, alpha)),
         measure(f"glm_gamma_{suffix}", lambda: gamma_summary(exog, positive)),
         measure(f"glm_poisson_exposure_{suffix}", lambda: poisson_exposure_summary(exog, counts, exposure)),
+        measure(f"mnlogit_{suffix}", lambda: mnlogit_summary(exog, categories)),
     ]
     return tests, regression, glm
 

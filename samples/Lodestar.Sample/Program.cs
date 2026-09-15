@@ -60,6 +60,9 @@ GeneralizedLeastSquaresSample.Run();
 OlsOptionsSample.Run();
 GeneralizedLinearModelSample.Run();
 GlmSummarySample.Run();
+MultinomialLogitSample.Run();
+MultinomialLogitOptionsSample.Run();
+MultinomialLogitSummarySample.Run();
 GlmOptionsSample.Run();
 
 MinHashPermutationsSample.Run();

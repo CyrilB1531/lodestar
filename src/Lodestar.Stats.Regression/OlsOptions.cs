@@ -1,3 +1,5 @@
+using Lodestar.Stats.Regression.Internal;
+
 namespace Lodestar.Stats.Regression;
 
 /// <summary>What an ordinary least-squares fit should estimate, and at what confidence.</summary>
@@ -56,15 +58,6 @@ public sealed record OlsOptions
     public double ConfidenceLevel
     {
         get => _confidenceLevel;
-        init
-        {
-            if (double.IsNaN(value) || value <= 0.0 || value >= 1.0)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(value), value, "A confidence level lies strictly inside (0, 1).");
-            }
-
-            _confidenceLevel = value;
-        }
+        init => _confidenceLevel = OptionGuards.ConfidenceLevel(value);
     }
 }

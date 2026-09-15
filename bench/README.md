@@ -2684,3 +2684,31 @@ loop every fit shares.
 Run once outside the harness on the benchmark corpus, the standard errors agree with `statsmodels` to `3.7e-15` and
 the null deviance to `2.0e-13`, with 5 iterations on both sides at 1,000, 10,000 and 100,000 rows.
 `GlmOffsetBenchmarks`' setup refuses to time an exposure of ones whose slope is not the unexposed fit's to `1e-12`.
+
+## 42. The multinomial logit against Accord and `statsmodels` (issue #788)
+
+`MultinomialLogitBenchmarks` races `MultinomialLogit.Fit` against Accord.Statistics 3.8.0's
+`MultinomialLogisticRegression`, learned by `LowerBoundNewtonRaphson`: 200 and 2,000 rows, three regressors,
+three categories. Accord is LGPL-2.1 and archived, so it is raced rather than delegated to (decision 0104).
+
+`compare-glm` gains `mnlogit_*` over the stats corpus. Both sides take the category as the count response modulo three
+(`MNLOGIT_CATEGORIES` in `bench_stats.py`, `MultinomialCategories` in `StatsCrossLang`), and each prices the whole
+table. The null log-likelihood inside that table is a Nelder–Mead and BFGS refit in `statsmodels` and a closed form
+here (decision 0136). That difference in work is part of what the row measures, because it is part of what each
+library computes to report the table.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*MultinomialLogitBenchmarks*'
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-glm
+python3 bench/python/bench_stats.py
+python3 bench/compare.py glm
+```
+
+### What agrees, checked before timing
+
+- **Against `statsmodels`:** run once outside the harness on the benchmark corpus, the standard errors agree to
+  `1.8e-13` or better at 1,000, 10,000 and 100,000 rows, with 5 Newton iterations on both sides.
+- **Against Accord:** its tolerance is set to `1e-10`, where its coefficients agree with this fit's to `8.4e-10`, and
+  the class's setup refuses to time a gap above `1e-8`. **Accord's standard errors are not compared**: they read the
+  lower-bound Hessian its algorithm iterates on, and measured 33% to 43% from the ones this fit and `statsmodels`
+  report.

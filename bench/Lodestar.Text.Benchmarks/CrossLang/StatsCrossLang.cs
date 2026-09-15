@@ -113,12 +113,17 @@ public static class StatsCrossLang
     /// <summary>The exposure cycle of the Poisson exposure row, as bench_stats.py's <c>EXPOSURE_CYCLE</c> (#787).</summary>
     private const int ExposureCycle = 3;
 
+    /// <summary>How many categories the multinomial row derives from the counts, as bench_stats.py's <c>MNLOGIT_CATEGORIES</c> (#788).</summary>
+    private const int MultinomialCategories = 3;
+
     private static List<Harness.OperationResult> GeneralizedLinear(Corpus corpus, string suffix)
     {
         var exposure = new double[corpus.CountResponse.Length];
+        var categories = new int[corpus.CountResponse.Length];
         for (int row = 0; row < exposure.Length; row++)
         {
             exposure[row] = 1.0 + (row % ExposureCycle);
+            categories[row] = (int)corpus.CountResponse[row] % MultinomialCategories;
         }
 
         return
@@ -143,6 +148,9 @@ public static class StatsCrossLang
                 $"glm_poisson_exposure_{suffix}",
                 () => GeneralizedLinearModel.Fit(
                     corpus.Design, corpus.CountResponse, [], exposure, corpus.Regressors, GlmFamily.Poisson)),
+            Harness.Measure(
+                $"mnlogit_{suffix}",
+                () => MultinomialLogit.Fit(corpus.Design, categories, corpus.Regressors)),
         ];
     }
 

@@ -4282,6 +4282,33 @@ The per-row helper split out for the offset divided the design's length by the r
 iteration. That weighs most where a row is cheapest, at two parameters. Computing the count once per iteration took
 both rows back inside `main`'s spread.
 
+## The multinomial logit against Accord and statsmodels (issue #788)
+
+Full method and what agrees:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#42-the-multinomial-logit-against-accord-and-statsmodels-issue-788).
+Same machine as above, on 2026-09-16. `BenchmarkDotNet` 0.14.0, default job, one run. Three regressors and an intercept,
+three categories.
+
+| rows | [`MultinomialLogit.Fit`](../reference/stats-regression/mnlogit/multinomiallogit-fit.md) | Accord `LowerBoundNewtonRaphson`, tolerance `1e-10` | Accord / Lodestar | Allocated, Lodestar / Accord |
+| ---: | ---: | ---: | ---: | ---: |
+| 200 | **90.22 μs** | 556.05 μs | **6.16** | 21.63 KB / 1,466.83 KB |
+| 2,000 | **877.42 μs** | 4,507.78 μs | **5.14** | 134.13 KB / 12,015.21 KB |
+
+Accord's standard errors come from the lower-bound Hessian its algorithm iterates on, and are 33% to 43% from the ones
+this fit and `statsmodels` report. The race compares coefficients only.
+
+Against `statsmodels` 0.15.0 through `compare-glm`, one run of each side: the corpus's four regressors and an intercept,
+the category the count modulo three, milliseconds per fit, best of five.
+
+| n | Lodestar | `statsmodels`, wall / cpu | ratio, wall |
+| ---: | ---: | ---: | ---: |
+| 1,000 | **0.537 ms** | 7.203 / 7.202 ms | **13.42** |
+| 10,000 | **5.758 ms** | 40.385 / 40.378 ms | **7.01** |
+| 100,000 | **58.563 ms** | 407.374 / 1,853.258 ms | **6.96** |
+
+Part of the difference is the null log-likelihood: `statsmodels` refits the constant-only model with Nelder–Mead and
+BFGS, where this fit takes the closed form that refit approximates (decision 0136).
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly

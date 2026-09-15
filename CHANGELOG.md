@@ -248,6 +248,13 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- **`MultinomialLogit.Fit` fits an unordered categorical response with its inference table**, at `statsmodels`
+  0.15.0 `MNLogit` parity over 5 frozen cases: the coefficients per non-reference category with their errors, z
+  statistics, p-values and intervals, the log-likelihood, McFadden's pseudo-R², the likelihood-ratio test, AIC and
+  BIC. The null log-likelihood is the closed form the reference approximates by an optimiser, and a perfectly
+  separated response is refused. `OrderedModel` is not written: it does not reproduce at `1e-9` (decision 0136).
+  Measured 5.1× to 6.2× faster than Accord's `MultinomialLogisticRegression` and 7.0× to 13.4× faster than
+  `statsmodels`, wall clock. ([#788](https://github.com/CyrilB1531/lodestar/issues/788))
 - **`GeneralizedLinearModel.Fit` takes an `offset` and an `exposure`**, the fixed term a rate model adds to the linear
   predictor, at `statsmodels` 0.15.0 parity over 7 frozen cases across the four families. The null deviance refits the
   intercept-only model with the same term, as the reference does. An exposure with a link other than log, a length that
