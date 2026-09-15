@@ -7,7 +7,9 @@ in [`decisions/0104`](../decisions/0104-generalized-linear-models-are-written-na
 and [`decisions/0105`](../decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md)
 settled: **forecasting is already first-party** and is delegated; **the GLM table is
 now native too**, the **time-series diagnostics** — serial correlation, stationarity and
-seasonal decomposition — are native in `Lodestar.Stats.TimeSeries`; **mixed models** have no .NET package at all and wait for a caller.
+seasonal decomposition — are native in `Lodestar.Stats.TimeSeries`; **mixed models** have no .NET package at all and wait for a caller; **instrumental-variable and panel estimators**
+have none either and reproduce exactly in `linearmodels`, so they could be written
+([`decisions/0135`](../decisions/0135-instrumental-variables-and-panel-estimators-have-no-incumbent-and-both-could-be-written.md)).
 [`decisions/0129`](../decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md)
 read Meta.Numerics and the commercial Numerics.NET on top, and each carries part of what this page
 used to call absent.
@@ -28,6 +30,8 @@ used to call absent.
 | `seasonal_decompose` | **native**: [`SeasonalDecomposition`](../reference/stats-timeseries/seasonality.md), additive and multiplicative, `period` required. `STL` is not here; `stlnet` ships it under MIT |
 | ARIMA / SARIMAX estimation, VAR, state-space | ⛔ **not written** — [`decisions/0134`](../decisions/0134-arima-and-state-space-are-not-written-and-var-is-the-one-that-could-be.md): `statsmodels`' own optimisers disagree at `1e-4`, so no corpus can pin the likelihood fits, and no free .NET package estimates them — `Cortex.TimeSeries`' `ARIMA` returns a pure autoregression's least squares under that name, with no standard errors. VAR is equation-by-equation least squares and could be written at parity; it waits for an issue. Forecasting stays with **Microsoft.ML.TimeSeries** |
 | `MixedLM`: mixed and hierarchical models | ⚠️ **gap, and not written until a caller needs it** — no .NET package fits one, free or commercial, across nine read. Accord's `TwoWayAnovaModel.Mixed` and NMath's `OneWayRanova`/`TwoWayRanova` are classical ANOVA with a random or repeated factor; Infer.NET can express a hierarchical model by hand but prints no REML table. [`decisions/0130`](../decisions/0130-mixed-models-have-no-incumbent-and-wait-for-a-caller.md) has the reading, and why `MixedLM`'s own solvers disagree past what a frozen corpus can hold |
+| `IV2SLS`, `IVLIML`, `IVGMM` (`linearmodels`; `statsmodels.sandbox` for `IV2SLS`) | ⚠️ **gap, writable** — [`decisions/0135`](../decisions/0135-instrumental-variables-and-panel-estimators-have-no-incumbent-and-both-could-be-written.md): no .NET package estimates one, free or commercial, across seven read; `linearmodels` 7.0 reproduces 2SLS, LIML and two-step GMM at `1e-15`, so a lot could be written at parity. Iterated GMM moves at `1e-6` with its tolerance and is left out |
+| `PanelOLS`, `RandomEffects`, `BetweenOLS`, `FirstDifferenceOLS` (`linearmodels`) | ⚠️ **gap, writable** — the same record: nothing in .NET, and each estimator reproduces at `1e-15`; the errors follow `linearmodels`' own small-sample factors, not `statsmodels`' |
 
 ```csharp
 using MathNet.Numerics;
