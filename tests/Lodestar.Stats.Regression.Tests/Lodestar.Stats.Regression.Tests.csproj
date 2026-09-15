@@ -20,6 +20,8 @@
   <ItemGroup>
     <None Include="../oracles/stats_ols.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
+    <None Include="../oracles/stats_wls.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
     <None Include="../oracles/stats_glm.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
     <None Include="../oracles/regression_log_factorial.json" CopyToOutputDirectory="PreserveNewest"

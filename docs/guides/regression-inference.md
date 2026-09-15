@@ -92,6 +92,28 @@ The multiplier is a Student quantile on `ResidualDegreesOfFreedom`, not `1.96`. 
 two parameters that is six degrees of freedom, where the 95% multiplier is `2.447` — a quarter
 wider than the normal approximation would give you.
 
+## When the rows are not equally reliable
+
+A row that is a mean over forty observations and a row that is a mean over three should not pull
+the line equally. [`WeightedLeastSquares.Fit`](../reference/stats-regression/wls/weightedleastsquares-fit.md)
+takes one weight per row, proportional to the inverse of that row's variance, and returns the same
+`OlsSummary`:
+
+```csharp
+using Lodestar.Stats.Regression;
+
+double[] dose = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+double[] meanResponse = [2.3, 3.8, 6.4, 7.7, 11.6, 10.9];
+double[] groupSize = [40.0, 35.0, 30.0, 12.0, 5.0, 3.0];
+
+OlsSummary weighted = WeightedLeastSquares.Fit(dose, meanResponse, groupSize, featureCount: 1);
+```
+
+The slope is `1.9882` with a standard error of `0.1767`, against `1.9343` and `0.2388` unweighted.
+`RSquared` is then the weighted one, and a zero weight keeps its row in `ResidualDegreesOfFreedom`
+— both as `statsmodels.WLS` reports them. A negative, `NaN` or infinite weight is refused, and so
+are weights that leave fewer positively weighted rows than parameters.
+
 ## What is refused
 
 - A design that is not a whole number of rows, or a response of a different length.
@@ -106,6 +128,7 @@ is sound, so the diagnostic that is not says so. `docs/equivalence.md` carries t
 ## See also
 
 - [`OrdinaryLeastSquares`](../reference/stats-regression/ols.md) — the reference pages.
+- [`WeightedLeastSquares`](../reference/stats-regression/wls.md) — the weighted fit.
 - [statsmodels → .NET](../migration/statsmodels.md) — what is delegated and what is not.
 - [`decisions/0096`](../decisions/0096-ordinary-least-squares-earns-its-own-package.md) — why this
   is a package, and what reading the incumbents' exported surface actually found.

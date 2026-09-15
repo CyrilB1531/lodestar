@@ -55,6 +55,7 @@ StandardScalerOptionsSample.Run();
 OrdinaryLeastSquaresSample.Run();
 OlsSummarySample.Run();
 OlsEstimateSample.Run();
+WeightedLeastSquaresSample.Run();
 OlsOptionsSample.Run();
 GeneralizedLinearModelSample.Run();
 GlmSummarySample.Run();
