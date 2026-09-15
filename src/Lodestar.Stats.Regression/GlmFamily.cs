@@ -21,4 +21,12 @@ public enum GlmFamily
     /// link is statsmodels' default for this family rather than its canonical one.
     /// </remarks>
     NegativeBinomial = 2,
+
+    /// <summary>A positive continuous response whose spread grows with its mean, variance <c>φμ²</c>.</summary>
+    /// <remarks>
+    /// The inverse link by default, as statsmodels', or the log link through <see cref="GlmOptions.Link"/>. The
+    /// first family here whose dispersion <c>φ</c> is estimated, as Pearson's χ² over the residual degrees of
+    /// freedom, and reported on <see cref="GlmSummary.Dispersion"/>.
+    /// </remarks>
+    Gamma = 3,
 }

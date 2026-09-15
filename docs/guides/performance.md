@@ -4147,6 +4147,43 @@ The pipeline shows at 50 rows, a fifth off the fit and a third off its allocatio
 Cholesky factor is the fit, and the rows are the same within noise. The same run held WLS and OLS to #784's numbers:
 within 1.4 % at 2,000 rows and faster at 20,000 and 200,000.
 
+## The Gamma GLM against statsmodels, and the IRLS loop it widened (issue #770)
+
+Full method and what agrees:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#39-the-gamma-glm-against-statsmodels-issue-770).
+**No free .NET library fits this family** — Accord's generalized linear regression returned NaN coefficients on the
+inverse link — so the incumbent is `statsmodels` 0.15.0, through the cross-language harness. Same machine as above; three
+`BenchmarkDotNet` 0.14.0 runs and three harness runs, **default job**, on 2026-09-15, interleaved as `main` at `37c71cb9`,
+then this branch, then `main` again (A/B/A); the Python side one run of `bench_stats.py`. Log link, four regressors and an
+intercept; milliseconds per fit, best of five.
+
+| n | [`GeneralizedLinearModel.Fit`](../reference/stats-regression/glm/generalizedlinearmodel-fit.md), Gamma | `statsmodels`, wall | `statsmodels`, cpu | statsmodels / Lodestar, wall |
+| ---: | ---: | ---: | ---: | ---: |
+| 1,000 | **0.371 ms** | 1.795 ms | 1.794 ms | **4.84** |
+| 10,000 | **3.397 ms** | 6.634 ms | 6.633 ms | **1.95** |
+| 100,000 | **43.016 ms** | 90.541 ms | 1,429.046 ms | **2.10** |
+
+**The first run of this branch regressed the families it did not add.** The IRLS loop's family functions took the new
+`FamilyShape` — the family, the link and `α` — by value and dispatched on the link and then the family, and the Gamma
+check for a non-positive mean was a call inside the loop every family runs: the logistic GLM measured 11 % to 16 % slower
+than `main`, the Poisson 12 % to 13 %, the negative binomial 5 % to 7 %. Passing the shape by `in`, inlining those
+functions, and scanning for a non-positive mean once per iteration, for Gamma alone, took each row back below `main`:
+
+| class | parameters | `main`, A1 / A2 | first run of the branch | this branch | Accord | Allocated, Lodestar |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `GlmBenchmarks`, logistic | 200 rows, 1 regressor | 22.89 / 23.31 μs | 25.86 μs | **21.75 μs** | 28.29 μs | 43.72 KB |
+| `GlmBenchmarks`, logistic | 200 rows, 3 regressors | 30.63 / 30.51 μs | 34.22 μs | **29.80 μs** | 58.82 μs | 75.97 KB |
+| `GlmBenchmarks`, logistic | 2,000 rows, 1 regressor | 220.94 / 221.81 μs | 254.79 μs | **211.34 μs** | 209.32 μs | 423.41 KB |
+| `GlmBenchmarks`, logistic | 2,000 rows, 3 regressors | 300.51 / 303.07 μs | 335.05 μs | **287.29 μs** | 398.97 μs | 736.91 KB |
+| `GlmPoissonBenchmarks` | mean count 5 | 199.3 / 200.4 μs | 226.1 μs | **191.5 μs** | — | 16.85 KB |
+| `GlmPoissonBenchmarks` | mean count 50,000 | 203.8 / 206.0 μs | 233.0 μs | **197.6 μs** | — | 16.85 KB |
+| `GlmPoissonBenchmarks` | mean count 5,000,000 | 203.5 / 203.4 μs | 232.1 μs | **196.3 μs** | — | 16.85 KB |
+
+The negative binomial harness row is within its own run-to-run spread: 0.398, 4.018 and 47.345 ms at 1,000, 10,000 and
+100,000 rows against `main`'s 0.405 / 0.402, 4.083 / 4.039 and 46.524 / 47.314 ms. The first-run column is the same job
+on the same machine, one run earlier, before the change. The logistic fit at 2,000 rows and one regressor is level with
+Accord.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly

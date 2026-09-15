@@ -2610,3 +2610,23 @@ faster row cannot be a different answer. `Numerics.NET` and Extreme Optimization
 its cube. `Random(771)`, four uniform regressors, AR(1) errors at 0.6 and the matching covariance
 `0.6^|i−j|`. The numbers, on a named machine and with the default job, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md#generalized-least-squares-against-mathnet-numerics-issue-771).
+
+## 39. The Gamma GLM against `statsmodels` (issue #770)
+
+The same harness as section 37, the same corpus and command: `generate_stats.py` adds a positive response, a shape-4
+Gamma draw around a log-linear mean on a stream of its own, and `compare-glm` fits it through `GlmFamily.Gamma` with
+`GlmLink.Log` beside the negative binomial row. The log link, not the default inverse, because nothing keeps an inverse-link
+mean positive on a random design, and a fit this refuses is not a timing. No free .NET library fits the Gamma family:
+Accord's `GeneralizedLinearRegression` returned NaN coefficients on the inverse link, and the commercial libraries are not
+timed under a trial licence.
+
+### What agrees, checked before timing
+
+Run once outside the harness, the coefficients agree to `2.2e-15`, `1.7e-15` and `1.8e-14` relative at 1 000, 10 000
+and 100 000 rows, the Pearson scale to `2.2e-14` or better, with the same iteration counts (10, 8, 8).
+
+### The families already shipped, re-run beside it
+
+`GlmFamily.Gamma` threads the link and the scale through the IRLS loop every family shares, so `GlmBenchmarks` and
+`GlmPoissonBenchmarks` are re-run against `main`; `docs/guides/performance.md` has both, and the regression the first run
+found.

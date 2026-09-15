@@ -105,6 +105,7 @@ def load_size(n: int) -> dict:
         "response": np.asarray(payload["response"], dtype=np.float64),
         "counts": np.asarray(payload["counts"], dtype=np.float64),
         "count_alpha": payload["count_alpha"],
+        "gamma_response": np.asarray(payload["gamma_response"], dtype=np.float64),
     }
 
 
@@ -121,6 +122,13 @@ def negative_binomial_summary(exog, endog, alpha: float) -> object:
     fitted = sm.GLM(endog, exog, family=sm.families.NegativeBinomial(alpha=alpha)).fit()
     return (fitted.params, fitted.bse, fitted.tvalues, fitted.pvalues, fitted.conf_int(),
             fitted.deviance, fitted.null_deviance, fitted.llf, fitted.aic)
+
+
+def gamma_summary(exog, endog) -> object:
+    """The Gamma fit through the log link, with the Pearson scale and the quantities `GlmSummary` carries (#770)."""
+    fitted = sm.GLM(endog, exog, family=sm.families.Gamma(link=sm.families.links.Log())).fit()
+    return (fitted.params, fitted.bse, fitted.tvalues, fitted.pvalues, fitted.conf_int(),
+            fitted.deviance, fitted.null_deviance, fitted.scale, fitted.llf, fitted.aic)
 
 
 def measure_size(n: int) -> tuple[list[dict], list[dict], list[dict]]:
@@ -146,7 +154,11 @@ def measure_size(n: int) -> tuple[list[dict], list[dict], list[dict]]:
                 lambda: [variance_inflation_factor(design, j) for j in range(design.shape[1])]),
     ]
     counts, alpha = data["counts"], data["count_alpha"]
-    glm = [measure(f"glm_negative_binomial_{suffix}", lambda: negative_binomial_summary(exog, counts, alpha))]
+    positive = data["gamma_response"]
+    glm = [
+        measure(f"glm_negative_binomial_{suffix}", lambda: negative_binomial_summary(exog, counts, alpha)),
+        measure(f"glm_gamma_{suffix}", lambda: gamma_summary(exog, positive)),
+    ]
     return tests, regression, glm
 
 

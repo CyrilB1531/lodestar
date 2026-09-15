@@ -97,6 +97,14 @@ public static class StatsCrossLang
                 corpus.Regressors,
                 GlmFamily.NegativeBinomial,
                 new GlmOptions { NegativeBinomialAlpha = corpus.CountAlpha })),
+        Harness.Measure(
+            $"glm_gamma_{suffix}",
+            () => GeneralizedLinearModel.Fit(
+                corpus.Design,
+                corpus.GammaResponse,
+                corpus.Regressors,
+                GlmFamily.Gamma,
+                new GlmOptions { Link = GlmLink.Log })),
     ];
 
     /// <summary>Reads the comma-separated values of <paramref name="option"/>, or an empty array if it is absent.</summary>
@@ -124,7 +132,7 @@ public static class StatsCrossLang
 
         return new Corpus(
             file.First, file.Second, Counts(file.Table), file.Design, file.Response, file.Regressors,
-            file.CountResponse, file.CountAlpha);
+            file.CountResponse, file.CountAlpha, file.GammaResponse);
     }
 
     /// <summary>The contingency table as the jagged double rows <c>ChiSquare</c> takes.</summary>
@@ -147,7 +155,8 @@ public static class StatsCrossLang
         double[] Response,
         int Regressors,
         double[] CountResponse,
-        double CountAlpha);
+        double CountAlpha,
+        double[] GammaResponse);
 
     private sealed record CorpusFile
     {
@@ -174,5 +183,8 @@ public static class StatsCrossLang
 
         [System.Text.Json.Serialization.JsonPropertyName("count_alpha")]
         public double CountAlpha { get; init; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("gamma_response")]
+        public double[] GammaResponse { get; init; } = [];
     }
 }

@@ -12,7 +12,9 @@ public enum GlmFamily
 non-negative count, through the log link. `NegativeBinomial` is a non-negative count whose variance
 `μ + αμ²` grows faster than its mean, through the log link, with `α` given by
 [`GlmOptions.NegativeBinomialAlpha`](glmoptions.md); the log link is statsmodels' default for it rather
-than its canonical one.
+than its canonical one. `Gamma` is a positive continuous response with variance `φμ²`, through the
+inverse link by default or the log link through [`GlmOptions.Link`](glmoptions.md), and the one family
+whose dispersion `φ` is estimated.
 
 **Example** — the same design, read through each family's own link.
 
@@ -47,7 +49,7 @@ double widerError = Math.Round(negativeBinomial.StandardErrors[1], 4);     // =>
 **Remarks** — closed on purpose. IRLS cannot check that a caller-supplied family is internally
 consistent, and an incoherent one produces a plausible inference table rather than an error — so a
 family is chosen from this set rather than described by an interface (#616). Adding a member is not
-a breaking change, which is how `NegativeBinomial` joined (#769) and how Gamma will (#770).
+a breaking change, which is how `NegativeBinomial` (#769) and `Gamma` (#770) joined.
 
 **Applies to** — net10.0, netstandard2.0.
 

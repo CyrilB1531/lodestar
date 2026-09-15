@@ -100,6 +100,99 @@ public sealed class GlmEdgeTests
         Assert.Equal(poisson.Coefficients[1], nearly.Coefficients[1], 1e-6);
     }
 
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-1.0)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void A_gamma_response_that_is_not_finite_and_positive_is_refused(double value)
+    {
+        // statsmodels fits a zero to a log-likelihood of +inf (#770).
+        double[] response = [1.2, 2.3, value, 3.1, 4.4, 5.0];
+
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => GeneralizedLinearModel.Fit(Design, response, featureCount: 1, GlmFamily.Gamma));
+
+        Assert.Equal("response", error.ParamName);
+    }
+
+    [Theory]
+    [InlineData(GlmFamily.Binomial, GlmLink.Log)]
+    [InlineData(GlmFamily.Binomial, GlmLink.Inverse)]
+    [InlineData(GlmFamily.Poisson, GlmLink.Inverse)]
+    [InlineData(GlmFamily.NegativeBinomial, GlmLink.Inverse)]
+    public void A_link_the_family_is_not_fitted_through_is_refused(GlmFamily family, GlmLink link)
+    {
+        double[] response = [1.0, 0.0, 1.0, 1.0, 0.0, 1.0];
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => GeneralizedLinearModel.Fit(
+            Design, response, featureCount: 1, family, new GlmOptions { Link = link }));
+
+        Assert.Equal("options", error.ParamName);
+    }
+
+    [Fact]
+    public void An_undeclared_link_is_refused_by_the_option()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new GlmOptions { Link = (GlmLink)9 });
+    }
+
+    [Theory]
+    [InlineData(GlmFamily.Gamma, GlmLink.Inverse)]
+    [InlineData(GlmFamily.Poisson, GlmLink.Log)]
+    [InlineData(GlmFamily.NegativeBinomial, GlmLink.Log)]
+    public void The_default_link_is_the_family_default_exactly(GlmFamily family, GlmLink named)
+    {
+        double[] response = [1.0, 2.0, 2.0, 4.0, 3.0, 6.0];
+
+        GlmSummary byDefault = GeneralizedLinearModel.Fit(Design, response, featureCount: 1, family);
+        GlmSummary byName = GeneralizedLinearModel.Fit(
+            Design, response, featureCount: 1, family, new GlmOptions { Link = named });
+
+        Assert.Equal(byName.Coefficients, byDefault.Coefficients);
+        Assert.Equal(byName.StandardErrors, byDefault.StandardErrors);
+    }
+
+    [Fact]
+    public void The_gamma_dispersion_is_pearsons_chi_square_over_the_residual_degrees_of_freedom()
+    {
+        double[] response = [1.2, 2.3, 1.9, 3.1, 4.4, 5.0];
+
+        GlmSummary fit = GeneralizedLinearModel.Fit(
+            Design, response, featureCount: 1, GlmFamily.Gamma, new GlmOptions { Link = GlmLink.Log });
+
+        double pearson = 0.0;
+        for (int row = 0; row < response.Length; row++)
+        {
+            double mu = Math.Exp(fit.Coefficients[0] + (fit.Coefficients[1] * Design[row]));
+            pearson += (response[row] - mu) * (response[row] - mu) / (mu * mu);
+        }
+
+        Assert.Equal(pearson / fit.ResidualDegreesOfFreedom, fit.Dispersion, 1e-10);
+    }
+
+    [Fact]
+    public void The_count_families_keep_a_dispersion_of_one()
+    {
+        double[] counts = [1.0, 0.0, 2.0, 3.0, 5.0, 4.0];
+
+        Assert.Equal(1.0, GeneralizedLinearModel.Fit(Design, counts, featureCount: 1, GlmFamily.Poisson).Dispersion);
+    }
+
+    [Fact]
+    public void An_inverse_link_that_takes_a_gamma_mean_below_zero_is_refused()
+    {
+        // statsmodels converges here in 9 iterations to a mean of -5.64 in the last row, 1/eta having
+        // crossed zero between the spike at 30 and the drop to 2 after it.
+        double[] design = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0];
+        double[] response = [1.0, 1.2, 1.5, 2.0, 3.0, 6.0, 30.0, 2.0];
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => GeneralizedLinearModel.Fit(
+            design, response, featureCount: 1, GlmFamily.Gamma));
+
+        Assert.Equal("design", error.ParamName);
+    }
+
     [Fact]
     public void A_negative_poisson_response_is_refused()
     {

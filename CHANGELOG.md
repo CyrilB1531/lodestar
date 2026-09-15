@@ -248,6 +248,13 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- **`GlmFamily.Gamma` and `GlmLink`** fit a positive, skewed response through `GeneralizedLinearModel.Fit`,
+  with the inverse link by default or the log link through `GlmOptions.Link`, at `statsmodels` 0.15.0 parity
+  over 5 frozen cases. The first estimated dispersion: `GlmSummary.Dispersion` is the Pearson scale, and the
+  IRLS criterion divides the deviance by the previous iteration's scale as the reference's does. A zero or
+  negative response, and an inverse-link mean that reaches zero, are refused. Measured against `statsmodels` through the
+  `compare-glm` harness: 1.95× to 4.84× faster, wall clock, from 1,000 to 100,000 rows.
+  ([#770](https://github.com/CyrilB1531/lodestar/issues/770))
 - **[`GeneralizedLeastSquares.Fit`](docs/reference/stats-regression/gls/generalizedleastsquares-fit.md)
   fits a linear model under a caller-supplied error covariance and returns the `OlsSummary` table**, at
   `statsmodels.GLS` 0.15.0 parity over 9 frozen cases, the robust covariances included: rows whitened by the
