@@ -2630,3 +2630,33 @@ and 100 000 rows, the Pearson scale to `2.2e-14` or better, with the same iterat
 `GlmFamily.Gamma` threads the link and the scale through the IRLS loop every family shares, so `GlmBenchmarks` and
 `GlmPoissonBenchmarks` are re-run against `main`; `docs/guides/performance.md` has both, and the regression the first run
 found.
+
+## 40. HAC and cluster-robust covariances against `statsmodels` (issue #775)
+
+`compare-ols` gains two rows over the same corpus as `ols_summary_*`: `ols_hac_*` fits `CovarianceType.Hac` with four
+lags, and `ols_cluster_*` fits `CovarianceType.Cluster` over clusters of 20 consecutive rows. Both sides derive the lags
+and the labels from the row index (`HAC_LAGS` and `CLUSTER_SIZE` in `bench_stats.py`, their C# twins in
+`StatsCrossLang`), so the corpus does not change. statsmodels leaves the VIFs outside `.fit()`, so its two rows price
+them inside the same call. `bench/compare.py`'s fold only maps `ols_vif_*` into `ols_summary_*`. No free .NET library
+computes either covariance, so there is no .NET row.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-ols
+python3 bench/python/bench_stats.py
+python3 bench/compare.py ols
+```
+
+`HacClusterBenchmarks` prices the allocations the harness does not see: the ordinary fit, HC0, HAC and cluster over 100
+and 10 000 rows, same seed and shape as `OlsBenchmarks`. It is a class of its own rather than two more values on
+`RobustCovarianceBenchmarks`, so that class's source is the same on `main` and on a branch, and an A/B/A of it prices
+the shared sandwich alone.
+
+### What agrees, checked before timing
+
+Run once outside the harness on the benchmark corpus, every standard error agrees with statsmodels to `3e-13` relative
+or better at 1 000, 10 000 and 100 000 rows, under both covariances. `HacClusterBenchmarks`' setup refuses to time a HAC
+with no lags that is not HC0 to `1e-12`, a comparison written to fail on `NaN`.
+
+**Read `fvalue` before `f_pvalue`.** On a cluster fit, statsmodels 0.15.0's `f_pvalue` read first uses `n - k`
+denominator degrees of freedom, where `fvalue` caches the `G - 1` p-value of its own `f_test`. `bench_stats.py` reads
+them in that order, as the oracle generator does.

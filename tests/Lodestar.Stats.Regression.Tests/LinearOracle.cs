@@ -39,6 +39,8 @@ internal static class LinearOracle
             "HC1" => CovarianceType.Hc1,
             "HC2" => CovarianceType.Hc2,
             "HC3" => CovarianceType.Hc3,
+            "HAC" => CovarianceType.Hac,
+            "cluster" => CovarianceType.Cluster,
             _ => CovarianceType.Nonrobust,
         };
 
@@ -47,7 +49,13 @@ internal static class LinearOracle
         WithIntercept = frozen.GetProperty("withIntercept").GetBoolean(),
         ConfidenceLevel = frozen.GetProperty("confidenceLevel").GetDouble(),
         CovarianceType = Covariance(frozen),
+        HacLags = frozen.TryGetProperty("hacLags", out JsonElement lags) ? lags.GetInt32() : null,
+        SmallSampleCorrection = frozen.TryGetProperty("useCorrection", out JsonElement correction) ? correction.GetBoolean() : null,
     };
+
+    /// <summary>The cluster labels a case carries, or <see langword="null"/> for a case fitted without them (#775).</summary>
+    public static int[]? Groups(JsonElement frozen) =>
+        frozen.TryGetProperty("groups", out JsonElement groups) ? [.. groups.EnumerateArray().Select(v => v.GetInt32())] : null;
 
     public static void AssertEstimates(JsonElement frozen, OlsSummary summary)
     {

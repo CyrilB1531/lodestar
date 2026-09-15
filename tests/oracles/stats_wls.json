@@ -3,7 +3,7 @@
   "library": "statsmodels",
   "version": "0.15.0",
   "family": "wls",
-  "count": 12
+  "count": 14
  },
  "cases": [
   {
@@ -978,6 +978,171 @@
    "fPValue": 4.4486745942420483e-07,
    "residualDegreesOfFreedom": 8,
    "residualStandardError": 1.0391102294494559,
+   "varianceInflationFactors": [
+    1.0
+   ]
+  },
+  {
+   "name": "one regressor, uneven weights, zigzag, HAC 3",
+   "design": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0
+   ],
+   "response": [
+    3.1,
+    1.9,
+    7.4,
+    5.2,
+    12.3,
+    8.1,
+    16.8,
+    10.9,
+    21.2,
+    14.7
+   ],
+   "weights": [
+    1.0,
+    2.0,
+    0.5,
+    1.5,
+    3.0,
+    1.0,
+    0.25,
+    2.0,
+    0.75,
+    1.25
+   ],
+   "featureCount": 1,
+   "withIntercept": true,
+   "confidenceLevel": 0.95,
+   "covarianceType": "HAC",
+   "hacLags": 3,
+   "coefficients": [
+    0.8375225439012821,
+    1.5968485999050783
+   ],
+   "standardErrors": [
+    1.145242269477526,
+    0.176006422820733
+   ],
+   "tStatistics": [
+    0.7313060006799876,
+    9.072672316802375
+   ],
+   "pValues": [
+    0.46459226603846693,
+    1.1613312528490104e-19
+   ],
+   "confidenceLower": [
+    -1.407111057847584,
+    1.2518823501287129
+   ],
+   "confidenceUpper": [
+    3.0821561456501483,
+    1.9418148496814438
+   ],
+   "rSquared": 0.693860581106468,
+   "adjustedRSquared": 0.6555931537447764,
+   "fStatistic": 82.31338296807218,
+   "fPValue": 1.7466624342763546e-05,
+   "residualDegreesOfFreedom": 8,
+   "residualStandardError": 3.7385793660583215,
+   "varianceInflationFactors": [
+    1.0
+   ]
+  },
+  {
+   "name": "one regressor, uneven weights, zigzag, four clusters",
+   "design": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0
+   ],
+   "response": [
+    3.1,
+    1.9,
+    7.4,
+    5.2,
+    12.3,
+    8.1,
+    16.8,
+    10.9,
+    21.2,
+    14.7
+   ],
+   "weights": [
+    1.0,
+    2.0,
+    0.5,
+    1.5,
+    3.0,
+    1.0,
+    0.25,
+    2.0,
+    0.75,
+    1.25
+   ],
+   "groups": [
+    2,
+    2,
+    4,
+    4,
+    4,
+    9,
+    9,
+    1,
+    1,
+    1
+   ],
+   "featureCount": 1,
+   "withIntercept": true,
+   "confidenceLevel": 0.95,
+   "covarianceType": "cluster",
+   "coefficients": [
+    0.8375225439012821,
+    1.5968485999050783
+   ],
+   "standardErrors": [
+    1.4217791490920142,
+    0.1892480540739755
+   ],
+   "tStatistics": [
+    0.5890665539976065,
+    8.437860075860455
+   ],
+   "pValues": [
+    0.5558166286159576,
+    3.232002091481113e-17
+   ],
+   "confidenceLower": [
+    -1.9491133822890694,
+    1.2259292297757978
+   ],
+   "confidenceUpper": [
+    3.6241584700916336,
+    1.9677679700343589
+   ],
+   "rSquared": 0.693860581106468,
+   "adjustedRSquared": 0.6555931537447764,
+   "fStatistic": 71.19748265979982,
+   "fPValue": 0.003493324760519244,
+   "residualDegreesOfFreedom": 8,
+   "residualStandardError": 3.7385793660583215,
    "varianceInflationFactors": [
     1.0
    ]

@@ -4184,6 +4184,59 @@ The negative binomial harness row is within its own run-to-run spread: 0.398, 4.
 on the same machine, one run earlier, before the change. The logistic fit at 2,000 rows and one regressor is level with
 Accord.
 
+## HAC and cluster-robust covariances against statsmodels (issue #775)
+
+Full method and what agrees:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#40-hac-and-cluster-robust-covariances-against-statsmodels-issue-775).
+**No free .NET library computes either covariance**, so the incumbent is `statsmodels` 0.15.0 through the cross-language
+harness. Same machine as above, on 2026-09-15. The harness side is one run of `compare-ols` on this branch and one of
+`bench_stats.py`. Four regressors and an intercept, four lags, clusters of 20 consecutive rows; milliseconds per fit,
+best of five, each row including the VIFs on both sides.
+
+| n | HAC, Lodestar | HAC, `statsmodels` wall / cpu | ratio, wall | cluster, Lodestar | cluster, `statsmodels` wall / cpu | ratio, wall |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1,000 | **0.097 ms** | 1.508 / 1.507 ms | **15.61** | **0.035 ms** | 1.537 / 1.537 ms | **43.37** |
+| 10,000 | **0.995 ms** | 6.683 / 6.683 ms | **6.72** | **0.352 ms** | 6.892 / 6.891 ms | **19.56** |
+| 100,000 | **10.646 ms** | 74.696 / 1,189.086 ms | **7.02** | **4.326 ms** | 76.800 / 1,223.598 ms | **17.75** |
+
+What each covariance costs beside the ordinary fit, from `HacClusterBenchmarks` on this branch, `BenchmarkDotNet` 0.14.0
+default job:
+
+| rows | Nonrobust | HC0 | HAC, 4 lags | Cluster |
+| ---: | ---: | ---: | ---: | ---: |
+| 100 | 3.94 μs, 2.59 KB | 5.49 μs, 8.58 KB | 10.92 μs, 12.73 KB | 4.81 μs, 9.54 KB |
+| 10,000 | 259.9 μs, 79.93 KB | 556.3 μs, 472.72 KB | 1,212.5 μs, 863.67 KB | 489.1 μs, 565.00 KB |
+
+HAC's filling runs once per lag, so four lags cost about five HC0 fillings.
+
+**The shared sandwich, A/B/A against `main`** at `f89f1948`: `RobustCovarianceBenchmarks`, whose source is the same on
+both sides:
+
+| covariance | rows | `main`, A1 / A2 | this branch | Allocated, `main` → branch |
+| --- | ---: | ---: | ---: | ---: |
+| HC0 | 100 | 6.351 / 6.310 μs | **5.515 μs** | 9.4 → 8.53 KB |
+| HC1 | 100 | 6.322 / 6.291 μs | **5.595 μs** | 9.4 → 8.53 KB |
+| HC2 | 100 | 6.414 / 6.326 μs | 6.454 μs | 9.4 KB |
+| HC3 | 100 | 6.391 / 6.336 μs | 6.386 μs | 9.4 KB |
+| HC0 | 10,000 | 627.2 / 627.0 μs | **552.4 μs** | 550.89 → 472.68 KB |
+| HC1 | 10,000 | 630.5 / 628.8 μs | **566.9 μs** | 550.89 → 472.68 KB |
+| HC2 | 10,000 | 636.0 / 640.2 μs | 644.1 μs | 550.89 KB |
+| HC3 | 10,000 | 632.0 / 642.5 μs | 636.1 μs | 550.89 KB |
+
+HC0 and HC1 no longer compute the leverages they never read, which saves 10 % to 13 % of their time. HC2 and HC3 stay
+inside `main`'s own spread between its two runs.
+
+**An earlier run of this branch measured HC2 and HC3 at 100 rows 1.4 % and 3.1 % slower**, and it held over three runs.
+Timing the path piece by piece with a probe class isolated the whole cost to one loop. It multiplied the covariance by a
+small-sample factor for every type, and cost 85 to 93 ns a fit whenever the factor was not a compile-time constant.
+The same kernel without the loop measured 2,159 ns against `main`'s 2,158. The factor is now `null` for a type that has
+no correction. Neither the dispatch on the covariance type nor the cluster field added to the solved fit measured
+anything. `BenchmarkDotNet`'s disassembler does not run on .NET 10 in version 0.14.0, so the JIT's own
+`DOTNET_JitDisasmSummary` was read instead, and showed no inlining change.
+
+In the first A/B/A, `OlsBenchmarks` and `GlsBenchmarks` are within 0.5 % of `main`'s mean.
+`WeightedLeastSquaresBenchmarks` is within 1.5 %: 5,611 μs at 200,000 rows against 5,528 / 5,539 μs.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly

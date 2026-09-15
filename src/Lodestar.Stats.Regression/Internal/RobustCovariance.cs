@@ -2,12 +2,11 @@ using Lodestar.Decomposition;
 
 namespace Lodestar.Stats.Regression.Internal;
 
-/// <summary>The heteroskedasticity-consistent covariance, and the Wald test read on it.</summary>
+/// <summary>The robust covariances, and the Wald test read on them.</summary>
 /// <remarks>
-/// A sandwich: <c>(XᵀX)⁻¹ Xᵀ Ω X (XᵀX)⁻¹</c>, where the bread is the same <c>R⁻¹</c> the
-/// ordinary fit already has and the filling weights each row by its squared residual. The four
-/// types differ only in that weight, which is why they share one routine rather than four
-/// (#686).
+/// A sandwich: <c>(XᵀX)⁻¹ S (XᵀX)⁻¹</c>, where the bread is the same <c>R⁻¹</c> the ordinary fit
+/// already has. HC0 to HC3 differ only in the weight each row's own score takes (#686); HAC adds
+/// the scores of nearby rows and cluster sums them by group (#775), and the bread is shared.
 /// </remarks>
 internal static class RobustCovariance
 {
@@ -65,17 +64,15 @@ internal static class RobustCovariance
         };
     }
 
-    /// <summary>The full covariance of the estimates, row-major and symmetric.</summary>
-    public static double[] Sandwich(
-        double[] matrix,
-        double[] inverseUpper,
-        double[] residuals,
-        double[] leverages,
-        int rowCount,
-        int parameterCount,
-        CovarianceType type)
+    /// <summary>The filling of HC0 to HC3, <c>Σ ωᵢ xᵢxᵢᵀ</c>; the leverages are read only by the two types that weight by them.</summary>
+    public static double[] HeteroskedasticMeat(
+        double[] matrix, double[] inverseUpper, double[] residuals, int rowCount, int parameterCount, CovarianceType type)
     {
-        double[] bread = Bread(inverseUpper, parameterCount);
+        // HC0 and HC1 never read a leverage: they skip computing them and pass an array of the right length in their
+        // place, so the one loop below serves all four types without a test per row.
+        double[] leverages = type is CovarianceType.Hc2 or CovarianceType.Hc3
+            ? Leverages(matrix, inverseUpper, rowCount, parameterCount)
+            : residuals;
 
         var meat = new double[parameterCount * parameterCount];
         for (int row = 0; row < rowCount; row++)
@@ -92,17 +89,135 @@ internal static class RobustCovariance
             }
         }
 
-        double[] covariance = Multiply(Multiply(bread, meat, parameterCount), bread, parameterCount);
-        if (type == CovarianceType.Hc1)
+        return meat;
+    }
+
+    /// <summary>Newey–West's filling: <c>Γ₀ + Σₗ (1 − l/(L+1)) (Γₗ + Γₗᵀ)</c>, with <c>Γₗ = Σᵢ uᵢ uᵢ₋ₗᵀ</c> on the scores <c>uᵢ = xᵢrᵢ</c>.</summary>
+    /// <remarks>
+    /// <c>S_hac_simple</c>'s sum in <c>statsmodels</c>. Lags past the last row contribute no pair and are skipped, but the
+    /// weights still divide by <c>L + 1</c>, as the reference's do.
+    /// </remarks>
+    public static double[] HacMeat(double[] matrix, double[] residuals, int rowCount, int parameterCount, int lags)
+    {
+        double[] scores = Scores(matrix, residuals, rowCount, parameterCount);
+        var meat = new double[parameterCount * parameterCount];
+        var lagged = new double[parameterCount * parameterCount];
+        int reach = Math.Min(lags, rowCount - 1);
+        for (int lag = 0; lag <= reach; lag++)
         {
-            double correction = (double)rowCount / (rowCount - parameterCount);
+            LaggedCrossProduct(scores, rowCount, parameterCount, lag, lagged);
+
+            // Γ₀ is symmetric already and enters once; every later lag enters with its transpose.
+            double weight = lag == 0 ? 1.0 : 1.0 - ((double)lag / (lags + 1));
+            for (int a = 0; a < parameterCount; a++)
+            {
+                for (int b = 0; b < parameterCount; b++)
+                {
+                    double pair = lag == 0
+                        ? lagged[(a * parameterCount) + b]
+                        : lagged[(a * parameterCount) + b] + lagged[(b * parameterCount) + a];
+                    meat[(a * parameterCount) + b] += weight * pair;
+                }
+            }
+        }
+
+        return meat;
+    }
+
+    /// <summary><c>Γₗ = Σᵢ uᵢ uᵢ₋ₗᵀ</c>, written over <paramref name="lagged"/>.</summary>
+    private static void LaggedCrossProduct(double[] scores, int rowCount, int parameterCount, int lag, double[] lagged)
+    {
+        Array.Clear(lagged, 0, lagged.Length);
+        for (int row = lag; row < rowCount; row++)
+        {
+            int at = row * parameterCount;
+            int before = (row - lag) * parameterCount;
+            for (int a = 0; a < parameterCount; a++)
+            {
+                double value = scores[at + a];
+                for (int b = 0; b < parameterCount; b++)
+                {
+                    lagged[(a * parameterCount) + b] += value * scores[before + b];
+                }
+            }
+        }
+    }
+
+    /// <summary>The one-way cluster filling, <c>Σ_g s_g s_gᵀ</c> with <c>s_g</c> the sum of the scores in cluster <c>g</c>.</summary>
+    /// <param name="matrix">The design the solve ran on, row-major.</param>
+    /// <param name="residuals">Its residuals.</param>
+    /// <param name="clusters">One dense label per row, from <c>0</c> to <paramref name="clusterCount"/> − 1.</param>
+    /// <param name="parameterCount">Columns of <paramref name="matrix"/>.</param>
+    /// <param name="clusterCount">How many clusters the labels name.</param>
+    public static double[] ClusterMeat(
+        double[] matrix, double[] residuals, int[] clusters, int parameterCount, int clusterCount)
+    {
+        var sums = new double[clusterCount * parameterCount];
+        for (int row = 0; row < clusters.Length; row++)
+        {
+            int at = row * parameterCount;
+            int into = clusters[row] * parameterCount;
+            for (int a = 0; a < parameterCount; a++)
+            {
+                sums[into + a] += matrix[at + a] * residuals[row];
+            }
+        }
+
+        var meat = new double[parameterCount * parameterCount];
+        for (int cluster = 0; cluster < clusterCount; cluster++)
+        {
+            int at = cluster * parameterCount;
+            for (int a = 0; a < parameterCount; a++)
+            {
+                double value = sums[at + a];
+                for (int b = 0; b < parameterCount; b++)
+                {
+                    meat[(a * parameterCount) + b] += value * sums[at + b];
+                }
+            }
+        }
+
+        return meat;
+    }
+
+    /// <summary>The full covariance of the estimates, <c>(XᵀX)⁻¹ S (XᵀX)⁻¹</c>, times a small-sample factor when one applies.</summary>
+    /// <param name="meat">The filling, row-major.</param>
+    /// <param name="inverseUpper">R⁻¹, row-major.</param>
+    /// <param name="parameterCount">The order of both.</param>
+    /// <param name="correction">The factor, or <see langword="null"/> for a type that has none.</param>
+    /// <remarks>
+    /// <see langword="null"/> rather than a factor of one: multiplying every entry by a one that is not a compile-time
+    /// constant cost 85 to 93 ns a fit at 100 rows, measured — 3 % of HC2 and HC3 there (#775).
+    /// </remarks>
+    public static double[] Sandwich(double[] meat, double[] inverseUpper, int parameterCount, double? correction)
+    {
+        double[] bread = Bread(inverseUpper, parameterCount);
+        double[] covariance = Multiply(Multiply(bread, meat, parameterCount), bread, parameterCount);
+        if (correction is { } factor)
+        {
             for (int i = 0; i < covariance.Length; i++)
             {
-                covariance[i] *= correction;
+                covariance[i] *= factor;
             }
         }
 
         return covariance;
+    }
+
+    /// <summary>Each row of the design times its residual: the scores whose sums the HAC and cluster fillings read.</summary>
+    private static double[] Scores(double[] matrix, double[] residuals, int rowCount, int parameterCount)
+    {
+        var scores = new double[rowCount * parameterCount];
+        for (int row = 0; row < rowCount; row++)
+        {
+            int at = row * parameterCount;
+            for (int a = 0; a < parameterCount; a++)
+            {
+                scores[at + a] = matrix[at + a] * residuals[row];
+            }
+        }
+
+        return scores;
     }
 
     /// <summary><c>(XᵀX)⁻¹</c> as <c>R⁻¹R⁻ᵀ</c>, which the QR already paid for.</summary>
