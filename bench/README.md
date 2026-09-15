@@ -2660,3 +2660,27 @@ with no lags that is not HC0 to `1e-12`, a comparison written to fail on `NaN`.
 **Read `fvalue` before `f_pvalue`.** On a cluster fit, statsmodels 0.15.0's `f_pvalue` read first uses `n - k`
 denominator degrees of freedom, where `fvalue` caches the `G - 1` p-value of its own `f_test`. `bench_stats.py` reads
 them in that order, as the oracle generator does.
+
+## 41. GLM offsets and exposure against `statsmodels` (issue #787)
+
+`compare-glm` gains `glm_poisson_exposure_*`, a Poisson fit of the corpus's counts with an exposure. Both sides
+derive the exposure from the row index as `1 + row % 3` (`EXPOSURE_CYCLE` in `bench_stats.py`, `ExposureCycle` in
+`StatsCrossLang`). A cycle of four put the 100,000-row fit's last deviance change at 1.2e-8 against the 1e-8
+tolerance. At that point rounding decides the iteration count, and the two sides would time 5 and 6 iterations.
+Accord's GLM takes no offset (its `Offsets` belong to `ProportionalHazards`), so there is no .NET row.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-glm
+python3 bench/python/bench_stats.py
+python3 bench/compare.py glm
+```
+
+`GlmOffsetBenchmarks` prices a Poisson fit with and without an exposure, with its allocations. It is a class of its
+own so `GlmPoissonBenchmarks` keeps its `main` source, and an A/B/A of that class and `GlmBenchmarks` prices the IRLS
+loop every fit shares.
+
+### What agrees, checked before timing
+
+Run once outside the harness on the benchmark corpus, the standard errors agree with `statsmodels` to `3.7e-15` and
+the null deviance to `2.0e-13`, with 5 iterations on both sides at 1,000, 10,000 and 100,000 rows.
+`GlmOffsetBenchmarks`' setup refuses to time an exposure of ones whose slope is not the unexposed fit's to `1e-12`.

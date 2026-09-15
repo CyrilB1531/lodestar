@@ -4237,6 +4237,51 @@ anything. `BenchmarkDotNet`'s disassembler does not run on .NET 10 in version 0.
 In the first A/B/A, `OlsBenchmarks` and `GlsBenchmarks` are within 0.5 % of `main`'s mean.
 `WeightedLeastSquaresBenchmarks` is within 1.5 %: 5,611 μs at 200,000 rows against 5,528 / 5,539 μs.
 
+## GLM offsets and exposure against statsmodels (issue #787)
+
+Full method and what agrees:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#41-glm-offsets-and-exposure-against-statsmodels-issue-787).
+Accord's GLM takes no offset, so the incumbent is `statsmodels` 0.15.0 through the cross-language harness. Same machine
+as above, on 2026-09-15; one run of `compare-glm` on this branch and one of `bench_stats.py`. A Poisson fit of the
+corpus's counts, four regressors and an intercept, the exposure `1 + row % 3`; milliseconds per fit, best of five.
+
+| n | Lodestar | `statsmodels`, wall / cpu | ratio, wall |
+| ---: | ---: | ---: | ---: |
+| 1,000 | **0.287 ms** | 1.659 / 1.658 ms | **5.79** |
+| 10,000 | **3.299 ms** | 6.546 / 6.545 ms | **1.98** |
+| 100,000 | **45.520 ms** | 70.576 / 1,099.885 ms | **1.55** |
+
+What the exposure costs, from `GlmOffsetBenchmarks`, `BenchmarkDotNet` 0.14.0 default job:
+
+| rows | Poisson | with an exposure | Allocated |
+| ---: | ---: | ---: | ---: |
+| 200 | 21.46 μs | 39.14 μs | 43.66 → 75.84 KB |
+| 20,000 | 2,923.9 μs | 5,243.6 μs | 5,003.5 → 8,131.0 KB |
+
+Most of the difference is the null deviance. With an offset it is a second, intercept-only IRLS fit, as the
+reference computes it; without one it is the deviance at the response mean.
+
+**The IRLS loop every fit shares, A/B/A against `main`** at `9e6b248d`, as the last of two interleaved runs:
+
+| class | parameters | `main`, A1 / A2 | this branch | Allocated |
+| --- | --- | ---: | ---: | ---: |
+| `GlmBenchmarks`, logistic | 200 rows, 1 regressor | 22.88 / 22.46 μs | 22.71 μs | 43.66 KB |
+| `GlmBenchmarks`, logistic | 200 rows, 3 regressors | 31.17 / 32.36 μs | 30.93 μs | 75.91 KB |
+| `GlmBenchmarks`, logistic | 2,000 rows, 1 regressor | 221.25 / 227.98 μs | 222.05 μs | 423.34 KB |
+| `GlmBenchmarks`, logistic | 2,000 rows, 3 regressors | 301.17 / 314.48 μs | 297.03 μs | 736.84 KB |
+| `GlmPoissonBenchmarks` | mean count 5 | 199.6 / 193.0 μs | 189.0 μs | 423.34 KB |
+| `GlmPoissonBenchmarks` | mean count 50,000 | 210.0 / 208.1 μs | 207.9 μs | 423.34 KB |
+| `GlmPoissonBenchmarks` | mean count 5,000,000 | 207.7 / 200.3 μs | 202.5 μs | 423.34 KB |
+
+**The first run of this branch measured two rows slower than `main`:**
+
+- logistic at 2,000 rows and one regressor, at 239.97 μs against 225.48 / 222.85;
+- Poisson at a mean of 50,000, at 213.0 μs against 207.0 / 206.4.
+
+The per-row helper split out for the offset divided the design's length by the row count on every row of every
+iteration. That weighs most where a row is cheapest, at two parameters. Computing the count once per iteration took
+both rows back inside `main`'s spread.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly

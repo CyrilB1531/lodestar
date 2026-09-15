@@ -78,7 +78,7 @@ public sealed record GlmOptions
     /// <remarks>
     /// Given, not estimated, as <c>sm.families.NegativeBinomial(alpha=...)</c> takes it. The reference warns
     /// when it is left unset; a library has no warning channel a caller reads, so the default is stated here
-    /// instead. Setting it for another family is refused by <see cref="GeneralizedLinearModel.Fit"/>: a
+    /// instead. Setting it for another family is refused by <c>GeneralizedLinearModel.Fit</c>: a
     /// setting that silently does nothing is a mistake in the call (#769).
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">The value is not finite and above zero.</exception>
@@ -101,7 +101,7 @@ public sealed record GlmOptions
     /// <remarks>
     /// <see cref="GlmFamily.Gamma"/> takes <see cref="GlmLink.Inverse"/> or <see cref="GlmLink.Log"/>; the two
     /// count families take <see cref="GlmLink.Log"/>, their default; binomial takes only its default logit.
-    /// <see cref="GeneralizedLinearModel.Fit"/> refuses any other pairing (#770).
+    /// <c>GeneralizedLinearModel.Fit</c> refuses any other pairing (#770).
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">The value is not a declared <see cref="GlmLink"/>.</exception>
     public GlmLink Link

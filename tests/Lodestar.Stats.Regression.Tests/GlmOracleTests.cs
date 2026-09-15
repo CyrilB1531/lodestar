@@ -56,18 +56,34 @@ public sealed class GlmOracleTests
             }
             : GlmLink.Default;
 
-        GlmSummary actual = GeneralizedLinearModel.Fit(
-            Doubles(expected, "design"),
-            Doubles(expected, "response"),
-            expected.GetProperty("featureCount").GetInt32(),
-            family,
-            new GlmOptions
-            {
-                WithIntercept = withIntercept,
-                ConfidenceLevel = expected.GetProperty("confidenceLevel").GetDouble(),
-                NegativeBinomialAlpha = alpha,
-                Link = link,
-            });
+        var options = new GlmOptions
+        {
+            WithIntercept = withIntercept,
+            ConfidenceLevel = expected.GetProperty("confidenceLevel").GetDouble(),
+            NegativeBinomialAlpha = alpha,
+            Link = link,
+        };
+        bool hasOffset = expected.TryGetProperty("offset", out _);
+        bool hasExposure = expected.TryGetProperty("exposure", out _);
+        double[] offset = hasOffset ? Doubles(expected, "offset") : [];
+        double[] exposure = hasExposure ? Doubles(expected, "exposure") : [];
+
+        // A case with either term goes through the overload that takes them (#787).
+        GlmSummary actual = hasOffset || hasExposure
+            ? GeneralizedLinearModel.Fit(
+                Doubles(expected, "design"),
+                Doubles(expected, "response"),
+                offset,
+                exposure,
+                expected.GetProperty("featureCount").GetInt32(),
+                family,
+                options)
+            : GeneralizedLinearModel.Fit(
+                Doubles(expected, "design"),
+                Doubles(expected, "response"),
+                expected.GetProperty("featureCount").GetInt32(),
+                family,
+                options);
 
         AssertVector(expected, "coefficients", actual.Coefficients, caseName);
         AssertVector(expected, "standardErrors", actual.StandardErrors, caseName);

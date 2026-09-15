@@ -19,6 +19,14 @@ internal static class GeneralizedLinearModelSample
         Console.WriteLine($"  its p-value      : {Inv.F4(fit.PValues[1])}");
         Console.WriteLine($"  deviance         : {Inv.F4(fit.Deviance)}");
         Console.WriteLine($"  converged in     : {fit.Iterations}");
+
+        // Counts over unequal years: the exposure enters as log(years) with no coefficient, so the
+        // intercept reads as a yearly rate.
+        double[] claims = [1.0, 4.0, 1.0, 6.0, 3.0, 9.0];
+        double[] years = [1.0, 2.5, 0.5, 4.0, 1.5, 3.0];
+        GlmSummary rate = GeneralizedLinearModel.Fit(design, claims, [], years, 1, GlmFamily.Poisson);
+
+        Console.WriteLine($"  claims a year    : {Inv.F4(Math.Exp(rate.Coefficients[0]))}");
         Console.WriteLine();
     }
 }

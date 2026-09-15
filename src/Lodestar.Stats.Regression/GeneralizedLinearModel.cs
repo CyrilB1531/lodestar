@@ -35,7 +35,50 @@ public static class GeneralizedLinearModel
         GlmOptions? options = null)
     {
         Guard.NotLessThan(featureCount, 1);
+        return FitCore(design, response, null, featureCount, family, options ?? new GlmOptions());
+    }
+
+    /// <summary>Fits one model whose linear predictor carries a fixed offset, an exposure, or both, and reports its inference table.</summary>
+    /// <param name="design">The regressors, row-major, <paramref name="featureCount"/> per row.</param>
+    /// <param name="response">One value per row: 0 or 1 for binomial, a count for Poisson and the negative binomial, a positive value for Gamma.</param>
+    /// <param name="offset">One term per row added to the linear predictor with no coefficient; empty for none.</param>
+    /// <param name="exposure">One positive value per row whose logarithm is added the same way, for a log link; empty for none.</param>
+    /// <param name="featureCount">How many regressors a row carries.</param>
+    /// <param name="family">The response distribution, with its canonical link.</param>
+    /// <param name="options">The fit's settings, or null for the defaults.</param>
+    /// <exception cref="ArgumentException">What the other overload refuses; <paramref name="offset"/> or <paramref name="exposure"/> is not empty and has another length than <paramref name="response"/>; or <paramref name="exposure"/> is given with a link other than log.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">What the other overload refuses; an offset is not finite; or an exposure is not finite and above zero.</exception>
+    /// <exception cref="InvalidOperationException">IRLS did not converge and the option says throw.</exception>
+    /// <remarks>
+    /// <c>statsmodels</c>' <c>GLM(y, X, family, offset=, exposure=)</c>. With either given, <see cref="GlmSummary.NullDeviance"/> refits
+    /// the intercept-only model with the same term, as the reference does — an offset of zeros included.
+    /// </remarks>
+    public static GlmSummary Fit(
+        ReadOnlySpan<double> design,
+        ReadOnlySpan<double> response,
+        ReadOnlySpan<double> offset,
+        ReadOnlySpan<double> exposure,
+        int featureCount,
+        GlmFamily family,
+        GlmOptions? options = null)
+    {
+        Guard.NotLessThan(featureCount, 1);
         GlmOptions settings = options ?? new GlmOptions();
+        int rowCount = LeastSquares.Rows(design, response, featureCount);
+        GlmLink link = ResolveLink(family, settings.Link, nameof(options));
+        return FitCore(design, response, CombineOffset(offset, exposure, rowCount, link), featureCount, family, settings);
+    }
+
+    /// <summary>Everything from the family checks onward, shared by both overloads.</summary>
+    private static GlmSummary FitCore(
+        ReadOnlySpan<double> design,
+        ReadOnlySpan<double> response,
+        double[]? offset,
+        int featureCount,
+        GlmFamily family,
+        GlmOptions options)
+    {
+        GlmOptions settings = options;
         int rowCount = LeastSquares.Rows(design, response, featureCount);
         int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
         RefuseResponseOutsideTheFamily(family, response);
@@ -52,7 +95,7 @@ public static class GeneralizedLinearModel
                 + "freedom, so no standard error exists.", nameof(design));
         }
 
-        IrlsResult fit = Irls.Fit(design, response, featureCount, shape, settings);
+        IrlsResult fit = Irls.Fit(design, response, featureCount, shape, settings, offset);
         if (!fit.Converged && settings.ThrowOnNonConvergence)
         {
             throw new InvalidOperationException(
@@ -81,7 +124,7 @@ public static class GeneralizedLinearModel
             upper[j] = fit.Coefficients[j] + (multiplier * errors[j]);
         }
 
-        double nullDeviance = NullDeviance(shape, response);
+        double nullDeviance = NullDeviance(shape, response, offset);
         double logLikelihood = LogLikelihood.Of(shape, response, fit.Mean, dispersion);
         double akaike = (2.0 * parameterCount) - (2.0 * logLikelihood);
 
@@ -115,8 +158,21 @@ public static class GeneralizedLinearModel
     /// least squares of the response on a column of ones. Taking the mean rather than running
     /// the loop is therefore the reference's own value exactly, not to a tolerance.
     /// </remarks>
-    private static double NullDeviance(FamilyShape shape, ReadOnlySpan<double> response)
+    private static double NullDeviance(FamilyShape shape, ReadOnlySpan<double> response, double[]? offset)
     {
+        if (offset is not null)
+        {
+            // GLMResults.null: a column of ones, the same offset, GLM.fit's defaults. The family's own start rather than
+            // link(mean(y)) reaches the same fixed point within 3.3e-15, measured in the #787 spec.
+            var ones = new double[response.Length];
+            for (int row = 0; row < ones.Length; row++)
+            {
+                ones[row] = 1.0;
+            }
+
+            return Irls.Fit(ones, response, 1, shape, new GlmOptions { WithIntercept = false }, offset).Deviance;
+        }
+
         double total = 0.0;
         for (int row = 0; row < response.Length; row++)
         {
@@ -131,6 +187,79 @@ public static class GeneralizedLinearModel
         }
 
         return Irls.Deviance(shape, response, constant);
+    }
+
+    /// <summary>The one term the predictor carries, <c>offset + log(exposure)</c>, or null when neither is given.</summary>
+    private static double[]? CombineOffset(
+        ReadOnlySpan<double> offset, ReadOnlySpan<double> exposure, int rowCount, GlmLink link)
+    {
+        if (offset.IsEmpty && exposure.IsEmpty)
+        {
+            return null;
+        }
+
+        var combined = new double[rowCount];
+        if (!offset.IsEmpty)
+        {
+            AddOffset(offset, combined);
+        }
+
+        if (!exposure.IsEmpty)
+        {
+            if (link != GlmLink.Log)
+            {
+                throw new ArgumentException(
+                    "An exposure enters the predictor as its logarithm, which only a log link reads as a rate; "
+                    + "pass log(exposure) as the offset to use it with another link.", nameof(exposure));
+            }
+
+            AddLogExposure(exposure, combined);
+        }
+
+        return combined;
+    }
+
+    /// <summary>Copies a finite offset into the combined term.</summary>
+    private static void AddOffset(ReadOnlySpan<double> offset, double[] combined)
+    {
+        RequireLength(offset.Length, combined.Length, nameof(offset));
+        for (int row = 0; row < combined.Length; row++)
+        {
+            double value = offset[row];
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                throw new ArgumentOutOfRangeException(nameof(offset), value, $"offset[{row}] is not a finite number.");
+            }
+
+            combined[row] = value;
+        }
+    }
+
+    /// <summary>Adds the logarithm of a positive, finite exposure to the combined term.</summary>
+    private static void AddLogExposure(ReadOnlySpan<double> exposure, double[] combined)
+    {
+        RequireLength(exposure.Length, combined.Length, nameof(exposure));
+        for (int row = 0; row < combined.Length; row++)
+        {
+            double value = exposure[row];
+            if (!(value > 0.0) || double.IsPositiveInfinity(value))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(exposure), value, $"exposure[{row}] is not a finite number above zero.");
+            }
+
+            combined[row] += Math.Log(value);
+        }
+    }
+
+    /// <summary>Refuses a per-row span whose length is not the row count.</summary>
+    private static void RequireLength(int length, int rowCount, string parameterName)
+    {
+        if (length != rowCount)
+        {
+            throw new ArgumentException(
+                $"design has {rowCount} rows and {parameterName} holds {length} values.", parameterName);
+        }
     }
 
     /// <summary>The link a family is fitted through, resolved from the option, and a refusal for a pairing not fitted here.</summary>

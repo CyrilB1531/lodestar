@@ -110,25 +110,41 @@ public static class StatsCrossLang
         ];
     }
 
-    private static List<Harness.OperationResult> GeneralizedLinear(Corpus corpus, string suffix) =>
-    [
-        Harness.Measure(
-            $"glm_negative_binomial_{suffix}",
-            () => GeneralizedLinearModel.Fit(
-                corpus.Design,
-                corpus.CountResponse,
-                corpus.Regressors,
-                GlmFamily.NegativeBinomial,
-                new GlmOptions { NegativeBinomialAlpha = corpus.CountAlpha })),
-        Harness.Measure(
-            $"glm_gamma_{suffix}",
-            () => GeneralizedLinearModel.Fit(
-                corpus.Design,
-                corpus.GammaResponse,
-                corpus.Regressors,
-                GlmFamily.Gamma,
-                new GlmOptions { Link = GlmLink.Log })),
-    ];
+    /// <summary>The exposure cycle of the Poisson exposure row, as bench_stats.py's <c>EXPOSURE_CYCLE</c> (#787).</summary>
+    private const int ExposureCycle = 3;
+
+    private static List<Harness.OperationResult> GeneralizedLinear(Corpus corpus, string suffix)
+    {
+        var exposure = new double[corpus.CountResponse.Length];
+        for (int row = 0; row < exposure.Length; row++)
+        {
+            exposure[row] = 1.0 + (row % ExposureCycle);
+        }
+
+        return
+        [
+            Harness.Measure(
+                $"glm_negative_binomial_{suffix}",
+                () => GeneralizedLinearModel.Fit(
+                    corpus.Design,
+                    corpus.CountResponse,
+                    corpus.Regressors,
+                    GlmFamily.NegativeBinomial,
+                    new GlmOptions { NegativeBinomialAlpha = corpus.CountAlpha })),
+            Harness.Measure(
+                $"glm_gamma_{suffix}",
+                () => GeneralizedLinearModel.Fit(
+                    corpus.Design,
+                    corpus.GammaResponse,
+                    corpus.Regressors,
+                    GlmFamily.Gamma,
+                    new GlmOptions { Link = GlmLink.Log })),
+            Harness.Measure(
+                $"glm_poisson_exposure_{suffix}",
+                () => GeneralizedLinearModel.Fit(
+                    corpus.Design, corpus.CountResponse, [], exposure, corpus.Regressors, GlmFamily.Poisson)),
+        ];
+    }
 
     /// <summary>Reads the comma-separated values of <paramref name="option"/>, or an empty array if it is absent.</summary>
     private static string[] Filter(string[] args, string option)
