@@ -31,6 +31,9 @@ switch (args.Length > 0 ? args[0] : string.Empty)
     case "compare-glm":
         StatsCrossLang.RunGlm(args);
         return;
+    case "compare-var":
+        StatsCrossLang.RunVar(args);
+        return;
     case "roc-parallel":
         RocParallelBench.Run();
         return;

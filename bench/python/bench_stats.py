@@ -49,6 +49,7 @@ CORPUS = ROOT / "corpus" / "stats"
 TESTS_OUT = ROOT / "results" / "python-stats.json"
 OLS_OUT = ROOT / "results" / "python-ols.json"
 GLM_OUT = ROOT / "results" / "python-glm.json"
+VAR_OUT = ROOT / "results" / "python-var.json"
 
 SIZES = [1_000, 10_000, 100_000]
 
@@ -170,6 +171,19 @@ def mnlogit_summary(exog, labels) -> object:
             fitted.llf, fitted.llnull, fitted.prsquared, fitted.llr, fitted.llr_pvalue, fitted.aic, fitted.bic)
 
 
+# The vector autoregression row reads the corpus design's first two columns as a two-variable series (#786).
+VAR_VARIABLES = 2
+VAR_LAGS = 2
+
+
+def var_summary(series) -> object:
+    """The VAR fit and the table it prints, so both sides price one model (#786)."""
+    from statsmodels.tsa.api import VAR
+    fitted = VAR(series).fit(VAR_LAGS)
+    return (fitted.params, fitted.stderr, fitted.tvalues, fitted.pvalues, fitted.sigma_u,
+            fitted.sigma_u_mle, fitted.llf, fitted.aic, fitted.bic, fitted.hqic, fitted.fpe)
+
+
 def gamma_summary(exog, endog) -> object:
     """The Gamma fit through the log link, with the Pearson scale and the quantities `GlmSummary` carries (#770)."""
     fitted = sm.GLM(endog, exog, family=sm.families.Gamma(link=sm.families.links.Log())).fit()
@@ -177,7 +191,7 @@ def gamma_summary(exog, endog) -> object:
             fitted.deviance, fitted.null_deviance, fitted.scale, fitted.llf, fitted.aic)
 
 
-def measure_size(n: int) -> tuple[list[dict], list[dict], list[dict]]:
+def measure_size(n: int) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
     """The tests rows and the regression rows, kept apart.
 
     One file per harness, because bench/compare.py's `load(side, bench)` reads
@@ -214,7 +228,9 @@ def measure_size(n: int) -> tuple[list[dict], list[dict], list[dict]]:
         measure(f"glm_poisson_exposure_{suffix}", lambda: poisson_exposure_summary(exog, counts, exposure)),
         measure(f"mnlogit_{suffix}", lambda: mnlogit_summary(exog, categories)),
     ]
-    return tests, regression, glm
+    series = np.ascontiguousarray(design[:, :VAR_VARIABLES])
+    var = [measure(f"var_{suffix}", lambda: var_summary(series))]
+    return tests, regression, glm, var
 
 
 def payload_for(results: list[dict]) -> dict:
@@ -242,13 +258,15 @@ def main() -> None:
     tests: list[dict] = []
     regression: list[dict] = []
     glm: list[dict] = []
+    var: list[dict] = []
     for n in SIZES:
-        size_tests, size_regression, size_glm = measure_size(n)
+        size_tests, size_regression, size_glm, size_var = measure_size(n)
         tests.extend(size_tests)
         regression.extend(size_regression)
         glm.extend(size_glm)
+        var.extend(size_var)
 
-    for out, results in ((TESTS_OUT, tests), (OLS_OUT, regression), (GLM_OUT, glm)):
+    for out, results in ((TESTS_OUT, tests), (OLS_OUT, regression), (GLM_OUT, glm), (VAR_OUT, var)):
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(payload_for(results), indent=2) + "\n", encoding="utf-8")
         print(f"-> {out}")

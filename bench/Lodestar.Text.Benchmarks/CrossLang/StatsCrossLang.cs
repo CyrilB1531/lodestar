@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Lodestar.Stats;
 using Lodestar.Stats.Regression;
+using Lodestar.Stats.TimeSeries;
 
 namespace Lodestar.Text.Benchmarks.CrossLang;
 
@@ -24,6 +25,9 @@ public static class StatsCrossLang
 
     /// <summary>The negative binomial GLM table, against <c>statsmodels</c>' <c>GLM</c> (#781).</summary>
     public static void RunGlm(string[] args) => Measure(args, "glm", GeneralizedLinear);
+
+    /// <summary>The vector autoregression's table, against <c>statsmodels</c>' <c>VAR</c> (#786).</summary>
+    public static void RunVar(string[] args) => Measure(args, "var", VectorAutoregressive);
 
     private static void Measure(
         string[] args, string bench, Func<Corpus, string, List<Harness.OperationResult>> measure)
@@ -151,6 +155,30 @@ public static class StatsCrossLang
             Harness.Measure(
                 $"mnlogit_{suffix}",
                 () => MultinomialLogit.Fit(corpus.Design, categories, corpus.Regressors)),
+        ];
+    }
+
+    /// <summary>How many of the design's columns the multivariate row reads, as bench_stats.py's <c>VAR_VARIABLES</c> (#786).</summary>
+    private const int VarVariables = 2;
+
+    /// <summary>The lag order that row fits, as bench_stats.py's <c>VAR_LAGS</c>.</summary>
+    private const int VarLags = 2;
+
+    private static List<Harness.OperationResult> VectorAutoregressive(Corpus corpus, string suffix)
+    {
+        int rowCount = corpus.Response.Length;
+        var series = new double[rowCount * VarVariables];
+        for (int row = 0; row < rowCount; row++)
+        {
+            for (int variable = 0; variable < VarVariables; variable++)
+            {
+                series[(row * VarVariables) + variable] = corpus.Design[(row * corpus.Regressors) + variable];
+            }
+        }
+
+        return
+        [
+            Harness.Measure($"var_{suffix}", () => VectorAutoregression.Fit(series, VarVariables, VarLags)),
         ];
     }
 

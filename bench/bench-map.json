@@ -251,6 +251,11 @@
       "src/Lodestar.Stats.Regression/**",
       "src/Lodestar.Stats/**",
       "src/Lodestar.Decomposition/**"
+    ],
+    "VectorAutoregressionBenchmarks": [
+      "src/Lodestar.Stats.TimeSeries/**",
+      "src/Lodestar.Stats.Regression/**",
+      "src/Lodestar.Stats/**"
     ]
   },
   "harnesses": {
@@ -326,6 +331,18 @@
       ],
       "sources": [
         "src/Lodestar.Stats.Regression/**",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/StatsCrossLang.cs"
+      ]
+    },
+    "var": {
+      "subcommand": "compare-var",
+      "python": "bench/python/bench_stats.py",
+      "compare": "var",
+      "generate": [
+        "bench/corpus/generate_stats.py"
+      ],
+      "sources": [
+        "src/Lodestar.Stats.TimeSeries/**",
         "bench/Lodestar.Text.Benchmarks/CrossLang/StatsCrossLang.cs"
       ]
     },

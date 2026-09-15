@@ -254,6 +254,11 @@ def ols(fmt: str = "text") -> None:
     wallcpu_report("ols", fmt, fold={"ols_vif_": "ols_summary_"})
 
 
+def var(fmt: str = "text") -> None:
+    """The vector autoregression against statsmodels' VAR, over that same corpus (#786)."""
+    wallcpu_report("var", fmt)
+
+
 def glm(fmt: str = "text") -> None:
     """The negative binomial GLM against statsmodels' GLM, over that same corpus (#781)."""
     wallcpu_report("glm", fmt)
@@ -346,6 +351,8 @@ if __name__ == "__main__":
         ols(output_format)
     elif selected == "glm":
         glm(output_format)
+    elif selected == "var":
+        var(output_format)
     elif selected == "indel":
         indel(output_format, bucket_kind)
     else:

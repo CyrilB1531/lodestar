@@ -129,6 +129,9 @@ DickeyFullerResultSample.Run();
 KpssOptionsSample.Run();
 KpssResultSample.Run();
 SeasonalDecompositionSample.Run();
+VectorAutoregressionSample.Run();
+VarSummarySample.Run();
+VarOptionsSample.Run();
 SeasonalDecompositionOptionsSample.Run();
 SeasonalComponentsSample.Run();
 

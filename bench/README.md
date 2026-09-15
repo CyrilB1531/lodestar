@@ -2712,3 +2712,27 @@ python3 bench/compare.py glm
   the class's setup refuses to time a gap above `1e-8`. **Accord's standard errors are not compared**: they read the
   lower-bound Hessian its algorithm iterates on, and measured 33% to 43% from the ones this fit and `statsmodels`
   report.
+
+## 43. The vector autoregression against `statsmodels` (issue #786)
+
+A harness of its own, `compare-var`, over the same corpus as `compare-ols`: both sides read the design's first two
+columns as a two-variable series and fit a VAR(2) — `VAR_VARIABLES` and `VAR_LAGS` in `bench_stats.py`, their C# twins
+in `StatsCrossLang`. Each row prices the whole table: the coefficients and their errors, both residual covariances,
+the log-likelihood and the four criteria. No .NET library estimates a VAR
+([decision 0134](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0134-arima-and-state-space-are-not-written-and-var-is-the-one-that-could-be.md),
+re-read for this lot over eight packages), so there is no .NET row.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-var
+python3 bench/python/bench_stats.py
+python3 bench/compare.py var
+```
+
+`VectorAutoregressionBenchmarks` prices the allocations the harness does not see, over both axes that move the work:
+500 and 5,000 observations, two and five variables, one and four lags. The design is `1 + K·p` columns wide and each
+equation is its own least squares, so the two parameters multiply.
+
+### What agrees, checked before timing
+
+Run once outside the harness on the benchmark corpus, the standard errors agree with `statsmodels` to `7.5e-15` and
+the Akaike criterion to `1.6e-15`, at 1,000, 10,000 and 100,000 rows.
