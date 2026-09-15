@@ -133,6 +133,8 @@ STATSMODELS = "statsmodels"
 BINOMIAL = "binomial"
 POISSON = "poisson"
 ITERATIONS = "iterations"
+NEGATIVE_BINOMIAL = "negativeBinomial"
+ALPHA = "alpha"
 WITH_MEAN = "with_mean"
 WITH_STD = "with_std"
 DENSE = "dense"
@@ -5489,7 +5491,64 @@ def _glm_fixtures() -> list[dict]:
             RESPONSE: [1.0, 2.0, 2.0, 4.0, 5.0, 7.0, 8.0, 12.0, 15.0, 20.0],
             OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
+        *_negative_binomial_fixtures(),
     ]
+
+
+def _negative_binomial_fixtures() -> list[dict]:
+    """The Poisson designs again, under a given alpha (#769).
+
+    The same rows as the Poisson cases, so a reader can set a negative binomial table beside
+    the Poisson one and see alpha widen it. Counts stay small on purpose: a large-count
+    log-likelihood regenerates past the gate's absolute 1e-9 between hosts, which
+    generate_regression_log_factorial's docstring measured.
+    """
+    counts = {
+        DESIGN: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
+        RESPONSE: [1.0, 0.0, 2.0, 3.0, 4.0, 3.0, 7.0, 6.0, 9.0, 11.0],
+        OLS_FEATURE_COUNT: 1,
+    }
+    fixtures = [
+        {"name": f"negative binomial, alpha {alpha}", FAMILY: NEGATIVE_BINOMIAL, ALPHA: alpha,
+         WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95, **counts}
+        for alpha in (0.5, 1.0, 2.0)
+    ]
+    fixtures.extend([
+        {
+            # No intercept: the null deviance is still the constant-only model's.
+            "name": "negative binomial, no intercept",
+            FAMILY: NEGATIVE_BINOMIAL, ALPHA: 1.0,
+            DESIGN: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+            RESPONSE: [1.0, 2.0, 1.0, 4.0, 3.0, 6.0, 5.0, 9.0],
+            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            # Zeros: the deviance's y log(y/mu) is clipped rather than 0 * -inf.
+            "name": "negative binomial, zeros in the response, 99%",
+            FAMILY: NEGATIVE_BINOMIAL, ALPHA: 0.5,
+            DESIGN: [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
+            RESPONSE: [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0, 4.0],
+            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
+        },
+        {
+            "name": "negative binomial, two regressors",
+            FAMILY: NEGATIVE_BINOMIAL, ALPHA: 0.25,
+            DESIGN: [
+                1.0, 0.5, 2.0, 2.0, 3.0, 1.0, 4.0, 3.0, 5.0, 1.5,
+                6.0, 2.5, 7.0, 0.5, 8.0, 3.5, 9.0, 2.0, 10.0, 1.0,
+            ],
+            RESPONSE: [1.0, 2.0, 2.0, 4.0, 5.0, 7.0, 8.0, 12.0, 15.0, 20.0],
+            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            # Near Poisson: 1/alpha is 1000, so the deviance and lnGamma(y + 1/alpha) -
+            # lnGamma(1/alpha) both cancel large terms, the arithmetic a small alpha stresses.
+            "name": "negative binomial, alpha 1e-3, near Poisson",
+            FAMILY: NEGATIVE_BINOMIAL, ALPHA: 1e-3,
+            WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95, **counts,
+        },
+    ])
+    return fixtures
 
 
 def generate_regression_log_factorial() -> dict:
@@ -5521,6 +5580,31 @@ def generate_regression_log_factorial() -> dict:
     }
 
 
+def generate_regression_log_gamma() -> dict:
+    """``scipy.special.gammaln(x)`` at non-integer x, the lnGamma(y + 1/alpha) the negative binomial reads (#769).
+
+    Compared relatively, like the log-factorial corpus beside it; the points straddle the shift to 40
+    the C# takes before its Stirling series, and reach below one, where lnGamma changes sign.
+    """
+    import scipy
+    from scipy.special import gammaln
+
+    points = [
+        1e-3, 0.01, 0.1, 0.5, 1.5, 2.5, 10.0 / 3.0, 7.25, 19.5, 20.5, 39.5, 40.5,
+        101.0 / 3.0, 1000.5, 12345.678, 1e6 + 0.25,
+    ]
+    return {
+        "metadata": {
+            "library": "scipy",
+            "version": scipy.__version__,
+            FAMILY: "gammaln",
+            VARIANT: "gammaln(x)",
+            "count": len(points),
+        },
+        "cases": [{"x": x, "logGamma": float(gammaln(x))} for x in points],
+    }
+
+
 def generate_stats_glm() -> dict:
     """statsmodels' GLM, one block per family (#616).
 
@@ -5537,14 +5621,18 @@ def generate_stats_glm() -> dict:
     import numpy as np
     import statsmodels.api as sm
 
-    families = {BINOMIAL: sm.families.Binomial(), POISSON: sm.families.Poisson()}
+    families = {
+        BINOMIAL: lambda _: sm.families.Binomial(),
+        POISSON: lambda _: sm.families.Poisson(),
+        NEGATIVE_BINOMIAL: lambda fixture: sm.families.NegativeBinomial(alpha=fixture[ALPHA]),
+    }
     blocks: dict = {name: {"cases": []} for name in families}
     for fixture in _glm_fixtures():
         feature_count = fixture[OLS_FEATURE_COUNT]
         design = np.array(fixture[DESIGN]).reshape(-1, feature_count)
         response = np.array(fixture[RESPONSE])
         exog = sm.add_constant(design, prepend=True) if fixture[WITH_INTERCEPT] else design
-        fit = sm.GLM(response, exog, family=families[fixture[FAMILY]]).fit()
+        fit = sm.GLM(response, exog, family=families[fixture[FAMILY]](fixture)).fit()
         interval = fit.conf_int(alpha=1.0 - fixture[CONFIDENCE_LEVEL])
         blocks[fixture[FAMILY]]["cases"].append({
             "name": fixture["name"],
@@ -5553,6 +5641,7 @@ def generate_stats_glm() -> dict:
             OLS_FEATURE_COUNT: feature_count,
             WITH_INTERCEPT: fixture[WITH_INTERCEPT],
             CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
+            **({ALPHA: fixture[ALPHA]} if ALPHA in fixture else {}),
             COEFFICIENTS: [float(v) for v in fit.params],
             STANDARD_ERRORS: [float(v) for v in fit.bse],
             "zStatistics": [float(v) for v in fit.tvalues],
@@ -5591,7 +5680,7 @@ def generate_stats_glm() -> dict:
             "library": STATSMODELS,
             "version": version(STATSMODELS),
             FAMILY: "glm",
-            VARIANT: "GLM(family=Binomial|Poisson).fit(), IRLS, canonical links",
+            VARIANT: "GLM(family=Binomial|Poisson|NegativeBinomial(alpha)).fit(), IRLS, default links",
             "count": sum(len(b["cases"]) for b in blocks.values() if "cases" in b),
         },
         **blocks,
@@ -10815,6 +10904,7 @@ def main() -> None:
         "stats_wls.json": generate_stats_wls,
         "stats_glm.json": generate_stats_glm,
         "regression_log_factorial.json": generate_regression_log_factorial,
+        "regression_log_gamma.json": generate_regression_log_gamma,
         "stats_timeseries.json": generate_stats_timeseries,
         "stats_stationarity.json": generate_stats_stationarity,
         "stats_seasonal.json": generate_stats_seasonal,

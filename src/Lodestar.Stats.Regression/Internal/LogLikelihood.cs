@@ -17,7 +17,8 @@ internal static class LogLikelihood
     /// trusts that refusal rather than repeating it.
     /// </param>
     /// <param name="mean">The fitted mean, one per row.</param>
-    public static double Of(GlmFamily family, ReadOnlySpan<double> response, double[] mean)
+    /// <param name="alpha">The negative binomial's dispersion; the other families ignore it.</param>
+    public static double Of(GlmFamily family, ReadOnlySpan<double> response, double[] mean, double alpha)
     {
         double total = 0.0;
         for (int row = 0; row < response.Length; row++)
@@ -28,11 +29,45 @@ internal static class LogLikelihood
             {
                 GlmFamily.Binomial => (y * Math.Log(mu)) + ((1.0 - y) * Math.Log(1.0 - mu)),
                 GlmFamily.Poisson => (y * Math.Log(mu)) - mu - LogFactorial(y),
+                GlmFamily.NegativeBinomial => NegativeBinomialTerm(y, mu, alpha),
                 _ => throw Families.Undeclared(family),
             };
         }
 
         return total;
+    }
+
+    /// <summary>One row of the negative binomial log-likelihood, term for term as <c>loglike_obs</c> writes it.</summary>
+    private static double NegativeBinomialTerm(double y, double mu, double alpha)
+    {
+        double theta = 1.0 / alpha;
+        return (y * Math.Log(alpha * mu))
+            - ((y + theta) * Math.Log(1.0 + (alpha * mu)))
+            + LogGamma(y + theta)
+            - LogGamma(theta)
+            - LogFactorial(y);
+    }
+
+    /// <summary><c>lnΓ(x)</c> for <c>x &gt; 0</c>, which the negative binomial reads at non-integer arguments.</summary>
+    /// <remarks>
+    /// The argument is raised to 40 or more by <c>lnΓ(x) = lnΓ(x + n) − Σ log(x + k)</c>, then read off the
+    /// Stirling series <see cref="LogFactorial"/> uses. Measured against <c>scipy.special.gammaln</c>, a shift
+    /// to 20 leaves 4.6e-13 — the omitted <c>1/(1680x⁷)</c> term — and a shift to 40 under 4e-15;
+    /// <c>regression_log_gamma.json</c> holds it (#769).
+    /// </remarks>
+    internal static double LogGamma(double x)
+    {
+        double shift = 0.0;
+        while (x < 40.0)
+        {
+            shift += Math.Log(x);
+            x += 1.0;
+        }
+
+        double inverse = 1.0 / x;
+        double inverseSquared = inverse * inverse;
+        double series = inverse * ((1.0 / 12.0) - (inverseSquared * ((1.0 / 360.0) - (inverseSquared / 1260.0))));
+        return ((x - 0.5) * Math.Log(x)) - x + HalfLogTwoPi + series - shift;
     }
 
     /// <summary>Counts below this read <c>log(k!)</c> from <see cref="SmallLogFactorials"/>; the rest take Stirling's series.</summary>

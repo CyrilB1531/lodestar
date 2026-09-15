@@ -23,21 +23,21 @@ public sealed class GlmFamilyTests
     [Fact]
     public void A_perfect_binomial_prediction_has_zero_unit_deviance()
     {
-        Assert.Equal(0.0, Families.UnitDeviance(GlmFamily.Binomial, 1.0, 1.0), 12);
-        Assert.Equal(0.0, Families.UnitDeviance(GlmFamily.Binomial, 0.0, 0.0), 12);
+        Assert.Equal(0.0, Families.UnitDeviance(GlmFamily.Binomial, 1.0, 1.0, 1.0), 12);
+        Assert.Equal(0.0, Families.UnitDeviance(GlmFamily.Binomial, 0.0, 0.0, 1.0), 12);
     }
 
     [Fact]
     public void A_perfect_poisson_prediction_has_zero_unit_deviance()
     {
-        Assert.Equal(0.0, Families.UnitDeviance(GlmFamily.Poisson, 3.0, 3.0), 12);
-        Assert.Equal(0.0, Families.UnitDeviance(GlmFamily.Poisson, 0.0, 0.0), 12);
+        Assert.Equal(0.0, Families.UnitDeviance(GlmFamily.Poisson, 3.0, 3.0, 1.0), 12);
+        Assert.Equal(0.0, Families.UnitDeviance(GlmFamily.Poisson, 0.0, 0.0, 1.0), 12);
     }
 
     [Fact]
     public void An_undeclared_family_is_refused()
     {
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => Families.Variance((GlmFamily)7, 0.5));
+            () => Families.Variance((GlmFamily)7, 0.5, 1.0));
     }
 }

@@ -42,6 +42,14 @@ internal static class GlmOptionsSample
         GlmSummary throughOrigin = GeneralizedLinearModel.Fit(
             design, response, 1, GlmFamily.Binomial, new GlmOptions { WithIntercept = false });
         Console.WriteLine($"  no intercept     : {throughOrigin.Coefficients.Count} coefficient");
+
+        // Over-dispersed counts: the negative binomial's alpha widens the slope's standard error.
+        double[] x = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
+        double[] counts = [1.0, 0.0, 2.0, 3.0, 4.0, 3.0, 7.0, 6.0, 9.0, 11.0];
+        GlmSummary poisson = GeneralizedLinearModel.Fit(x, counts, 1, GlmFamily.Poisson);
+        GlmSummary negativeBinomial = GeneralizedLinearModel.Fit(
+            x, counts, 1, GlmFamily.NegativeBinomial, new GlmOptions { NegativeBinomialAlpha = 0.5 });
+        Console.WriteLine($"  slope s.e.       : Poisson {Inv.F4(poisson.StandardErrors[1])}, negative binomial {Inv.F4(negativeBinomial.StandardErrors[1])}");
         Console.WriteLine();
     }
 }

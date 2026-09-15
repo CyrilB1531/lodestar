@@ -15,7 +15,7 @@ public sealed class LogLikelihoodTests
         // log(1 - 0.25) + log(0.75)
         Assert.Equal(
             Math.Log(0.75) + Math.Log(0.75),
-            LogLikelihood.Of(GlmFamily.Binomial, response, mean), 12);
+            LogLikelihood.Of(GlmFamily.Binomial, response, mean, 1.0), 12);
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public sealed class LogLikelihoodTests
         // 3 log 2 - 2 - log(3!) = 3 log 2 - 2 - log 6
         Assert.Equal(
             (3.0 * Math.Log(2.0)) - 2.0 - Math.Log(6.0),
-            LogLikelihood.Of(GlmFamily.Poisson, response, mean), 12);
+            LogLikelihood.Of(GlmFamily.Poisson, response, mean, 1.0), 12);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public sealed class LogLikelihoodTests
             ((2.0 * Math.Log(1.0)) - 1.0 - Math.Log(2.0)) +
             ((4.0 * Math.Log(3.0)) - 3.0 - Math.Log(24.0));
 
-        Assert.Equal(expected, LogLikelihood.Of(GlmFamily.Poisson, response, mean), 12);
+        Assert.Equal(expected, LogLikelihood.Of(GlmFamily.Poisson, response, mean, 1.0), 12);
     }
 
     public static TheoryData<int> LogFactorialCases()
@@ -73,6 +73,49 @@ public sealed class LogLikelihoodTests
 
         double error = expected == 0.0 ? Math.Abs(actual) : Math.Abs(actual - expected) / Math.Abs(expected);
         Assert.True(error <= 1e-9, $"log({count}!) = {actual:R}, gammaln gives {expected:R}, relative error {error:R}");
+    }
+
+    public static TheoryData<int> LogGammaCases()
+    {
+        using JsonDocument corpus = OracleLoader.Load("regression_log_gamma.json");
+        var data = new TheoryData<int>();
+        for (int i = 0; i < corpus.RootElement.GetProperty("cases").GetArrayLength(); i++)
+        {
+            data.Add(i);
+        }
+
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(LogGammaCases))]
+    public void The_log_gamma_matches_scipy_gammaln(int index)
+    {
+        // Relative past one and absolute below it, where lnGamma crosses zero between 1 and 2 (#769).
+        using JsonDocument corpus = OracleLoader.Load("regression_log_gamma.json");
+        JsonElement frozen = corpus.RootElement.GetProperty("cases")[index];
+        double x = frozen.GetProperty("x").GetDouble();
+        double expected = frozen.GetProperty("logGamma").GetDouble();
+
+        double actual = LogLikelihood.LogGamma(x);
+
+        double error = Math.Abs(actual - expected) / Math.Max(1.0, Math.Abs(expected));
+        Assert.True(error <= 1e-9, $"lnGamma({x}) = {actual:R}, gammaln gives {expected:R}, error {error:R}");
+    }
+
+    [Fact]
+    public void A_negative_binomial_log_likelihood_carries_its_gamma_terms()
+    {
+        double[] response = [0.0, 3.0];
+        double[] mean = [1.5, 2.0];
+        const double alpha = 0.5;
+
+        // loglike_obs by hand: theta = 2, so lnGamma(y + 2) - lnGamma(2) - ln(y!) is 0 for y = 0 and ln(4·3·2/6) = ln 4 for y = 3.
+        double expected =
+            (0.0 - (2.0 * Math.Log(1.75)))
+            + ((3.0 * Math.Log(1.0)) - (5.0 * Math.Log(2.0)) + Math.Log(4.0));
+
+        Assert.Equal(expected, LogLikelihood.Of(GlmFamily.NegativeBinomial, response, mean, alpha), 12);
     }
 
     [Fact]

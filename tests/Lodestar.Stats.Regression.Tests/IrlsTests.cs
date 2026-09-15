@@ -16,7 +16,7 @@ public sealed class IrlsTests
         double[] response = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0];
 
         IrlsResult result = Irls.Fit(
-            design, response, featureCount: 1, GlmFamily.Binomial, new GlmOptions());
+            design, response, featureCount: 1, GlmFamily.Binomial, alpha: 1.0, new GlmOptions());
 
         Assert.True(result.Converged);
         Assert.InRange(result.Iterations, 1, 100);
@@ -29,7 +29,7 @@ public sealed class IrlsTests
         // 15, not the brief's 25: guarded against the exact 0/1 boundary (#616 review), this
         // fit's shrinking deviance satisfies the tolerance and converges by iteration 21.
         IrlsResult result = Irls.Fit(
-            SeparableDesign, SeparableResponse, featureCount: 1, GlmFamily.Binomial,
+            SeparableDesign, SeparableResponse, featureCount: 1, GlmFamily.Binomial, alpha: 1.0,
             new GlmOptions { MaximumIterations = 15 });
 
         Assert.False(result.Converged);

@@ -1,6 +1,6 @@
 namespace Lodestar.Stats.Regression;
 
-/// <summary>The response distribution a <see cref="GeneralizedLinearModel"/> fits, with its canonical link.</summary>
+/// <summary>The response distribution a <see cref="GeneralizedLinearModel"/> fits, with the link statsmodels defaults it to.</summary>
 /// <remarks>
 /// Closed on purpose. IRLS cannot check that a caller-supplied family is internally consistent,
 /// and an incoherent one produces a plausible inference table rather than an error — so a family
@@ -14,4 +14,11 @@ public enum GlmFamily
 
     /// <summary>A non-negative count, through the log link.</summary>
     Poisson = 1,
+
+    /// <summary>A non-negative count whose variance <c>μ + αμ²</c> grows faster than its mean, through the log link.</summary>
+    /// <remarks>
+    /// <c>α</c> is given rather than estimated, through <see cref="GlmOptions.NegativeBinomialAlpha"/>. The log
+    /// link is statsmodels' default for this family rather than its canonical one.
+    /// </remarks>
+    NegativeBinomial = 2,
 }

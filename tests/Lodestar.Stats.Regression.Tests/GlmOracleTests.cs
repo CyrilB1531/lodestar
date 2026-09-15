@@ -18,7 +18,7 @@ public sealed class GlmOracleTests
     public static TheoryData<string, int> Indices()
     {
         var data = new TheoryData<string, int>();
-        foreach (string block in new[] { "binomial", "poisson" })
+        foreach (string block in new[] { "binomial", "poisson", "negativeBinomial" })
         {
             for (int i = 0; i < Cases(block).Count; i++)
             {
@@ -38,8 +38,14 @@ public sealed class GlmOracleTests
     {
         JsonElement expected = Cases(block)[index];
         string caseName = expected.GetProperty("name").GetString() ?? $"{block}[{index}]";
-        GlmFamily family = block == "binomial" ? GlmFamily.Binomial : GlmFamily.Poisson;
+        GlmFamily family = block switch
+        {
+            "binomial" => GlmFamily.Binomial,
+            "poisson" => GlmFamily.Poisson,
+            _ => GlmFamily.NegativeBinomial,
+        };
         bool withIntercept = expected.GetProperty("withIntercept").GetBoolean();
+        double? alpha = expected.TryGetProperty("alpha", out JsonElement given) ? given.GetDouble() : null;
 
         GlmSummary actual = GeneralizedLinearModel.Fit(
             Doubles(expected, "design"),
@@ -50,6 +56,7 @@ public sealed class GlmOracleTests
             {
                 WithIntercept = withIntercept,
                 ConfidenceLevel = expected.GetProperty("confidenceLevel").GetDouble(),
+                NegativeBinomialAlpha = alpha,
             });
 
         AssertVector(expected, "coefficients", actual.Coefficients, caseName);
