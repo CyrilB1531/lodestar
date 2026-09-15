@@ -751,7 +751,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105", "0109", "0110", "0116", "0129", "0130", "0131", "0132", "0134", "0135", "0136"]
+  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105", "0109", "0110", "0116", "0129", "0130", "0131", "0132", "0134", "0135", "0136", "0137"]
 
 "0075":
   title: "Double Metaphone ships, with `doublemetaphone` 1.2 as its oracle"
@@ -761,7 +761,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0091", "0099", "0101", "0104", "0116", "0129", "0130", "0131", "0132", "0134", "0135", "0136"]
+  applied_by: ["0091", "0099", "0101", "0104", "0116", "0129", "0130", "0131", "0132", "0134", "0135", "0136", "0137"]
 
 "0076":
   title: "A core package carries no external dependency, so ONNX Runtime gets its own"
@@ -961,7 +961,7 @@
   applies: ["0081"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0097", "0098", "0115", "0118", "0119", "0124", "0125", "0128", "0130", "0133", "0134", "0135", "0136"]
+  applied_by: ["0097", "0098", "0115", "0118", "0119", "0124", "0125", "0128", "0130", "0133", "0134", "0135", "0136", "0137"]
 
 "0096":
   title: "Ordinary least squares earns its own package"
@@ -971,7 +971,7 @@
   applies: ["0074"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0110", "0111", "0114", "0133"]
+  applied_by: ["0110", "0111", "0114", "0133", "0137"]
 
 "0097":
   title: "The chi-squared tail joins the published four, by the rule 0095 already set"
@@ -1051,7 +1051,7 @@
   applies: ["0074", "0075"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0111", "0136"]
+  applied_by: ["0111", "0136", "0137"]
 
 "0105":
   title: "The time-series forecast is delegated to `Microsoft.ML.TimeSeries`, and the diagnostics are the gap"
@@ -1111,7 +1111,7 @@
   applies: ["0074", "0096", "0105"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0135", "0136"]
+  applied_by: ["0135", "0136", "0137"]
 
 "0111":
   title: "The generalized linear model does not earn its own package"
@@ -1121,7 +1121,7 @@
   applies: ["0076", "0096", "0104"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0114", "0128", "0133", "0136"]
+  applied_by: ["0114", "0128", "0133", "0136", "0137"]
 
 "0112":
   title: "An analyzer rule below warning is raised where it has escaped, not everywhere"
@@ -1369,6 +1369,16 @@
   supersedes: []
   amends: []
   applies: ["0074", "0075", "0095", "0104", "0110", "0111", "0130", "0134"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0137":
+  title: "Regularised fits are delegated to ML.NET, and the table they would carry does not exist"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0074", "0075", "0095", "0096", "0104", "0110", "0111"]
   superseded_by: []
   amended_by: []
   applied_by: []
