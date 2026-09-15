@@ -751,7 +751,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105", "0109", "0110", "0116", "0129", "0130", "0131", "0132"]
+  applied_by: ["0093", "0096", "0099", "0100", "0101", "0104", "0105", "0109", "0110", "0116", "0129", "0130", "0131", "0132", "0134"]
 
 "0075":
   title: "Double Metaphone ships, with `doublemetaphone` 1.2 as its oracle"
@@ -761,7 +761,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0091", "0099", "0101", "0104", "0116", "0129", "0130", "0131", "0132"]
+  applied_by: ["0091", "0099", "0101", "0104", "0116", "0129", "0130", "0131", "0132", "0134"]
 
 "0076":
   title: "A core package carries no external dependency, so ONNX Runtime gets its own"
@@ -961,7 +961,7 @@
   applies: ["0081"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0097", "0098", "0115", "0118", "0119", "0124", "0125", "0128", "0130", "0133"]
+  applied_by: ["0097", "0098", "0115", "0118", "0119", "0124", "0125", "0128", "0130", "0133", "0134"]
 
 "0096":
   title: "Ordinary least squares earns its own package"
@@ -1061,7 +1061,7 @@
   applies: ["0074"]
   superseded_by: []
   amended_by: ["0129"]
-  applied_by: ["0110", "0114", "0133"]
+  applied_by: ["0110", "0114", "0133", "0134"]
 
 "0106":
   title: "The frontmatter is inserted once, and the body does not move"
@@ -1311,7 +1311,7 @@
   applies: ["0074", "0075", "0095"]
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0134"]
 
 "0131":
   title: "`Lodestar.Cluster` writes what `netstandard2.0` lacks: DBSCAN and agglomerative clustering"
@@ -1339,6 +1339,16 @@
   supersedes: ["0114"]
   amends: []
   applies: ["0076", "0095", "0096", "0105", "0111"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0134":
+  title: "ARIMA, SARIMAX and state-space models are not written; VAR is the one that could be"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0074", "0075", "0095", "0105", "0130"]
   superseded_by: []
   amended_by: []
   applied_by: []
