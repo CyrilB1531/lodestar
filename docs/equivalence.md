@@ -464,6 +464,14 @@ Oracled against **`statsmodels` 0.15.0**, already in the lock since #566
 | `extrapolate_trend="freq"` / `"period"` | statsmodels | `ExtrapolateTrend = period - 1` | The string spellings are the integer the reference turns them into. |
 | `STL` | statsmodels | — (not written) | Loess-based, a different algorithm; `stlnet` ships it under MIT. |
 
+## Lodestar.Stats.TimeSeries — model estimation
+
+| Python | Library | C# | Differences |
+| --- | --- | --- | --- |
+| `ARIMA(y, order=(p, d, q)).fit()`, `SARIMAX(...).fit()` | statsmodels | — (not written) | [Decision 0134](decisions/0134-arima-and-state-space-are-not-written-and-var-is-the-one-that-could-be.md): a likelihood optimisation whose own solvers disagree at `1e-4` on one series (state space against innovations MLE, L-BFGS against Nelder–Mead), so no corpus can pin it at `1e-9`. `Cortex.TimeSeries`' `ARIMA` is not a delegate: its coefficients are a pure autoregression's least squares. Forecasting stays with `Microsoft.ML.TimeSeries` ([decision 0105](decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md)). |
+| `UnobservedComponents`, `DynamicFactor`, other state-space models | statsmodels | — (not written) | The same likelihood, optimised the same way; decision 0134. |
+| `VAR(y).fit(p)` | statsmodels | — (no counterpart yet) | Equation-by-equation least squares, which `numpy.linalg.lstsq` on the stacked lags matches to a relative gap of `0.0`: the one model of the four that could be written at parity. Waits for an issue; decision 0134. |
+
 ## Lodestar.Decomposition — QR
 
 | Python | Library | C# | Differences |
