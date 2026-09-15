@@ -47,7 +47,8 @@ internal static class KMeansAgreement
             {
                 double a = ours.Centres[(cluster * features) + feature];
                 double b = theirs[match][feature];
-                if (Math.Abs(a - b) > Tolerance * Math.Max(1.0, Math.Abs(a)))
+                // Negated, so a NaN on either side refuses too: every ordered comparison with NaN is false.
+                if (!(Math.Abs(a - b) <= Tolerance * Math.Max(1.0, Math.Abs(a))))
                 {
                     throw new InvalidOperationException(
                         $"{name} disagrees on centre {cluster}, feature {feature}: {a:R} against {b:R}.");
