@@ -144,6 +144,9 @@ ALPHA = "alpha"
 GAMMA = "gamma"
 INVERSE = "inverse"
 LINK = "link"
+# The per-row terms a GLM predictor carries with no coefficient, echoed into each case (#787).
+OFFSET = "offset"
+EXPOSURE = "exposure"
 WITH_MEAN = "with_mean"
 WITH_STD = "with_std"
 DENSE = "dense"
@@ -5673,6 +5676,7 @@ def _glm_fixtures() -> list[dict]:
         },
         *_negative_binomial_fixtures(),
         *_gamma_fixtures(),
+        *_glm_offset_fixtures(),
     ]
 
 
@@ -5779,6 +5783,47 @@ def _negative_binomial_fixtures() -> list[dict]:
     return fixtures
 
 
+def _glm_offset_fixtures() -> list[dict]:
+    """Offsets and exposures on each family, over hand-written rates (#787).
+
+    Twelve rows of claims over exposures between half a unit and four, the shape a rate
+    model is for: the count grows with the exposure, and the regressor moves the rate.
+    """
+    design = [0.0, 1.0, 2.0, 3.0, 0.5, 1.5, 2.5, 3.5, 0.2, 1.2, 2.2, 3.2]
+    exposure = [1.0, 2.5, 0.5, 4.0, 3.0, 1.5, 2.0, 0.75, 3.5, 1.25, 2.75, 1.0]
+    offset = [0.1, -0.2, 0.3, 0.0, -0.1, 0.2, -0.3, 0.15, 0.05, -0.25, 0.1, -0.05]
+    claims = [1.0, 4.0, 1.0, 12.0, 3.0, 4.0, 7.0, 3.0, 2.0, 3.0, 9.0, 5.0]
+    rates = {
+        DESIGN: design, OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+    }
+    return [
+        {"name": "poisson, exposure", FAMILY: POISSON, RESPONSE: claims, EXPOSURE: exposure, **rates},
+        {"name": "poisson, offset", FAMILY: POISSON, RESPONSE: claims, OFFSET: offset, **rates},
+        {"name": "poisson, offset and exposure", FAMILY: POISSON, RESPONSE: claims,
+         OFFSET: offset, EXPOSURE: exposure, **rates},
+        {
+            # An offset of zeros is not "no offset" to the reference: the null deviance
+            # comes from refitting the intercept-only model, not from the response mean.
+            "name": "poisson, an offset of zeros",
+            FAMILY: POISSON, RESPONSE: claims, OFFSET: [0.0] * 12, **rates,
+        },
+        {"name": "negative binomial, exposure", FAMILY: NEGATIVE_BINOMIAL, ALPHA: 0.5,
+         RESPONSE: claims, EXPOSURE: exposure, **rates},
+        {
+            "name": "gamma, log link, offset and exposure",
+            FAMILY: GAMMA, LINK: "log",
+            RESPONSE: [1.3, 5.2, 0.9, 14.8, 4.1, 3.9, 8.7, 2.2, 3.1, 2.8, 11.5, 4.4],
+            OFFSET: offset, EXPOSURE: exposure, **rates,
+        },
+        {
+            # No exposure: the logit is not a log link, and the reference refuses one there.
+            "name": "logistic, offset",
+            FAMILY: BINOMIAL, RESPONSE: [0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0],
+            OFFSET: offset, **rates,
+        },
+    ]
+
+
 def generate_regression_log_factorial() -> dict:
     """``scipy.special.gammaln(k + 1)``, the ``log(y!)`` statsmodels' Poisson log-likelihood reads (#665).
 
@@ -5862,7 +5907,9 @@ def generate_stats_glm() -> dict:
         design = np.array(fixture[DESIGN]).reshape(-1, feature_count)
         response = np.array(fixture[RESPONSE])
         exog = sm.add_constant(design, prepend=True) if fixture[WITH_INTERCEPT] else design
-        fit = sm.GLM(response, exog, family=families[fixture[FAMILY]](fixture)).fit()
+        # OFFSET and EXPOSURE are spelled as GLM's own keyword arguments, so they name both.
+        terms = {key: np.array(fixture[key]) for key in (OFFSET, EXPOSURE) if key in fixture}
+        fit = sm.GLM(response, exog, family=families[fixture[FAMILY]](fixture), **terms).fit()
         interval = fit.conf_int(alpha=1.0 - fixture[CONFIDENCE_LEVEL])
         blocks[fixture[FAMILY]]["cases"].append({
             "name": fixture["name"],
@@ -5873,6 +5920,8 @@ def generate_stats_glm() -> dict:
             CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
             **({ALPHA: fixture[ALPHA]} if ALPHA in fixture else {}),
             **({LINK: fixture[LINK]} if LINK in fixture else {}),
+            **({OFFSET: fixture[OFFSET]} if OFFSET in fixture else {}),
+            **({EXPOSURE: fixture[EXPOSURE]} if EXPOSURE in fixture else {}),
             COEFFICIENTS: [float(v) for v in fit.params],
             STANDARD_ERRORS: [float(v) for v in fit.bse],
             "zStatistics": [float(v) for v in fit.tvalues],

@@ -22,7 +22,8 @@ internal static class Irls
         ReadOnlySpan<double> response,
         int featureCount,
         in FamilyShape shape,
-        GlmOptions options)
+        GlmOptions options,
+        double[]? offset = null)
     {
         int rowCount = response.Length;
         int parameterCount = featureCount + (options.WithIntercept ? 1 : 0);
@@ -62,7 +63,7 @@ internal static class Irls
         while (iteration < options.MaximumIterations)
         {
             iteration++;
-            BuildWeightedSystem(shape, matrix, response, mean, scaled, working);
+            BuildWeightedSystem(shape, matrix, response, mean, scaled, working, offset);
 
             // The reflections, not the normal equations: IRLS stops on an absolute deviance change, which the normal
             // equations' rounding held above 1e-8 for 19 iterations at a Poisson mean of 5e6 (GlmPoissonBenchmarks, #782).
@@ -79,16 +80,7 @@ internal static class Irls
                     nameof(design));
             }
 
-            for (int row = 0; row < rowCount; row++)
-            {
-                double eta = 0.0;
-                for (int column = 0; column < parameterCount; column++)
-                {
-                    eta += matrix[(row * parameterCount) + column] * coefficients[column];
-                }
-
-                mean[row] = Clamp(shape.Family, Families.InverseLink(shape, eta));
-            }
+            UpdateMean(shape, matrix, coefficients, offset, mean);
 
             RefuseANonPositiveGammaMean(shape, mean, iteration, nameof(design));
 
@@ -155,32 +147,97 @@ internal static class Irls
         return total;
     }
 
+    /// <summary>The means the solved coefficients give, <c>g⁻¹(xᵢβ + offsetᵢ)</c>, clamped off their family's boundary.</summary>
+    private static void UpdateMean(in FamilyShape shape, double[] matrix, double[] coefficients, double[]? offset, double[] mean)
+    {
+        // Two loops rather than a test per row: the fit without an offset keeps main's loop (#787).
+        if (offset is null)
+        {
+            for (int row = 0; row < mean.Length; row++)
+            {
+                mean[row] = Clamp(shape.Family, Families.InverseLink(shape, Predictor(matrix, coefficients, row)));
+            }
+        }
+        else
+        {
+            for (int row = 0; row < mean.Length; row++)
+            {
+                mean[row] = Clamp(
+                    shape.Family, Families.InverseLink(shape, Predictor(matrix, coefficients, row) + offset[row]));
+            }
+        }
+    }
+
     /// <summary>The weighted design and working response for one IRLS iteration.</summary>
+    /// <remarks>
+    /// With an offset the working response is <c>η + (y − μ)·g′(μ) − offset</c>, the reference's <c>wlsendog</c>: the
+    /// solve estimates only the part of the predictor the regressors carry.
+    /// </remarks>
     private static void BuildWeightedSystem(
         in FamilyShape shape,
         double[] matrix,
         ReadOnlySpan<double> response,
         double[] mean,
         double[] scaled,
-        double[] working)
+        double[] working,
+        double[]? offset)
     {
         int rowCount = mean.Length;
         int parameterCount = matrix.Length / rowCount;
-        for (int row = 0; row < rowCount; row++)
+        if (offset is null)
         {
-            double mu = mean[row];
-            double derivative = Families.LinkDerivative(shape, mu);
-            double weight = 1.0 / (Families.Variance(shape, mu) * derivative * derivative);
-            double root = Math.Sqrt(weight);
-            double eta = Families.Link(shape, mu);
-
-            working[row] = root * (eta + ((response[row] - mu) * derivative));
-            for (int column = 0; column < parameterCount; column++)
+            for (int row = 0; row < rowCount; row++)
             {
-                int at = (row * parameterCount) + column;
-                scaled[at] = root * matrix[at];
+                (double root, double value) = WorkingRow(shape, response[row], mean[row]);
+                working[row] = value;
+                ScaleRow(matrix, scaled, row, parameterCount, root);
             }
         }
+        else
+        {
+            for (int row = 0; row < rowCount; row++)
+            {
+                (double root, double value) = WorkingRow(shape, response[row], mean[row]);
+                working[row] = value - (root * offset[row]);
+                ScaleRow(matrix, scaled, row, parameterCount, root);
+            }
+        }
+    }
+
+    /// <summary>A row's root weight, and its working response <c>√w·(η + (y − μ)·g′(μ))</c> before any offset.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static (double Root, double Working) WorkingRow(in FamilyShape shape, double y, double mu)
+    {
+        double derivative = Families.LinkDerivative(shape, mu);
+        double weight = 1.0 / (Families.Variance(shape, mu) * derivative * derivative);
+        double root = Math.Sqrt(weight);
+        double eta = Families.Link(shape, mu);
+        return (root, root * (eta + ((y - mu) * derivative)));
+    }
+
+    /// <summary>Writes row <paramref name="row"/> of the design, scaled by its root weight.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void ScaleRow(double[] matrix, double[] scaled, int row, int parameterCount, double root)
+    {
+        for (int column = 0; column < parameterCount; column++)
+        {
+            int at = (row * parameterCount) + column;
+            scaled[at] = root * matrix[at];
+        }
+    }
+
+    /// <summary>The part of row <paramref name="row"/>'s linear predictor the regressors carry, <c>xᵢβ</c>.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static double Predictor(double[] matrix, double[] coefficients, int row)
+    {
+        int parameterCount = coefficients.Length;
+        double eta = 0.0;
+        for (int column = 0; column < parameterCount; column++)
+        {
+            eta += matrix[(row * parameterCount) + column] * coefficients[column];
+        }
+
+        return eta;
     }
 
     /// <summary>Whether every solved coefficient is a number the next iteration can use.</summary>

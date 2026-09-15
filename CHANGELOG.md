@@ -248,6 +248,12 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- **`GeneralizedLinearModel.Fit` takes an `offset` and an `exposure`**, the fixed term a rate model adds to the linear
+  predictor, at `statsmodels` 0.15.0 parity over 7 frozen cases across the four families. The null deviance refits the
+  intercept-only model with the same term, as the reference does. An exposure with a link other than log, a length that
+  differs from the response, a non-finite offset and an exposure that is not finite and above zero are refused.
+  Measured against `statsmodels` through `compare-glm`, a Poisson fit with an exposure is 1.55× to 5.79× faster, wall
+  clock, from 1,000 to 100,000 rows. ([#787](https://github.com/CyrilB1531/lodestar/issues/787))
 - **`CovarianceType.Hac` and `CovarianceType.Cluster`** give `OrdinaryLeastSquares.Fit` and `WeightedLeastSquares.Fit`
   Newey–West and one-way cluster-robust standard errors, at `statsmodels` 0.15.0 parity over 8 frozen cases:
   `OlsOptions.HacLags` is `maxlags`, `OlsOptions.SmallSampleCorrection` is `use_correction` with the reference's default

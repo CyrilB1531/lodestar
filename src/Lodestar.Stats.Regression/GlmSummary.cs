@@ -3,7 +3,7 @@ namespace Lodestar.Stats.Regression;
 /// <summary>What a generalized linear fit reports, at <c>statsmodels</c> parity.</summary>
 public sealed class GlmSummary
 {
-    /// <summary>Built by <see cref="GeneralizedLinearModel.Fit"/> alone; there is no other way to hold one.</summary>
+    /// <summary>Built by <c>GeneralizedLinearModel.Fit</c> alone; there is no other way to hold one.</summary>
     internal GlmSummary()
     {
     }

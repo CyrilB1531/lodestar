@@ -3,7 +3,7 @@ namespace Lodestar.Stats.Regression;
 /// <summary>The link a <see cref="GeneralizedLinearModel"/> maps its linear predictor to the mean through.</summary>
 /// <remarks>
 /// A second axis beside <see cref="GlmFamily"/>, chosen on <see cref="GlmOptions.Link"/>. Not every family takes
-/// every link here: <see cref="GeneralizedLinearModel.Fit"/> refuses a pairing it does not fit rather than
+/// every link here: <c>GeneralizedLinearModel.Fit</c> refuses a pairing it does not fit rather than
 /// fitting one statsmodels would warn about (#770).
 /// </remarks>
 public enum GlmLink

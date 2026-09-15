@@ -144,6 +144,20 @@ def negative_binomial_summary(exog, endog, alpha: float) -> object:
             fitted.deviance, fitted.null_deviance, fitted.llf, fitted.aic)
 
 
+# long-comment: why the exposure is derived here, and why the cycle is three.
+# The exposure both sides derive from the row index rather than the corpus carrying one (#787).
+# Three, not four: at four the 100,000-row fit's last deviance change is 1.2e-8 against the
+# 1e-8 tolerance, where rounding decides the iteration count and the two sides time 5 and 6.
+EXPOSURE_CYCLE = 3
+
+
+def poisson_exposure_summary(exog, endog, exposure) -> object:
+    """The Poisson fit with an exposure, and what `GlmSummary` carries — the null deviance a refit here (#787)."""
+    fitted = sm.GLM(endog, exog, family=sm.families.Poisson(), exposure=exposure).fit()
+    return (fitted.params, fitted.bse, fitted.tvalues, fitted.pvalues, fitted.conf_int(),
+            fitted.deviance, fitted.null_deviance, fitted.llf, fitted.aic)
+
+
 def gamma_summary(exog, endog) -> object:
     """The Gamma fit through the log link, with the Pearson scale and the quantities `GlmSummary` carries (#770)."""
     fitted = sm.GLM(endog, exog, family=sm.families.Gamma(link=sm.families.links.Log())).fit()
@@ -180,9 +194,11 @@ def measure_size(n: int) -> tuple[list[dict], list[dict], list[dict]]:
     ]
     counts, alpha = data["counts"], data["count_alpha"]
     positive = data["gamma_response"]
+    exposure = 1.0 + (np.arange(len(counts)) % EXPOSURE_CYCLE)
     glm = [
         measure(f"glm_negative_binomial_{suffix}", lambda: negative_binomial_summary(exog, counts, alpha)),
         measure(f"glm_gamma_{suffix}", lambda: gamma_summary(exog, positive)),
+        measure(f"glm_poisson_exposure_{suffix}", lambda: poisson_exposure_summary(exog, counts, exposure)),
     ]
     return tests, regression, glm
 
