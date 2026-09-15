@@ -6,8 +6,8 @@ now native**. Past it the answer differs by subject, which is what the readings
 in [`decisions/0104`](../decisions/0104-generalized-linear-models-are-written-natively.md)
 and [`decisions/0105`](../decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md)
 settled: **forecasting is already first-party** and is delegated; **the GLM table is
-now native too**, the **serial-correlation diagnostics** are native and the stationarity tests
-and decomposition are still to come; **mixed models** have no .NET package at all and wait for a caller.
+now native too**, the **time-series diagnostics** — serial correlation, stationarity and
+seasonal decomposition — are native in `Lodestar.Stats.TimeSeries`; **mixed models** have no .NET package at all and wait for a caller.
 [`decisions/0129`](../decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md)
 read Meta.Numerics and the commercial Numerics.NET on top, and each carries part of what this page
 used to call absent.
@@ -21,8 +21,9 @@ used to call absent.
 | Distributions, basic hypothesis tests | **Math.NET** (`Distributions`) for the distributions; it ships no test. The tests are **native** in [`Lodestar.Stats`](../reference/stats.md), at scipy parity, and **Meta.Numerics** 4.2.0 (MS-PL, `netstandard2.0`) carries eight of its ten families, not yet measured against it ([#756](https://github.com/CyrilB1531/lodestar/issues/756)). ⛔ *not* Accord.NET — last package October 2017, last commit November 2020; [README](README.md#unmaintained-and-why-that-is-stated-with-dates) |
 | GLMs with the inference table (logit, Poisson, …) | **native**: [`Lodestar.Stats.Regression`](../reference/stats-regression/glm.md), binomial and Poisson. ML.NET fits them too, but reports coefficient statistics for *binary logistic only*; [`decisions/0104`](../decisions/0104-generalized-linear-models-are-written-natively.md), [#616](https://github.com/CyrilB1531/lodestar/issues/616) |
 | Forecasting, seasonality and anomaly detection | **Microsoft.ML.TimeSeries** 5.0.0 (`ForecastBySsa`, `DetectSeasonality`) — first-party and MIT; [`decisions/0105`](../decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md) |
-| `acf`, `pacf`, `acorr_ljungbox` | **native**: [`Lodestar.Stats.TimeSeries`](../reference/stats/timeseries.md), with the confidence bands; [#617](https://github.com/CyrilB1531/lodestar/issues/617). Meta.Numerics carries the autocovariance and Ljung-Box and no partial autocorrelation; Numerics.NET, commercial, carries all three |
-| `adfuller`, `kpss`, `seasonal_decompose` | ⚠️ **gap** — [#671](https://github.com/CyrilB1531/lodestar/issues/671). Free, only in `Cortex.TimeSeries` (see 0105); commercial, Numerics.NET has ADF and KPSS and no seasonal decomposition |
+| `acf`, `pacf`, `acorr_ljungbox` | **native**: [`Lodestar.Stats.TimeSeries`](../reference/stats-timeseries/correlation.md), with the confidence bands; [#617](https://github.com/CyrilB1531/lodestar/issues/617). Meta.Numerics carries the autocovariance and Ljung-Box and no partial autocorrelation; Numerics.NET, commercial, carries all three |
+| `adfuller`, `kpss` | **native**: [`Stationarity`](../reference/stats-timeseries/stationarity-tests.md) in `Lodestar.Stats.TimeSeries`, every `regression` and `autolag`, MacKinnon's p-value, and KPSS's clamped p-value as a property rather than a warning; [#671](https://github.com/CyrilB1531/lodestar/issues/671) |
+| `seasonal_decompose` | **native**: [`SeasonalDecomposition`](../reference/stats-timeseries/seasonality.md), additive and multiplicative, `period` required. `STL` is not here; `stlnet` ships it under MIT |
 | ARIMA / SARIMAX estimation, VAR, state-space | ⚠️ **gap** — a later lot, not the first ([#617](https://github.com/CyrilB1531/lodestar/issues/617)) |
 | `MixedLM`: mixed and hierarchical models | ⚠️ **gap, and not written until a caller needs it** — no .NET package fits one, free or commercial, across nine read. Accord's `TwoWayAnovaModel.Mixed` and NMath's `OneWayRanova`/`TwoWayRanova` are classical ANOVA with a random or repeated factor; Infer.NET can express a hierarchical model by hand but prints no REML table. [`decisions/0130`](../decisions/0130-mixed-models-have-no-incumbent-and-wait-for-a-caller.md) has the reading, and why `MixedLM`'s own solvers disagree past what a frozen corpus can hold |
 

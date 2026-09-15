@@ -9660,6 +9660,10 @@ TABLE = "table"
 SERIES = "series"
 LAG_COUNT = "lag_count"
 BARTLETT = "bartlett"
+ADFULLER = "adfuller"
+KPSS = "kpss"
+REGRESSION = "regression"
+CRITICAL = "critical"
 
 # nan_policy (#687): one spelling each for the policy key, its values, and the
 # "call" names the new cases repeat past check_repeated_literals.py's threshold.
@@ -10418,6 +10422,173 @@ def generate_stats_timeseries() -> dict:
     }
 
 
+def _adf_near_switch(rng: SeededRandom, below: bool) -> list[float]:
+    """An AR(1) whose ADF statistic under 'c' falls within 0.3 of MacKinnon's switch point."""
+    from statsmodels.tsa.stattools import adfuller
+
+    for step in range(400):
+        phi = 0.80 + step * 0.0005
+        series = [0.0]
+        for _ in range(119):
+            series.append(phi * series[-1] + rng.gauss(0.0, 1.0))
+        statistic = adfuller(series, result_object=False)[0]
+        if (-1.91 < statistic <= -1.61) if below else (-1.61 < statistic < -1.31):
+            return [round(v, 10) for v in series]
+    raise SystemExit("no series near ADF's switch point; widen the search")
+
+
+def _kpss_near(rng: SeededRandom, low: float, high: float, walk_weight: float) -> list[float]:
+    """Noise plus a scaled random walk whose KPSS level statistic lands in (low, high)."""
+    from statsmodels.tsa.stattools import kpss
+
+    for step in range(400):
+        weight = walk_weight * (1.0 + step * 0.01)
+        walk, series = 0.0, []
+        for _ in range(150):
+            walk += rng.gauss(0.0, 1.0)
+            series.append(rng.gauss(0.0, 1.0) + weight * walk)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            statistic = kpss(series, regression="c", nlags="auto", result_object=False)[0]
+        if low < statistic < high:
+            return [round(v, 10) for v in series]
+    raise SystemExit(f"no series with a KPSS statistic in ({low}, {high}); widen the search")
+
+
+def _stationarity_fixtures() -> list[dict]:
+    """Series chosen for which branch of the reference each one exercises (#671)."""
+    rng = SeededRandom(SEED + 671)
+
+    walk = [0.0]
+    for _ in range(199):
+        walk.append(walk[-1] + rng.gauss(0.0, 1.0))
+    ar = [0.0]
+    for _ in range(199):
+        ar.append(0.5 * ar[-1] + rng.gauss(0.0, 1.0))
+    trend = [0.04 * i + rng.gauss(0.0, 1.0) for i in range(150)]
+    noise = [rng.gauss(0.0, 1.0) for _ in range(400)]
+    explosive = [1.0]
+    for _ in range(79):
+        explosive.append(1.03 * explosive[-1] + rng.gauss(0.0, 0.1))
+
+    def fixture(name: str, series: list[float]) -> dict:
+        return {"name": name, SERIES: [round(v, 10) for v in series]}
+
+    return [
+        fixture("random walk, 200 points", walk),
+        fixture("AR(1) at 0.5, 200 points", ar),
+        fixture("trend-stationary, 150 points", trend),
+        fixture("white noise, 400 points", noise),
+        fixture("explosive AR(1) at 1.03, 80 points", explosive),
+        {"name": "ADF just below the 'c' switch point", SERIES: _adf_near_switch(rng, below=True)},
+        {"name": "ADF just above the 'c' switch point", SERIES: _adf_near_switch(rng, below=False)},
+        {"name": "KPSS just inside the 10 % end", SERIES: _kpss_near(rng, 0.347, 0.40, 0.02)},
+        {"name": "KPSS just inside the 1 % end", SERIES: _kpss_near(rng, 0.68, 0.739, 0.05)},
+    ]
+
+
+def _kpss_bound(caught: list) -> str:
+    """The direction statsmodels' InterpolationWarning names, or 'none'."""
+    for warning in caught:
+        text = str(warning.message)
+        if "p-value is smaller" in text:
+            return "smaller"
+        if "p-value is greater" in text:
+            return "greater"
+    return "none"
+
+
+def generate_stats_stationarity() -> dict:
+    """The augmented Dickey-Fuller test and KPSS, against statsmodels 0.15.0 (#671)."""
+    from statsmodels.tsa.stattools import adfuller, kpss
+
+    cases: list[dict] = []
+    for fx in _stationarity_fixtures():
+        x = fx[SERIES]
+        for regression in ("n", "c", "ct", "ctt"):
+            for autolag in ("AIC", "BIC", "t-stat", None):
+                stat, p, used, nobs, crit, *rest = adfuller(
+                    x, regression=regression, autolag=autolag, result_object=False)
+                cases.append({
+                    "name": f"{fx['name']} | adfuller | {regression} | {autolag}",
+                    "call": ADFULLER, SERIES: x, REGRESSION: regression,
+                    "autolag": autolag, "maxlag": None,
+                    STATISTIC: float(stat), PVALUE: float(p), "usedlag": int(used),
+                    "nobs": int(nobs),
+                    CRITICAL: [float(crit["1%"]), float(crit["5%"]), float(crit["10%"])],
+                    "icbest": float(rest[0]) if autolag else None,
+                })
+        for regression in ("c", "ct"):
+            for nlags in ("auto", "legacy", 4):
+                with warnings.catch_warnings(record=True) as caught:
+                    warnings.simplefilter("always")
+                    stat, p, lags, crit = kpss(
+                        x, regression=regression, nlags=nlags, result_object=False)
+                cases.append({
+                    "name": f"{fx['name']} | kpss | {regression} | {nlags}",
+                    "call": KPSS, SERIES: x, REGRESSION: regression, "nlags": nlags,
+                    STATISTIC: float(stat), PVALUE: float(p), "lags": int(lags),
+                    CRITICAL: [float(crit[k]) for k in ("10%", "5%", "2.5%", "1%")],
+                    "bound": _kpss_bound(caught),
+                })
+
+    noise = _stationarity_fixtures()[3][SERIES]
+    stat, p, used, nobs, crit = adfuller(
+        noise, maxlag=0, autolag=None, result_object=False)
+    cases.append({
+        "name": "white noise, 400 points | adfuller | c | fixed at 0",
+        "call": ADFULLER, SERIES: noise, REGRESSION: "c", "autolag": None, "maxlag": 0,
+        STATISTIC: float(stat), PVALUE: float(p), "usedlag": int(used), "nobs": int(nobs),
+        CRITICAL: [float(crit["1%"]), float(crit["5%"]), float(crit["10%"])], "icbest": None,
+    })
+
+    return {
+        "metadata": {"library": STATSMODELS, "version": version(STATSMODELS),
+                     FAMILY: "stationarity", "count": len(cases)},
+        CASES: cases,
+    }
+
+
+def generate_stats_seasonal() -> dict:
+    """Classical seasonal decomposition, against statsmodels 0.15.0 (#671)."""
+    import numpy as np
+    from statsmodels.tsa.seasonal import seasonal_decompose
+
+    rng = SeededRandom(SEED + 6710)
+    monthly = [20.0 + 0.1 * i + 4.0 * math.sin(2.0 * math.pi * i / 12.0) + rng.gauss(0.0, 0.5)
+               for i in range(96)]
+    weekly = [10.0 + 2.0 * math.cos(2.0 * math.pi * i / 7.0) + rng.gauss(0.0, 0.3)
+              for i in range(50)]
+    minimal = [3.0, 5.0, 4.0, 6.0]
+
+    cases: list[dict] = []
+    for name, series, period, extrapolations in (
+        ("monthly, 96 points", monthly, 12, (0, 1, 11)),
+        ("period 7, 50 points", weekly, 7, (0, 1, 6)),
+        ("period 2, 4 points", minimal, 2, (0, 1)),
+    ):
+        x = np.array([round(v, 10) for v in series])
+        for model in ("additive", "multiplicative"):
+            for two_sided in (True, False):
+                for extrapolate in extrapolations:
+                    result = seasonal_decompose(
+                        x, model=model, period=period, two_sided=two_sided,
+                        extrapolate_trend=extrapolate)
+                    cases.append({
+                        "name": f"{name} | {model} | two_sided={two_sided} | extrapolate={extrapolate}",
+                        SERIES: x.tolist(), "period": period, "model": model,
+                        "two_sided": two_sided, "extrapolate_trend": extrapolate,
+                        "trend": [_stats_number(v) for v in result.trend],
+                        "seasonal": [_stats_number(v) for v in result.seasonal],
+                        "resid": [_stats_number(v) for v in result.resid],
+                    })
+
+    return {
+        "metadata": {"library": STATSMODELS, "version": version(STATSMODELS),
+                     FAMILY: "seasonal", "count": len(cases)},
+        CASES: cases,
+    }
+
 def main() -> None:
     """Write every oracle deterministically, byte for byte.
 
@@ -10508,6 +10679,8 @@ def main() -> None:
         "stats_glm.json": generate_stats_glm,
         "regression_log_factorial.json": generate_regression_log_factorial,
         "stats_timeseries.json": generate_stats_timeseries,
+        "stats_stationarity.json": generate_stats_stationarity,
+        "stats_seasonal.json": generate_stats_seasonal,
         "cluster_kmeans.json": generate_cluster_kmeans,
         "preprocessing_standard_scaler.json": generate_preprocessing_standard_scaler,
         "ranking.json": generate_ranking,

@@ -3970,6 +3970,44 @@ default fit here is 4× to 20× cheaper, and part of that is when it decides to 
 **Meta.Numerics is the comparison that holds below `net8.0`**, and the only one: NumFlat does not
 install there.
 
+## Stationarity and seasonal decomposition against Cortex.TimeSeries (issue #671)
+
+Full method and what agrees:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#35-stationarity-and-seasonal-decomposition-against-cortextimeseries-issue-671).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: three `BenchmarkDotNet` 0.14.0 runs, **default job**, on 2026-09-15, interleaved as
+the unoptimised revision of this branch, then this one, then the unoptimised again (A/B/A). `Cortex.TimeSeries` 1.1.0. Each
+pair returned the same statistic before it was timed.
+
+| n | function | unoptimised, A1 / A2 | [`Lodestar.Stats.TimeSeries`](../reference/stats-timeseries/stationarity-tests.md) | `Cortex.TimeSeries` | Cortex / Lodestar | Allocated, Lodestar | Allocated, Cortex |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 200 | ADF, lag 4 | 40.137 / 39.839 μs | **6.987 μs** | 15.819 μs | **2.26** | 20.68 KB | 16.18 KB |
+| 200 | KPSS, level | 2.225 / 2.220 μs | 2.219 μs | 2.328 μs | 1.05 | 1.69 KB | 3.43 KB |
+| 200 | decomposition, period 12 | 1.707 / 1.761 μs | **0.810 μs** | 1.499 μs | **1.85** | 6.50 KB | 8.16 KB |
+| 2,000 | ADF, lag 4 | 512.945 / 514.530 μs | **101.382 μs** | 181.199 μs | **1.79** | 203.51 KB | 142.76 KB |
+| 2,000 | KPSS, level | 59.550 / 59.616 μs | 59.554 μs | 60.223 μs | 1.01 | 15.75 KB | 31.55 KB |
+| 2,000 | decomposition, period 12 | 17.880 / 17.760 μs | **8.253 μs** | 15.391 μs | **1.86** | 62.75 KB | 78.48 KB |
+
+**The augmented Dickey-Fuller test is 1.79× to 2.26× faster than Cortex's**, and 5.1× to 5.7× faster
+than the unoptimised revision, whose fits went through
+[`OrdinaryLeastSquares.Fit`](../reference/stats-regression/ols/ordinaryleastsquares-fit.md): a Q formed
+explicitly, a second QR for five variance inflation factors, and a Student quantile and tail per
+coefficient, to hand back one t statistic. The lag search now fits through
+[`OrdinaryLeastSquares.Estimate`](../reference/stats-regression/ols/ordinaryleastsquares-estimate.md),
+which applies the reflections to the response and stops at the coefficients, their standard errors
+and the residual sum of squares. The table's middle column was measured with that fit still internal; a fourth
+run after it became public read 6.935 μs and 100.161 μs, 20.77 KB and 203.60 KB — the same within noise,
+so the A/B/A was not repeated. It allocates more than Cortex at 2,000 points, the design and
+its column-major copy. The p-value stays what the test is for: Cortex's is clamped at `0.01`, where
+MacKinnon's surface gives `1.1e-9` to `9.5e-4` on the regressions checked.
+
+**The decomposition is 1.85× faster**, 2.1× faster than the unoptimised revision: the moving average is a running
+sum over each window's interior rather than a weighted pass over the whole window, `O(n)` against
+`O(n·period)`. **KPSS is level**, with half the allocation; its cost is the lagged products of the
+long-run variance, which both sides compute.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly

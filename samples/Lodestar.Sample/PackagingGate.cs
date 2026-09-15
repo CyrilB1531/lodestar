@@ -17,6 +17,7 @@ using Lodestar.Preprocessing;
 using Lodestar.Onnx;
 using Lodestar.Stats;
 using Lodestar.Stats.Regression;
+using Lodestar.Stats.TimeSeries;
 using Lodestar.Survival;
 using Lodestar.Text.Distances;
 
@@ -172,6 +173,7 @@ internal static class PackagingGate
             typeof(StandardScaler).Assembly,
             typeof(TTest).Assembly,
             typeof(OrdinaryLeastSquares).Assembly,
+            typeof(SerialCorrelation).Assembly,
             typeof(KaplanMeier).Assembly,
             typeof(GpuContext).Assembly,
             typeof(LodestarVectorStore).Assembly,

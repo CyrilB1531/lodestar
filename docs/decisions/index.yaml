@@ -771,7 +771,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0108", "0111", "0114", "0116"]
+  applied_by: ["0108", "0111", "0114", "0116", "0133"]
 
 "0077":
   title: "The keyword extractors take their oracles' lists, and not their own"
@@ -961,7 +961,7 @@
   applies: ["0081"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0097", "0098", "0115", "0118", "0119", "0124", "0125", "0128", "0130"]
+  applied_by: ["0097", "0098", "0115", "0118", "0119", "0124", "0125", "0128", "0130", "0133"]
 
 "0096":
   title: "Ordinary least squares earns its own package"
@@ -971,7 +971,7 @@
   applies: ["0074"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0110", "0111", "0114"]
+  applied_by: ["0110", "0111", "0114", "0133"]
 
 "0097":
   title: "The chi-squared tail joins the published four, by the rule 0095 already set"
@@ -1061,7 +1061,7 @@
   applies: ["0074"]
   superseded_by: []
   amended_by: ["0129"]
-  applied_by: ["0110", "0114"]
+  applied_by: ["0110", "0114", "0133"]
 
 "0106":
   title: "The frontmatter is inserted once, and the body does not move"
@@ -1121,7 +1121,7 @@
   applies: ["0076", "0096", "0104"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0114", "0128"]
+  applied_by: ["0114", "0128", "0133"]
 
 "0112":
   title: "An analyzer rule below warning is raised where it has escaped, not everywhere"
@@ -1149,7 +1149,7 @@
   supersedes: []
   amends: []
   applies: ["0076", "0096", "0105", "0111"]
-  superseded_by: []
+  superseded_by: ["0133"]
   amended_by: []
   applied_by: []
 
@@ -1329,6 +1329,16 @@
   supersedes: []
   amends: []
   applies: ["0074", "0075"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0133":
+  title: "`Lodestar.Stats.TimeSeries` is a package, and the serial-correlation lot moves into it"
+  status: "accepted"
+  supersedes: ["0114"]
+  amends: []
+  applies: ["0076", "0095", "0096", "0105", "0111"]
   superseded_by: []
   amended_by: []
   applied_by: []

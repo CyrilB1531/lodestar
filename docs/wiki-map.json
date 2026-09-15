@@ -188,8 +188,7 @@
           "docs/reference/stats/nanpolicy.md",
           "docs/reference/stats/tests",
           "docs/reference/stats/tails"
-        ],
-        "Lodestar.Stats.TimeSeries": "docs/reference/stats/timeseries"
+        ]
       }
     },
     "Lodestar.Stats.Regression": {
@@ -203,6 +202,22 @@
         "Lodestar.Stats.Regression": [
           "docs/reference/stats-regression/ols",
           "docs/reference/stats-regression/glm"
+        ]
+      },
+      "exceptionsUnchecked": []
+    },
+    "Lodestar.Stats.TimeSeries": {
+      "wiki": "Stats-TimeSeries",
+      "pages": [
+        "docs/guides/time-series-diagnostics.md",
+        "docs/reference/stats-timeseries/*.md",
+        "docs/reference/stats-timeseries/*/*.md"
+      ],
+      "covered": {
+        "Lodestar.Stats.TimeSeries": [
+          "docs/reference/stats-timeseries/correlation",
+          "docs/reference/stats-timeseries/stationarity-tests",
+          "docs/reference/stats-timeseries/seasonality"
         ]
       },
       "exceptionsUnchecked": []

@@ -42,3 +42,4 @@ exactly the ones that costs.
 | Member | What it does |
 | --- | --- |
 | [`OrdinaryLeastSquares.Fit`](ordinaryleastsquares-fit.md) | Fits a linear model and reports what a summary table holds. |
+| [`OrdinaryLeastSquares.Estimate`](ordinaryleastsquares-estimate.md) | Fits a linear model and reports the estimates and their standard errors, without the inference table. |

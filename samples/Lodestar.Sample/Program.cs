@@ -54,6 +54,7 @@ StandardScalerSample.Run();
 StandardScalerOptionsSample.Run();
 OrdinaryLeastSquaresSample.Run();
 OlsSummarySample.Run();
+OlsEstimateSample.Run();
 OlsOptionsSample.Run();
 GeneralizedLinearModelSample.Run();
 GlmSummarySample.Run();
@@ -117,6 +118,14 @@ AutocorrelationOptionsSample.Run();
 AutocorrelationResultSample.Run();
 LjungBoxOptionsSample.Run();
 LjungBoxResultSample.Run();
+StationaritySample.Run();
+DickeyFullerOptionsSample.Run();
+DickeyFullerResultSample.Run();
+KpssOptionsSample.Run();
+KpssResultSample.Run();
+SeasonalDecompositionSample.Run();
+SeasonalDecompositionOptionsSample.Run();
+SeasonalComponentsSample.Run();
 
 if (!PackagingGate.Verify())
 {

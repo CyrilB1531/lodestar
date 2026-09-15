@@ -196,7 +196,12 @@
     "DistributionTailBenchmarks": [
       "src/Lodestar.Stats/**"
     ],
+    "StationarityBenchmarks": [
+      "src/Lodestar.Stats.TimeSeries/**",
+      "src/Lodestar.Stats.Regression/**"
+    ],
     "SerialCorrelationBenchmarks": [
+      "src/Lodestar.Stats.TimeSeries/**",
       "src/Lodestar.Stats/**"
     ],
     "QuantileBenchmarks": [

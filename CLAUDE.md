@@ -82,8 +82,8 @@ nothing exited zero and reported success, and under Microsoft.Testing.Platform �
 xunit v3 runs on since [#623](https://github.com/CyrilB1531/lodestar/issues/623) — it
 exits **8** and says `Zéro tests exécutés`. The habit is still the right one, because a
 count is what tells you a *suite* went missing, and that failure has no exit code at all:
-`dotnet test Lodestar.slnx -c Release` must report **34 assemblies**, seventeen suites and
-their seventeen mirrors.
+`dotnet test Lodestar.slnx -c Release` must report **36 assemblies**, eighteen suites and
+their eighteen mirrors.
 
 Oracle corpora (see *Oracle validation* below), run from outside the repository:
 
@@ -132,6 +132,7 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*Lev
 for p in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy \
          src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Cluster \
          src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression \
+         src/Lodestar.Stats.TimeSeries \
          src/Lodestar.Survival src/Lodestar.Onnx src/Lodestar.Gpu src/Lodestar.Extensions.AI \
          src/Lodestar.Extensions.MathNet src/Lodestar.Extensions.VectorData; do
   dotnet pack "$p" -c Release -o ./artifacts
@@ -140,7 +141,7 @@ done
 
 ## Architecture
 
-Seventeen independently versioned packages under `src/`, in three tiers. **Core** carries no
+Eighteen independently versioned packages under `src/`, in three tiers. **Core** carries no
 external dependency at all
 ([decision 0076](docs/decisions/0076-a-core-package-carries-no-external-dependency.md)).
 `Lodestar.Onnx` and `Lodestar.Gpu` are the **satellites**, each carrying the one dependency
@@ -167,6 +168,7 @@ script's `EXPECTED` edge map.
 | `Lodestar.Preprocessing` | core | feature scaling fitted on arrays and applied to spans, at scikit-learn parity. |
 | `Lodestar.Stats` | core | classical hypothesis tests at scipy parity, plus the four tail members decisions 0095, 0097 and 0098 published for its neighbours. |
 | `Lodestar.Stats.Regression` | core | ordinary least squares with the whole inference table, at statsmodels parity. |
+| `Lodestar.Stats.TimeSeries` | core | the autocorrelation functions, Ljung-Box, the augmented Dickey-Fuller test, KPSS and seasonal decomposition, at statsmodels parity. |
 | `Lodestar.Survival` | core | Kaplan-Meier, Nelson-Aalen and the log-rank test at lifelines parity, right-censored. |
 | `Lodestar.Onnx` | satellite | `OnnxTextEmbedder`, and the reason the tier exists: `Microsoft.ML.OnnxRuntime`. |
 | `Lodestar.Extensions.AI` | interop | the ONNX embedding path behind `IEmbeddingGenerator`; carries `Microsoft.Extensions.AI.Abstractions`. |
@@ -174,11 +176,12 @@ script's `EXPECTED` edge map.
 | `Lodestar.Extensions.VectorData` | interop | an in-process `VectorStore` with hybrid keyword and vector search over `EmbeddingIndex` and `Bm25Index`; carries `Microsoft.Extensions.VectorData.Abstractions`. |
 | `Lodestar.Gpu` | satellite | ILGPU kernels over device-resident matrices and text. **The one package on `net10.0;netstandard2.1`** — ILGPU publishes no `netstandard2.0` asset and does publish a 2.1 one ([decisions 0101](docs/decisions/0101-lodestar-gpu-is-the-one-package-that-does-not-ship-netstandard2-0.md) and [0103](docs/decisions/0103-lodestar-gpu-ships-netstandard2-1-beside-net10.md)). Nothing under `src/` may depend on it, so the SIMD path stays complete. |
 
-The edges: **twelve**, all asserted per target framework and per version range —
+The edges: **fourteen**, all asserted per target framework and per version range —
 `Text`, `Decomposition` and `Extensions.MathNet` → `Abstractions`; `Fuzzy` → `Text`;
 `Onnx` → `Embeddings`; `Extensions.AI` → `Embeddings` and `Onnx`;
 `Extensions.VectorData` → `Embeddings` and `Text`; `Stats.Regression` →
-`Stats` and `Decomposition`; `Survival` → `Stats`. `tools/check_nuspec_dependencies.py`'s
+`Stats` and `Decomposition`; `Stats.TimeSeries` → `Stats` and `Stats.Regression`;
+`Survival` → `Stats`. `tools/check_nuspec_dependencies.py`'s
 `EXPECTED` is the authority, and the count above is checked against it.
 
 Four cross-cutting facts explain most of the layout, and none of them is visible

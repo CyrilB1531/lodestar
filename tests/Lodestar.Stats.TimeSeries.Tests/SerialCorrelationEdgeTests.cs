@@ -1,7 +1,7 @@
 using Lodestar.Stats.TimeSeries;
 using Xunit;
 
-namespace Lodestar.Stats.Tests;
+namespace Lodestar.Stats.TimeSeries.Tests;
 
 public sealed class SerialCorrelationEdgeTests
 {
