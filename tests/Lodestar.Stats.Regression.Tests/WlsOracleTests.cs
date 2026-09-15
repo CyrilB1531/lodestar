@@ -4,39 +4,28 @@ using Xunit;
 namespace Lodestar.Stats.Regression.Tests;
 
 /// <summary>
-/// Replays <c>statsmodels.api.OLS(...).fit()</c> over the twelve frozen cases of
-/// <c>tests/oracles/stats_ols.json</c>.
+/// Replays <c>statsmodels.api.WLS(...).fit()</c> over the twelve frozen cases of
+/// <c>tests/oracles/stats_wls.json</c>.
 /// </summary>
 /// <remarks>
-/// Each case is chosen for something an inference table can get wrong rather than for
-/// something a solve can: a fitted intercept and none, a 99% level, a near-collinear pair
-/// whose VIF reaches 6e4, and one residual degree of freedom. Six of the twelve carry a robust
-/// covariance and replay the distribution switch as much as the arithmetic (#686).
+/// The weights are what vary: uneven, all one, all four, one of them zero, and inversely
+/// proportional to the level. Five cases carry a robust covariance, where the model's own
+/// constant stays out of the Wald test that OLS on the scaled rows would put it in (#768).
 /// </remarks>
-public sealed class OlsOracleTests
+public sealed class WlsOracleTests
 {
-    private static readonly JsonDocument Corpus = OracleLoader.Load("stats_ols.json");
+    private static readonly JsonDocument Corpus = OracleLoader.Load("stats_wls.json");
 
     private static IReadOnlyList<JsonElement> Cases => LinearOracle.Cases(Corpus);
 
     public static TheoryData<int> Indices() => LinearOracle.Indices(Corpus);
 
-    private static OlsSummary Fit(JsonElement frozen) => OrdinaryLeastSquares.Fit(
+    private static OlsSummary Fit(JsonElement frozen) => WeightedLeastSquares.Fit(
         LinearOracle.Doubles(frozen, "design"),
         LinearOracle.Doubles(frozen, "response"),
+        LinearOracle.Doubles(frozen, "weights"),
         frozen.GetProperty("featureCount").GetInt32(),
         LinearOracle.Options(frozen));
-
-    [Theory]
-    [MemberData(nameof(Indices))]
-    public void The_summary_echoes_the_estimator_it_was_asked_for(int index)
-    {
-        // Which distribution the p-values came from follows from this and nothing else
-        // on the summary, so a reader who has only the summary needs it to be right.
-        JsonElement frozen = Cases[index];
-
-        Assert.Equal(LinearOracle.Covariance(frozen), Fit(frozen).CovarianceType);
-    }
 
     [Theory]
     [MemberData(nameof(Indices))]
@@ -58,7 +47,7 @@ public sealed class OlsOracleTests
 
     [Theory]
     [MemberData(nameof(Indices))]
-    public void The_whole_model_statistics_match_the_reference(int index)
+    public void The_weighted_whole_model_statistics_match_the_reference(int index)
     {
         JsonElement frozen = Cases[index];
 
@@ -67,7 +56,7 @@ public sealed class OlsOracleTests
 
     [Theory]
     [MemberData(nameof(Indices))]
-    public void The_variance_inflation_factors_match_the_reference(int index)
+    public void The_variance_inflation_factors_are_those_of_the_design_as_given(int index)
     {
         JsonElement frozen = Cases[index];
 

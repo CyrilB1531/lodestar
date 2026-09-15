@@ -230,7 +230,7 @@ Lodestar.slnx
 ├── src/Lodestar.Cluster/                   k-means by Lloyd's algorithm over a row-major span
 ├── src/Lodestar.Preprocessing/             feature scaling fitted on arrays and applied to spans
 ├── src/Lodestar.Stats/                     classical hypothesis tests, at scipy.stats parity (no dependencies)
-├── src/Lodestar.Stats.Regression/          ordinary least squares with the whole inference table
+├── src/Lodestar.Stats.Regression/          ordinary and weighted least squares with the whole inference table
 ├── src/Lodestar.Stats.TimeSeries/          autocorrelation, Ljung-Box, ADF, KPSS and seasonal decomposition
 ├── src/Lodestar.Survival/                  Kaplan-Meier, Nelson-Aalen and the log-rank test, right-censored
 ├── src/Lodestar.Onnx/                      ONNX inference — satellite, carries Microsoft.ML.OnnxRuntime (decision 0076)

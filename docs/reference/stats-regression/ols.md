@@ -43,5 +43,6 @@ reading and what it decided.
 ## See also
 
 - [Regression inference](../../guides/regression-inference.md) — reading the table.
+- [Weighted least squares](wls.md) — the same table, one weight per row.
 - [statsmodels → .NET](../../migration/statsmodels.md) — what is delegated and what is not.
 - [Python → C# equivalence](../../equivalence.md).

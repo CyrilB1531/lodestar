@@ -37,16 +37,51 @@ public static class OrdinaryLeastSquares
         int rowCount = LeastSquares.Rows(design, response, featureCount);
         int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
 
+        RequireResidualDegreesOfFreedom(rowCount, parameterCount, nameof(design));
+
+        double[] matrix = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept);
+        return Summarise(
+            matrix,
+            response,
+            matrix,
+            TotalSumOfSquares(response, settings.WithIntercept),
+            rowCount,
+            parameterCount,
+            settings);
+    }
+
+    /// <summary>Refuses a design with no residual degree of freedom left.</summary>
+    /// <exception cref="ArgumentException">No residual degree of freedom is left.</exception>
+    internal static void RequireResidualDegreesOfFreedom(int rowCount, int parameterCount, string parameterName)
+    {
         int residualDegreesOfFreedom = rowCount - parameterCount;
         if (residualDegreesOfFreedom < 1)
         {
             throw new ArgumentException(
                 $"{rowCount} rows fit {parameterCount} parameters with {residualDegreesOfFreedom} degrees "
                 + "of freedom left, and every standard error here divides by that.",
-                nameof(design));
+                parameterName);
         }
+    }
 
-        double[] matrix = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept);
+    /// <summary>Everything from the solve onward, shared by the ordinary and the weighted fit.</summary>
+    /// <param name="matrix">The design the solve runs on, intercept column included — whitened for a weighted fit.</param>
+    /// <param name="response">The response the solve runs on, whitened alongside <paramref name="matrix"/>.</param>
+    /// <param name="unweighted">The design as the caller gave it, which the VIFs read.</param>
+    /// <param name="totalSumOfSquares">The denominator of R², which a weighted fit centres on its weighted mean.</param>
+    /// <param name="rowCount">Rows in the design.</param>
+    /// <param name="parameterCount">Columns in the design, intercept included.</param>
+    /// <param name="settings">The options the caller passed, defaults resolved.</param>
+    internal static OlsSummary Summarise(
+        double[] matrix,
+        ReadOnlySpan<double> response,
+        double[] unweighted,
+        double totalSumOfSquares,
+        int rowCount,
+        int parameterCount,
+        OlsOptions settings)
+    {
+        int residualDegreesOfFreedom = rowCount - parameterCount;
         (double[] coefficients, double[] inverseUpper, QrDecomposition factorization) =
             LeastSquares.Solve(matrix, rowCount, parameterCount, response);
 
@@ -93,7 +128,7 @@ public static class OrdinaryLeastSquares
             upper[j] = coefficients[j] + (multiplier * standardErrors[j]);
         }
 
-        double rSquared = RSquared(response, residualSumOfSquares, settings.WithIntercept);
+        double rSquared = 1.0 - (residualSumOfSquares / totalSumOfSquares);
         int modelDegreesOfFreedom = parameterCount - (settings.WithIntercept ? 1 : 0);
         double fStatistic = covariance is null
             ? rSquared / modelDegreesOfFreedom / ((1.0 - rSquared) / residualDegreesOfFreedom)
@@ -108,7 +143,7 @@ public static class OrdinaryLeastSquares
             PValues = pValues,
             ConfidenceLower = lower,
             ConfidenceUpper = upper,
-            VarianceInflationFactors = Vif(matrix, rowCount, parameterCount, settings.WithIntercept),
+            VarianceInflationFactors = Vif(unweighted, rowCount, parameterCount, settings.WithIntercept),
             CovarianceType = settings.CovarianceType,
             HasIntercept = settings.WithIntercept,
             ConfidenceLevel = settings.ConfidenceLevel,
@@ -191,9 +226,8 @@ public static class OrdinaryLeastSquares
         return residuals;
     }
 
-    /// <summary>Explained fraction — centred against the mean, or against zero with no intercept.</summary>
-    private static double RSquared(
-        ReadOnlySpan<double> response, double residualSumOfSquares, bool withIntercept)
+    /// <summary>R²'s denominator — centred against the mean, or against zero with no intercept.</summary>
+    private static double TotalSumOfSquares(ReadOnlySpan<double> response, bool withIntercept)
     {
         double total = 0.0;
         if (withIntercept)
@@ -219,7 +253,7 @@ public static class OrdinaryLeastSquares
             }
         }
 
-        return 1.0 - (residualSumOfSquares / total);
+        return total;
     }
 
     /// <summary>R-squared penalised for the parameters spent reaching it.</summary>

@@ -118,6 +118,7 @@ DESIGN = "design"
 OLS_FEATURE_COUNT = "featureCount"
 RESPONSE = "response"
 WITH_INTERCEPT = "withIntercept"
+WEIGHTS = "weights"
 # The inference table's own field names, shared by the OLS, GLM and Cox corpora (#684).
 COEFFICIENTS = "coefficients"
 STANDARD_ERRORS = "standardErrors"
@@ -5229,58 +5230,193 @@ def generate_search_bm25() -> dict:
     }
 
 
+def _linear_case(fixture: dict, model) -> dict:
+    """One OLS or WLS case: the fixture echoed, then every number the summary table holds.
+
+    Shared by the two corpora because statsmodels returns the same RegressionResults from
+    both, and the C# returns the same OlsSummary (#768).
+    """
+    import numpy as np
+    from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+    kind = fixture.get(COVARIANCE_TYPE, "nonrobust")
+    fitted = model.fit() if kind == "nonrobust" else model.fit(cov_type=kind)
+    interval = fitted.conf_int(alpha=1.0 - fixture[CONFIDENCE_LEVEL])
+
+    # variance_inflation_factor adds no constant and takes no weights: the model's own
+    # constant centres the auxiliary fit, and a WLS case freezes the design's own VIF.
+    exog = model.exog
+    first = 1 if fixture[WITH_INTERCEPT] else 0
+    vif = [float(variance_inflation_factor(exog, i))
+           for i in range(first, exog.shape[1])]
+
+    case = {
+        "name": fixture["name"],
+        DESIGN: fixture[DESIGN],
+        RESPONSE: fixture[RESPONSE],
+    }
+    if WEIGHTS in fixture:
+        case[WEIGHTS] = fixture[WEIGHTS]
+    case.update({
+        OLS_FEATURE_COUNT: fixture[OLS_FEATURE_COUNT],
+        WITH_INTERCEPT: fixture[WITH_INTERCEPT],
+        CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
+        COVARIANCE_TYPE: kind,
+        COEFFICIENTS: [float(v) for v in fitted.params],
+        STANDARD_ERRORS: [float(v) for v in fitted.bse],
+        "tStatistics": [float(v) for v in fitted.tvalues],
+        P_VALUES: [float(v) for v in fitted.pvalues],
+        CONFIDENCE_LOWER: [float(v) for v in interval[:, 0]],
+        CONFIDENCE_UPPER: [float(v) for v in interval[:, 1]],
+        "rSquared": float(fitted.rsquared),
+        "adjustedRSquared": float(fitted.rsquared_adj),
+        "fStatistic": float(fitted.fvalue),
+        "fPValue": float(fitted.f_pvalue),
+        "residualDegreesOfFreedom": int(fitted.df_resid),
+        "residualStandardError": float(np.sqrt(fitted.mse_resid)),
+        "varianceInflationFactors": vif,
+    })
+    return case
+
+
+def _linear_exog(fixture: dict):
+    """The fixture's design as statsmodels takes it, with the constant prepended when asked."""
+    import numpy as np
+    import statsmodels.api as sm
+
+    design = np.array(fixture[DESIGN]).reshape(-1, fixture[OLS_FEATURE_COUNT])
+    return sm.add_constant(design, prepend=True) if fixture[WITH_INTERCEPT] else design
+
+
 def generate_stats_ols() -> dict:
     """OLS with the inference table statsmodels prints and MathNet does not have (#566)."""
     import numpy as np
     import statsmodels.api as sm
-    from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-    cases = []
-    for fixture in _ols_fixtures():
-        feature_count = fixture[OLS_FEATURE_COUNT]
-        design = np.array(fixture[DESIGN]).reshape(-1, feature_count)
-        response = np.array(fixture[RESPONSE])
-        exog = sm.add_constant(design, prepend=True) if fixture[WITH_INTERCEPT] else design
-
-        kind = fixture.get(COVARIANCE_TYPE, "nonrobust")
-        model = sm.OLS(response, exog)
-        fitted = model.fit() if kind == "nonrobust" else model.fit(cov_type=kind)
-        interval = fitted.conf_int(alpha=1.0 - fixture[CONFIDENCE_LEVEL])
-
-        # variance_inflation_factor adds no constant of its own, so the model's own
-        # constant column is what centres the auxiliary fit. The constant has no VIF.
-        first = 1 if fixture[WITH_INTERCEPT] else 0
-        vif = [float(variance_inflation_factor(exog, i))
-               for i in range(first, exog.shape[1])]
-
-        cases.append({
-            "name": fixture["name"],
-            DESIGN: fixture[DESIGN],
-            RESPONSE: fixture[RESPONSE],
-            OLS_FEATURE_COUNT: feature_count,
-            WITH_INTERCEPT: fixture[WITH_INTERCEPT],
-            CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
-            COVARIANCE_TYPE: kind,
-            COEFFICIENTS: [float(v) for v in fitted.params],
-            STANDARD_ERRORS: [float(v) for v in fitted.bse],
-            "tStatistics": [float(v) for v in fitted.tvalues],
-            P_VALUES: [float(v) for v in fitted.pvalues],
-            CONFIDENCE_LOWER: [float(v) for v in interval[:, 0]],
-            CONFIDENCE_UPPER: [float(v) for v in interval[:, 1]],
-            "rSquared": float(fitted.rsquared),
-            "adjustedRSquared": float(fitted.rsquared_adj),
-            "fStatistic": float(fitted.fvalue),
-            "fPValue": float(fitted.f_pvalue),
-            "residualDegreesOfFreedom": int(fitted.df_resid),
-            "residualStandardError": float(np.sqrt(fitted.mse_resid)),
-            "varianceInflationFactors": vif,
-        })
+    cases = [
+        _linear_case(fixture, sm.OLS(np.array(fixture[RESPONSE]), _linear_exog(fixture)))
+        for fixture in _ols_fixtures()
+    ]
 
     return {
         "metadata": {
             "library": STATSMODELS,
             "version": version(STATSMODELS),
             FAMILY: "ols",
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
+def _wls_fixtures() -> list[dict]:
+    """Weights chosen for what whitening can get wrong, over designs the OLS corpus already trusts (#768).
+
+    Hand-written like `_ols_fixtures`. The responses carry visible noise on purpose: the
+    reproducibility gate compares at 1e-9 absolute (decision 0073), and a near-exact fit
+    drives the robust Wald statistic to where a last-bit BLAS difference crosses that.
+    """
+    line = {
+        DESIGN: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        RESPONSE: [2.4, 3.6, 6.9, 7.1, 10.8, 11.2, 15.1, 14.6, 19.3, 19.9],
+        OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+    }
+    uneven = [1.0, 2.0, 0.5, 1.5, 3.0, 1.0, 0.25, 2.0, 0.75, 1.25]
+    # Twelve rows of three regressors, the OLS corpus' own, with weights that fall as the
+    # response grows: the shape a variance proportional to the level asks for.
+    three = {
+        DESIGN: [
+            1.0, 4.0, 0.5, 2.0, 3.0, 1.5, 3.0, 5.0, 2.5, 4.0, 2.0, 0.5,
+            5.0, 6.0, 3.5, 6.0, 1.0, 1.0, 7.0, 7.0, 4.5, 8.0, 3.0, 2.0,
+            9.0, 8.0, 5.5, 10.0, 4.0, 2.5, 11.0, 9.0, 6.5, 12.0, 5.0, 3.0,
+        ],
+        RESPONSE: [7.2, 9.1, 12.4, 10.8, 16.3, 14.1, 20.7, 18.2, 24.9, 22.4, 29.1, 26.8],
+        WEIGHTS: [
+            1.0 / 7.2, 1.0 / 9.1, 1.0 / 12.4, 1.0 / 10.8, 1.0 / 16.3, 1.0 / 14.1,
+            1.0 / 20.7, 1.0 / 18.2, 1.0 / 24.9, 1.0 / 22.4, 1.0 / 29.1, 1.0 / 26.8,
+        ],
+        OLS_FEATURE_COUNT: 3, WITH_INTERCEPT: True,
+    }
+    fixtures = [
+        {"name": "one regressor, uneven weights", WEIGHTS: uneven, **line},
+        {
+            # Every weight one: the corpus then holds OLS numbers, which is the identity
+            # the C# pins bit for bit against OrdinaryLeastSquares.Fit.
+            "name": "one regressor, unit weights",
+            WEIGHTS: [1.0] * 10, **line,
+        },
+        {
+            # A constant weight moves the scale and nothing else: the estimates, their
+            # errors and R-squared are OLS's, the residual standard error is doubled.
+            "name": "one regressor, every weight four",
+            WEIGHTS: [4.0] * 10, **line,
+        },
+        {
+            # The row the weight zeroes still counts: df_resid is 8 on ten rows, not 7.
+            "name": "one regressor, one zero weight",
+            WEIGHTS: [1.0, 2.0, 0.5, 0.0, 3.0, 1.0, 0.25, 2.0, 0.75, 1.25], **line,
+        },
+        {
+            # No intercept: R-squared is then the whitened uncentred one, sum of w y^2.
+            "name": "two regressors, no intercept, uneven weights",
+            DESIGN: [1.0, 1.0, 2.0, 1.0, 3.0, 2.0, 4.0, 2.0, 5.0, 3.0, 6.0, 3.0, 7.0, 4.0, 8.0, 4.0],
+            RESPONSE: [3.4, 4.8, 8.9, 9.6, 12.7, 15.9, 19.2, 19.4],
+            WEIGHTS: [2.0, 1.0, 1.5, 0.5, 1.0, 0.75, 0.5, 0.25],
+            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+        },
+        {"name": "three regressors, inverse-level weights, 99%", CONFIDENCE_LEVEL: 0.99, **three},
+        {
+            # x2 is x1 plus a hundredth, as in the OLS corpus: the VIF is the design's own,
+            # which is the number variance_inflation_factor returns for this exog.
+            "name": "near-collinear regressors, uneven weights",
+            DESIGN: [
+                1.0, 1.01, 2.0, 2.02, 3.0, 2.99, 4.0, 4.01, 5.0, 5.02,
+                6.0, 5.99, 7.0, 7.01, 8.0, 8.02, 9.0, 8.99, 10.0, 10.01,
+            ],
+            RESPONSE: [2.4, 3.6, 6.9, 7.1, 10.8, 11.2, 15.1, 14.6, 19.3, 19.9],
+            WEIGHTS: uneven,
+            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+    ]
+    # long-comment: what the robust cases catch, and why they stay on one regressor.
+    # The model's constant stays out of the robust Wald test, where OLS on the whitened
+    # rows would put it in -- 505 against 619 under HC0 here, so these four also tell
+    # WLS from that shortcut. Kept to one regressor: a Wald statistic in the tens of
+    # thousands is where decision 0073's absolute 1e-9 stops holding across machines.
+    fixtures.extend(
+        {"name": f"one regressor, uneven weights, {kind}", COVARIANCE_TYPE: kind,
+         WEIGHTS: uneven, **line}
+        for kind in ("HC0", "HC1", "HC2", "HC3")
+    )
+    fixtures.append({
+        # A zero weight under HC3: the whitened row has leverage zero, so its 1 - h is
+        # one rather than a division by zero, and HC1's n still counts it.
+        "name": "one regressor, one zero weight, HC3",
+        WEIGHTS: [1.0, 2.0, 0.5, 0.0, 3.0, 1.0, 0.25, 2.0, 0.75, 1.25],
+        COVARIANCE_TYPE: "HC3", **line,
+    })
+    return fixtures
+
+
+def generate_stats_wls() -> dict:
+    """WLS with the same table as OLS, rows scaled by the square root of a weight (#768)."""
+    import numpy as np
+    import statsmodels.api as sm
+
+    cases = [
+        _linear_case(
+            fixture,
+            sm.WLS(np.array(fixture[RESPONSE]), _linear_exog(fixture),
+                   weights=np.array(fixture[WEIGHTS])),
+        )
+        for fixture in _wls_fixtures()
+    ]
+
+    return {
+        "metadata": {
+            "library": STATSMODELS,
+            "version": version(STATSMODELS),
+            FAMILY: "wls",
             "count": len(cases),
         },
         "cases": cases,
@@ -10676,6 +10812,7 @@ def main() -> None:
         "survival_logrank.json": generate_survival_logrank,
         "survival_cox.json": generate_survival_cox,
         "stats_ols.json": generate_stats_ols,
+        "stats_wls.json": generate_stats_wls,
         "stats_glm.json": generate_stats_glm,
         "regression_log_factorial.json": generate_regression_log_factorial,
         "stats_timeseries.json": generate_stats_timeseries,

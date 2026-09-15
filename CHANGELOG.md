@@ -236,6 +236,13 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- **[`WeightedLeastSquares.Fit`](docs/reference/stats-regression/wls/weightedleastsquares-fit.md)
+  fits a linear model with one weight per row and returns the same `OlsSummary` table**, at
+  `statsmodels.WLS` 0.15.0 parity over 12 frozen cases, the four robust covariances included: R² on
+  the weighted mean, and a zero weight kept in the residual degrees of freedom as the reference keeps
+  it. Negative or non-finite weights, and fewer positively weighted rows than parameters, are refused
+  where the reference crashes or answers through a pseudo-inverse.
+  ([#768](https://github.com/CyrilB1531/lodestar/issues/768))
 - **[`OrdinaryLeastSquares.Estimate`](docs/reference/stats-regression/ols/ordinaryleastsquares-estimate.md)
   and `OlsEstimate` fit the same model as `Fit` and stop at the coefficients, their standard errors,
   the t statistics and the residual sum of squares**: no explicit `Q`, no second QR for the VIFs, no
