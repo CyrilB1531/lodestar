@@ -19,7 +19,7 @@ public static class OrdinaryLeastSquares
     /// <param name="options">Whether to fit an intercept and at what confidence; <see langword="null"/> fits one at 0.95.</param>
     /// <returns>The fitted model, with its standard errors, t statistics, p-values, intervals and VIFs.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
-    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, or there are no residual degrees of freedom left.</exception>
+    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, <paramref name="options"/> sets <see cref="OlsOptions.HacLags"/> or <see cref="OlsOptions.SmallSampleCorrection"/> for a type that does not read it or asks for <see cref="CovarianceType.Hac"/> without lags or <see cref="CovarianceType.Cluster"/> without labels, or there are no residual degrees of freedom left.</exception>
     /// <remarks>
     /// Solved through a Householder QR of the design rather than the normal equations:
     /// forming <c>XᵀX</c> squares its condition number, and the near-collinear designs a VIF
@@ -37,14 +37,88 @@ public static class OrdinaryLeastSquares
         int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
 
         RequireResidualDegreesOfFreedom(rowCount, parameterCount, nameof(design));
+        CheckCovariance(settings, default, clustered: false, rowCount, nameof(options));
 
         return Summarise(
             design,
             response,
             TotalSumOfSquares(response, settings.WithIntercept),
-            rowCount,
             featureCount,
             settings);
+    }
+
+    /// <summary>Fits a linear model whose rows fall in clusters, and reports what a summary table holds.</summary>
+    /// <param name="design">The regressors, row-major: <paramref name="featureCount"/> values per row, with no constant column of your own.</param>
+    /// <param name="response">One observed value per row of <paramref name="design"/>.</param>
+    /// <param name="clusters">One cluster label per row of <paramref name="design"/>; any integers, in any order, at least two distinct.</param>
+    /// <param name="featureCount">How many regressors each row carries.</param>
+    /// <param name="options">Whether to fit an intercept, the correction and the confidence; its <see cref="OlsOptions.CovarianceType"/> must be <see cref="CovarianceType.Cluster"/>.</param>
+    /// <returns>The fitted model, with cluster-robust standard errors, z statistics, p-values, intervals and VIFs.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
+    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> or <paramref name="clusters"/> has a different length, <paramref name="clusters"/> names fewer than two clusters, <paramref name="options"/> asks for another covariance, or no residual degrees of freedom are left.</exception>
+    /// <remarks>
+    /// <c>statsmodels</c>' <c>fit(cov_type="cluster", cov_kwds={"groups": clusters})</c>. The labels only say which rows
+    /// share a cluster, so relabelling them changes nothing.
+    /// </remarks>
+    public static OlsSummary Fit(
+        ReadOnlySpan<double> design,
+        ReadOnlySpan<double> response,
+        ReadOnlySpan<int> clusters,
+        int featureCount,
+        OlsOptions options)
+    {
+        Guard.NotLessThan(featureCount, 1);
+        Guard.NotNull(options);
+        int rowCount = LeastSquares.Rows(design, response, featureCount);
+        int parameterCount = featureCount + (options.WithIntercept ? 1 : 0);
+        RequireResidualDegreesOfFreedom(rowCount, parameterCount, nameof(design));
+        ClusterLabels? labels = CheckCovariance(options, clusters, clustered: true, rowCount, nameof(options));
+
+        return Summarise(
+            design,
+            response,
+            TotalSumOfSquares(response, options.WithIntercept),
+            featureCount,
+            options,
+            labels);
+    }
+
+    /// <summary>Refuses the options a covariance type does not take, and makes the cluster labels dense.</summary>
+    /// <param name="settings">The options, defaults resolved.</param>
+    /// <param name="clusters">The labels the caller passed; empty through an overload without them.</param>
+    /// <param name="clustered">Whether the call came through an overload taking labels.</param>
+    /// <param name="rowCount">Rows in the design.</param>
+    /// <param name="optionsName">The public parameter the options arrived in, named by the exception.</param>
+    /// <returns>The labels renumbered from zero in first-seen order, or <see langword="null"/> for an unclustered call.</returns>
+    /// <exception cref="ArgumentException">The options and the overload disagree, or the labels are of the wrong length or name one cluster.</exception>
+    internal static ClusterLabels? CheckCovariance(
+        OlsOptions settings, ReadOnlySpan<int> clusters, bool clustered, int rowCount, string optionsName)
+    {
+        CovarianceType type = settings.CovarianceType;
+        if ((type == CovarianceType.Hac) != settings.HacLags.HasValue)
+        {
+            throw new ArgumentException(
+                $"HacLags is set with covariance type {type}; it is required with Hac and read by nothing else.",
+                optionsName);
+        }
+
+        if (settings.SmallSampleCorrection.HasValue && type is not (CovarianceType.Hac or CovarianceType.Cluster))
+        {
+            throw new ArgumentException(
+                $"SmallSampleCorrection is set with covariance type {type}, which has no correction to switch.",
+                optionsName);
+        }
+
+        if ((type == CovarianceType.Cluster) != clustered)
+        {
+            throw new ArgumentException(
+                clustered
+                    ? $"Cluster labels were passed with covariance type {type}, which does not read them."
+                    : "The Cluster covariance needs one label per row, through the overload that takes them.",
+                optionsName);
+        }
+
+        return clustered ? ClusterLabels.Dense(clusters, rowCount) : null;
     }
 
     /// <summary>Refuses a design with no residual degree of freedom left.</summary>
@@ -65,19 +139,20 @@ public static class OrdinaryLeastSquares
     /// <param name="design">The regressors as the caller gave them, row-major, with no constant column.</param>
     /// <param name="response">The response as the caller gave it.</param>
     /// <param name="totalSumOfSquares">The denominator of R², which a weighted fit centres on its weighted mean.</param>
-    /// <param name="rowCount">Rows in the design.</param>
     /// <param name="featureCount">Regressors per row.</param>
     /// <param name="settings">The options the caller passed, defaults resolved.</param>
+    /// <param name="clusters">The dense cluster labels of a cluster fit; <see langword="null"/> otherwise.</param>
     /// <param name="weights">The weighted fit's weights, applied inside the solve rather than to a copy; empty otherwise.</param>
     internal static OlsSummary Summarise(
         ReadOnlySpan<double> design,
         ReadOnlySpan<double> response,
         double totalSumOfSquares,
-        int rowCount,
         int featureCount,
         OlsOptions settings,
+        ClusterLabels? clusters = null,
         ReadOnlySpan<double> weights = default)
     {
+        int rowCount = response.Length;
         int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
         (double[] coefficients, double[] inverseUpper) =
             LeastSquares.Solve(design, rowCount, featureCount, settings.WithIntercept, response, weights);
@@ -90,7 +165,7 @@ public static class OrdinaryLeastSquares
             : Whiten(LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept), rowCount, parameterCount, weights);
 
         return Tabulate(
-            new SolvedFit(coefficients, inverseUpper, residuals, robustMatrix),
+            new SolvedFit(coefficients, inverseUpper, residuals, robustMatrix, clusters),
             Vif(design, rowCount, featureCount, settings.WithIntercept),
             totalSumOfSquares,
             rowCount,
@@ -102,8 +177,13 @@ public static class OrdinaryLeastSquares
     /// <param name="InverseUpper">R⁻¹, or U⁻¹ from the normal equations, row-major.</param>
     /// <param name="RowResiduals">The residuals of the rows the solve ran on — whitened for a weighted or generalized fit.</param>
     /// <param name="RobustMatrix">Those rows' design, intercept column included, when a robust covariance is asked for.</param>
+    /// <param name="Clusters">The dense cluster labels of a cluster fit; <see langword="null"/> otherwise.</param>
     internal readonly record struct SolvedFit(
-        double[] Coefficients, double[] InverseUpper, double[] RowResiduals, double[]? RobustMatrix);
+        double[] Coefficients,
+        double[] InverseUpper,
+        double[] RowResiduals,
+        double[]? RobustMatrix,
+        ClusterLabels? Clusters = null);
 
     /// <summary>The inference table on top of a solved fit, shared by the ordinary, weighted and generalized fits.</summary>
     internal static OlsSummary Tabulate(
@@ -119,16 +199,7 @@ public static class OrdinaryLeastSquares
         double residualStandardError = Math.Sqrt(residualVariance);
 
         bool robust = fit.RobustMatrix is not null;
-        double[]? covariance = fit.RobustMatrix is { } scaled
-            ? RobustCovariance.Sandwich(
-                scaled,
-                inverseUpper,
-                residuals,
-                RobustCovariance.Leverages(scaled, inverseUpper, rowCount, parameterCount),
-                rowCount,
-                parameterCount,
-                settings.CovarianceType)
-            : null;
+        double[]? covariance = robust ? RobustSandwich(fit, rowCount, settings) : null;
 
         double[] standardErrors = covariance is null
             ? LeastSquares.StandardErrors(inverseUpper, parameterCount, residualVariance)
@@ -178,10 +249,36 @@ public static class OrdinaryLeastSquares
             RSquared = rSquared,
             AdjustedRSquared = AdjustedRSquared(rSquared, rowCount, parameterCount, settings.WithIntercept),
             FStatistic = fStatistic,
-            FPValue = Distributions.FisherSf(fStatistic, modelDegreesOfFreedom, residualDegreesOfFreedom),
+            // A cluster fit reads its F on G − 1 denominator degrees of freedom, statsmodels' df_resid_inference.
+            FPValue = Distributions.FisherSf(
+                fStatistic, modelDegreesOfFreedom, fit.Clusters is { } groups ? groups.Count - 1 : residualDegreesOfFreedom),
             ResidualDegreesOfFreedom = residualDegreesOfFreedom,
             ResidualStandardError = residualStandardError,
         };
+    }
+
+    /// <summary>The robust covariance a fit asked for: its filling, the shared bread, and the type's small-sample factor.</summary>
+    private static double[] RobustSandwich(SolvedFit fit, int rowCount, OlsOptions settings)
+    {
+        double[] matrix = fit.RobustMatrix!;
+        int parameterCount = fit.Coefficients.Length;
+        double degreesOfFreedomFactor = (double)rowCount / (rowCount - parameterCount);
+        (double[] meat, double? correction) = settings.CovarianceType switch
+        {
+            CovarianceType.Hac => (
+                RobustCovariance.HacMeat(matrix, fit.RowResiduals, rowCount, parameterCount, settings.HacLags!.Value),
+                settings.SmallSampleCorrection == true ? degreesOfFreedomFactor : (double?)null),
+            CovarianceType.Cluster => (
+                RobustCovariance.ClusterMeat(matrix, fit.RowResiduals, fit.Clusters!.Labels, parameterCount, fit.Clusters.Count),
+                settings.SmallSampleCorrection ?? true
+                    ? (double)fit.Clusters.Count / (fit.Clusters.Count - 1) * ((rowCount - 1.0) / (rowCount - parameterCount))
+                    : (double?)null),
+            _ => (
+                RobustCovariance.HeteroskedasticMeat(matrix, fit.InverseUpper, fit.RowResiduals, rowCount, parameterCount, settings.CovarianceType),
+                settings.CovarianceType == CovarianceType.Hc1 ? degreesOfFreedomFactor : (double?)null),
+        };
+
+        return RobustCovariance.Sandwich(meat, fit.InverseUpper, parameterCount, correction);
     }
 
     /// <summary>Fits a linear model and reports the estimates and their standard errors, without the inference table.</summary>
@@ -193,10 +290,10 @@ public static class OrdinaryLeastSquares
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
     /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, or there are no residual degrees of freedom left.</exception>
     /// <remarks>
-    /// The same Householder least squares as <see cref="Fit"/>, for a caller fitting many regressions and
-    /// reading a coefficient, a t statistic or a likelihood from each. It skips what <see cref="Fit"/>
+    /// The same Householder least squares as <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/>, for a caller fitting many regressions and
+    /// reading a coefficient, a t statistic or a likelihood from each. It skips what <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/>
     /// adds on top — p-values, intervals, R², the F test, the VIFs and the explicit Q the robust
-    /// covariances need — and agrees with <see cref="Fit"/> on the numbers it keeps.
+    /// covariances need — and agrees with <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/> on the numbers it keeps.
     /// </remarks>
     public static OlsEstimate Estimate(
         ReadOnlySpan<double> design,

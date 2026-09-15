@@ -24,7 +24,7 @@ public static class GeneralizedLeastSquares
     /// <param name="options">Whether to fit an intercept, which covariance of the estimates, and at what confidence; <see langword="null"/> fits one at 0.95.</param>
     /// <returns>The fitted model, with its standard errors, t statistics, p-values, intervals and VIFs.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or <paramref name="covariance"/> holds a value that is not finite.</exception>
-    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, <paramref name="covariance"/> is not the square of that length, is not symmetric or is not positive definite, or no residual degrees of freedom are left.</exception>
+    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, <paramref name="covariance"/> is not the square of that length, is not symmetric or is not positive definite, <paramref name="options"/> asks for <see cref="CovarianceType.Hac"/> or <see cref="CovarianceType.Cluster"/>, or no residual degrees of freedom are left.</exception>
     /// <remarks>
     /// R² follows the reference: centred, with an intercept, on the mean estimated in whitened space. The VIFs
     /// read the design as given, as <c>variance_inflation_factor</c> does.
@@ -41,6 +41,14 @@ public static class GeneralizedLeastSquares
         int rowCount = LeastSquares.Rows(design, response, featureCount);
         int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
         OrdinaryLeastSquares.RequireResidualDegreesOfFreedom(rowCount, parameterCount, nameof(design));
+        if (settings.CovarianceType is CovarianceType.Hac or CovarianceType.Cluster)
+        {
+            // Out of #775's scope: no corpus pins either covariance on whitened GLS rows.
+            throw new ArgumentException(
+                $"Covariance type {settings.CovarianceType} is not offered for generalized least squares.", nameof(options));
+        }
+
+        OrdinaryLeastSquares.CheckCovariance(settings, default, clustered: false, rowCount, nameof(options));
         double[] lower = Factor(covariance, rowCount);
 
         double[] whitened = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept);

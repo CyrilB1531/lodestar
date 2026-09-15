@@ -73,19 +73,42 @@ public static class StatsCrossLang
         Harness.Measure($"chi_square_{suffix}", () => ChiSquare.Contingency(corpus.Table)),
     ];
 
-    private static List<Harness.OperationResult> Regression(Corpus corpus, string suffix) =>
-    [
-        // long-comment: the asymmetry between the two libraries is the whole reason
-        // bench/compare.py folds two Python rows into one, and it is not guessable.
-        // One row, not two. Fit computes the coefficients, their errors, the tails, the
-        // intervals AND the VIFs in the one call, where statsmodels leaves the VIF outside
-        // .fit() -- so bench_stats.py splits its side into ols_summary_* and ols_vif_*, and
-        // bench/compare.py sums those two before dividing. Splitting this side to match
-        // would mean fitting twice and pricing work no caller pays for.
-        Harness.Measure(
-            $"ols_summary_{suffix}",
-            () => OrdinaryLeastSquares.Fit(corpus.Design, corpus.Response, corpus.Regressors)),
-    ];
+    /// <summary>The lag count of the HAC row, as bench_stats.py's <c>HAC_LAGS</c> (#775).</summary>
+    private const int HacLags = 4;
+
+    /// <summary>Rows per cluster in the cluster row: consecutive blocks, as bench_stats.py's <c>CLUSTER_SIZE</c>.</summary>
+    private const int ClusterSize = 20;
+
+    private static List<Harness.OperationResult> Regression(Corpus corpus, string suffix)
+    {
+        int[] clusters = new int[corpus.Response.Length];
+        for (int row = 0; row < clusters.Length; row++)
+        {
+            clusters[row] = row / ClusterSize;
+        }
+
+        var hac = new OlsOptions { CovarianceType = CovarianceType.Hac, HacLags = HacLags };
+        var cluster = new OlsOptions { CovarianceType = CovarianceType.Cluster };
+        return
+        [
+            // long-comment: the asymmetry between the two libraries is the whole reason
+            // bench/compare.py folds two Python rows into one, and it is not guessable.
+            // One row, not two. Fit computes the coefficients, their errors, the tails, the
+            // intervals AND the VIFs in the one call, where statsmodels leaves the VIF outside
+            // .fit() -- so bench_stats.py splits its side into ols_summary_* and ols_vif_*, and
+            // bench/compare.py sums those two before dividing. Splitting this side to match
+            // would mean fitting twice and pricing work no caller pays for.
+            Harness.Measure(
+                $"ols_summary_{suffix}",
+                () => OrdinaryLeastSquares.Fit(corpus.Design, corpus.Response, corpus.Regressors)),
+            Harness.Measure(
+                $"ols_hac_{suffix}",
+                () => OrdinaryLeastSquares.Fit(corpus.Design, corpus.Response, corpus.Regressors, hac)),
+            Harness.Measure(
+                $"ols_cluster_{suffix}",
+                () => OrdinaryLeastSquares.Fit(corpus.Design, corpus.Response, clusters, corpus.Regressors, cluster)),
+        ];
+    }
 
     private static List<Harness.OperationResult> GeneralizedLinear(Corpus corpus, string suffix) =>
     [

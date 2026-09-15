@@ -114,6 +114,11 @@ FAMILY = "family"
 # The OLS corpus repeats its own field names once per fixture and once per emitted case.
 CONFIDENCE_LEVEL = "confidenceLevel"
 COVARIANCE_TYPE = "covarianceType"
+# The HAC and cluster keys of the linear corpora, echoed into each case they configure (#775).
+HAC_LAGS = "hacLags"
+USE_CORRECTION = "useCorrection"
+# statsmodels' cov_type string for one-way clusters, used by the OLS and WLS fixtures (#775).
+CLUSTER = "cluster"
 DESIGN = "design"
 OLS_FEATURE_COUNT = "featureCount"
 RESPONSE = "response"
@@ -4605,6 +4610,7 @@ def _ols_fixtures() -> list[dict]:
             OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
         },
         *_robust_fixtures(),
+        *_hac_cluster_fixtures(),
     ]
 
 
@@ -4662,6 +4668,59 @@ def _robust_fixtures() -> list[dict]:
         COVARIANCE_TYPE: "HC3",
     })
     return fixtures
+
+
+# long-comment: where the literal below came from, so it can be drawn again.
+# Twenty rows of y = 1.5 + 0.8 x plus AR(1) errors at 0.6, drawn once from numpy's
+# default_rng(775) with a noise scale of 1.2 and rounded to two decimals: the serial
+# correlation HAC exists for, frozen as a literal like the fixtures above (#775).
+SERIAL = {
+    DESIGN: [float(v) for v in range(1, 21)],
+    RESPONSE: [
+        2.43, 3.16, 4.05, 4.97, 5.77, 4.73, 5.77, 7.8, 8.67, 9.68,
+        9.7, 10.86, 11.12, 10.9, 11.98, 14.32, 15.33, 14.54, 15.6, 19.15,
+    ],
+    OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+}
+
+# Five clusters of uneven size (4, 4, 5, 4, 3), labels neither dense nor sorted: the
+# reference hands int64 labels to np.bincount as they are, so the gaps are empty bins.
+SERIAL_GROUPS = [7, 7, 3, 7, 0, 3, 3, 12, 0, 12, 7, 5, 5, 3, 0, 12, 5, 5, 5, 0]
+
+
+def _hac_cluster_fixtures() -> list[dict]:
+    """HAC at two lag counts and past the row count, and one-way clusters, on OLS (#775)."""
+    return [
+        {"name": "serially correlated errors, HAC 2", COVARIANCE_TYPE: "HAC", HAC_LAGS: 2, **SERIAL},
+        {
+            "name": "serially correlated errors, HAC 4, corrected",
+            COVARIANCE_TYPE: "HAC", HAC_LAGS: 4, USE_CORRECTION: True, **SERIAL,
+        },
+        {
+            # long-comment: what the case pins, and why its response is its own.
+            # Ten lags on eight rows: the lags past the seventh have no pairs, and the
+            # Bartlett weights of the ones that do still divide by eleven. The response
+            # alternates hard: on the HC1 case's own the Wald statistic reaches 14 955,
+            # past where decision 0073's absolute 1e-9 holds across machines.
+            "name": "two regressors, no intercept, HAC 10 on eight rows",
+            DESIGN: [1.0, 1.0, 2.0, 1.0, 3.0, 2.0, 4.0, 2.0, 5.0, 3.0, 6.0, 3.0, 7.0, 4.0, 8.0, 4.0],
+            RESPONSE: [7.5, 1.2, 13.1, 5.1, 17.9, 9.6, 25.1, 13.5],
+            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+            COVARIANCE_TYPE: "HAC", HAC_LAGS: 10,
+        },
+        {"name": "five uneven clusters", COVARIANCE_TYPE: CLUSTER, GROUPS: SERIAL_GROUPS, **SERIAL},
+        {
+            "name": "five uneven clusters, uncorrected",
+            COVARIANCE_TYPE: CLUSTER, GROUPS: SERIAL_GROUPS, USE_CORRECTION: False, **SERIAL,
+        },
+        {
+            # Ten clusters of two at 99%: the F test reads 9 denominator degrees of
+            # freedom where df_resid is 18.
+            "name": "ten clusters of two, 99%",
+            COVARIANCE_TYPE: CLUSTER, GROUPS: [row // 2 for row in range(20)],
+            **{**SERIAL, CONFIDENCE_LEVEL: 0.99},
+        },
+    ]
 
 
 # --- Lodestar.Survival, oracled by lifelines rather than scipy (#569) -----------
@@ -5246,7 +5305,19 @@ def _linear_case(fixture: dict, model) -> dict:
     from statsmodels.stats.outliers_influence import variance_inflation_factor
 
     kind = fixture.get(COVARIANCE_TYPE, "nonrobust")
-    fitted = model.fit() if kind == "nonrobust" else model.fit(cov_type=kind)
+    settings = {}
+    if HAC_LAGS in fixture:
+        settings["maxlags"] = fixture[HAC_LAGS]
+    if GROUPS in fixture:
+        settings[GROUPS] = np.array(fixture[GROUPS], dtype=np.int64)
+    if USE_CORRECTION in fixture:
+        settings["use_correction"] = fixture[USE_CORRECTION]
+    if kind == "nonrobust":
+        fitted = model.fit()
+    elif settings:
+        fitted = model.fit(cov_type=kind, cov_kwds=settings)
+    else:
+        fitted = model.fit(cov_type=kind)
     interval = fitted.conf_int(alpha=1.0 - fixture[CONFIDENCE_LEVEL])
 
     # variance_inflation_factor adds no constant and takes no weights: the model's own
@@ -5261,7 +5332,7 @@ def _linear_case(fixture: dict, model) -> dict:
         DESIGN: fixture[DESIGN],
         RESPONSE: fixture[RESPONSE],
     }
-    for echoed in (WEIGHTS, ERROR_COVARIANCE):
+    for echoed in (WEIGHTS, ERROR_COVARIANCE, GROUPS):
         if echoed in fixture:
             case[echoed] = fixture[echoed]
     case.update({
@@ -5269,6 +5340,11 @@ def _linear_case(fixture: dict, model) -> dict:
         WITH_INTERCEPT: fixture[WITH_INTERCEPT],
         CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
         COVARIANCE_TYPE: kind,
+    })
+    for echoed in (HAC_LAGS, USE_CORRECTION):
+        if echoed in fixture:
+            case[echoed] = fixture[echoed]
+    case.update({
         COEFFICIENTS: [float(v) for v in fitted.params],
         STANDARD_ERRORS: [float(v) for v in fitted.bse],
         "tStatistics": [float(v) for v in fitted.tvalues],
@@ -5401,6 +5477,21 @@ def _wls_fixtures() -> list[dict]:
         "name": "one regressor, one zero weight, HC3",
         WEIGHTS: [1.0, 2.0, 0.5, 0.0, 3.0, 1.0, 0.25, 2.0, 0.75, 1.25],
         COVARIANCE_TYPE: "HC3", **line,
+    })
+    # long-comment: what the two cases catch, and why they do not use the line's response.
+    # The reference's scores are the whitened rows times the whitened residuals, so
+    # these two fail on a C# that clusters or lags the unweighted ones (#775).
+    # A zigzag response rather than the line's: on the line the slope's z reaches 38,
+    # where the reference's two-sided p-value underflows to zero and asserts nothing.
+    zigzag = {**line, RESPONSE: [3.1, 1.9, 7.4, 5.2, 12.3, 8.1, 16.8, 10.9, 21.2, 14.7]}
+    fixtures.append({
+        "name": "one regressor, uneven weights, zigzag, HAC 3",
+        COVARIANCE_TYPE: "HAC", HAC_LAGS: 3, WEIGHTS: uneven, **zigzag,
+    })
+    fixtures.append({
+        "name": "one regressor, uneven weights, zigzag, four clusters",
+        COVARIANCE_TYPE: CLUSTER, GROUPS: [2, 2, 4, 4, 4, 9, 9, 1, 1, 1],
+        WEIGHTS: uneven, **zigzag,
     })
     return fixtures
 

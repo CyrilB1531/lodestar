@@ -8,9 +8,19 @@ Fits a linear model with one weight per row and reports what a summary table hol
 public static OlsSummary Fit(ReadOnlySpan<double> design, ReadOnlySpan<double> response, ReadOnlySpan<double> weights, int featureCount, OlsOptions options = null)
 ```
 
+<!-- docs-declaration -->
+
+```csharp
+public static OlsSummary Fit(ReadOnlySpan<double> design, ReadOnlySpan<double> response, ReadOnlySpan<double> weights, ReadOnlySpan<int> clusters, int featureCount, OlsOptions options)
+```
+
+The second overload is the cluster-robust weighted fit, whose `options` must ask for
+[`CovarianceType.Cluster`](../ols/covariancetype.md).
+
 **Parameters** — `design` is the regressors, row-major: `featureCount` values per row, with no
 constant column of your own. `response` is one observed value per row of `design`. `weights` is one
-non-negative, finite weight per row, proportional to the inverse of that row's variance.
+non-negative, finite weight per row, proportional to the inverse of that row's variance. `clusters`
+is one label per row, any integers in any order, naming at least two clusters.
 `featureCount` is how many regressors each row carries. `options` chooses whether to fit an
 intercept, which covariance to estimate, and at what confidence; `null` fits an intercept at 0.95.
 
@@ -19,8 +29,9 @@ statistics, p-values, confidence intervals and variance inflation factors.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, or when a weight
 is negative, `NaN` or infinite. `ArgumentException` when `design` is not a whole number of rows, when
-`response` or `weights` has a different length, when no residual degrees of freedom are left, or when
-fewer rows carry a positive weight than the model has parameters.
+`response`, `weights` or `clusters` has a different length, when no residual degrees of freedom are
+left, when fewer rows carry a positive weight than the model has parameters, or when `options` and
+the overload disagree, as on [`OrdinaryLeastSquares.Fit`](../ols/ordinaryleastsquares-fit.md).
 
 **Example** — the robust covariances apply to a weighted fit as they do to an ordinary one.
 
@@ -50,6 +61,8 @@ on the scaled rows included. Three numbers follow the reference rather than the 
   `ResidualDegreesOfFreedom` and in HC1's correction, as `statsmodels` counts it.
 - `VarianceInflationFactors` are those of the design as given, which is what
   `variance_inflation_factor` returns for the same `exog`; the reference's `WLS` reports none.
+- `Hac` and `Cluster` read the scores of the scaled rows — each scaled row times its scaled
+  residual — which is what the reference sums.
 
 Equal weights reproduce `OrdinaryLeastSquares.Fit` exactly, and a constant weight moves only
 `ResidualStandardError`. Weights the reference would crash on or answer through a pseudo-inverse are

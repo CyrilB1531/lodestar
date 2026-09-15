@@ -248,6 +248,14 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- **`CovarianceType.Hac` and `CovarianceType.Cluster`** give `OrdinaryLeastSquares.Fit` and `WeightedLeastSquares.Fit`
+  Newey–West and one-way cluster-robust standard errors, at `statsmodels` 0.15.0 parity over 8 frozen cases:
+  `OlsOptions.HacLags` is `maxlags`, `OlsOptions.SmallSampleCorrection` is `use_correction` with the reference's default
+  per type, the labels arrive through a new `Fit` overload taking `ReadOnlySpan<int> clusters`, and a cluster fit reads
+  its F test on `G − 1` denominator degrees of freedom. A missing or misplaced option, one cluster, and either type on
+  `GeneralizedLeastSquares.Fit` are refused. Against `statsmodels` through `compare-ols`: HAC 6.7× to 15.6× faster and
+  cluster 17.8× to 43.4×, wall clock, from 1,000 to 100,000 rows. HC0 and HC1 no longer compute leverages, 10 % to 13 %
+  faster. ([#775](https://github.com/CyrilB1531/lodestar/issues/775))
 - **`GlmFamily.Gamma` and `GlmLink`** fit a positive, skewed response through `GeneralizedLinearModel.Fit`,
   with the inverse link by default or the log link through `GlmOptions.Link`, at `statsmodels` 0.15.0 parity
   over 5 frozen cases. The first estimated dispersion: `GlmSummary.Dispersion` is the Pearson scale, and the

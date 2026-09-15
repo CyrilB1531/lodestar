@@ -12,7 +12,11 @@ public sealed record OlsOptions
 `true` by default. `ConfidenceLevel` is the level of the reported intervals; 0.95 by default, and
 it must lie strictly inside (0, 1). [`CovarianceType`](covariancetype.md) chooses how the
 covariance of the estimates is estimated; `Nonrobust` by default, and anything else also moves the
-coefficient tests from Student's t to the normal.
+coefficient tests from Student's t to the normal. `HacLags` is the lag count `CovarianceType.Hac`
+reads, statsmodels' `maxlags`: required with it, refused with any other type, zero or more, and
+accepted past the row count as the reference accepts it. `SmallSampleCorrection` switches the
+correction of `Hac` (`n / (n - k)`, off when `null`) or `Cluster` (`G / (G - 1) · (n - 1) / (n - k)`,
+on when `null`), statsmodels' `use_correction`; refused with any other type.
 
 **Example** — a wider level widens both ends without moving the estimate.
 

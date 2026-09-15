@@ -227,6 +227,11 @@
       "src/Lodestar.Stats/**",
       "src/Lodestar.Decomposition/**"
     ],
+    "HacClusterBenchmarks": [
+      "src/Lodestar.Stats.Regression/**",
+      "src/Lodestar.Stats/**",
+      "src/Lodestar.Decomposition/**"
+    ],
     "GlmBenchmarks": [
       "src/Lodestar.Stats.Regression/**",
       "src/Lodestar.Stats/**",

@@ -37,6 +37,18 @@ internal static class OlsOptionsSample
 
         Console.WriteLine($"  SE ordinary      : {Inv.F4(ninetyFive.StandardErrors[1])}");
         Console.WriteLine($"  SE {robust.CovarianceType,-14}: {Inv.F4(robust.StandardErrors[1])}");
+
+        // Rows in time order may share their errors with their neighbours; HAC reads two of them,
+        // and cluster treats each pair of consecutive rows as one observation of the errors.
+        OlsSummary neweyWest = OrdinaryLeastSquares.Fit(
+            design, response, featureCount: 1,
+            new OlsOptions { CovarianceType = CovarianceType.Hac, HacLags = 2, SmallSampleCorrection = true });
+        OlsSummary clustered = OrdinaryLeastSquares.Fit(
+            design, response, [0, 0, 1, 1, 2, 2, 3, 3], featureCount: 1,
+            new OlsOptions { CovarianceType = CovarianceType.Cluster });
+
+        Console.WriteLine($"  SE {neweyWest.CovarianceType,-14}: {Inv.F4(neweyWest.StandardErrors[1])}");
+        Console.WriteLine($"  SE {clustered.CovarianceType,-14}: {Inv.F4(clustered.StandardErrors[1])}");
         Console.WriteLine();
     }
 }

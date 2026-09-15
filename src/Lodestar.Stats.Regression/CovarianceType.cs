@@ -25,4 +25,19 @@ public enum CovarianceType
 
     /// <summary>Divided by <c>(1 - hᵢᵢ)²</c> — the jackknife approximation, and the conservative one.</summary>
     Hc3 = 4,
+
+    /// <summary>Newey and West's estimator for errors correlated along the row order: the scores of rows up to <see cref="OlsOptions.HacLags"/> apart enter with Bartlett weights.</summary>
+    /// <remarks>
+    /// Rows are read as a time series in the order given. <c>statsmodels</c>' <c>cov_type="HAC"</c> with its default
+    /// kernel; <see cref="OlsOptions.SmallSampleCorrection"/> scales by <c>n / (n - k)</c> and is off by default, as there.
+    /// </remarks>
+    Hac = 5,
+
+    /// <summary>One-way cluster-robust: errors free to correlate inside a cluster and independent across clusters.</summary>
+    /// <remarks>
+    /// Needs the overload taking one cluster label per row. <see cref="OlsOptions.SmallSampleCorrection"/> scales by
+    /// <c>G / (G - 1) · (n - 1) / (n - k)</c> and is on by default, and the overall F test reads <c>G - 1</c> denominator
+    /// degrees of freedom — both as <c>statsmodels</c>' <c>cov_type="cluster"</c> does.
+    /// </remarks>
+    Cluster = 6,
 }

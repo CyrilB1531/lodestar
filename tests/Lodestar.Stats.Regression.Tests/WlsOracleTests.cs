@@ -4,13 +4,14 @@ using Xunit;
 namespace Lodestar.Stats.Regression.Tests;
 
 /// <summary>
-/// Replays <c>statsmodels.api.WLS(...).fit()</c> over the twelve frozen cases of
+/// Replays <c>statsmodels.api.WLS(...).fit()</c> over the fourteen frozen cases of
 /// <c>tests/oracles/stats_wls.json</c>.
 /// </summary>
 /// <remarks>
 /// The weights are what vary: uneven, all one, all four, one of them zero, and inversely
-/// proportional to the level. Five cases carry a robust covariance, where the model's own
-/// constant stays out of the Wald test that OLS on the scaled rows would put it in (#768).
+/// proportional to the level. Five cases carry an HC covariance, where the model's own
+/// constant stays out of the Wald test that OLS on the scaled rows would put it in (#768), and two
+/// carry HAC or cluster, whose scores are the whitened rows' (#775).
 /// </remarks>
 public sealed class WlsOracleTests
 {
@@ -20,12 +21,20 @@ public sealed class WlsOracleTests
 
     public static TheoryData<int> Indices() => LinearOracle.Indices(Corpus);
 
-    private static OlsSummary Fit(JsonElement frozen) => WeightedLeastSquares.Fit(
-        LinearOracle.Doubles(frozen, "design"),
-        LinearOracle.Doubles(frozen, "response"),
-        LinearOracle.Doubles(frozen, "weights"),
-        frozen.GetProperty("featureCount").GetInt32(),
-        LinearOracle.Options(frozen));
+    private static OlsSummary Fit(JsonElement frozen) => LinearOracle.Groups(frozen) is { } groups
+        ? WeightedLeastSquares.Fit(
+            LinearOracle.Doubles(frozen, "design"),
+            LinearOracle.Doubles(frozen, "response"),
+            LinearOracle.Doubles(frozen, "weights"),
+            groups,
+            frozen.GetProperty("featureCount").GetInt32(),
+            LinearOracle.Options(frozen))
+        : WeightedLeastSquares.Fit(
+            LinearOracle.Doubles(frozen, "design"),
+            LinearOracle.Doubles(frozen, "response"),
+            LinearOracle.Doubles(frozen, "weights"),
+            frozen.GetProperty("featureCount").GetInt32(),
+            LinearOracle.Options(frozen));
 
     [Theory]
     [MemberData(nameof(Indices))]

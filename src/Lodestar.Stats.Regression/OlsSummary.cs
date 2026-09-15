@@ -11,7 +11,7 @@ namespace Lodestar.Stats.Regression;
 /// </remarks>
 public sealed class OlsSummary
 {
-    /// <summary>Built by <see cref="OrdinaryLeastSquares.Fit"/> alone; there is no other way to hold one.</summary>
+    /// <summary>Built by the least-squares fits alone; there is no other way to hold one.</summary>
     internal OlsSummary()
     {
     }

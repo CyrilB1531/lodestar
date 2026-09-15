@@ -117,6 +117,26 @@ def ols_summary(exog, endog) -> object:
             fitted.fvalue, fitted.f_pvalue)
 
 
+# The HAC lag count and the cluster size both sides derive from the row index, rather than
+# the corpus carrying them: clusters are consecutive blocks of 20 rows, so G = n / 20 (#775).
+HAC_LAGS = 4
+CLUSTER_SIZE = 20
+
+
+def robust_summary(exog, endog, design, cov_type: str, cov_kwds: dict) -> object:
+    """The robust fit, its table and the VIFs in one row (#775).
+
+    One row where ols_summary_* is two, because the fold in bench/compare.py maps one VIF row
+    into one summary row: Lodestar's Fit returns the VIFs from the same call, so they are
+    priced inside this row instead.
+    """
+    fitted = sm.OLS(endog, exog).fit(cov_type=cov_type, cov_kwds=cov_kwds)
+    return (fitted.params, fitted.bse, fitted.tvalues, fitted.pvalues,
+            fitted.conf_int(), fitted.rsquared, fitted.rsquared_adj,
+            fitted.fvalue, fitted.f_pvalue,
+            [variance_inflation_factor(design, j) for j in range(design.shape[1])])
+
+
 def negative_binomial_summary(exog, endog, alpha: float) -> object:
     """The IRLS fit plus what `GlmSummary` carries, so both sides price one table (#781)."""
     fitted = sm.GLM(endog, exog, family=sm.families.NegativeBinomial(alpha=alpha)).fit()
@@ -142,6 +162,7 @@ def measure_size(n: int) -> tuple[list[dict], list[dict], list[dict]]:
     first, second, table = data["first"], data["second"], data["table"]
     exog, endog, design = data["with_constant"], data["response"], data["design"]
     suffix = f"n{n}"
+    groups = np.arange(n, dtype=np.int64) // CLUSTER_SIZE
 
     tests = [
         measure(f"welch_t_{suffix}", lambda: sps.ttest_ind(first, second, equal_var=False)),
@@ -152,6 +173,10 @@ def measure_size(n: int) -> tuple[list[dict], list[dict], list[dict]]:
         measure(f"ols_summary_{suffix}", lambda: ols_summary(exog, endog)),
         measure(f"ols_vif_{suffix}",
                 lambda: [variance_inflation_factor(design, j) for j in range(design.shape[1])]),
+        measure(f"ols_hac_{suffix}",
+                lambda: robust_summary(exog, endog, design, "HAC", {"maxlags": HAC_LAGS})),
+        measure(f"ols_cluster_{suffix}",
+                lambda: robust_summary(exog, endog, design, "cluster", {"groups": groups})),
     ]
     counts, alpha = data["counts"], data["count_alpha"]
     positive = data["gamma_response"]

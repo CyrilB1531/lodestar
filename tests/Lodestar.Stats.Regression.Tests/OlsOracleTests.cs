@@ -4,14 +4,14 @@ using Xunit;
 namespace Lodestar.Stats.Regression.Tests;
 
 /// <summary>
-/// Replays <c>statsmodels.api.OLS(...).fit()</c> over the twelve frozen cases of
+/// Replays <c>statsmodels.api.OLS(...).fit()</c> over the eighteen frozen cases of
 /// <c>tests/oracles/stats_ols.json</c>.
 /// </summary>
 /// <remarks>
 /// Each case is chosen for something an inference table can get wrong rather than for
 /// something a solve can: a fitted intercept and none, a 99% level, a near-collinear pair
-/// whose VIF reaches 6e4, and one residual degree of freedom. Six of the twelve carry a robust
-/// covariance and replay the distribution switch as much as the arithmetic (#686).
+/// whose VIF reaches 6e4, and one residual degree of freedom. Six carry an HC covariance and replay
+/// the distribution switch as much as the arithmetic (#686); six more carry HAC or cluster (#775).
 /// </remarks>
 public sealed class OlsOracleTests
 {
@@ -21,11 +21,18 @@ public sealed class OlsOracleTests
 
     public static TheoryData<int> Indices() => LinearOracle.Indices(Corpus);
 
-    private static OlsSummary Fit(JsonElement frozen) => OrdinaryLeastSquares.Fit(
-        LinearOracle.Doubles(frozen, "design"),
-        LinearOracle.Doubles(frozen, "response"),
-        frozen.GetProperty("featureCount").GetInt32(),
-        LinearOracle.Options(frozen));
+    private static OlsSummary Fit(JsonElement frozen) => LinearOracle.Groups(frozen) is { } groups
+        ? OrdinaryLeastSquares.Fit(
+            LinearOracle.Doubles(frozen, "design"),
+            LinearOracle.Doubles(frozen, "response"),
+            groups,
+            frozen.GetProperty("featureCount").GetInt32(),
+            LinearOracle.Options(frozen))
+        : OrdinaryLeastSquares.Fit(
+            LinearOracle.Doubles(frozen, "design"),
+            LinearOracle.Doubles(frozen, "response"),
+            frozen.GetProperty("featureCount").GetInt32(),
+            LinearOracle.Options(frozen));
 
     [Theory]
     [MemberData(nameof(Indices))]
