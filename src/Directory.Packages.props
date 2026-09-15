@@ -12,7 +12,9 @@
     an ONNX session with, Lodestar.Extensions.AI on both Lodestar.Onnx and
     that same Lodestar.Embeddings, and Lodestar.Stats.Regression on both
     Lodestar.Stats and Lodestar.Decomposition, whose 0.2.0 releases published
-    the four numerical members it calls (decision 0095). Each number is a deliberately chosen *floor* — the
+    the four numerical members it calls (decision 0095). Lodestar.Stats.TimeSeries takes
+    Lodestar.Stats here; its Lodestar.Stats.Regression edge is a ProjectReference
+    until that package's 0.2.0 is published (decision 0133). Each number is a deliberately chosen *floor* — the
     minimum a consumer is required to take — and is therefore written in full
     rather than tracking the sibling's $(Lodestar*Version).
 

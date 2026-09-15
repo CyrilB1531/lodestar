@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Lodestar.Stats.TimeSeries/Lodestar.Stats.TimeSeries.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../oracles/stats_timeseries.json" CopyToOutputDirectory="PreserveNewest" LinkBase="oracles" />
+    <None Include="../oracles/stats_stationarity.json" CopyToOutputDirectory="PreserveNewest" LinkBase="oracles" />
+    <None Include="../oracles/stats_seasonal.json" CopyToOutputDirectory="PreserveNewest" LinkBase="oracles" />
+  </ItemGroup>
+
+  <!-- The gate's engine is shared by every package's suite, so it is linked rather
+       than copied; the pages and the map are read from the output directory, the
+       way the oracle corpora already are. -->
+  <ItemGroup>
+    <Compile Include="../Shared/ReferenceDocumentation.cs" Link="Documentation/ReferenceDocumentation.cs" />
+    <None Include="../../docs/reference/stats-timeseries/**/*.md" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="reference" />
+    <None Include="../../docs/wiki-map.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../docs/**/*.md" Exclude="../../docs/superpowers/**"
+          CopyToOutputDirectory="PreserveNewest" LinkBase="docs" />
+  </ItemGroup>
+
+</Project>

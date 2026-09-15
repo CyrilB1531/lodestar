@@ -48,7 +48,7 @@ either figure, so nothing here is masked by a looser tolerance than the one that
 real disagreement.
 
 **A constant series is refused.** The reference answers `NaN` with a warning; this throws, as
-[`KruskalWallis.Test`](../tests/kruskalwallis-test.md) already refuses a fully tied pooled sample
+[`KruskalWallis.Test`](../../stats/tests/kruskalwallis-test.md) already refuses a fully tied pooled sample
 for the same reason — `avf[0]` is zero, so every ratio would be `0/0`.
 
 ```csharp

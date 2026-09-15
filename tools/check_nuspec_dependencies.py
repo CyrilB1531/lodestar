@@ -70,6 +70,7 @@ DECOMPOSITION = "Lodestar.Decomposition"
 STATS = "Lodestar.Stats"
 STATS_REGRESSION = "Lodestar.Stats.Regression"
 SURVIVAL = "Lodestar.Survival"
+STATS_TIMESERIES = "Lodestar.Stats.TimeSeries"
 PREPROCESSING = "Lodestar.Preprocessing"
 CLUSTER = "Lodestar.Cluster"
 ONNX = "Lodestar.Onnx"
@@ -111,6 +112,10 @@ ONNX_FLOOR = "0.1.0"
 # per package id, so both consume 0.4.0 -- additive over the 0.2.0 Regression asked for.
 STATS_FLOOR = "0.4.0"
 DECOMPOSITION_FLOOR = "0.2.0"
+
+# Stats.TimeSeries reaches Stats.Regression by ProjectReference until 0.2.0 ships (see the note in
+# its .csproj), and pack emits that project's own version: 0.2.0, the floor it keeps.
+STATS_REGRESSION_FLOOR = "0.2.0"
 
 # Directory.Packages.props' PackageVersion for both Microsoft.Extensions.*.Abstractions
 # pins: Extensions.AI and Extensions.VectorData agree on it without a range to reconcile.
@@ -212,6 +217,12 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
             DECOMPOSITION: DECOMPOSITION_FLOOR,
             **POLYFILLS,
         },
+    },
+    STATS_TIMESERIES: {
+        # Two core edges: the tails from Lodestar.Stats, and the per-lag least-squares fits of the
+        # augmented Dickey-Fuller test from Lodestar.Stats.Regression -- the edge that earned the package.
+        NET: {STATS: STATS_FLOOR, STATS_REGRESSION: STATS_REGRESSION_FLOOR},
+        NETSTANDARD: {STATS: STATS_FLOOR, STATS_REGRESSION: STATS_REGRESSION_FLOOR, **POLYFILLS},
     },
     SURVIVAL: {
         # One Lodestar edge and nothing external, which keeps this core tier: the

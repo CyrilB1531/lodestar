@@ -1,9 +1,9 @@
 using System.Text.Json;
-using Lodestar.Stats.Tests.Oracles;
+using Lodestar.Stats.TimeSeries.Tests.Oracles;
 using Lodestar.Stats.TimeSeries;
 using Xunit;
 
-namespace Lodestar.Stats.Tests;
+namespace Lodestar.Stats.TimeSeries.Tests;
 
 /// <summary>Replays <c>tests/oracles/stats_timeseries.json</c>.</summary>
 public sealed class SerialCorrelationOracleTests

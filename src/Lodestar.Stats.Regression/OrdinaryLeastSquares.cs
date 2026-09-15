@@ -121,6 +121,41 @@ public static class OrdinaryLeastSquares
         };
     }
 
+    /// <summary>Fits a linear model and reports the estimates and their standard errors, without the inference table.</summary>
+    /// <param name="design">The regressors, row-major: <paramref name="featureCount"/> values per row, with no constant column of your own.</param>
+    /// <param name="response">One observed value per row of <paramref name="design"/>.</param>
+    /// <param name="featureCount">How many regressors each row carries.</param>
+    /// <param name="withIntercept">Whether to fit a constant, prepended to the coefficients. Default true.</param>
+    /// <returns>The coefficients, their standard errors and t statistics, and the residual sum of squares.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
+    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, or there are no residual degrees of freedom left.</exception>
+    /// <remarks>
+    /// The same Householder least squares as <see cref="Fit"/>, for a caller fitting many regressions and
+    /// reading a coefficient, a t statistic or a likelihood from each. It skips what <see cref="Fit"/>
+    /// adds on top — p-values, intervals, R², the F test, the VIFs and the explicit Q the robust
+    /// covariances need — and agrees with <see cref="Fit"/> on the numbers it keeps.
+    /// </remarks>
+    public static OlsEstimate Estimate(
+        ReadOnlySpan<double> design,
+        ReadOnlySpan<double> response,
+        int featureCount,
+        bool withIntercept = true)
+    {
+        Guard.NotLessThan(featureCount, 1);
+        (double[] coefficients, double[] standardErrors, double[] tStatistics, double residualSumOfSquares, int residualDegreesOfFreedom) =
+            HouseholderEstimate.Fit(design, response, featureCount, withIntercept);
+
+        return new OlsEstimate
+        {
+            Coefficients = coefficients,
+            StandardErrors = standardErrors,
+            TStatistics = tStatistics,
+            ResidualSumOfSquares = residualSumOfSquares,
+            ResidualDegreesOfFreedom = residualDegreesOfFreedom,
+            HasIntercept = withIntercept,
+        };
+    }
+
     /// <summary>The square roots of a covariance's diagonal, which are its standard errors.</summary>
     private static double[] Diagonal(double[] covariance, int order)
     {

@@ -2201,9 +2201,11 @@ dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*Gl
 
 ## 28. `Lodestar.Stats.TimeSeries`'s serial-correlation diagnostics against `Cortex.TimeSeries` (issue #617)
 
-[Decision 0114](../docs/decisions/0114-the-serial-correlation-diagnostics-stay-in-lodestar-stats.md)
-kept the autocorrelation function, the partial autocorrelation function and the Ljung-Box test
-inside `Lodestar.Stats` rather than a new package. `Cortex.TimeSeries` 1.1.0 is the one .NET
+The autocorrelation function, the partial autocorrelation function and the Ljung-Box test ship in
+`Lodestar.Stats.TimeSeries`, which
+[decision 0133](../docs/decisions/0133-stats-timeseries-is-a-package-and-takes-the-serial-correlation-lot.md)
+made a package of its own when the stationarity tests needed `Lodestar.Stats.Regression`; the
+benchmark still lives in `bench/Lodestar.Stats.Benchmarks`. `Cortex.TimeSeries` 1.1.0 is the one .NET
 library carrying the same three functions — `Cortex.TimeSeries.Diagnostics.AutocorrelationTests`'s
 `ACF`, `PACF` and `LjungBox` — through its own `Cortex.ML` dependency, which is exactly the edge
 [decision 0076](../docs/decisions/0076-a-core-package-carries-no-external-dependency.md) bars from
@@ -2240,7 +2242,7 @@ seeded series this benchmark generates:
 ACF and Ljung-Box agree to noise-level precision — the same shared reason section 18 already
 records for the hypothesis tests, a second implementation converging on the same textbook
 arithmetic. **The partial autocorrelation does not**, and the gap is not close to floating-point
-noise at either size. [`SerialCorrelation.PartialAutocorrelation`](../docs/reference/stats/timeseries/serialcorrelation-partialautocorrelation.md)
+noise at either size. [`SerialCorrelation.PartialAutocorrelation`](../docs/reference/stats-timeseries/correlation/serialcorrelation-partialautocorrelation.md)
 documents that `ywadjusted` (also spelled `yw`, `ywa`, `yw_adjusted`) is the reference's own default
 and the only method shipped, where the reference offers seven other estimators across four
 families (`docs/equivalence.md`'s serial-correlation section) — `Cortex.TimeSeries`'s own
@@ -2485,3 +2487,47 @@ same means, summed in the same order.
 
 The numbers, on a named machine and with the default job, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md#k-means-against-numflat-and-metanumerics-issue-681).
+
+## 35. Stationarity and seasonal decomposition against `Cortex.TimeSeries` (issue #671)
+
+`Lodestar.Stats.TimeSeries`' augmented Dickey-Fuller test, KPSS and seasonal decomposition, against
+`Cortex.TimeSeries` 1.1.0's `StationarityTests.AugmentedDickeyFuller`, `StationarityTests.KPSS` and
+`SeasonalDecompose.Decompose` — the one free .NET package carrying all three, referenced by this project
+only, as section 28 explains.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*StationarityBenchmarks*'
+```
+
+### What agrees, checked before timing
+
+Run once outside `BenchmarkDotNet` against `statsmodels` 0.15.0 on a seeded 200-point AR(1) and a
+96-point monthly series:
+
+| function | agrees with `statsmodels`? | how |
+| --- | --- | --- |
+| ADF statistic, fixed lag 1 to 8 | yes, to `1e-14` | the same regression |
+| ADF p-value | **no** | Cortex returns `0.01` where `statsmodels` gives `1.1e-9` to `9.5e-4`: a clamp, not MacKinnon's surface |
+| ADF at `maxLags = 0` | **no** | Cortex uses 5 lags, where `statsmodels` fits none |
+| KPSS, level | yes, statistic and p-value, exactly | Cortex's window is `floor(12·(n/100)^¼)`, 14 at n = 200, where `statsmodels`' legacy rule takes the ceiling, 15 |
+| seasonal decomposition, additive and multiplicative | yes, to `1.1e-14`, `NaN` positions included | the same moving average |
+
+So each pair is timed on the configuration where both return the same statistic: ADF at a fixed lag of
+4, KPSS at the window Cortex chooses (fixed on this side in `[GlobalSetup]`), and the additive
+decomposition at period 12. `GlobalSetup` refuses to time anything whose statistics differ by more than
+`1e-9`.
+
+### What the ADF pair does not compare
+
+Both sides fit the same regression and read the same t statistic. This package's fit is
+`Lodestar.Stats.Regression`'s Householder least squares reduced to the t statistics and the residual
+sum of squares — `OrdinaryLeastSquares.Estimate`, not `OrdinaryLeastSquares.Fit`, whose
+inference table and VIFs made the first measurement 2.5× to 2.8× slower than Cortex's. What stays
+incomparable is the p-value: Cortex's is clamped at `0.01`.
+
+### Configuration
+
+`[Params(200, 2_000)]` on `SampleSize`, as section 28. `Random(671)`, an AR(1) at 0.5 on uniform
+shocks, and a seasonal series built from it with period 12. The numbers, on a named machine and with
+the default job, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md#stationarity-and-seasonal-decomposition-against-cortextimeseries-issue-671).

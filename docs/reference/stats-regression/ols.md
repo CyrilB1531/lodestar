@@ -1,8 +1,10 @@
 # Ordinary least squares — `Lodestar.Stats.Regression`
 
-One entry point, [`OrdinaryLeastSquares.Fit`](ols/ordinaryleastsquares-fit.md): it fits a linear
+Two entry points. [`OrdinaryLeastSquares.Fit`](ols/ordinaryleastsquares-fit.md) fits a linear
 model and returns what a `statsmodels` summary table holds — the estimates, and how sure it is of
-each of them.
+each of them. [`OrdinaryLeastSquares.Estimate`](ols/ordinaryleastsquares-estimate.md) fits the same
+model and stops at the coefficients, their standard errors and the residual sum of squares, for a
+caller fitting many.
 
 **Spans in, one summary out.** A design is row-major, `featureCount` values per row, with no
 constant column of your own: `WithIntercept` adds it. That is the shape
@@ -34,6 +36,7 @@ reading and what it decided.
 | --- | --- |
 | [`OrdinaryLeastSquares`](ols/ordinaryleastsquares.md) | Fits the model and builds the table. |
 | [`OlsSummary`](ols/olssummary.md) | The fitted model, its errors, its p-values and its diagnostics. |
+| [`OlsEstimate`](ols/olsestimate.md) | The coefficients, their standard errors and t statistics, and the residual sum of squares. |
 | [`OlsOptions`](ols/olsoptions.md) | Whether to fit an intercept, and at what confidence. |
 | [`CovarianceType`](ols/covariancetype.md) | How the covariance of the estimates is estimated. |
 

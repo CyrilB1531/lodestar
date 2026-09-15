@@ -102,6 +102,7 @@ timed; `bench/README.md`'s section 15 has the harness and the agreement checks.
 | `Lodestar.Onnx` | ONNX Runtime itself | **Nothing to beat.** The package is a caller of the runtime, not a rival to it; what it adds is the pooling and the batching, which `bench/Lodestar.Text.Benchmarks -- '*BatchEmbedding*'` measures against a single-sequence loop |
 | `Lodestar.Stats` | `Accord.Statistics` (archived, no longer maintained); Meta.Numerics | No case found where `Accord` and `scipy` (and therefore `Lodestar.Stats`) disagree; faster on the t-test, Mann-Whitney and, since #710, the chi-square table (66.5 ns against 121.7 ns). Meta.Numerics 4.2.0 carries eight of the ten families and is **not measured yet** ([#756](https://github.com/CyrilB1531/lodestar/issues/756)) — see [`docs/guides/hypothesis-testing.md`](docs/guides/hypothesis-testing.md#the-incumbents-and-the-one-measured) |
 | `Lodestar.Stats.Regression` | `Accord.Statistics` | **Not like-for-like.** The OLS table computes variance inflation factors, which Accord does not export. The GLM is level with Accord at 200 rows and 1.4× behind at 2,000, allocating less in every cell ([performance](docs/guides/performance.md#lodestarstatsregressions-generalized-linear-model-against-accordstatistics-issue-678)) |
+| `Lodestar.Stats.TimeSeries` | `Cortex.TimeSeries`; Numerics.NET (commercial) | Against `Cortex.TimeSeries`, on the statistics both return: **ADF 1.79× to 2.26× faster, the decomposition 1.85× faster, KPSS level**; Cortex's ADF p-value is a clamp at 0.01 rather than MacKinnon's ([performance](docs/guides/performance.md#stationarity-and-seasonal-decomposition-against-cortextimeseries-issue-671)); the serial-correlation half in [its own section](docs/guides/performance.md#lodestarstats-serial-correlation-diagnostics-against-cortextimeseries-issue-617). Numerics.NET carries ADF and KPSS under a commercial licence ([decision 0129](docs/decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md)) |
 | `Lodestar.Survival` | — | **No incumbent exists** in .NET, Kaplan-Meier, the log-rank test and the Cox model included; `scikit-survival` is refused on its licence ([decision 0099](docs/decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)) |
 | `Lodestar.Cluster` | NumFlat, Meta.Numerics; ML.NET k-means | Same centres to the last bit, and **ahead on Lloyd's iterations from the same start, 1.52× to 3.66×** against NumFlat. A default fit, k-means++ included, is 5.5× to 13× cheaper than NumFlat's and 4.1× to 20× cheaper than Meta.Numerics', partly because scikit-learn's tolerance stops sooner ([performance](docs/guides/performance.md#k-means-against-numflat-and-metanumerics-issue-681)). NumFlat also ships DBSCAN, k-medoids and Gaussian mixtures, `net8.0` only ([decision 0131](docs/decisions/0131-lodestar-cluster-writes-what-netstandard2-0-lacks.md)). ML.NET is not measured: it clusters inside an `IDataView` pipeline |
 | `Lodestar.Preprocessing` | ML.NET `NormalizeMeanVariance` | **Not measured.** The same `IDataView` coupling as above; the scaler here is the arithmetic without the pipeline |
@@ -163,7 +164,8 @@ for p in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings \
         src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI \
         src/Lodestar.Extensions.MathNet src/Lodestar.Extensions.VectorData \
         src/Lodestar.Cluster src/Lodestar.Preprocessing \
-        src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Survival \
+        src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Stats.TimeSeries \
+        src/Lodestar.Survival \
         src/Lodestar.Gpu; do
   dotnet pack "$p" -c Release -o ./artifacts
 done
@@ -229,6 +231,7 @@ Lodestar.slnx
 ├── src/Lodestar.Preprocessing/             feature scaling fitted on arrays and applied to spans
 ├── src/Lodestar.Stats/                     classical hypothesis tests, at scipy.stats parity (no dependencies)
 ├── src/Lodestar.Stats.Regression/          ordinary least squares with the whole inference table
+├── src/Lodestar.Stats.TimeSeries/          autocorrelation, Ljung-Box, ADF, KPSS and seasonal decomposition
 ├── src/Lodestar.Survival/                  Kaplan-Meier, Nelson-Aalen and the log-rank test, right-censored
 ├── src/Lodestar.Onnx/                      ONNX inference — satellite, carries Microsoft.ML.OnnxRuntime (decision 0076)
 ├── src/Lodestar.Gpu/                       ILGPU kernels — satellite, the one package on net10.0;netstandard2.1
@@ -270,12 +273,12 @@ you whether to correct the document itself or something upstream of it.
 
 ## Publishing
 
-Seventeen NuGet packages are produced: `Lodestar.Abstractions`, `Lodestar.Text`,
+Eighteen NuGet packages are produced: `Lodestar.Abstractions`, `Lodestar.Text`,
 `Lodestar.Embeddings`, `Lodestar.Fuzzy`, `Lodestar.Metrics`, `Lodestar.Conformal`,
 `Lodestar.Decomposition`, `Lodestar.Cluster`, `Lodestar.Preprocessing`, `Lodestar.Stats`,
-`Lodestar.Stats.Regression`, `Lodestar.Survival`, `Lodestar.Onnx`, `Lodestar.Gpu`,
+`Lodestar.Stats.Regression`, `Lodestar.Stats.TimeSeries`, `Lodestar.Survival`, `Lodestar.Onnx`, `Lodestar.Gpu`,
 `Lodestar.Extensions.AI`, `Lodestar.Extensions.MathNet` and `Lodestar.Extensions.VectorData`.
-Twelve are **core tier** and carry no
+Thirteen are **core tier** and carry no
 external dependency — [`decisions/0076`](docs/decisions/0076-a-core-package-carries-no-external-dependency.md).
 `Lodestar.Onnx` and `Lodestar.Gpu` are the two **satellites**, each carrying the one dependency
 that is its whole reason to be a package; the three `Lodestar.Extensions.*` are the **interop** tier,

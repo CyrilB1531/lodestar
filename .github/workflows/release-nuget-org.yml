@@ -24,6 +24,7 @@ on:
           - Lodestar.Onnx
           - Lodestar.Stats
           - Lodestar.Stats.Regression
+          - Lodestar.Stats.TimeSeries
           - Lodestar.Survival
           - Lodestar.Gpu
           - Lodestar.Extensions.AI

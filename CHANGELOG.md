@@ -193,15 +193,33 @@ is one sentence, the issue and the commit; see
   ([decision 0123](docs/decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)).
   ([#682](https://github.com/CyrilB1531/lodestar/issues/682))
 
+### Lodestar.Stats.TimeSeries
+
+#### Added
+
+- **A new core package for the time-series diagnostics**, with two edges: `Lodestar.Stats` 0.4.0 for
+  the tails and `Lodestar.Stats.Regression` 0.2.0 for the fits its unit-root test runs.
+  [Decision 0133](docs/decisions/0133-stats-timeseries-is-a-package-and-takes-the-serial-correlation-lot.md)
+  supersedes 0114, which kept the first lot in `Lodestar.Stats` and named that edge as the one that
+  would earn a package. ([#671](https://github.com/CyrilB1531/lodestar/issues/671))
+- **`SerialCorrelation`, with `Autocorrelation`, `PartialAutocorrelation` and `LjungBox`**, at
+  `statsmodels` 0.15.0 parity, moved here from `Lodestar.Stats` before any `Lodestar.Stats` release
+  carried it; the namespace, `Lodestar.Stats.TimeSeries`, did not change.
+  ([#617](https://github.com/CyrilB1531/lodestar/issues/617))
+- **[`Stationarity.AugmentedDickeyFuller`](docs/reference/stats-timeseries/stationarity-tests/stationarity-augmenteddickeyfuller.md)
+  and [`Stationarity.Kpss`](docs/reference/stats-timeseries/stationarity-tests/stationarity-kpss.md)**,
+  at `statsmodels` 0.15.0 parity over 199 frozen cases: every `regression` and `autolag`, MacKinnon's
+  1994 p-value and 2010 critical values, and KPSS's three lag rules. **KPSS's `InterpolationWarning` is a
+  property**, `KpssResult.PValueBound`, since a library has no warning channel a caller reads.
+  ([#671](https://github.com/CyrilB1531/lodestar/issues/671))
+- **[`SeasonalDecomposition.Decompose`](docs/reference/stats-timeseries/seasonality/seasonaldecomposition-decompose.md)**,
+  additive and multiplicative, two- and one-sided, with trend extrapolation, at `seasonal_decompose`
+  parity over 32 frozen cases. `period` is required. ([#671](https://github.com/CyrilB1531/lodestar/issues/671))
+
 ### Lodestar.Stats
 
 #### Added
 
-- **`SerialCorrelation`, with `Autocorrelation`, `PartialAutocorrelation` and `LjungBox`**, in the
-  new `Lodestar.Stats.TimeSeries` namespace, at `statsmodels` 0.15.0 parity.
-  [Decision 0114](docs/decisions/0114-the-serial-correlation-diagnostics-stay-in-lodestar-stats.md)
-  kept the three inside this package rather than a new one.
-  ([#617](https://github.com/CyrilB1531/lodestar/issues/617))
 - **`NanPolicy`, on the eleven test entry points whose scipy counterpart takes `nan_policy`.**
   `Propagate` stays the default, so no existing call changes; `Omit` drops pairs where the inputs
   are aligned and values where they are not; decision 0117 has the rule and the five entry points
@@ -218,6 +236,11 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- **[`OrdinaryLeastSquares.Estimate`](docs/reference/stats-regression/ols/ordinaryleastsquares-estimate.md)
+  and `OlsEstimate` fit the same model as `Fit` and stop at the coefficients, their standard errors,
+  the t statistics and the residual sum of squares**: no explicit `Q`, no second QR for the VIFs, no
+  p-values. Agrees with `Fit` over the OLS corpus, and is what the augmented Dickey-Fuller lag search
+  fits per candidate lag. ([#671](https://github.com/CyrilB1531/lodestar/issues/671))
 - **`CovarianceType` gives `OrdinaryLeastSquares` the four heteroskedasticity-consistent
   estimators**, `Hc0` through `Hc3`, chosen on `OlsOptions` and echoed on `OlsSummary`. A robust
   covariance is what an analyst reaches for when the assumption behind the standard errors fails,

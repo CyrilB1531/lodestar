@@ -42,6 +42,9 @@ NUSPEC_CHECK = ROOT / "tools" / "check_nuspec_dependencies.py"
 
 FLAT_CONTAINER = "https://api.nuget.org/v3-flatcontainer/{id}/index.json"
 
+# Both a dependency and a dependent, so named once rather than spelt at each end of its edges.
+STATS_REGRESSION = "Lodestar.Stats.Regression"
+
 
 @dataclass(frozen=True)
 class Floor:
@@ -75,9 +78,9 @@ FLOORS = (
     Floor("Lodestar.Onnx", "LodestarOnnxVersion", "ONNX_FLOOR",
           ("Lodestar.Extensions.AI",)),
     Floor("Lodestar.Stats", "LodestarStatsVersion", "STATS_FLOOR",
-          ("Lodestar.Stats.Regression", "Lodestar.Survival")),
+          (STATS_REGRESSION, "Lodestar.Stats.TimeSeries", "Lodestar.Survival")),
     Floor("Lodestar.Decomposition", "LodestarDecompositionVersion", "DECOMPOSITION_FLOOR",
-          ("Lodestar.Stats.Regression",)),
+          (STATS_REGRESSION,)),
 )
 
 
