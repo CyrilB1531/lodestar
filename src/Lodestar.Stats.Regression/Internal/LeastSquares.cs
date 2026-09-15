@@ -354,10 +354,10 @@ internal static class LeastSquares
 
     /// <summary>An inner product unrolled four terms at a time, the same order on both target frameworks.</summary>
     /// <remarks>
-    /// Every reflection is two passes over a column, so this loop and the update beside it are the fit's cost.
-    /// Scalar rather than <c>Vector&lt;T&gt;</c>, so net10.0 and netstandard2.0 add the terms in one order (#782).
+    /// Every reflection is two passes over a column, and every Cholesky pivot one, so this loop is what those fits cost.
+    /// Scalar rather than <c>Vector&lt;T&gt;</c>, so net10.0 and netstandard2.0 add the terms in one order (#771, #782).
     /// </remarks>
-    private static double Dot(ReadOnlySpan<double> left, ReadOnlySpan<double> right)
+    internal static double Dot(ReadOnlySpan<double> left, ReadOnlySpan<double> right)
     {
         int length = left.Length;
         double s0 = 0.0, s1 = 0.0, s2 = 0.0, s3 = 0.0;

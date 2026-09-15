@@ -248,6 +248,12 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- **[`GeneralizedLeastSquares.Fit`](docs/reference/stats-regression/gls/generalizedleastsquares-fit.md)
+  fits a linear model under a caller-supplied error covariance and returns the `OlsSummary` table**, at
+  `statsmodels.GLS` 0.15.0 parity over 9 frozen cases, the robust covariances included: rows whitened by the
+  inverse Cholesky factor, R² centred on the whitened-space mean. An asymmetric or non-positive-definite
+  covariance is refused; a vector `sigma` is `WeightedLeastSquares` with weights `1/σ`.
+  ([#771](https://github.com/CyrilB1531/lodestar/issues/771))
 - **Benchmarks for weighted least squares against Math.NET Numerics and the negative binomial GLM against `statsmodels`**
   (`WeightedLeastSquaresBenchmarks`, a Math.NET row in `OlsBenchmarks`, the `compare-glm` harness), catching up on #774 and
   #778, which merged unmeasured. ([#781](https://github.com/CyrilB1531/lodestar/issues/781),

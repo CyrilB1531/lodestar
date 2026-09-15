@@ -2585,3 +2585,28 @@ Both sides fit `GLM(counts, add_constant(design), family=NegativeBinomial(alpha=
 Run once outside the harness, the coefficients agree to `3.8e-15`, `1.1e-14` and `1.3e-14` relative at 1 000, 10 000
 and 100 000 rows, with the same iteration counts (7, 6, 6). As section 21 says, read the `cpu` column: `statsmodels`
 reaches LAPACK through numpy, which is threaded.
+
+## 38. Generalized least squares against Math.NET Numerics (issue #771)
+
+`GeneralizedLeastSquares.Fit` against the GLS a Math.NET Numerics 5.0.0 user writes, since Math.NET exports
+none: `Matrix.Cholesky()` of the error covariance, `Solve` for `Σ⁻¹X` and `Σ⁻¹y`, and the normal equations
+`(XᵀΣ⁻¹X)⁻¹XᵀΣ⁻¹y`. Math.NET is MIT, maintained, and the one numerics library `src/` already reaches through
+`Lodestar.Extensions.MathNet`; the benchmark project references it directly.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*GlsBenchmarks*'
+```
+
+### What the rows mean
+
+Lodestar's row is the whole `OlsSummary` table; Math.NET's is the coefficient vector alone, which is all it
+offers. `[GlobalSetup]` refuses to time either side if their slopes differ by more than `1e-9` relative, so a
+faster row cannot be a different answer. `Numerics.NET` and Extreme Optimization export GLS and are commercial
+(decision 0129); they are not measured here.
+
+### Configuration
+
+`[Params(50, 200, 500, 1_000)]` on `SampleSize`, which is also the covariance's order, so the cost grows with
+its cube. `Random(771)`, four uniform regressors, AR(1) errors at 0.6 and the matching covariance
+`0.6^|i−j|`. The numbers, on a named machine and with the default job, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md#generalized-least-squares-against-mathnet-numerics-issue-771).

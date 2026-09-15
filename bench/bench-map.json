@@ -212,6 +212,11 @@
       "src/Lodestar.Stats/**",
       "src/Lodestar.Decomposition/**"
     ],
+    "GlsBenchmarks": [
+      "src/Lodestar.Stats.Regression/**",
+      "src/Lodestar.Stats/**",
+      "src/Lodestar.Decomposition/**"
+    ],
     "WeightedLeastSquaresBenchmarks": [
       "src/Lodestar.Stats.Regression/**",
       "src/Lodestar.Stats/**",

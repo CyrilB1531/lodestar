@@ -29,5 +29,6 @@ The summary, the options and the covariance choice are [`OlsSummary`](ols/olssum
 ## See also
 
 - [Regression inference](../../guides/regression-inference.md) — reading the table.
+- [Generalized least squares](gls.md) — when the errors are correlated, not only unequal.
 - [statsmodels → .NET](../../migration/statsmodels.md) — what is delegated and what is not.
 - [Python → C# equivalence](../../equivalence.md).

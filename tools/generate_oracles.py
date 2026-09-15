@@ -119,6 +119,7 @@ OLS_FEATURE_COUNT = "featureCount"
 RESPONSE = "response"
 WITH_INTERCEPT = "withIntercept"
 WEIGHTS = "weights"
+ERROR_COVARIANCE = "covariance"
 # The inference table's own field names, shared by the OLS, GLM and Cox corpora (#684).
 COEFFICIENTS = "coefficients"
 STANDARD_ERRORS = "standardErrors"
@@ -5257,8 +5258,9 @@ def _linear_case(fixture: dict, model) -> dict:
         DESIGN: fixture[DESIGN],
         RESPONSE: fixture[RESPONSE],
     }
-    if WEIGHTS in fixture:
-        case[WEIGHTS] = fixture[WEIGHTS]
+    for echoed in (WEIGHTS, ERROR_COVARIANCE):
+        if echoed in fixture:
+            case[echoed] = fixture[echoed]
     case.update({
         OLS_FEATURE_COUNT: fixture[OLS_FEATURE_COUNT],
         WITH_INTERCEPT: fixture[WITH_INTERCEPT],
@@ -5419,6 +5421,90 @@ def generate_stats_wls() -> dict:
             "library": STATSMODELS,
             "version": version(STATSMODELS),
             FAMILY: "wls",
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
+def _autoregressive(rho: float, n: int) -> list[float]:
+    """An AR(1) error covariance, rho^|i-j|, row-major: the correlated-neighbour case GLS exists for."""
+    return [rho ** abs(i - j) for i in range(n) for j in range(n)]
+
+
+def _gls_fixtures() -> list[dict]:
+    """Error covariances chosen for what whitening by a full Cholesky factor can get wrong (#771).
+
+    The responses carry visible noise, as the WLS corpus's do, so the robust Wald statistics stay in the
+    hundreds where decision 0073's absolute 1e-9 holds across machines.
+    """
+    line = {
+        DESIGN: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        RESPONSE: [2.4, 3.6, 6.9, 7.1, 10.8, 11.2, 15.1, 14.6, 19.3, 19.9],
+        OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True,
+    }
+    # Two blocks of five equicorrelated rows at 0.5, uncorrelated across blocks, with unequal variances:
+    # a covariance that is neither diagonal nor banded, so no shortcut through WLS reaches it.
+    block = [
+        (1.0 + 0.1 * i) * (1.0 + 0.1 * j) * (1.0 if i == j else 0.5) if (i < 5) == (j < 5) else 0.0
+        for i in range(10) for j in range(10)
+    ]
+    fixtures = [
+        {"name": "AR(1) errors, rho 0.6", ERROR_COVARIANCE: _autoregressive(0.6, 10),
+         CONFIDENCE_LEVEL: 0.95, **line},
+        {"name": "AR(1) errors, rho 0.3, 99%", ERROR_COVARIANCE: _autoregressive(0.3, 10),
+         CONFIDENCE_LEVEL: 0.99, **line},
+        {
+            # The line's response lifted by 0.9: on the unlifted one this covariance fits an intercept of
+            # -8.4e-5, where a relative 1e-9 would ask for agreement to 8e-14 and assert rounding instead.
+            **line, "name": "two equicorrelated blocks, unequal variances", ERROR_COVARIANCE: block,
+            RESPONSE: [3.3, 4.5, 7.8, 8.0, 11.7, 12.1, 16.0, 15.5, 20.2, 20.8], CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            # No intercept: R-squared is then the whitened response's own uncentred square.
+            "name": "two regressors, no intercept, AR(1) errors",
+            DESIGN: [1.0, 1.0, 2.0, 1.0, 3.0, 2.0, 4.0, 2.0, 5.0, 3.0, 6.0, 3.0, 7.0, 4.0, 8.0, 4.0],
+            RESPONSE: [3.4, 4.8, 8.9, 9.6, 12.7, 15.9, 19.2, 19.4],
+            ERROR_COVARIANCE: _autoregressive(0.5, 8),
+            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            "name": "three regressors, twelve rows, AR(1) errors",
+            DESIGN: [
+                1.0, 4.0, 0.5, 2.0, 3.0, 1.5, 3.0, 5.0, 2.5, 4.0, 2.0, 0.5,
+                5.0, 6.0, 3.5, 6.0, 1.0, 1.0, 7.0, 7.0, 4.5, 8.0, 3.0, 2.0,
+                9.0, 8.0, 5.5, 10.0, 4.0, 2.5, 11.0, 9.0, 6.5, 12.0, 5.0, 3.0,
+            ],
+            RESPONSE: [7.9, 8.4, 13.1, 10.1, 17.2, 13.3, 21.9, 17.1, 26.0, 21.2, 30.3, 25.7],
+            ERROR_COVARIANCE: _autoregressive(0.4, 12),
+            OLS_FEATURE_COUNT: 3, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+    ]
+    fixtures.extend(
+        {"name": f"AR(1) errors, rho 0.6, {kind}", COVARIANCE_TYPE: kind,
+         ERROR_COVARIANCE: _autoregressive(0.6, 10), CONFIDENCE_LEVEL: 0.95, **line}
+        for kind in ("HC0", "HC1", "HC2", "HC3")
+    )
+    return fixtures
+
+
+def generate_stats_gls() -> dict:
+    """GLS with the same table as OLS, rows whitened by the error covariance's Cholesky factor (#771)."""
+    import numpy as np
+    import statsmodels.api as sm
+
+    cases = []
+    for fixture in _gls_fixtures():
+        rows = len(fixture[RESPONSE])
+        sigma = np.array(fixture[ERROR_COVARIANCE]).reshape(rows, rows)
+        model = sm.GLS(np.array(fixture[RESPONSE]), _linear_exog(fixture), sigma=sigma)
+        cases.append(_linear_case(fixture, model))
+
+    return {
+        "metadata": {
+            "library": STATSMODELS,
+            "version": version(STATSMODELS),
+            FAMILY: "gls",
             "count": len(cases),
         },
         "cases": cases,
@@ -10902,6 +10988,7 @@ def main() -> None:
         "survival_cox.json": generate_survival_cox,
         "stats_ols.json": generate_stats_ols,
         "stats_wls.json": generate_stats_wls,
+        "stats_gls.json": generate_stats_gls,
         "stats_glm.json": generate_stats_glm,
         "regression_log_factorial.json": generate_regression_log_factorial,
         "regression_log_gamma.json": generate_regression_log_gamma,

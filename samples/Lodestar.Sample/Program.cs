@@ -56,6 +56,7 @@ OrdinaryLeastSquaresSample.Run();
 OlsSummarySample.Run();
 OlsEstimateSample.Run();
 WeightedLeastSquaresSample.Run();
+GeneralizedLeastSquaresSample.Run();
 OlsOptionsSample.Run();
 GeneralizedLinearModelSample.Run();
 GlmSummarySample.Run();
