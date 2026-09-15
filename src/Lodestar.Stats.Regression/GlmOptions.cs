@@ -11,6 +11,7 @@ public sealed record GlmOptions
     private double _confidenceLevel = 0.95;
     private int _maximumIterations = 100;
     private double _tolerance = 1e-8;
+    private double? _negativeBinomialAlpha;
 
     /// <summary>Whether a column of ones is prepended to the design. Default true.</summary>
     public bool WithIntercept { get; init; } = true;
@@ -66,6 +67,32 @@ public sealed record GlmOptions
             }
 
             _tolerance = value;
+        }
+    }
+
+    /// <summary>
+    /// The dispersion <c>α</c> of <see cref="GlmFamily.NegativeBinomial"/>, whose variance is <c>μ + αμ²</c>.
+    /// Default <see langword="null"/>, which fits the reference's own default of 1.
+    /// </summary>
+    /// <remarks>
+    /// Given, not estimated, as <c>sm.families.NegativeBinomial(alpha=...)</c> takes it. The reference warns
+    /// when it is left unset; a library has no warning channel a caller reads, so the default is stated here
+    /// instead. Setting it for another family is refused by <see cref="GeneralizedLinearModel.Fit"/>: a
+    /// setting that silently does nothing is a mistake in the call (#769).
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">The value is not finite and above zero.</exception>
+    public double? NegativeBinomialAlpha
+    {
+        get => _negativeBinomialAlpha;
+        init
+        {
+            if (value is { } alpha && (double.IsNaN(alpha) || double.IsInfinity(alpha) || alpha <= 0.0))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(value), value, "A negative binomial alpha is finite and above zero.");
+            }
+
+            _negativeBinomialAlpha = value;
         }
     }
 

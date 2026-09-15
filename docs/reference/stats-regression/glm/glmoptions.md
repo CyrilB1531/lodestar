@@ -13,10 +13,12 @@ is the two-sided level the intervals are reported at; `0.95` by default. `Maximu
 how many IRLS iterations are allowed; `100` by default, which is the reference's own budget.
 `Tolerance` is the absolute bound on the change in deviance between iterations — the reference's
 `atol` with its `rtol` left at zero; `1e-8` by default. `ThrowOnNonConvergence` says whether a fit
-that did not converge throws instead of returning; `true` by default.
+that did not converge throws instead of returning; `true` by default. `NegativeBinomialAlpha` is the
+dispersion `α` of `GlmFamily.NegativeBinomial`, given rather than estimated; `null` by default, which
+fits the reference's own default of `1`.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `ConfidenceLevel` does not lie strictly inside
-`(0, 1)`, when `MaximumIterations` is below one, or when `Tolerance` is not above zero. Each is
+`(0, 1)`, when `MaximumIterations` is below one, when `Tolerance` is not above zero, or when `NegativeBinomialAlpha` is not finite and above zero. Each is
 thrown where the setting is set, not where the fit reads it: a budget of zero would otherwise skip
 the IRLS loop entirely and reach the caller as a table of `0/0`.
 
@@ -42,6 +44,11 @@ one.** A non-converged inference table is plausible and wrong — enormous stand
 p-values that read like p-values. Set it to `false` to freeze a non-convergent case in a corpus, or
 to look at one, and read [`GlmSummary.Converged`](glmsummary.md) before anything else in the table
 it returns.
+
+**`NegativeBinomialAlpha` belongs to one family.** Set for `Binomial` or `Poisson`,
+[`GeneralizedLinearModel.Fit`](generalizedlinearmodel-fit.md) refuses it rather than ignoring it. Left
+unset for `NegativeBinomial`, the fit uses `1` — the value statsmodels falls back to with a warning,
+stated here because a library has no warning channel a caller reads.
 
 **Applies to** — net10.0, netstandard2.0.
 

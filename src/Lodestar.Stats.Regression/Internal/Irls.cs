@@ -22,6 +22,7 @@ internal static class Irls
         ReadOnlySpan<double> response,
         int featureCount,
         GlmFamily family,
+        double alpha,
         GlmOptions options)
     {
         int rowCount = response.Length;
@@ -51,7 +52,7 @@ internal static class Irls
         var working = new double[rowCount];
         double[] coefficients = new double[parameterCount];
         double[] inverseUpper = new double[parameterCount * parameterCount];
-        double deviance = Deviance(family, response, mean);
+        double deviance = Deviance(family, alpha, response, mean);
         double change = double.PositiveInfinity;
         bool converged = false;
         int iteration = 0;
@@ -59,7 +60,7 @@ internal static class Irls
         while (iteration < options.MaximumIterations)
         {
             iteration++;
-            BuildWeightedSystem(family, matrix, response, mean, parameterCount, scaled, working);
+            BuildWeightedSystem(family, alpha, matrix, response, mean, scaled, working);
 
             (coefficients, inverseUpper, _) = LeastSquares.Solve(
                 scaled, rowCount, parameterCount, working);
@@ -85,7 +86,7 @@ internal static class Irls
                 mean[row] = Clamp(family, Families.InverseLink(family, eta));
             }
 
-            double next = Deviance(family, response, mean);
+            double next = Deviance(family, alpha, response, mean);
             change = Math.Abs(deviance - next);
             // numpy.allclose with the reference's own arguments: _fit_irls passes atol=tol and
             // leaves rtol at 0, so the criterion is the absolute deviance change alone.
@@ -110,12 +111,12 @@ internal static class Irls
             coefficients, inverseUpper, mean, deviance, converged, iteration, change);
     }
 
-    public static double Deviance(GlmFamily family, ReadOnlySpan<double> response, double[] mean)
+    public static double Deviance(GlmFamily family, double alpha, ReadOnlySpan<double> response, double[] mean)
     {
         double total = 0.0;
         for (int row = 0; row < response.Length; row++)
         {
-            total += Families.UnitDeviance(family, response[row], mean[row]);
+            total += Families.UnitDeviance(family, response[row], mean[row], alpha);
         }
 
         return total;
@@ -124,19 +125,20 @@ internal static class Irls
     /// <summary>The weighted design and working response for one IRLS iteration.</summary>
     private static void BuildWeightedSystem(
         GlmFamily family,
+        double alpha,
         double[] matrix,
         ReadOnlySpan<double> response,
         double[] mean,
-        int parameterCount,
         double[] scaled,
         double[] working)
     {
         int rowCount = mean.Length;
+        int parameterCount = matrix.Length / rowCount;
         for (int row = 0; row < rowCount; row++)
         {
             double mu = mean[row];
             double derivative = Families.LinkDerivative(family, mu);
-            double weight = 1.0 / (Families.Variance(family, mu) * derivative * derivative);
+            double weight = 1.0 / (Families.Variance(family, mu, alpha) * derivative * derivative);
             double root = Math.Sqrt(weight);
             double eta = Link(family, mu);
 
@@ -172,14 +174,14 @@ internal static class Irls
     private static double Clamp(GlmFamily family, double mu) => family switch
     {
         GlmFamily.Binomial => Math.Min(Math.Max(mu, BoundaryEpsilon), 1.0 - BoundaryEpsilon),
-        GlmFamily.Poisson => Math.Max(mu, BoundaryEpsilon),
+        GlmFamily.Poisson or GlmFamily.NegativeBinomial => Math.Max(mu, BoundaryEpsilon),
         _ => mu,
     };
 
     private static double Link(GlmFamily family, double mu) => family switch
     {
         GlmFamily.Binomial => Math.Log(mu / (1.0 - mu)),
-        GlmFamily.Poisson => Math.Log(mu),
+        GlmFamily.Poisson or GlmFamily.NegativeBinomial => Math.Log(mu),
         _ => throw Families.Undeclared(family),
     };
 }

@@ -236,6 +236,11 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- **`GlmFamily.NegativeBinomial` and `GlmOptions.NegativeBinomialAlpha`** fit over-dispersed counts
+  through `GeneralizedLinearModel.Fit`, at `statsmodels.GLM(family=NegativeBinomial(alpha))` 0.15.0 parity
+  over 7 frozen cases: the log link, variance `μ + αμ²`, `alpha` given rather than estimated. An unset
+  `alpha` is the reference's default of 1; one set for another family is refused, as is a fractional count.
+  ([#769](https://github.com/CyrilB1531/lodestar/issues/769))
 - **[`WeightedLeastSquares.Fit`](docs/reference/stats-regression/wls/weightedleastsquares-fit.md)
   fits a linear model with one weight per row and returns the same `OlsSummary` table**, at
   `statsmodels.WLS` 0.15.0 parity over 12 frozen cases, the four robust covariances included: R² on

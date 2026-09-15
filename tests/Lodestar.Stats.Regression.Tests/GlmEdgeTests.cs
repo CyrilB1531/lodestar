@@ -42,6 +42,64 @@ public sealed class GlmEdgeTests
             Design, [0.0, 0.5, 1.0, 0.0, 1.0, 1.0], featureCount: 1, GlmFamily.Binomial));
     }
 
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-1.0)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void A_negative_binomial_alpha_that_is_not_finite_and_positive_is_refused(double alpha)
+    {
+        // statsmodels divides by zero at 0 and fails its first deviance below it (#769).
+        Assert.Throws<ArgumentOutOfRangeException>(() => new GlmOptions { NegativeBinomialAlpha = alpha });
+    }
+
+    [Theory]
+    [InlineData(GlmFamily.Binomial)]
+    [InlineData(GlmFamily.Poisson)]
+    public void An_alpha_given_to_a_family_without_one_is_refused(GlmFamily family)
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(() => GeneralizedLinearModel.Fit(
+            Design, Response, featureCount: 1, family, new GlmOptions { NegativeBinomialAlpha = 0.5 }));
+
+        Assert.Equal("options", error.ParamName);
+    }
+
+    [Fact]
+    public void An_unset_alpha_is_the_reference_default_of_one()
+    {
+        double[] counts = [1.0, 0.0, 2.0, 3.0, 5.0, 4.0];
+
+        GlmSummary unset = GeneralizedLinearModel.Fit(Design, counts, featureCount: 1, GlmFamily.NegativeBinomial);
+        GlmSummary one = GeneralizedLinearModel.Fit(
+            Design, counts, featureCount: 1, GlmFamily.NegativeBinomial, new GlmOptions { NegativeBinomialAlpha = 1.0 });
+
+        Assert.Equal(one.Coefficients, unset.Coefficients);
+        Assert.Equal(one.LogLikelihood, unset.LogLikelihood);
+    }
+
+    [Fact]
+    public void A_fractional_negative_binomial_response_is_refused()
+    {
+        // The reference's gammaln would take 1.5; the two count families keep one rule (#769).
+        ArgumentException error = Assert.Throws<ArgumentException>(() => GeneralizedLinearModel.Fit(
+            Design, [0.0, 1.5, 2.0, 0.0, 1.0, 1.0], featureCount: 1, GlmFamily.NegativeBinomial));
+
+        Assert.Equal("response", error.ParamName);
+    }
+
+    [Fact]
+    public void A_vanishing_alpha_approaches_the_poisson_fit()
+    {
+        double[] counts = [1.0, 0.0, 2.0, 3.0, 5.0, 4.0];
+
+        GlmSummary poisson = GeneralizedLinearModel.Fit(Design, counts, featureCount: 1, GlmFamily.Poisson);
+        GlmSummary nearly = GeneralizedLinearModel.Fit(
+            Design, counts, featureCount: 1, GlmFamily.NegativeBinomial, new GlmOptions { NegativeBinomialAlpha = 1e-8 });
+
+        Assert.Equal(poisson.Coefficients[0], nearly.Coefficients[0], 1e-6);
+        Assert.Equal(poisson.Coefficients[1], nearly.Coefficients[1], 1e-6);
+    }
+
     [Fact]
     public void A_negative_poisson_response_is_refused()
     {

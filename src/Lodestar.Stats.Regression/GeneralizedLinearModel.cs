@@ -12,15 +12,15 @@ public static class GeneralizedLinearModel
 {
     /// <summary>Fits one model and reports its inference table.</summary>
     /// <param name="design">The regressors, row-major, <paramref name="featureCount"/> per row.</param>
-    /// <param name="response">One value per row: 0 or 1 for binomial, a count for Poisson.</param>
+    /// <param name="response">One value per row: 0 or 1 for binomial, a count for Poisson and the negative binomial.</param>
     /// <param name="featureCount">How many regressors a row carries.</param>
     /// <param name="family">The response distribution, with its canonical link.</param>
     /// <param name="options">The fit's settings, or null for the defaults.</param>
     /// <exception cref="ArgumentException">
     /// <paramref name="design"/> is not a positive whole number of rows, the lengths disagree, a
-    /// response is outside its family, is an infinite Poisson count, or is a Poisson response that
-    /// is zero in every row, no residual degree of freedom is left, or the design
-    /// is rank deficient.
+    /// response is outside its family, is an infinite count, or is a count response that
+    /// is zero in every row, no residual degree of freedom is left, the design
+    /// is rank deficient, or <see cref="GlmOptions.NegativeBinomialAlpha"/> is set for another family.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="featureCount"/> is below one, or <paramref name="family"/> is not a declared
@@ -39,6 +39,7 @@ public static class GeneralizedLinearModel
         int rowCount = LeastSquares.Rows(design, response, featureCount);
         int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
         RefuseResponseOutsideTheFamily(family, response);
+        double alpha = ResolveAlpha(family, settings, nameof(options));
 
         int residualDegreesOfFreedom = rowCount - parameterCount;
         if (residualDegreesOfFreedom < 1)
@@ -48,7 +49,7 @@ public static class GeneralizedLinearModel
                 + "freedom, so no standard error exists.", nameof(design));
         }
 
-        IrlsResult fit = Irls.Fit(design, response, featureCount, family, settings);
+        IrlsResult fit = Irls.Fit(design, response, featureCount, family, alpha, settings);
         if (!fit.Converged && settings.ThrowOnNonConvergence)
         {
             throw new InvalidOperationException(
@@ -77,8 +78,8 @@ public static class GeneralizedLinearModel
             upper[j] = fit.Coefficients[j] + (multiplier * errors[j]);
         }
 
-        double nullDeviance = NullDeviance(family, response);
-        double logLikelihood = LogLikelihood.Of(family, response, fit.Mean);
+        double nullDeviance = NullDeviance(family, alpha, response);
+        double logLikelihood = LogLikelihood.Of(family, response, fit.Mean, alpha);
         double akaike = (2.0 * parameterCount) - (2.0 * logLikelihood);
 
         return new GlmSummary
@@ -111,7 +112,7 @@ public static class GeneralizedLinearModel
     /// least squares of the response on a column of ones. Taking the mean rather than running
     /// the loop is therefore the reference's own value exactly, not to a tolerance.
     /// </remarks>
-    private static double NullDeviance(GlmFamily family, ReadOnlySpan<double> response)
+    private static double NullDeviance(GlmFamily family, double alpha, ReadOnlySpan<double> response)
     {
         double total = 0.0;
         for (int row = 0; row < response.Length; row++)
@@ -126,7 +127,25 @@ public static class GeneralizedLinearModel
             constant[row] = mean;
         }
 
-        return Irls.Deviance(family, response, constant);
+        return Irls.Deviance(family, alpha, response, constant);
+    }
+
+    /// <summary>The negative binomial's alpha, the reference's default of 1 when unset, and a refusal for any other family.</summary>
+    private static double ResolveAlpha(GlmFamily family, GlmOptions settings, string optionsName)
+    {
+        if (family == GlmFamily.NegativeBinomial)
+        {
+            return settings.NegativeBinomialAlpha ?? 1.0;
+        }
+
+        if (settings.NegativeBinomialAlpha is { } alpha)
+        {
+            throw new ArgumentException(
+                $"{nameof(GlmOptions.NegativeBinomialAlpha)} is {alpha}, and {family} has no alpha to "
+                + "apply it to.", optionsName);
+        }
+
+        return 1.0;
     }
 
     /// <summary>
@@ -150,7 +169,8 @@ public static class GeneralizedLinearModel
                 GlmFamily.Binomial => y is 0.0 or 1.0,
                 // Infinity truncates to itself, so it is refused by name; the count bound that used
                 // to catch it went with #665, and an infinite count has no likelihood to maximise.
-                GlmFamily.Poisson => y >= 0.0 && !double.IsPositiveInfinity(y) && y == Math.Truncate(y),
+                GlmFamily.Poisson or GlmFamily.NegativeBinomial =>
+                    y >= 0.0 && !double.IsPositiveInfinity(y) && y == Math.Truncate(y),
                 _ => throw Families.Undeclared(family),
             };
 #pragma warning restore S1244
@@ -159,13 +179,13 @@ public static class GeneralizedLinearModel
             {
                 throw new ArgumentException(
                     $"row {row} carries {y}, which {family} cannot fit: binomial takes 0 or 1 "
-                    + "and Poisson a finite non-negative integer count.", nameof(response));
+                    + "and the two count families a finite non-negative integer count.", nameof(response));
             }
 
             anyPositive |= y > 0.0;
         }
 
-        if (family == GlmFamily.Poisson && !anyPositive && response.Length > 0)
+        if (family != GlmFamily.Binomial && !anyPositive && response.Length > 0)
         {
             throw new ArgumentException(
                 "every count is zero, so the log link sends the fitted mean to zero and the "

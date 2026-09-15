@@ -10,9 +10,10 @@ public static GlmSummary Fit(ReadOnlySpan<double> design, ReadOnlySpan<double> r
 
 **Parameters** — `design` is the regressors, row-major: `featureCount` values per row, with no
 constant column of your own. `response` is one value per row of `design`: `0` or `1` for
-`GlmFamily.Binomial`, a count for `GlmFamily.Poisson`. `featureCount` is how many regressors each
-row carries. `family` is the response distribution, with its canonical link. `options` chooses
-the intercept, the confidence level and the IRLS budget; `null` fits an intercept at 0.95 with the
+`GlmFamily.Binomial`, a count for `GlmFamily.Poisson` and `GlmFamily.NegativeBinomial`. `featureCount`
+is how many regressors each row carries. `family` is the response distribution, with the link statsmodels
+defaults it to. `options` chooses the intercept, the confidence level, the IRLS budget and the negative
+binomial's `α`; `null` fits an intercept at 0.95 with the
 100-iteration, `1e-8` defaults.
 
 **Returns** — the fitted model, with its standard errors, z statistics, p-values, confidence
@@ -22,10 +23,11 @@ intervals, deviance and the rest of the table `GlmSummary` carries.
 is not a declared `GlmFamily` member; a setting outside its own range throws from
 [`GlmOptions`](glmoptions.md) itself. `ArgumentException` when `design` is empty or is not a whole
 number of rows, when the lengths disagree, when a response value is outside its family — a
-`Binomial` response that is not `0` or `1`, or a `Poisson` one that is negative, fractional or
-infinite — when a `Poisson` response is zero in every row, when no residual degree of
-freedom is left, or when the design is rank deficient and the weighted least squares has no unique
-solution. `InvalidOperationException` when
+`Binomial` response that is not `0` or `1`, or a count one that is negative, fractional or
+infinite — when a count response is zero in every row, when no residual degree of
+freedom is left, when the design is rank deficient and the weighted least squares has no unique
+solution, or when `GlmOptions.NegativeBinomialAlpha` is set for a family other than
+`NegativeBinomial`. `InvalidOperationException` when
 IRLS did not converge and `GlmOptions.ThrowOnNonConvergence` says throw.
 
 A `Poisson` count has no upper bound: the log-likelihood's `log(y!)` reads a table below 256 and a

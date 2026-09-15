@@ -3,8 +3,8 @@
   "library": "statsmodels",
   "version": "0.15.0",
   "family": "glm",
-  "variant": "GLM(family=Binomial|Poisson).fit(), IRLS, canonical links",
-  "count": 6
+  "variant": "GLM(family=Binomial|Poisson|NegativeBinomial(alpha)).fit(), IRLS, default links",
+  "count": 13
  },
  "binomial": {
   "cases": [
@@ -405,6 +405,453 @@
     "logLikelihood": -17.884598239091762,
     "akaike": 41.769196478183524,
     "residualDegreesOfFreedom": 7,
+    "converged": true,
+    "iterations": 5
+   }
+  ]
+ },
+ "negativeBinomial": {
+  "cases": [
+   {
+    "name": "negative binomial, alpha 0.5",
+    "design": [
+     0.0,
+     1.0,
+     2.0,
+     3.0,
+     4.0,
+     5.0,
+     6.0,
+     7.0,
+     8.0,
+     9.0
+    ],
+    "response": [
+     1.0,
+     0.0,
+     2.0,
+     3.0,
+     4.0,
+     3.0,
+     7.0,
+     6.0,
+     9.0,
+     11.0
+    ],
+    "featureCount": 1,
+    "withIntercept": true,
+    "confidenceLevel": 0.95,
+    "alpha": 0.5,
+    "coefficients": [
+     -0.08509765766916422,
+     0.2900678621948763
+    ],
+    "standardErrors": [
+     0.6318618138093962,
+     0.10540180651314805
+    ],
+    "zStatistics": [
+     -0.1346776396505491,
+     2.752019835245353
+    ],
+    "pValues": [
+     0.8928667530723292,
+     0.005922893333384758
+    ],
+    "confidenceLower": [
+     -1.323524055941734,
+     0.08348411752364682
+    ],
+    "confidenceUpper": [
+     1.1533287406034056,
+     0.49665160686610577
+    ],
+    "deviance": 2.4968582321953887,
+    "nullDeviance": 10.381923359953312,
+    "dispersion": 1.0,
+    "logLikelihood": -21.555901162867805,
+    "akaike": 47.11180232573561,
+    "residualDegreesOfFreedom": 8,
+    "converged": true,
+    "iterations": 6
+   },
+   {
+    "name": "negative binomial, alpha 1.0",
+    "design": [
+     0.0,
+     1.0,
+     2.0,
+     3.0,
+     4.0,
+     5.0,
+     6.0,
+     7.0,
+     8.0,
+     9.0
+    ],
+    "response": [
+     1.0,
+     0.0,
+     2.0,
+     3.0,
+     4.0,
+     3.0,
+     7.0,
+     6.0,
+     9.0,
+     11.0
+    ],
+    "featureCount": 1,
+    "withIntercept": true,
+    "confidenceLevel": 0.95,
+    "alpha": 1.0,
+    "coefficients": [
+     -0.11615749434817413,
+     0.29570977198586207
+    ],
+    "standardErrors": [
+     0.7665510060370111,
+     0.13268114568527617
+    ],
+    "zStatistics": [
+     -0.15153263570639125,
+     2.228724891231305
+    ],
+    "pValues": [
+     0.8795555684993556,
+     0.025832215040177502
+    ],
+    "confidenceLower": [
+     -1.6185698584936614,
+     0.035659505015208814
+    ],
+    "confidenceUpper": [
+     1.3862548697973134,
+     0.5557600389565154
+    ],
+    "deviance": 1.9556497909427124,
+    "nullDeviance": 6.803944646850059,
+    "dispersion": 1.0,
+    "logLikelihood": -23.852192084775858,
+    "akaike": 51.704384169551716,
+    "residualDegreesOfFreedom": 8,
+    "converged": true,
+    "iterations": 6
+   },
+   {
+    "name": "negative binomial, alpha 2.0",
+    "design": [
+     0.0,
+     1.0,
+     2.0,
+     3.0,
+     4.0,
+     5.0,
+     6.0,
+     7.0,
+     8.0,
+     9.0
+    ],
+    "response": [
+     1.0,
+     0.0,
+     2.0,
+     3.0,
+     4.0,
+     3.0,
+     7.0,
+     6.0,
+     9.0,
+     11.0
+    ],
+    "featureCount": 1,
+    "withIntercept": true,
+    "confidenceLevel": 0.95,
+    "alpha": 2.0,
+    "coefficients": [
+     -0.1407089663714821,
+     0.300172917958816
+    ],
+    "standardErrors": [
+     0.972857617543776,
+     0.17349485170311868
+    ],
+    "zStatistics": [
+     -0.14463469662368203,
+     1.7301546127286047
+    ],
+    "pValues": [
+     0.8849993013182477,
+     0.0836026550000524
+    ],
+    "confidenceLower": [
+     -2.047474858842725,
+     -0.03987074288241427
+    ],
+    "confidenceUpper": [
+     1.7660569260997612,
+     0.6402165788000462
+    ],
+    "deviance": 1.4373921504301779,
+    "nullDeviance": 4.193660789360698,
+    "dispersion": 1.0,
+    "logLikelihood": -26.796986881169,
+    "akaike": 57.593973762338,
+    "residualDegreesOfFreedom": 8,
+    "converged": true,
+    "iterations": 6
+   },
+   {
+    "name": "negative binomial, no intercept",
+    "design": [
+     0.5,
+     1.0,
+     1.5,
+     2.0,
+     2.5,
+     3.0,
+     3.5,
+     4.0
+    ],
+    "response": [
+     1.0,
+     2.0,
+     1.0,
+     4.0,
+     3.0,
+     6.0,
+     5.0,
+     9.0
+    ],
+    "featureCount": 1,
+    "withIntercept": false,
+    "confidenceLevel": 0.95,
+    "alpha": 1.0,
+    "coefficients": [
+     0.5261782126478054
+    ],
+    "standardErrors": [
+     0.15338188543773557
+    ],
+    "zStatistics": [
+     3.4305107878035845
+    ],
+    "pValues": [
+     0.0006024460172829366
+    ],
+    "confidenceLower": [
+     0.22555524130899512
+    ],
+    "confidenceUpper": [
+     0.8268011839866156
+    ],
+    "deviance": 0.5778012962142586,
+    "nullDeviance": 3.062546776312846,
+    "dispersion": 1.0,
+    "logLikelihood": -18.5473957865287,
+    "akaike": 39.0947915730574,
+    "residualDegreesOfFreedom": 7,
+    "converged": true,
+    "iterations": 3
+   },
+   {
+    "name": "negative binomial, zeros in the response, 99%",
+    "design": [
+     0.0,
+     0.5,
+     1.0,
+     1.5,
+     2.0,
+     2.5,
+     3.0,
+     3.5
+    ],
+    "response": [
+     0.0,
+     0.0,
+     1.0,
+     0.0,
+     2.0,
+     1.0,
+     3.0,
+     4.0
+    ],
+    "featureCount": 1,
+    "withIntercept": true,
+    "confidenceLevel": 0.99,
+    "alpha": 0.5,
+    "coefficients": [
+     -1.9745630893434234,
+     0.9914768503130905
+    ],
+    "standardErrors": [
+     1.2351519541713998,
+     0.46399411397631274
+    ],
+    "zStatistics": [
+     -1.5986398132431054,
+     2.136830663252134
+    ],
+    "pValues": [
+     0.10990065798987153,
+     0.032611767158025017
+    ],
+    "confidenceLower": [
+     -5.156103687233803,
+     -0.2036927851413043
+    ],
+    "confidenceUpper": [
+     1.2069775085469565,
+     2.1866464857674854
+    ],
+    "deviance": 2.998813514984425,
+    "nullDeviance": 8.947021497348986,
+    "dispersion": 1.0,
+    "logLikelihood": -9.79458491097404,
+    "akaike": 23.58916982194808,
+    "residualDegreesOfFreedom": 6,
+    "converged": true,
+    "iterations": 5
+   },
+   {
+    "name": "negative binomial, two regressors",
+    "design": [
+     1.0,
+     0.5,
+     2.0,
+     2.0,
+     3.0,
+     1.0,
+     4.0,
+     3.0,
+     5.0,
+     1.5,
+     6.0,
+     2.5,
+     7.0,
+     0.5,
+     8.0,
+     3.5,
+     9.0,
+     2.0,
+     10.0,
+     1.0
+    ],
+    "response": [
+     1.0,
+     2.0,
+     2.0,
+     4.0,
+     5.0,
+     7.0,
+     8.0,
+     12.0,
+     15.0,
+     20.0
+    ],
+    "featureCount": 2,
+    "withIntercept": true,
+    "confidenceLevel": 0.95,
+    "alpha": 0.25,
+    "coefficients": [
+     -0.13461982784220217,
+     0.30418310210116817,
+     0.07704326486618035
+    ],
+    "standardErrors": [
+     0.6706671585995093,
+     0.0795910909059662,
+     0.21209257264038056
+    ],
+    "zStatistics": [
+     -0.20072524219512403,
+     3.8218235061075965,
+     0.36325300743469785
+    ],
+    "pValues": [
+     0.8409134209818234,
+     0.00013246848752953566,
+     0.7164158937640742
+    ],
+    "confidenceLower": [
+     -1.4491033043110528,
+     0.148187430435221,
+     -0.3386505388974108
+    ],
+    "confidenceUpper": [
+     1.1798636486266485,
+     0.46017877376711536,
+     0.4927370686297715
+    ],
+    "deviance": 0.1582017046718634,
+    "nullDeviance": 16.83965073728109,
+    "dispersion": 1.0,
+    "logLikelihood": -22.615212698002004,
+    "akaike": 51.23042539600401,
+    "residualDegreesOfFreedom": 7,
+    "converged": true,
+    "iterations": 6
+   },
+   {
+    "name": "negative binomial, alpha 1e-3, near Poisson",
+    "design": [
+     0.0,
+     1.0,
+     2.0,
+     3.0,
+     4.0,
+     5.0,
+     6.0,
+     7.0,
+     8.0,
+     9.0
+    ],
+    "response": [
+     1.0,
+     0.0,
+     2.0,
+     3.0,
+     4.0,
+     3.0,
+     7.0,
+     6.0,
+     9.0,
+     11.0
+    ],
+    "featureCount": 1,
+    "withIntercept": true,
+    "confidenceLevel": 0.95,
+    "alpha": 0.001,
+    "coefficients": [
+     0.020107353752137236,
+     0.27106130559709946
+    ],
+    "standardErrors": [
+     0.42197745728807656,
+     0.060869062920320065
+    ],
+    "zStatistics": [
+     0.047650303126051355,
+     4.453186768324807
+    ],
+    "pValues": [
+     0.9619949414351566,
+     8.46050991679105e-06
+    ],
+    "confidenceLower": [
+     -0.8069532648202817,
+     0.1517601345005697
+    ],
+    "confidenceUpper": [
+     0.8471679723245562,
+     0.3903624766936292
+    ],
+    "deviance": 4.148929775109441,
+    "nullDeviance": 27.582892691114672,
+    "dispersion": 1.0,
+    "logLikelihood": -16.91371290369291,
+    "akaike": 37.82742580738582,
+    "residualDegreesOfFreedom": 8,
     "converged": true,
     "iterations": 5
    }
