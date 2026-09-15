@@ -20,6 +20,9 @@ internal static class LogLikelihood
     /// <param name="alpha">The negative binomial's dispersion; the other families ignore it.</param>
     public static double Of(GlmFamily family, ReadOnlySpan<double> response, double[] mean, double alpha)
     {
+        // lnΓ(1/α) is the same in every row and costs a few dozen logarithms: read once, not per row (#781).
+        double logGammaTheta = family == GlmFamily.NegativeBinomial ? LogGamma(1.0 / alpha) : 0.0;
+
         double total = 0.0;
         for (int row = 0; row < response.Length; row++)
         {
@@ -29,7 +32,7 @@ internal static class LogLikelihood
             {
                 GlmFamily.Binomial => (y * Math.Log(mu)) + ((1.0 - y) * Math.Log(1.0 - mu)),
                 GlmFamily.Poisson => (y * Math.Log(mu)) - mu - LogFactorial(y),
-                GlmFamily.NegativeBinomial => NegativeBinomialTerm(y, mu, alpha),
+                GlmFamily.NegativeBinomial => NegativeBinomialTerm(y, mu, alpha, logGammaTheta),
                 _ => throw Families.Undeclared(family),
             };
         }
@@ -38,13 +41,13 @@ internal static class LogLikelihood
     }
 
     /// <summary>One row of the negative binomial log-likelihood, term for term as <c>loglike_obs</c> writes it.</summary>
-    private static double NegativeBinomialTerm(double y, double mu, double alpha)
+    private static double NegativeBinomialTerm(double y, double mu, double alpha, double logGammaTheta)
     {
         double theta = 1.0 / alpha;
         return (y * Math.Log(alpha * mu))
             - ((y + theta) * Math.Log(1.0 + (alpha * mu)))
             + LogGamma(y + theta)
-            - LogGamma(theta)
+            - logGammaTheta
             - LogFactorial(y);
     }
 

@@ -2,10 +2,10 @@ using BenchmarkDotNet.Running;
 using Lodestar.Text.Benchmarks.CrossLang;
 
 // long-comment: the entry points, and why the chain of ifs became a switch.
-// Ten subcommands below, and BenchmarkDotNet by default when the first argument is absent
-// or option-shaped. bench/README.md carries an invocation for each of the ten: the four
-// "compare*", then "roc-parallel", "save-phases", "pool-cost", "sidecar", "heap-warmth"
-// and "ingest-phases".
+// Fourteen subcommands below, and BenchmarkDotNet by default when the first argument is absent
+// or option-shaped. bench/README.md carries an invocation for each: the seven "compare*", then
+// "roc-parallel", "save-phases", "pool-cost", "sidecar", "ingest-phases", "tensor-primitives"
+// and "heap-warmth".
 // A switch rather than a chain of ifs: the ninth took the chain past the cognitive-complexity
 // bar, and tools/check_bench_map.py reads these cases by name.
 switch (args.Length > 0 ? args[0] : string.Empty)
@@ -27,6 +27,9 @@ switch (args.Length > 0 ? args[0] : string.Empty)
         return;
     case "compare-ols":
         StatsCrossLang.RunOls(args);
+        return;
+    case "compare-glm":
+        StatsCrossLang.RunGlm(args);
         return;
     case "roc-parallel":
         RocParallelBench.Run();

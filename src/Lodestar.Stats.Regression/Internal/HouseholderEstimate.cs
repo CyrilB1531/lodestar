@@ -43,7 +43,7 @@ internal static class HouseholderEstimate
         }
 
         double[] projected = response.ToArray();
-        Triangularize(a, rowCount, parameterCount, projected);
+        LeastSquares.Triangularize(a, rowCount, parameterCount, projected);
 
         double residualSumOfSquares = 0.0;
         for (int row = parameterCount; row < rowCount; row++)
@@ -56,70 +56,11 @@ internal static class HouseholderEstimate
         return (coefficients, standardErrors, tStatistics, residualSumOfSquares, residualDegreesOfFreedom);
     }
 
-    /// <summary>Householder reflections reducing <paramref name="a"/> to R in its upper triangle, applied to <paramref name="projected"/> too.</summary>
-    private static void Triangularize(double[] a, int rowCount, int parameterCount, double[] projected)
-    {
-        for (int k = 0; k < parameterCount; k++)
-        {
-            int diagonal = (k * rowCount) + k;
-            double norm = 0.0;
-            for (int row = k; row < rowCount; row++)
-            {
-                double value = a[(k * rowCount) + row];
-                norm += value * value;
-            }
-
-            norm = Math.Sqrt(norm);
-            double alpha = a[diagonal] > 0.0 ? -norm : norm;
-
-            // v = x - alpha·e1 in place, then H = I - 2vvᵀ/(vᵀv); vᵀv = 2·norm·(norm + |x₀|).
-            a[diagonal] -= alpha;
-            double scale = norm * (norm + Math.Abs(a[diagonal] + alpha));
-            if (scale > 0.0)
-            {
-                for (int column = k + 1; column < parameterCount; column++)
-                {
-                    Reflect(a, k, rowCount, scale, a, column * rowCount);
-                }
-
-                Reflect(a, k, rowCount, scale, projected, 0);
-            }
-
-            a[diagonal] = alpha;
-        }
-    }
-
-    /// <summary>Applies the reflection stored below column <paramref name="k"/>'s diagonal to a vector.</summary>
-    private static void Reflect(double[] a, int k, int rowCount, double scale, double[] target, int offset)
-    {
-        int vector = k * rowCount;
-        double dot = 0.0;
-        for (int row = k; row < rowCount; row++)
-        {
-            dot += a[vector + row] * target[offset + row];
-        }
-
-        double factor = dot / scale;
-        for (int row = k; row < rowCount; row++)
-        {
-            target[offset + row] -= factor * a[vector + row];
-        }
-    }
-
     /// <summary>The coefficients by back substitution, their standard errors from R's inverse, and each quotient.</summary>
     private static (double[] Coefficients, double[] StandardErrors, double[] TStatistics) Statistics(
         double[] a, int rowCount, int parameterCount, double[] projected, double residualVariance)
     {
-        var upper = new double[parameterCount * parameterCount];
-        for (int row = 0; row < parameterCount; row++)
-        {
-            for (int column = row; column < parameterCount; column++)
-            {
-                upper[(row * parameterCount) + column] = a[(column * rowCount) + row];
-            }
-        }
-
-        double[] inverse = LeastSquares.InvertUpper(upper, parameterCount);
+        double[] inverse = LeastSquares.InvertUpper(LeastSquares.Upper(a, rowCount, parameterCount), parameterCount);
         var coefficients = new double[parameterCount];
         var standardErrors = new double[parameterCount];
         var statistics = new double[parameterCount];

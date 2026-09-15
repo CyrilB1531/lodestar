@@ -50,9 +50,9 @@ double[] response = [2.0, 3.0, 6.0, 8.0, 10.0, 13.0, 14.0, 17.0];
 
 GlmSummary fit = GeneralizedLinearModel.Fit(design, response, 1, GlmFamily.Poisson);
 
-double slope = fit.Coefficients[1];        // => 0.2551196596753593
-double error = fit.StandardErrors[1];      // => 0.0564453916361457
-double significance = fit.PValues[1];      // => 6.19095855462854…
+double slope = fit.Coefficients[1];        // => 0.25511965967535943
+double error = fit.StandardErrors[1];      // => 0.05644539163614572
+double significance = fit.PValues[1];      // => 6.19095855462…
 ```
 
 **Remarks** — **the intercept is not a column you supply.** `WithIntercept` prepends it, so

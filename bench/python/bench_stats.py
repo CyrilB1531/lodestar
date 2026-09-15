@@ -48,6 +48,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CORPUS = ROOT / "corpus" / "stats"
 TESTS_OUT = ROOT / "results" / "python-stats.json"
 OLS_OUT = ROOT / "results" / "python-ols.json"
+GLM_OUT = ROOT / "results" / "python-glm.json"
 
 SIZES = [1_000, 10_000, 100_000]
 
@@ -102,6 +103,8 @@ def load_size(n: int) -> dict:
         "design": design,
         "with_constant": sm.add_constant(design),
         "response": np.asarray(payload["response"], dtype=np.float64),
+        "counts": np.asarray(payload["counts"], dtype=np.float64),
+        "count_alpha": payload["count_alpha"],
     }
 
 
@@ -113,11 +116,18 @@ def ols_summary(exog, endog) -> object:
             fitted.fvalue, fitted.f_pvalue)
 
 
-def measure_size(n: int) -> tuple[list[dict], list[dict]]:
+def negative_binomial_summary(exog, endog, alpha: float) -> object:
+    """The IRLS fit plus what `GlmSummary` carries, so both sides price one table (#781)."""
+    fitted = sm.GLM(endog, exog, family=sm.families.NegativeBinomial(alpha=alpha)).fit()
+    return (fitted.params, fitted.bse, fitted.tvalues, fitted.pvalues, fitted.conf_int(),
+            fitted.deviance, fitted.null_deviance, fitted.llf, fitted.aic)
+
+
+def measure_size(n: int) -> tuple[list[dict], list[dict], list[dict]]:
     """The tests rows and the regression rows, kept apart.
 
     One file per harness, because bench/compare.py's `load(side, bench)` reads
-    python-<bench>.json and bench-map.json maps `stats` and `ols` to separate
+    python-<bench>.json and bench-map.json maps `stats`, `ols` and `glm` to separate
     harnesses so a change to one package does not re-run the other.
     """
     data = load_size(n)
@@ -135,7 +145,9 @@ def measure_size(n: int) -> tuple[list[dict], list[dict]]:
         measure(f"ols_vif_{suffix}",
                 lambda: [variance_inflation_factor(design, j) for j in range(design.shape[1])]),
     ]
-    return tests, regression
+    counts, alpha = data["counts"], data["count_alpha"]
+    glm = [measure(f"glm_negative_binomial_{suffix}", lambda: negative_binomial_summary(exog, counts, alpha))]
+    return tests, regression, glm
 
 
 def payload_for(results: list[dict]) -> dict:
@@ -162,12 +174,14 @@ def main() -> None:
     print("Python stats bench")
     tests: list[dict] = []
     regression: list[dict] = []
+    glm: list[dict] = []
     for n in SIZES:
-        size_tests, size_regression = measure_size(n)
+        size_tests, size_regression, size_glm = measure_size(n)
         tests.extend(size_tests)
         regression.extend(size_regression)
+        glm.extend(size_glm)
 
-    for out, results in ((TESTS_OUT, tests), (OLS_OUT, regression)):
+    for out, results in ((TESTS_OUT, tests), (OLS_OUT, regression), (GLM_OUT, glm)):
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(payload_for(results), indent=2) + "\n", encoding="utf-8")
         print(f"-> {out}")

@@ -1,4 +1,3 @@
-using Lodestar.Decomposition;
 using Lodestar.Stats.Regression.Internal;
 
 namespace Lodestar.Stats.Regression;
@@ -39,14 +38,12 @@ public static class OrdinaryLeastSquares
 
         RequireResidualDegreesOfFreedom(rowCount, parameterCount, nameof(design));
 
-        double[] matrix = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept);
         return Summarise(
-            matrix,
+            design,
             response,
-            matrix,
             TotalSumOfSquares(response, settings.WithIntercept),
             rowCount,
-            parameterCount,
+            featureCount,
             settings);
     }
 
@@ -65,42 +62,48 @@ public static class OrdinaryLeastSquares
     }
 
     /// <summary>Everything from the solve onward, shared by the ordinary and the weighted fit.</summary>
-    /// <param name="matrix">The design the solve runs on, intercept column included — whitened for a weighted fit.</param>
-    /// <param name="response">The response the solve runs on, whitened alongside <paramref name="matrix"/>.</param>
-    /// <param name="unweighted">The design as the caller gave it, which the VIFs read.</param>
+    /// <param name="design">The regressors as the caller gave them, row-major, with no constant column.</param>
+    /// <param name="response">The response as the caller gave it.</param>
     /// <param name="totalSumOfSquares">The denominator of R², which a weighted fit centres on its weighted mean.</param>
     /// <param name="rowCount">Rows in the design.</param>
-    /// <param name="parameterCount">Columns in the design, intercept included.</param>
+    /// <param name="featureCount">Regressors per row.</param>
     /// <param name="settings">The options the caller passed, defaults resolved.</param>
+    /// <param name="weights">The weighted fit's weights, applied inside the solve rather than to a copy; empty otherwise.</param>
     internal static OlsSummary Summarise(
-        double[] matrix,
+        ReadOnlySpan<double> design,
         ReadOnlySpan<double> response,
-        double[] unweighted,
         double totalSumOfSquares,
         int rowCount,
-        int parameterCount,
-        OlsOptions settings)
+        int featureCount,
+        OlsOptions settings,
+        ReadOnlySpan<double> weights = default)
     {
+        int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
         int residualDegreesOfFreedom = rowCount - parameterCount;
-        (double[] coefficients, double[] inverseUpper, QrDecomposition factorization) =
-            LeastSquares.Solve(matrix, rowCount, parameterCount, response);
+        (double[] coefficients, double[] inverseUpper) =
+            LeastSquares.Solve(design, rowCount, featureCount, settings.WithIntercept, response, weights);
 
-        double[] residuals = Residuals(matrix, rowCount, parameterCount, response, coefficients);
+        double[] residuals = Residuals(design, rowCount, featureCount, response, coefficients, weights);
         double residualSumOfSquares = Dot(residuals, residuals);
         double residualVariance = residualSumOfSquares / residualDegreesOfFreedom;
         double residualStandardError = Math.Sqrt(residualVariance);
 
         bool robust = settings.CovarianceType != CovarianceType.Nonrobust;
-        double[]? covariance = robust
-            ? RobustCovariance.Sandwich(
-                matrix,
+        double[]? covariance = null;
+        if (robust)
+        {
+            // The robust covariances read the design row by row, so it is built — and whitened — only for them.
+            double[] scaled = Whiten(
+                LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept), rowCount, parameterCount, weights);
+            covariance = RobustCovariance.Sandwich(
+                scaled,
                 inverseUpper,
                 residuals,
-                RobustCovariance.Leverages(factorization, rowCount, parameterCount),
+                RobustCovariance.Leverages(scaled, inverseUpper, rowCount, parameterCount),
                 rowCount,
                 parameterCount,
-                settings.CovarianceType)
-            : null;
+                settings.CovarianceType);
+        }
 
         double[] standardErrors = covariance is null
             ? LeastSquares.StandardErrors(inverseUpper, parameterCount, residualVariance)
@@ -143,7 +146,7 @@ public static class OrdinaryLeastSquares
             PValues = pValues,
             ConfidenceLower = lower,
             ConfidenceUpper = upper,
-            VarianceInflationFactors = Vif(unweighted, rowCount, parameterCount, settings.WithIntercept),
+            VarianceInflationFactors = Vif(design, rowCount, featureCount, settings.WithIntercept),
             CovarianceType = settings.CovarianceType,
             HasIntercept = settings.WithIntercept,
             ConfidenceLevel = settings.ConfidenceLevel,
@@ -205,25 +208,51 @@ public static class OrdinaryLeastSquares
 
     /// <summary>What the model leaves unexplained, row by row.</summary>
     private static double[] Residuals(
-        double[] matrix,
+        ReadOnlySpan<double> design,
         int rowCount,
-        int parameterCount,
+        int featureCount,
         ReadOnlySpan<double> response,
-        double[] coefficients)
+        double[] coefficients,
+        ReadOnlySpan<double> weights)
     {
+        int first = coefficients.Length - featureCount;
         var residuals = new double[rowCount];
         for (int row = 0; row < rowCount; row++)
         {
-            double fitted = 0.0;
-            for (int column = 0; column < parameterCount; column++)
+            double fitted = first == 1 ? coefficients[0] : 0.0;
+            int at = row * featureCount;
+            for (int column = 0; column < featureCount; column++)
             {
-                fitted += matrix[(row * parameterCount) + column] * coefficients[column];
+                fitted += design[at + column] * coefficients[column + first];
             }
 
-            residuals[row] = response[row] - fitted;
+            // A weighted residual is the whitened one, √w·(y − ŷ), which is what the variance and HC read.
+            residuals[row] = weights.IsEmpty ? response[row] - fitted : Math.Sqrt(weights[row]) * (response[row] - fitted);
         }
 
         return residuals;
+    }
+
+    /// <summary>The design scaled row by row by the square root of its weight, for the robust covariances that read it; the design itself when unweighted.</summary>
+    private static double[] Whiten(double[] matrix, int rowCount, int parameterCount, ReadOnlySpan<double> weights)
+    {
+        if (weights.IsEmpty)
+        {
+            return matrix;
+        }
+
+        var whitened = new double[matrix.Length];
+        for (int row = 0; row < rowCount; row++)
+        {
+            double root = Math.Sqrt(weights[row]);
+            int start = row * parameterCount;
+            for (int column = 0; column < parameterCount; column++)
+            {
+                whitened[start + column] = matrix[start + column] * root;
+            }
+        }
+
+        return whitened;
     }
 
     /// <summary>R²'s denominator — centred against the mean, or against zero with no intercept.</summary>
@@ -274,10 +303,8 @@ public static class OrdinaryLeastSquares
     /// leaves R² alone once a constant absorbs the shift — and without one it is the whole
     /// difference between this and the textbook formula.
     /// </remarks>
-    private static double[] Vif(double[] matrix, int rowCount, int parameterCount, bool withIntercept)
+    private static double[] Vif(ReadOnlySpan<double> design, int rowCount, int regressorCount, bool withIntercept)
     {
-        int first = withIntercept ? 1 : 0;
-        int regressorCount = parameterCount - first;
         var factors = new double[regressorCount];
         if (regressorCount == 1 && !withIntercept)
         {
@@ -288,6 +315,8 @@ public static class OrdinaryLeastSquares
         }
 
         // long-comment: why one decomposition replaces one regression per regressor (#591).
+        // Reached only when the Gram route above declines: a factor past its ceiling, or a Gram matrix
+        // that is not safely positive definite — the near-perfectly collinear designs the clip is for.
         // For standardised Z the correlation matrix is ZᵀZ/n, and a VIF is a diagonal entry of
         // its inverse — the same number the auxiliary regression of a column on the others
         // reaches the long way round. Through the QR that is Zᵀ Z = RᵀR, so (ZᵀZ)⁻¹ = R⁻¹R⁻ᵀ and
@@ -296,9 +325,16 @@ public static class OrdinaryLeastSquares
         // explains none of them. Measured against tests/oracles/stats_ols.json, the identity
         // agrees with the regressions to 1.3e-12 relative on the near-collinear case whose VIF
         // is 6e4, and to 3.4e-15 or better on the other five — inside the corpus's own 1e-9.
-        double[] standardised = StandardiseRegressors(matrix, rowCount, parameterCount, first);
-        QrDecomposition qr = QrDecomposition.Householder(standardised, rowCount, regressorCount);
-        double[] inverseUpper = LeastSquares.InvertUpper(qr.R, regressorCount);
+        if (TryGramFactors(design, rowCount, regressorCount, factors))
+        {
+            return factors;
+        }
+
+        double[] standardised = StandardiseRegressors(design, rowCount, regressorCount);
+        double[] columns = LeastSquares.ColumnMajor(standardised, rowCount, regressorCount);
+        LeastSquares.Triangularize(columns, rowCount, regressorCount, projected: null);
+        double[] inverseUpper = LeastSquares.InvertUpper(
+            LeastSquares.Upper(columns, rowCount, regressorCount), regressorCount);
 
         for (int column = 0; column < regressorCount; column++)
         {
@@ -313,6 +349,142 @@ public static class OrdinaryLeastSquares
         }
 
         return factors;
+    }
+
+    /// <summary>The largest factor the Gram route is trusted to report; past it the QR route answers.</summary>
+    /// <remarks>
+    /// The Gram matrix squares the standardised block's condition number, so a factor near <c>κ</c> carries a
+    /// relative error near <c>κ·ε</c>. Measured on the corpus's near-collinear case, a VIF of 5.9e4 lands 2.8e-11
+    /// from statsmodels' (the QR route: 1.3e-12), so a ceiling of 1e5 keeps the Gram route near 5e-11, twenty
+    /// times inside the corpus's 1e-9 (#782).
+    /// </remarks>
+    private const double GramFactorCeiling = 1e5;
+
+    /// <summary>The VIFs from the regressors' Gram matrix, <c>n·diag((ZᵀZ)⁻¹)</c>, when that route is safe.</summary>
+    /// <returns><see langword="false"/>, leaving <paramref name="factors"/> to the QR route, when the Gram matrix is not safely positive definite or a factor passes <see cref="GramFactorCeiling"/>.</returns>
+    /// <remarks>
+    /// Two passes over the rows and a <c>p × p</c> factorization, where the QR route is a standardised copy and
+    /// reflections over every row: the VIFs were two fifths of a weighted fit's remaining time at 2 000 rows (#782).
+    /// The standardisation is the same as <see cref="StandardiseRegressors"/>, applied inside the sums.
+    /// </remarks>
+    private static bool TryGramFactors(ReadOnlySpan<double> design, int rowCount, int order, double[] factors)
+    {
+        double[] gram = StandardisedGram(design, rowCount, order);
+        if (!LeastSquares.TryUpperCholesky(gram, order))
+        {
+            return false;
+        }
+
+        // G = UᵀU, so G⁻¹ = U⁻¹U⁻ᵀ and its j-th diagonal is the squared norm of U⁻¹'s j-th row, as in the QR route.
+        double[] inverseUpper = LeastSquares.InvertUpper(gram, order);
+        for (int column = 0; column < order; column++)
+        {
+            double total = 0.0;
+            for (int k = column; k < order; k++)
+            {
+                double entry = inverseUpper[(column * order) + k];
+                total += entry * entry;
+            }
+
+            double factor = rowCount * total;
+            if (!(factor <= GramFactorCeiling))
+            {
+                return false;
+            }
+
+            factors[column] = Clip(factor);
+        }
+
+        return true;
+    }
+
+    /// <summary><c>ZᵀZ</c> for the standardised regressors, row-major and symmetric, without forming <c>Z</c>.</summary>
+    /// <remarks>
+    /// Two passes over the rows whatever the regressor count: the means, then the centred cross-products, whose
+    /// diagonal is each column's variance. Standardising is dividing those by the spreads afterwards, not per row.
+    /// A column whose population spread is at or below 1e-10 is left uncentred and unscaled, as
+    /// <see cref="StandardiseRegressors"/> leaves it.
+    /// </remarks>
+    private static double[] StandardisedGram(ReadOnlySpan<double> design, int rowCount, int order)
+    {
+        var mean = new double[order];
+        for (int row = 0; row < rowCount; row++)
+        {
+            int at = row * order;
+            for (int column = 0; column < order; column++)
+            {
+                mean[column] += design[at + column];
+            }
+        }
+
+        for (int column = 0; column < order; column++)
+        {
+            mean[column] /= rowCount;
+        }
+
+        double[] centred = CentredCrossProducts(design, rowCount, mean);
+        var spread = new double[order];
+        bool allVary = true;
+        for (int column = 0; column < order; column++)
+        {
+            spread[column] = Math.Sqrt(centred[(column * order) + column] / rowCount);
+            allVary &= spread[column] > 1e-10;
+        }
+
+        if (!allVary)
+        {
+            // Rare: redo the sums with the constant columns left as they stand rather than centred.
+            for (int column = 0; column < order; column++)
+            {
+                if (!(spread[column] > 1e-10))
+                {
+                    mean[column] = 0.0;
+                    spread[column] = 1.0;
+                }
+            }
+
+            centred = CentredCrossProducts(design, rowCount, mean);
+        }
+
+        var gram = new double[order * order];
+        for (int i = 0; i < order; i++)
+        {
+            for (int j = i; j < order; j++)
+            {
+                double value = centred[(i * order) + j] / (spread[i] * spread[j]);
+                gram[(i * order) + j] = value;
+                gram[(j * order) + i] = value;
+            }
+        }
+
+        return gram;
+    }
+
+    /// <summary><c>Σ (xᵢ − mᵢ)(xⱼ − mⱼ)</c> over the regressor columns, upper triangle, one pass over the rows.</summary>
+    private static double[] CentredCrossProducts(ReadOnlySpan<double> design, int rowCount, double[] mean)
+    {
+        int order = mean.Length;
+        var sums = new double[order * order];
+        var deviation = new double[order];
+        for (int row = 0; row < rowCount; row++)
+        {
+            int at = row * order;
+            for (int column = 0; column < order; column++)
+            {
+                deviation[column] = design[at + column] - mean[column];
+            }
+
+            for (int i = 0; i < order; i++)
+            {
+                double di = deviation[i];
+                for (int j = i; j < order; j++)
+                {
+                    sums[(i * order) + j] += di * deviation[j];
+                }
+            }
+        }
+
+        return sums;
     }
 
     /// <summary>The ceiling a perfectly collinear pair reaches, rather than an infinity.</summary>
@@ -332,19 +504,17 @@ public static class OrdinaryLeastSquares
     /// The spread is the population standard deviation, and the 1e-10 floor is the reference's:
     /// a column that does not vary is left as it stands rather than divided by zero.
     /// </remarks>
-    private static double[] StandardiseRegressors(
-        double[] matrix, int rowCount, int parameterCount, int first)
+    private static double[] StandardiseRegressors(ReadOnlySpan<double> design, int rowCount, int regressorCount)
     {
-        int regressorCount = parameterCount - first;
         var working = new double[rowCount * regressorCount];
 
         for (int column = 0; column < regressorCount; column++)
         {
-            int source = column + first;
+            int source = column;
             double mean = 0.0;
             for (int row = 0; row < rowCount; row++)
             {
-                mean += matrix[(row * parameterCount) + source];
+                mean += design[(row * regressorCount) + source];
             }
 
             mean /= rowCount;
@@ -352,7 +522,7 @@ public static class OrdinaryLeastSquares
             double variance = 0.0;
             for (int row = 0; row < rowCount; row++)
             {
-                double deviation = matrix[(row * parameterCount) + source] - mean;
+                double deviation = design[(row * regressorCount) + source] - mean;
                 variance += deviation * deviation;
             }
 
@@ -360,7 +530,7 @@ public static class OrdinaryLeastSquares
             bool varies = spread > 1e-10;
             for (int row = 0; row < rowCount; row++)
             {
-                double value = matrix[(row * parameterCount) + source];
+                double value = design[(row * regressorCount) + source];
                 working[(row * regressorCount) + column] = varies ? (value - mean) / spread : value;
             }
         }

@@ -11,25 +11,34 @@ namespace Lodestar.Stats.Regression.Internal;
 /// </remarks>
 internal static class RobustCovariance
 {
-    /// <summary>The leverage of each row, <c>hᵢᵢ</c>, read off the thin Q.</summary>
+    /// <summary>The leverage of each row, <c>hᵢᵢ</c>, as a row of <c>X R⁻¹</c> against itself.</summary>
     /// <remarks>
-    /// <c>H = QQᵀ</c> for a thin QR, so the diagonal this needs is a row of Q against itself —
-    /// the whole hat matrix is never formed, which for 50 000 rows would be 20 GB. Q is read into
-    /// a local here rather than taken as a parameter: behind an inlined getter the JIT sees the
-    /// array and devirtualizes the reads without PGO, which a parameter hides (decision 0125).
+    /// For a full-rank design <c>Q = X R⁻¹</c>, so <c>H = QQᵀ</c> has this diagonal without Q ever being formed —
+    /// nor the whole hat matrix, which for 50 000 rows would be 20 GB. The solve no longer builds Q (#782), and
+    /// <c>p²</c> products per row is the rest of the price.
     /// </remarks>
-    public static double[] Leverages(QrDecomposition factorization, int rowCount, int parameterCount)
+    public static double[] Leverages(double[] matrix, double[] inverseUpper, int rowCount, int parameterCount)
     {
-        IReadOnlyList<double> q = factorization.Q;
         var leverages = new double[rowCount];
+        var projected = new double[parameterCount];
         for (int row = 0; row < rowCount; row++)
         {
-            double total = 0.0;
             int at = row * parameterCount;
             for (int column = 0; column < parameterCount; column++)
             {
-                double value = q[at + column];
-                total += value * value;
+                double value = 0.0;
+                for (int k = 0; k <= column; k++)
+                {
+                    value += matrix[at + k] * inverseUpper[(k * parameterCount) + column];
+                }
+
+                projected[column] = value;
+            }
+
+            double total = 0.0;
+            for (int column = 0; column < parameterCount; column++)
+            {
+                total += projected[column] * projected[column];
             }
 
             leverages[row] = total;

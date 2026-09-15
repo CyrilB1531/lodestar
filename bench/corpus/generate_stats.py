@@ -16,6 +16,7 @@ OlsBenchmarks already measures against Accord so the two tables can be read toge
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -26,6 +27,10 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 from tools.seeded_random import SeededRandom  # noqa: E402
 
 SEED = 595
+# The negative binomial counts' own stream (#781): a response added after the first corpus shipped must not move
+# the draws of the design, the samples or the table already measured, the invariant write_size names.
+COUNT_SEED = 781
+COUNT_ALPHA = 1.0
 SIZES = [1_000, 10_000, 100_000]
 REGRESSORS = 4
 
@@ -75,6 +80,25 @@ def design(rng: SeededRandom, n: int) -> tuple[list[float], list[float]]:
     return rows, response
 
 
+def negative_binomial_counts(n: int, rows: list[float]) -> list[float]:
+    """A count response over the same design, drawn as a gamma-mixed Poisson with alpha = 1.
+
+    With alpha = 1 the gamma mixing weight has shape 1, an exponential; the mean stays between about 1.6
+    and 12, where Knuth's product method is exact and quick. A benchmark corpus, not a sampler.
+    """
+    rng = SeededRandom(COUNT_SEED + n)
+    counts: list[float] = []
+    for row in range(n):
+        eta = 0.5 + sum(0.4 * rows[(row * REGRESSORS) + column] for column in range(REGRESSORS))
+        mean = math.exp(eta) * -math.log(1.0 - rng.random())
+        limit, product, count = math.exp(-mean), rng.random(), 0
+        while product > limit:
+            product *= rng.random()
+            count += 1
+        counts.append(float(count))
+    return counts
+
+
 def write_size(n: int) -> Path:
     # long-comment: names the invariant a later size addition would otherwise break.
     # One generator per size rather than one for the file: a size added later must not
@@ -91,6 +115,8 @@ def write_size(n: int) -> Path:
         "table": contingency(rng, n),
         "design": rows,
         "response": response,
+        "counts": negative_binomial_counts(n, rows),
+        "count_alpha": COUNT_ALPHA,
     }
     path = OUT / f"stats_n{n}.json"
     path.write_text(json.dumps(payload) + "\n", encoding="utf-8")

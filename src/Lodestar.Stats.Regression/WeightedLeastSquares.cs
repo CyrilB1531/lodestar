@@ -41,29 +41,14 @@ public static class WeightedLeastSquares
         OrdinaryLeastSquares.RequireResidualDegreesOfFreedom(rowCount, parameterCount, nameof(design));
         CheckWeights(weights, rowCount, parameterCount);
 
-        double[] matrix = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept);
-        var whitened = new double[matrix.Length];
-        var whitenedResponse = new double[rowCount];
-        for (int row = 0; row < rowCount; row++)
-        {
-            double root = Math.Sqrt(weights[row]);
-            int start = row * parameterCount;
-            for (int column = 0; column < parameterCount; column++)
-            {
-                whitened[start + column] = matrix[start + column] * root;
-            }
-
-            whitenedResponse[row] = response[row] * root;
-        }
-
         return OrdinaryLeastSquares.Summarise(
-            whitened,
-            whitenedResponse,
-            matrix,
+            design,
+            response,
             TotalSumOfSquares(response, weights, settings.WithIntercept),
             rowCount,
-            parameterCount,
-            settings);
+            featureCount,
+            settings,
+            weights);
     }
 
     /// <summary>Refuses the weights the reference would crash on, propagate as NaN, or answer with a pseudo-inverse.</summary>

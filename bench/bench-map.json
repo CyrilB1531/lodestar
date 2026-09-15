@@ -212,6 +212,11 @@
       "src/Lodestar.Stats/**",
       "src/Lodestar.Decomposition/**"
     ],
+    "WeightedLeastSquaresBenchmarks": [
+      "src/Lodestar.Stats.Regression/**",
+      "src/Lodestar.Stats/**",
+      "src/Lodestar.Decomposition/**"
+    ],
     "RobustCovarianceBenchmarks": [
       "src/Lodestar.Stats.Regression/**",
       "src/Lodestar.Stats/**",
@@ -289,6 +294,18 @@
       ],
       "sources": [
         "src/Lodestar.Stats/**",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/StatsCrossLang.cs"
+      ]
+    },
+    "glm": {
+      "subcommand": "compare-glm",
+      "python": "bench/python/bench_stats.py",
+      "compare": "glm",
+      "generate": [
+        "bench/corpus/generate_stats.py"
+      ],
+      "sources": [
+        "src/Lodestar.Stats.Regression/**",
         "bench/Lodestar.Text.Benchmarks/CrossLang/StatsCrossLang.cs"
       ]
     },

@@ -1,6 +1,7 @@
 using Accord.Statistics.Analysis;
 using BenchmarkDotNet.Attributes;
 using Lodestar.Stats.Regression;
+using MathNet.Numerics.LinearRegression;
 
 namespace Lodestar.Stats.Benchmarks;
 
@@ -71,6 +72,12 @@ public class OlsBenchmarks
         return analysis.Coefficients[1].TTest.PValue;
     }
 
-    // Both rows price the whole table, which is the only shape either library offers:
+    // Math.NET's QR regression returns the coefficients alone: the estimate a Math.NET user already
+    // has, against the whole table Lodestar's row prices (#782).
+    [Benchmark]
+    public double MathNet_Ols() =>
+        MultipleRegression.QR(_jagged, _response, intercept: true)[1];
+
+    // Both of the first two rows price the whole table, the only shape either library offers:
     // Fit computes the covariance and the VIFs, and Accord's Learn computes the analysis.
 }
