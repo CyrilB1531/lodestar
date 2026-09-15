@@ -17,6 +17,9 @@
     <!-- bench/ only: its Cortex.ML edge bars it from src/ under decision 0076
          (tools/check_nuspec_dependencies.py enforces that boundary, not this file). -->
     <PackageReference Include="Cortex.TimeSeries" Version="1.1.0" />
+    <!-- The weighted regression's incumbent: MIT, maintained, and the one numerics library src/ already
+         reaches through Lodestar.Extensions.MathNet (#782). -->
+    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>

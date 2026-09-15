@@ -30,7 +30,7 @@ double[] response = [2.1, 3.9, 6.2, 7.8, 10.1, 12.2, 13.8, 16.1];
 OlsSummary summary = OrdinaryLeastSquares.Fit(design, response, featureCount: 1);
 
 double explained = summary.RSquared;              // => 0.9988392866011389
-double residualError = summary.ResidualStandardError;  // => 0.18016747059421534
+double residualError = summary.ResidualStandardError;  // => 0.18016747059421467
 int degreesOfFreedom = summary.ResidualDegreesOfFreedom;  // => 6
 double overall = summary.FPValue;                 // => 4.88893361255519E-10
 ```

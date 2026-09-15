@@ -18,9 +18,9 @@ double[] response = [2.1, 3.9, 6.2, 7.8, 10.1, 12.2, 13.8, 16.1];
 
 OlsSummary summary = OrdinaryLeastSquares.Fit(design, response, featureCount: 1);
 
-double slope = summary.Coefficients[1];        // => 1.9976190476190474
-double error = summary.StandardErrors[1];      // => 0.027800444266884116
-double significance = summary.PValues[1];      // => 4.888933612555103E-10
+double slope = summary.Coefficients[1];        // => 1.9976190476190496
+double error = summary.StandardErrors[1];      // => 0.027800444266884012
+double significance = summary.PValues[1];      // => 4.888933612554946E-10
 ```
 
 **Remarks** — the estimate is the cheap half. `1.9976` on its own says nothing about whether the

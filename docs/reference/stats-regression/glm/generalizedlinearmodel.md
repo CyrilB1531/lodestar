@@ -18,8 +18,8 @@ double[] response = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0];
 
 GlmSummary fit = GeneralizedLinearModel.Fit(design, response, 1, GlmFamily.Binomial);
 
-double slope = fit.Coefficients[1];   // => 1.2140275858506053
-double deviance = fit.Deviance;       // => 4.955973670099226
+double slope = fit.Coefficients[1];   // => 1.2140275858506062
+double deviance = fit.Deviance;       // => 4.955973670099227
 bool converged = fit.Converged;       // => True
 ```
 

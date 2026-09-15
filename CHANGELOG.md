@@ -234,7 +234,24 @@ is one sentence, the issue and the commit; see
 
 ### Lodestar.Stats.Regression
 
+#### Changed
+
+- **The least-squares pipeline under `OrdinaryLeastSquares.Fit`, `WeightedLeastSquares.Fit` and the GLM's IRLS loop no longer
+  forms Q.** The solve applies the reflections to the response, or takes the normal equations when the design is well
+  conditioned; the leverages are rows of `X R⁻¹`; the VIFs come from the standardised regressors' Gram matrix below a factor
+  of 1e5; a weighted fit applies its weights inside the solve. Measured against `main`: WLS 4.4× to 7.9× faster, now level
+  with or ahead of Math.NET's coefficient-only `WeightedRegression.Weighted`, OLS 3.7× to 6.1×, HC0–HC3 2.8× at 10,000 rows,
+  the logistic GLM 1.3× to 1.9× and the Poisson GLM 1.4× to 2.8×; every fixture holds at 1e-9. This came out of the benchmarks
+  the next entry records, which #774 and #778 shipped without. ([#782](https://github.com/CyrilB1531/lodestar/issues/782))
+- **The negative binomial log-likelihood reads `lnΓ(1/α)` once per fit, not once per row.**
+  ([#781](https://github.com/CyrilB1531/lodestar/issues/781))
+
 #### Added
+
+- **Benchmarks for weighted least squares against Math.NET Numerics and the negative binomial GLM against `statsmodels`**
+  (`WeightedLeastSquaresBenchmarks`, a Math.NET row in `OlsBenchmarks`, the `compare-glm` harness), catching up on #774 and
+  #778, which merged unmeasured. ([#781](https://github.com/CyrilB1531/lodestar/issues/781),
+  [#782](https://github.com/CyrilB1531/lodestar/issues/782))
 
 - **`GlmFamily.NegativeBinomial` and `GlmOptions.NegativeBinomialAlpha`** fit over-dispersed counts
   through `GeneralizedLinearModel.Fit`, at `statsmodels.GLM(family=NegativeBinomial(alpha))` 0.15.0 parity

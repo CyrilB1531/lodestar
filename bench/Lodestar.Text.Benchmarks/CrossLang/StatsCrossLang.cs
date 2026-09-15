@@ -22,6 +22,9 @@ public static class StatsCrossLang
     /// <summary>The OLS summary and its VIFs, against <c>statsmodels</c>.</summary>
     public static void RunOls(string[] args) => Measure(args, "ols", Regression);
 
+    /// <summary>The negative binomial GLM table, against <c>statsmodels</c>' <c>GLM</c> (#781).</summary>
+    public static void RunGlm(string[] args) => Measure(args, "glm", GeneralizedLinear);
+
     private static void Measure(
         string[] args, string bench, Func<Corpus, string, List<Harness.OperationResult>> measure)
     {
@@ -84,6 +87,18 @@ public static class StatsCrossLang
             () => OrdinaryLeastSquares.Fit(corpus.Design, corpus.Response, corpus.Regressors)),
     ];
 
+    private static List<Harness.OperationResult> GeneralizedLinear(Corpus corpus, string suffix) =>
+    [
+        Harness.Measure(
+            $"glm_negative_binomial_{suffix}",
+            () => GeneralizedLinearModel.Fit(
+                corpus.Design,
+                corpus.CountResponse,
+                corpus.Regressors,
+                GlmFamily.NegativeBinomial,
+                new GlmOptions { NegativeBinomialAlpha = corpus.CountAlpha })),
+    ];
+
     /// <summary>Reads the comma-separated values of <paramref name="option"/>, or an empty array if it is absent.</summary>
     private static string[] Filter(string[] args, string option)
     {
@@ -108,7 +123,8 @@ public static class StatsCrossLang
             ?? throw new InvalidOperationException($"'{path}' held no corpus.");
 
         return new Corpus(
-            file.First, file.Second, Counts(file.Table), file.Design, file.Response, file.Regressors);
+            file.First, file.Second, Counts(file.Table), file.Design, file.Response, file.Regressors,
+            file.CountResponse, file.CountAlpha);
     }
 
     /// <summary>The contingency table as the jagged double rows <c>ChiSquare</c> takes.</summary>
@@ -124,7 +140,14 @@ public static class StatsCrossLang
     }
 
     private sealed record Corpus(
-        double[] First, double[] Second, double[][] Table, double[] Design, double[] Response, int Regressors);
+        double[] First,
+        double[] Second,
+        double[][] Table,
+        double[] Design,
+        double[] Response,
+        int Regressors,
+        double[] CountResponse,
+        double CountAlpha);
 
     private sealed record CorpusFile
     {
@@ -145,5 +168,11 @@ public static class StatsCrossLang
 
         [System.Text.Json.Serialization.JsonPropertyName("regressors")]
         public int Regressors { get; init; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("counts")]
+        public double[] CountResponse { get; init; } = [];
+
+        [System.Text.Json.Serialization.JsonPropertyName("count_alpha")]
+        public double CountAlpha { get; init; }
     }
 }

@@ -254,6 +254,11 @@ def ols(fmt: str = "text") -> None:
     wallcpu_report("ols", fmt, fold={"ols_vif_": "ols_summary_"})
 
 
+def glm(fmt: str = "text") -> None:
+    """The negative binomial GLM against statsmodels' GLM, over that same corpus (#781)."""
+    wallcpu_report("glm", fmt)
+
+
 def wallcpu_report(bench: str, fmt: str = "text", fold: dict[str, str] | None = None) -> None:
     """Load, fold, print -- the shape stats() and ols() share with metrics()."""
     py = load("python", bench)
@@ -339,6 +344,8 @@ if __name__ == "__main__":
         stats(output_format)
     elif selected == "ols":
         ols(output_format)
+    elif selected == "glm":
+        glm(output_format)
     elif selected == "indel":
         indel(output_format, bucket_kind)
     else:

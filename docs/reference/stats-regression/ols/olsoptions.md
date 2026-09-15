@@ -26,8 +26,8 @@ OlsSummary ninetyFive = OrdinaryLeastSquares.Fit(design, response, featureCount:
 OlsSummary ninetyNine = OrdinaryLeastSquares.Fit(
     design, response, featureCount: 1, new OlsOptions { ConfidenceLevel = 0.99 });
 
-double narrow = ninetyFive.ConfidenceLower[1];  // => 1.9295938110753135
-double wide = ninetyNine.ConfidenceLower[1];    // => 1.8945509015387234
+double narrow = ninetyFive.ConfidenceLower[1];  // => 1.929593811075316
+double wide = ninetyNine.ConfidenceLower[1];    // => 1.894550901538726
 ```
 
 **Remarks** — **turning the intercept off does more than drop a coefficient.**

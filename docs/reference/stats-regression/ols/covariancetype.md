@@ -27,10 +27,10 @@ OlsSummary robust = OrdinaryLeastSquares.Fit(
     design, response, featureCount: 1,
     new OlsOptions { CovarianceType = CovarianceType.Hc3 });
 
-double slope = ordinary.Coefficients[1];        // => 2.1052747252747257
-double same = robust.Coefficients[1];           // => 2.1052747252747257
-double confident = ordinary.StandardErrors[1];  // => 0.10685448183492333
-double honest = robust.StandardErrors[1];       // => 0.14211839172191723
+double slope = ordinary.Coefficients[1];        // => 2.1052747252747253
+double same = robust.Coefficients[1];           // => 2.1052747252747253
+double confident = ordinary.StandardErrors[1];  // => 0.10685448183492335
+double honest = robust.StandardErrors[1];       // => 0.14211839172191734
 ```
 
 **Returns** — the estimate does not move. `Hc3` reports a standard error **33% larger** on the

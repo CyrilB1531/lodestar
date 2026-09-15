@@ -6,9 +6,9 @@ namespace Lodestar.Stats.Regression.Tests;
 
 /// <summary>The leverages the HC2 and HC3 covariances weight their rows by.</summary>
 /// <remarks>
-/// <c>Leverages</c> reads Q into a local rather than taking it as a parameter (decision 0125), a
-/// change of where the reads happen and not of what is computed. These pin the values exactly, so
-/// a refactor of the read path cannot move a bit, while the OLS corpus holds HC2 and HC3 at 1e-9.
+/// <c>Leverages</c> reads them as rows of <c>X R⁻¹</c> since the solve stopped forming Q (#782). These hold them to
+/// the thin Q of <c>QrDecomposition.Householder</c> — the same projection reached the long way — while the OLS
+/// corpus holds HC2 and HC3 at 1e-9.
 /// </remarks>
 public sealed class RobustCovarianceTests
 {
@@ -23,12 +23,18 @@ public sealed class RobustCovarianceTests
         1.0, -1.1, 0.2,
     ];
 
+    private static double[] Leverages()
+    {
+        (_, double[] inverseUpper) = LeastSquares.Solve(Design, 6, 3, withIntercept: false, new double[6]);
+        return RobustCovariance.Leverages(Design, inverseUpper, rowCount: 6, parameterCount: 3);
+    }
+
     [Fact]
-    public void Each_leverage_is_its_row_of_Q_against_itself_to_the_bit()
+    public void Each_leverage_is_its_row_of_the_thin_Q_against_itself()
     {
         QrDecomposition qr = QrDecomposition.Householder(Design, rowCount: 6, columnCount: 3);
 
-        double[] leverages = RobustCovariance.Leverages(qr, rowCount: 6, parameterCount: 3);
+        double[] leverages = Leverages();
 
         for (int row = 0; row < 6; row++)
         {
@@ -39,7 +45,7 @@ public sealed class RobustCovarianceTests
                 expected += value * value;
             }
 
-            Assert.Equal(expected, leverages[row]);
+            Assert.Equal(expected, leverages[row], 1e-14);
         }
     }
 
@@ -47,9 +53,7 @@ public sealed class RobustCovarianceTests
     public void The_leverages_sum_to_the_parameter_count()
     {
         // The hat matrix is a projection of rank p, so its trace is exactly p up to rounding.
-        QrDecomposition qr = QrDecomposition.Householder(Design, rowCount: 6, columnCount: 3);
-
-        double[] leverages = RobustCovariance.Leverages(qr, rowCount: 6, parameterCount: 3);
+        double[] leverages = Leverages();
 
         Assert.Equal(3.0, leverages.Sum(), 1e-12);
         Assert.All(leverages, value => Assert.InRange(value, 0.0, 1.0));

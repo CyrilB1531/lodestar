@@ -24,7 +24,7 @@ double[] binomialResponse = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0];
 
 GlmSummary logit = GeneralizedLinearModel.Fit(design, binomialResponse, 1, GlmFamily.Binomial);
 
-double onLogitScale = logit.Coefficients[1];  // => 1.2140275858506053
+double onLogitScale = logit.Coefficients[1];  // => 1.2140275858506062
 ```
 
 **Example** — over-dispersed counts: the negative binomial keeps a slope close to Poisson's and

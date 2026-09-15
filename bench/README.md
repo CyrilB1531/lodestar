@@ -2531,3 +2531,57 @@ incomparable is the p-value: Cortex's is clamped at `0.01`.
 shocks, and a seasonal series built from it with period 12. The numbers, on a named machine and with
 the default job, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md#stationarity-and-seasonal-decomposition-against-cortextimeseries-issue-671).
+
+## 36. Weighted least squares against Math.NET Numerics, and the least-squares pipeline under it (issue #782)
+
+`WeightedLeastSquares.Fit` against `WeightedRegression.Weighted` from Math.NET Numerics 5.0.0 — MIT, maintained, and
+the one numerics library `src/` already reaches through `Lodestar.Extensions.MathNet` — and `OrdinaryLeastSquares.Fit`
+against Math.NET's `MultipleRegression.QR`, beside the Accord row section 18 already carries.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*WeightedLeastSquaresBenchmarks*' '*OlsBenchmarks*'
+```
+
+### What the rows mean
+
+Math.NET returns the coefficient vector and nothing else; Lodestar's row is the whole `OlsSummary` table. `[GlobalSetup]`
+refuses to time either side if their slopes differ by more than `1e-9` relative, NaN included, so a faster row cannot be
+a different answer. The weighted design is four uniform regressors whose noise grows with the signal, weighted by the
+inverse of that variance.
+
+### Why the pipeline moved in a benchmark pull request
+
+The first measurement, of the code `#774` shipped, had Lodestar 3.0× to 5.2× slower than Math.NET. Profiled, a
+third of a weighted fit was forming Q explicitly for a solve that reads only R, and a quarter a second QR, again with Q
+formed, for the variance inflation factors. `docs/guides/performance.md` has the measurements of each change; the
+pipeline they describe is shared by `OrdinaryLeastSquares`, `WeightedLeastSquares` and the IRLS loop of
+`GeneralizedLinearModel`, so `RobustCovarianceBenchmarks`, `GlmBenchmarks` and `GlmPoissonBenchmarks` are re-run beside it.
+
+### Configuration
+
+`[Params(200, 2_000, 20_000, 200_000)]` for WLS and `OlsBenchmarks`' own `[Params(100, 10_000)]`. `Random(768)` and
+`Random(566)`. The numbers, on a named machine and with the default job, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md#the-least-squares-pipeline-against-mathnet-numerics-issue-782).
+
+## 37. The negative binomial GLM against `statsmodels` (issue #781)
+
+No free .NET library fits a negative binomial GLM at parity: Accord.Statistics' `GeneralizedLinearRegression` weights
+its IRLS by the link's derivative alone, which is the right weight only for a canonical link, and the negative
+binomial's log link is not one. The commercial libraries that do are not measured under a trial licence. So the
+incumbent is `statsmodels` 0.15.0, through the cross-language harness section 21 describes, over the same corpus:
+`generate_stats.py` adds a count response drawn as a gamma-mixed Poisson with `α = 1`, on a stream of its own so the
+existing draws do not move.
+
+```bash
+python bench/corpus/generate_stats.py
+python bench/python/bench_stats.py             # also writes python-glm.json
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-glm
+python bench/compare.py glm
+```
+
+### What agrees, checked before timing
+
+Both sides fit `GLM(counts, add_constant(design), family=NegativeBinomial(alpha=1)).fit()` and its summary quantities.
+Run once outside the harness, the coefficients agree to `3.8e-15`, `1.1e-14` and `1.3e-14` relative at 1 000, 10 000
+and 100 000 rows, with the same iteration counts (7, 6, 6). As section 21 says, read the `cpu` column: `statsmodels`
+reaches LAPACK through numpy, which is threaded.

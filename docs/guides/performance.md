@@ -4008,6 +4008,96 @@ sum over each window's interior rather than a weighted pass over the whole windo
 `O(n·period)`. **KPSS is level**, with half the allocation; its cost is the lagged products of the
 long-run variance, which both sides compute.
 
+## The least-squares pipeline against Math.NET Numerics (issue #782)
+
+Full method and what agrees:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#36-weighted-least-squares-against-mathnet-numerics-and-the-least-squares-pipeline-under-it-issue-782).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime, AVX-512.
+Window: three `BenchmarkDotNet` 0.14.0 runs, **default job**, on 2026-09-15, interleaved as `main` at `94e13f2d`, then
+this branch, then `main` again (A/B/A); the GLM classes were run a second time after the IRLS change below, and those are
+the rows shown for them. `MathNet.Numerics` 5.0.0, `Accord.Statistics` 3.8.0. Every pair returned the same slope before it
+was timed.
+
+### Weighted least squares against `WeightedRegression.Weighted`
+
+| n | `main`, A1 / A2 | [`WeightedLeastSquares.Fit`](../reference/stats-regression/wls/weightedleastsquares-fit.md) | Math.NET | Math.NET / Lodestar | Allocated, Lodestar | Allocated, Math.NET |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 200 | 29.408 / 29.466 μs | **6.650 μs** | 9.865 μs | **1.48** | 3.35 KB | 59.08 KB |
+| 2,000 | 282.101 / 283.833 μs | **54.601 μs** | 54.718 μs | 1.00 | 17.41 KB | 509.88 KB |
+| 20,000 | 4.675 / 4.655 ms | **0.591 ms** | 0.923 ms | **1.56** | 158.41 KB | 5,033.56 KB |
+| 200,000 | 36.581 / 36.015 ms | **5.718 ms** | 11.072 ms | **1.94** | 1,564.58 KB | 50,035.09 KB |
+
+**`main` was 3.0× to 5.2× slower than Math.NET, which returns the coefficients alone; this branch is level at 2,000 rows
+and faster everywhere else, while computing the whole table, and allocates 17× to 32× less.**
+
+### Ordinary least squares against `MultipleRegression.QR` and Accord
+
+| n | `main`, A1 / A2 | [`OrdinaryLeastSquares.Fit`](../reference/stats-regression/ols/ordinaryleastsquares-fit.md) | Math.NET | Accord | Math.NET / Lodestar | Allocated, Lodestar |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 100 | 14.39 / 14.33 μs | **3.938 μs** | 24.096 μs | 135.345 μs | **6.12** | 2.57 KB |
+| 10,000 | 1,604.74 / 1,603.72 μs | **262.402 μs** | 860.391 μs | 2,677.370 μs | **3.28** | 79.91 KB |
+
+The robust covariances follow: at 10,000 rows HC0 to HC3 went from 1.735–1.751 ms to 0.628–0.631 ms, and at 100 rows from
+15.75–15.91 μs to 6.27–6.31 μs (`RobustCovarianceBenchmarks`).
+
+### What moved, and what each step bought
+
+Profiled on `main` at 20,000 rows, a weighted fit spent a third of its time forming Q explicitly — for a solve that reads
+only R — and a quarter on a second QR, again with Q formed, for the variance inflation factors. Measured step by step with
+short `BenchmarkDotNet` runs at 2,000 rows: the reflections applied to the response instead of Q, 285 → 84 μs; their loops
+unrolled four terms at a time, then the VIFs read off the standardised regressors' Gram matrix in two passes, 84 → 70 μs;
+the normal equations under a conditioning guard, the weights applied inside the solve rather than to a whitened copy, and
+the design read in place rather than copied with its constant column, 70 → 55 μs.
+
+**Two routes, one answer.** The normal equations square the design's condition number, so they are taken only when the
+Cholesky factor's diagonal stays within a ratio of 200 — `200²·ε` is 9e-12 — and the Householder reflections answer
+otherwise, as on the corpus's near-collinear fixtures. The VIFs' Gram route is taken only below a factor of 1e5; on the
+near-collinear fixture, VIF 5.9e4, it lands 2.8e-11 from `statsmodels` where the QR landed 1.3e-12. Every OLS, WLS, GLM and
+robust-covariance fixture holds at 1e-9 relative.
+
+## The GLM's IRLS loop after the same change (issues #781 and #782)
+
+Same machine and window as above. The IRLS loop solves by the reflections and never by the normal equations: the first
+A/B/A had it on the normal equations, and at a Poisson mean of 5,000,000 their rounding held the absolute deviance change
+above the `1e-8` criterion for 19 iterations where `main` stopped at 9 — **576 μs became 773 μs, a 34 % regression**. On
+the reflections the same fit stops at 4 (`statsmodels` stops at 13 on these counts, where the deviance change sits at the
+tolerance and rounding decides; the corpus deliberately holds no counts that large).
+
+| class | parameters | `main`, A1 / A2 | this branch | Accord | Accord / Lodestar | Allocated, Lodestar before → after |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `GlmBenchmarks`, logistic | 200 rows, 1 regressor | 30.74 / 30.53 μs | **23.23 μs** | 28.97 μs | **1.25** | 50.55 → 43.71 KB |
+| `GlmBenchmarks`, logistic | 200 rows, 3 regressors | 59.56 / 59.70 μs | **31.50 μs** | 60.65 μs | **1.93** | 95.52 → 75.96 KB |
+| `GlmBenchmarks`, logistic | 2,000 rows, 1 regressor | 304.46 / 303.14 μs | 221.89 μs | 212.98 μs | 0.96 | 486.49 → 423.40 KB |
+| `GlmBenchmarks`, logistic | 2,000 rows, 3 regressors | 589.94 / 589.71 μs | **305.38 μs** | 399.47 μs | **1.31** | 925.21 → 736.90 KB |
+| `GlmPoissonBenchmarks` | mean count 5 | 277.8 / 279.6 μs | **200.6 μs** | — | — | 24.90 → 16.85 KB |
+| `GlmPoissonBenchmarks` | mean count 50,000 | 281.5 / 283.3 μs | **205.9 μs** | — | — | 24.90 → 16.85 KB |
+| `GlmPoissonBenchmarks` | mean count 5,000,000 | 579.8 / 575.9 μs | **205.1 μs** | — | — | 49.80 → 16.85 KB |
+
+**The logistic fit at 2,000 rows and one regressor is still 4 % behind Accord**, down from 30 %; every other cell is ahead.
+
+## The negative binomial GLM against statsmodels (issue #781)
+
+Full method and what agrees:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#37-the-negative-binomial-glm-against-statsmodels-issue-781).
+**No free .NET library fits this family at parity** — Accord's IRLS is right only for canonical links, and commercial
+libraries are not timed under a trial licence — so the incumbent is `statsmodels` 0.15.0, through the cross-language
+harness. Same machine; the C# side is the A/B/A above (second run), the Python side one run of `bench_stats.py` on the same
+machine; milliseconds per fit, best of five, `α = 1`, four regressors and an intercept. The coefficients
+agree to 1.3e-14 relative or better with the same iteration counts.
+
+| n | `main`, A1 / A2 | [`GeneralizedLinearModel.Fit`](../reference/stats-regression/glm/generalizedlinearmodel-fit.md) | `statsmodels`, wall | `statsmodels`, cpu | statsmodels / Lodestar, wall |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1,000 | 0.913 / 0.919 ms | **0.404 ms** | 1.437 ms | 1.437 ms | **3.56** |
+| 10,000 | 8.628 / 8.651 ms | **4.136 ms** | 5.604 ms | 5.603 ms | **1.35** |
+| 100,000 | 94.114 / 94.802 ms | **45.520 ms** | 74.138 ms | 1,174.297 ms | **1.63** |
+
+`main` lost at 10,000 and 100,000 rows. Beside the pipeline, the log-likelihood now reads `lnΓ(1/α)` once rather than once
+per row: a few dozen logarithms each, about a tenth of `main`'s time at every size (0.909 → 0.813 ms at 1,000 rows,
+measured before the pipeline change). At 100,000 rows `statsmodels` reaches LAPACK through numpy's threads and spends sixteen
+times the processor time it takes in wall-clock time; the `wall` column is still the comparison.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly

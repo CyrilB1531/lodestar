@@ -62,8 +62,10 @@ internal static class Irls
             iteration++;
             BuildWeightedSystem(family, alpha, matrix, response, mean, scaled, working);
 
-            (coefficients, inverseUpper, _) = LeastSquares.Solve(
-                scaled, rowCount, parameterCount, working);
+            // The reflections, not the normal equations: IRLS stops on an absolute deviance change, which the normal
+            // equations' rounding held above 1e-8 for 19 iterations at a Poisson mean of 5e6 (GlmPoissonBenchmarks, #782).
+            (coefficients, inverseUpper) = LeastSquares.SolveByReflections(
+                scaled, rowCount, parameterCount, withIntercept: false, working);
 
             if (!AllFinite(coefficients))
             {
