@@ -22,6 +22,8 @@
           LinkBase="oracles" />
     <None Include="../oracles/stats_wls.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
+    <None Include="../oracles/stats_gls.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
     <None Include="../oracles/stats_glm.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
     <None Include="../oracles/regression_log_gamma.json" CopyToOutputDirectory="PreserveNewest"

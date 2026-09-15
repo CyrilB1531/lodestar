@@ -79,31 +79,56 @@ public static class OrdinaryLeastSquares
         ReadOnlySpan<double> weights = default)
     {
         int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
-        int residualDegreesOfFreedom = rowCount - parameterCount;
         (double[] coefficients, double[] inverseUpper) =
             LeastSquares.Solve(design, rowCount, featureCount, settings.WithIntercept, response, weights);
 
         double[] residuals = Residuals(design, rowCount, featureCount, response, coefficients, weights);
+
+        // The robust covariances read the design row by row, so it is built — and whitened — only for them.
+        double[]? robustMatrix = settings.CovarianceType == CovarianceType.Nonrobust
+            ? null
+            : Whiten(LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept), rowCount, parameterCount, weights);
+
+        return Tabulate(
+            new SolvedFit(coefficients, inverseUpper, residuals, robustMatrix),
+            Vif(design, rowCount, featureCount, settings.WithIntercept),
+            totalSumOfSquares,
+            rowCount,
+            settings);
+    }
+
+    /// <summary>What the table is read from: the estimate, R⁻¹, the residuals, and the matrix a robust covariance reads.</summary>
+    /// <param name="Coefficients">The estimate, intercept first.</param>
+    /// <param name="InverseUpper">R⁻¹, or U⁻¹ from the normal equations, row-major.</param>
+    /// <param name="RowResiduals">The residuals of the rows the solve ran on — whitened for a weighted or generalized fit.</param>
+    /// <param name="RobustMatrix">Those rows' design, intercept column included, when a robust covariance is asked for.</param>
+    internal readonly record struct SolvedFit(
+        double[] Coefficients, double[] InverseUpper, double[] RowResiduals, double[]? RobustMatrix);
+
+    /// <summary>The inference table on top of a solved fit, shared by the ordinary, weighted and generalized fits.</summary>
+    internal static OlsSummary Tabulate(
+        SolvedFit fit, double[] varianceInflationFactors, double totalSumOfSquares, int rowCount, OlsOptions settings)
+    {
+        double[] coefficients = fit.Coefficients;
+        double[] inverseUpper = fit.InverseUpper;
+        double[] residuals = fit.RowResiduals;
+        int parameterCount = coefficients.Length;
+        int residualDegreesOfFreedom = rowCount - parameterCount;
         double residualSumOfSquares = Dot(residuals, residuals);
         double residualVariance = residualSumOfSquares / residualDegreesOfFreedom;
         double residualStandardError = Math.Sqrt(residualVariance);
 
-        bool robust = settings.CovarianceType != CovarianceType.Nonrobust;
-        double[]? covariance = null;
-        if (robust)
-        {
-            // The robust covariances read the design row by row, so it is built — and whitened — only for them.
-            double[] scaled = Whiten(
-                LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept), rowCount, parameterCount, weights);
-            covariance = RobustCovariance.Sandwich(
+        bool robust = fit.RobustMatrix is not null;
+        double[]? covariance = fit.RobustMatrix is { } scaled
+            ? RobustCovariance.Sandwich(
                 scaled,
                 inverseUpper,
                 residuals,
                 RobustCovariance.Leverages(scaled, inverseUpper, rowCount, parameterCount),
                 rowCount,
                 parameterCount,
-                settings.CovarianceType);
-        }
+                settings.CovarianceType)
+            : null;
 
         double[] standardErrors = covariance is null
             ? LeastSquares.StandardErrors(inverseUpper, parameterCount, residualVariance)
@@ -146,7 +171,7 @@ public static class OrdinaryLeastSquares
             PValues = pValues,
             ConfidenceLower = lower,
             ConfidenceUpper = upper,
-            VarianceInflationFactors = Vif(design, rowCount, featureCount, settings.WithIntercept),
+            VarianceInflationFactors = varianceInflationFactors,
             CovarianceType = settings.CovarianceType,
             HasIntercept = settings.WithIntercept,
             ConfidenceLevel = settings.ConfidenceLevel,
@@ -303,7 +328,7 @@ public static class OrdinaryLeastSquares
     /// leaves R² alone once a constant absorbs the shift — and without one it is the whole
     /// difference between this and the textbook formula.
     /// </remarks>
-    private static double[] Vif(ReadOnlySpan<double> design, int rowCount, int regressorCount, bool withIntercept)
+    internal static double[] Vif(ReadOnlySpan<double> design, int rowCount, int regressorCount, bool withIntercept)
     {
         var factors = new double[regressorCount];
         if (regressorCount == 1 && !withIntercept)
@@ -539,7 +564,7 @@ public static class OrdinaryLeastSquares
     }
 
     /// <summary>A plain inner product; the two arrays here are always the same length.</summary>
-    private static double Dot(double[] left, double[] right)
+    internal static double Dot(double[] left, double[] right)
     {
         double total = 0.0;
         for (int i = 0; i < left.Length; i++)

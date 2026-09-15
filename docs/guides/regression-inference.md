@@ -114,6 +114,16 @@ The slope is `1.9882` with a standard error of `0.1767`, against `1.9343` and `0
 — both as `statsmodels.WLS` reports them. A negative, `NaN` or infinite weight is refused, and so
 are weights that leave fewer positively weighted rows than parameters.
 
+## When the errors are correlated
+
+Readings taken close together in time or space share their errors, and a table that counts them as
+independent claims more precision than the data holds.
+[`GeneralizedLeastSquares.Fit`](../reference/stats-regression/gls/generalizedleastsquares-fit.md) takes the
+error covariance, one row and one column per row, and whitens the rows by its Cholesky factor before fitting.
+On ten readings with neighbour correlation `0.6^|i−j|`, the slope's standard error is `0.2924`, against the
+`0.1102` the ordinary table reports for the same rows. A covariance that is not symmetric and positive
+definite is refused.
+
 ## What is refused
 
 - A design that is not a whole number of rows, or a response of a different length.
@@ -129,6 +139,7 @@ is sound, so the diagnostic that is not says so. `docs/equivalence.md` carries t
 
 - [`OrdinaryLeastSquares`](../reference/stats-regression/ols.md) — the reference pages.
 - [`WeightedLeastSquares`](../reference/stats-regression/wls.md) — the weighted fit.
+- [`GeneralizedLeastSquares`](../reference/stats-regression/gls.md) — the fit under a correlated error covariance.
 - [statsmodels → .NET](../migration/statsmodels.md) — what is delegated and what is not.
 - [`decisions/0096`](../decisions/0096-ordinary-least-squares-earns-its-own-package.md) — why this
   is a package, and what reading the incumbents' exported surface actually found.

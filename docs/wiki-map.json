@@ -202,6 +202,7 @@
         "Lodestar.Stats.Regression": [
           "docs/reference/stats-regression/ols",
           "docs/reference/stats-regression/wls",
+          "docs/reference/stats-regression/gls",
           "docs/reference/stats-regression/glm"
         ]
       },

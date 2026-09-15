@@ -4098,6 +4098,55 @@ per row: a few dozen logarithms each, about a tenth of `main`'s time at every si
 measured before the pipeline change). At 100,000 rows `statsmodels` reaches LAPACK through numpy's threads and spends sixteen
 times the processor time it takes in wall-clock time; the `wall` column is still the comparison.
 
+## Generalized least squares against Math.NET Numerics (issue #771)
+
+Full method and what agrees:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#38-generalized-least-squares-against-mathnet-numerics-issue-771).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: three `BenchmarkDotNet` 0.14.0 runs, **default job**, on 2026-09-15, interleaved as the
+first revision of this branch (an indexed Cholesky loop), then this one, then the first again (A/B/A).
+`MathNet.Numerics` 5.0.0. Four regressors and an intercept, AR(1) errors at 0.6; each pair returned the same
+slope within `1e-9` before it was timed.
+
+| n | first revision, A1 / A2 | [`GeneralizedLeastSquares.Fit`](../reference/stats-regression/gls/generalizedleastsquares-fit.md) | Math.NET, Cholesky and normal equations | Math.NET / Lodestar | Allocated, Lodestar | Allocated, Math.NET |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 50 | 26.26 / 25.59 μs | **22.54 μs** | 23.49 μs | 1.04 | 41.20 KB | 34.08 KB |
+| 200 | 924.10 / 920.46 μs | **542.93 μs** | 993.61 μs | **1.83** | 392.86 KB | 371.23 KB |
+| 500 | 12.926 / 12.877 ms | **5.797 ms** | 9.180 ms | **1.58** | 2,150.94 KB | 2,227.51 KB |
+| 1,000 | 107.640 / 108.328 ms | **47.864 ms** | 56.587 ms | **1.18** | 8,205.52 KB | 9,050.39 KB |
+
+**Faster than Math.NET at every size, while computing the whole table** — standard errors, p-values,
+intervals, R², the F test and the VIFs — against a Math.NET path that stops at the coefficients. Math.NET
+exports no GLS, so its row is the one its users write: its Cholesky factor of the covariance, and the normal
+equations solved through it.
+
+**The first revision lost from 500 rows on**, 1.39× slower at 500 and 1.9× at 1,000: the cost there is the
+covariance's Cholesky factor, `n³/6` products, and its inner product was an indexed loop over a
+`ReadOnlySpan`. Unrolled four terms at a time over contiguous spans, the factor runs 2.2× faster at 500 and at
+1,000 rows. It stays scalar, so both target frameworks add the terms in one order.
+
+**Neither side is allocation-free**, and neither can be: the factor is `n²` doubles, 8 MB at 1,000 rows,
+and each side holds one. Lodestar allocates 0.91× to 1.21× what Math.NET does, the most at 50 rows, where the table’s own arrays outweigh the factor.
+
+### After the shared pipeline (issue #782)
+
+Rebased on the least-squares pipeline #784 rebuilt, GLS whitens as before and hands the whitened design to the same
+solve — normal equations when conditioned, reflections otherwise — and the same table stage. A second A/B/A, same machine
+and job, interleaved as the revision above, then the rebased branch, then the revision again:
+
+| n | revision above, A1 / A2 | rebased [`GeneralizedLeastSquares.Fit`](../reference/stats-regression/gls/generalizedleastsquares-fit.md) | Math.NET | Math.NET / Lodestar | Allocated, before → after | Allocated, Math.NET |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 50 | 22.83 / 22.26 μs | **17.79 μs** | 23.38 μs | **1.31** | 41.20 → 27.02 KB | 34.14 KB |
+| 200 | 547.61 / 540.33 μs | **527.74 μs** | 1,010.36 μs | **1.91** | 392.86 → 336.49 KB | 371.24 KB |
+| 500 | 5.903 / 5.777 ms | **5.763 ms** | 9.121 ms | **1.58** | 2,150.94 → 2,010.14 KB | 2,227.48 KB |
+| 1,000 | 47.934 / 47.678 ms | **47.752 ms** | 57.188 ms | **1.20** | 8,205.52 → 7,924.16 KB | 9,049.56 KB |
+
+The pipeline shows at 50 rows, a fifth off the fit and a third off its allocation; from 500 rows on the covariance's
+Cholesky factor is the fit, and the rows are the same within noise. The same run held WLS and OLS to #784's numbers:
+within 1.4 % at 2,000 rows and faster at 20,000 and 200,000.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly
