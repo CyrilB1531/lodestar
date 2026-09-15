@@ -145,6 +145,11 @@ GAMMA = "gamma"
 INVERSE = "inverse"
 LINK = "link"
 # The per-row terms a GLM predictor carries with no coefficient, echoed into each case (#787).
+# Fields several corpora report, each named once (#788): S1192 counts a JSON key like any other literal.
+CONVERGED = "converged"
+LOG_LIKELIHOOD = "logLikelihood"
+RESIDUAL_DEGREES_OF_FREEDOM = "residualDegreesOfFreedom"
+Z_STATISTICS = "zStatistics"
 OFFSET = "offset"
 EXPOSURE = "exposure"
 WITH_MEAN = "with_mean"
@@ -5004,14 +5009,14 @@ def generate_survival_cox() -> dict:
             CONFIDENCE_LEVEL: 1.0 - model.alpha,
             COEFFICIENTS: [float(v) for v in summary["coef"]],
             STANDARD_ERRORS: [float(v) for v in summary["se(coef)"]],
-            "zStatistics": [float(v) for v in summary["z"]],
+            Z_STATISTICS: [float(v) for v in summary["z"]],
             P_VALUES: [float(v) for v in summary["p"]],
             CONFIDENCE_LOWER: [float(v) for v in summary["coef lower 95%"]],
             CONFIDENCE_UPPER: [float(v) for v in summary["coef upper 95%"]],
             "hazardRatios": [float(v) for v in summary["exp(coef)"]],
             "hazardRatioLower": [float(v) for v in summary["exp(coef) lower 95%"]],
             "hazardRatioUpper": [float(v) for v in summary["exp(coef) upper 95%"]],
-            "logLikelihood": float(model.log_likelihood_),
+            LOG_LIKELIHOOD: float(model.log_likelihood_),
             "nullLogLikelihood": float(model.log_likelihood_ - ratio.test_statistic / 2.0),
             "likelihoodRatioStatistic": float(ratio.test_statistic),
             "likelihoodRatioPValue": float(ratio.p_value),
@@ -5358,7 +5363,7 @@ def _linear_case(fixture: dict, model) -> dict:
         "adjustedRSquared": float(fitted.rsquared_adj),
         "fStatistic": float(fitted.fvalue),
         "fPValue": float(fitted.f_pvalue),
-        "residualDegreesOfFreedom": int(fitted.df_resid),
+        RESIDUAL_DEGREES_OF_FREEDOM: int(fitted.df_resid),
         "residualStandardError": float(np.sqrt(fitted.mse_resid)),
         "varianceInflationFactors": vif,
     })
@@ -5878,6 +5883,137 @@ def generate_regression_log_gamma() -> dict:
     }
 
 
+# The multinomial logit corpus (#788): each fixture's labels and the categories they sort into.
+LABELS = "labels"
+CATEGORIES = "categories"
+
+
+def _mnlogit_fixtures() -> list[dict]:
+    """Designs drawn once from numpy's default_rng and frozen, each with a likelihood-ratio statistic above 25.
+
+    long-comment: why the likelihood-ratio statistic has to be large.
+    The pseudo-R-squared and the likelihood-ratio test read `llnull`, which statsmodels reaches by a
+    Nelder-Mead and BFGS refit that lands up to 3e-10 off the closed form the C# computes (decision
+    0136). The statistic is a difference of log-likelihoods, so a small one amplifies that gap past
+    the corpus tolerance; above 25 it stays under 1e-10. Seeds 5, 2, 10 and 8, noted so they can be
+    drawn again: category probabilities from normal coefficients, regressors rounded to two decimals.
+    """
+    one = [-0.8, -1.32, -0.25, 0.42, 1.14, 0.11, -0.55, -0.78, 0.75, 1.63, 0.27, -1.23, -0.96, 1.6, 0.2, -1.73,
+           -0.08, -1.16, -0.63, -0.49, -0.71, 0.55, -0.06, -0.59, 0.41, 0.83, -1.64, -0.26, -0.98, -0.17, -1.29,
+           0.02, -0.04, -0.3, -1.05, -0.4]
+    one_labels = [2, 2, 0, 0, 0, 2, 2, 2, 0, 0, 0, 2, 2, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 2, 0, 0, 2, 2, 2, 0, 2, 2,
+                  1, 2, 2, 2]
+    return [
+        {"name": "three categories, one regressor", DESIGN: one, LABELS: one_labels,
+         OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95},
+        {
+            # The same rows relabelled -7, 0, 12: the categories sort by value, so the fit is the one above.
+            "name": "labels negative and not contiguous",
+            DESIGN: one, LABELS: [(-7, 0, 12)[v] for v in one_labels],
+            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            "name": "four categories, two regressors, 99%",
+            DESIGN: [
+                0.19, -0.52, -0.41, -2.44, 1.8, 1.14, -0.33, 0.77, 0.28, -0.55, 0.98, -0.31, -0.33, -0.79, 0.45,
+                -0.1, 0.55, -0.61, 0.13, -0.89, 0.84, 0.19, 0.33, 0.41, -1.01, 0.78, 2.06, -1.64, -1.73, -1.5, 0.84,
+                0.13, 1.08, 0.72, 0.21, 0.28, -0.17, 0.87, -1.13, -0.42, 0.24, 1.8, -0.76, -1.08, -0.56, 0.97, -0.24,
+                1.32, -1.87, 1.13, 1.03, -1.42, 0.15, 1.22, 0.09, 1.0, 2.37, 0.27, -0.28, -0.77, 0.65, -0.2, -0.18,
+                -0.11, 0.65, -1.07, -1.53, -2.43, 1.2, 0.07, 1.51, -0.01, -0.74, 0.48, -0.08, -1.25, -0.89, 1.77,
+                0.35, 0.42, -0.28, -0.69, 0.89, -0.1, -0.76, -0.13, -0.91, 0.19, 1.13, -0.84, 1.43, -0.67, 0.15,
+                -0.84, -0.22, 0.05,
+            ],
+            LABELS: [0, 1, 3, 0, 0, 3, 2, 3, 3, 3, 0, 3, 2, 0, 1, 3, 3, 3, 3, 2, 3, 2, 2, 3, 2, 3, 0, 3, 3, 2, 0, 2,
+                     0, 1, 0, 3, 2, 0, 2, 3, 2, 0, 3, 3, 1, 3, 1, 3],
+            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
+        },
+        {
+            # Two categories: the binary logit, which GeneralizedLinearModel's binomial family also fits.
+            "name": "two categories",
+            DESIGN: [-1.1, -0.73, -0.78, 0.27, -0.25, 0.13, 0.84, 0.86, 0.48, -0.45, -0.75, -0.81, -0.34, -0.05,
+                     -0.97, -1.13, 0.31, -1.85, -0.18, 0.43, -0.99, -1.11, -0.76, 0.65, -0.13, -1.87, -0.42, 1.01,
+                     0.98, 0.63],
+            LABELS: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0],
+            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            # No intercept: df_model is still (K - 1)(J - 1), and llnull is still the constant-only model's.
+            "name": "three categories, two regressors, no intercept",
+            DESIGN: [
+                -1.74, -1.34, -1.36, -0.35, -2.31, -0.19, -0.96, 0.89, 0.96, 1.39, 0.77, -0.05, 0.86, 1.51, -0.65,
+                0.61, -0.04, 1.44, -0.84, -0.3, 0.36, 0.26, -1.64, 0.36, -0.12, -0.24, -0.16, 0.22, -1.82, 1.55,
+                -0.86, -2.24, -0.08, 1.46, -0.52, 1.55, 1.56, -0.86, -2.47, -1.24, 1.19, -0.82, -1.51, -1.34, 0.0,
+                -0.03, 0.87, 0.99, -0.93, -0.16, -1.13, 0.07, -1.15, -1.2, 2.12, 0.03, 0.64, 2.54, 0.79, -0.11, 0.05,
+                -0.74, 1.09, -0.33, 1.76, -0.34, -0.35, -0.42, 0.63, 0.19, 1.37, -0.55,
+            ],
+            LABELS: [0, 2, 0, 0, 2, 2, 2, 2, 2, 0, 1, 0, 2, 0, 0, 0, 2, 2, 1, 0, 1, 0, 2, 2, 2, 0, 0, 1, 2, 2, 1, 1,
+                     1, 0, 1, 2],
+            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+        },
+    ]
+
+
+def generate_stats_mnlogit() -> dict:
+    """statsmodels' MNLogit, Newton from zeros with its default budget and tolerance (#788)."""
+    import numpy as np
+    import statsmodels.api as sm
+    from scipy.stats import chi2
+    from statsmodels.discrete.discrete_model import MNLogit
+
+    def closed_null(labels: list[int]) -> float:
+        counts = np.unique(np.array(labels), return_counts=True)[1]
+        return float(np.sum(counts * np.log(counts / len(labels))))
+
+    cases = []
+    for fixture in _mnlogit_fixtures():
+        design = np.array(fixture[DESIGN]).reshape(-1, fixture[OLS_FEATURE_COUNT])
+        exog = sm.add_constant(design, prepend=True) if fixture[WITH_INTERCEPT] else design
+        fit = MNLogit(np.array(fixture[LABELS]), exog).fit(disp=0)
+        interval = np.asarray(fit.conf_int(alpha=1.0 - fixture[CONFIDENCE_LEVEL]))
+        # params and the columns built from it are K x (J - 1); the C# reads equation first, so each is transposed.
+        by_equation = lambda values: np.asarray(values).T.tolist()
+        cases.append({
+            "name": fixture["name"],
+            DESIGN: fixture[DESIGN],
+            LABELS: fixture[LABELS],
+            OLS_FEATURE_COUNT: fixture[OLS_FEATURE_COUNT],
+            WITH_INTERCEPT: fixture[WITH_INTERCEPT],
+            CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
+            CATEGORIES: sorted(set(fixture[LABELS])),
+            COEFFICIENTS: by_equation(fit.params),
+            STANDARD_ERRORS: by_equation(fit.bse),
+            Z_STATISTICS: by_equation(fit.tvalues),
+            P_VALUES: by_equation(fit.pvalues),
+            CONFIDENCE_LOWER: interval[:, :, 0].tolist(),
+            CONFIDENCE_UPPER: interval[:, :, 1].tolist(),
+            LOG_LIKELIHOOD: float(fit.llf),
+            "nullLogLikelihood": float(fit.llnull),
+            "pseudoRSquared": float(fit.prsquared),
+            "likelihoodRatio": float(fit.llr),
+            "likelihoodRatioPValue": float(fit.llr_pvalue),
+            # The same tail read on the closed-form null: statsmodels' refit null moves its own p-value by up
+            # to 1.3e-8 relative, and this is the number the C# computes (decision 0136).
+            "likelihoodRatioPValueClosedNull": float(chi2.sf(
+                -2.0 * (closed_null(fixture[LABELS]) - fit.llf), fit.df_model)),
+            "akaike": float(fit.aic),
+            "bayesian": float(fit.bic),
+            "modelDegreesOfFreedom": int(fit.df_model),
+            RESIDUAL_DEGREES_OF_FREEDOM: int(fit.df_resid),
+            ITERATIONS: int(fit.mle_retvals["iterations"]),
+            CONVERGED: bool(fit.mle_retvals[CONVERGED]),
+        })
+
+    return {
+        "metadata": {
+            "library": STATSMODELS,
+            "version": version(STATSMODELS),
+            FAMILY: "mnlogit",
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
 def generate_stats_glm() -> dict:
     """statsmodels' GLM, one block per family (#616).
 
@@ -5924,17 +6060,17 @@ def generate_stats_glm() -> dict:
             **({EXPOSURE: fixture[EXPOSURE]} if EXPOSURE in fixture else {}),
             COEFFICIENTS: [float(v) for v in fit.params],
             STANDARD_ERRORS: [float(v) for v in fit.bse],
-            "zStatistics": [float(v) for v in fit.tvalues],
+            Z_STATISTICS: [float(v) for v in fit.tvalues],
             P_VALUES: [float(v) for v in fit.pvalues],
             CONFIDENCE_LOWER: [float(v) for v in interval[:, 0]],
             CONFIDENCE_UPPER: [float(v) for v in interval[:, 1]],
             "deviance": float(fit.deviance),
             "nullDeviance": float(fit.null_deviance),
             "dispersion": float(fit.scale),
-            "logLikelihood": float(fit.llf),
+            LOG_LIKELIHOOD: float(fit.llf),
             "akaike": float(fit.aic),
-            "residualDegreesOfFreedom": int(fit.df_resid),
-            "converged": bool(fit.converged),
+            RESIDUAL_DEGREES_OF_FREEDOM: int(fit.df_resid),
+            CONVERGED: bool(fit.converged),
             ITERATIONS: int(fit.fit_history["iteration"]),
         })
 
@@ -5951,7 +6087,7 @@ def generate_stats_glm() -> dict:
         RESPONSE: [float(v) for v in separable_y],
         OLS_FEATURE_COUNT: 1,
         "maximumIterations": separable_maxiter,
-        "converged": bool(separable.converged),
+        CONVERGED: bool(separable.converged),
         ITERATIONS: int(separable.fit_history["iteration"]),
     }
 
@@ -11184,6 +11320,7 @@ def main() -> None:
         "stats_wls.json": generate_stats_wls,
         "stats_gls.json": generate_stats_gls,
         "stats_glm.json": generate_stats_glm,
+        "stats_mnlogit.json": generate_stats_mnlogit,
         "regression_log_factorial.json": generate_regression_log_factorial,
         "regression_log_gamma.json": generate_regression_log_gamma,
         "stats_timeseries.json": generate_stats_timeseries,
