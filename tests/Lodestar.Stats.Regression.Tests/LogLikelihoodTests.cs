@@ -15,7 +15,7 @@ public sealed class LogLikelihoodTests
         // log(1 - 0.25) + log(0.75)
         Assert.Equal(
             Math.Log(0.75) + Math.Log(0.75),
-            LogLikelihood.Of(GlmFamily.Binomial, response, mean, 1.0), 12);
+            LogLikelihood.Of(FamilyShape.Of(GlmFamily.Binomial), response, mean, 1.0), 12);
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public sealed class LogLikelihoodTests
         // 3 log 2 - 2 - log(3!) = 3 log 2 - 2 - log 6
         Assert.Equal(
             (3.0 * Math.Log(2.0)) - 2.0 - Math.Log(6.0),
-            LogLikelihood.Of(GlmFamily.Poisson, response, mean, 1.0), 12);
+            LogLikelihood.Of(FamilyShape.Of(GlmFamily.Poisson), response, mean, 1.0), 12);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public sealed class LogLikelihoodTests
             ((2.0 * Math.Log(1.0)) - 1.0 - Math.Log(2.0)) +
             ((4.0 * Math.Log(3.0)) - 3.0 - Math.Log(24.0));
 
-        Assert.Equal(expected, LogLikelihood.Of(GlmFamily.Poisson, response, mean, 1.0), 12);
+        Assert.Equal(expected, LogLikelihood.Of(FamilyShape.Of(GlmFamily.Poisson), response, mean, 1.0), 12);
     }
 
     public static TheoryData<int> LogFactorialCases()
@@ -115,7 +115,7 @@ public sealed class LogLikelihoodTests
             (0.0 - (2.0 * Math.Log(1.75)))
             + ((3.0 * Math.Log(1.0)) - (5.0 * Math.Log(2.0)) + Math.Log(4.0));
 
-        Assert.Equal(expected, LogLikelihood.Of(GlmFamily.NegativeBinomial, response, mean, alpha), 12);
+        Assert.Equal(expected, LogLikelihood.Of(new FamilyShape(GlmFamily.NegativeBinomial, GlmLink.Log, alpha), response, mean, 1.0), 12);
     }
 
     [Fact]

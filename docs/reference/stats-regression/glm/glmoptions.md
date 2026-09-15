@@ -15,10 +15,11 @@ how many IRLS iterations are allowed; `100` by default, which is the reference's
 `atol` with its `rtol` left at zero; `1e-8` by default. `ThrowOnNonConvergence` says whether a fit
 that did not converge throws instead of returning; `true` by default. `NegativeBinomialAlpha` is the
 dispersion `α` of `GlmFamily.NegativeBinomial`, given rather than estimated; `null` by default, which
-fits the reference's own default of `1`.
+fits the reference's own default of `1`. `Link` is the [`GlmLink`](glmlink.md) the mean is fitted
+through; `Default` by default, each family's statsmodels default.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `ConfidenceLevel` does not lie strictly inside
-`(0, 1)`, when `MaximumIterations` is below one, when `Tolerance` is not above zero, or when `NegativeBinomialAlpha` is not finite and above zero. Each is
+`(0, 1)`, when `MaximumIterations` is below one, when `Tolerance` is not above zero, when `NegativeBinomialAlpha` is not finite and above zero, or when `Link` is not a declared `GlmLink`. Each is
 thrown where the setting is set, not where the fit reads it: a budget of zero would otherwise skip
 the IRLS loop entirely and reach the caller as a table of `0/0`.
 

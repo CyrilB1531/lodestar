@@ -136,6 +136,9 @@ POISSON = "poisson"
 ITERATIONS = "iterations"
 NEGATIVE_BINOMIAL = "negativeBinomial"
 ALPHA = "alpha"
+GAMMA = "gamma"
+INVERSE = "inverse"
+LINK = "link"
 WITH_MEAN = "with_mean"
 WITH_STD = "with_std"
 DENSE = "dense"
@@ -3279,7 +3282,7 @@ def _deviance_case(fixture: dict) -> dict:
     if _tweedie_admits(1.0, fixture["true"], fixture["pred"]):
         case[POISSON] = float(mean_poisson_deviance(true, pred, **kw))
     if _tweedie_admits(2.0, fixture["true"], fixture["pred"]):
-        case["gamma"] = float(mean_gamma_deviance(true, pred, **kw))
+        case[GAMMA] = float(mean_gamma_deviance(true, pred, **kw))
     return case
 
 
@@ -5578,7 +5581,55 @@ def _glm_fixtures() -> list[dict]:
             OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
         *_negative_binomial_fixtures(),
+        *_gamma_fixtures(),
     ]
+
+
+def _gamma_fixtures() -> list[dict]:
+    """Positive skewed responses under the inverse link, statsmodels' default, and the log link (#770).
+
+    The responses carry visible noise so the Pearson scale is not near zero: the log-likelihood reads
+    1/scale, and a near-exact fit would push it where the reproducibility gate's absolute 1e-9 fails.
+    """
+    rising = {
+        DESIGN: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        RESPONSE: [2.1, 1.8, 3.5, 2.9, 4.8, 5.5, 4.9, 7.8, 6.9, 9.4],
+        OLS_FEATURE_COUNT: 1,
+    }
+    fixtures = [
+        {"name": f"gamma, {link} link", FAMILY: GAMMA, LINK: link,
+         WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95, **rising}
+        for link in (INVERSE, "log")
+    ]
+    fixtures.extend([
+        {
+            # Falling: under the inverse link 1/mu rises with x, the direction that keeps mu positive.
+            "name": "gamma, inverse link, a falling response at 99%",
+            FAMILY: GAMMA, LINK: INVERSE,
+            DESIGN: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
+            RESPONSE: [8.2, 5.9, 5.1, 3.2, 3.6, 2.4, 2.7, 1.9, 2.2, 1.5],
+            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
+        },
+        {
+            "name": "gamma, log link, no intercept",
+            FAMILY: GAMMA, LINK: "log",
+            DESIGN: [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6],
+            RESPONSE: [1.3, 1.1, 2.0, 1.6, 3.1, 2.4, 4.2, 3.3],
+            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            # Two orders of magnitude, the spread a Gamma model exists for.
+            "name": "gamma, log link, two regressors, a wide response",
+            FAMILY: GAMMA, LINK: "log",
+            DESIGN: [
+                1.0, 0.5, 2.0, 2.0, 3.0, 1.0, 4.0, 3.0, 5.0, 1.5,
+                6.0, 2.5, 7.0, 0.5, 8.0, 3.5, 9.0, 2.0, 10.0, 1.0,
+            ],
+            RESPONSE: [0.8, 3.1, 1.9, 9.5, 4.2, 12.8, 5.1, 44.0, 21.5, 30.2],
+            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+    ])
+    return fixtures
 
 
 def _negative_binomial_fixtures() -> list[dict]:
@@ -5711,6 +5762,8 @@ def generate_stats_glm() -> dict:
         BINOMIAL: lambda _: sm.families.Binomial(),
         POISSON: lambda _: sm.families.Poisson(),
         NEGATIVE_BINOMIAL: lambda fixture: sm.families.NegativeBinomial(alpha=fixture[ALPHA]),
+        GAMMA: lambda fixture: sm.families.Gamma(
+            link=sm.families.links.InversePower() if fixture[LINK] == INVERSE else sm.families.links.Log()),
     }
     blocks: dict = {name: {"cases": []} for name in families}
     for fixture in _glm_fixtures():
@@ -5728,6 +5781,7 @@ def generate_stats_glm() -> dict:
             WITH_INTERCEPT: fixture[WITH_INTERCEPT],
             CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
             **({ALPHA: fixture[ALPHA]} if ALPHA in fixture else {}),
+            **({LINK: fixture[LINK]} if LINK in fixture else {}),
             COEFFICIENTS: [float(v) for v in fit.params],
             STANDARD_ERRORS: [float(v) for v in fit.bse],
             "zStatistics": [float(v) for v in fit.tvalues],
@@ -5766,7 +5820,7 @@ def generate_stats_glm() -> dict:
             "library": STATSMODELS,
             "version": version(STATSMODELS),
             FAMILY: "glm",
-            VARIANT: "GLM(family=Binomial|Poisson|NegativeBinomial(alpha)).fit(), IRLS, default links",
+            VARIANT: "GLM(family=Binomial|Poisson|NegativeBinomial(alpha)|Gamma(link)).fit(), IRLS",
             "count": sum(len(b["cases"]) for b in blocks.values() if "cases" in b),
         },
         **blocks,

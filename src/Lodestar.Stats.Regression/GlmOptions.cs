@@ -12,6 +12,7 @@ public sealed record GlmOptions
     private int _maximumIterations = 100;
     private double _tolerance = 1e-8;
     private double? _negativeBinomialAlpha;
+    private GlmLink _link = GlmLink.Default;
 
     /// <summary>Whether a column of ones is prepended to the design. Default true.</summary>
     public bool WithIntercept { get; init; } = true;
@@ -93,6 +94,28 @@ public sealed record GlmOptions
             }
 
             _negativeBinomialAlpha = value;
+        }
+    }
+
+    /// <summary>The link the mean is fitted through. Default <see cref="GlmLink.Default"/>, each family's statsmodels default.</summary>
+    /// <remarks>
+    /// <see cref="GlmFamily.Gamma"/> takes <see cref="GlmLink.Inverse"/> or <see cref="GlmLink.Log"/>; the two
+    /// count families take <see cref="GlmLink.Log"/>, their default; binomial takes only its default logit.
+    /// <see cref="GeneralizedLinearModel.Fit"/> refuses any other pairing (#770).
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">The value is not a declared <see cref="GlmLink"/>.</exception>
+    public GlmLink Link
+    {
+        get => _link;
+        init
+        {
+            if (value is not (GlmLink.Default or GlmLink.Log or GlmLink.Inverse))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(value), value, $"{value} is not a declared {nameof(GlmLink)}.");
+            }
+
+            _link = value;
         }
     }
 

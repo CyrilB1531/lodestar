@@ -9,7 +9,7 @@ namespace Lodestar.Stats.Regression.Internal;
 internal static class LogLikelihood
 {
     /// <summary>The log-likelihood of one family's fitted mean against its response.</summary>
-    /// <param name="family">The response distribution.</param>
+    /// <param name="shape">The response distribution, its link and its parameter.</param>
     /// <param name="response">
     /// One value per row: 0 or 1 for <see cref="GlmFamily.Binomial"/>, a non-negative integer
     /// count for <see cref="GlmFamily.Poisson"/> (<see cref="GlmFamily.Poisson"/>'s own summary
@@ -17,23 +17,30 @@ internal static class LogLikelihood
     /// trusts that refusal rather than repeating it.
     /// </param>
     /// <param name="mean">The fitted mean, one per row.</param>
-    /// <param name="alpha">The negative binomial's dispersion; the other families ignore it.</param>
-    public static double Of(GlmFamily family, ReadOnlySpan<double> response, double[] mean, double alpha)
+    /// <param name="dispersion">The estimated scale Gamma's density reads; the other families' is 1.</param>
+    public static double Of(FamilyShape shape, ReadOnlySpan<double> response, double[] mean, double dispersion)
     {
-        // lnΓ(1/α) is the same in every row and costs a few dozen logarithms: read once, not per row (#781).
-        double logGammaTheta = family == GlmFamily.NegativeBinomial ? LogGamma(1.0 / alpha) : 0.0;
+        // lnΓ(1/α) and lnΓ(1/φ) are the same in every row and cost a few dozen logarithms each: read once, not
+        // per row (#781; the first Gamma measurement spent a third of each fit here, #770).
+        double constant = shape.Family switch
+        {
+            GlmFamily.NegativeBinomial => LogGamma(1.0 / shape.Alpha),
+            GlmFamily.Gamma => LogGamma(1.0 / dispersion),
+            _ => 0.0,
+        };
 
         double total = 0.0;
         for (int row = 0; row < response.Length; row++)
         {
             double y = response[row];
             double mu = mean[row];
-            total += family switch
+            total += shape.Family switch
             {
                 GlmFamily.Binomial => (y * Math.Log(mu)) + ((1.0 - y) * Math.Log(1.0 - mu)),
                 GlmFamily.Poisson => (y * Math.Log(mu)) - mu - LogFactorial(y),
-                GlmFamily.NegativeBinomial => NegativeBinomialTerm(y, mu, alpha, logGammaTheta),
-                _ => throw Families.Undeclared(family),
+                GlmFamily.NegativeBinomial => NegativeBinomialTerm(y, mu, shape.Alpha, constant),
+                GlmFamily.Gamma => GammaTerm(y, mu, dispersion, constant),
+                _ => throw Families.Undeclared(shape.Family),
             };
         }
 
@@ -49,6 +56,15 @@ internal static class LogLikelihood
             + LogGamma(y + theta)
             - logGammaTheta
             - LogFactorial(y);
+    }
+
+    /// <summary>One row of the Gamma log-likelihood at scale <c>φ</c>, as <c>loglike_obs</c> writes it.</summary>
+    /// <remarks><c>y/μ</c> is clipped at machine epsilon as the reference's <c>_clean</c> clips it.</remarks>
+    private static double GammaTerm(double y, double mu, double dispersion, double logGammaShape)
+    {
+        double shape = 1.0 / dispersion;
+        double ratio = Math.Max(y / mu, 2.220446049250313e-16);
+        return (shape * Math.Log(shape * ratio)) - (shape * ratio) - logGammaShape - Math.Log(y);
     }
 
     /// <summary><c>lnΓ(x)</c> for <c>x &gt; 0</c>, which the negative binomial reads at non-integer arguments.</summary>

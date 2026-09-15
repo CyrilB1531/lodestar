@@ -50,6 +50,12 @@ internal static class GlmOptionsSample
         GlmSummary negativeBinomial = GeneralizedLinearModel.Fit(
             x, counts, 1, GlmFamily.NegativeBinomial, new GlmOptions { NegativeBinomialAlpha = 0.5 });
         Console.WriteLine($"  slope s.e.       : Poisson {Inv.F4(poisson.StandardErrors[1])}, negative binomial {Inv.F4(negativeBinomial.StandardErrors[1])}");
+
+        // A positive, skewed response: Gamma through the log link, with its estimated dispersion.
+        double[] cost = [2.1, 1.8, 3.5, 2.9, 4.8, 5.5, 4.9, 7.8, 6.9, 9.4];
+        GlmSummary gamma = GeneralizedLinearModel.Fit(
+            x, cost, 1, GlmFamily.Gamma, new GlmOptions { Link = GlmLink.Log });
+        Console.WriteLine($"  gamma, log link  : growth {Inv.F4(gamma.Coefficients[1])}, dispersion {Inv.F4(gamma.Dispersion)}");
         Console.WriteLine();
     }
 }

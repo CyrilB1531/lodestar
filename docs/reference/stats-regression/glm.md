@@ -6,12 +6,13 @@ response through a link function instead of an identity one, by IRLS, and report
 [`OrdinaryLeastSquares.Fit`](ols/ordinaryleastsquares-fit.md) reports, fitted through a link
 instead of directly.
 
-**Two families, both closed.** [`GlmFamily`](glm/glmfamily.md) is `Binomial` (a `{0, 1}` response,
-through the logit link) or `Poisson` (a non-negative count, through the log link) — no interface,
-no caller-supplied family. IRLS cannot check that a caller-supplied family is internally
+**Four families, all closed.** [`GlmFamily`](glm/glmfamily.md) is `Binomial` (a `{0, 1}` response,
+through the logit link), `Poisson` (a non-negative count, through the log link), `NegativeBinomial` (an
+over-dispersed count, with a given `α`) or `Gamma` (a positive, skewed response, with an estimated scale)
+— no interface, no caller-supplied family. [`GlmLink`](glm/glmlink.md) chooses Gamma's link. IRLS cannot check that a caller-supplied family is internally
 consistent, and an incoherent one produces a plausible inference table rather than an error, so a
 family is chosen from a fixed set instead. Adding a member later is not a breaking change, which
-is what a future Gamma or negative-binomial family relies on.
+is how the negative binomial (#769) and Gamma (#770) joined.
 
 ## Why this is not a second package
 
@@ -29,8 +30,9 @@ Householder-QR least-squares core `OrdinaryLeastSquares.Fit` does, through
 | --- | --- |
 | [`GeneralizedLinearModel`](glm/generalizedlinearmodel.md) | Fits the model by IRLS and builds the table. |
 | [`GlmSummary`](glm/glmsummary.md) | The fitted model, its errors, its p-values and its diagnostics. |
-| [`GlmOptions`](glm/glmoptions.md) | The intercept, the confidence level, and the IRLS budget. |
-| [`GlmFamily`](glm/glmfamily.md) | The response distribution and its canonical link: `Binomial` or `Poisson`. |
+| [`GlmOptions`](glm/glmoptions.md) | The intercept, the confidence level, the IRLS budget, the link and the negative binomial's `α`. |
+| [`GlmFamily`](glm/glmfamily.md) | The response distribution: `Binomial`, `Poisson`, `NegativeBinomial` or `Gamma`. |
+| [`GlmLink`](glm/glmlink.md) | The link: each family's default, `Log` or `Inverse`. |
 
 ## See also
 

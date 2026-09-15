@@ -32,7 +32,7 @@ public sealed class GlmSummary
     /// <summary>The same, for the intercept-only fit.</summary>
     public double NullDeviance { get; init; }
 
-    /// <summary>Fixed at 1 for both families here; estimated when a Gamma family lands.</summary>
+    /// <summary>The scale: Pearson's χ² over the residual degrees of freedom for Gamma, and 1 for the other families.</summary>
     public double Dispersion { get; init; }
 
     /// <summary>The fitted log-likelihood.</summary>

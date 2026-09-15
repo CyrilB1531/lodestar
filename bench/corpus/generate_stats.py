@@ -31,6 +31,9 @@ SEED = 595
 # the draws of the design, the samples or the table already measured, the invariant write_size names.
 COUNT_SEED = 781
 COUNT_ALPHA = 1.0
+# The Gamma response's own stream (#770), for the same reason as the counts'.
+GAMMA_SEED = 770
+GAMMA_SHAPE = 4
 SIZES = [1_000, 10_000, 100_000]
 REGRESSORS = 4
 
@@ -99,6 +102,21 @@ def negative_binomial_counts(n: int, rows: list[float]) -> list[float]:
     return counts
 
 
+def gamma_response(n: int, rows: list[float]) -> list[float]:
+    """A positive response over the same design, Gamma-distributed around a log-linear mean with shape 4.
+
+    A shape-4 Gamma draw is the sum of four exponentials; scaled by mean/4 it has that mean and dispersion 1/4.
+    The log link keeps the mean positive for any design, which the inverse link does not promise.
+    """
+    rng = SeededRandom(GAMMA_SEED + n)
+    response: list[float] = []
+    for row in range(n):
+        eta = 0.2 + sum(0.3 * rows[(row * REGRESSORS) + column] for column in range(REGRESSORS))
+        draw = sum(-math.log(1.0 - rng.random()) for _ in range(GAMMA_SHAPE))
+        response.append(math.exp(eta) * draw / GAMMA_SHAPE)
+    return response
+
+
 def write_size(n: int) -> Path:
     # long-comment: names the invariant a later size addition would otherwise break.
     # One generator per size rather than one for the file: a size added later must not
@@ -117,6 +135,7 @@ def write_size(n: int) -> Path:
         "response": response,
         "counts": negative_binomial_counts(n, rows),
         "count_alpha": COUNT_ALPHA,
+        "gamma_response": gamma_response(n, rows),
     }
     path = OUT / f"stats_n{n}.json"
     path.write_text(json.dumps(payload) + "\n", encoding="utf-8")

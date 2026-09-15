@@ -1,9 +1,11 @@
+using System.Runtime.CompilerServices;
+
 namespace Lodestar.Stats.Regression.Internal;
 
 /// <summary>What each family contributes to IRLS: the link, its derivative, the variance and the deviance.</summary>
 /// <remarks>
-/// <c>alpha</c> is the negative binomial's dispersion, passed to every function whose value depends on it and
-/// ignored by the other families.
+/// The link functions dispatch on <see cref="FamilyShape.Link"/> and the rest on <see cref="FamilyShape.Family"/>,
+/// so a family can be fitted through more than one link (#770).
 /// </remarks>
 internal static class Families
 {
@@ -11,28 +13,44 @@ internal static class Families
     private const double Epsilon = 2.220446049250313e-16;
 
     /// <summary>The mean a linear predictor maps to.</summary>
-    public static double InverseLink(GlmFamily family, double eta) => family switch
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double InverseLink(in FamilyShape shape, double eta) => shape.Link switch
     {
-        GlmFamily.Binomial => 1.0 / (1.0 + Math.Exp(-eta)),
-        GlmFamily.Poisson or GlmFamily.NegativeBinomial => Math.Exp(eta),
-        _ => throw Undeclared(family),
+        GlmLink.Default => 1.0 / (1.0 + Math.Exp(-eta)),
+        GlmLink.Log => Math.Exp(eta),
+        GlmLink.Inverse => 1.0 / eta,
+        _ => throw UndeclaredLink(shape.Link),
     };
 
     /// <summary>The derivative of the link at a mean, which IRLS needs for the working response.</summary>
-    public static double LinkDerivative(GlmFamily family, double mu) => family switch
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double LinkDerivative(in FamilyShape shape, double mu) => shape.Link switch
     {
-        GlmFamily.Binomial => 1.0 / (mu * (1.0 - mu)),
-        GlmFamily.Poisson or GlmFamily.NegativeBinomial => 1.0 / mu,
-        _ => throw Undeclared(family),
+        GlmLink.Default => 1.0 / (mu * (1.0 - mu)),
+        GlmLink.Log => 1.0 / mu,
+        GlmLink.Inverse => -1.0 / (mu * mu),
+        _ => throw UndeclaredLink(shape.Link),
+    };
+
+    /// <summary>The link itself, the linear predictor a mean corresponds to.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double Link(in FamilyShape shape, double mu) => shape.Link switch
+    {
+        GlmLink.Default => Math.Log(mu / (1.0 - mu)),
+        GlmLink.Log => Math.Log(mu),
+        GlmLink.Inverse => 1.0 / mu,
+        _ => throw UndeclaredLink(shape.Link),
     };
 
     /// <summary>The variance function.</summary>
-    public static double Variance(GlmFamily family, double mu, double alpha) => family switch
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double Variance(in FamilyShape shape, double mu) => shape.Family switch
     {
         GlmFamily.Binomial => mu * (1.0 - mu),
         GlmFamily.Poisson => mu,
-        GlmFamily.NegativeBinomial => mu + (alpha * mu * mu),
-        _ => throw Undeclared(family),
+        GlmFamily.NegativeBinomial => mu + (shape.Alpha * mu * mu),
+        GlmFamily.Gamma => mu * mu,
+        _ => throw Undeclared(shape.Family),
     };
 
     /// <summary>One observation's contribution to the deviance.</summary>
@@ -41,12 +59,14 @@ internal static class Families
     /// carries <c>y log(y / mu)</c>, which is <c>0 * -inf</c> at the boundary and NaN in
     /// floating point, where the limit is 0.
     /// </remarks>
-    public static double UnitDeviance(GlmFamily family, double y, double mu, double alpha) => family switch
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double UnitDeviance(in FamilyShape shape, double y, double mu) => shape.Family switch
     {
         GlmFamily.Binomial => 2.0 * (Xlogy(y, y / mu) + Xlogy(1.0 - y, (1.0 - y) / (1.0 - mu))),
         GlmFamily.Poisson => 2.0 * (Xlogy(y, y / mu) - (y - mu)),
-        GlmFamily.NegativeBinomial => NegativeBinomialUnitDeviance(y, mu, 1.0 / alpha),
-        _ => throw Undeclared(family),
+        GlmFamily.NegativeBinomial => NegativeBinomialUnitDeviance(y, mu, 1.0 / shape.Alpha),
+        GlmFamily.Gamma => 2.0 * (-Math.Log(Math.Max(y / mu, Epsilon)) + ((y - mu) / mu)),
+        _ => throw Undeclared(shape.Family),
     };
 
     /// <summary>The negative binomial's unit deviance, with <c>theta = 1/alpha</c>.</summary>
@@ -67,4 +87,8 @@ internal static class Families
     /// </remarks>
     public static ArgumentOutOfRangeException Undeclared(GlmFamily family) =>
         new(nameof(family), family, $"{family} is not a declared {nameof(GlmFamily)}.");
+
+    /// <summary>The same refusal for a link cast from an undeclared integer.</summary>
+    public static ArgumentOutOfRangeException UndeclaredLink(GlmLink link) =>
+        new(nameof(link), link, $"{link} is not a declared {nameof(GlmLink)}.");
 }

@@ -21,8 +21,7 @@ internal static class Irls
         ReadOnlySpan<double> design,
         ReadOnlySpan<double> response,
         int featureCount,
-        GlmFamily family,
-        double alpha,
+        in FamilyShape shape,
         GlmOptions options)
     {
         int rowCount = response.Length;
@@ -43,7 +42,7 @@ internal static class Irls
         {
             // Unclamped, as the reference is: both starts sit strictly inside the link's
             // domain once an all-zero Poisson response is refused, which Fit does.
-            mean[row] = family == GlmFamily.Binomial
+            mean[row] = shape.Family == GlmFamily.Binomial
                 ? (response[row] + 0.5) / 2.0
                 : (response[row] + responseMean) / 2.0;
         }
@@ -52,7 +51,10 @@ internal static class Irls
         var working = new double[rowCount];
         double[] coefficients = new double[parameterCount];
         double[] inverseUpper = new double[parameterCount * parameterCount];
-        double deviance = Deviance(family, alpha, response, mean);
+        int residualDegreesOfFreedom = rowCount - parameterCount;
+        double scale = Scale(shape, response, mean, residualDegreesOfFreedom);
+        double deviance = Deviance(shape, response, mean);
+        double criterion = deviance / scale;
         double change = double.PositiveInfinity;
         bool converged = false;
         int iteration = 0;
@@ -60,7 +62,7 @@ internal static class Irls
         while (iteration < options.MaximumIterations)
         {
             iteration++;
-            BuildWeightedSystem(family, alpha, matrix, response, mean, scaled, working);
+            BuildWeightedSystem(shape, matrix, response, mean, scaled, working);
 
             // The reflections, not the normal equations: IRLS stops on an absolute deviance change, which the normal
             // equations' rounding held above 1e-8 for 19 iterations at a Poisson mean of 5e6 (GlmPoissonBenchmarks, #782).
@@ -85,15 +87,25 @@ internal static class Irls
                     eta += matrix[(row * parameterCount) + column] * coefficients[column];
                 }
 
-                mean[row] = Clamp(family, Families.InverseLink(family, eta));
+                mean[row] = Clamp(shape.Family, Families.InverseLink(shape, eta));
             }
 
-            double next = Deviance(family, alpha, response, mean);
-            change = Math.Abs(deviance - next);
+            RefuseANonPositiveGammaMean(shape, mean, iteration, nameof(design));
+
+            // long-comment: what the criterion is for an estimated scale, which only Gamma has here.
+            // _fit_irls compares family.deviance(..., scale) between iterations, and the scale it
+            // divides by is the one estimate_scale returned at the end of the iteration before:
+            // the Pearson scale of the previous mean. Comparing the unscaled deviance instead stops
+            // Gamma fits one iteration off and moves their coefficients by 1e-7 to 2e-6 relative,
+            // measured on stats_glm.json (#770). For the other families the scale is exactly 1.
+            deviance = Deviance(shape, response, mean);
+            double next = deviance / scale;
+            scale = Scale(shape, response, mean, residualDegreesOfFreedom);
+            change = Math.Abs(criterion - next);
             // numpy.allclose with the reference's own arguments: _fit_irls passes atol=tol and
             // leaves rtol at 0, so the criterion is the absolute deviance change alone.
             converged = change <= options.Tolerance;
-            deviance = next;
+            criterion = next;
             if (converged)
             {
                 break;
@@ -113,12 +125,31 @@ internal static class Irls
             coefficients, inverseUpper, mean, deviance, converged, iteration, change);
     }
 
-    public static double Deviance(GlmFamily family, double alpha, ReadOnlySpan<double> response, double[] mean)
+    /// <summary>The scale statsmodels estimates: Pearson's χ² over the residual degrees of freedom for Gamma, 1 for the rest.</summary>
+    public static double Scale(
+        in FamilyShape shape, ReadOnlySpan<double> response, double[] mean, int residualDegreesOfFreedom)
+    {
+        if (shape.Family != GlmFamily.Gamma)
+        {
+            return 1.0;
+        }
+
+        double total = 0.0;
+        for (int row = 0; row < response.Length; row++)
+        {
+            double residual = response[row] - mean[row];
+            total += residual * residual / Families.Variance(shape, mean[row]);
+        }
+
+        return total / residualDegreesOfFreedom;
+    }
+
+    public static double Deviance(in FamilyShape shape, ReadOnlySpan<double> response, double[] mean)
     {
         double total = 0.0;
         for (int row = 0; row < response.Length; row++)
         {
-            total += Families.UnitDeviance(family, response[row], mean[row], alpha);
+            total += Families.UnitDeviance(shape, response[row], mean[row]);
         }
 
         return total;
@@ -126,8 +157,7 @@ internal static class Irls
 
     /// <summary>The weighted design and working response for one IRLS iteration.</summary>
     private static void BuildWeightedSystem(
-        GlmFamily family,
-        double alpha,
+        in FamilyShape shape,
         double[] matrix,
         ReadOnlySpan<double> response,
         double[] mean,
@@ -139,10 +169,10 @@ internal static class Irls
         for (int row = 0; row < rowCount; row++)
         {
             double mu = mean[row];
-            double derivative = Families.LinkDerivative(family, mu);
-            double weight = 1.0 / (Families.Variance(family, mu, alpha) * derivative * derivative);
+            double derivative = Families.LinkDerivative(shape, mu);
+            double weight = 1.0 / (Families.Variance(shape, mu) * derivative * derivative);
             double root = Math.Sqrt(weight);
-            double eta = Link(family, mu);
+            double eta = Families.Link(shape, mu);
 
             working[row] = root * (eta + ((response[row] - mu) * derivative));
             for (int column = 0; column < parameterCount; column++)
@@ -180,10 +210,28 @@ internal static class Irls
         _ => mu,
     };
 
-    private static double Link(GlmFamily family, double mu) => family switch
+    /// <summary>Refuses a Gamma mean the inverse link has taken to zero or below, where no Gamma density exists.</summary>
+    /// <remarks>
+    /// Nothing keeps <c>1/η</c> positive, which is why the reference warns when the link is built; it then
+    /// carries on with <c>|μ|</c> in its variance and a clipped deviance. The log link cannot reach here (#770).
+    /// </remarks>
+    private static void RefuseANonPositiveGammaMean(in FamilyShape shape, double[] mean, int iteration, string designName)
     {
-        GlmFamily.Binomial => Math.Log(mu / (1.0 - mu)),
-        GlmFamily.Poisson or GlmFamily.NegativeBinomial => Math.Log(mu),
-        _ => throw Families.Undeclared(family),
-    };
+        // One scan after the means are formed rather than a call inside the per-row loop the other families share (#770).
+        if (shape.Family != GlmFamily.Gamma)
+        {
+            return;
+        }
+
+        for (int row = 0; row < mean.Length; row++)
+        {
+            if (!(mean[row] > 0.0))
+            {
+                throw new ArgumentException(
+                    $"IRLS iteration {iteration} took a Gamma mean to {mean[row]} through the inverse link, where the "
+                    + "family has no density. GlmLink.Log keeps every mean positive.",
+                    designName);
+            }
+        }
+    }
 }
