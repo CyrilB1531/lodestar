@@ -20,7 +20,8 @@ sign.
 
 **Exceptions** — `ArgumentException` when either sample is empty, or `nanPolicy` is
 `NanPolicy.Raise` and either sample holds a `NaN`. `ArgumentOutOfRangeException` when `method`
-is `ExactMethod.Exact` and `a.Length * b.Length` exceeds 1,000,000.
+is `ExactMethod.Exact`, `a.Length * b.Length` exceeds 1,000,000, and the samples differ in size
+or the alternative is one-sided.
 
 **Example** — two samples of the same size, shifted apart.
 
@@ -44,10 +45,14 @@ gap is measured at here.
 
 `method` chooses between an exact route and an asymptotic one, the same shape as
 [`MannWhitney.Test`](mannwhitney-test.md)'s and [`Wilcoxon.Paired`](wilcoxon-paired.md)'s.
-`Auto` switches to the asymptotic route once `a.Length * b.Length` passes 10,000, purely because
-the exact answer stops being worth its cost there, not because it would be wrong.
+**For two samples of the same size, two-sided, `Auto` is exact while each holds at most 10,000
+values**, as scipy's is: that case has a closed form with no table
+([decision 0141](../../../decisions/0141-kolmogorov-smirnov-auto-follows-scipy-for-equal-sizes.md)).
+Otherwise `Auto` switches to the asymptotic route once `a.Length * b.Length` passes 10,000, purely
+because the exact answer stops being worth its cost there, not because it would be wrong.
 
-**The exact route has a size bound `Auto` cannot cross.** Past `a.Length * b.Length = 1,000,000`,
+**The table route has a size bound `Auto` cannot cross**; the equal-size two-sided closed form has
+none. Past `a.Length * b.Length = 1,000,000`,
 `ExactPValue`'s lattice-path recurrence allocates a fresh `double[b.Length + 1]` row on each of
 `a.Length + 1` outer iterations — measured at 8,000 × 8,000 (a product of 64,000,000), that walk
 allocates 673 MB and climbs quadratically with the product from there. Passing

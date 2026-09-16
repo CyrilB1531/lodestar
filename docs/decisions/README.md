@@ -161,13 +161,14 @@ See [`0106`](0106-the-frontmatter-is-inserted-once-and-the-body-does-not-move.md
 | [`0138`](0138-lodestar-preprocessing-takes-an-edge-on-lodestar-stats-for-the-normal-quantile.md) | `Lodestar.Preprocessing` takes an edge on `Lodestar.Stats` for the normal quantile | accepted | 2026-09-16 | `RobustScaler(unit_variance=True)` divides the interpercentile range by `Φ⁻¹(q_max/100) − Φ⁻¹(q_min/100)`, and this repository already publishes that quantile ([`0098`](0098-the-normal-quantile-is-the-third-member-decision-0095s-rule-publishes.md)). The package that depended on nothing takes its first edge rather than carrying a second copy of a published member; the floor is the already-released `Lodestar.Stats` 0.4.0, and the precedent is that a sibling's member is depended on, not copied |
 | [`0139`](0139-the-sparse-overloads-take-the-second-edge-under-0138s-precedent.md) | The sparse overloads take the second edge, under 0138's precedent | accepted | 2026-09-16 | The scalers gain their `CsrMatrix` overloads, and `CsrMatrix` lives in `Lodestar.Abstractions` ([`0071`](0071-csrmatrix-moves-to-an-abstractions-package.md)), so this package takes a second edge in the same lot. Applies [`0138`](0138-lodestar-preprocessing-takes-an-edge-on-lodestar-stats-for-the-normal-quantile.md) rather than re-arguing it — which is what a precedent is for. Three scalers take a sparse matrix and `MinMaxScaler` takes none, the reference's own line |
 | [`0140`](0140-on-a-named-machine-our-knn-kernel-is-ahead-and-avx-512-widens-the-gap.md) | On a named machine our kNN kernel is ahead, and AVX-512 widens the gap | accepted | 2026-09-16 | Amends [`0060`](0060-tensorprimitives-beats-our-kernel-and-the-knn-is-still-not-redundant.md): on a Ryzen 7 8700G our dot is 3–7× ahead of `TensorPrimitives` on the kNN pattern, and turning its 512-bit path off halves its time without changing the direction |
+| [`0141`](0141-kolmogorov-smirnov-auto-follows-scipy-for-equal-sizes.md) | Kolmogorov-Smirnov's `Auto` follows scipy for two samples of the same size | accepted | 2026-09-16 | For two samples of the same size, two-sided, `Auto` is exact while n is at most 10,000, as scipy's is, now that the case has a closed form; a caller who wants the old p-value passes `ExactMethod.Asymptotic` |
 
 ## What `accepted` means here
 
-All one hundred and forty carry `accepted`. None has been rejected or withdrawn — a status this
+All one hundred and forty-one carry `accepted`. None has been rejected or withdrawn — a status this
 table would otherwise need a second word for. `0004` read a progress sentence
 (`single-word and blocked shipped`) where a status belongs; that sentence is now the opening line
-of its own `## Done` section, and its status reads `accepted` like the other hundred and thirty-nine.
+of its own `## Done` section, and its status reads `accepted` like the other hundred and forty.
 
 ## Relationships not stated on a `**Status:**` line
 

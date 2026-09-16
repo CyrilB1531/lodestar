@@ -1412,3 +1412,13 @@
   superseded_by: []
   amended_by: []
   applied_by: []
+
+"0141":
+  title: "Kolmogorov-Smirnov's `Auto` follows scipy for two samples of the same size"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []

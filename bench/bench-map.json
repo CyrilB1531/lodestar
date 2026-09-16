@@ -108,6 +108,9 @@
     "MetaNumericsStatsBenchmarks": [
       "src/Lodestar.Stats/**"
     ],
+    "KsAutoBenchmarks": [
+      "src/Lodestar.Stats/**"
+    ],
     "MetricsIncumbentBenchmarks": [
       "src/Lodestar.Metrics/**"
     ],
