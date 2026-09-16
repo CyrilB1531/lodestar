@@ -39,7 +39,7 @@ public sealed class DoubleMetaphoneOracleTests
     {
         // Pins the case count and the library version so an empty `cases` array -- which asserts
         // nothing and reports green -- cannot pass unnoticed.
-        Assert.Equal(423, Corpus.Cases.Count);
+        Assert.Equal(454, Corpus.Cases.Count);
         Assert.Equal("doublemetaphone", Corpus.Metadata.Library);
         Assert.Equal("1.2", Corpus.Metadata.LibraryVersion);
     }
@@ -49,7 +49,7 @@ public sealed class DoubleMetaphoneOracleTests
     {
         // A corpus of words that all encode the same way twice would let a one-code
         // implementation pass both facts above.
-        Assert.Equal(102, Corpus.Cases.Count(c => c.Secondary.Length > 0));
+        Assert.Equal(107, Corpus.Cases.Count(c => c.Secondary.Length > 0));
     }
 
     [Fact]

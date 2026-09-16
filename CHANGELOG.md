@@ -85,6 +85,10 @@ is one sentence, the issue and the commit; see
 - `RakeOptions` and `TextRankOptions` compare their stop words as a set. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
 - `System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
 
+#### Fixed
+
+- `DoubleMetaphone.Encode("W")` returns two empty codes, as the reference does, instead of throwing. ([#838](https://github.com/CyrilB1531/lodestar/issues/838))
+
 ### Lodestar.Gpu
 
 #### Added
