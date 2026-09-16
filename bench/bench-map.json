@@ -298,6 +298,9 @@
       "src/Lodestar.Stats.TimeSeries/**",
       "src/Lodestar.Stats.Regression/**",
       "src/Lodestar.Stats/**"
+    ],
+    "TextRankBenchmarks": [
+      "src/Lodestar.Text/**"
     ]
   },
   "harnesses": {
