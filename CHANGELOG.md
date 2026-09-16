@@ -24,6 +24,25 @@ is one sentence, the issue and the commit; see
 
 ## [Unreleased]
 
+### Lodestar.Cluster
+
+#### Added
+
+- **`Dbscan`**, at `sklearn.cluster.DBSCAN` parity over a row-major span, with
+  [`Fit`](docs/reference/cluster/partitioning/dbscan-fit.md) by euclidean distance and
+  [`FitPrecomputed`](docs/reference/cluster/partitioning/dbscan-fitprecomputed.md) over a square
+  distance matrix. **Labels are compared exactly**, not to a tolerance: the algorithm is discrete.
+  `epsilon` is inclusive and `minimumSamples` counts the sample itself, as the reference does for
+  both; neither is defaulted, because scikit-learn's `eps=0.5` is meaningful only on scaled data.
+  **A border sample two clusters can reach joins whichever is grown first**, which the corpus pins
+  with four orderings of one point set because the label follows the growth order rather than the
+  sample's own position. `cluster_dbscan.json` freezes 15 cases against scikit-learn 1.9.0, beside
+  12 edge tests. Measured against the two MIT incumbents it is **2.47× to 10.92× faster** and
+  allocates 2.89× to 5.46× less, and `Dbscan` 3.0.0 has no entry point above two features at all;
+  the agreement check also found that **NumFlat 1.3.4 loses a border sample the scan reaches before
+  any cluster exists**, which nine points separate — `bench/README.md` section 48 has it.
+  ([#759](https://github.com/CyrilB1531/lodestar/issues/759))
+
 ### Lodestar.Preprocessing
 
 #### Added
