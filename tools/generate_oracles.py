@@ -4748,6 +4748,178 @@ def generate_preprocessing_encoders() -> dict:
     }
 
 
+# The incremental-fit corpus (#765): the keys its cases carry, and the scalers it freezes.
+STANDARD = "standard"
+BATCHES = "batches"
+WHOLE_MEAN = "wholeMean"
+WHOLE_VARIANCE = "wholeVariance"
+WHOLE_SCALE = "wholeScale"
+INCREMENTAL_MEAN = "incrementalMean"
+INCREMENTAL_VARIANCE = "incrementalVariance"
+INCREMENTAL_SCALE = "incrementalScale"
+SEEN = "samplesSeen"
+DATA_MINIMUM = "dataMinimum"
+DATA_MAXIMUM = "dataMaximum"
+MAXIMUM_ABSOLUTE = "maximumAbsolute"
+
+
+def _partial_fit_fixtures() -> list[dict]:
+    """Batch splits, each chosen for a branch rather than for size."""
+    rng = SeededRandom(SEED + 765)
+    wide = [[round(rng.gauss(5.0, 2.0), 6), round(rng.gauss(-3.0, 1.0), 6)] for _ in range(24)]
+    return [
+        # Uneven batches: the update weights each by its own count, where equal ones would
+        # hide an implementation that averaged the two means.
+        {"name": "two uneven batches", SCALER: STANDARD, BATCHES: [wide[:7], wide[7:]]},
+        {"name": "three uneven batches", SCALER: STANDARD, BATCHES: [wide[:5], wide[5:17], wide[17:]]},
+        # One row at a time is where a variance update divides by a count of one.
+        {"name": "single-row batches", SCALER: STANDARD, BATCHES: [[row] for row in wide[:4]]},
+        {"name": "two uneven batches, min-max", SCALER: MINMAX, BATCHES: [wide[:7], wide[7:]]},
+        # A second batch inside the first's range leaves every statistic where it was.
+        {"name": "a batch inside the range", SCALER: MINMAX,
+         BATCHES: [wide[:12], [[1.0, -3.0], [2.0, -3.5]]]},
+        {"name": "two uneven batches, max-abs", SCALER: MAXABS, BATCHES: [wide[:7], wide[7:]]},
+    ]
+
+
+def generate_preprocessing_partial_fit() -> dict:
+    """partial_fit over batches against fit on the concatenation, for the three scalers (#765).
+
+    long-comment: why every case carries both answers rather than one.
+    The claim is not that the incremental statistics are right on their own; it is that they are the
+    ones a single fit over the concatenated batches gives. Freezing both and comparing them is what
+    states that, and an implementation that averages batch means passes neither.
+    """
+    import numpy as np
+    from sklearn.preprocessing import MaxAbsScaler, MinMaxScaler, StandardScaler
+
+    def column(values) -> list:
+        return [float(v) for v in values]
+
+    cases = []
+    for fixture in _partial_fit_fixtures():
+        batches = [np.array(batch, dtype=np.float64) for batch in fixture[BATCHES]]
+        whole = np.vstack(batches)
+        kind = fixture[SCALER]
+        incremental = {STANDARD: StandardScaler, MINMAX: MinMaxScaler, MAXABS: MaxAbsScaler}[kind]()
+        for batch in batches:
+            incremental.partial_fit(batch)
+
+        fitted = {STANDARD: StandardScaler, MINMAX: MinMaxScaler, MAXABS: MaxAbsScaler}[kind]().fit(whole)
+        case = {
+            "name": fixture["name"],
+            SCALER: kind,
+            BATCHES: [[float(v) for row in batch for v in row] for batch in fixture[BATCHES]],
+            FEATURE_COUNT: int(whole.shape[1]),
+            SEEN: int(np.asarray(incremental.n_samples_seen_).reshape(-1)[0]),
+            INCREMENTAL_SCALE: column(incremental.scale_),
+            WHOLE_SCALE: column(fitted.scale_),
+        }
+        if kind == STANDARD:
+            case[INCREMENTAL_MEAN] = column(incremental.mean_)
+            case[WHOLE_MEAN] = column(fitted.mean_)
+            case[INCREMENTAL_VARIANCE] = column(incremental.var_)
+            case[WHOLE_VARIANCE] = column(fitted.var_)
+        elif kind == MINMAX:
+            case[DATA_MINIMUM] = column(incremental.data_min_)
+            case[DATA_MAXIMUM] = column(incremental.data_max_)
+        else:
+            case[MAXIMUM_ABSOLUTE] = column(incremental.max_abs_)
+
+        cases.append(case)
+
+    return {
+        "metadata": {
+            "algorithm": "StandardScaler, MinMaxScaler, MaxAbsScaler partial_fit",
+            "library": "scikit-learn",
+            "library_version": version("scikit-learn"),
+            "reference_calls": [
+                "sklearn.preprocessing.StandardScaler.partial_fit",
+                "sklearn.preprocessing.MinMaxScaler.partial_fit",
+                "sklearn.preprocessing.MaxAbsScaler.partial_fit",
+            ],
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
+# The sparse-fit corpus (#765): the keys its cases carry beyond the dense ones.
+SPARSE_VALUES = "sparseValues"
+COLUMN_INDICES = "columnIndices"
+ROW_POINTERS = "rowPointers"
+ROW_COUNT = "rowCount"
+COLUMN_COUNT = "columnCount"
+DENSE_SCALE = "denseScale"
+SPARSE_SCALE = "sparseScale"
+
+
+def _sparse_fixtures() -> list[dict]:
+    """Matrices whose zeros are the point, each with a column chosen for a branch."""
+    return [
+        # Column 1 stores nothing and column 2 exactly one value: the floor fires on the first,
+        # and the second is where a mostly-zero column's percentiles are zero.
+        {"name": "a column of zeros and a column with one entry",
+         "rows": [[1.0, 0.0, 2.0], [0.0, 0.0, 0.0], [3.0, 0.0, 0.0], [-4.0, 0.0, 0.0]]},
+        # Dense enough that the quartiles are not all zero, so the robust scale is not floored.
+        {"name": "half the entries stored",
+         "rows": [[1.0, 5.0], [0.0, 6.0], [3.0, 0.0], [4.0, 8.0], [0.0, 9.0], [7.0, 0.0]]},
+    ]
+
+
+def generate_preprocessing_sparse() -> dict:
+    """The three scalers scikit-learn fits on a sparse matrix, against the dense answer (#765).
+
+    long-comment: why each case carries the dense answer as well as the sparse one.
+    A sparse fit is not a different statistic: it is the same one, read without visiting the zeros.
+    Freezing both states that, and an implementation that skipped the absent zeros in a mean -- the
+    easy mistake -- would match neither.
+    """
+    import numpy as np
+    from scipy import sparse
+    from sklearn.preprocessing import MaxAbsScaler, RobustScaler, StandardScaler
+
+    def column(values) -> list:
+        return [float(v) for v in values]
+
+    cases = []
+    for fixture in _sparse_fixtures():
+        dense = np.array(fixture["rows"], dtype=np.float64)
+        csr = sparse.csr_matrix(dense)
+        for kind, make in (
+                (STANDARD, lambda: StandardScaler(with_mean=False)),
+                (MAXABS, MaxAbsScaler),
+                (ROBUST, lambda: RobustScaler(with_centering=False))):
+            fitted = make().fit(csr)
+            cases.append({
+                "name": f"{kind}, {fixture['name']}",
+                SCALER: kind,
+                SPARSE_VALUES: column(csr.data),
+                COLUMN_INDICES: [int(v) for v in csr.indices],
+                ROW_POINTERS: [int(v) for v in csr.indptr],
+                ROW_COUNT: int(dense.shape[0]),
+                COLUMN_COUNT: int(dense.shape[1]),
+                SAMPLES: [float(v) for row in fixture["rows"] for v in row],
+                SPARSE_SCALE: column(fitted.scale_),
+                DENSE_SCALE: column(make().fit(dense).scale_),
+            })
+
+    return {
+        "metadata": {
+            "algorithm": "StandardScaler, MaxAbsScaler, RobustScaler over a sparse matrix",
+            "library": "scikit-learn",
+            "library_version": version("scikit-learn"),
+            "reference_calls": [
+                "sklearn.preprocessing.StandardScaler.fit",
+                "sklearn.preprocessing.MaxAbsScaler.fit",
+                "sklearn.preprocessing.RobustScaler.fit",
+            ],
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
 def _kmeans_fixtures() -> list[dict]:
     """Sample matrices with their starting centres, each chosen for a branch of Lloyd."""
     blobs = [[0.0, 0.0], [0.0, 1.0], [10.0, 10.0], [10.0, 11.0], [5.0, 5.0]]
@@ -11896,6 +12068,8 @@ def main() -> None:
         "stats_stationarity.json": generate_stats_stationarity,
         "stats_seasonal.json": generate_stats_seasonal,
         "cluster_kmeans.json": generate_cluster_kmeans,
+        "preprocessing_partial_fit.json": generate_preprocessing_partial_fit,
+        "preprocessing_sparse.json": generate_preprocessing_sparse,
         "preprocessing_scalers.json": generate_preprocessing_scalers,
         "preprocessing_standard_scaler.json": generate_preprocessing_standard_scaler,
         "ranking.json": generate_ranking,

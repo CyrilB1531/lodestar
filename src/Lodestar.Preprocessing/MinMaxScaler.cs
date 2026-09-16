@@ -104,6 +104,17 @@ public sealed class MinMaxScaler
             dataMaximum[feature] = Math.Max(dataMaximum[feature], samples[i]);
         }
 
+        return Build(featureCount, sampleCount, dataMinimum, dataMaximum, settings);
+    }
+
+    /// <summary>The scale and offset a range implies — shared so <see cref="Fit"/> and <see cref="PartialFit"/> cannot drift.</summary>
+    private static MinMaxScaler Build(
+        int featureCount,
+        int sampleCount,
+        double[] dataMinimum,
+        double[] dataMaximum,
+        MinMaxScalerOptions settings)
+    {
         var divisor = new double[featureCount];
         for (int feature = 0; feature < featureCount; feature++)
         {
@@ -123,6 +134,38 @@ public sealed class MinMaxScaler
 
         return new MinMaxScaler(
             featureCount, sampleCount, dataMinimum, dataMaximum, scale, minimum, settings);
+    }
+
+    /// <summary>Folds another batch into the fitted range, as <c>partial_fit</c> does.</summary>
+    /// <param name="samples">The next batch, row-major, with <see cref="FeatureCount"/> values per row.</param>
+    /// <returns>A new scaler covering every batch seen so far; this one is unchanged.</returns>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value.</exception>
+    /// <remarks>
+    /// Returns a new scaler rather than mutating this one — see
+    /// <see cref="StandardScaler.PartialFit"/> for why. A batch inside the range already seen leaves
+    /// every statistic where it was; one outside it widens the range and moves the scale.
+    /// </remarks>
+    public MinMaxScaler PartialFit(ReadOnlySpan<double> samples)
+    {
+        int rows = SampleMatrix.Rows(samples, FeatureCount);
+        SampleMatrix.RequireFinite(samples, nameof(samples));
+
+        var dataMinimum = new double[FeatureCount];
+        var dataMaximum = new double[FeatureCount];
+        for (int feature = 0; feature < FeatureCount; feature++)
+        {
+            dataMinimum[feature] = DataMinimum[feature];
+            dataMaximum[feature] = DataMaximum[feature];
+        }
+
+        for (int i = 0; i < samples.Length; i++)
+        {
+            int feature = i % FeatureCount;
+            dataMinimum[feature] = Math.Min(dataMinimum[feature], samples[i]);
+            dataMaximum[feature] = Math.Max(dataMaximum[feature], samples[i]);
+        }
+
+        return Build(FeatureCount, SampleCount + rows, dataMinimum, dataMaximum, _options);
     }
 
     /// <summary>Maps a row-major sample matrix onto the fitted range.</summary>

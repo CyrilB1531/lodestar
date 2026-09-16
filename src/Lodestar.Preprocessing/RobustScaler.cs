@@ -1,3 +1,4 @@
+using Lodestar.Abstractions;
 using Lodestar.Preprocessing.Internal;
 using Lodestar.Stats;
 
@@ -80,6 +81,58 @@ public sealed class RobustScaler
         }
 
         return new RobustScaler(featureCount, sampleCount, centre, scale);
+    }
+
+    /// <summary>Fits a scaler on a sparse matrix, which centring cannot be asked of.</summary>
+    /// <param name="samples">The samples, one row per matrix row.</param>
+    /// <param name="options">Which steps to apply; <see cref="RobustScalerOptions.WithCentring"/> must be off.</param>
+    /// <returns>A fitted scaler, its centre <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row or a non-finite value.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Centring is asked for, or the percentile range is out of range.</exception>
+    /// <remarks>
+    /// <strong>Centring is refused, as the reference refuses it</strong>: subtracting a median turns
+    /// every absent zero into a stored value. The percentiles still read the whole column, the
+    /// absent zeros included — which is why a sparse column's quartiles are usually zero.
+    /// </remarks>
+    public static RobustScaler Fit(CsrMatrix samples, RobustScalerOptions? options = null)
+    {
+        Guard.NotNull(samples);
+        RobustScalerOptions settings = options ?? new RobustScalerOptions { WithCentring = false };
+        if (settings.WithCentring)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(options),
+                settings.WithCentring,
+                "A sparse matrix cannot be centred: subtracting a median makes every absent zero a stored "
+                + "value. Pass WithCentring = false, which is what the reference asks for too.");
+        }
+
+        RequirePercentiles(settings);
+        if (samples.RowCount == 0 || samples.ColumnCount == 0)
+        {
+            throw new ArgumentException("samples holds no row or no column.", nameof(samples));
+        }
+
+        SparseColumns.RequireFinite(samples, nameof(samples));
+
+        if (!settings.WithScaling)
+        {
+            return new RobustScaler(samples.ColumnCount, samples.RowCount, null, null);
+        }
+
+        var scale = new double[samples.ColumnCount];
+        for (int feature = 0; feature < samples.ColumnCount; feature++)
+        {
+            double[] column = SparseColumns.SortedColumn(samples, feature);
+            scale[feature] = Percentile.Linear(column, settings.UpperPercentile)
+                - Percentile.Linear(column, settings.LowerPercentile);
+        }
+
+        ScaleFloor.Apply(scale);
+        ApplyUnitVariance(scale, settings);
+
+        return new RobustScaler(samples.ColumnCount, samples.RowCount, null, scale);
     }
 
     /// <summary>The median and the interpercentile range of every feature, from its sorted column.</summary>

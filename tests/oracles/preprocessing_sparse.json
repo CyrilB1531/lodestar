@@ -1,0 +1,333 @@
+{
+ "metadata": {
+  "algorithm": "StandardScaler, MaxAbsScaler, RobustScaler over a sparse matrix",
+  "library": "scikit-learn",
+  "library_version": "1.9.0",
+  "reference_calls": [
+   "sklearn.preprocessing.StandardScaler.fit",
+   "sklearn.preprocessing.MaxAbsScaler.fit",
+   "sklearn.preprocessing.RobustScaler.fit"
+  ],
+  "count": 6
+ },
+ "cases": [
+  {
+   "name": "standard, a column of zeros and a column with one entry",
+   "scaler": "standard",
+   "sparseValues": [
+    1.0,
+    2.0,
+    3.0,
+    -4.0
+   ],
+   "columnIndices": [
+    0,
+    2,
+    0,
+    0
+   ],
+   "rowPointers": [
+    0,
+    2,
+    2,
+    3,
+    4
+   ],
+   "rowCount": 4,
+   "columnCount": 3,
+   "samples": [
+    1.0,
+    0.0,
+    2.0,
+    0.0,
+    0.0,
+    0.0,
+    3.0,
+    0.0,
+    0.0,
+    -4.0,
+    0.0,
+    0.0
+   ],
+   "sparseScale": [
+    2.5495097567963922,
+    1.0,
+    0.8660254037844386
+   ],
+   "denseScale": [
+    2.5495097567963922,
+    1.0,
+    0.8660254037844386
+   ]
+  },
+  {
+   "name": "maxabs, a column of zeros and a column with one entry",
+   "scaler": "maxabs",
+   "sparseValues": [
+    1.0,
+    2.0,
+    3.0,
+    -4.0
+   ],
+   "columnIndices": [
+    0,
+    2,
+    0,
+    0
+   ],
+   "rowPointers": [
+    0,
+    2,
+    2,
+    3,
+    4
+   ],
+   "rowCount": 4,
+   "columnCount": 3,
+   "samples": [
+    1.0,
+    0.0,
+    2.0,
+    0.0,
+    0.0,
+    0.0,
+    3.0,
+    0.0,
+    0.0,
+    -4.0,
+    0.0,
+    0.0
+   ],
+   "sparseScale": [
+    4.0,
+    1.0,
+    2.0
+   ],
+   "denseScale": [
+    4.0,
+    1.0,
+    2.0
+   ]
+  },
+  {
+   "name": "robust, a column of zeros and a column with one entry",
+   "scaler": "robust",
+   "sparseValues": [
+    1.0,
+    2.0,
+    3.0,
+    -4.0
+   ],
+   "columnIndices": [
+    0,
+    2,
+    0,
+    0
+   ],
+   "rowPointers": [
+    0,
+    2,
+    2,
+    3,
+    4
+   ],
+   "rowCount": 4,
+   "columnCount": 3,
+   "samples": [
+    1.0,
+    0.0,
+    2.0,
+    0.0,
+    0.0,
+    0.0,
+    3.0,
+    0.0,
+    0.0,
+    -4.0,
+    0.0,
+    0.0
+   ],
+   "sparseScale": [
+    2.5,
+    1.0,
+    0.5
+   ],
+   "denseScale": [
+    2.5,
+    1.0,
+    0.5
+   ]
+  },
+  {
+   "name": "standard, half the entries stored",
+   "scaler": "standard",
+   "sparseValues": [
+    1.0,
+    5.0,
+    6.0,
+    3.0,
+    4.0,
+    8.0,
+    9.0,
+    7.0
+   ],
+   "columnIndices": [
+    0,
+    1,
+    1,
+    0,
+    0,
+    1,
+    1,
+    0
+   ],
+   "rowPointers": [
+    0,
+    2,
+    3,
+    4,
+    6,
+    7,
+    8
+   ],
+   "rowCount": 6,
+   "columnCount": 2,
+   "samples": [
+    1.0,
+    5.0,
+    0.0,
+    6.0,
+    3.0,
+    0.0,
+    4.0,
+    8.0,
+    0.0,
+    9.0,
+    7.0,
+    0.0
+   ],
+   "sparseScale": [
+    2.5,
+    3.5433819375782165
+   ],
+   "denseScale": [
+    2.5,
+    3.5433819375782165
+   ]
+  },
+  {
+   "name": "maxabs, half the entries stored",
+   "scaler": "maxabs",
+   "sparseValues": [
+    1.0,
+    5.0,
+    6.0,
+    3.0,
+    4.0,
+    8.0,
+    9.0,
+    7.0
+   ],
+   "columnIndices": [
+    0,
+    1,
+    1,
+    0,
+    0,
+    1,
+    1,
+    0
+   ],
+   "rowPointers": [
+    0,
+    2,
+    3,
+    4,
+    6,
+    7,
+    8
+   ],
+   "rowCount": 6,
+   "columnCount": 2,
+   "samples": [
+    1.0,
+    5.0,
+    0.0,
+    6.0,
+    3.0,
+    0.0,
+    4.0,
+    8.0,
+    0.0,
+    9.0,
+    7.0,
+    0.0
+   ],
+   "sparseScale": [
+    7.0,
+    9.0
+   ],
+   "denseScale": [
+    7.0,
+    9.0
+   ]
+  },
+  {
+   "name": "robust, half the entries stored",
+   "scaler": "robust",
+   "sparseValues": [
+    1.0,
+    5.0,
+    6.0,
+    3.0,
+    4.0,
+    8.0,
+    9.0,
+    7.0
+   ],
+   "columnIndices": [
+    0,
+    1,
+    1,
+    0,
+    0,
+    1,
+    1,
+    0
+   ],
+   "rowPointers": [
+    0,
+    2,
+    3,
+    4,
+    6,
+    7,
+    8
+   ],
+   "rowCount": 6,
+   "columnCount": 2,
+   "samples": [
+    1.0,
+    5.0,
+    0.0,
+    6.0,
+    3.0,
+    0.0,
+    4.0,
+    8.0,
+    0.0,
+    9.0,
+    7.0,
+    0.0
+   ],
+   "sparseScale": [
+    3.5,
+    6.25
+   ],
+   "denseScale": [
+    3.5,
+    6.25
+   ]
+  }
+ ]
+}

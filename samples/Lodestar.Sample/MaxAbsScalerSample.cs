@@ -1,3 +1,4 @@
+using Lodestar.Abstractions;
 using Lodestar.Preprocessing;
 
 namespace Lodestar.Sample;
@@ -21,6 +22,13 @@ internal static class MaxAbsScalerSample
         double[] scaled = scaler.Transform(samples);
         Console.WriteLine($"  scaled           : {Inv.List(scaled)}");
         Console.WriteLine($"  and back         : {Inv.List(scaler.InverseTransform(scaled))}");
+
+        // The running maximum absolute value, and the sparse matrix this scaler suits.
+        MaxAbsScaler folded = scaler.PartialFit([-32.0, 1.0]);
+        Console.WriteLine($"  after a batch    : {Inv.List(folded.MaximumAbsolute)} over {folded.SampleCount} rows");
+
+        var sparse = new CsrMatrix(3, 2, [2.0, -4.0, 1.0], [0, 1, 0], [0, 2, 3, 3]);
+        Console.WriteLine($"  sparse scale     : {Inv.List(MaxAbsScaler.Fit(sparse).Scale)}");
         Console.WriteLine();
     }
 }

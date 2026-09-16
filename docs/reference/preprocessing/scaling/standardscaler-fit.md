@@ -6,6 +6,7 @@ Fits a scaler on a row-major sample matrix.
 
 ```csharp
 public static StandardScaler Fit(ReadOnlySpan<double> samples, int featureCount, StandardScalerOptions options = null)
+public static StandardScaler Fit(CsrMatrix samples, StandardScalerOptions options = null)
 ```
 
 **Parameters** — `samples` is the sample matrix, row-major: `featureCount` values per row.
@@ -14,7 +15,7 @@ apply; `null` applies both.
 
 **Returns** — a fitted `StandardScaler`, carrying whichever statistics the options call for.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive.
+**Exceptions** — `ArgumentNullException` when the sparse overload is given no matrix. `ArgumentOutOfRangeException` when `featureCount` is not positive, or centring is asked of a sparse matrix.
 `ArgumentException` when `samples` holds no row, or a partial one — a length that is not a positive
 whole number of rows is not a matrix, and guessing which values were meant would be worse than
 refusing.
@@ -53,6 +54,11 @@ is frozen in `tests/oracles/preprocessing_standard_scaler.json`, because an impl
 The bound is read from `sklearn.preprocessing._data._is_constant_feature` (BSD-3, allowed as a
 behaviour reference by [`decisions/0003`](../../../decisions/0003-provenance-and-licensing.md)): the
 papers give the error analysis, not the threshold.
+
+**The sparse overload takes a `CsrMatrix` and refuses centring.** Subtracting a mean turns every
+absent zero into a stored value, so a matrix that fitted in memory sparse would not fit dense — the
+reference refuses it for the same reason, and `WithMean` must be off. The variance is still the
+column's, the absent zeros counted: `E[x²] − E[x]²` over every row rather than over the stored ones.
 
 **Applies to** — net10.0, netstandard2.0.
 

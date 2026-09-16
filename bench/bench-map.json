@@ -74,6 +74,12 @@
     "KMeansLloydIncumbentBenchmarks": [
       "src/Lodestar.Cluster/**"
     ],
+    "PartialFitBenchmarks": [
+      "src/Lodestar.Preprocessing/StandardScaler.cs",
+      "src/Lodestar.Preprocessing/MinMaxScaler.cs",
+      "src/Lodestar.Preprocessing/MaxAbsScaler.cs",
+      "src/Lodestar.Preprocessing/Internal/**"
+    ],
     "PrincipalComponentVarianceBenchmarks": [
       "src/Lodestar.Decomposition/**"
     ],

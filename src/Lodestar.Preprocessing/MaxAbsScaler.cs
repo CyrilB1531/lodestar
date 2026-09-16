@@ -1,3 +1,4 @@
+using Lodestar.Abstractions;
 using Lodestar.Preprocessing.Internal;
 
 namespace Lodestar.Preprocessing;
@@ -66,6 +67,67 @@ public sealed class MaxAbsScaler
 
         return new MaxAbsScaler(
             featureCount, sampleCount, maximumAbsolute, scale, (options ?? new MaxAbsScalerOptions()).Clip);
+    }
+
+    /// <summary>Fits a scaler on a sparse matrix, which is the shape it suits best.</summary>
+    /// <param name="samples">The samples, one row per matrix row.</param>
+    /// <param name="options">Whether to clip on the way out; <see langword="null"/> does not.</param>
+    /// <returns>A fitted scaler.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row or a non-finite value.</exception>
+    /// <remarks>
+    /// The scaler that never subtracts is the one a sparse matrix wants: a zero stays a zero, so the
+    /// matrix that went in is the shape that comes out. The reference accepts sparse here for the
+    /// same reason.
+    /// </remarks>
+    public static MaxAbsScaler Fit(CsrMatrix samples, MaxAbsScalerOptions? options = null)
+    {
+        Guard.NotNull(samples);
+        if (samples.RowCount == 0 || samples.ColumnCount == 0)
+        {
+            throw new ArgumentException("samples holds no row or no column.", nameof(samples));
+        }
+
+        SparseColumns.RequireFinite(samples, nameof(samples));
+
+        double[] maximumAbsolute = SparseColumns.MaximumAbsolute(samples);
+        double[] scale = [.. maximumAbsolute];
+        ScaleFloor.Apply(scale);
+
+        return new MaxAbsScaler(
+            samples.ColumnCount,
+            samples.RowCount,
+            maximumAbsolute,
+            scale,
+            (options ?? new MaxAbsScalerOptions()).Clip);
+    }
+
+    /// <summary>Folds another batch into the fitted maxima, as <c>partial_fit</c> does.</summary>
+    /// <param name="samples">The next batch, row-major, with <see cref="FeatureCount"/> values per row.</param>
+    /// <returns>A new scaler covering every batch seen so far; this one is unchanged.</returns>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value.</exception>
+    /// <remarks>Returns a new scaler rather than mutating this one — see <see cref="StandardScaler.PartialFit"/>.</remarks>
+    public MaxAbsScaler PartialFit(ReadOnlySpan<double> samples)
+    {
+        int rows = SampleMatrix.Rows(samples, FeatureCount);
+        SampleMatrix.RequireFinite(samples, nameof(samples));
+
+        var maximumAbsolute = new double[FeatureCount];
+        for (int feature = 0; feature < FeatureCount; feature++)
+        {
+            maximumAbsolute[feature] = MaximumAbsolute[feature];
+        }
+
+        for (int i = 0; i < samples.Length; i++)
+        {
+            int feature = i % FeatureCount;
+            maximumAbsolute[feature] = Math.Max(maximumAbsolute[feature], Math.Abs(samples[i]));
+        }
+
+        double[] scale = [.. maximumAbsolute];
+        ScaleFloor.Apply(scale);
+
+        return new MaxAbsScaler(FeatureCount, SampleCount + rows, maximumAbsolute, scale, _clips);
     }
 
     /// <summary>Divides a row-major sample matrix by the fitted maxima.</summary>

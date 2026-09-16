@@ -6,6 +6,7 @@ Fits a scaler on a row-major sample matrix.
 
 ```csharp
 public static MaxAbsScaler Fit(ReadOnlySpan<double> samples, int featureCount, MaxAbsScalerOptions options = null)
+public static MaxAbsScaler Fit(CsrMatrix samples, MaxAbsScalerOptions options = null)
 ```
 
 **Parameters** — `samples` is the sample matrix, row-major: `featureCount` values per row.
@@ -14,7 +15,7 @@ public static MaxAbsScaler Fit(ReadOnlySpan<double> samples, int featureCount, M
 
 **Returns** — a fitted `MaxAbsScaler`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive.
+**Exceptions** — `ArgumentNullException` when the sparse overload is given no matrix. `ArgumentOutOfRangeException` when `featureCount` is not positive.
 `ArgumentException` when `samples` holds no row, a partial one, or a non-finite value.
 
 **Example** — a feature that is all zeros divides by 1 rather than by 0.
@@ -37,6 +38,11 @@ dividing by it would amplify noise rather than reveal signal.
 
 `MaximumAbsolute` reports what was seen and `Scale` what is divided by, so the two disagree exactly
 on the features the floor caught — the pair above is the smallest case of that.
+
+**The sparse overload takes a `CsrMatrix`, and this is the scaler that suits one.** It never
+subtracts, so a zero stays a zero and the matrix that went in is the shape that comes out. A column
+with no stored value at all has a maximum absolute of 0 and a scale of 1, the floor reached a
+different way.
 
 **Applies to** — net10.0, netstandard2.0.
 

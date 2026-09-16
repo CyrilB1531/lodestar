@@ -28,6 +28,36 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- **The scalers can be fitted over batches and over a `CsrMatrix`**, which
+  `docs/equivalence.md` had scoped out since 0.1.0.
+  [`PartialFit`](docs/reference/preprocessing/scaling/standardscaler-partialfit.md) folds a batch
+  into `StandardScaler`, `MinMaxScaler` and `MaxAbsScaler` — **not `RobustScaler`**, which the
+  reference does not offer one for either, a median not being updatable from a summary. The
+  statistics are **the ones a single fit over the concatenation gives**, to a couple of units in the
+  last place: the update is `_incremental_mean_and_var`'s, Chan, Golub and LeVeque's parallel form
+  with the correction term, and the reference's own two paths differ by `3.3e-16` relative on the
+  same data. **It returns a new scaler where `partial_fit` mutates**, since every fitted object here
+  is immutable, and `SampleCount` stays one number where `n_samples_seen_` becomes a per-feature
+  array once a `NaN` appears — which these scalers refuse. **The sparse overloads take a `CsrMatrix`**
+  on the three scalers the reference accepts one for, refusing centring exactly where it refuses it:
+  subtracting a mean or a median makes every absent zero a stored value. `MinMaxScaler` has **no
+  sparse overload at all**, which is the reference's run-time refusal moved to compile time. The
+  absent zeros count toward every statistic rather than being skipped — the easy mistake, and the one
+  the corpus catches. `preprocessing_partial_fit.json` and `preprocessing_sparse.json` freeze 12
+  cases against scikit-learn 1.9.0, **each carrying both answers** (incremental beside whole, sparse
+  beside dense) because the claim is that they agree, beside 6 edge tests.
+  ([#765](https://github.com/CyrilB1531/lodestar/issues/765))
+
+#### Changed
+
+- **`Lodestar.Preprocessing` takes its second inter-package edge, on `Lodestar.Abstractions`**
+  ([decision 0139](docs/decisions/0139-the-sparse-overloads-take-the-second-edge-under-0138s-precedent.md)),
+  for the `CsrMatrix` its sparse overloads take. The record **applies
+  [decision 0138](docs/decisions/0138-lodestar-preprocessing-takes-an-edge-on-lodestar-stats-for-the-normal-quantile.md)
+  rather than re-arguing it** — which is what a precedent is for. The floor is the published
+  `Lodestar.Abstractions` 0.1.1, which carries no dependency of its own, so a consumer of the scalers
+  restores two Lodestar packages and nothing else.
+
 - **[`Encoders.OneHot`](docs/reference/preprocessing/encoding/encoders-onehot.md),
   [`Encoders.Ordinal`](docs/reference/preprocessing/encoding/encoders-ordinal.md) and
   [`SimpleImputer`](docs/reference/preprocessing/encoding/simpleimputer.md) finish the preprocessing

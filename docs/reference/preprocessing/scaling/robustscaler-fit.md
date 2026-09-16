@@ -6,6 +6,7 @@ Fits a scaler on a row-major sample matrix.
 
 ```csharp
 public static RobustScaler Fit(ReadOnlySpan<double> samples, int featureCount, RobustScalerOptions options = null)
+public static RobustScaler Fit(CsrMatrix samples, RobustScalerOptions options = null)
 ```
 
 **Parameters** — `samples` is the sample matrix, row-major: `featureCount` values per row.
@@ -14,8 +15,9 @@ between which percentiles; `null` applies both, at the quartiles.
 
 **Returns** — a fitted `RobustScaler`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, or the
-percentile range is not `0 ≤ lower ≤ upper ≤ 100`. `ArgumentException` when `samples` holds no row,
+**Exceptions** — `ArgumentNullException` when the sparse overload is given no matrix.
+`ArgumentOutOfRangeException` when `featureCount` is not positive, the percentile range is not
+`0 ≤ lower ≤ upper ≤ 100`, or centring is asked of a sparse matrix. `ArgumentException` when `samples` holds no row,
 a partial one, or a non-finite value.
 
 **Example** — the percentile interpolates between two values when it falls between them.
@@ -44,6 +46,10 @@ which is the pair worth reading twice.
 
 The interpercentile range is floored to 1 below `10·eps`, the rule
 [`MinMaxScaler.Fit`](minmaxscaler-fit.md) carries.
+
+**The sparse overload takes a `CsrMatrix` and refuses centring**, as `StandardScaler`'s does and for
+the same reason. The percentiles still read the whole column, the absent zeros included — which is
+why a mostly-zero column's quartiles are usually zero and its range is floored to 1.
 
 **Applies to** — net10.0, netstandard2.0.
 

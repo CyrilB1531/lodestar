@@ -23,6 +23,10 @@ internal static class MinMaxScalerSample
         double[] mapped = scaler.Transform(samples);
         Console.WriteLine($"  mapped           : {Inv.List(mapped)}");
         Console.WriteLine($"  and back         : {Inv.List(scaler.InverseTransform(mapped))}");
+
+        // A batch outside the fitted range widens it; one inside moves nothing but the count.
+        MinMaxScaler widened = scaler.PartialFit([9.0, 10.0]);
+        Console.WriteLine($"  after a batch    : {Inv.List(widened.DataMaximum)} over {widened.SampleCount} rows");
         Console.WriteLine();
     }
 }

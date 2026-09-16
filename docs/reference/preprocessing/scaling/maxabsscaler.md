@@ -46,4 +46,5 @@ the [Python equivalence table](../../../equivalence.md).
 | --- | --- |
 | [`MaxAbsScaler.Fit`](maxabsscaler-fit.md) | Fits a scaler on a row-major sample matrix. |
 | [`MaxAbsScaler.InverseTransform`](maxabsscaler-inversetransform.md) | Undoes `Transform`, and never clips. |
+| [`MaxAbsScaler.PartialFit`](maxabsscaler-partialfit.md) | Folds another batch into the fitted statistics. |
 | [`MaxAbsScaler.Transform`](maxabsscaler-transform.md) | Divides a matrix by the fitted maxima. |

@@ -60,4 +60,5 @@ is not `variance == 0`, and it is worth reading before trusting a value near the
 | --- | --- |
 | [`StandardScaler.Fit`](standardscaler-fit.md) | Fits a scaler on a row-major sample matrix. |
 | [`StandardScaler.InverseTransform`](standardscaler-inversetransform.md) | Undoes `Transform`, returning values on the original scale. |
+| [`StandardScaler.PartialFit`](standardscaler-partialfit.md) | Folds another batch into the fitted statistics. |
 | [`StandardScaler.Transform`](standardscaler-transform.md) | Standardises a matrix with the fitted statistics. |
