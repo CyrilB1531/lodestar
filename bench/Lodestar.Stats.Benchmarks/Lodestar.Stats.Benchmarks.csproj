@@ -21,10 +21,6 @@
          library src/ already reaches through Lodestar.Extensions.MathNet. It exports no GLS, so GlsBenchmarks
          writes the one its users would. -->
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-    <!-- The incumbent #756 measures: MS-PL, netstandard2.0, published 2025-07-14, and the only
-         maintained .NET library carrying these eight test families. Read under decision 0074's
-         protocol in decision 0129; bench/ only, like every incumbent here. -->
-    <PackageReference Include="Meta.Numerics" Version="4.2.0" />
   </ItemGroup>
 
   <ItemGroup>

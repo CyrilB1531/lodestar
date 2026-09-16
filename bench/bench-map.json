@@ -87,12 +87,6 @@
       "src/Lodestar.Text/Distances/**",
       "src/Lodestar.Text/Text/**"
     ],
-    "MetaNumericsPcaBenchmarks": [
-      "src/Lodestar.Decomposition/PrincipalComponentVariance.cs"
-    ],
-    "MetaNumericsStatsBenchmarks": [
-      "src/Lodestar.Stats/**"
-    ],
     "MetricsIncumbentBenchmarks": [
       "src/Lodestar.Metrics/**"
     ],
@@ -210,6 +204,12 @@
     "StationarityBenchmarks": [
       "src/Lodestar.Stats.TimeSeries/**",
       "src/Lodestar.Stats.Regression/**"
+    ],
+    "ScalerIncumbentBenchmarks": [
+      "src/Lodestar.Preprocessing/MinMaxScaler.cs",
+      "src/Lodestar.Preprocessing/MaxAbsScaler.cs",
+      "src/Lodestar.Preprocessing/RobustScaler.cs",
+      "src/Lodestar.Preprocessing/Internal/**"
     ],
     "SerialCorrelationBenchmarks": [
       "src/Lodestar.Stats.TimeSeries/**",

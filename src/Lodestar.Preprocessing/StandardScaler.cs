@@ -1,3 +1,5 @@
+using Lodestar.Preprocessing.Internal;
+
 namespace Lodestar.Preprocessing;
 
 /// <summary>
@@ -75,7 +77,7 @@ public sealed class StandardScaler
         ReadOnlySpan<double> samples, int featureCount, StandardScalerOptions? options = null)
     {
         Guard.NotLessThan(featureCount, 1);
-        int sampleCount = Rows(samples, featureCount);
+        int sampleCount = SampleMatrix.Rows(samples, featureCount);
         StandardScalerOptions settings = options ?? new StandardScalerOptions();
 
         if (!settings.WithMean && !settings.WithStd)
@@ -114,7 +116,7 @@ public sealed class StandardScaler
     /// <summary>Both directions, which differ only in the order and sense of the two steps.</summary>
     private double[] Apply(ReadOnlySpan<double> samples, bool inverse)
     {
-        Rows(samples, FeatureCount);
+        SampleMatrix.Rows(samples, FeatureCount);
         var result = new double[samples.Length];
 
         for (int i = 0; i < samples.Length; i++)
@@ -152,20 +154,6 @@ public sealed class StandardScaler
         }
 
         return inverse ? value * _scale[feature] : value / _scale[feature];
-    }
-
-    /// <summary>The row count, with the two shapes that are not a matrix refused.</summary>
-    private static int Rows(ReadOnlySpan<double> samples, int featureCount)
-    {
-        if (samples.Length == 0 || samples.Length % featureCount != 0)
-        {
-            throw new ArgumentException(
-                $"samples holds {samples.Length} values, which is not a positive whole number of "
-                + $"rows of {featureCount}.",
-                nameof(samples));
-        }
-
-        return samples.Length / featureCount;
     }
 
     /// <summary>Per-feature mean, summed with Neumaier compensation.</summary>

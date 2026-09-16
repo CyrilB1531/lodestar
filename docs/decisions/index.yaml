@@ -131,7 +131,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0138"]
 
 "0013":
   title: "What `SentencePieceTokenizer` promises, and where it knowingly differs"
@@ -771,7 +771,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0108", "0111", "0114", "0116", "0133"]
+  applied_by: ["0108", "0111", "0114", "0116", "0133", "0138"]
 
 "0077":
   title: "The keyword extractors take their oracles' lists, and not their own"
@@ -961,7 +961,7 @@
   applies: ["0081"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0097", "0098", "0115", "0118", "0119", "0124", "0125", "0128", "0130", "0133", "0134", "0135", "0136", "0137"]
+  applied_by: ["0097", "0098", "0115", "0118", "0119", "0124", "0125", "0128", "0130", "0133", "0134", "0135", "0136", "0137", "0138"]
 
 "0096":
   title: "Ordinary least squares earns its own package"
@@ -991,7 +991,7 @@
   applies: ["0095"]
   superseded_by: []
   amended_by: ["0121"]
-  applied_by: []
+  applied_by: ["0138"]
 
 "0099":
   title: "Survival has no .NET incumbent, and `scikit-survival` is refused on its licence"
@@ -1331,7 +1331,7 @@
   applies: ["0074", "0075"]
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0138"]
 
 "0133":
   title: "`Lodestar.Stats.TimeSeries` is a package, and the serial-correlation lot moves into it"
@@ -1379,6 +1379,16 @@
   supersedes: []
   amends: []
   applies: ["0074", "0075", "0095", "0096", "0104", "0110", "0111"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0138":
+  title: "`Lodestar.Preprocessing` takes an edge on `Lodestar.Stats` for the normal quantile"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0012", "0076", "0095", "0098", "0132"]
   superseded_by: []
   amended_by: []
   applied_by: []

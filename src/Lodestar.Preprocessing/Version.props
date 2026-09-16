@@ -4,13 +4,14 @@
     Lodestar.Preprocessing owns its version here, independently of the other
     packages (see docs/decisions/0012-per-package-versioning.md).
 
-    0.2.0 adds the splitters (#762). Like Lodestar.Metrics and
+    0.3.0 adds the remaining scalers (#763), after the splitters of 0.2.0.
+    Like Lodestar.Metrics and
     Lodestar.Conformal it creates no inter-package edge — nothing depends on it
     and it depends on nothing — so it releases on its own schedule rather than
     matching the others.
   -->
   <PropertyGroup>
-    <LodestarPreprocessingVersion>0.2.0</LodestarPreprocessingVersion>
+    <LodestarPreprocessingVersion>0.3.0</LodestarPreprocessingVersion>
   </PropertyGroup>
 
 </Project>

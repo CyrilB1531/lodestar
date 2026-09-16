@@ -18,6 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="../oracles/preprocessing_scalers.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
     <None Include="../oracles/preprocessing_standard_scaler.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
     <None Include="../oracles/preprocessing_splitters.json" CopyToOutputDirectory="PreserveNewest"
