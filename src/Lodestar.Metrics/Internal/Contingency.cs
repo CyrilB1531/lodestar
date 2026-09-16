@@ -13,6 +13,11 @@ internal sealed class Contingency
 {
     private const double Epsilon = 2.220446049250313e-16;
 
+    // An odd multiplier and its inverse mod 2^64: a raw (row << 32 | column) key hashes to row ^ column,
+    // 128 values for a 100 x 100 table's 10,000 cells (#812), and multiplying first spreads them.
+    private const ulong KeyMix = 0x9E3779B97F4A7C15;
+    private const ulong KeyUnmix = 0xF1DE83E19937733D;
+
     public Contingency(Dictionary<long, int> cells, int[] rows, int[] columns, int samples)
     {
         Cells = cells;
@@ -21,7 +26,7 @@ internal sealed class Contingency
         Samples = samples;
     }
 
-    /// <summary>The non-empty cells, keyed by row ordinal in the high word and column in the low.</summary>
+    /// <summary>The non-empty cells, keyed by a mixed (row, column) pair; <see cref="RowAndColumn"/> reads one back.</summary>
     public Dictionary<long, int> Cells { get; }
 
     /// <summary>How many samples each true label holds.</summary>
@@ -47,7 +52,7 @@ internal sealed class Contingency
             int column = Ordinal(columnOf, columns, labelsPred[i]);
             rows[row]++;
             columns[column]++;
-            long key = ((long)row << 32) | (uint)column;
+            long key = (long)((((ulong)(uint)row << 32) | (uint)column) * KeyMix);
             cells[key] = cells.TryGetValue(key, out int held) ? held + 1 : 1;
         }
 
@@ -76,8 +81,7 @@ internal sealed class Contingency
 
         foreach (KeyValuePair<long, int> cell in Cells)
         {
-            int row = (int)(cell.Key >> 32);
-            int column = (int)(cell.Key & 0xFFFFFFFF);
+            (int row, int column) = RowAndColumn(cell.Key);
             double nij = cell.Value;
             double fraction = nij / total;
             double outer = -Math.Log((double)Rows[row] * Columns[column]) + logTotal + logTotal;
@@ -126,6 +130,13 @@ internal sealed class Contingency
                 "they must agree.",
                 nameof(labelsPred));
         }
+    }
+
+    /// <summary>The row and column ordinals a key in <see cref="Cells"/> was built from.</summary>
+    public static (int Row, int Column) RowAndColumn(long key)
+    {
+        ulong packed = (ulong)key * KeyUnmix;
+        return ((int)(packed >> 32), (int)(packed & 0xFFFFFFFF));
     }
 
     private static int Ordinal(Dictionary<int, int> known, List<int> counts, int label)

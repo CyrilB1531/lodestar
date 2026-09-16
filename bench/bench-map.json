@@ -304,6 +304,9 @@
     ],
     "SilhouetteBenchmarks": [
       "src/Lodestar.Metrics/**"
+    ],
+    "ClusteringAgreementBenchmarks": [
+      "src/Lodestar.Metrics/**"
     ]
   },
   "harnesses": {
