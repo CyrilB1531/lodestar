@@ -137,7 +137,10 @@
         "docs/reference/preprocessing/*/*.md"
       ],
       "covered": {
-        "Lodestar.Preprocessing": "docs/reference/preprocessing/scaling"
+        "Lodestar.Preprocessing": [
+          "docs/reference/preprocessing/scaling",
+          "docs/reference/preprocessing/splitting"
+        ]
       },
       "exceptionsUnchecked": []
     },

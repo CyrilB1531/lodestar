@@ -1,0 +1,1155 @@
+{
+ "metadata": {
+  "library": "scikit-learn",
+  "version": "1.9.0",
+  "family": "splitters",
+  "count": 19
+ },
+ "cases": [
+  {
+   "name": "kfold, 10 rows in 3 folds",
+   "call": "kfold",
+   "sampleCount": 10,
+   "foldCount": 3,
+   "folds": [
+    {
+     "trainIndices": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+     ],
+     "testIndices": [
+      0,
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      7,
+      8,
+      9
+     ],
+     "testIndices": [
+      4,
+      5,
+      6
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "testIndices": [
+      7,
+      8,
+      9
+     ]
+    }
+   ]
+  },
+  {
+   "name": "kfold, 12 rows in 4 folds",
+   "call": "kfold",
+   "sampleCount": 12,
+   "foldCount": 4,
+   "folds": [
+    {
+     "trainIndices": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+     ],
+     "testIndices": [
+      0,
+      1,
+      2
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+     ],
+     "testIndices": [
+      3,
+      4,
+      5
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      9,
+      10,
+      11
+     ],
+     "testIndices": [
+      6,
+      7,
+      8
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+     ],
+     "testIndices": [
+      9,
+      10,
+      11
+     ]
+    }
+   ]
+  },
+  {
+   "name": "kfold, 11 rows in 4 folds",
+   "call": "kfold",
+   "sampleCount": 11,
+   "foldCount": 4,
+   "folds": [
+    {
+     "trainIndices": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+     ],
+     "testIndices": [
+      0,
+      1,
+      2
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      6,
+      7,
+      8,
+      9,
+      10
+     ],
+     "testIndices": [
+      3,
+      4,
+      5
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      9,
+      10
+     ],
+     "testIndices": [
+      6,
+      7,
+      8
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+     ],
+     "testIndices": [
+      9,
+      10
+     ]
+    }
+   ]
+  },
+  {
+   "name": "kfold, 7 rows in 7 folds",
+   "call": "kfold",
+   "sampleCount": 7,
+   "foldCount": 7,
+   "folds": [
+    {
+     "trainIndices": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "testIndices": [
+      0
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "testIndices": [
+      1
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      3,
+      4,
+      5,
+      6
+     ],
+     "testIndices": [
+      2
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      6
+     ],
+     "testIndices": [
+      3
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      6
+     ],
+     "testIndices": [
+      4
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      6
+     ],
+     "testIndices": [
+      5
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "testIndices": [
+      6
+     ]
+    }
+   ]
+  },
+  {
+   "name": "kfold, 12 rows in 5 folds",
+   "call": "kfold",
+   "sampleCount": 12,
+   "foldCount": 5,
+   "folds": [
+    {
+     "trainIndices": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+     ],
+     "testIndices": [
+      0,
+      1,
+      2
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+     ],
+     "testIndices": [
+      3,
+      4,
+      5
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      8,
+      9,
+      10,
+      11
+     ],
+     "testIndices": [
+      6,
+      7
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      10,
+      11
+     ],
+     "testIndices": [
+      8,
+      9
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+     ],
+     "testIndices": [
+      10,
+      11
+     ]
+    }
+   ]
+  },
+  {
+   "name": "stratified 2 folds, balanced, three classes",
+   "call": "stratified",
+   "labels": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    2,
+    2,
+    2
+   ],
+   "foldCount": 2,
+   "folds": [
+    {
+     "trainIndices": [
+      3,
+      4,
+      5,
+      8,
+      10,
+      11
+     ],
+     "testIndices": [
+      0,
+      1,
+      2,
+      6,
+      7,
+      9
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      6,
+      7,
+      9
+     ],
+     "testIndices": [
+      3,
+      4,
+      5,
+      8,
+      10,
+      11
+     ]
+    }
+   ]
+  },
+  {
+   "name": "stratified 3 folds, balanced, three classes",
+   "call": "stratified",
+   "labels": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    2,
+    2,
+    2
+   ],
+   "foldCount": 3,
+   "folds": [
+    {
+     "trainIndices": [
+      2,
+      3,
+      4,
+      5,
+      7,
+      8,
+      10,
+      11
+     ],
+     "testIndices": [
+      0,
+      1,
+      6,
+      9
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      4,
+      5,
+      6,
+      8,
+      9,
+      11
+     ],
+     "testIndices": [
+      2,
+      3,
+      7,
+      10
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      6,
+      7,
+      9,
+      10
+     ],
+     "testIndices": [
+      4,
+      5,
+      8,
+      11
+     ]
+    }
+   ]
+  },
+  {
+   "name": "stratified 2 folds, unbalanced, a class of two",
+   "call": "stratified",
+   "labels": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    2,
+    2
+   ],
+   "foldCount": 2,
+   "folds": [
+    {
+     "trainIndices": [
+      3,
+      4,
+      6,
+      7,
+      9
+     ],
+     "testIndices": [
+      0,
+      1,
+      2,
+      5,
+      8
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      5,
+      8
+     ],
+     "testIndices": [
+      3,
+      4,
+      6,
+      7,
+      9
+     ]
+    }
+   ]
+  },
+  {
+   "name": "stratified 3 folds, unbalanced, a class of two",
+   "call": "stratified",
+   "labels": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    2,
+    2
+   ],
+   "foldCount": 3,
+   "folds": [
+    {
+     "trainIndices": [
+      2,
+      3,
+      4,
+      6,
+      7,
+      9
+     ],
+     "testIndices": [
+      0,
+      1,
+      5,
+      8
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      4,
+      5,
+      7,
+      8,
+      9
+     ],
+     "testIndices": [
+      2,
+      3,
+      6
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      6,
+      8
+     ],
+     "testIndices": [
+      4,
+      7,
+      9
+     ]
+    }
+   ]
+  },
+  {
+   "name": "stratified 2 folds, two classes, odd counts",
+   "call": "stratified",
+   "labels": [
+    0,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    0,
+    1,
+    1,
+    0
+   ],
+   "foldCount": 2,
+   "folds": [
+    {
+     "trainIndices": [
+      6,
+      7,
+      8,
+      9,
+      10
+     ],
+     "testIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "testIndices": [
+      6,
+      7,
+      8,
+      9,
+      10
+     ]
+    }
+   ]
+  },
+  {
+   "name": "stratified 3 folds, two classes, odd counts",
+   "call": "stratified",
+   "labels": [
+    0,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    0,
+    1,
+    1,
+    0
+   ],
+   "foldCount": 3,
+   "folds": [
+    {
+     "trainIndices": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+     ],
+     "testIndices": [
+      0,
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      8,
+      9,
+      10
+     ],
+     "testIndices": [
+      4,
+      5,
+      6,
+      7
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "testIndices": [
+      8,
+      9,
+      10
+     ]
+    }
+   ]
+  },
+  {
+   "name": "stratified 2 folds, labels that are not contiguous",
+   "call": "stratified",
+   "labels": [
+    7,
+    7,
+    7,
+    -3,
+    -3,
+    -3,
+    40,
+    40,
+    40,
+    7
+   ],
+   "foldCount": 2,
+   "folds": [
+    {
+     "trainIndices": [
+      2,
+      5,
+      7,
+      8,
+      9
+     ],
+     "testIndices": [
+      0,
+      1,
+      3,
+      4,
+      6
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      3,
+      4,
+      6
+     ],
+     "testIndices": [
+      2,
+      5,
+      7,
+      8,
+      9
+     ]
+    }
+   ]
+  },
+  {
+   "name": "stratified 3 folds, labels that are not contiguous",
+   "call": "stratified",
+   "labels": [
+    7,
+    7,
+    7,
+    -3,
+    -3,
+    -3,
+    40,
+    40,
+    40,
+    7
+   ],
+   "foldCount": 3,
+   "folds": [
+    {
+     "trainIndices": [
+      2,
+      4,
+      5,
+      7,
+      8,
+      9
+     ],
+     "testIndices": [
+      0,
+      1,
+      3,
+      6
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      3,
+      5,
+      6,
+      8,
+      9
+     ],
+     "testIndices": [
+      2,
+      4,
+      7
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      6,
+      7
+     ],
+     "testIndices": [
+      5,
+      8,
+      9
+     ]
+    }
+   ]
+  },
+  {
+   "name": "train/test, 10 rows at 0.2",
+   "call": "trainTest",
+   "sampleCount": 10,
+   "testFraction": 0.2,
+   "trainIndices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "testIndices": [
+    8,
+    9
+   ]
+  },
+  {
+   "name": "train/test, 11 rows at 0.25",
+   "call": "trainTest",
+   "sampleCount": 11,
+   "testFraction": 0.25,
+   "trainIndices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "testIndices": [
+    8,
+    9,
+    10
+   ]
+  },
+  {
+   "name": "train/test, 8 rows at 0.5",
+   "call": "trainTest",
+   "sampleCount": 8,
+   "testFraction": 0.5,
+   "trainIndices": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "testIndices": [
+    4,
+    5,
+    6,
+    7
+   ]
+  },
+  {
+   "name": "train/test, 9 rows at 0.34",
+   "call": "trainTest",
+   "sampleCount": 9,
+   "testFraction": 0.34,
+   "trainIndices": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "testIndices": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "name": "kfold, 12 rows in 3 folds, permuted",
+   "call": "kfold",
+   "sampleCount": 12,
+   "foldCount": 3,
+   "order": [
+    1,
+    5,
+    2,
+    8,
+    9,
+    6,
+    10,
+    0,
+    4,
+    11,
+    3,
+    7
+   ],
+   "folds": [
+    {
+     "trainIndices": [
+      0,
+      3,
+      4,
+      6,
+      7,
+      9,
+      10,
+      11
+     ],
+     "testIndices": [
+      1,
+      2,
+      5,
+      8
+     ]
+    },
+    {
+     "trainIndices": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      7,
+      8,
+      11
+     ],
+     "testIndices": [
+      0,
+      6,
+      9,
+      10
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      5,
+      6,
+      8,
+      9,
+      10
+     ],
+     "testIndices": [
+      3,
+      4,
+      7,
+      11
+     ]
+    }
+   ]
+  },
+  {
+   "name": "stratified 3 folds, balanced, permuted",
+   "call": "stratified",
+   "labels": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    2,
+    2,
+    2
+   ],
+   "foldCount": 3,
+   "order": [
+    1,
+    5,
+    2,
+    8,
+    9,
+    6,
+    10,
+    0,
+    4,
+    11,
+    3,
+    7
+   ],
+   "folds": [
+    {
+     "trainIndices": [
+      0,
+      2,
+      3,
+      4,
+      6,
+      7,
+      10,
+      11
+     ],
+     "testIndices": [
+      1,
+      5,
+      8,
+      9
+     ]
+    },
+    {
+     "trainIndices": [
+      1,
+      3,
+      4,
+      5,
+      7,
+      8,
+      9,
+      11
+     ],
+     "testIndices": [
+      0,
+      2,
+      6,
+      10
+     ]
+    },
+    {
+     "trainIndices": [
+      0,
+      1,
+      2,
+      5,
+      6,
+      8,
+      9,
+      10
+     ],
+     "testIndices": [
+      3,
+      4,
+      7,
+      11
+     ]
+    }
+   ]
+  }
+ ]
+}

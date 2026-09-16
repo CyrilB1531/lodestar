@@ -20,6 +20,8 @@
   <ItemGroup>
     <None Include="../oracles/preprocessing_standard_scaler.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
+    <None Include="../oracles/preprocessing_splitters.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
   </ItemGroup>
 
   <!-- The reference gate reads the published pages and the map beside the assembly,
