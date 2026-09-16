@@ -26,47 +26,45 @@ internal static class RankDistributions
             throw new ArgumentOutOfRangeException(nameof(m), m, "A sample size cannot be negative.");
         }
 
-        // f(i, j, u): arrangements of i of the first sample and j of the second with
-        // statistic u, rolling the i dimension to keep the table at (m+1) x (n*m+1) rather than cubing it.
+        // U's distribution for (n, m) is the one for (m, n), so rows follow the smaller sample: sized by
+        // m alone, 8 against 2,500 built a 400 MB table nine times (#814).
+        int rows = Math.Min(n, m);
+        int iterations = Math.Max(n, m);
         int max = n * m;
+        int width = max + 1;
 
-        // CA1814 (prefer jagged arrays): the table is rectangular by
-        // construction and rebuilt wholesale every i, so a jagged array would
-        // add m+1 row allocations to every one of the n iterations for no
-        // benefit -- nothing here is ragged.
-#pragma warning disable CA1814
-        double[,] previous = new double[m + 1, max + 1];
-        for (int j = 0; j <= m; j++)
+        // f(i, j, u): arrangements of i of the larger sample and j of the smaller with statistic u,
+        // rolling the i dimension through two flat buffers rather than allocating one per step.
+        double[] previous = new double[(rows + 1) * width];
+        double[] current = new double[(rows + 1) * width];
+        for (int j = 0; j <= rows; j++)
         {
-            previous[j, 0] = 1.0;
+            previous[j * width] = 1.0;
         }
 
-        for (int i = 1; i <= n; i++)
+        for (int i = 1; i <= iterations; i++)
         {
-            double[,] current = new double[m + 1, max + 1];
-            current[0, 0] = 1.0;
+            Array.Clear(current, 0, current.Length);
+            current[0] = 1.0;
 
-            for (int j = 1; j <= m; j++)
+            for (int j = 1; j <= rows; j++)
             {
+                int here = j * width;
+                int below = (j - 1) * width;
                 for (int u = 0; u <= max; u++)
                 {
-                    // Either the next largest value comes from the first sample, which adds
-                    // j to the statistic, or from the second, which adds nothing.
-                    double fromFirst = u >= j ? previous[j, u - j] : 0.0;
-                    current[j, u] = fromFirst + current[j - 1, u];
+                    // Either the next largest value comes from the larger sample, which adds j to the
+                    // statistic, or from the smaller, which adds nothing.
+                    double fromFirst = u >= j ? previous[here + u - j] : 0.0;
+                    current[here + u] = fromFirst + current[below + u];
                 }
             }
 
-            previous = current;
-        }
-#pragma warning restore CA1814
-
-        double[] counts = new double[max + 1];
-        for (int u = 0; u <= max; u++)
-        {
-            counts[u] = previous[m, u];
+            (previous, current) = (current, previous);
         }
 
+        double[] counts = new double[width];
+        Array.Copy(previous, rows * width, counts, 0, width);
         return counts;
     }
 

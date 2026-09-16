@@ -4735,6 +4735,15 @@ The key is multiplied by an odd constant modulo 2^64 and inverted when read; ins
 
 Same total order (score descending, index ascending); a k past half the index still sorts. A differential test checks every k against the full ranking. `EmbeddingSearchBenchmarks`.
 
+## The exact Mann-Whitney table, sized by the smaller sample (issue #814)
+
+| sizes (`ExactMethod.Exact`) | `main` | fix |
+| --- | ---: | ---: |
+| 141 × 141 | 906 ms, 2.99 GB | 410 ms, 43 MB |
+| 8 × 2,500 | 750 ms, 3.35 GB | **285 ms, 2.9 MB** |
+
+U's null distribution is symmetric in the two sizes. Counts past 2^53 round in a different order: of 24 lopsided cases 19 p-values are bit-identical and the rest within 2.9e-16 relative. `MannWhitneyExactBenchmarks`.
+
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-16; both `main` runs agreed within 5%.
