@@ -1,0 +1,16 @@
+namespace Lodestar.Preprocessing;
+
+/// <summary>Which category <see cref="OneHotEncoder{T}"/> drops, and what it does with an unseen value.</summary>
+/// <remarks>
+/// <c>drop</c> and <c>handle_unknown</c>, same defaults. <strong>The two interact</strong>: an
+/// ignored unknown encodes to all zeros, and so does a dropped first category, so a row of zeros
+/// means either. The reference accepts that collision and this does too.
+/// </remarks>
+public sealed record OneHotEncoderOptions
+{
+    /// <summary>Which category loses its column, if any.</summary>
+    public CategoryDrop Drop { get; init; }
+
+    /// <summary>What to do with a value the fit never saw.</summary>
+    public UnknownCategory Unknown { get; init; }
+}

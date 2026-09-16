@@ -139,7 +139,8 @@
       "covered": {
         "Lodestar.Preprocessing": [
           "docs/reference/preprocessing/scaling",
-          "docs/reference/preprocessing/splitting"
+          "docs/reference/preprocessing/splitting",
+          "docs/reference/preprocessing/encoding"
         ]
       },
       "exceptionsUnchecked": []
