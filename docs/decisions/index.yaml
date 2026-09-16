@@ -610,7 +610,7 @@
   amends: []
   applies: []
   superseded_by: []
-  amended_by: []
+  amended_by: ["0140"]
   applied_by: []
 
 "0061":
@@ -1399,6 +1399,16 @@
   supersedes: []
   amends: []
   applies: ["0012", "0071", "0132", "0138"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0140":
+  title: "On a named machine our kNN kernel is ahead, and AVX-512 widens the gap"
+  status: "accepted"
+  supersedes: []
+  amends: ["0060"]
+  applies: []
   superseded_by: []
   amended_by: []
   applied_by: []

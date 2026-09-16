@@ -1416,6 +1416,11 @@ redundant, because the dot is only about half a query. **The container inverted 
 ratios** — it reported ours 3.7× faster on the dot — which is section 10's rule holding rather than
 an aside about this mode.
 
+**The vector width decides the magnitude on AVX-512 hardware** ([#754](https://github.com/CyrilB1531/lodestar/issues/754)).
+The diagnostic prints `Vector512.IsHardwareAccelerated`; compare it with the 512-bit path on and off
+through the .NET 10 knobs, `DOTNET_PreferredVectorBitWidth=256` or `DOTNET_EnableAVX512=0`.
+`DOTNET_EnableAVX512F=0` is ignored by .NET 10 and leaves the path on.
+
 ## 15. Against the .NET incumbents (issue #438)
 
 Every section above answers *"should you leave Python"*. `LevenshteinIncumbentBenchmarks` and
