@@ -39,6 +39,11 @@
     <!-- The netstandard2.0 k-means incumbent #681 measures beside NumFlat: MS-PL, read in
          decision 0129. -->
     <PackageReference Include="Meta.Numerics" Version="4.2.0" />
+    <!-- The DBSCAN incumbents #759 measures: NumFlat above, n-dimensional and net8.0 only,
+         and this one, MIT and planar. Its Point carries X and Y and nothing else, which is
+         decision 0131's whole argument for writing the class, so it is measured on the two
+         dimensions where it can compete at all, rather than left out as unable to. -->
+    <PackageReference Include="Dbscan" Version="3.0.0" />
   </ItemGroup>
 
   <ItemGroup>

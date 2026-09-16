@@ -74,6 +74,12 @@
     "KMeansLloydIncumbentBenchmarks": [
       "src/Lodestar.Cluster/**"
     ],
+    "DbscanIncumbentBenchmarks": [
+      "src/Lodestar.Cluster/**"
+    ],
+    "DbscanDimensionBenchmarks": [
+      "src/Lodestar.Cluster/**"
+    ],
     "PartialFitBenchmarks": [
       "src/Lodestar.Preprocessing/StandardScaler.cs",
       "src/Lodestar.Preprocessing/MinMaxScaler.cs",

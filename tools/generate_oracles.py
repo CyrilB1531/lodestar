@@ -5006,6 +5006,124 @@ def generate_cluster_kmeans() -> dict:
     }
 
 
+# The border fixture of #759: two dense groups whose nearest cores are 2.0 apart, and one
+# point at 1.3 -- within eps of exactly one core on each side, and of too few to be core.
+DBSCAN_LEFT = [0.0, 0.1, 0.2, 0.3]
+DBSCAN_RIGHT = [2.3, 2.4, 2.5, 2.6]
+DBSCAN_BORDER = 1.3
+DBSCAN_TWO_BLOBS = "two features, two blobs and one outlier"
+MIN_SAMPLES = "min_samples"
+EUCLIDEAN = "euclidean"
+PRECOMPUTED = "precomputed"
+
+
+def _dbscan_fixtures() -> list[dict]:
+    """Point sets chosen for a branch of the growth loop rather than for a picture."""
+    return [
+        {"name": "eps below the gap leaves every point noise",
+         "rows": [[0.0], [1.0], [2.0]], "eps": 0.999, MIN_SAMPLES: 2},
+        # The same three points at an eps exactly equal to the gap: `<=` makes one cluster
+        # where `<` leaves three noise points. The pair is the whole test of the boundary.
+        {"name": "eps exactly at the gap is inclusive",
+         "rows": [[0.0], [1.0], [2.0]], "eps": 1.0, MIN_SAMPLES: 2},
+        {"name": "min_samples counts the point itself",
+         "rows": [[0.0], [0.25]], "eps": 1.0, MIN_SAMPLES: 2},
+        {"name": "min_samples one past the neighbourhood",
+         "rows": [[0.0], [0.25]], "eps": 1.0, MIN_SAMPLES: 3},
+        # Four orderings of one point set. The border point takes the first-grown cluster's
+        # label in all four, wherever it sits -- which no single ordering could establish.
+        {"name": "a border point between two clusters",
+         "rows": [[v] for v in DBSCAN_LEFT + [DBSCAN_BORDER] + DBSCAN_RIGHT],
+         "eps": 1.0, MIN_SAMPLES: 4},
+        {"name": "the same border point, listed first",
+         "rows": [[v] for v in [DBSCAN_BORDER] + DBSCAN_LEFT + DBSCAN_RIGHT],
+         "eps": 1.0, MIN_SAMPLES: 4},
+        {"name": "the same border point, listed last",
+         "rows": [[v] for v in DBSCAN_LEFT + DBSCAN_RIGHT + [DBSCAN_BORDER]],
+         "eps": 1.0, MIN_SAMPLES: 4},
+        {"name": "the same border point, the far group first",
+         "rows": [[v] for v in DBSCAN_RIGHT + [DBSCAN_BORDER] + DBSCAN_LEFT],
+         "eps": 1.0, MIN_SAMPLES: 4},
+        # Numbering follows the first core point's index, not the group's position or size.
+        {"name": "clusters numbered by first appearance",
+         "rows": [[9.0], [9.1], [0.0], [0.1]], "eps": 0.5, MIN_SAMPLES: 2},
+        {"name": DBSCAN_TWO_BLOBS,
+         "rows": [[0.0, 0.0], [0.0, 0.3], [0.3, 0.0], [5.0, 5.0], [5.0, 5.2], [9.0, 9.0]],
+         "eps": 0.5, MIN_SAMPLES: 2},
+        {"name": "four features",
+         "rows": [[-1.0, 2.0, -3.0, 4.0], [-1.2, 2.1, -2.9, 4.2], [-0.9, 1.9, -3.1, 3.8],
+                  [8.0, -7.0, 6.0, -5.0], [8.3, -6.8, 6.1, -5.2], [0.0, 0.0, 0.0, 0.0]],
+         "eps": 1.0, MIN_SAMPLES: 3},
+        # Every row identical, so every point is core. An implementation that skips the
+        # self-distance gets a count one short here and nowhere else.
+        {"name": "duplicate rows",
+         "rows": [[1.0, 1.0], [1.0, 1.0], [1.0, 1.0], [1.0, 1.0]], "eps": 0.1, MIN_SAMPLES: 3},
+        {"name": "one cluster holding every row",
+         "rows": [[0.0], [0.1], [0.2], [0.3]], "eps": 1.0, MIN_SAMPLES: 2},
+        {"name": "a single sample, core when min_samples is one",
+         "rows": [[4.0]], "eps": 1.0, MIN_SAMPLES: 1},
+    ]
+
+
+def generate_cluster_dbscan() -> dict:
+    """DBSCAN labels, compared exactly (#759).
+
+    A label is an integer and the algorithm is deterministic given the neighbourhood
+    order, so there is nothing here for decision 0073's numeric comparison to soften: a
+    case whose labels move has changed answer rather than drifted, and the corpus says so
+    by carrying no tolerance at all.
+
+    The precomputed case is the two-blob case's own distance matrix, so the corpus
+    compares this package's two entry points against each other as well as against the
+    reference -- which is the claim the spec makes about them.
+    """
+    import numpy as np
+    from sklearn.cluster import DBSCAN as SkDbscan
+    from sklearn.metrics import pairwise_distances
+
+    def case(name, values, columns, fixture, model, metric):
+        return {
+            "name": name,
+            SAMPLES: [float(v) for v in values],
+            FEATURE_COUNT: columns,
+            "eps": fixture["eps"],
+            MIN_SAMPLES: fixture[MIN_SAMPLES],
+            "metric": metric,
+            "labels": [int(v) for v in model.labels_],
+            "core_sample_indices": [int(v) for v in model.core_sample_indices_],
+        }
+
+    cases = []
+    for fixture in _dbscan_fixtures():
+        matrix = np.array(fixture["rows"], dtype=np.float64)
+        model = SkDbscan(
+            eps=fixture["eps"], min_samples=fixture[MIN_SAMPLES], metric=EUCLIDEAN).fit(matrix)
+        cases.append(case(
+            fixture["name"], [v for row in fixture["rows"] for v in row],
+            int(matrix.shape[1]), fixture, model, EUCLIDEAN))
+
+    twin = next(f for f in _dbscan_fixtures() if f["name"] == DBSCAN_TWO_BLOBS)
+    distances = pairwise_distances(np.array(twin["rows"], dtype=np.float64))
+    precomputed = SkDbscan(
+        eps=twin["eps"], min_samples=twin[MIN_SAMPLES], metric=PRECOMPUTED).fit(distances)
+    cases.append(case(
+        "the same two blobs from a precomputed distance matrix",
+        [v for row in distances for v in row], int(distances.shape[0]),
+        twin, precomputed, PRECOMPUTED))
+
+    return {
+        "metadata": {
+            "algorithm": "DBSCAN",
+            "library": "scikit-learn",
+            "library_version": version("scikit-learn"),
+            "reference_calls": [f'sklearn.cluster.DBSCAN(metric="{EUCLIDEAN}")',
+                                f'sklearn.cluster.DBSCAN(metric="{PRECOMPUTED}")'],
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
 def _distribution_fixtures() -> list[dict]:
     """Points chosen for the range a general-purpose caller reaches, not the one the tests do."""
     return [
@@ -12068,6 +12186,7 @@ def main() -> None:
         "stats_stationarity.json": generate_stats_stationarity,
         "stats_seasonal.json": generate_stats_seasonal,
         "cluster_kmeans.json": generate_cluster_kmeans,
+        "cluster_dbscan.json": generate_cluster_dbscan,
         "preprocessing_partial_fit.json": generate_preprocessing_partial_fit,
         "preprocessing_sparse.json": generate_preprocessing_sparse,
         "preprocessing_scalers.json": generate_preprocessing_scalers,

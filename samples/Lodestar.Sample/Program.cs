@@ -49,6 +49,7 @@ DistributionsSample.Run();
 QrDecompositionSample.Run();
 PrincipalComponentVarianceSample.Run();
 KMeansSample.Run();
+DbscanSample.Run();
 KMeansOptionsSample.Run();
 StandardScalerSample.Run();
 StandardScalerOptionsSample.Run();

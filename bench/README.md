@@ -2878,3 +2878,54 @@ reading the benchmark is what caught it.
 ```bash
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*PartialFitBenchmarks*'
 ```
+
+## 48. DBSCAN against NumFlat and `Dbscan` (issue #759)
+
+Two classes, because the two incumbents do not reach the same data.
+`DbscanIncumbentBenchmarks` is planar — 5,000 and 20,000 points, where all three can compete —
+and `DbscanDimensionBenchmarks` is the same measurement at eight and sixteen features, where
+`Dbscan` 3.0.0 has no entry point at all: its `Point` carries `X` and `Y` and nothing else, read
+from the artefact and not from its README. Both share `DbscanBlock`, so neither restates the
+fixture the other uses.
+
+**The radius is measured per shape, not chosen once.** The blobs are unit-variance Gaussian, so the
+distance to a fifth neighbour grows with the dimension: 1 recovers every blob at two features,
+finds nothing at eight until 2, and needs 4 at sixteen. A radius that split a blob or merged two
+would time a different problem on each side of the table.
+
+### What the agreement check found
+
+Section 15's rule is that both sides are checked to return the same answer before either is timed.
+Here the check is on the *partition* rather than on the labels, because cluster numbers are
+arbitrary across libraries and the partition is not — and it refused a shape:
+
+**NumFlat 1.3.4 loses a border sample that the ascending scan reaches before any cluster exists.**
+The minimal case is nine points in one dimension, and it was already in this repository's own
+corpus as `the same border point, listed first`:
+
+| | labels |
+| --- | --- |
+| points, `eps=1.0`, `min_samples=4` | `1.3, 0.0, 0.1, 0.2, 0.3, 2.3, 2.4, 2.5, 2.6` |
+| scikit-learn 1.9.0 | `0, 0, 0, 0, 0, 1, 1, 1, 1` |
+| `Lodestar.Cluster` | `0, 0, 0, 0, 0, 1, 1, 1, 1` |
+| NumFlat 1.3.4 | `-1, 0, 0, 0, 0, 1, 1, 1, 1` |
+
+The point at `1.3` has three neighbours and needs four, so it is not a core sample. Listed first,
+the scan reaches it before any cluster has been grown and NumFlat marks it noise permanently; the
+original algorithm, and scikit-learn, let a later expansion take it as a border sample. The other
+three orderings of the same nine points agree, because there the expansion claims it before the
+scan arrives — which is why one ordering would have hidden this and four did not.
+
+At scale the same defect showed as 1,017 differing rows of 5,000 at sixteen features and a radius
+of 3, where 69% of the matrix is noise and border samples are everywhere; this package matched
+scikit-learn on every one. The obvious alternative explanation was tested and refused: against
+NumFlat's `minPoints=5`, this package's `minimumSamples=5` disagrees on 1,017 rows where `4` gives
+1,276 and `6` gives 1,092 — the minimum sits at equal parameters, so the two count a neighbourhood
+the same way.
+
+Each shape in the table below is therefore measured at a radius that recovers its blobs cleanly,
+where all three libraries return the same partition and the check passes.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*Dbscan*Benchmarks*'
+```

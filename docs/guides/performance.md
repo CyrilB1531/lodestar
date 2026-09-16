@@ -3970,6 +3970,48 @@ default fit here is 4× to 20× cheaper, and part of that is when it decides to 
 **Meta.Numerics is the comparison that holds below `net8.0`**, and the only one: NumFlat does not
 install there.
 
+## DBSCAN against NumFlat and `Dbscan` (issue #759)
+
+Full method, the two classes and what the agreement check refused:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#48-dbscan-against-numflat-and-dbscan-issue-759).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET 10.0.12 runtime, AVX-512. Window: one
+`BenchmarkDotNet` 0.14.0 run, **`--job short`**, on 2026-09-16, 10 benchmarks. NumFlat 1.3.4,
+`Dbscan` 3.0.0. Every shape was checked to return the same *partition* — cluster numbering
+ignored — on all the libraries in its table before any was timed.
+
+**Planar, where all three compete:**
+
+| Shape (rows × features × blobs) | radius | [`Dbscan.Fit`](../reference/cluster/partitioning/dbscan-fit.md) | NumFlat `DbScan.Fit` | `Dbscan` 3.0.0 | NumFlat / Lodestar | Dbscan / Lodestar |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 5,000 × 2 × 5 | 1.0 | 63.70 ms | 287.31 ms | 157.27 ms | **4.51** | **2.47** |
+| 20,000 × 2 × 10 | 1.0 | 889.93 ms | 9,716.85 ms | 2,365.60 ms | **10.92** | **2.66** |
+
+**Above two features, where only NumFlat follows:**
+
+| Shape | radius | [`Dbscan.Fit`](../reference/cluster/partitioning/dbscan-fit.md) | NumFlat `DbScan.Fit` | NumFlat / Lodestar |
+| --- | ---: | ---: | ---: | ---: |
+| 10,000 × 8 × 8 | 3.0 | 413.80 ms | 1,536.70 ms | **3.71** |
+| 5,000 × 16 × 8 | 5.0 | 193.20 ms | 518.30 ms | **2.68** |
+
+**Ahead on every shape, 2.47× to 10.92×, and allocating 2.89× to 5.46× less**: 13.98 MB against
+NumFlat's 66.59 MB and `Dbscan`'s 40.40 MB at 5,000 planar points, 111.97 MB against 531.88 MB and
+372.11 MB at 20,000.
+
+**`Dbscan` 3.0.0 has no row in the second table because it has no entry point there.** Its `Point`
+carries `X` and `Y` and nothing else, which is
+[decision 0131](../decisions/0131-lodestar-cluster-writes-what-netstandard2-0-lacks.md)'s whole
+argument for writing this class — the gap is reach below `net8.0`, and the speed is a second
+finding rather than the claim.
+
+**One measured defect in an incumbent, and it is not ours.** NumFlat 1.3.4 marks a non-core sample
+noise permanently when the ascending scan reaches it before any cluster has been grown, where the
+original algorithm and scikit-learn let a later expansion take it as a border sample. Nine points
+in one dimension separate them, and at sixteen features with a radius of 3 it costs 1,017 rows of
+5,000 — where this package matches scikit-learn exactly. `bench/README.md` section 48 has the
+reproducer and the alternative explanation that was tested and refused.
+
 ## Stationarity and seasonal decomposition against Cortex.TimeSeries (issue #671)
 
 Full method and what agrees:
