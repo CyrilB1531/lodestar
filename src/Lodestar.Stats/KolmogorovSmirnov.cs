@@ -19,17 +19,13 @@ public static class KolmogorovSmirnov
     // two-sided case follows it here, the one the closed form makes cheap (#802).
     private const int AutoExactMaxSize = 10_000;
 
-    // long-comment: the bound below is a measured allocation ceiling, not a
-    // round number, and a reviewer should be able to see the measurement
-    // without leaving the source.
-    // FillRow allocates one double[m+1] row per outer iteration, n+1 of them: measured
-    // at n = m = 8,000 (product 64,000,000), that walk allocates 673 MB, about 10.5
-    // bytes per unit of product; n = m = 50,000 (product 2.5 billion) scales the same
-    // way to roughly 26 GB transiently. 1,000,000 keeps the walk to about 10 MB and
-    // comfortably sub-second, two orders of magnitude above AutoExactLimit -- an
-    // explicit request can still reach far past what Auto would ever choose on its
-    // own, the same relationship MannWhitney's MaxExactProduct and Wilcoxon's
-    // MaxExactSampleSize each hold with their own, much smaller, Auto threshold.
+    // long-comment: the bound below is a measured time ceiling, and a reviewer should be able to see the
+    // measurement without leaving the source.
+    // The table walk holds two rows of m+1 doubles, so allocation no longer grows with the product
+    // (#830); time still does, O(n*m). Measured at 999 x 1,001, just under the bound: 2.17 ms and
+    // 39 KB. The bound keeps an explicit request far past what Auto would ever choose on its own,
+    // the same relationship MannWhitney's MaxExactProduct and Wilcoxon's MaxExactSampleSize each
+    // hold with their own, much smaller, Auto threshold.
     private const long MaxExactProduct = 1_000_000;
 
     /// <summary>Compares two samples by the largest gap between their empirical distributions.</summary>
@@ -49,7 +45,7 @@ public static class KolmogorovSmirnov
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/>, <c>a.Length * b.Length</c>
     /// exceeds 1,000,000, and the samples differ in size or the alternative is one-sided: the
-    /// lattice-path recurrence allocates one row per iteration. Pass <see cref="ExactMethod.Asymptotic"/> instead.
+    /// lattice-path recurrence costs O(n · m) time. Pass <see cref="ExactMethod.Asymptotic"/> instead.
     /// </exception>
     public static KsResult TwoSample(
         ReadOnlySpan<double> a,
@@ -270,29 +266,38 @@ public static class KolmogorovSmirnov
 
         double bound = d - (0.5 / ((double)n * m));
 
-        // One row at a time: escaped[i][*] depends only on escaped[i-1][*] and its own
-        // already-filled entries, so the full (n+1)x(m+1) table is never needed at once.
+        // One row at a time: escaped[i][*] depends only on escaped[i-1][*] and its own already-filled
+        // entries, so two rows swapped per step hold the walk, where a fresh row per step allocated O(n*m).
+        double[] previous = new double[m + 1];
         double[] row = new double[m + 1];
-        for (int i = 0; i <= n; i++)
+        double[] columnFraction = new double[m + 1];
+        for (int j = 0; j <= m; j++)
         {
-            row = FillRow(i, n, m, bound, alternative, row);
+            columnFraction[j] = (double)j / m;
         }
 
-        return row[m];
+        for (int i = 0; i <= n; i++)
+        {
+            FillRow(i, (double)i / n, bound, alternative, previous, row, columnFraction);
+            (previous, row) = (row, previous);
+        }
+
+        return previous[m];
     }
 
-    private static double[] FillRow(
-        int i, int n, int m, double bound, Alternative alternative, double[] previousRow)
+    private static void FillRow(
+        int i, double rowFraction, double bound, Alternative alternative,
+        double[] previousRow, double[] row, double[] columnFraction)
     {
-        double[] row = new double[m + 1];
-        for (int j = 0; j <= m; j++)
+        for (int j = 0; j < row.Length; j++)
         {
             if (i == 0 && j == 0)
             {
+                row[0] = 0.0;
                 continue;
             }
 
-            if (IsOutside(i, j, n, m, bound, alternative))
+            if (IsOutside(rowFraction - columnFraction[j], bound, alternative))
             {
                 row[j] = 1.0;
                 continue;
@@ -302,21 +307,16 @@ public static class KolmogorovSmirnov
             double fromBelow = j > 0 ? row[j - 1] : 0.0;
             row[j] = ((fromLeft * i) + (fromBelow * j)) / (i + j);
         }
-
-        return row;
     }
 
-    private static bool IsOutside(int i, int j, int n, int m, double bound, Alternative alternative)
-    {
-        double difference = ((double)i / n) - ((double)j / m);
-        return alternative switch
+    private static bool IsOutside(double difference, double bound, Alternative alternative) =>
+        alternative switch
         {
             Alternative.Less => -difference >= bound,
             Alternative.Greater => difference >= bound,
             Alternative.TwoSided => Math.Abs(difference) >= bound,
             _ => throw new ArgumentOutOfRangeException(nameof(alternative), alternative, null),
         };
-    }
 
     private static double AsymptoticPValue(double d, int n, int m, Alternative alternative)
     {

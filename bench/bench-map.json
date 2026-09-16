@@ -325,6 +325,9 @@
     ],
     "QgramBenchmarks": [
       "src/Lodestar.Text/**"
+    ],
+    "KsExactTableBenchmarks": [
+      "src/Lodestar.Stats/**"
     ]
   },
   "harnesses": {
