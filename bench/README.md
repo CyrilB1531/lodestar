@@ -2783,3 +2783,74 @@ the sort back and measured **6.1 ms** again, which is what says the difference i
 than the machine: the 1,000,000-row rows carry about ±20% run-to-run spread here, enough to invent a
 regression out of one reading, and `KFold` at a million rows read 10.0 ms once and 12.0 to 12.4 ms in
 every run after, on code neither step touched.
+
+## 45. Meta.Numerics against `Lodestar.Stats` and `PrincipalComponentVariance` (issue #756)
+
+`MetaNumericsStatsBenchmarks` races eight test families against `Meta.Numerics` 4.2.0, and
+`MetaNumericsPcaBenchmarks` races the explained variance. Meta.Numerics is **MS-PL, maintained, and
+ships `netstandard2.0`**, where `Lodestar.Stats`' only other incumbent is archived and
+`PrincipalComponentVariance`'s only other one is `net8.0`-only — so below `net8.0` this is the only
+second opinion there is, which decision 0129 read and this measures.
+
+### The pairing that would otherwise time two different statistics
+
+`Univariate.StudentTTest(a, b)` is the **pooled-variance** two-sample t, so the race passes
+`Variance.Equal` rather than `TTest.Independent`'s Welch default — the same care `StatsBenchmarks`
+takes with Accord's Yates correction.
+
+### What agrees, checked before timing
+
+`GlobalSetup` runs every pair once outside the timed region. **A statistic that disagrees stops the
+run**: it means the two libraries are computing different quantities, and a row would say nothing. A
+**p-value that disagrees is printed instead**, because the libraries deliberately differ there. At
+n=100 the run records six:
+
+| pair | this package | Meta.Numerics | why |
+| --- | ---: | ---: | --- |
+| chi-square statistic | 7.91919 | 9.09091 | **Yates**: `ChiSquare.Contingency` applies the continuity correction by default and `PearsonChiSquaredTest` does not |
+| chi-square p | 0.00489131 | 0.00256883 | the same correction, read through the distribution |
+| Mann-Whitney p | 0.0113229 | 0.0112835 | continuity correction; **the statistic agrees exactly** |
+| Kolmogorov-Smirnov p | 0.111195 | 0.111133 | **exact against asymptotic** — `ExactMethod.Auto` takes the exact branch at 100×100; the statistic agrees |
+| Wilcoxon statistic | 1835.5 | 2543 | a different signed-rank convention, not a different answer |
+| Wilcoxon p | 0.879671 | 0.950651 | follows from the statistic above |
+
+The Student t, Kruskal-Wallis, one-way ANOVA and Kolmogorov-Smirnov **statistics** agree to `1e-9`
+relative, and the Fisher exact p-values agree exactly.
+
+### The wide matrix Meta.Numerics refuses
+
+`Multivariate.PrincipalComponentAnalysis` raises `InsufficientDataException` on a matrix with more
+columns than rows — 100 rows by 200 features, which `PrincipalComponentVariance` and NumFlat both
+answer. That is why the Meta.Numerics PCA row is its own class over the three shapes it accepts,
+rather than a third row in `PrincipalComponentVarianceBenchmarks`. It also takes the **columns**
+where the other two take the rows; the transposition is done in `GlobalSetup` so the row is not
+charged for it.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*MetaNumericsStats*'
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*MetaNumericsPca*'
+```
+
+### What the comparison changed in this package
+
+Meta.Numerics was ahead on two of the ten rows and behind on the rest, which is the shape of a cost
+here rather than of a difference in what the two compute. Both were fixed inside this lot, A/B/A
+under the machine lock:
+
+| what changed | A | B | A again |
+| --- | ---: | ---: | ---: |
+| `FisherExact.Test`, the 2×2 table above | 7,420 ns | **256 ns** | 7,487 ns |
+| `KolmogorovSmirnov.TwoSample`, n = m = 100 | 29,152 ns | **1,544 ns** | 29,020 ns |
+
+**Fisher** took nine log-gammas per candidate table and recomputed the loop-invariant denominator
+every iteration; it now walks the hypergeometric recurrence from the mode — one exponential, then
+multiplications — at zero allocation. **Kolmogorov-Smirnov** built the `(n+1)×(m+1)` table even for
+two samples of the same size, where Hodges' closed form answers in O(n); allocation fell from
+86,512 B to 1,610 B.
+
+**No default moved and nothing became an approximation.** `ExactMethod.Auto` still chooses what it
+chose before — measured against `scipy` 1.18.1, whose own `method="auto"` takes the exact branch at
+n = 100, 1,000 and 10,000, so a default that switched to asymptotic would have walked away from the
+parity this package exists for. `stats_ks.json` gains an equal-size pair of 100 and a
+100-against-101 pair, the second of which must take the table rather than the closed form; both
+replay at 1e-9.
