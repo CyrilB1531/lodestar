@@ -301,6 +301,9 @@
     ],
     "TextRankBenchmarks": [
       "src/Lodestar.Text/**"
+    ],
+    "SilhouetteBenchmarks": [
+      "src/Lodestar.Metrics/**"
     ]
   },
   "harnesses": {

@@ -4708,6 +4708,15 @@ Kept cells and their order are unchanged: keywords and scores bit-identical. `Te
 
 The partial sums never fall, so every decision is the full sum's; labels and core samples identical on five datasets. `DbscanIncumbentBenchmarks` and `DbscanDimensionBenchmarks`, this package's rows.
 
+## [`Silhouette.PerSample`](../reference/metrics/clustering/silhouette-persample.md) without the distance matrix (issue #815)
+
+| n (16 features, 8 clusters) | `main` | fix |
+| ---: | ---: | ---: |
+| 2,000 | 23.7 ms, 30.5 MB | 19.8 ms, 150 KB |
+| 5,000 | 146 ms, 191 MB | **103 ms, 372 KB** |
+
+Each sum still receives its terms by ascending index: bit-identical on 1,750 scores. `SilhouetteBenchmarks`.
+
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-16; both `main` runs agreed within 5%.
