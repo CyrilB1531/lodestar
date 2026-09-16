@@ -4393,64 +4393,37 @@ million rows from 6.1 ms to 2.5 ms; writing the two halves straight out took it 
 the sort back at 6.1 ms. Without the comparison the first figure would have shipped, and it is the
 one row where `scikit-learn` was ahead.
 
-## Meta.Numerics against Lodestar.Stats and PrincipalComponentVariance (issue #756)
+## The scalers against ML.NET's normalizers (issue #763)
 
-Full method, and the six p-values that differ with their causes:
-[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#45-metanumerics-against-lodestarstats-and-principalcomponentvariance-issue-756).
-Same machine as above, on 2026-09-16. `BenchmarkDotNet` 0.14.0, default job, one run.
-`Meta.Numerics` 4.2.0, MS-PL, `netstandard2.0`.
+Full method, and why `fixZero: false` is passed:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#45-the-scalers-against-mlnets-normalizers-issue-763).
+Same machine as above, on 2026-09-16. `BenchmarkDotNet` 0.14.0, one invocation per iteration, five
+warmups and twenty iterations. Ten features per row; ML.NET's estimator is lazy, so it appears both
+as a fit and as a fit whose values are read back.
 
-**Eight test families.** Ratio above 1 means this package is faster; every statistic was checked to
-agree before anything was timed.
+| rows | operation | Lodestar | ML.NET 5.0.0 | ML.NET / Lodestar |
+| ---: | --- | ---: | ---: | ---: |
+| 1,000 | min-max, fit + transform | **68.91 μs** | 225.28 μs (fit only) | **3.27** |
+| 1,000 | min-max, values read | **68.91 μs** | 1,208.41 μs | **17.54** |
+| 1,000 | robust, values read | **1,189.85 μs** | 3,521.85 μs | **2.96** |
+| 20,000 | min-max, fit + transform | **1,106.62 μs** | 3,614.47 μs (fit only) | **3.27** |
+| 20,000 | min-max, values read | **1,106.62 μs** | 9,674.44 μs | **8.74** |
+| 20,000 | robust, values read | **10,430.85 μs** | 15,245.13 μs | **1.46** |
 
-| family | n = 100 | n = 10,000 | allocated, Lodestar / Meta.Numerics (n = 10,000) |
-| --- | ---: | ---: | ---: |
-| Student t, pooled | **2.88** | **4.81** | 0 B / 104 B |
-| Mann-Whitney | **1.47** | **5.25** | 0 B / 80,379 B |
-| Kruskal-Wallis | **1.32** | **3.44** | 33 B / 120,702 B |
-| Kolmogorov-Smirnov | **1.47** | **1.16** | 160,051 B / 80,371 B |
-| One-way ANOVA | **3.46** | **3.21** | 32 B / 744 B |
-| Wilcoxon signed rank | 0.95 | **1.18** | 80,056 B / 80,176 B |
-| Fisher exact | **3.49** | **3.45** | **0 B** / 944 B |
-| χ² contingency | **5.95** | **5.94** | 168 B / 968 B |
+`MaxAbsScaler` costs 65.21 μs and 1,116.54 μs at the two sizes and **has no ML.NET row**: its
+normalizers offer mean-variance, min-max, log-mean-variance, robust scaling, binning and L_p norm,
+and none of them is "divide by the largest absolute value" — `NormalizeMinMax(fixZero: true)` comes
+closest and is a different transform.
 
-**Two rows moved between the first run of this comparison and this one, and the measurement is why
-they moved.** Meta.Numerics was ahead on Fisher's exact test and on the equal-size exact
-Kolmogorov-Smirnov, and on nothing else; both were costs in this package rather than differences in
-what the two libraries compute.
+Both sides scale the same column to the same values, checked row by row to `1e-6` before either was
+timed — single precision, which is what ML.NET's pipeline carries.
 
-| what changed | before | after | A again | against Meta.Numerics |
-| --- | ---: | ---: | ---: | --- |
-| [`FisherExact.Test`](../reference/stats/tests/fisherexact-test.md), 2×2 table | 7,420 ns | **256 ns** | 7,487 ns | 0.12 → **3.49** |
-| [`KolmogorovSmirnov.TwoSample`](../reference/stats/tests/kolmogorovsmirnov-twosample.md), n = m = 100 | 29,152 ns | **1,544 ns** | 29,020 ns | 0.08 → **1.47** |
-
-- **Fisher** walked the hypergeometric probabilities through **nine log-gammas per candidate table**
-  — three per binomial coefficient — with the denominator recomputed every iteration. Neighbouring
-  probabilities differ by a ratio of four small integers, so the range now costs one exponential and
-  O(range) multiplications, anchored at the mode. Still **zero allocation**.
-- **Kolmogorov-Smirnov** built an `(n+1)×(m+1)` table even when the samples are the same size, where
-  `D` is always a whole number of steps of `1/n` and Hodges' exceedance probability is a closed form:
-  O(n) multiplications against O(n·m) cells and n+1 row allocations. Allocation fell from 86,512 B
-  to 1,610 B.
-
-**Neither is an approximation, and no default moved.** `ExactMethod.Auto` chooses exactly what it
-chose before; the exact branch is simply cheaper. The corpus gained an equal-size pair of 100 and a
-100-against-101 pair — the second of which must take the table rather than the closed form — and
-both replay `scipy` 1.18.1 at 1e-9. **This package still returns the exact p-value where
-Meta.Numerics returns an asymptotic one, and is now faster doing it.**
-
-**The explained variance.** Ratio above 1 means this package is faster.
-
-| shape | [`PrincipalComponentVariance.Compute`](../reference/decomposition/factorization/principalcomponentvariance-compute.md) | Meta.Numerics `PrincipalComponentAnalysis` | ratio | allocated |
-| --- | ---: | ---: | ---: | ---: |
-| 200 × 10 | **15.42 μs** | 565.95 μs | **36.70** | 2.38 KB / 329.71 KB |
-| 2,000 × 10 | **86.25 μs** | 69,772.02 μs | **808.97** | 2.38 KB / **31,414.98 KB** |
-| 2,000 × 50 | **1,953.85 μs** | 337,025.46 μs | **172.50** | 42.07 KB / 32,054.48 KB |
-
-Both report the same first component's variance fraction, checked to `1e-9` relative before either
-was timed. **Meta.Numerics refuses the fourth shape**: 100 rows by 200 features raises
-`InsufficientDataException`, where this package and NumFlat both answer — so the wide matrix has no
-Meta.Numerics row at all rather than a slow one.
+**Where the cost is.** `RobustScaler` is about nine times `MinMaxScaler` here and allocates twice as
+much: a percentile has to order its column, so it sorts each feature once where the other two take a
+single pass. `numpy.percentile` partitions rather than sorting, which is the same asymptotic work
+with smaller constants and is where to look if that row ever needs to be cheaper. Allocation, at
+20,000 rows: 1,563.96 KB for min-max against ML.NET's 1,133.80 KB, and 3,126.26 KB for robust
+against 4,821.33 KB.
 
 ## The .NET incumbents, on a named machine (issue #679)
 

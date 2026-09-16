@@ -32,6 +32,11 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Lodestar.Preprocessing/Lodestar.Preprocessing.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.0" />
+    <!-- Pinned in its own right: SetTargetFramework does not cross the PackageReference
+         Lodestar.Preprocessing takes on it (decision 0138), so without this line the suite
+         would load Lodestar.Stats's net10.0 build and prove nothing about netstandard2.0. -->
+    <ProjectReference Include="../../src/Lodestar.Stats/Lodestar.Stats.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -4396,6 +4396,192 @@ def generate_preprocessing_standard_scaler() -> dict:
     }
 
 
+# The remaining scalers' corpus (#763): the keys its cases carry beyond SAMPLES and FEATURE_COUNT,
+# the three scalers it freezes, and the matrices they are fitted on.
+MINMAX = "minmax"
+MAXABS = "maxabs"
+ROBUST = "robust"
+MIXED = "mixed"
+OUTLIER = "outlier"
+NEAR_CONSTANT = "near_constant"
+ZEROS = "zeros"
+ELEVEN = "eleven"
+SCALE_KEY = "scale"
+UNIT_VARIANCE = "unitVariance"
+SCALER = "scaler"
+CLIP = "clip"
+FEATURE_LOW = "featureLow"
+FEATURE_HIGH = "featureHigh"
+WITH_CENTRING = "withCentring"
+WITH_SCALING = "withScaling"
+LOWER_PERCENTILE = "lowerPercentile"
+UPPER_PERCENTILE = "upperPercentile"
+FITTED = "fitted"
+TRANSFORMED = "transformed"
+INVERSE_TRANSFORMED = "inverseTransformed"
+UNSEEN = "unseen"
+UNSEEN_TRANSFORMED = "unseenTransformed"
+
+
+def _scaler_matrices() -> dict[str, list[list[float]]]:
+    """The matrices the scaler cases are fitted on, each chosen for a branch rather than for variety."""
+    return {
+        # A constant second feature (range 0) beside a varying one, and a negative column so
+        # MaxAbs has something whose maximum absolute value is not its maximum.
+        MIXED: [[1.0, 10.0, -4.0], [2.0, 10.0, -1.0], [4.0, 10.0, -9.0], [8.0, 10.0, -2.0]],
+        # One outlier three decades out: the whole reason RobustScaler exists, and the case
+        # where its answer and StandardScaler's diverge by more than rounding.
+        OUTLIER: [[1.0], [2.0], [3.0], [4.0], [5.0], [6.0], [7.0], [8.0], [9.0], [5000.0]],
+        # The pair that pins the near-constant rule: a range of 1.11e-15, below 10*eps and not
+        # zero, floored to 1; and one of 4.00e-15, just above it, divided by (2.5e14).
+        NEAR_CONSTANT: [[1.0, 1.0], [1.0 + 1e-15, 1.0 + 4e-15], [1.0, 1.0 + 2e-15]],
+        # Eleven rows, so the quartiles of 0..10 fall exactly on an index (h = 2.5 and 7.5
+        # interpolate, h at the median is 5 and does not) -- both branches of type 7.
+        ELEVEN: [[float(v)] for v in range(11)],
+        # All zeros: MaxAbs divides by 1, MinMax puts the feature on the bottom of the range.
+        ZEROS: [[0.0, 3.0], [0.0, 6.0], [0.0, 9.0]],
+    }
+
+
+def _scaler_fixtures() -> list[dict]:
+    """One fixture per (scaler, option) branch the three scalers have."""
+    fixtures = []
+    for name in (MIXED, NEAR_CONSTANT, "zeros"):
+        fixtures.append({"name": f"minmax [0, 1] on {name}", SCALER: MINMAX, "matrix": name,
+                         FEATURE_LOW: 0.0, FEATURE_HIGH: 1.0, CLIP: False})
+    fixtures += [
+        {"name": "minmax [-5, 3] on mixed", SCALER: MINMAX, "matrix": MIXED,
+         FEATURE_LOW: -5.0, FEATURE_HIGH: 3.0, CLIP: False},
+        # Clipping only shows on a value the fit never saw, which is why every case carries
+        # an unseen row beside the fitted matrix.
+        {"name": "minmax [0, 1] clipped on mixed", SCALER: MINMAX, "matrix": MIXED,
+         FEATURE_LOW: 0.0, FEATURE_HIGH: 1.0, CLIP: True},
+        {"name": "minmax [-5, 3] clipped on outlier", SCALER: MINMAX, "matrix": OUTLIER,
+         FEATURE_LOW: -5.0, FEATURE_HIGH: 3.0, CLIP: True},
+        {"name": "maxabs on mixed", SCALER: MAXABS, "matrix": MIXED, CLIP: False},
+        {"name": "maxabs on zeros", SCALER: MAXABS, "matrix": ZEROS, CLIP: False},
+        {"name": "maxabs on near constant", SCALER: MAXABS, "matrix": NEAR_CONSTANT, CLIP: False},
+        {"name": "maxabs clipped on outlier", SCALER: MAXABS, "matrix": OUTLIER, CLIP: True},
+        {"name": "robust quartiles on outlier", SCALER: ROBUST, "matrix": OUTLIER,
+         WITH_CENTRING: True, WITH_SCALING: True, LOWER_PERCENTILE: 25.0, UPPER_PERCENTILE: 75.0},
+        {"name": "robust quartiles on eleven", SCALER: ROBUST, "matrix": ELEVEN,
+         WITH_CENTRING: True, WITH_SCALING: True, LOWER_PERCENTILE: 25.0, UPPER_PERCENTILE: 75.0},
+        {"name": "robust deciles on outlier", SCALER: ROBUST, "matrix": OUTLIER,
+         WITH_CENTRING: True, WITH_SCALING: True, LOWER_PERCENTILE: 10.0, UPPER_PERCENTILE: 90.0},
+        {"name": "robust without centring on mixed", SCALER: ROBUST, "matrix": MIXED,
+         WITH_CENTRING: False, WITH_SCALING: True, LOWER_PERCENTILE: 25.0, UPPER_PERCENTILE: 75.0},
+        {"name": "robust without scaling on mixed", SCALER: ROBUST, "matrix": MIXED,
+         WITH_CENTRING: True, WITH_SCALING: False, LOWER_PERCENTILE: 25.0, UPPER_PERCENTILE: 75.0},
+        {"name": "robust neither on mixed", SCALER: ROBUST, "matrix": MIXED,
+         WITH_CENTRING: False, WITH_SCALING: False, LOWER_PERCENTILE: 25.0, UPPER_PERCENTILE: 75.0},
+        {"name": "robust quartiles on near constant", SCALER: ROBUST, "matrix": NEAR_CONSTANT,
+         WITH_CENTRING: True, WITH_SCALING: True, LOWER_PERCENTILE: 25.0, UPPER_PERCENTILE: 75.0},
+        {"name": "robust on a single sample", SCALER: ROBUST, "matrix": ZEROS,
+         WITH_CENTRING: True, WITH_SCALING: True, LOWER_PERCENTILE: 0.0, UPPER_PERCENTILE: 100.0},
+        # unit_variance divides the range by the normal quantiles of the percentile pair: 1.3489795
+        # at the quartiles, 2.5631031 at the deciles.
+        {"name": "robust quartiles with unit variance", SCALER: ROBUST, "matrix": OUTLIER,
+         WITH_CENTRING: True, WITH_SCALING: True, LOWER_PERCENTILE: 25.0, UPPER_PERCENTILE: 75.0,
+         UNIT_VARIANCE: True},
+        {"name": "robust deciles with unit variance", SCALER: ROBUST, "matrix": OUTLIER,
+         WITH_CENTRING: True, WITH_SCALING: True, LOWER_PERCENTILE: 10.0, UPPER_PERCENTILE: 90.0,
+         UNIT_VARIANCE: True},
+        # The floor and unit variance together: floored to 1 first, then divided, so the feature
+        # the floor caught comes out at 1/1.3489795 rather than at 1.
+        {"name": "robust with unit variance on near constant", SCALER: ROBUST, "matrix": NEAR_CONSTANT,
+         WITH_CENTRING: True, WITH_SCALING: True, LOWER_PERCENTILE: 25.0, UPPER_PERCENTILE: 75.0,
+         UNIT_VARIANCE: True},
+        {"name": "robust with unit variance and no centring", SCALER: ROBUST, "matrix": MIXED,
+         WITH_CENTRING: False, WITH_SCALING: True, LOWER_PERCENTILE: 25.0, UPPER_PERCENTILE: 75.0,
+         UNIT_VARIANCE: True},
+    ]
+    return fixtures
+
+
+def generate_preprocessing_scalers() -> dict:
+    """MinMaxScaler, MaxAbsScaler and RobustScaler: the statistics, the transform and its inverse (#763).
+
+    long-comment: why each case carries an unseen row as well as the fitted matrix.
+    Clipping cannot be seen on the matrix a scaler was fitted on -- every fitted value is inside the
+    range by construction. The unseen row is one decade outside it on each feature, so the clipped
+    and unclipped cases differ in the corpus rather than only in the prose.
+    """
+    import numpy as np
+    from sklearn.preprocessing import MaxAbsScaler, MinMaxScaler, RobustScaler
+
+    def column(values) -> list | None:
+        return None if values is None else [float(v) for v in values]
+
+    def flat(rows) -> list:
+        return [float(v) for row in rows for v in row]
+
+    matrices = _scaler_matrices()
+    cases = []
+    for fixture in _scaler_fixtures():
+        rows = matrices[fixture["matrix"]]
+        matrix = np.array(rows, dtype=np.float64)
+        # Ten times the largest value of each feature, and the negative of it: outside every
+        # fitted range on both sides, whatever the matrix.
+        unseen = np.array([[10.0 * abs(v) + 1.0 for v in matrix.max(axis=0)],
+                           [-10.0 * abs(v) - 1.0 for v in matrix.max(axis=0)]], dtype=np.float64)
+
+        if fixture[SCALER] == MINMAX:
+            scaler = MinMaxScaler(
+                feature_range=(fixture[FEATURE_LOW], fixture[FEATURE_HIGH]), clip=fixture[CLIP]).fit(matrix)
+            fitted = {
+                "dataMinimum": column(scaler.data_min_),
+                "dataMaximum": column(scaler.data_max_),
+                "dataRange": column(scaler.data_range_),
+                SCALE_KEY: column(scaler.scale_),
+                "minimum": column(scaler.min_),
+            }
+        elif fixture[SCALER] == MAXABS:
+            scaler = MaxAbsScaler(clip=fixture[CLIP]).fit(matrix)
+            fitted = {"maximumAbsolute": column(scaler.max_abs_), SCALE_KEY: column(scaler.scale_)}
+        else:
+            scaler = RobustScaler(
+                with_centering=fixture[WITH_CENTRING],
+                with_scaling=fixture[WITH_SCALING],
+                quantile_range=(fixture[LOWER_PERCENTILE], fixture[UPPER_PERCENTILE]),
+                unit_variance=fixture.get(UNIT_VARIANCE, False)).fit(matrix)
+            fitted = {"centre": column(scaler.center_), SCALE_KEY: column(scaler.scale_)}
+
+        transformed = scaler.transform(matrix)
+        case = {
+            "name": fixture["name"],
+            SCALER: fixture[SCALER],
+            SAMPLES: flat(rows),
+            FEATURE_COUNT: int(matrix.shape[1]),
+            FITTED: fitted,
+            TRANSFORMED: flat(transformed),
+            INVERSE_TRANSFORMED: flat(scaler.inverse_transform(transformed)),
+            UNSEEN: flat(unseen),
+            UNSEEN_TRANSFORMED: flat(scaler.transform(unseen)),
+        }
+        for key in (CLIP, FEATURE_LOW, FEATURE_HIGH, WITH_CENTRING, WITH_SCALING,
+                    LOWER_PERCENTILE, UPPER_PERCENTILE, UNIT_VARIANCE):
+            if key in fixture:
+                case[key] = fixture[key]
+        cases.append(case)
+
+    return {
+        "metadata": {
+            "algorithm": "MinMaxScaler, MaxAbsScaler, RobustScaler",
+            "library": "scikit-learn",
+            "library_version": version("scikit-learn"),
+            "reference_calls": [
+                "sklearn.preprocessing.MinMaxScaler.fit",
+                "sklearn.preprocessing.MaxAbsScaler.fit",
+                "sklearn.preprocessing.RobustScaler.fit",
+                "sklearn.preprocessing.MinMaxScaler.transform",
+                "sklearn.preprocessing.MinMaxScaler.inverse_transform",
+            ],
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
 def _kmeans_fixtures() -> list[dict]:
     """Sample matrices with their starting centres, each chosen for a branch of Lloyd."""
     blobs = [[0.0, 0.0], [0.0, 1.0], [10.0, 10.0], [10.0, 11.0], [5.0, 5.0]]
@@ -10986,25 +11172,8 @@ def generate_stats_ks() -> dict:
     """Two-sample Kolmogorov-Smirnov, exact and asymptotic (#442)."""
     from scipy import stats as sps
 
-    # long-comment: why this family carries two fixtures of its own beyond the shared ones.
-    # The equal-size two-sided exact branch has a closed form (#756) where every other shape
-    # walks a table, and the shared pairs reach it only at 40 values. These two pin the split at
-    # a hundred: one pair of equal sizes, where the closed form runs, and one of 100 against 99,
-    # where it must not -- an implementation that used the closed form for both fails the second.
-    # Both products stay under the Auto threshold, so both sides take their exact branch: at
-    # 100 x 101 they would not, which is a divergence docs/equivalence.md records rather than a
-    # property of this branch.
-    ks_rng = SeededRandom(SEED + 756)
-    hundred_a = [round(ks_rng.gauss(0.0, 1.0), 6) for _ in range(100)]
-    hundred_b = [round(ks_rng.gauss(0.4, 1.0), 6) for _ in range(100)]
-    fixtures = [
-        *_stats_samples(),
-        {"name": "equal sizes of 100, the closed-form branch", "a": hundred_a, "b": hundred_b},
-        {"name": "sizes 100 and 99, the table branch", "a": hundred_a, "b": hundred_b[:99]},
-    ]
-
     cases: list[dict] = []
-    for fx in fixtures:
+    for fx in _stats_samples():
         for method in ("auto", "asymp", "exact"):
             for alternative in (TWO_SIDED, "less", GREATER):
                 r = sps.ks_2samp(fx["a"], fx["b"], alternative=alternative, method=method)
@@ -11560,6 +11729,7 @@ def main() -> None:
         "stats_stationarity.json": generate_stats_stationarity,
         "stats_seasonal.json": generate_stats_seasonal,
         "cluster_kmeans.json": generate_cluster_kmeans,
+        "preprocessing_scalers.json": generate_preprocessing_scalers,
         "preprocessing_standard_scaler.json": generate_preprocessing_standard_scaler,
         "ranking.json": generate_ranking,
         "ranking_weighted.json": generate_ranking_weighted,

@@ -28,6 +28,44 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- **[`MinMaxScaler`](docs/reference/preprocessing/scaling/minmaxscaler.md),
+  [`MaxAbsScaler`](docs/reference/preprocessing/scaling/maxabsscaler.md) and
+  [`RobustScaler`](docs/reference/preprocessing/scaling/robustscaler.md) join `StandardScaler`**, at
+  `sklearn.preprocessing` parity, over row-major spans rather than an `IDataView`. Each has `Fit`,
+  `Transform` and `InverseTransform` and reports the statistics it fitted. **Which one to reach for
+  is the point of having four**: `RobustScaler` centres on the median and scales by an
+  interpercentile range, so a column with an outlier keeps its shape where `StandardScaler` puts
+  every ordinary value in the same place; `MaxAbsScaler` never subtracts, so a meaningful zero stays
+  a zero — the reason scikit-learn refuses to centre a sparse matrix at all; `MinMaxScaler` maps onto
+  a range a downstream model asks for. Three reference rules are reproduced rather than guessed, and
+  an implementation that invents any of them passes most cases and fails the corpus: **the
+  near-constant floor is `range < 10·eps`, not `range == 0`** (`_handle_zeros_in_scale` with no
+  constant mask, which is how the reference calls it for these three and not for `StandardScaler`) —
+  one frozen feature has a range of `1.11e-15` and scales by 1 where its neighbour at `4.00e-15`
+  scales by `2.5e14`; **the percentiles interpolate linearly** (`numpy.percentile`'s default,
+  Hyndman–Fan type 7), which is neither of the two quantile conventions already in this repository,
+  so it is written inside the package rather than borrowed; and **`clip` applies to the transform and
+  never to its inverse**, because a clipped value has lost what it was. `tests/oracles/preprocessing_scalers.json`
+  freezes 18 cases against scikit-learn 1.9.0 — each scaler over a constant feature, a near-constant
+  one on both sides of the floor, an outlier-heavy column and an all-zero one, plus a row the fit
+  never saw so that clipping is visible — beside 11 edge tests. **One divergence:** a non-finite value
+  is refused where the reference skips it, because `RobustScaler` sorts and a `NaN` in a sorted column
+  returns a percentile nobody asked for. **`RobustScaler` carries `unit_variance`**, which divides the
+  range by `Φ⁻¹(upper/100) − Φ⁻¹(lower/100)` so a normal column comes out with a standard deviation
+  of 1 — and the two scale rules apply in the reference's order, the floor **first** and the
+  quantiles **second**, so a constant feature lands on `1/1.3489795` rather than on 1.
+  ([#763](https://github.com/CyrilB1531/lodestar/issues/763))
+
+#### Changed
+
+- **`Lodestar.Preprocessing` takes its first inter-package edge, on `Lodestar.Stats`**
+  ([decision 0138](docs/decisions/0138-lodestar-preprocessing-takes-an-edge-on-lodestar-stats-for-the-normal-quantile.md)).
+  `unit_variance` needs the normal quantile, and this repository publishes one
+  ([decision 0098](docs/decisions/0098-the-normal-quantile-is-the-third-member-decision-0095s-rule-publishes.md)) — so
+  it is depended on rather than copied, which is the precedent the decision sets for the next member
+  in the same position. The floor is the already-published `Lodestar.Stats` 0.4.0, `Lodestar.Stats`
+  itself carries no dependency, and the package description no longer claims "no dependencies"
+
 - **[`Splitters`](docs/reference/preprocessing/splitting/splitters.md) cuts cross-validation folds
   and a train/test split over row indices**, at `sklearn.model_selection` parity wherever the
   reference is deterministic, and without a framework in the way. `KFold`, `StratifiedKFold` and
@@ -253,25 +291,6 @@ is one sentence, the issue and the commit; see
   parity over 32 frozen cases. `period` is required. ([#671](https://github.com/CyrilB1531/lodestar/issues/671))
 
 ### Lodestar.Stats
-
-#### Changed
-
-- **Fisher's exact test is 29× cheaper and the equal-size exact Kolmogorov-Smirnov 19×, with the
-  same p-values.** Both came out of measuring Meta.Numerics ([#756](https://github.com/CyrilB1531/lodestar/issues/756)),
-  which was faster on exactly these two rows and on no others. **`FisherExact.Test` walked the
-  hypergeometric probabilities through nine log-gammas per candidate table** — one per binomial
-  coefficient, the denominator recomputed every iteration. Neighbouring probabilities differ by a
-  ratio of four small integers, so the whole range now costs one exponential and O(range)
-  multiplications, anchored at the mode because a walk starting from an end begins at a value that
-  has already underflowed on a wide table. **7,420 ns → 256 ns** on the 2×2 table of
-  `bench/README.md` §45, A/B/A confirmed at 7,487 ns with the old kernel restored, and still zero
-  allocation. **`KolmogorovSmirnov.TwoSample` built an (n+1)×(m+1) table even when the two samples
-  are the same size**, where D is always a whole number of steps of `1/n` and Hodges' exceedance
-  probability is a closed form — O(n) multiplications against O(n·m) cells and n+1 row
-  allocations. **29,152 ns → 1,544 ns** at n = m = 100, allocation 86,512 B → 1,610 B, A/B/A
-  confirmed at 29,020 ns. Neither is an approximation: the corpus gains an equal-size pair of 100
-  and a 100-against-101 pair that must take the table instead, and both replay `scipy` 1.18.1 at
-  1e-9 like every case before them.
 
 #### Added
 

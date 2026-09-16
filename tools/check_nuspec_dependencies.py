@@ -191,10 +191,10 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {**POLYFILLS},
     },
     PREPROCESSING: {
-        # Nothing on net10.0, only the polyfills on netstandard2.0: a scaler is
-        # arithmetic over spans, with no model file and nothing to serialise.
-        NET: {},
-        NETSTANDARD: {**POLYFILLS},
+        # One Lodestar edge and nothing external, which keeps this core tier: the normal
+        # quantile RobustScaler's unit_variance divides by, depended on rather than copied (0138).
+        NET: {STATS: STATS_FLOOR},
+        NETSTANDARD: {STATS: STATS_FLOOR, **POLYFILLS},
     },
     METRICS: {
         # Nothing on net10.0, only the polyfills on netstandard2.0: metrics

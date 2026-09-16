@@ -165,7 +165,7 @@ script's `EXPECTED` edge map.
 | `Lodestar.Conformal` | core | split conformal intervals and prediction sets, at MAPIE parity. |
 | `Lodestar.Decomposition` | core | truncated SVD and NMF over a `CsrMatrix`, the Householder QR, and the variance principal components explain, with the dense kernels written here. |
 | `Lodestar.Cluster` | core | k-means by Lloyd's algorithm over a row-major span, at scikit-learn parity. |
-| `Lodestar.Preprocessing` | core | feature scaling fitted on arrays and applied to spans, at scikit-learn parity. |
+| `Lodestar.Preprocessing` | core | feature scaling and the cross-validation splitters, fitted on arrays and applied to spans, at scikit-learn parity. |
 | `Lodestar.Stats` | core | classical hypothesis tests at scipy parity, plus the four tail members decisions 0095, 0097 and 0098 published for its neighbours. |
 | `Lodestar.Stats.Regression` | core | ordinary, weighted and generalized least squares with the whole inference table, at statsmodels parity. |
 | `Lodestar.Stats.TimeSeries` | core | the autocorrelation functions, Ljung-Box, the augmented Dickey-Fuller test, KPSS and seasonal decomposition, at statsmodels parity. |
@@ -176,13 +176,15 @@ script's `EXPECTED` edge map.
 | `Lodestar.Extensions.VectorData` | interop | an in-process `VectorStore` with hybrid keyword and vector search over `EmbeddingIndex` and `Bm25Index`; carries `Microsoft.Extensions.VectorData.Abstractions`. |
 | `Lodestar.Gpu` | satellite | ILGPU kernels over device-resident matrices and text. **The one package on `net10.0;netstandard2.1`** — ILGPU publishes no `netstandard2.0` asset and does publish a 2.1 one ([decisions 0101](docs/decisions/0101-lodestar-gpu-is-the-one-package-that-does-not-ship-netstandard2-0.md) and [0103](docs/decisions/0103-lodestar-gpu-ships-netstandard2-1-beside-net10.md)). Nothing under `src/` may depend on it, so the SIMD path stays complete. |
 
-The edges: **fourteen**, all asserted per target framework and per version range —
+The edges: **fifteen**, all asserted per target framework and per version range —
 `Text`, `Decomposition` and `Extensions.MathNet` → `Abstractions`; `Fuzzy` → `Text`;
 `Onnx` → `Embeddings`; `Extensions.AI` → `Embeddings` and `Onnx`;
 `Extensions.VectorData` → `Embeddings` and `Text`; `Stats.Regression` →
 `Stats` and `Decomposition`; `Stats.TimeSeries` → `Stats` and `Stats.Regression`;
-`Survival` → `Stats`. `tools/check_nuspec_dependencies.py`'s
-`EXPECTED` is the authority, and the count above is checked against it.
+`Survival` → `Stats`; `Preprocessing` → `Stats`, for the normal quantile
+`RobustScaler`'s `unit_variance` divides by ([decision 0138](docs/decisions/0138-lodestar-preprocessing-takes-an-edge-on-lodestar-stats-for-the-normal-quantile.md)).
+`tools/check_nuspec_dependencies.py`'s `EXPECTED` is the authority, and the count
+above is checked against it.
 
 Four cross-cutting facts explain most of the layout, and none of them is visible
 from a single file.
