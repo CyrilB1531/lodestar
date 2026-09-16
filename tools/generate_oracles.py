@@ -5270,6 +5270,15 @@ def _distribution_fixtures() -> list[dict]:
          "call": "f.sf", "args": {"x": 500.0, "dfn": 3.0, "dfd": 100.0}},
         {"name": "near zero, where the tail is all but one",
          "call": "f.sf", "args": {"x": 0.001, "dfn": 5.0, "dfd": 5.0}},
+        # Large shapes near the mean (#837), where a fraction cut at 300 terms stopped short.
+        {"name": "an ANOVA on half a million observations, one standard deviation up",
+         "call": "f.sf", "args": {"x": 1.004, "dfn": 200000.0, "dfd": 300000.0}},
+        {"name": "two million degrees of freedom each, just below the mean",
+         "call": "f.sf", "args": {"x": 0.999, "dfn": 2000000.0, "dfd": 2000000.0}},
+        {"name": "shapes of 1e8 each, at the median",
+         "call": "f.sf", "args": {"x": 1.0, "dfn": 200000000.0, "dfd": 200000000.0}},
+        {"name": "shapes of 1e8 each, one and a half standard deviations up",
+         "call": "f.sf", "args": {"x": 1.0002, "dfn": 200000000.0, "dfd": 200000000.0}},
         # Chi-squared, published for the log-rank test (#569). One degree of freedom is
         # the two-sample case; the far tail is where a closed form would stop agreeing.
         {"name": "a log-rank test on two groups", "call": CHI2_SF, "args": {"x": 3.84, "df": 1.0}},
@@ -5278,6 +5287,15 @@ def _distribution_fixtures() -> list[dict]:
         {"name": "the far tail at 1e-23", "call": CHI2_SF, "args": {"x": 120.0, "df": 3.0}},
         {"name": "below the support, where the tail is one", "call": CHI2_SF, "args": {"x": 0.0, "df": 2.0}},
         {"name": "a hundred degrees of freedom, near its mean", "call": CHI2_SF, "args": {"x": 100.0, "df": 100.0}},
+        # Large shapes near the mean (#837): a Ljung-Box statistic this wide was about 0.0014 off.
+        {"name": "twenty thousand degrees of freedom, at its mean",
+         "call": CHI2_SF, "args": {"x": 20000.0, "df": 20000.0}},
+        {"name": "two million degrees of freedom, two standard deviations up",
+         "call": CHI2_SF, "args": {"x": 2004000.0, "df": 2000000.0}},
+        {"name": "a shape of 1e8, three standard deviations down",
+         "call": CHI2_SF, "args": {"x": 199940000.0, "df": 200000000.0}},
+        {"name": "a shape of 1e8, one standard deviation up",
+         "call": CHI2_SF, "args": {"x": 200020000.0, "df": 200000000.0}},
         # The normal quantile (#569): a Student one at a huge degrees of freedom reaches
         # it only to about 9e-9, which is why decision 0098 publishes its own member.
         {"name": "the multiplier a 95% large-sample interval asks for", "call": NORM_PPF, "args": {"x": 0.975}},
