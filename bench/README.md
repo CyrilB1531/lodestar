@@ -2851,3 +2851,30 @@ against it at once — cheaper, and it hands a model numbers whose order means s
 not say, which
 [`docs/reference/preprocessing/encoding/ordinalencoder.md`](../docs/reference/preprocessing/encoding/ordinalencoder.md)
 states where a caller will read it.
+
+## 47. Fitting over batches, and over a sparse matrix (issue #765)
+
+`PartialFitBenchmarks` prices the two paths #765 adds against the whole-matrix fit they stand in
+for: ten features, 10,000 and 100,000 rows, cut into 10 and 100 batches; and a `CsrMatrix` with one
+value in ten stored, against the same data densely.
+
+**No foreign incumbent.** ML.NET's normalizers have no incremental entry point, and its sparse
+support lives inside the pipeline rather than in a matrix a caller holds. These rows compare this
+package against itself, which is what the question actually is: whether the batched and sparse paths
+cost what they should.
+
+### What the first run found, before the numbers meant anything
+
+The batched fit measured **twice as fast** as the whole one, which no arithmetic justifies — both
+visit every value. The cause was in this package, not in the benchmark: `StandardScaler.Fit` sums
+with Neumaier compensation and the incremental update did not, following the reference's plainer
+form. **Two paths of one class disagreeing about how careful they are is worse than either choice**,
+so the incremental path now compensates too; it costs about half the gap, and the ratio it leaves is
+one a reader can trust.
+
+The corpus passed under both versions — the difference lives below the 1e-9 it compares at — so
+reading the benchmark is what caught it.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*PartialFitBenchmarks*'
+```

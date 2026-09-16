@@ -45,4 +45,5 @@ the [Python equivalence table](../../../equivalence.md).
 | --- | --- |
 | [`MinMaxScaler.Fit`](minmaxscaler-fit.md) | Fits a scaler on a row-major sample matrix. |
 | [`MinMaxScaler.InverseTransform`](minmaxscaler-inversetransform.md) | Undoes `Transform`, and never clips. |
+| [`MinMaxScaler.PartialFit`](minmaxscaler-partialfit.md) | Folds another batch into the fitted statistics. |
 | [`MinMaxScaler.Transform`](minmaxscaler-transform.md) | Maps a matrix onto the fitted range. |

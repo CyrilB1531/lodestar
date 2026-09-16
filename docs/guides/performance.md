@@ -4458,6 +4458,45 @@ does take a vector column, so the imputer rows compare four features against fou
 and 3,282.43 KB against 1,212.64 KB at 20,000 — this package materialises every encoded column as a
 `double`, where ML.NET's cursor yields rows one at a time and never holds the matrix.
 
+## Fitting over batches, and over a sparse matrix (issue #765)
+
+Full method, and what the first run of it found:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#47-fitting-over-batches-and-over-a-sparse-matrix-issue-765).
+Same machine as above, on 2026-09-16. `BenchmarkDotNet` 0.14.0, default job. Ten features.
+
+**What batching costs.** Ratio above 1 means the batched fit is dearer than one whole fit of the
+same rows.
+
+| rows | batches | whole fit | fitted over batches | ratio |
+| ---: | ---: | ---: | ---: | ---: |
+| 10,000 | 10 | 278.96 μs | **227.91 μs** | **0.82** |
+| 10,000 | 100 | 277.94 μs | 335.65 μs | 1.21 |
+| 100,000 | 10 | 2,782.22 μs | **2,382.02 μs** | **0.86** |
+| 100,000 | 100 | 2,781.29 μs | 2,901.37 μs | 1.04 |
+
+Ten batches are **cheaper** than one fit — the incremental form makes one pass over each batch where
+the whole fit makes two over everything — and a hundred batches are dearer, the per-batch fixed work
+overtaking that saving. Allocation is the honest cost: 3.7 KB against 368 B at ten batches, 36.8 KB
+at a hundred, one small array per fold.
+
+**What sparsity saves.** One value in ten stored, against the same data as a dense matrix:
+
+| rows | sparse fit | dense fit of the same data | ratio |
+| ---: | ---: | ---: | ---: |
+| 10,000 | **15.70 μs** | 278.00 μs | **17.71** |
+| 100,000 | **153.16 μs** | 2,782.68 μs | **18.17** |
+
+**17× to 18× on a matrix that is 10% stored**, which is the zeros not visited and very nearly the
+ratio the density predicts. The statistics are the same ones — `preprocessing_sparse.json` freezes
+the sparse and dense answers side by side and they agree exactly.
+
+**The correction this measurement forced.** The batched fit first measured **twice as fast** as the
+whole one, which no arithmetic justifies. [`StandardScaler.Fit`](../reference/preprocessing/scaling/standardscaler-fit.md)
+sums with Neumaier compensation and
+the incremental update did not, following the reference's plainer form — so the batched path was
+cheaper by being less careful. It compensates now, at about half the gap, and the ratios above are
+what remains. The corpus passed under both, the difference living below the 1e-9 it compares at.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly

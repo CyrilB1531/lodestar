@@ -37,6 +37,8 @@
          would load Lodestar.Stats's net10.0 build and prove nothing about netstandard2.0. -->
     <ProjectReference Include="../../src/Lodestar.Stats/Lodestar.Stats.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.0" />
+    <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
   </ItemGroup>
 
   <ItemGroup>

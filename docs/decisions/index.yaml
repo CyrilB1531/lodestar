@@ -131,7 +131,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: ["0138"]
+  applied_by: ["0138", "0139"]
 
 "0013":
   title: "What `SentencePieceTokenizer` promises, and where it knowingly differs"
@@ -721,7 +721,7 @@
   applies: []
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0139"]
 
 "0072":
   title: "Ω is an input, not a seed, and two options that need one are not offered"
@@ -1331,7 +1331,7 @@
   applies: ["0074", "0075"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0138"]
+  applied_by: ["0138", "0139"]
 
 "0133":
   title: "`Lodestar.Stats.TimeSeries` is a package, and the serial-correlation lot moves into it"
@@ -1389,6 +1389,16 @@
   supersedes: []
   amends: []
   applies: ["0012", "0076", "0095", "0098", "0132"]
+  superseded_by: []
+  amended_by: []
+  applied_by: ["0139"]
+
+"0139":
+  title: "The sparse overloads take the second edge, under 0138's precedent"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0012", "0071", "0132", "0138"]
   superseded_by: []
   amended_by: []
   applied_by: []
