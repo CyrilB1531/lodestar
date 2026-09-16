@@ -4717,6 +4717,15 @@ The partial sums never fall, so every decision is the full sum's; labels and cor
 
 Each sum still receives its terms by ascending index: bit-identical on 1,750 scores. `SilhouetteBenchmarks`.
 
+## The contingency table's cell key, mixed before hashing (issue #812)
+
+| clusters (n = 100,000) | `main` | fix |
+| ---: | ---: | ---: |
+| 10 | 2.70 ms | 1.38 ms |
+| 100 | 20.9 ms | **1.95 ms** |
+
+The key is multiplied by an odd constant modulo 2^64 and inverted when read; insertion order, and so the order [`MutualInformation`](../reference/metrics/clustering/mutualinformation.md) sums in, is unchanged. `ClusteringAgreementBenchmarks`.
+
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-16; both `main` runs agreed within 5%.
