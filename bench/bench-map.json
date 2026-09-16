@@ -205,6 +205,13 @@
       "src/Lodestar.Stats.TimeSeries/**",
       "src/Lodestar.Stats.Regression/**"
     ],
+    "EncoderIncumbentBenchmarks": [
+      "src/Lodestar.Preprocessing/Encoders.cs",
+      "src/Lodestar.Preprocessing/OneHotEncoder.cs",
+      "src/Lodestar.Preprocessing/OrdinalEncoder.cs",
+      "src/Lodestar.Preprocessing/SimpleImputer.cs",
+      "src/Lodestar.Preprocessing/Internal/**"
+    ],
     "ScalerIncumbentBenchmarks": [
       "src/Lodestar.Preprocessing/MinMaxScaler.cs",
       "src/Lodestar.Preprocessing/MaxAbsScaler.cs",

@@ -4425,6 +4425,39 @@ with smaller constants and is where to look if that row ever needs to be cheaper
 20,000 rows: 1,563.96 KB for min-max against ML.NET's 1,133.80 KB, and 3,126.26 KB for robust
 against 4,821.33 KB.
 
+## The encoders and the imputer against ML.NET (issue #764)
+
+Full method, and the shape that had to be corrected first:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#46-the-encoders-and-the-imputer-against-mlnet-issue-764).
+Same machine as above, on 2026-09-16. `BenchmarkDotNet` 0.14.0, one invocation per iteration, five
+warmups and twenty iterations. Twenty categories; ML.NET's estimator is lazy, so it appears as a fit
+and as a fit whose values are read back.
+
+| rows | operation | Lodestar | ML.NET 5.0.0 | ML.NET / Lodestar |
+| ---: | --- | ---: | ---: | ---: |
+| 1,000 | one-hot, fit + transform | **136.37 μs** | 195.66 μs (fit only) | **1.43** |
+| 1,000 | one-hot, **values read** | **136.37 μs** | 728.92 μs | **5.35** |
+| 1,000 | impute, **values read** | **84.09 μs** | 650.84 μs | **7.74** |
+| 20,000 | one-hot, fit + transform | **3,672.62 μs** | 2,083.19 μs (fit only) | 0.57 |
+| 20,000 | one-hot, **values read** | **3,672.62 μs** | 5,384.35 μs | **1.47** |
+| 20,000 | impute, **values read** | **925.39 μs** | 4,670.33 μs | **5.05** |
+
+[`Encoders.Ordinal`](../reference/preprocessing/encoding/encoders-ordinal.md) costs 133.73 μs and 2,875.13 μs at the two sizes — about three quarters of the
+one-hot encoding, at a **tenth** of the allocation (16.70 KB against 165.24 KB at 1,000 rows), since
+it produces one column rather than one per category. ML.NET's `MapValueToKey` is its counterpart and
+is not measured here: it maps to a key type inside the pipeline rather than to a number a caller
+holds.
+
+**The correction, stated because the first table was wrong.** `OneHotEncoding` takes **one named
+column** where this package's encoders take a matrix of however many features, so the first run
+encoded four features here against one there — four times the work for the same row, reported as
+**2.8× slower** at 20,000. One column on both sides is the comparison above. `ReplaceMissingValues`
+does take a vector column, so the imputer rows compare four features against four.
+
+**Allocation** is where the two differ most on the read: 165.24 KB against 413.76 KB at 1,000 rows,
+and 3,282.43 KB against 1,212.64 KB at 20,000 — this package materialises every encoded column as a
+`double`, where ML.NET's cursor yields rows one at a time and never holds the matrix.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly

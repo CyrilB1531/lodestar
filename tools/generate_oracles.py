@@ -4582,6 +4582,172 @@ def generate_preprocessing_scalers() -> dict:
     }
 
 
+# The encoder and imputer corpus (#764): the keys its cases carry, and the calls it freezes.
+ONEHOT = "onehot"
+ORDINAL = "ordinal"
+IMPUTE = "impute"
+DROP_FIRST = "first"
+DROP_IF_BINARY = "if_binary"
+HANDLE_IGNORE = "ignore"
+HANDLE_ERROR = "error"
+ENCODER = "encoder"
+VALUES = "values"
+CATEGORIES = "categories"
+ENCODED = "encoded"
+UNSEEN = "unseen"
+UNSEEN_VALUES = "unseenValues"
+UNSEEN_ENCODED = "unseenEncoded"
+ELEMENT_TYPE = "elementType"
+ELEMENT_STRING = "string"
+ELEMENT_INT = "int"
+DROP = "drop"
+HANDLE_UNKNOWN = "handleUnknown"
+STRATEGY = "strategy"
+FILL_VALUE = "fillValue"
+STATISTICS = "statistics"
+IMPUTED = "imputed"
+STRATEGY_MEAN = "mean"
+STRATEGY_MEDIAN = "median"
+STRATEGY_MOST_FREQUENT = "most_frequent"
+STRATEGY_CONSTANT = "constant"
+
+
+def _encoder_fixtures() -> list[dict]:
+    """One fixture per branch the two encoders have, rather than per shape."""
+    letters = [["b", "x"], ["a", "y"], ["c", "x"], ["a", "y"]]
+    binary = [["y"], ["n"], ["y"], ["y"]]
+    three = [["a"], ["b"], ["c"], ["a"]]
+    return [
+        # Two features at once, so the column layout is pinned: the second feature's
+        # columns follow the first's, each in its own sorted order.
+        {"name": "two string features", ENCODER: ONEHOT, VALUES: letters,
+         DROP: None, HANDLE_UNKNOWN: HANDLE_ERROR, UNSEEN: [["a", "x"]]},
+        {"name": "two string features, drop first", ENCODER: ONEHOT, VALUES: letters,
+         DROP: DROP_FIRST, HANDLE_UNKNOWN: HANDLE_ERROR, UNSEEN: [["a", "x"]]},
+        # if_binary drops the two-category feature and keeps the three-category one whole,
+        # which is the pair that separates it from `first`.
+        {"name": "binary feature, drop if binary", ENCODER: ONEHOT, VALUES: binary,
+         DROP: DROP_IF_BINARY, HANDLE_UNKNOWN: HANDLE_ERROR, UNSEEN: [["n"]]},
+        {"name": "three categories, drop if binary keeps them", ENCODER: ONEHOT, VALUES: three,
+         DROP: DROP_IF_BINARY, HANDLE_UNKNOWN: HANDLE_ERROR, UNSEEN: [["b"]]},
+        # An unknown encodes to all zeros, the row a dropped first category also gives.
+        {"name": "unknown ignored, all zeros", ENCODER: ONEHOT, VALUES: three,
+         DROP: None, HANDLE_UNKNOWN: HANDLE_IGNORE, UNSEEN: [["zzz"], ["a"]]},
+        # numpy sorts strings by code point where .NET's default comparison is culture-sensitive:
+        # ordinal puts 'B' before 'a', a culture the reverse, and the columns differ.
+        {"name": "mixed case sorts by code point", ENCODER: ONEHOT,
+         VALUES: [["B"], ["a"], ["b"], ["A"]],
+         DROP: None, HANDLE_UNKNOWN: HANDLE_ERROR, UNSEEN: [["a"]]},
+        {"name": "integers sort as numbers", ENCODER: ONEHOT, VALUES: [[10], [2], [33], [2]],
+         DROP: None, HANDLE_UNKNOWN: HANDLE_ERROR, UNSEEN: [[33]]},
+        {"name": "ordinal over two string features", ENCODER: ORDINAL, VALUES: letters,
+         DROP: None, HANDLE_UNKNOWN: HANDLE_ERROR, UNSEEN: [["c", "y"]]},
+        {"name": "ordinal over integers", ENCODER: ORDINAL, VALUES: [[10], [2], [33], [2]],
+         DROP: None, HANDLE_UNKNOWN: HANDLE_ERROR, UNSEEN: [[10]]},
+    ]
+
+
+def _imputer_fixtures() -> list[dict]:
+    """One fixture per strategy, plus the two the strategies disagree about."""
+    nan = float("nan")
+    return [
+        {"name": "mean over two features", STRATEGY: STRATEGY_MEAN,
+         VALUES: [[1.0, 10.0], [2.0, nan], [nan, 30.0], [5.0, 40.0]]},
+        # An even count, where the median is the average of the two middle values.
+        {"name": "median of an even count", STRATEGY: STRATEGY_MEDIAN,
+         VALUES: [[1.0], [2.0], [3.0], [4.0], [nan]]},
+        {"name": "median of an odd count", STRATEGY: STRATEGY_MEDIAN,
+         VALUES: [[1.0], [2.0], [3.0], [nan]]},
+        # 1 and 2 both appear twice: the reference fills with the smaller.
+        {"name": "most frequent breaks a tie downward", STRATEGY: STRATEGY_MOST_FREQUENT,
+         VALUES: [[1.0], [1.0], [2.0], [2.0], [nan]]},
+        {"name": "most frequent without a tie", STRATEGY: STRATEGY_MOST_FREQUENT,
+         VALUES: [[3.0], [3.0], [3.0], [7.0], [nan]]},
+        {"name": "constant at its default of zero", STRATEGY: STRATEGY_CONSTANT,
+         VALUES: [[1.0], [nan], [3.0]]},
+        {"name": "constant at a value the caller chose", STRATEGY: STRATEGY_CONSTANT,
+         FILL_VALUE: -1.0, VALUES: [[1.0], [nan], [3.0]]},
+    ]
+
+
+def generate_preprocessing_encoders() -> dict:
+    """OneHotEncoder, OrdinalEncoder and SimpleImputer: categories, layout and fills (#764).
+
+    long-comment: why every encoder case carries a row the fit never saw.
+    The branches that matter -- an unknown value, a dropped category -- are invisible on the
+    matrix the encoder was fitted on, where every value is known and every category present.
+    The unseen rows are where `handle_unknown` and `drop` differ from each other.
+    """
+    import numpy as np
+    from sklearn.impute import SimpleImputer
+    from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
+
+    cases = []
+    for fixture in _encoder_fixtures():
+        rows = fixture[VALUES]
+        matrix = np.array(rows)
+        unseen = np.array(fixture[UNSEEN])
+        if fixture[ENCODER] == ONEHOT:
+            encoder = OneHotEncoder(
+                sparse_output=False, drop=fixture[DROP], handle_unknown=fixture[HANDLE_UNKNOWN]).fit(matrix)
+        else:
+            encoder = OrdinalEncoder().fit(matrix)
+
+        encoded = encoder.transform(matrix)
+        # An integer column sorts as numbers and a string column by code point, which is why
+        # the corpus keeps the type rather than stringifying it.
+        integral = isinstance(rows[0][0], int)
+        flatten = (lambda grid: [int(v) for row in grid for v in row]) if integral else (
+            lambda grid: [str(v) for row in grid for v in row])
+        cases.append({
+            "name": fixture["name"],
+            ENCODER: fixture[ENCODER],
+            ELEMENT_TYPE: ELEMENT_INT if integral else ELEMENT_STRING,
+            VALUES: flatten(rows),
+            FEATURE_COUNT: int(matrix.shape[1]),
+            DROP: fixture[DROP],
+            HANDLE_UNKNOWN: fixture[HANDLE_UNKNOWN],
+            CATEGORIES: [[int(v) if integral else str(v) for v in feature] for feature in encoder.categories_],
+            ENCODED: [float(v) for row in encoded for v in row],
+            "encodedFeatureCount": int(encoded.shape[1]),
+            UNSEEN_VALUES: flatten(fixture[UNSEEN]),
+            UNSEEN_ENCODED: [float(v) for row in encoder.transform(unseen) for v in row],
+        })
+
+    for fixture in _imputer_fixtures():
+        rows = fixture[VALUES]
+        matrix = np.array(rows, dtype=np.float64)
+        imputer = SimpleImputer(
+            strategy=fixture[STRATEGY], fill_value=fixture.get(FILL_VALUE)).fit(matrix)
+        cases.append({
+            "name": fixture["name"],
+            ENCODER: IMPUTE,
+            # A literal NaN marks a missing value and main() writes with allow_nan=False, so it
+            # takes the nan_policy fixtures' spelling: "NaN" as a string, which StatsCorpus reads.
+            SAMPLES: _stats_nan_list([v for row in rows for v in row]),
+            FEATURE_COUNT: int(matrix.shape[1]),
+            STRATEGY: fixture[STRATEGY],
+            FILL_VALUE: fixture.get(FILL_VALUE),
+            STATISTICS: [float(v) for v in imputer.statistics_],
+            IMPUTED: [float(v) for row in imputer.transform(matrix) for v in row],
+        })
+
+    return {
+        "metadata": {
+            "algorithm": "OneHotEncoder, OrdinalEncoder, SimpleImputer",
+            "library": "scikit-learn",
+            "library_version": version("scikit-learn"),
+            "reference_calls": [
+                "sklearn.preprocessing.OneHotEncoder.fit",
+                "sklearn.preprocessing.OrdinalEncoder.fit",
+                "sklearn.impute.SimpleImputer.fit",
+            ],
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
 def _kmeans_fixtures() -> list[dict]:
     """Sample matrices with their starting centres, each chosen for a branch of Lloyd."""
     blobs = [[0.0, 0.0], [0.0, 1.0], [10.0, 10.0], [10.0, 11.0], [5.0, 5.0]]
@@ -11719,6 +11885,7 @@ def main() -> None:
         "stats_ols.json": generate_stats_ols,
         "stats_wls.json": generate_stats_wls,
         "stats_gls.json": generate_stats_gls,
+        "preprocessing_encoders.json": generate_preprocessing_encoders,
         "preprocessing_splitters.json": generate_preprocessing_splitters,
         "stats_glm.json": generate_stats_glm,
         "stats_var.json": generate_stats_var,

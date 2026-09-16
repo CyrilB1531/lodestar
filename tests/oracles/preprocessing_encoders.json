@@ -1,0 +1,597 @@
+{
+ "metadata": {
+  "algorithm": "OneHotEncoder, OrdinalEncoder, SimpleImputer",
+  "library": "scikit-learn",
+  "library_version": "1.9.0",
+  "reference_calls": [
+   "sklearn.preprocessing.OneHotEncoder.fit",
+   "sklearn.preprocessing.OrdinalEncoder.fit",
+   "sklearn.impute.SimpleImputer.fit"
+  ],
+  "count": 16
+ },
+ "cases": [
+  {
+   "name": "two string features",
+   "encoder": "onehot",
+   "elementType": "string",
+   "values": [
+    "b",
+    "x",
+    "a",
+    "y",
+    "c",
+    "x",
+    "a",
+    "y"
+   ],
+   "feature_count": 2,
+   "drop": null,
+   "handleUnknown": "error",
+   "categories": [
+    [
+     "a",
+     "b",
+     "c"
+    ],
+    [
+     "x",
+     "y"
+    ]
+   ],
+   "encoded": [
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "encodedFeatureCount": 5,
+   "unseenValues": [
+    "a",
+    "x"
+   ],
+   "unseenEncoded": [
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "two string features, drop first",
+   "encoder": "onehot",
+   "elementType": "string",
+   "values": [
+    "b",
+    "x",
+    "a",
+    "y",
+    "c",
+    "x",
+    "a",
+    "y"
+   ],
+   "feature_count": 2,
+   "drop": "first",
+   "handleUnknown": "error",
+   "categories": [
+    [
+     "a",
+     "b",
+     "c"
+    ],
+    [
+     "x",
+     "y"
+    ]
+   ],
+   "encoded": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "encodedFeatureCount": 3,
+   "unseenValues": [
+    "a",
+    "x"
+   ],
+   "unseenEncoded": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "binary feature, drop if binary",
+   "encoder": "onehot",
+   "elementType": "string",
+   "values": [
+    "y",
+    "n",
+    "y",
+    "y"
+   ],
+   "feature_count": 1,
+   "drop": "if_binary",
+   "handleUnknown": "error",
+   "categories": [
+    [
+     "n",
+     "y"
+    ]
+   ],
+   "encoded": [
+    1.0,
+    0.0,
+    1.0,
+    1.0
+   ],
+   "encodedFeatureCount": 1,
+   "unseenValues": [
+    "n"
+   ],
+   "unseenEncoded": [
+    0.0
+   ]
+  },
+  {
+   "name": "three categories, drop if binary keeps them",
+   "encoder": "onehot",
+   "elementType": "string",
+   "values": [
+    "a",
+    "b",
+    "c",
+    "a"
+   ],
+   "feature_count": 1,
+   "drop": "if_binary",
+   "handleUnknown": "error",
+   "categories": [
+    [
+     "a",
+     "b",
+     "c"
+    ]
+   ],
+   "encoded": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0
+   ],
+   "encodedFeatureCount": 3,
+   "unseenValues": [
+    "b"
+   ],
+   "unseenEncoded": [
+    0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "unknown ignored, all zeros",
+   "encoder": "onehot",
+   "elementType": "string",
+   "values": [
+    "a",
+    "b",
+    "c",
+    "a"
+   ],
+   "feature_count": 1,
+   "drop": null,
+   "handleUnknown": "ignore",
+   "categories": [
+    [
+     "a",
+     "b",
+     "c"
+    ]
+   ],
+   "encoded": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0
+   ],
+   "encodedFeatureCount": 3,
+   "unseenValues": [
+    "zzz",
+    "a"
+   ],
+   "unseenEncoded": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "mixed case sorts by code point",
+   "encoder": "onehot",
+   "elementType": "string",
+   "values": [
+    "B",
+    "a",
+    "b",
+    "A"
+   ],
+   "feature_count": 1,
+   "drop": null,
+   "handleUnknown": "error",
+   "categories": [
+    [
+     "A",
+     "B",
+     "a",
+     "b"
+    ]
+   ],
+   "encoded": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "encodedFeatureCount": 4,
+   "unseenValues": [
+    "a"
+   ],
+   "unseenEncoded": [
+    0.0,
+    0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "integers sort as numbers",
+   "encoder": "onehot",
+   "elementType": "int",
+   "values": [
+    10,
+    2,
+    33,
+    2
+   ],
+   "feature_count": 1,
+   "drop": null,
+   "handleUnknown": "error",
+   "categories": [
+    [
+     2,
+     10,
+     33
+    ]
+   ],
+   "encoded": [
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0
+   ],
+   "encodedFeatureCount": 3,
+   "unseenValues": [
+    33
+   ],
+   "unseenEncoded": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "name": "ordinal over two string features",
+   "encoder": "ordinal",
+   "elementType": "string",
+   "values": [
+    "b",
+    "x",
+    "a",
+    "y",
+    "c",
+    "x",
+    "a",
+    "y"
+   ],
+   "feature_count": 2,
+   "drop": null,
+   "handleUnknown": "error",
+   "categories": [
+    [
+     "a",
+     "b",
+     "c"
+    ],
+    [
+     "x",
+     "y"
+    ]
+   ],
+   "encoded": [
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "encodedFeatureCount": 2,
+   "unseenValues": [
+    "c",
+    "y"
+   ],
+   "unseenEncoded": [
+    2.0,
+    1.0
+   ]
+  },
+  {
+   "name": "ordinal over integers",
+   "encoder": "ordinal",
+   "elementType": "int",
+   "values": [
+    10,
+    2,
+    33,
+    2
+   ],
+   "feature_count": 1,
+   "drop": null,
+   "handleUnknown": "error",
+   "categories": [
+    [
+     2,
+     10,
+     33
+    ]
+   ],
+   "encoded": [
+    1.0,
+    0.0,
+    2.0,
+    0.0
+   ],
+   "encodedFeatureCount": 1,
+   "unseenValues": [
+    10
+   ],
+   "unseenEncoded": [
+    1.0
+   ]
+  },
+  {
+   "name": "mean over two features",
+   "encoder": "impute",
+   "samples": [
+    1.0,
+    10.0,
+    2.0,
+    "NaN",
+    "NaN",
+    30.0,
+    5.0,
+    40.0
+   ],
+   "feature_count": 2,
+   "strategy": "mean",
+   "fillValue": null,
+   "statistics": [
+    2.6666666666666665,
+    26.666666666666668
+   ],
+   "imputed": [
+    1.0,
+    10.0,
+    2.0,
+    26.666666666666668,
+    2.6666666666666665,
+    30.0,
+    5.0,
+    40.0
+   ]
+  },
+  {
+   "name": "median of an even count",
+   "encoder": "impute",
+   "samples": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    "NaN"
+   ],
+   "feature_count": 1,
+   "strategy": "median",
+   "fillValue": null,
+   "statistics": [
+    2.5
+   ],
+   "imputed": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    2.5
+   ]
+  },
+  {
+   "name": "median of an odd count",
+   "encoder": "impute",
+   "samples": [
+    1.0,
+    2.0,
+    3.0,
+    "NaN"
+   ],
+   "feature_count": 1,
+   "strategy": "median",
+   "fillValue": null,
+   "statistics": [
+    2.0
+   ],
+   "imputed": [
+    1.0,
+    2.0,
+    3.0,
+    2.0
+   ]
+  },
+  {
+   "name": "most frequent breaks a tie downward",
+   "encoder": "impute",
+   "samples": [
+    1.0,
+    1.0,
+    2.0,
+    2.0,
+    "NaN"
+   ],
+   "feature_count": 1,
+   "strategy": "most_frequent",
+   "fillValue": null,
+   "statistics": [
+    1.0
+   ],
+   "imputed": [
+    1.0,
+    1.0,
+    2.0,
+    2.0,
+    1.0
+   ]
+  },
+  {
+   "name": "most frequent without a tie",
+   "encoder": "impute",
+   "samples": [
+    3.0,
+    3.0,
+    3.0,
+    7.0,
+    "NaN"
+   ],
+   "feature_count": 1,
+   "strategy": "most_frequent",
+   "fillValue": null,
+   "statistics": [
+    3.0
+   ],
+   "imputed": [
+    3.0,
+    3.0,
+    3.0,
+    7.0,
+    3.0
+   ]
+  },
+  {
+   "name": "constant at its default of zero",
+   "encoder": "impute",
+   "samples": [
+    1.0,
+    "NaN",
+    3.0
+   ],
+   "feature_count": 1,
+   "strategy": "constant",
+   "fillValue": null,
+   "statistics": [
+    0.0
+   ],
+   "imputed": [
+    1.0,
+    0.0,
+    3.0
+   ]
+  },
+  {
+   "name": "constant at a value the caller chose",
+   "encoder": "impute",
+   "samples": [
+    1.0,
+    "NaN",
+    3.0
+   ],
+   "feature_count": 1,
+   "strategy": "constant",
+   "fillValue": -1.0,
+   "statistics": [
+    -1.0
+   ],
+   "imputed": [
+    1.0,
+    -1.0,
+    3.0
+   ]
+  }
+ ]
+}

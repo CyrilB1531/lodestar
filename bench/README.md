@@ -2817,3 +2817,37 @@ percentile has to order the column: it sorts each feature once, where the other 
 pass. That is the price of the statistic rather than of this implementation — `numpy.percentile`
 partitions instead of sorting, which is the same asymptotic work with smaller constants, and is the
 obvious place to look if that row ever needs to be cheaper.
+
+## 46. The encoders and the imputer against ML.NET (issue #764)
+
+`EncoderIncumbentBenchmarks` races [`Encoders`](../src/Lodestar.Preprocessing/Encoders.cs) and
+`SimpleImputer` against ML.NET 5.0.0's `OneHotEncoding` and `ReplaceMissingValues`, at 1,000 and
+20,000 rows over twenty categories. The job is pinned as section 45's is, and for the same reason.
+
+### The shape that had to be corrected before any number was published
+
+**ML.NET's `OneHotEncoding` takes one named column**, where this package's encoders take a row-major
+matrix of however many features. The first run of this class encoded **four** features here against
+**one** there, which is four times the work for the same row: it reported this package 2.8× slower at
+20,000 rows. Like for like — one categorical column on both sides — it is **1.47× faster**, and the
+class now says so where the constants are declared.
+
+`ReplaceMissingValues` does take a vector column, so the imputer rows compare four features against
+four and need no such care.
+
+**The estimator is lazy**, as section 45 found for the normalizers: `Fit` alone builds the mapping
+and the work happens when the values are read. Both are reported, and the read is the one a caller
+can use.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*EncoderIncumbent*'
+```
+
+### What the shapes say
+
+`Encoders.Ordinal` costs about three quarters of `Encoders.OneHot` and allocates a **tenth** of it:
+one column out against one per category. That ratio is the argument for the ordinal encoding and
+against it at once — cheaper, and it hands a model numbers whose order means something the data did
+not say, which
+[`docs/reference/preprocessing/encoding/ordinalencoder.md`](../docs/reference/preprocessing/encoding/ordinalencoder.md)
+states where a caller will read it.

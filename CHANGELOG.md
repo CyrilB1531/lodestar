@@ -28,6 +28,30 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- **[`Encoders.OneHot`](docs/reference/preprocessing/encoding/encoders-onehot.md),
+  [`Encoders.Ordinal`](docs/reference/preprocessing/encoding/encoders-ordinal.md) and
+  [`SimpleImputer`](docs/reference/preprocessing/encoding/simpleimputer.md) finish the preprocessing
+  surface**, at `sklearn.preprocessing` and `sklearn.impute` parity, over row-major spans rather than
+  an `IDataView`. **Nothing here is absent from .NET** — ML.NET has `OneHotEncoding`,
+  `MapValueToKey` and `ReplaceMissingValues`, SharpLearning has its own two — and the whole argument
+  is the one decision 0132 made: each of them is reached through a framework's data view or its own
+  matrix type, and what is missing is a call that takes an array and returns one. **The encoders are
+  generic over the category type**, because the type decides the order and the order decides the
+  columns: a string sorts by **code point**, numpy's order rather than .NET's culture-sensitive
+  default — `['B', 'a', 'b', 'A']` gives `A, B, a, b`, not `a, A, b, B` — and an integer column sorts
+  as numbers. `Encoders` is a static factory rather than a `Fit` on each encoder, since a public
+  static on a generic type is what CA1000 refuses and inference reads better. Three reference rules
+  are reproduced rather than guessed: `drop="if_binary"` drops the first category **only** where a
+  feature has exactly two, an ignored unknown encodes to **all zeros** — the same row a dropped first
+  category gives, a collision the reference accepts — and a `most_frequent` tie goes to the
+  **smaller** value, measured. `tests/oracles/preprocessing_encoders.json` freezes 16 cases against
+  scikit-learn 1.9.0, each carrying a row the fit never saw so that the unknown and dropped branches
+  are visible, beside 13 edge tests. **One divergence:** a feature with no value at all is refused
+  where the reference **drops it** and returns a matrix one column narrower than the one it was
+  given; `SimpleImputerOptions.KeepEmptyFeatures` gives the reference's `keep_empty_features=True`
+  behaviour, and either way the output has as many columns as the input.
+  ([#764](https://github.com/CyrilB1531/lodestar/issues/764))
+
 - **[`MinMaxScaler`](docs/reference/preprocessing/scaling/minmaxscaler.md),
   [`MaxAbsScaler`](docs/reference/preprocessing/scaling/maxabsscaler.md) and
   [`RobustScaler`](docs/reference/preprocessing/scaling/robustscaler.md) join `StandardScaler`**, at
