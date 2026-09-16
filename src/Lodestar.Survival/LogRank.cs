@@ -35,16 +35,18 @@ public static class LogRank
 
         double[] times = DistinctEventTimes(
             durationsA, eventObservedA, durationsB, eventObservedB);
+        var armA = new SortedArm(durationsA, eventObservedA);
+        var armB = new SortedArm(durationsB, eventObservedB);
 
         double observedMinusExpected = 0.0;
         double variance = 0.0;
 
+        // Both arms sorted once and walked forward with the times, so each distinct time costs
+        // the ties at it rather than two full passes per arm: O(n log n) where it was O(n²).
         foreach (double time in times)
         {
-            int riskA = AtRisk(durationsA, time);
-            int riskB = AtRisk(durationsB, time);
-            int eventsA = EventsAt(durationsA, eventObservedA, time);
-            int eventsB = EventsAt(durationsB, eventObservedB, time);
+            (int riskA, int eventsA) = armA.Advance(time);
+            (int riskB, int eventsB) = armB.Advance(time);
 
             int risk = riskA + riskB;
             int events = eventsA + eventsB;
@@ -80,14 +82,29 @@ public static class LogRank
         ReadOnlySpan<double> durationsB,
         ReadOnlySpan<bool> eventsB)
     {
-        SortedSet<double> times = [];
+        var times = new List<double>(durationsA.Length + durationsB.Length);
         Collect(times, durationsA, eventsA);
         Collect(times, durationsB, eventsB);
-        return [.. times];
+        times.Sort();
+
+        // Adjacent duplicates removed in place: the ascending distinct times a sorted set gave.
+        int kept = 0;
+        for (int i = 0; i < times.Count; i++)
+        {
+            // S1244: equal recorded durations are the same time, as in RiskTable.
+#pragma warning disable S1244
+            if (kept == 0 || times[i] != times[kept - 1])
+#pragma warning restore S1244
+            {
+                times[kept++] = times[i];
+            }
+        }
+
+        return [.. times.GetRange(0, kept)];
     }
 
     private static void Collect(
-        SortedSet<double> times, ReadOnlySpan<double> durations, ReadOnlySpan<bool> observed)
+        List<double> times, ReadOnlySpan<double> durations, ReadOnlySpan<bool> observed)
     {
         for (int i = 0; i < durations.Length; i++)
         {
@@ -98,38 +115,42 @@ public static class LogRank
         }
     }
 
-    /// <summary>How many of a group were still at risk immediately before <paramref name="time"/>.</summary>
-    private static int AtRisk(ReadOnlySpan<double> durations, double time)
+    /// <summary>One arm sorted by duration, read forward as the times rise.</summary>
+    private sealed class SortedArm
     {
-        int count = 0;
-        foreach (double d in durations)
+        private readonly double[] _durations;
+        private readonly bool[] _observed;
+        private int _passed;
+
+        public SortedArm(ReadOnlySpan<double> durations, ReadOnlySpan<bool> observed)
         {
-            if (d >= time)
-            {
-                count++;
-            }
+            _durations = durations.ToArray();
+            _observed = observed.ToArray();
+            Array.Sort(_durations, _observed);
         }
 
-        return count;
-    }
-
-    private static int EventsAt(
-        ReadOnlySpan<double> durations, ReadOnlySpan<bool> observed, double time)
-    {
-        int count = 0;
-        for (int i = 0; i < durations.Length; i++)
+        /// <summary>How many are still at risk at <paramref name="time"/>, and how many have an event there.</summary>
+        /// <remarks>Times must arrive ascending; the subjects before one are never read again.</remarks>
+        public (int AtRisk, int Events) Advance(double time)
         {
-            // S1244: as in RiskTable — a tie is the same recorded duration, and the
-            // times compared against come from these very spans, so they are equal or
-            // they are different events.
+            while (_passed < _durations.Length && _durations[_passed] < time)
+            {
+                _passed++;
+            }
+
+            int events = 0;
+            // S1244: as in RiskTable — a tie is the same recorded duration.
 #pragma warning disable S1244
-            if (observed[i] && durations[i] == time)
+            for (int i = _passed; i < _durations.Length && _durations[i] == time; i++)
 #pragma warning restore S1244
             {
-                count++;
+                if (_observed[i])
+                {
+                    events++;
+                }
             }
-        }
 
-        return count;
+            return (_durations.Length - _passed, events);
+        }
     }
 }

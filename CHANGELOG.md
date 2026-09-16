@@ -174,6 +174,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- `LogRank.Test` sorts each arm once and walks it with the event times, where it rescanned both arms at every time. ([#811](https://github.com/CyrilB1531/lodestar/issues/811))
 - `KaplanMeierCurve` and `NelsonAalenCurve` compare their arrays by value. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
 
 ### Lodestar.Metrics

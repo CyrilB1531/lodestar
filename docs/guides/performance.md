@@ -4678,6 +4678,20 @@ records it against the hosted runner's opposite reading in
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime. 2026-09-16.
 
+## [`LogRank.Test`](../reference/survival/estimators/logrank-test.md) in one sorted walk (issue #811)
+
+| n | distinct times | `main` | fix |
+| ---: | ---: | ---: | ---: |
+| 1,000 | 100% | 606 µs | 17.0 µs |
+| 100,000 | 4% | 1.60 s | 8.79 ms |
+| 100,000 | 100% | 19.25 s | **10.24 ms** |
+
+Same times, same integer counts, same accumulation order: bit-identical. `SurvivalBenchmarks.LogRankTest`; allocation rises to about 1.7 MB at 100,000 subjects for the sorted copies.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
+LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
+2026-09-16; both `main` runs agreed within 5%.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly
