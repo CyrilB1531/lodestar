@@ -4584,11 +4584,14 @@ agree before anything was timed.
 | Student t, pooled | **2.88** | **4.81** | 0 B / 104 B |
 | Mann-Whitney | **1.47** | **5.25** | 0 B / 80,379 B |
 | Kruskal-Wallis | **1.32** | **3.44** | 33 B / 120,702 B |
-| Kolmogorov-Smirnov | **1.47** | **1.16** | 160,051 B / 80,371 B |
+| Kolmogorov-Smirnov | **1.47** | **1.48** | 160,051 B / 80,371 B |
 | One-way ANOVA | **3.46** | **3.21** | 32 B / 744 B |
 | Wilcoxon signed rank | 0.95 | **1.18** | 80,056 B / 80,176 B |
 | Fisher exact | **3.49** | **3.45** | **0 B** / 944 B |
 | χ² contingency | **5.95** | **5.94** | 168 B / 968 B |
+
+The Kolmogorov-Smirnov row at n = 10,000 was re-measured on 2026-09-16 after #802 made `Auto` exact
+there; it read 1.16 when `Auto` was asymptotic. The other rows are the original run's.
 
 **Two rows moved between the first run of this comparison and this one, and the measurement is why
 they moved.** Meta.Numerics was ahead on Fisher's exact test and on the equal-size exact
@@ -4627,6 +4630,26 @@ Both report the same first component's variance fraction, checked to `1e-9` rela
 was timed. **Meta.Numerics refuses the fourth shape**: 100 rows by 200 features raises
 `InsufficientDataException`, where this package and NumFlat both answer — so the wide matrix has no
 Meta.Numerics row at all rather than a slow one.
+
+## Kolmogorov-Smirnov's exact default for equal sizes (issue #802)
+
+`KsAutoBenchmarks` on the machine below, 2026-09-16, `BenchmarkDotNet` 0.14.0, default job: two
+samples of the same size, two-sided. `ExactMethod.Asymptotic` is the default before #802 and `Auto`
+the default after, which is now scipy's exact p-value.
+
+| n | before (asymptotic) | after (exact) | after / before | allocated |
+| ---: | ---: | ---: | ---: | ---: |
+| 1,000 | 20.00 μs | 20.93 μs | 1.05 | 15.7 KB |
+| 10,000 | 1,259.37 μs | 966.51 μs | **0.77** | 156.3 KB |
+
+**Parity costs 5% at 1,000 and is 23% cheaper at 10,000.** Both routes sort both samples and allocate
+the same, so the difference is the p-value computation alone; this run does not say which part of
+the asymptotic route costs more.
+[Decision 0141](../decisions/0141-kolmogorov-smirnov-auto-follows-scipy-for-equal-sizes.md) has the
+behaviour change.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
+LTS, .NET 10.0.12 runtime.
 
 ## [`VectorMath.Dot`](../reference/embeddings/search/vectormath-dot.md) against `TensorPrimitives`, by vector width (issue #754)
 

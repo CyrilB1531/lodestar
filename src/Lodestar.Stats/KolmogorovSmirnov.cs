@@ -15,6 +15,10 @@ public static class KolmogorovSmirnov
     // table costs more than the asymptotic answer is worth.
     private const long AutoExactLimit = 10_000;
 
+    // scipy's MAX_AUTO_N: its Auto is exact while max(n, m) is at most this. Only the equal-size
+    // two-sided case follows it here, the one the closed form makes cheap (#802).
+    private const int AutoExactMaxSize = 10_000;
+
     // long-comment: the bound below is a measured allocation ceiling, not a
     // round number, and a reviewer should be able to see the measurement
     // without leaving the source.
@@ -43,9 +47,9 @@ public static class KolmogorovSmirnov
     /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/> and <c>a.Length * b.Length</c>
-    /// exceeds 1,000,000; the lattice-path recurrence allocates one row per iteration, an
-    /// O(n · m) cost in both time and allocation. Pass <see cref="ExactMethod.Asymptotic"/> instead.
+    /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/>, <c>a.Length * b.Length</c>
+    /// exceeds 1,000,000, and the samples differ in size or the alternative is one-sided: the
+    /// lattice-path recurrence allocates one row per iteration. Pass <see cref="ExactMethod.Asymptotic"/> instead.
     /// </exception>
     public static KsResult TwoSample(
         ReadOnlySpan<double> a,
@@ -88,7 +92,11 @@ public static class KolmogorovSmirnov
         (double statistic, double location, int sign) = Statistic(sortedA, sortedB, alternative);
 
         long product = (long)n * m;
-        bool tableTooLarge = product > MaxExactProduct;
+
+        // Equal sizes, two-sided, is a closed form in O(n) with no table, so neither the table's
+        // allocation ceiling nor its Auto threshold applies; scipy's own size rule does (#802).
+        bool closedForm = n == m && alternative == Alternative.TwoSided;
+        bool tableTooLarge = !closedForm && product > MaxExactProduct;
         if (method == ExactMethod.Exact && tableTooLarge)
         {
             throw new ArgumentOutOfRangeException(
@@ -102,7 +110,7 @@ public static class KolmogorovSmirnov
         {
             ExactMethod.Exact => true,
             ExactMethod.Asymptotic => false,
-            _ => product <= AutoExactLimit,
+            _ => closedForm ? n <= AutoExactMaxSize : product <= AutoExactLimit,
         };
 
         // Auto never throws: past the bound it falls back to asymptotic

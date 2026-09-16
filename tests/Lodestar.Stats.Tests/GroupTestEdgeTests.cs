@@ -99,8 +99,27 @@ public sealed class GroupTestEdgeTests
     [Fact]
     public void Ks_refuses_an_exact_request_whose_table_is_too_large()
     {
-        // n * m = 1,440,000, past the 1,000,000 bound: ExactPValue would allocate a
-        // fresh double[m+1] row on each of n+1 iterations.
+        // n * m = 1,441,200, past the 1,000,000 bound, and unequal so the table is walked:
+        // ExactPValue would allocate a fresh double[m+1] row on each of n+1 iterations.
+        double[] big = new double[1200];
+        double[] alsoBig = new double[1201];
+        for (int i = 0; i < 1200; i++)
+        {
+            big[i] = i;
+            alsoBig[i] = i + 0.5;
+        }
+
+        alsoBig[1200] = 1200.5;
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => KolmogorovSmirnov.TwoSample(big, alsoBig, method: ExactMethod.Exact));
+    }
+
+    [Fact]
+    public void Ks_answers_an_exact_request_past_the_bound_when_the_sizes_are_equal()
+    {
+        // Equal sizes, two-sided, is Hodges' closed form with no table (#802), so the
+        // allocation bound that refuses 1,200 against 1,201 does not refuse 1,200 against 1,200.
         double[] big = new double[1200];
         double[] alsoBig = new double[1200];
         for (int i = 0; i < 1200; i++)
@@ -109,8 +128,9 @@ public sealed class GroupTestEdgeTests
             alsoBig[i] = i + 0.5;
         }
 
-        Assert.Throws<ArgumentOutOfRangeException>(
-            () => KolmogorovSmirnov.TwoSample(big, alsoBig, method: ExactMethod.Exact));
+        KsResult result = KolmogorovSmirnov.TwoSample(big, alsoBig, method: ExactMethod.Exact);
+
+        Assert.InRange(result.PValue, 0.0, 1.0);
     }
 
     [Fact]

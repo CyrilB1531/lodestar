@@ -11753,20 +11753,31 @@ def generate_stats_ks() -> dict:
         {"name": "sizes 100 and 99, the table branch", "a": hundred_a, "b": hundred_b[:99]},
     ]
 
+    def case(name, a, b, alternative, method):
+        r = sps.ks_2samp(a, b, alternative=alternative, method=method)
+        return {
+            "name": f"{name} | {method} | {alternative}",
+            "call": KS_2SAMP,
+            "args": {ALTERNATIVE: alternative, METHOD: method},
+            "a": a, "b": b,
+            STATISTIC: float(r.statistic), PVALUE: float(r.pvalue),
+            "statistic_location": float(r.statistic_location),
+            "statistic_sign": int(r.statistic_sign),
+        }
+
     cases: list[dict] = []
+    # scipy's Auto is exact while max(n, m) <= 10,000 (#802): 1,000 was asymptotic here, and 10,001
+    # pins the top, where Exact must answer by the closed form rather than refuse.
+    for size, methods in ((1_000, ("auto",)), (10_000, ("auto",)), (10_001, ("auto", "exact"))):
+        big_rng = SeededRandom(SEED + 802 + size)
+        big_a = [round(big_rng.gauss(0.0, 1.0), 4) for _ in range(size)]
+        big_b = [round(big_rng.gauss(0.05, 1.0), 4) for _ in range(size)]
+        cases.extend(case(f"equal sizes of {size:,}", big_a, big_b, TWO_SIDED, method) for method in methods)
+
     for fx in fixtures:
         for method in ("auto", "asymp", "exact"):
             for alternative in (TWO_SIDED, "less", GREATER):
-                r = sps.ks_2samp(fx["a"], fx["b"], alternative=alternative, method=method)
-                cases.append({
-                    "name": f"{fx['name']} | {method} | {alternative}",
-                    "call": KS_2SAMP,
-                    "args": {ALTERNATIVE: alternative, METHOD: method},
-                    "a": fx["a"], "b": fx["b"],
-                    STATISTIC: float(r.statistic), PVALUE: float(r.pvalue),
-                    "statistic_location": float(r.statistic_location),
-                    "statistic_sign": int(r.statistic_sign),
-                })
+                cases.append(case(fx["name"], fx["a"], fx["b"], alternative, method))
 
     for fx in _stats_nan_samples():
         for policy in (PROPAGATE, "omit"):
