@@ -183,6 +183,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- `Silhouette.PerSample` sums each pair's distance per cluster instead of holding the n × n distance matrix. ([#815](https://github.com/CyrilB1531/lodestar/issues/815))
 - `MeanSquaredError`, `MeanAbsoluteError` and `R2` read their input once to validate and score it. ([#715](https://github.com/CyrilB1531/lodestar/issues/715), [`a954161e`](https://github.com/CyrilB1531/lodestar/commit/a954161e))
 
 ## Released — 2026-09-10

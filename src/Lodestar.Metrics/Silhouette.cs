@@ -49,26 +49,40 @@ public static class Silhouette
     public static double[] PerSample(ReadOnlySpan<int> labels, ReadOnlySpan<double> features, int featureCount)
     {
         int samples = Partition.Samples(labels, features, featureCount);
-        if ((long)samples * samples > int.MaxValue)
+        int[] sizes = Partition.Sizes(labels, out int[] ordinals, out int clusters);
+        Partition.RequireScorableCount(clusters, samples, nameof(labels));
+        if ((long)samples * clusters > int.MaxValue)
         {
             throw new ArgumentException(
-                $"{samples} samples need a {(long)samples * samples}-element distance matrix, " +
-                "which does not fit an array. Cluster a sample of them, or pass distances you hold.",
+                $"{samples} samples in {clusters} clusters need {(long)samples * clusters} sums, " +
+                "which does not fit an array.",
                 nameof(labels));
         }
 
-        double[] distances = new double[samples * samples];
+        // Each pair's distance goes straight into both samples' per-cluster sums, never an n x n matrix,
+        // and a sum still receives its terms by ascending j, so every score is the bit it was (#815).
+        double[] sums = new double[samples * clusters];
         for (int i = 0; i < samples; i++)
         {
+            int rowI = i * clusters;
+            int clusterI = ordinals[i];
             for (int j = i + 1; j < samples; j++)
             {
                 double distance = Euclidean(features, featureCount, i, j);
-                distances[(i * samples) + j] = distance;
-                distances[(j * samples) + i] = distance;
+                sums[rowI + ordinals[j]] += distance;
+                sums[(j * clusters) + clusterI] += distance;
             }
         }
 
-        return PerSampleFromDistances(labels, distances);
+        double[] scores = new double[samples];
+        double[] row = new double[clusters];
+        for (int i = 0; i < samples; i++)
+        {
+            Array.Copy(sums, i * clusters, row, 0, clusters);
+            scores[i] = Score(row, sizes, ordinals[i]);
+        }
+
+        return scores;
     }
 
     /// <summary>The score of each sample, from a distance matrix — <c>sklearn.metrics.silhouette_samples(D, labels, metric='precomputed')</c>.</summary>
