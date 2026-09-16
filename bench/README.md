@@ -2736,3 +2736,50 @@ equation is its own least squares, so the two parameters multiply.
 
 Run once outside the harness on the benchmark corpus, the standard errors agree with `statsmodels` to `7.5e-15` and
 the Akaike criterion to `1.6e-15`, at 1,000, 10,000 and 100,000 rows.
+
+## 44. The splitters against ML.NET and `scikit-learn` (issue #762)
+
+`SplitterIncumbentBenchmarks` races `Splitters` against ML.NET 5.0.0's `CrossValidationSplit` and
+`TrainTestSplit`, the only splitters in .NET, at 10,000 and 100,000 rows and five folds.
+
+**The two sides cannot be made to agree, and that is the finding rather than a caveat.** ML.NET
+splits an `IDataView` by hashing a generated sampling key, so its folds are not reproducible from
+outside and it never stratifies at all
+([dotnet/machinelearning#4396](https://github.com/dotnet/machinelearning/issues/4396), open since
+2019). There is no agreement check before timing here because there is nothing to check: what these
+rows price is the same intent, not the same answer. Agreement is proven elsewhere and exactly —
+`tests/oracles/preprocessing_splitters.json` replays these folds index for index against
+`scikit-learn`.
+
+**ML.NET's split is lazy, so it has to be measured twice.** `CrossValidationSplit` returns data views
+that filter rows when they are enumerated, so the call alone measures the construction of ten
+wrappers — flat in the row count, which is the tell. The `_Read` rows call it and then read which
+rows each fold holds, which is what a caller needs before fitting anything. The `IDataView` is built
+in `GlobalSetup` and excluded from every measurement, so ML.NET is not charged for its own entry
+cost here.
+
+`compare-splitters` puts the same three splitters against `scikit-learn` 1.9.0 at 10,000, 100,000 and
+1,000,000 rows. No corpus file: a splitter's whole input is a row count and a label per row, so both
+sides build the labels from the row index by the same rule — three classes at 60 / 30 / 10, skewed
+rather than balanced because that is where a stratified splitter does work a plain one does not.
+`scikit-learn`'s `split()` is a generator and is drained into a list, since yielding a fold and
+building one are not the same work; its `X` is a dummy column allocated outside the timed region,
+because it takes the matrix only to read `len(X)` from it.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*SplitterIncumbent*'
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-splitters
+python3 bench/python/bench_splitters.py
+python3 bench/compare.py splitters
+```
+
+### What moved while this was measured
+
+`TrainTest` sorted both index halves and filled an order array even when the read order was the
+identity, where the halves come out ascending on their own. Two steps, each measured at a million
+rows: dropping the sort on an identity read took **6.1 ms to 2.5 ms**, and writing the two halves
+straight out — no order array, nothing to sort — took it to **0.5 ms**. A/B/A on the first step put
+the sort back and measured **6.1 ms** again, which is what says the difference is the sort rather
+than the machine: the 1,000,000-row rows carry about ±20% run-to-run spread here, enough to invent a
+regression out of one reading, and `KFold` at a million rows read 10.0 ms once and 12.0 to 12.4 ms in
+every run after, on code neither step touched.

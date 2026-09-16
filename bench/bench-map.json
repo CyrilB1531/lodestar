@@ -196,6 +196,11 @@
     "DistributionTailBenchmarks": [
       "src/Lodestar.Stats/**"
     ],
+    "SplitterIncumbentBenchmarks": [
+      "src/Lodestar.Preprocessing/Splitters.cs",
+      "src/Lodestar.Preprocessing/FoldSplit.cs",
+      "src/Lodestar.Preprocessing/TrainTestSplit.cs"
+    ],
     "StationarityBenchmarks": [
       "src/Lodestar.Stats.TimeSeries/**",
       "src/Lodestar.Stats.Regression/**"
@@ -320,6 +325,18 @@
       "sources": [
         "src/Lodestar.Stats/**",
         "bench/Lodestar.Text.Benchmarks/CrossLang/StatsCrossLang.cs"
+      ]
+    },
+    "splitters": {
+      "subcommand": "compare-splitters",
+      "python": "bench/python/bench_splitters.py",
+      "compare": "splitters",
+      "generate": [],
+      "sources": [
+        "src/Lodestar.Preprocessing/Splitters.cs",
+        "src/Lodestar.Preprocessing/FoldSplit.cs",
+        "src/Lodestar.Preprocessing/TrainTestSplit.cs",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/SplittersCrossLang.cs"
       ]
     },
     "glm": {

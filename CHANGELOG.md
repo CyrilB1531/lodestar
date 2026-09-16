@@ -24,6 +24,35 @@ is one sentence, the issue and the commit; see
 
 ## [Unreleased]
 
+### Lodestar.Preprocessing
+
+#### Added
+
+- **[`Splitters`](docs/reference/preprocessing/splitting/splitters.md) cuts cross-validation folds
+  and a train/test split over row indices**, at `sklearn.model_selection` parity wherever the
+  reference is deterministic, and without a framework in the way. `KFold`, `StratifiedKFold` and
+  `TrainTest` are told how many rows there are — or, to stratify, what class each row belongs to —
+  and hand back [`FoldSplit`](docs/reference/preprocessing/splitting/foldsplit.md) or
+  [`TrainTestSplit`](docs/reference/preprocessing/splitting/traintestsplit.md) index lists; nothing
+  is copied and the caller's layout is never decided for them. This is a **.NET void, not a
+  preference**: ML.NET's `TrainTestSplit` and `CrossValidationSplit` take and return an `IDataView`
+  and never stratify ([dotnet/machinelearning#4396](https://github.com/dotnet/machinelearning/issues/4396),
+  open since 2019), and SharpLearning's `StratifiedIndexSampler<T>` always shuffles from a seed, so
+  neither reproduces a scikit-learn fold. **The permutation is an argument, not a seed**: `order` is
+  a permutation of `0..n−1` the rows are read in, so passing scikit-learn's own gives scikit-learn's
+  shuffled folds, and passing your own still gives a split that replays exactly — `random_state`
+  reaches numpy's generator and .NET has no copy of it. Two reference rules are reproduced rather
+  than reinvented, and an implementation that guesses either passes most cases and fails these:
+  fold `i` takes the sorted labels at positions `i`, `i + k`, …, so **a class of two rows over three
+  folds lands in folds 0 and 2** rather than 0 and 1; and **classes are numbered by first
+  appearance, not by label value**, so `[1,1,1,1,1,0,0,0,2,2]` does not split like its sorted
+  counterpart. `tests/oracles/preprocessing_splitters.json` freezes 19 cases against scikit-learn
+  1.9.0 — compared exactly, since these are indices — beside 10 edge tests for every refusal and for
+  the partition each fold set must form. One deliberate divergence: where a fold count above the
+  smallest class count makes the reference warn, this returns the folds and the page says what the
+  short class costs, because a warning is not a return value; a count above *every* class count is
+  still refused. ([#762](https://github.com/CyrilB1531/lodestar/issues/762))
+
 ### Lodestar.Conformal
 
 #### Added

@@ -6127,6 +6127,107 @@ def generate_stats_var() -> dict:
     }
 
 
+# The splitter corpus (#762): its keys, and the calls it freezes.
+FOLD_COUNT = "foldCount"
+SAMPLE_COUNT = "sampleCount"
+LABELS_KEY = "labels"
+ORDER = "order"
+TEST_FRACTION = "testFraction"
+TRAIN_INDICES = "trainIndices"
+TEST_INDICES = "testIndices"
+FOLDS = "folds"
+
+
+def generate_preprocessing_splitters() -> dict:
+    """scikit-learn's KFold, StratifiedKFold and train_test_split, as index lists (#762).
+
+    long-comment: why one shuffled case of each is frozen with its permutation.
+    Unshuffled, the three are deterministic and this package matches them exactly. Shuffled, the
+    reference draws its permutation from `random_state` through numpy's generator, which nothing
+    here reproduces -- so the permutation is frozen beside the folds and handed to the C# as the
+    input it is (decision 0132), which pins the allocation rule rather than the draw.
+    """
+    import numpy as np
+    import sklearn
+    from sklearn.model_selection import KFold, StratifiedKFold, train_test_split
+
+    cases: list[dict] = []
+    for samples, folds in ((10, 3), (12, 4), (11, 4), (7, 7), (12, 5)):
+        # NOSONAR S6709: unshuffled, and the reference refuses a random_state here --
+        # "Setting a random_state has no effect since shuffle is False" is a ValueError.
+        splits = list(KFold(n_splits=folds).split(np.zeros((samples, 1))))  # NOSONAR S6709
+        cases.append({
+            "name": f"kfold, {samples} rows in {folds} folds",
+            "call": "kfold", SAMPLE_COUNT: samples, FOLD_COUNT: folds,
+            FOLDS: [{TRAIN_INDICES: train.tolist(), TEST_INDICES: test.tolist()} for train, test in splits],
+        })
+
+    labelled = {
+        "balanced, three classes": [0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2],
+        "unbalanced, a class of two": [1, 1, 1, 1, 1, 0, 0, 0, 2, 2],
+        "two classes, odd counts": [0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0],
+        "labels that are not contiguous": [7, 7, 7, -3, -3, -3, 40, 40, 40, 7],
+    }
+    for name, labels in labelled.items():
+        for folds in (2, 3):
+            splits = list(  # NOSONAR S6709: unshuffled, see above
+                StratifiedKFold(n_splits=folds)  # NOSONAR S6709
+                .split(np.zeros((len(labels), 1)), np.array(labels)))
+            cases.append({
+                "name": f"stratified {folds} folds, {name}",
+                "call": "stratified", LABELS_KEY: labels, FOLD_COUNT: folds,
+                FOLDS: [{TRAIN_INDICES: train.tolist(), TEST_INDICES: test.tolist()} for train, test in splits],
+            })
+
+    for samples, fraction in ((10, 0.2), (11, 0.25), (8, 0.5), (9, 0.34)):
+        train, test = train_test_split(  # NOSONAR S6709: shuffle=False ignores a random_state
+            np.arange(samples), test_size=fraction, shuffle=False)
+        cases.append({
+            "name": f"train/test, {samples} rows at {fraction}",
+            "call": "trainTest", SAMPLE_COUNT: samples, TEST_FRACTION: fraction,
+            TRAIN_INDICES: train.tolist(), TEST_INDICES: test.tolist(),
+        })
+
+    # One shuffled case of each, the permutation frozen beside the folds.
+    rng = np.random.default_rng(762)
+    order = rng.permutation(12)
+    shuffled = np.asarray(order)
+    kfold_shuffled = [
+        {TRAIN_INDICES: sorted(shuffled[train].tolist()), TEST_INDICES: sorted(shuffled[test].tolist())}
+        # NOSONAR S6709: the permutation is applied above and frozen in the case; the split itself
+        # is unshuffled, which is what makes it reproducible from the permutation alone.
+        for train, test in KFold(n_splits=3).split(np.zeros((12, 1)))  # NOSONAR S6709
+    ]
+    cases.append({
+        "name": "kfold, 12 rows in 3 folds, permuted",
+        "call": "kfold", SAMPLE_COUNT: 12, FOLD_COUNT: 3, ORDER: shuffled.tolist(), FOLDS: kfold_shuffled,
+    })
+
+    labels = [0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2]
+    permuted_labels = [labels[i] for i in shuffled.tolist()]
+    folds_of = list(  # NOSONAR S6709: unshuffled, see above
+        StratifiedKFold(n_splits=3)  # NOSONAR S6709
+        .split(np.zeros((12, 1)), np.array(permuted_labels)))
+    cases.append({
+        "name": "stratified 3 folds, balanced, permuted",
+        "call": "stratified", LABELS_KEY: labels, FOLD_COUNT: 3, ORDER: shuffled.tolist(),
+        FOLDS: [
+            {TRAIN_INDICES: sorted(shuffled[train].tolist()), TEST_INDICES: sorted(shuffled[test].tolist())}
+            for train, test in folds_of
+        ],
+    })
+
+    return {
+        "metadata": {
+            "library": "scikit-learn",
+            "version": sklearn.__version__,
+            FAMILY: "splitters",
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
 def generate_stats_glm() -> dict:
     """statsmodels' GLM, one block per family (#616).
 
@@ -11432,6 +11533,7 @@ def main() -> None:
         "stats_ols.json": generate_stats_ols,
         "stats_wls.json": generate_stats_wls,
         "stats_gls.json": generate_stats_gls,
+        "preprocessing_splitters.json": generate_preprocessing_splitters,
         "stats_glm.json": generate_stats_glm,
         "stats_var.json": generate_stats_var,
         "stats_mnlogit.json": generate_stats_mnlogit,

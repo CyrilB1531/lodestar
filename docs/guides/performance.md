@@ -4337,6 +4337,62 @@ What the fit costs by shape, from `VectorAutoregressionBenchmarks`, `BenchmarkDo
 
 Both axes multiply: a system of `K` variables at lag `p` fits `K` least squares over a design of `1 + K·p` columns.
 
+## The splitters against ML.NET and scikit-learn (issue #762)
+
+Full method and what cannot be made to agree:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#44-the-splitters-against-mlnet-and-scikit-learn-issue-762).
+Same machine as above, on 2026-09-16. `BenchmarkDotNet` 0.14.0, default job, one run. Five folds,
+three classes at 60 / 30 / 10.
+
+**ML.NET's split is lazy**, so it appears twice: the call, and the call followed by reading which
+rows each fold holds. Only the second is a split a caller can fit on, and it is the one that scales
+with the data — the construction is flat in the row count because it builds ten wrappers and stops.
+
+| rows | operation | Lodestar | ML.NET 5.0.0 | ML.NET / Lodestar |
+| ---: | --- | ---: | ---: | ---: |
+| 10,000 | five folds, constructed | **52.52 μs** | 79.19 μs | 1.51 |
+| 10,000 | five folds, rows read | **52.52 μs** | 3,330.43 μs | **63.44** |
+| 10,000 | train/test, constructed | **3.11 μs** | 15.70 μs | 5.05 |
+| 10,000 | train/test, rows read | **3.11 μs** | 592.81 μs | **190.55** |
+| 100,000 | five folds, constructed | **695.48 μs** | 78.35 μs | 0.11 |
+| 100,000 | five folds, rows read | **695.48 μs** | 25,527.38 μs | **36.71** |
+| 100,000 | train/test, constructed | **56.81 μs** | 16.30 μs | 0.29 |
+| 100,000 | train/test, rows read | **56.81 μs** | 4,454.57 μs | **78.42** |
+
+Stratifying costs 136.77 μs at 10,000 rows and 1,489.37 μs at 100,000 — 2.6× and 2.1× the plain fold
+cut. **ML.NET has no row to compare it against**: `CrossValidationSplit` and `TrainTestSplit` never
+stratify ([dotnet/machinelearning#4396](https://github.com/dotnet/machinelearning/issues/4396), open
+since 2019).
+
+Allocation, per operation: 273.94 KB against ML.NET's 149.07 KB at 10,000 rows for the fold cut —
+**this returns every index of every fold, where ML.NET returns views that allocate again on each
+read**, so the two columns count different things and the larger one is the one holding the answer.
+
+Against `scikit-learn` 1.9.0 through `compare-splitters`, one run of each side, milliseconds per
+split, best of five:
+
+| n | operation | Lodestar | `scikit-learn`, wall / cpu | ratio, wall |
+| ---: | --- | ---: | ---: | ---: |
+| 10,000 | `KFold` | **0.050 ms** | 0.057 / 0.057 ms | **1.14** |
+| 10,000 | `StratifiedKFold` | **0.135 ms** | 0.445 / 0.445 ms | **3.30** |
+| 10,000 | train/test | **0.003 ms** | 0.073 / 0.073 ms | **25.70** |
+| 100,000 | `KFold` | **0.798 ms** | 2.145 / 2.145 ms | **2.69** |
+| 100,000 | `StratifiedKFold` | **1.657 ms** | 5.718 / 5.717 ms | **3.45** |
+| 100,000 | train/test | **0.149 ms** | 0.194 / 0.194 ms | **1.30** |
+| 1,000,000 | `KFold` | **12.273 ms** | 14.919 / 14.917 ms | **1.22** |
+| 1,000,000 | `StratifiedKFold` | **20.507 ms** | 48.187 / 48.178 ms | **2.35** |
+| 1,000,000 | train/test | **0.517 ms** | 1.323 / 1.323 ms | **2.56** |
+
+The million-row rows move about ±20% run to run on this machine — `KFold` there read 10.0 ms once
+and 12.0 to 12.4 ms in the four runs after, on unchanged code. The ratios below 100,000 rows are
+stable to the third decimal across every run.
+
+**What this measurement changed.** `TrainTest` sorted both index halves and filled an order array
+even on an identity read, where the halves come out ascending already. Dropping the sort took a
+million rows from 6.1 ms to 2.5 ms; writing the two halves straight out took it to 0.5 ms. A/B/A put
+the sort back at 6.1 ms. Without the comparison the first figure would have shipped, and it is the
+one row where `scikit-learn` was ahead.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly
