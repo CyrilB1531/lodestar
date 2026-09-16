@@ -4012,6 +4012,38 @@ in one dimension separate them, and at sixteen features with a radius of 3 it co
 5,000 — where this package matches scikit-learn exactly. `bench/README.md` section 48 has the
 reproducer and the alternative explanation that was tested and refused.
 
+## Agglomerative clustering against `Aglomera` (issue #760)
+
+Full method, what was measured before any code and why the benchmark runs on blobs:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#49-agglomerative-clustering-against-aglomera-issue-760).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET 10.0.12 runtime, AVX-512. Window: one
+`BenchmarkDotNet` 0.14.0 run, **`--job short`**, on 2026-09-16, 16 benchmarks, with nothing else
+running — a first run that shared the machine with the oracle generator was discarded. `Aglomera`
+1.1.1. Every combination was checked to return the same merge heights in order, and the same
+partition at the cut, before either side was timed.
+
+| samples | linkage | [`AgglomerativeClustering.Fit`](../reference/cluster/partitioning/agglomerativeclustering-fit.md) | `Aglomera` `GetClustering` | Aglomera / Lodestar | allocated, Lodestar | allocated, Aglomera |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 500 | ward | 2.03 ms | 48.91 ms | **24.14** | 1.04 MB | 64.19 MB |
+| 500 | complete | 1.98 ms | 61.70 ms | **31.21** | 1.04 MB | 83.11 MB |
+| 500 | average | 1.92 ms | 56.28 ms | **29.37** | 1.04 MB | 59.88 MB |
+| 500 | single | 0.45 ms | 87.45 ms | **194.69** | 0.06 MB | 81.29 MB |
+| 1,500 | ward | 17.44 ms | 1,110.66 ms | **63.70** | 8.97 MB | 573.62 MB |
+| 1,500 | complete | 16.98 ms | 1,209.18 ms | **71.23** | 8.97 MB | 747.36 MB |
+| 1,500 | average | 17.28 ms | 1,224.95 ms | **70.91** | 8.97 MB | 537.15 MB |
+| 1,500 | single | 3.53 ms | 2,081.80 ms | **589.97** | 0.18 MB | 732.69 MB |
+
+**Ahead on every row, 24× to 590×, and the gap widens with the sample count** — the three
+nearest-neighbour-chain linkages go from 24–31× at 500 to 64–71× at 1,500. Single linkage holds no
+distance matrix at all, 185 KB where `Aglomera` allocates 733 MB.
+
+**These rows are the only ones where the comparison is fair.** Blobs have no tied merge heights; on
+data that does, `Aglomera` breaks ties the other way and can build a different tree, and its Ward
+height is reported as `d²/2`. The speed is a second finding — the reason this class exists is that
+`Aglomera`'s answer is not scikit-learn's.
+
 ## Stationarity and seasonal decomposition against Cortex.TimeSeries (issue #671)
 
 Full method and what agrees:

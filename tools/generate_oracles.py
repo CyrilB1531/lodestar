@@ -5124,6 +5124,114 @@ def generate_cluster_dbscan() -> dict:
     }
 
 
+# The agglomerative corpus of #760. Integer data is kept because it ties, and ties are the point.
+SINGLE_LINKAGE = "single"
+AGGLOMERATIVE_LINKAGES = ("ward", "complete", "average", SINGLE_LINKAGE)
+N_CLUSTERS = "n_clusters"
+DISTANCE_THRESHOLD = "distance_threshold"
+
+
+def _agglomerative_fixtures() -> list[dict]:
+    """Point sets chosen for how they tie, each cut at more than one count."""
+    import numpy as np
+
+    rng = np.random.default_rng(760)
+    blobs = np.vstack([rng.normal(centre, 0.6, (10, 3))
+                       for centre in ([0, 0, 0], [6, 6, 6], [0, 8, -4])])
+    return [
+        # One tie, at the first two merges: the reference takes the lower pair first.
+        {"name": "a line of five, one tie", "rows": [[0.0], [1.0], [5.0], [6.0], [20.0]],
+         "cuts": [2, 3]},
+        # Every side tied: a different first merge is a different tree, not a different order.
+        {"name": "a unit square, every side tied",
+         "rows": [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]], "cuts": [2, 3]},
+        {"name": "an evenly spaced line, every gap tied",
+         "rows": [[float(i)] for i in range(6)], "cuts": [2, 4]},
+        {"name": "duplicate rows", "rows": [[1.0, 1.0], [1.0, 1.0], [5.0, 5.0], [5.0, 5.0]],
+         "cuts": [2, 3]},
+        {"name": "a three-by-three grid", "rows": [[float(i), float(j)] for i in range(3) for j in range(3)],
+         "cuts": [2, 5]},
+        # Tie-free, where every implementation should agree: the control.
+        {"name": "three blobs in three dimensions", "rows": blobs.tolist(), "cuts": [3, 7]},
+        # Random integers dense with ties. A distance update written in the right algebra and
+        # the wrong floating-point order passed every fixture above and failed these.
+        {"name": "random integers, fifteen points in two dimensions",
+         "rows": rng.integers(0, 5, (15, 2)).astype(float).tolist(), "cuts": [3, 6]},
+        {"name": "random integers, twelve points in three dimensions",
+         "rows": rng.integers(0, 4, (12, 3)).astype(float).tolist(), "cuts": [2, 4]},
+    ]
+
+
+def _agglomerative_case(name, rows, linkage, model, mode, value) -> dict:
+    return {
+        "name": name,
+        SAMPLES: [float(v) for row in rows for v in row],
+        FEATURE_COUNT: len(rows[0]),
+        "linkage": linkage,
+        "mode": mode,
+        mode: value,
+        "labels": [int(v) for v in model.labels_],
+        "children": [int(v) for pair in model.children_ for v in pair],
+        "distances": [float(v) for v in model.distances_],
+        "cluster_count": int(model.n_clusters_),
+    }
+
+
+def generate_cluster_agglomerative() -> dict:
+    """AgglomerativeClustering, labels and children compared exactly (#760).
+
+    ``labels_`` and ``children_`` are integers and the tree is deterministic, so they carry no
+    tolerance; ``distances_`` is compared at 1e-9 like every other float here. Every fixture is
+    run under all four linkages, because ward, complete and average go to scipy's
+    nearest-neighbour chain and single to scikit-learn's own spanning tree, and the two break
+    ties differently.
+    """
+    import numpy as np
+    from sklearn.cluster import AgglomerativeClustering as SkAgglomerative
+
+    cases = []
+    for fixture in _agglomerative_fixtures():
+        matrix = np.array(fixture["rows"], dtype=np.float64)
+        for linkage in AGGLOMERATIVE_LINKAGES:
+            for cut in fixture["cuts"]:
+                model = SkAgglomerative(
+                    n_clusters=cut, linkage=linkage, compute_distances=True).fit(matrix)
+                cases.append(_agglomerative_case(
+                    f"{fixture['name']}, {linkage}, cut at {cut}",
+                    fixture["rows"], linkage, model, N_CLUSTERS, cut))
+
+    # The threshold is exclusive: points at 0, 1 and 3 stay three clusters at exactly 1.0 under
+    # single linkage and become two just above it. Zero is allowed and splits every sample.
+    steps = [[0.0], [1.0], [3.0]]
+    for threshold in (0.0, 1.0, 1.001, 2.0, 2.001):
+        model = SkAgglomerative(
+            n_clusters=None, distance_threshold=threshold, linkage=SINGLE_LINKAGE).fit(np.array(steps))
+        cases.append(_agglomerative_case(
+            f"a distance threshold of {threshold}, single", steps, SINGLE_LINKAGE, model,
+            DISTANCE_THRESHOLD, threshold))
+
+    blobs = next(f for f in _agglomerative_fixtures() if f["name"] == "three blobs in three dimensions")
+    for threshold in (5.0, 40.0):
+        model = SkAgglomerative(
+            n_clusters=None, distance_threshold=threshold, linkage="ward").fit(np.array(blobs["rows"]))
+        cases.append(_agglomerative_case(
+            f"a distance threshold of {threshold} on three blobs, ward", blobs["rows"], "ward", model,
+            DISTANCE_THRESHOLD, threshold))
+
+    return {
+        "metadata": {
+            "algorithm": "AgglomerativeClustering",
+            "library": "scikit-learn",
+            "library_version": version("scikit-learn"),
+            "reference_calls": [
+                'sklearn.cluster.AgglomerativeClustering(n_clusters=..., linkage=..., compute_distances=True)',
+                'sklearn.cluster.AgglomerativeClustering(n_clusters=None, distance_threshold=...)'],
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
 def _distribution_fixtures() -> list[dict]:
     """Points chosen for the range a general-purpose caller reaches, not the one the tests do."""
     return [
@@ -12187,6 +12295,7 @@ def main() -> None:
         "stats_seasonal.json": generate_stats_seasonal,
         "cluster_kmeans.json": generate_cluster_kmeans,
         "cluster_dbscan.json": generate_cluster_dbscan,
+        "cluster_agglomerative.json": generate_cluster_agglomerative,
         "preprocessing_partial_fit.json": generate_preprocessing_partial_fit,
         "preprocessing_sparse.json": generate_preprocessing_sparse,
         "preprocessing_scalers.json": generate_preprocessing_scalers,

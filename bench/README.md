@@ -2929,3 +2929,72 @@ where all three libraries return the same partition and the check passes.
 ```bash
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*Dbscan*Benchmarks*'
 ```
+
+## 49. Agglomerative clustering against `Aglomera` (issue #760)
+
+`AgglomerativeIncumbentBenchmarks` builds a whole merge tree, this package against `Aglomera` 1.1.1,
+at 500 and 1,500 samples drawn from five Gaussian blobs in four dimensions, under each of the four
+linkages. `Aglomera` is MIT by `licenseUrl` — the package carries no licence field of its own — and
+`netstandard1.3`, and it has not been released since 2020.
+
+### What was measured before anything was written
+
+The issue asked for `Aglomera` to be compared with scikit-learn **before any code**, with delegating
+to it as the explicit alternative. Five fixtures under four linkages, trees compared as sets of rows
+in merge order:
+
+| fixture | single | complete | average | ward |
+| --- | --- | --- | --- | --- |
+| three blobs, 30 points, 3-D, no ties | same | same | same | same |
+| a line of five, one tie | reversed tie | reversed | reversed | reversed |
+| duplicate rows | reversed | reversed | reversed | reversed |
+| an evenly spaced line, every gap tied | **different tree** | reversed | reversed | reversed |
+| a unit square, every side tied | **different tree** | **different tree** | **different tree** | **different tree** |
+
+**Exact where no two merge heights tie; divergent under every linkage where they do** — it breaks
+ties toward the higher index where the reference breaks them toward the lower, and on a square a
+different first merge is a different tree. **Its Ward height is also on another scale**: the rise in
+the sum of squares, `d²/2` where the reference reports `d`. So delegation does not give parity, and
+this benchmark runs on Gaussian blobs, where no heights tie and the two agree.
+
+### The agreement check
+
+Node ids are arbitrary across libraries, so `AgglomerativeAgreement` compares what does not depend
+on them: every merge height in merge order — Ward's after undoing the `d²/2` — and the partition
+at the cut, numbered by first appearance on both sides. A dry run exercised it on all eight
+combinations of size and linkage before any timing was taken.
+
+### What the reference taught about its own ties
+
+Parity with ties meant reproducing the reference's floating-point order and not only its algebra.
+scipy updates Ward by multiplying through by `t = 1/(nx + ny + ni)`; the equal form that divides
+once at the end gave **a different tree on 16 of 400 random integer datasets**, and a set of
+hand-built tie fixtures passed under it. That is why `cluster_agglomerative.json` carries random
+integer data as well as the fixtures above.
+
+### The numbers
+
+`--job short` on the machine `docs/guides/performance.md` names, with nothing else running. **A first
+run was discarded**: the oracle generator ran beside it for a minute or two, which `.dotnet-guarded`
+does not prevent because it is not `dotnet`, and its error intervals reached 92% of the mean. The
+rerun below has a standard deviation within 3.5% of the mean on every row.
+
+| samples | linkage | Lodestar | `Aglomera` 1.1.1 | ratio | allocated, Lodestar | allocated, `Aglomera` |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 500 | ward | 2.03 ms | 48.91 ms | **24.14** | 1.04 MB | 64.19 MB |
+| 500 | complete | 1.98 ms | 61.70 ms | **31.21** | 1.04 MB | 83.11 MB |
+| 500 | average | 1.92 ms | 56.28 ms | **29.37** | 1.04 MB | 59.88 MB |
+| 500 | single | 0.45 ms | 87.45 ms | **194.69** | 0.06 MB | 81.29 MB |
+| 1,500 | ward | 17.44 ms | 1,110.66 ms | **63.70** | 8.97 MB | 573.62 MB |
+| 1,500 | complete | 16.98 ms | 1,209.18 ms | **71.23** | 8.97 MB | 747.36 MB |
+| 1,500 | average | 17.28 ms | 1,224.95 ms | **70.91** | 8.97 MB | 537.15 MB |
+| 1,500 | single | 3.53 ms | 2,081.80 ms | **589.97** | 0.18 MB | 732.69 MB |
+
+**The gap widens with the sample count**: 24× to 31× at 500 becomes 64× to 71× at 1,500 for the three
+nearest-neighbour-chain linkages, which is quadratic time against `Aglomera`'s cubic growth.
+**Single linkage is the extreme on both axes**: its spanning tree computes each distance when it
+needs one and holds no matrix, 185 KB at 1,500 samples where `Aglomera` allocates 733 MB.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*AgglomerativeIncumbent*'
+```

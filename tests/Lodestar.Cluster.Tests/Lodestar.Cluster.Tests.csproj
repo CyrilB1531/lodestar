@@ -22,6 +22,8 @@
           LinkBase="oracles" />
     <None Include="../oracles/cluster_dbscan.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
+    <None Include="../oracles/cluster_agglomerative.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
   </ItemGroup>
 
   <!-- The reference gate reads the published pages and the map beside the assembly,

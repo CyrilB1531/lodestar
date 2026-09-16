@@ -50,6 +50,7 @@ QrDecompositionSample.Run();
 PrincipalComponentVarianceSample.Run();
 KMeansSample.Run();
 DbscanSample.Run();
+AgglomerativeClusteringSample.Run();
 KMeansOptionsSample.Run();
 StandardScalerSample.Run();
 StandardScalerOptionsSample.Run();
