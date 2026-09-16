@@ -4393,6 +4393,65 @@ million rows from 6.1 ms to 2.5 ms; writing the two halves straight out took it 
 the sort back at 6.1 ms. Without the comparison the first figure would have shipped, and it is the
 one row where `scikit-learn` was ahead.
 
+## Meta.Numerics against Lodestar.Stats and PrincipalComponentVariance (issue #756)
+
+Full method, and the six p-values that differ with their causes:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#45-metanumerics-against-lodestarstats-and-principalcomponentvariance-issue-756).
+Same machine as above, on 2026-09-16. `BenchmarkDotNet` 0.14.0, default job, one run.
+`Meta.Numerics` 4.2.0, MS-PL, `netstandard2.0`.
+
+**Eight test families.** Ratio above 1 means this package is faster; every statistic was checked to
+agree before anything was timed.
+
+| family | n = 100 | n = 10,000 | allocated, Lodestar / Meta.Numerics (n = 10,000) |
+| --- | ---: | ---: | ---: |
+| Student t, pooled | **2.88** | **4.81** | 0 B / 104 B |
+| Mann-Whitney | **1.47** | **5.25** | 0 B / 80,379 B |
+| Kruskal-Wallis | **1.32** | **3.44** | 33 B / 120,702 B |
+| Kolmogorov-Smirnov | **1.47** | **1.16** | 160,051 B / 80,371 B |
+| One-way ANOVA | **3.46** | **3.21** | 32 B / 744 B |
+| Wilcoxon signed rank | 0.95 | **1.18** | 80,056 B / 80,176 B |
+| Fisher exact | **3.49** | **3.45** | **0 B** / 944 B |
+| χ² contingency | **5.95** | **5.94** | 168 B / 968 B |
+
+**Two rows moved between the first run of this comparison and this one, and the measurement is why
+they moved.** Meta.Numerics was ahead on Fisher's exact test and on the equal-size exact
+Kolmogorov-Smirnov, and on nothing else; both were costs in this package rather than differences in
+what the two libraries compute.
+
+| what changed | before | after | A again | against Meta.Numerics |
+| --- | ---: | ---: | ---: | --- |
+| [`FisherExact.Test`](../reference/stats/tests/fisherexact-test.md), 2×2 table | 7,420 ns | **256 ns** | 7,487 ns | 0.12 → **3.49** |
+| [`KolmogorovSmirnov.TwoSample`](../reference/stats/tests/kolmogorovsmirnov-twosample.md), n = m = 100 | 29,152 ns | **1,544 ns** | 29,020 ns | 0.08 → **1.47** |
+
+- **Fisher** walked the hypergeometric probabilities through **nine log-gammas per candidate table**
+  — three per binomial coefficient — with the denominator recomputed every iteration. Neighbouring
+  probabilities differ by a ratio of four small integers, so the range now costs one exponential and
+  O(range) multiplications, anchored at the mode. Still **zero allocation**.
+- **Kolmogorov-Smirnov** built an `(n+1)×(m+1)` table even when the samples are the same size, where
+  `D` is always a whole number of steps of `1/n` and Hodges' exceedance probability is a closed form:
+  O(n) multiplications against O(n·m) cells and n+1 row allocations. Allocation fell from 86,512 B
+  to 1,610 B.
+
+**Neither is an approximation, and no default moved.** `ExactMethod.Auto` chooses exactly what it
+chose before; the exact branch is simply cheaper. The corpus gained an equal-size pair of 100 and a
+100-against-101 pair — the second of which must take the table rather than the closed form — and
+both replay `scipy` 1.18.1 at 1e-9. **This package still returns the exact p-value where
+Meta.Numerics returns an asymptotic one, and is now faster doing it.**
+
+**The explained variance.** Ratio above 1 means this package is faster.
+
+| shape | [`PrincipalComponentVariance.Compute`](../reference/decomposition/factorization/principalcomponentvariance-compute.md) | Meta.Numerics `PrincipalComponentAnalysis` | ratio | allocated |
+| --- | ---: | ---: | ---: | ---: |
+| 200 × 10 | **15.42 μs** | 565.95 μs | **36.70** | 2.38 KB / 329.71 KB |
+| 2,000 × 10 | **86.25 μs** | 69,772.02 μs | **808.97** | 2.38 KB / **31,414.98 KB** |
+| 2,000 × 50 | **1,953.85 μs** | 337,025.46 μs | **172.50** | 42.07 KB / 32,054.48 KB |
+
+Both report the same first component's variance fraction, checked to `1e-9` relative before either
+was timed. **Meta.Numerics refuses the fourth shape**: 100 rows by 200 features raises
+`InsufficientDataException`, where this package and NumFlat both answer — so the wide matrix has no
+Meta.Numerics row at all rather than a slow one.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly

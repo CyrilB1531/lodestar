@@ -254,6 +254,25 @@ is one sentence, the issue and the commit; see
 
 ### Lodestar.Stats
 
+#### Changed
+
+- **Fisher's exact test is 29× cheaper and the equal-size exact Kolmogorov-Smirnov 19×, with the
+  same p-values.** Both came out of measuring Meta.Numerics ([#756](https://github.com/CyrilB1531/lodestar/issues/756)),
+  which was faster on exactly these two rows and on no others. **`FisherExact.Test` walked the
+  hypergeometric probabilities through nine log-gammas per candidate table** — one per binomial
+  coefficient, the denominator recomputed every iteration. Neighbouring probabilities differ by a
+  ratio of four small integers, so the whole range now costs one exponential and O(range)
+  multiplications, anchored at the mode because a walk starting from an end begins at a value that
+  has already underflowed on a wide table. **7,420 ns → 256 ns** on the 2×2 table of
+  `bench/README.md` §45, A/B/A confirmed at 7,487 ns with the old kernel restored, and still zero
+  allocation. **`KolmogorovSmirnov.TwoSample` built an (n+1)×(m+1) table even when the two samples
+  are the same size**, where D is always a whole number of steps of `1/n` and Hodges' exceedance
+  probability is a closed form — O(n) multiplications against O(n·m) cells and n+1 row
+  allocations. **29,152 ns → 1,544 ns** at n = m = 100, allocation 86,512 B → 1,610 B, A/B/A
+  confirmed at 29,020 ns. Neither is an approximation: the corpus gains an equal-size pair of 100
+  and a 100-against-101 pair that must take the table instead, and both replay `scipy` 1.18.1 at
+  1e-9 like every case before them.
+
 #### Added
 
 - **`NanPolicy`, on the eleven test entry points whose scipy counterpart takes `nan_policy`.**

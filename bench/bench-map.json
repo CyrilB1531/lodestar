@@ -87,6 +87,12 @@
       "src/Lodestar.Text/Distances/**",
       "src/Lodestar.Text/Text/**"
     ],
+    "MetaNumericsPcaBenchmarks": [
+      "src/Lodestar.Decomposition/PrincipalComponentVariance.cs"
+    ],
+    "MetaNumericsStatsBenchmarks": [
+      "src/Lodestar.Stats/**"
+    ],
     "MetricsIncumbentBenchmarks": [
       "src/Lodestar.Metrics/**"
     ],
