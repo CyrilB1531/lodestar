@@ -17,17 +17,15 @@ public static class MannWhitney
     // long-comment: the bound below is a measured performance ceiling, not an
     // arbitrary round number, and a reviewer should be able to see the
     // measurement without leaving the source.
-    // RankDistributions.MannWhitneyCounts(n, m) rebuilds an (m+1) x (n*m+1)
-    // table on each of n outer iterations -- O(n^2 * m^2). At n=m=200 that
-    // walks 1.6 billion entries and allocates 64 MB per outer iteration, 200
-    // times over: tens of seconds under heavy GC pressure. 20,000 keeps the
-    // table a few megabytes and the walk under a second. Auto's own
-    // threshold does NOT bound n*m by itself: the exact branch only needs
-    // the *smaller* sample at or under eight, so n=8, m=10000 still
-    // qualifies and would build a 6.4 GB table if let through unguarded --
-    // Auto is bounded below as well, falling back to asymptotic rather than
-    // refusing, since a caller who never asked for Exact must not be
-    // handed an exception over it.
+    // RankDistributions.MannWhitneyCounts rolls a (min(n,m)+1) x (n*m+1) table
+    // through max(n,m) steps -- O(n*m * min(n,m) * max(n,m)) cell updates. At the
+    // bound, 141 x 141 takes about 0.4 s and 43 MB and 8 x 2,500 about 0.3 s and
+    // 3 MB (#814, measured 2026-09-16; sized by the second sample alone the
+    // second built a 400 MB table nine times). Auto's own threshold does NOT
+    // bound n*m by itself: the exact branch only needs the *smaller* sample at
+    // or under eight, so Auto is bounded here as well, falling back to
+    // asymptotic rather than refusing, since a caller who never asked for Exact
+    // must not be handed an exception over it.
     private const long MaxExactProduct = 20_000;
 
     /// <summary>Compares two independent samples by their ranks.</summary>

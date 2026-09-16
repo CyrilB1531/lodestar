@@ -310,6 +310,9 @@
     ],
     "EmbeddingSearchBenchmarks": [
       "src/Lodestar.Embeddings/**"
+    ],
+    "MannWhitneyExactBenchmarks": [
+      "src/Lodestar.Stats/**"
     ]
   },
   "harnesses": {

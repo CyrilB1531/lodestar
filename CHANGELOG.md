@@ -134,6 +134,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- The exact Mann-Whitney distribution sizes its table by the smaller sample and reuses two buffers, where 8 against 2,500 allocated 3.35 GB. ([#814](https://github.com/CyrilB1531/lodestar/issues/814))
 - `FisherExact.Test` and the equal-size exact `KolmogorovSmirnov.TwoSample` return the same p-values at a fraction of the cost. ([#756](https://github.com/CyrilB1531/lodestar/issues/756), [`e6323c08`](https://github.com/CyrilB1531/lodestar/commit/e6323c08))
 - `KolmogorovSmirnov.TwoSample`'s default is exact for two samples of the same size up to 10,000 values each, as scipy's is. ([#802](https://github.com/CyrilB1531/lodestar/issues/802))
 - `MannWhitney.Test` merges two sorted samples instead of sorting the pooled one, and no longer allocates. ([#711](https://github.com/CyrilB1531/lodestar/issues/711), [`940d978b`](https://github.com/CyrilB1531/lodestar/commit/940d978b))
