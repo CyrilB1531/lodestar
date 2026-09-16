@@ -44,6 +44,10 @@
          decision 0131's whole argument for writing the class, so it is measured on the two
          dimensions where it can compete at all, rather than left out as unable to. -->
     <PackageReference Include="Dbscan" Version="3.0.0" />
+    <!-- The agglomerative incumbent #760 measures against scikit-learn before anything is
+         written: MIT by licenseUrl (the package carries no licence field), netstandard1.3,
+         last released 2020, and read in decision 0131. -->
+    <PackageReference Include="Aglomera" Version="1.1.1" />
   </ItemGroup>
 
   <ItemGroup>

@@ -42,6 +42,20 @@ is one sentence, the issue and the commit; see
   the agreement check also found that **NumFlat 1.3.4 loses a border sample the scan reaches before
   any cluster exists**, which nine points separate — `bench/README.md` section 48 has it.
   ([#759](https://github.com/CyrilB1531/lodestar/issues/759))
+- **`AgglomerativeClustering`**, at `sklearn.cluster.AgglomerativeClustering` parity over a
+  row-major span, cut at a count by [`Fit`](docs/reference/cluster/partitioning/agglomerativeclustering-fit.md)
+  or at a height by [`FitToThreshold`](docs/reference/cluster/partitioning/agglomerativeclustering-fittothreshold.md),
+  under ward, complete, average and single [`Linkage`](docs/reference/cluster/partitioning/linkage.md).
+  **Labels and merge tree match exactly, ties included**: the reference runs scipy's
+  nearest-neighbour chain for three linkages and its own spanning tree for single, which break ties
+  differently, so both are written — down to scipy's floating-point order, without which Ward built
+  a different tree on 16 of 400 integer datasets. Labels follow the reference's heap order rather
+  than first appearance, and the threshold is exclusive. `Aglomera` 1.1.1, the one free .NET
+  implementation, was measured first as the issue asked: exact where no merge heights tie, divergent
+  under every linkage where they do, and reporting Ward as `d²/2`. On tie-free blobs this class is
+  **24× to 590× faster** and allocates up to 3,965× less. `cluster_agglomerative.json` freezes 71
+  cases against scikit-learn 1.9.0, beside 14 edge tests.
+  ([#760](https://github.com/CyrilB1531/lodestar/issues/760))
 
 ### Lodestar.Preprocessing
 
