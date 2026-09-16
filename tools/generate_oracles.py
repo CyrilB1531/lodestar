@@ -739,9 +739,18 @@ DOUBLE_METAPHONE_WORDS = [
 ]
 
 
+# One-letter words, and the W rules at either end of a two-letter one: "W" threw (#838).
+# Yielded last so the ids of the cases before them do not move.
+DOUBLE_METAPHONE_SHORT_WORDS = [
+    *"BCDEFGHIJKLMNOPQRSTUVWXYZ",
+    "AW", "OW", "WA", "WH", "WR", "SW",
+]
+
+
 def double_metaphone_words(rng: SeededRandom):
     yield from DOUBLE_METAPHONE_WORDS
     yield from phonetic_words(rng)
+    yield from DOUBLE_METAPHONE_SHORT_WORDS
 
 
 def generate_double_metaphone() -> dict:

@@ -9,7 +9,7 @@
   "corpus": "the input-contract fixed points, plus phonetic_words -- the words decision 0075 compared the candidates over",
   "secondary_convention": "'' for no alternate, unwrapped from the reference's repeated primary",
   "seed": 20260801,
-  "count": 423
+  "count": 454
  },
  "cases": [
   {
@@ -2549,6 +2549,192 @@
    "word": "la",
    "primary": "L",
    "secondary": ""
+  },
+  {
+   "id": 423,
+   "word": "B",
+   "primary": "P",
+   "secondary": ""
+  },
+  {
+   "id": 424,
+   "word": "C",
+   "primary": "K",
+   "secondary": ""
+  },
+  {
+   "id": 425,
+   "word": "D",
+   "primary": "T",
+   "secondary": ""
+  },
+  {
+   "id": 426,
+   "word": "E",
+   "primary": "A",
+   "secondary": ""
+  },
+  {
+   "id": 427,
+   "word": "F",
+   "primary": "F",
+   "secondary": ""
+  },
+  {
+   "id": 428,
+   "word": "G",
+   "primary": "K",
+   "secondary": ""
+  },
+  {
+   "id": 429,
+   "word": "H",
+   "primary": "",
+   "secondary": ""
+  },
+  {
+   "id": 430,
+   "word": "I",
+   "primary": "A",
+   "secondary": ""
+  },
+  {
+   "id": 431,
+   "word": "J",
+   "primary": "J",
+   "secondary": "A"
+  },
+  {
+   "id": 432,
+   "word": "K",
+   "primary": "K",
+   "secondary": ""
+  },
+  {
+   "id": 433,
+   "word": "L",
+   "primary": "L",
+   "secondary": ""
+  },
+  {
+   "id": 434,
+   "word": "M",
+   "primary": "M",
+   "secondary": ""
+  },
+  {
+   "id": 435,
+   "word": "N",
+   "primary": "N",
+   "secondary": ""
+  },
+  {
+   "id": 436,
+   "word": "O",
+   "primary": "A",
+   "secondary": ""
+  },
+  {
+   "id": 437,
+   "word": "P",
+   "primary": "P",
+   "secondary": ""
+  },
+  {
+   "id": 438,
+   "word": "Q",
+   "primary": "K",
+   "secondary": ""
+  },
+  {
+   "id": 439,
+   "word": "R",
+   "primary": "R",
+   "secondary": ""
+  },
+  {
+   "id": 440,
+   "word": "S",
+   "primary": "S",
+   "secondary": ""
+  },
+  {
+   "id": 441,
+   "word": "T",
+   "primary": "T",
+   "secondary": ""
+  },
+  {
+   "id": 442,
+   "word": "U",
+   "primary": "A",
+   "secondary": ""
+  },
+  {
+   "id": 443,
+   "word": "V",
+   "primary": "F",
+   "secondary": ""
+  },
+  {
+   "id": 444,
+   "word": "W",
+   "primary": "",
+   "secondary": ""
+  },
+  {
+   "id": 445,
+   "word": "X",
+   "primary": "S",
+   "secondary": ""
+  },
+  {
+   "id": 446,
+   "word": "Y",
+   "primary": "A",
+   "secondary": ""
+  },
+  {
+   "id": 447,
+   "word": "Z",
+   "primary": "S",
+   "secondary": ""
+  },
+  {
+   "id": 448,
+   "word": "AW",
+   "primary": "A",
+   "secondary": "AF"
+  },
+  {
+   "id": 449,
+   "word": "OW",
+   "primary": "A",
+   "secondary": "AF"
+  },
+  {
+   "id": 450,
+   "word": "WA",
+   "primary": "A",
+   "secondary": "F"
+  },
+  {
+   "id": 451,
+   "word": "WH",
+   "primary": "A",
+   "secondary": ""
+  },
+  {
+   "id": 452,
+   "word": "WR",
+   "primary": "R",
+   "secondary": ""
+  },
+  {
+   "id": 453,
+   "word": "SW",
+   "primary": "S",
+   "secondary": "X"
   }
  ]
 }

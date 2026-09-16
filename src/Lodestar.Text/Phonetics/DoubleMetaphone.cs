@@ -636,7 +636,8 @@ public static class DoubleMetaphone
             return current + 1;
         }
         // "Arnow" should meet "Arnoff", and the Polish "-owski" endings behave the same way.
-        if ((current == last && IsVowel(w[current - 1]))
+        // current > 0 because a lone "W" has no preceding letter (#838).
+        if ((current == last && current > 0 && IsVowel(w[current - 1]))
             || StringAt(w, current - 1, "EWSKI", "EWSKY", "OWSKI", "OWSKY")
             || StringAt(w, 0, "SCH"))
         {

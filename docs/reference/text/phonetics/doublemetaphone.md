@@ -28,8 +28,8 @@ like `XMT`. A single code has to pick one and lose the other match. Double Metap
 and two words are candidates when **any** of their codes agree — which is what puts `Smith` and
 `Schmidt` together above without putting every `S`-word with them.
 
-`Secondary` is empty when a word has only one reading, which is the common case: over the 423-word
-corpus this is pinned to, 102 words carry an alternate and 321 do not. Empty means *no alternate*,
+`Secondary` is empty when a word has only one reading, which is the common case: over the 454-word
+corpus this is pinned to, 107 words carry an alternate and 347 do not. Empty means *no alternate*,
 not *no code* — compare against `Primary` when it is empty.
 
 The output alphabet is `A F H J K L M N P R S T X 0`, where `X` is "sh" and `0` is "th". Codes are
