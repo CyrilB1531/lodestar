@@ -307,6 +307,9 @@
     ],
     "ClusteringAgreementBenchmarks": [
       "src/Lodestar.Metrics/**"
+    ],
+    "EmbeddingSearchBenchmarks": [
+      "src/Lodestar.Embeddings/**"
     ]
   },
   "harnesses": {
