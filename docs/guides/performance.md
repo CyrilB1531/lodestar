@@ -4744,6 +4744,15 @@ Same total order (score descending, index ascending); a k past half the index st
 
 U's null distribution is symmetric in the two sizes. Counts past 2^53 round in a different order: of 24 lopsided cases 19 p-values are bit-identical and the rest within 2.9e-16 relative. `MannWhitneyExactBenchmarks`.
 
+## The sparse [`RobustScaler`](../reference/preprocessing/scaling/robustscaler.md) fit, grouped by column once (issue #817)
+
+| rows × columns × stored per row | `main` | fix |
+| --- | ---: | ---: |
+| 2,000 × 2,000 × 20 | 49.5 ms, 30.6 MB | **15.2 ms, 360 KB** |
+| 500 × 20,000 × 5 | 52.5 ms, 76.9 MB | 27.1 ms, 336 KB |
+
+Each column's sort receives the same sequence as before: bit-identical. The per-column sort is the remaining cost. `RobustScalerSparseBenchmarks`.
+
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-16; both `main` runs agreed within 5%.
