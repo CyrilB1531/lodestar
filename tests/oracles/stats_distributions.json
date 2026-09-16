@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "distributions",
-  "count": 26
+  "count": 34
  },
  "cases": [
   {
@@ -137,6 +137,46 @@
    "value": 0.9999998288217309
   },
   {
+   "name": "an ANOVA on half a million observations, one standard deviation up",
+   "call": "f.sf",
+   "args": {
+    "x": 1.004,
+    "dfn": 200000.0,
+    "dfd": 300000.0
+   },
+   "value": 0.16397719829029003
+  },
+  {
+   "name": "two million degrees of freedom each, just below the mean",
+   "call": "f.sf",
+   "args": {
+    "x": 0.999,
+    "dfn": 2000000.0,
+    "dfd": 2000000.0
+   },
+   "value": 0.7603598142137563
+  },
+  {
+   "name": "shapes of 1e8 each, at the median",
+   "call": "f.sf",
+   "args": {
+    "x": 1.0,
+    "dfn": 200000000.0,
+    "dfd": 200000000.0
+   },
+   "value": 0.4999999999999972
+  },
+  {
+   "name": "shapes of 1e8 each, one and a half standard deviations up",
+   "call": "f.sf",
+   "args": {
+    "x": 1.0002,
+    "dfn": 200000000.0,
+    "dfd": 200000000.0
+   },
+   "value": 0.0786703586406123
+  },
+  {
    "name": "a log-rank test on two groups",
    "call": "chi2.sf",
    "args": {
@@ -189,6 +229,42 @@
     "df": 100.0
    },
    "value": 0.48119168452795674
+  },
+  {
+   "name": "twenty thousand degrees of freedom, at its mean",
+   "call": "chi2.sf",
+   "args": {
+    "x": 20000.0,
+    "df": 20000.0
+   },
+   "value": 0.4986701916600448
+  },
+  {
+   "name": "two million degrees of freedom, two standard deviations up",
+   "call": "chi2.sf",
+   "args": {
+    "x": 2004000.0,
+    "df": 2000000.0
+   },
+   "value": 0.022804095898769836
+  },
+  {
+   "name": "a shape of 1e8, three standard deviations down",
+   "call": "chi2.sf",
+   "args": {
+    "x": 199940000.0,
+    "df": 200000000.0
+   },
+   "value": 0.9986512835508384
+  },
+  {
+   "name": "a shape of 1e8, one standard deviation up",
+   "call": "chi2.sf",
+   "args": {
+    "x": 200020000.0,
+    "df": 200000000.0
+   },
+   "value": 0.15865525352820123
   },
   {
    "name": "the multiplier a 95% large-sample interval asks for",

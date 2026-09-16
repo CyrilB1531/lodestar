@@ -59,6 +59,7 @@ public sealed class GammaTests
     [InlineData(3.0, 40.0)]
     [InlineData(0.5, 1e-8)]
     [InlineData(200.0, 200.0)]
+    [InlineData(1e8, 99990000.0)]
     public void RegularizedP_and_Q_sum_to_one_across_the_branch_seam(double a, double x)
     {
         Assert.Equal(1.0, Gamma.RegularizedP(a, x) + Gamma.RegularizedQ(a, x), 1e-14);

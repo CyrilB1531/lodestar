@@ -156,6 +156,7 @@ is one sentence, the issue and the commit; see
 
 #### Fixed
 
+- `Distributions.ChiSquaredSf` and `Distributions.FisherSf` are no longer wrong by up to half a unit at large degrees of freedom near the mean. ([#837](https://github.com/CyrilB1531/lodestar/issues/837))
 - `MannWhitney.Test` no longer returns a wrong statistic past about 46,340 values per sample. ([#712](https://github.com/CyrilB1531/lodestar/issues/712), [`cfe9f048`](https://github.com/CyrilB1531/lodestar/commit/cfe9f048))
 
 ### Lodestar.Stats.Regression

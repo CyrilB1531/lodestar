@@ -10,7 +10,12 @@ namespace Lodestar.Stats.Internal;
 /// </remarks>
 internal static class Beta
 {
-    private const int MaxIterations = 300;
+    // A guard, not the stopping rule: a = b = 1e8 at its mean takes 4,600 terms and 1e12 takes
+    // 86,000, where the 300 this replaces left a = b = 1e8 wrong by 0.37 (#837).
+    private const int MaxIterations = 1_000_000;
+
+    // From here both log Gamma* are Stirling's, as in Gamma.Prefactor.
+    private const double StirlingMinimumShape = 10.0;
     private const double Epsilon = 3e-16;
     private const double Tiny = 1e-300;
 
@@ -38,9 +43,7 @@ internal static class Beta
             return x;
         }
 
-        double front = Math.Exp(
-            Gamma.LogGamma(a + b) - Gamma.LogGamma(a) - Gamma.LogGamma(b) +
-            (a * Math.Log(x)) + (b * Math.Log(1.0 - x)));
+        double front = Front(a, b, x);
 
         // The fraction converges quickly only on the side of the distribution's
         // mode; past it the reflection is the fast branch, not a fallback. The
@@ -51,6 +54,34 @@ internal static class Beta
             ? front / (a * ContinuedFraction(a, b, x))
             : 1.0 - (front / (b * ContinuedFraction(b, a, 1.0 - x)));
 #pragma warning restore S2234
+    }
+
+    /// <summary>x^a (1 - x)^b / B(a, b), the factor both branches of the fraction share.</summary>
+    /// <remarks>
+    /// Past both shapes of 10, relative to the mean x0 = a / (a + b): a log(x / x0) + b log(y / y0)
+    /// has linear terms a t - b t' that cancel exactly, so only log(1 + t) - t is formed, and
+    /// Stirling leaves sqrt(x0 b / 2 pi) Gamma*(a + b) / (Gamma*(a) Gamma*(b)). The Lanczos form
+    /// subtracts log-gammas of 1.7e9 at a = b = 1e8. d = x - x0 is taken from the smaller of x and
+    /// 1 - x, so the two t share one d instead of two rounded ones.
+    /// </remarks>
+    private static double Front(double a, double b, double x)
+    {
+        double y = 1.0 - x;
+        if (a < StirlingMinimumShape || b < StirlingMinimumShape)
+        {
+            return Math.Exp(
+                Gamma.LogGamma(a + b) - Gamma.LogGamma(a) - Gamma.LogGamma(b) +
+                (a * Math.Log(x)) + (b * Math.Log(y)));
+        }
+
+        double c = a + b;
+        double x0 = a / c;
+        double y0 = b / c;
+        double d = x <= 0.5 ? x - x0 : y0 - y;
+        double exponent = (a * Gamma.LogOnePlusMinus(d / x0, x / x0))
+            + (b * Gamma.LogOnePlusMinus(-d / y0, y / y0))
+            + Gamma.LogStirlingCorrection(c) - Gamma.LogStirlingCorrection(a) - Gamma.LogStirlingCorrection(b);
+        return Math.Exp(exponent) * Math.Sqrt(x0 * b / (2.0 * Math.PI));
     }
 
     /// <summary>The upper tail of Student's t distribution: P(T &gt; t).</summary>
