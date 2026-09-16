@@ -9,6 +9,12 @@ on:
   # entirely on such a PR -- only SonarCloud ran, measured on #384 (#386).
   pull_request:
 
+concurrency:
+  # A new push to a pull request supersedes the run on its previous commit, so that run is
+  # cancelled; a push to main keeps one run per commit (#835).
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   lint:
     name: Lint (markdown + C# format)
