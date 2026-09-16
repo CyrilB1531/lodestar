@@ -316,6 +316,9 @@
     ],
     "RobustScalerSparseBenchmarks": [
       "src/Lodestar.Preprocessing/**"
+    ],
+    "TopKAccuracyBenchmarks": [
+      "src/Lodestar.Metrics/**"
     ]
   },
   "harnesses": {
