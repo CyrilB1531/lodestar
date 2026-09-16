@@ -32,6 +32,7 @@ used to call absent.
 | `MixedLM`: mixed and hierarchical models | ⚠️ **gap, and not written until a caller needs it** — no .NET package fits one, free or commercial, across nine read. Accord's `TwoWayAnovaModel.Mixed` and NMath's `OneWayRanova`/`TwoWayRanova` are classical ANOVA with a random or repeated factor; Infer.NET can express a hierarchical model by hand but prints no REML table. [`decisions/0130`](../decisions/0130-mixed-models-have-no-incumbent-and-wait-for-a-caller.md) has the reading, and why `MixedLM`'s own solvers disagree past what a frozen corpus can hold |
 | `MNLogit`: unordered categories with the inference table | **native**: [`MultinomialLogit`](../reference/stats-regression/mnlogit.md), at statsmodels parity. Accord's `MultinomialLogisticRegression` carries a table too, and is LGPL-2.1 and archived ([`decisions/0104`](../decisions/0104-generalized-linear-models-are-written-natively.md)); ML.NET's maximum-entropy trainers return coefficients only; [#788](https://github.com/CyrilB1531/lodestar/issues/788) |
 | `OrderedModel`: ordinal responses | ⛔ **not written** — [`decisions/0136`](../decisions/0136-the-multinomial-logit-is-written-and-the-ordered-model-is-not.md): its numerical Hessian and default Nelder–Mead do not reproduce at `1e-9`, and no .NET package fits one |
+| `GLM(...).fit_regularized()`: lasso, ridge and elastic net | **delegated**: `Microsoft.ML`'s `LbfgsLogisticRegression`, `LbfgsPoissonRegression` and `LbfgsMaximumEntropy` fit the same optimum — MIT and first-party — once the penalty is scaled by the row count: `L1Regularization = alpha·L1_wt·n`, `L2Regularization = alpha·(1 − L1_wt)·n`. Measured identical to six decimals, selected variables included. **The reference returns no inference table here**, deliberately, so there is nothing for this package to add; [`decisions/0137`](../decisions/0137-regularised-fits-are-delegated-to-ml-net-and-the-table-they-would-carry-does-not-exist.md), [#789](https://github.com/CyrilB1531/lodestar/issues/789) |
 | `IV2SLS`, `IVLIML`, `IVGMM` (`linearmodels`; `statsmodels.sandbox` for `IV2SLS`) | ⚠️ **gap, writable** — [`decisions/0135`](../decisions/0135-instrumental-variables-and-panel-estimators-have-no-incumbent-and-both-could-be-written.md): no .NET package estimates one, free or commercial, across seven read; `linearmodels` 7.0 reproduces 2SLS, LIML and two-step GMM at `1e-15`, so a lot could be written at parity. Iterated GMM moves at `1e-6` with its tolerance and is left out |
 | `PanelOLS`, `RandomEffects`, `BetweenOLS`, `FirstDifferenceOLS` (`linearmodels`) | ⚠️ **gap, writable** — the same record: nothing in .NET, and each estimator reproduces at `1e-15`; the errors follow `linearmodels`' own small-sample factors, not `statsmodels`' |
 
@@ -84,3 +85,14 @@ double r2 = GoodnessOfFit.RSquared(xs.Select(x => a + b * x), ys);
 > — and it starts from a reading rather than from a claim.
 
 *Guide to be expanded as real needs arise.*
+
+## The table on a regularised fit's selected support
+
+`fit_regularized` reports coefficients and nothing else, and `refit=True` reports the **unpenalised** fit on the
+variables the penalty kept. That second step is two calls here: take the columns whose penalised coefficient is not
+zero, and fit them through
+[`OrdinaryLeastSquares.Fit`](../reference/stats-regression/ols/ordinaryleastsquares-fit.md) or
+[`GeneralizedLinearModel.Fit`](../reference/stats-regression/glm/generalizedlinearmodel-fit.md).
+
+Read that table the way the reference's own docstring asks: the variables were chosen on the same rows the inference
+is computed from, so its standard errors are optimistic ([`decisions/0137`](../decisions/0137-regularised-fits-are-delegated-to-ml-net-and-the-table-they-would-carry-does-not-exist.md)).

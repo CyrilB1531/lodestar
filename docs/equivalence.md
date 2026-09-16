@@ -505,6 +505,13 @@ Oracled against **`statsmodels` 0.15.0**, already in the lock since #566
 | `MNLogit(y, X).fit()` | statsmodels | [`MultinomialLogit.Fit(design, response, featureCount, options)`](reference/stats-regression/mnlogit/multinomiallogit-fit.md) | Identical over 5 frozen cases: Newton from zeros with the reference's `1e-10` ridge, `tol=1e-8` and 35-step budget and its iteration count, analytic standard errors, `df_model = (K − 1)(J − 1)` with or without a constant, labels sorted by value. **Two divergences, both from the null model and a separated response** ([decision 0136](decisions/0136-the-multinomial-logit-is-written-and-the-ordered-model-is-not.md)): `llnull` is the closed form `Σ nⱼ log(nⱼ/n)`, which the reference approximates by a Nelder–Mead and BFGS refit to within `3e-10`, so the likelihood-ratio p-value differs by up to `1.3e-8` (scipy's `chi2.sf` on the closed-form statistic matches the C# at `1e-9`); a perfectly separated response is refused where the reference returns NaN coefficients with `converged=True`. |
 | `OrderedModel(y, X, distr="logit" \| "probit").fit()` | statsmodels | — (not written) | Numerical score and Hessian; its default Nelder–Mead stops `2e-4` from the maximum, and even Newton refitted from its own optimum moves the errors at `6e-7`. No corpus can pin it at `1e-9`; decision 0136. |
 
+## Lodestar.Stats.Regression — regularised fits
+
+| Python | Library | C# | Differences |
+| --- | --- | --- | --- |
+| `GLM(y, X, family=f).fit_regularized(alpha=a, L1_wt=w)` | statsmodels | — (delegated to `Microsoft.ML`) | [Decision 0137](decisions/0137-regularised-fits-are-delegated-to-ml-net-and-the-table-they-would-carry-does-not-exist.md): the reference returns coefficients and no inference table — reading `bse` on its `RegularizedResults` raises `AttributeError` — so there is no table for this package to add. ML.NET's LBFGS trainers reach the same optimum, measured identical to six decimals with the penalty scaled by `n`, selected variables and their zeros included; their weights are `float`, `1.8e-5` from the reference on a ridge fit. |
+| `GLM(...).fit_regularized(refit=True)` | statsmodels | [`OrdinaryLeastSquares.Fit`](reference/stats-regression/ols/ordinaryleastsquares-fit.md) or [`GeneralizedLinearModel.Fit`](reference/stats-regression/glm/generalizedlinearmodel-fit.md) on the non-zero columns | The same computation: an unpenalised fit on the variables the penalty kept. The reference's warning travels with it — selection and inference read the same rows. |
+
 ## Lodestar.Stats.Regression — instrumental variables and panel data
 
 | Python | Library | C# | Differences |
