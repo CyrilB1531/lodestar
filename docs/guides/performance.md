@@ -4757,6 +4757,19 @@ Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical co
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-16; both `main` runs agreed within 5%.
 
+## [`TopKAccuracy.Score`](../reference/metrics/ranking/topkaccuracy-score.md) by counting the true class's rank (issue #827)
+
+| classes (200,000 rows, k = 2) | `main` | fix |
+| ---: | ---: | ---: |
+| 10 | 23.8 ms, 32 MB | 8.07 ms, 0 B |
+| 100 | 471 ms, 238 MB | **62.3 ms, 0 B** |
+
+A tie is ordered by descending index, so a class's position is the count of higher scores plus equal scores at a higher index; a row holding a NaN keeps the sort. Bit-identical against `main` on 318 scores with ties, NaNs, signed zeros and weights. `TopKAccuracyBenchmarks`, pinned to four cores.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
+LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
+2026-09-16; both `main` runs agreed within 3%.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly

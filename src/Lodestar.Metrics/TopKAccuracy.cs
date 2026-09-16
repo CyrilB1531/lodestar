@@ -111,17 +111,57 @@ public static class TopKAccuracy
                     nameof(yTrue));
             }
 
-            int[] order = Ranking.Descending(yScore.Slice(sample * classCount, classCount));
-            for (int rank = 0; rank < k && rank < classCount; rank++)
+            if (RanksWithin(yScore.Slice(sample * classCount, classCount), trueClass, k))
             {
-                if (order[rank] == trueClass)
-                {
-                    hits += sampleWeight.Length == 0 ? 1.0 : sampleWeight[sample];
-                    break;
-                }
+                hits += sampleWeight.Length == 0 ? 1.0 : sampleWeight[sample];
             }
         }
 
         return hits;
+    }
+
+    /// <summary>Whether <paramref name="trueClass"/> is among the first <paramref name="k"/> of the ranked row.</summary>
+    /// <remarks>
+    /// The ranking sorts descending and puts a tie in descending index order, so a class's position
+    /// is the count of higher scores plus the count of equal scores at a higher index. Counting it
+    /// needs no sort and no allocation. A row holding a NaN goes through the sort instead, since the
+    /// sort does not order NaNs among themselves.
+    /// </remarks>
+    private static bool RanksWithin(ReadOnlySpan<double> row, int trueClass, int k)
+    {
+        double own = row[trueClass];
+        int ahead = 0;
+        for (int other = 0; other < row.Length; other++)
+        {
+            double score = row[other];
+            if (double.IsNaN(score))
+            {
+                return SortedWithin(row, trueClass, k);
+            }
+
+            // S1244: a tie is exact equality, the grouping Ranking.Descending uses.
+#pragma warning disable S1244
+            if (score > own || (score == own && other > trueClass))
+#pragma warning restore S1244
+            {
+                ahead++;
+            }
+        }
+
+        return ahead < k;
+    }
+
+    private static bool SortedWithin(ReadOnlySpan<double> row, int trueClass, int k)
+    {
+        int[] order = Ranking.Descending(row);
+        for (int rank = 0; rank < k && rank < row.Length; rank++)
+        {
+            if (order[rank] == trueClass)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
