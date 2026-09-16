@@ -21,6 +21,7 @@
     <None Include="../oracles/stats_timeseries.json" CopyToOutputDirectory="PreserveNewest" LinkBase="oracles" />
     <None Include="../oracles/stats_stationarity.json" CopyToOutputDirectory="PreserveNewest" LinkBase="oracles" />
     <None Include="../oracles/stats_seasonal.json" CopyToOutputDirectory="PreserveNewest" LinkBase="oracles" />
+    <None Include="../oracles/stats_var.json" CopyToOutputDirectory="PreserveNewest" LinkBase="oracles" />
   </ItemGroup>
 
   <!-- The gate's engine is shared by every package's suite, so it is linked rather

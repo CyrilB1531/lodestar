@@ -197,6 +197,13 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- **`VectorAutoregression.Fit` estimates a VAR(p) with the inference table**, at `statsmodels` 0.15.0 parity over 4
+  frozen cases: the coefficients per equation with their standard errors, t statistics and normal p-values, both
+  residual covariances, the Gaussian log-likelihood, and AIC, BIC, HQIC and FPE. Least squares equation by equation on
+  the stacked lags, through the same Householder QR `OrdinaryLeastSquares.Estimate` runs. Decision 0134 named this the
+  one model of the four it read that could be written at parity; nothing in .NET estimated one. Measured against
+  `statsmodels` through `compare-var`: 14.8× to 30.2× faster, wall clock, from 1,000 to 100,000 rows.
+  ([#786](https://github.com/CyrilB1531/lodestar/issues/786))
 - **A new core package for the time-series diagnostics**, with two edges: `Lodestar.Stats` 0.4.0 for
   the tails and `Lodestar.Stats.Regression` 0.2.0 for the fits its unit-root test runs.
   [Decision 0133](docs/decisions/0133-stats-timeseries-is-a-package-and-takes-the-serial-correlation-lot.md)

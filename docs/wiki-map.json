@@ -220,7 +220,8 @@
         "Lodestar.Stats.TimeSeries": [
           "docs/reference/stats-timeseries/correlation",
           "docs/reference/stats-timeseries/stationarity-tests",
-          "docs/reference/stats-timeseries/seasonality"
+          "docs/reference/stats-timeseries/seasonality",
+          "docs/reference/stats-timeseries/var"
         ]
       },
       "exceptionsUnchecked": []

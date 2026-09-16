@@ -148,6 +148,7 @@ LINK = "link"
 # Fields several corpora report, each named once (#788): S1192 counts a JSON key like any other literal.
 CONVERGED = "converged"
 LOG_LIKELIHOOD = "logLikelihood"
+AKAIKE = "akaike"
 RESIDUAL_DEGREES_OF_FREEDOM = "residualDegreesOfFreedom"
 Z_STATISTICS = "zStatistics"
 OFFSET = "offset"
@@ -5995,7 +5996,7 @@ def generate_stats_mnlogit() -> dict:
             # to 1.3e-8 relative, and this is the number the C# computes (decision 0136).
             "likelihoodRatioPValueClosedNull": float(chi2.sf(
                 -2.0 * (closed_null(fixture[LABELS]) - fit.llf), fit.df_model)),
-            "akaike": float(fit.aic),
+            AKAIKE: float(fit.aic),
             "bayesian": float(fit.bic),
             "modelDegreesOfFreedom": int(fit.df_model),
             RESIDUAL_DEGREES_OF_FREEDOM: int(fit.df_resid),
@@ -6008,6 +6009,118 @@ def generate_stats_mnlogit() -> dict:
             "library": STATSMODELS,
             "version": version(STATSMODELS),
             FAMILY: "mnlogit",
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
+# The vector autoregression corpus (#786): three series drawn once and frozen, and the keys its cases carry.
+SERIES = "series"
+VARIABLE_COUNT = "variableCount"
+LAG_ORDER = "lagOrder"
+
+TWO_LAG1 = [
+    0.1968, -0.1307, 0.2167, -0.8291, 0.2534, 0.0921, 0.2934, -0.0748, -0.2623, 0.2421,
+    0.4235, -0.3523, -0.2909, 0.4475, -0.2417, -0.9916, -0.3567, -0.3337, -1.0869, -0.5651,
+    -0.5519, -1.0074, -1.2172, -0.1457, 0.2603, -0.7061, -0.7272, 0.3055, 0.3998, -0.6067,
+    -0.0985, 0.6436, 0.1524, -0.6287, -0.2005, 0.1835, 0.5198, -0.8023, -0.7329, -0.1165,
+    -0.9041, -0.3419, 0.0044, -0.7644, 0.2002, 0.4028, 0.4168, 0.0892, 0.4179, -0.5421,
+    -0.0363, 0.4417, -0.6453, -0.0438, -0.2008, -0.0226, -0.2703, -0.1957, -0.0017, -0.5807,
+    -0.0666, -0.0497, 0.1376, -0.36, 0.2595, 0.2901, 0.0015, 0.2383, 0.6207, 0.6586,
+    -0.4468, 0.4404, 0.3539, -0.4179, -0.7072, 0.6866, -0.3091, -0.2761,
+]
+TWO_LAG2 = [
+    -0.0314, 0.4229, -0.7265, 0.3649, -0.4906, 0.714, 0.0746, 0.6713, -0.3812, 0.4426,
+    0.1965, -0.2687, -0.7469, 0.0101, -0.0639, -0.1779, -0.6415, -0.0305, 0.3526, -0.5965,
+    -0.2208, 0.0135, 0.1897, -0.2637, -0.3142, 0.1129, 0.3254, -0.0131, -0.2106, 1.1165,
+    0.7617, 0.1045, -0.1467, -0.1039, 0.5955, 0.1957, -0.1666, -0.3845, -0.0636, 0.0861,
+    -0.093, 0.6169, 0.573, 0.0612, 0.2406, 0.8291, 1.0658, 0.8427, 0.5645, 1.2685,
+    0.7735, 0.0452, 0.0492, -0.7069, -0.5603, -0.5541, 0.2707, 0.4428, -0.6351, -0.0863,
+    -0.2273, -0.3356, -0.4894, 0.537, 0.742, 0.5177, -0.062, -0.1101, -0.3891, -0.1401,
+    0.2386, 0.4546, 0.2497, 0.8799, 0.6078, -0.5634, -0.7895, -0.0419, 0.8156, -0.5691,
+    -0.1336, 0.2624, 0.6725, 0.4389, 0.2885, -0.2514, 0.527, -0.1047,
+]
+THREE_LAG2 = [
+    0.5237, 0.8299, 0.9592, 0.2414, 1.1466, 0.0107, -0.0631, 0.2254, -0.2168, 0.6802,
+    0.3995, -0.0925, -0.0048, -0.0019, 1.3157, 1.3871, 0.0326, -0.6446, 1.1091, -0.4112,
+    0.2016, 1.5921, -0.1166, 1.2056, 2.2295, 0.0756, 0.4952, 2.2421, 0.8768, 0.5655,
+    1.702, 0.3822, 1.3635, 2.287, 0.9172, 0.4125, 1.9195, 0.6123, 0.3097, 1.2928,
+    0.7359, 0.3915, 0.6547, 0.7707, 0.9481, 0.8255, -0.5828, -0.4715, 0.9815, -0.5295,
+    -0.1214, 2.4496, -0.7544, 0.8107, 3.4356, -0.4409, 1.7087, 3.5538, -0.1367, 1.5075,
+    2.8186, -0.5296, 1.1366, 3.9822, -0.2655, -0.1503, 3.3847, -0.7249, 1.5475, 5.3305,
+    -0.4771, 2.1101, 5.2501, 0.2219, 2.4431, 4.4188, 0.2975, 0.9211, 4.0714, 1.2273,
+    0.7577, 2.0245, 0.5205, 0.9612, 1.8964, 1.4289, -0.425, 0.3426, 0.4742, 0.9356,
+    1.1713, 0.4568, 0.0455, 1.1443, 0.1017, -0.0256, 0.7482, 0.6519, 0.5828, 0.0915,
+    0.0845, 1.578, 0.9619, 0.8349, -0.3307, -0.2309, 0.4098, -0.2234, -0.1247, -0.8403,
+    1.2656, 2.0449, -0.1443, -0.0134, 1.1285, 0.4751, 0.8214, 1.4318, -0.5283, 0.6899,
+    3.1505, -0.0665, 0.637, 2.7762, 0.4977, 2.031, 2.8339, 0.1423, 0.8716, 2.6911,
+    0.3152, 0.301, 2.5008, -0.1879, 0.8281, 4.2862, 0.3294, 1.063, 4.5841, 0.0905,
+    0.7739, 3.3585, -0.4967, 1.7218, 4.8835, -1.1196, 1.308, 4.9428, -0.1418, 1.7451,
+    5.0881, -0.1331, 1.6613, 4.5413, 0.3338, 1.7209, 4.6797, 1.5635, 1.439, 3.2109,
+    1.8486, 1.2099, 1.2299, 0.385, 0.7772, 2.0044, 1.1348, -0.79, 0.4961, 1.4501,
+    1.1017, -0.3644, 0.5083, 1.0321,
+]
+
+
+def _var_fixtures() -> list[dict]:
+    """Stable systems drawn once from numpy's default_rng, seeds 11, 12 and 13, rounded to four decimals.
+
+    long-comment: why the systems are stable and what that buys the corpus.
+    A vector autoregression whose companion matrix has an eigenvalue outside the unit circle explodes, and
+    a frozen explosive series is a corpus of overflow rather than of a fit. The coefficient matrices are
+    drawn at a scale of 0.35, which kept every draw here stable, and the largest t statistic per fixture
+    is between 5 and 9 -- large enough that the replay reads as a test rather than as noise.
+    """
+    return [
+        {"name": "two variables, one lag", SERIES: TWO_LAG1, VARIABLE_COUNT: 2, LAG_ORDER: 1, WITH_INTERCEPT: True},
+        {"name": "two variables, two lags", SERIES: TWO_LAG2, VARIABLE_COUNT: 2, LAG_ORDER: 2, WITH_INTERCEPT: True},
+        {"name": "two variables, two lags, no intercept", SERIES: TWO_LAG2, VARIABLE_COUNT: 2, LAG_ORDER: 2,
+         WITH_INTERCEPT: False},
+        {"name": "three variables, two lags", SERIES: THREE_LAG2, VARIABLE_COUNT: 3, LAG_ORDER: 2,
+         WITH_INTERCEPT: True},
+    ]
+
+
+def generate_stats_var() -> dict:
+    """statsmodels' VAR: least squares on the stacked lags, with the table it prints (#786)."""
+    import numpy as np
+    from statsmodels.tsa.api import VAR
+
+    cases = []
+    for fixture in _var_fixtures():
+        variables = fixture[VARIABLE_COUNT]
+        series = np.array(fixture[SERIES]).reshape(-1, variables)
+        fit = VAR(series).fit(fixture[LAG_ORDER], trend="c" if fixture[WITH_INTERCEPT] else "n")
+        # params and the columns built from it are (1 + K*p) x K, one column per equation; the C# reads
+        # equation first, so each is transposed.
+        cases.append({
+            "name": fixture["name"],
+            SERIES: fixture[SERIES],
+            VARIABLE_COUNT: variables,
+            LAG_ORDER: fixture[LAG_ORDER],
+            WITH_INTERCEPT: fixture[WITH_INTERCEPT],
+            COEFFICIENTS: np.asarray(fit.params).T.tolist(),
+            STANDARD_ERRORS: np.asarray(fit.stderr).T.tolist(),
+            "tStatistics": np.asarray(fit.tvalues).T.tolist(),
+            P_VALUES: np.asarray(fit.pvalues).T.tolist(),
+            "residualCovariance": np.asarray(fit.sigma_u).ravel().tolist(),
+            "residualCovarianceMaximumLikelihood": np.asarray(fit.sigma_u_mle).ravel().tolist(),
+            LOG_LIKELIHOOD: float(fit.llf),
+            AKAIKE: float(fit.aic),
+            "bayesian": float(fit.bic),
+            "hannanQuinn": float(fit.hqic),
+            "finalPredictionError": float(fit.fpe),
+            "observationsUsed": int(fit.nobs),
+            "modelDegreesOfFreedom": int(fit.df_model),
+            RESIDUAL_DEGREES_OF_FREEDOM: int(fit.df_resid),
+        })
+
+    return {
+        "metadata": {
+            "library": STATSMODELS,
+            "version": version(STATSMODELS),
+            FAMILY: "var",
             "count": len(cases),
         },
         "cases": cases,
@@ -6068,7 +6181,7 @@ def generate_stats_glm() -> dict:
             "nullDeviance": float(fit.null_deviance),
             "dispersion": float(fit.scale),
             LOG_LIKELIHOOD: float(fit.llf),
-            "akaike": float(fit.aic),
+            AKAIKE: float(fit.aic),
             RESIDUAL_DEGREES_OF_FREEDOM: int(fit.df_resid),
             CONVERGED: bool(fit.converged),
             ITERATIONS: int(fit.fit_history["iteration"]),
@@ -11320,6 +11433,7 @@ def main() -> None:
         "stats_wls.json": generate_stats_wls,
         "stats_gls.json": generate_stats_gls,
         "stats_glm.json": generate_stats_glm,
+        "stats_var.json": generate_stats_var,
         "stats_mnlogit.json": generate_stats_mnlogit,
         "regression_log_factorial.json": generate_regression_log_factorial,
         "regression_log_gamma.json": generate_regression_log_gamma,

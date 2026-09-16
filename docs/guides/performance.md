@@ -4309,6 +4309,34 @@ the category the count modulo three, milliseconds per fit, best of five.
 Part of the difference is the null log-likelihood: `statsmodels` refits the constant-only model with Nelder–Mead and
 BFGS, where this fit takes the closed form that refit approximates (decision 0136).
 
+## The vector autoregression against statsmodels (issue #786)
+
+Full method and what agrees:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#43-the-vector-autoregression-against-statsmodels-issue-786).
+Nothing in .NET estimates a VAR, so the incumbent is `statsmodels` 0.15.0 through `compare-var`. Same machine as above,
+on 2026-09-16; one run of each side. A two-variable series at lag 2, milliseconds per fit, best of five.
+
+| n | [`VectorAutoregression.Fit`](../reference/stats-timeseries/var/vectorautoregression-fit.md) | `statsmodels`, wall / cpu | ratio, wall |
+| ---: | ---: | ---: | ---: |
+| 1,000 | **0.042 ms** | 1.263 / 1.263 ms | **30.23** |
+| 10,000 | **0.485 ms** | 8.565 / 8.564 ms | **17.65** |
+| 100,000 | **5.391 ms** | 79.616 / 79.609 ms | **14.77** |
+
+What the fit costs by shape, from `VectorAutoregressionBenchmarks`, `BenchmarkDotNet` 0.14.0 default job:
+
+| observations | variables | lags | mean | Allocated |
+| ---: | ---: | ---: | ---: | ---: |
+| 500 | 2 | 1 | 14.76 μs | 60.53 KB |
+| 500 | 2 | 4 | 49.28 μs | 132.84 KB |
+| 500 | 5 | 1 | 72.24 μs | 206.76 KB |
+| 500 | 5 | 4 | 422.41 μs | 590.05 KB |
+| 5,000 | 2 | 1 | 244.97 μs | 587.95 KB |
+| 5,000 | 2 | 4 | 829.14 μs | 1,293.21 KB |
+| 5,000 | 5 | 1 | 911.36 μs | 2,000.01 KB |
+| 5,000 | 5 | 4 | 4,701.02 μs | 5,548.08 KB |
+
+Both axes multiply: a system of `K` variables at lag `p` fits `K` least squares over a design of `1 + K·p` columns.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly
