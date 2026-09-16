@@ -22,22 +22,50 @@ internal static class Neighbourhoods
         ReadOnlySpan<double> samples, int featureCount, int sampleCount, double epsilon)
     {
         double limit = epsilon * epsilon;
-        var offsets = new int[sampleCount + 1];
-        var indices = new List<int>(sampleCount * 4);
-        for (int row = 0; row < sampleCount; row++)
+
+        // Each pair once: d(i, j) and d(j, i) are the same sum, so the upper triangle decides both, kept
+        // in (i, j) order so the rows below come out ascending without a sort (#818).
+        var degree = new int[sampleCount];
+        var from = new List<int>(sampleCount * 2);
+        var to = new List<int>(sampleCount * 2);
+        for (int i = 0; i < sampleCount; i++)
         {
-            offsets[row] = indices.Count;
-            for (int other = 0; other < sampleCount; other++)
+            degree[i]++;
+            for (int j = i + 1; j < sampleCount; j++)
             {
-                if (SquaredDistance(samples, featureCount, row, other) <= limit)
+                if (Within(samples, featureCount, i, j, limit))
                 {
-                    indices.Add(other);
+                    from.Add(i);
+                    to.Add(j);
+                    degree[i]++;
+                    degree[j]++;
                 }
             }
         }
 
-        offsets[sampleCount] = indices.Count;
-        return (offsets, [.. indices]);
+        var offsets = new int[sampleCount + 1];
+        for (int i = 0; i < sampleCount; i++)
+        {
+            offsets[i + 1] = offsets[i] + degree[i];
+        }
+
+        // Row i receives its smaller neighbours from earlier rows' pairs, then itself, then its
+        // larger neighbours from its own pairs: ascending, as the full scan wrote it.
+        var fill = (int[])offsets.Clone();
+        var indices = new int[offsets[sampleCount]];
+        int pair = 0;
+        for (int i = 0; i < sampleCount; i++)
+        {
+            indices[fill[i]++] = i;
+            for (; pair < from.Count && from[pair] == i; pair++)
+            {
+                int j = to[pair];
+                indices[fill[i]++] = j;
+                indices[fill[j]++] = i;
+            }
+        }
+
+        return (offsets, indices);
     }
 
     /// <summary>The same adjacency, read off a square distance matrix instead of computed.</summary>
@@ -71,8 +99,13 @@ internal static class Neighbourhoods
         return (offsets, [.. indices]);
     }
 
-    private static double SquaredDistance(
-        ReadOnlySpan<double> samples, int featureCount, int left, int right)
+    /// <summary>Whether two rows are within the squared radius, stopping once the sum is past it.</summary>
+    /// <remarks>
+    /// Every term is a square, so the partial sums never fall: once one exceeds the limit the
+    /// whole sum would too, and the answer is the one the full sum gives.
+    /// </remarks>
+    private static bool Within(
+        ReadOnlySpan<double> samples, int featureCount, int left, int right, double limit)
     {
         double total = 0.0;
         int a = left * featureCount;
@@ -81,8 +114,12 @@ internal static class Neighbourhoods
         {
             double gap = samples[a + feature] - samples[b + feature];
             total += gap * gap;
+            if (total > limit)
+            {
+                return false;
+            }
         }
 
-        return total;
+        return total <= limit;
     }
 }

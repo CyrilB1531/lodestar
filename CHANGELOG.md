@@ -48,6 +48,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- `Dbscan.Fit` computes each pair's distance once and stops a sum past the radius. ([#818](https://github.com/CyrilB1531/lodestar/issues/818))
 - `KMeansOptions` compares its centres by value. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
 
 ### Lodestar.Decomposition
