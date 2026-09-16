@@ -41,6 +41,9 @@ internal static class TensorPrimitivesBench
         Console.WriteLine(
             $"Vector<float>  {System.Numerics.Vector<float>.Count} wide, "
             + $"hardware accelerated = {System.Numerics.Vector.IsHardwareAccelerated}");
+        // console-print: whether TensorPrimitives can take its 512-bit path, which #754 found decides the ratio.
+        Console.WriteLine(
+            $"Vector512      hardware accelerated = {System.Runtime.Intrinsics.Vector512.IsHardwareAccelerated}");
         // console-print: the machine, without which no absolute here is readable.
         Console.WriteLine($"runtime        {Environment.Version}, {Environment.ProcessorCount} cores");
         Console.WriteLine(); // console-print: separates the conditions from the agreement.

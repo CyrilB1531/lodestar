@@ -4628,6 +4628,33 @@ was timed. **Meta.Numerics refuses the fourth shape**: 100 rows by 200 features 
 `InsufficientDataException`, where this package and NumFlat both answer — so the wide matrix has no
 Meta.Numerics row at all rather than a slow one.
 
+## [`VectorMath.Dot`](../reference/embeddings/search/vectormath-dot.md) against `TensorPrimitives`, by vector width (issue #754)
+
+`tensor-primitives` (`bench/README.md` section 14) on the machine below, pinned to one core, three
+conditions interleaved over five runs of nine. Median of the five medians, in ms, over
+10,000 × 384 floats. Ratios above 1 mean `TensorPrimitives` is faster.
+
+| row | `Vector512` on | `Vector512` off | AVX-512 off |
+| --- | ---: | ---: | ---: |
+| `ours_dot_knn` | 0.863 | 1.232 | 0.955 |
+| `tp_dot_knn` | 6.222 | 3.860 | 3.946 |
+| `ours_cosine_knn` | 1.803 | 2.055 | 1.814 |
+| `tp_cosine_knn` | 10.795 | 6.130 | 6.363 |
+| `ours_one_sweep` | 0.563 | 0.545 | 0.351 |
+| `tp_one_sweep` | 0.456 | 0.387 | 0.369 |
+| `index_search` | 3.734 | 3.787 | 3.692 |
+| **dot ratio** | **0.14** | **0.32** | **0.24** |
+| **cosine ratio** | **0.17** | **0.34** | **0.29** |
+
+**Our kernel is ahead on the kNN pattern at every width**, 3–7×, and one long sweep is at parity.
+Turning the 512-bit path off halves `TensorPrimitives`' time without changing the direction.
+[Decision 0140](../decisions/0140-on-a-named-machine-our-knn-kernel-is-ahead-and-avx-512-widens-the-gap.md)
+records it against the hosted runner's opposite reading in
+[0060](../decisions/0060-tensorprimitives-beats-our-kernel-and-the-knn-is-still-not-redundant.md).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
+LTS, .NET 10.0.12 runtime. 2026-09-16.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly
@@ -4643,9 +4670,8 @@ The other comparisons against a .NET library have their own sections in this gui
 - Accord.Statistics: `Lodestar.Stats` (#442) and `Lodestar.Stats.Regression` (#566, #678).
 - NumFlat: #701. Cortex.TimeSeries: #617. LuceneSharp: #677 and #751.
 
-[`VectorMath.Dot`](../reference/embeddings/search/vectormath-dot.md) against `TensorPrimitives` is not published here. Run on this machine, it read the
-opposite of [decision 0060](../decisions/0060-tensorprimitives-beats-our-kernel-and-the-knn-is-still-not-redundant.md),
-and [#754](https://github.com/CyrilB1531/lodestar/issues/754) re-measures it before anything is concluded.
+[`VectorMath.Dot`](../reference/embeddings/search/vectormath-dot.md) against `TensorPrimitives` has
+its own section below (#754).
 
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
 (BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
