@@ -4697,6 +4697,17 @@ Same times, same integer counts, same accumulation order: bit-identical. `Surviv
 
 Kept cells and their order are unchanged: keywords and scores bit-identical. `TextRankBenchmarks`.
 
+## DBSCAN neighbourhoods from the upper triangle (issue #818)
+
+| samples × features | `main` | fix |
+| --- | ---: | ---: |
+| 5,000 × 2 | 63.8 ms | 36.8 ms |
+| 20,000 × 2 | 893 ms | 667 ms |
+| 10,000 × 8 | 408 ms | 251 ms |
+| 5,000 × 16 | 188 ms | **86 ms** |
+
+The partial sums never fall, so every decision is the full sum's; labels and core samples identical on five datasets. `DbscanIncumbentBenchmarks` and `DbscanDimensionBenchmarks`, this package's rows.
+
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-16; both `main` runs agreed within 5%.
