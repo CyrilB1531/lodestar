@@ -10,8 +10,14 @@ baseline marker only advances when a page is written, so the next night selected
 33 and died the same way. The failure fed itself and no further change was needed to keep
 it failing.
 
-So two things have to stay true, and neither is visible from reading one line:
+Measured again on 2026-09-16, with the budget honoured and the job killed anyway: the run
+loop stopped itself at 61 minutes as told, and the steps *after* it took the remaining 59 --
+"Compare against Python" alone 58. The deadline bounds one step, and the margin beneath it
+has to hold every step that has none.
+
+So three things have to stay true, and none is visible from reading one line:
   * the run loop has a deadline of its own, under the job's timeout
+  * the margin between the two holds the unbudgeted tail, measured rather than assumed
   * what it does not reach is written down, carried, and asked for again
 """
 
@@ -56,6 +62,27 @@ def test_the_run_loop_has_a_deadline_under_the_job_timeout():
         "there first."
     )
     assert "deadline" in run["run"], "Run them starts classes without checking a deadline"
+
+
+# The tail of the run of 2026-09-16: 58 minutes of comparisons, nine of page and pull
+# request, and one last class started on the wrong side of the deadline. Rounded down.
+MEASURED_TAIL_MINUTES = 75
+
+
+def test_the_margin_beneath_the_budget_holds_the_steps_that_have_none():
+    """A budget honoured to the minute still killed the job: the tail is what overran."""
+    data = yaml.safe_load(NIGHTLY.read_text(encoding="utf-8"))
+    job = next(iter(data["jobs"].values()))
+    budget = int(steps()["Run them"]["env"]["BUDGET_MINUTES"])
+    timeout = int(job["timeout-minutes"])
+
+    assert timeout - budget >= MEASURED_TAIL_MINUTES, (
+        f"the run loop may start a class {budget} minutes in and the job is killed at "
+        f"{timeout}, leaving {timeout - budget} minutes for the comparisons, the page and "
+        f"the pull request -- measured at {MEASURED_TAIL_MINUTES}. The job dies with every "
+        "class measured and nothing published, which is the one outcome worse than a short "
+        "night."
+    )
 
 
 def test_what_the_run_did_not_reach_is_written_down():
