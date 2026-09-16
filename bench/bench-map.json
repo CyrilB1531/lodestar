@@ -322,6 +322,9 @@
     ],
     "DamerauLevenshteinBenchmarks": [
       "src/Lodestar.Text/**"
+    ],
+    "QgramBenchmarks": [
+      "src/Lodestar.Text/**"
     ]
   },
   "harnesses": {
