@@ -122,9 +122,11 @@ public sealed class RobustScaler
         }
 
         var scale = new double[samples.ColumnCount];
+        (double[] grouped, int[] offsets) = SparseColumns.ByColumn(samples);
+        var buffer = new double[samples.RowCount];
         for (int feature = 0; feature < samples.ColumnCount; feature++)
         {
-            double[] column = SparseColumns.SortedColumn(samples, feature);
+            double[] column = SparseColumns.SortedColumn(grouped, offsets, feature, buffer);
             scale[feature] = Percentile.Linear(column, settings.UpperPercentile)
                 - Percentile.Linear(column, settings.LowerPercentile);
         }

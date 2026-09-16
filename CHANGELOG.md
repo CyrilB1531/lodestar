@@ -33,6 +33,10 @@ is one sentence, the issue and the commit; see
 - `Encoders.OneHot`, `Encoders.Ordinal` and `SimpleImputer` encode categories and fill missing values, at scikit-learn parity. ([#764](https://github.com/CyrilB1531/lodestar/issues/764), [`89923b23`](https://github.com/CyrilB1531/lodestar/commit/89923b23))
 - The scalers fit over batches with `PartialFit` and over a `CsrMatrix`, with an edge on `Lodestar.Abstractions`. ([#765](https://github.com/CyrilB1531/lodestar/issues/765), [`e3a38ca9`](https://github.com/CyrilB1531/lodestar/commit/e3a38ca9))
 
+#### Changed
+
+- `RobustScaler.Fit(CsrMatrix)` groups the stored values by column in one pass, where it scanned every stored value for each column. ([#817](https://github.com/CyrilB1531/lodestar/issues/817))
+
 ### Lodestar.Conformal
 
 #### Added

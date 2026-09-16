@@ -44,22 +44,49 @@ internal static class SparseColumns
         return maxima;
     }
 
-    /// <summary>One column's values, the absent zeros included, sorted — what a percentile needs.</summary>
-    public static double[] SortedColumn(CsrMatrix matrix, int column)
+    /// <summary>The stored values grouped by column, each group in storage order.</summary>
+    /// <remarks>
+    /// One pass over the matrix for every column, where reading a column by scanning all stored
+    /// values cost O(stored values x columns). Group <c>c</c> is <c>Values[Offsets[c]..Offsets[c + 1]]</c>.
+    /// </remarks>
+    public static (double[] Values, int[] Offsets) ByColumn(CsrMatrix matrix)
     {
-        var values = new double[matrix.RowCount];
-        int next = 0;
-        for (int i = 0; i < matrix.Values.Length; i++)
+        var offsets = new int[matrix.ColumnCount + 1];
+        for (int i = 0; i < matrix.ColumnIndices.Length; i++)
         {
-            if (matrix.ColumnIndices[i] == column)
-            {
-                values[next++] = matrix.Values[i];
-            }
+            offsets[matrix.ColumnIndices[i] + 1]++;
         }
 
+        for (int column = 0; column < matrix.ColumnCount; column++)
+        {
+            offsets[column + 1] += offsets[column];
+        }
+
+        var values = new double[matrix.Values.Length];
+        var next = (int[])offsets.Clone();
+        for (int i = 0; i < matrix.Values.Length; i++)
+        {
+            values[next[matrix.ColumnIndices[i]]++] = matrix.Values[i];
+        }
+
+        return (values, offsets);
+    }
+
+    /// <summary>One column's values, the absent zeros included, sorted into <paramref name="buffer"/>.</summary>
+    /// <remarks>
+    /// The buffer receives the column's stored values in storage order and zeros after them — the
+    /// same sequence a scan of the whole matrix built — so the sort returns the same array.
+    /// </remarks>
+    public static double[] SortedColumn(double[] grouped, int[] offsets, int column, double[] buffer)
+    {
+        int start = offsets[column];
+        int count = offsets[column + 1] - start;
+        Array.Copy(grouped, start, buffer, 0, count);
+        Array.Clear(buffer, count, buffer.Length - count);
+
         // The rest are the zeros nobody stored, and Array.Sort puts them where they belong.
-        Array.Sort(values);
-        return values;
+        Array.Sort(buffer);
+        return buffer;
     }
 
     /// <summary>Refuses a matrix carrying a value no statistic can answer for.</summary>

@@ -313,6 +313,9 @@
     ],
     "MannWhitneyExactBenchmarks": [
       "src/Lodestar.Stats/**"
+    ],
+    "RobustScalerSparseBenchmarks": [
+      "src/Lodestar.Preprocessing/**"
     ]
   },
   "harnesses": {
