@@ -4688,6 +4688,15 @@ LTS, .NET 10.0.12 runtime. 2026-09-16.
 
 Same times, same integer counts, same accumulation order: bit-identical. `SurvivalBenchmarks.LogRankTest`; allocation rises to about 1.7 MB at 100,000 subjects for the sorted copies.
 
+## TextRank's unreachable words dropped in one compaction (issue #816)
+
+| words | `main` | fix |
+| ---: | ---: | ---: |
+| 2,000 | 25.9 ms, 99 MB | 9.6 ms, 3.1 MB |
+| 8,000 | 3.14 s, 5.26 GB | **364 ms, 35 MB** |
+
+Kept cells and their order are unchanged: keywords and scores bit-identical. `TextRankBenchmarks`.
+
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-16; both `main` runs agreed within 5%.

@@ -227,52 +227,47 @@ internal sealed class WordGraph
         return m;
     }
 
-    // One pass is enough: a node of zero weighted degree has no edges, so removing it
-    // lowers nobody else's degree and can isolate no one. summa's is one `for` too.
+    // One pass is enough: an isolated node lowers nobody's degree when removed. All of them go in one
+    // compaction, where dropping them one at a time rebuilt the n x n matrix per node (#816).
     private void RemoveUnreachable()
     {
-        for (int i = _nodes.Count - 1; i >= 0; i--)
+        int n = _nodes.Count;
+        var kept = new List<int>(n);
+        for (int i = 0; i < n; i++)
         {
             double degree = 0;
-            for (int j = 0; j < _nodes.Count; j++)
+            for (int j = 0; j < n; j++)
             {
                 degree += _weights[i][j];
             }
 
-            if (IsZero(degree))
+            if (!IsZero(degree))
             {
-                // Descending, so Drop never invalidates an index still to visit.
-                Drop(i);
+                kept.Add(i);
             }
         }
-    }
 
-    private void Drop(int index)
-    {
-        int n = _nodes.Count;
-        double[][] trimmed = CreateMatrix(n - 1);
-        for (int i = 0, a = 0; i < n; i++)
+        if (kept.Count == n)
         {
-            if (i == index)
-            {
-                continue;
-            }
-
-            for (int j = 0, b = 0; j < n; j++)
-            {
-                if (j == index)
-                {
-                    continue;
-                }
-
-                trimmed[a][b] = _weights[i][j];
-                b++;
-            }
-
-            a++;
+            return;
         }
 
-        _nodes.RemoveAt(index);
+        double[][] trimmed = CreateMatrix(kept.Count);
+        var nodes = new List<string>(kept.Count);
+        for (int a = 0; a < kept.Count; a++)
+        {
+            double[] source = _weights[kept[a]];
+            double[] target = trimmed[a];
+            for (int b = 0; b < kept.Count; b++)
+            {
+                target[b] = source[kept[b]];
+            }
+
+            nodes.Add(_nodes[kept[a]]);
+        }
+
+        _nodes.Clear();
+        _nodes.AddRange(nodes);
         _weights = trimmed;
         _index.Clear();
         for (int i = 0; i < _nodes.Count; i++)
