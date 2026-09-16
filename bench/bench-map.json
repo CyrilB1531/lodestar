@@ -319,6 +319,9 @@
     ],
     "TopKAccuracyBenchmarks": [
       "src/Lodestar.Metrics/**"
+    ],
+    "DamerauLevenshteinBenchmarks": [
+      "src/Lodestar.Text/**"
     ]
   },
   "harnesses": {
