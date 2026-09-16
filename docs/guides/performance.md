@@ -4766,6 +4766,15 @@ LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `ma
 
 A tie is ordered by descending index, so a class's position is the count of higher scores plus equal scores at a higher index; a row holding a NaN keeps the sort. Bit-identical against `main` on 318 scores with ties, NaNs, signed zeros and weights. `TopKAccuracyBenchmarks`, pinned to four cores.
 
+## [`DamerauLevenshtein.Distance`](../reference/text/distances/dameraulevenshtein-distance.md) with dense symbol ids (issue #828)
+
+| length | `main` | fix |
+| ---: | ---: | ---: |
+| 12 | 690 ns, 696 B | 566 ns, 840 B |
+| 120 | 62.8 µs, 1,488 B | **37.0 µs**, 2,128 B |
+
+Allocation rises by the id arrays. Distances identical against `main` on 6,000 pairs over chars, code points and integers. `DamerauLevenshteinBenchmarks`, pinned to four cores.
+
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-16; both `main` runs agreed within 3%.

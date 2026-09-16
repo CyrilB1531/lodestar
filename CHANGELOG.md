@@ -78,6 +78,7 @@ is one sentence, the issue and the commit; see
 #### Changed
 
 - `TextRank.Extract` drops every isolated word in one compaction, where it rebuilt the word matrix once per word. ([#816](https://github.com/CyrilB1531/lodestar/issues/816))
+- `DamerauLevenshtein.Distance` reads its last-row table by dense symbol id instead of a dictionary lookup in every cell. ([#828](https://github.com/CyrilB1531/lodestar/issues/828))
 - `Bm25Index.Top` keeps the best documents in a bounded heap instead of sorting the corpus. ([#751](https://github.com/CyrilB1531/lodestar/issues/751), [`026de562`](https://github.com/CyrilB1531/lodestar/commit/026de562))
 - `Levenshtein.Distance` over a Latin-1 pattern past 64 characters advances its words two at a time. ([#718](https://github.com/CyrilB1531/lodestar/issues/718), [`004e3682`](https://github.com/CyrilB1531/lodestar/commit/004e3682))
 - `Indel` and `Lcs.SubsequenceLength` in `TextElement.CodePoint` mode reach the bit-parallel kernel. ([#675](https://github.com/CyrilB1531/lodestar/issues/675), [`25dc2314`](https://github.com/CyrilB1531/lodestar/commit/25dc2314))

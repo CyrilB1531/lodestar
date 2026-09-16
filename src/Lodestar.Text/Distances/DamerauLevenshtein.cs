@@ -91,19 +91,33 @@ public static class DamerauLevenshtein
                 d[Idx(0, j)] = j;
             }
 
-            var lastRow = new Dictionary<T, int>(); // symbol -> last row of a where it occurred
+            // Each symbol of b gets a dense id once and a reuses them (0 when b lacks it, never read back),
+            // so the last-row table is an array read rather than a dictionary lookup per cell (#828).
+            var ids = new Dictionary<T, int>();
+            int[] bId = new int[n];
+            for (int j = 0; j < n; j++)
+            {
+                if (!ids.TryGetValue(b[j], out int id))
+                {
+                    id = ids.Count + 1;
+                    ids.Add(b[j], id);
+                }
+
+                bId[j] = id;
+            }
+
+            int[] lastRow = new int[ids.Count + 1]; // symbol id -> last row of a where it occurred
             for (int i = 1; i <= m; i++)
             {
                 int lastMatchCol = 0; // db
-                T ai = a[i - 1];
+                int aId = ids.TryGetValue(a[i - 1], out int known) ? known : 0;
                 for (int j = 1; j <= n; j++)
                 {
-                    T bj = b[j - 1];
-                    int k = lastRow.TryGetValue(bj, out int kk) ? kk : 0;
+                    int k = lastRow[bId[j - 1]];
                     int l = lastMatchCol;
 
                     int cost;
-                    if (ai.Equals(bj))
+                    if (aId == bId[j - 1])
                     {
                         cost = 0;
                         lastMatchCol = j;
@@ -134,7 +148,10 @@ public static class DamerauLevenshtein
                     d[Idx(i, j)] = value;
                 }
 
-                lastRow[ai] = i;
+                if (aId != 0)
+                {
+                    lastRow[aId] = i;
+                }
             }
 
             return d[Idx(m, n)];
