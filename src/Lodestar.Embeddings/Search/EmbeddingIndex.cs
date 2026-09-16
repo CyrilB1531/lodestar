@@ -158,6 +158,15 @@ public sealed partial class EmbeddingIndex
         }
 
         ReadOnlySpan<float> data = _data.AsSpan(0, _length);
+        int take = Math.Min(k, _count);
+
+        // A bounded heap when k is a small share of the index: O(n log k) and k results allocated, in the
+        // same total order the full sort uses, so the hits and their order are the same (#813).
+        if (take <= _count / 2)
+        {
+            return TopByHeap(q, data, take);
+        }
+
         var scored = new SearchResult[_count];
         for (int item = 0; item < _count; item++)
         {
@@ -166,16 +175,80 @@ public sealed partial class EmbeddingIndex
         }
 
         // Stable top-k: sort by score desc, then index asc (matches numpy argsort tie-break intent).
-        Array.Sort(scored, static (x, y) =>
-        {
-            int c = y.Score.CompareTo(x.Score);
-            return c != 0 ? c : x.Index.CompareTo(y.Index);
-        });
+        Array.Sort(scored, static (x, y) => Rank(x, y));
 
-        int take = Math.Min(k, _count);
         var result = new SearchResult[take];
         Array.Copy(scored, result, take);
         return result;
+    }
+
+    /// <summary>Best first: score descending, then index ascending. Total, since indices are unique.</summary>
+    private static int Rank(SearchResult x, SearchResult y)
+    {
+        int c = y.Score.CompareTo(x.Score);
+        return c != 0 ? c : x.Index.CompareTo(y.Index);
+    }
+
+    /// <summary>The <paramref name="take"/> best hits, kept in a heap whose root is the worst of them.</summary>
+    private SearchResult[] TopByHeap(ReadOnlySpan<float> query, ReadOnlySpan<float> data, int take)
+    {
+        var heap = new SearchResult[take];
+        int size = 0;
+        for (int item = 0; item < _count; item++)
+        {
+            var hit = new SearchResult(item, VectorMath.Dot(query, data.Slice(item * _dim, _dim)));
+            if (size < take)
+            {
+                heap[size] = hit;
+                SiftUp(heap, size++);
+            }
+            else if (Rank(hit, heap[0]) < 0)
+            {
+                heap[0] = hit;
+                SiftDown(heap, size);
+            }
+        }
+
+        Array.Sort(heap, static (x, y) => Rank(x, y));
+        return heap;
+    }
+
+    // The heap keeps the worst-ranked hit at the root, so "worse" sits above "better".
+    private static void SiftUp(SearchResult[] heap, int at)
+    {
+        while (at > 0)
+        {
+            int parent = (at - 1) / 2;
+            if (Rank(heap[at], heap[parent]) <= 0)
+            {
+                return;
+            }
+
+            (heap[at], heap[parent]) = (heap[parent], heap[at]);
+            at = parent;
+        }
+    }
+
+    private static void SiftDown(SearchResult[] heap, int size)
+    {
+        int at = 0;
+        while (true)
+        {
+            int left = (2 * at) + 1;
+            if (left >= size)
+            {
+                return;
+            }
+
+            int worse = left + 1 < size && Rank(heap[left + 1], heap[left]) > 0 ? left + 1 : left;
+            if (Rank(heap[worse], heap[at]) <= 0)
+            {
+                return;
+            }
+
+            (heap[at], heap[worse]) = (heap[worse], heap[at]);
+            at = worse;
+        }
     }
 
     private void NormalizeStored(int start)

@@ -91,6 +91,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- `EmbeddingIndex.Search` keeps the best k in a bounded heap instead of sorting every score, allocating k results rather than the whole index. ([#813](https://github.com/CyrilB1531/lodestar/issues/813))
 - `SentencePieceTokenizer` and `WordPieceTokenizer` find their pieces by walking a trie. ([#713](https://github.com/CyrilB1531/lodestar/issues/713), [`285a8ced`](https://github.com/CyrilB1531/lodestar/commit/285a8ced))
 - `BpeTokenizer` encodes byte-level text 5.4× faster. ([#673](https://github.com/CyrilB1531/lodestar/issues/673), [`c2a848df`](https://github.com/CyrilB1531/lodestar/commit/c2a848df))
 - `BpeTokenizer` caches each piece's merged ids. ([#743](https://github.com/CyrilB1531/lodestar/issues/743), [`6ab11a2c`](https://github.com/CyrilB1531/lodestar/commit/6ab11a2c))

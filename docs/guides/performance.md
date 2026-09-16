@@ -4726,6 +4726,15 @@ Each sum still receives its terms by ascending index: bit-identical on 1,750 sco
 
 The key is multiplied by an odd constant modulo 2^64 and inverted when read; insertion order, and so the order [`MutualInformation`](../reference/metrics/clustering/mutualinformation.md) sums in, is unchanged. `ClusteringAgreementBenchmarks`.
 
+## [`EmbeddingIndex.Search`](../reference/embeddings/search/embeddingindex-search.md) by a bounded heap (issue #813)
+
+| vectors (384 dimensions, k = 10) | `main` | fix |
+| ---: | ---: | ---: |
+| 10,000 | 833 µs, 80 KB | 369 µs, 1.6 KB |
+| 100,000 | 10.4 ms, 783 KB | **3.89 ms, 1.6 KB** |
+
+Same total order (score descending, index ascending); a k past half the index still sorts. A differential test checks every k against the full ranking. `EmbeddingSearchBenchmarks`.
+
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-16; both `main` runs agreed within 5%.
