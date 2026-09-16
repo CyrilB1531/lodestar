@@ -23,6 +23,11 @@ internal static class QgramCounts
             throw new ArgumentOutOfRangeException(nameof(qval), qval, "qval must be >= 1.");
         }
 
+        if (element == TextElement.Utf16Unit)
+        {
+            return CountSorted(a, b, qval);
+        }
+
         Dictionary<string, int> ca = Build(a, qval, element);
         Dictionary<string, int> cb = Build(b, qval, element);
 
@@ -50,6 +55,95 @@ internal static class QgramCounts
         }
 
         return (intersection, sizeA, sizeB);
+    }
+
+    /// <summary>The same three counts from each side's grams sorted by content, without a string per gram.</summary>
+    /// <remarks>
+    /// A gram is its start index; sorting the starts by the gram's characters puts equal grams in runs,
+    /// and walking both sorted lists together takes the smaller run of every gram both hold. Ordinal
+    /// character order is the equality the string keys used, and the counts are integers.
+    /// </remarks>
+    private static (int Intersection, int SizeA, int SizeB) CountSorted(ReadOnlySpan<char> a, ReadOnlySpan<char> b, int qval)
+    {
+        int sizeA = Math.Max(0, a.Length - qval + 1);
+        int sizeB = Math.Max(0, b.Length - qval + 1);
+        if (sizeA == 0 || sizeB == 0)
+        {
+            return (0, sizeA, sizeB);
+        }
+
+        char[] textA = ArrayPool<char>.Shared.Rent(a.Length);
+        char[] textB = ArrayPool<char>.Shared.Rent(b.Length);
+        int[] startsA = ArrayPool<int>.Shared.Rent(sizeA);
+        int[] startsB = ArrayPool<int>.Shared.Rent(sizeB);
+        try
+        {
+            a.CopyTo(textA);
+            b.CopyTo(textB);
+            SortStarts(textA, startsA, sizeA, qval);
+            SortStarts(textB, startsB, sizeB, qval);
+
+            int intersection = 0;
+            int i = 0;
+            int j = 0;
+            while (i < sizeA && j < sizeB)
+            {
+                int order = textA.AsSpan(startsA[i], qval).SequenceCompareTo(textB.AsSpan(startsB[j], qval));
+                if (order < 0)
+                {
+                    i++;
+                }
+                else if (order > 0)
+                {
+                    j++;
+                }
+                else
+                {
+                    int runA = RunLength(textA, startsA, i, sizeA, qval);
+                    int runB = RunLength(textB, startsB, j, sizeB, qval);
+                    intersection += Math.Min(runA, runB);
+                    i += runA;
+                    j += runB;
+                }
+            }
+
+            return (intersection, sizeA, sizeB);
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(textA);
+            ArrayPool<char>.Shared.Return(textB);
+            ArrayPool<int>.Shared.Return(startsA);
+            ArrayPool<int>.Shared.Return(startsB);
+        }
+    }
+
+    private static void SortStarts(char[] text, int[] starts, int count, int qval)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            starts[i] = i;
+        }
+
+        Array.Sort(starts, 0, count, new GramOrder(text, qval));
+    }
+
+    private static int RunLength(char[] text, int[] starts, int at, int count, int qval)
+    {
+        int end = at + 1;
+        ReadOnlySpan<char> gram = text.AsSpan(starts[at], qval);
+        while (end < count && text.AsSpan(starts[end], qval).SequenceEqual(gram))
+        {
+            end++;
+        }
+
+        return end - at;
+    }
+
+    /// <summary>Orders gram start positions by the grams' characters, ordinally.</summary>
+    private sealed class GramOrder(char[] text, int qval) : IComparer<int>
+    {
+        public int Compare(int x, int y) => text.AsSpan(x, qval).SequenceCompareTo(text.AsSpan(y, qval));
     }
 
     private static Dictionary<string, int> Build(ReadOnlySpan<char> s, int qval, TextElement element)

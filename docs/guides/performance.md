@@ -4775,6 +4775,15 @@ A tie is ordered by descending index, so a class's position is the count of high
 
 Allocation rises by the id arrays. Distances identical against `main` on 6,000 pairs over chars, code points and integers. `DamerauLevenshteinBenchmarks`, pinned to four cores.
 
+## Q-gram similarities without a string per gram (issue #829)
+
+| q ([`Jaccard.Similarity`](../reference/text/similarity/jaccard-similarity.md), two sentences) | `main` | fix |
+| ---: | ---: | ---: |
+| 1 | 3.85 µs, 7.72 KB | 2.99 µs, **192 B** |
+| 3 | 4.39 µs, 13.77 KB | 3.65 µs, **192 B** |
+
+Ordinal character order is the equality the string keys used, and the counts are integers; the code-point mode keeps its path. Identical against `main` on 18,000 results across the five measures. `QgramBenchmarks`, pinned to four cores.
+
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-16; both `main` runs agreed within 3%.
