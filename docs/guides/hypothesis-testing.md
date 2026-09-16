@@ -109,8 +109,19 @@ has the reading that corrected it):
 - **`Meta.Numerics` 4.2.0**, MS-PL, `netstandard2.0`, published 2025-07-14 after five years
   without a release. It carries eight of this package's ten families — the t-tests,
   Mann-Whitney, Wilcoxon, Kruskal-Wallis, Kolmogorov-Smirnov, one-way ANOVA, Fisher's exact test
-  and the chi-square table — and Shapiro-Francia rather than Shapiro-Wilk. It is **not measured
-  yet**: [#756](https://github.com/CyrilB1531/lodestar/issues/756).
+  and the chi-square table — and Shapiro-Francia rather than Shapiro-Wilk. **Measured** (#756): this
+  package is ahead on seven of the eight at both 100 and 10,000 samples, from 1.32× on
+  Kruskal-Wallis to 5.95× on the chi-square table, with the signed-rank row a wash at 100 and a win
+  at 10,000. It was **behind on two, and both were costs here rather than differences in what the
+  libraries compute**: Fisher's exact test went from 8.2× behind to 3.49× ahead, and the equal-size
+  exact Kolmogorov-Smirnov from 12.8× behind to 1.47× ahead — the same p-values, and
+  `ExactMethod.Auto` still choosing the exact branch that `scipy`'s own `method="auto"` chooses.
+  **Its chi-square applies no continuity
+  correction**, so its statistic is 9.09091 where this package's is 7.91919 on the same table, and
+  its signed-rank statistic follows a different convention. Neither is a disagreement about the
+  data: the write-up in
+  [`docs/guides/performance.md`](performance.md#metanumerics-against-lodestarstats-and-principalcomponentvariance-issue-756)
+  lists all six differences with their causes.
 - **`Numerics.NET` 10.7.0**, formerly Extreme Optimization, maintained and **commercial**. Named
   so its absence from the benchmarks is not mistaken for an absence from .NET.
 

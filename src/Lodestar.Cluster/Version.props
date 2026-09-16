@@ -4,12 +4,12 @@
     Lodestar.Cluster owns its version here, independently of the other packages
     (see docs/decisions/0012-per-package-versioning.md).
 
-    0.3.0 adds AgglomerativeClustering (#760), after 0.2.0 added Dbscan (#759). Like Lodestar.Metrics, Lodestar.Conformal
-    and Lodestar.Preprocessing it creates no inter-package edge — nothing depends on
-    it and it depends on nothing — so it releases on its own schedule.
+    0.1.0 is the published version. The number moves only when a release is cut
+    (CONTRIBUTING.md, Releasing), never in the pull request that adds the work.
+    It creates no inter-package edge, so it releases on its own schedule.
   -->
   <PropertyGroup>
-    <LodestarClusterVersion>0.3.0</LodestarClusterVersion>
+    <LodestarClusterVersion>0.1.0</LodestarClusterVersion>
   </PropertyGroup>
 
 </Project>

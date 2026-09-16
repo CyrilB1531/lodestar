@@ -106,3 +106,22 @@ def test_the_survey_covers_every_package():
     expected = {p.name for p in (REPO / "src").glob("Lodestar.*") if (p / "Version.props").exists()}
 
     assert surveyed == expected
+
+
+def test_a_moved_pin_counts_only_for_a_package_that_references_it(monkeypatch):
+    # Measured 2026-09-16: OnnxRuntime moved in src/Directory.Packages.props and Lodestar.Onnx
+    # reported nothing to publish, because no commit touched src/Lodestar.Onnx.
+    diff = "\n".join([
+        '-    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.28.0" />',
+        '+    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />',
+    ])
+
+    def fake_git(*args):
+        if args[0] == "log":
+            return "abc123"
+        return diff
+
+    monkeypatch.setattr(check_unreleased, "git", fake_git)
+
+    assert check_unreleased.pin_commits("v..HEAD", {"Microsoft.ML.OnnxRuntime"}) == {"abc123"}
+    assert check_unreleased.pin_commits("v..HEAD", {"Lodestar.Text"}) == set()

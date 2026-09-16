@@ -26,23 +26,11 @@ public class PrincipalComponentVarianceBenchmarks
     [Params("200x10", "2000x10", "2000x50", "100x200")]
     public string Shape { get; set; } = "200x10";
 
-    // SonarLint S2245, CA5394: a seeded Random builds a reproducible benchmark block; no
-    // security use.
-#pragma warning disable S2245, CA5394
     [GlobalSetup]
     public void Setup()
     {
-        string[] parts = Shape.Split('x');
-        _rowCount = int.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture);
-        _columnCount = int.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);
-
-        // Each column scaled by its index, so the spectrum is spread rather than flat.
-        var random = new Random(701);
-        _matrix = new double[_rowCount * _columnCount];
-        for (int i = 0; i < _matrix.Length; i++)
-        {
-            _matrix[i] = random.NextDouble() * (1 + (i % _columnCount));
-        }
+        (_rowCount, _columnCount) = PcaBlock.Shape(Shape);
+        _matrix = PcaBlock.Matrix(_rowCount, _columnCount);
 
         _rows = new Vec<double>[_rowCount];
         for (int row = 0; row < _rowCount; row++)
@@ -50,7 +38,6 @@ public class PrincipalComponentVarianceBenchmarks
             _rows[row] = new Vec<double>(_matrix.AsSpan(row * _columnCount, _columnCount).ToArray());
         }
     }
-#pragma warning restore S2245, CA5394
 
     [Benchmark(Baseline = true)]
     public double Lodestar_ExplainedVariance() =>

@@ -16,6 +16,10 @@
     existing moved or was removed. No new inter-package edge came with either:
     the IRLS loop and the robust covariance reuse the same internal
     least-squares core the OLS half already had.
+
+    It stays declared ahead of its tag, the one package that does, because
+    Lodestar.Stats.TimeSeries depends on this 0.2.0 and must not ship first
+    (CONTRIBUTING.md, Working across two packages).
   -->
   <PropertyGroup>
     <LodestarStatsRegressionVersion>0.2.0</LodestarStatsRegressionVersion>

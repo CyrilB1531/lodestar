@@ -14,10 +14,6 @@ public static class FisherExact
     // <= would include or exclude one by rounding. scipy guards it the same way.
     private const double ProbabilityTolerance = 1e-7;
 
-    // Computed once rather than at every comparison; not a compile-time constant
-    // since Math.Log is not constant-evaluable in C#.
-    private static readonly double LogProbabilityTolerance = Math.Log(1.0 + ProbabilityTolerance);
-
     // long-comment: the bound below is a measured performance ceiling, not an
     // arbitrary round number, and a reviewer should be able to see the
     // measurement without leaving the source.
@@ -124,31 +120,100 @@ public static class FisherExact
         int lowest = Math.Max(0, columnOne - (total - rowOne));
         int highest = Math.Min(rowOne, columnOne);
 
-        double observedLog = LogHypergeometricProbability(a, rowOne, columnOne, total);
+        // long-comment: why the walk starts at the mode and multiplies, rather than
+        // taking a logarithm per table. Neighbouring hypergeometric probabilities differ
+        // by a ratio of four small integers, so the whole range costs one exponential and
+        // O(range) multiplications where a log-space loop costs nine log-gammas per table.
+        // Measured on the 2x2 table of bench/README.md section 45, that is 7.42 us against
+        // 0.42 us. The mode is the anchor because the probability is largest there: from an
+        // end, a wide table starts at a value that has already underflowed to zero and the
+        // walk never recovers.
+        int mode = (int)(((long)(rowOne + 1) * (columnOne + 1)) / (total + 2));
+        mode = Math.Min(highest, Math.Max(lowest, mode));
 
-        double pValue = 0.0;
-        for (int k = lowest; k <= highest; k++)
+        double atMode = Math.Exp(LogHypergeometricProbability(mode, rowOne, columnOne, total));
+        double ceiling = ProbabilityAt(a, mode, atMode, rowOne, columnOne, total)
+            * (1.0 + ProbabilityTolerance);
+
+        double sum = Include(mode, atMode, a, ceiling, alternative) ? atMode : 0.0;
+
+        double probability = atMode;
+        for (int k = mode; k < highest; k++)
         {
-            double logProbability = LogHypergeometricProbability(k, rowOne, columnOne, total);
-
-            // Compared in log space: probability <= observed * (1 + tol) would admit
-            // only the tables that also underflowed once every probability here does.
-            bool include = alternative switch
+            probability *= RatioUp(k, rowOne, columnOne, total);
+            if (probability == 0.0)
             {
-                Alternative.Less => k <= a,
-                Alternative.Greater => k >= a,
-                Alternative.TwoSided => logProbability <= observedLog + LogProbabilityTolerance,
-                _ => throw new ArgumentOutOfRangeException(nameof(alternative), alternative, null),
-            };
+                // Past the mode the probabilities only fall, so everything beyond is zero too.
+                break;
+            }
 
-            if (include)
+            if (Include(k + 1, probability, a, ceiling, alternative))
             {
-                pValue += Math.Exp(logProbability);
+                sum += probability;
             }
         }
 
-        return Math.Min(1.0, pValue);
+        probability = atMode;
+        for (int k = mode; k > lowest; k--)
+        {
+            probability *= RatioDown(k, rowOne, columnOne, total);
+            if (probability == 0.0)
+            {
+                break;
+            }
+
+            if (Include(k - 1, probability, a, ceiling, alternative))
+            {
+                sum += probability;
+            }
+        }
+
+        return Math.Min(1.0, sum);
     }
+
+    /// <summary>Which tables the alternative counts, in probability space.</summary>
+    /// <remarks>
+    /// The two-sided rule is what it always was — a table no likelier than the observed one,
+    /// within the tolerance — read as <c>p &lt;= observed * (1 + tol)</c> rather than as the
+    /// same comparison in logarithms.
+    /// </remarks>
+    private static bool Include(int k, double probability, int a, double ceiling, Alternative alternative) =>
+        alternative switch
+        {
+            Alternative.Less => k <= a,
+            Alternative.Greater => k >= a,
+            Alternative.TwoSided => probability <= ceiling,
+            _ => throw new ArgumentOutOfRangeException(nameof(alternative), alternative, null),
+        };
+
+    /// <summary>The observed table's probability, reached from the mode by the same recurrence.</summary>
+    private static double ProbabilityAt(
+        int target, int mode, double atMode, int rowOne, int columnOne, int total)
+    {
+        double probability = atMode;
+        for (int k = mode; k < target; k++)
+        {
+            probability *= RatioUp(k, rowOne, columnOne, total);
+        }
+
+        for (int k = mode; k > target; k--)
+        {
+            probability *= RatioDown(k, rowOne, columnOne, total);
+        }
+
+        return probability;
+    }
+
+    // P(k+1)/P(k). In double rather than int: the products reach 1e12 at the largest
+    // table this accepts, where an int has long since wrapped.
+    private static double RatioUp(int k, int rowOne, int columnOne, int total) =>
+        (double)(rowOne - k) * (columnOne - k)
+        / ((double)(k + 1) * (total - rowOne - columnOne + k + 1));
+
+    // P(k-1)/P(k), the same ratio read backwards.
+    private static double RatioDown(int k, int rowOne, int columnOne, int total) =>
+        (double)k * (total - rowOne - columnOne + k)
+        / ((double)(rowOne - k + 1) * (columnOne - k + 1));
 
     // C(rowOne, k) C(total - rowOne, columnOne - k) / C(total, columnOne), through
     // log-gamma: the binomials overflow a double well before the counts do.
