@@ -11736,8 +11736,25 @@ def generate_stats_ks() -> dict:
     """Two-sample Kolmogorov-Smirnov, exact and asymptotic (#442)."""
     from scipy import stats as sps
 
+    # long-comment: why this family carries two fixtures of its own beyond the shared ones.
+    # The equal-size two-sided exact branch has a closed form (#756) where every other shape
+    # walks a table, and the shared pairs reach it only at 40 values. These two pin the split at
+    # a hundred: one pair of equal sizes, where the closed form runs, and one of 100 against 99,
+    # where it must not -- an implementation that used the closed form for both fails the second.
+    # Both products stay under the Auto threshold, so both sides take their exact branch: at
+    # 100 x 101 they would not, which is a divergence docs/equivalence.md records rather than a
+    # property of this branch.
+    ks_rng = SeededRandom(SEED + 756)
+    hundred_a = [round(ks_rng.gauss(0.0, 1.0), 6) for _ in range(100)]
+    hundred_b = [round(ks_rng.gauss(0.4, 1.0), 6) for _ in range(100)]
+    fixtures = [
+        *_stats_samples(),
+        {"name": "equal sizes of 100, the closed-form branch", "a": hundred_a, "b": hundred_b},
+        {"name": "sizes 100 and 99, the table branch", "a": hundred_a, "b": hundred_b[:99]},
+    ]
+
     cases: list[dict] = []
-    for fx in _stats_samples():
+    for fx in fixtures:
         for method in ("auto", "asymp", "exact"):
             for alternative in (TWO_SIDED, "less", GREATER):
                 r = sps.ks_2samp(fx["a"], fx["b"], alternative=alternative, method=method)

@@ -14,6 +14,13 @@ said so.
 **Unreleased work is not a fault.** It is the normal state between a merge and a release, so
 it is reported and exits zero.
 
+**A dependency moved in `src/Directory.Packages.props` is unpublished work too.** Central
+package management keeps every version pin in that one file, so raising `Microsoft.ML.OnnxRuntime`
+changes what `Lodestar.Onnx` ships without a commit under `src/Lodestar.Onnx`. Measured on
+2026-09-16: counting that directory alone reported nothing to publish for `Lodestar.Onnx` and
+`Lodestar.Extensions.AI` while two commits moving their pins waited behind each tag. A pin commit counts
+for a package when it changes a pin that package's project references.
+
 **One thing fails**: a package whose declared version is *ahead* of its last tag with nothing
 left to publish. That is a release prepared and then never tagged, and it has no innocent
 reading.
@@ -47,11 +54,16 @@ CHANGELOG = ROOT / "CHANGELOG.md"
 
 # Named because it is spelled three times below, which is S1192's threshold.
 REPORT = "--report"
+ENCODING = "utf-8"
 
 VERSION = re.compile(r"<Lodestar[A-Za-z]*Version>([^<]+)</")
 # `### <Package>` under the `## [Unreleased]` heading. The section is found by walking the
 # headings rather than by one regex: `## ` opens and closes it, which a scan states plainly.
 ENTRY = re.compile(r"^### ((?:Lodestar|DataNet)\.[A-Za-z.]+)")
+CENTRAL = "src/Directory.Packages.props"
+# A changed pin line in a commit's diff, and a project's reference to a pinned package.
+PIN = re.compile(r'^[+-]\s*<PackageVersion Include="([^"]+)"')
+REFERENCE = re.compile(r'<PackageReference Include="([^"]+)"')
 
 
 def git(*args: str) -> str:
@@ -62,7 +74,7 @@ def git(*args: str) -> str:
 def declared(package: str) -> str:
     """The version src/<Package>/Version.props declares, which is the only place it lives."""
     props = SRC / package / "Version.props"
-    match = VERSION.search(props.read_text(encoding="utf-8")) if props.exists() else None
+    match = VERSION.search(props.read_text(encoding=ENCODING)) if props.exists() else None
     return match.group(1) if match else ""
 
 
@@ -87,7 +99,7 @@ def unreleased_entries() -> set[str]:
         return set()
     found: set[str] = set()
     inside = False
-    for line in CHANGELOG.read_text(encoding="utf-8").splitlines():
+    for line in CHANGELOG.read_text(encoding=ENCODING).splitlines():
         if line.startswith("## "):
             inside = line.strip() == "## [Unreleased]"
             continue
@@ -107,6 +119,22 @@ def has_tags() -> bool:
     return bool(git("tag", "--list", "Lodestar.*"))
 
 
+def references(package: str) -> set[str]:
+    """The packages this project references, whose pins live in the central file."""
+    project = SRC / package / f"{package}.csproj"
+    return set(REFERENCE.findall(project.read_text(encoding=ENCODING))) if project.exists() else set()
+
+
+def pin_commits(span: str, referenced: set[str]) -> set[str]:
+    """Commits in the span that change a central pin one of `referenced` names."""
+    moved = set()
+    for sha in git("log", "--format=%H", span, "--", CENTRAL).splitlines():
+        diff = git("show", "--format=", "--unified=0", sha, "--", CENTRAL).splitlines()
+        if any(match.group(1) in referenced for match in map(PIN.match, diff) if match):
+            moved.add(sha)
+    return moved
+
+
 def survey() -> list[tuple[str, str, str, int]]:
     """(package, declared version, last tag, unpublished commit count) for every package."""
     rows = []
@@ -116,8 +144,9 @@ def survey() -> list[tuple[str, str, str, int]]:
         package = path.name
         tag = latest_tag(package)
         span = f"{tag}..HEAD" if tag else "HEAD"
-        commits = git("log", "--oneline", span, "--", f"src/{package}")
-        rows.append((package, declared(package), tag, len(commits.splitlines()) if commits else 0))
+        own = set(git("log", "--format=%H", span, "--", f"src/{package}").splitlines())
+        waiting = (own | pin_commits(span, references(package))) - {""}
+        rows.append((package, declared(package), tag, len(waiting)))
     return rows
 
 

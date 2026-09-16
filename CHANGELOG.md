@@ -24,562 +24,162 @@ is one sentence, the issue and the commit; see
 
 ## [Unreleased]
 
-### Lodestar.Cluster
-
-#### Added
-
-- **`Dbscan`**, at `sklearn.cluster.DBSCAN` parity over a row-major span, with
-  [`Fit`](docs/reference/cluster/partitioning/dbscan-fit.md) by euclidean distance and
-  [`FitPrecomputed`](docs/reference/cluster/partitioning/dbscan-fitprecomputed.md) over a square
-  distance matrix. **Labels are compared exactly**, not to a tolerance: the algorithm is discrete.
-  `epsilon` is inclusive and `minimumSamples` counts the sample itself, as the reference does for
-  both; neither is defaulted, because scikit-learn's `eps=0.5` is meaningful only on scaled data.
-  **A border sample two clusters can reach joins whichever is grown first**, which the corpus pins
-  with four orderings of one point set because the label follows the growth order rather than the
-  sample's own position. `cluster_dbscan.json` freezes 15 cases against scikit-learn 1.9.0, beside
-  12 edge tests. Measured against the two MIT incumbents it is **2.47× to 10.92× faster** and
-  allocates 2.89× to 5.46× less, and `Dbscan` 3.0.0 has no entry point above two features at all;
-  the agreement check also found that **NumFlat 1.3.4 loses a border sample the scan reaches before
-  any cluster exists**, which nine points separate — `bench/README.md` section 48 has it.
-  ([#759](https://github.com/CyrilB1531/lodestar/issues/759))
-- **`AgglomerativeClustering`**, at `sklearn.cluster.AgglomerativeClustering` parity over a
-  row-major span, cut at a count by [`Fit`](docs/reference/cluster/partitioning/agglomerativeclustering-fit.md)
-  or at a height by [`FitToThreshold`](docs/reference/cluster/partitioning/agglomerativeclustering-fittothreshold.md),
-  under ward, complete, average and single [`Linkage`](docs/reference/cluster/partitioning/linkage.md).
-  **Labels and merge tree match exactly, ties included**: the reference runs scipy's
-  nearest-neighbour chain for three linkages and its own spanning tree for single, which break ties
-  differently, so both are written — down to scipy's floating-point order, without which Ward built
-  a different tree on 16 of 400 integer datasets. Labels follow the reference's heap order rather
-  than first appearance, and the threshold is exclusive. `Aglomera` 1.1.1, the one free .NET
-  implementation, was measured first as the issue asked: exact where no merge heights tie, divergent
-  under every linkage where they do, and reporting Ward as `d²/2`. On tie-free blobs this class is
-  **24× to 590× faster** and allocates up to 3,965× less. `cluster_agglomerative.json` freezes 71
-  cases against scikit-learn 1.9.0, beside 14 edge tests.
-  ([#760](https://github.com/CyrilB1531/lodestar/issues/760))
-
 ### Lodestar.Preprocessing
 
 #### Added
 
-- **The scalers can be fitted over batches and over a `CsrMatrix`**, which
-  `docs/equivalence.md` had scoped out since 0.1.0.
-  [`PartialFit`](docs/reference/preprocessing/scaling/standardscaler-partialfit.md) folds a batch
-  into `StandardScaler`, `MinMaxScaler` and `MaxAbsScaler` — **not `RobustScaler`**, which the
-  reference does not offer one for either, a median not being updatable from a summary. The
-  statistics are **the ones a single fit over the concatenation gives**, to a couple of units in the
-  last place: the update is `_incremental_mean_and_var`'s, Chan, Golub and LeVeque's parallel form
-  with the correction term, and the reference's own two paths differ by `3.3e-16` relative on the
-  same data. **It returns a new scaler where `partial_fit` mutates**, since every fitted object here
-  is immutable, and `SampleCount` stays one number where `n_samples_seen_` becomes a per-feature
-  array once a `NaN` appears — which these scalers refuse. **The sparse overloads take a `CsrMatrix`**
-  on the three scalers the reference accepts one for, refusing centring exactly where it refuses it:
-  subtracting a mean or a median makes every absent zero a stored value. `MinMaxScaler` has **no
-  sparse overload at all**, which is the reference's run-time refusal moved to compile time. The
-  absent zeros count toward every statistic rather than being skipped — the easy mistake, and the one
-  the corpus catches. `preprocessing_partial_fit.json` and `preprocessing_sparse.json` freeze 12
-  cases against scikit-learn 1.9.0, **each carrying both answers** (incremental beside whole, sparse
-  beside dense) because the claim is that they agree, beside 6 edge tests.
-  ([#765](https://github.com/CyrilB1531/lodestar/issues/765))
-
-#### Changed
-
-- **`Lodestar.Preprocessing` takes its second inter-package edge, on `Lodestar.Abstractions`**
-  ([decision 0139](docs/decisions/0139-the-sparse-overloads-take-the-second-edge-under-0138s-precedent.md)),
-  for the `CsrMatrix` its sparse overloads take. The record **applies
-  [decision 0138](docs/decisions/0138-lodestar-preprocessing-takes-an-edge-on-lodestar-stats-for-the-normal-quantile.md)
-  rather than re-arguing it** — which is what a precedent is for. The floor is the published
-  `Lodestar.Abstractions` 0.1.1, which carries no dependency of its own, so a consumer of the scalers
-  restores two Lodestar packages and nothing else.
-
-- **[`Encoders.OneHot`](docs/reference/preprocessing/encoding/encoders-onehot.md),
-  [`Encoders.Ordinal`](docs/reference/preprocessing/encoding/encoders-ordinal.md) and
-  [`SimpleImputer`](docs/reference/preprocessing/encoding/simpleimputer.md) finish the preprocessing
-  surface**, at `sklearn.preprocessing` and `sklearn.impute` parity, over row-major spans rather than
-  an `IDataView`. **Nothing here is absent from .NET** — ML.NET has `OneHotEncoding`,
-  `MapValueToKey` and `ReplaceMissingValues`, SharpLearning has its own two — and the whole argument
-  is the one decision 0132 made: each of them is reached through a framework's data view or its own
-  matrix type, and what is missing is a call that takes an array and returns one. **The encoders are
-  generic over the category type**, because the type decides the order and the order decides the
-  columns: a string sorts by **code point**, numpy's order rather than .NET's culture-sensitive
-  default — `['B', 'a', 'b', 'A']` gives `A, B, a, b`, not `a, A, b, B` — and an integer column sorts
-  as numbers. `Encoders` is a static factory rather than a `Fit` on each encoder, since a public
-  static on a generic type is what CA1000 refuses and inference reads better. Three reference rules
-  are reproduced rather than guessed: `drop="if_binary"` drops the first category **only** where a
-  feature has exactly two, an ignored unknown encodes to **all zeros** — the same row a dropped first
-  category gives, a collision the reference accepts — and a `most_frequent` tie goes to the
-  **smaller** value, measured. `tests/oracles/preprocessing_encoders.json` freezes 16 cases against
-  scikit-learn 1.9.0, each carrying a row the fit never saw so that the unknown and dropped branches
-  are visible, beside 13 edge tests. **One divergence:** a feature with no value at all is refused
-  where the reference **drops it** and returns a matrix one column narrower than the one it was
-  given; `SimpleImputerOptions.KeepEmptyFeatures` gives the reference's `keep_empty_features=True`
-  behaviour, and either way the output has as many columns as the input.
-  ([#764](https://github.com/CyrilB1531/lodestar/issues/764))
-
-- **[`MinMaxScaler`](docs/reference/preprocessing/scaling/minmaxscaler.md),
-  [`MaxAbsScaler`](docs/reference/preprocessing/scaling/maxabsscaler.md) and
-  [`RobustScaler`](docs/reference/preprocessing/scaling/robustscaler.md) join `StandardScaler`**, at
-  `sklearn.preprocessing` parity, over row-major spans rather than an `IDataView`. Each has `Fit`,
-  `Transform` and `InverseTransform` and reports the statistics it fitted. **Which one to reach for
-  is the point of having four**: `RobustScaler` centres on the median and scales by an
-  interpercentile range, so a column with an outlier keeps its shape where `StandardScaler` puts
-  every ordinary value in the same place; `MaxAbsScaler` never subtracts, so a meaningful zero stays
-  a zero — the reason scikit-learn refuses to centre a sparse matrix at all; `MinMaxScaler` maps onto
-  a range a downstream model asks for. Three reference rules are reproduced rather than guessed, and
-  an implementation that invents any of them passes most cases and fails the corpus: **the
-  near-constant floor is `range < 10·eps`, not `range == 0`** (`_handle_zeros_in_scale` with no
-  constant mask, which is how the reference calls it for these three and not for `StandardScaler`) —
-  one frozen feature has a range of `1.11e-15` and scales by 1 where its neighbour at `4.00e-15`
-  scales by `2.5e14`; **the percentiles interpolate linearly** (`numpy.percentile`'s default,
-  Hyndman–Fan type 7), which is neither of the two quantile conventions already in this repository,
-  so it is written inside the package rather than borrowed; and **`clip` applies to the transform and
-  never to its inverse**, because a clipped value has lost what it was. `tests/oracles/preprocessing_scalers.json`
-  freezes 18 cases against scikit-learn 1.9.0 — each scaler over a constant feature, a near-constant
-  one on both sides of the floor, an outlier-heavy column and an all-zero one, plus a row the fit
-  never saw so that clipping is visible — beside 11 edge tests. **One divergence:** a non-finite value
-  is refused where the reference skips it, because `RobustScaler` sorts and a `NaN` in a sorted column
-  returns a percentile nobody asked for. **`RobustScaler` carries `unit_variance`**, which divides the
-  range by `Φ⁻¹(upper/100) − Φ⁻¹(lower/100)` so a normal column comes out with a standard deviation
-  of 1 — and the two scale rules apply in the reference's order, the floor **first** and the
-  quantiles **second**, so a constant feature lands on `1/1.3489795` rather than on 1.
-  ([#763](https://github.com/CyrilB1531/lodestar/issues/763))
-
-#### Changed
-
-- **`Lodestar.Preprocessing` takes its first inter-package edge, on `Lodestar.Stats`**
-  ([decision 0138](docs/decisions/0138-lodestar-preprocessing-takes-an-edge-on-lodestar-stats-for-the-normal-quantile.md)).
-  `unit_variance` needs the normal quantile, and this repository publishes one
-  ([decision 0098](docs/decisions/0098-the-normal-quantile-is-the-third-member-decision-0095s-rule-publishes.md)) — so
-  it is depended on rather than copied, which is the precedent the decision sets for the next member
-  in the same position. The floor is the already-published `Lodestar.Stats` 0.4.0, `Lodestar.Stats`
-  itself carries no dependency, and the package description no longer claims "no dependencies"
-
-- **[`Splitters`](docs/reference/preprocessing/splitting/splitters.md) cuts cross-validation folds
-  and a train/test split over row indices**, at `sklearn.model_selection` parity wherever the
-  reference is deterministic, and without a framework in the way. `KFold`, `StratifiedKFold` and
-  `TrainTest` are told how many rows there are — or, to stratify, what class each row belongs to —
-  and hand back [`FoldSplit`](docs/reference/preprocessing/splitting/foldsplit.md) or
-  [`TrainTestSplit`](docs/reference/preprocessing/splitting/traintestsplit.md) index lists; nothing
-  is copied and the caller's layout is never decided for them. This is a **.NET void, not a
-  preference**: ML.NET's `TrainTestSplit` and `CrossValidationSplit` take and return an `IDataView`
-  and never stratify ([dotnet/machinelearning#4396](https://github.com/dotnet/machinelearning/issues/4396),
-  open since 2019), and SharpLearning's `StratifiedIndexSampler<T>` always shuffles from a seed, so
-  neither reproduces a scikit-learn fold. **The permutation is an argument, not a seed**: `order` is
-  a permutation of `0..n−1` the rows are read in, so passing scikit-learn's own gives scikit-learn's
-  shuffled folds, and passing your own still gives a split that replays exactly — `random_state`
-  reaches numpy's generator and .NET has no copy of it. Two reference rules are reproduced rather
-  than reinvented, and an implementation that guesses either passes most cases and fails these:
-  fold `i` takes the sorted labels at positions `i`, `i + k`, …, so **a class of two rows over three
-  folds lands in folds 0 and 2** rather than 0 and 1; and **classes are numbered by first
-  appearance, not by label value**, so `[1,1,1,1,1,0,0,0,2,2]` does not split like its sorted
-  counterpart. `tests/oracles/preprocessing_splitters.json` freezes 19 cases against scikit-learn
-  1.9.0 — compared exactly, since these are indices — beside 10 edge tests for every refusal and for
-  the partition each fold set must form. One deliberate divergence: where a fold count above the
-  smallest class count makes the reference warn, this returns the folds and the page says what the
-  short class costs, because a warning is not a return value; a count above *every* class count is
-  still refused. ([#762](https://github.com/CyrilB1531/lodestar/issues/762))
+- `Splitters` cuts cross-validation folds and a train/test split over row indices, at scikit-learn parity. ([#762](https://github.com/CyrilB1531/lodestar/issues/762), [`1cdec9f1`](https://github.com/CyrilB1531/lodestar/commit/1cdec9f1))
+- `MinMaxScaler`, `MaxAbsScaler` and `RobustScaler` join `StandardScaler`, with an edge on `Lodestar.Stats` for `unit_variance`. ([#763](https://github.com/CyrilB1531/lodestar/issues/763), [`3b3c4164`](https://github.com/CyrilB1531/lodestar/commit/3b3c4164))
+- `Encoders.OneHot`, `Encoders.Ordinal` and `SimpleImputer` encode categories and fill missing values, at scikit-learn parity. ([#764](https://github.com/CyrilB1531/lodestar/issues/764), [`89923b23`](https://github.com/CyrilB1531/lodestar/commit/89923b23))
+- The scalers fit over batches with `PartialFit` and over a `CsrMatrix`, with an edge on `Lodestar.Abstractions`. ([#765](https://github.com/CyrilB1531/lodestar/issues/765), [`e3a38ca9`](https://github.com/CyrilB1531/lodestar/commit/e3a38ca9))
 
 ### Lodestar.Conformal
 
 #### Added
 
-- **`SplitConformal.NormalisedResiduals` and `NormalisedInterval` make the interval width vary with
-  the input**, which is MAPIE's `ResidualNormalisedScore` and the one thing
-  `docs/guides/conformal.md` called *"a real limitation, not a simplification"*. Every interval this
-  package produced had the same width, and on data whose error varies with the input — most data —
-  that is too wide where the model is confident and too narrow where it is not, **while still
-  covering at the rate asked for**, which is what makes a constant width easy to mistake for an
-  adequate one. Reproduced against MAPIE 1.5.0 with both estimators prefit and the bounds agree to
-  **0.0 — not a tolerance, exactly**. Takes `r̂` rather than the model that produced it, the shape
-  every member here has. **One divergence, deliberate**: a zero, negative or `NaN` estimate is
-  refused where MAPIE floors it at `1e-8` — the floor is MAPIE's defence against its own residual
-  model, and here the estimate is the caller's argument, so flooring turns their bug into an
-  interval of width `q · 1e-8` that reads as certainty. That is
-  [decision 0070](docs/decisions/0070-k-greater-than-n-returns-an-infinite-interval.md)'s reasoning
-  with its direction reversed, said out loud in
-  [decision 0118](docs/decisions/0118-a-residual-estimate-is-refused-rather-than-floored.md), which
-  also defers `GammaConformityScore` under decision 0095's rule.
-  ([#683](https://github.com/CyrilB1531/lodestar/issues/683))
+- `SplitConformal.NormalisedResiduals` and `NormalisedInterval` make the interval width vary with the input. ([#683](https://github.com/CyrilB1531/lodestar/issues/683), [`42cc0384`](https://github.com/CyrilB1531/lodestar/commit/42cc0384))
+
+### Lodestar.Cluster
+
+#### Added
+
+- `Dbscan` clusters by density, at scikit-learn parity. ([#759](https://github.com/CyrilB1531/lodestar/issues/759), [`6c245dd5`](https://github.com/CyrilB1531/lodestar/commit/6c245dd5))
+- `AgglomerativeClustering` builds and cuts a merge tree under four linkages, at scikit-learn parity. ([#760](https://github.com/CyrilB1531/lodestar/issues/760), [`41f95c0b`](https://github.com/CyrilB1531/lodestar/commit/41f95c0b))
+
+#### Changed
+
+- `KMeansOptions` compares its centres by value. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
 
 ### Lodestar.Decomposition
 
 #### Added
 
-- **[`PrincipalComponentVariance.Compute`](docs/reference/decomposition/factorization/principalcomponentvariance-compute.md) reports how much variance each principal component of a
-  dense matrix explains**, the number a scree plot is drawn from and the one nothing in .NET
-  reported below `net8.0`: ML.NET's PCA exposes no eigenvalue and NumFlat ships `net8.0` only.
-  It returns the explained variance, its ratio, the cumulative curve and the total, and agrees with
-  scikit-learn's `PCA(svd_solver="full")` at `1e-9`, the `n < p` edge included. It is not a PCA:
-  the projection stays delegated under decision 0116, and
-  [decision 0119](docs/decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md)
-  records why it lives in this package rather than `Lodestar.Preprocessing`.
-  ([#701](https://github.com/CyrilB1531/lodestar/issues/701))
+- `PrincipalComponentVariance.Compute` reports the variance each principal component explains. ([#701](https://github.com/CyrilB1531/lodestar/issues/701), [`e311b2c3`](https://github.com/CyrilB1531/lodestar/commit/e311b2c3))
 
 ### Lodestar.Fuzzy
 
 #### Changed
 
-- `Fuzz.PartialRatio` scores a needle of up to 64 characters from one equality table per call and
-  skips the windows that cannot win, returning the same scores faster.
-  ([#714](https://github.com/CyrilB1531/lodestar/issues/714))
-- `Fuzz.PartialRatio` does the same for a needle past 64 characters, over an equality table of one
-  row per word, instead of a full `Indel` per window; the scores are the same doubles.
-  ([#720](https://github.com/CyrilB1531/lodestar/issues/720))
-- **The `Lodestar.Text` dependency floor rises from 0.4.0 to 0.6.0.** Nothing in this package needs
-  the newer API: the floor is one Central Package Management pin shared by every consumer, and
-  `Lodestar.Extensions.VectorData` needs the `Lodestar.Text.Search` types 0.6.0 first published
-  ([decision 0123](docs/decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)).
-  ([#682](https://github.com/CyrilB1531/lodestar/issues/682))
+- `Fuzz.PartialRatio` scores a needle of up to 64 characters from one equality table and skips windows that cannot win. ([#714](https://github.com/CyrilB1531/lodestar/issues/714), [`9ec3595f`](https://github.com/CyrilB1531/lodestar/commit/9ec3595f))
+- `Fuzz.PartialRatio` does the same for a needle past 64 characters. ([#720](https://github.com/CyrilB1531/lodestar/issues/720), [`96856e70`](https://github.com/CyrilB1531/lodestar/commit/96856e70))
+- The `Lodestar.Text` dependency floor rises from 0.4.0 to 0.6.0. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
 
 ### Lodestar.Text
 
 #### Added
 
-- **`MinHashScheme`, and the `MinHashPermutations` overload that takes one.** `datasketch` 2.0.0
-  named three permutation families and made `affine32` its default, so the reference call that
-  once returned the Mersenne-prime family now returns a different one; `MinHash` computes both and
-  `Legacy` stays the default, so no existing signature moves.
-  ([#645](https://github.com/CyrilB1531/lodestar/issues/645))
+- `MinHashScheme`, and the `MinHashPermutations` overload that takes one. ([#645](https://github.com/CyrilB1531/lodestar/issues/645), [`bfc47fe7`](https://github.com/CyrilB1531/lodestar/commit/bfc47fe7))
 
 #### Changed
 
-- **`Bm25Index.Top` keeps the best documents in a bounded heap** instead of sorting the whole corpus,
-  returning the same hits in the same order: a one-term query over 20,000 documents from 818 μs to
-  15.2 μs, allocating 424 B instead of 235 KB. ([#751](https://github.com/CyrilB1531/lodestar/issues/751))
-
-- **`Levenshtein.Distance` over a Latin-1 pattern past 64 characters advances its words two at a
-  time**, the column-major order the blocked LCS kernel took in #717, returning the same distances:
-  0.64 of the time at 128 and 0.77 at 512, and ahead of rapidfuzz at 512 where it trailed.
-  ([#718](https://github.com/CyrilB1531/lodestar/issues/718))
-
-- **`Indel` and `Lcs.SubsequenceLength` in `TextElement.CodePoint` mode reach the bit-parallel
-  kernel** instead of the dynamic program, returning the same lengths. Text with no surrogate takes
-  the UTF-16 kernel directly; astral code points are renamed first. `Indel.Distance` over code
-  points is 3.7× to 58× faster on ASCII operands and 2.1× to 32× on emoji.
-  ([#675](https://github.com/CyrilB1531/lodestar/issues/675))
-
-- **`System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`.** The dependency a
-  consumer restores changes; nothing in the public surface does.
-  ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
-- **`RakeOptions` and `TextRankOptions` compare their stop words as a set.** Two option sets
-  holding the same words were unequal and now are equal, with `GetHashCode` agreeing —
-  `CountVectorizerOptions` already behaved this way, and decision 0113 makes it the rule.
-  ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
-- **Faster, same answers.** `Lcs.SubsequenceLength`, and therefore `Indel` and `fuzz.ratio`, run
-  patterns longer than one machine word through a two-word kernel or a word-grouped loop that
-  keeps the words in registers.
-  ([#717](https://github.com/CyrilB1531/lodestar/issues/717))
+- `Bm25Index.Top` keeps the best documents in a bounded heap instead of sorting the corpus. ([#751](https://github.com/CyrilB1531/lodestar/issues/751), [`026de562`](https://github.com/CyrilB1531/lodestar/commit/026de562))
+- `Levenshtein.Distance` over a Latin-1 pattern past 64 characters advances its words two at a time. ([#718](https://github.com/CyrilB1531/lodestar/issues/718), [`004e3682`](https://github.com/CyrilB1531/lodestar/commit/004e3682))
+- `Indel` and `Lcs.SubsequenceLength` in `TextElement.CodePoint` mode reach the bit-parallel kernel. ([#675](https://github.com/CyrilB1531/lodestar/issues/675), [`25dc2314`](https://github.com/CyrilB1531/lodestar/commit/25dc2314))
+- `Lcs.SubsequenceLength` runs patterns longer than one machine word through a two-word kernel. ([#717](https://github.com/CyrilB1531/lodestar/issues/717), [`e4e8b093`](https://github.com/CyrilB1531/lodestar/commit/e4e8b093))
+- `RakeOptions` and `TextRankOptions` compare their stop words as a set. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
+- `System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
 
 ### Lodestar.Gpu
 
 #### Added
 
-- **`MinHashScheme`, and the `TiledMinHashSignatures.Signatures` overload that takes one.** The
-  finalizer `affine32` needs is applied as the shared tile fills, so one `DeviceTokenHashes`
-  serves both families rather than belonging to one.
-  ([#645](https://github.com/CyrilB1531/lodestar/issues/645))
+- `MinHashScheme`, and the `TiledMinHashSignatures.Signatures` overload that takes one. ([#645](https://github.com/CyrilB1531/lodestar/issues/645), [`bfc47fe7`](https://github.com/CyrilB1531/lodestar/commit/bfc47fe7))
 
 ### Lodestar.Embeddings
 
 #### Changed
 
-- **`System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`.** The dependency a
-  consumer restores changes; nothing in the public surface does.
-  ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
-- **`EmbeddingIndex.Load` reads a stream of undeclared length into pooled segments, and
-  `Save(string)` scans the block for non-finite values once instead of twice.**
-  ([#716](https://github.com/CyrilB1531/lodestar/issues/716))
-- **`SentencePieceTokenizer` and `WordPieceTokenizer` find their pieces by walking a trie** rather
-  than hashing every candidate substring, returning the same tokens and ids.
-  ([#713](https://github.com/CyrilB1531/lodestar/issues/713))
-- **`BpeTokenizer` encodes byte-level text 5.4× faster, allocating a quarter as much**, returning the
-  same tokens and ids: 315 ms to 58 ms over the benchmark corpus, now 2.57× faster than
-  Microsoft.ML.Tokenizers on identical ids. The split pattern is compiled, which moves about 2 ms of
-  code generation to a tokenizer's first encode.
-  ([#673](https://github.com/CyrilB1531/lodestar/issues/673))
-- **`BpeTokenizer` caches each piece's merged ids**, as `tokenizers` does: up to 10,000 pieces
-  shorter than 256 characters, about 1.5 MB, never released. A warmed tokenizer encodes unseen prose
-  in 46% less time; on random words it gains nothing. Tokens and ids are unchanged.
-  ([#743](https://github.com/CyrilB1531/lodestar/issues/743))
+- `SentencePieceTokenizer` and `WordPieceTokenizer` find their pieces by walking a trie. ([#713](https://github.com/CyrilB1531/lodestar/issues/713), [`285a8ced`](https://github.com/CyrilB1531/lodestar/commit/285a8ced))
+- `BpeTokenizer` encodes byte-level text 5.4× faster. ([#673](https://github.com/CyrilB1531/lodestar/issues/673), [`c2a848df`](https://github.com/CyrilB1531/lodestar/commit/c2a848df))
+- `BpeTokenizer` caches each piece's merged ids. ([#743](https://github.com/CyrilB1531/lodestar/issues/743), [`6ab11a2c`](https://github.com/CyrilB1531/lodestar/commit/6ab11a2c))
+- `EmbeddingIndex.Load` reads a stream of undeclared length into pooled segments. ([#716](https://github.com/CyrilB1531/lodestar/issues/716), [`b7eb6e48`](https://github.com/CyrilB1531/lodestar/commit/b7eb6e48))
+- `System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
 
 ### Lodestar.Onnx
 
 #### Changed
 
-- **`Microsoft.ML.OnnxRuntime` moves from 1.28.0 to 1.30.0.** It is the one dependency whose
-  size is a stated concern — 132.7 MB on a caller's restore path, which is why the satellite
-  tier exists ([decision 0076](docs/decisions/0076-a-core-package-carries-no-external-dependency.md)).
-  ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
-- **The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0.** Nothing in this package
-  needs the newer API: the floor is one Central Package Management pin shared by every consumer, and
-  `Lodestar.Extensions.VectorData` needs the first `Lodestar.Embeddings` that no longer declares
-  `Microsoft.ML.OnnxRuntime` — 0.5.0 still carried it at 1.28.0, a stale lower edge beside this
-  package's own 1.30.0
-  ([decision 0123](docs/decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)).
-  ([#682](https://github.com/CyrilB1531/lodestar/issues/682))
+- `Microsoft.ML.OnnxRuntime` moves from 1.28.0 to 1.30.0. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
+- The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
 
 ### Lodestar.Extensions.AI
 
 #### Changed
 
-- **`Microsoft.Extensions.AI.Abstractions` moves from 10.9.0 to 10.10.0.** Checked against
-  [decision 0100](docs/decisions/0100-vectordata-is-its-own-satellite-and-its-text-edge-waits-on-a-release.md),
-  which measured that `Microsoft.Extensions.VectorData.Abstractions` pins the same version:
-  VectorData 10.10.0 requires `[10.10.0, )`, so the two still move together and the alignment
-  that decision relied on holds. ([#622](https://github.com/CyrilB1531/lodestar/issues/622))
-- **The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0.** Nothing in this package
-  needs the newer API: the floor is one Central Package Management pin shared by every consumer, and
-  `Lodestar.Extensions.VectorData` needs the first `Lodestar.Embeddings` that no longer declares
-  `Microsoft.ML.OnnxRuntime`
-  ([decision 0123](docs/decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)).
-  ([#682](https://github.com/CyrilB1531/lodestar/issues/682))
+- `Microsoft.Extensions.AI.Abstractions` moves from 10.9.0 to 10.10.0. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
+- The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
 
 ### Lodestar.Extensions.VectorData
 
 #### Added
 
-- **The package.** An in-process `Microsoft.Extensions.VectorData` provider: `LodestarVectorStore`,
-  `LodestarVectorStoreCollection<TKey, TRecord>` and `LodestarVectorStoreOptions`. Records are the
-  collection's state and the vector and BM25 indexes are caches rebuilt on the first search after a
-  write, so upsert and delete are exact rather than masked. `HybridSearchAsync` fuses both halves
-  through reciprocal rank, which is hybrid retrieval with no database and no service running
-  anywhere. `GetDynamicCollection`, a `string` search value and a filtered `GetAsync` with `OrderBy`
-  are refused, each naming its reason
-  ([decision 0123](docs/decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)).
-  ([#682](https://github.com/CyrilB1531/lodestar/issues/682))
+- The package: an in-process `Microsoft.Extensions.VectorData` store with hybrid keyword and vector search. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
 
 ### Lodestar.Stats.TimeSeries
 
 #### Added
 
-- **`VectorAutoregression.Fit` estimates a VAR(p) with the inference table**, at `statsmodels` 0.15.0 parity over 4
-  frozen cases: the coefficients per equation with their standard errors, t statistics and normal p-values, both
-  residual covariances, the Gaussian log-likelihood, and AIC, BIC, HQIC and FPE. Least squares equation by equation on
-  the stacked lags, through the same Householder QR `OrdinaryLeastSquares.Estimate` runs. Decision 0134 named this the
-  one model of the four it read that could be written at parity; nothing in .NET estimated one. Measured against
-  `statsmodels` through `compare-var`: 14.8× to 30.2× faster, wall clock, from 1,000 to 100,000 rows.
-  ([#786](https://github.com/CyrilB1531/lodestar/issues/786))
-- **A new core package for the time-series diagnostics**, with two edges: `Lodestar.Stats` 0.4.0 for
-  the tails and `Lodestar.Stats.Regression` 0.2.0 for the fits its unit-root test runs.
-  [Decision 0133](docs/decisions/0133-stats-timeseries-is-a-package-and-takes-the-serial-correlation-lot.md)
-  supersedes 0114, which kept the first lot in `Lodestar.Stats` and named that edge as the one that
-  would earn a package. ([#671](https://github.com/CyrilB1531/lodestar/issues/671))
-- **`SerialCorrelation`, with `Autocorrelation`, `PartialAutocorrelation` and `LjungBox`**, at
-  `statsmodels` 0.15.0 parity, moved here from `Lodestar.Stats` before any `Lodestar.Stats` release
-  carried it; the namespace, `Lodestar.Stats.TimeSeries`, did not change.
-  ([#617](https://github.com/CyrilB1531/lodestar/issues/617))
-- **[`Stationarity.AugmentedDickeyFuller`](docs/reference/stats-timeseries/stationarity-tests/stationarity-augmenteddickeyfuller.md)
-  and [`Stationarity.Kpss`](docs/reference/stats-timeseries/stationarity-tests/stationarity-kpss.md)**,
-  at `statsmodels` 0.15.0 parity over 199 frozen cases: every `regression` and `autolag`, MacKinnon's
-  1994 p-value and 2010 critical values, and KPSS's three lag rules. **KPSS's `InterpolationWarning` is a
-  property**, `KpssResult.PValueBound`, since a library has no warning channel a caller reads.
-  ([#671](https://github.com/CyrilB1531/lodestar/issues/671))
-- **[`SeasonalDecomposition.Decompose`](docs/reference/stats-timeseries/seasonality/seasonaldecomposition-decompose.md)**,
-  additive and multiplicative, two- and one-sided, with trend extrapolation, at `seasonal_decompose`
-  parity over 32 frozen cases. `period` is required. ([#671](https://github.com/CyrilB1531/lodestar/issues/671))
+- The package, with `Stationarity.AugmentedDickeyFuller`, `Stationarity.Kpss` and `SeasonalDecomposition.Decompose`. ([#671](https://github.com/CyrilB1531/lodestar/issues/671), [`2986d69e`](https://github.com/CyrilB1531/lodestar/commit/2986d69e))
+- `SerialCorrelation`, with `Autocorrelation`, `PartialAutocorrelation` and `LjungBox`, moved here from `Lodestar.Stats`. ([#617](https://github.com/CyrilB1531/lodestar/issues/617), [`2f5efb26`](https://github.com/CyrilB1531/lodestar/commit/2f5efb26))
+- `VectorAutoregression.Fit` estimates a VAR(p) with its inference table. ([#786](https://github.com/CyrilB1531/lodestar/issues/786), [`2b5cd107`](https://github.com/CyrilB1531/lodestar/commit/2b5cd107))
 
 ### Lodestar.Stats
 
 #### Added
 
-- **`NanPolicy`, on the eleven test entry points whose scipy counterpart takes `nan_policy`.**
-  `Propagate` stays the default, so no existing call changes; `Omit` drops pairs where the inputs
-  are aligned and values where they are not; decision 0117 has the rule and the five entry points
-  that deliberately do not take it.
-  ([#687](https://github.com/CyrilB1531/lodestar/issues/687))
+- `NanPolicy` on the eleven test entry points whose scipy counterpart takes `nan_policy`. ([#687](https://github.com/CyrilB1531/lodestar/issues/687), [`aaabaf72`](https://github.com/CyrilB1531/lodestar/commit/aaabaf72))
+
+#### Changed
+
+- `FisherExact.Test` and the equal-size exact `KolmogorovSmirnov.TwoSample` return the same p-values at a fraction of the cost. ([#756](https://github.com/CyrilB1531/lodestar/issues/756), [`e6323c08`](https://github.com/CyrilB1531/lodestar/commit/e6323c08))
+- `MannWhitney.Test` merges two sorted samples instead of sorting the pooled one, and no longer allocates. ([#711](https://github.com/CyrilB1531/lodestar/issues/711), [`940d978b`](https://github.com/CyrilB1531/lodestar/commit/940d978b))
+- `KruskalWallis.Test` and `Wilcoxon` merge sorted values the same way. ([#719](https://github.com/CyrilB1531/lodestar/issues/719), [`7ccec349`](https://github.com/CyrilB1531/lodestar/commit/7ccec349))
+- The chi-squared and normal tails no longer iterate on every call. ([#710](https://github.com/CyrilB1531/lodestar/issues/710), [`3006be3c`](https://github.com/CyrilB1531/lodestar/commit/3006be3c))
+- `Distributions.NormalQuantile` and `Distributions.StudentQuantile` invert their tail by Newton instead of by bisection. ([#709](https://github.com/CyrilB1531/lodestar/issues/709), [`adb2d62c`](https://github.com/CyrilB1531/lodestar/commit/adb2d62c))
+- `Chi2ContingencyResult` compares its expected table by value. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
 
 #### Fixed
 
-- **`MannWhitney.Test` no longer returns a wrong statistic and p-value past about 46,340 values
-  per sample**, where two sample-size products wrapped in `int`.
-  ([#712](https://github.com/CyrilB1531/lodestar/issues/712))
+- `MannWhitney.Test` no longer returns a wrong statistic past about 46,340 values per sample. ([#712](https://github.com/CyrilB1531/lodestar/issues/712), [`cfe9f048`](https://github.com/CyrilB1531/lodestar/commit/cfe9f048))
 
 ### Lodestar.Stats.Regression
 
-#### Changed
-
-- **The least-squares pipeline under `OrdinaryLeastSquares.Fit`, `WeightedLeastSquares.Fit` and the GLM's IRLS loop no longer
-  forms Q.** The solve applies the reflections to the response, or takes the normal equations when the design is well
-  conditioned; the leverages are rows of `X R⁻¹`; the VIFs come from the standardised regressors' Gram matrix below a factor
-  of 1e5; a weighted fit applies its weights inside the solve. Measured against `main`: WLS 4.4× to 7.9× faster, now level
-  with or ahead of Math.NET's coefficient-only `WeightedRegression.Weighted`, OLS 3.7× to 6.1×, HC0–HC3 2.8× at 10,000 rows,
-  the logistic GLM 1.3× to 1.9× and the Poisson GLM 1.4× to 2.8×; every fixture holds at 1e-9. This came out of the benchmarks
-  the next entry records, which #774 and #778 shipped without. ([#782](https://github.com/CyrilB1531/lodestar/issues/782))
-- **The negative binomial log-likelihood reads `lnΓ(1/α)` once per fit, not once per row.**
-  ([#781](https://github.com/CyrilB1531/lodestar/issues/781))
-
 #### Added
 
-- **`MultinomialLogit.Fit` fits an unordered categorical response with its inference table**, at `statsmodels`
-  0.15.0 `MNLogit` parity over 5 frozen cases: the coefficients per non-reference category with their errors, z
-  statistics, p-values and intervals, the log-likelihood, McFadden's pseudo-R², the likelihood-ratio test, AIC and
-  BIC. The null log-likelihood is the closed form the reference approximates by an optimiser, and a perfectly
-  separated response is refused. `OrderedModel` is not written: it does not reproduce at `1e-9` (decision 0136).
-  Measured 5.1× to 6.2× faster than Accord's `MultinomialLogisticRegression` and 7.0× to 13.4× faster than
-  `statsmodels`, wall clock. ([#788](https://github.com/CyrilB1531/lodestar/issues/788))
-- **`GeneralizedLinearModel.Fit` takes an `offset` and an `exposure`**, the fixed term a rate model adds to the linear
-  predictor, at `statsmodels` 0.15.0 parity over 7 frozen cases across the four families. The null deviance refits the
-  intercept-only model with the same term, as the reference does. An exposure with a link other than log, a length that
-  differs from the response, a non-finite offset and an exposure that is not finite and above zero are refused.
-  Measured against `statsmodels` through `compare-glm`, a Poisson fit with an exposure is 1.55× to 5.79× faster, wall
-  clock, from 1,000 to 100,000 rows. ([#787](https://github.com/CyrilB1531/lodestar/issues/787))
-- **`CovarianceType.Hac` and `CovarianceType.Cluster`** give `OrdinaryLeastSquares.Fit` and `WeightedLeastSquares.Fit`
-  Newey–West and one-way cluster-robust standard errors, at `statsmodels` 0.15.0 parity over 8 frozen cases:
-  `OlsOptions.HacLags` is `maxlags`, `OlsOptions.SmallSampleCorrection` is `use_correction` with the reference's default
-  per type, the labels arrive through a new `Fit` overload taking `ReadOnlySpan<int> clusters`, and a cluster fit reads
-  its F test on `G − 1` denominator degrees of freedom. A missing or misplaced option, one cluster, and either type on
-  `GeneralizedLeastSquares.Fit` are refused. Against `statsmodels` through `compare-ols`: HAC 6.7× to 15.6× faster and
-  cluster 17.8× to 43.4×, wall clock, from 1,000 to 100,000 rows. HC0 and HC1 no longer compute leverages, 10 % to 13 %
-  faster. ([#775](https://github.com/CyrilB1531/lodestar/issues/775))
-- **`GlmFamily.Gamma` and `GlmLink`** fit a positive, skewed response through `GeneralizedLinearModel.Fit`,
-  with the inverse link by default or the log link through `GlmOptions.Link`, at `statsmodels` 0.15.0 parity
-  over 5 frozen cases. The first estimated dispersion: `GlmSummary.Dispersion` is the Pearson scale, and the
-  IRLS criterion divides the deviance by the previous iteration's scale as the reference's does. A zero or
-  negative response, and an inverse-link mean that reaches zero, are refused. Measured against `statsmodels` through the
-  `compare-glm` harness: 1.95× to 4.84× faster, wall clock, from 1,000 to 100,000 rows.
-  ([#770](https://github.com/CyrilB1531/lodestar/issues/770))
-- **[`GeneralizedLeastSquares.Fit`](docs/reference/stats-regression/gls/generalizedleastsquares-fit.md)
-  fits a linear model under a caller-supplied error covariance and returns the `OlsSummary` table**, at
-  `statsmodels.GLS` 0.15.0 parity over 9 frozen cases, the robust covariances included: rows whitened by the
-  inverse Cholesky factor, R² centred on the whitened-space mean. An asymmetric or non-positive-definite
-  covariance is refused; a vector `sigma` is `WeightedLeastSquares` with weights `1/σ`.
-  ([#771](https://github.com/CyrilB1531/lodestar/issues/771))
-- **Benchmarks for weighted least squares against Math.NET Numerics and the negative binomial GLM against `statsmodels`**
-  (`WeightedLeastSquaresBenchmarks`, a Math.NET row in `OlsBenchmarks`, the `compare-glm` harness), catching up on #774 and
-  #778, which merged unmeasured. ([#781](https://github.com/CyrilB1531/lodestar/issues/781),
-  [#782](https://github.com/CyrilB1531/lodestar/issues/782))
-
-- **`GlmFamily.NegativeBinomial` and `GlmOptions.NegativeBinomialAlpha`** fit over-dispersed counts
-  through `GeneralizedLinearModel.Fit`, at `statsmodels.GLM(family=NegativeBinomial(alpha))` 0.15.0 parity
-  over 7 frozen cases: the log link, variance `μ + αμ²`, `alpha` given rather than estimated. An unset
-  `alpha` is the reference's default of 1; one set for another family is refused, as is a fractional count.
-  ([#769](https://github.com/CyrilB1531/lodestar/issues/769))
-- **[`WeightedLeastSquares.Fit`](docs/reference/stats-regression/wls/weightedleastsquares-fit.md)
-  fits a linear model with one weight per row and returns the same `OlsSummary` table**, at
-  `statsmodels.WLS` 0.15.0 parity over 12 frozen cases, the four robust covariances included: R² on
-  the weighted mean, and a zero weight kept in the residual degrees of freedom as the reference keeps
-  it. Negative or non-finite weights, and fewer positively weighted rows than parameters, are refused
-  where the reference crashes or answers through a pseudo-inverse.
-  ([#768](https://github.com/CyrilB1531/lodestar/issues/768))
-- **[`OrdinaryLeastSquares.Estimate`](docs/reference/stats-regression/ols/ordinaryleastsquares-estimate.md)
-  and `OlsEstimate` fit the same model as `Fit` and stop at the coefficients, their standard errors,
-  the t statistics and the residual sum of squares**: no explicit `Q`, no second QR for the VIFs, no
-  p-values. Agrees with `Fit` over the OLS corpus, and is what the augmented Dickey-Fuller lag search
-  fits per candidate lag. ([#671](https://github.com/CyrilB1531/lodestar/issues/671))
-- **`CovarianceType` gives `OrdinaryLeastSquares` the four heteroskedasticity-consistent
-  estimators**, `Hc0` through `Hc3`, chosen on `OlsOptions` and echoed on `OlsSummary`. A robust
-  covariance is what an analyst reaches for when the assumption behind the standard errors fails,
-  which is the ordinary case rather than the exotic one — shipping the inference table without one
-  shipped the numbers that are easiest to compute and hardest to defend. **The distribution moves
-  with it, as it does in statsmodels**: the coefficient tests become *z* against the normal and the
-  interval multiplier with them, while the overall test stays on the F. That asymmetry is
-  reproduced rather than tidied, on [decision 0008](docs/decisions/0008-italian-enza-nltk-divergence.md)'s
-  parity rule, and `OlsSummary.CovarianceType` is what tells a reader holding only the summary
-  which distribution its p-values came from. The normal tail it needed did **not** cost a
-  publication from `Lodestar.Stats`: the square of a standard normal is chi-squared on one degree
-  of freedom, so the two-sided p-value is the `ChiSquaredSf` decision 0097 already published —
-  exact, and agreeing with scipy to 1.1e-13 relative at a p-value of 1e-299.
-  [Decision 0115](docs/decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md)
-  fixes the order of what follows and what each lot waits for. It joins the GLM in an unshipped
-  0.2.0 rather than bumping again: the number this package declares has never been published.
-  ([#686](https://github.com/CyrilB1531/lodestar/issues/686))
-
-- **`GeneralizedLinearModel.Fit`, with `GlmFamily`, `GlmOptions` and `GlmSummary`.** A `Binomial`
-  or `Poisson` response fitted by IRLS through its canonical link, over the same Householder-QR
-  least-squares core `OrdinaryLeastSquares.Fit` uses, and reporting the same shape of inference
-  table beside it — coefficients, standard errors, z statistics, p-values, confidence intervals,
-  deviance and the rest of what a `statsmodels` `GLM(...).fit()` summary holds.
-  [Decision 0111](docs/decisions/0111-the-generalized-linear-model-does-not-earn-its-own-package.md)
-  kept it in this package rather than a new one.
-  ([#616](https://github.com/CyrilB1531/lodestar/issues/616))
+- `GeneralizedLinearModel.Fit`, with `GlmFamily`, `GlmOptions` and `GlmSummary`, for binomial and Poisson responses. ([#616](https://github.com/CyrilB1531/lodestar/issues/616), [`8bd2dba6`](https://github.com/CyrilB1531/lodestar/commit/8bd2dba6))
+- `CovarianceType` gives `OrdinaryLeastSquares` the heteroskedasticity-consistent estimators `Hc0` to `Hc3`. ([#686](https://github.com/CyrilB1531/lodestar/issues/686), [`1f596f4b`](https://github.com/CyrilB1531/lodestar/commit/1f596f4b))
+- `OrdinaryLeastSquares.Estimate` and `OlsEstimate` fit the model without the inference table. ([#671](https://github.com/CyrilB1531/lodestar/issues/671), [`2986d69e`](https://github.com/CyrilB1531/lodestar/commit/2986d69e))
+- `WeightedLeastSquares.Fit` fits a linear model with one weight per row. ([#768](https://github.com/CyrilB1531/lodestar/issues/768), [`1d0a3630`](https://github.com/CyrilB1531/lodestar/commit/1d0a3630))
+- `GlmFamily.NegativeBinomial` and `GlmOptions.NegativeBinomialAlpha` fit over-dispersed counts. ([#769](https://github.com/CyrilB1531/lodestar/issues/769), [`94e13f2d`](https://github.com/CyrilB1531/lodestar/commit/94e13f2d))
+- `GlmFamily.Gamma` and `GlmLink` fit a positive, skewed response. ([#770](https://github.com/CyrilB1531/lodestar/issues/770), [`b55b7835`](https://github.com/CyrilB1531/lodestar/commit/b55b7835))
+- `GeneralizedLeastSquares.Fit` fits a linear model under a caller-supplied error covariance. ([#771](https://github.com/CyrilB1531/lodestar/issues/771), [`0ec985fa`](https://github.com/CyrilB1531/lodestar/commit/0ec985fa))
+- `CovarianceType.Hac` and `CovarianceType.Cluster` give the least-squares fits Newey–West and cluster-robust errors. ([#775](https://github.com/CyrilB1531/lodestar/issues/775), [`c6f4dce0`](https://github.com/CyrilB1531/lodestar/commit/c6f4dce0))
+- `GeneralizedLinearModel.Fit` takes an offset and an exposure. ([#787](https://github.com/CyrilB1531/lodestar/issues/787), [`242f8631`](https://github.com/CyrilB1531/lodestar/commit/242f8631))
+- `MultinomialLogit.Fit` fits an unordered categorical response with its inference table. ([#788](https://github.com/CyrilB1531/lodestar/issues/788), [`969b4530`](https://github.com/CyrilB1531/lodestar/commit/969b4530))
 
 #### Changed
 
-- **A Poisson count above one million is fitted rather than refused.** The log-likelihood's `log(y!)`
-  reads a fixed table below 256 and Stirling's series above it, held to `scipy.special.gammaln` at a
-  relative `1e-9` up to `2^53`, instead of a table as long as the largest count: at a mean count of
-  50,000 a fit takes 283 µs instead of 684 µs and allocates 486 KB instead of 944 KB. An infinite
-  count is refused by name. [Decision 0128](docs/decisions/0128-the-poisson-log-factorial-stays-in-lodestar-stats-regression.md)
-  has why it was not published from `Lodestar.Stats`.
-  ([#665](https://github.com/CyrilB1531/lodestar/issues/665))
-
-- **The HC2 and HC3 covariances no longer read Q through an interface the JIT cannot see behind.**
-  On a runtime without dynamic PGO they are 3.7% to 4.7% faster, and with PGO nothing moves. The
-  results are bit-for-bit identical. [Decision 0125](docs/decisions/0125-the-factorization-types-keep-ireadonlylist-and-consumers-read-a-local.md)
-  has the measurement. ([#670](https://github.com/CyrilB1531/lodestar/issues/670))
-
-- **`OlsOptions` is a record, and its two properties are `init` rather than `set`.** Every other
-  options type in the repository — `KMeansOptions`, `StandardScalerOptions`, and now `GlmOptions`
-  — was already a `sealed record` with `init`, and both of this one's members are value types, so
-  the equality a record brings compares what a reader would expect it to. Code that mutated an
-  instance after constructing it must use an object initializer instead.
-  ([#616](https://github.com/CyrilB1531/lodestar/issues/616))
-
-### Lodestar.Cluster
-
-#### Changed
-
-- **`KMeansOptions` compares its centres by value.** Two option sets built from separate arrays
-  holding the same centres were unequal and now are equal, with `GetHashCode` agreeing; decision
-  0113 has the rule for every record whose member compares by reference.
-  ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
-
-### Lodestar.Stats
-
-#### Changed
-
-- **Faster, same answers.** `MannWhitney.Test` ranks each sample on its own and merges the two
-  instead of sorting the pooled sample three times, and no longer allocates.
-  ([#711](https://github.com/CyrilB1531/lodestar/issues/711))
-- **Faster, same answers.** `KruskalWallis.Test` merges its sorted groups the same way, up to 16 of
-  them, and `Wilcoxon` merges the sorted positive and negative magnitudes wherever the normal
-  approximation is taken on up to 180,000 values: 4.8× to 7.0× and 5.2× to 6.7× at 10,000 and
-  100,000, allocating none of the pooled ranking.
-  ([#719](https://github.com/CyrilB1531/lodestar/issues/719))
-- **`Chi2ContingencyResult` compares its expected table by value.** Two results holding the same
-  table were unequal and now are equal, with `GetHashCode` agreeing; decision 0113 has the rule.
-  ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
-- **The chi-squared and normal tails no longer iterate on every call.** An integer or half-integer
-  degree of freedom up to 100 is a finite sum and `erfc` an interpolant sampled once from the
-  same incomplete gamma, so `ChiSquare.Contingency` no longer trails `Accord.Statistics`; decision
-  0122 amends 0081 to say so. ([#710](https://github.com/CyrilB1531/lodestar/issues/710))
-- **`Distributions.NormalQuantile` and `Distributions.StudentQuantile` invert their tail by Newton
-  from a seed instead of by bisection**, still returning the root of the package's own tail.
-  ([#709](https://github.com/CyrilB1531/lodestar/issues/709))
+- `OlsOptions` is a record with `init` properties. ([#616](https://github.com/CyrilB1531/lodestar/issues/616), [`8bd2dba6`](https://github.com/CyrilB1531/lodestar/commit/8bd2dba6))
+- A Poisson count above one million is fitted rather than refused. ([#665](https://github.com/CyrilB1531/lodestar/issues/665), [`6ecf9c05`](https://github.com/CyrilB1531/lodestar/commit/6ecf9c05))
+- The HC2 and HC3 covariances no longer read Q through an interface. ([#670](https://github.com/CyrilB1531/lodestar/issues/670), [`88b32f78`](https://github.com/CyrilB1531/lodestar/commit/88b32f78))
+- The least-squares pipeline under the OLS, WLS and GLM fits no longer forms Q. ([#782](https://github.com/CyrilB1531/lodestar/issues/782), [`37c71cb9`](https://github.com/CyrilB1531/lodestar/commit/37c71cb9))
+- The negative binomial log-likelihood reads `lnΓ(1/α)` once per fit. ([#781](https://github.com/CyrilB1531/lodestar/issues/781), [`37c71cb9`](https://github.com/CyrilB1531/lodestar/commit/37c71cb9))
 
 ### Lodestar.Survival
 
 #### Added
 
-- **[`CoxProportionalHazards.Fit`](docs/reference/survival/estimators/coxproportionalhazards-fit.md)
-  fits the Cox proportional hazards model**: by how much each covariate multiplies the hazard, which is
-  what survival analysis is usually asked once there are covariates, and which no .NET package offered.
-  - **The table.** It returns `CoxSummary`: coefficients, standard errors, z statistics, p-values,
-    intervals and hazard ratios, the likelihood-ratio test and Harrell's concordance, with Efron's
-    handling of ties.
-  - **Parity.** It matches `lifelines` 0.30.3 at 1e-9 on five fixtures, with lifelines fitted to its
-    maximum: at its defaults it stops up to 8.6e-6 short.
-  - **Refusals.** A collinear or separated design throws, naming the cause, where lifelines returns
-    numbers behind a warning.
-  - **Not tested.** The proportional-hazards assumption is not tested by this release, and the guide
-    says so first. [Decision 0124](docs/decisions/0124-the-cox-model-stays-in-lodestar-survival-and-refuses-what-it-cannot-estimate.md)
-    has the placement and the three divergences.
-  ([#684](https://github.com/CyrilB1531/lodestar/issues/684))
+- `CoxProportionalHazards.Fit` fits the Cox proportional hazards model, at lifelines parity. ([#684](https://github.com/CyrilB1531/lodestar/issues/684), [`94531850`](https://github.com/CyrilB1531/lodestar/commit/94531850))
 
 #### Changed
 
-- **`KaplanMeierCurve` and `NelsonAalenCurve` compare their arrays by value.** Two curves fitted
-  from the same data were unequal and now are equal, with `GetHashCode` agreeing; decision 0113
-  has the rule. ([#668](https://github.com/CyrilB1531/lodestar/issues/668))
+- `KaplanMeierCurve` and `NelsonAalenCurve` compare their arrays by value. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
 
 ### Lodestar.Metrics
 
 #### Changed
 
-- **`MeanSquaredError`, `MeanAbsoluteError` and `R2` read their input once to validate and score
-  it.** An unweighted single output tests finiteness inside the pass that computes the metric, and
-  `netstandard2.0` accumulates in four compensated stripes, so the last bits of a result can move
-  within the corpora's `1e-9`; the exception a non-finite input raises does not change.
-  ([#715](https://github.com/CyrilB1531/lodestar/issues/715))
+- `MeanSquaredError`, `MeanAbsoluteError` and `R2` read their input once to validate and score it. ([#715](https://github.com/CyrilB1531/lodestar/issues/715), [`a954161e`](https://github.com/CyrilB1531/lodestar/commit/a954161e))
 
 ## Released — 2026-09-10
 
