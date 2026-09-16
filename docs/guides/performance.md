@@ -4784,6 +4784,15 @@ Allocation rises by the id arrays. Distances identical against `main` on 6,000 p
 
 Ordinal character order is the equality the string keys used, and the counts are integers; the code-point mode keeps its path. Identical against `main` on 18,000 results across the five measures. `QgramBenchmarks`, pinned to four cores.
 
+## The exact Kolmogorov-Smirnov table in two rows (issue #830)
+
+| sizes ([`ExactMethod.Exact`](../reference/stats/tests/exactmethod.md)) | `main` | fix |
+| --- | ---: | ---: |
+| 99 × 101 | 38.3 µs, 84.5 KB | 30.5 µs, 4.1 KB |
+| 999 × 1,001 | 3.03 ms, 7.9 MB | **2.17 ms, 39 KB** |
+
+Same expressions in the same order: p-values bit-identical against `main` for six size pairs under all three alternatives. `KsExactTableBenchmarks`, pinned to four cores.
+
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-16; both `main` runs agreed within 3%.

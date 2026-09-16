@@ -53,9 +53,8 @@ because the exact answer stops being worth its cost there, not because it would 
 
 **The table route has a size bound `Auto` cannot cross**; the equal-size two-sided closed form has
 none. Past `a.Length * b.Length = 1,000,000`,
-`ExactPValue`'s lattice-path recurrence allocates a fresh `double[b.Length + 1]` row on each of
-`a.Length + 1` outer iterations — measured at 8,000 × 8,000 (a product of 64,000,000), that walk
-allocates 673 MB and climbs quadratically with the product from there. Passing
+the lattice-path recurrence walks one row per step through two buffers, so its memory stays at two
+rows while its time grows with the product — 2.17 ms at 999 × 1,001, just under the bound. Passing
 `ExactMethod.Exact` past the bound throws; `ExactMethod.Auto` never does, falling back to the
 asymptotic answer instead, because nothing the caller wrote asked for an exact result — and
 `Auto`'s own 10,000 threshold keeps it two orders of magnitude clear of the bound regardless.
