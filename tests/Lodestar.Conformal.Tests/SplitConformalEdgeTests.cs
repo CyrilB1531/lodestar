@@ -41,6 +41,27 @@ public sealed class SplitConformalEdgeTests
     }
 
     [Fact]
+    public void MAPIE_s_classification_rule_reads_the_19th_where_the_ceiling_reads_the_18th()
+    {
+        // level = 20 * 0.9 / 19, and ceil(18 * level) = 18 is the 0-based index numpy's higher reads (#866).
+        double[] scores = [.. Enumerable.Range(1, 19).Select(value => (double)value)];
+
+        Assert.Equal(19.0, SplitConformal.Quantile(scores, 0.1, ConformalQuantileRule.MapieClassification));
+        Assert.Equal(18.0, SplitConformal.Quantile(scores, 0.1, ConformalQuantileRule.Ceiling));
+    }
+
+    [Fact]
+    public void MAPIE_s_classification_rule_is_infinite_where_its_level_passes_one() =>
+        Assert.Equal(
+            double.PositiveInfinity,
+            SplitConformal.Quantile(NineScores, 0.05, ConformalQuantileRule.MapieClassification));
+
+    [Fact]
+    public void An_undeclared_quantile_rule_is_refused() =>
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => SplitConformal.Quantile(NineScores, 0.1, (ConformalQuantileRule)2));
+
+    [Fact]
     public void One_calibration_score_is_enough_at_a_level_it_can_answer() =>
         Assert.Equal(7.0, SplitConformal.Quantile([7.0], 0.5));
 

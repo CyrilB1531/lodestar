@@ -123,7 +123,8 @@ public sealed class SplitConformalOracleTests
             classes);
         Assert.Equal(ConformalCorpus.Doubles(c, "scores"), scores);
 
-        double quantile = SplitConformal.Quantile(scores, ConformalCorpus.Alpha(c));
+        double quantile = SplitConformal.Quantile(
+            scores, ConformalCorpus.Alpha(c), ConformalQuantileRule.MapieClassification);
         Assert.Equal(ConformalCorpus.Frozen(c, "quantile"), quantile, ConformalCorpus.Tolerance);
 
         double[] test = ConformalCorpus.Doubles(c, "test_proba");
@@ -137,6 +138,27 @@ public sealed class SplitConformalOracleTests
                 Assert.Equal(expected[(row * classes) + j] != 0, set[j]);
             }
         }
+    }
+
+    [Theory]
+    [MemberData(nameof(ClassificationCases))]
+    public void The_default_rule_keeps_the_ceiling_rank_on_classification_scores(int index)
+    {
+        JsonElement c = ConformalCorpus.Section("classification")[index];
+
+        double quantile = SplitConformal.Quantile(ConformalCorpus.Doubles(c, "scores"), ConformalCorpus.Alpha(c));
+
+        Assert.Equal(ConformalCorpus.Frozen(c, "ceiling_quantile"), quantile, ConformalCorpus.Tolerance);
+    }
+
+    /// <summary>A corpus whose cases all agree under both rules would pass with either one wired to the other (#866).</summary>
+    [Fact]
+    public void The_corpus_carries_cases_where_MAPIE_sets_read_a_higher_rank()
+    {
+        int differing = ConformalCorpus.Section("classification").Count(c =>
+            ConformalCorpus.Frozen(c, "quantile") > ConformalCorpus.Frozen(c, "ceiling_quantile"));
+
+        Assert.True(differing >= 2, $"only {differing} case separates the two rules");
     }
 
     /// <summary>

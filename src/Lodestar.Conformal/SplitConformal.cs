@@ -10,20 +10,33 @@ namespace Lodestar.Conformal;
 /// </remarks>
 public static class SplitConformal
 {
-    /// <summary>The score a new point must not exceed to fall inside the prediction.</summary>
+    /// <summary>The score a new point must not exceed to fall inside the prediction, by the ceiling rule.</summary>
     /// <remarks>
-    /// The <c>k</c>-th smallest score, <c>k = ceil((n + 1) · (1 − alpha))</c>, 1-based — the rule
-    /// MAPIE was measured to follow, and not a numpy quantile. When <c>k</c> exceeds the score
-    /// count the level asks for a score that does not exist, and the answer is
-    /// <see cref="double.PositiveInfinity"/>: a trivial prediction with real coverage, carried
-    /// through by <see cref="Interval"/> and <see cref="PredictionSet"/>. MAPIE raises there;
-    /// decision 0070 says why this does not. <b>Exchangeability</b> — see the type's remarks.
+    /// <see cref="Quantile(ReadOnlySpan{double}, double, ConformalQuantileRule)"/> at
+    /// <see cref="ConformalQuantileRule.Ceiling"/>, the rule MAPIE's regressors follow.
     /// </remarks>
     /// <param name="scores">The calibration scores; not modified.</param>
     /// <param name="alpha">Miscoverage level in <c>(0, 1)</c>: 0.1 asks for 90 % coverage.</param>
     /// <exception cref="ArgumentException"><paramref name="scores"/> is empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="alpha"/> is not in <c>(0, 1)</c>.</exception>
-    public static double Quantile(ReadOnlySpan<double> scores, double alpha)
+    public static double Quantile(ReadOnlySpan<double> scores, double alpha) =>
+        Quantile(scores, alpha, ConformalQuantileRule.Ceiling);
+
+    /// <summary>The score a new point must not exceed to fall inside the prediction.</summary>
+    /// <remarks>
+    /// <see cref="ConformalQuantileRule.Ceiling"/> reads the <c>k</c>-th smallest score, <c>k = ceil((n + 1) · (1 − alpha))</c>;
+    /// <see cref="ConformalQuantileRule.MapieClassification"/> the <c>(ceil((n − 1) · level) + 1)</c>-th, <c>level = (n + 1)(1 − alpha) / n</c>,
+    /// which is what MAPIE's prediction sets read. When the rule asks for a score that does not exist the answer is
+    /// <see cref="double.PositiveInfinity"/>: a trivial prediction with real coverage, carried through by
+    /// <see cref="Interval"/> and <see cref="PredictionSet"/>. MAPIE raises there; decision 0070 says why this does not.
+    /// <b>Exchangeability</b> — see the type's remarks.
+    /// </remarks>
+    /// <param name="scores">The calibration scores; not modified.</param>
+    /// <param name="alpha">Miscoverage level in <c>(0, 1)</c>: 0.1 asks for 90 % coverage.</param>
+    /// <param name="rule">Which order statistic to read.</param>
+    /// <exception cref="ArgumentException"><paramref name="scores"/> is empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="alpha"/> is not in <c>(0, 1)</c>, or <paramref name="rule"/> is not a declared value.</exception>
+    public static double Quantile(ReadOnlySpan<double> scores, double alpha, ConformalQuantileRule rule)
     {
         if (scores.Length == 0)
         {
@@ -36,9 +49,14 @@ public static class SplitConformal
             throw new ArgumentOutOfRangeException(
                 nameof(alpha), alpha, "The miscoverage level must lie strictly between 0 and 1.");
         }
+        if (rule is not (ConformalQuantileRule.Ceiling or ConformalQuantileRule.MapieClassification))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(rule), rule, "The quantile rule must be Ceiling or MapieClassification.");
+        }
 
         int n = scores.Length;
-        int k = (int)Math.Ceiling((n + 1) * (1.0 - alpha));
+        int k = rule == ConformalQuantileRule.Ceiling ? CeilingRank(n, alpha) : HigherRank(n, alpha);
         if (k > n)
         {
             return double.PositiveInfinity;
@@ -51,10 +69,21 @@ public static class SplitConformal
         return sorted[k - 1];
     }
 
+    /// <summary>The 1-based rank of the ceiling rule.</summary>
+    private static int CeilingRank(int n, double alpha) => (int)Math.Ceiling((n + 1) * (1.0 - alpha));
+
+    /// <summary>The 1-based rank numpy's <c>higher</c> quantile reads at MAPIE's classification level, past <paramref name="n"/> where the level passes 1.</summary>
+    /// <remarks>Evaluated in numpy's order, level first, so a product near an integer rounds as it does there.</remarks>
+    private static int HigherRank(int n, double alpha)
+    {
+        double level = (n + 1) * (1.0 - alpha) / n;
+        return level > 1.0 ? n + 1 : (int)Math.Ceiling((n - 1) * level) + 1;
+    }
+
     /// <summary>The absolute-residual calibration scores of a regressor, <c>|y − ŷ|</c>.</summary>
     /// <remarks>
     /// MAPIE's <c>AbsoluteConformityScore</c>, which is what <c>SplitConformalRegressor</c>
-    /// uses by default. Hand this to <see cref="Quantile"/>.
+    /// uses by default. Hand this to <see cref="Quantile(ReadOnlySpan{double}, double)"/>.
     /// </remarks>
     /// <param name="yTrue">The observed values.</param>
     /// <param name="yPredicted">The model's predictions, same length as <paramref name="yTrue"/>.</param>
@@ -82,7 +111,7 @@ public static class SplitConformal
     /// model's prediction of <c>|y − ŷ|</c> at each calibration point, and dividing by it is what
     /// makes the interval width vary with the input — <see cref="AbsoluteResiduals"/> gives every
     /// point the same width, which is a real limitation and not a simplification. Hand the result
-    /// to <see cref="Quantile"/> and the same estimates to <see cref="NormalisedInterval"/>.
+    /// to <see cref="Quantile(ReadOnlySpan{double}, double)"/> and the same estimates to <see cref="NormalisedInterval"/>.
     /// <b>Exchangeability</b> — see the type's remarks.
     /// </remarks>
     /// <param name="yTrue">The observed values.</param>
@@ -113,14 +142,14 @@ public static class SplitConformal
 
     /// <summary>The normalised interval <c>[ŷ − q·r̂, ŷ + q·r̂]</c> around a point prediction.</summary>
     /// <remarks>
-    /// The quantile comes from <see cref="Quantile"/> over <see cref="NormalisedResiduals"/>, and
+    /// The quantile comes from <see cref="Quantile(ReadOnlySpan{double}, double)"/> over <see cref="NormalisedResiduals"/>, and
     /// <paramref name="residualEstimate"/> from the same second model, at the point being
     /// predicted. An infinite <paramref name="quantile"/> yields the whole line, as
     /// <see cref="Interval"/> does. <b>Exchangeability</b> — see the type's remarks.
     /// </remarks>
     /// <param name="prediction">The model's point prediction.</param>
     /// <param name="residualEstimate">The predicted absolute residual at this point, strictly positive.</param>
-    /// <param name="quantile">The calibrated quantile from <see cref="Quantile"/>.</param>
+    /// <param name="quantile">The calibrated quantile from <see cref="Quantile(ReadOnlySpan{double}, double)"/>.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="quantile"/> is negative or NaN, or <paramref name="residualEstimate"/> is not strictly positive.</exception>
     public static (double Lower, double Upper) NormalisedInterval(
         double prediction, double residualEstimate, double quantile)
@@ -157,12 +186,12 @@ public static class SplitConformal
 
     /// <summary>The prediction interval <c>[ŷ − q, ŷ + q]</c> around a point prediction.</summary>
     /// <remarks>
-    /// An infinite <paramref name="quantile"/> — see <see cref="Quantile"/> — yields the whole
+    /// An infinite <paramref name="quantile"/> — see <see cref="Quantile(ReadOnlySpan{double}, double)"/> — yields the whole
     /// line, which is the trivial prediction the calibration size forced.
     /// <b>The guarantee assumes exchangeability</b>; see the type's remarks.
     /// </remarks>
     /// <param name="prediction">The model's point prediction.</param>
-    /// <param name="quantile">The calibrated quantile from <see cref="Quantile"/>.</param>
+    /// <param name="quantile">The calibrated quantile from <see cref="Quantile(ReadOnlySpan{double}, double)"/>.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="quantile"/> is negative or NaN.</exception>
     public static (double Lower, double Upper) Interval(double prediction, double quantile)
     {
@@ -218,14 +247,15 @@ public static class SplitConformal
 
     /// <summary>The prediction set: every class whose probability clears <c>1 − q</c>.</summary>
     /// <remarks>
-    /// MAPIE's LAC rule, edges included. <b>The set can be empty</b>, when no class clears
-    /// the threshold; substituting the most likely class there would return something with
+    /// MAPIE's LAC rule, edges included, when the quantile was taken at
+    /// <see cref="ConformalQuantileRule.MapieClassification"/>; the default rule can read one rank lower.
+    /// <b>The set can be empty</b>, when no class clears the threshold; substituting the most likely class there would return something with
     /// no coverage guarantee under a name that promises one. An infinite
     /// <paramref name="quantile"/> returns every class, the trivial prediction.
     /// <b>The guarantee assumes exchangeability</b>; see the type's remarks.
     /// </remarks>
     /// <param name="probabilities">One sample's predicted probabilities, in calibration order.</param>
-    /// <param name="quantile">The calibrated quantile from <see cref="Quantile"/>.</param>
+    /// <param name="quantile">The calibrated quantile from <see cref="Quantile(ReadOnlySpan{double}, double, ConformalQuantileRule)"/>.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="quantile"/> is negative or NaN.</exception>
     public static bool[] PredictionSet(ReadOnlySpan<double> probabilities, double quantile)
     {

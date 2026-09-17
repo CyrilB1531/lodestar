@@ -10,7 +10,9 @@ public static bool[] PredictionSet(ReadOnlySpan<double> probabilities, double qu
 
 **Parameters** — `probabilities` is one sample's predicted probabilities, in the same class order
 [`LeastAmbiguousScores`](splitconformal-leastambiguousscores.md) was given. `quantile` is the
-calibrated quantile from [`Quantile`](splitconformal-quantile.md).
+calibrated quantile from [`Quantile`](splitconformal-quantile.md), taken at
+[`ConformalQuantileRule.MapieClassification`](conformalquantilerule.md) for the set MAPIE's
+`predict_set` returns.
 
 **Returns** — a fresh `bool[]` of the same length, `true` where that class is in the set.
 

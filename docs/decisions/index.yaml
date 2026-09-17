@@ -710,7 +710,7 @@
   amends: []
   applies: []
   superseded_by: []
-  amended_by: []
+  amended_by: ["0143"]
   applied_by: ["0118"]
 
 "0071":
@@ -1428,6 +1428,16 @@
   status: "accepted"
   supersedes: []
   amends: ["0123"]
+  applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0143":
+  title: "Prediction sets can read MAPIE's classification quantile, and the ceiling rule stays the default"
+  status: "accepted"
+  supersedes: []
+  amends: ["0070"]
   applies: []
   superseded_by: []
   amended_by: []

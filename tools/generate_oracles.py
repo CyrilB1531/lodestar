@@ -95,6 +95,9 @@ CALIB_SIZE = "calib"
 # The normalised score's two extra columns, named for the same reason (#683).
 CALIB_SIGMA = "calibResidualEstimates"
 TEST_SIGMA = "testResidualEstimates"
+# The two classification rules' keys, named for the same reason (#866).
+CEILING_QUANTILE = "ceiling_quantile"
+BETWEEN = "between"
 # The sparse-dense corpus's fixture keys, named for the same reason the conformal
 # ones above are: S1192 counts a dict key like any other literal (#440).
 COLUMNS = "columns"
@@ -3532,6 +3535,20 @@ def _conformal_quantile(scores: list[float], alpha: float) -> tuple[int, float]:
     return k, sorted(scores)[k - 1]
 
 
+def _mapie_classification_quantile(scores: list[float], alpha: float) -> tuple[int, float]:
+    """MAPIE's prediction-set rule: np.quantile at (n + 1)(1 - alpha)/n, method="higher" (#866).
+
+    numpy indexes ceil((n - 1) * level), 0-based; the arithmetic follows its order so a level
+    near an integer rounds the way numpy rounds it.
+    """
+    n = len(scores)
+    level = ((n + 1) * (1 - alpha)) / n
+    if level > 1:
+        raise ValueError(f"level {level} exceeds 1; this corpus holds only cases MAPIE answers")
+    k = math.ceil((n - 1) * level) + 1
+    return k, float(np.quantile(scores, level, method="higher"))
+
+
 def _conformal_regression_fixtures() -> list[dict]:
     """Calibration/test splits for the absolute-residual score.
 
@@ -3585,6 +3602,7 @@ def _conformal_classification_fixtures() -> list[dict]:
     # and LAC's answer is the empty set rather than the arg-max.
     confident[-1] = [0.34, 0.33, 0.33]
     binary = _peaked_rows(rng, 40, 2, 2.0)
+    between = _peaked_rows(SeededRandom(SEED + 866), 128, 3, 2.0)
     return [
         {"name": "eighty calibration points, four classes, at 80 %",
          "alpha": 0.2, "class_count": 4, CALIB_SIZE: 80, "proba": flat, "empty": False},
@@ -3592,6 +3610,14 @@ def _conformal_classification_fixtures() -> list[dict]:
          "alpha": 0.25, "class_count": 3, CALIB_SIZE: 60, "proba": confident, "empty": True},
         {"name": "two classes at 75 %",
          "alpha": 0.25, "class_count": 2, CALIB_SIZE: 36, "proba": binary, "empty": False},
+        # The two rules read different order statistics here, the 19th against the 18th and
+        # the 91st against the 90th, and the last row sits between their thresholds (#866).
+        {"name": "nineteen points at 90 %, where MAPIE reads one rank higher",
+         "alpha": 0.1, "class_count": 3, CALIB_SIZE: 19, "proba": between[:24],
+         "empty": False, BETWEEN: True},
+        {"name": "ninety-nine points at 90 %, where MAPIE reads one rank higher",
+         "alpha": 0.1, "class_count": 3, CALIB_SIZE: 99, "proba": between[24:],
+         "empty": False, BETWEEN: True},
     ]
 
 
@@ -3623,7 +3649,15 @@ def _conformal_classification_case(fx: dict, frozen_classifier, split_classifier
     labels = _conformal_labels(SeededRandom(SEED + 44100), proba[:n])
 
     scores = [1.0 - proba[i][labels[i]] for i in range(n)]
-    k, q = _conformal_quantile(scores, fx["alpha"])
+    ceiling_k, ceiling_q = _conformal_quantile(scores, fx["alpha"])
+    k, q = _mapie_classification_quantile(scores, fx["alpha"])
+    if fx.get(BETWEEN):
+        assert q > ceiling_q, f"{fx['name']}: the two rules agree, so the case proves nothing"
+        # A row whose first class clears MAPIE's threshold and not the ceiling rule's.
+        first = 1.0 - ((q + ceiling_q) / 2.0)
+        proba = proba[:-1] + [[first, (1.0 - first) / 2.0, (1.0 - first) / 2.0]]
+    else:
+        assert q == ceiling_q, f"{fx['name']}: the rules disagree on a case frozen as agreeing"
 
     estimator = frozen_classifier(table=np.array(proba), n_classes=classes).fit(np.zeros((1, 1)))
     mapie = split_classifier(
@@ -3635,6 +3669,9 @@ def _conformal_classification_case(fx: dict, frozen_classifier, split_classifier
     test = proba[n:]
     mine = [[1 if p >= 1.0 - q else 0 for p in row] for row in test]
     assert np.array_equal(sets[:, :, 0].astype(int), np.array(mine)), fx["name"]
+    if fx.get(BETWEEN):
+        ceiling = [[1 if p >= 1.0 - ceiling_q else 0 for p in row] for row in test]
+        assert ceiling != mine, f"{fx['name']}: no test row separates the two rules"
     if fx["empty"]:
         assert any(sum(row) == 0 for row in mine), f"{fx['name']}: no empty set to freeze"
 
@@ -3643,6 +3680,7 @@ def _conformal_classification_case(fx: dict, frozen_classifier, split_classifier
         "calib_proba": [p for row in proba[:n] for p in row],
         "calib_labels": labels,
         "scores": scores, "k": k, QUANTILE: q,
+        "ceiling_k": ceiling_k, CEILING_QUANTILE: ceiling_q,
         "test_count": len(test),
         "test_proba": [p for row in test for p in row],
         "sets": [flag for row in mine for flag in row],
@@ -3761,9 +3799,10 @@ def generate_conformal() -> dict:
     for fx in _conformal_classification_fixtures():
         case = _conformal_classification_case(fx, frozen_classifier, SplitConformalClassifier)
         classification_cases.append(case)
+        # The quantile section is the ceiling rule's, which is what Quantile answers by default.
         quantile_cases.append({
             "name": case["name"], "alpha": case["alpha"], "scores": case["scores"],
-            "k": case["k"], QUANTILE: case[QUANTILE]})
+            "k": case["ceiling_k"], QUANTILE: case[CEILING_QUANTILE]})
 
     return {
         "metadata": {"library": "mapie", "version": version("mapie"),

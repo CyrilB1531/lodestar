@@ -8,6 +8,7 @@ each. Static, stateless, and it never sees your model.
 | Member | What it does |
 | --- | --- |
 | [`SplitConformal.Quantile`](splitconformal-quantile.md) | The calibrated quantile: the `k`-th smallest calibration score. |
+| [`ConformalQuantileRule`](conformalquantilerule.md) | Which order statistic `Quantile` reads: the ceiling rank, or MAPIE's classification quantile. |
 | [`SplitConformal.AbsoluteResiduals`](splitconformal-absoluteresiduals.md) | A regressor's calibration scores, `\|y − ŷ\|`. |
 | [`SplitConformal.Interval`](splitconformal-interval.md) | `[ŷ − q, ŷ + q]` around a point prediction. |
 | [`SplitConformal.NormalisedResiduals`](splitconformal-normalisedresiduals.md) | A regressor's scores divided by a predicted residual, `\|y − ŷ\| / r̂`. |

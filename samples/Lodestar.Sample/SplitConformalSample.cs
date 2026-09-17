@@ -37,7 +37,8 @@ internal static class SplitConformalSample
 
         double[] scores = SplitConformal.LeastAmbiguousScores(
             CalibrationProbabilities, CalibrationLabels, classCount: 4);
-        double classQuantile = SplitConformal.Quantile(scores, alpha: 0.25);
+        // MAPIE's classifier reads numpy's higher quantile, one rank above the default at some sizes.
+        double classQuantile = SplitConformal.Quantile(scores, 0.25, ConformalQuantileRule.MapieClassification);
         Console.WriteLine($"  LAC scores            = {Inv.List(scores)}");
         Console.WriteLine($"  LAC quantile          = {Inv.F3(classQuantile)}");
         Console.WriteLine($"  a clear row           = {Describe(Unseen, classQuantile)}");
