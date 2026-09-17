@@ -12,7 +12,8 @@ public sealed record TextRankOptions
 the graph is built. `Window` (default `2`) is how many tokens share a co-occurrence window; `2`
 pairs adjacent tokens only. `Damping` (default `0.85`) is the random-surfer damping of the
 reference implementation. `Tolerance` (default `1e-12`) is this implementation's own convergence
-bound — summa solves the eigenproblem outright and has no tolerance to expose.
+bound — summa solves the eigenproblem outright and has no tolerance to expose; it must be finite
+and non-negative.
 `MaxIterations` (default `1_000`) is how many power-iteration steps `Extract` runs before giving up
 rather than return a half-ranked vector. `Ratio` (default `0.2`) is what proportion of ranked words
 to keep, ignored when `Words` is set. `Words` (default `null`) overrides `Ratio` with an exact

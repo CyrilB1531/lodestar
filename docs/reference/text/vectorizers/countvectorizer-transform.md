@@ -16,7 +16,7 @@ learned by [`Fit`](countvectorizer-fit.md); terms absent from it are dropped.
 term, so its width is the fit's width whatever this corpus holds.
 
 **Exceptions** — `InvalidOperationException` when nothing has been fitted yet.
-`ArgumentNullException` when `documents` is null.
+`ArgumentNullException` when `documents` is null. `ArgumentException` when `documents` holds a null document.
 
 **Example** — a document holding an unseen term, and one holding none of the vocabulary.
 

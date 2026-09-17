@@ -54,10 +54,7 @@ internal sealed class TextAnalyzer
         string tokenPattern,
         IReadOnlyCollection<string>? stopWords)
     {
-        if (ngramRange.Min < 1 || ngramRange.Max < ngramRange.Min)
-        {
-            throw new ArgumentException("Invalid ngram range.", nameof(ngramRange));
-        }
+        RequireNgramRange(ngramRange, nameof(ngramRange));
 
         _lowercase = lowercase;
         _stripAccents = stripAccents;
@@ -69,6 +66,19 @@ internal sealed class TextAnalyzer
         _tokenPattern = new Regex(tokenPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
         _stopWords = stopWords is null ? null : StopWordSet.Adopt(stopWords);
     }
+
+    /// <summary>Refuses an n-gram range that is not ascending from 1, naming the caller's parameter.</summary>
+    public static void RequireNgramRange((int Min, int Max) ngramRange, string paramName)
+    {
+        if (ngramRange.Min < 1 || ngramRange.Max < ngramRange.Min)
+        {
+            throw new ArgumentException($"Invalid n-gram range {ngramRange}.", paramName);
+        }
+    }
+
+    /// <summary>The document at <paramref name="row"/>, refused when null with the caller's parameter named.</summary>
+    public static string Document(IReadOnlyList<string> documents, int row, string paramName) =>
+        documents[row] ?? throw new ArgumentException($"The document at index {row} is null.", paramName);
 
     /// <summary>Produces the terms of <paramref name="document"/> (with repetition).</summary>
     public List<string> Analyze(string document)

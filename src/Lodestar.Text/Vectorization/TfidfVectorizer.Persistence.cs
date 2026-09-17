@@ -23,8 +23,13 @@ public sealed partial class TfidfVectorizer
     /// <exception cref="InvalidOperationException">The vectorizer has not been fitted.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
-    public void Save(Stream destination) =>
+    public void Save(Stream destination)
+    {
+        Guard.NotNull(destination);
+        // Before the header: past it, a refusal leaves partial JSON in the caller's stream.
+        EnsureSavable();
         ArtifactIo.Save(destination, ArtifactName, ArtifactVersion, WriteArtifactBody);
+    }
 
     /// <summary>Writes the fitted vectorizer to <paramref name="path"/>, replacing any existing file.</summary>
     /// <remarks>Equivalent to <c>joblib.dump(vectorizer, path)</c>; the file is UTF-8 without a byte-order mark.</remarks>

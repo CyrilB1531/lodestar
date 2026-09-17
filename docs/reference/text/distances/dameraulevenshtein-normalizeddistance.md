@@ -16,6 +16,9 @@ well as the distance.
 **Returns** — `double` in `[0, 1]`: `0` when the two are equal, `1` when nothing at all can be
 reused. Two empty inputs give `0` rather than a division by zero.
 
+**Exceptions** — `ArgumentException` when the two lengths need a `(len(a) + 2) × (len(b) + 2)`
+table larger than the largest array .NET allocates, about 46 000 characters on each side.
+
 **Example** — one swap over six characters.
 
 ```csharp

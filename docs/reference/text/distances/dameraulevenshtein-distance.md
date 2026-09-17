@@ -19,6 +19,9 @@ tokens, decoded code points — and compares elements rather than characters.
 
 **Returns** — `int`, the number of edits. Zero when the two are equal, and never negative.
 
+**Exceptions** — `ArgumentException` when the two lengths need a `(len(a) + 2) × (len(b) + 2)`
+table larger than the largest array .NET allocates, about 46 000 characters on each side.
+
 **Example** — a swap and an insertion, where `Osa` charges three edits for the same pair.
 
 ```csharp

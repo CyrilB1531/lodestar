@@ -37,6 +37,8 @@ public sealed partial class TfidfVectorizer
     public IReadOnlyList<double> Idf => _tfidf.Idf;
 
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="documents"/> holds a null document.</exception>
+    /// <exception cref="InvalidOperationException"><c>MaxDf</c> corresponds to fewer documents than <c>MinDf</c> over this corpus.</exception>
     /// <summary>Learns the vocabulary and idf weights.</summary>
     public TfidfVectorizer Fit(IEnumerable<string> documents)
     {
@@ -45,6 +47,8 @@ public sealed partial class TfidfVectorizer
     }
 
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="documents"/> holds a null document.</exception>
+    /// <exception cref="InvalidOperationException"><c>MaxDf</c> corresponds to fewer documents than <c>MinDf</c> over this corpus.</exception>
     /// <summary>Learns and returns the TF-IDF matrix in one pass.</summary>
     public CsrMatrix FitTransform(IEnumerable<string> documents)
     {
@@ -53,6 +57,7 @@ public sealed partial class TfidfVectorizer
     }
 
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="documents"/> holds a null document.</exception>
     /// <exception cref="InvalidOperationException">nothing has been fitted yet.</exception>
     /// <summary>Transforms documents using the already-learned vocabulary and idf weights.</summary>
     public CsrMatrix Transform(IEnumerable<string> documents)

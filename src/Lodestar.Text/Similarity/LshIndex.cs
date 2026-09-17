@@ -21,11 +21,20 @@ public sealed class LshIndex
 
     /// <summary>Builds an empty index over one banding.</summary>
     /// <param name="banding">The banding every signature is cut by.</param>
-    /// <exception cref="ArgumentOutOfRangeException">The banding has a non-positive dimension.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The banding has a non-positive dimension, or more permutations than an <see cref="int"/> holds.</exception>
     public LshIndex(LshBanding banding)
     {
-        Guard.NotLessThan(banding.Bands, 1);
-        Guard.NotLessThan(banding.RowsPerBand, 1);
+        if (banding.Bands < 1 || banding.RowsPerBand < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(banding), banding, "Bands and RowsPerBand must both be at least 1.");
+        }
+        long permutations = (long)banding.Bands * banding.RowsPerBand;
+        if (permutations > int.MaxValue)
+        {
+            // Permutations would wrap, and a wrapped length lets RequireLength accept any signature.
+            throw new ArgumentOutOfRangeException(
+                nameof(banding), permutations, "Bands × RowsPerBand must fit in an Int32.");
+        }
         Banding = banding;
     }
 

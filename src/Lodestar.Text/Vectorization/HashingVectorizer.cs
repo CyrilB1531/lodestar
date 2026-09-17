@@ -38,10 +38,11 @@ public sealed partial class HashingVectorizer
         _options = options ?? new HashingVectorizerOptions();
         if (_options.NumFeatures < 1)
         {
-            throw new ArgumentException("NumFeatures must be >= 1.", nameof(options));
+            throw new ArgumentOutOfRangeException(nameof(options), _options.NumFeatures, "NumFeatures must be >= 1.");
         }
 
         CountVectorizerOptions c = _options.Count;
+        TextAnalyzer.RequireNgramRange(c.NgramRange, nameof(options));
         _analyzer = new TextAnalyzer(c.Lowercase, c.StripAccents, c.Analyzer, c.NgramRange, c.TokenPattern, c.StopWords);
     }
 
@@ -49,9 +50,11 @@ public sealed partial class HashingVectorizer
     public int NumFeatures => _options.NumFeatures;
 
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="documents"/> holds a null document.</exception>
     /// <summary>Hashes <paramref name="documents"/> into a sparse matrix. No fitting required.</summary>
     public CsrMatrix Transform(IEnumerable<string> documents)
     {
+        Guard.NotNull(documents);
         var docs = documents as IReadOnlyList<string> ?? documents.ToList();
         int nf = _options.NumFeatures;
 
@@ -62,7 +65,7 @@ public sealed partial class HashingVectorizer
         var terms = new HashedTerms(new HashTally(nf, _options.AlternateSign));
         for (int row = 0; row < docs.Count; row++)
         {
-            _analyzer.Analyze(docs[row], ref terms);
+            _analyzer.Analyze(TextAnalyzer.Document(docs, row, nameof(documents)), ref terms);
             terms.Tally.DrainNonZero(columns, values);
             rowPointers[row + 1] = values.Count;
         }
@@ -76,6 +79,7 @@ public sealed partial class HashingVectorizer
     }
 
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="documents"/> holds a null document.</exception>
     /// <summary>Alias for <see cref="Transform"/> — the vectorizer is stateless.</summary>
     public CsrMatrix FitTransform(IEnumerable<string> documents) => Transform(documents);
 }

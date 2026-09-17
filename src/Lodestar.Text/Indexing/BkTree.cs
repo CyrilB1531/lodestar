@@ -108,9 +108,9 @@ public sealed class BkTree
     {
         Guard.NotNull(query);
         Guard.NotLessThan(maxDistance, 0);
-        if (limit is { } cap)
+        if (limit is < 0)
         {
-            Guard.NotLessThan(cap, 0);
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, "The limit cannot be negative.");
         }
 
         List<Hit> hits = this.Collect(query, maxDistance);
