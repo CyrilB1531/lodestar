@@ -13,10 +13,10 @@
     <PackageTags>mathnet;mathnet-numerics;sparse-matrix;csr;interop;linear-algebra;lodestar</PackageTags>
   </PropertyGroup>
 
-  <!-- The dependency this package exists for, and the reason it is a satellite:
-       a core package carries none, and Lodestar.Decomposition refused this very
+  <!-- The dependency this package exists for, and the reason it sits in the interop
+       tier: a core package carries none, and Lodestar.Decomposition refused this very
        library for its own kernels on freshness grounds. Converting to a caller's
-       types is not computing with them — decision 0086. -->
+       types is not computing with them — decision 0089. -->
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" />
   </ItemGroup>
