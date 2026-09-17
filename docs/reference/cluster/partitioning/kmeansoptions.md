@@ -37,7 +37,9 @@ seed shares nothing. `InitialCentres` is what the oracle corpus passes, and what
 against Python must pass too.
 
 `Tolerance` is multiplied by the mean feature variance before use, so it is scale-free; `0` removes
-the shift test and iterates until the labels settle.
+the shift test and iterates until the labels settle. A negative, infinite or `NaN` tolerance is
+refused by [`KMeans.Fit`](kmeans-fit.md) with `ArgumentOutOfRangeException`, as scikit-learn refuses
+a `tol` outside `[0, inf)` — a `NaN` would otherwise switch the shift test off without a word.
 
 **Applies to** — net10.0, netstandard2.0.
 
