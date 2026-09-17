@@ -53,6 +53,28 @@ public sealed class OlsEdgeTests
             () => new OlsOptions { ConfidenceLevel = level });
     }
 
+    /// <summary>The sandwich's default arm is HC0, so an undeclared type would be computed as HC0 and echoed as itself (#868).</summary>
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(7)]
+    [InlineData(42)]
+    public void An_undeclared_covariance_type_is_refused(int type)
+    {
+        ArgumentOutOfRangeException error = Assert.Throws<ArgumentOutOfRangeException>(
+            () => new OlsOptions { CovarianceType = (CovarianceType)type });
+
+        Assert.Equal((CovarianceType)type, error.ActualValue);
+    }
+
+    [Theory]
+    [InlineData(CovarianceType.Nonrobust)]
+    [InlineData(CovarianceType.Hc3)]
+    [InlineData(CovarianceType.Cluster)]
+    public void A_declared_covariance_type_is_kept(CovarianceType type)
+    {
+        Assert.Equal(type, new OlsOptions { CovarianceType = type }.CovarianceType);
+    }
+
     [Fact]
     public void The_default_options_fit_an_intercept_at_ninety_five_percent()
     {

@@ -18,6 +18,11 @@ accepted past the row count as the reference accepts it. `SmallSampleCorrection`
 correction of `Hac` (`n / (n - k)`, off when `null`) or `Cluster` (`G / (G - 1) · (n - 1) / (n - k)`,
 on when `null`), statsmodels' `use_correction`; refused with any other type.
 
+**Exceptions** — `ArgumentOutOfRangeException` when `ConfidenceLevel` does not lie strictly inside
+`(0, 1)`, when `HacLags` is negative, or when `CovarianceType` is not a declared `CovarianceType`.
+Each is thrown where the setting is set, not where the fit reads it: an undeclared covariance type
+would otherwise be computed as `Hc0` and echoed back as the undeclared value.
+
 **Example** — a wider level widens both ends without moving the estimate.
 
 ```csharp

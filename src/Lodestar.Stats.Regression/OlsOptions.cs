@@ -7,6 +7,7 @@ public sealed record OlsOptions
 {
     private double _confidenceLevel = 0.95;
     private int? _hacLags;
+    private CovarianceType _covarianceType = CovarianceType.Nonrobust;
 
     /// <summary>Whether to fit an intercept, as <c>statsmodels.api.add_constant</c> would.</summary>
     /// <remarks>
@@ -23,7 +24,23 @@ public sealed record OlsOptions
     /// statistic on the robust covariance. <see cref="OlsSummary.CovarianceType"/> echoes what was
     /// used, so a reader of the summary alone can tell which distribution its p-values came from.
     /// </remarks>
-    public CovarianceType CovarianceType { get; init; } = CovarianceType.Nonrobust;
+    /// <exception cref="ArgumentOutOfRangeException">The value is not a declared <see cref="Regression.CovarianceType"/>.</exception>
+    public CovarianceType CovarianceType
+    {
+        get => _covarianceType;
+        init
+        {
+            // An undeclared value would reach the sandwich's default arm and be reported as HC0 (#868).
+            if (value is not (CovarianceType.Nonrobust or CovarianceType.Hc0 or CovarianceType.Hc1 or CovarianceType.Hc2
+                or CovarianceType.Hc3 or CovarianceType.Hac or CovarianceType.Cluster))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(value), value, $"{value} is not a declared {nameof(CovarianceType)}.");
+            }
+
+            _covarianceType = value;
+        }
+    }
 
     /// <summary>How many lags <see cref="CovarianceType.Hac"/> reads; required with it and refused with any other type.</summary>
     /// <remarks>
