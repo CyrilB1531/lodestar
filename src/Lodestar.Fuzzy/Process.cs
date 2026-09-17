@@ -22,6 +22,8 @@ public static class Process
     /// <param name="scorer">Similarity scorer (default <see cref="Fuzz.WRatio"/>), returning a value in [0, 100].</param>
     /// <param name="limit">Maximum number of results (default 5); <c>null</c> returns all above the cutoff.</param>
     /// <param name="scoreCutoff">Minimum score to keep (inclusive). Default 0.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="query"/> or <paramref name="choices"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is negative.</exception>
     public static IReadOnlyList<ExtractResult> Extract(
         string query,
         IEnumerable<string> choices,
@@ -31,11 +33,16 @@ public static class Process
     {
         Guard.NotNull(query);
         Guard.NotNull(choices);
+        if (limit is < 0)
+        {
+            // rapidfuzz's compiled extract fails on a negative limit too, with no parameter named.
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, "The limit cannot be negative.");
+        }
         scorer ??= Fuzz.WRatio;
 
         // A bounded limit keeps only a heap of that many hits: the final order is total, so the
         // kept set and its sorted order are the ones a full sort and truncation gave.
-        if (limit is { } bound && bound >= 0)
+        if (limit is { } bound)
         {
             return TopHits(query, choices, scorer, bound, scoreCutoff);
         }
@@ -53,11 +60,6 @@ public static class Process
         }
 
         hits.Sort(Compare);
-
-        if (limit is { } max && hits.Count > max)
-        {
-            hits.RemoveRange(max, hits.Count - max);
-        }
         return hits;
     }
 

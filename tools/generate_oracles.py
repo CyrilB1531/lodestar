@@ -2044,7 +2044,13 @@ PROCESS_CASES = [
     {"query": "lakers", "limit": 5, "cutoff": 50.0},
     # A blank query as long as METS: its token-set ratio used to score 100 and put METS first (#860).
     {"query": " " * len(METS), "limit": 3, "cutoff": 0.0},
+    {"query": "brooklyn", "limit": 0, "cutoff": 0.0},
+    {"query": "zzz", "limit": 5, "cutoff": 90.0},
 ]
+
+
+def _process_hit(choice: str, score: float, index: int) -> dict:
+    return {"choice": choice, "score": score, "index": index}
 
 
 def generate_process() -> dict:
@@ -2053,16 +2059,18 @@ def generate_process() -> dict:
     cases = []
     for i, case in enumerate(PROCESS_CASES):
         res = process.extract(case["query"], PROCESS_CHOICES, limit=case["limit"], score_cutoff=case["cutoff"])
+        one = process.extractOne(case["query"], PROCESS_CHOICES, score_cutoff=case["cutoff"])
         cases.append({
             "id": i, "query": case["query"], "limit": case["limit"], "cutoff": case["cutoff"],
-            "results": [{"choice": c, "score": s, "index": idx} for (c, s, idx) in res],
+            "results": [_process_hit(*hit) for hit in res],
+            "extract_one": None if one is None else _process_hit(*one),
         })
     return {
         "metadata": {
             "algorithm": "Process",
             "library": "rapidfuzz",
             "library_version": version("rapidfuzz"),
-            "reference_calls": ["rapidfuzz.process.extract (default scorer WRatio)"],
+            "reference_calls": ["rapidfuzz.process.{extract,extractOne} (default scorer WRatio)"],
             "choices": PROCESS_CHOICES,
             "count": len(cases),
         },
