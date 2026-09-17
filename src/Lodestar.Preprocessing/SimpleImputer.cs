@@ -41,10 +41,9 @@ public sealed class SimpleImputer
     /// value at all and <see cref="SimpleImputerOptions.KeepEmptyFeatures"/> is not set.
     /// </exception>
     /// <remarks>
-    /// <strong>A feature with nothing in it is refused</strong>, where the reference drops it from
-    /// the output and returns a narrower matrix than it was given. Set
-    /// <see cref="SimpleImputerOptions.KeepEmptyFeatures"/> to fill it with zero instead, which is
-    /// the reference's <c>keep_empty_features=True</c>.
+    /// <strong>A feature with nothing in it is refused</strong>, where the reference drops it and returns a narrower
+    /// matrix. <see cref="SimpleImputerOptions.KeepEmptyFeatures"/> fills it instead, as <c>keep_empty_features=True</c>
+    /// does: with zero, or with the fill value under <see cref="ImputationStrategy.Constant"/>.
     /// </remarks>
     public static SimpleImputer Fit(
         ReadOnlySpan<double> samples, int featureCount, SimpleImputerOptions? options = null)
@@ -71,12 +70,13 @@ public sealed class SimpleImputer
                     throw new ArgumentException(
                         $"feature {feature} has no value at all, so there is no statistic to fill it from. "
                         + "The reference drops such a feature and returns a narrower matrix; set "
-                        + "KeepEmptyFeatures to fill it with zero instead, which is what its "
-                        + "keep_empty_features=True does.",
+                        + "KeepEmptyFeatures to fill it instead, with zero or the constant strategy's "
+                        + "fill value, which is what its keep_empty_features=True does.",
                         nameof(samples));
                 }
 
-                statistics[feature] = 0.0;
+                // The reference's keep_empty_features fills with zero, except that constant keeps its fill value (#894).
+                statistics[feature] = settings.Strategy == ImputationStrategy.Constant ? settings.FillValue : 0.0;
                 continue;
             }
 

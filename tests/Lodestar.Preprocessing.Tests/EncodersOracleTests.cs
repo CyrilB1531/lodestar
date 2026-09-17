@@ -152,6 +152,7 @@ public sealed class EncodersOracleTests
             FillValue = frozen.GetProperty("fillValue").ValueKind == JsonValueKind.Null
                 ? 0.0
                 : frozen.GetProperty("fillValue").GetDouble(),
+            KeepEmptyFeatures = frozen.TryGetProperty("keepEmptyFeatures", out JsonElement keep) && keep.GetBoolean(),
         };
 
         SimpleImputer imputer = SimpleImputer.Fit(samples, featureCount, options);

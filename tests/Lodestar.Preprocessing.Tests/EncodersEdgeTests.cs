@@ -136,6 +136,24 @@ public sealed class EncodersEdgeTests
         Assert.Equal([1.0, 0.0, 2.0, 0.0], kept.Transform(samples));
     }
 
+    /// <summary>
+    /// Under <see cref="ImputationStrategy.Constant"/> a kept empty feature takes the fill value, not zero, as the
+    /// reference's <c>keep_empty_features=True</c> does; without keeping it the feature is still refused (#894).
+    /// </summary>
+    [Fact]
+    public void A_kept_empty_feature_takes_the_constant_fill_value()
+    {
+        double[] samples = [double.NaN, double.NaN];
+        var constant = new SimpleImputerOptions { Strategy = ImputationStrategy.Constant, FillValue = 7.0 };
+
+        Assert.Throws<ArgumentException>(() => SimpleImputer.Fit(samples, 1, constant));
+
+        SimpleImputer kept = SimpleImputer.Fit(samples, 1, constant with { KeepEmptyFeatures = true });
+
+        Assert.Equal(7.0, kept.Statistics[0]);
+        Assert.Equal([7.0, 7.0], kept.Transform(samples));
+    }
+
     /// <summary>An infinity marks nothing and would carry into every statistic, so it is refused.</summary>
     [Fact]
     public void An_infinity_is_refused_where_a_nan_is_a_missing_value()

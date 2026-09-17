@@ -8,7 +8,7 @@
    "sklearn.preprocessing.OrdinalEncoder.fit",
    "sklearn.impute.SimpleImputer.fit"
   ],
-  "count": 16
+  "count": 18
  },
  "cases": [
   {
@@ -592,6 +592,62 @@
     -1.0,
     3.0
    ]
+  },
+  {
+   "name": "mean keeps an empty feature at zero",
+   "encoder": "impute",
+   "samples": [
+    1.0,
+    "NaN",
+    "NaN",
+    "NaN",
+    3.0,
+    "NaN"
+   ],
+   "feature_count": 2,
+   "strategy": "mean",
+   "fillValue": null,
+   "statistics": [
+    2.0,
+    0.0
+   ],
+   "imputed": [
+    1.0,
+    0.0,
+    2.0,
+    0.0,
+    3.0,
+    0.0
+   ],
+   "keepEmptyFeatures": true
+  },
+  {
+   "name": "constant keeps an empty feature at its fill value",
+   "encoder": "impute",
+   "samples": [
+    1.0,
+    "NaN",
+    "NaN",
+    "NaN",
+    3.0,
+    "NaN"
+   ],
+   "feature_count": 2,
+   "strategy": "constant",
+   "fillValue": 7.0,
+   "statistics": [
+    7.0,
+    7.0
+   ],
+   "imputed": [
+    1.0,
+    7.0,
+    7.0,
+    7.0,
+    3.0,
+    7.0
+   ],
+   "keepEmptyFeatures": true
   }
  ]
 }

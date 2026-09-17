@@ -4707,6 +4707,7 @@ DROP = "drop"
 HANDLE_UNKNOWN = "handleUnknown"
 STRATEGY = "strategy"
 FILL_VALUE = "fillValue"
+KEEP_EMPTY_FEATURES = "keepEmptyFeatures"
 STATISTICS = "statistics"
 IMPUTED = "imputed"
 STRATEGY_MEAN = "mean"
@@ -4770,6 +4771,11 @@ def _imputer_fixtures() -> list[dict]:
          VALUES: [[1.0], [nan], [3.0]]},
         {"name": "constant at a value the caller chose", STRATEGY: STRATEGY_CONSTANT,
          FILL_VALUE: -1.0, VALUES: [[1.0], [nan], [3.0]]},
+        # #894: a kept empty feature is filled with zero, except under constant, which uses its fill value.
+        {"name": "mean keeps an empty feature at zero", STRATEGY: STRATEGY_MEAN, KEEP_EMPTY_FEATURES: True,
+         VALUES: [[1.0, nan], [nan, nan], [3.0, nan]]},
+        {"name": "constant keeps an empty feature at its fill value", STRATEGY: STRATEGY_CONSTANT,
+         FILL_VALUE: 7.0, KEEP_EMPTY_FEATURES: True, VALUES: [[1.0, nan], [nan, nan], [3.0, nan]]},
     ]
 
 
@@ -4820,8 +4826,11 @@ def generate_preprocessing_encoders() -> dict:
     for fixture in _imputer_fixtures():
         rows = fixture[VALUES]
         matrix = np.array(rows, dtype=np.float64)
+        keep = fixture.get(KEEP_EMPTY_FEATURES, False)
         imputer = SimpleImputer(
-            strategy=fixture[STRATEGY], fill_value=fixture.get(FILL_VALUE)).fit(matrix)
+            strategy=fixture[STRATEGY], fill_value=fixture.get(FILL_VALUE), keep_empty_features=keep).fit(matrix)
+        # The key is written only where it is set, so the cases frozen before #894 stay byte-identical.
+        kept = {KEEP_EMPTY_FEATURES: True} if keep else {}
         cases.append({
             "name": fixture["name"],
             ENCODER: IMPUTE,
@@ -4833,6 +4842,7 @@ def generate_preprocessing_encoders() -> dict:
             FILL_VALUE: fixture.get(FILL_VALUE),
             STATISTICS: [float(v) for v in imputer.statistics_],
             IMPUTED: [float(v) for row in imputer.transform(matrix) for v in row],
+            **kept,
         })
 
     return {

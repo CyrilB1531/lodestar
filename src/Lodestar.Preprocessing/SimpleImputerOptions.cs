@@ -11,7 +11,8 @@ public sealed record SimpleImputerOptions
     public double FillValue { get; init; }
 
     /// <summary>
-    /// Whether a feature with no value at all is kept and filled with zero, rather than refused.
+    /// Whether a feature with no value at all is kept, rather than refused: filled with zero, or with
+    /// <see cref="FillValue"/> under <see cref="ImputationStrategy.Constant"/>.
     /// </summary>
     /// <remarks>
     /// The reference's <c>keep_empty_features=True</c>. Its <c>False</c> — the default there —

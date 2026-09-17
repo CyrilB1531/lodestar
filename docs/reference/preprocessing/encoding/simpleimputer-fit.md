@@ -36,8 +36,9 @@ double median = imputer.Statistics[0];  // => 2.5
 returns a matrix one column narrower than the one it was given. That is this package's one
 divergence here, and it is deliberate: a transform whose output width depends on the fitted data
 rather than on the input shape is a trap in a typed API. Set
-[`SimpleImputerOptions.KeepEmptyFeatures`](simpleimputeroptions.md) to fill such a feature with zero
-instead, which is the reference's `keep_empty_features=True`.
+[`SimpleImputerOptions.KeepEmptyFeatures`](simpleimputeroptions.md) to fill such a feature instead,
+which is the reference's `keep_empty_features=True`: with zero, or with `FillValue` under
+[`ImputationStrategy.Constant`](imputationstrategy.md).
 
 **Applies to** — net10.0, netstandard2.0.
 

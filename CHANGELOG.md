@@ -41,6 +41,7 @@ is one sentence, the issue and the commit; see
 #### Fixed
 
 - `Splitters.StratifiedKFold` numbers classes over the order given and `Splitters.TrainTest` holds out that order's head, so scikit-learn's permutation reproduces `ShuffleSplit`. ([#893](https://github.com/CyrilB1531/lodestar/issues/893))
+- `SimpleImputer.Fit` fills a kept empty feature with `FillValue` under `ImputationStrategy.Constant`, where it filled it with zero. ([#894](https://github.com/CyrilB1531/lodestar/issues/894))
 
 ### Lodestar.Conformal
 

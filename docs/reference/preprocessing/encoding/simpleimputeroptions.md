@@ -29,9 +29,10 @@ string filled = string.Join(",", constant.Transform(samples));  // => 1,-1,3
 ```
 
 **Remarks** — **`KeepEmptyFeatures` is where this package and the reference differ.** Its default
-drops an empty feature from the output; here that is refused, and this option fills the feature with
-zero instead — the reference's `keep_empty_features=True`. Either way the output has as many columns
-as the input, which the reference's default does not guarantee.
+drops an empty feature from the output; here that is refused, and this option fills the feature
+instead — the reference's `keep_empty_features=True`. It fills with zero, **except under `Constant`,
+which fills with `FillValue`** as the reference does. Either way the output has as many columns as
+the input, which the reference's default does not guarantee.
 
 **Applies to** — net10.0, netstandard2.0.
 
