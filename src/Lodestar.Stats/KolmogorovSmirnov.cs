@@ -11,8 +11,8 @@ namespace Lodestar.Stats;
 /// </remarks>
 public static class KolmogorovSmirnov
 {
-    // scipy takes the exact branch while the lattice stays small; above this the
-    // table costs more than the asymptotic answer is worth.
+    // Auto's exact bound on the product n*m for unequal sizes and one-sided tests. scipy bounds
+    // max(n, m) instead, a divergence docs/equivalence.md records.
     private const long AutoExactLimit = 10_000;
 
     // scipy's MAX_AUTO_N: its Auto is exact while max(n, m) is at most this. Only the equal-size
