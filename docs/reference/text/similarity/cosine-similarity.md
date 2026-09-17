@@ -37,6 +37,10 @@ set similarity reports two anagrams as identical.
 The cost is that grams get rarer as `qval` grows, so scores fall across the board and a threshold
 belongs to the `qval` it was chosen for.
 
+Two empty inputs give `1`; one empty input against a non-empty one gives `0`. An input shorter than
+`qval` holds no gram and counts as empty, except that two such inputs score `1` only when they are
+equal — `"a"` against `"b"` at `qval: 2` gives `0`, where textdistance divides by zero.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`Overlap.Similarity`](overlap-similarity.md),

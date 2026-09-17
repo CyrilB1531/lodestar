@@ -77,4 +77,24 @@ public sealed class SetSimilarityOracleTests
         // Character bigrams: "Dupont"/"Dupond" share Du,up,po,on = 4 of 5 -> 0.8.
         Assert.Equal(0.8, Cosine.Similarity("Dupont", "Dupond", qval: 2), 12);
     }
+
+    [Theory]
+    [InlineData("a", "b", 2, 0.0)]
+    [InlineData("ab", "cd", 3, 0.0)]
+    [InlineData("a", "a", 2, 1.0)]
+    [InlineData("", "a", 2, 0.0)]
+    [InlineData("", "", 2, 1.0)]
+    public void Inputs_shorter_than_qval_score_on_equality(string a, string b, int qval, double expected)
+    {
+        // Both bags are empty, so only the inputs can tell "a" from "b" (#882).
+        foreach (TextElement element in new[] { TextElement.Utf16Unit, TextElement.CodePoint })
+        {
+            Assert.Equal(expected, Jaccard.Similarity(a, b, qval, element));
+            Assert.Equal(expected, SorensenDice.Similarity(a, b, qval, element));
+            Assert.Equal(expected, Overlap.Similarity(a, b, qval, element));
+            Assert.Equal(expected, Tversky.Similarity(a, b, qval: qval, element: element));
+            Assert.Equal(expected, Tversky.Similarity(a, b, alpha: 0, beta: 0, qval: qval, element: element));
+            Assert.Equal(expected, Cosine.Similarity(a, b, qval, element));
+        }
+    }
 }

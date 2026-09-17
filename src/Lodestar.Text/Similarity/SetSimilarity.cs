@@ -57,6 +57,19 @@ internal static class QgramCounts
         return (intersection, sizeA, sizeB);
     }
 
+    /// <summary>
+    /// The score when neither input holds a whole gram: 1 for equal inputs, 0 otherwise.
+    /// </summary>
+    /// <remarks>
+    /// Two empty bags say nothing about the inputs, so <c>"a"</c> against <c>"b"</c> at
+    /// <c>qval = 2</c> must not score as identical. textdistance divides by zero there,
+    /// and its <c>quick_answer</c> gives equal inputs 1 before counting (#882).
+    /// </remarks>
+    public static double NoGrams(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
+    {
+        return a.SequenceEqual(b) ? 1.0 : 0.0;
+    }
+
     /// <summary>The same three counts from each side's grams sorted by content, without a string per gram.</summary>
     /// <remarks>
     /// A gram is its start index; sorting the starts by the gram's characters puts equal grams in runs,
@@ -189,7 +202,7 @@ internal static class QgramCounts
 }
 
 /// <summary>Jaccard similarity on character q-gram multisets: <c>|A∩B| / |A∪B|</c>.</summary>
-/// <remarks>Reference: <c>textdistance.Jaccard</c> (default <c>qval = 1</c>). Two empty inputs give 1.</remarks>
+/// <remarks>Reference: <c>textdistance.Jaccard</c> (default <c>qval = 1</c>). Inputs too short for one gram score 1 when equal, 0 otherwise.</remarks>
 public static class Jaccard
 {
     /// <summary>Computes the Jaccard similarity of <paramref name="a"/> and <paramref name="b"/>.</summary>
@@ -198,12 +211,12 @@ public static class Jaccard
     {
         (int inter, int sizeA, int sizeB) = QgramCounts.Compute(a, b, qval, element);
         int union = sizeA + sizeB - inter;
-        return union == 0 ? 1.0 : (double)inter / union;
+        return union == 0 ? QgramCounts.NoGrams(a, b) : (double)inter / union;
     }
 }
 
 /// <summary>Sørensen-Dice similarity: <c>2·|A∩B| / (|A| + |B|)</c>.</summary>
-/// <remarks>Reference: <c>textdistance.Sorensen</c> (default <c>qval = 1</c>). Two empty inputs give 1.</remarks>
+/// <remarks>Reference: <c>textdistance.Sorensen</c> (default <c>qval = 1</c>). Inputs too short for one gram score 1 when equal, 0 otherwise.</remarks>
 public static class SorensenDice
 {
     /// <summary>Computes the Sørensen-Dice similarity of <paramref name="a"/> and <paramref name="b"/>.</summary>
@@ -212,12 +225,12 @@ public static class SorensenDice
     {
         (int inter, int sizeA, int sizeB) = QgramCounts.Compute(a, b, qval, element);
         int denom = sizeA + sizeB;
-        return denom == 0 ? 1.0 : 2.0 * inter / denom;
+        return denom == 0 ? QgramCounts.NoGrams(a, b) : 2.0 * inter / denom;
     }
 }
 
 /// <summary>Overlap (Szymkiewicz-Simpson) coefficient: <c>|A∩B| / min(|A|, |B|)</c>.</summary>
-/// <remarks>Reference: <c>textdistance.Overlap</c> (default <c>qval = 1</c>). Two empty inputs give 1; one empty gives 0.</remarks>
+/// <remarks>Reference: <c>textdistance.Overlap</c> (default <c>qval = 1</c>). Inputs too short for one gram score 1 when equal, 0 otherwise; one side without a gram gives 0.</remarks>
 public static class Overlap
 {
     /// <summary>Computes the overlap coefficient of <paramref name="a"/> and <paramref name="b"/>.</summary>
@@ -228,7 +241,7 @@ public static class Overlap
         int denom = Math.Min(sizeA, sizeB);
         if (denom == 0)
         {
-            return sizeA == 0 && sizeB == 0 ? 1.0 : 0.0;
+            return sizeA == 0 && sizeB == 0 ? QgramCounts.NoGrams(a, b) : 0.0;
         }
         return (double)inter / denom;
     }
@@ -249,11 +262,15 @@ public static class Tversky
         TextElement element = TextElement.Utf16Unit)
     {
         (int inter, int sizeA, int sizeB) = QgramCounts.Compute(a, b, qval, element);
+        if (sizeA == 0 && sizeB == 0)
+        {
+            return QgramCounts.NoGrams(a, b);
+        }
         double denom = inter + alpha * (sizeA - inter) + beta * (sizeB - inter);
 
         // SonarLint S1244: the guard is against dividing by zero, not against a
         // denominator that is merely small. Exact zero is the degenerate case the
-        // reference defines as 1.0 — two empty inputs — and alpha and beta are the
+        // documentation defines as 1.0 — an empty side under a zero weight — and alpha and beta are the
         // caller's, so a negative denominator is a legitimate quotient rather than
         // something to fold into the same branch.
 #pragma warning disable S1244
@@ -263,7 +280,7 @@ public static class Tversky
 }
 
 /// <summary>Cosine (Ochiai) similarity on q-gram multisets: <c>|A∩B| / √(|A|·|B|)</c>.</summary>
-/// <remarks>Reference: <c>textdistance.Cosine</c> (default <c>qval = 1</c>). Two empty inputs give 1; one empty gives 0.</remarks>
+/// <remarks>Reference: <c>textdistance.Cosine</c> (default <c>qval = 1</c>). Inputs too short for one gram score 1 when equal, 0 otherwise; one side without a gram gives 0.</remarks>
 public static class Cosine
 {
     /// <summary>Computes the cosine similarity of <paramref name="a"/> and <paramref name="b"/> over q-gram multisets.</summary>
@@ -273,7 +290,7 @@ public static class Cosine
         (int inter, int sizeA, int sizeB) = QgramCounts.Compute(a, b, qval, element);
         if (sizeA == 0 || sizeB == 0)
         {
-            return sizeA == 0 && sizeB == 0 ? 1.0 : 0.0;
+            return sizeA == 0 && sizeB == 0 ? QgramCounts.NoGrams(a, b) : 0.0;
         }
         return inter / Math.Sqrt((double)sizeA * sizeB);
     }
