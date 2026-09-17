@@ -31,6 +31,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     private readonly LodestarVectorStoreOptions _options;
     private DerivedIndexes<TKey, TRecord>? _indexes;
     private bool _exists;
+    private bool _deleted;
 
     /// <summary>Creates a collection over a record type the schema is read from.</summary>
     /// <param name="name">The collection's name, which <see cref="Name"/> reports.</param>
@@ -82,6 +83,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     public override Task EnsureCollectionExistsAsync(CancellationToken cancellationToken = default)
     {
         _exists = true;
+        _deleted = false;
         return Task.CompletedTask;
     }
 
@@ -89,6 +91,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     public override Task EnsureCollectionDeletedAsync(CancellationToken cancellationToken = default)
     {
         _exists = false;
+        _deleted = true;
         Invalidate();
         _records.Clear();
         return Task.CompletedTask;
@@ -103,6 +106,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         Invalidate();
         _records[key] = record;
         _exists = true;
+        _deleted = false;
         return Task.CompletedTask;
     }
 
@@ -126,6 +130,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         }
 
         _exists = true;
+        _deleted = false;
         return Task.CompletedTask;
     }
 
@@ -267,7 +272,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         Guard.NotLessThan(top, 1);
-        ReadOnlyMemory<float> query = AsVector(searchValue);
+        ReadOnlyMemory<float> query = QueryOf(searchValue);
         VectorSearchOptions<TRecord> settings = options ?? new VectorSearchOptions<TRecord>();
         List<VectorSearchResult<TRecord>> results = Nearest(Current(), query, top, settings);
 
@@ -352,6 +357,21 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
             ? []
             : indexes.Vectors.Search(query.Span, Math.Min(wanted, indexes.Vectors.Count));
 
+    /// <summary>The search value as a vector of the collection's width.</summary>
+    /// <remarks>Checked against the schema, not the index, so an empty collection refuses a wrong width too.</remarks>
+    private ReadOnlyMemory<float> QueryOf<TInput>(TInput searchValue)
+        where TInput : notnull
+    {
+        ReadOnlyMemory<float> query = AsVector(searchValue);
+        if (query.Length != Schema.Dimension)
+        {
+            throw new ArgumentException(
+                $"query length {query.Length} != dimension {Schema.Dimension}.", nameof(searchValue));
+        }
+
+        return query;
+    }
+
     private static ReadOnlyMemory<float> AsVector<TInput>(TInput searchValue)
         where TInput : notnull => searchValue switch
         {
@@ -391,7 +411,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     {
         Guard.NotNull(keywords);
         Guard.NotLessThan(top, 1);
-        ReadOnlyMemory<float> query = AsVector(searchValue);
+        ReadOnlyMemory<float> query = QueryOf(searchValue);
         if (!Schema.HasFullText)
         {
             throw new NotSupportedException(
@@ -505,6 +525,9 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
 
     /// <inheritdoc />
     bool IExistingCollection.Exists => _exists;
+
+    /// <inheritdoc />
+    bool IExistingCollection.Deleted => _deleted;
 
     /// <inheritdoc />
     Task IExistingCollection.EnsureDeletedAsync(CancellationToken cancellationToken) =>

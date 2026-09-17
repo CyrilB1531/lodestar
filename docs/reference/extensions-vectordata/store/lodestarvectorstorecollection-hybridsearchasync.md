@@ -20,8 +20,9 @@ read.
 similarity. An empty collection returns no results.
 
 **Exceptions** — `ArgumentNullException` when `keywords` is null. `ArgumentOutOfRangeException` when
-`top` is less than 1. `ArgumentException` when the query is not the collection's vector width, or
-when a held record's vector was changed in place to another width since it was written.
+`top` is less than 1. `ArgumentException` when the query is not the collection's vector width, an
+empty collection included, or when a held record's vector was changed in place to another width
+since it was written.
 `NotSupportedException` when `TRecord` marks no `IsFullTextIndexed` property, when `searchValue` is
 not a vector, or when `options` sets `ScoreThreshold`. `OperationCanceledException`
 when `cancellationToken` is cancelled between results. All of them are raised when enumeration
