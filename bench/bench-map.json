@@ -344,6 +344,28 @@
     "ProcessExtractBenchmarks": [
       "src/Lodestar.Fuzzy/**",
       "src/Lodestar.Text/Distances/**"
+    ],
+    "FilteredVectorSearchBenchmarks": [
+      "src/Lodestar.Extensions.VectorData/**",
+      "src/Lodestar.Embeddings/Search/**"
+    ],
+    "SentencePieceBpeLineageBenchmarks": [
+      "src/Lodestar.Embeddings/Tokenization/**",
+      "src/Lodestar.Embeddings/Persistence/**",
+      "tests/oracles/llama2_tokenizer.json",
+      "tests/oracles/mistral_v01_tokenizer.json"
+    ],
+    "AddedTokenScanBenchmarks": [
+      "src/Lodestar.Embeddings/Tokenization/**",
+      "src/Lodestar.Embeddings/Persistence/**"
+    ],
+    "PrecompiledNormalizerBenchmarks": [
+      "src/Lodestar.Embeddings/Tokenization/**",
+      "src/Lodestar.Embeddings/Persistence/**",
+      "tests/oracles/nmt_nfkc_cf.model"
+    ],
+    "EmbeddingSearchHelpersBenchmarks": [
+      "src/Lodestar.Embeddings/Search/**"
     ]
   },
   "harnesses": {

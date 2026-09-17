@@ -59,6 +59,7 @@
     <ProjectReference Include="../../src/Lodestar.Cluster/Lodestar.Cluster.csproj" />
     <ProjectReference Include="../../src/Lodestar.Preprocessing/Lodestar.Preprocessing.csproj" />
     <ProjectReference Include="../../src/Lodestar.Onnx/Lodestar.Onnx.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Extensions.VectorData/Lodestar.Extensions.VectorData.csproj" />
     <ProjectReference Include="../../src/Lodestar.Stats/Lodestar.Stats.csproj" />
     <ProjectReference Include="../../src/Lodestar.Stats.Regression/Lodestar.Stats.Regression.csproj" />
     <ProjectReference Include="../../src/Lodestar.Stats.TimeSeries/Lodestar.Stats.TimeSeries.csproj" />

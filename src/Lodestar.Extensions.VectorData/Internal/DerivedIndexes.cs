@@ -18,9 +18,10 @@ internal sealed class DerivedIndexes<TKey, TRecord>
     where TRecord : class
 {
     private DerivedIndexes(
-        EmbeddingIndex vectors, Bm25Index? keywords, CountVectorizer? vectorizer, TKey[] keys, TRecord[] records)
+        EmbeddingIndex vectors, float[] block, Bm25Index? keywords, CountVectorizer? vectorizer, TKey[] keys, TRecord[] records)
     {
         Vectors = vectors;
+        Block = block;
         Keywords = keywords;
         Vectorizer = vectorizer;
         Keys = keys;
@@ -29,6 +30,13 @@ internal sealed class DerivedIndexes<TKey, TRecord>
 
     /// <summary>The vector half.</summary>
     public EmbeddingIndex Vectors { get; }
+
+    /// <summary>The rows <see cref="Vectors"/> searches, normalized, which a filtered search scores directly.</summary>
+    /// <remarks>
+    /// The array <see cref="EmbeddingIndex.FromOwnedBlock"/> was handed and normalized in place, so
+    /// it is the index's own storage rather than a copy, and nothing writes to it after the build.
+    /// </remarks>
+    public ReadOnlyMemory<float> Block { get; }
 
     /// <summary>The keyword half, or <see langword="null"/> when no property is full-text indexed.</summary>
     public Bm25Index? Keywords { get; }
@@ -92,12 +100,12 @@ internal sealed class DerivedIndexes<TKey, TRecord>
 
         if (documents.Count == 0)
         {
-            return new DerivedIndexes<TKey, TRecord>(vectors, null, null, keys, held);
+            return new DerivedIndexes<TKey, TRecord>(vectors, block, null, null, keys, held);
         }
 
         var vectorizer = new CountVectorizer(options.Vectorizer);
         CsrMatrix counts = vectorizer.FitTransform(documents);
         return new DerivedIndexes<TKey, TRecord>(
-            vectors, new Bm25Index(counts, options.Bm25), vectorizer, keys, held);
+            vectors, block, new Bm25Index(counts, options.Bm25), vectorizer, keys, held);
     }
 }

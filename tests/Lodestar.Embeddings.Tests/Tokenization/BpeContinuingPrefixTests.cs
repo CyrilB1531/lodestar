@@ -119,6 +119,27 @@ public sealed class BpeContinuingPrefixTests
         Assert.Contains("##bc", error.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A prefix and a suffix too long for the stack buffer the decorated symbol is built in:
+    /// the lookup falls back to a heap buffer and still finds both forms.
+    /// </summary>
+    [Fact]
+    public void A_decoration_longer_than_the_stack_buffer_is_still_looked_up()
+    {
+        string prefix = new('#', 40);
+        string suffix = "</" + new string('w', 30) + ">";
+        var vocabulary = new BpeVocabulary(
+            new Dictionary<string, int>(StringComparer.Ordinal) { ["a"] = 0, [prefix + "b" + suffix] = 1 },
+            [])
+        {
+            ContinuingSubwordPrefix = prefix,
+            EndOfWordSuffix = suffix,
+            NoPreTokenizer = true,
+        };
+
+        Assert.Equal([0, 1], new BpeTokenizer(vocabulary).Encode("ab").Ids);
+    }
+
     /// <summary>A file declaring the prefix now loads, and carries it.</summary>
     [Fact]
     public void The_loader_carries_the_prefix_instead_of_refusing_it()

@@ -19,6 +19,9 @@ public sealed class PrecompiledNormalizerTests
 {
     private static readonly Dictionary<string, SentencePieceVocabulary> Loaded = [];
 
+    /// <summary>Characters NFKC spells longer: a square era name, a ligature, a parenthesized number, a unit.</summary>
+    private static readonly string[] ExpandingCandidates = ["\u337f", "\ufb03", "\u2474", "\u3392"];
+
     private static SentencePieceVocabulary Vocabulary(string fixture)
     {
         lock (Loaded)
@@ -114,6 +117,19 @@ public sealed class PrecompiledNormalizerTests
         Assert.Equal(first, second);
         Assert.Equal(first.GetHashCode(), second.GetHashCode());
         Assert.NotEqual(first, Vocabulary("nmt_nfkc_cf.model").Normalizer);
+    }
+
+    [Fact]
+    public void A_normalization_longer_than_its_input_matches_it_piece_by_piece()
+    {
+        // The output buffer starts at the input's size, so text that only lengthens has to grow it.
+        PrecompiledNormalizer normalizer = Vocabulary("nmt_nfkc_cf.model").Normalizer!;
+        string expanding = ExpandingCandidates.First(c => normalizer.Normalize(c).Length > c.Length);
+        string one = normalizer.Normalize(expanding);
+
+        Assert.Equal(
+            string.Concat(Enumerable.Repeat(one, 3000)),
+            normalizer.Normalize(string.Concat(Enumerable.Repeat(expanding, 3000))));
     }
 
     [Theory]

@@ -4817,6 +4817,23 @@ LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `ma
 
 Terms reach the vocabulary or the hash as spans and each row is counted in a dense tally; the sketches reuse one UTF-8 buffer and vectorise the affine-32 loop; BM25 stores each document's length term once; OSA trims affixes and runs Hyyrö's bit-parallel kernel on a Latin-1 pattern of at most 64 units; Double Metaphone passes its candidates as a span; Ratcliff-Obershelp stops a scan whose run already spans the shorter operand. Integer arithmetic, or the same floating-point expression in the same order, so every result is bit-identical and the oracle corpora replay unchanged. `SimilaritySketchBenchmarks`, `VectorizerBenchmarks`, `Bm25Benchmarks`, `OsaBenchmarks`, `DoubleMetaphoneBenchmarks` and `RatcliffObershelpBenchmarks`, pinned to four cores.
 
+## Filtered vector search, added tokens and SentencePiece buffers (issue #849)
+
+| benchmark | `main` | fix |
+| --- | ---: | ---: |
+| [`LodestarVectorStoreCollection.SearchAsync`](../reference/extensions-vectordata/store/lodestarvectorstorecollection-searchasync.md), filter admitting half, top 10, 10,000 × 384 | 867 µs, 164 KB | **462 µs, 7.2 KB** |
+| the same, 100,000 × 384 | 10.2 ms, 1.53 MB | 7.36 ms, 7.2 KB |
+| [`BpeTokenizer`](../reference/embeddings/tokenization/bpetokenizer.md), Llama-2 file, corpus documents | 91.2 ms, 67.4 MB | 88.9 ms, 37.2 MB |
+| [`BpeTokenizer`](../reference/embeddings/tokenization/bpetokenizer.md), Mistral v0.1 file, corpus documents | 90.3 ms, 67.4 MB | 85.0 ms, 37.2 MB |
+| 256 added tokens opening on `<\|`, chat-template text | 105 ms, 33.3 MB | **64.3 ms**, 35.1 MB |
+| the same table, prose holding none | 81.0 ms, 28.5 MB | 52.6 ms, 30.5 MB |
+| [`PrecompiledNormalizer.Normalize`](../reference/embeddings/tokenization/precompilednormalizer-normalize.md), XLM-R's map, corpus documents | 8.52 ms, 7.26 MB | 8.74 ms, **2.75 MB** |
+| [`SentencePieceTokenizer.Encode`](../reference/embeddings/tokenization/sentencepiecetokenizer-encode.md) over the same | 36.9 ms, 12.7 MB | 37.2 ms, 8.19 MB |
+| [`EmbeddingIndex.FromBlock`](../reference/embeddings/search/embeddingindex-fromblock.md) normalizing 1,000 × 384 | 780 µs, 1.47 MB | 483 µs, 1.47 MB |
+| the same, 100,000 × 384 | 82.4 ms, 146 MB | **48.2 ms**, 146 MB |
+
+The filter now reads every record once, in index order, and only admitted records are scored into a bounded heap; `main` ranked the whole collection and ran the filter in rank order until `top + Skip` passed. A pure filter gets the same hits and bits, checked against filtering the whole ranking; a filter with side effects, one that throws on some records, or an expensive one with a small `top` sees the difference. The added-token scan finds the earliest position and the longest entry there, the tie rule the scan per entry used, and adds 5–7% allocation; text made almost entirely of `<` against that table was not measured. The normalizer is an allocation win only. The stored-row division is element-wise, so it rounds as the scalar cast does, bit for bit. `FilteredVectorSearchBenchmarks`, `SentencePieceBpeLineageBenchmarks`, `AddedTokenScanBenchmarks`, `PrecompiledNormalizerBenchmarks`, `EmbeddingSearchHelpersBenchmarks`, pinned to four cores.
+
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-17; both `main` runs agreed within 5%.

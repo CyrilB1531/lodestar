@@ -83,6 +83,9 @@ public sealed class BpeTokenizer : ISubwordTokenizer
 
     // Piece -> its merged ids. Concurrent: Encode is thread-safe, and a hit is a lock-free read.
     private readonly ConcurrentDictionary<string, int[]> _wordCache = new(StringComparer.Ordinal);
+#if NET9_0_OR_GREATER
+    private readonly Dictionary<string, int>.AlternateLookup<ReadOnlySpan<char>> _modelVocabBySpan;
+#endif
     private readonly int _wordCacheCapacity;
     private int _wordCacheCount;
 
@@ -122,6 +125,9 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         _metaspace = vocabulary.Metaspace;
         _decoder = vocabulary.Decoder;
         (_vocab, _modelVocab, _tokens) = BuildVocabulary(vocabulary);
+#if NET9_0_OR_GREATER
+        _modelVocabBySpan = _modelVocab.GetAlternateLookup<ReadOnlySpan<char>>();
+#endif
         if (_byteLevel)
         {
             _byteIds = new int[256];
@@ -638,6 +644,8 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         // SUBSTITUTED, not "id == _unkId": a covered character equal to unk_token
         // is not fused across — BpeFuseUnkTests's "qZ" vs "ZZ" cases pin it.
         bool previousWasSubstituted = false;
+        int longestSymbol = (_continuingPrefix?.Length ?? 0) + 2 + (_endOfWord?.Length ?? 0);
+        Span<char> key = longestSymbol <= MergeStackThreshold ? stackalloc char[longestSymbol] : new char[longestSymbol];
         while (i < piece.Length)
         {
             int width = char.IsHighSurrogate(piece[i])
@@ -646,8 +654,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
                 ? 2
                 : 1;
             bool last = i + width == piece.Length;
-            string symbol = Decorate(piece, i, width, i == 0, last);
-            if (_modelVocab.TryGetValue(symbol, out int id))
+            if (TryDecoratedId(piece, i, width, last, key, out int id))
             {
                 symbols[count++] = id;
                 previousWasSubstituted = false;
@@ -656,7 +663,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
             {
                 // byte_fallback: the decorated symbol is what is expanded, and it expands
                 // before Merge, so byte pieces merge like any other symbol.
-                count += ExpandToBytes(symbol, symbols.Slice(count));
+                count += ExpandToBytes(Decorate(piece, i, width, i == 0, last), symbols.Slice(count));
                 previousWasSubstituted = false;
             }
             else if (_hasUnk)
@@ -672,6 +679,30 @@ public sealed class BpeTokenizer : ISubwordTokenizer
             i += width;
         }
         return count;
+    }
+
+    /// <summary>Looks up the id of <see cref="Decorate"/>'s symbol for one code point, building it in <paramref name="key"/> where spans can be looked up.</summary>
+    /// <param name="piece">The pre-tokenized piece being walked.</param>
+    /// <param name="at">The index of the code point's first <see cref="char"/>, zero for the piece's first.</param>
+    /// <param name="width">Its width in <see cref="char"/>s.</param>
+    /// <param name="last">Whether it ends the piece.</param>
+    /// <param name="key">Room for the longest decorated symbol.</param>
+    /// <param name="id">The symbol's id, when the vocabulary holds it.</param>
+    private bool TryDecoratedId(string piece, int at, int width, bool last, Span<char> key, out int id)
+    {
+        // A string per character was an allocation and a hash per input character for a
+        // lineage that never caches its one long piece (Llama-2, Mistral).
+        string prefix = at != 0 && _continuingPrefix is not null ? _continuingPrefix : string.Empty;
+        string suffix = last && _endOfWord is not null ? _endOfWord : string.Empty;
+        prefix.AsSpan().CopyTo(key);
+        piece.AsSpan(at, width).CopyTo(key.Slice(prefix.Length));
+        suffix.AsSpan().CopyTo(key.Slice(prefix.Length + width));
+        ReadOnlySpan<char> symbol = key.Slice(0, prefix.Length + width + suffix.Length);
+#if NET9_0_OR_GREATER
+        return _modelVocabBySpan.TryGetValue(symbol, out id);
+#else
+        return _modelVocab.TryGetValue(symbol.ToString(), out id);
+#endif
     }
 
     /// <summary>Writes one id per UTF-8 byte of <paramref name="symbol"/>, and returns how many.</summary>

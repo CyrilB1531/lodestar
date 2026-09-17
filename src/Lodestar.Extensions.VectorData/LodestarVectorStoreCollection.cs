@@ -255,10 +255,10 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <exception cref="NotSupportedException"><paramref name="searchValue"/> is not a vector, and this package generates none.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> is cancelled between results.</exception>
     /// <remarks>
-    /// With a filter, every record is scored and the filter runs before the cut, so
-    /// <paramref name="top"/> means <paramref name="top"/>: a caller asking for five matching
-    /// records gets five whenever five match. Post-filtering a top-k would return fewer
-    /// without saying why.
+    /// With a filter, the filter runs once on every record, in the order they are held, before
+    /// the cut, so <paramref name="top"/> means <paramref name="top"/>: a caller asking for five
+    /// matching records gets five whenever five match. Post-filtering a top-k would return fewer
+    /// without saying why. Only the records it admits are scored.
     /// </remarks>
     public override async IAsyncEnumerable<VectorSearchResult<TRecord>> SearchAsync<TInput>(
         TInput searchValue,
@@ -289,19 +289,61 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         DerivedIndexes<TKey, TRecord> indexes, ReadOnlyMemory<float> query, int top, VectorSearchOptions<TRecord> settings)
     {
         Func<TRecord, bool>? admits = RecordFilter.Compile(settings.Filter);
+        IEnumerable<VectorSearchResult<TRecord>> ranked = admits is null
+            ? Scored(indexes, query, (int)Math.Min((long)top + settings.Skip, indexes.Vectors.Count))
+                .Select(hit => new VectorSearchResult<TRecord>(indexes.Records[hit.Index], hit.Score))
+            : Admitted(indexes, query, top, settings.Skip, admits);
 
-        // With a filter the whole collection is scored, because the records the filter keeps
-        // are not known before it runs. Without one, top + Skip is summed in long: a huge Skip overflows int.
-        int wanted = admits is null
-            ? (int)Math.Min((long)top + settings.Skip, indexes.Vectors.Count)
-            : indexes.Vectors.Count;
+        // A huge Skip overflows int, so top + Skip is summed in long, here and in Admitted.
+        return [.. ranked
+            .Where(result => settings.ScoreThreshold is not { } threshold || result.Score >= threshold)
+            .Skip(settings.Skip)
+            .Take(top)];
+    }
 
-        IEnumerable<VectorSearchResult<TRecord>> ranked = Scored(indexes, query, wanted)
-            .Select(hit => new VectorSearchResult<TRecord>(indexes.Records[hit.Index], hit.Score))
-            .Where(result => admits is null || admits(result.Record))
-            .Where(result => settings.ScoreThreshold is not { } threshold || result.Score >= threshold);
+    /// <summary>The best <paramref name="top"/> + <paramref name="skip"/> records the filter admits, best first.</summary>
+    /// <remarks>
+    /// The filter runs before any scoring, so a rejected record costs no dot product, and only
+    /// the survivors wanted are kept in a bounded heap rather than the whole collection sorted.
+    /// Scores are <see cref="EmbeddingIndex.Search"/>'s own: the same normalized query dotted with
+    /// the same stored row, ordered by score descending then position ascending. The threshold is
+    /// safe to apply after the cut: it drops a suffix of that order, never a record ahead of one it keeps.
+    /// </remarks>
+    private static IEnumerable<VectorSearchResult<TRecord>> Admitted(
+        DerivedIndexes<TKey, TRecord> indexes, ReadOnlyMemory<float> query, int top, int skip, Func<TRecord, bool> admits)
+    {
+        EmbeddingIndex vectors = indexes.Vectors;
+        if (vectors.Count == 0)
+        {
+            return [];
+        }
+        if (query.Length != vectors.Dimension)
+        {
+            throw new ArgumentException($"query length {query.Length} != dimension {vectors.Dimension}.", nameof(query));
+        }
 
-        return [.. ranked.Skip(settings.Skip).Take(top)];
+        float[] normalized = query.ToArray();
+        float norm = VectorMath.L2Norm(normalized);
+        if (norm > 0)
+        {
+            for (int i = 0; i < normalized.Length; i++)
+            {
+                normalized[i] /= norm;
+            }
+        }
+
+        int dimension = vectors.Dimension;
+        ReadOnlySpan<float> block = indexes.Block.Span;
+        var best = new TopHits((int)Math.Min((long)top + skip, vectors.Count));
+        for (int row = 0; row < vectors.Count; row++)
+        {
+            if (admits(indexes.Records[row]))
+            {
+                best.Offer(new SearchResult(row, VectorMath.Dot(normalized, block.Slice(row * dimension, dimension))));
+            }
+        }
+
+        return best.Ranked().Select(hit => new VectorSearchResult<TRecord>(indexes.Records[hit.Index], hit.Score));
     }
 
     private static IReadOnlyList<SearchResult> Scored(

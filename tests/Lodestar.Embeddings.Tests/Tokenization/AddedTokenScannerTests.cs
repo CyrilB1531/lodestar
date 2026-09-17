@@ -106,4 +106,73 @@ public sealed class AddedTokenScannerTests
         var scanner = Scanner(new AddedToken("<m>", 7));
         Assert.False(scanner.TryNext("nothing here", 0, out _, out _, out _));
     }
+
+    [Fact]
+    public void One_pass_finds_what_one_scan_per_entry_finds()
+    {
+        // Shared first characters, a prefix of another entry, a duplicate content and word boundaries:
+        // every tie the bucketed scan has to break the way the per-entry scan did.
+        AddedToken[] tokens =
+        [
+            new("<s>", 1) { SingleWord = true }, new("<s>", 2), new("<|im_start|>", 3) { Lstrip = true },
+            new("<|", 4), new("<|im", 5) { Rstrip = true }, new("ab", 6) { SingleWord = true }, new("abc", 7),
+            new("b", 8), new("\u00e9", 9), new(string.Empty, 10),
+        ];
+        var scanner = Scanner(tokens);
+        string[] parts = ["<s>", "<|im_start|>", "<|", "<", "|", "ab", "abc", "b", "a", " ", "_", "\u00e9", "x", "\n"];
+
+        // S2245 / CA5394: seeded, so a failure reproduces; nothing here is security-sensitive.
+#pragma warning disable S2245, CA5394
+        var random = new Random(522);
+        for (int trial = 0; trial < 2000; trial++)
+        {
+            string text = string.Concat(Enumerable.Range(0, random.Next(0, 16)).Select(_ => parts[random.Next(parts.Length)]));
+            int from = random.Next(0, text.Length + 1);
+#pragma warning restore S2245, CA5394
+
+            AddedToken? expected = ScanPerEntry(tokens, text, from, out int expectedAt);
+            bool found = scanner.TryNext(text, from, out int start, out int end, out AddedToken? actual);
+            Assert.Equal(expected is not null, found);
+            if (expected is not null)
+            {
+                Assert.Same(expected, actual);
+                Assert.True(start <= expectedAt && end >= expectedAt + expected.Content.Length, text);
+            }
+        }
+    }
+
+    /// <summary>The scan the bucketed one replaced: every entry searched on its own, earliest then longest then first.</summary>
+    private static AddedToken? ScanPerEntry(AddedToken[] tokens, string text, int from, out int at)
+    {
+        at = -1;
+        AddedToken? best = null;
+        foreach (AddedToken candidate in tokens.Where(t => t.Content.Length > 0))
+        {
+            int found = FirstWholeMatch(candidate, text, from);
+            if (found >= 0 && (best is null || found < at || (found == at && candidate.Content.Length > best.Content.Length)))
+            {
+                at = found;
+                best = candidate;
+            }
+        }
+        return best;
+    }
+
+    private static int FirstWholeMatch(AddedToken candidate, string text, int from)
+    {
+        for (int found = text.IndexOf(candidate.Content, from, StringComparison.Ordinal);
+            found >= 0;
+            found = text.IndexOf(candidate.Content, found + 1, StringComparison.Ordinal))
+        {
+            int end = found + candidate.Content.Length;
+            if (!candidate.SingleWord
+                || ((found == 0 || !IsWord(text[found - 1])) && (end == text.Length || !IsWord(text[end]))))
+            {
+                return found;
+            }
+        }
+        return -1;
+    }
+
+    private static bool IsWord(char c) => char.IsLetterOrDigit(c) || c == '_';
 }
