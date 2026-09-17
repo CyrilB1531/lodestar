@@ -61,8 +61,8 @@ public sealed class KMeans
     /// The loop is the reference's: assign, update, stop on unchanged labels or on a centre
     /// shift within the scaled tolerance — and when it stops on the shift, a final assignment
     /// runs so <see cref="Labels"/> matches <see cref="Centres"/>. An empty cluster is
-    /// relocated onto the sample furthest from its own centre. The reference page carries the
-    /// tolerance scaling and the one measured divergence.
+    /// relocated onto a distinct one of the samples furthest from their centres, as the reference
+    /// relocates it. The reference page carries the tolerance scaling and the tie divergences.
     /// </remarks>
     public static KMeans Fit(
         ReadOnlySpan<double> samples, int featureCount, int clusterCount, KMeansOptions? options = null)
@@ -323,23 +323,29 @@ public sealed class KMeans
         }
 
         Relocate(samples, featureCount, centres, labels, totals, counts);
+        Average(samples, featureCount, totals, counts);
 
         double shift = 0.0;
-        for (int cluster = 0; cluster < clusterCount; cluster++)
+        for (int index = 0; index < centres.Length; index++)
         {
-            for (int feature = 0; feature < featureCount; feature++)
-            {
-                int index = (cluster * featureCount) + feature;
-                double moved = (totals[index] / counts[cluster]) - centres[index];
-                shift += moved * moved;
-                centres[index] = totals[index] / counts[cluster];
-            }
+            double moved = totals[index] - centres[index];
+            shift += moved * moved;
+            centres[index] = totals[index];
         }
 
         return shift;
     }
 
-    /// <summary>Gives every empty cluster the sample furthest from the centre it sits in.</summary>
+    /// <summary>
+    /// Moves each empty cluster onto one of the samples furthest from their own centres, all
+    /// taken from one distance pass so no sample is given twice.
+    /// </summary>
+    /// <remarks>
+    /// <c>_relocate_empty_clusters_dense</c>'s shape: the labels are left alone, the moved sample
+    /// is subtracted from its old cluster's sums, and nothing moves when every sample sits on its
+    /// centre. Equally far samples are taken lowest row first, where the reference's order comes
+    /// from <c>numpy.argpartition</c> and follows no rule a row index reproduces.
+    /// </remarks>
     private static void Relocate(
         ReadOnlySpan<double> samples,
         int featureCount,
@@ -348,6 +354,28 @@ public sealed class KMeans
         double[] totals,
         int[] counts)
     {
+        int empty = counts.Count(count => count == 0);
+        if (empty == 0)
+        {
+            return;
+        }
+
+        var distances = new double[labels.Length];
+        double worst = 0.0;
+        for (int row = 0; row < labels.Length; row++)
+        {
+            distances[row] = SquaredDistance(
+                samples, row * featureCount, centres, labels[row] * featureCount, featureCount);
+            worst = Math.Max(worst, distances[row]);
+        }
+
+        if (!(worst > 0.0))
+        {
+            return;
+        }
+
+        int[] furthest = Furthest(distances, empty);
+        int next = 0;
         for (int cluster = 0; cluster < counts.Length; cluster++)
         {
             if (counts[cluster] != 0)
@@ -355,40 +383,105 @@ public sealed class KMeans
                 continue;
             }
 
-            int furthest = Furthest(samples, featureCount, centres, labels);
-            int donor = labels[furthest];
-            labels[furthest] = cluster;
+            int row = furthest[next++];
+            int donor = labels[row];
             counts[donor]--;
-            counts[cluster]++;
+            counts[cluster] = 1;
 
             for (int feature = 0; feature < featureCount; feature++)
             {
-                double value = samples[(furthest * featureCount) + feature];
+                double value = samples[(row * featureCount) + feature];
                 totals[(donor * featureCount) + feature] -= value;
-                totals[(cluster * featureCount) + feature] += value;
+                totals[(cluster * featureCount) + feature] = value;
             }
         }
     }
 
-    /// <summary>The sample sitting furthest from its own centre, among clusters that can spare one.</summary>
-    private static int Furthest(
-        ReadOnlySpan<double> samples, int featureCount, double[] centres, int[] labels)
+    /// <summary>The <paramref name="count"/> rows with the largest distances, furthest first.</summary>
+    private static int[] Furthest(double[] distances, int count)
     {
-        double worst = -1.0;
-        int chosen = 0;
-
-        for (int row = 0; row < labels.Length; row++)
+        var rows = new int[distances.Length];
+        for (int row = 0; row < rows.Length; row++)
         {
-            double distance = SquaredDistance(
-                samples, row * featureCount, centres, labels[row] * featureCount, featureCount);
-            if (distance > worst)
+            rows[row] = row;
+        }
+
+        Array.Sort(rows, (left, right) =>
+        {
+            int order = distances[right].CompareTo(distances[left]);
+            return order != 0 ? order : left.CompareTo(right);
+        });
+
+        var chosen = new int[count];
+        Array.Copy(rows, chosen, count);
+        return chosen;
+    }
+
+    /// <summary>Turns the sums into means, in place, as <c>_average_centers</c> does.</summary>
+    /// <remarks>
+    /// A cluster still empty takes the largest cluster's row as the loop has left it, so a later
+    /// largest cluster lends its sum rather than its mean. The reference sums centred samples, so
+    /// that sum is rebuilt here as it holds it: minus the count times the column mean, plus the
+    /// mean added back when the fit ends.
+    /// </remarks>
+    private static void Average(ReadOnlySpan<double> samples, int featureCount, double[] totals, int[] counts)
+    {
+        int largest = 0;
+        for (int cluster = 1; cluster < counts.Length; cluster++)
+        {
+            if (counts[cluster] > counts[largest])
             {
-                worst = distance;
-                chosen = row;
+                largest = cluster;
             }
         }
 
-        return chosen;
+        double[]? means = null;
+        for (int cluster = 0; cluster < counts.Length; cluster++)
+        {
+            int offset = cluster * featureCount;
+            if (counts[cluster] > 0)
+            {
+                for (int feature = 0; feature < featureCount; feature++)
+                {
+                    totals[offset + feature] /= counts[cluster];
+                }
+
+                continue;
+            }
+
+            if (largest < cluster)
+            {
+                Array.Copy(totals, largest * featureCount, totals, offset, featureCount);
+                continue;
+            }
+
+            means ??= ColumnMeans(samples, featureCount);
+            for (int feature = 0; feature < featureCount; feature++)
+            {
+                totals[offset + feature] =
+                    totals[(largest * featureCount) + feature] - ((counts[largest] - 1) * means[feature]);
+            }
+        }
+    }
+
+    private static double[] ColumnMeans(ReadOnlySpan<double> samples, int featureCount)
+    {
+        var means = new double[featureCount];
+        int rows = samples.Length / featureCount;
+        for (int row = 0; row < rows; row++)
+        {
+            for (int feature = 0; feature < featureCount; feature++)
+            {
+                means[feature] += samples[(row * featureCount) + feature];
+            }
+        }
+
+        for (int feature = 0; feature < featureCount; feature++)
+        {
+            means[feature] /= rows;
+        }
+
+        return means;
     }
 
     /// <summary>Summed squared distance from every sample to the centre it was assigned.</summary>

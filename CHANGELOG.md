@@ -57,6 +57,10 @@ is one sentence, the issue and the commit; see
 - `Dbscan.Fit` computes each pair's distance once and stops a sum past the radius. ([#818](https://github.com/CyrilB1531/lodestar/issues/818))
 - `KMeansOptions` compares its centres by value. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
 
+#### Fixed
+
+- `KMeans.Fit` relocates clusters emptied in the same iteration onto distinct furthest samples, as scikit-learn does, where it could leave a `NaN` centre. ([#862](https://github.com/CyrilB1531/lodestar/issues/862))
+
 ### Lodestar.Abstractions
 
 #### Changed
