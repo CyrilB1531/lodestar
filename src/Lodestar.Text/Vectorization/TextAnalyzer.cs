@@ -234,8 +234,8 @@ internal sealed class TextAnalyzer
     private void CharNgrams<TSink>(string s, ref TSink sink)
         where TSink : struct, ITermSink
     {
-        // scikit-learn collapses runs of whitespace to a single space for char analysis.
-        s = CollapseWhitespace(s);
+        // scikit-learn rewrites only runs of two or more (\s\s+) as one space; a lone tab stays.
+        s = CollapseWhitespaceRuns(s);
         int len = s.Length;
         for (int n = _minN; n <= _maxN; n++)
         {
@@ -249,19 +249,19 @@ internal sealed class TextAnalyzer
     private void CharWordBoundaryNgrams<TSink>(string s, ref TSink sink)
         where TSink : struct, ITermSink
     {
-        // Words are the runs string.Split(null) yields: separated by char.IsWhiteSpace.
+        // Words are the runs Python's str.split() yields, separated by IsPythonWhiteSpace.
         char[] padded = [];
         int at = 0;
         while (at < s.Length)
         {
-            if (char.IsWhiteSpace(s[at]))
+            if (IsPythonWhiteSpace(s[at]))
             {
                 at++;
                 continue;
             }
 
             int wordStart = at;
-            while (at < s.Length && !char.IsWhiteSpace(s[at]))
+            while (at < s.Length && !IsPythonWhiteSpace(s[at]))
             {
                 at++;
             }
@@ -300,28 +300,39 @@ internal sealed class TextAnalyzer
         }
     }
 
-    private static string CollapseWhitespace(string s)
+    /// <summary>scikit-learn's <c>_white_spaces.sub(" ", doc)</c> over <c>\s\s+</c>.</summary>
+    /// <remarks>A single whitespace character is kept as written, so <c>"a\tb"</c> yields the gram <c>"a\t"</c> (#879).</remarks>
+    private static string CollapseWhitespaceRuns(string s)
     {
         var sb = new StringBuilder(s.Length);
-        bool inSpace = false;
-        foreach (char c in s)
+        int i = 0;
+        while (i < s.Length)
         {
-            if (char.IsWhiteSpace(c))
+            int run = i;
+            while (run < s.Length && IsPythonWhiteSpace(s[run]))
             {
-                if (!inSpace)
-                {
-                    sb.Append(' ');
-                    inSpace = true;
-                }
+                run++;
+            }
+            if (run - i >= 2)
+            {
+                sb.Append(' ');
+                i = run;
             }
             else
             {
-                sb.Append(c);
-                inSpace = false;
+                sb.Append(s[i]);
+                i++;
             }
         }
         return sb.ToString();
     }
+
+    /// <summary>Python's <c>str.isspace</c>, which is also what <c>re</c>'s <c>\s</c> matches on a <c>str</c>.</summary>
+    /// <remarks>
+    /// <see cref="char.IsWhiteSpace(char)"/> plus the four information separators U+001C to U+001F,
+    /// which Python counts as whitespace (their bidirectional class is B or S) and .NET does not.
+    /// </remarks>
+    private static bool IsPythonWhiteSpace(char c) => char.IsWhiteSpace(c) || c is >= '\u001C' and <= '\u001F';
 }
 
 /// <summary>Receives the terms a <see cref="TextAnalyzer"/> produces, one call per term.</summary>
