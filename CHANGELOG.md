@@ -278,6 +278,7 @@ is one sentence, the issue and the commit; see
 
 - `OrdinaryLeastSquares`' documentation says `Fit` tries the normal equations before the Householder reflections and `Estimate` always takes the reflections, where it described a Householder QR throughout. ([#869](https://github.com/CyrilB1531/lodestar/issues/869))
 - `OlsOptions.CovarianceType` refuses an undeclared `CovarianceType`, which `OrdinaryLeastSquares`, `WeightedLeastSquares` and `GeneralizedLeastSquares` computed as `Hc0` and echoed as the undeclared value. ([#868](https://github.com/CyrilB1531/lodestar/issues/868))
+- `OrdinaryLeastSquares.Fit`, `WeightedLeastSquares.Fit` and `GeneralizedLeastSquares.Fit` take the normal equations only when an upper bound on the column-scaled condition number stays within 200, where a cubic on a narrow range landed 1.4e-5 from statsmodels. ([#870](https://github.com/CyrilB1531/lodestar/issues/870))
 
 ### Lodestar.Survival
 

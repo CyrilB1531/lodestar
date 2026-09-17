@@ -21,8 +21,8 @@ public static class OrdinaryLeastSquares
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
     /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, <paramref name="options"/> sets <see cref="OlsOptions.HacLags"/> or <see cref="OlsOptions.SmallSampleCorrection"/> for a type that does not read it or asks for <see cref="CovarianceType.Hac"/> without lags or <see cref="CovarianceType.Cluster"/> without labels, or there are no residual degrees of freedom left.</exception>
     /// <remarks>
-    /// Solved through the normal equations when the diagonal of <c>XᵀX</c>'s Cholesky factor stays
-    /// within a ratio of 200, and through Householder reflections of the design otherwise: forming
+    /// Solved through the normal equations when a bound on the column-scaled design's condition number
+    /// stays within 200, and through Householder reflections of the design otherwise: forming
     /// <c>XᵀX</c> squares its condition number, which the near-collinear designs a VIF exists to
     /// report cannot afford. <c>statsmodels</c> solves through a pseudo-inverse.
     /// </remarks>
