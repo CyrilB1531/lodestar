@@ -175,3 +175,50 @@ def test_a_default_package_still_replays_netstandard2_0(monkeypatch, tmp_path):
 
     assert guard.contract_of("Lodestar.Text") == "netstandard2.0"
     assert guard.failures_in(mirror) == []
+
+
+def _chain(tmp_path, *, pins):
+    """Lodestar.Fuzzy on Lodestar.Text on Lodestar.Abstractions, as src/ declares them (#888)."""
+    for package, dependency in (("Lodestar.Fuzzy", "Lodestar.Text"),
+                                ("Lodestar.Text", "Lodestar.Abstractions"),
+                                ("Lodestar.Abstractions", None)):
+        reference = (f'<ItemGroup><PackageReference Include="{dependency}" /></ItemGroup>'
+                     if dependency else "")
+        _library(tmp_path, package, "net10.0;netstandard2.0", reference)
+
+    path = tmp_path / "tests" / "Lodestar.Fuzzy.NetStandard.Tests"
+    path.mkdir(parents=True)
+    (path / GUARD_FILE).write_text("// guard", encoding="utf-8")
+    references = "".join(
+        f'<ProjectReference Include="../../src/{pin}/{pin}.csproj" '
+        f'SetTargetFramework="TargetFramework=netstandard2.0" />' for pin in pins)
+    (path / "mirror.csproj").write_text(
+        f"<Project><ItemGroup>{references}</ItemGroup></Project>", encoding="utf-8")
+    return path
+
+
+def test_a_dependency_reached_through_another_package_is_reported(monkeypatch, tmp_path):
+    """The shape #888 found: the direct dependency pinned, the one beneath it not."""
+    monkeypatch.setattr(guard, "ROOT", tmp_path)
+    mirror = _chain(tmp_path, pins=["Lodestar.Fuzzy", "Lodestar.Text"])
+
+    failures = guard.failures_in(mirror)
+
+    assert len(failures) == 1
+    assert "Lodestar.Abstractions" in failures[0]
+    assert "through another package" in failures[0]
+
+
+def test_a_mirror_pinning_the_whole_chain_passes(monkeypatch, tmp_path):
+    monkeypatch.setattr(guard, "ROOT", tmp_path)
+    mirror = _chain(tmp_path, pins=["Lodestar.Fuzzy", "Lodestar.Text", "Lodestar.Abstractions"])
+
+    assert guard.failures_in(mirror) == []
+
+
+def test_the_dependencies_are_followed_to_the_end_of_the_chain(monkeypatch, tmp_path):
+    monkeypatch.setattr(guard, "ROOT", tmp_path)
+    _chain(tmp_path, pins=[])
+
+    assert guard.dependencies_of("Lodestar.Fuzzy") == {"Lodestar.Text", "Lodestar.Abstractions"}
+    assert guard.dependencies_of("Lodestar.Abstractions") == set()
