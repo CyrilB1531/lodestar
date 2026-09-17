@@ -37,3 +37,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+# Probe for #997, not for merge.
