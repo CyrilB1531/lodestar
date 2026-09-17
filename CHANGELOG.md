@@ -218,6 +218,7 @@ is one sentence, the issue and the commit; see
 
 #### Fixed
 
+- The Dickey-Fuller and seasonal decomposition options refuse an undeclared enum value, a too-short augmented Dickey-Fuller series is refused naming `series` or `options`, and a lag count below one is `ArgumentOutOfRangeException` like the other counts. ([#907](https://github.com/CyrilB1531/lodestar/issues/907))
 - `SerialCorrelation.LjungBox` computes its scale in `double`, where from 46,340 observations `n * (n + 2)` overflowed and every statistic came out negative with a p-value of 1. ([#864](https://github.com/CyrilB1531/lodestar/issues/864))
 
 ### Lodestar.Stats

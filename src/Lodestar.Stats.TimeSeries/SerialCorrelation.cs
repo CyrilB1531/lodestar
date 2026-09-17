@@ -17,8 +17,9 @@ public static class SerialCorrelation
     /// <param name="options">The estimator, the band and its level, or null for the defaults.</param>
     /// <exception cref="ArgumentException">
     /// <paramref name="series"/> holds fewer than two points, is constant, or carries a non-finite
-    /// value; or <paramref name="lagCount"/> is below one or reaches the series length.
+    /// value; or <paramref name="lagCount"/> reaches the series length.
     /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="lagCount"/> is below one.</exception>
     public static AutocorrelationResult Autocorrelation(
         ReadOnlySpan<double> series, int lagCount, AutocorrelationOptions? options = null)
     {
@@ -69,8 +70,9 @@ public static class SerialCorrelation
     /// </param>
     /// <exception cref="ArgumentException">
     /// <paramref name="series"/> holds fewer than two points, is constant, or carries a non-finite
-    /// value; or <paramref name="lagCount"/> is below one or above half the series length.
+    /// value; or <paramref name="lagCount"/> is above half the series length.
     /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="lagCount"/> is below one.</exception>
     public static AutocorrelationResult PartialAutocorrelation(
         ReadOnlySpan<double> series, int lagCount, AutocorrelationOptions? options = null)
     {
@@ -109,8 +111,9 @@ public static class SerialCorrelation
     /// <returns>Five lists of length <paramref name="lagCount"/>, indexed from lag 1.</returns>
     /// <exception cref="ArgumentException">
     /// <paramref name="series"/> holds fewer than two points, is constant, or carries a non-finite
-    /// value; or <paramref name="lagCount"/> is below one or reaches the series length.
+    /// value; or <paramref name="lagCount"/> reaches the series length.
     /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="lagCount"/> is below one.</exception>
     public static LjungBoxResult LjungBox(
         ReadOnlySpan<double> series, int lagCount, LjungBoxOptions? options = null)
     {
@@ -242,8 +245,8 @@ public static class SerialCorrelation
 
         if (lagCount < 1)
         {
-            throw new ArgumentException(
-                $"a lag count of {lagCount} asks for nothing: one or more.", nameof(lagCount));
+            throw new ArgumentOutOfRangeException(
+                nameof(lagCount), lagCount, $"a lag count of {lagCount} asks for nothing: one or more.");
         }
 
         if (lagCount > lagCeiling)

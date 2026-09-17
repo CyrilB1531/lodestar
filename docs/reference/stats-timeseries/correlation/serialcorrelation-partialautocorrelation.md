@@ -19,7 +19,8 @@ zero to report, at most half the series length — required rather than defaulte
 each lag from zero upward, and a flat band around them.
 
 **Exceptions** — `ArgumentException` when `series` holds fewer than two points, is constant, or
-carries a non-finite value; or when `lagCount` is below one or above half the series length.
+carries a non-finite value; or when `lagCount` is above half the series length. `ArgumentOutOfRangeException` when
+`lagCount` is below one.
 
 **Example** — the same sawtooth series [`Autocorrelation`](serialcorrelation-autocorrelation.md)
 reads, and its first four partial lags.
