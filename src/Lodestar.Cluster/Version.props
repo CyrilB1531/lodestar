@@ -9,7 +9,7 @@
     It creates no inter-package edge, so it releases on its own schedule.
   -->
   <PropertyGroup>
-    <LodestarClusterVersion>0.1.0</LodestarClusterVersion>
+    <LodestarClusterVersion>0.1.1</LodestarClusterVersion>
   </PropertyGroup>
 
 </Project>

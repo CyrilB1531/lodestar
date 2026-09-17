@@ -10,7 +10,7 @@
     0139), whose floors live in src/Directory.Packages.props.
   -->
   <PropertyGroup>
-    <LodestarPreprocessingVersion>0.1.0</LodestarPreprocessingVersion>
+    <LodestarPreprocessingVersion>0.1.1</LodestarPreprocessingVersion>
   </PropertyGroup>
 
 </Project>

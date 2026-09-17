@@ -10,7 +10,7 @@
     those publishes API this package needs, which so far neither has.
   -->
   <PropertyGroup>
-    <LodestarExtensionsAIVersion>0.1.0</LodestarExtensionsAIVersion>
+    <LodestarExtensionsAIVersion>0.1.1</LodestarExtensionsAIVersion>
   </PropertyGroup>
 
 </Project>
