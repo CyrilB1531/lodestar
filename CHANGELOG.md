@@ -116,6 +116,10 @@ is one sentence, the issue and the commit; see
 
 - `DeviceTextBlock.Upload` renames characters through a code table instead of a dictionary probe each, up to 13× faster. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
 
+#### Fixed
+
+- `DeviceSparseMatrix.Upload` refuses row pointers and column indices outside the matrix, and `DeviceEmbeddingMatrix.Upload` and `TiledCosineTopK.Search` refuse non-finite values, where the kernels read or wrote past their device buffers. ([#898](https://github.com/CyrilB1531/lodestar/issues/898))
+
 ### Lodestar.Embeddings
 
 #### Changed

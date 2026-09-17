@@ -15,7 +15,9 @@ default and what makes cosine a dot product.
 **Returns** — `DeviceEmbeddingMatrix`, owning device memory the caller disposes.
 
 **Exceptions** — `ArgumentNullException` when `context` is null; `ArgumentOutOfRangeException` when
-`count` or `dimension` is below 1; `ArgumentException` when `rows` is not exactly the block.
+`count` or `dimension` is below 1; `ArgumentException` when `rows` is not exactly the block, or
+holds a `NaN` or an infinity — which scores `NaN` and which
+[`TiledCosineTopK.Search`](tiledcosinetopk-search.md) cannot rank.
 
 **Example** — the shape a caller writes.
 

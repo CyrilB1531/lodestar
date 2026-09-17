@@ -17,7 +17,9 @@ columns no row stores anything in.
 **Returns** — `DeviceSparseMatrix`, owning three device buffers the caller disposes.
 
 **Exceptions** — `ArgumentNullException` when `context` is null; `ArgumentOutOfRangeException` when
-a dimension is below 1; `ArgumentException` when the three arrays do not describe one CSR matrix.
+a dimension is below 1; `ArgumentException` when the three arrays do not describe one CSR matrix —
+`rowPointers` not starting at 0, decreasing, or ending anywhere but at the value count, or a column
+index outside `[0, columnCount)`.
 
 **Example** — the shape a caller writes.
 
@@ -31,10 +33,14 @@ using var matrix = DeviceSparseMatrix.Upload(
 int stored = matrix.NonZeroCount;  // => 3
 ```
 
-**Remarks** — three shapes are checked because each has its own failure. `rowPointers` of the wrong
-length silently shifts every row; `columnIndices` and `values` of different lengths reads past one
-of them; and a final offset that disagrees with the value count means the last row is truncated
-without anything noticing.
+**Remarks** — the shapes and the structure are checked because each has its own failure.
+`rowPointers` of the wrong length silently shifts every row; `columnIndices` and `values` of
+different lengths reads past one of them; and a final offset that disagrees with the value count
+means the last row is truncated without anything noticing. The kernel indexes device memory with
+the offsets and the columns unchecked, so a first offset past 0 drops stored values, and an offset
+that steps back or a column outside the matrix reads another buffer
+([#898](https://github.com/CyrilB1531/lodestar/issues/898)). The structure is checked in one pass
+per array, once per upload.
 
 **Column indices ascending inside a row is a precondition, not a check.** The kernel relies on it
 only to read contiguous memory, so an unsorted row produces the same arithmetic more slowly rather

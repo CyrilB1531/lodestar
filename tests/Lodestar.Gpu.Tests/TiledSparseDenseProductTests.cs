@@ -101,6 +101,23 @@ public sealed class TiledSparseDenseProductTests
             context, [0, 1], [0], [1.0], rowCount: 3, columnCount: 2));
     }
 
+    [Theory]
+    [InlineData(new[] { 0, 1 }, new[] { 5 }, 1)]
+    [InlineData(new[] { 0, 1 }, new[] { -1 }, 1)]
+    [InlineData(new[] { 1, 1, 2 }, new[] { 0, 1 }, 2)]
+    [InlineData(new[] { 0, 3, 2 }, new[] { 0, 1 }, 2)]
+    [InlineData(new[] { -4, 0, 2 }, new[] { 0, 1 }, 2)]
+    public void A_structure_the_kernel_would_read_past_is_refused(int[] pointers, int[] columns, int rows)
+    {
+        // Each of these passed the length checks and read outside a device buffer, or in
+        // the case of a first offset of 1 silently dropped a stored value (#898).
+        using var context = GpuContext.Create(preferCpu: true);
+        double[] values = columns.Select(_ => 1.0).ToArray();
+
+        Assert.Throws<ArgumentException>(() => DeviceSparseMatrix.Upload(
+            context, pointers, columns, values, rowCount: rows, columnCount: 2));
+    }
+
     [Fact]
     public void A_second_product_on_one_instance_agrees_with_the_first()
     {
