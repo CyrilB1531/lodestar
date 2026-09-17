@@ -140,16 +140,16 @@ internal static class LeastSquares
         return (coefficients, inverseUpper);
     }
 
-    /// <summary>The largest ratio between the Cholesky factor's diagonal entries the normal equations are trusted with.</summary>
+    /// <summary>The largest condition number of the column-scaled design the normal equations are trusted with.</summary>
     /// <remarks>
-    /// The normal equations square the design's condition number, and the ratio of <c>U</c>'s diagonal is a lower bound
-    /// on that number. At 200, <c>200²·ε</c> is 9e-12, a hundred times inside the corpora's 1e-9; a design past it —
-    /// the near-collinear fixtures, a column on a scale of its own — goes through the Householder QR instead (#782).
+    /// The normal equations lose about <c>κ²·ε</c>, and a column's scale does not count towards <c>κ</c> for a Cholesky
+    /// factorization (van der Sluis). At 200, <c>200²·ε</c> is 9e-12, a hundred times inside the corpora's 1e-9; a design
+    /// past it — the near-collinear fixtures, a polynomial on a narrow range — goes through the reflections instead (#782, #870).
     /// </remarks>
-    private const double NormalEquationsRatio = 200.0;
+    private const double NormalEquationsConditionLimit = 200.0;
 
     /// <summary>Least squares through <c>XᵀX = UᵀU</c>, when the design is conditioned well enough for it.</summary>
-    /// <returns><see langword="false"/>, for the QR to answer, when <c>XᵀX</c> is not safely positive definite or its factor's diagonal spread passes <see cref="NormalEquationsRatio"/>.</returns>
+    /// <returns><see langword="false"/>, for the QR to answer, when <c>XᵀX</c> is not safely positive definite or the column-scaled design's condition number may pass <see cref="NormalEquationsConditionLimit"/>.</returns>
     /// <remarks>
     /// <c>U</c> stands in for R everywhere R is read — the standard errors, <c>X U⁻¹</c> for the leverages, the sandwich's
     /// bread — since each needs only <c>RᵀR = XᵀX</c>. It is <c>p(p+1)/2</c> products per row where the reflections are
@@ -166,12 +166,17 @@ internal static class LeastSquares
     {
         int parameterCount = featureCount + (withIntercept ? 1 : 0);
         (double[] gram, double[] moment) = NormalEquations(design, rowCount, featureCount, withIntercept, response, weights);
-        if (!TryUpperCholesky(gram, parameterCount) || !WellConditioned(gram, parameterCount))
+        if (!TryUpperCholesky(gram, parameterCount))
         {
             return null;
         }
 
         double[] inverseUpper = InvertUpper(gram, parameterCount);
+        if (!WellConditioned(gram, inverseUpper, parameterCount))
+        {
+            return null;
+        }
+
         var coefficients = new double[parameterCount];
         for (int k = 0; k < parameterCount; k++)
         {
@@ -239,19 +244,30 @@ internal static class LeastSquares
         }
     }
 
-    /// <summary>Whether the factor's diagonal entries stay within <see cref="NormalEquationsRatio"/> of one another.</summary>
-    private static bool WellConditioned(double[] upper, int order)
+    /// <summary>Whether an upper bound on the column-scaled design's condition number stays within <see cref="NormalEquationsConditionLimit"/>.</summary>
+    /// <remarks>
+    /// With <c>D</c> the column norms, <c>U·D⁻¹</c> is the scaled design's factor and <c>D·U⁻¹</c> its inverse, and the product
+    /// of their Frobenius norms, <c>√p · ‖D·U⁻¹‖_F</c>, bounds <c>κ₂</c> from above. The ratio of <c>U</c>'s diagonal it replaces
+    /// bounds it from below, and let a cubic on [10, 11] through at <c>κ</c> 5e5, 1.4e-5 from statsmodels (#870).
+    /// </remarks>
+    private static bool WellConditioned(double[] upper, double[] inverseUpper, int order)
     {
-        double smallest = double.PositiveInfinity;
-        double largest = 0.0;
+        double total = 0.0;
         for (int i = 0; i < order; i++)
         {
-            double entry = upper[(i * order) + i];
-            smallest = Math.Min(smallest, entry);
-            largest = Math.Max(largest, entry);
+            // Column i of U has the norm of the design's column i, since UᵀU = XᵀX.
+            double squaredScale = 0.0;
+            double squaredRow = 0.0;
+            for (int k = 0; k < order; k++)
+            {
+                squaredScale += upper[(k * order) + i] * upper[(k * order) + i];
+                squaredRow += inverseUpper[(i * order) + k] * inverseUpper[(i * order) + k];
+            }
+
+            total += squaredScale * squaredRow;
         }
 
-        return largest <= NormalEquationsRatio * smallest;
+        return order * total <= NormalEquationsConditionLimit * NormalEquationsConditionLimit;
     }
 
     /// <summary>Overwrites a symmetric <paramref name="matrix"/>'s upper triangle with its Cholesky factor <c>U</c>, <c>G = UᵀU</c>, zeroing the lower.</summary>

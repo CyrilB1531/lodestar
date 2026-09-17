@@ -28,8 +28,9 @@ slope is real; the standard error beside it, and the p-value read from it, are w
 *inference* means and what no maintained .NET library publishes — see the
 [namespace page](../ols.md) for the reading that establishes that.
 
-Solved through the normal equations when the diagonal of `XᵀX`'s Cholesky factor stays within a
-ratio of 200 — the cheap route, one pass over the rows — and through Householder reflections of the
+Solved through the normal equations when an upper bound on the condition number of the design, its
+columns scaled to unit norm, stays within 200 — the cheap route, one pass over the rows — and
+through Householder reflections of the
 design otherwise. Forming `XᵀX` squares its condition number, which the near-collinear designs a VIF
 exists to report cannot afford. `statsmodels` solves through a pseudo-inverse; the two agree inside
 the corpus's `1e-9`.

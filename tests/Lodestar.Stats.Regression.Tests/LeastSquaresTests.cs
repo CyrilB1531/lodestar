@@ -38,6 +38,36 @@ public sealed class LeastSquaresTests
         }
     }
 
+    /// <summary>
+    /// A cubic on [4, 5]: <c>U</c>'s diagonal stays within 200, which the old guard read as conditioned, while the
+    /// column-scaled design's <c>κ</c> is 3.5e4. Frozen from <c>sm.OLS(y, sm.add_constant(X)).fit()</c>, statsmodels 0.15.0,
+    /// on the rows built below; the fraction-exact solution is 4e-14 from these (#870).
+    /// </summary>
+    [Fact]
+    public void An_ill_conditioned_polynomial_matches_statsmodels()
+    {
+        double[] design = new double[36];
+        for (int row = 0; row < 12; row++)
+        {
+            double x = 4.0 + (row / 11.0);
+            design[row * 3] = x;
+            design[(row * 3) + 1] = x * x;
+            design[(row * 3) + 2] = x * x * x;
+        }
+
+        double[] response = [4.78, 4.67, 4.59, 4.62, 4.76, 4.99, 5.25, 5.47, 5.58, 5.58, 5.49, 5.37];
+        double[] coefficients = [667.5005128205491, -447.1756512006914, 100.08428571429556, -7.427193732194485];
+        double[] errors = [51.77374082737747, 34.68255565443952, 7.724981579902265, 0.5721082934224907];
+
+        OlsSummary summary = OrdinaryLeastSquares.Fit(design, response, featureCount: 3);
+
+        for (int i = 0; i < 4; i++)
+        {
+            Assert.True(Math.Abs(summary.Coefficients[i] - coefficients[i]) <= 1e-9 * Math.Abs(coefficients[i]), $"coefficient {i}: {summary.Coefficients[i]:R}");
+            Assert.True(Math.Abs(summary.StandardErrors[i] - errors[i]) <= 1e-9 * errors[i], $"standard error {i}: {summary.StandardErrors[i]:R}");
+        }
+    }
+
     [Fact]
     public void A_near_collinear_design_is_solved_by_the_reflections()
     {
