@@ -39,20 +39,29 @@ public sealed class TiledMinHashSignatures
 
     private readonly GpuContext _context;
     private readonly int _groupSize;
+    private readonly int _documentsPerLaunch;
     private readonly Action<KernelConfig, ArrayView<uint>, ArrayView<int>, ArrayView<ulong>,
-        ArrayView<ulong>, ArrayView<uint>, int, int> _kernel;
+        ArrayView<ulong>, ArrayView<uint>, int, int, int> _kernel;
 
     /// <summary>Loads the kernel onto the accelerator.</summary>
     /// <param name="context">The accelerator to compile for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
     /// <remarks>Loading compiles, so build this once and reuse it (decision 0102).</remarks>
     public TiledMinHashSignatures(GpuContext context)
+        : this(context, RowLaunch.Limit(context))
+    {
+    }
+
+    /// <summary>Loads the kernel, launching at most <paramref name="documentsPerLaunch"/> documents at once.</summary>
+    /// <remarks>Exists so a test can split a launch on an accelerator that never needs to.</remarks>
+    internal TiledMinHashSignatures(GpuContext context, int documentsPerLaunch)
     {
         Guard.NotNull(context);
         _context = context;
         _groupSize = Math.Min(MaxGroupSize, context.Accelerator.MaxGroupSize.X);
+        _documentsPerLaunch = documentsPerLaunch;
         _kernel = context.Accelerator.LoadStreamKernel<ArrayView<uint>, ArrayView<int>,
-            ArrayView<ulong>, ArrayView<ulong>, ArrayView<uint>, int, int>(SignatureKernel);
+            ArrayView<ulong>, ArrayView<ulong>, ArrayView<uint>, int, int, int>(SignatureKernel);
     }
 
     /// <summary>The signature of every document in a resident batch.</summary>
@@ -116,10 +125,15 @@ public sealed class TiledMinHashSignatures
             accelerator.Allocate1D<uint>((long)documents.Count * permutations);
 
         int tiles = (permutations + _groupSize - 1) / _groupSize;
-        _kernel(
-            new KernelConfig(new Index2D(tiles, documents.Count), new Index2D(_groupSize, 1)),
-            documents.Hashes.View, documents.Offsets.View, a.View, b.View,
-            signatures.View, permutations, (int)scheme);
+        for (int first = 0; first < documents.Count; first += _documentsPerLaunch)
+        {
+            int batch = Math.Min(_documentsPerLaunch, documents.Count - first);
+            _kernel(
+                new KernelConfig(new Index2D(tiles, batch), new Index2D(_groupSize, 1)),
+                documents.Hashes.View, documents.Offsets.View, a.View, b.View,
+                signatures.View, permutations, (int)scheme, first);
+        }
+
         accelerator.Synchronize();
 
         uint[] flat = signatures.GetAsArray1D();
@@ -141,14 +155,19 @@ public sealed class TiledMinHashSignatures
     // The exclusion covers the device method alone; the host code around it is
     // instrumented as usual.
     [ExcludeFromCodeCoverage]
+    // S107: each is a device argument ILGPU binds by position; a struct to hold three ints
+    // would be a type written for the rule rather than for the kernel.
+#pragma warning disable S107
     private static void SignatureKernel(
         ArrayView<uint> hashes, ArrayView<int> offsets, ArrayView<ulong> multipliers,
-        ArrayView<ulong> addends, ArrayView<uint> signatures, int permutations, int scheme)
+        ArrayView<ulong> addends, ArrayView<uint> signatures, int permutations, int scheme,
+        int firstDocument)
+#pragma warning restore S107
     {
         bool affine = scheme == Affine32Code;
         ArrayView<uint> tile = SharedMemory.Allocate1D<uint>(MaxGroupSize);
         int width = Group.DimX;
-        int document = Grid.IdxY;
+        int document = firstDocument + Grid.IdxY;
         int permutation = (Grid.IdxX * width) + Group.IdxX;
         bool live = permutation < permutations;
 

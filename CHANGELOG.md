@@ -123,6 +123,7 @@ is one sentence, the issue and the commit; see
 #### Fixed
 
 - `DeviceSparseMatrix.Upload` refuses row pointers and column indices outside the matrix, and `DeviceEmbeddingMatrix.Upload` and `TiledCosineTopK.Search` refuse non-finite values, where the kernels read or wrote past their device buffers. ([#898](https://github.com/CyrilB1531/lodestar/issues/898))
+- `TiledSparseDenseProduct`, `TiledMinHashSignatures` and `TiledCosineTopK` launch rows, documents and queries in slices within the device's grid limit, where CUDA refused more than 65,535 of them. ([#897](https://github.com/CyrilB1531/lodestar/issues/897))
 
 ### Lodestar.Embeddings
 
