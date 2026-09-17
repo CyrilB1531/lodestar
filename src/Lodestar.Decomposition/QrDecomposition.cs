@@ -61,7 +61,8 @@ public sealed class QrDecomposition
                 $"A thin QR needs at least as many rows as columns, and this matrix has {rowCount}.");
         }
 
-        if (matrix.Length != rowCount * columnCount)
+        // In long: 65,536 × 65,536 wraps to zero in int and an empty span would pass.
+        if (matrix.Length != (long)rowCount * columnCount)
         {
             throw new ArgumentException(
                 $"matrix holds {matrix.Length} values, not the {rowCount} x {columnCount} its shape declares.",

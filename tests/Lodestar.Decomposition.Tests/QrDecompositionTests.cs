@@ -93,4 +93,14 @@ public sealed class QrDecompositionTests
 
         Assert.Equal("matrix", error.ParamName);
     }
+
+    [Fact]
+    public void A_shape_whose_product_overflows_an_int_is_refused_as_a_mismatch()
+    {
+        // 65,536 × 65,536 is 2³², zero once wrapped, so an empty span used to pass and overflow later.
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => QrDecomposition.Householder([], rowCount: 65_536, columnCount: 65_536));
+
+        Assert.Equal("matrix", error.ParamName);
+    }
 }

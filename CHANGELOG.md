@@ -88,6 +88,7 @@ is one sentence, the issue and the commit; see
 #### Fixed
 
 - `Nmf.Fit` refuses a matrix with no row, no column or an infinity and checks its options before initialising, and `TruncatedSvd` refuses a `NaN` or an infinity, where they threw `DivideByZeroException` or `ArithmeticException` or answered `NaN`. ([#872](https://github.com/CyrilB1531/lodestar/issues/872))
+- `QrDecomposition.Householder` compares the span's length with the declared shape in `long`, so a shape whose product overflows `int` is `ArgumentException` rather than `OverflowException`. ([#906](https://github.com/CyrilB1531/lodestar/issues/906))
 
 ### Lodestar.Fuzzy
 
