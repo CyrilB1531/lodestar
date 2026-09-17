@@ -51,7 +51,7 @@ public static class Wilcoxon
     /// table -- it never throws.
     /// </param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
-    /// <returns>The smaller signed-rank sum, and the p-value.</returns>
+    /// <returns>The smaller rank sum two-sided, the positive one one-sided (as scipy), and the p-value.</returns>
     /// <exception cref="ArgumentException">
     /// The samples differ in length, or are empty. When <paramref name="nanPolicy"/> is
     /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
@@ -105,7 +105,7 @@ public static class Wilcoxon
     /// falls back to asymptotic rather than building the table -- it never throws.
     /// </param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in the sample.</param>
-    /// <returns>The smaller signed-rank sum, and the p-value.</returns>
+    /// <returns>The smaller rank sum two-sided, the positive one one-sided (as scipy), and the p-value.</returns>
     /// <exception cref="ArgumentException">
     /// <paramref name="differences"/> is empty. When <paramref name="nanPolicy"/> is
     /// <see cref="NanPolicy.Raise"/> and the sample holds a <c>NaN</c>.
