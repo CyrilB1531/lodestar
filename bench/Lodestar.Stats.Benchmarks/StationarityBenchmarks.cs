@@ -75,6 +75,10 @@ public class StationarityBenchmarks
     public double LodestarAugmentedDickeyFuller() =>
         Stationarity.AugmentedDickeyFuller(_series, _adf).Statistic;
 
+    /// <summary>The default lag search, Akaike over lags 0 to Schwert's maximum: Cortex has no counterpart.</summary>
+    [Benchmark]
+    public double LodestarAdfAutolag() => Stationarity.AugmentedDickeyFuller(_series).Statistic;
+
     [Benchmark]
     public double CortexAugmentedDickeyFuller() =>
         StationarityTests.AugmentedDickeyFuller(_series, AdfLag).TestStatistic;

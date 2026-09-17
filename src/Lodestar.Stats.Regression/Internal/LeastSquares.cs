@@ -294,7 +294,7 @@ internal static class LeastSquares
         {
             int diagonal = (k * rowCount) + k;
             ReadOnlySpan<double> below = a.AsSpan(diagonal, rowCount - k);
-            double norm = Math.Sqrt(Dot(below, below));
+            double norm = Math.Sqrt(Reflections.Dot(below, below));
             double alpha = a[diagonal] > 0.0 ? -norm : norm;
 
             // v = x - alpha·e1 in place, then H = I - 2vvᵀ/(vᵀv); vᵀv = 2·norm·(norm + |x₀|).
@@ -304,12 +304,12 @@ internal static class LeastSquares
             {
                 for (int column = k + 1; column < columnCount; column++)
                 {
-                    Reflect(below, scale, a.AsSpan((column * rowCount) + k, rowCount - k));
+                    Reflections.Reflect(below, scale, a.AsSpan((column * rowCount) + k, rowCount - k));
                 }
 
                 if (projected is not null)
                 {
-                    Reflect(below, scale, projected.AsSpan(k, rowCount - k));
+                    Reflections.Reflect(below, scale, projected.AsSpan(k, rowCount - k));
                 }
             }
 
@@ -330,53 +330,6 @@ internal static class LeastSquares
         }
 
         return upper;
-    }
-
-    /// <summary>Applies the reflection <paramref name="vector"/> holds to <paramref name="target"/>, the rows at and below the diagonal.</summary>
-    private static void Reflect(ReadOnlySpan<double> vector, double scale, Span<double> target)
-    {
-        double factor = Dot(vector, target) / scale;
-        int length = vector.Length;
-        int row = 0;
-        for (; row + 4 <= length; row += 4)
-        {
-            target[row] -= factor * vector[row];
-            target[row + 1] -= factor * vector[row + 1];
-            target[row + 2] -= factor * vector[row + 2];
-            target[row + 3] -= factor * vector[row + 3];
-        }
-
-        for (; row < length; row++)
-        {
-            target[row] -= factor * vector[row];
-        }
-    }
-
-    /// <summary>An inner product unrolled four terms at a time, the same order on both target frameworks.</summary>
-    /// <remarks>
-    /// Every reflection is two passes over a column, and every Cholesky pivot one, so this loop is what those fits cost.
-    /// Scalar rather than <c>Vector&lt;T&gt;</c>, so net10.0 and netstandard2.0 add the terms in one order (#771, #782).
-    /// </remarks>
-    internal static double Dot(ReadOnlySpan<double> left, ReadOnlySpan<double> right)
-    {
-        int length = left.Length;
-        double s0 = 0.0, s1 = 0.0, s2 = 0.0, s3 = 0.0;
-        int i = 0;
-        for (; i + 4 <= length; i += 4)
-        {
-            s0 += left[i] * right[i];
-            s1 += left[i + 1] * right[i + 1];
-            s2 += left[i + 2] * right[i + 2];
-            s3 += left[i + 3] * right[i + 3];
-        }
-
-        double total = s0 + s1 + s2 + s3;
-        for (; i < length; i++)
-        {
-            total += left[i] * right[i];
-        }
-
-        return total;
     }
 
     /// <summary>The inverse of an upper-triangular matrix, by back substitution.</summary>

@@ -38,6 +38,13 @@
              Link="Internal/MinHashCoefficients.cs" />
   </ItemGroup>
 
+  <!-- The Householder reflection and its four-lane inner product, compiled into the two libraries
+       that fit by reflections. Lodestar.Stats.TimeSeries reuses one QR across a lag search and must
+       add the terms in Lodestar.Stats.Regression's order, whose kernel is internal there (#843). -->
+  <ItemGroup Condition="'$(LodestarIncludesReflections)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/Reflections.cs" Link="Internal/Reflections.cs" />
+  </ItemGroup>
+
   <!-- Persistence plumbing, compiled only into the libraries that ship artifacts
        (Lodestar.Text, Lodestar.Embeddings). It needs System.Text.Json, which those
        two opt into individually — Lodestar.Fuzzy stays dependency-free.

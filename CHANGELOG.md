@@ -149,6 +149,10 @@ is one sentence, the issue and the commit; see
 - `SerialCorrelation`, with `Autocorrelation`, `PartialAutocorrelation` and `LjungBox`, moved here from `Lodestar.Stats`. ([#617](https://github.com/CyrilB1531/lodestar/issues/617), [`2f5efb26`](https://github.com/CyrilB1531/lodestar/commit/2f5efb26))
 - `VectorAutoregression.Fit` estimates a VAR(p) with its inference table. ([#786](https://github.com/CyrilB1531/lodestar/issues/786), [`2b5cd107`](https://github.com/CyrilB1531/lodestar/commit/2b5cd107))
 
+#### Changed
+
+- The augmented Dickey-Fuller lag search and `VectorAutoregression.Fit` factor their design once for every lag or equation, 8.5 times faster at 2,000 points, and the autocovariance centres its series once. ([#843](https://github.com/CyrilB1531/lodestar/issues/843))
+
 ### Lodestar.Stats
 
 #### Added
@@ -157,6 +161,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- `KruskalWallis.Test` past sixteen groups and the sorting `Wilcoxon` path read their tie terms off one ranking pass, and Durbin's Kolmogorov matrix power no longer allocates per product. ([#843](https://github.com/CyrilB1531/lodestar/issues/843))
 - The exact Mann-Whitney distribution sizes its table by the smaller sample and reuses two buffers, where 8 against 2,500 allocated 3.35 GB. ([#814](https://github.com/CyrilB1531/lodestar/issues/814))
 - The exact Kolmogorov-Smirnov table walk swaps two rows instead of allocating one per step. ([#830](https://github.com/CyrilB1531/lodestar/issues/830))
 - `FisherExact.Test` and the equal-size exact `KolmogorovSmirnov.TwoSample` return the same p-values at a fraction of the cost. ([#756](https://github.com/CyrilB1531/lodestar/issues/756), [`e6323c08`](https://github.com/CyrilB1531/lodestar/commit/e6323c08))
@@ -204,6 +209,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- `CoxProportionalHazards.Fit` reuses its likelihood buffers across Newton iterations and searches each subject's concordance level once. ([#843](https://github.com/CyrilB1531/lodestar/issues/843))
 - `LogRank.Test` sorts each arm once and walks it with the event times, where it rescanned both arms at every time. ([#811](https://github.com/CyrilB1531/lodestar/issues/811))
 - `KaplanMeierCurve` and `NelsonAalenCurve` compare their arrays by value. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
 

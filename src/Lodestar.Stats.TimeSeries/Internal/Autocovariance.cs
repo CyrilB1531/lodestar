@@ -21,13 +21,22 @@ internal static class Autocovariance
 
         mean /= n;
 
+        // Centred once rather than twice per product: the same subtractions, so the same doubles.
+        var centred = new double[n];
+        for (int i = 0; i < n; i++)
+        {
+            centred[i] = series[i] - mean;
+        }
+
         var result = new double[lagCount + 1];
         for (int lag = 0; lag <= lagCount; lag++)
         {
+            ReadOnlySpan<double> early = centred.AsSpan(0, n - lag);
+            ReadOnlySpan<double> late = centred.AsSpan(lag, early.Length);
             double total = 0.0;
-            for (int t = 0; t + lag < n; t++)
+            for (int t = 0; t < early.Length; t++)
             {
-                total += (series[t] - mean) * (series[t + lag] - mean);
+                total += early[t] * late[t];
             }
 
             result[lag] = total / (adjusted ? n - lag : n);

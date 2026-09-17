@@ -382,8 +382,8 @@ internal static class Kolmogorov
         double h = k - nd;
         int size = (2 * k) - 1;
 
-        double[][] transition = BuildTransitionMatrix(size, h);
-        (double mantissa, int exponent) = RaiseToPower(transition, n, k);
+        double[] transition = BuildTransitionMatrix(size, h);
+        (double mantissa, int exponent) = RaiseToPower(transition, size, n, k);
 
         for (int i = 1; i <= n; i++)
         {
@@ -401,7 +401,7 @@ internal static class Kolmogorov
 
     // v is H's first column and last row (v[j] = (1-h^(j+1))/(j+1)!, final entry folds
     // in the boundary term a plain geometric tail would miss); w[t] = 1/t! is the rest.
-    private static double[][] BuildTransitionMatrix(int size, double h)
+    private static double[] BuildTransitionMatrix(int size, double h)
     {
         double[] v = new double[size];
         double[] w = new double[size];
@@ -416,92 +416,84 @@ internal static class Kolmogorov
         double tail = Math.Pow(Math.Max((2.0 * h) - 1.0, 0.0), size) - (2.0 * Math.Pow(h, size));
         v[size - 1] = (1.0 + tail) * factorial;
 
-        double[][] matrix = NewMatrix(size);
+        double[] matrix = new double[size * size];
         for (int column = 1; column < size; column++)
         {
             for (int row = column - 1; row < size; row++)
             {
-                matrix[row][column] = w[row - column + 1];
+                matrix[(row * size) + column] = w[row - column + 1];
             }
         }
         for (int row = 0; row < size; row++)
         {
-            matrix[row][0] = v[row];
+            matrix[row * size] = v[row];
         }
         // Overwrites the band loop's last row: every column there is v, reversed,
         // not the shifted-diagonal pattern the rest of the matrix carries.
         for (int column = 0; column < size; column++)
         {
-            matrix[size - 1][column] = v[size - 1 - column];
+            matrix[((size - 1) * size) + column] = v[size - 1 - column];
         }
 
         return matrix;
     }
 
-    // H^n by repeated squaring, holding the running power's scale separately from
-    // H's -- they drift apart since the power only scales on bits of n that are set.
-    private static (double Mantissa, int Exponent) RaiseToPower(double[][] matrix, int n, int k)
+    // H^n by squaring, over flat buffers swapped with one scratch so no product allocates; the power's
+    // scale is held apart from H's, since the power only scales on bits of n that are set.
+    private static (double Mantissa, int Exponent) RaiseToPower(double[] matrix, int size, int n, int k)
     {
-        int size = matrix.Length;
-        double[][] power = Identity(size);
-        double[][] square = matrix;
+        double[] power = new double[size * size];
+        for (int i = 0; i < size; i++)
+        {
+            power[(i * size) + i] = 1.0;
+        }
+
+        double[] square = matrix;
+        double[] scratch = new double[size * size];
         int exponent = 0;
         int squareExponent = 0;
         int remaining = n;
+        int diagonal = ((k - 1) * size) + (k - 1);
 
         while (remaining > 0)
         {
             if ((remaining & 1) != 0)
             {
-                power = Multiply(power, square);
+                Multiply(power, square, scratch, size);
+                (power, scratch) = (scratch, power);
                 exponent += squareExponent;
             }
 
-            square = Multiply(square, square);
+            remaining >>= 1;
+
+            // The square after the highest bit is never read, so it is not formed.
+            if (remaining == 0)
+            {
+                break;
+            }
+
+            Multiply(square, square, scratch, size);
+            (square, scratch) = (scratch, square);
             squareExponent *= 2;
-            if (Math.Abs(square[k - 1][k - 1]) > ScaleUp)
+            if (Math.Abs(square[diagonal]) > ScaleUp)
             {
                 Rescale(square, ScaleUp);
                 squareExponent += ScaleBits;
             }
-
-            remaining >>= 1;
         }
 
-        return (power[k - 1][k - 1], exponent);
+        return (power[diagonal], exponent);
     }
 
-    private static double[][] NewMatrix(int size)
+    private static void Multiply(double[] left, double[] right, double[] result, int size)
     {
-        double[][] matrix = new double[size][];
+        Array.Clear(result, 0, result.Length);
         for (int row = 0; row < size; row++)
         {
-            matrix[row] = new double[size];
-        }
-
-        return matrix;
-    }
-
-    private static double[][] Identity(int size)
-    {
-        double[][] identity = NewMatrix(size);
-        for (int i = 0; i < size; i++)
-        {
-            identity[i][i] = 1.0;
-        }
-
-        return identity;
-    }
-
-    private static double[][] Multiply(double[][] left, double[][] right)
-    {
-        int size = left.Length;
-        double[][] result = NewMatrix(size);
-        for (int row = 0; row < size; row++)
-        {
+            Span<double> resultRow = result.AsSpan(row * size, size);
             for (int inner = 0; inner < size; inner++)
             {
-                double value = left[row][inner];
+                double value = left[(row * size) + inner];
 
                 // S1244: an exact zero here is a sparsity check, not a
                 // tolerance comparison -- H is built with genuine exact zeros
@@ -515,27 +507,20 @@ internal static class Kolmogorov
                     continue;
                 }
 
-                double[] resultRow = result[row];
-                double[] rightRow = right[inner];
-                for (int column = 0; column < size; column++)
+                ReadOnlySpan<double> rightRow = right.AsSpan(inner * size, resultRow.Length);
+                for (int column = 0; column < rightRow.Length; column++)
                 {
                     resultRow[column] += value * rightRow[column];
                 }
             }
         }
-
-        return result;
     }
 
-    private static void Rescale(double[][] matrix, double factor)
+    private static void Rescale(double[] matrix, double factor)
     {
-        for (int row = 0; row < matrix.Length; row++)
+        for (int i = 0; i < matrix.Length; i++)
         {
-            double[] matrixRow = matrix[row];
-            for (int column = 0; column < matrixRow.Length; column++)
-            {
-                matrixRow[column] /= factor;
-            }
+            matrix[i] /= factor;
         }
     }
 }

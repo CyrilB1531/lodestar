@@ -15,6 +15,12 @@ internal sealed class EfronPartialLikelihood
     private readonly int[] _groupEnds;
     private readonly int _featureCount;
 
+    // Scratch reused by every evaluation, so a Newton iteration allocates nothing here; one fit owns one instance.
+    private readonly double[] _eta;
+    private readonly double[] _adjustedFirst;
+    private readonly Sums _risk;
+    private readonly Sums _tied;
+
     /// <summary>Orders the subjects by descending duration and records where each distinct time ends.</summary>
     internal EfronPartialLikelihood(
         ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, int featureCount)
@@ -52,6 +58,10 @@ internal sealed class EfronPartialLikelihood
         }
 
         _groupEnds = [.. groupEnds];
+        _eta = new double[count];
+        _adjustedFirst = new double[featureCount];
+        _risk = new Sums(featureCount);
+        _tied = new Sums(featureCount);
     }
 
     /// <summary>Evaluates the log partial likelihood at <paramref name="coefficients"/>.</summary>
@@ -73,8 +83,9 @@ internal sealed class EfronPartialLikelihood
             shift = Math.Max(shift, value);
         }
 
-        var risk = new Sums(p);
-        var tied = new Sums(p);
+        Sums risk = _risk;
+        Sums tied = _tied;
+        risk.Clear();
         score.Clear();
         information.Clear();
         double logLikelihood = 0.0;
@@ -116,15 +127,21 @@ internal sealed class EfronPartialLikelihood
     {
         int p = _featureCount;
         double denominator = risk.Zero - (fraction * tied.Zero);
+        double squared = denominator * denominator;
+        double[] first = _adjustedFirst;
         for (int a = 0; a < p; a++)
         {
-            double firstA = risk.First[a] - (fraction * tied.First[a]);
+            first[a] = risk.First[a] - (fraction * tied.First[a]);
+        }
+
+        for (int a = 0; a < p; a++)
+        {
+            double firstA = first[a];
             score[a] -= firstA / denominator;
             for (int b = 0; b < p; b++)
             {
-                double firstB = risk.First[b] - (fraction * tied.First[b]);
                 double second = risk.Second[(a * p) + b] - (fraction * tied.Second[(a * p) + b]);
-                information[(a * p) + b] += (second / denominator) - (firstA * firstB / (denominator * denominator));
+                information[(a * p) + b] += (second / denominator) - (firstA * first[b] / squared);
             }
         }
 
@@ -134,7 +151,7 @@ internal sealed class EfronPartialLikelihood
     private double[] LinearPredictor(ReadOnlySpan<double> coefficients)
     {
         int p = _featureCount;
-        double[] eta = new double[_events.Length];
+        double[] eta = _eta;
         for (int position = 0; position < eta.Length; position++)
         {
             double sum = 0.0;

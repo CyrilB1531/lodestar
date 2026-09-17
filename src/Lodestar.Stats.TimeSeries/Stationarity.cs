@@ -265,13 +265,15 @@ public static class Stationarity
     private static (int Lag, double Criterion) SearchLag(
         ReadOnlySpan<double> series, DickeyFullerOptions settings, int maxLag, int rows)
     {
-        if (settings.LagSelection == LagSelection.TStatistic)
+        bool byTStatistic = settings.LagSelection == LagSelection.TStatistic;
+        (double[] residualSums, double[] lastTStatistics) =
+            DickeyFullerRegression.Candidates(series, settings.Regression, maxLag, rows, byTStatistic);
+        if (byTStatistic)
         {
             double absolute = 0.0;
             for (int lag = maxLag; lag >= 0; lag--)
             {
-                IReadOnlyList<double> tStatistics = DickeyFullerRegression.Fit(series, settings.Regression, lag, rows).TStatistics;
-                absolute = Math.Abs(tStatistics[tStatistics.Count - 1]);
+                absolute = Math.Abs(lastTStatistics[lag]);
                 if (absolute >= OneSidedFivePercent)
                 {
                     return (lag, absolute);
@@ -281,13 +283,13 @@ public static class Stationarity
             return (0, absolute);
         }
 
+        int terms = DickeyFullerRegression.TermCount(settings.Regression);
         int best = 0;
         double bestCriterion = double.PositiveInfinity;
         for (int lag = 0; lag <= maxLag; lag++)
         {
-            (IReadOnlyList<double> tStatistics, double residualSumOfSquares) = DickeyFullerRegression.Fit(series, settings.Regression, lag, rows);
             double value = DickeyFullerRegression.Criterion(
-                residualSumOfSquares, tStatistics.Count, rows, settings.LagSelection);
+                residualSums[lag], terms + 1 + lag, rows, settings.LagSelection);
 
             // Strictly smaller: a tie keeps the shorter lag, as the reference's min over (criterion, lag) does.
             if (value < bestCriterion)
