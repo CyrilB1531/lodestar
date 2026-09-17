@@ -182,6 +182,10 @@ is one sentence, the issue and the commit; see
 - `Microsoft.Extensions.AI.Abstractions` moves from 10.9.0 to 10.10.0. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
 - The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
 
+#### Fixed
+
+- The generation reference page places the package in the interop tier, per decision 0089, where it called it a satellite. ([#949](https://github.com/CyrilB1531/lodestar/issues/949))
+
 ### Lodestar.Extensions.VectorData
 
 #### Added

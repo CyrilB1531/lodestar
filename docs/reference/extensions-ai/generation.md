@@ -24,9 +24,11 @@ So the fences on these pages **compile** against the packed package and are mark
 
 ## Where this sits
 
-`Lodestar.Extensions.AI` is the second member of the satellite tier, after `Lodestar.Onnx`. It
-exists because a core package carries no external dependency and an external dependency earns its
-own package, named for it — [`decisions/0076`](../../decisions/0076-a-core-package-carries-no-external-dependency.md).
+`Lodestar.Extensions.AI` belongs to the interop tier, `Lodestar.Extensions.*`, which may take a
+dependency a core package refused because converting to a foreign type is not computing with it —
+[`decisions/0089`](../../decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md).
+It exists because a core package carries no external dependency —
+[`decisions/0076`](../../decisions/0076-a-core-package-carries-no-external-dependency.md).
 A caller who wants embeddings and not the `Microsoft.Extensions.AI` abstractions takes
 `Lodestar.Onnx` alone and restores nothing extra.
 
