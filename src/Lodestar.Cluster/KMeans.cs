@@ -365,10 +365,21 @@ public sealed class KMeans
         double[] totals,
         int[] counts)
     {
-        int empty = counts.Count(count => count == 0);
-        if (empty == 0)
+        int emptyCount = counts.Count(count => count == 0);
+        if (emptyCount == 0)
         {
             return;
+        }
+
+        // Listed before any move, as np.where(weight_in_clusters == 0) is: a donor emptied by a
+        // relocation stays empty this iteration rather than taking a row past the end (#975).
+        var empty = new int[emptyCount];
+        for (int cluster = 0, at = 0; cluster < counts.Length; cluster++)
+        {
+            if (counts[cluster] == 0)
+            {
+                empty[at++] = cluster;
+            }
         }
 
         var distances = new double[labels.Length];
@@ -385,16 +396,11 @@ public sealed class KMeans
             return;
         }
 
-        int[] furthest = Furthest(distances, empty);
-        int next = 0;
-        for (int cluster = 0; cluster < counts.Length; cluster++)
+        int[] furthest = Furthest(distances, empty.Length);
+        for (int index = 0; index < empty.Length; index++)
         {
-            if (counts[cluster] != 0)
-            {
-                continue;
-            }
-
-            int row = furthest[next++];
+            int cluster = empty[index];
+            int row = furthest[index];
             int donor = labels[row];
             counts[donor]--;
             counts[cluster] = 1;
