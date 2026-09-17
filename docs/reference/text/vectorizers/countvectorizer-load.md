@@ -17,7 +17,8 @@ public static CountVectorizer Load(string path, ArtifactLoadOptions options = nu
 [`Transform`](countvectorizer-transform.md).
 
 **Exceptions** — `ArgumentNullException` for a null source. `InvalidDataException` when the
-content is not a saved vectorizer, or when it exceeds a bound in `options`.
+content is not a saved vectorizer, holds options the vectorizer refuses — a token pattern no regex
+parses — or exceeds a bound in `options`.
 
 **Example** — restoring, and counting with the vocabulary that was saved.
 

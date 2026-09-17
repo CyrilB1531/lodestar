@@ -14,7 +14,7 @@ public static Task<TfidfVectorizer> LoadAsync(Stream source, ArtifactLoadOptions
 **Returns** — `Task<TfidfVectorizer>`, completing with a fitted vectorizer.
 
 **Exceptions** — `ArgumentNullException` for a null source. `InvalidDataException` for content that
-is not a saved vectorizer or that exceeds a bound. `OperationCanceledException` when cancelled.
+is not a saved vectorizer, holds options the vectorizer refuses, or exceeds a bound. `OperationCanceledException` when cancelled.
 
 **Example** — restoring, then weighting with the frequencies that were saved.
 

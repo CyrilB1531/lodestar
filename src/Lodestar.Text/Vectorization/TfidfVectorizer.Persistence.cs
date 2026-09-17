@@ -190,7 +190,9 @@ public sealed partial class TfidfVectorizer
         FeatureVocabularyJson.EnsureDeclaredCount(ArtifactName, featureCount, vocabulary!.Length, FeatureVocabularyJson.VocabularyProperty);
         FeatureVocabularyJson.EnsureDeclaredCount(ArtifactName, featureCount, idf!.Length, FeatureVocabularyJson.IdfProperty);
 
-        var vectorizer = new TfidfVectorizer(new TfidfVectorizerOptions { Count = countOptions!, Tfidf = tfidfOptions! });
+        TfidfVectorizer vectorizer = VectorizerOptionsJson.Build(
+            ArtifactName,
+            () => new TfidfVectorizer(new TfidfVectorizerOptions { Count = countOptions!, Tfidf = tfidfOptions! }));
         vectorizer._counts.RestoreVocabulary(vocabulary);
         vectorizer._tfidf.RestoreIdf(idf);
         return vectorizer;

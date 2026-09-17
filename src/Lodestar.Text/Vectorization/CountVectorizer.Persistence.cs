@@ -187,7 +187,7 @@ public sealed partial class CountVectorizer
         }
         FeatureVocabularyJson.EnsureDeclaredCount(ArtifactName, featureCount, vocabulary.Length, FeatureVocabularyJson.VocabularyProperty);
 
-        var vectorizer = new CountVectorizer(options);
+        CountVectorizer vectorizer = VectorizerOptionsJson.Build(ArtifactName, () => new CountVectorizer(options));
         vectorizer.RestoreVocabulary(vocabulary);
         return vectorizer;
     }

@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
+using System.Text.Json.Nodes;
 using Lodestar.Text.Persistence;
 using Lodestar.Text.Vectorization;
 using Xunit;
@@ -383,6 +384,61 @@ public sealed class ArtifactHardeningTests
     }
 
     /// <summary>A valid, freshly written artifact: <c>alpha</c>, <c>beta</c>, <c>delta</c>, <c>gamma</c>.</summary>
+    [Theory]
+    [InlineData("count")]
+    [InlineData("tfidf")]
+    [InlineData("hashing")]
+    public void A_token_pattern_no_regex_parses_is_rejected_as_invalid_data(string kind)
+    {
+        // Well-formed JSON, so only the vectorizer's constructor could refuse it (#881).
+        using var saved = new MemoryStream();
+        switch (kind)
+        {
+            case "count":
+                new CountVectorizer().Fit(TinyCorpus).Save(saved);
+                break;
+            case "tfidf":
+                new TfidfVectorizer().Fit(TinyCorpus).Save(saved);
+                break;
+            default:
+                new HashingVectorizer().Save(saved);
+                break;
+        }
+        JsonNode artifact = JsonNode.Parse(saved.ToArray())!;
+        artifact["options"]!["tokenPattern"] = "(";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(artifact.ToJsonString()));
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => LoadKind(kind, stream));
+
+        Assert.Contains("options the vectorizer refuses", error.Message, StringComparison.Ordinal);
+        Assert.IsType<ArgumentException>(error.InnerException, exactMatch: false);
+    }
+
+    [Fact]
+    public void A_token_past_the_default_bound_saves_and_loads_once_the_bound_is_raised()
+    {
+        // Fit keeps any token the pattern matches; only Load is bounded, so the caller raises it.
+        string token = new('a', new ArtifactLoadOptions().MaxTokenLength + 1);
+        var original = new CountVectorizer().Fit([token + " bb"]);
+        using var saved = new MemoryStream();
+        original.Save(saved);
+
+        saved.Position = 0;
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => CountVectorizer.Load(saved));
+        saved.Position = 0;
+        CountVectorizer restored = CountVectorizer.Load(saved, new ArtifactLoadOptions { MaxTokenLength = token.Length });
+
+        Assert.Contains("MaxTokenLength", error.Message, StringComparison.Ordinal);
+        Assert.Equal(original.GetFeatureNames(), restored.GetFeatureNames());
+    }
+
+    private static object LoadKind(string kind, Stream stream) => kind switch
+    {
+        "count" => CountVectorizer.Load(stream),
+        "tfidf" => TfidfVectorizer.Load(stream),
+        _ => HashingVectorizer.Load(stream),
+    };
+
     private static string Baseline()
     {
         var vectorizer = new CountVectorizer().Fit(TinyCorpus);

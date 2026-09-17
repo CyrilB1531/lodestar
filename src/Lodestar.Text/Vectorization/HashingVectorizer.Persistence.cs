@@ -147,6 +147,6 @@ public sealed partial class HashingVectorizer
         {
             throw JsonArtifact.Inconsistent(ArtifactName, $"numFeatures must be at least 1 but is {result.NumFeatures}.");
         }
-        return new HashingVectorizer(result with { Count = countOptions });
+        return VectorizerOptionsJson.Build(ArtifactName, () => new HashingVectorizer(result with { Count = countOptions }));
     }
 }

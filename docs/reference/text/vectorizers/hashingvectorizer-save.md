@@ -38,6 +38,10 @@ Whether it is worth saving at all is a fair question, and the answer is that it 
 vectorizers interchangeable: code that persists a fitted model works unchanged when the model is
 this one. The file is small.
 
+The write is not bounded the way a load is. A stop-word list past a default of
+[`ArtifactLoadOptions`](../persistence/artifactloadoptions.md) — a word over 1024 characters, more
+than a million words — saves, and loads only with that bound raised.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`HashingVectorizer.Load`](hashingvectorizer-load.md),

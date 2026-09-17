@@ -41,10 +41,15 @@ int columns = restored.Transform(["the cat"]).ColumnCount;  // => 4
 refused before it is allocated rather than afterwards. That ordering is the whole point: a check
 that runs once the array exists has already lost.
 
-Every default is generous enough that a real model never meets one — a million vocabulary entries
-is far past any corpus this package is likely to see — so tightening them is a decision about the
-*source*, not about the model. Tighten when the file came from a user, a network, or a build you
-do not control; leave them when it came from your own training run.
+The defaults are generous — a million vocabulary entries is far past most corpora — so tightening
+them is a decision about the *source*, not about the model. Tighten when the file came from a user,
+a network, or a build you do not control; leave them when it came from your own training run.
+
+**Saving is not bounded, so a default load can refuse a file a default save wrote.** Fitting keeps
+every term the token pattern matches and saving writes it: a hex or DNA run longer than 1024
+characters, more than a million n-grams, or a stop-word list past a million entries all save
+cleanly and then fail to load, with the bound they broke named in the message. Raise that bound to
+load your own model — refusing at save instead would lose a model that is valid, just large.
 
 Exceeding a bound raises `InvalidDataException`, and the artifact is refused rather than
 truncated. A model that quietly loaded smaller than it was saved would score differently and give
