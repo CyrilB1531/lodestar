@@ -82,6 +82,7 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     private readonly int _unkId;
     private readonly int _maxCharsPerWord;
     private readonly bool _lowercase;
+    private readonly bool _basic;
 
     /// <summary>Creates a tokenizer from an in-memory vocabulary.</summary>
     /// <param name="vocab">Map from token string to id.</param>
@@ -95,7 +96,7 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
         string continuationPrefix = "##",
         int maxCharsPerWord = 100,
         bool lowercase = false)
-        : this(vocab, unkToken, continuationPrefix, maxCharsPerWord, lowercase, [])
+        : this(vocab, unkToken, continuationPrefix, maxCharsPerWord, lowercase, false, [])
     {
     }
 
@@ -116,6 +117,7 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
             vocabulary.ContinuationPrefix,
             maxCharsPerWord,
             vocabulary.Lowercase,
+            vocabulary.BasicTokenization,
             vocabulary.AddedTokens)
     {
     }
@@ -127,6 +129,7 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
         string continuationPrefix,
         int maxCharsPerWord,
         bool lowercase,
+        bool basic,
         IReadOnlyList<AddedToken> addedTokens)
     {
         Guard.NotNull(vocab);
@@ -150,13 +153,14 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
         _unkId = unkId;
         _maxCharsPerWord = maxCharsPerWord;
         _lowercase = lowercase;
+        _basic = basic;
 
         // Two scanners: the two halves of added_tokens are matched against different
         // strings, split by AddedToken.Normalized (Special plays no part). See Encode.
         _addedTokens = [.. addedTokens];
         _rawScanner = new AddedTokenScanner([.. addedTokens.Where(t => !t.Normalized)]);
         _normalizedScanner = new AddedTokenScanner(
-            [.. addedTokens.Where(t => t.Normalized).Select(t => lowercase ? t with { Content = t.Content.ToLowerInvariant() } : t)]);
+            [.. addedTokens.Where(t => t.Normalized).Select(t => t with { Content = NormalizeContent(t.Content, lowercase, basic) })]);
     }
 
     /// <summary>Tokenizes <paramref name="text"/> into sub-word tokens and their ids.</summary>
@@ -175,9 +179,9 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
         var tokens = new List<string>();
         var ids = new List<int>();
 
-        // Indexed with raw-text positions, sound only because ToLowerInvariant preserves
-        // length -- ToLower and BpeTokenizer's four forms do not, hence its per-gap pass.
-        string normalized = _lowercase ? text.ToLowerInvariant() : text;
+        // Raw-text positions hold because ToLowerInvariant keeps length; BERT's normalizer does not,
+        // so under it EncodeGap normalizes each gap on its own, as BpeTokenizer's forms do.
+        string normalized = _lowercase && !_basic ? text.ToLowerInvariant() : text;
 
         int pos = 0;
         while (pos < text.Length)
@@ -253,6 +257,20 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     /// </remarks>
     private void EncodeGap(string normalized, int from, int to, List<string> tokens, List<int> ids)
     {
+        if (_basic)
+        {
+            // HuggingFace normalizes what the raw pass left, piece by piece, then scans it for normalized tokens.
+            string piece = BertBasicTokenization.Normalize(Slice(normalized, from, to), _lowercase);
+            EncodeNormalizedGap(piece, 0, piece.Length, tokens, ids);
+            return;
+        }
+
+        EncodeNormalizedGap(normalized, from, to, tokens, ids);
+    }
+
+    /// <summary>The normalized half of <see cref="EncodeGap"/>: the normalized added tokens, then the model.</summary>
+    private void EncodeNormalizedGap(string normalized, int from, int to, List<string> tokens, List<int> ids)
+    {
         if (_normalizedScanner.IsEmpty)
         {
             EncodeSegment(normalized, from, to, tokens, ids);
@@ -293,10 +311,23 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
 
         // Words stay spans of the normalized text: a string per word was most of this path's bytes.
         int position = start;
-        while (WhitespaceScanner.TryNext(normalized, end, ref position, out int word))
+        while (_basic
+            ? BertBasicTokenization.TryNext(normalized, end, ref position, out int word)
+            : WhitespaceScanner.TryNext(normalized, end, ref position, out word))
         {
             TokenizeWord(normalized.AsSpan(word, position - word), tokens, ids);
         }
+    }
+
+    /// <summary>A normalized added token's content, normalized the way the text it is matched in is.</summary>
+    private static string NormalizeContent(string content, bool lowercase, bool basic)
+    {
+        if (basic)
+        {
+            return BertBasicTokenization.Normalize(content, lowercase);
+        }
+
+        return lowercase ? content.ToLowerInvariant() : content;
     }
 
     /// <summary>The slice, or the string itself when the slice is the whole of it.</summary>

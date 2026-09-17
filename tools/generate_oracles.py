@@ -85,6 +85,7 @@ THE_CAT = "the cat"
 # The accented word three corpora reach for: the two transliteration pairs and the
 # Double Metaphone input contract, which is what took it to S1192's threshold (#177).
 NAIVE = "naïve"
+NAIVE_FOLDED = "naive"
 # "the house", definite and genitive, which all three Scandinavian corpora reach
 # for -- and that is what takes both spellings to S1192's threshold (#308).
 HUSET = "huset"
@@ -306,7 +307,7 @@ def build_pairs(rng: SeededRandom):
         ("Levenshtein", "Levenstein"),
         ("café", "cafe"),
         ("Straße", "Strasse"),
-        (NAIVE, "naive"),
+        (NAIVE, NAIVE_FOLDED),
         ("😀", "😀"),
         ("😀", "😁"),
         ("a😀b", "ab"),
@@ -1994,7 +1995,7 @@ FUZZ_PAIRS = [
     ("kitten", "sitting"), ("levenshtein", "levenstein"),
     ("this is a test", "this is a test!"),
     ("one two three four", "four three two one"),
-    ("café", "cafe"), (NAIVE, "naive"),
+    ("café", "cafe"), (NAIVE, NAIVE_FOLDED),
     ("abcdefgh", "abcdefgh"), ("abcdefgh", "hgfedcba"),
     ("python programming", "programming in python"),
     (THE_CAT, "cat"), ("supercalifragilistic", "super"),
@@ -2148,23 +2149,60 @@ def _wordpiece_tokenizer(vocab: dict[str, int], lowercase: bool):
     return tokenizer
 
 
+# Issue #883: what BERT's BasicTokenizer does that the Whitespace pipeline does not -- punctuation
+# split one character at a time, accents stripped when lowercasing, CJK padded, controls dropped.
+BERT_BASIC_TEXTS = [
+    "wait...", "caf\u00e9", "a_b", "na\u00efve r\u00e9sum\u00e9", "\u00c5ngstr\u00f6m",
+    "\u00bfQu\u00e9?", "\u4e2d\u6587\u5b57", "\u65e5\u672c\u8a9e\u30c6\u30ad\u30b9\u30c8",
+    "x\u0000y", "a\u200bb", "hello\u00adworld", "x\u0301", "Hello, World!", "don't", "e-mail",
+    "tab\there", "$100.50", "@user #tag", "a\u3000b\u00a0c", "\U00020000x \U0001f600 ok",
+    "e\u0301cole \u00c9COLE", "x\ufffdy", "\u201cquoted\u201d \u2014 dash",
+]
+
+# Pieces the BERT texts above can reach, so the corpus shows matches and not only [UNK].
+BERT_BASIC_VOCAB = [
+    "wait", "_", "b", "cafe", "caf\u00e9", NAIVE_FOLDED, "resume", "ang", "##strom", "que", "\u00bf",
+    "\u4e2d", "\u6587", "\u65e5", "\u672c", "\u8a9e", "\u30c6", "##\u30ad", "##\u30b9",
+    "##\u30c8", "x", "##y", "ab", "##world", ",", "'", "-", "$", "@", "#", "don", "t", "e", "mail",
+    "tab", "here", "100", "50", "user", "tag", "c", "ok", "\U00020000", "ecole", "\u201c",
+    "\u201d", "\u2014", "dash", "quoted", "y", "Hello", "World",
+]
+
+
+def _bert_basic_tokenizer(vocab: dict[str, int], lowercase: bool):
+    """transformers' BertTokenizer pipeline as tokenizers spells it: BertNormalizer + BertPreTokenizer."""
+    from tokenizers import Tokenizer  # noqa: PLC0415
+    from tokenizers.models import WordPiece  # noqa: PLC0415
+    from tokenizers.normalizers import BertNormalizer  # noqa: PLC0415
+    from tokenizers.pre_tokenizers import BertPreTokenizer  # noqa: PLC0415
+
+    tokenizer = Tokenizer(WordPiece(vocab, unk_token=UNK_TOKEN, max_input_chars_per_word=100))
+    tokenizer.normalizer = BertNormalizer(
+        clean_text=True, handle_chinese_chars=True, strip_accents=None, lowercase=lowercase)
+    tokenizer.pre_tokenizer = BertPreTokenizer()
+    return tokenizer
+
+
 def generate_vocab_txt() -> dict:
-    """Freeze a vocab.txt and what transformers' loader makes of it.
+    """Freeze a vocab.txt and what transformers' loader and BertTokenizer make of it.
 
     The file content is embedded so the C# side replays the exact bytes rather
-    than a second fixture that could drift away from this one.
+    than a second fixture that could drift away from this one. Since #883 the
+    route runs BERT's BasicTokenizer, cased and uncased.
     """
-    tokens = list(WORDPIECE_VOCAB)
+    tokens = list(WORDPIECE_VOCAB) + BERT_BASIC_VOCAB
     # transformers reads the file in text mode and does token.rstrip("\n"); the
     # trailing newline of the last line therefore adds no entry.
     content = "".join(f"{token}\n" for token in tokens)
     vocab = {token: index for index, token in enumerate(tokens)}
 
-    tokenizer = _wordpiece_tokenizer(vocab, lowercase=False)
     cases = []
-    for i, text in enumerate(WORDPIECE_TEXTS):
-        enc = tokenizer.encode(text)
-        cases.append({"id": i, "text": text, "tokens": enc.tokens, "ids": enc.ids})
+    for model, lowercase in (("cased", False), ("uncased", True)):
+        tokenizer = _bert_basic_tokenizer(vocab, lowercase)
+        for text in WORDPIECE_TEXTS + BERT_BASIC_TEXTS:
+            enc = tokenizer.encode(text)
+            cases.append({"id": len(cases), "model": model, "text": text,
+                          "tokens": enc.tokens, "ids": enc.ids})
 
     return {
         "metadata": {
@@ -2173,7 +2211,8 @@ def generate_vocab_txt() -> dict:
             "library_version": version("tokenizers"),
             "reference_calls": [
                 "transformers.BertTokenizer vocab.txt loading: rstrip('\\n') then vocab[token] = index",
-                "tokenizers.Tokenizer(WordPiece(vocab, unk_token)).encode",
+                "tokenizers.Tokenizer(WordPiece(vocab, unk_token)) with BertNormalizer(lowercase) "
+                "and BertPreTokenizer, .encode",
             ],
             "vocab_txt": content,
             "vocab": vocab,

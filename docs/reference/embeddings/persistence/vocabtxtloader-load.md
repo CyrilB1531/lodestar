@@ -41,6 +41,11 @@ The id **is** the line number, so the file's order is the vocabulary's order and
 `vocab.txt` is a different vocabulary. Two quirks of the Python loop this matches are reproduced
 deliberately rather than corrected; `docs/equivalence.md`'s loader row names them.
 
+The vocabulary comes back with
+[`WordPieceVocabulary.BasicTokenization`](../tokenization/wordpiecevocabulary.md) set, which is BERT's
+pipeline; `vocab with { BasicTokenization = false }` splits as `pre_tokenizers.Whitespace()` does
+instead, which is what this route did through `Lodestar.Embeddings` 0.7.0.
+
 The defaults `[UNK]` and `##` are BERT's. A model using other markers has to say so here, because
 `vocab.txt` records neither.
 

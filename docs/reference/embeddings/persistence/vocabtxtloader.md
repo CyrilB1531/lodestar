@@ -20,10 +20,15 @@ WordPieceVocabulary vocab = VocabTxtLoader.Load("bert-base-uncased/vocab.txt", l
 var tokenizer = new WordPieceTokenizer(vocab);
 ```
 
-**Remarks** — this is **the** route for stock BERT, not a fallback. A HuggingFace BERT
-`tokenizer.json` declares a `BertPreTokenizer` and a full `BertNormalizer`, which
-[`TokenizerJsonLoader.LoadWordPiece`](tokenizerjsonloader-loadwordpiece.md) refuses because this
-package does not reproduce those steps. `vocab.txt` carries no pipeline to disagree about.
+**Remarks** — this is **the** route for stock BERT, not a fallback. The vocabulary it returns has
+[`WordPieceVocabulary.BasicTokenization`](../tokenization/wordpiecevocabulary.md) set, so the tokenizer
+runs BERT's BasicTokenizer ahead of WordPiece as `transformers.BertTokenizer` does: control characters
+dropped, CJK ideographs padded, each punctuation character a token of its own, and accents stripped
+when `lowercase` is set. `café` in an uncased checkpoint is `cafe`, not `[UNK]`. A HuggingFace BERT
+`tokenizer.json` declares the same steps as a `BertPreTokenizer` and a full `BertNormalizer`, which
+[`TokenizerJsonLoader.LoadWordPiece`](tokenizerjsonloader-loadwordpiece.md) still refuses.
+[Decision 0144](../../../decisions/0144-a-vocab-txt-runs-berts-basic-tokenizer.md) has why the
+route changed.
 
 The format records nothing but the tokens, so everything else is a parameter —
 [`Load`](vocabtxtloader-load.md) has the three that matter and why `lowercase` is the dangerous

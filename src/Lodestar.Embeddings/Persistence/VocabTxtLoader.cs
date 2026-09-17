@@ -10,10 +10,9 @@ namespace Lodestar.Embeddings.Persistence;
 /// line number.
 /// </summary>
 /// <remarks>
-/// Matches <c>transformers.BertTokenizer</c>'s vocabulary loading — see
-/// <c>docs/equivalence.md</c>'s loader row for the two Python-loop quirks
-/// reproduced, and the guide's "Loading vocabularies" section for a worked
-/// example and what stays a parameter (not in this file).
+/// Matches <c>transformers.BertTokenizer</c>'s vocabulary loading, with <see cref="WordPieceVocabulary.BasicTokenization"/>
+/// set as its pipeline is. <c>docs/equivalence.md</c>'s loader row has the two Python-loop quirks reproduced,
+/// and the guide's "Loading vocabularies" section what stays a parameter.
 /// </remarks>
 public static class VocabTxtLoader
 {
@@ -132,7 +131,8 @@ public static class VocabTxtLoader
             throw new InvalidDataException(
                 $"The {SourceName} has no '{unkToken}' entry. Pass the unknown token this model actually uses.");
         }
-        return new WordPieceVocabulary(vocab, unkToken, continuationPrefix, lowercase);
+        // A vocab.txt is BERT's, and BertTokenizer runs its BasicTokenizer ahead of WordPiece (#883).
+        return new WordPieceVocabulary(vocab, unkToken, continuationPrefix, lowercase) { BasicTokenization = true };
     }
 
     private static string Decode(ReadOnlyMemory<byte> payload)
