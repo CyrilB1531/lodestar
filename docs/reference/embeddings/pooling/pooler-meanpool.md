@@ -14,7 +14,7 @@ padding with zero. `attentionMask` has length `seqLen`.
 
 **Returns** — `float[]` of length `dim`, the mean of the masked token vectors. Not normalized.
 
-**Exceptions** — `ArgumentException` when the spans do not match the shape the other arguments declare.
+**Exceptions** — `ArgumentException` when the spans do not match the shape the other arguments declare. `ArgumentOutOfRangeException` when `seqLen` or `dim` is negative.
 
 **Example** — three positions, one of them padding.
 

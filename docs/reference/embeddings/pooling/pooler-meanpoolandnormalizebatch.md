@@ -14,7 +14,7 @@ every one, `dim` the embedding dimension.
 
 **Returns** — `float[][]`, one unit-length vector per sequence, in batch order.
 
-**Exceptions** — `ArgumentException` when the spans do not match the shape the other arguments declare.
+**Exceptions** — `ArgumentException` when the spans do not match the shape the other arguments declare. `ArgumentOutOfRangeException` when `batchSize`, `seqLen` or `dim` is negative.
 
 **Example** — a whole forward pass turned into sentence embeddings.
 

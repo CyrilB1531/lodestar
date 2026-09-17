@@ -25,12 +25,16 @@ public static class Pooler
     /// <param name="dim">Embedding dimension.</param>
     /// <param name="attentionMask">Length <paramref name="seqLen"/>; non-zero marks a real token.</param>
     /// <returns>The pooled <c>dim</c>-length vector.</returns>
-    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> is shorter than <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, or <paramref name="attentionMask"/> does not cover one mask entry per token.</exception>
+    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> does not hold exactly <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, or <paramref name="attentionMask"/> does not cover one mask entry per token.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="seqLen"/> or <paramref name="dim"/> is negative.</exception>
     public static float[] MeanPool(ReadOnlySpan<float> tokenEmbeddings, int seqLen, int dim, ReadOnlySpan<long> attentionMask)
     {
-        if (tokenEmbeddings.Length != seqLen * dim)
+        // A negative dim with seqLen 0 passed the length check and failed in new float[dim] (#902).
+        Guard.NotLessThan(seqLen, 0);
+        Guard.NotLessThan(dim, 0);
+        if (tokenEmbeddings.Length != (long)seqLen * dim)
         {
-            throw new ArgumentException($"tokenEmbeddings length {tokenEmbeddings.Length} != seqLen*dim {seqLen * dim}.", nameof(tokenEmbeddings));
+            throw new ArgumentException($"tokenEmbeddings length {tokenEmbeddings.Length} != seqLen*dim {(long)seqLen * dim}.", nameof(tokenEmbeddings));
         }
         if (attentionMask.Length != seqLen)
         {
@@ -57,7 +61,8 @@ public static class Pooler
     /// <param name="seqLen">Padded length of every sequence.</param>
     /// <param name="dim">Embedding dimension.</param>
     /// <param name="attentionMask">Row-major <c>[batchSize × seqLen]</c>.</param>
-    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> is shorter than <paramref name="batchSize"/> &#215; <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, or <paramref name="attentionMask"/> does not cover one mask entry per token.</exception>
+    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> does not hold exactly <paramref name="batchSize"/> &#215; <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, or <paramref name="attentionMask"/> does not cover one mask entry per token.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="batchSize"/>, <paramref name="seqLen"/> or <paramref name="dim"/> is negative.</exception>
     public static float[][] MeanPoolBatch(ReadOnlySpan<float> tokenEmbeddings, int batchSize, int seqLen, int dim, ReadOnlySpan<long> attentionMask)
     {
         ValidateBatch(tokenEmbeddings, batchSize, seqLen, dim, attentionMask);
@@ -129,7 +134,8 @@ public static class Pooler
     /// <param name="seqLen">Number of tokens.</param>
     /// <param name="dim">Embedding dimension.</param>
     /// <param name="attentionMask">Length <paramref name="seqLen"/>; non-zero marks a real token.</param>
-    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> is shorter than <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, or <paramref name="attentionMask"/> does not cover one mask entry per token.</exception>
+    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> does not hold exactly <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, or <paramref name="attentionMask"/> does not cover one mask entry per token.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="seqLen"/> or <paramref name="dim"/> is negative.</exception>
     public static float[] MeanPoolAndNormalize(ReadOnlySpan<float> tokenEmbeddings, int seqLen, int dim, ReadOnlySpan<long> attentionMask)
     {
         float[] pooled = MeanPool(tokenEmbeddings, seqLen, dim, attentionMask);
@@ -148,7 +154,8 @@ public static class Pooler
     /// <param name="seqLen">Padded length of every sequence.</param>
     /// <param name="dim">Embedding dimension.</param>
     /// <param name="attentionMask">Row-major <c>[batchSize × seqLen]</c>.</param>
-    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> is shorter than <paramref name="batchSize"/> &#215; <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, or <paramref name="attentionMask"/> does not cover one mask entry per token.</exception>
+    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> does not hold exactly <paramref name="batchSize"/> &#215; <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, or <paramref name="attentionMask"/> does not cover one mask entry per token.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="batchSize"/>, <paramref name="seqLen"/> or <paramref name="dim"/> is negative.</exception>
     public static float[][] MeanPoolAndNormalizeBatch(ReadOnlySpan<float> tokenEmbeddings, int batchSize, int seqLen, int dim, ReadOnlySpan<long> attentionMask)
     {
         float[][] pooled = MeanPoolBatch(tokenEmbeddings, batchSize, seqLen, dim, attentionMask);
@@ -165,16 +172,18 @@ public static class Pooler
         {
             throw new ArgumentOutOfRangeException(nameof(batchSize), batchSize, "batchSize must not be negative.");
         }
-        if (tokenEmbeddings.Length != batchSize * seqLen * dim)
+        Guard.NotLessThan(seqLen, 0);
+        Guard.NotLessThan(dim, 0);
+        if (tokenEmbeddings.Length != (long)batchSize * seqLen * dim)
         {
             throw new ArgumentException(
-                $"tokenEmbeddings length {tokenEmbeddings.Length} != batchSize*seqLen*dim {batchSize * seqLen * dim}.",
+                $"tokenEmbeddings length {tokenEmbeddings.Length} != batchSize*seqLen*dim {(long)batchSize * seqLen * dim}.",
                 nameof(tokenEmbeddings));
         }
-        if (attentionMask.Length != batchSize * seqLen)
+        if (attentionMask.Length != (long)batchSize * seqLen)
         {
             throw new ArgumentException(
-                $"attentionMask length {attentionMask.Length} != batchSize*seqLen {batchSize * seqLen}.",
+                $"attentionMask length {attentionMask.Length} != batchSize*seqLen {(long)batchSize * seqLen}.",
                 nameof(attentionMask));
         }
     }

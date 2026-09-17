@@ -51,3 +51,10 @@ has why the two reads differ.
 
 **See also** — [`NpyFile`](npyfile.md), [`NpyFile.Read`](npyfile-read.md),
 [the persistence index](../persistence.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`NpyBlock.Equals`](npyblock-equals.md) | Value equality over the elements and the shape. |
+| [`NpyBlock.GetHashCode`](npyblock-gethashcode.md) | A hash consistent with it. |
