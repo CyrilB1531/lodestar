@@ -68,8 +68,10 @@ The vector ranking is `a, b, c`; the keyword ranking is `c` alone, since `zebra`
 **The keyword ranking holds only the records the keywords matched.** `Bm25Index.Top` returns every
 document, the zero-scoring ones included in index order, and `RankFusion.Rrf` reads a ranking's
 positions rather than its scores — so passing that list through would hand an unmatched record credit
-for the order it was inserted in. A record enters the keyword ranking only when its BM25 score is
-above zero.
+for the order it was inserted in. A record enters the keyword ranking when its full-text value holds
+at least one of the keywords, **whatever the sign of its BM25 score**: the default IDF is zero for a
+term in exactly half the records, and its floor for a commoner term is negative whenever the mean IDF
+is, so a matched record can score zero or less — in a one-record collection it always does.
 
 **A keyword outside the vocabulary contributes nothing** and does not fail, which is what BM25 means
 by an unseen term. A collection whose full-text values yield no tokens at all — every word a stop

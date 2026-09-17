@@ -18,10 +18,11 @@ internal sealed class DerivedIndexes<TKey, TRecord>
     where TRecord : class
 {
     private DerivedIndexes(
-        EmbeddingIndex vectors, float[] block, Bm25Index? keywords, CountVectorizer? vectorizer, TKey[] keys, TRecord[] records)
+        EmbeddingIndex vectors, float[] block, CsrMatrix? counts, Bm25Index? keywords, CountVectorizer? vectorizer, TKey[] keys, TRecord[] records)
     {
         Vectors = vectors;
         Block = block;
+        Counts = counts;
         Keywords = keywords;
         Vectorizer = vectorizer;
         Keys = keys;
@@ -37,6 +38,13 @@ internal sealed class DerivedIndexes<TKey, TRecord>
     /// it is the index's own storage rather than a copy, and nothing writes to it after the build.
     /// </remarks>
     public ReadOnlyMemory<float> Block { get; }
+
+    /// <summary>The term counts <see cref="Keywords"/> was built over, which say what a query matched.</summary>
+    /// <remarks>
+    /// A score cannot say it: the default IDF is zero for a term in half the records and its floor
+    /// is negative when the mean IDF is, so a match can score at or below an unmatched zero.
+    /// </remarks>
+    public CsrMatrix? Counts { get; }
 
     /// <summary>The keyword half, or <see langword="null"/> when no property is full-text indexed.</summary>
     public Bm25Index? Keywords { get; }
@@ -100,12 +108,12 @@ internal sealed class DerivedIndexes<TKey, TRecord>
 
         if (documents.Count == 0)
         {
-            return new DerivedIndexes<TKey, TRecord>(vectors, block, null, null, keys, held);
+            return new DerivedIndexes<TKey, TRecord>(vectors, block, null, null, null, keys, held);
         }
 
         var vectorizer = new CountVectorizer(options.Vectorizer);
         CsrMatrix counts = vectorizer.FitTransform(documents);
         return new DerivedIndexes<TKey, TRecord>(
-            vectors, block, new Bm25Index(counts, options.Bm25), vectorizer, keys, held);
+            vectors, block, counts, new Bm25Index(counts, options.Bm25), vectorizer, keys, held);
     }
 }
