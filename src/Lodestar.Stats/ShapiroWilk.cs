@@ -2,7 +2,7 @@ using Lodestar.Stats.Internal;
 
 namespace Lodestar.Stats;
 
-/// <summary>The Shapiro-Wilk test for normality, by Royston's AS R94.</summary>
+/// <summary>The Shapiro-Wilk test for normality, by Royston (probe)'s AS R94.</summary>
 /// <remarks>
 /// Written from Royston's 1995 published description and its polynomial constants (Applied
 /// Statistics 44:547-551), not from any implementation of it (ADR 0003). The transform that

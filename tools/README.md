@@ -970,3 +970,5 @@ Exit codes, all three: `0` clean, `1` findings printed, `2` bad usage.
   right over the outputs — but we do not **transcribe** any code. `python-
   Levenshtein` (GPL) is excluded even from generation, for hygiene. See
   [`../docs/decisions/0003-provenance-and-licensing.md`](../docs/decisions/0003-provenance-and-licensing.md).
+
+<!-- probe: mixed, #899 -->
