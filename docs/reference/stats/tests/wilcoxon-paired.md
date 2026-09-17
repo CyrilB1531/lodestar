@@ -16,7 +16,9 @@ exhaustive permutation test, its normal approximation, or a choice between them.
 what to do with a `NaN`; scipy's `nan_policy`, defaulting to
 [`NanPolicy.Propagate`](../nanpolicy.md).
 
-**Returns** — `TestResult`: the smaller of the two signed-rank sums, and the p-value.
+**Returns** — `TestResult`: the signed-rank statistic and the p-value. Two-sided, the statistic is the
+smaller of the two rank sums; under [`Alternative.Less`](alternative.md) or [`Alternative.Greater`](alternative.md) it is the sum of the
+positive ranks, which can be the larger one — scipy's `wilcoxon` reports the same.
 
 **Exceptions** — `ArgumentException` when the two samples differ in length, are empty, or
 `nanPolicy` is `NanPolicy.Raise` and either sample holds a `NaN`. `ArgumentOutOfRangeException`
