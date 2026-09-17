@@ -476,7 +476,7 @@ Oracled against **`statsmodels` 0.15.0**, already in the lock since #566
 
 | Python | Library | C# | Differences |
 | --- | --- | --- | --- |
-| `adfuller(x, maxlag=None, regression="c", autolag="AIC")` | statsmodels | [`Stationarity.AugmentedDickeyFuller(series, options)`](reference/stats-timeseries/stationarity-tests/stationarity-augmenteddickeyfuller.md) | Identical statistic, p-value, lag, observation count, critical values and `icbest`, every `regression` and `autolag`. The regressions are solved by `Lodestar.Stats.Regression`'s Householder least squares, the one [`OrdinaryLeastSquares.Fit`](reference/stats-regression/ols/ordinaryleastsquares-fit.md) uses, where the reference uses a pseudo-inverse: an ordering difference, well inside the corpus's `1e-9`. A constant series is refused where the reference raises. |
+| `adfuller(x, maxlag=None, regression="c", autolag="AIC")` | statsmodels | [`Stationarity.AugmentedDickeyFuller(series, options)`](reference/stats-timeseries/stationarity-tests/stationarity-augmenteddickeyfuller.md) | Identical statistic, p-value, lag, observation count, critical values and `icbest`, every `regression` and `autolag`. The regressions are solved by `Lodestar.Stats.Regression`'s Householder reflections, the ones [`OrdinaryLeastSquares.Fit`](reference/stats-regression/ols/ordinaryleastsquares-fit.md) falls back to, where the reference uses a pseudo-inverse: an ordering difference, well inside the corpus's `1e-9`. A constant series is refused where the reference raises. |
 | `regression=`, `autolag=`, `maxlag=` | statsmodels | [`DickeyFullerOptions`](reference/stats-timeseries/stationarity-tests/dickeyfulleroptions.md) | `TrendTerms` for `"n"`, `"c"`, `"ct"`, `"ctt"`; `LagSelection` for `"AIC"`, `"BIC"`, `"t-stat"`, `None`. |
 | `store=`, `regresults=` | statsmodels | — (no counterpart) | The intermediate regressions are not returned. |
 | `kpss(x, regression="c", nlags="auto")` | statsmodels | [`Stationarity.Kpss(series, options)`](reference/stats-timeseries/stationarity-tests/stationarity-kpss.md) | Identical statistic, p-value, lag window and critical values. **The `InterpolationWarning` is a property**: [`KpssResult.PValueBound`](reference/stats-timeseries/stationarity-tests/kpssresult.md) says the returned p-value is the table's end and which way the truth lies. The `ct` residuals come from a closed-form line rather than `OLS`, agreeing at the corpus's tolerance. |
@@ -509,7 +509,7 @@ Oracled against **`statsmodels` 0.15.0**, already in the lock since #566
 
 | Python | Library | C# | Differences |
 | --- | --- | --- | --- |
-| `sm.OLS(y, sm.add_constant(X)).fit()` | statsmodels | [`OrdinaryLeastSquares.Fit(design, response, featureCount)`](reference/stats-regression/ols/ordinaryleastsquares-fit.md) | Identical over the whole table. `X` is a row-major span here rather than a 2-D array, and the constant column is not supplied: [`OlsOptions.WithIntercept`](reference/stats-regression/ols/olsoptions.md) prepends it, so `Coefficients[0]` is the intercept. Solved through a Householder QR on both sides. |
+| `sm.OLS(y, sm.add_constant(X)).fit()` | statsmodels | [`OrdinaryLeastSquares.Fit(design, response, featureCount)`](reference/stats-regression/ols/ordinaryleastsquares-fit.md) | Identical over the whole table. `X` is a row-major span here rather than a 2-D array, and the constant column is not supplied: [`OlsOptions.WithIntercept`](reference/stats-regression/ols/olsoptions.md) prepends it, so `Coefficients[0]` is the intercept. Solved through the normal equations when the diagonal of `XᵀX`'s Cholesky factor stays within a ratio of 200 and through Householder reflections otherwise, where the reference's default `method="pinv"` takes a pseudo-inverse: an ordering difference, inside the corpus's `1e-9`. |
 | `.params`, `.bse`, `.tvalues`, `.pvalues` | statsmodels | [`OlsSummary.Coefficients`](reference/stats-regression/ols/olssummary.md), `.StandardErrors`, `.TStatistics`, `.PValues` | Identical, compared relatively — the corpus reaches `2.9e-11`, where an absolute tolerance would assert only that a number came back ([decision 0081](decisions/0081-the-stats-numerical-layer-stays-internal.md)). |
 | `.params`, `.bse`, `.tvalues`, `.ssr` alone | statsmodels | [`OrdinaryLeastSquares.Estimate(design, response, featureCount, withIntercept)`](reference/stats-regression/ols/ordinaryleastsquares-estimate.md) → [`OlsEstimate`](reference/stats-regression/ols/olsestimate.md) | Identical to `Fit` on the numbers it keeps, over the same corpus; the non-robust standard errors only. No statsmodels call stops here — `fit()` computes the whole table — so this is `Fit` without what a caller fitting many regressions never reads. |
 | `.conf_int(alpha=0.05)` | statsmodels | [`OlsSummary.ConfidenceLower`](reference/stats-regression/ols/olssummary.md) and `.ConfidenceUpper` | Identical. Stated as a *level* rather than an alpha: `ConfidenceLevel = 0.95` is `alpha=0.05`. Two parallel lists rather than an `n × 2` array. |
@@ -548,8 +548,9 @@ Oracled against **`statsmodels` 0.15.0**, already in the lock since #566
 
 ## Lodestar.Stats.Regression — generalized linear models
 
-Fitted by IRLS over the same Householder-QR least-squares core
-[`OrdinaryLeastSquares.Fit`](reference/stats-regression/ols/ordinaryleastsquares-fit.md) uses
+Fitted by IRLS over the Householder reflections
+[`OrdinaryLeastSquares.Fit`](reference/stats-regression/ols/ordinaryleastsquares-fit.md) falls back to, never its
+normal equations
 ([decision 0111](decisions/0111-the-generalized-linear-model-does-not-earn-its-own-package.md)).
 
 | Python | Library | C# | Differences |

@@ -2,8 +2,8 @@ namespace Lodestar.Stats.Regression.Internal;
 
 /// <summary>The Householder least squares behind <c>OrdinaryLeastSquares.Estimate</c>, with Q never formed.</summary>
 /// <remarks>
-/// <c>OrdinaryLeastSquares.Fit</c> builds Q explicitly for the robust covariances' leverages, and a second QR
-/// for the VIFs. An estimate needs neither: the reflections are applied to the response as they are
+/// <c>OrdinaryLeastSquares.Fit</c> also builds the VIFs and, when asked, a robust covariance from the design
+/// row by row. An estimate needs neither: the reflections are applied to the response as they are
 /// formed, and R's inverse gives the coefficients and their standard errors (#671).
 /// </remarks>
 internal static class HouseholderEstimate
