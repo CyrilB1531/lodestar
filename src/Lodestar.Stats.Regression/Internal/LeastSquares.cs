@@ -124,6 +124,7 @@ internal static class LeastSquares
     private static (double[] Coefficients, double[] InverseUpper) FromTriangle(
         double[] a, int rowCount, int parameterCount, double[] projected)
     {
+        RequireFullRank(a, rowCount, parameterCount, DesignParameter);
         double[] inverseUpper = InvertUpper(Upper(a, rowCount, parameterCount), parameterCount);
         var coefficients = new double[parameterCount];
         for (int i = 0; i < parameterCount; i++)
@@ -138,6 +139,44 @@ internal static class LeastSquares
         }
 
         return (coefficients, inverseUpper);
+    }
+
+    /// <summary>The public parameter every fit reaching the reflections takes its design in, named by a refusal.</summary>
+    private const string DesignParameter = "design";
+
+    /// <summary>Machine epsilon for <see cref="double"/>, which <see cref="double.Epsilon"/> is not.</summary>
+    private const double MachineEpsilon = 2.220446049250313e-16;
+
+    /// <summary>Refuses a triangularized design one of whose columns lies within rounding of the span of those before it.</summary>
+    /// <remarks>
+    /// <c>|Rₖₖ|</c> over the column's norm, which the reflections preserve in <c>R</c>'s column, is the sine of its angle to
+    /// that span, so the test does not move with a column's scale. Below <c>max(n, p)·ε</c>, <c>numpy.linalg.matrix_rank</c>'s
+    /// tolerance, the pivot is rounding: <c>x₂ = 2·x₁</c> divides by zero and <c>x₂ = 3·x₁</c> by 2e-16, and either filled the
+    /// table with NaN or with coefficients near 1e14 where statsmodels' pseudo-inverse answers the minimum-norm fit (#867).
+    /// </remarks>
+    /// <exception cref="ArgumentException">A column is dependent on the columns before it.</exception>
+    private static void RequireFullRank(double[] a, int rowCount, int parameterCount, string parameterName)
+    {
+        double tolerance = Math.Max(rowCount, parameterCount) * MachineEpsilon;
+        for (int k = 0; k < parameterCount; k++)
+        {
+            int column = k * rowCount;
+            double squaredNorm = 0.0;
+            for (int i = 0; i <= k; i++)
+            {
+                squaredNorm += a[column + i] * a[column + i];
+            }
+
+            // Not negated into a > test: a NaN from the caller's data is not a collinear column.
+            if (Math.Abs(a[column + k]) <= tolerance * Math.Sqrt(squaredNorm))
+            {
+                throw new ArgumentException(
+                    $"design is rank-deficient or collinear: coefficient {k}'s column, intercept first when one is "
+                    + "fitted, lies within rounding of the span of the columns before it, so the fit has no unique "
+                    + "solution. Drop the dependent regressor.",
+                    parameterName);
+            }
+        }
     }
 
     /// <summary>The largest condition number of the column-scaled design the normal equations are trusted with.</summary>

@@ -24,7 +24,7 @@ public static class GeneralizedLeastSquares
     /// <param name="options">Whether to fit an intercept, which covariance of the estimates, and at what confidence; <see langword="null"/> fits one at 0.95.</param>
     /// <returns>The fitted model, with its standard errors, t statistics, p-values, intervals and VIFs.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or <paramref name="covariance"/> holds a value that is not finite.</exception>
-    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, <paramref name="covariance"/> is not the square of that length, is not symmetric or is not positive definite, <paramref name="options"/> asks for <see cref="CovarianceType.Hac"/> or <see cref="CovarianceType.Cluster"/>, or no residual degrees of freedom are left.</exception>
+    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, <paramref name="covariance"/> is not the square of that length, is not symmetric or is not positive definite, <paramref name="options"/> asks for <see cref="CovarianceType.Hac"/> or <see cref="CovarianceType.Cluster"/>, no residual degrees of freedom are left, or a column of the whitened design, intercept included, is collinear with the columns before it.</exception>
     /// <remarks>
     /// R² follows the reference: centred, with an intercept, on the mean estimated in whitened space. The VIFs
     /// read the design as given, as <c>variance_inflation_factor</c> does.

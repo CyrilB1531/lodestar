@@ -36,8 +36,8 @@ is not a declared `GlmFamily` member; a setting outside its own range throws fro
 number of rows, when the lengths disagree, when a response value is outside its family — a
 `Binomial` response that is not `0` or `1`, a count one that is negative, fractional or
 infinite, or a `Gamma` one that is not finite and above zero — when a count response is zero in every row, when no residual degree of
-freedom is left, when the design is rank deficient and the weighted least squares has no unique
-solution, or when `GlmOptions.NegativeBinomialAlpha` is set for a family other than
+freedom is left, when a column of the weighted design lies within rounding of the span of the columns
+before it and the weighted least squares has no unique solution, or when `GlmOptions.NegativeBinomialAlpha` is set for a family other than
 `NegativeBinomial`, when `GlmOptions.Link` names a link the family is not fitted through here, or when
 the inverse link takes a `Gamma` mean to zero or below during IRLS. `InvalidOperationException` when
 IRLS did not converge and `GlmOptions.ThrowOnNonConvergence` says throw. The second overload also
