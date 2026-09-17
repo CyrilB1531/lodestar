@@ -136,7 +136,8 @@ public static class SerialCorrelation
 
             int index = lag - 1;
             int df = lag - settings.ModelDegreesOfFreedom;
-            statistics[index] = n * (n + 2) * ljung;
+            // In double: n * (n + 2) overflowed int from n = 46,340 and turned every statistic negative (#864).
+            statistics[index] = (double)n * (n + 2) * ljung;
             degreesOfFreedom[index] = df;
             pValues[index] = df > 0
                 ? Distributions.ChiSquaredSf(statistics[index], df)
