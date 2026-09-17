@@ -38,11 +38,15 @@
     original guard only ever inspected the Lodestar.Fuzzy assembly. A direct
     ProjectReference takes precedence over the package of the same id, which
     restores the netstandard2.0 build; the extended guard proves it.
+    Lodestar.Abstractions is pinned for the same reason one hop further down:
+    Lodestar.Text reaches it through a PackageReference of its own (#888).
   -->
   <ItemGroup>
     <ProjectReference Include="../../src/Lodestar.Fuzzy/Lodestar.Fuzzy.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.0" />
     <ProjectReference Include="../../src/Lodestar.Text/Lodestar.Text.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
+    <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.0" />
   </ItemGroup>
 

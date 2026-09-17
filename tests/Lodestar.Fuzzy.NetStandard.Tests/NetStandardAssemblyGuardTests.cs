@@ -40,4 +40,14 @@ public sealed class NetStandardAssemblyGuardTests
 
         Assert.Equal(".NETStandard,Version=v2.0", framework);
     }
+
+    /// <summary>And for Lodestar.Abstractions, which Lodestar.Text reaches through a package of its own (#888).</summary>
+    [Fact]
+    public void Suite_runs_against_the_netstandard2_0_build_of_Lodestar_Abstractions()
+    {
+        Assembly assembly = typeof(Lodestar.Abstractions.CsrMatrix).Assembly;
+        string? framework = assembly.GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName;
+
+        Assert.Equal(".NETStandard,Version=v2.0", framework);
+    }
 }

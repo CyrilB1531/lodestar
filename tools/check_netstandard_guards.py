@@ -13,10 +13,14 @@ Two things make the pin fail silently, and this checks both.
    projects reach each other through published packages, and NuGet resolves package
    assets against the *consuming* project's framework — net10.0 for a mirror. So a
    mirror that pins only its own library still loads its dependencies' net10.0 build.
-   Every ``Lodestar.*`` package a library depends on therefore needs its own pinned
-   ``ProjectReference`` in the mirror. Measured on 2026-09-02: ``Lodestar.Text`` and
-   ``Lodestar.Decomposition`` were running against the net10.0 ``Lodestar.Abstractions``,
-   832 tests green and half of each one proving nothing (#529).
+   Every ``Lodestar.*`` package a library depends on, **directly or through another
+   one**, therefore needs its own pinned ``ProjectReference`` in the mirror. Measured on
+   2026-09-02: ``Lodestar.Text`` and ``Lodestar.Decomposition`` were running against the
+   net10.0 ``Lodestar.Abstractions``, 832 tests green and half of each one proving nothing
+   (#529). Read on direct edges only, the same leak survived one hop further down in the
+   ``Lodestar.Fuzzy``, ``Lodestar.Extensions.VectorData`` and ``Lodestar.Stats.TimeSeries``
+   mirrors, which pinned ``Lodestar.Text`` or ``Lodestar.Decomposition`` and not the
+   ``Lodestar.Abstractions`` beneath them (#888).
 
 2. **Nothing asserts the pin at run time** unless the mirror carries
    ``NetStandardAssemblyGuardTests.cs``, which reads the loaded assembly's
@@ -35,6 +39,9 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 GUARD = "NetStandardAssemblyGuardTests.cs"
+
+# Every csproj is read as the SDK writes it.
+ENCODING = "utf-8"
 
 # The suffix every mirror's directory carries, spelled once.
 SUFFIX = ".NetStandard.Tests"
@@ -67,6 +74,22 @@ def mirror_pins(text: str, contract: str) -> set[str]:
     return set(pattern.findall(text))
 
 
+def dependencies_of(package: str) -> set[str]:
+    """Every Lodestar package this one loads, directly or through another, read from src/."""
+    found: set[str] = set()
+    pending = [package]
+    while pending:
+        current = pending.pop()
+        project = ROOT / "src" / current / f"{current}.csproj"
+        if not project.is_file():
+            continue
+        for dependency in SRC_PACKAGE_REFERENCE.findall(project.read_text(encoding=ENCODING)):
+            if dependency != package and dependency not in found:
+                found.add(dependency)
+                pending.append(dependency)
+    return found
+
+
 def mirrors() -> list[pathlib.Path]:
     return sorted((ROOT / "tests").glob(f"*{SUFFIX}"))
 
@@ -92,8 +115,8 @@ def failures_in(mirror: pathlib.Path) -> list[str]:
         return found
 
     contract = contract_of(package)
-    body = project.read_text(encoding="utf-8")
-    library = source.read_text(encoding="utf-8")
+    body = project.read_text(encoding=ENCODING)
+    library = source.read_text(encoding=ENCODING)
 
     # long-comment: the library has to declare the contract its mirror claims to replay,
     # or a mirror pinning a framework that does not exist reads as a pass with an
@@ -117,10 +140,12 @@ def failures_in(mirror: pathlib.Path) -> list[str]:
             f"does not carry.")
 
     pinned = mirror_pins(body, contract)
-    for dependency in sorted(set(SRC_PACKAGE_REFERENCE.findall(library))):
+    direct = set(SRC_PACKAGE_REFERENCE.findall(library))
+    for dependency in sorted(dependencies_of(package)):
         if dependency not in pinned:
+            how = "depends on" if dependency in direct else "loads, through another package,"
             found.append(
-                f"{project.relative_to(ROOT)}: {package} depends on {dependency}, which is not "
+                f"{project.relative_to(ROOT)}: {package} {how} {dependency}, which is not "
                 f"pinned here. SetTargetFramework does not cross a PackageReference, so this "
                 f"suite loads {dependency}'s net10.0 build. Add a ProjectReference to "
                 f"../../src/{dependency}/{dependency}.csproj with "

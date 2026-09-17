@@ -45,4 +45,12 @@ public sealed class NetStandardAssemblyGuardTests
     {
         Assert.Equal(NetStandard, FrameworkOf(typeof(Lodestar.Text.Search.Bm25Index)));
     }
+
+    /// <summary>And for Lodestar.Abstractions, whose term-count matrix the collection reads.</summary>
+    /// <remarks>Reached through Lodestar.Text's own PackageReference, one hop past the pins above (#888).</remarks>
+    [Fact]
+    public void Suite_runs_against_the_netstandard2_0_build_of_Lodestar_Abstractions()
+    {
+        Assert.Equal(NetStandard, FrameworkOf(typeof(Lodestar.Abstractions.CsrMatrix)));
+    }
 }

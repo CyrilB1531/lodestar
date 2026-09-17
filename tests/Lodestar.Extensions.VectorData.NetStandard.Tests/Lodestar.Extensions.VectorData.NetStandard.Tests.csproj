@@ -54,8 +54,8 @@
   <!--
     SetTargetFramework is what pins the reference to the netstandard2.0 build.
 
-    Lodestar.Embeddings and Lodestar.Text are listed explicitly, and that is not
-    redundant. Lodestar.Extensions.VectorData reaches both through a
+    Lodestar.Embeddings, Lodestar.Text and Lodestar.Abstractions are listed
+    explicitly, and that is not redundant. Lodestar.Extensions.VectorData reaches both through a
     PackageReference, and SetTargetFramework does not travel across one: NuGet
     resolves package assets against *this* project's target framework (net10.0),
     so the transitive dependencies would come from lib/net10.0 and the mirror
@@ -63,6 +63,8 @@
     Lodestar.Extensions.VectorData assembly would still pass. A direct
     ProjectReference takes precedence over the package of the same id, which
     restores the netstandard2.0 build; the extended guard proves it (#529).
+    Lodestar.Abstractions is one hop further: Lodestar.Text reaches it through a
+    PackageReference of its own, and the collection reads its CsrMatrix directly (#888).
   -->
   <ItemGroup>
     <ProjectReference Include="../../src/Lodestar.Extensions.VectorData/Lodestar.Extensions.VectorData.csproj"
@@ -70,6 +72,8 @@
     <ProjectReference Include="../../src/Lodestar.Embeddings/Lodestar.Embeddings.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.0" />
     <ProjectReference Include="../../src/Lodestar.Text/Lodestar.Text.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
+    <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.0" />
   </ItemGroup>
 

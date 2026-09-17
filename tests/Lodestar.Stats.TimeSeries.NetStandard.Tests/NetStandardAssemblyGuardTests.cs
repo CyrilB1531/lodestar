@@ -42,6 +42,13 @@ public sealed class NetStandardAssemblyGuardTests
         AssertNetStandard(typeof(Lodestar.Decomposition.QrDecomposition));
     }
 
+    /// <summary>The same guarantee for Lodestar.Abstractions, which Lodestar.Decomposition reaches through a package (#888).</summary>
+    [Fact]
+    public void Suite_runs_against_the_netstandard2_0_build_of_Lodestar_Abstractions()
+    {
+        AssertNetStandard(typeof(Lodestar.Abstractions.CsrMatrix));
+    }
+
     private static void AssertNetStandard(Type witness)
     {
         string? framework = witness.Assembly

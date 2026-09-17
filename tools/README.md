@@ -53,8 +53,8 @@ given:
 - `check_gpu_tests_force_cpu.py` refuses a `Lodestar.Gpu` test that uses whatever
   accelerator the machine happens to have.
 - `check_netstandard_guards.py` refuses a netstandard2.0 mirror that carries no
-  assembly guard, or that leaves one of its library's Lodestar dependencies
-  unpinned and therefore loaded from net10.0.
+  assembly guard, or that leaves one of its library's Lodestar dependencies, direct
+  or transitive, unpinned and therefore loaded from net10.0.
 - `check_machine_paths.py` refuses a tracked file that holds a path under
   someone's home directory.
 - `check_sdd_citations.py` refuses a file that cites a task's report or brief from a
@@ -483,13 +483,18 @@ python tools/check_netstandard_guards.py
 
 Two rules, both of which failed silently before [#529](https://github.com/CyrilB1531/lodestar/issues/529).
 
-**Every `Lodestar.*` package the library depends on needs its own pinned
-`ProjectReference` in the mirror.** `SetTargetFramework` does not travel across a
+**Every `Lodestar.*` package the library depends on, directly or through another one,
+needs its own pinned `ProjectReference` in the mirror.** `SetTargetFramework` does not travel across a
 `PackageReference`: NuGet resolves package assets against the *consuming* project's
 framework, which for a mirror is `net10.0`. So a mirror that pins only its own library
 still loads its dependencies' `net10.0` build. Measured on 2026-09-02: `Lodestar.Text`
 and `Lodestar.Decomposition` were running 832 tests against the `net10.0`
-`Lodestar.Abstractions`, all green.
+`Lodestar.Abstractions`, all green. The check follows each dependency's own
+`src/` project to the end of the chain, because a leak one hop down is the same leak:
+the `Lodestar.Fuzzy`, `Lodestar.Extensions.VectorData` and `Lodestar.Stats.TimeSeries`
+mirrors pinned `Lodestar.Text` or `Lodestar.Decomposition` and loaded the `net10.0`
+`Lodestar.Abstractions` beneath them
+([#888](https://github.com/CyrilB1531/lodestar/issues/888)).
 
 **Every mirror carries `NetStandardAssemblyGuardTests.cs`**, which reads the loaded
 assembly's `TargetFrameworkAttribute` at run time. Three of seven mirrors had no such
