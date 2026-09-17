@@ -23,7 +23,7 @@ point, which is rapidfuzz's score on any string; `TextElement.Utf16Unit` is the 
 **Returns** — `double` in `[0, 100]`: the word sets are formed, then
 [`PartialRatio`](fuzz-partialratio.md) is applied.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `element` is not a declared value.
+**Exceptions** — `ArgumentOutOfRangeException` when `element` is not a declared value. `ArgumentException` when the two strings hold more than 63,455 distinct code points above U+0020, which is what a `char` can rank one unit per code point; [`Fuzz.Ratio`](fuzz-ratio.md) answers such a pair, these scorers do not yet.
 
 **Example** — a subset of the words, scored as a fragment.
 

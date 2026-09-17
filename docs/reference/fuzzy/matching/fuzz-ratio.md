@@ -22,7 +22,7 @@ point, which is rapidfuzz's score on any string; `TextElement.Utf16Unit` is the 
 
 **Returns** — `double` in `[0, 100]`. `100` when identical, `0` when they share nothing.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `element` is not a declared value.
+**Exceptions** — `ArgumentOutOfRangeException` when `element` is not a declared value. This scorer has no upper bound on the alphabet: past the 63,455 code points a `char` can rank it compares the code points themselves.
 
 **Example** — a transposition, and the two extremes.
 
