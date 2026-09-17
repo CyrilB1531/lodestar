@@ -140,4 +140,19 @@ public sealed class DbscanEdgeTests
         Assert.Equal("samples", fit.ParamName);
         Assert.Equal("distances", precomputed.ParamName);
     }
+
+    /// <summary>
+    /// 65536 squared wraps an int to zero and 65537 squared to 131073, spans the check matched:
+    /// each must be refused as a shape rather than fail on an index later (#911).
+    /// </summary>
+    [Theory]
+    [InlineData(65536, 0)]
+    [InlineData(65537, 131073)]
+    public void A_sample_count_whose_square_overflows_an_int_is_refused_as_a_shape(int sampleCount, int length)
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => Dbscan.FitPrecomputed(new double[length], sampleCount, 1.0, 1));
+
+        Assert.Equal("distances", error.ParamName);
+    }
 }

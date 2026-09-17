@@ -102,10 +102,13 @@ public sealed class Dbscan
         Guard.NotLessThan(minimumSamples, 1);
         Positive(epsilon, nameof(epsilon));
 
-        if (distances.Length != sampleCount * sampleCount)
+        // Squared as a long: from 46341 samples an int product wraps, and 65536 wraps to zero,
+        // which an empty span would then match.
+        long expected = (long)sampleCount * sampleCount;
+        if (distances.Length != expected)
         {
             throw new ArgumentException(
-                $"distances holds {distances.Length} values, not the {sampleCount * sampleCount} "
+                $"distances holds {distances.Length} values, not the {expected} "
                 + $"a square matrix of {sampleCount} samples needs.",
                 nameof(distances));
         }

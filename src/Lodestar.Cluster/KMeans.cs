@@ -55,7 +55,7 @@ public sealed class KMeans
     /// <param name="clusterCount">How many clusters to find.</param>
     /// <param name="options">Where to start and when to stop; <see langword="null"/> takes the defaults.</param>
     /// <returns>A fitted clustering.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> or <paramref name="clusterCount"/> is not positive, or <paramref name="options"/> asks for fewer than one iteration.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> or <paramref name="clusterCount"/> is not positive, or <paramref name="options"/> asks for fewer than one iteration or a tolerance that is negative, infinite or not a number.</exception>
     /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one or a value that is not finite, there are fewer rows than clusters, or the given initial centres are the wrong shape or not finite.</exception>
     /// <remarks>
     /// The loop is the reference's: assign, update, stop on unchanged labels or on a centre
@@ -71,6 +71,14 @@ public sealed class KMeans
         Guard.NotLessThan(clusterCount, 1);
         KMeansOptions settings = options ?? new KMeansOptions();
         Guard.NotLessThan(settings.MaxIterations, 1);
+
+        // `!(>= 0)` so a NaN is refused rather than silently disabling the shift test; infinity is
+        // refused as the reference refuses it, whose range for tol is [0, inf).
+        if (!(settings.Tolerance >= 0.0) || double.IsPositiveInfinity(settings.Tolerance))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(options), settings.Tolerance, "Tolerance must be finite and zero or greater.");
+        }
 
         int sampleCount = Rows(samples, featureCount);
         Finite.Require(samples, nameof(samples));

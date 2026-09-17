@@ -128,4 +128,20 @@ public sealed class KMeansEdgeTests
         Assert.Throws<ArgumentException>(() => KMeans.Fit(
             Line, 1, 2, new KMeansOptions { InitialCentres = [1.0, double.NaN] }));
     }
+
+    /// <summary>
+    /// scikit-learn's <c>tol</c> ranges over [0, inf). A NaN is the one worth naming: it fails
+    /// every comparison, so it switched the shift test off rather than failing (#911).
+    /// </summary>
+    [Theory]
+    [InlineData(-1e-4)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void A_tolerance_outside_zero_to_infinity_is_refused(double tolerance)
+    {
+        ArgumentOutOfRangeException error = Assert.Throws<ArgumentOutOfRangeException>(
+            () => KMeans.Fit(Line, 1, 2, new KMeansOptions { Tolerance = tolerance }));
+
+        Assert.Equal("options", error.ParamName);
+    }
 }
