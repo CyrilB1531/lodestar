@@ -224,6 +224,7 @@ is one sentence, the issue and the commit; see
 
 - `HybridSearchAsync` keeps a record the keywords matched in the keyword ranking when its BM25 score is zero or negative, where it used to drop it as unmatched. ([#884](https://github.com/CyrilB1531/lodestar/issues/884))
 - A key property of another type than the collection's key or a non-`string` full-text property is refused at construction, a deleted name can be taken by another record type, and an empty collection refuses a query of the wrong width. ([#904](https://github.com/CyrilB1531/lodestar/issues/904))
+- `HybridSearchAsync` ranks only the records a keyword matched, read from the term postings, where it scored and sorted every record of the collection on every query: 4.85 ms and 5.3 MB a search against 5.96 ms and 6.2 MB over 20,000 records. ([#993](https://github.com/CyrilB1531/lodestar/issues/993))
 
 ### Lodestar.Stats.TimeSeries
 
