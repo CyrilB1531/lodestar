@@ -1112,6 +1112,10 @@ SNOWBALL_FR_WORDS = [
     "gouvernement", "changement", "mouvement", "sentiment", "moment", "document",
     "belle", "belles", "vieille", "nouvelle", "nouvelles", "ancienne", "ancien",
     "manière", "matière", "lumière", "rivière", "prière", "carrière",
+    # A word-final é or è keeps its accent; only one followed by a non-vowel loses it (#948)
+    "thé", "né", "fée", "été", "idée", "café", "pré", "dé", "blé", "clé", "abbé", "bébé",
+    "année", "armée", "épée", "entrée", "allée", "musée", "créé", "agréé", "côté", "procédé",
+    "ès", "père", "élève", "progrès", "succès", "problème", "fidèle", "chèvre",
 ]
 
 

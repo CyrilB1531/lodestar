@@ -552,12 +552,14 @@ public static class FrenchSnowballStemmer
 
         private void Step6()
         {
-            for (int i = _s.Length - 1; i >= 0; i--)
+            // Only an accent followed by at least one non-vowel moves: "thé" keeps it. nltk's scan also
+            // never reaches the first letter, so "ès" keeps it too.
+            for (int i = _s.Length - 1; i >= 1; i--)
             {
                 char c = _s[i];
                 if (IsVowel(c))
                 {
-                    if (c == 'é' || c == 'è')
+                    if (i < _s.Length - 1 && (c == 'é' || c == 'è'))
                     {
                         _s = _s[..i] + 'e' + _s[(i + 1)..];
                     }

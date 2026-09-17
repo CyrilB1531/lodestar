@@ -6,7 +6,7 @@
   "reference_calls": [
    "nltk.stem.snowball.SnowballStemmer('french')"
   ],
-  "count": 152
+  "count": 182
  },
  "cases": [
   {
@@ -768,6 +768,156 @@
    "id": 151,
    "word": "carrière",
    "stem": "carri"
+  },
+  {
+   "id": 152,
+   "word": "thé",
+   "stem": "thé"
+  },
+  {
+   "id": 153,
+   "word": "né",
+   "stem": "né"
+  },
+  {
+   "id": 154,
+   "word": "fée",
+   "stem": "fé"
+  },
+  {
+   "id": 155,
+   "word": "été",
+   "stem": "été"
+  },
+  {
+   "id": 156,
+   "word": "idée",
+   "stem": "idé"
+  },
+  {
+   "id": 157,
+   "word": "café",
+   "stem": "caf"
+  },
+  {
+   "id": 158,
+   "word": "pré",
+   "stem": "pré"
+  },
+  {
+   "id": 159,
+   "word": "dé",
+   "stem": "dé"
+  },
+  {
+   "id": 160,
+   "word": "blé",
+   "stem": "blé"
+  },
+  {
+   "id": 161,
+   "word": "clé",
+   "stem": "clé"
+  },
+  {
+   "id": 162,
+   "word": "abbé",
+   "stem": "abbé"
+  },
+  {
+   "id": 163,
+   "word": "bébé",
+   "stem": "beb"
+  },
+  {
+   "id": 164,
+   "word": "année",
+   "stem": "anné"
+  },
+  {
+   "id": 165,
+   "word": "armée",
+   "stem": "armé"
+  },
+  {
+   "id": 166,
+   "word": "épée",
+   "stem": "épé"
+  },
+  {
+   "id": 167,
+   "word": "entrée",
+   "stem": "entré"
+  },
+  {
+   "id": 168,
+   "word": "allée",
+   "stem": "allé"
+  },
+  {
+   "id": 169,
+   "word": "musée",
+   "stem": "mus"
+  },
+  {
+   "id": 170,
+   "word": "créé",
+   "stem": "cré"
+  },
+  {
+   "id": 171,
+   "word": "agréé",
+   "stem": "agré"
+  },
+  {
+   "id": 172,
+   "word": "côté",
+   "stem": "côt"
+  },
+  {
+   "id": 173,
+   "word": "procédé",
+   "stem": "proced"
+  },
+  {
+   "id": 174,
+   "word": "ès",
+   "stem": "ès"
+  },
+  {
+   "id": 175,
+   "word": "père",
+   "stem": "per"
+  },
+  {
+   "id": 176,
+   "word": "élève",
+   "stem": "élev"
+  },
+  {
+   "id": 177,
+   "word": "progrès",
+   "stem": "progres"
+  },
+  {
+   "id": 178,
+   "word": "succès",
+   "stem": "succes"
+  },
+  {
+   "id": 179,
+   "word": "problème",
+   "stem": "problem"
+  },
+  {
+   "id": 180,
+   "word": "fidèle",
+   "stem": "fidel"
+  },
+  {
+   "id": 181,
+   "word": "chèvre",
+   "stem": "chevr"
   }
  ]
 }
