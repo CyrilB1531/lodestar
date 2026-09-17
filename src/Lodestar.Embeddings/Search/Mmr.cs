@@ -19,7 +19,7 @@ public static class Mmr
     /// <returns>The chosen indices, <b>in selection order</b>.</returns>
     /// <remarks><see cref="VectorMath.Dot"/> sums in a different order on net10 (SIMD) than on netstandard2.0 (scalar), so a genuine near-tie between two candidates can select a different index on the two targets -- accepted, not a defect.</remarks>
     /// <exception cref="ArgumentNullException"><paramref name="candidates"/> is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative, or <paramref name="lambda"/> is outside <c>[0, 1]</c>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative, or <paramref name="lambda"/> is outside <c>[0, 1]</c> or <c>NaN</c>.</exception>
     /// <exception cref="ArgumentException">A candidate is null, of a different length than <paramref name="query"/>, or has a zero or non-finite norm; so does <paramref name="query"/> itself. Cosine is undefined in either case.</exception>
     public static int[] Select(
         ReadOnlySpan<float> query,
@@ -29,7 +29,8 @@ public static class Mmr
     {
         Guard.NotNull(candidates);
         Guard.NotLessThan(count, 0);
-        if (lambda is < 0 or > 1)
+        // NaN passes both comparisons, and a NaN score picks no candidate and indexes -1 (#886).
+        if (double.IsNaN(lambda) || lambda is < 0 or > 1)
         {
             throw new ArgumentOutOfRangeException(nameof(lambda), lambda, "Lambda must lie in [0, 1].");
         }
