@@ -77,16 +77,29 @@ public sealed class DeviceTextBlock : IDisposable
             total += text.Length;
         }
 
+        // One code per UTF-16 unit, read by index: a 64 KB table costs less to fill once than a
+        // dictionary probe on every character of the batch.
+        byte[] codes = new byte[char.MaxValue + 1];
+        codes.AsSpan().Fill(Unmatched);
+        foreach (KeyValuePair<char, byte> entry in alphabet)
+        {
+            codes[entry.Key] = entry.Value;
+        }
+
         byte[] symbols = new byte[total];
         int[] offsets = new int[texts.Count + 1];
         int at = 0;
         for (int row = 0; row < texts.Count; row++)
         {
             offsets[row] = at;
-            foreach (char character in texts[row])
+            ReadOnlySpan<char> text = texts[row].AsSpan();
+            Span<byte> renamed = symbols.AsSpan(at, text.Length);
+            for (int i = 0; i < text.Length; i++)
             {
-                symbols[at++] = alphabet.TryGetValue(character, out byte code) ? code : (byte)Unmatched;
+                renamed[i] = codes[text[i]];
             }
+
+            at += text.Length;
         }
 
         offsets[texts.Count] = at;

@@ -15,7 +15,13 @@ internal static class SpanningTreeLinkage
     public static Dendrogram Build(ReadOnlySpan<double> samples, int featureCount, int sampleCount)
     {
         Edge[] edges = SpanningTree(samples, featureCount, sampleCount);
-        Edge[] sorted = [.. edges.OrderBy(edge => edge.Weight).ThenBy(edge => edge.Found)];
+        // Found is unique, so the order is total and a plain sort gives what the stable one did.
+        Edge[] sorted = edges;
+        Array.Sort(sorted, static (left, right) =>
+        {
+            int order = left.Weight.CompareTo(right.Weight);
+            return order != 0 ? order : left.Found.CompareTo(right.Found);
+        });
 
         var roots = new LinkageRoots(sampleCount);
         var children = new int[2 * (sampleCount - 1)];

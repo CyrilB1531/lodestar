@@ -74,7 +74,7 @@ public static class Fuzz
     {
         Guard.NotNull(a);
         Guard.NotNull(b);
-        return Ratio(SortedJoin(Tokenize(a)), SortedJoin(Tokenize(b)));
+        return Ratio(string.Join(" ", SortedTokens(a)), string.Join(" ", SortedTokens(b)));
     }
 
     /// <summary>Token-set ratio: compares the shared tokens against each string's full sorted token set.</summary>
@@ -88,7 +88,7 @@ public static class Fuzz
     {
         Guard.NotNull(a);
         Guard.NotNull(b);
-        return PartialRatio(SortedJoin(Tokenize(a)), SortedJoin(Tokenize(b)));
+        return PartialRatio(string.Join(" ", SortedTokens(a)), string.Join(" ", SortedTokens(b)));
     }
 
     /// <summary>Token-set ratio using <see cref="PartialRatio"/> for the comparisons.</summary>
@@ -115,71 +115,105 @@ public static class Fuzz
 
         double best = Ratio(a, b);
 
+        // The sort and set ratios share one tokenization and one sort per side: the set ratio
+        // only deduplicates what the sort ratio already ordered.
+        string[] tokensA = SortedTokens(a);
+        string[] tokensB = SortedTokens(b);
+        string sortedA = string.Join(" ", tokensA);
+        string sortedB = string.Join(" ", tokensB);
         if (lenRatio < 1.5)
         {
-            best = Math.Max(best, TokenSortRatio(a, b) * unbaseScale);
-            best = Math.Max(best, TokenSetRatio(a, b) * unbaseScale);
+            best = Math.Max(best, Ratio(sortedA, sortedB) * unbaseScale);
+            best = Math.Max(best, TokenSet(tokensA, Distinct(tokensA), tokensB, Distinct(tokensB), partial: false) * unbaseScale);
             return best;
         }
 
         double partialScale = lenRatio > 8.0 ? 0.6 : 0.9;
         best = Math.Max(best, PartialRatio(a, b) * partialScale);
-        best = Math.Max(best, PartialTokenSortRatio(a, b) * unbaseScale * partialScale);
-        best = Math.Max(best, PartialTokenSetRatio(a, b) * unbaseScale * partialScale);
+        best = Math.Max(best, PartialRatio(sortedA, sortedB) * unbaseScale * partialScale);
+        best = Math.Max(best, TokenSet(tokensA, Distinct(tokensA), tokensB, Distinct(tokensB), partial: true) * unbaseScale * partialScale);
         return best;
     }
 
     private static string[] Tokenize(string s) =>
         s.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
 
-    private static string SortedJoin(string[] tokens)
+    private static string[] SortedTokens(string s)
     {
-        var copy = (string[])tokens.Clone();
-        Array.Sort(copy, StringComparer.Ordinal);
-        return string.Join(" ", copy);
+        string[] tokens = Tokenize(s);
+        Array.Sort(tokens, StringComparer.Ordinal);
+        return tokens;
     }
 
     private static double TokenSet(string a, string b, bool partial)
     {
         // Sorted, deduplicated arrays rather than five SortedSet<string>: the sets hold a
         // handful of tokens each, and a red-black node apiece was most of what #494 measured.
-        string[] setA = Tokenize(a);
-        string[] setB = Tokenize(b);
-        int countA = SortDistinct(setA);
-        int countB = SortDistinct(setB);
+        string[] setA = SortedTokens(a);
+        string[] setB = SortedTokens(b);
+        return TokenSet(setA, Distinct(setA), setB, Distinct(setB), partial);
+    }
+
+    private static double TokenSet(string[] setA, int countA, string[] setB, int countB, bool partial)
+    {
         if (countA == 0 && countB == 0)
         {
             return 0.0; // rapidfuzz returns 0 for token-set with no tokens
         }
 
-        var intersection = new List<string>();
-        var diffA = new List<string>();
-        var diffB = new List<string>();
-        Partition(setA, countA, setB, countB, intersection, diffA, diffB);
+        var shape = default(SetShape);
+        Measure(setA, countA, setB, countB, ref shape);
+        int lengthA = shape.CombinedLength(shape.OnlyAChars, shape.OnlyACount);
+        int lengthB = shape.CombinedLength(shape.OnlyBChars, shape.OnlyBCount);
 
-        string sect = string.Join(" ", intersection);
-        string combinedA = Join(intersection, diffA);
-        string combinedB = Join(intersection, diffB);
+        // Both combined strings are written side by side into one buffer of spaces, so the
+        // tokens are copied once and no separator is written.
+        int total = lengthA + lengthB;
+        Span<char> buffer = total <= 512 ? stackalloc char[total] : new char[total];
+        buffer.Fill(' ');
+        Write(setA, countA, setB, countB, shape, buffer.Slice(0, lengthA), buffer.Slice(lengthA));
+        ReadOnlySpan<char> combinedA = buffer.Slice(0, lengthA);
+        ReadOnlySpan<char> combinedB = buffer.Slice(lengthA);
 
-        Func<string, string, double> score = partial ? PartialRatio : Ratio;
-        double r1 = score(sect, combinedA);
-        double r2 = score(sect, combinedB);
-        double r3 = score(combinedA, combinedB);
-        return Math.Max(r1, Math.Max(r2, r3));
+        if (partial)
+        {
+            string sect = combinedA.Slice(0, shape.SharedLength).ToString();
+            string first = combinedA.ToString();
+            string second = combinedB.ToString();
+            double p1 = PartialRatio(sect, first);
+            double p2 = PartialRatio(sect, second);
+            return Math.Max(p1, Math.Max(p2, PartialRatio(first, second)));
+        }
+
+        double r1 = PrefixRatio(shape.SharedLength, lengthA);
+        double r2 = PrefixRatio(shape.SharedLength, lengthB);
+        return Math.Max(r1, Math.Max(r2, 100.0 * Indel.NormalizedSimilarity(combinedA, combinedB)));
+    }
+
+    /// <summary><see cref="Ratio"/> of a string against one it is a prefix of, from the two lengths.</summary>
+    /// <remarks>
+    /// The intersection opens each combined string, so their longest common subsequence is the
+    /// intersection itself and the Indel distance is the length difference — rapidfuzz reads it the
+    /// same way. The expression is Indel.NormalizedDistance's, so the score is the same bits.
+    /// </remarks>
+    private static double PrefixRatio(int prefixLength, int length)
+    {
+        int total = prefixLength + length;
+        double distance = total == 0 ? 0.0 : (double)(length - prefixLength) / total;
+        return 100.0 * (1.0 - distance);
     }
 
     /// <summary>
-    /// Sorts ordinally and moves the distinct tokens to the front, returning how many there
-    /// are — the order a <c>SortedSet</c> enumerated, without a second array to hold it.
+    /// Moves the distinct tokens of an ordinally sorted array to its front, returning how many
+    /// there are — the order a <c>SortedSet</c> enumerated, without a second array to hold it.
     /// </summary>
-    private static int SortDistinct(string[] tokens)
+    private static int Distinct(string[] tokens)
     {
         if (tokens.Length <= 1)
         {
             return tokens.Length;
         }
 
-        Array.Sort(tokens, StringComparer.Ordinal);
         int kept = 1;
         for (int i = 1; i < tokens.Length; i++)
         {
@@ -191,19 +225,26 @@ public static class Fuzz
         return kept;
     }
 
-    /// <summary>Splits two sorted, distinct token lists into shared and either-side-only.</summary>
-    /// <remarks>
-    /// One merge over both, where the set version walked each tree three times. Order is the
-    /// sorted one either way, which is what the joins below depend on.
-    /// </remarks>
-    private static void Partition(
-        string[] first,
-        int firstCount,
-        string[] second,
-        int secondCount,
-        List<string> shared,
-        List<string> onlyFirst,
-        List<string> onlySecond)
+    /// <summary>Token and character counts of the shared and either-side-only parts of two token sets.</summary>
+    private struct SetShape
+    {
+        public int SharedCount;
+        public int SharedChars;
+        public int OnlyACount;
+        public int OnlyAChars;
+        public int OnlyBCount;
+        public int OnlyBChars;
+
+        /// <summary>The joined intersection's length, separators included.</summary>
+        public readonly int SharedLength => SharedCount == 0 ? 0 : SharedChars + SharedCount - 1;
+
+        /// <summary>The length of the intersection joined with one side's remainder.</summary>
+        public readonly int CombinedLength(int onlyChars, int onlyCount) =>
+            onlyCount == 0 ? SharedLength : SharedChars + onlyChars + SharedCount + onlyCount - 1;
+    }
+
+    /// <summary>Counts what a merge of two sorted, distinct token lists would put in each part.</summary>
+    private static void Measure(string[] first, int firstCount, string[] second, int secondCount, ref SetShape shape)
     {
         int i = 0;
         int j = 0;
@@ -212,39 +253,84 @@ public static class Fuzz
             int order = string.CompareOrdinal(first[i], second[j]);
             if (order == 0)
             {
-                shared.Add(first[i++]);
+                shape.SharedCount++;
+                shape.SharedChars += first[i++].Length;
                 j++;
             }
             else if (order < 0)
             {
-                onlyFirst.Add(first[i++]);
+                shape.OnlyACount++;
+                shape.OnlyAChars += first[i++].Length;
             }
             else
             {
-                onlySecond.Add(second[j++]);
+                shape.OnlyBCount++;
+                shape.OnlyBChars += second[j++].Length;
             }
         }
 
         for (; i < firstCount; i++)
         {
-            onlyFirst.Add(first[i]);
+            shape.OnlyACount++;
+            shape.OnlyAChars += first[i].Length;
         }
         for (; j < secondCount; j++)
         {
-            onlySecond.Add(second[j]);
+            shape.OnlyBCount++;
+            shape.OnlyBChars += second[j].Length;
         }
     }
 
-    private static string Join(List<string> first, List<string> second)
+    /// <summary>
+    /// Writes the intersection followed by each side's remainder, in sorted order, into buffers
+    /// already filled with spaces — the strings joining the three lists with one space gave.
+    /// </summary>
+    private static void Write(
+        string[] first,
+        int firstCount,
+        string[] second,
+        int secondCount,
+        SetShape shape,
+        Span<char> combinedA,
+        Span<char> combinedB)
     {
-        if (second.Count == 0)
+        int shared = 0;
+        int restStart = shape.SharedCount == 0 ? 0 : shape.SharedLength + 1;
+        int onlyA = restStart;
+        int onlyB = restStart;
+        int i = 0;
+        int j = 0;
+        while (i < firstCount && j < secondCount)
         {
-            return string.Join(" ", first);
+            int order = string.CompareOrdinal(first[i], second[j]);
+            if (order == 0)
+            {
+                first[i].AsSpan().CopyTo(combinedA.Slice(shared));
+                first[i].AsSpan().CopyTo(combinedB.Slice(shared));
+                shared += first[i++].Length + 1;
+                j++;
+            }
+            else if (order < 0)
+            {
+                first[i].AsSpan().CopyTo(combinedA.Slice(onlyA));
+                onlyA += first[i++].Length + 1;
+            }
+            else
+            {
+                second[j].AsSpan().CopyTo(combinedB.Slice(onlyB));
+                onlyB += second[j++].Length + 1;
+            }
         }
 
-        var all = new List<string>(first.Count + second.Count);
-        all.AddRange(first);
-        all.AddRange(second);
-        return string.Join(" ", all).Trim();
+        for (; i < firstCount; i++)
+        {
+            first[i].AsSpan().CopyTo(combinedA.Slice(onlyA));
+            onlyA += first[i].Length + 1;
+        }
+        for (; j < secondCount; j++)
+        {
+            second[j].AsSpan().CopyTo(combinedB.Slice(onlyB));
+            onlyB += second[j].Length + 1;
+        }
     }
 }

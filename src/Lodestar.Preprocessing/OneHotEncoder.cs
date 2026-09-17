@@ -15,6 +15,7 @@ public sealed class OneHotEncoder<T>
     where T : IComparable<T>, IEquatable<T>
 {
     private readonly T[][] _categories;
+    private readonly CategoryIndex<T> _index;
     private readonly int[] _dropped;
     private readonly int[] _offsets;
     private readonly UnknownCategory _unknown;
@@ -32,6 +33,7 @@ public sealed class OneHotEncoder<T>
         SampleCount = sampleCount;
         EncodedFeatureCount = encodedFeatureCount;
         _categories = categories;
+        _index = new CategoryIndex<T>(categories);
         _dropped = dropped;
         _offsets = offsets;
         _unknown = unknown;
@@ -96,7 +98,7 @@ public sealed class OneHotEncoder<T>
             for (int feature = 0; feature < FeatureCount; feature++)
             {
                 T value = values[(row * FeatureCount) + feature];
-                int index = CategoryTable.IndexOf(_categories[feature], value);
+                int index = _index.IndexOf(feature, value);
                 if (index < 0)
                 {
                     if (_unknown == UnknownCategory.Refuse)

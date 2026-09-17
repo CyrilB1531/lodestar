@@ -71,26 +71,34 @@ public static class Splitters
         int sampleCount = labels.Length;
         RequireFoldCount(sampleCount, foldCount);
         int[] reading = Reading(sampleCount, order);
-        (Dictionary<int, int> encoding, int[] counts) = Classes(labels);
+        (int[] codes, int[] counts) = Classes(labels);
         RequireEnoughMembers(counts, foldCount);
 
         int[] allocation = Allocation(counts, foldCount);
         var assignment = new int[sampleCount];
-        var placed = new int[counts.Length];
+
+        // Each class keeps a cursor on the fold it is filling and how much of that fold's share is
+        // left, so a row costs one step where walking the shares from fold 0 cost up to foldCount.
+        int classCount = counts.Length;
+        var fold = new int[classCount];
+        var left = new int[classCount];
+        for (int cls = 0; cls < classCount; cls++)
+        {
+            left[cls] = allocation[cls];
+        }
+
         for (int position = 0; position < sampleCount; position++)
         {
             int row = reading[position];
-            int cls = encoding[labels[row]];
-            int fold = 0;
-            int remaining = placed[cls];
-            while (remaining >= allocation[(fold * counts.Length) + cls])
+            int cls = codes[row];
+            while (left[cls] == 0)
             {
-                remaining -= allocation[(fold * counts.Length) + cls];
-                fold++;
+                fold[cls]++;
+                left[cls] = allocation[(fold[cls] * classCount) + cls];
             }
 
-            placed[cls]++;
-            assignment[row] = fold;
+            left[cls]--;
+            assignment[row] = fold[cls];
         }
 
         return Folds(assignment, foldCount);
@@ -175,16 +183,17 @@ public static class Splitters
         return allocation;
     }
 
-    /// <summary>The distinct labels in the order they first appear, and how many rows each holds.</summary>
+    /// <summary>Each row's class, numbered in the order the labels first appear, and how many rows each class holds.</summary>
     /// <remarks>
     /// First appearance, not ascending value: the reference encodes its classes by ranking each label's first index
     /// (<c>np.unique(y_idx)</c>), and the allocation below reads that order — measured, on labels whose smallest value
     /// is not the first one seen the two orders give different folds.
     /// </remarks>
-    private static (Dictionary<int, int> Encoding, int[] Counts) Classes(ReadOnlySpan<int> labels)
+    private static (int[] Codes, int[] Counts) Classes(ReadOnlySpan<int> labels)
     {
         var encoding = new Dictionary<int, int>();
         var counts = new List<int>();
+        var codes = new int[labels.Length];
         for (int row = 0; row < labels.Length; row++)
         {
             if (encoding.TryGetValue(labels[row], out int cls))
@@ -193,12 +202,15 @@ public static class Splitters
             }
             else
             {
-                encoding.Add(labels[row], counts.Count);
+                cls = counts.Count;
+                encoding.Add(labels[row], cls);
                 counts.Add(1);
             }
+
+            codes[row] = cls;
         }
 
-        return (encoding, [.. counts]);
+        return (codes, [.. counts]);
     }
 
     private static void RequireEnoughMembers(int[] counts, int foldCount)

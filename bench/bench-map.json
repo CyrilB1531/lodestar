@@ -237,6 +237,7 @@
       "src/Lodestar.Preprocessing/Internal/**"
     ],
     "ScalerIncumbentBenchmarks": [
+      "src/Lodestar.Preprocessing/StandardScaler.cs",
       "src/Lodestar.Preprocessing/MinMaxScaler.cs",
       "src/Lodestar.Preprocessing/MaxAbsScaler.cs",
       "src/Lodestar.Preprocessing/RobustScaler.cs",
@@ -339,6 +340,10 @@
     ],
     "DoubleMetaphoneBenchmarks": [
       "src/Lodestar.Text/Phonetics/**"
+    ],
+    "ProcessExtractBenchmarks": [
+      "src/Lodestar.Fuzzy/**",
+      "src/Lodestar.Text/Distances/**"
     ]
   },
   "harnesses": {

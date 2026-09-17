@@ -97,14 +97,24 @@ public sealed class MinMaxScaler
         dataMinimum.AsSpan().Fill(double.PositiveInfinity);
         dataMaximum.AsSpan().Fill(double.NegativeInfinity);
 
-        for (int i = 0; i < samples.Length; i++)
-        {
-            int feature = i % featureCount;
-            dataMinimum[feature] = Math.Min(dataMinimum[feature], samples[i]);
-            dataMaximum[feature] = Math.Max(dataMaximum[feature], samples[i]);
-        }
+        Widen(samples, dataMinimum, dataMaximum);
 
         return Build(featureCount, sampleCount, dataMinimum, dataMaximum, settings);
+    }
+
+    /// <summary>Folds every row into the running per-feature minimum and maximum, in row order.</summary>
+    private static void Widen(ReadOnlySpan<double> samples, double[] dataMinimum, double[] dataMaximum)
+    {
+        int width = dataMinimum.Length;
+        for (int start = 0; start < samples.Length; start += width)
+        {
+            ReadOnlySpan<double> row = samples.Slice(start, width);
+            for (int feature = 0; feature < row.Length; feature++)
+            {
+                dataMinimum[feature] = Math.Min(dataMinimum[feature], row[feature]);
+                dataMaximum[feature] = Math.Max(dataMaximum[feature], row[feature]);
+            }
+        }
     }
 
     /// <summary>The scale and offset a range implies — shared so <see cref="Fit"/> and <see cref="PartialFit"/> cannot drift.</summary>
@@ -158,12 +168,7 @@ public sealed class MinMaxScaler
             dataMaximum[feature] = DataMaximum[feature];
         }
 
-        for (int i = 0; i < samples.Length; i++)
-        {
-            int feature = i % FeatureCount;
-            dataMinimum[feature] = Math.Min(dataMinimum[feature], samples[i]);
-            dataMaximum[feature] = Math.Max(dataMaximum[feature], samples[i]);
-        }
+        Widen(samples, dataMinimum, dataMaximum);
 
         return Build(FeatureCount, SampleCount + rows, dataMinimum, dataMaximum, _options);
     }
@@ -183,11 +188,19 @@ public sealed class MinMaxScaler
         SampleMatrix.RequireFinite(samples, nameof(samples));
 
         var result = new double[samples.Length];
-        for (int i = 0; i < samples.Length; i++)
+        int width = FeatureCount;
+        bool clip = _options.Clip;
+        double low = _options.Low;
+        double high = _options.High;
+        for (int start = 0; start < samples.Length; start += width)
         {
-            int feature = i % FeatureCount;
-            double value = (samples[i] * _scale[feature]) + _minimum[feature];
-            result[i] = _options.Clip ? Bounds.Clamp(value, _options.Low, _options.High) : value;
+            ReadOnlySpan<double> row = samples.Slice(start, width);
+            Span<double> output = result.AsSpan(start, width);
+            for (int feature = 0; feature < row.Length; feature++)
+            {
+                double value = (row[feature] * _scale[feature]) + _minimum[feature];
+                output[feature] = clip ? Bounds.Clamp(value, low, high) : value;
+            }
         }
 
         return result;
@@ -207,10 +220,15 @@ public sealed class MinMaxScaler
         SampleMatrix.RequireFinite(samples, nameof(samples));
 
         var result = new double[samples.Length];
-        for (int i = 0; i < samples.Length; i++)
+        int width = FeatureCount;
+        for (int start = 0; start < samples.Length; start += width)
         {
-            int feature = i % FeatureCount;
-            result[i] = (samples[i] - _minimum[feature]) / _scale[feature];
+            ReadOnlySpan<double> row = samples.Slice(start, width);
+            Span<double> output = result.AsSpan(start, width);
+            for (int feature = 0; feature < row.Length; feature++)
+            {
+                output[feature] = (row[feature] - _minimum[feature]) / _scale[feature];
+            }
         }
 
         return result;

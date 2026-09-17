@@ -35,6 +35,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- `StandardScaler`, `MinMaxScaler` and `MaxAbsScaler` walk rows and features without a modulo per element, the encoders look categories up by hash where equality allows it, and `Splitters.StratifiedKFold` keeps a fold cursor per class. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
 - `RobustScaler.Fit(CsrMatrix)` groups the stored values by column in one pass, where it scanned every stored value for each column. ([#817](https://github.com/CyrilB1531/lodestar/issues/817))
 
 ### Lodestar.Conformal
@@ -52,6 +53,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- `AgglomerativeClustering.Fit` scans only live clusters along precomputed row offsets, and `KMeans` assigns rows wider than four features over sliced spans. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
 - `Dbscan.Fit` computes each pair's distance once and stops a sum past the radius. ([#818](https://github.com/CyrilB1531/lodestar/issues/818))
 - `KMeansOptions` compares its centres by value. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
 
@@ -65,6 +67,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- `Fuzz.TokenSetRatio` reads two of its three scores from lengths, `Fuzz.WRatio` tokenizes each side once, and `Process.Extract` keeps a bounded heap where it sorted every hit. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
 - `Fuzz.PartialRatio` scores a needle of up to 64 characters from one equality table and skips windows that cannot win. ([#714](https://github.com/CyrilB1531/lodestar/issues/714), [`9ec3595f`](https://github.com/CyrilB1531/lodestar/commit/9ec3595f))
 - `Fuzz.PartialRatio` does the same for a needle past 64 characters. ([#720](https://github.com/CyrilB1531/lodestar/issues/720), [`96856e70`](https://github.com/CyrilB1531/lodestar/commit/96856e70))
 - The `Lodestar.Text` dependency floor rises from 0.4.0 to 0.6.0. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
@@ -97,6 +100,10 @@ is one sentence, the issue and the commit; see
 #### Added
 
 - `MinHashScheme`, and the `TiledMinHashSignatures.Signatures` overload that takes one. ([#645](https://github.com/CyrilB1531/lodestar/issues/645), [`bfc47fe7`](https://github.com/CyrilB1531/lodestar/commit/bfc47fe7))
+
+#### Changed
+
+- `DeviceTextBlock.Upload` renames characters through a code table instead of a dictionary probe each, up to 13× faster. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
 
 ### Lodestar.Embeddings
 

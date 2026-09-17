@@ -25,17 +25,18 @@ internal static class TreeCut
         }
 
         var labels = new int[sampleCount];
+        var pending = new Stack<int>();
         for (int position = 0; position < heap.Count; position++)
         {
-            Mark(labels, children, sampleCount, -heap[position], position);
+            Mark(labels, children, sampleCount, -heap[position], position, pending);
         }
 
         return labels;
     }
 
-    private static void Mark(int[] labels, int[] children, int sampleCount, int node, int label)
+    /// <summary>Labels every sample under <paramref name="node"/>, with a stack the caller empties and reuses.</summary>
+    private static void Mark(int[] labels, int[] children, int sampleCount, int node, int label, Stack<int> pending)
     {
-        var pending = new Stack<int>();
         pending.Push(node);
         while (pending.Count > 0)
         {

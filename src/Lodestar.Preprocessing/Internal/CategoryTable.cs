@@ -34,8 +34,8 @@ internal static class CategoryTable
     }
 
     /// <summary>Where a value sits in its feature's categories, or <c>-1</c> when it is not one of them.</summary>
-    public static int IndexOf<T>(T[] categories, T value) =>
-        Array.BinarySearch(categories, value, Comparer<T>()) is var found && found >= 0 ? found : -1;
+    public static int IndexOf<T>(T[] categories, T value, IComparer<T> comparer) =>
+        Array.BinarySearch(categories, value, comparer) is var found && found >= 0 ? found : -1;
 
     /// <summary>The runs of a sorted column, collapsed to one value each.</summary>
     private static T[] Distinct<T>(T[] sorted, IComparer<T> comparer)

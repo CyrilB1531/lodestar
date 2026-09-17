@@ -33,6 +33,13 @@ public static class Process
         Guard.NotNull(choices);
         scorer ??= Fuzz.WRatio;
 
+        // A bounded limit keeps only a heap of that many hits: the final order is total, so the
+        // kept set and its sorted order are the ones a full sort and truncation gave.
+        if (limit is { } bound && bound >= 0)
+        {
+            return TopHits(query, choices, scorer, bound, scoreCutoff);
+        }
+
         var hits = new List<ExtractResult>();
         int index = 0;
         foreach (string choice in choices)
@@ -45,18 +52,97 @@ public static class Process
             index++;
         }
 
-        // Stable order: score descending, ties by original index.
-        hits.Sort(static (x, y) =>
-        {
-            int c = y.Score.CompareTo(x.Score);
-            return c != 0 ? c : x.Index.CompareTo(y.Index);
-        });
+        hits.Sort(Compare);
 
         if (limit is { } max && hits.Count > max)
         {
             hits.RemoveRange(max, hits.Count - max);
         }
         return hits;
+    }
+
+    /// <summary>Stable order: score descending, ties by original index.</summary>
+    private static int Compare(ExtractResult x, ExtractResult y)
+    {
+        int c = y.Score.CompareTo(x.Score);
+        return c != 0 ? c : x.Index.CompareTo(y.Index);
+    }
+
+    private static List<ExtractResult> TopHits(
+        string query,
+        IEnumerable<string> choices,
+        Func<string, string, double> scorer,
+        int limit,
+        double scoreCutoff)
+    {
+        // A heap ordered by Compare with the worst kept hit at its root, the one a better hit evicts.
+        var heap = new List<ExtractResult>(Math.Min(limit, 64));
+        int index = 0;
+        foreach (string choice in choices)
+        {
+            double score = scorer(query, choice);
+            if (score >= scoreCutoff && limit > 0)
+            {
+                var hit = new ExtractResult(choice, score, index);
+                if (heap.Count < limit)
+                {
+                    heap.Add(hit);
+                    SiftUp(heap, heap.Count - 1);
+                }
+
+                // Every kept hit has a lower index, so only a strictly higher score ranks above the root.
+                else if (score.CompareTo(heap[0].Score) > 0)
+                {
+                    heap[0] = hit;
+                    SiftDown(heap, 0);
+                }
+            }
+            index++;
+        }
+
+        heap.Sort(Compare);
+        return heap;
+    }
+
+    private static void SiftUp(List<ExtractResult> heap, int child)
+    {
+        ExtractResult item = heap[child];
+        while (child > 0)
+        {
+            int parent = (child - 1) >> 1;
+            if (Compare(heap[parent], item) >= 0)
+            {
+                break;
+            }
+            heap[child] = heap[parent];
+            child = parent;
+        }
+        heap[child] = item;
+    }
+
+    private static void SiftDown(List<ExtractResult> heap, int parent)
+    {
+        ExtractResult item = heap[parent];
+        int count = heap.Count;
+        while (true)
+        {
+            int child = (2 * parent) + 1;
+            if (child >= count)
+            {
+                break;
+            }
+            if (child + 1 < count && Compare(heap[child + 1], heap[child]) > 0)
+            {
+                child++;
+            }
+            if (Compare(heap[child], item) <= 0)
+            {
+                break;
+            }
+            heap[parent] = heap[child];
+            parent = child;
+        }
+        heap[parent] = item;
     }
 
     /// <summary>Returns the single best match, or <c>null</c> if none clears the cutoff.</summary>
@@ -66,7 +152,22 @@ public static class Process
         Func<string, string, double>? scorer = null,
         double scoreCutoff = 0.0)
     {
-        IReadOnlyList<ExtractResult> best = Extract(query, choices, scorer, limit: 1, scoreCutoff);
-        return best.Count > 0 ? best[0] : null;
+        Guard.NotNull(query);
+        Guard.NotNull(choices);
+        scorer ??= Fuzz.WRatio;
+
+        // Strictly higher only, so the first of equal scores stays: the head of the sorted list.
+        ExtractResult? best = null;
+        int index = 0;
+        foreach (string choice in choices)
+        {
+            double score = scorer(query, choice);
+            if (score >= scoreCutoff && (best is not { } kept || score.CompareTo(kept.Score) > 0))
+            {
+                best = new ExtractResult(choice, score, index);
+            }
+            index++;
+        }
+        return best;
     }
 }
