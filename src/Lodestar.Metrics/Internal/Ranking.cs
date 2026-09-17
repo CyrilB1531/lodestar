@@ -44,10 +44,15 @@ internal static class Ranking
     }
 
     /// <summary>One row's discounted gain, ranking equal scores arbitrarily.</summary>
+    /// <param name="relevance">The row's relevance.</param>
+    /// <param name="scores">The row's scores.</param>
+    /// <param name="discounts">The positional discounts.</param>
+    /// <param name="order">Scratch of the row's length, reused across rows.</param>
+    /// <param name="copy">Scratch of the row's length, reused across rows.</param>
     public static double Gain(
-        ReadOnlySpan<double> relevance, ReadOnlySpan<double> scores, double[] discounts)
+        ReadOnlySpan<double> relevance, ReadOnlySpan<double> scores, double[] discounts, int[] order, double[] copy)
     {
-        int[] order = Descending(scores);
+        Descending(scores, order, copy);
         double total = 0.0;
         for (int i = 0; i < order.Length; i++)
         {
@@ -67,9 +72,9 @@ internal static class Ranking
     /// whose scores are all equal — 0.8069 against 0.6138.
     /// </remarks>
     public static double TieAveragedGain(
-        ReadOnlySpan<double> relevance, ReadOnlySpan<double> scores, double[] discounts)
+        ReadOnlySpan<double> relevance, ReadOnlySpan<double> scores, double[] discounts, int[] order, double[] copy)
     {
-        int[] order = Descending(scores);
+        Descending(scores, order, copy);
         double total = 0.0;
         int start = 0;
         while (start < order.Length)
@@ -96,18 +101,38 @@ internal static class Ranking
     /// own relevance leaves ties only between equal gains, which no ordering can separate.
     /// </remarks>
     public static double Normalized(
-        ReadOnlySpan<double> relevance, ReadOnlySpan<double> scores, double[] discounts, bool ignoreTies)
+        ReadOnlySpan<double> relevance, ReadOnlySpan<double> scores, double[] discounts, bool ignoreTies,
+        int[] order, double[] copy)
     {
-        double ideal = Gain(relevance, relevance, discounts);
+        double ideal = IdealGain(relevance, discounts, copy);
         if (ideal <= 0.0)
         {
             return 0.0;
         }
 
         double actual = ignoreTies
-            ? Gain(relevance, scores, discounts)
-            : TieAveragedGain(relevance, scores, discounts);
+            ? Gain(relevance, scores, discounts, order, copy)
+            : TieAveragedGain(relevance, scores, discounts, order, copy);
         return actual / ideal;
+    }
+
+    /// <summary>The gain of the row ranked by its own relevance.</summary>
+    /// <remarks>
+    /// Sorts the values alone: tied relevances are equal products whichever index comes first,
+    /// and a swapped -0.0 and 0.0 adds a zero either way, so no permutation is needed.
+    /// </remarks>
+    private static double IdealGain(ReadOnlySpan<double> relevance, double[] discounts, double[] copy)
+    {
+        int count = relevance.Length;
+        relevance.CopyTo(copy);
+        Array.Sort(copy, 0, count);
+        double total = 0.0;
+        for (int i = 0; i < count; i++)
+        {
+            total += copy[count - 1 - i] * discounts[i];
+        }
+
+        return total;
     }
 
     /// <summary>The end of the run of equal scores that starts at <paramref name="start"/>.</summary>
@@ -192,7 +217,16 @@ internal static class Ranking
     public static int[] Descending(ReadOnlySpan<double> scores)
     {
         int[] order = new int[scores.Length];
-        double[] copy = new double[scores.Length];
+        Descending(scores, order, new double[scores.Length]);
+        return order;
+    }
+
+    /// <summary>The same order, written into buffers a caller reuses across rows.</summary>
+    /// <param name="scores">The row to rank.</param>
+    /// <param name="order">Receives the ranking; exactly the row's length.</param>
+    /// <param name="copy">Overwritten scratch; exactly the row's length.</param>
+    public static void Descending(ReadOnlySpan<double> scores, int[] order, double[] copy)
+    {
         for (int i = 0; i < scores.Length; i++)
         {
             order[i] = i;
@@ -202,7 +236,6 @@ internal static class Ranking
         Array.Sort(copy, order);
         Array.Reverse(order);
         StabilizeTies(scores, order);
-        return order;
     }
 
     /// <summary>Puts each run of equal scores back into descending index order.</summary>

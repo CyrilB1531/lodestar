@@ -95,20 +95,14 @@ internal static class MultiClassRoc
     {
         if (labels.IsEmpty)
         {
-            var seen = new SortedSet<int>();
-            foreach (int label in yTrue)
-            {
-                seen.Add(label);
-            }
-            if (seen.Count != classCount)
+            int[] resolved = LabelIndex.SortedUnion(yTrue, default);
+            if (resolved.Length != classCount)
             {
                 throw new ArgumentException(
-                    $"yTrue holds {seen.Count} distinct labels but classCount is {classCount}. "
+                    $"yTrue holds {resolved.Length} distinct labels but classCount is {classCount}. "
                     + "Pass labels when a class is absent from yTrue.",
                     nameof(classCount));
             }
-            int[] resolved = new int[seen.Count];
-            seen.CopyTo(resolved);
             return resolved;
         }
 
@@ -163,7 +157,8 @@ internal static class MultiClassRoc
         private readonly bool _columnMajor;
 
         public ScoreSource(
-            ReadOnlySpan<int> yTrue, ReadOnlySpan<double> scores, int sampleCount, int classCount, bool columnMajor)
+            ReadOnlySpan<int> yTrue, ReadOnlySpan<double> scores, int sampleCount, int classCount, bool columnMajor,
+            ClassMembers? members = null)
         {
             // sampleCount is explicit, not derived from yTrue.Length: two spans
             // sliced to a rented array's length can silently agree. See docs/decisions/0018.
@@ -188,7 +183,11 @@ internal static class MultiClassRoc
             Scores = scores;
             _classCount = classCount;
             _columnMajor = columnMajor;
+            Members = members;
         }
+
+        /// <summary>The samples of each class, which only the one-vs-one drivers build.</summary>
+        public ClassMembers? Members { get; }
 
         public ReadOnlySpan<int> YTrue { get; }
 
@@ -242,24 +241,31 @@ internal static class MultiClassRoc
     /// <summary>
     /// One ordering of one Hand &amp; Till pair: the samples of two classes only,
     /// scored with column <paramref name="column"/> — <paramref name="positiveLabel"/>'s
-    /// column, which is one of <paramref name="labelA"/>'s or <paramref name="labelB"/>'s.
+    /// column, which is one of the two classes <paramref name="pair"/> names by position.
     /// </summary>
     private static double PairScore(
-        ScoreSource source, int column, int labelA, int labelB, int positiveLabel, BinaryRoc.Scratch scratch)
+        ScoreSource source, int column, (int A, int B) pair, int positiveLabel, BinaryRoc.Scratch scratch)
     {
         ReadOnlySpan<int> yTrue = source.YTrue;
         int offset = source.Offset(column);
         int step = source.Step;
         int[] binary = scratch.Binary;
         double[] scoreColumn = scratch.Column;
+        ClassMembers members = source.Members!;
+        int[] indices = members.Indices;
+        int nextA = members.Starts[pair.A];
+        int endA = members.Starts[pair.A + 1];
+        int nextB = members.Starts[pair.B];
+        int endB = members.Starts[pair.B + 1];
         int next = 0;
 
-        for (int i = 0; i < yTrue.Length; i++)
+        // Merged by sample index, so the two classes' samples arrive in the order a scan of
+        // every sample would have kept them, and the binary problem is the same one.
+        while (nextA < endA || nextB < endB)
         {
-            if (yTrue[i] != labelA && yTrue[i] != labelB)
-            {
-                continue;
-            }
+            int i = nextB >= endB || (nextA < endA && indices[nextA] < indices[nextB])
+                ? indices[nextA++]
+                : indices[nextB++];
 
             binary[next] = yTrue[i] == positiveLabel ? 1 : 0;
             scoreColumn[next] = source.Scores[offset + (i * step)];
@@ -268,6 +274,54 @@ internal static class MultiClassRoc
 
         return BinaryRoc.Score(
             binary.AsSpan(0, next), scoreColumn.AsSpan(0, next), 1, default, scratch);
+    }
+
+    /// <summary>The indices of each class's samples, ascending, grouped by the class's position.</summary>
+    /// <remarks>
+    /// Built once per one-vs-one call, so a pair reads only its two classes' samples instead of
+    /// scanning every sample three times. A label outside the classes belongs to no group.
+    /// </remarks>
+    private sealed class ClassMembers
+    {
+        public ClassMembers(ReadOnlySpan<int> yTrue, int[] classes)
+        {
+            int k = classes.Length;
+            int[] ordinals = new int[yTrue.Length];
+            Starts = new int[k + 1];
+            for (int i = 0; i < yTrue.Length; i++)
+            {
+                int ordinal = Array.BinarySearch(classes, yTrue[i]);
+                ordinals[i] = ordinal;
+                if (ordinal >= 0)
+                {
+                    Starts[ordinal + 1]++;
+                }
+            }
+
+            for (int c = 0; c < k; c++)
+            {
+                Starts[c + 1] += Starts[c];
+            }
+
+            Indices = new int[Starts[k]];
+            int[] fill = new int[k];
+            Array.Copy(Starts, fill, k);
+            for (int i = 0; i < ordinals.Length; i++)
+            {
+                if (ordinals[i] >= 0)
+                {
+                    Indices[fill[ordinals[i]]++] = i;
+                }
+            }
+        }
+
+        /// <summary>Sample indices, class by class.</summary>
+        public int[] Indices { get; }
+
+        /// <summary>Where each class's run begins in <see cref="Indices"/>, with one entry past the last.</summary>
+        public int[] Starts { get; }
+
+        public int Count(int ordinal) => Starts[ordinal + 1] - Starts[ordinal];
     }
 
     private static double OneVsRest(
@@ -452,6 +506,7 @@ internal static class MultiClassRoc
         double[] pairScores = new double[pairs.Length];
         double[] prevalence = new double[pairs.Length];
         var copy = CopyForWorkers(yTrue, yScore, k, default);
+        var members = new ClassMembers(yTrue, classes);
 
         try
         {
@@ -460,7 +515,7 @@ internal static class MultiClassRoc
                 // Per worker, and above the try so a slicing bug escapes instead
                 // of being reported as bad input — as in OneVsRestParallel.
                 ScoreSource source = new(
-                    copy.YTrue.AsSpan(0, n), copy.ColumnMajor.AsSpan(0, n * k), n, k, columnMajor: true);
+                    copy.YTrue.AsSpan(0, n), copy.ColumnMajor.AsSpan(0, n * k), n, k, columnMajor: true, members);
 
                 try
                 {
@@ -519,7 +574,8 @@ internal static class MultiClassRoc
 
         try
         {
-            ScoreSource source = new(yTrue, yScore, yTrue.Length, k, columnMajor: false);
+            ScoreSource source = new(
+                yTrue, yScore, yTrue.Length, k, columnMajor: false, new ClassMembers(yTrue, classes));
             for (int pair = 0; pair < pairs.Length; pair++)
             {
                 ScorePair(source, classes, pairs[pair], pair, pairScores, prevalence, scratch);
@@ -542,23 +598,13 @@ internal static class MultiClassRoc
         ScoreSource source, int[] classes, (int A, int B) pair, int index,
         double[] pairScores, double[] prevalence, BinaryRoc.Scratch scratch)
     {
-        ReadOnlySpan<int> yTrue = source.YTrue;
-        int n = yTrue.Length;
-        int labelA = classes[pair.A];
-        int labelB = classes[pair.B];
-        int size = 0;
-        for (int i = 0; i < n; i++)
-        {
-            if (yTrue[i] == labelA || yTrue[i] == labelB)
-            {
-                size++;
-            }
-        }
+        int n = source.YTrue.Length;
+        int size = source.Members!.Count(pair.A) + source.Members.Count(pair.B);
 
         // Hand & Till: each ordering of the pair is scored with its own column,
         // and the two are averaged.
-        double aScore = PairScore(source, pair.A, labelA, labelB, labelA, scratch);
-        double bScore = PairScore(source, pair.B, labelA, labelB, labelB, scratch);
+        double aScore = PairScore(source, pair.A, pair, classes[pair.A], scratch);
+        double bScore = PairScore(source, pair.B, pair, classes[pair.B], scratch);
 
         pairScores[index] = (aScore + bScore) * 0.5;
         prevalence[index] = (double)size / n;

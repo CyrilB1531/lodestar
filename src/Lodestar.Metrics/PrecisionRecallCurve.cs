@@ -45,26 +45,14 @@ public sealed class PrecisionRecallCurve
         bool dropIntermediate = false)
     {
         ClassifierCurve.Points points = ClassifierCurve.Build(yTrue, yScore, posLabel, sampleWeight);
-        bool[] kept = ClassifierCurve.KeepByCount(points.TruePositives, dropIntermediate);
-        double[] truePositives = ClassifierCurve.Where(points.TruePositives, kept);
-        double[] falsePositives = ClassifierCurve.Where(points.FalsePositives, kept);
-        double[] scores = ClassifierCurve.Where(points.Thresholds, kept);
+        double[] truePositives = points.TruePositives;
+        double[] falsePositives = points.FalsePositives;
         double positives = points.PositiveTotal;
 
-        int n = truePositives.Length;
-        var precision = new double[n];
-        var recall = new double[n];
-        for (int i = 0; i < n; i++)
+        int n = 0;
+        for (int i = 0; i < points.Count; i++)
         {
-            double predicted = truePositives[i] + falsePositives[i];
-
-            // S1244: whether anything was predicted positive at all at this threshold,
-            // and whether any sample is positive -- both are the reference's own tests
-            // against exact zero, answered with 0 and with 1 rather than by dividing.
-#pragma warning disable S1244
-            precision[i] = predicted == 0.0 ? 0.0 : truePositives[i] / predicted;
-            recall[i] = positives == 0.0 ? 1.0 : truePositives[i] / positives;
-#pragma warning restore S1244
+            n += ClassifierCurve.Moves(truePositives, i, dropIntermediate) ? 1 : 0;
         }
 
         // The reference reverses the arrays and appends (1, 0) -- an endpoint no
@@ -72,11 +60,25 @@ public sealed class PrecisionRecallCurve
         var outPrecision = new double[n + 1];
         var outRecall = new double[n + 1];
         var outThresholds = new double[n];
-        for (int i = 0; i < n; i++)
+        int at = n - 1;
+        for (int i = 0; i < points.Count; i++)
         {
-            outPrecision[i] = precision[n - 1 - i];
-            outRecall[i] = recall[n - 1 - i];
-            outThresholds[i] = scores[n - 1 - i];
+            if (!ClassifierCurve.Moves(truePositives, i, dropIntermediate))
+            {
+                continue;
+            }
+
+            double predicted = truePositives[i] + falsePositives[i];
+
+            // S1244: whether anything was predicted positive at all at this threshold,
+            // and whether any sample is positive -- both are the reference's own tests
+            // against exact zero, answered with 0 and with 1 rather than by dividing.
+#pragma warning disable S1244
+            outPrecision[at] = predicted == 0.0 ? 0.0 : truePositives[i] / predicted;
+            outRecall[at] = positives == 0.0 ? 1.0 : truePositives[i] / positives;
+#pragma warning restore S1244
+            outThresholds[at] = points.Thresholds[i];
+            at--;
         }
 
         outPrecision[n] = 1.0;

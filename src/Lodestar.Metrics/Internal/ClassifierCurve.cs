@@ -34,92 +34,104 @@ internal static class ClassifierCurve
     {
         int n = Validate(yTrue, yScore, sampleWeight);
 
-        var order = new int[n];
+        // The sample travels with its key rather than as an index into the inputs: the sort
+        // permutes both the same way whatever they carry, and the walk below then reads in order.
         var keys = new double[n];
+        var samples = new Sample[n];
+        bool weighted = !sampleWeight.IsEmpty;
         for (int i = 0; i < n; i++)
         {
-            order[i] = i;
             keys[i] = -yScore[i];
+            samples[i] = new Sample(weighted ? sampleWeight[i] : 1.0, yTrue[i] == posLabel);
         }
 
-        Array.Sort(keys, order);
+        Array.Sort(keys, samples);
 
-        var truePositives = new List<double>();
-        var falsePositives = new List<double>();
-        var thresholds = new List<double>();
+        int count = 1;
+        for (int i = 0; i + 1 < n; i++)
+        {
+            count += IsLastOfGroup(keys, i) ? 1 : 0;
+        }
+
+        var truePositives = new double[count];
+        var falsePositives = new double[count];
+        var thresholds = new double[count];
         double tp = 0.0;
         double fp = 0.0;
+        int point = 0;
 
         for (int i = 0; i < n; i++)
         {
-            int at = order[i];
-            double weight = sampleWeight.IsEmpty ? 1.0 : sampleWeight[at];
-            if (yTrue[at] == posLabel)
+            if (samples[i].Positive)
             {
-                tp += weight;
+                tp += samples[i].Weight;
             }
             else
             {
-                fp += weight;
+                fp += samples[i].Weight;
             }
 
-            // S1244: whether this is the last of a tied group, which is what decides
-            // where a threshold sits. Equal scores are bit-identical, and a tolerance
-            // would merge scores the reference keeps apart.
-#pragma warning disable S1244
-            if (i + 1 < n && keys[i] == keys[i + 1])
-#pragma warning restore S1244
+            if (i + 1 < n && !IsLastOfGroup(keys, i))
             {
                 continue;
             }
 
-            truePositives.Add(tp);
-            falsePositives.Add(fp);
-            thresholds.Add(yScore[at]);
+            truePositives[point] = tp;
+            falsePositives[point] = fp;
+
+            // Negation is exact, so this is the score itself, bit for bit.
+            thresholds[point] = -keys[i];
+            point++;
         }
 
-        return new Points([.. truePositives], [.. falsePositives], [.. thresholds]);
+        return new Points(truePositives, falsePositives, thresholds);
     }
 
     /// <summary>
-    /// Which points survive <c>drop_intermediate</c>: the ends, and any point that
-    /// turns the curve.
+    /// Whether point <paramref name="i"/> survives <c>drop_intermediate</c>: the ends, and any
+    /// point that turns the curve.
     /// </summary>
     /// <remarks>
     /// A run of collinear points draws the same curve as its two endpoints, so the
     /// reference drops the middle of one — <c>np.where(np.diff(…, 2))</c> over the two
     /// counts. Only points strictly inside the array are ever dropped.
     /// </remarks>
-    public static bool[] Keep(double[] first, double[] second, bool dropIntermediate)
+    public static bool Turns(double[] first, double[] second, int i, bool dropIntermediate)
     {
         int n = first.Length;
-        var keep = new bool[n];
-        if (!dropIntermediate || n <= 2)
+        if (!dropIntermediate || n <= 2 || i == 0 || i == n - 1)
         {
-            // Array.Fill is not on netstandard2.0, and a loop needs no polyfill.
-            for (int i = 0; i < n; i++)
-            {
-                keep[i] = true;
-            }
-
-            return keep;
+            return true;
         }
 
-        keep[0] = true;
-        keep[n - 1] = true;
-        for (int i = 1; i < n - 1; i++)
-        {
-            double firstBend = first[i + 1] - (2.0 * first[i]) + first[i - 1];
-            double secondBend = second[i + 1] - (2.0 * second[i]) + second[i - 1];
+        double firstBend = first[i + 1] - (2.0 * first[i]) + first[i - 1];
+        double secondBend = second[i + 1] - (2.0 * second[i]) + second[i - 1];
 
-            // S1244: whether the second difference vanished, which is exactly what
-            // np.diff(…, 2) is tested against — a bend of zero means collinear.
+        // S1244: whether the second difference vanished, which is exactly what
+        // np.diff(…, 2) is tested against — a bend of zero means collinear.
 #pragma warning disable S1244
-            keep[i] = firstBend != 0.0 || secondBend != 0.0;
+        return firstBend != 0.0 || secondBend != 0.0;
 #pragma warning restore S1244
+    }
+
+    /// <summary>
+    /// Whether point <paramref name="i"/> survives the other <c>drop_intermediate</c>, the one
+    /// <see cref="KeepByCount"/> applies to every point.
+    /// </summary>
+    public static bool Moves(double[] counts, int i, bool dropIntermediate)
+    {
+        int n = counts.Length;
+        if (!dropIntermediate || n <= 2 || i == 0 || i == n - 1)
+        {
+            return true;
         }
 
-        return keep;
+        // S1244: whether the count moved at all, which is what np.diff is tested
+        // against -- these are accumulated weights, compared for change, not
+        // two computations compared for closeness.
+#pragma warning disable S1244
+        return counts[i] != counts[i - 1] || counts[i + 1] != counts[i];
+#pragma warning restore S1244
     }
 
     /// <summary>
@@ -129,33 +141,15 @@ internal static class ClassifierCurve
     /// <remarks>
     /// Points with the same count share a recall, so they stack on one vertical line
     /// and only the first and last of a run are worth keeping. Not the same rule as
-    /// <see cref="Keep"/>, which the ROC curve uses -- that one drops a point the curve
+    /// <see cref="Turns"/>, which the ROC curve uses -- that one drops a point the curve
     /// does not bend at, in either coordinate.
     /// </remarks>
     public static bool[] KeepByCount(double[] counts, bool dropIntermediate)
     {
-        int n = counts.Length;
-        var keep = new bool[n];
-        if (!dropIntermediate || n <= 2)
+        var keep = new bool[counts.Length];
+        for (int i = 0; i < keep.Length; i++)
         {
-            for (int i = 0; i < n; i++)
-            {
-                keep[i] = true;
-            }
-
-            return keep;
-        }
-
-        keep[0] = true;
-        keep[n - 1] = true;
-        for (int i = 1; i < n - 1; i++)
-        {
-            // S1244: whether the count moved at all, which is what np.diff is tested
-            // against -- these are accumulated weights, compared for change, not
-            // two computations compared for closeness.
-#pragma warning disable S1244
-            keep[i] = counts[i] != counts[i - 1] || counts[i + 1] != counts[i];
-#pragma warning restore S1244
+            keep[i] = Moves(counts, i, dropIntermediate);
         }
 
         return keep;
@@ -185,6 +179,25 @@ internal static class ClassifierCurve
         }
 
         return result;
+    }
+
+    /// <summary>Whether sorted position <paramref name="i"/> ends its run of equal keys; the caller checks a next one exists.</summary>
+    private static bool IsLastOfGroup(double[] keys, int i)
+    {
+        // S1244: whether this is the last of a tied group, which is what decides
+        // where a threshold sits. Equal scores are bit-identical, and a tolerance
+        // would merge scores the reference keeps apart.
+#pragma warning disable S1244
+        return keys[i] != keys[i + 1];
+#pragma warning restore S1244
+    }
+
+    /// <summary>One sample's weight and class, carried through the sort beside its key.</summary>
+    private readonly struct Sample(double weight, bool positive)
+    {
+        public double Weight { get; } = weight;
+
+        public bool Positive { get; } = positive;
     }
 
     private static int Validate(ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, ReadOnlySpan<double> sampleWeight)

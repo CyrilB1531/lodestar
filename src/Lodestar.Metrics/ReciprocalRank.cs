@@ -31,10 +31,12 @@ public static class ReciprocalRank
 
         double total = 0.0;
         int rows = relevance.Length / labelCount;
+        int[] order = new int[labelCount];
+        double[] copy = new double[labelCount];
         for (int row = 0; row < rows; row++)
         {
             ReadOnlySpan<double> judged = relevance.Slice(row * labelCount, labelCount);
-            int[] order = Internal.Ranking.Descending(yScore.Slice(row * labelCount, labelCount));
+            Internal.Ranking.Descending(yScore.Slice(row * labelCount, labelCount), order, copy);
             for (int rank = 0; rank < order.Length; rank++)
             {
                 // S1244: relevance is a judgement, not a measurement -- "not zero" is the

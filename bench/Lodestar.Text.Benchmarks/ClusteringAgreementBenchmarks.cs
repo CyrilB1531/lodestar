@@ -41,4 +41,7 @@ public class ClusteringAgreementBenchmarks
 
     [Benchmark]
     public double MutualInformationScore() => MutualInformation.Score(_true, _predicted);
+
+    [Benchmark]
+    public double AdjustedMutualInformationScore() => AdjustedMutualInformation.Score(_true, _predicted);
 }

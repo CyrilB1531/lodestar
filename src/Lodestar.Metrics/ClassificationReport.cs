@@ -96,10 +96,14 @@ public sealed class ClassificationReport
                 nameof(targetNames));
         }
 
-        double[] precision = Prf.PerClass(cm, PrfMetric.Precision, 1.0, zeroDivision);
-        double[] recall = Prf.PerClass(cm, PrfMetric.Recall, 1.0, zeroDivision);
-        double[] f1 = Prf.PerClass(cm, PrfMetric.FScore, 1.0, zeroDivision);
+        // Read once and shared by all nine scores below: each used to read the matrix again, the
+        // predicted sums alone costing a pass over every cell of it.
+        double[] tp = Prf.TruePositives(cm);
+        double[] predictedSum = Prf.PredictedSum(cm);
         double[] support = Prf.Support(cm);
+        double[] precision = Prf.PerClass(tp, predictedSum, support, PrfMetric.Precision, 1.0, zeroDivision);
+        double[] recall = Prf.PerClass(tp, predictedSum, support, PrfMetric.Recall, 1.0, zeroDivision);
+        double[] f1 = Prf.PerClass(tp, predictedSum, support, PrfMetric.FScore, 1.0, zeroDivision);
 
         ClassRow[] rows = new ClassRow[k];
         double totalSupport = 0.0;
@@ -111,16 +115,16 @@ public sealed class ClassificationReport
 
         AverageRow macro = new(
             "macro avg",
-            Prf.Aggregate(cm, PrfMetric.Precision, 1.0, Averaging.Macro, 0, zeroDivision),
-            Prf.Aggregate(cm, PrfMetric.Recall, 1.0, Averaging.Macro, 0, zeroDivision),
-            Prf.Aggregate(cm, PrfMetric.FScore, 1.0, Averaging.Macro, 0, zeroDivision),
+            Prf.Average(precision, support, Averaging.Macro),
+            Prf.Average(recall, support, Averaging.Macro),
+            Prf.Average(f1, support, Averaging.Macro),
             totalSupport);
 
         AverageRow weighted = new(
             "weighted avg",
-            Prf.Aggregate(cm, PrfMetric.Precision, 1.0, Averaging.Weighted, 0, zeroDivision),
-            Prf.Aggregate(cm, PrfMetric.Recall, 1.0, Averaging.Weighted, 0, zeroDivision),
-            Prf.Aggregate(cm, PrfMetric.FScore, 1.0, Averaging.Weighted, 0, zeroDivision),
+            Prf.Average(precision, support, Averaging.Weighted),
+            Prf.Average(recall, support, Averaging.Weighted),
+            Prf.Average(f1, support, Averaging.Weighted),
             totalSupport);
 
         AverageRow? micro = null;

@@ -211,6 +211,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- The confusion matrices, classifier curves, ranked-row scores, cluster validity scores and `ClassificationReport.Compute` make fewer passes and allocations over their input, up to 24× faster for unweighted `Accuracy.Score`. ([#850](https://github.com/CyrilB1531/lodestar/issues/850))
 - `Silhouette.PerSample` sums each pair's distance per cluster instead of holding the n × n distance matrix. ([#815](https://github.com/CyrilB1531/lodestar/issues/815))
 - The clustering agreement scores spread their contingency cells across the hash table, where a 100 × 100 table's cells shared 128 hash values. ([#812](https://github.com/CyrilB1531/lodestar/issues/812))
 - `TopKAccuracy.Score` counts the true class's rank in each row instead of sorting the row, and allocates nothing per row. ([#827](https://github.com/CyrilB1531/lodestar/issues/827))

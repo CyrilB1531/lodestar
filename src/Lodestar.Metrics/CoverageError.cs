@@ -26,23 +26,70 @@ public static class CoverageError
         int rows = yTrue.Length / labelCount;
         double[] perRow = new double[rows];
         int[] ranks = new int[labelCount];
+        double[] sorted = new double[labelCount];
         for (int row = 0; row < rows; row++)
         {
             ReadOnlySpan<bool> relevant = yTrue.Slice(row * labelCount, labelCount);
-            LabelRanking.MaxRank(yScore.Slice(row * labelCount, labelCount), ranks);
-
-            int worst = 0;
-            for (int label = 0; label < labelCount; label++)
-            {
-                if (relevant[label] && ranks[label] > worst)
-                {
-                    worst = ranks[label];
-                }
-            }
-
-            perRow[row] = worst;
+            ReadOnlySpan<double> scores = yScore.Slice(row * labelCount, labelCount);
+            perRow[row] = WorstRank(relevant, scores, ranks, sorted);
         }
 
         return LabelRanking.Weighted(perRow, sampleWeight);
+    }
+
+    /// <summary>The rank of the worst-ranked relevant label, or 0 when none is relevant.</summary>
+    /// <remarks>
+    /// A max rank is the count of scores at or above a label's own, so the worst relevant rank is
+    /// that count at the lowest relevant score, with no sort. A NaN answers no comparison the
+    /// way a sorted binary search does, so a row holding one keeps the ranked path.
+    /// </remarks>
+    private static int WorstRank(ReadOnlySpan<bool> relevant, ReadOnlySpan<double> scores, int[] ranks, double[] sorted)
+    {
+        bool anyRelevant = false;
+        bool anyNaN = false;
+        double lowest = double.PositiveInfinity;
+        for (int label = 0; label < scores.Length; label++)
+        {
+            double score = scores[label];
+            anyNaN |= double.IsNaN(score);
+            if (relevant[label] && (!anyRelevant || score < lowest))
+            {
+                lowest = score;
+                anyRelevant = true;
+            }
+        }
+
+        if (!anyRelevant)
+        {
+            return 0;
+        }
+
+        if (anyNaN)
+        {
+            return RankedWorst(relevant, scores, ranks, sorted);
+        }
+
+        int atOrAbove = 0;
+        foreach (double score in scores)
+        {
+            atOrAbove += score >= lowest ? 1 : 0;
+        }
+
+        return atOrAbove;
+    }
+
+    private static int RankedWorst(ReadOnlySpan<bool> relevant, ReadOnlySpan<double> scores, int[] ranks, double[] sorted)
+    {
+        LabelRanking.MaxRank(scores, ranks, sorted);
+        int worst = 0;
+        for (int label = 0; label < scores.Length; label++)
+        {
+            if (relevant[label] && ranks[label] > worst)
+            {
+                worst = ranks[label];
+            }
+        }
+
+        return worst;
     }
 }

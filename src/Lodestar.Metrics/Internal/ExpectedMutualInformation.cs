@@ -24,7 +24,21 @@ internal static class ExpectedMutualInformation
 
         double[] logFactorial = LogFactorials(samples);
         double logSamples = Math.Log(samples);
+        double logFactorialSamples = logFactorial[samples];
         double emi = 0.0;
+
+        // What the innermost loop reads per cell count, taken out of it: the same operands in the
+        // same order give the same doubles, and a table read replaces a Math.Log per iteration.
+        int largest = Math.Min(Max(rows), Max(columns));
+        double[] logSamplesPlusLogNij = new double[largest + 1];
+        double[] fractionOfSamples = new double[largest + 1];
+        double[] logFactorialNijPlusSamples = new double[largest + 1];
+        for (int nij = 1; nij <= largest; nij++)
+        {
+            logSamplesPlusLogNij[nij] = logSamples + Math.Log(nij);
+            fractionOfSamples[nij] = nij / (double)samples;
+            logFactorialNijPlusSamples[nij] = logFactorial[nij] + logFactorialSamples;
+        }
 
         // Every (class, cluster) pair, not only the non-empty cells: a cell that is
         // empty here still has a chance of being filled, which is the whole quantity.
@@ -35,27 +49,39 @@ internal static class ExpectedMutualInformation
             for (int j = 0; j < columns.Length; j++)
             {
                 int b = columns[j];
-                double logB = Math.Log(b);
+                double logAB = logA + Math.Log(b);
+                double marginals =
+                    logFactorial[a] + logFactorial[b] +
+                    logFactorial[samples - a] + logFactorial[samples - b];
 
                 int start = Math.Max(1, a + b - samples);
                 int end = Math.Min(a, b);
                 for (int nij = start; nij <= end; nij++)
                 {
-                    double term1 = nij / (double)samples;
-                    double term2 = logSamples + Math.Log(nij) - (logA + logB);
+                    double term2 = logSamplesPlusLogNij[nij] - logAB;
                     double gln =
-                        logFactorial[a] + logFactorial[b] +
-                        logFactorial[samples - a] + logFactorial[samples - b] -
-                        (logFactorial[nij] + logFactorial[samples]) -
+                        marginals -
+                        logFactorialNijPlusSamples[nij] -
                         logFactorial[a - nij] - logFactorial[b - nij] -
                         logFactorial[samples - a - b + nij];
 
-                    emi += term1 * term2 * Math.Exp(gln);
+                    emi += fractionOfSamples[nij] * term2 * Math.Exp(gln);
                 }
             }
         }
 
         return emi;
+    }
+
+    private static int Max(int[] counts)
+    {
+        int max = 0;
+        foreach (int count in counts)
+        {
+            max = Math.Max(max, count);
+        }
+
+        return max;
     }
 
     /// <summary>
