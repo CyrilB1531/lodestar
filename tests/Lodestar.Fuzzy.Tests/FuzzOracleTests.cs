@@ -76,6 +76,30 @@ public sealed class FuzzOracleTests
         Assert.Equal(0.0, Fuzz.Ratio("\U0001F600", "\U0001F601", TextElement.CodePoint), 4);
     }
 
+    /// <summary>Past what a char can rank, Ratio answers over the code points and the others say why not (#982).</summary>
+    [Fact]
+    public void An_alphabet_past_what_a_char_can_rank_is_answered_by_Ratio_alone()
+    {
+        var builder = new System.Text.StringBuilder();
+        for (int codePoint = 0x21; codePoint <= 0xFFFF; codePoint++)
+        {
+            if (codePoint is >= 0xD800 and <= 0xDFFF)
+            {
+                continue;
+            }
+
+            builder.Append((char)codePoint);
+        }
+
+        string wide = builder.Append(char.ConvertFromUtf32(0x1F600)).ToString();
+
+        // rapidfuzz 3.14.6: fuzz.ratio(wide, "abc") == 0.009454923651486258.
+        Assert.Equal(0.009454923651486258, Fuzz.Ratio(wide, "abc", TextElement.CodePoint), 15);
+        Assert.Throws<ArgumentException>(() => Fuzz.PartialRatio(wide, "abc", TextElement.CodePoint));
+        Assert.Throws<ArgumentException>(() => Fuzz.TokenSortRatio(wide, "abc", TextElement.CodePoint));
+        Assert.Throws<ArgumentException>(() => Fuzz.WRatio(wide, "abc", TextElement.CodePoint));
+    }
+
     [Fact]
     public void An_undeclared_unit_is_refused()
     {

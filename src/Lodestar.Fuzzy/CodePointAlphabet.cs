@@ -18,9 +18,13 @@ internal readonly struct CodePointAlphabet
 
     private CodePointAlphabet(Dictionary<int, char>? units) => _units = units;
 
-    /// <summary>The map for a pair of strings, over every code point either holds.</summary>
-    /// <exception cref="ArgumentException">The two strings hold more distinct code points above U+0020 than there are non-surrogate units to rank them on.</exception>
-    public static CodePointAlphabet Over(string a, string b)
+    /// <summary>The map for a pair of strings, over every code point either holds, or <see langword="null"/> past what a <see cref="char"/> can rank.</summary>
+    /// <remarks>
+    /// There are 63,455 non-surrogate units above the space, so two strings holding more distinct code
+    /// points than that cannot be rewritten one unit per code point. <c>Fuzz.Ratio</c> answers such a
+    /// pair from the code points themselves; the scorers that need the map refuse it (#982).
+    /// </remarks>
+    public static CodePointAlphabet? Over(string a, string b)
     {
         if (!HasSurrogate(a) && !HasSurrogate(b))
         {
@@ -56,14 +60,26 @@ internal readonly struct CodePointAlphabet
 
             if (next > char.MaxValue)
             {
-                throw new ArgumentException(
-                    "The two strings hold more distinct code points than the non-surrogate UTF-16 units can rank.");
+                return null;
             }
 
             units[codePoint] = (char)next++;
         }
 
         return new CodePointAlphabet(units);
+    }
+
+    /// <summary>The text's code points, a lone surrogate keeping its own value (#982).</summary>
+    public static int[] Decode(string text)
+    {
+        var points = new int[CountCodePoints(text)];
+        int at = 0;
+        for (int i = 0; i < text.Length; i += Width(text, i))
+        {
+            points[at++] = CodePointAt(text, i);
+        }
+
+        return points;
     }
 
     /// <summary>rapidfuzz's split: runs of its whitespace, which is not <see cref="char.IsWhiteSpace(char)"/>'s.</summary>
