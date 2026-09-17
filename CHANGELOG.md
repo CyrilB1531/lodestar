@@ -52,6 +52,10 @@ is one sentence, the issue and the commit; see
 - `SplitConformal.NormalisedResiduals` and `NormalisedInterval` make the interval width vary with the input. ([#683](https://github.com/CyrilB1531/lodestar/issues/683), [`42cc0384`](https://github.com/CyrilB1531/lodestar/commit/42cc0384))
 - `SplitConformal.Quantile` takes a `ConformalQuantileRule`, whose `MapieClassification` reads the quantile MAPIE's prediction sets read, one rank above the default ceiling rule at 19 scores and 10 %. ([#866](https://github.com/CyrilB1531/lodestar/issues/866))
 
+#### Fixed
+
+- `SplitConformal.PredictionSet` includes a class within MAPIE's 1e-8 of the threshold, and `SplitConformal.Quantile` refuses a NaN score, which moved every rank down one. ([#889](https://github.com/CyrilB1531/lodestar/issues/889))
+
 ### Lodestar.Cluster
 
 #### Added

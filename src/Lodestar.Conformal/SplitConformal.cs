@@ -17,7 +17,7 @@ public static class SplitConformal
     /// </remarks>
     /// <param name="scores">The calibration scores; not modified.</param>
     /// <param name="alpha">Miscoverage level in <c>(0, 1)</c>: 0.1 asks for 90 % coverage.</param>
-    /// <exception cref="ArgumentException"><paramref name="scores"/> is empty.</exception>
+    /// <exception cref="ArgumentException"><paramref name="scores"/> is empty or holds a NaN.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="alpha"/> is not in <c>(0, 1)</c>.</exception>
     public static double Quantile(ReadOnlySpan<double> scores, double alpha) =>
         Quantile(scores, alpha, ConformalQuantileRule.Ceiling);
@@ -34,7 +34,7 @@ public static class SplitConformal
     /// <param name="scores">The calibration scores; not modified.</param>
     /// <param name="alpha">Miscoverage level in <c>(0, 1)</c>: 0.1 asks for 90 % coverage.</param>
     /// <param name="rule">Which order statistic to read.</param>
-    /// <exception cref="ArgumentException"><paramref name="scores"/> is empty.</exception>
+    /// <exception cref="ArgumentException"><paramref name="scores"/> is empty or holds a NaN.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="alpha"/> is not in <c>(0, 1)</c>, or <paramref name="rule"/> is not a declared value.</exception>
     public static double Quantile(ReadOnlySpan<double> scores, double alpha, ConformalQuantileRule rule)
     {
@@ -53,6 +53,15 @@ public static class SplitConformal
         {
             throw new ArgumentOutOfRangeException(
                 nameof(rule), rule, "The quantile rule must be Ceiling or MapieClassification.");
+        }
+
+        // NaN sorts first and would move every rank down one; MAPIE's regressor drops it, this refuses it (#889).
+        for (int i = 0; i < scores.Length; i++)
+        {
+            if (double.IsNaN(scores[i]))
+            {
+                throw new ArgumentException($"Calibration score {i} is NaN.", nameof(scores));
+            }
         }
 
         int n = scores.Length;
@@ -245,7 +254,10 @@ public static class SplitConformal
         return scores;
     }
 
-    /// <summary>The prediction set: every class whose probability clears <c>1 − q</c>.</summary>
+    /// <summary>How far below <c>1 − q</c> a class may fall and stay in the set: MAPIE's <c>EPSILON</c>, from <c>mapie/_machine_precision.py</c>.</summary>
+    private const double InclusionTolerance = 1e-8;
+
+    /// <summary>The prediction set: every class whose probability clears <c>1 − q</c>, to within 1e-8.</summary>
     /// <remarks>
     /// MAPIE's LAC rule, edges included, when the quantile was taken at
     /// <see cref="ConformalQuantileRule.MapieClassification"/>; the default rule can read one rank lower.
@@ -265,11 +277,11 @@ public static class SplitConformal
                 nameof(quantile), quantile, "A calibrated quantile is a non-negative score.");
         }
 
-        double threshold = 1.0 - quantile;
         bool[] included = new bool[probabilities.Length];
         for (int i = 0; i < probabilities.Length; i++)
         {
-            included[i] = probabilities[i] >= threshold;
+            // MAPIE's own comparison, so a class 1e-8 short of 1 - q is in the set as it is there.
+            included[i] = (1.0 - probabilities[i]) - quantile <= InclusionTolerance;
         }
         return included;
     }

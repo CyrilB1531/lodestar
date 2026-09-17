@@ -25,7 +25,7 @@ classifier produces.
 `Ceiling`, `k = ceil((n − 1) · level) + 1` with `level = (n + 1)(1 − alpha)/n` under
 `MapieClassification`. `double.PositiveInfinity` when `k` exceeds the number of scores.
 
-**Exceptions** — `ArgumentException` when `scores` is empty. `ArgumentOutOfRangeException` when
+**Exceptions** — `ArgumentException` when `scores` is empty or holds a `NaN`. `ArgumentOutOfRangeException` when
 `alpha` is `NaN` or outside `(0, 1)`, or when `rule` is not a declared value.
 
 **Example** — nine scores at 20 % miscoverage. `k = ceil(10 × 0.8) = 8`, so the answer is the
@@ -63,6 +63,10 @@ answer is `double.PositiveInfinity` — a trivial prediction, with real coverage
 and under `allow_infinite_bounds` returns the largest score instead, which is *narrower* than the
 level asked for. If an infinite interval is unacceptable at your call site, test
 `double.IsInfinity(q)` and collect more calibration data; there is no third answer.
+
+**A `NaN` score is refused.** Sorted, it would land first and move every rank down by one. MAPIE's
+regressor drops it through `numpy.nanquantile` and its classifier returns a `NaN` quantile; a score
+that is not a number is a bug upstream of either, and this says so.
 
 **The guarantee assumes exchangeability** between the calibration and the test data. See the
 guide's [*Exchangeability*](../../../guides/conformal.md#exchangeability) section, which is the
