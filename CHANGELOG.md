@@ -242,6 +242,10 @@ is one sentence, the issue and the commit; see
 - `TopKAccuracy.Score` counts the true class's rank in each row instead of sorting the row, and allocates nothing per row. ([#827](https://github.com/CyrilB1531/lodestar/issues/827))
 - `MeanSquaredError`, `MeanAbsoluteError` and `R2` read their input once to validate and score it. ([#715](https://github.com/CyrilB1531/lodestar/issues/715), [`a954161e`](https://github.com/CyrilB1531/lodestar/commit/a954161e))
 
+#### Fixed
+
+- Macro and weighted precision, recall, F-scores, Jaccard and the report's average rows skip `NaN` classes and fall back to the unweighted mean on zero total support, as scikit-learn's `_nanaverage` does. ([#861](https://github.com/CyrilB1531/lodestar/issues/861))
+
 ## Released — 2026-09-10
 
 Thirteen cuts across eleven packages, and the end of milestone 0.6.0 — thirty-three

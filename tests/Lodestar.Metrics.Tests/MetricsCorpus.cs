@@ -14,11 +14,19 @@ internal static class MetricsCorpus
     public static IReadOnlyList<JsonElement> Cases { get; } =
         [.. Document.RootElement.GetProperty("cases").EnumerateArray()];
 
+    /// <summary>The cases where a macro or weighted average meets an undefined class (#861).</summary>
+    public static IReadOnlyList<JsonElement> UndefinedAverages { get; } =
+        [.. Document.RootElement.GetProperty("undefined_averages").EnumerateArray()];
+
     /// <summary>One theory row per case, so a failure names the case that failed.</summary>
-    public static TheoryData<int> Indices()
+    public static TheoryData<int> Indices() => Range(Cases.Count);
+
+    public static TheoryData<int> UndefinedAverageIndices() => Range(UndefinedAverages.Count);
+
+    private static TheoryData<int> Range(int count)
     {
         var data = new TheoryData<int>();
-        for (int i = 0; i < Cases.Count; i++)
+        for (int i = 0; i < count; i++)
         {
             data.Add(i);
         }

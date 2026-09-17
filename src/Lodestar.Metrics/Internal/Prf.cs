@@ -155,36 +155,45 @@ internal static class Prf
         }
     }
 
-    /// <summary>The macro or support-weighted mean of per-class scores.</summary>
+    /// <summary>
+    /// The macro or support-weighted mean of per-class scores — scikit-learn's
+    /// <c>_nanaverage</c>, in <c>sklearn/utils/extmath.py</c>.
+    /// </summary>
+    /// <remarks>
+    /// A <see cref="double.NaN"/> class leaves the mean with its weight, and only
+    /// every class being <see cref="double.NaN"/> makes the result one. Weights that
+    /// sum to zero once those are gone fall back to the unweighted mean, as
+    /// <c>jaccard_score</c> also does by dropping its weights (#861).
+    /// </remarks>
     public static double Average(double[] perClass, double[] support, Averaging average)
     {
-        if (average == Averaging.Macro)
-        {
-            double total = 0.0;
-            foreach (double value in perClass)
-            {
-                total += value;
-            }
-            return total / perClass.Length;
-        }
-
-        double weightSum = 0.0;
+        double total = 0.0;
         double weighted = 0.0;
+        double weightSum = 0.0;
+        int defined = 0;
         for (int i = 0; i < perClass.Length; i++)
         {
-            weighted += perClass[i] * support[i];
+            double value = perClass[i];
+            if (double.IsNaN(value))
+            {
+                continue;
+            }
+
+            defined++;
+            total += value;
+            weighted += value * support[i];
             weightSum += support[i];
         }
-        // scikit-learn returns 0.0 rather than dividing by zero here.
-        // SonarLint S1244 warns against comparing floating point for
-        // exact equality, which is right for arithmetic and wrong
-        // here: this asks whether any requested class carries
-        // support at all, not whether two computed quantities are
-        // close. A tolerance would treat a genuinely small total
-        // support as "no support" and silently swap in the
-        // zero-division answer for a well-defined weighted mean.
+
+        if (defined == 0)
+        {
+            return double.NaN;
+        }
+
+        // SonarLint S1244: an exact zero is numpy.average's own ZeroDivisionError
+        // test, and a tolerance would drop the weights of a small real support.
 #pragma warning disable S1244
-        return weightSum == 0.0 ? 0.0 : weighted / weightSum;
+        return average == Averaging.Macro || weightSum == 0.0 ? total / defined : weighted / weightSum;
 #pragma warning restore S1244
     }
 

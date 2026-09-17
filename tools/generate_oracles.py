@@ -133,6 +133,9 @@ CONFIDENCE_LOWER = "confidenceLower"
 CONFIDENCE_UPPER = "confidenceUpper"
 # scikit-learn's metric name and lifelines' stopping option, spelled alike.
 PRECISION = "precision"
+# Metric names several corpora write as keys, named once they reached S1192 (#861).
+RECALL = "recall"
+JACCARD = "jaccard"
 # The GLM corpus beside the OLS one above, past the same threshold (#616): a family
 # literal, the library name, and "iterations", which NMF and k-means already write.
 STATSMODELS = "statsmodels"
@@ -621,7 +624,7 @@ def generate_set_similarity() -> dict:
             continue
         cases.append({
             "id": idx, "category": category, "a": a, "b": b,
-            "jaccard": td.Jaccard(qval=1).normalized_similarity(a, b),
+            JACCARD: td.Jaccard(qval=1).normalized_similarity(a, b),
             "dice": td.Sorensen(qval=1).normalized_similarity(a, b),
             "overlap": td.Overlap(qval=1).normalized_similarity(a, b),
             "tversky": td.Tversky(qval=1).normalized_similarity(a, b),
@@ -2811,7 +2814,7 @@ def _metric_case(fx: dict, weighted: bool) -> dict:
                 y_true, y_pred, labels=labels, average=avg, pos_label=pos_label,
                 sample_weight=sw, zero_division=zd)
             case["averaged"][f"{avg}|{zd}"] = {
-                PRECISION: stable(p), "recall": stable(r), "f1": stable(f)}
+                PRECISION: stable(p), RECALL: stable(r), "f1": stable(f)}
             for beta in BETAS:
                 case["fbeta"][f"{beta}|{avg}|{zd}"] = stable(skm.fbeta_score(
                     y_true, y_pred, beta=beta, labels=labels, average=avg,
@@ -2821,7 +2824,7 @@ def _metric_case(fx: dict, weighted: bool) -> dict:
             zero_division=zd)
         case["per_class"][str(zd)] = {
             PRECISION: [stable(v) for v in p],
-            "recall": [stable(v) for v in r],
+            RECALL: [stable(v) for v in r],
             "f1": [stable(v) for v in f],
             "support": [stable(v) for v in s],
         }
@@ -2849,6 +2852,79 @@ def _metric_case(fx: dict, weighted: bool) -> dict:
     return case
 
 
+# zero_division=np.nan joins the modes for the undefined-average cases only: the
+# existing cases keep their keys, and a new mode there would move every one (#861).
+UNDEFINED_ZERO_DIVISIONS = (0, 1, math.nan)
+
+
+def _undefined_average_fixtures() -> list[dict]:
+    """Inputs where a macro or weighted average meets an undefined class (#861).
+
+    scikit-learn averages through _nanaverage, which drops the NaN classes and
+    falls back to an unweighted mean when the remaining support sums to zero.
+    A zero sample weight is what reaches a zero total support while a requested
+    label still occurs in y_true, which the confusion matrix requires.
+    """
+    return [
+        {"name": "one_class_never_predicted", "y_true": [0, 0, 1], "y_pred": [0, 0, 0],
+         "labels": None, "sample_weight": None},
+        {"name": "one_class_never_predicted_weighted",
+         "y_true": [0, 0, 1, 1, 2, 2, 1, 0], "y_pred": [0, 1, 1, 1, 0, 1, 1, 0],
+         "labels": None, "sample_weight": [1.5, 0.25, 2.0, 1.0, 3.0, 0.5, 1.25, 2.5]},
+        {"name": "label_absent_from_both", "y_true": [0, 1, 1], "y_pred": [0, 1, 0],
+         "labels": [0, 1, 2], "sample_weight": None},
+        {"name": "every_class_undefined", "y_true": [0, 1], "y_pred": [1, 1],
+         "labels": [0], "sample_weight": [0.0, 1.0]},
+        {"name": "zero_total_support", "y_true": [0, 2, 1, 1], "y_pred": [1, 2, 0, 1],
+         "labels": [0, 2], "sample_weight": [0.0, 0.0, 1.0, 1.0]},
+    ]
+
+
+def _undefined_average_case(fx: dict) -> dict:
+    """Macro and weighted scores, and the report's two average rows, per zero_division.
+
+    jaccard_score refuses zero_division=np.nan, so its entry is null under that
+    mode; classification_report's rows come from precision_recall_fscore_support,
+    the same _nanaverage the scores use.
+    """
+    y_true, y_pred = fx["y_true"], fx["y_pred"]
+    labels, sw = fx["labels"], fx["sample_weight"]
+    case = {
+        "fixture": fx["name"],
+        "y_true": y_true,
+        "y_pred": y_pred,
+        "labels": labels,
+        "sample_weight": sw,
+        "scores": {},
+        "report": {},
+    }
+    for zd in UNDEFINED_ZERO_DIVISIONS:
+        mode = "nan" if math.isnan(zd) else str(zd)
+        for avg in ("macro", "weighted"):
+            kw = {"labels": labels, "average": avg, "sample_weight": sw, "zero_division": zd}
+            p, r, f, _ = skm.precision_recall_fscore_support(y_true, y_pred, **kw)
+            entry = {
+                PRECISION: _finite_or_name(p),
+                RECALL: _finite_or_name(r),
+                "f1": _finite_or_name(f),
+            }
+            for beta in BETAS:
+                entry[f"fbeta_{beta}"] = _finite_or_name(
+                    skm.fbeta_score(y_true, y_pred, beta=beta, **kw))
+            entry[JACCARD] = None if math.isnan(zd) else _finite_or_name(
+                skm.jaccard_score(y_true, y_pred, **kw))
+            case["scores"][f"{avg}|{mode}"] = entry
+        report = skm.classification_report(
+            y_true, y_pred, labels=labels, sample_weight=sw, zero_division=zd,
+            output_dict=True)
+        case["report"][mode] = {
+            row: {name: _finite_or_name(report[row][name])
+                  for name in (PRECISION, RECALL, "f1-score", "support")}
+            for row in ("macro avg", "weighted avg")
+        }
+    return case
+
+
 def generate_classification_metrics() -> dict:
     with warnings.catch_warnings():
         # scikit-learn warns on every undefined metric; the corpus records the
@@ -2859,6 +2935,7 @@ def generate_classification_metrics() -> dict:
             for fx in _metric_fixtures()
             for weighted in (False, True)
         ]
+        undefined_averages = [_undefined_average_case(fx) for fx in _undefined_average_fixtures()]
     return {
         "metadata": {
             "algorithm": "ClassificationMetrics",
@@ -2879,6 +2956,7 @@ def generate_classification_metrics() -> dict:
             "count": len(cases),
         },
         "cases": cases,
+        "undefined_averages": undefined_averages,
     }
 
 
@@ -5907,7 +5985,7 @@ def generate_text_similarity() -> dict:
             pairs.append({
                 "left": first,
                 "right": second,
-                "jaccard": float(estimate),
+                JACCARD: float(estimate),
                 HAMMING: bin(
                     int(Simhash(documents[left][SIM_TOKENS]).value)
                     ^ int(Simhash(documents[right][SIM_TOKENS]).value)
