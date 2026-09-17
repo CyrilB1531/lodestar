@@ -125,6 +125,7 @@ is one sentence, the issue and the commit; see
 - `Jaccard`, `SorensenDice`, `Overlap`, `Tversky` and `Cosine` score two different inputs shorter than `qval` as `0`, where their empty q-gram bags scored them identical. ([#882](https://github.com/CyrilB1531/lodestar/issues/882))
 - The Snowball stemmers and the vectorizers' `StripAccents` keep an unpaired surrogate in place, as Python's normalization does, where `string.Normalize` threw `ArgumentException`. ([#880](https://github.com/CyrilB1531/lodestar/issues/880))
 - `CountVectorizer.Load`, `TfidfVectorizer.Load` and `HashingVectorizer.Load` restate an option the vectorizer refuses, such as a token pattern no regex parses, as `InvalidDataException`, and the save pages say which default bounds a saved model can exceed. ([#881](https://github.com/CyrilB1531/lodestar/issues/881))
+- The `char` analyzer collapses only runs of two or more whitespace characters, and both character analyzers count U+001C to U+001F as whitespace, as scikit-learn does. ([#879](https://github.com/CyrilB1531/lodestar/issues/879))
 - `DoubleMetaphone.Encode("W")` returns two empty codes, as the reference does, instead of throwing. ([#838](https://github.com/CyrilB1531/lodestar/issues/838))
 
 ### Lodestar.Gpu

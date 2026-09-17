@@ -861,6 +861,7 @@ CORPUS_A = [
     QUICK_FOX,
 ]
 CORPUS_ACCENTS = ["Café crème", "Cafe creme", "Élève à l'école", "eleve a l ecole"]
+CORPUS_WHITESPACE = ["a\tb c", "x\n\ny  z\r\n", "p\x1cq\x1c\x1dr", "u\u2003v\u00a0\u00a0w"]
 
 
 def _build_count_vectorizer(cfg: dict):
@@ -888,6 +889,9 @@ COUNT_CASES = [
     {"config": {"strip_accents": True}, "docs": CORPUS_ACCENTS},
     {"config": {"analyzer": "char", "ngram_min": 2, "ngram_max": 3}, "docs": CORPUS_A[:3]},
     {"config": {"analyzer": "char_wb", "ngram_min": 2, "ngram_max": 3}, "docs": CORPUS_A[:3]},
+    # #879: only runs of two or more whitespace collapse (\s\s+), and U+001C..U+001F are whitespace.
+    {"config": {"analyzer": "char", "ngram_min": 1, "ngram_max": 2}, "docs": CORPUS_WHITESPACE},
+    {"config": {"analyzer": "char_wb", "ngram_min": 1, "ngram_max": 2}, "docs": CORPUS_WHITESPACE},
 ]
 
 

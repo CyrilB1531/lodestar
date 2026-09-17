@@ -55,9 +55,11 @@ implemented, never retrofitted at the end (§6.1 of the brief).
 
 | Python | Library | C# | Differences |
 | --- | --- | --- | --- |
-| `CountVectorizer()` | scikit-learn | `new CountVectorizer()` | Sorted vocabulary, `token_pattern` `\b\w\w+\b` (single characters dropped), `lowercase` by default. Parity across 10 configs. |
+| `CountVectorizer()` | scikit-learn | `new CountVectorizer()` | Sorted vocabulary, `token_pattern` `\b\w\w+\b` (single characters dropped), `lowercase` by default. Parity across 13 configs. |
 | `CountVectorizer(ngram_range=(1,2))` | scikit-learn | `new CountVectorizer(new(){ NgramRange=(1,2) })` | Word n-grams joined by a space. |
-| `CountVectorizer(analyzer="char"/"char_wb")` | scikit-learn | `Analyzer = AnalyzerKind.Char / CharWordBoundary` | Character n-grams (with/without crossing word boundaries). |
+| `CountVectorizer(analyzer="char"/"char_wb")` | scikit-learn | `Analyzer = AnalyzerKind.Char / CharWordBoundary` | Character n-grams (with/without crossing word boundaries). `char` rewrites only runs of two or more whitespace characters as one space, scikit-learn's `\s\s+`, so a lone tab or newline stays in its grams. Whitespace is Python's `str.isspace`, which counts U+001C to U+001F where `char.IsWhiteSpace` does not. |
+| `CountVectorizer(lowercase=True)` | scikit-learn | `Lowercase = true` | **Simple case mapping, not Python's full mapping.** `ToLowerInvariant` maps one UTF-16 unit to one: `"ΟΔΟΣ"` lowercases to `οδοσ` where `str.lower` gives `οδος` (final sigma), and `İ` (U+0130) stays `İ` where Python gives `i` followed by U+0307. ASCII and most scripts agree. |
+| `CountVectorizer(token_pattern=r"(?u)\b\w\w+\b")` | scikit-learn | `TokenPattern` | **`\w` is .NET's class, not Python's.** .NET counts combining marks as word characters and numbers that are not decimal digits (`²`, `Ⅻ`) as not; Python the reverse. Decomposed `naïve` is one token here and `nai`, `ve` in scikit-learn; `नमस्ते` is one token here and `नमस` there; `x²y` is one token there and none here. Precomposed Latin text agrees. |
 | `CountVectorizer(min_df=…, max_df=…)` | scikit-learn | `MinDf`, `MaxDf` | `<1` = proportion, `≥1` = absolute count (sklearn `_limit_features` semantics). |
 | `CountVectorizer(strip_accents="unicode")` | scikit-learn | `StripAccents = true` | NFKD decomposition + removal of combining marks. |
 | `CountVectorizer(stop_words="english")` | scikit-learn | `StopWords = StopWords.English` | sklearn's 318-word list (identical). Any custom collection accepted. |
