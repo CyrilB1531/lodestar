@@ -11964,6 +11964,18 @@ def generate_stats_shapiro() -> dict:
         "x": _stats_nan_list(nan_sample),
     })
 
+    # Below seven, AS R94's special cases: n = 3 fixes its weights, n = 4 and 5 correct one (#863).
+    for name, x in (("three values, skewed", [1.0, 2.0, 4.0]),
+                    ("three values, evenly spaced", [1.0, 2.0, 3.0]),
+                    ("three values, near symmetric", [0.5, -1.2, 2.3]),
+                    ("four values, doubling", [1.0, 2.0, 4.0, 8.0]),
+                    ("five values", [0.1, 0.7, -0.3, 1.9, -2.2])):
+        r = sps.shapiro(np.array(x))
+        cases.append({
+            "name": name, "call": SHAPIRO, "args": {}, "x": x,
+            STATISTIC: float(r.statistic), PVALUE: float(r.pvalue),
+        })
+
     return {"metadata": _stats_metadata(SHAPIRO, len(cases)), CASES: cases}
 
 

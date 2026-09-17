@@ -185,6 +185,7 @@ is one sentence, the issue and the commit; see
 
 #### Fixed
 
+- `ShapiroWilk.Test` at three observations uses AS R94's fixed weights and caps W at 1, where it returned NaN. ([#863](https://github.com/CyrilB1531/lodestar/issues/863))
 - `Distributions.ChiSquaredSf` and `Distributions.FisherSf` are no longer wrong by up to half a unit at large degrees of freedom near the mean. ([#837](https://github.com/CyrilB1531/lodestar/issues/837))
 - `Distributions.StudentSf` and `Distributions.FisherSf` are no longer off by 4e-7 relative at 2e8 degrees of freedom, and more past it, when one shape of the incomplete beta is large and the other small. ([#841](https://github.com/CyrilB1531/lodestar/issues/841))
 - `MannWhitney.Test` no longer returns a wrong statistic past about 46,340 values per sample. ([#712](https://github.com/CyrilB1531/lodestar/issues/712), [`cfe9f048`](https://github.com/CyrilB1531/lodestar/commit/cfe9f048))
