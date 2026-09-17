@@ -50,6 +50,21 @@ public sealed class StationarityEdgeTests
     }
 
     [Fact]
+    public void Kpss_refuses_a_straight_line_its_trend_fits_exactly()
+    {
+        // The statistic was 0/0 and the window a NaN cast to int; a level null still tests the line (#874).
+        double[] line = [.. Enumerable.Range(1, 30).Select(i => (double)i)];
+
+        ArgumentException refusal = Assert.Throws<ArgumentException>(
+            () => Stationarity.Kpss(line, new KpssOptions { Regression = TrendTerms.ConstantAndTrend }));
+        KpssResult level = Stationarity.Kpss(line, new KpssOptions { Regression = TrendTerms.Constant });
+
+        Assert.Equal("series", refusal.ParamName);
+        Assert.Contains("straight line", refusal.Message, StringComparison.Ordinal);
+        Assert.Equal(0.8577681058127098, level.Statistic, 1e-12);
+    }
+
+    [Fact]
     public void Kpss_refuses_a_constant_series()
     {
         ArgumentException error = Assert.Throws<ArgumentException>(() => Stationarity.Kpss([4.0, 4.0, 4.0, 4.0, 4.0]));
