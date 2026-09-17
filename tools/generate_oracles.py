@@ -5045,6 +5045,7 @@ ROW_COUNT = "rowCount"
 COLUMN_COUNT = "columnCount"
 DENSE_SCALE = "denseScale"
 SPARSE_SCALE = "sparseScale"
+TRANSFORMED_VALUES = "transformedValues"
 
 
 def _sparse_fixtures() -> list[dict]:
@@ -5084,6 +5085,11 @@ def generate_preprocessing_sparse() -> dict:
                 (MAXABS, MaxAbsScaler),
                 (ROBUST, lambda: RobustScaler(with_centering=False))):
             fitted = make().fit(csr)
+            # Scaling alone keeps the stored positions, so the values are the whole answer (#895).
+            transformed = fitted.transform(csr)
+            restored = fitted.inverse_transform(transformed)
+            for out in (transformed, restored):
+                assert (out.indices == csr.indices).all() and (out.indptr == csr.indptr).all(), kind
             cases.append({
                 "name": f"{kind}, {fixture['name']}",
                 SCALER: kind,
@@ -5095,6 +5101,8 @@ def generate_preprocessing_sparse() -> dict:
                 SAMPLES: [float(v) for row in fixture["rows"] for v in row],
                 SPARSE_SCALE: column(fitted.scale_),
                 DENSE_SCALE: column(make().fit(dense).scale_),
+                TRANSFORMED_VALUES: column(transformed.data),
+                "inverseValues": column(restored.data),
             })
 
     return {
@@ -5106,6 +5114,7 @@ def generate_preprocessing_sparse() -> dict:
                 "sklearn.preprocessing.StandardScaler.fit",
                 "sklearn.preprocessing.MaxAbsScaler.fit",
                 "sklearn.preprocessing.RobustScaler.fit",
+                "transform and inverse_transform on the same CSR matrix",
             ],
             "count": len(cases),
         },

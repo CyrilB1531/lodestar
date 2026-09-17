@@ -8,11 +8,21 @@ Undoes [`Transform`](maxabsscaler-transform.md), returning values on the origina
 public double[] InverseTransform(ReadOnlySpan<double> samples)
 ```
 
+<!-- docs-declaration -->
+
+```csharp
+public CsrMatrix InverseTransform(CsrMatrix samples)
+```
+
+The second overload takes a [`CsrMatrix`](../../abstractions/sparse/csrmatrix.md) and returns a new one storing the same positions, each value multiplied by its column's `Scale`: a zero stays a zero, so nothing absent becomes stored.
+
 **Parameters** — `samples` is the scaled matrix, row-major, with `FeatureCount` values per row.
 
 **Returns** — a new array of the same length, back on the input scale.
 
 **Exceptions** — `ArgumentException` when `samples` holds no row, a partial one, or a non-finite value.
+
+The sparse overload throws `ArgumentNullException` when `samples` is `null`, `ArgumentException` when its column count is not `FeatureCount` or it stores a non-finite value.
 
 **Example** — the inverse leaves the unit interval that clipping bounded.
 

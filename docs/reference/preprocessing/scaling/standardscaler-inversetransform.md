@@ -8,11 +8,21 @@ Undoes `Transform`, returning values on the original scale.
 public double[] InverseTransform(ReadOnlySpan<double> samples)
 ```
 
+<!-- docs-declaration -->
+
+```csharp
+public CsrMatrix InverseTransform(CsrMatrix samples)
+```
+
+The second overload takes a [`CsrMatrix`](../../abstractions/sparse/csrmatrix.md) and returns a new one storing the same positions, each value multiplied by its column's `Scale`, or copied unchanged when the scaler does not scale: a zero stays a zero, so nothing absent becomes stored.
+
 **Parameters** — `samples` is the standardised matrix, row-major, with `FeatureCount` values per row.
 
 **Returns** — a new array of the same length, back on the input scale.
 
 **Exceptions** — `ArgumentException` when `samples` holds no row, or a partial one.
+
+The sparse overload throws `ArgumentNullException` when `samples` is `null`, `ArgumentException` when its column count is not `FeatureCount`, and `InvalidOperationException` when the scaler centres — fit it with `WithMean = false`, since subtracting a centre would make every absent zero a stored value.
 
 **Example** — there and back.
 

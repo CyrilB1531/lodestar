@@ -8,12 +8,22 @@ Standardises a row-major sample matrix with the fitted statistics.
 public double[] Transform(ReadOnlySpan<double> samples)
 ```
 
+<!-- docs-declaration -->
+
+```csharp
+public CsrMatrix Transform(CsrMatrix samples)
+```
+
+The second overload takes a [`CsrMatrix`](../../abstractions/sparse/csrmatrix.md) and returns a new one storing the same positions, each value divided by its column's `Scale`, or copied unchanged when the scaler does not scale: a zero stays a zero, so nothing absent becomes stored.
+
 **Parameters** — `samples` is the matrix to transform, row-major, with `FeatureCount` values per
 row. It need not be the matrix the scaler was fitted on.
 
 **Returns** — a new array of the same length. The input is never written to.
 
 **Exceptions** — `ArgumentException` when `samples` holds no row, or a partial one.
+
+The sparse overload throws `ArgumentNullException` when `samples` is `null`, `ArgumentException` when its column count is not `FeatureCount`, and `InvalidOperationException` when the scaler centres — fit it with `WithMean = false`, since subtracting a centre would make every absent zero a stored value.
 
 **Example** — fit on training rows, apply to unseen ones.
 
@@ -28,6 +38,22 @@ double[] unseen = scaler.Transform([3.0, 10.0]);
 
 double centred = unseen[0];   // => 0.5345224838248487
 double constant = unseen[1];  // => 0
+```
+
+**Example** — the sparse overload, on a matrix whose second column stores nothing.
+
+```csharp
+using Lodestar.Abstractions;
+using Lodestar.Preprocessing;
+
+// Three rows, two columns: 2 and -4 in the first column, nothing in the second.
+var matrix = new CsrMatrix(3, 2, [2.0, -4.0], [0, 0], [0, 1, 1, 2]);
+StandardScaler scaler = StandardScaler.Fit(matrix);
+
+CsrMatrix scaled = scaler.Transform(matrix);
+
+int stored = scaled.NonZeroCount;   // => 2
+int[] columns = scaled.ColumnIndices;   // same positions as the input
 ```
 
 **Remarks** — the statistics come from the fit and are not recomputed here, which is the whole point
