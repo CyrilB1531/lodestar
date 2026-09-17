@@ -148,7 +148,8 @@ public sealed class CsrMatrix
         {
             for (int k = RowPointers[row]; k < RowPointers[row + 1]; k++)
             {
-                dense[row, ColumnIndices[k]] = Values[k];
+                // A column stored twice in a row adds up, as Multiply and scipy's toarray() read it (#878).
+                dense[row, ColumnIndices[k]] += Values[k];
             }
         }
         return dense;

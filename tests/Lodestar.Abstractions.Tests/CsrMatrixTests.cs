@@ -74,4 +74,23 @@ public sealed class CsrMatrixTests
     public void The_unchecked_factory_is_reachable_from_a_friend_assembly() =>
         Assert.Equal(3, CsrMatrix.CreateUnchecked(2, 3, [1.0, 2.0, 3.0], [0, 2, 1], [0, 2, 3])
                                  .NonZeroCount);
+
+    [Fact]
+    public void A_column_stored_twice_in_a_row_densifies_to_the_sum_the_product_reads()
+    {
+        // scipy's toarray() gives [[3, 0]] for this row; ToDense used to keep the last entry, 2 (#878).
+        var matrix = new CsrMatrix(1, 2, [1.0, 2.0], [0, 0], [0, 2]);
+
+        Assert.Equal(3.0, matrix.ToDense()[0, 0]);
+        Assert.Equal(0.0, matrix.ToDense()[0, 1]);
+        Assert.Equal(matrix.Multiply([1.0, 0.0])[0], matrix.ToDense()[0, 0]);
+    }
+
+    [Fact]
+    public void Columns_out_of_order_in_a_row_densify_to_their_own_cells()
+    {
+        var matrix = new CsrMatrix(1, 3, [1.0, 2.0], [2, 0], [0, 2]);
+
+        Assert.Equal([2.0, 0.0, 1.0], [matrix.ToDense()[0, 0], matrix.ToDense()[0, 1], matrix.ToDense()[0, 2]]);
+    }
 }
