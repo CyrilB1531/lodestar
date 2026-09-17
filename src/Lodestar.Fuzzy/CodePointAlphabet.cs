@@ -27,14 +27,22 @@ internal readonly struct CodePointAlphabet
             return new CodePointAlphabet(null);
         }
 
-        var distinct = new SortedSet<int>();
+        var distinct = new List<int>(a.Length + b.Length);
         Collect(a, distinct);
         Collect(b, distinct);
+        distinct.Sort();
 
         var units = new Dictionary<int, char>(distinct.Count);
         int next = FirstRanked;
+        int previous = -1;
         foreach (int codePoint in distinct)
         {
+            if (codePoint == previous)
+            {
+                continue;
+            }
+
+            previous = codePoint;
             if (codePoint < FirstRanked)
             {
                 units[codePoint] = (char)codePoint;
@@ -114,9 +122,20 @@ internal readonly struct CodePointAlphabet
             or (char)0x205F or (char)0x3000
         || (wide && unit is (char)0x85 or (char)0xA0);
 
-    private static bool HasSurrogate(string text) => text.Any(char.IsSurrogate);
+    private static bool HasSurrogate(string text)
+    {
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (char.IsSurrogate(text[i]))
+            {
+                return true;
+            }
+        }
 
-    private static void Collect(string text, SortedSet<int> distinct)
+        return false;
+    }
+
+    private static void Collect(string text, List<int> distinct)
     {
         for (int i = 0; i < text.Length; i += Width(text, i))
         {

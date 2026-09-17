@@ -34,7 +34,7 @@ public static class Fuzz
             return Ratio(a, b);
         }
 
-        CodePointPair pair = CodePointPair.Of(a, b, element);
+        CodePointPair pair = CodePointPair.Of(a, b, element, tokens: false);
         return Ratio(pair.A, pair.B);
     }
 
@@ -77,7 +77,7 @@ public static class Fuzz
             return PartialRatio(a, b);
         }
 
-        CodePointPair pair = CodePointPair.Of(a, b, element);
+        CodePointPair pair = CodePointPair.Of(a, b, element, tokens: false);
         return PartialRatio(pair.A, pair.B);
     }
 
@@ -121,7 +121,7 @@ public static class Fuzz
             return TokenSortRatio(a, b);
         }
 
-        CodePointPair pair = CodePointPair.Of(a, b, element);
+        CodePointPair pair = CodePointPair.Of(a, b, element, tokens: true);
         return Ratio(string.Join(" ", pair.TokensA), string.Join(" ", pair.TokensB));
     }
 
@@ -145,7 +145,7 @@ public static class Fuzz
             return TokenSetRatio(a, b);
         }
 
-        CodePointPair pair = CodePointPair.Of(a, b, element);
+        CodePointPair pair = CodePointPair.Of(a, b, element, tokens: true);
         return TokenSet(pair.TokensA, Distinct(pair.TokensA), pair.TokensB, Distinct(pair.TokensB), partial: false);
     }
 
@@ -169,7 +169,7 @@ public static class Fuzz
             return PartialTokenSortRatio(a, b);
         }
 
-        CodePointPair pair = CodePointPair.Of(a, b, element);
+        CodePointPair pair = CodePointPair.Of(a, b, element, tokens: true);
         return PartialRatio(string.Join(" ", pair.TokensA), string.Join(" ", pair.TokensB));
     }
 
@@ -193,7 +193,7 @@ public static class Fuzz
             return PartialTokenSetRatio(a, b);
         }
 
-        CodePointPair pair = CodePointPair.Of(a, b, element);
+        CodePointPair pair = CodePointPair.Of(a, b, element, tokens: true);
         return TokenSet(pair.TokensA, Distinct(pair.TokensA), pair.TokensB, Distinct(pair.TokensB), partial: true);
     }
 
@@ -205,6 +205,13 @@ public static class Fuzz
     {
         Guard.NotNull(a);
         Guard.NotNull(b);
+        // Before the tokenization, which #970 moved behind it: an empty operand scores zero whatever
+        // the other holds, and Process.Extract pays this per empty choice (#987).
+        if (a.Length == 0 || b.Length == 0)
+        {
+            return 0.0;
+        }
+
         return WRatio(a, b, SortedTokens(a), SortedTokens(b));
     }
 
@@ -220,7 +227,7 @@ public static class Fuzz
             return WRatio(a, b);
         }
 
-        CodePointPair pair = CodePointPair.Of(a, b, element);
+        CodePointPair pair = CodePointPair.Of(a, b, element, tokens: true);
         return WRatio(pair.A, pair.B, pair.TokensA, pair.TokensB);
     }
 
@@ -274,7 +281,11 @@ public static class Fuzz
 
         public string[] TokensB { get; }
 
-        public static CodePointPair Of(string a, string b, TextElement element)
+        /// <param name="a">The first string.</param>
+        /// <param name="b">The second string.</param>
+        /// <param name="element">The unit, refused unless it is the code point.</param>
+        /// <param name="tokens">Whether the caller reads <see cref="TokensA"/>, which only the token scorers do (#987).</param>
+        public static CodePointPair Of(string a, string b, TextElement element, bool tokens)
         {
             Guard.NotNull(a);
             Guard.NotNull(b);
@@ -284,7 +295,11 @@ public static class Fuzz
             }
 
             CodePointAlphabet alphabet = CodePointAlphabet.Over(a, b);
-            return new CodePointPair(alphabet.Map(a), alphabet.Map(b), Sorted(alphabet, a), Sorted(alphabet, b));
+            return new CodePointPair(
+                alphabet.Map(a),
+                alphabet.Map(b),
+                tokens ? Sorted(alphabet, a) : [],
+                tokens ? Sorted(alphabet, b) : []);
         }
 
         /// <summary>Mapped before sorting: the map keeps code-point order, so an ordinal sort of its units is that order.</summary>
