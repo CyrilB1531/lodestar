@@ -1,4 +1,5 @@
 using System.Text;
+using Lodestar.Text.Internal;
 
 namespace Lodestar.Text.Stemming;
 
@@ -27,7 +28,7 @@ public static class RussianSnowballStemmer
         Guard.NotNull(word);
         // Compose (NFC) so a decomposed 'ё' is one letter, then fold it: the
         // algorithm's alphabet has no 'ё' and the description spells it 'е'.
-        string s = word.ToLowerInvariant().Normalize(NormalizationForm.FormC).Replace('ё', 'е');
+        string s = WellFormedNormalization.Normalize(word.ToLowerInvariant(), NormalizationForm.FormC).Replace('ё', 'е');
         return new Worker(s).Run();
     }
 

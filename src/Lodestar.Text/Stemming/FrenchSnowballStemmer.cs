@@ -1,4 +1,5 @@
 using System.Text;
+using Lodestar.Text.Internal;
 
 namespace Lodestar.Text.Stemming;
 
@@ -32,7 +33,7 @@ public static class FrenchSnowballStemmer
     {
         Guard.NotNull(word);
         // Compose accents (NFC) so 'è' etc. are single code points, as the rules expect.
-        string s = word.ToLowerInvariant().Normalize(NormalizationForm.FormC);
+        string s = WellFormedNormalization.Normalize(word.ToLowerInvariant(), NormalizationForm.FormC);
         if (s.Length < 2)
         {
             return s;
