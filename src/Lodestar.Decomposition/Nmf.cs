@@ -137,7 +137,10 @@ public sealed class Nmf
         RequireNonNegative(initialComponents, nameof(initialComponents));
 
         double[] w = (double[])initialWeights.Clone();
-        double[] h = (double[])initialComponents.Clone();
+
+        // Column-major for the loop, as the updates read it, and row-major again for the caller.
+        double[] h = DenseBlock.Transpose(initialComponents, componentCount, features);
+        var workspace = new MultiplicativeUpdates.Workspace(matrix, componentCount, settings.BetaLoss);
 
         double initial = BetaDivergence.Compute(matrix, w, h, componentCount, settings.BetaLoss);
         double previous = initial;
@@ -145,8 +148,8 @@ public sealed class Nmf
         while (iteration < settings.MaxIterations)
         {
             iteration++;
-            MultiplicativeUpdates.UpdateWeights(matrix, w, h, componentCount, settings.BetaLoss);
-            MultiplicativeUpdates.UpdateComponents(matrix, w, h, componentCount, settings.BetaLoss);
+            MultiplicativeUpdates.UpdateWeights(matrix, w, h, componentCount, settings.BetaLoss, workspace);
+            MultiplicativeUpdates.UpdateComponents(matrix, w, h, componentCount, settings.BetaLoss, workspace);
 
             // scikit-learn checks every tenth iteration, never on the others: checking more
             // often would stop earlier, on the same data, for no reason a caller can see.
@@ -163,7 +166,8 @@ public sealed class Nmf
         }
 
         double final = BetaDivergence.Compute(matrix, w, h, componentCount, settings.BetaLoss);
-        return new Nmf(features, componentCount, w, h, iteration, final);
+        return new Nmf(
+            features, componentCount, w, DenseBlock.Transpose(h, features, componentCount), iteration, final);
     }
 
     /// <summary>The two settings the loop itself cannot survive, refused before it starts.</summary>

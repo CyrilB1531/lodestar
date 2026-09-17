@@ -35,6 +35,7 @@ internal static class HouseholderQr
     private static Reflector[] Factorize(double[] work, int rows, int columns)
     {
         var reflectors = new Reflector[columns];
+        double[] scales = new double[columns];
         for (int k = 0; k < columns; k++)
         {
             Reflector reflector = BuildReflector(work, rows, columns, k);
@@ -46,7 +47,8 @@ internal static class HouseholderQr
             if (reflector.NormSquared != 0)
 #pragma warning restore S1244
             {
-                ApplyLeft(work, rows, columns, k, reflector.V, reflector.NormSquared);
+                // Columns left of k hold only what lies below R's diagonal, which nothing reads again.
+                ApplyLeft(work, rows, columns, k, k, reflector, scales);
             }
         }
         return reflectors;
@@ -93,6 +95,11 @@ internal static class HouseholderQr
         {
             q[(j * columns) + j] = 1.0;
         }
+        // A column of the identity left of k is zero from row k down, so reflector k leaves it as it is — to the bit,
+        // unless a non-finite reflector turns that zero dot product into NaN, which the full sweep must then keep.
+        bool finite = Array.TrueForAll(
+            reflectors, reflector => !double.IsNaN(reflector.NormSquared) && !double.IsInfinity(reflector.NormSquared));
+        double[] scales = new double[columns];
         for (int k = columns - 1; k >= 0; k--)
         {
             Reflector reflector = reflectors[k];
@@ -103,7 +110,7 @@ internal static class HouseholderQr
             if (reflector.NormSquared != 0)
 #pragma warning restore S1244
             {
-                ApplyLeft(q, rows, columns, k, reflector.V, reflector.NormSquared);
+                ApplyLeft(q, rows, columns, k, finite ? k : 0, reflector, scales);
             }
         }
         return q;
@@ -123,22 +130,33 @@ internal static class HouseholderQr
         return r;
     }
 
-    /// <summary>Applies <c>I - 2vvᵀ/vᵀv</c> to the trailing rows of every column.</summary>
+    /// <summary>Applies <c>I - 2vvᵀ/vᵀv</c> to the trailing rows of every column from <paramref name="firstColumn"/> on.</summary>
+    /// <remarks>
+    /// Row by row rather than column by column, since a column of a row-major block strides a whole row per
+    /// element: each column's dot product still sums its rows in the same order, and the update is per element.
+    /// <paramref name="scales"/> is a buffer at least <paramref name="columns"/> long the caller reuses.
+    /// </remarks>
     private static void ApplyLeft(
-        double[] block, int rows, int columns, int from, double[] v, double vNormSquared)
+        double[] block, int rows, int columns, int from, int firstColumn, Reflector reflector, double[] scales)
     {
-        for (int j = 0; j < columns; j++)
+        double[] v = reflector.V;
+        int width = columns - firstColumn;
+        Span<double> dots = scales.AsSpan(0, width);
+        dots.Clear();
+        for (int i = from; i < rows; i++)
         {
-            double dot = 0;
-            for (int i = from; i < rows; i++)
-            {
-                dot += v[i - from] * block[(i * columns) + j];
-            }
-            double scale = 2.0 * dot / vNormSquared;
-            for (int i = from; i < rows; i++)
-            {
-                block[(i * columns) + j] -= scale * v[i - from];
-            }
+            ElementWise.AddScaled(dots, block.AsSpan((i * columns) + firstColumn, width), v[i - from]);
+        }
+
+        double normSquared = reflector.NormSquared;
+        for (int j = 0; j < dots.Length; j++)
+        {
+            dots[j] = 2.0 * dots[j] / normSquared;
+        }
+
+        for (int i = from; i < rows; i++)
+        {
+            ElementWise.SubtractScaled(block.AsSpan((i * columns) + firstColumn, width), dots, v[i - from]);
         }
     }
 

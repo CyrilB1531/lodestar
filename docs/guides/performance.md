@@ -4857,6 +4857,29 @@ The filter now reads every record once, in index order, and only admitted record
 
 Unweighted confusion matrices count integers where they added 1.0, exact below 2^53; every other sum keeps its operands and its order, and the curves sort their samples with the same keys, so the permutation is the same: bit-identical against `main`, and `CountingPathTests` holds each counting shortcut against the general path it replaces. Two trade-offs: one-vs-one ROC AUC allocates a per-class index of the samples, and the adjusted mutual information allocates about 30% more at 10 clusters for its tables. The weighted confusion matrix is unchanged and measures so. `MetricsBenchmarks` (MediumRun for the first two rows), `MultilabelConfusionMatrixBenchmarks`, `ClusteringAgreementBenchmarks`, `ClassifierCurveBenchmarks`, `MultiClassRocAucBenchmarks`, `RankingMetricsBenchmarks`, `PartitionValidityBenchmarks` and `ClassificationReportBenchmarks`, pinned to four cores; the per-label multilabel row and accuracy at 100,000 × 2 classes drifted between the two `main` runs and are not published.
 
+## Dense kernels in decomposition and regression, walked in memory order (issue #845)
+
+| benchmark | `main` | fix |
+| --- | ---: | ---: |
+| [`CsrMatrix.Multiply`](../reference/abstractions/sparse/csrmatrix-multiply.md), 5,000 documents × 64 (`TiledSparseDenseProductBenchmarks`) | 8.26 ms | 3.32 ms |
+| [`CsrMatrix.Multiply`](../reference/abstractions/sparse/csrmatrix-multiply.md), 50,000 documents × 256 | 408 ms | 240 ms |
+| [`QrDecomposition.Householder`](../reference/decomposition/factorization/qrdecomposition-householder.md), 20,000 × 30 (`HouseholderQrBenchmarks`) | 61.1 ms | **11.4 ms** |
+| [`TruncatedSvd.Fit`](../reference/decomposition/factorization/truncatedsvd-fit.md), rank 20 (`DecompositionBenchmarks`) | 17.4 ms | 12.1 ms |
+| [`TruncatedSvd.Fit`](../reference/decomposition/factorization/truncatedsvd-fit.md), rank 20, 20,000 columns (`DecompositionWidthBenchmarks`) | 251 ms, 114 MB | 142 ms, 103 MB |
+| [`TruncatedSvd.Transform`](../reference/decomposition/factorization/truncatedsvd-transform.md), 500 columns | 1.09 ms, 313 KB | 306 µs, 391 KB |
+| [`TruncatedSvd.Transform`](../reference/decomposition/factorization/truncatedsvd-transform.md), 20,000 columns | 1.44 ms, 313 KB | 1.13 ms, 3.36 MB |
+| [`PrincipalComponentVariance.Compute`](../reference/decomposition/factorization/principalcomponentvariance-compute.md), 100 × 200 | 8.06 ms | 5.95 ms |
+| [`Nmf.Fit`](../reference/decomposition/factorization/nmf-fit.md), rank 20 (`DecompositionBenchmarks`) | 121 ms | 67.3 ms |
+| [`Nmf.Fit`](../reference/decomposition/factorization/nmf-fit.md), Frobenius, 20,000 columns | 1.1 s, 493 MB | **521 ms, 153 MB** |
+| [`Nmf.Fit`](../reference/decomposition/factorization/nmf-fit.md), Kullback-Leibler, 20,000 columns | 753 ms, 554 MB | 417 ms, 154 MB |
+| [`GeneralizedLeastSquares.Fit`](../reference/stats-regression/gls/generalizedleastsquares-fit.md), n = 1,000 (`GlsBenchmarks`) | 50.4 ms | 31.4 ms |
+| [`GeneralizedLinearModel.Fit`](../reference/stats-regression/glm/generalizedlinearmodel-fit.md), Poisson, mean 5 (`GlmPoissonBenchmarks`) | 197 µs, 423 KB | 162 µs, 111 KB |
+| [`GeneralizedLinearModel.Fit`](../reference/stats-regression/glm/generalizedlinearmodel-fit.md), Poisson, 20,000 rows (`GlmOffsetBenchmarks`) | 3 ms | 2.22 ms |
+| [`GeneralizedLinearModel.Fit`](../reference/stats-regression/glm/generalizedlinearmodel-fit.md), negative binomial, 100,000 rows (`GlmNegativeBinomialBenchmarks`) | 35.5 ms, 28.2 MB | **17.7 ms, 5.35 MB** |
+| [`MultinomialLogit.Fit`](../reference/stats-regression/mnlogit/multinomiallogit-fit.md), 2,000 rows (`MultinomialLogitBenchmarks`) | 861 µs | 752 µs |
+
+The sparse products, the Householder reflections, the Jacobi rotations and the NMF updates walk a column as one contiguous span, with `Vector256` lanes that compute each element on its own; the least-squares inner product keeps its four running sums as four lanes; negative binomial fits memoise lnΓ(y + θ) per small count; IRLS solves its weighted system in place; the multinomial Hessian mirrors its symmetric blocks; GLS reads L⁻¹·1 off its whitened design. Every cell sums the same products in the same order, so results are bit-identical against `main`, held by tests that compare the bits of the old and new walks. [`TruncatedSvd.Transform`](../reference/decomposition/factorization/truncatedsvd-transform.md) now allocates the transposed components, which at 20,000 columns costs 3 MB for its 1.28×. The `Lodestar.Abstractions` and `Lodestar.Decomposition` rows were measured with `LodestarUseProjectRefs=true` on both sides, because `Lodestar.Decomposition` reaches `Lodestar.Abstractions` through a published floor. Pinned to four cores.
+
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-17; both `main` runs agreed within 5%.

@@ -184,22 +184,26 @@ public sealed class TruncatedSvd
     }
 
     /// <summary><c>X · Componentsᵀ</c>, one row at a time over the non-zeros.</summary>
+    /// <remarks>
+    /// The components are transposed once so that a feature's k loadings are contiguous: read
+    /// row-major, every non-zero paid k reads a whole feature count apart. Each cell sums the same
+    /// products in the same order.
+    /// </remarks>
     private static double[] Project(
         CsrMatrix matrix, double[] components, int componentCount, int featureCount)
     {
+        double[] byFeature = DenseBlock.Transpose(components, componentCount, featureCount);
+        double[] values = matrix.Values;
+        int[] columns = matrix.ColumnIndices;
+        int[] pointers = matrix.RowPointers;
         double[] result = new double[checked(matrix.RowCount * componentCount)];
         for (int row = 0; row < matrix.RowCount; row++)
         {
-            int target = row * componentCount;
-            for (int index = matrix.RowPointers[row]; index < matrix.RowPointers[row + 1]; index++)
+            Span<double> target = result.AsSpan(row * componentCount, componentCount);
+            for (int index = pointers[row]; index < pointers[row + 1]; index++)
             {
-                double value = matrix.Values[index];
-                int feature = matrix.ColumnIndices[index];
-                for (int component = 0; component < componentCount; component++)
-                {
-                    result[target + component] +=
-                        value * components[(component * featureCount) + feature];
-                }
+                ElementWise.AddScaled(
+                    target, byFeature.AsSpan(columns[index] * componentCount, componentCount), values[index]);
             }
         }
         return result;

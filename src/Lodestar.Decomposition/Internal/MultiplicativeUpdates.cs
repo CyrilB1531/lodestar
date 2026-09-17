@@ -4,78 +4,48 @@ namespace Lodestar.Decomposition.Internal;
 
 /// <summary>Lee and Seung's multiplicative updates, in scikit-learn's <c>solver="mu"</c> form.</summary>
 /// <remarks>
-/// Each factor is scaled by a ratio rather than moved by a step, which keeps it non-negative
-/// with no projection and no line search — and makes a zero permanent, so the initialisation
-/// decides the sparsity of the answer. W is updated first and H second, against the
-/// already-updated W: doing both against the old pair is a different algorithm.
+/// Each factor is scaled by a ratio rather than moved by a step, which keeps it non-negative with no
+/// projection and no line search — and makes a zero permanent, so the initialisation decides the
+/// sparsity. W is updated first and H second, against the already-updated W. H is held column-major,
+/// <c>H[a, j]</c> at <c>j·k + a</c>: a sparse product reads one feature's k entries per non-zero, which a
+/// row-major H scatters a feature count apart. Each cell sums in the row-major loops' order, to the bit.
 /// </remarks>
 internal static class MultiplicativeUpdates
 {
     internal static void UpdateWeights(
-        CsrMatrix matrix, double[] w, double[] h, int k, NmfBetaLoss loss)
+        CsrMatrix matrix, double[] w, double[] h, int k, NmfBetaLoss loss, Workspace workspace)
     {
-        int features = matrix.ColumnCount;
-        double[] numerator;
-        double[] denominator;
+        double[] numerator = workspace.RowsByRank;
 
         if (loss == NmfBetaLoss.KullbackLeibler)
         {
             // WH is needed only where X is non-zero, and the ratio X/WH replaces it there.
-            double[] ratio = SparseRatio(matrix, w, h, k);
-            numerator = SparsePatternTimesTranspose(matrix, ratio, h, k);
-            double[] rowSums = RowSums(h, k, features);
-            denominator = new double[w.Length];
-            for (int i = 0; i < matrix.RowCount; i++)
-            {
-                for (int a = 0; a < k; a++)
-                {
-                    denominator[(i * k) + a] = rowSums[a];
-                }
-            }
+            double[] ratio = SparseRatio(matrix, w, h, k, workspace.Ratio);
+            SparsePatternTimesTranspose(matrix, ratio, h, k, numerator);
+            ScaleByRank(w, numerator, SumsPerRank(h, k, workspace.Sums), k);
         }
         else
         {
-            numerator = MatrixTimesTranspose(matrix, h, k);          // X Hᵀ
-            double[] hht = Gram(h, k, features);                     // H Hᵀ
-            denominator = DenseProduct(w, matrix.RowCount, k, hht, k);
+            SparsePatternTimesTranspose(matrix, matrix.Values, h, k, numerator);   // X Hᵀ
+            double[] hht = Gram(h, k, workspace.RankByRank);                              // H Hᵀ
+            double[] denominator = workspace.RowsByRankDenominator;
+            DenseProduct(w, k, hht, denominator);
+            Scale(w, numerator, denominator);
         }
-
-        Scale(w, numerator, denominator);
     }
 
     internal static void UpdateComponents(
-        CsrMatrix matrix, double[] w, double[] h, int k, NmfBetaLoss loss)
+        CsrMatrix matrix, double[] w, double[] h, int k, NmfBetaLoss loss, Workspace workspace)
     {
-        int features = matrix.ColumnCount;
-        double[] numerator;
-        double[] denominator;
+        double[] numerator = workspace.FeaturesByRank;
 
         if (loss == NmfBetaLoss.KullbackLeibler)
         {
-            double[] ratio = SparseRatio(matrix, w, h, k);
-            numerator = TransposeTimesSparsePattern(matrix, ratio, w, k);
-            double[] columnSums = ColumnSums(w, matrix.RowCount, k);
-            denominator = new double[h.Length];
-            for (int a = 0; a < k; a++)
-            {
-                for (int j = 0; j < features; j++)
-                {
-                    denominator[(a * features) + j] = columnSums[a];
-                }
-            }
-        }
-        else
-        {
-            numerator = TransposeTimesMatrix(matrix, w, k);           // Wᵀ X
-            double[] wtw = DenseBlock.TransposeGram(w, matrix.RowCount, k);
-            denominator = DenseProduct(wtw, k, k, h, features);
-        }
+            double[] ratio = SparseRatio(matrix, w, h, k, workspace.Ratio);
+            TransposeTimesSparsePattern(matrix, ratio, w, k, numerator);
+            ScaleByRank(h, numerator, SumsPerRank(w, k, workspace.Sums), k);
 
-        Scale(h, numerator, denominator);
-
-        // scikit-learn snaps H below machine epsilon to zero for β ≤ 1, and only there.
-        if (loss == NmfBetaLoss.KullbackLeibler)
-        {
+            // scikit-learn snaps H below machine epsilon to zero for β ≤ 1, and only there.
             for (int i = 0; i < h.Length; i++)
             {
                 if (h[i] < BetaDivergence.MachineEpsilon)
@@ -84,140 +54,163 @@ internal static class MultiplicativeUpdates
                 }
             }
         }
+        else
+        {
+            TransposeTimesSparsePattern(matrix, matrix.Values, w, k, numerator);    // Wᵀ X
+            double[] wtw = DenseBlock.TransposeGram(w, matrix.RowCount, k);
+            double[] denominator = workspace.FeaturesByRankDenominator;
+            GramTimesColumns(wtw, h, k, denominator);
+            Scale(h, numerator, denominator);
+        }
+    }
+
+    /// <summary><c>H Hᵀ</c> for a column-major <c>H</c>, its upper triangle summed and mirrored.</summary>
+    /// <remarks><c>H[a, j]·H[b, j]</c> and <c>H[b, j]·H[a, j]</c> are the same product, summed over j in the same order.</remarks>
+    internal static double[] Gram(double[] h, int k, double[] result)
+    {
+        Array.Clear(result, 0, k * k);
+        for (int j = 0; j < h.Length; j += k)
+        {
+            ReadOnlySpan<double> feature = h.AsSpan(j, k);
+            for (int a = 0; a < feature.Length; a++)
+            {
+                double left = feature[a];
+                Span<double> row = result.AsSpan(a * k, k);
+                for (int b = a; b < feature.Length; b++)
+                {
+                    row[b] += left * feature[b];
+                }
+            }
+        }
+        for (int a = 0; a < k; a++)
+        {
+            for (int b = a + 1; b < k; b++)
+            {
+                result[(b * k) + a] = result[(a * k) + b];
+            }
+        }
+        return result;
+    }
+
+    /// <summary>The sum of each component's cells, over a block <paramref name="k"/> wide whose stride is k.</summary>
+    /// <remarks>W's column sums and a column-major H's row sums alike, each summed in the order of its other index.</remarks>
+    private static double[] SumsPerRank(double[] block, int k, double[] sums)
+    {
+        Array.Clear(sums, 0, k);
+        for (int start = 0; start < block.Length; start += k)
+        {
+            for (int a = 0; a < k; a++)
+            {
+                sums[a] += block[start + a];
+            }
+        }
+        return sums;
     }
 
     /// <summary><c>X / (W H)</c> at X's non-zeros, floored so the division cannot blow up.</summary>
-    private static double[] SparseRatio(CsrMatrix matrix, double[] w, double[] h, int k)
+    private static double[] SparseRatio(CsrMatrix matrix, double[] w, double[] h, int k, double[] ratio)
     {
-        int features = matrix.ColumnCount;
-        double[] ratio = new double[matrix.Values.Length];
+        double[] values = matrix.Values;
+        int[] columns = matrix.ColumnIndices;
+        int[] pointers = matrix.RowPointers;
         for (int row = 0; row < matrix.RowCount; row++)
         {
-            for (int index = matrix.RowPointers[row]; index < matrix.RowPointers[row + 1]; index++)
+            ReadOnlySpan<double> weights = w.AsSpan(row * k, k);
+            for (int index = pointers[row]; index < pointers[row + 1]; index++)
             {
-                int column = matrix.ColumnIndices[index];
+                ReadOnlySpan<double> feature = h.AsSpan(columns[index] * k, k);
                 double product = 0;
-                for (int a = 0; a < k; a++)
+                for (int a = 0; a < weights.Length; a++)
                 {
-                    product += w[(row * k) + a] * h[(a * features) + column];
+                    product += weights[a] * feature[a];
                 }
-                ratio[index] = matrix.Values[index] / Math.Max(product, BetaDivergence.MachineEpsilon);
+                ratio[index] = values[index] / Math.Max(product, BetaDivergence.MachineEpsilon);
             }
         }
         return ratio;
     }
 
-    private static double[] MatrixTimesTranspose(CsrMatrix matrix, double[] h, int k) =>
-        SparsePatternTimesTranspose(matrix, matrix.Values, h, k);
-
-    /// <summary><c>S Hᵀ</c> where S shares the matrix's sparsity and carries <paramref name="data"/>.</summary>
-    private static double[] SparsePatternTimesTranspose(
-        CsrMatrix matrix, double[] data, double[] h, int k)
+    /// <summary><c>S Hᵀ</c> into <paramref name="result"/>, where S shares the matrix's sparsity and carries <paramref name="data"/>.</summary>
+    private static void SparsePatternTimesTranspose(
+        CsrMatrix matrix, double[] data, double[] h, int k, double[] result)
     {
-        int features = matrix.ColumnCount;
-        double[] result = new double[checked(matrix.RowCount * k)];
+        Array.Clear(result, 0, result.Length);
+        int[] columns = matrix.ColumnIndices;
+        int[] pointers = matrix.RowPointers;
         for (int row = 0; row < matrix.RowCount; row++)
         {
-            for (int index = matrix.RowPointers[row]; index < matrix.RowPointers[row + 1]; index++)
+            Span<double> target = result.AsSpan(row * k, k);
+            for (int index = pointers[row]; index < pointers[row + 1]; index++)
             {
                 double value = data[index];
-                int column = matrix.ColumnIndices[index];
-                for (int a = 0; a < k; a++)
+                ReadOnlySpan<double> feature = h.AsSpan(columns[index] * k, k);
+                for (int a = 0; a < target.Length; a++)
                 {
-                    result[(row * k) + a] += value * h[(a * features) + column];
+                    target[a] += value * feature[a];
                 }
             }
         }
-        return result;
     }
 
-    private static double[] TransposeTimesMatrix(CsrMatrix matrix, double[] w, int k) =>
-        TransposeTimesSparsePattern(matrix, matrix.Values, w, k);
-
-    /// <summary><c>Wᵀ S</c> where S shares the matrix's sparsity and carries <paramref name="data"/>.</summary>
-    private static double[] TransposeTimesSparsePattern(
-        CsrMatrix matrix, double[] data, double[] w, int k)
+    /// <summary><c>Wᵀ S</c>, column-major, into <paramref name="result"/>, where S shares the matrix's sparsity.</summary>
+    private static void TransposeTimesSparsePattern(
+        CsrMatrix matrix, double[] data, double[] w, int k, double[] result)
     {
-        int features = matrix.ColumnCount;
-        double[] result = new double[checked(k * features)];
+        Array.Clear(result, 0, result.Length);
+        int[] columns = matrix.ColumnIndices;
+        int[] pointers = matrix.RowPointers;
         for (int row = 0; row < matrix.RowCount; row++)
         {
-            for (int index = matrix.RowPointers[row]; index < matrix.RowPointers[row + 1]; index++)
+            ReadOnlySpan<double> weights = w.AsSpan(row * k, k);
+            for (int index = pointers[row]; index < pointers[row + 1]; index++)
             {
                 double value = data[index];
-                int column = matrix.ColumnIndices[index];
-                for (int a = 0; a < k; a++)
+                Span<double> target = result.AsSpan(columns[index] * k, k);
+                for (int a = 0; a < target.Length; a++)
                 {
-                    result[(a * features) + column] += w[(row * k) + a] * value;
+                    target[a] += weights[a] * value;
                 }
             }
         }
-        return result;
     }
 
-    /// <summary><c>B Bᵀ</c> for a row-major <c>rows × columns</c> block.</summary>
-    private static double[] Gram(double[] block, int rows, int columns)
+    /// <summary><c>W · (H Hᵀ)</c>, row-major, into <paramref name="result"/>.</summary>
+    private static void DenseProduct(double[] w, int k, double[] hht, double[] result)
     {
-        double[] result = new double[checked(rows * rows)];
-        for (int a = 0; a < rows; a++)
+        Array.Clear(result, 0, result.Length);
+        for (int start = 0; start < w.Length; start += k)
         {
-            for (int b = 0; b < rows; b++)
+            Span<double> target = result.AsSpan(start, k);
+            for (int t = 0; t < k; t++)
             {
+                double value = w[start + t];
+                ReadOnlySpan<double> source = hht.AsSpan(t * k, k);
+                for (int j = 0; j < target.Length; j++)
+                {
+                    target[j] += value * source[j];
+                }
+            }
+        }
+    }
+
+    /// <summary><c>(WᵀW) · H</c> for a column-major H, into a column-major <paramref name="result"/>.</summary>
+    /// <remarks>Cell <c>(a, j)</c> sums over <c>t</c> in the order the row-major product did.</remarks>
+    private static void GramTimesColumns(double[] wtw, double[] h, int k, double[] result)
+    {
+        for (int j = 0; j < h.Length; j += k)
+        {
+            ReadOnlySpan<double> feature = h.AsSpan(j, k);
+            for (int a = 0; a < k; a++)
+            {
+                ReadOnlySpan<double> gramRow = wtw.AsSpan(a * k, k);
                 double sum = 0;
-                for (int j = 0; j < columns; j++)
+                for (int t = 0; t < feature.Length; t++)
                 {
-                    sum += block[(a * columns) + j] * block[(b * columns) + j];
+                    sum += gramRow[t] * feature[t];
                 }
-                result[(a * rows) + b] = sum;
+                result[j + a] = sum;
             }
         }
-        return result;
-    }
-
-    private static double[] DenseProduct(
-        double[] left, int leftRows, int inner, double[] right, int rightColumns)
-    {
-        double[] result = new double[checked(leftRows * rightColumns)];
-        for (int i = 0; i < leftRows; i++)
-        {
-            for (int t = 0; t < inner; t++)
-            {
-                double value = left[(i * inner) + t];
-                for (int j = 0; j < rightColumns; j++)
-                {
-                    result[(i * rightColumns) + j] += value * right[(t * rightColumns) + j];
-                }
-            }
-        }
-        return result;
-    }
-
-    private static double[] RowSums(double[] block, int rows, int columns)
-    {
-        double[] sums = new double[rows];
-        for (int i = 0; i < rows; i++)
-        {
-            double sum = 0;
-            for (int j = 0; j < columns; j++)
-            {
-                sum += block[(i * columns) + j];
-            }
-            sums[i] = sum;
-        }
-        return sums;
-    }
-
-    private static double[] ColumnSums(double[] block, int rows, int columns)
-    {
-        double[] sums = new double[columns];
-        for (int i = 0; i < rows; i++)
-        {
-            for (int j = 0; j < columns; j++)
-            {
-                sums[j] += block[(i * columns) + j];
-            }
-        }
-        return sums;
     }
 
     /// <summary><c>factor *= numerator / denominator</c>, with a zero denominator floored.</summary>
@@ -225,13 +218,49 @@ internal static class MultiplicativeUpdates
     {
         for (int i = 0; i < factor.Length; i++)
         {
-            // S1244: the comparison is exact on purpose, and so is scikit-learn's own
-            // `denominator[denominator == 0] = EPSILON` — a denominator merely near zero
-            // still divides, and replacing it would move the answer away from the reference.
-#pragma warning disable S1244
-            double bottom = denominator[i] == 0 ? BetaDivergence.MachineEpsilon : denominator[i];
-#pragma warning restore S1244
-            factor[i] *= numerator[i] / bottom;
+            factor[i] *= numerator[i] / Floored(denominator[i]);
         }
+    }
+
+    /// <summary><see cref="Scale"/> where every cell of component <c>a</c> shares the denominator <c>sums[a]</c>.</summary>
+    private static void ScaleByRank(double[] factor, double[] numerator, double[] sums, int k)
+    {
+        for (int start = 0; start < factor.Length; start += k)
+        {
+            for (int a = 0; a < k; a++)
+            {
+                factor[start + a] *= numerator[start + a] / Floored(sums[a]);
+            }
+        }
+    }
+
+    private static double Floored(double denominator)
+    {
+        // S1244: the comparison is exact on purpose, and so is scikit-learn's own
+        // `denominator[denominator == 0] = EPSILON` — a denominator merely near zero
+        // still divides, and replacing it would move the answer away from the reference.
+#pragma warning disable S1244
+        return denominator == 0 ? BetaDivergence.MachineEpsilon : denominator;
+#pragma warning restore S1244
+    }
+
+    /// <summary>The buffers one fit's updates overwrite on every iteration, allocated once.</summary>
+    /// <remarks>At a large vocabulary each is on the large-object heap, which a per-iteration allocation kept collecting.</remarks>
+    internal sealed class Workspace(CsrMatrix matrix, int k, NmfBetaLoss loss)
+    {
+        internal double[] RowsByRank { get; } = new double[checked(matrix.RowCount * k)];
+
+        internal double[] RowsByRankDenominator { get; } = new double[checked(matrix.RowCount * k)];
+
+        internal double[] FeaturesByRank { get; } = new double[checked(matrix.ColumnCount * k)];
+
+        internal double[] FeaturesByRankDenominator { get; } = new double[checked(matrix.ColumnCount * k)];
+
+        internal double[] Ratio { get; } =
+            loss == NmfBetaLoss.KullbackLeibler ? new double[matrix.Values.Length] : [];
+
+        internal double[] RankByRank { get; } = new double[checked(k * k)];
+
+        internal double[] Sums { get; } = new double[k];
     }
 }

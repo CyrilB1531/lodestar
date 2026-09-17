@@ -72,7 +72,7 @@ public static class GeneralizedLeastSquares
                 residuals,
                 settings.CovarianceType == CovarianceType.Nonrobust ? null : whitened),
             OrdinaryLeastSquares.Vif(design, rowCount, featureCount, settings.WithIntercept),
-            TotalSumOfSquares(lower, response, whitenedResponse, settings.WithIntercept),
+            TotalSumOfSquares(lower, response, whitenedResponse, settings.WithIntercept ? whitened : null),
             rowCount,
             settings);
     }
@@ -141,22 +141,26 @@ public static class GeneralizedLeastSquares
     }
 
     /// <summary>R²'s denominator: centred on the mean estimated in whitened space, or the whitened response's own square.</summary>
+    /// <param name="lower">The covariance's Cholesky factor.</param>
+    /// <param name="response">The response as the caller gave it.</param>
+    /// <param name="whitenedResponse"><c>L⁻¹y</c>.</param>
+    /// <param name="whitenedDesign">The whitened design of a fit with an intercept, whose column 0 is already <c>L⁻¹·1</c>; null without one.</param>
     private static double TotalSumOfSquares(
-        double[] lower, ReadOnlySpan<double> response, double[] whitenedResponse, bool withIntercept)
+        double[] lower, ReadOnlySpan<double> response, double[] whitenedResponse, double[]? whitenedDesign)
     {
         int rowCount = response.Length;
-        if (!withIntercept)
+        if (whitenedDesign is null)
         {
             return OrdinaryLeastSquares.Dot(whitenedResponse, whitenedResponse);
         }
 
+        // The same substitution on the same column of ones, so the same bits, without solving it a second time.
+        int parameterCount = whitenedDesign.Length / rowCount;
         var ones = new double[rowCount];
         for (int row = 0; row < rowCount; row++)
         {
-            ones[row] = 1.0;
+            ones[row] = whitenedDesign[row * parameterCount];
         }
-
-        Cholesky.ForwardSubstitute(lower, rowCount, ones);
         double mean = OrdinaryLeastSquares.Dot(whitenedResponse, ones) / OrdinaryLeastSquares.Dot(ones, ones);
 
         var centred = new double[rowCount];

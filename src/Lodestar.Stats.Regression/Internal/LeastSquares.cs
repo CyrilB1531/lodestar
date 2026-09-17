@@ -104,6 +104,26 @@ internal static class LeastSquares
 
         Triangularize(a, rowCount, parameterCount, projected);
 
+        return FromTriangle(a, rowCount, parameterCount, projected);
+    }
+
+    /// <summary>The reflection solve over a column-major design already scaled and without an intercept, overwriting both arguments.</summary>
+    /// <remarks>
+    /// What <see cref="SolveByReflections"/> computes for <c>withIntercept: false</c> and no weights, minus its three
+    /// copies of the design and the response, which an iterative caller would otherwise pay on every iteration.
+    /// Same values in the same order, so the same bits.
+    /// </remarks>
+    internal static (double[] Coefficients, double[] InverseUpper) SolveByReflectionsInPlace(
+        double[] columnMajor, int rowCount, int parameterCount, double[] projected)
+    {
+        Triangularize(columnMajor, rowCount, parameterCount, projected);
+        return FromTriangle(columnMajor, rowCount, parameterCount, projected);
+    }
+
+    /// <summary>R's inverse and the coefficients it gives, from a triangularized block and its projected response.</summary>
+    private static (double[] Coefficients, double[] InverseUpper) FromTriangle(
+        double[] a, int rowCount, int parameterCount, double[] projected)
+    {
         double[] inverseUpper = InvertUpper(Upper(a, rowCount, parameterCount), parameterCount);
         var coefficients = new double[parameterCount];
         for (int i = 0; i < parameterCount; i++)

@@ -57,11 +57,21 @@ is one sentence, the issue and the commit; see
 - `Dbscan.Fit` computes each pair's distance once and stops a sum past the radius. ([#818](https://github.com/CyrilB1531/lodestar/issues/818))
 - `KMeansOptions` compares its centres by value. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
 
+### Lodestar.Abstractions
+
+#### Changed
+
+- `CsrMatrix.Multiply` and `CsrMatrix.TransposeMultiply` add each non-zero's scaled row over spans with vector lanes, up to 2.5 times faster. ([#845](https://github.com/CyrilB1531/lodestar/issues/845))
+
 ### Lodestar.Decomposition
 
 #### Added
 
 - `PrincipalComponentVariance.Compute` reports the variance each principal component explains. ([#701](https://github.com/CyrilB1531/lodestar/issues/701), [`e311b2c3`](https://github.com/CyrilB1531/lodestar/commit/e311b2c3))
+
+#### Changed
+
+- `TruncatedSvd`, `Nmf` and `QrDecomposition.Householder` walk their dense blocks in memory order, with the Householder QR up to 5.3 times faster. ([#845](https://github.com/CyrilB1531/lodestar/issues/845))
 
 ### Lodestar.Fuzzy
 
@@ -195,6 +205,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- `GeneralizedLinearModel.Fit`, `GeneralizedLeastSquares.Fit` and `MultinomialLogit.Fit` reuse their buffers and vectorise the least-squares inner product, halving a negative binomial fit. ([#845](https://github.com/CyrilB1531/lodestar/issues/845))
 - `OlsOptions` is a record with `init` properties. ([#616](https://github.com/CyrilB1531/lodestar/issues/616), [`8bd2dba6`](https://github.com/CyrilB1531/lodestar/commit/8bd2dba6))
 - A Poisson count above one million is fitted rather than refused. ([#665](https://github.com/CyrilB1531/lodestar/issues/665), [`6ecf9c05`](https://github.com/CyrilB1531/lodestar/commit/6ecf9c05))
 - The HC2 and HC3 covariances no longer read Q through an interface. ([#670](https://github.com/CyrilB1531/lodestar/issues/670), [`88b32f78`](https://github.com/CyrilB1531/lodestar/commit/88b32f78))
