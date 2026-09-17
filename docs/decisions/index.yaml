@@ -921,7 +921,7 @@
   applies: ["0075"]
   superseded_by: []
   amended_by: []
-  applied_by: []
+  applied_by: ["0145"]
 
 "0092":
   title: "Romanian keeps the cedilla alphabet the description writes, and reads its regions off the word"
@@ -1449,6 +1449,16 @@
   supersedes: []
   amends: []
   applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0145":
+  title: "French takes `snowballstemmer` as its oracle, not `nltk`"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0091"]
   superseded_by: []
   amended_by: []
   applied_by: []

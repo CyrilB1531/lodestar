@@ -1,12 +1,12 @@
 {
  "metadata": {
   "algorithm": "FrenchSnowballStemmer",
-  "library": "nltk",
-  "library_version": "3.10.3",
+  "library": "snowballstemmer",
+  "library_version": "3.1.1",
   "reference_calls": [
-   "nltk.stem.snowball.SnowballStemmer('french')"
+   "snowballstemmer.stemmer('french').stemWord(w)"
   ],
-  "count": 182
+  "count": 571
  },
  "cases": [
   {
@@ -882,7 +882,7 @@
   {
    "id": 174,
    "word": "ès",
-   "stem": "ès"
+   "stem": "es"
   },
   {
    "id": 175,
@@ -918,6 +918,1951 @@
    "id": 181,
    "word": "chèvre",
    "stem": "chevr"
+  },
+  {
+   "id": 182,
+   "word": "abaissassiez",
+   "stem": "abaiss"
+  },
+  {
+   "id": 183,
+   "word": "audit",
+   "stem": "audit"
+  },
+  {
+   "id": 184,
+   "word": "colis",
+   "stem": "colis"
+  },
+  {
+   "id": 185,
+   "word": "oasis",
+   "stem": "oasis"
+  },
+  {
+   "id": 186,
+   "word": "pari",
+   "stem": "pari"
+  },
+  {
+   "id": 187,
+   "word": "parie",
+   "stem": "pari"
+  },
+  {
+   "id": 188,
+   "word": "paries",
+   "stem": "pari"
+  },
+  {
+   "id": 189,
+   "word": "paris",
+   "stem": "paris"
+  },
+  {
+   "id": 190,
+   "word": "tapi",
+   "stem": "tapi"
+  },
+  {
+   "id": 191,
+   "word": "tapie",
+   "stem": "tapi"
+  },
+  {
+   "id": 192,
+   "word": "tapies",
+   "stem": "tapi"
+  },
+  {
+   "id": 193,
+   "word": "tapir",
+   "stem": "tapir"
+  },
+  {
+   "id": 194,
+   "word": "tapira",
+   "stem": "tapir"
+  },
+  {
+   "id": 195,
+   "word": "tapirai",
+   "stem": "tapir"
+  },
+  {
+   "id": 196,
+   "word": "tapiraient",
+   "stem": "tapir"
+  },
+  {
+   "id": 197,
+   "word": "tapirais",
+   "stem": "tapir"
+  },
+  {
+   "id": 198,
+   "word": "tapirait",
+   "stem": "tapir"
+  },
+  {
+   "id": 199,
+   "word": "tapiras",
+   "stem": "tapir"
+  },
+  {
+   "id": 200,
+   "word": "tapirent",
+   "stem": "tapirent"
+  },
+  {
+   "id": 201,
+   "word": "tapirez",
+   "stem": "tapir"
+  },
+  {
+   "id": 202,
+   "word": "tapiriez",
+   "stem": "tapir"
+  },
+  {
+   "id": 203,
+   "word": "tapirions",
+   "stem": "tapir"
+  },
+  {
+   "id": 204,
+   "word": "tapirons",
+   "stem": "tapiron"
+  },
+  {
+   "id": 205,
+   "word": "tapiront",
+   "stem": "tapiront"
+  },
+  {
+   "id": 206,
+   "word": "tapis",
+   "stem": "tapis"
+  },
+  {
+   "id": 207,
+   "word": "tapissais",
+   "stem": "tapiss"
+  },
+  {
+   "id": 208,
+   "word": "tapissait",
+   "stem": "tapiss"
+  },
+  {
+   "id": 209,
+   "word": "tapissant",
+   "stem": "tapiss"
+  },
+  {
+   "id": 210,
+   "word": "tapisse",
+   "stem": "tapiss"
+  },
+  {
+   "id": 211,
+   "word": "tapissent",
+   "stem": "tapissent"
+  },
+  {
+   "id": 212,
+   "word": "tapisses",
+   "stem": "tapiss"
+  },
+  {
+   "id": 213,
+   "word": "tapissez",
+   "stem": "tapiss"
+  },
+  {
+   "id": 214,
+   "word": "tapissons",
+   "stem": "tapisson"
+  },
+  {
+   "id": 215,
+   "word": "tapit",
+   "stem": "tapit"
+  },
+  {
+   "id": 216,
+   "word": "tapîmes",
+   "stem": "tapîm"
+  },
+  {
+   "id": 217,
+   "word": "tapît",
+   "stem": "tapît"
+  },
+  {
+   "id": 218,
+   "word": "tapîtes",
+   "stem": "tapît"
+  },
+  {
+   "id": 219,
+   "word": "abandonnassiez",
+   "stem": "abandon"
+  },
+  {
+   "id": 220,
+   "word": "tapissaient",
+   "stem": "tapiss"
+  },
+  {
+   "id": 221,
+   "word": "tapissions",
+   "stem": "tapiss"
+  },
+  {
+   "id": 222,
+   "word": "abcédassiez",
+   "stem": "abced"
+  },
+  {
+   "id": 223,
+   "word": "abdiquassiez",
+   "stem": "abdiqu"
+  },
+  {
+   "id": 224,
+   "word": "aberrassiez",
+   "stem": "aberr"
+  },
+  {
+   "id": 225,
+   "word": "abhorrassiez",
+   "stem": "abhorr"
+  },
+  {
+   "id": 226,
+   "word": "abjurassiez",
+   "stem": "abjur"
+  },
+  {
+   "id": 227,
+   "word": "ablatassiez",
+   "stem": "ablat"
+  },
+  {
+   "id": 228,
+   "word": "abloquassiez",
+   "stem": "abloqu"
+  },
+  {
+   "id": 229,
+   "word": "abominassiez",
+   "stem": "abomin"
+  },
+  {
+   "id": 230,
+   "word": "abondassiez",
+   "stem": "abond"
+  },
+  {
+   "id": 231,
+   "word": "abonnassiez",
+   "stem": "abon"
+  },
+  {
+   "id": 232,
+   "word": "abordassiez",
+   "stem": "abord"
+  },
+  {
+   "id": 233,
+   "word": "abouchassiez",
+   "stem": "abouch"
+  },
+  {
+   "id": 234,
+   "word": "aboulassiez",
+   "stem": "aboul"
+  },
+  {
+   "id": 235,
+   "word": "aboutassiez",
+   "stem": "about"
+  },
+  {
+   "id": 236,
+   "word": "aboyassiez",
+   "stem": "aboi"
+  },
+  {
+   "id": 237,
+   "word": "abrasassiez",
+   "stem": "abras"
+  },
+  {
+   "id": 238,
+   "word": "abreuvassiez",
+   "stem": "abreuv"
+  },
+  {
+   "id": 239,
+   "word": "abriassiez",
+   "stem": "abri"
+  },
+  {
+   "id": 240,
+   "word": "abricotassiez",
+   "stem": "abricot"
+  },
+  {
+   "id": 241,
+   "word": "abritassiez",
+   "stem": "abrit"
+  },
+  {
+   "id": 242,
+   "word": "abrogeassiez",
+   "stem": "abrog"
+  },
+  {
+   "id": 243,
+   "word": "abrégeassiez",
+   "stem": "abreg"
+  },
+  {
+   "id": 244,
+   "word": "abréviassiez",
+   "stem": "abrévi"
+  },
+  {
+   "id": 245,
+   "word": "absentassiez",
+   "stem": "absent"
+  },
+  {
+   "id": 246,
+   "word": "absorbassiez",
+   "stem": "absorb"
+  },
+  {
+   "id": 247,
+   "word": "abusassiez",
+   "stem": "abus"
+  },
+  {
+   "id": 248,
+   "word": "abîmassiez",
+   "stem": "abîm"
+  },
+  {
+   "id": 249,
+   "word": "accablassiez",
+   "stem": "accabl"
+  },
+  {
+   "id": 250,
+   "word": "accaparassiez",
+   "stem": "accapar"
+  },
+  {
+   "id": 251,
+   "word": "accastillassiez",
+   "stem": "accastill"
+  },
+  {
+   "id": 252,
+   "word": "accentuassiez",
+   "stem": "accentu"
+  },
+  {
+   "id": 253,
+   "word": "acceptassiez",
+   "stem": "accept"
+  },
+  {
+   "id": 254,
+   "word": "accessoirisassiez",
+   "stem": "accessoiris"
+  },
+  {
+   "id": 255,
+   "word": "accidentassiez",
+   "stem": "accident"
+  },
+  {
+   "id": 256,
+   "word": "acclamassiez",
+   "stem": "acclam"
+  },
+  {
+   "id": 257,
+   "word": "acclimatassiez",
+   "stem": "acclimat"
+  },
+  {
+   "id": 258,
+   "word": "accointassiez",
+   "stem": "accoint"
+  },
+  {
+   "id": 259,
+   "word": "accolassiez",
+   "stem": "accol"
+  },
+  {
+   "id": 260,
+   "word": "accommodassiez",
+   "stem": "accommod"
+  },
+  {
+   "id": 261,
+   "word": "accompagnassiez",
+   "stem": "accompagn"
+  },
+  {
+   "id": 262,
+   "word": "accorassiez",
+   "stem": "accor"
+  },
+  {
+   "id": 263,
+   "word": "accordassiez",
+   "stem": "accord"
+  },
+  {
+   "id": 264,
+   "word": "accostassiez",
+   "stem": "accost"
+  },
+  {
+   "id": 265,
+   "word": "accotassiez",
+   "stem": "accot"
+  },
+  {
+   "id": 266,
+   "word": "accouassiez",
+   "stem": "accou"
+  },
+  {
+   "id": 267,
+   "word": "accouchassiez",
+   "stem": "accouch"
+  },
+  {
+   "id": 268,
+   "word": "accoudassiez",
+   "stem": "accoud"
+  },
+  {
+   "id": 269,
+   "word": "accouplassiez",
+   "stem": "accoupl"
+  },
+  {
+   "id": 270,
+   "word": "accoutrassiez",
+   "stem": "accoutr"
+  },
+  {
+   "id": 271,
+   "word": "accoutumassiez",
+   "stem": "accoutum"
+  },
+  {
+   "id": 272,
+   "word": "accrochassiez",
+   "stem": "accroch"
+  },
+  {
+   "id": 273,
+   "word": "accréditassiez",
+   "stem": "accrédit"
+  },
+  {
+   "id": 274,
+   "word": "accrétassiez",
+   "stem": "accret"
+  },
+  {
+   "id": 275,
+   "word": "acculassiez",
+   "stem": "accul"
+  },
+  {
+   "id": 276,
+   "word": "acculturassiez",
+   "stem": "accultur"
+  },
+  {
+   "id": 277,
+   "word": "accumulassiez",
+   "stem": "accumul"
+  },
+  {
+   "id": 278,
+   "word": "accusassiez",
+   "stem": "accus"
+  },
+  {
+   "id": 279,
+   "word": "accédassiez",
+   "stem": "acced"
+  },
+  {
+   "id": 280,
+   "word": "accélérassiez",
+   "stem": "accéler"
+  },
+  {
+   "id": 281,
+   "word": "achalandassiez",
+   "stem": "achaland"
+  },
+  {
+   "id": 282,
+   "word": "achalassiez",
+   "stem": "achal"
+  },
+  {
+   "id": 283,
+   "word": "acharnassiez",
+   "stem": "acharn"
+  },
+  {
+   "id": 284,
+   "word": "acheminassiez",
+   "stem": "achemin"
+  },
+  {
+   "id": 285,
+   "word": "achetassiez",
+   "stem": "achet"
+  },
+  {
+   "id": 286,
+   "word": "achevassiez",
+   "stem": "achev"
+  },
+  {
+   "id": 287,
+   "word": "achoppassiez",
+   "stem": "achopp"
+  },
+  {
+   "id": 288,
+   "word": "achromatisassiez",
+   "stem": "achromatis"
+  },
+  {
+   "id": 289,
+   "word": "acidifiassiez",
+   "stem": "acidifi"
+  },
+  {
+   "id": 290,
+   "word": "acidulassiez",
+   "stem": "acidul"
+  },
+  {
+   "id": 291,
+   "word": "aciselassiez",
+   "stem": "acisel"
+  },
+  {
+   "id": 292,
+   "word": "aciérassiez",
+   "stem": "acier"
+  },
+  {
+   "id": 293,
+   "word": "actionnassiez",
+   "stem": "action"
+  },
+  {
+   "id": 294,
+   "word": "activassiez",
+   "stem": "activ"
+  },
+  {
+   "id": 295,
+   "word": "actualisassiez",
+   "stem": "actualis"
+  },
+  {
+   "id": 296,
+   "word": "acérassiez",
+   "stem": "acer"
+  },
+  {
+   "id": 297,
+   "word": "acétifiassiez",
+   "stem": "acétifi"
+  },
+  {
+   "id": 298,
+   "word": "acétylassiez",
+   "stem": "acétyl"
+  },
+  {
+   "id": 299,
+   "word": "adaptassiez",
+   "stem": "adapt"
+  },
+  {
+   "id": 300,
+   "word": "additionnassiez",
+   "stem": "addition"
+  },
+  {
+   "id": 301,
+   "word": "adhérassiez",
+   "stem": "adher"
+  },
+  {
+   "id": 302,
+   "word": "abaissement",
+   "stem": "abaissement"
+  },
+  {
+   "id": 303,
+   "word": "abaissements",
+   "stem": "abaissement"
+  },
+  {
+   "id": 304,
+   "word": "ablatif",
+   "stem": "ablat"
+  },
+  {
+   "id": 305,
+   "word": "ablatifs",
+   "stem": "ablat"
+  },
+  {
+   "id": 306,
+   "word": "abortif",
+   "stem": "abort"
+  },
+  {
+   "id": 307,
+   "word": "abrasif",
+   "stem": "abras"
+  },
+  {
+   "id": 308,
+   "word": "abrasifs",
+   "stem": "abras"
+  },
+  {
+   "id": 309,
+   "word": "abusif",
+   "stem": "abus"
+  },
+  {
+   "id": 310,
+   "word": "accréditif",
+   "stem": "accrédit"
+  },
+  {
+   "id": 311,
+   "word": "adhésif",
+   "stem": "adhes"
+  },
+  {
+   "id": 312,
+   "word": "adjectif",
+   "stem": "adject"
+  },
+  {
+   "id": 313,
+   "word": "adoptif",
+   "stem": "adopt"
+  },
+  {
+   "id": 314,
+   "word": "adventif",
+   "stem": "advent"
+  },
+  {
+   "id": 315,
+   "word": "agressif",
+   "stem": "agress"
+  },
+  {
+   "id": 316,
+   "word": "appréhensif",
+   "stem": "appréhens"
+  },
+  {
+   "id": 317,
+   "word": "arbustif",
+   "stem": "arbust"
+  },
+  {
+   "id": 318,
+   "word": "attributif",
+   "stem": "attribut"
+  },
+  {
+   "id": 319,
+   "word": "boit-sans-soif",
+   "stem": "boit-sans-so"
+  },
+  {
+   "id": 320,
+   "word": "complétif",
+   "stem": "complet"
+  },
+  {
+   "id": 321,
+   "word": "compulsif",
+   "stem": "compuls"
+  },
+  {
+   "id": 322,
+   "word": "corrosif",
+   "stem": "corros"
+  },
+  {
+   "id": 323,
+   "word": "demi-tarif",
+   "stem": "demi-tar"
+  },
+  {
+   "id": 324,
+   "word": "demi-tarifs",
+   "stem": "demi-tar"
+  },
+  {
+   "id": 325,
+   "word": "discursif",
+   "stem": "discurs"
+  },
+  {
+   "id": 326,
+   "word": "décisif",
+   "stem": "décis"
+  },
+  {
+   "id": 327,
+   "word": "gérondif",
+   "stem": "gérond"
+  },
+  {
+   "id": 328,
+   "word": "gérondifs",
+   "stem": "gérond"
+  },
+  {
+   "id": 329,
+   "word": "hyperémotif",
+   "stem": "hyperémot"
+  },
+  {
+   "id": 330,
+   "word": "ingélif",
+   "stem": "ingel"
+  },
+  {
+   "id": 331,
+   "word": "maladif",
+   "stem": "malad"
+  },
+  {
+   "id": 332,
+   "word": "réflexif",
+   "stem": "réflex"
+  },
+  {
+   "id": 333,
+   "word": "abasourdissement",
+   "stem": "abasourd"
+  },
+  {
+   "id": 334,
+   "word": "aboutissements",
+   "stem": "about"
+  },
+  {
+   "id": 335,
+   "word": "abrogatif",
+   "stem": "abrog"
+  },
+  {
+   "id": 336,
+   "word": "accréditifs",
+   "stem": "accrédit"
+  },
+  {
+   "id": 337,
+   "word": "antisportif",
+   "stem": "antisport"
+  },
+  {
+   "id": 338,
+   "word": "dissuasif",
+   "stem": "dissuas"
+  },
+  {
+   "id": 339,
+   "word": "abusifs",
+   "stem": "abus"
+  },
+  {
+   "id": 340,
+   "word": "allusif",
+   "stem": "allus"
+  },
+  {
+   "id": 341,
+   "word": "additif",
+   "stem": "addit"
+  },
+  {
+   "id": 342,
+   "word": "auto-adhésif",
+   "stem": "auto-adhes"
+  },
+  {
+   "id": 343,
+   "word": "affectif",
+   "stem": "affect"
+  },
+  {
+   "id": 344,
+   "word": "consomptif",
+   "stem": "consompt"
+  },
+  {
+   "id": 345,
+   "word": "attentif",
+   "stem": "attent"
+  },
+  {
+   "id": 346,
+   "word": "compressif",
+   "stem": "compress"
+  },
+  {
+   "id": 347,
+   "word": "coextensif",
+   "stem": "coextens"
+  },
+  {
+   "id": 348,
+   "word": "congestif",
+   "stem": "congest"
+  },
+  {
+   "id": 349,
+   "word": "circonvolutif",
+   "stem": "circonvolut"
+  },
+  {
+   "id": 350,
+   "word": "explétif",
+   "stem": "explet"
+  },
+  {
+   "id": 351,
+   "word": "convulsif",
+   "stem": "convuls"
+  },
+  {
+   "id": 352,
+   "word": "dolosif",
+   "stem": "dolos"
+  },
+  {
+   "id": 353,
+   "word": "dispersif",
+   "stem": "dispers"
+  },
+  {
+   "id": 354,
+   "word": "incisif",
+   "stem": "incis"
+  },
+  {
+   "id": 355,
+   "word": "maladifs",
+   "stem": "malad"
+  },
+  {
+   "id": 356,
+   "word": "locomotif",
+   "stem": "locomot"
+  },
+  {
+   "id": 357,
+   "word": "abonnissement",
+   "stem": "abon"
+  },
+  {
+   "id": 358,
+   "word": "accomplissements",
+   "stem": "accompl"
+  },
+  {
+   "id": 359,
+   "word": "abréviatif",
+   "stem": "abrévi"
+  },
+  {
+   "id": 360,
+   "word": "accusatifs",
+   "stem": "accus"
+  },
+  {
+   "id": 361,
+   "word": "persuasif",
+   "stem": "persuas"
+  },
+  {
+   "id": 362,
+   "word": "adhésifs",
+   "stem": "adhes"
+  },
+  {
+   "id": 363,
+   "word": "exclusif",
+   "stem": "exclus"
+  },
+  {
+   "id": 364,
+   "word": "apéritif",
+   "stem": "apérit"
+  },
+  {
+   "id": 365,
+   "word": "cohésif",
+   "stem": "cohes"
+  },
+  {
+   "id": 366,
+   "word": "afflictif",
+   "stem": "afflict"
+  },
+  {
+   "id": 367,
+   "word": "contraceptif",
+   "stem": "contracept"
+  },
+  {
+   "id": 368,
+   "word": "contentif",
+   "stem": "content"
+  },
+  {
+   "id": 369,
+   "word": "concessif",
+   "stem": "concess"
+  },
+  {
+   "id": 370,
+   "word": "compréhensif",
+   "stem": "compréhens"
+  },
+  {
+   "id": 371,
+   "word": "digestif",
+   "stem": "digest"
+  },
+  {
+   "id": 372,
+   "word": "comminutif",
+   "stem": "comminut"
+  },
+  {
+   "id": 373,
+   "word": "réplétif",
+   "stem": "réplet"
+  },
+  {
+   "id": 374,
+   "word": "impulsif",
+   "stem": "impuls"
+  },
+  {
+   "id": 375,
+   "word": "explosif",
+   "stem": "explos"
+  },
+  {
+   "id": 376,
+   "word": "détersif",
+   "stem": "déters"
+  },
+  {
+   "id": 377,
+   "word": "émotif",
+   "stem": "émot"
+  },
+  {
+   "id": 378,
+   "word": "aboutissement",
+   "stem": "about"
+  },
+  {
+   "id": 379,
+   "word": "accroissements",
+   "stem": "accroissement"
+  },
+  {
+   "id": 380,
+   "word": "accusatif",
+   "stem": "accus"
+  },
+  {
+   "id": 381,
+   "word": "adaptatifs",
+   "stem": "adapt"
+  },
+  {
+   "id": 382,
+   "word": "abdiquiez",
+   "stem": "abdiqu"
+  },
+  {
+   "id": 383,
+   "word": "abdiquions",
+   "stem": "abdiqu"
+  },
+  {
+   "id": 384,
+   "word": "aboyiez",
+   "stem": "aboi"
+  },
+  {
+   "id": 385,
+   "word": "acoquinassiez",
+   "stem": "acoquin"
+  },
+  {
+   "id": 386,
+   "word": "acquisitif",
+   "stem": "acquisit"
+  },
+  {
+   "id": 387,
+   "word": "acquièrent",
+   "stem": "acqui"
+  },
+  {
+   "id": 388,
+   "word": "alanguissement",
+   "stem": "alanguissement"
+  },
+  {
+   "id": 389,
+   "word": "aréquier",
+   "stem": "aréqui"
+  },
+  {
+   "id": 390,
+   "word": "bleuie",
+   "stem": "bleu"
+  },
+  {
+   "id": 391,
+   "word": "bleuies",
+   "stem": "bleu"
+  },
+  {
+   "id": 392,
+   "word": "bruissements",
+   "stem": "bruissement"
+  },
+  {
+   "id": 393,
+   "word": "clérouquie",
+   "stem": "clérouqu"
+  },
+  {
+   "id": 394,
+   "word": "enfouie",
+   "stem": "enfou"
+  },
+  {
+   "id": 395,
+   "word": "intuitifs",
+   "stem": "intuit"
+  },
+  {
+   "id": 396,
+   "word": "jouissif",
+   "stem": "jouiss"
+  },
+  {
+   "id": 397,
+   "word": "liquidatif",
+   "stem": "liquid"
+  },
+  {
+   "id": 398,
+   "word": "obséquieuse",
+   "stem": "obséqui"
+  },
+  {
+   "id": 399,
+   "word": "obséquieuses",
+   "stem": "obséqui"
+  },
+  {
+   "id": 400,
+   "word": "obséquieux",
+   "stem": "obséqui"
+  },
+  {
+   "id": 401,
+   "word": "abloquiez",
+   "stem": "abloqu"
+  },
+  {
+   "id": 402,
+   "word": "abloquions",
+   "stem": "abloqu"
+  },
+  {
+   "id": 403,
+   "word": "abstrayiez",
+   "stem": "abstrai"
+  },
+  {
+   "id": 404,
+   "word": "acquiesçassiez",
+   "stem": "acquiesc"
+  },
+  {
+   "id": 405,
+   "word": "intuitif",
+   "stem": "intuit"
+  },
+  {
+   "id": 406,
+   "word": "enquièrent",
+   "stem": "enqui"
+  },
+  {
+   "id": 407,
+   "word": "bleuissement",
+   "stem": "bleu"
+  },
+  {
+   "id": 408,
+   "word": "chéquier",
+   "stem": "chéqui"
+  },
+  {
+   "id": 409,
+   "word": "débleuie",
+   "stem": "débleu"
+  },
+  {
+   "id": 410,
+   "word": "débleuies",
+   "stem": "débleu"
+  },
+  {
+   "id": 411,
+   "word": "éblouissements",
+   "stem": "éblou"
+  },
+  {
+   "id": 412,
+   "word": "ventriloquie",
+   "stem": "ventriloqu"
+  },
+  {
+   "id": 413,
+   "word": "fouie",
+   "stem": "fou"
+  },
+  {
+   "id": 414,
+   "word": "accouiez",
+   "stem": "accou"
+  },
+  {
+   "id": 415,
+   "word": "aboyions",
+   "stem": "aboi"
+  },
+  {
+   "id": 416,
+   "word": "accroyiez",
+   "stem": "accroi"
+  },
+  {
+   "id": 417,
+   "word": "acquittassiez",
+   "stem": "acquitt"
+  },
+  {
+   "id": 418,
+   "word": "bruissement",
+   "stem": "bruissement"
+  },
+  {
+   "id": 419,
+   "word": "enfouies",
+   "stem": "enfou"
+  },
+  {
+   "id": 420,
+   "word": "épanouissements",
+   "stem": "épanou"
+  },
+  {
+   "id": 421,
+   "word": "vioquie",
+   "stem": "vioqu"
+  },
+  {
+   "id": 422,
+   "word": "jouie",
+   "stem": "jou"
+  },
+  {
+   "id": 423,
+   "word": "afflouiez",
+   "stem": "afflou"
+  },
+  {
+   "id": 424,
+   "word": "abstrayions",
+   "stem": "abstrai"
+  },
+  {
+   "id": 425,
+   "word": "apitoyiez",
+   "stem": "apitoi"
+  },
+  {
+   "id": 426,
+   "word": "affouillassiez",
+   "stem": "affouill"
+  },
+  {
+   "id": 427,
+   "word": "enfouissement",
+   "stem": "enfou"
+  },
+  {
+   "id": 428,
+   "word": "fouies",
+   "stem": "fou"
+  },
+  {
+   "id": 429,
+   "word": "évanouissements",
+   "stem": "évanou"
+  },
+  {
+   "id": 430,
+   "word": "rouie",
+   "stem": "rou"
+  },
+  {
+   "id": 431,
+   "word": "alambiquiez",
+   "stem": "alambiqu"
+  },
+  {
+   "id": 432,
+   "word": "accouions",
+   "stem": "accou"
+  },
+  {
+   "id": 433,
+   "word": "appuyiez",
+   "stem": "appui"
+  },
+  {
+   "id": 434,
+   "word": "affruitassiez",
+   "stem": "affruit"
+  },
+  {
+   "id": 435,
+   "word": "obséquieusement",
+   "stem": "obséqui"
+  },
+  {
+   "id": 436,
+   "word": "jouies",
+   "stem": "jou"
+  },
+  {
+   "id": 437,
+   "word": "réjouie",
+   "stem": "réjou"
+  },
+  {
+   "id": 438,
+   "word": "allouiez",
+   "stem": "allou"
+  },
+  {
+   "id": 439,
+   "word": "accroyions",
+   "stem": "accroi"
+  },
+  {
+   "id": 440,
+   "word": "asseyiez",
+   "stem": "assei"
+  },
+  {
+   "id": 441,
+   "word": "agenouillassiez",
+   "stem": "agenouill"
+  },
+  {
+   "id": 442,
+   "word": "éblouissement",
+   "stem": "éblou"
+  },
+  {
+   "id": 443,
+   "word": "rouies",
+   "stem": "rou"
+  },
+  {
+   "id": 444,
+   "word": "serfouie",
+   "stem": "serfou"
+  },
+  {
+   "id": 445,
+   "word": "amadouiez",
+   "stem": "amadou"
+  },
+  {
+   "id": 446,
+   "word": "afflouions",
+   "stem": "afflou"
+  },
+  {
+   "id": 447,
+   "word": "assoyiez",
+   "stem": "assoi"
+  },
+  {
+   "id": 448,
+   "word": "aguichassiez",
+   "stem": "aguich"
+  },
+  {
+   "id": 449,
+   "word": "épanouissement",
+   "stem": "épanou"
+  },
+  {
+   "id": 450,
+   "word": "réjouies",
+   "stem": "réjou"
+  },
+  {
+   "id": 451,
+   "word": "éblouie",
+   "stem": "éblou"
+  },
+  {
+   "id": 452,
+   "word": "antiquiez",
+   "stem": "antiqu"
+  },
+  {
+   "id": 453,
+   "word": "alambiquions",
+   "stem": "alambiqu"
+  },
+  {
+   "id": 454,
+   "word": "atermoyiez",
+   "stem": "atermoi"
+  },
+  {
+   "id": 455,
+   "word": "aiguillassiez",
+   "stem": "aiguill"
+  },
+  {
+   "id": 456,
+   "word": "évanouissement",
+   "stem": "évanou"
+  },
+  {
+   "id": 457,
+   "word": "serfouies",
+   "stem": "serfou"
+  },
+  {
+   "id": 458,
+   "word": "écrouie",
+   "stem": "écrou"
+  },
+  {
+   "id": 459,
+   "word": "apiquiez",
+   "stem": "apiqu"
+  },
+  {
+   "id": 460,
+   "word": "allouions",
+   "stem": "allou"
+  },
+  {
+   "id": 461,
+   "word": "attrayiez",
+   "stem": "attrai"
+  },
+  {
+   "id": 462,
+   "word": "albanaise",
+   "stem": "alban"
+  },
+  {
+   "id": 463,
+   "word": "albanaises",
+   "stem": "alban"
+  },
+  {
+   "id": 464,
+   "word": "alcaïque",
+   "stem": "alca"
+  },
+  {
+   "id": 465,
+   "word": "altaïques",
+   "stem": "alta"
+  },
+  {
+   "id": 466,
+   "word": "ambiguïté",
+   "stem": "ambigu"
+  },
+  {
+   "id": 467,
+   "word": "ambiguïtés",
+   "stem": "ambigu"
+  },
+  {
+   "id": 468,
+   "word": "amuïssement",
+   "stem": "amu"
+  },
+  {
+   "id": 469,
+   "word": "applicatrice",
+   "stem": "appliqu"
+  },
+  {
+   "id": 470,
+   "word": "archaïsme",
+   "stem": "archa"
+  },
+  {
+   "id": 471,
+   "word": "archaïsmes",
+   "stem": "archa"
+  },
+  {
+   "id": 472,
+   "word": "aïe",
+   "stem": "aï"
+  },
+  {
+   "id": 473,
+   "word": "balais",
+   "stem": "balais"
+  },
+  {
+   "id": 474,
+   "word": "banjoïste",
+   "stem": "banjo"
+  },
+  {
+   "id": 475,
+   "word": "bijoux",
+   "stem": "bijou"
+  },
+  {
+   "id": 476,
+   "word": "c'est-à-dire",
+   "stem": "est-à-dir"
+  },
+  {
+   "id": 477,
+   "word": "camaïeux",
+   "stem": "camaï"
+  },
+  {
+   "id": 478,
+   "word": "canoë",
+   "stem": "cano"
+  },
+  {
+   "id": 479,
+   "word": "canoës",
+   "stem": "cano"
+  },
+  {
+   "id": 480,
+   "word": "coïtions",
+   "stem": "coït"
+  },
+  {
+   "id": 481,
+   "word": "hautboïstes",
+   "stem": "hautbo"
+  },
+  {
+   "id": 482,
+   "word": "haïssable",
+   "stem": "haïss"
+  },
+  {
+   "id": 483,
+   "word": "haïssables",
+   "stem": "haïss"
+  },
+  {
+   "id": 484,
+   "word": "héroïcité",
+   "stem": "héro"
+  },
+  {
+   "id": 485,
+   "word": "indicatrices",
+   "stem": "indiqu"
+  },
+  {
+   "id": 486,
+   "word": "m'as-tu-vu",
+   "stem": "as-tu-vu"
+  },
+  {
+   "id": 487,
+   "word": "m'as-tu-vue",
+   "stem": "as-tu-vu"
+  },
+  {
+   "id": 488,
+   "word": "n'est-ce",
+   "stem": "est-ce"
+  },
+  {
+   "id": 489,
+   "word": "nia",
+   "stem": "nia"
+  },
+  {
+   "id": 490,
+   "word": "niai",
+   "stem": "niai"
+  },
+  {
+   "id": 491,
+   "word": "niait",
+   "stem": "niait"
+  },
+  {
+   "id": 492,
+   "word": "niant",
+   "stem": "niant"
+  },
+  {
+   "id": 493,
+   "word": "nias",
+   "stem": "nias"
+  },
+  {
+   "id": 494,
+   "word": "niasse",
+   "stem": "niass"
+  },
+  {
+   "id": 495,
+   "word": "niassiez",
+   "stem": "niass"
+  },
+  {
+   "id": 496,
+   "word": "nie",
+   "stem": "nie"
+  },
+  {
+   "id": 497,
+   "word": "nier",
+   "stem": "nier"
+  },
+  {
+   "id": 498,
+   "word": "niera",
+   "stem": "nier"
+  },
+  {
+   "id": 499,
+   "word": "nierai",
+   "stem": "nier"
+  },
+  {
+   "id": 500,
+   "word": "nieras",
+   "stem": "nier"
+  },
+  {
+   "id": 501,
+   "word": "nierez",
+   "stem": "nier"
+  },
+  {
+   "id": 502,
+   "word": "nieront",
+   "stem": "nieront"
+  },
+  {
+   "id": 503,
+   "word": "nies",
+   "stem": "nie"
+  },
+  {
+   "id": 504,
+   "word": "niât",
+   "stem": "niât"
+  },
+  {
+   "id": 505,
+   "word": "nié",
+   "stem": "nié"
+  },
+  {
+   "id": 506,
+   "word": "niée",
+   "stem": "nié"
+  },
+  {
+   "id": 507,
+   "word": "niées",
+   "stem": "nié"
+  },
+  {
+   "id": 508,
+   "word": "niés",
+   "stem": "nié"
+  },
+  {
+   "id": 509,
+   "word": "oïdie",
+   "stem": "oïd"
+  },
+  {
+   "id": 510,
+   "word": "qu'en-dira-t-on",
+   "stem": "en-dira-t-on"
+  },
+  {
+   "id": 511,
+   "word": "stégomyie",
+   "stem": "stégomyi"
+  },
+  {
+   "id": 512,
+   "word": "yogi",
+   "stem": "yog"
+  },
+  {
+   "id": 513,
+   "word": "yogis",
+   "stem": "yog"
+  },
+  {
+   "id": 514,
+   "word": "yéti",
+   "stem": "yet"
+  },
+  {
+   "id": 515,
+   "word": "yétis",
+   "stem": "yet"
+  },
+  {
+   "id": 516,
+   "word": "éc",
+   "stem": "ec"
+  },
+  {
+   "id": 517,
+   "word": "él",
+   "stem": "el"
+  },
+  {
+   "id": 518,
+   "word": "antenaise",
+   "stem": "anten"
+  },
+  {
+   "id": 519,
+   "word": "balinaises",
+   "stem": "balin"
+  },
+  {
+   "id": 520,
+   "word": "altaïque",
+   "stem": "alta"
+  },
+  {
+   "id": 521,
+   "word": "archaïques",
+   "stem": "archa"
+  },
+  {
+   "id": 522,
+   "word": "contiguïté",
+   "stem": "contigu"
+  },
+  {
+   "id": 523,
+   "word": "héroïquement",
+   "stem": "héro"
+  },
+  {
+   "id": 524,
+   "word": "fabricatrice",
+   "stem": "fabriqu"
+  },
+  {
+   "id": 525,
+   "word": "caodaïsme",
+   "stem": "caoda"
+  },
+  {
+   "id": 526,
+   "word": "jaïnismes",
+   "stem": "jaïn"
+  },
+  {
+   "id": 527,
+   "word": "calais",
+   "stem": "calais"
+  },
+  {
+   "id": 528,
+   "word": "hautboïste",
+   "stem": "hautbo"
+  },
+  {
+   "id": 529,
+   "word": "cailloux",
+   "stem": "caillou"
+  },
+  {
+   "id": 530,
+   "word": "haïrions",
+   "stem": "haïr"
+  },
+  {
+   "id": 531,
+   "word": "niâtes",
+   "stem": "niât"
+  },
+  {
+   "id": 532,
+   "word": "judaïcité",
+   "stem": "juda"
+  },
+  {
+   "id": 533,
+   "word": "masticatrices",
+   "stem": "mastiqu"
+  },
+  {
+   "id": 534,
+   "word": "nierait",
+   "stem": "nier"
+  },
+  {
+   "id": 535,
+   "word": "nieriez",
+   "stem": "nier"
+  },
+  {
+   "id": 536,
+   "word": "antillaise",
+   "stem": "antill"
+  },
+  {
+   "id": 537,
+   "word": "biaises",
+   "stem": "bi"
+  },
+  {
+   "id": 538,
+   "word": "archaïque",
+   "stem": "archa"
+  },
+  {
+   "id": 539,
+   "word": "hébraïques",
+   "stem": "hébra"
+  },
+  {
+   "id": 540,
+   "word": "exiguïté",
+   "stem": "exigu"
+  },
+  {
+   "id": 541,
+   "word": "momentanément",
+   "stem": "momentan"
+  },
+  {
+   "id": 542,
+   "word": "fornicatrice",
+   "stem": "forniqu"
+  },
+  {
+   "id": 543,
+   "word": "dadaïsme",
+   "stem": "dada"
+  },
+  {
+   "id": 544,
+   "word": "niâmes",
+   "stem": "niâm"
+  },
+  {
+   "id": 545,
+   "word": "chauvais",
+   "stem": "chauvais"
+  },
+  {
+   "id": 546,
+   "word": "hébraïste",
+   "stem": "hébra"
+  },
+  {
+   "id": 547,
+   "word": "choux",
+   "stem": "chou"
+  },
+  {
+   "id": 548,
+   "word": "haïssions",
+   "stem": "haïss"
+  },
+  {
+   "id": 549,
+   "word": "égoïstes",
+   "stem": "égo"
+  },
+  {
+   "id": 550,
+   "word": "laïcité",
+   "stem": "laïqu"
+  },
+  {
+   "id": 551,
+   "word": "prédicatrices",
+   "stem": "prédiqu"
+  },
+  {
+   "id": 552,
+   "word": "niez",
+   "stem": "niez"
+  },
+  {
+   "id": 553,
+   "word": "aragonaise",
+   "stem": "aragon"
+  },
+  {
+   "id": 554,
+   "word": "bordelaises",
+   "stem": "bordel"
+  },
+  {
+   "id": 555,
+   "word": "azoïque",
+   "stem": "azo"
+  },
+  {
+   "id": 556,
+   "word": "héroïques",
+   "stem": "héro"
+  },
+  {
+   "id": 557,
+   "word": "judaïté",
+   "stem": "juda"
+  },
+  {
+   "id": 558,
+   "word": "niaient",
+   "stem": "niaient"
+  },
+  {
+   "id": 559,
+   "word": "indicatrice",
+   "stem": "indiqu"
+  },
+  {
+   "id": 560,
+   "word": "dichroïsme",
+   "stem": "dichro"
+  },
+  {
+   "id": 561,
+   "word": "shintoïsmes",
+   "stem": "shinto"
+  },
+  {
+   "id": 562,
+   "word": "déplais",
+   "stem": "déplais"
+  },
+  {
+   "id": 563,
+   "word": "lamaïste",
+   "stem": "lama"
+  },
+  {
+   "id": 564,
+   "word": "coupe-choux",
+   "stem": "coupe-chou"
+  },
+  {
+   "id": 565,
+   "word": "laïussions",
+   "stem": "laïuss"
+  },
+  {
+   "id": 566,
+   "word": "ardennaise",
+   "stem": "arden"
+  },
+  {
+   "id": 567,
+   "word": "camarguaises",
+   "stem": "camargu"
+  },
+  {
+   "id": 568,
+   "word": "benzoïque",
+   "stem": "benzo"
+  },
+  {
+   "id": 569,
+   "word": "judaïques",
+   "stem": "juda"
+  },
+  {
+   "id": 570,
+   "word": "niassent",
+   "stem": "niassent"
   }
  ]
 }

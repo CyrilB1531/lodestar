@@ -149,6 +149,7 @@ is one sentence, the issue and the commit; see
 - `FrenchSnowballStemmer.Stem` keeps a word-final `é` or `è`, as nltk does, where `thé` stemmed to `the` and `été` to `éte`. ([#948](https://github.com/CyrilB1531/lodestar/issues/948))
 - `RatcliffObershelp.Similarity` allocates nothing again, where the explicit stack #877 added cost 120 B a call. ([#980](https://github.com/CyrilB1531/lodestar/issues/980))
 - The `TfidfVectorizer` and `HashingVectorizer` constructors, their reference pages and `CountVectorizerOptions` document the `MinDf`, `MaxDf`, `NgramRange` and `NumFeatures` refusals #901 added. ([#986](https://github.com/CyrilB1531/lodestar/issues/986))
+- `FrenchSnowballStemmer.Stem` follows the Snowball algorithm as `snowballstemmer` 3.1.1 implements it, agreeing on all 346,244 words of a French dictionary where 8,253 differed, and now differs from nltk's `FrenchStemmer` on 278 of them, such as `indicatrice` and `bijoux`. ([#973](https://github.com/CyrilB1531/lodestar/issues/973))
 
 ### Lodestar.Gpu
 

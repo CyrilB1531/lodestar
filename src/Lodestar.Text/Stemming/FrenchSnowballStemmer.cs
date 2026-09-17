@@ -4,7 +4,7 @@ using Lodestar.Text.Internal;
 namespace Lodestar.Text.Stemming;
 
 // SonarLint S3776: cognitive complexity: a faithful implementation of a published rule-engine; decomposing it would break the 1:1 mapping with the reference that makes divergences auditable.
-// SonarLint S3267: the suffix scans early-return and mutate in place, which Where cannot express — and they run per token.
+// SonarLint S3267: the suffix scan early-returns, which Where cannot express, and it runs per token.
 // CA1845 (use span-based string.Concat): that overload does not exist on
 // netstandard2.0. The Substring form is what makes this file compile there.
 #pragma warning disable CA1845
@@ -19,11 +19,9 @@ namespace Lodestar.Text.Stemming;
 /// The French Snowball stemming algorithm.
 /// </summary>
 /// <remarks>
-/// <para>
-/// Reference behavior: <c>nltk.stem.snowball.SnowballStemmer("french")</c>. An
-/// original implementation of the published Snowball algorithm, using the RV/R1/R2
+/// Reference behavior: <c>snowballstemmer.stemmer("french")</c> 3.1.1 (decision 0145). An
+/// original implementation of the published Snowball algorithm: elisions, the RV/R1/R2
 /// regions and the standard step ordering. Input is lowercased. Thread-safe.
-/// </para>
 /// </remarks>
 public static class FrenchSnowballStemmer
 {
@@ -41,55 +39,77 @@ public static class FrenchSnowballStemmer
         return new Worker(s).Run();
     }
 
+    // Each table is ordered longest first, so the first suffix that fits is the longest one across every
+    // group of its step, as Snowball's among requires (#973).
+    private static readonly string[] StandardSuffixes =
+    [
+        "issements", "issement", "atrices", "atrice", "ateurs", "ations", "logies", "usions", "utions",
+        "ements", "amment", "emment", "ances", "iqUes", "ismes", "ables", "istes", "ateur", "ation",
+        "logie", "usion", "ution", "ences", "ement", "euses", "ments", "ance", "iqUe", "isme", "able",
+        "iste", "ence", "ités", "ives", "eaux", "euse", "ment", "eux", "ité", "ive", "ifs", "aux", "oux",
+        "if",
+    ];
+
+    private static readonly string[] IVerbSuffixes =
+    [
+        "issaIent", "issantes", "iraIent", "issante", "issants", "issions", "irions", "issais", "issait",
+        "issant", "issent", "issiez", "issons", "irais", "irait", "irent", "iriez", "irons", "iront",
+        "isses", "issez", "îmes", "îtes", "irai", "iras", "irez", "isse", "ies", "ira", "ît", "ie", "ir",
+        "is", "it", "i",
+    ];
+
+    private static readonly string[] VerbSuffixes =
+    [
+        "eraIent", "assions", "erions", "assent", "assiez", "èrent", "erais", "erait", "eriez", "erons",
+        "eront", "aIent", "antes", "asses", "aises", "ions", "erai", "eras", "erez", "âmes", "âtes", "ante",
+        "ants", "asse", "aise", "eais", "ées", "era", "iez", "ais", "ait", "ant", "ée", "és", "er", "ez",
+        "ât", "ai", "as", "é", "a",
+    ];
+
+    private static readonly string[] ResidualSuffixes = ["ière", "Ière", "ion", "ier", "Ier", "e"];
+
+    private static readonly string[] DoubledEndings = ["eill", "ell", "enn", "onn", "ett"];
+
     private sealed class Worker
     {
         private string _s;
         private readonly int _rv;
         private readonly int _r1;
         private readonly int _r2;
-        private bool _step1RemovedMent;
 
         public Worker(string s)
         {
-            _s = MarkNonVowels(s);
+            _s = MarkNonVowels(RemoveElision(s));
+            _rv = ComputeRv(_s);
             _r1 = Region(_s, 0);
             _r2 = Region(_s, _r1);
-            _rv = ComputeRv(_s);
         }
 
         public string Run()
         {
-            // Control flow is driven by whether a step actually ALTERED the word,
-            // not merely matched a suffix (Snowball semantics).
-            string before = _s;
-            Step1();
-            bool step1 = _s != before;
-
-            bool step2 = false;
-            if (!step1 || _step1RemovedMent)
+            // Removing -ment, -amment or -emment leaves the standard step unsuccessful, so the verb steps
+            // still run, and step 4 does when they remove nothing either.
+            if (StandardSuffix() || IVerbSuffix() || VerbSuffix())
             {
-                before = _s;
-                Step2a();
-                step2 = _s != before;
-                if (!step2)
+                if (_s.EndsWith('Y'))
                 {
-                    before = _s;
-                    Step2b();
-                    step2 = _s != before;
+                    Replace(_s.Length - 1, "i");
                 }
-            }
-
-            if (step1 || step2)
-            {
-                Step3();
+                else if (_s.EndsWith('ç'))
+                {
+                    Replace(_s.Length - 1, "c");
+                }
             }
             else
             {
-                Step4();
+                ResidualSuffix();
             }
 
-            Step5();
-            Step6();
+            if (EndsWithAny(DoubledEndings))
+            {
+                Truncate(_s.Length - 1);
+            }
+            UnAccent();
             return Unmark(_s);
         }
 
@@ -97,31 +117,91 @@ public static class FrenchSnowballStemmer
             c is 'a' or 'e' or 'i' or 'o' or 'u' or 'y'
             or 'â' or 'à' or 'ë' or 'é' or 'ê' or 'è' or 'ï' or 'î' or 'ô' or 'û' or 'ù';
 
-        private static string MarkNonVowels(string s)
+        // "l'avion" stems as "avion": one elidable letter, or "qu", then an apostrophe and something after it.
+        private static string RemoveElision(string s)
         {
-            char[] a = s.ToCharArray();
-            for (int i = 0; i < a.Length; i++)
+            int apostrophe = s[0] is 'c' or 'd' or 'j' or 'l' or 'm' or 'n' or 's' or 't' ? 1 : -1;
+            if (apostrophe < 0 && s.StartsWith("qu", StringComparison.Ordinal))
             {
-                char c = a[i];
-                bool prevVowel = i > 0 && IsVowel(s[i - 1]);
-                bool nextVowel = i + 1 < a.Length && IsVowel(s[i + 1]);
-                if (c == 'u' && i > 0 && s[i - 1] == 'q')
-                {
-                    a[i] = 'U';
-                }
-                else if ((c == 'u' || c == 'i') && prevVowel && nextVowel)
-                {
-                    a[i] = char.ToUpperInvariant(c);
-                }
-                else if (c == 'y' && (prevVowel || nextVowel))
-                {
-                    a[i] = 'Y';
-                }
+                apostrophe = 2;
             }
-            return new string(a);
+            return apostrophe > 0 && apostrophe + 1 < s.Length && s[apostrophe] == '\''
+                ? s.Substring(apostrophe + 1)
+                : s;
         }
 
-        private static string Unmark(string s) => s.Replace('I', 'i').Replace('U', 'u').Replace('Y', 'y');
+        // Scans left to right, reading earlier marks. Diaeresis vowels become H plus the bare vowel, so a
+        // suffix can start on that vowel; the H is dropped again at the end if the vowel went.
+        private static string MarkNonVowels(string s)
+        {
+            var b = new StringBuilder(s);
+            int p = 0;
+            while (p < b.Length)
+            {
+                if (!MarkAt(b, p))
+                {
+                    p++;
+                }
+            }
+            return b.ToString();
+        }
+
+        private static bool MarkAt(StringBuilder b, int p)
+        {
+            char c = b[p];
+            bool hasNext = p + 1 < b.Length;
+            if (IsVowel(c) && hasNext)
+            {
+                char next = b[p + 1];
+                if ((next == 'u' || next == 'i') && p + 2 < b.Length && IsVowel(b[p + 2]))
+                {
+                    b[p + 1] = next == 'u' ? 'U' : 'I';
+                    return true;
+                }
+                if (next == 'y')
+                {
+                    b[p + 1] = 'Y';
+                    return true;
+                }
+            }
+            if (c == 'ë' || c == 'ï')
+            {
+                b[p] = 'H';
+                b.Insert(p + 1, c == 'ë' ? 'e' : 'i');
+                return true;
+            }
+            if (c == 'y' && hasNext && IsVowel(b[p + 1]))
+            {
+                b[p] = 'Y';
+                return true;
+            }
+            if (c == 'q' && hasNext && b[p + 1] == 'u')
+            {
+                b[p + 1] = 'U';
+                return true;
+            }
+            return false;
+        }
+
+        private static string Unmark(string s)
+        {
+            var b = new StringBuilder(s.Length);
+            int i = 0;
+            while (i < s.Length)
+            {
+                char c = s[i++];
+                if (c != 'H')
+                {
+                    b.Append(c switch { 'I' => 'i', 'U' => 'u', 'Y' => 'y', _ => c });
+                }
+                else if (i < s.Length && s[i] is 'e' or 'i')
+                {
+                    // An H whose vowel was removed goes with it.
+                    b.Append(s[i++] == 'e' ? 'ë' : 'ï');
+                }
+            }
+            return b.ToString();
+        }
 
         private static int Region(string s, int from)
         {
@@ -140,14 +220,12 @@ public static class FrenchSnowballStemmer
         private static int ComputeRv(string s)
         {
             int n = s.Length;
-            if (n < 3)
-            {
-                return n;
-            }
-            if ((IsVowel(s[0]) && IsVowel(s[1]))
-                || s.StartsWith("par", StringComparison.Ordinal)
-                || s.StartsWith("col", StringComparison.Ordinal)
-                || s.StartsWith("tap", StringComparison.Ordinal))
+            if (n >= 3
+                && ((IsVowel(s[0]) && IsVowel(s[1]))
+                    || s.StartsWith("par", StringComparison.Ordinal)
+                    || s.StartsWith("col", StringComparison.Ordinal)
+                    || s.StartsWith("tap", StringComparison.Ordinal)
+                    || (s.StartsWith("ni", StringComparison.Ordinal) && IsVowel(s[2]))))
             {
                 return 3;
             }
@@ -161,410 +239,276 @@ public static class FrenchSnowballStemmer
             return n;
         }
 
-        private bool InRv(int suffixLen) => _s.Length - suffixLen >= _rv;
-        private bool InR1(int suffixLen) => _s.Length - suffixLen >= _r1;
-        private bool InR2(int suffixLen) => _s.Length - suffixLen >= _r2;
+        // The longest suffix in the table that starts at or after lowerBound.
+        private string? Longest(string[] table, int lowerBound)
+        {
+            foreach (string suffix in table)
+            {
+                if (_s.Length - suffix.Length >= lowerBound && Ends(suffix))
+                {
+                    return suffix;
+                }
+            }
+            return null;
+        }
+
+        private bool EndsWithAny(string[] endings)
+        {
+            foreach (string ending in endings)
+            {
+                if (Ends(ending))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private bool Ends(string suffix) => _s.EndsWith(suffix, StringComparison.Ordinal);
-        private void Delete(int len) => _s = _s[..^len];
-        private void Replace(int suffixLen, string repl) => _s = _s.Substring(0, _s.Length - suffixLen) + repl;
+        private bool EndsAt(int end, string part) =>
+            end >= part.Length && string.CompareOrdinal(_s, end - part.Length, part, 0, part.Length) == 0;
+        private void Truncate(int start) => _s = _s.Substring(0, start);
+        private void Replace(int start, string replacement) => _s = _s.Substring(0, start) + replacement;
+        private char Before(int start) => start > 0 ? _s[start - 1] : '\0';
 
-        private void Step1()
+        // After a deletion, an "ic" left at the end goes if it lies in R2, and is marked iqU otherwise.
+        private void DeleteOrMarkIc()
         {
-            // (a) delete if in R2
-            foreach (string suf in new[] { "ances", "iqUes", "ismes", "ables", "istes", "ance", "iqUe", "isme", "able", "iste", "eux" })
+            if (Ends("ic"))
             {
-                if (Ends(suf))
+                int start = _s.Length - 2;
+                if (start >= _r2)
                 {
-                    if (InR2(suf.Length))
-                    {
-                        Delete(suf.Length);
-                    }
-                    return;
+                    Truncate(start);
                 }
+                else
+                {
+                    Replace(start, "iqU");
+                }
+            }
+        }
+
+        private bool TruncateIf(bool condition, int start)
+        {
+            if (condition)
+            {
+                Truncate(start);
+            }
+            return condition;
+        }
+
+        private bool ReplaceIf(bool condition, int start, string replacement)
+        {
+            if (condition)
+            {
+                Replace(start, replacement);
+            }
+            return condition;
+        }
+
+        private bool StandardSuffix()
+        {
+            string? suffix = Longest(StandardSuffixes, 0);
+            if (suffix is null)
+            {
+                return false;
+            }
+            int start = _s.Length - suffix.Length;
+            switch (suffix)
+            {
+                case "atrice" or "ateur" or "ation" or "atrices" or "ateurs" or "ations":
+                    if (!TruncateIf(start >= _r2, start))
+                    {
+                        return false;
+                    }
+                    DeleteOrMarkIc();
+                    return true;
+                case "logie" or "logies":
+                    return ReplaceIf(start >= _r2, start, "log");
+                case "usion" or "ution" or "usions" or "utions":
+                    return ReplaceIf(start >= _r2, start, "u");
+                case "ence" or "ences":
+                    return ReplaceIf(start >= _r2, start, "ent");
+                case "ement" or "ements":
+                    if (!TruncateIf(start >= _rv, start))
+                    {
+                        return false;
+                    }
+                    AfterEment();
+                    return true;
+                case "ité" or "ités":
+                    if (!TruncateIf(start >= _r2, start))
+                    {
+                        return false;
+                    }
+                    AfterIte();
+                    return true;
+                case "if" or "ive" or "ifs" or "ives":
+                    if (!TruncateIf(start >= _r2, start))
+                    {
+                        return false;
+                    }
+                    if (Ends("at") && _s.Length - 2 >= _r2)
+                    {
+                        Truncate(_s.Length - 2);
+                        DeleteOrMarkIc();
+                    }
+                    return true;
+                case "eaux":
+                    Replace(start, "eau");
+                    return true;
+                case "aux":
+                    return ReplaceIf(start >= _r1, start, "al");
+                case "oux":
+                    return ReplaceIf(Before(start) is 'b' or 'h' or 'j' or 'l' or 'n' or 'p', start, "ou");
+                case "euse" or "euses":
+                    return TruncateIf(start >= _r2, start) || ReplaceIf(start >= _r1, start, "eux");
+                case "issement" or "issements":
+                    return TruncateIf(start >= _r1 && start > 0 && !IsVowel(_s[start - 1]), start);
+                case "amment":
+                    ReplaceIf(start >= _rv, start, "ant");
+                    return false;
+                case "emment":
+                    ReplaceIf(start >= _rv, start, "ent");
+                    return false;
+                case "ment" or "ments":
+                    TruncateIf(start > 0 && IsVowel(_s[start - 1]) && start - 1 >= _rv, start);
+                    return false;
+                default:
+                    // iqUe, ance, able, isme, iste, eux and their plurals.
+                    return TruncateIf(start >= _r2, start);
+            }
+        }
+
+        private void AfterEment()
+        {
+            int end = _s.Length;
+            if (EndsAt(end, "iv"))
+            {
+                if (TruncateIf(end - 2 >= _r2, end - 2) && Ends("at"))
+                {
+                    TruncateIf(_s.Length - 2 >= _r2, _s.Length - 2);
+                }
+            }
+            else if (EndsAt(end, "eus"))
+            {
+                _ = TruncateIf(end - 3 >= _r2, end - 3) || ReplaceIf(end - 3 >= _r1, end - 3, "eux");
+            }
+            else if (EndsAt(end, "abl") || EndsAt(end, "iqU"))
+            {
+                TruncateIf(end - 3 >= _r2, end - 3);
+            }
+            else if (EndsAt(end, "ièr") || EndsAt(end, "Ièr"))
+            {
+                ReplaceIf(end - 3 >= _rv, end - 3, "i");
+            }
+        }
+
+        private void AfterIte()
+        {
+            int end = _s.Length;
+            if (EndsAt(end, "abil"))
+            {
+                if (!TruncateIf(end - 4 >= _r2, end - 4))
+                {
+                    Replace(end - 4, "abl");
+                }
+            }
+            else if (EndsAt(end, "ic"))
+            {
+                DeleteOrMarkIc();
+            }
+            else if (EndsAt(end, "iv"))
+            {
+                TruncateIf(end - 2 >= _r2, end - 2);
+            }
+        }
+
+        // Step 2a: the suffix lies in RV and follows a non-vowel that also lies in RV, other than a diaeresis mark.
+        private bool IVerbSuffix()
+        {
+            string? suffix = Longest(IVerbSuffixes, _rv);
+            if (suffix is null)
+            {
+                return false;
+            }
+            int start = _s.Length - suffix.Length;
+            return TruncateIf(start > _rv && _s[start - 1] != 'H' && !IsVowel(_s[start - 1]), start);
+        }
+
+        // Step 2b: the suffix lies in RV.
+        private bool VerbSuffix()
+        {
+            string? suffix = Longest(VerbSuffixes, _rv);
+            if (suffix is null)
+            {
+                return false;
+            }
+            int start = _s.Length - suffix.Length;
+            switch (suffix)
+            {
+                case "ions":
+                    return TruncateIf(start >= _r2, start);
+                case "a" or "ai" or "as" or "ait" or "ant" or "ants" or "ante" or "antes" or "asse" or "asses"
+                    or "assent" or "assions" or "assiez" or "âmes" or "âtes" or "ât" or "aIent":
+                    // A preceding "e" in RV goes with the suffix.
+                    Truncate(Before(start) == 'e' && start - 1 >= _rv ? start - 1 : start);
+                    return true;
+                case "ais" or "aise" or "aises":
+                    // "épl-", "auv-" and a single letter before "al-" keep it: "chauvais", "balais".
+                    if (EndsAt(start, "épl") || EndsAt(start, "auv") || (EndsAt(start, "al") && start == 3))
+                    {
+                        return false;
+                    }
+                    Truncate(start);
+                    return true;
+                default:
+                    Truncate(start);
+                    return true;
+            }
+        }
+
+        // Step 4.
+        private void ResidualSuffix()
+        {
+            int last = _s.Length - 1;
+            if (last >= 1 && _s[last] == 's'
+                && (EndsAt(last, "Hi") || _s[last - 1] is not ('a' or 'i' or 'o' or 's' or 'u' or 'è')))
+            {
+                Truncate(last);
             }
 
-            // atrice(s)/ateur(s)/ation(s)
-            foreach (string suf in new[] { "atrices", "ateurs", "ations", "atrice", "ateur", "ation" })
+            string? suffix = Longest(ResidualSuffixes, _rv);
+            if (suffix is null)
             {
-                if (Ends(suf))
-                {
-                    if (InR2(suf.Length))
-                    {
-                        Delete(suf.Length);
-                        if (Ends("ic"))
-                        {
-                            if (InR2(2))
-                            {
-                                Delete(2);
-                            }
-                            else
-                            {
-                                Replace(2, "iqU");
-                            }
-                        }
-                    }
-                    return;
-                }
-            }
-
-            foreach (string suf in new[] { "logies", "logie" })
-            {
-                if (Ends(suf))
-                {
-                    if (InR2(suf.Length))
-                    {
-                        Replace(suf.Length, "log");
-                    }
-                    return;
-                }
-            }
-            foreach (string suf in new[] { "usions", "utions", "usion", "ution" })
-            {
-                if (Ends(suf))
-                {
-                    if (InR2(suf.Length))
-                    {
-                        Replace(suf.Length, "u");
-                    }
-                    return;
-                }
-            }
-            foreach (string suf in new[] { "ences", "ence" })
-            {
-                if (Ends(suf))
-                {
-                    if (InR2(suf.Length))
-                    {
-                        Replace(suf.Length, "ent");
-                    }
-                    return;
-                }
-            }
-
-            foreach (string suf in new[] { "ements", "ement" })
-            {
-                if (Ends(suf))
-                {
-                    if (InRv(suf.Length))
-                    {
-                        Delete(suf.Length);
-                        if (Ends("iv") && InR2(2))
-                        {
-                            Delete(2);
-                            if (Ends("at") && InR2(2))
-                            {
-                                Delete(2);
-                            }
-                        }
-                        else if (Ends("eus"))
-                        {
-                            if (InR2(3))
-                            {
-                                Delete(3);
-                            }
-                            else if (InR1(3))
-                            {
-                                Replace(3, "eux");
-                            }
-                        }
-                        else if ((Ends("abl") || Ends("iqU")) && InR2(3))
-                        {
-                            Delete(3);
-                        }
-                        else if ((Ends("ièr") || Ends("Ièr")) && InRv(3))
-                        {
-                            Replace(3, "i");
-                        }
-                    }
-                    return;
-                }
-            }
-
-            foreach (string suf in new[] { "ités", "ité" })
-            {
-                if (Ends(suf))
-                {
-                    if (InR2(suf.Length))
-                    {
-                        Delete(suf.Length);
-                        if (Ends("abil"))
-                        {
-                            if (InR2(4))
-                            {
-                                Delete(4);
-                            }
-                            else
-                            {
-                                Replace(4, "abl");
-                            }
-                        }
-                        else if (Ends("ic"))
-                        {
-                            if (InR2(2))
-                            {
-                                Delete(2);
-                            }
-                            else
-                            {
-                                Replace(2, "iqU");
-                            }
-                        }
-                        else if (Ends("iv") && InR2(2))
-                        {
-                            Delete(2);
-                        }
-                    }
-                    return;
-                }
-            }
-
-            foreach (string suf in new[] { "ives", "ive" })
-            {
-                if (Ends(suf))
-                {
-                    if (InR2(suf.Length))
-                    {
-                        Delete(suf.Length);
-                        if (Ends("at") && InR2(2))
-                        {
-                            Delete(2);
-                            if (Ends("ic"))
-                            {
-                                if (InR2(2))
-                                {
-                                    Delete(2);
-                                }
-                                else
-                                {
-                                    Replace(2, "iqU");
-                                }
-                            }
-                        }
-                    }
-                    return;
-                }
-            }
-
-            foreach (string suf in new[] { "eaux" })
-            {
-                if (Ends(suf))
-                {
-                    Replace(suf.Length, "eau");
-                    return;
-                }
-            }
-            if (Ends("aux"))
-            {
-                if (InR1(3))
-                {
-                    Replace(3, "al");
-                }
                 return;
             }
-            foreach (string suf in new[] { "euses", "euse" })
+            int start = _s.Length - suffix.Length;
+            switch (suffix)
             {
-                if (Ends(suf))
-                {
-                    if (InR2(suf.Length))
-                    {
-                        Delete(suf.Length);
-                    }
-                    else if (InR1(suf.Length))
-                    {
-                        Replace(suf.Length, "eux");
-                    }
+                case "ion":
+                    TruncateIf(start >= _r2 && start > _rv && _s[start - 1] is 's' or 't', start);
                     return;
-                }
-            }
-            foreach (string suf in new[] { "issements", "issement" })
-            {
-                if (Ends(suf))
-                {
-                    if (InR1(suf.Length) && _s.Length - suf.Length - 1 >= 0 && !IsVowel(_s[_s.Length - suf.Length - 1]))
-                    {
-                        Delete(suf.Length);
-                    }
+                case "e":
+                    Truncate(start);
                     return;
-                }
-            }
-            if (Ends("amment"))
-            {
-                if (InRv(6))
-                {
-                    Replace(6, "ant");
-                    _step1RemovedMent = true;
-                }
-                return;
-            }
-            if (Ends("emment"))
-            {
-                if (InRv(6))
-                {
-                    Replace(6, "ent");
-                    _step1RemovedMent = true;
-                }
-                return;
-            }
-            foreach (string suf in new[] { "ments", "ment" })
-            {
-                if (Ends(suf))
-                {
-                    int before = _s.Length - suf.Length - 1;
-                    if (before >= 0 && IsVowel(_s[before]) && before >= _rv)
-                    {
-                        Delete(suf.Length);
-                        _step1RemovedMent = true;
-                    }
+                default:
+                    Replace(start, "i");
                     return;
-                }
-            }
-
-        }
-
-        private void Step2a()
-        {
-            foreach (string suf in new[]
-            {
-                "issaIent", "issantes", "iraIent", "issement", "issements", "issante",
-                "issants", "issions", "irions", "issais", "issait", "issant", "issent",
-                "issiez", "issons", "irais", "irait", "irent", "iriez", "irons", "iront",
-                "isses", "issez", "îmes", "îtes", "irai", "iras", "irez", "isse", "ies",
-                "ira", "ît", "ie", "ir", "is", "it", "i",
-            })
-            {
-                if (Ends(suf) && InRv(suf.Length))
-                {
-                    int before = _s.Length - suf.Length - 1;
-                    if (before >= 0 && !IsVowel(_s[before]))
-                    {
-                        Delete(suf.Length);
-                        return;
-                    }
-                    return;
-                }
             }
         }
 
-        private void Step2b()
+        // Step 6: an é or è followed by at least one non-vowel, and nothing but non-vowels, loses its accent.
+        private void UnAccent()
         {
-            foreach (string suf in new[] { "eraIent", "erions", "èrent", "erais", "erait", "eriez", "erons", "eront", "erai", "eras", "erez", "ées", "era", "iez", "ée", "és", "er", "ez", "é" })
+            int i = _s.Length - 1;
+            while (i >= 0 && !IsVowel(_s[i]))
             {
-                if (Ends(suf) && InRv(suf.Length))
-                {
-                    Delete(suf.Length);
-                    return;
-                }
+                i--;
             }
-            foreach (string suf in new[]
+            if (i < _s.Length - 1 && i >= 0 && (_s[i] == 'é' || _s[i] == 'è'))
             {
-                "assions", "assiez", "assent", "asses", "antes", "aIent", "âmes", "âtes",
-                "ante", "ants", "asse", "ait", "ais", "ant", "ât", "ai", "as", "a",
-            })
-            {
-                if (Ends(suf) && InRv(suf.Length))
-                {
-                    Delete(suf.Length);
-                    if (Ends("e") && InRv(1))
-                    {
-                        Delete(1);
-                    }
-                    return;
-                }
-            }
-            foreach (string suf in new[] { "ions" })
-            {
-                if (Ends(suf) && InR2(suf.Length))
-                {
-                    Delete(suf.Length);
-                    return;
-                }
-            }
-        }
-
-        private void Step3()
-        {
-            if (_s.EndsWith('Y'))
-            {
-                _s = _s.Substring(0, _s.Length - 1) + "i";
-            }
-            else if (_s.EndsWith('ç'))
-            {
-                _s = _s.Substring(0, _s.Length - 1) + "c";
-            }
-        }
-
-        private void Step4()
-        {
-            if (Ends("s"))
-            {
-                int before = _s.Length - 2;
-                if (before >= 0 && _s[before] is not ('a' or 'i' or 'o' or 'u' or 'è' or 's'))
-                {
-                    Delete(1);
-                }
-            }
-
-            foreach (string suf in new[] { "ion" })
-            {
-                if (Ends(suf) && InR2(suf.Length))
-                {
-                    int before = _s.Length - suf.Length - 1;
-                    if (before >= 0 && _s[before] is 's' or 't')
-                    {
-                        Delete(suf.Length);
-                        return;
-                    }
-                }
-            }
-            foreach (string suf in new[] { "Ière", "ière", "Ier", "ier" })
-            {
-                if (Ends(suf) && InRv(suf.Length))
-                {
-                    Replace(suf.Length, "i");
-                    return;
-                }
-            }
-            if (Ends("e"))
-            {
-                if (InRv(1))
-                {
-                    Delete(1);
-                }
-                return;
-            }
-            if (Ends("ë"))
-            {
-                int before = _s.Length - 2;
-                if (before >= 1 && _s[before] == 'u' && _s[before - 1] == 'g')
-                {
-                    Delete(1);
-                }
-            }
-        }
-
-        private void Step5()
-        {
-            if (Ends("enn") || Ends("onn") || Ends("ett") || Ends("ell") || Ends("eill"))
-            {
-                Delete(1);
-            }
-        }
-
-        private void Step6()
-        {
-            // Only an accent followed by at least one non-vowel moves: "thé" keeps it. nltk's scan also
-            // never reaches the first letter, so "ès" keeps it too.
-            for (int i = _s.Length - 1; i >= 1; i--)
-            {
-                char c = _s[i];
-                if (IsVowel(c))
-                {
-                    if (i < _s.Length - 1 && (c == 'é' || c == 'è'))
-                    {
-                        _s = _s[..i] + 'e' + _s[(i + 1)..];
-                    }
-                    break;
-                }
+                _s = _s.Substring(0, i) + "e" + _s.Substring(i + 1);
             }
         }
     }
