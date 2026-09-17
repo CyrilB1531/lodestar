@@ -16,7 +16,8 @@ unseen value; `null` drops none and refuses.
 
 **Returns** — a fitted [`OneHotEncoder<T>`](onehotencoder.md).
 
-**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive.
+**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, or when
+`options` holds a `Drop` or an `Unknown` that is not a defined value.
 `ArgumentException` when `values` holds no row, a partial one, or a null.
 
 **Example** — two features, and the column layout they produce.

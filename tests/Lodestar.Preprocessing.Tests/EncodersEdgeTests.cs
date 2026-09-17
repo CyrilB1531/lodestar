@@ -181,4 +181,18 @@ public sealed class EncodersEdgeTests
         Assert.Throws<ArgumentException>(() => Encoders.Ordinal<string>(TwoByTwo, 2).Transform([]));
         Assert.Throws<ArgumentException>(() => SimpleImputer.Fit([1.0, 2.0, 3.0, 4.0], 2).Transform([1.0]));
     }
+
+    /// <summary>An enum value outside the defined ones is refused, not read as the default it would fall through to (#912).</summary>
+    [Fact]
+    public void An_undefined_option_value_is_refused()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => SimpleImputer.Fit(
+            [1.0, double.NaN], 1, new SimpleImputerOptions { Strategy = (ImputationStrategy)42 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Encoders.OneHot(
+            ["a", "b"], 1, new OneHotEncoderOptions { Drop = (CategoryDrop)9 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Encoders.OneHot(
+            ["a", "b"], 1, new OneHotEncoderOptions { Unknown = (UnknownCategory)7 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Encoders.OneHot(
+            ["a", "b"], 1, new OneHotEncoderOptions { Unknown = (UnknownCategory)(-1) }));
+    }
 }

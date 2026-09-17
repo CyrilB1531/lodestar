@@ -14,8 +14,8 @@ statistic; `null` is the mean.
 
 **Returns** — a fitted `SimpleImputer`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive or the fill value
-is not finite. `ArgumentException` when `samples` holds no row, a partial one, or an infinity; or
+**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, the fill value
+is not finite, or the strategy is not a defined value. `ArgumentException` when `samples` holds no row, a partial one, or an infinity; or
 when a feature has no value at all and
 [`KeepEmptyFeatures`](simpleimputeroptions.md) is not set.
 
