@@ -24,12 +24,13 @@ property is populated; there is no second call to make.
 
 **Exceptions** — `ArgumentNullException` when `matrix`, `initialWeights` or `initialComponents` is
 null. `ArgumentOutOfRangeException` when `componentCount` is below 1 or above the smaller of the two
-dimensions, or when `MaxIterations` is below one or `Tolerance` is negative.
-`ArgumentException` when `matrix` holds a negative value or a `NaN`, on either overload — the
-precondition is checked rather than assumed, since a negative entry does not fail the loop, it
-returns signed factors under the Frobenius loss and `NaN` under Kullback–Leibler. `ArgumentException`
-too when the two blocks do not agree on a component count, do not fit the matrix, or hold a negative
-number — and when [`RandomMatrix`](nmfoptions.md) is given and is not
+dimensions, or when `MaxIterations` is below one or `Tolerance` is negative or `NaN`; the options
+are checked first, before the matrix is read or initialised. `ArgumentException` when `matrix`
+holds a negative value, a `NaN` or an infinity, on either overload — the precondition is checked
+rather than assumed, since a negative entry does not fail the loop, it returns signed factors under
+the Frobenius loss and `NaN` under Kullback–Leibler. `ArgumentException` too when `matrix` has no
+row or no column on the overload handed the blocks, when the two blocks do not agree on a component
+count, do not fit the matrix, or hold a negative number, a `NaN` or an infinity — and when [`RandomMatrix`](nmfoptions.md) is given and is not
 `matrix.ColumnCount × (componentCount + 10)` values long.
 
 **Example** — four documents over three terms, factorized at rank 2.

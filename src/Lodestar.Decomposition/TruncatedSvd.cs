@@ -90,13 +90,14 @@ public sealed class TruncatedSvd
     /// <param name="options">The randomized solver's settings, or null for scikit-learn's defaults.</param>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="componentCount"/> is not in <c>[1, matrix.ColumnCount)</c>, is above <c>matrix.RowCount</c>, or an option is negative or too large to add to it.</exception>
-    /// <exception cref="ArgumentException"><see cref="TruncatedSvdOptions.RandomMatrix"/> is not <c>matrix.ColumnCount × (componentCount + oversampling)</c>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="matrix"/> holds a NaN or an infinity, or <see cref="TruncatedSvdOptions.RandomMatrix"/> is not <c>matrix.ColumnCount × (componentCount + oversampling)</c>.</exception>
     public static TruncatedSvd Fit(
         CsrMatrix matrix, int componentCount, TruncatedSvdOptions? options = null)
     {
         Guard.NotNull(matrix);
         TruncatedSvdOptions settings = options ?? new TruncatedSvdOptions();
         Validate(matrix, componentCount, settings);
+        RequireFinite(matrix);
 
         int features = matrix.ColumnCount;
         int size = componentCount + settings.Oversampling;
@@ -127,7 +128,7 @@ public sealed class TruncatedSvd
     /// <summary>Projects <paramref name="matrix"/> onto the components, row-major and <see cref="ComponentCount"/> wide.</summary>
     /// <param name="matrix">The matrix to project; it must have <see cref="FeatureCount"/> columns.</param>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="matrix"/> does not have <see cref="FeatureCount"/> columns.</exception>
+    /// <exception cref="ArgumentException"><paramref name="matrix"/> does not have <see cref="FeatureCount"/> columns, or holds a NaN or an infinity.</exception>
     public double[] Transform(CsrMatrix matrix)
     {
         Guard.NotNull(matrix);
@@ -138,7 +139,24 @@ public sealed class TruncatedSvd
                 nameof(matrix));
         }
 
+        RequireFinite(matrix);
         return Project(matrix, _components, ComponentCount, FeatureCount);
+    }
+
+    /// <summary>Refuses a stored NaN or infinity, as scikit-learn's input check does.</summary>
+    /// <remarks>
+    /// Left in, a NaN reaches the QR's sign test and throws <see cref="ArithmeticException"/> from
+    /// inside the solver on a fit, and comes back as NaN coordinates from a projection.
+    /// </remarks>
+    private static void RequireFinite(CsrMatrix matrix)
+    {
+        int index = Array.FindIndex(matrix.Values, value => double.IsNaN(value) || double.IsInfinity(value));
+        if (index >= 0)
+        {
+            throw new ArgumentException(
+                $"A truncated SVD needs finite values, and this matrix holds {matrix.Values[index]}.",
+                nameof(matrix));
+        }
     }
 
     /// <summary>Everything refused before a single product is formed.</summary>

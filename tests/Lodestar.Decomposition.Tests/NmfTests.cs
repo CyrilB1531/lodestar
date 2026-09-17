@@ -14,6 +14,8 @@ public sealed class NmfTests
 
     private const string MatrixParameter = "matrix";
 
+    private const string OptionsParameter = "options";
+
     private static readonly JsonDocument Document = OracleLoader.Load("decomposition_nmf.json");
 
     private static IReadOnlyList<JsonElement> Cases { get; } =
@@ -263,5 +265,78 @@ public sealed class NmfTests
             () => Nmf.Fit(signed, new double[6], new double[8]));
 
         Assert.Equal(MatrixParameter, thrown.ParamName);
+    }
+
+    [Fact]
+    public void A_matrix_without_rows_or_columns_is_refused_by_the_custom_overload()
+    {
+        // No rows used to divide W's length by zero; no column used to fit, where scikit-learn refuses both.
+        CsrMatrix noRows = new(0, 3, [], [], [0]);
+        CsrMatrix noColumns = new(3, 0, [], [], [0, 0, 0, 0]);
+
+        ArgumentException rows = Assert.Throws<ArgumentException>(() => Nmf.Fit(noRows, [], [1.0, 1.0, 1.0]));
+        ArgumentException columns = Assert.Throws<ArgumentException>(() => Nmf.Fit(noColumns, [1.0, 1.0, 1.0], []));
+
+        Assert.Equal(MatrixParameter, rows.ParamName);
+        Assert.Equal(MatrixParameter, columns.ParamName);
+    }
+
+    [Theory]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NaN)]
+    public void A_matrix_holding_a_non_finite_value_is_refused_by_both_overloads(double value)
+    {
+        CsrMatrix matrix = new(3, 4, [1.0, value, 3.0, 4.0], [0, 2, 1, 3], [0, 2, 3, 4]);
+
+        ArgumentException initialising = Assert.Throws<ArgumentException>(() => Nmf.Fit(matrix, 2));
+        ArgumentException custom = Assert.Throws<ArgumentException>(
+            () => Nmf.Fit(matrix, new double[6], new double[8]));
+
+        Assert.Equal(MatrixParameter, initialising.ParamName);
+        Assert.Equal(MatrixParameter, custom.ParamName);
+    }
+
+    [Fact]
+    public void An_infinite_initialisation_is_refused()
+    {
+        JsonElement c = Cases[0];
+        CsrMatrix matrix = Matrix(c);
+        double[] h = Doubles(c, "initial_h");
+        h[0] = double.PositiveInfinity;
+
+        ArgumentException thrown = Assert.Throws<ArgumentException>(
+            () => Nmf.Fit(matrix, Doubles(c, "initial_w"), h));
+
+        Assert.Equal("initialComponents", thrown.ParamName);
+    }
+
+    [Fact]
+    public void An_iteration_cap_below_one_is_refused_before_the_matrix_is_read()
+    {
+        // The matrix is negative as well: the option is refused first, before NNDSVD runs on it.
+        CsrMatrix signed = new(3, 4, [1.0, -2.0, 3.0, 4.0], [0, 2, 1, 3], [0, 2, 3, 4]);
+        NmfOptions options = new() { MaxIterations = 0 };
+
+        ArgumentOutOfRangeException initialising = Assert.Throws<ArgumentOutOfRangeException>(
+            () => Nmf.Fit(signed, 2, options));
+        ArgumentOutOfRangeException custom = Assert.Throws<ArgumentOutOfRangeException>(
+            () => Nmf.Fit(signed, new double[6], new double[8], options));
+
+        Assert.Equal(OptionsParameter, initialising.ParamName);
+        Assert.Equal(OptionsParameter, custom.ParamName);
+    }
+
+    [Theory]
+    [InlineData(-1.0)]
+    [InlineData(double.NaN)]
+    public void A_negative_or_undefined_tolerance_is_refused(double tolerance)
+    {
+        CsrMatrix matrix = Matrix(Cases[0]);
+        NmfOptions options = new() { Tolerance = tolerance };
+
+        ArgumentOutOfRangeException thrown = Assert.Throws<ArgumentOutOfRangeException>(
+            () => Nmf.Fit(matrix, 2, options));
+
+        Assert.Equal(OptionsParameter, thrown.ParamName);
     }
 }

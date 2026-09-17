@@ -81,11 +81,13 @@ public sealed class Nmf
     /// <param name="options">The solver's settings, or null for scikit-learn's defaults.</param>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="componentCount"/> is not in <c>[1, min(matrix.RowCount, matrix.ColumnCount)]</c>, or an option is out of range.</exception>
-    /// <exception cref="ArgumentException"><paramref name="matrix"/> holds a negative value, or <see cref="NmfOptions.RandomMatrix"/> is not <c>matrix.ColumnCount × (componentCount + 10)</c>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="matrix"/> holds a negative value, a NaN or an infinity, or <see cref="NmfOptions.RandomMatrix"/> is not <c>matrix.ColumnCount × (componentCount + 10)</c>.</exception>
     public static Nmf Fit(CsrMatrix matrix, int componentCount, NmfOptions? options = null)
     {
         Guard.NotNull(matrix);
         NmfOptions settings = options ?? new NmfOptions();
+        // Before the rank and the initialisation, so a bad option is refused without paying for NNDSVD.
+        Validate(settings);
         int maximumRank = Math.Min(matrix.RowCount, matrix.ColumnCount);
         if (componentCount < 1 || componentCount > maximumRank)
         {
@@ -118,7 +120,7 @@ public sealed class Nmf
     /// <param name="initialComponents">H₀, row-major <c>componentCount × matrix.ColumnCount</c> and non-negative.</param>
     /// <param name="options">The solver's settings, or null for scikit-learn's defaults.</param>
     /// <exception cref="ArgumentNullException">An argument is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="matrix"/> holds a negative value, or the two blocks do not agree on a component count, do not fit the matrix, or hold a negative number.</exception>
+    /// <exception cref="ArgumentException"><paramref name="matrix"/> has no row or no column or holds a negative value, a NaN or an infinity, or the two blocks do not agree on a component count, do not fit the matrix, or hold a negative number, a NaN or an infinity.</exception>
     /// <exception cref="ArgumentOutOfRangeException">An option is out of range.</exception>
     public static Nmf Fit(
         CsrMatrix matrix, double[] initialWeights, double[] initialComponents,
@@ -129,6 +131,14 @@ public sealed class Nmf
         Guard.NotNull(initialComponents);
         NmfOptions settings = options ?? new NmfOptions();
         Validate(settings);
+
+        if (matrix.RowCount == 0 || matrix.ColumnCount == 0)
+        {
+            // W's length is divided by the row count below, and scikit-learn refuses both shapes.
+            throw new ArgumentException(
+                $"A factorization needs at least one row and one column; this matrix is {matrix.RowCount} × {matrix.ColumnCount}.",
+                nameof(matrix));
+        }
 
         int features = matrix.ColumnCount;
         int componentCount = ComponentCountOf(matrix, initialWeights, initialComponents, features);
@@ -216,7 +226,7 @@ public sealed class Nmf
         if (index >= 0)
         {
             throw new ArgumentException(
-                $"A non-negative factorization cannot start from {block[index]}.", name);
+                $"A non-negative factorization cannot start from {block[index]}; W₀ and H₀ are finite and non-negative.", name);
         }
     }
 
@@ -226,12 +236,16 @@ public sealed class Nmf
         if (index >= 0)
         {
             throw new ArgumentException(
-                $"A non-negative factorization needs a non-negative matrix, and this one holds {matrix.Values[index]}.",
+                $"A non-negative factorization needs a finite, non-negative matrix, and this one holds {matrix.Values[index]}.",
                 nameof(matrix));
         }
     }
 
     /// <summary>Where the first value a non-negative factorization cannot use sits, or -1.</summary>
+    /// <remarks>
+    /// Infinity included: the updates turn it into NaN rather than refusing it. scikit-learn
+    /// refuses it in the matrix and runs W₀ and H₀ holding it to NaN.
+    /// </remarks>
     private static int FirstNegative(double[] block) =>
-        Array.FindIndex(block, value => double.IsNaN(value) || value < 0);
+        Array.FindIndex(block, value => value < 0 || double.IsNaN(value) || double.IsInfinity(value));
 }
