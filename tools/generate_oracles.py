@@ -1126,23 +1126,79 @@ SNOWBALL_FR_WORDS = [
 ]
 
 
-def generate_snowball_fr() -> dict:
-    from nltk.stem.snowball import SnowballStemmer  # noqa: PLC0415
+# /usr/share/dict/french (#973): words whose stem differed from Snowball's, by cause, then words
+# nltk stems differently. Appended after SNOWBALL_FR_WORDS so no earlier id moves.
+SNOWBALL_FR_DICTIONARY_WORDS = [
+    # The longest suffix across every group of a step, searched within RV
+    "abaissassiez", "audit", "colis", "oasis", "pari", "parie", "paries", "paris", "tapi", "tapie",
+    "tapies", "tapir", "tapira", "tapirai", "tapiraient", "tapirais", "tapirait", "tapiras",
+    "tapirent", "tapirez", "tapiriez", "tapirions", "tapirons", "tapiront", "tapis", "tapissais",
+    "tapissait", "tapissant", "tapisse", "tapissent", "tapisses", "tapissez", "tapissons", "tapit",
+    "tapîmes", "tapît", "tapîtes", "abandonnassiez", "tapissaient", "tapissions", "abcédassiez",
+    "abdiquassiez", "aberrassiez", "abhorrassiez", "abjurassiez", "ablatassiez", "abloquassiez",
+    "abominassiez", "abondassiez", "abonnassiez", "abordassiez", "abouchassiez", "aboulassiez",
+    "aboutassiez", "aboyassiez", "abrasassiez", "abreuvassiez", "abriassiez", "abricotassiez",
+    "abritassiez", "abrogeassiez", "abrégeassiez", "abréviassiez", "absentassiez", "absorbassiez",
+    "abusassiez", "abîmassiez", "accablassiez", "accaparassiez", "accastillassiez", "accentuassiez",
+    "acceptassiez", "accessoirisassiez", "accidentassiez", "acclamassiez", "acclimatassiez",
+    "accointassiez", "accolassiez", "accommodassiez", "accompagnassiez", "accorassiez",
+    "accordassiez", "accostassiez", "accotassiez", "accouassiez", "accouchassiez", "accoudassiez",
+    "accouplassiez", "accoutrassiez", "accoutumassiez", "accrochassiez", "accréditassiez",
+    "accrétassiez", "acculassiez", "acculturassiez", "accumulassiez", "accusassiez", "accédassiez",
+    "accélérassiez", "achalandassiez", "achalassiez", "acharnassiez", "acheminassiez",
+    "achetassiez", "achevassiez", "achoppassiez", "achromatisassiez", "acidifiassiez",
+    "acidulassiez", "aciselassiez", "aciérassiez", "actionnassiez", "activassiez", "actualisassiez",
+    "acérassiez", "acétifiassiez", "acétylassiez", "adaptassiez", "additionnassiez", "adhérassiez",
+    # Step 1's -if/-ifs, and -issement ahead of -ement
+    "abaissement", "abaissements", "ablatif", "ablatifs", "abortif", "abrasif", "abrasifs",
+    "abusif", "accréditif", "adhésif", "adjectif", "adoptif", "adventif", "agressif", "appréhensif",
+    "arbustif", "attributif", "boit-sans-soif", "complétif", "compulsif", "corrosif", "demi-tarif",
+    "demi-tarifs", "discursif", "décisif", "gérondif", "gérondifs", "hyperémotif", "ingélif",
+    "maladif", "réflexif", "abasourdissement", "aboutissements", "abrogatif", "accréditifs",
+    "antisportif", "dissuasif", "abusifs", "allusif", "additif", "auto-adhésif", "affectif",
+    "consomptif", "attentif", "compressif", "coextensif", "congestif", "circonvolutif", "explétif",
+    "convulsif", "dolosif", "dispersif", "incisif", "maladifs", "locomotif", "abonnissement",
+    "accomplissements", "abréviatif", "accusatifs", "persuasif", "adhésifs", "exclusif", "apéritif",
+    "cohésif", "afflictif", "contraceptif", "contentif", "concessif", "compréhensif", "digestif",
+    "comminutif", "réplétif", "impulsif", "explosif", "détersif", "émotif", "aboutissement",
+    "accroissements", "accusatif", "adaptatifs",
+    # The prelude marks u, i and y in order
+    "abdiquiez", "abdiquions", "aboyiez", "acoquinassiez", "acquisitif", "acquièrent",
+    "alanguissement", "aréquier", "bleuie", "bleuies", "bruissements", "clérouquie", "enfouie",
+    "intuitifs", "jouissif", "liquidatif", "obséquieuse", "obséquieuses", "obséquieux", "abloquiez",
+    "abloquions", "abstrayiez", "acquiesçassiez", "intuitif", "enquièrent", "bleuissement",
+    "chéquier", "débleuie", "débleuies", "éblouissements", "ventriloquie", "fouie", "accouiez",
+    "aboyions", "accroyiez", "acquittassiez", "bruissement", "enfouies", "épanouissements",
+    "vioquie", "jouie", "afflouiez", "abstrayions", "apitoyiez", "affouillassiez", "enfouissement",
+    "fouies", "évanouissements", "rouie", "alambiquiez", "accouions", "appuyiez", "affruitassiez",
+    "obséquieusement", "jouies", "réjouie", "allouiez", "accroyions", "asseyiez", "agenouillassiez",
+    "éblouissement", "rouies", "serfouie", "amadouiez", "afflouions", "assoyiez", "aguichassiez",
+    "épanouissement", "réjouies", "éblouie", "antiquiez", "alambiquions", "atermoyiez",
+    "aiguillassiez", "évanouissement", "serfouies", "écrouie", "apiquiez", "allouions", "attrayiez",
+    # Where nltk departs from Snowball: elisions, diaeresis, -oux, -aise, ni-, -atrice before -ic
+    "albanaise", "albanaises", "alcaïque", "altaïques", "ambiguïté", "ambiguïtés", "amuïssement",
+    "applicatrice", "archaïsme", "archaïsmes", "aïe", "balais", "banjoïste", "bijoux",
+    "c'est-à-dire", "camaïeux", "canoë", "canoës", "coïtions", "hautboïstes", "haïssable",
+    "haïssables", "héroïcité", "indicatrices", "m'as-tu-vu", "m'as-tu-vue", "n'est-ce", "nia",
+    "niai", "niait", "niant", "nias", "niasse", "niassiez", "nie", "nier", "niera", "nierai",
+    "nieras", "nierez", "nieront", "nies", "niât", "nié", "niée", "niées", "niés", "oïdie",
+    "qu'en-dira-t-on", "stégomyie", "yogi", "yogis", "yéti", "yétis", "ès", "éc", "él", "antenaise",
+    "balinaises", "altaïque", "archaïques", "contiguïté", "héroïquement", "fabricatrice",
+    "caodaïsme", "jaïnismes", "calais", "hautboïste", "cailloux", "haïrions", "niâtes", "judaïcité",
+    "masticatrices", "nierait", "nieriez", "antillaise", "biaises", "archaïque", "hébraïques",
+    "exiguïté", "momentanément", "fornicatrice", "dadaïsme", "niâmes", "chauvais", "hébraïste",
+    "choux", "haïssions", "égoïstes", "laïcité", "prédicatrices", "niez", "aragonaise",
+    "bordelaises", "azoïque", "héroïques", "judaïté", "niaient", "indicatrice", "dichroïsme",
+    "shintoïsmes", "déplais", "lamaïste", "coupe-choux", "laïussions", "ardennaise", "camarguaises",
+    "benzoïque", "judaïques", "niassent",
+]
 
-    stemmer = SnowballStemmer("french")
-    seen = set()
-    words = [w for w in SNOWBALL_FR_WORDS if not (w in seen or seen.add(w))]
-    cases = [{"id": i, "word": w, "stem": stemmer.stem(w)} for i, w in enumerate(words)]
-    return {
-        "metadata": {
-            "algorithm": "FrenchSnowballStemmer",
-            "library": "nltk",
-            "library_version": version("nltk"),
-            "reference_calls": ["nltk.stem.snowball.SnowballStemmer('french')"],
-            "count": len(cases),
-        },
-        "cases": cases,
-    }
+
+def generate_snowball_fr() -> dict:
+    # French follows the Snowball algorithm rather than nltk's reading of it -- decision 0145.
+    return _snowball_reference_corpus(
+        "french", "FrenchSnowballStemmer", SNOWBALL_FR_WORDS + SNOWBALL_FR_DICTIONARY_WORDS
+    )
 
 
 # --- Additional Snowball languages, see _snowball_corpus's docstring ----------
@@ -1597,7 +1653,7 @@ def _snowball_reference_corpus(language: str, algorithm: str, words: list[str]) 
 
     The Snowball project's own generated package, used where nltk's transcription
     of an algorithm is incomplete -- decision 0090 has the measurement that took
-    Hungarian off nltk, and why no other language moved with it.
+    Hungarian off nltk, and decision 0145 the one that took French off it.
     """
     import snowballstemmer  # noqa: PLC0415
 

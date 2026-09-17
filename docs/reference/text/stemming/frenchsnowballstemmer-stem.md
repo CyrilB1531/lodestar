@@ -9,12 +9,12 @@ public static string Stem(string word)
 ```
 
 **Parameters** — `word` is a single French word. It is lowercased and NFC-normalised before the
-rules run.
+rules run. A leading elision is removed, so `l'avion` stems like `avion`.
 
 **Returns** — `string`, the stem, always lowercase. Accented characters survive when the stem
 keeps them. The last step un-accents an `é` or `è` only when a non-vowel follows it, so `thé`
-stays `thé` while `père` becomes `per`, as in nltk. Like nltk, it never un-accents the first
-letter, so `ès` stays `ès`.
+stays `thé` while `père` becomes `per`. A first letter is un-accented too, so `ès` becomes `es`,
+where nltk keeps `ès`.
 
 **Exceptions** — `ArgumentNullException` when `word` is `null`. An empty string, or a word of one
 character, is returned lowercased and otherwise untouched.
