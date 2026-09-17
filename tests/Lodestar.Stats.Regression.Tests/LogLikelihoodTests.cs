@@ -127,4 +127,22 @@ public sealed class LogLikelihoodTests
 
         Assert.Equal(Math.Log(LogLikelihood.TabulatedCounts), first - last, 10);
     }
+    [Fact]
+    public void A_negative_binomial_count_read_back_from_its_cache_gives_the_bits_computed_afresh()
+    {
+        // Repeated counts hit the cache, 300 lies past it and a lone row always misses it: the sum of lone rows is the reference.
+        double[] response = [0.0, 3.0, 3.0, 300.0, 0.0, 7.0, 3.0, 300.0];
+        double[] mean = [0.4, 2.5, 3.5, 280.0, 1.2, 6.0, 2.9, 310.0];
+        var shape = new FamilyShape(GlmFamily.NegativeBinomial, GlmLink.Log, 0.7);
+
+        double expected = 0.0;
+        for (int row = 0; row < response.Length; row++)
+        {
+            expected += LogLikelihood.Of(shape, response.AsSpan(row, 1), [mean[row]], 1.0);
+        }
+
+        Assert.Equal(
+            BitConverter.DoubleToInt64Bits(expected),
+            BitConverter.DoubleToInt64Bits(LogLikelihood.Of(shape, response, mean, 1.0)));
+    }
 }

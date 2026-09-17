@@ -30,17 +30,27 @@ internal static class DenseBlock
     /// </remarks>
     internal static double[] TransposeGram(ReadOnlySpan<double> block, int rows, int columns)
     {
+        // Row by row, so the walk is contiguous; each cell still sums its rows in order, and the
+        // lower triangle is the upper one's products with their operands swapped, which is exact.
         double[] result = new double[checked(columns * columns)];
+        for (int i = 0; i < rows; i++)
+        {
+            ReadOnlySpan<double> row = block.Slice(i * columns, columns);
+            for (int a = 0; a < row.Length; a++)
+            {
+                double left = row[a];
+                int target = a * columns;
+                for (int b = a; b < row.Length; b++)
+                {
+                    result[target + b] += left * row[b];
+                }
+            }
+        }
         for (int a = 0; a < columns; a++)
         {
-            for (int b = 0; b < columns; b++)
+            for (int b = a + 1; b < columns; b++)
             {
-                double sum = 0;
-                for (int i = 0; i < rows; i++)
-                {
-                    sum += block[(i * columns) + a] * block[(i * columns) + b];
-                }
-                result[(a * columns) + b] = sum;
+                result[(b * columns) + a] = result[(a * columns) + b];
             }
         }
         return result;

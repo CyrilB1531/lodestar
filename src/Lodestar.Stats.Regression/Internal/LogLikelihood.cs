@@ -29,6 +29,15 @@ internal static class LogLikelihood
             _ => 0.0,
         };
 
+        // lnΓ(y + θ) for a small count, filled on first use: the same call on the same argument, so the same bits,
+        // where recomputing it paid up to forty logarithms per row.
+        double[]? shiftedLogGammas = null;
+        if (shape.Family == GlmFamily.NegativeBinomial)
+        {
+            shiftedLogGammas = new double[TabulatedCounts];
+            shiftedLogGammas.AsSpan().Fill(double.NaN);
+        }
+
         double total = 0.0;
         for (int row = 0; row < response.Length; row++)
         {
@@ -38,7 +47,7 @@ internal static class LogLikelihood
             {
                 GlmFamily.Binomial => (y * Math.Log(mu)) + ((1.0 - y) * Math.Log(1.0 - mu)),
                 GlmFamily.Poisson => (y * Math.Log(mu)) - mu - LogFactorial(y),
-                GlmFamily.NegativeBinomial => NegativeBinomialTerm(y, mu, shape.Alpha, constant),
+                GlmFamily.NegativeBinomial => NegativeBinomialTerm(y, mu, shape.Alpha, constant, shiftedLogGammas!),
                 GlmFamily.Gamma => GammaTerm(y, mu, dispersion, constant),
                 _ => throw Families.Undeclared(shape.Family),
             };
@@ -48,14 +57,38 @@ internal static class LogLikelihood
     }
 
     /// <summary>One row of the negative binomial log-likelihood, term for term as <c>loglike_obs</c> writes it.</summary>
-    private static double NegativeBinomialTerm(double y, double mu, double alpha, double logGammaTheta)
+    private static double NegativeBinomialTerm(
+        double y, double mu, double alpha, double logGammaTheta, double[] shiftedLogGammas)
     {
         double theta = 1.0 / alpha;
         return (y * Math.Log(alpha * mu))
             - ((y + theta) * Math.Log(1.0 + (alpha * mu)))
-            + LogGamma(y + theta)
+            + ShiftedLogGamma(y, theta, shiftedLogGammas)
             - logGammaTheta
             - LogFactorial(y);
+    }
+
+    /// <summary><c>lnΓ(y + θ)</c>, read from <paramref name="cache"/> when <paramref name="y"/> is a count below <see cref="TabulatedCounts"/>.</summary>
+    /// <remarks>NaN marks an empty slot; a NaN that <see cref="LogGamma"/> itself returned is only recomputed to the same NaN.</remarks>
+    private static double ShiftedLogGamma(double y, double theta, double[] cache)
+    {
+        // S1244: a count is an exact integer, and only an exact integer shares a slot with the others.
+#pragma warning disable S1244
+        if (y >= 0.0 && y < TabulatedCounts && y == Math.Floor(y))
+#pragma warning restore S1244
+        {
+            int slot = (int)y;
+            double cached = cache[slot];
+            if (double.IsNaN(cached))
+            {
+                cached = LogGamma(y + theta);
+                cache[slot] = cached;
+            }
+
+            return cached;
+        }
+
+        return LogGamma(y + theta);
     }
 
     /// <summary>One row of the Gamma log-likelihood at scale <c>φ</c>, as <c>loglike_obs</c> writes it.</summary>

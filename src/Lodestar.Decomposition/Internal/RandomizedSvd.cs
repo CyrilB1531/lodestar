@@ -36,7 +36,7 @@ internal static class RandomizedSvd
         // B = Qᵀ A, reached as (Aᵀ Q)ᵀ so the sparse matrix is never transposed.
         double[] b = DenseBlock.Transpose(
             matrix.TransposeMultiply(basis, basisSize), features, basisSize);
-        (double[] uhat, double[] s, double[] vt) = JacobiSvd.Decompose(b, basisSize, features);
+        (double[] uhat, double[] s, double[] vt) = JacobiSvd.DecomposeOverwriting(b, basisSize, features);
 
         double[] u = Product(basis, uhat, matrix.RowCount, basisSize, s.Length);
         return (u, s, vt, s.Length);

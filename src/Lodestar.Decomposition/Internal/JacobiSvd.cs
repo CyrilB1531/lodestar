@@ -20,28 +20,46 @@ internal static class JacobiSvd
     internal static (double[] U, double[] S, double[] Vt) Decompose(
         ReadOnlySpan<double> a, int rows, int columns)
     {
+        RequireLength(a, rows, columns);
+        return rows < columns
+            ? Sweep(a.ToArray(), columns, rows, transposed: true)
+            : Sweep(DenseBlock.Transpose(a, rows, columns), rows, columns, transposed: false);
+    }
+
+    /// <summary><see cref="Decompose"/>, free to overwrite <paramref name="a"/> when that spares a copy.</summary>
+    /// <remarks>
+    /// A wide row-major block, read column-major, is its own transpose, which is the tall block the sweeps
+    /// factor: its buffer becomes the working copy as it stands.
+    /// </remarks>
+    internal static (double[] U, double[] S, double[] Vt) DecomposeOverwriting(
+        double[] a, int rows, int columns)
+    {
+        RequireLength(a, rows, columns);
+        return rows < columns
+            ? Sweep(a, columns, rows, transposed: true)
+            : Sweep(DenseBlock.Transpose(a, rows, columns), rows, columns, transposed: false);
+    }
+
+    private static void RequireLength(ReadOnlySpan<double> a, int rows, int columns)
+    {
         if (a.Length != checked(rows * columns))
         {
             throw new ArgumentException(
                 $"Block length {a.Length} != {rows} × {columns}.", nameof(a));
         }
+    }
 
-        if (rows < columns)
-        {
-            // Aᵀ = U₁ Σ V₁ᵀ gives A = V₁ Σ U₁ᵀ: the two factors trade places.
-            //
-            // S2234: the transpose swaps rows and columns on purpose; passing them in the
-            // caller's order would factor the wrong shape.
-#pragma warning disable S2234
-            (double[] wideU, double[] wideS, double[] wideVt) =
-                Decompose(DenseBlock.Transpose(a, rows, columns), columns, rows);
-#pragma warning restore S2234
-            return (DenseBlock.Transpose(wideVt, wideS.Length, rows),
-                    wideS,
-                    DenseBlock.Transpose(wideU, columns, wideS.Length));
-        }
-
-        double[] work = a.ToArray();
+    /// <summary>Runs the sweeps over a tall column-major <c>rows × columns</c> block, then reads the factors off it.</summary>
+    /// <remarks>
+    /// Column-major so that a column is one contiguous span: a row-major walk down a column strides a whole
+    /// row per element. <paramref name="transposed"/> says the caller's block was the transpose of this one,
+    /// so <c>Aᵀ = U₁ Σ V₁ᵀ</c> gives <c>A = V₁ Σ U₁ᵀ</c> and the two factors trade places.
+    /// </remarks>
+    private static (double[] U, double[] S, double[] Vt) Sweep(
+        double[] work, int tallRows, int tallColumns, bool transposed)
+    {
+        int rows = tallRows;
+        int columns = tallColumns;
         double[] v = new double[columns * columns];
         for (int i = 0; i < columns; i++)
         {
@@ -64,7 +82,7 @@ internal static class JacobiSvd
             }
         }
 
-        return Finish(work, v, rows, columns);
+        return Finish(work, v, rows, columns, transposed);
     }
 
     /// <summary>The singular values of a tall row-major block, largest first, with no vectors.</summary>
@@ -80,11 +98,11 @@ internal static class JacobiSvd
                 $"Block length {a.Length} is not a tall {rows} × {columns}.", nameof(a));
         }
 
-        double[] work = a.ToArray();
+        double[] work = DenseBlock.Transpose(a, rows, columns);
         double[] squared = new double[columns];
         for (int j = 0; j < columns; j++)
         {
-            double norm = DenseBlock.ColumnNorm(work, rows, columns, j);
+            double norm = Norm(work.AsSpan(j * rows, rows));
             squared[j] = norm * norm;
         }
 
@@ -95,7 +113,7 @@ internal static class JacobiSvd
             {
                 for (int q = p + 1; q < columns; q++)
                 {
-                    rotated |= RotateTrackedPair(work, squared, rows, columns, p, q);
+                    rotated |= RotateTrackedPair(work, squared, rows, p, q);
                 }
             }
             if (!rotated)
@@ -109,7 +127,7 @@ internal static class JacobiSvd
         double[] norms = new double[columns];
         for (int j = 0; j < columns; j++)
         {
-            norms[j] = DenseBlock.ColumnNorm(work, rows, columns, j);
+            norms[j] = Norm(work.AsSpan(j * rows, rows));
         }
         Array.Sort(norms, (left, right) => right.CompareTo(left));
         return norms;
@@ -121,15 +139,16 @@ internal static class JacobiSvd
     /// other, so <c>α − tγ</c> and <c>β + tγ</c> are exact up to rounding and one product over
     /// the rows replaces three.
     /// </remarks>
-    private static bool RotateTrackedPair(
-        double[] work, double[] squared, int rows, int columns, int p, int q)
+    private static bool RotateTrackedPair(double[] work, double[] squared, int rows, int p, int q)
     {
         double alpha = squared[p];
         double beta = squared[q];
+        Span<double> left = work.AsSpan(p * rows, rows);
+        Span<double> right = work.AsSpan(q * rows, rows);
         double gamma = 0;
-        for (int i = 0; i < rows; i++)
+        for (int i = 0; i < left.Length; i++)
         {
-            gamma += work[(i * columns) + p] * work[(i * columns) + q];
+            gamma += left[i] * right[i];
         }
 
         if (!Rotation(alpha, beta, gamma, out double t, out double cosine, out double sine))
@@ -137,7 +156,7 @@ internal static class JacobiSvd
             return false;
         }
 
-        Rotate(work, rows, columns, p, q, cosine, sine);
+        ElementWise.Rotate(left, right, cosine, sine);
         squared[p] = alpha - (t * gamma);
         squared[q] = beta + (t * gamma);
         return true;
@@ -147,16 +166,18 @@ internal static class JacobiSvd
     private static bool RotatePair(
         double[] work, double[] v, int rows, int columns, int p, int q)
     {
+        Span<double> left = work.AsSpan(p * rows, rows);
+        Span<double> right = work.AsSpan(q * rows, rows);
         double alpha = 0;
         double beta = 0;
         double gamma = 0;
-        for (int i = 0; i < rows; i++)
+        for (int i = 0; i < left.Length; i++)
         {
-            double left = work[(i * columns) + p];
-            double right = work[(i * columns) + q];
-            alpha += left * left;
-            beta += right * right;
-            gamma += left * right;
+            double x = left[i];
+            double y = right[i];
+            alpha += x * x;
+            beta += y * y;
+            gamma += x * y;
         }
 
         if (!Rotation(alpha, beta, gamma, out _, out double cosine, out double sine))
@@ -164,8 +185,8 @@ internal static class JacobiSvd
             return false;
         }
 
-        Rotate(work, rows, columns, p, q, cosine, sine);
-        Rotate(v, columns, columns, p, q, cosine, sine);
+        ElementWise.Rotate(left, right, cosine, sine);
+        ElementWise.Rotate(v.AsSpan(p * columns, columns), v.AsSpan(q * columns, columns), cosine, sine);
         return true;
     }
 
@@ -201,26 +222,24 @@ internal static class JacobiSvd
         return true;
     }
 
-    private static void Rotate(
-        double[] block, int rows, int columns, int p, int q, double cosine, double sine)
+    private static double Norm(ReadOnlySpan<double> column)
     {
-        for (int i = 0; i < rows; i++)
+        double sum = 0;
+        foreach (double value in column)
         {
-            double left = block[(i * columns) + p];
-            double right = block[(i * columns) + q];
-            block[(i * columns) + p] = (cosine * left) - (sine * right);
-            block[(i * columns) + q] = (sine * left) + (cosine * right);
+            sum += value * value;
         }
+        return Math.Sqrt(sum);
     }
 
     /// <summary>Reads the norms off the orthogonalized columns and sorts the triplets.</summary>
     private static (double[] U, double[] S, double[] Vt) Finish(
-        double[] work, double[] v, int rows, int columns)
+        double[] work, double[] v, int rows, int columns, bool transposed)
     {
         double[] norms = new double[columns];
         for (int j = 0; j < columns; j++)
         {
-            norms[j] = DenseBlock.ColumnNorm(work, rows, columns, j);
+            norms[j] = Norm(work.AsSpan(j * rows, rows));
         }
 
         int[] order = new int[columns];
@@ -230,13 +249,11 @@ internal static class JacobiSvd
         }
         Array.Sort(order, (left, right) => norms[right].CompareTo(norms[left]));
 
-        double[] u = new double[rows * columns];
         double[] s = new double[columns];
-        double[] vt = new double[columns * columns];
+        double[] scales = new double[columns];
         for (int j = 0; j < columns; j++)
         {
-            int source = order[j];
-            double norm = norms[source];
+            double norm = norms[order[j]];
             s[j] = norm;
             // A numerically zero column carries no direction; leaving U's column at zero is
             // what scipy's own factor does for a rank-deficient block, and dividing would not.
@@ -244,17 +261,50 @@ internal static class JacobiSvd
             // S1244: whether the norm vanished entirely, not whether two computed
             // quantities are close.
 #pragma warning disable S1244
-            double scale = norm == 0 ? 0 : 1.0 / norm;
+            scales[j] = norm == 0 ? 0 : 1.0 / norm;
 #pragma warning restore S1244
+        }
+
+        double[] u = Normalized(work, rows, columns, order, scales, transposed);
+        double[] vt = Rotations(v, columns, order, transposed);
+
+        // When the caller's block was this one's transpose, its U is V₁ and its Vᵀ is U₁ᵀ.
+        return transposed ? (vt, s, u) : (u, s, vt);
+    }
+
+    /// <summary>U₁ row-major, or U₁ᵀ when <paramref name="transposed"/>, whose row j is one column of the work.</summary>
+    private static double[] Normalized(
+        double[] work, int rows, int columns, int[] order, double[] scales, bool transposed)
+    {
+        double[] result = new double[rows * columns];
+        for (int j = 0; j < columns; j++)
+        {
+            ReadOnlySpan<double> column = work.AsSpan(order[j] * rows, rows);
+            double scale = scales[j];
+            int stride = transposed ? 1 : columns;
+            int offset = transposed ? j * rows : j;
             for (int i = 0; i < rows; i++)
             {
-                u[(i * columns) + j] = work[(i * columns) + source] * scale;
-            }
-            for (int i = 0; i < columns; i++)
-            {
-                vt[(j * columns) + i] = v[(i * columns) + source];
+                result[(i * stride) + offset] = column[i] * scale;
             }
         }
-        return (u, s, vt);
+        return result;
+    }
+
+    /// <summary>V₁ᵀ row-major, or V₁ when <paramref name="transposed"/>, from the column-major rotations.</summary>
+    private static double[] Rotations(double[] v, int columns, int[] order, bool transposed)
+    {
+        double[] result = new double[columns * columns];
+        for (int j = 0; j < columns; j++)
+        {
+            ReadOnlySpan<double> column = v.AsSpan(order[j] * columns, columns);
+            int stride = transposed ? columns : 1;
+            int offset = transposed ? j : j * columns;
+            for (int i = 0; i < columns; i++)
+            {
+                result[(i * stride) + offset] = column[i];
+            }
+        }
+        return result;
     }
 }

@@ -30,17 +30,17 @@ internal static class MultinomialNewton
         var probabilities = new double[rowCount * categoryCount];
         var hessian = new double[parameterCount * parameterCount];
         var score = new double[parameterCount];
+        var scaled = new double[hessian.Length];
+        var direction = new double[parameterCount];
+        var exponentials = new double[categoryCount];
         double largestStep = double.PositiveInfinity;
         int iterations = 0;
 
         while (iterations < options.MaximumIterations && largestStep > options.Tolerance)
         {
-            Probabilities(matrix, coefficients, columnCount, categoryCount, probabilities);
-            NegativeHessian(matrix, probabilities, columnCount, categoryCount, hessian);
-            Score(matrix, labels, probabilities, columnCount, categoryCount, score);
+            Probabilities(matrix, coefficients, columnCount, categoryCount, probabilities, exponentials);
+            NegativeHessian(matrix, probabilities, columnCount, categoryCount, hessian, (labels, score));
 
-            var scaled = new double[hessian.Length];
-            var direction = new double[parameterCount];
             for (int i = 0; i < hessian.Length; i++)
             {
                 scaled[i] = hessian[i] / rowCount;
@@ -63,8 +63,8 @@ internal static class MultinomialNewton
             iterations++;
         }
 
-        Probabilities(matrix, coefficients, columnCount, categoryCount, probabilities);
-        NegativeHessian(matrix, probabilities, columnCount, categoryCount, hessian);
+        Probabilities(matrix, coefficients, columnCount, categoryCount, probabilities, exponentials);
+        NegativeHessian(matrix, probabilities, columnCount, categoryCount, hessian, null);
         return new MultinomialFit(
             coefficients,
             InverseDiagonal(hessian, parameterCount, designName),
@@ -74,8 +74,9 @@ internal static class MultinomialNewton
     }
 
     /// <summary>Each row's category probabilities, a softmax with the reference category's predictor fixed at zero.</summary>
+    /// <remarks><paramref name="exponentials"/> is a buffer one category count long, so each exponential is taken once.</remarks>
     private static void Probabilities(
-        double[] matrix, double[] coefficients, int columnCount, int categoryCount, double[] probabilities)
+        double[] matrix, double[] coefficients, int columnCount, int categoryCount, double[] probabilities, double[] exponentials)
     {
         int rowCount = probabilities.Length / categoryCount;
         var eta = new double[categoryCount];
@@ -87,12 +88,14 @@ internal static class MultinomialNewton
             double total = 0.0;
             for (int category = 0; category < categoryCount; category++)
             {
-                total += Math.Exp(eta[category] - largest);
+                double exponential = Math.Exp(eta[category] - largest);
+                exponentials[category] = exponential;
+                total += exponential;
             }
 
             for (int category = 0; category < categoryCount; category++)
             {
-                probabilities[(row * categoryCount) + category] = Math.Exp(eta[category] - largest) / total;
+                probabilities[(row * categoryCount) + category] = exponentials[category] / total;
             }
         }
     }
@@ -118,34 +121,29 @@ internal static class MultinomialNewton
         return largest;
     }
 
-    /// <summary>The gradient of the log-likelihood, <c>Σᵢ xᵢ(dᵢⱼ − pᵢⱼ)</c> per equation.</summary>
-    private static void Score(
-        double[] matrix, int[] labels, double[] probabilities, int columnCount, int categoryCount, double[] score)
-    {
-        Array.Clear(score, 0, score.Length);
-        for (int row = 0; row < labels.Length; row++)
-        {
-            int at = row * columnCount;
-            for (int category = 1; category < categoryCount; category++)
-            {
-                double residual = (labels[row] == category ? 1.0 : 0.0) - probabilities[(row * categoryCount) + category];
-                int offset = (category - 1) * columnCount;
-                for (int column = 0; column < columnCount; column++)
-                {
-                    score[offset + column] += residual * matrix[at + column];
-                }
-            }
-        }
-    }
-
-    /// <summary>The negated Hessian of the log-likelihood, <c>Σᵢ pᵢⱼ(δⱼₗ − pᵢₗ) xᵢxᵢᵀ</c> block by block.</summary>
+    /// <summary>The negated Hessian of the log-likelihood, <c>Σᵢ pᵢⱼ(δⱼₗ − pᵢₗ) xᵢxᵢᵀ</c> block by block, and the score in the same pass when asked.</summary>
+    /// <remarks>
+    /// Only the blocks with <c>l ≥ j</c> are summed. Block <c>(l, j)</c> weighs each row by <c>pₗ(0 − pⱼ)</c>, the
+    /// same product as <c>pⱼ(0 − pₗ)</c> but for the sign of a zero, and a sum that starts at +0 cannot keep a −0, so
+    /// copying the block is exact. The score, <c>Σᵢ xᵢ(dᵢⱼ − pᵢⱼ)</c> per equation, sums its rows in the same order.
+    /// </remarks>
     private static void NegativeHessian(
-        double[] matrix, double[] probabilities, int columnCount, int categoryCount, double[] hessian)
+        double[] matrix,
+        double[] probabilities,
+        int columnCount,
+        int categoryCount,
+        double[] hessian,
+        (int[] Labels, double[] Score)? gradient)
     {
         int equations = categoryCount - 1;
         int order = equations * columnCount;
         int rowCount = probabilities.Length / categoryCount;
         Array.Clear(hessian, 0, hessian.Length);
+        if (gradient is { } cleared)
+        {
+            Array.Clear(cleared.Score, 0, cleared.Score.Length);
+        }
+
         for (int row = 0; row < rowCount; row++)
         {
             int at = row * columnCount;
@@ -153,10 +151,51 @@ internal static class MultinomialNewton
             for (int j = 0; j < equations; j++)
             {
                 double pj = probabilities[p + j + 1];
-                for (int l = 0; l < equations; l++)
+                for (int l = j; l < equations; l++)
                 {
                     double weight = pj * ((j == l ? 1.0 : 0.0) - probabilities[p + l + 1]);
                     AddOuterBlock(hessian, matrix, at, columnCount, order, (j * columnCount * order) + (l * columnCount), weight);
+                }
+            }
+
+            if (gradient is { } scored)
+            {
+                AddScoreRow(matrix, scored.Labels[row], probabilities, row, columnCount, categoryCount, scored.Score);
+            }
+        }
+
+        MirrorBlocks(hessian, columnCount, equations);
+    }
+
+    /// <summary>One row's term of the score, <c>xᵢ(dᵢⱼ − pᵢⱼ)</c> per equation.</summary>
+    private static void AddScoreRow(
+        double[] matrix, int label, double[] probabilities, int row, int columnCount, int categoryCount, double[] score)
+    {
+        int at = row * columnCount;
+        for (int category = 1; category < categoryCount; category++)
+        {
+            double residual = (label == category ? 1.0 : 0.0) - probabilities[(row * categoryCount) + category];
+            int offset = (category - 1) * columnCount;
+            for (int column = 0; column < columnCount; column++)
+            {
+                score[offset + column] += residual * matrix[at + column];
+            }
+        }
+    }
+
+    /// <summary>Copies block <c>(j, l)</c> onto block <c>(l, j)</c> for every <c>l &gt; j</c>, cell for cell.</summary>
+    private static void MirrorBlocks(double[] hessian, int columnCount, int equations)
+    {
+        int order = equations * columnCount;
+        for (int j = 0; j < equations; j++)
+        {
+            for (int l = j + 1; l < equations; l++)
+            {
+                for (int k = 0; k < columnCount; k++)
+                {
+                    int source = (j * columnCount * order) + (k * order) + (l * columnCount);
+                    int target = (l * columnCount * order) + (k * order) + (j * columnCount);
+                    Array.Copy(hessian, source, hessian, target, columnCount);
                 }
             }
         }

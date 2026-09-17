@@ -1,5 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Lodestar.Internal;
+#if NET
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+#endif
 
 namespace Lodestar.Abstractions;
 
@@ -240,17 +245,15 @@ public sealed class CsrMatrix
         GuardBlock(block, ColumnCount, columnCount);
 
         double[] result = new double[ProductLength(RowCount, columnCount)];
+        double[] values = Values;
+        int[] columns = ColumnIndices;
+        int[] pointers = RowPointers;
         for (int row = 0; row < RowCount; row++)
         {
-            int target = row * columnCount;
-            for (int k = RowPointers[row]; k < RowPointers[row + 1]; k++)
+            Span<double> target = result.AsSpan(row * columnCount, columnCount);
+            for (int k = pointers[row]; k < pointers[row + 1]; k++)
             {
-                double value = Values[k];
-                int source = ColumnIndices[k] * columnCount;
-                for (int column = 0; column < columnCount; column++)
-                {
-                    result[target + column] += value * block[source + column];
-                }
+                ElementWise.AddScaled(target, block.Slice(columns[k] * columnCount, columnCount), values[k]);
             }
         }
         return result;
@@ -271,17 +274,15 @@ public sealed class CsrMatrix
         GuardBlock(block, RowCount, columnCount);
 
         double[] result = new double[ProductLength(ColumnCount, columnCount)];
+        double[] values = Values;
+        int[] columns = ColumnIndices;
+        int[] pointers = RowPointers;
         for (int row = 0; row < RowCount; row++)
         {
-            int source = row * columnCount;
-            for (int k = RowPointers[row]; k < RowPointers[row + 1]; k++)
+            ReadOnlySpan<double> source = block.Slice(row * columnCount, columnCount);
+            for (int k = pointers[row]; k < pointers[row + 1]; k++)
             {
-                double value = Values[k];
-                int target = ColumnIndices[k] * columnCount;
-                for (int column = 0; column < columnCount; column++)
-                {
-                    result[target + column] += value * block[source + column];
-                }
+                ElementWise.AddScaled(result.AsSpan(columns[k] * columnCount, columnCount), source, values[k]);
             }
         }
         return result;

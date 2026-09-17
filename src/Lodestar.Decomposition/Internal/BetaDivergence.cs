@@ -6,7 +6,8 @@ namespace Lodestar.Decomposition.Internal;
 /// <remarks>
 /// Both branches avoid densifying <c>W H</c>: the Frobenius one expands the squared norm into
 /// three traces, and the Kullback–Leibler one needs <c>W H</c> only where the matrix is non-zero
-/// plus one rank-one correction for everywhere else.
+/// plus one rank-one correction for everywhere else. H is column-major, as
+/// <see cref="MultiplicativeUpdates"/> holds it.
 /// </remarks>
 internal static class BetaDivergence
 {
@@ -41,20 +42,14 @@ internal static class BetaDivergence
     private static double NormOfProduct(CsrMatrix matrix, double[] w, double[] h, int k)
     {
         double[] wtw = DenseBlock.TransposeGram(w, matrix.RowCount, k);
+        double[] hht = MultiplicativeUpdates.Gram(h, k, new double[checked(k * k)]);
 
         double total = 0;
-        int features = matrix.ColumnCount;
         for (int a = 0; a < k; a++)
         {
             for (int b = 0; b < k; b++)
             {
-                double factor = wtw[(a * k) + b];
-                double inner = 0;
-                for (int j = 0; j < features; j++)
-                {
-                    inner += h[(a * features) + j] * h[(b * features) + j];
-                }
-                total += factor * inner;
+                total += wtw[(a * k) + b] * hht[(a * k) + b];
             }
         }
         return total;
@@ -63,17 +58,20 @@ internal static class BetaDivergence
     /// <summary><c>tr(WᵀXHᵀ)</c>, over the matrix's non-zeros only.</summary>
     private static double Cross(CsrMatrix matrix, double[] w, double[] h, int k)
     {
-        int features = matrix.ColumnCount;
+        double[] values = matrix.Values;
+        int[] columns = matrix.ColumnIndices;
+        int[] pointers = matrix.RowPointers;
         double total = 0;
         for (int row = 0; row < matrix.RowCount; row++)
         {
-            for (int index = matrix.RowPointers[row]; index < matrix.RowPointers[row + 1]; index++)
+            ReadOnlySpan<double> weights = w.AsSpan(row * k, k);
+            for (int index = pointers[row]; index < pointers[row + 1]; index++)
             {
-                double value = matrix.Values[index];
-                int column = matrix.ColumnIndices[index];
-                for (int a = 0; a < k; a++)
+                double value = values[index];
+                ReadOnlySpan<double> feature = h.AsSpan(columns[index] * k, k);
+                for (int a = 0; a < weights.Length; a++)
                 {
-                    total += value * w[(row * k) + a] * h[(a * features) + column];
+                    total += value * weights[a] * feature[a];
                 }
             }
         }
@@ -82,7 +80,6 @@ internal static class BetaDivergence
 
     private static double KullbackLeibler(CsrMatrix matrix, double[] w, double[] h, int k)
     {
-        int features = matrix.ColumnCount;
 
         double residual = 0;
         double dataSum = 0;
@@ -97,11 +94,11 @@ internal static class BetaDivergence
                 {
                     continue;
                 }
-                int column = matrix.ColumnIndices[index];
+                ReadOnlySpan<double> feature = h.AsSpan(matrix.ColumnIndices[index] * k, k);
                 double product = 0;
                 for (int a = 0; a < k; a++)
                 {
-                    product += w[(row * k) + a] * h[(a * features) + column];
+                    product += w[(row * k) + a] * feature[a];
                 }
                 residual += value * Math.Log(value / Math.Max(product, MachineEpsilon));
                 dataSum += value;
@@ -119,9 +116,9 @@ internal static class BetaDivergence
                 columnSum += w[(i * k) + a];
             }
             double rowSum = 0;
-            for (int j = 0; j < features; j++)
+            for (int j = 0; j < h.Length; j += k)
             {
-                rowSum += h[(a * features) + j];
+                rowSum += h[j + a];
             }
             sumWh += columnSum * rowSum;
         }

@@ -387,6 +387,17 @@
     ],
     "KolmogorovDurbinBenchmarks": [
       "src/Lodestar.Stats/**"
+    ],
+    "DecompositionWidthBenchmarks": [
+      "src/Lodestar.Decomposition/**"
+    ],
+    "HouseholderQrBenchmarks": [
+      "src/Lodestar.Decomposition/**"
+    ],
+    "GlmNegativeBinomialBenchmarks": [
+      "src/Lodestar.Stats.Regression/**",
+      "src/Lodestar.Stats/**",
+      "src/Lodestar.Decomposition/**"
     ]
   },
   "harnesses": {

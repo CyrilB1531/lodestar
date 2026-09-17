@@ -1,3 +1,4 @@
+using Lodestar.Internal;
 using Lodestar.Stats.Regression.Internal;
 using Xunit;
 
@@ -49,4 +50,47 @@ public sealed class LeastSquaresTests
 
         Assert.Equal(reflected, chosen);
     }
+    [Fact]
+    public void The_in_place_solve_gives_the_bits_of_the_copying_one()
+    {
+        // IRLS hands its weighted design over column-major and lets the solve overwrite it (#782).
+        (double[] expected, double[] expectedInverse) = LeastSquares.SolveByReflections(Design, 8, 2, false, Response);
+
+        double[] columnMajor = LeastSquares.ColumnMajor([.. Design], 8, 2);
+        (double[] actual, double[] actualInverse) =
+            LeastSquares.SolveByReflectionsInPlace(columnMajor, 8, 2, [.. Response]);
+
+        Assert.Equal(Bits(expected), Bits(actual));
+        Assert.Equal(Bits(expectedInverse), Bits(actualInverse));
+    }
+
+    [Fact]
+    public void The_inner_product_sums_four_running_terms_at_every_length()
+    {
+        for (int length = 0; length < 23; length++)
+        {
+            double[] left = [.. Enumerable.Range(0, length).Select(i => Math.Sin(i + 0.5) * 1e3)];
+            double[] right = [.. Enumerable.Range(0, length).Select(i => Math.Cos((i * 1.7) + 0.1) / 7.0)];
+
+            double s0 = 0.0, s1 = 0.0, s2 = 0.0, s3 = 0.0;
+            int i = 0;
+            for (; i + 4 <= length; i += 4)
+            {
+                s0 += left[i] * right[i];
+                s1 += left[i + 1] * right[i + 1];
+                s2 += left[i + 2] * right[i + 2];
+                s3 += left[i + 3] * right[i + 3];
+            }
+
+            double expected = s0 + s1 + s2 + s3;
+            for (; i < length; i++)
+            {
+                expected += left[i] * right[i];
+            }
+
+            Assert.Equal(BitConverter.DoubleToInt64Bits(expected), BitConverter.DoubleToInt64Bits(Reflections.Dot(left, right)));
+        }
+    }
+
+    private static long[] Bits(double[] values) => [.. values.Select(BitConverter.DoubleToInt64Bits)];
 }

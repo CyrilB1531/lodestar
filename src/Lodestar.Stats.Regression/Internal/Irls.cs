@@ -48,6 +48,8 @@ internal static class Irls
                 : (response[row] + responseMean) / 2.0;
         }
 
+        // Reused by every iteration: the weighted design is written column-major, as the reflections walk it, and the
+        // working response is what they project, so neither is copied on its way into the solve.
         var scaled = new double[rowCount * parameterCount];
         var working = new double[rowCount];
         double[] coefficients = new double[parameterCount];
@@ -67,8 +69,8 @@ internal static class Irls
 
             // The reflections, not the normal equations: IRLS stops on an absolute deviance change, which the normal
             // equations' rounding held above 1e-8 for 19 iterations at a Poisson mean of 5e6 (GlmPoissonBenchmarks, #782).
-            (coefficients, inverseUpper) = LeastSquares.SolveByReflections(
-                scaled, rowCount, parameterCount, withIntercept: false, working);
+            (coefficients, inverseUpper) = LeastSquares.SolveByReflectionsInPlace(
+                scaled, rowCount, parameterCount, working);
 
             if (!AllFinite(coefficients))
             {
@@ -168,7 +170,7 @@ internal static class Irls
         }
     }
 
-    /// <summary>The weighted design and working response for one IRLS iteration.</summary>
+    /// <summary>The weighted design, column-major, and the working response for one IRLS iteration.</summary>
     /// <remarks>
     /// With an offset the working response is <c>η + (y − μ)·g′(μ) − offset</c>, the reference's <c>wlsendog</c>: the
     /// solve estimates only the part of the predictor the regressors carry.
@@ -190,7 +192,7 @@ internal static class Irls
             {
                 (double root, double value) = WorkingRow(shape, response[row], mean[row]);
                 working[row] = value;
-                ScaleRow(matrix, scaled, row, parameterCount, root);
+                ScaleRow(matrix, scaled, row, rowCount, parameterCount, root);
             }
         }
         else
@@ -199,7 +201,7 @@ internal static class Irls
             {
                 (double root, double value) = WorkingRow(shape, response[row], mean[row]);
                 working[row] = value - (root * offset[row]);
-                ScaleRow(matrix, scaled, row, parameterCount, root);
+                ScaleRow(matrix, scaled, row, rowCount, parameterCount, root);
             }
         }
     }
@@ -215,14 +217,14 @@ internal static class Irls
         return (root, root * (eta + ((y - mu) * derivative)));
     }
 
-    /// <summary>Writes row <paramref name="row"/> of the design, scaled by its root weight.</summary>
+    /// <summary>Writes row <paramref name="row"/> of the design, scaled by its root weight, into a column-major block.</summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void ScaleRow(double[] matrix, double[] scaled, int row, int parameterCount, double root)
+    private static void ScaleRow(double[] matrix, double[] scaled, int row, int rowCount, int parameterCount, double root)
     {
+        int source = row * parameterCount;
         for (int column = 0; column < parameterCount; column++)
         {
-            int at = (row * parameterCount) + column;
-            scaled[at] = root * matrix[at];
+            scaled[(column * rowCount) + row] = root * matrix[source + column];
         }
     }
 
