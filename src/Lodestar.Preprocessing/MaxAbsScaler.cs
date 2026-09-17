@@ -84,7 +84,7 @@ public sealed class MaxAbsScaler
             throw new ArgumentException("samples holds no row or no column.", nameof(samples));
         }
 
-        SparseColumns.RequireFinite(samples, nameof(samples));
+        SparseColumns.RequireFinite(samples, nameof(samples), SparseColumns.FitReason);
 
         double[] maximumAbsolute = SparseColumns.MaximumAbsolute(samples);
         double[] scale = [.. maximumAbsolute];

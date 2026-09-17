@@ -22,7 +22,7 @@ The second overload takes a [`CsrMatrix`](../../abstractions/sparse/csrmatrix.md
 
 **Exceptions** — `ArgumentException` when `samples` holds no row, or a partial one.
 
-The sparse overload throws `ArgumentNullException` when `samples` is `null`, `ArgumentException` when its column count is not `FeatureCount`, and `InvalidOperationException` when the scaler centres — fit it with `WithMean = false`, since subtracting a centre would make every absent zero a stored value.
+The sparse overload throws `ArgumentNullException` when `samples` is `null`, `ArgumentException` when it holds no row or its column count is not `FeatureCount`, and `InvalidOperationException` when the scaler centres — fit it with `WithMean = false`, since subtracting a centre would make every absent zero a stored value.
 
 **Example** — there and back.
 

@@ -89,20 +89,32 @@ internal static class SparseColumns
         return buffer;
     }
 
-    /// <summary>Refuses a matrix carrying a value no statistic can answer for.</summary>
-    public static void RequireFinite(CsrMatrix matrix, string parameterName)
+    /// <summary>Refuses a matrix carrying a value the caller cannot answer for.</summary>
+    /// <param name="matrix">The matrix to read.</param>
+    /// <param name="parameterName">The public parameter it arrived as.</param>
+    /// <param name="because">Why that value is refused, which a fit and a transform say differently (#989).</param>
+    public static void RequireFinite(CsrMatrix matrix, string parameterName, string because)
     {
         for (int i = 0; i < matrix.Values.Length; i++)
         {
             if (double.IsNaN(matrix.Values[i]) || double.IsInfinity(matrix.Values[i]))
             {
                 throw new ArgumentException(
-                    $"{parameterName} stores {matrix.Values[i]} at position {i}. The dense overloads refuse a "
-                    + "non-finite value for the same reason: a percentile over a sorted column cannot answer for it.",
+                    $"{parameterName} stores {matrix.Values[i]} at position {i}. {because}",
                     parameterName);
             }
         }
     }
+
+    /// <summary>Why a fit refuses a non-finite stored value.</summary>
+    public const string FitReason =
+        "The dense overloads refuse a non-finite value for the same reason: a percentile over a sorted column "
+        + "cannot answer for it.";
+
+    /// <summary>Why a transform refuses one, where the reference passes a NaN through and refuses an infinity.</summary>
+    public const string TransformReason =
+        "The dense overloads refuse one too. The reference passes a NaN through here and refuses an infinity; "
+        + "docs/equivalence.md's transform row records both.";
 
     /// <summary>A copy of <paramref name="samples"/> with every stored value divided by its column's scale.</summary>
     /// <remarks>
@@ -141,6 +153,13 @@ internal static class SparseColumns
     private static double[] Factors(CsrMatrix samples, int featureCount, IReadOnlyList<double>? scale, bool requireFinite)
     {
         Guard.NotNull(samples);
+        if (samples.RowCount == 0)
+        {
+            throw new ArgumentException(
+                "samples holds no row. The dense overloads and the reference refuse an empty matrix too.",
+                nameof(samples));
+        }
+
         if (samples.ColumnCount != featureCount)
         {
             throw new ArgumentException(
@@ -150,7 +169,7 @@ internal static class SparseColumns
 
         if (requireFinite)
         {
-            RequireFinite(samples, nameof(samples));
+            RequireFinite(samples, nameof(samples), TransformReason);
         }
 
         var factors = new double[featureCount];
