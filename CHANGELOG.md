@@ -182,6 +182,7 @@ is one sentence, the issue and the commit; see
 - `BpeVocabulary` equality compares `PrefixTokens` and `SuffixTokens`, so a vocabulary with the Llama-2 template no longer equals one without it. ([#885](https://github.com/CyrilB1531/lodestar/issues/885))
 - `NpyBlock` compares its elements and shape by value, and `Pooler`'s methods refuse a negative size with `ArgumentOutOfRangeException` instead of overflowing. ([#902](https://github.com/CyrilB1531/lodestar/issues/902))
 - `WordPieceTokenizer` and the `BpePatterns.Whitespace` split keep spacing and enclosing marks, letter numbers, ZWJ/ZWNJ, circled letters and astral letters inside a word, as `pre_tokenizers.Whitespace()` does. ([#887](https://github.com/CyrilB1531/lodestar/issues/887))
+- The `vocab.txt` route keeps unassigned code points as `tokenizers` does, where it dropped them as control characters and a recent emoji vanished instead of becoming `[UNK]`. ([#983](https://github.com/CyrilB1531/lodestar/issues/983))
 
 ### Lodestar.Onnx
 

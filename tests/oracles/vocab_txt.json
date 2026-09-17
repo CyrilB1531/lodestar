@@ -108,7 +108,7 @@
    "World": 96
   },
   "unk_token": "[UNK]",
-  "count": 64
+  "count": 72
  },
  "cases": [
   {
@@ -619,6 +619,54 @@
   },
   {
    "id": 32,
+   "model": "cased",
+   "text": "x͸y",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ]
+  },
+  {
+   "id": 33,
+   "model": "cased",
+   "text": "🛘 hi",
+   "tokens": [
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0
+   ]
+  },
+  {
+   "id": 34,
+   "model": "cased",
+   "text": "hi 🫩",
+   "tokens": [
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0
+   ]
+  },
+  {
+   "id": 35,
+   "model": "cased",
+   "text": "É͸é",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ]
+  },
+  {
+   "id": 36,
    "model": "uncased",
    "text": "the cats playing",
    "tokens": [
@@ -637,7 +685,7 @@
    ]
   },
   {
-   "id": 33,
+   "id": 37,
    "model": "uncased",
    "text": "unaffable",
    "tokens": [
@@ -652,7 +700,7 @@
    ]
   },
   {
-   "id": 34,
+   "id": 38,
    "model": "uncased",
    "text": "unknownxyz",
    "tokens": [
@@ -663,7 +711,7 @@
    ]
   },
   {
-   "id": 35,
+   "id": 39,
    "model": "uncased",
    "text": "quick brown fox jumps.",
    "tokens": [
@@ -684,7 +732,7 @@
    ]
   },
   {
-   "id": 36,
+   "id": 40,
    "model": "uncased",
    "text": "tokenization is embedding embeddings",
    "tokens": [
@@ -707,7 +755,7 @@
    ]
   },
   {
-   "id": 37,
+   "id": 41,
    "model": "uncased",
    "text": "hello world!",
    "tokens": [
@@ -722,7 +770,7 @@
    ]
   },
   {
-   "id": 38,
+   "id": 42,
    "model": "uncased",
    "text": "the dog runs and the cat plays",
    "tokens": [
@@ -749,7 +797,7 @@
    ]
   },
   {
-   "id": 39,
+   "id": 43,
    "model": "uncased",
    "text": "bigger biggest",
    "tokens": [
@@ -766,7 +814,7 @@
    ]
   },
   {
-   "id": 40,
+   "id": 44,
    "model": "uncased",
    "text": "lovely love loved lover",
    "tokens": [
@@ -785,7 +833,7 @@
    ]
   },
   {
-   "id": 41,
+   "id": 45,
    "model": "uncased",
    "text": "wait...",
    "tokens": [
@@ -802,7 +850,7 @@
    ]
   },
   {
-   "id": 42,
+   "id": 46,
    "model": "uncased",
    "text": "café",
    "tokens": [
@@ -813,7 +861,7 @@
    ]
   },
   {
-   "id": 43,
+   "id": 47,
    "model": "uncased",
    "text": "a_b",
    "tokens": [
@@ -828,7 +876,7 @@
    ]
   },
   {
-   "id": 44,
+   "id": 48,
    "model": "uncased",
    "text": "naïve résumé",
    "tokens": [
@@ -841,7 +889,7 @@
    ]
   },
   {
-   "id": 45,
+   "id": 49,
    "model": "uncased",
    "text": "Ångström",
    "tokens": [
@@ -854,7 +902,7 @@
    ]
   },
   {
-   "id": 46,
+   "id": 50,
    "model": "uncased",
    "text": "¿Qué?",
    "tokens": [
@@ -869,7 +917,7 @@
    ]
   },
   {
-   "id": 47,
+   "id": 51,
    "model": "uncased",
    "text": "中文字",
    "tokens": [
@@ -884,7 +932,7 @@
    ]
   },
   {
-   "id": 48,
+   "id": 52,
    "model": "uncased",
    "text": "日本語テキスト",
    "tokens": [
@@ -907,7 +955,7 @@
    ]
   },
   {
-   "id": 49,
+   "id": 53,
    "model": "uncased",
    "text": "x\u0000y",
    "tokens": [
@@ -920,7 +968,7 @@
    ]
   },
   {
-   "id": 50,
+   "id": 54,
    "model": "uncased",
    "text": "a​b",
    "tokens": [
@@ -931,7 +979,7 @@
    ]
   },
   {
-   "id": 51,
+   "id": 55,
    "model": "uncased",
    "text": "hello­world",
    "tokens": [
@@ -944,7 +992,7 @@
    ]
   },
   {
-   "id": 52,
+   "id": 56,
    "model": "uncased",
    "text": "x́",
    "tokens": [
@@ -955,7 +1003,7 @@
    ]
   },
   {
-   "id": 53,
+   "id": 57,
    "model": "uncased",
    "text": "Hello, World!",
    "tokens": [
@@ -972,7 +1020,7 @@
    ]
   },
   {
-   "id": 54,
+   "id": 58,
    "model": "uncased",
    "text": "don't",
    "tokens": [
@@ -987,7 +1035,7 @@
    ]
   },
   {
-   "id": 55,
+   "id": 59,
    "model": "uncased",
    "text": "e-mail",
    "tokens": [
@@ -1002,7 +1050,7 @@
    ]
   },
   {
-   "id": 56,
+   "id": 60,
    "model": "uncased",
    "text": "tab\there",
    "tokens": [
@@ -1015,7 +1063,7 @@
    ]
   },
   {
-   "id": 57,
+   "id": 61,
    "model": "uncased",
    "text": "$100.50",
    "tokens": [
@@ -1032,7 +1080,7 @@
    ]
   },
   {
-   "id": 58,
+   "id": 62,
    "model": "uncased",
    "text": "@user #tag",
    "tokens": [
@@ -1049,7 +1097,7 @@
    ]
   },
   {
-   "id": 59,
+   "id": 63,
    "model": "uncased",
    "text": "a　b c",
    "tokens": [
@@ -1064,7 +1112,7 @@
    ]
   },
   {
-   "id": 60,
+   "id": 64,
    "model": "uncased",
    "text": "𠀀x 😀 ok",
    "tokens": [
@@ -1081,7 +1129,7 @@
    ]
   },
   {
-   "id": 61,
+   "id": 65,
    "model": "uncased",
    "text": "école ÉCOLE",
    "tokens": [
@@ -1094,7 +1142,7 @@
    ]
   },
   {
-   "id": 62,
+   "id": 66,
    "model": "uncased",
    "text": "x�y",
    "tokens": [
@@ -1107,7 +1155,7 @@
    ]
   },
   {
-   "id": 63,
+   "id": 67,
    "model": "uncased",
    "text": "“quoted” — dash",
    "tokens": [
@@ -1123,6 +1171,54 @@
     90,
     91,
     92
+   ]
+  },
+  {
+   "id": 68,
+   "model": "uncased",
+   "text": "x͸y",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ]
+  },
+  {
+   "id": 69,
+   "model": "uncased",
+   "text": "🛘 hi",
+   "tokens": [
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0
+   ]
+  },
+  {
+   "id": 70,
+   "model": "uncased",
+   "text": "hi 🫩",
+   "tokens": [
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0
+   ]
+  },
+  {
+   "id": 71,
+   "model": "uncased",
+   "text": "É͸é",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
    ]
   }
  ]

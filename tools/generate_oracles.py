@@ -2160,6 +2160,8 @@ BERT_BASIC_TEXTS = [
     "x\u0000y", "a\u200bb", "hello\u00adworld", "x\u0301", "Hello, World!", "don't", "e-mail",
     "tab\there", "$100.50", "@user #tag", "a\u3000b\u00a0c", "\U00020000x \U0001f600 ok",
     "e\u0301cole \u00c9COLE", "x\ufffdy", "\u201cquoted\u201d \u2014 dash",
+    # Issue #983: unassigned code points are kept, not dropped as controls, accented neighbours included.
+    "x\u0378y", "\U0001f6d8 hi", "hi \U0001fae9", "\u00c9\u0378e\u0301",
 ]
 
 # Pieces the BERT texts above can reach, so the corpus shows matches and not only [UNK].
