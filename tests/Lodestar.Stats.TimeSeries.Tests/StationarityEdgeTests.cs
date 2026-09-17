@@ -84,6 +84,35 @@ public sealed class StationarityEdgeTests
         Assert.Contains("no unique least-squares solution", refusal.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(0.3, 0.1, 30)]
+    [InlineData(0.7, 1.3, 50)]
+    [InlineData(0.0, 1.0 / 3.0, 40)]
+    public void Kpss_refuses_a_line_whose_fit_leaves_only_rounding(double intercept, double slope, int count)
+    {
+        // Exact zeros are what 1, 2, ..., 30 happens to leave. These three left 1e-15 and were answered
+        // with 0.6443, 3.4590 and 0.5470, none of them statsmodels' value for the same line (#976).
+        double[] line = [.. Enumerable.Range(0, count).Select(i => intercept + (slope * i))];
+
+        ArgumentException refusal = Assert.Throws<ArgumentException>(
+            () => Stationarity.Kpss(line, new KpssOptions { Regression = TrendTerms.ConstantAndTrend }));
+
+        Assert.Equal("series", refusal.ParamName);
+        Assert.Contains("straight line", refusal.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Kpss_tests_a_series_that_merely_lies_close_to_a_line()
+    {
+        // A millionth off the line in one place: ill-fitted, not exactly fitted.
+        double[] series = [.. Enumerable.Range(0, 40).Select(i => 0.3 + (0.1 * i))];
+        series[7] += 1e-6;
+
+        KpssResult result = Stationarity.Kpss(series, new KpssOptions { Regression = TrendTerms.ConstantAndTrend });
+
+        Assert.True(double.IsFinite(result.Statistic));
+    }
+
     [Fact]
     public void Kpss_refuses_a_constant_series()
     {

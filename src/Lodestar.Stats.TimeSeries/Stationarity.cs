@@ -74,7 +74,11 @@ public static class Stationarity
 
         int n = series.Length;
         double[] residuals = KpssResiduals(series, settings.Regression);
-        RefuseExactFit(residuals, nameof(series));
+        if (settings.Regression == TrendTerms.ConstantAndTrend)
+        {
+            RefuseExactFit(series, residuals, nameof(series));
+        }
+
         int lagCount = settings.LagRule switch
         {
             KpssLagRule.Legacy => Math.Min(SchwertLag(n), n - 1),
@@ -144,20 +148,27 @@ public static class Stationarity
         return residuals;
     }
 
-    /// <summary>Hobijn, Franses and Ooms' window, as the reference writes it.</summary>
-    /// <summary>Refuses a series the null's trend fits exactly, which leaves no variance to test.</summary>
+    /// <summary>Machine epsilon for <see cref="double"/>, which <see cref="double.Epsilon"/> is not.</summary>
+    private const double MachineEpsilon = 2.220446049250313e-16;
+
+    /// <summary>Refuses a line the trend null fits to rounding, which leaves no variance to test.</summary>
     /// <remarks>
-    /// A constant series is refused before this, so only a straight line under <c>ConstantAndTrend</c> gets
-    /// here. The statistic is then 0/0 and the Hobijn window casts that NaN to an int, which is undefined
-    /// and differs between runtimes (#874). statsmodels answers from the rounding noise of its OLS fit, a
-    /// value no second implementation reproduces, so the series is refused as a constant one is.
+    /// The statistic is then 0/0 and the Hobijn window casts that NaN to an int, undefined and different
+    /// between runtimes (#874); statsmodels answers from its OLS fit's rounding noise, which no second
+    /// implementation reproduces. The test is <c>n·ε</c> of the largest observation, not the exact zeros
+    /// only a fit cancelling to the bit leaves: 0.3 + 0.1·i answered 0.6443, and 99 of 100 random lines
+    /// were answered (#976). Under <c>ConstantAndTrend</c> alone, since a level null divides one residual
+    /// square by another and still tests a series whose level fits closely.
     /// </remarks>
-    private static void RefuseExactFit(double[] residuals, string parameterName)
+    private static void RefuseExactFit(ReadOnlySpan<double> series, double[] residuals, string parameterName)
     {
-        // S1244: an exact fit is exactly zero; a series that merely fits closely is testable.
-#pragma warning disable S1244
-        if (residuals.Any(residual => residual != 0.0))
-#pragma warning restore S1244
+        double scale = 0.0;
+        foreach (double value in series)
+        {
+            scale = Math.Max(scale, Math.Abs(value));
+        }
+
+        if (Math.Sqrt(SumOfSquares(residuals) / residuals.Length) > residuals.Length * MachineEpsilon * scale)
         {
             return;
         }
@@ -166,6 +177,7 @@ public static class Stationarity
             "every value lies on one straight line: the trend leaves no variance to test.", parameterName);
     }
 
+    /// <summary>Hobijn, Franses and Ooms' window, as the reference writes it.</summary>
     private static int HobijnLag(double[] residuals)
     {
         int n = residuals.Length;

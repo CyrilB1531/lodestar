@@ -250,6 +250,7 @@ is one sentence, the issue and the commit; see
 - `SerialCorrelation.LjungBox` computes its scale in `double`, where from 46,340 observations `n * (n + 2)` overflowed and every statistic came out negative with a p-value of 1. ([#864](https://github.com/CyrilB1531/lodestar/issues/864))
 - `Stationarity.Kpss` refuses a series lying exactly on a straight line under `ConstantAndTrend`, where it returned `NaN` and a window that depended on the runtime. ([#874](https://github.com/CyrilB1531/lodestar/issues/874))
 - `Stationarity.AugmentedDickeyFuller` names `series` when the lagged design it builds has no unique solution, where the estimate's refusal cited a `design` parameter no caller passed. ([#979](https://github.com/CyrilB1531/lodestar/issues/979))
+- `Stationarity.Kpss` measures that line against `n·ε` of the largest observation, where only a fit leaving exact zeros was refused and 99 of 100 random lines were answered from their rounding noise. ([#976](https://github.com/CyrilB1531/lodestar/issues/976))
 
 ### Lodestar.Stats
 
