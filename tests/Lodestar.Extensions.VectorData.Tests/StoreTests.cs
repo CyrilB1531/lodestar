@@ -74,6 +74,31 @@ public sealed class StoreTests
     }
 
     [Fact]
+    public async Task A_deleted_name_can_be_taken_by_another_record_type()
+    {
+        using var store = new LodestarVectorStore();
+        await store.GetCollection<string, Document>("documents").EnsureCollectionExistsAsync();
+
+        await store.EnsureCollectionDeletedAsync("documents");
+        VectorStoreCollection<int, VectorOnly> other = store.GetCollection<int, VectorOnly>("documents");
+        await other.UpsertAsync(new VectorOnly { Id = 1, Embedding = new ReadOnlyMemory<float>([1f, 0f]) });
+
+        Assert.Same(other, store.GetCollection<int, VectorOnly>("documents"));
+        Assert.Equal(["documents"], await store.ListCollectionNamesAsync().ToListAsync());
+    }
+
+    [Fact]
+    public async Task A_name_written_again_after_its_deletion_is_held_again()
+    {
+        using var store = new LodestarVectorStore();
+        VectorStoreCollection<string, Document> documents = store.GetCollection<string, Document>("documents");
+        await store.EnsureCollectionDeletedAsync("documents");
+        await documents.EnsureCollectionExistsAsync();
+
+        Assert.Throws<ArgumentException>(() => store.GetCollection<int, VectorOnly>("documents"));
+    }
+
+    [Fact]
     public async Task Requesting_a_collection_while_the_names_are_enumerated_does_not_throw()
     {
         using var store = new LodestarVectorStore();

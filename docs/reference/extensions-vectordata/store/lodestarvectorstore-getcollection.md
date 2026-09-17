@@ -16,9 +16,10 @@ abstraction's `VectorStoreCollection<TKey, TRecord>`. Cast it to `IKeywordHybrid
 to reach [`LodestarVectorStoreCollection.HybridSearchAsync`](lodestarvectorstorecollection-hybridsearchasync.md).
 
 **Exceptions** — `ArgumentNullException` when `name` is null. `ArgumentException` when `name` is
-already held over a different `TKey` or `TRecord`, or when the schema is unusable: no key property,
-no vector property, a vector property that does not hold `ReadOnlyMemory<float>`, or a definition
-naming a property `TRecord` lacks. `NotSupportedException` when the vector property declares a
+already held over a different `TKey` or `TRecord` and has not been deleted since, or when the schema
+is unusable: no key property, a key property whose type is not `TKey`, no vector property, a vector
+property that does not hold `ReadOnlyMemory<float>`, a full-text indexed property that is not a
+`string`, or a definition naming a property `TRecord` lacks. `NotSupportedException` when the vector property declares a
 `DistanceFunction` other than `CosineSimilarity`.
 
 **Example** — the same name twice is the same collection, and asking for it does not create it.
@@ -47,7 +48,10 @@ string seen = AskTwiceAsync().GetAwaiter().GetResult();  // => True False True
 collection already held, and its `definition` is not read: a store cannot hold two schemas under one
 name, and quietly rebuilding the first would drop its records. A different `TKey` or `TRecord` is
 refused rather than ignored, because the cast that would follow could only fail somewhere less
-helpful.
+helpful. **A deleted name is free again**: once
+[`LodestarVectorStore.EnsureCollectionDeletedAsync`](lodestarvectorstore-ensurecollectiondeletedasync.md)
+has run and nothing has written to the collection since, a different `TKey` or `TRecord` gets a new
+collection under that name, while the same ones still get the instance already held.
 
 The collection is **created, not made to exist**. It answers `false` to
 [`LodestarVectorStore.CollectionExistsAsync`](lodestarvectorstore-collectionexistsasync.md) until

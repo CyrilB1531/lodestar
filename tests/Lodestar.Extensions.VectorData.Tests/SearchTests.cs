@@ -20,6 +20,17 @@ public sealed class SearchTests
     }
 
     [Fact]
+    public async Task An_empty_collection_refuses_a_query_of_the_wrong_width()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+
+        ArgumentException error = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await collection.SearchAsync(new ReadOnlyMemory<float>([1f, 0f]), 1).ToListAsync());
+
+        Assert.Contains("query length 2 != dimension 3", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task The_nearest_vector_comes_first()
     {
         using LodestarVectorStoreCollection<string, Document> collection = await Seeded();

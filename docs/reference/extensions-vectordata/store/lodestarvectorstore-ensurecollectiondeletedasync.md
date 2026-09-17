@@ -42,7 +42,9 @@ contract, and what lets a caller delete at the start of a run without checking f
 The store **keeps the collection object**. [`LodestarVectorStore.GetCollection`](lodestarvectorstore-getcollection.md)
 with the same name returns the same, now empty, instance, and a write to it makes it exist again.
 Forgetting it would let a second request build a second collection under a name a caller may still
-hold the first one for.
+hold the first one for. The name is **not reserved for the old schema**, though: a request under a
+different `TKey` or `TRecord`, before anything writes to the deleted collection, replaces it with a
+new one, and the store then answers for the new one alone.
 
 **Applies to** — net10.0, netstandard2.0.
 

@@ -36,7 +36,7 @@ internal sealed class RecordSchema<TKey, TRecord>
 
     /// <summary>Reads the schema from <paramref name="definition"/> when one is given, else from the attributes.</summary>
     /// <param name="definition">An explicit description, or <see langword="null"/> to read the attributes.</param>
-    /// <exception cref="ArgumentException">No key property, no vector property, a vector of a type other than <c>ReadOnlyMemory&lt;float&gt;</c>, or a definition naming a property the type lacks.</exception>
+    /// <exception cref="ArgumentException">No key property, a key property of a type other than <typeparamref name="TKey"/>, no vector property, a vector of a type other than <c>ReadOnlyMemory&lt;float&gt;</c>, a full-text property that is not a <see cref="string"/>, or a definition naming a property the type lacks.</exception>
     /// <exception cref="NotSupportedException">The vector declares a distance function other than cosine similarity.</exception>
     public static RecordSchema<TKey, TRecord> Create(VectorStoreCollectionDefinition? definition)
     {
@@ -141,6 +141,24 @@ internal sealed class RecordSchema<TKey, TRecord>
     private static RecordSchema<TKey, TRecord> Build(
         PropertyInfo key, PropertyInfo vector, PropertyInfo? text, int dimension, string? distanceFunction)
     {
+        // Checked here rather than left to the casts in KeyOf and FullTextOf, which would throw
+        // InvalidCastException on the first upsert or, for the text, only inside a later search.
+        Type keyType = Nullable.GetUnderlyingType(key.PropertyType) ?? key.PropertyType;
+        if (!typeof(TKey).IsAssignableFrom(keyType))
+        {
+            throw new ArgumentException(
+                $"{typeof(TRecord).Name}.{key.Name} is {key.PropertyType.Name}, and this collection is "
+                + $"keyed by {typeof(TKey).Name}; the key property has to be the collection's key type.",
+                nameof(key));
+        }
+
+        if (text is not null && text.PropertyType != typeof(string))
+        {
+            throw new ArgumentException(
+                $"{typeof(TRecord).Name}.{text.Name} is {text.PropertyType.Name}; a full-text indexed "
+                + "property is a string, which is what the keyword half tokenizes.", nameof(text));
+        }
+
         if (vector.PropertyType != typeof(ReadOnlyMemory<float>))
         {
             throw new ArgumentException(

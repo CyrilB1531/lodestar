@@ -70,8 +70,60 @@ public sealed class CosineVector
     public ReadOnlyMemory<float> Embedding { get; set; }
 }
 
+/// <summary>A key of one type, for a collection keyed by another.</summary>
+public sealed class StringKeyed
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreVector(2)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A full-text mark on a property that holds no text.</summary>
+public sealed class NumberMarkedFullText
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public int Count { get; set; }
+
+    [VectorStoreVector(2)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
 public sealed class RecordSchemaTests
 {
+    [Fact]
+    public void A_key_property_of_another_type_than_the_collection_key_is_refused_at_construction()
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<int, StringKeyed>("keys"));
+
+        Assert.Contains("StringKeyed.Id is String", error.Message, StringComparison.Ordinal);
+        Assert.Contains("Int32", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_key_property_of_the_collection_key_type_or_its_nullable_is_accepted()
+    {
+        using var exact = new LodestarVectorStoreCollection<int, VectorOnly>("exact");
+        using var widened = new LodestarVectorStoreCollection<object, StringKeyed>("widened");
+
+        Assert.Equal(2, exact.Schema.Dimension);
+        Assert.Equal(2, widened.Schema.Dimension);
+    }
+
+    [Fact]
+    public void A_full_text_property_that_is_not_a_string_is_refused_at_construction()
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, NumberMarkedFullText>("numbers"));
+
+        Assert.Contains("NumberMarkedFullText.Count is Int32", error.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_record_type_with_no_key_is_refused_at_construction()
     {

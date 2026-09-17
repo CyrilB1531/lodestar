@@ -208,6 +208,17 @@ public sealed class HybridSearchTests
     }
 
     [Fact]
+    public async Task An_empty_collection_refuses_a_hybrid_query_of_the_wrong_width()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+
+        ArgumentException error = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await collection.HybridSearchAsync(new ReadOnlyMemory<float>([1f, 0f]), ["elephant"], 1).ToListAsync());
+
+        Assert.Contains("query length 2 != dimension 3", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task An_empty_collection_of_a_full_text_record_returns_nothing_rather_than_refusing()
     {
         // Document marks Text as full-text indexed, but no record has been written, so the

@@ -12,9 +12,10 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord> : VectorStoreCo
 `name` is what `Name` reports. `options` configures the keyword half and the fusion; `null` takes the
 defaults. `definition` is an explicit schema; `null` reads `TRecord`'s `VectorStoreKey`,
 `VectorStoreVector` and `VectorStoreData` attributes. It throws `ArgumentNullException` when `name`
-is null; `ArgumentException` when the schema has no key property, no vector property, a vector
-property that does not hold `ReadOnlyMemory<float>`, or a definition naming a property `TRecord`
-lacks; and `NotSupportedException` when the vector property declares a `DistanceFunction` other than
+is null; `ArgumentException` when the schema has no key property, a key property whose type is not
+`TKey` (or its nullable), no vector property, a vector property that does not hold
+`ReadOnlyMemory<float>`, a full-text indexed property that is not a `string`, or a definition naming
+a property `TRecord` lacks; and `NotSupportedException` when the vector property declares a `DistanceFunction` other than
 `CosineSimilarity`. A collection constructed directly belongs to no
 store; one from [`LodestarVectorStore.GetCollection`](lodestarvectorstore-getcollection.md) is the
 same type, held by name.

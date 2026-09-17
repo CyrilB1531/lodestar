@@ -18,8 +18,8 @@ record and its cosine similarity to the query. At most `top` results, fewer only
 pass the filter and the threshold after `Skip`.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `top` is less than 1. `ArgumentException` when
-the query is not the collection's vector width, or when a held record's vector was changed in place
-to another width since it was written.
+the query is not the collection's vector width — an empty collection included — or when a held
+record's vector was changed in place to another width since it was written.
 `NotSupportedException` when `searchValue` is not a vector — a `string` included.
 `OperationCanceledException` when `cancellationToken` is cancelled between results. All of them are
 raised when enumeration begins, not when the method is called.

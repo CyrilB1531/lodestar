@@ -21,18 +21,26 @@ public sealed class LodestarVectorStore : VectorStore
 
     /// <inheritdoc />
     /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="name"/> is already held under a different key or record type, or the schema is unusable.</exception>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is already held under a different key or record type and not deleted since, or the schema is unusable.</exception>
     /// <exception cref="NotSupportedException">The vector declares a distance function other than cosine similarity.</exception>
     public override VectorStoreCollection<TKey, TRecord> GetCollection<TKey, TRecord>(
         string name, VectorStoreCollectionDefinition? definition = null)
     {
         Guard.NotNull(name);
-        if (_collections.TryGetValue(name, out object? existing))
+        if (_collections.TryGetValue(name, out object? existing)
+            && existing is not IExistingCollection { Deleted: true })
         {
             return existing as LodestarVectorStoreCollection<TKey, TRecord>
                 ?? throw new ArgumentException(
                     $"The collection {name} is already held over a different key or record type; "
                     + "one name is one schema.", nameof(name));
+        }
+
+        // A deleted name is free again. The same schema still gets the object it held, so a
+        // handle kept across the deletion stays the collection that name answers with.
+        if (existing is LodestarVectorStoreCollection<TKey, TRecord> kept)
+        {
+            return kept;
         }
 
         var created = new LodestarVectorStoreCollection<TKey, TRecord>(name, _options, definition);
@@ -128,6 +136,9 @@ internal interface IExistingCollection
 {
     /// <summary>Whether the collection has been created or written to.</summary>
     bool Exists { get; }
+
+    /// <summary>Whether it was deleted and nothing has created or written to it since, which frees its name.</summary>
+    bool Deleted { get; }
 
     /// <summary>Drops the collection and its records.</summary>
     Task EnsureDeletedAsync(CancellationToken cancellationToken);
