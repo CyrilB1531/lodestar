@@ -80,7 +80,7 @@ MIN_LENGTH = 5
 # build, which fails on S1192 long before a push.
 SCANNED = "tools/"
 
-# sonarcloud.yml excludes tools/tests/**, so a finding here is one the gate will
+# The CI analysis (ci.yml, build-test) excludes tools/tests/**, so a finding here is one the gate will
 # never raise -- and a check reporting what the gate ignores gets ignored itself.
 EXCLUDED = "tools/tests/"
 
