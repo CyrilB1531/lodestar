@@ -5088,12 +5088,12 @@ upload and the downloaded result.
 
 24-character pattern, 26-letter alphabet, seeded corpus.
 
-| Texts | Text length | `CpuBaseline` | `GpuResident` | gain | `GpuFromHost` |
-| ---: | ---: | ---: | ---: | ---: | ---: |
-| 10 000 | 32 | 1 600.7 µs | 57.4 µs | **27.9×** | 2 943 µs |
-| 10 000 | 256 | 7 585.8 µs | 121.6 µs | **62.4×** | 21 277 µs |
-| 200 000 | 32 | 32.07 ms | 220.2 µs | **145.7×** | 55.5 ms |
-| 200 000 | 256 | 153.4 ms | 1.19 ms | **129.4×** | 450.0 ms |
+| Texts | Text length | `CpuBaseline` | `GpuResident` | gain | `GpuFromHost`, 2026-09-10 | `GpuFromHost`, 2026-09-17 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 000 | 32 | 1 600.7 µs | 57.4 µs | **27.9×** | 2 943 µs | 421 µs |
+| 10 000 | 256 | 7 585.8 µs | 121.6 µs | **62.4×** | 21 277 µs | 1.65 ms |
+| 200 000 | 32 | 32.07 ms | 220.2 µs | **145.7×** | 55.5 ms | 5.27 ms |
+| 200 000 | 256 | 153.4 ms | 1.19 ms | **129.4×** | 450.0 ms | 37.3 ms |
 
 **This was written expecting a failure and is the largest gain of the four.** The reasoning behind
 the prediction — that Myers is bit-parallel on both sides, so the CPU already spends tens of
@@ -5101,9 +5101,13 @@ nanoseconds per short pair — was true and did not settle it: the baseline is *
 kernel is tens of thousands, over pairs with no dependency between them. Caveat 1 above bites
 hardest here.
 
-`GpuFromHost` is **1.7× to 2.9× slower than the CPU path** at every size, because renaming the
-batch is a pass over every character, on the host, in the language the baseline is written in.
-That prediction held.
+`GpuFromHost` was **1.7× to 2.9× slower than the CPU path** at every size when first measured,
+because renaming the batch probed a dictionary for every character on the host. Since
+[#853](https://github.com/CyrilB1531/lodestar/issues/853) a 64 KB code table does the renaming, and
+`GpuFromHost` runs **4.1× to 6.5× below the CPU path**: 7.2× to 13.2× faster than before. The last
+column was measured on 2026-09-17, same machine and `--job short`, in an A/B/A window whose two
+`main` runs agreed within 5% on these rows; the `CpuBaseline` in that window was 1.73 ms, 8.08 ms, 34.4 ms and
+162 ms. The other columns are the 2026-09-10 run.
 
 ### MinHash signatures, against [`MinHash.Signature`](../reference/text/similarity/minhash-signature.md)
 
