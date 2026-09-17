@@ -156,9 +156,10 @@ public static class Fuzz
 
     private static double TokenSet(string[] setA, int countA, string[] setB, int countB, bool partial)
     {
-        if (countA == 0 && countB == 0)
+        // rapidfuzz scores 0 when either side has no words; the prefix reading below would give 100.
+        if (countA == 0 || countB == 0)
         {
-            return 0.0; // rapidfuzz returns 0 for token-set with no tokens
+            return 0.0;
         }
 
         var shape = default(SetShape);

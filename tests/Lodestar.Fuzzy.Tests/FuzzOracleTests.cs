@@ -30,6 +30,8 @@ public sealed class FuzzOracleTests
             Check(failures, c, "token_sort_ratio", c.GetProperty("token_sort_ratio").GetDouble(), Fuzz.TokenSortRatio(a, b));
             Check(failures, c, "token_set_ratio", c.GetProperty("token_set_ratio").GetDouble(), Fuzz.TokenSetRatio(a, b));
             Check(failures, c, "wratio", c.GetProperty("wratio").GetDouble(), Fuzz.WRatio(a, b));
+            Check(failures, c, "partial_token_sort_ratio", c.GetProperty("partial_token_sort_ratio").GetDouble(), Fuzz.PartialTokenSortRatio(a, b));
+            Check(failures, c, "partial_token_set_ratio", c.GetProperty("partial_token_set_ratio").GetDouble(), Fuzz.PartialTokenSetRatio(a, b));
         }
 
         Assert.True(failures.Count == 0, string.Join("\n", failures));

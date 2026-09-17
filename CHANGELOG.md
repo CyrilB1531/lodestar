@@ -93,6 +93,10 @@ is one sentence, the issue and the commit; see
 
 ### Lodestar.Fuzzy
 
+#### Fixed
+
+- `Fuzz.TokenSetRatio`, `Fuzz.PartialTokenSetRatio` and `Fuzz.WRatio` score `0` rather than up to `100` when one side has no words, as rapidfuzz does. ([#860](https://github.com/CyrilB1531/lodestar/issues/860))
+
 #### Changed
 
 - `Fuzz.TokenSetRatio` reads two of its three scores from lengths, `Fuzz.WRatio` tokenizes each side once, and `Process.Extract` keeps a bounded heap where it sorted every hit. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))

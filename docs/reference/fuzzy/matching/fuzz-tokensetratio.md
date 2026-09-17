@@ -35,6 +35,9 @@ words are usually two things.
 Duplicated words do not help: a set counts a word once, so `"the the cat"` and `"the cat"` compare
 as equal sets.
 
+A side with no words — empty, or whitespace alone — scores `0` against anything, the other side
+included when it has none either, as in rapidfuzz: an empty set is not a subset match.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`Fuzz.TokenSortRatio`](fuzz-tokensortratio.md),

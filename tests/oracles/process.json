@@ -16,7 +16,7 @@
    "los angeles lakers",
    "chicago bulls"
   ],
-  "count": 5
+  "count": 6
  },
  "cases": [
   {
@@ -126,6 +126,29 @@
      "choice": "atlanta braves",
      "score": 54.0,
      "index": 3
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "query": "             ",
+   "limit": 3,
+   "cutoff": 0.0,
+   "results": [
+    {
+     "choice": "new york mets",
+     "score": 15.384615384615385,
+     "index": 0
+    },
+    {
+     "choice": "boston red sox",
+     "score": 14.814814814814813,
+     "index": 2
+    },
+    {
+     "choice": "new york knicks",
+     "score": 14.28571428571429,
+     "index": 4
     }
    ]
   }

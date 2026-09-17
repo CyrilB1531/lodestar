@@ -31,6 +31,9 @@ allowances at once, so a `100` here says much less than a `100` from [`Ratio`](f
 It earns its place on messy, human-entered text where every one of those three differences is
 noise. On clean data it will merge records that should stay apart.
 
+A side with no words — empty, or whitespace alone — scores `0`, as in rapidfuzz, so a blank query
+does not match every candidate.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`Fuzz.TokenSetRatio`](fuzz-tokensetratio.md), [`Fuzz.WRatio`](fuzz-wratio.md).
