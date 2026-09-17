@@ -7,12 +7,13 @@ the `for proj in ...` lists that drive every `dotnet pack` in CI. No `.nupkg` re
 `./artifacts`, `--require-all` reported it correctly, and the three jobs that consume
 that directory failed behind it for want of the artefact.
 
-Nothing derives those lists from the solution, and nothing warned. There are four of
-them, all in `ci.yml` -- the pack step of build-test-pack, the `src/ ships
-PackageReference only` assertion, and the packs the sample and docs-snippets jobs each
-do for themselves; a fifth lived in `sonarcloud.yml` until its build merged into
-build-test-pack (#857) -- so adding a package means editing four places in the same commit, which is exactly the kind of coupling a reader cannot
-see and a test can.
+Nothing derives those lists from the solution, and nothing warned. There are three of
+them, all in `ci.yml` -- the `src/ ships PackageReference only` assertion, and the packs
+the sample and docs-snippets jobs each do for themselves; a fourth lived in
+`sonarcloud.yml` until its build merged into build-test-pack (#857), and build-test-pack's
+own pack step went with #1028, which left packing to the jobs that consume or publish a
+package -- so adding a package means editing three places in the same commit, which is
+exactly the kind of coupling a reader cannot see and a test can.
 
 A project deliberately left out of packaging belongs in NOT_PACKAGED below, named and
 with its reason, rather than silently absent from a list.
@@ -36,11 +37,11 @@ NOT_PACKAGED: frozenset[str] = frozenset()
 
 SOLUTION_PROJECT = re.compile(r'Path="(src/[^"]+\.csproj)"')
 
-# `for proj in src/A src/B ...; do` -- the shape all four lists share.
+# `for proj in src/A src/B ...; do` -- the shape all three lists share.
 PACK_LOOP = re.compile(r"for\s+proj\s+in\s+((?:src/[\w.]+\s+)*src/[\w.]+)\s*;\s*do")
 
 # What #545 cost, and so what this test is worth: one omission, four red jobs.
-EXPECTED_LIST_COUNT = 4
+EXPECTED_LIST_COUNT = 3
 
 
 def solution_projects() -> set[str]:

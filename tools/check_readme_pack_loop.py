@@ -8,8 +8,9 @@ the local ./artifacts feed, so a package the loop does not pack is a package the
 cannot restore -- the command fails as written, and nothing noticed.
 
 Measured on 2026-09-10: the loop packed nine of the fifteen the sample references, and
-five of the six missing had been missing for whole lots. Seven hard-coded pack lists exist
-in this repository; the six that something reads stayed current, and this one did not.
+five of the six missing had been missing for whole lots. Six hard-coded pack lists exist
+in this repository -- seven until #1028 removed the one in build-test-pack -- and every one
+that something reads stayed current, where this one did not.
 
 That is the same shape #586 fixed for benchmarks, and tools/check_bench_map.py is the
 model: read both sides from their own file and compare, so the divergence fails on the
