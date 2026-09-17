@@ -39,13 +39,15 @@ public static class Dcg
         double[] discounts = Ranking.Discounts(labelCount, k, logBase);
 
         double[] perQuery = new double[rows];
+        int[] order = new int[labelCount];
+        double[] copy = new double[labelCount];
         for (int row = 0; row < rows; row++)
         {
             ReadOnlySpan<double> relevance = yTrue.Slice(row * labelCount, labelCount);
             ReadOnlySpan<double> scores = yScore.Slice(row * labelCount, labelCount);
             perQuery[row] = ignoreTies
-                ? Ranking.Gain(relevance, scores, discounts)
-                : Ranking.TieAveragedGain(relevance, scores, discounts);
+                ? Ranking.Gain(relevance, scores, discounts, order, copy)
+                : Ranking.TieAveragedGain(relevance, scores, discounts, order, copy);
         }
 
         return Weights.Mean(perQuery, sampleWeight);

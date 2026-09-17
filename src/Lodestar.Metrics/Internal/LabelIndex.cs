@@ -107,6 +107,16 @@ internal sealed class LabelIndex
     /// <summary>True when the caller supplied the label set explicitly.</summary>
     public bool Explicit { get; }
 
+    /// <summary>The offset table <see cref="IndexOf"/> reads, when the label range is small enough to have one.</summary>
+    /// <param name="table">Label minus <paramref name="min"/> to ordinal, -1 when absent.</param>
+    /// <param name="min">The smallest label in the set.</param>
+    internal bool TryGetDirect(out int[] table, out int min)
+    {
+        table = _direct!;
+        min = _min;
+        return _direct is not null;
+    }
+
     /// <summary>The ordinal of <paramref name="label"/>, or -1 when it is not in the set.</summary>
     public int IndexOf(int label)
     {
@@ -160,7 +170,8 @@ internal sealed class LabelIndex
         return result;
     }
 
-    private static int[] SortedUnion(ReadOnlySpan<int> yTrue, ReadOnlySpan<int> yPred)
+    /// <summary>The ascending distinct labels of both inputs; <paramref name="yPred"/> may be empty.</summary>
+    internal static int[] SortedUnion(ReadOnlySpan<int> yTrue, ReadOnlySpan<int> yPred)
     {
         int min = yTrue[0];
         int max = yTrue[0];

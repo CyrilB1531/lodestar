@@ -46,24 +46,34 @@ public sealed class RocCurve
         bool dropIntermediate = true)
     {
         ClassifierCurve.Points points = ClassifierCurve.Build(yTrue, yScore, posLabel, sampleWeight);
-        bool[] keep = ClassifierCurve.Keep(points.TruePositives, points.FalsePositives, dropIntermediate);
+        double[] tp = points.TruePositives;
+        double[] fp = points.FalsePositives;
 
-        double[] tp = ClassifierCurve.Where(points.TruePositives, keep);
-        double[] fp = ClassifierCurve.Where(points.FalsePositives, keep);
-        double[] thresholds = ClassifierCurve.Where(points.Thresholds, keep);
+        int kept = 0;
+        for (int i = 0; i < points.Count; i++)
+        {
+            kept += ClassifierCurve.Turns(tp, fp, i, dropIntermediate) ? 1 : 0;
+        }
 
         // The origin is a point no threshold produces: nothing is above +inf, so both
         // rates are 0 there. The reference prepends it rather than deriving it.
-        var fpr = new double[tp.Length + 1];
-        var tpr = new double[tp.Length + 1];
-        var scores = new double[tp.Length + 1];
+        var fpr = new double[kept + 1];
+        var tpr = new double[kept + 1];
+        var scores = new double[kept + 1];
         scores[0] = double.PositiveInfinity;
 
-        for (int i = 0; i < tp.Length; i++)
+        int at = 1;
+        for (int i = 0; i < points.Count; i++)
         {
-            fpr[i + 1] = Rate(fp[i], points.NegativeTotal);
-            tpr[i + 1] = Rate(tp[i], points.PositiveTotal);
-            scores[i + 1] = thresholds[i];
+            if (!ClassifierCurve.Turns(tp, fp, i, dropIntermediate))
+            {
+                continue;
+            }
+
+            fpr[at] = Rate(fp[i], points.NegativeTotal);
+            tpr[at] = Rate(tp[i], points.PositiveTotal);
+            scores[at] = points.Thresholds[i];
+            at++;
         }
 
         return new RocCurve(fpr, tpr, scores);

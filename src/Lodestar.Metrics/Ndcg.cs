@@ -46,13 +46,17 @@ public static class Ndcg
         double[] discounts = Ranking.Discounts(labelCount, k, 2.0);
 
         double[] perQuery = new double[rows];
+        int[] order = new int[labelCount];
+        double[] copy = new double[labelCount];
         for (int row = 0; row < rows; row++)
         {
             perQuery[row] = Ranking.Normalized(
                 yTrue.Slice(row * labelCount, labelCount),
                 yScore.Slice(row * labelCount, labelCount),
                 discounts,
-                ignoreTies);
+                ignoreTies,
+                order,
+                copy);
         }
 
         return Weights.Mean(perQuery, sampleWeight);

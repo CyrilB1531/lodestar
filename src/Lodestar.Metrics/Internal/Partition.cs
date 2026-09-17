@@ -17,24 +17,65 @@ internal static class Partition
     /// <param name="clusters">How many distinct labels occur.</param>
     public static int[] Sizes(ReadOnlySpan<int> labels, out int[] ordinals, out int clusters)
     {
-        Dictionary<int, int> known = [];
-        List<int> sizes = [];
         ordinals = new int[labels.Length];
-        for (int i = 0; i < labels.Length; i++)
+        clusters = 0;
+        if (labels.Length > 0 && TryDirectRange(labels, out int min, out int range))
         {
-            if (!known.TryGetValue(labels[i], out int ordinal))
+            // Ordinal + 1 per label value, 0 while unseen: the same first-seen ordinals the
+            // dictionary below assigns, with an array read where it hashes.
+            int[] slots = new int[range];
+            for (int i = 0; i < labels.Length; i++)
             {
-                ordinal = sizes.Count;
-                known[labels[i]] = ordinal;
-                sizes.Add(0);
-            }
+                int slot = labels[i] - min;
+                int ordinal = slots[slot] - 1;
+                if (ordinal < 0)
+                {
+                    ordinal = clusters++;
+                    slots[slot] = ordinal + 1;
+                }
 
-            ordinals[i] = ordinal;
-            sizes[ordinal]++;
+                ordinals[i] = ordinal;
+            }
+        }
+        else
+        {
+            Dictionary<int, int> known = [];
+            for (int i = 0; i < labels.Length; i++)
+            {
+                if (!known.TryGetValue(labels[i], out int ordinal))
+                {
+                    ordinal = clusters++;
+                    known[labels[i]] = ordinal;
+                }
+
+                ordinals[i] = ordinal;
+            }
         }
 
-        clusters = sizes.Count;
-        return [.. sizes];
+        int[] counts = new int[clusters];
+        foreach (int ordinal in ordinals)
+        {
+            counts[ordinal]++;
+        }
+
+        return counts;
+    }
+
+    /// <summary>Whether the labels span few enough values for a table indexed by value.</summary>
+    /// <remarks>The bound is <see cref="LabelIndex"/>'s: at most four slots per sample, plus a fixed allowance.</remarks>
+    private static bool TryDirectRange(ReadOnlySpan<int> labels, out int min, out int range)
+    {
+        min = labels[0];
+        int max = labels[0];
+        foreach (int label in labels)
+        {
+            min = Math.Min(min, label);
+            max = Math.Max(max, label);
+        }
+
+        long span = (long)max - min + 1;
+        range = (int)Math.Min(span, int.MaxValue);
+        return span <= (4L * labels.Length) + 1024;
     }
 
     /// <summary>scikit-learn's own bound on how many clusters a validity score can read.</summary>

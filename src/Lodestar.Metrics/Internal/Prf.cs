@@ -107,10 +107,15 @@ internal static class Prf
     private static double[] PerClass(
         ConfusionMatrix cm, PrfMetric metric, double beta, ZeroDivision zeroDivision, out double[] support)
     {
-        double[] tp = TruePositives(cm);
-        double[] predicted = PredictedSum(cm);
         support = Support(cm);
-        double[] result = new double[cm.Size];
+        return PerClass(TruePositives(cm), PredictedSum(cm), support, metric, beta, zeroDivision);
+    }
+
+    /// <summary>The per-class scores from sums already read off a matrix, so several scores can share one read.</summary>
+    public static double[] PerClass(
+        double[] tp, double[] predicted, double[] support, PrfMetric metric, double beta, ZeroDivision zeroDivision)
+    {
+        double[] result = new double[tp.Length];
 
         for (int i = 0; i < result.Length; i++)
         {
@@ -139,32 +144,8 @@ internal static class Prf
         switch (average)
         {
             case Averaging.Macro:
-                double total = 0.0;
-                foreach (double value in perClass)
-                {
-                    total += value;
-                }
-                return total / perClass.Length;
-
             case Averaging.Weighted:
-                double weightSum = 0.0;
-                double weighted = 0.0;
-                for (int i = 0; i < perClass.Length; i++)
-                {
-                    weighted += perClass[i] * support[i];
-                    weightSum += support[i];
-                }
-                // scikit-learn returns 0.0 rather than dividing by zero here.
-                // SonarLint S1244 warns against comparing floating point for
-                // exact equality, which is right for arithmetic and wrong
-                // here: this asks whether any requested class carries
-                // support at all, not whether two computed quantities are
-                // close. A tolerance would treat a genuinely small total
-                // support as "no support" and silently swap in the
-                // zero-division answer for a well-defined weighted mean.
-#pragma warning disable S1244
-                return weightSum == 0.0 ? 0.0 : weighted / weightSum;
-#pragma warning restore S1244
+                return Average(perClass, support, average);
 
             case Averaging.Binary:
                 return perClass[BinaryOrdinal(cm, posLabel)];
@@ -172,6 +153,39 @@ internal static class Prf
             default:
                 throw new ArgumentOutOfRangeException(nameof(average), average, "Unknown averaging mode.");
         }
+    }
+
+    /// <summary>The macro or support-weighted mean of per-class scores.</summary>
+    public static double Average(double[] perClass, double[] support, Averaging average)
+    {
+        if (average == Averaging.Macro)
+        {
+            double total = 0.0;
+            foreach (double value in perClass)
+            {
+                total += value;
+            }
+            return total / perClass.Length;
+        }
+
+        double weightSum = 0.0;
+        double weighted = 0.0;
+        for (int i = 0; i < perClass.Length; i++)
+        {
+            weighted += perClass[i] * support[i];
+            weightSum += support[i];
+        }
+        // scikit-learn returns 0.0 rather than dividing by zero here.
+        // SonarLint S1244 warns against comparing floating point for
+        // exact equality, which is right for arithmetic and wrong
+        // here: this asks whether any requested class carries
+        // support at all, not whether two computed quantities are
+        // close. A tolerance would treat a genuinely small total
+        // support as "no support" and silently swap in the
+        // zero-division answer for a well-defined weighted mean.
+#pragma warning disable S1244
+        return weightSum == 0.0 ? 0.0 : weighted / weightSum;
+#pragma warning restore S1244
     }
 
     /// <summary>

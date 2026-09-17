@@ -1,3 +1,7 @@
+#if NET5_0_OR_GREATER
+using System.Numerics;
+using System.Runtime.InteropServices;
+#endif
 using Lodestar.Metrics.Internal;
 
 namespace Lodestar.Metrics;
@@ -25,12 +29,18 @@ public static class Accuracy
     {
         Inputs.Validate(yTrue, yPred, sampleWeight);
 
-        bool weighted = !sampleWeight.IsEmpty;
+        if (sampleWeight.IsEmpty)
+        {
+            // Both sums of 1.0 are exact below 2^53, so the counts are the doubles they reached.
+            double matches = CountEqual(yTrue, yPred);
+            return normalize ? matches / yTrue.Length : matches;
+        }
+
         double correct = 0.0;
         double total = 0.0;
         for (int i = 0; i < yTrue.Length; i++)
         {
-            double weight = weighted ? sampleWeight[i] : 1.0;
+            double weight = sampleWeight[i];
             if (yTrue[i] == yPred[i])
             {
                 correct += weight;
@@ -67,5 +77,36 @@ public static class Accuracy
         }
 
         return normalize ? diagonal / cm.TotalWeight : diagonal;
+    }
+
+    /// <summary>How many positions hold the same label in both spans, with no branch per sample.</summary>
+    /// <remarks>
+    /// A branch on the comparison mispredicts as often as the classifier errs, measured 3.1 ms
+    /// against 2.0 ms at a million samples of ten classes and of two (docs/guides/performance.md).
+    /// </remarks>
+    private static long CountEqual(ReadOnlySpan<int> yTrue, ReadOnlySpan<int> yPred)
+    {
+        long count = 0;
+        int i = 0;
+#if NET5_0_OR_GREATER
+        if (Vector.IsHardwareAccelerated)
+        {
+            ReadOnlySpan<Vector<int>> left = MemoryMarshal.Cast<int, Vector<int>>(yTrue);
+            ReadOnlySpan<Vector<int>> right = MemoryMarshal.Cast<int, Vector<int>>(yPred);
+            for (int block = 0; block < left.Length; block++)
+            {
+                // An equal lane is all ones, -1, so the lane sum is minus the matches.
+                count -= Vector.Sum(Vector.Equals(left[block], right[block]));
+            }
+
+            i = left.Length * Vector<int>.Count;
+        }
+#endif
+        for (; i < yTrue.Length; i++)
+        {
+            count += yTrue[i] == yPred[i] ? 1 : 0;
+        }
+
+        return count;
     }
 }

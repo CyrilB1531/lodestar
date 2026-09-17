@@ -27,6 +27,7 @@ public static class LabelRankingAveragePrecision
         int[] ranks = new int[labelCount];
         double[] relevantScores = new double[labelCount];
         int[] relevantRanks = new int[labelCount];
+        double[] sorted = new double[labelCount];
 
         double total = 0.0;
         double weights = 0.0;
@@ -37,7 +38,7 @@ public static class LabelRankingAveragePrecision
             int positives = LabelRanking.RelevantCount(relevant);
             double aux = positives == 0 || positives == labelCount
                 ? 1.0
-                : Precision(relevant, scores, positives, ranks, relevantScores, relevantRanks);
+                : Precision(relevant, scores, positives, new RowScratch(ranks, relevantScores, relevantRanks, sorted));
 
             double weight = sampleWeight.Length == 0 ? 1.0 : sampleWeight[row];
             total += aux * weight;
@@ -51,14 +52,12 @@ public static class LabelRankingAveragePrecision
 
     /// <summary>One row's mean of <c>L / rank</c> over its relevant labels.</summary>
     private static double Precision(
-        ReadOnlySpan<bool> relevant,
-        ReadOnlySpan<double> scores,
-        int positives,
-        int[] ranks,
-        double[] relevantScores,
-        int[] relevantRanks)
+        ReadOnlySpan<bool> relevant, ReadOnlySpan<double> scores, int positives, RowScratch scratch)
     {
-        LabelRanking.MaxRank(scores, ranks);
+        int[] ranks = scratch.Ranks;
+        double[] relevantScores = scratch.RelevantScores;
+        int[] relevantRanks = scratch.RelevantRanks;
+        LabelRanking.MaxRank(scores, ranks, scratch.Sorted);
 
         int taken = 0;
         for (int label = 0; label < relevant.Length; label++)
@@ -70,7 +69,7 @@ public static class LabelRankingAveragePrecision
         }
 
         LabelRanking.MaxRank(
-            relevantScores.AsSpan(0, positives), relevantRanks.AsSpan(0, positives));
+            relevantScores.AsSpan(0, positives), relevantRanks.AsSpan(0, positives), scratch.Sorted);
 
         double sum = 0.0;
         taken = 0;
@@ -83,5 +82,17 @@ public static class LabelRankingAveragePrecision
         }
 
         return sum / positives;
+    }
+
+    /// <summary>The buffers one row borrows, allocated once per call rather than per row.</summary>
+    private readonly struct RowScratch(int[] ranks, double[] relevantScores, int[] relevantRanks, double[] sorted)
+    {
+        public int[] Ranks { get; } = ranks;
+
+        public double[] RelevantScores { get; } = relevantScores;
+
+        public int[] RelevantRanks { get; } = relevantRanks;
+
+        public double[] Sorted { get; } = sorted;
     }
 }

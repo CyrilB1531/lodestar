@@ -4834,6 +4834,29 @@ Terms reach the vocabulary or the hash as spans and each row is counted in a den
 
 The filter now reads every record once, in index order, and only admitted records are scored into a bounded heap; `main` ranked the whole collection and ran the filter in rank order until `top + Skip` passed. A pure filter gets the same hits and bits, checked against filtering the whole ranking; a filter with side effects, one that throws on some records, or an expensive one with a small `top` sees the difference. The added-token scan finds the earliest position and the longest entry there, the tie rule the scan per entry used, and adds 5–7% allocation; text made almost entirely of `<` against that table was not measured. The normalizer is an allocation win only. The stored-row division is element-wise, so it rounds as the scalar cast does, bit for bit. `FilteredVectorSearchBenchmarks`, `SentencePieceBpeLineageBenchmarks`, `AddedTokenScanBenchmarks`, `PrecompiledNormalizerBenchmarks`, `EmbeddingSearchHelpersBenchmarks`, pinned to four cores.
 
+## Confusion matrices, curves, ranked rows and reports with fewer passes (issue #850)
+
+| benchmark | `main` | fix |
+| --- | ---: | ---: |
+| [`ConfusionMatrix.Compute`](../reference/metrics/classification/confusionmatrix-compute.md), 1,000,000 × 10 classes | 5.95 ms, 1,254 B | **2.31 ms**, 1,315 B |
+| [`Accuracy.Score`](../reference/metrics/classification/accuracy-score.md), 1,000,000 × 10 classes | 1.81 ms, 0 B | **74.1 µs, 0 B** |
+| [`MultilabelConfusionMatrix.Compute`](../reference/metrics/classification/multilabelconfusionmatrix-compute.md), per class, 100,000 × 20 labels | 15.6 ms, 796 KB | **3.16 ms, 6.4 KB** |
+| [`MultilabelConfusionMatrix.Compute`](../reference/metrics/classification/multilabelconfusionmatrix-compute.md), per sample, 100,000 × 20 labels | 66.9 ms, 61.7 MB | 41.3 ms, 31.3 MB |
+| [`AdjustedMutualInformation.Score`](../reference/metrics/clustering/adjustedmutualinformation-score.md), 100,000 × 100 clusters | 153 ms, 1.7 MB | **118 ms**, 1.7 MB |
+| [`AdjustedMutualInformation.Score`](../reference/metrics/clustering/adjustedmutualinformation-score.md), 100,000 × 10 clusters | 16.1 ms, 794 KB | 13.3 ms, 1.0 MB |
+| [`RocCurve.Compute`](../reference/metrics/classification/roccurve-compute.md), 1,000,000 samples | 137 ms, 99.3 MB | **100 ms, 53.8 MB** |
+| [`PrecisionRecallCurve.Compute`](../reference/metrics/classification/precisionrecallcurve-compute.md), 1,000,000 samples | 128 ms, 144 MB | 94.6 ms, 68.7 MB |
+| [`RocAuc.MultiClass`](../reference/metrics/classification/rocauc-multiclass.md), one-vs-one, 1,000,000 × 10 classes | 1.05 s, 0 B | **802 ms**, 7.6 MB |
+| [`RocAuc.MultiClass`](../reference/metrics/classification/rocauc-multiclass.md), one-vs-one, 100,000 × 10 classes | 75.3 ms, 2.2 KB | 61.2 ms, 783 KB |
+| [`Ndcg.Score`](../reference/metrics/ranking/ndcg-score.md), 100,000 × 10 labels | 31.3 ms, 32.8 MB | **24.1 ms, 782 KB** |
+| [`ReciprocalRank.Score`](../reference/metrics/ranking/reciprocalrank-score.md), 100,000 × 10 labels | 13.2 ms, 16.0 MB | 11.7 ms, 180 B |
+| [`CoverageError.Score`](../reference/metrics/ranking/coverageerror-score.md), 100,000 × 10 labels | 27.6 ms, 10.7 MB | **3.73 ms, 782 KB** |
+| [`LabelRankingAveragePrecision.Score`](../reference/metrics/ranking/labelrankingaverageprecision-score.md), 100,000 × 10 labels | 35.9 ms, 14.6 MB | 34.2 ms, **0 B** |
+| [`CalinskiHarabasz.Score`](../reference/metrics/clustering/calinskiharabasz-score.md), 1,000,000 × 2 features | 15.1 ms, 3.8 MB | **10.3 ms**, 3.8 MB |
+| [`ClassificationReport.Compute`](../reference/metrics/classification/classificationreport-compute.md), 1,000 classes | 3.88 ms, 360 KB | **447 µs, 118 KB** |
+
+Unweighted confusion matrices count integers where they added 1.0, exact below 2^53; every other sum keeps its operands and its order, and the curves sort their samples with the same keys, so the permutation is the same: bit-identical against `main`, and `CountingPathTests` holds each counting shortcut against the general path it replaces. Two trade-offs: one-vs-one ROC AUC allocates a per-class index of the samples, and the adjusted mutual information allocates about 30% more at 10 clusters for its tables. The weighted confusion matrix is unchanged and measures so. `MetricsBenchmarks` (MediumRun for the first two rows), `MultilabelConfusionMatrixBenchmarks`, `ClusteringAgreementBenchmarks`, `ClassifierCurveBenchmarks`, `MultiClassRocAucBenchmarks`, `RankingMetricsBenchmarks`, `PartitionValidityBenchmarks` and `ClassificationReportBenchmarks`, pinned to four cores; the per-label multilabel row and accuracy at 100,000 × 2 classes drifted between the two `main` runs and are not published.
+
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-17; both `main` runs agreed within 5%.

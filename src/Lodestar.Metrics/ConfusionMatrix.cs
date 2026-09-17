@@ -104,6 +104,20 @@ public sealed class ConfusionMatrix
 
     internal bool ExplicitLabels { get; }
 
+    /// <summary>A matrix over the labels <c>[0, 1]</c> from cells a caller already counted.</summary>
+    /// <param name="cells">The four cells, row-major, rows true; kept, not copied.</param>
+    /// <param name="trueSum">The weight per true label, accumulated in sample order; kept, not copied.</param>
+    /// <param name="totalWeight">The weight of every sample, accumulated in sample order.</param>
+    /// <param name="anySampleCorrect">Whether any sample landed on the diagonal.</param>
+    /// <param name="weighted">Whether sample weights were supplied.</param>
+    /// <remarks>
+    /// What <see cref="Compute"/> builds for explicit labels <c>[0, 1]</c> over 0/1 input, where
+    /// both labels are always requested and so nothing is dropped and nothing is refused.
+    /// </remarks>
+    internal static ConfusionMatrix FromBinaryCells(
+        double[] cells, double[] trueSum, double totalWeight, bool anySampleCorrect, bool weighted) =>
+        new(cells, [0, 1], 2, trueSum, !anySampleCorrect, totalWeight, weighted, dropped: false, explicitLabels: true);
+
     /// <summary>Copies the matrix into a two-dimensional array.</summary>
     /// <returns>A fresh <c>[rows, columns]</c> array; the matrix keeps its own storage.</returns>
     // CA1814 (prefer jagged arrays): applies to both ToArray overloads below — a
@@ -210,9 +224,33 @@ public sealed class ConfusionMatrix
         LabelIndex index = LabelIndex.Create(yTrue, yPred, labels);
         int k = index.RequestedCount;
         int m = index.Count;
+        bool weighted = !sampleWeight.IsEmpty;
         double[] cells = new double[m * m];
         double[] trueSum = new double[k];
-        bool weighted = !sampleWeight.IsEmpty;
+        (double total, bool anySampleCorrect, bool anyTrueLabelRequested) = weighted
+            ? AccumulateWeighted(yTrue, yPred, sampleWeight, index, cells, trueSum)
+            : CountUnweighted(yTrue, yPred, index, cells, trueSum);
+
+        if (index.Explicit && !anyTrueLabelRequested)
+        {
+            throw new ArgumentException(
+                "At least one supplied label must occur in yTrue.", nameof(labels));
+        }
+
+        int[] reportedLabels = new int[k];
+        Array.Copy(index.Labels, reportedLabels, k);
+        bool dropped = m > k;
+
+        return new ConfusionMatrix(
+            cells, reportedLabels, m, trueSum, !anySampleCorrect, total, weighted, dropped, index.Explicit);
+    }
+
+    private static (double Total, bool AnySampleCorrect, bool AnyTrueLabelRequested) AccumulateWeighted(
+        ReadOnlySpan<int> yTrue, ReadOnlySpan<int> yPred, ReadOnlySpan<double> sampleWeight, LabelIndex index,
+        double[] cells, double[] trueSum)
+    {
+        int k = trueSum.Length;
+        int m = index.Count;
         double total = 0.0;
         bool anyTrueLabelRequested = false;
         bool anySampleCorrect = false;
@@ -223,7 +261,7 @@ public sealed class ConfusionMatrix
         {
             int row = index.IndexOf(yTrue[i]);
             int col = index.IndexOf(yPred[i]);
-            double weight = weighted ? sampleWeight[i] : 1.0;
+            double weight = sampleWeight[i];
 
             if (row < k)
             {
@@ -247,17 +285,61 @@ public sealed class ConfusionMatrix
             }
         }
 
-        if (index.Explicit && !anyTrueLabelRequested)
+        return (total, anySampleCorrect, anyTrueLabelRequested);
+    }
+
+    /// <summary>The unweighted matrix: the cells first, every total read off them afterwards.</summary>
+    /// <remarks>
+    /// Each total is a sum of 1.0 per sample, exact below 2^53 in any order, so reading it off
+    /// the counted cells gives the double the per-sample sums gave, without their three branches.
+    /// The labels become ordinals through the offset table directly when there is one.
+    /// </remarks>
+    private static (double Total, bool AnySampleCorrect, bool AnyTrueLabelRequested) CountUnweighted(
+        ReadOnlySpan<int> yTrue, ReadOnlySpan<int> yPred, LabelIndex index, double[] cells, double[] trueSum)
+    {
+        int k = trueSum.Length;
+        int m = index.Count;
+        if (index.TryGetDirect(out int[] table, out int min))
         {
-            throw new ArgumentException(
-                "At least one supplied label must occur in yTrue.", nameof(labels));
+            for (int i = 0; i < yTrue.Length; i++)
+            {
+                cells[(table[yTrue[i] - min] * m) + table[yPred[i] - min]] += 1.0;
+            }
+        }
+        else
+        {
+            for (int i = 0; i < yTrue.Length; i++)
+            {
+                cells[(index.IndexOf(yTrue[i]) * m) + index.IndexOf(yPred[i])] += 1.0;
+            }
         }
 
-        int[] reportedLabels = new int[k];
-        Array.Copy(index.Labels, reportedLabels, k);
-        bool dropped = m > k;
+        long kept = 0;
+        bool anySampleCorrect = false;
+        bool anyTrueLabelRequested = false;
+        for (int row = 0; row < m; row++)
+        {
+            anySampleCorrect |= cells[(row * m) + row] > 0.0;
+            if (row >= k)
+            {
+                continue;
+            }
 
-        return new ConfusionMatrix(
-            cells, reportedLabels, m, trueSum, !anySampleCorrect, total, weighted, dropped, index.Explicit);
+            long rowTotal = 0;
+            for (int col = 0; col < m; col++)
+            {
+                long count = (long)cells[(row * m) + col];
+                rowTotal += count;
+                if (col < k)
+                {
+                    kept += count;
+                }
+            }
+
+            trueSum[row] = rowTotal;
+            anyTrueLabelRequested |= rowTotal > 0;
+        }
+
+        return (kept, anySampleCorrect, anyTrueLabelRequested);
     }
 }

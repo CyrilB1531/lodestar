@@ -9,21 +9,29 @@ namespace Lodestar.Metrics.Internal;
 internal static class LabelRanking
 {
     /// <summary>The 1-based rank of each label, best first, ties taking the group's worst.</summary>
-    public static void MaxRank(ReadOnlySpan<double> scores, Span<int> ranks)
+    public static void MaxRank(ReadOnlySpan<double> scores, Span<int> ranks) =>
+        MaxRank(scores, ranks, new double[scores.Length]);
+
+    /// <summary>The same ranks, sorting in a buffer the caller reuses across rows.</summary>
+    /// <param name="scores">The row's scores.</param>
+    /// <param name="ranks">Receives one rank per score.</param>
+    /// <param name="sorted">Overwritten scratch at least as long as the row, reused across rows.</param>
+    public static void MaxRank(ReadOnlySpan<double> scores, Span<int> ranks, double[] sorted)
     {
-        double[] sorted = scores.ToArray();
-        Array.Sort(sorted);
-        for (int j = 0; j < scores.Length; j++)
+        int count = scores.Length;
+        scores.CopyTo(sorted);
+        Array.Sort(sorted, 0, count);
+        for (int j = 0; j < count; j++)
         {
-            ranks[j] = scores.Length - LowerBound(sorted, scores[j]);
+            ranks[j] = count - LowerBound(sorted, count, scores[j]);
         }
     }
 
-    /// <summary>How many of <paramref name="sorted"/> are strictly below <paramref name="value"/>.</summary>
-    private static int LowerBound(double[] sorted, double value)
+    /// <summary>How many of the first <paramref name="count"/> of <paramref name="sorted"/> are strictly below <paramref name="value"/>.</summary>
+    private static int LowerBound(double[] sorted, int count, double value)
     {
         int low = 0;
-        int high = sorted.Length;
+        int high = count;
         while (low < high)
         {
             int mid = low + ((high - low) / 2);
