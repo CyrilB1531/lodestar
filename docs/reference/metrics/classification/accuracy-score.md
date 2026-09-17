@@ -6,7 +6,7 @@ The share of samples whose predicted label equals the true one.
 
 ```csharp
 public static double Score(ReadOnlySpan<int> yTrue, ReadOnlySpan<int> yPred, bool normalize = true, ReadOnlySpan<double> sampleWeight = default)
-public static double Score(ConfusionMatrix cm, bool normalize = true)
+public static double Score(ConfusionMatrix cm, bool normalize = true, int probeForIssue997 = 0)
 ```
 
 **Parameters** — `yTrue` and `yPred` are the true and predicted labels, one per sample and the
