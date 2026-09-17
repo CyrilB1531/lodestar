@@ -30,7 +30,7 @@ the word.
 Input is normalised to NFC before the rules see it, so `é` written as a combining accent behaves
 like `é` written as one character.
 
-Reference behaviour is `nltk.stem.snowball.SnowballStemmer("french")`, matched over 152 words.
+Reference behaviour is `nltk.stem.snowball.SnowballStemmer("french")`, matched over 182 words.
 
 **Applies to** — net10.0, netstandard2.0.
 

@@ -128,6 +128,7 @@ is one sentence, the issue and the commit; see
 - The `char` analyzer collapses only runs of two or more whitespace characters, and both character analyzers count U+001C to U+001F as whitespace, as scikit-learn does. ([#879](https://github.com/CyrilB1531/lodestar/issues/879))
 - The vectorizers, `Bm25Index`, `TextRank`, `Rake`, `LshIndex`, `BkTree`, `MinHash`, `SimHash`, `RankFusion`, `MinHashPermutations` and `DamerauLevenshtein` refuse null documents, out-of-range options and overflowing sizes with the documented exception and the caller's parameter name, and an unfitted `Save(Stream)` no longer writes a partial header. ([#901](https://github.com/CyrilB1531/lodestar/issues/901))
 - `DoubleMetaphone.Encode("W")` returns two empty codes, as the reference does, instead of throwing. ([#838](https://github.com/CyrilB1531/lodestar/issues/838))
+- `FrenchSnowballStemmer.Stem` keeps a word-final `é` or `è`, as nltk does, where `thé` stemmed to `the` and `été` to `éte`. ([#948](https://github.com/CyrilB1531/lodestar/issues/948))
 
 ### Lodestar.Gpu
 

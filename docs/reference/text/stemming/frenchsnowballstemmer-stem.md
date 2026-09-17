@@ -12,7 +12,9 @@ public static string Stem(string word)
 rules run.
 
 **Returns** — `string`, the stem, always lowercase. Accented characters survive when the stem
-keeps them.
+keeps them. The last step un-accents an `é` or `è` only when a non-vowel follows it, so `thé`
+stays `thé` while `père` becomes `per`, as in nltk. Like nltk, it never un-accents the first
+letter, so `ès` stays `ès`.
 
 **Exceptions** — `ArgumentNullException` when `word` is `null`. An empty string, or a word of one
 character, is returned lowercased and otherwise untouched.
