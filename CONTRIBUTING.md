@@ -67,7 +67,7 @@ becomes available:
 | Job | What it guards |
 | --- | --- |
 | `Lint (markdown + C# format)` | markdownlint, `dotnet format --verify-no-changes`, the `tools/tests` suite, that no tracked file holds a machine path, and that the Sonar `.globalconfig` is current |
-| `Build, test, pack` | the build, the full test suite, that the packages still pack, and the SonarQube Cloud analysis, which fails the job when the quality gate fails — a finding in the code a pull request introduces blocks its merge |
+| `Build, test, pack` | the build, the full test suite, and the SonarQube Cloud analysis, which fails the job when the quality gate fails — a finding in the code a pull request introduces blocks its merge |
 | `Oracles are reproducible` | that the committed corpora match a fresh generation |
 | `Build and analyze` | that `Build, test, pack` passed. The analysis ran in its own workflow until it shared that job's build ([#857](https://github.com/CyrilB1531/lodestar/issues/857)); the check keeps the name the ruleset requires |
 
@@ -627,11 +627,14 @@ for the same reason. See
 [`0019`](docs/decisions/0019-the-net-analysers-run-in-the-build-too.md).
 
 The command above does not reach `samples/`. The samples are outside
-`Lodestar.slnx` and consume the packages from a local feed, so they are analysed
-only when the samples themselves are built. That needs a `pack` first, and
-happens in three CI jobs: `Sample consumes the packages`, `Guide snippets
-compile`, and the samples build inside `Build, test, pack`. Expect a finding
-there from CI rather than from `dotnet build Lodestar.slnx`.
+`Lodestar.slnx` and consume the packages from a local feed, so the analysers read
+them only when the samples themselves are built. That needs a `pack` first, and
+happens in the two CI jobs that pack: `Sample consumes the packages` and `Guide
+snippets compile, reference snippets run`. Expect a finding there from CI rather
+than from `dotnet build Lodestar.slnx`. Those two builds ran inside the
+SonarQube Cloud analysis window until [#1028](https://github.com/CyrilB1531/lodestar/issues/1028)
+moved packing out of `Build, test, pack`, so `samples/` now reaches the build's
+analysers and not the quality gate.
 
 One thing still only SonarCloud sees, so a green local build is not a green
 quality gate: **duplication and coverage**.

@@ -340,20 +340,19 @@ jobs:
       # must not be skipped or served from cache — an incremental no-op build
       # produces an empty analysis that still reports success.
       #
-      # *Every* compilation in the window is observed, not just the first, which
-      # is what lets the samples be analysed without joining Lodestar.slnx. They
-      # must stay out of it: inside the solution they would resolve Lodestar by
-      # ProjectReference, and the packaging gate and the snippet check would both
-      # become assertions about a graph that never ships (ADR 0009). Analysis
-      # follows the build list, so before this they were read by nothing —
-      # PackagingGate.cs landed with 0 issues reported, not because it is clean
-      # but because no analyser had opened it.
+      # *Every* compilation in the window is observed, not just the first, which is
+      # why the samples were compiled here until #1028. They consume the packed
+      # packages, and packing now runs only where a package is consumed or published,
+      # so the two builds moved to the `sample` and `docs-snippets` jobs with it. They
+      # stay out of Lodestar.slnx either way: inside the solution they would resolve
+      # Lodestar by ProjectReference, and the packaging gate and the snippet check
+      # would both become assertions about a graph that never ships (ADR 0009).
       #
-      # The scanner is no longer the only thing that reads them: since ADR 0019,
-      # samples/Directory.Build.props carries SonarAnalyzer.CSharp and the samples
-      # inherit the repository-wide .NET code-quality settings, so the samples
-      # build below fails on a finding on its own. This window is still what puts
-      # those findings in front of the quality gate.
+      # What reads them there is what ADR 0019 added: samples/Directory.Build.props
+      # carries SonarAnalyzer.CSharp and the samples inherit the repository-wide .NET
+      # code-quality settings, so a finding fails those two jobs on its own. What the
+      # quality gate loses is duplication over samples/, which it analysed and, being
+      # untestable by construction, never covered.
       #
       # tools/ is excluded from *coverage* only, not from analysis: those scripts
       # are Python development utilities that generate data for the suite, so no
@@ -523,33 +522,6 @@ jobs:
           path: doc-tests
           retention-days: 14
 
-      # No -p:Version: each project declares its own in a sibling Version.props,
-      # and that declaration is authoritative everywhere — here and at release.
-      - name: Pack
-        run: |
-          for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Extensions.VectorData src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Stats.TimeSeries src/Lodestar.Survival src/Lodestar.Gpu; do
-            dotnet pack "$proj" --configuration Release --no-build --output ./artifacts
-          done
-
-      - name: Extract the guide snippets
-        run: python3 tools/extract_doc_snippets.py
-
-      # The samples restore Lodestar from ./artifacts, and the builds above have
-      # already pulled published Lodestar packages into the default global folder
-      # (src/ reaches Lodestar.Text by PackageReference). The global folder is
-      # consulted ahead of every source, so a published package sitting in it
-      # wins whenever the two share a version — these two builds would then
-      # analyse a consumer of what already shipped. Their own NUGET_PACKAGES is
-      # what keeps them identical to the gates in ci.yml, which is the point:
-      # analysing a build that diverges from the one being gated is worse than
-      # not analysing at all. See docs/decisions/0009-sample-consumes-a-local-feed.md.
-      - name: Build the samples
-        env:
-          NUGET_PACKAGES: ${{ runner.temp }}/sample-packages
-        run: |
-          dotnet build samples/Lodestar.Sample --configuration Release
-          dotnet build samples/Lodestar.DocSnippets --configuration Release
-
       # Coverage must be written before `end` collects it, and a format or path mismatch
       # fails silently as 0% coverage -- which is why the format is named on both sides
       # and neither side is a default.
@@ -602,21 +574,12 @@ jobs:
       - name: The sample prints no number in the contributor's culture
         run: python3 tools/check_sample_culture.py
 
-      - name: The shipped dependency graph is the intended one
-        run: python3 tools/check_nuspec_dependencies.py ./artifacts --require-all
-
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results
           path: '**/*.trx'
-
-      - name: Upload NuGet package
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: nuget
-          path: ./artifacts/*.nupkg
 
   # The ruleset on main requires a check named "Build and analyze", which the SonarQube Cloud
   # workflow posted until its build merged into build-test (#857). This keeps the name and its
@@ -669,6 +632,12 @@ jobs:
           for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Extensions.VectorData src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Stats.TimeSeries src/Lodestar.Survival src/Lodestar.Gpu; do
             dotnet pack "$proj" --configuration Release -o ./artifacts
           done
+
+      # The eighteen .nupkg exist here and nowhere else on a pull request, so the guard
+      # that reads them runs here (#1028). --require-all asserts the whole edge map at
+      # once; both release workflows run the single-package form on what they publish.
+      - name: The shipped dependency graph is the intended one
+        run: python3 tools/check_nuspec_dependencies.py ./artifacts --require-all
 
       # Building here means resolving the packages as a consumer would, so a
       # missing dependency group or an unreachable public type fails the build.
