@@ -762,8 +762,9 @@ in this directory open with thirty-line docstrings on purpose.
 Answers whether a pull request changes nothing but Markdown, which decides the path CI takes
 ([#857](https://github.com/CyrilB1531/lodestar/issues/857)). The `changes` job in `ci.yml` feeds it
 the pull request's files from the API, and a `true` skips the jobs that cannot see a `.md` change
-— the sample, the oracles, Windows and the SonarQube Cloud analysis — while the lint, the snippets,
-the stop-word check and the documentation tests still run. Those tests stay because 21
+— `Build, test, pack`, the sample, the oracles, Windows and the SonarQube Cloud analysis — while the
+lint, the snippets and the stop-word check still run, and `Lint` runs the documentation tests
+([#997](https://github.com/CyrilB1531/lodestar/issues/997)). Those tests stay because 21
 `ReferenceDocumentationTests` classes read `docs/**/*.md`: one caught a missing reference link in
 the pull request that became #859.
 
@@ -775,6 +776,22 @@ gh api repos/CyrilB1531/lodestar/pulls/857/files --paginate \
 It prints `true` only when every path ends in `.md`, a rename counting both its names. An image, a
 JSON map the tests read, or an empty list gives `false`: a pull request whose files could not be
 listed takes the full path, never the reduced one.
+
+## `format_needed.py`
+
+Answers whether a pull request can change what `dotnet format --verify-no-changes` checks, which
+decides whether `Lint` spends about two and a half minutes on it
+([#997](https://github.com/CyrilB1531/lodestar/issues/997)). The `changes` job feeds it the same file
+list as `docs_only.py`.
+
+```bash
+gh api repos/CyrilB1531/lodestar/pulls/997/files --paginate \
+  --jq '.[] | .filename, (.previous_filename // empty)' | python3 tools/format_needed.py
+```
+
+It prints `true` when any path ends in `.cs`, `.csproj`, `.props`, `.targets`, `.slnx`,
+`.editorconfig` or `.globalconfig`, a rename counting both its names. An empty list also gives
+`true`: a pull request whose files could not be listed runs the check.
 
 ## `check_sample_culture.py`
 

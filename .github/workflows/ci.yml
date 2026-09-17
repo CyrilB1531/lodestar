@@ -19,7 +19,10 @@ jobs:
   lint:
     name: Lint (markdown + C# format)
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
+    needs: changes
+    # !cancelled() keeps this required check from being skipped when `changes` fails; empty
+    # outputs then run the format check and leave the documentation tests to `build-test`.
+    if: ${{ !cancelled() && github.event.pull_request.draft == false }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -27,6 +30,8 @@ jobs:
           # makes every package read as entirely unpublished. `fetch-tags` costs a ref fetch
           # rather than the whole history that `fetch-depth: 0` would pull.
           fetch-tags: true
+      # Unconditional: besides the format check and the documentation tests, the Sonar
+      # globalconfig step below builds Lodestar.Fuzzy.
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '10.0.x'
@@ -37,8 +42,16 @@ jobs:
         run: >
           npx --yes --ignore-scripts markdownlint-cli2@0.23.2
           "README.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "bench/README.md"
+      # Only a C# file or what configures it can change the answer, and the check costs about
+      # two and a half minutes (#997).
       - name: C# format check
+        if: needs.changes.outputs.format_needed != 'false'
         run: dotnet format Lodestar.slnx --verify-no-changes
+      # A docs-only pull request skips `build-test`, so its documentation tests run here: 21
+      # ReferenceDocumentationTests classes read docs/**/*.md, and one caught #859's missing link.
+      - name: Test the documentation only
+        if: needs.changes.outputs.docs_only == 'true'
+        run: dotnet test Lodestar.slnx --configuration Release --filter "FullyQualifiedName~.Documentation."
       - name: Setup Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -189,10 +202,13 @@ jobs:
     if: github.event.pull_request.draft == false
     outputs:
       docs_only: ${{ steps.classify.outputs.docs_only }}
+      format_needed: ${{ steps.classify.outputs.format_needed }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          sparse-checkout: tools/docs_only.py
+          sparse-checkout: |
+            tools/docs_only.py
+            tools/format_needed.py
           sparse-checkout-cone-mode: false
 
       # A pull request that changes only Markdown takes a reduced path (#857). The files come
@@ -205,12 +221,16 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" != "pull_request" ]; then
             echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            echo "format_needed=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          answer=$(gh api "repos/${{ github.repository }}/pulls/$PR/files" --paginate \
-            --jq '.[] | .filename, (.previous_filename // empty)' | python3 tools/docs_only.py)
-          echo "docs_only=$answer" >> "$GITHUB_OUTPUT"
-          echo "docs-only: $answer"
+          files=$(gh api "repos/${{ github.repository }}/pulls/$PR/files" --paginate \
+            --jq '.[] | .filename, (.previous_filename // empty)')
+          docs_only=$(printf '%s\n' "$files" | python3 tools/docs_only.py)
+          format_needed=$(printf '%s\n' "$files" | python3 tools/format_needed.py)
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+          echo "format_needed=$format_needed" >> "$GITHUB_OUTPUT"
+          echo "docs-only: $docs_only, format needed: $format_needed"
 
   build-test:
     name: Build, test, pack
@@ -219,8 +239,9 @@ jobs:
     # One Linux build serves the tests, the packages and the SonarQube Cloud analysis (#857):
     # the scanner must watch the compilation, so the analysis cannot reuse another job's build.
     # !cancelled() keeps this required check from being skipped when `changes` fails; an empty
-    # docs_only output then takes the full path.
-    if: ${{ !cancelled() && github.event.pull_request.draft == false }}
+    # docs_only output then takes the full path. A docs-only pull request skips the job, and
+    # Lint runs its documentation tests (#997).
+    if: ${{ !cancelled() && github.event.pull_request.draft == false && needs.changes.outputs.docs_only != 'true' }}
     env:
       # SONAR_TOKEN reaches neither fork pull requests nor Dependabot: Dependabot runs read
       # from a separate secrets store, and its branches live in this repository, so a
@@ -229,7 +250,7 @@ jobs:
       SONAR: ${{ github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
     steps:
       - name: Set up JDK 17
-        if: env.SONAR == 'true' && needs.changes.outputs.docs_only != 'true'
+        if: env.SONAR == 'true'
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           java-version: 17
@@ -249,7 +270,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Cache SonarQube Cloud packages
-        if: env.SONAR == 'true' && needs.changes.outputs.docs_only != 'true'
+        if: env.SONAR == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.sonar/cache
@@ -257,7 +278,7 @@ jobs:
           restore-keys: ${{ runner.os }}-sonar
 
       - name: Cache SonarQube Cloud scanner
-        if: env.SONAR == 'true' && needs.changes.outputs.docs_only != 'true'
+        if: env.SONAR == 'true'
         id: cache-sonar-scanner
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -266,7 +287,7 @@ jobs:
           restore-keys: ${{ runner.os }}-sonar-scanner
 
       - name: Install SonarQube Cloud scanner
-        if: env.SONAR == 'true' && needs.changes.outputs.docs_only != 'true' && steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+        if: env.SONAR == 'true' && steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         run: |
           mkdir -p "${{ runner.temp }}/scanner"
           dotnet tool update dotnet-sonarscanner --tool-path "${{ runner.temp }}/scanner"
@@ -398,7 +419,7 @@ jobs:
       # falls from 14 533 to 12 539 between the two: 1 994 of those lines were tests measuring
       # themselves. The 95.4% that replaces 92.6% is production code only.
       - name: Begin analysis
-        if: env.SONAR == 'true' && needs.changes.outputs.docs_only != 'true'
+        if: env.SONAR == 'true'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -419,13 +440,6 @@ jobs:
       - name: Build the solution
         run: dotnet build Lodestar.slnx --configuration Release
 
-      # A pull request that changes only Markdown still runs the documentation tests: 21
-      # ReferenceDocumentationTests classes read docs/**/*.md, and one caught #859's missing
-      # link before it was pushed. Everything else in this job cannot see a .md change.
-      - name: Test the documentation only
-        if: needs.changes.outputs.docs_only == 'true'
-        run: dotnet test Lodestar.slnx --configuration Release --no-build --filter "FullyQualifiedName~.Documentation."
-
       # Everything after `--` goes to Microsoft.Testing.Platform, which xunit v3 runs on
       # instead of VSTest (#623). `--collect` and `--logger` were VSTest's, and the data
       # collector behind the first was coverlet, which collects nothing here now.
@@ -437,7 +451,6 @@ jobs:
       # instead of 6904 -- both green, both nearly empty, which is the failure this
       # repository has been bitten by before.
       - name: Test (with coverage)
-        if: needs.changes.outputs.docs_only != 'true'
         run: >
           dotnet test Lodestar.slnx --configuration Release --no-build
           --
@@ -447,14 +460,12 @@ jobs:
       # No -p:Version: each project declares its own in a sibling Version.props,
       # and that declaration is authoritative everywhere — here and at release.
       - name: Pack
-        if: needs.changes.outputs.docs_only != 'true'
         run: |
           for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Extensions.VectorData src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Stats.TimeSeries src/Lodestar.Survival src/Lodestar.Gpu; do
             dotnet pack "$proj" --configuration Release --no-build --output ./artifacts
           done
 
       - name: Extract the guide snippets
-        if: needs.changes.outputs.docs_only != 'true'
         run: python3 tools/extract_doc_snippets.py
 
       # The samples restore Lodestar from ./artifacts, and the builds above have
@@ -467,7 +478,6 @@ jobs:
       # analysing a build that diverges from the one being gated is worse than
       # not analysing at all. See docs/decisions/0009-sample-consumes-a-local-feed.md.
       - name: Build the samples
-        if: needs.changes.outputs.docs_only != 'true'
         env:
           NUGET_PACKAGES: ${{ runner.temp }}/sample-packages
         run: |
@@ -486,7 +496,7 @@ jobs:
       # One file per test assembly, under each project's TestResults/. Pinning a single
       # name collapses them onto each other -- see ci.yml, where that was measured.
       - name: End analysis
-        if: env.SONAR == 'true' && needs.changes.outputs.docs_only != 'true'
+        if: env.SONAR == 'true'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -498,7 +508,6 @@ jobs:
       # it would match the conditional ItemGroup either way. Evaluated MSBuild
       # can, and this job never sets the property.
       - name: src/ ships PackageReference only
-        if: needs.changes.outputs.docs_only != 'true'
         run: |
           for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Extensions.VectorData src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Stats.TimeSeries src/Lodestar.Survival src/Lodestar.Gpu; do
             refs=$(dotnet msbuild "$proj" -getItem:ProjectReference -p:TargetFramework=net10.0 \
@@ -519,29 +528,25 @@ jobs:
       # with no pack step — a broken floor otherwise surfaces only on a machine
       # whose NuGet cache is cold, never on the one that raised it.
       - name: The Lodestar.Text floor is coherent
-        if: needs.changes.outputs.docs_only != 'true'
         run: python3 tools/check_version_floor.py --check-feed
 
       # The sample is the only thing a contributor reads to see a package work, and
       # it printed 0,807 on a French console against CI's 0.807 for two releases
       # (#205). CA1305 never fires on an interpolated hole, at any AnalysisMode.
       - name: The sample prints no number in the contributor's culture
-        if: needs.changes.outputs.docs_only != 'true'
         run: python3 tools/check_sample_culture.py
 
       - name: The shipped dependency graph is the intended one
-        if: needs.changes.outputs.docs_only != 'true'
         run: python3 tools/check_nuspec_dependencies.py ./artifacts --require-all
 
       - name: Upload test results
-        if: always() && needs.changes.outputs.docs_only != 'true'
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results
           path: '**/*.trx'
 
       - name: Upload NuGet package
-        if: needs.changes.outputs.docs_only != 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: nuget
@@ -553,13 +558,19 @@ jobs:
   analysis-gate:
     name: Build and analyze
     runs-on: ubuntu-latest
-    needs: build-test
+    needs: [changes, build-test]
     if: ${{ !cancelled() && github.event.pull_request.draft == false }}
     steps:
+      # A skipped build passes only when the pull request is docs-only; any other skip fails (#997).
       - name: The build, the tests and the analysis passed
         run: |
-          if [ "${{ needs.build-test.result }}" != "success" ]; then
-            echo "::error::Build, test, pack ended ${{ needs.build-test.result }}."
+          result="${{ needs.build-test.result }}"
+          if [ "$result" = "skipped" ] && [ "${{ needs.changes.outputs.docs_only }}" = "true" ]; then
+            echo "Docs-only pull request: Build, test, pack was skipped by design."
+            exit 0
+          fi
+          if [ "$result" != "success" ]; then
+            echo "::error::Build, test, pack ended $result."
             exit 1
           fi
 
