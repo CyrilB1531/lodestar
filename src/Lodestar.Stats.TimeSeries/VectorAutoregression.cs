@@ -8,7 +8,7 @@ namespace Lodestar.Stats.TimeSeries;
 /// </summary>
 /// <remarks>
 /// Several series that move together, each explained by every series' own past. The fit is least squares equation by
-/// equation on the stacked lags — <see cref="OrdinaryLeastSquares.Estimate"/> per equation — which is why
+/// equation on the stacked lags — <see cref="OrdinaryLeastSquares.Estimate"/>'s arithmetic per equation, over one shared QR — which is why
 /// <see href="https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0134-arima-and-state-space-are-not-written-and-var-is-the-one-that-could-be.md">decision 0134</see>
 /// could write this model and not the likelihood-fitted ones beside it.
 /// </remarks>
@@ -50,11 +50,16 @@ public static class VectorAutoregression
         var coefficients = new double[variableCount][];
         var errors = new double[variableCount][];
         var residuals = new double[variableCount][];
+
+        // Every equation shares the design, so one QR and one inverse of R serve them all.
+        var reflections = new SharedReflections(design, parameters, withIntercept: false, responses);
+        reflections.ReflectThrough(parameters);
+        double[] inverse = reflections.InverseUpper(parameters);
+        double[] squaredNorms = SharedReflections.SquaredNorms(inverse, parameters);
         for (int equation = 0; equation < variableCount; equation++)
         {
-            OlsEstimate estimate = OrdinaryLeastSquares.Estimate(design, responses[equation], parameters, withIntercept: false);
-            coefficients[equation] = [.. estimate.Coefficients];
-            errors[equation] = [.. estimate.StandardErrors];
+            (coefficients[equation], errors[equation]) = reflections.Estimates(
+                equation, parameters, inverse, squaredNorms, reflections.ResidualSumOfSquares(equation, parameters));
             residuals[equation] = Residuals(design, responses[equation], coefficients[equation], parameters);
         }
 

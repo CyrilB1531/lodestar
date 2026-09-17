@@ -4885,6 +4885,28 @@ Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical co
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-17; both `main` runs agreed within 4%. The upload row ran on an NVIDIA GeForce RTX 5070 Ti.
 
+## Time-series fits on one QR, and rank, Durbin and Cox buffers (issue #843)
+
+| benchmark | `main` | fix |
+| --- | ---: | ---: |
+| [`Stationarity.AugmentedDickeyFuller`](../reference/stats-timeseries/stationarity-tests/stationarity-augmenteddickeyfuller.md), lag search, 200 points | 167 µs, 504 KB | 26.4 µs, 58.9 KB |
+| [`Stationarity.AugmentedDickeyFuller`](../reference/stats-timeseries/stationarity-tests/stationarity-augmenteddickeyfuller.md), lag search, 2,000 points | 7.98 ms, 13.1 MB | **941 µs, 958 KB** |
+| [`VectorAutoregression.Fit`](../reference/stats-timeseries/var/vectorautoregression-fit.md), 500 × 5 variables × 4 lags | 441 µs, 590 KB | 154 µs, 230 KB |
+| [`VectorAutoregression.Fit`](../reference/stats-timeseries/var/vectorautoregression-fit.md), 5,000 × 5 variables × 4 lags | 4.62 ms, 5.5 MB | **2.05 ms, 2.2 MB** |
+| [`SerialCorrelation.Autocorrelation`](../reference/stats-timeseries/correlation/serialcorrelation-autocorrelation.md), 2,000 points | 80.1 µs, 1,000 B | **32.8 µs**, 16.6 KB |
+| [`KruskalWallis.Test`](../reference/stats/tests/kruskalwallis-test.md), 32 groups, 100,000 values | 11.7 ms, 3.6 MB | 6.59 ms, 2.8 MB |
+| [`Wilcoxon.OneSample`](../reference/stats/tests/wilcoxon-onesample.md), 300,000 differences | 44.0 ms, 18.0 MB | **24.0 ms, 13.2 MB** |
+| [`KolmogorovSmirnov.TwoSample`](../reference/stats/tests/kolmogorovsmirnov-twosample.md), asymptotic, 100 values | 6.13 µs, 16.3 KB | 4.68 µs, 4.7 KB |
+| [`KolmogorovSmirnov.TwoSample`](../reference/stats/tests/kolmogorovsmirnov-twosample.md), asymptotic, 280 values | 81.8 µs, 102 KB | **55.6 µs, 24.7 KB** |
+| [`CoxProportionalHazards.Fit`](../reference/survival/estimators/coxproportionalhazards-fit.md), 10,000 × 2 | 3.88 ms, 1.2 MB | **3.25 ms, 680 KB** |
+| [`CoxProportionalHazards.Fit`](../reference/survival/estimators/coxproportionalhazards-fit.md), 10,000 × 8 | 12.8 ms, 1.8 MB | 12.5 ms, 1.2 MB |
+
+Every candidate lag's design is a leading block of the widest one, and a VAR's equations share one design, so one Householder QR applied in the regression package's own operation order serves them all. The rank tests read their tie terms off the ranking's own groups, Durbin's matrix power swaps flat buffers, and the Cox fit reuses its buffers across Newton iterations: bit-identical against `main`, asserted per lag and per equation. The partial autocorrelation and Ljung-Box statistics gain as the autocorrelation does. `StationarityBenchmarks`, `VectorAutoregressionBenchmarks`, `SerialCorrelationBenchmarks`, `RankTestBenchmarks`, `KolmogorovDurbinBenchmarks` and `CoxBenchmarks`, pinned to four cores; the pooled Wilcoxon row with ties and Durbin at 20,000 values drifted between the two `main` runs and are not published.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
+LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
+2026-09-17; both `main` runs agreed within 4.1%.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly

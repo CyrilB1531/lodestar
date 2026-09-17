@@ -384,6 +384,9 @@
     ],
     "MultiClassRocAucBenchmarks": [
       "src/Lodestar.Metrics/**"
+    ],
+    "KolmogorovDurbinBenchmarks": [
+      "src/Lodestar.Stats/**"
     ]
   },
   "harnesses": {

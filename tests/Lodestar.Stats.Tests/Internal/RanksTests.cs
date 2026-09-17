@@ -71,6 +71,19 @@ public sealed class RanksTests
         Assert.True(Ranks.HasTies([1.0, 2.0, 2.0]));
     }
 
+    [Theory]
+    [InlineData(new[] { 1.0, 2.0, 3.0 })]
+    [InlineData(new[] { 7.0, 7.0, 7.0, 2.0, 2.0, 9.0 })]
+    [InlineData(new[] { 0.0, -0.0, 4.0, double.NaN, double.NaN, 4.0, 4.0 })]
+    public void AverageWithTies_reads_the_tie_terms_the_separate_sorts_return(double[] values)
+    {
+        double[] ranks = Ranks.AverageWithTies(values, out double tieCorrection, out bool hasTies);
+
+        Assert.Equal(Ranks.Average(values), ranks);
+        Assert.Equal(BitConverter.DoubleToInt64Bits(Ranks.TieCorrection(values)), BitConverter.DoubleToInt64Bits(tieCorrection));
+        Assert.Equal(Ranks.HasTies(values), hasTies);
+    }
+
     [Fact]
     public void Average_refuses_an_empty_sample()
     {

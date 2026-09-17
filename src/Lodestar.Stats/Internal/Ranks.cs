@@ -8,7 +8,11 @@ namespace Lodestar.Stats.Internal;
 /// </remarks>
 internal static class Ranks
 {
-    internal static double[] Average(ReadOnlySpan<double> values)
+    internal static double[] Average(ReadOnlySpan<double> values) => AverageWithTies(values, out _, out _);
+
+    /// <summary>The mid-ranks, with <see cref="TieCorrection"/> and <see cref="HasTies"/> read off the same tie groups.</summary>
+    /// <remarks>The groups are walked in the order a second sort would walk them, so both terms are bit for bit its own.</remarks>
+    internal static double[] AverageWithTies(ReadOnlySpan<double> values, out double tieCorrection, out bool hasTies)
     {
         if (values.Length == 0)
         {
@@ -27,6 +31,8 @@ internal static class Ranks
         Array.Sort(sorted, order);
 
         double[] ranks = new double[n];
+        tieCorrection = 0.0;
+        hasTies = false;
         int start = 0;
         while (start < n)
         {
@@ -49,6 +55,10 @@ internal static class Ranks
             {
                 ranks[order[i]] = shared;
             }
+
+            double t = end - start + 1;
+            tieCorrection += (t * t * t) - t;
+            hasTies |= end > start;
 
             start = end + 1;
         }

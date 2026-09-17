@@ -14,7 +14,9 @@ namespace Lodestar.Stats.Benchmarks;
 /// <see cref="StatsBenchmarks"/> stops at 10,000 and races Accord; this class does neither. Each
 /// sample holds <see cref="SampleSize"/> values, Kruskal-Wallis three groups of that size. With
 /// <see cref="Ties"/> the values are rounded to hundredths, so most of them share a rank.
-/// Mann-Whitney is the control: #711 already ranks it by merging sorted samples.
+/// Mann-Whitney is the control: #711 already ranks it by merging sorted samples. The two pooled rows take the
+/// paths that still sort: Kruskal-Wallis past sixteen groups, and Wilcoxon past 180,000 differences, which only the
+/// larger size reaches.
 /// </remarks>
 [MemoryDiagnoser]
 public class RankTestBenchmarks
@@ -22,6 +24,8 @@ public class RankTestBenchmarks
     private double[] _x = [];
     private double[] _y = [];
     private double[] _z = [];
+    private double[][] _manyGroups = [];
+    private double[] _differences = [];
 
     [Params(10_000, 100_000)]
     public int SampleSize { get; set; }
@@ -36,6 +40,16 @@ public class RankTestBenchmarks
         _x = Draw(random, 0.0);
         _y = Draw(random, 0.05);
         _z = Draw(random, 0.1);
+
+        const int GroupCount = 32;
+        _manyGroups = new double[GroupCount][];
+        for (int g = 0; g < GroupCount; g++)
+        {
+            int start = g * SampleSize / GroupCount;
+            _manyGroups[g] = [.. ((g % 3) switch { 0 => _x, 1 => _y, _ => _z }).Skip(start).Take(SampleSize / GroupCount)];
+        }
+
+        _differences = [.. _x.Select((value, i) => value - _y[i]), .. _y.Select((value, i) => value - _z[i]), .. _x.Select((value, i) => value - _z[i])];
     }
 
     private double[] Draw(Random random, double shift)
@@ -54,6 +68,12 @@ public class RankTestBenchmarks
 
     [Benchmark]
     public double WilcoxonPaired() => Wilcoxon.Paired(_x, _y).PValue;
+
+    [Benchmark]
+    public double KruskalWallisManyGroups() => KruskalWallis.Test(_manyGroups).PValue;
+
+    [Benchmark]
+    public double WilcoxonPooledDifferences() => Wilcoxon.OneSample(_differences).PValue;
 
     [Benchmark]
     public double MannWhitneyTest() => MannWhitney.Test(_x, _y).PValue;

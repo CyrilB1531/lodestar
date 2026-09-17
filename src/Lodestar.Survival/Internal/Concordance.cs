@@ -19,6 +19,13 @@ internal static class Concordance
         double[] eta = LinearPredictor(design, coefficients, count);
         double[] levels = EventLevels(eta, eventObserved);
 
+        // Each subject's rank is searched once here, where the walk would search an event's twice.
+        int[] below = new int[count];
+        for (int i = 0; i < count; i++)
+        {
+            below[i] = LevelsBelow(levels, eta[i]);
+        }
+
         int[] order = new int[count];
         double[] keys = durations.ToArray();
         for (int i = 0; i < count; i++)
@@ -33,7 +40,7 @@ internal static class Concordance
         while (start < count)
         {
             int end = TimeGroupEnd(keys, start);
-            Walk(order.AsSpan(start, end - start), eventObserved, eta, levels, pool, tally);
+            Walk(order.AsSpan(start, end - start), eventObserved, eta, (levels, below), pool, tally);
             start = end;
         }
 
@@ -43,14 +50,14 @@ internal static class Concordance
     /// <summary>One time's subjects: its events meet the pool of earlier events and then join it; its
     /// censorings meet that enlarged pool and never join it.</summary>
     private static void Walk(
-        ReadOnlySpan<int> group, ReadOnlySpan<bool> eventObserved, double[] eta, double[] levels,
+        ReadOnlySpan<int> group, ReadOnlySpan<bool> eventObserved, double[] eta, (double[] Levels, int[] Below) ranks,
         FenwickTree pool, Tally tally)
     {
         foreach (int subject in group)
         {
             if (eventObserved[subject])
             {
-                tally.Compare(eta[subject], levels, pool);
+                tally.Compare(eta[subject], ranks.Levels, ranks.Below[subject], pool);
             }
         }
 
@@ -58,7 +65,7 @@ internal static class Concordance
         {
             if (eventObserved[subject])
             {
-                pool.Add(LevelsBelow(levels, eta[subject]) + 1);
+                pool.Add(ranks.Below[subject] + 1);
             }
         }
 
@@ -66,7 +73,7 @@ internal static class Concordance
         {
             if (!eventObserved[subject])
             {
-                tally.Compare(eta[subject], levels, pool);
+                tally.Compare(eta[subject], ranks.Levels, ranks.Below[subject], pool);
             }
         }
     }
@@ -88,17 +95,39 @@ internal static class Concordance
     /// <summary>The distinct event predictors, ascending: the ranks the pool is indexed by.</summary>
     private static double[] EventLevels(double[] eta, ReadOnlySpan<bool> eventObserved)
     {
-        var values = new List<double>();
+        int events = 0;
+        foreach (bool observed in eventObserved)
+        {
+            events += observed ? 1 : 0;
+        }
+
+        var values = new double[events];
+        int filled = 0;
         for (int i = 0; i < eta.Length; i++)
         {
             if (eventObserved[i])
             {
-                values.Add(eta[i]);
+                values[filled++] = eta[i];
             }
         }
 
-        values.Sort();
-        return [.. values.Distinct()];
+        Array.Sort(values);
+
+        // Adjacent duplicates by Equals, which is what Distinct compared: NaN matches NaN, and -0 matches 0.
+        // S1244: a level is an exact predictor value, and a tolerance would merge two ranks.
+        int distinct = 0;
+        for (int i = 0; i < values.Length; i++)
+        {
+#pragma warning disable S1244
+            if (distinct == 0 || !values[i].Equals(values[distinct - 1]))
+#pragma warning restore S1244
+            {
+                values[distinct++] = values[i];
+            }
+        }
+
+        Array.Resize(ref values, distinct);
+        return values;
     }
 
     /// <summary>How many distinct event predictors lie strictly below <paramref name="value"/>.</summary>
@@ -149,9 +178,8 @@ internal static class Concordance
 
         /// <summary>Compares a later subject against every earlier event in the pool.</summary>
         /// <remarks>An earlier event with a higher predictor is concordant, and an equal one is half.</remarks>
-        internal void Compare(double predictor, double[] levels, FenwickTree pool)
+        internal void Compare(double predictor, double[] levels, int below, FenwickTree pool)
         {
-            int below = LevelsBelow(levels, predictor);
             // S1244: a tie in the predictor is exact equality; it is what Harrell counts as a half.
 #pragma warning disable S1244
             bool matches = below < levels.Length && levels[below] == predictor;

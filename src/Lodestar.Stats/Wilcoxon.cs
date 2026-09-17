@@ -151,7 +151,7 @@ public static class Wilcoxon
         // on, not a value with a tolerance band.
 #pragma warning disable S1244
         double[] ranked = zeroMethod == ZeroMethod.Wilcox
-            ? [.. values.ToArray().Where(d => d != 0.0)]
+            ? NonZero(values)
             : values.ToArray();
 #pragma warning restore S1244
 
@@ -168,7 +168,7 @@ public static class Wilcoxon
             magnitudes[i] = Math.Abs(ranked[i]);
         }
 
-        double[] ranks = Ranks.Average(magnitudes);
+        double[] ranks = Ranks.AverageWithTies(magnitudes, out _, out bool magnitudesTie);
         RankSums sums = ComputeRankSums(ranked, ranks, zeroMethod);
         double positive = sums.Positive;
         double negative = sums.Negative;
@@ -181,7 +181,7 @@ public static class Wilcoxon
         int zeroCount = CountZeros(values);
 
         NullDistribution distribution = ChooseDistribution(
-            method, values.Length, Ranks.HasTies(magnitudes), zeroCount);
+            method, values.Length, magnitudesTie, zeroCount);
 
         if (distribution == NullDistribution.Exact && ranked.Length > MaxExactSampleSize)
         {
@@ -291,6 +291,22 @@ public static class Wilcoxon
         }
 
         return count;
+    }
+
+    // Counted first, so the kept differences land in one array of the right size.
+    private static double[] NonZero(ReadOnlySpan<double> differences)
+    {
+        var kept = new double[differences.Length - CountZeros(differences)];
+        int at = 0;
+        foreach (double difference in differences)
+        {
+            if (difference != 0.0)
+            {
+                kept[at++] = difference;
+            }
+        }
+
+        return kept;
     }
 #pragma warning restore S1244
 

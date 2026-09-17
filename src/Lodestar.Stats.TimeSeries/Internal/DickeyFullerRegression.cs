@@ -28,6 +28,60 @@ internal static class DickeyFullerRegression
     internal static (IReadOnlyList<double> TStatistics, double ResidualSumOfSquares) Fit(
         ReadOnlySpan<double> series, TrendTerms regression, int lag, int rows)
     {
+        double[] design = Design(series, regression, lag, rows, out double[] response);
+        OlsEstimate estimate = OrdinaryLeastSquares.Estimate(
+            design, response, TrendColumns(regression) + 1 + lag, withIntercept: regression != TrendTerms.None);
+        return (estimate.TStatistics, estimate.ResidualSumOfSquares);
+    }
+
+    /// <summary>
+    /// The residual sums of squares and the highest lag's t statistic of every lag from 0 to <paramref name="maxLag"/>,
+    /// each bit-identical to <see cref="Fit"/> at that lag, from one QR of the widest design.
+    /// </summary>
+    /// <remarks>
+    /// Every candidate's design is a leading block of the widest one's columns over the same rows, which is what lets
+    /// one factorization answer them all: 27 QRs became one at 2,000 points.
+    /// </remarks>
+    internal static (double[] ResidualSumsOfSquares, double[] LastTStatistics) Candidates(
+        ReadOnlySpan<double> series, TrendTerms regression, int maxLag, int rows, bool withTStatistics)
+    {
+        // A fit with no residual degree of freedom is refused by the estimate itself, at the lag the search reaches it first.
+        int terms = TermCount(regression);
+        if (withTStatistics && rows - (terms + 1 + maxLag) < 1)
+        {
+            _ = Fit(series, regression, maxLag, rows);
+        }
+
+        double[] design = Design(series, regression, maxLag, rows, out double[] response);
+        var reflections = new SharedReflections(
+            design, TrendColumns(regression) + 1 + maxLag, regression != TrendTerms.None, [response]);
+
+        var sums = new double[maxLag + 1];
+        var statistics = new double[withTStatistics ? maxLag + 1 : 0];
+        for (int lag = 0; lag <= maxLag; lag++)
+        {
+            int order = terms + 1 + lag;
+            if (rows - order < 1)
+            {
+                _ = Fit(series, regression, lag, rows);
+            }
+
+            reflections.ReflectThrough(order);
+            sums[lag] = reflections.ResidualSumOfSquares(0, order);
+            if (withTStatistics)
+            {
+                double[] inverse = reflections.InverseUpper(order);
+                (double[] coefficients, double[] errors) = reflections.Estimates(
+                    0, order, inverse, SharedReflections.SquaredNorms(inverse, order), sums[lag]);
+                statistics[lag] = coefficients[order - 1] / errors[order - 1];
+            }
+        }
+
+        return (sums, statistics);
+    }
+
+    private static double[] Design(ReadOnlySpan<double> series, TrendTerms regression, int lag, int rows, out double[] response)
+    {
         // long-comment: why the trend columns come first.
         // Row r of rows is series position t = n - rows + r: the response is dx[t], and the regressors
         // are the trend columns r + 1 and (r + 1)^2, then the lagged level x[t - 1], then
@@ -39,7 +93,7 @@ internal static class DickeyFullerRegression
         int trend = TrendColumns(regression);
         int features = trend + 1 + lag;
         var design = new double[rows * features];
-        var response = new double[rows];
+        response = new double[rows];
 
         for (int row = 0; row < rows; row++)
         {
@@ -63,9 +117,7 @@ internal static class DickeyFullerRegression
             }
         }
 
-        OlsEstimate estimate = OrdinaryLeastSquares.Estimate(
-            design, response, features, withIntercept: regression != TrendTerms.None);
-        return (estimate.TStatistics, estimate.ResidualSumOfSquares);
+        return design;
     }
 
     /// <summary>Akaike's or Schwarz's criterion from a fit's residual sum of squares.</summary>

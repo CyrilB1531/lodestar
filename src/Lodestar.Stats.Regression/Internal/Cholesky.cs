@@ -13,7 +13,7 @@ internal static class Cholesky
 
     /// <summary>Factors <c>Σ = L Lᵀ</c>, or reports that <paramref name="matrix"/> is not positive definite.</summary>
     /// <remarks>
-    /// The factor's cost is its inner products, <c>n³/6</c> of them, taken through <see cref="LeastSquares.Dot"/>'s
+    /// The factor's cost is its inner products, <c>n³/6</c> of them, taken through <see cref="Reflections.Dot"/>'s
     /// unrolled loop: the whole fit ran 2.2× faster at 500 and 1,000 rows than with the indexed loop it replaced,
     /// measured A/B/A (#771, performance.md).
     /// </remarks>
@@ -29,12 +29,12 @@ internal static class Cholesky
             {
                 int columnStart = column * order;
                 double reduced = matrix[rowStart + column]
-                    - LeastSquares.Dot(rowPrefix.Slice(0, column), factor.Slice(columnStart, column));
+                    - Reflections.Dot(rowPrefix.Slice(0, column), factor.Slice(columnStart, column));
                 factor[rowStart + column] = reduced / factor[columnStart + column];
             }
 
             double diagonal = matrix[rowStart + row];
-            double pivot = diagonal - LeastSquares.Dot(rowPrefix, rowPrefix);
+            double pivot = diagonal - Reflections.Dot(rowPrefix, rowPrefix);
             // The negated comparison also refuses a NaN, which every ordered comparison fails.
             if (!(pivot > PivotFloor * Math.Abs(diagonal)) || double.IsInfinity(pivot))
             {
@@ -56,7 +56,7 @@ internal static class Cholesky
         for (int row = 0; row < order; row++)
         {
             int rowStart = row * order;
-            values[row] = (values[row] - LeastSquares.Dot(lower.AsSpan(rowStart, row), values.Slice(0, row))) / lower[rowStart + row];
+            values[row] = (values[row] - Reflections.Dot(lower.AsSpan(rowStart, row), values.Slice(0, row))) / lower[rowStart + row];
         }
     }
 

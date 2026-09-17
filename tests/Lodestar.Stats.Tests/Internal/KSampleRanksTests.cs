@@ -54,6 +54,35 @@ public sealed class KSampleRanksTests
         AssertAgrees(groups);
     }
 
+    // Past the merge's limit the test ranks the pooled sample once and reads the tie term off the same pass (#843).
+    [Fact]
+    public void Past_the_merge_limit_the_statistic_matches_two_separate_sorts_bit_for_bit()
+    {
+        Random random = new(13);
+        double[][] groups = Groups(KSampleRanks.MaxGroups + 1, g => 20 + g, () => Math.Round(random.NextDouble() * 10, 1));
+        double[] pooled = [.. groups.SelectMany(group => group)];
+        double[] ranks = Ranks.Average(pooled);
+        double weighted = 0.0;
+        int offset = 0;
+        foreach (double[] group in groups)
+        {
+            double sum = 0.0;
+            for (int i = 0; i < group.Length; i++)
+            {
+                sum += ranks[offset + i];
+            }
+
+            weighted += sum * sum / group.Length;
+            offset += group.Length;
+        }
+
+        int total = pooled.Length;
+        double h = (12.0 / (total * (total + 1.0)) * weighted) - (3.0 * (total + 1.0));
+        h /= 1.0 - (Ranks.TieCorrection(pooled) / (((double)total * total * total) - total));
+
+        Assert.Equal(BitConverter.DoubleToInt64Bits(h), BitConverter.DoubleToInt64Bits(KruskalWallis.Test(groups).Statistic));
+    }
+
     private static double[][] Groups(int k, Func<int, int> length, Func<double> next)
     {
         double[][] groups = new double[k][];

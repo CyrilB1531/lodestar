@@ -11,6 +11,7 @@
     <PackageId>Lodestar.Stats.Regression</PackageId>
     <Description>Ordinary, weighted and generalized least squares with inference for .NET, at statsmodels parity: standard errors, t statistics, p-values, confidence intervals, R-squared and its adjusted form, the overall F test and a variance inflation factor per regressor. Solved through a Householder QR rather than the normal equations. Spans in, one summary out, and no dependencies outside Lodestar.</Description>
     <PackageTags>regression;ols;wls;gls;least-squares;inference;p-value;statistics;statsmodels;vif;lodestar</PackageTags>
+    <LodestarIncludesReflections>true</LodestarIncludesReflections>
   </PropertyGroup>
 
   <!--

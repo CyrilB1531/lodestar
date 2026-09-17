@@ -118,7 +118,8 @@ public static class KruskalWallis
         if (groups.Length > KSampleRanks.MaxGroups)
         {
             double[] pooled = Pool(groups, total);
-            return (WeightedRankSum(groups, Ranks.Average(pooled)), Ranks.TieCorrection(pooled));
+            double[] ranks = Ranks.AverageWithTies(pooled, out double pooledTieTerm, out _);
+            return (WeightedRankSum(groups, ranks), pooledTieTerm);
         }
 
         Span<double> sums = stackalloc double[groups.Length];
