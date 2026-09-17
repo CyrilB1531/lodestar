@@ -132,6 +132,7 @@ public sealed class MmrTests
     [Theory]
     [InlineData(-0.1)]
     [InlineData(1.1)]
+    [InlineData(double.NaN)]
     public void A_lambda_outside_the_unit_interval_is_refused(double lambda)
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => Mmr.Select(Query, Candidates, count: 2, lambda));

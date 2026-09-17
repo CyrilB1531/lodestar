@@ -128,6 +128,10 @@ is one sentence, the issue and the commit; see
 - `EmbeddingIndex.Load` reads a stream of undeclared length into pooled segments. ([#716](https://github.com/CyrilB1531/lodestar/issues/716), [`b7eb6e48`](https://github.com/CyrilB1531/lodestar/commit/b7eb6e48))
 - `System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
 
+#### Fixed
+
+- `Mmr.Select` refuses a `NaN` lambda with `ArgumentOutOfRangeException` instead of throwing `IndexOutOfRangeException`. ([#886](https://github.com/CyrilB1531/lodestar/issues/886))
+
 ### Lodestar.Onnx
 
 #### Changed

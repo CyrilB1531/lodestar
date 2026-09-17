@@ -16,7 +16,7 @@ all. `lambda` is `1` for pure relevance, `0` for pure diversity.
 afterwards.
 
 **Exceptions** — `ArgumentNullException` when `candidates` is null. `ArgumentOutOfRangeException`
-when `count` is negative, or `lambda` is outside `[0, 1]`. `ArgumentException` when a candidate is
+when `count` is negative, or `lambda` is outside `[0, 1]` or `NaN`. `ArgumentException` when a candidate is
 null, of a different length than `query`, or has a zero or non-finite norm — cosine is undefined in
 either case, and the same check applies to `query` itself.
 
