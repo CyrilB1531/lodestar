@@ -108,7 +108,7 @@ internal static class RobustCovariance
             LaggedCrossProduct(scores, rowCount, parameterCount, lag, lagged);
 
             // Γ₀ is symmetric already and enters once; every later lag enters with its transpose.
-            double weight = lag == 0 ? 1.0 : 1.0 - ((double)lag / (lags + 1));
+            double weight = lag == 0 ? 1.0 : 1.0 - (lag / (lags + 1.0));
             for (int a = 0; a < parameterCount; a++)
             {
                 for (int b = 0; b < parameterCount; b++)

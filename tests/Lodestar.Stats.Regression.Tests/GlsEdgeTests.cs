@@ -30,6 +30,24 @@ public sealed class GlsEdgeTests
     }
 
     [Fact]
+    public void A_covariance_is_refused_when_the_row_count_squared_passes_an_int()
+    {
+        // 65,536² is 2³², which wrapped to zero and let an empty covariance through to an IndexOutOfRangeException (#905).
+        var design = new double[65_536];
+        var response = new double[65_536];
+        for (int i = 0; i < design.Length; i++)
+        {
+            design[i] = i;
+            response[i] = (2.0 * i) + (i % 7);
+        }
+
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => GeneralizedLeastSquares.Fit(design, response, ReadOnlySpan<double>.Empty, 1));
+
+        Assert.Equal("covariance", error.ParamName);
+    }
+
+    [Fact]
     public void A_non_finite_covariance_entry_is_refused()
     {
         double[] covariance = Diagonal(1.0, 1.0, 1.0, 1.0, 1.0, 1.0);

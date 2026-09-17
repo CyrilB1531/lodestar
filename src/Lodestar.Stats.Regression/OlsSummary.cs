@@ -26,7 +26,10 @@ public sealed class OlsSummary
     public IReadOnlyList<double> TStatistics { get; init; } = [];
 
     /// <summary>The two-sided p-value of each <see cref="TStatistics"/> entry.</summary>
-    /// <remarks>Against the null that the coefficient is zero, read on <see cref="ResidualDegreesOfFreedom"/>.</remarks>
+    /// <remarks>
+    /// Against the null that the coefficient is zero: on Student's t with <see cref="ResidualDegreesOfFreedom"/> for
+    /// <see cref="Lodestar.Stats.Regression.CovarianceType.Nonrobust"/>, and on the normal for every robust covariance.
+    /// </remarks>
     public IReadOnlyList<double> PValues { get; init; } = [];
 
     /// <summary>The lower end of each interval, at <see cref="ConfidenceLevel"/>.</summary>
@@ -68,9 +71,13 @@ public sealed class OlsSummary
     public double FStatistic { get; init; }
 
     /// <summary>The upper-tail probability of <see cref="FStatistic"/>.</summary>
+    /// <remarks>
+    /// On <see cref="ResidualDegreesOfFreedom"/> denominator degrees of freedom, except under
+    /// <see cref="Lodestar.Stats.Regression.CovarianceType.Cluster"/>, where it reads the cluster count less one.
+    /// </remarks>
     public double FPValue { get; init; }
 
-    /// <summary>Rows less fitted parameters — what every t here is read on.</summary>
+    /// <summary>Rows less fitted parameters — what the t statistics of a non-robust fit are read on.</summary>
     public int ResidualDegreesOfFreedom { get; init; }
 
     /// <summary>The residual standard error, the square root of the residual mean square.</summary>

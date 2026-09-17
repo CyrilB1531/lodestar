@@ -124,6 +124,18 @@ public sealed class HacClusterEdgeTests
     }
 
     [Fact]
+    public void The_largest_lag_count_weights_as_its_neighbour_does()
+    {
+        // lags + 1 wrapped at int.MaxValue: each weight 1 − l/(L+1) became 1 + l/2³¹, and this fit threw instead (#905).
+        OlsSummary largest = OrdinaryLeastSquares.Fit(
+            Design, Response, 2, new OlsOptions { CovarianceType = CovarianceType.Hac, HacLags = int.MaxValue });
+        OlsSummary neighbour = OrdinaryLeastSquares.Fit(
+            Design, Response, 2, new OlsOptions { CovarianceType = CovarianceType.Hac, HacLags = int.MaxValue - 1 });
+
+        AssertSameErrors(neighbour, largest);
+    }
+
+    [Fact]
     public void A_negative_lag_count_is_refused()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OlsOptions { HacLags = -1 });

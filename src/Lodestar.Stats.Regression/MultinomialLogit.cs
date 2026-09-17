@@ -34,11 +34,19 @@ public static class MultinomialLogit
         Guard.NotLessThan(featureCount, 1);
         MultinomialLogitOptions settings = options ?? new MultinomialLogitOptions();
         int rowCount = response.Length;
-        if (design.Length == 0 || design.Length % featureCount != 0 || design.Length / featureCount != rowCount)
+        if (design.Length == 0 || design.Length % featureCount != 0)
         {
             throw new ArgumentException(
-                $"design holds {design.Length} values for {featureCount} regressors per row, and response {rowCount} labels.",
+                $"design holds {design.Length} values, which is not a positive whole number of rows of {featureCount}.",
                 nameof(design));
+        }
+
+        if (design.Length / featureCount != rowCount)
+        {
+            // The design's shape is sound, so the label count is what disagrees, as OLS and the GLM name it (#905).
+            throw new ArgumentException(
+                $"design has {design.Length / featureCount} rows and response holds {rowCount} labels.",
+                nameof(response));
         }
 
         (int[] categories, int[] labels, int[] counts) = Categorise(response);

@@ -42,7 +42,10 @@ and each interval is centred on its estimate.
 
 **`FStatistic` and `FPValue` test every slope at once**, not the intercept. With a fitted intercept
 the null is that all `featureCount` slopes are zero; without one the intercept is not there to
-exclude and the test gains a degree of freedom.
+exclude and the test gains a degree of freedom. `FPValue` reads the F on `ResidualDegreesOfFreedom`
+denominator degrees of freedom, except under `CovarianceType.Cluster`, where it reads the cluster count
+less one, as statsmodels' `df_resid_inference` does; `ResidualDegreesOfFreedom` itself stays rows less
+parameters.
 
 **A VIF is not a p-value's replacement.** It says how much of a regressor the *others* already
 explain — 1 when nothing does, and unbounded as two regressors converge on saying the same thing.
