@@ -771,6 +771,8 @@ It prints `true` only when every path ends in `.md`, a rename counting both its 
 JSON map the tests read, or an empty list gives `false`: a pull request whose files could not be
 listed takes the full path, never the reduced one.
 
+<!-- probe for #899, never merged -->
+
 ## `check_sample_culture.py`
 
 Refuses a sample that can print a number in whoever ran it's culture. The sample
