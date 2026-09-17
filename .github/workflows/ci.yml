@@ -521,6 +521,9 @@ jobs:
           name: doc-tests-net10
           path: doc-tests
           retention-days: 14
+          # Every upload here carries overwrite: a rerun re-uploads into the same run and the
+          # default keeps both -- measured on main, two doc-tests-net10 artifacts on one run.
+          overwrite: true
 
       # Coverage must be written before `end` collects it, and a format or path mismatch
       # fails silently as 0% coverage -- which is why the format is named on both sides
@@ -580,6 +583,7 @@ jobs:
         with:
           name: test-results
           path: '**/*.trx'
+          overwrite: true
 
   # The ruleset on main requires a check named "Build and analyze", which the SonarQube Cloud
   # workflow posted until its build merged into build-test (#857). This keeps the name and its
@@ -773,6 +777,7 @@ jobs:
           name: oracles-as-regenerated
           path: tests/oracles/
           retention-days: 14
+          overwrite: true
 
   windows:
     name: Build, test and platform checks (Windows)

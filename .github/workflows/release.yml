@@ -172,3 +172,5 @@ jobs:
         with:
           name: nuget-packages
           path: artifacts/*.nupkg
+          # A rerun re-uploads into the same run, which the action refuses by default (#997).
+          overwrite: true
