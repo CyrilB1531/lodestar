@@ -66,26 +66,33 @@ jobs:
           echo "run_id=$run" >> "$GITHUB_OUTPUT"
           echo "base $BASE: ${run:-no binaries, the solution will be built}"
 
+      # Outside the checkout, because stage_doc_inputs.py copies this pull request's docs in
+      # beside each of the eighteen assemblies: inside it, every guard and tool test that
+      # follows walks eighteen extra copies of the repository's Markdown, and
+      # check_sdd_citations.py failed on them (#1032). The tests read their inputs beside
+      # their own assembly, so the tree can live anywhere.
       - name: Download main's documentation test binaries
         if: steps.doc-binaries.outputs.run_id != ''
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: doc-tests-net10
-          path: doc-tests
+          path: ${{ runner.temp }}/doc-tests
           run-id: ${{ steps.doc-binaries.outputs.run_id }}
           github-token: ${{ github.token }}
 
       - name: Test the documentation only, on main's binaries
         if: steps.doc-binaries.outputs.run_id != ''
+        env:
+          DOC_TESTS: ${{ runner.temp }}/doc-tests
         run: |
           expected=$(ls -d tests/Lodestar.*.Tests | grep -vc NetStandard)
-          found=$(ls -d doc-tests/*/ | wc -l)
+          found=$(ls -d "$DOC_TESTS"/*/ | wc -l)
           if [ "$found" != "$expected" ]; then
             echo "::error::The artifact holds $found test projects, the checkout $expected."
             exit 1
           fi
           status=0
-          for dir in doc-tests/*/; do
+          for dir in "$DOC_TESTS"/*/; do
             name=$(basename "$dir")
             python3 tools/stage_doc_inputs.py "tests/$name/$name.csproj" "$dir" || status=1
             dotnet "$dir/$name.dll" -namespace "$name.Documentation" || status=1
