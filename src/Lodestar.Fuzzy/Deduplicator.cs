@@ -1,3 +1,4 @@
+// Probe for #997, not for merge.
 namespace Lodestar.Fuzzy;
 
 // SonarLint S3776: cognitive complexity: a faithful implementation of a published rule-engine; decomposing it would break the 1:1 mapping with the reference that makes divergences auditable.
