@@ -23,6 +23,7 @@ public static class DamerauLevenshtein
     private static readonly CodePointPair.Measure MeasureCodePoints = Distance<int>;
 
     /// <summary>Computes the Damerau-Levenshtein distance between <paramref name="a"/> and <paramref name="b"/>.</summary>
+    /// <exception cref="ArgumentException">The two lengths need a table larger than the largest array .NET allocates.</exception>
     public static int Distance(ReadOnlySpan<char> a, ReadOnlySpan<char> b, TextElement element = TextElement.Utf16Unit)
     {
         return element == TextElement.CodePoint
@@ -31,6 +32,7 @@ public static class DamerauLevenshtein
     }
 
     /// <summary>Length-normalized distance in <c>[0, 1]</c>: <c>distance / max(len(a), len(b))</c>.</summary>
+    /// <exception cref="ArgumentException">The two lengths need a table larger than the largest array .NET allocates.</exception>
     public static double NormalizedDistance(ReadOnlySpan<char> a, ReadOnlySpan<char> b, TextElement element = TextElement.Utf16Unit)
     {
         int distance;
@@ -50,12 +52,14 @@ public static class DamerauLevenshtein
     }
 
     /// <summary>Length-normalized similarity in <c>[0, 1]</c>: <c>1 - NormalizedDistance</c>.</summary>
+    /// <exception cref="ArgumentException">The two lengths need a table larger than the largest array .NET allocates.</exception>
     public static double NormalizedSimilarity(ReadOnlySpan<char> a, ReadOnlySpan<char> b, TextElement element = TextElement.Utf16Unit)
     {
         return 1.0 - NormalizedDistance(a, b, element);
     }
 
     /// <summary>Computes the Damerau-Levenshtein distance over any sequence of equatable elements.</summary>
+    /// <exception cref="ArgumentException">The two lengths need a table larger than the largest array .NET allocates.</exception>
     public static int Distance<T>(ReadOnlySpan<T> a, ReadOnlySpan<T> b)
         where T : IEquatable<T>
     {
@@ -72,11 +76,20 @@ public static class DamerauLevenshtein
 
         // Matrix indexed from -1..m and -1..n via a +1 offset; width = n + 2.
         int width = n + 2;
+        long cells = (long)(m + 2) * width;
+        if (cells > WideAlphabet.MaxTableLength)
+        {
+            // In int this wrapped at about 46k per side and surfaced from Rent or AsSpan (#413 did the same for Myers).
+            throw new ArgumentException(
+                $"Damerau-Levenshtein needs a ({m} + 2) × ({n} + 2) table, {cells} cells, past the largest array .NET allocates.",
+                nameof(a));
+        }
+
         int maxDistance = m + n;
-        int[] rented = ArrayPool<int>.Shared.Rent((m + 2) * width);
+        int[] rented = ArrayPool<int>.Shared.Rent((int)cells);
         try
         {
-            Span<int> d = rented.AsSpan(0, (m + 2) * width);
+            Span<int> d = rented.AsSpan(0, (int)cells);
             int Idx(int i, int j) => (i + 1) * width + (j + 1);
 
             d[Idx(-1, -1)] = maxDistance;

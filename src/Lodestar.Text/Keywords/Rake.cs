@@ -23,7 +23,10 @@ public sealed class Rake
     public Rake(RakeOptions? options = null)
     {
         _options = options ?? new RakeOptions();
-        Guard.NotLessThan(_options.MinLength, 1);
+        if (_options.MinLength < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), _options.MinLength, "MinLength must be at least 1.");
+        }
         if (_options.MaxLength < _options.MinLength)
         {
             throw new ArgumentException(

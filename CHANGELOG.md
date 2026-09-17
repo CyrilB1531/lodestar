@@ -126,6 +126,7 @@ is one sentence, the issue and the commit; see
 - The Snowball stemmers and the vectorizers' `StripAccents` keep an unpaired surrogate in place, as Python's normalization does, where `string.Normalize` threw `ArgumentException`. ([#880](https://github.com/CyrilB1531/lodestar/issues/880))
 - `CountVectorizer.Load`, `TfidfVectorizer.Load` and `HashingVectorizer.Load` restate an option the vectorizer refuses, such as a token pattern no regex parses, as `InvalidDataException`, and the save pages say which default bounds a saved model can exceed. ([#881](https://github.com/CyrilB1531/lodestar/issues/881))
 - The `char` analyzer collapses only runs of two or more whitespace characters, and both character analyzers count U+001C to U+001F as whitespace, as scikit-learn does. ([#879](https://github.com/CyrilB1531/lodestar/issues/879))
+- The vectorizers, `Bm25Index`, `TextRank`, `Rake`, `LshIndex`, `BkTree`, `MinHash`, `SimHash`, `RankFusion`, `MinHashPermutations` and `DamerauLevenshtein` refuse null documents, out-of-range options and overflowing sizes with the documented exception and the caller's parameter name, and an unfitted `Save(Stream)` no longer writes a partial header. ([#901](https://github.com/CyrilB1531/lodestar/issues/901))
 - `DoubleMetaphone.Encode("W")` returns two empty codes, as the reference does, instead of throwing. ([#838](https://github.com/CyrilB1531/lodestar/issues/838))
 
 ### Lodestar.Gpu

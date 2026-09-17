@@ -15,8 +15,8 @@ public sealed class TfidfTransformer
 **Constructor** — `TfidfTransformer(TfidfOptions? options = null)`, whose defaults are
 scikit-learn's.
 
-**Properties** — `Idf` is the inverse document frequency learned per column, available after
-fitting.
+**Properties** — `Idf` is the inverse document frequency learned per column, computed by fitting
+whether or not [`TfidfOptions.UseIdf`](tfidfoptions.md) is set; reading it before fitting throws `InvalidOperationException`.
 
 **Example** — counts from a [`CountVectorizer`](countvectorizer.md), weighted afterwards.
 

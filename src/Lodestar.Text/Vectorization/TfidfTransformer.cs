@@ -36,7 +36,8 @@ public sealed class TfidfTransformer
         _options = options ?? new TfidfOptions();
     }
 
-    /// <summary>The learned inverse-document-frequency vector (one per feature), or empty if not using idf.</summary>
+    /// <summary>The learned inverse-document-frequency vector (one per feature), computed by <see cref="Fit"/> whether or not <c>UseIdf</c> is set.</summary>
+    /// <exception cref="InvalidOperationException">nothing has been fitted yet.</exception>
     public IReadOnlyList<double> Idf => _idf ?? throw new InvalidOperationException("Not fitted.");
 
     /// <exception cref="ArgumentNullException"><paramref name="counts"/> is null.</exception>

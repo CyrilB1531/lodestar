@@ -33,8 +33,10 @@ int features = cv.FitTransform(["a cat eats"]).ColumnCount;  // => 2
 decision that keeps a ported pipeline giving the same columns, and it is also the one that makes
 `"I"` and `"a"` vanish from a corpus without saying so.
 
-`MinDf` is read as a count when integral and as a proportion when fractional — `MinDf = 2` means
-two documents, `MinDf = 0.5` means half of them. `MaxDf` does **not** follow that rule at its
+`MinDf` is read as a count when it is a whole number of at least `1` and as a proportion below `1` —
+`MinDf = 2` means two documents, `MinDf = 0.5` means half of them. A fraction above `1` such as
+`1.5`, a negative value or `NaN` is neither, and the vectorizer's constructor refuses it with
+`ArgumentOutOfRangeException`, as scikit-learn does. `MaxDf` does **not** follow that rule at its
 default: `MaxDf = 1.0` is a proportion meaning "in up to all of them", which is why the default
 drops nothing. Measured, over two documents sharing `the`, `MaxDf = 1.0` keeps all three terms.
 Both properties are `double`, so writing `1` rather than `1.0` changes nothing.

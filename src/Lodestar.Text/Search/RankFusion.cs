@@ -60,7 +60,8 @@ public static class RankFusion
                     order.Add(document);
                 }
 
-                fused[document] += 1.0 / (k + rank);
+                // In double: k + rank overflows an int at k = int.MaxValue and inverts the ranking.
+                fused[document] += 1.0 / ((double)k + rank);
             }
         }
 

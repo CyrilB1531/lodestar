@@ -12,7 +12,8 @@ public TfidfVectorizer Fit(IEnumerable<string> documents)
 
 **Returns** — `TfidfVectorizer`, the same instance, so a call can be chained.
 
-**Exceptions** — `ArgumentNullException` when `documents` is null. A corpus that leaves no terms does **not**
+**Exceptions** — `ArgumentNullException` when `documents` is null. `ArgumentException` when `documents` holds a null document. `InvalidOperationException` when [`MaxDf`](countvectorizeroptions.md) corresponds to fewer documents than
+[`MinDf`](countvectorizeroptions.md) over this corpus, as scikit-learn refuses. A corpus that leaves no terms does **not**
 throw: it yields a model of zero columns, which every later transform will produce empty
 rows against.
 

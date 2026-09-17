@@ -87,8 +87,9 @@ public sealed class Bm25Index
 
     private static Bm25Options Validate(Bm25Options options)
     {
-        RequireFinite(options.K1, nameof(options.K1));
-        RequireFinite(options.B, nameof(options.B));
+        RequireFinite(options.K1, nameof(options.K1), nameof(options));
+        RequireFinite(options.B, nameof(options.B), nameof(options));
+        RequireFinite(options.Epsilon, nameof(options.Epsilon), nameof(options));
         if (options.K1 < 0.0)
         {
             throw new ArgumentOutOfRangeException(
@@ -104,11 +105,11 @@ public sealed class Bm25Index
         return options;
     }
 
-    private static void RequireFinite(double value, string name)
+    private static void RequireFinite(double value, string name, string paramName)
     {
         if (double.IsNaN(value) || double.IsInfinity(value))
         {
-            throw new ArgumentOutOfRangeException(nameof(name), value, $"{name} must be a finite number.");
+            throw new ArgumentOutOfRangeException(paramName, value, $"{name} must be a finite number.");
         }
     }
 

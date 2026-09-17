@@ -71,12 +71,18 @@ public sealed class MinHashPermutations
     /// <summary>The multiplier of one permutation.</summary>
     /// <param name="index">Which permutation.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside the set.</exception>
-    public ulong Multiplier(int index) => _a[index];
+    public ulong Multiplier(int index) => _a[CheckIndex(index)];
 
     /// <summary>The addend of one permutation.</summary>
     /// <param name="index">Which permutation.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside the set.</exception>
-    public ulong Addend(int index) => _b[index];
+    public ulong Addend(int index) => _b[CheckIndex(index)];
+
+    /// <summary>The documented exception for an index outside the set, not the array's own.</summary>
+    private int CheckIndex(int index) =>
+        (uint)index < (uint)_a.Length
+            ? index
+            : throw new ArgumentOutOfRangeException(nameof(index), index, $"The set holds {_a.Length} permutations.");
 
     /// <summary>Every multiplier, for a signature loop that reads them without a call per slot.</summary>
     internal ReadOnlySpan<ulong> Multipliers => _a;

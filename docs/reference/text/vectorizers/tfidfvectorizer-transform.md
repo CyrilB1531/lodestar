@@ -15,7 +15,7 @@ dropped.
 **Returns** — [`CsrMatrix`](../../abstractions/sparse/csrmatrix.md), as wide as the fit, weighted and normalized.
 
 **Exceptions** — `InvalidOperationException` when nothing has been fitted yet.
-`ArgumentNullException` when `documents` is null.
+`ArgumentNullException` when `documents` is null. `ArgumentException` when `documents` holds a null document.
 
 **Example** — the fit's width, whatever this corpus holds.
 

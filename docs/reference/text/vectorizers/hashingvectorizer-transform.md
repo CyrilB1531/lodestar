@@ -14,7 +14,7 @@ public CsrMatrix Transform(IEnumerable<string> documents)
 **Returns** — [`CsrMatrix`](../../abstractions/sparse/csrmatrix.md), one row per document and exactly `NumFeatures` columns,
 normalized by [`HashingVectorizerOptions.Norm`](hashingvectorizeroptions.md).
 
-**Exceptions** — `ArgumentNullException` when `documents` is null.
+**Exceptions** — `ArgumentNullException` when `documents` is null. `ArgumentException` when `documents` holds a null document.
 
 **Example** — the width is the option, not the corpus.
 

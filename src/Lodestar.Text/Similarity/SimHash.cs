@@ -34,7 +34,10 @@ public static class SimHash
         Span<byte> bytes = stackalloc byte[16];
         foreach (KeyValuePair<string, int> pair in weighted)
         {
-            Guard.NotNull(pair.Key);
+            if (pair.Key is null)
+            {
+                throw new ArgumentNullException(nameof(weighted), "A token is null.");
+            }
             if (pair.Value < 0)
             {
                 throw new ArgumentOutOfRangeException(
@@ -76,7 +79,10 @@ public static class SimHash
         Span<byte> bytes = stackalloc byte[16];
         foreach (string token in tokens)
         {
-            Guard.NotNull(token);
+            if (token is null)
+            {
+                throw new ArgumentNullException(nameof(tokens), "A token is null.");
+            }
             Accumulate(columns, Hash64(digest, token, bytes), 1);
         }
 

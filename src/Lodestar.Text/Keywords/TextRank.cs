@@ -27,23 +27,34 @@ public sealed class TextRank
 
     /// <summary>Builds an extractor.</summary>
     /// <param name="options">Null takes every default.</param>
-    /// <exception cref="ArgumentOutOfRangeException"><c>Window</c> is below 1, <c>Damping</c> is outside <c>(0, 1)</c>, <c>Ratio</c> is outside <c>(0, 1]</c>, <c>MaxIterations</c> is below 1, or <c>Words</c> is set and negative.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><c>Window</c> is below 1, <c>Damping</c> is outside <c>(0, 1)</c>, <c>Ratio</c> is outside <c>(0, 1]</c>, <c>Tolerance</c> is negative or not finite, <c>MaxIterations</c> is below 1, or <c>Words</c> is set and negative.</exception>
     public TextRank(TextRankOptions? options = null)
     {
         _options = options ?? new TextRankOptions();
-        Guard.NotLessThan(_options.Window, 1);
-        Guard.NotLessThan(_options.MaxIterations, 1);
-        if (_options.Words is { } words)
+        if (_options.Window < 1)
         {
-            Guard.NotLessThan(words, 0);
+            throw new ArgumentOutOfRangeException(nameof(options), _options.Window, "Window must be at least 1.");
         }
-        if (_options.Damping <= 0 || _options.Damping >= 1)
+        if (_options.MaxIterations < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), _options.MaxIterations, "MaxIterations must be at least 1.");
+        }
+        if (_options.Words is < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), _options.Words, "Words cannot be negative.");
+        }
+        // Written as the range a value must be in, so a NaN, which no comparison holds for, fails.
+        if (!(_options.Damping > 0 && _options.Damping < 1))
         {
             throw new ArgumentOutOfRangeException(nameof(options), _options.Damping, "Damping must lie in (0, 1).");
         }
-        if (_options.Ratio <= 0 || _options.Ratio > 1)
+        if (!(_options.Ratio > 0 && _options.Ratio <= 1))
         {
             throw new ArgumentOutOfRangeException(nameof(options), _options.Ratio, "Ratio must lie in (0, 1].");
+        }
+        if (!(_options.Tolerance >= 0) || double.IsPositiveInfinity(_options.Tolerance))
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), _options.Tolerance, "Tolerance must be a finite, non-negative number.");
         }
 
         IReadOnlyCollection<string> stop = _options.StopWords ?? StopWords.English;

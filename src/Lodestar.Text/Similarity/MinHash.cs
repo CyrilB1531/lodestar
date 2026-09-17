@@ -77,7 +77,10 @@ public sealed class MinHash
         Span<byte> bytes = stackalloc byte[20];
         foreach (string token in tokens)
         {
-            Guard.NotNull(token);
+            if (token is null)
+            {
+                throw new ArgumentNullException(nameof(tokens), "A token is null.");
+            }
             ulong hash = Hash32(digest, token, bytes);
             if (affine)
             {

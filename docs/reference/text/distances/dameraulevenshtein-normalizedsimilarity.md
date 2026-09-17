@@ -13,6 +13,9 @@ character, exactly as it does for `NormalizedDistance`, which this is computed f
 
 **Returns** — `double` in `[0, 1]`, larger meaning more alike.
 
+**Exceptions** — `ArgumentException` when the two lengths need a `(len(a) + 2) × (len(b) + 2)`
+table larger than the largest array .NET allocates, about 46 000 characters on each side.
+
 **Example** — the same pair as above, read the other way round.
 
 ```csharp

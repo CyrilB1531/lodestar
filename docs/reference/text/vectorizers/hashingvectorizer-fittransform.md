@@ -14,7 +14,7 @@ public CsrMatrix FitTransform(IEnumerable<string> documents)
 **Returns** — [`CsrMatrix`](../../abstractions/sparse/csrmatrix.md), identical to what
 [`Transform`](hashingvectorizer-transform.md) returns for the same input.
 
-**Exceptions** — `ArgumentNullException` when `documents` is null.
+**Exceptions** — `ArgumentNullException` when `documents` is null. `ArgumentException` when `documents` holds a null document.
 
 **Example** — the two calls agree, which is the whole content of this member.
 
