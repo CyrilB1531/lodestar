@@ -43,8 +43,10 @@ internal static class BertBasicTokenization
             }
         }
 
-        string cleaned = builder.ToString();
-        return lowercase ? StripAccents(cleaned).ToLowerInvariant() : cleaned;
+        // The input itself when nothing was dropped, padded or mapped: ASCII text is the common
+        // case and copying it three more times was most of what this path cost (#992).
+        string cleaned = builder.Length == text.Length && Same(builder, text) ? text : builder.ToString();
+        return lowercase ? Lowered(cleaned) : cleaned;
     }
 #pragma warning restore CA1308
 
@@ -82,10 +84,37 @@ internal static class BertBasicTokenization
         return true;
     }
 
+    /// <summary>Whether the builder holds exactly <paramref name="text"/>, so the input can stand in for it.</summary>
+    private static bool Same(StringBuilder builder, string text)
+    {
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (builder[i] != text[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>The accent strip and the lowercasing, which only text holding a mark pays a second pass for.</summary>
+    // CA1308: lowercasing is the normalizer's own step; see Normalize.
+#pragma warning disable CA1308
+    private static string Lowered(string cleaned) => StripAccents(cleaned).ToLowerInvariant();
+#pragma warning restore CA1308
+
     /// <summary>The NFD form without its nonspacing marks, which is <c>BertNormalizer</c>'s accent stripping.</summary>
     private static string StripAccents(string text)
     {
         string decomposed = Decompose(text);
+        if (!HasMark(decomposed))
+        {
+            // The decomposition itself, not the input: NFD also maps singletons such as U+212A
+            // to K, without changing the length and without leaving a mark behind (#992).
+            return decomposed;
+        }
+
         var builder = new StringBuilder(decomposed.Length);
         for (int i = 0; i < decomposed.Length; i += Width(decomposed, i))
         {
@@ -96,6 +125,20 @@ internal static class BertBasicTokenization
         }
 
         return builder.ToString();
+    }
+
+    /// <summary>Whether any code point is a nonspacing mark, which is what the strip removes.</summary>
+    private static bool HasMark(string text)
+    {
+        for (int i = 0; i < text.Length; i += Width(text, i))
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(text, i) == UnicodeCategory.NonSpacingMark)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>The NFD form, taken around the unassigned code points <see cref="string.Normalize(NormalizationForm)"/> refuses.</summary>

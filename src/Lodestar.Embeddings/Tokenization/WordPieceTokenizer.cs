@@ -246,7 +246,7 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
         return vocabulary;
     }
 
-    /// <summary>Encodes <c>normalized[from..to]</c> -- text no raw-matched added token claimed -- scanning it for normalized added tokens and handing what is left to the model.</summary>
+    /// <summary>Encodes <c>text[from..to]</c> -- what no raw-matched added token claimed -- normalizing it under BERT, scanning it for normalized added tokens, and handing the rest to the model.</summary>
     /// <remarks>
     /// The gap is scanned as its own string, matching HuggingFace's
     /// <c>AddedVocabulary</c> (read from its structure, not measured).
@@ -298,9 +298,9 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
 
     /// <summary>Pre-tokenizes and models <c>normalized[start..end]</c>, which holds no added token.</summary>
     /// <remarks>
-    /// The slice is already normalized: <see cref="Encode"/> lowercases the whole
-    /// input once, before the scan, because the normalized half of the table is
-    /// matched against that same string.
+    /// The slice is already normalized: <see cref="Encode"/> lowercases the whole input once before
+    /// the scan, or, under <see cref="WordPieceVocabulary.BasicTokenization"/>, <see cref="EncodeGap"/>
+    /// normalized this gap — either way against the string the normalized table is matched in.
     /// </remarks>
     private void EncodeSegment(string normalized, int start, int end, List<string> tokens, List<int> ids)
     {
@@ -339,9 +339,25 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     private static string Slice(string text, int start, int end) =>
         start == 0 && end == text.Length ? text : text.Substring(start, end - start);
 
+    /// <summary>The word's length in code points, which is what <c>tokenizers</c> caps (#992).</summary>
+    /// <remarks>A surrogate pair counted twice made a 51-character astral word exceed a limit of 100.</remarks>
+    private static int CodePointLength(ReadOnlySpan<char> word)
+    {
+        int length = 0;
+        int at = 0;
+        while (at < word.Length)
+        {
+            bool pair = at + 1 < word.Length && char.IsHighSurrogate(word[at]) && char.IsLowSurrogate(word[at + 1]);
+            at += pair ? 2 : 1;
+            length++;
+        }
+
+        return length;
+    }
+
     private void TokenizeWord(ReadOnlySpan<char> word, List<string> tokens, List<int> ids)
     {
-        if (word.Length > _maxCharsPerWord)
+        if (CodePointLength(word) > _maxCharsPerWord)
         {
             tokens.Add(_unkToken);
             ids.Add(_unkId);
