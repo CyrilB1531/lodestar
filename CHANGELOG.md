@@ -74,6 +74,7 @@ is one sentence, the issue and the commit; see
 - `KMeans.Fit` relocates clusters emptied in the same iteration onto distinct furthest samples, as scikit-learn does, where it could leave a `NaN` centre. ([#862](https://github.com/CyrilB1531/lodestar/issues/862))
 - `KMeans`, `Dbscan` and `AgglomerativeClustering` refuse a `NaN` or infinite sample with `ArgumentException`, as scikit-learn does, where they returned `NaN` centres or noise or threw an index out of range. ([#896](https://github.com/CyrilB1531/lodestar/issues/896))
 - `KMeans.Fit` refuses a negative, infinite or `NaN` `KMeansOptions.Tolerance`, and `Dbscan.FitPrecomputed` checks a sample count past 46340 without wrapping. ([#911](https://github.com/CyrilB1531/lodestar/issues/911))
+- `KMeans.Fit` no longer throws `IndexOutOfRangeException` when a relocation empties a cluster numbered above the one it fills, which the fix for #862 introduced. ([#975](https://github.com/CyrilB1531/lodestar/issues/975))
 
 ### Lodestar.Abstractions
 

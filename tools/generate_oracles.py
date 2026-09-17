@@ -5217,6 +5217,10 @@ def _kmeans_fixtures() -> list[dict]:
         # sum. One iteration: the second relocation ties two samples, left out as in 0093.
         {"name": "a relocation that empties its donor", "rows": [[60.0], [0.0], [1.0], [2.5]],
          "init": [[50.0], [1.0], [500.0], [600.0]], MAX_ITER: 1, "tol": 1e-4},
+        # The donor's index is above the empty cluster's, so it stays empty this iteration (#975).
+        # One iteration: the next relocation ties two samples, left out as in 0093.
+        {"name": "a relocation that empties a higher-numbered donor", "rows": [[0.0], [1.0], [10.0]],
+         "init": [[0.5], [-100.0], [12.0]], MAX_ITER: 1, "tol": 1e-4},
     ]
 
 
