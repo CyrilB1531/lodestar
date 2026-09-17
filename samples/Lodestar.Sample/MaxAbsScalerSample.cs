@@ -28,7 +28,11 @@ internal static class MaxAbsScalerSample
         Console.WriteLine($"  after a batch    : {Inv.List(folded.MaximumAbsolute)} over {folded.SampleCount} rows");
 
         var sparse = new CsrMatrix(3, 2, [2.0, -4.0, 1.0], [0, 1, 0], [0, 2, 3, 3]);
-        Console.WriteLine($"  sparse scale     : {Inv.List(MaxAbsScaler.Fit(sparse).Scale)}");
+        MaxAbsScaler sparseScaler = MaxAbsScaler.Fit(sparse);
+        CsrMatrix sparseScaled = sparseScaler.Transform(sparse);
+        Console.WriteLine($"  sparse scale     : {Inv.List(sparseScaler.Scale)}");
+        Console.WriteLine($"  sparse scaled    : {Inv.List(sparseScaled.Values)} ({sparseScaled.NonZeroCount} stored)");
+        Console.WriteLine($"  and back         : {Inv.List(sparseScaler.InverseTransform(sparseScaled).Values)}");
         Console.WriteLine();
     }
 }

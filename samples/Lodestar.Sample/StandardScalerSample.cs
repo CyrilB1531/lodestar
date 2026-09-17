@@ -31,7 +31,11 @@ internal static class StandardScalerSample
 
         // And over a sparse matrix, where centring is refused rather than offered.
         var sparse = new CsrMatrix(3, 2, [1.0, 10.0, 2.0, 10.0, 4.0, 10.0], [0, 1, 0, 1, 0, 1], [0, 2, 4, 6]);
-        Console.WriteLine($"  sparse scale     : {Inv.List(StandardScaler.Fit(sparse).Scale!)}");
+        StandardScaler sparseScaler = StandardScaler.Fit(sparse);
+        CsrMatrix sparseScaled = sparseScaler.Transform(sparse);
+        Console.WriteLine($"  sparse scale     : {Inv.List(sparseScaler.Scale!)}");
+        Console.WriteLine($"  sparse scaled    : {Inv.List(sparseScaled.Values)}");
+        Console.WriteLine($"  and back         : {Inv.List(sparseScaler.InverseTransform(sparseScaled).Values)}");
         Console.WriteLine();
     }
 }

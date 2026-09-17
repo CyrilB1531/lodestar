@@ -40,7 +40,8 @@ dividing by it would amplify noise rather than reveal signal.
 on the features the floor caught — the pair above is the smallest case of that.
 
 **The sparse overload takes a `CsrMatrix`, and this is the scaler that suits one.** It never
-subtracts, so a zero stays a zero and the matrix that went in is the shape that comes out. A column
+subtracts, so a zero stays a zero, and [`Transform`](maxabsscaler-transform.md)'s sparse overload returns the
+shape that went in. A column
 with no stored value at all has a maximum absolute of 0 and a scale of 1, the floor reached a
 different way.
 

@@ -32,6 +32,7 @@ is one sentence, the issue and the commit; see
 - `MinMaxScaler`, `MaxAbsScaler` and `RobustScaler` join `StandardScaler`, with an edge on `Lodestar.Stats` for `unit_variance`. ([#763](https://github.com/CyrilB1531/lodestar/issues/763), [`3b3c4164`](https://github.com/CyrilB1531/lodestar/commit/3b3c4164))
 - `Encoders.OneHot`, `Encoders.Ordinal` and `SimpleImputer` encode categories and fill missing values, at scikit-learn parity. ([#764](https://github.com/CyrilB1531/lodestar/issues/764), [`89923b23`](https://github.com/CyrilB1531/lodestar/commit/89923b23))
 - The scalers fit over batches with `PartialFit` and over a `CsrMatrix`, with an edge on `Lodestar.Abstractions`. ([#765](https://github.com/CyrilB1531/lodestar/issues/765), [`e3a38ca9`](https://github.com/CyrilB1531/lodestar/commit/e3a38ca9))
+- `MaxAbsScaler`, `StandardScaler` and `RobustScaler` transform and inverse-transform a `CsrMatrix`, keeping its stored positions, so a sparse fit no longer has to be applied to dense data. ([#895](https://github.com/CyrilB1531/lodestar/issues/895))
 
 #### Changed
 

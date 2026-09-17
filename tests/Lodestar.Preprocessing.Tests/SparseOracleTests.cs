@@ -70,6 +70,49 @@ public sealed class SparseOracleTests
         AssertSame(Doubles(frozen, "denseScale"), dense, $"{name}: dense");
     }
 
+    [Theory]
+    [MemberData(nameof(Indices))]
+    public void A_sparse_transform_and_its_inverse_match_scikit_learn(int index)
+    {
+        JsonElement frozen = Cases[index];
+        string name = frozen.GetProperty("name").GetString()!;
+        CsrMatrix matrix = Matrix(frozen);
+
+        (CsrMatrix transformed, CsrMatrix restored) = frozen.GetProperty("scaler").GetString() switch
+        {
+            "maxabs" => RoundTrip(MaxAbsScaler.Fit(matrix), matrix),
+            "robust" => RoundTrip(RobustScaler.Fit(matrix), matrix),
+            _ => RoundTrip(StandardScaler.Fit(matrix), matrix),
+        };
+
+        AssertSame(Doubles(frozen, "transformedValues"), transformed.Values, $"{name}: transform");
+        AssertSame(Doubles(frozen, "inverseValues"), restored.Values, $"{name}: inverse");
+        foreach (CsrMatrix output in new[] { transformed, restored })
+        {
+            // Scaling keeps every stored position and stores nothing new (#895).
+            Assert.Equal(matrix.ColumnIndices, output.ColumnIndices);
+            Assert.Equal(matrix.RowPointers, output.RowPointers);
+        }
+    }
+
+    private static (CsrMatrix, CsrMatrix) RoundTrip(MaxAbsScaler scaler, CsrMatrix matrix)
+    {
+        CsrMatrix transformed = scaler.Transform(matrix);
+        return (transformed, scaler.InverseTransform(transformed));
+    }
+
+    private static (CsrMatrix, CsrMatrix) RoundTrip(RobustScaler scaler, CsrMatrix matrix)
+    {
+        CsrMatrix transformed = scaler.Transform(matrix);
+        return (transformed, scaler.InverseTransform(transformed));
+    }
+
+    private static (CsrMatrix, CsrMatrix) RoundTrip(StandardScaler scaler, CsrMatrix matrix)
+    {
+        CsrMatrix transformed = scaler.Transform(matrix);
+        return (transformed, scaler.InverseTransform(transformed));
+    }
+
     [Fact]
     public void Every_frozen_case_is_replayed()
     {

@@ -103,4 +103,74 @@ internal static class SparseColumns
             }
         }
     }
+
+    /// <summary>A copy of <paramref name="samples"/> with every stored value divided by its column's scale.</summary>
+    /// <remarks>
+    /// Multiplied by <c>1 / scale</c> rather than divided, as <c>sklearn.utils.sparsefuncs.inplace_column_scale</c>
+    /// is given it: <c>x · (1/s)</c> is not bit for bit <c>x / s</c>. A <see langword="null"/> scale copies (#895).
+    /// </remarks>
+    public static CsrMatrix Divided(CsrMatrix samples, int featureCount, IReadOnlyList<double>? scale, bool requireFinite)
+    {
+        double[] factors = Factors(samples, featureCount, scale, requireFinite);
+        for (int i = 0; i < factors.Length; i++)
+        {
+            factors[i] = 1.0 / factors[i];
+        }
+
+        return MultiplyColumns(samples, factors);
+    }
+
+    /// <summary>A copy of <paramref name="samples"/> with every stored value multiplied by its column's scale.</summary>
+    public static CsrMatrix Multiplied(CsrMatrix samples, int featureCount, IReadOnlyList<double>? scale, bool requireFinite) =>
+        MultiplyColumns(samples, Factors(samples, featureCount, scale, requireFinite));
+
+    /// <summary>Refuses a null matrix, and any matrix at all when the scaler subtracts a centre.</summary>
+    /// <exception cref="InvalidOperationException"><paramref name="centres"/> is set.</exception>
+    public static void RefuseCentring(CsrMatrix samples, bool centres, string option)
+    {
+        Guard.NotNull(samples);
+        if (centres)
+        {
+            throw new InvalidOperationException(
+                "This scaler centres, and a sparse matrix cannot be centred: subtracting a centre makes every "
+                + $"absent zero a stored value. Fit with {option} = false.");
+        }
+    }
+
+    /// <summary>The checks both directions share, then a fresh copy of the scale to multiply by, ones when there is none.</summary>
+    private static double[] Factors(CsrMatrix samples, int featureCount, IReadOnlyList<double>? scale, bool requireFinite)
+    {
+        Guard.NotNull(samples);
+        if (samples.ColumnCount != featureCount)
+        {
+            throw new ArgumentException(
+                $"samples has {samples.ColumnCount} columns, but the scaler was fitted on {featureCount} features.",
+                nameof(samples));
+        }
+
+        if (requireFinite)
+        {
+            RequireFinite(samples, nameof(samples));
+        }
+
+        var factors = new double[featureCount];
+        for (int i = 0; i < factors.Length; i++)
+        {
+            factors[i] = scale is null ? 1.0 : scale[i];
+        }
+
+        return factors;
+    }
+
+    private static CsrMatrix MultiplyColumns(CsrMatrix matrix, double[] factors)
+    {
+        var values = new double[matrix.Values.Length];
+        for (int i = 0; i < values.Length; i++)
+        {
+            values[i] = matrix.Values[i] * factors[matrix.ColumnIndices[i]];
+        }
+
+        return new CsrMatrix(
+            matrix.RowCount, matrix.ColumnCount, values, [.. matrix.ColumnIndices], [.. matrix.RowPointers]);
+    }
 }

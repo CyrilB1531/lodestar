@@ -100,6 +100,52 @@ public sealed class PartialFitAndSparseEdgeTests
         Assert.Equal(1.0, StandardScaler.Fit(matrix).Scale![1]);
     }
 
+    /// <summary>A scaler that centres cannot transform a sparse matrix either way, however it was fitted (#895).</summary>
+    [Fact]
+    public void A_centring_scaler_refuses_a_sparse_transform()
+    {
+        CsrMatrix matrix = Small();
+        StandardScaler standard = StandardScaler.Fit([1.0, 0.0, 0.0, 0.0, 3.0, 0.0], 2);
+        RobustScaler robust = RobustScaler.Fit([1.0, 0.0, 0.0, 0.0, 3.0, 0.0], 2);
+
+        Assert.Throws<InvalidOperationException>(() => standard.Transform(matrix));
+        Assert.Throws<InvalidOperationException>(() => standard.InverseTransform(matrix));
+        Assert.Throws<InvalidOperationException>(() => robust.Transform(matrix));
+        Assert.Throws<InvalidOperationException>(() => robust.InverseTransform(matrix));
+    }
+
+    [Fact]
+    public void A_sparse_matrix_of_another_width_is_refused()
+    {
+        var wide = new CsrMatrix(1, 3, [1.0], [2], [0, 1]);
+
+        Assert.Throws<ArgumentException>(() => MaxAbsScaler.Fit(Small()).Transform(wide));
+        Assert.Throws<ArgumentException>(() => StandardScaler.Fit(Small()).InverseTransform(wide));
+        Assert.Throws<ArgumentException>(() => RobustScaler.Fit(Small()).Transform(wide));
+    }
+
+    [Fact]
+    public void A_clipping_max_abs_scaler_clips_the_stored_values()
+    {
+        MaxAbsScaler scaler = MaxAbsScaler.Fit(Small(), new MaxAbsScalerOptions { Clip = true });
+
+        CsrMatrix clipped = scaler.Transform(new CsrMatrix(1, 2, [-6.0], [0], [0, 1]));
+
+        Assert.Equal(-1.0, clipped.Values[0]);
+    }
+
+    [Fact]
+    public void A_sparse_transform_leaves_the_input_alone()
+    {
+        CsrMatrix matrix = Small();
+
+        CsrMatrix transformed = MaxAbsScaler.Fit(matrix).Transform(matrix);
+        transformed.Values[0] = 42.0;
+
+        Assert.Equal(1.0, matrix.Values[0]);
+        Assert.NotSame(matrix.ColumnIndices, transformed.ColumnIndices);
+    }
+
     /// <summary>Three rows, two columns, the second column never stored.</summary>
     private static CsrMatrix Small() => new(3, 2, [1.0, 3.0], [0, 0], [0, 1, 1, 2]);
 }

@@ -55,7 +55,7 @@ public sealed class StandardScaler
     /// <summary>Per-feature population variance, or <see langword="null"/> when not scaling.</summary>
     public IReadOnlyList<double>? Variance => _variance;
 
-    /// <summary>What <see cref="Transform"/> divides by, or <see langword="null"/> when not scaling.</summary>
+    /// <summary>What <see cref="Transform(ReadOnlySpan{double})"/> divides by, or <see langword="null"/> when not scaling.</summary>
     /// <remarks>The square root of <see cref="Variance"/>, except on a near-constant feature — see <see cref="Fit(ReadOnlySpan{double}, int, StandardScalerOptions)"/>.</remarks>
     public IReadOnlyList<double>? Scale => _scale;
 
@@ -200,7 +200,23 @@ public sealed class StandardScaler
     /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, or a partial one.</exception>
     public double[] Transform(ReadOnlySpan<double> samples) => Apply(samples, inverse: false);
 
-    /// <summary>Undoes <see cref="Transform"/>, returning values on the original scale.</summary>
+    /// <summary>Scales a sparse matrix by the fitted deviations, keeping its structure.</summary>
+    /// <param name="samples">The samples to transform, with <see cref="FeatureCount"/> columns.</param>
+    /// <returns>A new matrix storing the same positions, divided by <see cref="Scale"/>, or a copy when not scaling.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> has another column count.</exception>
+    /// <exception cref="InvalidOperationException">This scaler centres, which a sparse matrix cannot be.</exception>
+    /// <remarks>
+    /// <c>StandardScaler.transform</c> on a CSR matrix, which raises the same refusal: subtracting the
+    /// mean would make every absent zero a stored value. Fit with <see cref="StandardScalerOptions.WithMean"/> off.
+    /// </remarks>
+    public CsrMatrix Transform(CsrMatrix samples)
+    {
+        SparseColumns.RefuseCentring(samples, _centres, nameof(StandardScalerOptions.WithMean));
+        return SparseColumns.Divided(samples, FeatureCount, _scale, requireFinite: false);
+    }
+
+    /// <summary>Undoes <see cref="Transform(ReadOnlySpan{double})"/>, returning values on the original scale.</summary>
     /// <param name="samples">The standardised samples, row-major, with <see cref="FeatureCount"/> values per row.</param>
     /// <returns>A new array of the same length, back on the input scale.</returns>
     /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, or a partial one.</exception>
@@ -210,6 +226,18 @@ public sealed class StandardScaler
     /// rather than recording it, which is the point of forcing it.
     /// </remarks>
     public double[] InverseTransform(ReadOnlySpan<double> samples) => Apply(samples, inverse: true);
+
+    /// <summary>Undoes <see cref="Transform(CsrMatrix)"/> on a sparse matrix, keeping its structure.</summary>
+    /// <param name="samples">The standardised samples, with <see cref="FeatureCount"/> columns.</param>
+    /// <returns>A new matrix storing the same positions, multiplied by <see cref="Scale"/>, or a copy when not scaling.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> has another column count.</exception>
+    /// <exception cref="InvalidOperationException">This scaler centres, which a sparse matrix cannot be.</exception>
+    public CsrMatrix InverseTransform(CsrMatrix samples)
+    {
+        SparseColumns.RefuseCentring(samples, _centres, nameof(StandardScalerOptions.WithMean));
+        return SparseColumns.Multiplied(samples, FeatureCount, _scale, requireFinite: false);
+    }
 
     /// <summary>The mean alone, folded — what a scaler that never computed a variance can update.</summary>
     private double[] FoldedMean(ReadOnlySpan<double> samples, int rows, int updated)

@@ -219,7 +219,23 @@ public sealed class RobustScaler
     /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value.</exception>
     public double[] Transform(ReadOnlySpan<double> samples) => Apply(samples, inverse: false);
 
-    /// <summary>Undoes <see cref="Transform"/>, returning values on the original scale.</summary>
+    /// <summary>Scales a sparse matrix by the fitted ranges, keeping its structure.</summary>
+    /// <param name="samples">The samples to transform, with <see cref="FeatureCount"/> columns.</param>
+    /// <returns>A new matrix storing the same positions, divided by <see cref="Scale"/>, or a copy when not scaling.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> has another column count, or stores a non-finite value.</exception>
+    /// <exception cref="InvalidOperationException">This scaler centres, which a sparse matrix cannot be.</exception>
+    /// <remarks>
+    /// <c>RobustScaler.transform</c> on a CSR matrix skips the centring without a word; this refuses it
+    /// instead, as the sparse <see cref="Fit(CsrMatrix, RobustScalerOptions)"/> does, since the result would not be centred.
+    /// </remarks>
+    public CsrMatrix Transform(CsrMatrix samples)
+    {
+        SparseColumns.RefuseCentring(samples, _centre is not null, nameof(RobustScalerOptions.WithCentring));
+        return SparseColumns.Divided(samples, FeatureCount, _scale, requireFinite: true);
+    }
+
+    /// <summary>Undoes <see cref="Transform(ReadOnlySpan{double})"/>, returning values on the original scale.</summary>
     /// <param name="samples">The transformed samples, row-major, with <see cref="FeatureCount"/> values per row.</param>
     /// <returns>A new array of the same length, back on the input scale.</returns>
     /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value.</exception>
@@ -228,6 +244,18 @@ public sealed class RobustScaler
     /// step threw the spread away rather than recording it.
     /// </remarks>
     public double[] InverseTransform(ReadOnlySpan<double> samples) => Apply(samples, inverse: true);
+
+    /// <summary>Undoes <see cref="Transform(CsrMatrix)"/> on a sparse matrix, keeping its structure.</summary>
+    /// <param name="samples">The transformed samples, with <see cref="FeatureCount"/> columns.</param>
+    /// <returns>A new matrix storing the same positions, multiplied by <see cref="Scale"/>, or a copy when not scaling.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> has another column count, or stores a non-finite value.</exception>
+    /// <exception cref="InvalidOperationException">This scaler centres, which a sparse matrix cannot be.</exception>
+    public CsrMatrix InverseTransform(CsrMatrix samples)
+    {
+        SparseColumns.RefuseCentring(samples, _centre is not null, nameof(RobustScalerOptions.WithCentring));
+        return SparseColumns.Multiplied(samples, FeatureCount, _scale, requireFinite: true);
+    }
 
     /// <summary>Both directions: subtract then divide, or multiply then add — the reference's order.</summary>
     private double[] Apply(ReadOnlySpan<double> samples, bool inverse)

@@ -27,7 +27,11 @@ internal static class RobustScalerSample
 
         // Over a sparse matrix the percentiles read the absent zeros too, and centring is refused.
         var sparse = new CsrMatrix(4, 2, [1.0, 5.0, 3.0, 4.0], [0, 1, 0, 0], [0, 2, 3, 4, 4]);
-        Console.WriteLine($"  sparse range     : {Inv.List(RobustScaler.Fit(sparse).Scale!)}");
+        RobustScaler sparseScaler = RobustScaler.Fit(sparse);
+        CsrMatrix sparseScaled = sparseScaler.Transform(sparse);
+        Console.WriteLine($"  sparse range     : {Inv.List(sparseScaler.Scale!)}");
+        Console.WriteLine($"  sparse scaled    : {Inv.List(sparseScaled.Values)}");
+        Console.WriteLine($"  and back         : {Inv.List(sparseScaler.InverseTransform(sparseScaled).Values)}");
         Console.WriteLine();
     }
 }

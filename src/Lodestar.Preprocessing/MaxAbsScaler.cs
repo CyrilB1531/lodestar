@@ -34,7 +34,7 @@ public sealed class MaxAbsScaler
     /// <summary>Each feature's largest absolute fitted value — <c>max_abs_</c>.</summary>
     public IReadOnlyList<double> MaximumAbsolute { get; }
 
-    /// <summary>What <see cref="Transform"/> divides by — <c>scale_</c>, which is <see cref="MaximumAbsolute"/> with a near-constant feature floored to 1.</summary>
+    /// <summary>What <see cref="Transform(ReadOnlySpan{double})"/> divides by — <c>scale_</c>, which is <see cref="MaximumAbsolute"/> with a near-constant feature floored to 1.</summary>
     public IReadOnlyList<double> Scale => _scale;
 
     /// <summary>Fits a scaler on a row-major sample matrix.</summary>
@@ -147,7 +147,28 @@ public sealed class MaxAbsScaler
         return result;
     }
 
-    /// <summary>Undoes <see cref="Transform"/>, returning values on the original scale.</summary>
+    /// <summary>Divides a sparse matrix by the fitted maxima, keeping its structure.</summary>
+    /// <param name="samples">The samples to transform, with <see cref="FeatureCount"/> columns.</param>
+    /// <returns>A new matrix storing the same positions, in <c>[−1, 1]</c> for any value the fit saw.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> has another column count, or stores a non-finite value.</exception>
+    /// <remarks>A zero stays a zero, so nothing absent becomes stored — <c>MaxAbsScaler.transform</c> on a CSR matrix.</remarks>
+    public CsrMatrix Transform(CsrMatrix samples)
+    {
+        CsrMatrix result = SparseColumns.Divided(samples, FeatureCount, _scale, requireFinite: true);
+        if (_clips)
+        {
+            double[] values = result.Values;
+            for (int i = 0; i < values.Length; i++)
+            {
+                values[i] = Bounds.Clamp(values[i], -1.0, 1.0);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>Undoes <see cref="Transform(ReadOnlySpan{double})"/>, returning values on the original scale.</summary>
     /// <param name="samples">The transformed samples, row-major, with <see cref="FeatureCount"/> values per row.</param>
     /// <returns>A new array of the same length, back on the input scale.</returns>
     /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value.</exception>
@@ -170,6 +191,17 @@ public sealed class MaxAbsScaler
         }
 
         return result;
+    }
+
+    /// <summary>Undoes <see cref="Transform(CsrMatrix)"/> on a sparse matrix, keeping its structure.</summary>
+    /// <param name="samples">The transformed samples, with <see cref="FeatureCount"/> columns.</param>
+    /// <returns>A new matrix storing the same positions, back on the input scale.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> has another column count, or stores a non-finite value.</exception>
+    /// <remarks>Never clips, as the dense overload does not.</remarks>
+    public CsrMatrix InverseTransform(CsrMatrix samples)
+    {
+        return SparseColumns.Multiplied(samples, FeatureCount, _scale, requireFinite: true);
     }
 
     /// <summary>Folds every row into the running per-feature largest absolute value, in row order.</summary>

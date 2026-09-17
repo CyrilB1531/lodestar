@@ -4,7 +4,7 @@ namespace Lodestar.Preprocessing;
 /// <remarks>
 /// Both default to <see langword="true"/>, as <c>sklearn.preprocessing.StandardScaler</c>'s
 /// <c>with_mean</c> and <c>with_std</c> do. Turning one off changes what
-/// <see cref="StandardScaler.Transform"/> does <em>and</em> which fitted statistics exist —
+/// <see cref="StandardScaler.Transform(ReadOnlySpan{double})"/> does <em>and</em> which fitted statistics exist —
 /// see the remarks on <see cref="StandardScaler.Fit(ReadOnlySpan{double}, int, StandardScalerOptions)"/>, which are the reference's, not this
 /// package's invention.
 /// </remarks>
