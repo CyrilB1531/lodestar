@@ -14,8 +14,9 @@ the lag window rule, or null for the reference's defaults: a level, and Hobijn's
 **Returns** — [`KpssResult`](kpssresult.md): the statistic, its tabulated p-value, the window used,
 and whether the p-value was clamped at the end of its table.
 
-**Exceptions** — `ArgumentException` when `series` carries a non-finite value or is constant; or
-when `options` fixes a window at or above the series length.
+**Exceptions** — `ArgumentException` when `series` carries a non-finite value, is constant, or lies
+exactly on a straight line under `TrendTerms.ConstantAndTrend`; or when `options` fixes a window at
+or above the series length.
 
 **Example** — the drifting series
 [`AugmentedDickeyFuller`](stationarity-augmenteddickeyfuller.md) reads, around a level and around a
