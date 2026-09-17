@@ -5304,6 +5304,20 @@ def _distribution_fixtures() -> list[dict]:
         {"name": "the lower half, by symmetry", "call": NORM_PPF, "args": {"x": 0.025}},
         {"name": "far into the lower tail", "call": NORM_PPF, "args": {"x": 1e-08}},
         {"name": "far into the upper tail", "call": NORM_PPF, "args": {"x": 0.99999999}},
+        # One shape large and one small (#841), where the fraction was up to 4e-7 off. f.sf stays at
+        # dfn = 2 or dfd = 2e5: past that scipy's own argument rounding reaches 1e-9 (docs/equivalence.md).
+        {"name": "two hundred million degrees of freedom, one unit out",
+         "call": "t.sf", "args": {"x": 1.0, "df": 200000000.0}},
+        {"name": "two hundred million degrees of freedom, below the median",
+         "call": "t.sf", "args": {"x": -0.7, "df": 200000000.0}},
+        {"name": "twenty million degrees of freedom, one and a half units out",
+         "call": "t.sf", "args": {"x": 1.5, "df": 20000000.0}},
+        {"name": "two numerator degrees of freedom over two hundred million",
+         "call": "f.sf", "args": {"x": 1.0005, "dfn": 2.0, "dfd": 200000000.0}},
+        {"name": "a numerator shape of 0.1 over a denominator of 1e5",
+         "call": "f.sf", "args": {"x": 4.0, "dfn": 0.2, "dfd": 200000.0}},
+        {"name": "shapes of 1e5 and one half, below the mean",
+         "call": "f.sf", "args": {"x": 0.9, "dfn": 1.0, "dfd": 200000.0}},
     ]
 
 

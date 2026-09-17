@@ -50,6 +50,24 @@ public sealed class BetaTests
         Assert.Equal(1.0, left + right, 1e-14);
     }
 
+    [Theory]
+    // One shape large and one small (#841), against I_x(a, n) = x^a sum_{k<n} (a)_k (1-x)^k / k!
+    // summed in 60-digit decimals at the double x: the fraction was 3e-9 off at a = 1e8, b = 10.
+    [InlineData(1e8, 10.0, 0.9999999, 0.45792959627584195, 0.542070403724158)]
+    [InlineData(1e8, 10.0, 0.99999994, 0.9160759522452011, 0.08392404775479884)]
+    [InlineData(1e5, 3.0, 0.99997, 0.42317327793863335, 0.5768267220613666)]
+    [InlineData(1e3, 1.0, 0.9985, 0.22287902884342548, 0.7771209711565745)]
+    public void RegularizedIncomplete_matches_exact_sums_with_one_large_shape(
+        double a, double b, double x, double lower, double upper)
+    {
+        Assert.Equal(1.0, Beta.RegularizedIncomplete(a, b, x) / lower, 1e-13);
+
+        // Swapped (b, a) is the complement identity under test, not a mistake.
+#pragma warning disable S2234
+        Assert.Equal(1.0, Beta.RegularizedIncomplete(b, a, 1.0 - x) / upper, 1e-13);
+#pragma warning restore S2234
+    }
+
     [Fact]
     public void RegularizedIncomplete_refuses_an_x_outside_the_unit_interval()
     {
@@ -102,6 +120,17 @@ public sealed class BetaTests
             2.0 * Beta.StudentSf(Math.Sqrt(f), dfd),
             Beta.FisherSf(f, dfn, dfd),
             Tolerance);
+    }
+
+    [Theory]
+    // Against the same exact sums at dfd / (dfd + dfn f) as a rational: formed in doubles, that
+    // argument alone moves the tail by 1e-9 at dfd = 2e8, which scipy's f.sf is off by (#841).
+    [InlineData(1.2, 20.0, 2e8, 0.24239217739609978)]
+    [InlineData(2.5, 6.0, 2e7, 0.020256747139886726)]
+    public void FisherSf_forms_both_halves_of_its_argument_at_large_dfd(
+        double f, double dfn, double dfd, double expected)
+    {
+        Assert.Equal(1.0, Beta.FisherSf(f, dfn, dfd) / expected, 1e-13);
     }
 
     [Fact]
