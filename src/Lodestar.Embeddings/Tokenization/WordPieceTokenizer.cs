@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace Lodestar.Embeddings.Tokenization;
 
 /// <summary>The result of tokenizing a piece of text: the sub-word tokens and their vocabulary ids.</summary>
@@ -61,7 +59,7 @@ public sealed record TokenizationResult(IReadOnlyList<string> Tokens, IReadOnlyL
 /// <summary>WordPiece tokenizer (BERT family), reproducing HuggingFace <c>tokenizers</c>' greedy longest-match algorithm.</summary>
 /// <remarks>
 /// Pre-tokenization splits on whitespace and isolates punctuation (HuggingFace
-/// <c>Whitespace</c> pre-tokenizer, regex <c>\w+|[^\w\s]+</c>); each resulting word
+/// <c>Whitespace</c> pre-tokenizer, <c>\w+|[^\w\s]+</c> as Oniguruma reads it); each resulting word
 /// is then greedily matched against the vocabulary, with <c>##</c>-prefixed
 /// continuation pieces -- <c>docs/equivalence.md</c>'s <c>WordPiece(vocab)</c> row.
 /// The <c>added_tokens</c> scan runs ahead of all that; see <see cref="Encode"/>.
@@ -69,10 +67,6 @@ public sealed record TokenizationResult(IReadOnlyList<string> Tokens, IReadOnlyL
 /// </remarks>
 public sealed class WordPieceTokenizer : ISubwordTokenizer
 {
-    // Bounded so a pathological input fails instead of hanging the caller.
-    private static readonly Regex PreTokenPattern =
-        new(@"\w+|[^\w\s]+", RegexOptions.Compiled | RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
-
     // The vocabulary's keys and ids, indexed by the value the trie holds for each key.
     private readonly CharTrie _trie;
     private readonly string[] _keys;
@@ -297,20 +291,12 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
             return;
         }
 
-#if NET7_0_OR_GREATER
-        // Span-based on net10: a Match and its Value string per word were most of this
-        // path's bytes, and the pattern answers the same whether asked about a span or a string.
-        ReadOnlySpan<char> segment = normalized.AsSpan(start, end - start);
-        foreach (ValueMatch m in PreTokenPattern.EnumerateMatches(segment))
+        // Words stay spans of the normalized text: a string per word was most of this path's bytes.
+        int position = start;
+        while (WhitespaceScanner.TryNext(normalized, end, ref position, out int word))
         {
-            TokenizeWord(segment.Slice(m.Index, m.Length), tokens, ids);
+            TokenizeWord(normalized.AsSpan(word, position - word), tokens, ids);
         }
-#else
-        foreach (Match m in PreTokenPattern.Matches(Slice(normalized, start, end)))
-        {
-            TokenizeWord(m.Value.AsSpan(), tokens, ids);
-        }
-#endif
     }
 
     /// <summary>The slice, or the string itself when the slice is the whole of it.</summary>

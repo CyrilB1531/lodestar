@@ -4,7 +4,7 @@
   "library": "tokenizers",
   "library_version": "0.23.2",
   "model": "tiny_bpe.json (self-trained, end_of_word_suffix </w>)",
-  "count": 20
+  "count": 29
  },
  "cases": [
   {
@@ -695,6 +695,176 @@
     100,
     135,
     136
+   ]
+  },
+  {
+   "id": 20,
+   "text": "हिंदी the",
+   "tokens": [
+    "[UNK]",
+    "[UNK]",
+    "[UNK]",
+    "[UNK]",
+    "[UNK]",
+    "the</w>"
+   ],
+   "ids": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    48
+   ]
+  },
+  {
+   "id": 21,
+   "text": "theिcat",
+   "tokens": [
+    "t",
+    "h",
+    "e",
+    "[UNK]",
+    "cat</w>"
+   ],
+   "ids": [
+    20,
+    8,
+    5,
+    0,
+    59
+   ]
+  },
+  {
+   "id": 22,
+   "text": "the⃝cat",
+   "tokens": [
+    "t",
+    "h",
+    "e",
+    "[UNK]",
+    "cat</w>"
+   ],
+   "ids": [
+    20,
+    8,
+    5,
+    0,
+    59
+   ]
+  },
+  {
+   "id": 23,
+   "text": "Ⅻ the Ⅻcat",
+   "tokens": [
+    "[UNK]",
+    "the</w>",
+    "[UNK]",
+    "cat</w>"
+   ],
+   "ids": [
+    0,
+    48,
+    0,
+    59
+   ]
+  },
+  {
+   "id": 24,
+   "text": "cat‍dog cat‌dog",
+   "tokens": [
+    "c",
+    "at",
+    "[UNK]",
+    "dog</w>",
+    "c",
+    "at",
+    "[UNK]",
+    "dog</w>"
+   ],
+   "ids": [
+    3,
+    51,
+    0,
+    142,
+    3,
+    51,
+    0,
+    142
+   ]
+  },
+  {
+   "id": 25,
+   "text": "theⒶcat Ⓐ",
+   "tokens": [
+    "t",
+    "h",
+    "e",
+    "[UNK]",
+    "cat</w>",
+    "[UNK]"
+   ],
+   "ids": [
+    20,
+    8,
+    5,
+    0,
+    59,
+    0
+   ]
+  },
+  {
+   "id": 26,
+   "text": "the𠀀cat 𠀀𪛖",
+   "tokens": [
+    "t",
+    "h",
+    "e",
+    "[UNK]",
+    "cat</w>",
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    20,
+    8,
+    5,
+    0,
+    59,
+    0,
+    0
+   ]
+  },
+  {
+   "id": 27,
+   "text": "the😀cat 😀!",
+   "tokens": [
+    "the</w>",
+    "[UNK]",
+    "cat</w>",
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    48,
+    0,
+    59,
+    0,
+    0
+   ]
+  },
+  {
+   "id": 28,
+   "text": "the² cat",
+   "tokens": [
+    "the</w>",
+    "[UNK]",
+    "cat</w>"
+   ],
+   "ids": [
+    48,
+    0,
+    59
    ]
   }
  ]

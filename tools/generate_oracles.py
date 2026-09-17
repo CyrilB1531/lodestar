@@ -1855,6 +1855,22 @@ WORDPIECE_VOCAB = [
     "##s", "##ing", "##ed", "##er", "##aff", "##able", "##ly", "##ner", "##ning",
     "##ization", "##ize", "##ding", "##dings", "##ger", "##gest", "##a", "##b", "##c",
 ]
+
+
+# Issue #887: what Oniguruma's \w holds and .NET's does not, plus an astral So and a No that split.
+# Appended after the two Whitespace() corpora's own texts so no earlier case id moves.
+WHITESPACE_PRE_TOKENIZER_TEXTS = [
+    "\u0939\u093f\u0902\u0926\u0940 the",
+    "the\u093fcat",
+    "the\u20ddcat",
+    "\u216b the \u216bcat",
+    "cat\u200ddog cat\u200cdog",
+    "the\u24b6cat \u24b6",
+    "the\U00020000cat \U00020000\U0002a6d6",
+    "the\U0001f600cat \U0001f600!",
+    "the\u00b2 cat",
+]
+
 WORDPIECE_TEXTS = [
     "the cats playing",
     "unaffable",
@@ -1879,7 +1895,7 @@ def generate_wordpiece() -> dict:
     tokenizer.pre_tokenizer = Whitespace()
 
     cases = []
-    for i, text in enumerate(WORDPIECE_TEXTS):
+    for i, text in enumerate(WORDPIECE_TEXTS + WHITESPACE_PRE_TOKENIZER_TEXTS):
         enc = tokenizer.encode(text)
         cases.append({"id": i, "text": text, "tokens": enc.tokens, "ids": enc.ids})
     return {
@@ -8219,7 +8235,7 @@ def generate_bpe() -> dict:
 
     tokenizer = Tokenizer.from_file(str(ORACLE_DIR / "tiny_bpe.json"))
     cases = []
-    for i, text in enumerate(BPE_TEXTS):
+    for i, text in enumerate(BPE_TEXTS + WHITESPACE_PRE_TOKENIZER_TEXTS):
         enc = tokenizer.encode(text)
         cases.append({"id": i, "text": text, "tokens": enc.tokens, "ids": enc.ids})
     return {

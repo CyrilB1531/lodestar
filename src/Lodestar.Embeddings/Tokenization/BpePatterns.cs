@@ -18,7 +18,8 @@ public static class BpePatterns
     /// <c>WhitespaceSplit</c> (<c>\S+</c>, not implemented here). This is the
     /// pattern <see cref="BpeTokenizer"/> used to supply when a vocabulary
     /// declared none, which it now refuses instead — see
-    /// <see cref="BpeVocabulary.NoPreTokenizer"/>.
+    /// <see cref="BpeVocabulary.NoPreTokenizer"/>. This exact string is matched by a code-point
+    /// scanner rather than compiled, since .NET's <c>\w</c> is not Oniguruma's (issue #887).
     /// </remarks>
     public static string Whitespace { get; } = @"\w+|[^\w\s]+";
 

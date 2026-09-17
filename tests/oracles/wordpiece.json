@@ -51,7 +51,7 @@
    "##c": 44
   },
   "unk_token": "[UNK]",
-  "count": 9
+  "count": 18
  },
  "cases": [
   {
@@ -210,6 +210,118 @@
     6,
     0,
     0
+   ]
+  },
+  {
+   "id": 9,
+   "text": "हिंदी the",
+   "tokens": [
+    "[UNK]",
+    "the"
+   ],
+   "ids": [
+    0,
+    1
+   ]
+  },
+  {
+   "id": 10,
+   "text": "theिcat",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ]
+  },
+  {
+   "id": 11,
+   "text": "the⃝cat",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ]
+  },
+  {
+   "id": 12,
+   "text": "Ⅻ the Ⅻcat",
+   "tokens": [
+    "[UNK]",
+    "the",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    1,
+    0
+   ]
+  },
+  {
+   "id": 13,
+   "text": "cat‍dog cat‌dog",
+   "tokens": [
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0
+   ]
+  },
+  {
+   "id": 14,
+   "text": "theⒶcat Ⓐ",
+   "tokens": [
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0
+   ]
+  },
+  {
+   "id": 15,
+   "text": "the𠀀cat 𠀀𪛖",
+   "tokens": [
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0
+   ]
+  },
+  {
+   "id": 16,
+   "text": "the😀cat 😀!",
+   "tokens": [
+    "the",
+    "[UNK]",
+    "cat",
+    "[UNK]"
+   ],
+   "ids": [
+    1,
+    0,
+    2,
+    0
+   ]
+  },
+  {
+   "id": 17,
+   "text": "the² cat",
+   "tokens": [
+    "the",
+    "[UNK]",
+    "cat"
+   ],
+   "ids": [
+    1,
+    0,
+    2
    ]
   }
  ]
