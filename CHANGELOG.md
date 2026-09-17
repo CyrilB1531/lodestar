@@ -82,6 +82,7 @@ is one sentence, the issue and the commit; see
 
 - `CsrMatrix.Multiply` and `CsrMatrix.TransposeMultiply` add each non-zero's scaled row over spans with vector lanes, up to 2.5 times faster. ([#845](https://github.com/CyrilB1531/lodestar/issues/845))
 - `CsrMatrix.ToDense` adds a column stored twice in one row instead of keeping its last entry, as `Multiply` and scipy do. ([#878](https://github.com/CyrilB1531/lodestar/issues/878))
+- The `CsrMatrix` page no longer says a column stored twice sums everywhere: the row norms and `NormalizeRows` treat each entry on its own, as scikit-learn does. ([#981](https://github.com/CyrilB1531/lodestar/issues/981))
 
 ### Lodestar.Decomposition
 
