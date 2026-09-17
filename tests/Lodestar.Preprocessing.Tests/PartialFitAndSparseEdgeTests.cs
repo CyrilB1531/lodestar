@@ -124,6 +124,35 @@ public sealed class PartialFitAndSparseEdgeTests
         Assert.Throws<ArgumentException>(() => RobustScaler.Fit(Small()).Transform(wide));
     }
 
+    /// <summary>A matrix with no row is refused, as the dense overloads and scikit-learn refuse one (#989).</summary>
+    [Fact]
+    public void A_sparse_matrix_with_no_row_is_refused()
+    {
+        var empty = new CsrMatrix(0, 2, [], [], [0]);
+
+        Assert.Throws<ArgumentException>(() => MaxAbsScaler.Fit(Small()).Transform(empty));
+        Assert.Throws<ArgumentException>(() => MaxAbsScaler.Fit(Small()).InverseTransform(empty));
+        Assert.Throws<ArgumentException>(() => StandardScaler.Fit(Small()).Transform(empty));
+        Assert.Throws<ArgumentException>(() => StandardScaler.Fit(Small()).InverseTransform(empty));
+        Assert.Throws<ArgumentException>(() => RobustScaler.Fit(Small()).Transform(empty));
+        Assert.Throws<ArgumentException>(() => RobustScaler.Fit(Small()).InverseTransform(empty));
+    }
+
+    /// <summary>A transform's refusal cites the transform, not the fit's percentile (#989).</summary>
+    [Fact]
+    public void A_non_finite_stored_value_is_refused_by_a_transform_in_its_own_words()
+    {
+        var matrix = new CsrMatrix(1, 2, [double.NaN, 1.0], [0, 1], [0, 2]);
+
+        ArgumentException fit = Assert.Throws<ArgumentException>(() => MaxAbsScaler.Fit(matrix));
+        ArgumentException transform = Assert.Throws<ArgumentException>(
+            () => MaxAbsScaler.Fit(Small()).Transform(matrix));
+
+        Assert.Contains("percentile", fit.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("percentile", transform.Message, StringComparison.Ordinal);
+        Assert.Contains("equivalence", transform.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_clipping_max_abs_scaler_clips_the_stored_values()
     {

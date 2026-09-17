@@ -127,7 +127,7 @@ public sealed class StandardScaler
             throw new ArgumentException("samples holds no row or no column.", nameof(samples));
         }
 
-        SparseColumns.RequireFinite(samples, nameof(samples));
+        SparseColumns.RequireFinite(samples, nameof(samples), SparseColumns.FitReason);
 
         int featureCount = samples.ColumnCount;
         int sampleCount = samples.RowCount;

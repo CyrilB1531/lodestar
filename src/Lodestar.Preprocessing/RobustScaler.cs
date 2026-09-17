@@ -114,7 +114,7 @@ public sealed class RobustScaler
             throw new ArgumentException("samples holds no row or no column.", nameof(samples));
         }
 
-        SparseColumns.RequireFinite(samples, nameof(samples));
+        SparseColumns.RequireFinite(samples, nameof(samples), SparseColumns.FitReason);
 
         if (!settings.WithScaling)
         {

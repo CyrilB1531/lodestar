@@ -22,7 +22,7 @@ The second overload takes a [`CsrMatrix`](../../abstractions/sparse/csrmatrix.md
 
 **Exceptions** — `ArgumentException` when `samples` holds no row, a partial one, or a non-finite value.
 
-The sparse overload throws `ArgumentNullException` when `samples` is `null`, `ArgumentException` when its column count is not `FeatureCount` or it stores a non-finite value.
+The sparse overload throws `ArgumentNullException` when `samples` is `null`, `ArgumentException` when it holds no row or its column count is not `FeatureCount` or it stores a non-finite value.
 
 **Example** — a value beyond the fitted maximum leaves the unit interval, unless clipping is asked for.
 

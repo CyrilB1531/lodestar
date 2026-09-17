@@ -22,7 +22,7 @@ The second overload takes a [`CsrMatrix`](../../abstractions/sparse/csrmatrix.md
 
 **Exceptions** — `ArgumentException` when `samples` holds no row, a partial one, or a non-finite value.
 
-The sparse overload throws `ArgumentNullException` when `samples` is `null`, `ArgumentException` when its column count is not `FeatureCount` or it stores a non-finite value, and `InvalidOperationException` when the scaler centres — fit it with `WithCentring = false`, since subtracting a centre would make every absent zero a stored value.
+The sparse overload throws `ArgumentNullException` when `samples` is `null`, `ArgumentException` when it holds no row or its column count is not `FeatureCount` or it stores a non-finite value, and `InvalidOperationException` when the scaler centres — fit it with `WithCentring = false`, since subtracting a centre would make every absent zero a stored value.
 
 **Example** — subtract the median, then divide by the interquartile range.
 
