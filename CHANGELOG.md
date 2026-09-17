@@ -110,6 +110,7 @@ is one sentence, the issue and the commit; see
 - `Fuzz.TokenSetRatio`, `Fuzz.PartialTokenSetRatio` and `Fuzz.WRatio` score `0` rather than up to `100` when one side has no words, as rapidfuzz does. ([#860](https://github.com/CyrilB1531/lodestar/issues/860))
 - `Fuzz.TokenSetRatio` and `Fuzz.PartialTokenSetRatio` throw `ArgumentNullException` on a null string rather than `NullReferenceException`. ([#891](https://github.com/CyrilB1531/lodestar/issues/891))
 - `Process.Extract` refuses a negative `limit` with an `ArgumentOutOfRangeException` naming it, where it failed inside `List.RemoveRange`. ([#910](https://github.com/CyrilB1531/lodestar/issues/910))
+- `Fuzz`'s `TextElement.CodePoint` overloads split tokens on U+00A0 and U+0085 in a string holding a character above U+00FF, as rapidfuzz does, where French text with a no-break space scored below rapidfuzz. ([#974](https://github.com/CyrilB1531/lodestar/issues/974))
 
 #### Changed
 

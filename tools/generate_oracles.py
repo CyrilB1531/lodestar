@@ -2065,6 +2065,9 @@ FUZZ_PAIRS = [
 ]
 
 
+# The wide side of the no-break-space pairs below, named because S1192 counts it like any literal.
+WIDE_TOKENS = "b a \u6f22"
+
 # Issue #892: where code points, rapidfuzz's whitespace and a code-point token sort part from UTF-16.
 # Replayed with TextElement.CodePoint only; appended so no earlier case id moves.
 FUZZ_CODE_POINT_PAIRS = [
@@ -2077,6 +2080,11 @@ FUZZ_CODE_POINT_PAIRS = [
     # Past 64 code points, where PartialRatio takes the long-needle path.
     ("\U0001f600" * 70 + "x", "\U0001f600" * 66),
     ("q" + "\U0001f600" * 80, "\U0001f600" * 30 + "q"),
+    # Issue #974: U+00A0 and U+0085 split only in a string holding a unit above U+00FF, decided per string.
+    ("prix 12\u00a0\u20ac l\u2019an", "12 prix \u20ac l\u2019an"),
+    ("caf\u00e9\u00a0cr\u00e8me \u2014", "cr\u00e8me caf\u00e9 \u2014"),
+    ("a\u0085b \u6f22", WIDE_TOKENS), ("a\u00a0b \U0001f600", "b a \U0001f600"),
+    ("a\u00a0b", WIDE_TOKENS), (WIDE_TOKENS, "a\u00a0b"),
 ]
 
 

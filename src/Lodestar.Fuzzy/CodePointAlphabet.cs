@@ -59,14 +59,23 @@ internal readonly struct CodePointAlphabet
     }
 
     /// <summary>rapidfuzz's split: runs of its whitespace, which is not <see cref="char.IsWhiteSpace(char)"/>'s.</summary>
-    /// <remarks>U+001C to U+001F split and U+0085 and U+00A0 do not, measured over every BMP scalar against rapidfuzz 3.14.6.</remarks>
+    /// <remarks>
+    /// U+001C to U+001F always split. U+0085 and U+00A0 split only in a string holding a unit above U+00FF,
+    /// which CPython stores wider than Latin-1: measured over every BMP scalar against rapidfuzz 3.14.6 (#974).
+    /// </remarks>
     public static string[] Tokenize(string text)
     {
+        bool wide = false;
+        for (int i = 0; i < text.Length && !wide; i++)
+        {
+            wide = text[i] > (char)0xFF;
+        }
+
         var tokens = new List<string>();
         int start = -1;
         for (int i = 0; i <= text.Length; i++)
         {
-            bool boundary = i == text.Length || IsRapidfuzzWhitespace(text[i]);
+            bool boundary = i == text.Length || IsRapidfuzzWhitespace(text[i], wide);
             if (boundary && start >= 0)
             {
                 tokens.Add(text.Substring(start, i - start));
@@ -99,10 +108,11 @@ internal readonly struct CodePointAlphabet
         return new string(mapped);
     }
 
-    private static bool IsRapidfuzzWhitespace(char unit) =>
+    private static bool IsRapidfuzzWhitespace(char unit, bool wide) =>
         unit is (>= (char)0x09 and <= (char)0x0D) or (>= (char)0x1C and <= ' ') or (char)0x1680
             or (>= (char)0x2000 and <= (char)0x200A) or (char)0x2028 or (char)0x2029 or (char)0x202F
-            or (char)0x205F or (char)0x3000;
+            or (char)0x205F or (char)0x3000
+        || (wide && unit is (char)0x85 or (char)0xA0);
 
     private static bool HasSurrogate(string text) => text.Any(char.IsSurrogate);
 

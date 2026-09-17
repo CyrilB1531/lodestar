@@ -6,7 +6,7 @@
   "reference_calls": [
    "rapidfuzz.fuzz.{ratio,partial_ratio,token_sort_ratio,token_set_ratio,WRatio,partial_token_sort_ratio,partial_token_set_ratio}"
   ],
-  "count": 47
+  "count": 53
  },
  "cases": [
   {
@@ -619,6 +619,84 @@
    "wratio": 88.52459016393443,
    "partial_token_sort_ratio": 98.36065573770492,
    "partial_token_set_ratio": 98.36065573770492
+  },
+  {
+   "id": 47,
+   "a": "prix 12 € l’an",
+   "b": "12 prix € l’an",
+   "codePointOnly": true,
+   "ratio": 78.57142857142857,
+   "partial_ratio": 88.0,
+   "token_sort_ratio": 100.0,
+   "token_set_ratio": 100.0,
+   "wratio": 95.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
+  },
+  {
+   "id": 48,
+   "a": "café crème —",
+   "b": "crème café —",
+   "codePointOnly": true,
+   "ratio": 58.33333333333333,
+   "partial_ratio": 73.6842105263158,
+   "token_sort_ratio": 100.0,
+   "token_set_ratio": 100.0,
+   "wratio": 95.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
+  },
+  {
+   "id": 49,
+   "a": "ab 漢",
+   "b": "b a 漢",
+   "codePointOnly": true,
+   "ratio": 60.0,
+   "partial_ratio": 75.0,
+   "token_sort_ratio": 100.0,
+   "token_set_ratio": 100.0,
+   "wratio": 95.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
+  },
+  {
+   "id": 50,
+   "a": "a b 😀",
+   "b": "b a 😀",
+   "codePointOnly": true,
+   "ratio": 60.0,
+   "partial_ratio": 75.0,
+   "token_sort_ratio": 100.0,
+   "token_set_ratio": 100.0,
+   "wratio": 95.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
+  },
+  {
+   "id": 51,
+   "a": "a b",
+   "b": "b a 漢",
+   "codePointOnly": true,
+   "ratio": 25.0,
+   "partial_ratio": 50.0,
+   "token_sort_ratio": 50.0,
+   "token_set_ratio": 50.0,
+   "wratio": 57.0,
+   "partial_token_sort_ratio": 66.66666666666667,
+   "partial_token_set_ratio": 66.66666666666667
+  },
+  {
+   "id": 52,
+   "a": "b a 漢",
+   "b": "a b",
+   "codePointOnly": true,
+   "ratio": 25.0,
+   "partial_ratio": 50.0,
+   "token_sort_ratio": 50.0,
+   "token_set_ratio": 50.0,
+   "wratio": 57.0,
+   "partial_token_sort_ratio": 66.66666666666667,
+   "partial_token_set_ratio": 66.66666666666667
   }
  ]
 }
