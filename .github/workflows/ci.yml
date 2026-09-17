@@ -533,12 +533,32 @@ jobs:
       #
       # One file per test assembly, under each project's TestResults/. Pinning a single
       # name collapses them onto each other -- see ci.yml, where that was measured.
+      # Three attempts, two then five minutes apart: SonarCloud answered `Error 500 ... Please try
+      # again` on its own project-data call for over an hour on 2026-09-17, in windows longer than a
+      # minute, reddening a required check on green work. A real QUALITY GATE STATUS: FAILED exits
+      # non-zero too, so it still fails, three attempts over.
       - name: End analysis
         if: env.SONAR == 'true'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          "${{ runner.temp }}/scanner/dotnet-sonarscanner" end /d:sonar.token="$SONAR_TOKEN"
+          for attempt in 1 2 3; do
+            echo "::group::End analysis, attempt $attempt of 3"
+            if "${{ runner.temp }}/scanner/dotnet-sonarscanner" end /d:sonar.token="$SONAR_TOKEN"; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            if [ "$attempt" != 3 ]; then
+              # 2 then 5 minutes: measured on 2026-09-17, a minute apart left all three attempts
+              # inside one outage window, while analyses a few minutes apart went through.
+              wait=$([ "$attempt" = 1 ] && echo 120 || echo 300)
+              echo "::warning::End analysis failed on attempt $attempt; retrying in ${wait}s."
+              sleep "$wait"
+            fi
+          done
+          echo "::error::End analysis failed three times."
+          exit 1
 
       # The libraries reference each other by package, never by project. The
       # opt-in developer loop (LodestarUseProjectRefs) puts a ProjectReference
