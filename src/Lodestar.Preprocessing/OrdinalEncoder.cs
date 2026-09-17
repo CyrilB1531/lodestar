@@ -16,12 +16,14 @@ public sealed class OrdinalEncoder<T>
     where T : IComparable<T>, IEquatable<T>
 {
     private readonly T[][] _categories;
+    private readonly CategoryIndex<T> _index;
 
     private OrdinalEncoder(int featureCount, int sampleCount, T[][] categories)
     {
         FeatureCount = featureCount;
         SampleCount = sampleCount;
         _categories = categories;
+        _index = new CategoryIndex<T>(categories);
     }
 
     /// <summary>How many values each row carries.</summary>
@@ -66,7 +68,7 @@ public sealed class OrdinalEncoder<T>
             for (int feature = 0; feature < FeatureCount; feature++)
             {
                 int position = (row * FeatureCount) + feature;
-                int index = CategoryTable.IndexOf(_categories[feature], values[position]);
+                int index = _index.IndexOf(feature, values[position]);
                 if (index < 0)
                 {
                     throw new ArgumentException(

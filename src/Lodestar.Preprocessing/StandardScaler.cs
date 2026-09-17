@@ -235,41 +235,68 @@ public sealed class StandardScaler
         SampleMatrix.Rows(samples, FeatureCount);
         var result = new double[samples.Length];
 
-        for (int i = 0; i < samples.Length; i++)
+        // An absent centre is a row of zeros that is still added, not skipped: -0.0 + 0.0 is +0.0,
+        // and the element-wise version wrote that sum. _mean alone does not say whether to centre.
+        ReadOnlySpan<double> centre = _centres && _mean is not null ? _mean : new double[FeatureCount];
+        if (_scale is null)
         {
-            int feature = i % FeatureCount;
-            double value = samples[i];
-
-            if (inverse)
-            {
-                value = Rescale(value, feature, inverse: true);
-                value += Centre(feature);
-            }
-            else
-            {
-                value -= Centre(feature);
-                value = Rescale(value, feature, inverse: false);
-            }
-
-            result[i] = value;
+            Shift(samples, centre, result, inverse);
+        }
+        else if (inverse)
+        {
+            Restore(samples, centre, _scale, result);
+        }
+        else
+        {
+            Standardise(samples, centre, _scale, result);
         }
 
         return result;
     }
 
-    /// <summary>What the centring step subtracts: the mean, or nothing when it is off.</summary>
-    /// <remarks><see cref="_mean"/> alone does not answer this — see the field's own note.</remarks>
-    private double Centre(int feature) => _centres && _mean is not null ? _mean[feature] : 0.0;
-
-    /// <summary>What the scaling step divides or multiplies by, or nothing when it is off.</summary>
-    private double Rescale(double value, int feature, bool inverse)
+    /// <summary>Only the centring step, added back or taken away, row by row.</summary>
+    private static void Shift(ReadOnlySpan<double> samples, ReadOnlySpan<double> centre, double[] result, bool add)
     {
-        if (_scale is null)
+        int width = centre.Length;
+        for (int start = 0; start < samples.Length; start += width)
         {
-            return value;
+            ReadOnlySpan<double> row = samples.Slice(start, width);
+            Span<double> output = result.AsSpan(start, width);
+            for (int feature = 0; feature < row.Length; feature++)
+            {
+                output[feature] = add ? row[feature] + centre[feature] : row[feature] - centre[feature];
+            }
         }
+    }
 
-        return inverse ? value * _scale[feature] : value / _scale[feature];
+    private static void Standardise(
+        ReadOnlySpan<double> samples, ReadOnlySpan<double> centre, double[] scale, double[] result)
+    {
+        int width = centre.Length;
+        for (int start = 0; start < samples.Length; start += width)
+        {
+            ReadOnlySpan<double> row = samples.Slice(start, width);
+            Span<double> output = result.AsSpan(start, width);
+            for (int feature = 0; feature < row.Length; feature++)
+            {
+                output[feature] = (row[feature] - centre[feature]) / scale[feature];
+            }
+        }
+    }
+
+    private static void Restore(
+        ReadOnlySpan<double> samples, ReadOnlySpan<double> centre, double[] scale, double[] result)
+    {
+        int width = centre.Length;
+        for (int start = 0; start < samples.Length; start += width)
+        {
+            ReadOnlySpan<double> row = samples.Slice(start, width);
+            Span<double> output = result.AsSpan(start, width);
+            for (int feature = 0; feature < row.Length; feature++)
+            {
+                output[feature] = (row[feature] * scale[feature]) + centre[feature];
+            }
+        }
     }
 
     /// <summary>Per-feature mean, summed with Neumaier compensation.</summary>
@@ -278,9 +305,13 @@ public sealed class StandardScaler
         var total = new double[featureCount];
         var lost = new double[featureCount];
 
-        for (int i = 0; i < samples.Length; i++)
+        for (int start = 0; start < samples.Length; start += featureCount)
         {
-            Add(ref total[i % featureCount], ref lost[i % featureCount], samples[i]);
+            ReadOnlySpan<double> row = samples.Slice(start, featureCount);
+            for (int feature = 0; feature < row.Length; feature++)
+            {
+                Add(ref total[feature], ref lost[feature], row[feature]);
+            }
         }
 
         var mean = new double[featureCount];
@@ -299,11 +330,14 @@ public sealed class StandardScaler
         var total = new double[featureCount];
         var lost = new double[featureCount];
 
-        for (int i = 0; i < samples.Length; i++)
+        for (int start = 0; start < samples.Length; start += featureCount)
         {
-            int feature = i % featureCount;
-            double deviation = samples[i] - mean[feature];
-            Add(ref total[feature], ref lost[feature], deviation * deviation);
+            ReadOnlySpan<double> row = samples.Slice(start, featureCount);
+            for (int feature = 0; feature < row.Length; feature++)
+            {
+                double deviation = row[feature] - mean[feature];
+                Add(ref total[feature], ref lost[feature], deviation * deviation);
+            }
         }
 
         var variance = new double[featureCount];

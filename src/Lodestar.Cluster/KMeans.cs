@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Lodestar.Cluster.Internal;
 
 namespace Lodestar.Cluster;
@@ -14,6 +15,9 @@ namespace Lodestar.Cluster;
 /// </remarks>
 public sealed class KMeans
 {
+    /// <summary>The widest row the indexed assignment keeps; see <see cref="AssignWide"/> for why.</summary>
+    private const int NarrowFeatures = 4;
+
     private readonly double[] _centres;
     private readonly int[] _labels;
 
@@ -92,7 +96,7 @@ public sealed class KMeans
         for (int step = 0; step < settings.MaxIterations; step++)
         {
             iterations = step + 1;
-            Assign(samples, featureCount, centres, clusterCount, labels);
+            Nearest(samples, featureCount, centres, clusterCount, labels);
             double shift = Update(samples, featureCount, clusterCount, sampleCount, labels, centres);
 
             if (SameLabels(labels, previous))
@@ -113,7 +117,7 @@ public sealed class KMeans
         {
             // The centres moved after the last assignment, so the labels are one update
             // behind them. The reference re-runs the E-step for exactly this reason.
-            Assign(samples, featureCount, centres, clusterCount, labels);
+            Nearest(samples, featureCount, centres, clusterCount, labels);
         }
 
         double inertia = Inertias(samples, featureCount, centres, labels);
@@ -129,7 +133,7 @@ public sealed class KMeans
     {
         int rows = Rows(samples, FeatureCount);
         var labels = new int[rows];
-        Assign(samples, FeatureCount, _centres, ClusterCount, labels);
+        Nearest(samples, FeatureCount, _centres, ClusterCount, labels);
         return labels;
     }
 
@@ -205,12 +209,31 @@ public sealed class KMeans
         return total / featureCount * tolerance;
     }
 
+    /// <summary>The E-step, by whichever of the two equal loops is faster at this width.</summary>
+    /// <remarks>
+    /// Both loops are kept out of line: the version that branched inside the indexed loop measured
+    /// 17.2 ms a Lloyd run at two features against main's 16.1, and this shape measured 16.3 against 16.2.
+    /// </remarks>
+    private static void Nearest(
+        ReadOnlySpan<double> samples, int featureCount, double[] centres, int clusterCount, int[] labels)
+    {
+        if (featureCount > NarrowFeatures)
+        {
+            AssignWide(samples, featureCount, centres, clusterCount, labels);
+        }
+        else
+        {
+            Assign(samples, featureCount, centres, clusterCount, labels);
+        }
+    }
+
     /// <summary>The E-step: every sample takes the nearest centre, ties to the lower index.</summary>
     /// <remarks>
     /// <c>numpy.argmin</c>'s rule, and <strong>a measured divergence from the reference</strong>
     /// on an exact tie — decision 0093 has the two configurations that send scikit-learn's
     /// choice both ways, and why no single rule reproduces both.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void Assign(
         ReadOnlySpan<double> samples, int featureCount, double[] centres, int clusterCount, int[] labels)
     {
@@ -232,6 +255,49 @@ public sealed class KMeans
 
             labels[row] = chosen;
         }
+    }
+
+    /// <summary><see cref="Assign"/> over sliced rows, the same sum in the same order.</summary>
+    /// <remarks>
+    /// Measured by Stopwatch on the incumbent benchmark's blobs: slicing each row and centre lets the
+    /// JIT drop the bounds checks, 0.99 ms an assignment against 1.28 at sixteen features, but at two
+    /// it was the slower of the two. A partial-sum exit was slower at every shape: 0.26, 1.83 and 15.4 ms
+    /// against 0.19, 1.28 and 6.8, its branch mispredicting on overlapping blobs.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void AssignWide(
+        ReadOnlySpan<double> samples, int featureCount, double[] centres, int clusterCount, int[] labels)
+    {
+        for (int row = 0; row < labels.Length; row++)
+        {
+            ReadOnlySpan<double> sample = samples.Slice(row * featureCount, featureCount);
+            double best = double.PositiveInfinity;
+            int chosen = 0;
+
+            for (int cluster = 0; cluster < clusterCount; cluster++)
+            {
+                double distance = RowDistance(sample, centres.AsSpan(cluster * featureCount, featureCount));
+                if (distance < best)
+                {
+                    best = distance;
+                    chosen = cluster;
+                }
+            }
+
+            labels[row] = chosen;
+        }
+    }
+
+    private static double RowDistance(ReadOnlySpan<double> sample, ReadOnlySpan<double> centre)
+    {
+        double total = 0.0;
+        for (int feature = 0; feature < sample.Length; feature++)
+        {
+            double gap = sample[feature] - centre[feature];
+            total += gap * gap;
+        }
+
+        return total;
     }
 
     /// <summary>The M-step, returning the summed squared distance the centres moved.</summary>

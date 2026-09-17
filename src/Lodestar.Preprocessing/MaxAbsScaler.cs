@@ -56,11 +56,7 @@ public sealed class MaxAbsScaler
         SampleMatrix.RequireFinite(samples, nameof(samples));
 
         var maximumAbsolute = new double[featureCount];
-        for (int i = 0; i < samples.Length; i++)
-        {
-            int feature = i % featureCount;
-            maximumAbsolute[feature] = Math.Max(maximumAbsolute[feature], Math.Abs(samples[i]));
-        }
+        Widen(samples, maximumAbsolute);
 
         double[] scale = [.. maximumAbsolute];
         ScaleFloor.Apply(scale);
@@ -118,11 +114,7 @@ public sealed class MaxAbsScaler
             maximumAbsolute[feature] = MaximumAbsolute[feature];
         }
 
-        for (int i = 0; i < samples.Length; i++)
-        {
-            int feature = i % FeatureCount;
-            maximumAbsolute[feature] = Math.Max(maximumAbsolute[feature], Math.Abs(samples[i]));
-        }
+        Widen(samples, maximumAbsolute);
 
         double[] scale = [.. maximumAbsolute];
         ScaleFloor.Apply(scale);
@@ -140,10 +132,16 @@ public sealed class MaxAbsScaler
         SampleMatrix.RequireFinite(samples, nameof(samples));
 
         var result = new double[samples.Length];
-        for (int i = 0; i < samples.Length; i++)
+        int width = FeatureCount;
+        for (int start = 0; start < samples.Length; start += width)
         {
-            double value = samples[i] / _scale[i % FeatureCount];
-            result[i] = _clips ? Bounds.Clamp(value, -1.0, 1.0) : value;
+            ReadOnlySpan<double> row = samples.Slice(start, width);
+            Span<double> output = result.AsSpan(start, width);
+            for (int feature = 0; feature < row.Length; feature++)
+            {
+                double value = row[feature] / _scale[feature];
+                output[feature] = _clips ? Bounds.Clamp(value, -1.0, 1.0) : value;
+            }
         }
 
         return result;
@@ -160,11 +158,31 @@ public sealed class MaxAbsScaler
         SampleMatrix.RequireFinite(samples, nameof(samples));
 
         var result = new double[samples.Length];
-        for (int i = 0; i < samples.Length; i++)
+        int width = FeatureCount;
+        for (int start = 0; start < samples.Length; start += width)
         {
-            result[i] = samples[i] * _scale[i % FeatureCount];
+            ReadOnlySpan<double> row = samples.Slice(start, width);
+            Span<double> output = result.AsSpan(start, width);
+            for (int feature = 0; feature < row.Length; feature++)
+            {
+                output[feature] = row[feature] * _scale[feature];
+            }
         }
 
         return result;
+    }
+
+    /// <summary>Folds every row into the running per-feature largest absolute value, in row order.</summary>
+    private static void Widen(ReadOnlySpan<double> samples, double[] maximumAbsolute)
+    {
+        int width = maximumAbsolute.Length;
+        for (int start = 0; start < samples.Length; start += width)
+        {
+            ReadOnlySpan<double> row = samples.Slice(start, width);
+            for (int feature = 0; feature < row.Length; feature++)
+            {
+                maximumAbsolute[feature] = Math.Max(maximumAbsolute[feature], Math.Abs(row[feature]));
+            }
+        }
     }
 }

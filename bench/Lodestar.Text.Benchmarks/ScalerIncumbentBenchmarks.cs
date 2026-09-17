@@ -93,6 +93,10 @@ public class ScalerIncumbentBenchmarks
         RobustScaler.Fit(_matrix, Features).Transform(_matrix);
 
     [Benchmark]
+    public double[] Lodestar_Standard() =>
+        StandardScaler.Fit(_matrix, Features).Transform(_matrix);
+
+    [Benchmark]
     public NormalizingTransformer MlNet_NormalizeMinMax_Fit() =>
         _context.Transforms.NormalizeMinMax(Column, fixZero: false).Fit(_data);
 

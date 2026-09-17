@@ -11,12 +11,12 @@ internal static class EuclideanDistance
     /// </remarks>
     public static double Between(ReadOnlySpan<double> samples, int featureCount, int left, int right)
     {
+        ReadOnlySpan<double> a = samples.Slice(left * featureCount, featureCount);
+        ReadOnlySpan<double> b = samples.Slice(right * featureCount, featureCount);
         double total = 0.0;
-        int a = left * featureCount;
-        int b = right * featureCount;
-        for (int feature = 0; feature < featureCount; feature++)
+        for (int feature = 0; feature < a.Length; feature++)
         {
-            double gap = samples[a + feature] - samples[b + feature];
+            double gap = a[feature] - b[feature];
             total += gap * gap;
         }
 
