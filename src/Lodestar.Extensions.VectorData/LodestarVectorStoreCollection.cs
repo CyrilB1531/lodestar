@@ -322,11 +322,6 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         {
             return [];
         }
-        if (query.Length != vectors.Dimension)
-        {
-            throw new ArgumentException($"query length {query.Length} != dimension {vectors.Dimension}.", nameof(query));
-        }
-
         float[] normalized = query.ToArray();
         float norm = VectorMath.L2Norm(normalized);
         if (norm > 0)
@@ -459,11 +454,11 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
 
     /// <summary>The documents the keywords matched, best first; none when nothing is held.</summary>
     /// <remarks>
-    /// A marked schema over no records builds no keyword index, so the empty ranking is the
-    /// answer rather than a refusal. <c>Top</c> scores every document; an unmatched one is
-    /// dropped rather than passed through, since <see cref="RankFusion.Rrf"/> reads rank
-    /// position and not score. Matching is read from the counts, not the score, whose sign
-    /// Robertson's IDF leaves open: two records and one shared term score zero.
+    /// A marked schema over no records builds no keyword index, so the empty ranking is the answer
+    /// rather than a refusal. Only matched documents are ranked, since <see cref="RankFusion.Rrf"/>
+    /// reads rank position and not score; matching is read from the counts, whose postings name it,
+    /// and not from the score, whose sign Robertson's IDF leaves open. The order is <c>Top</c>'s:
+    /// score descending, then document index (#993).
     /// </remarks>
     private static int[] KeywordRanking(DerivedIndexes<TKey, TRecord> indexes, ICollection<string> keywords)
     {
@@ -473,31 +468,18 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         }
 
         List<int> terms = QueryTerms(indexes.Vectorizer, keywords);
-        bool[] matched = Matched(indexes.Counts, terms);
-        return [.. indexes.Keywords
-            .Top(terms, indexes.Keywords.DocumentCount)
-            .Where(hit => matched[hit.Document])
-            .Select(hit => hit.Document)];
-    }
-
-    /// <summary>Which rows of <paramref name="counts"/> hold at least one of <paramref name="terms"/>.</summary>
-    private static bool[] Matched(CsrMatrix counts, List<int> terms)
-    {
-        bool[] queried = new bool[counts.ColumnCount];
-        foreach (int term in terms)
+        int[] matched = indexes.Postings!.Matching(terms);
+        if (matched.Length == 0)
         {
-            queried[term] = true;
+            return [];
         }
 
-        bool[] matched = new bool[counts.RowCount];
-        for (int row = 0; row < matched.Length; row++)
+        double[] scores = indexes.Keywords.Score(terms);
+        Array.Sort(matched, (left, right) =>
         {
-            for (int k = counts.RowPointers[row]; k < counts.RowPointers[row + 1] && !matched[row]; k++)
-            {
-                matched[row] = queried[counts.ColumnIndices[k]];
-            }
-        }
-
+            int order = scores[right].CompareTo(scores[left]);
+            return order != 0 ? order : left.CompareTo(right);
+        });
         return matched;
     }
 

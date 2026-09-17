@@ -23,6 +23,7 @@ internal sealed class DerivedIndexes<TKey, TRecord>
         Vectors = vectors;
         Block = block;
         Counts = counts;
+        Postings = counts is null ? null : TermPostings.Of(counts);
         Keywords = keywords;
         Vectorizer = vectorizer;
         Keys = keys;
@@ -45,6 +46,13 @@ internal sealed class DerivedIndexes<TKey, TRecord>
     /// is negative when the mean IDF is, so a match can score at or below an unmatched zero.
     /// </remarks>
     public CsrMatrix? Counts { get; }
+
+    /// <summary>Which records hold each term, or <see langword="null"/> without a keyword half.</summary>
+    /// <remarks>
+    /// Built once with <see cref="Counts"/> rather than per query: a hybrid search asked which records
+    /// matched, and answering it by walking every stored count cost the whole corpus on every call (#993).
+    /// </remarks>
+    public TermPostings? Postings { get; }
 
     /// <summary>The keyword half, or <see langword="null"/> when no property is full-text indexed.</summary>
     public Bm25Index? Keywords { get; }

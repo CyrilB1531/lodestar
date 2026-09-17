@@ -60,16 +60,19 @@ The vector ranking is `a, b, c`; the keyword ranking is `c` alone, since `zebra`
 **Remarks** — three published pieces, joined and nothing added:
 
 1. the vector ranking of **every** record, from [`EmbeddingIndex.Search`](../../embeddings/search/embeddingindex-search.md);
-2. the keyword ranking, from [`Bm25Index.Top`](../../text/search/bm25index-top.md), over the
+2. the keyword ranking, from [`Bm25Index.Score`](../../text/search/bm25index-score.md), over the
    vocabulary a [`CountVectorizer`](../../text/vectorizers/countvectorizer.md) fitted on the
    full-text values during the same rebuild — so a query is tokenized exactly as the records were;
 3. the fusion, [`RankFusion.Rrf`](../../text/search/rankfusion-rrf.md), at
    [`LodestarVectorStoreOptions`](lodestarvectorstoreoptions.md)' `RankFusionK`, 60 by default.
 
-**The keyword ranking holds only the records the keywords matched.** `Bm25Index.Top` returns every
-document, the zero-scoring ones included in index order, and `RankFusion.Rrf` reads a ranking's
-positions rather than its scores — so passing that list through would hand an unmatched record credit
-for the order it was inserted in. A record enters the keyword ranking when its full-text value holds
+**The keyword ranking holds only the records the keywords matched**, ordered by score descending and
+then by index, which is [`Bm25Index.Top`](../../text/search/bm25index-top.md)'s own order over that
+subset. `RankFusion.Rrf` reads a ranking's positions rather than its scores, so passing every
+document through would hand an unmatched record credit for the order it was inserted in. Only the
+matched records are ranked, read from the queried terms' postings rather than from a pass over every
+stored count, which is what keeps a query off the size of the collection. A record enters the keyword
+ranking when its full-text value holds
 at least one of the keywords, **whatever the sign of its BM25 score**: the default IDF is zero for a
 term in exactly half the records, and its floor for a commoner term is negative whenever the mean IDF
 is, so a matched record can score zero or less — in a one-record collection it always does.
