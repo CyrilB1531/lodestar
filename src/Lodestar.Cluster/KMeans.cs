@@ -352,10 +352,10 @@ public sealed class KMeans
     /// taken from one distance pass so no sample is given twice.
     /// </summary>
     /// <remarks>
-    /// <c>_relocate_empty_clusters_dense</c>'s shape: the labels are left alone, the moved sample
-    /// is subtracted from its old cluster's sums, and nothing moves when every sample sits on its
-    /// centre. Equally far samples are taken lowest row first, where the reference's order comes
-    /// from <c>numpy.argpartition</c> and follows no rule a row index reproduces.
+    /// <c>_relocate_empty_clusters_dense</c>'s shape: the labels are left alone, the moved sample is
+    /// subtracted from its old cluster's sums, and nothing moves when every sample sits on its centre.
+    /// The furthest samples are taken in descending distance, ties lowest row first; the reference's
+    /// <c>numpy.argpartition</c> order follows no row rule, so the pairing can differ with no tie (#990).
     /// </remarks>
     private static void Relocate(
         ReadOnlySpan<double> samples,
