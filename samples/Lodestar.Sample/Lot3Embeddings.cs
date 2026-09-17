@@ -54,7 +54,7 @@ internal static class Lot3Embeddings
         Console.WriteLine($"  WP token_to_id   : 'text'={(inline.TryGetId("text", out int wpId) ? wpId : -1)} "
             + "(on the class; the interface call later reaches ISubwordTokenizer instead)");
         Console.WriteLine($"  vocab.txt        : {fromTxt.Count} tokens, unk='{fromTxt.UnkToken}', "
-            + $"prefix='{fromTxt.ContinuationPrefix}', lowercase={fromTxt.Lowercase}, dict={fromTxt.Vocab.Count}");
+            + $"prefix='{fromTxt.ContinuationPrefix}', lowercase={fromTxt.Lowercase}, basic={fromTxt.BasicTokenization}, dict={fromTxt.Vocab.Count}");
         Console.WriteLine($"  from vocabulary  : [{string.Join(", ", new WordPieceTokenizer(fromTxt, maxCharsPerWord: 100).Encode(SampleText).Tokens)}]");
 
         // …and as HuggingFace ships it: a tokenizer.json.

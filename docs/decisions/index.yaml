@@ -1442,3 +1442,13 @@
   superseded_by: []
   amended_by: []
   applied_by: []
+
+"0144":
+  title: "A vocab.txt runs BERT's BasicTokenizer, by default"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []

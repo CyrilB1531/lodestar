@@ -28,6 +28,14 @@ public sealed record WordPieceVocabulary(
     /// </remarks>
     public IReadOnlyList<AddedToken> AddedTokens { get; init; } = [];
 
+    /// <summary>Whether text goes through BERT's BasicTokenizer before WordPiece, as <c>transformers.BertTokenizer</c> runs it.</summary>
+    /// <remarks>
+    /// <c>BertNormalizer</c> then <c>BertPreTokenizer</c>: control characters dropped, CJK padded, accents stripped
+    /// when <see cref="Lowercase"/> is set, each punctuation character a token of its own. <see cref="Persistence.VocabTxtLoader"/>
+    /// sets it, since a <c>vocab.txt</c> is a BERT vocabulary; off, text is split as <c>pre_tokenizers.Whitespace()</c> splits it (#883).
+    /// </remarks>
+    public bool BasicTokenization { get; init; }
+
     /// <summary>Number of entries in the vocabulary.</summary>
     public int Count => Vocab.Count;
 
@@ -48,6 +56,7 @@ public sealed record WordPieceVocabulary(
         }
         if (other is null
             || Lowercase != other.Lowercase
+            || BasicTokenization != other.BasicTokenization
             || !string.Equals(UnkToken, other.UnkToken, StringComparison.Ordinal)
             || !string.Equals(ContinuationPrefix, other.ContinuationPrefix, StringComparison.Ordinal)
             || Vocab.Count != other.Vocab.Count
@@ -86,6 +95,7 @@ public sealed record WordPieceVocabulary(
             hash = (hash * 31) + AddedTokens.Count;
             hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(UnkToken);
             hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(ContinuationPrefix);
+            hash = (hash * 31) + (BasicTokenization ? 1 : 0);
             return (hash * 31) + (Lowercase ? 1 : 0);
         }
     }

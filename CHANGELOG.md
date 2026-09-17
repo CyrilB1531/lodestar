@@ -172,6 +172,7 @@ is one sentence, the issue and the commit; see
 - `BpeTokenizer` caches each piece's merged ids. ([#743](https://github.com/CyrilB1531/lodestar/issues/743), [`6ab11a2c`](https://github.com/CyrilB1531/lodestar/commit/6ab11a2c))
 - `EmbeddingIndex.Load` reads a stream of undeclared length into pooled segments. ([#716](https://github.com/CyrilB1531/lodestar/issues/716), [`b7eb6e48`](https://github.com/CyrilB1531/lodestar/commit/b7eb6e48))
 - `System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
+- **Breaking, in ids.** `VocabTxtLoader` returns a vocabulary with the new `WordPieceVocabulary.BasicTokenization` set, so a `vocab.txt` tokenizes through BERT's BasicTokenizer as `BertTokenizer` does, where accented words of an uncased model became `[UNK]` and punctuation runs stayed whole. ([#883](https://github.com/CyrilB1531/lodestar/issues/883))
 
 #### Fixed
 

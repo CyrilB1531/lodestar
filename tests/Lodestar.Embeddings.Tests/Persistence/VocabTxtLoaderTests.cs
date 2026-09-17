@@ -35,14 +35,30 @@ public sealed class VocabTxtLoaderTests
         Assert.Equal(meta.GetProperty("unk_token").GetString(), vocabulary.UnkToken);
     }
 
-    [Fact]
-    public void The_loaded_vocabulary_drives_the_tokenizer_to_the_reference_encoding()
+    /// <summary>BertTokenizer's pipeline, BasicTokenizer included, on a cased and an uncased model (#883).</summary>
+    [Theory]
+    [InlineData("cased", false)]
+    [InlineData("uncased", true)]
+    public void The_loaded_vocabulary_drives_the_tokenizer_to_the_reference_encoding(string model, bool lowercase)
     {
         using JsonDocument doc = OracleLoader.Load("vocab_txt.json");
         JsonElement meta = doc.RootElement.GetProperty("metadata");
-        var tokenizer = new WordPieceTokenizer(LoadFrom(meta.GetProperty("vocab_txt").GetString()!));
+        var tokenizer = new WordPieceTokenizer(LoadFrom(meta.GetProperty("vocab_txt").GetString()!, lowercase));
 
-        OracleReplay.AssertEncodings(doc, tokenizer.Encode, "tokens");
+        OracleReplay.AssertEncodings(doc, tokenizer.Encode, "tokens", model);
+    }
+
+    [Fact]
+    public void A_vocab_txt_turns_on_the_basic_tokenizer_and_it_can_be_turned_off()
+    {
+        WordPieceVocabulary vocabulary = LoadFrom("[UNK]\nwait\n.\n...\n");
+        var bert = new WordPieceTokenizer(vocabulary);
+        var whitespace = new WordPieceTokenizer(vocabulary with { BasicTokenization = false });
+
+        Assert.True(vocabulary.BasicTokenization);
+        Assert.Equal(["wait", ".", ".", "."], bert.Encode("wait...").Tokens);
+        Assert.Equal(["wait", "..."], whitespace.Encode("wait...").Tokens);
+        Assert.NotEqual(vocabulary, vocabulary with { BasicTokenization = false });
     }
 
     [Fact]
@@ -158,5 +174,11 @@ public sealed class VocabTxtLoaderTests
     {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
         return VocabTxtLoader.Load(stream, options);
+    }
+
+    private static WordPieceVocabulary LoadFrom(string content, bool lowercase)
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
+        return VocabTxtLoader.Load(stream, lowercase: lowercase);
     }
 }

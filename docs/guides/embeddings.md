@@ -29,8 +29,9 @@ TokenizationResult t = wp.Encode("playing");   // pieces: play ##ing
 
 A stock HuggingFace BERT `tokenizer.json` — `BertPreTokenizer` plus a full
 `BertNormalizer` — **is refused** by [`TokenizerJsonLoader.LoadWordPiece`](../reference/embeddings/persistence/tokenizerjsonloader-loadwordpiece.md); that is
-the correct outcome, not a gap, since Lodestar does not reproduce those steps.
-`VocabTxtLoader` is the route for BERT, and `LoadWordPiece` is for a `tokenizer.json`
+the correct outcome for that file. The same steps run on the `vocab.txt` route instead:
+`VocabTxtLoader` returns a vocabulary with `BasicTokenization` set, so accents, punctuation runs and
+CJK text tokenize as `BertTokenizer` tokenizes them. `VocabTxtLoader` is the route for BERT, and `LoadWordPiece` is for a `tokenizer.json`
 whose pipeline already matches Lodestar's own (see
 [Models that are refused](#models-that-are-refused)).
 
