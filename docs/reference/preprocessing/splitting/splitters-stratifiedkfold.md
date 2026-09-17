@@ -60,7 +60,14 @@ holds out nothing at all.
 **The class order is first appearance, not label value.** The reference encodes its classes by
 ranking each label's first index, and the allocation above reads that order, so `[1,1,1,1,1,0,0,0,2,2]`
 does not split the way `[0,0,0,1,1,1,1,1,2,2]` does. Reproduced deliberately: one frozen case in
-`tests/oracles/preprocessing_splitters.json` separates the two rules.
+`tests/oracles/preprocessing_splitters.json` separates the two rules. With an `order`, first
+appearance is counted in that order, which is what the reference does when handed the labels read
+that way.
+
+**An order does not reproduce `StratifiedKFold(shuffle=True)`.** The reference shuffles each class's
+list of folds, not the rows, so no permutation of the rows reaches its draw. What `order` gives is the
+unshuffled folds over the rows read in that order — scikit-learn's `StratifiedKFold` over `y[order]`,
+mapped back to row numbers.
 
 **Applies to** — net10.0, netstandard2.0.
 

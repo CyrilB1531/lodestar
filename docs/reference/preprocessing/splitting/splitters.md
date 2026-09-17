@@ -28,7 +28,8 @@ four rows of class 0 and nothing else.
 
 **The unshuffled splitters are scikit-learn's, fold for fold and index for index**, replayed from
 `tests/oracles/preprocessing_splitters.json`. The shuffled ones take the permutation as an argument
-rather than a seed — the [splitting index](../splitting.md) has why.
+rather than a seed — the [splitting index](../splitting.md) has why, and which shuffled splits a
+permutation reproduces.
 
 **Applies to** — net10.0, netstandard2.0.
 

@@ -7050,6 +7050,7 @@ TEST_FRACTION = "testFraction"
 TRAIN_INDICES = "trainIndices"
 TEST_INDICES = "testIndices"
 FOLDS = "folds"
+CALL_STRATIFIED = "stratified"
 
 
 def generate_preprocessing_splitters() -> dict:
@@ -7089,7 +7090,7 @@ def generate_preprocessing_splitters() -> dict:
                 .split(np.zeros((len(labels), 1)), np.array(labels)))
             cases.append({
                 "name": f"stratified {folds} folds, {name}",
-                "call": "stratified", LABELS_KEY: labels, FOLD_COUNT: folds,
+                "call": CALL_STRATIFIED, LABELS_KEY: labels, FOLD_COUNT: folds,
                 FOLDS: [{TRAIN_INDICES: train.tolist(), TEST_INDICES: test.tolist()} for train, test in splits],
             })
 
@@ -7124,12 +7125,39 @@ def generate_preprocessing_splitters() -> dict:
         .split(np.zeros((12, 1)), np.array(permuted_labels)))
     cases.append({
         "name": "stratified 3 folds, balanced, permuted",
-        "call": "stratified", LABELS_KEY: labels, FOLD_COUNT: 3, ORDER: shuffled.tolist(),
+        "call": CALL_STRATIFIED, LABELS_KEY: labels, FOLD_COUNT: 3, ORDER: shuffled.tolist(),
         FOLDS: [
             {TRAIN_INDICES: sorted(shuffled[train].tolist()), TEST_INDICES: sorted(shuffled[test].tolist())}
             for train, test in folds_of
         ],
     })
+
+    # #893: classes numbered over the reading, and a shuffled train/test split drawn by the reference
+    # itself, whose RandomState(seed).permutation is the order ShuffleSplit reads.
+    first_seen_labels = [1, 1, 1, 1, 0, 0, 2, 2, 0, 2]
+    # Written out rather than drawn: any order that meets class 1 after 0 and 2 serves.
+    first_seen_order = np.array([1, 9, 5, 8, 0, 7, 4, 3, 6, 2])
+    folds_of = list(  # NOSONAR S6709: unshuffled, see above
+        StratifiedKFold(n_splits=2)  # NOSONAR S6709
+        .split(np.zeros((10, 1)), np.array(first_seen_labels)[first_seen_order]))
+    cases.append({
+        "name": "stratified 2 folds, classes first seen in the permuted order",
+        "call": CALL_STRATIFIED, LABELS_KEY: first_seen_labels, FOLD_COUNT: 2, ORDER: first_seen_order.tolist(),
+        FOLDS: [
+            {TRAIN_INDICES: sorted(first_seen_order[train].tolist()),
+             TEST_INDICES: sorted(first_seen_order[test].tolist())}
+            for train, test in folds_of
+        ],
+    })
+    for samples, fraction in ((10, 0.25), (11, 0.34)):
+        train, test = train_test_split(np.arange(samples), test_size=fraction, random_state=893)
+        cases.append({
+            "name": f"train/test, {samples} rows at {fraction}, permuted",
+            "call": "trainTest", SAMPLE_COUNT: samples, TEST_FRACTION: fraction,
+            # ShuffleSplit permutes with RandomState, so the order it reads has to come from one too.
+            ORDER: np.random.RandomState(893).permutation(samples).tolist(),  # NOSONAR S6711
+            TRAIN_INDICES: sorted(train.tolist()), TEST_INDICES: sorted(test.tolist()),
+        })
 
     return {
         "metadata": {

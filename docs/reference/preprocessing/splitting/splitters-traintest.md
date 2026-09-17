@@ -10,8 +10,8 @@ public static TrainTestSplit TrainTest(int sampleCount, double testFraction, Rea
 ```
 
 **Parameters** — `sampleCount` is how many rows there are, at least two. `testFraction` is the share
-to hold out, strictly inside `(0, 1)`. `order` is a permutation of the rows to read them in; an empty
-span reads them in order.
+to hold out, strictly inside `(0, 1)`. `order` is a permutation of the rows whose first
+`ceil(sampleCount · testFraction)` entries are held out; an empty span holds out the last rows instead.
 
 **Returns** — a `TrainTestSplit` carrying the training and test indices, each ascending.
 
@@ -31,11 +31,18 @@ string test = string.Join(",", split.TestIndices);    // => 7,8,9
 string train = string.Join(",", split.TrainIndices);  // => 0,1,2,3,4,5,6
 
 int[] order = [9, 4, 1, 7, 0, 3, 6, 8, 2, 5];
-string held = string.Join(",", Splitters.TrainTest(10, 0.25, order).TestIndices);  // => 2,5,8
+// With an order the test rows are its first three, as ShuffleSplit takes permutation[:n_test].
+string held = string.Join(",", Splitters.TrainTest(10, 0.25, order).TestIndices);  // => 1,4,9
 ```
 
 **Remarks** — the held-out count is `ceil(sampleCount · testFraction)`, which is the reference's
 rounding; at `n = 10` and `0.25` it is three rows, not two.
+
+**The order's head is held out, the unshuffled split's tail.** That asymmetry is the reference's own:
+`train_test_split(shuffle=False)` tests on the last rows, while `ShuffleSplit` — which
+`train_test_split` calls when it shuffles — tests on `permutation[:n_test]`. So passing the
+permutation scikit-learn drew reproduces its split, and the identity order holds out the **first**
+rows, not the same rows as the two-argument overload.
 
 **Stratification is not offered here.** The reference refuses `stratify` with `shuffle=False`
 outright, and with a caller-supplied permutation the honest version is

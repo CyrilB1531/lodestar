@@ -4,8 +4,9 @@ namespace Lodestar.Preprocessing;
 /// <remarks>
 /// The unshuffled splitters are scikit-learn's fold for fold. A shuffled one takes the permutation as an argument
 /// rather than a seed: the rows are read in that order, so a caller who passes scikit-learn's own permutation gets
-/// scikit-learn's folds, and one who passes their own gets a split this package can describe without claiming a
-/// generator it does not share (decision 0132).
+/// <c>KFold</c>'s and <c>ShuffleSplit</c>'s shuffled splits, and one who passes their own gets a split this package can
+/// describe without claiming a generator it does not share (decision 0132). <c>StratifiedKFold(shuffle=True)</c> shuffles
+/// each class's fold list rather than the rows, so no permutation reproduces it.
 /// </remarks>
 public static class Splitters
 {
@@ -64,14 +65,15 @@ public static class Splitters
     /// <remarks>
     /// Fold <c>i</c> takes as many rows of class <c>c</c> as the sorted labels hold at positions <c>i</c>, <c>i +
     /// foldCount</c>, and so on — the reference's own allocation, which is why a class of two rows over three folds
-    /// lands in folds 0 and 2 rather than 0 and 1.
+    /// lands in folds 0 and 2 rather than 0 and 1. With an order, the folds are the reference's unshuffled ones over the
+    /// labels read in that order, classes numbered by first appearance in that reading.
     /// </remarks>
     public static IReadOnlyList<FoldSplit> StratifiedKFold(ReadOnlySpan<int> labels, int foldCount, ReadOnlySpan<int> order)
     {
         int sampleCount = labels.Length;
         RequireFoldCount(sampleCount, foldCount);
         int[] reading = Reading(sampleCount, order);
-        (int[] codes, int[] counts) = Classes(labels);
+        (int[] codes, int[] counts) = Classes(labels, reading);
         RequireEnoughMembers(counts, foldCount);
 
         int[] allocation = Allocation(counts, foldCount);
@@ -112,7 +114,7 @@ public static class Splitters
     public static TrainTestSplit TrainTest(int sampleCount, double testFraction) =>
         TrainTest(sampleCount, testFraction, default);
 
-    /// <summary>Holds out rows, reading them in the order given.</summary>
+    /// <summary>Holds out the first rows of the order given, as <c>ShuffleSplit</c> does with that permutation.</summary>
     /// <param name="sampleCount">How many rows there are.</param>
     /// <param name="testFraction">What share to hold out, strictly inside (0, 1).</param>
     /// <param name="order">A permutation of the rows to read them in; empty reads them in order.</param>
@@ -121,7 +123,8 @@ public static class Splitters
     /// <exception cref="ArgumentException"><paramref name="order"/> is neither empty nor a permutation of the rows.</exception>
     /// <remarks>
     /// The held-out count is <c>ceil(sampleCount · testFraction)</c>, the reference's, and it must leave at least one
-    /// training row.
+    /// training row. The head, not the tail, because <c>ShuffleSplit</c> takes <c>permutation[:n_test]</c>, so an
+    /// identity order holds out the first rows where the empty one holds out the last.
     /// </remarks>
     public static TrainTestSplit TrainTest(int sampleCount, double testFraction, ReadOnlySpan<int> order)
     {
@@ -159,8 +162,8 @@ public static class Splitters
         }
 
         int[] reading = Reading(sampleCount, order);
-        Array.Copy(reading, train, train.Length);
-        Array.Copy(reading, train.Length, test, 0, test.Length);
+        Array.Copy(reading, test, test.Length);
+        Array.Copy(reading, test.Length, train, 0, train.Length);
         Array.Sort(train);
         Array.Sort(test);
         return new TrainTestSplit(train, test);
@@ -183,18 +186,19 @@ public static class Splitters
         return allocation;
     }
 
-    /// <summary>Each row's class, numbered in the order the labels first appear, and how many rows each class holds.</summary>
+    /// <summary>Each row's class, numbered in the order the labels first appear in the reading, and each class's count.</summary>
     /// <remarks>
     /// First appearance, not ascending value: the reference encodes its classes by ranking each label's first index
     /// (<c>np.unique(y_idx)</c>), and the allocation below reads that order — measured, on labels whose smallest value
-    /// is not the first one seen the two orders give different folds.
+    /// is not the first one seen the two orders give different folds. In the reading, not the rows, because the
+    /// reference given the permuted labels sees them in that order (#893).
     /// </remarks>
-    private static (int[] Codes, int[] Counts) Classes(ReadOnlySpan<int> labels)
+    private static (int[] Codes, int[] Counts) Classes(ReadOnlySpan<int> labels, int[] reading)
     {
         var encoding = new Dictionary<int, int>();
         var counts = new List<int>();
         var codes = new int[labels.Length];
-        for (int row = 0; row < labels.Length; row++)
+        foreach (int row in reading)
         {
             if (encoding.TryGetValue(labels[row], out int cls))
             {

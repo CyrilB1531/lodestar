@@ -26,9 +26,14 @@ wrote this for.
 ## The permutation is an argument, not a seed
 
 Each splitter has a second overload taking `order`, a permutation of `0..n−1` that it reads the rows
-in. Passing scikit-learn's own permutation reproduces scikit-learn's shuffled folds; passing your own
+in. Passing the permutation scikit-learn drew reproduces `KFold(shuffle=True)` and `ShuffleSplit`
+— the train/test split holds out the permutation's head, as `ShuffleSplit` does. Passing your own
 gives a split this package can describe exactly, without claiming a generator no reference shares —
 the same choice `KMeansOptions.InitialCentres` makes by taking the centres rather than a seed.
+
+`StratifiedKFold(shuffle=True)` is the exception: it shuffles each class's fold list rather than the
+rows, so no permutation reproduces it, and the stratified `order` gives the unshuffled folds over the
+rows read in that order instead.
 
 ## Types
 
