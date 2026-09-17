@@ -18,7 +18,7 @@ chance, and negative when the prediction is systematically inverted.
 
 **Exceptions** — `ArgumentNullException` when `cm` is null; `ArgumentException` when the label
 spans
-disagree in length or are empty; `UndefinedMetricException` when the correlation is undefined and
+disagree in length or are empty, or `sampleWeight` holds a non-finite value or is zero throughout; `UndefinedMetricException` when the correlation is undefined and
 `zeroDivision` is `ZeroDivision.Throw`.
 
 **Example** — the spam filter, which F1 scores `0.5714…` and this scores far lower.

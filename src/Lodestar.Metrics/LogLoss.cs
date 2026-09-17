@@ -21,7 +21,7 @@ public static class LogLoss
     /// <param name="normalize">Divide by the total weight. <see langword="false"/> returns the sum, as <c>normalize=False</c> does.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <returns><c>0</c> for a perfect prediction — to within one epsilon, since the clip below never lets a logarithm reach zero.</returns>
-    /// <exception cref="ArgumentException">The lengths disagree, the input is empty, or a probability falls outside <c>[0, 1]</c>.</exception>
+    /// <exception cref="ArgumentException">The lengths disagree, the input is empty, a probability falls outside <c>[0, 1]</c>, <paramref name="yTrue"/> holds more than two labels, a weight is not finite, every weight is zero, or the weights sum to zero while <paramref name="normalize"/> is true.</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yProba,
@@ -31,6 +31,15 @@ public static class LogLoss
     {
         Probabilities.ValidateBinary(yTrue, yProba, sampleWeight);
         Probabilities.RequireProbabilities(yProba, "lower than");
+        Inputs.ValidateSampleWeight(sampleWeight);
+        int labels = Probabilities.LabelCountBeyondTwo(yTrue);
+        if (labels > 0)
+        {
+            throw new ArgumentException(
+                $"y_true and y_prob contain different number of classes: {labels} vs 2. " +
+                "Score more than two classes with LogLoss.MultiClass.",
+                nameof(yTrue));
+        }
 
         CompensatedSum total = default;
         double weights = 0.0;
@@ -42,7 +51,13 @@ public static class LogLoss
             weights += weight;
         }
 
-        return normalize ? total.Value / weights : total.Value;
+        if (!normalize)
+        {
+            return total.Value;
+        }
+
+        Weights.RequireNonZeroSum(weights, nameof(sampleWeight));
+        return total.Value / weights;
     }
 
     /// <summary>The multiclass case — <c>log_loss(y_true, y_proba)</c> over a probability matrix.</summary>
@@ -57,7 +72,7 @@ public static class LogLoss
     /// in silence. Measured, halving every row of a four-sample matrix takes the loss
     /// from 0.5017337127232719 to 1.1948808932832173 rather than leaving it alone.
     /// </remarks>
-    /// <exception cref="ArgumentException">The shapes disagree, a label is not a class index, or a probability falls outside <c>[0, 1]</c>.</exception>
+    /// <exception cref="ArgumentException">The shapes disagree, a label is not a class index, a probability falls outside <c>[0, 1]</c>, a weight is not finite, every weight is zero, or the weights sum to zero while <paramref name="normalize"/> is true.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="classCount"/> is below two.</exception>
     public static double MultiClass(
         ReadOnlySpan<int> yTrue,
@@ -68,6 +83,7 @@ public static class LogLoss
     {
         int samples = Probabilities.Samples(yTrue, yProba, classCount, sampleWeight);
         Probabilities.RequireProbabilities(yProba, "lower than");
+        Inputs.ValidateSampleWeight(sampleWeight);
 
         CompensatedSum total = default;
         double weights = 0.0;
@@ -79,6 +95,12 @@ public static class LogLoss
             weights += weight;
         }
 
-        return normalize ? total.Value / weights : total.Value;
+        if (!normalize)
+        {
+            return total.Value;
+        }
+
+        Weights.RequireNonZeroSum(weights, nameof(sampleWeight));
+        return total.Value / weights;
     }
 }

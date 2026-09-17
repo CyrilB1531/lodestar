@@ -86,7 +86,7 @@ public static class FBeta
     /// <param name="zeroDivision">What to return when the metric is undefined.</param>
     /// <param name="labels">The label set and its order.</param>
     /// <param name="sampleWeight">A weight per sample.</param>
-    /// <exception cref="ArgumentException">The label spans disagree in length or are empty.</exception>
+    /// <exception cref="ArgumentException">The label spans disagree in length or are empty, or <paramref name="sampleWeight"/> holds a non-finite value or is zero throughout.</exception>
     public static double[] PerClass(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<int> yPred,

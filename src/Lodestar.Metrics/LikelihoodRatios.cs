@@ -39,7 +39,7 @@ public sealed class LikelihoodRatios
     /// when none was predicted out of it rightly, and **both** when the truth carries
     /// only one of the two classes.
     /// </returns>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, the weights do not match, or more than two distinct labels occur.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, the weights do not match, hold a non-finite value or are zero throughout, or more than two distinct labels occur.</exception>
     public static LikelihoodRatios Compute(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<int> yPred,

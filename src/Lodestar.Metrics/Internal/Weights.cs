@@ -71,16 +71,27 @@ internal static class Weights
             weights += weight;
         }
 
-        // S1244: the reference compares the sum to zero exactly, and a tolerance would
-        // refuse weights numpy accepts. Its own message is reproduced below.
-#pragma warning disable S1244
-        if (throwOnZero && weights == 0.0)
-#pragma warning restore S1244
+        if (throwOnZero)
         {
-            throw new ArgumentException(
-                "Weights sum to zero, can't be normalized.", nameof(sampleWeight));
+            RequireNonZeroSum(weights, nameof(sampleWeight));
         }
 
         return weights;
+    }
+
+    /// <summary>Refuses a weight total of zero, which <c>numpy.average</c> will not divide by.</summary>
+    /// <param name="sum">The total of the sample weights, as the caller accumulated it.</param>
+    /// <param name="paramName">The argument the weights came from.</param>
+    /// <exception cref="ArgumentException"><paramref name="sum"/> is zero.</exception>
+    public static void RequireNonZeroSum(double sum, string paramName)
+    {
+        // S1244: the reference compares the sum to zero exactly, and a tolerance would
+        // refuse weights numpy accepts. Its own message is reproduced below.
+#pragma warning disable S1244
+        if (sum == 0.0)
+#pragma warning restore S1244
+        {
+            throw new ArgumentException("Weights sum to zero, can't be normalized.", paramName);
+        }
     }
 }

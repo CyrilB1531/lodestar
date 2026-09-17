@@ -20,7 +20,7 @@ its own weight; omit it and every sample counts 1.
 With `normalize: false` it is a count instead — a weight, not a fraction, and unbounded.
 
 **Exceptions** — `ArgumentException` when the two label spans disagree in length or are empty;
-`ArgumentNullException` when `cm` is null.
+`ArgumentNullException` when `cm` is null. A `sampleWeight` holding `NaN` or an infinity is refused with "Input sample_weight contains NaN." or its infinity counterpart, and one that is zero throughout with "Sample weights must contain at least one non-zero number." — both `ArgumentException` naming `sampleWeight`, as scikit-learn's `_check_sample_weight` refuses them. Weights that merely sum to zero are refused too, with numpy's "Weights sum to zero, can't be normalized." — only while `normalize` is true, since the count never divides.
 
 **Example** — four spam messages and four legitimate ones; the filter caught two of the four and
 raised one false alarm.

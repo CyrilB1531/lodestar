@@ -17,7 +17,7 @@ decides what an undefined per-class score becomes. `labels` fixes the label set 
 
 **Exceptions** — `ArgumentNullException` when `cm` is null; `ArgumentException` when the label
 spans
-disagree in length or are empty.
+disagree in length or are empty. A `sampleWeight` holding `NaN` or an infinity is refused with "Input sample_weight contains NaN." or its infinity counterpart, and one that is zero throughout with "Sample weights must contain at least one non-zero number." — both `ArgumentException` naming `sampleWeight`, as scikit-learn's `_check_sample_weight` refuses them.
 
 **Example** — both classes of the spam filter at once.
 

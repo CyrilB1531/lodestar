@@ -21,7 +21,7 @@ matrix's label order, and whose `MacroAverage`, `WeightedAverage` and possibly `
 the averaged rows. `Accuracy` and `TotalSupport` are on the report itself.
 
 **Exceptions** — `ArgumentNullException` when `cm` is null; `ArgumentException` when `targetNames`
-has a different length from the label set, or the label spans disagree in length or are empty.
+has a different length from the label set, or the label spans disagree in length or are empty, or `sampleWeight` holds a non-finite value or is zero throughout.
 
 **Example** — a three-way triage, with names on the classes.
 

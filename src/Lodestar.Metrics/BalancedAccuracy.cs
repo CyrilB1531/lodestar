@@ -62,7 +62,7 @@ public static class BalancedAccuracy
     /// <param name="adjusted">When true, rescale so that chance scores 0.</param>
     /// <param name="labels">The label set and its order. Omit for the sorted union of both inputs.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
-    /// <exception cref="ArgumentException">The inputs disagree in length or are empty.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length or are empty, or <paramref name="sampleWeight"/> holds a non-finite value or is zero throughout.</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<int> yPred,

@@ -17,7 +17,7 @@ classes each row scores. `normalize` divides by the total weight; pass `false` f
 so the score depends on the other columns solely through whatever normalisation the caller applied.
 
 **Exceptions** — `ArgumentException` when `yProba` is not `yTrue.Length × classCount`, when a label
-is not a class index below `classCount`, or when a probability falls outside `[0, 1]`.
+is not a class index below `classCount`, or when a probability falls outside `[0, 1]`. A `sampleWeight` holding `NaN` or an infinity is refused with "Input sample_weight contains NaN." or its infinity counterpart, and one that is zero throughout with "Sample weights must contain at least one non-zero number." — both `ArgumentException` naming `sampleWeight`, as scikit-learn's `_check_sample_weight` refuses them. Weights that merely sum to zero are refused too, with numpy's "Weights sum to zero, can't be normalized." — only while `normalize` is true.
 `ArgumentOutOfRangeException` when `classCount` is below two.
 
 **Example** — four samples over three classes.

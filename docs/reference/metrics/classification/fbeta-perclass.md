@@ -19,7 +19,7 @@ the label set and its order, and `sampleWeight` weights the samples.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `beta` is negative, `NaN` or infinite;
 `ArgumentNullException` when `cm` is null; `ArgumentException` when the label spans disagree in
-length or are empty.
+length or are empty. A `sampleWeight` holding `NaN` or an infinity is refused with "Input sample_weight contains NaN." or its infinity counterpart, and one that is zero throughout with "Sample weights must contain at least one non-zero number." — both `ArgumentException` naming `sampleWeight`, as scikit-learn's `_check_sample_weight` refuses them.
 
 **Example** — both classes at `beta = 2`.
 

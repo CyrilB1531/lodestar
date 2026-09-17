@@ -212,7 +212,7 @@ public sealed class ConfusionMatrix
     /// <param name="yPred">The predicted labels, same length as <paramref name="yTrue"/>.</param>
     /// <param name="labels">The label set and its order. Omit for the sorted union of both inputs. In this matrix's public view — <see cref="Labels"/>, the indexer, <see cref="ToArray()"/>, <see cref="TotalWeight"/> — a sample whose true or predicted label falls outside this set is not counted, exactly as in scikit-learn's own <c>confusion_matrix(labels=…)</c>.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, contain duplicate labels, or no supplied label occurs in <paramref name="yTrue"/>.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, contain duplicate labels, or no supplied label occurs in <paramref name="yTrue"/>, or <paramref name="sampleWeight"/> holds a non-finite value or is zero throughout.</exception>
     public static ConfusionMatrix Compute(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<int> yPred,

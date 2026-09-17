@@ -16,7 +16,7 @@ defaults reproduce `replace_undefined_by=nan`. `sampleWeight` is one weight per 
 **Returns** — a `LikelihoodRatios` carrying `Positive` and `Negative`.
 
 **Exceptions** — `ArgumentException` when the inputs disagree in length, are empty, the weights do
-not match, or **more than two distinct labels occur** — with the reference's own sentence,
+not match, hold a non-finite value or are zero throughout, or **more than two distinct labels occur** — with the reference's own sentence,
 "class_likelihood_ratios only supports binary classification problems."
 
 **Example** — six samples, half of them positive.

@@ -19,7 +19,7 @@ weight per **sample** — per row, not per label.
 order, or one per sample in row order.
 
 **Exceptions** — `ArgumentException` when the inputs disagree in length, are empty, when the matrix
-is not a whole number of rows of `labelCount`, or when the weights do not match the sample count.
+is not a whole number of rows of `labelCount`, or when the weights do not match the sample count. A `sampleWeight` holding `NaN` or an infinity is refused with "Input sample_weight contains NaN." or its infinity counterpart, and one that is zero throughout with "Sample weights must contain at least one non-zero number." — both `ArgumentException` naming `sampleWeight`, as scikit-learn's `_check_sample_weight` refuses them. Weights that merely sum to zero are counted, as the reference counts them.
 
 **Example** — three labels over two samples.
 

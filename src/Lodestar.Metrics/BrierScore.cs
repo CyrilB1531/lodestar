@@ -21,7 +21,7 @@ public static class BrierScore
     /// <param name="scaleByHalf">Halve the two-class sum, which is what <c>scale_by_half='auto'</c> resolves to for a one-dimensional probability. <see langword="false"/> doubles the number.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <returns><c>0</c> for a perfect, perfectly confident prediction; at most <c>1</c> when <paramref name="scaleByHalf"/> holds.</returns>
-    /// <exception cref="ArgumentException">The lengths disagree, the input is empty, or a probability falls outside <c>[0, 1]</c>.</exception>
+    /// <exception cref="ArgumentException">The lengths disagree, the input is empty, <paramref name="yTrue"/> holds more than two labels, a probability falls outside <c>[0, 1]</c>, or a weight is not finite, every weight is zero, or the weights sum to zero.</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yProba,
@@ -30,6 +30,15 @@ public static class BrierScore
         ReadOnlySpan<double> sampleWeight = default)
     {
         Probabilities.ValidateBinary(yTrue, yProba, sampleWeight);
+        Inputs.ValidateSampleWeight(sampleWeight);
+        if (Probabilities.LabelCountBeyondTwo(yTrue) > 0)
+        {
+            throw new ArgumentException(
+                "The type of the target inferred from y_true is multiclass but should be binary " +
+                "according to the shape of y_prob. Score more than two classes with BrierScore.MultiClass.",
+                nameof(yTrue));
+        }
+
         Probabilities.RequireProbabilities(yProba, "less than");
 
         CompensatedSum total = default;
@@ -42,6 +51,7 @@ public static class BrierScore
             weights += weight;
         }
 
+        Weights.RequireNonZeroSum(weights, nameof(sampleWeight));
         double mean = total.Value / weights;
         return scaleByHalf ? mean : 2.0 * mean;
     }
@@ -58,7 +68,7 @@ public static class BrierScore
     /// binary probability and does not halve a matrix. Measured, one four-sample
     /// matrix scores 0.245 unhalved and 0.1225 halved.
     /// </remarks>
-    /// <exception cref="ArgumentException">The shapes disagree, a label is not a class index, or a probability falls outside <c>[0, 1]</c>.</exception>
+    /// <exception cref="ArgumentException">The shapes disagree, a label is not a class index, a probability falls outside <c>[0, 1]</c>, or a weight is not finite, every weight is zero, or the weights sum to zero.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="classCount"/> is below two.</exception>
     public static double MultiClass(
         ReadOnlySpan<int> yTrue,
@@ -69,6 +79,7 @@ public static class BrierScore
     {
         int samples = Probabilities.Samples(yTrue, yProba, classCount, sampleWeight);
         Probabilities.RequireProbabilities(yProba, "less than");
+        Inputs.ValidateSampleWeight(sampleWeight);
 
         CompensatedSum total = default;
         double weights = 0.0;
@@ -86,6 +97,7 @@ public static class BrierScore
             weights += weight;
         }
 
+        Weights.RequireNonZeroSum(weights, nameof(sampleWeight));
         double mean = total.Value / weights;
         return scaleByHalf ? mean / 2.0 : mean;
     }

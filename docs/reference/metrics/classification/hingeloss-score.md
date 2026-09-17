@@ -17,7 +17,7 @@ weight per sample, or empty.
 margin of at least `1`.
 
 **Exceptions** — `ArgumentException` when the inputs disagree in length, are empty, or the weights do
-not match.
+not match. `yTrue` holding more than two distinct labels is refused with the reference's "The shape of pred_decision cannot be 1d array with a multiclass target." rather than counting the third as negative — [`HingeLoss.MultiClass`](hingeloss-multiclass.md) scores it. A decision holding `NaN` or an infinity is refused with the reference's "Input contains NaN." or its infinity counterpart, naming `predDecision`. Weights summing to zero are refused with numpy's "Weights sum to zero, can't be normalized."; `hinge_loss` never calls `_check_sample_weight`, so a non-finite weight is scored, `NaN` on both sides.
 
 **Example** — four samples, two of them inside the margin.
 

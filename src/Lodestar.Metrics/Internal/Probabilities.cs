@@ -116,6 +116,38 @@ internal static class Probabilities
         return yTrue.Length;
     }
 
+    /// <summary>
+    /// How many distinct labels <paramref name="yTrue"/> holds once it holds more than two,
+    /// and <c>0</c> while it holds at most two.
+    /// </summary>
+    /// <param name="yTrue">The true labels of a binary metric.</param>
+    /// <remarks>
+    /// The binary forms ask for <c>posLabel</c> rather than infer it, so a third label would
+    /// otherwise count as negative where each reference refuses it. Only the refusal counts them all.
+    /// </remarks>
+    public static int LabelCountBeyondTwo(ReadOnlySpan<int> yTrue)
+    {
+        int first = yTrue[0];
+        int? second = null;
+        foreach (int label in yTrue)
+        {
+            if (label == first || label == second)
+            {
+                continue;
+            }
+
+            if (second is null)
+            {
+                second = label;
+                continue;
+            }
+
+            return new HashSet<int>(yTrue.ToArray()).Count;
+        }
+
+        return 0;
+    }
+
     private static string Format(double value) =>
         value.ToString("0.###############", System.Globalization.CultureInfo.InvariantCulture);
 }

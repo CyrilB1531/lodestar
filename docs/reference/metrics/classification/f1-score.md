@@ -20,7 +20,7 @@ fixes the label set and its order, and `sampleWeight` weights the samples.
 **Returns** — `double` in `[0, 1]`, larger meaning better.
 
 **Exceptions** — `ArgumentNullException` when `cm` is null; `ArgumentException` when
-`Averaging.Binary` is used on more than two classes, or `posLabel` does not occur;
+`Averaging.Binary` is used on more than two classes, or `posLabel` does not occur, or `sampleWeight` holds a non-finite value or is zero throughout;
 `UndefinedMetricException` when the metric is undefined and `zeroDivision` is
 `ZeroDivision.Throw`.
 
