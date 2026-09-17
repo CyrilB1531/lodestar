@@ -17,7 +17,8 @@ bounds what will be accepted and defaults to
 [`Transform`](tfidfvectorizer-transform.md).
 
 **Exceptions** — `ArgumentNullException` for a null source. `InvalidDataException` when the content
-is not a saved vectorizer, or exceeds a bound in `options`.
+is not a saved vectorizer, holds options the vectorizer refuses — a token pattern no regex parses —
+or exceeds a bound in `options`.
 
 **Example** — the vocabulary comes back in the order it was saved.
 

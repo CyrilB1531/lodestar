@@ -149,6 +149,28 @@ internal static class VectorizerOptionsJson
         _ => throw new InvalidDataException($"Unknown norm '{value}' in a '{artifact}' artifact; expected \"l1\", \"l2\" or null."),
     };
 
+    /// <summary>
+    /// Builds the vectorizer an artifact describes, restating an option its constructor refuses as
+    /// the <see cref="InvalidDataException"/> every <c>Load</c> documents.
+    /// </summary>
+    /// <remarks>
+    /// The reader checks the shape of each option, not whether the constructor accepts it: a
+    /// <c>tokenPattern</c> of <c>"("</c> is a well-formed string that no regex parses (#881).
+    /// </remarks>
+    internal static T Build<T>(string artifact, Func<T> build)
+    {
+        try
+        {
+            return build();
+        }
+        catch (ArgumentException e)
+        {
+            throw new InvalidDataException(
+                $"A '{ArtifactHeader.SchemaFor(artifact)}' artifact holds options the vectorizer refuses: {e.Message}",
+                e);
+        }
+    }
+
     internal static void EnsureEndOfObject(ref Utf8JsonReader reader, string artifact)
     {
         if (reader.TokenType != JsonTokenType.EndObject)

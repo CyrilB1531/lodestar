@@ -39,6 +39,10 @@ a corpus that is gone cannot be measured again.
 The stream overload leaves `destination` open, so a vectorizer can be one entry in a larger
 archive.
 
+The write is not bounded the way a load is. A vocabulary past a default of
+[`ArtifactLoadOptions`](../persistence/artifactloadoptions.md) — a token over 1024 characters, more
+than a million features — saves, and loads only with that bound raised.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`TfidfVectorizer.Load`](tfidfvectorizer-load.md),

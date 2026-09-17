@@ -41,6 +41,10 @@ into a vectorizer which drops every term is worse than no file.
 The stream overload leaves `destination` open. That is deliberate: it lets a vectorizer be one
 part of a larger archive.
 
+The write is not bounded the way a load is. A vocabulary past a default of
+[`ArtifactLoadOptions`](../persistence/artifactloadoptions.md) — a token over 1024 characters, more
+than a million features — saves, and loads only with that bound raised.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`CountVectorizer.Load`](countvectorizer-load.md),

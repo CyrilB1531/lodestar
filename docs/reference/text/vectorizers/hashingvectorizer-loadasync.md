@@ -14,7 +14,7 @@ public static Task<HashingVectorizer> LoadAsync(Stream source, ArtifactLoadOptio
 **Returns** — `Task<HashingVectorizer>`, completing with a vectorizer ready to transform.
 
 **Exceptions** — `ArgumentNullException` for a null source. `InvalidDataException` for content that
-is not a saved vectorizer or that exceeds a bound. `OperationCanceledException` when cancelled.
+is not a saved vectorizer, holds options the vectorizer refuses, or exceeds a bound. `OperationCanceledException` when cancelled.
 
 **Example** — restored asynchronously, hashing as before.
 

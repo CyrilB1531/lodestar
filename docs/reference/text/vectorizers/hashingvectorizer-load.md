@@ -16,7 +16,8 @@ bounds what will be accepted.
 [`Transform`](hashingvectorizer-transform.md) immediately.
 
 **Exceptions** — `ArgumentNullException` for a null source. `InvalidDataException` when the content
-is not a saved vectorizer, or exceeds a bound in `options`.
+is not a saved vectorizer, holds options the vectorizer refuses — a token pattern no regex parses —
+or exceeds a bound in `options`.
 
 **Example** — restored, and hashing identically to the original.
 
