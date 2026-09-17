@@ -86,9 +86,25 @@ public sealed class SurvivalCurveOracleTests
             NelsonAalen.Estimate(durations, events).Steps);
     }
 
-    private static (double[] Durations, bool[] Events) Input(JsonElement frozen) =>
-        (Doubles(frozen, "durations"),
-         [.. frozen.GetProperty("eventObserved").EnumerateArray().Select(e => e.GetInt32() == 1)]);
+    /// <summary>The sample, each row repeated as many times as its <c>copies</c> entry says.</summary>
+    /// <remarks>
+    /// A case without <c>copies</c> holds one row per subject. The large-cohort case stores six
+    /// rows for 70,000 subjects, which is what keeps the corpus small.
+    /// </remarks>
+    private static (double[] Durations, bool[] Events) Input(JsonElement frozen)
+    {
+        double[] durations = Doubles(frozen, "durations");
+        bool[] events = [.. frozen.GetProperty("eventObserved").EnumerateArray().Select(e => e.GetInt32() == 1)];
+        if (!frozen.TryGetProperty("copies", out JsonElement copies))
+        {
+            return (durations, events);
+        }
+
+        int[] counts = [.. copies.EnumerateArray().Select(e => e.GetInt32())];
+        return (
+            [.. durations.SelectMany((d, i) => Enumerable.Repeat(d, counts[i]))],
+            [.. events.SelectMany((e, i) => Enumerable.Repeat(e, counts[i]))]);
+    }
 
     private static double[] Doubles(JsonElement frozen, string name) =>
         [.. frozen.GetProperty(name).EnumerateArray().Select(e => e.GetDouble())];

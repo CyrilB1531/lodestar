@@ -56,8 +56,9 @@ public static class KaplanMeier
             if (step.Events > 0 && step.AtRisk > 0)
             {
                 product *= 1.0 - ((double)step.Events / step.AtRisk);
-                int denominator = step.AtRisk * (step.AtRisk - step.Events);
-                if (denominator > 0)
+                // In double: the product of two counts overflows int past 46,340 at risk.
+                double denominator = (double)step.AtRisk * (step.AtRisk - step.Events);
+                if (denominator > 0.0)
                 {
                     greenwood += (double)step.Events / denominator;
                 }

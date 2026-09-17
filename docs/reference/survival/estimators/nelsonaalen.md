@@ -32,7 +32,7 @@ that has hit zero has lost the ability to distinguish "the study ended" from "ev
 hazard has not.
 
 Reference behaviour is `lifelines.NelsonAalenFitter` 0.30.3 with its smoothing left off — the plain
-estimator, which is what the fitter reports by default. Matched over 8 samples.
+estimator, which is what the fitter reports by default. Matched over 9 samples.
 
 **Applies to** — net10.0, netstandard2.0.
 
