@@ -67,21 +67,29 @@ becomes available:
 | Job | What it guards |
 | --- | --- |
 | `Lint (markdown + C# format)` | markdownlint, `dotnet format --verify-no-changes`, the `tools/tests` suite, that no tracked file holds a machine path, and that the Sonar `.globalconfig` is current |
-| `Build, test, pack` | the build, the full test suite, and that the packages still pack |
+| `Build, test, pack` | the build, the full test suite, that the packages still pack, and the SonarQube Cloud analysis, which fails the job when the quality gate fails — a finding in the code a pull request introduces blocks its merge |
 | `Oracles are reproducible` | that the committed corpora match a fresh generation |
-| `Build and analyze` | publishes analysis and coverage to SonarQube Cloud, **and fails the job when the quality gate fails** — a finding in the code a pull request introduces blocks its merge |
+| `Build and analyze` | that `Build, test, pack` passed. The analysis ran in its own workflow until it shared that job's build ([#857](https://github.com/CyrilB1531/lodestar/issues/857)); the check keeps the name the ruleset requires |
 
 The ruleset has **no bypass list, and it binds the administrator**. That is
 deliberate: a guard rail the sole maintainer can step over on a tired evening is
 a suggestion. Getting past it means disabling the rule in Settings → Rules, which
 is a visible act with a record, rather than a merge nobody would have noticed.
 
-`Build and analyze` is skipped on Dependabot and fork pull requests, where
-`SONAR_TOKEN` is unreachable. GitHub counts a skipped check as satisfied, so
-those pull requests are not stuck. This is also why the required check is this
-repository's own job and not SonarQube Cloud's `SonarCloud Code Analysis`. That
-one is never posted at all on such a pull request, and a required check that
-never arrives stays pending forever.
+The analysis steps are skipped on Dependabot and fork pull requests, where
+`SONAR_TOKEN` is unreachable; the build and the tests still run there. This is
+also why the required check is this repository's own job and not SonarQube
+Cloud's `SonarCloud Code Analysis`. That one is never posted at all on such a
+pull request, and a required check that never arrives stays pending forever.
+
+**A pull request that changes only Markdown takes a shorter path.** A first job,
+`Changed files`, lists the pull request's files and asks
+[`tools/docs_only.py`](tools/README.md#docs_onlypy) whether every one ends in
+`.md`. When it does, `Build, test, pack` builds and runs the documentation tests
+only — 21 `ReferenceDocumentationTests` classes read `docs/**/*.md` — and the
+sample, the oracles, Windows and the analysis are skipped. GitHub counts a job
+skipped by its condition as a passed check, so the four required checks are
+still satisfied. The lint, the snippets and the stop-word check run either way.
 
 "Require approvals" stays off until a second maintainer joins. Self-merging after
 green checks is the expected flow here, not a shortcut — the pull request still
@@ -330,7 +338,7 @@ a light one. Duplication and coverage sensors both ran (2.0% duplicated lines,
 28 duplicated blocks). Coverage reads 0.0% because this run's commands, matching
 the ones above, do not feed it a coverage report — CI's job does.
 
-This is not a rehearsal of `Build and analyze`, and saying otherwise would make
+This is not a rehearsal of the CI analysis in `Build, test, pack`, and saying otherwise would make
 the document worse than not writing it:
 
 - the Community edition has no branch or pull-request analysis, so the verdict
@@ -615,7 +623,7 @@ The command above does not reach `samples/`. The samples are outside
 `Lodestar.slnx` and consume the packages from a local feed, so they are analysed
 only when the samples themselves are built. That needs a `pack` first, and
 happens in three CI jobs: `Sample consumes the packages`, `Guide snippets
-compile`, and the samples build inside `Build and analyze`. Expect a finding
+compile`, and the samples build inside `Build, test, pack`. Expect a finding
 there from CI rather than from `dotnet build Lodestar.slnx`.
 
 One thing still only SonarCloud sees, so a green local build is not a green

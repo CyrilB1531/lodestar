@@ -752,6 +752,25 @@ code review's call, per `CONTRIBUTING.md`'s *Claims in comments*.
 A docstring is not a comment block. Python prose belongs in one, and the tools
 in this directory open with thirty-line docstrings on purpose.
 
+## `docs_only.py`
+
+Answers whether a pull request changes nothing but Markdown, which decides the path CI takes
+([#857](https://github.com/CyrilB1531/lodestar/issues/857)). The `changes` job in `ci.yml` feeds it
+the pull request's files from the API, and a `true` skips the jobs that cannot see a `.md` change
+— the sample, the oracles, Windows and the SonarQube Cloud analysis — while the lint, the snippets,
+the stop-word check and the documentation tests still run. Those tests stay because 21
+`ReferenceDocumentationTests` classes read `docs/**/*.md`: one caught a missing reference link in
+the pull request that became #859.
+
+```bash
+gh api repos/CyrilB1531/lodestar/pulls/857/files --paginate \
+  --jq '.[] | .filename, (.previous_filename // empty)' | python3 tools/docs_only.py
+```
+
+It prints `true` only when every path ends in `.md`, a rename counting both its names. An image, a
+JSON map the tests read, or an empty list gives `false`: a pull request whose files could not be
+listed takes the full path, never the reduced one.
+
 ## `check_sample_culture.py`
 
 Refuses a sample that can print a number in whoever ran it's culture. The sample
