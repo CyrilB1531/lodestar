@@ -132,6 +132,7 @@ is one sentence, the issue and the commit; see
 
 - `Mmr.Select` refuses a `NaN` lambda with `ArgumentOutOfRangeException` instead of throwing `IndexOutOfRangeException`. ([#886](https://github.com/CyrilB1531/lodestar/issues/886))
 - `BpeVocabulary` equality compares `PrefixTokens` and `SuffixTokens`, so a vocabulary with the Llama-2 template no longer equals one without it. ([#885](https://github.com/CyrilB1531/lodestar/issues/885))
+- `NpyBlock` compares its elements and shape by value, and `Pooler`'s methods refuse a negative size with `ArgumentOutOfRangeException` instead of overflowing. ([#902](https://github.com/CyrilB1531/lodestar/issues/902))
 
 ### Lodestar.Onnx
 

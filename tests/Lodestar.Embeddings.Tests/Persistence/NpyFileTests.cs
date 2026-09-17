@@ -419,6 +419,30 @@ public sealed class NpyFileTests
         return stream.ToArray();
     }
 
+    [Fact]
+    public void Two_reads_of_the_same_bytes_are_equal_and_hash_equal()
+    {
+        // The generated record equality compared the memory and the shape list by reference (#902).
+        using var written = new MemoryStream();
+        NpyFile.Write(written, [1.0f, float.NaN, 3.5f, 0.0f], 2, 2);
+
+        NpyBlock first = NpyFile.Read(new ReadOnlyMemory<byte>(written.ToArray()));
+        NpyBlock second = NpyFile.Read(new ReadOnlyMemory<byte>(written.ToArray()));
+
+        Assert.Equal(first, second);
+        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+    }
+
+    [Fact]
+    public void Blocks_differing_in_an_element_or_in_their_shape_are_not_equal()
+    {
+        float[] values = [1f, 2f, 3f, 4f];
+        float[] other = [1f, 2f, 3f, 5f];
+
+        Assert.NotEqual(new NpyBlock(values, [2, 2]), new NpyBlock(values, [4]));
+        Assert.NotEqual(new NpyBlock(values, [4]), new NpyBlock(other, [4]));
+    }
+
     /// <summary>A well-formed v1.0 header for <paramref name="shape"/>, and no data at all.</summary>
     private static byte[] Declaring(string shape)
     {

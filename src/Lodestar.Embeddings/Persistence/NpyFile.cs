@@ -23,6 +23,36 @@ public readonly record struct NpyBlock(ReadOnlyMemory<float> Values, IReadOnlyLi
 #pragma warning disable CA1819
     public float[]? OwnedArray { get; init; }
 #pragma warning restore CA1819
+
+    /// <summary>Whether two blocks hold the same elements under the same shape.</summary>
+    /// <remarks>
+    /// The generated equality compared <see cref="Values"/> and <see cref="Shape"/> by reference, so
+    /// two reads of one file were unequal (#902, decision 0113). Elements compare as
+    /// <c>float.Equals</c> does, <c>NaN</c> equal to <c>NaN</c>; who owns the array is not part of
+    /// the value, so <see cref="OwnedArray"/> is not compared.
+    /// </remarks>
+    public bool Equals(NpyBlock other)
+    {
+        if (Shape is null || other.Shape is null)
+        {
+            return Shape is null && other.Shape is null && Values.Span.SequenceEqual(other.Values.Span);
+        }
+        if (Shape.Count != other.Shape.Count || !Values.Span.SequenceEqual(other.Values.Span))
+        {
+            return false;
+        }
+        for (int i = 0; i < Shape.Count; i++)
+        {
+            if (Shape[i] != other.Shape[i])
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>Hashes the element and dimension counts, which is O(1) and consistent with equality.</summary>
+    public override int GetHashCode() => unchecked((Values.Length * 31) + (Shape?.Count ?? -1));
 }
 
 /// <summary>Reads and writes a <see cref="float"/> block in numpy's <c>.npy</c> format.</summary>

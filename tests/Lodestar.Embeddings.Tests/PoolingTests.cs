@@ -59,4 +59,13 @@ public sealed class PoolingTests
         Assert.Equal(0f, pooled[1], 5);
         Assert.Equal(0f, pooled[2], 5);
     }
+
+    [Fact]
+    public void A_negative_dimension_is_refused_rather_than_overflowing()
+    {
+        // seqLen 0 with dim -5 passed the length check and threw OverflowException in new float[dim] (#902).
+        Assert.Equal("dim", Assert.Throws<ArgumentOutOfRangeException>(() => Pooler.MeanPool([], 0, -5, [])).ParamName);
+        Assert.Equal("dim", Assert.Throws<ArgumentOutOfRangeException>(() => Pooler.MeanPoolBatch([], 0, 3, -5, [])).ParamName);
+        Assert.Equal("seqLen", Assert.Throws<ArgumentOutOfRangeException>(() => Pooler.MeanPool([], -2, 0, [])).ParamName);
+    }
 }

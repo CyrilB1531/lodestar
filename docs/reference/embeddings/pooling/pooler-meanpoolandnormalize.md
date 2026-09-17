@@ -14,7 +14,7 @@ padding with zero. `attentionMask` has length `seqLen`.
 
 **Returns** — `float[]` of length `dim`, of unit length unless every token was masked out.
 
-**Exceptions** — `ArgumentException` when the spans do not match the shape the other arguments declare.
+**Exceptions** — `ArgumentException` when the spans do not match the shape the other arguments declare. `ArgumentOutOfRangeException` when `seqLen` or `dim` is negative.
 
 **Example** — one sequence, one sentence embedding.
 

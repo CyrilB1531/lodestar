@@ -14,7 +14,7 @@ every one, `dim` the embedding dimension.
 
 **Returns** — `float[][]`, one `dim`-length vector per sequence, in batch order. Not normalized.
 
-**Exceptions** — `ArgumentException` when the spans do not match the shape the other arguments declare.
+**Exceptions** — `ArgumentException` when the spans do not match the shape the other arguments declare. `ArgumentOutOfRangeException` when `batchSize`, `seqLen` or `dim` is negative.
 
 **Example** — two sequences of different real lengths, padded to the same width.
 

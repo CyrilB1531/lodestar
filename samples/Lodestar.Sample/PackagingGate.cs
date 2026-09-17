@@ -85,6 +85,8 @@ internal static class PackagingGate
 
         ["Lodestar.Cluster.KMeansOptions.Equals"] = RecordPlumbing,
         ["Lodestar.Cluster.KMeansOptions.GetHashCode"] = RecordPlumbing,
+        ["Lodestar.Embeddings.Persistence.NpyBlock.Equals"] = RecordPlumbing,
+        ["Lodestar.Embeddings.Persistence.NpyBlock.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Embeddings.Tokenization.AddedToken.Equals"] = RecordPlumbing,
         ["Lodestar.Embeddings.Tokenization.AddedToken.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Embeddings.Tokenization.BpeVocabulary.Equals"] = RecordPlumbing,
