@@ -162,13 +162,14 @@ See [`0106`](0106-the-frontmatter-is-inserted-once-and-the-body-does-not-move.md
 | [`0139`](0139-the-sparse-overloads-take-the-second-edge-under-0138s-precedent.md) | The sparse overloads take the second edge, under 0138's precedent | accepted | 2026-09-16 | The scalers gain their `CsrMatrix` overloads, and `CsrMatrix` lives in `Lodestar.Abstractions` ([`0071`](0071-csrmatrix-moves-to-an-abstractions-package.md)), so this package takes a second edge in the same lot. Applies [`0138`](0138-lodestar-preprocessing-takes-an-edge-on-lodestar-stats-for-the-normal-quantile.md) rather than re-arguing it — which is what a precedent is for. Three scalers take a sparse matrix and `MinMaxScaler` takes none, the reference's own line |
 | [`0140`](0140-on-a-named-machine-our-knn-kernel-is-ahead-and-avx-512-widens-the-gap.md) | On a named machine our kNN kernel is ahead, and AVX-512 widens the gap | accepted | 2026-09-16 | Amends [`0060`](0060-tensorprimitives-beats-our-kernel-and-the-knn-is-still-not-redundant.md): on a Ryzen 7 8700G our dot is 3–7× ahead of `TensorPrimitives` on the kNN pattern, and turning its 512-bit path off halves its time without changing the direction |
 | [`0141`](0141-kolmogorov-smirnov-auto-follows-scipy-for-equal-sizes.md) | Kolmogorov-Smirnov's `Auto` follows scipy for two samples of the same size | accepted | 2026-09-16 | For two samples of the same size, two-sided, `Auto` is exact while n is at most 10,000, as scipy's is, now that the case has a closed form; a caller who wants the old p-value passes `ExactMethod.Asymptotic` |
+| [`0142`](0142-a-filtered-vector-search-calls-the-filter-once-per-record-in-storage-order.md) | A filtered vector search calls the filter once per record, in storage order | accepted | 2026-09-17 | Amends [`0123`](0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md): since #849 the vector search runs the filter exactly once on every record, in storage order, and scores only the records it admits. `top` still means `top`; a filter with side effects sees every record, and one that throws on any record fails the search. The hybrid search is unchanged |
 
 ## What `accepted` means here
 
-All one hundred and forty-one carry `accepted`. None has been rejected or withdrawn — a status this
+All one hundred and forty-two carry `accepted`. None has been rejected or withdrawn — a status this
 table would otherwise need a second word for. `0004` read a progress sentence
 (`single-word and blocked shipped`) where a status belongs; that sentence is now the opening line
-of its own `## Done` section, and its status reads `accepted` like the other hundred and forty.
+of its own `## Done` section, and its status reads `accepted` like the other hundred and forty-one.
 
 ## Relationships not stated on a `**Status:**` line
 
