@@ -4,9 +4,9 @@
   "library": "rapidfuzz",
   "library_version": "3.14.6",
   "reference_calls": [
-   "rapidfuzz.fuzz.{ratio,partial_ratio,token_sort_ratio,token_set_ratio,WRatio}"
+   "rapidfuzz.fuzz.{ratio,partial_ratio,token_sort_ratio,token_set_ratio,WRatio,partial_token_sort_ratio,partial_token_set_ratio}"
   ],
-  "count": 30
+  "count": 36
  },
  "cases": [
   {
@@ -17,7 +17,9 @@
    "partial_ratio": 93.02325581395348,
    "token_sort_ratio": 100.0,
    "token_set_ratio": 100.0,
-   "wratio": 95.0
+   "wratio": 95.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 1,
@@ -27,7 +29,9 @@
    "partial_ratio": 100.0,
    "token_sort_ratio": 100.0,
    "token_set_ratio": 100.0,
-   "wratio": 100.0
+   "wratio": 100.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 2,
@@ -37,7 +41,9 @@
    "partial_ratio": 100.0,
    "token_sort_ratio": 65.0,
    "token_set_ratio": 100.0,
-   "wratio": 90.0
+   "wratio": 90.0,
+   "partial_token_sort_ratio": 81.81818181818181,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 3,
@@ -47,7 +53,9 @@
    "partial_ratio": 61.53846153846154,
    "token_sort_ratio": 50.74626865671642,
    "token_set_ratio": 90.9090909090909,
-   "wratio": 85.5
+   "wratio": 85.5,
+   "partial_token_sort_ratio": 72.22222222222221,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 4,
@@ -57,7 +65,9 @@
    "partial_ratio": 62.5,
    "token_sort_ratio": 100.0,
    "token_set_ratio": 100.0,
-   "wratio": 95.0
+   "wratio": 95.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 5,
@@ -67,7 +77,9 @@
    "partial_ratio": 100.0,
    "token_sort_ratio": 66.66666666666667,
    "token_set_ratio": 66.66666666666666,
-   "wratio": 90.0
+   "wratio": 90.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 6,
@@ -77,7 +89,9 @@
    "partial_ratio": 100.0,
    "token_sort_ratio": 100.0,
    "token_set_ratio": 0.0,
-   "wratio": 0.0
+   "wratio": 0.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 0.0
   },
   {
    "id": 7,
@@ -87,7 +101,9 @@
    "partial_ratio": 100.0,
    "token_sort_ratio": 85.71428571428572,
    "token_set_ratio": 85.71428571428571,
-   "wratio": 85.71428571428572
+   "wratio": 85.71428571428572,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 8,
@@ -97,7 +113,9 @@
    "partial_ratio": 88.88888888888889,
    "token_sort_ratio": 80.0,
    "token_set_ratio": 80.0,
-   "wratio": 80.0
+   "wratio": 80.0,
+   "partial_token_sort_ratio": 88.88888888888889,
+   "partial_token_set_ratio": 88.88888888888889
   },
   {
    "id": 9,
@@ -107,7 +125,9 @@
    "partial_ratio": 50.0,
    "token_sort_ratio": 70.58823529411764,
    "token_set_ratio": 70.58823529411765,
-   "wratio": 67.05882352941177
+   "wratio": 67.05882352941177,
+   "partial_token_sort_ratio": 75.0,
+   "partial_token_set_ratio": 75.0
   },
   {
    "id": 10,
@@ -117,7 +137,9 @@
    "partial_ratio": 68.96551724137932,
    "token_sort_ratio": 100.0,
    "token_set_ratio": 100.0,
-   "wratio": 95.0
+   "wratio": 95.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 11,
@@ -127,7 +149,9 @@
    "partial_ratio": 100.0,
    "token_sort_ratio": 71.42857142857143,
    "token_set_ratio": 100.0,
-   "wratio": 90.0
+   "wratio": 90.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 12,
@@ -137,7 +161,9 @@
    "partial_ratio": 100.0,
    "token_sort_ratio": 71.42857142857143,
    "token_set_ratio": 100.0,
-   "wratio": 90.0
+   "wratio": 90.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 13,
@@ -147,7 +173,9 @@
    "partial_ratio": 73.6842105263158,
    "token_sort_ratio": 88.88888888888889,
    "token_set_ratio": 100.0,
-   "wratio": 95.0
+   "wratio": 95.0,
+   "partial_token_sort_ratio": 80.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 14,
@@ -157,7 +185,9 @@
    "partial_ratio": 66.66666666666667,
    "token_sort_ratio": 82.05128205128204,
    "token_set_ratio": 100.0,
-   "wratio": 95.0
+   "wratio": 95.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 15,
@@ -167,7 +197,9 @@
    "partial_ratio": 66.66666666666667,
    "token_sort_ratio": 61.53846153846154,
    "token_set_ratio": 61.53846153846154,
-   "wratio": 61.53846153846154
+   "wratio": 61.53846153846154,
+   "partial_token_sort_ratio": 66.66666666666667,
+   "partial_token_set_ratio": 66.66666666666667
   },
   {
    "id": 16,
@@ -177,7 +209,9 @@
    "partial_ratio": 90.0,
    "token_sort_ratio": 95.23809523809523,
    "token_set_ratio": 95.23809523809524,
-   "wratio": 95.23809523809523
+   "wratio": 95.23809523809523,
+   "partial_token_sort_ratio": 90.0,
+   "partial_token_set_ratio": 90.0
   },
   {
    "id": 17,
@@ -187,7 +221,9 @@
    "partial_ratio": 100.0,
    "token_sort_ratio": 96.55172413793103,
    "token_set_ratio": 96.55172413793103,
-   "wratio": 96.55172413793103
+   "wratio": 96.55172413793103,
+   "partial_token_sort_ratio": 92.85714285714286,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 18,
@@ -197,7 +233,9 @@
    "partial_ratio": 60.0,
    "token_sort_ratio": 100.0,
    "token_set_ratio": 100.0,
-   "wratio": 95.0
+   "wratio": 95.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 19,
@@ -207,7 +245,9 @@
    "partial_ratio": 85.71428571428572,
    "token_sort_ratio": 75.0,
    "token_set_ratio": 75.0,
-   "wratio": 75.0
+   "wratio": 75.0,
+   "partial_token_sort_ratio": 85.71428571428572,
+   "partial_token_set_ratio": 85.71428571428572
   },
   {
    "id": 20,
@@ -217,7 +257,9 @@
    "partial_ratio": 80.0,
    "token_sort_ratio": 80.0,
    "token_set_ratio": 80.0,
-   "wratio": 80.0
+   "wratio": 80.0,
+   "partial_token_sort_ratio": 80.0,
+   "partial_token_set_ratio": 80.0
   },
   {
    "id": 21,
@@ -227,7 +269,9 @@
    "partial_ratio": 100.0,
    "token_sort_ratio": 100.0,
    "token_set_ratio": 100.0,
-   "wratio": 100.0
+   "wratio": 100.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 22,
@@ -237,7 +281,9 @@
    "partial_ratio": 22.22222222222222,
    "token_sort_ratio": 12.5,
    "token_set_ratio": 12.5,
-   "wratio": 12.5
+   "wratio": 12.5,
+   "partial_token_sort_ratio": 22.22222222222222,
+   "partial_token_set_ratio": 22.22222222222222
   },
   {
    "id": 23,
@@ -247,7 +293,9 @@
    "partial_ratio": 75.86206896551724,
    "token_sort_ratio": 92.3076923076923,
    "token_set_ratio": 100.0,
-   "wratio": 95.0
+   "wratio": 95.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 24,
@@ -257,7 +305,9 @@
    "partial_ratio": 100.0,
    "token_sort_ratio": 60.0,
    "token_set_ratio": 100.0,
-   "wratio": 90.0
+   "wratio": 90.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 25,
@@ -267,7 +317,9 @@
    "partial_ratio": 100.0,
    "token_sort_ratio": 40.0,
    "token_set_ratio": 40.0,
-   "wratio": 90.0
+   "wratio": 90.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 26,
@@ -277,7 +329,9 @@
    "partial_ratio": 66.66666666666667,
    "token_sort_ratio": 95.23809523809523,
    "token_set_ratio": 95.23809523809524,
-   "wratio": 90.47619047619048
+   "wratio": 90.47619047619048,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 27,
@@ -287,7 +341,9 @@
    "partial_ratio": 85.71428571428572,
    "token_sort_ratio": 66.66666666666667,
    "token_set_ratio": 66.66666666666666,
-   "wratio": 77.14285714285715
+   "wratio": 77.14285714285715,
+   "partial_token_sort_ratio": 85.71428571428572,
+   "partial_token_set_ratio": 85.71428571428572
   },
   {
    "id": 28,
@@ -297,7 +353,9 @@
    "partial_ratio": 100.0,
    "token_sort_ratio": 84.61538461538461,
    "token_set_ratio": 84.61538461538461,
-   "wratio": 84.61538461538461
+   "wratio": 84.61538461538461,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 100.0
   },
   {
    "id": 29,
@@ -307,7 +365,81 @@
    "partial_ratio": 93.33333333333333,
    "token_sort_ratio": 80.0,
    "token_set_ratio": 80.0,
-   "wratio": 85.5
+   "wratio": 85.5,
+   "partial_token_sort_ratio": 93.33333333333333,
+   "partial_token_set_ratio": 100.0
+  },
+  {
+   "id": 30,
+   "a": "",
+   "b": "alpha beta",
+   "ratio": 0.0,
+   "partial_ratio": 0.0,
+   "token_sort_ratio": 0.0,
+   "token_set_ratio": 0.0,
+   "wratio": 0.0,
+   "partial_token_sort_ratio": 0.0,
+   "partial_token_set_ratio": 0.0
+  },
+  {
+   "id": 31,
+   "a": "alpha beta",
+   "b": "",
+   "ratio": 0.0,
+   "partial_ratio": 0.0,
+   "token_sort_ratio": 0.0,
+   "token_set_ratio": 0.0,
+   "wratio": 0.0,
+   "partial_token_sort_ratio": 0.0,
+   "partial_token_set_ratio": 0.0
+  },
+  {
+   "id": 32,
+   "a": " ",
+   "b": "a",
+   "ratio": 0.0,
+   "partial_ratio": 0.0,
+   "token_sort_ratio": 0.0,
+   "token_set_ratio": 0.0,
+   "wratio": 0.0,
+   "partial_token_sort_ratio": 0.0,
+   "partial_token_set_ratio": 0.0
+  },
+  {
+   "id": 33,
+   "a": "a",
+   "b": " ",
+   "ratio": 0.0,
+   "partial_ratio": 0.0,
+   "token_sort_ratio": 0.0,
+   "token_set_ratio": 0.0,
+   "wratio": 0.0,
+   "partial_token_sort_ratio": 0.0,
+   "partial_token_set_ratio": 0.0
+  },
+  {
+   "id": 34,
+   "a": " ",
+   "b": " ",
+   "ratio": 100.0,
+   "partial_ratio": 100.0,
+   "token_sort_ratio": 100.0,
+   "token_set_ratio": 0.0,
+   "wratio": 100.0,
+   "partial_token_sort_ratio": 100.0,
+   "partial_token_set_ratio": 0.0
+  },
+  {
+   "id": 35,
+   "a": " \t ",
+   "b": "x y",
+   "ratio": 33.333333333333336,
+   "partial_ratio": 50.0,
+   "token_sort_ratio": 0.0,
+   "token_set_ratio": 0.0,
+   "wratio": 33.333333333333336,
+   "partial_token_sort_ratio": 0.0,
+   "partial_token_set_ratio": 0.0
   }
  ]
 }

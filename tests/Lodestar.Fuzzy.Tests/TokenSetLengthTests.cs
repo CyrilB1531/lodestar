@@ -11,8 +11,6 @@ public sealed class TokenSetLengthTests
 {
     public static TheoryData<string, string> Pairs => new()
     {
-        { "", "alpha beta" },
-        { "alpha beta", "" },
         { "gamma alpha beta", "beta alpha" },
         { "delta delta epsilon", "zeta eta" },
         { Words(0, 150), Words(40, 190) },
@@ -41,6 +39,18 @@ public sealed class TokenSetLengthTests
             Math.Max(Fuzz.PartialRatio(sect, combinedB), Fuzz.PartialRatio(combinedA, combinedB)));
 
         Assert.Equal(expected, Fuzz.PartialTokenSetRatio(a, b));
+    }
+
+    // The joined comparisons would score a wordless side 100; rapidfuzz returns 0 before reaching them (#860).
+    [Theory]
+    [InlineData("", "alpha beta")]
+    [InlineData("alpha beta", "")]
+    [InlineData(" ", "a")]
+    [InlineData(" \t ", " ")]
+    public void A_side_with_no_words_scores_zero(string a, string b)
+    {
+        Assert.Equal(0.0, Fuzz.TokenSetRatio(a, b));
+        Assert.Equal(0.0, Fuzz.PartialTokenSetRatio(a, b));
     }
 
     private static (string Sect, string CombinedA, string CombinedB) Joined(string a, string b)

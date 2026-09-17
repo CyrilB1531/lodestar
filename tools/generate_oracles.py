@@ -1997,6 +1997,8 @@ FUZZ_PAIRS = [
     (THE_CAT, "cat"), ("supercalifragilistic", "super"),
     ("john smith", "smith, john"), ("jonathan", "john"),
     ("123 main st", "123 main street"), ("dr smith", "doctor smith"),
+    # One side with no words: rapidfuzz scores the token-set ratios 0, not the 100 a prefix gives.
+    ("", "alpha beta"), ("alpha beta", ""), (" ", "a"), ("a", " "), (" ", " "), (" \t ", "x y"),
 ]
 
 
@@ -2012,13 +2014,18 @@ def generate_fuzz() -> dict:
             "token_sort_ratio": fuzz.token_sort_ratio(a, b),
             "token_set_ratio": fuzz.token_set_ratio(a, b),
             "wratio": fuzz.WRatio(a, b),
+            "partial_token_sort_ratio": fuzz.partial_token_sort_ratio(a, b),
+            "partial_token_set_ratio": fuzz.partial_token_set_ratio(a, b),
         })
     return {
         "metadata": {
             "algorithm": "Fuzz",
             "library": "rapidfuzz",
             "library_version": version("rapidfuzz"),
-            "reference_calls": ["rapidfuzz.fuzz.{ratio,partial_ratio,token_sort_ratio,token_set_ratio,WRatio}"],
+            "reference_calls": [
+                "rapidfuzz.fuzz.{ratio,partial_ratio,token_sort_ratio,token_set_ratio,WRatio,"
+                "partial_token_sort_ratio,partial_token_set_ratio}",
+            ],
             "count": len(cases),
         },
         "cases": cases,
@@ -2035,6 +2042,8 @@ PROCESS_CASES = [
     {"query": METS, "limit": 5, "cutoff": 80.0},
     {"query": "brooklyn", "limit": 2, "cutoff": 0.0},
     {"query": "lakers", "limit": 5, "cutoff": 50.0},
+    # A blank query as long as METS: its token-set ratio used to score 100 and put METS first (#860).
+    {"query": " " * len(METS), "limit": 3, "cutoff": 0.0},
 ]
 
 
