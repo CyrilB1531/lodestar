@@ -118,4 +118,23 @@ public sealed class VectorAutoregressionEdgeTests
 
         Assert.Equal("series", error.ParamName);
     }
+
+    [Fact]
+    public void A_variable_proportional_to_another_is_refused()
+    {
+        // Proportional variables made the lagged design singular to rounding: coefficients came out near 1e13 (#873).
+        var series = new double[120];
+        double level = 0.0;
+        for (int t = 0; t < 60; t++)
+        {
+            level = (0.6 * level) + Math.Sin(t * 1.3) + 1.0;
+            series[2 * t] = 2.0 * level;
+            series[(2 * t) + 1] = 3.0 * level;
+        }
+
+        ArgumentException refusal = Assert.Throws<ArgumentException>(() => VectorAutoregression.Fit(series, 2, 1));
+
+        Assert.Equal("series", refusal.ParamName);
+        Assert.Contains("collinear", refusal.Message, StringComparison.Ordinal);
+    }
 }
