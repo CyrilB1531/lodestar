@@ -9,9 +9,9 @@ namespace Lodestar.Survival.Tests;
 /// <remarks>
 /// Survival probabilities and hazards are compared absolutely at 1e-12; the confidence
 /// bounds relatively, because the log-log transform pushes them into the far tail where
-/// an absolute tolerance stops meaning anything. A bound lifelines reports as NaN — the
-/// degenerate interval where the curve has reached zero — has to be NaN here too, which
-/// is asserted rather than skipped.
+/// an absolute tolerance stops meaning anything. Where the curve has reached zero lifelines
+/// reports both bounds as zero, not NaN; a NaN bound in a corpus would have to be NaN here
+/// too, which is asserted rather than skipped.
 /// </remarks>
 public sealed class SurvivalCurveOracleTests
 {
