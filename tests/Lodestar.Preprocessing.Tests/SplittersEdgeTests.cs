@@ -67,7 +67,10 @@ public sealed class SplittersEdgeTests
         Assert.Throws<ArgumentException>(() => Splitters.TrainTest(4, 0.5, [3, 2, 1]));
     }
 
-    /// <summary>The permutation is an argument, so the one that reorders nothing must change nothing.</summary>
+    /// <summary>
+    /// The permutation is an argument, so the one that reorders nothing changes no fold. A train/test split is the
+    /// exception the reference makes: unshuffled it holds out the tail, and <c>ShuffleSplit</c> the permutation's head (#893).
+    /// </summary>
     [Fact]
     public void The_identity_permutation_gives_the_unshuffled_split()
     {
@@ -84,9 +87,8 @@ public sealed class SplittersEdgeTests
             Assert.Equal(plainStratified[fold].TestIndices, readStratified[fold].TestIndices);
         }
 
-        Assert.Equal(
-            Splitters.TrainTest(ThreeClasses.Length, 0.25).TestIndices,
-            Splitters.TrainTest(ThreeClasses.Length, 0.25, identity).TestIndices);
+        Assert.Equal([9, 10, 11], Splitters.TrainTest(ThreeClasses.Length, 0.25).TestIndices);
+        Assert.Equal([0, 1, 2], Splitters.TrainTest(ThreeClasses.Length, 0.25, identity).TestIndices);
     }
 
     /// <summary>

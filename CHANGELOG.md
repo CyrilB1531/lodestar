@@ -38,6 +38,10 @@ is one sentence, the issue and the commit; see
 - `StandardScaler`, `MinMaxScaler` and `MaxAbsScaler` walk rows and features without a modulo per element, the encoders look categories up by hash where equality allows it, and `Splitters.StratifiedKFold` keeps a fold cursor per class. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
 - `RobustScaler.Fit(CsrMatrix)` groups the stored values by column in one pass, where it scanned every stored value for each column. ([#817](https://github.com/CyrilB1531/lodestar/issues/817))
 
+#### Fixed
+
+- `Splitters.StratifiedKFold` numbers classes over the order given and `Splitters.TrainTest` holds out that order's head, so scikit-learn's permutation reproduces `ShuffleSplit`. ([#893](https://github.com/CyrilB1531/lodestar/issues/893))
+
 ### Lodestar.Conformal
 
 #### Added
