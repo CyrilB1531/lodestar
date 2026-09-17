@@ -46,7 +46,8 @@ amended it, and this corpus is what caught it.
 **Greenwood's sum is accumulated, not the variance.** The variance of the estimate is `S²` times
 that sum, but the log-log interval needs the sum alone, so it is what the loop carries. When the
 last subjects all have the event the increment is not finite; the sum becomes infinite, the estimate
-is zero, and both bounds collapse there.
+is zero, and both bounds collapse there. Each increment's denominator `n(n - d)` is taken in
+`double`: in `int` it overflows past 46,340 at risk.
 
 **Applies to** — net10.0, netstandard2.0.
 

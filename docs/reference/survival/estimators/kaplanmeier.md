@@ -40,7 +40,8 @@ latter reaches **1.0067**, outside the range a probability can take, where the t
 Where the curve reaches zero the transform is undefined and both bounds collapse onto it — zero,
 not `NaN`, which is what lifelines reports too.
 
-Reference behaviour is `lifelines.KaplanMeierFitter` 0.30.3, matched over 8 samples.
+Reference behaviour is `lifelines.KaplanMeierFitter` 0.30.3, matched over 9 samples, one of them
+70,000 subjects.
 
 **Applies to** — net10.0, netstandard2.0.
 

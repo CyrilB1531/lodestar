@@ -36,7 +36,7 @@ among 21 at risk give
 
 which is a 5% difference at the very first step of the Freireich arm. This is the tie correction
 `lifelines` applies by default, and it is the single place an implementation written from the plain
-definition will disagree with it. The frozen corpus is what caught it here — four of the eight
+definition will disagree with it. The frozen corpus is what caught it here — five of the nine
 samples carry ties on purpose for that reason.
 
 Censorings contribute nothing to the sum and everything to the denominators after them, which is

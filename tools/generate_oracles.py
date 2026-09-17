@@ -5642,6 +5642,8 @@ EVENTS_B = "eventsB"
 # The library that oracles this family, named for the same reason as the keys above.
 LIFELINES = "lifelines"
 OBSERVED = "observed"
+# How many subjects each row stands for, where a sample is too large to store one row each.
+COPIES = "copies"
 
 
 def _survival_fixtures() -> list[dict]:
@@ -5696,6 +5698,17 @@ def _survival_fixtures() -> list[dict]:
             "name": "heavy ties, four events at one time",
             DURATIONS: [7, 7, 7, 7, 9, 9, 14, 20, 20],
             EVENTS: [1, 1, 1, 1, 0, 1, 1, 0, 1],
+        },
+        {
+            # long-comment: why the risk set is this large, and why it is stored as copies.
+            # 70,000 subjects, the first event at 70,000 at risk and the third at 50,000:
+            # n(n - d) overflows int at both, wrapping positive at the first and negative
+            # at the third, where Greenwood's sum was computed in int (#865). Each row
+            # stands for COPIES of itself, so the corpus holds six rows rather than 70,000.
+            "name": "70,000 at risk, past where n(n - d) overflows int",
+            DURATIONS: [1, 2, 3, 4, 5, 5],
+            EVENTS: [1, 0, 1, 1, 1, 0],
+            COPIES: [1000, 19000, 2000, 40000, 4000, 4000],
         },
     ]
 
@@ -5752,8 +5765,9 @@ def generate_survival_curves() -> dict:
 
     cases = []
     for fixture in _survival_fixtures():
-        durations = fixture[DURATIONS]
-        events = fixture[EVENTS]
+        copies = fixture.get(COPIES, [1] * len(fixture[DURATIONS]))
+        durations = [d for d, c in zip(fixture[DURATIONS], copies, strict=True) for _ in range(c)]
+        events = [e for e, c in zip(fixture[EVENTS], copies, strict=True) for _ in range(c)]
 
         kmf = KaplanMeierFitter()
         kmf.fit(durations, event_observed=events)
@@ -5762,10 +5776,10 @@ def generate_survival_curves() -> dict:
 
         table = kmf.event_table
         lower, upper = kmf.confidence_interval_.columns
-        cases.append({
+        case = {
             "name": fixture["name"],
-            DURATIONS: durations,
-            EVENTS: events,
+            DURATIONS: fixture[DURATIONS],
+            EVENTS: fixture[EVENTS],
             "timeline": [float(t) for t in kmf.survival_function_.index],
             "survival": [float(v) for v in kmf.survival_function_.iloc[:, 0]],
             "cumulativeHazard": [float(v) for v in naf.cumulative_hazard_.iloc[:, 0]],
@@ -5774,7 +5788,10 @@ def generate_survival_curves() -> dict:
             "censored": [int(v) for v in table["censored"]],
             LOWER: [float(v) for v in kmf.confidence_interval_[lower]],
             UPPER: [float(v) for v in kmf.confidence_interval_[upper]],
-        })
+        }
+        if COPIES in fixture:
+            case[COPIES] = fixture[COPIES]
+        cases.append(case)
 
     return {
         "metadata": {
