@@ -88,4 +88,22 @@ public sealed class KMeansEdgeTests
         Assert.Equal([0, 1], model.Predict([0.5, 11.5]));
         Assert.Throws<ArgumentException>(() => model.Predict([]));
     }
+
+    /// <summary>
+    /// Five of six starting centres far from every sample empty five clusters at once, among
+    /// duplicated samples: no centre may come out NaN, which one stale relocation made (#862).
+    /// </summary>
+    [Fact]
+    public void Many_clusters_emptied_at_once_leave_no_centre_undefined()
+    {
+        double[] samples = [0.0, 0.0, 1.0, 1.0, 5.0, 9.0, 9.0, 12.0];
+
+        KMeans model = KMeans.Fit(samples, 1, 6, new KMeansOptions
+        {
+            InitialCentres = [4.0, 100.0, 200.0, 300.0, 400.0, 500.0],
+        });
+
+        Assert.All(model.Centres, centre => Assert.False(double.IsNaN(centre)));
+        Assert.All(model.Labels, label => Assert.InRange(label, 0, 5));
+    }
 }

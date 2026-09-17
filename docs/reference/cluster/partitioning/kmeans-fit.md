@@ -48,6 +48,15 @@ going both ways on two configurations;
 [`decisions/0093`](../../../decisions/0093-an-exact-tie-between-centres-is-not-part-of-k-means-parity.md)
 has both and says why neither rule reproduces the pair. No frozen case turns on a tie.
 
+**Empty clusters are relocated together, as the reference relocates them.** From one pass of
+distances, each empty cluster takes a distinct one of the samples furthest from their centres, in
+cluster order, and that sample's old cluster gives it up; the labels are left alone. When every
+sample already sits on its centre nothing moves, and a cluster still empty takes the largest
+cluster's centre — **before that centre is averaged** when the largest cluster comes later, the
+reference's own order, which the corpus freezes. Samples equally far are taken lowest row first,
+where the reference's order comes from `numpy.argpartition` and follows no row rule: the same
+reasoning as decision 0093, and no frozen case turns on it.
+
 **The starting centres are an input, not a seed.** Passing
 [`KMeansOptions.InitialCentres`](kmeansoptions.md) replaces the choice entirely and makes the run an
 ordinary parity target — the move [`decisions/0072`](../../../decisions/0072-omega-is-an-input-not-a-seed.md)

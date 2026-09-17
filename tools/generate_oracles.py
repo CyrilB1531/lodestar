@@ -5040,6 +5040,18 @@ def _kmeans_fixtures() -> list[dict]:
          "rows": [[-1.0, 2.0, -3.0, 4.0], [-1.2, 2.1, -2.9, 4.2], [8.0, -7.0, 6.0, -5.0],
                   [8.3, -6.8, 6.1, -5.2], [0.0, 0.0, 0.0, 0.0]],
          "init": [[5.0, 4.0, 5.0, 6.0], [-5.0, -4.0, -6.0, -5.0]], MAX_ITER: 300, "tol": 1e-4},
+        # Two clusters empty at once (#862): each takes a distinct one of the two furthest
+        # samples, the labels are left alone, and both are subtracted from the one donor.
+        {"name": "two clusters empty at once", "rows": [[0.0], [1.0], [3.0], [10.0]],
+         "init": [[1.0], [100.0], [200.0]], MAX_ITER: 1, "tol": 1e-4},
+        # Every sample on its centre: the reference relocates nothing, and the two empty
+        # clusters take the largest cluster's averaged centre.
+        {"name": "every sample on one centre", "rows": [[1.0], [1.0], [1.0], [1.0]],
+         "init": [[1.0], [1.0], [1.0]], MAX_ITER: 300, "tol": 1e-4},
+        # The emptied donor comes before the largest cluster, so it takes that cluster's centred
+        # sum. One iteration: the second relocation ties two samples, left out as in 0093.
+        {"name": "a relocation that empties its donor", "rows": [[60.0], [0.0], [1.0], [2.5]],
+         "init": [[50.0], [1.0], [500.0], [600.0]], MAX_ITER: 1, "tol": 1e-4},
     ]
 
 
