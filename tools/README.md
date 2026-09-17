@@ -809,6 +809,8 @@ It reads each `<None Include=... CopyToOutputDirectory>` item reaching `docs/` a
 `LinkBase` and `Exclude`, rather than assuming a layout: `Lodestar.Stats.Tests` links
 `docs/reference/stats.md` beside its own folder's pages.
 
+<!-- probe for #997, never merged: the docs-only path runs on main's binaries -->
+
 ## `check_sample_culture.py`
 
 Refuses a sample that can print a number in whoever ran it's culture. The sample
