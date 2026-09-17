@@ -191,6 +191,10 @@ is one sentence, the issue and the commit; see
 
 - A filtered `SearchAsync` runs the filter once on every record in the order held and scores only the admitted ones, 1.9× faster at 10,000 records, where it used to rank the whole collection and stop filtering once enough records passed. ([#849](https://github.com/CyrilB1531/lodestar/issues/849))
 
+#### Fixed
+
+- `HybridSearchAsync` keeps a record the keywords matched in the keyword ranking when its BM25 score is zero or negative, where it used to drop it as unmatched. ([#884](https://github.com/CyrilB1531/lodestar/issues/884))
+
 ### Lodestar.Stats.TimeSeries
 
 #### Added

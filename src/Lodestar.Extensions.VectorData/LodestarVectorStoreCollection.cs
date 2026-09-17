@@ -440,21 +440,45 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <summary>The documents the keywords matched, best first; none when nothing is held.</summary>
     /// <remarks>
     /// A marked schema over no records builds no keyword index, so the empty ranking is the
-    /// answer rather than a refusal. <c>Top</c> scores every document; a zero-scoring one is
+    /// answer rather than a refusal. <c>Top</c> scores every document; an unmatched one is
     /// dropped rather than passed through, since <see cref="RankFusion.Rrf"/> reads rank
-    /// position and not score.
+    /// position and not score. Matching is read from the counts, not the score, whose sign
+    /// Robertson's IDF leaves open: two records and one shared term score zero.
     /// </remarks>
     private static int[] KeywordRanking(DerivedIndexes<TKey, TRecord> indexes, ICollection<string> keywords)
     {
-        if (indexes.Keywords is null || indexes.Vectorizer is null)
+        if (indexes.Keywords is null || indexes.Vectorizer is null || indexes.Counts is null)
         {
             return [];
         }
 
+        List<int> terms = QueryTerms(indexes.Vectorizer, keywords);
+        bool[] matched = Matched(indexes.Counts, terms);
         return [.. indexes.Keywords
-            .Top(QueryTerms(indexes.Vectorizer, keywords), indexes.Keywords.DocumentCount)
-            .Where(hit => hit.Score > 0)
+            .Top(terms, indexes.Keywords.DocumentCount)
+            .Where(hit => matched[hit.Document])
             .Select(hit => hit.Document)];
+    }
+
+    /// <summary>Which rows of <paramref name="counts"/> hold at least one of <paramref name="terms"/>.</summary>
+    private static bool[] Matched(CsrMatrix counts, List<int> terms)
+    {
+        bool[] queried = new bool[counts.ColumnCount];
+        foreach (int term in terms)
+        {
+            queried[term] = true;
+        }
+
+        bool[] matched = new bool[counts.RowCount];
+        for (int row = 0; row < matched.Length; row++)
+        {
+            for (int k = counts.RowPointers[row]; k < counts.RowPointers[row + 1] && !matched[row]; k++)
+            {
+                matched[row] = queried[counts.ColumnIndices[k]];
+            }
+        }
+
+        return matched;
     }
 
     /// <summary>The keywords as column indices of the fitted vocabulary, unseen terms dropped.</summary>

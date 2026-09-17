@@ -140,6 +140,39 @@ public sealed class HybridSearchTests
     }
 
     [Fact]
+    public async Task A_matched_record_scoring_zero_stays_in_the_keyword_ranking()
+    {
+        // Two records, one holding "apple": Robertson's IDF is log(1.5 / 1.5) = 0, so the match
+        // scores zero. Vector order is b, a; keeping a as the keyword hit fuses a (1/62 + 1/61) first.
+        using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+        await collection.UpsertAsync([
+            Doc("a", "red apple", 0f, 1f, 0f),
+            Doc("b", "green pear", 1f, 0f, 0f),
+        ]);
+
+        List<VectorSearchResult<Document>> hits = await collection
+            .HybridSearchAsync(new ReadOnlyMemory<float>([1f, 0f, 0f]), ["apple"], 2)
+            .ToListAsync();
+
+        Assert.Equal(["a", "b"], hits.Select(hit => hit.Record.Id));
+        Assert.Equal((1.0 / 62) + (1.0 / 61), hits[0].Score!.Value, 12);
+    }
+
+    [Fact]
+    public async Task A_matched_record_scoring_below_zero_stays_in_the_keyword_ranking()
+    {
+        // One record: every IDF is log(0.5 / 1.5) < 0, so the floor, a share of their mean, is too.
+        using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+        await collection.UpsertAsync(Doc("a", "red apple", 0f, 1f, 0f));
+
+        List<VectorSearchResult<Document>> hits = await collection
+            .HybridSearchAsync(new ReadOnlyMemory<float>([1f, 0f, 0f]), ["apple"], 1)
+            .ToListAsync();
+
+        Assert.Equal(2.0 / 61, Assert.Single(hits).Score!.Value, 12);
+    }
+
+    [Fact]
     public async Task Texts_that_yield_no_tokens_degrade_to_the_vector_ranking()
     {
         // Single letters are dropped, so the vocabulary is empty. Vector order is c, a, b; keeping the
