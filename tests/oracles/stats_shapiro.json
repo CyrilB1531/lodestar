@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "shapiro",
-  "count": 8
+  "count": 13
  },
  "cases": [
   {
@@ -390,6 +390,69 @@
     6.0,
     7.0
    ]
+  },
+  {
+   "name": "three values, skewed",
+   "call": "shapiro",
+   "args": {},
+   "x": [
+    1.0,
+    2.0,
+    4.0
+   ],
+   "statistic": 0.9642857142857144,
+   "pvalue": 0.6368868450289701
+  },
+  {
+   "name": "three values, evenly spaced",
+   "call": "shapiro",
+   "args": {},
+   "x": [
+    1.0,
+    2.0,
+    3.0
+   ],
+   "statistic": 1.0,
+   "pvalue": 1.0
+  },
+  {
+   "name": "three values, near symmetric",
+   "call": "shapiro",
+   "args": {},
+   "x": [
+    0.5,
+    -1.2,
+    2.3
+   ],
+   "statistic": 0.999727965179543,
+   "pvalue": 0.968498348775511
+  },
+  {
+   "name": "four values, doubling",
+   "call": "shapiro",
+   "args": {},
+   "x": [
+    1.0,
+    2.0,
+    4.0,
+    8.0
+   ],
+   "statistic": 0.92020267879194,
+   "pvalue": 0.5380837772749699
+  },
+  {
+   "name": "five values",
+   "call": "shapiro",
+   "args": {},
+   "x": [
+    0.1,
+    0.7,
+    -0.3,
+    1.9,
+    -2.2
+   ],
+   "statistic": 0.9742489031848045,
+   "pvalue": 0.9017567289811041
   }
  ]
 }

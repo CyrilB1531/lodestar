@@ -83,7 +83,9 @@ public static class ShapiroWilk
                 nameof(sample));
         }
 
-        double w = numerator * numerator / denominator;
+        // Rounding can lift a perfectly linear sample past 1 ([1, 2, 3] gives 1 + 2^-52), where
+        // asin and log(1 - w) are undefined; scipy reports W = 1 and p = 1 there (#863).
+        double w = Math.Min(1.0, numerator * numerator / denominator);
 
         return new TestResult(w, PValue(w, n));
     }
@@ -107,6 +109,15 @@ public static class ShapiroWilk
         double u = 1.0 / Math.Sqrt(n);
 
         double[] weights = new double[n];
+        if (n == 3)
+        {
+            // AS R94 fixes n = 3 at sqrt(1/2) and a zero middle weight: rescaling the
+            // middle Blom score, exactly -0.0, divided by a zero scale and gave NaN (#863).
+            weights[0] = -Math.Sqrt(0.5);
+            weights[2] = Math.Sqrt(0.5);
+            return weights;
+        }
+
         int corrected = n > 5 ? 2 : 1;
 
         double top = (blom[n - 1] / norm) + Polynomial(WeightCorrectionLast, u);
@@ -144,9 +155,9 @@ public static class ShapiroWilk
     {
         if (n == 3)
         {
-            // Royston gives the n = 3 case in closed form: the null distribution
-            // of W is exactly known there, so no transform is fitted.
-            double p = 1.909859 * (Math.Asin(Math.Sqrt(w)) - 1.047198);
+            // Royston's closed form, no fitted transform; 6/pi and pi/3 at 15 digits, since the
+            // 7-digit pair missed scipy's p at [1, 2, 4] by about 1e-6 relative (#863).
+            double p = 1.90985931710274 * (Math.Asin(Math.Sqrt(w)) - 1.04719755119660);
             return Math.Min(1.0, Math.Max(0.0, p));
         }
 
