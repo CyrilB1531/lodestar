@@ -7,11 +7,11 @@ the `for proj in ...` lists that drive every `dotnet pack` in CI. No `.nupkg` re
 `./artifacts`, `--require-all` reported it correctly, and the three jobs that consume
 that directory failed behind it for want of the artefact.
 
-Nothing derives those lists from the solution, and nothing warned. There are five of
-them -- four in `ci.yml` (the pack step of build-test-pack, the `src/ ships
+Nothing derives those lists from the solution, and nothing warned. There are four of
+them, all in `ci.yml` -- the pack step of build-test-pack, the `src/ ships
 PackageReference only` assertion, and the packs the sample and docs-snippets jobs each
-do for themselves) and one in `sonarcloud.yml` -- so adding a package means editing
-five places in the same commit, which is exactly the kind of coupling a reader cannot
+do for themselves; a fifth lived in `sonarcloud.yml` until its build merged into
+build-test-pack (#857) -- so adding a package means editing four places in the same commit, which is exactly the kind of coupling a reader cannot
 see and a test can.
 
 A project deliberately left out of packaging belongs in NOT_PACKAGED below, named and
@@ -36,11 +36,11 @@ NOT_PACKAGED: frozenset[str] = frozenset()
 
 SOLUTION_PROJECT = re.compile(r'Path="(src/[^"]+\.csproj)"')
 
-# `for proj in src/A src/B ...; do` -- the shape all five lists share.
+# `for proj in src/A src/B ...; do` -- the shape all four lists share.
 PACK_LOOP = re.compile(r"for\s+proj\s+in\s+((?:src/[\w.]+\s+)*src/[\w.]+)\s*;\s*do")
 
 # What #545 cost, and so what this test is worth: one omission, four red jobs.
-EXPECTED_LIST_COUNT = 5
+EXPECTED_LIST_COUNT = 4
 
 
 def solution_projects() -> set[str]:
