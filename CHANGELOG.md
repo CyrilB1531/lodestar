@@ -254,6 +254,10 @@ is one sentence, the issue and the commit; see
 - The least-squares pipeline under the OLS, WLS and GLM fits no longer forms Q. ([#782](https://github.com/CyrilB1531/lodestar/issues/782), [`37c71cb9`](https://github.com/CyrilB1531/lodestar/commit/37c71cb9))
 - The negative binomial log-likelihood reads `lnΓ(1/α)` once per fit. ([#781](https://github.com/CyrilB1531/lodestar/issues/781), [`37c71cb9`](https://github.com/CyrilB1531/lodestar/commit/37c71cb9))
 
+#### Fixed
+
+- `OrdinaryLeastSquares`' documentation says `Fit` tries the normal equations before the Householder reflections and `Estimate` always takes the reflections, where it described a Householder QR throughout. ([#869](https://github.com/CyrilB1531/lodestar/issues/869))
+
 ### Lodestar.Survival
 
 #### Added

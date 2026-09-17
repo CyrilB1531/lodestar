@@ -21,9 +21,10 @@ public static class OrdinaryLeastSquares
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
     /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, <paramref name="options"/> sets <see cref="OlsOptions.HacLags"/> or <see cref="OlsOptions.SmallSampleCorrection"/> for a type that does not read it or asks for <see cref="CovarianceType.Hac"/> without lags or <see cref="CovarianceType.Cluster"/> without labels, or there are no residual degrees of freedom left.</exception>
     /// <remarks>
-    /// Solved through a Householder QR of the design rather than the normal equations:
-    /// forming <c>XᵀX</c> squares its condition number, and the near-collinear designs a VIF
-    /// exists to report are exactly the ones that costs.
+    /// Solved through the normal equations when the diagonal of <c>XᵀX</c>'s Cholesky factor stays
+    /// within a ratio of 200, and through Householder reflections of the design otherwise: forming
+    /// <c>XᵀX</c> squares its condition number, which the near-collinear designs a VIF exists to
+    /// report cannot afford. <c>statsmodels</c> solves through a pseudo-inverse.
     /// </remarks>
     public static OlsSummary Fit(
         ReadOnlySpan<double> design,
@@ -290,10 +291,10 @@ public static class OrdinaryLeastSquares
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
     /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, or there are no residual degrees of freedom left.</exception>
     /// <remarks>
-    /// The same Householder least squares as <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/>, for a caller fitting many regressions and
+    /// Always the Householder reflections <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/> falls back to, for a caller fitting many regressions and
     /// reading a coefficient, a t statistic or a likelihood from each. It skips what <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/>
-    /// adds on top — p-values, intervals, R², the F test, the VIFs and the explicit Q the robust
-    /// covariances need — and agrees with <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/> on the numbers it keeps.
+    /// adds on top — p-values, intervals, R², the F test, the VIFs and the robust covariances — and agrees with
+    /// <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/> on the numbers it keeps to rounding, not to the bit, when that fit took the normal equations.
     /// </remarks>
     public static OlsEstimate Estimate(
         ReadOnlySpan<double> design,

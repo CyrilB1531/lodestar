@@ -59,7 +59,7 @@ internal static class LeastSquares
         return matrix;
     }
 
-    /// <summary>Least squares through Householder reflections, reporting the inverse of R the covariance needs.</summary>
+    /// <summary>Least squares through the normal equations when conditioned for them, Householder reflections otherwise, reporting the inverse of R the covariance needs.</summary>
     /// <returns>The coefficients, and the inverse of R the standard errors, the leverages and the sandwich are read from.</returns>
     /// <remarks>
     /// Q is never formed. The reflections are applied to the response as they are built, which is all the

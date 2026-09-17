@@ -37,12 +37,13 @@ double t = Math.Round(estimate.TStatistics[1], 4);              // => 71.8557
 double residuals = Math.Round(estimate.ResidualSumOfSquares, 4);  // => 0.1948
 ```
 
-**Remarks** — the same Householder least squares as [`Fit`](ordinaryleastsquares-fit.md), for a
-caller fitting many regressions and reading a coefficient, a t statistic or a likelihood from each —
-the augmented Dickey-Fuller lag search in `Lodestar.Stats.TimeSeries` fits one per candidate lag. It
-skips what `Fit` adds on top: p-values, intervals, R², the F test, the variance inflation factors,
-and the explicit `Q` the robust covariances need. The standard errors are the non-robust ones; a
-robust covariance is `Fit`'s.
+**Remarks** — always the Householder reflections [`Fit`](ordinaryleastsquares-fit.md) falls back
+to, for a caller fitting many regressions and reading a coefficient, a t statistic or a likelihood
+from each — the augmented Dickey-Fuller lag search in `Lodestar.Stats.TimeSeries` fits one per
+candidate lag. It skips what `Fit` adds on top: p-values, intervals, R², the F test, the variance
+inflation factors and the robust covariances. The standard errors are the non-robust ones; a robust
+covariance is `Fit`'s. Where `Fit` took the normal equations the two agree to rounding rather than to
+the bit: `1.9976190476190478` here against `Fit`'s `1.9976190476190496` on the example above.
 
 **Applies to** — net10.0, netstandard2.0.
 

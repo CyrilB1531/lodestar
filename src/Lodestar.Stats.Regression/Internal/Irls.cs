@@ -10,7 +10,7 @@ internal sealed record IrlsResult(
     int Iterations,
     double DevianceChange);
 
-/// <summary>Iteratively reweighted least squares, over the QR the OLS already uses.</summary>
+/// <summary>Iteratively reweighted least squares, over the Householder reflections the OLS falls back to.</summary>
 internal static class Irls
 {
     // Machine epsilon: keeps a perfectly-separating fit's mu off the exact 0/1 boundary, where

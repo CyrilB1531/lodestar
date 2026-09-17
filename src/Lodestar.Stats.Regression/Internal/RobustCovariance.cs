@@ -220,7 +220,7 @@ internal static class RobustCovariance
         return scores;
     }
 
-    /// <summary><c>(XᵀX)⁻¹</c> as <c>R⁻¹R⁻ᵀ</c>, which the QR already paid for.</summary>
+    /// <summary><c>(XᵀX)⁻¹</c> as <c>R⁻¹R⁻ᵀ</c>, which the solve already paid for; <c>U</c> from the normal equations serves as R.</summary>
     private static double[] Bread(double[] inverseUpper, int order)
     {
         var bread = new double[order * order];
