@@ -5689,7 +5689,7 @@ def _survival_fixtures() -> list[dict]:
         },
         {
             # The last duration observed takes the curve to zero, where the log-log
-            # transform's interval is degenerate and lifelines reports NaN.
+            # transform's interval is degenerate and lifelines reports both bounds as zero.
             "name": "the curve reaches zero at the last time",
             DURATIONS: [1, 2, 3],
             EVENTS: [1, 1, 1],

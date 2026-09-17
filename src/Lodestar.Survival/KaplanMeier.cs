@@ -92,8 +92,8 @@ public static class KaplanMeier
     /// <remarks>
     /// The transform keeps both bounds inside <c>[0, 1]</c>, which the plain Greenwood
     /// interval does not — at <c>S = 0.857</c> on 21 subjects it reaches 1.0067. Where the
-    /// estimate is one or zero the transform is undefined; lifelines answers the estimate
-    /// itself at one and NaN at zero, and so does this.
+    /// estimate is one or zero the transform is undefined, and lifelines answers the estimate
+    /// itself at both: one at one, zero at zero. So does this.
     /// </remarks>
     private static (double Lower, double Upper) LogLogInterval(
         double survival, double greenwood, double z)
