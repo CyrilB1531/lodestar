@@ -131,6 +131,7 @@ is one sentence, the issue and the commit; see
 #### Fixed
 
 - `Mmr.Select` refuses a `NaN` lambda with `ArgumentOutOfRangeException` instead of throwing `IndexOutOfRangeException`. ([#886](https://github.com/CyrilB1531/lodestar/issues/886))
+- `BpeVocabulary` equality compares `PrefixTokens` and `SuffixTokens`, so a vocabulary with the Llama-2 template no longer equals one without it. ([#885](https://github.com/CyrilB1531/lodestar/issues/885))
 
 ### Lodestar.Onnx
 

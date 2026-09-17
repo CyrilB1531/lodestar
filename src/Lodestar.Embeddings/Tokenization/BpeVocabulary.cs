@@ -195,8 +195,8 @@ public sealed record BpeVocabulary(
     public int Count => Vocab.Count;
 
     /// <summary>
-    /// Compares the flags, then every merge, every token-to-id mapping and every
-    /// <see cref="AddedTokens"/> entry, in order.
+    /// Compares the flags, the <see cref="PrefixTokens"/> and <see cref="SuffixTokens"/> templates,
+    /// then every merge, every token-to-id mapping and every <see cref="AddedTokens"/> entry, in order.
     /// </summary>
     /// <remarks>
     /// The generated equality compares <see cref="Vocab"/> and <see cref="Merges"/>
@@ -226,7 +226,9 @@ public sealed record BpeVocabulary(
             || Vocab.Count != other.Vocab.Count
             || Merges.Count != other.Merges.Count
             || AddedTokens.Count != other.AddedTokens.Count
-            || NormalizationForms.Count != other.NormalizationForms.Count)
+            || NormalizationForms.Count != other.NormalizationForms.Count
+            || !SameTokens(PrefixTokens, other.PrefixTokens)
+            || !SameTokens(SuffixTokens, other.SuffixTokens))
         {
             return false;
         }
@@ -263,6 +265,8 @@ public sealed record BpeVocabulary(
             hash = (hash * 31) + Merges.Count;
             hash = (hash * 31) + AddedTokens.Count;
             hash = (hash * 31) + NormalizationForms.Count;
+            hash = (hash * 31) + PrefixTokens.Count;
+            hash = (hash * 31) + SuffixTokens.Count;
             hash = (hash * 31) + (ByteLevel ? 1 : 0);
             hash = (hash * 31) + (AddPrefixSpace ? 1 : 0);
             hash = (hash * 31) + (IgnoreMerges ? 1 : 0);
@@ -277,6 +281,23 @@ public sealed record BpeVocabulary(
             hash = (hash * 31) + (Metaspace is null ? 0 : EscapeHash(Metaspace));
             return (hash * 31) + (Decoder is null ? 0 : DecoderHash(Decoder));
         }
+    }
+
+    /// <summary>Compares two template token lists element by element, ordinally.</summary>
+    private static bool SameTokens(IReadOnlyList<string> left, IReadOnlyList<string> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+        for (int i = 0; i < left.Count; i++)
+        {
+            if (!string.Equals(left[i], right[i], StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     /// <summary>Folds every field <see cref="SameMetaspace"/> compares, so equal values hash equal and no two differ only invisibly.</summary>
