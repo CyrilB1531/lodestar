@@ -210,6 +210,26 @@ public sealed class ValueEqualityTests
     }
 
     [Fact]
+    public void BpeVocabularies_differing_only_in_their_template_tokens_are_not_equal()
+    {
+        // The Llama-2 template and no template used to compare equal (#885).
+        Assert.NotEqual(SampleBpe(), SampleBpe() with { PrefixTokens = ["<s>"] });
+        Assert.NotEqual(SampleBpe(), SampleBpe() with { SuffixTokens = ["</s>"] });
+        Assert.NotEqual(SampleBpe() with { PrefixTokens = ["<s>"] }, SampleBpe() with { PrefixTokens = ["<bos>"] });
+        Assert.NotEqual(SampleBpe().GetHashCode(), (SampleBpe() with { PrefixTokens = ["<s>"] }).GetHashCode());
+    }
+
+    [Fact]
+    public void BpeVocabularies_with_equal_template_tokens_in_different_lists_are_equal()
+    {
+        BpeVocabulary left = SampleBpe() with { PrefixTokens = ["<s>"], SuffixTokens = ["</s>"] };
+        BpeVocabulary right = SampleBpe() with { PrefixTokens = new List<string> { "<s>" }, SuffixTokens = ["</s>"] };
+
+        Assert.Equal(left, right);
+        Assert.Equal(left.GetHashCode(), right.GetHashCode());
+    }
+
+    [Fact]
     public void Merge_order_is_rank_order()
     {
         BpeVocabulary vocab = SampleBpe();
