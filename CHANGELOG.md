@@ -147,6 +147,7 @@ is one sentence, the issue and the commit; see
 - The vectorizers, `Bm25Index`, `TextRank`, `Rake`, `LshIndex`, `BkTree`, `MinHash`, `SimHash`, `RankFusion`, `MinHashPermutations` and `DamerauLevenshtein` refuse null documents, out-of-range options and overflowing sizes with the documented exception and the caller's parameter name, and an unfitted `Save(Stream)` no longer writes a partial header. ([#901](https://github.com/CyrilB1531/lodestar/issues/901))
 - `DoubleMetaphone.Encode("W")` returns two empty codes, as the reference does, instead of throwing. ([#838](https://github.com/CyrilB1531/lodestar/issues/838))
 - `FrenchSnowballStemmer.Stem` keeps a word-final `é` or `è`, as nltk does, where `thé` stemmed to `the` and `été` to `éte`. ([#948](https://github.com/CyrilB1531/lodestar/issues/948))
+- `RatcliffObershelp.Similarity` allocates nothing again, where the explicit stack #877 added cost 120 B a call. ([#980](https://github.com/CyrilB1531/lodestar/issues/980))
 
 ### Lodestar.Gpu
 
