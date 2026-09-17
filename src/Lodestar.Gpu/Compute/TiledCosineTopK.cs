@@ -25,7 +25,8 @@ public sealed class TiledCosineTopK
 
     private readonly GpuContext _context;
     private readonly int _groupSize;
-    private readonly Action<KernelConfig, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> _score;
+    private readonly int _queriesPerLaunch;
+    private readonly Action<KernelConfig, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int, int> _score;
     private readonly Action<KernelConfig, ArrayView<float>, ArrayView<int>, ArrayView<float>, int, int> _select;
 
     /// <summary>Loads both kernels onto the accelerator.</summary>
@@ -37,12 +38,20 @@ public sealed class TiledCosineTopK
     /// for an explicit warm-up.
     /// </remarks>
     public TiledCosineTopK(GpuContext context)
+        : this(context, RowLaunch.Limit(context))
+    {
+    }
+
+    /// <summary>Loads both kernels, scoring at most <paramref name="queriesPerLaunch"/> queries at once.</summary>
+    /// <remarks>Exists so a test can split a launch on an accelerator that never needs to.</remarks>
+    internal TiledCosineTopK(GpuContext context, int queriesPerLaunch)
     {
         Guard.NotNull(context);
         _context = context;
         _groupSize = LargestPowerOfTwo(Math.Min(MaxGroupSize, context.Accelerator.MaxGroupSize.X));
+        _queriesPerLaunch = queriesPerLaunch;
         _score = context.Accelerator
-            .LoadStreamKernel<ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(ScoreKernel);
+            .LoadStreamKernel<ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int, int>(ScoreKernel);
         _select = context.Accelerator
             .LoadStreamKernel<ArrayView<float>, ArrayView<int>, ArrayView<float>, int, int>(SelectKernel);
     }
@@ -87,9 +96,14 @@ public sealed class TiledCosineTopK
             accelerator.Allocate1D<float>((long)queryCount * take);
 
         int groups = (matrix.Count + _groupSize - 1) / _groupSize;
-        _score(
-            new KernelConfig(new Index2D(groups, queryCount), new Index2D(_groupSize, 1)),
-            matrix.Buffer.View, queryBuffer.View, scores.View, matrix.Dimension, matrix.Count);
+        for (int first = 0; first < queryCount; first += _queriesPerLaunch)
+        {
+            int batch = Math.Min(_queriesPerLaunch, queryCount - first);
+            _score(
+                new KernelConfig(new Index2D(groups, batch), new Index2D(_groupSize, 1)),
+                matrix.Buffer.View, queryBuffer.View, scores.View, matrix.Dimension, matrix.Count, first);
+        }
+
         _select(
             new KernelConfig(new Index1D(queryCount), new Index1D(_groupSize)),
             scores.View, hitIndices.View, hitScores.View, matrix.Count, take);
@@ -123,12 +137,13 @@ public sealed class TiledCosineTopK
     // instrumented as usual.
     [ExcludeFromCodeCoverage]
     private static void ScoreKernel(
-        ArrayView<float> matrix, ArrayView<float> queries, ArrayView<float> scores, int dimension, int count)
+        ArrayView<float> matrix, ArrayView<float> queries, ArrayView<float> scores, int dimension, int count,
+        int firstQuery)
     {
         ArrayView<float> tile = SharedMemory.Allocate1D<float>(MaxGroupSize);
         int width = Group.DimX;
         int row = (Grid.IdxX * width) + Group.IdxX;
-        int query = Grid.IdxY;
+        int query = firstQuery + Grid.IdxY;
         long queryBase = (long)query * dimension;
         float accumulator = 0.0f;
 

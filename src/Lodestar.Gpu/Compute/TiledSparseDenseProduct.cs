@@ -25,20 +25,29 @@ public sealed class TiledSparseDenseProduct
 
     private readonly GpuContext _context;
     private readonly int _groupSize;
+    private readonly int _rowsPerLaunch;
     private readonly Action<KernelConfig, ArrayView<int>, ArrayView<int>, ArrayView<double>,
-        ArrayView<double>, ArrayView<double>, int> _product;
+        ArrayView<double>, ArrayView<double>, int, int> _product;
 
     /// <summary>Loads the kernel onto the accelerator.</summary>
     /// <param name="context">The accelerator to compile for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
     /// <remarks>Loading compiles, so build this once and reuse it (decision 0102).</remarks>
     public TiledSparseDenseProduct(GpuContext context)
+        : this(context, RowLaunch.Limit(context))
+    {
+    }
+
+    /// <summary>Loads the kernel, launching at most <paramref name="rowsPerLaunch"/> rows at once.</summary>
+    /// <remarks>Exists so a test can split a launch on an accelerator that never needs to.</remarks>
+    internal TiledSparseDenseProduct(GpuContext context, int rowsPerLaunch)
     {
         Guard.NotNull(context);
         _context = context;
         _groupSize = Math.Min(MaxGroupSize, context.Accelerator.MaxGroupSize.X);
+        _rowsPerLaunch = rowsPerLaunch;
         _product = context.Accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>,
-            ArrayView<double>, ArrayView<double>, ArrayView<double>, int>(ProductKernel);
+            ArrayView<double>, ArrayView<double>, ArrayView<double>, int, int>(ProductKernel);
     }
 
     /// <summary>Computes <c>matrix · block</c>, row-major.</summary>
@@ -95,10 +104,15 @@ public sealed class TiledSparseDenseProduct
             accelerator.Allocate1D<double>((long)matrix.RowCount * block.ColumnCount);
 
         int tiles = (block.ColumnCount + _groupSize - 1) / _groupSize;
-        _product(
-            new KernelConfig(new Index2D(tiles, matrix.RowCount), new Index2D(_groupSize, 1)),
-            matrix.RowPointers.View, matrix.ColumnIndices.View, matrix.Values.View,
-            block.Buffer.View, result.View, block.ColumnCount);
+        for (int first = 0; first < matrix.RowCount; first += _rowsPerLaunch)
+        {
+            int rows = Math.Min(_rowsPerLaunch, matrix.RowCount - first);
+            _product(
+                new KernelConfig(new Index2D(tiles, rows), new Index2D(_groupSize, 1)),
+                matrix.RowPointers.View, matrix.ColumnIndices.View, matrix.Values.View,
+                block.Buffer.View, result.View, block.ColumnCount, first);
+        }
+
         accelerator.Synchronize();
 
         return new DeviceDenseBlock(result, matrix.RowCount, block.ColumnCount);
@@ -115,12 +129,12 @@ public sealed class TiledSparseDenseProduct
     [ExcludeFromCodeCoverage]
     private static void ProductKernel(
         ArrayView<int> rowPointers, ArrayView<int> columnIndices, ArrayView<double> values,
-        ArrayView<double> block, ArrayView<double> result, int width)
+        ArrayView<double> block, ArrayView<double> result, int width, int firstRow)
     {
         ArrayView<double> tileValue = SharedMemory.Allocate1D<double>(MaxGroupSize);
         ArrayView<int> tileColumn = SharedMemory.Allocate1D<int>(MaxGroupSize);
         int lanes = Group.DimX;
-        int row = Grid.IdxY;
+        int row = firstRow + Grid.IdxY;
         int column = (Grid.IdxX * lanes) + Group.IdxX;
         int start = rowPointers[row];
         int end = rowPointers[row + 1];

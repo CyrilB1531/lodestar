@@ -38,6 +38,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Lodestar.Gpu.Tests" />
+    <InternalsVisibleTo Include="Lodestar.Gpu.NetStandard.Tests" />
   </ItemGroup>
 
 </Project>
