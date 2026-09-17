@@ -163,12 +163,12 @@ implemented, never retrofitted at the end (§6.1 of the brief).
 
 | Python | Library | C# | Differences |
 | --- | --- | --- | --- |
-| `fuzz.ratio(a, b)` | rapidfuzz | [`Fuzz.Ratio(a, b)`](reference/fuzzy/matching/fuzz-ratio.md) | Indel similarity ×100. Case-sensitive (no preprocessing, like rapidfuzz). |
+| `fuzz.ratio(a, b)` | rapidfuzz | [`Fuzz.Ratio(a, b)`](reference/fuzzy/matching/fuzz-ratio.md) | Indel similarity ×100. Case-sensitive (no preprocessing, like rapidfuzz). **Every `fuzz.*` row here is identical at `TextElement.CodePoint`**, the overload each scorer takes, which the corpus replays on every pair, emoji, CJK past the BMP and rapidfuzz's whitespace included. **The default unit is the UTF-16 unit** ([decision 0002](decisions/0002-unicode-comparison-unit.md)), and it parts from rapidfuzz on text past the BMP (a surrogate pair counts twice and sorts below U+E000) and on token splits: it splits on U+0085 and U+00A0 and not on U+001C to U+001F, where rapidfuzz does the reverse. |
 | `fuzz.partial_ratio(a, b)` | rapidfuzz | [`Fuzz.PartialRatio(a, b)`](reference/fuzzy/matching/fuzz-partialratio.md) | Best sliding window (shorter over longer; both directions when lengths are equal). |
 | `fuzz.token_sort_ratio(a, b)` | rapidfuzz | [`Fuzz.TokenSortRatio(a, b)`](reference/fuzzy/matching/fuzz-tokensortratio.md) | Sort tokens then `ratio`. |
 | `fuzz.token_set_ratio(a, b)` | rapidfuzz | [`Fuzz.TokenSetRatio(a, b)`](reference/fuzzy/matching/fuzz-tokensetratio.md) | Shared tokens vs differences. `0` when either side has no words, as in rapidfuzz. |
 | `fuzz.WRatio(a, b)` | rapidfuzz | [`Fuzz.WRatio(a, b)`](reference/fuzzy/matching/fuzz-wratio.md) | Weighted combination based on the length ratio. |
-| `process.extract(q, choices, limit=…, score_cutoff=…)` | rapidfuzz | [`Process.Extract`](reference/fuzzy/matching/process-extract.md)`(q, choices, limit:…, scoreCutoff:…)` | Default scorer `WRatio`, score-descending order (index tie-break), cutoff, short-circuit. |
+| `process.extract(q, choices, limit=…, score_cutoff=…)` | rapidfuzz | [`Process.Extract`](reference/fuzzy/matching/process-extract.md)`(q, choices, limit:…, scoreCutoff:…)` | Default scorer `WRatio`, score-descending order (index tie-break), cutoff. The cutoff filters after each candidate is scored in full; rapidfuzz passes it to the scorer, which can stop early, and the answer is the same. |
 | `process.extractOne(q, choices)` | rapidfuzz | [`Process.ExtractOne(q, choices)`](reference/fuzzy/matching/process-extractone.md) | Best candidate or `null`. |
 | blocking deduplication | — (application pattern) | [`Deduplicator.FindClusters(...)`](reference/fuzzy/matching/deduplicator-findclusters.md) | Partition by blocking key + transitive closure (union-find). Avoids O(n²). |
 

@@ -35,8 +35,10 @@ int where = best[0].Index;  // => 0
 guarantee**: fewer come back when fewer clear the cutoff, and passing `null` returns every
 candidate ranked, which on a large list is the expensive call.
 
-`scoreCutoff` is worth setting rather than filtering afterwards: it lets the scorer abandon a
-candidate early, so it is faster as well as shorter.
+`scoreCutoff` filters after scoring: every candidate is scored in full and the ones below the
+cutoff are dropped, so it makes the result shorter and the heap smaller, not the scoring faster.
+For rapidfuzz's scores on text outside the BMP, pass a code-point scorer, such as
+`(q, c) => Fuzz.WRatio(q, c, TextElement.CodePoint)`.
 
 Each result carries its `Index`, which is how a match is traced back to the record it came from
 rather than to the string.

@@ -8,10 +8,22 @@ The words as sets, so extra words on one side stop counting against it.
 public static double TokenSetRatio(string a, string b)
 ```
 
-**Parameters** — `a` and `b` are the strings to compare.
+<!-- docs-declaration -->
+
+```csharp
+public static double TokenSetRatio(string a, string b, TextElement element)
+```
+
+The second overload compares over `element`. At `TextElement.CodePoint` a character outside the
+Basic Multilingual Plane counts once, tokens split on rapidfuzz's own whitespace and sort by code
+point, which is rapidfuzz's score on any string; `TextElement.Utf16Unit` is the first overload.
+
+**Parameters** — `a` and `b` are the strings to compare. `element` is the unit compared, in the second overload only.
 
 **Returns** — `double` in `[0, 100]`, computed over the intersection and the two differences of
 the word sets.
+
+**Exceptions** — `ArgumentOutOfRangeException` when `element` is not a declared value.
 
 **Example** — one side carrying words the other does not.
 
@@ -37,6 +49,11 @@ as equal sets.
 
 A side with no words — empty, or whitespace alone — scores `0` against anything, the other side
 included when it has none either, as in rapidfuzz: an empty set is not a subset match.
+
+An emoji is two UTF-16 units, so the first overload scores two different emoji that share a high
+surrogate as half alike, where rapidfuzz scores them `0`; pass `TextElement.CodePoint` when the text
+can leave the BMP, as [decision 0002](../../../decisions/0002-unicode-comparison-unit.md) offers on
+every algorithm it affects.
 
 **Applies to** — net10.0, netstandard2.0.
 

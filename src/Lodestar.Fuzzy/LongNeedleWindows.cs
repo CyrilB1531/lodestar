@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 namespace Lodestar.Fuzzy;
 
 /// <summary>
-/// <see cref="Fuzz.PartialRatio"/>'s best window for a needle past one machine word: the passes
+/// <see cref="Fuzz.PartialRatio(string, string)"/>'s best window for a needle past one machine word: the passes
 /// <see cref="ShortNeedleWindows"/> makes, over an equality table of one row per word.
 /// </summary>
 /// <remarks>

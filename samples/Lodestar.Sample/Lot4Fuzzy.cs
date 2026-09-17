@@ -1,4 +1,5 @@
 using Lodestar.Fuzzy;
+using Lodestar.Text;
 
 namespace Lodestar.Sample;
 
@@ -22,6 +23,8 @@ internal static class Lot4Fuzzy
 
         // The seven scorers. Each is a rapidfuzz `fuzz.*` function by the same name.
         Console.WriteLine($"  Ratio                 = {Inv.F1(Fuzz.Ratio("apple pie", "appel pie"))}");
+        // Over code points, as rapidfuzz counts: two emoji sharing a high surrogate share nothing.
+        Console.WriteLine($"  Ratio, code points    = {Inv.F1(Fuzz.Ratio("\U0001F600", "\U0001F601", TextElement.CodePoint))}");
         Console.WriteLine($"  PartialRatio          = {Inv.F1(Fuzz.PartialRatio("apple", "an apple a day"))}");
         Console.WriteLine($"  TokenSortRatio        = {Inv.F1(Fuzz.TokenSortRatio("pie apple", "apple pie"))}");
         Console.WriteLine($"  TokenSetRatio         = {Inv.F1(Fuzz.TokenSetRatio("apple pie apple", "apple pie"))}");
