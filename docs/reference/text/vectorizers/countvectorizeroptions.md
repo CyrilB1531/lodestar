@@ -41,6 +41,9 @@ default: `MaxDf = 1.0` is a proportion meaning "in up to all of them", which is 
 drops nothing. Measured, over two documents sharing `the`, `MaxDf = 1.0` keeps all three terms.
 Both properties are `double`, so writing `1` rather than `1.0` changes nothing.
 
+`NgramRange` must be ascending and start at `1` or more: `(2, 1)` or `(0, 1)` is refused by the
+vectorizer's constructor with `ArgumentException`, where scikit-learn raises `ValueError`.
+
 This is a `record`, so two options objects with the same settings are equal. `StopWords` is
 compared **as a set** rather than as a sequence, which is why
 [`Equals`](countvectorizeroptions-equals.md) and
