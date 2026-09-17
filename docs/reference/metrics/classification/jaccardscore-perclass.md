@@ -13,7 +13,7 @@ and its order. `sampleWeight` is one weight per sample.
 
 **Returns** — a fresh `double[]`, one entry per class in label order.
 
-**Exceptions** — `ArgumentException` when the inputs disagree in length or the weights do not match. `UndefinedMetricException` when a class is empty on
+**Exceptions** — `ArgumentException` when the inputs disagree in length or the weights do not match, hold a non-finite value or are zero throughout. `UndefinedMetricException` when a class is empty on
 both sides and `zeroDivision` is `ZeroDivision.Throw`.
 
 **Example** — the per-class view the averages hide.

@@ -20,7 +20,7 @@ public static class MultilabelConfusionMatrix
     /// <param name="labels">The classes to report and their order. Omit for the sorted union of both inputs.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <returns>One matrix per class, in label order.</returns>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or the weights do not match.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or the weights do not match, hold a non-finite value or are zero throughout.</exception>
     public static ConfusionMatrix[] Compute(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<int> yPred,
@@ -63,7 +63,7 @@ public static class MultilabelConfusionMatrix
     /// <param name="samplewise">Count one matrix per <em>sample</em> instead of per label. The reference offers this on a matrix only, and refuses it on single-label input.</param>
     /// <param name="sampleWeight">A weight per <em>sample</em> — per row, not per label.</param>
     /// <returns>One matrix per label in column order, or per sample in row order.</returns>
-    /// <exception cref="ArgumentException">The shapes disagree, or the weights do not match the row count.</exception>
+    /// <exception cref="ArgumentException">The shapes disagree, or the weights do not match the row count, hold a non-finite value or are zero throughout.</exception>
     public static ConfusionMatrix[] Compute(
         ReadOnlySpan<bool> yTrue,
         ReadOnlySpan<bool> yPred,

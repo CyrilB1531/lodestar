@@ -19,7 +19,7 @@ public static class HammingLoss
     /// <param name="yPred">The predicted labels, same length as <paramref name="yTrue"/>.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <returns><c>0</c> when every sample is right, <c>1</c> when none is.</returns>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or the weights do not match.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length or are empty; the weights do not match, hold a non-finite value or are zero throughout; or they sum to zero.</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<int> yPred,
@@ -40,6 +40,7 @@ public static class HammingLoss
             total += weight;
         }
 
+        Weights.RequireNonZeroSum(total, nameof(sampleWeight));
         return wrong / total;
     }
 
@@ -49,7 +50,7 @@ public static class HammingLoss
     /// <param name="labelCount">How many labels each row holds.</param>
     /// <param name="sampleWeight">A weight per <em>sample</em> — per row, not per label. Omit to weight every sample by 1.</param>
     /// <returns>The share of the <c>rows × labelCount</c> entries that disagree.</returns>
-    /// <exception cref="ArgumentException">The shapes disagree, or the weights do not match the row count.</exception>
+    /// <exception cref="ArgumentException">The shapes disagree, or the weights do not match the row count, hold a non-finite value or are zero throughout.</exception>
     public static double Score(
         ReadOnlySpan<bool> yTrue,
         ReadOnlySpan<bool> yPred,

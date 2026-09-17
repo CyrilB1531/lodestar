@@ -19,7 +19,7 @@ public static class HingeLoss
     /// <param name="posLabel">The label on the positive side. scikit-learn infers the two classes; this asks.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <returns><c>0</c> when every sample sits on the right side by a margin of at least 1, and unbounded above.</returns>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or the weights do not match.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or the weights do not match or sum to zero; a decision is not finite; or <paramref name="yTrue"/> holds more than two labels.</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> predDecision,
@@ -27,6 +27,16 @@ public static class HingeLoss
         ReadOnlySpan<double> sampleWeight = default)
     {
         Probabilities.ValidateBinary(yTrue, predDecision, sampleWeight);
+        Inputs.RequireFinite(predDecision, nameof(predDecision));
+        int labels = Probabilities.LabelCountBeyondTwo(yTrue);
+        if (labels > 0)
+        {
+            throw new ArgumentException(
+                "The shape of pred_decision cannot be 1d array with a multiclass target. pred_decision shape " +
+                $"must be (n_samples, n_classes), that is ({yTrue.Length}, {labels}). Got: ({yTrue.Length},). " +
+                "Score more than two classes with HingeLoss.MultiClass.",
+                nameof(yTrue));
+        }
 
         CompensatedSum total = default;
         double weights = 0.0;
@@ -38,6 +48,7 @@ public static class HingeLoss
             weights += weight;
         }
 
+        Weights.RequireNonZeroSum(weights, nameof(sampleWeight));
         return total.Value / weights;
     }
 
@@ -51,7 +62,7 @@ public static class HingeLoss
     /// sample costs nothing once its own class wins by 1. Crammer and Singer's
     /// multiclass hinge, which is what the reference computes.
     /// </remarks>
-    /// <exception cref="ArgumentException">The shapes disagree, or a label is not a class index.</exception>
+    /// <exception cref="ArgumentException">The shapes disagree, a label is not a class index, a decision is not finite, or the weights sum to zero.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="classCount"/> is below two.</exception>
     public static double MultiClass(
         ReadOnlySpan<int> yTrue,
@@ -60,6 +71,7 @@ public static class HingeLoss
         ReadOnlySpan<double> sampleWeight = default)
     {
         int samples = Probabilities.Samples(yTrue, predDecision, classCount, sampleWeight);
+        Inputs.RequireFinite(predDecision, nameof(predDecision));
 
         CompensatedSum total = default;
         double weights = 0.0;
@@ -82,6 +94,7 @@ public static class HingeLoss
             weights += weight;
         }
 
+        Weights.RequireNonZeroSum(weights, nameof(sampleWeight));
         return total.Value / weights;
     }
 

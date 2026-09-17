@@ -20,7 +20,7 @@ perfect, perfectly confident prediction.
 **Exceptions** — `ArgumentException` when the lengths disagree, the input is empty, or a probability
 falls outside `[0, 1]` — "y_prob contains values greater than 1: 1.5" above, and "y_prob contains
 values **less** than 0: -0.1" below, which is this reference's wording where
-[`LogLoss.Score`](logloss-score.md)'s says *lower*.
+[`LogLoss.Score`](logloss-score.md)'s says *lower*. `yTrue` holding more than two distinct labels is refused with the reference's "The type of the target inferred from y_true is multiclass but should be binary according to the shape of y_prob." rather than counting the third as negative — [`BrierScore.MultiClass`](brierscore-multiclass.md) scores it. A `sampleWeight` holding `NaN` or an infinity is refused with "Input sample_weight contains NaN." or its infinity counterpart, and one that is zero throughout with "Sample weights must contain at least one non-zero number." — both `ArgumentException` naming `sampleWeight`, as scikit-learn's `_check_sample_weight` refuses them. Weights that merely sum to zero are refused too, with numpy's "Weights sum to zero, can't be normalized."
 
 **Example** — the four samples the log-loss page scores, read the other way.
 

@@ -62,7 +62,7 @@ public static class MatthewsCorrelation
     /// <param name="zeroDivision">What to return when the correlation is undefined.</param>
     /// <param name="labels">The label set and its order. Omit for the sorted union of both inputs.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
-    /// <exception cref="ArgumentException">The inputs disagree in length or are empty.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length or are empty, or <paramref name="sampleWeight"/> holds a non-finite value or is zero throughout.</exception>
     /// <exception cref="UndefinedMetricException"><paramref name="zeroDivision"/> is <see cref="ZeroDivision.Throw"/> and the correlation is undefined.</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,

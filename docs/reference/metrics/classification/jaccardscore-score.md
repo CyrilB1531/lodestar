@@ -16,7 +16,7 @@ reported under `Averaging.Binary`. `zeroDivision` is the answer for a class neit
 **Returns** — `double` in `[0, 1]`, never above [`Precision.Score`](precision-score.md) or
 [`Recall.Score`](recall-score.md) on the same class.
 
-**Exceptions** — `ArgumentException` when the inputs disagree in length or the weights do not match — and when `average` is `Averaging.Binary` and
+**Exceptions** — `ArgumentException` when the inputs disagree in length or the weights do not match, hold a non-finite value or are zero throughout — and when `average` is `Averaging.Binary` and
 `posLabel` occurs in neither input, which is the refusal `Precision.Score` already makes.
 `UndefinedMetricException` when a class is empty on both sides and `zeroDivision` is
 `ZeroDivision.Throw`.

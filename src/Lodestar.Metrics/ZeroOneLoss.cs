@@ -19,7 +19,7 @@ public static class ZeroOneLoss
     /// <param name="yPred">The predicted labels, same length as <paramref name="yTrue"/>.</param>
     /// <param name="normalize">Divide by the total weight. <see langword="false"/> returns the weight of the wrong samples instead, as <c>normalize=False</c> does.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or the weights do not match.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length or are empty; the weights do not match, hold a non-finite value or are zero throughout; or they sum to zero while <paramref name="normalize"/> is true.</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<int> yPred,
@@ -41,7 +41,13 @@ public static class ZeroOneLoss
             total += weight;
         }
 
-        return normalize ? wrong / total : wrong;
+        if (!normalize)
+        {
+            return wrong;
+        }
+
+        Weights.RequireNonZeroSum(total, nameof(sampleWeight));
+        return wrong / total;
     }
 
     /// <summary>The same over a label matrix, where a row is wrong if any of its labels is.</summary>
@@ -50,7 +56,7 @@ public static class ZeroOneLoss
     /// <param name="labelCount">How many labels each row holds.</param>
     /// <param name="normalize">Divide by the total weight. <see langword="false"/> returns the weight of the wrong rows.</param>
     /// <param name="sampleWeight">A weight per <em>sample</em> — per row, not per label.</param>
-    /// <exception cref="ArgumentException">The shapes disagree, or the weights do not match the row count.</exception>
+    /// <exception cref="ArgumentException">The shapes disagree; the weights do not match the row count, hold a non-finite value or are zero throughout; or they sum to zero while <paramref name="normalize"/> is true.</exception>
     public static double Score(
         ReadOnlySpan<bool> yTrue,
         ReadOnlySpan<bool> yPred,
@@ -78,6 +84,12 @@ public static class ZeroOneLoss
             }
         }
 
-        return normalize ? wrong / total : wrong;
+        if (!normalize)
+        {
+            return wrong;
+        }
+
+        Weights.RequireNonZeroSum(total, nameof(sampleWeight));
+        return wrong / total;
     }
 }

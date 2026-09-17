@@ -20,7 +20,7 @@ public static class Accuracy
     /// <param name="yPred">The predicted labels, same length as <paramref name="yTrue"/>.</param>
     /// <param name="normalize">When true (the default) return the fraction; when false, the weight of the correct samples.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
-    /// <exception cref="ArgumentException">The inputs disagree in length or are empty.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length or are empty; a weight is not finite; every weight is zero; or the weights sum to zero while <paramref name="normalize"/> is true.</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<int> yPred,
@@ -48,7 +48,13 @@ public static class Accuracy
             total += weight;
         }
 
-        return normalize ? correct / total : correct;
+        if (!normalize)
+        {
+            return correct;
+        }
+
+        Weights.RequireNonZeroSum(total, nameof(sampleWeight));
+        return correct / total;
     }
 
     /// <summary>

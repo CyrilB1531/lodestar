@@ -20,7 +20,7 @@ sample its own weight.
 `adjusted: true` the range becomes `[-1/(k-1) … 1]`, so a below-chance model returns a negative
 number.
 
-**Exceptions** — `ArgumentException` when the label spans disagree in length or are empty;
+**Exceptions** — `ArgumentException` when the label spans disagree in length or are empty, or `sampleWeight` holds a non-finite value or is zero throughout;
 `ArgumentNullException` when `cm` is null.
 
 **Example** — ten samples, two of them positive, and a model that predicts the majority class

@@ -7,7 +7,7 @@ namespace Lodestar.Metrics.Internal;
 internal static class Multilabel
 {
     /// <summary>Checks the shape and returns the row count.</summary>
-    /// <exception cref="ArgumentException">The shapes disagree, the input is empty, or the weights do not match the row count.</exception>
+    /// <exception cref="ArgumentException">The shapes disagree, the input is empty, or the weights do not match the row count, hold a non-finite value or are zero throughout.</exception>
     public static int Validate(
         ReadOnlySpan<bool> yTrue, ReadOnlySpan<bool> yPred, int labelCount, ReadOnlySpan<double> sampleWeight)
     {
@@ -39,6 +39,7 @@ internal static class Multilabel
                 nameof(sampleWeight));
         }
 
+        Inputs.ValidateSampleWeight(sampleWeight);
         return rows;
     }
 }

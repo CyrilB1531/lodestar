@@ -18,7 +18,7 @@ or empty.
 it does not — a count when every weight is `1`.
 
 **Exceptions** — `ArgumentException` when the inputs disagree in length, are empty, when the matrix
-is not a whole number of rows of `labelCount`, or when the weights do not match the sample count.
+is not a whole number of rows of `labelCount`, or when the weights do not match the sample count. A `sampleWeight` holding `NaN` or an infinity is refused with "Input sample_weight contains NaN." or its infinity counterpart, and one that is zero throughout with "Sample weights must contain at least one non-zero number." — both `ArgumentException` naming `sampleWeight`, as scikit-learn's `_check_sample_weight` refuses them. Weights that merely sum to zero are refused too, with numpy's "Weights sum to zero, can't be normalized." — only while `normalize` is true, since the weight of the wrong samples never divides.
 
 **Example** — the count, which is what `normalize: false` is for.
 

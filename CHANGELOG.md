@@ -255,6 +255,7 @@ is one sentence, the issue and the commit; see
 #### Fixed
 
 - Macro and weighted precision, recall, F-scores, Jaccard and the report's average rows skip `NaN` classes and fall back to the unweighted mean on zero total support, as scikit-learn's `_nanaverage` does. ([#861](https://github.com/CyrilB1531/lodestar/issues/861))
+- The classification metrics refuse a non-finite or all-zero `sampleWeight` and, where scikit-learn divides by it, a zero-sum one, `HingeLoss` refuses a non-finite decision, and the binary `LogLoss`, `BrierScore` and `HingeLoss` refuse a third label instead of counting it negative. ([#890](https://github.com/CyrilB1531/lodestar/issues/890))
 
 ## Released — 2026-09-10
 

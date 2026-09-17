@@ -20,7 +20,7 @@ default. `normalize` divides by the total weight; pass `false` for the sum, whic
 falls outside `[0, 1]`. The message is the reference's — "y_prob contains values greater than 1: 1.5"
 above, and "y_prob contains values lower than 0: -0.1" below.
 [`BrierScore.Score`](brierscore-score.md) words that second one as *less than*, which is its own
-reference's wording rather than an inconsistency here.
+reference's wording rather than an inconsistency here. `yTrue` holding more than two distinct labels is refused as `log_loss` refuses it, "y_true and y_prob contain different number of classes: 3 vs 2.", rather than counting the third as negative — [`LogLoss.MultiClass`](logloss-multiclass.md) scores it. A `sampleWeight` holding `NaN` or an infinity is refused with "Input sample_weight contains NaN." or its infinity counterpart, and one that is zero throughout with "Sample weights must contain at least one non-zero number." — both `ArgumentException` naming `sampleWeight`, as scikit-learn's `_check_sample_weight` refuses them. Weights that merely sum to zero are refused too, with numpy's "Weights sum to zero, can't be normalized." — only while `normalize` is true.
 
 **Example** — four samples, well calibrated.
 

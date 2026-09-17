@@ -24,7 +24,7 @@ chance, and negative for agreement worse than chance.
 
 **Exceptions** — `ArgumentNullException` when `cm` is null; `ArgumentOutOfRangeException` when
 `weighting` is not one of the three defined values; `ArgumentException` when the label spans
-disagree in length or are empty; `UndefinedMetricException` when the expected agreement collapses
+disagree in length or are empty, or `sampleWeight` holds a non-finite value or is zero throughout; `UndefinedMetricException` when the expected agreement collapses
 and `zeroDivision` is `ZeroDivision.Throw`.
 
 **Example** — a model scored against a human rater on a three-point scale, with the disagreements

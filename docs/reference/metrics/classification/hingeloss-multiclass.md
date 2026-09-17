@@ -15,7 +15,7 @@ public static double MultiClass(ReadOnlySpan<int> yTrue, ReadOnlySpan<double> pr
 **Returns** — `double`, `0` or above. `0` when every sample's own class wins by at least `1`.
 
 **Exceptions** — `ArgumentException` when `predDecision` is not `yTrue.Length × classCount`, or a
-label is not a class index below `classCount`. `ArgumentOutOfRangeException` when `classCount` is
+label is not a class index below `classCount`. A decision holding `NaN` or an infinity is refused with the reference's "Input contains NaN." or its infinity counterpart, naming `predDecision`. Weights summing to zero are refused with numpy's "Weights sum to zero, can't be normalized."; `hinge_loss` never calls `_check_sample_weight`, so a non-finite weight is scored, `NaN` on both sides. `ArgumentOutOfRangeException` when `classCount` is
 below two.
 
 **Example** — four samples over three classes.

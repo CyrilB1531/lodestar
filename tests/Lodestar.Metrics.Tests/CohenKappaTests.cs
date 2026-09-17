@@ -167,18 +167,20 @@ public sealed class CohenKappaTests
     }
 
     [Fact]
-    public void An_all_zero_sample_weight_reaches_the_same_guard()
+    public void Weights_that_cancel_out_reach_the_same_guard()
     {
-        // The other way to a view with no weight, needing no labels= at all: an
-        // ordinary two-class target whose every weight is zero.
+        // The other way to a view with no weight, needing no labels= at all. An all-zero
+        // vector no longer gets here: _check_sample_weight refuses it first (#890).
         int[] yTrue = [0, 1];
         int[] yPred = [0, 1];
-        double[] weights = [0.0, 0.0];
+        double[] weights = [1.0, -1.0];
 
         Assert.Equal(0.0, CohenKappa.Score(yTrue, yPred, zeroDivision: ZeroDivision.Zero, sampleWeight: weights));
+        // Measured: cohen_kappa_score([0, 1], [0, 1], sample_weight=[1, -1]) is nan in 1.9.0.
         Assert.True(double.IsNaN(CohenKappa.Score(yTrue, yPred, sampleWeight: weights)));
         Assert.Throws<UndefinedMetricException>(
             () => CohenKappa.Score(yTrue, yPred, zeroDivision: ZeroDivision.Throw, sampleWeight: weights));
+        Assert.Throws<ArgumentException>(() => CohenKappa.Score(yTrue, yPred, sampleWeight: [0.0, 0.0]));
     }
 
     [Fact]

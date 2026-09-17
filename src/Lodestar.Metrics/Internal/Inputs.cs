@@ -15,12 +15,12 @@ internal static class Inputs
     /// <summary>
     /// Checks that <paramref name="yTrue"/> and <paramref name="yPred"/> agree in
     /// length and are not empty, and that <paramref name="sampleWeight"/>, when
-    /// supplied, agrees in length with them.
+    /// supplied, agrees in length with them and passes <see cref="ValidateSampleWeight"/>.
     /// </summary>
     /// <param name="yTrue">The true labels.</param>
     /// <param name="yPred">The predicted labels, expected to be the same length as <paramref name="yTrue"/>.</param>
     /// <param name="sampleWeight">A weight per sample, or empty when every sample is weighted 1.</param>
-    /// <exception cref="ArgumentException">The inputs disagree in length or are empty.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length or are empty, or the sample weight holds a non-finite value or is zero throughout.</exception>
     public static void Validate(ReadOnlySpan<int> yTrue, ReadOnlySpan<int> yPred, ReadOnlySpan<double> sampleWeight)
     {
         if (yTrue.Length != yPred.Length)
@@ -39,12 +39,14 @@ internal static class Inputs
                 $"sampleWeight has {sampleWeight.Length} entries but there are {yTrue.Length} samples.",
                 nameof(sampleWeight));
         }
+
+        ValidateSampleWeight(sampleWeight);
     }
 
     /// <summary>
     /// The regression counterpart: two of the three checks above — the length
-    /// agreement and the emptiness — plus the two classification never needed,
-    /// a non-finite value and a sample weight that is zero throughout.
+    /// agreement and the emptiness — plus a non-finite target, then the same
+    /// weight checks.
     /// </summary>
     /// <param name="yTrue">The true values.</param>
     /// <param name="yPred">The predicted values, expected to be the same length as <paramref name="yTrue"/>.</param>
@@ -71,9 +73,24 @@ internal static class Inputs
 
         RequireFinite(yTrue, nameof(yTrue));
         RequireFinite(yPred, nameof(yPred));
+        ValidateSampleWeight(sampleWeight);
+    }
+
+    /// <summary>
+    /// What <c>_check_sample_weight</c> refuses in a weight vector already of the right
+    /// length: a non-finite value, then a vector that is zero throughout.
+    /// </summary>
+    /// <param name="sampleWeight">A weight per sample, or empty when every sample is weighted 1.</param>
+    /// <remarks>
+    /// Every classification metric reaching <c>_check_targets</c> calls it, as do
+    /// <c>log_loss</c> and <c>brier_score_loss</c>; <c>hinge_loss</c> does not.
+    /// </remarks>
+    /// <exception cref="ArgumentException">A weight is not finite, or every weight is zero.</exception>
+    public static void ValidateSampleWeight(ReadOnlySpan<double> sampleWeight)
+    {
         if (!sampleWeight.IsEmpty)
         {
-            RequireFinite(sampleWeight, nameof(sampleWeight));
+            RequireFinite(sampleWeight, nameof(sampleWeight), "sample_weight");
             RequireAnyNonZero(sampleWeight);
         }
     }
@@ -109,11 +126,15 @@ internal static class Inputs
     }
 
     /// <summary>Reproduces scikit-learn's two <c>check_array</c> messages, which differ.</summary>
-    private static void RequireFinite(ReadOnlySpan<double> values, string paramName)
+    /// <param name="values">The values to check.</param>
+    /// <param name="paramName">The argument the values came from.</param>
+    /// <param name="inputName">The <c>input_name</c> the reference's message carries, or <see langword="null"/> where it carries none.</param>
+    /// <exception cref="ArgumentException">A value is not finite.</exception>
+    public static void RequireFinite(ReadOnlySpan<double> values, string paramName, string? inputName = null)
     {
         if (!AllFinite(values))
         {
-            throw NonFinite(values, paramName);
+            throw NonFinite(values, paramName, inputName);
         }
     }
 
@@ -198,7 +219,8 @@ internal static class Inputs
     /// <summary>scikit-learn's message for the first non-finite value, which decides between its two.</summary>
     /// <param name="values">Values holding at least one that is not finite.</param>
     /// <param name="paramName">The argument the values came from.</param>
-    private static ArgumentException NonFinite(ReadOnlySpan<double> values, string paramName)
+    /// <param name="inputName">The <c>input_name</c> the message carries, or <see langword="null"/>.</param>
+    private static ArgumentException NonFinite(ReadOnlySpan<double> values, string paramName, string? inputName)
     {
         int index = 0;
         while (NonFiniteBits(values[index]) == 0)
@@ -206,8 +228,12 @@ internal static class Inputs
             index++;
         }
 
+        // check_array names the input only when its caller passed input_name, which
+        // _check_sample_weight does and the targets' checks do not.
+        string input = inputName is null ? "Input" : "Input " + inputName;
         return double.IsNaN(values[index])
-            ? new ArgumentException("Input contains NaN.", paramName)
-            : new ArgumentException("Input contains infinity or a value too large for dtype('float64').", paramName);
+            ? new ArgumentException($"{input} contains NaN.", paramName)
+            : new ArgumentException(
+                $"{input} contains infinity or a value too large for dtype('float64').", paramName);
     }
 }

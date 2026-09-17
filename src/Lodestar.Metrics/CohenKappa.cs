@@ -45,7 +45,7 @@ public static class CohenKappa
         // expected == 0.0 test below would never fire, and the method would
         // return NaN whatever zeroDivision said — including under Throw. The
         // Size × Size view carries no weight whenever a label subset dropped
-        // every sample, or every sampleWeight was zero.
+        // every sample, or the weights it kept cancel out.
         //
         // S1244: whether the view holds any weight at all, not whether two
         // computed quantities are close.
@@ -105,7 +105,7 @@ public static class CohenKappa
     /// sorted union of both inputs, the same order scikit-learn's own default
     /// resolves to.
     /// </remarks>
-    /// <exception cref="ArgumentException">The inputs disagree in length or are empty.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length or are empty, or <paramref name="sampleWeight"/> holds a non-finite value or is zero throughout.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="weighting"/> is not one of the three defined values.</exception>
     /// <exception cref="UndefinedMetricException"><paramref name="zeroDivision"/> is <see cref="ZeroDivision.Throw"/> and the expected agreement is undefined.</exception>
     public static double Score(
