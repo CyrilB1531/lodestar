@@ -55,13 +55,17 @@ string memos = FilterAsync().GetAwaiter().GetResult();  // => m1,m2
 The three `news` records are nearer the query than either memo. A search that kept its two best
 and filtered afterwards would return nothing at all.
 
-**Remarks** — **with a filter, every record is scored and the filter runs before the cut**, so `top`
-means `top`: asking for the five nearest records in French returns five whenever five are in French.
+**Remarks** — **with a filter, the filter runs on every record before the cut**, so `top` means
+`top`: asking for the five nearest records in French returns five whenever five are in French.
 Filtering the top `k` after the fact is the cheaper design and is refused, because it returns fewer
-results than asked — sometimes none — for a reason the caller cannot see. The exactness costs
-nothing extra in ordering: [`EmbeddingIndex.Search`](../../embeddings/search/embeddingindex-search.md)
-scores and sorts all `n` records whatever count it is asked for, so a search without a filter pays
-the same `O(n log n)` and only returns fewer of them.
+results than asked — sometimes none — for a reason the caller cannot see. Only the records it admits
+are scored, and the best `top` plus `Skip` of them are kept in a bounded heap, in
+[`EmbeddingIndex.Search`](../../embeddings/search/embeddingindex-search.md)'s order and with its
+scores.
+
+**The filter is called exactly once per record, in the order the records are held**, whatever `top`
+is, and never in score order. A filter with side effects sees every record, a filter that throws on
+any record fails the search, and an expensive filter costs `n` calls even for a `top` of one.
 
 `Skip` and `ScoreThreshold` both count over the records the filter admitted, and `Skip` counts after
 the threshold. A threshold is a cosine similarity, so it lies in `[-1, 1]`.

@@ -234,4 +234,111 @@ public sealed class SearchTests
 
         Assert.Contains("order", error.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    // The filtered path scores only admitted records and keeps a bounded heap; the unfiltered path
+    // ranks everything through EmbeddingIndex.Search. Filtering the latter must give the same hits and bits.
+    [Fact]
+    public async Task A_filtered_search_ranks_as_filtering_the_whole_ranking_does()
+    {
+        // S2245 / CA5394: seeded, so a failure reproduces; nothing here is security-sensitive.
+#pragma warning disable S2245, CA5394
+        var random = new Random(682);
+        using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+        string[] words = ["park", "lake", "clock"];
+        await collection.UpsertAsync([.. Enumerable.Range(0, 400).Select(i => Doc(
+            $"d{i}",
+            words[random.Next(words.Length)],
+            random.Next(-1, 2), random.Next(-1, 2), (float)random.NextDouble()))]);
+
+        for (int trial = 0; trial < 40; trial++)
+        {
+            float[] query = [(float)random.NextDouble() - 0.5f, random.Next(-1, 2), 0.25f];
+            int top = random.Next(1, 30);
+            int skip = random.Next(0, 20);
+            float? threshold = random.Next(3) == 0 ? (float)random.NextDouble() - 0.5f : null;
+#pragma warning restore S2245, CA5394
+            List<VectorSearchResult<Document>> whole = await collection
+                .SearchAsync(new ReadOnlyMemory<float>(query), 400).ToListAsync();
+            string[] expected = [.. whole
+                .Where(hit => hit.Record.Text == "park" && (threshold is null || hit.Score >= threshold))
+                .Skip(skip).Take(top)
+                .Select(hit => $"{hit.Record.Id}:{BitConverter.DoubleToInt64Bits(hit.Score!.Value)}")];
+
+            List<VectorSearchResult<Document>> filtered = await collection.SearchAsync(
+                new ReadOnlyMemory<float>(query),
+                top,
+                new VectorSearchOptions<Document> { Filter = d => d.Text == "park", Skip = skip, ScoreThreshold = threshold })
+                .ToListAsync();
+
+            Assert.Equal(expected, filtered.Select(hit => $"{hit.Record.Id}:{BitConverter.DoubleToInt64Bits(hit.Score!.Value)}"));
+        }
+    }
+
+    // The filter runs once on every record, in index order, before any record is scored: the count
+    // is what a caller with a side-effecting or expensive filter observes.
+    [Fact]
+    public async Task A_filtered_search_runs_the_filter_once_on_every_record()
+    {
+        using LodestarVectorStoreCollection<string, Document> collection = await Seeded();
+        var seen = new List<string>();
+
+        List<VectorSearchResult<Document>> hits = await collection.SearchAsync(
+            new ReadOnlyMemory<float>([0f, 0f, 1f]),
+            1,
+            new VectorSearchOptions<Document> { Filter = d => Seen(seen, d) })
+            .ToListAsync();
+
+        Assert.Equal("c", Assert.Single(hits).Record.Id);
+        Assert.Equal(["a", "b", "c"], seen);
+    }
+
+    /// <summary>Records the record a filter was called on, and admits it.</summary>
+    private static bool Seen(List<string> seen, Document record)
+    {
+        seen.Add(record.Id);
+        return true;
+    }
+
+    [Fact]
+    public async Task A_filtered_search_over_an_empty_collection_returns_nothing()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+
+        List<VectorSearchResult<Document>> hits = await collection.SearchAsync(
+            new ReadOnlyMemory<float>([1f, 0f, 0f]),
+            5,
+            new VectorSearchOptions<Document> { Filter = d => d.Text.Length > 0 })
+            .ToListAsync();
+
+        Assert.Empty(hits);
+    }
+
+    [Fact]
+    public async Task A_filtered_search_refuses_a_query_of_another_width()
+    {
+        using LodestarVectorStoreCollection<string, Document> collection = await Seeded();
+
+        ArgumentException error = await Assert.ThrowsAsync<ArgumentException>(async () => await collection.SearchAsync(
+            new ReadOnlyMemory<float>([1f, 0f]),
+            5,
+            new VectorSearchOptions<Document> { Filter = d => d.Text.Length > 0 })
+            .ToListAsync());
+
+        Assert.Contains("dimension", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_filtered_search_with_a_zero_query_scores_every_admitted_record_zero()
+    {
+        using LodestarVectorStoreCollection<string, Document> collection = await Seeded();
+
+        List<VectorSearchResult<Document>> hits = await collection.SearchAsync(
+            new ReadOnlyMemory<float>([0f, 0f, 0f]),
+            5,
+            new VectorSearchOptions<Document> { Filter = d => d.Text.Contains("park") })
+            .ToListAsync();
+
+        Assert.Equal(["b", "c"], hits.Select(hit => hit.Record.Id));
+        Assert.All(hits, hit => Assert.Equal(0d, hit.Score));
+    }
 }

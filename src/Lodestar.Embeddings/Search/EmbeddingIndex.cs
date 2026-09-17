@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace Lodestar.Embeddings.Search;
 
 /// <summary>A single search hit: the item's index and its similarity score.</summary>
@@ -253,10 +255,13 @@ public sealed partial class EmbeddingIndex
 
     private void NormalizeStored(int start)
     {
+        Span<float> row = _data.AsSpan(start, _dim);
+
+        // The sum stays scalar and in order: a vector reduction would regroup it and move bits.
         double sum = 0;
-        for (int i = 0; i < _dim; i++)
+        for (int i = 0; i < row.Length; i++)
         {
-            float v = _data[start + i];
+            float v = row[i];
             sum += (double)v * v;
         }
         double norm = Math.Sqrt(sum);
@@ -269,9 +274,34 @@ public sealed partial class EmbeddingIndex
         {
             return;
         }
-        for (int i = 0; i < _dim; i++)
+        DivideRow(row, norm);
+    }
+
+    /// <summary>Writes <c>(float)(row[i] / norm)</c> into every element.</summary>
+    /// <remarks>
+    /// Element-wise, so widening, dividing and narrowing a block at a time rounds each element
+    /// exactly as the scalar cast does; <c>EmbeddingIndexBlockTests</c> compares the two bit for bit.
+    /// </remarks>
+    internal static void DivideRow(Span<float> row, double norm)
+    {
+        int i = 0;
+#if NET5_0_OR_GREATER
+        if (Vector.IsHardwareAccelerated)
         {
-            _data[start + i] = (float)(_data[start + i] / norm);
+            int width = Vector<float>.Count;
+            var divisor = new Vector<double>(norm);
+            for (; i <= row.Length - width; i += width)
+            {
+                Span<float> block = row.Slice(i, width);
+                Vector.Widen(new Vector<float>(block), out Vector<double> low, out Vector<double> high);
+                Vector<float> narrowed = Vector.Narrow(low / divisor, high / divisor);
+                narrowed.CopyTo(block);
+            }
+        }
+#endif
+        for (; i < row.Length; i++)
+        {
+            row[i] = (float)(row[i] / norm);
         }
     }
 }

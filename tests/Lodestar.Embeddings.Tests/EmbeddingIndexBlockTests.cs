@@ -183,4 +183,37 @@ public sealed class EmbeddingIndexBlockTests
 
         Assert.Equal(5f, reloaded.Search([3f, 4f], 1)[0].Score, Places);
     }
+
+    [Fact]
+    public void DivideRow_rounds_every_element_as_the_scalar_division_does()
+    {
+        float[] specials = [0f, -0f, float.Epsilon, -float.Epsilon, 1e-40f, float.MaxValue, -float.MaxValue, float.NaN, float.PositiveInfinity, 1e-30f];
+        double[] norms = [1.0, 3.0, 7.1e-3, 1e-300, 1e300, 0.3, double.Epsilon, 5e-324 * 3];
+
+        // S2245 / CA5394: seeded, so a failure reproduces; nothing here is security-sensitive.
+#pragma warning disable S2245, CA5394
+        var random = new Random(474);
+#pragma warning restore S2245, CA5394
+        for (int length = 0; length <= 70; length++)
+        {
+            foreach (double norm in norms)
+            {
+                var row = new float[length];
+                for (int i = 0; i < length; i++)
+                {
+#pragma warning disable CA5394
+                    row[i] = random.Next(6) == 0
+                        ? specials[random.Next(specials.Length)]
+                        : (float)((random.NextDouble() - 0.5) * Math.Pow(10, random.Next(-45, 39)));
+#pragma warning restore CA5394
+                }
+
+                float[] expected = [.. row.Select(v => (float)(v / norm))];
+                EmbeddingIndex.DivideRow(row, norm);
+                Assert.Equal(
+                    expected.Select(BitConverter.SingleToInt32Bits),
+                    row.Select(BitConverter.SingleToInt32Bits));
+            }
+        }
+    }
 }

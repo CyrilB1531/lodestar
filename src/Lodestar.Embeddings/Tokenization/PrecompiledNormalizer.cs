@@ -1,3 +1,4 @@
+using System.Buffers;
 using Lodestar.Internal.Persistence;
 
 namespace Lodestar.Embeddings.Tokenization;
@@ -99,33 +100,60 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
             return string.Empty;
         }
 
-        byte[] input = JsonArtifact.Utf8NoBom.GetBytes(text);
-        var output = new List<byte>(input.Length);
-        int at = 0;
-        while (at < input.Length)
+        // Both buffers are rented: an encode otherwise allocated the input bytes, a list,
+        // its copy and the string, each the size of the text.
+        byte[] input = ArrayPool<byte>.Shared.Rent(JsonArtifact.Utf8NoBom.GetMaxByteCount(text.Length));
+        byte[]? output = null;
+        try
         {
-            int matched = LongestMatch(input, at, out int replacementAt);
-            if (matched == 0)
+            int length = JsonArtifact.Utf8NoBom.GetBytes(text, 0, text.Length, input, 0);
+            output = ArrayPool<byte>.Shared.Rent(length);
+            var bytes = new ReadOnlySpan<byte>(input, 0, length);
+            int written = 0;
+            int at = 0;
+            while (at < length)
             {
-                // No rule covers this position: the character passes through whole.
-                int width = Utf8SequenceLength(input, at);
-                for (int i = 0; i < width; i++)
+                int matched = LongestMatch(bytes, at, out int replacementAt);
+                if (matched == 0)
                 {
-                    output.Add(input[at + i]);
+                    // No rule covers this position: the character passes through whole.
+                    int width = Utf8SequenceLength(bytes, at);
+                    Append(ref output, ref written, bytes.Slice(at, width));
+                    at += width;
+                    continue;
                 }
-                at += width;
-                continue;
+                Append(ref output, ref written, Replacement(replacementAt));
+                at += matched;
             }
-            AppendReplacement(output, replacementAt);
-            at += matched;
-        }
 
-        byte[] normalized = output.ToArray();
-        return JsonArtifact.Utf8NoBom.GetString(normalized, 0, normalized.Length);
+            return JsonArtifact.Utf8NoBom.GetString(output, 0, written);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(input);
+            if (output is not null)
+            {
+                ArrayPool<byte>.Shared.Return(output);
+            }
+        }
+    }
+
+    /// <summary>Copies <paramref name="bytes"/> to the end of the rented <paramref name="output"/>, growing it by doubling.</summary>
+    private static void Append(ref byte[] output, ref int written, ReadOnlySpan<byte> bytes)
+    {
+        if (written + bytes.Length > output.Length)
+        {
+            byte[] grown = ArrayPool<byte>.Shared.Rent(Math.Max(output.Length * 2, written + bytes.Length));
+            output.AsSpan(0, written).CopyTo(grown);
+            ArrayPool<byte>.Shared.Return(output);
+            output = grown;
+        }
+        bytes.CopyTo(output.AsSpan(written));
+        written += bytes.Length;
     }
 
     /// <summary>Walks the trie from <paramref name="at"/>, returning the length of the longest rule that matches.</summary>
-    private int LongestMatch(byte[] input, int at, out int replacementAt)
+    private int LongestMatch(ReadOnlySpan<byte> input, int at, out int replacementAt)
     {
         replacementAt = 0;
         int matched = 0;
@@ -160,29 +188,28 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
         return matched;
     }
 
-    private void AppendReplacement(List<byte> output, int replacementAt)
+    /// <summary>The NUL-terminated replacement at <paramref name="replacementAt"/>, without its terminator.</summary>
+    private ReadOnlySpan<byte> Replacement(int replacementAt)
     {
         int from = _replacementsAt + replacementAt;
         if (from >= _charsMap.Length)
         {
             throw Malformed();
         }
-        for (int i = from; i < _charsMap.Length; i++)
-        {
-            if (_charsMap[i] == 0)
-            {
-                return;
-            }
-            output.Add(_charsMap[i]);
-        }
+        int terminator = Array.IndexOf(_charsMap, (byte)0, from);
+
         // Every replacement is NUL-terminated; running off the end means the blob
         // was cut short after the trie.
-        throw Malformed();
+        if (terminator < 0)
+        {
+            throw Malformed();
+        }
+        return new ReadOnlySpan<byte>(_charsMap, from, terminator - from);
     }
 
     private static uint Offset(uint unit) => (unit >> 10) << (int)((unit & OffsetScaleBit) >> 6);
 
-    private static int Utf8SequenceLength(byte[] input, int at)
+    private static int Utf8SequenceLength(ReadOnlySpan<byte> input, int at)
     {
         int width = 1;
         while (at + width < input.Length && (input[at + width] & 0xC0) == 0x80)

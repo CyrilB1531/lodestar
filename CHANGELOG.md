@@ -109,6 +109,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- Added tokens are found in one pass over the text, 1.6× faster over a Llama-3-shaped table, and the SentencePiece-lineage `BpeTokenizer`, `PrecompiledNormalizer` and `EmbeddingIndex`'s stored-row normalization allocate or divide less. ([#849](https://github.com/CyrilB1531/lodestar/issues/849))
 - `EmbeddingIndex.Search` keeps the best k in a bounded heap instead of sorting every score, allocating k results rather than the whole index. ([#813](https://github.com/CyrilB1531/lodestar/issues/813))
 - `SentencePieceTokenizer` and `WordPieceTokenizer` find their pieces by walking a trie. ([#713](https://github.com/CyrilB1531/lodestar/issues/713), [`285a8ced`](https://github.com/CyrilB1531/lodestar/commit/285a8ced))
 - `BpeTokenizer` encodes byte-level text 5.4× faster. ([#673](https://github.com/CyrilB1531/lodestar/issues/673), [`c2a848df`](https://github.com/CyrilB1531/lodestar/commit/c2a848df))
@@ -135,6 +136,10 @@ is one sentence, the issue and the commit; see
 #### Added
 
 - The package: an in-process `Microsoft.Extensions.VectorData` store with hybrid keyword and vector search. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
+
+#### Changed
+
+- A filtered `SearchAsync` runs the filter once on every record in the order held and scores only the admitted ones, 1.9× faster at 10,000 records, where it used to rank the whole collection and stop filtering once enough records passed. ([#849](https://github.com/CyrilB1531/lodestar/issues/849))
 
 ### Lodestar.Stats.TimeSeries
 
