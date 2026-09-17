@@ -34,7 +34,8 @@ implemented, never retrofitted at the end (§6.1 of the brief).
 | `Cosine(qval=1).normalized_similarity(a, b)` | textdistance | [`Cosine.Similarity(a, b)`](reference/text/similarity/cosine-similarity.md) | `\|A∩B\|/√(\|A\|·\|B\|)`. Pass `qval:2` for character bigrams. |
 
 > textdistance raises on some empty inputs; Lodestar defines them cleanly: both
-> empty ⇒ `1`, one empty ⇒ `0`. The one exception is a zero Tversky weight, which
+> empty ⇒ `1`, one empty ⇒ `0`. Inputs shorter than `qval` hold no gram: two of them
+> give `1` when equal and `0` otherwise, where textdistance divides by zero. The one exception is a zero Tversky weight, which
 > leaves the denominator empty as well — [its entry](reference/text/similarity/tversky-similarity.md)
 > says when. The oracle covers non-empty pairs (`qval=1`); edges are covered by
 > unit tests.

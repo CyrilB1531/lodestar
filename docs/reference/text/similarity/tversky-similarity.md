@@ -60,7 +60,9 @@ double vacuous = Tversky.Similarity("", "abc", alpha: 1, beta: 0);  // => 1
 denominator yields a legitimate quotient, so the bound in **Returns** holds only for non-negative
 `alpha` and `beta`.
 
-Two empty inputs give `1` whatever the weights.
+Two empty inputs give `1` whatever the weights. Two inputs shorter than `qval` hold no gram
+and score `1` only when they are equal, whatever the weights — `"a"` against `"b"` at `qval: 2`
+gives `0`, where textdistance divides by zero.
 
 **Applies to** — net10.0, netstandard2.0.
 
