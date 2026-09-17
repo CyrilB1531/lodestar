@@ -8,7 +8,10 @@ The four pre-tokenizer regexes real BPE models use.
 public static class BpePatterns
 ```
 
-**Properties** — `Whitespace` splits on runs of whitespace. `Gpt2` is GPT-2's own pattern, which
+**Properties** — `Whitespace` is `pre_tokenizers.Whitespace()`: runs of word characters, and runs
+of what is neither a word character nor whitespace, taken over code points. That string is matched
+by a scanner rather than a .NET regex, whose `\w` leaves out marks, letter numbers and astral
+letters that the reference keeps inside a word. `Gpt2` is GPT-2's own pattern, which
 keeps a leading space with the word that follows it. `Llama3` and `Qwen2` are those models'
 patterns, which differ from GPT-2's in how they treat digits and contractions.
 

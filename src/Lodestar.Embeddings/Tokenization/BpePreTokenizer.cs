@@ -9,11 +9,11 @@ namespace Lodestar.Embeddings.Tokenization;
 /// Splits text into the pieces the merge loop runs over, independently.
 /// </summary>
 /// <remarks>
-/// A model declares two split patterns (<c>Sequence</c> of <c>Split</c> then
-/// <c>ByteLevel</c>), one (<c>ByteLevel</c>, or the classic lineage's
-/// <see cref="BpePatterns.Whitespace"/>), or none at all — <c>docs/equivalence.md</c>'s
-/// <c>Split(pattern, …)</c> and <c>Sequence(...)</c> rows. Each is caller-supplied,
-/// compiled with <see cref="RegexDefaults.MatchTimeout"/> against a hung thread.
+/// A model declares two split patterns (<c>Sequence</c> of <c>Split</c> then <c>ByteLevel</c>), one
+/// (<c>ByteLevel</c>, or the classic lineage's <see cref="BpePatterns.Whitespace"/>), or none at all
+/// — <c>docs/equivalence.md</c>'s <c>Split(pattern, …)</c> and <c>Sequence(...)</c> rows. Each is
+/// caller-supplied, compiled with <see cref="RegexDefaults.MatchTimeout"/> against a hung thread,
+/// except <see cref="BpePatterns.Whitespace"/>, which <see cref="WhitespaceScanner"/> matches.
 /// </remarks>
 internal sealed class BpePreTokenizer
 {
@@ -29,9 +29,11 @@ internal sealed class BpePreTokenizer
     /// package that leans on spans elsewhere.</remarks>
     private readonly record struct Run(int Start, int Length);
 
-    /// <summary>The first pattern, or <see langword="null"/> when nothing is split at all.</summary>
+    /// <summary>The first pattern; <see langword="null"/> when nothing is split or <see cref="WhitespaceScanner"/> matches it.</summary>
     private readonly Regex? _first;
     private readonly Regex? _second;
+    private readonly bool _noSplit;
+    private readonly bool _hasSecond;
     private readonly SplitRule _rule;
 
     /// <summary>Whether a <c>Split</c> step declared <see cref="_first"/>, rather than <c>ByteLevel</c>'s own pattern.</summary>
@@ -55,8 +57,7 @@ internal sealed class BpePreTokenizer
         {
             // No pattern to match, so no rule to arrange matches with: Split emits
             // the text whole. The behaviour rules below have nothing to govern here.
-            _first = null;
-            _second = null;
+            _noSplit = true;
             _rule = default;
             return;
         }
@@ -68,28 +69,30 @@ internal sealed class BpePreTokenizer
             // Not null here: BpeTokenizer.EnsurePreTokenizerIsDeclared refuses a
             // vocabulary declaring no pre-split, no pattern and not the mode.
             _first = Compile(pattern!);
-            _second = null;
             _rule = new SplitRule(SplitBehavior.Removed, Invert: true);
         }
         else
         {
             _first = Compile(preSplit.Pattern);
+            _hasSecond = pattern is not null;
             _second = pattern is null ? null : Compile(pattern);
             _rule = new SplitRule(preSplit.Behavior, preSplit.Invert);
         }
     }
 
-    // Compiled: across #673's corpus the interpreter took 17 of an encode's 71 ms and compiled
-    // code 5, for about 2 ms of code generation once per tokenizer, at its first encode.
-    private static Regex Compile(string pattern) =>
-        new(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
+    // Compiled: over #673's corpus matching took 17 of 71 ms interpreted, 5 compiled, for ~2 ms of
+    // codegen per tokenizer. Null for Whitespace: no .NET regex spells Oniguruma's \w (issue #887).
+    private static Regex? Compile(string pattern) =>
+        string.Equals(pattern, BpePatterns.Whitespace, StringComparison.Ordinal)
+            ? null
+            : new(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
 
     /// <summary>Appends the pieces of <paramref name="text"/> to <paramref name="pieces"/>.</summary>
     public void Split(string text, List<string> pieces)
     {
         // The mode: no pattern, so there are no matches, and #145's SplitBehavior
         // and invert have nothing to arrange -- the text is the one piece.
-        if (_first is null)
+        if (_noSplit)
         {
             Emit(Prefixed(text), pieces);
             return;
@@ -103,7 +106,7 @@ internal sealed class BpePreTokenizer
             return;
         }
 
-        if (_second is null)
+        if (!_hasSecond)
         {
             // Prefixed in place rather than through a staging list: with the space
             // off this is one comparison a piece and no allocation at all.
@@ -173,8 +176,14 @@ internal sealed class BpePreTokenizer
     /// which is why there is no ten-way switch here. Measured against
     /// <c>tokenizers</c> 0.23.1; the grid is in issue #145.
     /// </remarks>
-    private static void Apply(Regex pattern, SplitRule rule, string text, List<string> pieces)
+    private static void Apply(Regex? pattern, SplitRule rule, string text, List<string> pieces)
     {
+        if (pattern is null)
+        {
+            ApplyWhitespace(rule, text, pieces);
+            return;
+        }
+
         int[]? originalIndex = ClassificationShadow(text, out string shadow);
         int cursor = 0;
         int carried = NoOpenPiece;   // start of a piece still open, or NoOpenPiece
@@ -194,6 +203,20 @@ internal sealed class BpePreTokenizer
                 : originalIndex[match.Index + match.Length];
             carried = Step(text, cursor, start, end - start, rule, carried, pieces);
             cursor = end;
+        }
+        Close(text, cursor, rule, carried, pieces);
+    }
+
+    /// <summary>What <see cref="Apply"/> does for <see cref="BpePatterns.Whitespace"/>, its matches found by <see cref="WhitespaceScanner"/>.</summary>
+    private static void ApplyWhitespace(SplitRule rule, string text, List<string> pieces)
+    {
+        int cursor = 0;
+        int carried = NoOpenPiece;
+        int position = 0;
+        while (WhitespaceScanner.TryNext(text, text.Length, ref position, out int start))
+        {
+            carried = Step(text, cursor, start, position - start, rule, carried, pieces);
+            cursor = position;
         }
         Close(text, cursor, rule, carried, pieces);
     }
