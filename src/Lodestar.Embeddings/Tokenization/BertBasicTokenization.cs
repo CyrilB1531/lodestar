@@ -7,7 +7,7 @@ namespace Lodestar.Embeddings.Tokenization;
 /// BERT's BasicTokenizer as <c>tokenizers</c> spells it: <c>BertNormalizer</c>, then <c>BertPreTokenizer</c>.
 /// </summary>
 /// <remarks>
-/// The normalizer drops NUL, U+FFFD and every Cc, Cf, Cs, Co and Cn character but tab, newline and return,
+/// The normalizer drops NUL, U+FFFD and every Cc, Cf, Cs and Co character but tab, newline and return, keeping unassigned ones,
 /// maps whitespace to a space, pads CJK ideographs, and when lowercasing strips the Mn marks of the NFD form
 /// before lowercasing. The pre-tokenizer splits on whitespace and cuts each punctuation character out on its own.
 /// Replayed against <c>tokenizers</c> 0.23.2 by <c>vocab_txt.json</c> (#883).
@@ -85,7 +85,7 @@ internal static class BertBasicTokenization
     /// <summary>The NFD form without its nonspacing marks, which is <c>BertNormalizer</c>'s accent stripping.</summary>
     private static string StripAccents(string text)
     {
-        string decomposed = text.Normalize(NormalizationForm.FormD);
+        string decomposed = Decompose(text);
         var builder = new StringBuilder(decomposed.Length);
         for (int i = 0; i < decomposed.Length; i += Width(decomposed, i))
         {
@@ -98,11 +98,36 @@ internal static class BertBasicTokenization
         return builder.ToString();
     }
 
+    /// <summary>The NFD form, taken around the unassigned code points <see cref="string.Normalize(NormalizationForm)"/> refuses.</summary>
+    /// <remarks>
+    /// An unassigned code point has combining class 0, so it starts a new sequence and cutting the text at it
+    /// changes no decomposition; it passes through as NFD leaves it (#983).
+    /// </remarks>
+    private static string Decompose(string text)
+    {
+        StringBuilder? builder = null;
+        int start = 0;
+        for (int i = 0; i < text.Length; i += Width(text, i))
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(text, i) == UnicodeCategory.OtherNotAssigned)
+            {
+                builder ??= new StringBuilder(text.Length);
+                builder.Append(text.Substring(start, i - start).Normalize(NormalizationForm.FormD));
+                builder.Append(text, i, Width(text, i));
+                start = i + Width(text, i);
+            }
+        }
+
+        return builder is null
+            ? text.Normalize(NormalizationForm.FormD)
+            : builder.Append(text.Substring(start).Normalize(NormalizationForm.FormD)).ToString();
+    }
+
     /// <summary>Two for a well-formed surrogate pair, one for anything else, a lone surrogate included.</summary>
     private static int Width(string text, int index) =>
         char.IsHighSurrogate(text[index]) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]) ? 2 : 1;
 
-    /// <summary><c>tokenizers</c>' <c>is_control</c>: tab, newline and return are not; the rest of the C categories are.</summary>
+    /// <summary><c>tokenizers</c>' <c>is_control</c>: Cc, Cf, Cs and Co but tab, newline and return, and not Cn, which it keeps (#983).</summary>
     private static bool IsControl(string text, int index, int codePoint)
     {
         if (codePoint is '\t' or '\n' or '\r')
@@ -113,8 +138,7 @@ internal static class BertBasicTokenization
         return CharUnicodeInfo.GetUnicodeCategory(text, index) is UnicodeCategory.Control
             or UnicodeCategory.Format
             or UnicodeCategory.Surrogate
-            or UnicodeCategory.PrivateUse
-            or UnicodeCategory.OtherNotAssigned;
+            or UnicodeCategory.PrivateUse;
     }
 
     /// <summary>Unicode's White_Space, which no astral code point has.</summary>
