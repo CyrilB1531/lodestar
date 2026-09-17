@@ -283,6 +283,7 @@ is one sentence, the issue and the commit; see
 - `OlsOptions.CovarianceType` refuses an undeclared `CovarianceType`, which `OrdinaryLeastSquares`, `WeightedLeastSquares` and `GeneralizedLeastSquares` computed as `Hc0` and echoed as the undeclared value. ([#868](https://github.com/CyrilB1531/lodestar/issues/868))
 - `OrdinaryLeastSquares.Fit`, `WeightedLeastSquares.Fit` and `GeneralizedLeastSquares.Fit` take the normal equations only when an upper bound on the column-scaled condition number stays within 200, where a cubic on a narrow range landed 1.4e-5 from statsmodels. ([#870](https://github.com/CyrilB1531/lodestar/issues/870))
 - `OrdinaryLeastSquares.Fit`, `WeightedLeastSquares.Fit`, `GeneralizedLeastSquares.Fit` and `GeneralizedLinearModel.Fit` refuse a collinear design, where they returned a table of NaN or of coefficients near 1e14, or ran the IRLS budget out. ([#867](https://github.com/CyrilB1531/lodestar/issues/867))
+- `GeneralizedLeastSquares.Fit` refuses an empty covariance at 65,536 rows, `CovarianceType.Hac` weights `int.MaxValue` lags below one, and `MultinomialLogit.Fit` names `response` when the label count disagrees. ([#905](https://github.com/CyrilB1531/lodestar/issues/905))
 
 ### Lodestar.Survival
 

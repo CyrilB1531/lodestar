@@ -53,9 +53,18 @@ public sealed class MultinomialLogitEdgeTests
     }
 
     [Fact]
-    public void Lengths_that_disagree_are_refused()
+    public void Lengths_that_disagree_are_refused_naming_the_response()
     {
+        // The design is a whole number of rows, so the labels are what disagree, as OLS and the GLM name it (#905).
         ArgumentException error = Assert.Throws<ArgumentException>(() => MultinomialLogit.Fit(Design, Binary.AsSpan(0, 10), 1));
+
+        Assert.Equal("response", error.ParamName);
+    }
+
+    [Fact]
+    public void A_design_that_is_not_a_whole_number_of_rows_is_refused()
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(() => MultinomialLogit.Fit(Design, Binary, 2));
 
         Assert.Equal("design", error.ParamName);
     }

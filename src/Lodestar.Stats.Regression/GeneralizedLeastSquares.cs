@@ -99,10 +99,12 @@ public static class GeneralizedLeastSquares
     /// <summary>The covariance's Cholesky factor, after refusing what the reference would reject or silently misread.</summary>
     private static double[] Factor(ReadOnlySpan<double> covariance, int rowCount)
     {
-        if (covariance.Length != rowCount * rowCount)
+        // In long: 65,536 rows square to 2³², which wraps an int to zero and let an empty covariance through (#905).
+        long expected = (long)rowCount * rowCount;
+        if (covariance.Length != expected)
         {
             throw new ArgumentException(
-                $"design has {rowCount} rows, so covariance holds {rowCount * rowCount} values, not {covariance.Length}.",
+                $"design has {rowCount} rows, so covariance holds {expected} values, not {covariance.Length}.",
                 nameof(covariance));
         }
 
