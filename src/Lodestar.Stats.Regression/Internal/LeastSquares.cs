@@ -142,7 +142,7 @@ internal static class LeastSquares
     }
 
     /// <summary>The public parameter every fit reaching the reflections takes its design in, named by a refusal.</summary>
-    private const string DesignParameter = "design";
+    internal const string DesignParameter = "design";
 
     /// <summary>Machine epsilon for <see cref="double"/>, which <see cref="double.Epsilon"/> is not.</summary>
     private const double MachineEpsilon = 2.220446049250313e-16;
@@ -154,8 +154,12 @@ internal static class LeastSquares
     /// tolerance, the pivot is rounding: <c>x₂ = 2·x₁</c> divides by zero and <c>x₂ = 3·x₁</c> by 2e-16, and either filled the
     /// table with NaN or with coefficients near 1e14 where statsmodels' pseudo-inverse answers the minimum-norm fit (#867).
     /// </remarks>
+    /// <param name="a">The triangularized block, column-major.</param>
+    /// <param name="rowCount">How many rows it holds.</param>
+    /// <param name="parameterCount">How many columns it holds.</param>
+    /// <param name="parameterName">The public parameter the design arrived as, which the refusal names.</param>
     /// <exception cref="ArgumentException">A column is dependent on the columns before it.</exception>
-    private static void RequireFullRank(double[] a, int rowCount, int parameterCount, string parameterName)
+    internal static void RequireFullRank(double[] a, int rowCount, int parameterCount, string parameterName)
     {
         double tolerance = Math.Max(rowCount, parameterCount) * MachineEpsilon;
         for (int k = 0; k < parameterCount; k++)

@@ -18,7 +18,9 @@ statistics, and the residual sum of squares.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive.
 `ArgumentException` when `design` is not a whole number of rows, when `response` has a different
-length, or when no residual degrees of freedom are left.
+length, when no residual degrees of freedom are left, or when a column of `design` lies within
+rounding of the span of the columns before it — the collinearity
+[`Fit`](ordinaryleastsquares-fit.md) refuses, on the same test.
 
 **Example** — the same line [`Fit`](ordinaryleastsquares-fit.md) reads, with only what a caller fitting
 many of them needs.

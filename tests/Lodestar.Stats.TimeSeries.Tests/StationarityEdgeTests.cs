@@ -64,6 +64,26 @@ public sealed class StationarityEdgeTests
         Assert.Equal(0.8577681058127098, level.Statistic, 1e-12);
     }
 
+    [Theory]
+    [InlineData(TrendTerms.ConstantAndTrend, LagSelection.Fixed)]
+    [InlineData(TrendTerms.ConstantAndTrend, LagSelection.TStatistic)]
+    [InlineData(TrendTerms.Constant, LagSelection.Fixed)]
+    public void Augmented_dickey_fuller_refuses_a_straight_line_naming_the_series(
+        TrendTerms regression, LagSelection selection)
+    {
+        // The lagged differences of a line are one constant column, so the design repeats the intercept.
+        // The estimate's own refusal names `design`, a parameter no caller of this test passed (#979).
+        double[] line = [.. Enumerable.Range(0, 40).Select(i => 0.3 + (0.1 * i))];
+
+        ArgumentException refusal = Assert.Throws<ArgumentException>(
+            () => Stationarity.AugmentedDickeyFuller(
+                line,
+                new DickeyFullerOptions { Regression = regression, LagSelection = selection, MaxLag = 1 }));
+
+        Assert.Equal("series", refusal.ParamName);
+        Assert.Contains("no unique least-squares solution", refusal.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Kpss_refuses_a_constant_series()
     {

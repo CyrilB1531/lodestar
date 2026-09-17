@@ -83,6 +83,21 @@ public sealed class CollinearDesignTests
         AssertRefused(() => GeneralizedLinearModel.Fit(design, counts, featureCount, GlmFamily.Poisson));
     }
 
+    [Theory]
+    [MemberData(nameof(Designs))]
+    public void An_estimate_refuses_a_collinear_design(double[] design, int featureCount)
+    {
+        // The equivalence row promises the numbers Fit keeps, and answered [0.036, 9.4e13, -3.1e13] here (#979).
+        AssertRefused(() => OrdinaryLeastSquares.Estimate(design, Response, featureCount));
+    }
+
+    [Theory]
+    [MemberData(nameof(Designs))]
+    public void An_estimate_without_an_intercept_refuses_a_collinear_design(double[] design, int featureCount)
+    {
+        AssertRefused(() => OrdinaryLeastSquares.Estimate(design, Response, featureCount, withIntercept: false));
+    }
+
     [Fact]
     public void A_regressor_that_is_zero_in_every_row_is_refused()
     {
@@ -97,7 +112,9 @@ public sealed class CollinearDesignTests
         design[7] += 1e-6;
 
         OlsSummary summary = OrdinaryLeastSquares.Fit(design, Response, 2);
+        OlsEstimate estimate = OrdinaryLeastSquares.Estimate(design, Response, 2);
 
         Assert.All(summary.Coefficients, coefficient => Assert.True(double.IsFinite(coefficient)));
+        Assert.All(estimate.Coefficients, coefficient => Assert.True(double.IsFinite(coefficient)));
     }
 }

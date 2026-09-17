@@ -249,6 +249,7 @@ is one sentence, the issue and the commit; see
 - The Dickey-Fuller and seasonal decomposition options refuse an undeclared enum value, a too-short augmented Dickey-Fuller series is refused naming `series` or `options`, and a lag count below one is `ArgumentOutOfRangeException` like the other counts. ([#907](https://github.com/CyrilB1531/lodestar/issues/907))
 - `SerialCorrelation.LjungBox` computes its scale in `double`, where from 46,340 observations `n * (n + 2)` overflowed and every statistic came out negative with a p-value of 1. ([#864](https://github.com/CyrilB1531/lodestar/issues/864))
 - `Stationarity.Kpss` refuses a series lying exactly on a straight line under `ConstantAndTrend`, where it returned `NaN` and a window that depended on the runtime. ([#874](https://github.com/CyrilB1531/lodestar/issues/874))
+- `Stationarity.AugmentedDickeyFuller` names `series` when the lagged design it builds has no unique solution, where the estimate's refusal cited a `design` parameter no caller passed. ([#979](https://github.com/CyrilB1531/lodestar/issues/979))
 
 ### Lodestar.Stats
 
@@ -308,6 +309,7 @@ is one sentence, the issue and the commit; see
 - `OrdinaryLeastSquares.Fit`, `WeightedLeastSquares.Fit` and `GeneralizedLeastSquares.Fit` take the normal equations only when an upper bound on the column-scaled condition number stays within 200, where a cubic on a narrow range landed 1.4e-5 from statsmodels. ([#870](https://github.com/CyrilB1531/lodestar/issues/870))
 - `OrdinaryLeastSquares.Fit`, `WeightedLeastSquares.Fit`, `GeneralizedLeastSquares.Fit` and `GeneralizedLinearModel.Fit` refuse a collinear design, where they returned a table of NaN or of coefficients near 1e14, or ran the IRLS budget out. ([#867](https://github.com/CyrilB1531/lodestar/issues/867))
 - `GeneralizedLeastSquares.Fit` refuses an empty covariance at 65,536 rows, `CovarianceType.Hac` weights `int.MaxValue` lags below one, and `MultinomialLogit.Fit` names `response` when the label count disagrees. ([#905](https://github.com/CyrilB1531/lodestar/issues/905))
+- `OrdinaryLeastSquares.Estimate` refuses a collinear design as `Fit` does, where it answered coefficients near 1e14. ([#979](https://github.com/CyrilB1531/lodestar/issues/979))
 
 ### Lodestar.Survival
 
