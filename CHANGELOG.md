@@ -148,6 +148,7 @@ is one sentence, the issue and the commit; see
 - `DoubleMetaphone.Encode("W")` returns two empty codes, as the reference does, instead of throwing. ([#838](https://github.com/CyrilB1531/lodestar/issues/838))
 - `FrenchSnowballStemmer.Stem` keeps a word-final `é` or `è`, as nltk does, where `thé` stemmed to `the` and `été` to `éte`. ([#948](https://github.com/CyrilB1531/lodestar/issues/948))
 - `RatcliffObershelp.Similarity` allocates nothing again, where the explicit stack #877 added cost 120 B a call. ([#980](https://github.com/CyrilB1531/lodestar/issues/980))
+- The `TfidfVectorizer` and `HashingVectorizer` constructors, their reference pages and `CountVectorizerOptions` document the `MinDf`, `MaxDf`, `NgramRange` and `NumFeatures` refusals #901 added. ([#986](https://github.com/CyrilB1531/lodestar/issues/986))
 
 ### Lodestar.Gpu
 

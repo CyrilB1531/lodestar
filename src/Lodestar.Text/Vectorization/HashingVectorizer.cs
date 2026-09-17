@@ -33,6 +33,8 @@ public sealed partial class HashingVectorizer
     private readonly TextAnalyzer _analyzer;
 
     /// <summary>Creates a vectorizer with the given options (defaults if omitted).</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><c>NumFeatures</c> is below 1.</exception>
+    /// <exception cref="ArgumentException"><c>Count.NgramRange</c> is not an ascending range starting at 1 or more.</exception>
     public HashingVectorizer(HashingVectorizerOptions? options = null)
     {
         _options = options ?? new HashingVectorizerOptions();

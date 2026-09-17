@@ -13,7 +13,8 @@ public sealed class HashingVectorizer
 ```
 
 **Constructor** — `HashingVectorizer(HashingVectorizerOptions? options = null)`, whose defaults
-are scikit-learn's.
+are scikit-learn's. It throws `ArgumentOutOfRangeException` when `NumFeatures` is below `1`, and
+`ArgumentException` when `Count.NgramRange` is not an ascending range starting at `1` or more.
 
 **Properties** — `NumFeatures` is how many columns the matrix has.
 

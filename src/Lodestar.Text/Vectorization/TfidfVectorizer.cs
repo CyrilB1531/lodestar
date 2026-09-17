@@ -22,6 +22,8 @@ public sealed partial class TfidfVectorizer
     private readonly TfidfTransformer _tfidf;
 
     /// <summary>Creates a vectorizer with the given options (defaults if omitted).</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><c>Count.MinDf</c> or <c>Count.MaxDf</c> is negative, not finite, or a fraction above 1.</exception>
+    /// <exception cref="ArgumentException"><c>Count.NgramRange</c> is not an ascending range starting at 1 or more.</exception>
     public TfidfVectorizer(TfidfVectorizerOptions? options = null)
     {
         options ??= new TfidfVectorizerOptions();
