@@ -58,6 +58,18 @@ public sealed class OneHotEncoder<T>
     {
         Guard.NotLessThan(featureCount, 1);
         OneHotEncoderOptions settings = options ?? new OneHotEncoderOptions();
+
+        // An undefined value is refused, where the switches below would read it as no drop or as ignoring (#912).
+        if (settings.Drop is < CategoryDrop.None or > CategoryDrop.IfBinary)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), settings.Drop, "Not a defined category drop.");
+        }
+
+        if (settings.Unknown is < UnknownCategory.Refuse or > UnknownCategory.Ignore)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), settings.Unknown, "Not a defined unknown-category handling.");
+        }
+
         int sampleCount = CategoryMatrix.Rows(values, featureCount);
         CategoryMatrix.RequireNoNull(values);
 

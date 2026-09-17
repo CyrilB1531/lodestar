@@ -14,7 +14,7 @@ public static class Encoders
     /// <param name="featureCount">How many values each row carries.</param>
     /// <param name="options">Which category to drop and what to do with an unseen value; <see langword="null"/> drops none and refuses.</param>
     /// <returns>A fitted <see cref="OneHotEncoder{T}"/>.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or <paramref name="options"/> holds a <see cref="CategoryDrop"/> or <see cref="UnknownCategory"/> that is not a defined value.</exception>
     /// <exception cref="ArgumentException"><paramref name="values"/> holds no row, a partial one, or a null.</exception>
     public static OneHotEncoder<T> OneHot<T>(
         ReadOnlySpan<T> values, int featureCount, OneHotEncoderOptions? options = null)

@@ -35,7 +35,7 @@ public sealed class SimpleImputer
     /// <param name="featureCount">How many values each row carries.</param>
     /// <param name="options">Which statistic to fill with; <see langword="null"/> is the mean.</param>
     /// <returns>A fitted imputer.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or the fill value is not finite.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, the fill value is not finite, or the strategy is not a defined value.</exception>
     /// <exception cref="ArgumentException">
     /// <paramref name="samples"/> holds no row, a partial one, or an infinity; or a feature has no
     /// value at all and <see cref="SimpleImputerOptions.KeepEmptyFeatures"/> is not set.
@@ -50,6 +50,12 @@ public sealed class SimpleImputer
     {
         Guard.NotLessThan(featureCount, 1);
         SimpleImputerOptions settings = options ?? new SimpleImputerOptions();
+        if (settings.Strategy is < ImputationStrategy.Mean or > ImputationStrategy.Constant)
+        {
+            // Refused rather than read as the mean, which is what the switch's default would make of it (#912).
+            throw new ArgumentOutOfRangeException(nameof(options), settings.Strategy, "Not a defined imputation strategy.");
+        }
+
         if (double.IsNaN(settings.FillValue) || double.IsInfinity(settings.FillValue))
         {
             throw new ArgumentOutOfRangeException(
