@@ -5104,7 +5104,7 @@ hardest here.
 `GpuFromHost` was **1.7× to 2.9× slower than the CPU path** at every size when first measured,
 because renaming the batch probed a dictionary for every character on the host. Since
 [#853](https://github.com/CyrilB1531/lodestar/issues/853) a 64 KB code table does the renaming, and
-`GpuFromHost` runs **4.1× to 6.5× below the CPU path**: 7.2× to 13.2× faster than before. The last
+`GpuFromHost` runs **4.1× to 6.5× below the CPU path**: 7.0× to 12.9× faster than before. The last
 column was measured on 2026-09-17, same machine and `--job short`, in an A/B/A window whose two
 `main` runs agreed within 5% on these rows; the `CpuBaseline` in that window was 1.73 ms, 8.08 ms, 34.4 ms and
 162 ms. The other columns are the 2026-09-10 run.
