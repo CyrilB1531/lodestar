@@ -289,12 +289,13 @@ public static class OrdinaryLeastSquares
     /// <param name="withIntercept">Whether to fit a constant, prepended to the coefficients. Default true.</param>
     /// <returns>The coefficients, their standard errors and t statistics, and the residual sum of squares.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
-    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, or there are no residual degrees of freedom left.</exception>
+    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, there are no residual degrees of freedom left, or a column of <paramref name="design"/> lies within rounding of the span of the columns before it.</exception>
     /// <remarks>
     /// Always the Householder reflections <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/> falls back to, for a caller fitting many regressions and
     /// reading a coefficient, a t statistic or a likelihood from each. It skips what <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/>
     /// adds on top — p-values, intervals, R², the F test, the VIFs and the robust covariances — and agrees with
     /// <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/> on the numbers it keeps to rounding, not to the bit, when that fit took the normal equations.
+    /// A rank-deficient or collinear design is refused here as it is there (#979).
     /// </remarks>
     public static OlsEstimate Estimate(
         ReadOnlySpan<double> design,

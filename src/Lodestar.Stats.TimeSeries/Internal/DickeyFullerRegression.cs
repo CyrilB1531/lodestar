@@ -25,13 +25,30 @@ internal static class DickeyFullerRegression
     internal static int LevelIndex(TrendTerms regression) =>
         (regression == TrendTerms.None ? 0 : 1) + TrendColumns(regression);
 
+    /// <summary>The parameter the least-squares estimate names, which this package's callers do not have.</summary>
+    private const string DesignParameter = "design";
+
     internal static (IReadOnlyList<double> TStatistics, double ResidualSumOfSquares) Fit(
         ReadOnlySpan<double> series, TrendTerms regression, int lag, int rows)
     {
         double[] design = Design(series, regression, lag, rows, out double[] response);
-        OlsEstimate estimate = OrdinaryLeastSquares.Estimate(
-            design, response, TrendColumns(regression) + 1 + lag, withIntercept: regression != TrendTerms.None);
-        return (estimate.TStatistics, estimate.ResidualSumOfSquares);
+        try
+        {
+            OlsEstimate estimate = OrdinaryLeastSquares.Estimate(
+                design, response, TrendColumns(regression) + 1 + lag, withIntercept: regression != TrendTerms.None);
+            return (estimate.TStatistics, estimate.ResidualSumOfSquares);
+        }
+        catch (ArgumentException error) when (error.ParamName == DesignParameter)
+        {
+            // The estimate refuses a rank-deficient design naming its own parameter, which this caller's
+            // caller never passed: a series on a straight line builds one at any lag above zero (#979).
+            throw new ArgumentException(
+                "the lagged design this series builds has no unique least-squares solution: one of its "
+                + "columns lies within rounding of the span of the columns before it, which a series "
+                + "lying on a straight line does at every lag above zero.",
+                nameof(series),
+                error);
+        }
     }
 
     /// <summary>
