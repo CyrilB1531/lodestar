@@ -228,6 +228,17 @@ public sealed class BatchEmbeddingTests
 
         Assert.Contains("pooler_output", error.Message, StringComparison.Ordinal);
         Assert.Contains("last_hidden_state", error.Message, StringComparison.Ordinal);
+        // The constructor's own parameter, not the private helper's it used to report.
+        Assert.Equal("outputName", error.ParamName);
+    }
+
+    [Fact]
+    public void A_null_tokenizer_is_refused_by_name()
+    {
+        ArgumentNullException error = Assert.Throws<ArgumentNullException>(
+            () => new OnnxTextEmbedder(EmbedderPath, tokenizer: null!));
+
+        Assert.Equal("tokenizer", error.ParamName);
     }
 
     /// <summary>
