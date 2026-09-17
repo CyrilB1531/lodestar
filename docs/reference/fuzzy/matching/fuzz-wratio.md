@@ -8,9 +8,21 @@ Picks among the other scorers by inspecting the input.
 public static double WRatio(string a, string b)
 ```
 
-**Parameters** — `a` and `b` are the strings to compare.
+<!-- docs-declaration -->
+
+```csharp
+public static double WRatio(string a, string b, TextElement element)
+```
+
+The second overload compares over `element`. At `TextElement.CodePoint` a character outside the
+Basic Multilingual Plane counts once, tokens split on rapidfuzz's own whitespace and sort by code
+point, which is rapidfuzz's score on any string; `TextElement.Utf16Unit` is the first overload.
+
+**Parameters** — `a` and `b` are the strings to compare. `element` is the unit compared, in the second overload only.
 
 **Returns** — `double` in `[0, 100]`, a weighted best among the scorers it judges applicable.
+
+**Exceptions** — `ArgumentOutOfRangeException` when `element` is not a declared value.
 
 **Example** — the same typo `Ratio` scores, reached by a different route.
 
@@ -31,6 +43,11 @@ that divergence is the point of the type.
 It is rapidfuzz's `WRatio` and the weights are rapidfuzz's; the number is reproduced rather than
 invented, which matters because the weights are not derived from anything — they are a choice that
 library made.
+
+An emoji is two UTF-16 units, so the first overload scores two different emoji that share a high
+surrogate as half alike, where rapidfuzz scores them `0`; pass `TextElement.CodePoint` when the text
+can leave the BMP, as [decision 0002](../../../decisions/0002-unicode-comparison-unit.md) offers on
+every algorithm it affects.
 
 **Applies to** — net10.0, netstandard2.0.
 

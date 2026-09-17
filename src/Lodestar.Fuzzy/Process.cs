@@ -8,7 +8,7 @@ public readonly record struct ExtractResult(string Choice, double Score, int Ind
 /// <c>rapidfuzz.process</c>.
 /// </summary>
 /// <remarks>
-/// The default scorer is <see cref="Fuzz.WRatio"/> (like rapidfuzz). Results are
+/// The default scorer is <see cref="Fuzz.WRatio(string, string)"/> (like rapidfuzz). Results are
 /// sorted by score descending, ties broken by original index, filtered by a score
 /// cutoff and capped at a limit.
 /// </remarks>
@@ -19,7 +19,7 @@ public static class Process
     /// </summary>
     /// <param name="query">The query string.</param>
     /// <param name="choices">The candidate strings.</param>
-    /// <param name="scorer">Similarity scorer (default <see cref="Fuzz.WRatio"/>), returning a value in [0, 100].</param>
+    /// <param name="scorer">Similarity scorer (default <see cref="Fuzz.WRatio(string, string)"/>), returning a value in [0, 100].</param>
     /// <param name="limit">Maximum number of results (default 5); <c>null</c> returns all above the cutoff.</param>
     /// <param name="scoreCutoff">Minimum score to keep (inclusive). Default 0.</param>
     /// <exception cref="ArgumentNullException"><paramref name="query"/> or <paramref name="choices"/> is null.</exception>

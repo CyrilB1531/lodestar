@@ -94,6 +94,10 @@ is one sentence, the issue and the commit; see
 
 ### Lodestar.Fuzzy
 
+#### Added
+
+- Every `Fuzz` scorer takes a `TextElement`, whose `CodePoint` compares code points, splits on rapidfuzz's whitespace and sorts tokens by code point, so rapidfuzz's scores hold past the BMP. ([#892](https://github.com/CyrilB1531/lodestar/issues/892))
+
 #### Fixed
 
 - `Fuzz.TokenSetRatio`, `Fuzz.PartialTokenSetRatio` and `Fuzz.WRatio` score `0` rather than up to `100` when one side has no words, as rapidfuzz does. ([#860](https://github.com/CyrilB1531/lodestar/issues/860))

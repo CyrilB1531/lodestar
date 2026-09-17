@@ -1,3 +1,4 @@
+using Lodestar.Text;
 using Lodestar.Text.Distances;
 
 namespace Lodestar.Fuzzy;
@@ -6,11 +7,10 @@ namespace Lodestar.Fuzzy;
 /// Applied fuzzy-matching ratios, reproducing <c>rapidfuzz.fuzz</c>.
 /// </summary>
 /// <remarks>
-/// Scores are in <c>[0, 100]</c>, with no preprocessing: comparisons are
-/// case-sensitive and punctuation is kept, as in rapidfuzz and unlike the old
-/// fuzzywuzzy defaults. <see cref="Ratio"/> is the Indel similarity ×100 —
-/// <em>not</em> Levenshtein, the commonest confusion here. Tokenization splits
-/// on runs of whitespace, as Python's <c>str.split()</c>. Thread-safe.
+/// Scores are in <c>[0, 100]</c>, case-sensitive with punctuation kept, as in rapidfuzz. <see cref="Ratio(string, string)"/>
+/// is the Indel similarity ×100, <em>not</em> Levenshtein. By default each scorer compares UTF-16 units and splits
+/// on <see cref="char.IsWhiteSpace(char)"/>; its <see cref="TextElement.CodePoint"/> overload compares code points,
+/// splits on rapidfuzz's whitespace and sorts tokens by code point, as rapidfuzz does (decision 0002, #892). Thread-safe.
 /// </remarks>
 public static class Fuzz
 {
@@ -22,7 +22,23 @@ public static class Fuzz
         return 100.0 * Indel.NormalizedSimilarity(a, b);
     }
 
-    /// <summary>Best <see cref="Ratio"/> between the shorter string and any substring of the longer.</summary>
+    /// <summary><see cref="Ratio(string, string)"/>, over the unit <paramref name="element"/> names.</summary>
+    /// <param name="a">The first string.</param>
+    /// <param name="b">The second string.</param>
+    /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
+    public static double Ratio(string a, string b, TextElement element)
+    {
+        if (element == TextElement.Utf16Unit)
+        {
+            return Ratio(a, b);
+        }
+
+        CodePointPair pair = CodePointPair.Of(a, b, element);
+        return Ratio(pair.A, pair.B);
+    }
+
+    /// <summary>Best <see cref="Ratio(string, string)"/> between the shorter string and any substring of the longer.</summary>
     public static double PartialRatio(string a, string b)
     {
         Guard.NotNull(a);
@@ -49,6 +65,22 @@ public static class Fuzz
         return Math.Max(SlideMax(a, b), SlideMax(b, a));
     }
 
+    /// <summary><see cref="PartialRatio(string, string)"/>, over the unit <paramref name="element"/> names.</summary>
+    /// <param name="a">The first string.</param>
+    /// <param name="b">The second string.</param>
+    /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
+    public static double PartialRatio(string a, string b, TextElement element)
+    {
+        if (element == TextElement.Utf16Unit)
+        {
+            return PartialRatio(a, b);
+        }
+
+        CodePointPair pair = CodePointPair.Of(a, b, element);
+        return PartialRatio(pair.A, pair.B);
+    }
+
     /// <summary>
     /// Slides <paramref name="pattern"/> across <paramref name="text"/> and returns the
     /// best ratio over the aligned windows (full length in the interior, truncated at edges).
@@ -69,12 +101,28 @@ public static class Fuzz
         return LongNeedleWindows.SlideMax(pattern, text);
     }
 
-    /// <summary><see cref="Ratio"/> after splitting, sorting and rejoining the tokens of each string.</summary>
+    /// <summary><see cref="Ratio(string, string)"/> after splitting, sorting and rejoining the tokens of each string.</summary>
     public static double TokenSortRatio(string a, string b)
     {
         Guard.NotNull(a);
         Guard.NotNull(b);
         return Ratio(string.Join(" ", SortedTokens(a)), string.Join(" ", SortedTokens(b)));
+    }
+
+    /// <summary><see cref="TokenSortRatio(string, string)"/>, over the unit <paramref name="element"/> names.</summary>
+    /// <param name="a">The first string.</param>
+    /// <param name="b">The second string.</param>
+    /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
+    public static double TokenSortRatio(string a, string b, TextElement element)
+    {
+        if (element == TextElement.Utf16Unit)
+        {
+            return TokenSortRatio(a, b);
+        }
+
+        CodePointPair pair = CodePointPair.Of(a, b, element);
+        return Ratio(string.Join(" ", pair.TokensA), string.Join(" ", pair.TokensB));
     }
 
     /// <summary>Token-set ratio: compares the shared tokens against each string's full sorted token set.</summary>
@@ -85,7 +133,23 @@ public static class Fuzz
         return TokenSet(a, b, partial: false);
     }
 
-    /// <summary><see cref="PartialRatio"/> on sorted-token strings.</summary>
+    /// <summary><see cref="TokenSetRatio(string, string)"/>, over the unit <paramref name="element"/> names.</summary>
+    /// <param name="a">The first string.</param>
+    /// <param name="b">The second string.</param>
+    /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
+    public static double TokenSetRatio(string a, string b, TextElement element)
+    {
+        if (element == TextElement.Utf16Unit)
+        {
+            return TokenSetRatio(a, b);
+        }
+
+        CodePointPair pair = CodePointPair.Of(a, b, element);
+        return TokenSet(pair.TokensA, Distinct(pair.TokensA), pair.TokensB, Distinct(pair.TokensB), partial: false);
+    }
+
+    /// <summary><see cref="PartialRatio(string, string)"/> on sorted-token strings.</summary>
     public static double PartialTokenSortRatio(string a, string b)
     {
         Guard.NotNull(a);
@@ -93,12 +157,44 @@ public static class Fuzz
         return PartialRatio(string.Join(" ", SortedTokens(a)), string.Join(" ", SortedTokens(b)));
     }
 
-    /// <summary>Token-set ratio using <see cref="PartialRatio"/> for the comparisons.</summary>
+    /// <summary><see cref="PartialTokenSortRatio(string, string)"/>, over the unit <paramref name="element"/> names.</summary>
+    /// <param name="a">The first string.</param>
+    /// <param name="b">The second string.</param>
+    /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
+    public static double PartialTokenSortRatio(string a, string b, TextElement element)
+    {
+        if (element == TextElement.Utf16Unit)
+        {
+            return PartialTokenSortRatio(a, b);
+        }
+
+        CodePointPair pair = CodePointPair.Of(a, b, element);
+        return PartialRatio(string.Join(" ", pair.TokensA), string.Join(" ", pair.TokensB));
+    }
+
+    /// <summary>Token-set ratio using <see cref="PartialRatio(string, string)"/> for the comparisons.</summary>
     public static double PartialTokenSetRatio(string a, string b)
     {
         Guard.NotNull(a);
         Guard.NotNull(b);
         return TokenSet(a, b, partial: true);
+    }
+
+    /// <summary><see cref="PartialTokenSetRatio(string, string)"/>, over the unit <paramref name="element"/> names.</summary>
+    /// <param name="a">The first string.</param>
+    /// <param name="b">The second string.</param>
+    /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
+    public static double PartialTokenSetRatio(string a, string b, TextElement element)
+    {
+        if (element == TextElement.Utf16Unit)
+        {
+            return PartialTokenSetRatio(a, b);
+        }
+
+        CodePointPair pair = CodePointPair.Of(a, b, element);
+        return TokenSet(pair.TokensA, Distinct(pair.TokensA), pair.TokensB, Distinct(pair.TokensB), partial: true);
     }
 
     /// <summary>
@@ -109,6 +205,28 @@ public static class Fuzz
     {
         Guard.NotNull(a);
         Guard.NotNull(b);
+        return WRatio(a, b, SortedTokens(a), SortedTokens(b));
+    }
+
+    /// <summary><see cref="WRatio(string, string)"/>, over the unit <paramref name="element"/> names.</summary>
+    /// <param name="a">The first string.</param>
+    /// <param name="b">The second string.</param>
+    /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
+    public static double WRatio(string a, string b, TextElement element)
+    {
+        if (element == TextElement.Utf16Unit)
+        {
+            return WRatio(a, b);
+        }
+
+        CodePointPair pair = CodePointPair.Of(a, b, element);
+        return WRatio(pair.A, pair.B, pair.TokensA, pair.TokensB);
+    }
+
+    /// <summary>The weighted ratio over two strings and their sorted tokens, which each mode supplies its own way.</summary>
+    private static double WRatio(string a, string b, string[] tokensA, string[] tokensB)
+    {
         if (a.Length == 0 || b.Length == 0)
         {
             return 0.0;
@@ -121,8 +239,6 @@ public static class Fuzz
 
         // The sort and set ratios share one tokenization and one sort per side: the set ratio
         // only deduplicates what the sort ratio already ordered.
-        string[] tokensA = SortedTokens(a);
-        string[] tokensB = SortedTokens(b);
         string sortedA = string.Join(" ", tokensA);
         string sortedB = string.Join(" ", tokensB);
         if (lenRatio < 1.5)
@@ -137,6 +253,52 @@ public static class Fuzz
         best = Math.Max(best, PartialRatio(sortedA, sortedB) * unbaseScale * partialScale);
         best = Math.Max(best, TokenSet(tokensA, Distinct(tokensA), tokensB, Distinct(tokensB), partial: true) * unbaseScale * partialScale);
         return best;
+    }
+
+    /// <summary>Two strings and their tokens rewritten one unit per code point, the tokens sorted by code point.</summary>
+    private readonly struct CodePointPair
+    {
+        private CodePointPair(string a, string b, string[] tokensA, string[] tokensB)
+        {
+            A = a;
+            B = b;
+            TokensA = tokensA;
+            TokensB = tokensB;
+        }
+
+        public string A { get; }
+
+        public string B { get; }
+
+        public string[] TokensA { get; }
+
+        public string[] TokensB { get; }
+
+        public static CodePointPair Of(string a, string b, TextElement element)
+        {
+            Guard.NotNull(a);
+            Guard.NotNull(b);
+            if (element != TextElement.CodePoint)
+            {
+                throw new ArgumentOutOfRangeException(nameof(element), element, "The unit must be Utf16Unit or CodePoint.");
+            }
+
+            CodePointAlphabet alphabet = CodePointAlphabet.Over(a, b);
+            return new CodePointPair(alphabet.Map(a), alphabet.Map(b), Sorted(alphabet, a), Sorted(alphabet, b));
+        }
+
+        /// <summary>Mapped before sorting: the map keeps code-point order, so an ordinal sort of its units is that order.</summary>
+        private static string[] Sorted(CodePointAlphabet alphabet, string text)
+        {
+            string[] tokens = CodePointAlphabet.Tokenize(text);
+            for (int i = 0; i < tokens.Length; i++)
+            {
+                tokens[i] = alphabet.Map(tokens[i]);
+            }
+
+            Array.Sort(tokens, StringComparer.Ordinal);
+            return tokens;
+        }
     }
 
     private static string[] Tokenize(string s) =>
@@ -195,7 +357,7 @@ public static class Fuzz
         return Math.Max(r1, Math.Max(r2, 100.0 * Indel.NormalizedSimilarity(combinedA, combinedB)));
     }
 
-    /// <summary><see cref="Ratio"/> of a string against one it is a prefix of, from the two lengths.</summary>
+    /// <summary><see cref="Ratio(string, string)"/> of a string against one it is a prefix of, from the two lengths.</summary>
     /// <remarks>
     /// The intersection opens each combined string, so their longest common subsequence is the
     /// intersection itself and the Indel distance is the length difference — rapidfuzz reads it the

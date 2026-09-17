@@ -2005,13 +2005,29 @@ FUZZ_PAIRS = [
 ]
 
 
+# Issue #892: where code points, rapidfuzz's whitespace and a code-point token sort part from UTF-16.
+# Replayed with TextElement.CodePoint only; appended so no earlier case id moves.
+FUZZ_CODE_POINT_PAIRS = [
+    ("\U0001f600", "\U0001f601"),
+    ("\uffff a", "\U0001f600 a"),
+    ("na\u00efve \U0001f600 caf\u00e9", "caf\u00e9 \U0001f600"),
+    ("\U0001f600\U0001f601 hello", "hello \U0001f601"),
+    ("a\u001cb", "b a"), ("a\u00a0b", "b a"), ("a\u0085b", "b a"), ("a\u3000b", "b a"),
+    ("\U00020000\U00020001\U00020002 x", "x \U00020001"),
+    # Past 64 code points, where PartialRatio takes the long-needle path.
+    ("\U0001f600" * 70 + "x", "\U0001f600" * 66),
+    ("q" + "\U0001f600" * 80, "\U0001f600" * 30 + "q"),
+]
+
+
 def generate_fuzz() -> dict:
     from rapidfuzz import fuzz  # noqa: PLC0415
 
     cases = []
-    for i, (a, b) in enumerate(FUZZ_PAIRS):
+    pairs = [(a, b, False) for a, b in FUZZ_PAIRS] + [(a, b, True) for a, b in FUZZ_CODE_POINT_PAIRS]
+    for i, (a, b, code_point_only) in enumerate(pairs):
         cases.append({
-            "id": i, "a": a, "b": b,
+            "id": i, "a": a, "b": b, "codePointOnly": code_point_only,
             "ratio": fuzz.ratio(a, b),
             "partial_ratio": fuzz.partial_ratio(a, b),
             "token_sort_ratio": fuzz.token_sort_ratio(a, b),

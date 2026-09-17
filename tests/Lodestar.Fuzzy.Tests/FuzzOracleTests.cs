@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Lodestar.Fuzzy;
+using Lodestar.Text;
 using Xunit;
 
 namespace Lodestar.Fuzzy.Tests;
@@ -22,6 +23,11 @@ public sealed class FuzzOracleTests
 
         foreach (JsonElement c in doc.RootElement.GetProperty("cases").EnumerateArray())
         {
+            if (c.GetProperty("codePointOnly").GetBoolean())
+            {
+                continue;
+            }
+
             string a = c.GetProperty("a").GetString()!;
             string b = c.GetProperty("b").GetString()!;
 
@@ -35,6 +41,57 @@ public sealed class FuzzOracleTests
         }
 
         Assert.True(failures.Count == 0, string.Join("\n", failures));
+    }
+
+    /// <summary>Every case, the non-BMP and whitespace ones included, at <see cref="TextElement.CodePoint"/> (#892).</summary>
+    [Fact]
+    public void All_ratios_match_rapidfuzz_over_code_points()
+    {
+        using JsonDocument doc = Load();
+        var failures = new List<string>();
+        const TextElement unit = TextElement.CodePoint;
+
+        foreach (JsonElement c in doc.RootElement.GetProperty("cases").EnumerateArray())
+        {
+            string a = c.GetProperty("a").GetString()!;
+            string b = c.GetProperty("b").GetString()!;
+
+            Check(failures, c, "ratio", c.GetProperty("ratio").GetDouble(), Fuzz.Ratio(a, b, unit));
+            Check(failures, c, "partial_ratio", c.GetProperty("partial_ratio").GetDouble(), Fuzz.PartialRatio(a, b, unit));
+            Check(failures, c, "token_sort_ratio", c.GetProperty("token_sort_ratio").GetDouble(), Fuzz.TokenSortRatio(a, b, unit));
+            Check(failures, c, "token_set_ratio", c.GetProperty("token_set_ratio").GetDouble(), Fuzz.TokenSetRatio(a, b, unit));
+            Check(failures, c, "wratio", c.GetProperty("wratio").GetDouble(), Fuzz.WRatio(a, b, unit));
+            Check(failures, c, "partial_token_sort_ratio", c.GetProperty("partial_token_sort_ratio").GetDouble(), Fuzz.PartialTokenSortRatio(a, b, unit));
+            Check(failures, c, "partial_token_set_ratio", c.GetProperty("partial_token_set_ratio").GetDouble(), Fuzz.PartialTokenSetRatio(a, b, unit));
+        }
+
+        Assert.True(failures.Count == 0, string.Join("\n", failures));
+    }
+
+    [Fact]
+    public void The_default_unit_still_counts_a_surrogate_pair_as_two()
+    {
+        // Two emoji sharing a high surrogate: half the units match, and no code point does.
+        Assert.Equal(50.0, Fuzz.Ratio("\U0001F600", "\U0001F601"), 4);
+        Assert.Equal(0.0, Fuzz.Ratio("\U0001F600", "\U0001F601", TextElement.CodePoint), 4);
+    }
+
+    [Fact]
+    public void An_undeclared_unit_is_refused()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => Fuzz.Ratio("a", "b", (TextElement)2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Fuzz.WRatio("a", "b", (TextElement)2));
+    }
+
+    [Fact]
+    public void Process_takes_the_code_point_scorer()
+    {
+        string[] choices = ["\U0001F601", "\U0001F600 ok"];
+
+        IReadOnlyList<ExtractResult> hits = Process.Extract(
+            "\U0001F600", choices, (q, c) => Fuzz.WRatio(q, c, TextElement.CodePoint), limit: 1);
+
+        Assert.Equal(1, hits[0].Index);
     }
 
     [Theory]
