@@ -60,7 +60,7 @@ public sealed class Dbscan
     /// <param name="minimumSamples">How many samples a neighbourhood needs to be dense, the sample itself counted.</param>
     /// <returns>A fitted clustering.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> or <paramref name="minimumSamples"/> is not positive, or <paramref name="epsilon"/> is not positive or not finite.</exception>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row or a partial one.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a value that is not finite.</exception>
     /// <remarks>
     /// Neither value is defaulted. scikit-learn defaults <c>eps=0.5</c>, which is meaningful only
     /// on data already scaled to unit variance; on a matrix of euros it is one cluster, and on a
@@ -74,6 +74,7 @@ public sealed class Dbscan
         Positive(epsilon, nameof(epsilon));
 
         int sampleCount = Rows(samples, featureCount);
+        Finite.Require(samples, nameof(samples));
         (int[] offsets, int[] indices) =
             Neighbourhoods.Euclidean(samples, featureCount, sampleCount, epsilon);
         return From(featureCount, offsets, indices, minimumSamples);
@@ -86,7 +87,7 @@ public sealed class Dbscan
     /// <param name="minimumSamples">How many samples a neighbourhood needs to be dense, the sample itself counted.</param>
     /// <returns>A fitted clustering.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="sampleCount"/> or <paramref name="minimumSamples"/> is not positive, or <paramref name="epsilon"/> is not positive or not finite.</exception>
-    /// <exception cref="ArgumentException"><paramref name="distances"/> is not <paramref name="sampleCount"/> squared values.</exception>
+    /// <exception cref="ArgumentException"><paramref name="distances"/> is not <paramref name="sampleCount"/> squared values, or holds a value that is not finite.</exception>
     /// <remarks>
     /// Named rather than an overload of <see cref="Fit"/>: both take a row-major
     /// <see cref="ReadOnlySpan{T}"/> of doubles and an <see cref="int"/>, so an overload pair
@@ -109,6 +110,7 @@ public sealed class Dbscan
                 nameof(distances));
         }
 
+        Finite.Require(distances, nameof(distances));
         (int[] offsets, int[] indices) = Neighbourhoods.Precomputed(distances, sampleCount, epsilon);
         return From(sampleCount, offsets, indices, minimumSamples);
     }

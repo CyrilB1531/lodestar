@@ -18,7 +18,8 @@ height left.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, when
 `distanceThreshold` is negative, infinite or not a number, or when `linkage` is not a defined value.
-`ArgumentException` when `samples` holds fewer than two rows or a partial one.
+`ArgumentException` when `samples` holds fewer than two rows, a partial one, or a `NaN` or infinite
+value.
 
 **Example** — three points whose gaps are one and two, cut exactly at a gap and just above it.
 

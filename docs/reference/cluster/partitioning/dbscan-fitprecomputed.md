@@ -16,7 +16,8 @@ side of that matrix. `epsilon` is the inclusive radius of a neighbourhood, sciki
 
 **Exceptions** — `ArgumentOutOfRangeException` when `sampleCount` or `minimumSamples` is not
 positive, or `epsilon` is not positive or not finite. `ArgumentException` when `distances` is not
-`sampleCount` squared values.
+`sampleCount` squared values, or holds a `NaN` or infinite one — an infinite distance is refused
+too, as the reference refuses it, rather than read as unreachable.
 
 **Example** — three samples, given as the distances between them.
 

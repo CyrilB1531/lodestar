@@ -17,7 +17,7 @@ be dense, the sample itself counted.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` or `minimumSamples` is not
 positive, or `epsilon` is not positive or not finite. `ArgumentException` when `samples` holds no
-row or a partial one.
+row, a partial one, or a `NaN` or infinite value.
 
 **Example** — the same three points at two radii, where the whole boundary rule is visible.
 
