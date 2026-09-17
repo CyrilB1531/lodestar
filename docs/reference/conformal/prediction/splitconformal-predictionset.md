@@ -14,7 +14,9 @@ calibrated quantile from [`Quantile`](splitconformal-quantile.md), taken at
 [`ConformalQuantileRule.MapieClassification`](conformalquantilerule.md) for the set MAPIE's
 `predict_set` returns.
 
-**Returns** — a fresh `bool[]` of the same length, `true` where that class is in the set.
+**Returns** — a fresh `bool[]` of the same length, `true` where that class is in the set: where
+`(1 − p) − quantile ≤ 1e-8`, MAPIE's own comparison, so a class up to `1e-8` short of `1 − quantile`
+is in.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `quantile` is negative or `NaN`.
 
@@ -39,6 +41,10 @@ something with no coverage guarantee under a name that promises one — the same
 the quantile, which
 [decision 0070](../../../decisions/0070-k-greater-than-n-returns-an-infinite-interval.md) refuses
 for the same reason. If your call site must produce a class, take the arg-max yourself, knowingly.
+
+The `1e-8` is MAPIE's `EPSILON`, kept so a probability that rounding left a hair below the
+threshold lands on the same side as there. A class `0.699999995` at `quantile = 0.3` is in the set,
+where a plain `p ≥ 1 − q` would leave it out.
 
 A set with two or more classes is the other half of the same signal, and it is the usual reason to
 reach for conformal classification at all: the model is telling you which alternatives it could not

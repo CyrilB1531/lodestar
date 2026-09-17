@@ -98,6 +98,9 @@ TEST_SIGMA = "testResidualEstimates"
 # The two classification rules' keys, named for the same reason (#866).
 CEILING_QUANTILE = "ceiling_quantile"
 BETWEEN = "between"
+TOLERANCE = "inside_tolerance"
+# MAPIE's EPSILON in mapie/_machine_precision.py, which its LAC sets compare against (#889).
+LAC_TOLERANCE = 1e-8
 # The sparse-dense corpus's fixture keys, named for the same reason the conformal
 # ones above are: S1192 counts a dict key like any other literal (#440).
 COLUMNS = "columns"
@@ -3624,8 +3627,10 @@ def _conformal_classification_fixtures() -> list[dict]:
          "alpha": 0.2, "class_count": 4, CALIB_SIZE: 80, "proba": flat, "empty": False},
         {"name": "a confident model, where a flat row gets an empty set",
          "alpha": 0.25, "class_count": 3, CALIB_SIZE: 60, "proba": confident, "empty": True},
+        # The first test row falls 5e-9 short of the threshold, inside MAPIE's 1e-8 tolerance (#889).
         {"name": "two classes at 75 %",
-         "alpha": 0.25, "class_count": 2, CALIB_SIZE: 36, "proba": binary, "empty": False},
+         "alpha": 0.25, "class_count": 2, CALIB_SIZE: 36, "proba": binary, "empty": False,
+         TOLERANCE: True},
         # The two rules read different order statistics here, the 19th against the 18th and
         # the 91st against the 90th, and the last row sits between their thresholds (#866).
         {"name": "nineteen points at 90 %, where MAPIE reads one rank higher",
@@ -3674,6 +3679,9 @@ def _conformal_classification_case(fx: dict, frozen_classifier, split_classifier
         proba = proba[:-1] + [[first, (1.0 - first) / 2.0, (1.0 - first) / 2.0]]
     else:
         assert q == ceiling_q, f"{fx['name']}: the rules disagree on a case frozen as agreeing"
+    if fx.get(TOLERANCE):
+        short = 1.0 - q - 5e-9
+        proba = proba[:n] + [[short, 1.0 - short]] + proba[n + 1:]
 
     estimator = frozen_classifier(table=np.array(proba), n_classes=classes).fit(np.zeros((1, 1)))
     mapie = split_classifier(
@@ -3683,10 +3691,13 @@ def _conformal_classification_case(fx: dict, frozen_classifier, split_classifier
     _, sets = mapie.predict_set(np.arange(n, len(proba)).reshape(-1, 1))
 
     test = proba[n:]
-    mine = [[1 if p >= 1.0 - q else 0 for p in row] for row in test]
+    # MAPIE's own comparison, (1 - p) - q <= 1e-8, rather than p >= 1 - q (#889).
+    mine = [[1 if (1.0 - p) - q <= LAC_TOLERANCE else 0 for p in row] for row in test]
+    if fx.get(TOLERANCE):
+        assert mine[0][0] == 1 and test[0][0] < 1.0 - q, f"{fx['name']}: no row inside the tolerance"
     assert np.array_equal(sets[:, :, 0].astype(int), np.array(mine)), fx["name"]
     if fx.get(BETWEEN):
-        ceiling = [[1 if p >= 1.0 - ceiling_q else 0 for p in row] for row in test]
+        ceiling = [[1 if (1.0 - p) - ceiling_q <= LAC_TOLERANCE else 0 for p in row] for row in test]
         assert ceiling != mine, f"{fx['name']}: no test row separates the two rules"
     if fx["empty"]:
         assert any(sum(row) == 0 for row in mine), f"{fx['name']}: no empty set to freeze"

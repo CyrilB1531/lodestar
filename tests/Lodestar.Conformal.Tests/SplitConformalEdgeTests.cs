@@ -62,6 +62,26 @@ public sealed class SplitConformalEdgeTests
             () => SplitConformal.Quantile(NineScores, 0.1, (ConformalQuantileRule)2));
 
     [Fact]
+    public void A_class_within_MAPIE_s_tolerance_of_the_threshold_is_included() =>
+        // (1 - p) - q = 5e-9, inside MAPIE's 1e-8, though p is below 1 - q (#889).
+        Assert.True(SplitConformal.PredictionSet([0.699999995, 0.300000005], 0.3)[0]);
+
+    [Fact]
+    public void A_class_past_MAPIE_s_tolerance_is_excluded() =>
+        Assert.False(SplitConformal.PredictionSet([0.69999998, 0.30000002], 0.3)[0]);
+
+    [Fact]
+    public void A_NaN_calibration_score_is_refused()
+    {
+        // Array.Sort puts NaN first, which moved every order statistic down one (#889).
+        double[] scores = [0.1, double.NaN, 0.3, 0.2];
+
+        Assert.Throws<ArgumentException>(() => SplitConformal.Quantile(scores, 0.5));
+        Assert.Throws<ArgumentException>(
+            () => SplitConformal.Quantile(scores, 0.5, ConformalQuantileRule.MapieClassification));
+    }
+
+    [Fact]
     public void One_calibration_score_is_enough_at_a_level_it_can_answer() =>
         Assert.Equal(7.0, SplitConformal.Quantile([7.0], 0.5));
 
