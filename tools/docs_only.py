@@ -3,8 +3,9 @@
 
 CI runs a reduced path for such a pull request: the lint, the snippets, the stop-word
 check and the documentation tests, which read ``docs/**/*.md`` and so can fail on a
-Markdown change alone (#859's missing link was caught there). The build, Sonar, the
-sample, the oracles and Windows cannot see a ``.md`` file and are skipped.
+Markdown change alone (#859's missing link was caught there); since #997 the lint job
+runs them. The build, Sonar, the sample, the oracles and Windows cannot see a ``.md``
+file and are skipped.
 
 The answer is ``true`` only when every path ends in ``.md``, a rename counting both
 its names and a deletion its old one. Any other file, an image or a JSON map read by

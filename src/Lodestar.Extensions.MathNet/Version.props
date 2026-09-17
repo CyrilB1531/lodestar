@@ -10,7 +10,7 @@
     has not.
   -->
   <PropertyGroup>
-    <LodestarExtensionsMathNetVersion>0.1.0</LodestarExtensionsMathNetVersion>
+    <LodestarExtensionsMathNetVersion>0.1.1</LodestarExtensionsMathNetVersion>
   </PropertyGroup>
 
 </Project>

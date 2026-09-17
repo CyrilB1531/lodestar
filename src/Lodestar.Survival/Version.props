@@ -10,7 +10,7 @@
     number.
   -->
   <PropertyGroup>
-    <LodestarSurvivalVersion>0.1.0</LodestarSurvivalVersion>
+    <LodestarSurvivalVersion>0.1.1</LodestarSurvivalVersion>
   </PropertyGroup>
 
 </Project>

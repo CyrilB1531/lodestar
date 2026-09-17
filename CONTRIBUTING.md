@@ -85,11 +85,18 @@ pull request, and a required check that never arrives stays pending forever.
 **A pull request that changes only Markdown takes a shorter path.** A first job,
 `Changed files`, lists the pull request's files and asks
 [`tools/docs_only.py`](tools/README.md#docs_onlypy) whether every one ends in
-`.md`. When it does, `Build, test, pack` builds and runs the documentation tests
-only — 21 `ReferenceDocumentationTests` classes read `docs/**/*.md` — and the
-sample, the oracles, Windows and the analysis are skipped. GitHub counts a job
-skipped by its condition as a passed check, so the four required checks are
-still satisfied. The lint, the snippets and the stop-word check run either way.
+`.md`. When it does, `Build, test, pack`, the sample, the oracles, Windows and the
+analysis are skipped, and `Lint` runs the documentation tests instead — 21
+`ReferenceDocumentationTests` classes read `docs/**/*.md`. It runs them without compiling, on the
+net10.0 test binaries `main`'s own run published for the pull request's base commit, with the pull
+request's docs staged beside them by [`tools/stage_doc_inputs.py`](tools/README.md#stage_doc_inputspy);
+only when no such binaries exist does it build the solution. GitHub counts a job
+skipped by its condition as a passed check, and `Build and analyze` accepts the
+skip only on such a pull request, so the four required checks are still satisfied.
+The snippets and the stop-word check run either way. Separately,
+[`tools/format_needed.py`](tools/README.md#format_neededpy) decides whether `Lint`
+runs `dotnet format`: only when a `.cs` or `.csproj` file, or a `.props`,
+`.targets`, `.slnx`, `.editorconfig` or `.globalconfig` file, is in the pull request.
 
 "Require approvals" stays off until a second maintainer joins. Self-merging after
 green checks is the expected flow here, not a shortcut — the pull request still

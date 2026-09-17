@@ -23,7 +23,7 @@
     (CONTRIBUTING.md, Releasing), never in the pull request that adds the work.
   -->
   <PropertyGroup>
-    <LodestarDecompositionVersion>0.2.0</LodestarDecompositionVersion>
+    <LodestarDecompositionVersion>0.2.1</LodestarDecompositionVersion>
   </PropertyGroup>
 
 </Project>
