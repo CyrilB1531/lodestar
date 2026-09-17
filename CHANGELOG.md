@@ -75,6 +75,7 @@ is one sentence, the issue and the commit; see
 - `KMeans`, `Dbscan` and `AgglomerativeClustering` refuse a `NaN` or infinite sample with `ArgumentException`, as scikit-learn does, where they returned `NaN` centres or noise or threw an index out of range. ([#896](https://github.com/CyrilB1531/lodestar/issues/896))
 - `KMeans.Fit` refuses a negative, infinite or `NaN` `KMeansOptions.Tolerance`, and `Dbscan.FitPrecomputed` checks a sample count past 46340 without wrapping. ([#911](https://github.com/CyrilB1531/lodestar/issues/911))
 - `KMeans.Fit` no longer throws `IndexOutOfRangeException` when a relocation empties a cluster numbered above the one it fills, which the fix for #862 introduced. ([#975](https://github.com/CyrilB1531/lodestar/issues/975))
+- The `KMeans.Fit` page says the relocation pairing can differ from `numpy.argpartition`'s even without a tie, which was recorded for ties alone. ([#990](https://github.com/CyrilB1531/lodestar/issues/990))
 
 ### Lodestar.Abstractions
 

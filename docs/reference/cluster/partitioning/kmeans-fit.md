@@ -54,8 +54,11 @@ distances, each empty cluster takes a distinct one of the samples furthest from 
 cluster order, and that sample's old cluster gives it up; the labels are left alone. When every
 sample already sits on its centre nothing moves, and a cluster still empty takes the largest
 cluster's centre — **before that centre is averaged** when the largest cluster comes later, the
-reference's own order, which the corpus freezes. Samples equally far are taken lowest row first,
-where the reference's order comes from `numpy.argpartition` and follows no row rule: the same
+reference's own order, which the corpus freezes. The furthest samples are taken in descending
+distance, ties lowest row first. The reference reads them through `numpy.argpartition`, whose order
+follows no row rule, so **which sample fills which empty cluster can differ even with no tie** —
+measured on 6 of 900 random arrays of 1,000 distances with 50 clusters empty at once, and on none
+with 20 or fewer. The centres that come out are the same set either way, paired differently; the same
 reasoning as decision 0093, and no frozen case turns on it.
 
 **The starting centres are an input, not a seed.** Passing
