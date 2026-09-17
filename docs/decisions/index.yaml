@@ -1240,7 +1240,7 @@
   amends: []
   applies: ["0100"]
   superseded_by: []
-  amended_by: []
+  amended_by: ["0142"]
   applied_by: []
 
 "0124":
@@ -1418,6 +1418,16 @@
   status: "accepted"
   supersedes: []
   amends: []
+  applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0142":
+  title: "A filtered vector search calls the filter once per record, in storage order"
+  status: "accepted"
+  supersedes: []
+  amends: ["0123"]
   applies: []
   superseded_by: []
   amended_by: []
