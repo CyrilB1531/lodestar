@@ -6,7 +6,8 @@ a finite-sample guarantee rather than an asymptotic hope. It costs a held-out ca
 nothing else: no retraining, no distributional assumption, and no assumption that the model is any
 good. A bad model gets wide intervals, which is the correct answer.
 
-There is one type, [`SplitConformal`](prediction/splitconformal.md), and it is static. The
+There is one type, [`SplitConformal`](prediction/splitconformal.md), and it is static, beside the
+[`ConformalQuantileRule`](prediction/conformalquantilerule.md) its quantile takes. The
 calibrated quantile is handed back to you rather than kept inside an object, because it is the
 number that carries the guarantee and you should be able to look at it.
 
@@ -28,6 +29,7 @@ The whole procedure is three calls:
 | Member | What it does |
 | --- | --- |
 | [`SplitConformal.Quantile`](prediction/splitconformal-quantile.md) | The calibrated quantile: the `k`-th smallest score, with `k = ceil((n + 1)(1 − α))`. |
+| [`ConformalQuantileRule`](prediction/conformalquantilerule.md) | Which order statistic `Quantile` reads: the ceiling rank, or MAPIE's classification quantile. |
 | [`SplitConformal.AbsoluteResiduals`](prediction/splitconformal-absoluteresiduals.md) | A regressor's calibration scores, `\|y − ŷ\|`. |
 | [`SplitConformal.Interval`](prediction/splitconformal-interval.md) | `[ŷ − q, ŷ + q]` around a point prediction. |
 | [`SplitConformal.NormalisedResiduals`](prediction/splitconformal-normalisedresiduals.md) | A regressor's scores divided by a predicted residual, `\|y − ŷ\| / r̂`. |
