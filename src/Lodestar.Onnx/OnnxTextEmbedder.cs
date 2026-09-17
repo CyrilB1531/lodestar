@@ -58,11 +58,20 @@ public sealed class OnnxTextEmbedder : IDisposable
     {
         Guard.NotNull(modelPath);
         _session = options is null ? new InferenceSession(modelPath) : new InferenceSession(modelPath, options);
-        _inputIdsName = RequireInput(_session, inputIdsName, nameof(inputIdsName));
-        _attentionMaskName = RequireInput(_session, attentionMaskName, nameof(attentionMaskName));
-        _tokenTypeIdsName = _session.InputMetadata.ContainsKey(tokenTypeIdsName) ? tokenTypeIdsName : null;
-        _outputName = ChooseOutput(_session, outputName);
-        _outputNames = [_outputName];
+        try
+        {
+            _inputIdsName = RequireInput(_session, inputIdsName, nameof(inputIdsName));
+            _attentionMaskName = RequireInput(_session, attentionMaskName, nameof(attentionMaskName));
+            _tokenTypeIdsName = _session.InputMetadata.ContainsKey(tokenTypeIdsName) ? tokenTypeIdsName : null;
+            _outputName = ChooseOutput(_session, outputName, nameof(outputName));
+            _outputNames = [_outputName];
+        }
+        catch
+        {
+            // A constructor that throws hands the caller nothing to dispose, so the native session is released here.
+            _session.Dispose();
+            throw;
+        }
     }
 
     /// <summary>
@@ -90,9 +99,8 @@ public sealed class OnnxTextEmbedder : IDisposable
         string attentionMaskName = "attention_mask",
         string tokenTypeIdsName = "token_type_ids",
         string? outputName = null)
-        : this(modelPath, options, inputIdsName, attentionMaskName, tokenTypeIdsName, outputName)
+        : this(RequireTokenizer(tokenizer, modelPath), options, inputIdsName, attentionMaskName, tokenTypeIdsName, outputName)
     {
-        Guard.NotNull(tokenizer);
         _tokenizer = tokenizer;
     }
 
@@ -368,6 +376,17 @@ public sealed class OnnxTextEmbedder : IDisposable
         return Pooler.MeanPoolAndNormalizeBatch(flat, batchSize, seqLen, dim, mask.AsSpan(0, elements));
     }
 
+    /// <summary>Refuses a null tokenizer, then hands back the model path.</summary>
+    /// <remarks>
+    /// Called in the chained constructor's argument list so the refusal comes before a session is
+    /// opened: checked in the body, a null tokenizer threw with that session left open.
+    /// </remarks>
+    private static string RequireTokenizer(ISubwordTokenizer tokenizer, string modelPath)
+    {
+        Guard.NotNull(tokenizer);
+        return modelPath;
+    }
+
     private static string RequireInput(InferenceSession session, string name, string parameterName)
     {
         if (!session.InputMetadata.ContainsKey(name))
@@ -379,7 +398,7 @@ public sealed class OnnxTextEmbedder : IDisposable
         return name;
     }
 
-    private static string ChooseOutput(InferenceSession session, string? requested)
+    private static string ChooseOutput(InferenceSession session, string? requested, string parameterName)
     {
         IReadOnlyDictionary<string, NodeMetadata> outputs = session.OutputMetadata;
         if (requested is not null)
@@ -388,7 +407,7 @@ public sealed class OnnxTextEmbedder : IDisposable
             {
                 throw new ArgumentException(
                     $"The model declares no output named '{requested}'. It declares: {string.Join(", ", outputs.Keys)}.",
-                    nameof(requested));
+                    parameterName);
             }
             return requested;
         }

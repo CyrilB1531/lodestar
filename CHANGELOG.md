@@ -168,6 +168,10 @@ is one sentence, the issue and the commit; see
 - `Microsoft.ML.OnnxRuntime` moves from 1.28.0 to 1.30.0. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
 - The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
 
+#### Fixed
+
+- `OnnxTextEmbedder`'s constructors dispose the ONNX Runtime session they opened when they throw, check the tokenizer before opening one, and name `outputName` for an undeclared output. ([#903](https://github.com/CyrilB1531/lodestar/issues/903))
+
 ### Lodestar.Extensions.AI
 
 #### Changed
