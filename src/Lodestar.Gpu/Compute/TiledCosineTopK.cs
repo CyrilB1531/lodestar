@@ -58,7 +58,7 @@ public sealed class TiledCosineTopK
     /// <returns>One list per query, in the batch's own order.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="queryCount"/> or <paramref name="k"/> is below 1.</exception>
-    /// <exception cref="ArgumentException"><paramref name="queries"/> is not exactly the batch.</exception>
+    /// <exception cref="ArgumentException"><paramref name="queries"/> is not exactly the batch, or holds a non-finite value.</exception>
     public IReadOnlyList<IReadOnlyList<GpuSearchResult>> Search(
         DeviceEmbeddingMatrix matrix, ReadOnlySpan<float> queries, int queryCount, int k)
     {
@@ -72,6 +72,7 @@ public sealed class TiledCosineTopK
                 nameof(queries));
         }
 
+        DeviceEmbeddingMatrix.RefuseNonFinite(queries, nameof(queries));
         int take = Math.Min(k, matrix.Count);
         float[] staged = queries.ToArray();
         DeviceEmbeddingMatrix.NormalizeRows(staged, queryCount, matrix.Dimension);
@@ -160,8 +161,9 @@ public sealed class TiledCosineTopK
 
     /// <summary>One group per query, selecting k winners by repeated parallel argmax.</summary>
     /// <remarks>
-    /// The taken row is masked to negative infinity so the next pass cannot see it, which
-    /// is why <c>scores</c> is scratch and never read again by the caller.
+    /// The taken row is masked to <c>NaN</c> so the next pass cannot see it, which is why
+    /// <c>scores</c> is scratch and never read again by the caller. Not negative infinity: a
+    /// row can score that honestly, unnormalized, and a mask equal to it left a slot unfilled.
     /// </remarks>
         // Same reason as the kernel above: coverage instrumentation reads a mutable static.
     [ExcludeFromCodeCoverage]
@@ -184,7 +186,8 @@ public sealed class TiledCosineTopK
             for (int row = lane; row < count; row += width)
             {
                 float candidate = scores[rowBase + row];
-                if (candidate > localScore)
+                // The second clause takes a first negative infinity; a masked NaN fails both.
+                if (candidate > localScore || (localIndex == int.MaxValue && candidate >= localScore))
                 {
                     localScore = candidate;
                     localIndex = row;
@@ -210,7 +213,7 @@ public sealed class TiledCosineTopK
                 long at = ((long)query * take) + slot;
                 hitIndices[at] = bestIndex[0];
                 hitScores[at] = bestScore[0];
-                scores[rowBase + bestIndex[0]] = float.NegativeInfinity;
+                scores[rowBase + bestIndex[0]] = float.NaN;
             }
 
             Group.Barrier();

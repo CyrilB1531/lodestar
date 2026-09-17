@@ -82,11 +82,49 @@ public sealed class DeviceSparseMatrix : IDisposable
                 nameof(rowPointers));
         }
 
+        RefuseMalformedStructure(rowPointers, columnIndices, columnCount);
+
         Accelerator accelerator = context.Accelerator;
         MemoryBuffer1D<int, Stride1D.Dense> pointers = accelerator.Allocate1D(rowPointers.ToArray());
         MemoryBuffer1D<int, Stride1D.Dense> columns = accelerator.Allocate1D(columnIndices.ToArray());
         MemoryBuffer1D<double, Stride1D.Dense> stored = accelerator.Allocate1D(values.ToArray());
         return new DeviceSparseMatrix(pointers, columns, stored, rowCount, columnCount);
+    }
+
+    /// <summary>Throws unless the offsets and the columns stay inside the arrays the kernel reads.</summary>
+    /// <remarks>
+    /// The kernel indexes device memory with these values unchecked, so a pointer that starts
+    /// past zero or steps back, or a column outside the matrix, reads another buffer's memory
+    /// rather than failing (#898). One pass over each array, paid once per upload.
+    /// </remarks>
+    private static void RefuseMalformedStructure(
+        ReadOnlySpan<int> rowPointers, ReadOnlySpan<int> columnIndices, int columnCount)
+    {
+        if (rowPointers[0] != 0)
+        {
+            throw new ArgumentException(
+                $"rowPointers starts at {rowPointers[0]}, not 0.", nameof(rowPointers));
+        }
+
+        for (int row = 1; row < rowPointers.Length; row++)
+        {
+            if (rowPointers[row] < rowPointers[row - 1])
+            {
+                throw new ArgumentException(
+                    $"rowPointers decreases from {rowPointers[row - 1]} to {rowPointers[row]} at row {row - 1}.",
+                    nameof(rowPointers));
+            }
+        }
+
+        for (int at = 0; at < columnIndices.Length; at++)
+        {
+            if ((uint)columnIndices[at] >= (uint)columnCount)
+            {
+                throw new ArgumentException(
+                    $"columnIndices[{at}] is {columnIndices[at]}, outside a matrix of {columnCount} columns.",
+                    nameof(columnIndices));
+            }
+        }
     }
 
     /// <summary>Frees the three device buffers.</summary>

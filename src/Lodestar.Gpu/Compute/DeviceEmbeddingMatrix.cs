@@ -39,7 +39,7 @@ public sealed class DeviceEmbeddingMatrix : IDisposable
     /// <param name="normalize">L2-normalize each row on upload (default true).</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> or <paramref name="dimension"/> is below 1.</exception>
-    /// <exception cref="ArgumentException"><paramref name="rows"/> is not exactly the block.</exception>
+    /// <exception cref="ArgumentException"><paramref name="rows"/> is not exactly the block, or holds a non-finite value.</exception>
     public static DeviceEmbeddingMatrix Upload(
         GpuContext context, ReadOnlySpan<float> rows, int count, int dimension, bool normalize = true)
     {
@@ -52,6 +52,7 @@ public sealed class DeviceEmbeddingMatrix : IDisposable
                 $"rows holds {rows.Length} values, not {count} x {dimension}.", nameof(rows));
         }
 
+        RefuseNonFinite(rows, nameof(rows));
         float[] staged = rows.ToArray();
         if (normalize)
         {
@@ -60,6 +61,24 @@ public sealed class DeviceEmbeddingMatrix : IDisposable
 
         MemoryBuffer1D<float, Stride1D.Dense> buffer = context.Accelerator.Allocate1D(staged);
         return new DeviceEmbeddingMatrix(buffer, count, dimension);
+    }
+
+    /// <summary>Throws when a value is <c>NaN</c> or infinite.</summary>
+    /// <remarks>
+    /// A <c>NaN</c> score loses every comparison, so the selection kernel found no row for a slot
+    /// and masked the score at <c>int.MaxValue</c>, past its buffer (#898). Infinity normalizes
+    /// to <c>NaN</c>, so it is refused with it.
+    /// </remarks>
+    internal static void RefuseNonFinite(ReadOnlySpan<float> values, string parameter)
+    {
+        for (int at = 0; at < values.Length; at++)
+        {
+            float value = values[at];
+            if (float.IsNaN(value) || float.IsInfinity(value))
+            {
+                throw new ArgumentException($"{parameter}[{at}] is {value}, not a finite number.", parameter);
+            }
+        }
     }
 
     /// <summary>Scales each row to unit length, leaving a zero row alone.</summary>

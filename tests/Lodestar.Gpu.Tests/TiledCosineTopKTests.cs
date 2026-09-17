@@ -142,7 +142,7 @@ public sealed class TiledCosineTopKTests
     [Fact]
     public void A_second_search_on_one_instance_agrees_with_the_first()
     {
-        // The select kernel masks taken rows to negative infinity, so this fails the day
+        // The select kernel masks taken rows to NaN, so this fails the day
         // the scores buffer stops being per-call scratch and gets reused.
         const int count = 120;
         const int dimension = 24;
@@ -209,6 +209,48 @@ public sealed class TiledCosineTopKTests
         var kernel = new TiledCosineTopK(context);
 
         Assert.Throws<ArgumentException>(() => kernel.Search(matrix, rows.AsSpan(0, 3), 1, 1));
+    }
+
+    [Theory]
+    [InlineData(float.NaN)]
+    [InlineData(float.PositiveInfinity)]
+    [InlineData(float.NegativeInfinity)]
+    public void A_non_finite_row_is_refused(float value)
+    {
+        // A NaN row scored NaN, lost every comparison and left the selection masking
+        // int.MaxValue past its buffer (#898); infinity normalizes to NaN.
+        using var context = GpuContext.Create(preferCpu: true);
+
+        Assert.Throws<ArgumentException>(() => DeviceEmbeddingMatrix.Upload(
+            context, [1f, 0f, value, 0f], count: 2, dimension: 2));
+    }
+
+    [Theory]
+    [InlineData(float.NaN)]
+    [InlineData(float.PositiveInfinity)]
+    public void A_non_finite_query_is_refused(float value)
+    {
+        using var context = GpuContext.Create(preferCpu: true);
+        using var matrix = DeviceEmbeddingMatrix.Upload(context, [1f, 0f, 0f, 1f], count: 2, dimension: 2);
+        var kernel = new TiledCosineTopK(context);
+
+        Assert.Throws<ArgumentException>(() => kernel.Search(matrix, [value, 0f], 1, 2));
+    }
+
+    [Fact]
+    public void A_row_scoring_negative_infinity_still_fills_its_slot()
+    {
+        // Finite but unnormalized, this row's score overflows to negative infinity -- the
+        // value the kernel used to mask taken rows with, so it was never selected (#898).
+        using var context = GpuContext.Create(preferCpu: true);
+        using var matrix = DeviceEmbeddingMatrix.Upload(
+            context, [1f, 0f, -3e38f, -3e38f], count: 2, dimension: 2, normalize: false);
+        var kernel = new TiledCosineTopK(context);
+
+        IReadOnlyList<GpuSearchResult> hits = kernel.Search(matrix, [1f, 1f], 1, 2)[0];
+
+        Assert.Equal([0, 1], hits.Select(hit => hit.Index).ToArray());
+        Assert.Equal(float.NegativeInfinity, hits[1].Score);
     }
 
     private static IReadOnlyList<IReadOnlyList<GpuSearchResult>> RunKernel(

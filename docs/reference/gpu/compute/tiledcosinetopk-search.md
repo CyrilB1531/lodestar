@@ -15,7 +15,8 @@ hits per query; fewer come back when the matrix is smaller.
 **Returns** — one list per query, in the batch's own order.
 
 **Exceptions** — `ArgumentNullException` when `matrix` is null; `ArgumentOutOfRangeException` when
-`queryCount` or `k` is below 1; `ArgumentException` when `queries` is not exactly the batch.
+`queryCount` or `k` is below 1; `ArgumentException` when `queries` is not exactly the batch, or
+holds a `NaN` or an infinity.
 
 **Example** — the shape a caller writes.
 
@@ -38,8 +39,13 @@ rows measured 13.2×, because a launch and a read-back are amortised across the 
 with one query at a time is better served by [`EmbeddingIndex.Search`](../../embeddings/search/embeddingindex-search.md).
 
 Query transfer and result read-back are per call; the matrix is not. A scores buffer is allocated
-per call and used as scratch — the selection masks each taken row to negative infinity, so the
-buffer cannot be reused and is never handed back.
+per call and used as scratch — the selection masks each taken row to `NaN`, so the buffer cannot
+be reused and is never handed back. The mask is `NaN` rather than negative infinity because an
+unnormalized row can score negative infinity honestly, and must still be selectable.
+
+**A non-finite query is refused rather than scored.** A `NaN` score loses every comparison, so the
+selection found no row for a slot and wrote past its buffer
+([#898](https://github.com/CyrilB1531/lodestar/issues/898)).
 
 **Applies to** — net10.0, netstandard2.1.
 
