@@ -20,6 +20,7 @@ variance. Every property is populated; there is no second call to make.
 **Exceptions** — `ArgumentNullException` when `matrix` is null. `ArgumentOutOfRangeException` when
 `componentCount` is below 1, at or above the number of columns, above the number of rows, when an
 option is negative, or when `Oversampling` and `componentCount` do not add up within an `int`. `ArgumentException` when
+`matrix` holds a `NaN` or an infinity, as scikit-learn's input check refuses, or when
 [`RandomMatrix`](truncatedsvdoptions.md) is given and is not
 `FeatureCount × (componentCount + Oversampling)` values long.
 

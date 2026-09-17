@@ -243,6 +243,22 @@ public sealed class TruncatedSvdTests
         Assert.Throws<ArgumentNullException>(() => TruncatedSvd.Fit(null!, 2));
     }
 
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.NegativeInfinity)]
+    public void A_matrix_holding_a_non_finite_value_is_refused(double value)
+    {
+        // Unrefused, a fit threw ArithmeticException from inside the QR and a projection answered NaN.
+        TruncatedSvd fitted = Fit(Cases[0]);
+        CsrMatrix matrix = new(3, fitted.FeatureCount, [1.0, value, 2.0], [0, 1, 2], [0, 2, 3, 3]);
+
+        ArgumentException fitting = Assert.Throws<ArgumentException>(() => TruncatedSvd.Fit(matrix, 1));
+        ArgumentException transforming = Assert.Throws<ArgumentException>(() => fitted.Transform(matrix));
+
+        Assert.Equal("matrix", fitting.ParamName);
+        Assert.Equal("matrix", transforming.ParamName);
+    }
+
     [Fact]
     public void Transforming_a_null_matrix_is_refused()
     {

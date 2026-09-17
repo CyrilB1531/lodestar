@@ -15,7 +15,7 @@ It does not have to be the matrix that was fitted, and usually is not.
 values, row `i`'s coordinates starting at `i * ComponentCount`.
 
 **Exceptions** — `ArgumentNullException` when `matrix` is null. `ArgumentException` when `matrix`
-does not have `FeatureCount` columns.
+does not have `FeatureCount` columns, or holds a `NaN` or an infinity.
 
 **Example** — the same four documents, projected onto the two components fitted from them.
 

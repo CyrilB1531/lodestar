@@ -84,6 +84,10 @@ is one sentence, the issue and the commit; see
 
 - `TruncatedSvd`, `Nmf` and `QrDecomposition.Householder` walk their dense blocks in memory order, with the Householder QR up to 5.3 times faster. ([#845](https://github.com/CyrilB1531/lodestar/issues/845))
 
+#### Fixed
+
+- `Nmf.Fit` refuses a matrix with no row, no column or an infinity and checks its options before initialising, and `TruncatedSvd` refuses a `NaN` or an infinity, where they threw `DivideByZeroException` or `ArithmeticException` or answered `NaN`. ([#872](https://github.com/CyrilB1531/lodestar/issues/872))
+
 ### Lodestar.Fuzzy
 
 #### Changed
