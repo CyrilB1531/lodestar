@@ -4,7 +4,7 @@
   "library": "rapidfuzz",
   "library_version": "3.14.6",
   "reference_calls": [
-   "rapidfuzz.process.extract (default scorer WRatio)"
+   "rapidfuzz.process.{extract,extractOne} (default scorer WRatio)"
   ],
   "choices": [
    "new york mets",
@@ -16,7 +16,7 @@
    "los angeles lakers",
    "chicago bulls"
   ],
-  "count": 6
+  "count": 8
  },
  "cases": [
   {
@@ -50,7 +50,12 @@
      "score": 34.2,
      "index": 6
     }
-   ]
+   ],
+   "extract_one": {
+    "choice": "new york mets",
+    "score": 90.0,
+    "index": 0
+   }
   },
   {
    "id": 1,
@@ -73,7 +78,12 @@
      "score": 90.0,
      "index": 4
     }
-   ]
+   ],
+   "extract_one": {
+    "choice": "new york mets",
+    "score": 90.0,
+    "index": 0
+   }
   },
   {
    "id": 2,
@@ -86,7 +96,12 @@
      "score": 100.0,
      "index": 0
     }
-   ]
+   ],
+   "extract_one": {
+    "choice": "new york mets",
+    "score": 100.0,
+    "index": 0
+   }
   },
   {
    "id": 3,
@@ -104,7 +119,12 @@
      "score": 51.42857142857142,
      "index": 2
     }
-   ]
+   ],
+   "extract_one": {
+    "choice": "brooklyn nets",
+    "score": 90.0,
+    "index": 5
+   }
   },
   {
    "id": 4,
@@ -127,7 +147,12 @@
      "score": 54.0,
      "index": 3
     }
-   ]
+   ],
+   "extract_one": {
+    "choice": "los angeles lakers",
+    "score": 90.0,
+    "index": 6
+   }
   },
   {
    "id": 5,
@@ -150,7 +175,32 @@
      "score": 14.28571428571429,
      "index": 4
     }
-   ]
+   ],
+   "extract_one": {
+    "choice": "new york mets",
+    "score": 15.384615384615385,
+    "index": 0
+   }
+  },
+  {
+   "id": 6,
+   "query": "brooklyn",
+   "limit": 0,
+   "cutoff": 0.0,
+   "results": [],
+   "extract_one": {
+    "choice": "brooklyn nets",
+    "score": 90.0,
+    "index": 5
+   }
+  },
+  {
+   "id": 7,
+   "query": "zzz",
+   "limit": 5,
+   "cutoff": 90.0,
+   "results": [],
+   "extract_one": null
   }
  ]
 }

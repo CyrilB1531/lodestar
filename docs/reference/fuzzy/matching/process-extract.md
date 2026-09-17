@@ -14,6 +14,9 @@ default and `null` for all of them. `scoreCutoff` drops anything scoring below i
 
 **Returns** — `IReadOnlyList<ExtractResult>`, best first, at most `limit` long.
 
+**Exceptions** — `ArgumentNullException` when `query` or `choices` is null.
+`ArgumentOutOfRangeException` when `limit` is negative; `0` returns an empty list.
+
 **Example** — the two best of four candidates.
 
 ```csharp

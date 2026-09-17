@@ -37,7 +37,30 @@ public sealed class ProcessOracleTests
                     $"case #{c.GetProperty("id").GetInt32()} rank {r}: score expected {e.GetProperty("score").GetDouble():R}, got {actual[r].Score:R}");
                 r++;
             }
+
+            ExtractResult? one = Process.ExtractOne(query, choices, scoreCutoff: cutoff);
+            JsonElement expectedOne = c.GetProperty("extract_one");
+            if (expectedOne.ValueKind == JsonValueKind.Null)
+            {
+                Assert.Null(one);
+                continue;
+            }
+
+            Assert.NotNull(one);
+            Assert.Equal(expectedOne.GetProperty("choice").GetString(), one.Value.Choice);
+            Assert.Equal(expectedOne.GetProperty("index").GetInt32(), one.Value.Index);
+            Assert.True(Math.Abs(expectedOne.GetProperty("score").GetDouble() - one.Value.Score) < Tolerance,
+                $"case #{c.GetProperty("id").GetInt32()} extractOne: score expected {expectedOne.GetProperty("score").GetDouble():R}, got {one.Value.Score:R}");
         }
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(int.MinValue)]
+    public void Extract_refuses_a_negative_limit_by_name(int limit)
+    {
+        var error = Assert.Throws<ArgumentOutOfRangeException>(() => Process.Extract("a", ["a", "b"], limit: limit));
+        Assert.Equal("limit", error.ParamName);
     }
 
     [Fact]
