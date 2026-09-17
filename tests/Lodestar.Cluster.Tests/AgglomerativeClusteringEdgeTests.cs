@@ -98,4 +98,26 @@ public sealed class AgglomerativeClusteringEdgeTests
         Assert.Equal(two.Children, four.Children);
         Assert.Equal(two.Distances, four.Distances);
     }
+
+    /// <summary>
+    /// A value no distance can be taken to is refused, as scikit-learn refuses it. An infinite
+    /// sample used to throw out of range: no candidate beat an infinite distance (#896).
+    /// </summary>
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void A_sample_that_is_not_finite_is_refused(double value)
+    {
+        foreach (Linkage linkage in new[] { Linkage.Ward, Linkage.Complete, Linkage.Average, Linkage.Single })
+        {
+            ArgumentException fit = Assert.Throws<ArgumentException>(
+                () => AgglomerativeClustering.Fit([0.0, value, 3.0], 1, 1, linkage));
+            ArgumentException threshold = Assert.Throws<ArgumentException>(
+                () => AgglomerativeClustering.FitToThreshold([0.0, value, 3.0], 1, 1.0, linkage));
+
+            Assert.Equal("samples", fit.ParamName);
+            Assert.Equal("samples", threshold.ParamName);
+        }
+    }
 }

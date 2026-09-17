@@ -56,7 +56,7 @@ public sealed class KMeans
     /// <param name="options">Where to start and when to stop; <see langword="null"/> takes the defaults.</param>
     /// <returns>A fitted clustering.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> or <paramref name="clusterCount"/> is not positive, or <paramref name="options"/> asks for fewer than one iteration.</exception>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row or a partial one, there are fewer rows than clusters, or the given initial centres are the wrong shape.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one or a value that is not finite, there are fewer rows than clusters, or the given initial centres are the wrong shape or not finite.</exception>
     /// <remarks>
     /// The loop is the reference's: assign, update, stop on unchanged labels or on a centre
     /// shift within the scaled tolerance — and when it stops on the shift, a final assignment
@@ -73,6 +73,7 @@ public sealed class KMeans
         Guard.NotLessThan(settings.MaxIterations, 1);
 
         int sampleCount = Rows(samples, featureCount);
+        Finite.Require(samples, nameof(samples));
         if (sampleCount < clusterCount)
         {
             throw new ArgumentException(
@@ -127,11 +128,12 @@ public sealed class KMeans
     /// <summary>Assigns unseen samples to the fitted centres.</summary>
     /// <param name="samples">The samples, row-major, with <see cref="FeatureCount"/> values per row.</param>
     /// <returns>One cluster index per row.</returns>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, or a partial one.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a value that is not finite.</exception>
     /// <remarks>Nothing is refitted: this is the assignment step alone, over the centres already found.</remarks>
     public int[] Predict(ReadOnlySpan<double> samples)
     {
         int rows = Rows(samples, FeatureCount);
+        Finite.Require(samples, nameof(samples));
         var labels = new int[rows];
         Nearest(samples, FeatureCount, _centres, ClusterCount, labels);
         return labels;
@@ -165,6 +167,7 @@ public sealed class KMeans
                     nameof(settings));
             }
 
+            Finite.Require(settings.InitialCentres, nameof(KMeansOptions.InitialCentres));
             return (double[])settings.InitialCentres.Clone();
         }
 

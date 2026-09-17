@@ -125,4 +125,19 @@ public sealed class DbscanEdgeTests
 
         return distances;
     }
+
+    /// <summary>A value no distance can be taken to is refused, as scikit-learn refuses it (#896).</summary>
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void A_sample_or_distance_that_is_not_finite_is_refused(double value)
+    {
+        ArgumentException fit = Assert.Throws<ArgumentException>(() => Dbscan.Fit([0.0, value, 0.1], 1, 0.5, 2));
+        ArgumentException precomputed = Assert.Throws<ArgumentException>(
+            () => Dbscan.FitPrecomputed([0.0, value, value, 0.0], 2, 0.5, 1));
+
+        Assert.Equal("samples", fit.ParamName);
+        Assert.Equal("distances", precomputed.ParamName);
+    }
 }

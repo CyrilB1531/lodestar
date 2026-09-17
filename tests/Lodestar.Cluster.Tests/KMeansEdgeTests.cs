@@ -106,4 +106,26 @@ public sealed class KMeansEdgeTests
         Assert.All(model.Centres, centre => Assert.False(double.IsNaN(centre)));
         Assert.All(model.Labels, label => Assert.InRange(label, 0, 5));
     }
+
+    /// <summary>A value no distance can be taken to is refused, as scikit-learn refuses it (#896).</summary>
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void A_sample_that_is_not_finite_is_refused(double value)
+    {
+        ArgumentException fit = Assert.Throws<ArgumentException>(() => KMeans.Fit([0.0, value, 3.0, 4.0], 1, 2));
+        KMeans model = KMeans.Fit(Line, 1, 2, new KMeansOptions { InitialCentres = [1.0, 11.0] });
+        ArgumentException predict = Assert.Throws<ArgumentException>(() => model.Predict([value]));
+
+        Assert.Equal("samples", fit.ParamName);
+        Assert.Equal("samples", predict.ParamName);
+    }
+
+    [Fact]
+    public void A_starting_centre_that_is_not_finite_is_refused()
+    {
+        Assert.Throws<ArgumentException>(() => KMeans.Fit(
+            Line, 1, 2, new KMeansOptions { InitialCentres = [1.0, double.NaN] }));
+    }
 }

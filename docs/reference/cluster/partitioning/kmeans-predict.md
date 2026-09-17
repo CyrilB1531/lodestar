@@ -12,7 +12,8 @@ public int[] Predict(ReadOnlySpan<double> samples)
 
 **Returns** — one cluster index per row.
 
-**Exceptions** — `ArgumentException` when `samples` holds no row, or a partial one.
+**Exceptions** — `ArgumentException` when `samples` holds no row, a partial one, or a `NaN` or
+infinite value.
 
 **Example** — rows the fit never saw.
 

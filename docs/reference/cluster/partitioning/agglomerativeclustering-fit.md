@@ -17,7 +17,8 @@ the reference.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` or `clusterCount` is not
 positive, when `clusterCount` exceeds the sample count, or when `linkage` is not a defined value.
-`ArgumentException` when `samples` holds fewer than two rows or a partial one.
+`ArgumentException` when `samples` holds fewer than two rows, a partial one, or a `NaN` or infinite
+value.
 
 **Example** — the same five points cut into three under complete linkage, where the labels show the
 reference's numbering.

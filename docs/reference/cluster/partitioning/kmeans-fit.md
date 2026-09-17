@@ -16,8 +16,8 @@ public static KMeans Fit(ReadOnlySpan<double> samples, int featureCount, int clu
 
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` or `clusterCount` is not
 positive, or `options` asks for fewer than one iteration. `ArgumentException` when `samples` holds
-no row or a partial one, when there are fewer rows than clusters, or when the given initial centres
-are the wrong shape.
+no row, a partial one or a `NaN` or infinite value, when there are fewer rows than clusters, or when
+the given initial centres are the wrong shape or not finite.
 
 **Example** — a starting centre no sample is nearest to leaves its cluster empty, and the fit
 recovers.
