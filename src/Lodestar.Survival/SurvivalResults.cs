@@ -79,9 +79,9 @@ public sealed record KaplanMeierCurve(
 /// <param name="Steps">The curve's steps, ascending in time, starting at zero.</param>
 /// <param name="CumulativeHazard">The cumulative hazard at each step.</param>
 /// <remarks>
-/// The hazard accumulates <c>d / n</c> at each step rather than multiplying survival
-/// fractions, so it keeps rising where a Kaplan-Meier curve that has reached zero can
-/// no longer move.
+/// A step with <c>d</c> events among <c>n</c> at risk adds <c>1/n + 1/(n - 1) + … + 1/(n - d + 1)</c>,
+/// not <c>d / n</c>, and the hazard sums those rather than multiplying survival fractions. So it
+/// keeps rising where a Kaplan-Meier curve that has reached zero can no longer move.
 /// </remarks>
 public sealed record NelsonAalenCurve(SurvivalStep[] Steps, double[] CumulativeHazard)
 {
