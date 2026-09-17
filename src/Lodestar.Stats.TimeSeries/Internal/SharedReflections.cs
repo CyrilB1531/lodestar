@@ -95,6 +95,39 @@ internal sealed class SharedReflections
         return total;
     }
 
+    /// <summary>Machine epsilon for <see cref="double"/>, which <see cref="double.Epsilon"/> is not.</summary>
+    private const double MachineEpsilon = 2.220446049250313e-16;
+
+    /// <summary>Refuses a design one of whose first <paramref name="order"/> columns lies within rounding of the span of those before it.</summary>
+    /// <remarks>
+    /// <c>|Rₖₖ|</c> over the column's norm, which the reflections keep in R's column, is the sine of its angle to that span.
+    /// Below <c>max(n, p)·ε</c>, <c>numpy.linalg.matrix_rank</c>'s tolerance and the one <c>Lodestar.Stats.Regression</c>'s
+    /// fits refuse at (#867), the pivot is rounding: a variable proportional to another gave VAR coefficients near 1e13 (#873).
+    /// </remarks>
+    internal void RequireFullRank(int order, string parameterName)
+    {
+        double tolerance = Math.Max(_rows, order) * MachineEpsilon;
+        for (int k = 0; k < order; k++)
+        {
+            int column = k * _rows;
+            double squaredNorm = 0.0;
+            for (int i = 0; i <= k; i++)
+            {
+                squaredNorm += _a[column + i] * _a[column + i];
+            }
+
+            // Not negated into a > test: a NaN from the caller's data is not a collinear column.
+            if (Math.Abs(_a[column + k]) <= tolerance * Math.Sqrt(squaredNorm))
+            {
+                throw new ArgumentException(
+                    $"the lagged design is rank-deficient or collinear: coefficient {k}'s column, intercept first when "
+                    + "one is fitted, lies within rounding of the span of the columns before it, so the fit has no unique "
+                    + "solution. Drop a variable that is a combination of the others.",
+                    parameterName);
+            }
+        }
+    }
+
     /// <summary>The inverse of R's leading <paramref name="order"/> block, row-major, by back substitution.</summary>
     internal double[] InverseUpper(int order)
     {

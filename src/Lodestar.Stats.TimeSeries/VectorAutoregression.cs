@@ -21,7 +21,7 @@ public static class VectorAutoregression
     /// <param name="options">Whether to fit a constant, or null for the reference's default of one.</param>
     /// <returns>The coefficients per equation with their errors, t statistics and p-values, the residual covariances, and the criteria.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="variableCount"/> is below two, or <paramref name="lagOrder"/> is below one.</exception>
-    /// <exception cref="ArgumentException"><paramref name="series"/> is not a whole number of observations, holds a non-finite value, or leaves no residual degree of freedom after the lags are taken.</exception>
+    /// <exception cref="ArgumentException"><paramref name="series"/> is not a whole number of observations, holds a non-finite value, leaves no residual degree of freedom after the lags are taken, or gives a lagged design with a column collinear with the columns before it.</exception>
     /// <remarks>
     /// The p-values read the normal, as the reference's do, and no intervals are reported because the reference
     /// publishes none for this model.
@@ -54,6 +54,7 @@ public static class VectorAutoregression
         // Every equation shares the design, so one QR and one inverse of R serve them all.
         var reflections = new SharedReflections(design, parameters, withIntercept: false, responses);
         reflections.ReflectThrough(parameters);
+        reflections.RequireFullRank(parameters, nameof(series));
         double[] inverse = reflections.InverseUpper(parameters);
         double[] squaredNorms = SharedReflections.SquaredNorms(inverse, parameters);
         for (int equation = 0; equation < variableCount; equation++)
