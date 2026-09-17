@@ -21,7 +21,8 @@ defaults.
 zero upward, and the band around it.
 
 **Exceptions** — `ArgumentException` when `series` holds fewer than two points, is constant, or
-carries a non-finite value; or when `lagCount` is below one or reaches `series.Length`.
+carries a non-finite value; or when `lagCount` reaches `series.Length`. `ArgumentOutOfRangeException` when
+`lagCount` is below one.
 
 **Example** — a sawtooth series, and its first four lags.
 

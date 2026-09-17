@@ -96,4 +96,27 @@ public sealed class StationarityEdgeTests
         Assert.True(Stationarity.Kpss(walk).PValue < 0.05);
     }
 #pragma warning restore S2245, CA5394
+
+    [Fact]
+    public void A_short_series_without_trend_terms_is_refused_by_name()
+    {
+        // The widest default candidate fitted 10 parameters to 10 rows and failed naming "design" (#907).
+        double[] series = [.. Enumerable.Range(0, 20).Select(i => Math.Sin(i) + (i * 0.1))];
+
+        ArgumentException byDefault = Assert.Throws<ArgumentException>(
+            () => Stationarity.AugmentedDickeyFuller(series, new DickeyFullerOptions { Regression = TrendTerms.None }));
+        ArgumentException byMaxLag = Assert.Throws<ArgumentException>(
+            () => Stationarity.AugmentedDickeyFuller(series, new DickeyFullerOptions { Regression = TrendTerms.None, MaxLag = 9 }));
+
+        Assert.Equal("series", byDefault.ParamName);
+        Assert.Equal("options", byMaxLag.ParamName);
+    }
+
+    [Fact]
+    public void Undeclared_option_values_are_refused_where_they_are_set()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new DickeyFullerOptions { Regression = (TrendTerms)42 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new DickeyFullerOptions { LagSelection = (LagSelection)42 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SeasonalDecompositionOptions { Model = (SeasonalModel)42 });
+    }
 }

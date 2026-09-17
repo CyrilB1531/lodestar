@@ -4,9 +4,24 @@ namespace Lodestar.Stats.TimeSeries;
 public sealed record SeasonalDecompositionOptions
 {
     private int _extrapolateTrend;
+    private SeasonalModel _model = SeasonalModel.Additive;
 
     /// <summary>Additive (the default) or multiplicative.</summary>
-    public SeasonalModel Model { get; init; } = SeasonalModel.Additive;
+    /// <exception cref="ArgumentOutOfRangeException">A value <see cref="SeasonalModel"/> does not declare.</exception>
+    public SeasonalModel Model
+    {
+        get => _model;
+        init
+        {
+            // An undeclared value used to decompose additively without saying so (#907).
+            if (value is not (SeasonalModel.Additive or SeasonalModel.Multiplicative))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Not a seasonal model.");
+            }
+
+            _model = value;
+        }
+    }
 
     /// <summary>Whether the moving average is centred (the default) or trails the point.</summary>
     public bool TwoSided { get; init; } = true;

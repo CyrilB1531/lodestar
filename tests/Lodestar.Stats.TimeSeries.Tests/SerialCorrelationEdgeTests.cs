@@ -56,7 +56,7 @@ public sealed class SerialCorrelationEdgeTests
     [InlineData(-1)]
     public void A_lag_count_below_one_is_refused(int lagCount)
     {
-        ArgumentException refusal = Assert.Throws<ArgumentException>(
+        ArgumentOutOfRangeException refusal = Assert.Throws<ArgumentOutOfRangeException>(
             () => SerialCorrelation.Autocorrelation(Series, lagCount));
 
         Assert.Equal("lagCount", refusal.ParamName);
@@ -265,5 +265,14 @@ public sealed class SerialCorrelationEdgeTests
             Assert.Equal(expected[lag], result.Statistics[lag], expected[lag] * 1e-9);
         }
         Assert.Equal(0.0011103501853379936, result.PValues[0], 0.0011103501853379936 * 1e-9);
+    }
+
+    [Fact]
+    public void A_lag_count_below_one_is_out_of_range_for_every_correlation()
+    {
+        // The sibling counts, VAR's lagOrder and the seasonal period, already threw this type (#907).
+        Assert.Equal("lagCount", Assert.Throws<ArgumentOutOfRangeException>(() => SerialCorrelation.Autocorrelation(Series, 0)).ParamName);
+        Assert.Equal("lagCount", Assert.Throws<ArgumentOutOfRangeException>(() => SerialCorrelation.PartialAutocorrelation(Series, 0)).ParamName);
+        Assert.Equal("lagCount", Assert.Throws<ArgumentOutOfRangeException>(() => SerialCorrelation.LjungBox(Series, 0)).ParamName);
     }
 }

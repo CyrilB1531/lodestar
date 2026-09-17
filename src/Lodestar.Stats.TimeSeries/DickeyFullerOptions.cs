@@ -4,12 +4,42 @@ namespace Lodestar.Stats.TimeSeries;
 public sealed record DickeyFullerOptions
 {
     private int? _maxLag;
+    private TrendTerms _regression = TrendTerms.Constant;
+    private LagSelection _lagSelection = LagSelection.Akaike;
 
     /// <summary>The deterministic terms of the regression. Default <see cref="TrendTerms.Constant"/>.</summary>
-    public TrendTerms Regression { get; init; } = TrendTerms.Constant;
+    /// <exception cref="ArgumentOutOfRangeException">A value <see cref="TrendTerms"/> does not declare.</exception>
+    public TrendTerms Regression
+    {
+        get => _regression;
+        init
+        {
+            // An undeclared value used to fail later, naming a parameter the caller never passed (#907).
+            if (value is not (TrendTerms.None or TrendTerms.Constant or TrendTerms.ConstantAndTrend or TrendTerms.ConstantAndQuadraticTrend))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Not a trend specification.");
+            }
+
+            _regression = value;
+        }
+    }
 
     /// <summary>How the lag order is chosen. Default <see cref="LagSelection.Akaike"/>.</summary>
-    public LagSelection LagSelection { get; init; } = LagSelection.Akaike;
+    /// <exception cref="ArgumentOutOfRangeException">A value <see cref="LagSelection"/> does not declare.</exception>
+    public LagSelection LagSelection
+    {
+        get => _lagSelection;
+        init
+        {
+            // An undeclared value used to search by Akaike's criterion without saying so (#907).
+            if (value is not (LagSelection.Akaike or LagSelection.Schwarz or LagSelection.TStatistic or LagSelection.Fixed))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Not a lag selection rule.");
+            }
+
+            _lagSelection = value;
+        }
+    }
 
     /// <summary>
     /// The largest lag the search considers, or the lag itself under <see cref="LagSelection.Fixed"/>.

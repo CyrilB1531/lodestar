@@ -13,8 +13,8 @@ public sealed record SeasonalDecompositionOptions
 trails the point. `ExtrapolateTrend` is how many of the nearest defined trend points, less one, fit
 the lines that fill the trend's undefined ends; `0` by default, which leaves them `NaN`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `ExtrapolateTrend` is negative, checked where the
-value is set.
+**Exceptions** — `ArgumentOutOfRangeException` when `ExtrapolateTrend` is negative, or `Model` is a
+value `SeasonalModel` does not declare, checked where the value is set.
 
 **Example** — the ends filled by lines through the nearest two defined points.
 

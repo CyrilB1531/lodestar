@@ -23,7 +23,8 @@ public static class Stationarity
     /// <returns>The statistic, MacKinnon's p-value and critical values, and the lag the regression used.</returns>
     /// <exception cref="ArgumentException">
     /// <paramref name="series"/> carries a non-finite value, is constant, or is too short for its trend
-    /// terms; or <paramref name="options"/> asks for a maximum lag above <c>n/2 − terms − 1</c>.
+    /// terms and default lag; or <paramref name="options"/> asks for a maximum lag above <c>n/2 − terms − 1</c>
+    /// or one that leaves the widest regression no degree of freedom.
     /// </exception>
     public static DickeyFullerResult AugmentedDickeyFuller(
         ReadOnlySpan<double> series, DickeyFullerOptions? options = null)
@@ -263,21 +264,24 @@ public static class Stationarity
         int ceiling = (n / 2) - terms - 1;
         if (settings.MaxLag is int given)
         {
-            if (given > ceiling)
+            if (given > ceiling || n - (2 * given) - terms - 2 < 1)
             {
                 throw new ArgumentException(
-                    $"a maximum lag of {given} is above the {ceiling} a series of {n} supports with {terms} "
-                    + "trend terms: n/2 − terms − 1.", optionsName);
+                    $"a maximum lag of {given} leaves a series of {n} with {terms} trend terms no degree of "
+                    + $"freedom; at most {Math.Min(ceiling, (n - terms - 3) / 2)} does.", optionsName);
             }
 
             return given;
         }
 
         int schwert = Math.Min(ceiling, SchwertLag(n));
-        if (schwert < 0)
+        // The widest candidate fits terms + lag + 1 parameters to n − lag − 1 rows; with none to spare, the
+        // regression refused it naming a design the caller never passed (#907). statsmodels answers rank-deficient.
+        if (schwert < 0 || n - (2 * schwert) - terms - 2 < 1)
         {
             throw new ArgumentException(
-                $"a series of {n} is too short for {terms} trend terms and a lagged level.", seriesName);
+                $"a series of {n} is too short for {terms} trend terms, a lagged level and the lags the default "
+                + "search tries: set MaxLag lower, or use a longer series.", seriesName);
         }
 
         return schwert;

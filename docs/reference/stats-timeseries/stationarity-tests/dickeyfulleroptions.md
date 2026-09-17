@@ -14,8 +14,8 @@ chosen, a [`LagSelection`](lagselection.md); `Akaike` by default. `MaxLag` is th
 search considers, or the lag itself under `LagSelection.Fixed`; null by default, which takes
 Schwert's `ceil(12·(n/100)^¼)` capped at `n/2 − terms − 1`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `MaxLag` is negative, checked where the value is
-set.
+**Exceptions** — `ArgumentOutOfRangeException` when `MaxLag` is negative, or `Regression` or
+`LagSelection` is a value its enum does not declare, checked where the value is set.
 
 **Example** — Schwarz's criterion picks the same lag as Akaike's on this series, and reports its own
 value.

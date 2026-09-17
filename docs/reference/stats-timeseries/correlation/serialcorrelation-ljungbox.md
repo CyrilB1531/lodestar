@@ -16,7 +16,8 @@ parameter count and whether Box-Pierce is reported beside Ljung-Box, or null for
 lag 1.
 
 **Exceptions** — `ArgumentException` when `series` holds fewer than two points, is constant, or
-carries a non-finite value; or when `lagCount` is below one or reaches `series.Length`.
+carries a non-finite value; or when `lagCount` reaches `series.Length`. `ArgumentOutOfRangeException` when
+`lagCount` is below one.
 
 **Example** — the same sawtooth series
 [`Autocorrelation`](serialcorrelation-autocorrelation.md) reads, tested to lag 4.

@@ -16,7 +16,8 @@ Schwert's maximum lag.
 critical values, and the lag the regression used.
 
 **Exceptions** — `ArgumentException` when `series` carries a non-finite value, is constant, or is
-too short for its trend terms; or when `options` asks for a maximum lag above `n/2 − terms − 1`.
+too short for its trend terms and default lag; or when `options` asks for a maximum lag above
+`n/2 − terms − 1` or one that leaves the widest regression no degree of freedom.
 
 **Example** — a drifting series of 24 points. The lag search keeps three lagged differences, so the
 regression fits 20 rows.
