@@ -25,6 +25,7 @@ public class SimilaritySketchBenchmarks
 
     private string[][] _documents = [];
     private MinHashPermutations _permutations = null!;
+    private MinHashPermutations _affinePermutations = null!;
     private LshBanding _banding;
 
     /// <summary>Documents in the corpus. The pair count is this squared over two.</summary>
@@ -60,6 +61,9 @@ public class SimilaritySketchBenchmarks
         }
 
         _permutations = new MinHashPermutations(multipliers, addends);
+        ulong[] affineMultipliers = [.. multipliers.Select(value => (value & uint.MaxValue) | 1UL)];
+        ulong[] affineAddends = [.. addends.Select(value => value & uint.MaxValue)];
+        _affinePermutations = new MinHashPermutations(affineMultipliers, affineAddends, MinHashScheme.Affine32);
         _banding = LshBanding.Solve(0.5, Permutations);
     }
 
@@ -121,6 +125,20 @@ public class SimilaritySketchBenchmarks
     public int SignaturesOnly()
     {
         var hasher = new MinHash(_permutations);
+        int total = 0;
+        foreach (string[] document in _documents)
+        {
+            total += hasher.Signature(document).Length;
+        }
+
+        return total;
+    }
+
+    /// <summary>The signatures under the affine-32 scheme, whose permutation loop has no division.</summary>
+    [Benchmark]
+    public int AffineSignaturesOnly()
+    {
+        var hasher = new MinHash(_affinePermutations);
         int total = 0;
         foreach (string[] document in _documents)
         {

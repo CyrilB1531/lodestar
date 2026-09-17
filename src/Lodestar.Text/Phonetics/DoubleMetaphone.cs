@@ -663,16 +663,15 @@ public static class DoubleMetaphone
 
     /// <summary>Whether <paramref name="w"/> looks Slavic or Germanic, which several rules turn on.</summary>
     /// <remarks>
-    /// Scanned with <see cref="StringAt"/> rather than <c>string.Contains</c> because the
-    /// comparison overload that takes a <see cref="StringComparison"/> does not exist on
-    /// netstandard2.0, and this package ships one API at two target frameworks.
-    /// "WITZ" is subsumed by "W" and is listed anyway, so the set matches the published rule.
+    /// The published rule is <c>W</c>, <c>K</c>, <c>CZ</c> or <c>WITZ</c>; "WITZ" is subsumed by
+    /// "W", so it is not tested. Compared a character at a time rather than through
+    /// <see cref="StringAt"/>, which would build its candidate list once per character.
     /// </remarks>
     private static bool IsSlavoGermanic(string w)
     {
         for (int i = 0; i < w.Length; i++)
         {
-            if (w[i] is 'W' or 'K' || StringAt(w, i, "CZ", "WITZ"))
+            if (w[i] is 'W' or 'K' || (w[i] == 'C' && i + 1 < w.Length && w[i + 1] == 'Z'))
             {
                 return true;
             }
@@ -686,7 +685,7 @@ public static class DoubleMetaphone
     /// backwards freely ("current - 4") and read the absence of context as a failed match, which
     /// is what the published description does with its own padded buffer.
     /// </remarks>
-    private static bool StringAt(string w, int start, params string[] candidates)
+    private static bool StringAt(string w, int start, params ReadOnlySpan<string> candidates)
     {
         if (start < 0)
         {

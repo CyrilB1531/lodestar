@@ -1,5 +1,4 @@
 using Lodestar.Abstractions;
-using System.Text;
 
 namespace Lodestar.Text.Vectorization;
 
@@ -60,34 +59,11 @@ public sealed partial class HashingVectorizer
         var values = new List<double>();
         var columns = new List<int>();
 
+        var terms = new HashedTerms(new HashTally(nf, _options.AlternateSign));
         for (int row = 0; row < docs.Count; row++)
         {
-            var accumulator = new Dictionary<int, double>();
-            foreach (string term in _analyzer.Analyze(docs[row]))
-            {
-                int h = MurmurHash3.Hash32(Encoding.UTF8.GetBytes(term));
-                int index = (int)(Math.Abs((long)h) % nf);
-                double sign = _options.AlternateSign && h < 0 ? -1.0 : 1.0;
-                accumulator[index] = accumulator.TryGetValue(index, out double v) ? v + sign : sign;
-            }
-
-            foreach (int col in accumulator.Keys.OrderBy(c => c))
-            {
-                double value = accumulator[col];
-
-                // SonarLint S1244: this decides what the sparse matrix stores, and
-                // "stored" means "not exactly zero". Every accumulated value is a sum
-                // of ±1, so exact cancellation is the ordinary outcome when
-                // AlternateSign sends two terms to the same column — and it is
-                // representable. A tolerance would drop real entries.
-#pragma warning disable S1244
-                if (value != 0.0)
-#pragma warning restore S1244
-                {
-                    columns.Add(col);
-                    values.Add(value);
-                }
-            }
+            _analyzer.Analyze(docs[row], ref terms);
+            terms.Tally.DrainNonZero(columns, values);
             rowPointers[row + 1] = values.Count;
         }
 

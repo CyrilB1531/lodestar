@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Lodestar.Text.Vectorization;
 
 namespace Lodestar.Text.Similarity;
@@ -27,6 +25,12 @@ public sealed class MinHash
 
     private readonly MinHashPermutations _permutations;
 
+    /// <summary>The affine-32 coefficients cut to their width once, empty under the legacy scheme.</summary>
+    private readonly uint[] _a32;
+
+    /// <summary>The affine-32 addends, in the order of <see cref="_a32"/>.</summary>
+    private readonly uint[] _b32;
+
     /// <summary>How long a signature this produces.</summary>
     public int Length => _permutations.Count;
 
@@ -37,6 +41,18 @@ public sealed class MinHash
     {
         Guard.NotNull(permutations);
         _permutations = permutations;
+        _a32 = [];
+        _b32 = [];
+        if (permutations.Scheme == MinHashScheme.Affine32)
+        {
+            _a32 = new uint[permutations.Count];
+            _b32 = new uint[permutations.Count];
+            for (int i = 0; i < _a32.Length; i++)
+            {
+                _a32[i] = (uint)permutations.Multipliers[i];
+                _b32[i] = (uint)permutations.Addends[i];
+            }
+        }
     }
 
     /// <summary>The signature of a set of tokens.</summary>
@@ -57,40 +73,93 @@ public sealed class MinHash
         }
 
         bool affine = _permutations.Scheme == MinHashScheme.Affine32;
+        using TokenDigest digest = TokenDigest.Sha1();
+        Span<byte> bytes = stackalloc byte[20];
         foreach (string token in tokens)
         {
             Guard.NotNull(token);
-            ulong hash = Hash32(token);
-            // Once per token, not per permutation: a weakly hashed input must not ride its
-            // own structure through an affine map, which the prime modulus used to absorb.
-            uint mixed = affine ? MurmurHash3.Fmix((uint)hash) : 0u;
-
-            for (int i = 0; i < signature.Length; i++)
+            ulong hash = Hash32(digest, token, bytes);
+            if (affine)
             {
-                // long-comment: which wrap is the specification, and why one branch divides.
-                // The reference multiplies in unsigned arithmetic and relies on the overflow,
-                // so it is the contract rather than an accident -- in 64 bits for the Mersenne
-                // reduction below, and in 32 for the affine one, where the wrap *is* the modulo
-                // and nothing is divided at all.
-                uint candidate;
-                unchecked
-                {
-                    candidate = affine
-                        ? ((uint)_permutations.Multiplier(i) * mixed) + (uint)_permutations.Addend(i)
-                        : (uint)((((_permutations.Multiplier(i) * hash) + _permutations.Addend(i))
-                            % MersennePrime) & Mask32);
-                }
-
-                if (candidate < signature[i])
-                {
-                    signature[i] = candidate;
-                }
+                // Once per token, not per permutation: a weakly hashed input must not ride its
+                // own structure through an affine map, which the prime modulus used to absorb.
+                MinAffine(signature, MurmurHash3.Fmix((uint)hash));
+            }
+            else
+            {
+                MinLegacy(signature, hash);
             }
         }
 
         return signature;
     }
 
+    // long-comment: which wrap is the specification, and why one branch divides.
+    // The reference multiplies in unsigned arithmetic and relies on the overflow,
+    // so it is the contract rather than an accident -- in 64 bits for the Mersenne
+    // reduction below, and in 32 for the affine one, where the wrap *is* the modulo
+    // and nothing is divided at all.
+    private void MinLegacy(Span<uint> signature, ulong hash)
+    {
+        ReadOnlySpan<ulong> a = _permutations.Multipliers;
+        ReadOnlySpan<ulong> b = _permutations.Addends;
+        for (int i = 0; i < signature.Length; i++)
+        {
+            uint candidate;
+            unchecked
+            {
+                // x % (2^61 - 1) without dividing: 2^61 is 1 modulo the prime, so the high three
+                // bits fold onto the low 61, and the sum is below twice the prime.
+                ulong x = (a[i] * hash) + b[i];
+                ulong reduced = (x & MersennePrime) + (x >> 61);
+                if (reduced >= MersennePrime)
+                {
+                    reduced -= MersennePrime;
+                }
+
+                candidate = (uint)(reduced & Mask32);
+            }
+
+            if (candidate < signature[i])
+            {
+                signature[i] = candidate;
+            }
+        }
+    }
+
+    private void MinAffine(uint[] signature, uint mixed)
+    {
+        int i = 0;
+#if NET8_0_OR_GREATER
+        int width = System.Numerics.Vector<uint>.Count;
+        if (System.Numerics.Vector.IsHardwareAccelerated && signature.Length >= width)
+        {
+            // Wrapping 32-bit multiply, add and an unsigned minimum: exact integer arithmetic, so
+            // the vector lanes give the scalar loop's values.
+            var factor = new System.Numerics.Vector<uint>(mixed);
+            for (; i <= signature.Length - width; i += width)
+            {
+                System.Numerics.Vector<uint> candidate =
+                    (new System.Numerics.Vector<uint>(_a32, i) * factor) + new System.Numerics.Vector<uint>(_b32, i);
+                System.Numerics.Vector.Min(new System.Numerics.Vector<uint>(signature, i), candidate)
+                    .CopyTo(signature, i);
+            }
+        }
+#endif
+        for (; i < signature.Length; i++)
+        {
+            uint candidate;
+            unchecked
+            {
+                candidate = (_a32[i] * mixed) + _b32[i];
+            }
+
+            if (candidate < signature[i])
+            {
+                signature[i] = candidate;
+            }
+        }
+    }
 
     /// <summary>The estimated Jaccard similarity of two signatures.</summary>
     /// <param name="left">One signature.</param>
@@ -122,29 +191,12 @@ public sealed class MinHash
     /// SHA-1 is used as a hash function here and not as a signature; the reference exports
     /// this as <c>sha1_hash32</c>, so it is part of the contract rather than an internal.
     /// </remarks>
-    // long-comment: CA5350 and S4790 both read this as weak cryptography, and neither
-    // applies. SHA-1 is used here to spread tokens over 32 bits, never to sign, seal or
-    // authenticate anything: nothing downstream trusts a signature, and a collision costs
-    // an over-estimated similarity rather than a forged one. The reference exports the
-    // same construction as sha1_hash32, so every frozen value in the corpus depends on it
-    // -- a stronger digest would be a different algorithm and would fail the parity tests
-    // that give this type its meaning, not fix a weakness. Both branches below are the one
-    // call, so both rules are disabled across the pair.
-#pragma warning disable CA5350, S4790
-    private static ulong Hash32(string token)
+    private static ulong Hash32(TokenDigest digest, string token, Span<byte> bytes)
     {
-        byte[] bytes = Encoding.UTF8.GetBytes(token);
-#if NET6_0_OR_GREATER
-        Span<byte> digest = stackalloc byte[20];
-        SHA1.HashData(bytes, digest);
-#else
-        using SHA1 sha1 = SHA1.Create();
-        byte[] digest = sha1.ComputeHash(bytes);
-#endif
-        return (ulong)digest[0]
-            | ((ulong)digest[1] << 8)
-            | ((ulong)digest[2] << 16)
-            | ((ulong)digest[3] << 24);
+        digest.Compute(token, bytes);
+        return (ulong)bytes[0]
+            | ((ulong)bytes[1] << 8)
+            | ((ulong)bytes[2] << 16)
+            | ((ulong)bytes[3] << 24);
     }
-#pragma warning restore CA5350, S4790
 }

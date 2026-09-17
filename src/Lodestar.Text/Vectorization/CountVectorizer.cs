@@ -150,32 +150,23 @@ public sealed partial class CountVectorizer
         var docs = documents as IReadOnlyList<string> ?? documents.ToList();
         int nDocs = docs.Count;
 
-        // First pass: provisional vocabulary (first-seen order) and per-document counts.
-        var provisional = new Dictionary<string, int>(StringComparer.Ordinal);
-        var perDoc = new List<Dictionary<int, int>>(nDocs);
-        foreach (string doc in docs)
+        // First pass: provisional vocabulary (first-seen order) and per-document counts,
+        // stored flat as (provisional column, count) pairs in first-seen order per document.
+        var provisional = new ProvisionalCounts(new Dictionary<string, int>(StringComparer.Ordinal));
+        var perDoc = new List<(int Column, int Count)>();
+        var docStart = new int[nDocs + 1];
+        for (int row = 0; row < nDocs; row++)
         {
-            var counts = new Dictionary<int, int>();
-            foreach (string term in _analyzer.Analyze(doc))
-            {
-                if (!provisional.TryGetValue(term, out int col))
-                {
-                    col = provisional.Count;
-                    provisional[term] = col;
-                }
-                counts[col] = counts.TryGetValue(col, out int c) ? c + 1 : 1;
-            }
-            perDoc.Add(counts);
+            _analyzer.Analyze(docs[row], ref provisional);
+            provisional.Tally.Drain(perDoc);
+            docStart[row + 1] = perDoc.Count;
         }
 
         // Document frequencies over the provisional columns.
-        var df = new int[provisional.Count];
-        foreach (Dictionary<int, int> counts in perDoc)
+        var df = new int[provisional.Terms.Count];
+        foreach ((int col, _) in perDoc)
         {
-            foreach (int col in counts.Keys)
-            {
-                df[col]++;
-            }
+            df[col]++;
         }
 
         // Document-frequency limits (sklearn _limit_features semantics).
@@ -184,7 +175,7 @@ public sealed partial class CountVectorizer
 
         // Kept terms, sorted -> final column index.
         var kept = new List<string>();
-        foreach (KeyValuePair<string, int> entry in provisional)
+        foreach (KeyValuePair<string, int> entry in provisional.Terms)
         {
             string term = entry.Key;
             int col = entry.Value;
@@ -203,15 +194,15 @@ public sealed partial class CountVectorizer
         }
 
         // Map provisional columns to final columns (or -1 if dropped).
-        var remap = new int[provisional.Count];
-        foreach (KeyValuePair<string, int> entry in provisional)
+        var remap = new int[provisional.Terms.Count];
+        foreach (KeyValuePair<string, int> entry in provisional.Terms)
         {
             string term = entry.Key;
             int col = entry.Value;
             remap[col] = _vocabulary.TryGetValue(term, out int finalCol) ? finalCol : -1;
         }
 
-        return BuildMatrix(perDoc, remap, _featureNames.Length);
+        return BuildMatrix(perDoc, docStart, remap, _featureNames.Length);
     }
 
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
@@ -226,56 +217,58 @@ public sealed partial class CountVectorizer
         var values = new List<double>();
         var columns = new List<int>();
 
+        var counts = new VocabularyCounts(_vocabulary!);
         for (int row = 0; row < docs.Count; row++)
         {
-            var counts = new Dictionary<int, int>();
-            foreach (string term in _analyzer.Analyze(docs[row]))
-            {
-                if (_vocabulary!.TryGetValue(term, out int col))
-                {
-                    counts[col] = counts.TryGetValue(col, out int c) ? c + 1 : 1;
-                }
-            }
-            AppendRow(counts, values, columns);
+            _analyzer.Analyze(docs[row], ref counts);
+            counts.Tally.DrainSorted(columns, values, _options.Binary);
             rowPointers[row + 1] = values.Count;
         }
 
         return CsrMatrix.CreateUnchecked(docs.Count, _featureNames.Length, values.ToArray(), columns.ToArray(), rowPointers);
     }
 
-    private CsrMatrix BuildMatrix(List<Dictionary<int, int>> perDoc, int[] remap, int columnCount)
+    private CsrMatrix BuildMatrix(List<(int Column, int Count)> perDoc, int[] docStart, int[] remap, int columnCount)
     {
-        var rowPointers = new int[perDoc.Count + 1];
+        int nDocs = docStart.Length - 1;
+        var rowPointers = new int[nDocs + 1];
         var values = new List<double>();
         var columns = new List<int>();
+        int[] finalColumns = [];
+        int[] finalCounts = [];
 
-        for (int row = 0; row < perDoc.Count; row++)
+        for (int row = 0; row < nDocs; row++)
         {
-            var mapped = new Dictionary<int, int>();
-            foreach (KeyValuePair<int, int> entry in perDoc[row])
+            int size = docStart[row + 1] - docStart[row];
+            if (finalColumns.Length < size)
             {
-                int provCol = entry.Key;
-                int count = entry.Value;
-                int finalCol = remap[provCol];
+                finalColumns = new int[Math.Max(size, finalColumns.Length * 2)];
+                finalCounts = new int[finalColumns.Length];
+            }
+
+            int mapped = 0;
+            for (int i = docStart[row]; i < docStart[row + 1]; i++)
+            {
+                int finalCol = remap[perDoc[i].Column];
                 if (finalCol >= 0)
                 {
-                    mapped[finalCol] = count;
+                    finalColumns[mapped] = finalCol;
+                    finalCounts[mapped] = perDoc[i].Count;
+                    mapped++;
                 }
             }
-            AppendRow(mapped, values, columns);
+
+            // Final columns are distinct within a row, so the unstable sort has no tie to break.
+            Array.Sort(finalColumns, finalCounts, 0, mapped);
+            for (int i = 0; i < mapped; i++)
+            {
+                columns.Add(finalColumns[i]);
+                values.Add(_options.Binary ? 1.0 : finalCounts[i]);
+            }
             rowPointers[row + 1] = values.Count;
         }
 
-        return CsrMatrix.CreateUnchecked(perDoc.Count, columnCount, values.ToArray(), columns.ToArray(), rowPointers);
-    }
-
-    private void AppendRow(Dictionary<int, int> counts, List<double> values, List<int> columns)
-    {
-        foreach (int col in counts.Keys.OrderBy(c => c))
-        {
-            columns.Add(col);
-            values.Add(_options.Binary ? 1.0 : counts[col]);
-        }
+        return CsrMatrix.CreateUnchecked(nDocs, columnCount, values.ToArray(), columns.ToArray(), rowPointers);
     }
 
     private void EnsureFitted()

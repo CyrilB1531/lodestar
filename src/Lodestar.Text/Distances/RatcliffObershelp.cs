@@ -63,6 +63,7 @@ public static class RatcliffObershelp
         }
 
         int width = b.Length;
+        int longest = Math.Min(a.Length, width);
         int[] rented = ArrayPool<int>.Shared.Rent(width);
         try
         {
@@ -84,6 +85,11 @@ public static class RatcliffObershelp
                         bestSize = run;
                         bestI = i - run + 1;
                         bestJ = j - run + 1;
+                        if (run == longest)
+                        {
+                            // No later run can be strictly longer, so the block is final.
+                            return;
+                        }
                     }
                     diagonal = here;
                 }

@@ -328,6 +328,17 @@
     ],
     "KsExactTableBenchmarks": [
       "src/Lodestar.Stats/**"
+    ],
+    "OsaBenchmarks": [
+      "src/Lodestar.Text/Distances/**",
+      "src/Lodestar.Text/Text/**"
+    ],
+    "RatcliffObershelpBenchmarks": [
+      "src/Lodestar.Text/Distances/**",
+      "src/Lodestar.Text/Text/**"
+    ],
+    "DoubleMetaphoneBenchmarks": [
+      "src/Lodestar.Text/Phonetics/**"
     ]
   },
   "harnesses": {
