@@ -5,8 +5,9 @@ namespace Lodestar.Stats.Internal;
 /// One continued fraction serves three families: a t-test's p-value is a
 /// Student tail, an ANOVA's is a Fisher tail, and both are the incomplete beta
 /// under a change of variable. Written from the published description and
-/// evaluated by modified Lentz (1976); no reference implementation is
-/// transcribed (ADR 0003).
+/// evaluated by modified Lentz (1976), except with one shape large and the other
+/// small, where DiDonato and Morris's asymptotic expansion takes over (#841); no
+/// reference implementation is transcribed (ADR 0003).
 /// </remarks>
 internal static class Beta
 {
@@ -19,7 +20,27 @@ internal static class Beta
     private const double Epsilon = 3e-16;
     private const double Tiny = 1e-300;
 
-    internal static double RegularizedIncomplete(double a, double b, double x)
+    // Where the large-shape expansion takes over from the fraction: why is in IsLargeShapeRegion.
+    private const double LargeShapeMinimum = 1000.0;
+
+    // A guard, not the stopping rule: no point of the #841 grids took more than 22 terms.
+    private const int MaxExpansionTerms = 64;
+
+    // Each order of LogShapeRatio is at most 1/400 of the last inside the region, so ten reach 1e-26.
+    private const int ShapeRatioOrders = 10;
+
+    private static readonly double[] BernoulliRatios = BuildBernoulliRatios();
+    private static readonly double[] ShapeRatioCoefficients = BuildShapeRatioCoefficients();
+
+    internal static double RegularizedIncomplete(double a, double b, double x) =>
+        RegularizedIncomplete(a, b, x, 1.0 - x);
+
+    /// <summary>I_x(a, b), given y = 1 - x as the caller formed it more exactly than 1 - x would be.</summary>
+    /// <remarks>
+    /// Near x = 1 the rounding of x is a relative error of 1e-16 / y in y, which is what the tail
+    /// depends on: a Student argument df / (df + t^2) at df = 2e8 and t = 1 leaves y 1e-8 off.
+    /// </remarks>
+    internal static double RegularizedIncomplete(double a, double b, double x, double y)
     {
         if (double.IsNaN(a) || a <= 0.0)
         {
@@ -43,7 +64,19 @@ internal static class Beta
             return x;
         }
 
-        double front = Front(a, b, x);
+        // S2234: the swapped (b, a, y, x) is the reflection I_x(a, b) = 1 - I_y(b, a), as below.
+#pragma warning disable S2234
+        if (IsLargeShapeRegion(a, b, x))
+        {
+            return LargeShapeExpansion(a, b, x, y, reflected: false);
+        }
+        if (IsLargeShapeRegion(b, a, y))
+        {
+            return LargeShapeExpansion(b, a, y, x, reflected: true);
+        }
+#pragma warning restore S2234
+
+        double front = Front(a, b, x, y);
 
         // The fraction converges quickly only on the side of the distribution's
         // mode; past it the reflection is the fast branch, not a fallback. The
@@ -52,8 +85,176 @@ internal static class Beta
 #pragma warning disable S2234
         return x < (a + 1.0) / (a + b + 2.0)
             ? front / (a * ContinuedFraction(a, b, x))
-            : 1.0 - (front / (b * ContinuedFraction(b, a, 1.0 - x)));
+            : 1.0 - (front / (b * ContinuedFraction(b, a, y)));
 #pragma warning restore S2234
+    }
+
+    /// <summary>Whether <see cref="LargeShapeExpansion"/> holds I_x(a, b), a being the large shape.</summary>
+    /// <remarks>
+    /// Its terms fall by about b^3 / (24 a^2) near the mean and (log(x) / 2 pi)^2 away from it, so
+    /// b^3 &lt;= a^2 and x &gt;= 1/2 bound both. From a = 1000 the fraction's log-gamma prefactor and
+    /// cancellation cost 1e-12, growing to 3e-6 at a = 1e8 (#841), where the expansion held 3e-13
+    /// against exact sums and scipy and was at most 6% slower than the fraction. Below it the fraction
+    /// is kept: its error stays under 5e-12, and the expansion was up to 90% slower at a = 100.
+    /// </remarks>
+    private static bool IsLargeShapeRegion(double a, double b, double x) =>
+        a >= LargeShapeMinimum && b * b * b <= a * a && x >= 0.5;
+
+    /// <summary>I_x(a, b) for a large and b small, or 1 - I_x(a, b) when <paramref name="reflected"/>.</summary>
+    /// <remarks>
+    /// DiDonato and Morris's BGRAT (1992), in Temme's form (Special Functions, 1996, 11.3.3): with
+    /// x = e^-z and N = a + (b - 1)/2, (1 - e^-u)^(b-1) e^-au = e^-Nu u^(b-1) (sinh(u/2)/(u/2))^(b-1),
+    /// whose even series integrates term by term into Gamma(a + b)/(Gamma(a) N^b) times the sum of
+    /// c_k (b)_2k N^-2k R(b + 2k, Nz). R is Q, for I, or P, for its complement, whichever is under
+    /// about a half at k = 0, so that R runs by positive steps or loses only what its term shrinks.
+    /// z = -log(1 - y) takes its last digits from y, the more exact of the pair near x = 1.
+    /// </remarks>
+    private static double LargeShapeExpansion(double a, double b, double x, double y, bool reflected)
+    {
+        double n = a + (0.5 * (b - 1.0));
+
+        // -log(1 - y) as -log(x) less the gap between the two complements, exact by Sterbenz at x >= 1/2.
+        double z = -Math.Log(x) - ((1.0 - x - y) / x);
+        double w = n * z;
+
+        // log(Gamma(a + b) / (Gamma(a) N^b)), about -b^3 / (24 N^2): see LogShapeRatio.
+        double logRatio = LogShapeRatio(n, 0.5 * b);
+
+        bool upper = w >= b;
+        double r = Gamma.RegularizedWithPrefactor(b, w, upper, out double step);
+        step /= b;
+        double shape = b;
+
+        // c_k from k c_k = (b - 1)/2 sum_j B_2j/(2j)! c_(k-j), the exponential of the log series.
+        Span<double> coefficients = stackalloc double[MaxExpansionTerms];
+        coefficients[0] = 1.0;
+        double halfExponent = 0.5 * (b - 1.0);
+        double inverseN2 = 1.0 / (n * n);
+        double pochhammer = 1.0;
+        double sum = r;
+        for (int k = 1; k < MaxExpansionTerms; k++)
+        {
+            for (int half = 0; half < 2; half++)
+            {
+                r = upper ? r + step : r - step;
+                shape += 1.0;
+                step *= w / shape;
+            }
+
+            double convolution = 0.0;
+            for (int j = 1; j <= k; j++)
+            {
+                convolution += BernoulliRatios[j - 1] * coefficients[k - j];
+            }
+            coefficients[k] = halfExponent * convolution / k;
+
+            pochhammer *= (shape - 2.0) * (shape - 1.0) * inverseN2;
+            double term = coefficients[k] * pochhammer * r;
+            sum += term;
+            if (Math.Abs(term) <= Epsilon * Math.Abs(sum))
+            {
+                break;
+            }
+        }
+
+        double direct = Math.Exp(logRatio) * sum;
+        return upper == reflected ? 1.0 - direct : direct;
+    }
+
+    /// <summary>log(Gamma(N + 1/2 + s) / (Gamma(N + 1/2 - s) N^(2s))), for 2s &lt;= N^(2/3).</summary>
+    /// <remarks>
+    /// With h = 1/2 + s, the two log-gammas' expansions in Bernoulli polynomials (DLMF 5.11.8) cancel
+    /// at even orders, since B_n(1 - h) = (-1)^n B_n(h), leaving minus the sum over m of
+    /// B_(2m+1)(h) / (m (2m + 1) N^2m). Each term is about (s / N)^2, at most 1/400, of the last,
+    /// so no log-gamma of order N log N is formed and none cancels.
+    /// </remarks>
+    private static double LogShapeRatio(double n, double s)
+    {
+        double s2 = s * s;
+        double inverseN2 = 1.0 / (n * n);
+        double power = inverseN2;
+        double sum = 0.0;
+        int row = 0;
+        for (int m = 1; m <= ShapeRatioOrders; m++)
+        {
+            double polynomial = 0.0;
+            for (int i = 0; i <= m; i++)
+            {
+                polynomial = (polynomial * s2) + ShapeRatioCoefficients[row + i];
+            }
+            row += m + 1;
+
+            double term = s * polynomial * power;
+            sum -= term;
+            if (Math.Abs(term) <= Epsilon * Math.Abs(sum))
+            {
+                break;
+            }
+
+            power *= inverseN2;
+        }
+
+        return sum;
+    }
+
+    // Row m holds B_(2m+1)(1/2 + s) / (m (2m + 1)) in s^2, highest power first, from
+    // B_n(1/2 + s) = sum over even k of C(n, k) (2^(1-k) - 1) B_k s^(n-k).
+    private static double[] BuildShapeRatioCoefficients()
+    {
+        double[] coefficients = new double[(ShapeRatioOrders * (ShapeRatioOrders + 3)) / 2];
+        int row = 0;
+        for (int m = 1; m <= ShapeRatioOrders; m++)
+        {
+            int order = (2 * m) + 1;
+            double binomial = 1.0;
+            double factorial = 1.0;
+            for (int k = 0; k <= order; k++)
+            {
+                if (k > 0)
+                {
+                    binomial = binomial * (order - k + 1) / k;
+                    factorial *= k;
+                }
+                if (k % 2 == 1)
+                {
+                    continue;
+                }
+
+                double bernoulli = k == 0 ? 1.0 : BernoulliRatios[(k / 2) - 1] * factorial;
+                coefficients[row + (k / 2)] =
+                    binomial * (Math.Pow(2.0, 1 - k) - 1.0) * bernoulli / (m * order);
+            }
+            row += m + 1;
+        }
+
+        return coefficients;
+    }
+
+    // B_2j / (2j)!, exact to j = 10. Past it zeta(2j) is 1 within 1e-6, so each is the last over
+    // -(2 pi)^2, on coefficients already below 1e-16.
+    private static double[] BuildBernoulliRatios()
+    {
+        double[] exact =
+        [
+            1.0 / 12.0,
+            -1.0 / 720.0,
+            1.0 / 30240.0,
+            -1.0 / 1209600.0,
+            1.0 / 47900160.0,
+            -691.0 / 1307674368000.0,
+            1.0 / 74724249600.0,
+            -3617.0 / 10670622842880000.0,
+            43867.0 / 5109094217170944000.0,
+            -174611.0 / 802857662698291200000.0,
+        ];
+        double[] ratios = new double[MaxExpansionTerms];
+        exact.CopyTo(ratios, 0);
+        for (int j = exact.Length; j < ratios.Length; j++)
+        {
+            ratios[j] = -ratios[j - 1] / (4.0 * Math.PI * Math.PI);
+        }
+
+        return ratios;
     }
 
     /// <summary>x^a (1 - x)^b / B(a, b), the factor both branches of the fraction share.</summary>
@@ -64,9 +265,8 @@ internal static class Beta
     /// subtracts log-gammas of 1.7e9 at a = b = 1e8. d = x - x0 is taken from the smaller of x and
     /// 1 - x, so the two t share one d instead of two rounded ones.
     /// </remarks>
-    private static double Front(double a, double b, double x)
+    private static double Front(double a, double b, double x, double y)
     {
-        double y = 1.0 - x;
         if (a < StirlingMinimumShape || b < StirlingMinimumShape)
         {
             return Math.Exp(
@@ -98,41 +298,11 @@ internal static class Beta
         double denominator = df + tSquared;
         double x = df / denominator;
 
-        // long-comment: this is the fix for a measured far-tail collapse, not
-        //     routine commentary -- reflecting unconditionally returned exactly
-        //     0.0 at ordinary df once t was large enough (df = 200, t = 10 is
-        //     BetaTests's non-regression case). A residual remains above
-        //     roughly df = 1.5e9 -- about 1.5 billion observations through
-        //     TTest's n1 + n2 - 2 -- where RegularizedIncomplete itself
-        //     saturates to exactly 1.0, which no branch choice here repairs.
-        // Direct evaluation of I_x(df/2, 1/2) is what the far-tail case needs:
-        // reflecting through I_x(a,b) = 1 - I_{1-x}(b,a) trades one cancellation
-        // for another one downstream -- 1.0 minus a value that is itself within
-        // a few ULPs of 1 collapses to exactly 0.0 once the true tail is below
-        // roughly 1e-16, which is reachable at ordinary df once t is large
-        // enough (df = 200, t = 10 already gets there). Reflection earns its
-        // keep only in the opposite regime, where x itself has already lost the
-        // precision direct evaluation needs: IsDirectlyAccurate below detects
-        // that by comparing the naive 1.0 - x against the complement computed
-        // by division, rather than by guessing a df or magnitude cutoff.
+        // Both halves by division, so neither is 1 minus the other: which side to evaluate
+        // directly is RegularizedIncomplete's choice, and a far tail stays a small number (#841).
         double complement = tSquared / denominator;
-        double tail = 0.5 * (IsDirectlyAccurate(x, complement)
-            ? RegularizedIncomplete(df / 2.0, 0.5, x)
-            : 1.0 - RegularizedIncomplete(0.5, df / 2.0, complement));
+        double tail = 0.5 * RegularizedIncomplete(df / 2.0, 0.5, x, complement);
         return t >= 0.0 ? tail : 1.0 - tail;
-    }
-
-    // x <= 0.5 (t^2 >= df) is always safe. Past that, direct evaluation is
-    // accurate exactly when 1 - x still recovers the true (divided) complement.
-    private static bool IsDirectlyAccurate(double x, double complement)
-    {
-        if (x <= 0.5)
-        {
-            return true;
-        }
-
-        double naiveComplement = 1.0 - x;
-        return Math.Abs(naiveComplement - complement) <= complement * 1e-9;
     }
 
     /// <summary>The upper tail of the F distribution: P(F &gt; f).</summary>
@@ -147,7 +317,10 @@ internal static class Beta
             return 1.0;
         }
 
-        return RegularizedIncomplete(dfd / 2.0, dfn / 2.0, dfd / (dfd + (dfn * f)));
+        // Both halves by division, as in StudentSf: at f = inf the x = 0 return is taken before y is read.
+        double scaled = dfn * f;
+        double denominator = dfd + scaled;
+        return RegularizedIncomplete(dfd / 2.0, dfn / 2.0, dfd / denominator, scaled / denominator);
     }
 
     /// <summary>The t with <c>P(T &gt; t) = p</c>: the inverse of <see cref="StudentSf"/>.</summary>

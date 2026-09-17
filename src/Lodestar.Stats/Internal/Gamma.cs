@@ -205,14 +205,9 @@ internal static class Gamma
             return 1.0;
         }
 
-        // S1244: 2a landing on an integer exactly is what a chi-squared tail's a = dof/2
-        // always does; a shape near one without being one takes the iterative path below.
-        double twiceA = 2.0 * a;
-#pragma warning disable S1244
-        if (twiceA <= MaxClosedFormTwiceA && x <= MaxClosedFormX && twiceA == Math.Floor(twiceA))
-#pragma warning restore S1244
+        if (IsClosedFormQ(a, x))
         {
-            return HalfIntegerQ((int)twiceA, x);
+            return HalfIntegerQ((int)(2.0 * a), x);
         }
 
         if (IsTemmeRegion(a, x))
@@ -222,6 +217,13 @@ internal static class Gamma
 
         return x < a + 1.0 ? 1.0 - SeriesP(a, x) : ContinuedFractionQ(a, x);
     }
+
+    // S1244: 2a landing on an integer exactly is what a chi-squared tail's a = dof/2
+    // always does; a shape near one without being one takes the iterative path.
+#pragma warning disable S1244
+    private static bool IsClosedFormQ(double a, double x) =>
+        2.0 * a <= MaxClosedFormTwiceA && x <= MaxClosedFormX && 2.0 * a == Math.Floor(2.0 * a);
+#pragma warning restore S1244
 
     /// <summary>e^(x^2) Q(1/2, x^2), which is erfcx(x): what <see cref="Normal"/> samples its table from.</summary>
     /// <remarks>
@@ -396,6 +398,34 @@ internal static class Gamma
 
         double exponent = (a * LogOnePlusMinus((x - a) / a, x / a)) - LogStirlingCorrection(a);
         return Math.Exp(exponent) * Math.Sqrt(a / (2.0 * Math.PI));
+    }
+
+    /// <summary>P(a, x), or Q(a, x) when <paramref name="upper"/>, with the prefactor x^a e^-x / Gamma(a).</summary>
+    /// <remarks>
+    /// For a caller that needs both, as the incomplete beta's large-shape expansion does to run the
+    /// recurrence Q(a + 1, x) = Q(a, x) + x^a e^-x / Gamma(a + 1): below Temme's region the series
+    /// or fraction shares the prefactor instead of forming it twice. Validated arguments only.
+    /// </remarks>
+    internal static double RegularizedWithPrefactor(double a, double x, bool upper, out double prefactor)
+    {
+        prefactor = Prefactor(a, x);
+        if (upper && IsClosedFormQ(a, x))
+        {
+            return HalfIntegerQ((int)(2.0 * a), x);
+        }
+        if (a > TemmeMinimumShape)
+        {
+            return upper ? RegularizedQ(a, x) : RegularizedP(a, x);
+        }
+
+        if (x < a + 1.0)
+        {
+            double lower = prefactor * SeriesSum(a, x);
+            return upper ? 1.0 - lower : lower;
+        }
+
+        double tail = prefactor * ContinuedFraction(a, x);
+        return upper ? tail : 1.0 - tail;
     }
 
     // P(a, x) = x^a e^-x / Gamma(a) * sum_{n>=0} x^n / (a(a+1)...(a+n)).

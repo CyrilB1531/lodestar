@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "distributions",
-  "count": 34
+  "count": 40
  },
  "cases": [
   {
@@ -313,6 +313,63 @@
     "x": 0.99999999
    },
    "value": 5.612001243305505
+  },
+  {
+   "name": "two hundred million degrees of freedom, one unit out",
+   "call": "t.sf",
+   "args": {
+    "x": 1.0,
+    "df": 200000000.0
+   },
+   "value": 0.15865525453638382
+  },
+  {
+   "name": "two hundred million degrees of freedom, below the median",
+   "call": "t.sf",
+   "args": {
+    "x": -0.7,
+    "df": 200000000.0
+   },
+   "value": 0.758036347369826
+  },
+  {
+   "name": "twenty million degrees of freedom, one and a half units out",
+   "call": "t.sf",
+   "args": {
+    "x": 1.5,
+    "df": 20000000.0
+   },
+   "value": 0.06680720916133642
+  },
+  {
+   "name": "two numerator degrees of freedom over two hundred million",
+   "call": "f.sf",
+   "args": {
+    "x": 1.0005,
+    "dfn": 2.0,
+    "dfd": 200000000.0
+   },
+   "value": 0.36769554926844017
+  },
+  {
+   "name": "a numerator shape of 0.1 over a denominator of 1e5",
+   "call": "f.sf",
+   "args": {
+    "x": 4.0,
+    "dfn": 0.2,
+    "dfd": 200000.0
+   },
+   "value": 0.07242658433572952
+  },
+  {
+   "name": "shapes of 1e5 and one half, below the mean",
+   "call": "f.sf",
+   "args": {
+    "x": 0.9,
+    "dfn": 1.0,
+    "dfd": 200000.0
+   },
+   "value": 0.3427828574310136
   }
  ]
 }
