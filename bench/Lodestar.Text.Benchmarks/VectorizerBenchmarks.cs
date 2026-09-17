@@ -47,6 +47,11 @@ public class VectorizerBenchmarks
         new CountVectorizer(new CountVectorizerOptions { NgramRange = (1, 2) }).FitTransform(_docs);
 
     [Benchmark]
+    public CsrMatrix CountCharWordBoundary() =>
+        new CountVectorizer(new CountVectorizerOptions { Analyzer = AnalyzerKind.CharWordBoundary, NgramRange = (2, 4) })
+            .FitTransform(_docs);
+
+    [Benchmark]
     public CsrMatrix Hashing() =>
         new HashingVectorizer(new HashingVectorizerOptions { NumFeatures = 1 << 18 }).Transform(_docs);
 }

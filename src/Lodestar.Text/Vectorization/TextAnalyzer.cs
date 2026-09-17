@@ -72,13 +72,33 @@ internal sealed class TextAnalyzer
     /// <summary>Produces the terms of <paramref name="document"/> (with repetition).</summary>
     public List<string> Analyze(string document)
     {
+        var sink = new TermList(new List<string>());
+        Analyze(document, ref sink);
+        return sink.Terms;
+    }
+
+    /// <summary>Hands each term of <paramref name="document"/> to <paramref name="sink"/>, in <see cref="Analyze(string)"/>'s order.</summary>
+    /// <remarks>
+    /// A term arrives as a span over the preprocessed document or over a scratch buffer, so a
+    /// sink that only looks a term up or hashes it never makes it a string. The span is valid
+    /// only for the duration of the call.
+    /// </remarks>
+    public void Analyze<TSink>(string document, ref TSink sink)
+        where TSink : struct, ITermSink
+    {
         string s = Preprocess(document);
-        return _kind switch
+        switch (_kind)
         {
-            AnalyzerKind.Char => CharNgrams(s),
-            AnalyzerKind.CharWordBoundary => CharWordBoundaryNgrams(s),
-            _ => WordNgrams(Tokenize(s)),
-        };
+            case AnalyzerKind.Char:
+                CharNgrams(s, ref sink);
+                break;
+            case AnalyzerKind.CharWordBoundary:
+                CharWordBoundaryNgrams(s, ref sink);
+                break;
+            default:
+                WordNgrams(s, ref sink);
+                break;
+        }
     }
 
     private string Preprocess(string document)
@@ -109,96 +129,174 @@ internal sealed class TextAnalyzer
         return sb.ToString();
     }
 
-    private List<string> Tokenize(string s)
+    /// <summary>The kept tokens of <paramref name="s"/> as start and length pairs, in document order.</summary>
+    private List<(int Start, int Length)> Tokenize<TSink>(string s, ref TSink sink, bool emit)
+        where TSink : struct, ITermSink
     {
-        var tokens = new List<string>();
-        foreach (Match m in _tokenPattern.Matches(s))
-        {
+        var tokens = new List<(int Start, int Length)>();
 #if NET9_0_OR_GREATER
+        foreach (ValueMatch m in _tokenPattern.EnumerateMatches(s))
+        {
             // Judged as a span over the document, so a filtered-out (and by
             // definition frequent) stop word is never allocated as a string.
-            if (_stopWords is null || !_stopWords.Contains(s.AsSpan(m.Index, m.Length)))
+            ReadOnlySpan<char> token = s.AsSpan(m.Index, m.Length);
+            if (_stopWords is null || !_stopWords.Contains(token))
             {
-                tokens.Add(m.Value);
+                Keep(tokens, m.Index, m.Length, token, ref sink, emit);
             }
-#else
-            // netstandard2.0 has no span lookup, so the token is materialised first,
-            // exactly as before.
-            string tok = m.Value;
-            if (_stopWords is null || !_stopWords.Contains(tok))
-            {
-                tokens.Add(tok);
-            }
-#endif
         }
+#else
+        foreach (Match m in _tokenPattern.Matches(s))
+        {
+            if (_stopWords is null)
+            {
+                Keep(tokens, m.Index, m.Length, s.AsSpan(m.Index, m.Length), ref sink, emit);
+                continue;
+            }
+
+            // netstandard2.0 has no span lookup, so the token is materialised for the
+            // filter and handed on as that string rather than copied a second time.
+            string tok = m.Value;
+            if (!_stopWords.Contains(tok))
+            {
+                tokens.Add((m.Index, m.Length));
+                if (emit)
+                {
+                    sink.Add(tok);
+                }
+            }
+        }
+#endif
         return tokens;
     }
 
-    private List<string> WordNgrams(List<string> tokens)
+    private static void Keep<TSink>(
+        List<(int Start, int Length)> tokens, int start, int length, ReadOnlySpan<char> token, ref TSink sink, bool emit)
+        where TSink : struct, ITermSink
     {
-        if (_minN == 1 && _maxN == 1)
+        tokens.Add((start, length));
+        if (emit)
         {
-            return tokens;
+            sink.Add(token);
         }
-
-        var terms = new List<string>();
-        int count = tokens.Count;
-        for (int n = _minN; n <= _maxN; n++)
-        {
-            if (n == 1)
-            {
-                terms.AddRange(tokens);
-                continue;
-            }
-            for (int i = 0; i + n <= count; i++)
-            {
-                terms.Add(string.Join(" ", tokens.GetRange(i, n)));
-            }
-        }
-        return terms;
     }
 
-    private List<string> CharNgrams(string s)
+    private void WordNgrams<TSink>(string s, ref TSink sink)
+        where TSink : struct, ITermSink
+    {
+        // Unigrams are emitted while matching, in the order the n = 1 pass would give them.
+        bool unigramsFirst = _minN == 1;
+        List<(int Start, int Length)> tokens = Tokenize(s, ref sink, unigramsFirst);
+        if (_maxN == 1)
+        {
+            return;
+        }
+
+        int count = tokens.Count;
+        char[] joined = [];
+        for (int n = Math.Max(_minN, 2); n <= _maxN; n++)
+        {
+            for (int i = 0; i + n <= count; i++)
+            {
+                int length = Join(s, tokens, i, n, ref joined);
+                sink.Add(joined.AsSpan(0, length));
+            }
+        }
+    }
+
+    /// <summary>Tokens <c>first..first+n-1</c> joined by single spaces into <paramref name="joined"/>, as <c>string.Join(" ", ...)</c> builds them.</summary>
+    private static int Join(string s, List<(int Start, int Length)> tokens, int first, int n, ref char[] joined)
+    {
+        int length = n - 1;
+        for (int k = first; k < first + n; k++)
+        {
+            length += tokens[k].Length;
+        }
+        if (joined.Length < length)
+        {
+            joined = new char[Math.Max(length, joined.Length * 2)];
+        }
+
+        int at = 0;
+        for (int k = first; k < first + n; k++)
+        {
+            if (k > first)
+            {
+                joined[at++] = ' ';
+            }
+            s.CopyTo(tokens[k].Start, joined, at, tokens[k].Length);
+            at += tokens[k].Length;
+        }
+        return length;
+    }
+
+    private void CharNgrams<TSink>(string s, ref TSink sink)
+        where TSink : struct, ITermSink
     {
         // scikit-learn collapses runs of whitespace to a single space for char analysis.
         s = CollapseWhitespace(s);
-        var terms = new List<string>();
         int len = s.Length;
         for (int n = _minN; n <= _maxN; n++)
         {
             for (int i = 0; i + n <= len; i++)
             {
-                terms.Add(s.Substring(i, n));
+                sink.Add(s.AsSpan(i, n));
             }
         }
-        return terms;
     }
 
-    private List<string> CharWordBoundaryNgrams(string s)
+    private void CharWordBoundaryNgrams<TSink>(string s, ref TSink sink)
+        where TSink : struct, ITermSink
+    {
+        // Words are the runs string.Split(null) yields: separated by char.IsWhiteSpace.
+        char[] padded = [];
+        int at = 0;
+        while (at < s.Length)
+        {
+            if (char.IsWhiteSpace(s[at]))
+            {
+                at++;
+                continue;
+            }
+
+            int wordStart = at;
+            while (at < s.Length && !char.IsWhiteSpace(s[at]))
+            {
+                at++;
+            }
+
+            int len = at - wordStart + 2;
+            if (padded.Length < len)
+            {
+                padded = new char[Math.Max(len, padded.Length * 2)];
+            }
+            padded[0] = ' ';
+            s.CopyTo(wordStart, padded, 1, len - 2);
+            padded[len - 1] = ' ';
+            PaddedWordNgrams(padded.AsSpan(0, len), ref sink);
+        }
+    }
+
+    private void PaddedWordNgrams<TSink>(ReadOnlySpan<char> w, ref TSink sink)
+        where TSink : struct, ITermSink
     {
         // Mirrors scikit-learn's _char_wb_ngrams: always emit w[0:n] (clamped),
         // then slide; a word shorter than n is emitted once and breaks the n-loop.
-        var terms = new List<string>();
-        foreach (string rawWord in s.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+        int len = w.Length;
+        for (int n = _minN; n <= _maxN; n++)
         {
-            string w = " " + rawWord + " ";
-            int len = w.Length;
-            for (int n = _minN; n <= _maxN; n++)
+            sink.Add(w.Slice(0, Math.Min(n, len)));
+            int offset = 0;
+            while (offset + n < len)
             {
-                terms.Add(w.Substring(0, Math.Min(n, len)));
-                int offset = 0;
-                while (offset + n < len)
-                {
-                    offset++;
-                    terms.Add(w.Substring(offset, n));
-                }
-                if (offset == 0)
-                {
-                    break;
-                }
+                offset++;
+                sink.Add(w.Slice(offset, n));
+            }
+            if (offset == 0)
+            {
+                break;
             }
         }
-        return terms;
     }
 
     private static string CollapseWhitespace(string s)
@@ -223,4 +321,30 @@ internal sealed class TextAnalyzer
         }
         return sb.ToString();
     }
+}
+
+/// <summary>Receives the terms a <see cref="TextAnalyzer"/> produces, one call per term.</summary>
+/// <remarks>
+/// Implemented by structs and passed by reference, so each vectorizer's per-term work is
+/// specialised into the analysis loop rather than reached through a delegate.
+/// </remarks>
+internal interface ITermSink
+{
+    /// <summary>One term, as a span valid only during the call.</summary>
+    void Add(ReadOnlySpan<char> term);
+
+    /// <summary>One term the analyzer already holds as a string.</summary>
+    void Add(string term);
+}
+
+/// <summary>Collects every term as a string, which is what <see cref="TextAnalyzer.Analyze(string)"/> returns.</summary>
+internal readonly struct TermList : ITermSink
+{
+    public TermList(List<string> terms) => Terms = terms;
+
+    public List<string> Terms { get; }
+
+    public void Add(ReadOnlySpan<char> term) => Terms.Add(term.ToString());
+
+    public void Add(string term) => Terms.Add(term);
 }

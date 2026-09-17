@@ -77,6 +77,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- The vectorizers, `MinHash`, `SimHash`, `Bm25Index.Top`, `Osa`, `DoubleMetaphone` and `RatcliffObershelp` shed per-term work, with `Osa.Distance` up to 29 times faster through Hyyrö's bit-parallel kernel. ([#844](https://github.com/CyrilB1531/lodestar/issues/844))
 - `TextRank.Extract` drops every isolated word in one compaction, where it rebuilt the word matrix once per word. ([#816](https://github.com/CyrilB1531/lodestar/issues/816))
 - `DamerauLevenshtein.Distance` reads its last-row table by dense symbol id instead of a dictionary lookup in every cell. ([#828](https://github.com/CyrilB1531/lodestar/issues/828))
 - The q-gram similarities count shared grams by sorting their start positions instead of building a string per gram, in the default UTF-16 mode. ([#829](https://github.com/CyrilB1531/lodestar/issues/829))

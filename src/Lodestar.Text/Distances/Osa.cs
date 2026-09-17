@@ -27,7 +27,7 @@ public static class Osa
     {
         return element == TextElement.CodePoint
             ? DistanceCodePoints(a, b, out _, out _)
-            : Distance<char>(a, b);
+            : DistanceUtf16(a, b);
     }
 
     /// <summary>Length-normalized distance in <c>[0, 1]</c>: <c>distance / max(len(a), len(b))</c>.</summary>
@@ -42,7 +42,7 @@ public static class Osa
         }
         else
         {
-            distance = Distance<char>(a, b);
+            distance = DistanceUtf16(a, b);
             maxLen = Math.Max(a.Length, b.Length);
         }
 
@@ -59,6 +59,9 @@ public static class Osa
     public static int Distance<T>(ReadOnlySpan<T> a, ReadOnlySpan<T> b)
         where T : IEquatable<T>
     {
+        // A shared prefix or suffix is matched at no cost by an optimal alignment, which is
+        // why rapidfuzz trims before its OSA too; the rows then span only what differs.
+        Affixes.Trim(ref a, ref b);
         int m = a.Length;
         int n = b.Length;
         if (m == 0)
@@ -129,6 +132,63 @@ public static class Osa
         {
             ArrayPool<int>.Shared.Return(rented);
         }
+    }
+
+    /// <summary>The UTF-16 distance, bit-parallel when the shorter operand fits one machine word.</summary>
+    private static int DistanceUtf16(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
+    {
+        Affixes.Trim(ref a, ref b);
+        ReadOnlySpan<char> pattern = a.Length <= b.Length ? a : b;
+        ReadOnlySpan<char> text = a.Length <= b.Length ? b : a;
+        return pattern.Length is > 0 and <= 64 && BitParallelLcs.IsLatin1(pattern)
+            ? Hyyro(pattern, text)
+            : Distance<char>(a, b);
+    }
+
+    /// <summary>Hyyrö's (2003) bit-parallel OSA over a Latin-1 pattern of at most 64 units.</summary>
+    /// <remarks>
+    /// Myers' Levenshtein recurrence with one more term, <c>TR</c>, which marks the cells a
+    /// transposition of the previous and current text characters reaches. The distance is
+    /// symmetric, so the shorter operand is the pattern; a text unit above U+00FF matches nothing.
+    /// </remarks>
+    private static int Hyyro(ReadOnlySpan<char> pattern, ReadOnlySpan<char> text)
+    {
+        Span<ulong> peq = stackalloc ulong[256];
+        for (int i = 0; i < pattern.Length; i++)
+        {
+            peq[pattern[i]] |= 1UL << i;
+        }
+
+        ulong vp = ulong.MaxValue;
+        ulong vn = 0UL;
+        ulong d0 = 0UL;
+        ulong previousEq = 0UL;
+        ulong last = 1UL << (pattern.Length - 1);
+        int distance = pattern.Length;
+        foreach (char c in text)
+        {
+            ulong eq = c < 256 ? peq[c] : 0UL;
+            ulong transposition = ((~d0 & eq) << 1) & previousEq;
+            d0 = (((eq & vp) + vp) ^ vp) | eq | vn | transposition;
+            ulong hp = vn | ~(d0 | vp);
+            ulong hn = d0 & vp;
+            if ((hp & last) != 0UL)
+            {
+                distance++;
+            }
+            else if ((hn & last) != 0UL)
+            {
+                distance--;
+            }
+
+            hp = (hp << 1) | 1UL;
+            hn <<= 1;
+            vp = hn | ~(d0 | hp);
+            vn = hp & d0;
+            previousEq = eq;
+        }
+
+        return distance;
     }
 
     private static int DistanceCodePoints(ReadOnlySpan<char> a, ReadOnlySpan<char> b, out int lenA, out int lenB) =>

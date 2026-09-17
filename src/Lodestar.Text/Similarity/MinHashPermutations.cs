@@ -77,4 +77,10 @@ public sealed class MinHashPermutations
     /// <param name="index">Which permutation.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside the set.</exception>
     public ulong Addend(int index) => _b[index];
+
+    /// <summary>Every multiplier, for a signature loop that reads them without a call per slot.</summary>
+    internal ReadOnlySpan<ulong> Multipliers => _a;
+
+    /// <summary>Every addend, in the order of <see cref="Multipliers"/>.</summary>
+    internal ReadOnlySpan<ulong> Addends => _b;
 }

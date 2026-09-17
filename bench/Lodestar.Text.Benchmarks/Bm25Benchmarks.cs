@@ -37,6 +37,7 @@ public class Bm25Benchmarks
     private string[] _documents = [];
     private Bm25Index _index = null!;
     private int[] _query = [];
+    private int[] _multiTermQuery = [];
     private ByteBuffersDirectory _directory = null!;
     private DirectoryReader _reader = null!;
     private IndexSearcher _searcher = null!;
@@ -65,6 +66,7 @@ public class Bm25Benchmarks
         // One term on both sides: a single term is the same shape of work for either,
         // and what is being priced is the index rather than the query language.
         _query = [IndexOf(names, QueryTerm)];
+        _multiTermQuery = [.. new[] { QueryTerm, "term017", "term123", "term250", "term499" }.Select(term => IndexOf(names, term))];
 
         _directory = new ByteBuffersDirectory();
         BuildLuceneIndex(_directory, _documents);
@@ -112,6 +114,10 @@ public class Bm25Benchmarks
     /// <summary>The query alone, over a matrix the caller already had.</summary>
     [Benchmark(Baseline = true)]
     public IReadOnlyList<SearchHit> LodestarQuery() => _index.Top(_query, TopK);
+
+    /// <summary>A five-term query, where scoring the postings rather than selecting the top dominates.</summary>
+    [Benchmark]
+    public IReadOnlyList<SearchHit> LodestarQueryMultiTerm() => _index.Top(_multiTermQuery, TopK);
 
     /// <summary>The query alone, over an index Lucene already built.</summary>
     [Benchmark]

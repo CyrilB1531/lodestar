@@ -16,7 +16,7 @@ public sealed class Bm25Index
 {
     private readonly CsrMatrix _counts;
     private readonly double[] _idf;
-    private readonly double[] _documentLength;
+    private readonly double[] _normalizedLength;
     private readonly Bm25Options _options;
     private readonly int[] _postingStart;
     private readonly int[] _postingDocument;
@@ -50,20 +50,39 @@ public sealed class Bm25Index
         _counts = counts;
         _options = Validate(options ?? new Bm25Options());
 
-        _documentLength = new double[counts.RowCount];
+        double[] documentLength = new double[counts.RowCount];
         double total = 0.0;
         for (int row = 0; row < counts.RowCount; row++)
         {
             // The L1 norm of a raw-count row is the document's length in tokens, which
             // is BM25's |D| -- already public on CsrMatrix, so nothing is recomputed here.
-            _documentLength[row] = counts.RowL1Norm(row);
-            total += _documentLength[row];
+            documentLength[row] = counts.RowL1Norm(row);
+            total += documentLength[row];
         }
 
         AverageDocumentLength = counts.RowCount == 0 ? 0.0 : total / counts.RowCount;
+        _normalizedLength = NormalizeLengths(documentLength, AverageDocumentLength, _options);
         int[] documentFrequency = BuildDocumentFrequency(counts);
         _idf = BuildIdf(documentFrequency, counts.RowCount, _options);
         (_postingStart, _postingDocument, _postingFrequency) = BuildPostings(counts, documentFrequency);
+    }
+
+    /// <summary>Each document's saturation denominator term, <c>K1 * (1 - B + B * |D| / avgdl)</c>.</summary>
+    /// <remarks>
+    /// Fixed once the index is built, so a query reads it per posting instead of recomputing it.
+    /// The expression is the one scoring used to evaluate inline, in the same order, so every
+    /// stored value carries the same bits.
+    /// </remarks>
+    private static double[] NormalizeLengths(double[] documentLength, double average, Bm25Options options)
+    {
+        double k1 = options.K1;
+        double b = options.B;
+        for (int row = 0; row < documentLength.Length; row++)
+        {
+            documentLength[row] = k1 * (1.0 - b + (b * documentLength[row] / average));
+        }
+
+        return documentLength;
     }
 
     private static Bm25Options Validate(Bm25Options options)
@@ -239,14 +258,13 @@ public sealed class Bm25Index
     private void AccumulateTerm(int term, Span<double> scores)
     {
         double idf = _idf[term];
+        double saturation = _options.K1 + 1.0;
         int end = _postingStart[term + 1];
         for (int i = _postingStart[term]; i < end; i++)
         {
             int row = _postingDocument[i];
             double frequency = _postingFrequency[i];
-            double normalized = _options.K1 * (1.0 - _options.B
-                + (_options.B * _documentLength[row] / AverageDocumentLength));
-            scores[row] += idf * frequency * (_options.K1 + 1.0) / (frequency + normalized);
+            scores[row] += idf * frequency * saturation / (frequency + _normalizedLength[row]);
         }
     }
 

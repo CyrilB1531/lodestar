@@ -4797,6 +4797,30 @@ Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical co
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-16; both `main` runs agreed within 3%.
 
+## Six `Lodestar.Text` kernels without their per-term allocations (issue #844)
+
+| benchmark | `main` | fix |
+| --- | ---: | ---: |
+| [`MinHash.Signature`](../reference/text/similarity/minhash-signature.md), affine-32, 2,000 documents × 128 | 29.3 ms | **16.3 ms** |
+| [`MinHash.Signature`](../reference/text/similarity/minhash-signature.md), legacy, 2,000 documents × 128 | 33.5 ms | 28.4 ms |
+| [`CountVectorizer.FitTransform`](../reference/text/vectorizers/countvectorizer-fittransform.md), 1,000 documents | 4.51 ms | 2.71 ms |
+| [`CountVectorizer.FitTransform`](../reference/text/vectorizers/countvectorizer-fittransform.md), (1, 2)-grams, 1,000 documents | 7.66 ms | 4.02 ms |
+| [`CountVectorizer.FitTransform`](../reference/text/vectorizers/countvectorizer-fittransform.md), char word-boundary (2, 4), 1,000 documents | 22.8 ms | **8.97 ms** |
+| [`HashingVectorizer.Transform`](../reference/text/vectorizers/hashingvectorizer-transform.md), 1,000 documents | 4.37 ms | 2.69 ms |
+| [`Bm25Index`](../reference/text/search/bm25index.md) from text (count, index, query), 20,000 documents | 196 ms | 77.9 ms |
+| [`Bm25Index.Top`](../reference/text/search/bm25index-top.md), five terms, 20,000 documents | 27.7 µs | 22.2 µs |
+| [`Bm25Index.Top`](../reference/text/search/bm25index-top.md), one term, 1,000 documents | 1.13 µs | 1.19 µs |
+| [`Osa.Distance`](../reference/text/distances/osa-distance.md), UTF-16, length 64 | 5.85 µs | **201 ns** |
+| [`Osa.Distance`](../reference/text/distances/osa-distance.md), code points, length 64 | 5.97 µs | 4.40 µs |
+| [`DoubleMetaphone.Encode`](../reference/text/phonetics/doublemetaphone-encode.md), 1,000 surname-shaped strings | 210 µs, 917 KB | 145 µs, 489 KB |
+| [`RatcliffObershelp.Similarity`](../reference/text/distances/ratcliffobershelp-similarity.md), containment, 64 | 586 ns | 238 ns |
+
+Terms reach the vocabulary or the hash as spans and each row is counted in a dense tally; the sketches reuse one UTF-8 buffer and vectorise the affine-32 loop; BM25 stores each document's length term once; OSA trims affixes and runs Hyyrö's bit-parallel kernel on a Latin-1 pattern of at most 64 units; Double Metaphone passes its candidates as a span; Ratcliff-Obershelp stops a scan whose run already spans the shorter operand. Integer arithmetic, or the same floating-point expression in the same order, so every result is bit-identical and the oracle corpora replay unchanged. `SimilaritySketchBenchmarks`, `VectorizerBenchmarks`, `Bm25Benchmarks`, `OsaBenchmarks`, `DoubleMetaphoneBenchmarks` and `RatcliffObershelpBenchmarks`, pinned to four cores.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
+LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
+2026-09-17; both `main` runs agreed within 5%.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly
