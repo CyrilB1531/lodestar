@@ -36,36 +36,67 @@ public static class RatcliffObershelp
     /// <summary>The total matched length (M) over any sequence of equatable elements.</summary>
     /// <remarks>
     /// Walks the unmatched ranges from an explicit stack in difflib's
-    /// <c>get_matching_blocks</c> order, so the depth is heap memory rather than call stack:
+    /// <c>get_matching_blocks</c> order, so the depth is not call stack:
     /// a chain of one-element blocks as long as the input used to overflow the thread (#877).
     /// </remarks>
     internal static int MatchLength<T>(ReadOnlySpan<T> a, ReadOnlySpan<T> b)
         where T : IEquatable<T>
     {
-        var pending = new Stack<(int ALo, int AHi, int BLo, int BHi)>();
-        pending.Push((0, a.Length, 0, b.Length));
-        int total = 0;
-        while (pending.Count > 0)
+        // Pending ranges are disjoint and non-empty in both strings, so at most min(|a|, |b|) + 1 wait at
+        // once; four ints each, pooled, since a Stack<T> per call undid #844's allocation-free kernel (#980).
+        int capacity = 4 * (Math.Min(a.Length, b.Length) + 1);
+        int[]? rented = capacity <= 256 ? null : ArrayPool<int>.Shared.Rent(capacity);
+        Span<int> pending = rented is null ? stackalloc int[256] : rented;
+        try
         {
-            (int aLo, int aHi, int bLo, int bHi) = pending.Pop();
-            LongestMatch(a[aLo..aHi], b[bLo..bHi], out int i, out int j, out int size);
-            if (size == 0)
+            pending[0] = 0;
+            pending[1] = a.Length;
+            pending[2] = 0;
+            pending[3] = b.Length;
+            int top = 4;
+            int total = 0;
+            while (top > 0)
             {
-                continue;
+                top -= 4;
+                int aLo = pending[top];
+                int aHi = pending[top + 1];
+                int bLo = pending[top + 2];
+                int bHi = pending[top + 3];
+                LongestMatch(a[aLo..aHi], b[bLo..bHi], out int i, out int j, out int size);
+                if (size == 0)
+                {
+                    continue;
+                }
+                total += size;
+                i += aLo;
+                j += bLo;
+                if (aLo < i && bLo < j)
+                {
+                    Push(pending, ref top, aLo, i, bLo, j);
+                }
+                if (i + size < aHi && j + size < bHi)
+                {
+                    Push(pending, ref top, i + size, aHi, j + size, bHi);
+                }
             }
-            total += size;
-            i += aLo;
-            j += bLo;
-            if (aLo < i && bLo < j)
+            return total;
+        }
+        finally
+        {
+            if (rented is not null)
             {
-                pending.Push((aLo, i, bLo, j));
-            }
-            if (i + size < aHi && j + size < bHi)
-            {
-                pending.Push((i + size, aHi, j + size, bHi));
+                ArrayPool<int>.Shared.Return(rented);
             }
         }
-        return total;
+    }
+
+    private static void Push(Span<int> pending, ref int top, int aLo, int aHi, int bLo, int bHi)
+    {
+        pending[top] = aLo;
+        pending[top + 1] = aHi;
+        pending[top + 2] = bLo;
+        pending[top + 3] = bHi;
+        top += 4;
     }
 
     /// <summary>
