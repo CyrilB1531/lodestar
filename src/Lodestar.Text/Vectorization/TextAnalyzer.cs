@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Lodestar.Text.Internal;
 
 namespace Lodestar.Text.Vectorization;
 
@@ -117,7 +118,7 @@ internal sealed class TextAnalyzer
 
     private static string StripAccents(string s)
     {
-        string decomposed = s.Normalize(NormalizationForm.FormKD);
+        string decomposed = WellFormedNormalization.Normalize(s, NormalizationForm.FormKD);
         var sb = new StringBuilder(decomposed.Length);
         foreach (char c in decomposed)
         {

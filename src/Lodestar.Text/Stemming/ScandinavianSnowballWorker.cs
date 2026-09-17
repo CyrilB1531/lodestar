@@ -1,4 +1,5 @@
 using System.Text;
+using Lodestar.Text.Internal;
 
 namespace Lodestar.Text.Stemming;
 
@@ -44,7 +45,7 @@ internal abstract class ScandinavianSnowballWorker : SnowballWorkerBase
     internal static string Stem(string word, Func<string, ScandinavianSnowballWorker> make)
     {
         Guard.NotNull(word);
-        string s = word.ToLowerInvariant().Normalize(NormalizationForm.FormC);
+        string s = WellFormedNormalization.Normalize(word.ToLowerInvariant(), NormalizationForm.FormC);
         if (s.Length < 2)
         {
             return s;

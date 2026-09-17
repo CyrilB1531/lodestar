@@ -1,4 +1,5 @@
 using System.Text;
+using Lodestar.Text.Internal;
 
 namespace Lodestar.Text.Stemming;
 
@@ -33,7 +34,7 @@ public static class DutchSnowballStemmer
         Guard.NotNull(word);
         // Compose accents (NFC) so 'ë' etc. are single code points, then fold
         // them: the accent is removed before the word has a length to test.
-        string s = FoldAccents(word.ToLowerInvariant().Normalize(NormalizationForm.FormC));
+        string s = FoldAccents(WellFormedNormalization.Normalize(word.ToLowerInvariant(), NormalizationForm.FormC));
         if (s.Length < 2)
         {
             return s;
