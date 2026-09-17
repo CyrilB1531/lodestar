@@ -244,4 +244,26 @@ public sealed class SerialCorrelationEdgeTests
 
         Assert.Equal("series", refusal.ParamName);
     }
+
+    [Fact]
+    public void Ljung_box_past_the_int_square_matches_statsmodels()
+    {
+        // n * (n + 2) wrapped negative from n = 46,340, so every statistic came out below zero (#864).
+        const int n = 50_000;
+        double[] series = new double[n];
+        for (int i = 0; i < n; i++)
+        {
+            series[i] = ((i * 37 % 101) / 101.0) + ((long)i * i % 13 / 13.0);
+        }
+
+        LjungBoxResult result = SerialCorrelation.LjungBox(series, 3);
+
+        // statsmodels 0.15.0 acorr_ljungbox(x, lags=3) on the same series.
+        double[] expected = [10.633871516341527, 1009.587836818561, 4554.031088631746];
+        for (int lag = 0; lag < 3; lag++)
+        {
+            Assert.Equal(expected[lag], result.Statistics[lag], expected[lag] * 1e-9);
+        }
+        Assert.Equal(0.0011103501853379936, result.PValues[0], 0.0011103501853379936 * 1e-9);
+    }
 }
