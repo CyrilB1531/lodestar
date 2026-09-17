@@ -2226,6 +2226,8 @@ BERT_BASIC_TEXTS = [
     "e\u0301cole \u00c9COLE", "x\ufffdy", "\u201cquoted\u201d \u2014 dash",
     # Issue #983: unassigned code points are kept, not dropped as controls, accented neighbours included.
     "x\u0378y", "\U0001f6d8 hi", "hi \U0001fae9", "\u00c9\u0378e\u0301",
+    # Issue #992: 51 code points in 102 units, under the 100-code-point cap tokenizers applies.
+    "\U0001d400" * 51,
 ]
 
 # Pieces the BERT texts above can reach, so the corpus shows matches and not only [UNK].
@@ -2235,6 +2237,7 @@ BERT_BASIC_VOCAB = [
     "##\u30c8", "x", "##y", "ab", "##world", ",", "'", "-", "$", "@", "#", "don", "t", "e", "mail",
     "tab", "here", "100", "50", "user", "tag", "c", "ok", "\U00020000", "ecole", "\u201c",
     "\u201d", "\u2014", "dash", "quoted", "y", "Hello", "World",
+    "\U0001d400", "##\U0001d400",
 ]
 
 

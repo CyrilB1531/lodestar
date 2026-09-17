@@ -38,7 +38,8 @@ The important failure is all-or-nothing: a word no sequence of pieces can cover 
 unknown token, not a run of partial ones. Half a word is not a useful signal, and BERT agrees.
 
 `maxCharsPerWord` is a guard rather than a tuning knob — a word longer than it becomes the unknown
-token without being attempted, which keeps a pathological input from costing quadratic time.
+token without being attempted, which keeps a pathological input from costing quadratic time. It
+counts **code points**, as `max_input_chars_per_word` does, so a surrogate pair counts once.
 
 **Applies to** — net10.0, netstandard2.0.
 
