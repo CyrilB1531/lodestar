@@ -80,6 +80,8 @@ public static class Fuzz
     /// <summary>Token-set ratio: compares the shared tokens against each string's full sorted token set.</summary>
     public static double TokenSetRatio(string a, string b)
     {
+        Guard.NotNull(a);
+        Guard.NotNull(b);
         return TokenSet(a, b, partial: false);
     }
 
@@ -94,6 +96,8 @@ public static class Fuzz
     /// <summary>Token-set ratio using <see cref="PartialRatio"/> for the comparisons.</summary>
     public static double PartialTokenSetRatio(string a, string b)
     {
+        Guard.NotNull(a);
+        Guard.NotNull(b);
         return TokenSet(a, b, partial: true);
     }
 

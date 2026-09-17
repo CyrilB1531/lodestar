@@ -96,6 +96,7 @@ is one sentence, the issue and the commit; see
 #### Fixed
 
 - `Fuzz.TokenSetRatio`, `Fuzz.PartialTokenSetRatio` and `Fuzz.WRatio` score `0` rather than up to `100` when one side has no words, as rapidfuzz does. ([#860](https://github.com/CyrilB1531/lodestar/issues/860))
+- `Fuzz.TokenSetRatio` and `Fuzz.PartialTokenSetRatio` throw `ArgumentNullException` on a null string rather than `NullReferenceException`. ([#891](https://github.com/CyrilB1531/lodestar/issues/891))
 
 #### Changed
 
