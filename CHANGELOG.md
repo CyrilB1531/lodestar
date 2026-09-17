@@ -110,6 +110,7 @@ is one sentence, the issue and the commit; see
 
 #### Fixed
 
+- `RatcliffObershelp.Similarity` pairs its matching blocks from an explicit stack, as difflib does, where a long chain of one-character blocks overflowed the call stack. ([#877](https://github.com/CyrilB1531/lodestar/issues/877))
 - `DoubleMetaphone.Encode("W")` returns two empty codes, as the reference does, instead of throwing. ([#838](https://github.com/CyrilB1531/lodestar/issues/838))
 
 ### Lodestar.Gpu

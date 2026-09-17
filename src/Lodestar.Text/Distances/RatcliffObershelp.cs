@@ -34,17 +34,38 @@ public static class RatcliffObershelp
     }
 
     /// <summary>The total matched length (M) over any sequence of equatable elements.</summary>
+    /// <remarks>
+    /// Walks the unmatched ranges from an explicit stack in difflib's
+    /// <c>get_matching_blocks</c> order, so the depth is heap memory rather than call stack:
+    /// a chain of one-element blocks as long as the input used to overflow the thread (#877).
+    /// </remarks>
     internal static int MatchLength<T>(ReadOnlySpan<T> a, ReadOnlySpan<T> b)
         where T : IEquatable<T>
     {
-        LongestMatch(a, b, out int i, out int j, out int size);
-        if (size == 0)
+        var pending = new Stack<(int ALo, int AHi, int BLo, int BHi)>();
+        pending.Push((0, a.Length, 0, b.Length));
+        int total = 0;
+        while (pending.Count > 0)
         {
-            return 0;
+            (int aLo, int aHi, int bLo, int bHi) = pending.Pop();
+            LongestMatch(a[aLo..aHi], b[bLo..bHi], out int i, out int j, out int size);
+            if (size == 0)
+            {
+                continue;
+            }
+            total += size;
+            i += aLo;
+            j += bLo;
+            if (aLo < i && bLo < j)
+            {
+                pending.Push((aLo, i, bLo, j));
+            }
+            if (i + size < aHi && j + size < bHi)
+            {
+                pending.Push((i + size, aHi, j + size, bHi));
+            }
         }
-        return size
-            + MatchLength(a[..i], b[..j])
-            + MatchLength(a[(i + size)..], b[(j + size)..]);
+        return total;
     }
 
     /// <summary>
