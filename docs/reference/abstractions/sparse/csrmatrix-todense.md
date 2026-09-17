@@ -36,6 +36,9 @@ To read one cell without materialising the rest, walk
 [`RowPointers`](csrmatrix.md) and `ColumnIndices` directly; to reduce the whole matrix against a
 vector, [`Multiply`](csrmatrix-multiply.md) does it without densifying.
 
+A column stored twice in one row is written out as the sum of its entries, which is what
+[`Multiply`](csrmatrix-multiply.md) computes from the same row and what scipy's `toarray()` returns.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`CsrMatrix`](csrmatrix.md), [`CsrMatrix.Multiply`](csrmatrix-multiply.md).

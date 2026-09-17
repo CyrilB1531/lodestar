@@ -46,8 +46,12 @@ another library, writing a file format, or checking what a vectorizer produced. 
 matrix's **own** `double[]` and `int[]`, handed out without copying, so writing to one changes the
 matrix. Treat them as read-only unless that is precisely what you mean.
 
-Within a row, `ColumnIndices` is ascending. That is what makes a row comparable to another row in
-one pass, and it is what `Multiply` relies on.
+Within a row, `ColumnIndices` is ascending in every matrix this repository builds, but the constructor
+does not require it ([decision 0089](../../../decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)
+left that invariant to a decision of its own). A column stored twice in one row counts as the sum of
+its entries everywhere — [`CsrMatrix.ToDense`](csrmatrix-todense.md), [`CsrMatrix.Multiply`](csrmatrix-multiply.md) and
+[`CsrMatrix.TransposeMultiply`](csrmatrix-transposemultiply.md) alike — which is how
+`scipy.sparse.csr_matrix` reads it.
 
 **Applies to** — net10.0, netstandard2.0.
 
