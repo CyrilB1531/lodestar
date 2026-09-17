@@ -30,7 +30,9 @@ intervals and variance inflation factors.
 `ArgumentException` when `design` is not a whole number of rows, when `response` or `clusters` has
 a different length, or when no residual degrees of freedom are left — every standard error here
 divides by that count, so a design that fits its rows exactly is refused rather than answered with
-zeros. `ArgumentException` too when `options` and the overload disagree: `Hac` without
+zeros — or when a column of the design, the intercept included, lies within rounding of the span of
+the columns before it: `x₂ = 3·x₁` has no unique fit, and statsmodels' pseudo-inverse picks one where
+this refuses. `ArgumentException` too when `options` and the overload disagree: `Hac` without
 [`HacLags`](olsoptions.md), `HacLags` or `SmallSampleCorrection` on a type that does not read it,
 `Cluster` through the overload without labels, labels with any other type, or labels that put every
 row in one cluster.

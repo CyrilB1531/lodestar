@@ -20,7 +20,8 @@ p-values, confidence intervals and variance inflation factors.
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, or when `covariance` holds
 a value that is not finite. `ArgumentException` when `design` is not a whole number of rows, when `response`
 has a different length, when `covariance` is not the square of that length, is not symmetric or is not
-positive definite, or when no residual degrees of freedom are left.
+positive definite, when no residual degrees of freedom are left, or when a column of the whitened design is
+collinear with the columns before it.
 
 **Example** — a diagonal covariance is the weighted fit with weights `1/σ`, to rounding.
 

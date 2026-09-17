@@ -20,7 +20,7 @@ public static class WeightedLeastSquares
     /// <param name="options">Whether to fit an intercept, which covariance, and at what confidence; <see langword="null"/> fits one at 0.95.</param>
     /// <returns>The fitted model, with its standard errors, t statistics, p-values, intervals and VIFs.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or a weight is negative, <c>NaN</c> or infinite.</exception>
-    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> or <paramref name="weights"/> has a different length, <paramref name="options"/> sets an option its covariance type does not read or asks for <see cref="CovarianceType.Hac"/> without lags or <see cref="CovarianceType.Cluster"/> without labels, no residual degrees of freedom are left, or fewer rows carry a positive weight than there are parameters.</exception>
+    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> or <paramref name="weights"/> has a different length, <paramref name="options"/> sets an option its covariance type does not read or asks for <see cref="CovarianceType.Hac"/> without lags or <see cref="CovarianceType.Cluster"/> without labels, no residual degrees of freedom are left, fewer rows carry a positive weight than there are parameters, or a column of the weighted design, intercept included, is collinear with the columns before it.</exception>
     /// <remarks>
     /// Every row and its response is scaled by the square root of its weight and fitted as
     /// <see cref="OrdinaryLeastSquares"/> would, robust covariances included. R² is the reference's
@@ -60,7 +60,7 @@ public static class WeightedLeastSquares
     /// <param name="options">Whether to fit an intercept, the correction and the confidence; its <see cref="OlsOptions.CovarianceType"/> must be <see cref="CovarianceType.Cluster"/>.</param>
     /// <returns>The fitted model, with cluster-robust standard errors, z statistics, p-values, intervals and VIFs.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or a weight is negative, <c>NaN</c> or infinite.</exception>
-    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/>, <paramref name="weights"/> or <paramref name="clusters"/> has a different length, <paramref name="clusters"/> names fewer than two clusters, <paramref name="options"/> asks for another covariance, no residual degrees of freedom are left, or fewer rows carry a positive weight than there are parameters.</exception>
+    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/>, <paramref name="weights"/> or <paramref name="clusters"/> has a different length, <paramref name="clusters"/> names fewer than two clusters, <paramref name="options"/> asks for another covariance, no residual degrees of freedom are left, fewer rows carry a positive weight than there are parameters, or a column of the weighted design, intercept included, is collinear with the columns before it.</exception>
     /// <remarks>
     /// The scores the clusters sum are the weighted rows times their weighted residuals, as <c>statsmodels</c> reads them.
     /// </remarks>

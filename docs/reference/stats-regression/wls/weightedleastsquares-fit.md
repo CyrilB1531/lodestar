@@ -30,7 +30,8 @@ statistics, p-values, confidence intervals and variance inflation factors.
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, or when a weight
 is negative, `NaN` or infinite. `ArgumentException` when `design` is not a whole number of rows, when
 `response`, `weights` or `clusters` has a different length, when no residual degrees of freedom are
-left, when fewer rows carry a positive weight than the model has parameters, or when `options` and
+left, when fewer rows carry a positive weight than the model has parameters, when a column of the
+weighted design is collinear with the columns before it, or when `options` and
 the overload disagree, as on [`OrdinaryLeastSquares.Fit`](../ols/ordinaryleastsquares-fit.md).
 
 **Example** — the robust covariances apply to a weighted fit as they do to an ordinary one.
