@@ -262,6 +262,8 @@ is one sentence, the issue and the commit; see
 - `Stationarity.AugmentedDickeyFuller` names `series` when the lagged design it builds has no unique solution, where the estimate's refusal cited a `design` parameter no caller passed. ([#979](https://github.com/CyrilB1531/lodestar/issues/979))
 - `Stationarity.Kpss` measures that line against `n·ε` of the largest observation, where only a fit leaving exact zeros was refused and 99 of 100 random lines were answered from their rounding noise. ([#976](https://github.com/CyrilB1531/lodestar/issues/976))
 - Both stationarity tests refuse a straight line on one bar that does not grow with the series, `Stationarity.AugmentedDickeyFuller` at lag zero too, where a million points of a 1e-10 wobble were called a line and a line's lag-zero statistic was one rounding error over another. ([#1080](https://github.com/CyrilB1531/lodestar/issues/1080))
+- The augmented Dickey-Fuller lag search refuses a candidate design with no unique solution instead of ranking it on rounding, which answered a statistic of exactly 0 on a line bent at its first point. ([#977](https://github.com/CyrilB1531/lodestar/issues/977))
+- A too-large `DickeyFullerOptions.MaxLag` is refused with the reason that applies, and `KpssOptions.LagRule` refuses an undeclared value where it is set. ([#984](https://github.com/CyrilB1531/lodestar/issues/984))
 - `VectorAutoregression.Fit` refuses a collinear lagged design on the singular values, as `Lodestar.Stats.Regression`'s fits now do, where the per-column pivot missed a column far smaller than the ones it depends on. ([#978](https://github.com/CyrilB1531/lodestar/issues/978))
 
 ### Lodestar.Stats
