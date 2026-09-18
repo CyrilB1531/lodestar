@@ -757,14 +757,44 @@ code review's call, per `CONTRIBUTING.md`'s *Claims in comments*.
 A docstring is not a comment block. Python prose belongs in one, and the tools
 in this directory open with thirty-line docstrings on purpose.
 
+## `skip_build.py`
+
+Answers whether a pull request changes nothing the build, the tests or the Windows checks can
+judge ([#1073](https://github.com/CyrilB1531/lodestar/issues/1073)). Two classes qualify: Markdown
+only, which is `docs_only.py`'s answer, and **workflow only** — every path a workflow-ish file
+other than `.github/workflows/ci.yml`: `release.yml`, `release-nuget-org.yml`, `bench-nightly.yml`,
+`bench-ondemand.yml`, `classify-pull-request.yml`, `wiki.yml` and `dependabot.yml`, enumerated in
+`UNREAD` and asserted against the directory. Nothing in the pull-request pipeline reads them, so a
+build and a platform check say nothing about a change to one. What that cost was measured on
+[#1072](https://github.com/CyrilB1531/lodestar/pull/1072) — six minutes of build and test, and a
+Windows job still running after the required checks had gone green — and a one-line change to
+`bench-nightly.yml` paid exactly the same until this rule; it now costs about 100 s, all of it
+`Lint`.
+
+`ci.yml` is excluded by the rule rather than by a convention: that file *is* the gate, so running
+the pipeline is the only way to know a change to it works. Every path must qualify, so a pull
+request mixing `ci.yml` with anything else takes the full path too.
+
+`--workflows-only` answers the narrower question — every path such a workflow and **no Markdown at
+all** — which is what lets `Guide snippets compile, reference snippets run` be skipped as well. Any
+Markdown runs it, because that is the job that compiles and runs the guides' fences.
+
+```bash
+# true for a pull request that changes only bench-nightly.yml; false for #1072, which changed
+# ci.yml and is the one workflow the rule excludes.
+gh api repos/CyrilB1531/lodestar/pulls/1076/files --paginate \
+    --jq '.[] | .filename, (.previous_filename // empty)' | python3 tools/skip_build.py
+```
+
 ## `docs_only.py`
 
-Answers whether a pull request changes nothing but Markdown, which decides the path CI takes
+Answers whether a pull request changes nothing but Markdown
 ([#857](https://github.com/CyrilB1531/lodestar/issues/857)). The `changes` job in `ci.yml` feeds it
-the pull request's files from the API, and a `true` skips the jobs that cannot see a `.md` change
-— `Build, test, pack`, the sample, the oracles, Windows and the SonarQube Cloud analysis — while the
-lint, the snippets and the stop-word check still run, and `Lint` runs the documentation tests
-([#997](https://github.com/CyrilB1531/lodestar/issues/997)). Those tests stay because 21
+the pull request's files from the API. Since [#1073](https://github.com/CyrilB1531/lodestar/issues/1073)
+the jobs themselves key on [`skip_build.py`](#skip_buildpy), which is the broader question; this
+one names the class `Build and analyze` prints when it accepts a skip, and separates a
+Markdown-only pull request from one that also touches a workflow. `Lint`'s documentation tests
+([#997](https://github.com/CyrilB1531/lodestar/issues/997)) run on either. Those tests stay because 21
 `ReferenceDocumentationTests` classes read `docs/**/*.md`: one caught a missing reference link in
 the pull request that became #859.
 
