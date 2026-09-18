@@ -54,4 +54,39 @@ public sealed class BertNormalizerTests
 
         Assert.Equal(["a", "##͸᫏᫝", "##a"], result.Tokens);
     }
+
+    /// <summary>The runtime's NFD, refusing U+1F600 as an NLS older than the astral emoji would (#1094).</summary>
+    private static string RefusesTheEmoji(string text) =>
+        text.Contains("\U0001F600", StringComparison.Ordinal)
+            ? throw new ArgumentException("Invalid Unicode code point found.", nameof(text))
+            : text.Normalize(System.Text.NormalizationForm.FormD);
+
+    [Fact]
+    public void A_refused_code_point_beside_an_unassigned_one_passes_through_and_its_neighbours_are_decomposed()
+    {
+        string decomposed = BertBasicTokenization.Decompose("\U0001F600Á\u0378é", unassigned: true, RefusesTheEmoji);
+
+        Assert.Equal("\U0001F600A\u0301\u0378e\u0301", decomposed);
+    }
+
+    [Fact]
+    public void A_refused_code_point_no_table_calls_unassigned_passes_through_where_it_used_to_throw()
+    {
+        string decomposed = BertBasicTokenization.Decompose("Á\U0001F600é", unassigned: false, RefusesTheEmoji);
+
+        Assert.Equal("A\u0301\U0001F600e\u0301", decomposed);
+    }
+
+    [Fact]
+    public void A_refusal_no_single_code_point_explains_leaves_its_stretch_as_it_is()
+    {
+        static string RefusesThePair(string text) =>
+            text.Contains("ab", StringComparison.Ordinal)
+                ? throw new ArgumentException("Invalid Unicode code point found.", nameof(text))
+                : text.Normalize(System.Text.NormalizationForm.FormD);
+
+        string decomposed = BertBasicTokenization.Decompose("Áab", unassigned: false, RefusesThePair);
+
+        Assert.Equal("Áab", decomposed);
+    }
 }
