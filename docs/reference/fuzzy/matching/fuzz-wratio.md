@@ -22,7 +22,7 @@ point, which is rapidfuzz's score on any string; `TextElement.Utf16Unit` is the 
 
 **Returns** — `double` in `[0, 100]`, a weighted best among the scorers it judges applicable.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `element` is not a declared value. `ArgumentException` when the two strings hold more than 63,455 distinct code points above U+0020, which is what a `char` can rank one unit per code point; [`Fuzz.Ratio`](fuzz-ratio.md) answers such a pair, these scorers do not yet.
+**Exceptions** — `ArgumentOutOfRangeException` when `element` is not a declared value. `ArgumentException` when the two strings hold more than 63,455 distinct code points above U+0020, which is what a `char` can rank one unit per code point; [`Fuzz.Ratio`](fuzz-ratio.md) answers such a pair, these scorers do not yet, save that an empty operand scores `0` before the other is read (#1057).
 
 **Example** — the same typo `Ratio` scores, reached by a different route.
 

@@ -31,22 +31,19 @@ internal readonly struct CodePointAlphabet
             return new CodePointAlphabet(null);
         }
 
-        var distinct = new List<int>(a.Length + b.Length);
-        Collect(a, distinct);
-        Collect(b, distinct);
-        distinct.Sort();
+        // The list in code points and the map in distinct ones: sizing both by a.Length + b.Length made
+        // a Dictionary of 20,000 slots for two 10,000-emoji strings holding eight keys (#1056).
+        var collected = new List<int>(CountCodePoints(a) + CountCodePoints(b));
+        Collect(a, collected);
+        Collect(b, collected);
+        collected.Sort();
+        int distinct = Compact(collected);
 
-        var units = new Dictionary<int, char>(distinct.Count);
+        var units = new Dictionary<int, char>(distinct);
         int next = FirstRanked;
-        int previous = -1;
-        foreach (int codePoint in distinct)
+        for (int i = 0; i < distinct; i++)
         {
-            if (codePoint == previous)
-            {
-                continue;
-            }
-
-            previous = codePoint;
+            int codePoint = collected[i];
             if (codePoint < FirstRanked)
             {
                 units[codePoint] = (char)codePoint;
@@ -67,6 +64,26 @@ internal readonly struct CodePointAlphabet
         }
 
         return new CodePointAlphabet(units);
+    }
+
+    /// <summary>Drops the repeats from a sorted list in place, and returns how many values remain.</summary>
+    private static int Compact(List<int> sorted)
+    {
+        if (sorted.Count == 0)
+        {
+            return 0;
+        }
+
+        int kept = 1;
+        for (int i = 1; i < sorted.Count; i++)
+        {
+            if (sorted[i] != sorted[kept - 1])
+            {
+                sorted[kept++] = sorted[i];
+            }
+        }
+
+        return kept;
     }
 
     /// <summary>The text's code points, a lone surrogate keeping its own value (#982).</summary>
@@ -151,11 +168,11 @@ internal readonly struct CodePointAlphabet
         return false;
     }
 
-    private static void Collect(string text, List<int> distinct)
+    private static void Collect(string text, List<int> points)
     {
         for (int i = 0; i < text.Length; i += Width(text, i))
         {
-            distinct.Add(CodePointAt(text, i));
+            points.Add(CodePointAt(text, i));
         }
     }
 
