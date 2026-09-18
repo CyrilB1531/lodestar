@@ -41,4 +41,28 @@ internal static class LineFit
         double slope = sxy / sxx;
         return (slope, meanY - (slope * meanX));
     }
+
+    /// <summary>The series less its least-squares line over 1…n: the residuals a trend null leaves.</summary>
+    /// <remarks>
+    /// Written here rather than in each caller: the KPSS statistic and the straight-line refusal must
+    /// measure the same residuals, or the refusal guards a fit nobody computed (#1080).
+    /// </remarks>
+    internal static double[] Residuals(ReadOnlySpan<double> series)
+    {
+        int count = series.Length;
+        var time = new double[count];
+        for (int i = 0; i < count; i++)
+        {
+            time[i] = i + 1;
+        }
+
+        (double slope, double intercept) = Through(time, series);
+        var residuals = new double[count];
+        for (int i = 0; i < count; i++)
+        {
+            residuals[i] = series[i] - (intercept + (slope * time[i]));
+        }
+
+        return residuals;
+    }
 }

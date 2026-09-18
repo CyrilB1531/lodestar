@@ -32,13 +32,17 @@ internal static class DickeyFullerRegression
         ReadOnlySpan<double> series, TrendTerms regression, int lag, int rows)
     {
         double[] design = Design(series, regression, lag, rows, out double[] response);
+
+        // The estimate names `design` for a rank-deficient design and for a fit with no residual degree of
+        // freedom alike, and `Candidates` raises the second through here on purpose: only the first is ours (#1080).
+        bool hasResidualDegreesOfFreedom = rows - (TermCount(regression) + 1 + lag) >= 1;
         try
         {
             OlsEstimate estimate = OrdinaryLeastSquares.Estimate(
                 design, response, TrendColumns(regression) + 1 + lag, withIntercept: regression != TrendTerms.None);
             return (estimate.TStatistics, estimate.ResidualSumOfSquares);
         }
-        catch (ArgumentException error) when (error.ParamName == DesignParameter)
+        catch (ArgumentException error) when (error.ParamName == DesignParameter && hasResidualDegreesOfFreedom)
         {
             // The estimate refuses a rank-deficient design naming its own parameter, which this caller's
             // caller never passed: a series on a straight line builds one at any lag above zero (#979).

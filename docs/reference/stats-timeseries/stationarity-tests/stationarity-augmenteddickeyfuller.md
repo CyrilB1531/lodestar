@@ -15,11 +15,11 @@ Schwert's maximum lag.
 **Returns** — [`DickeyFullerResult`](dickeyfullerresult.md): the statistic, MacKinnon's p-value and
 critical values, and the lag the regression used.
 
-**Exceptions** — `ArgumentException` when `series` carries a non-finite value, is constant, is
-too short for its trend terms and default lag, or builds a lagged design with no unique
-least-squares solution — which a series lying on a straight line does at every lag above zero; or
-when `options` asks for a maximum lag above `n/2 − terms − 1` or one that leaves the widest
-regression no degree of freedom.
+**Exceptions** — `ArgumentException` when `series` carries a non-finite value, is constant, lies on
+one straight line — a deterministic trend, with no stochastic component to test — is too short
+for its trend terms and default lag, or builds a lagged design with no unique least-squares
+solution; or when `options` asks for a maximum lag above `n/2 − terms − 1` or one that leaves the
+widest regression no degree of freedom.
 
 **Example** — a drifting series of 24 points. The lag search keeps three lagged differences, so the
 regression fits 20 rows.

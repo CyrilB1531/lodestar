@@ -15,8 +15,9 @@ the lag window rule, or null for the reference's defaults: a level, and Hobijn's
 and whether the p-value was clamped at the end of its table.
 
 **Exceptions** — `ArgumentException` when `series` carries a non-finite value, is constant, or lies
-on a straight line under `TrendTerms.ConstantAndTrend` to within `n·ε` of its largest observation;
-or when `options` fixes a window at or above the series length.
+on one straight line under `TrendTerms.ConstantAndTrend` — its least-squares residuals within `n·ε`
+of its largest observation *and* its largest second difference within eight ulps of it; or when
+`options` fixes a window at or above the series length.
 
 **Example** — the drifting series
 [`AugmentedDickeyFuller`](stationarity-augmenteddickeyfuller.md) reads, around a level and around a
