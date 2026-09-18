@@ -3074,3 +3074,25 @@ n = 100, 1,000 and 10,000, so a default that switched to asymptotic would have w
 parity this package exists for. `stats_ks.json` gains an equal-size pair of 100 and a
 100-against-99 pair, the second of which must take the table rather than the closed form; both
 replay at 1e-9.
+
+## 51. BERT's basic tokenization, over three flavours of text (issue #1048)
+
+`BertNormalizerBenchmarks` measures the `vocab.txt` route — `BertNormalizer` then
+`BertPreTokenizer` ahead of WordPiece, which is what [`0144`](../docs/decisions/0144-a-vocab-txt-runs-berts-basic-tokenizer.md)
+turned on — over the 5,000 corpus documents, with `vocab_30k.txt` loaded twice, cased and uncased.
+
+**Three flavours, because the normalizer has three paths and the corpus only exercises one.** The
+documents as generated are lowercase ASCII, which the normalizer does not change; `Accented`
+replaces every `e` with `é`, which is what makes an uncased model decompose and strip; `Cjk`
+replaces every `a` with `中`, which is what makes it pad. Derived in `[GlobalSetup]` from the same
+documents rather than generated as a corpus of their own, so the three rows differ in one character
+class and nothing else.
+
+**No foreign incumbent.** `Microsoft.ML.Tokenizers`' WordPiece has no `BertNormalizer` in front of
+it — section 15 times that pairing, which is the comparable one. These six rows compare this
+package against itself, which is the question #1048 asked: whether the normalizer costs what it
+should on the case it was written for.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*BertNormalizerBenchmarks*'
+```

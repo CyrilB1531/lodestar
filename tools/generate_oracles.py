@@ -2228,6 +2228,9 @@ BERT_BASIC_TEXTS = [
     "x\u0378y", "\U0001f6d8 hi", "hi \U0001fae9", "\u00c9\u0378e\u0301",
     # Issue #992: 51 code points in 102 units, under the 100-code-point cap tokenizers applies.
     "\U0001d400" * 51,
+    # Issue #1050: U+FFFE is the one code point .NET 10's Normalize refuses, so the only input that
+    # reaches the segmented decomposition; tokenizers keeps it as it keeps every unassigned one.
+    "a\ufffea", "\u00c1\ufffe\u00e1",
 ]
 
 # Pieces the BERT texts above can reach, so the corpus shows matches and not only [UNK].
@@ -2237,7 +2240,7 @@ BERT_BASIC_VOCAB = [
     "##\u30c8", "x", "##y", "ab", "##world", ",", "'", "-", "$", "@", "#", "don", "t", "e", "mail",
     "tab", "here", "100", "50", "user", "tag", "c", "ok", "\U00020000", "ecole", "\u201c",
     "\u201d", "\u2014", "dash", "quoted", "y", "Hello", "World",
-    "\U0001d400", "##\U0001d400",
+    "\U0001d400", "##\U0001d400", "\ufffe", "##\ufffe",
 ]
 
 

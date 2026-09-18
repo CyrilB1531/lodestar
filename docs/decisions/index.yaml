@@ -1450,7 +1450,7 @@
   amends: []
   applies: []
   superseded_by: []
-  amended_by: []
+  amended_by: ["0146"]
   applied_by: []
 
 "0145":
@@ -1459,6 +1459,16 @@
   supersedes: []
   amends: []
   applies: ["0091"]
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0146":
+  title: "BERT's normalizer keeps the unassigned code points"
+  status: "accepted"
+  supersedes: []
+  amends: ["0144"]
+  applies: []
   superseded_by: []
   amended_by: []
   applied_by: []
