@@ -61,15 +61,14 @@ block every PR here — there would be nobody able to give it.
 
 Protection is therefore built on checks rather than approvals. A repository
 ruleset named **`main protected by checks`** targets the default branch, requires
-a pull request, and requires these four checks to pass before the merge button
+a pull request, and requires these three checks to pass before the merge button
 becomes available:
 
 | Job | What it guards |
 | --- | --- |
 | `Lint (markdown + C# format)` | markdownlint, `dotnet format --verify-no-changes`, the `tools/tests` suite, that no tracked file holds a machine path, and that the Sonar `.globalconfig` is current |
-| `Build, test, pack` | the build, the full test suite, and the SonarQube Cloud analysis, which fails the job when the quality gate fails — a finding in the code a pull request introduces blocks its merge |
 | `Oracles are reproducible` | that the committed corpora match a fresh generation |
-| `Build and analyze` | that `Build, test, pack`, `Sample consumes the packages` and `Guide snippets compile, reference snippets run` all passed. The analysis ran in its own workflow until it shared the first job's build ([#857](https://github.com/CyrilB1531/lodestar/issues/857)); the check keeps the name the ruleset requires, and stands for the two packaging jobs the ruleset does not name — which is what makes the packaging gate and `check_nuspec_dependencies.py` blocking after [#1028](https://github.com/CyrilB1531/lodestar/issues/1028) moved them out of the build job ([#1055](https://github.com/CyrilB1531/lodestar/issues/1055)) |
+| `Build and analyze` | that `Build, test, analyze`, `Sample consumes the packages` and `Guide snippets compile, reference snippets run` all passed. The analysis ran in its own workflow until it shared the first job's build ([#857](https://github.com/CyrilB1531/lodestar/issues/857)); the check keeps the name the ruleset requires, and stands for the two packaging jobs the ruleset does not name — which is what makes the packaging gate and `check_nuspec_dependencies.py` blocking after [#1028](https://github.com/CyrilB1531/lodestar/issues/1028) moved them out of the build job ([#1055](https://github.com/CyrilB1531/lodestar/issues/1055)). `Build, test, analyze` — which packed until [#1028](https://github.com/CyrilB1531/lodestar/issues/1028) and was named for it until [#1073](https://github.com/CyrilB1531/lodestar/issues/1073) — is therefore no longer required by name: this check fails whenever it does |
 
 The ruleset has **no bypass list, and it binds the administrator**. That is
 deliberate: a guard rail the sole maintainer can step over on a tired evening is
@@ -82,20 +81,28 @@ also why the required check is this repository's own job and not SonarQube
 Cloud's `SonarCloud Code Analysis`. That one is never posted at all on such a
 pull request, and a required check that never arrives stays pending forever.
 
-**A pull request that changes only Markdown takes a shorter path.** A first job,
-`Changed files`, lists the pull request's files and asks
-[`tools/docs_only.py`](tools/README.md#docs_onlypy) whether every one ends in
-`.md`. When it does, `Build, test, pack`, the sample, the oracles, Windows and the
-analysis are skipped, and `Lint` runs the documentation tests instead — 21
+**A pull request that cannot change what the build proves takes a shorter path.** A
+first job, `Changed files`, lists the pull request's files and asks
+[`tools/skip_build.py`](tools/README.md#skip_buildpy) whether every one is either
+Markdown or a workflow the pull-request pipeline does not read — `release.yml`,
+`bench-nightly.yml` and the rest, but **never `ci.yml`**, which is the gate itself and
+is tested by running it. When every file qualifies, `Build, test, analyze`, the sample,
+the oracles, Windows and the analysis are skipped. A second question,
+[`tools/docs_only.py`](tools/README.md#docs_onlypy), asks whether every one ends in
+`.md`; when it does, `Lint` runs the documentation tests instead — 21
 `ReferenceDocumentationTests` classes read `docs/**/*.md`. It runs them without compiling, on the
 net10.0 test binaries `main`'s own run published for the pull request's base commit, with the pull
 request's docs staged beside them by [`tools/stage_doc_inputs.py`](tools/README.md#stage_doc_inputspy);
 only when no such binaries exist does it build the solution. GitHub counts a job
 skipped by its condition as a passed check, and `Build and analyze` accepts the
-skip of `Build, test, pack` and of the sample only on such a pull request, so the four required
+skip of `Build, test, analyze` and of the sample only on a classified pull request — naming the
+class it accepted in its log rather than waving a bare `skipped` through — so the three required
 checks are still satisfied. It never accepts a skipped `Guide snippets compile, reference snippets
-run`: a documentation change is exactly what breaks a guide snippet, so that job runs on every
-pull request.
+run` while a Markdown file moved: a documentation change is exactly what breaks a guide snippet.
+It accepts that skip only when the pull request holds **no Markdown at all**, which is the
+narrower question `skip_build.py --workflows-only` answers — 81 s of that job's 105 is its own
+`pack`, which ADR 0009 requires, because a snippet that only compiles through a `ProjectReference`
+is not one a reader can run.
 The snippets and the stop-word check run either way. Separately,
 [`tools/format_needed.py`](tools/README.md#format_neededpy) decides whether `Lint`
 runs `dotnet format`: only when a `.cs` or `.csproj` file, or a `.props`,
@@ -349,7 +356,7 @@ a light one. Duplication and coverage sensors both ran (2.0% duplicated lines,
 28 duplicated blocks). Coverage reads 0.0% because this run's commands, matching
 the ones above, do not feed it a coverage report — CI's job does.
 
-This is not a rehearsal of the CI analysis in `Build, test, pack`, and saying otherwise would make
+This is not a rehearsal of the CI analysis in `Build, test, analyze`, and saying otherwise would make
 the document worse than not writing it:
 
 - the Community edition has no branch or pull-request analysis, so the verdict
@@ -637,7 +644,7 @@ happens in the two CI jobs that pack: `Sample consumes the packages` and `Guide
 snippets compile, reference snippets run`. Expect a finding there from CI rather
 than from `dotnet build Lodestar.slnx`. Those two builds ran inside the
 SonarQube Cloud analysis window until [#1028](https://github.com/CyrilB1531/lodestar/issues/1028)
-moved packing out of `Build, test, pack`, so `samples/` now reaches the build's
+moved packing out of the build job, so `samples/` now reaches the build's
 analysers and not the quality gate.
 
 One thing still only SonarCloud sees, so a green local build is not a green
