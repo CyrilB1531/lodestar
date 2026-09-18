@@ -67,12 +67,17 @@ internal sealed class TextAnalyzer
         _stopWords = stopWords is null ? null : StopWordSet.Adopt(stopWords);
     }
 
-    /// <summary>Refuses an n-gram range that is not ascending from 1, naming the caller's parameter.</summary>
+    /// <summary>Refuses a descending n-gram range, naming the caller's parameter.</summary>
+    /// <remarks>
+    /// The only range scikit-learn refuses, and so the only one refused here: a <c>Min</c> below
+    /// <c>1</c> is analysed rather than rejected, on the slices #1065 measured.
+    /// </remarks>
     public static void RequireNgramRange((int Min, int Max) ngramRange, string paramName)
     {
-        if (ngramRange.Min < 1 || ngramRange.Max < ngramRange.Min)
+        if (ngramRange.Max < ngramRange.Min)
         {
-            throw new ArgumentException($"Invalid n-gram range {ngramRange}.", paramName);
+            throw new ArgumentException(
+                $"Invalid n-gram range {ngramRange}: the lower boundary is larger than the upper boundary.", paramName);
         }
     }
 
@@ -196,7 +201,8 @@ internal sealed class TextAnalyzer
         where TSink : struct, ITermSink
     {
         // Unigrams are emitted while matching, in the order the n = 1 pass would give them.
-        bool unigramsFirst = _minN == 1;
+        // scikit-learn skips the slicing when Max is 1, whatever Min is, so the token list is it.
+        bool unigramsFirst = _minN == 1 || _maxN == 1;
         List<(int Start, int Length)> tokens = Tokenize(s, ref sink, unigramsFirst);
         if (_maxN == 1)
         {
@@ -205,14 +211,58 @@ internal sealed class TextAnalyzer
 
         int count = tokens.Count;
         char[] joined = [];
-        for (int n = Math.Max(_minN, 2); n <= _maxN; n++)
+        for (int n = _minN == 1 ? 2 : _minN; n <= _maxN; n++)
         {
+            if (n < 1)
+            {
+                SlicedWordNgrams(s, tokens, n, ref joined, ref sink);
+                continue;
+            }
+
             for (int i = 0; i + n <= count; i++)
             {
                 int length = Join(s, tokens, i, n, ref joined);
                 sink.Add(joined.AsSpan(0, length));
             }
         }
+    }
+
+    /// <summary>The word n-grams of a length below <c>1</c>, which scikit-learn takes as Python slices.</summary>
+    private static void SlicedWordNgrams<TSink>(
+        string s, List<(int Start, int Length)> tokens, int n, ref char[] joined, ref TSink sink)
+        where TSink : struct, ITermSink
+    {
+        int count = tokens.Count;
+        for (int i = 0; i + n <= count; i++)
+        {
+            (int first, int taken) = PythonSlice(i, n, count);
+            int length = taken == 0 ? 0 : Join(s, tokens, first, taken, ref joined);
+            sink.Add(joined.AsSpan(0, length));
+        }
+    }
+
+    /// <summary>Python's <c>seq[start:start + n]</c> over <paramref name="count"/> items, as a start and a length.</summary>
+    /// <remarks>
+    /// Reached only for <c>n &lt; 1</c>, where the stop index can fall before the start — an empty
+    /// term — or go negative and count back from the end, which is how <c>(-1, 1)</c> asks a
+    /// character analyzer for the document but its last character (#1065).
+    /// </remarks>
+    private static (int Start, int Length) PythonSlice(int start, int n, int count)
+    {
+        int stop = start + n;
+        if (stop < 0)
+        {
+            stop += count;
+        }
+        if (stop > count)
+        {
+            stop = count;
+        }
+        if (start > count)
+        {
+            start = count;
+        }
+        return (start, stop > start ? stop - start : 0);
     }
 
     /// <summary>Tokens <c>first..first+n-1</c> joined by single spaces into <paramref name="joined"/>, as <c>string.Join(" ", ...)</c> builds them.</summary>
@@ -249,10 +299,28 @@ internal sealed class TextAnalyzer
         int len = s.Length;
         for (int n = _minN; n <= _maxN; n++)
         {
+            if (n < 1)
+            {
+                SlicedCharNgrams(s, n, ref sink);
+                continue;
+            }
+
             for (int i = 0; i + n <= len; i++)
             {
                 sink.Add(s.AsSpan(i, n));
             }
+        }
+    }
+
+    /// <summary>The character n-grams of a length below <c>1</c>, which scikit-learn takes as Python slices.</summary>
+    private static void SlicedCharNgrams<TSink>(string s, int n, ref TSink sink)
+        where TSink : struct, ITermSink
+    {
+        int len = s.Length;
+        for (int i = 0; i + n <= len; i++)
+        {
+            (int start, int taken) = PythonSlice(i, n, len);
+            sink.Add(s.AsSpan(start, taken));
         }
     }
 
@@ -296,6 +364,13 @@ internal sealed class TextAnalyzer
         int len = w.Length;
         for (int n = _minN; n <= _maxN; n++)
         {
+            if (n < 1)
+            {
+                // The sliding loop runs to len - n whatever n is, so the break never fires here.
+                SlicedPaddedWordNgrams(w, n, ref sink);
+                continue;
+            }
+
             sink.Add(w.Slice(0, Math.Min(n, len)));
             int offset = 0;
             while (offset + n < len)
@@ -307,6 +382,18 @@ internal sealed class TextAnalyzer
             {
                 break;
             }
+        }
+    }
+
+    /// <summary>The padded-word n-grams of a length below <c>1</c>, which scikit-learn takes as Python slices.</summary>
+    private static void SlicedPaddedWordNgrams<TSink>(ReadOnlySpan<char> w, int n, ref TSink sink)
+        where TSink : struct, ITermSink
+    {
+        int len = w.Length;
+        for (int offset = 0; offset + n <= len; offset++)
+        {
+            (int start, int taken) = PythonSlice(offset, n, len);
+            sink.Add(w.Slice(start, taken));
         }
     }
 

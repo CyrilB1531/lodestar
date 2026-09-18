@@ -29,6 +29,10 @@ public sealed class TermSinkTests
         { AnalyzerKind.Word, 2, 2, true },
         { AnalyzerKind.Char, 1, 3, false },
         { AnalyzerKind.CharWordBoundary, 2, 5, false },
+        // #1065: a first length below 1 emits the empty term, which every sink must carry too.
+        { AnalyzerKind.Word, 0, 2, false },
+        { AnalyzerKind.Char, -1, 1, false },
+        { AnalyzerKind.CharWordBoundary, 0, 2, true },
     };
 
     [Theory]

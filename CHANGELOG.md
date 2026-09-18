@@ -157,6 +157,7 @@ is one sentence, the issue and the commit; see
 - `RatcliffObershelp.Similarity` allocates nothing again, where the explicit stack #877 added cost 120 B a call. ([#980](https://github.com/CyrilB1531/lodestar/issues/980))
 - The `TfidfVectorizer` and `HashingVectorizer` constructors, their reference pages and `CountVectorizerOptions` document the `MinDf`, `MaxDf`, `NgramRange` and `NumFeatures` refusals #901 added. ([#986](https://github.com/CyrilB1531/lodestar/issues/986))
 - `FrenchSnowballStemmer.Stem` follows the Snowball algorithm as `snowballstemmer` 3.1.1 implements it, agreeing on all 346,244 words of a French dictionary where 8,253 differed, and now differs from nltk's `FrenchStemmer` on 278 of them, such as `indicatrice` and `bijoux`. ([#973](https://github.com/CyrilB1531/lodestar/issues/973))
+- `CountVectorizer`, `TfidfVectorizer` and `HashingVectorizer` analyse an `NgramRange` whose first length is below `1` on scikit-learn's Python slices, where they refused it with `ArgumentException` and the page said scikit-learn refused it too. ([#1065](https://github.com/CyrilB1531/lodestar/issues/1065))
 
 ### Lodestar.Gpu
 

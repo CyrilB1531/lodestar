@@ -15,7 +15,7 @@ public sealed class TfidfVectorizer
 **Constructor** — `TfidfVectorizer(TfidfVectorizerOptions? options = null)`, whose two halves
 default to scikit-learn's defaults. It throws `ArgumentOutOfRangeException` when `Count.MinDf` or
 `Count.MaxDf` is negative, not finite or a fraction above `1`, and `ArgumentException` when
-`Count.NgramRange` is not an ascending range starting at `1` or more.
+`Count.NgramRange` descends, the one range scikit-learn refuses too.
 
 **Properties** — `Idf` is the inverse document frequency per column, available after fitting.
 
