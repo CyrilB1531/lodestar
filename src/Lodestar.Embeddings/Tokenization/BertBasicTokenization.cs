@@ -15,27 +15,29 @@ namespace Lodestar.Embeddings.Tokenization;
 internal static class BertBasicTokenization
 {
     /// <summary><c>BertNormalizer(clean_text, handle_chinese_chars, strip_accents=None, lowercase)</c>.</summary>
-    // CA1308: lowercasing is the normalizer's own step; an upper-cased text would match no uncased vocabulary entry.
-#pragma warning disable CA1308
     public static string Normalize(string text, bool lowercase)
     {
         var builder = new StringBuilder(text.Length);
+        bool changed = false;
         for (int i = 0; i < text.Length; i += Width(text, i))
         {
             int width = Width(text, i);
             int codePoint = width == 2 ? char.ConvertToUtf32(text[i], text[i + 1]) : text[i];
             if (codePoint == 0 || codePoint == 0xFFFD || IsControl(text, i, codePoint))
             {
+                changed = true;
                 continue;
             }
 
             if (IsWhitespace(text, i, codePoint))
             {
                 builder.Append(' ');
+                changed |= text[i] != ' ';
             }
             else if (IsCjk(codePoint))
             {
                 builder.Append(' ').Append(text, i, width).Append(' ');
+                changed = true;
             }
             else
             {
@@ -43,12 +45,11 @@ internal static class BertBasicTokenization
             }
         }
 
-        // The input itself when nothing was dropped, padded or mapped: ASCII text is the common
-        // case and copying it three more times was most of what this path cost (#992).
-        string cleaned = builder.Length == text.Length && Same(builder, text) ? text : builder.ToString();
+        // The input itself when nothing was dropped, padded or mapped, which ASCII text never is
+        // (#992); the loop says so, where a second pass re-read what it was handing back (#1048).
+        string cleaned = changed ? builder.ToString() : text;
         return lowercase ? Lowered(cleaned) : cleaned;
     }
-#pragma warning restore CA1308
 
     /// <summary>
     /// Finds the next pre-token in <c>text[position..end)</c>, as <see cref="WhitespaceScanner.TryNext"/> does:
@@ -84,22 +85,9 @@ internal static class BertBasicTokenization
         return true;
     }
 
-    /// <summary>Whether the builder holds exactly <paramref name="text"/>, so the input can stand in for it.</summary>
-    private static bool Same(StringBuilder builder, string text)
-    {
-        for (int i = 0; i < text.Length; i++)
-        {
-            if (builder[i] != text[i])
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     /// <summary>The accent strip and the lowercasing, which only text holding a mark pays a second pass for.</summary>
-    // CA1308: lowercasing is the normalizer's own step; see Normalize.
+    // CA1308: lowercasing is the normalizer's own step, not a comparison key; an upper-cased text
+    // would match no uncased vocabulary entry.
 #pragma warning disable CA1308
     private static string Lowered(string cleaned) => StripAccents(cleaned).ToLowerInvariant();
 #pragma warning restore CA1308
@@ -141,12 +129,34 @@ internal static class BertBasicTokenization
         return false;
     }
 
-    /// <summary>The NFD form, taken around the unassigned code points <see cref="string.Normalize(NormalizationForm)"/> refuses.</summary>
+    /// <summary>The NFD form, taken around the code points <see cref="string.Normalize(NormalizationForm)"/> refuses.</summary>
+    /// <remarks>
+    /// On .NET 10 that is U+FFFE alone — a noncharacter, and one of 819,533 code points the tables call
+    /// unassigned; the <c>netstandard2.0</c> assembly on .NET Framework reaches NLS, which refuses every
+    /// one of them. So the whole string is normalized first and <see cref="Segmented"/> is reached by
+    /// being refused, rather than by a scan every call pays for (#1050). The other refusal, a lone
+    /// surrogate, cannot arrive: <see cref="IsControl"/> has already dropped it.
+    /// </remarks>
+    private static string Decompose(string text)
+    {
+        try
+        {
+            return text.Normalize(NormalizationForm.FormD);
+        }
+        catch (ArgumentException)
+        {
+            // Which code points a runtime refuses is the runtime's own answer, and the exception is
+            // the only place it gives it, so the fallback is chosen by the refusal (#1050).
+            return Segmented(text);
+        }
+    }
+
+    /// <summary>The NFD form of each stretch between the unassigned code points, which pass through as they are.</summary>
     /// <remarks>
     /// An unassigned code point has combining class 0, so it starts a new sequence and cutting the text at it
     /// changes no decomposition; it passes through as NFD leaves it (#983).
     /// </remarks>
-    private static string Decompose(string text)
+    private static string Segmented(string text)
     {
         StringBuilder? builder = null;
         int start = 0;

@@ -355,7 +355,11 @@
       "tests/oracles/llama2_tokenizer.json",
       "tests/oracles/mistral_v01_tokenizer.json"
     ],
-    "AddedTokenScanBenchmarks": [
+    "BertNormalizerBenchmarks": [
+   "src/Lodestar.Embeddings/Tokenization/**",
+   "src/Lodestar.Embeddings/Persistence/**"
+  ],
+  "AddedTokenScanBenchmarks": [
       "src/Lodestar.Embeddings/Tokenization/**",
       "src/Lodestar.Embeddings/Persistence/**"
     ],

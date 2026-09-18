@@ -340,7 +340,11 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
         start == 0 && end == text.Length ? text : text.Substring(start, end - start);
 
     /// <summary>The word's length in code points, which is what <c>tokenizers</c> caps (#992).</summary>
-    /// <remarks>A surrogate pair counted twice made a 51-character astral word exceed a limit of 100.</remarks>
+    /// <remarks>
+    /// A surrogate pair counted twice made a 51-character astral word exceed a limit of 100. A code point is
+    /// one or two UTF-16 units and never none, so a word whose units fit the cap cannot fail it and the scan
+    /// runs only once they do not (#1052).
+    /// </remarks>
     private static int CodePointLength(ReadOnlySpan<char> word)
     {
         int length = 0;
@@ -357,7 +361,7 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
 
     private void TokenizeWord(ReadOnlySpan<char> word, List<string> tokens, List<int> ids)
     {
-        if (CodePointLength(word) > _maxCharsPerWord)
+        if (word.Length > _maxCharsPerWord && CodePointLength(word) > _maxCharsPerWord)
         {
             tokens.Add(_unkToken);
             ids.Add(_unkId);

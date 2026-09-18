@@ -4930,6 +4930,77 @@ Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical co
 LTS, .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0. A/B/A: `main`, the fix, `main` again, in one window on
 2026-09-17; both `main` runs agreed within 4.1%.
 
+## BERT's basic tokenization, without its second pass (issue #1048)
+
+The `vocab.txt` route encoding the 5,000 corpus documents, whole — `BertNormalizer` and
+`BertPreTokenizer` ahead of WordPiece — so the normalizer's own share of each row is smaller than the
+row: `BertBasicTokenization` is `internal` and a benchmark can only reach it through
+[`WordPieceTokenizer.Encode`](../reference/embeddings/tokenization/wordpiecetokenizer-encode.md).
+`Accented` is the corpus with every `e` replaced by `é`, `Cjk` with every `a` replaced by `中`.
+
+| row | `00774eb1`, three runs | fix, three runs | change | allocated |
+| --- | ---: | ---: | ---: | ---: |
+| ASCII, cased | 25.24 / 25.15 / 25.25 ms | 22.80 / 22.45 / 23.64 ms | **1.09×** | 11.70 MB, unchanged |
+| ASCII, uncased | 30.05 / 29.19 / 30.30 ms | 25.21 / 24.92 / 26.13 ms | **1.17×** | 11.70 MB, unchanged |
+| accented, cased | 24.93 / 24.21 / 25.31 ms | 22.23 / 22.09 / 22.87 ms | **1.10×** | 11.69 MB, unchanged |
+| accented, uncased | 35.34 / 34.79 / 36.23 ms | 30.56 / 31.12 / 31.05 ms | **1.14×** | 20.38 MB, unchanged |
+| CJK, cased | 26.07 / 25.66 / 26.94 ms | 25.51 / 25.06 / 25.22 ms | 1.03× | 21.55 MB, unchanged |
+| CJK, uncased | 36.54 / 35.87 / 38.12 ms | 33.35 / 33.61 / 33.59 ms | **1.09×** | 24.48 MB, unchanged |
+
+**No overlap between the two series on any row**, CJK cased included, where the margin is thinnest
+(25.66 against 25.51 ms). **Allocation is identical to the byte on all six**, which is the half of
+[#992](https://github.com/CyrilB1531/lodestar/issues/992) that had to survive: the point was to drop
+the time that paid for it, not the bytes it saved.
+
+Two costs went, both of them paid on every call. `Normalize` compared its `StringBuilder` with the
+input character by character to decide whether it could hand the input back — a second full pass over
+text it had just walked, and the full pass exactly when the answer was "nothing changed". The loop
+now sets a `bool` at the three places it is not copying the input through. And the accent strip
+scanned every code point for `OtherNotAssigned` before decomposing, to cut the text around the ones
+`string.Normalize` refuses; it now normalizes the whole string and walks it in segments only when the
+runtime actually refuses it — `U+FFFE` alone on .NET 10, every unassigned code point under NLS.
+
+**The output is unchanged, and that was measured rather than argued.** Every one of the 819,533 code
+points .NET 10 calls unassigned, between nine pairs of neighbours chosen to stress the decomposition
+(a precomposed letter, a combining mark, a Hangul syllable, the Kelvin sign, a compatibility form,
+two marks out of canonical order), plus each pair of unassigned code points side by side: 7,375,797
+inputs, **zero differences** in what the normalizer returns. The two forms of the decomposition do
+differ on 38 of them — a canonical reordering of combining marks around a code point ICU knows and
+.NET's tables do not — and the mark strip that follows removes exactly those marks, so nothing
+reaches the vocabulary. `vocab_txt.json` replays 78 cases, cased and uncased, including the two the
+`catch` path is the only way to reach.
+
+### Against the state before #983 and #992
+
+Issue #1048 asked whether #992's −2.5 KB was worth its +29 % on accented uncased text. It does not
+have to be answered, because the fix is under **both** on every row. `f7fff453`, the merge before
+either commit, against the branch, three runs each alternating, same machine, 12:06 to 12:26, load
+average 2.2 to 5.7:
+
+| row | `f7fff453`, three runs | fix, three runs | allocated, before → after |
+| --- | ---: | ---: | --- |
+| ASCII, cased | 23.81 / 23.04 / 23.19 ms | 22.69 / 22.44 / 22.71 ms | 14.45 → 11.70 MB |
+| ASCII, uncased | 29.21 / 28.83 / 28.95 ms | 25.63 / 25.06 / 25.24 ms | 20.20 → 11.70 MB |
+| accented, cased | 22.60 / 23.03 / 23.41 ms | 22.08 / 22.34 / 21.74 ms | 14.45 → 11.69 MB |
+| accented, uncased | 32.02 / 32.61 / 32.35 ms | 30.76 / 30.60 / 30.94 ms | 23.13 → 20.38 MB |
+| CJK, cased | 27.61 / 26.49 / 27.36 ms | 25.62 / 25.24 / 25.30 ms | 21.56 → 21.55 MB |
+| CJK, uncased | 41.72 / 40.60 / 40.62 ms | 33.70 / 34.04 / 34.05 ms | 30.57 → 24.48 MB |
+
+No overlap on any row here either, the thinnest being accented cased (22.60 against 22.34 ms). The
+two states do not tokenize identically — `f7fff453` drops the unassigned code points #983 kept — but
+none of these three corpora holds one, so both columns do the same work on the same text.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
+LTS, .NET SDK 10.0.401 on the .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0, X64 RyuJIT AVX-512.
+Six runs alternating base, fix, fix, base, base, fix in one window on 2026-09-18, 11:46 to 12:04,
+one-minute load average 2.4 to 4.5 across it. The base is `00774eb1`, which the branch left from;
+`69dd9866` and `af19b0de` landed on `main` while this was measured and touch no file of this
+package, so the column is still what `main` does here. each run held the repository's machine lock for
+its own duration. Both states ran from worktrees outside the checkout, differing in the two source
+files under measurement and nothing else — BenchmarkDotNet refuses to build inside a checkout that
+holds nested worktrees, since the project name is then no longer unique. Dev machine, so
+non-authoritative, and comparable across the two columns because they share the window.
+
 ## The .NET incumbents, on a named machine (issue #679)
 
 Five of the comparisons against other .NET libraries had only ever been published in the nightly

@@ -166,13 +166,14 @@ See [`0106`](0106-the-frontmatter-is-inserted-once-and-the-body-does-not-move.md
 | [`0143`](0143-prediction-sets-can-read-mapies-classification-quantile.md) | Prediction sets can read MAPIE's classification quantile, and the ceiling rule stays the default | accepted | 2026-09-17 | Amends [`0070`](0070-k-greater-than-n-returns-an-infinite-interval.md): MAPIE's `SplitConformalClassifier` reads `numpy.quantile(..., method="higher")`, one rank above the ceiling rule at `n = 19, alpha = 0.1`. [`SplitConformal.Quantile`](../reference/conformal/prediction/splitconformal-quantile.md) takes a [`ConformalQuantileRule`](../reference/conformal/prediction/conformalquantilerule.md); `Ceiling` stays the default and `MapieClassification` matches `predict_set` |
 | [`0144`](0144-a-vocab-txt-runs-berts-basic-tokenizer.md) | A vocab.txt runs BERT's BasicTokenizer, by default | accepted | 2026-09-17 | [`VocabTxtLoader`](../reference/embeddings/persistence/vocabtxtloader.md) returns a vocabulary with `BasicTokenization` set, so the tokenizer runs `BertNormalizer` and `BertPreTokenizer` ahead of WordPiece as `BertTokenizer` does; 12 of 18 measured inputs had different ids before |
 | [`0145`](0145-french-takes-snowballstemmer-as-its-oracle.md) | French takes `snowballstemmer` as its oracle, not `nltk` | accepted | 2026-09-17 | Applies [`0091`](0091-hungarian-takes-snowballstemmer-as-its-oracle.md): `FrenchSnowballStemmer` implements the Snowball algorithm as `snowballstemmer` 3.1.1 does, over the whole of a 346,244-word dictionary. `nltk` 3.10.3 differs on 278 of those words: it predates elisions, `ë`/`ï`, `-oux`, `-aise` and `ni-`, and its region strings delete an `ic` outside R2 after `-atrice` ([#973](https://github.com/CyrilB1531/lodestar/issues/973)) |
+| [`0146`](0146-berts-normalizer-keeps-the-unassigned-code-points.md) | BERT's normalizer keeps the unassigned code points | accepted | 2026-09-18 | Amends [`0144`](0144-a-vocab-txt-runs-berts-basic-tokenizer.md): `tokenizers`' `is_control` drops Cc, Cf and Co but keeps Cn, measured one code point at a time, so `BertBasicTokenization` keeps an unassigned code point rather than dropping it — a recent emoji .NET's tables do not know yet became `[UNK]` instead of vanishing ([#983](https://github.com/CyrilB1531/lodestar/issues/983)). Cs stays dropped and has no upstream counterpart: a Rust `char` cannot hold a surrogate |
 
 ## What `accepted` means here
 
-All one hundred and forty-five carry `accepted`. None has been rejected or withdrawn — a status this
+All one hundred and forty-six carry `accepted`. None has been rejected or withdrawn — a status this
 table would otherwise need a second word for. `0004` read a progress sentence
 (`single-word and blocked shipped`) where a status belongs; that sentence is now the opening line
-of its own `## Done` section, and its status reads `accepted` like the other hundred and forty-four.
+of its own `## Done` section, and its status reads `accepted` like the other hundred and forty-five.
 
 ## Relationships not stated on a `**Status:**` line
 
