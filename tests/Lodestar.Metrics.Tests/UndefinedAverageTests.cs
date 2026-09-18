@@ -5,10 +5,14 @@ namespace Lodestar.Metrics.Tests;
 
 /// <summary>
 /// Macro and weighted averages over a class whose score is undefined, replayed from
-/// scikit-learn's <c>_nanaverage</c> under all three of its zero-division modes (#861).
+/// scikit-learn's <c>_nanaverage</c> under all three of its zero-division modes (#861),
+/// and from <c>jaccard_score</c>'s own <c>numpy.average</c> where the two part (#988).
 /// </summary>
 public sealed class UndefinedAverageTests
 {
+    /// <summary>What the corpus holds where the reference raises rather than scoring.</summary>
+    private const string Refusal = "ZeroDivisionError";
+
     [Theory]
     [MemberData(nameof(MetricsCorpus.UndefinedAverageIndices), MemberType = typeof(MetricsCorpus))]
     public void Scores_match_sklearn(int index)
@@ -37,8 +41,17 @@ public sealed class UndefinedAverageTests
             AssertClose(want, "fbeta_0.5", FBeta.Score(cm, 0.5, average, zeroDivision: zero), what);
             AssertClose(want, "fbeta_2.0", FBeta.Score(cm, 2.0, average, zeroDivision: zero), what);
 
-            // jaccard_score refuses zero_division=nan, so that mode has no reference value.
-            if (want.GetProperty("jaccard").ValueKind != JsonValueKind.Null)
+            // jaccard_score refuses zero_division=nan, so that mode has no reference
+            // value; a weighted average whose supports cancel has a refusal instead (#988).
+            JsonElement jaccard = want.GetProperty("jaccard");
+            if (jaccard.ValueKind == JsonValueKind.String && jaccard.GetString() == Refusal)
+            {
+                ArgumentException error = Assert.Throws<ArgumentException>(() =>
+                    JaccardScore.Score(yTrue, yPred, average, zeroDivision: zero, labels: labels, sampleWeight: sampleWeight));
+                Assert.StartsWith("Weights sum to zero", error.Message, StringComparison.Ordinal);
+                Assert.Equal("sampleWeight", error.ParamName);
+            }
+            else if (jaccard.ValueKind != JsonValueKind.Null)
             {
                 AssertClose(want, "jaccard",
                     JaccardScore.Score(yTrue, yPred, average, zeroDivision: zero, labels: labels, sampleWeight: sampleWeight),

@@ -141,6 +141,13 @@ internal static class Prf
 
         double[] perClass = PerClass(cm, metric, beta, zeroDivision, out double[] support);
 
+        // jaccard_score averages through numpy.average and the other three through
+        // _nanaverage, which catches its zero-sum error (#988 corrects #861).
+        if (average == Averaging.Weighted && metric == PrfMetric.Jaccard)
+        {
+            return JaccardWeighted(perClass, support);
+        }
+
         switch (average)
         {
             case Averaging.Macro:
@@ -162,15 +169,70 @@ internal static class Prf
     /// <remarks>
     /// A <see cref="double.NaN"/> class leaves the mean with its weight, and only
     /// every class being <see cref="double.NaN"/> makes the result one. Weights that
-    /// sum to zero once those are gone fall back to the unweighted mean, as
-    /// <c>jaccard_score</c> also does by dropping its weights (#861).
+    /// sum to zero once those are gone fall back to the unweighted mean, because
+    /// <c>_nanaverage</c> catches <c>numpy.average</c>'s refusal; <see cref="JaccardWeighted"/> does not (#861, #988).
     /// </remarks>
     public static double Average(double[] perClass, double[] support, Averaging average)
     {
-        double total = 0.0;
-        double weighted = 0.0;
-        double weightSum = 0.0;
-        int defined = 0;
+        Accumulate(perClass, support, out double total, out double weighted, out double weightSum, out int defined);
+
+        if (defined == 0)
+        {
+            return double.NaN;
+        }
+
+        // SonarLint S1244: an exact zero is numpy.average's own ZeroDivisionError
+        // test, and a tolerance would drop the weights of a small real support.
+#pragma warning disable S1244
+        return average == Averaging.Macro || weightSum == 0.0 ? total / defined : weighted / weightSum;
+#pragma warning restore S1244
+    }
+
+    /// <summary>
+    /// The support-weighted mean for Jaccard — <c>jaccard_score</c>'s own averaging,
+    /// which is <c>numpy.average</c> where its three siblings use <c>_nanaverage</c>.
+    /// </summary>
+    /// <remarks>
+    /// The reference drops its weights on <c>not numpy.any(weights)</c>, so only supports that
+    /// are every one zero fall back to the unweighted mean; a set that merely sums to zero keeps
+    /// them and raises, where <c>_nanaverage</c> catches that error. Only a negative sample weight
+    /// reaches the refusal: non-negative weights make every support non-negative (#988).
+    /// </remarks>
+    /// <exception cref="ArgumentException">The supports sum to zero without all being zero.</exception>
+    private static double JaccardWeighted(double[] perClass, double[] support)
+    {
+        Accumulate(perClass, support, out double total, out double weighted, out double weightSum, out int defined);
+
+        if (defined == 0)
+        {
+            return double.NaN;
+        }
+
+        if (!AnyNonZero(support))
+        {
+            return total / defined;
+        }
+
+        Weights.RequireNonZeroSum(weightSum, "sampleWeight");
+        return weighted / weightSum;
+    }
+
+    /// <summary><c>numpy.any</c> over the supports: is a single one of them not zero.</summary>
+    private static bool AnyNonZero(double[] support) =>
+        // SonarLint S1244: numpy.any tests each element against zero exactly, and a
+        // tolerance would drop the weights of a support the reference keeps.
+#pragma warning disable S1244
+        Array.Exists(support, static weight => weight != 0.0);
+#pragma warning restore S1244
+
+    /// <summary>The running totals both averaging rules read, over the defined classes alone.</summary>
+    private static void Accumulate(
+        double[] perClass, double[] support, out double total, out double weighted, out double weightSum, out int defined)
+    {
+        total = 0.0;
+        weighted = 0.0;
+        weightSum = 0.0;
+        defined = 0;
         for (int i = 0; i < perClass.Length; i++)
         {
             double value = perClass[i];
@@ -184,17 +246,6 @@ internal static class Prf
             weighted += value * support[i];
             weightSum += support[i];
         }
-
-        if (defined == 0)
-        {
-            return double.NaN;
-        }
-
-        // SonarLint S1244: an exact zero is numpy.average's own ZeroDivisionError
-        // test, and a tolerance would drop the weights of a small real support.
-#pragma warning disable S1244
-        return average == Averaging.Macro || weightSum == 0.0 ? total / defined : weighted / weightSum;
-#pragma warning restore S1244
     }
 
     /// <summary>
