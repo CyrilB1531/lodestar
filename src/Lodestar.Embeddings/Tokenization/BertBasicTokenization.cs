@@ -19,11 +19,14 @@ internal static class BertBasicTokenization
     {
         var builder = new StringBuilder(text.Length);
         bool changed = false;
+        bool unassigned = false;
         for (int i = 0; i < text.Length; i += Width(text, i))
         {
             int width = Width(text, i);
             int codePoint = width == 2 ? char.ConvertToUtf32(text[i], text[i + 1]) : text[i];
-            if (codePoint == 0 || codePoint == 0xFFFD || IsControl(text, i, codePoint))
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(text, i);
+            unassigned |= category == UnicodeCategory.OtherNotAssigned;
+            if (codePoint == 0 || codePoint == 0xFFFD || IsControl(codePoint, category))
             {
                 changed = true;
                 continue;
@@ -45,10 +48,10 @@ internal static class BertBasicTokenization
             }
         }
 
-        // The input itself when nothing was dropped, padded or mapped, which ASCII text never is
-        // (#992); the loop says so, where a second pass re-read what it was handing back (#1048).
+        // The input itself when nothing was dropped, padded or mapped — ASCII letters, digits and
+        // punctuation never are, where tab, newline and the C0 controls are (#992, #1091).
         string cleaned = changed ? builder.ToString() : text;
-        return lowercase ? Lowered(cleaned) : cleaned;
+        return lowercase ? Lowered(cleaned, unassigned) : cleaned;
     }
 
     /// <summary>
@@ -89,13 +92,14 @@ internal static class BertBasicTokenization
     // CA1308: lowercasing is the normalizer's own step, not a comparison key; an upper-cased text
     // would match no uncased vocabulary entry.
 #pragma warning disable CA1308
-    private static string Lowered(string cleaned) => StripAccents(cleaned).ToLowerInvariant();
+    private static string Lowered(string cleaned, bool unassigned) =>
+        StripAccents(cleaned, unassigned).ToLowerInvariant();
 #pragma warning restore CA1308
 
     /// <summary>The NFD form without its nonspacing marks, which is <c>BertNormalizer</c>'s accent stripping.</summary>
-    private static string StripAccents(string text)
+    private static string StripAccents(string text, bool unassigned)
     {
-        string decomposed = Decompose(text);
+        string decomposed = Decompose(text, unassigned);
         if (!HasMark(decomposed))
         {
             // The decomposition itself, not the input: NFD also maps singletons such as U+212A
@@ -129,32 +133,40 @@ internal static class BertBasicTokenization
         return false;
     }
 
-    /// <summary>The NFD form, taken around the code points <see cref="string.Normalize(NormalizationForm)"/> refuses.</summary>
+    /// <summary>The NFD form, taken around the code points <see cref="Segmented"/> must not let move.</summary>
     /// <remarks>
-    /// On .NET 10 that is U+FFFE alone — a noncharacter, and one of 819,533 code points the tables call
-    /// unassigned; the <c>netstandard2.0</c> assembly on .NET Framework reaches NLS, which refuses every
-    /// one of them. So the whole string is normalized first and <see cref="Segmented"/> is reached by
-    /// being refused, rather than by a scan every call pays for (#1050). The other refusal, a lone
-    /// surrogate, cannot arrive: <see cref="IsControl"/> has already dropped it.
+    /// The whole-string form is ICU's and <see cref="Segmented"/> cuts at what <c>CharUnicodeInfo</c>
+    /// calls unassigned; a code point .NET's tables do not know and ICU gives a combining class is
+    /// reordered by the first and left alone by the second, where <c>tokenizers</c> leaves it alone.
+    /// So one anywhere sends the whole text through the walk, on the flag <see cref="Normalize"/>
+    /// already had the category for (#1087). A lone surrogate, the other refusal, cannot arrive:
+    /// <see cref="IsControl"/> has already dropped it.
     /// </remarks>
-    private static string Decompose(string text)
+    private static string Decompose(string text, bool unassigned)
     {
+        if (unassigned)
+        {
+            return Segmented(text);
+        }
+
         try
         {
             return text.Normalize(NormalizationForm.FormD);
         }
         catch (ArgumentException)
         {
-            // Which code points a runtime refuses is the runtime's own answer, and the exception is
-            // the only place it gives it, so the fallback is chosen by the refusal (#1050).
+            // NLS reads the OS's tables and not .NET's, so it can refuse what CharUnicodeInfo calls
+            // assigned; the exception is the only place a runtime says which (#1050, #1090).
             return Segmented(text);
         }
     }
 
     /// <summary>The NFD form of each stretch between the unassigned code points, which pass through as they are.</summary>
     /// <remarks>
-    /// An unassigned code point has combining class 0, so it starts a new sequence and cutting the text at it
-    /// changes no decomposition; it passes through as NFD leaves it (#983).
+    /// An unassigned code point has combining class 0 to <c>CharUnicodeInfo</c> and to the reference's
+    /// tables, so cutting at it changes no decomposition either side would make. ICU's are newer and
+    /// give some of them a class, which is why this walk is taken whenever one is present rather than
+    /// only where the runtime refuses the string (#983, #1087).
     /// </remarks>
     private static string Segmented(string text)
     {
@@ -181,14 +193,14 @@ internal static class BertBasicTokenization
         char.IsHighSurrogate(text[index]) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]) ? 2 : 1;
 
     /// <summary><c>tokenizers</c>' <c>is_control</c>: Cc, Cf, Cs and Co but tab, newline and return, and not Cn, which it keeps (#983).</summary>
-    private static bool IsControl(string text, int index, int codePoint)
+    private static bool IsControl(int codePoint, UnicodeCategory category)
     {
         if (codePoint is '\t' or '\n' or '\r')
         {
             return false;
         }
 
-        return CharUnicodeInfo.GetUnicodeCategory(text, index) is UnicodeCategory.Control
+        return category is UnicodeCategory.Control
             or UnicodeCategory.Format
             or UnicodeCategory.Surrogate
             or UnicodeCategory.PrivateUse;

@@ -2231,6 +2231,9 @@ BERT_BASIC_TEXTS = [
     # Issue #1050: U+FFFE is the one code point .NET 10's Normalize refuses, so the only input that
     # reaches the segmented decomposition; tokenizers keeps it as it keeps every unassigned one.
     "a\ufffea", "\u00c1\ufffe\u00e1",
+    # Issue #1087: U+1ACF and U+1ADD are unassigned to .NET and combining marks to ICU, which
+    # reorders them where tokenizers does not; the pieces are in the vocabulary so a swap is [UNK].
+    "a\u1acf\u1addb", "\u00c1\u1acf\u1add\u00e1", "\u00c1\u0378\u1acf\u1adde\u0301",
 ]
 
 # Pieces the BERT texts above can reach, so the corpus shows matches and not only [UNK].
@@ -2241,6 +2244,8 @@ BERT_BASIC_VOCAB = [
     "tab", "here", "100", "50", "user", "tag", "c", "ok", "\U00020000", "ecole", "\u201c",
     "\u201d", "\u2014", "dash", "quoted", "y", "Hello", "World",
     "\U0001d400", "##\U0001d400", "\ufffe", "##\ufffe",
+    # Issue #1087, appended so no earlier id moves: the pair in the order tokenizers keeps it.
+    "a\u1acf\u1addb", "a\u1acf\u1adda", "a\u0378\u1acf\u1adde",
 ]
 
 

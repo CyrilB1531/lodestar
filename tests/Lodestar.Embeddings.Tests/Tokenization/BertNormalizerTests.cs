@@ -4,12 +4,12 @@ using Xunit;
 namespace Lodestar.Embeddings.Tests;
 
 /// <summary>
-/// U+FFFE is the one code point .NET 10's <see cref="string.Normalize(System.Text.NormalizationForm)"/>
-/// refuses of the 819,533 its tables call unassigned, so on this runtime it is the only input that
-/// reaches the segmented decomposition behind the accent strip; under NLS, which the
-/// <c>netstandard2.0</c> assembly meets on .NET Framework, every unassigned code point reaches it.
-/// Both mirrors run this, which is what covers the two paths (#1050). <c>vocab_txt.json</c> replays
-/// the same two texts against <c>tokenizers</c>, which keeps the noncharacter as it keeps the rest.
+/// The segmented decomposition behind the accent strip, which #1087 made reachable from any text
+/// holding a code point <c>CharUnicodeInfo</c> calls unassigned — where it used to be reached only
+/// by a refusal, U+FFFE alone on .NET 10 and every unassigned one under NLS. The mirror runs the
+/// <c>netstandard2.0</c> assembly on the .NET 10 runtime, so it proves that assembly answers, not
+/// that a second Unicode backend was met: no job meets NLS (#1089). <c>vocab_txt.json</c> replays
+/// these texts against <c>tokenizers</c>, which keeps them as it keeps the rest.
 /// </summary>
 public sealed class BertNormalizerTests
 {
@@ -22,6 +22,8 @@ public sealed class BertNormalizerTests
             ["##a"] = 2,
             ["￾"] = 3,
             ["##￾"] = 4,
+            ["͸᫏᫝"] = 5,
+            ["##͸᫏᫝"] = 6,
         };
         return new WordPieceTokenizer(
             new WordPieceVocabulary(vocab, "[UNK]", "##", Lowercase: true) { BasicTokenization = true });
@@ -41,5 +43,15 @@ public sealed class BertNormalizerTests
         TokenizationResult result = Uncased().Encode("a￾a");
 
         Assert.Equal(["a", "##￾", "##a"], result.Tokens);
+    }
+
+    [Fact]
+    public void Three_unassigned_code_points_cut_the_walk_three_times_and_keep_their_order()
+    {
+        // U+1ACF and U+1ADD are unassigned to CharUnicodeInfo and combining marks to ICU, so a
+        // whole-string decomposition swaps them where tokenizers keeps them in place (#1087).
+        TokenizationResult result = Uncased().Encode("Á͸᫏᫝á");
+
+        Assert.Equal(["a", "##͸᫏᫝", "##a"], result.Tokens);
     }
 }
