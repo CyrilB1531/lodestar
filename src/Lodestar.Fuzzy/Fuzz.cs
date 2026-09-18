@@ -233,6 +233,15 @@ public static class Fuzz
             return WRatio(a, b);
         }
 
+        Guard.NotNull(a);
+        Guard.NotNull(b);
+        // The UTF-16 overload's fast path, taken before the alphabet and both tokenizations (#1057). An
+        // undeclared unit skips it, so the pair below still refuses that unit as it did.
+        if (element == TextElement.CodePoint && (a.Length == 0 || b.Length == 0))
+        {
+            return 0.0;
+        }
+
         CodePointPair pair = Required(CodePointPair.Of(a, b, element, tokens: true));
         return WRatio(pair.A, pair.B, pair.TokensA, pair.TokensB);
     }

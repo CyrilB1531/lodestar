@@ -102,6 +102,11 @@
       "src/Lodestar.Text/Distances/**",
       "src/Lodestar.Text/Text/**"
     ],
+    "FuzzCodePointBenchmarks": [
+      "src/Lodestar.Fuzzy/**",
+      "src/Lodestar.Text/Distances/**",
+      "src/Lodestar.Text/Text/**"
+    ],
     "MetaNumericsPcaBenchmarks": [
       "src/Lodestar.Decomposition/PrincipalComponentVariance.cs"
     ],

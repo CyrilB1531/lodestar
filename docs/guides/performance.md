@@ -5337,3 +5337,30 @@ under the spectrum, which is why the constant is 1e-5.
 The estimate is a Rayleigh quotient, so it is a lower bound and errs towards *accepting* a design.
 The limit of 200 stands for `200²·ε`, 9e-12 against corpora compared at 1e-9, so 1 % of slack
 stays a hundredfold inside the budget it guards, and the gate never over-refuses.
+
+## The code-point scorers' alphabet, sized by what it holds (issues #1056, #1057)
+
+AMD Ryzen 7 8700G (16 threads), .NET SDK 10.0.401, dev machine with a niced desktop indexer
+holding one core. A/B/A: `db4a821a` (`main`), then the fix, then `db4a821a` again, one
+`FuzzCodePointBenchmarks` run each.
+
+| row | `main`, two runs | fix | allocated, `main` | allocated, fix |
+| --- | ---: | ---: | ---: | ---: |
+| `Ratio`, two 10,000-emoji strings | 1,380.7 / 1,359.1 μs | 1,317.2 μs | ~660,890 B | **160,506 B (×0.24)** |
+| `TokenSortRatio`, 2,000 emoji words | 432.4 / 431.0 μs | 404.3 μs | ~877,425 B | **602,664 B (×0.69)** |
+| `WRatio`, French prose plus one emoji | 758.8 / 745.9 μs | 737.4 μs | ~1,140,634 B | **720,569 B (×0.63)** |
+| `Ratio`, 10,000 distinct astral scalars | 47,049.7 / 46,749.7 μs | 46,987.9 μs | ~660,838 B | **510,761 B (×0.77)** |
+| `WRatio`, one empty operand | 87.8 / 84.7 μs | **0.03 ns** | ~119,081 B | **0 B** |
+
+The `main` allocations are BenchmarkDotNet's rounded KB figures times 1,024, hence the tilde. **Allocation drops on every
+row**, the near-unique one included. `CodePointAlphabet.Over` sized both its list and its map by
+`a.Length + b.Length`: a surrogate pair counts twice in the list, and the map got one slot per code
+point where it holds one per *distinct* code point, 20,000 slots for eight keys on the first row.
+The list is now sized by the code points counted, and compacted in place before the map is sized
+from what is left. The last row is `WRatio`'s empty-operand check, which the UTF-16 overload
+already had and the code-point one now takes before building anything.
+
+Time moves by 0 to 7 %, inside what the two `main` runs span on the prose and distinct rows and
+just outside it on the two emoji rows. That fits allocation, not arithmetic, being what changed.
+The scores are unchanged: 5,000 random pairs × 7 scorers against rapidfuzz 3.14.6 (BMP, astral,
+NBSP, U+0085, U+001C, lone surrogates, up to 3,000 code points), 0 mismatches.

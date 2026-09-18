@@ -3096,3 +3096,20 @@ should on the case it was written for.
 ```bash
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*BertNormalizerBenchmarks*'
 ```
+
+## 52. The code-point scorers' alphabet, on repetitive and near-unique astral text (issues #1056, #1057)
+
+`FuzzCodePointBenchmarks` times the `TextElement.CodePoint` scorers on the four shapes the delta
+review measured: two 10,000-emoji strings holding eight distinct code points, 2,000 emoji words,
+10,000 characters of French prose plus one emoji, and 10,000 distinct astral scalars per side. A
+fifth row scores `WRatio` against an empty operand. Every row builds its text in `[GlobalSetup]`, so
+the class needs no corpus.
+
+**No foreign incumbent.** No .NET library scores rapidfuzz's code-point mode, and the question is
+this package against its own previous revision: whether the map is sized by the code points it
+holds. **The allocation column is the result**; the time moves little, because the alphabet is a
+small share of an Indel over 10,000 code points.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*FuzzCodePointBenchmarks*'
+```

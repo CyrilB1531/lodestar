@@ -118,7 +118,8 @@ is one sentence, the issue and the commit; see
 - `Process.Extract` refuses a negative `limit` with an `ArgumentOutOfRangeException` naming it, where it failed inside `List.RemoveRange`. ([#910](https://github.com/CyrilB1531/lodestar/issues/910))
 - `Fuzz`'s `TextElement.CodePoint` overloads split tokens on U+00A0 and U+0085 in a string holding a character above U+00FF, as rapidfuzz does, where French text with a no-break space scored below rapidfuzz. ([#974](https://github.com/CyrilB1531/lodestar/issues/974))
 - `Fuzz.Ratio` and `Fuzz.PartialRatio` at `TextElement.CodePoint` allocate nothing on text inside the BMP, the astral path allocates half what it did, and `Fuzz.WRatio` answers an empty operand without tokenizing the other. ([#987](https://github.com/CyrilB1531/lodestar/issues/987))
-- `Fuzz.Ratio` at `TextElement.CodePoint` answers a pair holding more than 63,455 distinct code points, where it threw, and the scorers that still cannot say so on their pages. ([#982](https://github.com/CyrilB1531/lodestar/issues/982))
+- `Fuzz.Ratio` at `TextElement.CodePoint` answers a pair holding more than 63,455 distinct code points, where it threw, and the scorers that still cannot, say so on their pages. ([#982](https://github.com/CyrilB1531/lodestar/issues/982))
+- `Fuzz`'s `TextElement.CodePoint` overloads size their code-point map by the distinct code points, where #987 sized it by every one and quadrupled the allocation on repetitive astral text, and `Fuzz.WRatio` answers an empty operand there before building it. ([#1056](https://github.com/CyrilB1531/lodestar/issues/1056), [#1057](https://github.com/CyrilB1531/lodestar/issues/1057))
 
 #### Changed
 

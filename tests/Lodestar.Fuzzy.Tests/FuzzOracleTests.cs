@@ -98,6 +98,33 @@ public sealed class FuzzOracleTests
         Assert.Throws<ArgumentException>(() => Fuzz.PartialRatio(wide, "abc", TextElement.CodePoint));
         Assert.Throws<ArgumentException>(() => Fuzz.TokenSortRatio(wide, "abc", TextElement.CodePoint));
         Assert.Throws<ArgumentException>(() => Fuzz.WRatio(wide, "abc", TextElement.CodePoint));
+
+        // An empty operand scores zero before any alphabet is built, however wide the other (#1057).
+        Assert.Equal(0.0, Fuzz.WRatio(wide, "", TextElement.CodePoint));
+        Assert.Equal(0.0, Fuzz.WRatio("", wide, TextElement.CodePoint));
+    }
+
+    /// <summary>The empty-operand fast path keeps the overload's refusals in their order (#1057).</summary>
+    [Fact]
+    public void WRatio_over_code_points_refuses_before_answering_an_empty_operand()
+    {
+        Assert.Throws<ArgumentNullException>(() => Fuzz.WRatio(null!, "", TextElement.CodePoint));
+        Assert.Throws<ArgumentNullException>(() => Fuzz.WRatio("", null!, TextElement.CodePoint));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Fuzz.WRatio("", "b", (TextElement)2));
+        Assert.Equal(0.0, Fuzz.WRatio("", "\U0001F600 x", TextElement.CodePoint));
+    }
+
+    /// <summary>Text repeating a few astral code points maps as the same text written once each would (#1056).</summary>
+    [Fact]
+    public void Repeated_astral_code_points_score_as_rapidfuzz_does()
+    {
+        string a = string.Concat(Enumerable.Repeat("\U0001F600\U0001F680 ", 500));
+        string b = string.Concat(Enumerable.Repeat("\U0001F680\U0001F600 ", 500));
+
+        // rapidfuzz 3.14.6: ratio 66.66666666666667, token_sort_ratio 66.6444296197465, token_set_ratio 50.0.
+        Assert.Equal(66.66666666666667, Fuzz.Ratio(a, b, TextElement.CodePoint), 12);
+        Assert.Equal(66.6444296197465, Fuzz.TokenSortRatio(a, b, TextElement.CodePoint), 12);
+        Assert.Equal(50.0, Fuzz.TokenSetRatio(a, b, TextElement.CodePoint), 12);
     }
 
     [Fact]
