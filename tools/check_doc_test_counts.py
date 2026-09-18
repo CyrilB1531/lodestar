@@ -4,13 +4,19 @@
 The `Lint` job runs the documentation tests by invoking each test assembly directly with
 xunit v3's own in-process runner and `-namespace <project>.Documentation` (#997). That runner
 **exits 0 when the filter matches nothing**: `-namespace Nope.Documentation` and a one-letter
-typo both print `Total: 0` and succeed, so a renamed namespace, a nested `Documentation.<Sub>`
-or a renamed test project would leave the only job that tests the docs on a docs-only pull
-request green and empty (#1054). CLAUDE.md's "exits 8 and says `Zéro tests exécutés`" is
-Microsoft.Testing.Platform's behaviour under `dotnet test`, not this runner's.
+typo both print `Total: 0` and succeed, so a renamed namespace or a renamed test project would
+leave the only job that tests the docs on a docs-only pull request green and empty (#1054).
+CLAUDE.md's "exits 8 and says `Zéro tests exécutés`" is Microsoft.Testing.Platform's behaviour
+under `dotnet test`, not this runner's.
 
 So the count is the check, read from the `-xml` result each run writes rather than from its
 console summary, which is formatted for a reader.
+
+What that covers is a project whose whole documentation suite left the filter's reach, and no
+less: classes moved into a nested `Documentation.Pages` while others stay are skipped by the
+exact-match filter with the project's total still non-zero, and this passes (#1081). A count is
+deliberately not a floor either -- a documentation test deleted on purpose must not have to edit
+this file.
 
 Usage: check_doc_test_counts.py <directory holding one subdirectory per test project>
 """

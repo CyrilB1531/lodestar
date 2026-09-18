@@ -31,7 +31,7 @@ you whether to correct the document itself or something upstream of it.
 | `CLAUDE.md` | what a session has found, hand-maintained | what a session needs to be productive, and the traps that cost time |
 | `docs/equivalence.md` | the oracle corpora in `tests/oracles/*.json`, replayed against the C# they compare | the Python call to C# counterpart mapping, with each divergence |
 | `docs/migration/` | the .NET package chosen for each need | what is delegated to another .NET library, and why |
-| `docs/reference/` | the exported types and public methods of the namespaces `docs/wiki-map.json` declares covered, replayed against both target frameworks' assemblies | what each function is for, entry by entry — declaration, parameters, returns, example, remarks |
+| `docs/reference/` | the exported types and public methods of the namespaces `docs/wiki-map.json` declares covered, replayed against both target frameworks' assemblies — against net10.0's alone on a pull request that skips the build, which runs them on the binaries `main` staged for its base commit ([#1059](https://github.com/CyrilB1531/lodestar/issues/1059)) | what each function is for, entry by entry — declaration, parameters, returns, example, remarks |
 | `docs/wiki-map.json` | the packages and the pages that ship with each, hand-maintained | which page belongs to which package, and which namespaces the reference gate enforces |
 | `CHANGELOG.md` | the merged pull requests, per release | what changed, per release |
 | `docs/decisions/` | each ADR's own frontmatter and `**Status:**` line, crossed into [`docs/decisions/index.yaml`](docs/decisions/index.yaml) and read in prose in [`docs/decisions/README.md`](docs/decisions/README.md) | a decision, with its options and its loser |
@@ -338,8 +338,12 @@ local build is not a green quality gate.
   `docs/wiki-map.json`'s `covered` table needs an entry in its package's
   reference page under `docs/reference/`, checked against both target
   frameworks' assemblies — a signature that drifts from its documentation fails
-  CI rather than a reader. Only the namespaces `covered` names are enforced; the
-  rest of the surface waits on the reference page that has not been written yet.
+  CI rather than a reader. A pull request that skips the build runs the same
+  tests against net10.0's assemblies alone, because those are the ones `main`
+  staged for it ([#1059](https://github.com/CyrilB1531/lodestar/issues/1059));
+  the mirrors judge such a page on the next push to `main`. Only the namespaces
+  `covered` names are enforced; the rest of the surface waits on the reference
+  page that has not been written yet.
 
 ## Provenance — two hard rules
 

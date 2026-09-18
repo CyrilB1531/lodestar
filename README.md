@@ -265,7 +265,7 @@ you whether to correct the document itself or something upstream of it.
 | `CLAUDE.md` | what a session has found, hand-maintained | what a session needs to be productive, and the traps that cost time |
 | `docs/equivalence.md` | the oracle corpora in `tests/oracles/*.json`, replayed against the C# they compare | the Python call to C# counterpart mapping, with each divergence |
 | `docs/migration/` | the .NET package chosen for each need | what is delegated to another .NET library, and why |
-| `docs/reference/` | the exported types and public methods of the namespaces `docs/wiki-map.json` declares covered, replayed against both target frameworks' assemblies | what each function is for, entry by entry — declaration, parameters, returns, example, remarks |
+| `docs/reference/` | the exported types and public methods of the namespaces `docs/wiki-map.json` declares covered, replayed against both target frameworks' assemblies — against net10.0's alone on a pull request that skips the build ([#1059](https://github.com/CyrilB1531/lodestar/issues/1059)) | what each function is for, entry by entry — declaration, parameters, returns, example, remarks |
 | `docs/wiki-map.json` | the packages and the pages that ship with each, hand-maintained | which page belongs to which package, and which namespaces the reference gate enforces |
 | `CHANGELOG.md` | the merged pull requests, per release | what changed, per release |
 | `docs/decisions/` | the ADRs' own `**Status:**` lines, indexed in [`docs/decisions/README.md`](docs/decisions/README.md) | a decision, with its options and its loser |
