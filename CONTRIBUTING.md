@@ -69,7 +69,7 @@ becomes available:
 | `Lint (markdown + C# format)` | markdownlint, `dotnet format --verify-no-changes`, the `tools/tests` suite, that no tracked file holds a machine path, and that the Sonar `.globalconfig` is current |
 | `Build, test, pack` | the build, the full test suite, and the SonarQube Cloud analysis, which fails the job when the quality gate fails — a finding in the code a pull request introduces blocks its merge |
 | `Oracles are reproducible` | that the committed corpora match a fresh generation |
-| `Build and analyze` | that `Build, test, pack` passed. The analysis ran in its own workflow until it shared that job's build ([#857](https://github.com/CyrilB1531/lodestar/issues/857)); the check keeps the name the ruleset requires |
+| `Build and analyze` | that `Build, test, pack`, `Sample consumes the packages` and `Guide snippets compile, reference snippets run` all passed. The analysis ran in its own workflow until it shared the first job's build ([#857](https://github.com/CyrilB1531/lodestar/issues/857)); the check keeps the name the ruleset requires, and stands for the two packaging jobs the ruleset does not name — which is what makes the packaging gate and `check_nuspec_dependencies.py` blocking after [#1028](https://github.com/CyrilB1531/lodestar/issues/1028) moved them out of the build job ([#1055](https://github.com/CyrilB1531/lodestar/issues/1055)) |
 
 The ruleset has **no bypass list, and it binds the administrator**. That is
 deliberate: a guard rail the sole maintainer can step over on a tired evening is
@@ -92,7 +92,10 @@ net10.0 test binaries `main`'s own run published for the pull request's base com
 request's docs staged beside them by [`tools/stage_doc_inputs.py`](tools/README.md#stage_doc_inputspy);
 only when no such binaries exist does it build the solution. GitHub counts a job
 skipped by its condition as a passed check, and `Build and analyze` accepts the
-skip only on such a pull request, so the four required checks are still satisfied.
+skip of `Build, test, pack` and of the sample only on such a pull request, so the four required
+checks are still satisfied. It never accepts a skipped `Guide snippets compile, reference snippets
+run`: a documentation change is exactly what breaks a guide snippet, so that job runs on every
+pull request.
 The snippets and the stop-word check run either way. Separately,
 [`tools/format_needed.py`](tools/README.md#format_neededpy) decides whether `Lint`
 runs `dotnet format`: only when a `.cs` or `.csproj` file, or a `.props`,
