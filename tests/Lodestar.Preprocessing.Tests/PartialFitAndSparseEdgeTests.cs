@@ -175,6 +175,51 @@ public sealed class PartialFitAndSparseEdgeTests
         Assert.NotSame(matrix.ColumnIndices, transformed.ColumnIndices);
     }
 
+    /// <summary>
+    /// A column stored twice in one row is the sum of its entries, as scipy's reductions read it
+    /// after <c>sum_duplicates</c>: scikit-learn answers <c>scale_ = [8]</c> on this matrix, where
+    /// this answered <c>[5]</c> (#1044). <c>CsrMatrix.ToDense</c> agrees from 0.1.2 on (#878), which
+    /// is above the floor this package builds against, so only the scalers are asserted here.
+    /// </summary>
+    [Fact]
+    public void A_column_stored_twice_in_a_row_counts_as_the_sum_of_its_entries()
+    {
+        CsrMatrix duplicated = Duplicated();
+
+        Assert.Equal(8.0, MaxAbsScaler.Fit(duplicated).MaximumAbsolute[0]);
+        Assert.Equal(8.0, MaxAbsScaler.Fit(duplicated).Scale[0]);
+        Assert.Equal(5.0, StandardScaler.Fit(duplicated).Mean![0]);
+    }
+
+    /// <summary>
+    /// The buffer a percentile is read over is one slot per row, so a column carrying more values
+    /// than there are rows had no percentile to read: it raised <c>destinationArray</c>, an internal
+    /// buffer name reaching the caller (#1045). Summing the duplicates first is what makes it a column.
+    /// </summary>
+    [Fact]
+    public void A_column_stored_twice_in_a_row_no_longer_overruns_the_percentile_buffer()
+    {
+        RobustScaler scaler = RobustScaler.Fit(Duplicated());
+
+        // The column is 8 and 2, whose quartiles by linear interpolation are 3.5 and 6.5.
+        Assert.Equal(3.0, scaler.Scale![0], 12);
+    }
+
+    /// <summary>A matrix storing each column once per row is the one the statistics already read.</summary>
+    [Fact]
+    public void A_matrix_with_no_duplicate_is_read_exactly_as_before()
+    {
+        var plain = new CsrMatrix(2, 2, [1.0, 2.0, 3.0, 4.0], [0, 1, 0, 1], [0, 2, 4]);
+
+        Assert.Equal(3.0, MaxAbsScaler.Fit(plain).Scale[0]);
+        Assert.Equal(4.0, MaxAbsScaler.Fit(plain).Scale[1]);
+        Assert.Equal(2.0, StandardScaler.Fit(plain).Mean![0]);
+        Assert.Equal(1.0, RobustScaler.Fit(plain).Scale![0], 12);
+    }
+
+    /// <summary>Two rows, one column, whose only column is stored twice in the first row.</summary>
+    private static CsrMatrix Duplicated() => new(2, 1, [3.0, 5.0, 2.0], [0, 0, 0], [0, 2, 3]);
+
     /// <summary>Three rows, two columns, the second column never stored.</summary>
     private static CsrMatrix Small() => new(3, 2, [1.0, 3.0], [0, 0], [0, 1, 1, 2]);
 }

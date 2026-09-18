@@ -12,7 +12,7 @@ public StandardScaler PartialFit(ReadOnlySpan<double> samples)
 
 **Returns** — a new scaler summarising every batch seen so far; the one it was called on is unchanged.
 
-**Exceptions** — `ArgumentException` when `samples` holds no row, a partial one.
+**Exceptions** — `ArgumentException` when `samples` holds no row, a partial one, or a non-finite value.
 
 **Example** — two batches, and the fit they add up to.
 

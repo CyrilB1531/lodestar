@@ -151,7 +151,7 @@ public sealed class MaxAbsScaler
     /// <param name="samples">The samples to transform, with <see cref="FeatureCount"/> columns.</param>
     /// <returns>A new matrix storing the same positions, in <c>[−1, 1]</c> for any value the fit saw.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> has another column count, or stores a non-finite value.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, has another column count, or stores a non-finite value.</exception>
     /// <remarks>A zero stays a zero, so nothing absent becomes stored — <c>MaxAbsScaler.transform</c> on a CSR matrix.</remarks>
     public CsrMatrix Transform(CsrMatrix samples)
     {
@@ -197,7 +197,7 @@ public sealed class MaxAbsScaler
     /// <param name="samples">The transformed samples, with <see cref="FeatureCount"/> columns.</param>
     /// <returns>A new matrix storing the same positions, back on the input scale.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> has another column count, or stores a non-finite value.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, has another column count, or stores a non-finite value.</exception>
     /// <remarks>Never clips, as the dense overload does not.</remarks>
     public CsrMatrix InverseTransform(CsrMatrix samples)
     {

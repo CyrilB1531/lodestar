@@ -16,9 +16,11 @@ apply; `null` applies both.
 **Returns** — a fitted `StandardScaler`, carrying whichever statistics the options call for.
 
 **Exceptions** — `ArgumentNullException` when the sparse overload is given no matrix. `ArgumentOutOfRangeException` when `featureCount` is not positive, or centring is asked of a sparse matrix.
-`ArgumentException` when `samples` holds no row, or a partial one — a length that is not a positive
-whole number of rows is not a matrix, and guessing which values were meant would be worse than
-refusing.
+`ArgumentException` when `samples` holds no row, a partial one, or a non-finite value — a length
+that is not a positive whole number of rows is not a matrix, and guessing which values were meant
+would be worse than refusing. A `NaN` or an infinity is refused for the same reason and is
+[one divergence](../../../equivalence.md): scikit-learn skips the `NaN` and reports a per-feature
+count, where this and the three other scalers refuse it rather than answer a mean for it.
 
 **Example** — a feature whose values are indistinguishable from constant is scaled by 1.
 
