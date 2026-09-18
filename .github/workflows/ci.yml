@@ -729,6 +729,17 @@ jobs:
       - name: The shipped dependency graph is the intended one
         run: python3 tools/check_nuspec_dependencies.py ./artifacts --require-all
 
+      # A pull request that changes no code would pack these very files, so main publishes them
+      # for it to download instead -- 18 packages, 3.3 MB, against 81 s of packing (#1077).
+      - name: Upload the packages
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: packages-net
+          path: ./artifacts/*.nupkg
+          retention-days: 14
+          overwrite: true
+
       # Building here means resolving the packages as a consumer would, so a
       # missing dependency group or an unreachable public type fails the build.
       # Running it means the code actually works once resolved.
@@ -760,7 +771,46 @@ jobs:
       # compiles through a ProjectReference is not one a reader can run. Same
       # NUGET_PACKAGES separation as the sample job, and for the same reason —
       # see docs/decisions/0009-sample-consumes-a-local-feed.md.
+      # A docs-only pull request changes no source, so main's own packages for its base commit are
+      # byte-for-byte the ones this job would pack: same sources, same Version.props. Keyed on the
+      # classification and not on an artifact happening to exist -- a pull request whose code
+      # differs from main must be judged against its own packages (#1077).
+      - name: Find main's packages
+        id: packages
+        if: needs.changes.outputs.docs_only == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          run=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=packages-net&per_page=100" \
+            --jq "[.artifacts[] | select(.expired | not) | select(.workflow_run.head_sha == \"$BASE\")][0].workflow_run.id // empty")
+          echo "run_id=$run" >> "$GITHUB_OUTPUT"
+          echo "base $BASE: ${run:-no packages, this job will pack}"
+
+      - name: Download main's packages
+        if: steps.packages.outputs.run_id != ''
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: packages-net
+          path: ./artifacts
+          run-id: ${{ steps.packages.outputs.run_id }}
+          github-token: ${{ github.token }}
+
+      # The count is the check, as it is for the documentation binaries: a partial artifact would
+      # fail the snippets on a restore error, which reads as a broken guide rather than a bad feed.
+      - name: The downloaded feed holds every package
+        if: steps.packages.outputs.run_id != ''
+        run: |
+          expected=$(ls -d src/Lodestar.*/ | wc -l)
+          found=$(ls ./artifacts/*.nupkg | wc -l)
+          if [ "$found" != "$expected" ]; then
+            echo "::error::The artifact holds $found packages, the checkout publishes $expected."
+            exit 1
+          fi
+          echo "$found packages, from main's run for this pull request's base commit."
+
       - name: Pack
+        if: steps.packages.outputs.run_id == ''
         env:
           NUGET_PACKAGES: ${{ runner.temp }}/pack-packages
         run: |
