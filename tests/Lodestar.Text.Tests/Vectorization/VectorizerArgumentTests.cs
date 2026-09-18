@@ -79,6 +79,40 @@ public sealed class VectorizerArgumentTests
         Assert.Equal("options", range.ParamName);
     }
 
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(0, 2)]
+    [InlineData(-1, 2)]
+    public void A_first_ngram_length_below_one_is_analysed_rather_than_refused(int min, int max)
+    {
+        // scikit-learn validates only that the range ascends (#1065), so all three fit there.
+        // The oracle corpus holds the terms each produces; this holds that none is refused.
+        var options = new CountVectorizerOptions { NgramRange = (min, max) };
+
+        CsrMatrix counts = new CountVectorizer(options).FitTransform(Corpus);
+        CsrMatrix weights = new TfidfVectorizer(new TfidfVectorizerOptions { Count = options }).FitTransform(Corpus);
+        CsrMatrix hashed = new HashingVectorizer(new HashingVectorizerOptions { Count = options }).Transform(Corpus);
+
+        Assert.All([counts, weights, hashed], m => Assert.Equal(Corpus.Length, m.RowCount));
+    }
+
+    [Fact]
+    public void A_zero_first_ngram_length_adds_the_empty_term_at_every_position_plus_one()
+    {
+        // "the cat eats" keeps three tokens and the zero-length slice is taken at each of the four
+        // positions; Max = 1 skips the slicing for words, so (0, 1) is (1, 1). Measured on 1.9.0.
+        var zeroToTwo = new CountVectorizer(new CountVectorizerOptions { NgramRange = (0, 2) });
+
+        double[,] counts = zeroToTwo.FitTransform(["the cat eats"]).ToDense();
+
+        // The vocabulary is sorted, so the empty term is the first column.
+        Assert.Equal(string.Empty, zeroToTwo.GetFeatureNames()[0]);
+        Assert.Equal(4.0, counts[0, 0]);
+        Assert.Equal(
+            new CountVectorizer(new CountVectorizerOptions { NgramRange = (1, 1) }).Fit(Corpus).GetFeatureNames(),
+            new CountVectorizer(new CountVectorizerOptions { NgramRange = (0, 1) }).Fit(Corpus).GetFeatureNames());
+    }
+
     [Fact]
     public void Saving_an_unfitted_vectorizer_writes_nothing_to_the_stream()
     {

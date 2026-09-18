@@ -869,6 +869,7 @@ CORPUS_A = [
 ]
 CORPUS_ACCENTS = ["Café crème", "Cafe creme", "Élève à l'école", "eleve a l ecole"]
 CORPUS_WHITESPACE = ["a\tb c", "x\n\ny  z\r\n", "p\x1cq\x1c\x1dr", "u\u2003v\u00a0\u00a0w"]
+CHAR_WB = "char_wb"  # scikit-learn's analyzer name, spelled once (S1192).
 
 
 def _build_count_vectorizer(cfg: dict):
@@ -895,10 +896,20 @@ COUNT_CASES = [
     {"config": {"lowercase": False}, "docs": CORPUS_A},
     {"config": {"strip_accents": True}, "docs": CORPUS_ACCENTS},
     {"config": {"analyzer": "char", "ngram_min": 2, "ngram_max": 3}, "docs": CORPUS_A[:3]},
-    {"config": {"analyzer": "char_wb", "ngram_min": 2, "ngram_max": 3}, "docs": CORPUS_A[:3]},
+    {"config": {"analyzer": CHAR_WB, "ngram_min": 2, "ngram_max": 3}, "docs": CORPUS_A[:3]},
     # #879: only runs of two or more whitespace collapse (\s\s+), and U+001C..U+001F are whitespace.
     {"config": {"analyzer": "char", "ngram_min": 1, "ngram_max": 2}, "docs": CORPUS_WHITESPACE},
-    {"config": {"analyzer": "char_wb", "ngram_min": 1, "ngram_max": 2}, "docs": CORPUS_WHITESPACE},
+    {"config": {"analyzer": CHAR_WB, "ngram_min": 1, "ngram_max": 2}, "docs": CORPUS_WHITESPACE},
+    # #1065: a first length below 1 is analysed, not refused, on Python's slice semantics. These
+    # freeze the four shapes: the word max_n == 1 shortcut, a zero length, (0, 0), a negative stop.
+    {"config": {"ngram_min": 0, "ngram_max": 1}, "docs": CORPUS_A},
+    {"config": {"ngram_min": 0, "ngram_max": 2}, "docs": CORPUS_A},
+    {"config": {"ngram_min": 0, "ngram_max": 0}, "docs": CORPUS_A},
+    {"config": {"ngram_min": -2, "ngram_max": 2}, "docs": CORPUS_A},
+    {"config": {"analyzer": "char", "ngram_min": 0, "ngram_max": 2}, "docs": CORPUS_A[:3]},
+    {"config": {"analyzer": "char", "ngram_min": -1, "ngram_max": 1}, "docs": CORPUS_A[:3]},
+    {"config": {"analyzer": CHAR_WB, "ngram_min": 0, "ngram_max": 2}, "docs": CORPUS_A[:3]},
+    {"config": {"analyzer": CHAR_WB, "ngram_min": -1, "ngram_max": 1}, "docs": CORPUS_A[:3]},
 ]
 
 
@@ -934,6 +945,8 @@ TFIDF_CASES = [
     {"config": {"use_idf": False}, "docs": CORPUS_A},
     {"config": {"ngram_min": 1, "ngram_max": 2}, "docs": CORPUS_A},
     {"config": {"norm": "l1"}, "docs": CORPUS_A},
+    # #1065: the idf and the norm over the empty term a zero first length adds.
+    {"config": {"ngram_min": 0, "ngram_max": 2}, "docs": CORPUS_A},
 ]
 
 
@@ -979,6 +992,8 @@ def generate_hashingvectorizer() -> dict:
         {"n_features": 16, "alternate_sign": True, "norm": "l2"},
         {"n_features": 16, "alternate_sign": False, "norm": None},
         {"n_features": 8, "ngram_min": 1, "ngram_max": 2, "norm": None},
+        # #1065: the empty term a zero first length adds, hashed like any other.
+        {"n_features": 8, "ngram_min": 0, "ngram_max": 2, "norm": None},
     ]
     cases = []
     for idx, cfg in enumerate(configs):

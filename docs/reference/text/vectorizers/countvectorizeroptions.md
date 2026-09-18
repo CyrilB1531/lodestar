@@ -41,8 +41,15 @@ default: `MaxDf = 1.0` is a proportion meaning "in up to all of them", which is 
 drops nothing. Measured, over two documents sharing `the`, `MaxDf = 1.0` keeps all three terms.
 Both properties are `double`, so writing `1` rather than `1.0` changes nothing.
 
-`NgramRange` must be ascending and start at `1` or more: `(2, 1)` or `(0, 1)` is refused by the
-vectorizer's constructor with `ArgumentException`, where scikit-learn raises `ValueError`.
+`NgramRange` must ascend, and that is the only thing asked of it: `(2, 1)` is refused by the
+vectorizer's constructor with `ArgumentException`, where scikit-learn raises `ValueError`, and
+every ascending range is analysed, including one whose first length is below `1`. A `Min` of `0`
+or less is what scikit-learn calls a Python slice with, so it adds an empty-string term — the
+zero-length slice, taken at every position and so counted once per unit plus one — and a negative
+`Min` counts back from the end, `(-1, 1)` asking a character analyzer for the document but its
+last character. `AnalyzerKind.Word` at `Max = 1` is the one shortcut that skips the slicing
+entirely, so `(0, 1)` is `(1, 1)` there and adds nothing. Measured against scikit-learn 1.9.0,
+term for term, and frozen in the oracle corpus.
 
 This is a `record`, so two options objects with the same settings are equal. `StopWords` is
 compared **as a set** rather than as a sequence, which is why
