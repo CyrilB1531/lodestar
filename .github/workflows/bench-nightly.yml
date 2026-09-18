@@ -1,5 +1,7 @@
 name: Benchmarks (nightly)
 
+# Probe for #1073, never merged: a workflow the pull-request pipeline does not read.
+
 # CI compiles the benchmarks -- bench/ is in Lodestar.slnx -- and never runs one, so a
 # change that makes a measurement wrong rather than uncompilable is found by hand or not
 # at all (#11). This runs them, and only the ones a change could have moved:
