@@ -14,12 +14,13 @@ internal static class SparseColumns
     /// <summary>Each column's sum of values and sum of squares, the zeros contributing nothing to either.</summary>
     public static (double[] Sums, double[] Squares) Moments(CsrMatrix matrix)
     {
-        var sums = new double[matrix.ColumnCount];
-        var squares = new double[matrix.ColumnCount];
-        for (int i = 0; i < matrix.Values.Length; i++)
+        CsrMatrix read = Consolidated(matrix);
+        var sums = new double[read.ColumnCount];
+        var squares = new double[read.ColumnCount];
+        for (int i = 0; i < read.Values.Length; i++)
         {
-            int column = matrix.ColumnIndices[i];
-            double value = matrix.Values[i];
+            int column = read.ColumnIndices[i];
+            double value = read.Values[i];
             sums[column] += value;
             squares[column] += value * value;
         }
@@ -27,14 +28,96 @@ internal static class SparseColumns
         return (sums, squares);
     }
 
+    /// <summary>The matrix with each row storing every column once, a row's duplicates summed.</summary>
+    /// <remarks>
+    /// Returns <paramref name="matrix"/> itself when no row stores a column twice, which is every
+    /// matrix this repository builds. The statistics here are scikit-learn's, read through scipy
+    /// reductions that call <c>sum_duplicates()</c> first, so they must read what
+    /// <see cref="CsrMatrix.ToDense"/> reads rather than each stored entry on its own (#1044).
+    /// </remarks>
+    public static CsrMatrix Consolidated(CsrMatrix matrix)
+    {
+        var mark = new int[matrix.ColumnCount];
+        ResetMarks(mark);
+        if (!HasDuplicate(matrix, mark))
+        {
+            return matrix;
+        }
+
+        ResetMarks(mark);
+        var totals = new double[matrix.ColumnCount];
+        var values = new List<double>(matrix.Values.Length);
+        var columns = new List<int>(matrix.Values.Length);
+        var pointers = new int[matrix.RowCount + 1];
+        var present = new List<int>();
+
+        for (int row = 0; row < matrix.RowCount; row++)
+        {
+            present.Clear();
+            for (int i = matrix.RowPointers[row]; i < matrix.RowPointers[row + 1]; i++)
+            {
+                int column = matrix.ColumnIndices[i];
+                if (mark[column] != row)
+                {
+                    mark[column] = row;
+                    totals[column] = 0.0;
+                    present.Add(column);
+                }
+
+                totals[column] += matrix.Values[i];
+            }
+
+            present.Sort();
+            foreach (int column in present)
+            {
+                columns.Add(column);
+                values.Add(totals[column]);
+            }
+
+            pointers[row + 1] = values.Count;
+        }
+
+        return new CsrMatrix(matrix.RowCount, matrix.ColumnCount, [.. values], [.. columns], pointers);
+    }
+
+    /// <summary>Marks every column as seen in no row, which row 0 would otherwise look like.</summary>
+    private static void ResetMarks(int[] mark)
+    {
+        for (int column = 0; column < mark.Length; column++)
+        {
+            mark[column] = -1;
+        }
+    }
+
+    /// <summary>Whether any row stores one column twice, in one pass and with no allocation of its own.</summary>
+    private static bool HasDuplicate(CsrMatrix matrix, int[] mark)
+    {
+        for (int row = 0; row < matrix.RowCount; row++)
+        {
+            for (int i = matrix.RowPointers[row]; i < matrix.RowPointers[row + 1]; i++)
+            {
+                int column = matrix.ColumnIndices[i];
+                if (mark[column] == row)
+                {
+                    return true;
+                }
+
+                mark[column] = row;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Each column's largest absolute value, which is zero for a column with no stored entry.</summary>
     public static double[] MaximumAbsolute(CsrMatrix matrix)
     {
-        var maxima = new double[matrix.ColumnCount];
-        for (int i = 0; i < matrix.Values.Length; i++)
+        CsrMatrix read = Consolidated(matrix);
+        var maxima = new double[read.ColumnCount];
+        for (int i = 0; i < read.Values.Length; i++)
         {
-            int column = matrix.ColumnIndices[i];
-            double value = Math.Abs(matrix.Values[i]);
+            int column = read.ColumnIndices[i];
+            double value = Math.Abs(read.Values[i]);
             if (value > maxima[column])
             {
                 maxima[column] = value;
@@ -51,22 +134,23 @@ internal static class SparseColumns
     /// </remarks>
     public static (double[] Values, int[] Offsets) ByColumn(CsrMatrix matrix)
     {
-        var offsets = new int[matrix.ColumnCount + 1];
-        for (int i = 0; i < matrix.ColumnIndices.Length; i++)
+        CsrMatrix read = Consolidated(matrix);
+        var offsets = new int[read.ColumnCount + 1];
+        for (int i = 0; i < read.ColumnIndices.Length; i++)
         {
-            offsets[matrix.ColumnIndices[i] + 1]++;
+            offsets[read.ColumnIndices[i] + 1]++;
         }
 
-        for (int column = 0; column < matrix.ColumnCount; column++)
+        for (int column = 0; column < read.ColumnCount; column++)
         {
             offsets[column + 1] += offsets[column];
         }
 
-        var values = new double[matrix.Values.Length];
+        var values = new double[read.Values.Length];
         var next = (int[])offsets.Clone();
-        for (int i = 0; i < matrix.Values.Length; i++)
+        for (int i = 0; i < read.Values.Length; i++)
         {
-            values[next[matrix.ColumnIndices[i]]++] = matrix.Values[i];
+            values[next[read.ColumnIndices[i]]++] = read.Values[i];
         }
 
         return (values, offsets);
@@ -75,7 +159,10 @@ internal static class SparseColumns
     /// <summary>One column's values, the absent zeros included, sorted into <paramref name="buffer"/>.</summary>
     /// <remarks>
     /// The buffer receives the column's stored values in storage order and zeros after them — the
-    /// same sequence a scan of the whole matrix built — so the sort returns the same array.
+    /// same sequence a scan of the whole matrix built — so the sort returns the same array. It is
+    /// one slot per row, which fits because <see cref="ByColumn"/> consolidated the matrix first:
+    /// a column is then stored at most once per row, so it cannot hold more values than there are
+    /// rows, which is what used to reach the caller as an <c>Array.Copy</c> failure (#1045).
     /// </remarks>
     public static double[] SortedColumn(double[] grouped, int[] offsets, int column, double[] buffer)
     {
@@ -113,8 +200,8 @@ internal static class SparseColumns
 
     /// <summary>Why a transform refuses one, where the reference passes a NaN through and refuses an infinity.</summary>
     public const string TransformReason =
-        "The dense overloads refuse one too. The reference passes a NaN through here and refuses an infinity; "
-        + "docs/equivalence.md's transform row records both.";
+        "The dense overloads refuse one too, and so do the three sparse ones. The reference passes a NaN "
+        + "through here and refuses an infinity; docs/equivalence.md's transform row records the divergence.";
 
     /// <summary>A copy of <paramref name="samples"/> with every stored value divided by its column's scale.</summary>
     /// <remarks>

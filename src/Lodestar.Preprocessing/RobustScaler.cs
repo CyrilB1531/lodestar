@@ -223,7 +223,7 @@ public sealed class RobustScaler
     /// <param name="samples">The samples to transform, with <see cref="FeatureCount"/> columns.</param>
     /// <returns>A new matrix storing the same positions, divided by <see cref="Scale"/>, or a copy when not scaling.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> has another column count, or stores a non-finite value.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, has another column count, or stores a non-finite value.</exception>
     /// <exception cref="InvalidOperationException">This scaler centres, which a sparse matrix cannot be.</exception>
     /// <remarks>
     /// <c>RobustScaler.transform</c> on a CSR matrix skips the centring without a word; this refuses it
@@ -249,7 +249,7 @@ public sealed class RobustScaler
     /// <param name="samples">The transformed samples, with <see cref="FeatureCount"/> columns.</param>
     /// <returns>A new matrix storing the same positions, multiplied by <see cref="Scale"/>, or a copy when not scaling.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> has another column count, or stores a non-finite value.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, has another column count, or stores a non-finite value.</exception>
     /// <exception cref="InvalidOperationException">This scaler centres, which a sparse matrix cannot be.</exception>
     public CsrMatrix InverseTransform(CsrMatrix samples)
     {

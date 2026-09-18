@@ -50,7 +50,8 @@ Within a row, `ColumnIndices` is ascending in every matrix this repository build
 does not require it ([decision 0089](../../../decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)
 left that invariant to a decision of its own). A column stored twice in one row counts as the sum of
 its entries in [`CsrMatrix.ToDense`](csrmatrix-todense.md), [`CsrMatrix.Multiply`](csrmatrix-multiply.md) and
-[`CsrMatrix.TransposeMultiply`](csrmatrix-transposemultiply.md), which is how `scipy.sparse.csr_matrix` reads it.
+[`CsrMatrix.TransposeMultiply`](csrmatrix-transposemultiply.md), which is how `scipy.sparse.csr_matrix` reads it. `Lodestar.Preprocessing`'s three sparse fits sum them too,
+since `sklearn.utils.sparsefuncs` reduces through scipy.
 [`CsrMatrix.RowL1Norm`](csrmatrix-rowl1norm.md), [`CsrMatrix.RowL2Norm`](csrmatrix-rowl2norm.md) and
 [`CsrMatrix.NormalizeRows`](csrmatrix-normalizerows.md) do not: they treat each stored entry on its own, as
 `sklearn.preprocessing.normalize` does, so a row storing `1` and `2` in one column has an L2 norm of `√5`, not `3`,

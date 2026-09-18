@@ -1,3 +1,4 @@
+using Lodestar.Abstractions;
 using Xunit;
 
 namespace Lodestar.Preprocessing.Tests;
@@ -82,5 +83,64 @@ public sealed class StandardScalerEdgeTests
         Assert.Equal(1.0, scaler.Scale![0]);
         Assert.Equal([0.0, 0.0, 0.0], scaler.Transform(constant));
         Assert.Equal(constant, scaler.InverseTransform(scaler.Transform(constant)));
+    }
+
+    /// <summary>
+    /// The dense fit was the one entry point of the four scalers that answered a statistic for a
+    /// value no statistic can answer for: it returned a <c>NaN</c> scale and mean and poisoned
+    /// every later transform of that feature, where scikit-learn nan-skips (#1042).
+    /// </summary>
+    [Fact]
+    public void The_dense_fit_refuses_a_non_finite_value()
+    {
+        double[] withNan = [-1.2216917e9, 1.0, 2.0, 2.0, 3.0, double.NaN, 4.0, 4.0];
+        double[] withInfinity = [-1.2216917e9, 1.0, 2.0, 2.0, 3.0, double.PositiveInfinity, 4.0, 4.0];
+
+        Assert.Equal("samples", Assert.Throws<ArgumentException>(() => StandardScaler.Fit(withNan, 2)).ParamName);
+        Assert.Equal("samples", Assert.Throws<ArgumentException>(() => StandardScaler.Fit(withInfinity, 2)).ParamName);
+    }
+
+    /// <summary>
+    /// <c>partial_fit</c> folds a batch into the same statistics, so it refuses the same batch: the
+    /// page already promised that these scalers refuse a non-finite value (#1042).
+    /// </summary>
+    [Fact]
+    public void Partial_fit_refuses_a_non_finite_batch()
+    {
+        StandardScaler fitted = StandardScaler.Fit(TwoByTwo, 2);
+
+        Assert.Throws<ArgumentException>(() => fitted.PartialFit([3.0, double.NaN]));
+        Assert.Throws<ArgumentException>(() => fitted.PartialFit([3.0, double.NegativeInfinity]));
+    }
+
+    /// <summary>
+    /// Refusing on the way in and not on the way through is the same contradiction one step later:
+    /// the dense transform answered a <c>NaN</c> where its three neighbours refuse the input.
+    /// </summary>
+    [Fact]
+    public void The_dense_transform_and_its_inverse_refuse_a_non_finite_value()
+    {
+        StandardScaler fitted = StandardScaler.Fit(TwoByTwo, 2);
+
+        Assert.Throws<ArgumentException>(() => fitted.Transform([1.0, double.NaN]));
+        Assert.Throws<ArgumentException>(() => fitted.InverseTransform([1.0, double.PositiveInfinity]));
+    }
+
+    /// <summary>
+    /// The sparse transform passed both through where <c>MaxAbsScaler</c> and <c>RobustScaler</c>
+    /// refuse both, which is the contradiction the equivalence row stated as a fact (#1041).
+    /// </summary>
+    [Fact]
+    public void The_sparse_transform_and_its_inverse_refuse_a_stored_non_finite_value()
+    {
+        StandardScaler fitted = StandardScaler.Fit(
+            new CsrMatrix(2, 2, [1.0, 2.0, 3.0, 4.0], [0, 1, 0, 1], [0, 2, 4]));
+        var withNan = new CsrMatrix(2, 2, [1.0, double.NaN], [0, 1], [0, 1, 2]);
+        var withInfinity = new CsrMatrix(2, 2, [1.0, double.PositiveInfinity], [0, 1], [0, 1, 2]);
+
+        Assert.Equal("samples", Assert.Throws<ArgumentException>(() => fitted.Transform(withNan)).ParamName);
+        Assert.Equal("samples", Assert.Throws<ArgumentException>(() => fitted.Transform(withInfinity)).ParamName);
+        Assert.Throws<ArgumentException>(() => fitted.InverseTransform(withNan));
+        Assert.Throws<ArgumentException>(() => fitted.InverseTransform(withInfinity));
     }
 }

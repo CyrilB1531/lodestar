@@ -65,7 +65,7 @@ public sealed class StandardScaler
     /// <param name="options">Which steps to apply; <see langword="null"/> applies both.</param>
     /// <returns>A fitted scaler.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, or a partial one.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value.</exception>
     /// <remarks>
     /// Variance is the population variance (<c>ddof=0</c>), in two passes as numpy's is.
     /// <strong>A near-constant feature scales by 1</strong>, and the test is not
@@ -79,6 +79,7 @@ public sealed class StandardScaler
     {
         Guard.NotLessThan(featureCount, 1);
         int sampleCount = SampleMatrix.Rows(samples, featureCount);
+        SampleMatrix.RequireFinite(samples, nameof(samples));
         StandardScalerOptions settings = options ?? new StandardScalerOptions();
 
         if (!settings.WithMean && !settings.WithStd)
@@ -163,7 +164,7 @@ public sealed class StandardScaler
     /// <summary>Folds another batch into the fitted statistics, as <c>partial_fit</c> does.</summary>
     /// <param name="samples">The next batch, row-major, with <see cref="FeatureCount"/> values per row.</param>
     /// <returns>A new scaler summarising every batch seen so far; this one is unchanged.</returns>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, or a partial one.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value.</exception>
     /// <remarks>
     /// <strong>Returns a new scaler rather than mutating this one</strong>, the one place the
     /// spelling differs from the reference. Chaining batches and fitting the concatenation agree to
@@ -173,6 +174,7 @@ public sealed class StandardScaler
     public StandardScaler PartialFit(ReadOnlySpan<double> samples)
     {
         int rows = SampleMatrix.Rows(samples, FeatureCount);
+        SampleMatrix.RequireFinite(samples, nameof(samples));
         int updated = SampleCount + rows;
 
         if (_mean is null)
@@ -197,14 +199,14 @@ public sealed class StandardScaler
     /// <summary>Standardises a row-major sample matrix with the fitted statistics.</summary>
     /// <param name="samples">The samples to transform, row-major, with <see cref="FeatureCount"/> values per row.</param>
     /// <returns>A new array of the same length, standardised.</returns>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, or a partial one.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value.</exception>
     public double[] Transform(ReadOnlySpan<double> samples) => Apply(samples, inverse: false);
 
     /// <summary>Scales a sparse matrix by the fitted deviations, keeping its structure.</summary>
     /// <param name="samples">The samples to transform, with <see cref="FeatureCount"/> columns.</param>
     /// <returns>A new matrix storing the same positions, divided by <see cref="Scale"/>, or a copy when not scaling.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> has another column count.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, has another column count, or stores a non-finite value.</exception>
     /// <exception cref="InvalidOperationException">This scaler centres, which a sparse matrix cannot be.</exception>
     /// <remarks>
     /// <c>StandardScaler.transform</c> on a CSR matrix, which raises the same refusal: subtracting the
@@ -213,13 +215,13 @@ public sealed class StandardScaler
     public CsrMatrix Transform(CsrMatrix samples)
     {
         SparseColumns.RefuseCentring(samples, _centres, nameof(StandardScalerOptions.WithMean));
-        return SparseColumns.Divided(samples, FeatureCount, _scale, requireFinite: false);
+        return SparseColumns.Divided(samples, FeatureCount, _scale, requireFinite: true);
     }
 
     /// <summary>Undoes <see cref="Transform(ReadOnlySpan{double})"/>, returning values on the original scale.</summary>
     /// <param name="samples">The standardised samples, row-major, with <see cref="FeatureCount"/> values per row.</param>
     /// <returns>A new array of the same length, back on the input scale.</returns>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, or a partial one.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value.</exception>
     /// <remarks>
     /// Exact only up to floating-point rounding, and not at all for a feature whose
     /// <see cref="Scale"/> was forced to 1 — that step threw the feature's spread away
@@ -231,12 +233,12 @@ public sealed class StandardScaler
     /// <param name="samples">The standardised samples, with <see cref="FeatureCount"/> columns.</param>
     /// <returns>A new matrix storing the same positions, multiplied by <see cref="Scale"/>, or a copy when not scaling.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> has another column count.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, has another column count, or stores a non-finite value.</exception>
     /// <exception cref="InvalidOperationException">This scaler centres, which a sparse matrix cannot be.</exception>
     public CsrMatrix InverseTransform(CsrMatrix samples)
     {
         SparseColumns.RefuseCentring(samples, _centres, nameof(StandardScalerOptions.WithMean));
-        return SparseColumns.Multiplied(samples, FeatureCount, _scale, requireFinite: false);
+        return SparseColumns.Multiplied(samples, FeatureCount, _scale, requireFinite: true);
     }
 
     /// <summary>The mean alone, folded — what a scaler that never computed a variance can update.</summary>
@@ -261,6 +263,7 @@ public sealed class StandardScaler
     private double[] Apply(ReadOnlySpan<double> samples, bool inverse)
     {
         SampleMatrix.Rows(samples, FeatureCount);
+        SampleMatrix.RequireFinite(samples, nameof(samples));
         var result = new double[samples.Length];
 
         // An absent centre is a row of zeros that is still added, not skipped: -0.0 + 0.0 is +0.0,
