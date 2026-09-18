@@ -757,12 +757,36 @@ code review's call, per `CONTRIBUTING.md`'s *Claims in comments*.
 A docstring is not a comment block. Python prose belongs in one, and the tools
 in this directory open with thirty-line docstrings on purpose.
 
+## `skip_build.py`
+
+Answers whether a pull request changes nothing the build, the tests or the Windows checks can
+judge ([#1073](https://github.com/CyrilB1531/lodestar/issues/1073)). Two classes qualify: Markdown
+only, which is `docs_only.py`'s answer, and **workflow only** — every path a workflow-ish file
+other than `.github/workflows/ci.yml`. Nothing in the pull-request pipeline reads `release.yml`,
+`bench-nightly.yml`, `classify-pull-request.yml`, `wiki.yml` or `dependabot.yml`, so a build and a
+platform check say nothing about a change to them; on #1072, which changed `ci.yml` alone, they
+cost six minutes of build and test and a Windows job still running after the required checks had
+gone green.
+
+`ci.yml` is excluded by the rule rather than by a convention: that file *is* the gate, so running
+the pipeline is the only way to know a change to it works. Every path must qualify, so a pull
+request mixing `ci.yml` with anything else takes the full path too.
+
+`--workflows-only` answers the narrower question — every path such a workflow and **no Markdown at
+all** — which is what lets `Guide snippets compile, reference snippets run` be skipped as well. Any
+Markdown runs it, because that is the job that compiles and runs the guides' fences.
+
+```bash
+gh api repos/CyrilB1531/lodestar/pulls/1072/files --paginate \
+    --jq '.[] | .filename, (.previous_filename // empty)' | python3 tools/skip_build.py
+```
+
 ## `docs_only.py`
 
 Answers whether a pull request changes nothing but Markdown, which decides the path CI takes
 ([#857](https://github.com/CyrilB1531/lodestar/issues/857)). The `changes` job in `ci.yml` feeds it
 the pull request's files from the API, and a `true` skips the jobs that cannot see a `.md` change
-— `Build, test, pack`, the sample, the oracles, Windows and the SonarQube Cloud analysis — while the
+— the build, the sample, the oracles, Windows and the SonarQube Cloud analysis — while the
 lint, the snippets and the stop-word check still run, and `Lint` runs the documentation tests
 ([#997](https://github.com/CyrilB1531/lodestar/issues/997)). Those tests stay because 21
 `ReferenceDocumentationTests` classes read `docs/**/*.md`: one caught a missing reference link in
