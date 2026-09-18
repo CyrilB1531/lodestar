@@ -70,9 +70,10 @@ The vector ranking is `a, b, c`; the keyword ranking is `c` alone, since `zebra`
 then by index, which is [`Bm25Index.Top`](../../text/search/bm25index-top.md)'s own order over that
 subset. `RankFusion.Rrf` reads a ranking's positions rather than its scores, so passing every
 document through would hand an unmatched record credit for the order it was inserted in. Only the
-matched records are ranked, read from the queried terms' postings rather than from a pass over every
-stored count, which is what keeps a query off the size of the collection. A record enters the keyword
-ranking when its full-text value holds
+matched records are sorted, read from the queried terms' postings rather than from a pass over every
+stored count; scoring them still costs one `double` per record of the collection per query, since
+`Bm25Index.Score` returns every record's score. A record enters the keyword ranking when its full-text
+value holds
 at least one of the keywords, **whatever the sign of its BM25 score**: the default IDF is zero for a
 term in exactly half the records, and its floor for a commoner term is negative whenever the mean IDF
 is, so a matched record can score zero or less — in a one-record collection it always does.

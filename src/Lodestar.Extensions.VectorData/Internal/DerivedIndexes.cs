@@ -22,7 +22,6 @@ internal sealed class DerivedIndexes<TKey, TRecord>
     {
         Vectors = vectors;
         Block = block;
-        Counts = counts;
         Postings = counts is null ? null : TermPostings.Of(counts);
         Keywords = keywords;
         Vectorizer = vectorizer;
@@ -40,17 +39,11 @@ internal sealed class DerivedIndexes<TKey, TRecord>
     /// </remarks>
     public ReadOnlyMemory<float> Block { get; }
 
-    /// <summary>The term counts <see cref="Keywords"/> was built over, which say what a query matched.</summary>
-    /// <remarks>
-    /// A score cannot say it: the default IDF is zero for a term in half the records and its floor
-    /// is negative when the mean IDF is, so a match can score at or below an unmatched zero.
-    /// </remarks>
-    public CsrMatrix? Counts { get; }
-
     /// <summary>Which records hold each term, or <see langword="null"/> without a keyword half.</summary>
     /// <remarks>
-    /// Built once with <see cref="Counts"/> rather than per query: a hybrid search asked which records
-    /// matched, and answering it by walking every stored count cost the whole corpus on every call (#993).
+    /// What says a query matched, which a score cannot: the default IDF is zero for a term in half the
+    /// records and its floor is negative when the mean IDF is, so a match can score at or below an
+    /// unmatched zero. Built once from the term counts rather than walking them per query (#993).
     /// </remarks>
     public TermPostings? Postings { get; }
 

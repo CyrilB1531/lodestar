@@ -117,7 +117,7 @@ is one sentence, the issue and the commit; see
 - `Fuzz.TokenSetRatio` and `Fuzz.PartialTokenSetRatio` throw `ArgumentNullException` on a null string rather than `NullReferenceException`. ([#891](https://github.com/CyrilB1531/lodestar/issues/891))
 - `Process.Extract` refuses a negative `limit` with an `ArgumentOutOfRangeException` naming it, where it failed inside `List.RemoveRange`. ([#910](https://github.com/CyrilB1531/lodestar/issues/910))
 - `Fuzz`'s `TextElement.CodePoint` overloads split tokens on U+00A0 and U+0085 in a string holding a character above U+00FF, as rapidfuzz does, where French text with a no-break space scored below rapidfuzz. ([#974](https://github.com/CyrilB1531/lodestar/issues/974))
-- `Fuzz.Ratio` and `Fuzz.PartialRatio` at `TextElement.CodePoint` allocate nothing on text inside the BMP, the astral path allocates half what it did, and `Fuzz.WRatio` answers an empty operand without tokenizing the other. ([#987](https://github.com/CyrilB1531/lodestar/issues/987))
+- `Fuzz.Ratio` and `Fuzz.PartialRatio` at `TextElement.CodePoint` allocate nothing on text inside the BMP, and `Fuzz.WRatio` answers an empty operand without tokenizing the other. ([#987](https://github.com/CyrilB1531/lodestar/issues/987))
 - `Fuzz.Ratio` at `TextElement.CodePoint` answers a pair holding more than 63,455 distinct code points, where it threw, and the scorers that still cannot, say so on their pages. ([#982](https://github.com/CyrilB1531/lodestar/issues/982))
 - `Fuzz`'s `TextElement.CodePoint` overloads size their code-point map by the distinct code points, where #987 sized it by every one and quadrupled the allocation on repetitive astral text, and `Fuzz.WRatio` answers an empty operand there before building it. ([#1056](https://github.com/CyrilB1531/lodestar/issues/1056), [#1057](https://github.com/CyrilB1531/lodestar/issues/1057))
 
@@ -157,9 +157,9 @@ is one sentence, the issue and the commit; see
 - The vectorizers, `Bm25Index`, `TextRank`, `Rake`, `LshIndex`, `BkTree`, `MinHash`, `SimHash`, `RankFusion`, `MinHashPermutations` and `DamerauLevenshtein` refuse null documents, out-of-range options and overflowing sizes with the documented exception and the caller's parameter name, and an unfitted `Save(Stream)` no longer writes a partial header. ([#901](https://github.com/CyrilB1531/lodestar/issues/901))
 - `DoubleMetaphone.Encode("W")` returns two empty codes, as the reference does, instead of throwing. ([#838](https://github.com/CyrilB1531/lodestar/issues/838))
 - `FrenchSnowballStemmer.Stem` keeps a word-final `é` or `è`, as nltk does, where `thé` stemmed to `the` and `été` to `éte`. ([#948](https://github.com/CyrilB1531/lodestar/issues/948))
-- `RatcliffObershelp.Similarity` allocates nothing again, where the explicit stack #877 added cost 120 B a call. ([#980](https://github.com/CyrilB1531/lodestar/issues/980))
+- `RatcliffObershelp.Similarity` allocates nothing again, where #877's explicit stack allocated on every call. ([#980](https://github.com/CyrilB1531/lodestar/issues/980))
 - The `TfidfVectorizer` and `HashingVectorizer` constructors, their reference pages and `CountVectorizerOptions` document the `MinDf`, `MaxDf`, `NgramRange` and `NumFeatures` refusals #901 added. ([#986](https://github.com/CyrilB1531/lodestar/issues/986))
-- `FrenchSnowballStemmer.Stem` follows the Snowball algorithm as `snowballstemmer` 3.1.1 implements it, agreeing on all 346,244 words of a French dictionary where 8,253 differed, and now differs from nltk's `FrenchStemmer` on 278 of them, such as `indicatrice` and `bijoux`. ([#973](https://github.com/CyrilB1531/lodestar/issues/973))
+- `FrenchSnowballStemmer.Stem` follows the Snowball algorithm as `snowballstemmer` 3.1.1 implements it, and now differs from nltk's `FrenchStemmer` on words such as `indicatrice` and `bijoux`. ([#973](https://github.com/CyrilB1531/lodestar/issues/973))
 - `CountVectorizer`, `TfidfVectorizer` and `HashingVectorizer` analyse an `NgramRange` whose first length is below `1` on scikit-learn's Python slices, where they refused it with `ArgumentException` and the page said scikit-learn refused it too. ([#1065](https://github.com/CyrilB1531/lodestar/issues/1065))
 
 ### Lodestar.Gpu
@@ -239,7 +239,8 @@ is one sentence, the issue and the commit; see
 
 - `HybridSearchAsync` keeps a record the keywords matched in the keyword ranking when its BM25 score is zero or negative, where it used to drop it as unmatched. ([#884](https://github.com/CyrilB1531/lodestar/issues/884))
 - A key property of another type than the collection's key or a non-`string` full-text property is refused at construction, a deleted name can be taken by another record type, and an empty collection refuses a query of the wrong width. ([#904](https://github.com/CyrilB1531/lodestar/issues/904))
-- `HybridSearchAsync` ranks only the records a keyword matched, read from the term postings, where it scored and sorted every record of the collection on every query: 4.85 ms and 5.3 MB a search against 5.96 ms and 6.2 MB over 20,000 records. ([#993](https://github.com/CyrilB1531/lodestar/issues/993))
+- `HybridSearchAsync` ranks only the records a keyword matched, read from the term postings, where it scored and sorted every record of the collection on every query. ([#993](https://github.com/CyrilB1531/lodestar/issues/993))
+- `HybridSearchAsync` sorts a keyword's matched records in one array by their own scores, where #993 gathered them in a sorted set and sorted through the whole score array, which made a keyword most records hold slower than before #993. ([#1036](https://github.com/CyrilB1531/lodestar/issues/1036))
 
 ### Lodestar.Stats.TimeSeries
 

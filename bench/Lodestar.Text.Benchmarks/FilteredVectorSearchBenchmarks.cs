@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using BenchmarkDotNet.Attributes;
 using Lodestar.Extensions.VectorData;
 using Microsoft.Extensions.VectorData;
@@ -15,6 +17,10 @@ public sealed class TaggedVector
     [VectorStoreData]
     public int Tag { get; set; }
 
+    /// <summary>What the keyword half indexes: eight words from 2,000, plus <c>common</c> in every record.</summary>
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Text { get; set; } = string.Empty;
+
     /// <summary>The embedding, MiniLM's width.</summary>
     [VectorStoreVector(384)]
     public ReadOnlyMemory<float> Embedding { get; set; }
@@ -26,7 +32,9 @@ public sealed class TaggedVector
 /// </summary>
 /// <remarks>
 /// The collection is built and its indexes warmed once, so the rows time the search alone. The
-/// unfiltered row is the reference the filtered one is read against.
+/// unfiltered row is the reference the filtered one is read against. The two hybrid rows fuse the
+/// same vector ranking with a keyword one record holds and one every record holds, the two shapes
+/// #993 and #1036 moved in opposite directions.
 /// </remarks>
 // CA1001 (owns a disposable field but is not IDisposable): BenchmarkDotNet owns
 // this type's lifecycle and calls [GlobalCleanup] below, which disposes
@@ -66,6 +74,19 @@ public class FilteredVectorSearchBenchmarks
         {
             query[j] = (float)((random.NextDouble() * 2) - 1);
         }
+
+        // A second generator, so the vectors above are drawn exactly as before the text existed.
+        var words = new Random(1036);
+        var text = new StringBuilder();
+        for (int i = 0; i < Records; i++)
+        {
+            text.Clear().Append(i == Records / 2 ? "common needle" : "common");
+            for (int w = 0; w < 8; w++)
+            {
+                text.Append(" w").Append(words.Next(2_000).ToString(CultureInfo.InvariantCulture));
+            }
+            records[i].Text = text.ToString();
+        }
 #pragma warning restore S2245, CA5394
         _query = query;
 
@@ -83,6 +104,14 @@ public class FilteredVectorSearchBenchmarks
 
     [Benchmark]
     public Task<int> Unfiltered() => Count(_collection.SearchAsync(_query, 10));
+
+    /// <summary>A keyword one record holds: the ranking #993 made cheap.</summary>
+    [Benchmark]
+    public Task<int> HybridSelective() => Count(_collection.HybridSearchAsync(_query, ["needle"], 10));
+
+    /// <summary>A keyword every record holds, as <c>the</c> is over prose with no stop words: the ranking #993 made dearer (#1036).</summary>
+    [Benchmark]
+    public Task<int> HybridBroad() => Count(_collection.HybridSearchAsync(_query, ["common"], 10));
 
     private static async Task<int> Count(IAsyncEnumerable<VectorSearchResult<TaggedVector>> hits)
     {
