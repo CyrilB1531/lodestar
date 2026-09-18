@@ -12,6 +12,9 @@
     <Description>Time-series diagnostics for .NET, at statsmodels parity: the autocorrelation and partial autocorrelation functions with their bands, the Ljung-Box test, the augmented Dickey-Fuller test with MacKinnon p-values, KPSS, and classical seasonal decomposition. Spans in, numbers out, and no dependencies outside Lodestar.</Description>
     <PackageTags>time-series;stationarity;unit-root;dickey-fuller;adf;kpss;autocorrelation;ljung-box;seasonal-decomposition;statistics;statsmodels;lodestar</PackageTags>
     <LodestarIncludesReflections>true</LodestarIncludesReflections>
+    <LodestarIncludesElementWise>true</LodestarIncludesElementWise>
+    <LodestarIncludesJacobiSpectrum>true</LodestarIncludesJacobiSpectrum>
+    <LodestarIncludesRankBracket>true</LodestarIncludesRankBracket>
   </PropertyGroup>
 
   <!--

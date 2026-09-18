@@ -54,8 +54,7 @@ public static class VectorAutoregression
         // Every equation shares the design, so one QR and one inverse of R serve them all.
         var reflections = new SharedReflections(design, parameters, withIntercept: false, responses);
         reflections.ReflectThrough(parameters);
-        reflections.RequireFullRank(parameters, nameof(series));
-        double[] inverse = reflections.InverseUpper(parameters);
+        double[] inverse = reflections.RequireFullRank(parameters, nameof(series));
         double[] squaredNorms = SharedReflections.SquaredNorms(inverse, parameters);
         for (int equation = 0; equation < variableCount; equation++)
         {

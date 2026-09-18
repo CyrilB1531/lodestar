@@ -20,8 +20,9 @@ p-values, the two residual covariances, the log-likelihood and the four criteria
 rather than a vector one — or when `lagOrder` is below one. `ArgumentException` when `series` is empty or not a whole
 number of observations, when it holds a value that is not finite, or when the lags leave no residual degree of freedom:
 `n − lagOrder` usable rows must exceed the `(1 or 0) + variableCount·lagOrder` parameters each equation fits. Also
-when the lagged design is collinear — a variable proportional to another, for instance — within `max(n, p)·ε`
-of a column's norm, the rank tolerance `Lodestar.Stats.Regression`'s fits refuse at.
+when the lagged design is collinear — a variable proportional to another, for instance — with a smallest
+singular value at or below `σmax·max(n, p)·ε`, `numpy.linalg.matrix_rank`'s tolerance and the one
+`Lodestar.Stats.Regression`'s fits refuse at.
 
 **Example** — the second equation of a two-variable system, and what the whole model scores.
 

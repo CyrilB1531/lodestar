@@ -123,4 +123,46 @@ public sealed class LeastSquaresTests
     }
 
     private static long[] Bits(double[] values) => [.. values.Select(BitConverter.DoubleToInt64Bits)];
+
+    // SonarLint S2245, CA5394: a seeded Random builds a reproducible design; no security use.
+#pragma warning disable S2245, CA5394
+    [Fact]
+    public void Solve_OnAWideWellConditionedDesign_AgreesWithTheReflections()
+    {
+        // p = 250 scores 258 on the Frobenius bound though its true kappa is 1.65, so a design
+        // this wide took the reflections before #985. The two paths must still agree (#985).
+        const int Rows = 1200;
+        const int Features = 250;
+        var seeded = new Random(985);
+        var design = new double[Rows * Features];
+        var response = new double[Rows];
+        for (int i = 0; i < design.Length; i++)
+        {
+            design[i] = (seeded.NextDouble() * 2.0) - 1.0;
+        }
+
+        for (int row = 0; row < Rows; row++)
+        {
+            response[row] = (seeded.NextDouble() * 2.0) - 1.0;
+        }
+
+        (double[] fast, _) = LeastSquares.Solve(design, Rows, Features, true, response);
+        (double[] reflected, _) = LeastSquares.SolveByReflections(design, Rows, Features, true, response);
+
+        int differing = 0;
+        for (int k = 0; k < fast.Length; k++)
+        {
+            if (BitConverter.DoubleToInt64Bits(fast[k]) != BitConverter.DoubleToInt64Bits(reflected[k]))
+            {
+                differing++;
+            }
+
+            Assert.Equal(reflected[k], fast[k], (Math.Abs(reflected[k]) * 1e-9) + 1e-11);
+        }
+
+        // Solve falls back to this very call, so bit-identical would mean it took the reflections
+        // after all. 247 of the 251 differ; the intercept is one of the four that agree.
+        Assert.True(differing > 200, $"only {differing} of {fast.Length} coefficients differ");
+    }
+#pragma warning restore S2245, CA5394
 }

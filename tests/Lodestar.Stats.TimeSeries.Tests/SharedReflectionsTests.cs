@@ -111,4 +111,31 @@ public sealed class SharedReflectionsTests
         return series;
     }
 #pragma warning restore S2245, CA5394
+
+    [Fact]
+    public void RequireFullRank_refuses_a_dependent_column_far_smaller_than_its_sources()
+    {
+        // The #978 design as a lagged block: column 2 is column 0 minus column 1, exact in double
+        // and some 380 times smaller than either, which the per-column pivot let through.
+        double[] r = [0.3, -1.1, 0.7, 2.2, -0.4, 1.5, -2.0, 0.9];
+        var design = new double[8 * 3];
+        for (int i = 0; i < 8; i++)
+        {
+            double x1 = i + 1;
+            double x2 = x1 + (1e-2 * r[i]);
+            design[(i * 3) + 0] = x1;
+            design[(i * 3) + 1] = x2;
+            design[(i * 3) + 2] = x1 - x2;
+        }
+
+        var reflections = new SharedReflections(
+            design, featureCount: 3, withIntercept: false, [new double[8]]);
+        reflections.ReflectThrough(3);
+
+        ArgumentException refusal = Assert.Throws<ArgumentException>(
+            () => reflections.RequireFullRank(3, "series"));
+
+        Assert.Equal("series", refusal.ParamName);
+        Assert.Contains("rank-deficient or collinear", refusal.Message, StringComparison.Ordinal);
+    }
 }

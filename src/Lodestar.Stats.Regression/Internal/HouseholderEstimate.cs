@@ -62,8 +62,8 @@ internal static class HouseholderEstimate
     {
         // The same refusal Fit takes in LeastSquares.FromTriangle, which this path does not call: without it
         // x2 = 3*x1 answered coefficients near 1e14 while Fit refused the same design (#979).
-        LeastSquares.RequireFullRank(a, rowCount, parameterCount, LeastSquares.DesignParameter);
-        double[] inverse = LeastSquares.InvertUpper(LeastSquares.Upper(a, rowCount, parameterCount), parameterCount);
+        double[] inverse = LeastSquares.RequireFullRank(
+            a, rowCount, parameterCount, LeastSquares.DesignParameter);
         var coefficients = new double[parameterCount];
         var standardErrors = new double[parameterCount];
         var statistics = new double[parameterCount];

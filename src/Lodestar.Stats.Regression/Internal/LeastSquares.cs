@@ -124,8 +124,7 @@ internal static class LeastSquares
     private static (double[] Coefficients, double[] InverseUpper) FromTriangle(
         double[] a, int rowCount, int parameterCount, double[] projected)
     {
-        RequireFullRank(a, rowCount, parameterCount, DesignParameter);
-        double[] inverseUpper = InvertUpper(Upper(a, rowCount, parameterCount), parameterCount);
+        double[] inverseUpper = RequireFullRank(a, rowCount, parameterCount, DesignParameter);
         var coefficients = new double[parameterCount];
         for (int i = 0; i < parameterCount; i++)
         {
@@ -144,50 +143,55 @@ internal static class LeastSquares
     /// <summary>The public parameter every fit reaching the reflections takes its design in, named by a refusal.</summary>
     internal const string DesignParameter = "design";
 
-    /// <summary>Machine epsilon for <see cref="double"/>, which <see cref="double.Epsilon"/> is not.</summary>
-    private const double MachineEpsilon = 2.220446049250313e-16;
-
-    /// <summary>Refuses a triangularized design one of whose columns lies within rounding of the span of those before it.</summary>
+    /// <summary>Refuses a triangularized design whose columns do not span <paramref name="parameterCount"/> dimensions, and reports R's inverse.</summary>
     /// <remarks>
-    /// <c>|Rₖₖ|</c> over the column's norm, which the reflections preserve in <c>R</c>'s column, is the sine of its angle to
-    /// that span, so the test does not move with a column's scale. Below <c>max(n, p)·ε</c>, <c>numpy.linalg.matrix_rank</c>'s
-    /// tolerance, the pivot is rounding: <c>x₂ = 2·x₁</c> divides by zero and <c>x₂ = 3·x₁</c> by 2e-16, and either filled the
-    /// table with NaN or with coefficients near 1e14 where statsmodels' pseudo-inverse answers the minimum-norm fit (#867).
+    /// <see cref="RankBracket"/> holds the test, which is <c>numpy.linalg.matrix_rank</c>'s. A per-column pivot
+    /// could not see it: rounding scales with the largest columns, so a dependent column far smaller than the
+    /// columns it depends on passed with a ratio of 1e-13 (#978). The inverse is formed here and handed back
+    /// rather than recomputed by each caller, because the middle bracket reads it.
     /// </remarks>
     /// <param name="a">The triangularized block, column-major.</param>
     /// <param name="rowCount">How many rows it holds.</param>
     /// <param name="parameterCount">How many columns it holds.</param>
     /// <param name="parameterName">The public parameter the design arrived as, which the refusal names.</param>
-    /// <exception cref="ArgumentException">A column is dependent on the columns before it.</exception>
-    internal static void RequireFullRank(double[] a, int rowCount, int parameterCount, string parameterName)
+    /// <returns>The inverse of R, row-major, which the standard errors and the leverages read.</returns>
+    /// <exception cref="ArgumentException">The design is rank-deficient or collinear.</exception>
+    internal static double[] RequireFullRank(
+        double[] a, int rowCount, int parameterCount, string parameterName)
     {
-        double tolerance = Math.Max(rowCount, parameterCount) * MachineEpsilon;
-        for (int k = 0; k < parameterCount; k++)
+        double tolerance = RankBracket.Tolerance(rowCount, parameterCount);
+        double[] upper = Upper(a, rowCount, parameterCount);
+        if (RankBracket.DiagonalProvesDeficient(upper, parameterCount, tolerance, out int weakest))
         {
-            int column = k * rowCount;
-            double squaredNorm = 0.0;
-            for (int i = 0; i <= k; i++)
-            {
-                squaredNorm += a[column + i] * a[column + i];
-            }
-
-            // Not negated into a > test: a NaN from the caller's data is not a collinear column.
-            if (Math.Abs(a[column + k]) <= tolerance * Math.Sqrt(squaredNorm))
-            {
-                throw new ArgumentException(
-                    $"design is rank-deficient or collinear: coefficient {k}'s column, intercept first when one is "
-                    + "fitted, lies within rounding of the span of the columns before it, so the fit has no unique "
-                    + "solution. Drop the dependent regressor.",
-                    parameterName);
-            }
+            throw new ArgumentException(
+                $"design is rank-deficient or collinear: coefficient {weakest}'s column, intercept "
+                + "first when one is fitted, is the weakest pivot and lies within rounding of the "
+                + "span of the others, so the fit has no unique solution. Drop the dependent "
+                + "regressor.",
+                parameterName);
         }
+
+        double[] inverseUpper = InvertUpper(upper, parameterCount);
+        if (!RankBracket.FrobeniusProvesFullRank(upper, inverseUpper, parameterCount, tolerance)
+            && RankBracket.SpectrumProvesDeficient(upper, parameterCount, tolerance))
+        {
+            throw new ArgumentException(
+                $"design is rank-deficient or collinear: its {parameterCount} columns, intercept "
+                + "first when one is fitted, span fewer dimensions than that, so the fit has no "
+                + "unique solution. Drop the dependent regressor.",
+                parameterName);
+        }
+
+        return inverseUpper;
     }
 
     /// <summary>The largest condition number of the column-scaled design the normal equations are trusted with.</summary>
     /// <remarks>
     /// The normal equations lose about <c>κ²·ε</c>, and a column's scale does not count towards <c>κ</c> for a Cholesky
     /// factorization (van der Sluis). At 200, <c>200²·ε</c> is 9e-12, a hundred times inside the corpora's 1e-9; a design
-    /// past it — the near-collinear fixtures, a polynomial on a narrow range — goes through the reflections instead (#782, #870).
+    /// past it — the near-collinear fixtures, a polynomial on a narrow range — goes through the reflections instead
+    /// (#782, #870). <see cref="WellConditioned"/> estimates <c>κ₂</c> itself when its two bounds disagree, which is
+    /// what keeps the limit a statement about conditioning rather than about <c>p</c> (#985).
     /// </remarks>
     private const double NormalEquationsConditionLimit = 200.0;
 
@@ -215,7 +219,8 @@ internal static class LeastSquares
         }
 
         double[] inverseUpper = InvertUpper(gram, parameterCount);
-        if (!WellConditioned(gram, inverseUpper, parameterCount))
+        if (!ProvablyFullRank(gram, inverseUpper, rowCount, parameterCount)
+            || !WellConditioned(gram, inverseUpper, parameterCount))
         {
             return null;
         }
@@ -287,14 +292,31 @@ internal static class LeastSquares
         }
     }
 
-    /// <summary>Whether an upper bound on the column-scaled design's condition number stays within <see cref="NormalEquationsConditionLimit"/>.</summary>
+    /// <summary>Whether <c>U</c>'s Frobenius bracket proves the design has full rank, so the normal equations may answer it.</summary>
     /// <remarks>
-    /// With <c>D</c> the column norms, <c>U·D⁻¹</c> is the scaled design's factor and <c>D·U⁻¹</c> its inverse, and the product
-    /// of their Frobenius norms, <c>√p · ‖D·U⁻¹‖_F</c>, bounds <c>κ₂</c> from above. The ratio of <c>U</c>'s diagonal it replaces
-    /// bounds it from below, and let a cubic on [10, 11] through at <c>κ</c> 5e5, 1.4e-5 from statsmodels (#870).
+    /// <c>UᵀU = XᵀX = RᵀR</c>, so <c>U</c> carries the design's singular values as <c>R</c> does and the bracket
+    /// <see cref="RequireFullRank"/> accepts on reads the same here. Both of this path's other gates are scale
+    /// invariant and <see cref="RequireFullRank"/> is not, so without this a design refused through the reflections
+    /// was answered through the normal equations — <c>x₂ = 1e-14·U(0,1)</c> beside a unit column returned a
+    /// coefficient near 1e11 where <c>Estimate</c> threw. Anything the bracket cannot settle goes to the
+    /// reflections, which decide it on the spectrum and raise the refusal, so the two entry points cannot diverge.
+    /// </remarks>
+    private static bool ProvablyFullRank(double[] upper, double[] inverseUpper, int rowCount, int parameterCount)
+        => RankBracket.FrobeniusProvesFullRank(
+            upper, inverseUpper, parameterCount, RankBracket.Tolerance(rowCount, parameterCount));
+
+    /// <summary>Whether the column-scaled design's condition number stays within <see cref="NormalEquationsConditionLimit"/>.</summary>
+    /// <remarks>
+    /// With <c>D</c> the column norms, <c>S = U·D⁻¹</c> is the scaled design's factor. <c>√p · ‖D·U⁻¹‖_F</c> bounds its
+    /// <c>κ₂</c> from above and the ratio of its diagonal from below, and <see cref="ConditionEstimate"/> settles what
+    /// falls between them. The Frobenius bound gives away a factor of <c>p</c> — it is at least <c>p</c> for any design
+    /// at all, 200.00 against a <c>κ₂</c> of 1.000 on an orthonormal one — so on its own it sent every design past 200
+    /// parameters to the reflections however well conditioned (#985). It still answers first, so a fit of a handful of
+    /// regressors reaches nothing new.
     /// </remarks>
     private static bool WellConditioned(double[] upper, double[] inverseUpper, int order)
     {
+        var scales = new double[order];
         double total = 0.0;
         for (int i = 0; i < order; i++)
         {
@@ -308,9 +330,37 @@ internal static class LeastSquares
             }
 
             total += squaredScale * squaredRow;
+            scales[i] = Math.Sqrt(squaredScale);
         }
 
-        return order * total <= NormalEquationsConditionLimit * NormalEquationsConditionLimit;
+        if (order * total <= NormalEquationsConditionLimit * NormalEquationsConditionLimit)
+        {
+            return true;
+        }
+
+        var scaled = new double[order * order];
+        var scaledInverse = new double[order * order];
+        double largest = 0.0;
+        double smallest = double.PositiveInfinity;
+        for (int row = 0; row < order; row++)
+        {
+            for (int column = row; column < order; column++)
+            {
+                scaled[(row * order) + column] = upper[(row * order) + column] / scales[column];
+                scaledInverse[(row * order) + column] = scales[row] * inverseUpper[(row * order) + column];
+            }
+
+            double pivot = Math.Abs(scaled[(row * order) + row]);
+            largest = Math.Max(largest, pivot);
+            smallest = Math.Min(smallest, pivot);
+        }
+
+        if (largest > NormalEquationsConditionLimit * smallest)
+        {
+            return false;
+        }
+
+        return ConditionEstimate.Of(scaled, scaledInverse, order) <= NormalEquationsConditionLimit;
     }
 
     /// <summary>Overwrites a symmetric <paramref name="matrix"/>'s upper triangle with its Cholesky factor <c>U</c>, <c>G = UᵀU</c>, zeroing the lower.</summary>

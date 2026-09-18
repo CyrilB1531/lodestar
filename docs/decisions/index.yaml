@@ -971,7 +971,7 @@
   applies: ["0074"]
   superseded_by: []
   amended_by: []
-  applied_by: ["0110", "0111", "0114", "0133", "0137"]
+  applied_by: ["0110", "0111", "0114", "0133", "0137", "0147"]
 
 "0097":
   title: "The chi-squared tail joins the published four, by the rule 0095 already set"
@@ -1061,7 +1061,7 @@
   applies: ["0074"]
   superseded_by: []
   amended_by: ["0129"]
-  applied_by: ["0110", "0114", "0133", "0134"]
+  applied_by: ["0110", "0114", "0133", "0134", "0147"]
 
 "0106":
   title: "The frontmatter is inserted once, and the body does not move"
@@ -1469,6 +1469,16 @@
   supersedes: []
   amends: ["0144"]
   applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0147":
+  title: "The rank refusal and the conditioning gate are measured on singular values"
+  status: "accepted"
+  supersedes: []
+  amends: []
+  applies: ["0096", "0105"]
   superseded_by: []
   amended_by: []
   applied_by: []
