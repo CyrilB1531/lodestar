@@ -809,6 +809,22 @@ It reads each `<None Include=... CopyToOutputDirectory>` item reaching `docs/` a
 `LinkBase` and `Exclude`, rather than assuming a layout: `Lodestar.Stats.Tests` links
 `docs/reference/stats.md` beside its own folder's pages.
 
+## `check_doc_test_counts.py`
+
+Refuses a documentation-test run in which any suite reported **zero** tests
+([#1054](https://github.com/CyrilB1531/lodestar/issues/1054)). The docs-only path invokes each
+test assembly directly, and xunit v3's in-process runner exits 0 when its `-namespace` filter
+matches nothing — `-namespace Nope.Documentation` and a one-letter typo both print `Total: 0` and
+succeed. On such a pull request that loop is the only thing testing the docs, so a renamed
+namespace or test project would have left it green and empty.
+
+```bash
+python3 tools/check_doc_test_counts.py "$RUNNER_TEMP/doc-tests"
+```
+
+The count comes from the `-xml` result each run writes, not from the console summary, which is
+formatted for a reader; a missing result file fails too, since it means the run did not finish.
+
 ## `check_sample_culture.py`
 
 Refuses a sample that can print a number in whoever ran it's culture. The sample

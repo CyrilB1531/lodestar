@@ -77,10 +77,14 @@ dotnet test tests/Lodestar.Text.Tests -c Release --filter "FullyQualifiedName~Le
 ```
 
 **Read the test count, not the colour.** This has produced false confidence here more
-than once, though the specific trap is now closed: under VSTest a `--filter` matching
-nothing exited zero and reported success, and under Microsoft.Testing.Platform — which
-xunit v3 runs on since [#623](https://github.com/CyrilB1531/lodestar/issues/623) — it
-exits **8** and says `Zéro tests exécutés`. The habit is still the right one, because a
+than once, and one door is still open: under VSTest a `--filter` matching nothing exited
+zero and reported success, and under Microsoft.Testing.Platform — which xunit v3 runs on
+since [#623](https://github.com/CyrilB1531/lodestar/issues/623) — it
+exits **8** and says `Zéro tests exécutés`. That is `dotnet test`. **Invoking a test
+assembly directly** (`dotnet Lodestar.X.Tests.dll -namespace …`, which CI's docs-only path
+does) runs xunit v3's own in-process runner, and that one prints `Total: 0` and **exits 0**
+— which is why `tools/check_doc_test_counts.py` reads the count out of the `-xml` result
+([#1054](https://github.com/CyrilB1531/lodestar/issues/1054)). The habit is still the right one, because a
 count is what tells you a *suite* went missing, and that failure has no exit code at all:
 `dotnet test Lodestar.slnx -c Release` must report **36 assemblies**, eighteen suites and
 their eighteen mirrors.

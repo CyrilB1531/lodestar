@@ -20,7 +20,11 @@ exists has none to name -- decision 0046, its own ADR rather than an edit to
 0037, per the rule 0046 exists to enforce. `check_repeated_literals.py` takes
 `--base` for that reason and one of its own: without a change to compare it
 would print tools/ 's standing 108 findings on every commit, and a hook that
-noisy is turned off -- decision 0064.
+noisy is turned off -- decision 0064. `check_doc_test_counts.py` reads the
+`results.xml` files a CI run just wrote, and before a commit there is no such run
+to read at all; that reason lives here and in CONTRIBUTING.md rather than in a
+decision record, because an ADR sets the project's direction and does not explain
+a script (#1054).
 
 The floor guard needs no exclusion. CI passes it `--check-feed` and the hook does
 not, but that is a flag rather than a guard, and its two offline rules run in
@@ -56,7 +60,8 @@ CONTRIBUTING = REPO / "CONTRIBUTING.md"
 WORKFLOWS = REPO / ".github" / "workflows"
 
 OFFLINE_EXCLUSIONS = {
-    "check_nuspec_dependencies", "check_adr_immutable", "check_repeated_literals"}
+    "check_nuspec_dependencies", "check_adr_immutable", "check_repeated_literals",
+    "check_doc_test_counts"}
 
 GUARD = re.compile(r"tools/(check_\w+)\.py")
 
@@ -143,8 +148,9 @@ def test_the_hook_runs_every_offline_guard_ci_runs():
 
     assert not missing, (
         f"CI runs {sorted(missing)} and .githooks/pre-commit does not. Add the guard "
-        "to the hook, or -- if it needs the network, a pack or a build -- to "
-        "OFFLINE_EXCLUSIONS here and to decision 0037's list, with the reason."
+        "to the hook, or -- if it needs the network, a pack, a build or a CI run's own "
+        "output -- to OFFLINE_EXCLUSIONS here with its reason, and to CONTRIBUTING.md's "
+        "exclusion paragraph, which this file reads the count from."
     )
 
 

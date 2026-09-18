@@ -95,8 +95,11 @@ jobs:
           for dir in "$DOC_TESTS"/*/; do
             name=$(basename "$dir")
             python3 tools/stage_doc_inputs.py "tests/$name/$name.csproj" "$dir" || status=1
-            dotnet "$dir/$name.dll" -namespace "$name.Documentation" || status=1
+            dotnet "$dir/$name.dll" -namespace "$name.Documentation" -xml "$dir/results.xml" || status=1
           done
+          # The runner exits 0 when its filter matches nothing, so the count is the check and not
+          # the colour: a renamed namespace would leave this job green and empty (#1054).
+          python3 tools/check_doc_test_counts.py "$DOC_TESTS" || status=1
           exit $status
 
       - name: Test the documentation only, by building the solution
