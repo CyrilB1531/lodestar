@@ -14,7 +14,7 @@ public double[] Transform(ReadOnlySpan<double> samples)
 public CsrMatrix Transform(CsrMatrix samples)
 ```
 
-The second overload takes a [`CsrMatrix`](../../abstractions/sparse/csrmatrix.md) and returns a new one storing the same positions, each value divided by its column's `Scale`: a zero stays a zero, so nothing absent becomes stored.
+The second overload takes a [`CsrMatrix`](../../abstractions/sparse/csrmatrix.md) and returns a new one storing the same positions, each value divided by its column's `Scale`: a zero stays a zero, so nothing absent becomes stored. With clipping, a column stored twice in one row comes back stored once, its sum clamped, as the dense overload reads it.
 
 **Parameters** — `samples` is the matrix to scale, row-major, with `FeatureCount` values per row.
 

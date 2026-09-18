@@ -152,12 +152,18 @@ public sealed class MaxAbsScaler
     /// <returns>A new matrix storing the same positions, in <c>[−1, 1]</c> for any value the fit saw.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, has another column count, or stores a non-finite value.</exception>
-    /// <remarks>A zero stays a zero, so nothing absent becomes stored — <c>MaxAbsScaler.transform</c> on a CSR matrix.</remarks>
+    /// <remarks>
+    /// A zero stays a zero, so nothing absent becomes stored — <c>MaxAbsScaler.transform</c> on a CSR matrix.
+    /// When clipping, a cell stored twice in one row comes back stored once and clamped as a whole, so the
+    /// result reads what the dense overload returns on <see cref="CsrMatrix.ToDense"/>; the reference
+    /// clamps each stored entry and reads 2 where the dense path reads 1 (#1101).
+    /// </remarks>
     public CsrMatrix Transform(CsrMatrix samples)
     {
         CsrMatrix result = SparseColumns.Divided(samples, FeatureCount, _scale, requireFinite: true);
         if (_clips)
         {
+            result = SparseColumns.Consolidated(result);
             double[] values = result.Values;
             for (int i = 0; i < values.Length; i++)
             {

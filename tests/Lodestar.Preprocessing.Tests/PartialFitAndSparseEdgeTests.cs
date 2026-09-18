@@ -217,6 +217,49 @@ public sealed class PartialFitAndSparseEdgeTests
         Assert.Equal(1.0, RobustScaler.Fit(plain).Scale![0], 12);
     }
 
+    /// <summary>
+    /// Clipping clamps the cell, not each of its entries: 2 and 2 over a scale of 1.6 are 1.25 each,
+    /// which clamped one by one read 2 where the dense overload reads 1 (#1101). The reference clamps
+    /// each stored entry; this follows the dense overload instead.
+    /// </summary>
+    [Fact]
+    public void Clipping_a_cell_stored_twice_clamps_its_sum()
+    {
+        MaxAbsScaler scaler = MaxAbsScaler.Fit([1.6], 1, new MaxAbsScalerOptions { Clip = true });
+        var duplicated = new CsrMatrix(1, 1, [2.0, 2.0], [0, 0], [0, 2]);
+
+        CsrMatrix result = scaler.Transform(duplicated);
+
+        Assert.Equal([1.0], result.Values);
+        Assert.Equal(scaler.Transform([4.0])[0], result.ToDense()[0, 0]);
+    }
+
+    /// <summary>Without clipping the transform is linear, so the stored positions come back unchanged.</summary>
+    [Fact]
+    public void A_cell_stored_twice_keeps_its_entries_when_nothing_is_clipped()
+    {
+        MaxAbsScaler scaler = MaxAbsScaler.Fit([2.0], 1);
+
+        CsrMatrix result = scaler.Transform(new CsrMatrix(1, 1, [2.0, 2.0], [0, 0], [0, 2]));
+
+        Assert.Equal([1.0, 1.0], result.Values);
+    }
+
+    /// <summary>
+    /// Two finite entries of one cell can sum to an infinity, which the dense overload on the same
+    /// data refuses: the fits answered <c>Scale = [∞]</c> and <c>[NaN]</c> instead (#1101).
+    /// </summary>
+    [Fact]
+    public void A_cell_whose_entries_sum_past_the_largest_double_is_refused()
+    {
+        var overflowing = new CsrMatrix(1, 1, [1e308, 1e308], [0, 0], [0, 2]);
+
+        Assert.Throws<ArgumentException>(() => MaxAbsScaler.Fit(overflowing));
+        Assert.Throws<ArgumentException>(() => StandardScaler.Fit(overflowing, new StandardScalerOptions { WithMean = false }));
+        Assert.Throws<ArgumentException>(() => RobustScaler.Fit(overflowing, new RobustScalerOptions { WithCentring = false }));
+        Assert.Throws<ArgumentException>(() => MaxAbsScaler.Fit([1.0], 1).Transform(overflowing));
+    }
+
     /// <summary>Two rows, one column, whose only column is stored twice in the first row.</summary>
     private static CsrMatrix Duplicated() => new(2, 1, [3.0, 5.0, 2.0], [0, 0, 0], [0, 2, 3]);
 

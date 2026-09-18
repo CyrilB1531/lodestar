@@ -47,6 +47,7 @@ is one sentence, the issue and the commit; see
 - The sparse `Transform` and `InverseTransform` overloads refuse a matrix with no row, as the dense ones do, and their non-finite refusal no longer cites a percentile the transform never takes. ([#989](https://github.com/CyrilB1531/lodestar/issues/989))
 - `StandardScaler` refuses a non-finite value on its dense `Fit`, `PartialFit`, `Transform` and `InverseTransform` and on both `CsrMatrix` overloads, where it answered a `NaN` mean and scale, and the six sparse `<exception>` tags now carry the refusals the reference pages already state. ([#1041](https://github.com/CyrilB1531/lodestar/issues/1041), [#1042](https://github.com/CyrilB1531/lodestar/issues/1042), [#1046](https://github.com/CyrilB1531/lodestar/issues/1046))
 - The three sparse fits sum a column stored twice in one row before reading its statistics, as `scipy.sparse`'s reductions do, so `MaxAbsScaler.Fit` answers `8` rather than `5` and `RobustScaler.Fit` no longer leaks an `Array.Copy` failure. ([#1044](https://github.com/CyrilB1531/lodestar/issues/1044), [#1045](https://github.com/CyrilB1531/lodestar/issues/1045))
+- The sparse overloads refuse a cell whose duplicate entries sum to an infinity, and a clipping `MaxAbsScaler.Transform(CsrMatrix)` clamps such a cell's sum rather than each entry, so both read what the dense overload reads. ([#1101](https://github.com/CyrilB1531/lodestar/issues/1101))
 
 ### Lodestar.Conformal
 
