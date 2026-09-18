@@ -22,8 +22,9 @@ public static class Stationarity
     /// <param name="options">The trend terms, the lag rule and its maximum, or null for the reference's defaults.</param>
     /// <returns>The statistic, MacKinnon's p-value and critical values, and the lag the regression used.</returns>
     /// <exception cref="ArgumentException">
-    /// <paramref name="series"/> carries a non-finite value, is constant, lies on one straight line, or is
-    /// too short for its trend terms and default lag; or <paramref name="options"/> asks for a maximum lag
+    /// <paramref name="series"/> carries a non-finite value, is constant, lies on one straight line, is
+    /// too short for its trend terms and default lag, or builds a lagged design with no unique least-squares
+    /// solution at the lag used or any lag the search tries; or <paramref name="options"/> asks for a maximum lag
     /// above <c>n/2 − terms − 1</c> or one that leaves the widest regression no degree of freedom.
     /// </exception>
     public static DickeyFullerResult AugmentedDickeyFuller(
@@ -88,11 +89,11 @@ public static class Stationarity
         {
             KpssLagRule.Legacy => Math.Min(SchwertLag(n), n - 1),
             KpssLagRule.Automatic => Math.Min(HobijnLag(residuals), n - 1),
-            KpssLagRule.Fixed when settings.LagCount < n => settings.LagCount,
-            KpssLagRule.Fixed => throw new ArgumentException(
+            // The setter admits only the three declared rules, so what is left is Fixed (#984).
+            _ when settings.LagCount < n => settings.LagCount,
+            _ => throw new ArgumentException(
                 $"a lag window of {settings.LagCount} reaches the {n} observations; it must stay below them.",
                 nameof(options)),
-            _ => throw new ArgumentOutOfRangeException(nameof(options), settings.LagRule, "Not a KPSS lag rule."),
         };
 
         double partial = 0.0;
@@ -244,11 +245,21 @@ public static class Stationarity
         int ceiling = (n / 2) - terms - 1;
         if (settings.MaxLag is int given)
         {
+            // Two limits with two reasons, the ceiling being the reference's own refusal (#984). The second is
+            // floored by hand: C#'s division truncates toward zero, which would allow lag 0 when n − terms = 2.
+            int spare = n - terms - 3;
+            int allowed = Math.Min(ceiling, spare < 0 ? -1 : spare / 2);
             if (given > ceiling || n - (2 * given) - terms - 2 < 1)
             {
-                throw new ArgumentException(
-                    $"a maximum lag of {given} leaves a series of {n} with {terms} trend terms no degree of "
-                    + $"freedom; at most {Math.Min(ceiling, (n - terms - 3) / 2)} does.", optionsName);
+                string reason = given > ceiling
+                    ? $"exceeds n/2 − terms − 1 = {ceiling}, the reference's ceiling; at most {allowed} is allowed"
+                    : $"leaves the widest regression no degree of freedom; at most {allowed} leaves one";
+                if (allowed < 0)
+                {
+                    reason = $"cannot be met: a series of {n} is too short for {terms} trend terms at any lag";
+                }
+
+                throw new ArgumentException($"a maximum lag of {given} {reason}.", optionsName);
             }
 
             return given;

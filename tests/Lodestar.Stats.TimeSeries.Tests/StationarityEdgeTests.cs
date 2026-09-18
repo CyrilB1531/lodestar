@@ -217,5 +217,58 @@ public sealed class StationarityEdgeTests
         Assert.Throws<ArgumentOutOfRangeException>(() => new DickeyFullerOptions { Regression = (TrendTerms)42 });
         Assert.Throws<ArgumentOutOfRangeException>(() => new DickeyFullerOptions { LagSelection = (LagSelection)42 });
         Assert.Throws<ArgumentOutOfRangeException>(() => new SeasonalDecompositionOptions { Model = (SeasonalModel)42 });
+
+        // Kpss used to accept it here and refuse it at the call, naming `options` (#984).
+        ArgumentOutOfRangeException lagRule = Assert.Throws<ArgumentOutOfRangeException>(
+            () => new KpssOptions { LagRule = (KpssLagRule)42 });
+        Assert.Equal("value", lagRule.ParamName);
+    }
+
+    [Theory]
+    [InlineData(LagSelection.Akaike)]
+    [InlineData(LagSelection.Schwarz)]
+    [InlineData(LagSelection.TStatistic)]
+    public void The_lag_search_refuses_a_candidate_design_with_no_unique_solution(LagSelection selection)
+    {
+        // A line bent at its first point: not a line, but every difference the search reads is 1, so each lagged
+        // difference repeats the intercept. The search answered a statistic of exactly 0 at lag 1 (#977).
+        double[] bent = [.. Enumerable.Range(1, 50).Select(i => (double)i)];
+        bent[0] = -5.0;
+
+        ArgumentException refusal = Assert.Throws<ArgumentException>(
+            () => Stationarity.AugmentedDickeyFuller(bent, new DickeyFullerOptions { LagSelection = selection }));
+
+        Assert.Equal("series", refusal.ParamName);
+        Assert.Contains("no unique least-squares solution", refusal.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_maximum_lag_above_the_ceiling_says_so_rather_than_blaming_the_degrees_of_freedom()
+    {
+        // 101 points under a trend: the ceiling is 101/2 − 2 − 1 = 47, and lag 48 still leaves one degree of
+        // freedom, which the single message used to deny (#984).
+        double[] series = [.. Enumerable.Range(0, 101).Select(i => Math.Sin(i * 1.3) + (0.01 * i))];
+
+        ArgumentException refusal = Assert.Throws<ArgumentException>(
+            () => Stationarity.AugmentedDickeyFuller(
+                series, new DickeyFullerOptions { Regression = TrendTerms.ConstantAndTrend, MaxLag = 48 }));
+
+        Assert.Equal("options", refusal.ParamName);
+        Assert.Contains("n/2 − terms − 1 = 47", refusal.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("degree of freedom", refusal.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_series_too_short_for_any_lag_does_not_offer_a_negative_one()
+    {
+        // The single message printed "at most -2 does" here (#984).
+        ArgumentException refusal = Assert.Throws<ArgumentException>(
+            () => Stationarity.AugmentedDickeyFuller(
+                [1.0, 4.0, 2.0, 8.0, 3.0],
+                new DickeyFullerOptions { Regression = TrendTerms.ConstantAndQuadraticTrend, MaxLag = 3 }));
+
+        Assert.Equal("options", refusal.ParamName);
+        Assert.Contains("at any lag", refusal.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("-", refusal.Message, StringComparison.Ordinal);
     }
 }

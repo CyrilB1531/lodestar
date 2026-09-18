@@ -14,8 +14,8 @@ chosen, a [`KpssLagRule`](kpsslagrule.md); `Automatic` by default. `LagCount` is
 `KpssLagRule.Fixed`, and ignored otherwise; `0` by default.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `Regression` is `TrendTerms.None` or
-`TrendTerms.ConstantAndQuadraticTrend`, which KPSS does not define, or when `LagCount` is negative;
-both checked where the value is set.
+`TrendTerms.ConstantAndQuadraticTrend`, which KPSS does not define, when `LagRule` is a value
+`KpssLagRule` does not declare, or when `LagCount` is negative; each checked where the value is set.
 
 **Example** — Schwert's legacy window is wider than Hobijn's on this series, and the statistic falls
 with it.

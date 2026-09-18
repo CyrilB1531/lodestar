@@ -45,15 +45,18 @@ internal static class DickeyFullerRegression
         catch (ArgumentException error) when (error.ParamName == DesignParameter && hasResidualDegreesOfFreedom)
         {
             // The estimate refuses a rank-deficient design naming its own parameter, which this caller's
-            // caller never passed: a series on a straight line builds one at any lag above zero (#979).
-            throw new ArgumentException(
-                "the lagged design this series builds has no unique least-squares solution: one of its "
-                + "columns lies within rounding of the span of the columns before it, which a series "
-                + "lying on a straight line does at every lag above zero.",
-                nameof(series),
-                error);
+            // caller never passed (#979).
+            throw RankDeficient(error, nameof(series));
         }
     }
+
+    /// <summary>The refusal of a lagged design with no unique solution, worded for a caller who passed only a series.</summary>
+    private static ArgumentException RankDeficient(ArgumentException error, string seriesName) => new(
+        "the lagged design this series builds has no unique least-squares solution: one of its columns lies "
+        + "within rounding of the span of the others, as it does when the series follows a polynomial of low "
+        + "degree over the rows the regression reads.",
+        seriesName,
+        error);
 
     /// <summary>
     /// The residual sums of squares and the highest lag's t statistic of every lag from 0 to <paramref name="maxLag"/>,
@@ -96,6 +99,17 @@ internal static class DickeyFullerRegression
                     0, order, inverse, SharedReflections.SquaredNorms(inverse, order), sums[lag]);
                 statistics[lag] = coefficients[order - 1] / errors[order - 1];
             }
+        }
+
+        // Every candidate is a leading block of the widest design, whose singular values interlace inside the
+        // whole's: one check answers every lag, where none let a candidate be ranked on rounding (#977).
+        try
+        {
+            _ = reflections.RequireFullRank(terms + 1 + maxLag, nameof(series));
+        }
+        catch (ArgumentException error)
+        {
+            throw RankDeficient(error, nameof(series));
         }
 
         return (sums, statistics);
