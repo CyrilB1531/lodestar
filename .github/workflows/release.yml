@@ -172,5 +172,6 @@ jobs:
         with:
           name: nuget-packages
           path: artifacts/*.nupkg
-          # A rerun re-uploads into the same run, which the action refuses by default (#997).
+          # A rerun re-uploads into the same run and the default keeps both, leaving two artifacts
+          # of one name -- measured on main, two doc-tests-net10 artifacts on one run (#1060).
           overwrite: true

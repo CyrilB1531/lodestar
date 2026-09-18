@@ -95,7 +95,9 @@ rank_bm25==0.2.2
 pytest==9.1.1
 
 # pyyaml -- tools/tests/test_bench_nightly_permissions.py parses a workflow file to
-# assert that `workflows: write` stays in the job that runs no repository code (#464).
+# assert that `workflows: write` stays in the job that runs no repository code (#464), and
+# test_end_analysis_retry.py reads ci.yml's `End analysis` script out of it to run that step
+# against a fake scanner (#1081).
 # It arrived here transitively through huggingface-hub, and a test that skips itself
 # when its parser is gone is a check that goes green on silence. Pinned to the version
 # the lock already resolved, so this declares what was already installed.

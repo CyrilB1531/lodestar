@@ -4,9 +4,13 @@
     Lodestar.Cluster owns its version here, independently of the other packages
     (see docs/decisions/0012-per-package-versioning.md).
 
-    0.1.0 is the published version. The number moves only when a release is cut
-    (CONTRIBUTING.md, Releasing), never in the pull request that adds the work.
-    It creates no inter-package edge, so it releases on its own schedule.
+    0.1.0 is the published version and the number below is the next revision: a
+    release pull request sets the version being cut, and the release issue closes
+    by bumping the revision again (CONTRIBUTING.md, Releasing). A pull request
+    that adds work never touches it.
+
+    Lodestar.Cluster creates no inter-package edge, so it releases on its own
+    schedule.
   -->
   <PropertyGroup>
     <LodestarClusterVersion>0.1.1</LodestarClusterVersion>

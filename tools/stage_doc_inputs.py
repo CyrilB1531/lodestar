@@ -4,9 +4,10 @@
 A docs-only pull request runs the documentation tests on the net10.0 binaries main's own CI run
 published for the pull request's base commit, so nothing is compiled. Those binaries were built
 with main's docs; the tests read the files beside the assembly, so this puts the pull request's
-own docs there, exactly where MSBuild would have: every ``<None Include=... CopyToOutputDirectory>``
-item of the project whose ``Include`` reaches ``docs/``, at its ``Link``, or at ``LinkBase`` plus the
-path below the glob's fixed part (with neither, at the file's own name), minus any ``Exclude``.
+own docs there, exactly where MSBuild would have: every ``<None Include=...>`` item of the project
+whose ``Include`` reaches ``docs/`` and whose ``CopyToOutputDirectory`` is ``Always`` or
+``PreserveNewest``, at its ``Link``, or at ``LinkBase`` plus the path below the glob's fixed part
+(with neither, at the file's own name), minus any ``Exclude``.
 
 Reading the project rather than assuming its layout is the point: ``Lodestar.Stats.Tests`` copies
 ``docs/reference/stats.md`` beside the pages of its own folder, and a hard-coded pattern missed it.
@@ -23,6 +24,11 @@ import pathlib
 import shutil
 import sys
 import xml.etree.ElementTree as ET
+
+
+# The two values MSBuild's copy targets match, lowered because it matches them case-insensitively:
+# measured on a built project, `preservenewest` and `ALWAYS` copy, `Never` and `false` do not (#1062).
+COPIED = ("always", "preservenewest")
 
 
 def _split(pattern: str) -> tuple[str, str]:
@@ -62,10 +68,12 @@ def _item_copies(item: ET.Element, base: pathlib.Path) -> list[tuple[pathlib.Pat
     """Every (source, destination) one ``<None>`` item copies out of ``docs/``."""
     include = (item.get("Include") or "").replace("\\", "/")
     link_base = item.get("LinkBase")
+    # Stripped because a wrapped attribute arrives with a space where its newline was, and
+    # MSBuild trims each entry: unstripped, a second pattern excludes nothing (#1062).
     excludes = [
-        (base / pattern.replace("\\", "/")).resolve().as_posix()
+        (base / pattern.strip().replace("\\", "/")).resolve().as_posix()
         for pattern in (item.get("Exclude") or "").split(";")
-        if pattern
+        if pattern.strip()
     ]
     fixed, remainder = _split(include)
     fixed_dir = (base / fixed).resolve()
@@ -89,7 +97,7 @@ def plan(project: pathlib.Path) -> list[tuple[pathlib.Path, str]]:
     copies: list[tuple[pathlib.Path, str]] = []
     for item in ET.parse(project).getroot().iter("None"):
         include = (item.get("Include") or "").replace("\\", "/")
-        if "docs/" in include and item.get("CopyToOutputDirectory"):
+        if "docs/" in include and (item.get("CopyToOutputDirectory") or "").strip().lower() in COPIED:
             copies.extend(_item_copies(item, base))
     return copies
 

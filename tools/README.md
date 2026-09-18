@@ -247,7 +247,11 @@ given:
   a `tools/*.py` or `tools/*.cs` is named nowhere here. The list above is the
   document's contract rather than a courtesy, so a new script arrives with its row
   ([#652](https://github.com/CyrilB1531/lodestar/issues/652),
-  [#619](https://github.com/CyrilB1531/lodestar/issues/619)).
+  [#619](https://github.com/CyrilB1531/lodestar/issues/619)). A few of those tests
+  read a workflow instead of a script: `test_end_analysis_retry.py` runs `ci.yml`'s
+  own `End analysis` script against a fake scanner, so the retry that is only for
+  an outage, and the pipeline that keeps the scanner's exit status, are asserted
+  rather than reviewed ([#1081](https://github.com/CyrilB1531/lodestar/issues/1081)).
 
 ## `survey.cs`
 
@@ -794,8 +798,9 @@ the pull request's files from the API. Since [#1073](https://github.com/CyrilB15
 the jobs themselves key on [`skip_build.py`](#skip_buildpy), which is the broader question; this
 one names the class `Build and analyze` prints when it accepts a skip, and separates a
 Markdown-only pull request from one that also touches a workflow. `Lint`'s documentation tests
-([#997](https://github.com/CyrilB1531/lodestar/issues/997)) run on either. Those tests stay because 21
-`ReferenceDocumentationTests` classes read `docs/**/*.md`: one caught a missing reference link in
+([#997](https://github.com/CyrilB1531/lodestar/issues/997)) run on either. Those tests stay because 18
+`ReferenceDocumentationTests` classes, one per package, read `docs/**/*.md`: one caught a missing
+reference link in
 the pull request that became #859.
 
 ```bash
@@ -835,9 +840,11 @@ own docs beside those binaries, where MSBuild would have put them.
 python3 tools/stage_doc_inputs.py tests/Lodestar.Stats.Tests/Lodestar.Stats.Tests.csproj doc-tests/Lodestar.Stats.Tests
 ```
 
-It reads each `<None Include=... CopyToOutputDirectory>` item reaching `docs/` and honours `Link`,
-`LinkBase` and `Exclude`, rather than assuming a layout: `Lodestar.Stats.Tests` links
-`docs/reference/stats.md` beside its own folder's pages.
+It reads each `<None Include=...>` item reaching `docs/` whose `CopyToOutputDirectory` is
+`Always` or `PreserveNewest` — the two values MSBuild's copy targets match, so `Never` and `false`
+stage nothing — and honours `Link`, `LinkBase` and a stripped `Exclude`, rather than assuming a
+layout: `Lodestar.Stats.Tests` links `docs/reference/stats.md` beside its own folder's pages
+([#1062](https://github.com/CyrilB1531/lodestar/issues/1062)).
 
 ## `check_doc_test_counts.py`
 

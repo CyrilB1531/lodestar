@@ -53,8 +53,9 @@ jobs:
       - name: C# format check
         if: needs.changes.outputs.format_needed != 'false'
         run: dotnet format Lodestar.slnx --verify-no-changes
-      # A pull request that skips `build-test` runs its documentation tests here: 21
-      # ReferenceDocumentationTests classes read docs/**/*.md, and one caught #859's missing link.
+      # A pull request that skips `build-test` runs its documentation tests here: 18
+      # ReferenceDocumentationTests classes, one per package, read docs/**/*.md, and one caught
+      # #859's missing link.
       # They run on the net10.0 binaries main's own run published for the pull request's base
       # commit, with this pull request's docs copied in, so nothing is compiled (#997).
       #
@@ -571,32 +572,37 @@ jobs:
       #
       # One file per test assembly, under each project's TestResults/. Pinning a single
       # name collapses them onto each other -- see ci.yml, where that was measured.
-      # Three attempts, two then five minutes apart: SonarCloud answered `Error 500 ... Please try
-      # again` on its own project-data call for over an hour on 2026-09-17, in windows longer than a
-      # minute, reddening a required check on green work. A real QUALITY GATE STATUS: FAILED exits
-      # non-zero too, so it still fails, three attempts over.
+      # Three attempts, two then five minutes apart, and only for an outage: SonarCloud answered
+      # `Error 500 ... Please try again` on its own project-data call for over an hour on
+      # 2026-09-17, in windows longer than a minute, reddening a required check on green work. A
+      # failed quality gate exits non-zero too and is this repository's designed refusal, so it is
+      # matched below and fails on the first attempt (#1063).
       - name: End analysis
         if: env.SONAR == 'true'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          # pipefail, so the `if` below is worth the scanner's status and not tee's: without it a
+          # failed analysis -- a failed quality gate included -- reports as successful on every run,
+          # which tools/tests/test_end_analysis_retry.py runs this step against a fake scanner to
+          # prove it does not (#1081).
+          set -o pipefail
           log="${{ runner.temp }}/end-analysis.log"
           for attempt in 1 2 3; do
             echo "::group::End analysis, attempt $attempt of 3"
-            # Redirected rather than piped through tee: a pipeline's status is its last command's,
-            # so `| tee` would have reported the scanner as successful whatever it did.
-            if "${{ runner.temp }}/scanner/dotnet-sonarscanner" end /d:sonar.token="$SONAR_TOKEN" > "$log" 2>&1; then
-              cat "$log"
+            # Through tee rather than redirected to the log and printed after: this step takes up to
+            # twenty minutes and cancel-in-progress cancels it on the next push, which left the
+            # group holding nothing the scanner had printed (#1081).
+            if "${{ runner.temp }}/scanner/dotnet-sonarscanner" end /d:sonar.token="$SONAR_TOKEN" 2>&1 | tee "$log"; then
               echo "::endgroup::"
               exit 0
             fi
-            cat "$log"
             echo "::endgroup::"
             # A failed quality gate is this repository's designed refusal, and `end` exits non-zero
             # for it too, so retrying spent seven minutes of sleep and two more analyses of the same
             # report on every red pull request (#1063). Only the outage is retried.
             if grep -qi "quality gate status: failed" "$log"; then
-              echo "::error::The quality gate failed. A finding in the code this pull request introduces blocks it."
+              echo "::error::The quality gate failed on this analysis: a finding, the new-code coverage or the duplication in what this commit changes is below it."
               exit 1
             fi
             if [ "$attempt" != 3 ]; then

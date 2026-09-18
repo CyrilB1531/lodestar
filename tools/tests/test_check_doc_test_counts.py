@@ -66,13 +66,17 @@ def test_a_directory_that_does_not_exist_fails(tmp_path):
 
 def test_the_totals_of_several_assemblies_in_one_file_are_summed(tmp_path):
     (tmp_path / "Lodestar.A.Tests").mkdir()
-    (tmp_path / "Lodestar.A.Tests" / "results.xml").write_text(
+    results = tmp_path / "Lodestar.A.Tests" / "results.xml"
+    results.write_text(
         '<assemblies>'
         '<assembly name="one.dll" total="2"></assembly>'
         '<assembly name="two.dll" total="3"></assembly>'
         '</assemblies>',
         encoding="utf-8")
 
+    # The exit code holds for any non-zero count, so `max` or a first-assembly read passes it:
+    # the sum is what this pins (#1081).
+    assert GUARD.totals(results) == 5
     assert GUARD.main(["guard", str(tmp_path)]) == 0
 
 

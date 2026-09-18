@@ -88,7 +88,7 @@ Markdown or a workflow the pull-request pipeline does not read — `release.yml`
 `bench-nightly.yml` and the rest, but **never `ci.yml`**, which is the gate itself and
 is tested by running it. When every file qualifies, `Build, test, analyze`, the sample,
 the oracles, Windows and the analysis are skipped, and `Lint` runs the documentation tests
-instead — 21 `ReferenceDocumentationTests` classes read `docs/**/*.md`. It runs them whenever the
+instead — 18 `ReferenceDocumentationTests` classes, one per package, read `docs/**/*.md`. It runs them whenever the
 build was skipped **and** a Markdown file moved, which is one file more than "Markdown only": a
 pull request mixing a guide with another workflow skips the build too, and its documentation would
 otherwise be tested by nothing. It runs them without compiling, on the
@@ -421,11 +421,21 @@ Two things to keep straight:
 ### Releasing
 
 Versions are declared per package in `src/<Package>/Version.props` and nowhere
-else. To release one: bump that file, land it on `main`, then tag
-`<PackageId>/v<Version>` (for example `Lodestar.Fuzzy/v0.3.0`). The workflow
-compares the tag against the declared version and refuses to publish if they
-disagree. The tag chooses *which* release to cut; it does not set the number.
-Add the entry under a per-package heading in `CHANGELOG.md`.
+else, and **`main` carries the next revision rather than the published one**: a
+package released at `0.2.0` reads `0.2.1` there, so every branch packs and every
+sample restores a number nuget.org does not hold — it is immutable, and a
+collision makes two different assemblies answer to one identity. A feature pull
+request therefore never touches `Version.props`; it lands on a number already
+ahead of the feed.
+
+To release one: set that file to the version being cut — the number `main`
+carries when the release is a revision, a larger one when the change earns a
+minor or a major — land it on `main`, then tag `<PackageId>/v<Version>` (for
+example `Lodestar.Fuzzy/v0.3.0`). The workflow compares the tag against the
+declared version and refuses to publish if they disagree. The tag chooses
+*which* release to cut; it does not set the number. Add the entry under a
+per-package heading in `CHANGELOG.md`, and close the release issue by bumping
+the revision again, which puts `main` back ahead of the feed.
 
 Each entry is one sentence, the issue and the commit — nothing else. The why
 lives in the issue and the how in the commit; restating either in the
