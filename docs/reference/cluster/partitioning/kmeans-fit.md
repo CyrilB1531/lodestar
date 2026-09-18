@@ -55,11 +55,17 @@ cluster order, and that sample's old cluster gives it up; the labels are left al
 sample already sits on its centre nothing moves, and a cluster still empty takes the largest
 cluster's centre — **before that centre is averaged** when the largest cluster comes later, the
 reference's own order, which the corpus freezes. The furthest samples are taken in descending
-distance, ties lowest row first. The reference reads them through `numpy.argpartition`, whose order
-follows no row rule, so **which sample fills which empty cluster can differ even with no tie** —
-measured on 6 of 900 random arrays of 1,000 distances with 50 clusters empty at once, and on none
-with 20 or fewer. The centres that come out are the same set either way, paired differently; the same
-reasoning as decision 0093, and no frozen case turns on it.
+distance, ties lowest row first. The reference reads them through `numpy.argpartition`, whose
+result **changes with the CPU tier numpy dispatches to**: numpy 2.5.3 on one machine returned three
+different selections from the same distances under its AVX-512, AVX2 and baseline kernels. No rule
+reproduces all three, so **which sample fills which empty cluster can differ even with no tie**, and
+when the furthest distances are tied **the samples chosen, the centres and `Inertia` can differ
+too** — scikit-learn 1.9.0 returned `inertia_` `2.5e-31` under AVX-512 and `193.26` under the
+baseline for one input. Over 1,000 random fits with distinct distances the centre sets and `Inertia`
+matched on all 1,000, whatever the pairing; over 1,000 fits of a few points repeated, scikit-learn
+disagreed with itself across tiers on 35 centre sets and this method disagreed with it on 214, and
+taking ties highest row first instead leaves 210. With no cluster emptied the same kind of input
+matched on all 1,000. The same reasoning as decision 0093; no frozen case turns on it yet.
 
 **The starting centres are an input, not a seed.** Passing
 [`KMeansOptions.InitialCentres`](kmeansoptions.md) replaces the choice entirely and makes the run an

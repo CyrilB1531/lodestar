@@ -69,6 +69,7 @@ is one sentence, the issue and the commit; see
 #### Changed
 
 - `AgglomerativeClustering.Fit` scans only live clusters along precomputed row offsets, and `KMeans` assigns rows wider than four features over sliced spans. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
+- `KMeans` lists its empty clusters in one walk over the counts, where a LINQ pass counted them first. ([#1047](https://github.com/CyrilB1531/lodestar/issues/1047))
 - `Dbscan.Fit` computes each pair's distance once and stops a sum past the radius. ([#818](https://github.com/CyrilB1531/lodestar/issues/818))
 - `KMeansOptions` compares its centres by value. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
 
@@ -79,6 +80,7 @@ is one sentence, the issue and the commit; see
 - `KMeans.Fit` refuses a negative, infinite or `NaN` `KMeansOptions.Tolerance`, and `Dbscan.FitPrecomputed` checks a sample count past 46340 without wrapping. ([#911](https://github.com/CyrilB1531/lodestar/issues/911))
 - `KMeans.Fit` no longer throws `IndexOutOfRangeException` when a relocation empties a cluster numbered above the one it fills, which the fix for #862 introduced. ([#975](https://github.com/CyrilB1531/lodestar/issues/975))
 - The `KMeans.Fit` page says the relocation pairing can differ from `numpy.argpartition`'s even without a tie, which was recorded for ties alone. ([#990](https://github.com/CyrilB1531/lodestar/issues/990))
+- The `KMeans.Fit` page says scikit-learn's relocation choice changes with the CPU tier numpy dispatches to, so with tied distances the centres and `Inertia` can differ, and drops a bound measured on one seed. ([#1043](https://github.com/CyrilB1531/lodestar/issues/1043), [#1066](https://github.com/CyrilB1531/lodestar/issues/1066))
 
 ### Lodestar.Abstractions
 

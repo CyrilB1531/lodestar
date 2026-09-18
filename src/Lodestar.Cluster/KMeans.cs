@@ -355,7 +355,7 @@ public sealed class KMeans
     /// <c>_relocate_empty_clusters_dense</c>'s shape: the labels are left alone, the moved sample is
     /// subtracted from its old cluster's sums, and nothing moves when every sample sits on its centre.
     /// The furthest samples are taken in descending distance, ties lowest row first; the reference's
-    /// <c>numpy.argpartition</c> order follows no row rule, so the pairing can differ with no tie (#990).
+    /// <c>numpy.argpartition</c> varies with numpy's CPU tier, so no row rule matches it (#990, #1043).
     /// </remarks>
     private static void Relocate(
         ReadOnlySpan<double> samples,
@@ -365,21 +365,22 @@ public sealed class KMeans
         double[] totals,
         int[] counts)
     {
-        int emptyCount = counts.Count(count => count == 0);
-        if (emptyCount == 0)
-        {
-            return;
-        }
-
         // Listed before any move, as np.where(weight_in_clusters == 0) is: a donor emptied by a
         // relocation stays empty this iteration rather than taking a row past the end (#975).
-        var empty = new int[emptyCount];
-        for (int cluster = 0, at = 0; cluster < counts.Length; cluster++)
+        int[]? empty = null;
+        int emptyCount = 0;
+        for (int cluster = 0; cluster < counts.Length; cluster++)
         {
             if (counts[cluster] == 0)
             {
-                empty[at++] = cluster;
+                empty ??= new int[counts.Length - cluster];
+                empty[emptyCount++] = cluster;
             }
+        }
+
+        if (empty is null)
+        {
+            return;
         }
 
         var distances = new double[labels.Length];
@@ -396,8 +397,8 @@ public sealed class KMeans
             return;
         }
 
-        int[] furthest = Furthest(distances, empty.Length);
-        for (int index = 0; index < empty.Length; index++)
+        int[] furthest = Furthest(distances, emptyCount);
+        for (int index = 0; index < emptyCount; index++)
         {
             int cluster = empty[index];
             int row = furthest[index];
