@@ -855,6 +855,8 @@ python3 tools/check_doc_test_counts.py "$RUNNER_TEMP/doc-tests"
 The count comes from the `-xml` result each run writes, not from the console summary, which is
 formatted for a reader; a missing result file fails too, since it means the run did not finish.
 
+<!-- probe for #1073, never merged: a docs-only pull request -->
+
 ## `check_sample_culture.py`
 
 Refuses a sample that can print a number in whoever ran it's culture. The sample
