@@ -270,10 +270,11 @@ Three things are worth knowing before relying on it.
   does not do. Their contents are then read from disk, so a file staged in one
   state and edited in another is judged in its worktree state.
 
-Three guards CI runs stay out of it: `check_nuspec_dependencies.py` reads the
-`.nuspec` files inside a packed `./artifacts`, and `check_adr_immutable.py` and
+Four guards CI runs stay out of it: `check_nuspec_dependencies.py` reads the
+`.nuspec` files inside a packed `./artifacts`, `check_adr_immutable.py` and
 `check_repeated_literals.py` both take `--base`, the pull request's own base
-commit, which a commit made before a pull request exists has none to name.
+commit, which a commit made before a pull request exists has none to name, and
+`check_doc_test_counts.py` reads the `results.xml` files a CI run just wrote.
 
 `check_version_floor.py` needs no exclusion. CI passes it `--check-feed`, which
 reaches nuget.org, and the hook does not — but that is a flag rather than a
