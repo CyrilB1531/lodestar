@@ -5364,3 +5364,25 @@ Time moves by 0 to 7 %, inside what the two `main` runs span on the prose and di
 just outside it on the two emoji rows. That fits allocation, not arithmetic, being what changed.
 The scores are unchanged: 5,000 random pairs × 7 scorers against rapidfuzz 3.14.6 (BMP, astral,
 NBSP, U+0085, U+001C, lone surrogates, up to 3,000 code points), 0 mismatches.
+
+## The hybrid keyword ranking, sorted over the matched records alone (issues #1036, #1038)
+
+AMD Ryzen 7 8700G (16 threads), .NET SDK 10.0.401, dev machine, pinned to four cores. Two A/B/A
+windows of `FilteredVectorSearchBenchmarks`, each record carrying eight words drawn from 2,000 plus
+`common`, and one record `needle`, fused with the vector ranking at top 10: `4ecabc7c` (`main`),
+the fix, `4ecabc7c` again; then `94440d8b`, the commit before #993, the fix, `94440d8b` again.
+
+| row | before #993, two runs | `main`, two runs | fix | allocated: before #993, `main`, fix |
+| --- | ---: | ---: | ---: | ---: |
+| [`HybridSearchAsync`](../reference/extensions-vectordata/store/lodestarvectorstorecollection-hybridsearchasync.md), `needle`, 10,000 × 384 | 2.87 / 2.91 ms | 1.95 / 1.96 ms | 1.86 / 2.10 ms | 2.83 MB, 2.52 MB, 2.52 MB |
+| the same, `common` | 3.50 / 3.48 ms | 3.43 / 3.43 ms | **2.97 / 3.01 ms** | 3.39 MB, 3.45 MB, **3.15 MB** |
+| `needle`, 100,000 × 384 | 37.8 / 37.7 ms | 23.2 / 22.9 ms | 20.9 / 23.3 ms | 26.1 MB, 22.9 MB, 22.9 MB |
+| `common`, 100,000 × 384 | 44.0 / 45.6 ms | 40.1 / 41.2 ms | **36.5 / 36.4 ms** | 31.1 MB, 31.7 MB, **28.7 MB** |
+
+The fix column holds one run from each window. #993 took a selective keyword off the whole-corpus
+sort and made a keyword every record holds dearer than before it; the matched records are now
+copied from the postings into one array, sorted and compacted in place, and ordered by a key array
+of their own scores, so the broad keyword is below both earlier columns and the selective one keeps
+the gain #993 made. The rest of each row is the vector ranking of every record and [`Bm25Index.Score`](../reference/text/search/bm25index-score.md)'s
+one `double` per record, which this change does not touch. The order is [`Bm25Index.Top`](../reference/text/search/bm25index-top.md)'s over the
+matched records, checked against it on 2,000 random corpora with frequent ties.

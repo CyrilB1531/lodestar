@@ -1,4 +1,5 @@
 using Lodestar.Abstractions;
+using Lodestar.Text.Search;
 
 namespace Lodestar.Extensions.VectorData;
 
@@ -48,21 +49,92 @@ internal sealed class TermPostings
 
     /// <summary>The records holding at least one of <paramref name="terms"/>, ascending, each once.</summary>
     /// <remarks>
-    /// Read from the queried terms' postings alone. The hybrid search then ranks those records only,
-    /// where scoring and sorting the whole corpus allocated megabytes per query (#993).
+    /// Read from the queried terms' postings alone, copied into one array sized from them, then sorted
+    /// and compacted in place. A set node per matched row cost 880 KB and twice the time of the old
+    /// whole-corpus pass when every record held the term (#1036).
     /// </remarks>
     public int[] Matching(IReadOnlyList<int> terms)
     {
-        var matched = new SortedSet<int>();
+        int total = 0;
         for (int i = 0; i < terms.Count; i++)
         {
-            int term = terms[i];
-            for (int k = _start[term]; k < _start[term + 1]; k++)
+            total += _start[terms[i] + 1] - _start[terms[i]];
+        }
+
+        var matched = new int[total];
+        int filled = 0;
+        for (int i = 0; i < terms.Count; i++)
+        {
+            int from = _start[terms[i]];
+            int length = _start[terms[i] + 1] - from;
+            Array.Copy(_document, from, matched, filled, length);
+            filled += length;
+        }
+
+        // One term's run is ascending already; it can still repeat a record whose row stores the
+        // term twice, which the compaction below folds as it does two terms' overlap.
+        if (terms.Count > 1)
+        {
+            Array.Sort(matched);
+        }
+
+        int distinct = 0;
+        for (int k = 0; k < matched.Length; k++)
+        {
+            if (distinct == 0 || matched[k] != matched[distinct - 1])
             {
-                matched.Add(_document[k]);
+                matched[distinct++] = matched[k];
             }
         }
 
-        return [.. matched];
+        if (distinct != matched.Length)
+        {
+            Array.Resize(ref matched, distinct);
+        }
+
+        return matched;
+    }
+
+    /// <summary>The records <see cref="Matching"/> finds, by <paramref name="scorer"/>'s score descending, then by index.</summary>
+    /// <remarks>
+    /// <c>Top</c>'s order over the matched subset. The sort keys are the matched records' own scores,
+    /// negated so ascending is descending, rather than a comparison reaching into the whole score array
+    /// (#1036); <see cref="Array.Sort{TKey, TValue}(TKey[], TValue[])"/> is not stable, so each run of
+    /// equal scores is put back in index order afterwards.
+    /// </remarks>
+    public int[] Ranked(IReadOnlyList<int> terms, Bm25Index scorer)
+    {
+        int[] matched = Matching(terms);
+        if (matched.Length == 0)
+        {
+            return matched;
+        }
+
+        double[] scores = scorer.Score(terms);
+        var descending = new double[matched.Length];
+        for (int i = 0; i < matched.Length; i++)
+        {
+            descending[i] = -scores[matched[i]];
+        }
+
+        Array.Sort(descending, matched);
+        int run = 0;
+        while (run < matched.Length)
+        {
+            int end = run + 1;
+            while (end < matched.Length && descending[end].CompareTo(descending[run]) == 0)
+            {
+                end++;
+            }
+
+            if (end - run > 1)
+            {
+                Array.Sort(matched, run, end - run);
+            }
+
+            run = end;
+        }
+
+        return matched;
     }
 }

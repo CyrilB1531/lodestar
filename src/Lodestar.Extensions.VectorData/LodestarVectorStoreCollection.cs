@@ -456,31 +456,18 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <remarks>
     /// A marked schema over no records builds no keyword index, so the empty ranking is the answer
     /// rather than a refusal. Only matched documents are ranked, since <see cref="RankFusion.Rrf"/>
-    /// reads rank position and not score; matching is read from the counts, whose postings name it,
+    /// reads rank position and not score; matching is read from the term postings
     /// and not from the score, whose sign Robertson's IDF leaves open. The order is <c>Top</c>'s:
     /// score descending, then document index (#993).
     /// </remarks>
     private static int[] KeywordRanking(DerivedIndexes<TKey, TRecord> indexes, ICollection<string> keywords)
     {
-        if (indexes.Keywords is null || indexes.Vectorizer is null || indexes.Counts is null)
+        if (indexes.Keywords is null || indexes.Vectorizer is null || indexes.Postings is null)
         {
             return [];
         }
 
-        List<int> terms = QueryTerms(indexes.Vectorizer, keywords);
-        int[] matched = indexes.Postings!.Matching(terms);
-        if (matched.Length == 0)
-        {
-            return [];
-        }
-
-        double[] scores = indexes.Keywords.Score(terms);
-        Array.Sort(matched, (left, right) =>
-        {
-            int order = scores[right].CompareTo(scores[left]);
-            return order != 0 ? order : left.CompareTo(right);
-        });
-        return matched;
+        return indexes.Postings.Ranked(QueryTerms(indexes.Vectorizer, keywords), indexes.Keywords);
     }
 
     /// <summary>The keywords as column indices of the fitted vocabulary, unseen terms dropped.</summary>

@@ -93,6 +93,29 @@ public sealed class HybridSearchTests
     }
 
     [Fact]
+    public async Task The_keyword_ranking_puts_the_higher_bm25_score_first()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+        // "elephant" is in two of five records, so its IDF is positive and the shorter record, c,
+        // outscores b. Vector ranking for [1,0,0]: a, b, c, d, e (the zeros tie, index order).
+        await collection.UpsertAsync([
+            Doc("a", "the cat sat on the mat", 1f, 0f, 0f),
+            Doc("b", "an elephant in the big green park", 0f, 1f, 0f),
+            Doc("c", "an elephant crossed", 0f, 0f, 1f),
+            Doc("d", "a dog ran home", 0f, 1f, 0f),
+            Doc("e", "a fish swam in the sea", 0f, 0f, 1f),
+        ]);
+
+        List<VectorSearchResult<Document>> hits = await collection
+            .HybridSearchAsync(new ReadOnlyMemory<float>([1f, 0f, 0f]), ["elephant"], 3)
+            .ToListAsync();
+
+        // Keyword ranking [c, b]: c = 1/63 + 1/61 ≈ 0.032266 beats b = 1/62 + 1/62 ≈ 0.032258,
+        // then a = 1/61. The inverted ranking [b, c] would fuse to b, c, a.
+        Assert.Equal(["c", "b", "a"], hits.Select(hit => hit.Record.Id));
+    }
+
+    [Fact]
     public async Task A_filter_applies_to_the_fused_ranking_too()
     {
         using LodestarVectorStoreCollection<string, Document> collection = await TwoElephants();
