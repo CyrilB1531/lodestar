@@ -9,6 +9,9 @@ internal static class AgglomerativeClusteringSample
     {
         Console.WriteLine("Agglomerative clustering (Lodestar.Cluster)");
 
+        // Probe for #1055, never merged: a member no package exports, so only the `sample` job fails.
+        Console.WriteLine(AgglomerativeClustering.ProbeForIssue1055());
+
         // One feature per row: two pairs a unit apart, and one point far from both.
         double[] samples = [0.0, 1.0, 5.0, 6.0, 20.0];
 
