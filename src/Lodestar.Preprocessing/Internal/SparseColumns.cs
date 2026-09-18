@@ -191,6 +191,27 @@ internal static class SparseColumns
                     parameterName);
             }
         }
+
+        // Two finite entries of one cell can sum past double.MaxValue, and every statistic reads the sum (#1101).
+        CsrMatrix read = Consolidated(matrix);
+        if (ReferenceEquals(read, matrix))
+        {
+            return;
+        }
+
+        for (int row = 0; row < read.RowCount; row++)
+        {
+            for (int i = read.RowPointers[row]; i < read.RowPointers[row + 1]; i++)
+            {
+                if (double.IsInfinity(read.Values[i]))
+                {
+                    throw new ArgumentException(
+                        $"{parameterName} stores column {read.ColumnIndices[i]} more than once in row {row}, "
+                        + $"and those entries sum to {read.Values[i]}. {because}",
+                        parameterName);
+                }
+            }
+        }
     }
 
     /// <summary>Why a fit refuses a non-finite stored value.</summary>
