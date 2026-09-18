@@ -42,10 +42,27 @@ public sealed class SharedReflectionsTests
     {
         double[] series = Walk(12, seed: 3);
 
-        Assert.Throws<ArgumentException>(() =>
+        ArgumentException refusal = Assert.Throws<ArgumentException>(() =>
             DickeyFullerRegression.Candidates(series, TrendTerms.None, maxLag: 5, rows: 6, withTStatistics: true));
         Assert.Throws<ArgumentException>(() =>
             DickeyFullerRegression.Candidates(series, TrendTerms.None, maxLag: 5, rows: 6, withTStatistics: false));
+
+        // A full-rank random walk: the design this search runs out of rows for is not collinear, and the
+        // translation that names a straight line claimed it was, for naming `design` too (#1080).
+        Assert.Equal("design", refusal.ParamName);
+        Assert.Contains("degrees of freedom left", refusal.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_rank_deficient_design_is_still_translated_into_the_series_the_caller_passed()
+    {
+        double[] line = [.. Enumerable.Range(0, 40).Select(i => 0.3 + (0.1 * i))];
+
+        ArgumentException refusal = Assert.Throws<ArgumentException>(() =>
+            DickeyFullerRegression.Fit(line, TrendTerms.Constant, lag: 1, rows: 38));
+
+        Assert.Equal("series", refusal.ParamName);
+        Assert.Contains("no unique least-squares solution", refusal.Message, StringComparison.Ordinal);
     }
 
     [Theory]

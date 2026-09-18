@@ -22,9 +22,9 @@ public static class Stationarity
     /// <param name="options">The trend terms, the lag rule and its maximum, or null for the reference's defaults.</param>
     /// <returns>The statistic, MacKinnon's p-value and critical values, and the lag the regression used.</returns>
     /// <exception cref="ArgumentException">
-    /// <paramref name="series"/> carries a non-finite value, is constant, or is too short for its trend
-    /// terms and default lag; or <paramref name="options"/> asks for a maximum lag above <c>n/2 − terms − 1</c>
-    /// or one that leaves the widest regression no degree of freedom.
+    /// <paramref name="series"/> carries a non-finite value, is constant, lies on one straight line, or is
+    /// too short for its trend terms and default lag; or <paramref name="options"/> asks for a maximum lag
+    /// above <c>n/2 − terms − 1</c> or one that leaves the widest regression no degree of freedom.
     /// </exception>
     public static DickeyFullerResult AugmentedDickeyFuller(
         ReadOnlySpan<double> series, DickeyFullerOptions? options = null)
@@ -32,6 +32,10 @@ public static class Stationarity
         DickeyFullerOptions settings = options ?? new DickeyFullerOptions();
         SeriesChecks.RefuseNonFinite(series);
         SeriesChecks.RefuseConstant(series);
+        SeriesChecks.RefuseStraightLine(
+            series,
+            LineFit.Residuals(series),
+            "a deterministic trend leaves no stochastic component for a unit-root test to find.");
 
         int n = series.Length;
         int maxLag = MaxLag(n, settings, nameof(options), nameof(series));
@@ -63,8 +67,9 @@ public static class Stationarity
     /// <param name="options">The null's trend and the lag window rule, or null for the reference's defaults.</param>
     /// <returns>The statistic, its tabulated p-value, the window used, and whether the p-value was clamped.</returns>
     /// <exception cref="ArgumentException">
-    /// <paramref name="series"/> carries a non-finite value, is constant, or lies exactly on a line under
-    /// <see cref="TrendTerms.ConstantAndTrend"/>; or <paramref name="options"/> fixes a window at or above the series length.
+    /// <paramref name="series"/> carries a non-finite value, is constant, or lies on one straight line under
+    /// <see cref="TrendTerms.ConstantAndTrend"/>; or <paramref name="options"/> fixes a window at or above the
+    /// series length.
     /// </exception>
     public static KpssResult Kpss(ReadOnlySpan<double> series, KpssOptions? options = null)
     {
@@ -76,7 +81,7 @@ public static class Stationarity
         double[] residuals = KpssResiduals(series, settings.Regression);
         if (settings.Regression == TrendTerms.ConstantAndTrend)
         {
-            RefuseExactFit(series, residuals, nameof(series));
+            SeriesChecks.RefuseStraightLine(series, residuals, "the trend leaves no variance to test.");
         }
 
         int lagCount = settings.LagRule switch
@@ -114,25 +119,13 @@ public static class Stationarity
 
     private static double[] KpssResiduals(ReadOnlySpan<double> series, TrendTerms regression)
     {
-        int n = series.Length;
-        var residuals = new double[n];
         if (regression == TrendTerms.ConstantAndTrend)
         {
-            var time = new double[n];
-            for (int i = 0; i < n; i++)
-            {
-                time[i] = i + 1;
-            }
-
-            (double slope, double intercept) = LineFit.Through(time, series);
-            for (int i = 0; i < n; i++)
-            {
-                residuals[i] = series[i] - (intercept + (slope * time[i]));
-            }
-
-            return residuals;
+            return LineFit.Residuals(series);
         }
 
+        int n = series.Length;
+        var residuals = new double[n];
         double mean = 0.0;
         foreach (double value in series)
         {
@@ -146,35 +139,6 @@ public static class Stationarity
         }
 
         return residuals;
-    }
-
-    /// <summary>Machine epsilon for <see cref="double"/>, which <see cref="double.Epsilon"/> is not.</summary>
-    private const double MachineEpsilon = 2.220446049250313e-16;
-
-    /// <summary>Refuses a line the trend null fits to rounding, which leaves no variance to test.</summary>
-    /// <remarks>
-    /// The statistic is then 0/0 and the Hobijn window casts that NaN to an int, undefined and different
-    /// between runtimes (#874); statsmodels answers from its OLS fit's rounding noise, which no second
-    /// implementation reproduces. The test is <c>n·ε</c> of the largest observation, not the exact zeros
-    /// only a fit cancelling to the bit leaves: 0.3 + 0.1·i answered 0.6443, and 99 of 100 random lines
-    /// were answered (#976). Under <c>ConstantAndTrend</c> alone, since a level null divides one residual
-    /// square by another and still tests a series whose level fits closely.
-    /// </remarks>
-    private static void RefuseExactFit(ReadOnlySpan<double> series, double[] residuals, string parameterName)
-    {
-        double scale = 0.0;
-        foreach (double value in series)
-        {
-            scale = Math.Max(scale, Math.Abs(value));
-        }
-
-        if (Math.Sqrt(SumOfSquares(residuals) / residuals.Length) > residuals.Length * MachineEpsilon * scale)
-        {
-            return;
-        }
-
-        throw new ArgumentException(
-            "every value lies on one straight line: the trend leaves no variance to test.", parameterName);
     }
 
     /// <summary>Hobijn, Franses and Ooms' window, as the reference writes it.</summary>
@@ -193,7 +157,11 @@ public static class Stationarity
 
         double ratio = s1 / s0;
         double gamma = 1.1447 * Math.Pow(ratio * ratio, 1.0 / 3.0);
-        return (int)(gamma * Math.Pow(n, 1.0 / 3.0));
+        double window = gamma * Math.Pow(n, 1.0 / 3.0);
+
+        // A NaN cast to int is 0 here and int.MinValue on .NET Framework, so a fit whose mean overflowed
+        // would report a window that depended on the runtime beside its NaN statistic (#874, #1080).
+        return window >= 0.0 ? (int)window : 0;
     }
 
     /// <summary>The Newey-West long-run variance with a Bartlett kernel.</summary>

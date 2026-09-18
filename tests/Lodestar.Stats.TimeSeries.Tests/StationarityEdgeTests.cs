@@ -65,23 +65,25 @@ public sealed class StationarityEdgeTests
     }
 
     [Theory]
-    [InlineData(TrendTerms.ConstantAndTrend, LagSelection.Fixed)]
-    [InlineData(TrendTerms.ConstantAndTrend, LagSelection.TStatistic)]
-    [InlineData(TrendTerms.Constant, LagSelection.Fixed)]
+    [InlineData(TrendTerms.ConstantAndTrend, LagSelection.Fixed, 1)]
+    [InlineData(TrendTerms.ConstantAndTrend, LagSelection.TStatistic, 1)]
+    [InlineData(TrendTerms.Constant, LagSelection.Fixed, 1)]
+    [InlineData(TrendTerms.Constant, LagSelection.Fixed, 0)]
+    [InlineData(TrendTerms.None, LagSelection.Fixed, 0)]
     public void Augmented_dickey_fuller_refuses_a_straight_line_naming_the_series(
-        TrendTerms regression, LagSelection selection)
+        TrendTerms regression, LagSelection selection, int maxLag)
     {
-        // The lagged differences of a line are one constant column, so the design repeats the intercept.
-        // The estimate's own refusal names `design`, a parameter no caller of this test passed (#979).
+        // Above lag zero the lagged differences repeat the intercept and the estimate refuses the design (#979).
+        // At lag zero the design is full rank and the fit exact, and the statistic was 0.1474698045709202 (#1080).
         double[] line = [.. Enumerable.Range(0, 40).Select(i => 0.3 + (0.1 * i))];
 
         ArgumentException refusal = Assert.Throws<ArgumentException>(
             () => Stationarity.AugmentedDickeyFuller(
                 line,
-                new DickeyFullerOptions { Regression = regression, LagSelection = selection, MaxLag = 1 }));
+                new DickeyFullerOptions { Regression = regression, LagSelection = selection, MaxLag = maxLag }));
 
         Assert.Equal("series", refusal.ParamName);
-        Assert.Contains("no unique least-squares solution", refusal.Message, StringComparison.Ordinal);
+        Assert.Contains("straight line", refusal.Message, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -111,6 +113,54 @@ public sealed class StationarityEdgeTests
         KpssResult result = Stationarity.Kpss(series, new KpssOptions { Regression = TrendTerms.ConstantAndTrend });
 
         Assert.True(double.IsFinite(result.Statistic));
+    }
+
+    [Fact]
+    public void Kpss_tests_a_long_series_whose_noise_is_thousands_of_ulps()
+    {
+        // A departure of 1e-10 from 1.0 is 4.5e5 ulps, and its residual root-mean-square 7.07e-11. A bar
+        // that grew with the series made it 2.22e-10 at a million points, and called the wobble a line (#1080).
+        double[] series = new double[1_000_000];
+        for (int i = 0; i < series.Length; i++)
+        {
+            series[i] = 1.0 + (Math.Sin(i * 0.7) * 1e-10);
+        }
+
+        KpssResult result = Stationarity.Kpss(series, new KpssOptions { Regression = TrendTerms.ConstantAndTrend });
+
+        Assert.True(double.IsFinite(result.Statistic));
+    }
+
+    [Fact]
+    public void Kpss_tests_a_line_whose_points_miss_it_by_thousands_of_ulps()
+    {
+        // A departure of 1e-7 from values reaching 26,000 is 4.3e5 ulps of the largest, and its residual
+        // root-mean-square 7.07e-8, against n·ε of the largest at 2.89e-7 (#1080).
+        double[] series = new double[50_000];
+        for (int i = 0; i < series.Length; i++)
+        {
+            series[i] = 1000.0 + (0.5 * i) + (Math.Sin(i * 0.9) * 1e-7);
+        }
+
+        KpssResult result = Stationarity.Kpss(series, new KpssOptions { Regression = TrendTerms.ConstantAndTrend });
+
+        Assert.True(double.IsFinite(result.Statistic));
+    }
+
+    [Fact]
+    public void Kpss_does_not_call_an_overflowing_fit_a_straight_line()
+    {
+        // The line fit's mean overflows and every residual is NaN, which a `>` test sent to the refusal
+        // branch: a wrong message, where before #1035 the series was answered (#1080).
+        double[] series = [.. Enumerable.Range(0, 30).Select(i => i % 2 == 0 ? 1e307 : 2e307)];
+
+        KpssResult result = Stationarity.Kpss(series, new KpssOptions { Regression = TrendTerms.ConstantAndTrend });
+
+        Assert.True(double.IsNaN(result.Statistic));
+
+        // The window that NaN reaches is fixed at zero rather than cast: the cast is 0 on .NET 10 and
+        // int.MinValue on .NET Framework, which is the runtime-dependent answer #874 closed.
+        Assert.Equal(0, result.LagCount);
     }
 
     [Fact]
