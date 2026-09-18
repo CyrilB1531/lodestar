@@ -4959,16 +4959,74 @@ now sets a `bool` at the three places it is not copying the input through. And t
 scanned every code point for `OtherNotAssigned` before decomposing, to cut the text around the ones
 `string.Normalize` refuses; it now normalizes the whole string and walks it in segments only when the
 runtime actually refuses it — `U+FFFE` alone on .NET 10, every unassigned code point under NLS.
+[#1087](https://github.com/CyrilB1531/lodestar/issues/1087) later moved that trigger back to the
+presence of an unassigned code point, for the reason the next paragraph gives; the scan itself did
+not come back, because the clean-up loop already had the category.
 
-**The output is unchanged, and that was measured rather than argued.** Every one of the 819,533 code
-points .NET 10 calls unassigned, between nine pairs of neighbours chosen to stress the decomposition
-(a precomposed letter, a combining mark, a Hangul syllable, the Kelvin sign, a compatibility form,
-two marks out of canonical order), plus each pair of unassigned code points side by side: 7,375,797
-inputs, **zero differences** in what the normalizer returns. The two forms of the decomposition do
-differ on 38 of them — a canonical reordering of combining marks around a code point ICU knows and
-.NET's tables do not — and the mark strip that follows removes exactly those marks, so nothing
-reaches the vocabulary. `vocab_txt.json` replays 78 cases, cased and uncased, including the two the
-`catch` path is the only way to reach.
+### The sweep this section published, corrected (issue #1088)
+
+**The output was not unchanged, and the run quoted here did not cover the case that changes it.**
+7,375,797 is 819,533 × 9: every code point .NET 10 calls unassigned, between nine *fixed* pairs of
+neighbours (a precomposed letter, a combining mark, a Hangul syllable, the Kelvin sign, a
+compatibility form, two marks out of canonical order). It was described as including "each pair of
+unassigned code points side by side", and no such pair was in it — which is the one shape the two
+decompositions disagree on. The inference drawn from the 38 it did find, that the mark strip removes
+them, is also wrong: a code point `CharUnicodeInfo` calls unassigned is not a `NonSpacingMark` to it
+either, so the strip leaves it where the reordering put it.
+
+Re-run on #1087's fix with the pair included — the nine fixed neighbours, every ordered pair drawn
+from the **34** code points .NET 10 calls unassigned and ICU gives a combining class, and every
+unassigned code point against each of those 34 in both orders — the sweep is **63,105,197 inputs, of
+which 493 decompose differently** under the two forms: 46 among the nine fixed neighbours, 149 of the
+1,156 pairs drawn from the 34, and 298 of the 55,728,244 mixed pairs. One code point is refused
+outright rather than decomposed, `U+FFFE`, as before.
+
+Against `tokenizers` 0.23.2 itself, over the 1,258 diverging shapes the sweep emits — `Á`, the pair,
+`á`, so the accent strip runs over them — **`main` disagrees with the reference on 149 of them and
+the fix on none**. That is the measurement that decides the branch: the reference's own tables call
+these code points unassigned with combining class 0, as .NET's do and ICU's no longer do.
+`vocab_txt.json` replays 84 cases, cased and uncased, including three that hold an unassigned pair.
+The two holding `U+FFFE` no longer reach the `catch`, and nothing does on .NET 10: that code point is
+`OtherNotAssigned` to `CharUnicodeInfo` like any other, so it sets the flag and takes the walk before
+the `try`. What the `catch` still stands for is a runtime refusing what .NET's tables call assigned,
+which only NLS does and which no CI job runs (#1089).
+
+### What the parity costs (issue #1090)
+
+The scan #1085 removed does not come back as a pass of its own — the clean-up loop already asked
+`CharUnicodeInfo` for a category inside `IsControl`, and that lookup is hoisted so the loop answers a
+second question as well. What is newly paid is one lookup for each `\t`, `\n` and `\r`, which used
+to short-circuit past it. A/B/A, `main` at `8a226529`, the fix, `main` again:
+
+| row | `8a226529`, two runs | fix | change |
+| --- | ---: | ---: | ---: |
+| ASCII, cased | 22.78 / 22.82 ms | 23.10 ms | +1.3 % |
+| ASCII, uncased | 25.25 / 24.86 ms | 25.51 ms | +1.8 % |
+| accented, cased | 21.91 / 21.92 ms | 22.29 ms | +1.7 % |
+| accented, uncased | 30.70 / 30.48 ms | 30.67 ms | — |
+| CJK, cased | 25.49 / 25.39 ms | 25.90 ms | +1.8 % |
+| CJK, uncased | 33.61 / 33.94 ms | 34.52 ms | +2.2 % |
+
+**Allocation is identical to the byte on all six rows.** The two `main` runs agree within 1.6 %, so
+the margin is thin and only CJK uncased separates from both of them by more than their own spread;
+accented uncased does not separate at all, its three values falling inside one another's error bars.
+Read as a band rather than six numbers, the fix costs **1 to 2 %**. Against the 1.09× to 1.17× #1085
+measured for removing the scan, and against the pre-#992 state this still sits under on every row,
+that is what the reference parity of #1087 is bought with — and the netstandard2.0 asset, which no
+row here measures, stops paying a failed whole-string normalize and a throw for every code point
+.NET's own tables also call unassigned. Not for every one NLS refuses: that set is the OS's and is
+larger, and a code point in the difference still reaches the whole-string attempt.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
+LTS (Resolute Raccoon), .NET SDK 10.0.401 on the .NET 10.0.12 runtime, `BenchmarkDotNet` 0.14.0, X64
+RyuJIT AVX-512. Three runs in one window on 2026-09-18, 13:31 to 13:40, one-minute load average 1.35
+at the start, 2.06 to 2.75 between runs and 1.93 at the end; the campaign held the repository's
+machine lock for its whole length and released it in the command that ended it. Both states ran from
+worktrees outside the checkout, differing in `BertBasicTokenization.cs` and the test and corpus files
+of this change, with the generated `bench/corpus/vocabs` copied into both so each arm read identical
+bytes. **A run is judged on the six rows it returns, not on its exit code**: BenchmarkDotNet exits 0
+with every row failed, which is how the first attempt at this campaign reported success on a corpus
+that was not there.
 
 ### Against the state before #983 and #992
 
