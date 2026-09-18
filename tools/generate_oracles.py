@@ -3038,6 +3038,10 @@ def _undefined_average_fixtures() -> list[dict]:
     falls back to an unweighted mean when the remaining support sums to zero.
     A zero sample weight is what reaches a zero total support while a requested
     label still occurs in y_true, which the confusion matrix requires.
+
+    A negative sample weight is what reaches a support total of zero while the
+    supports themselves are not zero, which is the one input where jaccard_score
+    and precision_recall_fscore_support disagree (#988).
     """
     return [
         {"name": "one_class_never_predicted", "y_true": [0, 0, 1], "y_pred": [0, 0, 0],
@@ -3051,14 +3055,31 @@ def _undefined_average_fixtures() -> list[dict]:
          "labels": [0], "sample_weight": [0.0, 1.0]},
         {"name": "zero_total_support", "y_true": [0, 2, 1, 1], "y_pred": [1, 2, 0, 1],
          "labels": [0, 2], "sample_weight": [0.0, 0.0, 1.0, 1.0]},
+        {"name": "supports_cancel", "y_true": [0, 0, 1, 1], "y_pred": [0, 1, 1, 0],
+         "labels": None, "sample_weight": [1.0, 1.0, -1.0, -1.0]},
     ]
+
+
+def _jaccard_or_refusal(y_true: list[int], y_pred: list[int], **kw) -> float | str:
+    """The coefficient, or the name of the error the reference raises instead.
+
+    jaccard_score averages through numpy.average, which refuses a weight total of
+    zero; precision_recall_fscore_support reaches the same total through
+    _nanaverage, which catches that error and answers the unweighted mean. The
+    corpus has to carry the refusal, because it is the divergence under test (#988).
+    """
+    try:
+        return _finite_or_name(skm.jaccard_score(y_true, y_pred, **kw))
+    except ZeroDivisionError:
+        return "ZeroDivisionError"
 
 
 def _undefined_average_case(fx: dict) -> dict:
     """Macro and weighted scores, and the report's two average rows, per zero_division.
 
     jaccard_score refuses zero_division=np.nan, so its entry is null under that
-    mode; classification_report's rows come from precision_recall_fscore_support,
+    mode, and holds the name of the error where the reference raises rather than
+    scores; classification_report's rows come from precision_recall_fscore_support,
     the same _nanaverage the scores use.
     """
     y_true, y_pred = fx["y_true"], fx["y_pred"]
@@ -3085,8 +3106,8 @@ def _undefined_average_case(fx: dict) -> dict:
             for beta in BETAS:
                 entry[f"fbeta_{beta}"] = _finite_or_name(
                     skm.fbeta_score(y_true, y_pred, beta=beta, **kw))
-            entry[JACCARD] = None if math.isnan(zd) else _finite_or_name(
-                skm.jaccard_score(y_true, y_pred, **kw))
+            entry[JACCARD] = None if math.isnan(zd) else _jaccard_or_refusal(
+                y_true, y_pred, **kw)
             case["scores"][f"{avg}|{mode}"] = entry
         report = skm.classification_report(
             y_true, y_pred, labels=labels, sample_weight=sw, zero_division=zd,

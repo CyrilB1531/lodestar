@@ -22,7 +22,7 @@ public static class JaccardScore
     /// <param name="zeroDivision">What to return when neither side holds the class.</param>
     /// <param name="labels">The label set and its order. Omit for the sorted union of both inputs.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
-    /// <exception cref="ArgumentException">The inputs disagree in length, or the weights do not match, hold a non-finite value or are zero throughout.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length; the weights do not match, hold a non-finite value or are zero throughout; or under <see cref="Averaging.Weighted"/> the class supports sum to zero without all being zero.</exception>
     /// <exception cref="UndefinedMetricException">A class is empty on both sides and <paramref name="zeroDivision"/> is <see cref="ZeroDivision.Throw"/>.</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
