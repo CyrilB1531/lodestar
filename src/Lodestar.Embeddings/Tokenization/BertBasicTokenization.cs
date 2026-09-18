@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 
@@ -133,7 +134,13 @@ internal static class BertBasicTokenization
         return false;
     }
 
+    /// <summary>The runtime's own NFD, which <see cref="Decompose(string, bool, Func{string, string})"/> takes as a parameter.</summary>
+    private static readonly Func<string, string> Nfd = static text => text.Normalize(NormalizationForm.FormD);
+
     /// <summary>The NFD form, taken around the code points <see cref="Segmented"/> must not let move.</summary>
+    private static string Decompose(string text, bool unassigned) => Decompose(text, unassigned, Nfd);
+
+    /// <summary>The NFD form under <paramref name="nfd"/>, which a test swaps for one that refuses what NLS would.</summary>
     /// <remarks>
     /// The whole-string form is ICU's and <see cref="Segmented"/> cuts at what <c>CharUnicodeInfo</c>
     /// calls unassigned; a code point .NET's tables do not know and ICU gives a combining class is
@@ -142,23 +149,22 @@ internal static class BertBasicTokenization
     /// already had the category for (#1087). A lone surrogate, the other refusal, cannot arrive:
     /// <see cref="IsControl"/> has already dropped it.
     /// </remarks>
-    private static string Decompose(string text, bool unassigned)
+    internal static string Decompose(string text, bool unassigned, Func<string, string> nfd)
     {
-        if (unassigned)
+        if (!unassigned)
         {
-            return Segmented(text);
+            try
+            {
+                return nfd(text);
+            }
+            catch (ArgumentException)
+            {
+                // NLS reads the OS's tables and not .NET's, so it can refuse what CharUnicodeInfo calls
+                // assigned; the exception is the only place a runtime says which (#1050, #1090).
+            }
         }
 
-        try
-        {
-            return text.Normalize(NormalizationForm.FormD);
-        }
-        catch (ArgumentException)
-        {
-            // NLS reads the OS's tables and not .NET's, so it can refuse what CharUnicodeInfo calls
-            // assigned; the exception is the only place a runtime says which (#1050, #1090).
-            return Segmented(text);
-        }
+        return Segmented(text, nfd);
     }
 
     /// <summary>The NFD form of each stretch between the unassigned code points, which pass through as they are.</summary>
@@ -168,24 +174,70 @@ internal static class BertBasicTokenization
     /// give some of them a class, which is why this walk is taken whenever one is present rather than
     /// only where the runtime refuses the string (#983, #1087).
     /// </remarks>
-    private static string Segmented(string text)
+    private static string Segmented(string text, Func<string, string> nfd)
     {
-        StringBuilder? builder = null;
+        var builder = new StringBuilder(text.Length);
         int start = 0;
         for (int i = 0; i < text.Length; i += Width(text, i))
         {
             if (CharUnicodeInfo.GetUnicodeCategory(text, i) == UnicodeCategory.OtherNotAssigned)
             {
-                builder ??= new StringBuilder(text.Length);
-                builder.Append(text.Substring(start, i - start).Normalize(NormalizationForm.FormD));
+                AppendDecomposed(builder, text.Substring(start, i - start), nfd);
                 builder.Append(text, i, Width(text, i));
                 start = i + Width(text, i);
             }
         }
 
-        return builder is null
-            ? text.Normalize(NormalizationForm.FormD)
-            : builder.Append(text.Substring(start).Normalize(NormalizationForm.FormD)).ToString();
+        AppendDecomposed(builder, text.Substring(start), nfd);
+        return builder.ToString();
+    }
+
+    /// <summary>The NFD form of a stretch, or of the pieces between the code points the runtime refuses on their own.</summary>
+    /// <remarks>
+    /// NLS's tables are the OS's, so it refuses code points <c>CharUnicodeInfo</c> calls assigned and
+    /// the reference's tables know (#1094). A refused code point passes through as an unassigned one
+    /// does: class 0 and no decomposition, which is the reference's answer for every code point it
+    /// has no mapping for. The alternative, an exception out of <c>Encode</c>, would refuse a whole
+    /// text for one emoji newer than the OS. A stretch still refused once those are cut, which no
+    /// single code point explains, passes through whole rather than throw.
+    /// </remarks>
+    private static void AppendDecomposed(StringBuilder builder, string stretch, Func<string, string> nfd)
+    {
+        if (TryDecompose(stretch, nfd, out string? decomposed))
+        {
+            builder.Append(decomposed);
+            return;
+        }
+
+        int start = 0;
+        for (int i = 0; i < stretch.Length; i += Width(stretch, i))
+        {
+            if (!TryDecompose(stretch.Substring(i, Width(stretch, i)), nfd, out _))
+            {
+                string before = stretch.Substring(start, i - start);
+                builder.Append(TryDecompose(before, nfd, out decomposed) ? decomposed : before);
+                builder.Append(stretch, i, Width(stretch, i));
+                start = i + Width(stretch, i);
+            }
+        }
+
+        string rest = stretch.Substring(start);
+        builder.Append(TryDecompose(rest, nfd, out decomposed) ? decomposed : rest);
+    }
+
+    /// <summary><paramref name="nfd"/> of <paramref name="text"/>, or <see langword="false"/> where the runtime refuses it.</summary>
+    private static bool TryDecompose(string text, Func<string, string> nfd, [NotNullWhen(true)] out string? decomposed)
+    {
+        try
+        {
+            decomposed = nfd(text);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            decomposed = null;
+            return false;
+        }
     }
 
     /// <summary>Two for a well-formed surrogate pair, one for anything else, a lone surrogate included.</summary>
