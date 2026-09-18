@@ -167,13 +167,14 @@ See [`0106`](0106-the-frontmatter-is-inserted-once-and-the-body-does-not-move.md
 | [`0144`](0144-a-vocab-txt-runs-berts-basic-tokenizer.md) | A vocab.txt runs BERT's BasicTokenizer, by default | accepted | 2026-09-17 | [`VocabTxtLoader`](../reference/embeddings/persistence/vocabtxtloader.md) returns a vocabulary with `BasicTokenization` set, so the tokenizer runs `BertNormalizer` and `BertPreTokenizer` ahead of WordPiece as `BertTokenizer` does; 12 of 18 measured inputs had different ids before |
 | [`0145`](0145-french-takes-snowballstemmer-as-its-oracle.md) | French takes `snowballstemmer` as its oracle, not `nltk` | accepted | 2026-09-17 | Applies [`0091`](0091-hungarian-takes-snowballstemmer-as-its-oracle.md): `FrenchSnowballStemmer` implements the Snowball algorithm as `snowballstemmer` 3.1.1 does, over the whole of a 346,244-word dictionary. `nltk` 3.10.3 differs on 278 of those words: it predates elisions, `ë`/`ï`, `-oux`, `-aise` and `ni-`, and its region strings delete an `ic` outside R2 after `-atrice` ([#973](https://github.com/CyrilB1531/lodestar/issues/973)) |
 | [`0146`](0146-berts-normalizer-keeps-the-unassigned-code-points.md) | BERT's normalizer keeps the unassigned code points | accepted | 2026-09-18 | Amends [`0144`](0144-a-vocab-txt-runs-berts-basic-tokenizer.md): `tokenizers`' `is_control` drops Cc, Cf and Co but keeps Cn, measured one code point at a time, so `BertBasicTokenization` keeps an unassigned code point rather than dropping it — a recent emoji .NET's tables do not know yet became `[UNK]` instead of vanishing ([#983](https://github.com/CyrilB1531/lodestar/issues/983)). Cs stays dropped and has no upstream counterpart: a Rust `char` cannot hold a surrogate |
+| [`0147`](0147-the-rank-refusal-and-the-conditioning-gate-are-measured-on-singular-values.md) | The rank refusal and the conditioning gate are measured on singular values | accepted | 2026-09-18 | Applies [`0096`](0096-ordinary-least-squares-earns-its-own-package.md) and [`0105`](0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md): the collinear refusal becomes `numpy.linalg.matrix_rank`'s own `σmin ≤ σmax·max(n, p)·ε` rather than a per-column pivot that missed a dependent column far smaller than its sources ([#978](https://github.com/CyrilB1531/lodestar/issues/978)), and the normal-equations gate measures `κ₂` rather than a Frobenius bound that was at least `p` ([#985](https://github.com/CyrilB1531/lodestar/issues/985)). Scale invariance is the loser, as it is in the reference |
 
 ## What `accepted` means here
 
-All one hundred and forty-six carry `accepted`. None has been rejected or withdrawn — a status this
+All one hundred and forty-seven carry `accepted`. None has been rejected or withdrawn — a status this
 table would otherwise need a second word for. `0004` read a progress sentence
 (`single-word and blocked shipped`) where a status belongs; that sentence is now the opening line
-of its own `## Done` section, and its status reads `accepted` like the other hundred and forty-five.
+of its own `## Done` section, and its status reads `accepted` like the other hundred and forty-six.
 
 ## Relationships not stated on a `**Status:**` line
 

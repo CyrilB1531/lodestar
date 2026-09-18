@@ -95,38 +95,50 @@ internal sealed class SharedReflections
         return total;
     }
 
-    /// <summary>Machine epsilon for <see cref="double"/>, which <see cref="double.Epsilon"/> is not.</summary>
-    private const double MachineEpsilon = 2.220446049250313e-16;
-
-    /// <summary>Refuses a design one of whose first <paramref name="order"/> columns lies within rounding of the span of those before it.</summary>
+    /// <summary>Refuses a design whose first <paramref name="order"/> columns do not span that many dimensions.</summary>
     /// <remarks>
-    /// <c>|Rₖₖ|</c> over the column's norm, which the reflections keep in R's column, is the sine of its angle to that span.
-    /// Below <c>max(n, p)·ε</c>, <c>numpy.linalg.matrix_rank</c>'s tolerance and the one <c>Lodestar.Stats.Regression</c>'s
-    /// fits refuse at (#867), the pivot is rounding: a variable proportional to another gave VAR coefficients near 1e13 (#873).
+    /// <see cref="RankBracket"/> holds the test, which is <c>numpy.linalg.matrix_rank</c>'s and the one
+    /// <c>Lodestar.Stats.Regression</c>'s fits refuse at — shared source so the two cannot drift apart. A variable
+    /// proportional to another gave VAR coefficients near 1e13 (#873), and one far smaller than its sources passed
+    /// the per-column pivot that replaced it (#978).
     /// </remarks>
-    internal void RequireFullRank(int order, string parameterName)
+    /// <returns>The inverse of R's leading block, row-major, which the caller's estimates read.</returns>
+    internal double[] RequireFullRank(int order, string parameterName)
     {
-        double tolerance = Math.Max(_rows, order) * MachineEpsilon;
-        for (int k = 0; k < order; k++)
+        double tolerance = RankBracket.Tolerance(_rows, order);
+        var upper = new double[order * order];
+        for (int column = 0; column < order; column++)
         {
-            int column = k * _rows;
-            double squaredNorm = 0.0;
-            for (int i = 0; i <= k; i++)
+            for (int row = 0; row <= column; row++)
             {
-                squaredNorm += _a[column + i] * _a[column + i];
-            }
-
-            // Not negated into a > test: a NaN from the caller's data is not a collinear column.
-            if (Math.Abs(_a[column + k]) <= tolerance * Math.Sqrt(squaredNorm))
-            {
-                throw new ArgumentException(
-                    $"the lagged design is rank-deficient or collinear: coefficient {k}'s column, intercept first when "
-                    + "one is fitted, lies within rounding of the span of the columns before it, so the fit has no unique "
-                    + "solution. Drop a variable that is a combination of the others.",
-                    parameterName);
+                upper[(row * order) + column] = _a[(column * _rows) + row];
             }
         }
+
+        if (RankBracket.DiagonalProvesDeficient(upper, order, tolerance, out int weakest))
+        {
+            throw Collinear(
+                $"coefficient {weakest}'s column, intercept first when one is fitted, is the "
+                + "weakest pivot and lies within rounding of the span of the others",
+                parameterName);
+        }
+
+        double[] inverse = InverseUpper(order);
+        if (!RankBracket.FrobeniusProvesFullRank(upper, inverse, order, tolerance)
+            && RankBracket.SpectrumProvesDeficient(upper, order, tolerance))
+        {
+            throw Collinear($"its {order} columns span fewer dimensions than that", parameterName);
+        }
+
+        return inverse;
     }
+
+    /// <summary>The refusal both brackets raise, so the two cannot drift apart in wording.</summary>
+    private static ArgumentException Collinear(string what, string parameterName)
+        => new(
+            $"the lagged design is rank-deficient or collinear: {what}, so the fit has no unique "
+            + "solution. Drop a variable that is a combination of the others.",
+            parameterName);
 
     /// <summary>The inverse of R's leading <paramref name="order"/> block, row-major, by back substitution.</summary>
     internal double[] InverseUpper(int order)

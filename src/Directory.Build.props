@@ -45,11 +45,26 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Reflections.cs" Link="Internal/Reflections.cs" />
   </ItemGroup>
 
-  <!-- The element-wise dense updates, compiled into the two libraries whose kernels make them.
-       Lodestar.Abstractions opts out of the helpers above, and neither it nor Lodestar.Decomposition
-       can reach the other's internals, so shared source keeps one copy (#845). -->
+  <!-- The element-wise dense updates, compiled into the four libraries whose kernels make them.
+       Lodestar.Abstractions opts out of the helpers above, and no two of these can reach each other's
+       internals across a published floor, so shared source keeps one copy (#845, #978). -->
   <ItemGroup Condition="'$(LodestarIncludesElementWise)' == 'true'">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/ElementWise.cs" Link="Internal/ElementWise.cs" />
+  </ItemGroup>
+
+  <!-- The one-sided Jacobi spectrum, compiled into the three libraries that read singular values.
+       Lodestar.Decomposition factors with it; Lodestar.Stats.Regression and Lodestar.Stats.TimeSeries
+       measure a triangular factor's rank and condition with it, and neither can reach the other's
+       internals across a published floor, so shared source keeps one copy (#978). -->
+  <ItemGroup Condition="'$(LodestarIncludesJacobiSpectrum)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/JacobiSpectrum.cs" Link="Internal/JacobiSpectrum.cs" />
+  </ItemGroup>
+
+  <!-- The rank bracket over a triangularized design, compiled into the two libraries that refuse on it.
+       Lodestar.Stats.Regression and Lodestar.Stats.TimeSeries must refuse the same designs and cannot
+       reach each other's internals across a published floor, so shared source keeps one copy (#978). -->
+  <ItemGroup Condition="'$(LodestarIncludesRankBracket)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/RankBracket.cs" Link="Internal/RankBracket.cs" />
   </ItemGroup>
 
   <!-- Persistence plumbing, compiled only into the libraries that ship artifacts

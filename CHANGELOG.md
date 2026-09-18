@@ -258,6 +258,7 @@ is one sentence, the issue and the commit; see
 - `Stationarity.AugmentedDickeyFuller` names `series` when the lagged design it builds has no unique solution, where the estimate's refusal cited a `design` parameter no caller passed. ([#979](https://github.com/CyrilB1531/lodestar/issues/979))
 - `Stationarity.Kpss` measures that line against `n·ε` of the largest observation, where only a fit leaving exact zeros was refused and 99 of 100 random lines were answered from their rounding noise. ([#976](https://github.com/CyrilB1531/lodestar/issues/976))
 - Both stationarity tests refuse a straight line on one bar that does not grow with the series, `Stationarity.AugmentedDickeyFuller` at lag zero too, where a million points of a 1e-10 wobble were called a line and a line's lag-zero statistic was one rounding error over another. ([#1080](https://github.com/CyrilB1531/lodestar/issues/1080))
+- `VectorAutoregression.Fit` refuses a collinear lagged design on the singular values, as `Lodestar.Stats.Regression`'s fits now do, where the per-column pivot missed a column far smaller than the ones it depends on. ([#978](https://github.com/CyrilB1531/lodestar/issues/978))
 
 ### Lodestar.Stats
 
@@ -318,6 +319,7 @@ is one sentence, the issue and the commit; see
 - `OrdinaryLeastSquares.Fit`, `WeightedLeastSquares.Fit`, `GeneralizedLeastSquares.Fit` and `GeneralizedLinearModel.Fit` refuse a collinear design, where they returned a table of NaN or of coefficients near 1e14, or ran the IRLS budget out. ([#867](https://github.com/CyrilB1531/lodestar/issues/867))
 - `GeneralizedLeastSquares.Fit` refuses an empty covariance at 65,536 rows, `CovarianceType.Hac` weights `int.MaxValue` lags below one, and `MultinomialLogit.Fit` names `response` when the label count disagrees. ([#905](https://github.com/CyrilB1531/lodestar/issues/905))
 - `OrdinaryLeastSquares.Estimate` refuses a collinear design as `Fit` does, where it answered coefficients near 1e14. ([#979](https://github.com/CyrilB1531/lodestar/issues/979))
+- A collinear design is refused on `numpy.linalg.matrix_rank`'s own tolerance, `σmin ≤ σmax·max(n, p)·ε`, where a per-column pivot missed a dependent column far smaller than its sources, and the normal-equations gate measures the column-scaled condition number rather than a bound that was always at least `p`. ([#978](https://github.com/CyrilB1531/lodestar/issues/978), [#985](https://github.com/CyrilB1531/lodestar/issues/985))
 
 ### Lodestar.Survival
 

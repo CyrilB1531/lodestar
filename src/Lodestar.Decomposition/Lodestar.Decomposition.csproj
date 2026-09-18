@@ -12,6 +12,7 @@
     <Description>Truncated SVD and non-negative matrix factorization for .NET at scikit-learn parity, over a sparse matrix and without centring it: latent semantic analysis on a term-document matrix, with explained variance, and NMF for a parts-based decomposition. Randomized SVD with all three power-iteration normalizers; the dense kernels are written here, so the only dependency is Lodestar.Abstractions.</Description>
     <PackageTags>svd;truncated-svd;lsa;nmf;decomposition;dimensionality-reduction;topic-model;sparse;lodestar</PackageTags>
     <LodestarIncludesElementWise>true</LodestarIncludesElementWise>
+    <LodestarIncludesJacobiSpectrum>true</LodestarIncludesJacobiSpectrum>
   </PropertyGroup>
 
   <ItemGroup>

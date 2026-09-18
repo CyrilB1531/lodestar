@@ -5280,3 +5280,60 @@ work that grows with `Rows` is a falling *share* of the total. The prediction in
 
 The reading for a caller inverts the usual intuition: **residency is worth most where the work is
 smallest.** A large job amortises a round trip on its own; a small one does not.
+
+## The rank refusal and the conditioning gate, on singular values (issues #978, #985)
+
+```text
+BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
+AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+.NET SDK 10.0.401 — .NET 10.0.12, X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+```
+
+`bench/Lodestar.Stats.Benchmarks/LeastSquaresRoutingBenchmarks.cs`, 4 000 rows, uniform regressors
+with an intercept. `main` at `6346a2ae` against the branch, same machine, one campaign under
+`./.dotnet-guarded`.
+
+| Entry point | Regressors | `main` | branch | change | allocated, `main` → branch |
+| --- | ---: | ---: | ---: | ---: | --- |
+| [`OrdinaryLeastSquares.Estimate`](../reference/stats-regression/ols/ordinaryleastsquares-estimate.md) | 4 | 94.96 µs | 95.49 µs | — | 188.26 KB → 188.26 KB |
+| [`OrdinaryLeastSquares.Fit`](../reference/stats-regression/ols/ordinaryleastsquares-fit.md) | 4 | 110.51 µs | 110.46 µs | — | 33.05 KB → 33.12 KB |
+| [`OrdinaryLeastSquares.Estimate`](../reference/stats-regression/ols/ordinaryleastsquares-estimate.md) | 250 | 39 632 µs | 39 266 µs | — | 8 865.7 KB → 8 865.7 KB |
+| [`OrdinaryLeastSquares.Fit`](../reference/stats-regression/ols/ordinaryleastsquares-fit.md) | 250 | 186 521 µs | 149 313 µs | **−19.9 %** | 19 208.4 KB → 3 499.2 KB |
+
+`MathNet_Qr` is in the run untouched by either side and reads 338.55 µs against 343.13 µs at four
+regressors and 311.5 ms against 314.5 ms at 250 — within 1.4 %, which is what says the two halves
+of the campaign are comparable at all. An earlier run of the same branch code on a busier machine
+moved that control by 13 %, so only a same-campaign pair is quoted here.
+
+**Only one row moves, and it is the one the change is about.** The estimate always fits by
+reflections, so it never reaches the conditioning gate and prices the rank refusal alone: unchanged
+at both widths, which is what the refusal's Frobenius bracket is there to guarantee. The summary table
+is the entry point that routes, and at 250 regressors it is where the Frobenius bound used to send every
+design to the reflections however well conditioned — 19.9 % of that fit, and five sixths of its
+allocation, was the detour.
+
+**The gain is larger than the solve, because of the VIFs.** The summary table at 250 regressors
+costs 187 ms where the estimate costs 40, and the difference is 250 auxiliary regressions — one per regressor.
+Each was taking the same detour, so the routing correction is paid back 251 times rather than once.
+That is why a change worth a few milliseconds on one solve is worth 37 ms here.
+
+### Why the condition number is estimated and not computed
+
+The first implementation took the exact `κ₂` from a one-sided Jacobi spectrum of the `p × p`
+factor. Measured before it was committed:
+
+| at order 251 | |
+| --- | ---: |
+| one-sided Jacobi sweep | 82 to 350 ms, by conditioning |
+| power iteration on `AᵀA`, convergence 1e-5 | 2.45 ms |
+| a whole 4 000-row fit by reflections | 41 ms |
+
+The sweep costs about twice the detour it exists to avoid, so the exact route would have made a
+wide fit slower rather than faster — it was dropped for that reason and not for a cheaper one.
+Power iteration lands within **1 %** of the spectrum on unit-column factors of order 8 to 251,
+which `ConditionEstimateTests` asserts. A looser convergence of 1e-3 costs 0.58 ms and stops 26 %
+under the spectrum, which is why the constant is 1e-5.
+
+The estimate is a Rayleigh quotient, so it is a lower bound and errs towards *accepting* a design.
+The limit of 200 stands for `200²·ε`, 9e-12 against corpora compared at 1e-9, so 1 % of slack
+stays a hundredfold inside the budget it guards, and the gate never over-refuses.

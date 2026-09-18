@@ -45,22 +45,8 @@ public class RobustCovarianceBenchmarks
     {
         // The same seed and the same shape as OlsBenchmarks, so the two classes price the
         // same fit and their numbers can be read side by side.
-        Random random = new(566);
-        _design = new double[SampleSize * Regressors];
-        _response = new double[SampleSize];
-
-        for (int row = 0; row < SampleSize; row++)
-        {
-            double signal = 0.0;
-            for (int column = 0; column < Regressors; column++)
-            {
-                double value = random.NextDouble();
-                _design[(row * Regressors) + column] = value;
-                signal += (column + 1) * value;
-            }
-
-            _response[row] = signal + (random.NextDouble() - 0.5);
-        }
+        (_design, _response, _) = RegressionCorpus.Build(
+            566, SampleSize, Regressors, value => value, (column, value) => (column + 1) * value);
 
         _options = new OlsOptions { CovarianceType = Covariance };
     }

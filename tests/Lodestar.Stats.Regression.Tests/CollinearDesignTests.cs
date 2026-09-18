@@ -117,4 +117,81 @@ public sealed class CollinearDesignTests
         Assert.All(summary.Coefficients, coefficient => Assert.True(double.IsFinite(coefficient)));
         Assert.All(estimate.Coefficients, coefficient => Assert.True(double.IsFinite(coefficient)));
     }
+
+    [Theory]
+    [InlineData(1e-2)]
+    [InlineData(1e-4)]
+    [InlineData(1e-6)]
+    [InlineData(1e-8)]
+    [InlineData(1e-10)]
+    public void Fit_RefusesADependentColumnFarSmallerThanTheColumnsItDependsOn(double delta)
+    {
+        // x3 = x1 - x2 is exact in double, so the design has rank 3 whatever delta is, as
+        // statsmodels 0.15.0 reports; the per-column pivot saw 1e-13 and answered 1e14 (#978).
+        double[] r = [0.3, -1.1, 0.7, 2.2, -0.4, 1.5, -2.0, 0.9];
+        double[] response = [2.1, 3.9, 6.2, 7.8, 10.1, 12.2, 13.8, 16.1];
+        var design = new double[8 * 3];
+        for (int i = 0; i < 8; i++)
+        {
+            double x1 = i + 1;
+            double x2 = x1 + (delta * r[i]);
+            design[(i * 3) + 0] = x1;
+            design[(i * 3) + 1] = x2;
+            design[(i * 3) + 2] = x1 - x2;
+        }
+
+        ArgumentException failure = Assert.Throws<ArgumentException>(
+            () => OrdinaryLeastSquares.Fit(design, response, 3));
+
+        Assert.Equal("design", failure.ParamName);
+        Assert.Contains("rank-deficient or collinear", failure.Message, StringComparison.Ordinal);
+    }
+
+    // SonarLint S2245, CA5394: a seeded Random builds a reproducible design; no security use.
+#pragma warning disable S2245, CA5394
+    [Fact]
+    public void Fit_AcceptsAFullRankDesignWhoseColumnsDifferInScale()
+    {
+        // numpy.linalg.matrix_rank calls this one full rank, so the spectral test must accept it
+        // rather than merely being stricter than the pivot it replaces.
+        var seeded = new Random(978);
+        var design = new double[200 * 3];
+        var response = new double[200];
+        for (int i = 0; i < 200; i++)
+        {
+            design[(i * 3) + 0] = 1e7 + (seeded.NextDouble() * 9.9e8);
+            design[(i * 3) + 1] = 1e-6 + (seeded.NextDouble() * 9.99e-4);
+            design[(i * 3) + 2] = seeded.NextDouble() - 0.5;
+            response[i] = seeded.NextDouble();
+        }
+
+        OlsSummary summary = OrdinaryLeastSquares.Fit(design, response, 3);
+
+        Assert.Equal(196, summary.ResidualDegreesOfFreedom);
+    }
+
+    [Fact]
+    public void Fit_AndEstimate_AgreeOnADesignOnlyTheUnscaledSpectrumRefuses()
+    {
+        // The refusal is scale-sensitive and both gates on the normal-equations path are scale
+        // invariant, so Fit answered this with a coefficient near 1e11 while Estimate threw.
+        var seeded = new Random(1095);
+        var design = new double[200 * 2];
+        var response = new double[200];
+        for (int i = 0; i < 200; i++)
+        {
+            design[(i * 2) + 0] = seeded.NextDouble();
+            design[(i * 2) + 1] = seeded.NextDouble() * 1e-14;
+            response[i] = seeded.NextDouble();
+        }
+
+        ArgumentException fromFit = Assert.Throws<ArgumentException>(
+            () => OrdinaryLeastSquares.Fit(design, response, 2));
+        ArgumentException fromEstimate = Assert.Throws<ArgumentException>(
+            () => OrdinaryLeastSquares.Estimate(design, response, 2, withIntercept: true));
+
+        Assert.Equal("design", fromFit.ParamName);
+        Assert.Equal(fromEstimate.Message, fromFit.Message);
+    }
+#pragma warning restore S2245, CA5394
 }

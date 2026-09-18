@@ -38,26 +38,8 @@ public class OlsBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        Random random = new(566);
-        _design = new double[SampleSize * Regressors];
-        _response = new double[SampleSize];
-        _jagged = new double[SampleSize][];
-
-        for (int row = 0; row < SampleSize; row++)
-        {
-            var line = new double[Regressors];
-            double signal = 0.0;
-            for (int column = 0; column < Regressors; column++)
-            {
-                double value = random.NextDouble();
-                line[column] = value;
-                _design[(row * Regressors) + column] = value;
-                signal += (column + 1) * value;
-            }
-
-            _jagged[row] = line;
-            _response[row] = signal + (random.NextDouble() - 0.5);
-        }
+        (_design, _response, _jagged) = RegressionCorpus.Build(
+            566, SampleSize, Regressors, value => value, (column, value) => (column + 1) * value);
     }
 
     [Benchmark(Baseline = true)]

@@ -402,6 +402,12 @@
       "src/Lodestar.Stats.Regression/**",
       "src/Lodestar.Stats/**",
       "src/Lodestar.Decomposition/**"
+    ],
+    "LeastSquaresRoutingBenchmarks": [
+      "src/Lodestar.Stats.Regression/**",
+      "src/Lodestar.Stats/**",
+      "src/Lodestar.Decomposition/**",
+      "src/Shared/JacobiSpectrum.cs"
     ]
   },
   "harnesses": {
