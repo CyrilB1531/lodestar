@@ -555,13 +555,25 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          log="${{ runner.temp }}/end-analysis.log"
           for attempt in 1 2 3; do
             echo "::group::End analysis, attempt $attempt of 3"
-            if "${{ runner.temp }}/scanner/dotnet-sonarscanner" end /d:sonar.token="$SONAR_TOKEN"; then
+            # Redirected rather than piped through tee: a pipeline's status is its last command's,
+            # so `| tee` would have reported the scanner as successful whatever it did.
+            if "${{ runner.temp }}/scanner/dotnet-sonarscanner" end /d:sonar.token="$SONAR_TOKEN" > "$log" 2>&1; then
+              cat "$log"
               echo "::endgroup::"
               exit 0
             fi
+            cat "$log"
             echo "::endgroup::"
+            # A failed quality gate is this repository's designed refusal, and `end` exits non-zero
+            # for it too, so retrying spent seven minutes of sleep and two more analyses of the same
+            # report on every red pull request (#1063). Only the outage is retried.
+            if grep -qi "quality gate status: failed" "$log"; then
+              echo "::error::The quality gate failed. A finding in the code this pull request introduces blocks it."
+              exit 1
+            fi
             if [ "$attempt" != 3 ]; then
               # 2 then 5 minutes: measured on 2026-09-17, a minute apart left all three attempts
               # inside one outage window, while analyses a few minutes apart went through.
