@@ -218,9 +218,9 @@ doublemetaphone==1.2 \
     --hash=sha256:fee1b771f8d3fcbe796669a958209f5d50ebfe1df884d722676613630963fdd7 \
     --hash=sha256:ff15f5fd7538757e1cd89cc98b4e7cf3e0334c18433efcbfe20c335a9f41ac13
     # via -r tools/requirements.txt
-filelock==3.32.6 \
-    --hash=sha256:3f16ecd0117feae0dfc147e8c62eb5daeccd8bd800378c3ddf416de9b4feb6b1 \
-    --hash=sha256:a3f55a18af3652a94d8f47d6055df434f254ca1d02ef2524850c6d249ca2512c
+filelock==4.0.0 \
+    --hash=sha256:3611eca5d818ca9b00ec3cc7db1dcfe1e2aafc8d44fb4920d8cf60ad1f6bfda6 \
+    --hash=sha256:a850aa9ec2acba8db9ca2e9fcf8a327fbc2f85e432725715b37bd76b7dd1f798
     # via huggingface-hub
 fonttools==4.65.0 \
     --hash=sha256:04f73dd01005752a6e75cf4a8dc6b70dc724d1d4bc34cc89522153f4a2f07680 \
