@@ -10,7 +10,7 @@ namespace Lodestar.Text.Benchmarks.CrossLang;
 /// Issue #480: #466 removed a whole copy of the 15.36 MB block from the read and the row did not
 /// move, while removing the copy into the index moved it by more than a copy is worth. Both
 /// readings subtracted whole rows, which cannot say where the time went. Every phase carries the
-/// collections it provoked beside its milliseconds, because on the artifact buffer ADR 0054 found
+/// collections it provoked beside its milliseconds, because on the artifact buffer the performance guide found
 /// those two telling different stories.
 /// </remarks>
 internal static class IngestPhasesBench

@@ -15,7 +15,7 @@ public readonly record struct NpyBlock(ReadOnlyMemory<float> Values, IReadOnlyLi
     /// <remarks>
     /// The stream reader fills it, and the path overload through it, because only that
     /// route allocates an array nobody else holds. A block over a caller's bytes leaves
-    /// it null, and so does one built by hand — which is what stops decision 0056's
+    /// it null, and so does one built by hand — which is what stops the equality
     /// ownership transfer being reached without the method that documents it.
     /// </remarks>
     // CA1819: handing the array out is the contract -- FromOwnedBlock adopts it and the
@@ -27,7 +27,7 @@ public readonly record struct NpyBlock(ReadOnlyMemory<float> Values, IReadOnlyLi
     /// <summary>Whether two blocks hold the same elements under the same shape.</summary>
     /// <remarks>
     /// The generated equality compared <see cref="Values"/> and <see cref="Shape"/> by reference, so
-    /// two reads of one file were unequal (#902, decision 0113). Elements compare as
+    /// two reads of one file were unequal (#902). Elements compare as
     /// <c>float.Equals</c> does, <c>NaN</c> equal to <c>NaN</c>; who owns the array is not part of
     /// the value, so <see cref="OwnedArray"/> is not compared.
     /// </remarks>
@@ -60,7 +60,7 @@ public readonly record struct NpyBlock(ReadOnlyMemory<float> Values, IReadOnlyLi
 /// Interop for a float matrix, not a second artifact format: a <c>.npy</c> carries no ids,
 /// no normalize flag and no schema, and <c>EmbeddingIndex.Save</c> is untouched (#450).
 /// <b>Its header is a Python dict literal and is never evaluated</b> — a fixed grammar only,
-/// and <c>'|O'</c>, numpy's pickle-backed dtype, is refused by name (ADR 0011).
+/// and <c>'|O'</c>, numpy's pickle-backed dtype, is refused by name (ADR 0001).
 /// </remarks>
 public static class NpyFile
 {
@@ -136,7 +136,7 @@ public static class NpyFile
     /// <b>The returned block aliases those bytes, so they must not change while it is read</b>,
     /// the contract <c>EmbeddingIndex.Load(ReadOnlyMemory)</c> states for the same reason.
     /// <see cref="NpyBlock.OwnedArray"/> is therefore null: a borrowed block has no array to
-    /// hand over. Decision 0057 has the trade.
+    /// hand over. The performance guide has the trade.
     /// </remarks>
     /// <param name="npy">The file's bytes, which outlive the block.</param>
     /// <param name="options">Bounds applied while reading, or <see langword="null"/> for the defaults.</param>
@@ -322,7 +322,7 @@ public static class NpyFile
     /// <remarks>
     /// Not a Python parser and not an evaluator: it accepts one dtype string, one
     /// boolean and a tuple of non-negative integers. Anything else — another dtype, a
-    /// nested structure, an extra key — is refused with what it held. ADR 0011's
+    /// nested structure, an extra key — is refused with what it held. ADR 0001's
     /// reasoning about <c>pickle.load</c> is why it has this shape.
     /// </remarks>
     private static NpyHeader ParseHeader(string header)
@@ -332,7 +332,7 @@ public static class NpyFile
         string shape = RequiredValue(header, "shape");
 
         // First and by name: '|O' is numpy's object dtype and its payload is a pickle,
-        // which is arbitrary code. ADR 0011 rules that out, wherever the file came from.
+        // which is arbitrary code. ADR 0001 rules that out, wherever the file came from.
         if (descr is "|O" or "O")
         {
             throw Malformed(

@@ -31,7 +31,7 @@ int stored = matrix.NonZeroCount;  // => 2
 **Properties** — `RowCount`, `ColumnCount` and `NonZeroCount`.
 
 **Remarks** — the three CSR arrays are taken as **spans rather than as a `CsrMatrix`**.
-[Decision 0101](../../../decisions/0101-lodestar-gpu-is-the-one-package-that-does-not-ship-netstandard2-0.md)
+[Decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 forbids an edge from a core package into this one, and an edge the other way would floor this
 package on a published `Lodestar.Abstractions` for the sake of one type. A caller holding a
 `CsrMatrix` passes its `RowPointers`, `ColumnIndices` and `Values` directly.

@@ -3,7 +3,7 @@
 **The one member of this package not verified against a reference.** Every other number here replays
 a corpus frozen from Python; measured on scikit-learn 1.9.0, `dir(sklearn.metrics)` carries nothing
 matching `reciprocal`, so there is nothing to freeze. It ships under
-[decision 0036](../../../decisions/0036-a-member-may-ship-without-an-oracle-if-it-says-so.md), which
+[decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md), which
 also says what would retire that exception — a reference implementation worth capturing — and its
 definition is pinned by tests instead of by a corpus.
 

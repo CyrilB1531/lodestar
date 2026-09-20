@@ -7,7 +7,7 @@ zero. [`CsrMatrix`](sparse/csrmatrix.md) stores the forty thousand.
 It lives in a package of its own because more than one package needs it and they do not need each
 other. `Lodestar.Text`'s vectorizers produce one; a decomposition consumes one; neither should
 oblige a caller to take the other's distances, stemmers, tokenizers and JSON.
-[Decision 0071](../../decisions/0071-csrmatrix-moves-to-an-abstractions-package.md) records that
+[Decision 0003](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) records that
 move and what it cost.
 
 The package is deliberately small and has no dependencies. It holds one class and one enum, no I/O,

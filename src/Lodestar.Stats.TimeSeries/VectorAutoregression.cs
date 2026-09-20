@@ -9,7 +9,7 @@ namespace Lodestar.Stats.TimeSeries;
 /// <remarks>
 /// Several series that move together, each explained by every series' own past. The fit is least squares equation by
 /// equation on the stacked lags — <see cref="OrdinaryLeastSquares.Estimate"/>'s arithmetic per equation, over one shared QR — which is why
-/// <see href="https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0134-arima-and-state-space-are-not-written-and-var-is-the-one-that-could-be.md">decision 0134</see>
+/// <see href="https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0004-what-is-written-here-and-what-is-delegated.md">decision 0004</see>
 /// could write this model and not the likelihood-fitted ones beside it.
 /// </remarks>
 public static class VectorAutoregression

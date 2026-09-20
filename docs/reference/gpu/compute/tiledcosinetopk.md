@@ -41,7 +41,7 @@ of identical rows is what the tests use to prove it.
 
 **Build this once.** Loading compiles, and a first launch on a freshly loaded kernel measures
 ILGPU's compiler — which is why
-[decision 0102](../../../decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md) asks a
+`bench/README.md`'s GPU gate asks a
 benchmark for an explicit warm-up.
 
 The group size is clamped to what the accelerator allows and rounded down to a power of two:

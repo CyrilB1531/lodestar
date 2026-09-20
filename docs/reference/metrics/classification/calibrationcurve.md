@@ -31,8 +31,7 @@ samples — **about**, because repeated probabilities collapse edges onto each o
 rather than balancing them. The strategy equalises rank, not count.
 
 Its edges come from the linear interpolation `np.percentile` computes, which is **not** the weighted
-percentile [decision 0024](../../../decisions/0024-weighted-median-averages-within-scikit-learns-epsilon.md)
-pinned for the medians: the two disagree, and reusing the weighted one would move the third decimal.
+percentile the medians are pinned to: the two disagree, and reusing the weighted one would move the third decimal.
 
 ## Members
 

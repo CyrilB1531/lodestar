@@ -56,10 +56,10 @@ tolerance
 is load-bearing rather than decoration: a uniform weight is *usually* the ordinary median and not
 always. Measured, `[0.7] * 10` gives `5.0` on the weighted path against `4.5` unweighted, while
 `[0.1] * 10` gives `4.5` on both. Both agree, divergently, with scikit-learn —
-[decision 0024](../../../decisions/0024-weighted-median-averages-within-scikit-learns-epsilon.md).
+the weighted-percentile rule.
 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `MedianAbsoluteError.PerOutput`, `MeanAbsoluteError.Score`, `MaxError.Score`,
-[decision 0024](../../../decisions/0024-weighted-median-averages-within-scikit-learns-epsilon.md),
+the weighted-percentile rule,
 the [Python equivalence table](../../../equivalence.md).

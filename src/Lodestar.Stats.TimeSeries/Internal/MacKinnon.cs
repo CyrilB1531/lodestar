@@ -3,7 +3,7 @@ namespace Lodestar.Stats.TimeSeries.Internal;
 /// <summary>MacKinnon's response surfaces for one series: the 1994 p-value and the 2010 critical values.</summary>
 /// <remarks>
 /// Row <c>N = 1</c> of statsmodels 0.15.0's <c>tsa/adfvalues.py</c> (BSD-3-Clause, a permitted reference
-/// under decision 0003). The published coefficients are kept beside their scaling and multiplied here as
+/// under decision 0002). The published coefficients are kept beside their scaling and multiplied here as
 /// the reference multiplies them, so a transcription can be checked against the paper digit by digit.
 /// </remarks>
 internal static class MacKinnon

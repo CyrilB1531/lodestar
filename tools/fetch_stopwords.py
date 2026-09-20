@@ -2,7 +2,7 @@
 
 Downloads the Snowball stop-word lists, checks each file against the SHA-256
 pinned below, and emits the C# source. The lists are BSD-3-Clause (see
-docs/decisions/0010-stop-word-list-provenance.md); nothing here touches the
+docs/decisions/0002-provenance-and-the-allowed-references.md); nothing here touches the
 nltk stopwords corpus, whose terms are unclarified.
 
     python tools/fetch_stopwords.py            # regenerate
@@ -50,7 +50,7 @@ HEADER = """// long-comment: BSD-3-Clause requires the copyright notice to trave
 //
 //     Copyright (c) 2001, Dr Martin Porter
 //     Copyright (c) 2002, Richard Boulton
-//     BSD-3-Clause. See docs/decisions/0010-stop-word-list-provenance.md.
+//     BSD-3-Clause. See docs/decisions/0002-provenance-and-the-allowed-references.md.
 // </auto-generated>
 
 namespace Lodestar.Text.Vectorization;

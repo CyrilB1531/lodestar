@@ -38,7 +38,7 @@ public sealed partial class EmbeddingIndex
     /// renter's bytes would become this index's embeddings, and no exception marks the moment.
     /// With <see cref="BlockNormalization.Normalize"/> the array is normalized <b>in place</b>,
     /// so the caller's own values change. <see cref="FromBlock"/> is the one to reach for unless
-    /// the copy has been measured and matters: it costs one pass and asks nothing of the caller. Decision 0056 has the trade.
+    /// the copy has been measured and matters: it costs one pass and asks nothing of the caller. The performance guide has the trade.
     /// </remarks>
     /// <param name="block">The vectors, row after row, in C order. Handed over, not borrowed.</param>
     /// <param name="dimension">The embedding dimension; <paramref name="block"/>'s length must be a multiple of it.</param>

@@ -17,7 +17,7 @@ Exempt, and nothing else:
 
 - docs/superpowers/, where plans describe that workspace while it exists.
 - .claude/skills/, the vendored skills that create it.
-- ADR 0082, which cites a report and cannot be edited (check_adr_immutable.py);
+- ADR 0002, which cites a report and cannot be edited (check_adr_immutable.py);
   a new ADR is not exempt. docs/decisions/README.md's row for 0082 names the
   commit holding the same finding.
 - This module and its test, which contain the pattern they search for.
@@ -46,7 +46,7 @@ EXEMPT_PREFIXES = ("docs/superpowers/", ".claude/skills/")
 EXEMPT_FILES = frozenset({
     "tools/check_sdd_citations.py",
     "tools/tests/test_check_sdd_citations.py",
-    "docs/decisions/0082-scipy-joins-the-allowed-permissive-references.md",
+    "docs/decisions/0002-provenance-and-the-allowed-references.md",
 })
 
 

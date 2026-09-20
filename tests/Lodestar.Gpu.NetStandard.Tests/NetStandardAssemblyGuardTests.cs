@@ -9,7 +9,7 @@ namespace Lodestar.Gpu.Tests;
 /// <remarks>
 /// Without this, a reference that quietly resolved back to net10.0 would leave every test
 /// passing while proving nothing (#529). One assembly rather than several, because
-/// <c>Lodestar.Gpu</c> carries no Lodestar edge — decision 0101 forbids one into it, and the
+/// <c>Lodestar.Gpu</c> carries no Lodestar edge — decision 0003 forbids one into it, and the
 /// CPU baselines this suite compares against are deliberately not pinned: what is being
 /// replayed is the GPU assembly, not the paths it is measured against.
 /// </remarks>

@@ -2,7 +2,7 @@
 
   <!--
     Lodestar.Fuzzy owns its version here, independently of the other packages
-    (see docs/decisions/0012-per-package-versioning.md).
+    (see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
     0.4.0 alongside Lodestar.Text and Lodestar.Embeddings, each for reasons of its
     own. Three packages at the same number is not the split failing: the point is

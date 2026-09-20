@@ -43,7 +43,7 @@ MinHashScheme scheme = affine.Scheme;  // => Affine32
 | [`MinHashPermutations.Addend`](minhashpermutations-addend.md) | The `b` coefficient of one permutation |
 
 **Remarks** — **the permutations are an input, not a seed.** That is the same call
-[decision 0072](../../../decisions/0072-omega-is-an-input-not-a-seed.md) made for randomized
+[decision 0004](../../../decisions/0004-what-is-written-here-and-what-is-delegated.md) made for randomized
 SVD's Ω, and for the same reason: a randomized algorithm whose randomness is supplied is an
 ordinary parity target, where one deriving it from a seed would have to reproduce another
 library's generator stream to agree with it.

@@ -6,7 +6,7 @@ namespace Lodestar.Text.Tests.Phonetics;
 
 public sealed class MetaphoneOracleTests
 {
-    // Real words, which is Metaphone's domain: decision 0007 scopes out the
+    // Real words, which is Metaphone's domain: decision 0005 scopes out the
     // letter-soup quirks jellyfish has and this does not reproduce.
     private static readonly OracleFile<PhoneticCase> Corpus =
         OracleCorpus.Load<PhoneticCase>("metaphone.json");

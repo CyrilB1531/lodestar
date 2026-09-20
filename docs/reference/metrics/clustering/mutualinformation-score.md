@@ -47,7 +47,7 @@ clusterings of different sizes fairly. Reach for
 `ValueError` in scikit-learn 1.9.0 — a `log(0)` inside an unguarded logarithm, not a documented
 refusal. This method returns `0` there instead, matching every sibling clustering metric, which
 all treat an empty input as a case rather than an error.
-[Decision 0039](../../../decisions/0039-mutual-information-returns-zero-on-an-empty-input.md) has
+[Decision 0007](../../../decisions/0007-the-deliberate-divergences.md) has
 the measurement and the reasoning. A single sample also returns `0` — unlike the six agreement
 metrics this family started with, which score `1` there, because a single sample carries no
 information to share rather than no disagreement to find.

@@ -82,7 +82,7 @@ public static class KaplanMeier
     /// The published normal quantile, not a Student one at a large degrees of freedom.
     /// That substitute was tried and measured: its accuracy peaks near 1e8 degrees of
     /// freedom at about 1e-8 and worsens on either side, which the log-log transform
-    /// below amplifies into the seventh digit of a bound — decisions 0098 and 0121 have
+    /// below amplifies into the seventh digit of a bound — decisions 0003 and 0121 have
     /// the table, and this corpus is what caught it.
     /// </remarks>
     private static double Critical(double level) =>

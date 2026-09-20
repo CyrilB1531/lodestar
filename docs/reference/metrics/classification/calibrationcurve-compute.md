@@ -36,8 +36,7 @@ int points = curve.ProbTrue.Count;   // => 4
 **Remarks** — there is no `sampleWeight`: the reference has none for this curve, where
 [`BrierScore.Score`](brierscore-score.md) and [`LogLoss.Score`](logloss-score.md) both take one.
 `BinStrategy.Quantile` reads its edges from a linear-interpolation percentile rather than from the
-weighted one [decision 0024](../../../decisions/0024-weighted-median-averages-within-scikit-learns-epsilon.md)
-pinned for the medians, because the reference does.
+weighted one the medians are pinned to, because the reference does.
 
 **Applies to** — net10.0, netstandard2.0.
 

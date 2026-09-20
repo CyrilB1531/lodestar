@@ -8,7 +8,7 @@ namespace Lodestar.Stats.Regression.Tests;
 /// <remarks>
 /// Relative at 1e-9, as the GLM corpus beside it. The null log-likelihood and the two statistics built on it hold
 /// only because each fixture's likelihood-ratio statistic is large: the reference reaches that null by an optimiser
-/// and the C# by its closed form (decision 0136).
+/// and the C# by its closed form (decision 0004).
 /// </remarks>
 public sealed class MultinomialLogitOracleTests
 {

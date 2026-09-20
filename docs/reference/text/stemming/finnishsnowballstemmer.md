@@ -38,7 +38,7 @@ other eleven languages have no equivalent of.
 before it, `-siin` needs a vowel and an `i`, `-seen` needs a long vowel, and the partitive `-a`
 needs a consonant and a vowel. A condition that fails leaves the word alone rather than falling
 through to a shorter ending — with four measured exceptions, in
-[decision 0090](../../../decisions/0090-finnish-falls-back-to-the-genitive-where-nltk-does.md).
+[decision 0006](../../../decisions/0006-the-stemmers-references.md).
 
 The last step is what makes a Finnish stem look short. It removes a long vowel, then a consonant
 and one of `a ä e i`, then an `-oj`, `-uj` or `-jo`, and finally the second letter of any doubled

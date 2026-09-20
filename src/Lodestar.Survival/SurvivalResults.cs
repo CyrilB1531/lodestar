@@ -39,7 +39,7 @@ public sealed record KaplanMeierCurve(
     /// <param name="other">The curve to compare against.</param>
     /// <remarks>
     /// The generated equality would compare the four arrays by reference, so two curves fitted
-    /// from the same data would be unequal. Decision 0113 has the rule.
+    /// from the same data would be unequal. a record whose member compares by reference writes its own equality.
     /// </remarks>
     public bool Equals(KaplanMeierCurve? other)
     {
@@ -89,7 +89,7 @@ public sealed record NelsonAalenCurve(SurvivalStep[] Steps, double[] CumulativeH
     /// <param name="other">The curve to compare against.</param>
     /// <remarks>
     /// The generated equality would compare both arrays by reference, so two curves fitted from
-    /// the same data would be unequal. Decision 0113 has the rule.
+    /// the same data would be unequal. a record whose member compares by reference writes its own equality.
     /// </remarks>
     public bool Equals(NelsonAalenCurve? other)
     {

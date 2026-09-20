@@ -49,7 +49,7 @@ against `scipy.stats.norm.ppf(0.975)`, that substitute stops improving at about 
 Below the best point the convergence is incomplete; above it the Student tail being inverted loses ground. A
 Kaplan-Meier confidence bound is built on the log-log transform of the estimate, which amplifies
 that error into the seventh digit of a bound — past the `1e-9` its corpus compares at. This member
-answers to about `1e-15` instead. [Decision 0098](../../../decisions/0098-the-normal-quantile-is-the-third-member-decision-0095s-rule-publishes.md), as [decision 0121](../../../decisions/0121-the-quantiles-invert-by-newton-and-the-large-df-residual-is-the-tails.md) amended it,
+answers to about `1e-15` instead. [Decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md), as `docs/guides/performance.md` amended it,
 has the whole measurement.
 
 **Applies to** — net10.0, netstandard2.0.

@@ -20,7 +20,7 @@ Neither index can honour an upsert as it stands — `EmbeddingIndex` only append
 built whole from a matrix and never changes. So each collection keeps its records in a dictionary
 keyed by the record's key, and both indexes are **rebuilt from it on the first search after a write**.
 A batch of writes costs one rebuild, and an updated record's old vector is gone rather than masked.
-[`decisions/0123`](../../decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)
+`decisions/0123`
 records the choice and the two alternatives it beat.
 
 That is also the cost to know about: the search that follows a write pays for a rebuild over

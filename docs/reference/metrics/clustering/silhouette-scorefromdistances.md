@@ -42,7 +42,7 @@ rounding, not the method.
 
 A name of its own rather than an overload of `Silhouette.Score`, because a distance
 matrix and a block of features are both a span of `double` and the two signatures would collide.
-That is [decision 0021](../../../decisions/0021-multioutput-is-a-method-not-an-enum.md)'s ruling
+That is the multioutput rule's ruling
 applied to an input rather than to a return type.
 
 Nothing checks that the matrix is a metric — symmetric, zero on the diagonal, positive elsewhere.

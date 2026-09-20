@@ -204,7 +204,7 @@ jobs:
       # they stay hand-written and this is what keeps them current.
       - name: Both release workflows list every package in src/
         run: python tools/check_release_workflow_packages.py
-      # Decision 0041 names a sample after its class, so a public type without one is a
+      # CONTRIBUTING.md's Definition of done names a sample after its class, so a public type without one is a
       # type nobody can find an example of. Only the packages already split are enforced;
       # the rest still carry their Lot* files, and #280 closes when that list is empty.
       - name: Every public class has a sample of its own
@@ -218,7 +218,7 @@ jobs:
       # An ADR is immutable, so the decision that gets amended cannot be edited to name
       # its amendment: 17 records declared `amends` or `supersedes` onto 15 decisions and
       # not one of the 15 pointed forward. docs/decisions/index.yaml carries that
-      # direction, generated from each record's frontmatter (#630, decision 0106).
+      # direction, generated from each record's frontmatter (#630, tools/regen_adr_index.py).
       - name: Every ADR declares a readable frontmatter
         run: python tools/check_adr_frontmatter.py
       - name: The ADR index matches the records it is generated from
@@ -382,9 +382,9 @@ jobs:
       # so the two builds moved to the `sample` and `docs-snippets` jobs with it. They
       # stay out of Lodestar.slnx either way: inside the solution they would resolve
       # Lodestar by ProjectReference, and the packaging gate and the snippet check
-      # would both become assertions about a graph that never ships (ADR 0009).
+      # would both become assertions about a graph that never ships (CONTRIBUTING.md's Definition of done).
       #
-      # What reads them there is what ADR 0019 added: samples/Directory.Build.props
+      # What reads them there is what CLAUDE.md's analyzer section added: samples/Directory.Build.props
       # carries SonarAnalyzer.CSharp and the samples inherit the repository-wide .NET
       # code-quality settings, so a finding fails those two jobs on its own. What the
       # quality gate loses is duplication over samples/, which it analysed and, being
@@ -449,7 +449,7 @@ jobs:
       # ~77 tokens, so no ordering of the members keeps two of them under the
       # 100-token minimum; the duplication the shared shape really did carry was
       # factored into ScandinavianSnowballWorker instead, which took the density
-      # from 11.0% to 7.7% before this. Decision 0088 has the measurement and the
+      # from 11.0% to 7.7% before this. The exclusion below carries both the measurement and the
       # scope. Every other duplication finding in the repository still fails the
       # gate — this is the one directory whose files are transcribed tables.
       #
@@ -795,7 +795,7 @@ jobs:
       # Against the packed packages, not the projects: a snippet that only
       # compiles through a ProjectReference is not one a reader can run. Same
       # NUGET_PACKAGES separation as the sample job, and for the same reason —
-      # see docs/decisions/0009-sample-consumes-a-local-feed.md.
+      # see CONTRIBUTING.md's Definition of done.
       # A pull request skip_build classifies changes no source at all, so main's own packages for
       # its base commit are byte-for-byte the ones this job would pack: same sources, same
       # Version.props. Keyed on that classification and not on an artifact happening to exist --
@@ -876,7 +876,7 @@ jobs:
       # provenance is a shipping guarantee, not a test fixture. The script checks
       # each download against a pinned SHA-256 and regenerates the C#: a failure
       # here means upstream edited a list, and that is a decision to record — see
-      # docs/decisions/0010-stop-word-list-provenance.md. No dependency to install.
+      # docs/decisions/0002-provenance-and-the-allowed-references.md. No dependency to install.
       - name: Verify the vendored stop-word lists
         run: python tools/fetch_stopwords.py --check
 
@@ -927,7 +927,7 @@ jobs:
           python tools/generate_oracles.py
           # Numerically, at the 1e-9 the suites replay these corpora at, rather
           # than byte for byte: the last digits of a value a BLAS kernel reduced
-          # describe the CPU the job landed on, not the quantity (decision 0073).
+          # describe the CPU the job landed on, not the quantity (tools/compare_oracles.py).
           if ! python tools/compare_oracles.py "${{ runner.temp }}/oracles-committed" tests/oracles; then
             echo "::error::A regenerated corpus differs from the committed one by more than the 1e-9 the test suites compare at. Run tools/generate_oracles.py and commit the result."
             exit 1

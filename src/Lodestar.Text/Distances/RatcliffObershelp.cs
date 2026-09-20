@@ -10,7 +10,7 @@ namespace Lodestar.Text.Distances;
 /// <remarks>
 /// Reference behavior: <c>difflib.SequenceMatcher(None, a, b).ratio()</c>;
 /// <c>autojunk</c> is not replicated — see
-/// <c>docs/decisions/0006-ratcliff-autojunk.md</c>. See <see cref="TextElement"/>
+/// <c>docs/decisions/0007-the-deliberate-divergences.md</c>. See <see cref="TextElement"/>
 /// for the UTF-16 vs code-point choice.
 /// </remarks>
 public static class RatcliffObershelp

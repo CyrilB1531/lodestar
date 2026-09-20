@@ -2,7 +2,7 @@
 
   <!--
     Lodestar.Decomposition owns its version here, independently of the other
-    packages (see docs/decisions/0012-per-package-versioning.md).
+    packages (see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
     0.1.0 was this package's first release. It carries one inter-package edge, to
     Lodestar.Abstractions, whose floor lives in src/Directory.Packages.props and

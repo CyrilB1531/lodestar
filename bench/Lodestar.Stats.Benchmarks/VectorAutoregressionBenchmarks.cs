@@ -11,7 +11,7 @@ namespace Lodestar.Stats.Benchmarks;
 
 /// <summary>What a vector autoregression costs, by system size and lag order (#786).</summary>
 /// <remarks>
-/// No .NET library estimates one (decision 0134), so the incumbent is <c>statsmodels</c> through <c>compare-var</c> and
+/// No .NET library estimates one (decision 0004), so the incumbent is <c>statsmodels</c> through <c>compare-var</c> and
 /// this class prices the allocations that harness does not see. The work is one least squares per equation over a
 /// design of <c>1 + K·p</c> columns, so both parameters move it.
 /// </remarks>

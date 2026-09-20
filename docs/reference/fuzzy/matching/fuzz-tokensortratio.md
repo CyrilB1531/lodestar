@@ -42,7 +42,7 @@ is the difference from [`TokenSetRatio`](fuzz-tokensetratio.md).
 
 An emoji is two UTF-16 units, so the first overload scores two different emoji that share a high
 surrogate as half alike, where rapidfuzz scores them `0`; pass `TextElement.CodePoint` when the text
-can leave the BMP, as [decision 0002](../../../decisions/0002-unicode-comparison-unit.md) offers on
+can leave the BMP, as [decision 0001](../../../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md) offers on
 every algorithm it affects.
 
 **Applies to** — net10.0, netstandard2.0.

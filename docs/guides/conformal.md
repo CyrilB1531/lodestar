@@ -64,7 +64,7 @@ large.
 
 A `r̂` that is zero, negative or `NaN` is **refused** rather than floored, which is where this
 diverges from MAPIE —
-[decision 0118](../decisions/0118-a-residual-estimate-is-refused-rather-than-floored.md) says why:
+the residual-estimate rule says why:
 flooring would turn the mistake above into an interval so narrow it reads as certainty.
 
 ## Classification: a class becomes a set
@@ -160,7 +160,7 @@ The rule is `k = ceil((n + 1)(1 − alpha))`, so the smallest calibration set th
 `alpha` has `n ≥ 1 / alpha − 1` points: 19 for 95 %, 99 for 99 %. Test `double.IsInfinity(q)` if an
 infinite interval is unacceptable at your call site, and collect more calibration data. There is no
 third answer —
-[decision 0070](../decisions/0070-k-greater-than-n-returns-an-infinite-interval.md) records why
+[decision 0007](../decisions/0007-the-deliberate-divergences.md) records why
 this does not clamp to the widest score the way MAPIE does, and why it does not throw.
 
 ## What this is not

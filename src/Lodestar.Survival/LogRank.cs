@@ -7,7 +7,7 @@ namespace Lodestar.Survival;
 /// Reference behavior: <c>lifelines.statistics.logrank_test</c> 0.30.3, which is the
 /// Mantel-Haenszel form with the hypergeometric variance under ties. Its p-value is a
 /// chi-squared upper tail on one degree of freedom, taken from
-/// <see cref="Distributions.ChiSquaredSf"/> rather than re-derived here — decision 0097
+/// <see cref="Distributions.ChiSquaredSf"/> rather than re-derived here — decision 0003
 /// published that member for exactly this call. Thread-safe.
 /// </remarks>
 public static class LogRank

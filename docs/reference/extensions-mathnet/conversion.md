@@ -14,7 +14,7 @@ reason this package is worth installing: the conversion anyone can write by hand
 `Lodestar.Decomposition` **refused** Math.NET for its own kernels — 5.0.0 dates from 2022-04-03 and
 nothing stable has followed — and writes its own QR, LU and Jacobi SVD instead. Referencing the same
 library here is not a reversal:
-[`decisions/0089`](../../decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)
+[`decisions/0003`](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 separates the two. Computing *with* a stale dependency hands its problems to a caller who never
 asked; converting *to* a caller's own types hands them nothing they were not already carrying, and a
 caller who holds no Math.NET types installs nothing.

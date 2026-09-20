@@ -20,7 +20,7 @@ across every fold.
 SharpLearning.CrossValidation does stratify, and its `StratifiedIndexSampler<T>` always shuffles from
 a seed, so it cannot reproduce a scikit-learn fold. What is missing in .NET is a splitter that is
 framework-free **and** reproducible, which is what
-[decision 0132](../../decisions/0132-preprocessing-writes-splitters-scalers-and-encoders-and-not-smote.md)
+[decision 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md)
 wrote this for.
 
 ## The permutation is an argument, not a seed

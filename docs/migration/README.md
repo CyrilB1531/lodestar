@@ -27,9 +27,9 @@ of those is a decision record with a reading behind it, linked from the rows bel
 | **MAPIE** | conformal prediction: intervals and prediction sets with a coverage guarantee | none — no C# implementation exists | 🔴 **Write** — split conformal is **Lodestar.Conformal** |
 | **pandas** | DataFrame, groupby, IO | [`Microsoft.Data.Analysis`](https://www.nuget.org/packages/Microsoft.Data.Analysis); [Deedle](https://fslab.org/Deedle/) | 🟡 **Use** (rougher) |
 | **statsmodels** | econometric regression, time series, tests | Math.NET (basics) — *not* Accord.NET, see below; [`Microsoft.ML.TimeSeries`](https://www.nuget.org/packages/Microsoft.ML.TimeSeries) for forecasting | 🔴 **Write** — the tests and the OLS table ship as **Lodestar.Stats** and **Lodestar.Stats.Regression**; forecasting delegates; the GLM table ships beside the OLS one, and the time-series diagnostics ship as **Lodestar.Stats.TimeSeries** |
-| **scipy.stats** | hypothesis tests, distributions, tails | [Math.NET Numerics](https://numerics.mathdotnet.com/) for the distributions and their tails | 🔴 **Write** — ten test families at scipy parity ship as **Lodestar.Stats**. Math.NET has the distributions and no test battery over them, so the gap is the test and not the tail; [decision 0082](../decisions/0082-scipy-joins-the-allowed-permissive-references.md) admitted scipy as a permissive reference and [0095](../decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md) says which four tail members this publishes for its neighbours |
-| **lifelines** | survival analysis: Kaplan-Meier, Nelson-Aalen, log-rank | **none** — the largest void [#442](https://github.com/CyrilB1531/lodestar/issues/442) surveyed | 🔴 **Write** — right-censored estimators and the log-rank test ship as **Lodestar.Survival**, at lifelines parity. `scikit-survival` is the nearest reference in any language and is refused on its **licence**, not its capability — GPL-3.0-or-later, which [decision 0003](../decisions/0003-provenance-and-licensing.md) excludes ([0099](../decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)) |
-| **rank_bm25** beside a vector index | hybrid keyword-and-vector retrieval, fused in process | `Microsoft.Extensions.VectorData` and its connectors. Read on 2026-09-13 at `CommunityToolkit/AI` `215a5bad`: six of the ten connectors implement hybrid search, and all six are clients of a server; the two in-process ones, `InMemory` and `SqliteVec`, implement none | 🔴 **Write** — BM25 and reciprocal rank fusion ship in **Lodestar.Text**, and the in-process hybrid store behind the abstraction as **Lodestar.Extensions.VectorData** ([decision 0123](../decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)) |
+| **scipy.stats** | hypothesis tests, distributions, tails | [Math.NET Numerics](https://numerics.mathdotnet.com/) for the distributions and their tails | 🔴 **Write** — ten test families at scipy parity ship as **Lodestar.Stats**. Math.NET has the distributions and no test battery over them, so the gap is the test and not the tail; [decision 0002](../decisions/0002-provenance-and-the-allowed-references.md) admitted scipy as a permissive reference and [0003](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) says which four tail members this publishes for its neighbours |
+| **lifelines** | survival analysis: Kaplan-Meier, Nelson-Aalen, log-rank | **none** — the largest void [#442](https://github.com/CyrilB1531/lodestar/issues/442) surveyed | 🔴 **Write** — right-censored estimators and the log-rank test ship as **Lodestar.Survival**, at lifelines parity. `scikit-survival` is the nearest reference in any language and is refused on its **licence**, not its capability — GPL-3.0-or-later, which [decision 0002](../decisions/0002-provenance-and-the-allowed-references.md) excludes ([decision 0002](../decisions/0002-provenance-and-the-allowed-references.md)) |
+| **rank_bm25** beside a vector index | hybrid keyword-and-vector retrieval, fused in process | `Microsoft.Extensions.VectorData` and its connectors. Read on 2026-09-13 at `CommunityToolkit/AI` `215a5bad`: six of the ten connectors implement hybrid search, and all six are clients of a server; the two in-process ones, `InMemory` and `SqliteVec`, implement none | 🔴 **Write** — BM25 and reciprocal rank fusion ship in **Lodestar.Text**, and the in-process hybrid store behind the abstraction as **Lodestar.Extensions.VectorData** |
 | **seaborn** | tidy statistical viz | ScottPlot / Plotly.NET (charts rebuilt) | 🟠 **Decide** — statistical presets missing |
 
 **Legend.** ✅ a solid equivalent exists, use it as is. 🟡 an equivalent exists but
@@ -78,7 +78,7 @@ Text was the first area that justified native code, and it stopped being the onl
 some time ago: **seventeen packages** ship now. Each lot below was opened by a reading of
 what .NET already exports — never by an assumption that nothing existed — and the ones
 that found an incumbent delegated instead. That protocol is
-[decision 0074](../decisions/0074-the-phase-2-gaps-restated-on-what-the-packages-export.md),
+[decision 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md),
 and it has **replaced** a gap claim this project made about itself twice, so the readings
 are worth more than the list.
 
@@ -91,7 +91,7 @@ are worth more than the list.
    builds every tokenizer from a vocabulary, a merges file or a `spiece.model`, and cannot
    read the `tokenizer.json` that Llama-2 and Mistral v0.1 actually ship. The gap is the
    loader, not the arithmetic —
-   [decision 0068](../decisions/0068-the-tokenizer-gap-is-the-loader-not-the-encode-kernel.md) —
+   [decision 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md) —
    and the encode paths no longer trail it either
    ([performance guide](../guides/performance.md#sentencepiece-and-wordpiece-encode-against-microsoftmltokenizers-issue-713)).
 4. **Applied fuzzy matching** — `rapidfuzz.fuzz` / `process` equivalents. *(done)*
@@ -110,23 +110,22 @@ are worth more than the list.
    dense linear algebra and this does not replace it, but its sparse SVD request has
    been open since 2013, and ML.NET's `ProjectToPrincipalComponents` centres the data,
    which densifies the very matrix the sparse representation exists to keep sparse —
-   [decision 0072](../decisions/0072-omega-is-an-input-not-a-seed.md) and
+   [decision 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md) and
    [its guide](https://github.com/CyrilB1531/lodestar/blob/main/docs/guides/decomposition.md).
 8. **Classical hypothesis tests** — ten families at scipy parity, plus the four tail
-   members [decision 0095](../decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)
+   members [decision 0003](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
    publishes for its neighbours. *(done, `Lodestar.Stats`)* Math.NET has the distributions
    and no battery of tests over them, so the gap is the test and not the tail.
 9. **The OLS inference table** — standard errors, t and p values, confidence intervals,
    adjusted R², F and its p value, and the VIF, at statsmodels parity. *(done,
    `Lodestar.Stats.Regression`)* The clearest case of the shape above:
-   [decision 0096](../decisions/0096-ordinary-least-squares-earns-its-own-package.md)'s
+   [decision 0003](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)'s
    reading found coefficients everywhere in .NET and **inference nowhere**, which replaced
    this project's own sentence that "nobody in .NET does inference".
 10. **Right-censored survival** — Kaplan-Meier, Nelson-Aalen and the log-rank test at
    lifelines parity. *(done, `Lodestar.Survival`)* The largest void
    [#442](https://github.com/CyrilB1531/lodestar/issues/442) surveyed; `scikit-survival` is
-   refused on its **licence** rather than its capability
-   ([decision 0099](../decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)).
+   refused on its **licence** rather than its capability ([decision 0002](../decisions/0002-provenance-and-the-allowed-references.md)).
 11. **Feature scaling** — fitted on arrays, applied to spans, at scikit-learn parity.
    *(done, `Lodestar.Preprocessing`)* ML.NET scales inside a pipeline over an `IDataView`;
    this is the same arithmetic with nothing between the caller and a `double[]`.
@@ -135,27 +134,24 @@ are worth more than the list.
 13. **GPU kernels** — ILGPU over device-resident matrices and text. *(done,
    `Lodestar.Gpu`)* The one package that does not ship `netstandard2.0`, and the one whose
    figures are **not** measured by CI: a hosted runner has no GPU, so the 5–10× gate is
-   measured on a named machine and published by hand
-   ([decision 0102](../decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md)).
+   measured on a named machine and published by hand (`bench/README.md`'s GPU gate).
 14. **The generalized linear model** — binomial and Poisson fitted by IRLS, with the same
    inference table entry 9 describes, at statsmodels parity. *(done,
    `Lodestar.Stats.Regression`)* A GLM exists in .NET three times and none of them is
    reachable: `Accord.Statistics` ships the whole stack under **LGPL-2.1** and archived in
    2017, `Microsoft.ML` reports coefficient statistics for binary logistic **only**, and
-   `cs-glm` installs no assembly at all
-   ([decision 0104](../decisions/0104-generalized-linear-models-are-written-natively.md)).
+   `cs-glm` installs no assembly at all ([decision 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md)).
 15. **Hybrid retrieval with no database** — a vector ranking and a BM25 ranking fused by reciprocal
    rank, behind `Microsoft.Extensions.VectorData`'s `IKeywordHybridSearchable`. *(written,
    `Lodestar.Extensions.VectorData`)* Every connector of that abstraction that offers hybrid search
    is a client of a server, and the two that run in process offer none; the arithmetic was already
-   published in `Lodestar.Embeddings` and `Lodestar.Text`, so the package is the store around it
-   ([decision 0123](../decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)).
+   published in `Lodestar.Embeddings` and `Lodestar.Text`, so the package is the store around it.
 
 Three more packages carry no lot of their own. `Lodestar.Abstractions` holds the
 `CsrMatrix` the others share; `Lodestar.Onnx` exists to carry the one dependency that is
 its whole reason to be a package; `Lodestar.Extensions.AI` and `Lodestar.Extensions.MathNet`
 convert to foreign types, which
-[decision 0089](../decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)
+[decision 0003](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 distinguishes from computing with them.
 
 ## Per-library guides

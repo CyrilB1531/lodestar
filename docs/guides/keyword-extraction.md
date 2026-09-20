@@ -33,7 +33,7 @@ foreach (KeywordMatch hit in hits.Take(3))
 
 Nothing here is downloaded at run time: `RakeOptions.StopWords` defaults to `StopWords.English`,
 already in the assembly, and a caller who wants rake-nltk's own list passes it explicitly. See
-[decision 0077](../decisions/0077-the-keyword-extractors-take-their-oracles-lists-and-not-their-own.md)
+[decision 0005](../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)
 for why, and [`RakeOptions`](../reference/text/keywords/rakeoptions.md) for every switch —
 `Metric`, the length bounds, and whether a repeated candidate is reported once or every time it
 occurs.
@@ -69,7 +69,7 @@ worse than a wrong pick: when the graph's transition matrix has a repeated eigen
 same from one machine's BLAS build to another's, so summa's own output is not reproducible. The
 oracle generator no longer trusts it: it selects the dominant left eigenvector itself, by eigenvalue
 rather than by column position, before calling summa at all — forced by reproducibility, not chosen.
-[Decision 0077](../decisions/0077-the-keyword-extractors-take-their-oracles-lists-and-not-their-own.md)
+[Decision 0005](../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)
 has the measurement and [`TextRank`](../reference/text/keywords/textrank.md)'s own Remarks have the
 rest of the divergence.
 
@@ -106,7 +106,7 @@ string[] keywords = chosen.Select(i => phrases[i]).ToArray();
 ```
 
 Three divergences from `keybert` itself, all recorded in
-[decision 0077](../decisions/0077-the-keyword-extractors-take-their-oracles-lists-and-not-their-own.md)
+[decision 0005](../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)
 and in the [equivalence table](../equivalence.md)'s
 [`Mmr.Select`](../reference/embeddings/search/mmr-select.md) row: `keybert` parameterises
 `diversity = 1 − λ` rather than taking `λ` directly, it rounds its scores to four decimals, and it

@@ -2,8 +2,7 @@
 
 Four kernels over ILGPU, and the device-resident types they read and write. Everything here is
 **additive**: no package under `src/` depends on this one, so the SIMD and scalar paths the rest
-of Lodestar ships stay the complete answer on every target framework
-([decision 0101](../../decisions/0101-lodestar-gpu-is-the-one-package-that-does-not-ship-netstandard2-0.md)).
+of Lodestar ships stay the complete answer on every target framework ([decision 0003](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)).
 
 Two facts run through the whole namespace, and knowing them saves reading every entry.
 
@@ -43,7 +42,7 @@ So read [`IsHardwareGpu`](compute/gpucontext.md), not the accelerator type, and 
 [`DeviceName`](compute/gpucontext.md) beside any figure. `Create(preferCpu: true)` forces ILGPU's
 CPU accelerator, which is what proves a kernel **correct** where there is no graphics hardware —
 a different question from whether it is **faster**, which
-[decision 0102](../../decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md) answers on a
+`bench/README.md`'s GPU gate answers on a
 named machine.
 
 ## What this namespace does not offer

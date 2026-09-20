@@ -46,8 +46,7 @@ gap is measured at here.
 `method` chooses between an exact route and an asymptotic one, the same shape as
 [`MannWhitney.Test`](mannwhitney-test.md)'s and [`Wilcoxon.Paired`](wilcoxon-paired.md)'s.
 **For two samples of the same size, two-sided, `Auto` is exact while each holds at most 10,000
-values**, as scipy's is: that case has a closed form with no table
-([decision 0141](../../../decisions/0141-kolmogorov-smirnov-auto-follows-scipy-for-equal-sizes.md)).
+values**, as scipy's is: that case has a closed form with no table.
 Otherwise `Auto` switches to the asymptotic route once `a.Length * b.Length` passes 10,000, purely
 because the exact answer stops being worth its cost there, not because it would be wrong.
 

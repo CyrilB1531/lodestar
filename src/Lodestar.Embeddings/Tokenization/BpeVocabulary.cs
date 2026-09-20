@@ -68,7 +68,7 @@ public sealed record BpeVocabulary(
     /// <remarks>
     /// The vocabulary has to carry all 256 pieces for this to be set; <c>LoadBpe</c> refuses a file
     /// that declares the flag without them, because the reference degrades silently to the unknown
-    /// token there (decision 0063).
+    /// token there (decision 0007).
     /// </remarks>
     public bool ByteFallback { get; init; }
 
@@ -162,7 +162,7 @@ public sealed record BpeVocabulary(
     /// Read from a <c>TemplateProcessing</c>'s <c>single</c> template: <c>["&lt;s&gt;"]</c> for
     /// Llama-2 and Mistral v0.1. Public because the caller composes the
     /// <see cref="SpecialTokenTemplate"/> — that type also needs a pad token, and the file
-    /// carries none (decision 0083).
+    /// carries none.
     /// </remarks>
     public IReadOnlyList<string> PrefixTokens { get; init; } = [];
 

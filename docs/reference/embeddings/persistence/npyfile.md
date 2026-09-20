@@ -25,14 +25,14 @@ string read = $"{block.Shape[0]}x{block.Shape[1]} {block.Values.Length}";   // =
 
 **Remarks** — this is an **interop format for a float matrix, not a second artifact format**.
 [`EmbeddingIndex.Save`](../search/embeddingindex-save.md) is unchanged and still writes the
-versioned JSON [decision 0011](../../../decisions/0011-persistence-format.md) chose; a `.npy`
+versioned JSON [decision 0001](../../../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md) chose; a `.npy`
 carries no ids, no normalization flag and no schema header, so it cannot stand in for one.
 
 What it is for is the other direction: vectors that came from numpy, or vectors going to it.
 
 **The header is a Python dict literal and is never evaluated.** numpy writes
 `{'descr': '<f4', 'fortran_order': False, 'shape': (3, 4), }` — executable source, which is the
-hazard decision 0011 refused `pickle` over. Only a fixed grammar is accepted here: three known
+hazard decision 0001 refused `pickle` over. Only a fixed grammar is accepted here: three known
 keys, each with one of a closed set of values, and anything else refused rather than interpreted.
 
 `descr: '|O'` — numpy's object dtype, whose payload *is* a pickle — is refused by name, before a

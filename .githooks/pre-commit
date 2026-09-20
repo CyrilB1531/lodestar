@@ -5,7 +5,7 @@
 #   skip once:  git commit --no-verify
 #
 # CI stays the authority: this runs the guards and nothing else -- not the
-# build, not the tests, not the three gates. Decision 0037 has the reasoning,
+# build, not the tests, not the three gates. tools/README.md has the reasoning,
 # and CONTRIBUTING.md's "Before committing" is what a contributor reads.
 
 set -u

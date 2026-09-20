@@ -222,7 +222,7 @@ public static class FinnishSnowballStemmer
             if (!Step3Allows(hit, before))
             {
                 // A failed condition ends the search, except on the four longer
-                // spellings of the genitive -- decision 0093 has the measurement.
+                // spellings of the genitive -- decision 0007 has the measurement.
                 if (Array.IndexOf(GenitiveSpellings, hit) >= 0)
                 {
                     StripGenitive();

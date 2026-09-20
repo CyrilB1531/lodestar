@@ -22,7 +22,7 @@ shipped first.
 k-means begins with a choice, and a choice drawn from a generator is not reproducible across two
 libraries. [`KMeansOptions.InitialCentres`](partitioning/kmeansoptions.md) takes the centres
 themselves, and when they are given they replace the choice entirely — the move
-[`decisions/0072`](../../decisions/0072-omega-is-an-input-not-a-seed.md) made for Ω. That is what
+[`decisions/0004`](../../decisions/0004-what-is-written-here-and-what-is-delegated.md) made for Ω. That is what
 lets the oracle corpus compare every centre, label and inertia rather than comparing distributions.
 
 Left alone, k-means++ chooses them with this package's own generator. `Seed` reproduces a run of
@@ -31,7 +31,7 @@ Lodestar and never a run of scikit-learn, and nothing frozen depends on it.
 ## One measured divergence
 
 A sample exactly equidistant from two centres takes the **lowest-indexed** one here.
-[`decisions/0093`](../../decisions/0093-an-exact-tie-between-centres-is-not-part-of-k-means-parity.md)
+[`decisions/0007`](../../decisions/0007-the-deliberate-divergences.md)
 has the two configurations that send the reference's choice both ways, and why neither rule
 reproduces both.
 

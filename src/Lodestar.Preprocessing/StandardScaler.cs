@@ -71,7 +71,7 @@ public sealed class StandardScaler
     /// <strong>A near-constant feature scales by 1</strong>, and the test is not
     /// <c>variance == 0</c> but the two-pass error bound of Chan, Golub and LeVeque, read
     /// from <c>sklearn.preprocessing._data._is_constant_feature</c> (BSD-3, allowed by
-    /// decision 0003). The reference page carries the formula and the corpus pair that
+    /// decision 0002). The reference page carries the formula and the corpus pair that
     /// separates the two readings.
     /// </remarks>
     public static StandardScaler Fit(

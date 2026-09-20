@@ -36,7 +36,7 @@ flowchart TD
 `outputCount` defaults to `1`, which is the ordinary case: one target per sample, one number out.
 There is no two-dimensional overload because a `ReadOnlySpan<T>` cannot carry one, and `PerOutput`
 is a method rather than an enum member because it changes the return type —
-[decision 0021](../../decisions/0021-multioutput-is-a-method-not-an-enum.md).
+the multioutput rule.
 
 Two refusals every metric here shares, both reproducing the message their Python layer prints. A
 `sampleWeight` that is zero **throughout** is refused — the rule is every weight, not the sum, so

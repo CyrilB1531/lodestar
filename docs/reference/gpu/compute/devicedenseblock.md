@@ -40,7 +40,7 @@ Measured: two sparse-dense products chained ran **1.24× to 2.94×** faster than
 download and re-upload between them. The gain is largest where the work is *smallest*, which
 inverts the usual intuition — a large job amortises a round trip on its own.
 
-[Decision 0102](../../../decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md) deferred
+`bench/README.md`'s GPU gate deferred
 this type until three kernels existed, on the ground that chainability is a claim about two
 operations sharing a residency and cannot be measured with one.
 

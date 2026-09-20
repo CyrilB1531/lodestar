@@ -39,7 +39,7 @@ tier is for and why `MersennePrime` and the 32-bit mask are spelled twice as wel
 The cost of that is visible to a caller using both packages: `using Lodestar.Gpu.Compute;` and
 `using Lodestar.Text.Similarity;` together make the bare name ambiguous, and one of them needs a
 `using` alias. That is the honest price of the missing edge rather than an oversight —
-[decision 0108](../../../decisions/0108-minhash-ships-both-permutation-families.md) records why
+the MinHash permutation rule records why
 the edge is not worth creating for two members.
 
 `Affine32` applies the MurmurHash3 finalizer **inside the kernel**, as the shared tile fills, so

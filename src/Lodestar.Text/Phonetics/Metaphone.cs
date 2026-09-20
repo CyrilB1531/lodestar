@@ -11,7 +11,7 @@ namespace Lodestar.Text.Phonetics;
 /// </summary>
 /// <remarks>
 /// Reference behavior: <c>jellyfish.metaphone</c>, on real words — see
-/// <c>docs/decisions/0007-metaphone-scope.md</c> for the non-word divergence this
+/// <c>docs/decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md</c> for the non-word divergence this
 /// does not reproduce. Codes: <c>B X S K J T F H L M N P R 0 W Y</c> (<c>X</c> is
 /// "sh", <c>0</c> is "th"); vowels appear only word-initial. English-oriented,
 /// not Unicode-aware; thread-safe.

@@ -251,7 +251,7 @@ public sealed class ValueEqualityTests
     /// type rather than in the loader because <see cref="BpeVocabulary"/> is public and
     /// constructible: a hand-built vocabulary reaches <c>Decode</c> without the loader ever
     /// running, and a loader-side rule would make two vocabularies that mean the same thing
-    /// compare unequal. ADR 0022 section 4 records that failure for <c>AddedToken.Normalized</c>.
+    /// compare unequal, which is the failure this pins for <c>AddedToken.Normalized</c>.
     /// </summary>
     [Fact]
     public void An_empty_end_of_word_suffix_reads_back_as_absent()

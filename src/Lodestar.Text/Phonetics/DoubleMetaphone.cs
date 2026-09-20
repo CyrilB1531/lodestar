@@ -21,7 +21,7 @@ public readonly record struct DoubleMetaphoneCode(string Primary, string Seconda
 /// </summary>
 /// <remarks>
 /// Reference: <c>doublemetaphone.doublemetaphone</c> 1.2, not <c>jellyfish</c>, which exports none
-/// (<c>docs/decisions/0075-double-metaphone-takes-doublemetaphone-as-its-oracle.md</c>). Codes are
+/// (<c>docs/decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md</c>). Codes are
 /// <c>A F H J K L M N P R S T X 0</c> (<c>X</c> is "sh", <c>0</c> is "th") and untruncated because
 /// the reference is; only ASCII letters are read. Thread-safe.
 /// </remarks>
@@ -306,7 +306,7 @@ public static class DoubleMetaphone
         string primaryCode = primary.ToString();
         string secondaryCode = secondary.ToString();
         // The pair is the word's two pronunciations; where they coincide there is only one, and
-        // the API says so with an empty alternate rather than by repeating itself (decision 0075).
+        // the API says so with an empty alternate rather than by repeating itself (decision 0005).
         return new DoubleMetaphoneCode(primaryCode, secondaryCode == primaryCode ? string.Empty : secondaryCode);
     }
 

@@ -7,8 +7,7 @@ left either side of it, and report how much of the two texts got covered.
 Gestalt pattern matching: find the longest matching block, then recurse into what is left on
 either side, and report how much of the two texts the blocks cover. It rewards material that
 arrives in a few long passages where `Indel` rewards material that is shared at all, scattered or
-not. difflib's `autojunk` heuristic is deliberately not reproduced ([decision
-0006](../../../decisions/0006-ratcliff-autojunk.md)).
+not. difflib's `autojunk` heuristic is deliberately not reproduced ([decision 0007](../../../decisions/0007-the-deliberate-divergences.md)).
 
 ## Members
 

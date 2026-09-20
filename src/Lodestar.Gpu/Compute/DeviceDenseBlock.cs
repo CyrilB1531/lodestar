@@ -8,7 +8,7 @@ namespace Lodestar.Gpu.Compute;
 /// The type that makes a chain a chain. A kernel returning <c>double[]</c> has already paid a
 /// device-to-host copy, so the next one pays a host-to-device copy undoing it; a block produced
 /// on the accelerator and consumed there crosses the bus once at each end of the chain instead,
-/// and <see cref="Download"/> is where a caller says the chain is over. Decision 0102 deferred
+/// and <see cref="Download"/> is where a caller says the chain is over. the GPU gate deferred
 /// this until three kernels existed, because chainability is a claim about two operations
 /// sharing a residency and cannot be measured with one.
 /// </remarks>

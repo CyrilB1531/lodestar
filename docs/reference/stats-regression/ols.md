@@ -27,7 +27,7 @@ adjusted R-squared, no overall F and no VIF anywhere in the assembly.
 `Accord.Statistics` 3.8.0 did have the whole table, and its repository is archived: last release
 2017-10-19, last push 2020-11-18, LGPL-2.1. So the gap is not an unexplored one. It is a
 maintained, permissively licensed, framework-free OLS table.
-[`decisions/0096`](../../decisions/0096-ordinary-least-squares-earns-its-own-package.md) has the
+[`decisions/0003`](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) has the
 reading and what it decided.
 
 ## Types

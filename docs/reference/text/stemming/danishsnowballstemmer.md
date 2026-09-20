@@ -44,7 +44,7 @@ a `u`, which is not one of the twenty letters the algorithm accepts before a bar
 
 The published description gives R1 a second definition for words containing an apostrophe, which
 `nltk` does not implement and neither does this — see
-[decision 0087](../../../decisions/0087-danish-follows-nltk-on-the-apostrophe.md).
+[decision 0006](../../../decisions/0006-the-stemmers-references.md).
 
 Reference behaviour is `nltk.stem.snowball.SnowballStemmer("danish")`, matched over 240 words.
 

@@ -1,0 +1,12 @@
+2
+# The numbering epoch of docs/decisions/, read by .next-adr.
+#
+# Epoch 1 numbered 0001 to 0147 and ended on 2026-09-20, when #1103 kept the
+# seven records that state an axis and deleted the rest. Epoch 2 restarts at
+# 0001, so a number from epoch 1 is now held by a different record.
+#
+# .next-adr surveys every branch, worktree and sibling clone for a number in
+# play. A checkout that predates the restart carries epoch 1 numbers, which are
+# not in play here and would push the next number back into the 0148 range, so
+# it skips any tree or ref whose epoch is not this one. Bump this line only when
+# the numbering restarts again.

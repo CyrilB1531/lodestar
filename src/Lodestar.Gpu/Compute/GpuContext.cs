@@ -8,7 +8,7 @@ namespace Lodestar.Gpu.Compute;
 /// <remarks>
 /// One per process is the intended shape: creating an accelerator is expensive and ILGPU
 /// compiles each kernel on first launch, so a context built per call would measure a compiler
-/// rather than a kernel (decision 0102).
+/// rather than a kernel (bench/README.md's GPU gate).
 /// </remarks>
 public sealed class GpuContext : IDisposable
 {

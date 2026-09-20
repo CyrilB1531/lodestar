@@ -44,5 +44,5 @@ A single input being empty also gives `0`.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `Jaro.Distance`, `JaroWinkler.Similarity`,
-[decision 0005](../../../decisions/0005-hamming-jellyfish-divergence.md),
+[decision 0007](../../../decisions/0007-the-deliberate-divergences.md),
 the [Python equivalence table](../../../equivalence.md).

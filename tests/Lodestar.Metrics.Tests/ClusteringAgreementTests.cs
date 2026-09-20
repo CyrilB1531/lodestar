@@ -86,7 +86,7 @@ public sealed class ClusteringAgreementTests
     public void MutualInformation_raises_on_empty_where_this_package_does_not()
     {
         // scikit-learn 1.9.0 raises ValueError on this input, a log(0) inside it --
-        // decision 0039 records why this package returns 0.0 there instead.
+        // decision 0007 records why this package returns 0.0 there instead.
         double empty = MutualInformation.Score([], []);
         Assert.Equal(0.0, empty, MetricsCorpus.Tolerance);
 

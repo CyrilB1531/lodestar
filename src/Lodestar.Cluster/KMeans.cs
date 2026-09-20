@@ -241,7 +241,7 @@ public sealed class KMeans
     /// <summary>The E-step: every sample takes the nearest centre, ties to the lower index.</summary>
     /// <remarks>
     /// <c>numpy.argmin</c>'s rule, and <strong>a measured divergence from the reference</strong>
-    /// on an exact tie — decision 0093 has the two configurations that send scikit-learn's
+    /// on an exact tie — decision 0007 has the two configurations that send scikit-learn's
     /// choice both ways, and why no single rule reproduces both.
     /// </remarks>
     [MethodImpl(MethodImplOptions.NoInlining)]

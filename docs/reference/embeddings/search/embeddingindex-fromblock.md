@@ -48,7 +48,7 @@ normalizes it, and grows a backing store that doubles on the way up
 size the block already tells it, and copies once. Where the copy itself is the thing being paid
 for and the caller can give the array up for good,
 [`EmbeddingIndex.FromOwnedBlock`](embeddingindex-fromownedblock.md) skips it —
-[decision 0056](../../../decisions/0056-a-block-may-be-adopted-and-the-invariant-is-the-callers-to-keep.md)
+`docs/guides/performance.md`
 has the trade, and the short version is that this one asks nothing of the caller.
 
 **Normalization is decided here and cannot be changed afterwards**, because the index's flag

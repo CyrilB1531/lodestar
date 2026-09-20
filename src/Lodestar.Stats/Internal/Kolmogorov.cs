@@ -55,7 +55,7 @@ internal static class Kolmogorov
     //
     // Every threshold below, and the branch order itself, is read from
     // scipy's own _ksstats.py _kolmogn (n of type integer, x in (0, 1)),
-    // borrowed under ADR 0003 (scipy is BSD-3, an explicitly permitted
+    // borrowed under ADR 0002 (scipy is BSD-3, an explicitly permitted
     // behavioural reference) rather than tuned in this file. Its full
     // decision table, computing the survival probability (scipy's cdf=False,
     // what kstwo.sf asks for) rather than the CDF:
@@ -232,7 +232,7 @@ internal static class Kolmogorov
 
     // long-comment: attribution CONTRIBUTING.md's Licensing and provenance
     //     requires travel with the code, not only live in a commit message --
-    //     this structure was read from scipy's own _kolmogn_PelzGood (ADR 0003
+    //     this structure was read from scipy's own _kolmogn_PelzGood (ADR 0002
     //     permits scipy, BSD-3, as a behavioural reference) and that has to
     //     be visible here, not merely in commit 995ba607.
     // Pelz & Good (1976): transforms the Li-Chien/Korolyuk large-n asymptotic
@@ -357,13 +357,13 @@ internal static class Kolmogorov
     //     corrected version, and the distinction it draws (mathematics vs.
     //     scaling-implementation detail) is exactly what was wrong before,
     //     so it needs to stay explicit rather than collapse back to a claim
-    //     a future edit cannot check against ADR 0003.
+    //     a future edit cannot check against ADR 0002.
     // Durbin's (1968) matrix method for P(D_n <= d), in the computationally
     // efficient form Marsaglia, Tsang and Wang (2003) gave it: write d as
     // (k-h)/n, build a (2k-1)-square transition matrix from h, raise it to
     // the n-th power and read the k-th diagonal entry, scaled by the
     // falling-factorial correction the loop below applies. The mathematics
-    // is theirs, published. ADR 0003 permits scipy (BSD-3) as a behavioural
+    // is theirs, published. ADR 0002 permits scipy (BSD-3) as a behavioural
     // reference, and this implementation leans on it past the mathematics too:
     // ScaleBits = 128 is scipy's own choice (its _E128/_EP128,
     // _ksstats.py:73-75), not a value out of Marsaglia-Tsang-Wang, and the

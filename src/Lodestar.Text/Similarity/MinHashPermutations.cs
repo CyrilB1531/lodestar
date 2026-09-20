@@ -3,7 +3,7 @@ namespace Lodestar.Text.Similarity;
 /// <summary>The permutation coefficients a MinHash signature is built from.</summary>
 /// <remarks>
 /// <strong>The permutations are an input, not a seed</strong> — the same call
-/// [decision 0072](../../../docs/decisions/0072-omega-is-an-input-not-a-seed.md) made for
+/// [decision 0004](../../../docs/decisions/0004-what-is-written-here-and-what-is-delegated.md) made for
 /// randomized SVD's Ω, and for the same reason: a randomized algorithm whose randomness is
 /// supplied is an ordinary parity target, where one that derives it from a seed would have
 /// to reproduce another library's generator stream to agree with it. <c>datasketch</c>

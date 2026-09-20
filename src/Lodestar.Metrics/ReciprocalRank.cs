@@ -8,7 +8,7 @@ namespace Lodestar.Metrics;
 /// <strong>Not verified against a reference.</strong> Every other member of this package
 /// replays a frozen corpus captured from Python; there is no <c>reciprocal</c> function in
 /// <c>sklearn.metrics</c> to capture, so this one is proven by tests that pin its definition
-/// instead — decision 0036, which also says what would retire that exception.
+/// instead — decision 0005, which also says what would retire that exception.
 /// </remarks>
 public static class ReciprocalRank
 {

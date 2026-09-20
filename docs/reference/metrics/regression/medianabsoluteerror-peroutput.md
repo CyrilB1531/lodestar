@@ -45,12 +45,12 @@ statistic of the data. On multioutput targets, read the array.
 Internally each column is selected rather than fully sorted, which is what keeps this from costing
 an
 `n log n` per output —
-[decision 0025](../../../decisions/0025-quickselect-replaces-a-full-sort-for-the-median.md).
+the selection rule.
 Nothing
 about the answer depends on it.
 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `MedianAbsoluteError.Score`, `MeanAbsoluteError.PerOutput`,
-[decision 0025](../../../decisions/0025-quickselect-replaces-a-full-sort-for-the-median.md),
+the selection rule,
 the [Python equivalence table](../../../equivalence.md).

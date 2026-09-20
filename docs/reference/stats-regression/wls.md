@@ -12,9 +12,9 @@ are those of [ordinary least squares](ols.md), so a caller who already reads one
 
 `MathNet.Numerics` 5.0.0 exports `WeightedRegression.Weighted`, and like every regression entry
 point in that assembly it returns the coefficients and stops — the reading
-[`decisions/0096`](../../decisions/0096-ordinary-least-squares-earns-its-own-package.md) recorded for
+[`decisions/0003`](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) recorded for
 the unweighted fit holds here unchanged. Decision
-[0115](../../decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md)
+[0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md)
 put the weighted table first after the robust covariances.
 
 ## Types

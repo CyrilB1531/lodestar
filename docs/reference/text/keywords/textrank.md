@@ -46,8 +46,7 @@ before the corpus was written. Even among the documents that remain, a repeated 
 measured, `two_sentences` carries 0.85 at multiplicity 3 — makes which column `eig` returns first a
 property of the machine's BLAS build, not of the document, so the oracle generator no longer reads
 summa's raw column: it selects the dominant left eigenvector itself, by eigenvalue rather than by
-column position, before calling summa at all — forced by reproducibility, not chosen
-([decision 0077](../../../decisions/0077-the-keyword-extractors-take-their-oracles-lists-and-not-their-own.md)).
+column position, before calling summa at all — forced by reproducibility, not chosen ([decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)).
 
 For a run-based alternative that scores candidates without building a graph, see [`Rake`](rake.md).
 

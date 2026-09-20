@@ -7,7 +7,7 @@ namespace Lodestar.Stats.TimeSeries.Tests;
 /// <summary>Replays <c>statsmodels.tsa.api.VAR(...).fit(p)</c> over the frozen cases of <c>tests/oracles/stats_var.json</c> (#786).</summary>
 /// <remarks>
 /// Relative at 1e-9, as every other corpus here. The fit is least squares, so the reference has no optimiser's
-/// stopping point to reproduce: decision 0134 measured it against <c>numpy.linalg.lstsq</c> at a gap of 0.0.
+/// stopping point to reproduce: decision 0004 measured it against <c>numpy.linalg.lstsq</c> at a gap of 0.0.
 /// </remarks>
 public sealed class VectorAutoregressionOracleTests
 {

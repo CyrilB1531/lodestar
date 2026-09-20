@@ -8,7 +8,7 @@ namespace Lodestar.Gpu.Tests.Documentation;
 /// <remarks>
 /// The engine and its own unit tests live with <c>Lodestar.Text</c>; what is here is this
 /// package's half — its namespace against its pages. There is one build rather than two,
-/// because decision 0101 gives this package a single target framework.
+/// because decision 0003 gives this package a single target framework.
 /// </remarks>
 public sealed class ReferenceDocumentationTests
 {

@@ -13,8 +13,8 @@ fitted as [ordinary least squares](ols.md) would. A covariance that is diagonal 
 
 `MathNet.Numerics` 5.0.0 exports no generalized least squares at all, and its weighted regression returns the
 coefficients only — the reading
-[`decisions/0096`](../../decisions/0096-ordinary-least-squares-earns-its-own-package.md) recorded.
-Decision [0115](../../decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md)
+[`decisions/0003`](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) recorded.
+Decision [0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md)
 put `GLS` after the weighted fit and the GLM families.
 
 ## Types

@@ -9,7 +9,7 @@ namespace Lodestar.Embeddings.Tests.Tokenization;
 public sealed class BpePreTokenizeTests
 {
     /// <summary>
-    /// The split is claimed for three model families but the vocabulary is vendored for one (ADR 0017),
+    /// The split is claimed for three model families but the vocabulary is vendored for one (ADR 0005),
     /// so this is the test carrying the Llama-3 and Qwen2 rows of the parity table. The oracle records
     /// HuggingFace's full pre-tokenizer pipeline -- <c>Split</c> followed by <c>ByteLevel</c> -- so its
     /// <c>pieces</c> are already byte-mapped (<c>"Ġworld"</c>, not <c>" world"</c>). <see cref="BpePreTokenizer"/>

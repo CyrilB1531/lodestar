@@ -25,7 +25,7 @@ string alternate = wright.Secondary;  // =>
 **Remarks** — `Secondary` is empty when the word has one reading, which is most words. The
 reference repeats the primary there; empty is the convention `jellyfish`, `metaphone` and
 `phonetics` share, and
-[decision 0075](../../../decisions/0075-double-metaphone-takes-doublemetaphone-as-its-oracle.md)
+[decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)
 takes it for this API so that "has an alternate" is a property a caller can test rather than a
 comparison it has to make.
 

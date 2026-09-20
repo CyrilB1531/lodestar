@@ -13,7 +13,7 @@ Methodology is mirrored by the C# harness (bench/Lodestar.Text.Benchmarks,
 
 Two libraries, written as one script because they read one corpus: scipy answers the
 three tests and statsmodels the regression. Both are already pinned -- scipy by
-decision 0082, statsmodels by decision 0096, which admitted it for the OLS oracle.
+decision 0002, statsmodels by decision 0003, which admitted it for the OLS oracle.
 
 `sm.OLS(...).fit()` is timed with the summary quantities the C# side computes in the
 same call, so the two are priced on the same work: `Fit` returns the standard errors,

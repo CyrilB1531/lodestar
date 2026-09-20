@@ -121,7 +121,7 @@ FRONTMATTER = re.compile(r"\A---\n.*?\n---\n", re.DOTALL)
 def page_body(page: pathlib.Path) -> str:
     """A page's text with any YAML frontmatter removed.
 
-    Every ADR carries one since decision 0106, and `docs/decisions/*.md` is
+    Every ADR carries one since tools/regen_adr_index.py, and `docs/decisions/*.md` is
     published here: a wiki renders the block as a horizontal rule and a paragraph
     of keys, so 106 pages would open with their own metadata. The block is for
     docs/decisions/index.yaml, not for a reader.

@@ -20,7 +20,7 @@ namespace Lodestar.Text.Stemming;
 /// Reference behavior: <c>nltk.stem.snowball.SnowballStemmer("romanian")</c>. An
 /// original implementation of the published Snowball algorithm, and the only one of
 /// the recent languages built on <see cref="RomanceSnowballWorker"/>'s RV. Five
-/// steps, of which step 1 loops. Decision 0092 settles the alphabet: the tables
+/// steps, of which step 1 loops. Decision 0006 settles the alphabet: the tables
 /// carry the cedilla <c>ş</c>/<c>ţ</c>, as the description writes them. Thread-safe.
 /// </remarks>
 public static class RomanianSnowballStemmer

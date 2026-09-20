@@ -17,7 +17,7 @@ tools/check_bench_map.py: read the thing itself and compare, so a divergence fai
 the commit that introduces it.
 
 Benchmarks are deliberately out of scope. Their whole purpose is the device a machine
-actually has, and decision 0102 requires them to report which one produced a figure
+actually has, and bench/README.md's GPU gate requires them to report which one produced a figure
 rather than to force one.
 
 Usage:  python tools/check_gpu_tests_force_cpu.py

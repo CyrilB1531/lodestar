@@ -44,7 +44,7 @@ second model says one point is four times as hard as the other. That is the whol
 **Remarks** — an infinite `quantile` yields the whole line, as
 [`Interval`](splitconformal-interval.md) does: the multiplication carries the infinity through
 rather than turning it into `NaN`, which is what
-[decision 0070](../../../decisions/0070-k-greater-than-n-returns-an-infinite-interval.md) needs to
+[decision 0007](../../../decisions/0007-the-deliberate-divergences.md) needs to
 hold here too.
 
 Pass the estimate for **the point being predicted**, not the calibration mean. Passing a constant

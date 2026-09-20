@@ -46,7 +46,7 @@ public sealed class TiledMinHashSignatures
     /// <summary>Loads the kernel onto the accelerator.</summary>
     /// <param name="context">The accelerator to compile for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
-    /// <remarks>Loading compiles, so build this once and reuse it (decision 0102).</remarks>
+    /// <remarks>Loading compiles, so build this once and reuse it (bench/README.md's GPU gate).</remarks>
     public TiledMinHashSignatures(GpuContext context)
         : this(context, RowLaunch.Limit(context))
     {

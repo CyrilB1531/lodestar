@@ -54,10 +54,10 @@ The claim this project is judged on, strongest first.
 6. **The inference table, not the estimate.** Ordinary least squares is in Math.NET, in
    ML.NET and in half a dozen other places; the standard errors, t and p values,
    confidence intervals, adjusted R², F test and VIF are in no free, maintained one of them.
-   The reading behind [decision 0096](docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md)
+   The reading behind [decision 0003](docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
    found coefficients everywhere and inference nowhere — and **replaced this project's own
    claim** that nobody in .NET does inference, which was false as written.
-   [Decision 0129](docs/decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md)
+   [Decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)
    qualified it again: Meta.Numerics (MS-PL) reports the standard error, the interval and the
    F test and stops there, and the commercial Numerics.NET exports the whole table. Ships as
    `Lodestar.Stats.Regression`, beside ten scipy-parity test families in `Lodestar.Stats`.
@@ -65,12 +65,11 @@ The claim this project is judged on, strongest first.
    lifelines parity, with no .NET incumbent at all —
    [#442](https://github.com/CyrilB1531/lodestar/issues/442) called it the largest void it
    surveyed. `scikit-survival` is the nearest reference in any language and is refused on
-   its **licence**, not its capability
-   ([decision 0099](docs/decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)).
+   its **licence**, not its capability ([decision 0002](docs/decisions/0002-provenance-and-the-allowed-references.md)).
 
 All of it **with no Python at runtime**, on **.NET 10** and **.NET Standard 2.0**
 from a single package (also .NET Framework 4.6.1+, Mono, Xamarin, Unity — see
-[`docs/decisions/0001`](docs/decisions/0001-target-framework.md)).
+[`docs/decisions/0001`](docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)).
 
 The second deliverable is the **migration inventory** for people arriving from Python:
 [`docs/migration/`](docs/migration/README.md) points each need at the right .NET
@@ -95,20 +94,20 @@ timed; `bench/README.md`'s section 15 has the harness and the agreement checks.
 | `Lodestar.Text` | ML.NET `FeaturizeText` | **Not like-for-like.** 5.7× to 11× faster, but `FeaturizeText` produces about 8.8× more non-zero features; per feature the two are within about 1.5× either way, so the advantage is the sparse representation, not a faster kernel ([performance](docs/guides/performance.md#tfidfvectorizer-against-mlnet-500s-featurizetext)) |
 | `Lodestar.Text`, `Bm25Index` | LuceneSharp.Core | Same ranking. **The query splits by size**: 1.6× faster than Lucene at 1,000 documents, 1.4× slower at 20,000, where Lucene reads only the documents holding the term and this still passes over every score. **Text to ranking is behind**, 2.1× to 2.7×, and that is `CountVectorizer`'s tokenization. Over a `CsrMatrix` a caller already has, the index builds 12× to 27× cheaper than Lucene's ([performance](docs/guides/performance.md#bm25s-top-ten-without-sorting-the-corpus-issue-751)) |
 | `Lodestar.Fuzzy` | Fastenshtein, Quickenshtein, F23.StringSimilarity, Raffinert.FuzzySharp | Ahead on Levenshtein at every length, 2.8× to 63.8×, and on all four `fuzz` ratios, 1.78× to 12.75× ([performance](docs/guides/performance.md#the-net-incumbents-on-a-named-machine-issue-679)) |
-| `Lodestar.Embeddings` | `Microsoft.ML.Tokenizers`, `TensorPrimitives` | **Ahead on encoding** since #713 and #673, on identical ids: WordPiece 1.5×, SentencePiece 1.1× to 1.3×, byte-level BPE 2.6×. The gap that justifies the package is still the loader above ([decision 0068](docs/decisions/0068-the-tokenizer-gap-is-the-loader-not-the-encode-kernel.md)). The dot product against `TensorPrimitives` is under re-measurement, [#754](https://github.com/CyrilB1531/lodestar/issues/754) |
+| `Lodestar.Embeddings` | `Microsoft.ML.Tokenizers`, `TensorPrimitives` | **Ahead on encoding** since #713 and #673, on identical ids: WordPiece 1.5×, SentencePiece 1.1× to 1.3×, byte-level BPE 2.6×. The gap that justifies the package is still the loader above ([decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)). The dot product against `TensorPrimitives` is under re-measurement, [#754](https://github.com/CyrilB1531/lodestar/issues/754) |
 | `Lodestar.Metrics` | ML.NET metrics | Coverage, not speed: ahead on every row, but the full bundle narrows from 4.8× at 100,000 samples to 1.6× at a million, and the shape does not narrow ([performance](docs/guides/performance.md#lodestarmetrics-against-mlnet-500s-binary-evaluator)) |
 | `Lodestar.Conformal` | — | **No incumbent exists**, which is the finding rather than a gap in the harness — `bench/README.md` section 15 says what would change that |
-| `Lodestar.Decomposition` | ML.NET `ProjectToPrincipalComponents` | **Not like-for-like.** Centred dense PCA against uncentred sparse truncated SVD and a non-negative factorization — three different decompositions, so each side is checked against its own reconstruction error rather than against the other's numbers. Read through a `MetadataLoadContext`, ML.NET's PCA is **fourteen public members with no eigenvalue among them**: it projects, and cannot say how much variance a component explains. [`PrincipalComponentVariance`](docs/reference/decomposition/factorization/principalcomponentvariance.md) is that number, and against NumFlat (`net8.0` only) it is **1.04× to 1.36× faster on three shapes of four and 0.83 on 2,000 × 50** ([performance](docs/guides/performance.md#the-variance-principal-components-explain-against-numflat-issue-701)). Meta.Numerics reports the same number on `netstandard2.0` — the only incumbent that exists below `net8.0` — and is **36.7× to 809× slower on the three shapes it accepts, allocating up to 13,227× more** (2.38 KB against 31 MB at 2,000 × 10); it **refuses a matrix with more columns than rows** outright ([performance](docs/guides/performance.md#metanumerics-against-lodestarstats-and-principalcomponentvariance-issue-756)); Numerics.NET does too, under a commercial licence ([decision 0129](docs/decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md)) |
+| `Lodestar.Decomposition` | ML.NET `ProjectToPrincipalComponents` | **Not like-for-like.** Centred dense PCA against uncentred sparse truncated SVD and a non-negative factorization — three different decompositions, so each side is checked against its own reconstruction error rather than against the other's numbers. Read through a `MetadataLoadContext`, ML.NET's PCA is **fourteen public members with no eigenvalue among them**: it projects, and cannot say how much variance a component explains. [`PrincipalComponentVariance`](docs/reference/decomposition/factorization/principalcomponentvariance.md) is that number, and against NumFlat (`net8.0` only) it is **1.04× to 1.36× faster on three shapes of four and 0.83 on 2,000 × 50** ([performance](docs/guides/performance.md#the-variance-principal-components-explain-against-numflat-issue-701)). Meta.Numerics reports the same number on `netstandard2.0` — the only incumbent that exists below `net8.0` — and is **36.7× to 809× slower on the three shapes it accepts, allocating up to 13,227× more** (2.38 KB against 31 MB at 2,000 × 10); it **refuses a matrix with more columns than rows** outright ([performance](docs/guides/performance.md#metanumerics-against-lodestarstats-and-principalcomponentvariance-issue-756)); Numerics.NET does too, under a commercial licence ([decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)) |
 | `Lodestar.Onnx` | ONNX Runtime itself | **Nothing to beat.** The package is a caller of the runtime, not a rival to it; what it adds is the pooling and the batching, which `bench/Lodestar.Text.Benchmarks -- '*BatchEmbedding*'` measures against a single-sequence loop |
 | `Lodestar.Stats` | `Accord.Statistics` (archived, no longer maintained); Meta.Numerics | No case found where `Accord` and `scipy` (and therefore `Lodestar.Stats`) disagree; faster on the t-test, Mann-Whitney and, since #710, the chi-square table (66.5 ns against 121.7 ns). Meta.Numerics 4.2.0 carries eight of the ten families and is **measured**: ahead on seven of the eight at both sizes — 2.88× to 4.81× on the t-test, 5.25× on Mann-Whitney, 5.95× on the χ² table and 3.49× on Fisher's exact test — with the signed-rank row a wash at 100 (0.95) and a win at 10,000 (1.18). **The comparison found two costs here and both were fixed**: Fisher went 7,420 ns → 256 ns and the equal-size exact Kolmogorov-Smirnov 29,152 ns → 1,544 ns, the p-values unchanged and `scipy` parity intact ([performance](docs/guides/performance.md#metanumerics-against-lodestarstats-and-principalcomponentvariance-issue-756)) — see [`docs/guides/hypothesis-testing.md`](docs/guides/hypothesis-testing.md#the-incumbents-and-the-one-measured) |
 | `Lodestar.Stats.Regression` | `Accord.Statistics` | **Not like-for-like.** The OLS table computes variance inflation factors, which Accord does not export. The GLM is level with Accord at 200 rows and 1.4× behind at 2,000, allocating less in every cell ([performance](docs/guides/performance.md#lodestarstatsregressions-generalized-linear-model-against-accordstatistics-issue-678)) |
-| `Lodestar.Stats.TimeSeries` | `Cortex.TimeSeries`; Numerics.NET (commercial) | Against `Cortex.TimeSeries`, on the statistics both return: **ADF 1.79× to 2.26× faster, the decomposition 1.85× faster, KPSS level**; Cortex's ADF p-value is a clamp at 0.01 rather than MacKinnon's ([performance](docs/guides/performance.md#stationarity-and-seasonal-decomposition-against-cortextimeseries-issue-671)); the serial-correlation half in [its own section](docs/guides/performance.md#lodestarstats-serial-correlation-diagnostics-against-cortextimeseries-issue-617). Numerics.NET carries ADF and KPSS under a commercial licence ([decision 0129](docs/decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md)) |
-| `Lodestar.Survival` | — | **No incumbent exists** in .NET, Kaplan-Meier, the log-rank test and the Cox model included; `scikit-survival` is refused on its licence ([decision 0099](docs/decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)) |
-| `Lodestar.Cluster` | NumFlat, Meta.Numerics; ML.NET k-means | Same centres to the last bit, and **ahead on Lloyd's iterations from the same start, 1.52× to 3.66×** against NumFlat. A default fit, k-means++ included, is 5.5× to 13× cheaper than NumFlat's and 4.1× to 20× cheaper than Meta.Numerics', partly because scikit-learn's tolerance stops sooner ([performance](docs/guides/performance.md#k-means-against-numflat-and-metanumerics-issue-681)). NumFlat also ships DBSCAN, k-medoids and Gaussian mixtures, `net8.0` only ([decision 0131](docs/decisions/0131-lodestar-cluster-writes-what-netstandard2-0-lacks.md)). ML.NET is not measured: it clusters inside an `IDataView` pipeline |
+| `Lodestar.Stats.TimeSeries` | `Cortex.TimeSeries`; Numerics.NET (commercial) | Against `Cortex.TimeSeries`, on the statistics both return: **ADF 1.79× to 2.26× faster, the decomposition 1.85× faster, KPSS level**; Cortex's ADF p-value is a clamp at 0.01 rather than MacKinnon's ([performance](docs/guides/performance.md#stationarity-and-seasonal-decomposition-against-cortextimeseries-issue-671)); the serial-correlation half in [its own section](docs/guides/performance.md#lodestarstats-serial-correlation-diagnostics-against-cortextimeseries-issue-617). Numerics.NET carries ADF and KPSS under a commercial licence ([decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)) |
+| `Lodestar.Survival` | — | **No incumbent exists** in .NET, Kaplan-Meier, the log-rank test and the Cox model included; `scikit-survival` is refused on its licence ([decision 0002](docs/decisions/0002-provenance-and-the-allowed-references.md)) |
+| `Lodestar.Cluster` | NumFlat, Meta.Numerics; ML.NET k-means | Same centres to the last bit, and **ahead on Lloyd's iterations from the same start, 1.52× to 3.66×** against NumFlat. A default fit, k-means++ included, is 5.5× to 13× cheaper than NumFlat's and 4.1× to 20× cheaper than Meta.Numerics', partly because scikit-learn's tolerance stops sooner ([performance](docs/guides/performance.md#k-means-against-numflat-and-metanumerics-issue-681)). NumFlat also ships DBSCAN, k-medoids and Gaussian mixtures, `net8.0` only ([decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)). ML.NET is not measured: it clusters inside an `IDataView` pipeline |
 | `Lodestar.Preprocessing` | ML.NET `NormalizeMeanVariance` | **Not measured.** The same `IDataView` coupling as above; the scaler here is the arithmetic without the pipeline |
 | `Lodestar.Gpu` | — | **Nothing measured against another library.** Its kernels are measured against this repository's own CPU paths, and each ships only where it passed that gate ([performance](docs/guides/performance.md#lodestargpu--four-kernels-against-their-cpu-paths-issue-444)) |
 | `Lodestar.Extensions.AI`, `Lodestar.Extensions.MathNet` | — | **Nothing to beat.** Each adapts a package to a type or an interface another library defines, so what it could be slower than is its own conversion |
-| `Lodestar.Extensions.VectorData` | the `Microsoft.Extensions.VectorData` connectors | **Not measured.** Of the connectors decision 0123 read, the ones implementing hybrid search are clients of a server, which an in-process store does not race ([decision 0123](docs/decisions/0123-the-vectordata-store-holds-the-records-and-derives-both-indexes.md)) |
+| `Lodestar.Extensions.VectorData` | the `Microsoft.Extensions.VectorData` connectors | **Not measured.** Of the connectors surveyed, the ones implementing hybrid search are clients of a server, which an in-process store does not race |
 
 Numbers with the machine that produced them are in
 [`docs/guides/performance.md`](docs/guides/performance.md); a shared runner's
@@ -175,7 +174,7 @@ NUGET_PACKAGES=$(mktemp -d) dotnet run -c Release --project samples/Lodestar.Sam
 The isolated `NUGET_PACKAGES` is not decoration: the global packages folder is consulted ahead of
 any source, so a machine that has ever restored a published `Lodestar.*` at one of these versions
 runs the sample against **that** rather than against what `pack` just produced — see
-[`docs/decisions/0009`](docs/decisions/0009-sample-consumes-a-local-feed.md). On PowerShell the
+`CONTRIBUTING.md`'s Definition of done. On PowerShell the
 same isolation is two lines, `$env:NUGET_PACKAGES = (New-Item -ItemType Directory -Path (Join-Path $env:TEMP (New-Guid))).FullName`
 before the `dotnet run`, and `Remove-Item Env:NUGET_PACKAGES` after it.
 
@@ -233,7 +232,7 @@ Lodestar.slnx
 ├── src/Lodestar.Stats.Regression/          ordinary, weighted and generalized least squares with the inference table
 ├── src/Lodestar.Stats.TimeSeries/          autocorrelation, Ljung-Box, ADF, KPSS and seasonal decomposition
 ├── src/Lodestar.Survival/                  Kaplan-Meier, Nelson-Aalen and the log-rank test, right-censored
-├── src/Lodestar.Onnx/                      ONNX inference — satellite, carries Microsoft.ML.OnnxRuntime (decision 0076)
+├── src/Lodestar.Onnx/                      ONNX inference — satellite, carries Microsoft.ML.OnnxRuntime (decision 0003)
 ├── src/Lodestar.Gpu/                       ILGPU kernels — satellite, the one package on net10.0;netstandard2.1
 ├── src/Lodestar.Extensions.AI/             interop: the ONNX embedding path behind IEmbeddingGenerator
 ├── src/Lodestar.Extensions.MathNet/        interop: CsrMatrix to and from Math.NET's sparse matrix
@@ -244,7 +243,7 @@ Lodestar.slnx
 ├── bench/Lodestar.NetStandard.Benchmarks/  the netstandard2.0 assemblies, measured on the same host
 ├── tools/generate_oracles.py               reference generation
 ├── Directory.Build.props                   (root); src|tests/Directory.Packages.props (central package management)
-├── src/*/Version.props                     one version per publishable package (decision 0012)
+├── src/*/Version.props                     one version per publishable package (decision 0001)
 ├── docs/                                   guides, equivalence table, decision log
 ├── docs/reference/<package>/               one reference entry per exported type and public method
 └── docs/wiki-map.json                      which page ships with which package, and which namespaces the reference gate enforces
@@ -279,17 +278,17 @@ Eighteen NuGet packages are produced: `Lodestar.Abstractions`, `Lodestar.Text`,
 `Lodestar.Stats.Regression`, `Lodestar.Stats.TimeSeries`, `Lodestar.Survival`, `Lodestar.Onnx`, `Lodestar.Gpu`,
 `Lodestar.Extensions.AI`, `Lodestar.Extensions.MathNet` and `Lodestar.Extensions.VectorData`.
 Thirteen are **core tier** and carry no
-external dependency — [`decisions/0076`](docs/decisions/0076-a-core-package-carries-no-external-dependency.md).
+external dependency — [`decisions/0003`](docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md).
 `Lodestar.Onnx` and `Lodestar.Gpu` are the two **satellites**, each carrying the one dependency
 that is its whole reason to be a package; the three `Lodestar.Extensions.*` are the **interop** tier,
-which [`decisions/0089`](docs/decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)
+which [`decisions/0003`](docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 allows a dependency a core package refused, because converting to a foreign type is not computing
 with it.
 **Each versions and releases on its own**: shared metadata
 (license, README, repository) lives in `Directory.Build.props`, while the version
 is declared per project in `src/<Package>/Version.props`. `Lodestar.Fuzzy` depends
 on `Lodestar.Text` as a published package, not as a project reference — see
-[`docs/decisions/0012`](docs/decisions/0012-per-package-versioning.md).
+[`docs/decisions/0001`](docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
 **GitHub Packages** (no nuget.org account needed — uses GitHub's automatic token).
 Bump the version, then tag it with the package name. The
@@ -339,6 +338,6 @@ dotnet nuget push "artifacts/Lodestar.Text.*.nupkg" \
 [Apache-2.0](LICENSE). See [`NOTICE`](NOTICE) and
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) for attributions. The license
 choice and the code-provenance rule are documented in
-[`docs/decisions/0003-provenance-and-licensing.md`](docs/decisions/0003-provenance-and-licensing.md).
+[`docs/decisions/0002-provenance-and-the-allowed-references.md`](docs/decisions/0002-provenance-and-the-allowed-references.md).
 
 _This repository is not legal advice._

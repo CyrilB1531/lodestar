@@ -43,7 +43,7 @@ internal sealed class MetaspaceEscape
     /// The one field the two declarations disagree on: a <c>Metaspace</c> block guards its
     /// prepend on <c>starts_with</c>, and the <c>Prepend</c> + <c>Replace</c> normalizer
     /// sequence prepends unconditionally, since <c>Prepend</c> runs before <c>Replace</c>
-    /// and knows nothing of the symbol. Decision 0062 measures the boundary and amends
+    /// and knows nothing of the symbol. docs/equivalence.md's Metaspace rows measure the boundary and amend
     /// 0050 §2's "two writings of one value" to hold everywhere but here.
     /// </remarks>
     public bool SkipPrependWhenAlreadyPrefixed { get; }
@@ -55,7 +55,7 @@ internal sealed class MetaspaceEscape
     /// normalizes that content with the declared normalizer and not with a pre-tokenizer, so
     /// Llama-2 matches on <c>▁&lt;s&gt;</c> where Mistral matches on <c>&lt;s&gt;</c>.
     /// Not the same question as <see cref="SkipPrependWhenAlreadyPrefixed"/>, which the
-    /// unigram path also leaves false without being a normalizer. Decision 0085.
+    /// unigram path also leaves false without being a normalizer, which docs/equivalence.md's Metaspace rows carry.
     /// </remarks>
     public bool DeclaredAsNormalizer { get; }
 

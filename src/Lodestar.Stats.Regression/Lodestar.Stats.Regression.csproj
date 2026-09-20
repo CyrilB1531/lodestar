@@ -20,11 +20,11 @@
   <!--
     Two edges, both to core packages and both real: the Student and Fisher tails that
     turn an estimate into a p-value, and the thin QR that keeps a near-collinear design
-    from losing digits the normal equations would square away. Decision 0095 published
+    from losing digits the normal equations would square away. Decision 0003 published
     exactly those four members for this package and no others.
 
     PackageReference against the published floors, like every other src/ edge, so the
-    build graph is the graph consumers see (decision 0012). The opt-in below exists only
+    build graph is the graph consumers see (decision 0001). The opt-in below exists only
     so that editing two packages in one branch does not need a pack-and-restore per edit:
 
         export LodestarUseProjectRefs=true

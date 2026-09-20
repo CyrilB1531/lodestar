@@ -112,5 +112,5 @@ and its partial counterpart — is where to look for *which* lag carries what is
   [seasonality](../reference/stats-timeseries/seasonality.md) and
   [serial correlation](../reference/stats-timeseries/correlation.md) reference sections
 - [statsmodels → .NET](../migration/statsmodels.md) — what is native and what is delegated
-- [`decisions/0133`](../decisions/0133-stats-timeseries-is-a-package-and-takes-the-serial-correlation-lot.md) —
+- [`decisions/0004`](../decisions/0004-what-is-written-here-and-what-is-delegated.md) —
   why this is a package of its own

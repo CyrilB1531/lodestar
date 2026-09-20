@@ -25,7 +25,7 @@ it or trailing the call:
 An exemption list in this file would rot the way `check_machine_paths.py` says
 they rot -- switched off a file at a time, by someone who is not the reviewer.
 A marker rots in the diff that adds it, in front of the person who can refuse it.
-Decision 0045 has the argument and what the four marked calls carry.
+This file's own `--report` output names the four marked calls and what each one carries.
 
 Usage:  python tools/check_no_console_writeline.py [--report]
 

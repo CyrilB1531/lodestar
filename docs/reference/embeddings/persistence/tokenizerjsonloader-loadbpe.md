@@ -44,8 +44,8 @@ prepend, and both differences are reproduced — a `Metaspace` block skips the p
 escaped piece already begins with the replacement, and its `prepend_scheme` of `first` means the
 opening piece rather than the whole text, where an added token counts as a piece. `prepend_scheme`
 is read in all three of its values, with the pre-0.14 `add_prefix_space` standing in when it is
-absent. `docs/decisions/0050-the-sentencepiece-bpe-lineage-stays-a-bpe-model.md` decided the shape
-and `0062-the-two-metaspace-spellings-part-on-the-prepend-twice.md` bounds it.
+absent. The two spellings are one value but for the prepend, and the Metaspace rows of
+[`docs/equivalence.md`](../../../equivalence.md) bound that equality.
 
 Three shapes around it are **refused** by name rather than reduced: a `Metaspace` whose `split` is
 on, since there is no pattern here for its own segmentation; a file writing *both* spellings, since
@@ -70,10 +70,10 @@ package refuses rather than reproduce either. For such a file the `decoder` bloc
 strictly: a bare `{"type": "ByteFallback"}` or a `Sequence` of exactly `[Replace, ByteFallback,
 Fuse, Strip]` in that order — Llama-2's own chain — undoes the byte pieces and, for the four-step
 form, the whitespace escape with them; any other shape is refused by name.
-[Decision 0063](../../../decisions/0063-byte-fallback-requires-the-whole-alphabet-and-its-decoder-is-read-strictly-too.md)
+[Decision 0007](../../../decisions/0007-the-deliberate-divergences.md)
 has the measurements and the refusal.
 
-`docs/decisions/0017-bpe-parity-scope.md` has the parity scope — end to end for GPT-2 and the
+`docs/decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md` has the parity scope — end to end for GPT-2 and the
 classic lineage, split-pattern only for Llama-3 and Qwen2 — and a known split divergence above the
 Basic Multilingual Plane.
 

@@ -6,7 +6,7 @@
 #:property EnableAotAnalyzer=false
 
 // long-comment: what this reads, why it exists and why it has no project file.
-// Reads a NuGet package's exported surface, the way decision 0074 requires a gap claim to be
+// Reads a NuGet package's exported surface, the way decision 0004 requires a gap claim to be
 // checked: against what the assembly exports, never against its README. Five decisions ran
 // that protocol as a throwaway console project written again each time (#619), so the numbers
 // reached the records and the means of producing them did not -- 0096 reports "336 exported
@@ -99,8 +99,8 @@ try
     // long-comment: the second trap, and why three counts are printed instead of one.
     // Type counts reproduce across records exactly; member counts did not, and the
     // difference is what each run happened to include. Measured on MathNet.Numerics 5.0.0,
-    // whose 336 types decision 0096 reproduces on the nose: its "5 333 members" is the
-    // third line below (5 335 here, two apart on a different SDK), while decision 0105's
+    // whose 336 types decision 0003 reproduces on the nose: its "5 333 members" is the
+    // third line below (5 335 here, two apart on a different SDK), while decision 0004's
     // "124 members" for Microsoft.ML.TimeSeries is the first. Neither is wrong; neither
     // said which it was. Printing all three lets an older figure be matched to its basis
     // rather than argued about, and the first line is the one a new record should quote.

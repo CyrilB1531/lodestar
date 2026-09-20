@@ -4,7 +4,7 @@ using Xunit;
 namespace Lodestar.Text.Tests.Stemming;
 
 /// <summary>
-/// What decision 0092 settled: the alphabet the tables are written in, and the two
+/// What decision 0006 settled: the alphabet the tables are written in, and the two
 /// shapes where this parts from <c>nltk</c> — neither of which the corpus can carry.
 /// </summary>
 public sealed class RomanianSnowballStemmerTests
@@ -34,7 +34,7 @@ public sealed class RomanianSnowballStemmerTests
     }
 
     // Two shapes nltk reads differently, both needing an ending repeated or chained
-    // in a way Romanian does not build. Decision 0092 measures and bounds them.
+    // in a way Romanian does not build. Decision 0006 measures and bounds them.
     [Fact]
     public void A_chained_derivational_suffix_measures_R2_against_the_word_it_left()
     {

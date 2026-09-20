@@ -7,18 +7,18 @@
   <!-- CA1303 (do not pass literals as localized parameters): printing to the
        console is what a sample does, and every string here is written to be read
        by a developer in the guides. See
-       docs/decisions/0019-the-net-analysers-run-in-the-build-too.md. -->
+       CLAUDE.md's analyzer section. -->
   <PropertyGroup>
     <NoWarn>$(NoWarn);CA1303</NoWarn>
   </PropertyGroup>
 
-  <!-- The samples are the one area ADR 0009's packaging gate forces new code
+  <!-- The samples are the one area CONTRIBUTING.md's Definition of done's packaging gate forces new code
        into, so they are the worst place to leave unanalysed. The version comes
        from the single pin in the root Directory.Build.props; it is named on the
        PackageReference because samples/, like bench/, has no Central Package
        Management. samples/NuGet.config maps only Lodestar.* to the local feed, so
        this restores from nuget.org as usual. See
-       docs/decisions/0019-the-net-analysers-run-in-the-build-too.md. -->
+       CLAUDE.md's analyzer section. -->
   <ItemGroup>
     <PackageReference Include="SonarAnalyzer.CSharp" Version="$(LodestarSonarAnalyzerVersion)" PrivateAssets="all" />
   </ItemGroup>

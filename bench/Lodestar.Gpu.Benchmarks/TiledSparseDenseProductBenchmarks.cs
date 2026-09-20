@@ -16,7 +16,7 @@ namespace Lodestar.Gpu.Benchmarks;
 
 /// <summary>The SpMM kernel against <c>CsrMatrix.Multiply</c>, at a vectorizer's shape.</summary>
 /// <remarks>
-/// Decision 0102's gate is <c>GpuResident</c> against <c>CpuBaseline</c>, with the dense
+/// the GPU gate is <c>GpuResident</c> against <c>CpuBaseline</c>, with the dense
 /// operand and the result transferred inside the measured region. <c>GpuFromHost</c> prices
 /// the matrix upload residency exists to avoid. Read <c>Accelerator</c> before believing any
 /// of it, and note both sides are double precision because <c>CsrMatrix</c> is.
@@ -101,7 +101,7 @@ public class TiledSparseDenseProductBenchmarks
             _context, _matrix.RowPointers, _matrix.ColumnIndices, _matrix.Values,
             _matrix.RowCount, _matrix.ColumnCount);
 
-        // Decision 0102, rule 3: ILGPU compiles on first launch, so this runs once on the
+        // the GPU gate's rule 3 in bench/README.md: ILGPU compiles on first launch, so this runs once on the
         // real corpus before anything is timed.
         _kernel.Multiply(_resident, _block, Width);
     }

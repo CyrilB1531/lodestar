@@ -9,7 +9,7 @@ namespace Lodestar.Text.Tests.Phonetics;
 /// Every expectation here comes from the frozen corpus. The encoder's behaviour on the input
 /// contract — accents, non-Latin scripts, digits, punctuation, the empty word — is pinned by the
 /// corpus's own fixed points rather than by assertions written on this side, so what the reference
-/// does stays the reference's to say (decision 0075).
+/// does stays the reference's to say (decision 0005).
 /// </remarks>
 public sealed class DoubleMetaphoneOracleTests
 {

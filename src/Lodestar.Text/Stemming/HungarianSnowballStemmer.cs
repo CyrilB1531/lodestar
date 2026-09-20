@@ -13,10 +13,10 @@ namespace Lodestar.Text.Stemming;
 /// The Hungarian Snowball stemming algorithm.
 /// </summary>
 /// <remarks>
-/// Reference behavior: <c>snowballstemmer.stemmer("hungarian")</c> — the one
-/// language here oracled by the Snowball project's own package rather than by
+/// Reference behavior: <c>snowballstemmer.stemmer("hungarian")</c> — one of the three
+/// languages here oracled by the Snowball project's own package rather than by
 /// <c>nltk</c>, whose Hungarian omits two vowels and three suffixes
-/// (<see href="https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0091-hungarian-takes-snowballstemmer-as-its-oracle.md">decision 0091</see>).
+/// (<see href="https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0006-the-stemmers-references.md">decision 0006</see>).
 /// Nine steps, all searching R1. Input is lowercased. Thread-safe.
 /// </remarks>
 public static class HungarianSnowballStemmer
@@ -38,7 +38,7 @@ public static class HungarianSnowballStemmer
     private sealed class Worker : SnowballWorkerBase
     {
         // All fourteen vowels. The two double-acute ones, ő and ű, are what
-        // decision 0091 is about: nltk's Hungarian carries only the other twelve.
+        // decision 0006 is about: nltk's Hungarian carries only the other twelve.
         private static readonly Func<char, bool> Vowels = c =>
             c is 'a' or 'á' or 'e' or 'é' or 'i' or 'í' or 'o' or 'ó' or 'ö'
               or 'ő' or 'u' or 'ú' or 'ü' or 'ű';

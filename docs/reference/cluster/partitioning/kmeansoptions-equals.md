@@ -26,8 +26,7 @@ bool same = left == right;  // => True
 **Remarks** — a record's generated equality compares `InitialCentres` by reference, so the two
 above would be unequal without this, in the one place a caller has reason to compare: asserting
 that a configuration built twice is the same configuration. `Tolerance` compares by bits, which
-makes `NaN` equal `NaN` and keeps equality reflexive. [Decision
-0113](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
+makes `NaN` equal `NaN` and keeps equality reflexive. the equality rule
 has the rule.
 
 **Applies to** — net10.0, netstandard2.0.

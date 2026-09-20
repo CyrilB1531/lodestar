@@ -76,5 +76,5 @@ updates:
       - dependency-name: autograd-gamma
       # Transitive, through statsmodels and lifelines, and capped by the latter at <3.0.
       # Dependabot reached past the resolver into its output (#639). A recompile from an
-      # unchanged requirements.txt keeps 2.3.3, which is also what ADR 0099 recorded.
+      # unchanged requirements.txt keeps 2.3.3, which is also what ADR 0002 recorded.
       - dependency-name: pandas

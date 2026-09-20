@@ -5,7 +5,7 @@
 sections forward, so nothing compared one night with the next. A ratio moved from 0.97 to 1.72
 between two nights (#673) and turned nothing red. This keeps every BenchmarkDotNet `Ratio` the
 page publishes in `bench/nightly/ratios.csv`, one row per reading, and reports the ratios that
-stepped or drifted past the thresholds decision 0126 measured.
+stepped or drifted past the thresholds this script sets.
 
 Only the `Ratio` column is kept. The page says why: a hosted runner is a different VM every
 night, so an absolute mean is not comparable across nights, while a ratio against a baseline
@@ -61,7 +61,8 @@ COMMIT = re.compile(r"^- Commit: `(?P<sha>[0-9a-f]{7,40})`")
 # The line after BenchmarkDotNet's banner names the processor, e.g. "AMD EPYC 7763, 1 CPU, ...".
 PROCESSOR = re.compile(r"^(?P<cpu>[^,|`]+), \d+ CPU\b")
 
-# Decision 0126, measured by replaying the series rebuilt from the page's history.
+# Measured by replaying the series rebuilt from the page's history: these five hold the
+# comparison, and the page names them rather than repeating their values.
 WINDOW = 5  # readings a median is taken over
 MINIMUM_HISTORY = 3  # earlier readings a key needs before it is compared at all
 STEP_FLOOR = 0.30  # a step smaller than this is never reported
@@ -70,7 +71,6 @@ DRIFT = 0.20  # the recent median against the median of readings at least DRIFT_
 DRIFT_DAYS = 10
 RECENT = 3
 
-ADR = "../decisions/0126-the-nightly-reports-a-ratio-that-steps-past-its-noise-or-drifts-over-ten-days.md"
 MOVED_HEADING = "## Ratios that moved"
 
 
@@ -267,8 +267,8 @@ def render(moved: list[Movement]) -> str:
     still = [m for m in moved if m.persisting]
     lines = [
         MOVED_HEADING, "",
-        f"Read against `bench/nightly/ratios.csv` by `tools/nightly_series.py`, under the thresholds of "
-        f"[decision 0126]({ADR}). A ratio moves when either side of it does: read its baseline before "
+        "Read against `bench/nightly/ratios.csv` by `tools/nightly_series.py`, under the thresholds "
+        "that script sets. A ratio moves when either side of it does: read its baseline before "
         "calling a movement a regression.", "",
     ]
     if not moved:

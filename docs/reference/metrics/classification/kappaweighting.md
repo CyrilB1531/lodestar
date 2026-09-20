@@ -40,8 +40,7 @@ Pass `labels` in the ordinal order whenever the weighting is not `None`.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `CohenKappa.Score`,
-[decision
-0030](../../../decisions/0030-cohen-kappa-keeps-scikit-learns-expected-matrix-orientation.md),
+the expected-matrix rule,
 the [Python equivalence table](../../../equivalence.md).
 
 ## Members

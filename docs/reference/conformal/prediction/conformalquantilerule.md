@@ -28,7 +28,7 @@ double mapie = SplitConformal.Quantile(scores, 0.1, ConformalQuantileRule.MapieC
 **Remarks** — the two rules agree on most `(n, alpha)` pairs and part by one rank on the rest, so a
 prediction set can include or exclude a class differently. Take `MapieClassification` when the sets
 must match MAPIE's; `Ceiling` is kept as the default so an existing call keeps its answer.
-[Decision 0143](../../../decisions/0143-prediction-sets-can-read-mapies-classification-quantile.md)
+[Decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)
 has the measurement and why the default did not move.
 
 `Ceiling` is the zero value, so a `default(ConformalQuantileRule)` reads the default rule. A value

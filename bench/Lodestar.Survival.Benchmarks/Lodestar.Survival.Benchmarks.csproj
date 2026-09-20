@@ -12,7 +12,7 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
     <!-- No incumbent package here to compare against: the #427 reading found zero
-         NuGet results for survival analysis, which decision 0099 records. These
+         NuGet results for survival analysis, which decision 0002 records. These
          measure the three estimators against each other and against input size. -->
   </ItemGroup>
 

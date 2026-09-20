@@ -3,7 +3,7 @@ namespace Lodestar.Text.Vectorization;
 /// <summary>Ready-made stop-word lists for use via <see cref="CountVectorizerOptions.StopWords"/>.</summary>
 /// <remarks>
 /// <see cref="English"/> is scikit-learn's 318-word list; the other five are Snowball's, pinned by SHA-256 in
-/// <c>tools/fetch_stopwords.py</c> — see <c>docs/decisions/0010-stop-word-list-provenance.md</c> for why not
+/// <c>tools/fetch_stopwords.py</c> — see <c>docs/decisions/0002-provenance-and-the-allowed-references.md</c> for why not
 /// nltk's, and the "Stop words" section of <c>docs/guides/vectorization.md</c> for matching rules and
 /// per-language counts. Each list builds on first use and never again.
 /// </remarks>

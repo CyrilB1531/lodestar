@@ -25,12 +25,12 @@ public sealed record KMeansOptions
 
     /// <summary>The starting centres, row-major, or <see langword="null"/> to choose them.</summary>
     /// <remarks>
-    /// <strong>The centres are an input, not a seed</strong> — decision 0072's move. Given
+    /// <strong>The centres are an input, not a seed</strong> — decision 0004's move. Given
     /// here they replace the choice entirely, which turns k-means into an ordinary parity
     /// target. Left <see langword="null"/>, k-means++ chooses them using <see cref="Seed"/>,
     /// which is reproducible here and is not scikit-learn's draw.
     /// </remarks>
-    // CA1819 (properties should not return arrays): the same bargain decision 0072 struck
+    // CA1819 (properties should not return arrays): the same bargain decision 0004 struck
     // for Ω. The whole point of accepting a block is that the caller already holds the
     // numbers scikit-learn chose; copying it defensively to hand it back would protect a
     // value this type reads once, at the cost of the allocation the fit exists to avoid.
@@ -43,7 +43,7 @@ public sealed record KMeansOptions
     /// <remarks>
     /// The generated equality would compare <see cref="InitialCentres"/> by reference, so two
     /// option sets built from separate arrays holding the same centres would be unequal.
-    /// Decision 0113 has the rule and the six records that reached it first.
+    /// the rule has the rule and the six records that reached it first.
     /// </remarks>
     public bool Equals(KMeansOptions? other)
     {

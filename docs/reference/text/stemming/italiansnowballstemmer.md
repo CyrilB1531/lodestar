@@ -27,7 +27,7 @@ phonology and what several suffix rules depend on.
 This stemmer carries the one deliberate divergence in the namespace. The published Snowball
 description replaces the suffix `enza`/`enze` with `ente`; `nltk` replaces it with `te`, and this
 implementation follows `nltk`, so `esistenza` stems to `esistt` rather than `esistent`.
-[`decisions/0008`](../../../decisions/0008-italian-enza-nltk-divergence.md) records why matching
+[`decisions/0006`](../../../decisions/0006-the-stemmers-references.md) records why matching
 the library everyone actually compares against won over matching the text.
 
 Reference behaviour is `nltk.stem.snowball.SnowballStemmer("italian")`, matched over 96 words.

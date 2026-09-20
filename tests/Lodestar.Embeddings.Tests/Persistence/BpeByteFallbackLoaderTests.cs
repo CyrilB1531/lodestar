@@ -11,7 +11,7 @@ namespace Lodestar.Embeddings.Tests.Persistence;
 /// <remarks>
 /// These are pinned here rather than by an oracle because <c>tokenizers</c> 0.23.1 accepts
 /// every file below: it degrades a missing piece to the unknown token, or drops the symbol
-/// when no unknown token is declared. Decision 0063 refuses instead.
+/// when no unknown token is declared. Decision 0007 refuses instead.
 /// </remarks>
 public sealed class BpeByteFallbackLoaderTests
 {

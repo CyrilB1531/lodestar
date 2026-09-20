@@ -11,8 +11,8 @@ using Lodestar.Metrics;
 using Lodestar.Sample;
 using Lodestar.Text.Distances;
 
-// A consumer of the published packages; runs in CI so it can't rot. Also ADR 0009's
-// packaging gate: a new public type needs a call from <ClassName>Sample.cs (ADR 0041).
+// A consumer of the published packages; runs in CI so it can't rot. Also CONTRIBUTING.md's Definition of done's
+// packaging gate: a new public type needs a call from <ClassName>Sample.cs (CONTRIBUTING.md's Definition of done).
 
 // Every number below goes through Inv.F3 and friends, which a hole carrying no
 // format specifier cannot; this covers those, so the run reads the same everywhere (#205).

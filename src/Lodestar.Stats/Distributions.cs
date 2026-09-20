@@ -7,7 +7,7 @@ namespace Lodestar.Stats;
 /// quantiles that turn a confidence level into a bound.
 /// </summary>
 /// <remarks>
-/// Published narrowly under decision 0095, which exercises the condition decision 0081 wrote
+/// Published narrowly under decision 0003, which exercises the condition decision 0003 wrote
 /// for itself. The log-gamma, the incomplete beta and gamma and the normal tail underneath
 /// these stay internal.
 /// </remarks>
@@ -68,7 +68,7 @@ public static class Distributions
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="df"/> is not positive.</exception>
     /// <remarks>
     /// What a log-rank test reports, and what the chi-squared tests here already use
-    /// internally. Published under decision 0097 on the same terms as the three above:
+    /// internally. Published under decision 0003 on the same terms as the three above:
     /// one caller asked, and the layer underneath stays internal.
     /// </remarks>
     public static double ChiSquaredSf(double x, double df)
@@ -89,7 +89,7 @@ public static class Distributions
     /// <strong>This is the quantile, not the inverse survival function</strong> — the
     /// internal helper solves <c>P(Z &gt; z) = p</c> and carries the opposite sign, so the
     /// negation below is the distribution's symmetry rather than a correction, exactly as
-    /// <see cref="StudentQuantile"/> does. Published under decision 0098.
+    /// <see cref="StudentQuantile"/> does. Published under decision 0003.
     /// </remarks>
     public static double NormalQuantile(double p)
     {

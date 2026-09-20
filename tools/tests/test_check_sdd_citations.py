@@ -1,6 +1,6 @@
 """check_sdd_citations.py's guard on a citation of a file that was never tracked (#730).
 
-Seventeen comments and ADR 0082 cited `task-N-report.md` from a plan's workspace,
+Seventeen comments and ADR 0002 cited `task-N-report.md` from a plan's workspace,
 which is ignored by git and deleted when the plan finishes. The strings below are
 the shapes that reached the repository, taken from the lines #730 rewrote, so the
 guard is shown catching what happened rather than what was imagined.
@@ -29,7 +29,7 @@ REPORT = "    // reported the wrong D-/location past the shorter sample's end (t
 ROUND = "    // and no corpus case exercised that (task-6-report.md, fix round 1,\n"
 BRIEF = "    // the brief said so (task-12-brief.md).\n"
 
-# As it appeared in ADR 0082, and the same path as Windows writes it.
+# As it appeared in ADR 0002, and the same path as Windows writes it.
 WORKSPACE = "Task 8 (`.superpowers/sdd/2026-09-05_0442_lodestar-stats/`, finding 4)\n"
 WORKSPACE_WINDOWS = "see .superpowers\\sdd\\plan\\progress.md\n"
 
@@ -71,7 +71,7 @@ def test_plans_and_the_vendored_skills_describe_the_workspace_and_are_exempt(tmp
 
 def test_adr_0082_is_exempt_and_a_new_record_is_not(tmp_path):
     files = {
-        "docs/decisions/0082-scipy-joins-the-allowed-permissive-references.md": WORKSPACE,
+        "docs/decisions/0002-provenance-and-the-allowed-references.md": WORKSPACE,
         "docs/decisions/0200-a-later-decision.md": WORKSPACE,
     }
     assert _tree(tmp_path, files) == ["docs/decisions/0200-a-later-decision.md:1: .superpowers/sdd"]

@@ -35,7 +35,7 @@ public sealed class DistributionsEdgeTests
     /// <summary>
     /// The published tail and the internal one the chi-squared tests use are the same
     /// function, so a statistic routed either way gives the same p-value. This is the
-    /// agreement decision 0081 asked for rather than a second approximation.
+    /// agreement decision 0003 asked for rather than a second approximation.
     /// </summary>
     [Fact]
     public void Chi_squared_agrees_with_the_test_that_already_used_it_internally()
@@ -114,7 +114,7 @@ public sealed class DistributionsEdgeTests
 
     /// <summary>
     /// The Student quantile approaches this one as its degrees of freedom grow, but it
-    /// stops closing at about 1e-8 -- the measurement decisions 0098 and 0121 record, and the
+    /// stops closing at about 1e-8 -- the measurement decisions 0003 and 0121 record, and the
     /// reason the normal one is published rather than approximated by a large df.
     /// </summary>
     [Fact]

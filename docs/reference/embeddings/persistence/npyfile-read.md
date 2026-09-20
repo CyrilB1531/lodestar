@@ -65,7 +65,7 @@ and must not change while it is read — what
 [`EmbeddingIndex.Load`](../search/embeddingindex-load.md) already asks of a caller who hands it an
 artifact it holds. `OwnedArray` is null on a block read this way, because a borrowed block has no
 array to hand over, which is what keeps adoption out of reach from here.
-[Decision 0057](../../../decisions/0057-the-npy-read-serves-a-stream-and-a-buffer-differently.md)
+`docs/guides/performance.md`
 has why there are two contracts rather than one.
 
 **The header is never evaluated.** numpy's header is a Python dict literal, and this
@@ -74,7 +74,7 @@ closed set of values.
 
 `descr: '|O'` is refused by name and first. That is numpy's object dtype and its payload is a
 pickle — arbitrary code, the thing
-[decision 0011](../../../decisions/0011-persistence-format.md) rules out for artifacts. The refusal
+[decision 0001](../../../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md) rules out for artifacts. The refusal
 happens on the header, before the payload is touched.
 
 Refused with what they held, rather than read approximately: `>f4` (big-endian), `<f8` (float64),

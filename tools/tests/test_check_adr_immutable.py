@@ -1,4 +1,7 @@
-"""check_adr_immutable.py's own tests: an accepted ADR is untouchable, full stop.
+"""check_adr_immutable.py's own tests: an accepted ADR is never rewritten.
+
+Deleting one is allowed since #1103, which keeps the records stating an axis and
+deletes the rest; the two tests at the end of this file pin both halves.
 
 A synthetic repo, not the real one -- the check reads git diffs between two
 commits, and issue #399's own findings are the ADRs this guard exists to have
@@ -97,18 +100,6 @@ def test_a_rewritten_line_in_an_existing_adr_fails(tmp_path, capsys):
     assert "0001-old.md" in capsys.readouterr().out
 
 
-def test_a_deleted_adr_fails(tmp_path):
-    repo = make_repo(tmp_path)
-    adr = repo / "docs" / "decisions" / "0001-old.md"
-    adr.write_text("# 0001 -- Old\n\nOriginal claim.\n")
-    base = commit(repo, "add 0001")
-
-    adr.unlink()
-    commit(repo, "delete 0001")
-
-    assert check(repo, base) == 1
-
-
 def test_the_decisions_index_is_not_covered(tmp_path):
     repo = make_repo(tmp_path)
     readme = repo / "docs" / "decisions" / "README.md"
@@ -147,7 +138,7 @@ def test_a_base_that_looks_like_an_option_is_refused_itself(tmp_path):
     assert main(["prog", "--base", "-rf"]) == 2
 
 
-# Decision 0106's one exception: the block is metadata for index.yaml, the body
+# tools/regen_adr_index.py's one exception: the block is metadata for index.yaml, the body
 # is the decision, and immutability is for the reasoning rather than the file.
 BLOCK = '---\nstatus: accepted\nsupersedes: []\namends: []\napplies: []\n---\n'
 BODY = "# 0001 -- Old\n\nOriginal claim.\n"
@@ -178,7 +169,7 @@ def test_a_frontmatter_block_with_one_body_word_changed_is_refused(tmp_path, cap
     commit(repo, "frontmatter, and a word while nobody is looking")
 
     assert check(repo, base) == 1
-    assert "decision 0106" in capsys.readouterr().err
+    assert "tools/regen_adr_index.py" in capsys.readouterr().err
 
 
 def test_changing_a_block_that_is_already_there_is_refused(tmp_path):
@@ -203,5 +194,46 @@ def test_removing_a_block_is_refused(tmp_path):
 
     adr.write_text(BODY)
     commit(repo, "drop 0001's frontmatter")
+
+    assert check(repo, base) == 1
+
+
+def test_a_deleted_record_is_allowed(tmp_path):
+    """#1103's pass deletes every record that states no axis, and git keeps the body."""
+    repo = make_repo(tmp_path)
+    (repo / "docs" / "decisions" / "0001-mechanism.md").write_text("# 0001 -- Mechanism\n\nBody.\n")
+    base = commit(repo, "add 0001")
+
+    (repo / "docs" / "decisions" / "0001-mechanism.md").unlink()
+    commit(repo, "delete 0001")
+
+    assert check(repo, base) == 0
+
+
+def test_an_edited_record_is_still_refused_beside_a_deleted_one(tmp_path):
+    """Deleting one record does not license editing its neighbour in the same pass."""
+    repo = make_repo(tmp_path)
+    (repo / "docs" / "decisions" / "0001-mechanism.md").write_text("# 0001 -- Mechanism\n\nBody.\n")
+    (repo / "docs" / "decisions" / "0002-axis.md").write_text("# 0002 -- Axis\n\nBody.\n")
+    base = commit(repo, "add both")
+
+    (repo / "docs" / "decisions" / "0001-mechanism.md").unlink()
+    (repo / "docs" / "decisions" / "0002-axis.md").write_text("# 0002 -- Axis\n\nRewritten.\n")
+    commit(repo, "delete one, edit the other")
+
+    assert check(repo, base) == 1
+
+
+def test_a_record_renamed_and_rewritten_is_refused(tmp_path):
+    """The deletion allowance is not a way to edit: git reports this pair as a rename."""
+    repo = make_repo(tmp_path)
+    old = repo / "docs" / "decisions" / "0001-axis.md"
+    old.write_text("# 0001 -- Axis\n\nThe body a reader cited.\nLine two.\nLine three.\nLine four.\n")
+    base = commit(repo, "add 0001")
+
+    old.unlink()
+    (repo / "docs" / "decisions" / "0001-axis-restated.md").write_text(
+        "# 0001 -- Axis\n\nThe body a reader cited.\nLine two.\nLine three.\nRewritten.\n")
+    commit(repo, "rename and rewrite")
 
     assert check(repo, base) == 1

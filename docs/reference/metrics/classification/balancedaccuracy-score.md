@@ -60,8 +60,7 @@ scored `0`, which is scikit-learn's behaviour and means the divisor is not alway
 And when only one class survives that filter, `adjusted: true` divides by `1 - 1/1`, so the result
 is `NaN` or `-∞` rather than a number; that is left to IEEE 754 on purpose, and the reasoning is
 in
-[decision
-0029](../../../decisions/0029-balanced-accuracy-adjusted-is-left-to-ieee-754-at-the-edge.md).
+the IEEE-754 edge rule.
 
 The `ConfusionMatrix` overload divides each recall by its own row sum in the `Labels`-sized view,
 where `Recall.Score` divides by scikit-learn's `true_sum` over every observed label. The two agree
@@ -70,6 +69,5 @@ whenever nothing was dropped, and part company on a matrix built with an explici
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `Accuracy.Score`, `Recall.Score`, `CohenKappa.Score`,
-[decision
-0029](../../../decisions/0029-balanced-accuracy-adjusted-is-left-to-ieee-754-at-the-edge.md),
+the IEEE-754 edge rule,
 the [Python equivalence table](../../../equivalence.md).

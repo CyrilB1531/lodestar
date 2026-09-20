@@ -26,7 +26,7 @@
 
     MSBuild reads environment variables as properties, so that one export covers
     dotnet build, dotnet test and the IDE. It is never set in CI, and the packed
-    .nuspec is asserted there — see docs/decisions/0012-per-package-versioning.md.
+   .nuspec is asserted there — see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md.
   -->
   <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
     <ProjectReference Include="../Lodestar.Text/Lodestar.Text.csproj" />

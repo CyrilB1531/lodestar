@@ -100,7 +100,7 @@ internal static class LinearOracle
     /// <summary>
     /// Relative, because the corpus reaches 2.9e-11 and a VIF reaches 6e4: one absolute
     /// tolerance cannot hold both ends, and at the small end it would assert only that a
-    /// number came back. Decision 0081 settled this for Lodestar.Stats already.
+    /// number came back. Decision 0003 settled this for Lodestar.Stats already.
     /// </summary>
     private static void AssertRelative(double expected, double actual, string what)
     {

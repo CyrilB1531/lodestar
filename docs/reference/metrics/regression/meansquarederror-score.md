@@ -50,7 +50,7 @@ and is what you should report to anyone who is going to read the number rather t
 The accumulation is Neumaier-compensated, at least as accurate as numpy's pairwise reduction
 rather
 than merely close to it —
-[decision 0033](../../../decisions/0033-compensated-sum-is-neumaiers-variant.md).
+Neumaier's compensated sum.
 
 **Applies to** — net10.0, netstandard2.0.
 

@@ -8,7 +8,7 @@ namespace Lodestar.Internal.Persistence;
 /// the reader-side state that proves both were present and understood.
 /// </summary>
 /// <remarks>
-/// Numbered per artifact and checked before anything else is trusted (ADR 0011, "The header").
+/// Numbered per artifact and checked before anything else is trusted (ADR 0001, "The header").
 /// Written first for byte-reproducible output but read in any position — see
 /// <c>ArtifactHardeningTests.A_vocabulary_written_before_the_feature_count_still_loads</c>.
 /// </remarks>

@@ -45,7 +45,7 @@ string factive = HungarianSnowballStemmer.Stem("hússá");  // => hús
 **The reference here is not `nltk`.** It is `snowballstemmer`, the Snowball project's own
 package. `nltk` 3.10.1's Hungarian omits `ő` and `ű` from its vowel set and three suffixes from
 step 2, which leaves `nők`, `szőlők`, `gyűrűk` and every `-ből` form unstemmed —
-[decision 0091](../../../decisions/0091-hungarian-takes-snowballstemmer-as-its-oracle.md) has the
+[decision 0006](../../../decisions/0006-the-stemmers-references.md) has the
 measurement. Every other language here still replays `nltk`.
 
 Reference behaviour is `snowballstemmer.stemmer("hungarian")`, matched over 211 words.

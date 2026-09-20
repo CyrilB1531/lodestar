@@ -5,7 +5,7 @@ is_global = true
 # The rules SonarCloud's profile AZF_RqJ__mc37gztrQ3P activates for CyrilB1531_data.net and that
 # SonarAnalyzer.CSharp 10.34.0.3385 ships disabled, so that a finding fails the
 # build on the machine that wrote the code rather than the quality gate three
-# minutes after the push. See docs/decisions/0015-sonar-rules-in-the-build.md and
+# minutes after the push. See CLAUDE.md's analyzer section and
 # issue #109.
 #
 # warning, not error: TreatWarningsAsErrors in the root Directory.Build.props is

@@ -8,7 +8,7 @@ namespace Lodestar.Gpu.Tests;
 /// <remarks>
 /// Every test forces ILGPU's CPU accelerator. Correctness is the question these answer and
 /// it must be answerable where there is no GPU; the 5–10× gate is a different question,
-/// measured on a named machine (decision 0102).
+/// measured on a named machine (bench/README.md's GPU gate).
 /// </remarks>
 public sealed class TiledCosineTopKTests
 {
@@ -163,7 +163,7 @@ public sealed class TiledCosineTopKTests
     public void A_freshly_loaded_kernel_answers_what_a_warmed_one_does()
     {
         // long-comment: why the obvious version of this test was deleted rather than
-        // fixed. Decision 0102 asks a benchmark to warm up because ILGPU compiles on
+        // fixed. bench/README.md's GPU gate asks a benchmark to warm up because ILGPU compiles on
         // first launch, and asserting that warm < cold is a wall-clock comparison on a
         // shared machine -- it failed once here and passed on re-run, which is the
         // definition of a flaky test. What a test can pin is that warming changes only

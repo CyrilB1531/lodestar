@@ -99,7 +99,7 @@ internal static class Lot3Embeddings
         Console.WriteLine($"  BPE tokenizer.json: {fromBpeJson.Count} tokens, {fromBpeJson.Merges.Count} merge");
 
         // The file's post_processor, read into two lists; its `pair` template is discarded,
-        // so this prints the same whichever spelling a mirror used (decision 0083).
+        // so this prints the same whichever spelling a mirror used.
         Console.WriteLine($"  BPE special tokens: prefix=[{string.Join(", ", fromBpeJson.PrefixTokens)}] "
             + $"suffix=[{string.Join(", ", fromBpeJson.SuffixTokens)}]");
 

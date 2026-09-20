@@ -37,7 +37,7 @@ The output alphabet is `A F H J K L M N P R S T X 0`, where `X` is "sh" and `0` 
 classic four can take them from the front.
 
 Reference behaviour is `doublemetaphone.doublemetaphone` 1.2.
-[Decision 0075](../../../decisions/0075-double-metaphone-takes-doublemetaphone-as-its-oracle.md)
+[Decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)
 records why that library rather than `jellyfish` — which exports no Double Metaphone at all — and
 the 401-word comparison that showed the two independent permissive implementations agree on every
 primary, so the choice freezes an algorithm rather than one library's dialect.

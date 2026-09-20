@@ -6,7 +6,7 @@ namespace Lodestar.Gpu.Compute;
 /// <summary>One document's token hashes per row, held flat on the accelerator.</summary>
 /// <remarks>
 /// Hashes rather than tokens: a kernel parameter must be blittable, and taking the hashes keeps
-/// this package free of an edge in either direction (decisions 0101 and 0103).
+/// this package free of an edge in either direction (decisions 0003 and 0103).
 /// <strong>The hash has to be the one the CPU path uses, or the signatures will not match</strong>
 /// — <c>Lodestar.Text.Similarity.MinHash</c> takes the first four bytes of a token's SHA-1,
 /// little-endian, which is what <c>datasketch</c> exports as <c>sha1_hash32</c>. Anything else is

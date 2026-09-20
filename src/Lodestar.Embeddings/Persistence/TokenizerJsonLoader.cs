@@ -420,7 +420,7 @@ public static class TokenizerJsonLoader
     /// <remarks>
     /// The reference does not check: it degrades a missing piece to the unknown token, and drops
     /// the symbol when the file declares none — so a partial alphabet encodes differently from
-    /// the model it came from, silently. Decision 0063 refuses instead.
+    /// the model it came from, silently. Decision 0007 refuses instead.
     /// </remarks>
     private static void EnsureByteAlphabetIsComplete(Dictionary<string, int> vocab)
     {
@@ -581,7 +581,7 @@ public static class TokenizerJsonLoader
     /// </summary>
     /// <remarks>
     /// Only <c>single</c> is read; <c>pair</c> and <c>type_id</c> are discarded, and the pad
-    /// token is not read at all — decision 0083 has why, and the two Llama-2 mirrors that
+    /// token is not read at all — docs/equivalence.md's loader row says why, and the two Llama-2 mirrors that
     /// disagree on <c>pair</c> while agreeing on everything else.
     /// </remarks>
     private static void ReadBpePostProcessor(
@@ -684,7 +684,7 @@ public static class TokenizerJsonLoader
     /// <summary>Joins the two spellings of one escape, refusing a file that writes both.</summary>
     /// <remarks>
     /// Llama-2 writes the normalizer Sequence and Mistral v0.1 the pre-tokenizer block;
-    /// neither of the files read for decision 0050 writes both, so nothing measured says
+    /// neither of the two files read for the lineage writes both, so nothing measured says
     /// which one a file meaning both would apply, and a precedence invented here would be
     /// a guess no reader could check.
     /// </remarks>
@@ -705,7 +705,7 @@ public static class TokenizerJsonLoader
     /// </summary>
     /// <remarks>
     /// <c>dropout</c> is training-time augmentation, and no model of the 23 read for
-    /// decision 0034 declares one. Refused by name rather than tokenized plausibly
+    /// decision 0005 declares one. Refused by name rather than tokenized plausibly
     /// and wrongly; 0034 also records why "no deterministic tokenizer reproduces it"
     /// is not the reason.
     /// </remarks>
@@ -761,7 +761,7 @@ public static class TokenizerJsonLoader
 
     /// <summary>Reads a <c>Prepend</c> plus <c>Replace</c> Sequence as one escape.</summary>
     /// <remarks>
-    /// Decision 0050 §4 refuses a Sequence naming either step in any other arrangement
+    /// The loader refuses a Sequence naming either step in any other arrangement
     /// rather than reducing three steps to the two reproduced here — the third would
     /// silently not run. A Sequence naming neither reads back as <see langword="null"/>
     /// and reaches <see cref="CollectNormalizationForms"/> unchanged, so a bare
@@ -826,7 +826,7 @@ public static class TokenizerJsonLoader
                 "only a Prepend whose string the Replace maps the literal ' ' onto is reproduced");
         }
         // A normalizer prepends to every gap the added tokens leave -- "always", not
-        // "first" -- and unguarded, Prepend running before Replace (decision 0062).
+        // "first" -- and unguarded, Prepend running before Replace.
         return new MetaspaceEscape(
             SingleReplacementChar(prepended, "normalizer Sequence's Prepend"),
             MetaspacePrependScheme.Always,
@@ -1024,7 +1024,7 @@ public static class TokenizerJsonLoader
     /// </summary>
     /// <remarks>
     /// Splitting is refused rather than reproduced, since <see cref="BpeTokenizer"/> has
-    /// no pattern for Metaspace's own segmentation and decision 0017 §3's rule is that
+    /// no pattern for Metaspace's own segmentation and decision 0005 §3's rule is that
     /// what is not reproduced fails at load naming itself. What is left is a text
     /// transform, so nothing splits at all — which is what the last field carries.
     /// </remarks>
@@ -1050,7 +1050,7 @@ public static class TokenizerJsonLoader
     /// <see cref="AddPrefixSpaceProperty"/> is the pre-0.14 spelling, and what it prepends
     /// to is the whole text: true reads as "always", false as "never", and both fields
     /// absent leaves "always". Absorbing that here is what keeps one escape for the
-    /// spellings a file may use, as decision 0050 §2 asks.
+    /// spellings a file may use, as docs/equivalence.md's Metaspace rows ask.
     /// </remarks>
     private static MetaspacePrependScheme ReadBpePrependScheme(JsonElement pre)
     {
@@ -1279,9 +1279,9 @@ public static class TokenizerJsonLoader
     /// <remarks>
     /// Scoped to <c>byte_fallback</c> alone: a Metaspace file that declares the escape without
     /// it keeps <see cref="EnsureDecoderMatchesModel"/>'s looser check and today's
-    /// accepted-but-unapplied decoder (decision 0062) -- its <c>Metaspace</c> decoder's
+    /// accepted-but-unapplied decoder -- its <c>Metaspace</c> decoder's
     /// <c>prepend_scheme</c> and <c>split</c> have not been measured against the reference, so
-    /// reading it strictly here would risk refusing a file this package can load. Decision 0063
+    /// reading it strictly here would risk refusing a file this package can load. Decision 0007
     /// states the boundary.
     /// </remarks>
     private static BpeDecoderSteps? ReadBpeDecoder(JsonElement root, bool byteFallback)
@@ -1311,7 +1311,7 @@ public static class TokenizerJsonLoader
     /// <summary>The one Sequence this lineage declares: exactly Replace, ByteFallback, Fuse, Strip, in that order.</summary>
     /// <remarks>
     /// Refused rather than reduced when the steps are reordered, repeated, missing or extra --
-    /// decision 0050 §4's rule, which <see cref="ReadNormalizerEscape"/> already applies to the
+    /// docs/equivalence.md's Metaspace rows, which <see cref="ReadNormalizerEscape"/> already applies to the
     /// normalizer Sequence. The reference runs these in the declared order, so a reordered
     /// Sequence decodes differently and canonicalizing it here would be silently wrong.
     /// </remarks>

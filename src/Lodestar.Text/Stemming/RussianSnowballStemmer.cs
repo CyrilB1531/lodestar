@@ -16,7 +16,7 @@ namespace Lodestar.Text.Stemming;
 /// Reference behavior: <c>nltk.stem.snowball.SnowballStemmer("russian")</c>. An
 /// original implementation of the published Snowball algorithm: four steps over an
 /// RV region that is the rest of the word after its first vowel — not the Romance
-/// RV — plus one R2 test in step 3. Decision 0086 settles the alphabet questions
+/// RV — plus one R2 test in step 3. Decision 0006 settles the alphabet questions
 /// and the one place this parts from <c>nltk</c>. Thread-safe.
 /// </remarks>
 public static class RussianSnowballStemmer
@@ -217,8 +217,8 @@ public static class RussianSnowballStemmer
             Delete(adjective.Length);
 
             string? participle = LongestSuffixInRv(ParticipleAfterAOrYa, Participle);
-            // Decision 0086: nltk's table spells this one pair wrong and so strips
-            // only the "ая". Parity with nltk is the contract, as in decision 0008.
+            // Decision 0006: nltk's table spells this one pair wrong and so strips
+            // only the "ая". Parity with nltk is the contract, as in decision 0006.
             if (participle is not null
                 && !(participle == ParticipleUyushch && adjective == AdjectiveAya))
             {

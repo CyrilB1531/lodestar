@@ -2,7 +2,7 @@ using Xunit;
 
 namespace Lodestar.Cluster.Tests;
 
-/// <summary>Decision 0113: the centres compare by value, and the hash agrees.</summary>
+/// <summary>A member comparing by reference writes its own equality: the centres compare by value, and the hash agrees.</summary>
 public sealed class KMeansOptionsEqualityTests
 {
     [Fact]

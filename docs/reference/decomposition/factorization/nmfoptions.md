@@ -20,7 +20,7 @@ scikit-learn's own defaults rather than the ones
 [`TruncatedSvdOptions`](truncatedsvdoptions.md) exposes, and ten oversamples is one of them — so
 the block an initialisation wants is wider than the rank by exactly that, and an Ω of any other
 length is refused rather than silently reshaped. See
-[ADR 0072](../../../decisions/0072-omega-is-an-input-not-a-seed.md) for why Ω is an input at all.
+[ADR 0004](../../../decisions/0004-what-is-written-here-and-what-is-delegated.md) for why Ω is an input at all.
 
 **`Tolerance = 0` is a feature, not a way to disable a safety net.** With the stop off,
 `MaxIterations` stops being a cap and becomes the number of updates that will run, which is what

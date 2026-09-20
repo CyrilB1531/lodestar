@@ -48,7 +48,7 @@ comparison returns `null` before the table is even consulted.
 
 That table, and the length it is keyed by, were measured directly against `jellyfish` 1.2.1 by
 bisection rather than assumed from a textbook — see
-[decision 0080](../../../decisions/0080-match-rating-approach-comparison-uses-character-length-not-byte-length.md)
+[decision 0007](../../../decisions/0007-the-deliberate-divergences.md)
 for why the length is counted in **characters**, where jellyfish counts UTF-8 bytes for a handful
 of non-Latin inputs, and the two cases that changes.
 

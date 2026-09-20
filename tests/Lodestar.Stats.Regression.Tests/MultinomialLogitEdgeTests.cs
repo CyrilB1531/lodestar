@@ -72,7 +72,7 @@ public sealed class MultinomialLogitEdgeTests
     [Fact]
     public void A_perfectly_separated_response_is_refused()
     {
-        // The reference returns NaN coefficients here and reports converged; decision 0136.
+        // The reference returns NaN coefficients here and reports converged; decision 0004.
         double[] design = [-2.0, -1.5, -1.0, -0.5, 0.5, 1.0, 1.5, 2.0];
         int[] separated = [0, 0, 0, 0, 1, 1, 1, 1];
 

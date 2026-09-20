@@ -51,7 +51,7 @@ on squared error and then reported with this one; that mismatch is normal and no
 the
 accumulation is Neumaier-compensated, so the answer is at least as accurate as numpy's pairwise
 reduction rather than merely close to it —
-[decision 0033](../../../decisions/0033-compensated-sum-is-neumaiers-variant.md).
+Neumaier's compensated sum.
 
 The trap is comparing it across targets. `0.5` is excellent on a target that ranges over thousands
 and hopeless on one that ranges over one; it carries units, so it cannot rank two different

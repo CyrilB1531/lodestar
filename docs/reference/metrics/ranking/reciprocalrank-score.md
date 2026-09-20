@@ -4,7 +4,7 @@ The mean of `1 / rank` over the queries, where `rank` is the position of the fir
 
 **Not verified against a reference.** There is no `reciprocal` function in `sklearn.metrics` to
 freeze a corpus from, so this member's definition is pinned by tests rather than by an oracle —
-[decision 0036](../../../decisions/0036-a-member-may-ship-without-an-oracle-if-it-says-so.md) is the
+[decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md) is the
 rule that admits it, and says what would retire the exception.
 
 <!-- docs-declaration -->

@@ -9,7 +9,7 @@ namespace Lodestar.Embeddings.Tests.Tokenization;
 
 /// <summary>
 /// Replays <c>bpe_metaspace.json</c>: the whitespace escape a SentencePiece-BPE
-/// file writes, in both of the spellings decisions 0050 §2 and 0062 govern.
+/// file writes, in both of the spellings docs/equivalence.md's Metaspace rows govern.
 /// </summary>
 /// <remarks>
 /// Six pipelines over one model whose merges are spelled with the meta symbol, so a
@@ -104,7 +104,7 @@ public sealed class BpeMetaspaceOracleTests
     }
 
     /// <summary>
-    /// Decision 0050 §2's premise, as <c>tokenizers</c> itself answers it: the two
+    /// The premise those rows rest on, as <c>tokenizers</c> itself answers it: the two
     /// spellings are one value on every text that does not already begin with the
     /// symbol, and two values on every text that does. The corpus alone settles this —
     /// no Lodestar type is involved — which is what makes it the boundary the loader

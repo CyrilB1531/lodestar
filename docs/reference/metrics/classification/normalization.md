@@ -38,7 +38,7 @@ a
 normalized `ConfusionMatrix` here, and that is deliberate: `Accuracy`, `Precision` and the rest
 read
 a matrix's cells directly, and would be silently wrong if those cells had become fractions —
-[decision 0020](../../../decisions/0020-normalize-is-a-projection-not-a-parameter.md).
+the projection rule.
 
 A row, column or total that counted nothing divides to **zero**, not `NaN`, matching
 scikit-learn's
@@ -47,7 +47,7 @@ scikit-learn's
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `ConfusionMatrix.ToArray`, `ConfusionMatrix.Compute`,
-[decision 0020](../../../decisions/0020-normalize-is-a-projection-not-a-parameter.md),
+the projection rule,
 the [Python equivalence table](../../../equivalence.md).
 
 ## Members

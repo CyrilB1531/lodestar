@@ -69,5 +69,5 @@ working, and no `AggregateException` ever escapes.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `RocAuc.Score`, `MultiClassRocOptions`, `MultiClassStrategy`,
-[decision 0018](../../../decisions/0018-multiclass-roc-auc-parallelism-is-opt-in.md),
+`docs/guides/performance.md`,
 the [Python equivalence table](../../../equivalence.md).

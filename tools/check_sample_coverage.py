@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Refuse a public class with no sample of its own, package by package (#280).
 
-Decision 0041 names a sample after the class it demonstrates, so a type without
+CONTRIBUTING.md's Definition of done names a sample after the class it demonstrates, so a type without
 one is a type nobody can find an example of. The packaging gate already refuses a
 type the sample never *references*; it says nothing about which file that
 reference lives in, which is what this adds.
@@ -11,7 +11,7 @@ Lot* files and would fail every run until their own lot lands -- the same shape
 docs/wiki-map.json's covered table uses, and the same reason: a gate that fails
 on work nobody has started yet is noise a contributor learns to skip.
 
-An enum is not a class and is excluded by decision 0041: it is demonstrated
+An enum is not a class and is excluded by CONTRIBUTING.md's Definition of done: it is demonstrated
 through the class whose parameter it is, and a file exercising one alone would
 have to invent a use for it.
 
@@ -68,7 +68,7 @@ def main() -> int:
             if name not in samples:
                 findings.append(
                     f"{path.relative_to(ROOT)}: {name} is public and has no "
-                    f"samples/Lodestar.Sample/{name}Sample.cs (decision 0041)")
+                    f"samples/Lodestar.Sample/{name}Sample.cs (CONTRIBUTING.md's Definition of done)")
 
     for finding in findings:
         print(finding)

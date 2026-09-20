@@ -6,7 +6,7 @@ namespace Lodestar.Preprocessing.Tests;
 /// <summary>Replays <c>sklearn.model_selection</c> over <c>tests/oracles/preprocessing_splitters.json</c> (#762).</summary>
 /// <remarks>
 /// Compared exactly: these are indices. The two permuted cases pass the reference's own permutation in, which is what
-/// decision 0132 makes the input rather than a seed.
+/// decision 0004 makes the input rather than a seed.
 /// </remarks>
 public sealed class SplittersOracleTests
 {

@@ -8,12 +8,12 @@ namespace Lodestar.Internal.Persistence;
 
 /// <summary>
 /// Reads and writes a numeric vector as one base64 string of raw little-endian
-/// IEEE-754 bits — the encoding ADR 0011 chose for the parts of an artifact
+/// IEEE-754 bits — the encoding ADR 0001 chose for the parts of an artifact
 /// nobody reads by eye.
 /// </summary>
 /// <remarks>
 /// Encoding and bounds only: what a value <em>means</em> belongs to the artifact that owns the
-/// vector — see ADR 0011, "Doubles". Raw bits round-trip exact by construction, and little-endian is
+/// vector — see ADR 0001, "Doubles". Raw bits round-trip exact by construction, and little-endian is
 /// written explicitly so a file written on one architecture reads on another.
 /// </remarks>
 internal static class Base64Numbers
@@ -96,7 +96,7 @@ internal static class Base64Numbers
     /// </summary>
     /// <remarks>
     /// Why slices rather than one <c>WriteBase64String</c> call, and what it was worth, is
-    /// <see href="../../../docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md">ADR 0051</see>.
+    /// <see href="docs/guides/performance.md">docs/guides/performance.md</see>.
     /// The invariant that keeps the output byte-identical lives on <see cref="SliceBytes"/>. The
     /// caller must have flushed the writer and write the rest itself: nothing may go through the <c>Utf8JsonWriter</c> after this.
     /// </remarks>

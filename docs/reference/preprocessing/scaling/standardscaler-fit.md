@@ -54,7 +54,7 @@ is frozen in `tests/oracles/preprocessing_standard_scaler.json`, because an impl
 `variance == 0` passes every other case and fails these two by eight orders of magnitude.
 
 The bound is read from `sklearn.preprocessing._data._is_constant_feature` (BSD-3, allowed as a
-behaviour reference by [`decisions/0003`](../../../decisions/0003-provenance-and-licensing.md)): the
+behaviour reference by [`decisions/0002`](../../../decisions/0002-provenance-and-the-allowed-references.md)): the
 papers give the error analysis, not the threshold.
 
 **The sparse overload takes a `CsrMatrix` and refuses centring.** Subtracting a mean turns every

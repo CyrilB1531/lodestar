@@ -16,9 +16,9 @@ is how the negative binomial (#769) and Gamma (#770) joined.
 
 ## Why this is not a second package
 
-[Decision 0111](../../decisions/0111-the-generalized-linear-model-does-not-earn-its-own-package.md)
+[Decision 0003](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 measured this against the same three criteria
-[decision 0096](../../decisions/0096-ordinary-least-squares-earns-its-own-package.md) gave
+[decision 0003](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) gave
 `Lodestar.Stats.Regression` its own package on — dependency profile, audience, release cadence —
 and found none of them distinct from the OLS half already here. The IRLS loop reuses the
 least-squares core `OrdinaryLeastSquares.Fit` does, through `Internal/LeastSquares.cs`, so the two

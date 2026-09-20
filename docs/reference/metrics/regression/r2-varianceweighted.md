@@ -43,7 +43,7 @@ It is a method rather than a value you could pass as `outputWeights`, because th
 computation's own per-output variances — produced by the same pass as the scores, and not
 recoverable
 from them —
-[decision 0021](../../../decisions/0021-multioutput-is-a-method-not-an-enum.md).
+the multioutput rule.
 
 The trap is that this quietly hides a failing output. An output the model is terrible at, whose
 truth
@@ -56,5 +56,5 @@ much of the total variance in the data the model accounted for.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `R2.Score`, `R2.PerOutput`, `ExplainedVariance.VarianceWeighted`,
-[decision 0021](../../../decisions/0021-multioutput-is-a-method-not-an-enum.md),
+the multioutput rule,
 the [Python equivalence table](../../../equivalence.md).

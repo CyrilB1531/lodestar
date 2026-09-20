@@ -37,7 +37,7 @@ every one of them is a single UTF-16 unit, so there is no code-point mode to cho
 
 **One ending does not agree with the published description**, deliberately. `рискующая` stems to
 `рискующ` and not to `риск`, because `nltk`'s table misspells that one pair of 234 and parity with
-`nltk` is the contract — see [decision 0086](../../../decisions/0086-russian-follows-nltks-table-and-the-descriptions-alphabet.md),
+`nltk` is the contract — see [decision 0006](../../../decisions/0006-the-stemmers-references.md),
 which also names the one place this stemmer does *not* follow `nltk`.
 
 Reference behaviour is `nltk.stem.snowball.SnowballStemmer("russian")`, matched over 291 words.

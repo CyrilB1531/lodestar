@@ -7,7 +7,7 @@ namespace Lodestar.Embeddings.Persistence;
 /// </summary>
 /// <remarks>
 /// See the guide's "Bounds on untrusted files" section for the defaults and a
-/// worked example, and decision 0011 for why this type is declared separately
+/// worked example, and decision 0001 for why this type is declared separately
 /// from <c>Lodestar.Text</c>'s rather than shared.
 /// </remarks>
 public sealed record ArtifactLoadOptions

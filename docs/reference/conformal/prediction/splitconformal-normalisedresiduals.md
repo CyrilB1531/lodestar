@@ -49,7 +49,7 @@ guarantee.
 **A non-positive estimate is refused rather than floored.** MAPIE thresholds at `1e-8`, because its
 own residual model may predict a negative and it has nowhere to send the complaint. Here the
 estimate is your argument, so flooring it would turn a bug into an interval of width `q · 1e-8` —
-which reads as certainty. [Decision 0118](../../../decisions/0118-a-residual-estimate-is-refused-rather-than-floored.md)
+which reads as certainty. the residual-estimate rule
 has the divergence and why.
 
 **The guarantee assumes exchangeability** — see the guide's

@@ -5,7 +5,7 @@ namespace Lodestar.Stats.Internal;
 /// Accuracy still comes from erfc(x) = Q(1/2, x^2): <see cref="Gamma"/>'s continued fraction is
 /// sampled once, at type initialization, into piecewise Chebyshev interpolants of the slowly varying
 /// erfcx(x) = e^(x^2) erfc(x) over y = 4/(4+x), the substitution S. G. Johnson's Faddeeva package
-/// (MIT) uses -- nothing else is shared, ADR 0003. A call runs one polynomial and one exponential.
+/// (MIT) uses -- nothing else is shared, ADR 0002. A call runs one polynomial and one exponential.
 /// Against scipy.special.erfc on 60,001 points over [-6, 27.5] the worst relative gap is 7e-15,
 /// where the iteration alone reached 1e-13.
 /// </remarks>

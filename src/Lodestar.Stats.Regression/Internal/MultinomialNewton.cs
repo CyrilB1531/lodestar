@@ -14,7 +14,7 @@ internal sealed record MultinomialFit(
 /// The reference minimises <c>−loglike/n</c> from zeros, adds <c>1e-10</c> to the diagonal of that function's Hessian
 /// before each solve, and stops once no parameter moves by more than the tolerance. The score and Hessian are the
 /// analytic ones, which is why the fit reproduces at <c>1e-15</c> where the ordered model's numerical ones do not
-/// (decision 0136). The Hessian is factored by Cholesky: a factor that fails is a separated or rank-deficient fit.
+/// (decision 0004). The Hessian is factored by Cholesky: a factor that fails is a separated or rank-deficient fit.
 /// </remarks>
 internal static class MultinomialNewton
 {

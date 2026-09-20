@@ -10,7 +10,7 @@ namespace Lodestar.Fuzzy;
 /// Scores are in <c>[0, 100]</c>, case-sensitive with punctuation kept, as in rapidfuzz. <see cref="Ratio(string, string)"/>
 /// is the Indel similarity ×100, <em>not</em> Levenshtein. By default each scorer compares UTF-16 units and splits
 /// on <see cref="char.IsWhiteSpace(char)"/>; its <see cref="TextElement.CodePoint"/> overload compares code points,
-/// splits on rapidfuzz's whitespace and sorts tokens by code point, as rapidfuzz does (decision 0002, #892). Thread-safe.
+/// splits on rapidfuzz's whitespace and sorts tokens by code point, as rapidfuzz does (decision 0001, #892). Thread-safe.
 /// </remarks>
 public static class Fuzz
 {

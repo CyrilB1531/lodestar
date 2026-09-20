@@ -55,7 +55,7 @@ public sealed class OrdinalEncoder<T>
     /// <remarks>
     /// An unseen category is refused rather than encoded: the reference's own default raises, and its
     /// <c>use_encoded_value</c> needs a value outside the codes that this package has no caller for
-    /// yet (decision 0095's rule).
+    /// yet (decision 0003's rule).
     /// </remarks>
     public double[] Transform(ReadOnlySpan<T> values)
     {

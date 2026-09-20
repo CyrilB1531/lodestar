@@ -14,7 +14,7 @@ namespace Lodestar.Tests.Documentation;
 /// hand-written here, so five checks replace that derivation — an entry per exported type
 /// and public method, a declaration block listing exactly the overloads reflection reports,
 /// every parameter named, Applies to naming the targets, and the Exceptions block agreeing
-/// with the member's own tags (ADR 0038). Each test assembly references a different build,
+/// with the member's own tags. Each test assembly references a different build,
 /// the only way the last of them sees anything.
 /// </remarks>
 internal static class ReferenceDocumentation
@@ -147,7 +147,7 @@ internal static class ReferenceDocumentation
     /// tags rather than net10's. Keyed by the group rather than by the overload, because a page
     /// carries one entry per member name and its Exceptions block covers every overload at once;
     /// an <c>&lt;inheritdoc/&gt;</c> is emitted verbatim and contributes nothing, which the union
-    /// over the group absorbs whenever a sibling overload tags the same type (ADR 0038).
+    /// over the group absorbs whenever a sibling overload tags the same type.
     /// </remarks>
     private static Dictionary<string, HashSet<string>> Tagged(Assembly assembly, List<string> complaints)
     {
@@ -333,7 +333,7 @@ internal static class ReferenceDocumentation
         }
     }
 
-    /// <summary>The two copies of one member's exception set, confronted (#258, ADR 0038).</summary>
+    /// <summary>The two copies of one member's exception set, confronted (#258).</summary>
     /// <remarks>
     /// Compared as sets, not sequences. Measured on #217's own member: the page lists
     /// <c>ArgumentOutOfRangeException</c> before <c>ArgumentException</c> and the docstring the
@@ -963,7 +963,7 @@ internal static class ReferenceDocumentation
     /// <remarks>
     /// The netstandard version is read rather than assumed. Every package contracts on 2.0
     /// except <c>Lodestar.Gpu</c>, whose dependency publishes no such asset and does publish a
-    /// 2.1 one (decision 0103) — and a hard-coded 2.0 told its pages they were wrong about a
+    /// 2.1 one (decision 0003) — and a hard-coded 2.0 told its pages they were wrong about a
     /// framework they named correctly.
     /// </remarks>
     private static string Moniker(Assembly assembly)

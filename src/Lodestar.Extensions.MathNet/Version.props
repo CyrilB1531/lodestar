@@ -2,7 +2,7 @@
 
   <!--
     Lodestar.Extensions.MathNet owns its version here, independently of the other
-    packages (see docs/decisions/0012-per-package-versioning.md).
+    packages (see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
     0.1.0 is this package's first release. It carries one edge, to
     Lodestar.Abstractions, because CsrMatrix is the type it converts — so its

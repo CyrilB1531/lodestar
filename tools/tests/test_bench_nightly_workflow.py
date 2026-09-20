@@ -2,8 +2,8 @@
 
 Issue #464 was first fixed by asking for `workflows: write`. There is no such
 permission scope: GitHub refused the whole file with "Unexpected value 'workflows'",
-which takes a workflow out of service rather than failing one job. Decision 0067 has
-the rest. The first test below is what would have caught it before the merge.
+which takes a workflow out of service rather than failing one job. The publish job's own
+comment in `.github/workflows/bench-nightly.yml` has the rest. The first test below is what would have caught it before the merge.
 """
 
 from __future__ import annotations
@@ -132,7 +132,7 @@ def _measure_step_names(workflow):
 
 
 def test_the_series_is_compared_before_tonight_joins_it_and_against_the_wiki(workflow):
-    # Decision 0126: compare, then record, both between the wiki clone (whose history carries
+    # docs/guides/nightly_run.md: compare, then record, both between the wiki clone (whose history carries
     # unmerged nights) and the wiki publish (which would put tonight into that history).
     names = _measure_step_names(workflow)
     order = [names.index(name) for name in (

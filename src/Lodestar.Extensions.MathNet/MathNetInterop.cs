@@ -15,7 +15,7 @@ namespace Lodestar.Extensions.MathNet;
 /// Both directions move the three compressed-row arrays in one pass over the stored
 /// values, rather than rebuilding a matrix cell by cell: Math.NET's storage is CSR too,
 /// and exposes it. The whole package, and the only conversion neither side can already
-/// do for itself — decision 0089 records why the dense pair is not offered.
+/// do for itself — decision 0003 records why the dense pair is not offered.
 /// </remarks>
 public static class MathNetInterop
 {

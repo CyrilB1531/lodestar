@@ -12,7 +12,7 @@ namespace Lodestar.Metrics.Internal;
 /// numpy sums pairwise; a sequential loop can drift past the oracle's 1e-9
 /// tolerance, and Neumaier's branch — not Kahan's — removes that failure mode
 /// unconditionally. Measured, with the Kahan comparison, in
-/// <c>docs/decisions/0033-compensated-sum-is-neumaiers-variant.md</c> (issue #127).
+/// <c>CompensatedSumTests</c>, against the Kahan reading (issue #127).
 /// </remarks>
 internal struct CompensatedSum
 {
@@ -82,13 +82,13 @@ internal struct StripedCompensatedSum
 #if NET5_0_OR_GREATER
 /// <summary>
 /// <see cref="CompensatedSum"/> per SIMD lane — <see cref="Vector{T}"/> on
-/// <c>net10.0</c> only; see <c>docs/decisions/0001-target-framework.md</c>.
+/// <c>net10.0</c> only; see <c>docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md</c>.
 /// </summary>
 /// <remarks>
 /// Each lane is Neumaier-exact on its own terms; <see cref="Reduce"/> combines
 /// lanes in a different order than a scalar loop, so the two are not
 /// guaranteed bit-identical — both pass the oracle's 1e-9 comparison. See
-/// <c>docs/decisions/0033-compensated-sum-is-neumaiers-variant.md</c>.
+/// Neumaier's own paper.
 /// </remarks>
 internal struct VectorCompensatedSum
 {

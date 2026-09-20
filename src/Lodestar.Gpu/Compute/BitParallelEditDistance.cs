@@ -8,7 +8,7 @@ namespace Lodestar.Gpu.Compute;
 /// <remarks>
 /// The parallelism is <strong>across pairs, not inside one</strong>: Myers already collapses a
 /// dynamic-programming row into one machine word, so a thread runs a whole distance in
-/// registers. That shape is why this is the hardest of the three to clear decision 0102's
+/// registers. That shape is why this is the hardest of the three to clear the GPU gate's
 /// gate — the CPU path it is priced against is bit-parallel too. Written from Myers (1999)
 /// as that path was, and limited to a 64-character pattern: the blocked formulation beyond
 /// that carries state a thread would loop over, which is a second kernel not a wider one.
@@ -28,7 +28,7 @@ public sealed class BitParallelEditDistance
     /// <summary>Loads the kernel onto the accelerator.</summary>
     /// <param name="context">The accelerator to compile for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
-    /// <remarks>Loading compiles, so build this once and reuse it (decision 0102).</remarks>
+    /// <remarks>Loading compiles, so build this once and reuse it (bench/README.md's GPU gate).</remarks>
     public BitParallelEditDistance(GpuContext context)
     {
         Guard.NotNull(context);

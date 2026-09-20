@@ -15,11 +15,11 @@
 
   <!--
     One edge, to a core package, and it is real: the log-rank test's p-value is a
-    chi-squared tail, and decision 0097 published exactly that member for this
+    chi-squared tail, and decision 0003 published exactly that member for this
     package rather than letting a second far-tail approximation into the tree.
 
     PackageReference against the published floor, like every other src/ edge, so the
-    build graph is the graph consumers see (decision 0012). The opt-in below exists only
+    build graph is the graph consumers see (decision 0001). The opt-in below exists only
     so that editing two packages in one branch does not need a pack-and-restore per edit:
 
         export LodestarUseProjectRefs=true

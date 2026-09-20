@@ -8,7 +8,7 @@ public sealed class ArabicSnowballStemmerOracleTests
 {
     private static readonly OracleFile<PorterCase> Corpus = OracleCorpus.Load<PorterCase>("snowball_ar.json");
 
-    /// <summary>Frozen from snowballstemmer rather than nltk — decision 0094.</summary>
+    /// <summary>Frozen from snowballstemmer rather than nltk — decision 0006.</summary>
     [Fact]
     public void Metadata_is_snowballstemmer()
     {

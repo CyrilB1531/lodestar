@@ -35,7 +35,7 @@ internal static class FeatureVocabularyJson
     /// <remarks>
     /// The vocabulary stays plain text, because that is the half of an artifact a
     /// human reads; the idf vector does not, because nobody reads thirty thousand
-    /// floats by eye. See <c>docs/decisions/0011-persistence-format.md</c>, "The
+    /// floats by eye. See <c>docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md</c>, "The
     /// idf vector is base64, and the vocabulary is not", for the measurements and
     /// the exactness argument for raw bits over a decimal formatter.
     /// </remarks>

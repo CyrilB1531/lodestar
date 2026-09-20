@@ -27,14 +27,14 @@
          multi-targeted project goes unanalysed.
 
          AnalysisLevel is pinned rather than `latest` for the reason
-         docs/decisions/0015-sonar-rules-in-the-build.md gives about the
+         CLAUDE.md's analyzer section gives about the
          SonarAnalyzer pin: adding rules to a build where warnings are errors
          breaks it, so the bump must be an edit somebody makes on purpose rather
          than a side effect of CI resolving a newer 10.0.x SDK.
 
          What each area switches back off, and why, is in that area's
          Directory.Build.props. See
-         docs/decisions/0019-the-net-analysers-run-in-the-build-too.md. -->
+         CLAUDE.md's analyzer section. -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>10.0</AnalysisLevel>
     <AnalysisMode>All</AnalysisMode>
@@ -45,15 +45,14 @@
          four places, because the areas reference packages differently: src/ and
          tests/ take it through Central Package Management, while bench/ and
          samples/ have none and name the version on the PackageReference itself.
-         See docs/decisions/0015-sonar-rules-in-the-build.md and
-         docs/decisions/0019-the-net-analysers-run-in-the-build-too.md. -->
+         See CLAUDE.md's "The analyzers gate the build, not the pull request". -->
     <LodestarSonarAnalyzerVersion>10.34.0.3385</LodestarSonarAnalyzerVersion>
 
     <!-- Package identity / provenance (§10). Everything genuinely shared lives
          here; <Version> deliberately does not, because the three packages
          release on independent cadences. Each publishable project declares its
          own in a sibling Version.props — see
-         docs/decisions/0012-per-package-versioning.md. -->
+         docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md. -->
     <Company>Cyril BRUNET</Company>
     <Authors>Cyril BRUNET</Authors>
     <Copyright>Copyright 2026 Cyril BRUNET</Copyright>

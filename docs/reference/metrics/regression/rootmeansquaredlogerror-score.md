@@ -56,5 +56,5 @@ one.
 
 **See also** — `RootMeanSquaredLogError.PerOutput`, `MeanSquaredLogError.Score`,
 `MeanAbsolutePercentageError.Score`,
-[decision 0028](../../../decisions/0028-log1p-is-kahans-identity-not-math-log-1-plus-x.md),
+Kahan's identity,
 the [Python equivalence table](../../../equivalence.md).

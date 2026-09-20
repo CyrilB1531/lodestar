@@ -124,7 +124,7 @@ shared Ω the two implementations agree to **exactly 0.0**, which is what the fr
 `Seed` answers a different question. It makes a run of *this* package repeatable by drawing Ω
 from a generator this package owns, and that generator is not NumPy's — no seed is portable
 between the two ecosystems, and one that looked portable would be the expensive mistake here.
-[ADR 0072](../decisions/0072-omega-is-an-input-not-a-seed.md) records why Ω is an input, the
+[ADR 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md) records why Ω is an input, the
 measurement that makes it affordable, and the two features refused along with the generator:
 `transpose="auto"`, which would swap the products on a matrix with fewer rows than columns, and
 the `nndsvdar` initialisation below.
@@ -196,7 +196,7 @@ are plain lists, and persisting them is the caller's to arrange.
 
 **`nndsvdar`.** scikit-learn's third initialisation fills the zeros from NumPy's Gaussian stream,
 so it cannot be checked against the reference entry by entry — the reason above, and
-[ADR 0072](../decisions/0072-omega-is-an-input-not-a-seed.md) again. `NndSvda` is what it
+[ADR 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md) again. `NndSvda` is what it
 approximates, without the noise.
 
 **A `Transform` for NMF.** Projecting an unseen row onto a non-negative basis is a factorization

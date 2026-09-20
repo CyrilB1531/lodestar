@@ -27,7 +27,7 @@ dropped, CJK ideographs padded, each punctuation character a token of its own, a
 when `lowercase` is set. `café` in an uncased checkpoint is `cafe`, not `[UNK]`. A HuggingFace BERT
 `tokenizer.json` declares the same steps as a `BertPreTokenizer` and a full `BertNormalizer`, which
 [`TokenizerJsonLoader.LoadWordPiece`](tokenizerjsonloader-loadwordpiece.md) still refuses.
-[Decision 0144](../../../decisions/0144-a-vocab-txt-runs-berts-basic-tokenizer.md) has why the
+[Decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md) has why the
 route changed.
 
 The format records nothing but the tokens, so everything else is a parameter —

@@ -5,7 +5,7 @@ namespace Lodestar.Stats.Internal;
 /// Lanczos (1964) for the log-gamma; the series-below / continued-fraction-above split, by
 /// modified Lentz (1976), for the incomplete pair -- except <c>Q</c> at an integer or half-integer
 /// shape, a finite sum (<see cref="HalfIntegerQ"/>), and a large shape near its mean, Temme's
-/// expansion (<see cref="Temme"/>). No reference implementation is transcribed (ADR 0003). The
+/// expansion (<see cref="Temme"/>). No reference implementation is transcribed (ADR 0002). The
 /// upper tail <c>Q</c> is a chi-square p-value: with <c>a = dof/2</c>, <c>x = statistic/2</c>,
 /// <c>Q(a, x)</c> is the probability of a statistic at least this large.
 /// </remarks>

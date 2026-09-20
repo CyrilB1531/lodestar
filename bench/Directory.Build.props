@@ -10,7 +10,7 @@
          CA1303 — a harness prints its own results to the console.
          CA1812 — BenchmarkDotNet instantiates its types by reflection, so an
                   "never instantiated" finding is always wrong here.
-       See docs/decisions/0019-the-net-analysers-run-in-the-build-too.md. -->
+       See CLAUDE.md's analyzer section. -->
   <PropertyGroup>
     <NoWarn>$(NoWarn);CA1707;CA1515;CA1303;CA1812</NoWarn>
   </PropertyGroup>
@@ -18,7 +18,7 @@
   <!-- Benchmarks run the same rules as everything else. There is no Central
        Package Management under bench/, so the version is named here — it still
        comes from the single pin in the root Directory.Build.props. See
-       docs/decisions/0015-sonar-rules-in-the-build.md. -->
+       CLAUDE.md's analyzer section. -->
   <ItemGroup>
     <PackageReference Include="SonarAnalyzer.CSharp" Version="$(LodestarSonarAnalyzerVersion)" PrivateAssets="all" />
   </ItemGroup>

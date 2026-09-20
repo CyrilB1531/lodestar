@@ -9,7 +9,7 @@ name: Benchmark (on demand)
 # What it left is a gap this closes. Until now they ran only on a contributor's own machine,
 # which for some of them is the wrong machine: save-phases measures shares inside one window
 # and those transfer, but heap-warmth compares two processes and its absolutes do not.
-# ADR 0051 withdrew a 1.61x taken on a shared container for exactly that reason. A hosted
+# docs/guides/performance.md withdrew a 1.61x taken on a shared container for exactly that reason. A hosted
 # runner is not quiet either, but it is a second machine, and two disagreeing machines is a
 # result where one is a guess.
 #

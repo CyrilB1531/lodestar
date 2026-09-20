@@ -7,7 +7,7 @@ reach them.
 ## Why only four members
 
 This package computes every tail it needs from its own log-gamma, incomplete beta and incomplete
-gamma, and [`decisions/0081`](../../decisions/0081-the-stats-numerical-layer-stays-internal.md)
+gamma, and [`decisions/0003`](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 kept that layer **internal** — deliberately, and with the condition for changing its mind written
 down: *"publishing later stays possible the day a second package needs the same functions."*
 

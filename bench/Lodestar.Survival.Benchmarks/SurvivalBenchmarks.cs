@@ -13,7 +13,7 @@ namespace Lodestar.Survival.Benchmarks;
 /// The three survival estimators against sample size, and against each other.
 /// </summary>
 /// <remarks>
-/// There is no incumbent to race: decision 0099 records the empty NuGet searches. What
+/// There is no incumbent to race: decision 0002 records the empty NuGet searches. What
 /// is measured instead is the shape of the cost. Ties are a parameter rather than an
 /// accident — the two curves walk one step table, and they part on it: Kaplan-Meier
 /// multiplies once per step, Nelson-Aalen's tie correction sums once per event.

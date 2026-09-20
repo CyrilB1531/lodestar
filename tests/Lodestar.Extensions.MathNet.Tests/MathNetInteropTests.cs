@@ -11,7 +11,7 @@ namespace Lodestar.Extensions.MathNet.Tests;
 /// </summary>
 /// <remarks>
 /// No oracle corpus: there is no Python call this maps to, and the arithmetic is a
-/// copy. What is pinned instead is the invariant gap decision 0087 records —
+/// copy. What is pinned instead is the invariant gap decision 0003 records —
 /// <c>CsrMatrix</c> promises no column order, Math.NET searches the row, so the
 /// unsorted and duplicate-column cases are facts here rather than assumptions.
 /// </remarks>
@@ -80,7 +80,7 @@ public sealed class MathNetInteropTests
     }
 
     /// <summary>
-    /// The fact decision 0087 turns on. <c>CsrMatrix</c> validates four things and the
+    /// The fact decision 0003 turns on. <c>CsrMatrix</c> validates four things and the
     /// order of column indices is not among them, so a hand-built matrix may hand over a
     /// row in any order — and Math.NET reaches a cell by searching that row. Without the
     /// sort this returns zeros for cells that hold values, silently.

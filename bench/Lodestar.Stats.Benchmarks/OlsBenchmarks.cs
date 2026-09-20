@@ -16,7 +16,7 @@ namespace Lodestar.Stats.Benchmarks;
 /// The OLS summary table against Accord.Statistics, the one .NET library that carried it.
 /// </summary>
 /// <remarks>
-/// Decision 0096's reading found this incumbent where the issue expected none, so the
+/// Decision 0003's reading found this incumbent where the issue expected none, so the
 /// comparison is a measurement rather than an explanation of its absence. Accord is
 /// archived (last published 2017) and LGPL-2.1, which bars it from src/ and not from a
 /// benchmark project that ships nothing -- the same footing as StatsBenchmarks beside it.

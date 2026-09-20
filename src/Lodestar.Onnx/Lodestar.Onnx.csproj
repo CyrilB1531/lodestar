@@ -23,7 +23,7 @@
     OnnxTextEmbedder feeds a session with Lodestar.Embeddings' tokenizers, encoding
     options and pooling, so the dependency is real and permanent. Expressed as a
     PackageReference against the published package, like every other src/ edge, so
-    the build graph is the graph consumers see (decision 0012).
+    the build graph is the graph consumers see (decision 0001).
 
     The opt-in below exists only so that editing both packages in one branch does
     not require a pack-and-restore cycle per edit:

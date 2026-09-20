@@ -4,7 +4,7 @@ namespace Lodestar.Metrics.Tests;
 
 /// <summary>
 /// The definition of mean reciprocal rank, clause by clause. There is no corpus behind
-/// this metric — decision 0036 — so these tests are what pins it: a change to any of the
+/// this metric — decision 0005 — so these tests are what pins it: a change to any of the
 /// three choices below fails here rather than drifting into a release.
 /// </summary>
 public sealed class ReciprocalRankTests

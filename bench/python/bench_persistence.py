@@ -165,7 +165,7 @@ def main() -> None:
         measure("tfidf_load", lambda: pickle.loads(artifact), len(artifact)),
         measure("embedding_index_save", lambda: np.save(io.BytesIO(), vectors), len(npy_bytes)),
         # The write counterpart of embedding_index_load_file. Neither side flushes to the
-        # device and np.save pre-sizes nothing either, so the two are matched. ADR 0052.
+        # device and np.save pre-sizes nothing either, so the two are matched. docs/guides/performance.md.
         measure("embedding_index_save_file", lambda: np.save(save_file.name, vectors), len(npy_bytes)),
         measure("embedding_index_load", lambda: np.load(io.BytesIO(npy_bytes)), len(npy_bytes)),
         measure("embedding_index_load_file", lambda: np.load(npy_file.name), len(npy_bytes)),

@@ -4,10 +4,10 @@ namespace Lodestar.Decomposition;
 
 /// <summary>How much of a dense matrix's variance each principal component explains.</summary>
 /// <remarks>
-/// <strong>Not a PCA.</strong> There are no components and no projection here: decision 0116
+/// <strong>Not a PCA.</strong> There are no components and no projection here: decision 0004
 /// delegates both to ML.NET and NumFlat, and this type answers the one question neither answers
 /// below <c>net8.0</c>, which is how many components to keep. Dense by construction, since
-/// centring a <c>CsrMatrix</c> densifies it; decision 0119 says why it lives in this package.
+/// centring a <c>CsrMatrix</c> densifies it; decision 0003 says why it lives in this package.
 /// </remarks>
 public sealed class PrincipalComponentVariance
 {
@@ -114,7 +114,7 @@ public sealed class PrincipalComponentVariance
     /// which are the squared singular values scikit-learn's <c>svd_solver="full"</c> reads, so the
     /// smaller order is the one solved. Forming it squares the condition, as scikit-learn's own
     /// <c>covariance_eigh</c> does for tall blocks; the loss is absolute accuracy near
-    /// <c>ε · λ₁</c>, which no ratio can show. Decision 0119 has the timings that chose it.
+    /// <c>ε · λ₁</c>, which no ratio can show. Decision 0003 has the timings that chose it.
     /// </remarks>
     private static double[] GramEigenvalues(
         ReadOnlySpan<double> matrix, double[] means, int rowCount, int columnCount)

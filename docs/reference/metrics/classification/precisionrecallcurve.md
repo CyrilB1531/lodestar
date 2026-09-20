@@ -12,7 +12,7 @@ nothing positive at all.
 
 Padding the array to match would invent a threshold for that point, and a caller plotting thresholds
 against precision would silently plot one pair too many. The asymmetry is the reference's, and
-[decision 0040](../../../decisions/0040-a-curve-is-a-sealed-class-per-curve.md) keeps it.
+the curve-shape rule keeps it.
 
 ## The area under it is not the average precision
 

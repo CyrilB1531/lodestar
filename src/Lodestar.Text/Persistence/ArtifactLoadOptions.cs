@@ -8,7 +8,7 @@ namespace Lodestar.Text.Persistence;
 /// <remarks>
 /// See the guide's "Reading a file you did not write" section
 /// (<c>docs/guides/vectorization.md</c>) for the defaults and a worked example,
-/// and <c>docs/decisions/0011-persistence-format.md</c> for the <c>pickle.load</c>
+/// and <c>docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md</c> for the <c>pickle.load</c>
 /// comparison and why this type is declared separately from
 /// <c>Lodestar.Embeddings</c>'s rather than shared.
 /// </remarks>

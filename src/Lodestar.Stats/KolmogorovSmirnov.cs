@@ -124,7 +124,7 @@ public static class KolmogorovSmirnov
     /// <remarks>
     /// <c>P(D >= h/n)</c>, summed over the lattice paths that escape the band, as
     /// <c>scipy.stats._stats_py._compute_prob_outside_square</c> computes it (BSD-3, read as a
-    /// behaviour reference under decision 0003). The inner product is taken term by term
+    /// behaviour reference under decision 0002). The inner product is taken term by term
     /// rather than as a ratio of factorials, which is what keeps it inside a double.
     /// </remarks>
     private static double EqualSizeTwoSided(int n, int h)

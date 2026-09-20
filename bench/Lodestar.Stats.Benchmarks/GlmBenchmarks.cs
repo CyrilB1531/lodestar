@@ -24,8 +24,8 @@ namespace Lodestar.Stats.Benchmarks;
 /// The GLM inference table against Accord.Statistics, the one .NET library that carried it.
 /// </summary>
 /// <remarks>
-/// Decision 0111 kept the generalized linear model inside <c>Lodestar.Stats.Regression</c>
-/// rather than a new package, on the same reading decision 0096 did for OLS: Accord is
+/// Decision 0003 kept the generalized linear model inside <c>Lodestar.Stats.Regression</c>
+/// rather than a new package, on the same reading decision 0003 did for OLS: Accord is
 /// archived (last published 2017) and LGPL-2.1, which bars it from src/ and not from a
 /// benchmark project that ships nothing -- the same footing as OlsBenchmarks beside it. The
 /// shapes differ on purpose: a row-major span against the jagged array Accord takes.

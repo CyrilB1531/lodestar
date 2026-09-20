@@ -30,13 +30,13 @@ double large = Distributions.NormalQuantile(0.975);              // => 1.959963�
 
 **Remarks** — these are the members a second package has asked for, and no more: four for
 `Lodestar.Stats.Regression` under
-[`decisions/0095`](../../../decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md),
+[`decisions/0003`](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md),
 the chi-squared tail for a log-rank test under
-[`decisions/0097`](../../../decisions/0097-the-chi-squared-tail-joins-the-published-four.md), and the
+[`decisions/0003`](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md), and the
 normal quantile for that curve's confidence bounds under
-[`decisions/0098`](../../../decisions/0098-the-normal-quantile-is-the-third-member-decision-0095s-rule-publishes.md). The
+[`decisions/0003`](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md). The
 machinery underneath — log-gamma, the incomplete beta and gamma, the normal tail — stays internal;
-[`decisions/0081`](../../../decisions/0081-the-stats-numerical-layer-stays-internal.md) says why,
+[`decisions/0003`](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) says why,
 and the [index page](../tails.md) says what publishing them cost.
 
 **Applies to** — net10.0, netstandard2.0.

@@ -33,7 +33,7 @@ way to tell from the output.
 
 An infinite `quantile` yields the whole line, which is the trivial prediction the calibration size
 forced — see [`Quantile`](splitconformal-quantile.md) and
-[decision 0070](../../../decisions/0070-k-greater-than-n-returns-an-infinite-interval.md). A zero
+[decision 0007](../../../decisions/0007-the-deliberate-divergences.md). A zero
 quantile yields the point back, which happens when every calibration prediction was exact and is
 almost always a leaking split rather than a perfect model.
 

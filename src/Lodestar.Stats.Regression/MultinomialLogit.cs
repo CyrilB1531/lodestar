@@ -8,7 +8,7 @@ namespace Lodestar.Stats.Regression;
 /// <remarks>
 /// A response with more than two unordered categories, each non-reference category getting its own equation against the
 /// smallest label. Fitted by Newton-Raphson on the analytic score and Hessian, which reproduces the reference at
-/// <c>1e-15</c>; the ordered model beside it in <c>statsmodels</c> does not reproduce, and is not written (decision 0136).
+/// <c>1e-15</c>; the ordered model beside it in <c>statsmodels</c> does not reproduce, and is not written (decision 0004).
 /// </remarks>
 public static class MultinomialLogit
 {
