@@ -39,80 +39,37 @@ GraphQL queries; GitHub sunset Projects (classic) in 2024 and that field is now
 an error, whether or not a repository ever had a classic project — this one
 never did.
 
-Measured on 2026-09-11: `gh 2.46.0` (the Ubuntu ESM build) answers
-`gh issue view --comments` and `gh pr view --comments` with
-`GraphQL: Projects (classic) is being deprecated …`, and — the part that costs
-something — `gh pr edit --body-file` prints the same line, **exits without
-applying the edit**, and looks like a warning. The change only landed after
-being re-applied through `gh api --method PATCH`. `gh 2.100.0` does all three
-cleanly.
+The part that costs something is not the error text. `gh pr edit --body-file` prints
+`GraphQL: Projects (classic) is being deprecated …`, **exits without applying the edit**, and looks
+like a warning; `gh issue view --comments` and `gh pr view --comments` fail the same way. The floor
+is **2.73.0**, the first release (2025-05-19) after the last of the three upstream fixes merged on
+2025-05-08 — measured on 2026-09-11 as broken under `gh 2.46.0` and clean under `gh 2.100.0`.
 
-The floor is **2.73.0**, the first release (2025-05-19) after the last of the
-three fixes merged upstream on 2025-05-08 — inferred from merge and release
-dates rather than from a release note, which is why the two versions actually
-measured are named above.
+### The three checks that guard `main`
 
-### Review, with a single maintainer
-
-The project currently has one maintainer, who reviews and merges every pull
-request. That constrains how `main` can be protected. **GitHub does not let you
-approve your own pull request**, so a rule requiring an approving review would
-block every PR here — there would be nobody able to give it.
-
-Protection is therefore built on checks rather than approvals. A repository
-ruleset named **`main protected by checks`** targets the default branch, requires
-a pull request, and requires these three checks to pass before the merge button
-becomes available:
+`main` is protected by a repository ruleset with **no bypass list**. Three checks must pass before
+the merge button becomes available:
 
 | Job | What it guards |
 | --- | --- |
 | `Lint (markdown + C# format)` | markdownlint, `dotnet format --verify-no-changes`, the `tools/tests` suite, that no tracked file holds a machine path, and that the Sonar `.globalconfig` is current |
 | `Oracles are reproducible` | that the committed corpora match a fresh generation |
-| `Build and analyze` | that `Build, test, analyze`, `Sample consumes the packages` and `Guide snippets compile, reference snippets run` all passed. The analysis ran in its own workflow until it shared the first job's build ([#857](https://github.com/CyrilB1531/lodestar/issues/857)); the check keeps the name the ruleset requires, and stands for the two packaging jobs the ruleset does not name — which is what makes the packaging gate and `check_nuspec_dependencies.py` blocking after [#1028](https://github.com/CyrilB1531/lodestar/issues/1028) moved them out of the build job ([#1055](https://github.com/CyrilB1531/lodestar/issues/1055)). `Build, test, analyze` — which packed until [#1028](https://github.com/CyrilB1531/lodestar/issues/1028) and was named for it until [#1073](https://github.com/CyrilB1531/lodestar/issues/1073) — is therefore no longer required by name: this check fails whenever it does |
+| `Build and analyze` | that `Build, test, analyze`, `Sample consumes the packages` and `Guide snippets compile, reference snippets run` all passed |
 
-The ruleset has **no bypass list, and it binds the administrator**. That is
-deliberate: a guard rail the sole maintainer can step over on a tired evening is
-a suggestion. Getting past it means disabling the rule in Settings → Rules, which
-is a visible act with a record, rather than a merge nobody would have noticed.
+There is no approving review to wait for. The project has one maintainer, and GitHub does not let
+anyone approve their own pull request, so protection is built on checks instead —
+[`.github/workflows/README.md`](.github/workflows/README.md) has that reasoning, and a table of
+what each workflow does.
 
-The analysis steps are skipped on Dependabot and fork pull requests, where
-`SONAR_TOKEN` is unreachable; the build and the tests still run there. This is
-also why the required check is this repository's own job and not SonarQube
-Cloud's `SonarCloud Code Analysis`. That one is never posted at all on such a
-pull request, and a required check that never arrives stays pending forever.
+Two things change what you will see on a pull request of your own:
 
-**A pull request that cannot change what the build proves takes a shorter path.** A
-first job, `Changed files`, lists the pull request's files and asks
-[`tools/skip_build.py`](tools/README.md#skip_buildpy) whether every one is either
-Markdown or a workflow the pull-request pipeline does not read — `release.yml`,
-`bench-nightly.yml` and the rest, but **never `ci.yml`**, which is the gate itself and
-is tested by running it. When every file qualifies, `Build, test, analyze`, the sample,
-the oracles, Windows and the analysis are skipped, and `Lint` runs the documentation tests
-instead — 18 `ReferenceDocumentationTests` classes, one per package, read `docs/**/*.md`. It runs them whenever the
-build was skipped **and** a Markdown file moved, which is one file more than "Markdown only": a
-pull request mixing a guide with another workflow skips the build too, and its documentation would
-otherwise be tested by nothing. It runs them without compiling, on the
-net10.0 test binaries `main`'s own run published for the pull request's base commit, with the pull
-request's docs staged beside them by [`tools/stage_doc_inputs.py`](tools/README.md#stage_doc_inputspy);
-only when no such binaries exist does it build the solution. GitHub counts a job
-skipped by its condition as a passed check, and `Build and analyze` accepts the
-skip of `Build, test, analyze` and of the sample only on a classified pull request — naming the
-class it accepted in its log rather than waving a bare `skipped` through — so the three required
-checks are still satisfied. It never accepts a skipped `Guide snippets compile, reference snippets
-run` while a Markdown file moved: a documentation change is exactly what breaks a guide snippet.
-It accepts that skip only when the pull request holds **no Markdown at all**, which is the
-narrower question `skip_build.py --workflows-only` answers — 81 s of that job's 105 is its own
-`pack`, which CONTRIBUTING.md's Definition of done requires, because a snippet that only compiles through a `ProjectReference`
-is not one a reader can run.
-The snippets and the stop-word check run either way. Separately,
-[`tools/format_needed.py`](tools/README.md#format_neededpy) decides whether `Lint`
-runs `dotnet format`: only when a `.cs` or `.csproj` file, or a `.props`,
-`.targets`, `.slnx`, `.editorconfig` or `.globalconfig` file, is in the pull request.
-
-"Require approvals" stays off until a second maintainer joins. Self-merging after
-green checks is the expected flow here, not a shortcut — the pull request still
-earns its keep as the place CI runs against the merge result, and as the record
-of why a change was made.
+- **A fork or a Dependabot pull request skips the analysis steps**, where `SONAR_TOKEN` is
+  unreachable. The build and the tests still run there.
+- **A pull request that changes only Markdown, or only a workflow the pull-request pipeline does
+  not read, skips the build.** When it moved a Markdown file, `Lint` runs the documentation tests
+  in the build's place, against the binaries `main` published for your base commit. The rules are
+  [`tools/skip_build.py`](tools/README.md#skip_buildpy)'s; a skip is accepted only for a pull
+  request classified that way, never a bare `skipped`.
 
 ## Specs and plans
 
@@ -188,9 +145,9 @@ A change is not finished until all of these hold:
    **Exceptions** is checked against the member's own `<exception cref>` tags: the two must name
    the same set of types, in either order, so a `throw` added to a member owes both edits in the
    same commit. The sentence around each type is not compared — *when* it is thrown stays a
-   review question. A namespace still owing that parity is named in the map's
-   `exceptionsUnchecked` list, which only ever shrinks; see
-   the exception-tag gate.
+   review question. A namespace still owing that parity is named in
+   [`docs/wiki-map.json`](docs/wiki-map.json)'s `exceptionsUnchecked` list, which only ever
+   shrinks, and `tests/Shared/ReferenceDocumentation.cs` is the gate that reads it.
 
    A member that has a reference entry is linked to it wherever it is named in prose or in a
    table. Using it obliges the page as well: a member named anywhere on a page — inside a
@@ -204,12 +161,20 @@ A change is not finished until all of these hold:
    GitHub's slug rule, lower-cased with dots dropped, and `ReferenceDocumentationTests` fails
    the build on a row with no link.
 7. **A change to shipped behaviour carries its `CHANGELOG.md` entry**, under the package's
-   heading in `[Unreleased]`, in the shape [Releasing](#releasing) sets: one sentence, the issue
-   and the commit. New public surface, a fixed defect and a measured performance change all
-   qualify; a refusal does not, because it changed nothing a caller can observe — the decision
+   heading in `[Unreleased]`: **one sentence, the issue and the commit — nothing else**. The why
+   lives in the issue and the how in the commit, so an entry carries no rationale, no measurement
+   and no caveat:
+
+   ```markdown
+   - The byte-level decode substitutes U+FFFD instead of throwing. ([#149](https://github.com/CyrilB1531/lodestar/issues/149), [`5948a59`](https://github.com/CyrilB1531/lodestar/commit/5948a59))
+   ```
+
+   An entry whose commit closed no issue keeps the sentence and the commit link alone, rather than
+   a fabricated issue link. New public surface, a fixed defect and a measured performance change
+   all qualify; a refusal does not, because it changed nothing a caller can observe — the decision
    record is where that lives.
 
-   This is item 7 rather than a line under *Releasing* because it was one, and four lots shipped
+   This is item 7 rather than a line beside the release procedure because it was one, and four lots shipped
    without it — including [#450](https://github.com/CyrilB1531/lodestar/issues/450), a whole
    public API. Every other item here is checked by a gate that fails the build; this one is not,
    which is exactly why it needs to be read alongside them rather than at release time.
@@ -218,7 +183,7 @@ A change is not finished until all of these hold:
 dotnet build Lodestar.slnx -c Release
 dotnet test Lodestar.slnx -c Release
 dotnet format Lodestar.slnx --verify-no-changes
-npx markdownlint-cli2 "README.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "bench/README.md"
+npx markdownlint-cli2 "README.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "tools/sonarqube-local/README.md" "bench/README.md" ".github/workflows/README.md"
 ```
 
 Neither `python` nor `python3` is safe to assume on both platforms: Ubuntu 24.04 ships
@@ -296,11 +261,9 @@ Three things are worth knowing before relying on it.
 - **It is not a rehearsal of CI.** It runs the guards and nothing else: not the
   build, not the tests, not the packaging, doc-snippets or reference gates, not
   Sonar. A green commit is not a green pull request.
-- **It runs in about a second, and that is the whole budget.** Measured on one
-  machine over the whole tree: 0.97 s for `check_machine_paths.py`, 0.12 s for
-  `check_comment_length.py`, 0.06 s for `check_version_floor.py`, 0.03 s for
-  `check_sample_culture.py` — **1.18 s** for the four in sequence. Anything that
-  reached `dotnet build` would be uninstalled within a week.
+- **It runs in about a second, and that is the whole budget.** Anything that reached
+  `dotnet build` would be uninstalled within a week.
+  [`tools/README.md`](tools/README.md) has the per-guard figures behind that claim.
 - **It reads the worktree, not the commit.** `git ls-files` reports the index,
   so a newly `git add`ed file *is* checked — which running the scripts by hand
   does not do. Their contents are then read from disk, so a file staged in one
@@ -312,96 +275,22 @@ Four guards CI runs stay out of it: `check_nuspec_dependencies.py` reads the
 commit, which a commit made before a pull request exists has none to name, and
 `check_doc_test_counts.py` reads the `results.xml` files a CI run just wrote.
 
-`check_version_floor.py` needs no exclusion. CI passes it `--check-feed`, which
-reaches nuget.org, and the hook does not — but that is a flag rather than a
-guard, and its two offline rules run in both places. The reasoning, and the
-alternative of adopting `pre-commit` instead, are in
-`tools/README.md`, with
-the two later exclusions in
-`tools/README.md` and
-`tools/README.md`,
-each its own record rather than an edit to 0037.
+`check_version_floor.py` needs no exclusion. CI passes it `--check-feed`, which reaches
+nuget.org, and the hook does not — but that is a flag rather than a guard, and its two offline
+rules run in both places. [`tools/README.md`](tools/README.md) carries each exclusion beside the
+guard it excludes, with the reason.
 
 ## Before pushing: the half the build cannot see
 
 `dotnet build` enforces the Sonar rules that live in `.globalconfig` (see
-[Analyzers](#analyzers) below), but it has no view of three things the quality
-gate on the pull request still judges: the Python rules over `tools/`,
-duplication, and coverage. `tools/sonarqube-local/compose.yaml` runs a disposable
-SonarQube Community server that covers all three, for whoever wants that answer
-before pushing rather than after.
+[Analyzers](#analyzers) below), but it has no view of three things the quality gate on the pull
+request still judges: the Python rules over `tools/`, duplication, and coverage.
 
-```bash
-# POSIX (bash/zsh)
-cd tools/sonarqube-local && docker compose up -d
-# Podman instead of Docker Engine: podman compose up -d
-# Wait for the server rather than sleeping blind:
-until curl -s http://localhost:9000/api/system/status | grep -q '"status":"UP"'; do sleep 5; done
-```
-
-```powershell
-# PowerShell — split, not chained with `&&`, which needs PowerShell 7+
-cd tools/sonarqube-local
-docker compose up -d
-# Podman instead of Docker Engine: podman compose up -d
-# Wait for the server rather than sleeping blind. -ErrorAction SilentlyContinue does not
-# stop Invoke-RestMethod's connection-refused error from aborting a do/until, so this
-# catches it explicitly instead — verified against a port with nothing listening yet:
-while ($true) { try { if ((Invoke-RestMethod http://localhost:9000/api/system/status).status -eq 'UP') { break } } catch { }; Start-Sleep -Seconds 5 }
-```
-
-The figures below were measured with Podman on one machine, which is what makes
-them traceable rather than asserted.
-
-SonarQube Community bundles Elasticsearch, which wants `vm.max_map_count >= 262144`.
-`SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true` in the compose file suppresses the startup
-check, not the underlying requirement, so a container that exits immediately on a
-machine at a lower distribution default (many ship `65530`) needs that raised —
-`sudo sysctl -w vm.max_map_count=262144`, or the persistent form in
-`/etc/sysctl.conf` — before trying again.
-
-Then, from the repository root, with a token created in the local server's UI
-(*My Account → Security*, `local` is a fine name) exported as `SONAR_TOKEN`:
-
-```bash
-dotnet tool install --global dotnet-sonarscanner   # once, if absent
-dotnet sonarscanner begin /k:"datanet-local" \
-  /d:sonar.host.url="http://localhost:9000" /d:sonar.token="$SONAR_TOKEN" \
-  /d:sonar.python.version="3.12" \
-  /d:sonar.exclusions="tests/oracles/**,samples/Lodestar.DocSnippets/Generated/**"
-dotnet build Lodestar.slnx -c Release --no-incremental
-dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
-```
-
-Measured on this machine: the image (`sonarqube:community`, pinned by digest in
-the compose file) is **≈1.4 GB** and took **38 s** to pull. Bringing the
-container up is near-instant (2 s to launch), but the server itself takes
-roughly **56 s** from launch to answering `"status":"UP"`. The three scanner
-commands — `begin`, `dotnet build --no-incremental`, `end` — took **5 s**,
-**39 s** and **31 s** respectively (75 s total) against this repository's
-current size (17 192 lines of code: 13 361 C#, 3 815 Python, 16 XML). The server
-reported **0 findings for C# and 0 for Python** on that run — a clean tree, not
-a light one. Duplication and coverage sensors both ran (2.0% duplicated lines,
-28 duplicated blocks). Coverage reads 0.0% because this run's commands, matching
-the ones above, do not feed it a coverage report — CI's job does.
-
-This is not a rehearsal of the CI analysis in `Build, test, analyze`, and saying otherwise would make
-the document worse than not writing it:
-
-- the Community edition has no branch or pull-request analysis, so the verdict
-  is over the whole project and never over the diff — which is the axis the
-  real gate judges on;
-- the custom `No new issue` gate and its seven conditions are not there — a
-  fresh local server starts with only the default `Sonar way` gate, and this run
-  was evaluated against that one instead;
-- its analyser versions move independently of the server's, so a rule firing
-  (or not) here does not pin down which version fired it on SonarCloud;
-- the Community edition carries no taint-analysis engine, so `PythonSecuritySensor`
-  and its injection-class vulnerabilities (SSRF, path traversal, and the like) are
-  invisible to it — a script that reads an argument into `Path.read_text` or hands
-  one to `urlopen` looks clean here and can still fail the real gate (issue #131).
-
-A finding it reports is real, a clean run promises nothing.
+[`tools/sonarqube-local/`](tools/sonarqube-local/README.md) runs a disposable SonarQube Community
+server that covers all three, for whoever wants that answer before pushing rather than after — with
+the commands, the Elasticsearch trap, what one run cost, and the four reasons it is not a rehearsal
+of the CI analysis. It is optional: nothing in CI uses it, and **a finding it reports is real while
+a clean run promises nothing**.
 
 ## Working across two packages
 
@@ -446,36 +335,9 @@ Two things to keep straight:
   graph that will never ship; benchmark numbers and packaging checks taken there
   describe nothing real.
 
-### Releasing
-
-Versions are declared per package in `src/<Package>/Version.props` and nowhere
-else, and **`main` carries the next revision rather than the published one**: a
-package released at `0.2.0` reads `0.2.1` there, so every branch packs and every
-sample restores a number nuget.org does not hold — it is immutable, and a
-collision makes two different assemblies answer to one identity. A feature pull
-request therefore never touches `Version.props`; it lands on a number already
-ahead of the feed.
-
-To release one: set that file to the version being cut — the number `main`
-carries when the release is a revision, a larger one when the change earns a
-minor or a major — land it on `main`, then tag `<PackageId>/v<Version>` (for
-example `Lodestar.Fuzzy/v0.3.0`). The workflow compares the tag against the
-declared version and refuses to publish if they disagree. The tag chooses
-*which* release to cut; it does not set the number. Add the entry under a
-per-package heading in `CHANGELOG.md`, and close the release issue by bumping
-the revision again, which puts `main` back ahead of the feed.
-
-Each entry is one sentence, the issue and the commit — nothing else. The why
-lives in the issue and the how in the commit; restating either in the
-changelog is the misplacement this shape exists to avoid, so an entry carries
-no rationale, no measurement and no caveat:
-
-```markdown
-- The byte-level decode substitutes U+FFFD instead of throwing. ([#149](https://github.com/CyrilB1531/data.net/issues/149), [`5948a59`](https://github.com/CyrilB1531/data.net/commit/5948a59))
-```
-
-An entry whose commit closed no issue keeps the sentence and the commit link
-alone, rather than a fabricated issue link.
+**A feature pull request never touches `Version.props`.** `main` carries the next revision rather
+than the published one, so the number your branch packs is already ahead of the feed. Moving it is
+the release's act, not the feature's — [`README.md`](README.md#publishing) has how one is cut.
 
 ## Oracle validation
 
@@ -650,8 +512,8 @@ new-code gate either. Ten `xUnit2033` findings reached `main` that way (issue #6
 Those are raised in **`tests/analyzers.globalconfig`**, which is hand-written, named
 explicitly in `tests/Directory.Build.props`, and cannot take the root file's name
 because that one is generated. One rule is raised per measured escape rather than the
-whole `Info` category — `CLAUDE.md`'s analyzer section
-has the options that lost.
+whole `Info` category: raising the category instead would turn every future informational
+diagnostic into a build error nobody chose.
 
 CI's `Lint` job runs the same generator with `--check` on every pull request,
 comparing against the committed file without writing it. A red **`Sonar
@@ -672,9 +534,7 @@ published package — `tools/check_nuspec_dependencies.py` asserts that. The
 version is pinned once, as `$(LodestarSonarAnalyzerVersion)` in the root
 `Directory.Build.props`; raising it will usually surface new rules and therefore
 a cleanup, so treat it as its own change. `AnalysisLevel` is pinned to `10.0`
-for the same reason. See
-`CLAUDE.md`'s analyzer section and
-`CLAUDE.md`'s analyzer section.
+for the same reason.
 
 The command above does not reach `samples/`. The samples are outside
 `Lodestar.slnx` and consume the packages from a local feed, so the analysers read

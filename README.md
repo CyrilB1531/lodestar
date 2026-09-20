@@ -260,6 +260,8 @@ you whether to correct the document itself or something upstream of it.
 | `bench/README.md` | the `bench/` harness projects and scripts, hand-maintained | **how to measure** — the harness, the corpus, the commands |
 | `docs/guides/performance.md` | a benchmark run on a named machine | **what was measured** — every number, with its machine and its window |
 | `tools/README.md` | the scripts under `tools/`, hand-maintained | what each tool does and how to run it |
+| `tools/sonarqube-local/README.md` | one run of the disposable local server, on a named machine | how to run the half of the quality gate no `dotnet build` reaches, and what that run cost |
+| `.github/workflows/README.md` | the workflows in that directory and the repository ruleset, hand-maintained | what the pipeline runs, and what has to be green before `main` accepts a merge |
 | `CONTRIBUTING.md` | the project's own process, hand-maintained | the process a contributor follows |
 | `CLAUDE.md` | what a session has found, hand-maintained | what a session needs to be productive, and the traps that cost time |
 | `docs/equivalence.md` | the oracle corpora in `tests/oracles/*.json`, replayed against the C# they compare | the Python call to C# counterpart mapping, with each divergence |
@@ -290,13 +292,27 @@ is declared per project in `src/<Package>/Version.props`. `Lodestar.Fuzzy` depen
 on `Lodestar.Text` as a published package, not as a project reference — see
 [`docs/decisions/0001`](docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
+**`main` carries the next revision rather than the published one.** A package released at
+`0.2.0` reads `0.2.1` in its `Version.props`, so every branch packs and every sample restores a
+number nuget.org does not hold — a version on the feed is immutable, and a collision would make two
+different assemblies answer to one identity. A feature pull request therefore never touches
+`Version.props`: it lands on a number already ahead of the feed.
+
+To cut a release, set that file to the version being cut — the number `main` already carries when
+the release is a revision, a larger one when the change earns a minor or a major — and land it on
+`main`. Add the entry under the package's heading in
+[`CHANGELOG.md`](CHANGELOG.md), in the shape
+[`CONTRIBUTING.md`](CONTRIBUTING.md#definition-of-done)'s item 7 sets. Then tag. Afterwards, close
+the release issue by bumping the revision again, which puts `main` back ahead of the feed.
+
 **GitHub Packages** (no nuget.org account needed — uses GitHub's automatic token).
 Bump the version, then tag it with the package name. The
 [`release`](.github/workflows/release.yml) workflow packs and publishes that
 package alone:
 
 ```bash
-# 1. edit src/Lodestar.Fuzzy/Version.props, commit, merge to main
+# 1. src/Lodestar.Fuzzy/Version.props declares the version being cut — already true
+#    for a revision; edit, commit and merge to main for a minor or a major
 # 2. tag the released version — <PackageId>/v<Version>
 git tag Lodestar.Fuzzy/v0.3.0
 git push origin Lodestar.Fuzzy/v0.3.0
@@ -306,12 +322,12 @@ The tag does not set the version; it names which declared version to release. Th
 workflow refuses the job if the tag and `Version.props` disagree. Repository-wide
 `v*` tags are retired — there is no single version left for one to designate.
 
-**Step 1 is not optional.** Because the tag only confirms the declared version,
-tagging without bumping first is a tag that agrees with `Version.props` and names
-a version the feed already has. The push is then rejected rather than absorbed.
-The workflows do not pass `--skip-duplicate`, which used to report that case as a
-successful release that shipped nothing. Keeping a declared version off the feed
-is also checked directly in CI by `tools/check_version_floor.py`.
+**Step 1 is what decides the number.** A revision needs no edit — `main` already carries the next
+one — but a minor or a major does, and tagging before that edit gives a tag the workflow refuses,
+because it disagrees with the version `Version.props` declares. Re-tagging a version the feed
+already holds is rejected rather than absorbed: the workflows do not pass `--skip-duplicate`, which
+used to report that case as a successful release that shipped nothing. That a declared version is
+still off the feed is checked directly in CI by `tools/check_version_floor.py`.
 
 To consume them, add a source pointing at the owner's feed (with a GitHub token
 that has `read:packages`):

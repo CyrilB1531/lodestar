@@ -8,6 +8,8 @@ is_global = true
 # gate -- which is on new code -- does not fail on an imported INFO code smell either.
 # Ten of them reached main that way (#690). Raised here rather than in the root file
 # because it is a test-only rule and because tools/generate_sonar_globalconfig.py
-# rewrites that file wholesale. See docs/decisions/0112.
+# rewrites that file wholesale. One rule is raised per measured escape rather than the
+# whole Info category, which would turn every future informational diagnostic into a
+# build error nobody chose -- CONTRIBUTING.md's Analyzers section has that reasoning.
 
 dotnet_diagnostic.xUnit2033.severity = warning
