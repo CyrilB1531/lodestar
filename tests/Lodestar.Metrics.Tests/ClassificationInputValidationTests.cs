@@ -3,7 +3,7 @@ using Xunit;
 namespace Lodestar.Metrics.Tests;
 
 /// <summary>
-/// What scikit-learn 1.9.0 refuses in a classification metric's weights and decisions,
+/// What scikit-learn 1.9.1 refuses in a classification metric's weights and decisions,
 /// each sentence measured against the reference rather than read off its source (#890).
 /// </summary>
 public sealed class ClassificationInputValidationTests

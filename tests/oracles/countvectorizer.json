@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "CountVectorizer",
   "library": "scikit-learn",
-  "library_version": "1.9.0",
+  "library_version": "1.9.1",
   "reference_calls": [
    "sklearn.feature_extraction.text.CountVectorizer"
   ],

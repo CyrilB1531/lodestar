@@ -44,7 +44,7 @@ clusterings of different sizes fairly. Reach for
 [`AdjustedMutualInformation.Score`](adjustedmutualinformation-score.md) across datasets instead.
 
 **One divergence from scikit-learn, deliberate.** `mutual_info_score([], [])` raises
-`ValueError` in scikit-learn 1.9.0 — a `log(0)` inside an unguarded logarithm, not a documented
+`ValueError` in scikit-learn 1.9.1 — a `log(0)` inside an unguarded logarithm, not a documented
 refusal. This method returns `0` there instead, matching every sibling clustering metric, which
 all treat an empty input as a case rather than an error.
 [Decision 0007](../../../decisions/0007-the-deliberate-divergences.md) has

@@ -323,7 +323,7 @@ internal static class BinaryRoc
         /// <remarks>
         /// <c>Sum (R_n - R_(n-1)) * P_n</c>, deliberately not the trapezoid, which reads
         /// two thresholds apart as if the curve were linear between them: measured on
-        /// scikit-learn 1.9.0, y_true = [0, 0, 1, 1] against y_score = [0.1, 0.4, 0.35,
+        /// scikit-learn 1.9.1, y_true = [0, 0, 1, 1] against y_score = [0.1, 0.4, 0.35,
         /// 0.8] sums to 0.8333333333333333 where the trapezoid gives 0.7916666666666666.
         /// Dividing by the positive weight waits until the end -- every recall step
         /// shares that denominator, so once is the reference's own <c>tps / tps[-1]</c>.
@@ -352,7 +352,7 @@ internal static class BinaryRoc
             }
 
             // No positive sample: scikit-learn warns that recall is taken as one for
-            // all thresholds and returns 0.0, measured on 1.9.0. Dividing would be 0/0.
+            // all thresholds and returns 0.0, measured on 1.9.1. Dividing would be 0/0.
 #pragma warning disable S1244
             return truePositives == 0.0 ? 0.0 : sum / truePositives;
 #pragma warning restore S1244
@@ -365,7 +365,7 @@ internal static class BinaryRoc
             // score column are bit-identical doubles, and grouping them is the
             // whole point. scikit-learn's _binary_clf_curve locates its own
             // thresholds the same way — nonzero(diff(y_score)) at
-            // sklearn/metrics/_ranking.py:917, scikit-learn 1.9.0. A tolerance
+            // sklearn/metrics/_ranking.py:917, scikit-learn 1.9.1. A tolerance
             // would merge scores that are genuinely distinct and change the
             // curve — the approximate version is the wrong answer here, not a
             // safer one.

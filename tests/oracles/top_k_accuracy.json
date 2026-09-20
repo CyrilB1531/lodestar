@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "TopKAccuracy",
   "library": "scikit-learn",
-  "library_version": "1.9.0",
+  "library_version": "1.9.1",
   "reference_calls": [
    "sklearn.metrics.top_k_accuracy_score",
    "sklearn.metrics.top_k_accuracy_score(normalize=False)",

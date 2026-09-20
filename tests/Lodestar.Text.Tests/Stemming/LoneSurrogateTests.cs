@@ -6,7 +6,7 @@ namespace Lodestar.Text.Tests.Stemming;
 
 /// <summary>
 /// An unpaired surrogate used to make <c>string.Normalize</c> throw inside the stemmers and the
-/// accent stripping (#880). Expected values are nltk 3.10.3 and scikit-learn 1.9.0 on the same
+/// accent stripping (#880). Expected values are nltk 3.10.3 and scikit-learn 1.9.1 on the same
 /// strings, whose <c>unicodedata.normalize</c> keeps a lone surrogate in place.
 /// </summary>
 public sealed class LoneSurrogateTests

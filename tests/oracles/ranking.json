@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "Ranking",
   "library": "scikit-learn",
-  "library_version": "1.9.0",
+  "library_version": "1.9.1",
   "reference_calls": [
    "sklearn.metrics.dcg_score",
    "sklearn.metrics.dcg_score(k=..., log_base=..., ignore_ties=...)",

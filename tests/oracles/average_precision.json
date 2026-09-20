@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "AveragePrecision",
   "library": "scikit-learn",
-  "library_version": "1.9.0",
+  "library_version": "1.9.1",
   "reference_calls": [
    "sklearn.metrics.average_precision_score",
    "sklearn.metrics.auc",

@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "AgglomerativeClustering",
   "library": "scikit-learn",
-  "library_version": "1.9.0",
+  "library_version": "1.9.1",
   "reference_calls": [
    "sklearn.cluster.AgglomerativeClustering(n_clusters=..., linkage=..., compute_distances=True)",
    "sklearn.cluster.AgglomerativeClustering(n_clusters=None, distance_threshold=...)"

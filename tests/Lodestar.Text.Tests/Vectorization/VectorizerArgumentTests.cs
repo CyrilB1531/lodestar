@@ -100,7 +100,7 @@ public sealed class VectorizerArgumentTests
     public void A_zero_first_ngram_length_adds_the_empty_term_at_every_position_plus_one()
     {
         // "the cat eats" keeps three tokens and the zero-length slice is taken at each of the four
-        // positions; Max = 1 skips the slicing for words, so (0, 1) is (1, 1). Measured on 1.9.0.
+        // positions; Max = 1 skips the slicing for words, so (0, 1) is (1, 1). Measured on 1.9.1.
         var zeroToTwo = new CountVectorizer(new CountVectorizerOptions { NgramRange = (0, 2) });
 
         double[,] counts = zeroToTwo.FitTransform(["the cat eats"]).ToDense();

@@ -1,7 +1,7 @@
 # Which metric? — evaluating a model with `Lodestar.Metrics`
 
 `Lodestar.Metrics` reproduces `sklearn.metrics`: 44 types and 58 documented members
-across four families, at parity with scikit-learn 1.9.0 and with no Python at runtime.
+across four families, at parity with scikit-learn 1.9.1 and with no Python at runtime.
 
 The [reference pages](../reference/metrics/classification.md) answer *what does this function do* — one
 page per member, checked against the assembly. They cannot answer **which one to

@@ -14,7 +14,7 @@ public static class AdjustedRand
     /// <returns><c>1</c> for the same partition however it is named, <c>0</c> for the agreement chance gives, and negative below that.</returns>
     /// <remarks>
     /// The label values carry no meaning: only which samples share one does, so renaming every
-    /// cluster changes nothing. Measured against scikit-learn 1.9.0, two independent partitions of
+    /// cluster changes nothing. Measured against scikit-learn 1.9.1, two independent partitions of
     /// four samples score <c>-0.5</c> rather than <c>0</c>, and an empty input scores <c>1.0</c> —
     /// agreeing about nothing is agreeing. The reference page has the rest of that table.
     /// </remarks>

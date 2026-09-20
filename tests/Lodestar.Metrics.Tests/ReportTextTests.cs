@@ -49,7 +49,7 @@ public sealed class ReportTextTests
     /// so scikit-learn's own "was anything predicted correctly at all" check
     /// still finds tp_bins non-empty and prints integers, not floats, although
     /// <see cref="ClassificationReport.Accuracy"/> over the requested labels is
-    /// 0.0. Confirmed against scikit-learn 1.9.0 (re-run in commit 2599fa1f).
+    /// 0.0. Confirmed against scikit-learn 1.9.1; first re-run in commit 2599fa1f.
     /// </summary>
     [Fact]
     public void Support_stays_integral_when_a_correct_prediction_falls_outside_the_requested_labels()

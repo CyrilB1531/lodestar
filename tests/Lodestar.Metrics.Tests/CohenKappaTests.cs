@@ -176,7 +176,7 @@ public sealed class CohenKappaTests
         double[] weights = [1.0, -1.0];
 
         Assert.Equal(0.0, CohenKappa.Score(yTrue, yPred, zeroDivision: ZeroDivision.Zero, sampleWeight: weights));
-        // Measured: cohen_kappa_score([0, 1], [0, 1], sample_weight=[1, -1]) is nan in 1.9.0.
+        // Measured: cohen_kappa_score([0, 1], [0, 1], sample_weight=[1, -1]) is nan in 1.9.1.
         Assert.True(double.IsNaN(CohenKappa.Score(yTrue, yPred, sampleWeight: weights)));
         Assert.Throws<UndefinedMetricException>(
             () => CohenKappa.Score(yTrue, yPred, zeroDivision: ZeroDivision.Throw, sampleWeight: weights));

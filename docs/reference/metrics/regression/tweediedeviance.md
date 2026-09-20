@@ -9,7 +9,7 @@ caller need not know that.
 ## The power picks a distribution, and each has its own domain
 
 The deviance's formula and the inputs it will accept both change with the power. This is the whole
-content of the family, and every boundary below is measured against scikit-learn 1.9.0 rather than
+content of the family, and every boundary below is measured against scikit-learn 1.9.1 rather than
 inferred:
 
 | `power` | distribution | `yTrue` | `yPred` |

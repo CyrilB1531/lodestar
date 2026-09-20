@@ -81,7 +81,7 @@ internal static class Partition
     /// <summary>scikit-learn's own bound on how many clusters a validity score can read.</summary>
     /// <remarks>
     /// One cluster leaves nothing to compare against, and one cluster per sample
-    /// leaves nothing inside one. Measured on 1.9.0: silhouette, Calinski-Harabasz
+    /// leaves nothing inside one. Measured on 1.9.1: silhouette, Calinski-Harabasz
     /// and Davies-Bouldin refuse both, with the sentence reproduced here.
     /// </remarks>
     /// <exception cref="ArgumentException">The count is outside <c>[2, samples - 1]</c>.</exception>

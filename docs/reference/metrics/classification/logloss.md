@@ -12,7 +12,7 @@ honest, and it is the one to read before choosing a threshold.
 
 A predicted `0` for the class that actually occurred would make the logarithm infinite, so the
 reference clips every probability into `[eps, 1 - eps]`. **That bound is machine epsilon,
-`2.220446049250313e-16`** — measured against scikit-learn 1.9.0 rather than assumed, because it has
+`2.220446049250313e-16`** — measured against scikit-learn 1.9.1 rather than assumed, because it has
 changed across versions, and it is what decides the number in exactly the cases a caller cares about.
 
 Three consequences worth knowing:

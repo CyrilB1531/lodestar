@@ -48,7 +48,7 @@ or less is what scikit-learn calls a Python slice with, so it adds an empty-stri
 zero-length slice, taken at every position and so counted once per unit plus one — and a negative
 `Min` counts back from the end, `(-1, 1)` asking a character analyzer for the document but its
 last character. `AnalyzerKind.Word` at `Max = 1` is the one shortcut that skips the slicing
-entirely, so `(0, 1)` is `(1, 1)` there and adds nothing. Measured against scikit-learn 1.9.0,
+entirely, so `(0, 1)` is `(1, 1)` there and adds nothing. Measured against scikit-learn 1.9.1,
 term for term, and frozen in the oracle corpus.
 
 This is a `record`, so two options objects with the same settings are equal. `StopWords` is

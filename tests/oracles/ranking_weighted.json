@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "RankingWeighted",
   "library": "scikit-learn",
-  "library_version": "1.9.0",
+  "library_version": "1.9.1",
   "reference_calls": [
    "sklearn.metrics.dcg_score(sample_weight=...)",
    "sklearn.metrics.ndcg_score(sample_weight=...)"

@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "ClassificationMetrics",
   "library": "scikit-learn",
-  "library_version": "1.9.0",
+  "library_version": "1.9.1",
   "reference_calls": [
    "sklearn.metrics.accuracy_score",
    "sklearn.metrics.confusion_matrix",
