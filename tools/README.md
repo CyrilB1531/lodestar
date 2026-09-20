@@ -63,6 +63,8 @@ given:
   that already carries such a citation are exempt.
 - `check_spec_status.py` refuses a spec that does not say when it was written, and
   a plan that is committed at all.
+- `check_performance_sections.py` refuses a performance-guide section that names no
+  incumbent, no machine or no window, and any table column named after a branch.
 - `check_comment_length.py` refuses a comment block that runs past its budget
   without saying why.
 - `check_no_console_writeline.py` refuses a `Console` call in a shipped package,
@@ -987,6 +989,30 @@ is after behind a lifecycle word every spec would carry alike. The name is check
 on the same pass, against CLAUDE.md's
 [*Workflow*](../CLAUDE.md#workflow): `<date>_<issue padded to four>_<kebab
 slug>.md`, with an optional letter for a second spec on one issue.
+
+## `check_performance_sections.py`
+
+Refuses a section of `docs/guides/performance.md` that is not a comparison. Four
+rules: every `##` names a package under `src/`; every `###` carries a machine and a
+window; every `###` names an incumbent from `INCUMBENTS` or sits in `EXEMPT` with
+its reason; and **no table column is named after a branch or a revision** —
+`before`, `after`, `main`, `fix`, `origin/main`, `this branch`, `A1 / A2`.
+
+```bash
+python3 tools/check_performance_sections.py
+```
+
+The fourth rule is the one the guard exists for. A before/after is an argument
+about one commit and belongs in the pull request that made it
+([#1106](https://github.com/CyrilB1531/lodestar/issues/1106) took the guide from 5,382
+lines to 1,696), but it is not recognisable from its prose — every
+optimisation writes "faster". It is recognisable from its columns, and the match
+is a word inside the header cell rather than the whole cell, because the shapes
+that got there spell it out: `main`, A1 / A2; Allocated before; Lodestar after.
+Three sections are exempt, each because its comparison is real and has no
+third-party side: `Lodestar.Gpu`'s kernels against this repository's own CPU paths,
+the batched-embedding section, whose subject is that the ratio is an upper bound,
+and the BK-tree against the length-filtered scan a caller would otherwise write.
 
 ## `check_adr_immutable.py`
 

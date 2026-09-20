@@ -134,7 +134,7 @@ internal static class JsonArtifact
     /// The growable <see cref="MemoryStream"/> this replaces doubled into fresh zeroed arrays, so a
     /// 20 MB payload paid ~40 MB of allocation, page commits and copies of everything read so far —
     /// ~13 ms over the inflate on a gzip-wrapped index. Segments are never copied until the length is
-    /// known, and then once. docs/guides/performance.md is the record, amending 0054's carve-out for this path.
+    /// known, and then once.
     /// </remarks>
     private static Buffers.RentedPayload ReadGrowablePooled(Stream stream, in ArtifactLimits limits)
     {

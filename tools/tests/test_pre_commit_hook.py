@@ -71,10 +71,10 @@ LOOP = re.compile(r"^for guard in(.*?)^do$", re.MULTILINE | re.DOTALL)
 # CONTRIBUTING.md's two sentences, each anchored on its own opening words and taken
 # to the end of its paragraph. Rewording either is what the failure message asks for.
 CONTRIBUTING_LIST = re.compile(
-    r"^`\.githooks/pre-commit` then runs the (\w+) offline guards(.*?)(?=\n\n)",
+    r"^`\.githooks/pre-commit` then runs the ([\w-]+) offline guards(.*?)(?=\n\n)",
     re.MULTILINE | re.DOTALL)
 CONTRIBUTING_EXCLUSIONS = re.compile(
-    r"^(\w+) guards CI runs stay out of it:(.*?)(?=\n\n)", re.MULTILINE | re.DOTALL)
+    r"^([\w-]+) guards CI runs stay out of it:(.*?)(?=\n\n)", re.MULTILINE | re.DOTALL)
 
 # The prose spells its counts, so the comparison needs the words. Only the range a
 # guard list can reach; test_adr_count_coherence.py has the parser that goes higher.
@@ -82,7 +82,8 @@ NUMBER_WORDS = {
     "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
     "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
     "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
-    "nineteen": 19, "twenty": 20,
+    "nineteen": 19, "twenty": 20, "twenty-one": 21, "twenty-two": 22,
+    "twenty-three": 23, "twenty-four": 24, "twenty-five": 25,
 }
 IN_WORDS = {value: word for word, value in NUMBER_WORDS.items()}
 
@@ -183,7 +184,7 @@ def test_the_hook_is_checked_out_with_unix_line_endings():
 
 
 def test_the_hook_comment_states_the_number_of_guards_the_loop_runs():
-    comment = re.search(r"^# The (\w+) offline guards,", hook_text(), re.MULTILINE)
+    comment = re.search(r"^# The ([\w-]+) offline guards,", hook_text(), re.MULTILINE)
     assert comment, (
         "the opening comment of .githooks/pre-commit no longer reads `# The <n> offline "
         "guards,`. It is the first thing a reader of the hook believes, so it states the "

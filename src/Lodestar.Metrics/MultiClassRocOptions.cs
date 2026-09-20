@@ -49,8 +49,7 @@ public readonly ref struct MultiClassRocOptions
     /// </summary>
     /// <remarks>
     /// Bit-identical at any setting; above 1 the inputs are copied. No sentinel
-    /// for "all cores": write <see cref="Environment.ProcessorCount"/>. Argued
-    /// in <c>docs/guides/performance.md</c>.
+    /// for "all cores": write <see cref="Environment.ProcessorCount"/>. Argued in #86.
     /// </remarks>
     public int MaxDegreeOfParallelism { get; init; }
 }

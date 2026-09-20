@@ -88,7 +88,7 @@ public static class Accuracy
     /// <summary>How many positions hold the same label in both spans, with no branch per sample.</summary>
     /// <remarks>
     /// A branch on the comparison mispredicts as often as the classifier errs, measured 3.1 ms
-    /// against 2.0 ms at a million samples of ten classes and of two (docs/guides/performance.md).
+    /// against 2.0 ms at a million samples of ten classes and of two.
     /// </remarks>
     private static long CountEqual(ReadOnlySpan<int> yTrue, ReadOnlySpan<int> yPred)
     {

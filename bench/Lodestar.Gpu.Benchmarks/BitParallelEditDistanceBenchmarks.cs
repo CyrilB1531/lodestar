@@ -20,7 +20,7 @@ namespace Lodestar.Gpu.Benchmarks;
 /// point.</strong> Myers collapses a dynamic-programming row into one machine word on either
 /// side, so the CPU already spends tens of nanoseconds on a short pair and the accelerator has
 /// to amortise a renaming, two transfers and a launch on top of that. A failed gate is a row in
-/// performance.md and a kernel that does not ship, which is worth more to the next reader than
+/// the guide and a kernel that does not ship, which is worth more to the next reader than
 /// an absence. Read <c>Accelerator</c> before believing any figure here.
 /// </remarks>
 [MemoryDiagnoser]

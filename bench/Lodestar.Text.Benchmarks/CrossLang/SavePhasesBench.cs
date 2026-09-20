@@ -14,7 +14,7 @@ namespace Lodestar.Text.Benchmarks.CrossLang;
 /// Each row is a strict subset of the one above, so the shares subtract rather than needing to
 /// be argued, and <c>base64_encode</c> against <c>block_copy_floor</c> is the comparison the
 /// whole lot turned on. Medians and the spread of every run, not a best-of: a best-of hides the
-/// drift a shared machine introduces. docs/guides/performance.md is what this measured.
+/// drift a shared machine introduces.
 /// </remarks>
 internal static class SavePhasesBench
 {

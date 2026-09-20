@@ -15,7 +15,7 @@ internal static class Cholesky
     /// <remarks>
     /// The factor's cost is its inner products, <c>n³/6</c> of them, taken through <see cref="Reflections.Dot"/>'s
     /// unrolled loop: the whole fit ran 2.2× faster at 500 and 1,000 rows than with the indexed loop it replaced,
-    /// measured A/B/A (#771, performance.md).
+    /// measured A/B/A (#771).
     /// </remarks>
     public static bool TryFactor(ReadOnlySpan<double> matrix, int order, out double[] lower)
     {

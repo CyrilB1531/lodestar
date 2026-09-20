@@ -95,8 +95,8 @@ internal static class Base64Numbers
     /// value straight to <paramref name="destination"/>, encoding it a slice at a time.
     /// </summary>
     /// <remarks>
-    /// Why slices rather than one <c>WriteBase64String</c> call, and what it was worth, is
-    /// <see href="docs/guides/performance.md">docs/guides/performance.md</see>.
+    /// Why slices rather than one <c>WriteBase64String</c> call: the writer then never holds more
+    /// than the head of the block, where the single call holds all of it (#432).
     /// The invariant that keeps the output byte-identical lives on <see cref="SliceBytes"/>. The
     /// caller must have flushed the writer and write the rest itself: nothing may go through the <c>Utf8JsonWriter</c> after this.
     /// </remarks>

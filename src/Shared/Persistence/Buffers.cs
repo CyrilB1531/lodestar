@@ -34,7 +34,7 @@ internal static class Buffers
     /// <summary>A payload buffer and the exact bytes that were read into it.</summary>
     /// <remarks>
     /// The rent and the return live together so no call site can hold one without the
-    /// other, the way <c>ArtifactIo.SaveWithBlock</c> owns the writer sequence (docs/guides/performance.md).
+    /// other, the way <c>ArtifactIo.SaveWithBlock</c> owns the writer sequence.
     /// <see cref="Memory"/> is sliced to what was read, never to the buffer: a rented array
     /// is at least as long as asked and <b>its tail holds the previous artifact</b>.
     /// A payload that could not be rented against is carried here too, owning nothing, so

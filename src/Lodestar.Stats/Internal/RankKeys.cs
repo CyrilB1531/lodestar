@@ -14,7 +14,7 @@ internal static class RankKeys
     private const int Digits = 64 / DigitBits;
 
     // Per pair of equal samples on a Ryzen 7 8700G: the radix loses at 2,048 (51 us against
-    // Array.Sort's 40) and wins at 4,096 (100 against 181); docs/guides/performance.md.
+    // Array.Sort's 40) and wins at 4,096 (100 against 181).
     private const int RadixThreshold = 3_072;
 
     /// <summary>A key whose unsigned order is the numeric order of a non-<c>NaN</c> double.</summary>

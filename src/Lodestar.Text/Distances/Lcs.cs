@@ -23,7 +23,7 @@ public static class Lcs
     /// The Latin-1 crossing, measured over bands the corpus could not reach until #409:
     /// the kernel is already 24% ahead at a band of 2, which is this sweep's floor. It
     /// governs the dense path only — <c>BitParallelLcs.WideMinPatternLength</c> is where
-    /// a pattern above Latin-1 crosses, four bands later (#411, docs/guides/performance.md).
+    /// a pattern above Latin-1 crosses, four bands later (#411).
     /// </remarks>
     private const int BitParallelMinPatternLength = 2;
 

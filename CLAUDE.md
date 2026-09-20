@@ -24,7 +24,7 @@ it.
 | document | its source | its subject |
 | --- | --- | --- |
 | `bench/README.md` | the `bench/` harness projects and scripts, hand-maintained | **how to measure** — the harness, the corpus, the commands |
-| `docs/guides/performance.md` | a benchmark run on a named machine | **what was measured** — every number, with its machine and its window |
+| `docs/guides/performance.md` | a benchmark run on a named machine | **what was measured** — one comparison per capability against the incumbent, each number with its machine and its window; a before/after belongs in the pull request that made it |
 | `tools/README.md` | the scripts under `tools/`, hand-maintained | what each tool does and how to run it |
 | `tools/sonarqube-local/README.md` | one run of the disposable local server, on a named machine | how to run the half of the quality gate no `dotnet build` reaches, and what that run cost |
 | `.github/workflows/README.md` | the workflows in that directory and the repository ruleset, hand-maintained | what the pipeline runs, and what has to be green before `main` accepts a merge |
