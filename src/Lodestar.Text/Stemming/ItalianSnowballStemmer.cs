@@ -175,7 +175,7 @@ public static class ItalianSnowballStemmer
             new(S1Logia, n => ReplaceIfInR2(n, "log")),
             new(S1Uzione, n => ReplaceIfInR2(n, "u")),
             // enza/enze -> "te", not the published "ente": nltk is the corpus's
-            // reference here, not the description — see decision 0008.
+            // reference here, not the description — see decision 0006.
             new(S1Enza, n => ReplaceIfInR2(n, "te")),
             // The only step-1 group gated on RV rather than R2.
             new(S1Amento, DeleteIfInRv),

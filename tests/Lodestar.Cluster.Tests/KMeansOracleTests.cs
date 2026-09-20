@@ -9,7 +9,7 @@ namespace Lodestar.Cluster.Tests;
 /// </summary>
 /// <remarks>
 /// Every case passes the starting centres, so what is under test is Lloyd and not a draw —
-/// decision 0072's move, applied here. Each case is chosen for a branch: strict convergence,
+/// decision 0004's move, applied here. Each case is chosen for a branch: strict convergence,
 /// an empty cluster, two emptied at once, a run cut short by <c>max_iter</c>, a zero tolerance, and a stop on the
 /// scaled shift.
 /// </remarks>

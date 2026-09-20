@@ -53,7 +53,7 @@ Levenshtein.Distance("a\U0001F600", "a", TextElement.CodePoint); // 1 (like Pyth
 ```
 
 This is Unicode pitfall #1 when porting from Python; it's documented in detail in
-[`../decisions/0002-unicode-comparison-unit.md`](../decisions/0002-unicode-comparison-unit.md).
+[`../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md`](../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
 ## Next
 

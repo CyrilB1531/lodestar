@@ -5,7 +5,7 @@ namespace Lodestar.Preprocessing;
 /// The unshuffled splitters are scikit-learn's fold for fold. A shuffled one takes the permutation as an argument
 /// rather than a seed: the rows are read in that order, so a caller who passes scikit-learn's own permutation gets
 /// <c>KFold</c>'s and <c>ShuffleSplit</c>'s shuffled splits, and one who passes their own gets a split this package can
-/// describe without claiming a generator it does not share (decision 0132). <c>StratifiedKFold(shuffle=True)</c> shuffles
+/// describe without claiming a generator it does not share (decision 0004). <c>StratifiedKFold(shuffle=True)</c> shuffles
 /// each class's fold list rather than the rows, so no permutation reproduces it.
 /// </remarks>
 public static class Splitters

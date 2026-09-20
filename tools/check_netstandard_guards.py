@@ -51,7 +51,7 @@ SRC_PACKAGE_REFERENCE = re.compile(r'<PackageReference\s+Include="(Lodestar\.[A-
 
 # long-comment: why the contract is a table rather than a constant. Every package
 # targets netstandard2.0 except Lodestar.Gpu, whose dependency publishes no such asset
-# and does publish a 2.1 one (decisions 0101 and 0103). Read against a constant, a 2.1
+# and does publish a 2.1 one (decisions 0003 and 0103). Read against a constant, a 2.1
 # mirror passed this guard vacuously: it has no Lodestar dependency to pin, so the loop
 # below had nothing to iterate and nothing to report, while the guard printed "16
 # netstandard2.0 mirrors" and one of them was not.

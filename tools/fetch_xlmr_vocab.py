@@ -23,7 +23,7 @@ they are instead of leaving it to be inferred.
 The **`normalizer_spec` is copied across untouched**, `nmt_nfkc` and its 237 539
 byte `precompiled_charsmap` included. It was overwritten with `identity` when
 this script was written, because `SentencePieceModelLoader` refused anything
-else; #75 removed that limitation, and decision 0013 asked for this to be
+else; #75 removed that limitation, and decision 0005 asked for this to be
 revisited the day it did. The fixture is now the stock XLM-R pipeline, with the
 vocabulary relabelled — one transformation instead of two.
 
@@ -37,7 +37,7 @@ pin, regenerate the oracle in the same commit, and expect the ids in
 
 `xlm-roberta-base` is MIT-licensed (https://huggingface.co/xlm-roberta-base).
 Only the vocabulary is redistributed here — never the weights, per
-docs/decisions/0003-provenance-and-licensing.md. The attribution is recorded in
+docs/decisions/0002-provenance-and-the-allowed-references.md. The attribution is recorded in
 THIRD-PARTY-NOTICES.md.
 """
 

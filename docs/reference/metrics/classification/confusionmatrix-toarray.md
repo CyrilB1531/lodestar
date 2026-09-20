@@ -40,7 +40,7 @@ and asking for it twice with different modes is legal and cheap. That choice is 
 because
 several metrics read a `ConfusionMatrix` and would be silently wrong if its cells had become
 fractions —
-[decision 0020](../../../decisions/0020-normalize-is-a-projection-not-a-parameter.md) has the
+the projection rule has the
 argument.
 
 Each mode answers a different question. `True` divides each row by its own sum, so the diagonal
@@ -57,5 +57,5 @@ support before reading a normalized row as a recall.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `ConfusionMatrix.Compute`, `Normalization`, `Recall.PerClass`,
-[decision 0020](../../../decisions/0020-normalize-is-a-projection-not-a-parameter.md),
+the projection rule,
 the [Python equivalence table](../../../equivalence.md).

@@ -18,7 +18,7 @@ namespace Lodestar.Text.Distances;
 /// <c>O(n·⌈m/w⌉)</c> against the DP's <c>O(n·m)</c> (Myers 1999; Hyyrö 2003). Neither entry
 /// point is restricted to an alphabet: the <see cref="char"/> one puts what leaves Latin-1 in
 /// <see cref="WideAlphabet"/>'s side table (#302, #382), the code-point one renames first.
-/// Backlog in <c>docs/decisions/0004-levenshtein-myers-backlog.md</c>.
+/// Backlog in <c>docs/guides/performance.md</c>.
 /// </remarks>
 internal static class Myers
 {
@@ -41,7 +41,7 @@ internal static class Myers
     /// cost untouched, so a wide pattern crosses five bands later than a Latin-1 one — 10
     /// against 5, measured in #409. Tested where the width is established rather than at the
     /// dispatch, which does not know it: that keeps the Latin-1 path free of the question
-    /// (decision 0049).
+    /// (docs/guides/performance.md).
     /// </remarks>
     internal const int WideMinPatternLength = 10;
 
@@ -266,7 +266,7 @@ internal static class Myers
     /// The bit vectors span <c>⌈m/64⌉</c> words with horizontal deltas carried
     /// between them — the only real difference from <see cref="TrySingleWord"/>;
     /// only the last word's bit at <c>(m-1) mod 64</c> moves the score. See
-    /// <c>docs/decisions/0004-levenshtein-myers-backlog.md</c> for the measured cost.
+    /// <c>docs/guides/performance.md</c> for the measured cost.
     /// </remarks>
     private static bool TryBlocked(ReadOnlySpan<char> pattern, ReadOnlySpan<char> text, out int distance)
     {

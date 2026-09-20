@@ -2,7 +2,7 @@
 
   <!--
     Lodestar.Stats.TimeSeries owns its version here, independently of the other packages
-    (see docs/decisions/0012-per-package-versioning.md).
+    (see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
     0.1.0 is this package's first release. It takes Lodestar.Stats for the chi-squared tail and
     the normal quantile, and Lodestar.Stats.Regression for the least-squares fits the augmented

@@ -3,7 +3,7 @@ using Lodestar.Text.Keywords;
 
 namespace Lodestar.Text.Tests.Keywords;
 
-/// <summary>Decision 0113: StopWords compares as a set, and the hash carries presence only.</summary>
+/// <summary>A member comparing by reference writes its own equality: StopWords compares as a set, and the hash carries presence only.</summary>
 public sealed class KeywordOptionsEqualityTests
 {
     [Fact]

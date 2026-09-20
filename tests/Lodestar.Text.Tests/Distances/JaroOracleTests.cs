@@ -16,7 +16,7 @@ public sealed class JaroOracleTests
     public void Jaro_matches_reference()
     {
         // Standard Jaro; jellyfish concurs except on combining-mark/emoji quirks
-        // (decision 0005). Real-name parity with jellyfish is anchored below.
+        // (decision 0007). Real-name parity with jellyfish is anchored below.
         OracleAsserts.Approx(Jaro_.Cases,
             c => c.Similarity,
             c => Jaro.Similarity(c.A, c.B, TextElement.CodePoint),

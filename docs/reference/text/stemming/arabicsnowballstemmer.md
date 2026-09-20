@@ -27,7 +27,7 @@ vowel-then-consonant boundary and asks whether a suffix lies inside it. The publ
 algorithm has no region at all — each rule carries an explicit character count instead, and a
 four-letter word is simply refused a rule a five-letter word gets. This is why
 `ArabicSnowballStemmer` is the one stemmer that does not derive from the shared worker base; see
-[decision 0094](../../../decisions/0094-arabic-takes-snowballstemmer-and-stands-outside-the-worker-base.md).
+[decision 0006](../../../decisions/0006-the-stemmers-references.md).
 
 **Normalisation runs first, and it is half the algorithm.** The vocalisation marks and the kasheeda
 are dropped, the lam-alef ligatures are written back as two letters, and the Arabic-Indic digits
@@ -43,7 +43,7 @@ are left alone because the article is what identifies it.
 
 Reference behaviour is `snowballstemmer.stemmer("arabic")` rather than `nltk` — the only other
 language whose corpus is frozen that way is Hungarian, and
-[decision 0094](../../../decisions/0094-arabic-takes-snowballstemmer-and-stands-outside-the-worker-base.md)
+[decision 0006](../../../decisions/0006-the-stemmers-references.md)
 has the measurement. Matched over 146 words.
 
 **Applies to** — net10.0, netstandard2.0.

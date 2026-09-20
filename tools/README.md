@@ -18,7 +18,7 @@ given:
   `generate_oracles.py` reads.
 - `fetch_gpt2_bpe.py` vendors GPT-2's 50 257-entry vocabulary and its merge
   table into `tests/oracles/` — those two files only, never weights (decision
-  0003). The size is the point: a self-trained toy model exercises no merge
+  0002). The size is the point: a self-trained toy model exercises no merge
   table with 50 000 ranks and proves nothing about reading the `merges.txt`
   layout a real model ships, so `ByteLevelBpeTests`' byte-exact parity claim
   rests on the real vocabulary. `--check` verifies the checked-in fixtures
@@ -28,10 +28,10 @@ given:
   opens on, which spell the same SentencePiece-BPE pipeline two different ways,
   which is why the corpus needs both rather than one file twice.
   `meta-llama/Llama-2-7b-hf` is gated and answers 401 without credentials this
-  project does not have, so decision 0017 section 5's method applies: two
+  project does not have, so decision 0005 section 5's method applies: two
   ungated mirrors, held to agreeing on the sections that decide what a text
   encodes to, stand in for reading the original — and that agreement is
-  re-asserted on every fetch rather than recorded once. Decision 0084 admits the
+  re-asserted on every fetch rather than recorded once. Decision 0002 admits the
   Llama 2 Community License as a named exception for this artifact alone, which
   is why the tool also writes its three licence files into
   `docs/vendored/llama2/`, from the same mirror as the artifact. `--check`
@@ -45,7 +45,7 @@ given:
 - `compare_oracles.py` compares two directories of corpora the way the suites
   do — floats at `1e-9`, everything else exactly — which is what the
   `Oracles are reproducible` gate asks instead of byte-identity
-  (decision 0073).
+  (tools/compare_oracles.py).
 - `check_version_floor.py` verifies that the version numbers the source tree
   keeps in three places still agree.
 - `check_requirements_lock_sync.py` refuses a `requirements.txt` pin that
@@ -68,7 +68,7 @@ given:
 - `check_sample_culture.py` refuses a sample that can print a number in the
   contributor's culture rather than the same way everywhere.
 - `check_sample_coverage.py` refuses a public class with no `<Class>Sample.cs`,
-  package by package as each is split (decision 0041). The packaging gate already
+  package by package as each is split (CONTRIBUTING.md's Definition of done). The packaging gate already
   asks that a type be *referenced*; this asks which file references it, so an
   example stays where its name says it is.
 - `check_readme_pack_loop.py` refuses a README whose pack loop cannot restore the
@@ -144,7 +144,7 @@ given:
 - `check_adr_immutable.py` refuses a pull request that touches a
   `docs/decisions/` ADR that already existed at its base commit, addition
   included — an accepted decision is never edited, only amended by a new one.
-  One exception, decision 0106: a YAML frontmatter block inserted above the title
+  One exception, tools/regen_adr_index.py: a YAML frontmatter block inserted above the title
   with the body below it byte-identical. Not part of the pre-commit set above: it
   needs the pull request's own base commit, not something a commit made before one
   exists can name.
@@ -159,7 +159,7 @@ given:
   occurrences, with the issue anchored on the literal's first one, so only a
   literal the change both pushes over and introduces is reported. Like the ADR
   guard it needs the pull request's base commit, and for the same reason it is not
-  in the pre-commit set (decision 0064): `tools/generate_oracles.py` already holds
+  in the pre-commit set (tools/README.md): `tools/generate_oracles.py` already holds
   some 108 literals over the threshold, so the only useful question is what a
   change *adds*. `--report` prints that standing backlog without failing.
 - `generate_sonar_globalconfig.py` writes the `.globalconfig` that raises the
@@ -224,7 +224,7 @@ given:
   the nightly page publishes in `bench/nightly/ratios.csv`, with the runner's CPU, and reports the
   ratios that moved. A movement is a step past the larger of 30% and four times the key's own noise,
   or a drift past 20% over ten days, as
-  [decision 0126](../docs/decisions/0126-the-nightly-reports-a-ratio-that-steps-past-its-noise-or-drifts-over-ten-days.md)
+  `docs/guides/nightly_run.md`
   measured. It has three subcommands:
   - `compare` appends the "Ratios that moved" section to `docs/guides/nightly_run.md`, or to the
     branch copy with `--branch`, and prints one `::warning::` per new movement;
@@ -257,7 +257,7 @@ given:
 
 The one tool here that is not Python, because `MetadataLoadContext` is a .NET API.
 It reads a NuGet package's **exported surface**, which is what
-[decision 0074](../docs/decisions/0074-the-phase-2-gaps-restated-on-what-the-packages-export.md)
+[decision 0004](../docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)
 requires before a gap claim may be written down — against the assembly, never against
 the README.
 
@@ -293,8 +293,8 @@ to include. Measured while writing this:
 | `Microsoft.ML.TimeSeries` 5.0.0 | 34 | **124** | 155 | 111 |
 | `MathNet.Numerics` 5.0.0 | 336 | 5 707 | 6 938 | **5 335** |
 
-Decision 0105's "124 members" is the third column and reproduces on the nose; decision
-0096's "5 333 members" is the fifth, two apart on a different SDK. Neither was wrong and
+Decision 0004's "124 members" is the third column and reproduces on the nose; decision
+0003's "5 333 members" is the fifth, two apart on a different SDK. Neither was wrong and
 neither said which it was, so all three are printed and **a new record quotes the third
 column** — declared public members, accessors and operators excluded, constructors kept,
 because a caller calls those.
@@ -315,15 +315,14 @@ only on the committed JSON.
 virtualenv, the interpreter floor and the neutral working directory it needs are all part of one
 procedure. Two of the three fail silently when guessed: an interpreter below **3.12** stops the
 generator with a sentence (`tools/python_floor.py`, and
-[decision 0065](../docs/decisions/0065-the-oracle-generators-floor-is-the-ci-interpreter.md)),
+`tools/python_floor.py`),
 and a working directory above the virtualenv makes `nltk` refuse its own imports.
 
 The script is **deterministic** (fixed seed, no timestamps): regenerating on another machine
 produces the same corpus — the same cases, in the same order, with the same values to the
 precision anything asserts on. It does *not* produce the same bytes, and it cannot: the last
 digits of a BLAS-reduced value follow the CPU the generator ran on. That is why the gate compares
-with `compare_oracles.py` below rather than with `git diff`
-([decision 0073](../docs/decisions/0073-the-oracle-gate-compares-numbers-not-bytes.md)).
+with `compare_oracles.py` below rather than with `git diff` (`tools/compare_oracles.py`).
 Committing the regenerated JSON is part of the change.
 
 Two generators need a package the lock doesn't install, each pinned in
@@ -390,7 +389,7 @@ Each file is checked against a pinned SHA-256 before use. A mismatch means
 Snowball edited the list upstream: read the diff, update the pin, adjust the
 counts in `StopWordsTests`, and record it — do not regenerate quietly. The nltk
 stop-word corpus is **not** a permitted source here, whatever its convenience:
-see [`../docs/decisions/0010-stop-word-list-provenance.md`](../docs/decisions/0010-stop-word-list-provenance.md).
+see [`../docs/decisions/0002-provenance-and-the-allowed-references.md`](../docs/decisions/0002-provenance-and-the-allowed-references.md).
 
 ## `fetch_xlmr_vocab.py`
 
@@ -409,7 +408,7 @@ the point — the stock file is laid out `<unk>`=0/`<s>`=1/`</s>`=2, which is th
 one layout the old id-based control filter got right. The `normalizer_spec` is
 copied across untouched, `nmt_nfkc` and its character map included; it was
 overwritten with `identity` until #75 made the map readable. See
-[`../docs/decisions/0014-precompiled-normalizer.md`](../docs/decisions/0014-precompiled-normalizer.md).
+[`../docs/decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md`](../docs/decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md).
 
 Like `tiny_sp.model`, the result is an *input* to `generate_oracles.py`, not one
 of its outputs: it is committed, and the `Oracles are reproducible` job replays
@@ -468,7 +467,7 @@ resolved, so nobody writes it down and nothing notices when it drifts. This
 script is where it is written down. It matters more since the four packages
 version independently: `Lodestar.Fuzzy` reaches `Lodestar.Text` through a
 `PackageReference`, and that edge is now the one thing holding the two together.
-See [`../docs/decisions/0012-per-package-versioning.md`](../docs/decisions/0012-per-package-versioning.md).
+See [`../docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md`](../docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
 Dependency **ids and version ranges** are both asserted. The range matters as
 much as the id here: a `PackageReference` emits the floor from
@@ -575,7 +574,7 @@ memory limit, a synchronisation the CPU accelerator happens to serialise.
 So a correctness test passes `preferCpu: true`, and the few whose subject *is* the
 preferred device are named in the script's `EXEMPT` set with the reason. Benchmarks are
 deliberately out of scope: their whole purpose is the device a machine actually has, and
-[decision 0102](../docs/decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md)
+`bench/README.md`'s GPU gate
 requires them to report which one produced a figure rather than to force one.
 
 ## `generate_sonar_globalconfig.py`
@@ -734,8 +733,8 @@ There is deliberately **no exemption list in the script**.
 [`check_machine_paths.py`](#check_machine_pathspy) says why they rot: switched off
 one file at a time, by someone who is not the reviewer. A marker rots in the diff
 that adds it, in front of the person who can refuse it —
-[decision 0045](../docs/decisions/0045-a-console-call-carries-its-reason-on-the-line.md)
-records that choice and what the four marked calls carry.
+This file's `check_no_console_writeline.py` section records that choice and what the four
+marked calls carry.
 
 ## `check_comment_length.py`
 
@@ -874,7 +873,7 @@ public type is reachable, not what the run said.
 `CA1305` cannot catch it. The rule fires on an explicit `ToString(string)` and
 never on an interpolated hole, at any `AnalysisMode`, so the gap is in the rule
 rather than in the configuration and raising `AnalysisLevel` would not surface
-one of them. [`decisions/0019`](../docs/decisions/0019-the-net-analysers-run-in-the-build-too.md)
+one of them. `CLAUDE.md`'s analyzer section
 recorded that and left it open; [#205](https://github.com/CyrilB1531/lodestar/issues/205)
 closed it.
 
@@ -954,7 +953,7 @@ the test that pins it, the oracle case, the commit whose message holds the
 measurement, or the issue — per CONTRIBUTING.md's
 [*Claims in comments*](../CONTRIBUTING.md#claims-in-comments). Exempt:
 `docs/superpowers/`, where plans describe the workspace while it exists; the
-vendored `.claude/skills/` that create it; decision 0082, which cites a report and
+vendored `.claude/skills/` that create it; decision 0002, which cites a report and
 cannot be edited; and the guard and its test.
 
 ## `check_adr_immutable.py`
@@ -979,7 +978,7 @@ on every one added.
 
 One change to a record that already existed is allowed, and only one: a YAML
 frontmatter block added above the title, with the body below it byte-identical.
-That is decision 0106's exception, and it is self-limiting — the rule tests that
+That is tools/regen_adr_index.py's exception, and it is self-limiting — the rule tests that
 there was no block before, so a record that carries one can never take the path
 again, and `check_adr_frontmatter.py` refuses a new ADR without one. Appending a
 line to an accepted body still fails, with a message saying the exception exists
@@ -1018,7 +1017,7 @@ for the measurement that shaped the two-probe-set design.
 `supersedes`, `amends` and `applies` in its own YAML frontmatter;
 `regen_adr_index.py` crosses those into `superseded_by`, `amended_by` and
 `applied_by` — the direction an immutable record cannot carry, because naming the
-decision that amended you is an edit. Decision 0106 has the whole reasoning, and
+decision that amended you is an edit. tools/regen_adr_index.py has the whole reasoning, and
 `adr_index.py` is the reader and emitter the generator and both guards share.
 
 ```bash
@@ -1060,4 +1059,4 @@ Exit codes, all three: `0` clean, `1` findings printed, `2` bad usage.
 - **Provenance.** We *run* these libraries to generate data — which creates no
   right over the outputs — but we do not **transcribe** any code. `python-
   Levenshtein` (GPL) is excluded even from generation, for hygiene. See
-  [`../docs/decisions/0003-provenance-and-licensing.md`](../docs/decisions/0003-provenance-and-licensing.md).
+  [`../docs/decisions/0002-provenance-and-the-allowed-references.md`](../docs/decisions/0002-provenance-and-the-allowed-references.md).

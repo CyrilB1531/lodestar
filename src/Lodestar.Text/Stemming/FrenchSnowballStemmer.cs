@@ -19,7 +19,7 @@ namespace Lodestar.Text.Stemming;
 /// The French Snowball stemming algorithm.
 /// </summary>
 /// <remarks>
-/// Reference behavior: <c>snowballstemmer.stemmer("french")</c> 3.1.1 (decision 0145). An
+/// Reference behavior: <c>snowballstemmer.stemmer("french")</c> 3.1.1 (decision 0006). An
 /// original implementation of the published Snowball algorithm: elisions, the RV/R1/R2
 /// regions and the standard step ordering. Input is lowercased. Thread-safe.
 /// </remarks>

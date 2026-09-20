@@ -2,25 +2,24 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Lodestar is a data-science toolkit for C#/.NET whose thesis is deliberately narrow.
-Don't rewrite Python's ecosystem, write native code only where .NET has no maintained
-equivalent at the reference's parity — with **no Python at runtime**. Measured package by
-package, that gap is consistently the **apparatus around a computation** rather than the
-computation: the tokenizer loader and not its encoder ([0068](docs/decisions/0068-the-tokenizer-gap-is-the-loader-not-the-encode-kernel.md)),
-the regression's inference table and not its coefficients ([0096](docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md)),
-the time-series diagnostics and not the forecast ([0105](docs/decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md)),
-sparse decomposition and not dense ([0072](docs/decisions/0072-omega-is-an-input-not-a-seed.md)).
-Everything else is delegated to existing .NET libraries, and that delegation is documented
-in `docs/migration/`.
+Lodestar is a data-science toolkit for C#/.NET with a deliberately narrow thesis: don't rewrite
+Python's ecosystem, write native code only where .NET has no maintained equivalent at the
+reference's parity — with **no Python at runtime**. Measured package by package, that gap is the
+**apparatus around a computation** rather than the computation: the tokenizer loader and not its
+encoder, the regression's inference table and not its coefficients, the time-series diagnostics and
+not the forecast, sparse decomposition and not dense
+([decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md) decides each
+case). Everything else is delegated to an existing .NET library, and `docs/migration/` records
+which.
 
-`CONTRIBUTING.md` is the authoritative process document. This file covers what a
-session needs in order to be productive quickly, and the traps that cost time.
+`CONTRIBUTING.md` is the authoritative process document. This file covers what a session needs to
+be productive quickly, and the traps that cost time.
 
 ## Where a fact belongs
 
-Each document below has one subject; content whose subject is another document's
-belongs there instead, with a link left behind. The source column is what tells
-you whether to correct the document itself or something upstream of it.
+Each document below has one subject; content belonging to another document goes there, with a link
+left behind. The source column tells you whether to correct the document or something upstream of
+it.
 
 | document | its source | its subject |
 | --- | --- | --- |
@@ -31,12 +30,12 @@ you whether to correct the document itself or something upstream of it.
 | `CLAUDE.md` | what a session has found, hand-maintained | what a session needs to be productive, and the traps that cost time |
 | `docs/equivalence.md` | the oracle corpora in `tests/oracles/*.json`, replayed against the C# they compare | the Python call to C# counterpart mapping, with each divergence |
 | `docs/migration/` | the .NET package chosen for each need | what is delegated to another .NET library, and why |
-| `docs/reference/` | the exported types and public methods of the namespaces `docs/wiki-map.json` declares covered, replayed against both target frameworks' assemblies — against net10.0's alone on a pull request that skips the build, which runs them on the binaries `main` staged for its base commit ([#1059](https://github.com/CyrilB1531/lodestar/issues/1059)) | what each function is for, entry by entry — declaration, parameters, returns, example, remarks |
+| `docs/reference/` | the exported types and public methods of the namespaces `docs/wiki-map.json` covers, replayed against both target frameworks' assemblies — net10.0's alone on a pull request that skips the build, which runs on the binaries `main` staged for its base commit ([#1059](https://github.com/CyrilB1531/lodestar/issues/1059)) | what each function is for: declaration, parameters, returns, example, remarks |
 | `docs/wiki-map.json` | the packages and the pages that ship with each, hand-maintained | which page belongs to which package, and which namespaces the reference gate enforces |
 | `CHANGELOG.md` | the merged pull requests, per release | what changed, per release |
-| `docs/decisions/` | each ADR's own frontmatter and `**Status:**` line, crossed into [`docs/decisions/index.yaml`](docs/decisions/index.yaml) and read in prose in [`docs/decisions/README.md`](docs/decisions/README.md) | a decision, with its options and its loser |
+| `docs/decisions/` | each record's frontmatter and `**Status:**` line, crossed into [`index.yaml`](docs/decisions/index.yaml) and read in prose in [`README.md`](docs/decisions/README.md) | one axis of the project, with its options and its loser |
 | root `README.md` | the project as it stands, hand-maintained | what the project is, and where to go next |
-| `.claude/skills/` | [obra/superpowers](https://github.com/obra/superpowers), vendored at a pinned commit | how a spec and a plan are written; `.claude/skills/README.md` says what was taken and what was not |
+| `.claude/skills/` | [obra/superpowers](https://github.com/obra/superpowers), vendored at a pinned commit | how a spec and a plan are written; its README says what was taken |
 
 ## Commands
 
@@ -48,10 +47,9 @@ npx markdownlint-cli2 "README.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README
 ```
 
 Neither `python` nor `python3` is safe to assume on both platforms: Ubuntu 24.04 ships
-`/usr/bin/python3` and no `python` by default, while python.org's Windows installer (and
-`winget install Python.Python.3.12`, which wraps it) ships `python.exe` and no `python3.exe` —
-a `python3` that does resolve there is often the Microsoft Store app-execution alias, which
-opens the Store instead of running anything.
+`/usr/bin/python3` and no `python`, while python.org's Windows installer (and `winget install
+Python.Python.3.12`, which wraps it) ships `python.exe` and no `python3.exe` — and a `python3` that
+does resolve there is often the Microsoft Store alias, which opens the Store instead of running.
 
 ```bash
 # POSIX (bash/zsh)
@@ -76,18 +74,16 @@ dotnet test Lodestar.slnx -c Release --filter "FullyQualifiedName~SpanishSnowbal
 dotnet test tests/Lodestar.Text.Tests -c Release --filter "FullyQualifiedName~Levenshtein"
 ```
 
-**Read the test count, not the colour.** This has produced false confidence here more
-than once, and one door is still open: under VSTest a `--filter` matching nothing exited
-zero and reported success, and under Microsoft.Testing.Platform — which xunit v3 runs on
-since [#623](https://github.com/CyrilB1531/lodestar/issues/623) — it
-exits **8** and says `Zéro tests exécutés`. That is `dotnet test`. **Invoking a test
-assembly directly** (`dotnet Lodestar.X.Tests.dll -namespace …`, which CI's docs-only path
-does) runs xunit v3's own in-process runner, and that one prints `Total: 0` and **exits 0**
-— which is why `tools/check_doc_test_counts.py` reads the count out of the `-xml` result
-([#1054](https://github.com/CyrilB1531/lodestar/issues/1054)). The habit is still the right one, because a
-count is what tells you a *suite* went missing, and that failure has no exit code at all:
-`dotnet test Lodestar.slnx -c Release` must report **36 assemblies**, eighteen suites and
-their eighteen mirrors.
+**Read the test count, not the colour.** A `--filter` matching nothing exited zero under VSTest;
+under Microsoft.Testing.Platform, which xunit v3 runs on since
+[#623](https://github.com/CyrilB1531/lodestar/issues/623), it exits **8** and says `Zéro tests
+exécutés`. That is `dotnet test`. **A test assembly invoked directly** (`dotnet
+Lodestar.X.Tests.dll -namespace …`, which CI's docs-only path does) runs xunit v3's in-process
+runner, which prints `Total: 0` and **exits 0** — hence `tools/check_doc_test_counts.py` reading the
+count out of the `-xml` result ([#1054](https://github.com/CyrilB1531/lodestar/issues/1054)). The
+count is also what catches a whole *suite* going missing, which has no exit code at all:
+`dotnet test Lodestar.slnx -c Release` must report **36 assemblies**, eighteen suites and their
+eighteen mirrors.
 
 Oracle corpora (see *Oracle validation* below), run from outside the repository:
 
@@ -104,19 +100,16 @@ $env:PYTHONSAFEPATH = '1'
 Remove-Item Env:PYTHONSAFEPATH   # POSIX sets it only for this one command; PowerShell must clear it back out
 ```
 
-Both need a neutral directory because `nltk` refuses to import under the repository (see
-*Oracle validation* below). Neutral means **not an ancestor of the checkout**, which is what
-makes `/tmp` the wrong answer in a hosted or sandboxed session: those put the worktree under
-`/tmp` itself, and the import guard fires anyway. Check where the repository actually is before
-picking — `/var/tmp` serves when `/tmp` cannot.
+Both need a neutral directory because `nltk` refuses to import under the repository (see *Oracle
+validation* below). Neutral means **not an ancestor of the checkout**, which is why `/tmp` is the
+wrong answer in a hosted session: those put the worktree under `/tmp`, so the guard fires anyway.
+Check where the repository is first — `/var/tmp` serves when `/tmp` cannot.
 
 **`.venv-oracles` is built on 3.12 or later, never on the platform `python3`** — 3.10 on Ubuntu
-22.04, 3.11 on this project's hosted session image. Below the floor the generators now stop with
-a sentence naming both versions; before #486 they died with a `SyntaxError` in `seeded_random.py`,
-which a `| tail` then reported as success. CONTRIBUTING.md's
-[*Oracle validation*](CONTRIBUTING.md#oracle-validation) step 2 has the creation command, and
-[ADR 0065](docs/decisions/0065-the-oracle-generators-floor-is-the-ci-interpreter.md) why the floor
-is the CI interpreter.
+22.04, 3.11 on the hosted session image. Below the floor the generators stop with a sentence naming
+both versions; before #486 they died with a `SyntaxError` in `seeded_random.py`, which a `| tail`
+reported as success. CONTRIBUTING.md's [*Oracle validation*](CONTRIBUTING.md#oracle-validation)
+step 2 has the creation command, and `tools/python_floor.py` holds the floor — the CI interpreter.
 
 Guide snippets, benchmarks, packaging (see the `python`/`python3` split above):
 
@@ -145,14 +138,12 @@ done
 
 ## Architecture
 
-Eighteen independently versioned packages under `src/`, in three tiers. **Core** carries no
-external dependency at all
-([decision 0076](docs/decisions/0076-a-core-package-carries-no-external-dependency.md)).
-`Lodestar.Onnx` and `Lodestar.Gpu` are the **satellites**, each carrying the one dependency
-that is its whole reason to be a package. `Lodestar.Extensions.*` is the **interop** tier, which
-[decision 0089](docs/decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)
-allows a dependency a core package refused, because converting to a foreign type is not
-computing with it. Adding an external dependency to a core package fails
+Eighteen independently versioned packages under `src/`, in three tiers, all settled by
+[decision 0003](docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md). **Core**
+carries no external dependency at all. `Lodestar.Onnx` and `Lodestar.Gpu` are the **satellites**,
+each carrying the one dependency that is its reason to be a package. `Lodestar.Extensions.*` is the
+**interop** tier, allowed a dependency a core package refused, because converting to a foreign type
+is not computing with it. An external dependency added to a core package fails
 `tools/check_nuspec_dependencies.py`, not a review.
 
 The table below is asserted, not maintained by hand:
@@ -161,7 +152,7 @@ script's `EXPECTED` edge map.
 
 | Package | Tier | Holds |
 | --- | --- | --- |
-| `Lodestar.Abstractions` | core | `CsrMatrix`, `SparseNorm` and the dense-block products — the sparse primitive the others share (decision 0071). |
+| `Lodestar.Abstractions` | core | `CsrMatrix`, `SparseNorm` and the dense-block products — the sparse primitive the others share (decision 0003). |
 | `Lodestar.Text` | core | distances, phonetics, set similarity, stemmers, tokenizers, sparse vectorizers, persistence, `BkTree`, keyword extraction. |
 | `Lodestar.Embeddings` | core | sub-word tokenizers (WordPiece, SentencePiece, BPE/byte-level BPE), batch encoding pipeline, pooling, SIMD kNN `EmbeddingIndex`, `.npy` interop. |
 | `Lodestar.Fuzzy` | core | `fuzz.*`, `process.extract`, blocking deduplication. |
@@ -170,7 +161,7 @@ script's `EXPECTED` edge map.
 | `Lodestar.Decomposition` | core | truncated SVD and NMF over a `CsrMatrix`, the Householder QR, and the variance principal components explain, with the dense kernels written here. |
 | `Lodestar.Cluster` | core | k-means by Lloyd's algorithm over a row-major span, at scikit-learn parity. |
 | `Lodestar.Preprocessing` | core | feature scaling, encoding, imputation and the cross-validation splitters, fitted on arrays or a `CsrMatrix` and applied to spans, at scikit-learn parity. |
-| `Lodestar.Stats` | core | classical hypothesis tests at scipy parity, plus the four tail members decisions 0095, 0097 and 0098 published for its neighbours. |
+| `Lodestar.Stats` | core | classical hypothesis tests at scipy parity, plus the four tail members decision 0003 publishes for its neighbours. |
 | `Lodestar.Stats.Regression` | core | ordinary, weighted and generalized least squares with the whole inference table, at statsmodels parity. |
 | `Lodestar.Stats.TimeSeries` | core | the autocorrelation functions, Ljung-Box, the augmented Dickey-Fuller test, KPSS and seasonal decomposition, at statsmodels parity. |
 | `Lodestar.Survival` | core | Kaplan-Meier, Nelson-Aalen and the log-rank test at lifelines parity, right-censored. |
@@ -178,7 +169,7 @@ script's `EXPECTED` edge map.
 | `Lodestar.Extensions.AI` | interop | the ONNX embedding path behind `IEmbeddingGenerator`; carries `Microsoft.Extensions.AI.Abstractions`. |
 | `Lodestar.Extensions.MathNet` | interop | `CsrMatrix` to and from Math.NET's sparse matrix; carries `MathNet.Numerics`. |
 | `Lodestar.Extensions.VectorData` | interop | an in-process `VectorStore` with hybrid keyword and vector search over `EmbeddingIndex` and `Bm25Index`; carries `Microsoft.Extensions.VectorData.Abstractions`. |
-| `Lodestar.Gpu` | satellite | ILGPU kernels over device-resident matrices and text. **The one package on `net10.0;netstandard2.1`** — ILGPU publishes no `netstandard2.0` asset and does publish a 2.1 one ([decisions 0101](docs/decisions/0101-lodestar-gpu-is-the-one-package-that-does-not-ship-netstandard2-0.md) and [0103](docs/decisions/0103-lodestar-gpu-ships-netstandard2-1-beside-net10.md)). Nothing under `src/` may depend on it, so the SIMD path stays complete. |
+| `Lodestar.Gpu` | satellite | ILGPU kernels over device-resident matrices and text. **The one package on `net10.0;netstandard2.1`** — ILGPU publishes no `netstandard2.0` asset and does publish a 2.1 one. Nothing under `src/` may depend on it, so the SIMD path stays complete. |
 
 The edges: **sixteen**, all asserted per target framework and per version range —
 `Text`, `Decomposition` and `Extensions.MathNet` → `Abstractions`; `Fuzzy` → `Text`;
@@ -186,50 +177,47 @@ The edges: **sixteen**, all asserted per target framework and per version range 
 `Extensions.VectorData` → `Embeddings` and `Text`; `Stats.Regression` →
 `Stats` and `Decomposition`; `Stats.TimeSeries` → `Stats` and `Stats.Regression`;
 `Survival` → `Stats`; `Preprocessing` → `Stats` and `Abstractions`, for the normal quantile
-`RobustScaler`'s `unit_variance` divides by ([decision 0138](docs/decisions/0138-lodestar-preprocessing-takes-an-edge-on-lodestar-stats-for-the-normal-quantile.md))
-and the `CsrMatrix` its sparse overloads take ([decision 0139](docs/decisions/0139-the-sparse-overloads-take-the-second-edge-under-0138s-precedent.md)).
-`tools/check_nuspec_dependencies.py`'s `EXPECTED` is the authority, and the count
-above is checked against it.
+`RobustScaler`'s `unit_variance` divides by and the `CsrMatrix` its sparse overloads take.
+`tools/check_nuspec_dependencies.py`'s `EXPECTED` is the authority, and the count above is checked
+against it.
 
 Four cross-cutting facts explain most of the layout, and none of them is visible
 from a single file.
 
 ### 1. Two target frameworks, one public API
 
-Everything ships `net10.0;netstandard2.0` in a single package. `netstandard2.0`
-reaches equivalent behaviour through conditional compilation, **never a reduced
-API**. Gaps are closed in a fixed order: PolySharp polyfills → `System.Memory` /
-`System.Numerics.Vectors` / `System.Text.Json` referenced only on that target →
-hand-written fallback. `src/Shared/` holds `Guard`, `StringCompat` and friends,
-compiled into every library under `Lodestar.Internal` with a global using, so no
-call site carries an `#if`.
+Everything ships `net10.0;netstandard2.0` in a single package. `netstandard2.0` reaches equivalent
+behaviour through conditional compilation, **never a reduced API**. Gaps close in a fixed order:
+PolySharp polyfills, then `System.Memory` / `System.Numerics.Vectors` / `System.Text.Json`
+referenced only on that target, then a hand-written fallback. `src/Shared/` holds `Guard`,
+`StringCompat` and friends, compiled into every library under `Lodestar.Internal` with a global
+using, so no call site carries an `#if`.
 
 The `*.NetStandard.Tests` projects **link the same test sources** and pin
-`SetTargetFramework=netstandard2.0` on the project reference. That is why
-`dotnet test` runs everything twice: without it the assemblies shipped to .NET
-Framework, Mono and Unity would be compile-verified but never executed. Any new
-test file is picked up by both automatically.
+`SetTargetFramework=netstandard2.0` on the project reference. That is why `dotnet test` runs
+everything twice: without it the assemblies shipped to .NET Framework, Mono and Unity would be
+compile-verified and never executed. A new test file is picked up by both automatically.
 
-**A mirror reports more tests than its suite, and that is expected**: each carries
+**A mirror reports more tests than its suite, as expected**: each carries
 `NetStandardAssemblyGuardTests`, one fact per assembly it must prove it loaded. **Pin every
-`Lodestar.*` package the library depends on, transitive ones included**, with its own `ProjectReference` — a
-`PackageReference` is where the pin leaks, because `SetTargetFramework` does not travel across
-one and NuGet resolves package assets against the *mirror's* framework, net10.0. `Lodestar.Text`
-and `Lodestar.Decomposition` ran 832 tests against the net10.0 `Lodestar.Abstractions` that way,
-all green ([#529](https://github.com/CyrilB1531/lodestar/issues/529)).
-`python3 tools/check_netstandard_guards.py` now enforces both halves.
+`Lodestar.*` package the library depends on, transitive ones included, with its own
+`ProjectReference`** — a `PackageReference` leaks the pin, because `SetTargetFramework` does not
+travel across one and NuGet resolves package assets against the *mirror's* framework, net10.0.
+`Lodestar.Text` and `Lodestar.Decomposition` ran 832 tests against the net10.0
+`Lodestar.Abstractions` that way, all green
+([#529](https://github.com/CyrilB1531/lodestar/issues/529)).
+`python3 tools/check_netstandard_guards.py` enforces both halves.
 
 The one deliberate behavioural split is `VectorMath.Dot` — `Vector<T>` SIMD on
 net10, scalar loop on netstandard2.0.
 
 ### 2. Versions are per package, and `src/` references packages, not projects
 
-Each publishable project declares its version in a sibling `src/<Package>/Version.props`
-and nowhere else. `Lodestar.Fuzzy` reaches `Lodestar.Text` through a
-`PackageReference` on a **published floor** pinned in `src/Directory.Packages.props`
-— which is what makes `git clone && dotnet build` work with no pack step. A CI job
-asserts through evaluated MSBuild that no `src/` project carries a
-`ProjectReference`.
+Each publishable project declares its version in a sibling `src/<Package>/Version.props` and
+nowhere else. `Lodestar.Fuzzy` reaches `Lodestar.Text` through a `PackageReference` on a
+**published floor** pinned in `src/Directory.Packages.props`, which is what makes `git clone &&
+dotnet build` work with no pack step. A CI job asserts through evaluated MSBuild that no `src/`
+project carries a `ProjectReference`.
 
 When a branch edits two packages together, the floor points at an older
 `Lodestar.Text` than your working tree:
@@ -244,21 +232,18 @@ export LodestarUseProjectRefs=true   # local developer loop only; CI never sets 
 $env:LodestarUseProjectRefs = 'true'   # local developer loop only; CI never sets it
 ```
 
-Unset it before measuring anything — with it on you are building a graph that will
-never ship. CONTRIBUTING.md's
-[*Working across two packages*](CONTRIBUTING.md#working-across-two-packages) has
-the release order that gets a branch with it on to green. Release tags are
-`<PackageId>/v<Version>`.
+Unset it before measuring anything: with it on you are building a graph that will never ship.
+CONTRIBUTING.md's [*Working across two packages*](CONTRIBUTING.md#working-across-two-packages) has
+the release order that gets such a branch to green. Release tags are `<PackageId>/v<Version>`.
 
 ### 3. Conformance is proven by frozen oracles, not by hand-written expectations
 
-Every algorithm replays reference values captured from the canonical Python
-library (rapidfuzz, jellyfish, textdistance, difflib, scikit-learn, nltk,
-HuggingFace `tokenizers`, sentencepiece, numpy, ONNX Runtime) into
-`tests/oracles/*.json`, compared at `1e-9` for floats and exactly for strings.
-Python is a **development dependency only**.
+Every algorithm replays reference values captured from the canonical Python library (rapidfuzz,
+jellyfish, textdistance, difflib, scikit-learn, nltk, HuggingFace `tokenizers`, sentencepiece,
+numpy, ONNX Runtime) into `tests/oracles/*.json`, compared at `1e-9` for floats and exactly for
+strings. Python is a **development dependency only**.
 
-Three traps, each of which has already cost a session:
+Three traps, each already worth a session:
 
 - **Run the generator from a neutral working directory** — CONTRIBUTING.md's
   [*Oracle validation*](CONTRIBUTING.md#oracle-validation) has why and the exact
@@ -266,25 +251,24 @@ Three traps, each of which has already cost a session:
 - **Read the generator's own exit code**, never a pipeline's. `python … | tail`
   reports `tail`'s status, so a failed generation looks successful — and the
   comparison that follows then proves nothing, because nothing was regenerated.
-- **The `Oracles are reproducible` job compares numbers, not bytes** — it copies
-  the committed corpora aside, regenerates, and runs
-  `tools/compare_oracles.py` over the two: floats at the same `1e-9` the suites
-  use, everything else exactly ([decision
-  0073](docs/decisions/0073-the-oracle-gate-compares-numbers-not-bytes.md)). It
-  used to `git diff` them, which failed on the last digits of a BLAS-reduced
-  value and made the job read as flaky. A red here now means a corpus moved by
-  more than any assertion tolerates, so believe it. On failure the job still
-  uploads the regenerated corpora as an artefact so the comparison can be made
-  off the runner.
+- **The `Oracles are reproducible` job compares numbers, not bytes** — it copies the committed
+  corpora aside, regenerates, and runs `tools/compare_oracles.py` over the two: floats at the same
+  `1e-9` the suites use, everything else exactly. It used to `git diff` them, which failed on the
+  last digits of a BLAS-reduced value and read as flaky. A red here means a corpus moved by more
+  than any assertion tolerates, so believe it. On failure the job uploads the regenerated corpora
+  as an artefact, so the comparison can be made off the runner.
 
-**Before citing decision NNNN, read [`docs/decisions/index.yaml`](docs/decisions/index.yaml) and
-follow its `amended_by` and `applied_by` entries.** An ADR is immutable, so the decision that was
-amended cannot say so itself: `0101` reads "`Lodestar.Gpu` is the one package that does not ship
-`netstandard2.0`" and `0103` amended it to ship `netstandard2.1`, so citing 0101 alone states the
-opposite of what was decided. `amended_by` is the decision changing; `applied_by` is it being used
-again unchanged, which is why `0095` shows `0097` and `0098` without having moved. The index is
-generated from every record's frontmatter by `tools/regen_adr_index.py`
-([decision 0106](docs/decisions/0106-the-frontmatter-is-inserted-once-and-the-body-does-not-move.md)).
+**Seven records, one per axis, and a number names a different record than it did before
+2026-09-20** — [#1103](https://github.com/CyrilB1531/lodestar/issues/1103) restarted the numbering
+after merging the 75 records that stated an axis and deleting the 72 that stated a mechanism. Read
+an older citation against the tree it was written in: `git show 53af23c2:docs/decisions/<file>`.
+[`docs/decisions/index.yaml`](docs/decisions/index.yaml) carries each record's `supersedes`,
+`amends` and `applies` together with the reverses a record cannot state for itself — `amended_by`,
+which says the decision changed, and `applied_by`, which says it was used again unchanged —
+generated from the frontmatter by `tools/regen_adr_index.py`. Every one of those lists is empty
+today, because **a record is never edited and may only be deleted**: an amendment is a new record,
+and `tools/check_adr_immutable.py` enforces exactly that. Follow both edges before citing a record
+that has them.
 
 Where behaviour deliberately diverges from the Python reference, it goes in
 [`docs/decisions/`](docs/decisions/README.md), the fastest way to understand why
@@ -293,27 +277,21 @@ counterpart; **a row lands in the same commit as the function**, not afterwards.
 
 ### 4. The analyzers gate the build, not the pull request
 
-`SonarAnalyzer.CSharp` is referenced by every project under `src/`, `tests/`,
-`bench/` and `samples/`, and the .NET code-quality rules run at
-`AnalysisMode=All` with `AnalysisLevel` pinned to `10.0` — CONTRIBUTING.md's
-[*Analyzers*](CONTRIBUTING.md#analyzers) has what that costs a finding. The
-analyzer version is pinned once as `$(LodestarSonarAnalyzerVersion)` in the root
-`Directory.Build.props`; raising it or `AnalysisLevel` surfaces new rules and is
-its own change.
+`SonarAnalyzer.CSharp` is referenced by every project under `src/`, `tests/`, `bench/` and
+`samples/`, and the .NET code-quality rules run at `AnalysisMode=All` with `AnalysisLevel` pinned to
+`10.0` — CONTRIBUTING.md's [*Analyzers*](CONTRIBUTING.md#analyzers) has what that costs a finding.
+The analyzer version is pinned once as `$(LodestarSonarAnalyzerVersion)` in the root
+`Directory.Build.props`; raising it or `AnalysisLevel` surfaces new rules, and is its own change.
 
-- A rule an *area* trips by being that area (xunit's underscored names,
-  BenchmarkDotNet's reflection-instantiated types, a sample printing to the
-  console) → `NoWarn` in that area's `Directory.Build.props`, with a comment
-  naming each rule.
-- A rule one *call site* disagrees with → `#pragma warning disable` in the source,
-  with the reason above it. Never either without a reason a reviewer can disagree
-  with; "too noisy" is not one.
-- **Do not reach for `.editorconfig` or `.vscode/settings.json`** for SonarLint
-  rules. It ignores the first entirely, and `sonarlint.rules` is application-scope
-  so VS Code silently drops it from a workspace file.
-- **When suppressed code moves, the suppression stays behind.** Extracting a
-  method into a new file leaves the `#pragma` in the old one and the rule
-  reappears. This has happened twice here.
+- A rule an *area* trips by being that area (xunit's underscored names, BenchmarkDotNet's
+  reflection-instantiated types, a sample printing to the console) belongs in that area's
+  `Directory.Build.props` as `NoWarn`, with a comment naming each rule.
+- A rule one *call site* disagrees with takes a `#pragma warning disable` in the source, with the
+  reason above it. Never either without a reason a reviewer can disagree with; "too noisy" is not one.
+- **Do not reach for `.editorconfig` or `.vscode/settings.json`** for SonarLint rules. It ignores
+  the first, and `sonarlint.rules` is application-scope, so VS Code drops it from a workspace file.
+- **When suppressed code moves, the suppression stays behind.** Extracting a method into a new file
+  leaves the `#pragma` in the old one and the rule reappears. Twice here.
 
 `dotnet build Lodestar.slnx` does **not** reach `samples/` — they are outside the
 solution. Duplication and coverage are visible only to SonarCloud, so a green
@@ -321,84 +299,73 @@ local build is not a green quality gate.
 
 ## Three gates that constrain how code is written
 
-- **The packaging gate.** `samples/Lodestar.Sample` consumes the packages from
-  `./artifacts` through `samples/NuGet.config`, and every new public type must be
-  reachable from it by a member reference. Adding public API means adding a use of
-  it in `Lot*.cs`. Both sample builds need a fresh `pack` **and** an isolated
-  `NUGET_PACKAGES`, or they judge the published packages instead of the working
-  tree (ADR 0009).
-- **The doc-snippets gate.** Every ` ```csharp ` fence in `README.md`,
-  `docs/guides/` and `docs/reference/*/*.md` is compiled against the packed
-  packages, so a renamed method fails CI. The reference fences are **executed**
-  on top of that, and a trailing `// =>` on one is an assertion on the value the
-  page promises — CONTRIBUTING.md's [*Definition of
-  done*](CONTRIBUTING.md#definition-of-done), items 5 and 6, have the two
-  opt-out markers.
-- **The reference gate.** A new public type or method in a namespace listed in
-  `docs/wiki-map.json`'s `covered` table needs an entry in its package's
-  reference page under `docs/reference/`, checked against both target
-  frameworks' assemblies — a signature that drifts from its documentation fails
-  CI rather than a reader. A pull request that skips the build runs the same
-  tests against net10.0's assemblies alone, because those are the ones `main`
-  staged for it ([#1059](https://github.com/CyrilB1531/lodestar/issues/1059));
-  the mirrors judge such a page on the next push to `main`. Only the namespaces
-  `covered` names are enforced; the rest of the surface waits on the reference
-  page that has not been written yet.
+- **The packaging gate.** `samples/Lodestar.Sample` consumes the packages from `./artifacts`
+  through `samples/NuGet.config`, and every new public type must be reachable from it by a member
+  reference: new public API means a new use in `Lot*.cs`. Both sample builds need a fresh `pack`
+  **and** an isolated `NUGET_PACKAGES`, or they judge the published packages instead of the working
+  tree (CONTRIBUTING.md's Definition of done).
+- **The doc-snippets gate.** Every ` ```csharp ` fence in `README.md`, `docs/guides/` and
+  `docs/reference/*/*.md` compiles against the packed packages, so a renamed method fails CI. The
+  reference fences are **executed** on top of that, and a trailing `// =>` is an assertion on the
+  value the page promises — CONTRIBUTING.md's
+  [*Definition of done*](CONTRIBUTING.md#definition-of-done), items 5 and 6, have the two opt-out
+  markers.
+- **The reference gate.** A new public type or method in a namespace `docs/wiki-map.json`'s
+  `covered` table lists needs an entry in its package's reference page under `docs/reference/`,
+  checked against both target frameworks' assemblies — a signature drifting from its documentation
+  fails CI rather than a reader. A pull request that skips the build runs against net10.0's
+  assemblies alone, the ones `main` staged for it
+  ([#1059](https://github.com/CyrilB1531/lodestar/issues/1059)), and the mirrors judge the page on
+  the next push to `main`. Only the `covered` namespaces are enforced; the rest waits on a reference
+  page nobody has written.
 
 ## Provenance — two hard rules
 
 - **Never transcribe GPL-licensed code** — CONTRIBUTING.md's
-  [*Licensing and provenance*](CONTRIBUTING.md#licensing-and-provenance) has the
-  rule, and ADR 0003 the reasoning. Reading a reference implementation to
-  diagnose one failing case is diagnosis and is fine; deriving the
-  implementation from it is not.
+  [*Licensing and provenance*](CONTRIBUTING.md#licensing-and-provenance) has the rule, decision 0002
+  the reasoning. Reading a reference implementation to diagnose one failing case is fine; deriving
+  the implementation from it is not.
 - **Never commit model weights.** Test fixtures are small and synthetic; vocabularies
   are fetched against a pinned SHA-256 by `tools/fetch_*.py`.
 
 ## Workflow
 
-GitHub flow, one concern per branch, `<type>/<issue>-<kebab-summary>`
-(`feat/`, `fix/`, `perf/`, `docs/`, `chore/`). Reference the issue with
-`Closes #n`. Everything written in English — code, comments, ADRs, commit
-messages, PR bodies. Comments are held to four rules — say why not what, carry
-what would check the claim, two lines inline or eight of prose in XML
-documentation, and a marker with its reason past that. `CONTRIBUTING.md`'s
-*Claims in comments* is the statement;
-`tools/check_comment_length.py` counts the lines and
-`.github/instructions/comment_claims.instructions.md` carries what a review
-asks about one. Commit messages carry no `feat:`/`fix:` prefix.
+GitHub flow, one concern per branch, `<type>/<issue>-<kebab-summary>` (`feat/`, `fix/`, `perf/`,
+`docs/`, `chore/`). Reference the issue with `Closes #n`. Everything in English — code, comments,
+ADRs, commit messages, PR bodies. Comments follow four rules: say why not what, carry what would
+check the claim, two lines inline or eight of prose in XML documentation, and a marker with its
+reason past that. `CONTRIBUTING.md`'s *Claims in comments* states them,
+`tools/check_comment_length.py` counts the lines, and
+`.github/instructions/comment_claims.instructions.md` carries what a review asks. Commit messages
+carry no `feat:`/`fix:` prefix.
 
-`main` is protected by three required checks with no bypass list. "Require
-approvals" is off because a single maintainer cannot approve their own PR. Do not
-commit, merge or tag unless asked. A `perf/` PR carries before/after numbers and
-names the machine.
+`main` is protected by three required checks with no bypass list. "Require approvals" is off because
+a single maintainer cannot approve their own PR. Do not commit, merge or tag unless asked. A `perf/`
+PR carries before/after numbers and names the machine.
 
 **Clear Sonar findings before committing, not after.** A green build is not a
 clean Sonar, and a finding introduced by a pull request blocks its merge.
 
 Design specs and implementation plans live in `docs/superpowers/specs/` and
 `docs/superpowers/plans/`, named `<date>_<issue id padded to 4>_<slug>.md` — the repository's
-naming, which overrides the skills' own default. The skills that write them are vendored under
-[`.claude/skills/`](.claude/skills/README.md) rather than installed, so they are reachable from a
-hosted session; `writing-plans` and `brainstorming` are the two to read first. **Do not reproduce
-the format by copying a neighbouring file.** Two plans written that way failed `writing-plans`'
-own self-review ([#454](https://github.com/CyrilB1531/lodestar/issues/454)), most visibly against
-its **No Placeholders** rule: a step that says what to do without showing how is a plan failure,
-and code steps carry code.
+naming, which overrides the skills' default. The skills that write them are vendored under
+[`.claude/skills/`](.claude/skills/README.md) rather than installed, so a hosted session reaches
+them; read `writing-plans` and `brainstorming` first. **Do not reproduce the format by copying a
+neighbouring file.** Two plans written that way failed `writing-plans`' own self-review
+([#454](https://github.com/CyrilB1531/lodestar/issues/454)), most visibly its **No Placeholders**
+rule: a step that says what to do without showing how is a plan failure, and code steps carry code.
 
-**A spec may be written after the fact; a plan may not.** A spec records measured facts and
-rejected options, and is still a record when written late — issues #202 to #446 were backfilled
-that way, from the commits that closed them. A plan is an instrument for work that has not
-started, with checkbox steps and a `Branch:` line, so one written for merged work is checkboxes
-nobody may tick and a branch that no longer exists. **Date a backfilled spec by the work, not by
-the day it was written**, or the directory loses its ordering; its status line says it is
-retrospective.
+**A spec may be written after the fact; a plan may not.** A spec records measured facts and rejected
+options, and is still a record when written late — issues #202 to #446 were backfilled from the
+commits that closed them. A plan is an instrument for work that has not started, with checkbox steps
+and a `Branch:` line, so one written for merged work is checkboxes nobody may tick on a branch that
+no longer exists. **Date a backfilled spec by the work, not by the day it was written**, or the
+directory loses its ordering; its status line says it is retrospective.
 
 ### SonarQube MCP server
 
-`.github/instructions/sonarqube_mcp.instructions.md` applies to this repository:
-disable automatic analysis with `toggle_automatic_analysis` when starting a task,
-call `analyze_file_list` on the files you created or modified at the end, then
-re-enable it. Look project keys up with `search_my_sonarqube_projects` rather than
-guessing, and do not try to confirm a fix through `search_sonar_issues_in_projects`
-— the server will not reflect the change yet.
+`.github/instructions/sonarqube_mcp.instructions.md` applies here: disable automatic analysis with
+`toggle_automatic_analysis` when starting a task, call `analyze_file_list` on the files you changed
+at the end, then re-enable it. Look project keys up with `search_my_sonarqube_projects` rather than
+guessing, and do not confirm a fix through `search_sonar_issues_in_projects` — the server will not
+reflect the change yet.

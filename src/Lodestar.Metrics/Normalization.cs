@@ -5,8 +5,8 @@ namespace Lodestar.Metrics;
 /// the equivalent of <c>normalize=</c> on <c>sklearn.metrics.confusion_matrix</c>.
 /// </summary>
 /// <remarks>
-/// A projection, not a state — argued in
-/// <c>docs/decisions/0020-normalize-is-a-projection-not-a-parameter.md</c>.
+/// A projection, not a state: a <see cref="ConfusionMatrix"/> is never normalized, and
+/// <see cref="ConfusionMatrix.ToArray(Normalization)"/> is what scales its cells.
 /// </remarks>
 public enum Normalization
 {

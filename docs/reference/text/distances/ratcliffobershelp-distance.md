@@ -35,5 +35,5 @@ either is used to rank records.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `RatcliffObershelp.Similarity`, `Jaro.Distance`,
-[decision 0006](../../../decisions/0006-ratcliff-autojunk.md),
+[decision 0007](../../../decisions/0007-the-deliberate-divergences.md),
 the [Python equivalence table](../../../equivalence.md).

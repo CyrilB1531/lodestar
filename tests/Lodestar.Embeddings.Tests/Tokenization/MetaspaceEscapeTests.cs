@@ -7,10 +7,10 @@ namespace Lodestar.Embeddings.Tests;
 /// The transform both the unigram and the SentencePiece-BPE paths apply, alone.
 /// </summary>
 /// <remarks>
-/// Decision 0050 makes it one thing rather than ten lines inside one tokenizer,
+/// the rule makes it one thing rather than ten lines inside one tokenizer,
 /// because the two spellings a file may use — a <c>Metaspace</c> pre-tokenizer and a
 /// <c>Prepend</c>+<c>Replace</c> normalizer — are two writings of one value (#316),
-/// bar the prepend guard decision 0062 measures and this class's last three cases pin.
+/// bar the prepend guard docs/equivalence.md's Metaspace rows measure and this class's last three cases pin.
 /// </remarks>
 public sealed class MetaspaceEscapeTests
 {

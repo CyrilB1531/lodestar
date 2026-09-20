@@ -143,7 +143,7 @@ def publishing_findings(text: str, packages: set[str], core: int) -> list[str]:
     said = None if tier < 0 else word_before(text, tier)
     if said is None:
         found.append(f"{where} no longer says how many packages are core tier. The tier split "
-                     "is what decision 0076 is about, so the sentence stays.")
+                     "is what decision 0003 is about, so the sentence stays.")
     else:
         found += count_finding(said, core, f"{where}'s core-tier sentence")
     return found

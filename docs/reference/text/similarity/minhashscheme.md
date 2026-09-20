@@ -50,7 +50,7 @@ absorb.
 
 Measured on this repository's corpus, the second family costs about half the first in the loop
 that runs once per token per permutation, and hashing dominates both:
-[decision 0108](../../../decisions/0108-minhash-ships-both-permutation-families.md) has the
+the MinHash permutation rule has the
 numbers and why neither replaces the other.
 
 **`affine64` is not offered.** It changes the hash function as well — the reference pairs it with

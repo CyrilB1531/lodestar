@@ -9,7 +9,7 @@ namespace Lodestar.Text.Distances;
 /// different recurrence, Myers carrying substitution and LCS not. <c>V</c> holds the LCS
 /// row, a set bit being a position that did not increment, advanced per text character by
 /// <c>V = (V + (V &amp; P)) | (V - (V &amp; P))</c>; the answer counts the cleared bits.
-/// Derived from the published recurrence (Hyyrö), not transcribed — decision 0003.
+/// Derived from the published recurrence (Hyyrö), not transcribed — decision 0002.
 /// </remarks>
 internal static class BitParallelLcs
 {
@@ -67,7 +67,7 @@ internal static class BitParallelLcs
     /// cost untouched, so a wide pattern crosses four bands later than a Latin-1 one — 6
     /// against 2, measured in #409. Tested where the width is established rather than at the
     /// dispatch, which does not know it: that keeps the Latin-1 path free of the question
-    /// (decision 0049).
+    /// (docs/guides/performance.md).
     /// </remarks>
     internal const int WideMinPatternLength = 6;
 

@@ -13,7 +13,7 @@
   <!-- The rules that gate the pull request, running in the build that writes the
        code. PrivateAssets=all keeps the analyzer out of every published .nuspec,
        and tools/check_nuspec_dependencies.py asserts it stays out. See
-       docs/decisions/0015-sonar-rules-in-the-build.md. -->
+       CLAUDE.md's analyzer section. -->
   <ItemGroup>
     <PackageReference Include="SonarAnalyzer.CSharp" PrivateAssets="all" />
   </ItemGroup>
@@ -70,7 +70,7 @@
   <!-- Persistence plumbing, compiled only into the libraries that ship artifacts
        (Lodestar.Text, Lodestar.Embeddings). It needs System.Text.Json, which those
        two opt into individually — Lodestar.Fuzzy stays dependency-free.
-       See docs/decisions/0011-persistence-format.md. -->
+       See docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md. -->
   <ItemGroup Condition="'$(LodestarIncludesPersistence)' == 'true'">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Persistence/ArtifactHeader.cs" Link="Internal/Persistence/ArtifactHeader.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Persistence/ArtifactLimits.cs" Link="Internal/Persistence/ArtifactLimits.cs" />

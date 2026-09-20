@@ -15,7 +15,7 @@
 
   <!-- The dependency this package exists for. A core package carries none, so an
        external dependency earns its own satellite named for it — this is the
-       third member of the interop tier (decisions 0076 and 0100). -->
+       third member of the interop tier (decisions 0003 and 0100). -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.VectorData.Abstractions" />
   </ItemGroup>
@@ -23,12 +23,12 @@
   <!--
     Two Lodestar edges, both load-bearing: Lodestar.Embeddings' EmbeddingIndex is
     the vector half and Lodestar.Text's Bm25Index, CountVectorizer and RankFusion
-    are the keyword half. Neither is a transitive convenience — decision 0100
+    are the keyword half. Neither is a transitive convenience — decision 0003
     parked this package until the second was published.
 
     Expressed as PackageReferences against the published packages, like every
     other src/ edge, so the build graph is the graph consumers see
-    (decision 0012).
+    (decision 0001).
 
     The opt-in below exists only so that editing several packages in one branch
     does not require a pack-and-restore cycle per edit:

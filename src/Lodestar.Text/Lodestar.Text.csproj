@@ -6,7 +6,7 @@
   <PropertyGroup>
     <Version>$(LodestarTextVersion)</Version>
 
-    <!-- Target framework (see docs/decisions/0001-target-framework.md). -->
+    <!-- Target framework (see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md). -->
     <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
     <RootNamespace>Lodestar.Text</RootNamespace>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
@@ -22,7 +22,7 @@
     <PackageTags>text;similarity;levenshtein;distance;fuzzy;tfidf;nlp;lodestar</PackageTags>
   </PropertyGroup>
 
-  <!-- CsrMatrix and SparseNorm live here since 0.5.0 (decision 0071). The floor is
+  <!-- CsrMatrix and SparseNorm live here since 0.5.0 (decision 0003). The floor is
        pinned in src/Directory.Packages.props, like every other src/ reference. -->
   <ItemGroup>
     <PackageReference Include="Lodestar.Abstractions" />

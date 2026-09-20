@@ -10,9 +10,9 @@ ways, which is why the corpus needs both rather than one file twice:
     Mistral v0.1  normalizer null, pre_tokenizer Metaspace(split=false)
 
 Both are written into tests/oracles/, and only the vocabulary and merge table --
-never weights, per docs/decisions/0003-provenance-and-licensing.md. Mistral v0.1 is
+never weights, per docs/decisions/0002-provenance-and-the-allowed-references.md. Mistral v0.1 is
 Apache-2.0 and needs no exception; Llama-2 is under the LLAMA 2 COMMUNITY LICENSE,
-which decision 0084 admits as a named exception for this artifact alone. The note at
+which decision 0002 admits as a named exception for this artifact alone. The note at
 the end of this docstring says what that obliges and which mirror it is read from.
 Both attributions are recorded in THIRD-PARTY-NOTICES.md.
 
@@ -26,14 +26,14 @@ regenerate the oracles in the same commit, and expect ids to move.
 Why two sources per model, and why they are held to different standards
 ----------------------------------------------------------------------
 `meta-llama/Llama-2-7b-hf` is gated and returns HTTP 401 without credentials this
-project does not have, so decision 0017 section 5's method applies: two independent
+project does not have, so decision 0005 section 5's method applies: two independent
 ungated mirrors, agreeing, stand in for reading the original. That agreement is
 demonstrated here rather than asserted -- MIRROR_AGREEMENT below fails the fetch if
 it ever stops holding.
 
 The mirrors are `daryl149/llama-2-7b-chat-hf` and `TheBloke/Llama-2-7B-fp16`.
 `NousResearch/Llama-2-7b-hf` is deliberately **not** one of them, and the reason is
-worth recording because decision 0017 section 5 uses NousResearch for Llama-3, where
+worth recording because decision 0005 section 5 uses NousResearch for Llama-3, where
 it is the right mirror. For Llama-2 it is not: its merge table holds the same 61 249
 pairs as a multiset, but orders 119 of them differently, from index 61 129 onward and
 all in the whitespace runs --
@@ -53,7 +53,7 @@ the full set.
 Why Llama-2 is vendored, and from which mirror
 ----------------------------------------------
 `meta-llama/Llama-2-7b-hf` is `license:llama2` -- the LLAMA 2 COMMUNITY LICENSE, which
-is not one of the permissive licences decision 0003 names. Decision 0084 accepts it as
+is not one of the permissive licences decision 0002 names. Decision 0002 accepts it as
 a named exception **for this artifact alone**, and the conditions it attaches are met
 by the three files this tool also writes into docs/vendored/llama2/ and pins beside
 the vocabulary.
@@ -62,8 +62,8 @@ the vocabulary.
 because it ships `LICENSE`, `Notice` and `USE_POLICY.md` next to the artifact, so the
 licence travels from the same place as the file. Its `LICENSE` is byte-identical to
 `NousResearch/Llama-2-7b-hf`'s -- the two-source discipline applied to the licence text
-as well as to the vocabulary. The two mirrors part on `post_processor`, which decision
-0083 discards and which MIRROR_AGREEMENT therefore does not check.
+as well as to the vocabulary. The two mirrors part on `post_processor`, whose `pair` template the loader discards and which
+MIRROR_AGREEMENT therefore does not check.
 
 Mistral v0.1 is Apache-2.0 on the original and on its mirror, and needs no exception.
 """
@@ -80,7 +80,7 @@ from pathlib import Path
 ORACLE_DIR = Path(__file__).resolve().parent.parent / "tests" / "oracles"
 
 # The sections that decide what a text encodes to; `post_processor` is not one --
-# it differs between the Llama-2 mirrors and inserts tokens (decision 0083).
+# it differs between the Llama-2 mirrors and inserts tokens.
 MIRROR_AGREEMENT = ("normalizer", "pre_tokenizer", "decoder", "added_tokens")
 VOCABULARY_AGREEMENT = ("vocab", "merges")
 

@@ -10,8 +10,7 @@ AIC and BIC.
 a matrix, one row per equation, where [`GlmSummary`](glm/glmsummary.md)'s is a vector.
 
 **The ordered model is not here.** `statsmodels`' `OrderedModel` differentiates its likelihood numerically, and does
-not reproduce its own answer at the corpus tolerance
-([decision 0136](../../decisions/0136-the-multinomial-logit-is-written-and-the-ordered-model-is-not.md)).
+not reproduce its own answer at the corpus tolerance ([decision 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md)).
 
 ## Types
 

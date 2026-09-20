@@ -16,7 +16,7 @@ is a different edge, however right its id looks.
 Usage:  python tools/check_nuspec_dependencies.py <artifacts-directory> [--require-all]
 
 ``--require-all`` additionally fails when a known package is absent, which is
-what CI wants after packing all three. A release job packs exactly one package,
+what CI wants after packing all eighteen. A release job packs exactly one package,
 so it omits the flag.
 
 ``EXPECTED`` states the intended graph directly: ``Lodestar.Text`` carries
@@ -34,7 +34,8 @@ embedder it adapts, and on ``Lodestar.Embeddings`` because its constructor names
 ``BatchEncoder``, which is the ``EmbedBatch`` overload that owns the padding, and
 ``Lodestar.Stats.Regression`` depends on ``Lodestar.Stats`` for the Student and Fisher
 tails and on ``Lodestar.Decomposition`` for the Householder QR -- the four members
-decision 0095 published for it. Eight inter-package edges, and those are all of them. The ranges are asserted too, not
+decision 0003 published for it. The prose above walks the first of the sixteen edges;
+``EXPECTED`` below is the authority for all of them. The ranges are asserted too, not
 only the ids: a bare ``"0.2.0"`` is NuGet's shorthand for ``[0.2.0, )``, and an
 edge with the wrong floor is a different edge.
 
@@ -42,8 +43,8 @@ Each external dependency appears exactly once: ``Microsoft.ML.OnnxRuntime`` unde
 ``Lodestar.Onnx``, ``Microsoft.Extensions.AI.Abstractions`` under
 ``Lodestar.Extensions.AI``, ``MathNet.Numerics`` under
 ``Lodestar.Extensions.MathNet``. That is the tier rule of #533, restated by decision
-0076 -- a core package carries no external dependency, and an external dependency
-earns its own satellite named for it -- in assertable form, and decision 0087 adds
+0003 -- a core package carries no external dependency, and an external dependency
+earns its own satellite named for it -- in assertable form, and decision 0003 adds
 that an interop satellite may take a dependency a core package refused. This file is
 what fails when one reappears where it should not.
 """
@@ -89,14 +90,14 @@ STJ = "System.Text.Json"
 # every package carries this pair there only. Floors match what STJ 10.0.x needs.
 POLYFILLS = {"System.Memory": "4.6.3", "System.Numerics.Vectors": "4.6.1"}
 
-# netstandard2.0-only, two-package status: docs/decisions/0011-persistence-format.md.
+# netstandard2.0-only, two-package status: docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md.
 PERSISTENCE = {STJ: "10.0.12"}
 
 # Must equal Directory.Packages.props' PackageVersion: a PackageReference
 # emits this floor, but LodestarUseProjectRefs emits Text's own version instead -- catching the escape hatch left on.
 TEXT_FLOOR = "0.6.0"
 
-# Must equal Directory.Packages.props' PackageVersion, for the edge decision 0071
+# Must equal Directory.Packages.props' PackageVersion, for the edge decision 0003
 # added: Lodestar.Text stopped declaring CsrMatrix and consumes it from here.
 ABSTRACTIONS_FLOOR = "0.1.1"
 

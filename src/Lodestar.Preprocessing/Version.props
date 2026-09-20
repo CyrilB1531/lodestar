@@ -2,7 +2,7 @@
 
   <!--
     Lodestar.Preprocessing owns its version here, independently of the other
-    packages (see docs/decisions/0012-per-package-versioning.md).
+    packages (see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
     0.1.0 is the published version and the number below is the next revision: a
     release pull request sets the version being cut, and the release issue closes
@@ -10,7 +10,7 @@
     that adds work never touches it.
 
     Lodestar.Preprocessing depends on Lodestar.Stats and Lodestar.Abstractions
-    (decisions 0138 and 0139), whose floors live in src/Directory.Packages.props.
+    (decisions 0003 and 0139), whose floors live in src/Directory.Packages.props.
   -->
   <PropertyGroup>
     <LodestarPreprocessingVersion>0.1.1</LodestarPreprocessingVersion>

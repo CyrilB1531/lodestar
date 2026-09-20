@@ -34,19 +34,16 @@ double firstTwo = variance.CumulativeExplainedVarianceRatio[1];      // => 0.999
 
 **Remarks** — **this is not a PCA.** There are no components to read and nothing to project onto:
 the projection is delegated, to ML.NET's `ProjectToPrincipalComponents` on any target or to
-NumFlat's `PrincipalComponentAnalysis` on `net8.0` and above
-([`decisions/0116`](../../../decisions/0116-the-pca-gap-is-the-explained-variance-not-the-projection.md)).
+NumFlat's `PrincipalComponentAnalysis` on `net8.0` and above ([decision 0004](../../../decisions/0004-what-is-written-here-and-what-is-delegated.md)).
 What neither answers below `net8.0` is how many of those components are worth keeping, and that is
 all this type does. Compute it here, choose the count off `CumulativeExplainedVarianceRatio`, and
 hand the count to whichever projection you use. Meta.Numerics, on `netstandard2.0`, reports it
-beside its own projection
-([`decisions/0129`](../../../decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md)).
+beside its own projection ([decision 0004](../../../decisions/0004-what-is-written-here-and-what-is-delegated.md)).
 
 **Dense, and the input's own scale.** Nothing is standardised: a feature measured in thousands
 dominates one measured in units, which is PCA's behaviour and scikit-learn's. Standardise first with
 `Lodestar.Preprocessing`'s [`StandardScaler`](../../preprocessing/scaling/standardscaler.md) when the features' units are not comparable. A
-`CsrMatrix` is refused by construction rather than densified, because centring fills it in
-([`decisions/0119`](../../../decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md)).
+`CsrMatrix` is refused by construction rather than densified, because centring fills it in ([decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)).
 
 **Applies to** — net10.0, netstandard2.0.
 

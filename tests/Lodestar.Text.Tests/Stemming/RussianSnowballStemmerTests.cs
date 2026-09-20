@@ -4,14 +4,14 @@ using Xunit;
 namespace Lodestar.Text.Tests.Stemming;
 
 /// <summary>
-/// What decision 0086 settled, which the frozen corpus cannot carry: the one
+/// What decision 0006 settled, which the frozen corpus cannot carry: the one
 /// place the Russian stemmer is deliberately not <c>nltk</c>, and the three
 /// alphabet questions it answers.
 /// </summary>
 public sealed class RussianSnowballStemmerTests
 {
     // nltk stems these to "подь" and "обь": its ь is one apostrophe and its ъ is
-    // two, so step 4 removes half of a final ъ. Decision 0086 does not follow it.
+    // two, so step 4 removes half of a final ъ. Decision 0006 does not follow it.
     [Theory]
     [InlineData("подъём", "подъ")]
     [InlineData("объём", "объ")]
@@ -29,7 +29,7 @@ public sealed class RussianSnowballStemmerTests
         Assert.Equal(expected, RussianSnowballStemmer.Stem(word));
     }
 
-    // The other half of decision 0086, which the corpus does carry and which is
+    // The other half of decision 0006, which the corpus does carry and which is
     // asserted here too because the two halves are one reading of one table.
     [Fact]
     public void The_uyushchaya_pair_follows_nltks_table_over_the_description()

@@ -194,7 +194,7 @@ public sealed class RobustScaler
     /// <summary>What <c>unit_variance</c> divides the range by, from the published normal quantile.</summary>
     /// <remarks>
     /// <c>Φ⁻¹(upper/100) − Φ⁻¹(lower/100)</c>, which is 1.3489795 at the quartiles. The quantile is
-    /// <c>Lodestar.Stats</c>' published one rather than a second copy of it, the edge decision 0138
+    /// <c>Lodestar.Stats</c>' published one rather than a second copy of it, the edge decision 0003
     /// took. A percentile of 0 or 100 has no finite quantile, so it is refused here where the
     /// reference returns an infinity and a scale of zero.
     /// </remarks>

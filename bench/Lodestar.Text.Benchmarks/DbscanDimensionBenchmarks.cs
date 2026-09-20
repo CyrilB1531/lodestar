@@ -10,7 +10,7 @@ namespace Lodestar.Text.Benchmarks;
 /// The same DBSCAN above two features, where only NumFlat 1.3.4 can follow (#759).
 /// </summary>
 /// <remarks>
-/// <c>Dbscan</c> 3.0.0 has no entry point here at all — the absence decision 0131 is built on —
+/// <c>Dbscan</c> 3.0.0 has no entry point here at all — the absence decision 0004 is built on —
 /// so this class is two libraries rather than three, and the gap it prices is NumFlat's
 /// <c>net8.0</c> floor against this package's <c>netstandard2.0</c>, not a missing algorithm.
 /// The fixture and the agreement check are <see cref="DbscanBlock"/>'s, shared with

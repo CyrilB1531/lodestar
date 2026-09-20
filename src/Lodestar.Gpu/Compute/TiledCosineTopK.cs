@@ -34,7 +34,7 @@ public sealed class TiledCosineTopK
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
     /// <remarks>
     /// Loading compiles, so build this once and reuse it. A first launch on a freshly
-    /// loaded kernel measures the compiler, which is why decision 0102 asks a benchmark
+    /// loaded kernel measures the compiler, which is why bench/README.md's GPU gate asks a benchmark
     /// for an explicit warm-up.
     /// </remarks>
     public TiledCosineTopK(GpuContext context)

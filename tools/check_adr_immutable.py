@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-"""Refuse a pull request that touches an already-accepted ADR at all.
+"""Refuse a pull request that rewrites an already-accepted ADR.
 
-docs/decisions/README.md states the rule directly: "An ADR's body is never
-rewritten to agree with a later one." The convention it used to point to --
-appending a `> **#NNN update:**` blockquote next to a stale claim, as
-docs/decisions/0022-added-token-matching-flags.md's section 10 and the
-0015/0019 amendment both still show -- has itself been superseded: "Amend 0004
-in a decision of its own instead of editing it" pulled three such blockquotes
-back out of decision 0004 and put what they said in a new decision, 0043,
-because "a decision record is not edited; an amendment is its own record."
-That is now the whole rule, addition included, not just removal -- and nothing
-enforced either version of it before this script. An edit to an already-merged
+A deletion is allowed. Issue #1103 keeps the records that state an axis of the
+project and deletes the rest, so "never touched" would refuse the pass that the
+directory's own rule asks for; what immutability protects is a body being
+rewritten under a number a reader has already cited, and a deleted body stays
+readable in git. The number is never reused: `.next-adr` counts every ref.
+
+docs/decisions/README.md states the rule directly: a record is never edited,
+and may only be deleted. The convention that came before it -- appending a
+`> **#NNN update:**` blockquote next to a stale claim -- was itself superseded:
+"a decision record is not edited; an amendment is its own record", which pulled
+three such blockquotes back out of the record they had been added to. That is
+the whole rule, addition included, not just removal -- and nothing enforced any
+version of it before this script. An edit to an already-merged
 ADR is still valid markdown, still passes every other gate, and says nothing
 about itself.
 
@@ -18,7 +21,7 @@ Only files that already existed at --base are covered: a brand-new ADR in the
 same pull request is unrestricted, and so is docs/decisions/README.md, which is
 the index rather than a decision and is expected to gain a row on every ADR.
 
-One narrow exception, decision 0106: inserting a YAML frontmatter block above the
+One narrow exception, tools/regen_adr_index.py: inserting a YAML frontmatter block above the
 title is allowed when the body below it is byte-identical. docs/decisions/index.yaml
 is generated from those blocks, and an immutable record cannot be edited to name the
 decision that later amended it -- so the 105 records that predate the index were
@@ -79,6 +82,30 @@ def changed_adr_files(base: str) -> list[str]:
     return [line for line in out.stdout.splitlines() if ADR_PATH.match(line)]
 
 
+def deleted_now(path: str) -> bool:
+    """Whether the record is gone from the working tree rather than rewritten."""
+    return not (ROOT / path).is_file()
+
+
+def renamed_records(base: str) -> dict[str, str]:
+    """Every accepted record this diff renames, old path to new.
+
+    A rename is how a rewrite would otherwise walk through the deletion allowance:
+    the old path reads as deleted and the new one as a record this pull request
+    introduced, so neither half is checked. Both halves are the same record under
+    a new name, and renaming one is editing it.
+    """
+    out = subprocess.run(
+        ["git", "diff", "--name-status", "--find-renames=50%", base, "--", "docs/decisions/"],
+        cwd=ROOT, capture_output=True, text=True, check=True)
+    found = {}
+    for line in out.stdout.splitlines():
+        parts = line.split("\t")
+        if len(parts) == 3 and parts[0].startswith("R") and ADR_PATH.match(parts[1]):
+            found[parts[1]] = parts[2]
+    return found
+
+
 def line_counts(base: str, path: str) -> tuple[int, int]:
     """(added, removed) lines the diff against `base` reports for `path`."""
     out = subprocess.run(
@@ -104,7 +131,7 @@ def text_at(base: str, path: str) -> str | None:
 def is_frontmatter_insertion(base: str, path: str) -> bool:
     """Whether the only change is a frontmatter block added above an untouched body.
 
-    Decision 0106's one exception, and the whole of it. The block is metadata for
+    tools/regen_adr_index.py's one exception, and the whole of it. The block is metadata for
     docs/decisions/index.yaml; the body is the decision, and what immutability is
     for is that the historical reasoning is not rewritten. So the test is exactly
     that: the record had no block, it has one now, and the text below it is the
@@ -127,6 +154,23 @@ def is_frontmatter_insertion(base: str, path: str) -> bool:
     return had_block is None and has_block is not None and old_body == new_body
 
 
+def edited_records(base: str, renames: dict[str, str]) -> list[tuple[str, int, int]]:
+    """Every accepted record this diff rewrites in place, with its (added, removed) counts.
+
+    The destination of a rename is skipped: `renamed_records` already reports that
+    pair, and counting it here would name the same record twice.
+    """
+    edited = []
+    for path in changed_adr_files(base):
+        if path in renames.values() or not existed_at(base, path):
+            continue
+        if is_frontmatter_insertion(base, path) or deleted_now(path):
+            continue
+        added, removed = line_counts(base, path)
+        edited.append((path, added, removed))
+    return edited
+
+
 def main(argv: list[str]) -> int:
     arguments = argv[1:]
     if "--help" in arguments or "-h" in arguments:
@@ -141,15 +185,18 @@ def main(argv: list[str]) -> int:
         return 2
 
     findings = []
-    for path in changed_adr_files(base):
-        if not existed_at(base, path):
-            continue
-        if is_frontmatter_insertion(base, path):
-            continue
-        added, removed = line_counts(base, path)
-        findings.append((path, added, removed))
+    # `git diff --name-only` reports a rename under its destination alone, so the renamed
+    # records are collected here rather than found by `edited_records`.
+    renames = renamed_records(base)
+    for old_path, new_path in sorted(renames.items()):
+        findings.append((old_path, 0, 0))
+        print(f"{old_path}: renamed to {new_path} -- an accepted record keeps the name it was cited under.")
+
+    findings.extend(edited_records(base, renames))
 
     for path, added, removed in findings:
+        if path in renames:
+            continue
         print(f"{path}: {added} line(s) added, {removed} removed -- already accepted.")
 
     if findings:
@@ -159,7 +206,7 @@ def main(argv: list[str]) -> int:
             "\"Amend 0004 in a decision of its own instead of editing it\". Revert "
             "the change and record it as a new ADR instead, indexed in "
             "docs/decisions/README.md. Adding a YAML frontmatter block above an "
-            "untouched body is the one exception (decision 0106), and these "
+            "untouched body is the one exception (tools/regen_adr_index.py), and these "
             "changes are not that.",
             file=sys.stderr)
         return 1

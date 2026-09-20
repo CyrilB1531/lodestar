@@ -42,7 +42,7 @@ mass lies above.
 
 Routing a statistic through here and through the chi-squared tests above gives the same p-value to
 the last bit, because it is the same function and not a second approximation — which is the
-agreement [decision 0081](../../../decisions/0081-the-stats-numerical-layer-stays-internal.md)
+agreement [decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 argued a re-derived tail would lose.
 
 **Applies to** — net10.0, netstandard2.0.

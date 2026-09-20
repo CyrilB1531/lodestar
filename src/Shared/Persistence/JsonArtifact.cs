@@ -31,7 +31,7 @@ internal static class JsonArtifact
     /// The relaxed encoder is deliberate: the default escapes every non-ASCII character as
     /// <c>\uXXXX</c>, and this library ships accented Snowball stop-word lists. "Unsafe" names an
     /// HTML-injection concern that does not apply — an artifact is read back by this library's own
-    /// parser, never dropped into a <c>&lt;script&gt;</c> block. See ADR 0011, "Escaping".
+    /// parser, never dropped into a <c>&lt;script&gt;</c> block. See ADR 0001, "Escaping".
     /// </remarks>
     public static JsonWriterOptions WriterOptions => new()
     {
@@ -58,7 +58,7 @@ internal static class JsonArtifact
     /// From <c>net8.0</c>, <see cref="Utf8JsonWriter.WriteNumberValue(double)"/> emits the shortest
     /// round-tripping form, exact since .NET Core 3.0. A <c>netstandard2.0</c> build may run on .NET
     /// Framework, where that is not guaranteed, so it keeps invariant <c>"G17"</c> instead — exact
-    /// everywhere, at the cost of longer numbers. See ADR 0011, "Doubles": each build is byte-reproducible against itself, not the two against each other.
+    /// everywhere, at the cost of longer numbers. See ADR 0001, "Doubles": each build is byte-reproducible against itself, not the two against each other.
     /// </remarks>
     public static void WriteExactDouble(Utf8JsonWriter writer, double value)
     {
@@ -134,7 +134,7 @@ internal static class JsonArtifact
     /// The growable <see cref="MemoryStream"/> this replaces doubled into fresh zeroed arrays, so a
     /// 20 MB payload paid ~40 MB of allocation, page commits and copies of everything read so far —
     /// ~13 ms over the inflate on a gzip-wrapped index. Segments are never copied until the length is
-    /// known, and then once. Decision 0120 is the record, amending 0054's carve-out for this path.
+    /// known, and then once. docs/guides/performance.md is the record, amending 0054's carve-out for this path.
     /// </remarks>
     private static Buffers.RentedPayload ReadGrowablePooled(Stream stream, in ArtifactLimits limits)
     {

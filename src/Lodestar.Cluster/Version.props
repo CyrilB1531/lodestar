@@ -2,7 +2,7 @@
 
   <!--
     Lodestar.Cluster owns its version here, independently of the other packages
-    (see docs/decisions/0012-per-package-versioning.md).
+    (see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
     0.1.0 is the published version and the number below is the next revision: a
     release pull request sets the version being cut, and the release issue closes

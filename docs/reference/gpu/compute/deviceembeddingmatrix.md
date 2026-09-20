@@ -35,7 +35,7 @@ than the SIMD path it replaces: measured at **9.25× slower** for a hundred thou
 answering one query, against 6.6× *faster* once the same matrix is resident. The crossing point is
 around a hundred queries per corpus.
 
-This is residency only. [Decision 0102](../../../decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md)
+This is residency only. `bench/README.md`'s GPU gate
 defers the chainable device-resident types until three kernels exist, because chainability is a
 claim about two operations sharing a residency — [`DeviceDenseBlock`](devicedenseblock.md) is that
 half, and it carries doubles rather than the floats an embedding matrix holds.

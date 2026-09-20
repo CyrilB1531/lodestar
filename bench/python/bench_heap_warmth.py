@@ -41,7 +41,7 @@ DEFAULT_PATH = Path(tempfile.gettempdir()) / "lodestar-heap-warmth.npy"
 
 def prepare(path: Path) -> None:
     # allow_pickle is stated, not defaulted: np.save defaults it to True, and NpyFile.cs
-    # refuses numpy's pickle-backed '|O' dtype by name (ADR 0011). Same policy, said here.
+    # refuses numpy's pickle-backed '|O' dtype by name (ADR 0001). Same policy, said here.
     np.save(path, build_vectors(), allow_pickle=False)
     print(f"prepared        {path} ({path.stat().st_size:,} bytes)")
 

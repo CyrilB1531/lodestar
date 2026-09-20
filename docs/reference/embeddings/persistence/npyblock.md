@@ -40,11 +40,11 @@ checked before it sizes anything, which is the rule every loader here follows.
 path allocates an array nothing else holds, and that array is what
 [`EmbeddingIndex.FromOwnedBlock`](../search/embeddingindex-fromownedblock.md) may adopt instead of
 copying the block again — the transfer
-[decision 0056](../../../decisions/0056-a-block-may-be-adopted-and-the-invariant-is-the-callers-to-keep.md)
+`docs/guides/performance.md`
 puts on the caller. Reading from a `ReadOnlyMemory<byte>` leaves it null, because those values
 are borrowed and there is no array to give; so does a block you construct yourself, which is what
 stops adoption being reached without the method that documents it.
-[Decision 0057](../../../decisions/0057-the-npy-read-serves-a-stream-and-a-buffer-differently.md)
+`docs/guides/performance.md`
 has why the two reads differ.
 
 **Applies to** — net10.0, netstandard2.0.

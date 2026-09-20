@@ -35,23 +35,25 @@ mapie==1.5.0
 # Metaphone at all in 1.2.1, so this is a second phonetics oracle rather than a
 # reach for a function the existing one already has. Artistic 2.0, read from the
 # LICENSE in its own wheel and not from the PyPI classifier: free, GPL-compatible
-# and non-copyleft, so ADR 0003's hygiene rule -- the one that excludes abydos
+# and non-copyleft, so ADR 0002's hygiene rule -- the one that excludes abydos
 # here, and removed python-Levenshtein earlier -- does not reach it.
-# Decision 0075 has the 401-word comparison that chose it over metaphone 0.6 and
+# Decision 0005 has the 401-word comparison that chose it over metaphone 0.6 and
 # phonetics 1.0.5, and why the field narrowed to one.
 doublemetaphone==1.2
 
-# snowballstemmer -- the reference for Lodestar.Text's Hungarian stemmer (#310).
-# nltk oracles the other Snowball languages and cannot oracle this one: its
+# snowballstemmer -- the reference for Lodestar.Text's Hungarian (#310), Arabic and
+# French stemmers. nltk oracles the twelve other Snowball languages and cannot oracle
+# Hungarian: its
 # Hungarian omits 'ő' and 'ű' from the vowel set and 'től', 'ről', 'ből' from
 # step 2, so it leaves "nők", "szőlők", "gyűrűk" and every -ből form unstemmed.
 # This is the Snowball project's own generated Python package, so the corpus
 # freezes the published algorithm rather than one library's transcription of it.
-# BSD-3-Clause, no dependencies of its own. Decision 0090 has the measurement.
+# BSD-3-Clause, no dependencies of its own. Decision 0006 has the measurement and the
+# reference each language follows.
 snowballstemmer==3.1.1
 
 # statsmodels -- the reference for Lodestar.Stats.Regression's OLS table (#566).
-# BSD-3-Clause, on the same footing as scikit-learn and (since decision 0082) scipy.
+# BSD-3-Clause, on the same footing as scikit-learn and (since decision 0002) scipy.
 # sm.OLS(y, X).fit() publishes .bse, .tvalues, .pvalues, .conf_int(), .rsquared_adj,
 # .fvalue and .f_pvalue, and statsmodels.stats.outliers_influence the VIF -- the whole
 # table from one call. sklearn.linear_model.LinearRegression, already pinned, computes
@@ -60,7 +62,7 @@ snowballstemmer==3.1.1
 # This is the largest single addition this file has taken: numpy, scipy and packaging
 # were already resolved, but pandas, patsy and formulaic arrive with it, and pandas
 # brings its own date leaves. It does not qualify for requirements-nodeps.txt --
-# decision 0078's test admits a package only when everything it imports is already on
+# tools/requirements-nodeps.txt's test admits a package only when everything it imports is already on
 # the lock's graph, and pandas is not. The cost is shared rather than paid twice:
 # lifelines, the reference the survival lot (#569) will need, depends on pandas and
 # formulaic as well.
@@ -68,10 +70,10 @@ statsmodels==0.15.0
 
 # lifelines -- the reference for Lodestar.Survival's Kaplan-Meier, Nelson-Aalen and
 # log-rank (#569). MIT, read from the wheel rather than the PyPI classifier. Its own
-# Python floor is 3.11, below the 3.12 ADR 0065 sets, so it does not raise ours.
+# Python floor is 3.11, below the 3.12 tools/python_floor.py sets, so it does not raise ours.
 #
-# scikit-survival is deliberately absent: its licence is GPL-3.0-or-later, which ADR 0003
-# refuses outright. Decision 0098 records that so the question is not reopened.
+# scikit-survival is deliberately absent: its licence is GPL-3.0-or-later, which ADR 0002
+# refuses outright, and it records that so the question is not reopened.
 lifelines==0.30.3
 # autograd-gamma is lifelines' own dependency, pinned here rather than left to the
 # resolver: pip-compile selects 0.5.0, which publishes no wheel, and every install site
@@ -81,7 +83,7 @@ autograd-gamma==0.4.2
 
 # rank_bm25 -- the reference for Lodestar.Text.Search's BM25 (#573). Apache-2.0, read
 # from the wheel; #573 named it MIT, which the METADATA does not say. Permissive either
-# way, so ADR 0003 allows it. Frozen since 2022 and four releases old, which is what a
+# way, so ADR 0002 allows it. Frozen since 2022 and four releases old, which is what a
 # behaviour reference wants. bm25s was the other candidate and is not pinned: one oracle
 # per algorithm, and this is the better-known dialect of the two.
 rank_bm25==0.2.2
@@ -131,7 +133,7 @@ colorama==0.4.6
 tzdata==2026.3
 
 # datasketch -- the reference for MinHash and its banded LSH index (#602). MIT, read
-# from the wheel's METADATA rather than from PyPI's field, which decision 0075 found
+# from the wheel's METADATA rather than from PyPI's field, which decision 0005 found
 # unreliable. Its permutation coefficients are frozen into the corpus rather than
 # reproduced from numpy's generator, so nothing here depends on that stream.
 #

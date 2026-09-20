@@ -40,7 +40,7 @@ appearing twice. Math.NET reaches a cell by searching the row, which assumes the
 [`MathNetInterop.ToSparseMatrix`](mathnetinterop-tosparsematrix.md) sorts each row and adds
 duplicate columns together, after a pass that detects the already-sorted case and copies straight
 through — the case every vectorizer in this repository produces.
-[`decisions/0089`](../../../decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)
+[`decisions/0003`](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 records why it repairs rather than refuses.
 
 **Applies to** — net10.0, netstandard2.0.

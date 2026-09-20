@@ -31,7 +31,7 @@
     the sample tracks whatever `dotnet pack` just produced instead of pinning
     numbers that go stale at the next release — it just needs one source per
     package instead of one repository-wide $(Version). See
-    docs/decisions/0012-per-package-versioning.md.
+    docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md.
   -->
   <Import Project="../../src/Lodestar.Text/Version.props" />
   <Import Project="../../src/Lodestar.Embeddings/Version.props" />

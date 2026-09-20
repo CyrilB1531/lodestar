@@ -6,7 +6,7 @@
 //
 //     Copyright (c) 2001, Dr Martin Porter
 //     Copyright (c) 2002, Richard Boulton
-//     BSD-3-Clause. See docs/decisions/0010-stop-word-list-provenance.md.
+//     BSD-3-Clause. See docs/decisions/0002-provenance-and-the-allowed-references.md.
 // </auto-generated>
 
 namespace Lodestar.Text.Vectorization;

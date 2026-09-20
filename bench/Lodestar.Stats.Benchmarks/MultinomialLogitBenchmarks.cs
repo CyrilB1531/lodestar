@@ -12,7 +12,7 @@ namespace Lodestar.Stats.Benchmarks;
 
 /// <summary>The multinomial logit against Accord's <c>MultinomialLogisticRegression</c>, the one .NET incumbent (#788).</summary>
 /// <remarks>
-/// Accord is LGPL-2.1 and archived, so it is raced rather than delegated to (decision 0104). Its
+/// Accord is LGPL-2.1 and archived, so it is raced rather than delegated to (decision 0004). Its
 /// <c>LowerBoundNewtonRaphson</c> runs at a tolerance of <c>1e-10</c>, where its coefficients agree with this fit's to
 /// <c>1e-8</c>; at its looser default a race would time a different answer. Its standard errors are not compared: they read
 /// the lower-bound Hessian its algorithm iterates on, and measured 33% to 43% from the ones this fit and statsmodels report.

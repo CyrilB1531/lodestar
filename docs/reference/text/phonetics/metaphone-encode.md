@@ -39,7 +39,7 @@ uses for sounds it does not write plainly.
 
 **Parity is claimed on real words only.** The shared 402-word corpus contains random letter
 sequences, and on those jellyfish behaves in ways specific to its C implementation;
-[decision 0007](../../../decisions/0007-metaphone-scope.md) is the reasoning, and the practical
+[decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md) is the reasoning, and the practical
 form of it is that a code for `xhdzhumzj` is not something this package promises to match.
 
 **Applies to** — net10.0, netstandard2.0.

@@ -4,7 +4,7 @@ namespace Lodestar.Embeddings.Tokenization;
 /// <remarks>
 /// Three fields rather than a pipeline of steps: the SentencePiece-BPE lineage declares one
 /// chain, <c>Sequence[Replace, ByteFallback, Fuse, Strip]</c>, and reproducing exactly it and
-/// the bare <c>ByteFallback</c> is what decision 0063 decided. Any other shape is refused at
+/// the bare <c>ByteFallback</c> is what decision 0007 decided. Any other shape is refused at
 /// load, so nothing here has to describe it.
 /// </remarks>
 internal sealed class BpeDecoderSteps

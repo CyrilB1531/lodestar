@@ -46,7 +46,7 @@ and iterates until the labels settle.
 **A sample exactly equidistant from two centres takes the lowest-indexed one.** That is
 `numpy.argmin`'s rule and a **measured divergence** from the reference, whose choice was observed
 going both ways on two configurations;
-[`decisions/0093`](../../../decisions/0093-an-exact-tie-between-centres-is-not-part-of-k-means-parity.md)
+[`decisions/0007`](../../../decisions/0007-the-deliberate-divergences.md)
 has both and says why neither rule reproduces the pair. No frozen case turns on a tie.
 
 **Empty clusters are relocated together, as the reference relocates them.** From one pass of
@@ -65,11 +65,11 @@ baseline for one input. Over 1,000 random fits with distinct distances the centr
 matched on all 1,000, whatever the pairing; over 1,000 fits of a few points repeated, scikit-learn
 disagreed with itself across tiers on 35 centre sets and this method disagreed with it on 214, and
 taking ties highest row first instead leaves 210. With no cluster emptied the same kind of input
-matched on all 1,000. The same reasoning as decision 0093; no frozen case turns on it yet.
+matched on all 1,000. The same reasoning as decision 0007; no frozen case turns on it yet.
 
 **The starting centres are an input, not a seed.** Passing
 [`KMeansOptions.InitialCentres`](kmeansoptions.md) replaces the choice entirely and makes the run an
-ordinary parity target — the move [`decisions/0072`](../../../decisions/0072-omega-is-an-input-not-a-seed.md)
+ordinary parity target — the move [`decisions/0004`](../../../decisions/0004-what-is-written-here-and-what-is-delegated.md)
 made for Ω. Without them, k-means++ draws from this package's own generator, which reproduces a run
 of Lodestar and never a run of scikit-learn.
 

@@ -14,7 +14,7 @@ Two conventions run through the whole namespace, and knowing them saves reading 
   `TextElement.Utf16Unit`, is .NET's own unit and agrees with Python for every character in the
   Basic Multilingual Plane; outside it — emoji, rare ideographs — one character is two UTF-16 units
   and the two disagree on purpose. Pass `TextElement.CodePoint` for Python's answer. The reasoning
-  is in [decision 0002](../../decisions/0002-unicode-comparison-unit.md).
+  is in [decision 0001](../../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
 Comparing text **position by position** — how many edits turn one string into the other, whether
 two names are spelled alike — is a different question, answered by

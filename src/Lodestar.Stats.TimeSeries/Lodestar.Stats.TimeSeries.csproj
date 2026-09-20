@@ -23,7 +23,7 @@
     this is a package at all.
 
     Lodestar.Stats is a PackageReference against its published floor, like every other src/ edge
-    (decision 0012), with the usual developer-loop opt-in, never set in CI:
+    (decision 0001), with the usual developer-loop opt-in, never set in CI:
 
         export LodestarUseProjectRefs=true
   -->

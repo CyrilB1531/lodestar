@@ -11,7 +11,7 @@ namespace Lodestar.Text.Tests.Vectorization;
 /// <summary>
 /// The shipped lists are vendored data, so what needs pinning is their identity:
 /// the exact counts of their source, and the words that tell the two candidate
-/// sources apart. See <c>docs/decisions/0010-stop-word-list-provenance.md</c>.
+/// sources apart. See <c>docs/decisions/0002-provenance-and-the-allowed-references.md</c>.
 /// </summary>
 public sealed class StopWordsTests
 {
@@ -59,7 +59,7 @@ public sealed class StopWordsTests
     }
 
     // The measured Snowball/nltk divergence: these fail if the nltk corpus is ever
-    // vendored in place of the Snowball lists, which decision 0010 rules out.
+    // vendored in place of the Snowball lists, which decision 0002 rules out.
     [Theory]
     [InlineData("ceci")]        // added to Snowball after the snapshot nltk froze
     [InlineData("cela")]

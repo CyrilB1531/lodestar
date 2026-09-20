@@ -44,7 +44,7 @@ a `tol` outside `[0, inf)` — a `NaN` would otherwise switch the shift test off
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`KMeans.Fit`](kmeans-fit.md), [`KMeans`](kmeans.md),
-[`decisions/0072`](../../../decisions/0072-omega-is-an-input-not-a-seed.md).
+[`decisions/0004`](../../../decisions/0004-what-is-written-here-and-what-is-delegated.md).
 
 ## Members
 

@@ -130,7 +130,7 @@ def _mirror(tmp_path, package, pin):
 
 
 def test_the_contract_is_read_per_package_not_from_a_constant(monkeypatch, tmp_path):
-    """Lodestar.Gpu replays 2.1, because ILGPU ships no 2.0 asset (#444, decision 0103)."""
+    """Lodestar.Gpu replays 2.1, because ILGPU ships no 2.0 asset (#444, decision 0003)."""
     monkeypatch.setattr(guard, "ROOT", tmp_path)
     _library(tmp_path, "Lodestar.Gpu", "net10.0;netstandard2.1")
     mirror = _mirror(tmp_path, "Lodestar.Gpu", "netstandard2.1")

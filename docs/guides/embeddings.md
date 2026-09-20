@@ -64,7 +64,7 @@ applies no normalizer of its own, but since `Encode` already normalized the text
 saw, `Decode(Encode(x))` returns the normalized text rather than `x`, matching Python.
 One case does not round-trip byte-exactly: a non-ASCII added token that is not
 byte-level encodable end to end decodes to U+FFFD, matching HuggingFace rather than
-throwing — [decision 0023](../decisions/0023-byte-level-decode-substitutes.md). That is
+throwing — [decision 0007](../decisions/0007-the-deliberate-divergences.md). That is
 also what makes decoding one token id at a time work, the normal way to consume a
 streamed model.
 
@@ -100,10 +100,9 @@ models are refused outright.
 Llama-2 and Mistral v0.1 are trained as **SentencePiece BPE with a `Metaspace`
 whitespace escape and `byte_fallback`** — not a third pipeline: `model.type` still
 says `BPE`, and `BpeTokenizer` reproduces the whole lineage, the whitespace escape
-([decision 0050](../decisions/0050-the-sentencepiece-bpe-lineage-stays-a-bpe-model.md),
-[decision 0062](../decisions/0062-the-two-metaspace-spellings-part-on-the-prepend-twice.md))
-and `byte_fallback`
-([decision 0063](../decisions/0063-byte-fallback-requires-the-whole-alphabet-and-its-decoder-is-read-strictly-too.md))
+(docs/equivalence.md's loader rows,
+docs/equivalence.md's Metaspace rows)
+and `byte_fallback` ([decision 0007](../decisions/0007-the-deliberate-divergences.md))
 both included. A real Llama-2 or Mistral v0.1 `tokenizer.json` declares
 `model.type == "BPE"` with `byte_fallback`, and
 [`TokenizerJsonLoader.LoadBpe`](../reference/embeddings/persistence/tokenizerjsonloader-loadbpe.md)
@@ -113,7 +112,7 @@ message names `byte_fallback` directly rather than stopping at "this is a `BPE`
 model, not `Unigram`" (#343) — and `LoadBpe` itself refuses only a vocabulary
 that declares the flag without carrying every `<0xXX>` piece it promises, naming
 the first one missing.
-See [decision 0017](../decisions/0017-bpe-parity-scope.md) for the parity scope
+See [decision 0005](../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md) for the parity scope
 this table states — end-to-end for GPT-2 and the classic lineage, split-pattern
 only for Llama-3 and Qwen2 — and for a known split divergence from HuggingFace
 above the Basic Multilingual Plane.
@@ -184,8 +183,7 @@ different one is **rejected**, with a message naming what was found:
   resolves an uncovered character into `<0x..>` byte pieces where that pipeline
   would emit the unknown piece instead; on the BPE path it is reproduced, and
   only a vocabulary that declares the flag without carrying all 256 `<0xXX>`
-  pieces it promises is refused, naming the first one missing
-  ([decision 0063](../decisions/0063-byte-fallback-requires-the-whole-alphabet-and-its-decoder-is-read-strictly-too.md));
+  pieces it promises is refused, naming the first one missing ([decision 0007](../decisions/0007-the-deliberate-divergences.md));
 - a normalizer named in a `spiece.model` with no `precompiled_charsmap` to
   apply, or a character map that will not parse — the rules come from the
   compiled map, never from `normalizer_spec.name`;
@@ -265,8 +263,7 @@ different one is **rejected**, with a message naming what was found:
   different id, or a negative id, which is an out-of-range index in the caller's
   embedding lookup wherever it lands. The matching flags are **not** a refusal
   any more: `lstrip`, `rstrip`, `single_word`, `special` and `normalized` are all
-  read and honoured
-  ([decision 0022](../decisions/0022-added-token-matching-flags.md));
+  read and honoured;
 - a `spiece.model` with no `normalizer_spec` at all — treating "absent" as
   "identity" would make the normalizer check skippable by deleting a field;
 - a special-token id (`unk_id`, `bos_id`, `eos_id`, `pad_id`) outside the
@@ -300,7 +297,7 @@ follow, and both are worth knowing before they surprise you:
   and [`BpeTokenizer.Decode`](../reference/embeddings/tokenization/bpetokenizer-decode.md) — the only decoder here, and the one whose byte-level
   round trip is otherwise exact — does not put it back: `'a <mask> b'` comes back
   as `'a<mask> b'`. HuggingFace loses it too, so this is parity rather than a
-  defect — [decision 0022](../decisions/0022-added-token-matching-flags.md)
+  defect — docs/equivalence.md's added-token row
   records the measurement, and which of the five flags decides what.
 
 ## Embed a batch

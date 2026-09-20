@@ -153,7 +153,7 @@ public sealed class CalibrationCurve
     /// Not <see cref="WeightedPercentile"/>: the reference reaches for <c>np.percentile</c>
     /// here, whose rule is a linear interpolation between the two neighbouring order
     /// statistics, where the weighted one this package already carries interpolates
-    /// differently (decision 0024). Reusing it would disagree in the third decimal.
+    /// differently. Reusing it would disagree in the third decimal.
     /// </remarks>
     private static double Percentile(ReadOnlySpan<double> sorted, double fraction)
     {

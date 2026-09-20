@@ -441,7 +441,7 @@ def _hamming_reference(a: str, b: str) -> int:
     Note: jellyfish.hamming_distance matches this for all normal inputs but
     diverges on ~5% of degenerate combining-mark strings (an unexplained quirk of
     its Rust core — not NFC normalization, not byte-level). Lodestar implements the
-    standard definition; see docs/decisions/0005-hamming-jellyfish-divergence.md.
+    standard definition; see docs/decisions/0007-the-deliberate-divergences.md.
     """
     m = min(len(a), len(b))
     return sum(1 for i in range(m) if a[i] != b[i]) + abs(len(a) - len(b))
@@ -460,7 +460,7 @@ def generate_hamming() -> dict:
         "metadata": {
             "algorithm": "Hamming",
             "library": "reference-standard",
-            "reference_calls": ["standard code-point Hamming (see decision 0005)"],
+            "reference_calls": ["standard code-point Hamming (see decision 0007)"],
             "jellyfish_version": version("jellyfish"),
             "jellyfish_divergences": diverge,
             "semantics": "code_point",
@@ -494,7 +494,7 @@ def _jaro_reference(a: str, b: str) -> float:  # NOSONAR S3776
     pass" would be circular: the tests compare against exactly this output.
 
     jellyfish agrees for normal inputs but diverges on the same degenerate
-    combining-mark / emoji strings as its Hamming (decision 0005). We therefore
+    combining-mark / emoji strings as its Hamming (decision 0007). We therefore
     generate from this reference and record the jellyfish divergence count.
     """
     l1, l2 = len(a), len(b)
@@ -552,7 +552,7 @@ def _similarity_reference_corpus(reference, jelly, algorithm: str) -> dict:
         "metadata": {
             "algorithm": algorithm,
             "library": "reference-standard",
-            "reference_calls": [f"standard {algorithm} over code points (see decision 0005)"],
+            "reference_calls": [f"standard {algorithm} over code points (see decision 0007)"],
             "jellyfish_version": version("jellyfish"),
             "jellyfish_divergences": diverge,
             "semantics": "code_point",
@@ -707,7 +707,7 @@ def generate_metaphone() -> dict:
             "library": "jellyfish",
             "library_version": version("jellyfish"),
             "reference_calls": ["jellyfish.metaphone"],
-            "corpus": "real English words/names (see decision 0007)",
+            "corpus": "real English words/names (see decision 0005)",
             "seed": SEED,
             "count": len(cases),
         },
@@ -769,7 +769,7 @@ def generate_double_metaphone() -> dict:
     for idx, word in enumerate(double_metaphone_words(rng)):
         primary, secondary = doublemetaphone(word)
         # doublemetaphone repeats the primary where there is no alternate; '' is what the
-        # siblings return and what the C# API exposes -- decision 0075, normalised on the way in.
+        # siblings return and what the C# API exposes -- decision 0005, normalised on the way in.
         cases.append({
             "id": idx,
             "word": word,
@@ -782,7 +782,7 @@ def generate_double_metaphone() -> dict:
             "library": "doublemetaphone",
             "library_version": version("doublemetaphone"),
             "reference_calls": ["doublemetaphone.doublemetaphone"],
-            "corpus": "the input-contract fixed points, plus phonetic_words -- the words decision 0075 compared the candidates over",
+            "corpus": "the input-contract fixed points, plus phonetic_words -- the words decision 0005 compared the candidates over",
             "secondary_convention": "'' for no alternate, unwrapped from the reference's repeated primary",
             "seed": SEED,
             "count": len(cases),
@@ -792,7 +792,7 @@ def generate_double_metaphone() -> dict:
 
 
 # Every Unicode entry is kept under 7 UTF-8 bytes so jellyfish's own codex does not
-# corrupt itself on the truncation bug decision 0080 records: parity cases, not divergences.
+# corrupt itself on the truncation bug decision 0007 records: parity cases, not divergences.
 MRA_WORDS = [
     "Smith", "Smyth", "Byrne", "Boern", "Catherine", "Kathryn", "aeiou",
     "Mississippi", "Bhattacharya", "Schwarzenegger", "Constantinople", "",
@@ -835,7 +835,7 @@ def generate_match_rating_codex() -> dict:
 
 def generate_match_rating_comparison() -> dict:
     # phonetic_words alone, not match_rating_words: its words are ASCII, so character
-    # and UTF-8 byte length always agree and decision 0080's divergence cannot enter.
+    # and UTF-8 byte length always agree and decision 0007's divergence cannot enter.
     words = list(phonetic_words(SeededRandom(SEED)))
     pairs = list(MRA_PAIRS)
     # Consecutive words from that list, deterministically -- covers every bucket
@@ -1210,7 +1210,7 @@ SNOWBALL_FR_DICTIONARY_WORDS = [
 
 
 def generate_snowball_fr() -> dict:
-    # French follows the Snowball algorithm rather than nltk's reading of it -- decision 0145.
+    # French follows the Snowball algorithm rather than nltk's reading of it -- decision 0006.
     return _snowball_reference_corpus(
         "french", "FrenchSnowballStemmer", SNOWBALL_FR_WORDS + SNOWBALL_FR_DICTIONARY_WORDS
     )
@@ -1436,7 +1436,7 @@ SNOWBALL_RU_WORDS = [
     "читавший", "читавшая", "читавшего", "написавший",
     "читаемый", "читаемая", "читаемого",
     "сделанный", "сделанная", "сделанного", "сделанным",
-    # the one pair nltk's table spells wrong, decision 0086: -ующая keeps its ующ
+    # the one pair nltk's table spells wrong, decision 0006: -ующая keeps its ующ
     "рискующая", "рискующий", "танцующая", "танцующий",
     "существующая", "существующий", "действующая", "действующий",
     # step 1, verb: two groups again, the first only after а or я
@@ -1541,7 +1541,7 @@ SNOWBALL_DA_WORDS = [
     "oplevelse", "oplevelser", "bevægelse", "bevægelser",
     "forbindelse", "forbindelser", "afgørelse", "ændringer",
     # the apostrophe the published description gives R1 to and nltk does not --
-    # decision 0087 follows nltk, and these are what pin that
+    # decision 0006 follows nltk, and these are what pin that
     "pc'er", "cd'er", "tv'et", "bil'er", "computer'en", "a'ere",
     # words that must come back whole: too short for R1, or nothing to strip
     "og", "at", "det", "en", "et", "er", "som", "på", "med", "for",
@@ -1550,7 +1550,7 @@ SNOWBALL_DA_WORDS = [
 ]
 
 
-# Hungarian is oracled by snowballstemmer rather than nltk -- decision 0090 has
+# Hungarian is oracled by snowballstemmer rather than nltk -- decision 0006 has
 # the two omissions in nltk's Hungarian that made it unusable as a reference.
 SNOWBALL_HU_WORDS = [
     # step 2, remove frequent cases: the case endings, both vowel harmonies
@@ -1621,7 +1621,7 @@ def _snowball_corpus(language: str, algorithm: str, words: list[str]) -> dict:
     }
 
 
-# Arabic is oracled by snowballstemmer rather than nltk -- decision 0094: nltk's
+# Arabic is oracled by snowballstemmer rather than nltk -- decision 0006: nltk's
 # Arabic carries state between calls, which no thread-safe stemmer can reproduce.
 SNOWBALL_AR_WORDS = [
     # normalisation, which the algorithm does before any stripping: the
@@ -1667,8 +1667,8 @@ def _snowball_reference_corpus(language: str, algorithm: str, words: list[str]) 
     """Freeze snowballstemmer's output for one language into an oracle payload.
 
     The Snowball project's own generated package, used where nltk's transcription
-    of an algorithm is incomplete -- decision 0090 has the measurement that took
-    Hungarian off nltk, and decision 0145 the one that took French off it.
+    of an algorithm is incomplete -- decision 0006 has both measurements, the one that
+    took Hungarian off nltk and the one that took French off it.
     """
     import snowballstemmer  # noqa: PLC0415
 
@@ -1763,7 +1763,7 @@ SNOWBALL_FI_WORDS = [
     "perheiden", "mielenkiintoisempi", "kansainvälisempi", "hyödyllisempi",
     "ymmärtäväisempi", "ihmiset", "opiskelijat", "kirjastot",
     # constructed forms pinning where a failed condition ends the search, from
-    # both sides -- decision 0090; "ihmisiin" above is the one real word for it
+    # both sides -- decision 0006; "ihmisiin" above is the one real word for it
     "ihmisden", "ihmistten", "ihmiseseen", "kotimaahon", "kissatta",
     # words that must come back whole, or nearly: too short, or nothing to strip
     "ja", "on", "ei", "se", "ne", "me", "te", "hän", "minä", "sinä",
@@ -3725,7 +3725,7 @@ def _conformal_regression_fixtures() -> list[dict]:
 
     Every alpha satisfies MAPIE's own precondition -- 1/alpha and 1/(1 - alpha)
     both below the calibration size -- because below it MAPIE refuses to answer at
-    all, which is the same region decision 0070 is about.
+    all, which is the same region decision 0007 is about.
     """
     rng = SeededRandom(SEED + 441)
     y_calib = [round(rng.gauss(10.0, 3.0), 6) for _ in range(30)]
@@ -3920,7 +3920,7 @@ def generate_conformal() -> dict:
         k, q = _conformal_quantile(scores, fx["alpha"])
 
         # No numpy cross-check here: np.quantile at level (1 - alpha)(n + 1)/n is a
-        # different rule (see decision 0070). MAPIE below is the reference.
+        # different rule (see decision 0007). MAPIE below is the reference.
         estimator = frozen_regressor(table=np.array(calib_pred + test_pred)).fit(np.zeros((1, 1)))
         mapie = SplitConformalRegressor(
             estimator=estimator, confidence_level=1.0 - fx["alpha"], prefit=True)
@@ -5297,7 +5297,7 @@ def _kmeans_fixtures() -> list[dict]:
         {"name": "a cluster that starts empty", "rows": blobs,
          "init": [[0.0, 0.0], [10.0, 10.0], [-500.0, -500.0]], MAX_ITER: 300, "tol": 1e-4},
         # One iteration only, so the final assignment is what makes labels and centres
-        # agree. Centres unequal and off the groups: no tie to decide (decision 0090).
+        # agree. Centres unequal and off the groups: no tie to decide (decision 0007).
         {"name": "stopped at one iteration", "rows": blobs,
          "init": [[0.3, 0.2], [1.4, 1.1], [2.6, 2.3]], MAX_ITER: 1, "tol": 1e-4},
         # tol = 0 keeps going until the labels stop moving, with no shift test at all.
@@ -5345,7 +5345,7 @@ def generate_cluster_kmeans() -> dict:
     from each sample to its centre -- but scikit-learn accumulates it in an OpenMP
     reduction whose order varies run to run: measured on the four-feature fixture, four
     regenerations of this file gave 20.756666666666668 twice, ...675 once and ...67 once.
-    Every value is within 2e-15 of the others, so the numeric gate of decision 0073 would
+    Every value is within 2e-15 of the others, so the numeric gate of tools/compare_oracles.py would
     never have failed on it -- but the committed file would have changed on every run for
     no reason, which is the friction that gate was written to remove rather than to hide.
     """
@@ -5450,7 +5450,7 @@ def generate_cluster_dbscan() -> dict:
     """DBSCAN labels, compared exactly (#759).
 
     A label is an integer and the algorithm is deterministic given the neighbourhood
-    order, so there is nothing here for decision 0073's numeric comparison to soften: a
+    order, so there is nothing here for tools/compare_oracles.py's numeric comparison to soften: a
     case whose labels move has changed answer rather than drifted, and the corpus says so
     by carrying no tolerance at all.
 
@@ -5669,7 +5669,7 @@ def _distribution_fixtures() -> list[dict]:
         {"name": "a shape of 1e8, one standard deviation up",
          "call": CHI2_SF, "args": {"x": 200020000.0, "df": 200000000.0}},
         # The normal quantile (#569): a Student one at a huge degrees of freedom reaches
-        # it only to about 9e-9, which is why decision 0098 publishes its own member.
+        # it only to about 9e-9, which is why decision 0003 publishes its own member.
         {"name": "the multiplier a 95% large-sample interval asks for", "call": NORM_PPF, "args": {"x": 0.975}},
         {"name": "the multiplier a 99% one asks for", "call": NORM_PPF, "args": {"x": 0.995}},
         {"name": "the median, which is exactly zero", "call": NORM_PPF, "args": {"x": 0.5}},
@@ -5819,7 +5819,7 @@ def _robust_fixtures() -> list[dict]:
         # The design is shared with the nonrobust case above, the response is not. On the
         # near-noiseless response above it (R2 = 0.99995) the Wald statistic reaches
         # 97 533, and tools/compare_oracles.py compares floats at 1e-9 *absolute*
-        # (decision 0073) -- so a last-bit BLAS disagreement of 7e-14 relative is
+        # (tools/compare_oracles.py) -- so a last-bit BLAS disagreement of 7e-14 relative is
         # 7e-9 absolute and the reproducibility gate fails on a different machine.
         # The ordinary F on the same rows is safe at 60 493 only because it is read
         # off R-squared rather than by inverting a covariance block. Visible residuals
@@ -5873,7 +5873,7 @@ def _hac_cluster_fixtures() -> list[dict]:
             # Ten lags on eight rows: the lags past the seventh have no pairs, and the
             # Bartlett weights of the ones that do still divide by eleven. The response
             # alternates hard: on the HC1 case's own the Wald statistic reaches 14 955,
-            # past where decision 0073's absolute 1e-9 holds across machines.
+            # past where tools/compare_oracles.py's absolute 1e-9 holds across machines.
             "name": "two regressors, no intercept, HAC 10 on eight rows",
             DESIGN: [1.0, 1.0, 2.0, 1.0, 3.0, 2.0, 4.0, 2.0, 5.0, 3.0, 6.0, 3.0, 7.0, 4.0, 8.0, 4.0],
             RESPONSE: [7.5, 1.2, 13.1, 5.1, 17.9, 9.6, 25.1, 13.5],
@@ -6252,7 +6252,7 @@ def generate_text_similarity() -> dict:
     The permutation coefficients are frozen with the signatures rather than derived
     from the seed: reproducing numpy's generator stream in C# would make the parity
     claim depend on a random number generator instead of on the algorithm, which is
-    the call decision 0072 already made for randomized SVD's omega.
+    the call decision 0004 already made for randomized SVD's omega.
     """
     from datasketch import MinHash as DsMinHash
     from datasketch.lsh import _optimal_param
@@ -6585,7 +6585,7 @@ def _wls_fixtures() -> list[dict]:
     """Weights chosen for what whitening can get wrong, over designs the OLS corpus already trusts (#768).
 
     Hand-written like `_ols_fixtures`. The responses carry visible noise on purpose: the
-    reproducibility gate compares at 1e-9 absolute (decision 0073), and a near-exact fit
+    reproducibility gate compares at 1e-9 absolute (tools/compare_oracles.py), and a near-exact fit
     drives the robust Wald statistic to where a last-bit BLAS difference crosses that.
     """
     line = {
@@ -6654,7 +6654,7 @@ def _wls_fixtures() -> list[dict]:
     # The model's constant stays out of the robust Wald test, where OLS on the whitened
     # rows would put it in -- 505 against 619 under HC0 here, so these four also tell
     # WLS from that shortcut. Kept to one regressor: a Wald statistic in the tens of
-    # thousands is where decision 0073's absolute 1e-9 stops holding across machines.
+    # thousands is where tools/compare_oracles.py's absolute 1e-9 stops holding across machines.
     fixtures.extend(
         {"name": f"one regressor, uneven weights, {kind}", COVARIANCE_TYPE: kind,
          WEIGHTS: uneven, **line}
@@ -6719,7 +6719,7 @@ def _gls_fixtures() -> list[dict]:
     """Error covariances chosen for what whitening by a full Cholesky factor can get wrong (#771).
 
     The responses carry visible noise, as the WLS corpus's do, so the robust Wald statistics stay in the
-    hundreds where decision 0073's absolute 1e-9 holds across machines.
+    hundreds where tools/compare_oracles.py's absolute 1e-9 holds across machines.
     """
     line = {
         DESIGN: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
@@ -7075,7 +7075,7 @@ def _mnlogit_fixtures() -> list[dict]:
     long-comment: why the likelihood-ratio statistic has to be large.
     The pseudo-R-squared and the likelihood-ratio test read `llnull`, which statsmodels reaches by a
     Nelder-Mead and BFGS refit that lands up to 3e-10 off the closed form the C# computes (decision
-    0136). The statistic is a difference of log-likelihoods, so a small one amplifies that gap past
+    0004). The statistic is a difference of log-likelihoods, so a small one amplifies that gap past
     the corpus tolerance; above 25 it stays under 1e-10. Seeds 5, 2, 10 and 8, noted so they can be
     drawn again: category probabilities from normal coefficients, regressors rounded to two decimals.
     """
@@ -7173,7 +7173,7 @@ def generate_stats_mnlogit() -> dict:
             "likelihoodRatio": float(fit.llr),
             "likelihoodRatioPValue": float(fit.llr_pvalue),
             # The same tail read on the closed-form null: statsmodels' refit null moves its own p-value by up
-            # to 1.3e-8 relative, and this is the number the C# computes (decision 0136).
+            # to 1.3e-8 relative, and this is the number the C# computes (decision 0004).
             "likelihoodRatioPValueClosedNull": float(chi2.sf(
                 -2.0 * (closed_null(fixture[LABELS]) - fit.llf), fit.df_model)),
             AKAIKE: float(fit.aic),
@@ -7326,7 +7326,7 @@ def generate_preprocessing_splitters() -> dict:
     Unshuffled, the three are deterministic and this package matches them exactly. Shuffled, the
     reference draws its permutation from `random_state` through numpy's generator, which nothing
     here reproduces -- so the permutation is frozen beside the folds and handed to the C# as the
-    input it is (decision 0132), which pins the allocation rule rather than the draw.
+    input it is (decision 0004), which pins the allocation rule rather than the draw.
     """
     import numpy as np
     import sklearn
@@ -8659,7 +8659,7 @@ def generate_bpe_pretokenize() -> dict:
     """Prove the split, not the vocabulary.
 
     The Llama-3 and Qwen2 rows of the parity table are claimed at the split
-    level only (ADR 0017). Running their patterns over GPT-2's vocabulary is
+    level only (ADR 0005). Running their patterns over GPT-2's vocabulary is
     what proves the C# regex behaves as HuggingFace's does, without vendoring a
     second and third 150 000-entry vocabulary to prove a merge loop the GPT-2
     corpus already proves.
@@ -9002,7 +9002,7 @@ def generate_bpe_metaspace() -> dict:
 
     Six pipelines over one model. Mistral v0.1 writes a `Metaspace`
     pre-tokenizer with `split` off, Llama-2 a `Prepend` + `Replace` normalizer
-    with a null pre-tokenizer, and decision 0050 §2 calls those two writings of
+    with a null pre-tokenizer, and the loader reads those two writings of
     one value -- so the first two cases carry the same texts and the equality is
     the corpus's subject. `never` and `always` are here because the loader maps
     three prepend schemes and the two model files between them exercise one.
@@ -9106,7 +9106,7 @@ def _byte_fallback_file(vocab, merges, *, fuse_unk=False, prefix=None, suffix=No
     }, ensure_ascii=False)
 
 
-# The bare step, and Llama-2's chain -- decision 0063's two decode shapes. Replace
+# The bare step, and Llama-2's chain -- decision 0007's two decode shapes. Replace
 # runs before ByteFallback, so a covered META_SYMBOL below is what keeps it live.
 BYTE_FALLBACK_SEQUENCE_DECODER = {"type": "Sequence", "decoders": [
     {"type": "Replace", "pattern": {"String": META_SYMBOL}, "content": " "},
@@ -9261,7 +9261,7 @@ LINEAGE_MODELS = {
     "mistral_v01": "mistral_v01_tokenizer.json",
 }
 
-# Chosen so every text reaches the path this corpus is about (#208, ADR 0004);
+# Chosen so every text reaches the path this corpus is about (#208, docs/guides/performance.md);
 # each row says which half it exercises.
 LINEAGE_TEXTS = [
     "",                       # the empty control
@@ -9272,7 +9272,7 @@ LINEAGE_TEXTS = [
     "héllo",             # the two models' merge tables answer differently
     "\U0001f999",             # byte_fallback: four byte pieces on both models
     "\U0001f600ok",           # covered by Mistral, byte-resolved by Llama-2
-    # A special token as ordinary text: #551, settled by decision 0085. The two models
+    # A special token as ordinary text: #551, settled by the added-token rows. The two models
     # answer these differently on purpose, which is the point of freezing them.
     BOS_TOKEN,                # the token alone: one id on both, two before 0085
     "</s>",                   # its sibling, so the rule is not pinned on one entry
@@ -9291,12 +9291,12 @@ def generate_sentencepiece_bpe_lineage() -> dict:
     they write that pipeline **two different ways**, which is why the corpus needs
     both files and not one of them twice. Llama-2 carries a `Prepend` plus
     `Replace` normalizer with a null pre_tokenizer; Mistral a `Metaspace`
-    pre-tokenizer with `split` off and no normalizer. Decision 0050 section 2 calls
+    pre-tokenizer with `split` off and no normalizer. The loader calls
     those two writings of one value, and this is where that claim meets two real
     files rather than a synthetic pair.
 
     `add_special_tokens` is off. The files declare a `TemplateProcessing` that
-    prepends `<s>`, which decision 0083 reads into `BpeVocabulary.PrefixTokens`
+    prepends `<s>`, which the loader reads into `BpeVocabulary.PrefixTokens`
     for a caller to apply through `SpecialTokenTemplate` -- `BpeTokenizer.Encode`
     does not apply it, so a corpus recording the reference's prefixed stream would
     compare two different operations.
@@ -9306,7 +9306,7 @@ def generate_sentencepiece_bpe_lineage() -> dict:
     default, which would compare an id stream against a shorter one.
 
     **Five rows carry a special token as ordinary text**, which is what #551 was
-    filed for and decision 0085 settled. The two models answer them differently on
+    filed for and the added-token rows settled. The two models answer them differently on
     purpose: Llama-2 declares its added tokens `normalized`, so `tokenizers`
     normalizes the pattern too and matches `▁<s>` -- which matches at the head of a
     text and *not* after a letter, where the model spells `<`, `s`, `>` instead.
@@ -9320,7 +9320,7 @@ def generate_sentencepiece_bpe_lineage() -> dict:
     byte pieces. Without it the two halves of this corpus could both pass while
     measuring the same thing twice.
 
-    Llama-2 is vendored under decision 0084's named exception to 0003's allowed-source
+    Llama-2 is vendored under decision 0002's named exception to 0003's allowed-source
     list -- the LLAMA 2 COMMUNITY LICENSE, for this artifact alone, with the licence,
     the notice and the acceptable-use policy vendored beside it.
     """
@@ -10741,8 +10741,8 @@ def _sequence_split_model(use_regex):
     add_prefix_space is off throughout, deliberately: it prepends a space to
     every piece the Split step produces, so with it on each case here would
     measure that rule on top of this one and none would discriminate. It is
-    bpe_prefix_space.json's subject instead. ADR 0022 section 10 recorded the
-    same reasoning when bpe_added_token_flags.json was generated with it off.
+    bpe_prefix_space.json's subject instead, and the same reasoning was recorded when
+    bpe_added_token_flags.json was generated with it off.
 
     The merges exist so the split is observable in the tokens and not only in the
     pieces: a merge never crosses a piece boundary, so "'ai" can only be reached
@@ -10866,7 +10866,7 @@ def _split_behavior_model(pattern, behavior, invert):
     add_prefix_space is off throughout, deliberately: it prepends a space to
     every piece the Split step produces, so with it on each case here would
     measure that rule on top of this one. It is bpe_prefix_space.json's
-    subject instead. ADR 0022 section 10 recorded the same reasoning.
+    subject instead, on the same reasoning.
 
     use_regex is off on the ByteLevel step so the Split step's arrangement
     reaches the model untouched -- with it on, GPT-2's pattern would re-split

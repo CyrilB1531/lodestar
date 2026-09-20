@@ -32,7 +32,7 @@ string vine = HungarianSnowballStemmer.Stem("szőlők");  // => szőlő
 not against `nltk` like its siblings. `ő` and `ű` are missing from `nltk` 3.10.1's Hungarian vowel
 set, so R1 lands past the end of the word and nothing is stripped: `gyűrű` and `gyűrűk` stay two
 different keys there, which is the one thing a stemmer exists to prevent. See
-[decision 0091](../../../decisions/0091-hungarian-takes-snowballstemmer-as-its-oracle.md).
+[decision 0006](../../../decisions/0006-the-stemmers-references.md).
 
 A word can lose several layers in one call, because the nine steps run in sequence and each may
 fire. `erdőből` is `erdő` plus the elative `-ből`, and comes back as the bare noun:

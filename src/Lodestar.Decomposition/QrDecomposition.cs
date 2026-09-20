@@ -8,7 +8,7 @@ namespace Lodestar.Decomposition;
 /// <remarks>
 /// <strong>Thin, not full</strong>: for <c>m ≥ n</c>, <see cref="Q"/> is <c>m × n</c> with
 /// orthonormal columns and <see cref="R"/> is <c>n × n</c> upper triangular — what a
-/// least-squares solve wants. Published narrowly under decision 0095; the LU and the
+/// least-squares solve wants. Published narrowly under decision 0003; the LU and the
 /// one-sided Jacobi SVD beside it stay internal.
 /// </remarks>
 public sealed class QrDecomposition

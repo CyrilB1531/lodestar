@@ -119,7 +119,7 @@ def render(rules: list[str], profile_key: str, analyzer_version: str) -> str:
         f"# The rules SonarCloud's profile {profile_key} activates for {PROJECT} and that",
         f"# SonarAnalyzer.CSharp {analyzer_version} ships disabled, so that a finding fails the",
         "# build on the machine that wrote the code rather than the quality gate three",
-        "# minutes after the push. See docs/decisions/0015-sonar-rules-in-the-build.md and",
+        "# minutes after the push. See CLAUDE.md's analyzer section and",
         "# issue #109.",
         "#",
         "# warning, not error: TreatWarningsAsErrors in the root Directory.Build.props is",

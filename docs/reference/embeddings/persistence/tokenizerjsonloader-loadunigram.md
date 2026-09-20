@@ -40,8 +40,7 @@ setting this pipeline does not reproduce, so a plain BPE checkpoint and one with
 are both refused for declaring the wrong model kind. A Llama-2 or Mistral v0.1 `tokenizer.json` is
 the second shape: the message names `byte_fallback` directly rather than only "wrong model type",
 and points at [`LoadBpe`](tokenizerjsonloader-loadbpe.md) — which is the call that loads such a
-file today, `byte_fallback` and all
-([decision 0063](../../../decisions/0063-byte-fallback-requires-the-whole-alphabet-and-its-decoder-is-read-strictly-too.md)).
+file today, `byte_fallback` and all ([decision 0007](../../../decisions/0007-the-deliberate-divergences.md)).
 The routing survives; only the reason changed.
 
 **Applies to** — net10.0, netstandard2.0.

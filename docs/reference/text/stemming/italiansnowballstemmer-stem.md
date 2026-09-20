@@ -28,7 +28,7 @@ string diverging = ItalianSnowballStemmer.Stem("esistenza");  // => esistt
 
 **Remarks** — `esistt` is not a typo and not a bug. It is what `nltk` returns, and matching `nltk`
 is what this package is checked against; the published algorithm would give `esistent`. The
-reasoning is in [`decisions/0008`](../../../decisions/0008-italian-enza-nltk-divergence.md), and
+reasoning is in [`decisions/0006`](../../../decisions/0006-the-stemmers-references.md), and
 the practical consequence is that the stem is still a usable key — every `enza`/`enze` word the
 rule reaches is transformed the same way — while being unreadable.
 

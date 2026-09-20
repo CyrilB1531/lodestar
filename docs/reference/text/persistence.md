@@ -14,7 +14,7 @@ and the defaults are generous enough that a legitimate model never meets one.
 
 That is the deliberate difference from Python's `pickle.load`, which this package's format
 replaces: `pickle` executes arbitrary code by design, so bounding it is not possible.
-[`decisions/0011`](../../decisions/0011-persistence-format.md) has that comparison and why the
+[`decisions/0001`](../../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md) has that comparison and why the
 format is JSON.
 
 An artifact that exceeds a bound is **refused**, not truncated. A model that silently loaded

@@ -216,7 +216,7 @@ internal static class Lot5Metrics
         double[] judged = [0, 1, 0, 0, 1, 0, 0, 0];
         double[] retrieved = [0.9, 0.5, 0.4, 0.1, 0.9, 0.5, 0.4, 0.1];
         Console.WriteLine($"    ReciprocalRank      = {Inv.F3(ReciprocalRank.Score(judged, retrieved, 4))} "
-            + "(no reference implementation — decision 0036)");
+            + "(no reference implementation — decision 0005)");
         Console.WriteLine();
 
         WeightedRanking();

@@ -20,7 +20,7 @@ Two conventions run through the whole namespace, and knowing them saves reading 
   `TextElement.Utf16Unit`, is .NET's own unit and gives the same answer as Python for every
   character in the Basic Multilingual Plane. Outside it — emoji, rare ideographs — one character is
   two UTF-16 units, and the two disagree on purpose; pass `TextElement.CodePoint` for Python's
-  answer. The reasoning is in [decision 0002](../../decisions/0002-unicode-comparison-unit.md).
+  answer. The reasoning is in [decision 0001](../../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
 Comparing two **bags** of words or characters, where position does not matter at all, is a
 different question. It is answered by the [`Lodestar.Text.Similarity`](similarity.md) namespace —

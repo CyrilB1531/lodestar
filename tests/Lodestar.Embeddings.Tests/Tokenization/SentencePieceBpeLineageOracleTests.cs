@@ -13,7 +13,7 @@ namespace Lodestar.Embeddings.Tests.Tokenization;
 /// <remarks>
 /// Not a synthetic pair. Llama-2 writes the whitespace escape as a <c>Prepend</c> plus
 /// <c>Replace</c> normalizer with a null pre-tokenizer, Mistral v0.1 as a
-/// <c>Metaspace</c> pre-tokenizer with <c>split</c> off — decision 0050 §2's two
+/// <c>Metaspace</c> pre-tokenizer with <c>split</c> off — the two
 /// writings of one value, here against two real files rather than one model varied.
 /// </remarks>
 public sealed class SentencePieceBpeLineageOracleTests
@@ -93,7 +93,7 @@ public sealed class SentencePieceBpeLineageOracleTests
     /// on rows that never leave the ordinary merge loop.
     /// </summary>
     /// <remarks>
-    /// #208's constraint, against ADR 0004's precedent — the blocked Myers path shipped
+    /// #208's constraint, against docs/guides/performance.md's precedent — the blocked Myers path shipped
     /// at zero coverage while 168 tests passed, because every long case fell back
     /// earlier. Asserted here rather than assumed, so a future edit that stops reaching
     /// byte_fallback fails instead of going quietly green.

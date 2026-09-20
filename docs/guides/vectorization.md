@@ -53,8 +53,7 @@ well.
 
 English is scikit-learn's 318-word list, for `stop_words="english"` parity. The
 other five come from Snowball, **not** from `nltk.corpus.stopwords`: that corpus
-has no stated licence, so it cannot be redistributed here
-([decision 0010](../decisions/0010-stop-word-list-provenance.md)). Per-language
+has no stated licence, so it cannot be redistributed here ([decision 0002](../decisions/0002-provenance-and-the-allowed-references.md)). Per-language
 word counts against nltk's are in
 [`docs/equivalence.md`](../equivalence.md#conventions) — but if you need exactly
 what nltk removes, load the corpus yourself and pass it in.
@@ -144,7 +143,7 @@ One part is not meant to be read: the **idf vector is a base64 string** of raw
 IEEE-754 bits, because it is thirty thousand floats nobody inspects by eye and
 writing it as JSON numbers was measurably the most expensive thing in the file.
 The vocabulary, the options and the header stay plain text, which is where
-diffing and review actually happen — [`docs/decisions/0011`](../decisions/0011-persistence-format.md)
+diffing and review actually happen — [`docs/decisions/0001`](../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)
 has the measurements.
 
 `Save`/`Load` also accept a `Stream`, and both have async counterparts. A stream
@@ -171,7 +170,7 @@ Anything the file gets wrong — a truncated document, an unknown property, an
 unsupported version, a vocabulary that is not sorted, a limit exceeded — raises
 `InvalidDataException` with a message naming the problem. The reasoning behind
 the format is in
-[decision 0011](../decisions/0011-persistence-format.md).
+[decision 0001](../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
 See the [equivalence table](../equivalence.md) for the exact correspondence with
 each scikit-learn call.

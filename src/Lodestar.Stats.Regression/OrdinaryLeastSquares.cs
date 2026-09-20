@@ -219,7 +219,7 @@ public static class OrdinaryLeastSquares
         {
             tStatistics[j] = coefficients[j] / standardErrors[j];
             // The square of a standard normal is chi-squared on one degree of freedom, so the
-            // two-sided normal p-value is a tail this package already publishes (decision 0115).
+            // two-sided normal p-value is a tail this package already publishes (decision 0004).
             pValues[j] = robust
                 ? Distributions.ChiSquaredSf(tStatistics[j] * tStatistics[j], 1.0)
                 : 2.0 * Distributions.StudentSf(

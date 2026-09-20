@@ -10,7 +10,7 @@ namespace Lodestar.Embeddings.Tokenization;
 /// <remarks>
 /// Matches <c>sentencepiece</c>'s <c>Normalizer</c>. Interpreting the compiled
 /// blob, not reimplementing the named rules on <c>string.Normalize</c>, is what
-/// makes byte-exact parity possible — <c>docs/decisions/0014-precompiled-normalizer.md</c>
+/// makes byte-exact parity possible — <c>docs/decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md</c>
 /// has the measurement. A malformed map raises <see cref="InvalidDataException"/>.
 /// </remarks>
 public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>

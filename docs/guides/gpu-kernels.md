@@ -123,8 +123,8 @@ approximate structure would spend its parallelism on branching.
 
 It also targets `net10.0` and `netstandard2.1` and **not** `netstandard2.0`, because ILGPU
 publishes no such asset
-([decisions 0101](../decisions/0101-lodestar-gpu-is-the-one-package-that-does-not-ship-netstandard2-0.md)
-and [0103](../decisions/0103-lodestar-gpu-ships-netstandard2-1-beside-net10.md)). A .NET Framework
+([decisions 0003](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
+and [0003](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)). A .NET Framework
 caller reaches the SIMD paths, which lose nothing by this package existing.
 
 **See also** — [the reference pages](../reference/gpu/compute.md),

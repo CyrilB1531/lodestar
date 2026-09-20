@@ -47,7 +47,7 @@ anything.
 [`EmbeddingIndex.FromBlock`](embeddingindex-fromblock.md) is the one to reach for unless that copy
 has been measured and matters. It costs one pass over the block and asks nothing of the caller;
 this saves the pass and asks for a permanent invariant.
-[Decision 0056](../../../decisions/0056-a-block-may-be-adopted-and-the-invariant-is-the-callers-to-keep.md)
+`docs/guides/performance.md`
 records why both ship rather than only the copying one: a caller holding a block from a model's
 output, a memory-mapped file or a column store would otherwise have no way to avoid a copy the
 library can see is unnecessary.
@@ -57,7 +57,7 @@ allocated block that [`NpyFile.Read`](../persistence/npyfile-read.md) returns is
 exists for. That block is not yet reachable from here: `NpyFile.Read` hands it back as a
 `ReadOnlyMemory<float>`, and there is no supported way from that back to the array. Closing that
 gap is
-[decision 0055](../../../decisions/0055-the-artifact-gets-a-binary-sidecar-once-a-block-can-be-ingested-whole.md)'s
+[decision 0001](../../../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)'s
 work.
 
 **A block holding `NaN` or an infinity is accepted here, exactly as [`Add`](embeddingindex-add.md)

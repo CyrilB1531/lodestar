@@ -16,7 +16,7 @@ ML.NET has `OneHotEncoding`, `MapValueToKey` and `ReplaceMissingValues`; SharpLe
 `OneHotTransformer` and `ReplaceMissingValuesTransformer`. **Nothing here is absent from .NET.** Each
 one of them is reached through an `IDataView` or through a catalog naming columns, or works on that
 library's own matrix type — and what is absent is a call that takes an array and returns one. That
-is the whole argument, and [decision 0132](../../decisions/0132-preprocessing-writes-splitters-scalers-and-encoders-and-not-smote.md)
+is the whole argument, and [decision 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md)
 says so rather than claiming a capability gap.
 
 ## Types

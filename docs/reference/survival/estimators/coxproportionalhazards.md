@@ -37,7 +37,7 @@ each covariate changes the hazard, holding the others fixed.
 
 Reference behaviour is `lifelines.CoxPHFitter` 0.30.3, right-censored, unpenalised and
 unstratified, matched over five fixtures. The divergences are recorded in
-[decision 0124](../../../decisions/0124-the-cox-model-stays-in-lodestar-survival-and-refuses-what-it-cannot-estimate.md)
+[decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 and the [equivalence table](../../../equivalence.md).
 
 **Applies to** — net10.0, netstandard2.0.

@@ -31,8 +31,7 @@ double belowDiagonal = qr.R[2]; // => 0
 orthonormal columns rather than `m × m`, and `R` is `n × n`. That is the shape a least-squares
 solve wants, and the one `numpy.linalg.qr(mode="reduced")` returns.
 
-This package writes its own QR because Math.NET was refused on freshness
-([`decisions/0059`](../../../decisions/0059-phase-0-verifications-two-confirmed-voids-do-not-survive-nuget.md)),
+This package writes its own QR because Math.NET was refused on freshness ([decision 0004](../../../decisions/0004-what-is-written-here-and-what-is-delegated.md)),
 and the kernel is published now because a second package needs it rather than a second copy of it.
 The LU and the one-sided Jacobi SVD beside it stay internal — nothing has asked for them.
 

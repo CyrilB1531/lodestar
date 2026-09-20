@@ -57,7 +57,7 @@ no sign, which is worse than a failure.
 
 This type is declared separately from `Lodestar.Embeddings`'s namesake rather than shared, so that
 neither package depends on the other for its loading contract;
-[`decisions/0011`](../../../decisions/0011-persistence-format.md) has the reasoning, along with
+[`decisions/0001`](../../../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md) has the reasoning, along with
 the comparison to `pickle.load` that motivates bounding at all.
 
 **Applies to** — net10.0, netstandard2.0.

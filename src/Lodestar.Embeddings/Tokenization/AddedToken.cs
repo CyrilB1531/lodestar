@@ -6,9 +6,9 @@ namespace Lodestar.Embeddings.Tokenization;
 /// </summary>
 /// <remarks>
 /// The five flags are HuggingFace's, measured against <c>tokenizers</c> 0.23.1. See
-/// <c>docs/decisions/0022-added-token-matching-flags.md</c> §1 for what the three
-/// span-shaping flags do, §5 for <see cref="Special"/>, and §4 for why
-/// <see cref="Normalized"/> alone defaults to something other than <see langword="false"/>.
+/// <c>docs/equivalence.md</c>'s added-token rows for what the three span-shaping flags do,
+/// for <see cref="Special"/>, and for why <see cref="Normalized"/> alone defaults to
+/// something other than <see langword="false"/>.
 /// </remarks>
 /// <param name="Content">The text matched, exactly and ordinally.</param>
 /// <param name="Id">The id the match produces.</param>
@@ -30,8 +30,7 @@ public sealed record AddedToken(string Content, int Id)
     /// A word character is a letter, digit or <c>_</c>: <c>a</c>, <c>1</c>, <c>_</c> and
     /// <c>é</c> block a match; <c>.</c>, <c>-</c> and whitespace do not. Diverges from
     /// HuggingFace's code-point-based test the way <c>docs/equivalence.md</c> records for
-    /// the BPE split pattern — measured and named as a known gap in
-    /// <c>docs/decisions/0022-added-token-matching-flags.md</c> §8.
+    /// the BPE split pattern — measured and named as a known gap in that row.
     /// </remarks>
     public bool SingleWord { get; init; }
 
@@ -51,8 +50,8 @@ public sealed record AddedToken(string Content, int Id)
     /// <see langword="true"/> normalizes both <see cref="Content"/> and the text it
     /// matches against. Not a synonym for <c>!</c><see cref="Special"/>, though every
     /// entry HuggingFace's constructors produce looks like one — see
-    /// <c>docs/decisions/0022-added-token-matching-flags.md</c> §3 for the measurement
-    /// telling them apart, §4 for the unset-value default.
+    /// <c>docs/equivalence.md</c>'s added-token rows for the measurement telling them apart,
+    /// and for the unset-value default.
     /// </remarks>
     public bool Normalized
     {

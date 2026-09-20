@@ -21,8 +21,7 @@ flowchart TD
 Both return `IReadOnlyList<KeywordMatch>`, sorted by descending score — the scale is each
 extractor's own and is not comparable between them. Neither downloads a stop-word list or a model:
 `RakeOptions.StopWords` and `TextRankOptions.StopWords` take what you supply and default to
-`StopWords.English`, already in the assembly
-([decision 0077](../../decisions/0077-the-keyword-extractors-take-their-oracles-lists-and-not-their-own.md)).
+`StopWords.English`, already in the assembly ([decision 0005](../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)).
 
 ## Types
 

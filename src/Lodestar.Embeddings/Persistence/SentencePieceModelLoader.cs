@@ -294,7 +294,7 @@ public static class SentencePieceModelLoader
     /// The compiled map decides, never <c>normalizer_spec.name</c> — every rule
     /// <c>spm_train</c> offers compiles to the same blob, so reading it covers them
     /// all. Refusing only what carries no map to apply, rather than reimplementing
-    /// a rule from its name, is decision 0014's own choice, made here.
+    /// a rule from its name, is decision 0005's own choice, made here.
     /// </remarks>
     private static PrecompiledNormalizer? ReadNormalizerSpec(ReadOnlySpan<byte> message)
     {

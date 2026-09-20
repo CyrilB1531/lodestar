@@ -6,7 +6,7 @@ what says where to put a threshold.
 
 Three parallel arrays of the same length — the false-positive rate, the true-positive rate, and the
 score at each point. A class rather than a record, for the reason
-[decision 0040](../../../decisions/0040-a-curve-is-a-sealed-class-per-curve.md) gives.
+the curve-shape rule gives.
 
 ## The first threshold is infinite
 

@@ -12,7 +12,7 @@ namespace Lodestar.Text.Distances;
 /// </summary>
 /// <remarks>
 /// Matches <c>jellyfish.hamming_distance</c> except on combining-mark input; see
-/// <c>docs/decisions/0005-hamming-jellyfish-divergence.md</c>. Pass
+/// <c>docs/decisions/0007-the-deliberate-divergences.md</c>. Pass
 /// <see cref="TextElement.CodePoint"/> for code-point semantics on
 /// supplementary-plane input. All members are stateless and thread-safe.
 /// </remarks>

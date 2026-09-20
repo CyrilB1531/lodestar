@@ -33,8 +33,7 @@ which is `StopWords.English` for the stop-word list. It throws `ArgumentOutOfRan
 The co-occurrence tables — degree and frequency — are built once, over every surviving run, before
 any candidate is scored. That ordering is what makes `IncludeRepeatedPhrases = false` change a
 score and not only the output: dropping the duplicate before the tables are built removes its
-contribution to degree and frequency too, not merely its second row in the result
-([decision 0077](../../../decisions/0077-the-keyword-extractors-take-their-oracles-lists-and-not-their-own.md)).
+contribution to degree and frequency too, not merely its second row in the result ([decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)).
 
 For a graph-ranked alternative that looks at co-occurrence beyond a single run, see
 [`TextRank`](textrank.md).

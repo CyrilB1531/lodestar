@@ -32,8 +32,7 @@ to balance the bins is also the one that empties them on tied input. Measured: s
 that take only two distinct values, over four quantile bins, return **two** points.
 
 Its edges come from the linear interpolation `np.percentile` computes, which is not the weighted
-percentile [decision 0024](../../../decisions/0024-weighted-median-averages-within-scikit-learns-epsilon.md)
-pinned for the medians. The two disagree in the third decimal, and the reference reaches for the
+percentile the medians are pinned to. The two disagree in the third decimal, and the reference reaches for the
 unweighted one here.
 
 `Uniform` is the safer default for a reliability plot precisely because its x-axis does not move

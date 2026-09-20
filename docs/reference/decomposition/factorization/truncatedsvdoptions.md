@@ -20,7 +20,7 @@ your machine; the block it draws comes from a SplitMix64 generator this package 
 that. `RandomMatrix` makes a run repeatable *across implementations* — hand it the block NumPy
 drew and the components come back equal to scikit-learn's entry by entry, which is how this
 package's conformance is proved. See
-[ADR 0072](../../../decisions/0072-omega-is-an-input-not-a-seed.md).
+[ADR 0004](../../../decisions/0004-what-is-written-here-and-what-is-delegated.md).
 
 `Oversampling` and `PowerIterations` are both refused when negative, and so is an `Oversampling`
 too large to add to the rank asked for — an `int` that wrapped would be a block width nobody

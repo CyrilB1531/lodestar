@@ -16,7 +16,7 @@
   <!-- The dependency this package exists for, and the reason it sits in the interop
        tier: a core package carries none, and Lodestar.Decomposition refused this very
        library for its own kernels on freshness grounds. Converting to a caller's
-       types is not computing with them — decision 0089. -->
+       types is not computing with them — decision 0003. -->
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" />
   </ItemGroup>
@@ -26,7 +26,7 @@
 
     Expressed as a PackageReference against the published package, like every
     other src/ edge, so the build graph is the graph consumers see
-    (decision 0012). The opt-in below exists only so that editing two packages in
+    (decision 0001). The opt-in below exists only so that editing two packages in
     one branch does not require a pack-and-restore cycle per edit:
 
         export LodestarUseProjectRefs=true

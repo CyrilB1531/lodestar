@@ -1,26 +1,25 @@
 """What holds the pre-commit hook and CI together as guards are added.
 
-The hook exists to run CI's offline guards earlier (decision 0037). Nothing in
+The hook exists to run CI's offline guards earlier (tools/README.md). Nothing in
 git makes that true tomorrow: a fifth guard lands as a step in ci.yml, the hook
 keeps running four, and the divergence is silent -- the hook still passes, the
 push still fails, and the round trip the hook removed is back for one check.
 
 So the relationship is asserted rather than remembered. CI is read as the source
 of truth for which guards exist, the hook for which of them run before a commit,
-and the difference between the two sets has to be exactly the exclusion decision
-0037 wrote down. Adding a guard to CI without a decision about the hook fails
+and the difference between the two sets has to be exactly the exclusion tools/README.md wrote down. Adding a guard to CI without a decision about the hook fails
 here, which is the point.
 
 `OFFLINE_EXCLUSIONS` is the guards CI runs that the hook deliberately does not.
 `check_nuspec_dependencies.py` reads the `.nuspec` files inside a packed
 `./artifacts`, so running it before a commit would mean packing four projects
-first -- named in decision 0037. `check_adr_immutable.py` needs `--base`, the
+first -- named in tools/README.md. `check_adr_immutable.py` needs `--base`, the
 pull request's own base commit, which a commit made before a pull request
-exists has none to name -- decision 0046, its own ADR rather than an edit to
+exists has none to name -- tools/README.md, its own ADR rather than an edit to
 0037, per the rule 0046 exists to enforce. `check_repeated_literals.py` takes
 `--base` for that reason and one of its own: without a change to compare it
 would print tools/ 's standing 108 findings on every commit, and a hook that
-noisy is turned off -- decision 0064. `check_doc_test_counts.py` reads the
+noisy is turned off -- tools/README.md. `check_doc_test_counts.py` reads the
 `results.xml` files a CI run just wrote, and before a commit there is no such run
 to read at all; that reason lives here and in CONTRIBUTING.md rather than in a
 decision record, because an ADR sets the project's direction and does not explain
@@ -39,7 +38,7 @@ The prose that describes the loop is held to it here too (#612). Three sentences
 say which guards run before a commit -- the hook's own opening comment, and two
 paragraphs of CONTRIBUTING.md -- and all three had drifted before the thirteenth
 guard was written: the comment said six of twelve, the list named seven of them,
-and the exclusion paragraph said two when decisions 0046 and 0064 had made it
+and the exclusion paragraph said two when tools/README.md and 0064 had made it
 three. Every one of them was true when written, which is what makes a hand-written
 list of this kind worth asserting rather than proof-reading: #586, #597 and #610
 are the same bug in a workflow, a README and a release list.

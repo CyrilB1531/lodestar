@@ -24,7 +24,7 @@ public sealed record WordPieceVocabulary(
     /// <remarks>
     /// Not folded into <see cref="Vocab"/>: a folded entry is matchable as a whole
     /// word only, which is a different tokenizer as soon as an entry carries a
-    /// matching flag. See <c>docs/decisions/0022-added-token-matching-flags.md</c>.
+    /// matching flag. See <c>docs/equivalence.md</c>'s added-token rows.
     /// </remarks>
     public IReadOnlyList<AddedToken> AddedTokens { get; init; } = [];
 

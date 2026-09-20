@@ -4,7 +4,7 @@ namespace Lodestar.Conformal.Tests;
 
 /// <summary>
 /// The edges no oracle can carry: MAPIE raises where these return, so what they assert is
-/// decision 0070 rather than a frozen value.
+/// decision 0007 rather than a frozen value.
 /// </summary>
 public sealed class SplitConformalEdgeTests
 {
@@ -34,7 +34,7 @@ public sealed class SplitConformalEdgeTests
     public void The_ceiling_does_not_round_an_exact_integer_up()
     {
         // (n + 1)(1 - alpha) = 20 * 0.9 = 18 exactly, so k is 18: the 18th smallest, not the
-        // 19th, which is what numpy's method="higher" reads at this level (decision 0070).
+        // 19th, which is what numpy's method="higher" reads at this level (decision 0007).
         double[] scores = [.. Enumerable.Range(1, 19).Select(value => (double)value)];
 
         Assert.Equal(18.0, SplitConformal.Quantile(scores, 0.1));
@@ -170,7 +170,7 @@ public sealed class SplitConformalEdgeTests
     public void An_infinite_quantile_makes_a_normalised_interval_the_whole_line()
     {
         // Carried through the multiplication rather than becoming NaN, which is what
-        // an infinite quantile times a finite estimate has to do for decision 0070 to hold.
+        // an infinite quantile times a finite estimate has to do for decision 0007 to hold.
         (double Lower, double Upper) interval =
             SplitConformal.NormalisedInterval(3.0, 2.0, double.PositiveInfinity);
 

@@ -30,7 +30,7 @@ bool equal = first.Equals(second);  // => True
 
 **Remarks** — a `record struct` over `ReadOnlyMemory<float>` and a list would compare both by
 reference, so two reads of one file were unequal
-([decision 0113](../../../decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
+(the equality rule
 is why this one is written out). Elements compare the way `float.Equals` does, so `NaN` equals
 `NaN`. `OwnedArray` is not compared: who owns the array is not part of the block's value.
 

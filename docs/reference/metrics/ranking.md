@@ -40,7 +40,7 @@ flowchart TD
 
 **Two leaves carry a warning the branch cannot.**
 [`ReciprocalRank`](ranking/reciprocalrank.md) is the one member of this package with no reference
-to freeze against — [decision 0036](../../decisions/0036-a-member-may-ship-without-an-oracle-if-it-says-so.md)
+to freeze against — [decision 0005](../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)
 says what would retire that. And [`AveragePrecision`](ranking/averageprecision.md) sums the steps
 of the precision-recall curve where `auc(recall, precision)` takes its area, which is a different
 number on the same input, not a rounding of it — the section at the foot of this page has both.

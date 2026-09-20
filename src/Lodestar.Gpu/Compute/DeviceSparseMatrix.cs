@@ -5,7 +5,7 @@ namespace Lodestar.Gpu.Compute;
 
 /// <summary>A CSR matrix held on the accelerator across many products.</summary>
 /// <remarks>
-/// The three CSR arrays are taken as spans rather than as a <c>CsrMatrix</c>: decision 0101
+/// The three CSR arrays are taken as spans rather than as a <c>CsrMatrix</c>: decision 0003
 /// forbids an edge into this package and an edge out would floor it on a published sibling
 /// for one type. A caller holding a <c>CsrMatrix</c> passes its
 /// <c>RowPointers</c>, <c>ColumnIndices</c> and <c>Values</c> directly.

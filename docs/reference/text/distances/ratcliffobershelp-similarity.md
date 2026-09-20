@@ -52,10 +52,10 @@ argument order and keep it, or you will get two different scores for the same pa
 And on inputs longer than 200 elements it deliberately diverges from `difflib`'s default. difflib
 applies an `autojunk` heuristic there, ignoring any element that appears in more than 1% of
 positions; this implementation does not, matching `difflib(autojunk=False)` at every length. The
-reasoning is in [decision 0006](../../../decisions/0006-ratcliff-autojunk.md).
+reasoning is in [decision 0007](../../../decisions/0007-the-deliberate-divergences.md).
 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `RatcliffObershelp.Distance`, `Lcs.SubstringLength`, `Indel.NormalizedSimilarity`,
-[decision 0006](../../../decisions/0006-ratcliff-autojunk.md),
+[decision 0007](../../../decisions/0007-the-deliberate-divergences.md),
 the [Python equivalence table](../../../equivalence.md).

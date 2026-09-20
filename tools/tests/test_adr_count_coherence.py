@@ -57,9 +57,9 @@ _WORD = "|".join(sorted(NUMBER_WORDS, key=len, reverse=True))
 SPELLED = re.compile(
     rf"\b(?:{_WORD})(?:[-\s]+(?:and[-\s]+)?(?:{_WORD}))*\b", re.IGNORECASE)
 
-# The two the section states: the total, and the total less 0004 itself. A third
-# would mean the paragraph was rewritten, which changes what this test guards.
-EXPECTED_SPELLED_COUNT = 2
+# The one number the section states: how many records carry `accepted`, which is
+# all of them. A second would mean the paragraph was rewritten (#1103).
+EXPECTED_SPELLED_COUNT = 1
 
 
 def spelled_to_int(phrase: str) -> int:
@@ -135,7 +135,7 @@ def test_the_index_rows_are_in_ascending_order():
         "counting down to it")
 
 
-def test_the_prose_states_two_numbers():
+def test_the_prose_states_its_number():
     spelled = spelled_numbers()
     assert len(spelled) == EXPECTED_SPELLED_COUNT, (
         f"expected {EXPECTED_SPELLED_COUNT} numbers written in words under "
@@ -149,6 +149,3 @@ def test_the_prose_counts_match_the_directory():
     assert spelled[0] == total, (
         f"the index prose says {spelled[0]} ADRs carry `accepted`, but docs/decisions/ "
         f"holds {total}. Adding an ADR means editing this paragraph too.")
-    assert spelled[1] == total - 1, (
-        f"the index prose says `0004`'s status reads like the other {spelled[1]}, but "
-        f"{total} ADRs less 0004 itself is {total - 1}. The two numbers move together.")

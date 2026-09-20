@@ -19,7 +19,7 @@ internal static class WeightedPercentile
     /// </summary>
     /// <remarks>
     /// Not <see cref="double.Epsilon"/>, the smallest positive subnormal and 292
-    /// orders of magnitude smaller. .NET has no built-in constant for this.
+    /// orders of magnitude smaller.NET has no built-in constant for this.
     /// </remarks>
     private const double MachineEpsilon = 2.220446049250313e-16;
 

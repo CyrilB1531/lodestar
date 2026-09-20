@@ -67,14 +67,11 @@ an Intel i7-4770S; dev machine — non-authoritative), **after** adding the bloc
   so the table describes Latin inputs. The bit-parallel path no longer *requires*
   them: a pattern above U+00FF used to send `Distance` back to the DP, and a side
   table now carries those symbols on both the single-word and the blocked route, so
-  CJK and emoji take the kernel too
-  ([decision 0043](../decisions/0043-the-equality-table-is-sized-to-the-pattern.md)).
+  CJK and emoji take the kernel too (`docs/guides/performance.md`).
   The **code-point mode** lost the same restriction earlier (#208). What each kernel
   costs on a wide alphabet, and where it crosses the DP there, is the banded sweep
-  below — which found the then-shipped gate wrong on three of its four crossings
-  ([decision 0048](../decisions/0048-the-gate-depends-on-the-kernel-and-the-alphabet.md))
-  and led to the two-gate shape each kernel carries now
-  ([decision 0049](../decisions/0049-two-gates-per-kernel-tested-where-the-width-is-known.md)).
+  below — which found the then-shipped gate wrong on three of its four crossings (`docs/guides/performance.md`)
+  and led to the two-gate shape each kernel carries now (`docs/guides/performance.md`).
 
 ### The length-32 bucket, which was never the kernel (#208)
 
@@ -164,7 +161,7 @@ already records; they take the blocked path and this lot did not touch it.
 
 #### The gate is now two constants, because the two paths cross at different bands
 
-`MyersMinPatternLength` was shared with the code-point path, which ADR 0004 flagged
+`MyersMinPatternLength` was shared with the code-point path, which docs/guides/performance.md flagged
 as untested. It is: that path renames both operands through a 512-entry probe table
 before the kernel sees them, so it carries the larger fixed cost and crosses later.
 `LevenshteinCodePointBenchmarks` at the two candidate gates, `Length = 16` acting as
@@ -250,7 +247,7 @@ runs both routes in one process with the dynamic program as baseline:
   crossing into the blocked path for 281 → 1 504 ns on one and a half times the
   work, the table having doubled. **Right-sizing that table to the pattern's own
   alphabet is where the remaining 2× is most likely to be**, and it is the same
-  change ADR 0004 lists as lifting the Latin-1 restriction.
+  change docs/guides/performance.md lists as lifting the Latin-1 restriction.
 - **The character route carries a fixed 25–60 ns overhead** over the generic one,
   visible below the gate where both take the DP and gone by band 96 where the
   work dwarfs it. It is not a missing inlining — an `AggressiveInlining` attempt
@@ -358,7 +355,7 @@ The blocked path was widened the same way in #382, so no pattern falls back to t
 dynamic program for holding a character above U+00FF.
 
 Both halves are recorded in
-[decision 0043](../decisions/0043-the-equality-table-is-sized-to-the-pattern.md),
+`docs/guides/performance.md`,
 which amends 0004's two bullets rather than editing that record.
 
 **What the reach is worth is not measured by this corpus**, which is ASCII by
@@ -529,7 +526,7 @@ turns on:
   from the other end — a kernel that wins by less against the DP also loses by less
   when the gate hands pairs back to it. A gate per alphabet would give precision to the
   regime that asks for least, and the test it needs would be paid by the Latin-1 path.
-  [Decision 0047](../decisions/0047-one-gate-per-kernel-not-one-per-alphabet.md) has
+  `docs/guides/performance.md` has
   the shapes refused.
 - **The value question is still unanswerable, and the wide buckets do not lift it.**
   Both alphabets prefer 4 to 8, and that is one bucket saying so. Buckets 128 and 512
@@ -585,7 +582,7 @@ under the dynamic program in both passes.**
 - **Two dimensions, independent and both real.** LCS crosses about three bands before
   Myers, its recurrence being four operations per text character against Myers' dozen —
   the asymmetry
-  [decision 0043](../decisions/0043-the-equality-table-is-sized-to-the-pattern.md)
+  `docs/guides/performance.md`
   measured when only one of the two kernels was worth holding a table for. And CJK
   crosses about four bands after Latin in both, the side table raising the kernel's
   floor while leaving the dynamic program's cost untouched.
@@ -594,7 +591,7 @@ under the dynamic program in both passes.**
   costs 91.6 ns against the dynamic program's 236.2 — 2.6× — and the gate refuses it
   everything below, where it is still 24% to 56% cheaper.
 - **This reverses what the sweep above concluded**, and
-  [decision 0048](../decisions/0048-the-gate-depends-on-the-kernel-and-the-alphabet.md)
+  `docs/guides/performance.md`
   records both the reversal and why the earlier reading was bounded rather than wrong.
   What replaces the shared constant is a change to the hot path and is not decided
   there.
@@ -609,7 +606,7 @@ under the dynamic program in both passes.**
 The four crossings above are answered by two constants per kernel rather than one: the
 dispatch keeps its test, valued at the Latin-1 crossing, and a second refusal sits where
 each kernel has just discovered that the pattern leaves Latin-1.
-[Decision 0049](../decisions/0049-two-gates-per-kernel-tested-where-the-width-is-known.md)
+`docs/guides/performance.md`
 has the three shapes it refused.
 
 | | dense gate | wide gate | was |
@@ -706,7 +703,7 @@ The table above is the UTF-16 mode over an ASCII corpus. The code-point mode is 
 different question and needed its own corpus: `LevenshteinCodePointBenchmarks`
 draws both operands from U+1F300..U+1FAFF, so every character is a surrogate pair
 and the two readings genuinely differ — which is the case
-[`../decisions/0002-unicode-comparison-unit.md`](../decisions/0002-unicode-comparison-unit.md)
+[`../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md`](../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)
 points a caller at.
 
 Intel i7-4770S, .NET 10, BenchmarkDotNet short job, `[MemoryDiagnoser]`. **Two
@@ -1082,7 +1079,7 @@ the cheaper answer.
 
 ```bash
 python bench/corpus/generate_metrics.py           # writes bench/corpus/metrics/, git-ignored
-. .venv-oracles/bin/activate && python bench/python/bench_metrics.py
+.venv-oracles/bin/activate && python bench/python/bench_metrics.py
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-metrics
 python bench/compare.py metrics
 ```
@@ -1382,7 +1379,7 @@ compensation needed), and a `Vector<double>` reduction — one Neumaier partial
 sum per SIMD lane — for `R2` and `ExplainedVariance`'s single-output
 unweighted case on `net10.0` (the scalar loop is unchanged on
 `netstandard2.0` and for multi-output; see
-[`docs/decisions/0001`](../decisions/0001-target-framework.md)). A third
+[`docs/decisions/0001`](../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)). A third
 lever, a branchless 2Sum in place of Neumaier's magnitude-compared branch,
 was measured and **reverted**: it was measurably slower on this workload,
 most visibly on `r2` (+5.2%, outside both groups' own spread in either
@@ -1548,7 +1545,7 @@ a three-row file would otherwise have printed as a green one.
 #### Vectorized accumulation (issue #321)
 
 `R2` and `ExplainedVariance` got a `Vector<double>` accumulation in #127, gated by
-[decision 0027](../decisions/0027-r2-and-explainedvariance-vectorize-only-a-single-output.md)
+`docs/guides/performance.md`
 on `outputCount == 1 && Vector.IsHardwareAccelerated`. The shared walk under
 `Outputs.WeightedMean` — which `mse`, `mae` and, through
 [`MeanSquaredError.PerOutput`](../reference/metrics/regression/meansquarederror-peroutput.md),
@@ -1749,9 +1746,9 @@ the same way.
   The gain bar that lot set itself was ≥ 2× on `embedding_index_save`; the lever it
   would pull is worth 17.7% of that row **in total**, so even a free, perfectly scaling
   encode could not reach 1.25×. A concurrency surface, an `ArtifactSaveOptions` question
-  ADR 0044 had already refused once, and a second code path to keep bit-identical
+  a decision had already refused once, and a second code path to keep bit-identical
   forever — for a fifth of a row.
-  [ADR 0051](../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md) is the record.
+  `docs/guides/performance.md` is the record.
 
 - **What is left is the buffer.** `write_base64_property` writes the vector block and
   nothing else and costs 16.938 ms, of which the encode is 3.211. The other ~13.7 ms is
@@ -1777,8 +1774,7 @@ buffer, and the row that varies by nothing is the encode.
 
 ### Slicing the block, and what it was worth
 
-The decision, and what it amends in [ADR 0044](../decisions/0044-compression-belongs-to-the-caller.md), is
-[ADR 0051](../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md).
+What it costs, and what that overturned, is below.
 
 Step 0 above put the encode at 17.7% and the writer's buffer at most of the rest, so
 that is what the change went after. `Utf8JsonWriter.WriteBase64String` takes the whole
@@ -1924,14 +1920,14 @@ nothing, because the lot never timed the pooled path — the 8.1% it cited is #4
 figure, which prices *pages already committed*, not an allocation removed. Asked directly on a
 runner, renting is **42× the allocation and saves 1.74 ms a load**, about a tenth of one, because
 what costs is the large-object collection the allocation provokes and not the allocation itself.
-[ADR 0054](../decisions/0054-the-payload-buffer-is-pooled-after-all-because-the-collection-is-the-cost.md)
+`docs/guides/performance.md`
 amends 0053 and takes the trade: 33.5 MB resident is a price this library pays for load time,
 which is what it publishes.
 
 ### What a binary sidecar would buy, and what it needs first (issue #436)
 
-[ADR 0011](../decisions/0011-persistence-format.md) said to argue a binary format on size rather
-than speed, and [0051](../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)
+[ADR 0001](../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md) said to argue a binary format on size rather
+than speed, and `docs/guides/performance.md`
 agreed for the write side. **Both are statements about base64**, and both are right about it. A
 JSON artifact is base64 *inside a document that has to be scanned and validated*, and nobody had
 measured that difference. `sidecar` does.
@@ -1955,7 +1951,7 @@ time argument 0011 did not expect to exist, because the base64 is not where it l
 **`load / rebuild` is 0.66×**, and that is the sentence to carry away. `EmbeddingIndex` has no way
 to take a block whole: `Add` copies one vector at a time and costs three times the read it
 follows, so **the sidecar route that exists today is slower than the artifact it would replace.**
-[ADR 0055](../decisions/0055-the-artifact-gets-a-binary-sidecar-once-a-block-can-be-ingested-whole.md)
+[ADR 0001](../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)
 takes the sidecar and makes the bulk ingest its precondition, in that order.
 
 **Do not take these numbers from a container.** The same four rows there put `load / floor` at
@@ -1986,7 +1982,7 @@ average 3.95–4.12 at the start of each round. Round medians, then the median o
 
 **`load / ingest` is 1.45–1.62× where `load / rebuild` is 0.62–0.65×.** That is the finding: the
 sidecar route stops being slower than the artifact it would replace and becomes about half again
-faster. The precondition [ADR 0055](../decisions/0055-the-artifact-gets-a-binary-sidecar-once-a-block-can-be-ingested-whole.md)
+faster. The precondition [ADR 0001](../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)
 set is cleared.
 
 Three things the ratio does not say, each worth more than the headline.
@@ -2105,13 +2101,13 @@ instead of copying it into the index moved all of it.
 > **One of the two paragraphs that stood here was wrong, the other was right, and #480 measured
 > how.** The first read the fall as **2.6–3.1 ms** and attributed it to a second large-object
 > allocation `FromBlock` made, citing
-> [ADR 0054](../decisions/0054-the-payload-buffer-is-pooled-after-all-because-the-collection-is-the-cost.md)'s
+> `docs/guides/performance.md`'s
 > allocate-against-rent mechanism. The phase table below prices that allocation at **0.02 ms** and
 > `FromBlock` at exactly one `memcpy`. Its flaw was treating 0.88–0.99 of a `load_memory` as a
 > property the row carries, when it was measured on a chain with a different number of copies and
 > does not transfer.
-> [ADR 0058](../decisions/0058-the-npy-ingest-is-memcpy-bound-and-the-allocation-is-not-the-cost.md)
-> amends [0057](../decisions/0057-the-npy-read-serves-a-stream-and-a-buffer-differently.md) for the
+> `docs/guides/performance.md`
+> amends `docs/guides/performance.md` for the
 > same reason.
 >
 > **The second was right, and the table below answers it.** It disclosed that removing a whole
@@ -2146,7 +2142,7 @@ reason are
 [`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#12-where-the-npy-ingests-time-goes-issue-480)'s.
 All three rounds gave the same counts, which is why one column carries them rather than three.
 They are collected at all because
-[ADR 0054](../decisions/0054-the-payload-buffer-is-pooled-after-all-because-the-collection-is-the-cost.md)
+`docs/guides/performance.md`
 found time and collection count telling different stories on the artifact buffer, and only the
 second explained the first. Here they tell a third, below.
 
@@ -2176,7 +2172,7 @@ denominator, not the milliseconds the paragraphs above assigned to it.
 > other two the last is slower by 0.35–0.37 ms and carries them. `ingest_total` itself fell to
 > **0.910–0.949 ms** merely because a second ingest split the round's collection debt — at which
 > figure it agrees with both the sum of its parts and the canonical harness.
-> [Decision 0061](../decisions/0061-the-ingest-gap-was-a-collection-landing-wherever-the-collector-ran.md)
+> `docs/guides/performance.md`
 > has the three rounds. **The paragraph below stays as it was written**, including the candidate it
 > named, because a candidate that was tested and refused is worth more on the page than one quietly
 > replaced.
@@ -2206,7 +2202,7 @@ which is the whole difference between this section and the paragraphs it replace
 ### Pre-sizing the file, and why it is not done (issue #432)
 
 Step 1's fourth item, and the decision is
-[ADR 0052](../decisions/0052-pre-sizing-the-artifact-file-buys-nothing-on-a-delayed-allocation-filesystem.md).
+`docs/guides/performance.md`.
 The save writes ~20 MB through an 80 KB buffer — 252 `write` calls, each extending
 the file — so telling the filesystem the length up front should let it allocate
 once. It could not be shown against any published row, because every save row this
@@ -2243,7 +2239,7 @@ on Windows, and `embedding_index_save_file` is what would settle it there.
 ## Persisting an embedding index — the load path (issue #324)
 
 The load direction is the furthest behind Python anything here publishes, and
-[ADR 0011](../decisions/0011-persistence-format.md) priced it: base64 inside JSON
+[ADR 0001](../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md) priced it: base64 inside JSON
 against `numpy.load`'s raw block. So the obvious question was whether to pay for a
 second format. **The profile says the format is not where the time goes.**
 
@@ -2262,7 +2258,7 @@ median of the artifact's own 20 589 007 bytes:
   `memcpy` of the same byte count and re-running: **~1.3 ms**, which is what the
   decode costs *over* moving the bytes at all. The other ~9.5 ms of that row is the
   allocation.
-- **So the answer to ADR 0011's open question is that its door is not the one to
+- **So the answer to ADR 0001's open question is that its door is not the one to
   open.** A binary format would remove 5.2 MB of base64 expansion from a path
   spending its time on allocation and page commit, not on decoding.
 
@@ -2557,9 +2553,9 @@ rows are comparable to each other:
 
 So **the library does not compress, and the caller can.** Wrapping the stream works
 on both sides today and costs no API:
-[the embeddings guide](embeddings.md#compressing-the-artifact) has the recipe,
-[ADR 0044](../decisions/0044-compression-belongs-to-the-caller.md) the decision and
-its loser. `bench/compare-persistence` now carries `embedding_index_save_gzip` and
+[the embeddings guide](embeddings.md#compressing-the-artifact) has the recipe, and the
+compression rule — the library does not compress an artifact, a caller wraps the stream — is why
+there is no option for it. `bench/compare-persistence` now carries `embedding_index_save_gzip` and
 `embedding_index_load_gzip` beside the plain rows, against numpy's
 `savez_compressed`, so the trade is re-measured rather than remembered.
 
@@ -2584,7 +2580,7 @@ Two things the pair says that the plain rows cannot:
   1.40× on `savez_compressed`, 0.88× coming back. The deflate coder is the same on
   both sides, so what is being compared is what each side hands it.
 - **Compression closes most of the format gap.** Uncompressed, the artifact is 1.34×
-  numpy's block, the expansion [ADR 0011](../decisions/0011-persistence-format.md)
+  numpy's block, the expansion [ADR 0001](../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)
   priced. Compressed, it is 1.09×. The base64 is nearly all of the difference, and a
   binary format would buy back an eighth of what a general-purpose coder already does.
 
@@ -2626,7 +2622,7 @@ Each side, with its allocator's retention turned off or on:
   allocates and zeroes 20.6 MB inside the timed window: 3.911 ms of the 4.057 ms
   `embedding_index_save` measures here, against 0.568 ms for the whole chunked base64 encode.
   `io.BytesIO()` grows on pages glibc kept.
-- **What remains with retention on both sides is the format's own work**, which ADR 0011 and
+- **What remains with retention on both sides is the format's own work**, which ADR 0001 and
   0055 already price: a JSON scan of the 20.6 MB document with its 10 000 ids (0.581 ms), a base64
   decode (0.760 ms into warm pages), and the finite scan numpy does not promise (0.235 ms).
   `embedding_index_ingest_npy` stays the like-for-like row.
@@ -2645,8 +2641,8 @@ carries `EmbeddingIndexSaveFile` and `EmbeddingIndexLoadGzip`, the nightly rows
   91.6 MB of zeroed arrays and copied everything read so far at each growth. The probe put the
   inflate alone at 37.3 ms and the accumulation at 13 ms more. It now reads into rented 1 MiB
   segments and copies once into one rented buffer.
-  [Decision 0120](../decisions/0120-a-stream-with-no-declared-length-is-pooled-too.md) amends
-  [0054](../decisions/0054-the-payload-buffer-is-pooled-after-all-because-the-collection-is-the-cost.md),
+  `docs/guides/performance.md` amends
+  `docs/guides/performance.md`,
   which had left this path unpooled.
 - **`Save(string)` ran the finite scan twice**: once before opening the file so a refusal cannot
   truncate it, and again inside `Save(Stream)`. The second pass is gone.
@@ -2837,7 +2833,7 @@ the table.
 
 The reasoning behind the opt-in default, the absent `-1` sentinel and the absent
 threshold is in
-[`../decisions/0018-multiclass-roc-auc-parallelism-is-opt-in.md`](../decisions/0018-multiclass-roc-auc-parallelism-is-opt-in.md).
+`docs/guides/performance.md`.
 
 ## BK-tree vs a length-filtered scan (issue #526)
 
@@ -2845,7 +2841,7 @@ Machine: 4-core Intel Xeon Processor @ 2.10GHz (BenchmarkDotNet's own header; th
 model behind this virtualized host is not otherwise identified), Ubuntu 24.04.4 LTS, .NET SDK
 10.0.111, .NET 10.0.11 runtime — a hosted session container, not a dedicated benchmark machine, so
 **this row is indicative, not authoritative**, the same caveat every other "dev machine" row in
-this document carries; [decision 0051](../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)
+this document carries; `docs/guides/performance.md`
 records a case where a container read a full 3× slower than the dedicated machine on the same
 code, so treat the ratios below as directional rather than exact. Window: one `BenchmarkDotNet`
 run, default job, 2026-09-02, no other load on the container during the run; total run time 6 min
@@ -2943,7 +2939,7 @@ and a length-filtered scan is the better answer past it.
 Full method, what the pair does and does not compare, and why `MathNet.Numerics` is not a candidate
 here:
 [`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#19-lodestarstatsregression-against-accordstatistics-issue-566).
-This section carries only the numbers, per this repository's own rule for where a fact belongs
+This section carries only the numbers, per the rule for where a fact belongs
 (`CLAUDE.md`'s "Where a fact belongs" table).
 
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
@@ -2962,7 +2958,7 @@ not authoritative**. Window: one `BenchmarkDotNet` run, `ShortRun` job (`Iterati
 
 **The two rows are not doing the same work, and that is the finding rather than a caveat.**
 `Accord.Statistics` exports no variance inflation factor anywhere in its 4 796 members — decision
-0096's reading established that — so `MultipleLinearRegressionAnalysis.Learn` performs one solve.
+0003's reading established that — so `MultipleLinearRegressionAnalysis.Learn` performs one solve.
 [`OrdinaryLeastSquares.Fit`](../reference/stats-regression/ols/ordinaryleastsquares-fit.md)
 performs **five** at four regressors: the model, plus one auxiliary regression per regressor for
 the VIFs, each with its own Householder QR over the full design.
@@ -2991,7 +2987,7 @@ Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 phys
 Window: one `BenchmarkDotNet` run, **default job**, on 2026-09-14, 8 benchmarks. A binomial model with
 a logit link and an intercept, both sides given 100 iterations and a `1e-8` tolerance. The benchmark
 project builds `Lodestar.Stats` 0.5.0 from source. Its normal quantile is inverted by Newton (#709)
-on the `erfc` [decision 0122](../decisions/0122-erfc-is-an-interpolant-sampled-from-the-incomplete-gamma.md)
+on the `erfc` `docs/guides/performance.md`
 describes. `Lodestar.Stats.Regression`'s published floor, `Lodestar.Stats` 0.4.0, carries neither
 yet.
 
@@ -3069,8 +3065,7 @@ an error bar wider than the effect being measured. The numbers below carry ±0.1
 intervals do not overlap. That is not noise and it is not the sandwich being free — it is a second
 difference between the two paths that has nothing to do with covariance at all.
 
-Choosing a robust type also moves the coefficient tests from Student's t to the normal
-([decision 0115](../decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md)),
+Choosing a robust type also moves the coefficient tests from Student's t to the normal ([decision 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md)),
 which changes **which tail functions run**. Measured on the same machine in one process, best of
 seven timed loops after a 2,000-call warm-up:
 
@@ -3163,7 +3158,7 @@ The wide block is solved through the 100 × 100 Gram matrix of its rows rather t
 one of its columns, which is where the 1.19 and half the allocation come from.
 
 The path to these numbers is in
-[decision 0119](../decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md): a
+[decision 0003](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md): a
 Jacobi solve over the whole centred block measured 13× slower than NumFlat at 2,000 × 50 before
 the Gram route replaced it. **Below `net8.0` the second row is Meta.Numerics**: NumFlat does not install there and ML.NET
 reports no eigenvalue, and [its section](#metanumerics-against-lodestarstats-and-principalcomponentvariance-issue-756)
@@ -3179,7 +3174,7 @@ Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 phys
 AVX-512. Window: two `BenchmarkDotNet` runs, **default job**, on 2026-09-13, one per state and
 back to back, 14 benchmarks each. *Before* is `main` at `750da89d` with `QuantileBenchmarks` added;
 *after* is the same tree with
-[decision 0121](../decisions/0121-the-quantiles-invert-by-newton-and-the-large-df-residual-is-the-tails.md)'s
+`docs/guides/performance.md`'s
 inversion. Both were built before either ran.
 
 | Call | Before | After |
@@ -3208,7 +3203,7 @@ they still compute the confidence band Cortex does not. **A 100-row fit halves**
 The quantile now costs one to four tail evaluations where bisection spent about sixty, so its time
 follows `Normal.Sf` and `StudentSf`: a faster tail moves these rows too. The shortcut of AS 241
 alone, with no tail evaluation, measured about 55 ns for the normal outside `BenchmarkDotNet`, and
-decision 0121 has why it was refused.
+docs/guides/performance.md has why it was refused.
 
 ## SentencePiece and WordPiece encode, against Microsoft.ML.Tokenizers (issue #713)
 
@@ -3237,7 +3232,7 @@ while shortening its candidate. A double-array trie finds every piece starting a
 walk. The allocation that is left is the result lists, the normalized text and, for WordPiece, the
 lowercased copy; a matched token is now the vocabulary's own string rather than a new one.
 
-**What it costs the loader, which decision 0068 makes the product.** Building the trie makes
+**What it costs the loader, which decision 0004 makes the product.** Building the trie makes
 constructing a tokenizer slower. Measured with a `Stopwatch` over the same two vocabularies on the
 same machine, not by BenchmarkDotNet:
 
@@ -3254,7 +3249,7 @@ paid once per tokenizer; reading `spiece_30k.model` itself takes 14 ms on the sa
 
 Full method, and the check that both sides return the same ids:
 [`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#15-against-the-net-incumbents-issue-438).
-[Decision 0127](../decisions/0127-bpe-is-held-to-the-incumbent-computing-the-same-ids.md) was taken
+[Decision 0005](../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md) was taken
 on these numbers.
 
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
@@ -3474,8 +3469,8 @@ reads 6.5 µs; `52d68ccb` holds it.
 bit-parallel kernel, and the same row now reads 2,977.04 ns against 2,814.00 ns, a ratio of 1.06; that
 section has the table.
 
-**Decision 0004's "right-sizing the table to the pattern's own alphabet is still open"** is not open.
-[Decision 0043](../decisions/0043-the-equality-table-is-sized-to-the-pattern.md) amends 0004's backlog
+**docs/guides/performance.md's "right-sizing the table to the pattern's own alphabet is still open"** is not open.
+`docs/guides/performance.md` amends 0004's backlog
 bullets on lifting the Latin-1 restriction, which 0004 calls the same change, and on the table's fixed
 cost, and retires both. 0004 cannot say so itself, and `docs/decisions/index.yaml` lists 0043 under its
 `amended_by`.
@@ -3563,7 +3558,7 @@ and sorted durations the walk needs.
 
 What it costs to read [`QrDecomposition`](../reference/decomposition/factorization/qrdecomposition.md)'s
 `Q` and `R` through their `IReadOnlyList<double>` properties rather than as spans.
-[Decision 0125](../decisions/0125-the-factorization-types-keep-ireadonlylist-and-consumers-read-a-local.md)
+`docs/guides/performance.md`
 was taken on these numbers.
 
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores, Ubuntu
@@ -3619,11 +3614,11 @@ inlined. It was timed with a `Stopwatch`, as the best of seven loops after a war
 sees the array through the inlined getter and devirtualizes the reads without PGO; OLS and GLM did not
 move. `Leverages` took the list as a parameter, and HC3 lost 4%. C, which only moves that read into a
 local, recovered all of it. **No runtime without devirtualization was measured**: .NET Framework, Mono
-and Unity are not installed on this machine, and decision 0125 names that as its reopening condition.
+and Unity are not installed on this machine, and docs/guides/performance.md names that as its reopening condition.
 
 ## Reading Q into a local for the leverages (issue #670)
 
-[Decision 0125](../decisions/0125-the-factorization-types-keep-ireadonlylist-and-consumers-read-a-local.md)
+`docs/guides/performance.md`
 found one consumer that paid for reading `QrDecomposition.Q` through `IReadOnlyList<double>`:
 `RobustCovariance.Leverages`, which took the list as a parameter, so the JIT could not see the array
 behind it without PGO. It now takes the factorization and reads `Q` into a local. The HC2 and HC3
@@ -3647,7 +3642,7 @@ With `--envVars DOTNET_TieredPGO:0`, passes ran A, B, A:
 The drift between the two A passes is 0.984 to 1.002.
 
 With dynamic PGO on, the default, B over A is 1.012, 1.009, 0.998 and 1.005 for the same four fits,
-inside their error bars. That is the result decision 0125 predicted: the default runtime already
+inside their error bars. That is the result docs/guides/performance.md predicted: the default runtime already
 devirtualized the reads, and a runtime without PGO no longer pays the 4% on the covariances that use
 leverages. Allocation did not move.
 
@@ -3656,14 +3651,14 @@ leverages. Allocation did not move.
 Full method, correctness cross-check, and how `Accord`'s 2017-era API names were resolved against
 the restored package:
 [`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#18-lodestarstats-against-accordstatistics-issue-442).
-This section carries only the numbers, per this repository's own rule for where a fact belongs
+This section carries only the numbers, per the rule for where a fact belongs
 (`CLAUDE.md`'s "Where a fact belongs" table).
 
 Machine: Intel Xeon Processor 2.80GHz, 1 CPU, 4 logical and 4 physical cores (BenchmarkDotNet's own
 header), Ubuntu 24.04.4 LTS, .NET SDK 10.0.111, .NET 10.0.11 runtime — a hosted session container,
 not a dedicated benchmark machine, so **this row is indicative, not authoritative**, the same
 caveat every other container row in this document carries;
-[decision 0051](../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md) records a
+`docs/guides/performance.md` records a
 case where a container read a full 3× slower than the dedicated machine on the same code, so treat
 the ratios below as directional rather than exact. Window: one `BenchmarkDotNet` run, `ShortRun`
 job — fewer iterations than the default, exact parameters in `bench/README.md` — 2026-09-05, no
@@ -3821,7 +3816,7 @@ allocates is `Paired`'s own array of differences, eight bytes a pair, and not th
 [`GeneralizedLinearModel.Fit`](../reference/stats-regression/glm/generalizedlinearmodel-fit.md)
 refused a Poisson count above one million, because its log-likelihood built an exact `log(k!)` table
 indexed by the largest count. `log(y!)` now reads a fixed table below 256 and Stirling's series
-above it; [decision 0128](../decisions/0128-the-poisson-log-factorial-stays-in-lodestar-stats-regression.md)
+above it; `docs/guides/performance.md`
 has the precision each option reached against `scipy.special.gammaln`, and why the function stays in
 `Lodestar.Stats.Regression`.
 
@@ -3999,7 +3994,7 @@ NumFlat's 66.59 MB and `Dbscan`'s 40.40 MB at 5,000 planar points, 111.97 MB aga
 
 **`Dbscan` 3.0.0 has no row in the second table because it has no entry point there.** Its `Point`
 carries `X` and `Y` and nothing else, which is
-[decision 0131](../decisions/0131-lodestar-cluster-writes-what-netstandard2-0-lacks.md)'s whole
+[decision 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md)'s whole
 argument for writing this class — the gap is reach below `net8.0`, and the speed is a second
 finding rather than the claim.
 
@@ -4379,7 +4374,7 @@ the category the count modulo three, milliseconds per fit, best of five.
 | 100,000 | **58.563 ms** | 407.374 / 1,853.258 ms | **6.96** |
 
 Part of the difference is the null log-likelihood: `statsmodels` refits the constant-only model with Nelder–Mead and
-BFGS, where this fit takes the closed form that refit approximates (decision 0136).
+BFGS, where this fit takes the closed form that refit approximates (decision 0004).
 
 ## The vector autoregression against statsmodels (issue #786)
 
@@ -4645,7 +4640,7 @@ the default after, which is now scipy's exact p-value.
 **Parity costs 5% at 1,000 and is 23% cheaper at 10,000.** Both routes sort both samples and allocate
 the same, so the difference is the p-value computation alone; this run does not say which part of
 the asymptotic route costs more.
-[Decision 0141](../decisions/0141-kolmogorov-smirnov-auto-follows-scipy-for-equal-sizes.md) has the
+the Kolmogorov-Smirnov auto rule has the
 behaviour change.
 
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
@@ -4671,9 +4666,9 @@ conditions interleaved over five runs of nine. Median of the five medians, in ms
 
 **Our kernel is ahead on the kNN pattern at every width**, 3–7×, and one long sweep is at parity.
 Turning the 512-bit path off halves `TensorPrimitives`' time without changing the direction.
-[Decision 0140](../decisions/0140-on-a-named-machine-our-knn-kernel-is-ahead-and-avx-512-widens-the-gap.md)
+[Decision 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md)
 records it against the hosted runner's opposite reading in
-[0060](../decisions/0060-tensorprimitives-beats-our-kernel-and-the-knn-is-still-not-redundant.md).
+[0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md).
 
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 16 logical and 8 physical cores, Ubuntu 26.04.1
 LTS, .NET 10.0.12 runtime. 2026-09-16.
@@ -5140,11 +5135,11 @@ A 2,000 × 500 term-document matrix at 2% density, rank 20:
 
 **ML.NET's PCA is 1.18× faster, and it is a different decomposition**: centred and dense against
 uncentred and sparse. Section 16 of `bench/README.md` says what is checked instead of agreement, and
-decision 0116 why the gap that matters is the explained variance, which ML.NET does not report.
+decision 0004 why the gap that matters is the explained variance, which ML.NET does not report.
 
 ## Lodestar.Gpu — four kernels against their CPU paths (issue #444)
 
-Measured 2026-09-10, on the one machine [decision 0102](../decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md)
+Measured 2026-09-10, on the one machine `bench/README.md`'s GPU gate
 says a GPU figure has to be published beside:
 
 | | |
@@ -5157,7 +5152,7 @@ says a GPU figure has to be published beside:
 
 **Read this before the numbers.** Three caveats travel with every table below.
 
-1. **The baseline is single-threaded.** Decision 0102 asks a kernel to be priced against *this
+1. **The baseline is single-threaded.** bench/README.md's GPU gate asks a kernel to be priced against *this
    repository's own path*, and none of those paths is parallel. A `Parallel.For` over eight cores
    would close a large part of every gain here, most of all Myers'. These are honest against the
    gate as written; they are not a claim about a parallel CPU implementation.
@@ -5253,8 +5248,7 @@ minimises in one pass, while the kernel takes hashes the host already computed.
 
 **`GpuWithHashing` is the row that matters, and it is the one that misses the gate.** The
 minimisation is 34× to 66× faster on the accelerator; a caller starting from tokens sees 1.27× to
-1.57×, because hashing is most of the work and it stays on the host. This kernel clears decision
-0102's gate on the part it took and misses it on the part a caller experiences.
+1.57×, because hashing is most of the work and it stays on the host. This kernel clears the GPU gate on the part it took and misses it on the part a caller experiences.
 
 Located rather than disappointing: the next move is to hash on the accelerator, which is a separate
 kernel because parity requires the first four bytes of SHA-1 little-endian and a device

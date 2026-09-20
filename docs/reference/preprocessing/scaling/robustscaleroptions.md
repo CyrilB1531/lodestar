@@ -52,7 +52,7 @@ same function. The corpus compares at `1e-9` relative, which is four orders of m
 **`UnitVariance` divides the range after the near-constant floor, not before**, which is the
 reference's order and is visible only on a constant feature: it lands on `1/1.3489795`, not on 1.
 The quantile is `Lodestar.Stats`' published one — the edge
-[decision 0138](../../../decisions/0138-lodestar-preprocessing-takes-an-edge-on-lodestar-stats-for-the-normal-quantile.md)
+[decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 took rather than carry a second copy. **A percentile of 0 or 100 is refused with it**, having no
 finite quantile, where the reference divides by an infinity and reports a scale of zero.
 

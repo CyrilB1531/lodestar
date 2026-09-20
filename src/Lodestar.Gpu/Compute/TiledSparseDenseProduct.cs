@@ -11,7 +11,7 @@ namespace Lodestar.Gpu.Compute;
 /// rather than once per thread, and accumulation walks the row in stored order — the order
 /// the CPU path walks it, so the two agree far beyond the asserted tolerance. Double
 /// precision, because the CPU operand is: FP64 runs at a fraction of FP32 on a consumer
-/// card, which is a real reason this kernel may miss decision 0102's gate.
+/// card, which is a real reason this kernel may miss the GPU gate.
 /// </remarks>
 public sealed class TiledSparseDenseProduct
 {
@@ -32,7 +32,7 @@ public sealed class TiledSparseDenseProduct
     /// <summary>Loads the kernel onto the accelerator.</summary>
     /// <param name="context">The accelerator to compile for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
-    /// <remarks>Loading compiles, so build this once and reuse it (decision 0102).</remarks>
+    /// <remarks>Loading compiles, so build this once and reuse it (bench/README.md's GPU gate).</remarks>
     public TiledSparseDenseProduct(GpuContext context)
         : this(context, RowLaunch.Limit(context))
     {

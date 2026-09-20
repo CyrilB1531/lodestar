@@ -12,7 +12,7 @@ namespace Lodestar.Embeddings.Tests.Tokenization;
 /// <remarks>
 /// Llama-2 declares a <c>Prepend</c>+<c>Replace</c> normalizer with a null
 /// pre-tokenizer; Mistral v0.1 declares a <c>Metaspace</c> pre-tokenizer with a null
-/// normalizer. Decision 0050 makes the loader absorb that variation (#316).
+/// normalizer, and the loader absorbs that variation (#316).
 /// </remarks>
 public sealed class BpeMetaspaceLoaderTests
 {
@@ -45,7 +45,7 @@ public sealed class BpeMetaspaceLoaderTests
     [Fact]
     public void A_sequence_carrying_a_step_we_do_not_reproduce_is_refused()
     {
-        // Decision 0050 keeps 0017's rule while overturning two of its clauses: refusing
+        // The refusal keeps the parity scope while overturning two of its clauses: refusing
         // beats reducing a three-step sequence to the two steps we know.
         InvalidDataException thrown = Assert.Throws<InvalidDataException>(() => Load(
             "\"normalizer\": { \"type\": \"Sequence\", \"normalizers\": [ { \"type\": \"Prepend\", \"prepend\": \"▁\" }, { \"type\": \"Replace\", \"pattern\": { \"String\": \" \" }, \"content\": \"▁\" }, { \"type\": \"NFC\" } ] },"));
@@ -70,7 +70,7 @@ public sealed class BpeMetaspaceLoaderTests
     [Fact]
     public void A_file_writing_both_spellings_is_refused()
     {
-        // Neither model decision 0050 was read from writes both, so there is no
+        // Neither of the two models the lineage was read from writes both, so there is no
         // measurement saying which of the two such a file would apply.
         InvalidDataException thrown = Assert.Throws<InvalidDataException>(() => Load(
             MetaspaceBlock + " " + PrependReplaceBlock));
@@ -93,7 +93,7 @@ public sealed class BpeMetaspaceLoaderTests
     }
 
     /// <summary>
-    /// The two spellings are one value but for the prepend, which decision 0062 measures
+    /// The two spellings are one value but for the prepend, which docs/equivalence.md's Metaspace rows measure
     /// and this pins field by field — the escape the loader builds is where it lives.
     /// </summary>
     [Fact]
@@ -161,7 +161,7 @@ public sealed class BpeMetaspaceLoaderTests
     [Fact]
     public void The_two_spellings_are_told_apart_for_an_added_tokens_pattern()
     {
-        // Decision 0085's third parting: tokenizers normalizes a normalized entry's content
+        // The third parting of the two spellings: tokenizers normalizes a normalized entry's content
         // with the declared normalizer, and never with a pre-tokenizer.
         Assert.True(Load(
             "\"normalizer\": { \"type\": \"Sequence\", \"normalizers\": [ { \"type\": \"Prepend\", \"prepend\": \"▁\" }, "
@@ -177,7 +177,7 @@ public sealed class BpeMetaspaceLoaderTests
     public void A_normalized_added_token_under_a_Metaspace_pre_tokenizer_is_refused()
     {
         // The shape no reference file carries and a static pattern cannot express: what the
-        // escape does to the content would depend on the piece's position (decision 0085).
+        // escape does to the content would depend on the piece's position.
         BpeVocabulary vocabulary = Load(
             "\"pre_tokenizer\": { \"type\": \"Metaspace\", \"replacement\": \"▁\", \"prepend_scheme\": \"first\", \"split\": false }, "
             + "\"added_tokens\": [ { \"id\": 3, \"content\": \"<s>\", \"single_word\": false, \"lstrip\": false, "

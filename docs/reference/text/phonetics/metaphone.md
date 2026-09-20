@@ -27,7 +27,7 @@ The code is variable length, and on the 123 real words it is pinned to it runs f
 characters.
 
 Reference behaviour is `jellyfish.metaphone` **on real words**.
-[Decision 0007](../../../decisions/0007-metaphone-scope.md) records why the corpus is real words
+[Decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md) records why the corpus is real words
 rather than the shared random one: on degenerate letter sequences, jellyfish exhibits quirks of
 its C implementation that are not worth reproducing, so this implementation does not claim parity
 there.

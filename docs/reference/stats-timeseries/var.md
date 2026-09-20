@@ -6,11 +6,10 @@ the coefficients per equation with their standard errors, t statistics and p-val
 log-likelihood, and the four information criteria.
 
 **Why this model and not the others.**
-[Decision 0134](../../decisions/0134-arima-and-state-space-are-not-written-and-var-is-the-one-that-could-be.md) read
+[Decision 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md) read
 ARIMA, SARIMAX, VAR and state space. The likelihood-fitted three do not reproduce their own answer at the tolerance
 every corpus here is held to; the VAR is least squares on the stacked lags, which `numpy.linalg.lstsq` matches at a
-relative gap of `0.0`. Forecasting stays delegated to `Microsoft.ML.TimeSeries`
-([decision 0105](../../decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md)).
+relative gap of `0.0`. Forecasting stays delegated to `Microsoft.ML.TimeSeries` ([decision 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md)).
 
 ## Types
 

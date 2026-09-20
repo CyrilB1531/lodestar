@@ -473,7 +473,7 @@ def test_no_link_in_the_published_wiki_names_a_page_it_does_not_hold(tmp_path):
 
 
 def test_a_published_page_carries_no_yaml_frontmatter(tmp_path):
-    """Every ADR carries one since decision 0106, and docs/decisions/*.md is
+    """Every ADR carries one since tools/regen_adr_index.py, and docs/decisions/*.md is
     published -- a wiki renders the block as a rule and a paragraph of keys, so
     106 pages would open with their own metadata."""
     page = tmp_path / "0001-a.md"

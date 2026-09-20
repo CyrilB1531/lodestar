@@ -15,9 +15,9 @@
 
   <!--
     Two edges, both to core packages: Lodestar.Stats for the normal quantile RobustScaler's
-    unit_variance divides by (decision 0138), and Lodestar.Abstractions for the CsrMatrix the sparse
-    overloads take (decision 0139, which applies 0138's precedent rather than reopening it). Each is
-    a PackageReference against its published floor, like every other src/ edge (decision 0012), with
+    unit_variance divides by (decision 0003), and Lodestar.Abstractions for the CsrMatrix the sparse
+    overloads take (decision 0003, which applies 0138's precedent rather than reopening it). Each is
+    a PackageReference against its published floor, like every other src/ edge (decision 0001), with
     the usual developer-loop opt-in, never set in CI:
 
         export LodestarUseProjectRefs=true

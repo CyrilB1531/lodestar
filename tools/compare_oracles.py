@@ -19,7 +19,7 @@ gained a case, lost a field or reordered one has changed in a way no
 floating-point unit can explain. A non-finite value is compared exactly too:
 a tolerance around an infinity means nothing.
 
-Decision 0073 records why the gate asserts this rather than byte-identity.
+tools/compare_oracles.py records why the gate asserts this rather than byte-identity.
 
 Usage:  python tools/compare_oracles.py <expected-dir> <actual-dir>
         python tools/compare_oracles.py --help

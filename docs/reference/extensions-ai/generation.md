@@ -14,7 +14,7 @@ numbers are.
 ## Why every example here is unexecuted
 
 Weights are never committed to this repository. A running example would need a model of tens of
-megabytes, and [`decisions/0003`](../../decisions/0003-provenance-and-licensing.md) rules that
+megabytes, and [`decisions/0002`](../../decisions/0002-provenance-and-the-allowed-references.md) rules that
 out; `tools/fetch_*.py` pulls vocabularies against a pinned SHA-256 when they are needed, and
 weights are not among them.
 
@@ -26,9 +26,9 @@ So the fences on these pages **compile** against the packed package and are mark
 
 `Lodestar.Extensions.AI` belongs to the interop tier, `Lodestar.Extensions.*`, which may take a
 dependency a core package refused because converting to a foreign type is not computing with it —
-[`decisions/0089`](../../decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md).
+[`decisions/0003`](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md).
 It exists because a core package carries no external dependency —
-[`decisions/0076`](../../decisions/0076-a-core-package-carries-no-external-dependency.md).
+[`decisions/0003`](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md).
 A caller who wants embeddings and not the `Microsoft.Extensions.AI` abstractions takes
 `Lodestar.Onnx` alone and restores nothing extra.
 

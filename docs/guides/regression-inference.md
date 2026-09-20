@@ -141,5 +141,5 @@ is sound, so the diagnostic that is not says so. `docs/equivalence.md` carries t
 - [`WeightedLeastSquares`](../reference/stats-regression/wls.md) — the weighted fit.
 - [`GeneralizedLeastSquares`](../reference/stats-regression/gls.md) — the fit under a correlated error covariance.
 - [statsmodels → .NET](../migration/statsmodels.md) — what is delegated and what is not.
-- [`decisions/0096`](../decisions/0096-ordinary-least-squares-earns-its-own-package.md) — why this
+- [`decisions/0003`](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) — why this
   is a package, and what reading the incumbents' exported surface actually found.

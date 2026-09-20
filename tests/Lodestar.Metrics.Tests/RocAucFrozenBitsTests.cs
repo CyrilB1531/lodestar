@@ -4,14 +4,14 @@ using Xunit;
 namespace Lodestar.Metrics.Tests;
 
 /// <summary>
-/// The absolute bit pin ADR 0018's Consequences require: every multiclass corpus
+/// The absolute bit pin docs/guides/performance.md's Consequences require: every multiclass corpus
 /// value against the raw IEEE-754 bits this implementation produced, because a
 /// relative pin alone missed a real regression — reassociating the division in
 /// <c>MultiClassRoc.Mean</c>/<c>WeightedMean</c> passed every other test while
 /// moving the last bit of three of the twelve values below. The oracle cannot
 /// replace this either: <c>tests/oracles/roc_auc.json</c> rounds to 12 decimals,
 /// below where these bits move. See
-/// <c>docs/decisions/0018-multiclass-roc-auc-parallelism-is-opt-in.md</c>.
+/// <c>docs/guides/performance.md</c>.
 /// </summary>
 public sealed class RocAucFrozenBitsTests
 {

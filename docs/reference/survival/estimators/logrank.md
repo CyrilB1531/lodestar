@@ -38,7 +38,7 @@ come out at the reference's number.
 
 **Its p-value is the published chi-squared tail**, not a second one:
 [`Distributions.ChiSquaredSf`](../../stats/tails/distributions-chisquaredsf.md) on one degree of
-freedom. [Decision 0097](../../../decisions/0097-the-chi-squared-tail-joins-the-published-four.md)
+freedom. [Decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 published that member for this call rather than let a second far-tail approximation into the tree,
 and a test asserts the two routes agree.
 

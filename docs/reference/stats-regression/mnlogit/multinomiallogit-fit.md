@@ -50,8 +50,7 @@ sorts them. Relabelling while keeping the order changes nothing.
 
 `NullLogLikelihood` is the closed form `Σ nⱼ·log(nⱼ/n)`. statsmodels refits the constant-only model with an optimiser
 and lands up to `3e-10` from it, so `PseudoRSquared` and `LikelihoodRatio` agree with the reference to about that. The
-χ² tail amplifies the gap in `LikelihoodRatioPValue` to about `1e-8`
-([decision 0136](../../../decisions/0136-the-multinomial-logit-is-written-and-the-ordered-model-is-not.md)).
+χ² tail amplifies the gap in `LikelihoodRatioPValue` to about `1e-8` ([decision 0004](../../../decisions/0004-what-is-written-here-and-what-is-delegated.md)).
 
 `ModelDegreesOfFreedom` is `(K − 1)·(J − 1)` whether or not an intercept was fitted, where `K` is the number of columns
 fitted: the reference's `df_model`, which the likelihood-ratio p-value reads.

@@ -7,7 +7,7 @@ that claim: it would never exercise a merge table with 50 000 ranks, and it
 would not prove that Lodestar reads the `merges.txt` layout a real model ships.
 
 Only the vocabulary and the merge table are redistributed here — never the
-weights, per docs/decisions/0003-provenance-and-licensing.md. `gpt2` is
+weights, per docs/decisions/0002-provenance-and-the-allowed-references.md. `gpt2` is
 MIT-licensed (https://huggingface.co/openai-community/gpt2); the attribution is
 recorded in THIRD-PARTY-NOTICES.md.
 

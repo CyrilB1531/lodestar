@@ -5,7 +5,7 @@ The floor is the interpreter CI runs, not the oldest one the syntax happens to
 parse under. The corpora under ``tests/oracles/`` are these generators' output,
 and the ``Oracles are reproducible`` job diffs them against a fresh generation,
 so a contributor regenerating under an interpreter CI never runs would reach
-that job as an unexplained drift on an unrelated change. Decision 0065 has the
+that job as an unexplained drift on an unrelated change. tools/python_floor.py has the
 option that lost.
 
 ``tools/tests/test_python_floor.py`` asserts that every ``python-version:`` pin

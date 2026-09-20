@@ -34,7 +34,7 @@ Reference behaviour is `snowballstemmer.stemmer("french")` 3.1.1, the Snowball p
 implementation, matched over the 571-word corpus and over all 346,244 words of a French dictionary.
 `nltk`'s `SnowballStemmer("french")` implements an older reading and gives another stem for 278 of
 those words: `indicatrice` is `ind` there and `indiqu` here, `bijoux` stays `bijoux`, and `l'avion`
-keeps its elision ([decision 0145](../../../decisions/0145-french-takes-snowballstemmer-as-its-oracle.md)).
+keeps its elision ([decision 0006](../../../decisions/0006-the-stemmers-references.md)).
 
 **Applies to** — net10.0, netstandard2.0.
 

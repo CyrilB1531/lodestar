@@ -6,7 +6,7 @@
   "reference_calls": [
    "doublemetaphone.doublemetaphone"
   ],
-  "corpus": "the input-contract fixed points, plus phonetic_words -- the words decision 0075 compared the candidates over",
+  "corpus": "the input-contract fixed points, plus phonetic_words -- the words decision 0005 compared the candidates over",
   "secondary_convention": "'' for no alternate, unwrapped from the reference's repeated primary",
   "seed": 20260801,
   "count": 454

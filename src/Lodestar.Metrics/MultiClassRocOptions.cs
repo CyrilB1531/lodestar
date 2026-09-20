@@ -50,7 +50,7 @@ public readonly ref struct MultiClassRocOptions
     /// <remarks>
     /// Bit-identical at any setting; above 1 the inputs are copied. No sentinel
     /// for "all cores": write <see cref="Environment.ProcessorCount"/>. Argued
-    /// in <c>docs/decisions/0018-multiclass-roc-auc-parallelism-is-opt-in.md</c>.
+    /// in <c>docs/guides/performance.md</c>.
     /// </remarks>
     public int MaxDegreeOfParallelism { get; init; }
 }

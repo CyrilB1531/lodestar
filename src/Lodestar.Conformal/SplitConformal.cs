@@ -28,7 +28,7 @@ public static class SplitConformal
     /// <see cref="ConformalQuantileRule.MapieClassification"/> the <c>(ceil((n − 1) · level) + 1)</c>-th, <c>level = (n + 1)(1 − alpha) / n</c>,
     /// which is what MAPIE's prediction sets read. When the rule asks for a score that does not exist the answer is
     /// <see cref="double.PositiveInfinity"/>: a trivial prediction with real coverage, carried through by
-    /// <see cref="Interval"/> and <see cref="PredictionSet"/>. MAPIE raises there; decision 0070 says why this does not.
+    /// <see cref="Interval"/> and <see cref="PredictionSet"/>. MAPIE raises there; decision 0007 says why this does not.
     /// <b>Exchangeability</b> — see the type's remarks.
     /// </remarks>
     /// <param name="scores">The calibration scores; not modified.</param>
@@ -178,7 +178,7 @@ public static class SplitConformal
     /// MAPIE floors it at 1e-8 instead, because its own residual model may predict a negative
     /// and it has nowhere to send the complaint. Here the estimate is the caller's own argument,
     /// so flooring would turn their bug into an interval of width <c>q · 1e-8</c> — which reads
-    /// as certainty. Decision 0118 has why this diverges.
+    /// as certainty: a residual estimate is refused rather than floored, and docs/equivalence.md's row says why this diverges.
     /// </remarks>
     private static double Positive(double estimate, int? index)
     {

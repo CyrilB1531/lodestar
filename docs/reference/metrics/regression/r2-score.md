@@ -64,17 +64,15 @@ says.
   the default — a perfect prediction of that constant scores `1` and any other scores `0`; with
   `false` you get `nan` and `-inf` instead.
 
-[Decision
-0026](../../../decisions/0026-r2-and-explainedvariance-split-their-undefined-cases-differently.md)
+the undefined-case rule
 has the argument for keeping them separate. Both passes are Neumaier-compensated, which is
 load-bearing on an ill-conditioned target: a sequential sum was measured 357 times outside the
 oracle's tolerance —
-[decision 0033](../../../decisions/0033-compensated-sum-is-neumaiers-variant.md).
+Neumaier's compensated sum.
 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `R2.PerOutput`, `R2.VarianceWeighted`, `ExplainedVariance.Score`,
-[decision
-0026](../../../decisions/0026-r2-and-explainedvariance-split-their-undefined-cases-differently.md),
+the undefined-case rule,
 [the ZeroDivision entry](../classification/zerodivision.md),
 the [Python equivalence table](../../../equivalence.md).

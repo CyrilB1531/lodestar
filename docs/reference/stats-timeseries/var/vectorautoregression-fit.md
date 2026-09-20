@@ -51,7 +51,7 @@ coefficient for every variable, then lag 2's. Equation `j` explains variable `j`
 reported** because the reference publishes none — its `VARResults` has no `conf_int`.
 
 Lag-order selection, impulse responses, forecast-error variance decomposition and Granger causality are not here; each
-waits for a caller, as [decision 0095](../../../decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md) asks.
+waits for a caller, as [decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) asks.
 
 **Applies to** — net10.0, netstandard2.0.
 

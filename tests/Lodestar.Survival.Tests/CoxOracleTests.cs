@@ -5,7 +5,7 @@ namespace Lodestar.Survival.Tests;
 
 /// <summary>The whole Cox table against <c>lifelines.CoxPHFitter</c> 0.30.3, frozen at its maximum.</summary>
 /// <remarks>
-/// Floats at 1e-9 absolute and p-values at 1e-9 relative, as decision 0081 set for every p-value
+/// Floats at 1e-9 absolute and p-values at 1e-9 relative, as decision 0003 set for every p-value
 /// here. The corpus was fitted at <c>precision=1e-20</c>, which puts it within 3.1e-13 of an
 /// independent Newton-Raphson, so the repository's usual tolerances apply unchanged.
 /// </remarks>

@@ -49,13 +49,13 @@ indexes a different order statistic and disagrees with the ceiling rule on about
 `(n, alpha)` pairs; `method="inverted_cdf"` is the same rule algebraically and still disagrees
 where evaluating the level in floating point moves the product across an integer. MAPIE's regressor
 follows the ceiling rule.
-[Decision 0070](../../../decisions/0070-k-greater-than-n-returns-an-infinite-interval.md) has the
+[Decision 0007](../../../decisions/0007-the-deliberate-divergences.md) has the
 measurement.
 
 **MAPIE's classifier reads that numpy quantile**, one rank higher at `n = 19, alpha = 0.1`, so its
 prediction sets match [`PredictionSet`](splitconformal-predictionset.md) only at
 `ConformalQuantileRule.MapieClassification`. The default stays the ceiling rule;
-[decision 0143](../../../decisions/0143-prediction-sets-can-read-mapies-classification-quantile.md)
+[decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)
 says why.
 
 When `alpha < 1 / (n + 1)` the rule asks for a score the calibration set does not hold, and the

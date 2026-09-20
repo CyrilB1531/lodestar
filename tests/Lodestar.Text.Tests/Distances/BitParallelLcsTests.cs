@@ -10,7 +10,7 @@ namespace Lodestar.Text.Tests.Distances;
 /// <remarks>
 /// The oracle corpora cannot: of their 1 522 cases, 97 reach the kernel and <b>none</b>
 /// reaches the blocked path, every pair fitting one word once trimmed — so the multi-word
-/// carry and borrow shipped unexecuted under a green suite, the failure ADR 0004 records
+/// carry and borrow shipped unexecuted under a green suite, the failure docs/guides/performance.md records
 /// for #52. The chain closed here: the DP is conformant because the frozen rapidfuzz cases
 /// say so, and the kernel because it agrees with the DP where the corpus never goes.
 /// <see cref="Lcs.SubsequenceLength{T}"/> is the generic overload, the DP, hence reference.

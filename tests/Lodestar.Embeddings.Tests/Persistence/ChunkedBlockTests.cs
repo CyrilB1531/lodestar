@@ -13,7 +13,7 @@ namespace Lodestar.Embeddings.Tests.Persistence;
 /// <see cref="Base64Numbers.WriteSingles"/> is kept off every save path as the oracle these
 /// compare against — that is what makes it useful rather than dead code. The sizes are chosen
 /// around the 245 760-byte slice, since a boundary landing inside a base64 group would show up
-/// as a run of <c>=</c> mid-string. ADR 0051 is the decision.
+/// as a run of <c>=</c> mid-string. docs/guides/performance.md is the decision.
 /// </remarks>
 public sealed class ChunkedBlockTests
 {

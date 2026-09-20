@@ -102,7 +102,7 @@ checks are still satisfied. It never accepts a skipped `Guide snippets compile, 
 run` while a Markdown file moved: a documentation change is exactly what breaks a guide snippet.
 It accepts that skip only when the pull request holds **no Markdown at all**, which is the
 narrower question `skip_build.py --workflows-only` answers — 81 s of that job's 105 is its own
-`pack`, which ADR 0009 requires, because a snippet that only compiles through a `ProjectReference`
+`pack`, which CONTRIBUTING.md's Definition of done requires, because a snippet that only compiles through a `ProjectReference`
 is not one a reader can run.
 The snippets and the stop-word check run either way. Separately,
 [`tools/format_needed.py`](tools/README.md#format_neededpy) decides whether `Lint`
@@ -162,7 +162,7 @@ A change is not finished until all of these hold:
    same commit. The sentence around each type is not compared — *when* it is thrown stays a
    review question. A namespace still owing that parity is named in the map's
    `exceptionsUnchecked` list, which only ever shrinks; see
-   [ADR 0038](docs/decisions/0038-the-gate-confronts-an-exception-tag-with-the-page-that-documents-it.md).
+   the exception-tag gate.
 
    A member that has a reference entry is linked to it wherever it is named in prose or in a
    table. Using it obliges the page as well: a member named anywhere on a page — inside a
@@ -288,10 +288,10 @@ commit, which a commit made before a pull request exists has none to name, and
 reaches nuget.org, and the hook does not — but that is a flag rather than a
 guard, and its two offline rules run in both places. The reasoning, and the
 alternative of adopting `pre-commit` instead, are in
-[decision 0037](docs/decisions/0037-the-guards-run-before-the-commit.md), with
+`tools/README.md`, with
 the two later exclusions in
-[decision 0046](docs/decisions/0046-check-adr-immutable-runs-in-ci-only.md) and
-[decision 0064](docs/decisions/0064-check-repeated-literals-runs-in-ci-only-not-the-pre-commit-hook.md),
+`tools/README.md` and
+`tools/README.md`,
 each its own record rather than an edit to 0037.
 
 ## Before pushing: the half the build cannot see
@@ -380,7 +380,7 @@ A finding it reports is real, a clean run promises nothing.
 The four libraries version and release independently, and `Lodestar.Fuzzy`
 reaches `Lodestar.Text` through a `PackageReference` on the published package
 rather than a project reference — the reasoning is in
-[`docs/decisions/0012`](docs/decisions/0012-per-package-versioning.md).
+[`docs/decisions/0001`](docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
 A plain clone builds with no extra step: the version `Lodestar.Fuzzy` depends on
 is a floor pinned in `src/Directory.Packages.props`, and it always names a
@@ -458,7 +458,7 @@ alongside the implementation.
 1. Add a generator section to [`tools/generate_oracles.py`](tools/generate_oracles.py).
 2. Build `.venv-oracles` once, on **Python 3.12 or later** — the interpreter every workflow pins,
    and the floor `tools/python_floor.py` holds and the generators refuse below
-   ([decision 0065](docs/decisions/0065-the-oracle-generators-floor-is-the-ci-interpreter.md) has
+   (`tools/python_floor.py` has
    why it is the CI interpreter rather than the oldest one that parses). `python3` is 3.10 on
    Ubuntu 22.04 and 3.11 on this project's hosted session image, so name the version rather than
    taking the default:
@@ -523,7 +523,7 @@ step 4 asks a test for, and everything else (integers, strings, key sets and the
 order, array lengths and their order, the set of files) exactly. So a corpus whose
 *values* move, or that gains, loses or reorders anything, blocks the pull request;
 one whose last digits follow the CPU that generated it does not.
-[Decision 0073](docs/decisions/0073-the-oracle-gate-compares-numbers-not-bytes.md)
+`tools/compare_oracles.py`
 has why the gate stopped asking for byte-identity, which no machine could hold.
 
 ### Dependencies
@@ -565,23 +565,23 @@ Anything added to this file must import nothing outside `requirements.lock.txt`,
 problem `--no-deps` exists to avoid reappears one entry later — the test summa passes on `scipy`
 (via scikit-learn) and `numpy` (pinned directly) exactly as keybert passes it on numpy and
 scikit-learn.
-[Decision 0078](docs/decisions/0078-keybert-is-declared-nodeps-not-compiled-into-the-lock.md)
+`tools/requirements-nodeps.txt`
 records that boundary, both packages' reasons for needing it, and the options each beat.
 
-**Before citing decision NNNN, read [`docs/decisions/index.yaml`](docs/decisions/index.yaml) and
-follow its `amended_by` and `applied_by` entries.** A decision record is never edited, so the one
-that gets amended cannot name its amendment — `0101` says `Lodestar.Gpu` ships no `netstandard2.0`
-and `0103` amended it to ship `netstandard2.1`, so 0101 cited alone is the opposite of the decision.
-`amended_by` says the decision changed; `applied_by` says it was used again on a rule it already
-stated, which is what `0097` and `0098` did to `0095`. A new ADR declares `supersedes`, `amends` and
+**A decision record is never edited, and may only be deleted.** An amendment is therefore a new
+record, which is why the seven records declare no relation today and
+[`docs/decisions/index.yaml`](docs/decisions/index.yaml)'s `amended_by` and `applied_by` lists are
+empty: `tools/check_adr_immutable.py` refuses a diff that rewrites an accepted record, and allows
+one that removes it. Should a record ever amend another, it declares `supersedes`, `amends` or
 `applies` in its own frontmatter and the index is regenerated with
 `python tools/regen_adr_index.py`; `tools/check_adr_frontmatter.py` and
-`tools/check_adr_index_sync.py` refuse the commit otherwise
-([decision 0106](docs/decisions/0106-the-frontmatter-is-inserted-once-and-the-body-does-not-move.md)).
+`tools/check_adr_index_sync.py` refuse the commit otherwise. **The numbering restarted at `0001` on
+2026-09-20** ([#1103](https://github.com/CyrilB1531/lodestar/issues/1103)), so read a citation older
+than that against the tree that carried it: `git show 53af23c2:docs/decisions/<file>`.
 
 Where behavior deliberately diverges from the Python reference, record it in
 [`docs/decisions/`](docs/decisions/README.md) rather than in a code comment alone — see
-[`0005`](docs/decisions/0005-hamming-jellyfish-divergence.md) for the shape of
+[`0007`](docs/decisions/0007-the-deliberate-divergences.md) for the shape of
 one.
 
 ## Analyzers
@@ -622,7 +622,7 @@ new-code gate either. Ten `xUnit2033` findings reached `main` that way (issue #6
 Those are raised in **`tests/analyzers.globalconfig`**, which is hand-written, named
 explicitly in `tests/Directory.Build.props`, and cannot take the root file's name
 because that one is generated. One rule is raised per measured escape rather than the
-whole `Info` category — [`decisions/0112`](docs/decisions/0112-an-analyzer-rule-below-warning-is-raised-where-it-has-escaped.md)
+whole `Info` category — `CLAUDE.md`'s analyzer section
 has the options that lost.
 
 CI's `Lint` job runs the same generator with `--check` on every pull request,
@@ -645,8 +645,8 @@ version is pinned once, as `$(LodestarSonarAnalyzerVersion)` in the root
 `Directory.Build.props`; raising it will usually surface new rules and therefore
 a cleanup, so treat it as its own change. `AnalysisLevel` is pinned to `10.0`
 for the same reason. See
-[`0015`](docs/decisions/0015-sonar-rules-in-the-build.md) and
-[`0019`](docs/decisions/0019-the-net-analysers-run-in-the-build-too.md).
+`CLAUDE.md`'s analyzer section and
+`CLAUDE.md`'s analyzer section.
 
 The command above does not reach `samples/`. The samples are outside
 `Lodestar.slnx` and consume the packages from a local feed, so the analysers read
@@ -706,7 +706,7 @@ reappears when the samples are built.
 ## Licensing and provenance
 
 The project is Apache-2.0. Two hard rules, expanded in
-[`0003`](docs/decisions/0003-provenance-and-licensing.md):
+[`0002`](docs/decisions/0002-provenance-and-the-allowed-references.md):
 
 - **Never transcribe GPL-licensed code.** Implement from the *published algorithm
   description*. This is why the stemmers and phonetic encoders are original

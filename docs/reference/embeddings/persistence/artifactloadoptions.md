@@ -42,7 +42,7 @@ variant without disturbing the original, and passing `null` to a loader means th
 **This is not `Lodestar.Text.Persistence.ArtifactLoadOptions`.** The two share a name and nothing
 else — that one bounds a saved vectorizer, this one a downloaded vocabulary, and their defaults
 differ because what they bound differs.
-[Decision 0011](../../../decisions/0011-persistence-format.md) records why they are declared per
+[Decision 0001](../../../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md) records why they are declared per
 package rather than shared.
 
 **Applies to** — net10.0, netstandard2.0.

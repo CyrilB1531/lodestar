@@ -7,7 +7,7 @@ namespace Lodestar.Stats.Internal;
 /// under a change of variable. Written from the published description and
 /// evaluated by modified Lentz (1976), except with one shape large and the other
 /// small, where DiDonato and Morris's asymptotic expansion takes over (#841); no
-/// reference implementation is transcribed (ADR 0003).
+/// reference implementation is transcribed (ADR 0002).
 /// </remarks>
 internal static class Beta
 {

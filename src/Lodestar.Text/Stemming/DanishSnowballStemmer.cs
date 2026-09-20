@@ -8,7 +8,7 @@ namespace Lodestar.Text.Stemming;
 /// original implementation of the published Snowball algorithm: four steps that
 /// each search R1, no R2 and no RV region, R1 floored at three as in Swedish,
 /// and a final undoubling step Swedish has not. The published apostrophe rule is
-/// absent by decision 0087 — see <c>docs/equivalence.md</c>. Input is lowercased. Thread-safe.
+/// absent by decision 0006 — see <c>docs/equivalence.md</c>. Input is lowercased. Thread-safe.
 /// </remarks>
 public static class DanishSnowballStemmer
 {

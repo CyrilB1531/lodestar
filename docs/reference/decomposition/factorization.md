@@ -30,7 +30,7 @@ different Ω disagree in the last digits, which is why Ω is handled the way it 
 takes the block itself, so a run of this package and a run of scikit-learn can be compared entry
 by entry instead of hoping two generators agree; `Seed` is there for when you only need
 repeatability and draws from this package's own generator, which is not NumPy's. See
-[ADR 0072](../../decisions/0072-omega-is-an-input-not-a-seed.md).
+[ADR 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md).
 
 | Type | What it is |
 | --- | --- |
@@ -65,16 +65,15 @@ initialisation decides which one.
 ## The variance principal components explain
 
 ML.NET's fourteen public PCA members expose the eigenvectors and the mean and no eigenvalue, and
-NumFlat's `EigenValues` ships `net8.0` only
-([decision 0116](../../decisions/0116-the-pca-gap-is-the-explained-variance-not-the-projection.md)).
+NumFlat's `EigenValues` ships `net8.0` only ([decision 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md)).
 Below `net8.0` the number is not absent: Meta.Numerics' `PrincipalComponent.VarianceFraction`
 reports it under MS-PL, and Numerics.NET's `ProportionOfVariance` under a commercial licence
-([decision 0129](../../decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md),
+([decision 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md),
 which corrects what this paragraph used to say).
 This is that number and nothing more: centre a dense block, take the eigenvalues of its Gram
 matrix, and read the share of the total variance each one carries. It takes a row-major span
 rather than a `CsrMatrix`, because centring is exactly the step that densifies one —
-[decision 0119](../../decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md)
+[decision 0003](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 has why it lives in this package all the same.
 
 | Type | What it is |
@@ -84,8 +83,7 @@ has why it lives in this package all the same.
 ## The kernel underneath, now published
 
 The randomized SVD needs an orthonormal basis for a projected block, and this package writes its
-own QR rather than take Math.NET — 5.0.0 dates from April 2022 and nothing stable has followed
-([`decisions/0059`](../../decisions/0059-phase-0-verifications-two-confirmed-voids-do-not-survive-nuget.md)).
+own QR rather than take Math.NET — 5.0.0 dates from April 2022 and nothing stable has followed ([decision 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md)).
 That kernel is published now, because a second package needs it rather than a second copy of it.
 The LU and the one-sided Jacobi SVD beside it stay internal: nothing has asked for them, and an
 unpublished API can still be published later where the reverse is not true.

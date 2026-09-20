@@ -16,7 +16,7 @@ namespace Lodestar.Gpu.Benchmarks;
 
 /// <summary>The Myers kernel against <c>Levenshtein.Distance</c>, which is bit-parallel too.</summary>
 /// <remarks>
-/// <strong>This is the row expected to miss decision 0102's gate, and publishing that is the
+/// <strong>This is the row expected to miss the GPU gate, and publishing that is the
 /// point.</strong> Myers collapses a dynamic-programming row into one machine word on either
 /// side, so the CPU already spends tens of nanoseconds on a short pair and the accelerator has
 /// to amortise a renaming, two transfers and a launch on top of that. A failed gate is a row in
@@ -72,7 +72,7 @@ public class BitParallelEditDistanceBenchmarks
         _kernel = new BitParallelEditDistance(_context);
         _resident = DeviceTextBlock.Upload(_context, _pattern, _texts);
 
-        // Decision 0102, rule 3: ILGPU compiles on first launch, so this runs once on the
+        // the GPU gate's rule 3 in bench/README.md: ILGPU compiles on first launch, so this runs once on the
         // real corpus before anything is timed.
         _kernel.Distance(_pattern, _resident);
     }

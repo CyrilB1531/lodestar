@@ -84,7 +84,7 @@ keys never meet.
 - **Each is checked word for word against a Python reference**, and the corpora are in
   [`tests/oracles`](../../equivalence.md). Where a stem looks wrong, it is wrong in the same way
   the reference is. That reference is nltk for thirteen of the fourteen and `snowballstemmer` for
-  Hungarian — [decision 0091](../../decisions/0091-hungarian-takes-snowballstemmer-as-its-oracle.md)
+  Hungarian — [decision 0006](../../decisions/0006-the-stemmers-references.md)
   has why.
 
 ## Types
@@ -112,5 +112,5 @@ keys never meet.
 
 - [Python → C# equivalence](../../equivalence.md) — the nltk call each of these replaces.
 - [From string to vector](../../guides/vectorization.md) — where a stemmer sits in a pipeline.
-- [`decisions/0008`](../../decisions/0008-italian-enza-nltk-divergence.md) — the one place a
+- [`decisions/0006`](../../decisions/0006-the-stemmers-references.md) — the one place a
   stemmer here follows nltk over the published algorithm.

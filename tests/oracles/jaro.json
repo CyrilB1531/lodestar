@@ -3,7 +3,7 @@
   "algorithm": "Jaro",
   "library": "reference-standard",
   "reference_calls": [
-   "standard Jaro over code points (see decision 0005)"
+   "standard Jaro over code points (see decision 0007)"
   ],
   "jellyfish_version": "1.2.1",
   "jellyfish_divergences": 136,

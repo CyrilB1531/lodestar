@@ -74,7 +74,7 @@ internal sealed class AddedTokenScanner
         }
 
         // Ties break on the raw match position, before either side's strip applies —
-        // untested for a whitespace-content candidate; see decision 0022 §9.
+        // untested for a whitespace-content candidate; see docs/equivalence.md's added-token row.
         start = bestAt;
         end = bestAt + best.Content.Length;
         if (best.Lstrip)

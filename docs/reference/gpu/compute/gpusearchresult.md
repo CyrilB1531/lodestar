@@ -22,7 +22,7 @@ int row = hit.Index;  // => 7
 ```
 
 **Remarks** — deliberately the **same shape** as `Lodestar.Embeddings.Search.SearchResult` without
-being it. [Decision 0101](../../../decisions/0101-lodestar-gpu-is-the-one-package-that-does-not-ship-netstandard2-0.md)
+being it. [Decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 forbids an edge from a core package into this one, and an edge the other way would floor this
 package on a published sibling for the sake of one struct.
 

@@ -10,7 +10,7 @@ namespace Lodestar.Internal;
 /// Shared source rather than a shared package: <c>Lodestar.Gpu</c> carries no edge to any
 /// Lodestar package, so the two had the same thirty lines twice until SonarCloud counted
 /// them (#645). The reference generates its own coefficients and checks neither of these;
-/// here they arrive from a caller, which decision 0072 is what makes true.
+/// here they arrive from a caller, which decision 0004 is what makes true.
 /// </remarks>
 internal static class MinHashCoefficients
 {

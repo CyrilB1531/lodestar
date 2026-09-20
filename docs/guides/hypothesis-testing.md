@@ -101,7 +101,7 @@ Mann-Whitney only in Kusto/KQL — neither is a .NET library a project can
 reference.
 
 Three .NET libraries do carry the tests, and this page said for a while that only the first did
-([decision 0129](../decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md)
+([decision 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md)
 has the reading that corrected it):
 
 - **`Accord.Statistics` 3.8.0**, LGPL-2.1, last published on **2017-10-19**; its framework,

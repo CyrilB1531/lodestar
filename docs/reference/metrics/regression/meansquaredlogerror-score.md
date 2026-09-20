@@ -55,11 +55,11 @@ The logarithm is numpy's `log1p`, reached through Kahan's identity rather than `
 x)`.
 That is not decoration: on targets around `1e-9` the naive spelling is out by `1.7e-8` relative,
 where this agrees with scikit-learn to a unit in the last place —
-[decision 0028](../../../decisions/0028-log1p-is-kahans-identity-not-math-log-1-plus-x.md).
+Kahan's identity.
 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `MeanSquaredLogError.PerOutput`, `RootMeanSquaredLogError.Score`,
 `MeanAbsolutePercentageError.Score`,
-[decision 0028](../../../decisions/0028-log1p-is-kahans-identity-not-math-log-1-plus-x.md),
+Kahan's identity,
 the [Python equivalence table](../../../equivalence.md).

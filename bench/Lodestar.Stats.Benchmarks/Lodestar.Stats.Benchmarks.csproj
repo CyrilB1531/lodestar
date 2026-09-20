@@ -14,7 +14,7 @@
     <!-- The incumbent: archived November 2020, last published October 2017, and
          still the only .NET library that carried these tests. -->
     <PackageReference Include="Accord.Statistics" Version="3.8.0" />
-    <!-- bench/ only: its Cortex.ML edge bars it from src/ under decision 0076
+    <!-- bench/ only: its Cortex.ML edge bars it from src/ under decision 0003
          (tools/check_nuspec_dependencies.py enforces that boundary, not this file). -->
     <PackageReference Include="Cortex.TimeSeries" Version="1.1.0" />
     <!-- The incumbent for the weighted regression (#782) and for GLS (#771): MIT, maintained, and the one numerics
@@ -22,8 +22,8 @@
          writes the one its users would. -->
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <!-- The incumbent #756 measures: MS-PL, netstandard2.0, published 2025-07-14, and the only
-         maintained .NET library carrying these eight test families. Read under decision 0074's
-         protocol in decision 0129; bench/ only, like every incumbent here. -->
+         maintained .NET library carrying these eight test families. Read under decision 0004's
+         protocol in decision 0004; bench/ only, like every incumbent here. -->
     <PackageReference Include="Meta.Numerics" Version="4.2.0" />
   </ItemGroup>
 

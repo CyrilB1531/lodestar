@@ -2516,7 +2516,7 @@ The run stops starting classes when the budget left cannot hold one, so these we
 
 ## Ratios that moved
 
-Read against `bench/nightly/ratios.csv` by `tools/nightly_series.py`, under the thresholds of [decision 0126](../decisions/0126-the-nightly-reports-a-ratio-that-steps-past-its-noise-or-drifts-over-ten-days.md). A ratio moves when either side of it does: read its baseline before calling a movement a regression.
+Read against `bench/nightly/ratios.csv` by `tools/nightly_series.py`, under the thresholds that script sets. A ratio moves when either side of it does: read its baseline before calling a movement a regression.
 
 **New tonight: 7.** Each of these had not moved on its previous reading.
 

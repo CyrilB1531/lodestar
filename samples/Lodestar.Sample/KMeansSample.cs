@@ -12,7 +12,7 @@ internal static class KMeansSample
         // Row-major, two features per row: two low points, two high, one in between.
         double[] samples = [0.0, 0.0, 0.0, 1.0, 10.0, 10.0, 10.0, 11.0, 5.0, 5.0];
 
-        // Centres given rather than drawn, so the run is reproducible anywhere (ADR 0072).
+        // Centres given rather than drawn, so the run is reproducible anywhere (ADR 0004).
         KMeans model = KMeans.Fit(samples, featureCount: 2, clusterCount: 3,
             new KMeansOptions { InitialCentres = [0.0, 0.0, 10.0, 10.0, 5.0, 5.0] });
 

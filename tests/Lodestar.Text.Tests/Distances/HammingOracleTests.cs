@@ -13,7 +13,7 @@ public sealed class HammingOracleTests
     public void Metadata_is_standard_hamming()
     {
         // The InlineData below are jellyfish's own values: parity for normal inputs,
-        // where decision 0005 records the combining-mark quirk it does not share.
+        // where decision 0007 records the combining-mark quirk it does not share.
         Assert.Equal("reference-standard", Corpus.Metadata.Library);
         Assert.Equal("code_point", Corpus.Metadata.Semantics);
         Assert.NotEmpty(Corpus.Cases);

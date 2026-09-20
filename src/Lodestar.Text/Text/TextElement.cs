@@ -7,7 +7,7 @@ namespace Lodestar.Text;
 /// The single most important source of divergence from Python reference
 /// libraries: a Python <c>str</c> iterates code points, a .NET
 /// <see cref="string"/> iterates UTF-16 code units. See
-/// <c>docs/decisions/0002-unicode-comparison-unit.md</c> for why, and for the
+/// <c>docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md</c> for why, and for the
 /// deferred grapheme-cluster option.
 /// </remarks>
 public enum TextElement

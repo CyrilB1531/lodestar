@@ -76,7 +76,7 @@ public sealed record MatchRatingCodexCase
 
 /// <summary>A reference case for Double Metaphone: a word and its two doublemetaphone codes.</summary>
 /// <remarks><c>Secondary</c> is empty where the word has no alternate — the generator unwraps
-/// the reference's repeated primary, which is decision 0075's normalisation.</remarks>
+/// the reference's repeated primary, which is decision 0005's normalisation.</remarks>
 public sealed record DoubleMetaphoneCase
 {
     [JsonPropertyName("id")] public int Id { get; init; }

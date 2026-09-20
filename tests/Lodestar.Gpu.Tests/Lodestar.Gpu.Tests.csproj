@@ -3,7 +3,7 @@
   <!--
     net10.0 only, like the package it tests, and with no netstandard2.0 mirror:
     ILGPU publishes no netstandard2.0 asset, so there is nothing to mirror
-    (decision 0101). tools/check_netstandard_guards.py iterates the mirrors that
+    (decision 0003). tools/check_netstandard_guards.py iterates the mirrors that
     exist and would report nothing, which is why the absence is written down.
   -->
   <PropertyGroup>
@@ -21,7 +21,7 @@
 
   <!--
     Lodestar.Embeddings and Lodestar.Abstractions are referenced by the *tests*,
-    never by src/Lodestar.Gpu: decision 0101 forbids an edge into this package, and
+    never by src/Lodestar.Gpu: decision 0003 forbids an edge into this package, and
     this suite's job is to prove each kernel agrees with the CPU path it replaces
     (EmbeddingIndex.Search, CsrMatrix.Multiply, Levenshtein.Distance), which means having both in one
     process.

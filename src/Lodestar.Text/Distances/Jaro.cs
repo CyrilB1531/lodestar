@@ -12,7 +12,7 @@ namespace Lodestar.Text.Distances;
 /// </summary>
 /// <remarks>
 /// Reference behavior: <c>jellyfish.jaro_similarity</c>, empty ⇒ <c>0</c>; see
-/// <c>docs/decisions/0005-hamming-jellyfish-divergence.md</c> for the divergence.
+/// <c>docs/decisions/0007-the-deliberate-divergences.md</c> for the divergence.
 /// Pass <see cref="TextElement.CodePoint"/> for supplementary-plane parity
 /// (jellyfish operates on code points). All members are stateless and thread-safe.
 /// </remarks>

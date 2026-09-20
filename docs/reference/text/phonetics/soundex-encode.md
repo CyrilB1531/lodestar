@@ -33,7 +33,7 @@ string padded = Soundex.Encode("Lee");  // => L000
 code is still four characters wide, because a fixed width is what lets Soundex be an index key.
 
 A `null` word is refused, the same rule the stemmers in
-[`Lodestar.Text.Stemming`](../stemming.md) apply — [decision 0042](../../../decisions/0042-phonetic-encoders-refuse-a-null-word.md)
+[`Lodestar.Text.Stemming`](../stemming.md) apply — the null-word refusal
 records why the two used to disagree and why refusing won.
 
 The two overloads are the same algorithm; the span one exists so a word already sliced out of a

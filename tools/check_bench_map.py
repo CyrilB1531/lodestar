@@ -310,7 +310,7 @@ def solution_findings() -> list[str]:
     on whichever night a change first touched src/Lodestar.Gpu or Similarity.
 
     A project outside the solution is not forbidden -- samples/ is deliberately outside
-    (ADR 0009) -- but a benchmark project is compiled by the nightly and so has to stay
+    (CONTRIBUTING.md's Definition of done) -- but a benchmark project is compiled by the nightly and so has to stay
     compilable, which only a build reaching it can promise.
     """
     if not SOLUTION.exists():

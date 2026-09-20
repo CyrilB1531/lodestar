@@ -28,7 +28,7 @@ vectorizer, reading a `tokenizer.json` — and is the one place the "no external
 dependencies" rule is knowingly bent rather than a polyfill for something the
 modern framework already provides. `Lodestar.Fuzzy` ships no I/O and does not
 take it. The reasoning is in
-[`docs/decisions/0011-persistence-format.md`](docs/decisions/0011-persistence-format.md).
+[`docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md`](docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
 ONNX Runtime is deliberately isolated to `Lodestar.Embeddings`, so consumers of
 the distance, vectorization and fuzzy-matching packages take no native
@@ -45,7 +45,7 @@ These are data, not code: the five lists are compiled into
 SHA-256 per file. Unlike the libraries below, they *are* redistributed, so the
 licence travels with them. The English list is scikit-learn's (BSD-3-Clause), not
 Snowball's; the nltk stop-word corpus is deliberately not used — see
-[`docs/decisions/0010-stop-word-list-provenance.md`](docs/decisions/0010-stop-word-list-provenance.md).
+[`docs/decisions/0002-provenance-and-the-allowed-references.md`](docs/decisions/0002-provenance-and-the-allowed-references.md).
 
 ```text
 Copyright (c) 2001, Dr Martin Porter,
@@ -89,13 +89,13 @@ The **vocabulary only** — the 250 000 pieces, their scores, their types and th
 `nmt_nfkc` character map the file's `normalizer_spec` carries (a table compiled
 by `sentencepiece`, Apache-2.0, from Unicode data). No model weights are
 redistributed, per
-[`docs/decisions/0003-provenance-and-licensing.md`](docs/decisions/0003-provenance-and-licensing.md).
+[`docs/decisions/0002-provenance-and-the-allowed-references.md`](docs/decisions/0002-provenance-and-the-allowed-references.md).
 The file is compiled into no package: it lives under `tests/`, is copied to the
 test output, and exists so the tokenizer's parity claim is checked against a real
 multilingual vocabulary in the layout HuggingFace uses. It is re-emitted from the
 upstream download by `tools/fetch_xlmr_vocab.py`, which pins the upstream
 SHA-256; the reasoning is in
-[`docs/decisions/0013-sentencepiece-parity-scope.md`](docs/decisions/0013-sentencepiece-parity-scope.md).
+[`docs/decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md`](docs/decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md).
 
 `xlm-roberta-base` is published under the MIT license by its authors (Facebook AI
 Research), as declared on its model card:
@@ -124,7 +124,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 The **vocabulary and merge table only** — the 50 257 token-to-id entries of
 `gpt2_vocab.json` and the ranked merge pairs of `gpt2_merges.txt`, in the exact
 `merges.txt` layout GPT-2 ships. No model weights are redistributed, per
-[`docs/decisions/0003-provenance-and-licensing.md`](docs/decisions/0003-provenance-and-licensing.md).
+[`docs/decisions/0002-provenance-and-the-allowed-references.md`](docs/decisions/0002-provenance-and-the-allowed-references.md).
 The files are compiled into no package: they live under `tests/`, are copied to
 the test output, and exist so `ByteLevelBpeTests`' claim of byte-exact parity
 with HuggingFace `tokenizers` is checked against GPT-2's real 50 257-entry
@@ -162,7 +162,7 @@ The **vocabulary and merge table only** — the 32 000 entries and 58 980 ranked
 pairs of `tokenizer.json`, with the `Metaspace` pre-tokenizer and `byte_fallback`
 flags that make it the SentencePiece-BPE lineage. No model weights are
 redistributed, per
-[`docs/decisions/0003-provenance-and-licensing.md`](docs/decisions/0003-provenance-and-licensing.md).
+[`docs/decisions/0002-provenance-and-the-allowed-references.md`](docs/decisions/0002-provenance-and-the-allowed-references.md).
 
 The file is compiled into no package: it lives under `tests/`, is copied to the
 test output, and exists so `SentencePieceBpeLineageOracleTests` checks the
@@ -178,12 +178,12 @@ The **vocabulary and merge table only** — the 32 000 entries and 61 249 ranked
 pairs of `tokenizer.json`, with the `Prepend` plus `Replace` normalizer and
 `byte_fallback` flags that make it the other spelling of the SentencePiece-BPE
 lineage. **No model weights are redistributed**, per
-[`docs/decisions/0003-provenance-and-licensing.md`](docs/decisions/0003-provenance-and-licensing.md)
+[`docs/decisions/0002-provenance-and-the-allowed-references.md`](docs/decisions/0002-provenance-and-the-allowed-references.md)
 and `CLAUDE.md`'s hard rule.
 
 Llama 2 is licensed under the **LLAMA 2 COMMUNITY LICENSE AGREEMENT**, which is not
-one of the permissive licenses decision 0003 names.
-[`docs/decisions/0084-the-llama-2-tokenizer-is-vendored-under-a-bespoke-licence.md`](docs/decisions/0084-the-llama-2-tokenizer-is-vendored-under-a-bespoke-licence.md)
+one of the permissive licenses decision 0002 names.
+[`docs/decisions/0002-provenance-and-the-allowed-references.md`](docs/decisions/0002-provenance-and-the-allowed-references.md)
 accepts it **for this artifact alone**; 0003's allowed-source list is unchanged, and
 every future non-permissive source needs its own decision. The Agreement's conditions
 are met here:
@@ -205,7 +205,7 @@ output, and exists so `SentencePieceBpeLineageOracleTests` checks the normalizer
 spelling of the whitespace escape against a file a user actually has. It is downloaded
 verbatim by `tools/fetch_llama2_mistral_tokenizers.py`, which pins its upstream
 SHA-256 and corroborates it against `daryl149/llama-2-7b-chat-hf` under
-[`docs/decisions/0017-bpe-parity-scope.md`](docs/decisions/0017-bpe-parity-scope.md)
+[`docs/decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md`](docs/decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)
 §5's two-mirror method — the original, `meta-llama/Llama-2-7b-hf`, is gated and answers
 HTTP 401. `TheBloke/Llama-2-7B-fp16` is the source rather than the other mirror because
 it ships the Agreement, the notice and the policy beside the artifact, so the license
@@ -248,7 +248,7 @@ generate test data creates no license claim over the output.
 | textdistance | MIT | Reference values for set/token similarity metrics |
 | scikit-learn | BSD-3-Clause | Reference values for the vectorizers |
 | nltk | Apache-2.0 | Reference values for Porter and every Snowball stemmer but Hungarian |
-| snowballstemmer | BSD-3-Clause | Reference values for the Hungarian stemmer, which `nltk` 3.10.1 stems incorrectly (decision 0091) |
+| snowballstemmer | BSD-3-Clause | Reference values for the Hungarian stemmer, which `nltk` 3.10.1 stems incorrectly (decision 0006) |
 | tokenizers | Apache-2.0 | Reference values for WordPiece |
 | sentencepiece | Apache-2.0 | Reference values for the unigram tokenizer |
 | numpy | BSD-3-Clause | Reference values for pooling and kNN |
@@ -261,7 +261,7 @@ generate test data creates no license claim over the output.
 > the `nltk_data` corpora, which are licensed individually — the `stopwords`
 > corpus among them has no stated licence, which is why the shipped lists come
 > from Snowball instead. See
-> [`docs/decisions/0010-stop-word-list-provenance.md`](docs/decisions/0010-stop-word-list-provenance.md).
+> [`docs/decisions/0002-provenance-and-the-allowed-references.md`](docs/decisions/0002-provenance-and-the-allowed-references.md).
 > `python-Levenshtein` (GPL) is deliberately **not** used, as a matter of both
 > transcription hygiene and generated-data hygiene. See
-> [`docs/decisions/0003-provenance-and-licensing.md`](docs/decisions/0003-provenance-and-licensing.md).
+> [`docs/decisions/0002-provenance-and-the-allowed-references.md`](docs/decisions/0002-provenance-and-the-allowed-references.md).

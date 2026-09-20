@@ -11,7 +11,7 @@ namespace Lodestar.Survival.Benchmarks;
 
 /// <summary>What a Cox fit costs against sample size and covariate count.</summary>
 /// <remarks>
-/// No incumbent: decision 0099 found no .NET survival package. The likelihood pass is linear in
+/// No incumbent: decision 0002 found no .NET survival package. The likelihood pass is linear in
 /// the sample and quadratic in the covariates, per Newton iteration; the concordance is n log n
 /// and ignores the covariates, so a row flat across Covariates means it dominates again.
 /// </remarks>

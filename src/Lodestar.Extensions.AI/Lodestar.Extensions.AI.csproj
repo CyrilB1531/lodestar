@@ -14,9 +14,9 @@
   </PropertyGroup>
 
   <!-- The dependency this package exists for. A core package carries none
-       (decision 0076), and the interop tier may take one a core package refused,
+       (decision 0003), and the interop tier may take one a core package refused,
        because presenting Lodestar embeddings as a foreign type is not computing
-       with it (decision 0089). -->
+       with it (decision 0003). -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
   </ItemGroup>
@@ -29,7 +29,7 @@
 
     Expressed as PackageReferences against the published packages, like every
     other src/ edge, so the build graph is the graph consumers see
-    (decision 0012).
+    (decision 0001).
 
     The opt-in below exists only so that editing several packages in one branch
     does not require a pack-and-restore cycle per edit:

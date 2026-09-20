@@ -46,4 +46,4 @@ against a context must be disposed before it.
 **Applies to** — net10.0, netstandard2.1.
 
 **See also** — [the namespace index](../compute.md),
-[decision 0102](../../../decisions/0102-the-gpu-gate-is-measured-on-a-named-machine.md).
+`bench/README.md`'s GPU gate.

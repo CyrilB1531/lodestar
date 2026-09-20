@@ -24,7 +24,7 @@ public static class Levenshtein
     /// crossing, measured over bands the corpus could not reach until #409: the kernel is
     /// 15% ahead at a band of 5 and behind at 4. It governs the dense path only —
     /// <c>Myers.WideMinPatternLength</c> is where a pattern above Latin-1 crosses, five
-    /// bands later (#411, decision 0049).
+    /// bands later (#411, docs/guides/performance.md).
     /// </remarks>
     private const int MyersMinPatternLength = 5;
 

@@ -2,7 +2,7 @@
 
   <!--
     Lodestar.Survival owns its version here, independently of the other packages
-    (see docs/decisions/0012-per-package-versioning.md).
+    (see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
     0.1.0 is this package's first release. Its one inter-package edge is to
     Lodestar.Stats, for the chi-squared tail the log-rank test reports; that floor

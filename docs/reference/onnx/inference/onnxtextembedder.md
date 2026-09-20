@@ -17,7 +17,7 @@ rather than refused here.
 
 **Example** — the shape of a call. It is not executed: see below.
 
-<!-- docs-run: skip - constructing it loads an ONNX model, and model weights are never committed (CONTRIBUTING.md, ADR 0003) -->
+<!-- docs-run: skip - constructing it loads an ONNX model, and model weights are never committed (CONTRIBUTING.md, ADR 0002) -->
 
 ```csharp
 using Lodestar.Onnx;
@@ -30,7 +30,7 @@ int width = embedder.Dimension;
 
 **Remarks** — **every fence on this page and its members is `docs-run: skip`**, and that is not an
 oversight. A running example would need a model of tens of megabytes, and weights are never
-committed to this repository — [`decisions/0003`](../../../decisions/0003-provenance-and-licensing.md)
+committed to this repository — [`decisions/0002`](../../../decisions/0002-provenance-and-the-allowed-references.md)
 is the rule, and the packaging sample declares the same exclusion for the same reason. The fences
 are still **compiled** against the packed package, so a renamed member still fails CI; only the
 values are unchecked, which is why none of them carries a `// =>`.

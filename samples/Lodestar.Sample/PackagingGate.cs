@@ -25,12 +25,12 @@ namespace Lodestar.Sample;
 
 /// <summary>
 /// Fails the build when a public <em>member</em> of the packages is not
-/// reachable from this sample (ADR 0009, amended by #265).
+/// reachable from this sample (CONTRIBUTING.md's Definition of done, amended by #265).
 /// </summary>
 /// <remarks>
 /// The surface comes from the assemblies NuGet resolved here, matched against this
 /// assembly's <see cref="MemberReference"/> entries — <c>typeof(T)</c> emits only a
-/// <see cref="TypeReference"/>. An enum is the documented exception. ADR 0009's
+/// <see cref="TypeReference"/>. An enum is the documented exception. CONTRIBUTING.md's Definition of done's
 /// <em>Member granularity</em> section records what leaving type granularity cost.
 /// </remarks>
 internal static class PackagingGate
@@ -68,7 +68,7 @@ internal static class PackagingGate
     {
         ["Lodestar.Onnx.OnnxTextEmbedder"] =
             "constructing it loads an ONNX model, and model weights are never committed "
-            + "(CONTRIBUTING.md); ADR 0009 already records that the sample stops at the tokenizer",
+            + "(CONTRIBUTING.md); CONTRIBUTING.md's Definition of done already records that the sample stops at the tokenizer",
         ["Lodestar.Extensions.AI.OnnxEmbeddingGenerator"] =
             "it wraps an OnnxTextEmbedder, so building one loads the same ONNX model this list "
             + "already excludes that type for. The exclusion is inherited rather than new: there "

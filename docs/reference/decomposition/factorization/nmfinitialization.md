@@ -28,7 +28,7 @@ compression rather than a description, and the zeros are an accident of the corp
 
 scikit-learn offers a third member, `nndsvdar`, which fills the zeros with small draws from
 numpy's own normal stream instead of the mean. This package does not, because it does not
-reproduce `RandomState` — see [ADR 0072](../../../decisions/0072-omega-is-an-input-not-a-seed.md)
+reproduce `RandomState` — see [ADR 0004](../../../decisions/0004-what-is-written-here-and-what-is-delegated.md)
 for the rule Ω follows and why a seed is not portable across the two ecosystems. An
 initialisation that could not be compared entry by entry against the reference is one no oracle
 can pin, and this package ships nothing it cannot check.

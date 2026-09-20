@@ -46,9 +46,8 @@ lineage does: [`TokenizerJsonLoader.LoadBpe`](persistence/tokenizerjsonloader-lo
 an uncovered symbol into the `<0xXX>` byte pieces the flag promises, which is what lets Llama-2 and
 Mistral v0.1 — the SentencePiece-BPE lineage tracked at
 [#175](https://github.com/CyrilB1531/lodestar/issues/175) and scoped by
-[decision 0017 §3](../../decisions/0017-bpe-parity-scope.md) — load at all, and refuses only a
-vocabulary that declares the flag without carrying all 256 pieces
-([decision 0063](../../decisions/0063-byte-fallback-requires-the-whole-alphabet-and-its-decoder-is-read-strictly-too.md)).
+[decision 0005 §3](../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md) — load at all, and refuses only a
+vocabulary that declares the flag without carrying all 256 pieces ([decision 0007](../../decisions/0007-the-deliberate-divergences.md)).
 
 The same routing, as a table:
 

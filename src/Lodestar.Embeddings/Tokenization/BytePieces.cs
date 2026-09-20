@@ -6,7 +6,7 @@ namespace Lodestar.Embeddings.Tokenization;
 /// <remarks>
 /// Both directions live here because encode names a byte and decode reads one back, and a
 /// spelling that drifted between the two would resolve on one side only. Uppercase
-/// hexadecimal is the reference's spelling, not a preference — decision 0063.
+/// hexadecimal is the reference's spelling, not a preference — decision 0007.
 /// </remarks>
 internal static class BytePieces
 {

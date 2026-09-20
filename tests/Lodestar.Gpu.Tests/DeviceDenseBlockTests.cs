@@ -6,7 +6,7 @@ namespace Lodestar.Gpu.Tests;
 
 /// <summary>What residency between two operations promises, and what it must not change.</summary>
 /// <remarks>
-/// The claim decision 0102 deferred until three kernels existed: a chain that never leaves the
+/// The claim the GPU gate deferred until three kernels existed: a chain that never leaves the
 /// accelerator answers what the same steps answer with a round trip between them. These pin the
 /// answer; the benchmark prices the difference.
 /// </remarks>

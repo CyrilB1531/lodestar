@@ -4,7 +4,7 @@ namespace Lodestar.Sample;
 /// <remarks>
 /// The grouping the lot numbering used to carry, kept here where it is the only thing
 /// it was good for: which types belong together. Finding one type's example is the file
-/// named after it, per decision 0041.
+/// named after it, per CONTRIBUTING.md's Definition of done.
 /// </remarks>
 internal static class TextSamples
 {

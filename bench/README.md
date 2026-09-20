@@ -28,7 +28,7 @@ there for the same reason: it is the first pattern of two words.
 `LevenshteinCodePointBenchmarks` is that measurement (#208). Both operands are
 drawn from U+1F300..U+1FAFF, so every character is a surrogate pair and the two
 readings genuinely differ, which is the case
-[decision 0002](../docs/decisions/0002-unicode-comparison-unit.md) points a
+[decision 0001](../docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md) points a
 caller at. It carries a second parameter the other does not:
 
 - `Distinct = 32` — the pattern fits the 255-symbol dense alphabet at every
@@ -291,7 +291,7 @@ are actually comparable.
 
 ```bash
 # Python side (rapidfuzz)
-. .venv-oracles/bin/activate      # built on Python 3.12+, see ../CONTRIBUTING.md
+.venv-oracles/bin/activate      # built on Python 3.12+, see ../CONTRIBUTING.md
 python bench/python/bench_levenshtein.py
 
 # C# side (Lodestar.Text) — matched Stopwatch harness, not BenchmarkDotNet
@@ -380,8 +380,8 @@ The comparison is deliberately honest about methodology: the Python side times t
 loop measured here.
 
 The C# side runs bit-parallel kernels too, Myers since
-[decision 0004](../docs/decisions/0004-levenshtein-myers-backlog.md) and blocked for patterns past one
-word; [0043](../docs/decisions/0043-the-equality-table-is-sized-to-the-pattern.md) amends it and retired
+`docs/guides/performance.md` and blocked for patterns past one
+word; `docs/guides/performance.md` amends it and retired
 the backlog items it left open. The current standing against rapidfuzz is in `docs/guides/performance.md`,
 most recently *Blocked Myers, two words at a time (issue #718)*.
 
@@ -398,7 +398,7 @@ python bench/corpus/generate_vocabs.py     # writes bench/corpus/vocabs/, git-ig
 
 All three `bench/corpus/generate_*.py` scripts read `tools/seeded_random.py`, so they need the same
 interpreter `.venv-oracles` is built on — **3.12 or later**. Below that they stop with a sentence
-naming both versions ([decision 0065](../docs/decisions/0065-the-oracle-generators-floor-is-the-ci-interpreter.md)).
+naming both versions (`tools/python_floor.py`).
 
 Both language sides read those same files, which is what makes the comparison
 mean anything; the bytes are not reproducible across machines and do not need to
@@ -548,7 +548,7 @@ before it, `tfidf_load` by 12%.
 
 ### Why processor time is reported too
 
-Elapsed time alone flatters this runtime. .NET's background collector does its
+Elapsed time alone flatters this runtime.NET's background collector does its
 work on other threads, so an allocation-heavy operation finishes in less elapsed
 time than it costs: every Lodestar row above burns 1.02–1.07 processor-seconds per
 elapsed second, while CPython is strictly single-threaded and measures 1.00 on
@@ -587,7 +587,7 @@ straight into the array that keeps it. Two further changes
 were measured and **discarded** for showing no gain: disabling writer validation,
 and an earlier version of that last buffer change, which paid nothing until the
 idf vector stopped dominating the profile. The reasoning is in
-[`docs/decisions/0011`](../docs/decisions/0011-persistence-format.md).
+[`docs/decisions/0001`](../docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
 ## 5. Classification metrics (issue #61)
 
@@ -720,7 +720,7 @@ per-sample difference and does not.
 ### vs Python
 
 ```bash
-. .venv-oracles/bin/activate && python bench/python/bench_metrics.py
+.venv-oracles/bin/activate && python bench/python/bench_metrics.py
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-metrics
 python bench/compare.py metrics
 ```
@@ -926,7 +926,7 @@ is comparable to the editions they replace.
 `numpy.save` writes a short header followed by the raw little-endian block. That
 is precisely what a dedicated binary format for this artifact would have
 produced, so this comparison measures the decision recorded in
-[0011](../docs/decisions/0011-persistence-format.md) rather than illustrating it.
+[0001](../docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md) rather than illustrating it.
 `faiss` was deliberately not added to make this point a second way: on a flat
 index it also writes the same raw block `.npy` does, so pulling it in as a
 dependency would cost a pinned package to measure the same floor twice.
@@ -946,7 +946,7 @@ Lodestar is faster.
 | `embedding_index_load` | 12.129 ms | 2.492 ms | 0.21× | 13.897 ms | 2.492 ms | **0.18×** |
 
 **Read that `0.21×` as a format, not as a speed.** It puts our JSON artifact — a document to
-scan and validate — against numpy's raw block, so it prices decision 0011 exactly as this
+scan and validate — against numpy's raw block, so it prices decision 0001 exactly as this
 section says it does, and says nothing about how fast the two languages ingest the same bytes.
 `embedding_index_ingest_npy` is the row that does: **both sides read a `.npy` and return
 something searchable**, `np.load` against `NpyFile.Read` plus
@@ -970,14 +970,14 @@ against 5 MB less work. The figures, and the rows on the same run where this pro
 **#466 took the copies between the stream and the index out and the row inverted**, from 0.19× of
 numpy's cpu to **1.00–1.13×** and from 0.21–0.23× of its wall to 1.21–1.25×. cpu is the column this
 harness trusts, so the honest reading is *parity to slightly ahead*, not the wall figure. How many
-copies there were, and which of them paid, is decision 0057's subject rather than this section's.
+copies there were, and which of them paid, is docs/guides/performance.md's subject rather than this section's.
 The reading above stays as measured; the new one, its runner, and the anchors that make the two
 windows comparable are in
 [the performance guide](../docs/guides/performance.md#the-same-row-once-the-block-is-adopted-issue-466).
 Two dispatches separated the causes: reading the payload straight into the `float[]` moved nothing,
 and adopting the array rather than copying it into the index moved all of it — by more than the
 copy it removed, because the copy came with a second 15.36 MB allocation.
-[Decision 0057](../docs/decisions/0057-the-npy-read-serves-a-stream-and-a-buffer-differently.md)
+`docs/guides/performance.md`
 has the shape the reader took; [#480](https://github.com/CyrilB1531/lodestar/issues/480) carries
 the half that is still unexplained.
 
@@ -1037,7 +1037,7 @@ materialising the payload, which `MaxTotalBytes` currently forbids by design; th
 is a different decision from this one and has not been taken.
 
 None of this was anticipated by size alone, and the honest reading is not that
-the design was wrong to choose JSON: ADR 0011 weighed one format against two and
+the design was wrong to choose JSON: ADR 0001 weighed one format against two and
 a fixed 33% against a decode that reads the whole payload into memory first, and
 said so plainly. What the 33% figure did not say, because nothing in that
 decision measured it, is what the *implementation* of that buffered decode would
@@ -1080,7 +1080,7 @@ which #336 added because the file path is the one a caller takes — every other
 row here writes to a `MemoryStream`. It uses a path of its own, so neither direction
 measures a file the other just touched, and neither side flushes to the device. It
 priced pre-sizing the file, which
-[ADR 0052](../docs/decisions/0052-pre-sizing-the-artifact-file-buys-nothing-on-a-delayed-allocation-filesystem.md)
+`docs/guides/performance.md`
 refused, and it outlives that question.
 
 ### Every load row here is measured on a warmed heap
@@ -1145,7 +1145,7 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- save-phases
 The last row is what makes the table decide anything. An encode that costs no more
 than moving the same bytes is bandwidth-bound, and nothing parallelises past a
 bandwidth it is already at — which is how a proposal to thread the base64 was
-refused rather than tried. [ADR 0051](../docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)
+refused rather than tried. `docs/guides/performance.md`
 is that decision, and the numbers are in
 [`docs/guides/performance.md`](../docs/guides/performance.md#what-a-save-actually-spends-its-time-on--step-0).
 
@@ -1239,7 +1239,7 @@ to map, which is the finding that file exists to raise.
 The cost of that was that they ran only on a contributor's own machine, and for
 some of them the machine is the finding: `save-phases` measures shares inside one
 window and those transfer, but a subcommand comparing two processes has absolutes
-that do not. [ADR 0051](../docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)
+that do not. `docs/guides/performance.md`
 withdrew a 1.61× taken on a shared container for exactly that reason.
 
 **`Benchmark (on demand)`** closes it: dispatch
@@ -1269,7 +1269,7 @@ does not do and inflate the saving by the whole zeroing.
 
 On a hosted runner: allocate **1.783 ms** median against rent's **0.042**, so 42× and 1.74 ms a
 load. The allocation's own minimum is 0.071 ms, as cheap as the rent — **what costs is the
-large-object collection it provokes**, not the allocation. [ADR 0054](../docs/decisions/0054-the-payload-buffer-is-pooled-after-all-because-the-collection-is-the-cost.md)
+large-object collection it provokes**, not the allocation. `docs/guides/performance.md`
 is what that decided, amending 0053, which had refused pooling without ever timing it.
 
 ## 12. Where the .npy ingest's time goes (issue #480)
@@ -1304,7 +1304,7 @@ the row measures rather than clean the subtraction up.
 
 **`ingest_total` and `ingest_total_last` are one measurement at two positions.** They call the
 same method, first in the round and last, so any difference between them is position and nothing
-else. That is the single variable [decision 0058](../docs/decisions/0058-the-npy-ingest-is-memcpy-bound-and-the-allocation-is-not-the-cost.md)
+else. That is the single variable `docs/guides/performance.md`
 left open: its gap survived the first table, and it named a phase-reordering run as what would
 settle it. The `gen` columns are the half to read first — a collection provoked by one ingest is
 paid by whichever phase runs next, not by the one that allocated.
@@ -1316,7 +1316,7 @@ allocation is not what the difference between those rows is made of.
 
 The gen columns are collections **summed over the nine runs**, not per run: a block this size
 provokes at most one gen2 per run, and a column of zeroes and ones says less than a total.
-[ADR 0054](../docs/decisions/0054-the-payload-buffer-is-pooled-after-all-because-the-collection-is-the-cost.md)
+`docs/guides/performance.md`
 is why they are there at all — on the artifact buffer the time and the collection count told
 different stories, and only the second one explained the first.
 
@@ -1324,7 +1324,7 @@ Nothing here is published. It prints a table and writes no page: what it measure
 when a person reads it on a named machine and decides, which is [section 10](#10-running-a-diagnostic-on-a-second-machine-issue-461)'s
 rule and not this mode's exception. The first run's table, read that way, is in
 [the performance guide](../docs/guides/performance.md#where-the-ingests-time-actually-goes-issue-480),
-and what it refuted is [decision 0058](../docs/decisions/0058-the-npy-ingest-is-memcpy-bound-and-the-allocation-is-not-the-cost.md).
+and what it refuted is `docs/guides/performance.md`.
 
 ## 13. What a binary sidecar would buy (issue #436)
 
@@ -1355,7 +1355,7 @@ skips the zeroing. Both are one copy, and not the same kind of one: the ingest i
 memset of the block, about 15 MB at this corpus. It is stated rather than equalised, because the
 uninitialized allocation is internal to the library and this project consumes the published
 packages, and because re-cutting `sidecar floor` would invalidate the 5.847 ms
-[ADR 0055](../docs/decisions/0055-the-artifact-gets-a-binary-sidecar-once-a-block-can-be-ingested-whole.md)
+[ADR 0001](../docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)
 published, which is the bar this lot is judged against. The bias runs in the ingest's favour, so a
 slow `ingest copy` is not an artefact of it: landing near `rebuild index` remains the refusal it
 looks like. What it does mean is that `ingest copy` coming in *below* the floor must not be read as
@@ -1368,7 +1368,7 @@ its own would publish noise.
 
 On a hosted runner: the sidecar is **1.331× smaller** and its floor is **2.02× faster** than the
 artifact load, while the rebuild route is **0.66×** — slower than what it would replace.
-[ADR 0055](../docs/decisions/0055-the-artifact-gets-a-binary-sidecar-once-a-block-can-be-ingested-whole.md)
+[ADR 0001](../docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)
 takes the sidecar and makes the bulk ingest its precondition.
 
 With that ingest built (#474), the same runner puts `load / ingest` at **1.45–1.62×** across three
@@ -1410,7 +1410,7 @@ disagree is meaningless, so it is a precondition here rather than a footnote bes
 The package is referenced by `bench/` and by nothing under `src/`. V6 is a question about an
 incumbent, and referencing it to ask would be answering it.
 
-The first run's answer is [decision 0060](../docs/decisions/0060-tensorprimitives-beats-our-kernel-and-the-knn-is-still-not-redundant.md):
+The first run's answer is [decision 0004](../docs/decisions/0004-what-is-written-here-and-what-is-delegated.md):
 `TensorPrimitives` is 1.09–1.23× faster on the shape `Search` runs, and the kNN is still not
 redundant, because the dot is only about half a query. **The container inverted every one of those
 ratios** — it reported ours 3.7× faster on the dot — which is section 10's rule holding rather than
@@ -1548,7 +1548,7 @@ which of the two it measures. Counted by reflection over both assemblies rather 
 The `AccuracyAlone` row is that difference made measurable rather than argued.
 
 **Where the numbers may be published.** Not from a container. Section 10's rule holds here with no
-exception — [ADR 0051](../docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)
+exception — `docs/guides/performance.md`
 withdrew a 1.61× taken on a shared container, and section 14 records the container *inverting* every
 `TensorPrimitives` ratio. A container run of these two classes is a smoke test that the harness
 works, and nothing else. `docs/guides/performance.md` takes them from a named machine, in
@@ -1563,8 +1563,7 @@ night the page was written, since all five classes are in
 
 **The nightly remembers its ratios.** Every `Ratio` it publishes is appended to
 `bench/nightly/ratios.csv`, and `tools/nightly_series.py` reports at the end of the page each
-ratio that stepped past its own noise or drifted over ten days
-([decision 0126](../docs/decisions/0126-the-nightly-reports-a-ratio-that-steps-past-its-noise-or-drifts-over-ten-days.md)).
+ratio that stepped past its own noise or drifted over ten days (`docs/guides/nightly_run.md`).
 That is how measuring a class tells anyone it moved, where before a movement was rendered and
 overwritten the next night (#672). A class with no `[Benchmark(Baseline = true)]` has no ratio,
 so it has no memory either.
@@ -1622,7 +1621,7 @@ where the work is regardless — `Fit` computes the components, and the `Transfo
 runs is a cheap dense projection over an already-fitted model.
 
 **No numbers are published from a container.** Per
-[decision 0051](../docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md), a
+`docs/guides/performance.md`, a
 run on a shared cloud container is not the machine `docs/guides/performance.md` reports — the same
 row there has read 3× slower on one. The three rows taken on a named machine are in
 [`docs/guides/performance.md`](../docs/guides/performance.md#truncated-svd-and-nmf-against-mlnet-500s-projecttoprincipalcomponents)
@@ -1745,7 +1744,7 @@ side falling back and the other not (see
 run, against `[MemoryDiagnoser]`. Section 15 uses the same override for the same reason: a full run
 (`--filter '*'` with no `--job` override, BenchmarkDotNet's default job of up to 15 iterations) was
 not taken here. `docs/guides/performance.md` carries the resulting numbers, the machine, and the
-window, per this repository's own rule for where a fact belongs (`CLAUDE.md`'s "Where a fact
+window, per the rule for where a fact belongs (`CLAUDE.md`'s "Where a fact
 belongs" table).
 
 ### The tails underneath: `DistributionTailBenchmarks`
@@ -1782,7 +1781,7 @@ Numbers are published in
 [#566](https://github.com/CyrilB1531/lodestar/issues/566) expected this section to say there is no
 .NET incumbent for regression inference. **The reading it also asked for says otherwise**, and the
 measurement replaces the explanation:
-[decision 0096](../docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md) loaded both
+[decision 0003](../docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) loaded both
 candidates through a `MetadataLoadContext` and found `Accord.Statistics` 3.8.0 exporting the whole
 summary table — `MultipleLinearRegressionAnalysis` with `StandardErrors`, `Confidences`, `FTest`,
 `RSquareAdjusted`, and a `Coefficients` collection whose row carries `TTest` and its interval.
@@ -1795,7 +1794,7 @@ thing this row prices.
 
 Section 18 already resolves `Accord.Statistics` in this project, so the plumbing is unchanged: the
 package is archived and LGPL-2.1, which bars it from `src/` under
-[decision 0076](../docs/decisions/0076-a-core-package-carries-no-external-dependency.md) and does
+[decision 0003](../docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) and does
 not bar it from a benchmark project that ships nothing.
 
 ```bash
@@ -1834,13 +1833,13 @@ Numbers are published in
 **There is no incumbent, and that absence is the section.** A NuGet capability search on
 2026-09-09 returned **0 packages** for `survival analysis` and **0** for `kaplan meier`; the
 searches are recorded in
-[decision 0099](../docs/decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)
+[decision 0002](../docs/decisions/0002-provenance-and-the-allowed-references.md)
 with their queries and counts. The #427 protocol reads an incumbent's exported surface through a
 `MetadataLoadContext` rather than its README — and where there is no assembly to load, the protocol
 is discharged by recording the searches instead of by pretending to run it.
 
 `scikit-survival` is the nearest reference in any language and is **refused**, not unavailable: its
-licence is GPL-3.0-or-later, which [decision 0003](../docs/decisions/0003-provenance-and-licensing.md)
+licence is GPL-3.0-or-later, which [decision 0002](../docs/decisions/0002-provenance-and-the-allowed-references.md)
 excludes outright. `lifelines` (MIT) is the oracle the corpora are frozen from, in
 `tools/generate_oracles.py`, and it is a Python library — not a .NET package this could race.
 
@@ -2016,7 +2015,7 @@ this section documents how to measure, not what was measured.
 ## 24. Myers on the accelerator, against a bit-parallel CPU path (issue #444, kernel 3)
 
 **This section was written expecting to report a kernel that does not ship, and the measurement
-said otherwise — by two orders of magnitude.** The reasoning was that decision 0102 prices a
+said otherwise — by two orders of magnitude.** The reasoning was that bench/README.md's GPU gate prices a
 kernel against this repository's own path, that the path here is `Levenshtein.Distance`, and that
 Myers is bit-parallel on both sides: one machine word per dynamic-programming row, tens of
 nanoseconds for a short pair, against an accelerator amortising a renaming, two transfers and a
@@ -2027,7 +2026,7 @@ Every step of that is true and the conclusion was still wrong. What it missed is
 dependency between pairs. The measured gain is 28× to 146×
 ([`docs/guides/performance.md`](../docs/guides/performance.md) has the table), and the honest
 caveat travels with it: a `Parallel.For` over the CPU path would close much of that gap, and
-decision 0102's baseline does not ask for one. A reader comparing against a parallel CPU
+bench/README.md's GPU gate's baseline does not ask for one. A reader comparing against a parallel CPU
 implementation should expect a smaller number.
 
 ```bash
@@ -2061,7 +2060,7 @@ this section documents how to measure, not what was measured.
 
 ## 25. What residency buys across two operations (issue #444, kernel 4)
 
-Decision 0102 deferred the chainable device-resident types until three kernels existed, on the
+the GPU gate deferred the chainable device-resident types until three kernels existed, on the
 ground that **chainability is a claim about two operations sharing a residency** and cannot be
 measured with one. Three exist, so here it is priced.
 
@@ -2121,7 +2120,7 @@ dotnet run -c Release --project bench/Lodestar.Gpu.Benchmarks -- --filter '*MinH
 **Read `GpuWithHashing`. It is what a caller starting from tokens pays, and it is the row that
 matters.** Measured: the minimisation is **34× to 66×** faster on the accelerator, and end to end a
 caller sees **1.27× to 1.57×** — because hashing is most of the work and it stays on the host. The
-kernel clears decision 0102's 5–10× gate on the part it took and **misses it on the part a caller
+kernel clears bench/README.md's GPU gate's 5–10× gate on the part it took and **misses it on the part a caller
 experiences.**
 
 That is not a disappointing result, it is a located one. The obvious next move is to hash on the
@@ -2142,9 +2141,9 @@ this section documents how to measure, not what was measured.
 
 ## 27. `Lodestar.Stats.Regression`'s generalized linear model against `Accord.Statistics` (issue #616)
 
-[Decision 0111](../docs/decisions/0111-the-generalized-linear-model-does-not-earn-its-own-package.md)
+[Decision 0003](../docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 kept the GLM inside `Lodestar.Stats.Regression` rather than a new package, on the same reading
-[decision 0096](../docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md) gave the
+[decision 0003](../docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) gave the
 OLS half. Section 19 already resolves `Accord.Statistics` in this project for that half; the GLM
 reaches the same incumbent through a different corner of its surface —
 `GeneralizedLinearRegression` fitted by `IterativeReweightedLeastSquares`, the constructor-and-`Run`
@@ -2208,12 +2207,12 @@ dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*Gl
 
 The autocorrelation function, the partial autocorrelation function and the Ljung-Box test ship in
 `Lodestar.Stats.TimeSeries`, which
-[decision 0133](../docs/decisions/0133-stats-timeseries-is-a-package-and-takes-the-serial-correlation-lot.md)
+[decision 0004](../docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)
 made a package of its own when the stationarity tests needed `Lodestar.Stats.Regression`; the
 benchmark still lives in `bench/Lodestar.Stats.Benchmarks`. `Cortex.TimeSeries` 1.1.0 is the one .NET
 library carrying the same three functions — `Cortex.TimeSeries.Diagnostics.AutocorrelationTests`'s
 `ACF`, `PACF` and `LjungBox` — through its own `Cortex.ML` dependency, which is exactly the edge
-[decision 0076](../docs/decisions/0076-a-core-package-carries-no-external-dependency.md) bars from
+[decision 0003](../docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) bars from
 `src/`: it goes in this project only, and `tools/check_nuspec_dependencies.py` is what fails the
 build if that boundary is ever confused.
 
@@ -2273,7 +2272,7 @@ They were taken from a checkout with sibling worktrees carrying the same benchma
 
 ## 29. The four robust covariances, against the ordinary one (issue #705)
 
-[Decision 0115](../docs/decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md)
+[Decision 0004](../docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)
 gave `OrdinaryLeastSquares` the `Hc0` to `Hc3` heteroskedasticity-consistent covariances.
 `RobustCovarianceBenchmarks` prices them against the ordinary covariance on the same fit.
 
@@ -2309,14 +2308,14 @@ error bar wider than the effect being measured.
 
 ## 30. The variance principal components explain, against NumFlat (issue #701)
 
-[Decision 0119](../docs/decisions/0119-the-explained-variance-lives-in-lodestar-decomposition.md)
+[Decision 0003](../docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 put `PrincipalComponentVariance` in `Lodestar.Decomposition`.
-[Decision 0116](../docs/decisions/0116-the-pca-gap-is-the-explained-variance-not-the-projection.md)
+[Decision 0004](../docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)
 read two PCA incumbents and found one reporting the same number: NumFlat 1.3.4, whose
 `PrincipalComponentAnalysis.EigenValues` ships `net8.0` only. It is MIT-licensed and referenced by
 `Lodestar.Text.Benchmarks` alone. ML.NET's `ProjectToPrincipalComponents` exposes no eigenvalue,
 so it has no row here.
-[Decision 0129](../docs/decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md)
+[Decision 0004](../docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)
 found two more: Meta.Numerics 4.2.0 (MS-PL, `netstandard2.0`), measured in section 50, and the
 commercial Numerics.NET, which is not measured under a trial licence.
 
@@ -2348,7 +2347,7 @@ The numbers, on a named machine and with the default job, are in
 
 ## 31. The two published quantiles, and what they cost their callers (issue #709)
 
-[Decision 0121](../docs/decisions/0121-the-quantiles-invert-by-newton-and-the-large-df-residual-is-the-tails.md)
+`docs/guides/performance.md`
 replaced the bisection behind `Distributions.NormalQuantile` and `Distributions.StudentQuantile` with
 a safeguarded Newton inversion. `QuantileBenchmarks` times one call of each, so the cost is read
 directly rather than subtracted out of a larger benchmark.
@@ -2383,10 +2382,10 @@ The numbers, on a named machine and with the default job, are in
 
 ## 32. What a Cox fit costs (issue #684)
 
-[Decision 0124](../docs/decisions/0124-the-cox-model-stays-in-lodestar-survival-and-refuses-what-it-cannot-estimate.md)
+[Decision 0003](../docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 added `CoxProportionalHazards.Fit` to `Lodestar.Survival`. There is no incumbent to race, for the
 reason section 20's `SurvivalBenchmarks` records:
-[decision 0099](../docs/decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)
+[decision 0002](../docs/decisions/0002-provenance-and-the-allowed-references.md)
 found no .NET survival package. `CoxBenchmarks` measures the shape of the cost instead.
 
 ```bash
@@ -2455,7 +2454,7 @@ The numbers, on a named machine, are in
 `Lodestar.Cluster` ships `KMeans` alone. NumFlat 1.3.4 (MIT, `net8.0` only) ships k-means, k-medoids,
 DBSCAN and two Gaussian mixtures; Meta.Numerics 4.2.0 (MS-PL, `netstandard2.0`) ships k-means as
 `Multivariate.MeansClustering`. Both are referenced by `Lodestar.Text.Benchmarks` alone.
-[Decision 0131](../docs/decisions/0131-lodestar-cluster-writes-what-netstandard2-0-lacks.md) has the
+[Decision 0004](../docs/decisions/0004-what-is-written-here-and-what-is-delegated.md) has the
 reading and what the package does next.
 
 ```bash
@@ -2607,7 +2606,7 @@ dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*Gl
 Lodestar's row is the whole `OlsSummary` table; Math.NET's is the coefficient vector alone, which is all it
 offers. `[GlobalSetup]` refuses to time either side if their slopes differ by more than `1e-9` relative, so a
 faster row cannot be a different answer. `Numerics.NET` and Extreme Optimization export GLS and are commercial
-(decision 0129); they are not measured here.
+(decision 0004); they are not measured here.
 
 ### Configuration
 
@@ -2694,12 +2693,12 @@ the null deviance to `2.0e-13`, with 5 iterations on both sides at 1,000, 10,000
 
 `MultinomialLogitBenchmarks` races `MultinomialLogit.Fit` against Accord.Statistics 3.8.0's
 `MultinomialLogisticRegression`, learned by `LowerBoundNewtonRaphson`: 200 and 2,000 rows, three regressors,
-three categories. Accord is LGPL-2.1 and archived, so it is raced rather than delegated to (decision 0104).
+three categories. Accord is LGPL-2.1 and archived, so it is raced rather than delegated to (decision 0004).
 
 `compare-glm` gains `mnlogit_*` over the stats corpus. Both sides take the category as the count response modulo three
 (`MNLOGIT_CATEGORIES` in `bench_stats.py`, `MultinomialCategories` in `StatsCrossLang`), and each prices the whole
 table. The null log-likelihood inside that table is a Nelder–Mead and BFGS refit in `statsmodels` and a closed form
-here (decision 0136). That difference in work is part of what the row measures, because it is part of what each
+here (decision 0004). That difference in work is part of what the row measures, because it is part of what each
 library computes to report the table.
 
 ```bash
@@ -2724,7 +2723,7 @@ A harness of its own, `compare-var`, over the same corpus as `compare-ols`: both
 columns as a two-variable series and fit a VAR(2) — `VAR_VARIABLES` and `VAR_LAGS` in `bench_stats.py`, their C# twins
 in `StatsCrossLang`. Each row prices the whole table: the coefficients and their errors, both residual covariances,
 the log-likelihood and the four criteria. No .NET library estimates a VAR
-([decision 0134](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0134-arima-and-state-space-are-not-written-and-var-is-the-one-that-could-be.md),
+([decision 0004](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0004-what-is-written-here-and-what-is-delegated.md),
 re-read for this lot over eight packages), so there is no .NET row.
 
 ```bash
@@ -3010,7 +3009,7 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*Agg
 `MetaNumericsPcaBenchmarks` races the explained variance. Meta.Numerics is **MS-PL, maintained, and
 ships `netstandard2.0`**, where `Lodestar.Stats`' only other incumbent is archived and
 `PrincipalComponentVariance`'s only other one is `net8.0`-only — so below `net8.0` this is the only
-second opinion there is, which decision 0129 read and this measures.
+second opinion there is, which decision 0004 read and this measures.
 
 ### The pairing that would otherwise time two different statistics
 
@@ -3078,7 +3077,7 @@ replay at 1e-9.
 ## 51. BERT's basic tokenization, over three flavours of text (issue #1048)
 
 `BertNormalizerBenchmarks` measures the `vocab.txt` route — `BertNormalizer` then
-`BertPreTokenizer` ahead of WordPiece, which is what [`0144`](../docs/decisions/0144-a-vocab-txt-runs-berts-basic-tokenizer.md)
+`BertPreTokenizer` ahead of WordPiece, which is what [`0005`](../docs/decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)
 turned on — over the 5,000 corpus documents, with `vocab_30k.txt` loaded twice, cased and uncased.
 
 **Three flavours, because the normalizer has three paths and the corpus only exercises one.** The

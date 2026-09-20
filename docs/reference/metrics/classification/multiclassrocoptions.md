@@ -56,7 +56,7 @@ a field.
 than
 automatic on purpose — the result is bit-identical at any setting, and above `1` the inputs are
 copied, so it is a trade a caller should make knowingly.
-[Decision 0018](../../../decisions/0018-multiclass-roc-auc-parallelism-is-opt-in.md) has the
+`docs/guides/performance.md` has the
 argument.
 
 The trap is `Labels`. Leaving it empty means the score columns are matched to the **sorted
@@ -70,7 +70,7 @@ the data.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `RocAuc.MultiClass`, `MultiClassStrategy`, `Averaging`,
-[decision 0018](../../../decisions/0018-multiclass-roc-auc-parallelism-is-opt-in.md),
+`docs/guides/performance.md`,
 the [Python equivalence table](../../../equivalence.md).
 
 ## Members

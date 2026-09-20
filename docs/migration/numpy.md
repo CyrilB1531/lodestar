@@ -23,7 +23,7 @@ from Math.NET's `SparseMatrix` in one pass over the stored values, so a matrix c
 factorized here and then solved, inverted or eigendecomposed there — without a densify-and-rebuild
 round trip in between. It is the only package in this repository that references Math.NET, and it
 references it _to convert to it_ rather than to compute with it, which is why the paragraph above
-still stands ([decision 0089](../decisions/0089-the-interop-tier-may-take-a-dependency-a-core-package-refused.md)).
+still stands ([decision 0003](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)).
 
 ```bash
 dotnet add package Lodestar.Extensions.MathNet

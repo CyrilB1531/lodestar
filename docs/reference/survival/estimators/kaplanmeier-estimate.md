@@ -39,8 +39,8 @@ so the critical value taken is the normal quantile at `0.975`. That quantile is
 [`Distributions.NormalQuantile`](../../stats/tails/distributions-normalquantile.md) rather than a
 Student one at a large degrees of freedom: the substitute's accuracy peaks around `1e-8` and the
 log-log transform amplifies that into the seventh digit of a bound —
-[decision 0098](../../../decisions/0098-the-normal-quantile-is-the-third-member-decision-0095s-rule-publishes.md)
-has the measurement, as [decision 0121](../../../decisions/0121-the-quantiles-invert-by-newton-and-the-large-df-residual-is-the-tails.md)
+[decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
+has the measurement, as `docs/guides/performance.md`
 amended it, and this corpus is what caught it.
 
 **Greenwood's sum is accumulated, not the variance.** The variance of the estimate is `S²` times

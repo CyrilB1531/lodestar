@@ -5,7 +5,7 @@ namespace Lodestar.Stats;
 /// <summary>The Shapiro-Wilk test for normality, by Royston's AS R94.</summary>
 /// <remarks>
 /// Written from Royston's 1995 published description and its polynomial constants (Applied
-/// Statistics 44:547-551), not from any implementation of it (ADR 0003). The transform that
+/// Statistics 44:547-551), not from any implementation of it (ADR 0002). The transform that
 /// turns the statistic into a p-value is fitted for <c>3 &lt;= n &lt;= 5000</c>; outside that
 /// range this refuses rather than extrapolating a number a reader would take at face value --
 /// scipy warns and answers anyway.
@@ -36,7 +36,7 @@ public static class ShapiroWilk
     /// Fewer than 3 or more than 5000 values, or every value identical -- both checked after
     /// <paramref name="nanPolicy"/> has run, so omission that drops the sample below three
     /// values still raises rather than answering with a warning the way scipy does
-    /// (decision 0117). When <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and
+    /// (decision 0007). When <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and
     /// the sample holds a <c>NaN</c>.
     /// </exception>
     public static TestResult Test(

@@ -145,7 +145,7 @@ public sealed class GlmOracleTests
     /// Relative, as <c>OlsOracleTests</c> compares the table beside this one: measured over this
     /// corpus the worst field reaches 3.4e-14, and an absolute tolerance would assert only that a
     /// number came back wherever a z statistic or a deviance is small. No frozen value here is an
-    /// exact zero, so every field has a relative neighbourhood to be compared in. Decision 0081
+    /// exact zero, so every field has a relative neighbourhood to be compared in. Decision 0003
     /// settled this for Lodestar.Stats already.
     /// </summary>
     private static void AssertRelative(double expected, double actual, string what)

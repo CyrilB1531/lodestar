@@ -39,7 +39,7 @@ the threshold, LAC says so, and that is information: the model is less sure abou
 it was about `1 − alpha` of the calibration set. Substituting the most likely class would return
 something with no coverage guarantee under a name that promises one — the same mistake as clamping
 the quantile, which
-[decision 0070](../../../decisions/0070-k-greater-than-n-returns-an-infinite-interval.md) refuses
+[decision 0007](../../../decisions/0007-the-deliberate-divergences.md) refuses
 for the same reason. If your call site must produce a class, take the arg-max yourself, knowingly.
 
 The `1e-8` is MAPIE's `EPSILON`, kept so a probability that rounding left a hair below the

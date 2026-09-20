@@ -22,7 +22,7 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
 {
     /// <summary>add_dummy_prefix and escape_whitespaces, the pair this path always applies.</summary>
     /// <remarks>
-    /// Shared with the BPE path rather than spelled out twice (decision 0050 §2), which is
+    /// Shared with the BPE path rather than spelled out twice, which is
     /// what makes the two answer alike. <c>remove_extra_whitespaces</c> is the flag that
     /// separates them: set here, and off for the SentencePiece-BPE lineage, which declares
     /// no normalizer to collapse runs with.

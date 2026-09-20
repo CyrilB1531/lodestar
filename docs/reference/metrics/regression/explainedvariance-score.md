@@ -54,12 +54,10 @@ and is useless. If a reader is going to see one number, `R2` is the safer one.
 Unlike `R2`, this takes no `ZeroDivision`: it has no fewer-than-two-samples case to route, so
 `ExplainedVariance.Score([3.0], [5.0])` is `1.0` where `R2.Score` on the same input is `NaN`. The
 reasoning is in
-[decision
-0026](../../../decisions/0026-r2-and-explainedvariance-split-their-undefined-cases-differently.md).
+the undefined-case rule.
 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `ExplainedVariance.PerOutput`, `ExplainedVariance.VarianceWeighted`, `R2.Score`,
-[decision
-0026](../../../decisions/0026-r2-and-explainedvariance-split-their-undefined-cases-differently.md),
+the undefined-case rule,
 the [Python equivalence table](../../../equivalence.md).

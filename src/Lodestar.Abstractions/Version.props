@@ -2,7 +2,7 @@
 
   <!--
     Lodestar.Abstractions owns its version here, independently of the other
-    packages (see docs/decisions/0012-per-package-versioning.md).
+    packages (see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
     0.1.0 is this package's first release, and it is the release Lodestar.Text
     0.5.0 depends on: src/ references published packages, so this number has to

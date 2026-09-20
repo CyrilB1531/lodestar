@@ -2,7 +2,7 @@
 
   <!--
     Lodestar.Embeddings owns its version here, independently of the other packages
-    (see docs/decisions/0012-per-package-versioning.md).
+    (see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
     0.5.0 made BatchEncoder.EncodeAll and BatchEncoder.Pad public, so that a
     package sub-batching a corpus itself needs no second copy of the padding.

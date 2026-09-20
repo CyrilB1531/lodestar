@@ -37,7 +37,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// persistence layer, with <see cref="Encode"/>'s own byte conversion — where
     /// refusing is right — and with <see cref="FlushBytes"/>, which catches instead.
     /// The asymmetry is deliberate and matches the reference: strict on the way in,
-    /// forgiving on the way out. See decision 0023.
+    /// forgiving on the way out. See decision 0007.
     /// </remarks>
     private static readonly UTF8Encoding Utf8Lossy = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
 
@@ -286,7 +286,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
 
     /// <summary>Refuses a <c>byte_fallback</c> vocabulary missing any of the 256 <c>&lt;0xXX&gt;</c> pieces, naming the first one.</summary>
     /// <remarks>
-    /// <c>LoadBpe</c> already refuses such a file (decision 0063); this one exists because
+    /// <c>LoadBpe</c> already refuses such a file (decision 0007); this one exists because
     /// <see cref="BpeVocabulary"/> is public and constructible without a loader — the same reason as
     /// <see cref="EnsureByteLevelDeclaresNoContinuingPrefix"/>. Left unchecked, <see cref="ExpandToBytes"/> fails
     /// on a bare dictionary indexer, whose <see cref="KeyNotFoundException"/> names the missing key on net10.0
@@ -449,7 +449,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// <c>tokenizers</c> normalizes such an entry's content with the declared **normalizer**,
     /// and a pre-tokenizer never reaches it. So the escape joins the pattern only where the
     /// file spelled it as a normalizer: Llama-2 matches on <c>▁&lt;s&gt;</c>, Mistral on
-    /// <c>&lt;s&gt;</c>. Decision 0085, which is the third place the two spellings part.
+    /// <c>&lt;s&gt;</c>. The two spellings part here, which is the third place the two spellings part.
     /// </remarks>
     private string NormalizeAddedTokenContent(string content) =>
         _metaspace is { DeclaredAsNormalizer: true }
@@ -462,7 +462,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// <c>normalized: true</c> entry under one would be matched against text the escape has
     /// changed with a pattern it has not — and under <c>first</c>, or under the guard, what it
     /// does depends on where the piece sits, which a pattern fixed before the first piece is
-    /// read cannot express. Refused rather than approximated, per decision 0050 §4: a wrong
+    /// read cannot express. Refused rather than approximated, as docs/equivalence.md's loader row states: a wrong
     /// answer is worse than a missing one. Neither reference file carries the shape.
     /// </remarks>
     private static void EnsureNormalizedEntriesHaveAnExpressiblePattern(BpeVocabulary vocabulary)
@@ -482,7 +482,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// <summary>Normalizes, then escapes whitespace when the model declared an escape.</summary>
     /// <remarks>
     /// The order <see cref="SentencePieceTokenizer"/> already runs: the escape reads the
-    /// normalized text, since both spellings decision 0050 §2 accepts sit at or after the
+    /// normalized text, since both spellings docs/equivalence.md's loader row accepts sit at or after the
     /// normalizer. Added-token content takes <see cref="NormalizeAddedTokenContent"/> instead,
     /// which is the same only for the pre-tokenizer spelling.
     /// </remarks>
@@ -817,7 +817,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// <remarks>
     /// Symbols are threaded on a doubly-linked list and candidate merges kept in a hand-rolled
     /// binary heap, validated when they come off the queue and dropped in silence when stale
-    /// rather than hunted down at merge time — see decision 0017's "Merge loop" section for
+    /// rather than hunted down at merge time — see decision 0005's "Merge loop" section for
     /// the scaling measurements that justified the rewrite over a rescan-and-shift loop, and
     /// for the leftmost-wins tie-break, which this reproduces from HuggingFace's own heap
     /// ordering rather than inventing.
@@ -1031,10 +1031,10 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// <remarks>
     /// Matches <c>tokenizers.Tokenizer.decode(ids, skip_special_tokens=…)</c>. Byte-exact only for a complete
     /// sequence <see cref="Encode"/> produced whole — decoded one id at a time, a byte sequence that is not
-    /// well-formed UTF-8 becomes U+FFFD rather than throwing, matching the reference (decision 0023).
+    /// well-formed UTF-8 becomes U+FFFD rather than throwing, matching the reference (decision 0007).
     /// <c>skipSpecialTokens</c> defaults to <see langword="false"/>, so <c>Decode(Encode(x)) == x</c> holds
     /// without passing it — except that the metaspace escape and the byte pieces stay as symbols unless the
-    /// file's decoder undoes them, and a bare <c>ByteFallback</c> undoes the pieces while leaving the escape in (decision 0063).
+    /// file's decoder undoes them, and a bare <c>ByteFallback</c> undoes the pieces while leaving the escape in (decision 0007).
     /// </remarks>
     /// <param name="ids">Token ids, e.g. from <see cref="Encode"/>.</param>
     /// <param name="skipSpecialTokens">Drop tokens whose <c>added_tokens</c> entry is <c>special</c> (<see cref="AddedToken.Special"/>), matching Python's <c>skip_special_tokens</c>.</param>

@@ -11,10 +11,11 @@ namespace Lodestar.Text.Stemming;
 /// The Arabic Snowball stemming algorithm.
 /// </summary>
 /// <remarks>
-/// Reference behavior: <c>nltk.stem.snowball.SnowballStemmer("arabic")</c>. An
-/// original implementation of the published Snowball algorithm. Alone among the
-/// thirteen it uses neither R1 nor R2, so it does not derive from
-/// <c>SnowballWorkerBase</c> — decision 0094 says why. Thread-safe.
+/// Reference behavior: <c>snowballstemmer.stemmer("arabic")</c>, whose corpus this
+/// replays — <c>nltk</c>'s Arabic is not a pure function of its input. An original
+/// implementation of the published Snowball algorithm. Alone among the fifteen it
+/// uses neither R1 nor R2, so it does not derive from
+/// <c>SnowballWorkerBase</c> — decision 0006 says why. Thread-safe.
 /// </remarks>
 public static class ArabicSnowballStemmer
 {

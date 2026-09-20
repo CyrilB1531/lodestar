@@ -9,7 +9,7 @@
     It consumes the packages rather than the projects, for the same reason
     samples/Lodestar.Sample does — a snippet that only compiles against a
     ProjectReference is not a snippet a reader can run. See
-    docs/decisions/0009-sample-consumes-a-local-feed.md.
+    CONTRIBUTING.md's Definition of done.
 
     Deliberately NOT in Lodestar.slnx: inside the solution, ProjectReference
     resolution would satisfy these references and the check would prove less than

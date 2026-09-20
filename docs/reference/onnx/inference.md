@@ -8,7 +8,7 @@ for. A caller who tokenizes, pools or searches without inferring never restores 
 ## Why every example here is unexecuted
 
 Weights are never committed to this repository. A running example would need a model of tens of
-megabytes, and [`decisions/0003`](../../decisions/0003-provenance-and-licensing.md) rules that
+megabytes, and [`decisions/0002`](../../decisions/0002-provenance-and-the-allowed-references.md) rules that
 out; `tools/fetch_*.py` pulls vocabularies against a pinned SHA-256 when they are needed, and
 weights are not among them.
 

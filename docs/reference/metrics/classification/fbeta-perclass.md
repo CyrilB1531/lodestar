@@ -44,8 +44,7 @@ The trap is the arithmetic behind the scenes rather than in the result. `beta` i
 substituting the true positives, the predicted count and the support algebraically rather than by
 computing precision and recall and combining them, which is what keeps the answer exact at the
 edges where one of the two is undefined —
-[decision
-0032](../../../decisions/0032-fbeta-substitutes-tp-predicted-and-support-algebraically.md) has
+the substituted F-score formula has
 the derivation. Nothing about the call changes; it is the reason the undefined cases here agree
 with
 scikit-learn rather than approximately agreeing.
@@ -53,6 +52,5 @@ scikit-learn rather than approximately agreeing.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `FBeta.Score`, `F1.PerClass`, `ClassificationReport.Compute`,
-[decision
-0032](../../../decisions/0032-fbeta-substitutes-tp-predicted-and-support-algebraically.md),
+the substituted F-score formula,
 the [Python equivalence table](../../../equivalence.md).

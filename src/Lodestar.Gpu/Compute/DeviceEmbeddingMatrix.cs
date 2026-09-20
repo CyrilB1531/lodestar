@@ -7,7 +7,7 @@ namespace Lodestar.Gpu.Compute;
 /// <remarks>
 /// Residency is the point. A GPU package that uploads its corpus per call is slower than
 /// the SIMD path it replaces, so the matrix is uploaded once and swept. This is residency
-/// only — decision 0102 defers the chainable device-resident types until three kernels
+/// only — bench/README.md's GPU gate defers the chainable device-resident types until three kernels
 /// exist, because chainability is a claim about two operations sharing a residency.
 /// Rows are L2-normalized on upload by default, which is what turns cosine similarity
 /// into a dot product.

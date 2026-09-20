@@ -16,7 +16,7 @@ namespace Lodestar.Gpu.Benchmarks;
 
 /// <summary>What residency buys across two operations, which is the only place it shows.</summary>
 /// <remarks>
-/// Decision 0102 deferred these types until three kernels existed, because chainability is a
+/// the GPU gate deferred these types until three kernels existed, because chainability is a
 /// claim about two operations sharing a residency. <c>RoundTripped</c> is the baseline on
 /// purpose: the question is not whether an accelerator beats a processor — section 24 asks
 /// that — but what a caller loses by letting an intermediate cross the bus, and putting the
@@ -80,7 +80,7 @@ public class ChainedProductBenchmarks
         _first = Resident(_hostFirst);
         _second = Resident(_hostSecond);
 
-        // Decision 0102, rule 3: ILGPU compiles on first launch, so this runs once on the
+        // the GPU gate's rule 3 in bench/README.md: ILGPU compiles on first launch, so this runs once on the
         // real corpus before anything is timed.
         using DeviceDenseBlock warm = DeviceDenseBlock.Upload(_context, _block, Inner, Width);
         using DeviceDenseBlock product = _kernel.Multiply(_second, warm);

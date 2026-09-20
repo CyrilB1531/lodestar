@@ -38,7 +38,7 @@ cedilla forms — `ş` U+015F and `ţ` U+0163 — in every suffix table, and Rom
 written with the comma-below `ș` U+0219 and `ț` U+021B since 1993. A word typed the modern way
 matches only the endings that contain neither letter, so `informaţie` stems to `inform` while
 `informație` stems to `informaț`. Nothing is folded, deliberately —
-[decision 0092](../../../decisions/0092-romanian-keeps-the-cedilla-alphabet-the-description-writes.md)
+[decision 0006](../../../decisions/0006-the-stemmers-references.md)
 has why, and what a caller does about it.
 
 **`i` and `u` between two vowels are marked before the regions are measured**, so they count as

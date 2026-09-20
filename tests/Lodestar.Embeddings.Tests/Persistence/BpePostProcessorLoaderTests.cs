@@ -56,7 +56,7 @@ public sealed class BpePostProcessorLoaderTests
 
     /// <summary>
     /// The two spellings two mirrors of Llama-2 give the same model, which is why
-    /// <c>pair</c> is read and discarded rather than reproduced -- decision 0083.
+    /// <c>pair</c> is read and discarded rather than reproduced, which docs/equivalence.md's loader row carries.
     /// </summary>
     /// <remarks>
     /// <c>daryl149/llama-2-7b-chat-hf</c> writes the first, <c>TheBloke/Llama-2-7B-fp16</c>

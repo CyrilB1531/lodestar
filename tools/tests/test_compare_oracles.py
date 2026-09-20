@@ -158,7 +158,7 @@ def test_two_infinities_of_opposite_sign_fail(tmp_path):
 
 
 def test_a_reformatted_corpus_passes(tmp_path):
-    """What byte-identity caught and this does not -- decision 0073 says so."""
+    """What byte-identity caught and this does not -- tools/compare_oracles.py says so."""
     left = write(tmp_path / "expected", {CORPUS: BASE})
     right = tmp_path / "actual"
     right.mkdir()

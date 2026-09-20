@@ -3,7 +3,7 @@
   "algorithm": "JaroWinkler",
   "library": "reference-standard",
   "reference_calls": [
-   "standard JaroWinkler over code points (see decision 0005)"
+   "standard JaroWinkler over code points (see decision 0007)"
   ],
   "jellyfish_version": "1.2.1",
   "jellyfish_divergences": 136,

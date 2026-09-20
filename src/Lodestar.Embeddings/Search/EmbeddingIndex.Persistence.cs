@@ -21,7 +21,7 @@ public sealed partial class EmbeddingIndex
     /// <paramref name="destination"/> as UTF-8 JSON.
     /// </summary>
     /// <remarks>
-    /// One-off: written as base64 raw little-endian bits (decision 0011's own
+    /// One-off: written as base64 raw little-endian bits (decision 0001's own
     /// choice), so a reload scores bit for bit what was saved. Refuses a non-finite
     /// component though <see cref="Add(ReadOnlySpan{float})"/> accepts one — a
     /// permanently wrong <c>NaN</c> score outlives the code that built it.

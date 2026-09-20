@@ -38,7 +38,7 @@ countable rather than a matter of reputation:
 
 [`Metaphone`](phonetics/metaphone.md) sits between them and is measured on its own corpus of 123
 real words — 117 distinct codes, 1 to 6 characters — for the reason
-[decision 0007](../../decisions/0007-metaphone-scope.md) gives.
+[decision 0005](../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md) gives.
 
 **That column is the whole trade-off.** Soundex merges aggressively, so it finds spellings you did
 not think of and also returns names that have nothing to do with the query. NYSIIS barely merges
@@ -77,7 +77,7 @@ is usually the one that matters.
   [its own page](phonetics/matchratingapproach.md) for why. The empty string always encodes to
   the empty string.
 - **A `null` word is refused**, the same rule the [stemmers next door](stemming.md) apply —
-  [decision 0042](../../decisions/0042-phonetic-encoders-refuse-a-null-word.md).
+  the null-word refusal.
   [`Soundex.Encode`](phonetics/soundex-encode.md) shows it.
 - **Each is a static class with no state**, so all four are safe to call from any number of
   threads at once.
@@ -98,5 +98,5 @@ is usually the one that matters.
 - [Python → C# equivalence](../../equivalence.md) — the `jellyfish` call each of these replaces.
 - [`Fuzz.Ratio`](../fuzzy/matching/fuzz-ratio.md) — the other way to decide two names match, on
   spelling rather than sound.
-- [`decisions/0007`](../../decisions/0007-metaphone-scope.md) — why Metaphone is pinned on real
+- [`decisions/0005`](../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md) — why Metaphone is pinned on real
   words only.

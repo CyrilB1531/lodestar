@@ -30,7 +30,7 @@ public static class Silhouette
     /// <remarks>
     /// A name of its own rather than an overload: the two entry points would otherwise have the
     /// same signature, since a matrix and a feature block are both a span of <c>double</c> with a
-    /// count. That is the ruling of decision 0021, applied to an input rather than to a return.
+    /// count. That is the ruling of the equality rule, applied to an input rather than to a return.
     /// </remarks>
     /// <exception cref="ArgumentException">The matrix is not <c>n × n</c> for the labels given, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
     public static double ScoreFromDistances(ReadOnlySpan<int> labels, ReadOnlySpan<double> distances) =>

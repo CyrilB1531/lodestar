@@ -4,7 +4,7 @@ name: Release
 # pushed, e.g.:  git tag Lodestar.Fuzzy/v0.3.0 && git push origin Lodestar.Fuzzy/v0.3.0
 #
 # The three packages version independently, so a tag names which one it releases
-# (see docs/decisions/0012-per-package-versioning.md). The old repository-wide
+# (see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md). The old repository-wide
 # `v*` tag is retired: it can no longer mean anything, since there is no single
 # version left for it to designate.
 #

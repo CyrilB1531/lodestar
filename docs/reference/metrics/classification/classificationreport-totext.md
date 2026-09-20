@@ -42,7 +42,7 @@ Two things are not identical, and both are stated rather than hidden. A report b
 characters do not. And the support column switches between integer and float formatting on a rule
 that keys off whether **any** sample anywhere was predicted correctly, not off whether accuracy is
 zero; the two differ when a label subset is in play, and the reasoning is in
-[decision 0031](../../../decisions/0031-nosamplecorrect-mirrors-numpys-float64-upcast.md).
+the pre-restriction rule.
 
 The trap is treating this as a data format. It is aligned for a human eye, columns can run
 together
@@ -53,5 +53,5 @@ you want the numbers.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `ClassificationReport.Compute`, `ClassificationReport.ToString`,
-[decision 0031](../../../decisions/0031-nosamplecorrect-mirrors-numpys-float64-upcast.md),
+the pre-restriction rule,
 the [Python equivalence table](../../../equivalence.md).

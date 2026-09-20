@@ -40,7 +40,7 @@ and a length bug will read as a large distance rather than as an error. Against 
 and
 mixed scripts the result also deliberately differs from `jellyfish.hamming_distance`, which
 diverges from the standard definition there; the measurements are in
-[decision 0005](../../../decisions/0005-hamming-jellyfish-divergence.md).
+[decision 0007](../../../decisions/0007-the-deliberate-divergences.md).
 
 **Applies to** — net10.0, netstandard2.0.
 

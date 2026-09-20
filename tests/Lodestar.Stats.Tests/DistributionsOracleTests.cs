@@ -9,7 +9,7 @@ namespace Lodestar.Stats.Tests;
 /// for them directly would use.
 /// </summary>
 /// <remarks>
-/// The corpus decision 0081 asked for before this layer could be published: it reaches
+/// The corpus decision 0003 asked for before this layer could be published: it reaches
 /// 3.1e-24, where an <em>absolute</em> 1e-9 would accept an implementation returning zero.
 /// Probabilities are therefore compared relatively, as every p-value here is.
 /// </remarks>

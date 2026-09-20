@@ -94,7 +94,7 @@ by a `ZeroDivision` argument rather than a warning: return `0`, return `1`, retu
 `NaN` — which is what [`R2.Score`](../reference/metrics/regression/r2-score.md)
 defaults to — or throw `UndefinedMetricException`. scikit-learn warns and continues;
 this package makes you choose, which is
-[decision 0020](../decisions/0020-normalize-is-a-projection-not-a-parameter.md).
+the projection rule.
 
 ## A worked example in each family
 

@@ -66,7 +66,7 @@ is what this layout exists to avoid.
 **The type ships in `Lodestar.Abstractions`, not here.** More than one package needs a
 sparse matrix and they do not need each other, so it moved out in `Lodestar.Text` 0.5.0
 — consuming code adds `using Lodestar.Abstractions;`, and
-[decision 0071](../../decisions/0071-csrmatrix-moves-to-an-abstractions-package.md) says
+[decision 0003](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) says
 why. Its own [reference page](../abstractions/sparse.md) documents the matrix and both of
 its products.
 

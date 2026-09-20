@@ -7,14 +7,14 @@
 
   <!--
     Six packages here are floors on a sibling: Lodestar.Fuzzy on Lodestar.Text,
-    since 0.5.0 Lodestar.Text on Lodestar.Abstractions (decision 0071),
+    since 0.5.0 Lodestar.Text on Lodestar.Abstractions (decision 0003),
     Lodestar.Onnx on Lodestar.Embeddings, whose tokenizers and pooling it feeds
     an ONNX session with, Lodestar.Extensions.AI on both Lodestar.Onnx and
     that same Lodestar.Embeddings, and Lodestar.Stats.Regression on both
     Lodestar.Stats and Lodestar.Decomposition, whose 0.2.0 releases published
-    the four numerical members it calls (decision 0095). Lodestar.Stats.TimeSeries takes
+    the four numerical members it calls (decision 0003). Lodestar.Stats.TimeSeries takes
     Lodestar.Stats here; its Lodestar.Stats.Regression edge is a ProjectReference
-    until that package's 0.2.0 is published (decision 0133). Each number is a deliberately chosen *floor* — the
+    until that package's 0.2.0 is published (decision 0004). Each number is a deliberately chosen *floor* — the
     minimum a consumer is required to take — and is therefore written in full
     rather than tracking the sibling's $(Lodestar*Version).
 
@@ -22,25 +22,24 @@
     pack step: the floor always names a version that is already on nuget.org.
     Raise one only when the dependent actually needs newer API, and publish the
     dependency first when you do. See
-    docs/decisions/0012-per-package-versioning.md.
+    docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md.
   -->
   <ItemGroup>
     <PackageVersion Include="Lodestar.Abstractions" Version="0.1.1" />
     <PackageVersion Include="Lodestar.Decomposition" Version="0.2.0" />
     <!-- 0.6.0, not 0.5.0: 0.5.0 still declares Microsoft.ML.OnnxRuntime, which
-         0.6.0 moved to Lodestar.Onnx. Extensions.VectorData must not restore it
-         (decision 0123), and this one pin moves Onnx and Extensions.AI with it. -->
+         0.6.0 moved to Lodestar.Onnx. Extensions.VectorData must not restore it, and this one pin moves Onnx and Extensions.AI with it. -->
     <PackageVersion Include="Lodestar.Embeddings" Version="0.6.0" />
     <PackageVersion Include="Lodestar.Onnx" Version="0.1.0" />
     <PackageVersion Include="Lodestar.Stats" Version="0.4.0" />
     <PackageVersion Include="Lodestar.Text" Version="0.6.0" />
     <!-- 1.5.3 (2025-07-12) is the newest, and its newest asset is net7.0.
          Carried by Lodestar.Gpu alone, which is net10.0 only because ILGPU
-         publishes no netstandard2.0 asset at all (decision 0101). -->
+         publishes no netstandard2.0 asset at all (decision 0003). -->
     <PackageVersion Include="ILGPU" Version="1.5.3" />
     <!-- Abstractions only: the interfaces a consumer already has, and no
          implementation. Carried by Lodestar.Extensions.AI alone, which is the
-         satellite it earns under decision 0076. -->
+         satellite it earns under decision 0003. -->
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.0" />
     <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />
     <!-- The dependency Lodestar.Extensions.VectorData exists for. Its own single
@@ -49,7 +48,7 @@
     <PackageVersion Include="Microsoft.Extensions.VectorData.Abstractions" Version="10.10.0" />
     <!-- 5.0.0 (2022-04-03) is still the only stable release; carried by
          Lodestar.Extensions.MathNet alone, which converts to its types rather
-         than computing with them (decision 0087). -->
+         than computing with them (decision 0003). -->
     <PackageVersion Include="MathNet.Numerics" Version="5.0.0" />
     <PackageVersion Include="PolySharp" Version="1.16.0" />
     <!-- Analyzer only, pinned in the root Directory.Build.props so src/, tests/
@@ -61,7 +60,7 @@
     <PackageVersion Include="System.Numerics.Vectors" Version="4.6.1" />
     <!-- In-box on net10; referenced only for the netstandard2.0 target. The one
          deliberate runtime dependency of the persistence layer — see
-         docs/decisions/0011-persistence-format.md. -->
+         docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md. -->
     <PackageVersion Include="System.Text.Json" Version="10.0.12" />
   </ItemGroup>
 

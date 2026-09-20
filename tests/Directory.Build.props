@@ -17,7 +17,7 @@
                   the build, because these projects are OutputType=Exe and CA2007
                   skips executables there. xunit v3 requires that OutputType; it
                   used to arrive with Microsoft.NET.Test.Sdk (#623).
-       See docs/decisions/0019-the-net-analysers-run-in-the-build-too.md. -->
+       See CLAUDE.md's analyzer section. -->
   <PropertyGroup>
     <NoWarn>$(NoWarn);CA1707;CA1515;CA1062;CA1849;CA2007</NoWarn>
   </PropertyGroup>
@@ -37,7 +37,7 @@
   <!-- Raises an analyzer diagnostic that ships below warning, so TreatWarningsAsErrors
        sees it. Named rather than auto-discovered: DiscoverGlobalAnalyzerConfigFiles looks
        for a file called `.globalconfig` beside each project, and this file must not carry
-       that name, because the root one is generated and diffed in CI. Decision 0112. -->
+       that name, because the root one is generated and diffed in CI. CLAUDE.md's analyzer section. -->
   <ItemGroup>
     <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)analyzers.globalconfig" />
   </ItemGroup>
@@ -46,7 +46,7 @@
        more often than it is written, and SonarCloud already reports on it. The
        version comes from the root Directory.Build.props, the package from
        tests/Directory.Packages.props. See
-       docs/decisions/0015-sonar-rules-in-the-build.md. -->
+       CLAUDE.md's analyzer section. -->
   <ItemGroup>
     <PackageReference Include="SonarAnalyzer.CSharp" PrivateAssets="all" />
   </ItemGroup>

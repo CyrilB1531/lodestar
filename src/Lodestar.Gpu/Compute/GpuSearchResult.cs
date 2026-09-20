@@ -5,7 +5,7 @@ namespace Lodestar.Gpu.Compute;
 /// <param name="Score">Cosine similarity, higher is better.</param>
 /// <remarks>
 /// Deliberately the same shape as <c>Lodestar.Embeddings.Search.SearchResult</c> without
-/// being it: decision 0101 forbids an edge from a core package to this one, and an edge
+/// being it: decision 0003 forbids an edge from a core package to this one, and an edge
 /// the other way would floor this package on a sibling for one struct.
 /// </remarks>
 public readonly record struct GpuSearchResult(int Index, float Score);

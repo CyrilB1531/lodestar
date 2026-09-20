@@ -38,5 +38,5 @@ which is the intended reading for fixed-width data and a misleading one for anyt
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `Hamming.Distance`, `Levenshtein.NormalizedSimilarity`,
-[decision 0005](../../../decisions/0005-hamming-jellyfish-divergence.md),
+[decision 0007](../../../decisions/0007-the-deliberate-divergences.md),
 the [Python equivalence table](../../../equivalence.md).

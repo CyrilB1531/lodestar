@@ -6,7 +6,7 @@
   "reference_calls": [
    "jellyfish.metaphone"
   ],
-  "corpus": "real English words/names (see decision 0007)",
+  "corpus": "real English words/names (see decision 0005)",
   "seed": 20260801,
   "count": 123
  },

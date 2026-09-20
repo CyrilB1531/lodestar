@@ -43,7 +43,7 @@ def test_a_missing_index_is_refused(monkeypatch, tmp_path):
 def test_a_hand_edited_index_is_refused_with_the_lines_that_differ(monkeypatch, tmp_path):
     stale = tmp_path / "index.yaml"
     current = adr_index.generate()
-    stale.write_text(current.replace('amended_by: ["0103"]', "amended_by: []", 1),
+    stale.write_text(current.replace('status: "accepted"', 'status: "rejected"', 1),
                      encoding="utf-8")
     monkeypatch.setattr(adr_index, "INDEX", stale)
 
@@ -51,7 +51,7 @@ def test_a_hand_edited_index_is_refused_with_the_lines_that_differ(monkeypatch, 
 
     assert findings
     assert "has drifted" in findings[0]
-    assert any('amended_by: ["0103"]' in finding for finding in findings)
+    assert any('status: "accepted"' in finding for finding in findings)
     assert any("regen_adr_index.py" in finding for finding in findings)
 
 

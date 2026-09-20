@@ -43,7 +43,7 @@ exists to prevent.
 
 This is a **different type** from `Lodestar.Text.Persistence.ArtifactLoadOptions`, which bounds a
 saved vectorizer. The two are declared separately rather than shared;
-[decision 0011](../../decisions/0011-persistence-format.md) has why, and the practical consequence
+[decision 0001](../../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md) has why, and the practical consequence
 is that the defaults differ because what they bound differs.
 
 ## Refusing a model is a feature
@@ -55,7 +55,7 @@ Each tokenizer here implements one fixed pipeline, and a `tokenizer.json` descri
 [`LoadUnigram`](persistence/tokenizerjsonloader-loadunigram.md), whose Unigram pipeline does not
 reproduce it. `LoadBpe` reproduces `byte_fallback` instead — Llama-2 and Mistral v0.1 both
 load — and refuses only a vocabulary that declares the flag without carrying the byte alphabet it
-promises; [decision 0063](../../decisions/0063-byte-fallback-requires-the-whole-alphabet-and-its-decoder-is-read-strictly-too.md)
+promises; [decision 0007](../../decisions/0007-the-deliberate-divergences.md)
 has why.
 
 A refusal is the correct outcome: the alternative is embeddings that do not match the model and

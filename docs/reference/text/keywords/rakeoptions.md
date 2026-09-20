@@ -36,8 +36,7 @@ stop-word list from the `nltk` corpus at run time and this does not, and `TokenP
 is not rake-nltk's own default tokenizer either — it is what the oracle generator injects into
 rake-nltk's `word_tokenizer` so the two sides can be compared at all. A caller who wants exact
 parity with a specific rake-nltk run supplies that run's own list and tokenizer through `StopWords`
-and `TokenPattern`
-([decision 0077](../../../decisions/0077-the-keyword-extractors-take-their-oracles-lists-and-not-their-own.md)).
+and `TokenPattern` ([decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)).
 
 `Rake`'s constructor validates two of these fields eagerly: a `MinLength` below `1` or a
 `MaxLength` below `MinLength` throws at construction, before any document is read.

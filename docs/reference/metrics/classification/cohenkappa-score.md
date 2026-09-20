@@ -64,8 +64,7 @@ not
 move at all. If your labels are ordinal, pass `labels` in the ordinal order every time, and never
 let it default to the sorted union without checking that sorted *is* the ordinal order. The
 reasoning, and the expected-matrix orientation this keeps from scikit-learn, are in
-[decision
-0030](../../../decisions/0030-cohen-kappa-keeps-scikit-learns-expected-matrix-orientation.md).
+the expected-matrix rule.
 
 The parameter is named `weighting` and not scikit-learn's `weights` because `sampleWeight` sits in
 the same signature and the two are unrelated senses of the word.
@@ -73,6 +72,5 @@ the same signature and the two are unrelated senses of the word.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `KappaWeighting`, `MatthewsCorrelation.Score`, `BalancedAccuracy.Score`,
-[decision
-0030](../../../decisions/0030-cohen-kappa-keeps-scikit-learns-expected-matrix-orientation.md),
+the expected-matrix rule,
 the [Python equivalence table](../../../equivalence.md).

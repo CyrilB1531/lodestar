@@ -2,7 +2,7 @@
 
   <!--
     Lodestar.Stats.Regression owns its version here, independently of the other
-    packages (see docs/decisions/0012-per-package-versioning.md).
+    packages (see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
     0.1.0 shipped on 2026-09-10, this package's first release. It carries two
     inter-package edges, to Lodestar.Stats for the Student and Fisher tails and
@@ -11,8 +11,8 @@
 
     0.2.0 is minor rather than a patch, and it now carries two lots because
     neither has shipped: GeneralizedLinearModel, GlmFamily, GlmOptions and
-    GlmSummary (decision 0111), and CovarianceType with the two properties that
-    select and echo it (decision 0115). Both are new public surface and nothing
+    GlmSummary (decision 0003), and CovarianceType with the two properties that
+    select and echo it (decision 0004). Both are new public surface and nothing
     existing moved or was removed. No new inter-package edge came with either:
     the IRLS loop and the robust covariance reuse the same internal
     least-squares core the OLS half already had.

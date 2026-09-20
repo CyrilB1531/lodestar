@@ -175,7 +175,7 @@ penalty, no prediction for a new subject, and no test of its own assumption.
 
 - [Survival estimators](../reference/survival/estimators.md) — the reference pages.
 - [Python → C# equivalence](../equivalence.md) — the `lifelines` call each of these replaces.
-- [`decisions/0099`](../decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)
+- [`decisions/0002`](../decisions/0002-provenance-and-the-allowed-references.md)
   — why `lifelines` is the oracle and `scikit-survival` is refused.
-- [`decisions/0124`](../decisions/0124-the-cox-model-stays-in-lodestar-survival-and-refuses-what-it-cannot-estimate.md)
+- [`decisions/0003`](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
   — where the Cox model lives, and the three places it parts from `lifelines`.

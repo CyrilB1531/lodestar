@@ -197,7 +197,7 @@ jobs:
           # not so its numbers are believed: this runner has no GPU, so ILGPU falls back
           # to its CPU accelerator and the row measures correctness-under-load rather
           # than the 5-10x gate. That gate is measured on a named machine and published
-          # by hand -- decision 0102 has the protocol, and the benchmark prints which
+          # by hand -- bench/README.md's GPU gate has the protocol, and the benchmark prints which
           # accelerator produced each figure.
           # One class at a time, against a deadline. Measured on 2026-09-16, a class costs
           # 2.3 minutes on average, so the four projects below are about 71, 35, 5 and 12
@@ -319,7 +319,7 @@ jobs:
       # the wiki clone and before the wiki publish, so the wiki's history holds every earlier night on
       # main -- merged pull request or not -- and not yet tonight. It never
       # fails the job: the page is the product of the run, and a movement is a finding to read,
-      # not a reason to withhold the numbers it was found in. Decision 0126 has the thresholds.
+      # not a reason to withhold the numbers it was found in. docs/guides/nightly_run.md has the thresholds.
       - name: Report the ratios that moved
         id: moved
         env:
@@ -420,9 +420,9 @@ jobs:
 
   # Split out of `measure` because this is the job that pushes and opens the pull
   # request, and it must not run the measured branch's code: every step here is a
-  # pinned action, git or gh. `workflows` is NOT among GitHub's permission scopes --
-  # decision 0067 -- so this token can never push a ref whose .github/workflows/
-  # differs from main's, and the guard below is what keeps that from costing a run.
+  # pinned action, git or gh. `workflows` is NOT among GitHub's permission scopes, and no
+  # `permissions:` block can change that, so this token can never push a ref whose
+  # .github/workflows/ differs from main's; the guard below keeps that from costing a run.
   publish:
     name: Open the pull request
     needs: measure
@@ -466,7 +466,7 @@ jobs:
               echo
               echo "This ref changes \`.github/workflows/\`, and \`GITHUB_TOKEN\` cannot create a"
               echo "branch carrying workflow files that differ from \`main\`'s. The pages are"
-              echo "below and in the \`nightly-pages\` artifact; decision 0067 has why."
+              echo "below and in the \`nightly-pages\` artifact; this workflow's publish job says why."
               # shellcheck disable=SC2086
               for page in $pages; do
                 echo; echo "<details><summary>$page</summary>"; echo

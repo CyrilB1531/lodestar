@@ -106,7 +106,7 @@ public sealed class RocAucParallelTests
     }
 
     /// <summary>
-    /// k=2, n=10 is the <c>ArrayPool</c> collision ADR 0018's <c>ScoreSource</c>
+    /// k=2, n=10 is the <c>ArrayPool</c> collision docs/guides/performance.md's <c>ScoreSource</c>
     /// section measures (<c>Rent(10).Length * 2 == Rent(20).Length</c>): the
     /// corpus's class counts, 3 and 5, do not collide, so only this fixture would
     /// catch a span sliced to the rented length reading the wrong column. Both
@@ -187,7 +187,7 @@ public sealed class RocAucParallelTests
     }
 
     /// <summary>
-    /// ADR 0018's "does not stop early" hazard: a naive <c>Stop</c> would cancel
+    /// docs/guides/performance.md's "does not stop early" hazard: a naive <c>Stop</c> would cancel
     /// unstarted iterations and report whichever class a worker reached first.
     /// <see cref="Reports_the_lowest_offending_class_not_the_fastest_worker"/>
     /// cannot catch that — its lowest failing class, 1, is one trivial class into
