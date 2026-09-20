@@ -1,7 +1,7 @@
 # 0152 — Sweep DataNet.Embeddings' comments against the rule that now counts them
 
 **Issue:** [#152](https://github.com/CyrilB1531/data.net/issues/152) · **Date:** 2026-08-14 ·
-**Branch:** `docs/152-sweep-embeddings-comments` · **Part of:** [#134](https://github.com/CyrilB1531/data.net/issues/134)
+**Branch:** `docs/152-sweep-embeddings-comments` · **Part of:** [#134](https://github.com/CyrilB1531/data.net/issues/134) · **Status:** written before the work
 
 ## Context
 

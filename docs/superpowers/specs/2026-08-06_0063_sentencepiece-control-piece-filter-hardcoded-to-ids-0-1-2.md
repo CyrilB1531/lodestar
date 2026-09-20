@@ -1,7 +1,7 @@
 # Design — #63: the control-piece filter, and the test that could not fail
 
 **Date:** 2026-08-06 · **Issue:** #63 · **Branch:** `fix/63-vacuous-control-piece-test` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Where the issue stands
 

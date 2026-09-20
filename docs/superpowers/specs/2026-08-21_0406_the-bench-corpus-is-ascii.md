@@ -1,6 +1,6 @@
 # 0406 — The bench corpus is ASCII, so no sweep can reach the wide regime
 
-**Issue:** [#0406](https://github.com/CyrilB1531/lodestar/issues/0406) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
+**Issue:** [#0406](https://github.com/CyrilB1531/lodestar/issues/0406) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
 
 ## Problem
 

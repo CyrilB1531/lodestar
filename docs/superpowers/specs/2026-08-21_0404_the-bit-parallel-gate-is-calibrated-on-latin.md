@@ -1,6 +1,6 @@
 # 0404 — The bit-parallel gate is calibrated on Latin
 
-**Issue:** [#0404](https://github.com/CyrilB1531/lodestar/issues/0404) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
+**Issue:** [#0404](https://github.com/CyrilB1531/lodestar/issues/0404) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
 
 ## Problem
 
@@ -16,4 +16,4 @@ Three things had to exist first, and each became its own issue:
 
 ## Where it ended
 
-[ADR 0047](../../decisions/0047-one-gate-per-kernel-not-one-per-alphabet.md), then [0048](../../decisions/0048-the-gate-depends-on-the-kernel-and-the-alphabet.md) amending it, then [0049](../../decisions/0049-two-gates-per-kernel-tested-where-the-width-is-known.md). **Three decisions on one question, each overturned by evidence the previous one lacked** — which is the record this thread leaves.
+[ADR 0047](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0047-one-gate-per-kernel-not-one-per-alphabet.md), then [0048](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0048-the-gate-depends-on-the-kernel-and-the-alphabet.md) amending it, then [0049](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0049-two-gates-per-kernel-tested-where-the-width-is-known.md). **Three decisions on one question, each overturned by evidence the previous one lacked** — which is the record this thread leaves.

@@ -1,7 +1,7 @@
 # 0441 — `Lodestar.Conformal`: split conformal prediction
 
 **Issue:** [#441](https://github.com/CyrilB1531/lodestar/issues/441) ·
-**Status:** accepted · **Date:** 2026-09-01
+**Status:** written before the work · **Date:** 2026-09-01
 
 ## Problem
 
@@ -37,7 +37,7 @@ library ships are not reliably the same thing:
   integer the ceiling form never leaves. MAPIE matches the ceiling form on every case measured —
   including `n = 19` at `alpha = 0.1`, where `(n + 1)(1 - alpha)` is exactly 18 and `higher` reads
   the 19th smallest. The ceiling form is therefore what is implemented, and the corpus asserts
-  MAPIE rather than numpy. [Decision 0070](../../decisions/0070-k-greater-than-n-returns-an-infinite-interval.md)
+  MAPIE rather than numpy. [Decision 0070](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0070-k-greater-than-n-returns-an-infinite-interval.md)
   records the measurement.
 - **Regression.** `SplitConformalRegressor(prefit=True)` over 30 calibration points at α = 0.1
   returns intervals whose half-width equals the hand-computed `q` to the last bit, on every test
@@ -59,7 +59,7 @@ than the level asked for — it under-covers — so `Quantile` returns `double.P
 instead, and `Interval` and `PredictionSet` carry it through to the whole line and the full label
 set. That is a real answer with real coverage, and hiding it would be the same mistake as repairing
 the empty prediction set.
-[Decision 0070](../../decisions/0070-k-greater-than-n-returns-an-infinite-interval.md) has the
+[Decision 0070](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0070-k-greater-than-n-returns-an-infinite-interval.md) has the
 three measurements and why throwing was the runner-up.
 
 ## Scope
@@ -87,7 +87,7 @@ a quantile or an interval.
 
 ## Placement
 
-Core tier per [decision 0069](../../decisions/0069-the-package-layout-as-built-and-what-enforces-it.md):
+Core tier per [decision 0069](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0069-the-package-layout-as-built-and-what-enforces-it.md):
 `net10.0;netstandard2.0`, zero dependencies, no inter-package edge in either direction. It takes
 arrays and returns numbers and has no reason to need anything else — which is also why it does not
 raise the `Abstractions` question that decision leaves open for Phase 2.

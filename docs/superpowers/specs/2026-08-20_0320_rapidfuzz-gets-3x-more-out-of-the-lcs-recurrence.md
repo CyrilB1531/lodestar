@@ -1,6 +1,6 @@
 # 0320 — rapidfuzz gets 3x more out of the LCS recurrence than we do
 
-**Issue:** [#0320](https://github.com/CyrilB1531/lodestar/issues/0320) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
+**Issue:** [#0320](https://github.com/CyrilB1531/lodestar/issues/0320) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
 
 ## Problem
 

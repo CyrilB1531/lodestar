@@ -1,7 +1,7 @@
 # Design — #68: stop Sonar reading the binary fixtures as text
 
 **Date:** 2026-08-06 · **Issue:** #68 · **Branch:** `chore/68-exclude-oracle-fixtures-from-sonar` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

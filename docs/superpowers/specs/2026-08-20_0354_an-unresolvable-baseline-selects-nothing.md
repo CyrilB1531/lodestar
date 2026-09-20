@@ -1,6 +1,6 @@
 # 0354 — An unresolvable baseline makes select_benchmarks select nothing, silently
 
-**Issue:** [#0354](https://github.com/CyrilB1531/lodestar/issues/0354) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-20
+**Issue:** [#0354](https://github.com/CyrilB1531/lodestar/issues/0354) · **Status:** **retrospective** — written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-20
 
 ## Problem
 

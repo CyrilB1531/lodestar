@@ -1,7 +1,7 @@
 # Design — #8: a changelog, and cutting 0.2.0
 
 **Date:** 2026-08-05 · **Issue:** #8 · **Branch:** `release/8-changelog-0.2.0` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

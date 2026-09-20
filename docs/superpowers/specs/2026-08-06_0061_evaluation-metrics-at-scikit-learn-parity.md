@@ -186,7 +186,7 @@ public static class RocAuc
 **`Averaging.None` does not exist; `PerClass` replaces it.** sklearn's
 `average=None` changes the return type based on an argument's value. In C# that
 would be a `Score` returning `double` that throws for one enum member out of
-five. Two methods state the same thing to the compiler.
+five. Two methods state the same thing to the compiler. · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 **`RocAuc.Score` and `RocAuc.MultiClass` have different names.** Both signatures
 would otherwise be `(ReadOnlySpan<int>, ReadOnlySpan<double>, int, …)`, making

@@ -1,7 +1,7 @@
 # 0438 — `Lodestar.Metrics` against ML.NET's evaluators
 
 **Issue:** [#438](https://github.com/CyrilB1531/lodestar/issues/438) ·
-**Status:** accepted · **Date:** 2026-08-31
+**Status:** written before the work · **Date:** 2026-08-31
 
 ## Problem
 
@@ -85,7 +85,7 @@ stops being a list and becomes a cost.
 ## What does not change
 
 No number reaches `docs/guides/performance.md` — shared container,
-[ADR 0051](../../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md). The class is
+[ADR 0051](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md). The class is
 in `bench-map.json`, selected by any change under `src/Lodestar.Metrics/`.
 
 ## Testing

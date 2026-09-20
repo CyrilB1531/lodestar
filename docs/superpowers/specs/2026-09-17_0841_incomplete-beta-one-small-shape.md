@@ -1,6 +1,6 @@
 # 0841 — The incomplete beta with one large and one small shape
 
-**Status:** accepted, 2026-09-17. Written after the measurement it records; stacked on #837.
+**Status:** **retrospective** — written 2026-09-17, after the measurement it records; stacked on #837.
 
 Issue: [#841](https://github.com/CyrilB1531/lodestar/issues/841), found while fixing
 [#837](https://github.com/CyrilB1531/lodestar/issues/837).

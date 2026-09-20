@@ -1,6 +1,6 @@
 # 0446 — A hand-merged nightly page silently keeps both sides
 
-**Issue:** [#0446](https://github.com/CyrilB1531/lodestar/issues/0446) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-27
+**Issue:** [#0446](https://github.com/CyrilB1531/lodestar/issues/0446) · **Status:** **retrospective** — written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-27
 
 ## Problem
 

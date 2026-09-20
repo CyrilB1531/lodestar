@@ -1,7 +1,7 @@
 # 0436 — Memory-mapping is blocked on a format, not on a measurement
 
 **Issue:** [#436](https://github.com/CyrilB1531/lodestar/issues/436) ·
-**Status:** superseded — see the amendment below · **Date:** 2026-08-29
+**Status:** **retrospective** — written 2026-08-29 from the commits that closed it; superseded — see the amendment below · **Date:** 2026-08-29
 
 > **Amendment, 2026-08-29.** This spec's body is left as written, and two of its claims did
 > not survive being measured. It says the case for a sidecar is *"size, and only size"* and
@@ -9,7 +9,7 @@
 > statement about base64 rather than about the JSON scan around it: on a runner the sidecar
 > floor is **2.02×** the artifact load. And #436 could start — it carried the format decision
 > itself, which is
-> [ADR 0055](../../decisions/0055-the-artifact-gets-a-binary-sidecar-once-a-block-can-be-ingested-whole.md).
+> [ADR 0055](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0055-the-artifact-gets-a-binary-sidecar-once-a-block-can-be-ingested-whole.md).
 > What the measurement added that nothing here anticipated: the rebuild through `Add` costs
 > three times the read, so the sidecar route that exists today is **0.66×** — slower than
 > what it would replace. The bulk ingest is the precondition, and it is the finding.
@@ -17,7 +17,7 @@
 ## Why this has a spec and no plan
 
 A plan in `docs/superpowers/plans/` is an instrument for work that can start. #436 cannot: it needs
-a decision that belongs to [ADR 0011](../../decisions/0011-persistence-format.md), and writing
+a decision that belongs to [ADR 0011](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0011-persistence-format.md), and writing
 tasks for it would produce checkboxes nobody may tick. What is worth writing down is the
 **blocking condition** — precisely enough that whoever revisits 0011 can see what turns on it, and
 precisely enough that nobody reopens #436 for the wrong reason.
@@ -31,7 +31,7 @@ file offset**. Today it is base64 inside a JSON string, which is none of the thr
 
 Not speed. ADR 0011's own update block settled the read side, and step 0
 ([#429](https://github.com/CyrilB1531/lodestar/issues/429),
-[ADR 0051](../../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)) settled
+[ADR 0051](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)) settled
 the write side: `base64_encode` costs 3.211 ms against `block_copy_floor`'s 3.251 ms for the same
 15.36 MB — **the encode costs nothing over moving the bytes**. Removing the encoding therefore buys
 no measurable time in either direction.

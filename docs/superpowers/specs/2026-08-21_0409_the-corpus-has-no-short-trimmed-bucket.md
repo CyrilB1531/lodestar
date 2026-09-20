@@ -1,12 +1,12 @@
 # 0409 — The corpus has no bucket whose trimmed pattern is short
 
-**Issue:** [#0409](https://github.com/CyrilB1531/lodestar/issues/0409) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
+**Issue:** [#0409](https://github.com/CyrilB1531/lodestar/issues/0409) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
 
 ## Problem
 
 **The corpus had no bucket the gate could see below 8.** A length-8 pair mutated at 10% **trims to a median pattern of 0**, in either alphabet — so every conclusion in that range rested on the length-32 bucket alone, whose median pattern is 16 with 70% of its pairs at or above 12.
 
-**That is above the range where the curves separate**, and it is why [decision 0047](../../decisions/0047-one-gate-per-kernel-not-one-per-alphabet.md) concluded from it that no alphabet wants a different gate.
+**That is above the range where the curves separate**, and it is why [decision 0047](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0047-one-gate-per-kernel-not-one-per-alphabet.md) concluded from it that no alphabet wants a different gate.
 
 ## What shipped
 

@@ -1,6 +1,6 @@
 # 0374 — The index artifact is 1.34x larger on disk
 
-**Issue:** [#0374](https://github.com/CyrilB1531/lodestar/issues/0374) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
+**Issue:** [#0374](https://github.com/CyrilB1531/lodestar/issues/0374) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
 
 ## Problem
 
@@ -8,7 +8,7 @@ The text format's expansion is the cost it actually carries, and it had been arg
 
 ## Where the argument moved
 
-The size is what a sidecar format would buy, and **the speed is not**: [#324](https://github.com/CyrilB1531/lodestar/issues/324) found decoding costs ~1.3 ms *over* moving the bytes, and [ADR 0051](../../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)'s step 0 later found the same on the write side. So [ADR 0011](../../decisions/0011-persistence-format.md)'s update block concludes a binary format **"should be argued on the size rather than on the speed"**, and that is where it stands.
+The size is what a sidecar format would buy, and **the speed is not**: [#324](https://github.com/CyrilB1531/lodestar/issues/324) found decoding costs ~1.3 ms *over* moving the bytes, and [ADR 0051](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)'s step 0 later found the same on the write side. So [ADR 0011](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0011-persistence-format.md)'s update block concludes a binary format **"should be argued on the size rather than on the speed"**, and that is where it stands.
 
 ## What this lot also surfaced
 

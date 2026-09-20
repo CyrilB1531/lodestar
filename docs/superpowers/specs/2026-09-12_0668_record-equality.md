@@ -1,6 +1,6 @@
 # 0668 — A record with a reference-typed member implements its own equality
 
-**Status:** accepted, 2026-09-12. Written before the work.
+**Status:** written before the work, 2026-09-12.
 
 **Issue:** [#668](https://github.com/CyrilB1531/lodestar/issues/668), surfaced while reviewing
 [#666](https://github.com/CyrilB1531/lodestar/pull/666), where "could this options type be a

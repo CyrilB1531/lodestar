@@ -1,6 +1,6 @@
 # 0210 — average_precision_score is a sum, not a trapezoid
 
-**Issue:** [#0210](https://github.com/CyrilB1531/lodestar/issues/0210) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
+**Issue:** [#0210](https://github.com/CyrilB1531/lodestar/issues/0210) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
 
 ## Problem
 

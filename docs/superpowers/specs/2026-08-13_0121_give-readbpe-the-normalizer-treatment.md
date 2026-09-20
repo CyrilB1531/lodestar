@@ -1,7 +1,7 @@
 # 0121 — Give ReadBpe the normalizer treatment its siblings already have
 
 **Issue:** [#121](https://github.com/CyrilB1531/data.net/issues/121) · **Date:** 2026-08-13 ·
-**Branch:** `feat/121-bpe-normalizer` · **Lot 4 of:** [#105](https://github.com/CyrilB1531/data.net/issues/105)
+**Branch:** `feat/121-bpe-normalizer` · **Lot 4 of:** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Status:** written before the work
 
 ## Context
 
@@ -35,7 +35,7 @@ refuses it over an `NFC`.
 **Two corrections the survey forced, recorded because both were nearly built on.**
 
 - The lot was first scoped around Llama-2's `Sequence[Prepend "▁", Replace " " → "▁"]` as "the only real
-  uncovered case". [ADR 0017 §3](../../decisions/0017-bpe-parity-scope.md) says Llama-2 and
+  uncovered case". [ADR 0017 §3](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0017-bpe-parity-scope.md) says Llama-2 and
   Mistral v0.1 are SentencePiece BPE with a `Metaspace` pre-tokenizer — a third lineage, refused for
   `byte_fallback` *and* for its pre-tokenizer shape. Reproducing those two normalizers would unblock
   nothing: the file is refused two checks later.
@@ -53,7 +53,7 @@ normalizer here breaks it: NFC and NFKC recompose, NFD and NFKD decompose, and a
 
 So BPE copies the sibling's *shape* — two scanners split by `AddedToken.Normalized` — but not its
 mechanism. It normalizes **each gap in isolation**, which removes the assumption instead of extending it,
-and which is what [ADR 0022 §10](../../decisions/0022-added-token-matching-flags.md) already settled: "added
+and which is what [ADR 0022 §10](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0022-added-token-matching-flags.md) already settled: "added
 tokens are split out first, raw entries against raw text and normalized entries against normalized text,
 and only the gaps between them are normalized".
 
@@ -102,7 +102,7 @@ With no normalizer declared the *forms* list is empty, so normalization is the i
 scanner is not necessarily empty: `AddedToken.Normalized` defaults to `!Special` independently of a declared
 normalizer, so any file with a non-special added token already populates it (`bpe_added_token_flags.json`'s
 `<m>` is one). What changes for those files is that a raw entry now beats an earlier or longer normalized
-match, HuggingFace's own two-pass order ([ADR 0022 §10](../../decisions/0022-added-token-matching-flags.md))
+match, HuggingFace's own two-pass order ([ADR 0022 §10](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0022-added-token-matching-flags.md))
 rather than the single combined scan pre-#121 BPE used. None of the existing corpora has a raw and
 normalized entry competing for the same span, so **no oracle byte moves** — but that reordering itself is
 unmeasured there; `bpe_normalizer.json`'s precedence pipelines measure it instead.

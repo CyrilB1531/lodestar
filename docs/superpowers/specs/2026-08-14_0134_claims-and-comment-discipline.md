@@ -1,6 +1,6 @@
 # 0134 — Comments: what they may claim, and how long they may be
 
-**Issue:** [#134](https://github.com/CyrilB1531/data.net/issues/134) · **Date:** 2026-08-14
+**Issue:** [#134](https://github.com/CyrilB1531/data.net/issues/134) · **Date:** 2026-08-14 · **Status:** written before the work
 
 ## Context
 

@@ -1,10 +1,10 @@
 # 0324 — embedding_index_load is 5x to 9x behind numpy
 
-**Issue:** [#0324](https://github.com/CyrilB1531/lodestar/issues/0324) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
+**Issue:** [#0324](https://github.com/CyrilB1531/lodestar/issues/0324) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
 
 ## Problem
 
-The load direction was the furthest behind Python anything here published, and [ADR 0011](../../decisions/0011-persistence-format.md) had priced it — base64 inside JSON against `numpy.load`'s raw block — without anyone revisiting it since.
+The load direction was the furthest behind Python anything here published, and [ADR 0011](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0011-persistence-format.md) had priced it — base64 inside JSON against `numpy.load`'s raw block — without anyone revisiting it since.
 
 ## What the profile said, and it was not the format
 
@@ -21,7 +21,7 @@ The load direction was the furthest behind Python anything here published, and [
 
 ## What was decided, and the sentence that outlived the lot
 
-`GC.AllocateUninitializedArray` recovered only the zeroing — *"most of that phase is the operating system committing pages on first touch, which no allocation strategy avoids."* That sentence is what [#435](https://github.com/CyrilB1531/lodestar/issues/435) is the exception to, and what [ADR 0051](../../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md) found again on the write side.
+`GC.AllocateUninitializedArray` recovered only the zeroing — *"most of that phase is the operating system committing pages on first touch, which no allocation strategy avoids."* That sentence is what [#435](https://github.com/CyrilB1531/lodestar/issues/435) is the exception to, and what [ADR 0051](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md) found again on the write side.
 
 ## What shipped
 

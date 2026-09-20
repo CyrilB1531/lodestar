@@ -1,6 +1,6 @@
 # 0379 — The nightly baseline on a feature branch is not that branch's own diff
 
-**Issue:** [#0379](https://github.com/CyrilB1531/lodestar/issues/0379) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
+**Issue:** [#0379](https://github.com/CyrilB1531/lodestar/issues/0379) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
 
 ## Problem
 

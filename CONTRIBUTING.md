@@ -114,6 +114,34 @@ green checks is the expected flow here, not a shortcut — the pull request stil
 earns its keep as the place CI runs against the merge result, and as the record
 of why a change was made.
 
+## Specs and plans
+
+A design spec goes in `docs/superpowers/specs/`, named
+`<date>_<issue id padded to 4>_<slug>.md` — a second spec on one issue takes a letter (`0122b`).
+The skills that write it are vendored under [`.claude/skills/`](.claude/skills/README.md); read
+`brainstorming` and `writing-plans` rather than copying a neighbouring file.
+
+**The spec is committed. The plan is not.** A spec records what was decided, what was measured and
+what was rejected, so it stays worth reading after the work merges — and it is still a record when
+it is written late. A plan is an instrument for work that has not started, with checkbox steps and
+a `Branch:` line; once the pull request merges, the branch is gone and the boxes are checkboxes
+nobody may tick. So write the plan beside the work — the session's scratch directory, or a path
+`.git/info/exclude` keeps out, as the `.superpowers/` workspace already is — and leave it there.
+
+**A spec opens its `**Status:**` with one of three clauses, and nothing else:**
+
+| clause | what it says |
+| --- | --- |
+| `written before the work` | the spec led; the work followed it |
+| `written with the work` | spec and work moved together, in one commit |
+| `**retrospective**` | the work merged first; the spec caught up |
+
+Anything after the clause is free text: the date it was written, an amendment, a note that the work
+was never done. A retrospective spec is **dated by the work, not by the day it was written**, so the
+status line is the only place that says the file arrived late — put the writing date there.
+[`tools/check_spec_status.py`](tools/README.md#check_spec_statuspy) reads the clause, the file name
+and the empty `plans/`, and runs in the pre-commit hook.
+
 ## Definition of done
 
 A change is not finished until all of these hold:
@@ -244,15 +272,15 @@ git config core.hooksPath .githooks
 git config core.hooksPath .githooks
 ```
 
-`.githooks/pre-commit` then runs the nineteen offline guards —
+`.githooks/pre-commit` then runs the twenty offline guards —
 `check_machine_paths.py`, `check_sdd_citations.py`, `check_comment_length.py`, `check_version_floor.py`,
 `check_sample_culture.py`, `check_bench_map.py`, `check_sample_coverage.py`,
 `check_netstandard_guards.py`, `check_no_console_writeline.py`,
 `check_readme_pack_loop.py`, `check_claude_md_packages.py`,
 `check_readme_packages.py`, `check_release_workflow_packages.py`, `check_unreleased.py`,
 `check_requirements_lock_sync.py`, `check_gpu_tests_force_cpu.py`,
-`check_adr_frontmatter.py`, `check_adr_index_sync.py` and
-`check_adr_index_is_cited.py` — before every commit, reports every one
+`check_adr_frontmatter.py`, `check_adr_index_sync.py`, `check_adr_index_is_cited.py` and
+`check_spec_status.py` — before every commit, reports every one
 that failed rather than the first, and refuses the commit if any did. It
 resolves `python3` then `python` — neither name is safe to assume on both
 platforms — and, on a machine with neither, says so and lets the commit

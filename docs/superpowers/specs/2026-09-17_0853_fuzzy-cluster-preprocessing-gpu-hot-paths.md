@@ -1,6 +1,6 @@
 # 0853 — Fuzzy scoring and selection, clustering, scaling, encoding and upload
 
-**Status:** accepted, 2026-09-17. Written after the measurement it records.
+**Status:** **retrospective** — written 2026-09-17, after the measurement it records.
 
 Issue: [#853](https://github.com/CyrilB1531/lodestar/issues/853), found by a performance review of `main`.
 

@@ -1,6 +1,6 @@
 # 0811 — `LogRank.Test` in one sorted walk
 
-**Status:** accepted, 2026-09-16. Written after the measurement it records.
+**Status:** **retrospective** — written 2026-09-16, after the measurement it records.
 
 Issue: [#811](https://github.com/CyrilB1531/lodestar/issues/811), found by a performance review of `main`.
 

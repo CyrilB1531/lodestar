@@ -1,6 +1,6 @@
 # 0861 — Macro and weighted averages follow scikit-learn's `_nanaverage`
 
-**Status:** accepted, 2026-09-17. Written with the fix it records.
+**Status:** written with the work, 2026-09-17, with the fix it records.
 
 Issue: [#861](https://github.com/CyrilB1531/lodestar/issues/861), found by the systematic review of `main`.
 

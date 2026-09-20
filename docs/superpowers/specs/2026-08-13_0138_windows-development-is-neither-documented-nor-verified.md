@@ -1,7 +1,7 @@
 # 0138 — Windows development is neither documented nor verified
 
 **Issue:** [#138](https://github.com/CyrilB1531/data.net/issues/138) · **Date:** 2026-08-13 ·
-**Branch:** `chore/138-windows-development` · **Supersedes:** [#137](https://github.com/CyrilB1531/data.net/issues/137)
+**Branch:** `chore/138-windows-development` · **Supersedes:** [#137](https://github.com/CyrilB1531/data.net/issues/137) · **Status:** written before the work
 
 ## Context
 

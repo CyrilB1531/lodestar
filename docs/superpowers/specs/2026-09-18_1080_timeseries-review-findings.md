@@ -1,6 +1,6 @@
 # 1080 — The straight line one test refuses, the other answers, and the refusal that translates the wrong error
 
-**Status:** accepted, 2026-09-18. Written with the fix it records.
+**Status:** written with the work, 2026-09-18, with the fix it records.
 
 Issue: [#1080](https://github.com/CyrilB1531/lodestar/issues/1080), found by the `code-review` run on
 [#1034](https://github.com/CyrilB1531/lodestar/pull/1034) and [#1035](https://github.com/CyrilB1531/lodestar/pull/1035)

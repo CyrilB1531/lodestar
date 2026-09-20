@@ -1,12 +1,12 @@
 # 0470 — Pooling was refused without being timed
 
 **Issue:** [#470](https://github.com/CyrilB1531/lodestar/issues/470) ·
-**Status:** accepted — implemented by [ADR 0054](../../decisions/0054-the-payload-buffer-is-pooled-after-all-because-the-collection-is-the-cost.md) ·
+**Status:** **retrospective** — written 2026-08-29 from the commits that closed it; implemented by [ADR 0054](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0054-the-payload-buffer-is-pooled-after-all-because-the-collection-is-the-cost.md) ·
 **Date:** 2026-08-29
 
 ## The defect this records
 
-[ADR 0053](../../decisions/0053-the-payload-buffer-is-not-pooled-because-residency-outlives-the-load.md)
+[ADR 0053](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0053-the-payload-buffer-is-not-pooled-because-residency-outlives-the-load.md)
 closed [#435](https://github.com/CyrilB1531/lodestar/issues/435) by refusing to rent the payload
 buffer. It carried two columns and decided on them:
 
@@ -20,7 +20,7 @@ Pooling removes the allocation and the collection it provokes, which is a differ
 8.1% was never its ceiling.
 
 That is a method failure, not a judgement call: this repository refuses changes on measurement
-([0052](../../decisions/0052-pre-sizing-the-artifact-file-buys-nothing-on-a-delayed-allocation-filesystem.md)
+([0052](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0052-pre-sizing-the-artifact-file-buys-nothing-on-a-delayed-allocation-filesystem.md)
 is the model) and 0053 refused one on an absence.
 
 ## What the corpus is

@@ -1,6 +1,6 @@
 # 1081 — Six CI findings, a docs claim the docs-only path stopped honouring, two contradictory comments, a count of 21 that is 18, a stager that copies more than MSBuild, and an unwritten version invariant
 
-**Status:** accepted, 2026-09-18. Written with the fix it records.
+**Status:** written with the work, 2026-09-18, with the fix it records.
 
 Issues: [#1081](https://github.com/CyrilB1531/lodestar/issues/1081) (six findings from the
 `code-review` run on [#1070](https://github.com/CyrilB1531/lodestar/pull/1070) and

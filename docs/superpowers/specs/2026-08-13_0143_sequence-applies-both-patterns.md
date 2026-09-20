@@ -1,6 +1,6 @@
 # 0143 — A `Split` + `ByteLevel` `Sequence` applies both patterns
 
-**Issue:** [#143](https://github.com/CyrilB1531/data.net/issues/143) · **Found under:** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Date:** 2026-08-13
+**Issue:** [#143](https://github.com/CyrilB1531/data.net/issues/143) · **Found under:** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Date:** 2026-08-13 · **Status:** written before the work
 
 ## Context
 
@@ -75,7 +75,7 @@ Five of the eight above diverge. Qwen2 diverges identically. English contraction
 which is why nothing noticed: **every French elision fails**, and Irish and Italian names with them.
 
 The failure is silent — different tokens, different ids, no exception — on the two byte-level models
-[ADR 0017](../../decisions/0017-bpe-parity-scope.md) names as this library's parity targets.
+[ADR 0017](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0017-bpe-parity-scope.md) names as this library's parity targets.
 
 ### D4 — `add_prefix_space` sits *between* the two splits, and this lot does not move it
 
@@ -163,7 +163,7 @@ Two models, `use_regex` on and off, over one text set:
 All generated with **`add_prefix_space: false`**, and that is a decision rather than an omission. D4
 established that HuggingFace prepends the space between the two splits while DataNet prepends it per
 segment; with `add_prefix_space` on, every case above would measure that divergence on top of this one and
-none of them would discriminate. [ADR 0022 §10](../../decisions/0022-added-token-matching-flags.md)
+none of them would discriminate. [ADR 0022 §10](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0022-added-token-matching-flags.md)
 recorded the same reasoning when `bpe_added_token_flags.json` was generated with it off, for the same
 reason, and hands the prefix-space rule to #105.
 

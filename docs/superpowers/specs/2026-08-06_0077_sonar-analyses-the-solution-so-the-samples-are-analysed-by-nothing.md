@@ -1,7 +1,7 @@
 # Design — #77: analyse the samples, which the solution build never reached
 
 **Date:** 2026-08-06 · **Issue:** #77 · **Branch:** `chore/77-sonar-analyses-the-samples` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

@@ -227,6 +227,12 @@ jobs:
       # opposite of what was decided, and that reader is not looking for an index.
       - name: CLAUDE.md and CONTRIBUTING.md send a reader to the ADR index
         run: python tools/check_adr_index_is_cited.py
+      # A spec is kept and a plan is not: the spec records what was decided, the plan
+      # is an instrument for work that has not started, and the branch it names does
+      # not outlive the pull request that closes its issue. 116 plans, 88,745 lines,
+      # were tracked before #1104 and no file outside docs/superpowers/ cited one.
+      - name: Every spec says when it was written, and no plan is committed
+        run: python tools/check_spec_status.py
       # An accepted ADR is never edited, addition included -- "Amend 0004 in a decision
       # of its own instead of editing it" is why even a `> update:` blockquote no longer
       # passes here (#399). Only a pull_request event has a base commit to diff against;

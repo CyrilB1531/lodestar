@@ -61,9 +61,9 @@ def test_a_placeholder_with_no_task_number_is_not_a_citation(tmp_path):
     assert _tree(tmp_path, {"README.md": "each task writes task-N-report.md\n"}) == []
 
 
-def test_plans_and_the_vendored_skills_describe_the_workspace_and_are_exempt(tmp_path):
+def test_the_specs_and_the_vendored_skills_describe_the_workspace_and_are_exempt(tmp_path):
     files = {
-        "docs/superpowers/plans/2026-09-05_0442_lodestar-stats.md": WORKSPACE,
+        "docs/superpowers/specs/2026-09-05_0442_lodestar-stats.md": WORKSPACE,
         ".claude/skills/subagent-driven-development/scripts/task-brief": BRIEF,
     }
     assert _tree(tmp_path, files) == []

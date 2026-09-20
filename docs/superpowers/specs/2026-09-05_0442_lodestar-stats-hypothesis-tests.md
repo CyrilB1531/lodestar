@@ -1,6 +1,6 @@
 # 0442 — `Lodestar.Stats`: the ten hypothesis-test families, at scipy parity
 
-**Status:** accepted, 2026-09-05. Written before the work.
+**Status:** written before the work, 2026-09-05.
 
 **Issue:** [#442](https://github.com/CyrilB1531/lodestar/issues/442), the `Stats` checkbox of Phase 4.
 
@@ -66,7 +66,7 @@ wrong, in opposite directions, and the spec is where they get fixed:
   the answer cannot be hidden, so `ExactMethod` joins the enums. `NanPolicy`
   leaves, per Scope above. Net: +1.
 - **14 sample files, not 18.** `tools/check_sample_coverage.py:34` enforces
-  `CONVERTED` packages, and [decision 0041](../../decisions/0041-one-sample-file-per-public-class.md)
+  `CONVERTED` packages, and [decision 0041](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0041-one-sample-file-per-public-class.md)
   excludes an enum: it is demonstrated through the class whose parameter it is.
   Five enums, fourteen classes and records.
 
@@ -136,7 +136,7 @@ them uses. Publishing it later stays possible; unpublishing it would not.
 | Royston AS R94 | `ShapiroWilk`'s coefficients and p-value |
 
 Royston's AS R94 and the continued-fraction expansions are **published
-algorithm descriptions**, which is what [ADR 0003](../../decisions/0003-provenance-and-licensing.md)
+algorithm descriptions**, which is what [ADR 0003](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0003-provenance-and-licensing.md)
 requires. No reference implementation is transcribed. Reading scipy to diagnose
 one failing case is diagnosis and stays allowed.
 
@@ -194,7 +194,7 @@ and the corpus deliberately includes tail cases below `1e-15`.
 
 `tools/compare_oracles.py` is **not** changed. Its subject is corpus
 reproducibility, not assertion strength, and weakening one exact ordering to
-serve one package is the shape [decision 0079](../../decisions/0079-tied-textrank-scores-canonicalize-by-phrase-not-blas.md)
+serve one package is the shape [decision 0079](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0079-tied-textrank-scores-canonicalize-by-phrase-not-blas.md)
 already refused.
 
 ### Corpora
@@ -212,7 +212,7 @@ degenerate input each test refuses.
 
 `src/Lodestar.Stats`, **core tier**, `net10.0;netstandard2.0`, no external
 dependency, version **0.1.0** in its own `Version.props` per
-[decision 0012](../../decisions/0012-per-package-versioning.md). It creates **no
+[decision 0012](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0012-per-package-versioning.md). It creates **no
 inter-package edge** — nothing depends on it and it depends on nothing — so it
 releases on its own schedule, as `Lodestar.Metrics` and `Lodestar.Conformal` do.
 
@@ -225,7 +225,7 @@ The wiring, each item a gate that fails without it:
   row pointing at `docs/reference/stats/tests`;
 - `tools/check_nuspec_dependencies.py` — `Lodestar.Stats` in `EXPECTED` with an
   empty dependency set, which is what makes the core-tier rule of
-  [decision 0076](../../decisions/0076-a-core-package-carries-no-external-dependency.md)
+  [decision 0076](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0076-a-core-package-carries-no-external-dependency.md)
   fail a build rather than a review;
 - `tools/check_sample_coverage.py` — `Lodestar.Stats` appended to `CONVERTED`,
   and the fourteen `<Type>Sample.cs` files that satisfies;

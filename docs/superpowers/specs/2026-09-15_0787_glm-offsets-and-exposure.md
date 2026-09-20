@@ -1,12 +1,12 @@
 # 0787 — Offsets and exposure on the generalized linear model, at `statsmodels` parity
 
-**Status:** accepted, 2026-09-15. Written before the work.
+**Status:** written before the work, 2026-09-15.
 
 Issue: [#787](https://github.com/CyrilB1531/lodestar/issues/787), a sub-issue of the umbrella
 [#777](https://github.com/CyrilB1531/lodestar/issues/777).
 
-Reading: [decision 0104](../../decisions/0104-generalized-linear-models-are-written-natively.md) and
-[decision 0111](../../decisions/0111-the-generalized-linear-model-does-not-earn-its-own-package.md). Neither is
+Reading: [decision 0104](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0104-generalized-linear-models-are-written-natively.md) and
+[decision 0111](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0111-the-generalized-linear-model-does-not-earn-its-own-package.md). Neither is
 amended. 0111 is applied by 0114, 0128 and 0133, none of which touches offsets.
 
 ## Problem

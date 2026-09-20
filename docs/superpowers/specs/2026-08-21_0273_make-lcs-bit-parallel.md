@@ -1,6 +1,6 @@
 # 0273 — Make LCS bit-parallel, which is where Indel's fast path lives
 
-**Issue:** [#0273](https://github.com/CyrilB1531/lodestar/issues/0273) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
+**Issue:** [#0273](https://github.com/CyrilB1531/lodestar/issues/0273) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
 
 ## Problem
 

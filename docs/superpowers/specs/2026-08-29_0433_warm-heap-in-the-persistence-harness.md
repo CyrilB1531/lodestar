@@ -1,7 +1,7 @@
 # 0433 — A benchmark process that saves before it loads is measuring a warmed heap
 
 **Issue:** [#433](https://github.com/CyrilB1531/lodestar/issues/433) ·
-**Status:** proposed · **Date:** 2026-08-29
+**Status:** **retrospective** — written 2026-08-29 from the commits that closed it; proposed · **Date:** 2026-08-29
 
 ## Problem
 

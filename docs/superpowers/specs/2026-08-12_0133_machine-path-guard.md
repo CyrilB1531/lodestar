@@ -1,6 +1,6 @@
 # 0133 — Nothing stops a machine path from being committed
 
-**Issue:** [#133](https://github.com/CyrilB1531/data.net/issues/133) · **Date:** 2026-08-12
+**Issue:** [#133](https://github.com/CyrilB1531/data.net/issues/133) · **Date:** 2026-08-12 · **Status:** **retrospective** — written 2026-08-12 from the commits that closed it
 
 ## Context
 

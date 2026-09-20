@@ -1,6 +1,6 @@
 # Seven BERT-path findings in Lodestar.Embeddings — design
 
-**Status:** accepted, written before the work.
+**Status:** written before the work.
 **Issues:** [#1048](https://github.com/CyrilB1531/lodestar/issues/1048),
 [#1049](https://github.com/CyrilB1531/lodestar/issues/1049),
 [#1050](https://github.com/CyrilB1531/lodestar/issues/1050),

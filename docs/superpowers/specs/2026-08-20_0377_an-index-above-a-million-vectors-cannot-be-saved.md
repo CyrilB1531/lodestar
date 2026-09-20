@@ -1,6 +1,6 @@
 # 0377 — An index above ~1 million vectors cannot be saved
 
-**Issue:** [#0377](https://github.com/CyrilB1531/lodestar/issues/0377) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
+**Issue:** [#0377](https://github.com/CyrilB1531/lodestar/issues/0377) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
 
 ## Problem
 

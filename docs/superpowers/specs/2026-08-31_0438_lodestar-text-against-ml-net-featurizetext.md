@@ -1,7 +1,7 @@
 # 0438 — `Lodestar.Text` against ML.NET's `FeaturizeText`
 
 **Issue:** [#438](https://github.com/CyrilB1531/lodestar/issues/438) ·
-**Status:** accepted · **Date:** 2026-08-31
+**Status:** written before the work · **Date:** 2026-08-31
 
 ## Problem
 
@@ -74,7 +74,7 @@ ML.NET binds its output column by reflecting over exactly that shape.
 ## What does not change
 
 No number reaches `docs/guides/performance.md` — the run is a shared container, and
-[ADR 0051](../../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md) settled what
+[ADR 0051](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md) settled what
 that is worth. The class is in `bench-map.json`, so the nightly publishes its ratios; the
 name-the-machine page takes the rest.
 

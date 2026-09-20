@@ -1,6 +1,6 @@
 # Three relocation findings in Lodestar.Cluster — design
 
-**Status:** accepted — **retrospective**, written the same day from the work, which was done
+**Status:** **retrospective** — written the same day from the work, which was done
 before the spec; no plan, since a plan is for work not yet started.
 **Issues:** [#1043](https://github.com/CyrilB1531/lodestar/issues/1043),
 [#1047](https://github.com/CyrilB1531/lodestar/issues/1047),

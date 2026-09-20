@@ -1,6 +1,6 @@
 # 0122b — The prefix space belongs to the ByteLevel step
 
-**Issue:** [#122](https://github.com/CyrilB1531/data.net/issues/122) · **Umbrella:** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Date:** 2026-08-14
+**Issue:** [#122](https://github.com/CyrilB1531/data.net/issues/122) · **Umbrella:** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Date:** 2026-08-14 · **Status:** written before the work
 
 The second and last half of #122. The first half — a pre-tokenizer that does not split — shipped as
 [PR #165](https://github.com/CyrilB1531/data.net/pull/165) and deliberately left this rule open, because it
@@ -62,7 +62,7 @@ Every published `Sequence[Split, ByteLevel]` model that could be read declares `
 | deepseek-coder-1.3b-base | `deepseek-ai/deepseek-coder-1.3b-base` | `false` | `false` |
 
 `meta-llama/Meta-Llama-3-8B` is gated and returns 401, so it was read from the two ungated mirrors
-[ADR 0017 §5](../../decisions/0017-bpe-parity-scope.md) already established for exactly this purpose.
+[ADR 0017 §5](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0017-bpe-parity-scope.md) already established for exactly this purpose.
 
 **So this lot fixes a wrong answer nobody is currently getting from a published file.** It is reachable
 from `BpeVocabulary` in three lines, which is why it is worth fixing rather than documenting — but the

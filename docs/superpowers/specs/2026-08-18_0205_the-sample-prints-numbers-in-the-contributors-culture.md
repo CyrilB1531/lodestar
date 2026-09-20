@@ -1,6 +1,6 @@
 # 0205 — The sample prints 85 numbers in the contributor's culture
 
-**Issue:** [#0205](https://github.com/CyrilB1531/lodestar/issues/0205) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
+**Issue:** [#0205](https://github.com/CyrilB1531/lodestar/issues/0205) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
 
 ## Problem
 

@@ -1,11 +1,11 @@
 # 0788 — The multinomial logit, at `statsmodels` parity
 
-**Status:** accepted, 2026-09-16. Written before the work.
+**Status:** written before the work, 2026-09-16.
 
 Issue: [#788](https://github.com/CyrilB1531/lodestar/issues/788), a sub-issue of the umbrella
 [#777](https://github.com/CyrilB1531/lodestar/issues/777).
 
-Decision: [0136](../../decisions/0136-the-multinomial-logit-is-written-and-the-ordered-model-is-not.md). It records
+Decision: [0136](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0136-the-multinomial-logit-is-written-and-the-ordered-model-is-not.md). It records
 the reproducibility measurements, the .NET survey and why `OrderedModel` is not written. This spec is the
 multinomial logit alone.
 

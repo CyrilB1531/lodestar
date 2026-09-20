@@ -1,6 +1,6 @@
 # 0300 — The equality table is sized to Latin-1 rather than to the pattern
 
-**Issue:** [#0300](https://github.com/CyrilB1531/lodestar/issues/0300) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
+**Issue:** [#0300](https://github.com/CyrilB1531/lodestar/issues/0300) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
 
 ## Problem
 

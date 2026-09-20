@@ -1,6 +1,6 @@
 # 0415 — Lodestar.Fuzzy's floor names a Lodestar.Text that predates its kernels
 
-**Issue:** [#0415](https://github.com/CyrilB1531/lodestar/issues/0415) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
+**Issue:** [#0415](https://github.com/CyrilB1531/lodestar/issues/0415) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
 
 ## Problem
 

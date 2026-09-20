@@ -1,7 +1,7 @@
 # 0317 — `byte_fallback` resolves a symbol into byte pieces, not into the unknown token
 
 **Issue:** [#317](https://github.com/CyrilB1531/lodestar/issues/317) ·
-**Status:** accepted · **Date:** 2026-08-31
+**Status:** written before the work · **Date:** 2026-08-31
 
 ## Problem
 
@@ -10,7 +10,7 @@ Llama-2 and Mistral v0.1. [#316](https://github.com/CyrilB1531/lodestar/issues/3
 first of the two refusals they hit — the whitespace escape. This lot takes the second, and it is
 the one that opens the door: after it, both files load.
 
-[Decision 0050 §3](../../decisions/0050-the-sentencepiece-bpe-lineage-stays-a-bpe-model.md)
+[Decision 0050 §3](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0050-the-sentencepiece-bpe-lineage-stays-a-bpe-model.md)
 already settled *that* `byte_fallback` is reproduced rather than refused. It did not settle
 *what* to reproduce, and #317 is explicit that a boolean does not express it:
 
@@ -208,13 +208,13 @@ Decode cannot work on the concatenated buffer: `<0xC3>` is a *token*, and its si
 nothing once joined. So `Append` gains the branch — a token `BytePieces.TryValue` recognises goes
 to a pending byte buffer, and any other token flushes that buffer through `Utf8Lossy` first.
 `Utf8Lossy` is already the substitution
-[decision 0023](../../decisions/0023-byte-level-decode-substitutes.md) settled, so a lone
+[decision 0023](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0023-byte-level-decode-substitutes.md) settled, so a lone
 `<0xC3>` decodes to U+FFFD rather than throwing — measured, `tokenizers` does the same.
 
 The declared `decoder` block is **read**, not assumed: the `Sequence` above and a bare
 `ByteFallback` are reproduced, and any other shape is refused by name, which is 0050 §4's rule
 applied to the decode side. That closes what
-[decision 0062](../../decisions/0062-the-two-metaspace-spellings-part-on-the-prepend-twice.md)
+[decision 0062](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0062-the-two-metaspace-spellings-part-on-the-prepend-twice.md)
 left open, where a `Metaspace` decoder loaded and was ignored.
 
 ## What proves it

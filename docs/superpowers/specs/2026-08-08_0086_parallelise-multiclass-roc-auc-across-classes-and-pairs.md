@@ -1,7 +1,7 @@
 # Parallelising multiclass ROC-AUC — design
 
 **Issue:** [#86](https://github.com/CyrilB1531/data.net/issues/86) ·
-**Date:** 2026-08-08 · **Package:** `DataNet.Metrics`
+**Date:** 2026-08-08 · **Package:** `DataNet.Metrics` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

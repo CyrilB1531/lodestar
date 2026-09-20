@@ -1,7 +1,7 @@
 # 0466 — The .npy read copies the block three times, where numpy copies it once
 
 **Issue:** [#466](https://github.com/CyrilB1531/lodestar/issues/466) ·
-**Status:** accepted, amended twice — see the amendments at the end · **Date:** 2026-08-30
+**Status:** written before the work; amended twice — see the amendments at the end · **Date:** 2026-08-30
 
 ## Problem
 
@@ -75,7 +75,7 @@ public readonly record struct NpyBlock(ReadOnlyMemory<float> Values, IReadOnlyLi
 
 `MemoryMarshal.TryGetArray` answers true for a stream-read block's array and false for a
 memory-manager view, so the distinction appears to fall out for free. **It does not, and taking
-it would open a hole in [ADR 0056](../../decisions/0056-a-block-may-be-adopted-and-the-invariant-is-the-callers-to-keep.md).**
+it would open a hole in [ADR 0056](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0056-a-block-may-be-adopted-and-the-invariant-is-the-callers-to-keep.md).**
 
 `NpyBlock` is a `readonly record struct` with a public positional constructor. Anyone can build
 one around a `float[]` they still hold; inference would report it adoptable, and
@@ -207,7 +207,7 @@ other target.
 
 `Read(ReadOnlyMemory<byte>)` is unaffected and copies nothing on either target: nothing on that
 path depends on a `Stream` API.
-[Decision 0057](../../decisions/0057-the-npy-read-serves-a-stream-and-a-buffer-differently.md)
+[Decision 0057](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0057-the-npy-read-serves-a-stream-and-a-buffer-differently.md)
 records the split as a consequence of the two-entry-point shape rather than as a discovery under
 it.
 

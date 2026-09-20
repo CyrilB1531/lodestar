@@ -1,6 +1,6 @@
 # 0262 — Weight a ranking metric in the sample, the way #223 made possible
 
-**Issue:** [#0262](https://github.com/CyrilB1531/lodestar/issues/0262) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
+**Issue:** [#0262](https://github.com/CyrilB1531/lodestar/issues/0262) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
 
 ## Problem
 
@@ -14,4 +14,4 @@ That argues for taking the gate down a level rather than for patching three samp
 
 ## What shipped
 
-The weighted ranking call in the sample, and — with its siblings — the evidence that moved [ADR 0009](../../decisions/0009-packaging-gate.md)'s contract from types to members.
+The weighted ranking call in the sample, and — with its siblings — the evidence that moved [ADR 0009](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0009-sample-consumes-a-local-feed.md)'s contract from types to members.

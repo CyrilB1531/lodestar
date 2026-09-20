@@ -2,7 +2,7 @@
 
 **Issue:** [#149](https://github.com/CyrilB1531/data.net/issues/149) · **Date:** 2026-08-14 ·
 **Branch:** `fix/149-lossy-bytelevel-decode`, stacked on `feat/121-bpe-normalizer` ·
-**Found by:** [#121](https://github.com/CyrilB1531/data.net/issues/121)
+**Found by:** [#121](https://github.com/CyrilB1531/data.net/issues/121) · **Status:** written before the work
 
 ## Context
 

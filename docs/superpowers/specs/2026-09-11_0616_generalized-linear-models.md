@@ -1,6 +1,6 @@
 # 0616 — Generalized linear models, with the inference table
 
-**Status:** accepted, 2026-09-11. Written before the work.
+**Status:** written before the work, 2026-09-11.
 
 **Issue:** [#616](https://github.com/CyrilB1531/lodestar/issues/616), the link-function half of
 [#338](https://github.com/CyrilB1531/lodestar/issues/338).
@@ -9,17 +9,17 @@
 
 `Lodestar.Stats.Regression` fits a model whose response is a real number. It cannot fit one whose
 response is a count, a proportion or a category — that needs a link function, and
-[decision 0096](../../decisions/0096-ordinary-least-squares-earns-its-own-package.md) put it on
+[decision 0096](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md) put it on
 this issue's side of the line in its own Consequences.
 
 The capability exists in .NET three times over, and
-[decision 0104](../../decisions/0104-generalized-linear-models-are-written-natively.md) read all
+[decision 0104](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0104-generalized-linear-models-are-written-natively.md) read all
 three through a `MetadataLoadContext` before the claim was written down. Each is disqualified for a
 different reason, and none of them is "nobody did it":
 
 | checked | measured | why it is not the answer |
 | --- | --- | --- |
-| `Accord.Statistics` 3.8.0 | 561 types, 5 620 members | has the whole stack — `GeneralizedLinearRegression`, eleven `ILinkFunction`s, `LogisticRegressionAnalysis` with standard errors, Wald tests, odds ratios and deviance. **LGPL-2.1**, archived 2017-10-19. [Decision 0003](../../decisions/0003-provenance-and-licensing.md) refuses it on its licence, not its age |
+| `Accord.Statistics` 3.8.0 | 561 types, 5 620 members | has the whole stack — `GeneralizedLinearRegression`, eleven `ILinkFunction`s, `LogisticRegressionAnalysis` with standard errors, Wald tests, odds ratios and deviance. **LGPL-2.1**, archived 2017-10-19. [Decision 0003](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0003-provenance-and-licensing.md) refuses it on its licence, not its age |
 | `Microsoft.ML` 5.0.0 | 77 types in `StandardTrainers`, 220 members | `CoefficientStatistics` is **logistic only**; `PoissonRegressionModelParameters` exposes no statistics at all. No intervals, no odds ratios, no AIC, no dispersion, no link abstraction — and its standard errors need a native MKL |
 | `cs-glm` 1.0.1 | 21 types, 112 members | **installs no assembly**: `lib/net461/Release/` is not a lib asset path. Reproduced 2026-09-11 with `tools/survey.cs`, which reports NU1202 against `net10.0` |
 | `MathNet.Numerics` 5.0.0 | 336 types, 5 707 members | `Distributions.Poisson` and `Distributions.Logistic` are distributions, not a fitter. No link, no IRLS |
@@ -166,7 +166,7 @@ carries both sides.
 
 Poisson's log-likelihood is `sum(y log(mu) - mu - logGamma(y + 1))`. The third term is what makes
 the AIC comparable to `statsmodels`', and **`Gamma.LogGamma` is `internal` in `Lodestar.Stats`** —
-[decision 0095](../../decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)
+[decision 0095](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)
 names it explicitly among the members that stay so:
 
 > `RegularizedIncomplete`, **`LogGamma`**, `RegularizedP` […] stay internal. Nothing has asked for
@@ -174,7 +174,7 @@ names it explicitly among the members that stay so:
 > unpublishing never is.
 
 That asymmetry is
-[decision 0081](../../decisions/0081-the-stats-numerical-layer-stays-internal.md)'s, and it is why
+[decision 0081](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0081-the-stats-numerical-layer-stays-internal.md)'s, and it is why
 this is a decision rather than a convenience: the member can be published when a caller needs it and
 cannot be withdrawn afterwards.
 
@@ -192,9 +192,9 @@ Binomial's log-likelihood needs no such term for 0/1 responses: the binomial coe
 
 ## Placement, deliberately deferred
 
-[Decision 0104](../../decisions/0104-generalized-linear-models-are-written-natively.md) left the
+[Decision 0104](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0104-generalized-linear-models-are-written-natively.md) left the
 package unnamed, and this spec does not name it either. The constraints are known:
-[0076](../../decisions/0076-a-core-package-carries-no-external-dependency.md) allows a split only
+[0076](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0076-a-core-package-carries-no-external-dependency.md) allows a split only
 for a distinct dependency profile, audience or cadence, and by that test a GLM has none — same zero
 dependencies, same readers, same release rhythm as the OLS beside it. Against that, #616 measures
 the fixed cost of a seventeenth package on #566: five hard-coded pack loops, two release
@@ -222,7 +222,7 @@ blocks rather than a moved one, so a family added later grows the file instead o
 
 Floats compare at the `1e-9` the suites use, **except p-values, which compare relatively** — a p-value of `1e-17` and one of `2e-17` differ by
 `1e-17` absolutely and by a factor of two, and only the second reading is about the algorithm.
-[Decision 0081](../../decisions/0081-the-stats-numerical-layer-stays-internal.md) records that and
+[Decision 0081](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0081-the-stats-numerical-layer-stays-internal.md) records that and
 names where it lives: `StatsOracleAsserts` in `tests/Lodestar.Stats.Tests/Oracles/`, which compares
 a p-value at `1e-9` relative and a statistic at `1e-9` absolute in one helper. **These tests reuse
 it rather than restating the tolerance**, so a change to the rule reaches the GLM without anyone
@@ -248,7 +248,7 @@ other value rather than asserted by hand.
 
 A `bench/README.md` section against `Accord.Statistics` 3.8.0. LGPL-2.1 bars it from `src/` and not
 from `bench/`, which is the precedent
-[decision 0096](../../decisions/0096-ordinary-least-squares-earns-its-own-package.md) set for the
+[decision 0096](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md) set for the
 OLS table — a comparison against the library we refused is worth more than one against nothing, and
 its archived date is in the row rather than in a footnote.
 

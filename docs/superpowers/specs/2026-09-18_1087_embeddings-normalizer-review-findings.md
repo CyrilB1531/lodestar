@@ -38,7 +38,7 @@ does not hold. In the `U+1AB0..U+1AFF` block alone, 74 of its 2,401 `Cn` pairs m
 whole-string `FormD`; the review's sweep over all 1,114,112 code points found 34 such code points
 and 149 diverging ordered pairs in the final output.
 
-[ADR 0146](../../decisions/0146-berts-normalizer-keeps-the-unassigned-code-points.md) — *BERT's
+[ADR 0146](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0146-berts-normalizer-keeps-the-unassigned-code-points.md) — *BERT's
 normalizer keeps the unassigned code points* — is what the fix restores, not what it changes. It is
 not amended.
 

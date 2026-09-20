@@ -1,6 +1,6 @@
 # 0215 — Dcg.Score takes a logBase scikit-learn refuses
 
-**Issue:** [#0215](https://github.com/CyrilB1531/lodestar/issues/0215) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-18
+**Issue:** [#0215](https://github.com/CyrilB1531/lodestar/issues/0215) · **Status:** **retrospective** — written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-18
 
 ## Problem
 

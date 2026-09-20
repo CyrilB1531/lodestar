@@ -1,6 +1,6 @@
 # 0357 — Blocked LCS kernel: close the residual gap at 128 and 512
 
-**Issue:** [#0357](https://github.com/CyrilB1531/lodestar/issues/0357) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
+**Issue:** [#0357](https://github.com/CyrilB1531/lodestar/issues/0357) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
 
 ## Problem
 

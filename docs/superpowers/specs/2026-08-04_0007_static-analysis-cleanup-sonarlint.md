@@ -1,7 +1,7 @@
 # Design — #7: the SonarLint backlog
 
 **Date:** 2026-08-04 · **Issue:** #7 · **Branch:** `chore/7-sonarlint-cleanup` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

@@ -1,10 +1,10 @@
 # 0771 — Generalized least squares with a caller-supplied error covariance, at `statsmodels.GLS` parity
 
-**Status:** accepted, 2026-09-15. Written before the work.
+**Status:** written before the work, 2026-09-15.
 
 Issue: [#771](https://github.com/CyrilB1531/lodestar/issues/771), split out of the econometrics umbrella
 [#338](https://github.com/CyrilB1531/lodestar/issues/338).
-Reading: [decision 0115](../../decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md),
+Reading: [decision 0115](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md),
 which puts `GLS` fourth and after `WLS` (#768, shipped in #774); not amended. The weighted fit's spec,
 [`2026-09-15_0768_weighted-least-squares.md`](2026-09-15_0768_weighted-least-squares.md), set the placement
 this one follows.

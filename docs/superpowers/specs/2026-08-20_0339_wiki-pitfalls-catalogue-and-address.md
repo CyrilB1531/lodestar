@@ -1,6 +1,6 @@
 # 0339 — Wiki pitfalls: catalogue and address the ones this project can handle
 
-**Issue:** [#0339](https://github.com/CyrilB1531/lodestar/issues/0339) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-20
+**Issue:** [#0339](https://github.com/CyrilB1531/lodestar/issues/0339) · **Status:** **retrospective** — written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-20
 
 ## Problem
 

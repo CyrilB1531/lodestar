@@ -1,7 +1,7 @@
 # 0440 lot 3 — `Lodestar.Decomposition`: TruncatedSVD and NMF, and the `Abstractions` package they force
 
 **Issue:** [#440](https://github.com/CyrilB1531/lodestar/issues/440) ·
-**Status:** accepted · **Date:** 2026-09-01
+**Status:** written before the work · **Date:** 2026-09-01
 
 ## Why this lot and not another
 
@@ -14,7 +14,7 @@ spec opens it.
 ## The gap, as V4 restated it
 
 The original claim — that ML.NET's `ProjectToPrincipalComponents` densifies to centre — was **wrong**
-and [ADR 0059](../../decisions/0059-phase-0-verifications-two-confirmed-voids-do-not-survive-nuget.md)
+and [ADR 0059](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0059-phase-0-verifications-two-confirmed-voids-do-not-survive-nuget.md)
 says so: it centres after the projection, over a `VBuffer`. What survives is a different list, and it
 is about what is computed rather than how:
 
@@ -121,7 +121,7 @@ it. An earlier draft of this line described the bare function's flip, which is t
 ## Placement, and the package it forces
 
 `TruncatedSvd` consumes `CsrMatrix`, which lives in `Lodestar.Text`.
-[Decision 0069](../../decisions/0069-the-package-layout-as-built-and-what-enforces-it.md) recorded
+[Decision 0069](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0069-the-package-layout-as-built-and-what-enforces-it.md) recorded
 `Lodestar.Abstractions` as **decided against** — and left the question of a second edge into
 `Lodestar.Text` explicitly open "for whoever opens the first of those lots". This is that lot, and
 the answer taken here is the one 0069 decided against, so it needs a decision record of its own that

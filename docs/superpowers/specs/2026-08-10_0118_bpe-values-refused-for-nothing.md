@@ -1,6 +1,6 @@
 # 0118 — The BPE values the loader refuses for nothing, and the one that crashes `Decode`
 
-**Issue:** [#118](https://github.com/CyrilB1531/data.net/issues/118) · **Umbrella:** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Date:** 2026-08-10
+**Issue:** [#118](https://github.com/CyrilB1531/data.net/issues/118) · **Umbrella:** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Date:** 2026-08-10 · **Status:** written before the work
 
 ## Context
 

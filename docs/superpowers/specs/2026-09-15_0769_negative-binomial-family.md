@@ -1,12 +1,12 @@
 # 0769 — The negative binomial family, at `statsmodels.GLM` parity
 
-**Status:** accepted, 2026-09-15. Written before the work.
+**Status:** written before the work, 2026-09-15.
 
 Issue: [#769](https://github.com/CyrilB1531/lodestar/issues/769), split out of the econometrics umbrella
 [#338](https://github.com/CyrilB1531/lodestar/issues/338).
-Reading: [decision 0104](../../decisions/0104-generalized-linear-models-are-written-natively.md), which wrote
+Reading: [decision 0104](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0104-generalized-linear-models-are-written-natively.md), which wrote
 the GLM natively and left this family out by name, and
-[decision 0115](../../decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md),
+[decision 0115](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md),
 which puts it second after `WLS`.
 
 ## Problem
@@ -22,7 +22,7 @@ reaches for next, and `GeneralizedLinearModel` ships only `Binomial` and `Poisso
   default log link, at `statsmodels` 0.15.0 parity over every number `GlmSummary` carries.
 - **Out:** `sm.NegativeBinomial` (the discrete model that *estimates* `alpha`). It maximises a likelihood
   with a quasi-Newton optimiser rather than iterating IRLS, so its reproducibility at the corpus tolerance
-  is the question [decision 0130](../../decisions/0130-mixed-models-have-no-incumbent-and-wait-for-a-caller.md)
+  is the question [decision 0130](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0130-mixed-models-have-no-incumbent-and-wait-for-a-caller.md)
   found open for `MixedLM`; it waits for a caller and its own reading. Also out: links other than log,
   `var_weights`/`freq_weights`, offsets and exposure (#777).
 

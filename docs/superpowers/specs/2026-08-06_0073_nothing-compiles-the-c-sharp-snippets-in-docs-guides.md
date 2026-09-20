@@ -1,7 +1,7 @@
 # Design — #73: compile the guides' C#, from the guides themselves
 
 **Date:** 2026-08-06 · **Issue:** #73 · **Branch:** `docs/73-compile-guide-snippets` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

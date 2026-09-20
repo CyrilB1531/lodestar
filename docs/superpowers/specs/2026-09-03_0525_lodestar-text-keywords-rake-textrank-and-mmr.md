@@ -1,14 +1,14 @@
 # 0525 — `Lodestar.Text.Keywords`: RAKE, TextRank, and MMR beside the embeddings
 
 **Issue:** [#525](https://github.com/CyrilB1531/lodestar/issues/525) ·
-**Status:** accepted · **Date:** 2026-09-03
+**Status:** written before the work · **Date:** 2026-09-03
 
 ## Problem
 
 Given one document, name the phrases it is about. No training set, no labels, no model — the
 document is the whole input.
 
-[ADR 0074](../../decisions/0074-the-phase-2-gaps-restated-on-what-the-packages-export.md) read the
+[ADR 0074](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0074-the-phase-2-gaps-restated-on-what-the-packages-export.md) read the
 incumbents' exported surfaces rather than their descriptions, and closed two of
 [#440](https://github.com/CyrilB1531/lodestar/issues/440)'s four remaining lots on what it found.
 This one survived that reading:
@@ -252,7 +252,7 @@ interface would carry one method and buy a substitutability nobody asked for.
 | `Mmr` | `Lodestar.Embeddings` | `Lodestar.Embeddings.Search` |
 
 No new package and no new edge. Both packages stay core tier under
-[ADR 0076](../../decisions/0076-a-core-package-carries-no-external-dependency.md): nothing here
+[ADR 0076](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0076-a-core-package-carries-no-external-dependency.md): nothing here
 needs an external dependency.
 
 `Lodestar.Text.Keywords` gets its own tokenization, small and private, because `TextAnalyzer`
@@ -269,7 +269,7 @@ declaring `library`, `library_version` and `reference_calls` like every other.
 | `keywords_textrank.json` | `summa` 1.2.0 | phrases **exactly**, scores at `1e-9` (measured agreement is tighter, under `4.48e-13`) |
 | `mmr.json` | `keybert` 0.9.0, `keybert._mmr.mmr` | selected **set** exactly |
 
-All three are **MIT**, which [ADR 0003](../../decisions/0003-provenance-and-licensing.md) requires
+All three are **MIT**, which [ADR 0003](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0003-provenance-and-licensing.md) requires
 even of a library used only to generate test data.
 
 **Each corpus freezes the stop-word list its oracle used**, and the test passes that list to the

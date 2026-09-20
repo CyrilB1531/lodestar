@@ -15,7 +15,7 @@ message holds the measurement, or the issue.
 
 Exempt, and nothing else:
 
-- docs/superpowers/, where plans describe that workspace while it exists.
+- docs/superpowers/, where a spec may describe the workspace a plan ran in.
 - .claude/skills/, the vendored skills that create it.
 - ADR 0002, which cites a report and cannot be edited (check_adr_immutable.py);
   a new ADR is not exempt. docs/decisions/README.md's row for 0082 names the

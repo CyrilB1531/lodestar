@@ -1,7 +1,7 @@
 # 0173 — Ranking metrics: the ordered list first, the multilabel family second
 
 **Issue:** [#173](https://github.com/CyrilB1531/lodestar/issues/173) ·
-**Status:** proposed · **Date:** 2026-08-16
+**Status:** written before the work; proposed · **Date:** 2026-08-16
 
 ## Problem
 
@@ -49,7 +49,7 @@ double Ndcg.Score(ReadOnlySpan<double> yTrue, ReadOnlySpan<double> yScore, int l
 ```
 
 One row per query, `labelCount` values each, as the regression metrics already take 2-D targets
-([0021](../../decisions/0021-multioutput-is-a-method-not-an-enum.md)). There is no 2-D overload
+([0021](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0021-multioutput-is-a-method-not-an-enum.md)). There is no 2-D overload
 because a span cannot carry one.
 
 ### D3 — the default averages ties, and `ignoreTies` is offered

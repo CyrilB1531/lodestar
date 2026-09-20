@@ -1,6 +1,6 @@
 # 0372 — The ADR index is missing the 0041 row
 
-**Issue:** [#0372](https://github.com/CyrilB1531/lodestar/issues/0372) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
+**Issue:** [#0372](https://github.com/CyrilB1531/lodestar/issues/0372) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
 
 ## Problem
 

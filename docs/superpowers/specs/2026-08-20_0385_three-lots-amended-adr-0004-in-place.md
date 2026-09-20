@@ -1,10 +1,10 @@
 # 0385 — Three lots amended ADR 0004 in place
 
-**Issue:** [#0385](https://github.com/CyrilB1531/lodestar/issues/0385) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-20
+**Issue:** [#0385](https://github.com/CyrilB1531/lodestar/issues/0385) · **Status:** **retrospective** — written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-20
 
 ## Problem
 
-Three lots had edited [ADR 0004](../../decisions/0004-bit-parallel-kernels.md) in place as their work changed what it said. **An accepted decision that keeps being rewritten is not a record**: a reader cannot tell what was decided when, or what the decision looked like to the people who acted on it.
+Three lots had edited [ADR 0004](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0004-levenshtein-myers-backlog.md) in place as their work changed what it said. **An accepted decision that keeps being rewritten is not a record**: a reader cannot tell what was decided when, or what the decision looked like to the people who acted on it.
 
 ## What was decided
 

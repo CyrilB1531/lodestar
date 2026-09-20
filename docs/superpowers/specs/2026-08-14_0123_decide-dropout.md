@@ -1,7 +1,7 @@
 # 0123 — Decide, in writing, whether `dropout` is ever reproduced
 
 **Issue:** [#123](https://github.com/CyrilB1531/data.net/issues/123) · **Date:** 2026-08-14 ·
-**Branch:** `docs/123-decide-dropout` · **Lot 6 of, and last in,** [#105](https://github.com/CyrilB1531/data.net/issues/105)
+**Branch:** `docs/123-decide-dropout` · **Lot 6 of, and last in,** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Status:** written before the work
 
 ## Context
 

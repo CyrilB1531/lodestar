@@ -1,7 +1,7 @@
 # Design — #24: pin GitHub Actions to full commit SHAs
 
 **Date:** 2026-08-04 · **Issue:** #24 · **Branch:** `chore/24-pin-actions-to-sha` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

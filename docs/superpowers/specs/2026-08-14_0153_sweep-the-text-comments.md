@@ -1,7 +1,7 @@
 # 0153 — Sweep DataNet.Text's comments, in a package that already has its ADRs
 
 **Issue:** [#153](https://github.com/CyrilB1531/data.net/issues/153) · **Date:** 2026-08-14 ·
-**Branch:** `docs/153-sweep-text-comments` · **Part of:** [#134](https://github.com/CyrilB1531/data.net/issues/134)
+**Branch:** `docs/153-sweep-text-comments` · **Part of:** [#134](https://github.com/CyrilB1531/data.net/issues/134) · **Status:** written before the work
 
 ## Context
 
@@ -56,7 +56,7 @@ Any verification against nltk — the stemmers and the Snowball stop-word lists 
 
 ### D4 — in `Stemming/` and `Phonetics/`, a comment is provenance evidence
 
-[ADR 0003](../../decisions/0003-provenance-and-licensing.md) is the repository's oldest rule: the stemmers
+[ADR 0003](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0003-provenance-and-licensing.md) is the repository's oldest rule: the stemmers
 and phonetic encoders are original implementations written from the **published algorithm description**,
 never transcribed from a GPL reference. A comment explaining where a rule comes from is what shows that.
 

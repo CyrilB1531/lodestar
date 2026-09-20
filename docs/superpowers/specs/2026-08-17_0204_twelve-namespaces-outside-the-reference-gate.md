@@ -1,6 +1,6 @@
 # 0204 — Twelve namespaces outside the reference gate, one lot each
 
-**Issue:** [#0204](https://github.com/CyrilB1531/lodestar/issues/0204) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-17
+**Issue:** [#0204](https://github.com/CyrilB1531/lodestar/issues/0204) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-17
 
 ## Problem
 

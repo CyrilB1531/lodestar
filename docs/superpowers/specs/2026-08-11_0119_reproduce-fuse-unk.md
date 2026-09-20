@@ -1,6 +1,6 @@
 # 0119 — `fuse_unk`, so a run of uncovered characters collapses the way HuggingFace collapses it
 
-**Issue:** [#119](https://github.com/CyrilB1531/data.net/issues/119) · **Umbrella:** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Date:** 2026-08-11
+**Issue:** [#119](https://github.com/CyrilB1531/data.net/issues/119) · **Umbrella:** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Date:** 2026-08-11 · **Status:** **retrospective** — written 2026-08-11 from the commits that closed it
 
 ## Context
 

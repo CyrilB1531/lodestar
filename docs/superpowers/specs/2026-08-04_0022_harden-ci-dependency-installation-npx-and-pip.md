@@ -1,7 +1,7 @@
 # Design — #22: harden CI dependency installation
 
 **Date:** 2026-08-04 · **Issue:** #22 · **Branch:** `chore/22-harden-ci-dependencies` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

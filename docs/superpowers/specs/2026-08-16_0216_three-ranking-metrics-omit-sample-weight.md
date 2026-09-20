@@ -1,6 +1,6 @@
 # 0216 — Three ranking metrics omit sample_weight, and three equivalence rows call them identical
 
-**Issue:** [#0216](https://github.com/CyrilB1531/lodestar/issues/0216) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-16
+**Issue:** [#0216](https://github.com/CyrilB1531/lodestar/issues/0216) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-16
 
 ## Problem
 

@@ -2,7 +2,7 @@
 
 **Issue:** [#1094](https://github.com/CyrilB1531/lodestar/issues/1094) (minor), found by the code
 review of [#1092](https://github.com/CyrilB1531/lodestar/pull/1092), which closed #1087.
-**Status:** written alongside the work, 2026-09-18.
+**Status:** written with the work, 2026-09-18.
 **Package:** `Lodestar.Embeddings`.
 
 ## The hole, and a second one beside it

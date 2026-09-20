@@ -1,6 +1,6 @@
 # 0212 — A curve is a shape this package had nowhere
 
-**Issue:** [#0212](https://github.com/CyrilB1531/lodestar/issues/0212) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
+**Issue:** [#0212](https://github.com/CyrilB1531/lodestar/issues/0212) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
 
 ## Problem
 
@@ -8,13 +8,13 @@
 
 ## What was settled
 
-**A sealed class per curve** — [decision 0040](../../decisions/0040-a-curve-is-a-sealed-class-per-curve.md). Not a tuple, not an array of arrays: a named type per curve, so the arrays cannot be mixed up by position.
+**A sealed class per curve** — [decision 0040](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0040-a-curve-is-a-sealed-class-per-curve.md). Not a tuple, not an array of arrays: a named type per curve, so the arrays cannot be mixed up by position.
 
 ## Two things the issue assumed that turned out otherwise
 
 Both read from scikit-learn 1.9's own source rather than transcribed:
 
-- **`strategy='quantile'` takes its edges from `np.percentile`**, a linear interpolation between neighbouring order statistics — **not** the weighted percentile [decision 0024](../../decisions/0024-weighted-percentile.md) pinned for the medians. The two disagree in the third decimal, so `WeightedPercentile` is deliberately not reused and the remark on `Percentile` says why.
+- **`strategy='quantile'` takes its edges from `np.percentile`**, a linear interpolation between neighbouring order statistics — **not** the weighted percentile [decision 0024](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0024-weighted-median-averages-within-scikit-learns-epsilon.md) pinned for the medians. The two disagree in the third decimal, so `WeightedPercentile` is deliberately not reused and the remark on `Percentile` says why.
 - **There is no `sample_weight` at all**, where both its siblings take one.
 
 ## What shipped

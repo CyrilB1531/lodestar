@@ -1,10 +1,10 @@
 # 0208 — Levenshtein's fast path stops at three doors
 
-**Issue:** [#0208](https://github.com/CyrilB1531/lodestar/issues/0208) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
+**Issue:** [#0208](https://github.com/CyrilB1531/lodestar/issues/0208) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
 
 ## Problem
 
-The bit-parallel path was reachable only from one of three directions. The code-point mode was dynamic-program-only, `Indel` did not take it, and the length-32 bucket fell below the gate — so [decision 0002](../../decisions/0002-code-point-mode.md) pointed a caller wanting Python's answer on supplementary characters at the slow path.
+The bit-parallel path was reachable only from one of three directions. The code-point mode was dynamic-program-only, `Indel` did not take it, and the length-32 bucket fell below the gate — so [decision 0002](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0002-unicode-comparison-unit.md) pointed a caller wanting Python's answer on supplementary characters at the slow path.
 
 ## The corpus came first, and both corpora failed
 

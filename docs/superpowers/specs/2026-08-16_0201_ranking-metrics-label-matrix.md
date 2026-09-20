@@ -1,7 +1,7 @@
 # 0201 — Ranking metrics, lot 2: the multilabel family over a boolean label matrix
 
 **Issue:** [#201](https://github.com/CyrilB1531/lodestar/issues/201) ·
-**Status:** proposed · **Date:** 2026-08-16
+**Status:** written before the work; proposed · **Date:** 2026-08-16
 
 ## Problem
 
@@ -74,7 +74,7 @@ public static double Score(
 ```
 
 The shape lot 1, the regression metrics and `Silhouette` all take — a span cannot carry two
-dimensions, and [`decisions/0021`](../../decisions/0021-multioutput-is-a-method-not-an-enum.md)
+dimensions, and [`decisions/0021`](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0021-multioutput-is-a-method-not-an-enum.md)
 already ruled that a second dimension is a count rather than an overload.
 
 ### D3 — the names are spelled out
@@ -102,7 +102,7 @@ behaviours travel with it, and both are reproduced rather than smoothed:
 `LabelRankingAveragePrecision.Score` accepts `labelCount == 1`; the other two refuse it with
 scikit-learn's sentence. Making the three agree would be inventing a divergence rather than
 reproducing one, which
-[`decisions/0007`](../../decisions/0007-metaphone-scope.md) and the stop-word
+[`decisions/0007`](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0007-metaphone-scope.md) and the stop-word
 provenance decision have both already refused to do. The reference pages say which is which, beside
 the number.
 

@@ -1,7 +1,7 @@
 # Design — #26: the complexity finding on the oracle generator
 
 **Date:** 2026-08-04 · **Issue:** #26 · **Branch:** `chore/26-suppress-jaro-reference-complexity` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## The issue asked for the wrong thing
 

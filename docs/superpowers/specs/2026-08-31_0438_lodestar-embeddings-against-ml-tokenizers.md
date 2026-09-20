@@ -1,7 +1,7 @@
 # 0438 — `Lodestar.Embeddings` against `Microsoft.ML.Tokenizers`
 
 **Issue:** [#438](https://github.com/CyrilB1531/lodestar/issues/438) ·
-**Status:** accepted · **Date:** 2026-08-31
+**Status:** written before the work · **Date:** 2026-08-31
 
 ## Problem
 
@@ -11,7 +11,7 @@ shape; this applies it to `Lodestar.Embeddings`, whose named incumbent is first-
 
 Half of that box is already answered: #438 says `TensorPrimitives.CosineSimilarity` against our
 kernel is "the same measurement as V6" in #437, which
-[decision 0060](../../decisions/0060-tensorprimitives-beats-our-kernel-and-the-knn-is-still-not-redundant.md)
+[decision 0060](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0060-tensorprimitives-beats-our-kernel-and-the-knn-is-still-not-redundant.md)
 recorded and `bench/README.md` section 14 documents. What is unmeasured is the other half:
 `Microsoft.ML.Tokenizers`.
 

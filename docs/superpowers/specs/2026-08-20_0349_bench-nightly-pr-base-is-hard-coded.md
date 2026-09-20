@@ -1,6 +1,6 @@
 # 0349 — bench-nightly's PR base is hard-coded to main
 
-**Issue:** [#0349](https://github.com/CyrilB1531/lodestar/issues/0349) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-20
+**Issue:** [#0349](https://github.com/CyrilB1531/lodestar/issues/0349) · **Status:** **retrospective** — written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-20
 
 ## Problem
 

@@ -1,7 +1,7 @@
 # Design — #13: stop-word lists beyond English
 
 **Date:** 2026-08-05 · **Issue:** #13 · **Branch:** `feat/13-multilingual-stop-words` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

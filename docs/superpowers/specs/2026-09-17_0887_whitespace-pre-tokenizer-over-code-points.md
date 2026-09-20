@@ -1,6 +1,6 @@
 # 0887 — The Whitespace pre-tokenizer, over code points
 
-**Status:** accepted, 2026-09-17. Written after the measurement it records.
+**Status:** **retrospective** — written 2026-09-17, after the measurement it records.
 
 Issue: [#887](https://github.com/CyrilB1531/lodestar/issues/887), found by the systematic review of `main`.
 

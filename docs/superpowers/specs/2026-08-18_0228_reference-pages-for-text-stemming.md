@@ -1,6 +1,6 @@
 # 0228 — Reference pages for Lodestar.Text.Stemming
 
-**Issue:** [#0228](https://github.com/CyrilB1531/lodestar/issues/0228) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
+**Issue:** [#0228](https://github.com/CyrilB1531/lodestar/issues/0228) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
 
 **Parent:** [#204](https://github.com/CyrilB1531/lodestar/issues/204), one lot of twelve.
 
@@ -13,7 +13,7 @@ An index, a page per type, a page per public method, and **the `covered` entry i
 **Every example is taken from the frozen oracle corpora rather than written by hand**, so each `// =>` is a value `nltk` produced rather than one an author believed. Two are worth their page on their own:
 
 - `geração` and `gerações` stem to **different** keys, which is the thing a reader would assume otherwise;
-- Italian `esistenza` stems to `esistt`, per [decision 0008](../../decisions/0008-snowball-italian.md).
+- Italian `esistenza` stems to `esistt`, per [decision 0008](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0008-italian-enza-nltk-divergence.md).
 
 ## What shipped
 

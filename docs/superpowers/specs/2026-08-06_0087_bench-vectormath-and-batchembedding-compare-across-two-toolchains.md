@@ -1,7 +1,7 @@
 # Design — #87: the `VectorMath` and `BatchEmbedding` tables compare two harnesses
 
 **Date:** 2026-08-06 · **Issue:** #87 · **Branch:** `fix/87-benchmark-toolchain-parity` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

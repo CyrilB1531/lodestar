@@ -1,14 +1,14 @@
 # 0498 — The tokenizers stop building strings to throw them away
 
 **Issue:** [#498](https://github.com/CyrilB1531/lodestar/issues/498) ·
-**Status:** accepted · **Date:** 2026-08-31
+**Status:** written before the work · **Date:** 2026-08-31
 
 ## Problem
 
 [#438](https://github.com/CyrilB1531/lodestar/issues/438)'s Embeddings box measured
 `Microsoft.ML.Tokenizers` 2.0.0 encoding the same 5 000 documents to the same ids while
 allocating **3.55 MB and 3.09 MB against our 118.84 MB and 519.51 MB**.
-[Decision 0068](../../decisions/0068-the-tokenizer-gap-is-the-loader-not-the-encode-kernel.md)
+[Decision 0068](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0068-the-tokenizer-gap-is-the-loader-not-the-encode-kernel.md)
 ruled that the gap worth keeping is the `tokenizer.json` loader, not the encode kernel, and that
 this is a defect to fix rather than an argument to delegate. This is that fix.
 
@@ -64,7 +64,7 @@ cognitive-complexity limit the analyzer enforces.
 ## What it bought
 
 Container run, so the times wait on a named machine
-([ADR 0051](../../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)); the
+([ADR 0051](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)); the
 allocation is a property of the code path.
 
 | model | allocated before | after | time before | after |

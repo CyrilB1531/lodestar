@@ -1,6 +1,6 @@
 # 0214 — The oracle generator panics on every run and exits 0
 
-**Issue:** [#0214](https://github.com/CyrilB1531/lodestar/issues/0214) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-18
+**Issue:** [#0214](https://github.com/CyrilB1531/lodestar/issues/0214) · **Status:** **retrospective** — written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-18
 
 ## Problem
 

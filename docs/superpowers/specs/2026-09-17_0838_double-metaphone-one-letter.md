@@ -1,6 +1,6 @@
 # 0838 — Double Metaphone on the one-letter word "W"
 
-**Status:** accepted, 2026-09-17. Written after the fix it records.
+**Status:** **retrospective** — written 2026-09-17, after the fix it records.
 
 Issue: [#838](https://github.com/CyrilB1531/lodestar/issues/838), found by a performance review of `main`.
 
