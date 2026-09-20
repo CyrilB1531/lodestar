@@ -839,9 +839,7 @@ reported side by side.
 This is its own section rather than a subsection of section 5 for a reason beyond
 tidiness: its `dop=1` figures look pairable with section 5's `roc_auc_ovr_macro`
 row and are not. Different input, different machine load, and a sequential path
-that was rewritten for this issue — the 24 measured cells and all three reasons
-are in
-[`docs/guides/performance.md`](../docs/guides/performance.md#multiclass-roc-auc-sequential-against-parallel-issue-86).
+that was rewritten for this issue.
 
 ## 7. Persisting an embedding index (issue #62)
 
@@ -963,17 +961,13 @@ with, because `Add` was the only way in.
 **Its first runner reading is 0.21–0.23× wall, 0.19× cpu across three rounds** — numpy four to
 five times faster, on the same 15 360 128 bytes. Taking the format advantage away made the gap
 *wider* than `embedding_index_load`'s 0.24–0.27×, because that row was letting numpy be compared
-against 5 MB less work. The figures, and the rows on the same run where this project is 1.2× to
-6× ahead, are in
-[the performance guide](../docs/guides/performance.md#against-numpy-on-the-same-format-issue-474).
+against 5 MB less work.
 
 **#466 took the copies between the stream and the index out and the row inverted**, from 0.19× of
 numpy's cpu to **1.00–1.13×** and from 0.21–0.23× of its wall to 1.21–1.25×. cpu is the column this
 harness trusts, so the honest reading is *parity to slightly ahead*, not the wall figure. How many
 copies there were, and which of them paid, is docs/guides/performance.md's subject rather than this section's.
-The reading above stays as measured; the new one, its runner, and the anchors that make the two
-windows comparable are in
-[the performance guide](../docs/guides/performance.md#the-same-row-once-the-block-is-adopted-issue-466).
+The reading above stays as measured.
 Two dispatches separated the causes: reading the payload straight into the `float[]` moved nothing,
 and adopting the array rather than copying it into the index moved all of it — by more than the
 copy it removed, because the copy came with a second 15.36 MB allocation.
@@ -1145,9 +1139,7 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- save-phases
 The last row is what makes the table decide anything. An encode that costs no more
 than moving the same bytes is bandwidth-bound, and nothing parallelises past a
 bandwidth it is already at — which is how a proposal to thread the base64 was
-refused rather than tried. `docs/guides/performance.md`
-is that decision, and the numbers are in
-[`docs/guides/performance.md`](../docs/guides/performance.md#what-a-save-actually-spends-its-time-on--step-0).
+refused rather than tried.
 
 **The phases run round-robin, one round each, not one phase to completion.** This
 is the whole design and it is not tidiness. A first cut ran each phase's nine runs
@@ -1322,9 +1314,7 @@ different stories, and only the second one explained the first.
 
 Nothing here is published. It prints a table and writes no page: what it measures becomes a figure
 when a person reads it on a named machine and decides, which is [section 10](#10-running-a-diagnostic-on-a-second-machine-issue-461)'s
-rule and not this mode's exception. The first run's table, read that way, is in
-[the performance guide](../docs/guides/performance.md#where-the-ingests-time-actually-goes-issue-480),
-and what it refuted is `docs/guides/performance.md`.
+rule and not this mode's exception.
 
 ## 13. What a binary sidecar would buy (issue #436)
 
@@ -1374,9 +1364,7 @@ takes the sidecar and makes the bulk ingest its precondition.
 With that ingest built (#474), the same runner puts `load / ingest` at **1.45–1.62×** across three
 rounds where `load / rebuild` is 0.62–0.65× — the route stops being slower than the artifact. It
 does not reach the floor: `ingest / floor` is 1.13–1.26×, and the floor is the flattered side of
-that comparison per the paragraph above. Every figure, with its rounds and its spreads, is in
-[the performance guide](../docs/guides/performance.md#the-bulk-ingest-that-unblocks-it-issue-474);
-this section says only how to take them.
+that comparison per the paragraph above. This section says only how to take the figures.
 
 **Not on a container.** There the same rows put the floor at 0.73×, the opposite conclusion, with
 the floor row spread over 12–43 ms against the runner's 4.0–8.5.
@@ -1551,9 +1539,8 @@ The `AccuracyAlone` row is that difference made measurable rather than argued.
 exception — `docs/guides/performance.md`
 withdrew a 1.61× taken on a shared container, and section 14 records the container *inverting* every
 `TensorPrimitives` ratio. A container run of these two classes is a smoke test that the harness
-works, and nothing else. `docs/guides/performance.md` takes them from a named machine, in
-[*The .NET incumbents, on a named machine*](../docs/guides/performance.md#the-net-incumbents-on-a-named-machine-issue-679)
-and the per-issue sections it links (#679). The nightly publishes their ratios to
+works, and nothing else. [`docs/guides/performance.md`](../docs/guides/performance.md) takes them from a named machine, in
+the per-package comparison each class belongs to (#679). The nightly publishes their ratios to
 `docs/guides/nightly_run.md` on its own, and `docs/guides/benchmark_latest.md` carries each class's last
 reading forward until a change selects it again, dated by the night it was measured rather than the
 night the page was written, since all five classes are in
@@ -2294,8 +2281,8 @@ A robust covariance adds a pass over the design building the filling `Xᵀ Ω X`
 `Hc3` also need the leverages, an `O(n·k)` pass over `Q`. It also moves the coefficient tests
 from Student's t to the normal, so a robust row runs different tail functions from the baseline.
 At small sizes that second difference is larger than the first, and
-[`docs/guides/performance.md`](../docs/guides/performance.md#the-four-robust-covariances-against-the-ordinary-one-issue-705)
-separates the two.
+[`docs/guides/performance.md`](../docs/guides/performance.md#hac-and-cluster-robust-covariances-against-statsmodels-issue-775)
+carries what each covariance costs beside the ordinary fit.
 
 ### Configuration
 
@@ -2377,9 +2364,6 @@ dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- \
   --filter '*QuantileBenchmarks*' '*SerialCorrelationBenchmarks.*Autocorrelation*' '*OlsBenchmarks.Lodestar_Ols*'
 ```
 
-The numbers, on a named machine and with the default job, are in
-[`docs/guides/performance.md`](../docs/guides/performance.md#the-two-published-quantiles-without-bisection-issue-709).
-
 ## 32. What a Cox fit costs (issue #684)
 
 [Decision 0003](../docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
@@ -2413,9 +2397,6 @@ A seeded design (`Random(684)`) with covariates uniform on `[-1, 1]`, alternatin
 of `+0.5` and `-0.5`, exponential durations rounded up to whole months so ties are ordinary, and
 roughly a third censored, as `SurvivalBenchmarks` has it.
 
-The numbers, on a named machine, are in
-[`docs/guides/performance.md`](../docs/guides/performance.md#what-a-cox-fit-costs-issue-684).
-
 ## 33. What BPE's piece cache buys a long-lived tokenizer (issue #743)
 
 `BpeTokenizer` caches each piece's merged ids, as HuggingFace `tokenizers`' `BPE` does: up to 10,000
@@ -2445,9 +2426,6 @@ into its cache on the first iteration and time a cache filled by the text it rea
 `[IterationSetup]` sets one invocation per iteration, and at about 7 ms an encode BenchmarkDotNet warns
 that the iteration is short. The warning stands: the measured standard deviation is what says whether
 the row can be read, and `performance.md` gives it.
-
-The numbers, on a named machine, are in
-[`docs/guides/performance.md`](../docs/guides/performance.md#bpes-piece-cache-issue-743).
 
 ## 34. k-means against NumFlat and Meta.Numerics (issue #681)
 

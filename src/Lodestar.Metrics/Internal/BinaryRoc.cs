@@ -15,7 +15,7 @@ namespace Lodestar.Metrics.Internal;
 internal static class BinaryRoc
 {
     // The radix loses below ~8 000 and wins above (1.21x at 10 000, 1.32x at a
-    // million); docs/guides/performance.md has the table and the machine.
+    // million, Intel i7-4770S; #206).
     private const int RadixThreshold = 8_192;
 
     // 16-bit digits: four passes and a 64 K histogram beat eight passes and a

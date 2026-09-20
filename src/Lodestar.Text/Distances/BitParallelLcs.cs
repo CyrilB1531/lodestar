@@ -66,8 +66,7 @@ internal static class BitParallelLcs
     /// The side table's probe raises the kernel's floor while leaving the dynamic program's
     /// cost untouched, so a wide pattern crosses four bands later than a Latin-1 one — 6
     /// against 2, measured in #409. Tested where the width is established rather than at the
-    /// dispatch, which does not know it: that keeps the Latin-1 path free of the question
-    /// (docs/guides/performance.md).
+    /// dispatch, which does not know it: that keeps the Latin-1 path free of the question.
     /// </remarks>
     internal const int WideMinPatternLength = 6;
 

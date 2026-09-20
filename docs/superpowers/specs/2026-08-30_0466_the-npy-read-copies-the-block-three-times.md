@@ -218,8 +218,7 @@ it.
 **The gate.** *The gate* expected about **0.6×** of numpy's wall, from removing copy 3 alone. The
 row measured **1.00–1.13× cpu and 1.21–1.25× wall** — parity in the first round and slightly ahead
 in the other two on cpu, which is the column this project trusts, so the honest reading is *parity
-to slightly ahead* rather than the wall figure. The figures, the runner and the anchors are in
-[the performance guide](../../guides/performance.md#the-same-row-once-the-block-is-adopted-issue-466).
+to slightly ahead* rather than the wall figure.
 
 **The reasoning was wrong in both directions, which is why this is recorded rather than
 celebrated.** Two dispatches separated the causes:

@@ -27,7 +27,7 @@ internal static class RocParallelBench
 
     private static readonly int[] WorkerCounts = [1, 2, 4, 8];
 
-    // The heaviest committed shape measures about 127 ms, per docs/guides/performance.md.
+    // The heaviest committed shape measures about 127 ms (#86).
     // This guards a future, quadratic-in-k Shapes entry that runs long instead.
     private static readonly TimeSpan OneVsOnePatience = TimeSpan.FromSeconds(60);
 

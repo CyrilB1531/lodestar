@@ -9,7 +9,7 @@ namespace Lodestar.Text.Benchmarks.CrossLang;
 /// What a binary sidecar would cost and save, in bytes first and milliseconds second.
 /// </summary>
 /// <remarks>
-/// ADR 0001 says a sidecar is to be argued on size, and docs/guides/performance.md says why: the encode costs
+/// Decision 0001 says a sidecar is to be argued on size, and #436 says why: the encode costs
 /// nothing over a memcpy, so removing it buys no write time. This prices the size exactly and
 /// the read approximately, on the corpus the persistence rows use. Issue #436.
 /// </remarks>
@@ -101,7 +101,7 @@ internal static class SidecarBench
     /// <remarks>
     /// The read plus a single copy into a backing store, which is what a bulk ingest would do.
     /// EmbeddingIndex has no such path — Add is per vector — so this is a floor in the sense
-    /// docs/guides/performance.md's <c>block_copy_floor</c> is one: a bound the real thing cannot beat, measured
+    /// <c>bench/README.md</c>'s <c>block_copy_floor</c> is one: a bound the real thing cannot beat, measured
     /// rather than argued. The gap between it and <c>rebuild index</c> is what a bulk ingest
     /// would be worth, and the gap to <c>load artifact</c> is what the format would be worth.
     /// </remarks>

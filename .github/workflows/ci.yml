@@ -233,6 +233,13 @@ jobs:
       # were tracked before #1104 and no file outside docs/superpowers/ cited one.
       - name: Every spec says when it was written, and no plan is committed
         run: python tools/check_spec_status.py
+      # The performance guide compares this library to the one a reader would otherwise
+      # reach for. A before/after argues about one commit and ages the day after it
+      # merges, so it belongs in the pull request that made it (#1106). Prose cannot be
+      # told apart -- every optimisation writes "faster" -- but a column named after a
+      # branch can.
+      - name: The performance guide holds comparisons, not before/afters
+        run: python tools/check_performance_sections.py
       # An accepted ADR is never edited, addition included -- "Amend 0004 in a decision
       # of its own instead of editing it" is why even a `> update:` blockquote no longer
       # passes here (#399). Only a pull_request event has a base commit to diff against;

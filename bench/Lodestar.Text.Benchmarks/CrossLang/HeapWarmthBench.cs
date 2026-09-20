@@ -11,7 +11,7 @@ namespace Lodestar.Text.Benchmarks.CrossLang;
 /// the heap for everything after it, and nothing inside one process undoes that honestly.
 /// Hence three subcommands — <c>prepare</c> writes the artifact once, then <c>cold</c> loads it
 /// having built and saved nothing, and <c>warm</c> does its saves <b>first</b> and then loads.
-/// Issue #433, first seen in docs/guides/performance.md's consequences.
+/// Issue #433.
 /// </remarks>
 internal static class HeapWarmthBench
 {

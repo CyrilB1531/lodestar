@@ -65,7 +65,7 @@ internal static class ArtifactIo
     /// <paramref name="writeHead"/> writes every property before the block. <b>Nothing goes through
     /// the <c>Utf8JsonWriter</c> after it</b> — the writer is flushed and disposed on the property
     /// name, the value goes to the stream, and the closing brace is written by hand, because a
-    /// writer left on one refuses to close its object. Owning it here means no artifact can get it wrong; docs/guides/performance.md is the decision.
+    /// writer left on one refuses to close its object. Owning it here, no artifact can get it wrong.
     /// </remarks>
     /// <param name="destination">The stream to write to; flushed but never disposed.</param>
     /// <param name="artifact">The artifact kind, for the header.</param>

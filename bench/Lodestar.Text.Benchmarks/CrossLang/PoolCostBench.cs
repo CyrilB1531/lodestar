@@ -8,7 +8,7 @@ namespace Lodestar.Text.Benchmarks.CrossLang;
 /// What renting a payload-sized buffer is worth against allocating one, in time.
 /// </summary>
 /// <remarks>
-/// docs/guides/performance.md refused pooling on two memory columns and never filled in this one. The primitive
+/// #470 refused pooling on two memory columns and never filled in this one. The primitive
 /// is measured rather than the load path, because it isolates exactly what pooling changes and
 /// bounds the win: nothing downstream can return more than the allocation itself costs. Both
 /// states touch every page, so neither is measuring a buffer it never wrote to. Issue #470.

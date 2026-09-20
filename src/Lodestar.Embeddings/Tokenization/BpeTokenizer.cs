@@ -586,7 +586,8 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// <c>tokenizers</c>' <c>BPE::tokenize</c>, a long piece is never cached (its cut-off is 256 UTF-8
     /// bytes of the mapped piece, this one 256 characters) and no entry is ever removed. Two
     /// threads may both pass the capacity check, so the count can end a few entries past it.
-    /// Full, it holds about 1.5 MB on GPT-2's vocabulary; docs/guides/performance.md has what it buys.
+    /// Full, it holds about 1.5 MB on GPT-2's vocabulary, and a warmed tokenizer encodes prose it
+    /// has not seen in 46% less time (#743).
     /// </remarks>
     private void Remember(string piece, ReadOnlySpan<int> merged)
     {
