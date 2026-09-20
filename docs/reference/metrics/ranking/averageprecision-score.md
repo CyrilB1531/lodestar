@@ -62,7 +62,7 @@ column carries no positive weight and drops out of the average.
 **Remarks** — three weight vectors take the answer outside what either side defines, and all six
 numbers below are measured rather than reasoned about.
 
-| input | scikit-learn 1.9.0 | here |
+| input | scikit-learn 1.9.1 | here |
 | --- | --- | --- |
 | a weight vector summing to zero, `[1, 1, 1, -3]` | `0.5`, through a numpy "divide by zero encountered" warning | `-0` |
 | every weight `0` | `ValueError`, "Sample weights must contain at least one non-zero number." | `0` |

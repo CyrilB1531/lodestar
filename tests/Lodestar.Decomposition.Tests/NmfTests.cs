@@ -6,7 +6,7 @@ using Xunit;
 namespace Lodestar.Decomposition.Tests;
 
 /// <summary>
-/// <c>NMF(solver="mu")</c> against scikit-learn 1.9.0, from the W₀ and H₀ the corpus freezes.
+/// <c>NMF(solver="mu")</c> against scikit-learn 1.9.1, from the W₀ and H₀ the corpus freezes.
 /// </summary>
 public sealed class NmfTests
 {

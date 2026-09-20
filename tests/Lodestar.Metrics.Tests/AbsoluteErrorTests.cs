@@ -165,7 +165,7 @@ public sealed class AbsoluteErrorTests
     /// <summary>
     /// The invariant above holds for a weight of 1, not for uniform weights in
     /// general — more than scikit-learn promises. Measured against scikit-learn
-    /// 1.9.0: residuals 0…9 under a uniform weight of 0.7 give 5.0 weighted and
+    /// 1.9.1: residuals 0…9 under a uniform weight of 0.7 give 5.0 weighted and
     /// 4.5 unweighted, because the cumulative weight there overshoots half the
     /// total by more than a machine epsilon and the averaging branch does not
     /// fire. Reproducing that disagreement is parity; removing it would not be.

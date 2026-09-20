@@ -134,7 +134,7 @@ public sealed class LogErrorTests
     /// The corpus cannot police this: its comparison rule scales by
     /// <c>max(1, |expected|)</c>, so at 3e-18 it reduces to an absolute 1e-9 and
     /// every implementation passes, including one that returns zero — hence the
-    /// relative assertion here. Measured against scikit-learn 1.9.0:
+    /// relative assertion here. Measured against scikit-learn 1.9.1:
     /// <c>mean_squared_log_error([1e-9, 2e-9, 3e-9], [2e-9, 4e-9, 1e-9])</c> is
     /// 2.9999999856666664e-18, while <c>Math.Log(1.0 + x)</c> gives
     /// 3.000000038019698e-18 — out by 1.7e-8 relative, about 17 000 times the

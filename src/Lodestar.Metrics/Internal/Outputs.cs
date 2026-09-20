@@ -568,7 +568,7 @@ internal static class Outputs
     /// When every variance is zero there is nothing to weight by, and
     /// scikit-learn falls back to the plain mean rather than dividing by zero:
     /// <c>if not xp.any(nonzero_denominator): avg_weights = None</c>,
-    /// <c>sklearn/metrics/_regression.py:982-986</c> (scikit-learn 1.9.0).
+    /// <c>sklearn/metrics/_regression.py:982-986</c> (scikit-learn 1.9.1).
     /// </remarks>
     public static double ReduceByVariance(double[] perOutput, double[] variances)
     {

@@ -5,7 +5,7 @@ using Xunit;
 namespace Lodestar.Decomposition.Tests;
 
 /// <summary>
-/// Randomized SVD against scikit-learn 1.9.0, over the Ω the corpus freezes. Ω is an input on
+/// Randomized SVD against scikit-learn 1.9.1, over the Ω the corpus freezes. Ω is an input on
 /// both sides, so this is an ordinary parity comparison and not a subspace one.
 /// </summary>
 public sealed class TruncatedSvdTests

@@ -4,7 +4,7 @@ using Xunit;
 namespace Lodestar.Text.Tests.Vectorization;
 
 /// <summary>
-/// The analyzer divergences docs/equivalence.md records against scikit-learn 1.9.0 (#879), pinned
+/// The analyzer divergences docs/equivalence.md records against scikit-learn 1.9.1 (#879), pinned
 /// so that a change to either side is noticed. Each comment gives what scikit-learn returns.
 /// </summary>
 public sealed class AnalyzerDivergenceTests

@@ -138,7 +138,7 @@ public static class Silhouette
         double scale = Math.Max(inside, nearest);
 
         // Coincident samples put 0 over 0. scikit-learn runs the same expression through
-        // nan_to_num, so duplicate rows score 0 rather than NaN -- measured on 1.9.0.
+        // nan_to_num, so duplicate rows score 0 rather than NaN -- measured on 1.9.1.
         return scale <= 0.0 ? 0.0 : (nearest - inside) / scale;
     }
 

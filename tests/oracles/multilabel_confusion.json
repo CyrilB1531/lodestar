@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "MultilabelConfusion",
   "library": "scikit-learn",
-  "library_version": "1.9.0",
+  "library_version": "1.9.1",
   "reference_calls": [
    "sklearn.metrics.multilabel_confusion_matrix"
   ],

@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "Regression under ill conditioning",
   "library": "scikit-learn",
-  "library_version": "1.9.0",
+  "library_version": "1.9.1",
   "reference_calls": [
    "sklearn.metrics.r2_score",
    "sklearn.metrics.explained_variance_score",

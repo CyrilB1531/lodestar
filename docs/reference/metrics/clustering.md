@@ -27,7 +27,7 @@ reason there are several.
 every metric here — agreeing about nothing is agreeing — and so does a single sample. Two
 independent partitions of four samples score `-0.5` on `AdjustedRand`, not `0`: the correction for
 chance is a subtraction, and it can go below zero. Every one of those numbers is scikit-learn's,
-measured against 1.9.0 and frozen in the oracle corpus rather than reasoned about.
+measured against 1.9.1 and frozen in the oracle corpus rather than reasoned about.
 
 ## Which one do I want?
 

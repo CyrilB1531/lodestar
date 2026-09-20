@@ -387,7 +387,7 @@ public sealed class StandardScaler
         // attribution and the measurement that pins it belong at the line, not on the page.
         // Chan, Golub and LeVeque's error bound for the two-pass variance, as
         // sklearn.preprocessing._data._is_constant_feature applies it. Measured against
-        // scikit-learn 1.9.0: three samples at 1e8 +/- 1e-8 have a variance of 1.48e-16,
+        // scikit-learn 1.9.1: three samples at 1e8 +/- 1e-8 have a variance of 1.48e-16,
         // which is not zero and is below this bound, and the reference scales them by 1.
         const double Epsilon = 2.220446049250313e-16;
 

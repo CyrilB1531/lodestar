@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "StandardScaler, MaxAbsScaler, RobustScaler over a sparse matrix",
   "library": "scikit-learn",
-  "library_version": "1.9.0",
+  "library_version": "1.9.1",
   "reference_calls": [
    "sklearn.preprocessing.StandardScaler.fit",
    "sklearn.preprocessing.MaxAbsScaler.fit",

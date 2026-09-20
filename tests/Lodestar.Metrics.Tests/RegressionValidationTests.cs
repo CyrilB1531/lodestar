@@ -146,7 +146,7 @@ public sealed class RegressionValidationTests
     [Fact]
     public void A_sample_weight_that_is_zero_throughout_is_refused()
     {
-        // Measured: scikit-learn 1.9.0 raises this on mse, median_ae, r2 and
+        // Measured: scikit-learn 1.9.1 raises this on mse, median_ae, r2 and
         // explained_variance alike; unguarded, mse gives NaN and median_ae a number.
         double[] yTrue = [1.0, 2.0, 3.0];
         double[] yPred = [1.0, 2.0, 4.0];

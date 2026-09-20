@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "KMeans",
   "library": "scikit-learn",
-  "library_version": "1.9.0",
+  "library_version": "1.9.1",
   "reference_calls": [
    "sklearn.cluster.KMeans(init=..., n_init=1, algorithm=\"lloyd\")"
   ],

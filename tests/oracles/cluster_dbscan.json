@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "DBSCAN",
   "library": "scikit-learn",
-  "library_version": "1.9.0",
+  "library_version": "1.9.1",
   "reference_calls": [
    "sklearn.cluster.DBSCAN(metric=\"euclidean\")",
    "sklearn.cluster.DBSCAN(metric=\"precomputed\")"

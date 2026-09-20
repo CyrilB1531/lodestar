@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "StandardScaler, MinMaxScaler, MaxAbsScaler partial_fit",
   "library": "scikit-learn",
-  "library_version": "1.9.0",
+  "library_version": "1.9.1",
   "reference_calls": [
    "sklearn.preprocessing.StandardScaler.partial_fit",
    "sklearn.preprocessing.MinMaxScaler.partial_fit",

@@ -205,7 +205,7 @@ does not have.
 
 ## Parity
 
-Every member on this page is replayed against scikit-learn 1.9.0 —
+Every member on this page is replayed against scikit-learn 1.9.1 —
 `TruncatedSVD(algorithm="randomized")` and `NMF(solver="mu")` — from corpora frozen in
 `tests/oracles/`, compared at `1e-9` over a shared Ω.
 [`docs/equivalence.md`](../equivalence.md) maps each Python call to its counterpart here and

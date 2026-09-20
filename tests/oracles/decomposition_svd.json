@@ -2,7 +2,7 @@
  "metadata": {
   "library": "scipy and scikit-learn",
   "version": "1.18.1",
-  "sklearn_version": "1.9.0",
+  "sklearn_version": "1.9.1",
   "reference_calls": [
    "scipy.linalg.svd",
    "sklearn.utils.extmath.randomized_svd",

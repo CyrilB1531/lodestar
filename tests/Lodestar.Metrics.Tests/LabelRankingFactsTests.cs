@@ -156,7 +156,7 @@ public sealed class LabelRankingFactsTests
     [Fact]
     public void A_negative_weight_is_accepted_and_takes_the_result_out_of_its_range()
     {
-        // Measured against scikit-learn 1.9.0: -0.33333333333333337, 5.0 and 2.0 — a
+        // Measured against scikit-learn 1.9.1: -0.33333333333333337, 5.0 and 2.0 — a
         // metric documented in [0, 1] returning a negative number, as the reference does.
         bool[] truth = [true, false, false, false, false, true];
         double[] scores = [0.7, 0.2, 0.1, 0.7, 0.2, 0.1];

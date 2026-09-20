@@ -3219,7 +3219,7 @@ def generate_clustering_agreement() -> dict:
                 "adjusted_rand": skmetrics.adjusted_rand_score(true, pred),
                 "normalized_mutual_information": skmetrics.normalized_mutual_info_score(true, pred),
                 "fowlkes_mallows": skmetrics.fowlkes_mallows_score(true, pred),
-                # scikit-learn 1.9.0 raises on an empty input here -- log(0) inside
+                # scikit-learn 1.9.1 raises on an empty input here -- log(0) inside
                 # mutual_info_score -- where every other metric in this corpus returns.
                 "mutual_information": skmetrics.mutual_info_score(true, pred) if true else None,
                 "rand": skmetrics.rand_score(true, pred),
