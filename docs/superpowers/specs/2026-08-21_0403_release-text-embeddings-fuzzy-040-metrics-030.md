@@ -1,6 +1,6 @@
 # 0403 — Release: Text, Embeddings and Fuzzy 0.4.0, Metrics 0.3.0
 
-**Issue:** [#0403](https://github.com/CyrilB1531/lodestar/issues/0403) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
+**Issue:** [#0403](https://github.com/CyrilB1531/lodestar/issues/0403) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
 
 ## Problem
 

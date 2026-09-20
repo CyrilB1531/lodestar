@@ -1,6 +1,6 @@
 # 0145 — A `Split` step's `behavior` and `invert`
 
-**Issue:** [#145](https://github.com/CyrilB1531/data.net/issues/145) · **Found under:** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Date:** 2026-08-13
+**Issue:** [#145](https://github.com/CyrilB1531/data.net/issues/145) · **Found under:** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Date:** 2026-08-13 · **Status:** written before the work
 
 ## Context
 

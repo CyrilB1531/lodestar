@@ -1,6 +1,6 @@
 # 0315 — The third pipeline's shape: one tokenizer or two, and where Metaspace lives
 
-**Issue:** [#0315](https://github.com/CyrilB1531/lodestar/issues/0315) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
+**Issue:** [#0315](https://github.com/CyrilB1531/lodestar/issues/0315) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
 
 ## Problem
 
@@ -17,4 +17,4 @@ A design teaching `BpePreTokenizer` about Metaspace **would have loaded one and 
 
 ## What was decided
 
-**The lineage stays a BPE model**, because that is what `model.type` says and a class name contradicting the file it loads is a lie a reader pays for. Metaspace becomes **one transform** reachable from either declaration site. [ADR 0050](../../decisions/0050-the-sentencepiece-bpe-lineage-stays-a-bpe-model.md) records it, amending [0017](../../decisions/0017-bpe-parity-scope.md) §3 — whose `byte_fallback` refusal and "no path here" for Llama-2 and Mistral v0.1 both fall.
+**The lineage stays a BPE model**, because that is what `model.type` says and a class name contradicting the file it loads is a lie a reader pays for. Metaspace becomes **one transform** reachable from either declaration site. [ADR 0050](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0050-the-sentencepiece-bpe-lineage-stays-a-bpe-model.md) records it, amending [0017](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0017-bpe-parity-scope.md) §3 — whose `byte_fallback` refusal and "no path here" for Llama-2 and Mistral v0.1 both fall.

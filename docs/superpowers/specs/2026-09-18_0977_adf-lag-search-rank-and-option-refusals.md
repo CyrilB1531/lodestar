@@ -1,6 +1,6 @@
 # 0977 — The lag search that ranks a rank-deficient candidate, and two refusals that give the wrong reason
 
-**Status:** accepted, 2026-09-18. Written with the fix it records.
+**Status:** written with the work, 2026-09-18, with the fix it records.
 
 Issues: [#977](https://github.com/CyrilB1531/lodestar/issues/977) and
 [#984](https://github.com/CyrilB1531/lodestar/issues/984), both found by the delta review of `main`

@@ -1,7 +1,7 @@
 # 0154 — Sweep the tests and tools, where a comment asserts what the corpus proves
 
 **Issue:** [#154](https://github.com/CyrilB1531/data.net/issues/154) · **Date:** 2026-08-14 ·
-**Branch:** `docs/154-sweep-tests-and-tools` · **Part of:** [#134](https://github.com/CyrilB1531/data.net/issues/134)
+**Branch:** `docs/154-sweep-tests-and-tools` · **Part of:** [#134](https://github.com/CyrilB1531/data.net/issues/134) · **Status:** written before the work
 
 ## Context
 

@@ -1,7 +1,7 @@
 # Design — #27: triage the Roslyn findings SonarQube Cloud surfaced
 
 **Date:** 2026-08-04 · **Issue:** #27 · **Branch:** `chore/27-roslyn-findings` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

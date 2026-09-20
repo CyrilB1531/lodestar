@@ -1,7 +1,7 @@
 # Design — #30: tell SonarQube Cloud which Python version the code targets
 
 **Date:** 2026-08-04 · **Issue:** #30 · **Branch:** `chore/30-sonar-python-version` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

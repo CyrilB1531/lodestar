@@ -1,7 +1,7 @@
 # 0494 — The token ratios stop building five trees per call
 
 **Issue:** [#494](https://github.com/CyrilB1531/lodestar/issues/494) ·
-**Status:** accepted · **Date:** 2026-08-31
+**Status:** written before the work · **Date:** 2026-08-31
 
 ## Problem
 
@@ -50,7 +50,7 @@ The enumeration order is the sorted one either way, which is what the joins depe
 ## What it bought
 
 Container run, so the times wait on a named machine
-([ADR 0051](../../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)); the
+([ADR 0051](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md)); the
 allocation is a property of the code path.
 
 | operation | before | after | ratio before | after |

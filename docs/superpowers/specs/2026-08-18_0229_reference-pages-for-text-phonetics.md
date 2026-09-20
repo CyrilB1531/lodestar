@@ -1,6 +1,6 @@
 # 0229 — Reference pages for Lodestar.Text.Phonetics
 
-**Issue:** [#0229](https://github.com/CyrilB1531/lodestar/issues/0229) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
+**Issue:** [#0229](https://github.com/CyrilB1531/lodestar/issues/0229) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
 
 **Parent:** [#204](https://github.com/CyrilB1531/lodestar/issues/204), one lot of twelve.
 
@@ -12,7 +12,7 @@ An index, a page per type, a page per public method, and **the `covered` entry i
 
 **The index measures the three rather than describing them.** Over the 402-word corpus all three are pinned to, **Soundex has 101 words sharing a code and NYSIIS 13** — which is the recall-against-precision choice a reader actually has to make, and it is a number rather than an adjective.
 
-**Metaphone's examples come from `metaphone.json`, not the shared corpus**: [decision 0007](../../decisions/0007-phonetic-oracles.md) reserves the latter for Soundex and NYSIIS.
+**Metaphone's examples come from `metaphone.json`, not the shared corpus**: [decision 0007](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0007-metaphone-scope.md) reserves the latter for Soundex and NYSIIS.
 
 ## What shipped
 

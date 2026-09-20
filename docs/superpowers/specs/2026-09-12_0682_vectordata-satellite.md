@@ -1,15 +1,15 @@
 # 0682 — The VectorData satellite, built on records as the truth and indexes as caches
 
-**Status:** accepted, 2026-09-12. Written before the work.
+**Status:** written before the work, 2026-09-12.
 
 **Issue:** [#682](https://github.com/CyrilB1531/lodestar/issues/682), which asks for what
-[decision 0100](../../decisions/0100-vectordata-is-its-own-satellite-and-its-text-edge-waits-on-a-release.md)
+[decision 0100](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0100-vectordata-is-its-own-satellite-and-its-text-edge-waits-on-a-release.md)
 decided, *or* an ADR amending 0100 if the decision no longer holds.
 
 ## The two readings the issue asks for, taken
 
 Both of the issue's measurement bullets are discharged here, through
-[decision 0074](../../decisions/0074-the-phase-2-gaps-restated-on-what-the-packages-export.md)'s
+[decision 0074](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0074-the-phase-2-gaps-restated-on-what-the-packages-export.md)'s
 protocol — a package's **exported surface** read through a `MetadataLoadContext`, which is what
 `tools/survey.cs` runs.
 
@@ -101,7 +101,7 @@ cannot see. `Bm25Index` would need rebuilding regardless, so the saving is one o
 
 **Give `EmbeddingIndex` a remove and `Bm25Index` an incremental update.** The better long-term
 shape, and refused here on ordering rather than on merit: `src/` reaches a sibling through a
-`PackageReference` on a **published** floor ([decision 0012](../../decisions/0012-per-package-versioning.md)),
+`PackageReference` on a **published** floor ([decision 0012](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0012-per-package-versioning.md)),
 so both core packages would have to be changed, released and tagged before this package could
 build against them. That is precisely the trap 0100 recorded once already, and paying it twice in
 one lot would block the satellite on two releases instead of zero.

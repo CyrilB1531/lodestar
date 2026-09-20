@@ -1,6 +1,6 @@
 # 0407 — Sweep the bit-parallel gates over the wide bucket
 
-**Issue:** [#0407](https://github.com/CyrilB1531/lodestar/issues/0407) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
+**Issue:** [#0407](https://github.com/CyrilB1531/lodestar/issues/0407) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
 
 ## Problem
 

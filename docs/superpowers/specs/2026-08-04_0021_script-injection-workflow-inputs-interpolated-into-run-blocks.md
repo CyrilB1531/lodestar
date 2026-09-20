@@ -1,7 +1,7 @@
 # Design — #21: script injection in the release workflows
 
 **Date:** 2026-08-04 · **Issue:** #21 · **Branch:** `fix/21-workflow-script-injection` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

@@ -1,9 +1,9 @@
 # 0754 — `TensorPrimitives` against our kNN kernel, by vector width
 
-**Status:** accepted, 2026-09-16. Written after the measurement it records.
+**Status:** **retrospective** — written 2026-09-16, after the measurement it records.
 
 Issue: [#754](https://github.com/CyrilB1531/lodestar/issues/754). Reading:
-[decision 0060](../../decisions/0060-tensorprimitives-beats-our-kernel-and-the-knn-is-still-not-redundant.md).
+[decision 0060](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0060-tensorprimitives-beats-our-kernel-and-the-knn-is-still-not-redundant.md).
 
 ## Problem
 
@@ -26,7 +26,7 @@ prints `Vector512.IsHardwareAccelerated`.
 ## Conclusion
 
 The 512-bit path halves `TensorPrimitives`' speed here, but it is 3–4× behind without it: the cost
-per call decides the direction and the width only its size. [Decision 0140](../../decisions/0140-on-a-named-machine-our-knn-kernel-is-ahead-and-avx-512-widens-the-gap.md)
+per call decides the direction and the width only its size. [Decision 0140](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0140-on-a-named-machine-our-knn-kernel-is-ahead-and-avx-512-widens-the-gap.md)
 amends 0060, and the rows are in `docs/guides/performance.md`.
 
 ## Rejected

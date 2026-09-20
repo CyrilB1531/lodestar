@@ -1,7 +1,7 @@
 # Design — #88: the persistence table compares two harnesses
 
 **Date:** 2026-08-06 · **Issue:** #88 · **Branch:** `fix/88-persistence-toolchain-parity` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

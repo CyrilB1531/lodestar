@@ -1,6 +1,6 @@
 # 0120 — `continuing_subword_prefix`, and the property that carries its name
 
-**Issue:** [#120](https://github.com/CyrilB1531/data.net/issues/120) · **Umbrella:** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Date:** 2026-08-13
+**Issue:** [#120](https://github.com/CyrilB1531/data.net/issues/120) · **Umbrella:** [#105](https://github.com/CyrilB1531/data.net/issues/105) · **Date:** 2026-08-13 · **Status:** **retrospective** — written 2026-08-13 from the commits that closed it
 
 ## Context
 

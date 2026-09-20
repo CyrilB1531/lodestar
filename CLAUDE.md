@@ -346,9 +346,11 @@ PR carries before/after numbers and names the machine.
 **Clear Sonar findings before committing, not after.** A green build is not a
 clean Sonar, and a finding introduced by a pull request blocks its merge.
 
-Design specs and implementation plans live in `docs/superpowers/specs/` and
-`docs/superpowers/plans/`, named `<date>_<issue id padded to 4>_<slug>.md` — the repository's
-naming, which overrides the skills' default. The skills that write them are vendored under
+Design specs live in `docs/superpowers/specs/`, named
+`<date>_<issue id padded to 4>_<slug>.md` — the repository's naming, which overrides the skills'
+default; a second spec on one issue takes a letter (`0122b`). A plan is written to the same shape
+and **is not committed**: it lives beside the work, in the session's scratch directory or under a
+path `.git/info/exclude` keeps out, the way the `.superpowers/` workspace already does. The skills that write them are vendored under
 [`.claude/skills/`](.claude/skills/README.md) rather than installed, so a hosted session reaches
 them; read `writing-plans` and `brainstorming` first. **Do not reproduce the format by copying a
 neighbouring file.** Two plans written that way failed `writing-plans`' own self-review
@@ -359,8 +361,24 @@ rule: a step that says what to do without showing how is a plan failure, and cod
 options, and is still a record when written late — issues #202 to #446 were backfilled from the
 commits that closed them. A plan is an instrument for work that has not started, with checkbox steps
 and a `Branch:` line, so one written for merged work is checkboxes nobody may tick on a branch that
-no longer exists. **Date a backfilled spec by the work, not by the day it was written**, or the
-directory loses its ordering; its status line says it is retrospective.
+no longer exists. That is why the plan is not tracked: 116 of them, 88,745 lines, were, and no file
+outside `docs/superpowers/` cited one — against 88 citations into `specs/`
+([#1104](https://github.com/CyrilB1531/lodestar/issues/1104) deleted them).
+
+**Every spec opens its `**Status:**` with one of three clauses, and nothing else:**
+
+| clause | what it says |
+| --- | --- |
+| `written before the work` | the spec led; the work followed it |
+| `written with the work` | spec and work moved together, in one commit |
+| `**retrospective**` | the work merged first; the spec caught up |
+
+Anything after that clause is free text — the date it was written, an amendment, a note that the
+work was never done. **Date a backfilled spec by the work, not by the day it was written**, or the
+directory loses its ordering; the status line is the only place saying the file arrived late, and
+carries the writing date instead. `tools/check_spec_status.py` enforces the clause, the file name
+and the empty `plans/`. A citation inside a retrospective spec uses the numbering of its own date,
+which for a decision record before 2026-09-20 is not today's.
 
 ### SonarQube MCP server
 

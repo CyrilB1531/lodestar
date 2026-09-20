@@ -1,7 +1,7 @@
 # BPE and byte-level BPE tokenizers — design
 
 **Issue:** [#59](https://github.com/CyrilB1531/data.net/issues/59) ·
-**Date:** 2026-08-06 · **Package:** `DataNet.Embeddings`
+**Date:** 2026-08-06 · **Package:** `DataNet.Embeddings` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

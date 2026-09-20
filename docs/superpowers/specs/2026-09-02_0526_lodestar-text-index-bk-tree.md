@@ -1,7 +1,7 @@
 # 0526 — `Lodestar.Text.Indexing`: a BK-tree over the integer distances
 
 **Issue:** [#526](https://github.com/CyrilB1531/lodestar/issues/526) ·
-**Status:** accepted · **Date:** 2026-09-02
+**Status:** written before the work · **Date:** 2026-09-02
 
 ## Problem
 
@@ -14,7 +14,7 @@ A BK-tree removes most of them. It is built on a *discrete* metric, keys each no
 the exact distance to that node, and prunes to `[d − k, d + k]` at every step, which makes
 *"every word within edit distance k"* — the spelling-correction query — sublinear.
 
-[ADR 0074](../../decisions/0074-the-phase-2-gaps-restated-on-what-the-packages-export.md) closed
+[ADR 0074](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0074-the-phase-2-gaps-restated-on-what-the-packages-export.md) closed
 the VP-tree half of [#440](https://github.com/CyrilB1531/lodestar/issues/440)'s lot 5: `vptree`
 0.9.1 targets `net10.0`, was pushed 2026-04-08, and is generic over any metric. **BK-tree is the
 half that is genuinely absent** — a NuGet search for `bktree` returns `FSharpx.Core` and `CaseON`,
@@ -183,7 +183,7 @@ be used without the package, and a caller who brings their own `Func<string, str
 served by `vptree` today.
 
 The release cost decides the rest. `src/` references published packages, never projects
-([ADR 0069](../../decisions/0069-the-package-layout-as-built-and-what-enforces-it.md)), so a
+([ADR 0069](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0069-the-package-layout-as-built-and-what-enforces-it.md)), so a
 package between `Text` and `Fuzzy` would make this branch — which touches both — a three-step
 release chain rather than two. This branch already needs
 `export LodestarUseProjectRefs=true` and CONTRIBUTING's

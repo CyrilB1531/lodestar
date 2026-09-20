@@ -58,9 +58,11 @@ given:
 - `check_machine_paths.py` refuses a tracked file that holds a path under
   someone's home directory.
 - `check_sdd_citations.py` refuses a file that cites a task's report or brief from a
-  plan's workspace, which git ignores and the plan deletes when it finishes. Plans
-  under `docs/superpowers/`, the vendored `.claude/skills/` and the one accepted ADR
+  plan's workspace, which git ignores and the plan deletes when it finishes.
+  `docs/superpowers/`, the vendored `.claude/skills/` and the one accepted ADR
   that already carries such a citation are exempt.
+- `check_spec_status.py` refuses a spec that does not say when it was written, and
+  a plan that is committed at all.
 - `check_comment_length.py` refuses a comment block that runs past its budget
   without saying why.
 - `check_no_console_writeline.py` refuses a `Console` call in a shipped package,
@@ -952,9 +954,34 @@ The fix for a finding keeps the claim and points at something tracked instead �
 the test that pins it, the oracle case, the commit whose message holds the
 measurement, or the issue — per CONTRIBUTING.md's
 [*Claims in comments*](../CONTRIBUTING.md#claims-in-comments). Exempt:
-`docs/superpowers/`, where plans describe the workspace while it exists; the
+`docs/superpowers/`, where a spec may describe the workspace a plan ran in; the
 vendored `.claude/skills/` that create it; decision 0002, which cites a report and
 cannot be edited; and the guard and its test.
+
+## `check_spec_status.py`
+
+Refuses a spec that does not open its `**Status:**` with one of three clauses —
+`written before the work`, `written with the work`, `**retrospective**` — and
+refuses a plan that is committed at all. A spec records what was decided and what
+was measured, so it is still a record when written late; a plan is an instrument
+for work that has not started, and the branch it names does not outlive the pull
+request that closes its issue. 116 plans, 88,745 lines, were tracked before
+[#1104](https://github.com/CyrilB1531/lodestar/issues/1104), cited by no file
+outside `docs/superpowers/`.
+
+```bash
+python3 tools/check_spec_status.py
+python3 tools/check_spec_status.py --help
+```
+
+It reads the opening clause and nothing else: anything after it — a date, an
+amendment, a note that the work was never done — is free text. That is the point
+of the rule rather than an omission. `accepted, 2026-09-16. Written before the
+work.` was the shape most of the tree carried, and it buries the one fact a reader
+is after behind a lifecycle word every spec would carry alike. The name is checked
+on the same pass, against CLAUDE.md's
+[*Workflow*](../CLAUDE.md#workflow): `<date>_<issue padded to four>_<kebab
+slug>.md`, with an optional letter for a second spec on one issue.
 
 ## `check_adr_immutable.py`
 

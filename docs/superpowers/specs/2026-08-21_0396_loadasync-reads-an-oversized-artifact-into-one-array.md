@@ -1,6 +1,6 @@
 # 0396 — LoadAsync still reads an oversized artifact into one array
 
-**Issue:** [#0396](https://github.com/CyrilB1531/lodestar/issues/0396) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
+**Issue:** [#0396](https://github.com/CyrilB1531/lodestar/issues/0396) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
 
 ## Problem
 

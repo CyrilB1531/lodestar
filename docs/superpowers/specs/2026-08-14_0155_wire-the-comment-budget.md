@@ -2,7 +2,7 @@
 
 **Issue:** [#155](https://github.com/CyrilB1531/data.net/issues/155) · **Date:** 2026-08-14 ·
 **Branch:** `chore/155-wire-the-comment-budget`, stacked on `docs/154-sweep-tests-and-tools` ·
-**Part of:** [#134](https://github.com/CyrilB1531/data.net/issues/134)
+**Part of:** [#134](https://github.com/CyrilB1531/data.net/issues/134) · **Status:** written before the work
 
 ## Context
 

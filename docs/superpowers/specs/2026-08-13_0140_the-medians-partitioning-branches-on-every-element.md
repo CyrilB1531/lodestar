@@ -1,7 +1,7 @@
 # 0140 — The median's partitioning branches on every element
 
 **Issue:** [#140](https://github.com/CyrilB1531/data.net/issues/140) · **Date:** 2026-08-13 ·
-**Branch:** `perf/140-branchless-partition` · **Follow-up to:** [#127](https://github.com/CyrilB1531/data.net/issues/127)
+**Branch:** `perf/140-branchless-partition` · **Follow-up to:** [#127](https://github.com/CyrilB1531/data.net/issues/127) · **Status:** written before the work
 
 ## Context
 

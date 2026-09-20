@@ -1,7 +1,7 @@
 # 0464 — The nightly publishes from a job that runs no branch code
 
 **Issue:** [#464](https://github.com/CyrilB1531/lodestar/issues/464) ·
-**Status:** accepted · **Date:** 2026-08-31
+**Status:** written before the work · **Date:** 2026-08-31
 
 ## Problem
 

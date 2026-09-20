@@ -1,6 +1,6 @@
 # 0336 — EmbeddingIndex.Load(ReadOnlyMemory) for callers who already hold the buffer
 
-**Issue:** [#0336](https://github.com/CyrilB1531/lodestar/issues/0336) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
+**Issue:** [#0336](https://github.com/CyrilB1531/lodestar/issues/0336) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
 
 ## Problem
 

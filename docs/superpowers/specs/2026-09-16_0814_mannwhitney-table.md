@@ -1,6 +1,6 @@
 # 0814 — The exact Mann-Whitney table, sized by the smaller sample
 
-**Status:** accepted, 2026-09-16. Written after the measurement it records.
+**Status:** **retrospective** — written 2026-09-16, after the measurement it records.
 
 Issue: [#814](https://github.com/CyrilB1531/lodestar/issues/814), found by a performance review of `main`.
 

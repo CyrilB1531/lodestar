@@ -1,6 +1,6 @@
 # 0130 — An added token is a token, not a vocabulary entry
 
-**Issue:** [#130](https://github.com/CyrilB1531/data.net/issues/130) · **Date:** 2026-08-12
+**Issue:** [#130](https://github.com/CyrilB1531/data.net/issues/130) · **Date:** 2026-08-12 · **Status:** **retrospective** — written 2026-08-12 from the commits that closed it
 
 ## Context
 

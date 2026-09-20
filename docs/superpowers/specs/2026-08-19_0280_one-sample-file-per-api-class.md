@@ -1,6 +1,6 @@
 # 0280 — Samples: one file per API class, discoverable by name
 
-**Issue:** [#0280](https://github.com/CyrilB1531/lodestar/issues/0280) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
+**Issue:** [#0280](https://github.com/CyrilB1531/lodestar/issues/0280) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
 
 ## Problem
 
@@ -8,7 +8,7 @@
 
 ## What was decided
 
-One file per public class, named after it — [decision 0041](../../decisions/0041-a-sample-is-named-after-its-class.md) — with two edges the ADR carries:
+One file per public class, named after it — [decision 0041](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0041-one-sample-file-per-public-class.md) — with two edges the ADR carries:
 
 - **An enum gets no file.** It is demonstrated through the class whose parameter it is, and a file exercising one alone would have to invent a use.
 - **An internal type gets none either**, and that is not a convention but the samples' purpose: a consumer cannot reach it, so a sample proving it survives packaging would be proving nothing.

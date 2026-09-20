@@ -1,10 +1,10 @@
 # 0768 — Weighted least squares, at `statsmodels.WLS` parity
 
-**Status:** accepted, 2026-09-15. Written before the work.
+**Status:** written before the work, 2026-09-15.
 
 Issue: [#768](https://github.com/CyrilB1531/lodestar/issues/768), split out of the econometrics umbrella
 [#338](https://github.com/CyrilB1531/lodestar/issues/338).
-Reading: [decision 0115](../../decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md),
+Reading: [decision 0115](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md),
 which shipped the robust covariances and put `WLS` first in the order after them.
 
 ## Problem
@@ -13,7 +13,7 @@ which shipped the robust covariances and put `WLS` first in the order after them
 A caller whose rows are not equally reliable — a mean over groups of different sizes, a measurement
 whose variance is known to grow with its level — has the estimate from Math.NET's
 `WeightedRegression.Weighted` and nothing past it: no standard error, no test, no interval. That is the
-same gap [decision 0096](../../decisions/0096-ordinary-least-squares-earns-its-own-package.md) closed for
+same gap [decision 0096](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md) closed for
 the unweighted fit, one parameter wider.
 
 ## Scope

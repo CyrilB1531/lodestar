@@ -1,6 +1,6 @@
 # 0378 — Deflate the artifact: the whole 1.34x back, without a second format
 
-**Issue:** [#0378](https://github.com/CyrilB1531/lodestar/issues/0378) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
+**Issue:** [#0378](https://github.com/CyrilB1531/lodestar/issues/0378) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-20
 
 ## Problem
 
@@ -18,4 +18,4 @@ Deflate takes back the artifact's 1.33× base64 expansion **almost exactly**, wh
 
 ## What was decided
 
-**The library does not compress and does not offer an option to.** The caller wraps the stream on both sides, which works today and needed no library change. [ADR 0044](../../decisions/0044-compression-belongs-to-the-caller.md) records it, and the embeddings guide documents the recipe with its price.
+**The library does not compress and does not offer an option to.** The caller wraps the stream on both sides, which works today and needed no library change. [ADR 0044](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0044-compression-belongs-to-the-caller.md) records it, and the embeddings guide documents the recipe with its price.

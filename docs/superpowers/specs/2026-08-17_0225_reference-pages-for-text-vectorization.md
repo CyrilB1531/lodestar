@@ -1,6 +1,6 @@
 # 0225 — Reference pages for Lodestar.Text.Vectorization
 
-**Issue:** [#0225](https://github.com/CyrilB1531/lodestar/issues/0225) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-17
+**Issue:** [#0225](https://github.com/CyrilB1531/lodestar/issues/0225) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-17
 
 **Parent:** [#204](https://github.com/CyrilB1531/lodestar/issues/204), one lot of twelve.
 

@@ -1,6 +1,6 @@
 # 0256 — The live wiki banner names a page the archive never held
 
-**Issue:** [#0256](https://github.com/CyrilB1531/lodestar/issues/0256) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
+**Issue:** [#0256](https://github.com/CyrilB1531/lodestar/issues/0256) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
 
 ## Problem
 

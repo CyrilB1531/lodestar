@@ -1,7 +1,7 @@
 # Design — #70: anchor the Sonar exclusions to an explicit base directory
 
 **Date:** 2026-08-06 · **Issue:** #70 · **Branch:** `chore/70-pin-sonar-project-base-dir` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

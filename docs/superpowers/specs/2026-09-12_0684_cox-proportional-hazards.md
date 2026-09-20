@@ -1,6 +1,6 @@
 # 0684 — The Cox proportional hazards model, and a reference that stops before its maximum
 
-**Status:** accepted, 2026-09-12. Written before the work. The convergence section was corrected on
+**Status:** written before the work, 2026-09-12. The convergence section was corrected on
 2026-09-14, when writing the generator measured it again and refuted it.
 
 **Issue:** [#684](https://github.com/CyrilB1531/lodestar/issues/684), opened on the reading that
@@ -15,10 +15,10 @@ does a covariate change the hazard*, which is the question a dataset with covari
 asked, and which the Cox proportional hazards model is the standard answer to.
 
 The capability search behind
-[decision 0099](../../decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)
+[decision 0099](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0099-survival-has-no-incumbent-and-scikit-survival-is-refused-on-its-licence.md)
 returned zero NuGet packages for survival analysis on 2026-09-09, and a re-check finds nothing for
 Cox either. `scikit-survival` is refused on GPL-3.0-or-later by
-[decision 0003](../../decisions/0003-provenance-and-licensing.md) — a licence refusal, so it cannot
+[decision 0003](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0003-provenance-and-licensing.md) — a licence refusal, so it cannot
 be read as a behaviour reference either. The oracle is `lifelines`, as it already is for the three
 members that ship.
 
@@ -28,7 +28,7 @@ Three of the issue's premises were checked rather than taken.
 
 **Nothing needs to go public.** The issue's fifth bullet reserves a place for "whatever tail or
 numerical member this needs from `Lodestar.Stats`", to be published under
-[decision 0095](../../decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)'s
+[decision 0095](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)'s
 rule. Measured: Cox needs a two-sided normal p-value and a normal quantile, and
 `Distributions.NormalQuantile` and `Distributions.ChiSquaredSf` are **already public** —
 `KaplanMeier.Estimate` uses the first for its log-log bounds and `LogRank.Test` uses the second.
@@ -42,7 +42,7 @@ Read from the signature: `lifelines.CoxPHFitter` 0.30.3 takes **no `ties` parame
 estimated, not how the partial likelihood breaks ties. Efron is the only tie handling lifelines
 offers. A Breslow option could therefore ship only with hand-written expectations, against a
 repository whose whole conformance argument is frozen reference values
-([decision 0073](../../decisions/0073-the-oracle-gate-compares-numbers-not-bytes.md)). Breslow is
+([decision 0073](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0073-the-oracle-gate-compares-numbers-not-bytes.md)). Breslow is
 refused on that ground, recorded here so a later contributor does not re-open it as an oversight.
 
 **The proportional-hazards test is a separate function.** `lifelines.statistics.proportional_hazard_test`
@@ -91,8 +91,8 @@ disagreement with the independent Newton-Raphson is **2.2e-12** (p-values, relat
 
 So the replay test uses the repository's usual tolerances: floats at `1e-9` absolute, and p-values
 at `1e-9` relative as `OlsOracleTests` and `GlmOracleTests` already do. That relative rule for
-p-values comes from [decision 0081](../../decisions/0081-the-stats-numerical-layer-stays-internal.md);
-[decision 0122](../../decisions/0122-erfc-is-an-interpolant-sampled-from-the-incomplete-gamma.md)
+p-values comes from [decision 0081](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0081-the-stats-numerical-layer-stays-internal.md);
+[decision 0122](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0122-erfc-is-an-interpolant-sampled-from-the-incomplete-gamma.md)
 amends 0081 on how `erfc` is evaluated, not on this. No per-family tolerance is needed, and
 `tools/compare_oracles.py` is untouched.
 
@@ -103,12 +103,12 @@ expect the coefficients to differ in the sixth significant figure.** `docs/equiv
 
 **`CoxProportionalHazards.Fit`, in `Lodestar.Survival`**, beside the three members that ship.
 
-[Decision 0096](../../decisions/0096-ordinary-least-squares-earns-its-own-package.md) split ordinary
+[Decision 0096](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md) split ordinary
 least squares out of `Lodestar.Stats` into its own package on an audience argument — *"a caller who
 wants a regression table wants none of them, and a caller running a Kruskal-Wallis wants no QR"*.
 That argument does not transfer. The audience for a Cox model is the audience for a Kaplan-Meier
 curve: someone holding censored durations, who will usually want both, and who fits the curve first
-to look at the data. [Decision 0114](../../decisions/0114-the-serial-correlation-diagnostics-stay-in-lodestar-stats.md)
+to look at the data. [Decision 0114](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0114-the-serial-correlation-diagnostics-stay-in-lodestar-stats.md)
 is the recent precedent for a member staying in the package whose audience it serves.
 
 ```csharp
@@ -134,7 +134,7 @@ omission.
 `CoxSummary`, a sealed class with `init` accessors and an `internal` constructor, following
 `OlsSummary` exactly. A class rather than a record: two fitted models are not a thing a caller
 compares, so the `with` expression and the value equality
-[decision 0113](../../decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
+[decision 0113](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0113-a-record-whose-member-compares-by-reference-writes-its-own-equality.md)
 would then oblige buy nothing.
 
 | member | what it is |

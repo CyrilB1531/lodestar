@@ -1,7 +1,7 @@
 # Design — #34: the Sonar job fails on every Dependabot pull request
 
 **Date:** 2026-08-04 · **Issue:** #34 · **Branch:** `fix/34-skip-sonar-for-dependabot` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

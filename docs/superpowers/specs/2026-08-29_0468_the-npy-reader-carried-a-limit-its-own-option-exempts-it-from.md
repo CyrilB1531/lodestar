@@ -1,7 +1,7 @@
 # 0468 — The .npy reader carried a limit its own option exempts it from
 
 **Issue:** [#468](https://github.com/CyrilB1531/lodestar/issues/468) ·
-**Status:** accepted — fixed in [`c480c1f`](https://github.com/CyrilB1531/lodestar/commit/c480c1f) ·
+**Status:** written before the work; fixed in [`c480c1f`](https://github.com/CyrilB1531/lodestar/commit/c480c1f) ·
 **Date:** 2026-08-29 · **Written after the fact**, per `CLAUDE.md`: a spec records measured facts.
 
 ## What was wrong

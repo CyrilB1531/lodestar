@@ -1,6 +1,6 @@
 # 0322 — The index artifact is text where numpy's is a raw block
 
-**Issue:** [#0322](https://github.com/CyrilB1531/lodestar/issues/0322) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
+**Issue:** [#0322](https://github.com/CyrilB1531/lodestar/issues/0322) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
 
 ## Problem
 

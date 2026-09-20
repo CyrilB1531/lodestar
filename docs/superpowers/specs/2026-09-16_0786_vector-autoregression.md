@@ -1,13 +1,13 @@
 # 0786 — Vector autoregression with the inference table, at `statsmodels` parity
 
-**Status:** accepted, 2026-09-16. Written before the work.
+**Status:** written before the work, 2026-09-16.
 
 Issue: [#786](https://github.com/CyrilB1531/lodestar/issues/786).
 
-Reading: [decision 0134](../../decisions/0134-arima-and-state-space-are-not-written-and-var-is-the-one-that-could-be.md), which read
+Reading: [decision 0134](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0134-arima-and-state-space-are-not-written-and-var-is-the-one-that-could-be.md), which read
 ARIMA, SARIMAX, VAR and state space, wrote none of them, and named VAR "the one model of the four that could be written
 at parity": `statsmodels.tsa.api.VAR(...).fit(p)` matched `numpy.linalg.lstsq` on the stacked lags to a relative gap of
-`0.0`. Not amended or applied since. [Decision 0105](../../decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md)
+`0.0`. Not amended or applied since. [Decision 0105](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md)
 delegates *forecasting* to `Microsoft.ML.TimeSeries`; this is estimation with its table, which that package does not do.
 
 ## Problem
@@ -59,7 +59,7 @@ is missing, and nothing in .NET estimates one (0134's survey, re-read below).
   `LogLikelihood`, `Akaike`, `Bayesian`, `HannanQuinn`, `FinalPredictionError`; `LagOrder`, `VariableCount`,
   `ObservationsUsed`, `ModelDegreesOfFreedom`, `ResidualDegreesOfFreedom`, `HasIntercept`.
 - **Rejected:**
-  - **Confidence intervals.** The reference publishes none for this model, and [decision 0095](../../decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)
+  - **Confidence intervals.** The reference publishes none for this model, and [decision 0095](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)
     says a member waits for a caller who needs it.
   - **`Lodestar.Stats.Regression` as the home.** The estimator is a time-series model, and its lag design and
     information criteria belong beside the diagnostics that lead to it.

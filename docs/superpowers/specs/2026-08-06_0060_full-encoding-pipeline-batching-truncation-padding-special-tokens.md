@@ -1,7 +1,7 @@
 # Design — #60: the full encoding pipeline
 
 **Date:** 2026-08-06 · **Issue:** #60 · **Branch:** `feat/60-batch-encoding-pipeline` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

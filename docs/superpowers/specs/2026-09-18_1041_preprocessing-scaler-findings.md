@@ -1,6 +1,6 @@
 # Five scaler findings in Lodestar.Preprocessing — design
 
-**Status:** accepted, written before the work.
+**Status:** written before the work.
 **Issues:** [#1041](https://github.com/CyrilB1531/lodestar/issues/1041),
 [#1042](https://github.com/CyrilB1531/lodestar/issues/1042),
 [#1044](https://github.com/CyrilB1531/lodestar/issues/1044),

@@ -1,7 +1,7 @@
 # 0181 — Documentation published per version, and a reference entry per function
 
 **Issue:** [#181](https://github.com/CyrilB1531/data.net/issues/181) · **Date:** 2026-08-15 ·
-**Branch:** `docs/181-documentation-per-version-and-per-function`
+**Branch:** `docs/181-documentation-per-version-and-per-function` · **Status:** written before the work
 
 ## Context
 

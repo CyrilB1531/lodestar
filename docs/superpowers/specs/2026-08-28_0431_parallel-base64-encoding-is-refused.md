@@ -1,6 +1,6 @@
 # 0431 — Parallel base64 encoding is refused
 
-**Issue:** [#0431](https://github.com/CyrilB1531/lodestar/issues/0431) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-28
+**Issue:** [#0431](https://github.com/CyrilB1531/lodestar/issues/0431) · **Status:** **retrospective** — written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-28
 
 ## Problem
 

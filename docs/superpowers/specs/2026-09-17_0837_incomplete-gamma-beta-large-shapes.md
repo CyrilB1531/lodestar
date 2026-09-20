@@ -1,6 +1,6 @@
 # 0837 — The incomplete gamma and beta at large shapes
 
-**Status:** accepted, 2026-09-17. Written after the measurement it records.
+**Status:** **retrospective** — written 2026-09-17, after the measurement it records.
 
 Issue: [#837](https://github.com/CyrilB1531/lodestar/issues/837), found by the performance review of `main` (2026-09-16).
 

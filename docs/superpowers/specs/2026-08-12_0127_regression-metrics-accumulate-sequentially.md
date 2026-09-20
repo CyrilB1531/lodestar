@@ -1,7 +1,7 @@
 # 0127 — The regression metrics accumulate sequentially where numpy sums pairwise
 
 **Issue:** [#127](https://github.com/CyrilB1531/data.net/issues/127) · **Date:** 2026-08-12 ·
-**Branch:** `fix/127-compensated-regression-sums` · **Follow-up to:** [#92](https://github.com/CyrilB1531/data.net/issues/92)
+**Branch:** `fix/127-compensated-regression-sums` · **Follow-up to:** [#92](https://github.com/CyrilB1531/data.net/issues/92) · **Status:** written before the work
 
 ## Context
 

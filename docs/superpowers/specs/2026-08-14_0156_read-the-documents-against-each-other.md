@@ -1,7 +1,7 @@
 # 0156 — Read the prose documents against each other
 
 **Issue:** [#156](https://github.com/CyrilB1531/data.net/issues/156) · **Date:** 2026-08-14 ·
-**Branch:** `docs/156-read-the-documents-against-each-other` · **Part of:** [#134](https://github.com/CyrilB1531/data.net/issues/134)
+**Branch:** `docs/156-read-the-documents-against-each-other` · **Part of:** [#134](https://github.com/CyrilB1531/data.net/issues/134) · **Status:** written before the work
 
 ## Context
 

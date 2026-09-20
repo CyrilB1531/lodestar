@@ -1,6 +1,6 @@
 # 0849 — Filtered vector search, added tokens and SentencePiece buffers
 
-**Status:** accepted, 2026-09-17. Written after the measurement it records.
+**Status:** **retrospective** — written 2026-09-17, after the measurement it records.
 
 Issue: [#849](https://github.com/CyrilB1531/lodestar/issues/849), found by a performance review of `main`.
 

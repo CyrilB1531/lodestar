@@ -1,6 +1,6 @@
 # 0327 — metrics/clustering lists 13 metrics and routes none of them
 
-**Issue:** [#0327](https://github.com/CyrilB1531/lodestar/issues/0327) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
+**Issue:** [#0327](https://github.com/CyrilB1531/lodestar/issues/0327) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
 
 ## Problem
 

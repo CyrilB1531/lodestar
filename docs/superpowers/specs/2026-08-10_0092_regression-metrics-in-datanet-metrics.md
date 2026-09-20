@@ -1,7 +1,7 @@
 # Regression metrics — design
 
 **Issue:** [#92](https://github.com/CyrilB1531/data.net/issues/92) ·
-**Date:** 2026-08-10 · **Package:** `DataNet.Metrics`
+**Date:** 2026-08-10 · **Package:** `DataNet.Metrics` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 
@@ -173,7 +173,7 @@ scikit-learn's value there. It defaults to `NaN` for R², because that is
 scikit-learn's value *here*. Same enum, different defaults, both faithful.
 
 That is no longer this lot's decision to make.
-[ADR 0020](../../decisions/0020-normalize-is-a-projection-not-a-parameter.md)
+[ADR 0020](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0020-normalize-is-a-projection-not-a-parameter.md)
 recorded it while issue #93 was in flight, listing `NaN` for R² among the four
 defaults it enumerates and naming this issue as where it lands. This spec
 therefore *implements* the default rather than arguing for it, and the new ADR
@@ -239,7 +239,7 @@ landed the identical mechanism on 2026-08-10, one branch ahead of this one:
 - `OracleLoader.Number(JsonElement)` decodes the three names back on the C# side,
   and throws on any other string.
 
-[ADR 0020](../../decisions/0020-normalize-is-a-projection-not-a-parameter.md)
+[ADR 0020](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0020-normalize-is-a-projection-not-a-parameter.md)
 anticipated this lot by name: *"Issue #92 needs the identical plumbing for R²,
 and consumes this rather than rebuilding it."* So this lot writes no encoder, no
 decoder and no writer flag. It freezes `nan` and `-inf` through machinery that is

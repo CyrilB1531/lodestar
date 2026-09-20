@@ -1,6 +1,6 @@
 # 0167 — A `Split` step may spell its pattern as a literal
 
-**Issue:** [#167](https://github.com/CyrilB1531/data.net/issues/167) · **Date:** 2026-08-14
+**Issue:** [#167](https://github.com/CyrilB1531/data.net/issues/167) · **Date:** 2026-08-14 · **Status:** written before the work
 
 ## Context
 
@@ -42,7 +42,7 @@ semantics, not a spelling quirk.
 `"\d"` matches the two characters and **not a digit** — the `7` stays in its gap. That is the case that
 distinguishes "we escaped the literal" from "we passed it through", and nothing else in this list does.
 Astral literals match as themselves, so the escape carries no Basic-Multilingual-Plane caveat of the kind
-[ADR 0017 §4](../../decisions/0017-bpe-parity-scope.md) records for `\p{L}`.
+[ADR 0017 §4](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0017-bpe-parity-scope.md) records for `\p{L}`.
 
 ### D3 — an empty literal splits every character, and agrees with an empty regex
 

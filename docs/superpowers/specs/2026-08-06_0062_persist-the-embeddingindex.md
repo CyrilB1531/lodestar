@@ -1,7 +1,7 @@
 # Persisting the `EmbeddingIndex` — design
 
 **Issue:** [#62](https://github.com/CyrilB1531/data.net/issues/62) ·
-**Date:** 2026-08-06 · **Package:** `DataNet.Embeddings`
+**Date:** 2026-08-06 · **Package:** `DataNet.Embeddings` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 
@@ -18,7 +18,7 @@ is what this work does.
 ## Format: the artifact of ADR 0011, not a second one
 
 The issue text argues for a dedicated binary format, and it was written before
-[ADR 0011](../../decisions/0011-persistence-format.md) landed with #58. The ADR
+[ADR 0011](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0011-persistence-format.md) landed with #58. The ADR
 answers the question already, in two places:
 
 - *Why not a binary format as well* — the benchmark #58 demanded was run, it did

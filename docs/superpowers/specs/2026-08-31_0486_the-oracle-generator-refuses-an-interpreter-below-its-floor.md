@@ -1,7 +1,7 @@
 # 0486 — The oracle generator refuses an interpreter below its floor, and says which one it needs
 
 **Issue:** [#486](https://github.com/CyrilB1531/lodestar/issues/486) ·
-**Status:** accepted · **Date:** 2026-08-31
+**Status:** written before the work · **Date:** 2026-08-31
 
 ## Problem
 

@@ -1,7 +1,7 @@
 # Design — #75: read the precompiled normalizer instead of refusing it
 
 **Date:** 2026-08-06 · **Issue:** #75 · **Branch:** `feat/75-precompiled-normalizer` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## The premise, measured before any design
 

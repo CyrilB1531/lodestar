@@ -1,6 +1,6 @@
 # 0258 — Should the gate confront an XML exception tag with the page that documents it
 
-**Issue:** [#0258](https://github.com/CyrilB1531/lodestar/issues/0258) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
+**Issue:** [#0258](https://github.com/CyrilB1531/lodestar/issues/0258) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
 
 ## Problem
 
@@ -14,4 +14,4 @@ Emptying `Lodestar.Embeddings`' `exceptionsUnchecked` turned the parity gate on 
 
 ## What was decided
 
-The gate compares the **set** of types, in either order, and does not compare the sentence around each — *when* it is thrown stays a review question. Namespaces still owing parity are named in `exceptionsUnchecked`, **a list that only ever shrinks**. [ADR 0038](../../decisions/0038-the-gate-confronts-an-exception-tag-with-the-page-that-documents-it.md) is the decision.
+The gate compares the **set** of types, in either order, and does not compare the sentence around each — *when* it is thrown stays a review question. Namespaces still owing parity are named in `exceptionsUnchecked`, **a list that only ever shrinks**. [ADR 0038](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0038-the-gate-confronts-an-exception-tag-with-the-page-that-documents-it.md) is the decision.

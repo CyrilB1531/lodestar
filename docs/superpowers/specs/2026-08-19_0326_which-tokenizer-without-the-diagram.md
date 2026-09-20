@@ -1,6 +1,6 @@
 # 0326 — embeddings/tokenization asks 'Which tokenizer?' without the diagram
 
-**Issue:** [#0326](https://github.com/CyrilB1531/lodestar/issues/0326) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
+**Issue:** [#0326](https://github.com/CyrilB1531/lodestar/issues/0326) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
 
 ## Problem
 

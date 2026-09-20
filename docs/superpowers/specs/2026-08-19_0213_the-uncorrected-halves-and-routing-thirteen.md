@@ -1,6 +1,6 @@
 # 0213 — The uncorrected halves, and routing thirteen clustering metrics
 
-**Issue:** [#0213](https://github.com/CyrilB1531/lodestar/issues/0213) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
+**Issue:** [#0213](https://github.com/CyrilB1531/lodestar/issues/0213) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-19
 
 ## Problem
 

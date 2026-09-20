@@ -1,6 +1,6 @@
 # 0230 — Reference pages for Lodestar.Text.Similarity
 
-**Issue:** [#0230](https://github.com/CyrilB1531/lodestar/issues/0230) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
+**Issue:** [#0230](https://github.com/CyrilB1531/lodestar/issues/0230) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
 
 **Parent:** [#204](https://github.com/CyrilB1531/lodestar/issues/204), one lot of twelve.
 

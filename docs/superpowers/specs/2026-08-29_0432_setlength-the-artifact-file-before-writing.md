@@ -1,6 +1,6 @@
 # 0432 — SetLength the artifact file before writing it
 
-**Issue:** [#0432](https://github.com/CyrilB1531/lodestar/issues/0432) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-29
+**Issue:** [#0432](https://github.com/CyrilB1531/lodestar/issues/0432) · **Status:** **retrospective** — written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-29
 
 ## Problem
 
@@ -25,4 +25,4 @@ The save writes ~20 MB through an 80 KB buffer — **252 `write` calls, each ext
 
 ## What shipped
 
-The row, which outlives the refused change, and [ADR 0052](../../decisions/0052-pre-sizing-the-artifact-file-buys-nothing-on-a-delayed-allocation-filesystem.md). **Nothing was measured on Windows**, and the reopening condition is a filesystem that charges per extension.
+The row, which outlives the refused change, and [ADR 0052](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0052-pre-sizing-the-artifact-file-buys-nothing-on-a-delayed-allocation-filesystem.md). **Nothing was measured on Windows**, and the reopening condition is a filesystem that charges per extension.

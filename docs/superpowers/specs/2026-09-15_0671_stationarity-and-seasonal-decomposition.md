@@ -1,13 +1,13 @@
 # 0671 — Stationarity and seasonal decomposition, and the package the time index earns
 
-**Status:** accepted, 2026-09-15. Written before the work.
+**Status:** written before the work, 2026-09-15.
 
 Issue: [#671](https://github.com/CyrilB1531/lodestar/issues/671), the second half of the time-index
 subject [#338](https://github.com/CyrilB1531/lodestar/issues/338) opened.
-Reading: [decision 0105](../../decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md),
-as amended by [0129](../../decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md).
+Reading: [decision 0105](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md),
+as amended by [0129](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md).
 First half: [`2026-09-12_0617_time-series-diagnostics.md`](2026-09-12_0617_time-series-diagnostics.md)
-and [decision 0114](../../decisions/0114-the-serial-correlation-diagnostics-stay-in-lodestar-stats.md).
+and [decision 0114](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0114-the-serial-correlation-diagnostics-stay-in-lodestar-stats.md).
 
 ## Problem
 
@@ -37,7 +37,7 @@ table for `N > 1`, and the Phillips-Perron and Zivot-Andrews tests.
 
 ## Placement — a package, and the first lot moves into it
 
-[Decision 0114](../../decisions/0114-the-serial-correlation-diagnostics-stay-in-lodestar-stats.md)
+[Decision 0114](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0114-the-serial-correlation-diagnostics-stay-in-lodestar-stats.md)
 kept #617's lot in `Lodestar.Stats` and wrote down what would overturn that: *"a dependency this lot
 never needed — ADF's OLS is precisely that."* This lot has it.
 
@@ -46,12 +46,12 @@ statistic and the fit's information criterion. `Lodestar.Stats.Regression`'s
 `OrdinaryLeastSquares.Fit` returns exactly the t statistics and the residual standard error those
 need, and its published 0.1.0 already does. But `Lodestar.Stats.Regression` depends on
 `Lodestar.Stats`, so `Lodestar.Stats` cannot take it. Three resolutions, measured against
-[decision 0076](../../decisions/0076-a-core-package-carries-no-external-dependency.md):
+[decision 0076](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0076-a-core-package-carries-no-external-dependency.md):
 
 | option | cost | verdict |
 | --- | --- | --- |
 | **A package, `Lodestar.Stats.TimeSeries`**, with edges to `Lodestar.Stats` 0.4.0 and `Lodestar.Stats.Regression` 0.1.0, and #617's five types moving into it | the fixed cost #566 measured; no type changes namespace | **chosen**: the dependency profile is now distinct, the criterion 0114 found unmet |
-| A private least-squares solve inside `Lodestar.Stats` | a second OLS in one repository | refused on [decision 0095](../../decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)'s ground that two copies of one computation disagree eventually |
+| A private least-squares solve inside `Lodestar.Stats` | a second OLS in one repository | refused on [decision 0095](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)'s ground that two copies of one computation disagree eventually |
 | An edge from `Lodestar.Stats` to `Lodestar.Decomposition` for its QR | every hypothesis-test caller restores `Decomposition` and `Abstractions` | refused on 0114's own ground against moving the lot into `Stats.Regression` |
 
 **The move is free today and not later.** `Lodestar.Stats/v0.4.0` is the last tag and carries none
@@ -289,7 +289,7 @@ for it. Fixtures, each series frozen in the corpus:
 
 Every `regression` × every `autolag` for the ADF fixtures, every `nlags` rule for KPSS. Statistics,
 critical values and components compare at `1e-9`; p-values through `StatsOracleAsserts` per
-[decision 0081](../../decisions/0081-the-stats-numerical-layer-stays-internal.md); `UsedLag`,
+[decision 0081](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0081-the-stats-numerical-layer-stays-internal.md); `UsedLag`,
 `ObservationCount`, `LagCount` and `PValueBound` exactly; `NaN` positions exactly.
 
 ## Testing

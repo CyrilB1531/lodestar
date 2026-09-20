@@ -1,7 +1,7 @@
 # 0189 — One page per member, with a type page and a namespace index above it
 
 **Issue:** [#189](https://github.com/CyrilB1531/data.net/issues/189) ·
-**Status:** implemented · **Date:** 2026-08-15
+**Status:** written before the work; implemented · **Date:** 2026-08-15
 
 ## Problem
 

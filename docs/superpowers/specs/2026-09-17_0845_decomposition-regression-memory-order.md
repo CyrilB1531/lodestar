@@ -1,6 +1,6 @@
 # 0845 — Dense kernels in decomposition and regression, walked in memory order
 
-**Status:** accepted, 2026-09-17. Written after the measurement it records.
+**Status:** **retrospective** — written 2026-09-17, after the measurement it records.
 
 Issue: [#845](https://github.com/CyrilB1531/lodestar/issues/845), found by the performance review of `main` (2026-09-16).
 

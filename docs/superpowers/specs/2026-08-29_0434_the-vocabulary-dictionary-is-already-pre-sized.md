@@ -1,14 +1,14 @@
 # 0434 — The vocabulary dictionary is already pre-sized
 
 **Issue:** [#434](https://github.com/CyrilB1531/lodestar/issues/434) ·
-**Status:** proposed — recommends closing the issue as already done · **Date:** 2026-08-29
+**Status:** **retrospective** — written 2026-08-29 from the commits that closed it; proposed — recommends closing the issue as already done · **Date:** 2026-08-29
 
 ## Problem, as the issue states it
 
 `tfidf_load` sits at ~7 ms and was untouched by all four lots on this
 path (#323, #324, #336 and #377). The issue proposes the one lever it believes remains: build the vocabulary → index
 `Dictionary` with a capacity taken from `featureCount`, which
-[ADR 0011](../../decisions/0011-persistence-format.md) guarantees is written **before** the array it
+[ADR 0011](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0011-persistence-format.md) guarantees is written **before** the array it
 describes. Every resize and rehash on the way to 30 000 entries would then disappear.
 
 ## The lever is already pulled

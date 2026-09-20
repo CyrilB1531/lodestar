@@ -1,7 +1,7 @@
 # 0505 — `PartialRatio` skips the windows it cannot win
 
 **Issue:** [#505](https://github.com/CyrilB1531/lodestar/issues/505) ·
-**Status:** accepted · **Date:** 2026-09-01
+**Status:** written before the work · **Date:** 2026-09-01
 
 ## Problem
 

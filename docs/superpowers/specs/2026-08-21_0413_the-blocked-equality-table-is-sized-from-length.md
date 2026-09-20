@@ -1,6 +1,6 @@
 # 0413 — The blocked equality table is sized from the pattern length
 
-**Issue:** [#0413](https://github.com/CyrilB1531/lodestar/issues/0413) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
+**Issue:** [#0413](https://github.com/CyrilB1531/lodestar/issues/0413) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
 
 ## Problem
 

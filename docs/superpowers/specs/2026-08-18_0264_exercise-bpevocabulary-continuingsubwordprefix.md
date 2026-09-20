@@ -1,6 +1,6 @@
 # 0264 — Exercise BpeVocabulary.ContinuingSubwordPrefix
 
-**Issue:** [#0264](https://github.com/CyrilB1531/lodestar/issues/0264) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
+**Issue:** [#0264](https://github.com/CyrilB1531/lodestar/issues/0264) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
 
 ## Problem
 

@@ -1,6 +1,6 @@
 # 0263 — Show the two Silhouette overloads that take a distance matrix
 
-**Issue:** [#0263](https://github.com/CyrilB1531/lodestar/issues/0263) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
+**Issue:** [#0263](https://github.com/CyrilB1531/lodestar/issues/0263) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
 
 ## Problem
 
@@ -12,4 +12,4 @@ The packaging gate matched **per type**. `Silhouette` was reached by another ove
 
 ## What shipped
 
-Both overloads exercised in the metrics sample, and [ADR 0009](../../decisions/0009-packaging-gate.md) amended rather than annotated — the note above the original bullet says the granularity moved and points at the new section; the bullet is left as written, because the reasoning for the gate is unchanged.
+Both overloads exercised in the metrics sample, and [ADR 0009](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0009-sample-consumes-a-local-feed.md) amended rather than annotated — the note above the original bullet says the granularity moved and points at the new section; the bullet is left as written, because the reasoning for the gate is unchanged.

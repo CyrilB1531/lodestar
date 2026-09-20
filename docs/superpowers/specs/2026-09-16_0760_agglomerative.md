@@ -1,12 +1,12 @@
 # 0760 — Agglomerative clustering in `Lodestar.Cluster`
 
-**Status:** accepted, 2026-09-16. Written before the work.
+**Status:** written before the work, 2026-09-16.
 
 Issue: [#760](https://github.com/CyrilB1531/lodestar/issues/760).
 
-Reading: [decision 0131](../../decisions/0131-lodestar-cluster-writes-what-netstandard2-0-lacks.md),
+Reading: [decision 0131](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0131-lodestar-cluster-writes-what-netstandard2-0-lacks.md),
 which writes agglomerative clustering here and names `Aglomera` as the incumbent to measure first;
-[decision 0129](../../decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md),
+[decision 0129](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0129-four-numerics-libraries-read-and-three-absences-withdrawn.md),
 the reading beneath it. `sklearn.cluster.AgglomerativeClustering` 1.9.0 and
 `scipy.cluster.hierarchy` 1.18.1, read by probe and — for the single-linkage path — from
 scikit-learn's own shipped Cython, on 2026-09-16.

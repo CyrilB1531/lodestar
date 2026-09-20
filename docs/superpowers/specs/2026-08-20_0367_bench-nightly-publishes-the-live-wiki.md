@@ -1,6 +1,6 @@
 # 0367 — bench-nightly publishes the live wiki even when dispatched off a feature branch
 
-**Issue:** [#0367](https://github.com/CyrilB1531/lodestar/issues/0367) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-20
+**Issue:** [#0367](https://github.com/CyrilB1531/lodestar/issues/0367) · **Status:** **retrospective** — written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-20
 
 ## Problem
 

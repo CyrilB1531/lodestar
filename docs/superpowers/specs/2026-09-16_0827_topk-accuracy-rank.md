@@ -1,6 +1,6 @@
 # 0827 — `TopKAccuracy.Score` by counting the true class's rank
 
-**Status:** accepted, 2026-09-16. Written after the measurement it records.
+**Status:** **retrospective** — written 2026-09-16, after the measurement it records.
 
 Issue: [#827](https://github.com/CyrilB1531/lodestar/issues/827), found by a performance review of `main`.
 

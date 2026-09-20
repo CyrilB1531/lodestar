@@ -1,10 +1,10 @@
 # 0775 — HAC and one-way cluster-robust covariances, at `statsmodels` parity
 
-**Status:** accepted, 2026-09-15. Written before the work.
+**Status:** written before the work, 2026-09-15.
 
 Issue: [#775](https://github.com/CyrilB1531/lodestar/issues/775), a sub-issue of the econometrics umbrella
 [#773](https://github.com/CyrilB1531/lodestar/issues/773).
-Reading: [decision 0115](../../decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md),
+Reading: [decision 0115](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0115-the-robust-covariances-come-first-and-the-tail-was-already-published.md),
 which shipped HC0–HC3 and nothing past them; not amended or applied since.
 
 ## Problem

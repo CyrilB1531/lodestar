@@ -1,16 +1,16 @@
 # 0109 — The build enforces only the Sonar rules the analyzer enables by default
 
 **Issue:** [#109](https://github.com/CyrilB1531/data.net/issues/109) · **Date:** 2026-08-11 ·
-**Branch:** `chore/109-sonar-rule-parity` · **Checkout:** `<repo>`
+**Branch:** `chore/109-sonar-rule-parity` · **Checkout:** `<repo>` · **Status:** written before the work
 
 ## Context
 
 [#84](https://github.com/CyrilB1531/data.net/issues/84) put `SonarAnalyzer.CSharp` in the build so that
 "a finding is a compile error on the machine that wrote the code"
-([ADR 0015](../../decisions/0015-sonar-rules-in-the-build.md)).
+([ADR 0015](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0015-sonar-rules-in-the-build.md)).
 [#107](https://github.com/CyrilB1531/data.net/issues/107) closed the half of the gap that belonged to the
 .NET code-quality rules, by setting `AnalysisMode=All`
-([ADR 0019](../../decisions/0019-the-net-analysers-run-in-the-build-too.md)).
+([ADR 0019](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0019-the-net-analysers-run-in-the-build-too.md)).
 
 The half left open is SonarAnalyzer's own: the package ships a large fraction of its rules **disabled**,
 the server's quality profile enables some of them, and nothing local closes that difference. The loop for

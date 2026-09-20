@@ -1,7 +1,7 @@
 # Design — #72: the sample guards packaging for 14 of 58 public types
 
 **Date:** 2026-08-06 · **Issue:** #72 · **Branch:** `feat/72-sample-covers-every-public-type` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

@@ -1,14 +1,14 @@
 # 0617 — Serial correlation: the autocorrelation functions and the Ljung-Box test
 
-**Status:** accepted, 2026-09-12. Written before the work.
+**Status:** written before the work, 2026-09-12.
 
 Issue: [#617](https://github.com/CyrilB1531/lodestar/issues/617), the time-index half of
 [#338](https://github.com/CyrilB1531/lodestar/issues/338).
-Reading: [decision 0105](../../decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md).
+Reading: [decision 0105](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0105-the-time-series-forecast-is-delegated-and-the-diagnostics-are-the-gap.md).
 
 ## Problem
 
-[Decision 0096](../../decisions/0096-ordinary-least-squares-earns-its-own-package.md) drew the
+[Decision 0096](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0096-ordinary-least-squares-earns-its-own-package.md) drew the
 line this issue sits behind:
 
 > This package is OLS and its table; anything with a link function or a time index falls on that
@@ -235,9 +235,9 @@ degrees of freedom left, and the answer is `NaN` at that lag and a real value at
 ### The p-values compare relatively
 
 Through `StatsOracleAsserts` in `tests/Lodestar.Stats.Tests/Oracles/`, reused and never restated,
-per [decision 0081](../../decisions/0081-the-stats-numerical-layer-stays-internal.md). The chi-square
+per [decision 0081](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0081-the-stats-numerical-layer-stays-internal.md). The chi-square
 survival function is `Distributions.ChiSquaredSf`, already published by `Lodestar.Stats` under
-[decision 0095](../../decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)
+[decision 0095](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0095-the-stats-numerical-layer-publishes-four-members-and-no-more.md)
 — this lot needs no new member from it, and the normal quantile the bands need is
 `Distributions.NormalQuantile`, published by the same decision.
 
@@ -263,9 +263,9 @@ rather than performed, and a constant series is exactly that.
 
 ## Placement, deliberately deferred
 
-**Not decided here.** The same method [decision 0111](../../decisions/0111-the-generalized-linear-model-does-not-earn-its-own-package.md)
+**Not decided here.** The same method [decision 0111](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0111-the-generalized-linear-model-does-not-earn-its-own-package.md)
 used for #616: write it, measure the lines, the public types and the members, then test the
-result against [decision 0076](../../decisions/0076-a-core-package-carries-no-external-dependency.md)'s
+result against [decision 0076](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0076-a-core-package-carries-no-external-dependency.md)'s
 three criteria — a distinct dependency profile, a distinct audience, a distinct cadence — and
 record the verdict as an ADR before the branch ends.
 

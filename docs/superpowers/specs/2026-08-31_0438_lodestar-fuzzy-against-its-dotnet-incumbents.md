@@ -1,7 +1,7 @@
 # 0438 — `Lodestar.Fuzzy` against its .NET incumbents
 
 **Issue:** [#438](https://github.com/CyrilB1531/lodestar/issues/438) ·
-**Status:** accepted · **Date:** 2026-08-31
+**Status:** written before the work · **Date:** 2026-08-31
 
 ## Problem
 
@@ -60,7 +60,7 @@ This lot deliberately adds **no number to `docs/guides/performance.md`**.
 
 The run available to the session that wrote this is a shared container, and the repository has
 already ruled on that twice:
-[ADR 0051](../../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md) withdrew a
+[ADR 0051](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md) withdrew a
 1.61× taken that way, and `bench/README.md` section 14 records the container **inverting** every
 `TensorPrimitives` ratio it was asked for. A container run of these classes proves the harness
 works and nothing else.

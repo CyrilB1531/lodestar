@@ -1,7 +1,7 @@
 # Design — #10: benchmark the net10 build against the netstandard2.0 build
 
 **Date:** 2026-08-04 · **Issue:** #10 · **Branch:** `feat/10-netstandard-benchmark` ·
-**Checkout:** `<repo>`
+**Checkout:** `<repo>` · **Status:** **retrospective** — written 2026-08-10 from the commits that closed it
 
 ## Problem
 

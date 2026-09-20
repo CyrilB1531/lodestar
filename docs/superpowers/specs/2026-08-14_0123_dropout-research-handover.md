@@ -1,7 +1,7 @@
 # 0123 — research handover: is `dropout` ever reproduced?
 
 **Issue:** [#123](https://github.com/CyrilB1531/data.net/issues/123) · **Date:** 2026-08-14 ·
-**Status:** research only. No spec, no plan, no code. Everything below was measured; nothing was decided.
+**Status:** written before the work; research only. No spec, no plan, no code. Everything below was measured; nothing was decided
 
 This is a handover, not a design. It exists so the lot that takes #123 does not re-run the measurements.
 
@@ -52,7 +52,7 @@ proves every algorithm by replaying values frozen from the reference — and a r
 pinned cannot be frozen. Dropout is the one setting where the oracle method is structurally unavailable.
 
 Shipping it would mean shipping a parity claim no corpus could ever check, which is what `CLAUDE.md` and
-[ADR 0003](../../decisions/0003-provenance-and-licensing.md) exist to prevent.
+[ADR 0003](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0003-provenance-and-licensing.md) exist to prevent.
 
 ## D3 — no model that could be read declares a non-null dropout
 
@@ -74,7 +74,7 @@ The fifteen: `EleutherAI/gpt-neox-20b`, `EleutherAI/pythia-160m`, `Qwen/Qwen2-0.
 
 The eight: `facebook/xglm-564M`, `RWKV/rwkv-4-169m-pile`, `EleutherAI/gpt-j-6b`, `bigcode/santacoder`,
 `codeparrot/codeparrot-small`, `facebook/nllb-200-distilled-600M`, and Llama-3 through both ungated
-mirrors [ADR 0017 §5](../../decisions/0017-bpe-parity-scope.md) established —
+mirrors [ADR 0017 §5](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0017-bpe-parity-scope.md) established —
 `NousResearch/Meta-Llama-3-8B` and `unsloth/llama-3-8b`.
 
 **Eight could not be read, and why is itself a result:**
@@ -97,7 +97,7 @@ mirrors [ADR 0017 §5](../../decisions/0017-bpe-parity-scope.md) established —
   goes the other way the issue closes and a fresh one carries the implementation.
 - **What a user with such a file is told to do.** The obvious answer is that dropout is a *training-time*
   augmentation and inference wants determinism, so setting the field to `null` loads the file and changes
-  nothing about what the model was trained to produce. [ADR 0017 §3](../../decisions/0017-bpe-parity-scope.md)
+  nothing about what the model was trained to produce. [ADR 0017 §3](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0017-bpe-parity-scope.md)
   is the standard to match: it names Llama-2 and Mistral v0.1 and says where to go instead.
 - **Whether a distributional comparison counts as proof.** Comparing output *distributions* over many
   encodes instead of exact outputs is the obvious escape hatch from D2. Whoever takes this should name it

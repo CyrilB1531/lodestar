@@ -1,6 +1,6 @@
 # 0302 — Lift the Latin-1 restriction on the UTF-16 bit-parallel path
 
-**Issue:** [#0302](https://github.com/CyrilB1531/lodestar/issues/0302) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
+**Issue:** [#0302](https://github.com/CyrilB1531/lodestar/issues/0302) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-21
 
 ## Problem
 
@@ -18,4 +18,4 @@ Not with a stopwatch. **The JIT's output was dumped for the method carrying the 
 
 ## What shipped
 
-The side table on both routes — see [decision 0043](../../decisions/0043-the-equality-table-is-sized-to-the-pattern.md) — so the kernels no longer refuse an alphabet.
+The side table on both routes — see [decision 0043](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0043-the-equality-table-is-sized-to-the-pattern.md) — so the kernels no longer refuse an alphabet.

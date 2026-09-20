@@ -1,6 +1,6 @@
 # 0265 — Packaging gate: member granularity, not type granularity
 
-**Issue:** [#0265](https://github.com/CyrilB1531/lodestar/issues/0265) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
+**Issue:** [#0265](https://github.com/CyrilB1531/lodestar/issues/0265) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-18
 
 ## Problem
 
@@ -17,4 +17,4 @@ The gate matched **per type**, so one referenced member made every other method,
 
 ## What shipped
 
-The gate at member granularity: **383 members, 383 referenced, 44 documented exclusions — up from 2**. The exclusion count rising is the honest part: members that genuinely cannot be reached from a sample now each carry a reason instead of being covered by a sibling. [ADR 0009](../../decisions/0009-packaging-gate.md) is amended rather than annotated.
+The gate at member granularity: **383 members, 383 referenced, 44 documented exclusions — up from 2**. The exclusion count rising is the honest part: members that genuinely cannot be reached from a sample now each carry a reason instead of being covered by a sibling. [ADR 0009](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0009-sample-consumes-a-local-feed.md) is amended rather than annotated.

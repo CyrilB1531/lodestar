@@ -1,6 +1,6 @@
 # 0342 — Phonetic encoders accept a null word where the stemmers throw
 
-**Issue:** [#0342](https://github.com/CyrilB1531/lodestar/issues/0342) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-20
+**Issue:** [#0342](https://github.com/CyrilB1531/lodestar/issues/0342) · **Status:** **retrospective** — written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-20
 
 ## Problem
 
@@ -12,4 +12,4 @@ An empty code is a **valid** phonetic code. A caller passing `null` by accident 
 
 ## What was decided
 
-**Breaking**: all three throw. [ADR 0042](../../decisions/0042-phonetic-encoders-refuse-a-null-word.md) records it, and the changelog carries it as a breaking change rather than as a fix — the distinction a consumer needs.
+**Breaking**: all three throw. [ADR 0042](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0042-phonetic-encoders-refuse-a-null-word.md) records it, and the changelog carries it as a breaking change rather than as a fix — the distinction a consumer needs.

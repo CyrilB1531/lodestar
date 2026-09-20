@@ -1,7 +1,7 @@
 # 0172 — Clustering metrics: agreement between partitions, then silhouette
 
 **Issue:** [#172](https://github.com/CyrilB1531/data.net/issues/172) ·
-**Status:** implemented · **Date:** 2026-08-15
+**Status:** written before the work; implemented · **Date:** 2026-08-15
 
 ## Problem
 
@@ -61,7 +61,7 @@ double Silhouette.Score(ReadOnlySpan<int> labels, ReadOnlySpan<double> features,
 twenty metric names, and each one admitted here is a parity claim to prove and keep — a caller who
 wants cosine computes the matrix, which is what `DataNet.Embeddings` is for. Row-major spans with an
 explicit count, as the regression metrics already take 2-D targets ([D of
-0021](../../decisions/0021-multioutput-is-a-method-not-an-enum.md)); there is no 2-D overload
+0021](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0021-multioutput-is-a-method-not-an-enum.md)); there is no 2-D overload
 because a span cannot carry one.
 
 ### D3 — `Silhouette.PerSample` ships beside `Score`
@@ -69,8 +69,8 @@ because a span cannot carry one.
 The per-sample array is what makes silhouette a diagnostic rather than a number, and the scalar is
 its mean, so implementing one implements both. A separate method rather than an enum member,
 because the return type changes — the ruling of
-[0016](../../decisions/0016-metrics-package-placement.md), applied again in
-[0021](../../decisions/0021-multioutput-is-a-method-not-an-enum.md).
+[0016](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0016-metrics-package-placement.md), applied again in
+[0021](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0021-multioutput-is-a-method-not-an-enum.md).
 
 ### D4 — the undefined cases are reproduced, including the ones that look wrong
 

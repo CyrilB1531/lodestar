@@ -1,13 +1,13 @@
 # 0474 — EmbeddingIndex cannot take a block whole
 
 **Issue:** [#474](https://github.com/CyrilB1531/lodestar/issues/474) ·
-**Status:** proposed · **Date:** 2026-08-29
+**Status:** written before the work; proposed · **Date:** 2026-08-29
 
 ## Problem
 
-[ADR 0055](../../decisions/0055-the-artifact-gets-a-binary-sidecar-once-a-block-can-be-ingested-whole.md)
+[ADR 0055](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0055-the-artifact-gets-a-binary-sidecar-once-a-block-can-be-ingested-whole.md)
 found the time argument for a binary sidecar that
-[0011](../../decisions/0011-persistence-format.md) had looked for in the wrong place: reading a
+[0011](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0011-persistence-format.md) had looked for in the wrong place: reading a
 `.npy` block is **2.02× faster** than loading the JSON artifact. Then it found the reason it cannot
 be taken. `sidecar` on a hosted runner, 10 000 × 384, medians of nine:
 
@@ -94,7 +94,7 @@ it runs. What is new is the **duration**: `Load`'s invariant lasts the call, and
 changes the index's vectors, and every subsequent score, with nothing raised. A caller who hands
 over an array rented from `ArrayPool<float>.Shared` and later returns it serves the next renter's
 bytes as embeddings. That second one is exactly the trap
-[0053](../../decisions/0053-the-payload-buffer-is-not-pooled-because-residency-outlives-the-load.md)
+[0053](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0053-the-payload-buffer-is-not-pooled-because-residency-outlives-the-load.md)
 named, from the other side of the boundary.
 
 The decision is that the invariant is the caller's to keep, stated in the method's name, its

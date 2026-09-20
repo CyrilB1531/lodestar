@@ -1,6 +1,6 @@
 # 0233 — Reference pages for Lodestar.Embeddings.Pooling
 
-**Issue:** [#0233](https://github.com/CyrilB1531/lodestar/issues/0233) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits that closed it · **Date:** 2026-08-17
+**Issue:** [#0233](https://github.com/CyrilB1531/lodestar/issues/0233) · **Status:** **retrospective** — written 2026-08-29 from the commits that closed it · **Date:** 2026-08-17
 
 **Parent:** [#204](https://github.com/CyrilB1531/lodestar/issues/204), one lot of twelve.
 

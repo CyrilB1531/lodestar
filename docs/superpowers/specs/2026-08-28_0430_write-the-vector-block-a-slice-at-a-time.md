@@ -1,6 +1,6 @@
 # 0430 — Write the vector block a slice at a time
 
-**Issue:** [#0430](https://github.com/CyrilB1531/lodestar/issues/0430) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-28
+**Issue:** [#0430](https://github.com/CyrilB1531/lodestar/issues/0430) · **Status:** **retrospective** — written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-28
 
 ## Problem
 
@@ -20,4 +20,4 @@ Step 0 measured writing the vector block alone at **16.938 ms of which the encod
 
 ## What shipped
 
-`Base64Numbers.WriteSinglesChunked`, `ArtifactIo.SaveWithBlock` owning the whole writer sequence, `SaveAsync` losing its intermediate `MemoryStream`, and [ADR 0051](../../decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md).
+`Base64Numbers.WriteSinglesChunked`, `ArtifactIo.SaveWithBlock` owning the whole writer sequence, `SaveAsync` losing its intermediate `MemoryStream`, and [ADR 0051](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0051-the-save-paths-cost-is-the-buffer-not-the-encoding.md).

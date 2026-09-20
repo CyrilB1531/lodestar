@@ -1,6 +1,6 @@
 # 0356 — The nightly generates a benchmark_latest.md its own Lint job refuses
 
-**Issue:** [#0356](https://github.com/CyrilB1531/lodestar/issues/0356) · **Status:** accepted — **retrospective**, written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-27
+**Issue:** [#0356](https://github.com/CyrilB1531/lodestar/issues/0356) · **Status:** **retrospective** — written 2026-08-29 from the commits and decisions that closed it · **Date:** 2026-08-27
 
 ## Problem
 

@@ -1,6 +1,6 @@
 # 0782 — The least-squares pipeline, measured against its incumbents and rebuilt where it lost
 
-**Status:** accepted, 2026-09-15. Written during the work, from its measurements: the benchmarks this records were owed
+**Status:** written with the work, 2026-09-15, from its measurements: the benchmarks this records were owed
 by #774 and #778, and what they found changed the scope from a benchmark to a refactor.
 
 Issues: [#782](https://github.com/CyrilB1531/lodestar/issues/782) (weighted least squares against its incumbent) and
