@@ -47,7 +47,7 @@ jobs:
         # in CI could change with no commit here.
         run: >
           npx --yes --ignore-scripts markdownlint-cli2@0.23.2
-          "README.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "bench/README.md"
+          "README.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "tools/sonarqube-local/README.md" "bench/README.md" ".github/workflows/README.md"
       # Only a C# file or what configures it can change the answer, and the check costs about
       # two and a half minutes (#997).
       - name: C# format check

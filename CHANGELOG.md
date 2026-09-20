@@ -20,7 +20,7 @@ and including `0.2.0` predate the split and covered all three at once — see
 no longer share a number: `DataNet.Metrics` shipped its first `0.1.0` while the
 other three shipped `0.3.0`. Each entry
 is one sentence, the issue and the commit; see
-[`CONTRIBUTING.md`](CONTRIBUTING.md#releasing) for the shape and why.
+[`CONTRIBUTING.md`](CONTRIBUTING.md#definition-of-done)'s item 7 for the shape and why.
 
 ## [Unreleased]
 

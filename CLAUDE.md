@@ -26,6 +26,8 @@ it.
 | `bench/README.md` | the `bench/` harness projects and scripts, hand-maintained | **how to measure** — the harness, the corpus, the commands |
 | `docs/guides/performance.md` | a benchmark run on a named machine | **what was measured** — every number, with its machine and its window |
 | `tools/README.md` | the scripts under `tools/`, hand-maintained | what each tool does and how to run it |
+| `tools/sonarqube-local/README.md` | one run of the disposable local server, on a named machine | how to run the half of the quality gate no `dotnet build` reaches, and what that run cost |
+| `.github/workflows/README.md` | the workflows in that directory and the repository ruleset, hand-maintained | what the pipeline runs, and what has to be green before `main` accepts a merge |
 | `CONTRIBUTING.md` | the project's own process, hand-maintained | the process a contributor follows |
 | `CLAUDE.md` | what a session has found, hand-maintained | what a session needs to be productive, and the traps that cost time |
 | `docs/equivalence.md` | the oracle corpora in `tests/oracles/*.json`, replayed against the C# they compare | the Python call to C# counterpart mapping, with each divergence |
@@ -43,7 +45,7 @@ it.
 dotnet build Lodestar.slnx -c Release      # both target frameworks; warnings are errors
 dotnet test Lodestar.slnx -c Release       # runs the suite twice: net10 and netstandard2.0 assemblies
 dotnet format Lodestar.slnx --verify-no-changes
-npx markdownlint-cli2 "README.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "bench/README.md"
+npx markdownlint-cli2 "README.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "tools/sonarqube-local/README.md" "bench/README.md" ".github/workflows/README.md"
 ```
 
 Neither `python` nor `python3` is safe to assume on both platforms: Ubuntu 24.04 ships

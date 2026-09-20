@@ -142,7 +142,12 @@ given:
   `.githooks/pre-commit` with `git config core.hooksPath .githooks` —
   CONTRIBUTING.md's [*Before
   committing*](../CONTRIBUTING.md#before-committing-the-guards-one-command-earlier)
-  has what it does and does not cover.
+  has what it does and does not cover. About a second is the whole budget, and it
+  is already spent: measured over the whole tree on one machine, 0.97 s for
+  `check_machine_paths.py`, 0.12 s for `check_comment_length.py`, 0.06 s for
+  `check_version_floor.py` and 0.03 s for `check_sample_culture.py` — 1.18 s for
+  those four in sequence. A guard that reached `dotnet build` would be
+  uninstalled within a week.
 - `check_adr_immutable.py` refuses a pull request that touches a
   `docs/decisions/` ADR that already existed at its base commit, addition
   included — an accepted decision is never edited, only amended by a new one.
@@ -161,7 +166,7 @@ given:
   occurrences, with the issue anchored on the literal's first one, so only a
   literal the change both pushes over and introduces is reported. Like the ADR
   guard it needs the pull request's base commit, and for the same reason it is not
-  in the pre-commit set (tools/README.md): `tools/generate_oracles.py` already holds
+  in the pre-commit set above: `tools/generate_oracles.py` already holds
   some 108 literals over the threshold, so the only useful question is what a
   change *adds*. `--report` prints that standing backlog without failing.
 - `generate_sonar_globalconfig.py` writes the `.globalconfig` that raises the
@@ -242,8 +247,8 @@ given:
   The nightly runs `compare` before `record`, and records only on `main`.
 - `sonarqube-local/` holds the compose file for a disposable local SonarQube
   server, covering the Python rules, duplication and coverage that no local
-  `dotnet build` reaches — see
-  [`../CONTRIBUTING.md`](../CONTRIBUTING.md#before-pushing-the-half-the-build-cannot-see).
+  `dotnet build` reaches. [`sonarqube-local/README.md`](sonarqube-local/README.md)
+  has the commands, what one run cost, and why it is not a rehearsal of CI.
 - `tests/` holds the pytest suite CI runs over these scripts, and one of its
   files holds *this page* to them: `test_readme_covers_the_tools.py` fails when
   a `tools/*.py` or `tools/*.cs` is named nowhere here. The list above is the
