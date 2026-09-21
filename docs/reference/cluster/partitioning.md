@@ -1,6 +1,6 @@
 # Partitioning — `Lodestar.Cluster`
 
-Three algorithms. [`KMeans`](partitioning/kmeans.md) partitions samples into `k` clusters by Lloyd's
+Three ways to group samples into clusters, each at scikit-learn parity. [`KMeans`](partitioning/kmeans.md) partitions samples into `k` clusters by Lloyd's
 algorithm, at `sklearn.cluster.KMeans(algorithm="lloyd")` parity.
 [`Dbscan`](partitioning/dbscan.md) finds however many dense regions there are and leaves the rest
 as noise, at `sklearn.cluster.DBSCAN` parity.

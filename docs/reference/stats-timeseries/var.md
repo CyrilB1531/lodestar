@@ -1,6 +1,6 @@
 # Vector autoregression — `Lodestar.Stats.TimeSeries`
 
-One entry point, [`VectorAutoregression.Fit`](var/vectorautoregression-fit.md). It estimates a VAR(p): several series
+One entry point, [`VectorAutoregression.Fit`](var/vectorautoregression-fit.md), which estimates a VAR(p): several series
 that move together, each explained by every series' own past, with the table `statsmodels`' `VAR(y).fit(p)` prints —
 the coefficients per equation with their standard errors, t statistics and p-values, the residual covariances, the
 log-likelihood, and the four information criteria.

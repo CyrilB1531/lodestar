@@ -34,6 +34,7 @@ it.
 | `docs/migration/` | the .NET package chosen for each need | what is delegated to another .NET library, and why |
 | `docs/reference/` | the exported types and public methods of the namespaces `docs/wiki-map.json` covers, replayed against both target frameworks' assemblies — net10.0's alone on a pull request that skips the build, which runs on the binaries `main` staged for its base commit ([#1059](https://github.com/CyrilB1531/lodestar/issues/1059)) | what each function is for: declaration, parameters, returns, example, remarks |
 | `docs/wiki-map.json` | the packages and the pages that ship with each, hand-maintained | which page belongs to which package, and which namespaces the reference gate enforces |
+| `docs/wiki/home.md` | the guides and namespace pages it links, hand-maintained | the published wiki's front page: what Lodestar is, and where each task starts |
 | `CHANGELOG.md` | the merged pull requests, per release | what changed, per release |
 | `docs/decisions/` | each record's frontmatter and `**Status:**` line, crossed into [`index.yaml`](docs/decisions/index.yaml) and read in prose in [`README.md`](docs/decisions/README.md) | one axis of the project, with its options and its loser |
 | root `README.md` | the project as it stands, hand-maintained | what the project is, and where to go next |

@@ -1,4 +1,5 @@
 {
+  "home": "docs/wiki/home.md",
   "root": [
     "docs/equivalence.md",
     "docs/guides/performance.md",

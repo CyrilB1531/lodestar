@@ -695,16 +695,21 @@ rewritten too rather than left naming the previous release.
 `.github/workflows/wiki.yml` is what calls it, on pushes to `main` and on
 per-package release tags.
 
-Each live channel also gets a generated entry page, `<channel>.md` — a link
-per namespace it covers and a link per guide it ships, read off
-`docs/wiki-map.json`'s `covered` map so it cannot go stale — and `Home` links
-each package to that page rather than to a bare channel name that used to
-resolve to nothing. A package that covers no namespace and ships no guide,
-`Lodestar.Metrics` today, gets no entry page: one linking nothing would not be
-navigation, so `Home` names it "no pages yet" instead, the same text it
-already used before this page existed. The entry page is not archived — it
-carries no content of its own to freeze, and the reasoning is in the module
-docstring.
+Each live channel also gets a generated entry page, `<channel>.md`: its guides
+under *Start here*, then one row per namespace it covers, labelled with that
+namespace page's H1 and described by its first sentence, so the hub cannot drift
+from the pages it lists. A namespace declared as a directory must be documented
+by a page whose H1 names it in backticks, or the run fails. A package that covers
+no namespace and ships no guide gets no entry page, and `Home` names it "no
+pages yet". The entry page is not archived; the module docstring says why.
+
+Every package page opens on a breadcrumb — `Home › Text › Distances` on a
+member page, the namespace page being the one beside the member's directory —
+since a wiki has no directories to say where a page sits. An archived page
+drops the hub from that line, because an archive has none. `Home` is
+`docs/wiki-map.json`'s `home` document, whose links must all land on published
+pages, followed by the generated package table. The sidebar lists each root page
+once, and a globbed directory by its `README.md` alone.
 
 ## `check_no_console_writeline.py`
 

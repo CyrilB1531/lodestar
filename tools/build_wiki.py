@@ -31,6 +31,10 @@ other via the banner. A reader who follows a banner back to an archived page
 lands on that page's own frozen counterpart, never on an index, and that is
 enough.
 
+Home is the map's hand-written `home` page with the package table appended, and
+every package page opens on a breadcrumb back to its namespace, its hub and
+Home: the wiki has no directories, so that line is where a page sits (#1107).
+
 Usage:
     python3 tools/build_wiki.py --repo <dir> --out <dir>
         --released Lodestar.Text=0.3.0 [--released ...]
@@ -245,9 +249,8 @@ def _live_stems(out: pathlib.Path, channel: str) -> set[str]:
     }
 
 
-def sidebar(out: pathlib.Path, mapping: dict) -> str:
+def sidebar(repo: pathlib.Path, out: pathlib.Path, mapping: dict) -> str:
     """The navigation, read off the tree that was just written."""
-    channels = {package["wiki"] for package in mapping["packages"].values()}
     lines = ["### Lodestar", "", "- [Home](Home)", ""]
     for package in mapping["packages"].values():
         channel = package["wiki"]
@@ -262,13 +265,102 @@ def sidebar(out: pathlib.Path, mapping: dict) -> str:
             if archived is not None:
                 lines.append(f"  - [{version}]({wiki_name(archived, channel, version)})")
     lines += ["", "### Project", ""]
-    for page in sorted(out.glob("*.md")):
-        if page.stem in {"Home", "_Sidebar"}:
-            continue
-        if any(page.stem == channel or page.stem.startswith(f"{channel}-") for channel in channels):
-            continue
-        lines.append(f"- [{page.stem}]({page.stem})")
+    # One row per root page a reader starts from: a globbed directory contributes its
+    # index alone, which links the rest -- seven ADR slugs listed flat were not navigation.
+    for page in _root_entries(repo, mapping):
+        lines.append(f"- [{title_of(page)}]({wiki_name(page_stem(page))})")
     return "\n".join(lines) + "\n"
+
+
+def _root_entries(repo: pathlib.Path, mapping: dict) -> list[pathlib.Path]:
+    """The root pages the sidebar lists: each literal page, and each glob's README."""
+    entries: list[pathlib.Path] = []
+    for pattern in mapping["root"]:
+        if "*" not in pattern:
+            entries.extend(pages_for([pattern], repo))
+            continue
+        readme = _guard(repo / pathlib.PurePosixPath(pattern).parent / "README.md", repo)
+        if readme.exists():
+            entries.append(readme)
+    return entries
+
+
+def title_of(page: pathlib.Path) -> str:
+    """A page's H1, without its `#`: the label a hand-written page chose for itself."""
+    lines = page_body(page).splitlines()
+    first = lines[0] if lines else ""
+    return first.lstrip("#").strip() if first.startswith("#") else page_stem(page)
+
+
+def short_title(page: pathlib.Path) -> str:
+    """The topic half of a `Topic — `Namespace`` title, the length a breadcrumb can carry."""
+    return title_of(page).split(" — ", 1)[0].replace("`", "")
+
+
+# A sentence ends at one of these followed by a space or the paragraph's end --
+# never inside a code span or a link, where `1.18.0` and `(kmeans.md)` live.
+SENTENCE_END = ".?!"
+
+
+def lead_sentence(body: str) -> str:
+    """The first sentence of a page's first paragraph, which is how a hub describes it."""
+    return _first_sentence(_first_paragraph(body))
+
+
+def _first_paragraph(body: str) -> str:
+    """The first run of prose lines after the H1: no heading, quote, table, list or fence."""
+    paragraph: list[str] = []
+    fenced = False
+    for line in body.splitlines()[1:]:
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            fenced = not fenced
+        prose = stripped and not fenced and not stripped.startswith(
+            ("```", "#", ">", "|", "<!--", "- ", "* "))
+        if prose:
+            paragraph.append(stripped)
+        elif paragraph:
+            break
+    return " ".join(paragraph)
+
+
+def _first_sentence(text: str) -> str:
+    in_code, depth = False, 0
+    for position, char in enumerate(text):
+        if char == "`":
+            in_code = not in_code
+        elif in_code:
+            continue
+        elif char in "[(":
+            depth += 1
+        elif char in "])":
+            depth = max(0, depth - 1)
+        elif depth == 0 and char in SENTENCE_END and text[position + 1:position + 2] in ("", " "):
+            return text[:position + 1]
+    return text
+
+
+BREADCRUMB_SEPARATOR = " › "
+
+
+def breadcrumb(
+    page: pathlib.Path, repo: pathlib.Path, index: dict[str, str], channel: str | None
+) -> str:
+    """The line that says where a page sits, so a search landing is not a dead end.
+
+    A GitHub wiki has no directories, so this line is the whole answer to where a
+    member page sits: Home, the package's hub, then the namespace page whose
+    directory holds it -- `distances/hamming.md` sits under `distances.md`. The
+    hub is left out when `channel` is `None`, which is an archive: it has none.
+    """
+    crumbs = ["[Home](Home)"]
+    if channel is not None:
+        crumbs.append(f"[{channel}]({channel})")
+    parent = page.parent.with_suffix(".md")
+    key = parent.relative_to(repo).as_posix() if parent.is_relative_to(repo) else None
+    if key in index:
+        crumbs.append(f"[{short_title(parent)}]({index[key]})")
+    return BREADCRUMB_SEPARATOR.join(crumbs) + "\n\n"
 
 
 def _landing(stems: set[str]) -> str | None:
@@ -303,8 +395,14 @@ def _version_key(version: str) -> tuple:
     return tuple(int(part) if part.isdigit() else part for part in version.split("."))
 
 
-def entry_page(repo: pathlib.Path, package: dict, version: str | None = None) -> str | None:
-    """A package's hub: a link per namespace it covers, then a link per guide it ships.
+def entry_page(
+    repo: pathlib.Path,
+    package: dict,
+    version: str | None = None,
+    index: dict[str, str] | None = None,
+    strict: bool = True,
+) -> str | None:
+    """A package's hub: a link per guide it ships, then one per namespace it covers.
 
     This is the page D10 puts between Home and a reference page -- Home no
     longer links a bare channel name that resolved to nothing. `None` for a
@@ -315,37 +413,92 @@ def entry_page(repo: pathlib.Path, package: dict, version: str | None = None) ->
     an empty one.
     """
     channel = package["wiki"]
+    index = index if index is not None else {}
     lines = [f"# {channel}", ""]
     linked = False
 
-    if package["covered"]:
-        lines += ["## Namespaces", ""]
-        for namespace, declared in sorted(package["covered"].items()):
-            pages = covered_pages(declared)
-            for page in pages:
-                stem = page_stem(pathlib.Path(page))
-                # The stem disambiguates a namespace with several pages: two rows
-                # both reading "Lodestar.Metrics" would be a choice a reader cannot make.
-                label = namespace if len(pages) == 1 else f"{namespace} — {stem}"
-                lines.append(f"- [{label}]({wiki_name(stem, channel, version)})")
+    namespace_pages = _namespace_pages(repo, package, strict)
+    covered_set = {page for _, page in namespace_pages}
+    # A guide that is also a covered reference page -- `docs/reference/stats.md` --
+    # is listed once, as a namespace: under both headings it read as two pages.
+    guides = [
+        path for path in (_guard(repo / pattern, repo) for pattern in package["pages"] if "*" not in pattern)
+        if path not in covered_set
+    ]
+    if guides:
+        lines += ["## Start here", ""]
+        for path in guides:
+            lines.append(f"- [{title_of(path)}]({wiki_name(page_stem(path), channel, version)})")
         lines.append("")
         linked = True
 
-    guides = [pattern for pattern in package["pages"] if "*" not in pattern]
-    if guides:
-        lines += ["## Guides", ""]
-        for pattern in guides:
-            path = _guard(repo / pattern, repo)
-            title = page_body(path).splitlines()[0].lstrip("#").strip()
-            lines.append(f"- [{title}]({wiki_name(page_stem(path), channel, version)})")
+    if namespace_pages:
+        lines += ["## Namespaces", ""]
+        for _, path in namespace_pages:
+            # The page's own H1 is the label and its first sentence the description:
+            # `Lodestar.Stats — nanpolicy` was a label a reader could not choose from.
+            lead = rewrite_links(lead_sentence(page_body(path)), path, repo, index)
+            row = f"- [{title_of(path)}]({wiki_name(page_stem(path), channel, version)})"
+            lines.append(f"{row} — {lead}" if lead else row)
         lines.append("")
         linked = True
 
     return "\n".join(lines) + "\n" if linked else None
 
 
-def home(out: pathlib.Path, mapping: dict, released: dict[str, str]) -> str:
-    """The front page, read off the tree that was just written -- as the sidebar is.
+def _namespace_pages(
+    repo: pathlib.Path, package: dict, strict: bool = True
+) -> list[tuple[str, pathlib.Path]]:
+    """Each covered namespace's page, checked to name the namespace it documents.
+
+    A covered entry declared as a directory -- `docs/reference/text/distances` --
+    is documented by the page beside it, `distances.md`, and that page's H1 is
+    what the hub shows. It has to name the namespace in backticks, or the hub
+    tells the reader one namespace and links another: three pages named
+    `Lodestar.Text` and `Lodestar.Embeddings` for a sub-namespace until #1107.
+    An entry declared as a file is a package-level page and names what it likes.
+    `strict` is off for an --archive run, which may read a tag cut before the check.
+    """
+    found: list[tuple[str, pathlib.Path]] = []
+    for namespace, declared in sorted(package["covered"].items()):
+        for entry in covered_pages(declared):
+            path = _namespace_page(repo, namespace, entry, strict)
+            if path is not None:
+                found.append((namespace, path))
+    return found
+
+
+def _namespace_page(
+    repo: pathlib.Path, namespace: str, entry: str, strict: bool
+) -> pathlib.Path | None:
+    """One covered entry's page, or `None` when a lenient run finds none."""
+    is_directory = not entry.endswith(".md")
+    path = _guard(repo / (f"{entry}.md" if is_directory else entry), repo)
+    if not path.exists():
+        if strict:
+            raise MapError(f"{entry}: covered in wiki-map.json, and no page documents it")
+        return None
+    if strict and is_directory and f"`{namespace}`" not in title_of(path):
+        raise MapError(
+            f"{path.relative_to(repo)}: its title does not name `{namespace}`, "
+            "the namespace wiki-map.json says it covers"
+        )
+    return path
+
+
+def home(
+    repo: pathlib.Path,
+    out: pathlib.Path,
+    mapping: dict,
+    released: dict[str, str],
+    index: dict[str, str],
+) -> str:
+    """The front page: the map's `home` document, then the table read off the tree.
+
+    The document is written by hand because a task-oriented path is prose, and
+    prose belongs where markdownlint and review reach it. Its links are
+    repository-relative and each must land on a published page: a renamed
+    guide breaks the front door loudly here rather than as a 404 on the wiki.
 
     A package with no entry page -- `entry_page` returned `None`, so nothing
     under this channel is covered or guided yet -- has nothing a reader could
@@ -354,12 +507,7 @@ def home(out: pathlib.Path, mapping: dict, released: dict[str, str]) -> str:
     what the table is for, and writes no link rather than one to a page that
     does not exist.
     """
-    lines = [
-        "# Lodestar",
-        "",
-        "A data-science toolkit for C#/.NET. Each package documents itself, at the version",
-        "you installed.",
-        "",
+    lines = _home_opening(repo, mapping, index) + [
         "| Package | Latest released | Documentation |",
         "| --- | --- | --- |",
     ]
@@ -370,6 +518,30 @@ def home(out: pathlib.Path, mapping: dict, released: dict[str, str]) -> str:
         target = f"[{channel}]({channel})" if entry_target.exists() else "no pages yet"
         lines.append(f"| `{name}` | {version} | {target} |")
     return "\n".join(lines) + "\n"
+
+
+def _home_opening(repo: pathlib.Path, mapping: dict, index: dict[str, str]) -> list[str]:
+    """What Home says above its package table."""
+    declared = mapping.get("home")
+    if declared is None:
+        return [
+            "# Lodestar",
+            "",
+            "A data-science toolkit for C#/.NET. Each package documents itself, at the version",
+            "you installed.",
+            "",
+        ]
+    page = pages_for([declared], repo)[0]
+    body = page_body(page)
+    for match in LINK.finditer(body):
+        target = match.group("target")
+        # S5332 false positive: a string comparison, never a request.
+        if target.startswith(("http://", "https://")):  # NOSONAR S5332
+            continue
+        resolved = _guard(page.parent / target, repo)
+        if resolved.relative_to(repo).as_posix() not in index:
+            raise MapError(f"{declared}: links {target}, which the wiki does not publish")
+    return [rewrite_links(body, page, repo, index).rstrip("\n"), "", "## Packages", ""]
 
 
 def _build_archive(
@@ -387,10 +559,12 @@ def _build_archive(
     for stale in out.glob(f"{package['wiki']}-{version}-*.md"):
         _guard(stale, out).unlink()
     frozen = _archive_index(index, repo, package, version)
-    prefix = archive_banner(name, package["wiki"], version, entry_page(repo, package) is not None)
+    has_entry = entry_page(repo, package, strict=False) is not None
+    prefix = archive_banner(name, package["wiki"], version, has_entry)
     for page in pages_for(package["pages"], repo):
         wname = wiki_name(page_stem(page), package["wiki"], version)
-        written.append(_write(page, out, repo, frozen, prefix, wname, names))
+        crumb = breadcrumb(page, repo, frozen, None)
+        written.append(_write(page, out, repo, frozen, prefix + crumb, wname, names))
     return written
 
 
@@ -421,6 +595,7 @@ def _build_channel(
     pkg_name: str,
     package: dict,
     released: dict[str, str],
+    strict: bool = True,
 ) -> list[pathlib.Path]:
     """One package's live channel: its pages refreshed, banner-prefixed once archived."""
     pages = pages_for(package["pages"], repo)
@@ -440,12 +615,16 @@ def _build_channel(
         if not archive_pattern.match(stale.stem):
             _guard(stale, out).unlink()
 
+    entry = entry_page(repo, package, index=index, strict=strict)
+    hub = channel if entry is not None else None
     written = [
-        _write(page, out, repo, index, prefix, wiki_name(page_stem(page), channel), names)
+        _write(
+            page, out, repo, index, prefix + breadcrumb(page, repo, index, hub),
+            wiki_name(page_stem(page), channel), names,
+        )
         for page in pages
     ]
 
-    entry = entry_page(repo, package)
     entry_target = _guard(out / f"{channel}.md", out)
     if entry is not None:
         entry_target.write_text(prefix + entry, encoding="utf-8")
@@ -518,10 +697,14 @@ def build(
         for page in pages_for(mapping["root"], repo)
     ]
     for pkg_name, package in mapping["packages"].items():
-        written.extend(_build_channel(repo, out, index, names, pkg_name, package, released))
+        # An --archive run may read an old tag, whose titles predate the check; the
+        # commit a tag names was already checked strictly when main received it.
+        written.extend(_build_channel(
+            repo, out, index, names, pkg_name, package, released, strict=archive is None))
 
-    _guard(out / "_Sidebar.md", out).write_text(sidebar(out, mapping), encoding="utf-8")
-    _guard(out / "Home.md", out).write_text(home(out, mapping, released), encoding="utf-8")
+    _guard(out / "_Sidebar.md", out).write_text(sidebar(repo, out, mapping), encoding="utf-8")
+    _guard(out / "Home.md", out).write_text(
+        home(repo, out, mapping, released, index), encoding="utf-8")
     return written
 
 

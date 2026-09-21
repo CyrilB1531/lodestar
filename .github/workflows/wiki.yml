@@ -114,6 +114,11 @@ jobs:
               ${{ steps.released.outputs.args }} --archive "$package=$version"
             git worktree remove --force "../catchup"
           done < missing.txt
+          # An --archive run also rebuilds the live channels and Home from the tree it
+          # read, here an older tag: rebuild them from this run's checkout once more.
+          if [ -s missing.txt ]; then
+            python tools/build_wiki.py --repo . --out wiki ${{ steps.released.outputs.args }}
+          fi
           rm -f missing.txt
 
       - name: Push what changed

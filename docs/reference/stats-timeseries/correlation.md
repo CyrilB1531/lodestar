@@ -1,4 +1,4 @@
-# `Lodestar.Stats.TimeSeries` — serial correlation
+# Serial correlation — `Lodestar.Stats.TimeSeries`
 
 Three serial-correlation diagnostics, at `statsmodels` 0.15.0 parity: the sample autocorrelation
 function, its partial counterpart, and the Ljung-Box portmanteau test — a correlogram, and the

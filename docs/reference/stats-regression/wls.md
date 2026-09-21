@@ -1,6 +1,6 @@
 # Weighted least squares — `Lodestar.Stats.Regression`
 
-One entry point. [`WeightedLeastSquares.Fit`](wls/weightedleastsquares-fit.md) fits a linear model
+One entry point, for a linear model whose rows are not equally trusted. [`WeightedLeastSquares.Fit`](wls/weightedleastsquares-fit.md) fits a linear model
 with one weight per row and returns the same [`OlsSummary`](ols/olssummary.md) an ordinary fit does,
 at `statsmodels.api.WLS` parity.
 
