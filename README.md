@@ -2,145 +2,35 @@
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=CyrilB1531_data.net&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=CyrilB1531_data.net)
 
-A **data-science toolkit for C#/.NET**, built on an honest premise:
+**The data-science pieces .NET has no maintained library for, at the parity of the Python
+library you already trust** — with no Python at runtime, on .NET 10 and .NET Standard 2.0 from one
+package. Where .NET already has the answer, this project does not rewrite it: it tells you which
+library to use.
 
-> Don't rewrite Python. Use the .NET ecosystem where it's strong, and write native
-> code only where .NET has no maintained equivalent at the reference's parity. Measured
-> package by package, that keeps turning out to be the **apparatus around a computation**
-> rather than the computation: the loader and not the encoder, the inference and not the
-> estimate, the diagnostics and not the forecast, sparse and not dense. All of it **with no
-> Python at runtime**.
+## What it replaces
 
-## Why
+You arrived with an alternative in mind. Find it below: the row gives the number that settles the
+choice and where to go next. A ratio means this library is that many times faster; each number's
+machine, window and incumbent version are in [the performance guide](docs/guides/performance.md).
 
-Python dominates data analysis through its ecosystem and its exploratory notebook
-workflow, not through the language itself. Its performance comes from C/Fortran
-kernels.
+| you would reach for | to do | what settles it | go to |
+| --- | --- | --- | --- |
+| Fastenshtein, Quickenshtein | edit distance | Levenshtein **2.8× to 4.1×** Quickenshtein, the closest, **2.9× to 33.8×** Fastenshtein; allocates nothing | [from rapidfuzz](docs/guides/migrating-from-rapidfuzz.md) |
+| FuzzySharp (the Raffinert fork) | `fuzz.*`, `process.extract` | all four ratios **1.78× to 12.75×**, allocating less on each | [from rapidfuzz](docs/guides/migrating-from-rapidfuzz.md) |
+| ML.NET `FeaturizeText` | TF-IDF, count, hashing vectors | a **sparse** matrix at scikit-learn semantics instead of a dense vector inside an `IDataView`; **5.7× to 11×**, not like-for-like, since ML.NET adds character n-grams | [vectorization](docs/guides/vectorization.md) |
+| ML.NET's binary evaluator | classification metrics | one call, one `double`: accuracy alone **87× to 322×**, ML.NET's whole bundle **1.57× to 4.84×** | [metrics](docs/guides/metrics.md) |
+| `Microsoft.ML.Tokenizers` | a Hugging Face tokenizer | reads the `tokenizer.json` it has no loader for; on identical ids, **1.13× to 2.57×** | [embeddings](docs/guides/embeddings.md) |
+| Accord.Statistics (archived; last release 2017), Meta.Numerics | `scipy.stats` tests | **1.18× to 5.94×** Meta.Numerics on all eight shared families at n = 10,000, exact p-values where it is asymptotic | [hypothesis testing](docs/guides/hypothesis-testing.md) |
+| Accord.Statistics, Math.NET | regression inference | the whole statsmodels table, VIF included, which Accord does not export and Math.NET stops short of | [regression inference](docs/guides/regression-inference.md) |
+| Cortex.TimeSeries | ADF, KPSS, decomposition | ADF **1.79× to 2.26×**, decomposition **1.85×**, KPSS level; a MacKinnon p-value where Cortex clamps at 0.01 | [time-series diagnostics](docs/guides/time-series-diagnostics.md) |
+| NumFlat, Meta.Numerics | k-means | Lloyd's iterations **1.52× to 3.66×** NumFlat from the same centres, and runs on `netstandard2.0`, where NumFlat does not install | [scikit-learn](docs/migration/sklearn.md) |
+| MAPIE or lifelines, through CSnakes or Python.NET | conformal intervals, survival | **no C# implementation of either exists**; this is one, with no Python runtime to ship | [conformal](docs/guides/conformal.md), [survival](docs/guides/survival-analysis.md) |
 
-C# brings static typing, real parallelism without a global interpreter
-lock, safe refactoring, and simple deployment. The only objective reason to stay
-on Python for this domain was the lack of an equivalent .NET library. Lodestar
-removes that reason.
-
-## What has no .NET equivalent
-
-The claim this project is judged on, strongest first.
-
-1. **Sparse text vectorization.** `CountVectorizer`, `TfidfVectorizer` and
-   `HashingVectorizer` at scikit-learn semantics, over a `CsrMatrix` written here.
-   ML.NET's `FeaturizeText` produces a **dense** vector coupled to `IDataView`; for
-   the same thousand documents it materializes 81 million floats where the sparse
-   matrix stores 39 974 values. There is no third option in .NET.
-2. **Framework-free classification metrics.** 54 metric classes against ML.NET's
-   six result types — and no `IDataView`, no schema, no pipeline object between the
-   caller and a `double`. ML.NET has no call that returns one metric: asking it for
-   accuracy costs the whole evaluation bundle.
-3. **Loading the tokenizer files people actually have.** `tokenizer.json` —
-   normalizer, pre-tokenizer, model, decoder, added tokens — is what Llama-2 and
-   Mistral v0.1 ship, and `Microsoft.ML.Tokenizers` has no entry point that reads
-   one. Every one of its factories takes a vocabulary, a merges file or a
-   `spiece.model`.
-4. **Split conformal prediction.** An interval instead of a point, a set instead of
-   a class, with a finite-sample coverage guarantee — MAPIE's job, and the survey
-   behind [#441](https://github.com/CyrilB1531/lodestar/issues/441) found **no C#
-   implementation at all**, maintained or otherwise. The guarantee assumes
-   exchangeable calibration and test data, which
-   [`docs/guides/conformal.md`](docs/guides/conformal.md#exchangeability) leads with
-   rather than footnotes.
-5. **Distances, embeddings and fuzzy matching**, bundled for pipeline coherence
-   rather than because .NET is empty here — it is not, and the table below says by
-   how much.
-
-6. **The inference table, not the estimate.** Ordinary least squares is in Math.NET, in
-   ML.NET and in half a dozen other places; the standard errors, t and p values,
-   confidence intervals, adjusted R², F test and VIF are in no free, maintained one of them.
-   The reading behind [decision 0003](docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
-   found coefficients everywhere and inference nowhere — and **replaced this project's own
-   claim** that nobody in .NET does inference, which was false as written.
-   [Decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)
-   qualified it again: Meta.Numerics (MS-PL) reports the standard error, the interval and the
-   F test and stops there, and the commercial Numerics.NET exports the whole table. Ships as
-   `Lodestar.Stats.Regression`, beside ten scipy-parity test families in `Lodestar.Stats`.
-7. **Right-censored survival.** Kaplan-Meier, Nelson-Aalen and the log-rank test, at
-   lifelines parity, with no .NET incumbent at all —
-   [#442](https://github.com/CyrilB1531/lodestar/issues/442) called it the largest void it
-   surveyed. `scikit-survival` is the nearest reference in any language and is refused on
-   its **licence**, not its capability ([decision 0002](docs/decisions/0002-provenance-and-the-allowed-references.md)).
-
-All of it **with no Python at runtime**, on **.NET 10** and **.NET Standard 2.0**
-from a single package (also .NET Framework 4.6.1+, Mono, Xamarin, Unity — see
-[`docs/decisions/0001`](docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)).
-
-The second deliverable is the **migration inventory** for people arriving from Python:
-[`docs/migration/`](docs/migration/README.md) points each need at the right .NET
-building block, marks the libraries that are no longer maintained with the dates that
-prove it, and says when calling Python is still the right answer. Seven of its rows
-carry a per-library guide with the glue and the pitfalls — NumPy, pandas, scikit-learn,
-statsmodels, PyTorch, matplotlib, seaborn — and the rows whose verdict is **write** do
-not, because there the answer is a Lodestar package and
-[`docs/equivalence.md`](docs/equivalence.md) maps the calls. Its
-[four-column inventory](docs/migration/README.md) is the project map — use, build,
-decide.
-
-## Measured against the .NET incumbents
-
-A claim nobody checked is a claim nobody believes, so every package is benchmarked
-against the .NET library a reader would otherwise reach for — not only against
-Python. Both sides are checked to return **the same answers** before either is
-timed; `bench/README.md`'s section 15 has the harness and the agreement checks.
-
-| package | incumbent | how it reads |
-| --- | --- | --- |
-| `Lodestar.Text` | ML.NET `FeaturizeText` | **Not like-for-like.** 5.7× to 11× faster, but `FeaturizeText` produces about 8.8× more non-zero features; per feature the two are within about 1.5× either way, so the advantage is the sparse representation, not a faster kernel ([performance](docs/guides/performance.md#tfidfvectorizer-against-mlnet-500s-featurizetext)) |
-| `Lodestar.Text`, `Bm25Index` | LuceneSharp.Core | Same ranking. **The query splits by size**: 1.6× faster than Lucene at 1,000 documents, 1.4× slower at 20,000, where Lucene reads only the documents holding the term and this still passes over every score. **Text to ranking is behind**, 2.1× to 2.7×, and that is `CountVectorizer`'s tokenization. Over a `CsrMatrix` a caller already has, the index builds 12× to 27× cheaper than Lucene's ([performance](docs/guides/performance.md#bm25-against-lucenesharp-issue-677)) |
-| `Lodestar.Fuzzy` | Fastenshtein, Quickenshtein, F23.StringSimilarity, Raffinert.FuzzySharp | Ahead on Levenshtein at every length, 2.8× to 63.8×, and on all four `fuzz` ratios, 1.78× to 12.75× ([performance](docs/guides/performance.md#lodestarfuzzy)) |
-| `Lodestar.Embeddings` | `Microsoft.ML.Tokenizers`, `TensorPrimitives` | **Ahead on encoding** since #713 and #673, on identical ids: WordPiece 1.5×, SentencePiece 1.1× to 1.3×, byte-level BPE 2.6×. The gap that justifies the package is still the loader above ([decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)). The dot product against `TensorPrimitives` is under re-measurement, [#754](https://github.com/CyrilB1531/lodestar/issues/754) |
-| `Lodestar.Metrics` | ML.NET metrics | Coverage, not speed: ahead on every row, but the full bundle narrows from 4.8× at 100,000 samples to 1.6× at a million, and the shape does not narrow ([performance](docs/guides/performance.md#lodestarmetrics-against-mlnet-500s-binary-evaluator)) |
-| `Lodestar.Conformal` | — | **No incumbent exists**, which is the finding rather than a gap in the harness — `bench/README.md` section 15 says what would change that |
-| `Lodestar.Decomposition` | ML.NET `ProjectToPrincipalComponents` | **Not like-for-like.** Centred dense PCA against uncentred sparse truncated SVD and a non-negative factorization — three different decompositions, so each side is checked against its own reconstruction error rather than against the other's numbers. Read through a `MetadataLoadContext`, ML.NET's PCA is **fourteen public members with no eigenvalue among them**: it projects, and cannot say how much variance a component explains. [`PrincipalComponentVariance`](docs/reference/decomposition/factorization/principalcomponentvariance.md) is that number, and against NumFlat (`net8.0` only) it is **1.04× to 1.36× faster on three shapes of four and 0.83 on 2,000 × 50** ([performance](docs/guides/performance.md#the-variance-principal-components-explain-against-numflat-issue-701)). Meta.Numerics reports the same number on `netstandard2.0` — the only incumbent that exists below `net8.0` — and is **36.7× to 809× slower on the three shapes it accepts, allocating up to 13,227× more** (2.38 KB against 31 MB at 2,000 × 10); it **refuses a matrix with more columns than rows** outright ([performance](docs/guides/performance.md#metanumerics-against-lodestarstats-and-principalcomponentvariance-issue-756)); Numerics.NET does too, under a commercial licence ([decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)) |
-| `Lodestar.Onnx` | ONNX Runtime itself | **Nothing to beat.** The package is a caller of the runtime, not a rival to it; what it adds is the pooling and the batching, which `bench/Lodestar.Text.Benchmarks -- '*BatchEmbedding*'` measures against a single-sequence loop |
-| `Lodestar.Stats` | `Accord.Statistics` (archived, no longer maintained); Meta.Numerics | No case found where `Accord` and `scipy` (and therefore `Lodestar.Stats`) disagree; faster on the t-test, Mann-Whitney and, since #710, the chi-square table (66.5 ns against 121.7 ns). Meta.Numerics 4.2.0 carries eight of the ten families and is **measured**: ahead on seven of the eight at both sizes — 2.88× to 4.81× on the t-test, 5.25× on Mann-Whitney, 5.95× on the χ² table and 3.49× on Fisher's exact test — with the signed-rank row a wash at 100 (0.95) and a win at 10,000 (1.18). **The comparison found two costs here and both were fixed**: Fisher went 7,420 ns → 256 ns and the equal-size exact Kolmogorov-Smirnov 29,152 ns → 1,544 ns, the p-values unchanged and `scipy` parity intact ([performance](docs/guides/performance.md#metanumerics-against-lodestarstats-and-principalcomponentvariance-issue-756)) — see [`docs/guides/hypothesis-testing.md`](docs/guides/hypothesis-testing.md#the-incumbents-and-the-one-measured) |
-| `Lodestar.Stats.Regression` | `Accord.Statistics` | **Not like-for-like.** The OLS table computes variance inflation factors, which Accord does not export. The GLM is level with Accord at 200 rows and 1.4× behind at 2,000, allocating less in every cell ([performance](docs/guides/performance.md#lodestarstatsregressions-generalized-linear-model-against-accordstatistics-issue-678)) |
-| `Lodestar.Stats.TimeSeries` | `Cortex.TimeSeries`; Numerics.NET (commercial) | Against `Cortex.TimeSeries`, on the statistics both return: **ADF 1.79× to 2.26× faster, the decomposition 1.85× faster, KPSS level**; Cortex's ADF p-value is a clamp at 0.01 rather than MacKinnon's ([performance](docs/guides/performance.md#stationarity-and-seasonal-decomposition-against-cortextimeseries-issue-671)); the serial-correlation half in [its own section](docs/guides/performance.md#lodestarstats-serial-correlation-diagnostics-against-cortextimeseries-issue-617). Numerics.NET carries ADF and KPSS under a commercial licence ([decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)) |
-| `Lodestar.Survival` | — | **No incumbent exists** in .NET, Kaplan-Meier, the log-rank test and the Cox model included; `scikit-survival` is refused on its licence ([decision 0002](docs/decisions/0002-provenance-and-the-allowed-references.md)) |
-| `Lodestar.Cluster` | NumFlat, Meta.Numerics; ML.NET k-means | Same centres to the last bit, and **ahead on Lloyd's iterations from the same start, 1.52× to 3.66×** against NumFlat. A default fit, k-means++ included, is 5.5× to 13× cheaper than NumFlat's and 4.1× to 20× cheaper than Meta.Numerics', partly because scikit-learn's tolerance stops sooner ([performance](docs/guides/performance.md#k-means-against-numflat-and-metanumerics-issue-681)). NumFlat also ships DBSCAN, k-medoids and Gaussian mixtures, `net8.0` only ([decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)). ML.NET is not measured: it clusters inside an `IDataView` pipeline |
-| `Lodestar.Preprocessing` | ML.NET `NormalizeMeanVariance` | **Not measured.** The same `IDataView` coupling as above; the scaler here is the arithmetic without the pipeline |
-| `Lodestar.Gpu` | — | **Nothing measured against another library.** Its kernels are measured against this repository's own CPU paths, and each ships only where it passed that gate ([performance](docs/guides/performance.md#lodestargpu--four-kernels-against-their-cpu-paths-issue-444)) |
-| `Lodestar.Extensions.AI`, `Lodestar.Extensions.MathNet` | — | **Nothing to beat.** Each adapts a package to a type or an interface another library defines, so what it could be slower than is its own conversion |
-| `Lodestar.Extensions.VectorData` | the `Microsoft.Extensions.VectorData` connectors | **Not measured.** Of the connectors surveyed, the ones implementing hybrid search are clients of a server, which an in-process store does not race |
-
-Numbers with the machine that produced them are in
-[`docs/guides/performance.md`](docs/guides/performance.md); a shared runner's
-absolutes are not comparable and are deliberately not published there.
-
-## Why not just call Python?
-
-[CSnakes](https://github.com/tonybaloney/CSnakes) and
-[Python.NET](https://github.com/pythonnet/pythonnet) both work, both are maintained,
-and for a model that only exists as a Python package they are the right answer —
-[`docs/migration/`](docs/migration/README.md#when-calling-python-is-still-the-right-answer)
-says so. What they cost is a Python runtime to deploy and version alongside the
-application, no ahead-of-time compilation to a single artifact, and the GIL between
-your threads and theirs. Where a .NET library will do, that is a poor trade, and
-this project exists to make it an avoidable one.
-
-## What is delivered
-
-The five lots of the original brief are complete, and the repository has since
-grown past that framing — [`docs/reference/`](docs/reference/text/distances.md)
-documents considerably more than this table lists.
-
-| Lot | Contents | Status |
-| --- | --- | --- |
-| 1 | String distances & similarity | ✅ **complete** — Levenshtein (+ Myers), OSA, Damerau-Levenshtein, Hamming, Jaro, Jaro-Winkler, Indel, LCS, Ratcliff-Obershelp, Jaccard, Dice, Overlap, Tversky, Cosine, Soundex, Metaphone, NYSIIS |
-| 2 | Tokenization & sparse vectorization | ✅ **complete** — CSR, tokenizers (word/char/char_wb), CountVectorizer, TfidfVectorizer, HashingVectorizer, Porter, Snowball EN/FR/DE/ES/IT/PT, stop words in six languages |
-| 3 | Embeddings & semantic search | ✅ **complete** — WordPiece, SentencePiece, BPE and byte-level BPE (GPT-2, Llama-3, Qwen2), pooling, SIMD kNN, and ONNX inference in `Lodestar.Onnx` |
-| 4 | Applied fuzzy matching | ✅ **complete** — `fuzz.*` (ratio/partial/token_sort/token_set/WRatio), `process.extract`/`extractOne`, blocking deduplication |
-| 5 | Classification metrics | ✅ **complete** — confusion matrix, accuracy, precision/recall/F1/F-beta in all four averaging modes, `classification_report` character for character, ROC-AUC binary and multiclass (`ovr`/`ovo`) |
-
-Every building block is oracle-validated against rapidfuzz / jellyfish /
-textdistance / difflib / scikit-learn / nltk / HuggingFace tokenizers /
-sentencepiece / numpy / ONNX Runtime (see [`docs/equivalence.md`](docs/equivalence.md)).
+**It is not for you** if what you need is dense linear algebra (Math.NET Numerics), training a
+model (ML.NET, TorchSharp), or a model that exists only as a Python package (CSnakes).
+[`docs/migration/`](docs/migration/README.md) names the .NET library for every need this project
+does not write, marks the ones no longer maintained, and says
+[when calling Python is still the right answer](docs/migration/README.md#when-calling-python-is-still-the-right-answer).
 
 ## Getting started
 
@@ -155,7 +45,89 @@ Levenshtein.Distance("kitten", "sitting");             // 3
 Levenshtein.NormalizedSimilarity("kitten", "sitting"); // 0.5714…
 ```
 
-A runnable version of the above, consuming the packages exactly as you would:
+Full guide: [`docs/guides/quickstart.md`](docs/guides/quickstart.md). The guides linked in the
+table above each start from the Python call you know. Function by function, the reference pages
+under [`docs/reference/`](docs/reference/text/distances.md) say what each member is for, when to
+prefer it to its neighbour and what the trap is; the same pages are published to
+[the wiki](https://github.com/CyrilB1531/data.net/wiki), where each package's channel follows
+`main` and every release is archived under its own version.
+
+## Why not just call Python?
+
+[CSnakes](https://github.com/tonybaloney/CSnakes) and
+[Python.NET](https://github.com/pythonnet/pythonnet) both work, both are maintained, and for a
+model that only exists as a Python package they are the right answer. What they cost is a Python
+runtime to deploy and version alongside the application, no ahead-of-time compilation to a single
+artifact, and the GIL between your threads and theirs. Where a .NET library will do, that is a poor
+trade, and this project exists to make it an avoidable one.
+
+## Why the gap is where it is
+
+Measured package by package, what .NET lacks is almost never the computation and almost always the
+**apparatus around it**: the tokenizer loader and not its encoder, the regression's inference
+table and not its coefficients, the time-series diagnostics and not the forecast, sparse
+decomposition and not dense. [Decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)
+decides each case, and its reading is what the table above rests on:
+
+- **Ordinary least squares is everywhere; its inference is not.** Meta.Numerics (MS-PL) reports
+  the standard error, the interval and the F test and stops there; the commercial Numerics.NET
+  exports the whole table.
+- **Split conformal prediction** — an interval instead of a point, a set instead of a class, with
+  a finite-sample coverage guarantee — had no C# implementation at all in the survey behind
+  [#441](https://github.com/CyrilB1531/lodestar/issues/441). The guarantee assumes exchangeable
+  calibration and test data, which [the guide](docs/guides/conformal.md#exchangeability) leads
+  with.
+- **Right-censored survival** was the largest void
+  [#442](https://github.com/CyrilB1531/lodestar/issues/442) surveyed. `scikit-survival` is the
+  nearest reference in any language and is refused on its **licence**, not its capability
+  ([decision 0002](docs/decisions/0002-provenance-and-the-allowed-references.md)).
+- **Distances, embeddings and fuzzy matching** are here for pipeline coherence rather than because
+  .NET is empty — it is not, and the first table says by how much.
+
+The `netstandard2.0` build reaches .NET Framework 4.6.1+, Mono, Xamarin and Unity with the same
+public API ([decision 0001](docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)).
+
+## Measured against the .NET incumbents
+
+Every package with an in-process incumbent is benchmarked against the .NET library a reader would reach
+for, and both sides are checked to return **the same answers** before either is timed —
+[`bench/README.md`](bench/README.md) has the harness and the agreement checks. The rows the first
+table does not carry:
+
+| package | incumbent | how it reads |
+| --- | --- | --- |
+| `Lodestar.Text`, `Bm25Index` | LuceneSharp.Core | Same ranking. The query is 1.6× faster at 1,000 documents and 1.4× slower at 20,000; from raw text Lucene is ahead, 2.1× to 2.7× ([performance](docs/guides/performance.md#bm25-against-lucenesharp-issue-677)) |
+| `Lodestar.Decomposition` | ML.NET `ProjectToPrincipalComponents`; NumFlat; Meta.Numerics | **Not like-for-like** against ML.NET, whose PCA is dense, centred and reports no eigenvalue. The explained variance is 0.83× to 1.36× NumFlat (`net8.0` only) and 36.7× to 809× Meta.Numerics, which refuses a matrix wider than it is tall ([performance](docs/guides/performance.md#lodestardecomposition)) |
+| `Lodestar.Cluster` | NumFlat, `Dbscan`, `Aglomera` | DBSCAN 2.47× to 10.92×, agglomerative clustering 24× to 590× ([performance](docs/guides/performance.md#lodestarcluster)) |
+| `Lodestar.Preprocessing` | ML.NET's splitters, normalizers and encoders | Ahead on every row where ML.NET's lazy result is read back, 1.46× to 191×; the lazy call alone is cheaper on the larger splits and the 20,000-row one-hot fit ([performance](docs/guides/performance.md#lodestarpreprocessing)) |
+| `Lodestar.Stats.Regression` | Accord.Statistics; Math.NET Numerics | The GLM is level with Accord at 200 rows and 1.4× behind at 2,000; weighted and generalized least squares are level or ahead of Math.NET while computing the whole table ([performance](docs/guides/performance.md#lodestarstatsregression)) |
+| `Lodestar.Onnx`, `Lodestar.Extensions.AI`, `Lodestar.Extensions.MathNet` | — | **Nothing to beat.** Each calls or adapts another library, so what it could be slower than is its own conversion |
+| `Lodestar.Extensions.VectorData` | the `Microsoft.Extensions.VectorData` connectors | **Not measured.** Of the connectors surveyed, the ones implementing hybrid search are clients of a server, which an in-process store does not race |
+| `Lodestar.Gpu` | — | Measured against this repository's own CPU paths, and each kernel ships only where it passed that gate ([performance](docs/guides/performance.md#lodestargpu)) |
+
+## Parity with the Python reference
+
+Conformance is **proven, not assumed**. Every algorithm replays reference values frozen from the
+canonical Python library — rapidfuzz, jellyfish, textdistance, difflib, scikit-learn, scipy,
+statsmodels, lifelines, MAPIE, nltk, HuggingFace `tokenizers`, sentencepiece, numpy, ONNX Runtime —
+into `tests/oracles/*.json`, compared at `1e-9` for floats and exactly for strings. Python is a
+development dependency only. [`docs/equivalence.md`](docs/equivalence.md) maps each Python call to
+its C# counterpart, and every deliberate divergence is a record in
+[`docs/decisions/`](docs/decisions/README.md).
+
+## Developing
+
+```bash
+dotnet build Lodestar.slnx -c Release   # both target frameworks; warnings are errors
+dotnet test Lodestar.slnx -c Release    # replays the oracles, on both
+```
+
+The project follows **GitHub flow**: `main` is always releasable, and every change arrives through
+a short-lived branch and a pull request. Branch conventions, the definition of done, the
+oracle-validation procedure and the analyzer policy are in [`CONTRIBUTING.md`](CONTRIBUTING.md);
+release history is in [`CHANGELOG.md`](CHANGELOG.md).
+
+A runnable sample, consuming the packages exactly as you would:
 
 ```bash
 for p in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings \
@@ -178,44 +150,11 @@ runs the sample against **that** rather than against what `pack` just produced �
 same isolation is two lines, `$env:NUGET_PACKAGES = (New-Item -ItemType Directory -Path (Join-Path $env:TEMP (New-Guid))).FullName`
 before the `dotnet run`, and `Remove-Item Env:NUGET_PACKAGES` after it.
 
-Full guide: [`docs/guides/quickstart.md`](docs/guides/quickstart.md). See also the
-[vectorization](docs/guides/vectorization.md), [embeddings](docs/guides/embeddings.md),
-[fuzzy-matching](docs/guides/migrating-from-rapidfuzz.md),
-[decomposition](docs/guides/decomposition.md),
-[dictionary-lookup](docs/guides/dictionary-lookup.md) and
-[metrics](docs/guides/metrics.md) guides — the last one answers _which_ metric to
-reach for, which the per-member reference pages deliberately cannot.
-
-Function by function, the reference pages under
-[`docs/reference/`](docs/reference/text/distances.md) say what each member is
-for, when to prefer it to its neighbour and what the trap is — start with
-[the distances](docs/reference/text/distances.md). The same pages are published
-to [the wiki](https://github.com/CyrilB1531/data.net/wiki), where each package's
-channel follows `main` and every release is archived under its own version.
-
-## Developing
-
-```bash
-dotnet build                                   # build the solution
-dotnet test                                    # replay oracles + property tests
-dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*Levenshtein*'
-```
-
-The project follows **GitHub flow**: `main` is always releasable, and every change
-arrives through a short-lived branch and a pull request. Branch conventions, the
-definition of done, the oracle-validation procedure and the analyzer-suppression
-policy are in [`CONTRIBUTING.md`](CONTRIBUTING.md); release history is in
-[`CHANGELOG.md`](CHANGELOG.md).
-
-### Oracle validation
-
-Conformance to Python behavior is **proven**, not assumed (§4 of the brief).
-`tools/generate_oracles.py` freezes a few thousand reference cases from
-rapidfuzz/jellyfish/etc. into `tests/oracles/*.json` (versioned). The C# suite
-replays them with a `1e-9` tolerance. Python is a development-only dependency. See
-[`tools/README.md`](tools/README.md).
-
 ## Structure
+
+What each package holds, and which it depends on, is `CLAUDE.md`'s
+[architecture table](CLAUDE.md#architecture); which document carries which fact is its
+[*Where a fact belongs*](CLAUDE.md#where-a-fact-belongs).
 
 ```text
 Lodestar.slnx
@@ -248,29 +187,6 @@ Lodestar.slnx
 ├── docs/reference/<package>/               one reference entry per exported type and public method
 └── docs/wiki-map.json                      which page ships with which package, and which namespaces the reference gate enforces
 ```
-
-## Where a fact belongs
-
-Each document below has one subject; content whose subject is another document's
-belongs there instead, with a link left behind. The source column is what tells
-you whether to correct the document itself or something upstream of it.
-
-| document | its source | its subject |
-| --- | --- | --- |
-| `bench/README.md` | the `bench/` harness projects and scripts, hand-maintained | **how to measure** — the harness, the corpus, the commands |
-| `docs/guides/performance.md` | a benchmark run on a named machine | **what was measured** — one comparison per capability against the incumbent, each number with its machine and its window; a before/after belongs in the pull request that made it |
-| `tools/README.md` | the scripts under `tools/`, hand-maintained | what each tool does and how to run it |
-| `tools/sonarqube-local/README.md` | one run of the disposable local server, on a named machine | how to run the half of the quality gate no `dotnet build` reaches, and what that run cost |
-| `.github/workflows/README.md` | the workflows in that directory and the repository ruleset, hand-maintained | what the pipeline runs, and what has to be green before `main` accepts a merge |
-| `CONTRIBUTING.md` | the project's own process, hand-maintained | the process a contributor follows |
-| `CLAUDE.md` | what a session has found, hand-maintained | what a session needs to be productive, and the traps that cost time |
-| `docs/equivalence.md` | the oracle corpora in `tests/oracles/*.json`, replayed against the C# they compare | the Python call to C# counterpart mapping, with each divergence |
-| `docs/migration/` | the .NET package chosen for each need | what is delegated to another .NET library, and why |
-| `docs/reference/` | the exported types and public methods of the namespaces `docs/wiki-map.json` declares covered, replayed against both target frameworks' assemblies — against net10.0's alone on a pull request that skips the build ([#1059](https://github.com/CyrilB1531/lodestar/issues/1059)) | what each function is for, entry by entry — declaration, parameters, returns, example, remarks |
-| `docs/wiki-map.json` | the packages and the pages that ship with each, hand-maintained | which page belongs to which package, and which namespaces the reference gate enforces |
-| `CHANGELOG.md` | the merged pull requests, per release | what changed, per release |
-| `docs/decisions/` | the ADRs' own `**Status:**` lines, indexed in [`docs/decisions/README.md`](docs/decisions/README.md) | a decision, with its options and its loser |
-| root `README.md` | the project as it stands, hand-maintained | what the project is, and where to go next |
 
 ## Publishing
 
@@ -356,4 +272,4 @@ dotnet nuget push "artifacts/Lodestar.Text.*.nupkg" \
 choice and the code-provenance rule are documented in
 [`docs/decisions/0002-provenance-and-the-allowed-references.md`](docs/decisions/0002-provenance-and-the-allowed-references.md).
 
-_This repository is not legal advice._
+*This repository is not legal advice.*

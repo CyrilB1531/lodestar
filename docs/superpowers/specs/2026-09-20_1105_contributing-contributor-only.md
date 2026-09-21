@@ -70,7 +70,7 @@ distinct anchors — `tools/README.md` (eight), `CLAUDE.md` (six), `CHANGELOG.md
 
 Each displaced fact goes next to the thing it describes, rather than into one maintainer's
 document. A document whose subject is *who reads it* is the grab-bag that
-[`README.md`'s "Where a fact belongs"](../../../README.md#where-a-fact-belongs) table exists to
+[`CLAUDE.md`'s "Where a fact belongs"](../../../CLAUDE.md#where-a-fact-belongs) table exists to
 prevent; a document whose subject is *what it describes* is not.
 
 | what moves | from | to |
