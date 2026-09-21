@@ -1,6 +1,6 @@
 # Multinomial logit — `Lodestar.Stats.Regression`
 
-One entry point, [`MultinomialLogit.Fit`](mnlogit/multinomiallogit-fit.md). It fits a response with more than two
+One entry point, [`MultinomialLogit.Fit`](mnlogit/multinomiallogit-fit.md), for a response with more than two
 unordered categories. Each category but the smallest label gets its own equation against that reference, and the fit
 reports what `statsmodels`' `MNLogit(...).fit()` summary holds: the coefficients per equation with their standard
 errors, z statistics, p-values and intervals, the log-likelihood, McFadden's pseudo-R², the likelihood-ratio test,

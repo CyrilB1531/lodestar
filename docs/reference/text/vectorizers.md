@@ -1,4 +1,4 @@
-# Vectorization — `Lodestar.Text`
+# Vectorization — `Lodestar.Text.Vectorization`
 
 You have a corpus of documents and you need numbers. `Lodestar.Text.Vectorization`
 reproduces `sklearn.feature_extraction.text`: it turns text into a **sparse matrix**

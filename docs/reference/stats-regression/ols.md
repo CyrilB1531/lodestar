@@ -1,6 +1,6 @@
 # Ordinary least squares — `Lodestar.Stats.Regression`
 
-Two entry points. [`OrdinaryLeastSquares.Fit`](ols/ordinaryleastsquares-fit.md) fits a linear
+Two ways to fit a linear model by ordinary least squares. [`OrdinaryLeastSquares.Fit`](ols/ordinaryleastsquares-fit.md) fits a linear
 model and returns what a `statsmodels` summary table holds — the estimates, and how sure it is of
 each of them. [`OrdinaryLeastSquares.Estimate`](ols/ordinaryleastsquares-estimate.md) fits the same
 model and stops at the coefficients, their standard errors and the residual sum of squares, for a

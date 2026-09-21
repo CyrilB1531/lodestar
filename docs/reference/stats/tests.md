@@ -1,4 +1,4 @@
-# `Lodestar.Stats`
+# Hypothesis tests — `Lodestar.Stats`
 
 Ten families of classical hypothesis test, at `scipy.stats` 1.18.0 parity.
 Arrays in, a statistic and a p-value out; nothing is fitted, so every entry

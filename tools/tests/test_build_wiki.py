@@ -242,14 +242,20 @@ def test_a_package_entry_page_links_every_covered_namespace_and_guide(tmp_path):
     build_wiki.build(repo, out, mapping, released={"Lodestar.Text": "0.3.0"})
 
     entry = (out / "Text.md").read_text(encoding="utf-8")
-    assert "[Lodestar.Text.Distances](Text-distances)" in entry
-    # The guide's own H1 is the link text, read off the page rather than guessed
-    # from its file name.
+    # Both link texts are the pages' own H1s, read off the page rather than guessed
+    # from a file name or a namespace.
+    assert "- [Distances](Text-distances)\n" in entry
     assert "[Quickstart](Text-quickstart)" in entry
+    # The guides come first: they are where a reader new to the package starts.
+    assert entry.index("## Start here") < entry.index("## Namespaces")
 
 
 def test_a_namespace_split_over_several_pages_gets_a_row_each(tmp_path):
-    """Lodestar.Metrics' shape: one namespace, two documents, two rows a reader can tell apart."""
+    """Lodestar.Metrics' shape: one namespace, two documents, two rows a reader can tell apart.
+
+    Each row carries its page's H1, which is what tells them apart: the namespace
+    and the file stem, `Lodestar.Metrics — classification`, did not say what either held.
+    """
     repo = make_repo(tmp_path)
     (repo / "docs" / "reference" / "text" / "similarity.md").write_text(
         "# Similarity\n", encoding="utf-8"
@@ -266,10 +272,194 @@ def test_a_namespace_split_over_several_pages_gets_a_row_each(tmp_path):
     build_wiki.build(repo, out, mapping, released={"Lodestar.Text": "0.3.0"})
 
     entry = (out / "Text.md").read_text(encoding="utf-8")
-    assert "[Lodestar.Text.Distances — distances](Text-distances)" in entry
-    assert "[Lodestar.Text.Distances — similarity](Text-similarity)" in entry
-    # The bare namespace label is what one page gets; two must not both carry it.
-    assert "[Lodestar.Text.Distances](Text-distances)" not in entry
+    assert "[Distances](Text-distances)" in entry
+    assert "[Similarity](Text-similarity)" in entry
+    assert "Lodestar.Text.Distances" not in entry
+
+
+def test_a_hub_row_describes_its_namespace_with_the_page_s_first_sentence(tmp_path):
+    repo = make_repo(tmp_path)
+    (repo / "docs" / "reference" / "text" / "distances.md").write_text(
+        "# Distances — `Lodestar.Text.Distances`\n\n"
+        "How far apart are two strings, at `jellyfish` 1.2.1 parity? A second sentence.\n",
+        encoding="utf-8",
+    )
+    mapping = json.loads(json.dumps(MAP))
+    mapping["packages"]["Lodestar.Text"]["covered"] = {
+        "Lodestar.Text.Distances": "docs/reference/text/distances",
+    }
+    out = tmp_path / "wiki"
+
+    build_wiki.build(repo, out, mapping, released={})
+
+    entry = (out / "Text.md").read_text(encoding="utf-8")
+    # The version's dots sit in a code span and do not end the sentence; the `?` does.
+    assert (
+        "- [Distances — `Lodestar.Text.Distances`](Text-distances) — "
+        "How far apart are two strings, at `jellyfish` 1.2.1 parity?\n"
+    ) in entry
+    assert "A second sentence" not in entry
+
+
+def test_a_lead_sentence_does_not_end_inside_a_link():
+    body = "# Title\n\nOne type, [`A.B`](a.b.md). Then more.\n"
+
+    assert build_wiki.lead_sentence(body) == "One type, [`A.B`](a.b.md)."
+
+
+def test_a_lead_sentence_skips_a_table_and_a_fence_before_the_first_paragraph():
+    body = "# Title\n\n| a |\n| - |\n\n```csharp\nx. y\n```\n\nThe lead. Not this.\n"
+
+    assert build_wiki.lead_sentence(body) == "The lead."
+
+
+def test_a_guide_that_is_also_a_covered_page_is_listed_once(tmp_path):
+    """`docs/reference/stats.md` is both, and the Stats hub listed it under both headings."""
+    repo = make_repo(tmp_path)
+    mapping = json.loads(json.dumps(MAP))
+    mapping["packages"]["Lodestar.Text"]["pages"] = [
+        "docs/guides/quickstart.md", "docs/reference/text/distances.md", "docs/reference/text/*.md",
+    ]
+    mapping["packages"]["Lodestar.Text"]["covered"] = {
+        "Lodestar.Text": ["docs/reference/text/distances.md"],
+    }
+    out = tmp_path / "wiki"
+
+    build_wiki.build(repo, out, mapping, released={})
+
+    assert (out / "Text.md").read_text(encoding="utf-8").count("(Text-distances)") == 1
+
+
+def test_a_namespace_page_whose_title_names_another_namespace_is_refused(tmp_path):
+    """The hub would tell the reader one namespace and link the page of another."""
+    repo = make_repo(tmp_path)
+    (repo / "docs" / "reference" / "text" / "distances.md").write_text(
+        "# Distances — `Lodestar.Text`\n", encoding="utf-8"
+    )
+    mapping = json.loads(json.dumps(MAP))
+    mapping["packages"]["Lodestar.Text"]["covered"] = {
+        "Lodestar.Text.Distances": "docs/reference/text/distances",
+    }
+
+    with pytest.raises(build_wiki.MapError, match="Lodestar.Text.Distances"):
+        build_wiki.build(repo, tmp_path / "wiki", mapping, released={})
+
+
+def test_an_archive_of_a_tag_cut_before_the_title_check_still_builds(tmp_path):
+    """The workflow catches a missing archive up from its own tag, whose titles may predate the check."""
+    repo = make_repo(tmp_path)
+    (repo / "docs" / "reference" / "text" / "distances.md").write_text(
+        "# Distances — `Lodestar.Text`\n", encoding="utf-8"
+    )
+    mapping = json.loads(json.dumps(MAP))
+    mapping["packages"]["Lodestar.Text"]["covered"] = {
+        "Lodestar.Text.Distances": "docs/reference/text/distances",
+        "Lodestar.Text.Phonetics": "docs/reference/text/phonetics",
+    }
+    out = tmp_path / "wiki"
+
+    build_wiki.build(repo, out, mapping, released={}, archive=("Lodestar.Text", "0.6.0"))
+
+    assert (out / "Text-0.6.0-distances.md").exists()
+
+
+def with_a_member(repo: Path) -> dict:
+    """The fixture with one member page under the distances namespace, and the hub it needs."""
+    (repo / "docs" / "reference" / "text" / "distances").mkdir()
+    (repo / "docs" / "reference" / "text" / "distances" / "hamming.md").write_text(
+        "# Hamming\n", encoding="utf-8"
+    )
+    (repo / "docs" / "reference" / "text" / "distances.md").write_text(
+        "# Distances — `Lodestar.Text.Distances`\n", encoding="utf-8"
+    )
+    mapping = json.loads(json.dumps(MAP))
+    mapping["packages"]["Lodestar.Text"]["pages"].append("docs/reference/text/*/*.md")
+    mapping["packages"]["Lodestar.Text"]["covered"] = {
+        "Lodestar.Text.Distances": "docs/reference/text/distances",
+    }
+    return mapping
+
+
+def test_a_member_page_says_where_it_sits(tmp_path):
+    """A search that lands on a member page must not land on a dead end."""
+    repo = make_repo(tmp_path)
+    mapping = with_a_member(repo)
+    out = tmp_path / "wiki"
+
+    build_wiki.build(repo, out, mapping, released={})
+
+    member = (out / "Text-hamming.md").read_text(encoding="utf-8")
+    assert member.startswith("[Home](Home) › [Text](Text) › [Distances](Text-distances)\n\n# Hamming")
+    # A namespace page sits directly under its package's hub.
+    assert (out / "Text-distances.md").read_text(encoding="utf-8").startswith(
+        "[Home](Home) › [Text](Text)\n\n#")
+
+
+def test_an_archived_member_page_climbs_to_its_frozen_namespace_and_skips_the_hub(tmp_path):
+    """An archive has no hub, and a link out of it is the banner's job."""
+    repo = make_repo(tmp_path)
+    mapping = with_a_member(repo)
+    out = tmp_path / "wiki"
+
+    build_wiki.build(repo, out, mapping, released={}, archive=("Lodestar.Text", "0.4.0"))
+
+    member = (out / "Text-0.4.0-hamming.md").read_text(encoding="utf-8")
+    assert "[Home](Home) › [Distances](Text-0.4.0-distances)\n" in member
+    assert "[Text](Text) ›" not in member
+
+
+def with_a_home(repo: Path, body: str) -> dict:
+    (repo / "docs" / "wiki").mkdir()
+    (repo / "docs" / "wiki" / "home.md").write_text(body, encoding="utf-8")
+    mapping = json.loads(json.dumps(MAP))
+    mapping["home"] = "docs/wiki/home.md"
+    return mapping
+
+
+def test_home_opens_on_the_written_page_and_keeps_the_package_table(tmp_path):
+    repo = make_repo(tmp_path)
+    mapping = with_a_home(
+        repo, "# Lodestar\n\n| Task | Start here |\n| --- | --- |\n"
+        "| Compare two strings | [Distances](../reference/text/distances.md) |\n",
+    )
+    out = tmp_path / "wiki"
+
+    build_wiki.build(repo, out, mapping, released={"Lodestar.Text": "0.3.0"})
+
+    home = (out / "Home.md").read_text(encoding="utf-8")
+    assert home.startswith("# Lodestar\n\n| Task | Start here |")
+    assert "[Distances](Text-distances)" in home
+    assert "| `Lodestar.Text` | 0.3.0 | [Text](Text) |" in home
+    assert home.index("Compare two strings") < home.index("## Packages")
+
+
+def test_a_home_link_to_a_page_the_wiki_does_not_publish_is_refused(tmp_path):
+    """A renamed guide breaks the front door here, not as a 404 on the published wiki."""
+    repo = make_repo(tmp_path)
+    mapping = with_a_home(repo, "# Lodestar\n\nSee [the guide](../guides/renamed.md).\n")
+
+    with pytest.raises(build_wiki.MapError, match="renamed.md"):
+        build_wiki.build(repo, tmp_path / "wiki", mapping, released={})
+
+
+def test_the_sidebar_lists_a_globbed_directory_by_its_index_alone(tmp_path):
+    """Seven ADR slugs listed flat were not navigation; their index links them."""
+    repo = make_repo(tmp_path)
+    (repo / "docs" / "decisions").mkdir()
+    (repo / "docs" / "decisions" / "README.md").write_text(
+        "# Architecture decision records\n", encoding="utf-8")
+    (repo / "docs" / "decisions" / "0001-a-decision.md").write_text("# 0001\n", encoding="utf-8")
+    mapping = json.loads(json.dumps(MAP))
+    mapping["root"].append("docs/decisions/*.md")
+    out = tmp_path / "wiki"
+
+    build_wiki.build(repo, out, mapping, released={})
+
+    sidebar = (out / "_Sidebar.md").read_text(encoding="utf-8")
+    assert "- [Architecture decision records](decisions)" in sidebar
+    assert "- [Equivalence](equivalence)" in sidebar
+    assert "0001-a-decision" not in sidebar
+    assert (out / "0001-a-decision.md").exists()
 
 
 def test_home_links_a_package_to_its_entry_page_not_its_landing_guide(tmp_path):

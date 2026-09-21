@@ -1,4 +1,4 @@
-# `Lodestar.Stats`
+# Overview — `Lodestar.Stats`
 
 The package-level reference for `Lodestar.Stats`: the ten families of hypothesis test live in
 [their own section](stats/tests.md), and the tail distributions they lean on in

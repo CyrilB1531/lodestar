@@ -1,6 +1,6 @@
 # Generalized least squares — `Lodestar.Stats.Regression`
 
-One entry point. [`GeneralizedLeastSquares.Fit`](gls/generalizedleastsquares-fit.md) fits a linear model
+One entry point, for a linear model whose errors are correlated. [`GeneralizedLeastSquares.Fit`](gls/generalizedleastsquares-fit.md) fits a linear model
 under an error covariance the caller supplies and returns the same [`OlsSummary`](ols/olssummary.md) an
 ordinary fit does, at `statsmodels.api.GLS` parity.
 

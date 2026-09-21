@@ -1,4 +1,4 @@
-# Tokenization — `Lodestar.Embeddings`
+# Tokenization — `Lodestar.Embeddings.Tokenization`
 
 A transformer does not read text; it reads token ids. This namespace turns one into the other,
 for the three sub-word algorithms the models in use are built on, and it reproduces HuggingFace

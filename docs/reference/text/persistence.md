@@ -1,4 +1,4 @@
-# Persistence — `Lodestar.Text`
+# Persistence — `Lodestar.Text.Persistence`
 
 A fitted vectorizer is worth saving: the vocabulary and the document frequencies came from a
 training corpus, and that corpus may not be around later. `Lodestar.Text.Persistence` holds the
