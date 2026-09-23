@@ -1,6 +1,6 @@
 # Hypothesis tests — `Lodestar.Stats`
 
-Ten families of classical hypothesis test, at `scipy.stats` 1.18.0 parity.
+Thirteen families of classical hypothesis test, at `scipy.stats` 1.18.1 parity.
 Arrays in, a statistic and a p-value out; nothing is fitted, so every entry
 point is static.
 
@@ -16,21 +16,27 @@ point is static.
 | Kruskal-Wallis | the same, assuming no shape | [`KruskalWallis`](tests/kruskalwallis.md) |
 | Shapiro-Wilk | could this sample be normal? | [`ShapiroWilk`](tests/shapirowilk.md) |
 | Bonferroni / BH / BY | how many of these results are chance? | [`MultipleComparisons`](tests/multiplecomparisons.md) |
+| Pearson *r* | are these two variables related, along a line? | [`Pearson`](tests/pearson.md) |
+| Spearman rho | the same, along any rising or falling curve | [`Spearman`](tests/spearman.md) |
+| Kendall tau | the same, counted pair by pair | [`KendallTau`](tests/kendalltau.md) |
 
-Every family but three returns the same two numbers, [`TestResult`](tests/testresult.md); a
+Every family but four returns the same two numbers, [`TestResult`](tests/testresult.md); a
 t-test also carries its degrees of freedom ([`TTestResult`](tests/ttestresult.md)), a
 contingency table also carries the table independence would have produced
-([`Chi2ContingencyResult`](tests/chi2contingencyresult.md)), and Kolmogorov-Smirnov also carries
-where and in which direction the two samples parted furthest ([`KsResult`](tests/ksresult.md)).
+([`Chi2ContingencyResult`](tests/chi2contingencyresult.md)), Kolmogorov-Smirnov also carries
+where and in which direction the two samples parted furthest ([`KsResult`](tests/ksresult.md)),
+and a Pearson correlation carries what its interval needs
+([`PearsonResult`](tests/pearsonresult.md)).
 
 | result | carries | returned by |
 | --- | --- | --- |
-| [`TestResult`](tests/testresult.md) | a statistic, a p-value | eight of the ten families |
+| [`TestResult`](tests/testresult.md) | a statistic, a p-value | ten of the thirteen families |
 | [`TTestResult`](tests/ttestresult.md) | + degrees of freedom, a confidence interval | [`TTest`](tests/ttest.md) |
 | [`Chi2ContingencyResult`](tests/chi2contingencyresult.md) | + degrees of freedom, the expected table | [`ChiSquare.Contingency`](tests/chisquare-contingency.md) |
 | [`KsResult`](tests/ksresult.md) | + where the gap was reached, and its sign | [`KolmogorovSmirnov`](tests/kolmogorovsmirnov.md) |
+| [`PearsonResult`](tests/pearsonresult.md) | + a confidence interval for the correlation | [`Pearson`](tests/pearson.md) |
 
-Five small enums choose what a test asks, and how it answers when the exact and the approximate
+Six small enums choose what a test asks, and how it answers when the exact and the approximate
 route disagree.
 
 | option | chooses |
@@ -40,6 +46,7 @@ route disagree.
 | [`Continuity`](tests/continuity.md) | whether a discrete statistic's normal approximation gets the half-unit correction |
 | [`ExactMethod`](tests/exactmethod.md) | the exact null distribution, its normal approximation, or a choice between them |
 | [`ZeroMethod`](tests/zeromethod.md) | what Wilcoxon does with a pair whose difference is exactly zero |
+| [`KendallVariant`](tests/kendallvariant.md) | which normalisation Kendall's tau carries; the p-value is the same either way |
 
 The [hypothesis-testing guide](../../guides/hypothesis-testing.md) says which
 test answers which question, and the

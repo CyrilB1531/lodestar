@@ -139,6 +139,7 @@ internal static class PackagingGate
         ["Lodestar.Metrics.PairConfusionMatrix..ctor"] = ResultRecordCtor,
         ["Lodestar.Stats.Chi2ContingencyResult..ctor"] = ResultRecordCtor,
         ["Lodestar.Stats.KsResult..ctor"] = ResultRecordCtor,
+        ["Lodestar.Stats.PearsonResult..ctor"] = ResultRecordCtor,
         ["Lodestar.Stats.TTestResult..ctor"] = ResultRecordCtor,
         ["Lodestar.Stats.TestResult..ctor"] = ResultRecordCtor,
         ["Lodestar.Survival.KaplanMeierCurve..ctor"] = ResultRecordCtor,

@@ -1,7 +1,8 @@
 # Hypothesis testing
 
-`Lodestar.Stats` answers one question in ten forms: **is this difference more
-than noise?**
+`Lodestar.Stats` answers two questions. Ten families ask **is this difference more than noise?**
+Three more ask **are these two variables related?** — the same machinery, pointed at a pair of
+measurements rather than at two groups.
 
 ## What happens to a missing value
 
@@ -28,6 +29,48 @@ exists to prevent.
 | three or more groups | nothing about the shape | [`KruskalWallis.Test`](../reference/stats/tests/kruskalwallis-test.md) |
 | one sample, and a normality assumption to check | nothing | [`ShapiroWilk.Test`](../reference/stats/tests/shapirowilk-test.md) |
 | many p-values at once | nothing | [`MultipleComparisons`](../reference/stats/tests/multiplecomparisons.md) |
+| two measurements per subject | a linear relationship, roughly normal | [`Pearson.Test`](../reference/stats/tests/pearson-test.md) |
+| two measurements per subject | only that the relationship rises or falls | [`Spearman.Test`](../reference/stats/tests/spearman-test.md) |
+| two rankings of the same items | nothing, and the sample is short | [`KendallTau.Test`](../reference/stats/tests/kendalltau-test.md) |
+
+## Which correlation
+
+The three differ in what counts as a relationship, and the difference is not a matter of taste.
+
+[`Pearson.Test`](../reference/stats/tests/pearson-test.md) measures a **line**. It reads the
+distances between the values, so one observation far from the rest moves it a long way, and a
+relationship that rises steadily but not linearly reads lower than it is.
+
+[`Spearman.Test`](../reference/stats/tests/spearman-test.md) measures **order**, by correlating
+the mid-ranks instead of the values. Every relationship that only rises answers exactly `1`,
+however it curves.
+
+The same eight pairs, both ways:
+
+```csharp
+using Lodestar.Stats;
+
+double[] dose = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 40.0];
+double[] effect = [2.0, 3.5, 4.0, 5.5, 6.0, 7.5, 8.0, 9.0];
+
+double linear = Math.Round(Pearson.Test(dose, effect).Statistic, 4);
+double monotone = Math.Round(Spearman.Test(dose, effect).Statistic, 4);
+```
+
+`linear` is `0.6749` and `monotone` is `1`. Neither is wrong: the last dose is five times the one
+before it, so a measure of distance is entitled to say the relationship is not a line, and a
+measure of order is entitled to say it never once went down. Choose by which of the two claims
+you meant to make.
+
+[`KendallTau.Test`](../reference/stats/tests/kendalltau-test.md) also measures order, but counts
+agreeing pairs rather than correlating ranks. It moves less under a single odd observation than
+rho does, it has an exact null distribution for short untied samples where rho has only an
+approximation, and its value has a direct reading: the probability that two entries are ordered
+the same way by both measurements, minus the probability that they are not. Rho is the more
+familiar number; tau is the better behaved one on a short sample.
+
+**A correlation is not a cause**, and none of the three says anything about which measurement
+moved the other — or whether a third one moved both.
 
 ## What a p-value is, and is not
 

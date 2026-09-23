@@ -66,6 +66,15 @@ internal static class StatsCorpus
             var other => throw new InvalidDataException($"Unknown method '{other}'."),
         };
 
+    /// <summary>The Kendall <c>variant</c> a case was generated with.</summary>
+    internal static KendallVariant Variant(JsonElement args) =>
+        args.GetProperty("variant").GetString() switch
+        {
+            "b" => KendallVariant.TauB,
+            "c" => KendallVariant.TauC,
+            var other => throw new InvalidDataException($"Unknown variant '{other}'."),
+        };
+
     /// <summary>Whether a case carries a <c>nan_policy</c> at all.</summary>
     /// <remarks>
     /// Here rather than in each replay, alongside <see cref="Alternative"/>: seven of the

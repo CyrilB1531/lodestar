@@ -3090,3 +3090,39 @@ small share of an Indel over 10,000 code points.
 ```bash
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*FuzzCodePointBenchmarks*'
 ```
+
+## 53. The three correlation tests against `Meta.Numerics` (issue #1120)
+
+`CorrelationBenchmarks` times [`Pearson.Test`](../docs/reference/stats/tests/pearson-test.md),
+[`Spearman.Test`](../docs/reference/stats/tests/spearman-test.md) and
+[`KendallTau.Test`](../docs/reference/stats/tests/kendalltau-test.md) against
+`Meta.Numerics` 4.2.0's `Bivariate.PearsonRTest`, `SpearmanRhoTest` and `KendallTauTest`, at 100
+and 10,000 pairs. Section 18 already resolves `Meta.Numerics` in this project; the three names
+were read out of the restored `netstandard2.0` asset by reflection rather than guessed, the same
+protocol section 18 set, and all three take two `IReadOnlyList<double>`.
+
+**The corpus is untied on purpose, and that is not a convenience.** `[GlobalSetup]` draws the
+predictor from a continuous generator and the response as `2x + 0.3u`, so nothing is tied and no
+corpus file is needed. Measured on an eight-point tied fixture, the two libraries do not compute
+the same quantity once anything is tied:
+
+| tied fixture | `Lodestar.Stats` | `Meta.Numerics` | why |
+| --- | ---: | ---: | --- |
+| rho | 0.9193 | 1 | it averages no tied rank |
+| tau | 0.8573 (tau-b) | 0.5 | it computes tau-a, with no tie correction |
+
+Timing those under one name would compare two different numbers, which is what section 18's
+`MetaNumericsAgreement` exists to prevent. Untied, the three statistics agree to `1e-9` and so do
+the p-values: the agreement check recorded **0 differences at both sizes**, where section 18's
+eight families recorded several. `Setup` throws rather than times if that ever stops holding.
+
+A seventh row, `Lodestar_KendallTau_Asymptotic`, pins `ExactMethod.Asymptotic` so the row times
+the concordance count alone — `ExactMethod.Auto` builds the exact table at a hundred pairs and
+not at ten thousand, which would be two different amounts of work under one name.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*CorrelationBenchmarks*'
+```
+
+The numbers, with their machine and window, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md).

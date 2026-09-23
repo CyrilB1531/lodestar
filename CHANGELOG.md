@@ -272,6 +272,7 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- `Pearson.Test`, `Spearman.Test` and `KendallTau.Test` answer whether two variables are related, at `scipy.stats` parity, with a Fisher-z interval on the Pearson result and both Kendall variants. ([#1120](https://github.com/CyrilB1531/lodestar/issues/1120))
 - `NanPolicy` on the eleven test entry points whose scipy counterpart takes `nan_policy`. ([#687](https://github.com/CyrilB1531/lodestar/issues/687), [`aaabaf72`](https://github.com/CyrilB1531/lodestar/commit/aaabaf72))
 
 #### Changed
