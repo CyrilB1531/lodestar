@@ -106,9 +106,14 @@ LAC_TOLERANCE = 1e-8
 # ones above are: S1192 counts a dict key like any other literal (#440).
 COLUMNS = "columns"
 
+# long-comment: one name for one key is the whole point of this constant, and the next
+# contributor will not know what it cost unless it is written here.
 # The three keys every StandardScaler case carries (#568). Named here rather than
 # repeated, which is what S1192 asks once a literal reaches three uses in a file.
-FEATURE_COUNT = "feature_count"
+# This file bound "feature_count" and "featureCount" to three constants at once, and rebinding
+# one of them silently renamed the key in five corpora (#1122). There is one now, and every
+# corpus spells the per-row feature count the same way (#1128).
+FEATURE_COUNT = "featureCount"
 SAMPLES = "samples"
 MAX_ITER = "max_iter"
 T_PPF = "t.ppf"
@@ -127,7 +132,6 @@ USE_CORRECTION = "useCorrection"
 # statsmodels' cov_type string for one-way clusters, used by the OLS and WLS fixtures (#775).
 CLUSTER = "cluster"
 DESIGN = "design"
-OLS_FEATURE_COUNT = "featureCount"
 RESPONSE = "response"
 WITH_INTERCEPT = "withIntercept"
 WEIGHTS = "weights"
@@ -5732,7 +5736,7 @@ def _ols_fixtures() -> list[dict]:
             "name": "simple regression, intercept fitted",
             DESIGN: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
             RESPONSE: [2.1, 3.9, 6.2, 7.8, 10.1, 12.2, 13.8, 16.1],
-            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
         {
             # Three regressors on twelve rows: the residual degrees of freedom (8) are
@@ -5746,7 +5750,7 @@ def _ols_fixtures() -> list[dict]:
             RESPONSE: [
                 7.2, 9.1, 12.4, 10.8, 16.3, 14.1, 20.7, 18.2, 24.9, 22.4, 29.1, 26.8,
             ],
-            OLS_FEATURE_COUNT: 3, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 3, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
         {
             # No constant column. R-squared is then the uncentred one, which statsmodels
@@ -5754,7 +5758,7 @@ def _ols_fixtures() -> list[dict]:
             "name": "two regressors, no intercept",
             DESIGN: [1.0, 1.0, 2.0, 1.0, 3.0, 2.0, 4.0, 2.0, 5.0, 3.0, 6.0, 3.0, 7.0, 4.0, 8.0, 4.0],
             RESPONSE: [3.1, 5.2, 8.4, 10.1, 13.3, 15.2, 18.4, 20.1],
-            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
         },
         {
             # x2 is x1 plus a hundredth: a five-figure VIF, which is both what the
@@ -5765,13 +5769,13 @@ def _ols_fixtures() -> list[dict]:
                 6.0, 5.99, 7.0, 7.01, 8.0, 8.02, 9.0, 8.99, 10.0, 10.01,
             ],
             RESPONSE: [2.2, 4.1, 6.3, 7.9, 10.2, 12.1, 14.3, 15.9, 18.2, 20.1],
-            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
         {
             "name": "a 99% interval, where the multiplier is the wider one",
             DESIGN: [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0],
             RESPONSE: [1.9, 4.2, 5.8, 8.3, 9.7, 12.4, 13.9],
-            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
+            FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
         },
         {
             # 9.4 is load-bearing: at 9.0 the third row is exactly the sum of the first
@@ -5779,7 +5783,7 @@ def _ols_fixtures() -> list[dict]:
             "name": "one residual degree of freedom",
             DESIGN: [1.0, 3.0, 2.0, 1.0, 3.0, 4.0],
             RESPONSE: [5.0, 4.0, 9.4],
-            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
         },
         *_robust_fixtures(),
         *_hac_cluster_fixtures(),
@@ -5806,7 +5810,7 @@ def _robust_fixtures() -> list[dict]:
         RESPONSE: [
             2.1, 4.3, 5.7, 8.4, 9.6, 13.1, 13.4, 17.9, 17.2, 22.8, 20.9, 26.4, 24.1, 31.6,
         ],
-        OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
     }
     fixtures = [
         {"name": f"heteroskedastic funnel, {kind}", COVARIANCE_TYPE: kind, **funnel}
@@ -5827,7 +5831,7 @@ def _robust_fixtures() -> list[dict]:
         "name": "two regressors, no intercept, HC1",
         DESIGN: [1.0, 1.0, 2.0, 1.0, 3.0, 2.0, 4.0, 2.0, 5.0, 3.0, 6.0, 3.0, 7.0, 4.0, 8.0, 4.0],
         RESPONSE: [3.4, 4.8, 8.9, 9.6, 12.7, 15.9, 19.2, 19.4],
-        OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+        FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
         COVARIANCE_TYPE: "HC1",
     })
     fixtures.append({
@@ -5836,7 +5840,7 @@ def _robust_fixtures() -> list[dict]:
         "name": "a 99% interval under HC3, where the multiplier is the normal one",
         DESIGN: [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0],
         RESPONSE: [1.9, 4.2, 5.8, 8.3, 9.7, 12.4, 13.9],
-        OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
+        FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
         COVARIANCE_TYPE: "HC3",
     })
     return fixtures
@@ -5852,7 +5856,7 @@ SERIAL = {
         2.43, 3.16, 4.05, 4.97, 5.77, 4.73, 5.77, 7.8, 8.67, 9.68,
         9.7, 10.86, 11.12, 10.9, 11.98, 14.32, 15.33, 14.54, 15.6, 19.15,
     ],
-    OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+    FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
 }
 
 # Five clusters of uneven size (4, 4, 5, 4, 3), labels neither dense nor sorted: the
@@ -5877,7 +5881,7 @@ def _hac_cluster_fixtures() -> list[dict]:
             "name": "two regressors, no intercept, HAC 10 on eight rows",
             DESIGN: [1.0, 1.0, 2.0, 1.0, 3.0, 2.0, 4.0, 2.0, 5.0, 3.0, 6.0, 3.0, 7.0, 4.0, 8.0, 4.0],
             RESPONSE: [7.5, 1.2, 13.1, 5.1, 17.9, 9.6, 25.1, 13.5],
-            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
             COVARIANCE_TYPE: "HAC", HAC_LAGS: 10,
         },
         {"name": "five uneven clusters", COVARIANCE_TYPE: CLUSTER, GROUPS: SERIAL_GROUPS, **SERIAL},
@@ -6134,7 +6138,7 @@ def _cox_fixture(rng: SeededRandom, name: str, rows: int, columns: list[str],
         design.extend(row)
         durations.append(duration)
         events.append(1 if rng.random() < event_rate else 0)
-    return {"name": name, OLS_FEATURE_COUNT: len(columns), DESIGN: design,
+    return {"name": name, FEATURE_COUNT: len(columns), DESIGN: design,
             DURATIONS: durations, EVENTS: events}
 
 
@@ -6170,7 +6174,7 @@ def generate_survival_cox() -> dict:
 
     cases = []
     for fixture in _cox_fixtures():
-        width = fixture[OLS_FEATURE_COUNT]
+        width = fixture[FEATURE_COUNT]
         names = [f"x{index}" for index in range(width)]
         frame = pd.DataFrame(np.array(fixture[DESIGN]).reshape(-1, width), columns=names)
         frame[COX_DURATION_COLUMN] = fixture[DURATIONS]
@@ -6525,7 +6529,7 @@ def _linear_case(fixture: dict, model) -> dict:
         if echoed in fixture:
             case[echoed] = fixture[echoed]
     case.update({
-        OLS_FEATURE_COUNT: fixture[OLS_FEATURE_COUNT],
+        FEATURE_COUNT: fixture[FEATURE_COUNT],
         WITH_INTERCEPT: fixture[WITH_INTERCEPT],
         CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
         COVARIANCE_TYPE: kind,
@@ -6556,7 +6560,7 @@ def _linear_exog(fixture: dict):
     import numpy as np
     import statsmodels.api as sm
 
-    design = np.array(fixture[DESIGN]).reshape(-1, fixture[OLS_FEATURE_COUNT])
+    design = np.array(fixture[DESIGN]).reshape(-1, fixture[FEATURE_COUNT])
     return sm.add_constant(design, prepend=True) if fixture[WITH_INTERCEPT] else design
 
 
@@ -6591,7 +6595,7 @@ def _wls_fixtures() -> list[dict]:
     line = {
         DESIGN: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
         RESPONSE: [2.4, 3.6, 6.9, 7.1, 10.8, 11.2, 15.1, 14.6, 19.3, 19.9],
-        OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
     }
     uneven = [1.0, 2.0, 0.5, 1.5, 3.0, 1.0, 0.25, 2.0, 0.75, 1.25]
     # Twelve rows of three regressors, the OLS corpus' own, with weights that fall as the
@@ -6607,7 +6611,7 @@ def _wls_fixtures() -> list[dict]:
             1.0 / 7.2, 1.0 / 9.1, 1.0 / 12.4, 1.0 / 10.8, 1.0 / 16.3, 1.0 / 14.1,
             1.0 / 20.7, 1.0 / 18.2, 1.0 / 24.9, 1.0 / 22.4, 1.0 / 29.1, 1.0 / 26.8,
         ],
-        OLS_FEATURE_COUNT: 3, WITH_INTERCEPT: True,
+        FEATURE_COUNT: 3, WITH_INTERCEPT: True,
     }
     fixtures = [
         {"name": "one regressor, uneven weights", WEIGHTS: uneven, **line},
@@ -6634,7 +6638,7 @@ def _wls_fixtures() -> list[dict]:
             DESIGN: [1.0, 1.0, 2.0, 1.0, 3.0, 2.0, 4.0, 2.0, 5.0, 3.0, 6.0, 3.0, 7.0, 4.0, 8.0, 4.0],
             RESPONSE: [3.4, 4.8, 8.9, 9.6, 12.7, 15.9, 19.2, 19.4],
             WEIGHTS: [2.0, 1.0, 1.5, 0.5, 1.0, 0.75, 0.5, 0.25],
-            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
         },
         {"name": "three regressors, inverse-level weights, 99%", CONFIDENCE_LEVEL: 0.99, **three},
         {
@@ -6647,7 +6651,7 @@ def _wls_fixtures() -> list[dict]:
             ],
             RESPONSE: [2.4, 3.6, 6.9, 7.1, 10.8, 11.2, 15.1, 14.6, 19.3, 19.9],
             WEIGHTS: uneven,
-            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
     ]
     # long-comment: what the robust cases catch, and why they stay on one regressor.
@@ -6724,7 +6728,7 @@ def _gls_fixtures() -> list[dict]:
     line = {
         DESIGN: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
         RESPONSE: [2.4, 3.6, 6.9, 7.1, 10.8, 11.2, 15.1, 14.6, 19.3, 19.9],
-        OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True,
+        FEATURE_COUNT: 1, WITH_INTERCEPT: True,
     }
     # Two blocks of five equicorrelated rows at 0.5, uncorrelated across blocks, with unequal variances:
     # a covariance that is neither diagonal nor banded, so no shortcut through WLS reaches it.
@@ -6749,7 +6753,7 @@ def _gls_fixtures() -> list[dict]:
             DESIGN: [1.0, 1.0, 2.0, 1.0, 3.0, 2.0, 4.0, 2.0, 5.0, 3.0, 6.0, 3.0, 7.0, 4.0, 8.0, 4.0],
             RESPONSE: [3.4, 4.8, 8.9, 9.6, 12.7, 15.9, 19.2, 19.4],
             ERROR_COVARIANCE: _autoregressive(0.5, 8),
-            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
         },
         {
             "name": "three regressors, twelve rows, AR(1) errors",
@@ -6760,7 +6764,7 @@ def _gls_fixtures() -> list[dict]:
             ],
             RESPONSE: [7.9, 8.4, 13.1, 10.1, 17.2, 13.3, 21.9, 17.1, 26.0, 21.2, 30.3, 25.7],
             ERROR_COVARIANCE: _autoregressive(0.4, 12),
-            OLS_FEATURE_COUNT: 3, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 3, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
     ]
     fixtures.extend(
@@ -6807,7 +6811,7 @@ def _glm_fixtures() -> list[dict]:
             FAMILY: BINOMIAL,
             DESIGN: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
             RESPONSE: [0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0],
-            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
         {
             # Two regressors at 99%, so a wrong multiplier fails on the interval rather than
@@ -6821,7 +6825,7 @@ def _glm_fixtures() -> list[dict]:
             RESPONSE: [
                 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0,
             ],
-            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
+            FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
         },
         {
             # No intercept, the arm of the fit nothing else reaches -- and whose null
@@ -6830,14 +6834,14 @@ def _glm_fixtures() -> list[dict]:
             FAMILY: BINOMIAL,
             DESIGN: [-2.0, -1.5, -0.5, 0.5, 1.0, 1.5, 2.0, 2.5],
             RESPONSE: [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0],
-            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 1, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
         },
         {
             "name": "poisson, one regressor, intercept fitted",
             FAMILY: POISSON,
             DESIGN: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
             RESPONSE: [1.0, 0.0, 2.0, 3.0, 4.0, 3.0, 7.0, 6.0, 9.0, 11.0],
-            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
         {
             # A zero response, which is where the deviance's x-log-y term is 0 * -inf and
@@ -6846,7 +6850,7 @@ def _glm_fixtures() -> list[dict]:
             FAMILY: POISSON,
             DESIGN: [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
             RESPONSE: [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0, 4.0],
-            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
         {
             # Two independent regressors: the second is not a multiple of the first, so the
@@ -6858,7 +6862,7 @@ def _glm_fixtures() -> list[dict]:
                 6.0, 2.5, 7.0, 0.5, 8.0, 3.5, 9.0, 2.0, 10.0, 1.0,
             ],
             RESPONSE: [1.0, 2.0, 2.0, 4.0, 5.0, 7.0, 8.0, 12.0, 15.0, 20.0],
-            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
         *_negative_binomial_fixtures(),
         *_gamma_fixtures(),
@@ -6875,7 +6879,7 @@ def _gamma_fixtures() -> list[dict]:
     rising = {
         DESIGN: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
         RESPONSE: [2.1, 1.8, 3.5, 2.9, 4.8, 5.5, 4.9, 7.8, 6.9, 9.4],
-        OLS_FEATURE_COUNT: 1,
+        FEATURE_COUNT: 1,
     }
     fixtures = [
         {"name": f"gamma, {link} link", FAMILY: GAMMA, LINK: link,
@@ -6889,14 +6893,14 @@ def _gamma_fixtures() -> list[dict]:
             FAMILY: GAMMA, LINK: INVERSE,
             DESIGN: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
             RESPONSE: [8.2, 5.9, 5.1, 3.2, 3.6, 2.4, 2.7, 1.9, 2.2, 1.5],
-            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
+            FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
         },
         {
             "name": "gamma, log link, no intercept",
             FAMILY: GAMMA, LINK: "log",
             DESIGN: [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6],
             RESPONSE: [1.3, 1.1, 2.0, 1.6, 3.1, 2.4, 4.2, 3.3],
-            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 1, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
         },
         {
             # Two orders of magnitude, the spread a Gamma model exists for.
@@ -6907,7 +6911,7 @@ def _gamma_fixtures() -> list[dict]:
                 6.0, 2.5, 7.0, 0.5, 8.0, 3.5, 9.0, 2.0, 10.0, 1.0,
             ],
             RESPONSE: [0.8, 3.1, 1.9, 9.5, 4.2, 12.8, 5.1, 44.0, 21.5, 30.2],
-            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
     ])
     return fixtures
@@ -6924,7 +6928,7 @@ def _negative_binomial_fixtures() -> list[dict]:
     counts = {
         DESIGN: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
         RESPONSE: [1.0, 0.0, 2.0, 3.0, 4.0, 3.0, 7.0, 6.0, 9.0, 11.0],
-        OLS_FEATURE_COUNT: 1,
+        FEATURE_COUNT: 1,
     }
     fixtures = [
         {"name": f"negative binomial, alpha {alpha}", FAMILY: NEGATIVE_BINOMIAL, ALPHA: alpha,
@@ -6938,7 +6942,7 @@ def _negative_binomial_fixtures() -> list[dict]:
             FAMILY: NEGATIVE_BINOMIAL, ALPHA: 1.0,
             DESIGN: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
             RESPONSE: [1.0, 2.0, 1.0, 4.0, 3.0, 6.0, 5.0, 9.0],
-            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 1, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
         },
         {
             # Zeros: the deviance's y log(y/mu) is clipped rather than 0 * -inf.
@@ -6946,7 +6950,7 @@ def _negative_binomial_fixtures() -> list[dict]:
             FAMILY: NEGATIVE_BINOMIAL, ALPHA: 0.5,
             DESIGN: [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
             RESPONSE: [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0, 4.0],
-            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
+            FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
         },
         {
             "name": "negative binomial, two regressors",
@@ -6956,7 +6960,7 @@ def _negative_binomial_fixtures() -> list[dict]:
                 6.0, 2.5, 7.0, 0.5, 8.0, 3.5, 9.0, 2.0, 10.0, 1.0,
             ],
             RESPONSE: [1.0, 2.0, 2.0, 4.0, 5.0, 7.0, 8.0, 12.0, 15.0, 20.0],
-            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
         {
             # Near Poisson: 1/alpha is 1000, so the deviance and lnGamma(y + 1/alpha) -
@@ -6980,7 +6984,7 @@ def _glm_offset_fixtures() -> list[dict]:
     offset = [0.1, -0.2, 0.3, 0.0, -0.1, 0.2, -0.3, 0.15, 0.05, -0.25, 0.1, -0.05]
     claims = [1.0, 4.0, 1.0, 12.0, 3.0, 4.0, 7.0, 3.0, 2.0, 3.0, 9.0, 5.0]
     rates = {
-        DESIGN: design, OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        DESIGN: design, FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
     }
     return [
         {"name": "poisson, exposure", FAMILY: POISSON, RESPONSE: claims, EXPOSURE: exposure, **rates},
@@ -7086,12 +7090,12 @@ def _mnlogit_fixtures() -> list[dict]:
                   1, 2, 2, 2]
     return [
         {"name": "three categories, one regressor", DESIGN: one, LABELS: one_labels,
-         OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95},
+         FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95},
         {
             # The same rows relabelled -7, 0, 12: the categories sort by value, so the fit is the one above.
             "name": "labels negative and not contiguous",
             DESIGN: one, LABELS: [(-7, 0, 12)[v] for v in one_labels],
-            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
         {
             "name": "four categories, two regressors, 99%",
@@ -7106,7 +7110,7 @@ def _mnlogit_fixtures() -> list[dict]:
             ],
             LABELS: [0, 1, 3, 0, 0, 3, 2, 3, 3, 3, 0, 3, 2, 0, 1, 3, 3, 3, 3, 2, 3, 2, 2, 3, 2, 3, 0, 3, 3, 2, 0, 2,
                      0, 1, 0, 3, 2, 0, 2, 3, 2, 0, 3, 3, 1, 3, 1, 3],
-            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
+            FEATURE_COUNT: 2, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.99,
         },
         {
             # Two categories: the binary logit, which GeneralizedLinearModel's binomial family also fits.
@@ -7115,7 +7119,7 @@ def _mnlogit_fixtures() -> list[dict]:
                      -0.97, -1.13, 0.31, -1.85, -0.18, 0.43, -0.99, -1.11, -0.76, 0.65, -0.13, -1.87, -0.42, 1.01,
                      0.98, 0.63],
             LABELS: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0],
-            OLS_FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 1, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
         {
             # No intercept: df_model is still (K - 1)(J - 1), and llnull is still the constant-only model's.
@@ -7129,7 +7133,7 @@ def _mnlogit_fixtures() -> list[dict]:
             ],
             LABELS: [0, 2, 0, 0, 2, 2, 2, 2, 2, 0, 1, 0, 2, 0, 0, 0, 2, 2, 1, 0, 1, 0, 2, 2, 2, 0, 0, 1, 2, 2, 1, 1,
                      1, 0, 1, 2],
-            OLS_FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
+            FEATURE_COUNT: 2, WITH_INTERCEPT: False, CONFIDENCE_LEVEL: 0.95,
         },
     ]
 
@@ -7147,7 +7151,7 @@ def generate_stats_mnlogit() -> dict:
 
     cases = []
     for fixture in _mnlogit_fixtures():
-        design = np.array(fixture[DESIGN]).reshape(-1, fixture[OLS_FEATURE_COUNT])
+        design = np.array(fixture[DESIGN]).reshape(-1, fixture[FEATURE_COUNT])
         exog = sm.add_constant(design, prepend=True) if fixture[WITH_INTERCEPT] else design
         fit = MNLogit(np.array(fixture[LABELS]), exog).fit(disp=0)
         interval = np.asarray(fit.conf_int(alpha=1.0 - fixture[CONFIDENCE_LEVEL]))
@@ -7157,7 +7161,7 @@ def generate_stats_mnlogit() -> dict:
             "name": fixture["name"],
             DESIGN: fixture[DESIGN],
             LABELS: fixture[LABELS],
-            OLS_FEATURE_COUNT: fixture[OLS_FEATURE_COUNT],
+            FEATURE_COUNT: fixture[FEATURE_COUNT],
             WITH_INTERCEPT: fixture[WITH_INTERCEPT],
             CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
             CATEGORIES: sorted(set(fixture[LABELS])),
@@ -7461,7 +7465,7 @@ def generate_stats_glm() -> dict:
     }
     blocks: dict = {name: {"cases": []} for name in families}
     for fixture in _glm_fixtures():
-        feature_count = fixture[OLS_FEATURE_COUNT]
+        feature_count = fixture[FEATURE_COUNT]
         design = np.array(fixture[DESIGN]).reshape(-1, feature_count)
         response = np.array(fixture[RESPONSE])
         exog = sm.add_constant(design, prepend=True) if fixture[WITH_INTERCEPT] else design
@@ -7473,7 +7477,7 @@ def generate_stats_glm() -> dict:
             "name": fixture["name"],
             DESIGN: [float(v) for v in fixture[DESIGN]],
             RESPONSE: [float(v) for v in fixture[RESPONSE]],
-            OLS_FEATURE_COUNT: feature_count,
+            FEATURE_COUNT: feature_count,
             WITH_INTERCEPT: fixture[WITH_INTERCEPT],
             CONFIDENCE_LEVEL: fixture[CONFIDENCE_LEVEL],
             **({ALPHA: fixture[ALPHA]} if ALPHA in fixture else {}),
@@ -7507,7 +7511,7 @@ def generate_stats_glm() -> dict:
     blocks["separable"] = {
         DESIGN: [float(v) for v in separable_x.ravel()],
         RESPONSE: [float(v) for v in separable_y],
-        OLS_FEATURE_COUNT: 1,
+        FEATURE_COUNT: 1,
         "maximumIterations": separable_maxiter,
         CONVERGED: bool(separable.converged),
         ITERATIONS: int(separable.fit_history["iteration"]),
@@ -11767,7 +11771,6 @@ NAN_IN_FIRST = "nan in the first group"
 # Only names this file does not already bind -- SAMPLES, TRANSFORMED, INVERSE and
 # STRATEGY are defined above and reused, and rebinding FEATURE_COUNT here silently
 # renamed the key in every other corpus, which the suites caught.
-FEATURES_PER_ROW = "featureCount"
 NORM = "norm"
 DEGREE = "degree"
 ENCODING = "encoding"
@@ -12764,7 +12767,7 @@ def generate_preprocessing_normalizer() -> dict:
             cases.append({
                 "name": _correlation_name(name, norm=norm),
                 "call": "Normalizer", "args": {NORM: norm},
-                SAMPLES: _flat(rows), FEATURES_PER_ROW: len(rows[0]),
+                SAMPLES: _flat(rows), FEATURE_COUNT: len(rows[0]),
                 TRANSFORMED: _flat(Normalizer(norm=norm).fit_transform(matrix)),
             })
 
@@ -12782,14 +12785,36 @@ def generate_preprocessing_label_encoder() -> dict:
         {"name": "repeated throughout", "labels": ["p", "q", "p", "q", "p"]},
     ]
 
+    # long-comment: the two dtypes are not the same claim, and the case that separates them is
+    # the one nobody writes, so the fixtures say which order each one proves.
+    # Integers sort as numbers where strings sort by code point, so "10" before "9" on one side
+    # and 9 before 10 on the other. The negative and the two-digit values are what make these
+    # fixtures prove it rather than agree by accident (#1128).
+    integers = [
+        {"name": "integers sort as numbers, not as text", "labels": [30, 4, 4, 100, -2]},
+        {"name": "one integer", "labels": [7]},
+        {"name": "integers where text would disagree", "labels": [9, 10, 9, 100, 10]},
+    ]
+
     cases = []
     for fx in fixtures:
-        encoder = LabelEncoder().fit(fx["labels"])
+        encoder = LabelEncoder().fit(np.array(fx["labels"]))
         cases.append({
             "name": fx["name"], "call": "LabelEncoder", "args": {},
+            ELEMENT_TYPE: ELEMENT_STRING,
             "labels": fx["labels"],
             "classes": [str(c) for c in encoder.classes_],
-            "codes": [int(c) for c in encoder.transform(fx["labels"])],
+            "codes": [int(c) for c in encoder.transform(np.array(fx["labels"]))],
+        })
+
+    for fx in integers:
+        encoder = LabelEncoder().fit(np.array(fx["labels"], dtype=np.int64))
+        cases.append({
+            "name": fx["name"], "call": "LabelEncoder", "args": {},
+            ELEMENT_TYPE: ELEMENT_INT,
+            "labels": fx["labels"],
+            "classes": [int(c) for c in encoder.classes_],
+            "codes": [int(c) for c in encoder.transform(np.array(fx["labels"], dtype=np.int64))],
         })
 
     return {"metadata": _sklearn_metadata("label_encoder", len(cases)), CASES: cases}
@@ -12815,7 +12840,7 @@ def generate_preprocessing_polynomial() -> dict:
                             name, degree=degree, interaction_only=interaction, include_bias=bias),
                         "call": "PolynomialFeatures",
                         "args": {DEGREE: degree, "interactionOnly": interaction, "includeBias": bias},
-                        SAMPLES: _flat(matrix), FEATURES_PER_ROW: len(matrix[0]),
+                        SAMPLES: _flat(matrix), FEATURE_COUNT: len(matrix[0]),
                         "names": [str(n) for n in poly.get_feature_names_out()],
                         TRANSFORMED: _flat(transformed),
                     })
@@ -12829,7 +12854,8 @@ def generate_preprocessing_kbins() -> dict:
     The kmeans fixtures are chosen so no relocation turns on a tie: with two
     samples exactly as far from their centres, the reference follows
     numpy.argpartition and this package takes the lowest row, a divergence
-    Lodestar.Cluster's own equivalence row already records.
+    Lodestar.Cluster's own equivalence row already records. KMEANS_BIN_COUNTS
+    bounds that strategy for the same reason, measured rather than assumed.
     """
     from sklearn.preprocessing import KBinsDiscretizer
 
@@ -12839,44 +12865,95 @@ def generate_preprocessing_kbins() -> dict:
         "with ties": [[2.0], [2.1], [2.2], [5.0], [5.1], [8.0], [8.1], [8.2], [8.3]],
     }
 
-    cases = []
-    for name, rows in columns.items():
-        matrix = np.array(rows, dtype=np.float64)
-        for strategy in ("uniform", "quantile", "kmeans"):
-            for encode in (ORDINAL, "onehot-dense"):
-                # NOSONAR S6709: random_state seeds the subsample and the kmeans draw, and
-                # this fit takes neither -- 12 rows is far below the reference's own threshold.
-                fitted = KBinsDiscretizer(  # NOSONAR S6709
-                    n_bins=3, strategy=strategy, encode=encode,
-                    quantile_method="averaged_inverted_cdf").fit(matrix)
-                transformed = fitted.transform(matrix)
-                cases.append({
-                    "name": _correlation_name(name, strategy=strategy, encode=encode),
-                    "call": "KBinsDiscretizer",
-                    "args": {"binCount": 3, STRATEGY: strategy, ENCODING: encode,
-                             "quantileMethod": "averaged_inverted_cdf"},
-                    SAMPLES: _flat(rows), FEATURES_PER_ROW: 1,
-                    "binEdges": [float(v) for v in fitted.bin_edges_[0]],
-                    TRANSFORMED: _flat(transformed),
-                    INVERSE: _flat(fitted.inverse_transform(transformed)),
-                })
-
-    linear = KBinsDiscretizer(  # NOSONAR S6709: as above, six rows subsample nothing
-        n_bins=3, strategy="quantile", encode=ORDINAL, quantile_method=LINEAR)
-    rows = [[1.0], [2.0], [3.0], [4.0], [5.0], [6.0]]
-    fitted = linear.fit(np.array(rows, dtype=np.float64))
-    cases.append({
-        "name": "one to six | quantileMethod=linear",
-        "call": "KBinsDiscretizer",
-        "args": {"binCount": 3, STRATEGY: "quantile", ENCODING: ORDINAL,
-                 "quantileMethod": LINEAR},
-        SAMPLES: _flat(rows), FEATURES_PER_ROW: 1,
-        "binEdges": [float(v) for v in fitted.bin_edges_[0]],
-        TRANSFORMED: _flat(fitted.transform(np.array(rows, dtype=np.float64))),
-        INVERSE: _flat(fitted.inverse_transform(fitted.transform(np.array(rows, dtype=np.float64)))),
-    })
+    cases = _kbins_strategy_cases(KBinsDiscretizer, columns)
+    cases.extend(_kbins_collapse_cases(KBinsDiscretizer))
+    cases.append(_kbins_case(
+        KBinsDiscretizer, "one to six", [[1.0], [2.0], [3.0], [4.0], [5.0], [6.0]],
+        3, "quantile", ORDINAL, LINEAR))
 
     return {"metadata": _sklearn_metadata("kbins_discretizer", len(cases)), CASES: cases}
+
+
+def _kbins_strategy_cases(discretizer, columns: dict) -> list[dict]:
+    """Every strategy and encoding, over the bin counts each strategy can be frozen at."""
+    cases = []
+    for name, rows in columns.items():
+        for bins in (2, 3, 5):
+            for strategy in ("uniform", "quantile", "kmeans"):
+                if strategy == "kmeans" and bins not in KMEANS_BIN_COUNTS:
+                    continue
+                cases.extend(
+                    _kbins_case(discretizer, name, rows, bins, strategy, encode,
+                                "averaged_inverted_cdf")
+                    for encode in (ORDINAL, "onehot-dense"))
+
+    return cases
+
+
+def _kbins_collapse_cases(discretizer) -> list[dict]:
+    """The columns whose edges collapse, at the bin counts that make them collapse."""
+    return [
+        _kbins_case(discretizer, name, rows, bins, "quantile", encode,
+                    "averaged_inverted_cdf")
+        for name, rows in _kbins_collapsing_columns().items()
+        for bins in (4, 5, 6)
+        for encode in (ORDINAL, "onehot-dense")
+    ]
+
+
+# long-comment: the bound below is what a measurement forced, not a preference, and the next
+# contributor will widen it again unless the measurement is written down.
+# Which bin counts the kmeans strategy may be frozen at. Lloyd's algorithm over nine points cut
+# into five has more than one local optimum reachable from the uniform midpoints, and which one
+# it lands in depends on the order the distances are reduced in: measured, the net10.0 and the
+# netstandard2.0 builds of Lodestar.Cluster gave edges 6.575 and 6.550 for "with ties" at five
+# bins, the one deliberate behavioural split between the two targets (VectorMath.Dot). A fit
+# whose answer depends on the reduction order is not one a corpus can freeze (#1128).
+KMEANS_BIN_COUNTS = (2, 3)
+
+
+def _kbins_collapsing_columns() -> dict:
+    """Columns whose quantile edges hold two or more consecutive gaps of at most 1e-8.
+
+    The rule the reference applies there -- drop an edge whose gap to the one *before it in the
+    original array* is too small -- is not the rule a running distance to the last edge kept
+    gives, and only a run of narrow gaps separates the two (#1128). Every fixture here leaves at
+    least one bin: at none the reference reports n_bins_ = 0, a state its own inverse_transform
+    raises IndexError on, so there is nothing to freeze from it.
+    """
+    return {
+        "run of three narrow gaps": [
+            [0.0], [6e-9], [1.2e-8], [1.8e-8], [2.4e-8], [3.0e-8], [1.0]],
+        "run of two narrow gaps": [[0.0], [9e-9], [1.8e-8], [2.7e-8], [1.0]],
+        "narrow gaps in two places": [[0.0], [5e-9], [1.0], [1.0 + 5e-9], [2.0]],
+    }
+
+
+def _kbins_case(discretizer, name: str, rows: list, bins: int, strategy: str,
+                encode: str, method: str) -> dict:
+    """One frozen KBinsDiscretizer fit, with the bin count it settled on."""
+    matrix = np.array(rows, dtype=np.float64)
+    with warnings.catch_warnings():
+        # The reference warns when it removes an edge, which is the case under test rather
+        # than a surprise; the removal itself is asserted through binCounts below.
+        warnings.simplefilter("ignore")
+        # NOSONAR S6709: random_state seeds the subsample and the kmeans draw, and none of
+        # these fits takes either -- every fixture is far below the reference's threshold.
+        fitted = discretizer(  # NOSONAR S6709
+            n_bins=bins, strategy=strategy, encode=encode, quantile_method=method).fit(matrix)
+    transformed = fitted.transform(matrix)
+
+    return {
+        "name": _correlation_name(name, bins=bins, strategy=strategy, encode=encode, method=method),
+        "call": "KBinsDiscretizer",
+        "args": {"binCount": bins, STRATEGY: strategy, ENCODING: encode,
+                 "quantileMethod": method},
+        SAMPLES: _flat(rows), FEATURE_COUNT: 1,
+        "binEdges": [float(v) for v in fitted.bin_edges_[0]],
+        "binCounts": [int(v) for v in fitted.n_bins_],
+        TRANSFORMED: _flat(transformed),
+        INVERSE: _flat(fitted.inverse_transform(transformed)),
+    }
 
 
 def generate_preprocessing_quantile() -> dict:
@@ -12906,7 +12983,7 @@ def generate_preprocessing_quantile() -> dict:
                 "name": _correlation_name("ten values with repeats", n_quantiles=count, output=output),
                 "call": "QuantileTransformer",
                 "args": {"quantileCount": count, "output": output},
-                SAMPLES: _flat(rows), FEATURES_PER_ROW: 1,
+                SAMPLES: _flat(rows), FEATURE_COUNT: 1,
                 "probe": _flat(probe),
                 "references": [float(v) for v in fitted.references_],
                 "quantiles": [float(v) for v in fitted.quantiles_[:, 0]],
@@ -12949,7 +13026,7 @@ def generate_preprocessing_power() -> dict:
                     "name": _correlation_name(name, method=method, standardize=standardize),
                     "call": "PowerTransformer",
                     "args": {"method": method, "standardize": standardize},
-                    SAMPLES: _flat(rows), FEATURES_PER_ROW: len(rows[0]),
+                    SAMPLES: _flat(rows), FEATURE_COUNT: len(rows[0]),
                     LAMBDAS: [float(v) for v in fitted.lambdas_],
                     TRANSFORMED: _flat(transformed),
                     INVERSE: _flat(fitted.inverse_transform(transformed)),
@@ -12981,11 +13058,16 @@ def generate_preprocessing_knn_imputer() -> dict:
         for neighbours in (1, 2, 3):
             for weights in ("uniform", "distance"):
                 fitted = KNNImputer(n_neighbors=neighbours, weights=weights).fit(matrix)
+                # get_feature_names_out names the features that survived the fit, which is how
+                # the reference says which ones keep_empty_features=False dropped.
+                kept = [int(n[1:]) for n in fitted.get_feature_names_out()]
                 cases.append({
                     "name": _correlation_name(name, n_neighbors=neighbours, weights=weights),
                     "call": "KNNImputer",
                     "args": {"neighbourCount": neighbours, "weights": weights},
-                    SAMPLES: _stats_nan_list(_flat(rows)), FEATURES_PER_ROW: len(rows[0]),
+                    SAMPLES: _stats_nan_list(_flat(rows)), FEATURE_COUNT: len(rows[0]),
+                    "keptFeatures": kept,
+                    "outputFeatureCount": len(kept),
                     TRANSFORMED: _stats_nan_list(_flat(fitted.transform(matrix))),
                 })
 

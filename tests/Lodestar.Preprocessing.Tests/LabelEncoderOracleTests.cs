@@ -14,19 +14,47 @@ public sealed class LabelEncoderOracleTests
 
         foreach (JsonElement c in document.RootElement.GetProperty("cases").EnumerateArray())
         {
-            string[] labels = [.. c.GetProperty("labels").EnumerateArray().Select(v => v.GetString()!)];
-            string[] classes = [.. c.GetProperty("classes").EnumerateArray().Select(v => v.GetString()!)];
             int[] codes = [.. c.GetProperty("codes").EnumerateArray().Select(v => v.GetInt32())];
 
-            LabelEncoder<string> encoder = Encoders.Label<string>(labels);
+            // The element type decides the class order, so the two dtypes are two claims: a
+            // string sorts by code point and an integer as a number (#1128).
+            if (c.GetProperty("elementType").GetString() == "int")
+            {
+                ReplayIntegers(c, codes);
+            }
+            else
+            {
+                ReplayStrings(c, codes);
+            }
 
-            Assert.Equal(classes, encoder.Classes);
-            Assert.Equal(codes, encoder.Transform(labels));
-            Assert.Equal(labels, encoder.InverseTransform(codes));
             replayed++;
         }
 
-        Assert.True(replayed >= 4, $"only {replayed} cases replayed");
+        Assert.True(replayed >= 7, $"only {replayed} cases replayed");
+    }
+
+    private static void ReplayStrings(JsonElement c, int[] codes)
+    {
+        string[] labels = [.. c.GetProperty("labels").EnumerateArray().Select(v => v.GetString()!)];
+        string[] classes = [.. c.GetProperty("classes").EnumerateArray().Select(v => v.GetString()!)];
+
+        LabelEncoder<string> encoder = Encoders.Label<string>(labels);
+
+        Assert.Equal(classes, encoder.Classes);
+        Assert.Equal(codes, encoder.Transform(labels));
+        Assert.Equal(labels, encoder.InverseTransform(codes));
+    }
+
+    private static void ReplayIntegers(JsonElement c, int[] codes)
+    {
+        int[] labels = [.. c.GetProperty("labels").EnumerateArray().Select(v => v.GetInt32())];
+        int[] classes = [.. c.GetProperty("classes").EnumerateArray().Select(v => v.GetInt32())];
+
+        LabelEncoder<int> encoder = Encoders.Label<int>(labels);
+
+        Assert.Equal(classes, encoder.Classes);
+        Assert.Equal(codes, encoder.Transform(labels));
+        Assert.Equal(labels, encoder.InverseTransform(codes));
     }
 
     /// <summary>There is no <c>handle_unknown</c> on this transformer, on either side.</summary>

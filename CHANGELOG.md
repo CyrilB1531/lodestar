@@ -42,6 +42,7 @@ is one sentence, the issue and the commit; see
 
 #### Fixed
 
+- `KBinsDiscretizer` removes an edge on the successive gaps of the fitted edges, not on the distance to the last edge kept, so a run of gaps within `1e-8` collapses the way the reference collapses it. ([#1128](https://github.com/CyrilB1531/lodestar/issues/1128))
 - `Splitters.StratifiedKFold` numbers classes over the order given and `Splitters.TrainTest` holds out that order's head, so scikit-learn's permutation reproduces `ShuffleSplit`. ([#893](https://github.com/CyrilB1531/lodestar/issues/893))
 - `SimpleImputer.Fit` fills a kept empty feature with `FillValue` under `ImputationStrategy.Constant`, where it filled it with zero. ([#894](https://github.com/CyrilB1531/lodestar/issues/894))
 - `SimpleImputer.Fit` and `Encoders.OneHot` refuse an undefined `ImputationStrategy`, `CategoryDrop` or `UnknownCategory`, where they read it as the mean, no drop or ignoring. ([#912](https://github.com/CyrilB1531/lodestar/issues/912))

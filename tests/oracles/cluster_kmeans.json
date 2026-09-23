@@ -23,7 +23,7 @@
     5.0,
     5.0
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "cluster_count": 3,
    "initial_centres": [
     0.0,
@@ -67,7 +67,7 @@
     5.0,
     5.0
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "cluster_count": 3,
    "initial_centres": [
     0.0,
@@ -111,7 +111,7 @@
     5.0,
     5.0
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "cluster_count": 3,
    "initial_centres": [
     0.3,
@@ -155,7 +155,7 @@
     5.0,
     5.0
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "cluster_count": 3,
    "initial_centres": [
     0.3,
@@ -199,7 +199,7 @@
     5.0,
     5.0
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "cluster_count": 3,
    "initial_centres": [
     0.3,
@@ -236,7 +236,7 @@
     2.0,
     3.0
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "cluster_count": 3,
    "initial_centres": [
     1.0,
@@ -270,7 +270,7 @@
     9.0,
     9.0
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "cluster_count": 2,
    "initial_centres": [
     0.5,
@@ -319,7 +319,7 @@
     0.0,
     0.0
    ],
-   "feature_count": 4,
+   "featureCount": 4,
    "cluster_count": 2,
    "initial_centres": [
     5.0,
@@ -361,7 +361,7 @@
     3.0,
     10.0
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "cluster_count": 3,
    "initial_centres": [
     1.0,
@@ -392,7 +392,7 @@
     1.0,
     1.0
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "cluster_count": 3,
    "initial_centres": [
     1.0,
@@ -423,7 +423,7 @@
     1.0,
     2.5
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "cluster_count": 4,
    "initial_centres": [
     50.0,
@@ -455,7 +455,7 @@
     1.0,
     10.0
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "cluster_count": 3,
    "initial_centres": [
     0.5,

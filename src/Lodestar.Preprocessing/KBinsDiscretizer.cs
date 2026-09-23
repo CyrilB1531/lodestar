@@ -266,17 +266,28 @@ public sealed class KBinsDiscretizer
     }
 
     /// <summary>Drops an edge closer to its predecessor than the reference's own threshold.</summary>
+    /// <summary>Drops every edge whose gap to the one before it in the original array is too small.</summary>
+    // long-comment: the two readings of "too close" part only on a run of narrow gaps, which is
+    // exactly the input nobody writes by hand, so the measurement belongs next to the code.
+    // Successive gaps, not the distance to the last edge kept. Over
+    // [0, 6e-9, 1.2e-8, 1.8e-8, 2.4e-8, 3e-8, 1] cut into five, the reference keeps [0, 2.4e-8, 1]
+    // where a running gap keeps [0, 1.2e-8, 2.4e-8, 1] and codes two of the rows differently
+    // (#1128, measured against scikit-learn 1.9.1).
     private static double[] Widened(double[] edges)
     {
         var kept = new List<double> { edges[0] };
         for (int i = 1; i < edges.Length; i++)
         {
-            if (edges[i] - kept[kept.Count - 1] > MinimumBinWidth)
+            if (edges[i] - edges[i - 1] > MinimumBinWidth)
             {
                 kept.Add(edges[i]);
             }
         }
 
+        // long-comment: a floor that parts from the reference needs its reason where it is read.
+        // The reference lets the mask leave one edge and reports n_bins_ = 0, a state its own
+        // inverse_transform and its own one-hot fit both raise IndexError on. One bin instead --
+        // a deliberate divergence, docs/equivalence.md carries it (#1128).
         return kept.Count < 2 ? [edges[0], edges[edges.Length - 1]] : [.. kept];
     }
 

@@ -39,7 +39,7 @@ public sealed class PartialFitOracleTests
     {
         JsonElement frozen = Cases[index];
         string name = frozen.GetProperty("name").GetString()!;
-        int featureCount = frozen.GetProperty("feature_count").GetInt32();
+        int featureCount = frozen.GetProperty("featureCount").GetInt32();
         double[][] batches =
             [.. frozen.GetProperty("batches").EnumerateArray().Select(b => Doubles(b))];
 

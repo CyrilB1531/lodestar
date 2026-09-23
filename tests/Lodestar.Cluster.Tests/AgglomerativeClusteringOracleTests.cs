@@ -75,7 +75,7 @@ public sealed class AgglomerativeClusteringOracleTests
     private static AgglomerativeClustering Fit(JsonElement frozen)
     {
         double[] samples = Doubles(frozen, "samples");
-        int features = frozen.GetProperty("feature_count").GetInt32();
+        int features = frozen.GetProperty("featureCount").GetInt32();
         Linkage linkage = frozen.GetProperty("linkage").GetString() switch
         {
             "complete" => Linkage.Complete,

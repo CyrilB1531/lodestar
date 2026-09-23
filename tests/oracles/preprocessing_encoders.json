@@ -25,7 +25,7 @@
     "a",
     "y"
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "drop": null,
    "handleUnknown": "error",
    "categories": [
@@ -88,7 +88,7 @@
     "a",
     "y"
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "drop": "first",
    "handleUnknown": "error",
    "categories": [
@@ -137,7 +137,7 @@
     "y",
     "y"
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "drop": "if_binary",
    "handleUnknown": "error",
    "categories": [
@@ -170,7 +170,7 @@
     "c",
     "a"
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "drop": "if_binary",
    "handleUnknown": "error",
    "categories": [
@@ -214,7 +214,7 @@
     "c",
     "a"
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "drop": null,
    "handleUnknown": "ignore",
    "categories": [
@@ -262,7 +262,7 @@
     "b",
     "A"
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "drop": null,
    "handleUnknown": "error",
    "categories": [
@@ -312,7 +312,7 @@
     33,
     2
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "drop": null,
    "handleUnknown": "error",
    "categories": [
@@ -360,7 +360,7 @@
     "a",
     "y"
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "drop": null,
    "handleUnknown": "error",
    "categories": [
@@ -404,7 +404,7 @@
     33,
     2
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "drop": null,
    "handleUnknown": "error",
    "categories": [
@@ -441,7 +441,7 @@
     5.0,
     40.0
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "strategy": "mean",
    "fillValue": null,
    "statistics": [
@@ -469,7 +469,7 @@
     4.0,
     "NaN"
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "strategy": "median",
    "fillValue": null,
    "statistics": [
@@ -492,7 +492,7 @@
     3.0,
     "NaN"
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "strategy": "median",
    "fillValue": null,
    "statistics": [
@@ -515,7 +515,7 @@
     2.0,
     "NaN"
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "strategy": "most_frequent",
    "fillValue": null,
    "statistics": [
@@ -539,7 +539,7 @@
     7.0,
     "NaN"
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "strategy": "most_frequent",
    "fillValue": null,
    "statistics": [
@@ -561,7 +561,7 @@
     "NaN",
     3.0
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "strategy": "constant",
    "fillValue": null,
    "statistics": [
@@ -581,7 +581,7 @@
     "NaN",
     3.0
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "strategy": "constant",
    "fillValue": -1.0,
    "statistics": [
@@ -604,7 +604,7 @@
     3.0,
     "NaN"
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "strategy": "mean",
    "fillValue": null,
    "statistics": [
@@ -632,7 +632,7 @@
     3.0,
     "NaN"
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "strategy": "constant",
    "fillValue": 7.0,
    "statistics": [
