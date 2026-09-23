@@ -2138,13 +2138,17 @@ def generate_fuzz() -> dict:
     }
 
 
+# Bound above PROCESS_CASES, which reads it: that list is evaluated at import, so a constant
+# defined further down the module is not yet a name when it runs (#1123, caught by CI).
+NEW_YORK = "new york"
+
 PROCESS_CHOICES = [
     METS, "new york yankees", "boston red sox", "atlanta braves",
     "new york knicks", "brooklyn nets", "los angeles lakers", "chicago bulls",
 ]
 PROCESS_CASES = [
-    {"query": "new york", "limit": 5, "cutoff": 0.0},
-    {"query": "new york", "limit": 3, "cutoff": 0.0},
+    {"query": NEW_YORK, "limit": 5, "cutoff": 0.0},
+    {"query": NEW_YORK, "limit": 3, "cutoff": 0.0},
     {"query": METS, "limit": 5, "cutoff": 80.0},
     {"query": "brooklyn", "limit": 2, "cutoff": 0.0},
     {"query": "lakers", "limit": 5, "cutoff": 50.0},
@@ -2181,6 +2185,94 @@ def generate_process() -> dict:
             "count": len(cases),
         },
         "cases": cases,
+    }
+
+
+# long-comment: every name below is read by a module-level literal further down, and Python
+# binds those at import, so the order here is load-bearing rather than tidy (#1123, caught by CI).
+# The scorer and the comparison unit the cdist cases repeat, then the seven scorers frozen over
+# and the dtype that makes 1e-9 mean anything: process.cdist returns np.float32 unless told
+# otherwise -- seven decimal digits, where decision 0005 compares at 1e-9. The values are the
+# same computation either way; only the storage differs.
+CDIST_RATIO = "ratio"
+CDIST_UTF16 = "utf16Unit"
+CDIST_DTYPE = "float64"
+
+CDIST_SCORERS = (
+    CDIST_RATIO, "partial_ratio", "token_sort_ratio", "token_set_ratio",
+    "partial_token_sort_ratio", "partial_token_set_ratio", "WRatio",
+)
+
+CDIST_CHOICES = [METS, "boston red sox", "atlanta braves", "brooklyn nets"]
+CDIST_QUERIES = [NEW_YORK, "boston", "atlanta falcons"]
+
+# Text past the BMP, where this package's default UTF-16 unit and rapidfuzz's code point part
+# ways (decision 0001): the C# side replays these through the TextElement.CodePoint overloads.
+CDIST_ASTRAL_QUERIES = ["\U0001F600\U0001F601 face", "\U00020BB7 ideograph"]
+CDIST_ASTRAL_CHOICES = ["\U0001F600 face", "\U00020BB7\U00020BB7 ideograph", "plain text"]
+
+
+def _cdist_case(process, np, name: str, queries: list, choices: list,
+                scorer_name: str, cutoff: float, element: str) -> dict:
+    """One frozen cdist call, at float64 so 1e-9 means something."""
+    from rapidfuzz import fuzz  # noqa: PLC0415
+
+    matrix = process.cdist(
+        queries, choices, scorer=getattr(fuzz, scorer_name),
+        score_cutoff=None if cutoff <= 0.0 else cutoff,
+        dtype=getattr(np, CDIST_DTYPE))
+
+    return {
+        "name": _correlation_name(name, scorer=scorer_name, cutoff=cutoff, element=element),
+        "call": "rapidfuzz.process.cdist",
+        "args": {"scorer": scorer_name, "scoreCutoff": cutoff, "element": element,
+                 "dtype": CDIST_DTYPE},
+        "queries": list(queries), "choices": list(choices),
+        "rows": len(queries), COLUMNS: len(choices),
+        "scores": [float(v) for v in matrix.ravel()],
+    }
+
+
+def generate_process_cdist() -> dict:
+    """process.cdist, against rapidfuzz.process.cdist (#1123).
+
+    Its default scorer is fuzz.ratio, where process.extract's is WRatio -- the two
+    differ, and Process.Cdist follows cdist rather than its own neighbour. The
+    cutoff zeroes a cell rather than dropping it, which a matrix cannot do.
+    """
+    import numpy as np  # noqa: PLC0415
+    from rapidfuzz import process  # noqa: PLC0415
+
+    cases = [
+        _cdist_case(process, np, "three by four", CDIST_QUERIES, CDIST_CHOICES, scorer, 0.0, CDIST_UTF16)
+        for scorer in CDIST_SCORERS
+    ]
+
+    # A cutoff the reference zeroes rather than filters, on a scorer that straddles it.
+    cases.extend(
+        _cdist_case(process, np, "three by four", CDIST_QUERIES, CDIST_CHOICES, CDIST_RATIO, cutoff, CDIST_UTF16)
+        for cutoff in (30.0, 60.0, 95.0))
+
+    # The two empty shapes, which the reference answers rather than refuses.
+    cases.append(_cdist_case(process, np, "no choices", CDIST_QUERIES, [], CDIST_RATIO, 0.0, CDIST_UTF16))
+    cases.append(_cdist_case(process, np, "no queries", [], CDIST_CHOICES, CDIST_RATIO, 0.0, CDIST_UTF16))
+
+    # Past the BMP, through the code-point overloads on the C# side.
+    cases.extend(
+        _cdist_case(process, np, "past the BMP", CDIST_ASTRAL_QUERIES, CDIST_ASTRAL_CHOICES,
+                    scorer, 0.0, "codePoint")
+        for scorer in CDIST_SCORERS)
+
+    return {
+        "metadata": {
+            "algorithm": "Process.cdist",
+            "library": "rapidfuzz",
+            "library_version": version("rapidfuzz"),
+            "reference_calls": [
+                f"rapidfuzz.process.cdist (default scorer {CDIST_RATIO}, dtype={CDIST_DTYPE})"],
+            "count": len(cases),
+        },
+        CASES: cases,
     }
 
 
@@ -13755,6 +13847,7 @@ def main() -> None:
         "normalizer.json": generate_normalizer,
         "fuzz.json": generate_fuzz,
         "process.json": generate_process,
+        "process_cdist.json": generate_process_cdist,
         "classification_metrics.json": generate_classification_metrics,
         "label_losses.json": generate_label_losses,
         "multilabel_confusion.json": generate_multilabel_confusion,

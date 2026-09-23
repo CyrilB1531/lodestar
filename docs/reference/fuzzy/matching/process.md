@@ -38,4 +38,5 @@ so `ExtractOne` can return **nothing**.
 | Member | What it does |
 | --- | --- |
 | [`Process.Extract`](process-extract.md) | The best candidates, ranked. |
+| [`Process.Cdist`](process-cdist.md) | Every query against every choice. |
 | [`Process.ExtractOne`](process-extractone.md) | The single best, or nothing. |

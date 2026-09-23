@@ -6,6 +6,7 @@
     "bench/Lodestar.Text.Benchmarks/Program.cs",
     "bench/Lodestar.Text.Benchmarks/CrossLang/Harness.cs",
     "bench/python/harness.py",
+    "bench/python/wallcpu.py",
     "bench/compare.py",
     "bench/corpus/**"
   ],
@@ -101,6 +102,10 @@
       "src/Lodestar.Fuzzy/**",
       "src/Lodestar.Text/Distances/**",
       "src/Lodestar.Text/Text/**"
+    ],
+    "CdistIncumbentBenchmarks": [
+      "src/Lodestar.Fuzzy/Process.cs",
+      "src/Lodestar.Fuzzy/ScoreMatrix.cs"
     ],
     "FuzzCodePointBenchmarks": [
       "src/Lodestar.Fuzzy/**",
@@ -520,6 +525,17 @@
         "src/Lodestar.Preprocessing/KnnImputer.cs",
         "src/Lodestar.Preprocessing/LabelEncoder.cs",
         "bench/Lodestar.Text.Benchmarks/CrossLang/TransformersCrossLang.cs"
+      ]
+    },
+    "cdist": {
+      "subcommand": "compare-cdist",
+      "python": "bench/python/bench_cdist.py",
+      "compare": "cdist",
+      "generate": [],
+      "sources": [
+        "src/Lodestar.Fuzzy/Process.cs",
+        "src/Lodestar.Fuzzy/ScoreMatrix.cs",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/CdistCrossLang.cs"
       ]
     },
     "glm": {

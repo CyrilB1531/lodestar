@@ -41,6 +41,28 @@ internal static class Lot4Fuzzy
             Console.WriteLine($"    Extract #{hit.Index} {hit.Choice} ({Inv.F1(hit.Score)})");
         }
 
+        // Cdist: two lists rather than one query, every pair scored into a matrix. Its default
+        // scorer is Ratio where Extract's is WRatio, which is how the reference defaults them.
+        string[] queries = ["appel pie", "banana bred"];
+        ScoreMatrix scores = Process.Cdist(queries, Candidates);
+        Console.WriteLine($"  Cdist                 = {scores.Rows} x {scores.Columns}, [0,0] = {Inv.F1(scores[0, 0])}");
+        for (int row = 0; row < scores.Rows; row++)
+        {
+            ReadOnlySpan<double> window = scores.Row(row);
+            Console.WriteLine($"    row {row} \"{queries[row]}\" best = {Inv.F1(Best(window))}");
+        }
+
+        // A cutoff zeroes a cell rather than dropping it: a matrix has a cell for every pair.
+        double[] flat = Process.Cdist(queries, Candidates, scoreCutoff: 80.0).ToArray();
+        Console.WriteLine($"  Cdist, cutoff 80      = {Inv.List(flat)}");
+
+        // The matrix is a result to read, so equality asks whether two handles are the same one:
+        // a copy of the handle is, a second call with the same inputs is not.
+        ScoreMatrix sameHandle = scores;
+        ScoreMatrix scoredAgain = Process.Cdist(queries, Candidates);
+        Console.WriteLine($"  same handle           = {sameHandle == scores}, scored again = {scoredAgain == scores}");
+        Console.WriteLine($"  equal as object       = {sameHandle.Equals((object)scores)}, hash = {sameHandle.GetHashCode() == scores.GetHashCode()}");
+
         // Deduplicator: blocked pairwise clustering, so the scorer never sees the
         // full cross product.
         string[] records = ["apple pie", "appel pie", "banana bread", "banana bred"];
@@ -52,5 +74,16 @@ internal static class Lot4Fuzzy
         Console.WriteLine($"  FindClusters          = {clusters.Count} clusters: "
             + string.Join(" | ", clusters.Select(c => "{" + string.Join(",", c) + "}")));
         Console.WriteLine();
+    }
+    /// <summary>The best score in one row of the matrix.</summary>
+    private static double Best(ReadOnlySpan<double> row)
+    {
+        double best = 0.0;
+        for (int i = 0; i < row.Length; i++)
+        {
+            best = Math.Max(best, row[i]);
+        }
+
+        return best;
     }
 }

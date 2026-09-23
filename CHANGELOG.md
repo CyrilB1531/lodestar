@@ -112,6 +112,7 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- `Process.Cdist` scores every query against every choice into a `ScoreMatrix`, at `rapidfuzz.process.cdist` parity — its default scorer is `Fuzz.Ratio`, as the reference's is, and not `Process.Extract`'s `WRatio`. ([#1123](https://github.com/CyrilB1531/lodestar/issues/1123))
 - Every `Fuzz` scorer takes a `TextElement`, whose `CodePoint` compares code points, splits on rapidfuzz's whitespace and sorts tokens by code point, so rapidfuzz's scores hold past the BMP. ([#892](https://github.com/CyrilB1531/lodestar/issues/892))
 
 #### Fixed

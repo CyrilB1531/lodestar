@@ -1,0 +1,625 @@
+{
+ "metadata": {
+  "algorithm": "Process.cdist",
+  "library": "rapidfuzz",
+  "library_version": "3.14.6",
+  "reference_calls": [
+   "rapidfuzz.process.cdist (default scorer ratio, dtype=float64)"
+  ],
+  "count": 19
+ },
+ "cases": [
+  {
+   "name": "three by four | scorer=ratio | cutoff=0.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "ratio",
+    "scoreCutoff": 0.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [
+    "new york mets",
+    "boston red sox",
+    "atlanta braves",
+    "brooklyn nets"
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    76.19047619047619,
+    36.36363636363637,
+    27.27272727272727,
+    19.047619047619047,
+    21.052631578947366,
+    60.0,
+    19.999999999999996,
+    42.10526315789473,
+    28.57142857142857,
+    27.586206896551722,
+    68.96551724137932,
+    35.71428571428571
+   ]
+  },
+  {
+   "name": "three by four | scorer=partial_ratio | cutoff=0.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "partial_ratio",
+    "scoreCutoff": 0.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [
+    "new york mets",
+    "boston red sox",
+    "atlanta braves",
+    "brooklyn nets"
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    100.0,
+    50.0,
+    37.5,
+    33.333333333333336,
+    28.57142857142857,
+    100.0,
+    36.36363636363637,
+    60.0,
+    33.333333333333336,
+    35.29411764705882,
+    75.0,
+    38.46153846153846
+   ]
+  },
+  {
+   "name": "three by four | scorer=token_sort_ratio | cutoff=0.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "token_sort_ratio",
+    "scoreCutoff": 0.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [
+    "new york mets",
+    "boston red sox",
+    "atlanta braves",
+    "brooklyn nets"
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    76.19047619047619,
+    36.36363636363637,
+    27.27272727272727,
+    19.047619047619047,
+    21.052631578947366,
+    60.0,
+    19.999999999999996,
+    42.10526315789473,
+    28.57142857142857,
+    27.586206896551722,
+    68.96551724137932,
+    35.71428571428571
+   ]
+  },
+  {
+   "name": "three by four | scorer=token_set_ratio | cutoff=0.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "token_set_ratio",
+    "scoreCutoff": 0.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [
+    "new york mets",
+    "boston red sox",
+    "atlanta braves",
+    "brooklyn nets"
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    100.0,
+    36.36363636363637,
+    27.272727272727266,
+    19.04761904761905,
+    21.05263157894737,
+    100.0,
+    20.0,
+    42.10526315789474,
+    28.57142857142857,
+    27.58620689655173,
+    68.9655172413793,
+    35.71428571428571
+   ]
+  },
+  {
+   "name": "three by four | scorer=partial_token_sort_ratio | cutoff=0.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "partial_token_sort_ratio",
+    "scoreCutoff": 0.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [
+    "new york mets",
+    "boston red sox",
+    "atlanta braves",
+    "brooklyn nets"
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    100.0,
+    50.0,
+    37.5,
+    33.333333333333336,
+    33.333333333333336,
+    100.0,
+    36.36363636363637,
+    60.0,
+    30.76923076923077,
+    35.29411764705882,
+    75.0,
+    38.46153846153846
+   ]
+  },
+  {
+   "name": "three by four | scorer=partial_token_set_ratio | cutoff=0.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "partial_token_set_ratio",
+    "scoreCutoff": 0.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [
+    "new york mets",
+    "boston red sox",
+    "atlanta braves",
+    "brooklyn nets"
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    100.0,
+    50.0,
+    37.5,
+    33.333333333333336,
+    33.333333333333336,
+    100.0,
+    36.36363636363637,
+    60.0,
+    30.76923076923077,
+    35.29411764705882,
+    100.0,
+    38.46153846153846
+   ]
+  },
+  {
+   "name": "three by four | scorer=WRatio | cutoff=0.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "WRatio",
+    "scoreCutoff": 0.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [
+    "new york mets",
+    "boston red sox",
+    "atlanta braves",
+    "brooklyn nets"
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    90.0,
+    45.0,
+    33.75,
+    30.000000000000004,
+    28.5,
+    90.0,
+    32.727272727272734,
+    54.0,
+    28.57142857142857,
+    27.586206896551722,
+    68.96551724137932,
+    35.71428571428571
+   ]
+  },
+  {
+   "name": "three by four | scorer=ratio | cutoff=30.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "ratio",
+    "scoreCutoff": 30.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [
+    "new york mets",
+    "boston red sox",
+    "atlanta braves",
+    "brooklyn nets"
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    76.19047619047619,
+    36.36363636363637,
+    0.0,
+    0.0,
+    0.0,
+    60.0,
+    0.0,
+    42.10526315789473,
+    0.0,
+    0.0,
+    68.96551724137932,
+    35.71428571428571
+   ]
+  },
+  {
+   "name": "three by four | scorer=ratio | cutoff=60.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "ratio",
+    "scoreCutoff": 60.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [
+    "new york mets",
+    "boston red sox",
+    "atlanta braves",
+    "brooklyn nets"
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    76.19047619047619,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    60.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    68.96551724137932,
+    0.0
+   ]
+  },
+  {
+   "name": "three by four | scorer=ratio | cutoff=95.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "ratio",
+    "scoreCutoff": 95.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [
+    "new york mets",
+    "boston red sox",
+    "atlanta braves",
+    "brooklyn nets"
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "no choices | scorer=ratio | cutoff=0.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "ratio",
+    "scoreCutoff": 0.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [],
+   "rows": 3,
+   "columns": 0,
+   "scores": []
+  },
+  {
+   "name": "no queries | scorer=ratio | cutoff=0.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "ratio",
+    "scoreCutoff": 0.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [],
+   "choices": [
+    "new york mets",
+    "boston red sox",
+    "atlanta braves",
+    "brooklyn nets"
+   ],
+   "rows": 0,
+   "columns": 4,
+   "scores": []
+  },
+  {
+   "name": "past the BMP | scorer=ratio | cutoff=0.0 | element=codePoint",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "ratio",
+    "scoreCutoff": 0.0,
+    "element": "codePoint",
+    "dtype": "float64"
+   },
+   "queries": [
+    "😀😁 face",
+    "𠮷 ideograph"
+   ],
+   "choices": [
+    "😀 face",
+    "𠮷𠮷 ideograph",
+    "plain text"
+   ],
+   "rows": 2,
+   "columns": 3,
+   "scores": [
+    92.3076923076923,
+    21.052631578947366,
+    23.529411764705888,
+    23.529411764705888,
+    95.65217391304348,
+    19.047619047619047
+   ]
+  },
+  {
+   "name": "past the BMP | scorer=partial_ratio | cutoff=0.0 | element=codePoint",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "partial_ratio",
+    "scoreCutoff": 0.0,
+    "element": "codePoint",
+    "dtype": "float64"
+   },
+   "queries": [
+    "😀😁 face",
+    "𠮷 ideograph"
+   ],
+   "choices": [
+    "😀 face",
+    "𠮷𠮷 ideograph",
+    "plain text"
+   ],
+   "rows": 2,
+   "columns": 3,
+   "scores": [
+    90.9090909090909,
+    30.76923076923077,
+    33.333333333333336,
+    36.36363636363637,
+    100.0,
+    26.66666666666667
+   ]
+  },
+  {
+   "name": "past the BMP | scorer=token_sort_ratio | cutoff=0.0 | element=codePoint",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "token_sort_ratio",
+    "scoreCutoff": 0.0,
+    "element": "codePoint",
+    "dtype": "float64"
+   },
+   "queries": [
+    "😀😁 face",
+    "𠮷 ideograph"
+   ],
+   "choices": [
+    "😀 face",
+    "𠮷𠮷 ideograph",
+    "plain text"
+   ],
+   "rows": 2,
+   "columns": 3,
+   "scores": [
+    92.3076923076923,
+    21.052631578947366,
+    23.529411764705888,
+    23.529411764705888,
+    95.65217391304348,
+    19.047619047619047
+   ]
+  },
+  {
+   "name": "past the BMP | scorer=token_set_ratio | cutoff=0.0 | element=codePoint",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "token_set_ratio",
+    "scoreCutoff": 0.0,
+    "element": "codePoint",
+    "dtype": "float64"
+   },
+   "queries": [
+    "😀😁 face",
+    "𠮷 ideograph"
+   ],
+   "choices": [
+    "😀 face",
+    "𠮷𠮷 ideograph",
+    "plain text"
+   ],
+   "rows": 2,
+   "columns": 3,
+   "scores": [
+    92.3076923076923,
+    21.05263157894737,
+    23.529411764705884,
+    23.529411764705884,
+    95.65217391304348,
+    19.04761904761905
+   ]
+  },
+  {
+   "name": "past the BMP | scorer=partial_token_sort_ratio | cutoff=0.0 | element=codePoint",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "partial_token_sort_ratio",
+    "scoreCutoff": 0.0,
+    "element": "codePoint",
+    "dtype": "float64"
+   },
+   "queries": [
+    "😀😁 face",
+    "𠮷 ideograph"
+   ],
+   "choices": [
+    "😀 face",
+    "𠮷𠮷 ideograph",
+    "plain text"
+   ],
+   "rows": 2,
+   "columns": 3,
+   "scores": [
+    100.0,
+    30.76923076923077,
+    30.76923076923077,
+    36.36363636363637,
+    100.0,
+    30.76923076923077
+   ]
+  },
+  {
+   "name": "past the BMP | scorer=partial_token_set_ratio | cutoff=0.0 | element=codePoint",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "partial_token_set_ratio",
+    "scoreCutoff": 0.0,
+    "element": "codePoint",
+    "dtype": "float64"
+   },
+   "queries": [
+    "😀😁 face",
+    "𠮷 ideograph"
+   ],
+   "choices": [
+    "😀 face",
+    "𠮷𠮷 ideograph",
+    "plain text"
+   ],
+   "rows": 2,
+   "columns": 3,
+   "scores": [
+    100.0,
+    30.76923076923077,
+    30.76923076923077,
+    36.36363636363637,
+    100.0,
+    30.76923076923077
+   ]
+  },
+  {
+   "name": "past the BMP | scorer=WRatio | cutoff=0.0 | element=codePoint",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "WRatio",
+    "scoreCutoff": 0.0,
+    "element": "codePoint",
+    "dtype": "float64"
+   },
+   "queries": [
+    "😀😁 face",
+    "𠮷 ideograph"
+   ],
+   "choices": [
+    "😀 face",
+    "𠮷𠮷 ideograph",
+    "plain text"
+   ],
+   "rows": 2,
+   "columns": 3,
+   "scores": [
+    92.3076923076923,
+    27.692307692307693,
+    23.529411764705888,
+    32.727272727272734,
+    95.65217391304348,
+    19.047619047619047
+   ]
+  }
+ ]
+}

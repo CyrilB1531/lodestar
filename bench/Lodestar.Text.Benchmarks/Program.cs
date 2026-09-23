@@ -28,6 +28,9 @@ switch (args.Length > 0 ? args[0] : string.Empty)
     case "compare-transformers":
         TransformersCrossLang.Run();
         return;
+    case "compare-cdist":
+        CdistCrossLang.Run();
+        return;
     case "compare-stats":
         StatsCrossLang.Run(args);
         return;

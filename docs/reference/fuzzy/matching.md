@@ -43,6 +43,15 @@ answer is "none of them".
 Both hand back [`ExtractResult`](matching/extractresult.md), which carries the index as well as
 the score, so the match can be traced back to the row it came from.
 
+## Scoring many strings against many
+
+[`Process.Cdist`](matching/process-cdist.md) is the same question with two lists instead of one
+query: every query against every choice, in a [`ScoreMatrix`](matching/scorematrix.md). It
+**defaults to [`Ratio`](matching/fuzz-ratio.md) where `Extract` defaults to
+[`WRatio`](matching/fuzz-wratio.md)**, because the reference's two calls default that way too;
+pass the scorer explicitly to make them agree. Its cutoff zeroes a cell rather than dropping it,
+which is the only thing a matrix can do.
+
 ## Deduplicating a dataset
 
 [`Deduplicator.FindClusters`](matching/deduplicator-findclusters.md) groups records that are
@@ -58,6 +67,7 @@ considered. Choosing that key is the whole performance question, and it is the c
 | [`ExtractResult`](matching/extractresult.md) | One candidate's choice, score and index. |
 | [`Fuzz`](matching/fuzz.md) | The seven scorers, all in `[0, 100]`. |
 | [`Process`](matching/process.md) | One query against many candidates. |
+| [`ScoreMatrix`](matching/scorematrix.md) | A score for every pair of two collections. |
 
 ## See also
 
