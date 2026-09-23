@@ -143,3 +143,67 @@ public sealed record Chi2ContingencyResult(
 /// </param>
 public sealed record KsResult(
     double Statistic, double PValue, double StatisticLocation, int StatisticSign);
+
+/// <summary>A Pearson correlation and the p-value that goes with it.</summary>
+/// <remarks>
+/// Its own record rather than <see cref="TestResult"/> for the reason
+/// <see cref="TTestResult"/> is: the interval needs the sample size and the tail that were
+/// used, and a second call that re-derived them would be a second chance to disagree.
+/// scipy carries the same two on its own <c>PearsonRResult</c>.
+/// </remarks>
+/// <param name="Statistic">The correlation coefficient, in <c>[-1, 1]</c>.</param>
+/// <param name="PValue">The p-value on the requested tail.</param>
+public sealed record PearsonResult(double Statistic, double PValue)
+{
+    /// <summary>The number of pairs the correlation was computed over.</summary>
+    internal int N { get; init; }
+
+    /// <summary>Which tail was tested, which decides whether an interval is half-open.</summary>
+    internal Alternative Alternative { get; init; }
+
+    /// <summary>The confidence interval for the correlation, through the Fisher z transform.</summary>
+    /// <remarks>
+    /// A method rather than a property because it takes a level, as
+    /// <c>scipy.stats.pearsonr(...).confidence_interval()</c> does. A one-sided interval is
+    /// half-open, its far bound the correlation's own limit of <c>-1</c> or <c>1</c>. Below
+    /// four pairs <c>1 / sqrt(n - 3)</c> is undefined and the whole range is returned, as
+    /// scipy returns it.
+    /// </remarks>
+    /// <param name="level">The confidence level, strictly between 0 and 1.</param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="level"/> is NaN or outside <c>(0, 1)</c>.
+    /// </exception>
+    public (double Low, double High) ConfidenceInterval(double level = 0.95)
+    {
+        if (double.IsNaN(level) || level <= 0.0 || level >= 1.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(level), level, "The confidence level must lie strictly inside (0, 1).");
+        }
+
+        // Below four pairs there is no standard error, and scipy answers the whole range --
+        // a constant input included. Past that a NaN reaches the computed bound alone.
+        if (N <= 3)
+        {
+            return (-1.0, 1.0);
+        }
+
+        double z = Internal.Fisher.Atanh(Statistic);
+        double error = Math.Sqrt(1.0 / (N - 3.0));
+
+        // A one-sided level spends its whole error budget on one side, so the quantile is
+        // taken at the level itself rather than at half of what is left outside it.
+        return Alternative switch
+        {
+            Alternative.TwoSided => Bounds(z, error, Distributions.NormalQuantile(0.5 + (level / 2.0))),
+            Alternative.Less => (-1.0, Math.Tanh(z + (Distributions.NormalQuantile(level) * error))),
+            Alternative.Greater => (Math.Tanh(z - (Distributions.NormalQuantile(level) * error)), 1.0),
+            // CA2208: Alternative is a field, not a parameter here -- a bad value stored on
+            // the result is a broken invariant, not a bad call.
+            _ => throw new InvalidOperationException($"Unrecognised alternative: {Alternative}."),
+        };
+    }
+
+    private static (double Low, double High) Bounds(double z, double error, double quantile) =>
+        (Math.Tanh(z - (quantile * error)), Math.Tanh(z + (quantile * error)));
+}

@@ -11748,6 +11748,21 @@ SHAPIRO = "shapiro"
 CHISQUARE = "chisquare"
 EXPECTED_INPUT = "expected_input"
 
+# Correlation (#1120): one spelling each for the three call names and the keys the
+# cases repeat, past check_repeated_literals.py's threshold.
+PEARSONR = "pearsonr"
+SPEARMANR = "spearmanr"
+KENDALLTAU = "kendalltau"
+VARIANT = "variant"
+INTERVALS = "intervals"
+LEVEL = "level"
+LOW = "low"
+HIGH = "high"
+ASYMPTOTIC = "asymptotic"
+EXACT = "exact"
+AUTO = "auto"
+LESS = "less"
+
 
 def _stats_metadata(family: str, count: int) -> dict:
     """The identity block every stats corpus carries.
@@ -12033,7 +12048,7 @@ def generate_stats_mannwhitney() -> dict:
     cases: list[dict] = []
     for fx in _stats_samples():
         for use_continuity in (True, False):
-            for method in ("auto", "asymptotic"):
+            for method in (AUTO, ASYMPTOTIC):
                 for alternative in (TWO_SIDED, "less", GREATER):
                     r = sps.mannwhitneyu(fx["a"], fx["b"], use_continuity=use_continuity,
                                          alternative=alternative, method=method)
@@ -12075,7 +12090,7 @@ def generate_stats_wilcoxon() -> dict:
     for fx in _stats_paired():
         for zero_method in ("wilcox", "pratt", "zsplit"):
             for correction in (False, True):
-                for method in ("auto", "asymptotic"):
+                for method in (AUTO, ASYMPTOTIC):
                     for alternative in (TWO_SIDED, "less", GREATER):
                         r = sps.wilcoxon(fx["x"], fx["y"], zero_method=zero_method,
                                          correction=correction, alternative=alternative,
@@ -12396,6 +12411,288 @@ def generate_stats_shapiro() -> dict:
     return {"metadata": _stats_metadata(SHAPIRO, len(cases)), CASES: cases}
 
 
+def _correlation_pairs() -> list[dict]:
+    """Paired samples covering every branch the three correlation tests have.
+
+    Between them: the exact Kendall branch and the asymptotic one, both sides of
+    Kendall's `n <= 33` threshold, a near-perfect ordering that sends a large
+    untied sample down the exact branch through `min(dis, tot - dis) <= 1`, ties
+    in one sample and in both, the two-pair and three-pair corners where
+    Pearson's interval and Spearman's p-value degenerate, a constant input whose
+    correlation is undefined, and a pair separated far enough that the p-value
+    lands below 1e-15 -- which is where an absolute tolerance stops proving
+    anything.
+    """
+    rng = SeededRandom(SEED + 1120)
+    noisy_x = [round(rng.gauss(0.0, 1.0), 6) for _ in range(40)]
+    noisy_y = [round((2.0 * v) + rng.gauss(0.0, 0.8), 6) for v in noisy_x]
+    tight_x = [round(rng.gauss(0.0, 1.0), 6) for _ in range(60)]
+    tight_y = [round((3.0 * v) + rng.gauss(0.0, 0.05), 6) for v in tight_x]
+
+    # One adjacent swap in an otherwise identical ordering leaves a single
+    # discordant pair, which is Kendall's other route into the exact branch.
+    almost_x = [float(i) for i in range(60)]
+    almost_y = [float(i) for i in range(60)]
+    almost_y[17], almost_y[18] = almost_y[18], almost_y[17]
+
+    return [
+        {"name": "five pairs, untied, exact branch reachable",
+         "x": [1.0, 2.0, 3.0, 4.0, 5.0], "y": [2.0, 1.0, 4.0, 3.0, 5.0]},
+        {"name": "eight pairs, ties in both samples",
+         "x": [1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0],
+         "y": [1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0, 5.0]},
+        {"name": "six pairs, ties in the first sample only",
+         "x": [1.0, 1.0, 1.0, 2.0, 3.0, 4.0], "y": [5.0, 2.0, 9.0, 1.0, 7.0, 3.0]},
+        {"name": "thirty-three pairs, untied, at Kendall's auto threshold",
+         "x": [float(i) for i in range(33)],
+         "y": [round(rng.gauss(0.0, 1.0), 6) for _ in range(33)]},
+        {"name": "thirty-four pairs, untied, one past Kendall's auto threshold",
+         "x": [float(i) for i in range(34)],
+         "y": [round(rng.gauss(0.0, 1.0), 6) for _ in range(34)]},
+        {"name": "sixty pairs, one adjacent swap, exact through the degenerate tail",
+         "x": almost_x, "y": almost_y},
+        {"name": "forty pairs, linear with noise, asymptotic branch",
+         "x": noisy_x, "y": noisy_y},
+        {"name": "sixty pairs, nearly collinear, p-value below 1e-15",
+         "x": tight_x, "y": tight_y},
+        {"name": "perfect positive", "x": [1.0, 2.0, 3.0, 4.0], "y": [2.0, 4.0, 6.0, 8.0]},
+        {"name": "perfect negative", "x": [1.0, 2.0, 3.0, 4.0], "y": [8.0, 6.0, 4.0, 2.0]},
+        {"name": "three pairs, where the interval has no standard error",
+         "x": [1.0, 2.0, 3.0], "y": [1.0, 3.0, 2.0]},
+        {"name": "two pairs, the smallest sample either side answers",
+         "x": [1.0, 2.0], "y": [3.0, 4.0]},
+        {"name": "a constant first sample, correlation undefined",
+         "x": [2.0, 2.0, 2.0, 2.0, 2.0], "y": [1.0, 4.0, 2.0, 8.0, 3.0]},
+        {"name": "every value tied in both samples",
+         "x": [3.0, 3.0, 3.0, 3.0], "y": [7.0, 7.0, 7.0, 7.0]},
+    ]
+
+
+def _correlation_name(base: str, **parts: object) -> str:
+    """A case name: the fixture, then each argument that distinguishes the case.
+
+    One builder rather than an f-string per call site: the cross product below
+    spells three of these per case, and the separator repeated that many times is
+    what S1192 reports (tools/check_repeated_literals.py catches it first).
+    """
+    return " | ".join([base] + [f"{key}={value}" for key, value in parts.items()])
+
+
+def _correlation_alternatives() -> tuple[str, ...]:
+    """The three tails, spelled as scipy takes them."""
+    return (TWO_SIDED, LESS, GREATER)
+
+
+def generate_stats_pearson() -> dict:
+    """Pearson's r, against scipy.stats.pearsonr (#1120).
+
+    The nan_policy cases are stated rather than replayed: `pearsonr` takes no
+    `nan_policy` at all (scipy/scipy#22155 names it as the one correlation
+    function left out, because its result object stores x and y), so `omit` is
+    frozen as `pearsonr` applied to the pairwise-filtered input -- which is what
+    `omit` means, and what `spearmanr` and `kendalltau` were measured to do on
+    the same fixture. `raise` has no value to freeze and carries `raises` only.
+
+    The kendall generator below states its `omit` cases for a second reason,
+    which its own docstring gives.
+    """
+    from scipy import stats as sps
+
+    cases = []
+    for fx in _correlation_pairs():
+        x = np.array(fx["x"])
+        y = np.array(fx["y"])
+        for alternative in _correlation_alternatives():
+            try:
+                r = sps.pearsonr(x, y, alternative=alternative)
+            except ValueError:
+                # Below two pairs pearsonr refuses where the rank tests answer;
+                # no fixture reaches it, and a future one would be stated here.
+                continue
+            intervals = []
+            for level in (0.90, 0.95, 0.99):
+                low, high = r.confidence_interval(confidence_level=level)
+                intervals.append({
+                    LEVEL: level, LOW: _stats_number(float(low)), HIGH: _stats_number(float(high)),
+                })
+            cases.append({
+                "name": _correlation_name(fx["name"], alternative=alternative),
+                "call": PEARSONR, "args": {ALTERNATIVE: alternative},
+                "x": fx["x"], "y": fx["y"],
+                STATISTIC: _stats_number(float(r.statistic)),
+                PVALUE: _stats_number(float(r.pvalue)),
+                INTERVALS: intervals,
+            })
+
+    for fx in _stats_nan_paired():
+        x, y = fx["x"], fx["y"]
+        kept = [(a, b) for a, b in zip(x, y) if not (math.isnan(a) or math.isnan(b))]
+        r = sps.pearsonr(np.array([a for a, _ in kept]), np.array([b for _, b in kept]))
+        cases.append({
+            "name": _correlation_name(fx["name"], nan_policy="omit"),
+            "call": PEARSONR, "args": {NAN_POLICY: "omit"},
+            "x": _stats_nan_list(x), "y": _stats_nan_list(y),
+            STATISTIC: _stats_number(float(r.statistic)), PVALUE: _stats_number(float(r.pvalue)),
+        })
+        cases.append({
+            "name": _correlation_name(fx["name"], nan_policy=PROPAGATE),
+            "call": PEARSONR, "args": {NAN_POLICY: PROPAGATE},
+            "x": _stats_nan_list(x), "y": _stats_nan_list(y),
+            STATISTIC: "NaN", PVALUE: "NaN",
+        })
+        cases.append({
+            "name": _correlation_name(fx["name"], nan_policy=RAISE_POLICY),
+            "call": PEARSONR, RAISES: True, "args": {NAN_POLICY: RAISE_POLICY},
+            "x": _stats_nan_list(x), "y": _stats_nan_list(y),
+        })
+
+    return {"metadata": _stats_metadata(PEARSONR, len(cases)), CASES: cases}
+
+
+def generate_stats_spearman() -> dict:
+    """Spearman's rho, against scipy.stats.spearmanr (#1120).
+
+    The `omit` cases are stated from the filtered call rather than replayed from
+    `nan_policy='omit'`, which routes through mstats_basic's masked arrays and
+    does not clip: on the second fixture here it answers rho=1.0000000000000002,
+    outside [-1, 1], and then pvalue=1.0 -- because the Student argument divides
+    by a negative 1 - rho that is clipped to zero -- where the same four pairs
+    passed in directly give (1.0, 0.0). scipy contradicting itself is not a
+    target to freeze; decision 0007 covers it, and CorrelationEdgeTests pins the
+    answer.
+    """
+    from scipy import stats as sps
+
+    cases = []
+    for fx in _correlation_pairs():
+        for alternative in _correlation_alternatives():
+            r = sps.spearmanr(np.array(fx["x"]), np.array(fx["y"]), alternative=alternative)
+            cases.append({
+                "name": _correlation_name(fx["name"], alternative=alternative),
+                "call": SPEARMANR, "args": {ALTERNATIVE: alternative},
+                "x": fx["x"], "y": fx["y"],
+                STATISTIC: _stats_number(float(r.statistic)),
+                PVALUE: _stats_number(float(r.pvalue)),
+            })
+
+    for fx in _stats_nan_paired():
+        x, y = fx["x"], fx["y"]
+        propagated = sps.spearmanr(x, y, nan_policy=PROPAGATE)
+        cases.append({
+            "name": _correlation_name(fx["name"], nan_policy=PROPAGATE),
+            "call": SPEARMANR, "args": {NAN_POLICY: PROPAGATE},
+            "x": _stats_nan_list(x), "y": _stats_nan_list(y),
+            STATISTIC: _stats_number(float(propagated.statistic)),
+            PVALUE: _stats_number(float(propagated.pvalue)),
+        })
+
+        # See this function's docstring: `omit` is stated from the filtered call.
+        kept = [(a, b) for a, b in zip(x, y) if not (math.isnan(a) or math.isnan(b))]
+        filtered = sps.spearmanr(
+            np.array([a for a, _ in kept]), np.array([b for _, b in kept]))
+        cases.append({
+            "name": _correlation_name(fx["name"], nan_policy="omit"),
+            "call": SPEARMANR, "args": {NAN_POLICY: "omit"},
+            "x": _stats_nan_list(x), "y": _stats_nan_list(y),
+            STATISTIC: _stats_number(float(filtered.statistic)),
+            PVALUE: _stats_number(float(filtered.pvalue)),
+        })
+        cases.append({
+            "name": _correlation_name(fx["name"], nan_policy=RAISE_POLICY),
+            "call": SPEARMANR, RAISES: True, "args": {NAN_POLICY: RAISE_POLICY},
+            "x": _stats_nan_list(x), "y": _stats_nan_list(y),
+        })
+
+    return {"metadata": _stats_metadata(SPEARMANR, len(cases)), CASES: cases}
+
+
+def _kendall_case(fx: dict, x, y, variant: str, method: str, alternative: str) -> dict | None:
+    """One cell of the cross product, or None where scipy produces no value.
+
+    Out of generate_stats_kendall so that function keeps two flat loops: four
+    nested ones around a try/except reached a cognitive complexity of 23 against
+    the 15 SonarCloud allows (python:S3776, #1125).
+    """
+    from scipy import stats as sps
+
+    name = _correlation_name(
+        fx["name"], variant=variant, method=method, alternative=alternative)
+    args = {VARIANT: variant, METHOD: method, ALTERNATIVE: alternative}
+    try:
+        r = sps.kendalltau(x, y, variant=variant, method=method, alternative=alternative)
+    except ValueError:
+        # method='exact' on a tied sample; the refusal is the case.
+        return {
+            "name": name, "call": KENDALLTAU, RAISES: True, "args": args,
+            "x": fx["x"], "y": fx["y"],
+        }
+    except ZeroDivisionError:
+        # scipy's unguarded division at two pairs; see generate_stats_kendall.
+        return None
+
+    return {
+        "name": name, "call": KENDALLTAU, "args": args,
+        "x": fx["x"], "y": fx["y"],
+        STATISTIC: _stats_number(float(r.statistic)),
+        PVALUE: _stats_number(float(r.pvalue)),
+    }
+
+
+def _kendall_cross_product(fx: dict) -> list[dict]:
+    """Every variant, method and alternative over one fixture, in the corpus's own order."""
+    x = np.array(fx["x"])
+    y = np.array(fx["y"])
+    cases = []
+    for variant in ("b", "c"):
+        for method in (AUTO, ASYMPTOTIC, EXACT):
+            for alternative in _correlation_alternatives():
+                case = _kendall_case(fx, x, y, variant, method, alternative)
+                if case is not None:
+                    cases.append(case)
+    return cases
+
+
+def generate_stats_kendall() -> dict:
+    """Kendall's tau-b and tau-c, against scipy.stats.kendalltau (#1120).
+
+    The cross product of variant, method and alternative, because the three are
+    not independent: `exact` refuses a tied sample outright, `auto` chooses
+    between the other two by size and ties, and the variant changes the
+    statistic while leaving the p-value alone -- which is the claim the tied
+    fixtures here are what pins.
+
+    One combination has no value to freeze. Measured on scipy 1.18.1, the
+    asymptotic method at two pairs divides x0*y0 by 9*n*(n-1)*(n-2), zero on both
+    sides, and the unguarded division escapes as ZeroDivisionError rather than as
+    a refusal scipy states. The reference produces nothing, so the corpus cannot
+    hold the case and CorrelationEdgeTests pins it instead, naming decision 0007.
+    """
+    from scipy import stats as sps
+
+    cases = []
+    for fx in _correlation_pairs():
+        cases.extend(_kendall_cross_product(fx))
+
+    for fx in _stats_nan_paired():
+        x, y = fx["x"], fx["y"]
+        for policy in (PROPAGATE, "omit"):
+            r = sps.kendalltau(x, y, nan_policy=policy)
+            cases.append({
+                "name": _correlation_name(fx["name"], nan_policy=policy),
+                "call": KENDALLTAU, "args": {NAN_POLICY: policy},
+                "x": _stats_nan_list(x), "y": _stats_nan_list(y),
+                STATISTIC: _stats_number(float(r.statistic)),
+                PVALUE: _stats_number(float(r.pvalue)),
+            })
+        cases.append({
+            "name": _correlation_name(fx["name"], nan_policy=RAISE_POLICY),
+            "call": KENDALLTAU, RAISES: True, "args": {NAN_POLICY: RAISE_POLICY},
+            "x": _stats_nan_list(x), "y": _stats_nan_list(y),
+        })
+
+    return {"metadata": _stats_metadata(KENDALLTAU, len(cases)), CASES: cases}
+
+
 def generate_stats_multiple_comparisons() -> dict:
     """Benjamini-Hochberg and Benjamini-Yekutieli from scipy; Bonferroni from its definition.
 
@@ -12484,7 +12781,7 @@ def generate_stats_timeseries() -> dict:
                                 f"adjusted={adjusted} | bartlett={bartlett}",
                         "call": "acf",
                         SERIES: fx[SERIES], LAG_COUNT: lags,
-                        "level": level, "adjusted": adjusted, BARTLETT: bartlett,
+                        LEVEL: level, "adjusted": adjusted, BARTLETT: bartlett,
                         "values": [float(v) for v in values],
                         LOWER: [float(row[0]) for row in confint],
                         UPPER: [float(row[1]) for row in confint],
@@ -12495,7 +12792,7 @@ def generate_stats_timeseries() -> dict:
                 "name": f"{fx['name']} | pacf | {level}",
                 "call": "pacf",
                 SERIES: fx[SERIES], LAG_COUNT: min(lags, len(x) // 2),
-                "level": level,
+                LEVEL: level,
                 "values": [float(v) for v in pvalues],
                 LOWER: [float(row[0]) for row in pconfint],
                 UPPER: [float(row[1]) for row in pconfint],
@@ -12851,6 +13148,9 @@ def main() -> None:
         "stats_kruskal.json": generate_stats_kruskal,
         "stats_shapiro.json": generate_stats_shapiro,
         "stats_multiple_comparisons.json": generate_stats_multiple_comparisons,
+        "stats_pearson.json": generate_stats_pearson,
+        "stats_spearman.json": generate_stats_spearman,
+        "stats_kendall.json": generate_stats_kendall,
     }
     for filename, gen in generators.items():
         payload = gen()

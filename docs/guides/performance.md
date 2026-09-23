@@ -1041,6 +1041,61 @@ and 3,282.43 KB against 1,212.64 KB at 20,000 — this package materialises ever
 
 ## Lodestar.Stats
 
+### Lodestar.Stats against Meta.Numerics (issue #1120) — the three correlation tests
+
+Full method, why the corpus is untied, and how `Meta.Numerics`' names were resolved:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#53-the-three-correlation-tests-against-metanumerics-issue-1120).
+This section carries only the numbers, per `CLAUDE.md`'s "Where a fact belongs" table.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime — a
+dedicated machine, not a container. Window: one `BenchmarkDotNet` 0.14.0 run, default job,
+2026-09-23, 4 min 29 s across the 14 benchmarks (7 rows × 2 sizes), no other load. The three
+statistics were asserted equal to `1e-9` before anything was timed, and the p-values agreed too:
+**0 recorded differences at either size**.
+
+| Method | PairCount | Mean | Allocated |
+| --- | ---: | ---: | ---: |
+| `Lodestar_Pearson` | 100 | 646.0 ns | — |
+| `MetaNumerics_Pearson` | 100 | 516.7 ns | 168 B |
+| `Lodestar_Spearman` | 100 | 1.857 μs | 4,144 B |
+| `MetaNumerics_Spearman` | 100 | 2.177 μs | 2,024 B |
+| `Lodestar_KendallTau` | 100 | 3.184 μs | — |
+| `MetaNumerics_KendallTau` | 100 | 6.349 μs | 152 B |
+| `Lodestar_Pearson` | 10,000 | 57.88 μs | — |
+| `MetaNumerics_Pearson` | 10,000 | 37.27 μs | 168 B |
+| `Lodestar_Spearman` | 10,000 | 947.4 μs | 400,145 B |
+| `MetaNumerics_Spearman` | 10,000 | 1.288 ms | 160,427 B |
+| `Lodestar_KendallTau` | 10,000 | 1.369 ms | — |
+| `MetaNumerics_KendallTau` | 10,000 | 173.2 ms | — |
+
+**[`KendallTau.Test`](../reference/stats/tests/kendalltau-test.md) is the headline: 2.0× ahead at
+100 pairs and 126× at 10,000, allocating nothing at either size.** That is not a constant factor.
+The definition counts concordant and discordant pairs in a double loop; this orders the pairs by
+the first sample and counts the inversions of the second with a merge sort, so the work grows as
+`n log n` where `Meta.Numerics` grows as `n²` — at ten thousand pairs, a hundred and thirty
+thousand comparisons against fifty million. The gap therefore widens with every further order of
+magnitude rather than closing.
+
+[`Spearman.Test`](../reference/stats/tests/spearman-test.md) is 1.17× ahead at 100 and 1.36× at
+10,000, while allocating 2.0× and 2.5× more: it materialises both rank arrays where
+`Meta.Numerics` works off one sorted copy.
+
+**[`Pearson.Test`](../reference/stats/tests/pearson-test.md) is the one row behind — 1.25× at 100
+pairs and 1.55× at 10,000 — and the reason is a deliberate trade rather than an oversight.** The
+coefficient here is computed as `scipy.stats.pearsonr` computes it: centre each sample, scale by
+its largest deviation, normalise each vector by its own norm, then take the dot product. That is
+four passes over the data and two divisions per element. `Meta.Numerics` takes one pass over the
+raw moments — `Σx`, `Σx²`, `Σxy` — which is faster and loses significance to cancellation when the
+values are large relative to their spread. The four-pass form is what holds `1e-9` against the
+frozen corpus into a p-value below `1e-15`, and what lands a perfect relationship on exactly `1`
+rather than on `0.9999999999999998`, which would turn an exact-zero p-value into `8.9e-16`.
+Vectorising the final dot product would recover about a third of the gap and change the summation
+order, so it would change that exact `1`; that is a decision about what this package promises
+([decision 0005](../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)),
+not an optimisation, and it has not been taken. This package allocates nothing here where
+`Meta.Numerics` allocates 168 B per call.
+
 ### Lodestar.Stats against Accord.Statistics (issue #442)
 
 Full method, correctness cross-check, and how `Accord`'s 2017-era API names were resolved against
