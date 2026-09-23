@@ -108,3 +108,41 @@ public enum KendallVariant
     /// <summary>Stuart's tau-c, scaled by the smaller number of distinct values. scipy's <c>'c'</c>.</summary>
     TauC,
 }
+
+/// <summary>Which centre Levene's test measures each group's spread around.</summary>
+/// <remarks>
+/// scipy spells this <c>center</c> and defaults it to <c>'median'</c>, which is Brown and
+/// Forsythe's variant rather than Levene's own — the median is what makes the test hold up on a
+/// skewed sample, and it is the default here for the same reason. The choice changes the
+/// statistic, not merely how it is reached.
+/// </remarks>
+public enum Center
+{
+    /// <summary>The group's median. scipy's <c>'median'</c>, and Brown-Forsythe.</summary>
+    Median,
+
+    /// <summary>The group's mean. scipy's <c>'mean'</c>, and Levene's original test.</summary>
+    Mean,
+
+    /// <summary>The mean of what is left after trimming each end. scipy's <c>'trimmed'</c>.</summary>
+    Trimmed,
+}
+
+/// <summary>Which interval a binomial proportion is reported with.</summary>
+/// <remarks>
+/// scipy's <c>method</c> on <c>BinomTestResult.proportion_ci</c>, default <c>'exact'</c>. The three
+/// answer the same question and disagree about small samples, which is the only place the question
+/// is hard: Clopper-Pearson is guaranteed to cover at least the level asked for and is wider than
+/// it needs to be, where Wilson is close to the level on average and can fall below it.
+/// </remarks>
+public enum ProportionInterval
+{
+    /// <summary>Clopper-Pearson, inverted from the binomial tails. scipy's <c>'exact'</c>.</summary>
+    Exact,
+
+    /// <summary>Wilson's score interval. scipy's <c>'wilson'</c>.</summary>
+    Wilson,
+
+    /// <summary>Wilson's interval with the half-unit continuity correction. scipy's <c>'wilsoncc'</c>.</summary>
+    WilsonCorrected,
+}

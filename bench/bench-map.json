@@ -110,7 +110,10 @@
     "MetaNumericsPcaBenchmarks": [
       "src/Lodestar.Decomposition/PrincipalComponentVariance.cs"
     ],
-    "CorrelationBenchmarks": [
+    "VarianceAndFitBenchmarks": [
+   "src/Lodestar.Stats/**"
+  ],
+  "CorrelationBenchmarks": [
    "src/Lodestar.Stats/**"
   ],
   "MetaNumericsStatsBenchmarks": [

@@ -3126,3 +3126,57 @@ dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*Co
 
 The numbers, with their machine and window, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md).
+
+## 54. The variance, proportion and fit tests against `Accord.Statistics` (issue #1121)
+
+`VarianceAndFitBenchmarks` times [`Levene.Test`](../docs/reference/stats/tests/levene-test.md),
+[`Bartlett.Test`](../docs/reference/stats/tests/bartlett-test.md),
+[`Binomial.Test`](../docs/reference/stats/tests/binomial-test.md) and
+[`AndersonDarling.Test`](../docs/reference/stats/tests/andersondarling-test.md) against
+`Accord.Statistics.Testing` 3.8.0, at 100 and 10,000 values. Section 18 already resolves `Accord`
+in this project; the four names and their constructor shapes were read out of the restored
+`netstandard2.0` asset by reflection rather than guessed, the same protocol:
+
+| family | `Accord.Statistics.Testing` |
+| --- | --- |
+| Levene | `new LeveneTest(double[][] samples, median: true)` |
+| Bartlett | `new BartlettTest(double[][] samples)` |
+| binomial | `new BinomialTest(int successes, int trials, double p, OneSampleHypothesis)` |
+| Anderson-Darling | `new AndersonDarlingTest(double[] sample, IUnivariateDistribution<double>)` |
+
+**Friedman has no row, because it has no incumbent.** Neither `Accord.Statistics` — 33 public
+`*Test` types, none of them Friedman's — nor `Meta.Numerics` carries it, so there is no pair to
+time and its comparison belongs to the cross-language harness rather than here.
+
+**`Accord`'s Anderson-Darling is not quite the same test, and is made comparable on purpose.** It
+takes the hypothesised distribution as an argument, where `scipy.stats.anderson` estimates the
+mean and the spread from the sample; handing it a normal fitted to that same sample makes the two
+statistics the same quantity, which `MetaNumericsAgreement` checks before anything is timed. They
+agree.
+
+**And at ten thousand values it refuses.** `AndersonDarlingTest`'s constructor converts the
+statistic to a p-value eagerly, and that conversion throws
+`InvalidOperationException: CCDF computation generated NaN values` from inside its own
+distribution. The first run of this class lost all nine of its 10,000-value rows to it, because
+the call sat in `[GlobalSetup]`. The check now catches the refusal and records it, so the other
+three pairs stay measurable and the `Accord_AndersonDarling` row reports `NA` — which is the
+finding, not a gap: Anderson-Darling is the normality test one keeps *because* it holds up on
+large samples, where Shapiro-Wilk's own reference stops at 5,000.
+
+**One recorded disagreement, on the binomial p-value.** At `k = 33`, `n = 100`, `p = 0.5` this
+package and scipy both answer `0.00087372` — exactly twice the lower tail, the null being
+symmetric — and `Accord` answers `0.000641249`, which is neither that nor the sum of the outcomes
+no more likely than the observed one. What it computes is not stated in the package. The pair is
+timed anyway, both sides computing an exact binomial two-sided p-value, and the difference is
+printed rather than asserted.
+
+A ninth row, `Lodestar_ClopperPearson`, has no counterpart at all: `Accord` exports no confidence
+interval for a proportion. It measures the beta inversion `Internal.BetaQuantile` against nothing
+but itself, which is what the interval costs on top of the test.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*VarianceAndFitBenchmarks*'
+```
+
+The numbers, with their machine and window, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md).

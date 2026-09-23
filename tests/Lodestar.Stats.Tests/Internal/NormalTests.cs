@@ -105,4 +105,49 @@ public sealed class NormalTests
         Assert.Throws<ArgumentOutOfRangeException>(() => Normal.Quantile(0.0));
         Assert.Throws<ArgumentOutOfRangeException>(() => Normal.Quantile(1.0));
     }
+
+    /// <summary>
+    /// The asymptotic branch against the direct one over the range where both hold. <c>Sf(30)</c>
+    /// is 5e-198 and still a double, so the two forms overlap for twenty orders of magnitude;
+    /// past about 38 only the expansion is left, which is why Anderson-Darling can read a tail
+    /// ten deviations out instead of taking the whole statistic to negative infinity.
+    /// </summary>
+    [Theory]
+    [InlineData(30.0)]
+    [InlineData(32.5)]
+    [InlineData(35.0)]
+    public void The_logarithmic_tail_agrees_with_the_tail_it_replaces(double z)
+    {
+        double direct = Math.Log(Normal.Sf(z));
+        double expanded = Normal.LogSf(z);
+
+        // Relative, not decimal places: these logarithms are around -500. The stop at 35 is the
+        // other side of that -- past it Sf itself nears the denormals and is the less exact one.
+        double relative = Math.Abs(direct - expanded) / Math.Abs(direct);
+        Assert.True(relative <= 1e-13, $"log Sf({z}): {expanded} against {direct} ({relative}).");
+    }
+
+    [Fact]
+    public void The_logarithmic_tail_is_finite_where_the_tail_underflows()
+    {
+        // S1244: Sf has underflowed to an exact zero here, which is the premise of the test.
+#pragma warning disable S1244
+        Assert.True(Normal.Sf(45.0) == 0.0, "Sf no longer underflows at 45; pick a further point.");
+#pragma warning restore S1244
+        Assert.True(double.IsFinite(Normal.LogSf(45.0)), "LogSf(45) is not finite.");
+        Assert.InRange(Normal.LogSf(45.0), -1030.0, -1010.0);
+    }
+
+    /// <summary>A tail near one is read through its complement, not as a logarithm of one.</summary>
+    /// <remarks>
+    /// At -40 the opposite tail has underflowed and the answer is an exact zero, which is right:
+    /// <c>Sf(-40)</c> is one to every bit a double carries, so its logarithm is zero to every
+    /// bit as well. The check is that -8 keeps its digits, where the naive form would not.
+    /// </remarks>
+    [Fact]
+    public void The_logarithmic_tail_keeps_its_digits_below_zero()
+    {
+        Assert.Equal(Math.Log(Normal.Sf(-8.0)), Normal.LogSf(-8.0), 15);
+        Assert.Equal(0.0, Normal.LogSf(-40.0));
+    }
 }

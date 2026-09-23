@@ -1041,6 +1041,68 @@ and 3,282.43 KB against 1,212.64 KB at 20,000 — this package materialises ever
 
 ## Lodestar.Stats
 
+### Lodestar.Stats against Accord.Statistics (issue #1121) — the variance, proportion and fit tests
+
+Full method, how `Accord`'s names were resolved, why Friedman has no row and what `Accord`'s
+Anderson-Darling refuses:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#54-the-variance-proportion-and-fit-tests-against-accordstatistics-issue-1121).
+This section carries only the numbers, per `CLAUDE.md`'s "Where a fact belongs" table.
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime — a
+dedicated machine, not a container. Window: one `BenchmarkDotNet` 0.14.0 run, default job,
+2026-09-23, 5 min 25 s across the 18 benchmarks (9 rows × 2 sizes), no other load. Every pair's
+statistic was asserted equal before anything was timed; the one disagreement is recorded in
+`bench/README.md` §54.
+
+| Method | GroupSize | Mean | Allocated |
+| --- | ---: | ---: | ---: |
+| `Lodestar_Levene` | 100 | 1.161 μs | 5,072 B |
+| `Accord_Levene` | 100 | 2.365 μs | 5,480 B |
+| `Lodestar_Bartlett` | 100 | 374.9 ns | 80 B |
+| `Accord_Bartlett` | 100 | 723.4 ns | 168 B |
+| `Lodestar_Binomial` | 100 | 765.4 ns | 48 B |
+| `Accord_Binomial` | 100 | 2.586 μs | 2,216 B |
+| `Lodestar_AndersonDarling` | 100 | 4.777 μs | 1,000 B |
+| `Accord_AndersonDarling` | 100 | 3.659 μs | 1,096 B |
+| `Lodestar_ClopperPearson` | 100 | 3.008 μs | 48 B |
+| `Lodestar_Levene` | 10,000 | 90.10 μs | 480,272 B |
+| `Accord_Levene` | 10,000 | 892.4 μs | 480,681 B |
+| `Lodestar_Bartlett` | 10,000 | 36.77 μs | 80 B |
+| `Accord_Bartlett` | 10,000 | 73.32 μs | 168 B |
+| `Lodestar_Binomial` | 10,000 | 1.173 μs | 48 B |
+| `Accord_Binomial` | 10,000 | 522.2 μs | 200,217 B |
+| `Lodestar_AndersonDarling` | 10,000 | 845.1 μs | 80,201 B |
+| `Accord_AndersonDarling` | 10,000 | refused | — |
+| `Lodestar_ClopperPearson` | 10,000 | 22.00 μs | 48 B |
+
+**[`Binomial.Test`](../reference/stats/tests/binomial-test.md) is 3.4× ahead at a hundred trials
+and 445× at ten thousand, allocating 48 bytes against 200 kilobytes.** That is a difference in
+what is computed, not in how well: `Accord` sums the binomial mass term by term, which is `O(n)`
+and allocates an array of it, where this evaluates the regularized incomplete beta that sum *is*,
+in constant time and constant space. The gap therefore widens with every further order of
+magnitude.
+
+[`Levene.Test`](../reference/stats/tests/levene-test.md) is 2.0× ahead at a hundred values and
+9.9× at ten thousand. Its default centre is the median, which it takes by Hoare selection rather
+than by sorting — `O(n)` against `O(n log n)`, and at this scale the sort was the test.
+[`Bartlett.Test`](../reference/stats/tests/bartlett-test.md) is a steady 1.9× to 2.0× at both
+sizes, on half the allocation.
+
+**[`AndersonDarling.Test`](../reference/stats/tests/andersondarling-test.md) is the one row behind
+at a hundred values — 1.31× — and has no counterpart at all at ten thousand**, where `Accord`'s
+own p-value conversion throws. The cost here is deliberate: the statistic sums the logarithms of
+both normal tails, and this package evaluates them through a log-tail with an asymptotic branch
+rather than through a plain CDF, so an observation ten standard deviations out contributes a
+number instead of taking the whole statistic to negative infinity. That is worth 1.1 μs on a
+hundred values, and it is the difference between a test that survives an outlier and one that
+does not.
+
+`Lodestar_ClopperPearson` has no counterpart either — `Accord` exports no interval for a
+proportion — so its two rows measure what the exact interval costs on top of the test: about four
+times the test at a hundred trials, and nineteen times at ten thousand, all of it in the beta
+inversion.
+
 ### Lodestar.Stats against Meta.Numerics (issue #1120) — the three correlation tests
 
 Full method, why the corpus is untied, and how `Meta.Numerics`' names were resolved:

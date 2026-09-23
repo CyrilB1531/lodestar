@@ -1,8 +1,9 @@
 # Hypothesis testing
 
-`Lodestar.Stats` answers two questions. Ten families ask **is this difference more than noise?**
-Three more ask **are these two variables related?** — the same machinery, pointed at a pair of
-measurements rather than at two groups.
+`Lodestar.Stats` answers three questions. Ten families ask **is this difference more than
+noise?** Three ask **are these two variables related?** — the same machinery, pointed at a pair of
+measurements rather than at two groups. Five more ask **does the assumption underneath the answer
+hold?**, which is the question a reader reaches last and should have reached first.
 
 ## What happens to a missing value
 
@@ -32,6 +33,51 @@ exists to prevent.
 | two measurements per subject | a linear relationship, roughly normal | [`Pearson.Test`](../reference/stats/tests/pearson-test.md) |
 | two measurements per subject | only that the relationship rises or falls | [`Spearman.Test`](../reference/stats/tests/spearman-test.md) |
 | two rankings of the same items | nothing, and the sample is short | [`KendallTau.Test`](../reference/stats/tests/kendalltau-test.md) |
+| several groups, before trusting an ANOVA | nothing about the shape | [`Levene.Test`](../reference/stats/tests/levene-test.md) |
+| several groups, before trusting an ANOVA | each group roughly normal | [`Bartlett.Test`](../reference/stats/tests/bartlett-test.md) |
+| three or more treatments on the same subjects | nothing about the shape | [`Friedman.Test`](../reference/stats/tests/friedman-test.md) |
+| a count of successes out of a total | nothing; it is exact at any size | [`Binomial.Test`](../reference/stats/tests/binomial-test.md) |
+| one sample, and a normality assumption to check | nothing | [`AndersonDarling.Test`](../reference/stats/tests/andersondarling-test.md) |
+
+## The assumption under the answer
+
+Two of the tests above are not there to answer a question of their own. They are there because
+another test on this page has already assumed something, and until now this package gave a caller
+no way to find out whether the assumption held.
+
+[`OneWayAnova.Test`](../reference/stats/tests/onewayanova-test.md) assumes the groups share one
+variance. [`TTest.Independent`](../reference/stats/tests/ttest-independent.md) assumes it too,
+unless [`Variance.Welch`](../reference/stats/tests/variance.md) is asked for. When that is false,
+their p-values are not conservative — they are simply wrong, and they are wrong in the direction
+that produces findings.
+
+```csharp
+using Lodestar.Stats;
+
+double[] first = [20.1, 19.8, 20.3, 20.0, 19.9, 20.2, 20.1, 19.7];
+double[] second = [20.4, 18.9, 21.2, 19.1, 21.0, 18.7, 20.8, 19.4];
+double[] third = [20.0, 20.1, 19.9, 20.2, 19.8, 20.1, 20.0, 19.9];
+
+double meansAgree = Math.Round(OneWayAnova.Test(first, second, third).PValue, 4);
+double spreadsDiffer = Math.Round(Levene.Test(first, second, third).PValue, 10);
+```
+
+`meansAgree` is `0.9654` and `spreadsDiffer` is `2.4E-08`. Three machines fill the same bottle;
+they agree on where they aim and disagree, by a factor of forty million in the p-value, on how
+well they hold it. A report that ran only the ANOVA would say the three are interchangeable.
+
+Which of the two variance tests to run is a question about the data.
+[`Levene.Test`](../reference/stats/tests/levene-test.md) around the median assumes nothing about
+the shape and is the safer default. [`Bartlett.Test`](../reference/stats/tests/bartlett-test.md)
+assumes each group is normal, is sharper when that holds, and reports a difference that is not
+there when it does not — so it is the second question, after
+[`AndersonDarling.Test`](../reference/stats/tests/andersondarling-test.md) or
+[`ShapiroWilk.Test`](../reference/stats/tests/shapirowilk-test.md) has answered the first.
+
+**A test of an assumption is not a licence.** Failing to reject is not evidence that the
+assumption holds — on a short sample these tests reject almost nothing, which says more about the
+sample than about the variances. Their value is in the other direction: when one of them does
+reject, the conclusion standing on that assumption has to be withdrawn.
 
 ## Which correlation
 

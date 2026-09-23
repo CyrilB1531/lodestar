@@ -2,7 +2,7 @@ namespace Lodestar.Stats;
 
 /// <summary>What a test does with a <c>NaN</c> in its input; scipy's <c>nan_policy</c>.</summary>
 /// <remarks>
-/// Offered on the thirteen entry points whose scipy counterpart takes the parameter, and on
+/// Offered on the sixteen entry points whose scipy counterpart takes the parameter, and on
 /// <see cref="Pearson.Test"/>, whose counterpart does not: scipy's pull request 22155 gives the
 /// reason as the shape of its own result object, not as anything about the statistic.
 /// <c>docs/equivalence.md</c> carries the row, and decision 0007 has the rule.
