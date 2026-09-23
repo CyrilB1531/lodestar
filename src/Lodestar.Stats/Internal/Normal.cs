@@ -25,6 +25,14 @@ internal static class Normal
 
     private static readonly double[] Table = SampleScaledErfc();
 
+    // Where the expansion takes over: Sf(30) is 5e-198, still a double, so the two forms overlap
+    // over twenty orders of magnitude and the tests compare them there.
+    private const double AsymptoticFrom = 30.0;
+
+    // The series is asymptotic, so it diverges eventually; at z = 30 the terms shrink by 1/900
+    // each and eight reach 1e-24, far past what the sum's leading 1 can carry.
+    private const int AsymptoticTerms = 8;
+
     internal static double Erfc(double x)
     {
         if (double.IsNaN(x))
@@ -180,6 +188,46 @@ internal static class Normal
 
             (previous, current, next) = (current, next, previous);
         }
+    }
+
+    /// <summary>The logarithm of the upper tail, where the tail itself would underflow.</summary>
+    /// <remarks>
+    /// Anderson-Darling sums the logarithms of both tails, so a value far enough out to
+    /// underflow <see cref="Sf"/> would take the whole statistic to negative infinity. Past
+    /// <see cref="AsymptoticFrom"/> the tail is expanded rather than evaluated. Below it, a
+    /// negative argument reads the tail as one minus the far smaller opposite tail, rather than
+    /// as the logarithm of a value that has rounded to one.
+    /// </remarks>
+    internal static double LogSf(double z)
+    {
+        if (z >= AsymptoticFrom)
+        {
+            return Asymptotic(z);
+        }
+        if (z > -1.0)
+        {
+            return Math.Log(Sf(z));
+        }
+
+        // Sf(z) = 1 - Sf(-z) with Sf(-z) small, so the logarithm is taken of the complement
+        // rather than of a sum that has already rounded to one.
+        double opposite = Sf(-z);
+        return Gamma.LogOnePlusMinus(-opposite, 1.0 - opposite) - opposite;
+    }
+
+    /// <summary>Mills' ratio asymptotically: the density's logarithm, corrected by an alternating series.</summary>
+    private static double Asymptotic(double z)
+    {
+        double inverseSquare = 1.0 / (z * z);
+        double term = 1.0;
+        double sum = 1.0;
+        for (int k = 1; k <= AsymptoticTerms; k++)
+        {
+            term *= -(2.0 * k - 1.0) * inverseSquare;
+            sum += term;
+        }
+
+        return (-0.5 * z * z) - Math.Log(z) - (0.5 * Math.Log(2.0 * Math.PI)) + Math.Log(sum);
     }
 
     /// <summary>Wichura's AS 241 (PPND16) on the upper tail, for p in (0, 0.5).</summary>

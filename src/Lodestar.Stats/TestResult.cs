@@ -207,3 +207,138 @@ public sealed record PearsonResult(double Statistic, double PValue)
     private static (double Low, double High) Bounds(double z, double error, double quantile) =>
         (Math.Tanh(z - (quantile * error)), Math.Tanh(z + (quantile * error)));
 }
+
+/// <summary>A binomial test's result: the observed proportion and the p-value.</summary>
+/// <remarks>
+/// Its own record because the interval needs the counts and the tail that were tested, the same
+/// reason <see cref="TTestResult"/> and <see cref="PearsonResult"/> carry theirs. scipy keeps
+/// <c>k</c>, <c>n</c> and <c>alternative</c> on <c>BinomTestResult</c> for the same purpose.
+/// </remarks>
+/// <param name="Statistic">The observed proportion of successes, <c>successes / trials</c>.</param>
+/// <param name="PValue">The p-value on the requested tail.</param>
+public sealed record BinomialResult(double Statistic, double PValue)
+{
+    /// <summary>The successes the test was given.</summary>
+    internal int Successes { get; init; }
+
+    /// <summary>The trials the test was given.</summary>
+    internal int Trials { get; init; }
+
+    /// <summary>Which tail was tested, which decides whether an interval is half-open.</summary>
+    internal Alternative Alternative { get; init; }
+
+    /// <summary>The confidence interval for the proportion.</summary>
+    /// <remarks>
+    /// A method rather than a property because it takes a level and a shape, as
+    /// <c>BinomTestResult.proportion_ci</c> does. A one-sided test's interval is half-open at
+    /// <c>0</c> or <c>1</c> — the proportion's own limits, so there is no wider bound to give —
+    /// and so is a two-sided interval when every trial succeeded or none did.
+    /// </remarks>
+    /// <param name="level">The confidence level, strictly between 0 and 1.</param>
+    /// <param name="method">Which interval to compute.</param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="level"/> is NaN or outside <c>(0, 1)</c>, or <paramref name="method"/> is
+    /// not one of the three.
+    /// </exception>
+    public (double Low, double High) ProportionConfidenceInterval(
+        double level = 0.95, ProportionInterval method = ProportionInterval.Exact)
+    {
+        if (double.IsNaN(level) || level <= 0.0 || level >= 1.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(level), level, "The confidence level must lie strictly inside (0, 1).");
+        }
+
+        // A one-sided interval spends its whole error budget on one side, so the tail is
+        // 1 - level rather than half of it, and the other bound is the proportion's own limit.
+        double tail = Alternative == Alternative.TwoSided ? (1.0 - level) / 2.0 : 1.0 - level;
+
+        return method switch
+        {
+            ProportionInterval.Exact => ClopperPearson(tail),
+            ProportionInterval.Wilson => Internal.WilsonInterval.Bounds(this, level, corrected: false),
+            ProportionInterval.WilsonCorrected => Internal.WilsonInterval.Bounds(this, level, corrected: true),
+            _ => throw new ArgumentOutOfRangeException(nameof(method), method, null),
+        };
+    }
+
+    /// <summary>The exact interval, inverted from the binomial tails through the beta they are.</summary>
+    private (double Low, double High) ClopperPearson(double tail)
+    {
+        double low = Successes == 0 || Alternative == Alternative.Less
+            ? 0.0
+            : Internal.BetaQuantile.Invert(tail, Successes, Trials - Successes + 1.0);
+        double high = Successes == Trials || Alternative == Alternative.Greater
+            ? 1.0
+            : Internal.BetaQuantile.Invert(1.0 - tail, Successes + 1.0, Trials - (double)Successes);
+
+        return (low, high);
+    }
+}
+
+/// <summary>An Anderson-Darling result: the statistic, and the table it is read against.</summary>
+/// <remarks>
+/// Two shapes in one record, because scipy is replacing the first with the second: since 1.17
+/// the critical-value shape warns, and 1.19 removes it for a p-value interpolated from the same
+/// table. Both are carried — the p-value is what a reader of the other families expects, and the
+/// critical values are what carries information, the interpolation being clamped to
+/// <c>[0.01, 0.15]</c>. <c>docs/equivalence.md</c> has the whole of it.
+/// </remarks>
+/// <param name="Statistic">The A² statistic; larger means further from normal.</param>
+/// <param name="PValue">The p-value interpolated from the table, clamped to its ends.</param>
+/// <param name="CriticalValues">The statistic's critical values, one per significance level.</param>
+/// <param name="SignificanceLevels">The significance levels, in percent, as scipy reports them.</param>
+// CA1819 (properties should not return arrays), S2368 (no jagged-array constructor parameters):
+// the two tables mirror what scipy returns and what a caller indexes in step; wrapping one side
+// buys no safety, only a conversion at the boundary. Chi2ContingencyResult is suppressed for the
+// same reason.
+#pragma warning disable CA1819
+public sealed record AndersonResult(
+    double Statistic, double PValue, double[] CriticalValues, double[] SignificanceLevels)
+{
+    /// <summary>Compares the two scalars and both tables, value by value.</summary>
+    /// <param name="other">The result to compare against.</param>
+    /// <remarks>
+    /// The generated equality would compare the tables by reference, so two results holding the
+    /// same numbers would be unequal — a record whose member compares by reference writes its own.
+    /// </remarks>
+    public bool Equals(AndersonResult? other)
+    {
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+        if (other is null)
+        {
+            return false;
+        }
+
+        // S1244: value equality between two stored results, where "the same statistic" means the
+        // same bits. double.Equals also makes NaN equal NaN, which equality must.
+#pragma warning disable S1244
+        if (!Statistic.Equals(other.Statistic) || !PValue.Equals(other.PValue))
+#pragma warning restore S1244
+        {
+            return false;
+        }
+
+        return ValueEquality.Same(CriticalValues, other.CriticalValues)
+            && ValueEquality.Same(SignificanceLevels, other.SignificanceLevels);
+    }
+
+    /// <summary>Hashes the scalars and the table length, which is O(1).</summary>
+    /// <remarks>
+    /// Equal results necessarily agree on the length; unequal ones may collide. Walking the
+    /// tables would make the cheap operation cost what the test itself cost.
+    /// </remarks>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + Statistic.GetHashCode();
+            hash = (hash * 31) + PValue.GetHashCode();
+            return (hash * 31) + CriticalValues.Length;
+        }
+    }
+}
+#pragma warning restore CA1819
