@@ -54,7 +54,12 @@ public class DecompositionBenchmarks
     /// <summary>Seeds both the corpus and every fit, so two runs measure the same matrix.</summary>
     private const int Seed = 20260901;
 
+    /// <summary>Rows of the unseen corpus a transform scores; a tenth of the fit's, as a batch is.</summary>
+    private const int UnseenRows = 200;
+
     private CsrMatrix _matrix = null!;
+    private CsrMatrix _unseen = null!;
+    private Nmf _fitted = null!;
     private MLContext _ml = null!;
     private IDataView _denseView = null!;
 
@@ -62,6 +67,11 @@ public class DecompositionBenchmarks
     public void Setup()
     {
         _matrix = BuildSparseCorpus();
+
+        // The transform row prices the transform: the fit it holds H fixed from is built here
+        // and excluded, where Nmf_Rank20 measures a fit and nothing else.
+        _fitted = Nmf.Fit(_matrix, 20, new NmfOptions { Seed = Seed, MaxIterations = 50 });
+        _unseen = BuildSparseCorpus(UnseenRows, Seed + 1);
 
         // No CsrMatrix overload exists: the dense twin comes from the same values,
         // not a second, independently seeded draw.
@@ -78,6 +88,15 @@ public class DecompositionBenchmarks
     [Benchmark]
     public int Nmf_Rank20() =>
         Nmf.Fit(_matrix, 20, new NmfOptions { Seed = Seed, MaxIterations = 50 }).Iterations;
+
+    /// <summary>The same factorization applied to rows it never saw, with H held fixed.</summary>
+    /// <remarks>
+    /// There is no incumbent row beside it: neither ML.NET nor NumFlat publishes a non-negative
+    /// factorization at all, so what this prices is the member against itself and against the fit
+    /// above it. `compare-nmf-transform` is where it meets scikit-learn's own (#1124).
+    /// </remarks>
+    [Benchmark]
+    public int Nmf_Transform() => _fitted.Transform(_unseen).Length;
 
     /// <summary>
     /// ML.NET's centred PCA, fixed at rank 20. The pipeline is built and fit inside the
@@ -115,16 +134,19 @@ public class DecompositionBenchmarks
     // for its density and column spread rather than for anything security-sensitive; every use
     // of it is local to this method.
 #pragma warning disable S2245, CA5394
-    private static CsrMatrix BuildSparseCorpus()
+    private static CsrMatrix BuildSparseCorpus() => BuildSparseCorpus(Rows, Seed);
+
+    /// <summary>The same corpus at another height and another seed, for the rows a fit never saw.</summary>
+    private static CsrMatrix BuildSparseCorpus(int rows, int seed)
     {
-        var rng = new Random(Seed);
-        int nonZeroCount = Rows * NonZerosPerRow;
+        var rng = new Random(seed);
+        int nonZeroCount = rows * NonZerosPerRow;
         var values = new double[nonZeroCount];
         var columnIndices = new int[nonZeroCount];
-        var rowPointers = new int[Rows + 1];
+        var rowPointers = new int[rows + 1];
 
         int cursor = 0;
-        for (int row = 0; row < Rows; row++)
+        for (int row = 0; row < rows; row++)
         {
             var chosen = new HashSet<int>();
             while (chosen.Count < NonZerosPerRow)
@@ -140,7 +162,7 @@ public class DecompositionBenchmarks
             rowPointers[row + 1] = cursor;
         }
 
-        return new CsrMatrix(Rows, Columns, values, columnIndices, rowPointers);
+        return new CsrMatrix(rows, Columns, values, columnIndices, rowPointers);
     }
 #pragma warning restore S2245, CA5394
 

@@ -4578,7 +4578,7 @@ def _nmf_update_settings() -> list[tuple[int, int, float, int, str, int, float, 
 def _nmf_update_cases() -> list[dict]:
     """The multiplicative updates, from a frozen W0 and H0.
 
-    The initialisation is passed in as ``init="custom"`` so this half and the
+    The initialisation is passed in as ``init=INIT_CUSTOM`` so this half and the
     initialisation half fail independently: a wrong W0 breaks one corpus, not both.
 
     Two claims the C# side depends on are asserted rather than written down: with the
@@ -4611,12 +4611,12 @@ def _nmf_update_cases() -> list[dict]:
         if zeroed >= 0:
             w0[:, zeroed] = 0.0
 
-        model = NMF(n_components=k, init="custom", solver="mu", beta_loss=loss,
+        model = NMF(n_components=k, init=INIT_CUSTOM, solver="mu", beta_loss=loss,
                     tol=tol, max_iter=iterations, random_state=seed)
         w = model.fit_transform(a, W=w0.copy(), H=h0.copy())
 
         assert np.array_equal(
-            w, NMF(n_components=k, init="custom", solver="mu", beta_loss=loss, tol=tol,
+            w, NMF(n_components=k, init=INIT_CUSTOM, solver="mu", beta_loss=loss, tol=tol,
                    max_iter=iterations, random_state=seed).fit_transform(
                        a, W=w0.copy(), H=h0.copy())), f"{CASE}{index}: two runs disagreed"
         if tol <= 0.0:
@@ -4648,16 +4648,148 @@ def _nmf_update_cases() -> list[dict]:
     return cases
 
 
+# The three shapes a transform meets and a fit cannot, and the init the two halves share.
+UNSEEN_FEWER_ROWS = "fewer rows"
+UNSEEN_ALL_ZERO = "all zero"
+UNSEEN_ZERO_ROW = "zero row"
+INIT_CUSTOM = "custom"
+
+# The transform half's own keys: the matrix a fit never saw, beside the one it did.
+NEW_ROWS_KEY = "new_rows"
+NEW_VALUES_KEY = "new_values"
+NEW_COLUMN_INDICES_KEY = "new_column_indices"
+NEW_ROW_POINTERS_KEY = "new_row_pointers"
+TRANSFORMED_W_KEY = "transformed_w"
+
+
+def _nmf_transform_settings() -> list[tuple[int, int, float, int, str, int, str]]:
+    """fit rows, columns, density, k, beta loss, max_iter, the shape of the unseen matrix.
+
+    Every case pins tol=0.0, so the iteration count is an input rather than a result --
+    the same reason the updates half does, and asserted the same way below.
+
+    The three shapes are what a transform meets and a fit cannot: fewer rows than the fit
+    saw, a matrix of all zeros, and a matrix holding a zero row. The reference answers all
+    three rather than refusing, and the first is the ordinary case a caller writes.
+    """
+    return [
+        (30, 12, 0.45, 3, FROBENIUS, 40, UNSEEN_FEWER_ROWS),
+        (30, 12, 0.45, 3, KULLBACK_LEIBLER, 40, UNSEEN_FEWER_ROWS),
+        (30, 12, 0.45, 3, FROBENIUS, 40, UNSEEN_ALL_ZERO),
+        (30, 12, 0.45, 3, KULLBACK_LEIBLER, 40, UNSEEN_ALL_ZERO),
+        (30, 12, 0.45, 3, FROBENIUS, 40, UNSEEN_ZERO_ROW),
+        (30, 12, 0.45, 3, KULLBACK_LEIBLER, 40, UNSEEN_ZERO_ROW),
+        (24, 8, 0.60, 4, FROBENIUS, 25, UNSEEN_FEWER_ROWS),
+        (24, 8, 0.60, 4, KULLBACK_LEIBLER, 25, UNSEEN_ZERO_ROW),
+    ]
+
+
+def _nmf_unseen_matrix(rng: SeededRandom, shape: str, columns: int):
+    """The matrix a fit never saw, in the three shapes a transform has to answer."""
+    from scipy.sparse import csr_matrix  # noqa: PLC0415
+
+    if shape == UNSEEN_ALL_ZERO:
+        return csr_matrix((3, columns))
+
+    rows = 5
+    fixture = _sparse_fixture(rng, rows, columns, 0.45)
+    matrix = csr_matrix(
+        (fixture["values"], fixture["column_indices"], fixture["row_pointers"]),
+        shape=(rows, columns))
+    if shape == UNSEEN_ZERO_ROW:
+        dense = matrix.toarray()
+        dense[1, :] = 0.0
+        matrix = csr_matrix(dense)
+
+    matrix.sort_indices()
+    return matrix
+
+
+def _nmf_transform_cases() -> list[dict]:
+    """NMF.transform: the multiplicative update of W with H held fixed.
+
+    Two claims the C# side rests on are asserted here rather than argued. The transform is
+    *deterministic* -- no random_state reaches it, because with update_H=False and
+    solver="mu" scikit-learn fills W with sqrt(X.mean() / k) rather than drawing it; two
+    calls are compared for exact equality. And that fill is really the mean: a matrix of
+    all zeros has mean zero, so W starts at zero and every multiplicative update leaves it
+    there, which is asserted on the all-zero cases.
+
+    The cap is an input too: transforming the same matrix at max_iter=1 differs from the
+    frozen run, so a C# loop that ignored MaxIterations could not pass.
+    """
+    from scipy.sparse import csr_matrix  # noqa: PLC0415
+    from sklearn.decomposition import NMF  # noqa: PLC0415
+    from sklearn.decomposition._nmf import _initialize_nmf  # noqa: PLC0415
+
+    rng = SeededRandom(SEED + 112400)
+    cases = []
+    for index, (rows, columns, density, k, loss, iterations, shape) in enumerate(
+            _nmf_transform_settings()):
+        fixture = _sparse_fixture(rng, rows, columns, density)
+        a = csr_matrix(
+            (fixture["values"], fixture["column_indices"], fixture["row_pointers"]),
+            shape=(rows, columns))
+
+        seed = SEED + 112500 + index
+        w0, h0 = _initialize_nmf(a, k, init=NNDSVDA, random_state=seed)
+        w0 = np.array([[settled(v) for v in row] for row in w0])
+        h0 = np.array([[settled(v) for v in row] for row in h0])
+
+        model = NMF(n_components=k, init=INIT_CUSTOM, solver="mu", beta_loss=loss,
+                    tol=0.0, max_iter=iterations, random_state=seed)
+        model.fit(a, W=w0.copy(), H=h0.copy())
+
+        unseen = _nmf_unseen_matrix(rng, shape, columns)
+        transformed = model.transform(unseen)
+
+        assert np.array_equal(transformed, model.transform(unseen)), \
+            f"{CASE}{index}: two transforms disagreed, so something is drawn rather than filled"
+        if shape == UNSEEN_ALL_ZERO:
+            assert not transformed.any(), \
+                f"{CASE}{index}: an all-zero matrix has mean zero, so W must stay at zero"
+        else:
+            one = NMF(n_components=k, init=INIT_CUSTOM, solver="mu", beta_loss=loss,
+                      tol=0.0, max_iter=1, random_state=seed)
+            one.fit(a, W=w0.copy(), H=h0.copy())
+            one.components_ = model.components_
+            assert not np.array_equal(one.transform(unseen), transformed), \
+                f"{CASE}{index}: max_iter changes nothing, so the cap is not an input"
+
+        cases.append({
+            **fixture,
+            COMPONENT_COUNT_KEY: k,
+            "beta_loss": loss,
+            "max_iterations": iterations,
+            TOLERANCE_KEY: 0.0,
+            INITIAL_W_KEY: [settled(v) for v in w0.ravel()],
+            INITIAL_H_KEY: [settled(v) for v in h0.ravel()],
+            "components": [settled(v) for v in model.components_.ravel()],
+            "shape": shape,
+            NEW_ROWS_KEY: unseen.shape[0],
+            NEW_VALUES_KEY: [settled(v) for v in unseen.data],
+            NEW_COLUMN_INDICES_KEY: [int(v) for v in unseen.indices],
+            NEW_ROW_POINTERS_KEY: [int(v) for v in unseen.indptr],
+            TRANSFORMED_W_KEY: [settled(v) for v in transformed.ravel()],
+        })
+
+    return cases
+
+
 def generate_decomposition_nmf() -> dict:
-    """NNDSVD, and the multiplicative updates on top of it (#440)."""
+    """NNDSVD, the multiplicative updates on top of it (#440), and the transform (#1124)."""
     initialization, updates = _nmf_initialization_cases(), _nmf_update_cases()
+    transform = _nmf_transform_cases()
     return {"metadata": {"library": "scikit-learn", "version": version("scikit-learn"),
                          "reference_calls": ["sklearn.decomposition._nmf._initialize_nmf",
-                                             "sklearn.decomposition.NMF"],
-                         "seed": SEED, "count": len(initialization) + len(updates),
+                                             "sklearn.decomposition.NMF",
+                                             "sklearn.decomposition.NMF.transform"],
+                         "seed": SEED,
+                         "count": len(initialization) + len(updates) + len(transform),
                          TOLERANCE_KEY: 1e-9},
             "initialization": initialization,
-            "updates": updates}
+            "updates": updates,
+            "transform": transform}
 
 
 # --- The variance each principal component explains (#701) -------------------

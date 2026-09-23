@@ -3286,3 +3286,36 @@ python3 bench/compare.py cdist
 
 The numbers, with their machine and window, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md).
+
+## 57. The factorization applied to unseen rows, against `scikit-learn` (issue #1124)
+
+`DecompositionBenchmarks` gains an `Nmf_Transform` row, and `compare-nmf-transform` puts the same
+call against `NMF.transform` at 100, 500 and 2,000 unseen rows over a 1,500-row fit.
+
+**There is no incumbent row beside it.** Neither ML.NET nor NumFlat publishes a non-negative
+factorization at all, so what the BenchmarkDotNet row prices is the transform against the fit it
+was taken from — the number a reader wants is what fraction of a fit a batch of new rows costs.
+
+`solver='mu'` and `tol=0.0` are pinned on the Python side: the multiplicative update is the only
+solver this package implements, and a disabled early stop makes the iteration count an input
+rather than a result on both sides. The fit is built outside the timed region on both sides, so
+what is measured is the transform.
+
+**Run both losses, because they are two different computations.** scikit-learn's Frobenius update
+is three dense products a BLAS parallelises; its Kullback-Leibler update densifies `W H` where
+this package computes the ratio `X / WH` only at the stored positions. A single row would report
+one of those as though it were the member's cost.
+
+No corpus file: both sides build the matrices from the row index by the same rule, so a committed
+corpus would be a file holding that rule's output. Nothing is asserted to agree before timing —
+`tests/oracles/decomposition_nmf.json`'s `transform` section replays eight cases at `1e-9`.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*DecompositionBenchmarks*'
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-nmf-transform
+python3 bench/python/bench_nmf_transform.py
+python3 bench/compare.py nmf-transform
+```
+
+The numbers, with their machine and window, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md).

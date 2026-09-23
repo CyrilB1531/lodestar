@@ -858,6 +858,55 @@ the Gram route replaced it. **Below `net8.0` the second row is Meta.Numerics**: 
 reports no eigenvalue, and [its section](#metanumerics-against-lodestarstats-and-principalcomponentvariance-issue-756)
 has the numbers.
 
+### The factorization applied to unseen rows (issue #1124)
+
+Full method and why both losses are run:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#57-the-factorization-applied-to-unseen-rows-against-scikit-learn-issue-1124).
+Machine: the AMD Ryzen 7 8700G named above, on 2026-09-23. `BenchmarkDotNet` 0.14.0, default job;
+2,000 × 500 at 2% density for the fit, 200 unseen rows for the transform.
+
+**There is no .NET incumbent**: neither ML.NET nor NumFlat publishes a non-negative factorization,
+so the row that matters is what a batch of unseen rows costs against the fit it is scored on.
+
+| operation | cost | against the fit |
+| --- | ---: | ---: |
+| [`TruncatedSvd.Fit`](../reference/decomposition/factorization/truncatedsvd-fit.md), rank 20 | 11.527 ms | — |
+| [`Nmf.Fit`](../reference/decomposition/factorization/nmf-fit.md), rank 20, 50 updates | 66.647 ms | 1.00 |
+| [`Nmf.Transform`](../reference/decomposition/factorization/nmf-transform.md), 200 unseen rows | **2.102 ms** | **0.032** |
+
+**A batch of unseen rows costs about a thirtieth of the fit**, which is the number a caller sizing
+a scoring loop needs. It iterates — it is a factorization with `H` held fixed, not a projection —
+so it is not free the way
+[`TruncatedSvd.Transform`](../reference/decomposition/factorization/truncatedsvd-transform.md)'s
+multiply is; it is also not another fit.
+
+Against `scikit-learn` 1.9.1 through `compare-nmf-transform`, one run of each side, milliseconds
+per operation, best of five, `solver='mu'` and `tol=0.0` pinned so both compute the same thing:
+
+| unseen rows | loss | Lodestar | `scikit-learn`, wall / cpu | ratio, wall | ratio, cpu |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 100 | Frobenius | 1.264 ms | **0.345** / 0.345 ms | 0.27 | 0.27 |
+| 500 | Frobenius | 4.054 ms | **0.705** / 0.705 ms | 0.17 | 0.17 |
+| 2,000 | Frobenius | **14.708 ms** | 2.567 / 40.553 ms | 0.17 | **2.75** |
+| 100 | Kullback-Leibler | **0.732 ms** | 7.400 / 7.400 ms | **10.11** | **10.11** |
+| 500 | Kullback-Leibler | **3.299 ms** | 16.913 / 16.912 ms | **5.13** | **5.13** |
+| 2,000 | Kullback-Leibler | **13.015 ms** | 72.064 / 1,007.735 ms | **5.54** | **77.22** |
+
+**The two losses are two different computations, and the table is two different answers.** The
+Frobenius update is three dense products; scikit-learn hands them to a parallel BLAS, which is why
+it is 5.9× ahead on elapsed time at 2,000 rows and **2.75× behind on processor time** — it spends
+40.6 ms of CPU to finish in 2.6 ms. This runs on one thread and spends 14.7 ms of CPU to finish in
+14.7 ms.
+
+**The Kullback-Leibler update is where the sparse representation pays.** The ratio `X / WH` is
+needed only where `X` is stored, which is 2% of the cells here; scikit-learn densifies `W H` and
+pays for all of them. That is 5.5× on elapsed time and **77× on processor time** at 2,000 rows —
+it burns a full second of CPU for 72 ms of wall clock.
+
+A caller choosing between the two losses on a sparse corpus should know that the one this package
+is faster at is also the one a term-document matrix wants: Kullback-Leibler fits a Poisson noise
+model, which is what counts are.
+
 ## Lodestar.Cluster
 
 ### k-means against NumFlat and Meta.Numerics (issue #681)

@@ -97,6 +97,7 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- `Nmf.Transform` applies a fitted factorization to rows it never saw, holding `H` fixed, at `sklearn.decomposition.NMF.transform` parity — the fitted object now remembers the loss, the cap and the tolerance it ran under, as the reference replays its own. ([#1124](https://github.com/CyrilB1531/lodestar/issues/1124))
 - `PrincipalComponentVariance.Compute` reports the variance each principal component explains. ([#701](https://github.com/CyrilB1531/lodestar/issues/701), [`e311b2c3`](https://github.com/CyrilB1531/lodestar/commit/e311b2c3))
 
 #### Changed

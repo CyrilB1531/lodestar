@@ -36,6 +36,16 @@ internal static class NmfSample
             new NmfOptions { MaxIterations = 100, Tolerance = 0.0 });
 
         Console.WriteLine($"  from a written W0, H0 = {Inv.F3(written.ReconstructionError)} after {written.Iterations}");
+
+        // Transform scores a document the fit never saw, with H held fixed: a factorization
+        // rather than a projection, which is why it iterates instead of multiplying.
+        var unseen = new CsrMatrix(2, fitted.FeatureCount, [2.0, 5.0, 1.0], [0, 2, 4], [0, 2, 3]);
+        double[] scored = fitted.Transform(unseen);
+        Console.WriteLine($"  unseen doc 0 as a mix = {Inv.List(scored.Take(fitted.ComponentCount))}");
+        Console.WriteLine($"  unseen doc 1 as a mix = {Inv.List(scored.Skip(fitted.ComponentCount))}");
+
+        // H is held fixed, so the model is the same afterwards and the next batch reuses it.
+        Console.WriteLine($"  components unchanged  = {Inv.List(fitted.Components.Take(fitted.FeatureCount))}");
         Console.WriteLine();
     }
 }
