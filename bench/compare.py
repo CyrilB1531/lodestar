@@ -269,6 +269,11 @@ def cdist(fmt: str = "text") -> None:
     wallcpu_report("cdist", fmt)
 
 
+def nmf_transform(fmt: str = "text") -> None:
+    """Lodestar.Decomposition's NMF.transform against scikit-learn's (#1124)."""
+    wallcpu_report("nmf-transform", fmt)
+
+
 def transformers(fmt: str = "text") -> None:
     """Lodestar.Preprocessing's feature transformers against scikit-learn's (#1122)."""
     wallcpu_report("transformers", fmt)
@@ -374,6 +379,8 @@ if __name__ == "__main__":
         transformers(output_format)
     elif selected == "cdist":
         cdist(output_format)
+    elif selected == "nmf-transform":
+        nmf_transform(output_format)
     elif selected == "indel":
         indel(output_format, bucket_kind)
     else:

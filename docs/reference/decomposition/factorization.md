@@ -57,7 +57,7 @@ initialisation decides which one.
 
 | Type | What it is |
 | --- | --- |
-| [`Nmf`](factorization/nmf.md) | A fitted factorization: `W`, `H`, how many updates ran, and how far the product is from the matrix. |
+| [`Nmf`](factorization/nmf.md) | A fitted factorization: `W`, `H`, how many updates ran, how far the product is from the matrix, and the weights an unseen matrix gets. |
 | [`NmfOptions`](factorization/nmfoptions.md) | The loss, the initialisation, the iteration cap, the tolerance, and Ω. |
 | [`NmfBetaLoss`](factorization/nmfbetaloss.md) | What the factorization minimises — a Gaussian noise model or a Poisson one. |
 | [`NmfInitialization`](factorization/nmfinitialization.md) | Where the iteration starts — the two NNDSVD variants this package ships. |

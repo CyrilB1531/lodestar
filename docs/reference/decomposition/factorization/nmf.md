@@ -24,13 +24,15 @@ makes a row of `H` readable as a set of terms and a row of `W` readable as a mix
 [`NmfBetaLoss`](nmfbetaloss.md): the Frobenius number is a distance and the Kullback–Leibler one
 is a divergence, and they are not on one scale.
 
-There is no `Transform`. Projecting an unseen row onto a non-negative basis is itself a
-factorization — the same multiplicative loop with `H` held fixed — rather than the product a name
-borrowed from the SVD would suggest, and shipping it under that name would promise a cost it does
-not have.
+[`Transform`](nmf-transform.md) is a factorization, not a projection. Applying an unseen row to a
+non-negative basis runs the same multiplicative loop with `H` held fixed, rather than the product
+a name borrowed from the SVD would suggest — so it costs what a small fit costs, and it honours
+the loss, the cap and the tolerance this fit was given. It leaves `Components` untouched, which is
+what makes one fitted model usable across as many batches as a caller has.
 
 ## Members
 
 | Member | What it does |
 | --- | --- |
 | [`Nmf.Fit`](nmf-fit.md) | Factorizes a sparse matrix, from an initialisation it computes or one you supply. |
+| [`Nmf.Transform`](nmf-transform.md) | `W` for an unseen matrix, with this fit's `H` held fixed. |

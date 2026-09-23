@@ -538,6 +538,17 @@
         "bench/Lodestar.Text.Benchmarks/CrossLang/CdistCrossLang.cs"
       ]
     },
+    "nmf-transform": {
+      "subcommand": "compare-nmf-transform",
+      "python": "bench/python/bench_nmf_transform.py",
+      "compare": "nmf-transform",
+      "generate": [],
+      "sources": [
+        "src/Lodestar.Decomposition/Nmf.cs",
+        "src/Lodestar.Decomposition/Internal/MultiplicativeUpdates.cs",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/NmfTransformCrossLang.cs"
+      ]
+    },
     "glm": {
       "subcommand": "compare-glm",
       "python": "bench/python/bench_stats.py",

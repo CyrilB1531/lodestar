@@ -37,17 +37,26 @@ public sealed class NmfOptions
 
 /// <summary>A fitted non-negative matrix factorization, <c>X ≈ W H</c>.</summary>
 /// <remarks>
-/// There is no unfitted state and no <c>Transform</c>: projecting an unseen row onto a
-/// non-negative basis is itself a factorization — the same multiplicative loop with H held
-/// fixed — rather than the product a name borrowed from the SVD would suggest.
+/// There is no unfitted state, and <see cref="Transform"/> is a factorization rather than a
+/// projection: applying an unseen row to a non-negative basis runs the same multiplicative loop
+/// with H held fixed, not the product a name borrowed from the SVD would suggest.
 /// </remarks>
 public sealed class Nmf
 {
     private readonly double[] _weights;
     private readonly double[] _components;
 
+    // long-comment: which settings are kept and which are not is the whole reason Transform
+    // needs no options of its own, and a reader will ask why the list is only three long.
+    // The three the reference replays in transform(), and no more. Initialization, Seed and
+    // RandomMatrix decide where a *fit* starts; a transform's W is the mean fill below, so
+    // keeping them would be keeping state nothing reads (#1124).
+    private readonly NmfBetaLoss _betaLoss;
+    private readonly int _maxIterations;
+    private readonly double _tolerance;
+
     private Nmf(int featureCount, int componentCount, double[] weights, double[] components,
-                int iterations, double reconstructionError)
+                int iterations, double reconstructionError, NmfOptions settings)
     {
         FeatureCount = featureCount;
         ComponentCount = componentCount;
@@ -55,6 +64,9 @@ public sealed class Nmf
         _components = components;
         Iterations = iterations;
         ReconstructionError = reconstructionError;
+        _betaLoss = settings.BetaLoss;
+        _maxIterations = settings.MaxIterations;
+        _tolerance = settings.Tolerance;
     }
 
     /// <summary>How many components were asked for.</summary>
@@ -177,7 +189,82 @@ public sealed class Nmf
 
         double final = BetaDivergence.Compute(matrix, w, h, componentCount, settings.BetaLoss);
         return new Nmf(
-            features, componentCount, w, DenseBlock.Transpose(h, features, componentCount), iteration, final);
+            features, componentCount, w, DenseBlock.Transpose(h, features, componentCount),
+            iteration, final, settings);
+    }
+
+    /// <summary>W for an unseen matrix, with this fit's H held fixed.</summary>
+    /// <param name="matrix">The matrix to factorize against this fit; it must have <see cref="FeatureCount"/> columns.</param>
+    /// <returns>W, row-major <c>matrix.RowCount × <see cref="ComponentCount"/></c>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="matrix"/> has no row, does not have <see cref="FeatureCount"/> columns, or holds a negative value, a NaN or an infinity.</exception>
+    /// <remarks>
+    /// The same multiplicative update the fit ran, with H untouched, from the loss, the cap and
+    /// the tolerance that fit was given. It is a factorization and not a projection, which is why
+    /// it iterates where <c>TruncatedSvd.Transform</c> multiplies.
+    /// </remarks>
+    public double[] Transform(CsrMatrix matrix)
+    {
+        Guard.NotNull(matrix);
+        if (matrix.ColumnCount != FeatureCount)
+        {
+            throw new ArgumentException(
+                $"This fit has {FeatureCount} features; the matrix has {matrix.ColumnCount}.",
+                nameof(matrix));
+        }
+        if (matrix.RowCount == 0)
+        {
+            // The reference refuses it too: "Found array with 0 sample(s) ... a minimum of 1".
+            throw new ArgumentException("A transform needs at least one row.", nameof(matrix));
+        }
+
+        RequireNonNegativeMatrix(matrix);
+
+        int rows = matrix.RowCount;
+        double[] h = DenseBlock.Transpose(_components, ComponentCount, FeatureCount);
+        var w = new double[(long)rows * ComponentCount];
+
+        // long-comment: this fill is the reason a transform can be frozen at all, and a reader
+        // who replaces it with a random start would break the corpus without breaking a test.
+        // The reference's own initialisation when H is held fixed and the solver is the
+        // multiplicative one: the mean over *every* cell, structural zeros included, over the
+        // rank, square-rooted. No random_state is involved anywhere in it (#1124, measured
+        // against scikit-learn 1.9.1 to 1.7e-16).
+        w.AsSpan().Fill(Math.Sqrt(Mean(matrix) / ComponentCount));
+
+        var workspace = new MultiplicativeUpdates.Workspace(matrix, ComponentCount, _betaLoss);
+        double initial = BetaDivergence.Compute(matrix, w, h, ComponentCount, _betaLoss);
+        double previous = initial;
+        for (int iteration = 1; iteration <= _maxIterations; iteration++)
+        {
+            MultiplicativeUpdates.UpdateWeights(matrix, w, h, ComponentCount, _betaLoss, workspace);
+
+            // H never moves here, so only the tenth-iteration check the fit makes is left.
+            if (_tolerance > 0 && iteration % 10 == 0)
+            {
+                double error = BetaDivergence.Compute(matrix, w, h, ComponentCount, _betaLoss);
+                if ((previous - error) / initial < _tolerance)
+                {
+                    break;
+                }
+                previous = error;
+            }
+        }
+
+        return w;
+    }
+
+    /// <summary>The mean over every cell, which is what <c>X.mean()</c> is on a sparse matrix.</summary>
+    private static double Mean(CsrMatrix matrix)
+    {
+        double sum = 0.0;
+        double[] values = matrix.Values;
+        for (int i = 0; i < values.Length; i++)
+        {
+            sum += values[i];
+        }
+
+        return sum / ((double)matrix.RowCount * matrix.ColumnCount);
     }
 
     /// <summary>The two settings the loop itself cannot survive, refused before it starts.</summary>
