@@ -81,7 +81,14 @@ public sealed class CdistOracleTests
     private static string[] Strings(JsonElement array) =>
         [.. array.EnumerateArray().Select(v => v.GetString()!)];
 
-    private static Func<string, string, double> Scorer(string name, string element)
+    /// <summary>The corpus's scorer name, as a delegate — or <see langword="null"/> where that is the call.</summary>
+    /// <remarks>
+    /// <c>ratio</c> over UTF-16 units is what <c>Cdist</c> defaults to, so it is passed as the
+    /// default rather than as a lambda that would do the same thing. That is the only path the
+    /// length bound is taken on, which makes this corpus's cutoff cases what proves it changes
+    /// no answer (#1134).
+    /// </remarks>
+    private static Func<string, string, double>? Scorer(string name, string element)
     {
         TextElement unit = element == "codePoint" ? TextElement.CodePoint : TextElement.Utf16Unit;
 
@@ -93,6 +100,7 @@ public sealed class CdistOracleTests
             "partial_token_sort_ratio" => (a, b) => Fuzz.PartialTokenSortRatio(a, b, unit),
             "partial_token_set_ratio" => (a, b) => Fuzz.PartialTokenSetRatio(a, b, unit),
             "WRatio" => (a, b) => Fuzz.WRatio(a, b, unit),
+            _ when unit == TextElement.Utf16Unit => null,
             _ => (a, b) => Fuzz.Ratio(a, b, unit),
         };
     }

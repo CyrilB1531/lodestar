@@ -60,9 +60,28 @@ def phrases(count: int, offset: int) -> list[str]:
     return out
 
 
+def varied(count: int, offset: int) -> list[str]:
+    """One to six words and an index, from the row index alone. The C# harness's rule.
+
+    The spread is the point: a length bound rejects a pair only where the lengths
+    differ, and the three-word rule above holds every phrase to within a word of
+    every other (#1134).
+    """
+    out = []
+    for i in range(count):
+        k = i + offset
+        words = 1 + (k * 3) % 6
+        out.append(
+            "".join(f"{WORDS[(k * (w + 1)) % len(WORDS)]} " for w in range(words)) + str(i)
+        )
+    return out
+
+
 def measure_size(n: int) -> list[dict]:
     queries = phrases(n, 0)
     choices = phrases(n, 7)
+    wide_queries = varied(n, 0)
+    wide_choices = varied(n, 7)
     suffix = f"n{n}"
     return [
         measure(
@@ -73,6 +92,17 @@ def measure_size(n: int) -> list[dict]:
             f"cdist_wratio_{suffix}",
             lambda: process.cdist(
                 queries, choices, scorer=fuzz.WRatio, dtype=np.float64, workers=1),
+        ),
+        # A cutoff prunes on both sides, so the pair above is only half the comparison,
+        # and three-word phrases give either side little to prune.
+        measure(
+            f"cdist_ratio_varied_{suffix}",
+            lambda: process.cdist(wide_queries, wide_choices, dtype=np.float64, workers=1),
+        ),
+        measure(
+            f"cdist_ratio_varied_cutoff90_{suffix}",
+            lambda: process.cdist(
+                wide_queries, wide_choices, score_cutoff=90, dtype=np.float64, workers=1),
         ),
     ]
 

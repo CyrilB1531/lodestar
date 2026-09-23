@@ -3319,3 +3319,56 @@ python3 bench/compare.py nmf-transform
 
 The numbers, with their machine and window, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md).
+
+## 58. The cutoff that skips a pair rather than reporting it (issue #1134)
+
+`CdistCutoffBenchmarks` prices the length bound `Process.Cdist` rejects a pair with, as the before
+and after of one run: the baseline row is the default scorer, which takes the bound, and the second
+row is the same arithmetic through a lambda the gate cannot recognise, which is the call as it was
+before this change.
+
+**The gate is the whole measurement.** The bound holds for the Indel ratio and for nothing else —
+`partial_ratio("cat", "the cat sat on the mat")` is 100 against a ceiling of 24 — so `Cdist` takes
+it only when the scorer is the delegate it defaults to. Passing `(a, b) => Fuzz.Ratio(a, b)`
+computes the same scores and is not that delegate, which is what makes the two rows comparable:
+one corpus, one scorer, one difference.
+
+**`Widths` is the second half of the finding, and it has to be run.** A bound rejects a pair only
+where the lengths differ enough, so the spread of the corpus is what decides whether it fires at
+all. `Widths=true` draws phrases of one to six words; `Widths=false` draws the three-word corpus
+section 56 uses, which still varies by a word's length and so rejects at a high cutoff and at no
+other. Reporting only the first would be choosing the corpus that flatters it.
+
+**The `EveryPair` row is the control, not the comparison.** It carries one more delegate hop than
+the baseline, and between-benchmark layout moves both rows by up to 7% on this machine, so the
+before and after is the *baseline against itself at `Cutoff=0`* — one method, one delegate, one
+thing changed. What `EveryPair` proves is the other half: it is flat across all four cutoffs, so
+the cutoff alone buys nothing without a bound behind it.
+
+`Cutoff=0` is the call before this change in a second sense: no score can fall below zero, so the
+gate is closed and both rows are the same code path. It is the row that says the branch is free
+when it cannot fire.
+
+**`compare-cdist` carries the other half, and it is the one that matters.** Section 56 measured
+this package at 0.13× the reference on a cheap scorer; a cutoff is only worth publishing if the
+reference does not get the same discount. So the harness runs the varied corpus twice on each
+side, with `score_cutoff=90` and without, and the answer is that `rapidfuzz` reads the same
+number either way. Its rule for the varied phrases is written out on both sides rather than read
+from a file, exactly as section 56's is.
+
+No corpus file: both sides build the phrases from the row index by the same rule, section 56's
+through `CdistCorpus.Phrases` and the varied one through `Varied`/`varied`. Nothing is asserted to
+agree before timing — `tests/oracles/process_cdist.json` replays its `ratio` cases through the
+bounded path, one of them at a cutoff that rejects ten of twelve cells, and
+`CdistLengthBoundTests` compares the bounded and unbounded paths over a random corpus at eight
+cutoffs.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*CdistCutoff*'
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-cdist
+python3 bench/python/bench_cdist.py
+python3 bench/compare.py cdist
+```
+
+The numbers, with their machine and window, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md).

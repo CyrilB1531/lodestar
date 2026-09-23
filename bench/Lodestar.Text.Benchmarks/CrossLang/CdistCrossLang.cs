@@ -37,6 +37,17 @@ public static class CdistCrossLang
             results.Add(Harness.Measure($"cdist_ratio_{suffix}", () => Process.Cdist(queries, choices)));
             results.Add(Harness.Measure(
                 $"cdist_wratio_{suffix}", () => Process.Cdist(queries, choices, Fuzz.WRatio)));
+
+            // A cutoff prunes on both sides, so the pair above is only half the comparison, and
+            // three-word phrases give either side little to prune (#1134).
+            string[] wideQueries = Varied(n, 0);
+            string[] wideChoices = Varied(n, 7);
+
+            results.Add(Harness.Measure(
+                $"cdist_ratio_varied_{suffix}", () => Process.Cdist(wideQueries, wideChoices)));
+            results.Add(Harness.Measure(
+                $"cdist_ratio_varied_cutoff90_{suffix}",
+                () => Process.Cdist(wideQueries, wideChoices, scorer: null, 90.0)));
         }
 
         Harness.Write(
@@ -69,6 +80,30 @@ public static class CdistCrossLang
             int k = i + offset;
             phrases[i] = $"{Words[k % Words.Length]} {Words[(k * 5) % Words.Length]} " +
                 $"{Words[(k * 7) % Words.Length]} {i}";
+        }
+
+        return phrases;
+    }
+
+    /// <summary>One to six words and an index, from the row index alone — the Python side's rule.</summary>
+    /// <remarks>
+    /// The spread is the point: a length bound rejects a pair only where the lengths differ, and
+    /// the three-word rule above holds every phrase to within a word of every other.
+    /// </remarks>
+    private static string[] Varied(int count, int offset)
+    {
+        var phrases = new string[count];
+        for (int i = 0; i < count; i++)
+        {
+            int k = i + offset;
+            int words = 1 + ((k * 3) % 6);
+            var phrase = new System.Text.StringBuilder();
+            for (int w = 0; w < words; w++)
+            {
+                phrase.Append(Words[(k * (w + 1)) % Words.Length]).Append(' ');
+            }
+
+            phrases[i] = phrase.Append(i.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToString();
         }
 
         return phrases;
