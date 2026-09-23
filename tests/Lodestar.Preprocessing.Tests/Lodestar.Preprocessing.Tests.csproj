@@ -30,6 +30,20 @@
           LinkBase="oracles" />
     <None Include="../oracles/preprocessing_splitters.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
+    <None Include="../oracles/preprocessing_normalizer.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
+    <None Include="../oracles/preprocessing_label_encoder.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
+    <None Include="../oracles/preprocessing_polynomial.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
+    <None Include="../oracles/preprocessing_kbins.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
+    <None Include="../oracles/preprocessing_quantile.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
+    <None Include="../oracles/preprocessing_power.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
+    <None Include="../oracles/preprocessing_knn_imputer.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
   </ItemGroup>
 
   <!-- The reference gate reads the published pages and the map beside the assembly,

@@ -1,0 +1,1542 @@
+{
+ "metadata": {
+  "algorithm": "polynomial_features",
+  "library": "scikit-learn",
+  "library_version": "1.9.1",
+  "count": 32
+ },
+ "cases": [
+  {
+   "name": "three features | degree=1 | interaction_only=False | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 1,
+    "interactionOnly": false,
+    "includeBias": true
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "1",
+    "x0",
+    "x1",
+    "x2"
+   ],
+   "transformed": [
+    1.0,
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=1 | interaction_only=False | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 1,
+    "interactionOnly": false,
+    "includeBias": false
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "x0",
+    "x1",
+    "x2"
+   ],
+   "transformed": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=1 | interaction_only=True | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 1,
+    "interactionOnly": true,
+    "includeBias": true
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "1",
+    "x0",
+    "x1",
+    "x2"
+   ],
+   "transformed": [
+    1.0,
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=1 | interaction_only=True | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 1,
+    "interactionOnly": true,
+    "includeBias": false
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "x0",
+    "x1",
+    "x2"
+   ],
+   "transformed": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=2 | interaction_only=False | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 2,
+    "interactionOnly": false,
+    "includeBias": true
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "1",
+    "x0",
+    "x1",
+    "x2",
+    "x0^2",
+    "x0 x1",
+    "x0 x2",
+    "x1^2",
+    "x1 x2",
+    "x2^2"
+   ],
+   "transformed": [
+    1.0,
+    2.0,
+    3.0,
+    5.0,
+    4.0,
+    6.0,
+    10.0,
+    9.0,
+    15.0,
+    25.0,
+    1.0,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -0.5,
+    0.25,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=2 | interaction_only=False | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 2,
+    "interactionOnly": false,
+    "includeBias": false
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "x0",
+    "x1",
+    "x2",
+    "x0^2",
+    "x0 x1",
+    "x0 x2",
+    "x1^2",
+    "x1 x2",
+    "x2^2"
+   ],
+   "transformed": [
+    2.0,
+    3.0,
+    5.0,
+    4.0,
+    6.0,
+    10.0,
+    9.0,
+    15.0,
+    25.0,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -0.5,
+    0.25,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=2 | interaction_only=True | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 2,
+    "interactionOnly": true,
+    "includeBias": true
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "1",
+    "x0",
+    "x1",
+    "x2",
+    "x0 x1",
+    "x0 x2",
+    "x1 x2"
+   ],
+   "transformed": [
+    1.0,
+    2.0,
+    3.0,
+    5.0,
+    6.0,
+    10.0,
+    15.0,
+    1.0,
+    1.0,
+    -1.0,
+    0.5,
+    -1.0,
+    0.5,
+    -0.5,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=2 | interaction_only=True | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 2,
+    "interactionOnly": true,
+    "includeBias": false
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "x0",
+    "x1",
+    "x2",
+    "x0 x1",
+    "x0 x2",
+    "x1 x2"
+   ],
+   "transformed": [
+    2.0,
+    3.0,
+    5.0,
+    6.0,
+    10.0,
+    15.0,
+    1.0,
+    -1.0,
+    0.5,
+    -1.0,
+    0.5,
+    -0.5,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=3 | interaction_only=False | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 3,
+    "interactionOnly": false,
+    "includeBias": true
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "1",
+    "x0",
+    "x1",
+    "x2",
+    "x0^2",
+    "x0 x1",
+    "x0 x2",
+    "x1^2",
+    "x1 x2",
+    "x2^2",
+    "x0^3",
+    "x0^2 x1",
+    "x0^2 x2",
+    "x0 x1^2",
+    "x0 x1 x2",
+    "x0 x2^2",
+    "x1^3",
+    "x1^2 x2",
+    "x1 x2^2",
+    "x2^3"
+   ],
+   "transformed": [
+    1.0,
+    2.0,
+    3.0,
+    5.0,
+    4.0,
+    6.0,
+    10.0,
+    9.0,
+    15.0,
+    25.0,
+    8.0,
+    12.0,
+    20.0,
+    18.0,
+    30.0,
+    50.0,
+    27.0,
+    45.0,
+    75.0,
+    125.0,
+    1.0,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -0.5,
+    0.25,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -0.5,
+    0.25,
+    -1.0,
+    0.5,
+    -0.25,
+    0.125,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=3 | interaction_only=False | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 3,
+    "interactionOnly": false,
+    "includeBias": false
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "x0",
+    "x1",
+    "x2",
+    "x0^2",
+    "x0 x1",
+    "x0 x2",
+    "x1^2",
+    "x1 x2",
+    "x2^2",
+    "x0^3",
+    "x0^2 x1",
+    "x0^2 x2",
+    "x0 x1^2",
+    "x0 x1 x2",
+    "x0 x2^2",
+    "x1^3",
+    "x1^2 x2",
+    "x1 x2^2",
+    "x2^3"
+   ],
+   "transformed": [
+    2.0,
+    3.0,
+    5.0,
+    4.0,
+    6.0,
+    10.0,
+    9.0,
+    15.0,
+    25.0,
+    8.0,
+    12.0,
+    20.0,
+    18.0,
+    30.0,
+    50.0,
+    27.0,
+    45.0,
+    75.0,
+    125.0,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -0.5,
+    0.25,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -0.5,
+    0.25,
+    -1.0,
+    0.5,
+    -0.25,
+    0.125,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=3 | interaction_only=True | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 3,
+    "interactionOnly": true,
+    "includeBias": true
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "1",
+    "x0",
+    "x1",
+    "x2",
+    "x0 x1",
+    "x0 x2",
+    "x1 x2",
+    "x0 x1 x2"
+   ],
+   "transformed": [
+    1.0,
+    2.0,
+    3.0,
+    5.0,
+    6.0,
+    10.0,
+    15.0,
+    30.0,
+    1.0,
+    1.0,
+    -1.0,
+    0.5,
+    -1.0,
+    0.5,
+    -0.5,
+    -0.5,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=3 | interaction_only=True | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 3,
+    "interactionOnly": true,
+    "includeBias": false
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "x0",
+    "x1",
+    "x2",
+    "x0 x1",
+    "x0 x2",
+    "x1 x2",
+    "x0 x1 x2"
+   ],
+   "transformed": [
+    2.0,
+    3.0,
+    5.0,
+    6.0,
+    10.0,
+    15.0,
+    30.0,
+    1.0,
+    -1.0,
+    0.5,
+    -1.0,
+    0.5,
+    -0.5,
+    -0.5,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=4 | interaction_only=False | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 4,
+    "interactionOnly": false,
+    "includeBias": true
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "1",
+    "x0",
+    "x1",
+    "x2",
+    "x0^2",
+    "x0 x1",
+    "x0 x2",
+    "x1^2",
+    "x1 x2",
+    "x2^2",
+    "x0^3",
+    "x0^2 x1",
+    "x0^2 x2",
+    "x0 x1^2",
+    "x0 x1 x2",
+    "x0 x2^2",
+    "x1^3",
+    "x1^2 x2",
+    "x1 x2^2",
+    "x2^3",
+    "x0^4",
+    "x0^3 x1",
+    "x0^3 x2",
+    "x0^2 x1^2",
+    "x0^2 x1 x2",
+    "x0^2 x2^2",
+    "x0 x1^3",
+    "x0 x1^2 x2",
+    "x0 x1 x2^2",
+    "x0 x2^3",
+    "x1^4",
+    "x1^3 x2",
+    "x1^2 x2^2",
+    "x1 x2^3",
+    "x2^4"
+   ],
+   "transformed": [
+    1.0,
+    2.0,
+    3.0,
+    5.0,
+    4.0,
+    6.0,
+    10.0,
+    9.0,
+    15.0,
+    25.0,
+    8.0,
+    12.0,
+    20.0,
+    18.0,
+    30.0,
+    50.0,
+    27.0,
+    45.0,
+    75.0,
+    125.0,
+    16.0,
+    24.0,
+    40.0,
+    36.0,
+    60.0,
+    100.0,
+    54.0,
+    90.0,
+    150.0,
+    250.0,
+    81.0,
+    135.0,
+    225.0,
+    375.0,
+    625.0,
+    1.0,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -0.5,
+    0.25,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -0.5,
+    0.25,
+    -1.0,
+    0.5,
+    -0.25,
+    0.125,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -0.5,
+    0.25,
+    -1.0,
+    0.5,
+    -0.25,
+    0.125,
+    1.0,
+    -0.5,
+    0.25,
+    -0.125,
+    0.0625,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=4 | interaction_only=False | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 4,
+    "interactionOnly": false,
+    "includeBias": false
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "x0",
+    "x1",
+    "x2",
+    "x0^2",
+    "x0 x1",
+    "x0 x2",
+    "x1^2",
+    "x1 x2",
+    "x2^2",
+    "x0^3",
+    "x0^2 x1",
+    "x0^2 x2",
+    "x0 x1^2",
+    "x0 x1 x2",
+    "x0 x2^2",
+    "x1^3",
+    "x1^2 x2",
+    "x1 x2^2",
+    "x2^3",
+    "x0^4",
+    "x0^3 x1",
+    "x0^3 x2",
+    "x0^2 x1^2",
+    "x0^2 x1 x2",
+    "x0^2 x2^2",
+    "x0 x1^3",
+    "x0 x1^2 x2",
+    "x0 x1 x2^2",
+    "x0 x2^3",
+    "x1^4",
+    "x1^3 x2",
+    "x1^2 x2^2",
+    "x1 x2^3",
+    "x2^4"
+   ],
+   "transformed": [
+    2.0,
+    3.0,
+    5.0,
+    4.0,
+    6.0,
+    10.0,
+    9.0,
+    15.0,
+    25.0,
+    8.0,
+    12.0,
+    20.0,
+    18.0,
+    30.0,
+    50.0,
+    27.0,
+    45.0,
+    75.0,
+    125.0,
+    16.0,
+    24.0,
+    40.0,
+    36.0,
+    60.0,
+    100.0,
+    54.0,
+    90.0,
+    150.0,
+    250.0,
+    81.0,
+    135.0,
+    225.0,
+    375.0,
+    625.0,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -0.5,
+    0.25,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -0.5,
+    0.25,
+    -1.0,
+    0.5,
+    -0.25,
+    0.125,
+    1.0,
+    -1.0,
+    0.5,
+    1.0,
+    -0.5,
+    0.25,
+    -1.0,
+    0.5,
+    -0.25,
+    0.125,
+    1.0,
+    -0.5,
+    0.25,
+    -0.125,
+    0.0625,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=4 | interaction_only=True | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 4,
+    "interactionOnly": true,
+    "includeBias": true
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "1",
+    "x0",
+    "x1",
+    "x2",
+    "x0 x1",
+    "x0 x2",
+    "x1 x2",
+    "x0 x1 x2"
+   ],
+   "transformed": [
+    1.0,
+    2.0,
+    3.0,
+    5.0,
+    6.0,
+    10.0,
+    15.0,
+    30.0,
+    1.0,
+    1.0,
+    -1.0,
+    0.5,
+    -1.0,
+    0.5,
+    -0.5,
+    -0.5,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "three features | degree=4 | interaction_only=True | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 4,
+    "interactionOnly": true,
+    "includeBias": false
+   },
+   "samples": [
+    2.0,
+    3.0,
+    5.0,
+    1.0,
+    -1.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "featureCount": 3,
+   "names": [
+    "x0",
+    "x1",
+    "x2",
+    "x0 x1",
+    "x0 x2",
+    "x1 x2",
+    "x0 x1 x2"
+   ],
+   "transformed": [
+    2.0,
+    3.0,
+    5.0,
+    6.0,
+    10.0,
+    15.0,
+    30.0,
+    1.0,
+    -1.0,
+    0.5,
+    -1.0,
+    0.5,
+    -0.5,
+    -0.5,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "one feature | degree=1 | interaction_only=False | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 1,
+    "interactionOnly": false,
+    "includeBias": true
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "1",
+    "x0"
+   ],
+   "transformed": [
+    1.0,
+    4.0,
+    1.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "one feature | degree=1 | interaction_only=False | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 1,
+    "interactionOnly": false,
+    "includeBias": false
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "x0"
+   ],
+   "transformed": [
+    4.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "one feature | degree=1 | interaction_only=True | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 1,
+    "interactionOnly": true,
+    "includeBias": true
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "1",
+    "x0"
+   ],
+   "transformed": [
+    1.0,
+    4.0,
+    1.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "one feature | degree=1 | interaction_only=True | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 1,
+    "interactionOnly": true,
+    "includeBias": false
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "x0"
+   ],
+   "transformed": [
+    4.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "one feature | degree=2 | interaction_only=False | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 2,
+    "interactionOnly": false,
+    "includeBias": true
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "1",
+    "x0",
+    "x0^2"
+   ],
+   "transformed": [
+    1.0,
+    4.0,
+    16.0,
+    1.0,
+    -2.0,
+    4.0
+   ]
+  },
+  {
+   "name": "one feature | degree=2 | interaction_only=False | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 2,
+    "interactionOnly": false,
+    "includeBias": false
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "x0",
+    "x0^2"
+   ],
+   "transformed": [
+    4.0,
+    16.0,
+    -2.0,
+    4.0
+   ]
+  },
+  {
+   "name": "one feature | degree=2 | interaction_only=True | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 2,
+    "interactionOnly": true,
+    "includeBias": true
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "1",
+    "x0"
+   ],
+   "transformed": [
+    1.0,
+    4.0,
+    1.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "one feature | degree=2 | interaction_only=True | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 2,
+    "interactionOnly": true,
+    "includeBias": false
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "x0"
+   ],
+   "transformed": [
+    4.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "one feature | degree=3 | interaction_only=False | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 3,
+    "interactionOnly": false,
+    "includeBias": true
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "1",
+    "x0",
+    "x0^2",
+    "x0^3"
+   ],
+   "transformed": [
+    1.0,
+    4.0,
+    16.0,
+    64.0,
+    1.0,
+    -2.0,
+    4.0,
+    -8.0
+   ]
+  },
+  {
+   "name": "one feature | degree=3 | interaction_only=False | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 3,
+    "interactionOnly": false,
+    "includeBias": false
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "x0",
+    "x0^2",
+    "x0^3"
+   ],
+   "transformed": [
+    4.0,
+    16.0,
+    64.0,
+    -2.0,
+    4.0,
+    -8.0
+   ]
+  },
+  {
+   "name": "one feature | degree=3 | interaction_only=True | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 3,
+    "interactionOnly": true,
+    "includeBias": true
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "1",
+    "x0"
+   ],
+   "transformed": [
+    1.0,
+    4.0,
+    1.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "one feature | degree=3 | interaction_only=True | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 3,
+    "interactionOnly": true,
+    "includeBias": false
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "x0"
+   ],
+   "transformed": [
+    4.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "one feature | degree=4 | interaction_only=False | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 4,
+    "interactionOnly": false,
+    "includeBias": true
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "1",
+    "x0",
+    "x0^2",
+    "x0^3",
+    "x0^4"
+   ],
+   "transformed": [
+    1.0,
+    4.0,
+    16.0,
+    64.0,
+    256.0,
+    1.0,
+    -2.0,
+    4.0,
+    -8.0,
+    16.0
+   ]
+  },
+  {
+   "name": "one feature | degree=4 | interaction_only=False | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 4,
+    "interactionOnly": false,
+    "includeBias": false
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "x0",
+    "x0^2",
+    "x0^3",
+    "x0^4"
+   ],
+   "transformed": [
+    4.0,
+    16.0,
+    64.0,
+    256.0,
+    -2.0,
+    4.0,
+    -8.0,
+    16.0
+   ]
+  },
+  {
+   "name": "one feature | degree=4 | interaction_only=True | include_bias=True",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 4,
+    "interactionOnly": true,
+    "includeBias": true
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "1",
+    "x0"
+   ],
+   "transformed": [
+    1.0,
+    4.0,
+    1.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "one feature | degree=4 | interaction_only=True | include_bias=False",
+   "call": "PolynomialFeatures",
+   "args": {
+    "degree": 4,
+    "interactionOnly": true,
+    "includeBias": false
+   },
+   "samples": [
+    4.0,
+    -2.0
+   ],
+   "featureCount": 1,
+   "names": [
+    "x0"
+   ],
+   "transformed": [
+    4.0,
+    -2.0
+   ]
+  }
+ ]
+}

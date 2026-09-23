@@ -1,0 +1,628 @@
+{
+ "metadata": {
+  "algorithm": "knn_imputer",
+  "library": "scikit-learn",
+  "library_version": "1.9.1",
+  "count": 18
+ },
+ "cases": [
+  {
+   "name": "three features, three gaps | n_neighbors=1 | weights=uniform",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 1,
+    "weights": "uniform"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    "NaN",
+    3.0,
+    4.0,
+    3.0,
+    "NaN",
+    6.0,
+    5.0,
+    8.0,
+    8.0,
+    7.0,
+    2.5,
+    "NaN",
+    "NaN",
+    9.0,
+    1.5,
+    2.5
+   ],
+   "featureCount": 3,
+   "transformed": [
+    1.0,
+    2.0,
+    3.0,
+    3.0,
+    4.0,
+    3.0,
+    3.0,
+    6.0,
+    5.0,
+    8.0,
+    8.0,
+    7.0,
+    2.5,
+    4.0,
+    3.0,
+    9.0,
+    1.5,
+    2.5
+   ]
+  },
+  {
+   "name": "three features, three gaps | n_neighbors=1 | weights=distance",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 1,
+    "weights": "distance"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    "NaN",
+    3.0,
+    4.0,
+    3.0,
+    "NaN",
+    6.0,
+    5.0,
+    8.0,
+    8.0,
+    7.0,
+    2.5,
+    "NaN",
+    "NaN",
+    9.0,
+    1.5,
+    2.5
+   ],
+   "featureCount": 3,
+   "transformed": [
+    1.0,
+    2.0,
+    3.0,
+    3.0,
+    4.0,
+    3.0,
+    3.0,
+    6.0,
+    5.0,
+    8.0,
+    8.0,
+    7.0,
+    2.5,
+    4.0,
+    3.0,
+    9.0,
+    1.5,
+    2.5
+   ]
+  },
+  {
+   "name": "three features, three gaps | n_neighbors=2 | weights=uniform",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 2,
+    "weights": "uniform"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    "NaN",
+    3.0,
+    4.0,
+    3.0,
+    "NaN",
+    6.0,
+    5.0,
+    8.0,
+    8.0,
+    7.0,
+    2.5,
+    "NaN",
+    "NaN",
+    9.0,
+    1.5,
+    2.5
+   ],
+   "featureCount": 3,
+   "transformed": [
+    1.0,
+    2.0,
+    4.0,
+    3.0,
+    4.0,
+    3.0,
+    5.5,
+    6.0,
+    5.0,
+    8.0,
+    8.0,
+    7.0,
+    2.5,
+    3.0,
+    5.0,
+    9.0,
+    1.5,
+    2.5
+   ]
+  },
+  {
+   "name": "three features, three gaps | n_neighbors=2 | weights=distance",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 2,
+    "weights": "distance"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    "NaN",
+    3.0,
+    4.0,
+    3.0,
+    "NaN",
+    6.0,
+    5.0,
+    8.0,
+    8.0,
+    7.0,
+    2.5,
+    "NaN",
+    "NaN",
+    9.0,
+    1.5,
+    2.5
+   ],
+   "featureCount": 3,
+   "transformed": [
+    1.0,
+    2.0,
+    3.6666666666666665,
+    3.0,
+    4.0,
+    3.0,
+    5.5,
+    6.0,
+    5.0,
+    8.0,
+    8.0,
+    7.0,
+    2.5,
+    3.5000000000000004,
+    3.333333333333334,
+    9.0,
+    1.5,
+    2.5
+   ]
+  },
+  {
+   "name": "three features, three gaps | n_neighbors=3 | weights=uniform",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 3,
+    "weights": "uniform"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    "NaN",
+    3.0,
+    4.0,
+    3.0,
+    "NaN",
+    6.0,
+    5.0,
+    8.0,
+    8.0,
+    7.0,
+    2.5,
+    "NaN",
+    "NaN",
+    9.0,
+    1.5,
+    2.5
+   ],
+   "featureCount": 3,
+   "transformed": [
+    1.0,
+    2.0,
+    3.5,
+    3.0,
+    4.0,
+    3.0,
+    6.666666666666667,
+    6.0,
+    5.0,
+    8.0,
+    8.0,
+    7.0,
+    2.5,
+    4.666666666666667,
+    4.166666666666667,
+    9.0,
+    1.5,
+    2.5
+   ]
+  },
+  {
+   "name": "three features, three gaps | n_neighbors=3 | weights=distance",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 3,
+    "weights": "distance"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    "NaN",
+    3.0,
+    4.0,
+    3.0,
+    "NaN",
+    6.0,
+    5.0,
+    8.0,
+    8.0,
+    7.0,
+    2.5,
+    "NaN",
+    "NaN",
+    9.0,
+    1.5,
+    2.5
+   ],
+   "featureCount": 3,
+   "transformed": [
+    1.0,
+    2.0,
+    3.4444833378808877,
+    3.0,
+    4.0,
+    3.0,
+    6.25430141275436,
+    6.0,
+    5.0,
+    8.0,
+    8.0,
+    7.0,
+    2.5,
+    3.7872340425531923,
+    3.2784431137724557,
+    9.0,
+    1.5,
+    2.5
+   ]
+  },
+  {
+   "name": "one column missing everywhere | n_neighbors=1 | weights=uniform",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 1,
+    "weights": "uniform"
+   },
+   "samples": [
+    1.0,
+    "NaN",
+    4.0,
+    "NaN",
+    7.0,
+    "NaN",
+    2.0,
+    "NaN"
+   ],
+   "featureCount": 2,
+   "transformed": [
+    1.0,
+    4.0,
+    7.0,
+    2.0
+   ]
+  },
+  {
+   "name": "one column missing everywhere | n_neighbors=1 | weights=distance",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 1,
+    "weights": "distance"
+   },
+   "samples": [
+    1.0,
+    "NaN",
+    4.0,
+    "NaN",
+    7.0,
+    "NaN",
+    2.0,
+    "NaN"
+   ],
+   "featureCount": 2,
+   "transformed": [
+    1.0,
+    4.0,
+    7.0,
+    2.0
+   ]
+  },
+  {
+   "name": "one column missing everywhere | n_neighbors=2 | weights=uniform",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 2,
+    "weights": "uniform"
+   },
+   "samples": [
+    1.0,
+    "NaN",
+    4.0,
+    "NaN",
+    7.0,
+    "NaN",
+    2.0,
+    "NaN"
+   ],
+   "featureCount": 2,
+   "transformed": [
+    1.0,
+    4.0,
+    7.0,
+    2.0
+   ]
+  },
+  {
+   "name": "one column missing everywhere | n_neighbors=2 | weights=distance",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 2,
+    "weights": "distance"
+   },
+   "samples": [
+    1.0,
+    "NaN",
+    4.0,
+    "NaN",
+    7.0,
+    "NaN",
+    2.0,
+    "NaN"
+   ],
+   "featureCount": 2,
+   "transformed": [
+    1.0,
+    4.0,
+    7.0,
+    2.0
+   ]
+  },
+  {
+   "name": "one column missing everywhere | n_neighbors=3 | weights=uniform",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 3,
+    "weights": "uniform"
+   },
+   "samples": [
+    1.0,
+    "NaN",
+    4.0,
+    "NaN",
+    7.0,
+    "NaN",
+    2.0,
+    "NaN"
+   ],
+   "featureCount": 2,
+   "transformed": [
+    1.0,
+    4.0,
+    7.0,
+    2.0
+   ]
+  },
+  {
+   "name": "one column missing everywhere | n_neighbors=3 | weights=distance",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 3,
+    "weights": "distance"
+   },
+   "samples": [
+    1.0,
+    "NaN",
+    4.0,
+    "NaN",
+    7.0,
+    "NaN",
+    2.0,
+    "NaN"
+   ],
+   "featureCount": 2,
+   "transformed": [
+    1.0,
+    4.0,
+    7.0,
+    2.0
+   ]
+  },
+  {
+   "name": "a row missing every feature | n_neighbors=1 | weights=uniform",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 1,
+    "weights": "uniform"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    4.0,
+    9.0,
+    "NaN",
+    "NaN",
+    7.0,
+    3.0
+   ],
+   "featureCount": 2,
+   "transformed": [
+    1.0,
+    2.0,
+    4.0,
+    9.0,
+    4.0,
+    4.666666666666667,
+    7.0,
+    3.0
+   ]
+  },
+  {
+   "name": "a row missing every feature | n_neighbors=1 | weights=distance",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 1,
+    "weights": "distance"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    4.0,
+    9.0,
+    "NaN",
+    "NaN",
+    7.0,
+    3.0
+   ],
+   "featureCount": 2,
+   "transformed": [
+    1.0,
+    2.0,
+    4.0,
+    9.0,
+    4.0,
+    4.666666666666667,
+    7.0,
+    3.0
+   ]
+  },
+  {
+   "name": "a row missing every feature | n_neighbors=2 | weights=uniform",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 2,
+    "weights": "uniform"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    4.0,
+    9.0,
+    "NaN",
+    "NaN",
+    7.0,
+    3.0
+   ],
+   "featureCount": 2,
+   "transformed": [
+    1.0,
+    2.0,
+    4.0,
+    9.0,
+    4.0,
+    4.666666666666667,
+    7.0,
+    3.0
+   ]
+  },
+  {
+   "name": "a row missing every feature | n_neighbors=2 | weights=distance",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 2,
+    "weights": "distance"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    4.0,
+    9.0,
+    "NaN",
+    "NaN",
+    7.0,
+    3.0
+   ],
+   "featureCount": 2,
+   "transformed": [
+    1.0,
+    2.0,
+    4.0,
+    9.0,
+    4.0,
+    4.666666666666667,
+    7.0,
+    3.0
+   ]
+  },
+  {
+   "name": "a row missing every feature | n_neighbors=3 | weights=uniform",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 3,
+    "weights": "uniform"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    4.0,
+    9.0,
+    "NaN",
+    "NaN",
+    7.0,
+    3.0
+   ],
+   "featureCount": 2,
+   "transformed": [
+    1.0,
+    2.0,
+    4.0,
+    9.0,
+    4.0,
+    4.666666666666667,
+    7.0,
+    3.0
+   ]
+  },
+  {
+   "name": "a row missing every feature | n_neighbors=3 | weights=distance",
+   "call": "KNNImputer",
+   "args": {
+    "neighbourCount": 3,
+    "weights": "distance"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    4.0,
+    9.0,
+    "NaN",
+    "NaN",
+    7.0,
+    3.0
+   ],
+   "featureCount": 2,
+   "transformed": [
+    1.0,
+    2.0,
+    4.0,
+    9.0,
+    4.0,
+    4.666666666666667,
+    7.0,
+    3.0
+   ]
+  }
+ ]
+}

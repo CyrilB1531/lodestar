@@ -11760,8 +11760,25 @@ PROPORTION_TO_CUT = "proportiontocut"
 SHAPE_A = "a"
 SHAPE_B = "b"
 NAN_IN_FIRST = "nan in the first group"
+
+# long-comment: rebinding a key name already bound above silently renames it in every
+# other corpus, so the trap is worth stating where the next constant will be added.
+# Preprocessing's seven new members (#1122): one spelling per key the cases repeat.
+# Only names this file does not already bind -- SAMPLES, TRANSFORMED, INVERSE and
+# STRATEGY are defined above and reused, and rebinding FEATURE_COUNT here silently
+# renamed the key in every other corpus, which the suites caught.
+FEATURES_PER_ROW = "featureCount"
+NORM = "norm"
+DEGREE = "degree"
+ENCODING = "encoding"
+LAMBDAS = "lambdas"
 CRITICAL_VALUES = "critical_values"
 SIGNIFICANCE_LEVELS = "significance_level"
+# A fixture name, not SimpleImputer's strategy: the two spell the same word for
+# different reasons, so STRATEGY_CONSTANT is not the constant to reuse here.
+CONSTANT_COLUMN = "constant"
+LINEAR = "linear"
+YEO_JOHNSON = "yeo-johnson"
 
 # Correlation (#1120): one spelling each for the three call names and the keys the
 # cases repeat, past check_repeated_literals.py's threshold.
@@ -12708,6 +12725,273 @@ def generate_stats_kendall() -> dict:
     return {"metadata": _stats_metadata(KENDALLTAU, len(cases)), CASES: cases}
 
 
+def _sklearn_metadata(algorithm: str, count: int) -> dict:
+    """The identity block the preprocessing corpora carry (#1122)."""
+    return {
+        "algorithm": algorithm,
+        "library": "scikit-learn",
+        "library_version": version("scikit-learn"),
+        "count": count,
+    }
+
+
+def _preprocessing_matrices() -> dict:
+    """Row-major matrices the seven new members share, each chosen for one corner."""
+    rng = SeededRandom(SEED + 1122)
+    return {
+        "small": [[1.0, -2.0, 0.0], [3.0, 4.0, -5.0], [0.0, 0.0, 0.0], [2.0, 1.0, 7.0]],
+        "wide": [[round(rng.gauss(0.0, 2.0), 6) for _ in range(4)] for _ in range(12)],
+        "skewed": [[round(-math.log(1.0 - rng.random()) * 3.0 + 0.1, 6)] for _ in range(30)],
+        "tied": [[1.0], [1.0], [2.0], [2.0], [2.0], [3.0], [7.0], [7.0], [9.0], [9.0]],
+        CONSTANT_COLUMN: [[2.0, 1.0], [2.0, 5.0], [2.0, 3.0], [2.0, 9.0]],
+    }
+
+
+def _flat(rows) -> list:
+    return [float(v) for row in rows for v in row]
+
+
+def generate_preprocessing_normalizer() -> dict:
+    """Normalizer, against sklearn.preprocessing.Normalizer (#1122)."""
+    from sklearn.preprocessing import Normalizer
+
+    cases = []
+    matrices = _preprocessing_matrices()
+    for name in ("small", "wide", CONSTANT_COLUMN):
+        rows = matrices[name]
+        matrix = np.array(rows, dtype=np.float64)
+        for norm in ("l1", "l2", "max"):
+            cases.append({
+                "name": _correlation_name(name, norm=norm),
+                "call": "Normalizer", "args": {NORM: norm},
+                SAMPLES: _flat(rows), FEATURES_PER_ROW: len(rows[0]),
+                TRANSFORMED: _flat(Normalizer(norm=norm).fit_transform(matrix)),
+            })
+
+    return {"metadata": _sklearn_metadata("normalizer", len(cases)), CASES: cases}
+
+
+def generate_preprocessing_label_encoder() -> dict:
+    """LabelEncoder, against sklearn.preprocessing.LabelEncoder (#1122)."""
+    from sklearn.preprocessing import LabelEncoder
+
+    fixtures = [
+        {"name": "code point order, mixed case and an accent", "labels": ["b", "a", "B", "\u00e9", "a"]},
+        {"name": "one label", "labels": ["only"]},
+        {"name": "already sorted", "labels": ["x", "y", "z"]},
+        {"name": "repeated throughout", "labels": ["p", "q", "p", "q", "p"]},
+    ]
+
+    cases = []
+    for fx in fixtures:
+        encoder = LabelEncoder().fit(fx["labels"])
+        cases.append({
+            "name": fx["name"], "call": "LabelEncoder", "args": {},
+            "labels": fx["labels"],
+            "classes": [str(c) for c in encoder.classes_],
+            "codes": [int(c) for c in encoder.transform(fx["labels"])],
+        })
+
+    return {"metadata": _sklearn_metadata("label_encoder", len(cases)), CASES: cases}
+
+
+def generate_preprocessing_polynomial() -> dict:
+    """PolynomialFeatures, against sklearn.preprocessing.PolynomialFeatures (#1122)."""
+    from sklearn.preprocessing import PolynomialFeatures
+
+    rows = [[2.0, 3.0, 5.0], [1.0, -1.0, 0.5], [0.0, 0.0, 0.0]]
+    single = [[4.0], [-2.0]]
+
+    cases = []
+    for name, matrix in (("three features", rows), ("one feature", single)):
+        for degree in (1, 2, 3, 4):
+            for interaction in (False, True):
+                for bias in (True, False):
+                    poly = PolynomialFeatures(
+                        degree=degree, interaction_only=interaction, include_bias=bias)
+                    transformed = poly.fit_transform(np.array(matrix, dtype=np.float64))
+                    cases.append({
+                        "name": _correlation_name(
+                            name, degree=degree, interaction_only=interaction, include_bias=bias),
+                        "call": "PolynomialFeatures",
+                        "args": {DEGREE: degree, "interactionOnly": interaction, "includeBias": bias},
+                        SAMPLES: _flat(matrix), FEATURES_PER_ROW: len(matrix[0]),
+                        "names": [str(n) for n in poly.get_feature_names_out()],
+                        TRANSFORMED: _flat(transformed),
+                    })
+
+    return {"metadata": _sklearn_metadata("polynomial_features", len(cases)), CASES: cases}
+
+
+def generate_preprocessing_kbins() -> dict:
+    """KBinsDiscretizer, against sklearn.preprocessing.KBinsDiscretizer (#1122).
+
+    The kmeans fixtures are chosen so no relocation turns on a tie: with two
+    samples exactly as far from their centres, the reference follows
+    numpy.argpartition and this package takes the lowest row, a divergence
+    Lodestar.Cluster's own equivalence row already records.
+    """
+    from sklearn.preprocessing import KBinsDiscretizer
+
+    columns = {
+        "separated": [[1.0], [2.0], [3.0], [10.0], [11.0], [12.0], [30.0], [31.0], [32.0]],
+        "even spread": [[0.5], [1.2], [2.8], [4.1], [5.5], [9.9], [10.4], [11.1], [18.2], [19.7]],
+        "with ties": [[2.0], [2.1], [2.2], [5.0], [5.1], [8.0], [8.1], [8.2], [8.3]],
+    }
+
+    cases = []
+    for name, rows in columns.items():
+        matrix = np.array(rows, dtype=np.float64)
+        for strategy in ("uniform", "quantile", "kmeans"):
+            for encode in (ORDINAL, "onehot-dense"):
+                # NOSONAR S6709: random_state seeds the subsample and the kmeans draw, and
+                # this fit takes neither -- 12 rows is far below the reference's own threshold.
+                fitted = KBinsDiscretizer(  # NOSONAR S6709
+                    n_bins=3, strategy=strategy, encode=encode,
+                    quantile_method="averaged_inverted_cdf").fit(matrix)
+                transformed = fitted.transform(matrix)
+                cases.append({
+                    "name": _correlation_name(name, strategy=strategy, encode=encode),
+                    "call": "KBinsDiscretizer",
+                    "args": {"binCount": 3, STRATEGY: strategy, ENCODING: encode,
+                             "quantileMethod": "averaged_inverted_cdf"},
+                    SAMPLES: _flat(rows), FEATURES_PER_ROW: 1,
+                    "binEdges": [float(v) for v in fitted.bin_edges_[0]],
+                    TRANSFORMED: _flat(transformed),
+                    INVERSE: _flat(fitted.inverse_transform(transformed)),
+                })
+
+    linear = KBinsDiscretizer(  # NOSONAR S6709: as above, six rows subsample nothing
+        n_bins=3, strategy="quantile", encode=ORDINAL, quantile_method=LINEAR)
+    rows = [[1.0], [2.0], [3.0], [4.0], [5.0], [6.0]]
+    fitted = linear.fit(np.array(rows, dtype=np.float64))
+    cases.append({
+        "name": "one to six | quantileMethod=linear",
+        "call": "KBinsDiscretizer",
+        "args": {"binCount": 3, STRATEGY: "quantile", ENCODING: ORDINAL,
+                 "quantileMethod": LINEAR},
+        SAMPLES: _flat(rows), FEATURES_PER_ROW: 1,
+        "binEdges": [float(v) for v in fitted.bin_edges_[0]],
+        TRANSFORMED: _flat(fitted.transform(np.array(rows, dtype=np.float64))),
+        INVERSE: _flat(fitted.inverse_transform(fitted.transform(np.array(rows, dtype=np.float64)))),
+    })
+
+    return {"metadata": _sklearn_metadata("kbins_discretizer", len(cases)), CASES: cases}
+
+
+def generate_preprocessing_quantile() -> dict:
+    """QuantileTransformer, against sklearn.preprocessing.QuantileTransformer (#1122).
+
+    Frozen at subsample=None throughout, which is the only configuration the
+    reference reproduces: at its own default of 10,000 it draws from numpy's
+    generator, and two seeds were measured moving a quantile by 0.19 over twenty
+    thousand rows. Lodestar.Preprocessing offers no subsample for that reason.
+    """
+    from sklearn.preprocessing import QuantileTransformer
+
+    rows = [[5.0], [1.0], [3.0], [3.0], [9.0], [2.0], [7.0], [3.0], [11.0], [4.0]]
+    probe = [[1.0], [3.0], [6.0], [11.0], [0.0], [20.0]]
+    matrix = np.array(rows, dtype=np.float64)
+    unseen = np.array(probe, dtype=np.float64)
+
+    cases = []
+    for count in (5, 10, 1000):
+        for output in ("uniform", "normal"):
+            # NOSONAR S6709: subsample=None is the whole point -- there is no draw to seed,
+            # which is why this member has no subsample at all (docs/equivalence.md).
+            fitted = QuantileTransformer(  # NOSONAR S6709
+                n_quantiles=count, output_distribution=output, subsample=None).fit(matrix)
+            transformed = fitted.transform(unseen)
+            cases.append({
+                "name": _correlation_name("ten values with repeats", n_quantiles=count, output=output),
+                "call": "QuantileTransformer",
+                "args": {"quantileCount": count, "output": output},
+                SAMPLES: _flat(rows), FEATURES_PER_ROW: 1,
+                "probe": _flat(probe),
+                "references": [float(v) for v in fitted.references_],
+                "quantiles": [float(v) for v in fitted.quantiles_[:, 0]],
+                TRANSFORMED: _flat(transformed),
+                INVERSE: _flat(fitted.inverse_transform(transformed)),
+            })
+
+    return {"metadata": _sklearn_metadata("quantile_transformer", len(cases)), CASES: cases}
+
+
+def generate_preprocessing_power() -> dict:
+    """PowerTransformer, against sklearn.preprocessing.PowerTransformer (#1122).
+
+    **Compared at 1e-5, not at decision 0005's 1e-9, and the reason is measured
+    rather than conceded.** The negative log-likelihood has curvature about 176
+    at its optimum and a value around 443; a double carries that to roughly
+    3e-11, so solving 88*d^2 = 3e-11 puts the exponent's own resolution at about
+    6e-7 -- and moving it that far moves the transformed values by 9.1e-7
+    relative. The reference's optimiser stops at 1.48e-8 on the argument, inside
+    what the objective can tell apart. Re-derive it with scipy.stats.yeojohnson_llf
+    around yeojohnson_normmax's answer; docs/equivalence.md carries the arithmetic.
+    """
+    from sklearn.preprocessing import PowerTransformer
+
+    gamma = [[1.2], [0.4], [3.9], [2.2], [5.8], [0.9], [1.1], [7.4], [2.0], [3.1], [0.6], [4.4]]
+    mixed = [[-2.5], [0.0], [1.5], [3.2], [-0.8], [4.4], [2.1], [-3.3], [0.7], [5.0]]
+    two_features = [[1.5, 2.0], [0.5, 8.0], [3.0, 1.0], [2.5, 4.0], [4.0, 6.0], [1.0, 3.0]]
+
+    cases = []
+    for name, rows, methods in (
+            ("strictly positive", gamma, (YEO_JOHNSON, "box-cox")),
+            ("with zero and negatives", mixed, (YEO_JOHNSON,)),
+            ("two features", two_features, (YEO_JOHNSON, "box-cox"))):
+        matrix = np.array(rows, dtype=np.float64)
+        for method in methods:
+            for standardize in (True, False):
+                fitted = PowerTransformer(method=method, standardize=standardize).fit(matrix)
+                transformed = fitted.transform(matrix)
+                cases.append({
+                    "name": _correlation_name(name, method=method, standardize=standardize),
+                    "call": "PowerTransformer",
+                    "args": {"method": method, "standardize": standardize},
+                    SAMPLES: _flat(rows), FEATURES_PER_ROW: len(rows[0]),
+                    LAMBDAS: [float(v) for v in fitted.lambdas_],
+                    TRANSFORMED: _flat(transformed),
+                    INVERSE: _flat(fitted.inverse_transform(transformed)),
+                })
+
+    return {"metadata": _sklearn_metadata("power_transformer", len(cases)), CASES: cases}
+
+
+def generate_preprocessing_knn_imputer() -> dict:
+    """KNNImputer, against sklearn.impute.KNNImputer (#1122).
+
+    The fixtures avoid a tie among the donors: with two donors exactly as far
+    from a receiver, the reference follows numpy.argpartition, whose choice
+    among equals changes with the CPU tier numpy dispatches to.
+    """
+    from sklearn.impute import KNNImputer
+
+    nan = float("nan")
+    fixtures = {
+        "three features, three gaps": [[1.0, 2.0, nan], [3.0, 4.0, 3.0], [nan, 6.0, 5.0],
+                                       [8.0, 8.0, 7.0], [2.5, nan, nan], [9.0, 1.5, 2.5]],
+        "one column missing everywhere": [[1.0, nan], [4.0, nan], [7.0, nan], [2.0, nan]],
+        "a row missing every feature": [[1.0, 2.0], [4.0, 9.0], [nan, nan], [7.0, 3.0]],
+    }
+
+    cases = []
+    for name, rows in fixtures.items():
+        matrix = np.array(rows, dtype=np.float64)
+        for neighbours in (1, 2, 3):
+            for weights in ("uniform", "distance"):
+                fitted = KNNImputer(n_neighbors=neighbours, weights=weights).fit(matrix)
+                cases.append({
+                    "name": _correlation_name(name, n_neighbors=neighbours, weights=weights),
+                    "call": "KNNImputer",
+                    "args": {"neighbourCount": neighbours, "weights": weights},
+                    SAMPLES: _stats_nan_list(_flat(rows)), FEATURES_PER_ROW: len(rows[0]),
+                    TRANSFORMED: _stats_nan_list(_flat(fitted.transform(matrix))),
+                })
+
+    return {"metadata": _sklearn_metadata("knn_imputer", len(cases)), CASES: cases}
+
+
 def generate_stats_beta_quantile() -> dict:
     """The inverse regularized incomplete beta, against scipy.special.betaincinv (#1121).
 
@@ -13423,6 +13707,13 @@ def main() -> None:
         "preprocessing_sparse.json": generate_preprocessing_sparse,
         "preprocessing_scalers.json": generate_preprocessing_scalers,
         "preprocessing_standard_scaler.json": generate_preprocessing_standard_scaler,
+        "preprocessing_normalizer.json": generate_preprocessing_normalizer,
+        "preprocessing_label_encoder.json": generate_preprocessing_label_encoder,
+        "preprocessing_polynomial.json": generate_preprocessing_polynomial,
+        "preprocessing_kbins.json": generate_preprocessing_kbins,
+        "preprocessing_quantile.json": generate_preprocessing_quantile,
+        "preprocessing_power.json": generate_preprocessing_power,
+        "preprocessing_knn_imputer.json": generate_preprocessing_knn_imputer,
         "ranking.json": generate_ranking,
         "ranking_weighted.json": generate_ranking_weighted,
         "label_ranking.json": generate_label_ranking,

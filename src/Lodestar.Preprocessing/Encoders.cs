@@ -31,4 +31,13 @@ public static class Encoders
     public static OrdinalEncoder<T> Ordinal<T>(ReadOnlySpan<T> values, int featureCount)
         where T : IComparable<T>, IEquatable<T> =>
         OrdinalEncoder<T>.FitCore(values, featureCount);
+
+    /// <summary>Fits a label encoder on one column of labels.</summary>
+    /// <typeparam name="T">The label type; <see cref="string"/> and <see cref="int"/> are the two the reference takes.</typeparam>
+    /// <param name="labels">The labels, one column.</param>
+    /// <returns>A fitted <see cref="LabelEncoder{T}"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="labels"/> is empty or holds a null.</exception>
+    public static LabelEncoder<T> Label<T>(ReadOnlySpan<T> labels)
+        where T : IComparable<T>, IEquatable<T> =>
+        LabelEncoder<T>.FitCore(labels);
 }

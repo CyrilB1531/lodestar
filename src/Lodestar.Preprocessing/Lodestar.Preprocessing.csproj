@@ -14,22 +14,26 @@
   </PropertyGroup>
 
   <!--
-    Two edges, both to core packages: Lodestar.Stats for the normal quantile RobustScaler's
-    unit_variance divides by (decision 0003), and Lodestar.Abstractions for the CsrMatrix the sparse
-    overloads take (decision 0003, which applies 0138's precedent rather than reopening it). Each is
-    a PackageReference against its published floor, like every other src/ edge (decision 0001), with
-    the usual developer-loop opt-in, never set in CI:
+    Three edges, all to core packages: Lodestar.Stats for the normal quantile RobustScaler's
+    unit_variance divides by (decision 0003), Lodestar.Abstractions for the CsrMatrix the sparse
+    overloads take (decision 0003, which applies 0138's precedent rather than reopening it), and
+    Lodestar.Cluster for the one-dimensional k-means KBinsDiscretizer's kmeans strategy runs
+    (#1122): an edge rather than a second Lloyd's algorithm written here, which is what #763
+    decided. Each is a PackageReference against its published floor, like every other src/ edge
+    (decision 0001), with the usual developer-loop opt-in, never set in CI:
 
         export LodestarUseProjectRefs=true
   -->
   <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
     <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
     <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+    <ProjectReference Include="../Lodestar.Cluster/Lodestar.Cluster.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
     <PackageReference Include="Lodestar.Stats" />
     <PackageReference Include="Lodestar.Abstractions" />
+    <PackageReference Include="Lodestar.Cluster" />
   </ItemGroup>
 
   <!-- Loud on purpose: a local build that silently differed from the shipped one
@@ -37,7 +41,7 @@
   <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
           Condition="'$(LodestarUseProjectRefs)' == 'true'">
     <Message Importance="high"
-             Text="Lodestar.Preprocessing: LodestarUseProjectRefs=true — referencing Lodestar.Stats and Lodestar.Abstractions by project, not by package. This is the developer loop, not what ships." />
+             Text="Lodestar.Preprocessing: LodestarUseProjectRefs=true — referencing Lodestar.Stats, Lodestar.Abstractions and Lodestar.Cluster by project, not by package. This is the developer loop, not what ships." />
   </Target>
 
   <ItemGroup>

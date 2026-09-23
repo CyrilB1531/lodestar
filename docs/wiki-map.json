@@ -141,7 +141,8 @@
         "Lodestar.Preprocessing": [
           "docs/reference/preprocessing/scaling",
           "docs/reference/preprocessing/splitting",
-          "docs/reference/preprocessing/encoding"
+          "docs/reference/preprocessing/encoding",
+        "docs/reference/preprocessing/transforming"
         ]
       },
       "exceptionsUnchecked": []

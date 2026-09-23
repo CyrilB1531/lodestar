@@ -264,6 +264,11 @@ def splitters(fmt: str = "text") -> None:
     wallcpu_report("splitters", fmt)
 
 
+def transformers(fmt: str = "text") -> None:
+    """Lodestar.Preprocessing's feature transformers against scikit-learn's (#1122)."""
+    wallcpu_report("transformers", fmt)
+
+
 def glm(fmt: str = "text") -> None:
     """The negative binomial GLM against statsmodels' GLM, over that same corpus (#781)."""
     wallcpu_report("glm", fmt)
@@ -360,6 +365,8 @@ if __name__ == "__main__":
         var(output_format)
     elif selected == "splitters":
         splitters(output_format)
+    elif selected == "transformers":
+        transformers(output_format)
     elif selected == "indel":
         indel(output_format, bucket_kind)
     else:

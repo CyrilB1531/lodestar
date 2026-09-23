@@ -28,6 +28,7 @@ listed in the sidebar beneath the package.
 | Store vectors in process, with hybrid keyword and vector search | [Vector store](../reference/extensions-vectordata/store.md) |
 | Score a classifier, a regressor, a clustering or a ranking | [Which metric?](../guides/metrics.md) |
 | Scale, encode or impute features | [Feature scaling](../reference/preprocessing/scaling.md), [encoding and imputation](../reference/preprocessing/encoding.md) |
+| Reshape a feature: bins, polynomials, quantiles, powers | [Feature transforming](../reference/preprocessing/transforming.md) |
 | Split rows into cross-validation folds | [Splitting](../reference/preprocessing/splitting.md) |
 | Group samples into clusters | [Partitioning](../reference/cluster/partitioning.md) |
 | Reduce a sparse matrix: truncated SVD, NMF | [Decomposition](../guides/decomposition.md) |

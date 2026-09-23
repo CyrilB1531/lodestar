@@ -34,7 +34,8 @@ columns.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`OneHotEncoder`](onehotencoder.md), [`OrdinalEncoder`](ordinalencoder.md),
-[`SimpleImputer`](simpleimputer.md), the [encoding index](../encoding.md).
+[`LabelEncoder`](labelencoder.md), [`SimpleImputer`](simpleimputer.md), the
+[encoding index](../encoding.md).
 
 ## Members
 
@@ -42,3 +43,4 @@ columns.
 | --- | --- |
 | [`Encoders.OneHot`](encoders-onehot.md) | Fits a one-hot encoder on a row-major matrix of categories. |
 | [`Encoders.Ordinal`](encoders-ordinal.md) | Fits an ordinal encoder on the same. |
+| [`Encoders.Label`](encoders-label.md) | Fits a label encoder on one column of labels. |

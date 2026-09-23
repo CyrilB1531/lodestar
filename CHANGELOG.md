@@ -28,6 +28,7 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- `Normalizer`, `PolynomialFeatures`, `KBinsDiscretizer`, `QuantileTransformer`, `PowerTransformer`, `LabelEncoder` and `KnnImputer` reshape a feature rather than rescale it, at scikit-learn parity, with an edge on `Lodestar.Cluster` for the k-means bin strategy. ([#1122](https://github.com/CyrilB1531/lodestar/issues/1122))
 - `Splitters` cuts cross-validation folds and a train/test split over row indices, at scikit-learn parity. ([#762](https://github.com/CyrilB1531/lodestar/issues/762), [`1cdec9f1`](https://github.com/CyrilB1531/lodestar/commit/1cdec9f1))
 - `MinMaxScaler`, `MaxAbsScaler` and `RobustScaler` join `StandardScaler`, with an edge on `Lodestar.Stats` for `unit_variance`. ([#763](https://github.com/CyrilB1531/lodestar/issues/763), [`3b3c4164`](https://github.com/CyrilB1531/lodestar/commit/3b3c4164))
 - `Encoders.OneHot`, `Encoders.Ordinal` and `SimpleImputer` encode categories and fill missing values, at scikit-learn parity. ([#764](https://github.com/CyrilB1531/lodestar/issues/764), [`89923b23`](https://github.com/CyrilB1531/lodestar/commit/89923b23))

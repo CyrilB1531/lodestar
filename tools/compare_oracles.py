@@ -12,7 +12,9 @@ disagreement is still in the last digit kept, and at 10 the rounding itself
 breaks 13 tests (`1.13e-8` of error on a singular value of 22.606). So the
 gate compares what the tests compare, and this is what does it.
 
-Numerically means floats only. Everything else -- integers, strings,
+Numerically means floats only, at `TOLERANCE` -- except for the corpora
+`WIDER` names, held to the wider tolerance their own suite holds them to, with
+the reason beside the entry. Everything else -- integers, strings,
 booleans, nulls, the set and order of an object's keys, an array's length and
 order, and the set of files -- is compared exactly, because a corpus that
 gained a case, lost a field or reordered one has changed in a way no
@@ -42,6 +44,17 @@ from collections import namedtuple
 # The absolute tolerance the oracle-replaying suites compare floats at, per CLAUDE.md:
 # moving one without the other leaves the gate asserting what the tests do not.
 TOLERANCE = 1e-9
+
+# long-comment: a wider tolerance on one corpus is the kind of loosening that hides a
+# regression, so the reason belongs beside it rather than in a commit message.
+# One corpus is held wider, by the same number its own suite holds it to. The exponent
+# `preprocessing_power.json` freezes is found by maximising a log-likelihood whose curvature at
+# the optimum is about 176 against a value near 443: a double carries that to roughly 3e-11, so
+# the data pins the exponent only to about 6e-7 and two hosts' BLAS reductions land on different
+# sides of it -- measured, 6.7e-9 apart on lambda and 5e-9 on the values it transforms.
+# docs/equivalence.md carries the arithmetic, and PreprocessingOracleAsserts.PowerTolerance is
+# the same 1e-5. Everything else is 1e-9.
+WIDER: dict[str, float] = {"preprocessing_power.json": 1e-5}
 
 # What reaches the log. The workflow uploads both directories when this fails,
 # so the cap costs a reader nothing and keeps a wholesale mismatch readable.
@@ -107,8 +120,8 @@ def kind_of(value) -> str:
     return "object"
 
 
-def floats_agree(expected: float, actual: float) -> bool:
-    """Whether two floats agree at `TOLERANCE`, with non-finite values compared exactly.
+def floats_agree(expected: float, actual: float, tolerance: float = TOLERANCE) -> bool:
+    """Whether two floats agree at `tolerance`, with non-finite values compared exactly.
 
     A tolerance around an infinity or a NaN asserts nothing: `inf - inf` is
     NaN and every comparison against a NaN is false, so both are settled by
@@ -118,7 +131,7 @@ def floats_agree(expected: float, actual: float) -> bool:
         return math.isnan(expected) and math.isnan(actual)
     if math.isinf(expected) or math.isinf(actual):
         return expected == actual
-    return abs(expected - actual) <= TOLERANCE
+    return abs(expected - actual) <= tolerance
 
 
 def render(value) -> str:
@@ -131,7 +144,8 @@ def _child(path: str, step: str) -> str:
     return step if not path else f"{path}.{step}"
 
 
-def compare_values(path: str, expected, actual, found: Differences) -> None:
+def compare_values(path: str, expected, actual, found: Differences,
+                   tolerance: float = TOLERANCE) -> None:
     """Walk two parsed values in step, recording what differs and where."""
     expected_kind = kind_of(expected)
     actual_kind = kind_of(actual)
@@ -141,17 +155,18 @@ def compare_values(path: str, expected, actual, found: Differences) -> None:
         return
 
     if expected_kind == "object":
-        _compare_objects(path, expected, actual, found)
+        _compare_objects(path, expected, actual, found, tolerance)
     elif expected_kind == "array":
-        _compare_arrays(path, expected, actual, found)
+        _compare_arrays(path, expected, actual, found, tolerance)
     elif expected_kind == "float":
-        if not floats_agree(expected, actual):
+        if not floats_agree(expected, actual, tolerance):
             found.add(NUMERIC, path, f"{render(expected)} vs {render(actual)}")
     elif expected != actual:
         found.add(STRUCTURAL, path, f"{render(expected)} vs {render(actual)}")
 
 
-def _compare_objects(path: str, expected: dict, actual: dict, found: Differences) -> None:
+def _compare_objects(path: str, expected: dict, actual: dict, found: Differences,
+                     tolerance: float) -> None:
     for key in expected:
         if key not in actual:
             found.add(STRUCTURAL, _child(path, key), "in the expected corpus only")
@@ -168,15 +183,16 @@ def _compare_objects(path: str, expected: dict, actual: dict, found: Differences
                   f"keys reordered: {render(shared_expected)} vs {render(shared_actual)}")
 
     for key in shared_expected:
-        compare_values(_child(path, key), expected[key], actual[key], found)
+        compare_values(_child(path, key), expected[key], actual[key], found, tolerance)
 
 
-def _compare_arrays(path: str, expected: list, actual: list, found: Differences) -> None:
+def _compare_arrays(path: str, expected: list, actual: list, found: Differences,
+                    tolerance: float) -> None:
     if len(expected) != len(actual):
         found.add(STRUCTURAL, path, f"{len(expected)} elements vs {len(actual)}")
 
     for index in range(min(len(expected), len(actual))):
-        compare_values(f"{path}[{index}]", expected[index], actual[index], found)
+        compare_values(f"{path}[{index}]", expected[index], actual[index], found, tolerance)
 
 
 def corpus_files(directory: pathlib.Path) -> list[str]:
@@ -206,7 +222,7 @@ def compare_file(name: str, expected_path: pathlib.Path, actual_path: pathlib.Pa
         return
 
     nested = Differences()
-    compare_values("", expected, actual, nested)
+    compare_values("", expected, actual, nested, WIDER.get(name, TOLERANCE))
     for difference in nested.kept:
         found.add(difference.rank, f"{name}: {difference.path or '<root>'}", difference.detail)
     found.total += nested.total - len(nested.kept)
@@ -265,8 +281,9 @@ def main(argv: list[str]) -> int:
     found = compare_directories(expected_dir, actual_dir)
 
     if not found.total:
+        wider = ", ".join(f"{name} within {value:g}" for name, value in sorted(WIDER.items()))
         print(f"ok  {len(corpus_files(expected_dir))} corpora agree: floats within "
-              f"{TOLERANCE:g}, everything else exactly")
+              f"{TOLERANCE:g} ({wider}), everything else exactly")
         return 0
 
     for difference in found.ordered()[:MAX_REPORTED]:

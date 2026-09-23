@@ -109,27 +109,16 @@ public class EncoderIncumbentBenchmarks
     public int MlNet_OneHotEncoding_Read()
     {
         OneHotEncodingTransformer model = _context.Transforms.Categorical.OneHotEncoding(Column).Fit(_categorical);
-        return Count(model.Transform(_categorical));
+        return MlNetCursor.Drain(model.Transform(_categorical));
     }
 
     [Benchmark]
     public int MlNet_ReplaceMissingValues_Read()
     {
         MissingValueReplacingTransformer model = _context.Transforms.ReplaceMissingValues(NumbersColumn).Fit(_numeric);
-        return Count(model.Transform(_numeric));
+        return MlNetCursor.Drain(model.Transform(_numeric));
     }
 
-    private static int Count(IDataView view)
-    {
-        int rows = 0;
-        using DataViewRowCursor cursor = view.GetRowCursor(view.Schema);
-        while (cursor.MoveNext())
-        {
-            rows++;
-        }
-
-        return rows;
-    }
 }
 
 /// <summary>One categorical row, as ML.NET's encoder wants it: a named text column.</summary>

@@ -111,12 +111,12 @@
       "src/Lodestar.Decomposition/PrincipalComponentVariance.cs"
     ],
     "VarianceAndFitBenchmarks": [
-   "src/Lodestar.Stats/**"
-  ],
-  "CorrelationBenchmarks": [
-   "src/Lodestar.Stats/**"
-  ],
-  "MetaNumericsStatsBenchmarks": [
+      "src/Lodestar.Stats/**"
+    ],
+    "CorrelationBenchmarks": [
+      "src/Lodestar.Stats/**"
+    ],
+    "MetaNumericsStatsBenchmarks": [
       "src/Lodestar.Stats/**"
     ],
     "KsAutoBenchmarks": [
@@ -247,6 +247,15 @@
       "src/Lodestar.Preprocessing/SimpleImputer.cs",
       "src/Lodestar.Preprocessing/Internal/**"
     ],
+    "TransformerIncumbentBenchmarks": [
+      "src/Lodestar.Preprocessing/Normalizer.cs",
+      "src/Lodestar.Preprocessing/PolynomialFeatures.cs",
+      "src/Lodestar.Preprocessing/KBinsDiscretizer.cs",
+      "src/Lodestar.Preprocessing/QuantileTransformer.cs",
+      "src/Lodestar.Preprocessing/PowerTransformer.cs",
+      "src/Lodestar.Preprocessing/KnnImputer.cs",
+      "src/Lodestar.Preprocessing/Internal/**"
+    ],
     "ScalerIncumbentBenchmarks": [
       "src/Lodestar.Preprocessing/StandardScaler.cs",
       "src/Lodestar.Preprocessing/MinMaxScaler.cs",
@@ -367,10 +376,10 @@
       "tests/oracles/mistral_v01_tokenizer.json"
     ],
     "BertNormalizerBenchmarks": [
-   "src/Lodestar.Embeddings/Tokenization/**",
-   "src/Lodestar.Embeddings/Persistence/**"
-  ],
-  "AddedTokenScanBenchmarks": [
+      "src/Lodestar.Embeddings/Tokenization/**",
+      "src/Lodestar.Embeddings/Persistence/**"
+    ],
+    "AddedTokenScanBenchmarks": [
       "src/Lodestar.Embeddings/Tokenization/**",
       "src/Lodestar.Embeddings/Persistence/**"
     ],
@@ -495,6 +504,22 @@
         "src/Lodestar.Preprocessing/FoldSplit.cs",
         "src/Lodestar.Preprocessing/TrainTestSplit.cs",
         "bench/Lodestar.Text.Benchmarks/CrossLang/SplittersCrossLang.cs"
+      ]
+    },
+    "transformers": {
+      "subcommand": "compare-transformers",
+      "python": "bench/python/bench_transformers.py",
+      "compare": "transformers",
+      "generate": [],
+      "sources": [
+        "src/Lodestar.Preprocessing/Normalizer.cs",
+        "src/Lodestar.Preprocessing/PolynomialFeatures.cs",
+        "src/Lodestar.Preprocessing/KBinsDiscretizer.cs",
+        "src/Lodestar.Preprocessing/QuantileTransformer.cs",
+        "src/Lodestar.Preprocessing/PowerTransformer.cs",
+        "src/Lodestar.Preprocessing/KnnImputer.cs",
+        "src/Lodestar.Preprocessing/LabelEncoder.cs",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/TransformersCrossLang.cs"
       ]
     },
     "glm": {

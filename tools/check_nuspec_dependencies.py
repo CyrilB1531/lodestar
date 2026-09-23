@@ -34,7 +34,7 @@ embedder it adapts, and on ``Lodestar.Embeddings`` because its constructor names
 ``BatchEncoder``, which is the ``EmbedBatch`` overload that owns the padding, and
 ``Lodestar.Stats.Regression`` depends on ``Lodestar.Stats`` for the Student and Fisher
 tails and on ``Lodestar.Decomposition`` for the Householder QR -- the four members
-decision 0003 published for it. The prose above walks the first of the sixteen edges;
+decision 0003 published for it. The prose above walks the first of the seventeen edges;
 ``EXPECTED`` below is the authority for all of them. The ranges are asserted too, not
 only the ids: a bare ``"0.2.0"`` is NuGet's shorthand for ``[0.2.0, )``, and an
 edge with the wrong floor is a different edge.
@@ -122,6 +122,10 @@ STATS_REGRESSION_FLOOR = "0.2.0"
 # pins: Extensions.AI and Extensions.VectorData agree on it without a range to reconcile.
 MS_ABSTRACTIONS_FLOOR = "10.10.0"
 
+# Directory.Packages.props' PackageVersion for the edge #1122 added. 0.1.0 is Lodestar.Cluster's
+# first release, and KMeansOptions.InitialCentres has been public since it.
+CLUSTER_FLOOR = "0.1.0"
+
 # package id -> target framework -> {dependency id: declared version range}.
 # See this module's docstring for what EXPECTED's shape and ranges prove.
 EXPECTED: dict[str, dict[str, dict[str, str]]] = {
@@ -192,10 +196,15 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {**POLYFILLS},
     },
     PREPROCESSING: {
-        # Two Lodestar edges and nothing external, which keeps this core tier: the normal quantile
-        # unit_variance divides by (0138), and the CsrMatrix the sparse overloads take (0139).
-        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},
-        NETSTANDARD: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
+        # Three Lodestar edges and nothing external, which keeps this core tier: the normal
+        # quantile (0138), the CsrMatrix (0139), and KBinsDiscretizer's Lloyd (1122).
+        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR, CLUSTER: CLUSTER_FLOOR},
+        NETSTANDARD: {
+            STATS: STATS_FLOOR,
+            ABSTRACTIONS: ABSTRACTIONS_FLOOR,
+            CLUSTER: CLUSTER_FLOOR,
+            **POLYFILLS,
+        },
     },
     METRICS: {
         # Nothing on net10.0, only the polyfills on netstandard2.0: metrics
