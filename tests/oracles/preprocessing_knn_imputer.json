@@ -34,6 +34,12 @@
     2.5
    ],
    "featureCount": 3,
+   "keptFeatures": [
+    0,
+    1,
+    2
+   ],
+   "outputFeatureCount": 3,
    "transformed": [
     1.0,
     2.0,
@@ -83,6 +89,12 @@
     2.5
    ],
    "featureCount": 3,
+   "keptFeatures": [
+    0,
+    1,
+    2
+   ],
+   "outputFeatureCount": 3,
    "transformed": [
     1.0,
     2.0,
@@ -132,6 +144,12 @@
     2.5
    ],
    "featureCount": 3,
+   "keptFeatures": [
+    0,
+    1,
+    2
+   ],
+   "outputFeatureCount": 3,
    "transformed": [
     1.0,
     2.0,
@@ -181,6 +199,12 @@
     2.5
    ],
    "featureCount": 3,
+   "keptFeatures": [
+    0,
+    1,
+    2
+   ],
+   "outputFeatureCount": 3,
    "transformed": [
     1.0,
     2.0,
@@ -230,6 +254,12 @@
     2.5
    ],
    "featureCount": 3,
+   "keptFeatures": [
+    0,
+    1,
+    2
+   ],
+   "outputFeatureCount": 3,
    "transformed": [
     1.0,
     2.0,
@@ -279,6 +309,12 @@
     2.5
    ],
    "featureCount": 3,
+   "keptFeatures": [
+    0,
+    1,
+    2
+   ],
+   "outputFeatureCount": 3,
    "transformed": [
     1.0,
     2.0,
@@ -318,6 +354,10 @@
     "NaN"
    ],
    "featureCount": 2,
+   "keptFeatures": [
+    0
+   ],
+   "outputFeatureCount": 1,
    "transformed": [
     1.0,
     4.0,
@@ -343,6 +383,10 @@
     "NaN"
    ],
    "featureCount": 2,
+   "keptFeatures": [
+    0
+   ],
+   "outputFeatureCount": 1,
    "transformed": [
     1.0,
     4.0,
@@ -368,6 +412,10 @@
     "NaN"
    ],
    "featureCount": 2,
+   "keptFeatures": [
+    0
+   ],
+   "outputFeatureCount": 1,
    "transformed": [
     1.0,
     4.0,
@@ -393,6 +441,10 @@
     "NaN"
    ],
    "featureCount": 2,
+   "keptFeatures": [
+    0
+   ],
+   "outputFeatureCount": 1,
    "transformed": [
     1.0,
     4.0,
@@ -418,6 +470,10 @@
     "NaN"
    ],
    "featureCount": 2,
+   "keptFeatures": [
+    0
+   ],
+   "outputFeatureCount": 1,
    "transformed": [
     1.0,
     4.0,
@@ -443,6 +499,10 @@
     "NaN"
    ],
    "featureCount": 2,
+   "keptFeatures": [
+    0
+   ],
+   "outputFeatureCount": 1,
    "transformed": [
     1.0,
     4.0,
@@ -468,6 +528,11 @@
     3.0
    ],
    "featureCount": 2,
+   "keptFeatures": [
+    0,
+    1
+   ],
+   "outputFeatureCount": 2,
    "transformed": [
     1.0,
     2.0,
@@ -497,6 +562,11 @@
     3.0
    ],
    "featureCount": 2,
+   "keptFeatures": [
+    0,
+    1
+   ],
+   "outputFeatureCount": 2,
    "transformed": [
     1.0,
     2.0,
@@ -526,6 +596,11 @@
     3.0
    ],
    "featureCount": 2,
+   "keptFeatures": [
+    0,
+    1
+   ],
+   "outputFeatureCount": 2,
    "transformed": [
     1.0,
     2.0,
@@ -555,6 +630,11 @@
     3.0
    ],
    "featureCount": 2,
+   "keptFeatures": [
+    0,
+    1
+   ],
+   "outputFeatureCount": 2,
    "transformed": [
     1.0,
     2.0,
@@ -584,6 +664,11 @@
     3.0
    ],
    "featureCount": 2,
+   "keptFeatures": [
+    0,
+    1
+   ],
+   "outputFeatureCount": 2,
    "transformed": [
     1.0,
     2.0,
@@ -613,6 +698,11 @@
     3.0
    ],
    "featureCount": 2,
+   "keptFeatures": [
+    0,
+    1
+   ],
+   "outputFeatureCount": 2,
    "transformed": [
     1.0,
     2.0,

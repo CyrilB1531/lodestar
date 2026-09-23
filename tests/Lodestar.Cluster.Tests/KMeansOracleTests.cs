@@ -39,7 +39,7 @@ public sealed class KMeansOracleTests
 
     private static KMeans Fit(JsonElement frozen) => KMeans.Fit(
         Doubles(frozen, "samples"),
-        frozen.GetProperty("feature_count").GetInt32(),
+        frozen.GetProperty("featureCount").GetInt32(),
         frozen.GetProperty("cluster_count").GetInt32(),
         new KMeansOptions
         {

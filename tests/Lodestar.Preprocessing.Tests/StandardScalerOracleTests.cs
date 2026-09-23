@@ -64,7 +64,7 @@ public sealed class StandardScalerOracleTests
         JsonElement frozen = Cases[index];
         StandardScaler scaler = Fit(frozen);
 
-        Assert.Equal(frozen.GetProperty("feature_count").GetInt32(), scaler.FeatureCount);
+        Assert.Equal(frozen.GetProperty("featureCount").GetInt32(), scaler.FeatureCount);
         Assert.Equal(frozen.GetProperty("n_samples_seen").GetInt32(), scaler.SampleCount);
         AssertSame(OptionalDoubles(frozen, "mean"), scaler.Mean, "mean_");
         AssertSame(OptionalDoubles(frozen, "var"), scaler.Variance, "var_");
@@ -97,7 +97,7 @@ public sealed class StandardScalerOracleTests
 
     private static StandardScaler Fit(JsonElement frozen) => StandardScaler.Fit(
         Doubles(frozen, "samples"),
-        frozen.GetProperty("feature_count").GetInt32(),
+        frozen.GetProperty("featureCount").GetInt32(),
         new StandardScalerOptions
         {
             WithMean = frozen.GetProperty("with_mean").GetBoolean(),

@@ -21,7 +21,7 @@
     4.0,
     10.0
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "with_mean": true,
    "with_std": true,
    "n_samples_seen": 3,
@@ -64,7 +64,7 @@
     4.0,
     10.0
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "with_mean": false,
    "with_std": true,
    "n_samples_seen": 3,
@@ -107,7 +107,7 @@
     4.0,
     10.0
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "with_mean": true,
    "with_std": false,
    "n_samples_seen": 3,
@@ -144,7 +144,7 @@
     4.0,
     10.0
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "with_mean": false,
    "with_std": false,
    "n_samples_seen": 3,
@@ -175,7 +175,7 @@
     100000000.00000001,
     99999999.99999999
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "with_mean": true,
    "with_std": true,
    "n_samples_seen": 3,
@@ -206,7 +206,7 @@
     100000000.0000001,
     99999999.9999999
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "with_mean": true,
    "with_std": true,
    "n_samples_seen": 3,
@@ -237,7 +237,7 @@
     -4.0,
     0.0
    ],
-   "feature_count": 3,
+   "featureCount": 3,
    "with_mean": true,
    "with_std": true,
    "n_samples_seen": 1,
@@ -283,7 +283,7 @@
     0.0,
     0.0025
    ],
-   "feature_count": 3,
+   "featureCount": 3,
    "with_mean": true,
    "with_std": true,
    "n_samples_seen": 4,

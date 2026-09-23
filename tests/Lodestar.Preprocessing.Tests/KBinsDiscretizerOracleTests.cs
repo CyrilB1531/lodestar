@@ -42,6 +42,12 @@ public sealed class KBinsDiscretizerOracleTests
                 [.. fitted.BinEdges[0]],
                 $"{name} edges");
 
+            // The count the reference settled on, which is below the count asked for wherever
+            // it removed an edge -- the rule #1128 found this suite was not replaying.
+            Assert.Equal(
+                [.. c.GetProperty("binCounts").EnumerateArray().Select(v => v.GetInt32())],
+                fitted.BinCounts);
+
             double[] transformed = fitted.Transform(samples);
             PreprocessingOracleAsserts.Row(
                 PreprocessingOracleAsserts.Doubles(c.GetProperty("transformed")), transformed, name);
@@ -52,6 +58,6 @@ public sealed class KBinsDiscretizerOracleTests
             replayed++;
         }
 
-        Assert.True(replayed >= 19, $"only {replayed} cases replayed");
+        Assert.True(replayed >= 67, $"only {replayed} cases replayed");
     }
 }

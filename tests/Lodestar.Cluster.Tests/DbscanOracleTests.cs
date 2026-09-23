@@ -69,7 +69,7 @@ public sealed class DbscanOracleTests
     private static Dbscan Fit(JsonElement frozen)
     {
         double[] samples = [.. frozen.GetProperty("samples").EnumerateArray().Select(v => v.GetDouble())];
-        int count = frozen.GetProperty("feature_count").GetInt32();
+        int count = frozen.GetProperty("featureCount").GetInt32();
         double epsilon = frozen.GetProperty("eps").GetDouble();
         int minimum = frozen.GetProperty("min_samples").GetInt32();
 

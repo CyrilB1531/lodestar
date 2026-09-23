@@ -32,7 +32,7 @@ public sealed class SilhouetteTests
         JsonElement c = Cases[index];
         int[] labels = MetricsCorpus.Ints(c, "labels");
         double[] features = MetricsCorpus.Doubles(c, "features");
-        int featureCount = c.GetProperty("feature_count").GetInt32();
+        int featureCount = c.GetProperty("featureCount").GetInt32();
 
         Assert.Equal(c.GetProperty("score").GetDouble(),
                      Silhouette.Score(labels, features, featureCount), MetricsCorpus.Tolerance);
@@ -69,7 +69,7 @@ public sealed class SilhouetteTests
 
         Assert.Equal(
             Silhouette.Score(labels, MetricsCorpus.Doubles(c, "features"),
-                             c.GetProperty("feature_count").GetInt32()),
+                             c.GetProperty("featureCount").GetInt32()),
             Silhouette.ScoreFromDistances(labels, MetricsCorpus.Doubles(c, "distances")),
             MetricsCorpus.Tolerance);
     }

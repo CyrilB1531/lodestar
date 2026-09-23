@@ -42,7 +42,7 @@ public sealed class EncodersOracleTests
     {
         JsonElement frozen = Cases[index];
         string name = frozen.GetProperty("name").GetString()!;
-        int featureCount = frozen.GetProperty("feature_count").GetInt32();
+        int featureCount = frozen.GetProperty("featureCount").GetInt32();
 
         switch (frozen.GetProperty("encoder").GetString())
         {

@@ -26,10 +26,18 @@ public sealed class KnnImputerOracleTests
 
             double[] samples = PreprocessingOracleAsserts.Doubles(c.GetProperty("samples"));
             int featureCount = c.GetProperty("featureCount").GetInt32();
+            KnnImputer imputer = KnnImputer.Fit(samples, featureCount, options);
+
+            // A feature missing from every fitted row is dropped, so the output can be narrower
+            // than the input; get_feature_names_out is how the reference says which survived.
+            Assert.Equal(c.GetProperty("outputFeatureCount").GetInt32(), imputer.OutputFeatureCount);
+            Assert.Equal(
+                [.. c.GetProperty("keptFeatures").EnumerateArray().Select(v => v.GetInt32())],
+                imputer.KeptFeatures);
 
             PreprocessingOracleAsserts.Row(
                 PreprocessingOracleAsserts.Doubles(c.GetProperty("transformed")),
-                KnnImputer.Fit(samples, featureCount, options).Transform(samples),
+                imputer.Transform(samples),
                 name);
             replayed++;
         }
@@ -38,6 +46,10 @@ public sealed class KnnImputerOracleTests
     }
 
     /// <summary>Past the measured ceiling the call is refused rather than run for however long it takes.</summary>
+    /// <remarks>
+    /// Hand-written rather than frozen, and it has to be: the ceiling is this package's own
+    /// refusal, so the reference has no answer to capture (#1128).
+    /// </remarks>
     [Fact]
     public void A_matrix_past_the_distance_ceiling_is_refused()
     {
@@ -49,19 +61,4 @@ public sealed class KnnImputerOracleTests
         Assert.Throws<ArgumentOutOfRangeException>(() => imputer.Transform(big));
     }
 
-    /// <summary>
-    /// A feature missing from every fitted row is dropped rather than filled, as the reference
-    /// drops it: there is nothing to impute it from and nothing to impute it with.
-    /// </summary>
-    [Fact]
-    public void A_feature_missing_everywhere_is_dropped()
-    {
-        double[] samples = [1.0, double.NaN, 4.0, double.NaN, 7.0, double.NaN];
-
-        KnnImputer imputer = KnnImputer.Fit(samples, 2);
-
-        Assert.Equal(1, imputer.OutputFeatureCount);
-        Assert.Equal([0], imputer.KeptFeatures);
-        Assert.Equal([1.0, 4.0, 7.0], imputer.Transform(samples));
-    }
 }

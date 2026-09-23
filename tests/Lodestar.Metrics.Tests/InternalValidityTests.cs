@@ -29,7 +29,7 @@ public sealed class InternalValidityTests
         JsonElement c = Cases[index];
         int[] labels = MetricsCorpus.Ints(c, "labels");
         double[] features = MetricsCorpus.Doubles(c, "features");
-        int featureCount = c.GetProperty("feature_count").GetInt32();
+        int featureCount = c.GetProperty("featureCount").GetInt32();
 
         Assert.Equal(c.GetProperty("calinski_harabasz").GetDouble(),
                      CalinskiHarabasz.Score(labels, features, featureCount),
@@ -48,7 +48,7 @@ public sealed class InternalValidityTests
         JsonElement c = Cases[index];
         int[] labels = MetricsCorpus.Ints(c, "labels");
         double[] features = MetricsCorpus.Doubles(c, "features");
-        int featureCount = c.GetProperty("feature_count").GetInt32();
+        int featureCount = c.GetProperty("featureCount").GetInt32();
 
         Assert.True(double.IsFinite(CalinskiHarabasz.Score(labels, features, featureCount)));
         Assert.True(double.IsFinite(DaviesBouldin.Score(labels, features, featureCount)));

@@ -17,7 +17,7 @@
     1.0,
     2.0
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "eps": 0.999,
    "min_samples": 2,
    "metric": "euclidean",
@@ -35,7 +35,7 @@
     1.0,
     2.0
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "eps": 1.0,
    "min_samples": 2,
    "metric": "euclidean",
@@ -56,7 +56,7 @@
     0.0,
     0.25
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "eps": 1.0,
    "min_samples": 2,
    "metric": "euclidean",
@@ -75,7 +75,7 @@
     0.0,
     0.25
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "eps": 1.0,
    "min_samples": 3,
    "metric": "euclidean",
@@ -98,7 +98,7 @@
     2.5,
     2.6
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "eps": 1.0,
    "min_samples": 4,
    "metric": "euclidean",
@@ -137,7 +137,7 @@
     2.5,
     2.6
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "eps": 1.0,
    "min_samples": 4,
    "metric": "euclidean",
@@ -176,7 +176,7 @@
     2.6,
     1.3
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "eps": 1.0,
    "min_samples": 4,
    "metric": "euclidean",
@@ -215,7 +215,7 @@
     0.2,
     0.3
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "eps": 1.0,
    "min_samples": 4,
    "metric": "euclidean",
@@ -249,7 +249,7 @@
     0.0,
     0.1
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "eps": 0.5,
    "min_samples": 2,
    "metric": "euclidean",
@@ -282,7 +282,7 @@
     9.0,
     9.0
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "eps": 0.5,
    "min_samples": 2,
    "metric": "euclidean",
@@ -330,7 +330,7 @@
     0.0,
     0.0
    ],
-   "feature_count": 4,
+   "featureCount": 4,
    "eps": 1.0,
    "min_samples": 3,
    "metric": "euclidean",
@@ -360,7 +360,7 @@
     1.0,
     1.0
    ],
-   "feature_count": 2,
+   "featureCount": 2,
    "eps": 0.1,
    "min_samples": 3,
    "metric": "euclidean",
@@ -385,7 +385,7 @@
     0.2,
     0.3
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "eps": 1.0,
    "min_samples": 2,
    "metric": "euclidean",
@@ -407,7 +407,7 @@
    "samples": [
     4.0
    ],
-   "feature_count": 1,
+   "featureCount": 1,
    "eps": 1.0,
    "min_samples": 1,
    "metric": "euclidean",
@@ -458,7 +458,7 @@
     5.51724568965349,
     0.0
    ],
-   "feature_count": 6,
+   "featureCount": 6,
    "eps": 0.5,
    "min_samples": 2,
    "metric": "precomputed",

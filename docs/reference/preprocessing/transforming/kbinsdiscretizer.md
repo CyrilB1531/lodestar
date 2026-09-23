@@ -42,7 +42,18 @@ here, and only the second answers "which group is this row in".
 **A feature can come back with fewer bins than asked for.** Two edges within `1e-8` of each other
 are one edge — the reference's own threshold — which happens on a column that is nearly constant,
 or whose quantiles repeat because a value dominates it. `BinCounts` is where that shows, and it
-is the number to read before indexing into a one-hot row.
+is the number to read before indexing into a one-hot row. The gaps compared are the **successive**
+ones of the edges as they were fitted, not the distance to the last edge kept: on a run of narrow
+gaps the two readings give different bins, and the first is the reference's
+([#1128](https://github.com/CyrilB1531/lodestar/issues/1128)).
+
+**One bin is the floor, which is a deliberate divergence.** Where the removal leaves a single edge
+the reference reports `n_bins_ = 0` and then breaks on itself — its `inverse_transform` raises
+`IndexError` on such a fit, and so does its `fit` under one-hot encoding. This keeps one bin
+spanning the feature's range, which transforms, inverts and encodes.
+[Decision 0007](../../../decisions/0007-the-deliberate-divergences.md) admits a divergence exactly
+where reproducing the reference would reproduce a defect; the
+[Python equivalence table](../../../equivalence.md) carries the measurement.
 
 **Applies to** — net10.0, netstandard2.0.
 
