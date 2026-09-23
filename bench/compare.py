@@ -264,6 +264,11 @@ def splitters(fmt: str = "text") -> None:
     wallcpu_report("splitters", fmt)
 
 
+def cdist(fmt: str = "text") -> None:
+    """Lodestar.Fuzzy's score matrix against rapidfuzz's (#1123)."""
+    wallcpu_report("cdist", fmt)
+
+
 def transformers(fmt: str = "text") -> None:
     """Lodestar.Preprocessing's feature transformers against scikit-learn's (#1122)."""
     wallcpu_report("transformers", fmt)
@@ -367,6 +372,8 @@ if __name__ == "__main__":
         splitters(output_format)
     elif selected == "transformers":
         transformers(output_format)
+    elif selected == "cdist":
+        cdist(output_format)
     elif selected == "indel":
         indel(output_format, bucket_kind)
     else:

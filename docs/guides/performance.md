@@ -237,6 +237,60 @@ section 15.
 
 **Ahead on all four**, and allocating less on each.
 
+### The score matrix against FuzzySharp and `rapidfuzz` (issue #1123)
+
+Full method and what each row does and does not compare:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#56-the-score-matrix-against-fuzzysharp-and-rapidfuzz-issue-1123).
+Machine: the AMD Ryzen 7 8700G named above, on 2026-09-23. `BenchmarkDotNet` 0.14.0, default job.
+Phrases of three words and an index, so no pair scores 100 by accident.
+
+**The .NET incumbent publishes no matrix call at all**, checked by reflection:
+`Raffinert.FuzzySharp.Process` exports `ExtractAll`, `ExtractTop`, `ExtractSorted` and
+`ExtractOne`, and nothing that takes two collections. Its row is therefore `ExtractAll` once per
+query — the loop that library forces.
+
+| size | operation | Lodestar | FuzzySharp 6.0.0 | FuzzySharp / Lodestar |
+| ---: | --- | ---: | ---: | ---: |
+| 50 × 50 | score matrix, `Ratio` | **89.86 μs** | 255.91 μs | **2.85** |
+| 200 × 200 | score matrix, `Ratio` | **1,974.46 μs** | 4,459.54 μs | **2.26** |
+
+**Allocation is the wider margin**: 19.55 KB against 301.95 KB at 50 a side, and 312.62 KB against
+4,723.45 KB at 200 — **15×**, because the matrix is one array where a per-query `ExtractAll`
+materialises a result object per pair.
+
+[`Process.Cdist`](../reference/fuzzy/matching/process-cdist.md) costs **exactly** what the same
+double loop written by hand against [`Fuzz.Ratio`](../reference/fuzzy/matching/fuzz-ratio.md)
+costs — 1.00× and 1.01× at the two sizes, byte for byte the same allocation. It is worth saying
+plainly: this member buys the shape, the cutoff applied where the score is produced, and one
+allocation instead of a list per query. It does not buy speed over what a caller could already
+write.
+
+Against `rapidfuzz` 3.14.6 through `compare-cdist`, one run of each side, milliseconds per
+operation, best of five, `dtype=np.float64` and `workers=1` on the Python side so both compute the
+same thing:
+
+| n a side | scorer | Lodestar | `rapidfuzz` | ratio |
+| ---: | --- | ---: | ---: | ---: |
+| 50 | `Ratio` | 0.088 ms | **0.018 ms** | 0.21 |
+| 50 | `WRatio` | **1.125 ms** | 1.148 ms | **1.02** |
+| 200 | `Ratio` | 1.575 ms | **0.229 ms** | 0.15 |
+| 200 | `WRatio` | **17.319 ms** | 17.658 ms | **1.02** |
+| 500 | `Ratio` | 9.393 ms | **1.383 ms** | 0.15 |
+| 500 | `WRatio` | **104.467 ms** | 107.631 ms | **1.03** |
+
+**The gap is the bulk shape, and the two scorers prove it.** `cdist` builds each query's
+bit-parallel equality table once and scans every choice against it, where
+[`Fuzz.Ratio`](../reference/fuzzy/matching/fuzz-ratio.md) rebuilds it per pair. On `Ratio` that fixed cost is most of what a cell costs and the reference is ~7× ahead;
+on `WRatio`, which inspects its input and computes several sub-ratios, the same fixed cost is
+amortised and **the two are level**. Two rows of the same two libraries on the same corpus say
+more than any cross-language loop could.
+[Issue #1130](https://github.com/CyrilB1531/lodestar/issues/1130) carries the hoisting, which
+needs new `Lodestar.Text` API and the release order that comes with it.
+
+**A cold probe nearly went into this document.** One unwarmed `Stopwatch` pass over 200 × 200 read
+25.5 ms against the reference's 0.5 — 51×, all of it JIT. The harness and BenchmarkDotNet agree
+with each other at 1.58 ms and 1.97 ms and not with it.
+
 ## Lodestar.Embeddings
 
 ### SentencePiece and WordPiece encode, against Microsoft.ML.Tokenizers (issue #713)

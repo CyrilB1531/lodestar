@@ -147,6 +147,58 @@ public static class Process
         heap[parent] = item;
     }
 
+    /// <summary>Scores every query against every choice, reproducing <c>rapidfuzz.process.cdist</c>.</summary>
+    /// <param name="queries">The queries, one per row of the result.</param>
+    /// <param name="choices">The choices, one per column.</param>
+    /// <param name="scorer">
+    /// Similarity scorer in <c>[0, 100]</c>. <see langword="null"/> takes
+    /// <see cref="Fuzz.Ratio(string, string)"/> — <c>cdist</c>'s default, <strong>not</strong>
+    /// <see cref="Extract"/>'s <see cref="Fuzz.WRatio(string, string)"/>.
+    /// </param>
+    /// <param name="scoreCutoff">Minimum score to report; a cell below it reads <c>0</c> rather than being dropped.</param>
+    /// <returns>A <see cref="ScoreMatrix"/> of <c>queries.Count</c> rows by <c>choices.Count</c> columns.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="queries"/> or <paramref name="choices"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The matrix would hold more than <see cref="int.MaxValue"/> scores.</exception>
+    /// <remarks>
+    /// The cutoff zeroes where <see cref="Extract"/>'s filters, which is the reference's meaning
+    /// and all a matrix can do: every pair has a cell whatever it scores. Empty inputs give an
+    /// empty matrix of the shape they imply rather than a refusal.
+    /// </remarks>
+    public static ScoreMatrix Cdist(
+        IReadOnlyList<string> queries,
+        IReadOnlyList<string> choices,
+        Func<string, string, double>? scorer = null,
+        double scoreCutoff = 0.0)
+    {
+        Guard.NotNull(queries);
+        Guard.NotNull(choices);
+        scorer ??= Fuzz.Ratio;
+
+        int rows = queries.Count;
+        int columns = choices.Count;
+        long cells = (long)rows * columns;
+        if (cells > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(queries), cells,
+                $"Scoring {rows} queries against {columns} choices needs {cells} scores, past int.MaxValue.");
+        }
+
+        var scores = new double[cells];
+        for (int row = 0; row < rows; row++)
+        {
+            string query = queries[row];
+            int start = row * columns;
+            for (int column = 0; column < columns; column++)
+            {
+                double score = scorer(query, choices[column]);
+                scores[start + column] = score >= scoreCutoff ? score : 0.0;
+            }
+        }
+
+        return new ScoreMatrix(rows, columns, scores);
+    }
+
     /// <summary>Returns the single best match, or <c>null</c> if none clears the cutoff.</summary>
     public static ExtractResult? ExtractOne(
         string query,

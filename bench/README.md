@@ -3235,3 +3235,54 @@ the point: no oracle could have caught this.
 
 The numbers, with their machine and window, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md).
+
+## 56. The score matrix against FuzzySharp and `rapidfuzz` (issue #1123)
+
+`CdistIncumbentBenchmarks` races `Process.Cdist` against the loop .NET forces today, at 50 × 50
+and 200 × 200.
+
+**The incumbent has no matrix call at all, and that is the finding.** Checked by reflection before
+the class was written: `Raffinert.FuzzySharp.Process` exports `ExtractAll`, `ExtractTop`,
+`ExtractSorted` and `ExtractOne`, and nothing that takes two collections. Its row here is
+therefore `ExtractAll` called once per query — the hand-written loop, expressed the way that
+library forces. A third row writes the same loop against **this** package's `Fuzz.Ratio`, which
+prices what `Cdist` adds over what a caller can already write: one allocation for the matrix
+instead of a list per query, and the cutoff applied where the score is produced.
+
+`compare-cdist` puts the same call against `rapidfuzz.process.cdist` at 50, 200 and 500 a side.
+Two parameters are pinned away from the reference's defaults, because leaving them would compare
+different work: `dtype=np.float64`, since its default `np.float32` carries seven decimal digits
+where this package scores in `double` throughout, and `workers=1`, since `Cdist` does not
+parallelise — and at these sizes the reference's own pool is measured *slower* than one thread
+(8.3 ms against 0.5 at 200 × 200).
+
+**It loses on the cheap scorer and draws on the expensive one, which is the finding.** `cdist`
+builds each query's bit-parallel equality table once and scans every choice against it;
+`Fuzz.Ratio` takes two strings and rebuilds that table per pair. So the harness runs **two**
+scorers per size: `ratio`, where that fixed cost is most of a cell, and `WRatio`, which inspects
+its input and computes several sub-ratios and so amortises it. The contrast between the two rows
+is what says the deficit is the bulk shape rather than the language — better evidence than any
+cross-language loop, because both rows are the same two libraries on the same corpus.
+[#1130](https://github.com/CyrilB1531/lodestar/issues/1130) carries the hoisting, which needs new
+`Lodestar.Text` API and a release order.
+
+**A cold probe is what nearly went into the record.** One unwarmed `Stopwatch` pass over 200 × 200
+read 25.5 ms against the reference's 0.5 — a 51× gap that is JIT. The harness and BenchmarkDotNet
+agree with each other at 1.58 ms and 1.97 ms and not with it. Warm every side before believing a
+factor.
+
+No corpus file: both sides build the phrases from the row index by the same rule, three words and
+an index, so a committed corpus would be a file holding that rule's output. The trailing index
+keeps every phrase distinct, so no pair scores 100 by accident and the scorer does the same work
+on both sides. Nothing is asserted to agree before timing —
+`tests/oracles/process_cdist.json` replays all seven scorers at `1e-9`.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*CdistIncumbent*'
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-cdist
+python3 bench/python/bench_cdist.py
+python3 bench/compare.py cdist
+```
+
+The numbers, with their machine and window, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md).
