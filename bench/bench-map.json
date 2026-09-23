@@ -145,6 +145,10 @@
       "src/Lodestar.Text/Distances/**",
       "src/Lodestar.Text/Text/**"
     ],
+    "IndelPatternBenchmarks": [
+      "src/Lodestar.Text/Distances/**",
+      "src/Lodestar.Text/Text/**"
+    ],
     "IndelCodePointBenchmarks": [
       "src/Lodestar.Text/Distances/**",
       "src/Lodestar.Text/Text/**"

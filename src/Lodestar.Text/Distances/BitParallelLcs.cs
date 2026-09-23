@@ -155,6 +155,74 @@ internal static class BitParallelLcs
         return true;
     }
 
+    /// <summary>Entries in the interleaved table the handle holds: two words per Latin-1 unit.</summary>
+    /// <remarks>
+    /// One shape for both widths, so <see cref="IndelPattern"/> rents one array whatever the
+    /// pattern is. The pairwise single-word path keeps its 256-entry table: it reads one word per
+    /// character and a stride of two would cost it a cache line it does not otherwise touch.
+    /// </remarks>
+    internal const int InterleavedEntries = 2 * Entries;
+
+    /// <summary>Longest pattern the interleaved table can span, both words of it.</summary>
+    internal const int MaxInterleavedPattern = 2 * 64;
+
+    /// <summary>Fills the interleaved table, or reports a pattern that leaves Latin-1.</summary>
+    /// <returns><c>false</c> when a unit exceeds U+00FF, nothing written that a caller must undo.</returns>
+    internal static bool TryFillInterleaved(ReadOnlySpan<char> pattern, Span<ulong> table)
+    {
+        if (!IsLatin1(pattern))
+        {
+            return false;
+        }
+
+        for (int i = 0; i < pattern.Length; i++)
+        {
+            table[(pattern[i] << 1) + (i >> 6)] |= 1UL << (i & 63);
+        }
+
+        return true;
+    }
+
+    /// <summary>The single-word recurrence over an interleaved table, for a held pattern.</summary>
+    internal static int ScanOneWordInterleaved(ReadOnlySpan<ulong> peq, int m, ReadOnlySpan<char> text)
+    {
+        ulong v = ulong.MaxValue;
+        foreach (char tc in text)
+        {
+            // A unit the table cannot hold matches nothing: no bit moves, no carry forms.
+            ulong u = tc <= 0xFF ? v & peq[tc << 1] : 0UL;
+            v = (v + u) | (v - u);
+        }
+
+        ulong mask = m == 64 ? ulong.MaxValue : (1UL << m) - 1;
+        return m - PopCount(v & mask);
+    }
+
+    /// <summary>The two-word recurrence over an interleaved table, both words in registers.</summary>
+    internal static int ScanTwoWordsInterleaved(ReadOnlySpan<ulong> peq, int m, ReadOnlySpan<char> text)
+    {
+        ulong v0 = ulong.MaxValue;
+        ulong v1 = ulong.MaxValue;
+        foreach (char tc in text)
+        {
+            if (tc > 0xFF)
+            {
+                continue;
+            }
+
+            ReadOnlySpan<ulong> p = peq.Slice(tc << 1, 2);
+            ulong u0 = v0 & p[0];
+            ulong t0 = v0 + u0;
+            ulong carry = CarryOut(v0, u0, t0);
+            v0 = t0 | (v0 & ~u0);
+
+            ulong u1 = v1 & p[1];
+            v1 = (v1 + u1 + carry) | (v1 & ~u1);
+        }
+
+        return m - PopCount(v0) - PopCount(v1 & TailMask(m - 64));
+    }
+
     /// <summary>Sets each pattern position's bit, or reports a pattern that leaves Latin-1.</summary>
     /// <returns><c>false</c> when a character exceeds U+00FF, the table restored as it was found.</returns>
     private static bool TryFill(ReadOnlySpan<char> pattern, Span<ulong> table)
@@ -215,33 +283,13 @@ internal static class BitParallelLcs
     private static bool TryTwoWords(ReadOnlySpan<char> pattern, ReadOnlySpan<char> text, out int length)
     {
         // Interleaved, peq[2c] then peq[2c + 1], so one slice and one bounds check serve both.
-        Span<ulong> peq = stackalloc ulong[2 * Entries];
+        Span<ulong> peq = stackalloc ulong[InterleavedEntries];
         for (int i = 0; i < pattern.Length; i++)
         {
             peq[(pattern[i] << 1) + (i >> 6)] |= 1UL << (i & 63);
         }
 
-        ulong v0 = ulong.MaxValue;
-        ulong v1 = ulong.MaxValue;
-        foreach (char tc in text)
-        {
-            // A character the table cannot hold matches nothing: no bit moves, no carry forms.
-            if (tc > 0xFF)
-            {
-                continue;
-            }
-
-            ReadOnlySpan<ulong> p = peq.Slice(tc << 1, 2);
-            ulong u0 = v0 & p[0];
-            ulong t0 = v0 + u0;
-            ulong carry = CarryOut(v0, u0, t0);
-            v0 = t0 | (v0 & ~u0);
-
-            ulong u1 = v1 & p[1];
-            v1 = (v1 + u1 + carry) | (v1 & ~u1);
-        }
-
-        length = pattern.Length - PopCount(v0) - PopCount(v1 & TailMask(pattern.Length - 64));
+        length = ScanTwoWordsInterleaved(peq, pattern.Length, text);
         return true;
     }
 

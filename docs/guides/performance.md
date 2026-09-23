@@ -25,6 +25,50 @@ commit, and it belongs in the pull request that made it.
 
 ## Lodestar.Text
 
+### [`IndelPattern`](../reference/text/distances/indelpattern.md) against FuzzySharp (issue #1130)
+
+Full method, the corpora that cost the handle and the defect the agreement check found:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#59-one-patterns-table-held-rather-than-rebuilt-issue-1130).
+Machine: the AMD Ryzen 7 8700G named below, on 2026-09-24. `BenchmarkDotNet` 0.14.0, default job.
+One query against 64 texts; `length` is the part that differs, the shared affixes are on top of it.
+
+| the texts | length | Lodestar, held | Lodestar, pairwise | FuzzySharp 6.0.0 |
+| --- | ---: | ---: | ---: | ---: |
+| unrelated | 4 | **347.7 ns** | 763.9 ns | 3,104.7 ns |
+| unrelated | 16 | **842.4 ns** | 1,811.8 ns | 4,942.5 ns |
+| unrelated | 32 | **1,443.0 ns** | 3,318.8 ns | 7,853.3 ns |
+| sharing 12 + 12 | 4 | **1,280.7 ns** | 1,484.9 ns | 4,378.9 ns |
+| sharing 12 + 12 | 16 | **1,746.5 ns** | 2,472.9 ns | 5,627.5 ns |
+| sharing 12 + 12 | 32 | **2,363.3 ns** | 3,978.1 ns | 8,403.8 ns |
+| sharing a 45 suffix | 4 | **2,098.5 ns** | 2,289.7 ns | 4,669.3 ns |
+| sharing a 45 suffix | 16 | **2,608.4 ns** | 3,342.1 ns | 6,373.8 ns |
+| sharing a 45 suffix | 32 | **4,654.0 ns** | 4,834.3 ns | 9,057.9 ns |
+| sharing 28 + 28 | 4 | 2,561.2 ns | **2,362.6 ns** | 4,653.3 ns |
+| sharing 28 + 28 | 16 | 3,776.9 ns | **3,328.8 ns** | 6,726.6 ns |
+| sharing 28 + 28 | 32 | 5,064.0 ns | **4,898.9 ns** | 9,560.6 ns |
+| sharing 45 + 45 | 4 | 3,949.0 ns | **3,344.1 ns** | 5,581.9 ns |
+| sharing 45 + 45 | 16 | 4,685.6 ns | **4,346.0 ns** | 7,641.9 ns |
+| sharing 45 + 45 | 32 | 6,135.0 ns | **5,901.3 ns** | 10,186.3 ns |
+| past the table, 70 + 70 | 4 | **4,580.0 ns** | 4,601.9 ns | 7,001.1 ns |
+| past the table, 70 + 70 | 16 | **5,504.4 ns** | 5,728.7 ns | 8,989.9 ns |
+| past the table, 70 + 70 | 32 | **6,803.1 ns** | 7,181.3 ns | 11,815.0 ns |
+
+**Against the .NET incumbent, over all eighteen rows: the held form is 1.41× to 8.93× and the
+pairwise loop 1.52× to 4.06×.** `Raffinert.FuzzySharp` publishes no held form: its scorer takes
+two strings, so its row is one call per text, which is the same absence the score matrix records.
+
+**Against this package's own pairwise loop it is 0.43 to 0.96 where the texts share little or
+share one end, and 1.03 to 1.18 where they share a long run at both.** Those six rows are the
+cost of the design. The table spans the whole pattern, so it cannot drop a common prefix and
+suffix; where the pattern spans two words a sixteen-unit probe at either end sends the pair back
+to the pairwise call, which is what holds the 45 + 45 rows to 1.04–1.18 against 1.56–2.14
+unguarded. Over one word the probe is not taken — scanning the affix costs about what the trim
+saves — and the 28 + 28 row at length 4, the one that would say otherwise, reads 1.08.
+
+**Allocation: 40 bytes against the incumbent's 5,120.** The handle is one object and a pooled
+table; the incumbent materialises per call. The pairwise loop allocates nothing at all, which is
+the one column it wins.
+
 ### [`Levenshtein.Distance`](../reference/text/distances/levenshtein-distance.md) against rapidfuzz
 
 [`Levenshtein.Distance`](../reference/text/distances/levenshtein-distance.md) against rapidfuzz

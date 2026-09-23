@@ -55,6 +55,7 @@ flowchart TD
 | [`DamerauLevenshtein`](distances/dameraulevenshtein.md) | Insertions, deletions, substitutions and swaps of neighbouring characters, with no limit on re-editing a stretch. |
 | [`Hamming`](distances/hamming.md) | How many positions hold a different character, plus the difference in length. |
 | [`Indel`](distances/indel.md) | Insertions and deletions only, never substitutions — the basis of rapidfuzz's `fuzz.ratio`. |
+| [`IndelPattern`](distances/indelpattern.md) | The same measure with one pattern's table built once, for a caller holding a list of texts. |
 | [`Jaro`](distances/jaro.md) | How many characters the two share near the same position, and how many of those arrive out of order. |
 | [`JaroWinkler`](distances/jarowinkler.md) | `Jaro`, raised for pairs that already agree on their first few characters. |
 | [`Lcs`](distances/lcs.md) | The length of the longest run the two have in common, contiguous or not. |

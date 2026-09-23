@@ -116,10 +116,6 @@ is one sentence, the issue and the commit; see
 - `Process.Cdist` scores every query against every choice into a `ScoreMatrix`, at `rapidfuzz.process.cdist` parity — its default scorer is `Fuzz.Ratio`, as the reference's is, and not `Process.Extract`'s `WRatio`. ([#1123](https://github.com/CyrilB1531/lodestar/issues/1123))
 - Every `Fuzz` scorer takes a `TextElement`, whose `CodePoint` compares code points, splits on rapidfuzz's whitespace and sorts tokens by code point, so rapidfuzz's scores hold past the BMP. ([#892](https://github.com/CyrilB1531/lodestar/issues/892))
 
-#### Changed
-
-- `Process.Cdist` rejects a pair on its lengths alone rather than scoring it, where the cutoff is above zero and the scorer is the default `Fuzz.Ratio` the bound holds for. ([#1134](https://github.com/CyrilB1531/lodestar/issues/1134))
-
 #### Fixed
 
 - `Fuzz.TokenSetRatio`, `Fuzz.PartialTokenSetRatio` and `Fuzz.WRatio` score `0` rather than up to `100` when one side has no words, as rapidfuzz does. ([#860](https://github.com/CyrilB1531/lodestar/issues/860))
@@ -132,6 +128,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- `Process.Cdist` rejects a pair on its lengths alone rather than scoring it, where the cutoff is above zero and the scorer is the default `Fuzz.Ratio` the bound holds for. ([#1134](https://github.com/CyrilB1531/lodestar/issues/1134))
 - `Fuzz.TokenSetRatio` reads two of its three scores from lengths, `Fuzz.WRatio` tokenizes each side once, and `Process.Extract` keeps a bounded heap where it sorted every hit. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
 - `Fuzz.PartialRatio` scores a needle of up to 64 characters from one equality table and skips windows that cannot win. ([#714](https://github.com/CyrilB1531/lodestar/issues/714), [`9ec3595f`](https://github.com/CyrilB1531/lodestar/commit/9ec3595f))
 - `Fuzz.PartialRatio` does the same for a needle past 64 characters. ([#720](https://github.com/CyrilB1531/lodestar/issues/720), [`96856e70`](https://github.com/CyrilB1531/lodestar/commit/96856e70))
@@ -141,6 +138,7 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- `IndelPattern` holds one pattern's bit-parallel table and scans it against many texts, at `Indel`'s answers, for a caller with one query and a list. ([#1130](https://github.com/CyrilB1531/lodestar/issues/1130))
 - `MinHashScheme`, and the `MinHashPermutations` overload that takes one. ([#645](https://github.com/CyrilB1531/lodestar/issues/645), [`bfc47fe7`](https://github.com/CyrilB1531/lodestar/commit/bfc47fe7))
 
 #### Changed

@@ -3368,6 +3368,49 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*Cdi
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-cdist
 python3 bench/python/bench_cdist.py
 python3 bench/compare.py cdist
+## 59. One pattern's table, held rather than rebuilt (issue #1130)
+
+`IndelPatternBenchmarks` scores one query against 64 texts three ways: the pairwise loop a caller
+writes today, `IndelPattern` holding the query's equality table, and the maintained .NET
+incumbent's scorer called once per text.
+
+**The corpus parameter is the finding, and leaving it out would have flattered the result.** The
+handle's table spans the whole pattern, so it cannot drop a shared prefix and suffix the way the
+pairwise call does. `longAffix` — 45 units shared at each end — is the case that costs it, and it
+is the case fuzzy matching is most often pointed at. `oneWordAffix` is the shape that would refute
+leaving a one-word pattern unguarded, `suffixOnly` the one a prefix-only probe would miss, and
+`beyondTable` the fallback band on its own row. Reporting `unrelated` alone would have been
+choosing the corpus that wins.
+
+**Every corpus but `beyondTable` keeps the query inside the table's 128 units, and that is not
+incidental.** The first version of this class built a 60 + 60 affix around the middle, which put
+the query at 136 and 152 units — past the table, so every scan on the one row meant to measure the
+guard was already the pairwise call ([#1137](https://github.com/CyrilB1531/lodestar/issues/1137)).
+`beyondTable` uses 70 + 70 because 60 + 60 around a four-unit middle is 124, back inside.
+
+**`Length` starts at 4 for the same reason.** What the pairwise trim buys grows as the middle
+shrinks, so a short middle under a long affix is the shape that costs the handle most.
+
+**Every row is checked to compute the same thing before it is timed**, and that check is what
+found the defect this benchmark exists to have caught. `Indel.Distance(a, b)` over two
+`ReadOnlySpan<char>` does **not** bind to the character overload: C# prefers a candidate whose
+parameters all have arguments, so the generic `Distance<char>` wins and takes the dynamic program.
+The answers are identical, so no test could see it — the long-affix rows past the table read
+3.19× and 9.33× until the comparison unit was named explicitly.
+
+The incumbent scores on the 0-100 scale and rounds, so its row is checked against the same ratio
+rather than equated to it. It publishes no held form at all, which is why its row is one call per
+text: that absence is the same finding section 56 records for the score matrix.
+
+No corpus file: both the shared affixes and the middle that differs are built from the row index
+by a rule written in the class, so a committed corpus would be a file holding that rule's output.
+The agreement check above covers the corpus timed here; correctness in general is
+`IndelPatternTests`' job, which replays `tests/oracles/indel.json`'s 1,522 pairs through the
+handle in both orientations, together with a random corpus that crosses each width band and the
+guard in both directions.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*IndelPatternBenchmarks*'
 ```
 
 The numbers, with their machine and window, are in

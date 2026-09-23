@@ -17,6 +17,7 @@ internal static class TextSamples
         OsaSample.Run();
         HammingSample.Run();
         IndelSample.Run();
+        IndelPatternSample.Run();
         LcsSample.Run();
         JaroSample.Run();
         JaroWinklerSample.Run();
