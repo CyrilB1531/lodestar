@@ -39,6 +39,8 @@
                       SetTargetFramework="TargetFramework=netstandard2.0" />
     <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.0" />
+    <ProjectReference Include="../../src/Lodestar.Cluster/Lodestar.Cluster.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
   </ItemGroup>
 
   <ItemGroup>

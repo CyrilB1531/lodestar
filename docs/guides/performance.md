@@ -1039,6 +1039,87 @@ does take a vector column, so the imputer rows compare four features against fou
 and 3,282.43 KB against 1,212.64 KB at 20,000 — this package materialises every encoded column as a
 `double`, where ML.NET's cursor yields rows one at a time and never holds the matrix.
 
+### The feature transformers against ML.NET and scikit-learn (issue #1122)
+
+Full method and what each row does and does not compare:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#55-the-feature-transformers-against-mlnet-and-scikit-learn-issue-1122).
+Machine: the AMD Ryzen 7 8700G named above, on 2026-09-23. `BenchmarkDotNet` 0.14.0, one invocation
+per iteration, five warmups and twenty iterations. Four features; ML.NET's estimators are lazy, so
+each appears as a fit whose rows are read.
+
+**Only two of the seven have an incumbent in .NET at all.** `NormalizeLpNorm` scales a row to unit
+norm as [`Normalizer`](../reference/preprocessing/transforming/normalizer.md) does; `NormalizeBinning`
+cuts a feature into bins but emits a position in `[0, 1]` rather than the bin, so the two price the
+same traversal and not the same answer.
+
+| rows | operation | Lodestar | ML.NET 5.0.0 | ML.NET / Lodestar |
+| ---: | --- | ---: | ---: | ---: |
+| 1,000 | unit-norm rows, **values read** | **28.01 μs** | 717.09 μs | **25.60** |
+| 1,000 | five bins, fit + transform, **values read** | **566.79 μs** | 1,525.96 μs | **2.69** |
+| 20,000 | unit-norm rows, **values read** | **313.21 μs** | 4,816.59 μs | **15.38** |
+| 20,000 | five bins, fit + transform, **values read** | **8,657.46 μs** | 18,112.77 μs | **2.09** |
+
+The other five have nothing to race. Their own numbers at 20,000 rows and four features, so the
+shape of the cost is on the record:
+[`PolynomialFeatures.Transform`](../reference/preprocessing/transforming/polynomialfeatures-transform.md) 950.72 μs,
+[`QuantileTransformer.Fit`](../reference/preprocessing/transforming/quantiletransformer-fit.md) 7,173.56 μs and its
+transform 10,806.04 μs,
+[`PowerTransformer.Fit`](../reference/preprocessing/transforming/powertransformer-fit.md) 32,350.17 μs against a
+transform of 1,085.94 μs, and
+[`KnnImputer.Transform`](../reference/preprocessing/encoding/knnimputer-transform.md) 38,939.98 μs over its own fixed
+2,000 rows. **[`PowerTransformer`](../reference/preprocessing/transforming/powertransformer.md)'s fit is thirty times its transform** — it maximises a
+log-likelihood by Brent's method per feature — and [`KnnImputer`](../reference/preprocessing/encoding/knnimputer.md) is the one member here that is
+quadratic in the rows, which is why it is pinned and why the type itself refuses past 100 million
+distance terms.
+
+Against `scikit-learn` 1.9.1 and `numpy` 2.5.3 through `compare-transformers`, one run of each
+side, milliseconds per operation, best of five. **Ratios above 1 mean Lodestar is faster; several
+are below it, and that is the finding.**
+
+| n | operation | Lodestar | `scikit-learn`, wall / cpu | ratio, wall | ratio, cpu |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 10,000 | `Normalizer` | **0.188 ms** | 0.196 / 0.196 ms | **1.04** | **1.03** |
+| 10,000 | `PolynomialFeatures` | 0.588 ms | **0.492** / 0.492 ms | 0.84 | 0.83 |
+| 10,000 | `KBinsDiscretizer`, fit | **0.964 ms** | 1.147 / 1.147 ms | **1.19** | **1.19** |
+| 10,000 | `KBinsDiscretizer`, transform | **0.261 ms** | 2.661 / 2.660 ms | **10.19** | **8.12** |
+| 10,000 | `QuantileTransformer`, fit | **1.034 ms** | 2.312 / 2.311 ms | **2.24** | **2.24** |
+| 10,000 | `QuantileTransformer`, transform | 1.106 ms | **0.982** / 0.982 ms | 0.89 | 0.89 |
+| 10,000 | `PowerTransformer`, fit | **14.035 ms** | 38.040 / 38.033 ms | **2.71** | **2.71** |
+| 10,000 | `PowerTransformer`, transform | 0.569 ms | **0.453** / 0.452 ms | 0.80 | 0.79 |
+| 10,000 | `KnnImputer`, transform | 28.056 ms | **16.730** / 200.865 ms | 0.60 | **7.13** |
+| 10,000 | `LabelEncoder` | 0.683 ms | **0.445** / 0.445 ms | 0.65 | 0.65 |
+| 100,000 | `Normalizer` | 1.211 ms | **1.067** / 1.067 ms | 0.88 | 0.69 |
+| 100,000 | `PolynomialFeatures` | **4.289 ms** | 4.539 / 4.533 ms | **1.06** | 0.87 |
+| 100,000 | `KBinsDiscretizer`, fit | 9.622 ms | **4.619** / 4.619 ms | 0.48 | 0.45 |
+| 100,000 | `KBinsDiscretizer`, transform | **3.252 ms** | 10.622 / 10.620 ms | **3.27** | **2.61** |
+| 100,000 | `QuantileTransformer`, fit | **9.903 ms** | 11.505 / 11.503 ms | **1.16** | **1.08** |
+| 100,000 | `QuantileTransformer`, transform | 10.161 ms | **9.145** / 9.143 ms | 0.90 | 0.86 |
+| 100,000 | `PowerTransformer`, fit | **147.715 ms** | 272.278 / 272.239 ms | **1.84** | **1.69** |
+| 100,000 | `PowerTransformer`, transform | 4.838 ms | **3.062** / 3.061 ms | 0.63 | 0.58 |
+| 100,000 | `KnnImputer`, transform | 29.016 ms | **13.597** / 163.092 ms | 0.47 | **5.63** |
+| 100,000 | `LabelEncoder` | 8.846 ms | **4.674** / 4.674 ms | 0.53 | 0.51 |
+
+**Where this package wins, it wins on the work rather than on the loop.** The discretizer's
+transform is a binary search per value against a `numpy.digitize` that builds an index array; the
+power fit is Brent's method against `scipy.optimize.brent` driven from Python, which is why the fit
+is ahead and the transform — one `Math.Pow` per value against a vectorised `numpy.power` — is
+behind.
+
+**Where it loses, it loses to vectorised C, and the losses are where a single array operation does
+the whole job**: [`PolynomialFeatures`](../reference/preprocessing/transforming/polynomialfeatures.md) multiplies column by column
+there, [`LabelEncoder`](../reference/preprocessing/encoding/labelencoder.md) is one `numpy.unique`, and the quantile map is one `numpy.interp`. Roughly a factor of two at 100,000
+rows, which is what a scalar managed loop costs against SIMD C over a contiguous array.
+
+**[`KnnImputer`](../reference/preprocessing/encoding/knnimputer.md) is the row to read twice.** It is behind on elapsed time and **5.6× ahead on
+processor time**, because `scikit-learn`'s pairwise distances run on every core through joblib and
+this runs on one: the reference spends 163 ms of CPU to finish in 13.6 ms. This one is a
+parallelism gap, not an arithmetic one, and it is the honest candidate for its own `perf/` issue.
+
+[`KBinsDiscretizer`](../reference/preprocessing/transforming/kbinsdiscretizer.md)'s fit at 100,000 rows is the other
+one: it sorts each column with
+`Array.Sort` against numpy's introsort over a contiguous buffer, and 0.48× is about the constant
+factor that costs.
+
 ## Lodestar.Stats
 
 ### Lodestar.Stats against Accord.Statistics (issue #1121) — the variance, proportion and fit tests

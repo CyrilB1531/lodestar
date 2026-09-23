@@ -26,6 +26,7 @@
   -->
   <ItemGroup>
     <PackageVersion Include="Lodestar.Abstractions" Version="0.1.1" />
+    <PackageVersion Include="Lodestar.Cluster" Version="0.1.0" />
     <PackageVersion Include="Lodestar.Decomposition" Version="0.2.0" />
     <!-- 0.6.0, not 0.5.0: 0.5.0 still declares Microsoft.ML.OnnxRuntime, which
          0.6.0 moved to Lodestar.Onnx. Extensions.VectorData must not restore it, and this one pin moves Onnx and Extensions.AI with it. -->

@@ -3180,3 +3180,58 @@ dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*Va
 
 The numbers, with their machine and window, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md).
+
+## 55. The feature transformers against ML.NET and `scikit-learn` (issue #1122)
+
+`TransformerIncumbentBenchmarks` races the seven #1122 members against the two ML.NET 5.0.0
+estimators that answer the same question, at 1,000 and 20,000 rows and four features.
+
+**Only two of the seven have an incumbent at all, and that is the finding.** ML.NET's
+`NormalizeLpNorm` scales a row to unit norm, as `Normalizer` does, and its `NormalizeBinning` cuts
+a feature into bins — though it emits a position in `[0, 1]` rather than the bin, so the two price
+the same traversal and not the same answer. For the other five — `PolynomialFeatures`,
+`QuantileTransformer`, `PowerTransformer`, `KnnImputer` and `LabelEncoder` — there is nothing in
+.NET to race, so their rows are Lodestar against itself and the comparison that matters is the
+cross-language one below.
+
+**Each family is timed as a fit and as a transform, because the two are not the same work.** The
+fitted objects are built in `GlobalSetup` and excluded, so the transform rows price the transform;
+the `_Fit` rows price the fit. `PowerTransformer`'s two differ by orders of magnitude — the fit
+maximises a likelihood by Brent's method per feature, and the transform is one power per value.
+
+**`KnnImputer` is pinned at 2,000 rows on every parameter.** It compares every receiving row with
+every fitted row, so its cost is quadratic where every other row here is linear; at 20,000 rows
+over four features that is 1.6 billion distance terms, past the ceiling the type itself refuses
+at. Scaling it with the others would have made one row of the table decide the whole run.
+
+`compare-transformers` puts the same operations against `scikit-learn` 1.9.1 at 10,000 and 100,000
+rows. No corpus file: both sides build the matrix from the row index by the same rule,
+`exp((i mod 97) / 24)` — strictly positive because Box-Cox refuses anything else, and right-skewed
+because that is the column a power or a quantile map is called on, so one matrix serves every
+operation. Two parameters are pinned away from the reference's defaults, because leaving them
+would compare different work: `QuantileTransformer(subsample=None)`, since the reference's default
+draws 10,000 rows from numpy's generator and the C# side has no subsample at all, and the imputer's
+fixed 2,000-row slice.
+
+Nothing is asserted to agree before timing: `tests/oracles/preprocessing_*.json` replay all seven
+against the reference at `1e-9`, `PowerTransformer` at the `1e-5` `docs/equivalence.md` states.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*TransformerIncumbent*'
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-transformers
+python3 bench/python/bench_transformers.py
+python3 bench/compare.py transformers
+```
+
+### What moved while this was measured
+
+`QuantileTransformer.Transform` built the two negated-and-reversed sequences its backward
+interpolation reads **once per value**. At 20,000 rows over four features that is 80,000 pairs of
+1,000-element arrays, and the first run of this class is what exposed it: **104.07 ms and
+1,254,250 KB allocated** per call. They are built once in the constructor now — **10.81 ms and
+625.74 KB**, the size of the output, for the same numbers, since nothing but the allocation
+changed. The suite's 10,919 tests are green across both target frameworks either way, which is
+the point: no oracle could have caught this.
+
+The numbers, with their machine and window, are in
+[`docs/guides/performance.md`](../docs/guides/performance.md).

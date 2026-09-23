@@ -1,0 +1,92 @@
+{
+ "metadata": {
+  "algorithm": "label_encoder",
+  "library": "scikit-learn",
+  "library_version": "1.9.1",
+  "count": 4
+ },
+ "cases": [
+  {
+   "name": "code point order, mixed case and an accent",
+   "call": "LabelEncoder",
+   "args": {},
+   "labels": [
+    "b",
+    "a",
+    "B",
+    "é",
+    "a"
+   ],
+   "classes": [
+    "B",
+    "a",
+    "b",
+    "é"
+   ],
+   "codes": [
+    2,
+    1,
+    0,
+    3,
+    1
+   ]
+  },
+  {
+   "name": "one label",
+   "call": "LabelEncoder",
+   "args": {},
+   "labels": [
+    "only"
+   ],
+   "classes": [
+    "only"
+   ],
+   "codes": [
+    0
+   ]
+  },
+  {
+   "name": "already sorted",
+   "call": "LabelEncoder",
+   "args": {},
+   "labels": [
+    "x",
+    "y",
+    "z"
+   ],
+   "classes": [
+    "x",
+    "y",
+    "z"
+   ],
+   "codes": [
+    0,
+    1,
+    2
+   ]
+  },
+  {
+   "name": "repeated throughout",
+   "call": "LabelEncoder",
+   "args": {},
+   "labels": [
+    "p",
+    "q",
+    "p",
+    "q",
+    "p"
+   ],
+   "classes": [
+    "p",
+    "q"
+   ],
+   "codes": [
+    0,
+    1,
+    0,
+    1,
+    0
+   ]
+  }
+ ]
+}

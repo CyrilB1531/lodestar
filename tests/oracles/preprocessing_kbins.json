@@ -1,0 +1,1137 @@
+{
+ "metadata": {
+  "algorithm": "kbins_discretizer",
+  "library": "scikit-learn",
+  "library_version": "1.9.1",
+  "count": 19
+ },
+ "cases": [
+  {
+   "name": "separated | strategy=uniform | encode=ordinal",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "uniform",
+    "encoding": "ordinal",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    3.0,
+    10.0,
+    11.0,
+    12.0,
+    30.0,
+    31.0,
+    32.0
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    1.0,
+    11.333333333333334,
+    21.666666666666668,
+    32.0
+   ],
+   "transformed": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    2.0,
+    2.0,
+    2.0
+   ],
+   "inverse": [
+    6.166666666666667,
+    6.166666666666667,
+    6.166666666666667,
+    6.166666666666667,
+    6.166666666666667,
+    16.5,
+    26.833333333333336,
+    26.833333333333336,
+    26.833333333333336
+   ]
+  },
+  {
+   "name": "separated | strategy=uniform | encode=onehot-dense",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "uniform",
+    "encoding": "onehot-dense",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    3.0,
+    10.0,
+    11.0,
+    12.0,
+    30.0,
+    31.0,
+    32.0
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    1.0,
+    11.333333333333334,
+    21.666666666666668,
+    32.0
+   ],
+   "transformed": [
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "inverse": [
+    6.166666666666667,
+    6.166666666666667,
+    6.166666666666667,
+    6.166666666666667,
+    6.166666666666667,
+    16.5,
+    26.833333333333336,
+    26.833333333333336,
+    26.833333333333336
+   ]
+  },
+  {
+   "name": "separated | strategy=quantile | encode=ordinal",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "quantile",
+    "encoding": "ordinal",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    3.0,
+    10.0,
+    11.0,
+    12.0,
+    30.0,
+    31.0,
+    32.0
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    1.0,
+    10.0,
+    30.0,
+    32.0
+   ],
+   "transformed": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    2.0,
+    2.0,
+    2.0
+   ],
+   "inverse": [
+    5.5,
+    5.5,
+    5.5,
+    20.0,
+    20.0,
+    20.0,
+    31.0,
+    31.0,
+    31.0
+   ]
+  },
+  {
+   "name": "separated | strategy=quantile | encode=onehot-dense",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "quantile",
+    "encoding": "onehot-dense",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    3.0,
+    10.0,
+    11.0,
+    12.0,
+    30.0,
+    31.0,
+    32.0
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    1.0,
+    10.0,
+    30.0,
+    32.0
+   ],
+   "transformed": [
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "inverse": [
+    5.5,
+    5.5,
+    5.5,
+    20.0,
+    20.0,
+    20.0,
+    31.0,
+    31.0,
+    31.0
+   ]
+  },
+  {
+   "name": "separated | strategy=kmeans | encode=ordinal",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "kmeans",
+    "encoding": "ordinal",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    3.0,
+    10.0,
+    11.0,
+    12.0,
+    30.0,
+    31.0,
+    32.0
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    1.0,
+    6.5,
+    21.0,
+    32.0
+   ],
+   "transformed": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    2.0,
+    2.0,
+    2.0
+   ],
+   "inverse": [
+    3.75,
+    3.75,
+    3.75,
+    13.75,
+    13.75,
+    13.75,
+    26.5,
+    26.5,
+    26.5
+   ]
+  },
+  {
+   "name": "separated | strategy=kmeans | encode=onehot-dense",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "kmeans",
+    "encoding": "onehot-dense",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    3.0,
+    10.0,
+    11.0,
+    12.0,
+    30.0,
+    31.0,
+    32.0
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    1.0,
+    6.5,
+    21.0,
+    32.0
+   ],
+   "transformed": [
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "inverse": [
+    3.75,
+    3.75,
+    3.75,
+    13.75,
+    13.75,
+    13.75,
+    26.5,
+    26.5,
+    26.5
+   ]
+  },
+  {
+   "name": "even spread | strategy=uniform | encode=ordinal",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "uniform",
+    "encoding": "ordinal",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    0.5,
+    1.2,
+    2.8,
+    4.1,
+    5.5,
+    9.9,
+    10.4,
+    11.1,
+    18.2,
+    19.7
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    0.5,
+    6.8999999999999995,
+    13.299999999999999,
+    19.7
+   ],
+   "transformed": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    2.0,
+    2.0
+   ],
+   "inverse": [
+    3.6999999999999997,
+    3.6999999999999997,
+    3.6999999999999997,
+    3.6999999999999997,
+    3.6999999999999997,
+    10.1,
+    10.1,
+    10.1,
+    16.5,
+    16.5
+   ]
+  },
+  {
+   "name": "even spread | strategy=uniform | encode=onehot-dense",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "uniform",
+    "encoding": "onehot-dense",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    0.5,
+    1.2,
+    2.8,
+    4.1,
+    5.5,
+    9.9,
+    10.4,
+    11.1,
+    18.2,
+    19.7
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    0.5,
+    6.8999999999999995,
+    13.299999999999999,
+    19.7
+   ],
+   "transformed": [
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "inverse": [
+    3.6999999999999997,
+    3.6999999999999997,
+    3.6999999999999997,
+    3.6999999999999997,
+    3.6999999999999997,
+    10.1,
+    10.1,
+    10.1,
+    16.5,
+    16.5
+   ]
+  },
+  {
+   "name": "even spread | strategy=quantile | encode=ordinal",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "quantile",
+    "encoding": "ordinal",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    0.5,
+    1.2,
+    2.8,
+    4.1,
+    5.5,
+    9.9,
+    10.4,
+    11.1,
+    18.2,
+    19.7
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    0.5,
+    4.1,
+    10.4,
+    19.7
+   ],
+   "transformed": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    2.0,
+    2.0,
+    2.0,
+    2.0
+   ],
+   "inverse": [
+    2.3,
+    2.3,
+    2.3,
+    7.25,
+    7.25,
+    7.25,
+    15.05,
+    15.05,
+    15.05,
+    15.05
+   ]
+  },
+  {
+   "name": "even spread | strategy=quantile | encode=onehot-dense",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "quantile",
+    "encoding": "onehot-dense",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    0.5,
+    1.2,
+    2.8,
+    4.1,
+    5.5,
+    9.9,
+    10.4,
+    11.1,
+    18.2,
+    19.7
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    0.5,
+    4.1,
+    10.4,
+    19.7
+   ],
+   "transformed": [
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "inverse": [
+    2.3,
+    2.3,
+    2.3,
+    7.25,
+    7.25,
+    7.25,
+    15.05,
+    15.05,
+    15.05,
+    15.05
+   ]
+  },
+  {
+   "name": "even spread | strategy=kmeans | encode=ordinal",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "kmeans",
+    "encoding": "ordinal",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    0.5,
+    1.2,
+    2.8,
+    4.1,
+    5.5,
+    9.9,
+    10.4,
+    11.1,
+    18.2,
+    19.7
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    0.5,
+    6.6433333333333335,
+    14.708333333333332,
+    19.7
+   ],
+   "transformed": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    2.0,
+    2.0
+   ],
+   "inverse": [
+    3.5716666666666668,
+    3.5716666666666668,
+    3.5716666666666668,
+    3.5716666666666668,
+    3.5716666666666668,
+    10.675833333333333,
+    10.675833333333333,
+    10.675833333333333,
+    17.204166666666666,
+    17.204166666666666
+   ]
+  },
+  {
+   "name": "even spread | strategy=kmeans | encode=onehot-dense",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "kmeans",
+    "encoding": "onehot-dense",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    0.5,
+    1.2,
+    2.8,
+    4.1,
+    5.5,
+    9.9,
+    10.4,
+    11.1,
+    18.2,
+    19.7
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    0.5,
+    6.6433333333333335,
+    14.708333333333332,
+    19.7
+   ],
+   "transformed": [
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "inverse": [
+    3.5716666666666668,
+    3.5716666666666668,
+    3.5716666666666668,
+    3.5716666666666668,
+    3.5716666666666668,
+    10.675833333333333,
+    10.675833333333333,
+    10.675833333333333,
+    17.204166666666666,
+    17.204166666666666
+   ]
+  },
+  {
+   "name": "with ties | strategy=uniform | encode=ordinal",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "uniform",
+    "encoding": "ordinal",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    2.0,
+    2.1,
+    2.2,
+    5.0,
+    5.1,
+    8.0,
+    8.1,
+    8.2,
+    8.3
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    2.0,
+    4.1,
+    6.2,
+    8.3
+   ],
+   "transformed": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    2.0,
+    2.0,
+    2.0,
+    2.0
+   ],
+   "inverse": [
+    3.05,
+    3.05,
+    3.05,
+    5.15,
+    5.15,
+    7.25,
+    7.25,
+    7.25,
+    7.25
+   ]
+  },
+  {
+   "name": "with ties | strategy=uniform | encode=onehot-dense",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "uniform",
+    "encoding": "onehot-dense",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    2.0,
+    2.1,
+    2.2,
+    5.0,
+    5.1,
+    8.0,
+    8.1,
+    8.2,
+    8.3
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    2.0,
+    4.1,
+    6.2,
+    8.3
+   ],
+   "transformed": [
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "inverse": [
+    3.05,
+    3.05,
+    3.05,
+    5.15,
+    5.15,
+    7.25,
+    7.25,
+    7.25,
+    7.25
+   ]
+  },
+  {
+   "name": "with ties | strategy=quantile | encode=ordinal",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "quantile",
+    "encoding": "ordinal",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    2.0,
+    2.1,
+    2.2,
+    5.0,
+    5.1,
+    8.0,
+    8.1,
+    8.2,
+    8.3
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    2.0,
+    5.0,
+    8.1,
+    8.3
+   ],
+   "transformed": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    2.0,
+    2.0,
+    2.0
+   ],
+   "inverse": [
+    3.5,
+    3.5,
+    3.5,
+    6.55,
+    6.55,
+    6.55,
+    8.2,
+    8.2,
+    8.2
+   ]
+  },
+  {
+   "name": "with ties | strategy=quantile | encode=onehot-dense",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "quantile",
+    "encoding": "onehot-dense",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    2.0,
+    2.1,
+    2.2,
+    5.0,
+    5.1,
+    8.0,
+    8.1,
+    8.2,
+    8.3
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    2.0,
+    5.0,
+    8.1,
+    8.3
+   ],
+   "transformed": [
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "inverse": [
+    3.5,
+    3.5,
+    3.5,
+    6.55,
+    6.55,
+    6.55,
+    8.2,
+    8.2,
+    8.2
+   ]
+  },
+  {
+   "name": "with ties | strategy=kmeans | encode=ordinal",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "kmeans",
+    "encoding": "ordinal",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    2.0,
+    2.1,
+    2.2,
+    5.0,
+    5.1,
+    8.0,
+    8.1,
+    8.2,
+    8.3
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    2.0,
+    3.5749999999999997,
+    6.6,
+    8.3
+   ],
+   "transformed": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    2.0,
+    2.0,
+    2.0,
+    2.0
+   ],
+   "inverse": [
+    2.7874999999999996,
+    2.7874999999999996,
+    2.7874999999999996,
+    5.0874999999999995,
+    5.0874999999999995,
+    7.45,
+    7.45,
+    7.45,
+    7.45
+   ]
+  },
+  {
+   "name": "with ties | strategy=kmeans | encode=onehot-dense",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "kmeans",
+    "encoding": "onehot-dense",
+    "quantileMethod": "averaged_inverted_cdf"
+   },
+   "samples": [
+    2.0,
+    2.1,
+    2.2,
+    5.0,
+    5.1,
+    8.0,
+    8.1,
+    8.2,
+    8.3
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    2.0,
+    3.5749999999999997,
+    6.6,
+    8.3
+   ],
+   "transformed": [
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "inverse": [
+    2.7874999999999996,
+    2.7874999999999996,
+    2.7874999999999996,
+    5.0874999999999995,
+    5.0874999999999995,
+    7.45,
+    7.45,
+    7.45,
+    7.45
+   ]
+  },
+  {
+   "name": "one to six | quantileMethod=linear",
+   "call": "KBinsDiscretizer",
+   "args": {
+    "binCount": 3,
+    "strategy": "quantile",
+    "encoding": "ordinal",
+    "quantileMethod": "linear"
+   },
+   "samples": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0
+   ],
+   "featureCount": 1,
+   "binEdges": [
+    1.0,
+    2.666666666666667,
+    4.333333333333334,
+    6.0
+   ],
+   "transformed": [
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    2.0,
+    2.0
+   ],
+   "inverse": [
+    1.8333333333333335,
+    1.8333333333333335,
+    3.5000000000000004,
+    3.5000000000000004,
+    5.166666666666667,
+    5.166666666666667
+   ]
+  }
+ ]
+}
