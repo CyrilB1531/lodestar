@@ -14,6 +14,9 @@ public readonly record struct ExtractResult(string Choice, double Score, int Ind
 /// </remarks>
 public static class Process
 {
+    /// <summary>Held once, so a scorer a caller passed can be told from the one <see cref="Cdist"/> defaults to.</summary>
+    private static readonly Func<string, string, double> IndelRatio = Fuzz.Ratio;
+
     /// <summary>
     /// Returns the best matches for <paramref name="query"/> among <paramref name="choices"/>.
     /// </summary>
@@ -160,9 +163,9 @@ public static class Process
     /// <exception cref="ArgumentNullException"><paramref name="queries"/> or <paramref name="choices"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The matrix would hold more than <see cref="int.MaxValue"/> scores.</exception>
     /// <remarks>
-    /// The cutoff zeroes where <see cref="Extract"/>'s filters, which is the reference's meaning
-    /// and all a matrix can do: every pair has a cell whatever it scores. Empty inputs give an
-    /// empty matrix of the shape they imply rather than a refusal.
+    /// The cutoff zeroes where <see cref="Extract"/>'s filters, the reference's meaning and all a
+    /// matrix can do; empty inputs give an empty matrix, not a refusal. On the default scorer it
+    /// also skips pairs a length bound already put under it — <c>BelowLengthCeiling</c> has why.
     /// </remarks>
     public static ScoreMatrix Cdist(
         IReadOnlyList<string> queries,
@@ -172,7 +175,11 @@ public static class Process
     {
         Guard.NotNull(queries);
         Guard.NotNull(choices);
-        scorer ??= Fuzz.Ratio;
+        scorer ??= IndelRatio;
+
+        // A cell under the cutoff reads 0 whatever it scores, so a pair the lengths alone put
+        // there needs no scan. Only Ratio may take it: see BelowLengthCeiling (#1134).
+        bool bounded = scoreCutoff > 0.0 && IndelRatio.Equals(scorer);
 
         int rows = queries.Count;
         int columns = choices.Count;
@@ -191,12 +198,39 @@ public static class Process
             int start = row * columns;
             for (int column = 0; column < columns; column++)
             {
-                double score = scorer(query, choices[column]);
+                string choice = choices[column];
+                if (bounded && BelowLengthCeiling(query, choice, scoreCutoff))
+                {
+                    continue;
+                }
+
+                double score = scorer(query, choice);
                 scores[start + column] = score >= scoreCutoff ? score : 0.0;
             }
         }
 
         return new ScoreMatrix(rows, columns, scores);
+    }
+
+    /// <summary>Whether the two lengths alone put a pair under the cutoff, with no scan able to lift it.</summary>
+    /// <remarks>
+    /// An Indel edit moves one character, so the distance is at least the difference in lengths.
+    /// Evaluating what <see cref="Fuzz.Ratio(string, string)"/> evaluates with that floor in the
+    /// distance's place makes the ceiling exact where it binds, so a pair scoring the cutoff to
+    /// the last bit survives it. It is <em>false</em> for a length-blind scorer:
+    /// <c>partial_ratio("cat", "the cat sat on the mat")</c> is 100 against a ceiling of 24.
+    /// </remarks>
+    private static bool BelowLengthCeiling(string? a, string? b, double scoreCutoff)
+    {
+        // A null element is left to the scorer, which is what names it in the exception.
+        if (a is null || b is null)
+        {
+            return false;
+        }
+
+        int total = a.Length + b.Length;
+        return total != 0 &&
+            100.0 * (1.0 - ((double)Math.Abs(a.Length - b.Length) / total)) < scoreCutoff;
     }
 
     /// <summary>Returns the single best match, or <c>null</c> if none clears the cutoff.</summary>

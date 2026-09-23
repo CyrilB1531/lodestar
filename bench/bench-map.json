@@ -107,6 +107,10 @@
       "src/Lodestar.Fuzzy/Process.cs",
       "src/Lodestar.Fuzzy/ScoreMatrix.cs"
     ],
+    "CdistCutoffBenchmarks": [
+      "src/Lodestar.Fuzzy/Process.cs",
+      "src/Lodestar.Fuzzy/ScoreMatrix.cs"
+    ],
     "FuzzCodePointBenchmarks": [
       "src/Lodestar.Fuzzy/**",
       "src/Lodestar.Text/Distances/**",

@@ -10,7 +10,8 @@ public static ScoreMatrix Cdist(IReadOnlyList<string> queries, IReadOnlyList<str
 
 **Parameters** — `queries` are the rows and `choices` the columns. `scorer` returns a similarity
 in `[0, 100]`; `null` takes [`Fuzz.Ratio`](fuzz-ratio.md). `scoreCutoff` is the minimum score
-reported — a cell below it reads `0` rather than being dropped.
+reported — a cell below it reads `0` rather than being dropped, and on the default scorer it is
+also what lets a pair be rejected on its lengths alone.
 
 **Returns** — a [`ScoreMatrix`](scorematrix.md) of `queries.Count` rows by `choices.Count` columns.
 
@@ -30,6 +31,11 @@ ScoreMatrix scores = Process.Cdist(queries, choices);
 int rows = scores.Rows;                              // => 3
 int columns = scores.Columns;                        // => 4
 double bostonAgainstItsOwn = Math.Round(scores[1, 1], 4);   // => 60
+
+// A cutoff zeroes the cell, and on the default scorer it also skips the scan: "boston" cannot
+// reach 90 against a choice more than twice its length, whatever the letters are.
+ScoreMatrix strict = Process.Cdist(queries, choices, scoreCutoff: 90);
+double bostonUnderCutoff = strict[1, 1];             // => 0
 ```
 
 **Remarks — the default scorer is [`Fuzz.Ratio`](fuzz-ratio.md), and
@@ -45,15 +51,30 @@ of [`Extract`](process-extract.md)'s. A matrix has a cell for every pair whateve
 there is nothing to drop; what a cutoff can do is refuse to report a score, and `0` is how both
 sides say that.
 
-**Every pair is scored**, so the cutoff buys no time here. `Extract` can stop caring about a
-candidate once it is out of the running; a matrix cannot, because every cell is an answer
-somebody asked for.
+**A cutoff buys time on the default scorer.** An Indel edit moves one character, so the distance
+between two strings is at least the difference in their lengths, and a pair's ratio cannot exceed
+`100 × (1 − |la − lb| / (la + lb))`. Where that ceiling misses the cutoff the cell reads `0`
+without being scanned — and the ceiling is exact rather than merely an upper bound, so a pair
+scoring the cutoff to the last bit survives it. `"cat"` against `"the cat sat on the mat"` has a
+ceiling of 24 and a ratio of 24.
+
+**Pass a scorer of your own and every pair is scored**, because that bound holds for no other
+member of [`Fuzz`](fuzz.md): the same pair is 100 under [`PartialRatio`](fuzz-partialratio.md)
+and under [`TokenSetRatio`](fuzz-tokensetratio.md), and 90 under [`WRatio`](fuzz-wratio.md), all
+of which ignore length by construction. Only the delegate this member defaults to is recognised,
+and a lambda that merely calls [`Ratio`](fuzz-ratio.md) is not it — the gate errs towards scoring
+the pair, since a missed rejection is slower and a wrong one is wrong.
+
+Measured on a 500 × 500 matrix of phrases one to six words long, Ryzen 7 8700G: a cutoff of 90
+takes this call from 8.335 ms to **3.416 ms**, where `rapidfuzz` reads 1.096 ms and 1.098 ms —
+the same number with the cutoff and without. The deficit below halves, from 0.13× to 0.32×.
 
 **It is not the reference's speed on the cheap scorers, and the shape of the gap is worth
 knowing.** `cdist` builds each query's bit-parallel equality table once and scans every choice
 against it; [`Fuzz.Ratio`](fuzz-ratio.md) takes two strings and rebuilds that table per pair.
-Measured over a 200 × 200 matrix on a Ryzen 7 8700G: with `Ratio` this is **0.15×** the reference
-(1.575 ms against 0.229), and with [`WRatio`](fuzz-wratio.md) it is **1.02×** — level. The deficit
+Measured over a 200 × 200 matrix on a Ryzen 7 8700G with no cutoff: with `Ratio` this is
+**0.15×** the reference (1.575 ms against 0.229), and with [`WRatio`](fuzz-wratio.md) it is
+**1.02×** — level. The deficit
 is the per-pair fixed cost, which an expensive scorer amortises away and a cheap one does not.
 [Issue #1130](https://github.com/CyrilB1531/lodestar/issues/1130) carries the reusable pattern
 that would close it, and the release order it needs.

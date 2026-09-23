@@ -20,12 +20,6 @@ namespace Lodestar.Text.Benchmarks;
 [MemoryDiagnoser]
 public class CdistIncumbentBenchmarks
 {
-    private static readonly string[] Words =
-    [
-        "new", "york", "boston", "atlanta", "brooklyn", "angeles", "lakers", "mets", "braves",
-        "red", "sox", "knicks",
-    ];
-
     private readonly DefaultRatioScorer _scorer = new();
     private string[] _queries = [];
     private string[] _choices = [];
@@ -34,28 +28,12 @@ public class CdistIncumbentBenchmarks
     [Params(50, 200)]
     public int Size { get; set; } = 50;
 
-    // SonarLint S2245, CA5394: a seeded Random builds a reproducible benchmark corpus; no security use.
-#pragma warning disable S2245, CA5394
     [GlobalSetup]
     public void Prepare()
     {
-        _queries = Phrases(Size, 1123);
-        _choices = Phrases(Size, 1124);
+        _queries = CdistCorpus.Phrases(Size, 1123);
+        _choices = CdistCorpus.Phrases(Size, 1124);
     }
-
-    private static string[] Phrases(int count, int seed)
-    {
-        var random = new Random(seed);
-        var phrases = new string[count];
-        for (int i = 0; i < count; i++)
-        {
-            phrases[i] = $"{Words[random.Next(Words.Length)]} {Words[random.Next(Words.Length)]} " +
-                $"{Words[random.Next(Words.Length)]} {i}";
-        }
-
-        return phrases;
-    }
-#pragma warning restore S2245, CA5394
 
     [Benchmark(Baseline = true)]
     public double Lodestar_Cdist()

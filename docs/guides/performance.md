@@ -291,6 +291,41 @@ needs new `Lodestar.Text` API and the release order that comes with it.
 25.5 ms against the reference's 0.5 — 51×, all of it JIT. The harness and BenchmarkDotNet agree
 with each other at 1.58 ms and 1.97 ms and not with it.
 
+### The score matrix under a cutoff, against `rapidfuzz` (issue #1134)
+
+Full method, the corpus rule and what the cutoff does to each side:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#58-the-cutoff-that-skips-a-pair-rather-than-reporting-it-issue-1134).
+Machine: the AMD Ryzen 7 8700G named above, on 2026-09-23. `compare-cdist`, one run of each side,
+milliseconds per operation, best of five, `dtype=np.float64` and `workers=1` so both compute the
+same thing. Phrases of one to six words and an index, which is what gives a length bound anything
+to reject — the three-word corpus above holds every phrase to within a word of every other.
+
+| n a side | cutoff | Lodestar | `rapidfuzz` 3.14.6 | ratio |
+| ---: | ---: | ---: | ---: | ---: |
+| 50 | none | 0.080 ms | **0.015 ms** | 0.19 |
+| 50 | 90 | 0.033 ms | **0.015 ms** | **0.47** |
+| 200 | none | 1.460 ms | **0.185 ms** | 0.13 |
+| 200 | 90 | 0.624 ms | **0.185 ms** | **0.30** |
+| 500 | none | 8.335 ms | **1.096 ms** | 0.13 |
+| 500 | 90 | 3.416 ms | **1.098 ms** | **0.32** |
+
+**A cutoff of 90 buys this package 2.3× to 2.4× and buys the reference nothing.** `rapidfuzz`
+reads 0.185 ms against 0.185 and 1.096 against 1.098 with the cutoff and without it — inside its
+own noise. The Indel distance is at least the difference in lengths, so a pair whose lengths alone
+miss the cutoff cannot reach it; that rejection is what this package now takes, and the deficit
+against the reference halves — 0.13× becomes 0.30× at 200 a side and 0.32× at 500.
+
+**It does not close the gap, and the reason is the one section #1123 already named.** What remains
+is the per-pair equality table [`Fuzz.Ratio`](../reference/fuzzy/matching/fuzz-ratio.md) rebuilds
+where `cdist` builds it once per query, which
+no cutoff can remove — only the hoisting
+[#1130](https://github.com/CyrilB1531/lodestar/issues/1130) carries, and the `Lodestar.Text`
+release order it needs.
+
+**The bound holds for the Indel ratio alone**, so the rows above are the default scorer and there
+is no `WRatio` row to put beside them: `partial_ratio("cat", "the cat sat on the mat")` is 100
+against a ceiling of 24, and a scorer passed by the caller has every pair scored.
+
 ## Lodestar.Embeddings
 
 ### SentencePiece and WordPiece encode, against Microsoft.ML.Tokenizers (issue #713)
