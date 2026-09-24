@@ -50,16 +50,14 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
-CHANGELOG = ROOT / "CHANGELOG.md"
 
 # Named because it is spelled three times below, which is S1192's threshold.
 REPORT = "--report"
 ENCODING = "utf-8"
 
 VERSION = re.compile(r"<Lodestar[A-Za-z]*Version>([^<]+)</")
-# `### <Package>` under the `## [Unreleased]` heading. The section is found by walking the
-# headings rather than by one regex: `## ` opens and closes it, which a scan states plainly.
-ENTRY = re.compile(r"^### ((?:Lodestar|DataNet)\.[A-Za-z.]+)")
+# The heading each src/<Package>/CHANGELOG.md opens its pending entries under (#1133).
+UNRELEASED = "## [Unreleased]"
 CENTRAL = "src/Directory.Packages.props"
 # A changed pin line in a commit's diff, and a project's reference to a pinned package.
 PIN = re.compile(r'^[+-]\s*<PackageVersion Include="([^"]+)"')
@@ -94,18 +92,16 @@ def latest_tag(package: str) -> str:
 
 
 def unreleased_entries() -> set[str]:
-    """The packages `## [Unreleased]` names, if the section is there at all."""
-    if not CHANGELOG.exists():
-        return set()
+    """The packages whose own CHANGELOG.md holds an entry under `## [Unreleased]`."""
     found: set[str] = set()
-    inside = False
-    for line in CHANGELOG.read_text(encoding=ENCODING).splitlines():
-        if line.startswith("## "):
-            inside = line.strip() == "## [Unreleased]"
-            continue
-        match = ENTRY.match(line) if inside else None
-        if match:
-            found.add(match.group(1))
+    for path in SRC.glob("*/CHANGELOG.md"):
+        inside = False
+        for line in path.read_text(encoding=ENCODING).splitlines():
+            if line.startswith("## "):
+                inside = line.strip() == UNRELEASED
+            elif inside and line.startswith("- "):
+                found.add(path.parent.name)
+                break
     return found
 
 
@@ -167,8 +163,9 @@ def notices(rows: list[tuple[str, str, str, int]]) -> list[str]:
     """What a release cut should look at, without any of it being a failure."""
     named = unreleased_entries()
     return [
-        f"note  {package}: {commits} commit(s) unpublished and no `### {package}` entry under "
-        "`## [Unreleased]`. If any of them changed shipped behaviour, it owes one "
+        f"note  {package}: {commits} commit(s) unpublished and no entry under "
+        f"`{UNRELEASED}` in src/{package}/CHANGELOG.md. If any of them changed shipped behaviour, "
+        "it owes one "
         "(CONTRIBUTING.md, definition of done, item 7)."
         for package, _, _, commits in rows if commits and package not in named
     ]

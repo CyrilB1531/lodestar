@@ -1,11 +1,11 @@
 """changelog_section.py, which turns a changelog entry into a GitHub Release body.
 
 #626: 35 release tags and 4 GitHub Releases, because `release.yml` never made one. The notes
-were already written -- CHANGELOG.md carries a `### <Package> — <Version>` heading per release
--- so the fix is extraction rather than authorship, and this is what keeps the extraction honest
-about its boundaries.
+were already written -- each `src/<Package>/CHANGELOG.md` carries a `## [<Version>]` heading per
+release since #1133 -- so the fix is extraction rather than authorship, and this is what keeps the
+extraction honest about its boundaries.
 
-The two that matter are the ends of a section. `#### Added` belongs to the section and a `###`
+The two that matter are the ends of a section. `### Added` belongs to the section and a `##`
 heading ends it; getting that backwards either truncates every release body at its first
 sub-heading or runs one release's notes into the next one's.
 """
@@ -21,47 +21,51 @@ import changelog_section  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[2]
 
-CHANGELOG = """\
-# Changelog
+GPU = """\
+# Changelog — Lodestar.Gpu
 
-## Released — 2026-09-10
+## [Unreleased]
 
-### Lodestar.Gpu — 0.1.0
+## [0.1.0] — 2026-09-10
 
-#### Added
+### Added
 
 - A sixteenth package.
 
-#### Fixed
+### Fixed
 
 - Something else.
+"""
 
-### Lodestar.Text — 0.6.0
+TEXT = """\
+# Changelog — Lodestar.Text
 
-#### Added
+## [Unreleased]
+
+## [0.6.0] — 2026-09-10
+
+### Added
 
 - Double metaphone.
 
-## Released — 2026-09-01
+## [0.3.0] — 2026-08-14 (published as DataNet.Text)
 
-### DataNet.Text — 0.3.0
-
-#### Added
+### Added
 
 - The name before the rename.
 """
 
 
-def _changelog(monkeypatch, tmp_path, body=CHANGELOG):
-    path = tmp_path / "CHANGELOG.md"
-    path.write_text(body, encoding="utf-8")
-    monkeypatch.setattr(changelog_section, "CHANGELOG", path)
-    return path
+def _changelog(monkeypatch, tmp_path):
+    for package, body in (("Lodestar.Gpu", GPU), ("Lodestar.Text", TEXT)):
+        (tmp_path / package).mkdir()
+        (tmp_path / package / "CHANGELOG.md").write_text(body, encoding="utf-8")
+    monkeypatch.setattr(changelog_section, "SRC", tmp_path)
 
 
 def test_the_shipped_changelog_carries_a_section_for_every_heading_it_declares():
     found = changelog_section.sections()
-    assert found, "the shipped CHANGELOG.md carries no release section at all"
+    assert found, "the shipped package changelogs carry no release section at all"
     assert all(body for body in found.values()), "a shipped section is empty"
 
 
@@ -72,8 +76,8 @@ def test_a_section_keeps_its_own_sub_headings(monkeypatch, tmp_path):
 
     body = changelog_section.sections()[("Lodestar.Gpu", "0.1.0")]
 
-    assert "#### Added" in body
-    assert "#### Fixed" in body
+    assert "### Added" in body
+    assert "### Fixed" in body
     assert "Something else." in body
 
 
@@ -88,22 +92,29 @@ def test_a_section_stops_at_the_next_release(monkeypatch, tmp_path):
     assert "Lodestar.Text" not in body
 
 
-def test_a_section_stops_at_the_next_dated_block(monkeypatch, tmp_path):
-    # `## Released — <date>` is above `###` and ends a section too.
+def test_a_section_stops_at_the_next_release_of_its_own_file(monkeypatch, tmp_path):
     _changelog(monkeypatch, tmp_path)
 
     body = changelog_section.sections()[("Lodestar.Text", "0.6.0")]
 
     assert "Double metaphone" in body
-    assert "2026-09-01" not in body
+    assert "2026-08-14" not in body
     assert "before the rename" not in body
 
 
-def test_the_pre_rename_name_is_read_too(monkeypatch, tmp_path):
-    # Four release tags are `DataNet.*`, from before the rename. They are part of the record.
+def test_unreleased_is_not_a_release(monkeypatch, tmp_path):
     _changelog(monkeypatch, tmp_path)
 
-    assert ("DataNet.Text", "0.3.0") in changelog_section.sections()
+    assert not any(version == "Unreleased" for _, version in changelog_section.sections())
+
+
+def test_the_pre_rename_name_is_read_too(monkeypatch, tmp_path):
+    # Four release tags are `DataNet.*`, from before the rename. They are part of the record, and
+    # their section lives in the Lodestar file, marked `(published as DataNet.Text)`.
+    _changelog(monkeypatch, tmp_path)
+
+    assert changelog_section.sections()[("DataNet.Text", "0.3.0")] == (
+        "### Added\n\n- The name before the rename.")
 
 
 def test_a_missing_section_is_an_error_rather_than_an_empty_body(monkeypatch, tmp_path, capsys):
@@ -113,7 +124,7 @@ def test_a_missing_section_is_an_error_rather_than_an_empty_body(monkeypatch, tm
     monkeypatch.setattr(sys, "argv", ["changelog_section.py", "Lodestar.Text", "9.9.9"])
 
     assert changelog_section.main() == 1
-    assert "no `### Lodestar.Text — 9.9.9` section" in capsys.readouterr().err
+    assert "src/Lodestar.Text/CHANGELOG.md carries no `## [9.9.9]` section" in capsys.readouterr().err
 
 
 def test_list_prints_every_release_the_changelog_carries(monkeypatch, tmp_path, capsys):
@@ -158,5 +169,5 @@ def test_every_lodestar_release_tag_has_a_section_to_publish():
     missing = [t for t in tags if tuple(t.rsplit("/v", 1)) not in found]
 
     assert not missing, (
-        f"{len(missing)} release tags have no `### <Package> — <Version>` section in "
+        f"{len(missing)} release tags have no `## [<Version>]` section in their package's "
         f"CHANGELOG.md, so they cannot be published with notes: {sorted(missing)}")

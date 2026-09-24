@@ -14,7 +14,7 @@ rather than walked, so reading it is free.
 
 Measured against the baseline a caller actually writes — a linear scan that skips any word whose
 length already puts it out of range — over 20 000 words and 200 queries
-([`docs/guides/performance.md`](../../../guides/performance.md#bk-tree-vs-a-length-filtered-scan-issue-526)
+([`docs/guides/performance.md`](../../../../src/Lodestar.Text/performance.md#bk-tree-vs-a-length-filtered-scan-issue-526)
 has the machine and the window). The `uniform` corpus is random words; `clustered` is 2 500 roots
 plus one or two edits each, the shape a natural dictionary has.
 

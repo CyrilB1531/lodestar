@@ -209,7 +209,7 @@ has the reading that corrected it):
   correction**, so its statistic is 9.09091 where this package's is 7.91919 on the same table, and
   its signed-rank statistic follows a different convention. Neither is a disagreement about the
   data: the write-up in
-  [`docs/guides/performance.md`](performance.md#metanumerics-against-lodestarstats-and-principalcomponentvariance-issue-756)
+  [`docs/guides/performance.md`](../../src/Lodestar.Stats/performance.md#metanumerics-against-lodestarstats-and-principalcomponentvariance-issue-756)
   lists all six differences with their causes.
 - **`Numerics.NET` 10.7.0**, formerly Extreme Optimization, maintained and **commercial**. Named
   so its absence from the benchmarks is not mistaken for an absence from .NET.
@@ -220,6 +220,6 @@ has the reading that corrected it):
 [`ChiSquare.Contingency`](../reference/stats/tests/chisquare-contingency.md) are benchmarked and
 cross-checked against it in
 [`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#18-lodestarstats-against-accordstatistics-issue-442)
-and [`docs/guides/performance.md`](performance.md#lodestarstats-against-accordstatistics-issue-442) —
+and [`docs/guides/performance.md`](../../src/Lodestar.Stats/performance.md#lodestarstats-against-accordstatistics-issue-442) —
 archived is not the same as absent, and this package's own oracle discipline
 means the comparison is also a second opinion on `scipy`, not only a timing.

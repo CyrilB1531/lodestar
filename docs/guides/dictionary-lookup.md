@@ -58,7 +58,7 @@ one asymmetry in the tree's favour anywhere in this comparison.
 | 4 | 1.79 | 1.74 |
 
 Ratio is wall-clock mean time, tree over scan — machine and window are in
-[`docs/guides/performance.md`](performance.md#bk-tree-vs-a-length-filtered-scan-issue-526). Below
+[`docs/guides/performance.md`](../../src/Lodestar.Text/performance.md#bk-tree-vs-a-length-filtered-scan-issue-526). Below
 `1` the tree wins; **above `1` it is slower to use than not building it at all.**
 
 **Worthwhile only at `k = 1`, where it costs roughly half the time.** From `k = 2` on, the
@@ -84,5 +84,5 @@ Past it, a large radius over a large dictionary is a linear scan wearing a tree 
 
 - [`BkTree`](../reference/text/indexing/bktree.md) — the full admissible-distance table and every
   member.
-- [`docs/guides/performance.md`](performance.md#bk-tree-vs-a-length-filtered-scan-issue-526) — the
+- [`docs/guides/performance.md`](../../src/Lodestar.Text/performance.md#bk-tree-vs-a-length-filtered-scan-issue-526) — the
   measured table, with its machine and window.

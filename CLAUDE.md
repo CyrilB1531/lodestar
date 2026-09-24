@@ -24,7 +24,8 @@ it.
 | document | its source | its subject |
 | --- | --- | --- |
 | `bench/README.md` | the `bench/` harness projects and scripts, hand-maintained | **how to measure** — the harness, the corpus, the commands |
-| `docs/guides/performance.md` | a benchmark run on a named machine | **what was measured** — one comparison per capability against the incumbent, each number with its machine and its window; a before/after belongs in the pull request that made it |
+| `src/<Package>/performance.md` | a benchmark run on a named machine | **what was measured** for that package — one comparison per capability against the incumbent, each number with its machine and its window; a before/after belongs in the pull request that made it |
+| `docs/guides/performance.md` | the eighteen `src/<Package>/performance.md`, hand-maintained | the index of the performance pages, and how to read a row |
 | `tools/README.md` | the scripts under `tools/`, hand-maintained | what each tool does and how to run it |
 | `tools/sonarqube-local/README.md` | one run of the disposable local server, on a named machine | how to run the half of the quality gate no `dotnet build` reaches, and what that run cost |
 | `.github/workflows/README.md` | the workflows in that directory and the repository ruleset, hand-maintained | what the pipeline runs, and what has to be green before `main` accepts a merge |
@@ -35,9 +36,12 @@ it.
 | `docs/reference/` | the exported types and public methods of the namespaces `docs/wiki-map.json` covers, replayed against both target frameworks' assemblies — net10.0's alone on a pull request that skips the build, which runs on the binaries `main` staged for its base commit ([#1059](https://github.com/CyrilB1531/lodestar/issues/1059)) | what each function is for: declaration, parameters, returns, example, remarks |
 | `docs/wiki-map.json` | the packages and the pages that ship with each, hand-maintained | which page belongs to which package, and which namespaces the reference gate enforces |
 | `docs/wiki/home.md` | the guides and namespace pages it links, hand-maintained | the published wiki's front page: what Lodestar is, and where each task starts |
-| `CHANGELOG.md` | the merged pull requests, per release | what changed, per release |
+| `src/<Package>/CHANGELOG.md` | the merged pull requests, per release | what changed in that package, per release |
+| `CHANGELOG.md` | the eighteen `src/<Package>/CHANGELOG.md`, hand-maintained | the index of the package changelogs |
+| `src/<Package>/README.md` | the package as it stands, hand-maintained | what the package does, one call, its dependencies; the README its NuGet package ships |
+| `samples/*/README.md`, `bench/*/README.md`, `tests/README.md`, `tests/<Package>.Tests/README.md` | each project, hand-maintained | what the project is for and how to run it |
 | `docs/decisions/` | each record's frontmatter and `**Status:**` line, crossed into [`index.yaml`](docs/decisions/index.yaml) and read in prose in [`README.md`](docs/decisions/README.md) | one axis of the project, with its options and its loser |
-| root `README.md` | the project as it stands, hand-maintained | what the project is, and where to go next |
+| root `README.md` | the project as it stands, hand-maintained | what the project is, what each package does, and where to go next |
 | `.claude/skills/` | [obra/superpowers](https://github.com/obra/superpowers), vendored at a pinned commit | how a spec and a plan are written; its README says what was taken |
 
 ## Commands
@@ -46,7 +50,7 @@ it.
 dotnet build Lodestar.slnx -c Release      # both target frameworks; warnings are errors
 dotnet test Lodestar.slnx -c Release       # runs the suite twice: net10 and netstandard2.0 assemblies
 dotnet format Lodestar.slnx --verify-no-changes
-npx markdownlint-cli2 "README.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "tools/sonarqube-local/README.md" "bench/README.md" ".github/workflows/README.md"
+npx markdownlint-cli2 "README.md" "CHANGELOG.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "tools/sonarqube-local/README.md" "bench/README.md" "bench/*/README.md" "samples/*/README.md" "tests/README.md" "tests/*/README.md" "src/*/*.md" ".github/workflows/README.md"
 ```
 
 Neither `python` nor `python3` is safe to assume on both platforms: Ubuntu 24.04 ships

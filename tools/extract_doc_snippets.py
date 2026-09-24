@@ -46,7 +46,7 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 OUTPUT = REPO / "samples" / "Lodestar.DocSnippets" / "Generated"
-SOURCES = ["README.md", "docs/guides/*.md",
+SOURCES = ["README.md", "src/*/README.md", "docs/guides/*.md",
            "docs/reference/*/*.md", "docs/reference/*/*/*.md"]
 
 REFERENCE = "docs/reference"

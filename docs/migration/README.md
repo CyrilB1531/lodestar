@@ -93,7 +93,7 @@ are worth more than the list.
    loader, not the arithmetic —
    [decision 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md) —
    and the encode paths no longer trail it either
-   ([performance guide](../guides/performance.md#sentencepiece-and-wordpiece-encode-against-microsoftmltokenizers-issue-713)).
+   ([performance guide](../../src/Lodestar.Embeddings/performance.md#sentencepiece-and-wordpiece-encode-against-microsoftmltokenizers-issue-713)).
 4. **Applied fuzzy matching** — `rapidfuzz.fuzz` / `process` equivalents. *(done)*
 5. **Classification metrics** — sklearn-parity precision, recall, F1, confusion
    matrix, report and ROC-AUC. *(done)*
