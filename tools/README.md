@@ -66,8 +66,14 @@ given:
   that already carries such a citation are exempt.
 - `check_spec_status.py` refuses a spec that does not say when it was written, and
   a plan that is committed at all.
-- `check_performance_sections.py` refuses a performance-guide section that names no
-  incumbent, no machine or no window, and any table column named after a branch.
+- `check_performance_sections.py` refuses a comparison in a package's
+  `src/<Package>/performance.md` that names no incumbent, no machine or no window, any table
+  column named after a branch, and a `docs/guides/performance.md` index that holds a comparison
+  or misses a package.
+- `check_project_docs.py` refuses a package without its own `README.md`, `CHANGELOG.md` and
+  `performance.md`, a sample, benchmark or test suite without its `README.md`, a root index
+  (`README.md`, `CHANGELOG.md`, `docs/guides/performance.md`) that misses a package, and an
+  entry left in the root `CHANGELOG.md` (#1133).
 - `check_comment_length.py` refuses a comment block that runs past its budget
   without saying why.
 - `check_no_console_writeline.py` refuses a `Console` call in a shipped package,
@@ -127,14 +133,15 @@ given:
 - `check_unreleased.py` reads what each package has merged and not published, from the tags,
   `main` and `src/<Package>/Version.props` — none of which can drift. Unpublished work is the
   normal state between a merge and a release, so it is reported; only a version declared past
-  its own tag fails, which is a release prepared and never cut. A missing `## [Unreleased]`
-  entry is a note rather than a failure, because a commit touching only XML comments owes the
+  its own tag fails, which is a release prepared and never cut. A missing entry under the
+  package's own `## [Unreleased]` is a note rather than a failure, because a commit touching only XML comments owes the
   changelog nothing and nothing here can tell the two apart.
-- `changelog_section.py` prints the `CHANGELOG.md` section for one package release, which is
+- `changelog_section.py` prints the `## [<Version>]` section of `src/<Package>/CHANGELOG.md`
+  for one package release (a `DataNet.*` release is found in its Lodestar file), which is
   what `release.yml` hands to `gh release create` as the Release body. A missing section is an
   error rather than an empty body: CONTRIBUTING.md makes the entry item 7 of the definition of
   done and says nothing gates it, so this is that gate. `--list` prints every release the
-  changelog carries, which is what the #626 backfill read.
+  package changelogs carry, which is what the #626 backfill read.
 - `check_release_workflow_packages.py` refuses a release workflow whose hard-coded
   package list has drifted from `src/`. `release-nuget-org.yml`'s `options:` and
   `release.yml`'s `case` allow-list must each name every `src/Lodestar.*` holding a
@@ -1023,11 +1030,14 @@ slug>.md`, with an optional letter for a second spec on one issue.
 
 ## `check_performance_sections.py`
 
-Refuses a section of `docs/guides/performance.md` that is not a comparison. Four
-rules: every `##` names a package under `src/`; every `###` carries a machine and a
-window; every `###` names an incumbent from `INCUMBENTS` or sits in `EXEMPT` with
-its reason; and **no table column is named after a branch or a revision** —
-`before`, `after`, `main`, `fix`, `origin/main`, `this branch`, `A1 / A2`.
+Refuses a comparison in a package's `src/<Package>/performance.md` that is not one
+(#1133 moved each package's comparisons there). Four rules per page: it opens
+`# Performance — <Package>`, or says `Nothing is measured against an incumbent yet.`;
+every `##` carries a machine and a window; every `##` names an incumbent from
+`INCUMBENTS` or sits in `EXEMPT` with its reason; and **no table column is named after a
+branch or a revision** — `before`, `after`, `main`, `fix`, `origin/main`,
+`this branch`, `A1 / A2`. `docs/guides/performance.md` is the index: it keeps only
+*How to read a row* and *Packages*, and links every package's page.
 
 ```bash
 python3 tools/check_performance_sections.py

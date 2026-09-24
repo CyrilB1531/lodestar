@@ -603,7 +603,7 @@ to the same cross-language harness, taking it from six operations to **nine**.
 They share this section's corpus, harnesses, methodology and gate, so the prose
 below covers them; their 18 measured rows were produced in a separate window with
 its own load average and are published once, in
-[`docs/guides/performance.md`](../docs/guides/performance.md#balanced-accuracy-matthews-correlation-cohens-kappa-issue-93),
+[`docs/guides/performance.md`](../src/Lodestar.Metrics/performance.md#balanced-accuracy-matthews-correlation-cohens-kappa-issue-93),
 rather than duplicated into the table here.
 
 The corpus is generated rather than committed, like `bench/corpus/vocabs/` —
@@ -728,14 +728,14 @@ python bench/compare.py metrics
 Lodestar on .NET 10.0.10 against scikit-learn 1.9.0 / NumPy 2.5.1 on Python
 3.12.3. Ratios above 1 mean Lodestar is faster. The 29 measured rows are
 published in
-[`docs/guides/performance.md`](../docs/guides/performance.md#classification-metrics-issue-61--vs-scikit-learn),
+[`docs/guides/performance.md`](../src/Lodestar.Metrics/performance.md#classification-metrics-issue-61--vs-scikit-learn),
 not duplicated here.
 
 **Merge gate: 29/29 rows at or above 1× on processor time.** Twenty-nine rows,
 not twenty-nine operations: six operations over six shapes, less the seven
 shape/operation pairs the two ROC-AUC rows do not cover. The three issue-#93
 operations add 18 more rows, all of them ≥ 16.5× — published in
-[`docs/guides/performance.md`](../docs/guides/performance.md#balanced-accuracy-matthews-correlation-cohens-kappa-issue-93),
+[`docs/guides/performance.md`](../src/Lodestar.Metrics/performance.md#balanced-accuracy-matthews-correlation-cohens-kappa-issue-93),
 measured in their own window, and not folded into the rows above because they do
 not share its load conditions. The
 narrowest margin here is 2.74× (`roc_auc_ovr_macro` at n=100 000, k=10). The design
@@ -1611,7 +1611,7 @@ runs is a cheap dense projection over an already-fitted model.
 `docs/guides/performance.md`, a
 run on a shared cloud container is not the machine `docs/guides/performance.md` reports — the same
 row there has read 3× slower on one. The three rows taken on a named machine are in
-[`docs/guides/performance.md`](../docs/guides/performance.md#truncated-svd-and-nmf-against-mlnet-500s-projecttoprincipalcomponents)
+[`docs/guides/performance.md`](../src/Lodestar.Decomposition/performance.md#truncated-svd-and-nmf-against-mlnet-500s-projecttoprincipalcomponents)
 (#679).
 
 ## 17. BK-tree vs a length-filtered scan (issue #526)
@@ -1642,7 +1642,7 @@ the corpus itself: looking up a word already in the dictionary is the case a spe
 hits every keystroke, and the densest neighbourhood the tree has to work through.
 
 Numbers are published in
-[`docs/guides/performance.md`](../docs/guides/performance.md#bk-tree-vs-a-length-filtered-scan-issue-526),
+[`docs/guides/performance.md`](../src/Lodestar.Text/performance.md#bk-tree-vs-a-length-filtered-scan-issue-526),
 and the reader-facing take-away is in
 [`docs/guides/dictionary-lookup.md`](../docs/guides/dictionary-lookup.md#where-the-tree-stops-paying) — this section
 documents how to measure, not what was measured.
@@ -1760,7 +1760,7 @@ dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*Ra
 ```
 
 Numbers are published in
-[`docs/guides/performance.md`](../docs/guides/performance.md#lodestarstats-against-accordstatistics-issue-442)
+[`docs/guides/performance.md`](../src/Lodestar.Stats/performance.md#lodestarstats-against-accordstatistics-issue-442)
 — this section documents how to measure, not what was measured.
 
 ## 19. `Lodestar.Stats.Regression` against `Accord.Statistics` (issue #566)
@@ -1812,7 +1812,7 @@ rows is where a table is actually read, and ten thousand is where the QR's `O(mn
 against the per-row allocation.
 
 Numbers are published in
-[`docs/guides/performance.md`](../docs/guides/performance.md#lodestarstatsregression-against-accordstatistics-issue-566)
+[`docs/guides/performance.md`](../src/Lodestar.Stats.Regression/performance.md#lodestarstatsregression-against-accordstatistics-issue-566)
 — this section documents how to measure, not what was measured.
 
 ## 20. `Lodestar.Survival` against nothing, deliberately (issue #569)
@@ -1909,7 +1909,7 @@ A seeded corpus (`Random(573)`) of 500 vocabulary terms and 40 tokens per docume
 20 000 documents: a thousand is where a matrix is rebuilt per request, twenty thousand is where
 the index starts to pay for itself.
 
-Numbers are published in [`docs/guides/performance.md`](../docs/guides/performance.md#bm25-against-lucenesharp-issue-677) —
+Numbers are published in [`docs/guides/performance.md`](../src/Lodestar.Text/performance.md#bm25-against-lucenesharp-issue-677) —
 this section documents how to measure, not what was measured.
 
 ## 22. `Lodestar.Stats` and `Lodestar.Stats.Regression` against scipy and statsmodels (issue #595)
@@ -2180,7 +2180,7 @@ iterate. So agreement is checked once, outside `BenchmarkDotNet`, with this pack
 within `1e-9`. The timed rows keep the shared `1e-8`, so neither side is handed a looser budget.
 
 The numbers, on a named machine and with the default job, are in
-[`docs/guides/performance.md`](../docs/guides/performance.md#lodestarstatsregressions-generalized-linear-model-against-accordstatistics-issue-678).
+[`docs/guides/performance.md`](../src/Lodestar.Stats.Regression/performance.md#lodestarstatsregressions-generalized-linear-model-against-accordstatistics-issue-678).
 
 `GlmPoissonBenchmarks` fits the Poisson family alone, one regressor over 2,000 rows, at a mean count
 of 5, 50,000 and 5,000,000: the one axis the log-likelihood's `log(y!)` sees, on its table below 256,
@@ -2253,7 +2253,7 @@ AR(1)-like series from a fixed seed (617, this issue's own number) so every benc
 same input, and so the correctness table above is reproducible from the same seed.
 
 The numbers, on a named machine and with the default job rather than `ShortRun`, are in
-[`docs/guides/performance.md`](../docs/guides/performance.md#lodestarstats-serial-correlation-diagnostics-against-cortextimeseries-issue-617).
+[`docs/guides/performance.md`](../src/Lodestar.Stats.TimeSeries/performance.md#lodestarstats-serial-correlation-diagnostics-against-cortextimeseries-issue-617).
 They were taken from a checkout with sibling worktrees carrying the same benchmark project, which
 `BenchmarkDotNet` 0.14.0 accepted.
 
@@ -2281,7 +2281,7 @@ A robust covariance adds a pass over the design building the filling `Xᵀ Ω X`
 `Hc3` also need the leverages, an `O(n·k)` pass over `Q`. It also moves the coefficient tests
 from Student's t to the normal, so a robust row runs different tail functions from the baseline.
 At small sizes that second difference is larger than the first, and
-[`docs/guides/performance.md`](../docs/guides/performance.md#hac-and-cluster-robust-covariances-against-statsmodels-issue-775)
+[`docs/guides/performance.md`](../src/Lodestar.Stats.Regression/performance.md#hac-and-cluster-robust-covariances-against-statsmodels-issue-775)
 carries what each covariance costs beside the ordinary fit.
 
 ### Configuration
@@ -2330,7 +2330,7 @@ Each column of the `Random(701)` block is scaled by its index, so the spectrum i
 than flat.
 
 The numbers, on a named machine and with the default job, are in
-[`docs/guides/performance.md`](../docs/guides/performance.md#the-variance-principal-components-explain-against-numflat-issue-701).
+[`docs/guides/performance.md`](../src/Lodestar.Decomposition/performance.md#the-variance-principal-components-explain-against-numflat-issue-701).
 
 ## 31. The two published quantiles, and what they cost their callers (issue #709)
 
@@ -2468,7 +2468,7 @@ largest difference on every shape and every pair was **exactly zero**: the same 
 same means, summed in the same order.
 
 The numbers, on a named machine and with the default job, are in
-[`docs/guides/performance.md`](../docs/guides/performance.md#k-means-against-numflat-and-metanumerics-issue-681).
+[`docs/guides/performance.md`](../src/Lodestar.Cluster/performance.md#k-means-against-numflat-and-metanumerics-issue-681).
 
 ## 35. Stationarity and seasonal decomposition against `Cortex.TimeSeries` (issue #671)
 
@@ -2512,7 +2512,7 @@ incomparable is the p-value: Cortex's is clamped at `0.01`.
 `[Params(200, 2_000)]` on `SampleSize`, as section 28. `Random(671)`, an AR(1) at 0.5 on uniform
 shocks, and a seasonal series built from it with period 12. The numbers, on a named machine and with
 the default job, are in
-[`docs/guides/performance.md`](../docs/guides/performance.md#stationarity-and-seasonal-decomposition-against-cortextimeseries-issue-671).
+[`docs/guides/performance.md`](../src/Lodestar.Stats.TimeSeries/performance.md#stationarity-and-seasonal-decomposition-against-cortextimeseries-issue-671).
 
 ## 36. Weighted least squares against Math.NET Numerics, and the least-squares pipeline under it (issue #782)
 
@@ -2543,7 +2543,7 @@ pipeline they describe is shared by `OrdinaryLeastSquares`, `WeightedLeastSquare
 
 `[Params(200, 2_000, 20_000, 200_000)]` for WLS and `OlsBenchmarks`' own `[Params(100, 10_000)]`. `Random(768)` and
 `Random(566)`. The numbers, on a named machine and with the default job, are in
-[`docs/guides/performance.md`](../docs/guides/performance.md#the-least-squares-pipeline-against-mathnet-numerics-issue-782).
+[`docs/guides/performance.md`](../src/Lodestar.Stats.Regression/performance.md#the-least-squares-pipeline-against-mathnet-numerics-issue-782).
 
 ## 37. The negative binomial GLM against `statsmodels` (issue #781)
 
@@ -2591,7 +2591,7 @@ faster row cannot be a different answer. `Numerics.NET` and Extreme Optimization
 `[Params(50, 200, 500, 1_000)]` on `SampleSize`, which is also the covariance's order, so the cost grows with
 its cube. `Random(771)`, four uniform regressors, AR(1) errors at 0.6 and the matching covariance
 `0.6^|i−j|`. The numbers, on a named machine and with the default job, are in
-[`docs/guides/performance.md`](../docs/guides/performance.md#generalized-least-squares-against-mathnet-numerics-issue-771).
+[`docs/guides/performance.md`](../src/Lodestar.Stats.Regression/performance.md#generalized-least-squares-against-mathnet-numerics-issue-771).
 
 ## 39. The Gamma GLM against `statsmodels` (issue #770)
 

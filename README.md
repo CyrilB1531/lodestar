@@ -32,6 +32,35 @@ model (ML.NET, TorchSharp), or a model that exists only as a Python package (CSn
 does not write, marks the ones no longer maintained, and says
 [when calling Python is still the right answer](docs/migration/README.md#when-calling-python-is-still-the-right-answer).
 
+## The packages
+
+Eighteen packages, each installed, versioned and released on its own. Each one's README says what
+it does, shows one call, and links its reference pages, its changelog and its measured
+comparisons. **Core** packages carry no external dependency; a **satellite** carries the one
+dependency that is its reason to exist; an **interop** package converts to another library's
+types ([decision 0003](docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)).
+
+| package | tier | what it does |
+| --- | --- | --- |
+| [`Lodestar.Abstractions`](src/Lodestar.Abstractions/README.md) | core | `CsrMatrix`, its products, and the public data types every other package declares |
+| [`Lodestar.Text`](src/Lodestar.Text/README.md) | core | string distances, phonetics, stemmers, tokenizers, sparse vectorizers, BM25, keyword extraction |
+| [`Lodestar.Embeddings`](src/Lodestar.Embeddings/README.md) | core | Hugging Face tokenizers without Python, batch encoding, pooling, SIMD nearest-neighbour search |
+| [`Lodestar.Fuzzy`](src/Lodestar.Fuzzy/README.md) | core | rapidfuzz's `fuzz.*` and `process.extract`, and deduplication |
+| [`Lodestar.Metrics`](src/Lodestar.Metrics/README.md) | core | classification, regression, clustering and ranking metrics at scikit-learn parity |
+| [`Lodestar.Conformal`](src/Lodestar.Conformal/README.md) | core | split conformal intervals and prediction sets, at MAPIE parity |
+| [`Lodestar.Decomposition`](src/Lodestar.Decomposition/README.md) | core | truncated SVD and NMF over a sparse matrix, the Householder QR, explained variance |
+| [`Lodestar.Cluster`](src/Lodestar.Cluster/README.md) | core | k-means, DBSCAN and agglomerative clustering at scikit-learn parity |
+| [`Lodestar.Preprocessing`](src/Lodestar.Preprocessing/README.md) | core | scalers, encoders, imputers and the cross-validation splitters at scikit-learn parity |
+| [`Lodestar.Stats`](src/Lodestar.Stats/README.md) | core | classical hypothesis tests at scipy.stats parity |
+| [`Lodestar.Stats.Regression`](src/Lodestar.Stats.Regression/README.md) | core | least squares, GLM and multinomial logit with statsmodels' whole inference table |
+| [`Lodestar.Stats.TimeSeries`](src/Lodestar.Stats.TimeSeries/README.md) | core | ACF, PACF, Ljung-Box, ADF, KPSS, seasonal decomposition and VAR, at statsmodels parity |
+| [`Lodestar.Survival`](src/Lodestar.Survival/README.md) | core | Kaplan-Meier, Nelson-Aalen, the log-rank test and Cox regression, at lifelines parity |
+| [`Lodestar.Onnx`](src/Lodestar.Onnx/README.md) | satellite | an ONNX encoder run in-process, pooled into a sentence embedding |
+| [`Lodestar.Gpu`](src/Lodestar.Gpu/README.md) | satellite | ILGPU kernels over device-resident embeddings, matrices and text |
+| [`Lodestar.Extensions.AI`](src/Lodestar.Extensions.AI/README.md) | interop | the ONNX embedding path behind `IEmbeddingGenerator` |
+| [`Lodestar.Extensions.MathNet`](src/Lodestar.Extensions.MathNet/README.md) | interop | `CsrMatrix` to and from Math.NET's sparse matrix |
+| [`Lodestar.Extensions.VectorData`](src/Lodestar.Extensions.VectorData/README.md) | interop | an in-process `Microsoft.Extensions.VectorData` store with hybrid search |
+
 ## Getting started
 
 ```bash
@@ -96,14 +125,14 @@ table does not carry:
 
 | package | incumbent | how it reads |
 | --- | --- | --- |
-| `Lodestar.Text`, `Bm25Index` | LuceneSharp.Core | Same ranking. The query is 1.6× faster at 1,000 documents and 1.4× slower at 20,000; from raw text Lucene is ahead, 2.1× to 2.7× ([performance](docs/guides/performance.md#bm25-against-lucenesharp-issue-677)) |
-| `Lodestar.Decomposition` | ML.NET `ProjectToPrincipalComponents`; NumFlat; Meta.Numerics | **Not like-for-like** against ML.NET, whose PCA is dense, centred and reports no eigenvalue. The explained variance is 0.83× to 1.36× NumFlat (`net8.0` only) and 36.7× to 809× Meta.Numerics, which refuses a matrix wider than it is tall ([performance](docs/guides/performance.md#lodestardecomposition)) |
-| `Lodestar.Cluster` | NumFlat, `Dbscan`, `Aglomera` | DBSCAN 2.47× to 10.92×, agglomerative clustering 24× to 590× ([performance](docs/guides/performance.md#lodestarcluster)) |
-| `Lodestar.Preprocessing` | ML.NET's splitters, normalizers and encoders | Ahead on every row where ML.NET's lazy result is read back, 1.46× to 191×; the lazy call alone is cheaper on the larger splits and the 20,000-row one-hot fit ([performance](docs/guides/performance.md#lodestarpreprocessing)) |
-| `Lodestar.Stats.Regression` | Accord.Statistics; Math.NET Numerics | The GLM is level with Accord at 200 rows and 1.4× behind at 2,000; weighted and generalized least squares are level or ahead of Math.NET while computing the whole table ([performance](docs/guides/performance.md#lodestarstatsregression)) |
+| `Lodestar.Text`, `Bm25Index` | LuceneSharp.Core | Same ranking. The query is 1.6× faster at 1,000 documents and 1.4× slower at 20,000; from raw text Lucene is ahead, 2.1× to 2.7× ([performance](src/Lodestar.Text/performance.md#bm25-against-lucenesharp-issue-677)) |
+| `Lodestar.Decomposition` | ML.NET `ProjectToPrincipalComponents`; NumFlat; Meta.Numerics | **Not like-for-like** against ML.NET, whose PCA is dense, centred and reports no eigenvalue. The explained variance is 0.83× to 1.36× NumFlat (`net8.0` only) and 36.7× to 809× Meta.Numerics, which refuses a matrix wider than it is tall ([performance](src/Lodestar.Decomposition/performance.md)) |
+| `Lodestar.Cluster` | NumFlat, `Dbscan`, `Aglomera` | DBSCAN 2.47× to 10.92×, agglomerative clustering 24× to 590× ([performance](src/Lodestar.Cluster/performance.md)) |
+| `Lodestar.Preprocessing` | ML.NET's splitters, normalizers and encoders | Ahead on every row where ML.NET's lazy result is read back, 1.46× to 191×; the lazy call alone is cheaper on the larger splits and the 20,000-row one-hot fit ([performance](src/Lodestar.Preprocessing/performance.md)) |
+| `Lodestar.Stats.Regression` | Accord.Statistics; Math.NET Numerics | The GLM is level with Accord at 200 rows and 1.4× behind at 2,000; weighted and generalized least squares are level or ahead of Math.NET while computing the whole table ([performance](src/Lodestar.Stats.Regression/performance.md)) |
 | `Lodestar.Onnx`, `Lodestar.Extensions.AI`, `Lodestar.Extensions.MathNet` | — | **Nothing to beat.** Each calls or adapts another library, so what it could be slower than is its own conversion |
 | `Lodestar.Extensions.VectorData` | the `Microsoft.Extensions.VectorData` connectors | **Not measured.** Of the connectors surveyed, the ones implementing hybrid search are clients of a server, which an in-process store does not race |
-| `Lodestar.Gpu` | — | Measured against this repository's own CPU paths, and each kernel ships only where it passed that gate ([performance](docs/guides/performance.md#lodestargpu)) |
+| `Lodestar.Gpu` | — | Measured against this repository's own CPU paths, and each kernel ships only where it passed that gate ([performance](src/Lodestar.Gpu/performance.md)) |
 
 ## Parity with the Python reference
 
@@ -158,16 +187,16 @@ What each package holds, and which it depends on, is `CLAUDE.md`'s
 
 ```text
 Lodestar.slnx
-├── src/Lodestar.Abstractions/              CsrMatrix and SparseNorm — the sparse primitive the others share (no dependencies)
+├── src/Lodestar.Abstractions/              CsrMatrix, SparseNorm and the packages' public data types (no dependencies)
 ├── src/Lodestar.Text/                      distances, similarity, tokenizers, vectorizers, stemmers
-├── src/Lodestar.Embeddings/                sub-word tokenizers, pooling, SIMD kNN (no dependencies)
+├── src/Lodestar.Embeddings/                sub-word tokenizers, pooling, SIMD kNN
 ├── src/Lodestar.Fuzzy/                     fuzz.*, process.extract, deduplication
 ├── src/Lodestar.Metrics/                   confusion matrix, precision/recall/F1, report, ROC-AUC
-├── src/Lodestar.Conformal/                 split conformal intervals and prediction sets (no dependencies)
+├── src/Lodestar.Conformal/                 split conformal intervals and prediction sets
 ├── src/Lodestar.Decomposition/             truncated SVD, NMF, the Householder QR, and PCA explained variance
 ├── src/Lodestar.Cluster/                   k-means by Lloyd's algorithm over a row-major span
 ├── src/Lodestar.Preprocessing/             feature scaling fitted on arrays and applied to spans
-├── src/Lodestar.Stats/                     classical hypothesis tests, at scipy.stats parity (no dependencies)
+├── src/Lodestar.Stats/                     classical hypothesis tests, at scipy.stats parity
 ├── src/Lodestar.Stats.Regression/          ordinary, weighted and generalized least squares with the inference table
 ├── src/Lodestar.Stats.TimeSeries/          autocorrelation, Ljung-Box, ADF, KPSS and seasonal decomposition
 ├── src/Lodestar.Survival/                  Kaplan-Meier, Nelson-Aalen and the log-rank test, right-censored
@@ -183,6 +212,7 @@ Lodestar.slnx
 ├── tools/generate_oracles.py               reference generation
 ├── Directory.Build.props                   (root); src|tests/Directory.Packages.props (central package management)
 ├── src/*/Version.props                     one version per publishable package (decision 0001)
+├── src/*/README.md, CHANGELOG.md, performance.md   each package's own page, history and measured comparisons
 ├── docs/                                   guides, equivalence table, decision log
 ├── docs/reference/<package>/               one reference entry per exported type and public method
 └── docs/wiki-map.json                      which page ships with which package, and which namespaces the reference gate enforces
@@ -203,8 +233,9 @@ which [`decisions/0003`](docs/decisions/0003-the-package-layout-tiers-boundaries
 allows a dependency a core package refused, because converting to a foreign type is not computing
 with it.
 **Each versions and releases on its own**: shared metadata
-(license, README, repository) lives in `Directory.Build.props`, while the version
-is declared per project in `src/<Package>/Version.props`. `Lodestar.Fuzzy` depends
+(license, icon, repository) lives in `Directory.Build.props`, while the version
+is declared per project in `src/<Package>/Version.props` and each package ships its own
+`src/<Package>/README.md`, with a release-notes link to its own `CHANGELOG.md`. `Lodestar.Fuzzy` depends
 on `Lodestar.Text` as a published package, not as a project reference — see
 [`docs/decisions/0001`](docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
@@ -216,8 +247,8 @@ different assemblies answer to one identity. A feature pull request therefore ne
 
 To cut a release, set that file to the version being cut — the number `main` already carries when
 the release is a revision, a larger one when the change earns a minor or a major — and land it on
-`main`. Add the entry under the package's heading in
-[`CHANGELOG.md`](CHANGELOG.md), in the shape
+`main`. Turn `## [Unreleased]` into `## [<version>] — <date>` in the package's own
+`src/<Package>/CHANGELOG.md` (the root [`CHANGELOG.md`](CHANGELOG.md) lists them), in the shape
 [`CONTRIBUTING.md`](CONTRIBUTING.md#definition-of-done)'s item 7 sets. Then tag. Afterwards, close
 the release issue by bumping the revision again, which puts `main` back ahead of the feed.
 

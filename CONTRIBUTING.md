@@ -175,8 +175,10 @@ A change is not finished until all of these hold:
    name linked to its own `###` entry — `` [`Levenshtein`](#levenshtein) ``. The anchor is
    GitHub's slug rule, lower-cased with dots dropped, and `ReferenceDocumentationTests` fails
    the build on a row with no link.
-7. **A change to shipped behaviour carries its `CHANGELOG.md` entry**, under the package's
-   heading in `[Unreleased]`: **one sentence, the issue and the commit — nothing else**. The why
+7. **A change to shipped behaviour carries its changelog entry**, in the package's own
+   `src/<Package>/CHANGELOG.md` under `## [Unreleased]` and its `### Added`, `### Changed` or
+   `### Fixed`: **one sentence, the issue and the commit — nothing else**. The root
+   `CHANGELOG.md` only lists the eighteen files. The why
    lives in the issue and the how in the commit, so an entry carries no rationale, no measurement
    and no caveat:
 
@@ -198,7 +200,7 @@ A change is not finished until all of these hold:
 dotnet build Lodestar.slnx -c Release
 dotnet test Lodestar.slnx -c Release
 dotnet format Lodestar.slnx --verify-no-changes
-npx markdownlint-cli2 "README.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "tools/sonarqube-local/README.md" "bench/README.md" ".github/workflows/README.md"
+npx markdownlint-cli2 "README.md" "CHANGELOG.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "tools/sonarqube-local/README.md" "bench/README.md" "bench/*/README.md" "samples/*/README.md" "tests/README.md" "tests/*/README.md" "src/*/*.md" ".github/workflows/README.md"
 ```
 
 Neither `python` nor `python3` is safe to assume on both platforms: Ubuntu 24.04 ships
@@ -252,7 +254,7 @@ git config core.hooksPath .githooks
 git config core.hooksPath .githooks
 ```
 
-`.githooks/pre-commit` then runs the twenty-one offline guards —
+`.githooks/pre-commit` then runs the twenty-two offline guards —
 `check_machine_paths.py`, `check_sdd_citations.py`, `check_comment_length.py`, `check_version_floor.py`,
 `check_sample_culture.py`, `check_bench_map.py`, `check_sample_coverage.py`,
 `check_netstandard_guards.py`, `check_no_console_writeline.py`,
@@ -260,7 +262,8 @@ git config core.hooksPath .githooks
 `check_readme_packages.py`, `check_release_workflow_packages.py`, `check_unreleased.py`,
 `check_requirements_lock_sync.py`, `check_gpu_tests_force_cpu.py`,
 `check_adr_frontmatter.py`, `check_adr_index_sync.py`, `check_adr_index_is_cited.py`,
-`check_spec_status.py` and `check_performance_sections.py` — before every commit, reports every one
+`check_spec_status.py`, `check_performance_sections.py` and `check_project_docs.py` — before
+every commit, reports every one
 that failed rather than the first, and refuses the commit if any did. It
 resolves `python3` then `python` — neither name is safe to assume on both
 platforms — and, on a machine with neither, says so and lets the commit

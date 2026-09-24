@@ -13,7 +13,9 @@
       "wiki": "Abstractions",
       "pages": [
         "docs/reference/abstractions/*.md",
-        "docs/reference/abstractions/*/*.md"
+        "docs/reference/abstractions/*/*.md",
+        "src/Lodestar.Abstractions/README.md",
+        "src/Lodestar.Abstractions/performance.md"
       ],
       "covered": {
         "Lodestar.Abstractions": "docs/reference/abstractions/sparse"
@@ -28,7 +30,9 @@
         "docs/guides/keyword-extraction.md",
         "docs/guides/keyword-search.md",
         "docs/reference/text/*.md",
-        "docs/reference/text/*/*.md"
+        "docs/reference/text/*/*.md",
+        "src/Lodestar.Text/README.md",
+        "src/Lodestar.Text/performance.md"
       ],
       "covered": {
         "Lodestar.Text.Distances": "docs/reference/text/distances",
@@ -49,7 +53,9 @@
       "pages": [
         "docs/guides/embeddings.md",
         "docs/reference/embeddings/*.md",
-        "docs/reference/embeddings/*/*.md"
+        "docs/reference/embeddings/*/*.md",
+        "src/Lodestar.Embeddings/README.md",
+        "src/Lodestar.Embeddings/performance.md"
       ],
       "covered": {
         "Lodestar.Embeddings.Tokenization": "docs/reference/embeddings/tokenization",
@@ -64,7 +70,9 @@
       "pages": [
         "docs/guides/onnx.md",
         "docs/reference/onnx/*.md",
-        "docs/reference/onnx/*/*.md"
+        "docs/reference/onnx/*/*.md",
+        "src/Lodestar.Onnx/README.md",
+        "src/Lodestar.Onnx/performance.md"
       ],
       "covered": {
         "Lodestar.Onnx": "docs/reference/onnx/inference"
@@ -75,7 +83,9 @@
       "wiki": "ExtensionsAI",
       "pages": [
         "docs/reference/extensions-ai/*.md",
-        "docs/reference/extensions-ai/*/*.md"
+        "docs/reference/extensions-ai/*/*.md",
+        "src/Lodestar.Extensions.AI/README.md",
+        "src/Lodestar.Extensions.AI/performance.md"
       ],
       "covered": {
         "Lodestar.Extensions.AI": "docs/reference/extensions-ai/generation"
@@ -86,7 +96,9 @@
       "wiki": "ExtensionsVectorData",
       "pages": [
         "docs/reference/extensions-vectordata/*.md",
-        "docs/reference/extensions-vectordata/*/*.md"
+        "docs/reference/extensions-vectordata/*/*.md",
+        "src/Lodestar.Extensions.VectorData/README.md",
+        "src/Lodestar.Extensions.VectorData/performance.md"
       ],
       "covered": {
         "Lodestar.Extensions.VectorData": "docs/reference/extensions-vectordata/store"
@@ -97,7 +109,9 @@
       "wiki": "ExtensionsMathNet",
       "pages": [
         "docs/reference/extensions-mathnet/*.md",
-        "docs/reference/extensions-mathnet/*/*.md"
+        "docs/reference/extensions-mathnet/*/*.md",
+        "src/Lodestar.Extensions.MathNet/README.md",
+        "src/Lodestar.Extensions.MathNet/performance.md"
       ],
       "covered": {
         "Lodestar.Extensions.MathNet": "docs/reference/extensions-mathnet/conversion"
@@ -109,7 +123,9 @@
       "pages": [
         "docs/guides/migrating-from-rapidfuzz.md",
         "docs/reference/fuzzy/*.md",
-        "docs/reference/fuzzy/*/*.md"
+        "docs/reference/fuzzy/*/*.md",
+        "src/Lodestar.Fuzzy/README.md",
+        "src/Lodestar.Fuzzy/performance.md"
       ],
       "covered": {
         "Lodestar.Fuzzy": "docs/reference/fuzzy/matching"
@@ -120,7 +136,9 @@
       "pages": [
         "docs/guides/metrics.md",
         "docs/reference/metrics/*.md",
-        "docs/reference/metrics/*/*.md"
+        "docs/reference/metrics/*/*.md",
+        "src/Lodestar.Metrics/README.md",
+        "src/Lodestar.Metrics/performance.md"
       ],
       "covered": {
         "Lodestar.Metrics": [
@@ -135,14 +153,16 @@
       "wiki": "Preprocessing",
       "pages": [
         "docs/reference/preprocessing/*.md",
-        "docs/reference/preprocessing/*/*.md"
+        "docs/reference/preprocessing/*/*.md",
+        "src/Lodestar.Preprocessing/README.md",
+        "src/Lodestar.Preprocessing/performance.md"
       ],
       "covered": {
         "Lodestar.Preprocessing": [
           "docs/reference/preprocessing/scaling",
           "docs/reference/preprocessing/splitting",
           "docs/reference/preprocessing/encoding",
-        "docs/reference/preprocessing/transforming"
+          "docs/reference/preprocessing/transforming"
         ]
       },
       "exceptionsUnchecked": []
@@ -151,7 +171,9 @@
       "wiki": "Cluster",
       "pages": [
         "docs/reference/cluster/*.md",
-        "docs/reference/cluster/*/*.md"
+        "docs/reference/cluster/*/*.md",
+        "src/Lodestar.Cluster/README.md",
+        "src/Lodestar.Cluster/performance.md"
       ],
       "covered": {
         "Lodestar.Cluster": "docs/reference/cluster/partitioning"
@@ -163,7 +185,9 @@
       "pages": [
         "docs/guides/conformal.md",
         "docs/reference/conformal/*.md",
-        "docs/reference/conformal/*/*.md"
+        "docs/reference/conformal/*/*.md",
+        "src/Lodestar.Conformal/README.md",
+        "src/Lodestar.Conformal/performance.md"
       ],
       "covered": {
         "Lodestar.Conformal": "docs/reference/conformal/prediction"
@@ -174,7 +198,9 @@
       "pages": [
         "docs/guides/decomposition.md",
         "docs/reference/decomposition/*.md",
-        "docs/reference/decomposition/*/*.md"
+        "docs/reference/decomposition/*/*.md",
+        "src/Lodestar.Decomposition/README.md",
+        "src/Lodestar.Decomposition/performance.md"
       ],
       "covered": {
         "Lodestar.Decomposition": "docs/reference/decomposition/factorization"
@@ -186,7 +212,9 @@
         "docs/guides/hypothesis-testing.md",
         "docs/reference/stats.md",
         "docs/reference/stats/*.md",
-        "docs/reference/stats/*/*.md"
+        "docs/reference/stats/*/*.md",
+        "src/Lodestar.Stats/README.md",
+        "src/Lodestar.Stats/performance.md"
       ],
       "covered": {
         "Lodestar.Stats": [
@@ -202,7 +230,9 @@
       "pages": [
         "docs/guides/regression-inference.md",
         "docs/reference/stats-regression/*.md",
-        "docs/reference/stats-regression/*/*.md"
+        "docs/reference/stats-regression/*/*.md",
+        "src/Lodestar.Stats.Regression/README.md",
+        "src/Lodestar.Stats.Regression/performance.md"
       ],
       "covered": {
         "Lodestar.Stats.Regression": [
@@ -220,7 +250,9 @@
       "pages": [
         "docs/guides/time-series-diagnostics.md",
         "docs/reference/stats-timeseries/*.md",
-        "docs/reference/stats-timeseries/*/*.md"
+        "docs/reference/stats-timeseries/*/*.md",
+        "src/Lodestar.Stats.TimeSeries/README.md",
+        "src/Lodestar.Stats.TimeSeries/performance.md"
       ],
       "covered": {
         "Lodestar.Stats.TimeSeries": [
@@ -237,7 +269,9 @@
       "pages": [
         "docs/guides/survival-analysis.md",
         "docs/reference/survival/*.md",
-        "docs/reference/survival/*/*.md"
+        "docs/reference/survival/*/*.md",
+        "src/Lodestar.Survival/README.md",
+        "src/Lodestar.Survival/performance.md"
       ],
       "covered": {
         "Lodestar.Survival": "docs/reference/survival/estimators"
@@ -249,7 +283,9 @@
       "pages": [
         "docs/guides/gpu-kernels.md",
         "docs/reference/gpu/*.md",
-        "docs/reference/gpu/*/*.md"
+        "docs/reference/gpu/*/*.md",
+        "src/Lodestar.Gpu/README.md",
+        "src/Lodestar.Gpu/performance.md"
       ],
       "covered": {
         "Lodestar.Gpu.Compute": "docs/reference/gpu/compute"

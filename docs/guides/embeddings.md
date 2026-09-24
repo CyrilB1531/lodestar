@@ -379,7 +379,7 @@ expands to rather than what it occupies on disk.
 can do to this path — measured at **26.67x the save and 7.19x the load, to buy 26%
 of the disk**, and the price grows with the artifact: at the benchmark corpus's 20 MB
 it is 76.8x and 14.8x. The numbers and the machines are in
-[the performance guide](performance.md#compressing-an-index-issue-378). That is worth it
+[the performance guide](../../src/Lodestar.Embeddings/performance.md#compressing-an-index-issue-378). That is worth it
 for an index shipped over a network and a poor trade for one written once to a
 local disk, which is why the default declines to make the choice for you.
 `GZipStream` is the portable recipe; on .NET 10 `BrotliStream` is smaller and much

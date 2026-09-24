@@ -47,7 +47,7 @@ jobs:
         # in CI could change with no commit here.
         run: >
           npx --yes --ignore-scripts markdownlint-cli2@0.23.2
-          "README.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "tools/sonarqube-local/README.md" "bench/README.md" ".github/workflows/README.md"
+          "README.md" "CHANGELOG.md" "CONTRIBUTING.md" "docs/**/*.md" "tools/README.md" "tools/sonarqube-local/README.md" "bench/README.md" "bench/*/README.md" "samples/*/README.md" "tests/README.md" "tests/*/README.md" "src/*/*.md" ".github/workflows/README.md"
       # Only a C# file or what configures it can change the answer, and the check costs about
       # two and a half minutes (#997).
       - name: C# format check
@@ -189,6 +189,10 @@ jobs:
       # quick-commands loop beside the table above (#688).
       - name: README prose and CLAUDE.md's pack loop name every package
         run: python tools/check_readme_packages.py
+      # Each package carries its own README, CHANGELOG and performance page, every sample,
+      # benchmark and suite its README, and the three root indexes link them all (#1133).
+      - name: Every project carries its documents
+        run: python tools/check_project_docs.py
       # Lodestar.Fuzzy carried two commits merged on 2026-09-01 and never published, and
       # nothing said so for ten days (#628). This reads the tags and main, which cannot
       # drift, against what src/<Package>/Version.props declares. Unpublished work is the

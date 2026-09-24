@@ -1,0 +1,26 @@
+<Project>
+
+  <!-- Imported after each project under src/, so $(PackageId) and $(Version), which the
+       project and its Version.props set, are known here and not in Directory.Build.props. -->
+
+  <!-- Each package ships its own README, written for that package, rather than the
+       repository's (#1133). The icon stays shared, in the root Directory.Build.props. -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildProjectDirectory)/README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <!-- The package's own changelog at its own tag: the link resolves once the tag exists, which
+       is when the package reaches nuget.org. A link rather than the text, which MSBuild cannot
+       extract from the file without a custom task. -->
+  <PropertyGroup Condition="'$(IsPackable)' != 'false'">
+    <PackageReleaseNotes>https://github.com/CyrilB1531/lodestar/blob/$(PackageId)/v$(Version)/src/$(PackageId)/CHANGELOG.md</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <!-- Loud rather than silent: without its README the pack would fail on a missing file with
+       no word of why, or, before #1133, ship the repository's README under this package's name. -->
+  <Target Name="RequirePackageReadme" BeforeTargets="GenerateNuspec"
+          Condition="'$(IsPackable)' != 'false' And !Exists('$(MSBuildProjectDirectory)/README.md')">
+    <Error Text="$(MSBuildProjectName) has no README.md beside its project file. Each package ships its own (#1133)." />
+  </Target>
+
+</Project>
