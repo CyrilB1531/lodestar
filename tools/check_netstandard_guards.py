@@ -66,6 +66,23 @@ def contract_of(package: str) -> str:
     return MIRRORED.get(package, DEFAULT_CONTRACT)
 
 
+def source_project(package: str) -> pathlib.Path:
+    """The src/ project a package is built from."""
+    return ROOT / "src" / package / f"{package}.csproj"
+
+
+def pin_contract(dependency: str, contract: str) -> str:
+    """The moniker a mirror pins <paramref name="dependency"/> to: the mirror's own when the
+    dependency declares it, netstandard2.0 otherwise -- Lodestar.Abstractions has no 2.1 build
+    for the Lodestar.Gpu mirror to load."""
+    project = source_project(dependency)
+    if not project.is_file():
+        return contract
+    declared = {target.strip() for group in SRC_TARGETS.findall(project.read_text(encoding=ENCODING))
+                for target in group.split(";")}
+    return contract if contract in declared else DEFAULT_CONTRACT
+
+
 def mirror_pins(text: str, contract: str) -> set[str]:
     """The Lodestar projects a mirror pins to <paramref name="contract"/>."""
     pattern = re.compile(
@@ -80,7 +97,7 @@ def dependencies_of(package: str) -> set[str]:
     pending = [package]
     while pending:
         current = pending.pop()
-        project = ROOT / "src" / current / f"{current}.csproj"
+        project = source_project(current)
         if not project.is_file():
             continue
         for dependency in SRC_PACKAGE_REFERENCE.findall(project.read_text(encoding=ENCODING)):
@@ -109,7 +126,7 @@ def failures_in(mirror: pathlib.Path) -> list[str]:
         found.append(f"{mirror.relative_to(ROOT)}: no .csproj.")
         return found
 
-    source = ROOT / "src" / package / f"{package}.csproj"
+    source = source_project(package)
     if not source.is_file():
         found.append(f"{mirror.relative_to(ROOT)}: no library at src/{package}.")
         return found
@@ -139,17 +156,17 @@ def failures_in(mirror: pathlib.Path) -> list[str]:
             f"the net10.0 build of {package} and its guard asserts a framework the assembly "
             f"does not carry.")
 
-    pinned = mirror_pins(body, contract)
     direct = set(SRC_PACKAGE_REFERENCE.findall(library))
     for dependency in sorted(dependencies_of(package)):
-        if dependency not in pinned:
+        framework = pin_contract(dependency, contract)
+        if dependency not in mirror_pins(body, framework):
             how = "depends on" if dependency in direct else "loads, through another package,"
             found.append(
                 f"{project.relative_to(ROOT)}: {package} {how} {dependency}, which is not "
                 f"pinned here. SetTargetFramework does not cross a PackageReference, so this "
                 f"suite loads {dependency}'s net10.0 build. Add a ProjectReference to "
                 f"../../src/{dependency}/{dependency}.csproj with "
-                f"SetTargetFramework=\"TargetFramework={contract}\".")
+                f"SetTargetFramework=\"TargetFramework={framework}\".")
     return found
 
 

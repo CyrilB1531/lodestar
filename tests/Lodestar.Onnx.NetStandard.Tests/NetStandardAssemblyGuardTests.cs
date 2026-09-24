@@ -40,4 +40,15 @@ public sealed class NetStandardAssemblyGuardTests
 
         Assert.Equal(".NETStandard,Version=v2.0", framework);
     }
+
+    /// <summary>And for Lodestar.Abstractions, where Lodestar.Embeddings' data types live since
+    /// #1142, reached one package further away.</summary>
+    [Fact]
+    public void Suite_runs_against_the_netstandard2_0_build_of_Lodestar_Abstractions()
+    {
+        Assembly assembly = typeof(Lodestar.Embeddings.Search.SearchResult).Assembly;
+        string? framework = assembly.GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName;
+
+        Assert.Equal(".NETStandard,Version=v2.0", framework);
+    }
 }

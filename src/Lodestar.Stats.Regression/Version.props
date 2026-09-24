@@ -22,7 +22,7 @@
     (CONTRIBUTING.md, Working across two packages).
   -->
   <PropertyGroup>
-    <LodestarStatsRegressionVersion>0.2.0</LodestarStatsRegressionVersion>
+    <LodestarStatsRegressionVersion>0.2.1</LodestarStatsRegressionVersion>
   </PropertyGroup>
 
 </Project>

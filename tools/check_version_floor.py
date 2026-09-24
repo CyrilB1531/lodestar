@@ -42,6 +42,10 @@ NUSPEC_CHECK = ROOT / "tools" / "check_nuspec_dependencies.py"
 
 FLAT_CONTAINER = "https://api.nuget.org/v3-flatcontainer/{id}/index.json"
 
+STATS_REGRESSION = "Lodestar.Stats.Regression"
+STATS_TIMESERIES = "Lodestar.Stats.TimeSeries"
+PREPROCESSING = "Lodestar.Preprocessing"
+
 
 
 @dataclass(frozen=True)
@@ -67,21 +71,25 @@ class Floor:
 # One row per inter-package edge. Adding an edge without adding it here is the
 # drift this script exists to catch, so the row lands in the same commit.
 FLOORS = (
-    # long-comment: a consumer #1142 switched to a ProjectReference has no published floor to
-    # check until the release swaps it back, so it is off its row: Lodestar.Fuzzy from
-    # Lodestar.Text's, Lodestar.Text and Lodestar.Decomposition from Lodestar.Abstractions',
-    # Lodestar.Stats.Regression and Lodestar.Stats.TimeSeries from Lodestar.Stats', and
-    # Lodestar.Decomposition's row is gone with its one consumer. The release puts them back.
     Floor("Lodestar.Text", "LodestarTextVersion", "TEXT_FLOOR",
-          ("Lodestar.Extensions.VectorData",)),
+          ("Lodestar.Fuzzy", "Lodestar.Extensions.VectorData")),
     Floor("Lodestar.Abstractions", "LodestarAbstractionsVersion", "ABSTRACTIONS_FLOOR",
-          ("Lodestar.Extensions.MathNet",)),
+          ("Lodestar.Text", "Lodestar.Decomposition", "Lodestar.Extensions.MathNet",
+           "Lodestar.Stats", "Lodestar.Cluster", "Lodestar.Conformal", "Lodestar.Embeddings",
+           "Lodestar.Fuzzy", "Lodestar.Gpu", "Lodestar.Metrics", PREPROCESSING,
+           STATS_REGRESSION, STATS_TIMESERIES, "Lodestar.Survival")),
     Floor("Lodestar.Embeddings", "LodestarEmbeddingsVersion", "EMBEDDINGS_FLOOR",
           ("Lodestar.Onnx", "Lodestar.Extensions.AI", "Lodestar.Extensions.VectorData")),
     Floor("Lodestar.Onnx", "LodestarOnnxVersion", "ONNX_FLOOR",
           ("Lodestar.Extensions.AI",)),
     Floor("Lodestar.Stats", "LodestarStatsVersion", "STATS_FLOOR",
-          ("Lodestar.Survival",)),
+          (STATS_REGRESSION, STATS_TIMESERIES, "Lodestar.Survival", PREPROCESSING)),
+    Floor("Lodestar.Decomposition", "LodestarDecompositionVersion", "DECOMPOSITION_FLOOR",
+          (STATS_REGRESSION,)),
+    Floor("Lodestar.Cluster", "LodestarClusterVersion", "CLUSTER_FLOOR",
+          (PREPROCESSING,)),
+    Floor(STATS_REGRESSION, "LodestarStatsRegressionVersion", "STATS_REGRESSION_FLOOR",
+          (STATS_TIMESERIES,)),
 )
 
 
@@ -109,10 +117,16 @@ def floor_version(floor: Floor) -> str:
 def asserted_floor(floor: Floor) -> str:
     """The floor the .nuspec check expects to find in the shipped package."""
     source = NUSPEC_CHECK.read_text(encoding="utf-8")
-    match = re.search(rf'^{floor.floor_constant} = "([^"]+)"', source, re.MULTILINE)
-    if match is None:
-        raise SystemExit(f"{NUSPEC_CHECK}: no {floor.floor_constant} constant")
-    return match.group(1)
+    name = floor.floor_constant
+    # A floor may name another constant rather than repeat its literal (S1192), so follow it.
+    for _ in range(8):
+        match = re.search(rf'^{name} = (?:"([^"]+)"|([A-Z_]+))$', source, re.MULTILINE)
+        if match is None:
+            raise SystemExit(f"{NUSPEC_CHECK}: no {name} constant")
+        if match.group(1) is not None:
+            return match.group(1)
+        name = match.group(2)
+    raise SystemExit(f"{NUSPEC_CHECK}: {floor.floor_constant} names constants in a cycle")
 
 
 def ordering_key(version: str) -> tuple[tuple[int, ...], int]:

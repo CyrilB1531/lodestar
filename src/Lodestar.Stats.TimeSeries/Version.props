@@ -9,7 +9,7 @@
     Dickey-Fuller test runs; both floors live in src/Directory.Packages.props.
   -->
   <PropertyGroup>
-    <LodestarStatsTimeSeriesVersion>0.1.0</LodestarStatsTimeSeriesVersion>
+    <LodestarStatsTimeSeriesVersion>0.1.1</LodestarStatsTimeSeriesVersion>
   </PropertyGroup>
 
 </Project>

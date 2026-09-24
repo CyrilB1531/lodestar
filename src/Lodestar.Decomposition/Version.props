@@ -25,7 +25,7 @@
     that adds work never touches it.
   -->
   <PropertyGroup>
-    <LodestarDecompositionVersion>0.3.0</LodestarDecompositionVersion>
+    <LodestarDecompositionVersion>0.3.1</LodestarDecompositionVersion>
   </PropertyGroup>
 
 </Project>

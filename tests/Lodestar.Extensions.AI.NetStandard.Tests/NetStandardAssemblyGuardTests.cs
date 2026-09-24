@@ -46,4 +46,11 @@ public sealed class NetStandardAssemblyGuardTests
     {
         Assert.Equal(NetStandard, FrameworkOf(typeof(Lodestar.Embeddings.Tokenization.BatchEncoder)));
     }
+
+    /// <summary>And for Lodestar.Abstractions, where Lodestar.Embeddings' data types live since #1142.</summary>
+    [Fact]
+    public void Suite_runs_against_the_netstandard2_0_build_of_Lodestar_Abstractions()
+    {
+        Assert.Equal(NetStandard, FrameworkOf(typeof(Lodestar.Embeddings.Search.SearchResult)));
+    }
 }

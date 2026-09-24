@@ -155,7 +155,7 @@ script's `EXPECTED` edge map.
 
 | Package | Tier | Holds |
 | --- | --- | --- |
-| `Lodestar.Abstractions` | core | `CsrMatrix`, `SparseNorm` and the dense-block products — the sparse primitive the others share — and, under decision 0003, the public data types the packages declare, with no code ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142) moves them). |
+| `Lodestar.Abstractions` | core | `CsrMatrix`, `SparseNorm` and the dense-block products — the sparse primitive the others share — and, under decision 0003, the public data types the packages declare, with no code ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142) moved them in 0.2.0). |
 | `Lodestar.Text` | core | distances, phonetics, set similarity, stemmers, tokenizers, sparse vectorizers, persistence, `BkTree`, keyword extraction. |
 | `Lodestar.Embeddings` | core | sub-word tokenizers (WordPiece, SentencePiece, BPE/byte-level BPE), batch encoding pipeline, pooling, SIMD kNN `EmbeddingIndex`, `.npy` interop. |
 | `Lodestar.Fuzzy` | core | `fuzz.*`, `process.extract`, blocking deduplication. |

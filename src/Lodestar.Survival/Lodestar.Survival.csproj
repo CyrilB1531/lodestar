@@ -27,10 +27,12 @@
     It is never set in CI, and the packed .nuspec is asserted there.
   -->
   <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
     <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
+    <PackageReference Include="Lodestar.Abstractions" />
     <PackageReference Include="Lodestar.Stats" />
   </ItemGroup>
 
@@ -39,23 +41,13 @@
   <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
           Condition="'$(LodestarUseProjectRefs)' == 'true'">
     <Message Importance="high"
-             Text="Lodestar.Survival: LodestarUseProjectRefs=true — referencing Lodestar.Stats by project, not by package. This is the developer loop, not what ships." />
+             Text="Lodestar.Survival: LodestarUseProjectRefs=true — referencing Lodestar.Abstractions and Lodestar.Stats by project, not by package. This is the developer loop, not what ships." />
   </Target>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Lodestar.Survival.Tests" />
     <!-- Same suite, replayed against the netstandard2.0 build. -->
     <InternalsVisibleTo Include="Lodestar.Survival.NetStandard.Tests" />
-  </ItemGroup>
-
-  <!-- The data types this package forwards to Lodestar.Abstractions (decision 0003, #1142). A
-       ProjectReference, unconditionally, until Lodestar.Abstractions 0.2.0 is on nuget.org: the
-       types leave this assembly in the same commit they arrive in that one, and packing turns
-       the reference into a dependency on 0.2.0. The release swaps it for a PackageReference on
-       the published floor and drops the exception in ci.yml's "src/ ships PackageReference
-       only" step. -->
-  <ItemGroup>
-    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

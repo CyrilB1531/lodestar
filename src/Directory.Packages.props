@@ -6,17 +6,15 @@
   </PropertyGroup>
 
   <!--
-    Six packages here are floors on a sibling: Lodestar.Fuzzy on Lodestar.Text,
-    since 0.5.0 Lodestar.Text on Lodestar.Abstractions (decision 0003),
-    Lodestar.Onnx on Lodestar.Embeddings, whose tokenizers and pooling it feeds
-    an ONNX session with, Lodestar.Extensions.AI on both Lodestar.Onnx and
-    that same Lodestar.Embeddings, and Lodestar.Stats.Regression on both
-    Lodestar.Stats and Lodestar.Decomposition, whose 0.2.0 releases published
-    the four numerical members it calls (decision 0003). Lodestar.Stats.TimeSeries takes
-    Lodestar.Stats here; its Lodestar.Stats.Regression edge is a ProjectReference
-    until that package's 0.2.0 is published (decision 0004). Each number is a deliberately chosen *floor* — the
-    minimum a consumer is required to take — and is therefore written in full
-    rather than tracking the sibling's $(Lodestar*Version).
+    Every Lodestar package here is a floor on a sibling, one per edge CLAUDE.md lists. Since
+    #1142 each package's public data types live in Lodestar.Abstractions 0.2.0 and are forwarded
+    from the package that declared them, so a floor on a release from before that move beside
+    Lodestar.Abstractions 0.2.0 declares the same type twice (CS0433): every sibling that moved
+    types is floored at the release that forwards them, published on 2026-09-24.
+    Lodestar.Stats.Regression is floored at 0.2.0 for a second reason, the binary break in
+    OlsOptions (#671). Lodestar.Onnx stays at 0.1.0, which moved no type. Each number is a
+    deliberately chosen *floor* — the minimum a consumer is required to take — and is therefore
+    written in full rather than tracking the sibling's $(Lodestar*Version).
 
     Keeping it decoupled is what makes `git clone && dotnet build` work with no
     pack step: the floor always names a version that is already on nuget.org.
@@ -25,15 +23,16 @@
     docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md.
   -->
   <ItemGroup>
-    <PackageVersion Include="Lodestar.Abstractions" Version="0.1.1" />
-    <PackageVersion Include="Lodestar.Cluster" Version="0.1.0" />
-    <PackageVersion Include="Lodestar.Decomposition" Version="0.2.0" />
-    <!-- 0.6.0, not 0.5.0: 0.5.0 still declares Microsoft.ML.OnnxRuntime, which
-         0.6.0 moved to Lodestar.Onnx. Extensions.VectorData must not restore it, and this one pin moves Onnx and Extensions.AI with it. -->
-    <PackageVersion Include="Lodestar.Embeddings" Version="0.6.0" />
+    <PackageVersion Include="Lodestar.Abstractions" Version="0.2.0" />
+    <PackageVersion Include="Lodestar.Cluster" Version="0.2.0" />
+    <PackageVersion Include="Lodestar.Decomposition" Version="0.3.0" />
+    <!-- Also never below 0.6.0: 0.5.0 still declares Microsoft.ML.OnnxRuntime, which 0.6.0
+         moved to Lodestar.Onnx, and Extensions.VectorData must not restore it. -->
+    <PackageVersion Include="Lodestar.Embeddings" Version="0.8.0" />
     <PackageVersion Include="Lodestar.Onnx" Version="0.1.0" />
-    <PackageVersion Include="Lodestar.Stats" Version="0.4.0" />
-    <PackageVersion Include="Lodestar.Text" Version="0.6.0" />
+    <PackageVersion Include="Lodestar.Stats" Version="0.5.0" />
+    <PackageVersion Include="Lodestar.Stats.Regression" Version="0.2.0" />
+    <PackageVersion Include="Lodestar.Text" Version="0.7.0" />
     <!-- 1.5.3 (2025-07-12) is the newest, and its newest asset is net7.0.
          Carried by Lodestar.Gpu alone, which is net10.0 only because ILGPU
          publishes no netstandard2.0 asset at all (decision 0003). -->
