@@ -17,13 +17,15 @@ and `applies` in its own frontmatter; `tools/regen_adr_index.py` reverses those 
 immutable record cannot name the decision that later amended it, and `tools/check_adr_index_sync.py`
 refuses any drift. All seven lists are empty today: an amendment to one of these records is a new
 record, which is what immutability means here — **a record is never edited, and may only be
-deleted**, as `tools/check_adr_immutable.py` enforces.
+deleted**, as `tools/check_adr_immutable.py` enforces. The one route past that is a new numbering
+epoch, below: a diff that raises `.numbering-epoch` may rewrite a record in place, and the raised
+line is what tells a reader the number now holds a different text.
 
 | # | Title | Status | Date | Relationships |
 | --- | --- | --- | --- | --- |
 | [`0001`](0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md) | The foundations: target frameworks, comparison unit, persistence and versioning | accepted | 2026-09-20 | — |
 | [`0002`](0002-provenance-and-the-allowed-references.md) | Provenance and the allowed references | accepted | 2026-09-20 | — |
-| [`0003`](0003-the-package-layout-tiers-boundaries-and-edges.md) | The package layout: tiers, boundaries and edges | accepted | 2026-09-20 | — |
+| [`0003`](0003-the-package-layout-tiers-boundaries-and-edges.md) | The package layout: tiers, boundaries and edges | accepted | 2026-09-24 | — |
 | [`0004`](0004-what-is-written-here-and-what-is-delegated.md) | What is written here and what is delegated | accepted | 2026-09-20 | — |
 | [`0005`](0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md) | The proof standard and the oracle each family is frozen from | accepted | 2026-09-20 | — |
 | [`0006`](0006-the-stemmers-references.md) | The stemmers' references | accepted | 2026-09-20 | — |
@@ -49,6 +51,19 @@ git show 53af23c2:docs/decisions/0072-omega-is-an-input-not-a-seed.md
 `docs/decisions/.numbering-epoch` carries the epoch this directory numbers in, and `.next-adr`
 skips any checkout or ref declaring another one, so a branch opened before the restart cannot push
 the next number back into the 0148 range.
+
+## Epoch 3: 0003 rewritten in place
+
+On 2026-09-24 [#1103](https://github.com/CyrilB1531/lodestar/issues/1103) rewrote `0003` under its
+own number and file name, and raised the epoch to 3. Its rule for `Lodestar.Abstractions` changed
+from *the types packages exchange* to *the public data types the packages declare, and no code*, and
+it stopped listing the edges `tools/check_nuspec_dependencies.py`'s `EXPECTED` already holds. The
+six other records kept their bytes. A citation of `0003` made before that date reads against the
+epoch-2 text:
+
+```bash
+git show 9f9406c5:docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md
+```
 
 ## What each record absorbed
 
