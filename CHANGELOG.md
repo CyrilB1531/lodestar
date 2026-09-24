@@ -24,74 +24,16 @@ is one sentence, the issue and the commit; see
 
 ## [Unreleased]
 
-### Lodestar.Preprocessing
+## Released — 2026-09-24
 
-#### Added
+Seventeen packages on one date, and the end of
+[#1142](https://github.com/CyrilB1531/lodestar/issues/1142): the public data types that carry no
+code now live in `Lodestar.Abstractions` under their original namespaces, forwarded from the
+package that declared them. `Lodestar.Extensions.VectorData` is a first release. The packages are
+listed in the order they are published: `Lodestar.Abstractions` first, then the thirteen that
+forward to its 0.2.0, then the three that reach it only through their published floors.
 
-- `Normalizer`, `PolynomialFeatures`, `KBinsDiscretizer`, `QuantileTransformer`, `PowerTransformer`, `LabelEncoder` and `KnnImputer` reshape a feature rather than rescale it, at scikit-learn parity, with an edge on `Lodestar.Cluster` for the k-means bin strategy. ([#1122](https://github.com/CyrilB1531/lodestar/issues/1122))
-- `Splitters` cuts cross-validation folds and a train/test split over row indices, at scikit-learn parity. ([#762](https://github.com/CyrilB1531/lodestar/issues/762), [`1cdec9f1`](https://github.com/CyrilB1531/lodestar/commit/1cdec9f1))
-- `MinMaxScaler`, `MaxAbsScaler` and `RobustScaler` join `StandardScaler`, with an edge on `Lodestar.Stats` for `unit_variance`. ([#763](https://github.com/CyrilB1531/lodestar/issues/763), [`3b3c4164`](https://github.com/CyrilB1531/lodestar/commit/3b3c4164))
-- `Encoders.OneHot`, `Encoders.Ordinal` and `SimpleImputer` encode categories and fill missing values, at scikit-learn parity. ([#764](https://github.com/CyrilB1531/lodestar/issues/764), [`89923b23`](https://github.com/CyrilB1531/lodestar/commit/89923b23))
-- The scalers fit over batches with `PartialFit` and over a `CsrMatrix`, with an edge on `Lodestar.Abstractions`. ([#765](https://github.com/CyrilB1531/lodestar/issues/765), [`e3a38ca9`](https://github.com/CyrilB1531/lodestar/commit/e3a38ca9))
-- `MaxAbsScaler`, `StandardScaler` and `RobustScaler` transform and inverse-transform a `CsrMatrix`, keeping its stored positions, so a sparse fit no longer has to be applied to dense data. ([#895](https://github.com/CyrilB1531/lodestar/issues/895))
-
-#### Changed
-
-- `BinEncoding`, `BinStrategy`, `CategoryDrop`, `ImputationStrategy`, `NeighbourWeights`, `PowerMethod`, `QuantileMethod`, `QuantileOutput`, `RowNorm`, `UnknownCategory`, `KBinsDiscretizerOptions`, `KnnImputerOptions`, `MaxAbsScalerOptions`, `MinMaxScalerOptions`, `OneHotEncoderOptions`, `PolynomialFeaturesOptions`, `PowerTransformerOptions`, `QuantileTransformerOptions`, `RobustScalerOptions`, `SimpleImputerOptions` and `StandardScalerOptions` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
-- `StandardScaler`, `MinMaxScaler` and `MaxAbsScaler` walk rows and features without a modulo per element, the encoders look categories up by hash where equality allows it, and `Splitters.StratifiedKFold` keeps a fold cursor per class. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
-- `RobustScaler.Fit(CsrMatrix)` groups the stored values by column in one pass, where it scanned every stored value for each column. ([#817](https://github.com/CyrilB1531/lodestar/issues/817))
-
-#### Fixed
-
-- `KBinsDiscretizer` removes an edge on the successive gaps of the fitted edges, not on the distance to the last edge kept, so a run of gaps within `1e-8` collapses the way the reference collapses it. ([#1128](https://github.com/CyrilB1531/lodestar/issues/1128))
-- `Splitters.StratifiedKFold` numbers classes over the order given and `Splitters.TrainTest` holds out that order's head, so scikit-learn's permutation reproduces `ShuffleSplit`. ([#893](https://github.com/CyrilB1531/lodestar/issues/893))
-- `SimpleImputer.Fit` fills a kept empty feature with `FillValue` under `ImputationStrategy.Constant`, where it filled it with zero. ([#894](https://github.com/CyrilB1531/lodestar/issues/894))
-- `SimpleImputer.Fit` and `Encoders.OneHot` refuse an undefined `ImputationStrategy`, `CategoryDrop` or `UnknownCategory`, where they read it as the mean, no drop or ignoring. ([#912](https://github.com/CyrilB1531/lodestar/issues/912))
-- The sparse `Transform` and `InverseTransform` overloads refuse a matrix with no row, as the dense ones do, and their non-finite refusal no longer cites a percentile the transform never takes. ([#989](https://github.com/CyrilB1531/lodestar/issues/989))
-- `StandardScaler` refuses a non-finite value on its dense `Fit`, `PartialFit`, `Transform` and `InverseTransform` and on both `CsrMatrix` overloads, where it answered a `NaN` mean and scale, and the six sparse `<exception>` tags now carry the refusals the reference pages already state. ([#1041](https://github.com/CyrilB1531/lodestar/issues/1041), [#1042](https://github.com/CyrilB1531/lodestar/issues/1042), [#1046](https://github.com/CyrilB1531/lodestar/issues/1046))
-- The three sparse fits sum a column stored twice in one row before reading its statistics, as `scipy.sparse`'s reductions do, so `MaxAbsScaler.Fit` answers `8` rather than `5` and `RobustScaler.Fit` no longer leaks an `Array.Copy` failure. ([#1044](https://github.com/CyrilB1531/lodestar/issues/1044), [#1045](https://github.com/CyrilB1531/lodestar/issues/1045))
-- The sparse overloads refuse a cell whose duplicate entries sum to an infinity, and a clipping `MaxAbsScaler.Transform(CsrMatrix)` clamps such a cell's sum rather than each entry, so both read what the dense overload reads. ([#1101](https://github.com/CyrilB1531/lodestar/issues/1101))
-
-### Lodestar.Conformal
-
-#### Added
-
-- `SplitConformal.NormalisedResiduals` and `NormalisedInterval` make the interval width vary with the input. ([#683](https://github.com/CyrilB1531/lodestar/issues/683), [`42cc0384`](https://github.com/CyrilB1531/lodestar/commit/42cc0384))
-- `SplitConformal.Quantile` takes a `ConformalQuantileRule`, whose `MapieClassification` reads the quantile MAPIE's prediction sets read, one rank above the default ceiling rule at 19 scores and 10 %. ([#866](https://github.com/CyrilB1531/lodestar/issues/866))
-
-#### Changed
-
-- `ConformalQuantileRule` is compiled into `Lodestar.Abstractions` under the same name and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
-
-#### Fixed
-
-- `SplitConformal.PredictionSet` includes a class within MAPIE's 1e-8 of the threshold, and `SplitConformal.Quantile` refuses a NaN score, which moved every rank down one. ([#889](https://github.com/CyrilB1531/lodestar/issues/889))
-
-### Lodestar.Cluster
-
-#### Added
-
-- `Dbscan` clusters by density, at scikit-learn parity. ([#759](https://github.com/CyrilB1531/lodestar/issues/759), [`6c245dd5`](https://github.com/CyrilB1531/lodestar/commit/6c245dd5))
-- `AgglomerativeClustering` builds and cuts a merge tree under four linkages, at scikit-learn parity. ([#760](https://github.com/CyrilB1531/lodestar/issues/760), [`41f95c0b`](https://github.com/CyrilB1531/lodestar/commit/41f95c0b))
-
-#### Changed
-
-- `Linkage` and `KMeansOptions` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
-- `AgglomerativeClustering.Fit` scans only live clusters along precomputed row offsets, and `KMeans` assigns rows wider than four features over sliced spans. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
-- `KMeans` lists its empty clusters in one walk over the counts, where a LINQ pass counted them first. ([#1047](https://github.com/CyrilB1531/lodestar/issues/1047))
-- `Dbscan.Fit` computes each pair's distance once and stops a sum past the radius. ([#818](https://github.com/CyrilB1531/lodestar/issues/818))
-- `KMeansOptions` compares its centres by value. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
-
-#### Fixed
-
-- `KMeans.Fit` relocates clusters emptied in the same iteration onto distinct furthest samples, as scikit-learn does, where it could leave a `NaN` centre. ([#862](https://github.com/CyrilB1531/lodestar/issues/862))
-- `KMeans`, `Dbscan` and `AgglomerativeClustering` refuse a `NaN` or infinite sample with `ArgumentException`, as scikit-learn does, where they returned `NaN` centres or noise or threw an index out of range. ([#896](https://github.com/CyrilB1531/lodestar/issues/896))
-- `KMeans.Fit` refuses a negative, infinite or `NaN` `KMeansOptions.Tolerance`, and `Dbscan.FitPrecomputed` checks a sample count past 46340 without wrapping. ([#911](https://github.com/CyrilB1531/lodestar/issues/911))
-- `KMeans.Fit` no longer throws `IndexOutOfRangeException` when a relocation empties a cluster numbered above the one it fills, which the fix for #862 introduced. ([#975](https://github.com/CyrilB1531/lodestar/issues/975))
-- The `KMeans.Fit` page says the relocation pairing can differ from `numpy.argpartition`'s even without a tie, which was recorded for ties alone. ([#990](https://github.com/CyrilB1531/lodestar/issues/990))
-- The `KMeans.Fit` page says scikit-learn's relocation choice changes with the CPU tier numpy dispatches to, so with tied distances the centres and `Inertia` can differ, and drops a bound measured on one seed. ([#1043](https://github.com/CyrilB1531/lodestar/issues/1043), [#1066](https://github.com/CyrilB1531/lodestar/issues/1066))
-
-### Lodestar.Abstractions
+### Lodestar.Abstractions — 0.2.0
 
 #### Added
 
@@ -106,50 +48,7 @@ is one sentence, the issue and the commit; see
 - `CsrMatrix.ToDense` adds a column stored twice in one row instead of keeping its last entry, as `Multiply` and scipy do. ([#878](https://github.com/CyrilB1531/lodestar/issues/878))
 - The `CsrMatrix` page no longer says a column stored twice sums everywhere: the row norms and `NormalizeRows` treat each entry on its own, as scikit-learn does. ([#981](https://github.com/CyrilB1531/lodestar/issues/981))
 
-### Lodestar.Decomposition
-
-#### Added
-
-- `Nmf.Transform` applies a fitted factorization to rows it never saw, holding `H` fixed, at `sklearn.decomposition.NMF.transform` parity — the fitted object now remembers the loss, the cap and the tolerance it ran under, as the reference replays its own. ([#1124](https://github.com/CyrilB1531/lodestar/issues/1124))
-- `PrincipalComponentVariance.Compute` reports the variance each principal component explains. ([#701](https://github.com/CyrilB1531/lodestar/issues/701), [`e311b2c3`](https://github.com/CyrilB1531/lodestar/commit/e311b2c3))
-
-#### Changed
-
-- `NmfBetaLoss`, `NmfInitialization`, `PowerIterationNormalizer`, `NmfOptions` and `TruncatedSvdOptions` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
-- `TruncatedSvd`, `Nmf` and `QrDecomposition.Householder` walk their dense blocks in memory order, with the Householder QR up to 5.3 times faster. ([#845](https://github.com/CyrilB1531/lodestar/issues/845))
-
-#### Fixed
-
-- `Nmf.Fit` refuses a matrix with no row, no column or an infinity and checks its options before initialising, and `TruncatedSvd` refuses a `NaN` or an infinity, where they threw `DivideByZeroException` or `ArithmeticException` or answered `NaN`. ([#872](https://github.com/CyrilB1531/lodestar/issues/872))
-- `QrDecomposition.Householder` compares the span's length with the declared shape in `long`, so a shape whose product overflows `int` is `ArgumentException` rather than `OverflowException`. ([#906](https://github.com/CyrilB1531/lodestar/issues/906))
-
-### Lodestar.Fuzzy
-
-#### Added
-
-- `Process.Cdist` scores every query against every choice into a `ScoreMatrix`, at `rapidfuzz.process.cdist` parity — its default scorer is `Fuzz.Ratio`, as the reference's is, and not `Process.Extract`'s `WRatio`. ([#1123](https://github.com/CyrilB1531/lodestar/issues/1123))
-- Every `Fuzz` scorer takes a `TextElement`, whose `CodePoint` compares code points, splits on rapidfuzz's whitespace and sorts tokens by code point, so rapidfuzz's scores hold past the BMP. ([#892](https://github.com/CyrilB1531/lodestar/issues/892))
-
-#### Fixed
-
-- `Fuzz.TokenSetRatio`, `Fuzz.PartialTokenSetRatio` and `Fuzz.WRatio` score `0` rather than up to `100` when one side has no words, as rapidfuzz does. ([#860](https://github.com/CyrilB1531/lodestar/issues/860))
-- `Fuzz.TokenSetRatio` and `Fuzz.PartialTokenSetRatio` throw `ArgumentNullException` on a null string rather than `NullReferenceException`. ([#891](https://github.com/CyrilB1531/lodestar/issues/891))
-- `Process.Extract` refuses a negative `limit` with an `ArgumentOutOfRangeException` naming it, where it failed inside `List.RemoveRange`. ([#910](https://github.com/CyrilB1531/lodestar/issues/910))
-- `Fuzz`'s `TextElement.CodePoint` overloads split tokens on U+00A0 and U+0085 in a string holding a character above U+00FF, as rapidfuzz does, where French text with a no-break space scored below rapidfuzz. ([#974](https://github.com/CyrilB1531/lodestar/issues/974))
-- `Fuzz.Ratio` and `Fuzz.PartialRatio` at `TextElement.CodePoint` allocate nothing on text inside the BMP, and `Fuzz.WRatio` answers an empty operand without tokenizing the other. ([#987](https://github.com/CyrilB1531/lodestar/issues/987))
-- `Fuzz.Ratio` at `TextElement.CodePoint` answers a pair holding more than 63,455 distinct code points, where it threw, and the scorers that still cannot, say so on their pages. ([#982](https://github.com/CyrilB1531/lodestar/issues/982))
-- `Fuzz`'s `TextElement.CodePoint` overloads size their code-point map by the distinct code points, where #987 sized it by every one and quadrupled the allocation on repetitive astral text, and `Fuzz.WRatio` answers an empty operand there before building it. ([#1056](https://github.com/CyrilB1531/lodestar/issues/1056), [#1057](https://github.com/CyrilB1531/lodestar/issues/1057))
-
-#### Changed
-
-- `ExtractResult` is compiled into `Lodestar.Abstractions` under the same name and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
-- `Process.Cdist` rejects a pair on its lengths alone rather than scoring it, where the cutoff is above zero and the scorer is the default `Fuzz.Ratio` the bound holds for. ([#1134](https://github.com/CyrilB1531/lodestar/issues/1134))
-- `Fuzz.TokenSetRatio` reads two of its three scores from lengths, `Fuzz.WRatio` tokenizes each side once, and `Process.Extract` keeps a bounded heap where it sorted every hit. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
-- `Fuzz.PartialRatio` scores a needle of up to 64 characters from one equality table and skips windows that cannot win. ([#714](https://github.com/CyrilB1531/lodestar/issues/714), [`9ec3595f`](https://github.com/CyrilB1531/lodestar/commit/9ec3595f))
-- `Fuzz.PartialRatio` does the same for a needle past 64 characters. ([#720](https://github.com/CyrilB1531/lodestar/issues/720), [`96856e70`](https://github.com/CyrilB1531/lodestar/commit/96856e70))
-- The `Lodestar.Text` dependency floor rises from 0.4.0 to 0.6.0. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
-
-### Lodestar.Text
+### Lodestar.Text — 0.7.0
 
 #### Added
 
@@ -185,115 +84,7 @@ is one sentence, the issue and the commit; see
 - `FrenchSnowballStemmer.Stem` follows the Snowball algorithm as `snowballstemmer` 3.1.1 implements it, and now differs from nltk's `FrenchStemmer` on words such as `indicatrice` and `bijoux`. ([#973](https://github.com/CyrilB1531/lodestar/issues/973))
 - `CountVectorizer`, `TfidfVectorizer` and `HashingVectorizer` analyse an `NgramRange` whose first length is below `1` on scikit-learn's Python slices, where they refused it with `ArgumentException` and the page said scikit-learn refused it too. ([#1065](https://github.com/CyrilB1531/lodestar/issues/1065))
 
-### Lodestar.Gpu
-
-#### Added
-
-- `MinHashScheme`, and the `TiledMinHashSignatures.Signatures` overload that takes one. ([#645](https://github.com/CyrilB1531/lodestar/issues/645), [`bfc47fe7`](https://github.com/CyrilB1531/lodestar/commit/bfc47fe7))
-
-#### Changed
-
-- `MinHashScheme` and `GpuSearchResult` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
-- `DeviceTextBlock.Upload` renames characters through a code table instead of a dictionary probe each, up to 13× faster. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
-
-#### Fixed
-
-- `DeviceSparseMatrix.Upload` refuses row pointers and column indices outside the matrix, and `DeviceEmbeddingMatrix.Upload` and `TiledCosineTopK.Search` refuse non-finite values, where the kernels read or wrote past their device buffers. ([#898](https://github.com/CyrilB1531/lodestar/issues/898))
-- `TiledSparseDenseProduct`, `TiledMinHashSignatures` and `TiledCosineTopK` launch rows, documents and queries in slices within the device's grid limit, where CUDA refused more than 65,535 of them. ([#897](https://github.com/CyrilB1531/lodestar/issues/897))
-
-### Lodestar.Embeddings
-
-#### Changed
-
-- `BlockNormalization`, `SentencePieceType`, `SplitBehavior`, `TruncationStrategy`, `BpeSplitStep`, `ISubwordTokenizer`, `MergePair`, `NpyBlock`, `SearchResult`, `SentencePiece` and `TokenizationResult` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
-- Added tokens are found in one pass over the text, 1.6× faster over a Llama-3-shaped table, and the SentencePiece-lineage `BpeTokenizer`, `PrecompiledNormalizer` and `EmbeddingIndex`'s stored-row normalization allocate or divide less. ([#849](https://github.com/CyrilB1531/lodestar/issues/849))
-- `EmbeddingIndex.Search` keeps the best k in a bounded heap instead of sorting every score, allocating k results rather than the whole index. ([#813](https://github.com/CyrilB1531/lodestar/issues/813))
-- `SentencePieceTokenizer` and `WordPieceTokenizer` find their pieces by walking a trie. ([#713](https://github.com/CyrilB1531/lodestar/issues/713), [`285a8ced`](https://github.com/CyrilB1531/lodestar/commit/285a8ced))
-- `BpeTokenizer` encodes byte-level text 5.4× faster. ([#673](https://github.com/CyrilB1531/lodestar/issues/673), [`c2a848df`](https://github.com/CyrilB1531/lodestar/commit/c2a848df))
-- `BpeTokenizer` caches each piece's merged ids. ([#743](https://github.com/CyrilB1531/lodestar/issues/743), [`6ab11a2c`](https://github.com/CyrilB1531/lodestar/commit/6ab11a2c))
-- `EmbeddingIndex.Load` reads a stream of undeclared length into pooled segments. ([#716](https://github.com/CyrilB1531/lodestar/issues/716), [`b7eb6e48`](https://github.com/CyrilB1531/lodestar/commit/b7eb6e48))
-- `System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
-- **Breaking, in ids.** `VocabTxtLoader` returns a vocabulary with the new `WordPieceVocabulary.BasicTokenization` set, so a `vocab.txt` tokenizes through BERT's BasicTokenizer as `BertTokenizer` does, where accented words of an uncased model became `[UNK]` and punctuation runs stayed whole. ([#883](https://github.com/CyrilB1531/lodestar/issues/883))
-- BERT's basic tokenization tells from its own loop whether it changed the text and whether it held an unassigned code point, instead of comparing the result with the input and scanning it a second time, which takes accented text under an uncased model back below its pre-#992 time at #992's allocations; a word's code points are counted only once its UTF-16 length is over the cap. ([#1048](https://github.com/CyrilB1531/lodestar/issues/1048), [#1050](https://github.com/CyrilB1531/lodestar/issues/1050), [#1052](https://github.com/CyrilB1531/lodestar/issues/1052))
-
-#### Fixed
-
-- `Mmr.Select` refuses a `NaN` lambda with `ArgumentOutOfRangeException` instead of throwing `IndexOutOfRangeException`. ([#886](https://github.com/CyrilB1531/lodestar/issues/886))
-- `BpeVocabulary` equality compares `PrefixTokens` and `SuffixTokens`, so a vocabulary with the Llama-2 template no longer equals one without it. ([#885](https://github.com/CyrilB1531/lodestar/issues/885))
-- `NpyBlock` compares its elements and shape by value, and `Pooler`'s methods refuse a negative size with `ArgumentOutOfRangeException` instead of overflowing. ([#902](https://github.com/CyrilB1531/lodestar/issues/902))
-- `WordPieceTokenizer` and the `BpePatterns.Whitespace` split keep spacing and enclosing marks, letter numbers, ZWJ/ZWNJ, circled letters and astral letters inside a word, as `pre_tokenizers.Whitespace()` does. ([#887](https://github.com/CyrilB1531/lodestar/issues/887))
-- The `vocab.txt` route keeps unassigned code points as `tokenizers` does, where it dropped them as control characters and a recent emoji vanished instead of becoming `[UNK]`. ([#983](https://github.com/CyrilB1531/lodestar/issues/983))
-- BERT's normalizer keeps two adjacent code points .NET calls unassigned in the order `tokenizers` keeps them, where normalizing the whole string let ICU's newer tables reorder them past an accent strip that does not remove them — and the sweep that reported that change as output-preserving never put two of them side by side. ([#1087](https://github.com/CyrilB1531/lodestar/issues/1087), [#1088](https://github.com/CyrilB1531/lodestar/issues/1088), [#1089](https://github.com/CyrilB1531/lodestar/issues/1089), [#1090](https://github.com/CyrilB1531/lodestar/issues/1090), [#1091](https://github.com/CyrilB1531/lodestar/issues/1091))
-- BERT's normalizer passes a code point the runtime refuses to normalize through as it passes an unassigned one, where NLS on the `netstandard2.0` asset could throw `ArgumentException` out of `Encode` for one emoji newer than the operating system. ([#1094](https://github.com/CyrilB1531/lodestar/issues/1094))
-- `WordPieceTokenizer` caps a word at `maxCharsPerWord` code points rather than UTF-16 units, where a 51-character word outside the BMP became `[UNK]` under the default 100. ([#992](https://github.com/CyrilB1531/lodestar/issues/992))
-- The `vocab.txt` route's record says what the route does: [decision 0146](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0146-berts-normalizer-keeps-the-unassigned-code-points.md) amends 0144's dropped-Cn clause, `docs/equivalence.md` credits the ~600-code-point residue to the sweep that measured it and lists the four code points diverging the other way, and the `CA1308` suppression left behind on `Normalize` is gone. ([#1049](https://github.com/CyrilB1531/lodestar/issues/1049), [#1051](https://github.com/CyrilB1531/lodestar/issues/1051), [#1053](https://github.com/CyrilB1531/lodestar/issues/1053), [#1064](https://github.com/CyrilB1531/lodestar/issues/1064))
-
-### Lodestar.Onnx
-
-#### Changed
-
-- `Microsoft.ML.OnnxRuntime` moves from 1.28.0 to 1.30.0. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
-- The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
-
-#### Fixed
-
-- `OnnxTextEmbedder`'s constructors dispose the ONNX Runtime session they opened when they throw, check the tokenizer before opening one, and name `outputName` for an undeclared output. ([#903](https://github.com/CyrilB1531/lodestar/issues/903))
-
-### Lodestar.Extensions.AI
-
-#### Changed
-
-- `Microsoft.Extensions.AI.Abstractions` moves from 10.9.0 to 10.10.0. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
-- The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
-
-#### Fixed
-
-- The generation reference page places the package in the interop tier, per decision 0089, where it called it a satellite. ([#949](https://github.com/CyrilB1531/lodestar/issues/949))
-
-### Lodestar.Extensions.VectorData
-
-#### Added
-
-- The package: an in-process `Microsoft.Extensions.VectorData` store with hybrid keyword and vector search. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
-
-#### Changed
-
-- A filtered `SearchAsync` runs the filter once on every record in the order held and scores only the admitted ones, 1.9× faster at 10,000 records, where it used to rank the whole collection and stop filtering once enough records passed. ([#849](https://github.com/CyrilB1531/lodestar/issues/849))
-
-#### Fixed
-
-- `HybridSearchAsync` keeps a record the keywords matched in the keyword ranking when its BM25 score is zero or negative, where it used to drop it as unmatched. ([#884](https://github.com/CyrilB1531/lodestar/issues/884))
-- A key property of another type than the collection's key or a non-`string` full-text property is refused at construction, a deleted name can be taken by another record type, and an empty collection refuses a query of the wrong width. ([#904](https://github.com/CyrilB1531/lodestar/issues/904))
-- `HybridSearchAsync` ranks only the records a keyword matched, read from the term postings, where it scored and sorted every record of the collection on every query. ([#993](https://github.com/CyrilB1531/lodestar/issues/993))
-- `HybridSearchAsync` sorts a keyword's matched records in one array by their own scores, where #993 gathered them in a sorted set and sorted through the whole score array, which made a keyword most records hold slower than before #993. ([#1036](https://github.com/CyrilB1531/lodestar/issues/1036))
-
-### Lodestar.Stats.TimeSeries
-
-#### Added
-
-- The package, with `Stationarity.AugmentedDickeyFuller`, `Stationarity.Kpss` and `SeasonalDecomposition.Decompose`. ([#671](https://github.com/CyrilB1531/lodestar/issues/671), [`2986d69e`](https://github.com/CyrilB1531/lodestar/commit/2986d69e))
-- `SerialCorrelation`, with `Autocorrelation`, `PartialAutocorrelation` and `LjungBox`, moved here from `Lodestar.Stats`. ([#617](https://github.com/CyrilB1531/lodestar/issues/617), [`2f5efb26`](https://github.com/CyrilB1531/lodestar/commit/2f5efb26))
-- `VectorAutoregression.Fit` estimates a VAR(p) with its inference table. ([#786](https://github.com/CyrilB1531/lodestar/issues/786), [`2b5cd107`](https://github.com/CyrilB1531/lodestar/commit/2b5cd107))
-
-#### Changed
-
-- `KpssLagRule`, `LagSelection`, `PValueBound`, `SeasonalModel`, `TrendTerms` and `VarOptions` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
-- The augmented Dickey-Fuller lag search and `VectorAutoregression.Fit` factor their design once for every lag or equation, 8.5 times faster at 2,000 points, and the autocovariance centres its series once. ([#843](https://github.com/CyrilB1531/lodestar/issues/843))
-
-#### Fixed
-
-- `VectorAutoregression.Fit` refuses a collinear lagged design with `ArgumentException`, where a variable proportional to another gave coefficients near 1e13. ([#873](https://github.com/CyrilB1531/lodestar/issues/873))
-- The Dickey-Fuller and seasonal decomposition options refuse an undeclared enum value, a too-short augmented Dickey-Fuller series is refused naming `series` or `options`, and a lag count below one is `ArgumentOutOfRangeException` like the other counts. ([#907](https://github.com/CyrilB1531/lodestar/issues/907))
-- `SerialCorrelation.LjungBox` computes its scale in `double`, where from 46,340 observations `n * (n + 2)` overflowed and every statistic came out negative with a p-value of 1. ([#864](https://github.com/CyrilB1531/lodestar/issues/864))
-- `Stationarity.Kpss` refuses a series lying exactly on a straight line under `ConstantAndTrend`, where it returned `NaN` and a window that depended on the runtime. ([#874](https://github.com/CyrilB1531/lodestar/issues/874))
-- `Stationarity.AugmentedDickeyFuller` names `series` when the lagged design it builds has no unique solution, where the estimate's refusal cited a `design` parameter no caller passed. ([#979](https://github.com/CyrilB1531/lodestar/issues/979))
-- `Stationarity.Kpss` measures that line against `n·ε` of the largest observation, where only a fit leaving exact zeros was refused and 99 of 100 random lines were answered from their rounding noise. ([#976](https://github.com/CyrilB1531/lodestar/issues/976))
-- Both stationarity tests refuse a straight line on one bar that does not grow with the series, `Stationarity.AugmentedDickeyFuller` at lag zero too, where a million points of a 1e-10 wobble were called a line and a line's lag-zero statistic was one rounding error over another. ([#1080](https://github.com/CyrilB1531/lodestar/issues/1080))
-- The augmented Dickey-Fuller lag search refuses a candidate design with no unique solution instead of ranking it on rounding, which answered a statistic of exactly 0 on a line bent at its first point. ([#977](https://github.com/CyrilB1531/lodestar/issues/977))
-- A too-large `DickeyFullerOptions.MaxLag` is refused with the reason that applies, and `KpssOptions.LagRule` refuses an undeclared value where it is set. ([#984](https://github.com/CyrilB1531/lodestar/issues/984))
-- `VectorAutoregression.Fit` refuses a collinear lagged design on the singular values, as `Lodestar.Stats.Regression`'s fits now do, where the per-column pivot missed a column far smaller than the ones it depends on. ([#978](https://github.com/CyrilB1531/lodestar/issues/978))
-
-### Lodestar.Stats
+### Lodestar.Stats — 0.5.0
 
 #### Added
 
@@ -323,7 +114,177 @@ is one sentence, the issue and the commit; see
 - `Distributions.StudentSf` and `Distributions.FisherSf` are no longer off by 4e-7 relative at 2e8 degrees of freedom, and more past it, when one shape of the incomplete beta is large and the other small. ([#841](https://github.com/CyrilB1531/lodestar/issues/841))
 - `MannWhitney.Test` no longer returns a wrong statistic past about 46,340 values per sample. ([#712](https://github.com/CyrilB1531/lodestar/issues/712), [`cfe9f048`](https://github.com/CyrilB1531/lodestar/commit/cfe9f048))
 
-### Lodestar.Stats.Regression
+### Lodestar.Cluster — 0.2.0
+
+#### Added
+
+- `Dbscan` clusters by density, at scikit-learn parity. ([#759](https://github.com/CyrilB1531/lodestar/issues/759), [`6c245dd5`](https://github.com/CyrilB1531/lodestar/commit/6c245dd5))
+- `AgglomerativeClustering` builds and cuts a merge tree under four linkages, at scikit-learn parity. ([#760](https://github.com/CyrilB1531/lodestar/issues/760), [`41f95c0b`](https://github.com/CyrilB1531/lodestar/commit/41f95c0b))
+
+#### Changed
+
+- `Linkage` and `KMeansOptions` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+- `AgglomerativeClustering.Fit` scans only live clusters along precomputed row offsets, and `KMeans` assigns rows wider than four features over sliced spans. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
+- `KMeans` lists its empty clusters in one walk over the counts, where a LINQ pass counted them first. ([#1047](https://github.com/CyrilB1531/lodestar/issues/1047))
+- `Dbscan.Fit` computes each pair's distance once and stops a sum past the radius. ([#818](https://github.com/CyrilB1531/lodestar/issues/818))
+- `KMeansOptions` compares its centres by value. ([#668](https://github.com/CyrilB1531/lodestar/issues/668), [`a2b11493`](https://github.com/CyrilB1531/lodestar/commit/a2b11493))
+
+#### Fixed
+
+- `KMeans.Fit` relocates clusters emptied in the same iteration onto distinct furthest samples, as scikit-learn does, where it could leave a `NaN` centre. ([#862](https://github.com/CyrilB1531/lodestar/issues/862))
+- `KMeans`, `Dbscan` and `AgglomerativeClustering` refuse a `NaN` or infinite sample with `ArgumentException`, as scikit-learn does, where they returned `NaN` centres or noise or threw an index out of range. ([#896](https://github.com/CyrilB1531/lodestar/issues/896))
+- `KMeans.Fit` refuses a negative, infinite or `NaN` `KMeansOptions.Tolerance`, and `Dbscan.FitPrecomputed` checks a sample count past 46340 without wrapping. ([#911](https://github.com/CyrilB1531/lodestar/issues/911))
+- `KMeans.Fit` no longer throws `IndexOutOfRangeException` when a relocation empties a cluster numbered above the one it fills, which the fix for #862 introduced. ([#975](https://github.com/CyrilB1531/lodestar/issues/975))
+- The `KMeans.Fit` page says the relocation pairing can differ from `numpy.argpartition`'s even without a tie, which was recorded for ties alone. ([#990](https://github.com/CyrilB1531/lodestar/issues/990))
+- The `KMeans.Fit` page says scikit-learn's relocation choice changes with the CPU tier numpy dispatches to, so with tied distances the centres and `Inertia` can differ, and drops a bound measured on one seed. ([#1043](https://github.com/CyrilB1531/lodestar/issues/1043), [#1066](https://github.com/CyrilB1531/lodestar/issues/1066))
+
+### Lodestar.Decomposition — 0.3.0
+
+#### Added
+
+- `Nmf.Transform` applies a fitted factorization to rows it never saw, holding `H` fixed, at `sklearn.decomposition.NMF.transform` parity — the fitted object now remembers the loss, the cap and the tolerance it ran under, as the reference replays its own. ([#1124](https://github.com/CyrilB1531/lodestar/issues/1124))
+- `PrincipalComponentVariance.Compute` reports the variance each principal component explains. ([#701](https://github.com/CyrilB1531/lodestar/issues/701), [`e311b2c3`](https://github.com/CyrilB1531/lodestar/commit/e311b2c3))
+
+#### Changed
+
+- `NmfBetaLoss`, `NmfInitialization`, `PowerIterationNormalizer`, `NmfOptions` and `TruncatedSvdOptions` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+- `TruncatedSvd`, `Nmf` and `QrDecomposition.Householder` walk their dense blocks in memory order, with the Householder QR up to 5.3 times faster. ([#845](https://github.com/CyrilB1531/lodestar/issues/845))
+
+#### Fixed
+
+- `Nmf.Fit` refuses a matrix with no row, no column or an infinity and checks its options before initialising, and `TruncatedSvd` refuses a `NaN` or an infinity, where they threw `DivideByZeroException` or `ArithmeticException` or answered `NaN`. ([#872](https://github.com/CyrilB1531/lodestar/issues/872))
+- `QrDecomposition.Householder` compares the span's length with the declared shape in `long`, so a shape whose product overflows `int` is `ArgumentException` rather than `OverflowException`. ([#906](https://github.com/CyrilB1531/lodestar/issues/906))
+
+### Lodestar.Embeddings — 0.8.0
+
+#### Changed
+
+- `BlockNormalization`, `SentencePieceType`, `SplitBehavior`, `TruncationStrategy`, `BpeSplitStep`, `ISubwordTokenizer`, `MergePair`, `NpyBlock`, `SearchResult`, `SentencePiece` and `TokenizationResult` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+- Added tokens are found in one pass over the text, 1.6× faster over a Llama-3-shaped table, and the SentencePiece-lineage `BpeTokenizer`, `PrecompiledNormalizer` and `EmbeddingIndex`'s stored-row normalization allocate or divide less. ([#849](https://github.com/CyrilB1531/lodestar/issues/849))
+- `EmbeddingIndex.Search` keeps the best k in a bounded heap instead of sorting every score, allocating k results rather than the whole index. ([#813](https://github.com/CyrilB1531/lodestar/issues/813))
+- `SentencePieceTokenizer` and `WordPieceTokenizer` find their pieces by walking a trie. ([#713](https://github.com/CyrilB1531/lodestar/issues/713), [`285a8ced`](https://github.com/CyrilB1531/lodestar/commit/285a8ced))
+- `BpeTokenizer` encodes byte-level text 5.4× faster. ([#673](https://github.com/CyrilB1531/lodestar/issues/673), [`c2a848df`](https://github.com/CyrilB1531/lodestar/commit/c2a848df))
+- `BpeTokenizer` caches each piece's merged ids. ([#743](https://github.com/CyrilB1531/lodestar/issues/743), [`6ab11a2c`](https://github.com/CyrilB1531/lodestar/commit/6ab11a2c))
+- `EmbeddingIndex.Load` reads a stream of undeclared length into pooled segments. ([#716](https://github.com/CyrilB1531/lodestar/issues/716), [`b7eb6e48`](https://github.com/CyrilB1531/lodestar/commit/b7eb6e48))
+- `System.Text.Json` moves from 10.0.10 to 10.0.12 on `netstandard2.0`. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
+- **Breaking, in ids.** `VocabTxtLoader` returns a vocabulary with the new `WordPieceVocabulary.BasicTokenization` set, so a `vocab.txt` tokenizes through BERT's BasicTokenizer as `BertTokenizer` does, where accented words of an uncased model became `[UNK]` and punctuation runs stayed whole. ([#883](https://github.com/CyrilB1531/lodestar/issues/883))
+- BERT's basic tokenization tells from its own loop whether it changed the text and whether it held an unassigned code point, instead of comparing the result with the input and scanning it a second time, which takes accented text under an uncased model back below its pre-#992 time at #992's allocations; a word's code points are counted only once its UTF-16 length is over the cap. ([#1048](https://github.com/CyrilB1531/lodestar/issues/1048), [#1050](https://github.com/CyrilB1531/lodestar/issues/1050), [#1052](https://github.com/CyrilB1531/lodestar/issues/1052))
+
+#### Fixed
+
+- `Mmr.Select` refuses a `NaN` lambda with `ArgumentOutOfRangeException` instead of throwing `IndexOutOfRangeException`. ([#886](https://github.com/CyrilB1531/lodestar/issues/886))
+- `BpeVocabulary` equality compares `PrefixTokens` and `SuffixTokens`, so a vocabulary with the Llama-2 template no longer equals one without it. ([#885](https://github.com/CyrilB1531/lodestar/issues/885))
+- `NpyBlock` compares its elements and shape by value, and `Pooler`'s methods refuse a negative size with `ArgumentOutOfRangeException` instead of overflowing. ([#902](https://github.com/CyrilB1531/lodestar/issues/902))
+- `WordPieceTokenizer` and the `BpePatterns.Whitespace` split keep spacing and enclosing marks, letter numbers, ZWJ/ZWNJ, circled letters and astral letters inside a word, as `pre_tokenizers.Whitespace()` does. ([#887](https://github.com/CyrilB1531/lodestar/issues/887))
+- The `vocab.txt` route keeps unassigned code points as `tokenizers` does, where it dropped them as control characters and a recent emoji vanished instead of becoming `[UNK]`. ([#983](https://github.com/CyrilB1531/lodestar/issues/983))
+- BERT's normalizer keeps two adjacent code points .NET calls unassigned in the order `tokenizers` keeps them, where normalizing the whole string let ICU's newer tables reorder them past an accent strip that does not remove them — and the sweep that reported that change as output-preserving never put two of them side by side. ([#1087](https://github.com/CyrilB1531/lodestar/issues/1087), [#1088](https://github.com/CyrilB1531/lodestar/issues/1088), [#1089](https://github.com/CyrilB1531/lodestar/issues/1089), [#1090](https://github.com/CyrilB1531/lodestar/issues/1090), [#1091](https://github.com/CyrilB1531/lodestar/issues/1091))
+- BERT's normalizer passes a code point the runtime refuses to normalize through as it passes an unassigned one, where NLS on the `netstandard2.0` asset could throw `ArgumentException` out of `Encode` for one emoji newer than the operating system. ([#1094](https://github.com/CyrilB1531/lodestar/issues/1094))
+- `WordPieceTokenizer` caps a word at `maxCharsPerWord` code points rather than UTF-16 units, where a 51-character word outside the BMP became `[UNK]` under the default 100. ([#992](https://github.com/CyrilB1531/lodestar/issues/992))
+- The `vocab.txt` route's record says what the route does: [decision 0146](https://github.com/CyrilB1531/lodestar/blob/53af23c2/docs/decisions/0146-berts-normalizer-keeps-the-unassigned-code-points.md) amends 0144's dropped-Cn clause, `docs/equivalence.md` credits the ~600-code-point residue to the sweep that measured it and lists the four code points diverging the other way, and the `CA1308` suppression left behind on `Normalize` is gone. ([#1049](https://github.com/CyrilB1531/lodestar/issues/1049), [#1051](https://github.com/CyrilB1531/lodestar/issues/1051), [#1053](https://github.com/CyrilB1531/lodestar/issues/1053), [#1064](https://github.com/CyrilB1531/lodestar/issues/1064))
+
+### Lodestar.Conformal — 0.2.0
+
+#### Added
+
+- `SplitConformal.NormalisedResiduals` and `NormalisedInterval` make the interval width vary with the input. ([#683](https://github.com/CyrilB1531/lodestar/issues/683), [`42cc0384`](https://github.com/CyrilB1531/lodestar/commit/42cc0384))
+- `SplitConformal.Quantile` takes a `ConformalQuantileRule`, whose `MapieClassification` reads the quantile MAPIE's prediction sets read, one rank above the default ceiling rule at 19 scores and 10 %. ([#866](https://github.com/CyrilB1531/lodestar/issues/866))
+
+#### Changed
+
+- `ConformalQuantileRule` is compiled into `Lodestar.Abstractions` under the same name and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+
+#### Fixed
+
+- `SplitConformal.PredictionSet` includes a class within MAPIE's 1e-8 of the threshold, and `SplitConformal.Quantile` refuses a NaN score, which moved every rank down one. ([#889](https://github.com/CyrilB1531/lodestar/issues/889))
+
+### Lodestar.Metrics — 0.4.0
+
+#### Changed
+
+- `Averaging`, `BinStrategy`, `KappaWeighting`, `MultiClassStrategy`, `Normalization`, `ZeroDivision`, `AverageRow`, `ClassRow` and `UndefinedMetricException` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+- The confusion matrices, classifier curves, ranked-row scores, cluster validity scores and `ClassificationReport.Compute` make fewer passes and allocations over their input, up to 24× faster for unweighted `Accuracy.Score`. ([#850](https://github.com/CyrilB1531/lodestar/issues/850))
+- `Silhouette.PerSample` sums each pair's distance per cluster instead of holding the n × n distance matrix. ([#815](https://github.com/CyrilB1531/lodestar/issues/815))
+- The clustering agreement scores spread their contingency cells across the hash table, where a 100 × 100 table's cells shared 128 hash values. ([#812](https://github.com/CyrilB1531/lodestar/issues/812))
+- `TopKAccuracy.Score` counts the true class's rank in each row instead of sorting the row, and allocates nothing per row. ([#827](https://github.com/CyrilB1531/lodestar/issues/827))
+- `MeanSquaredError`, `MeanAbsoluteError` and `R2` read their input once to validate and score it. ([#715](https://github.com/CyrilB1531/lodestar/issues/715), [`a954161e`](https://github.com/CyrilB1531/lodestar/commit/a954161e))
+
+#### Fixed
+
+- Macro and weighted precision, recall, F-scores, Jaccard and the report's average rows skip `NaN` classes and fall back to the unweighted mean on zero total support, as scikit-learn's `_nanaverage` does. ([#861](https://github.com/CyrilB1531/lodestar/issues/861))
+- The classification metrics refuse a non-finite or all-zero `sampleWeight` and, where scikit-learn divides by it, a zero-sum one, `HingeLoss` refuses a non-finite decision, and the binary `LogLoss`, `BrierScore` and `HingeLoss` refuse a third label instead of counting it negative. ([#890](https://github.com/CyrilB1531/lodestar/issues/890))
+- Weighted `JaccardScore.Score` refuses class supports that sum to zero without all being zero, as `jaccard_score`'s `numpy.average` does, where [#861](https://github.com/CyrilB1531/lodestar/issues/861) had it answer the unweighted mean its three sibling metrics reach through `_nanaverage`. ([#988](https://github.com/CyrilB1531/lodestar/issues/988))
+
+### Lodestar.Gpu — 0.2.0
+
+#### Added
+
+- `MinHashScheme`, and the `TiledMinHashSignatures.Signatures` overload that takes one. ([#645](https://github.com/CyrilB1531/lodestar/issues/645), [`bfc47fe7`](https://github.com/CyrilB1531/lodestar/commit/bfc47fe7))
+
+#### Changed
+
+- `MinHashScheme` and `GpuSearchResult` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+- `DeviceTextBlock.Upload` renames characters through a code table instead of a dictionary probe each, up to 13× faster. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
+
+#### Fixed
+
+- `DeviceSparseMatrix.Upload` refuses row pointers and column indices outside the matrix, and `DeviceEmbeddingMatrix.Upload` and `TiledCosineTopK.Search` refuse non-finite values, where the kernels read or wrote past their device buffers. ([#898](https://github.com/CyrilB1531/lodestar/issues/898))
+- `TiledSparseDenseProduct`, `TiledMinHashSignatures` and `TiledCosineTopK` launch rows, documents and queries in slices within the device's grid limit, where CUDA refused more than 65,535 of them. ([#897](https://github.com/CyrilB1531/lodestar/issues/897))
+
+### Lodestar.Fuzzy — 0.5.0
+
+#### Added
+
+- `Process.Cdist` scores every query against every choice into a `ScoreMatrix`, at `rapidfuzz.process.cdist` parity — its default scorer is `Fuzz.Ratio`, as the reference's is, and not `Process.Extract`'s `WRatio`. ([#1123](https://github.com/CyrilB1531/lodestar/issues/1123))
+- Every `Fuzz` scorer takes a `TextElement`, whose `CodePoint` compares code points, splits on rapidfuzz's whitespace and sorts tokens by code point, so rapidfuzz's scores hold past the BMP. ([#892](https://github.com/CyrilB1531/lodestar/issues/892))
+
+#### Fixed
+
+- `Fuzz.TokenSetRatio`, `Fuzz.PartialTokenSetRatio` and `Fuzz.WRatio` score `0` rather than up to `100` when one side has no words, as rapidfuzz does. ([#860](https://github.com/CyrilB1531/lodestar/issues/860))
+- `Fuzz.TokenSetRatio` and `Fuzz.PartialTokenSetRatio` throw `ArgumentNullException` on a null string rather than `NullReferenceException`. ([#891](https://github.com/CyrilB1531/lodestar/issues/891))
+- `Process.Extract` refuses a negative `limit` with an `ArgumentOutOfRangeException` naming it, where it failed inside `List.RemoveRange`. ([#910](https://github.com/CyrilB1531/lodestar/issues/910))
+- `Fuzz`'s `TextElement.CodePoint` overloads split tokens on U+00A0 and U+0085 in a string holding a character above U+00FF, as rapidfuzz does, where French text with a no-break space scored below rapidfuzz. ([#974](https://github.com/CyrilB1531/lodestar/issues/974))
+- `Fuzz.Ratio` and `Fuzz.PartialRatio` at `TextElement.CodePoint` allocate nothing on text inside the BMP, and `Fuzz.WRatio` answers an empty operand without tokenizing the other. ([#987](https://github.com/CyrilB1531/lodestar/issues/987))
+- `Fuzz.Ratio` at `TextElement.CodePoint` answers a pair holding more than 63,455 distinct code points, where it threw, and the scorers that still cannot, say so on their pages. ([#982](https://github.com/CyrilB1531/lodestar/issues/982))
+- `Fuzz`'s `TextElement.CodePoint` overloads size their code-point map by the distinct code points, where #987 sized it by every one and quadrupled the allocation on repetitive astral text, and `Fuzz.WRatio` answers an empty operand there before building it. ([#1056](https://github.com/CyrilB1531/lodestar/issues/1056), [#1057](https://github.com/CyrilB1531/lodestar/issues/1057))
+
+#### Changed
+
+- `ExtractResult` is compiled into `Lodestar.Abstractions` under the same name and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+- `Process.Cdist` rejects a pair on its lengths alone rather than scoring it, where the cutoff is above zero and the scorer is the default `Fuzz.Ratio` the bound holds for. ([#1134](https://github.com/CyrilB1531/lodestar/issues/1134))
+- `Fuzz.TokenSetRatio` reads two of its three scores from lengths, `Fuzz.WRatio` tokenizes each side once, and `Process.Extract` keeps a bounded heap where it sorted every hit. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
+- `Fuzz.PartialRatio` scores a needle of up to 64 characters from one equality table and skips windows that cannot win. ([#714](https://github.com/CyrilB1531/lodestar/issues/714), [`9ec3595f`](https://github.com/CyrilB1531/lodestar/commit/9ec3595f))
+- `Fuzz.PartialRatio` does the same for a needle past 64 characters. ([#720](https://github.com/CyrilB1531/lodestar/issues/720), [`96856e70`](https://github.com/CyrilB1531/lodestar/commit/96856e70))
+- The `Lodestar.Text` dependency floor rises from 0.4.0 to 0.6.0. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
+
+### Lodestar.Preprocessing — 0.2.0
+
+#### Added
+
+- `Normalizer`, `PolynomialFeatures`, `KBinsDiscretizer`, `QuantileTransformer`, `PowerTransformer`, `LabelEncoder` and `KnnImputer` reshape a feature rather than rescale it, at scikit-learn parity, with an edge on `Lodestar.Cluster` for the k-means bin strategy. ([#1122](https://github.com/CyrilB1531/lodestar/issues/1122))
+- `Splitters` cuts cross-validation folds and a train/test split over row indices, at scikit-learn parity. ([#762](https://github.com/CyrilB1531/lodestar/issues/762), [`1cdec9f1`](https://github.com/CyrilB1531/lodestar/commit/1cdec9f1))
+- `MinMaxScaler`, `MaxAbsScaler` and `RobustScaler` join `StandardScaler`, with an edge on `Lodestar.Stats` for `unit_variance`. ([#763](https://github.com/CyrilB1531/lodestar/issues/763), [`3b3c4164`](https://github.com/CyrilB1531/lodestar/commit/3b3c4164))
+- `Encoders.OneHot`, `Encoders.Ordinal` and `SimpleImputer` encode categories and fill missing values, at scikit-learn parity. ([#764](https://github.com/CyrilB1531/lodestar/issues/764), [`89923b23`](https://github.com/CyrilB1531/lodestar/commit/89923b23))
+- The scalers fit over batches with `PartialFit` and over a `CsrMatrix`, with an edge on `Lodestar.Abstractions`. ([#765](https://github.com/CyrilB1531/lodestar/issues/765), [`e3a38ca9`](https://github.com/CyrilB1531/lodestar/commit/e3a38ca9))
+- `MaxAbsScaler`, `StandardScaler` and `RobustScaler` transform and inverse-transform a `CsrMatrix`, keeping its stored positions, so a sparse fit no longer has to be applied to dense data. ([#895](https://github.com/CyrilB1531/lodestar/issues/895))
+
+#### Changed
+
+- `BinEncoding`, `BinStrategy`, `CategoryDrop`, `ImputationStrategy`, `NeighbourWeights`, `PowerMethod`, `QuantileMethod`, `QuantileOutput`, `RowNorm`, `UnknownCategory`, `KBinsDiscretizerOptions`, `KnnImputerOptions`, `MaxAbsScalerOptions`, `MinMaxScalerOptions`, `OneHotEncoderOptions`, `PolynomialFeaturesOptions`, `PowerTransformerOptions`, `QuantileTransformerOptions`, `RobustScalerOptions`, `SimpleImputerOptions` and `StandardScalerOptions` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+- `StandardScaler`, `MinMaxScaler` and `MaxAbsScaler` walk rows and features without a modulo per element, the encoders look categories up by hash where equality allows it, and `Splitters.StratifiedKFold` keeps a fold cursor per class. ([#853](https://github.com/CyrilB1531/lodestar/issues/853))
+- `RobustScaler.Fit(CsrMatrix)` groups the stored values by column in one pass, where it scanned every stored value for each column. ([#817](https://github.com/CyrilB1531/lodestar/issues/817))
+
+#### Fixed
+
+- `KBinsDiscretizer` removes an edge on the successive gaps of the fitted edges, not on the distance to the last edge kept, so a run of gaps within `1e-8` collapses the way the reference collapses it. ([#1128](https://github.com/CyrilB1531/lodestar/issues/1128))
+- `Splitters.StratifiedKFold` numbers classes over the order given and `Splitters.TrainTest` holds out that order's head, so scikit-learn's permutation reproduces `ShuffleSplit`. ([#893](https://github.com/CyrilB1531/lodestar/issues/893))
+- `SimpleImputer.Fit` fills a kept empty feature with `FillValue` under `ImputationStrategy.Constant`, where it filled it with zero. ([#894](https://github.com/CyrilB1531/lodestar/issues/894))
+- `SimpleImputer.Fit` and `Encoders.OneHot` refuse an undefined `ImputationStrategy`, `CategoryDrop` or `UnknownCategory`, where they read it as the mean, no drop or ignoring. ([#912](https://github.com/CyrilB1531/lodestar/issues/912))
+- The sparse `Transform` and `InverseTransform` overloads refuse a matrix with no row, as the dense ones do, and their non-finite refusal no longer cites a percentile the transform never takes. ([#989](https://github.com/CyrilB1531/lodestar/issues/989))
+- `StandardScaler` refuses a non-finite value on its dense `Fit`, `PartialFit`, `Transform` and `InverseTransform` and on both `CsrMatrix` overloads, where it answered a `NaN` mean and scale, and the six sparse `<exception>` tags now carry the refusals the reference pages already state. ([#1041](https://github.com/CyrilB1531/lodestar/issues/1041), [#1042](https://github.com/CyrilB1531/lodestar/issues/1042), [#1046](https://github.com/CyrilB1531/lodestar/issues/1046))
+- The three sparse fits sum a column stored twice in one row before reading its statistics, as `scipy.sparse`'s reductions do, so `MaxAbsScaler.Fit` answers `8` rather than `5` and `RobustScaler.Fit` no longer leaks an `Array.Copy` failure. ([#1044](https://github.com/CyrilB1531/lodestar/issues/1044), [#1045](https://github.com/CyrilB1531/lodestar/issues/1045))
+- The sparse overloads refuse a cell whose duplicate entries sum to an infinity, and a clipping `MaxAbsScaler.Transform(CsrMatrix)` clamps such a cell's sum rather than each entry, so both read what the dense overload reads. ([#1101](https://github.com/CyrilB1531/lodestar/issues/1101))
+
+### Lodestar.Stats.Regression — 0.2.0
 
 #### Added
 
@@ -358,7 +319,7 @@ is one sentence, the issue and the commit; see
 - `OrdinaryLeastSquares.Estimate` refuses a collinear design as `Fit` does, where it answered coefficients near 1e14. ([#979](https://github.com/CyrilB1531/lodestar/issues/979))
 - A collinear design is refused on `numpy.linalg.matrix_rank`'s own tolerance, `σmin ≤ σmax·max(n, p)·ε`, where a per-column pivot missed a dependent column far smaller than its sources, and the normal-equations gate measures the column-scaled condition number rather than a bound that was always at least `p`. ([#978](https://github.com/CyrilB1531/lodestar/issues/978), [#985](https://github.com/CyrilB1531/lodestar/issues/985))
 
-### Lodestar.Survival
+### Lodestar.Survival — 0.2.0
 
 #### Added
 
@@ -375,22 +336,70 @@ is one sentence, the issue and the commit; see
 
 - `KaplanMeier.Estimate` computes Greenwood's denominator in `double`, where past 46,340 subjects at risk it overflowed `int` and gave wrong confidence bounds. ([#865](https://github.com/CyrilB1531/lodestar/issues/865))
 
-### Lodestar.Metrics
+### Lodestar.Stats.TimeSeries — 0.1.0
+
+#### Added
+
+- The package, with `Stationarity.AugmentedDickeyFuller`, `Stationarity.Kpss` and `SeasonalDecomposition.Decompose`. ([#671](https://github.com/CyrilB1531/lodestar/issues/671), [`2986d69e`](https://github.com/CyrilB1531/lodestar/commit/2986d69e))
+- `SerialCorrelation`, with `Autocorrelation`, `PartialAutocorrelation` and `LjungBox`, moved here from `Lodestar.Stats`. ([#617](https://github.com/CyrilB1531/lodestar/issues/617), [`2f5efb26`](https://github.com/CyrilB1531/lodestar/commit/2f5efb26))
+- `VectorAutoregression.Fit` estimates a VAR(p) with its inference table. ([#786](https://github.com/CyrilB1531/lodestar/issues/786), [`2b5cd107`](https://github.com/CyrilB1531/lodestar/commit/2b5cd107))
 
 #### Changed
 
-- `Averaging`, `BinStrategy`, `KappaWeighting`, `MultiClassStrategy`, `Normalization`, `ZeroDivision`, `AverageRow`, `ClassRow` and `UndefinedMetricException` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
-- The confusion matrices, classifier curves, ranked-row scores, cluster validity scores and `ClassificationReport.Compute` make fewer passes and allocations over their input, up to 24× faster for unweighted `Accuracy.Score`. ([#850](https://github.com/CyrilB1531/lodestar/issues/850))
-- `Silhouette.PerSample` sums each pair's distance per cluster instead of holding the n × n distance matrix. ([#815](https://github.com/CyrilB1531/lodestar/issues/815))
-- The clustering agreement scores spread their contingency cells across the hash table, where a 100 × 100 table's cells shared 128 hash values. ([#812](https://github.com/CyrilB1531/lodestar/issues/812))
-- `TopKAccuracy.Score` counts the true class's rank in each row instead of sorting the row, and allocates nothing per row. ([#827](https://github.com/CyrilB1531/lodestar/issues/827))
-- `MeanSquaredError`, `MeanAbsoluteError` and `R2` read their input once to validate and score it. ([#715](https://github.com/CyrilB1531/lodestar/issues/715), [`a954161e`](https://github.com/CyrilB1531/lodestar/commit/a954161e))
+- `KpssLagRule`, `LagSelection`, `PValueBound`, `SeasonalModel`, `TrendTerms` and `VarOptions` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+- The augmented Dickey-Fuller lag search and `VectorAutoregression.Fit` factor their design once for every lag or equation, 8.5 times faster at 2,000 points, and the autocovariance centres its series once. ([#843](https://github.com/CyrilB1531/lodestar/issues/843))
 
 #### Fixed
 
-- Macro and weighted precision, recall, F-scores, Jaccard and the report's average rows skip `NaN` classes and fall back to the unweighted mean on zero total support, as scikit-learn's `_nanaverage` does. ([#861](https://github.com/CyrilB1531/lodestar/issues/861))
-- The classification metrics refuse a non-finite or all-zero `sampleWeight` and, where scikit-learn divides by it, a zero-sum one, `HingeLoss` refuses a non-finite decision, and the binary `LogLoss`, `BrierScore` and `HingeLoss` refuse a third label instead of counting it negative. ([#890](https://github.com/CyrilB1531/lodestar/issues/890))
-- Weighted `JaccardScore.Score` refuses class supports that sum to zero without all being zero, as `jaccard_score`'s `numpy.average` does, where [#861](https://github.com/CyrilB1531/lodestar/issues/861) had it answer the unweighted mean its three sibling metrics reach through `_nanaverage`. ([#988](https://github.com/CyrilB1531/lodestar/issues/988))
+- `VectorAutoregression.Fit` refuses a collinear lagged design with `ArgumentException`, where a variable proportional to another gave coefficients near 1e13. ([#873](https://github.com/CyrilB1531/lodestar/issues/873))
+- The Dickey-Fuller and seasonal decomposition options refuse an undeclared enum value, a too-short augmented Dickey-Fuller series is refused naming `series` or `options`, and a lag count below one is `ArgumentOutOfRangeException` like the other counts. ([#907](https://github.com/CyrilB1531/lodestar/issues/907))
+- `SerialCorrelation.LjungBox` computes its scale in `double`, where from 46,340 observations `n * (n + 2)` overflowed and every statistic came out negative with a p-value of 1. ([#864](https://github.com/CyrilB1531/lodestar/issues/864))
+- `Stationarity.Kpss` refuses a series lying exactly on a straight line under `ConstantAndTrend`, where it returned `NaN` and a window that depended on the runtime. ([#874](https://github.com/CyrilB1531/lodestar/issues/874))
+- `Stationarity.AugmentedDickeyFuller` names `series` when the lagged design it builds has no unique solution, where the estimate's refusal cited a `design` parameter no caller passed. ([#979](https://github.com/CyrilB1531/lodestar/issues/979))
+- `Stationarity.Kpss` measures that line against `n·ε` of the largest observation, where only a fit leaving exact zeros was refused and 99 of 100 random lines were answered from their rounding noise. ([#976](https://github.com/CyrilB1531/lodestar/issues/976))
+- Both stationarity tests refuse a straight line on one bar that does not grow with the series, `Stationarity.AugmentedDickeyFuller` at lag zero too, where a million points of a 1e-10 wobble were called a line and a line's lag-zero statistic was one rounding error over another. ([#1080](https://github.com/CyrilB1531/lodestar/issues/1080))
+- The augmented Dickey-Fuller lag search refuses a candidate design with no unique solution instead of ranking it on rounding, which answered a statistic of exactly 0 on a line bent at its first point. ([#977](https://github.com/CyrilB1531/lodestar/issues/977))
+- A too-large `DickeyFullerOptions.MaxLag` is refused with the reason that applies, and `KpssOptions.LagRule` refuses an undeclared value where it is set. ([#984](https://github.com/CyrilB1531/lodestar/issues/984))
+- `VectorAutoregression.Fit` refuses a collinear lagged design on the singular values, as `Lodestar.Stats.Regression`'s fits now do, where the per-column pivot missed a column far smaller than the ones it depends on. ([#978](https://github.com/CyrilB1531/lodestar/issues/978))
+
+### Lodestar.Onnx — 0.1.1
+
+#### Changed
+
+- `Microsoft.ML.OnnxRuntime` moves from 1.28.0 to 1.30.0. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
+- The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
+
+#### Fixed
+
+- `OnnxTextEmbedder`'s constructors dispose the ONNX Runtime session they opened when they throw, check the tokenizer before opening one, and name `outputName` for an undeclared output. ([#903](https://github.com/CyrilB1531/lodestar/issues/903))
+
+### Lodestar.Extensions.AI — 0.1.1
+
+#### Changed
+
+- `Microsoft.Extensions.AI.Abstractions` moves from 10.9.0 to 10.10.0. ([#622](https://github.com/CyrilB1531/lodestar/issues/622), [`8603bb01`](https://github.com/CyrilB1531/lodestar/commit/8603bb01))
+- The `Lodestar.Embeddings` dependency floor rises from 0.5.0 to 0.6.0. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
+
+#### Fixed
+
+- The generation reference page places the package in the interop tier, per decision 0089, where it called it a satellite. ([#949](https://github.com/CyrilB1531/lodestar/issues/949))
+
+### Lodestar.Extensions.VectorData — 0.1.0
+
+#### Added
+
+- The package: an in-process `Microsoft.Extensions.VectorData` store with hybrid keyword and vector search. ([#682](https://github.com/CyrilB1531/lodestar/issues/682), [`afc1909d`](https://github.com/CyrilB1531/lodestar/commit/afc1909d))
+
+#### Changed
+
+- A filtered `SearchAsync` runs the filter once on every record in the order held and scores only the admitted ones, 1.9× faster at 10,000 records, where it used to rank the whole collection and stop filtering once enough records passed. ([#849](https://github.com/CyrilB1531/lodestar/issues/849))
+
+#### Fixed
+
+- `HybridSearchAsync` keeps a record the keywords matched in the keyword ranking when its BM25 score is zero or negative, where it used to drop it as unmatched. ([#884](https://github.com/CyrilB1531/lodestar/issues/884))
+- A key property of another type than the collection's key or a non-`string` full-text property is refused at construction, a deleted name can be taken by another record type, and an empty collection refuses a query of the wrong width. ([#904](https://github.com/CyrilB1531/lodestar/issues/904))
+- `HybridSearchAsync` ranks only the records a keyword matched, read from the term postings, where it scored and sorted every record of the collection on every query. ([#993](https://github.com/CyrilB1531/lodestar/issues/993))
+- `HybridSearchAsync` sorts a keyword's matched records in one array by their own scores, where #993 gathered them in a sorted set and sorted through the whole score array, which made a keyword most records hold slower than before #993. ([#1036](https://github.com/CyrilB1531/lodestar/issues/1036))
 
 ## Released — 2026-09-10
 
