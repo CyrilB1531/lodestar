@@ -348,7 +348,7 @@ reason past that. `CONTRIBUTING.md`'s *Claims in comments* states them,
 `.github/instructions/comment_claims.instructions.md` carries what a review asks. Commit messages
 carry no `feat:`/`fix:` prefix.
 
-`main` is protected by three required checks with no bypass list. "Require approvals" is off because
+`main` is protected by four required checks with no bypass list. "Require approvals" is off because
 a single maintainer cannot approve their own PR. Do not commit, merge or tag unless asked. A `perf/`
 PR carries before/after numbers and names the machine.
 

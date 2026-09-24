@@ -1,0 +1,56 @@
+name: Pull request closes
+
+# Refuses a pull request whose closing keyword targets an issue that is not open (closed,
+# missing, a pull request, locked, or in another repository), one that closes no issue, and
+# one whose issue is not assigned to its author (#1152). #785 closed #617 and #766 closed #568,
+# both issues closed days before those pull requests opened. The rules, and the exemptions for
+# bot authors and the no-issue label, live in tools/check_pr_closes.py; this file only hands it
+# the body, the author and the labels.
+#
+# A workflow of its own rather than a job in ci.yml, for two reasons:
+# - fixing the body is the fix, so it has to run on `edited`, and ci.yml listening to `edited`
+#   would rebuild everything on every edit of a description;
+# - its job is a required check of the `main protected by checks` ruleset, so it must be posted
+#   on every pull request. It skips nothing: not a draft, whose body is written before the code,
+#   not a Dependabot or fork pull request, not the documentation-only path. A required check that
+#   never arrives stays pending for ever (.github/workflows/README.md).
+
+on:
+  pull_request:
+    # labeled and unlabeled: the no-issue label changes the verdict. An issue's assignment does
+    # not reach this workflow, so after assigning one, rerun the job or edit the description.
+    types: [opened, edited, reopened, synchronize, ready_for_review, converted_to_draft,
+            labeled, unlabeled]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: pr-closes-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  closes:
+    # The ruleset requires this name. Renaming the job leaves the ruleset waiting on a check
+    # that no longer exists, so change both together.
+    name: Pull request closes only open issues
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: tools/check_pr_closes.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      # The body, the author and the labels go through the environment, never into the script's
+      # text, so whatever the author wrote cannot become shell.
+      - name: The pull request closes open issues assigned to its author
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$PR_BODY" | python3 tools/check_pr_closes.py

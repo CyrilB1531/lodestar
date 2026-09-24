@@ -29,7 +29,21 @@ branches too: a new stemmer branch carries its implementation, its oracle corpus
 and its tests — and nothing else. If you find an unrelated problem while working,
 open an issue rather than widening the branch.
 
-Reference the issue from the pull request (`Closes #12`) so it closes on merge.
+Reference the issue from the pull request (`Closes #12`) so it closes on merge. The
+`Pull request closes only open issues` check holds three rules on the description:
+
+- **It closes an issue.** A description with no closing keyword (`Closes`, `Fixes`, `Resolves` and
+  their variants) fails, and `Refs #12` alone does not count.
+- **The issue is open here.** A keyword naming a closed, missing or locked issue, a pull request, or
+  an issue of another repository fails. Reopen the issue if the work is unfinished, or write
+  `Refs #12`, which it does not read.
+- **The issue is assigned to you.** Ask a maintainer to assign it; from a fork, comment on the issue
+  first, since GitHub lets a maintainer assign anyone who has. Assigning does not rerun the check,
+  so rerun the failed job, or edit the description, afterwards.
+
+A pull request that deliberately closes no issue gets the `no-issue` label from a maintainer, which
+waives the first and third rules and leaves a trace in its timeline. Dependabot, Renovate and the
+nightly benchmark run's `github-actions[bot]` are waived the same way. Neither waives the second.
 
 ### `gh` 2.73.0 or later
 
@@ -45,9 +59,9 @@ like a warning; `gh issue view --comments` and `gh pr view --comments` fail the 
 is **2.73.0**, the first release (2025-05-19) after the last of the three upstream fixes merged on
 2025-05-08 — measured on 2026-09-11 as broken under `gh 2.46.0` and clean under `gh 2.100.0`.
 
-### The three checks that guard `main`
+### The four checks that guard `main`
 
-`main` is protected by a repository ruleset with **no bypass list**. Three checks must pass before
+`main` is protected by a repository ruleset with **no bypass list**. Four checks must pass before
 the merge button becomes available:
 
 | Job | What it guards |
@@ -55,6 +69,7 @@ the merge button becomes available:
 | `Lint (markdown + C# format)` | markdownlint, `dotnet format --verify-no-changes`, the `tools/tests` suite, that no tracked file holds a machine path, and that the Sonar `.globalconfig` is current |
 | `Oracles are reproducible` | that the committed corpora match a fresh generation |
 | `Build and analyze` | that `Build, test, analyze`, `Sample consumes the packages` and `Guide snippets compile, reference snippets run` all passed |
+| `Pull request closes only open issues` | that the pull request's description closes at least one issue, each an open issue of this repository assigned to its author, rerun whenever the description or the labels change |
 
 There is no approving review to wait for. The project has one maintainer, and GitHub does not let
 anyone approve their own pull request, so protection is built on checks instead —
@@ -269,11 +284,13 @@ Three things are worth knowing before relying on it.
   does not do. Their contents are then read from disk, so a file staged in one
   state and edited in another is judged in its worktree state.
 
-Four guards CI runs stay out of it: `check_nuspec_dependencies.py` reads the
+Five guards CI runs stay out of it: `check_nuspec_dependencies.py` reads the
 `.nuspec` files inside a packed `./artifacts`, `check_adr_immutable.py` and
 `check_repeated_literals.py` both take `--base`, the pull request's own base
-commit, which a commit made before a pull request exists has none to name, and
-`check_doc_test_counts.py` reads the `results.xml` files a CI run just wrote.
+commit, which a commit made before a pull request exists has none to name,
+`check_doc_test_counts.py` reads the `results.xml` files a CI run just wrote, and
+`check_pr_closes.py` reads a pull request's description, which a commit does not
+have.
 
 `check_version_floor.py` needs no exclusion. CI passes it `--check-feed`, which reaches
 nuget.org, and the hook does not — but that is a flag rather than a guard, and its two offline

@@ -48,6 +48,9 @@ given:
   (tools/compare_oracles.py).
 - `check_version_floor.py` verifies that the version numbers the source tree
   keeps in three places still agree.
+- `check_pr_closes.py` refuses a pull request that closes no issue, or whose
+  closing keyword names an issue that is not open here or not assigned to its
+  author; `pr-closes.yml` runs it on every pull request.
 - `check_requirements_lock_sync.py` refuses a `requirements.txt` pin that
   `requirements.lock.txt` has never heard of, which is what CI installs from.
 - `check_gpu_tests_force_cpu.py` refuses a `Lodestar.Gpu` test that uses whatever
@@ -534,6 +537,29 @@ The floor must not exceed the declared version, and must already be on nuget.org
 naming an unpublished version still builds for whoever raised it, whose cache is
 warm, and fails for everyone else. `--check-feed` is what turns that into a CI
 failure rather than a contributor's bug report.
+
+## `check_pr_closes.py`
+
+Reads a pull request's description and holds three rules on its closing keywords —
+`close`, `fix` and `resolve` in any tense and case, with an optional colon:
+
+- there is at least one, since `Refs #N` alone does not count;
+- each names an open issue of this repository, not a closed, missing or locked one,
+  a pull request, or an issue elsewhere;
+- each issue is assigned to the pull request's author.
+
+A bot author in `BOTS` (Dependabot, Renovate, the nightly run's
+`github-actions[bot]`) and the `no-issue` label waive the first and third rules,
+never the second. Nothing inside code or an HTML comment is read. `pr-closes.yml`
+runs it as the required check `Pull request closes only open issues`
+([#1152](https://github.com/CyrilB1531/lodestar/issues/1152)).
+
+```bash
+gh pr view <number> --json body -q .body \
+  | python3 tools/check_pr_closes.py --repo CyrilB1531/lodestar --author <login> --labels <a,b>
+```
+
+`GH_TOKEN` or `GITHUB_TOKEN` authenticates the lookups when set.
 
 ## `check_requirements_lock_sync.py`
 

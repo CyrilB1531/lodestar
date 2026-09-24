@@ -23,7 +23,8 @@ noisy is turned off -- tools/README.md. `check_doc_test_counts.py` reads the
 `results.xml` files a CI run just wrote, and before a commit there is no such run
 to read at all; that reason lives here and in CONTRIBUTING.md rather than in a
 decision record, because an ADR sets the project's direction and does not explain
-a script (#1054).
+a script (#1054). `check_pr_closes.py` reads a pull request's description, which a
+commit does not have, and asks GitHub about each issue it closes (#1152).
 
 The floor guard needs no exclusion. CI passes it `--check-feed` and the hook does
 not, but that is a flag rather than a guard, and its two offline rules run in
@@ -60,7 +61,7 @@ WORKFLOWS = REPO / ".github" / "workflows"
 
 OFFLINE_EXCLUSIONS = {
     "check_nuspec_dependencies", "check_adr_immutable", "check_repeated_literals",
-    "check_doc_test_counts"}
+    "check_doc_test_counts", "check_pr_closes"}
 
 GUARD = re.compile(r"tools/(check_\w+)\.py")
 

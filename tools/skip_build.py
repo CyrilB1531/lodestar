@@ -54,6 +54,8 @@ UNREAD = frozenset({
     ".github/workflows/bench-nightly.yml",
     ".github/workflows/bench-ondemand.yml",
     ".github/workflows/classify-pull-request.yml",
+    # Runs on the pull request that changes it, and builds nothing.
+    ".github/workflows/pr-closes.yml",
     ".github/workflows/release.yml",
     ".github/workflows/release-nuget-org.yml",
     ".github/workflows/wiki.yml",

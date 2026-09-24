@@ -8,7 +8,8 @@ which workflow answers which question, and what has to be green before the merge
 
 | file | name | runs on | what it answers |
 | --- | --- | --- | --- |
-| [`ci.yml`](ci.yml) | `CI` | every pull request, and every push to `main` | everything the three required checks stand for: lint, build, test, analyze, pack, the sample, the snippets, the oracles and Windows |
+| [`ci.yml`](ci.yml) | `CI` | every pull request, and every push to `main` | everything three of the four required checks stand for: lint, build, test, analyze, pack, the sample, the snippets, the oracles and Windows |
+| [`pr-closes.yml`](pr-closes.yml) | `Pull request closes` | every pull request, drafts included, and every edit of its description or labels | whether it closes an issue, each an open issue of this repository assigned to its author, unless a bot opened it or it carries `no-issue` — the fourth required check, `Pull request closes only open issues` |
 | [`classify-pull-request.yml`](classify-pull-request.yml) | `Classify a pull request` | a pull request opening, and every push to it | which milestone, labels and boards the changed files earn it. Reconciled on every push, so the attribution follows the diff |
 | [`release.yml`](release.yml) | `Release` | a `Lodestar.*/v*` tag | packs and publishes that one package to GitHub Packages, refusing the job when the tag and `Version.props` disagree |
 | [`release-nuget-org.yml`](release-nuget-org.yml) | `Publish to nuget.org (Trusted Publishing)` | `workflow_dispatch` | the same package, to nuget.org, over OIDC with no stored key |
@@ -16,7 +17,7 @@ which workflow answers which question, and what has to be green before the merge
 | [`bench-nightly.yml`](bench-nightly.yml) | `Benchmarks (nightly)` | 02:00 UTC, or `workflow_dispatch` | the night's benchmark run, inside the budget `BUDGET_MINUTES` sets |
 | [`bench-ondemand.yml`](bench-ondemand.yml) | `Benchmark (on demand)` | `workflow_dispatch` | one named benchmark, when a `perf/` pull request needs a number |
 
-Only `ci.yml` is read by the pull-request pipeline. That is what makes the other six skippable for
+Only `ci.yml` is read by the pull-request pipeline. That is what makes the other seven skippable for
 a pull request that changes nothing else — see [The reduced path](#the-reduced-path) below.
 
 ## What protects `main`
@@ -28,9 +29,11 @@ give it.
 
 Protection is therefore built on checks rather than approvals. A repository ruleset named
 **`main protected by checks`** targets the default branch, requires a pull request, and requires
-three checks to pass before the merge button becomes available: `Lint (markdown + C# format)`,
-`Oracles are reproducible` and `Build and analyze`.
-[`CONTRIBUTING.md`](../../CONTRIBUTING.md#the-three-checks-that-guard-main) has what each one guards,
+four checks to pass before the merge button becomes available: `Lint (markdown + C# format)`,
+`Oracles are reproducible`, `Build and analyze` and `Pull request closes only open issues`. The
+last comes from `pr-closes.yml`, which runs on every pull request and skips none, since a required
+check that is never posted stays pending ([#1152](https://github.com/CyrilB1531/lodestar/issues/1152)).
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md#the-four-checks-that-guard-main) has what each one guards,
 which is what a contributor reads when one goes red.
 
 `Build and analyze` is a gate job rather than a job that builds. It stands for
