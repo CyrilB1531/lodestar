@@ -28,9 +28,13 @@
     <PackageReference Include="xunit.v3" />
   </ItemGroup>
 
-  <!-- SetTargetFramework is what pins the reference to the netstandard2.0 build. -->
+  <!-- SetTargetFramework is what pins the reference to the netstandard2.0 build. Lodestar.Abstractions
+       is listed too, for the reason tests/Lodestar.Text.NetStandard.Tests gives: a transitive
+       reference would bring its net10.0 build, and the mirror would stop mirroring. -->
   <ItemGroup>
     <ProjectReference Include="../../src/Lodestar.Stats/Lodestar.Stats.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
+    <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.0" />
   </ItemGroup>
 

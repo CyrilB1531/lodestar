@@ -31,6 +31,9 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Lodestar.Embeddings/Lodestar.Embeddings.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.0" />
+    <!-- Listed explicitly for the reason tests/Lodestar.Text.NetStandard.Tests gives. -->
+    <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
   </ItemGroup>
 
   <ItemGroup>

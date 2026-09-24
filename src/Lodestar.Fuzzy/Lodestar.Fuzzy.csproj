@@ -28,20 +28,20 @@
     dotnet build, dotnet test and the IDE. It is never set in CI, and the packed
    .nuspec is asserted there — see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md.
   -->
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
+  <!-- The data types this package forwards to Lodestar.Abstractions (decision 0003, #1142). A
+       ProjectReference, unconditionally, until Lodestar.Abstractions 0.2.0 is on nuget.org: the
+       types leave this assembly in the same commit they arrive in that one, and packing turns
+       the reference into a dependency on 0.2.0. The release swaps it for a PackageReference on
+       the published floor and drops the exception in ci.yml's "src/ ships PackageReference
+       only" step.
+
+       Lodestar.Text is referenced the same way for the same wave: Fuzz names TextElement, which
+       the published Lodestar.Text 0.6.0 declares and Lodestar.Abstractions 0.2.0 now does too, so
+       the two together would be CS0433. The release restores the published floor, and the
+       LodestarUseProjectRefs developer loop with it. -->
+  <ItemGroup>
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
     <ProjectReference Include="../Lodestar.Text/Lodestar.Text.csproj" />
   </ItemGroup>
-
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
-    <PackageReference Include="Lodestar.Text" />
-  </ItemGroup>
-
-  <!-- Loud on purpose: a local build that silently differed from the shipped one
-       is the failure mode this whole arrangement is designed to avoid. -->
-  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
-          Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <Message Importance="high"
-             Text="Lodestar.Fuzzy: LodestarUseProjectRefs=true — referencing Lodestar.Text by project, not by package. This is the developer loop, not what ships." />
-  </Target>
 
 </Project>

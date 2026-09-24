@@ -42,8 +42,6 @@ NUSPEC_CHECK = ROOT / "tools" / "check_nuspec_dependencies.py"
 
 FLAT_CONTAINER = "https://api.nuget.org/v3-flatcontainer/{id}/index.json"
 
-# Both a dependency and a dependent, so named once rather than spelt at each end of its edges.
-STATS_REGRESSION = "Lodestar.Stats.Regression"
 
 
 @dataclass(frozen=True)
@@ -69,19 +67,21 @@ class Floor:
 # One row per inter-package edge. Adding an edge without adding it here is the
 # drift this script exists to catch, so the row lands in the same commit.
 FLOORS = (
+    # long-comment: a consumer #1142 switched to a ProjectReference has no published floor to
+    # check until the release swaps it back, so it is off its row: Lodestar.Fuzzy from
+    # Lodestar.Text's, Lodestar.Text and Lodestar.Decomposition from Lodestar.Abstractions',
+    # Lodestar.Stats.Regression and Lodestar.Stats.TimeSeries from Lodestar.Stats', and
+    # Lodestar.Decomposition's row is gone with its one consumer. The release puts them back.
     Floor("Lodestar.Text", "LodestarTextVersion", "TEXT_FLOOR",
-          ("Lodestar.Fuzzy", "Lodestar.Extensions.VectorData")),
-    # Lodestar.Text reaches it by ProjectReference until 0.2.0 ships (#1142), so it is off this row.
+          ("Lodestar.Extensions.VectorData",)),
     Floor("Lodestar.Abstractions", "LodestarAbstractionsVersion", "ABSTRACTIONS_FLOOR",
-          ("Lodestar.Decomposition", "Lodestar.Extensions.MathNet")),
+          ("Lodestar.Extensions.MathNet",)),
     Floor("Lodestar.Embeddings", "LodestarEmbeddingsVersion", "EMBEDDINGS_FLOOR",
           ("Lodestar.Onnx", "Lodestar.Extensions.AI", "Lodestar.Extensions.VectorData")),
     Floor("Lodestar.Onnx", "LodestarOnnxVersion", "ONNX_FLOOR",
           ("Lodestar.Extensions.AI",)),
     Floor("Lodestar.Stats", "LodestarStatsVersion", "STATS_FLOOR",
-          (STATS_REGRESSION, "Lodestar.Stats.TimeSeries", "Lodestar.Survival")),
-    Floor("Lodestar.Decomposition", "LodestarDecompositionVersion", "DECOMPOSITION_FLOOR",
-          (STATS_REGRESSION,)),
+          ("Lodestar.Survival",)),
 )
 
 

@@ -2,9 +2,6 @@ using System.Numerics;
 
 namespace Lodestar.Embeddings.Search;
 
-/// <summary>A single search hit: the item's index and its similarity score.</summary>
-public readonly record struct SearchResult(int Index, float Score);
-
 /// <summary>
 /// An exhaustive (brute-force) cosine-similarity index for semantic search.
 /// </summary>

@@ -644,6 +644,24 @@ jobs:
             # is not on the feed until the whole move has landed.
             [ "$proj" = src/Lodestar.Stats.TimeSeries ] && refs=${refs//..\/Lodestar.Stats.Regression\/Lodestar.Stats.Regression.csproj/}
             [ "$proj" = src/Lodestar.Text ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Stats ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Preprocessing ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Preprocessing ] && refs=${refs//..\/Lodestar.Stats\/Lodestar.Stats.csproj/}
+            [ "$proj" = src/Lodestar.Preprocessing ] && refs=${refs//..\/Lodestar.Cluster\/Lodestar.Cluster.csproj/}
+            [ "$proj" = src/Lodestar.Embeddings ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Metrics ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Stats.TimeSeries ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Stats.TimeSeries ] && refs=${refs//..\/Lodestar.Stats\/Lodestar.Stats.csproj/}
+            [ "$proj" = src/Lodestar.Decomposition ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Survival ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Stats.Regression ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Stats.Regression ] && refs=${refs//..\/Lodestar.Stats\/Lodestar.Stats.csproj/}
+            [ "$proj" = src/Lodestar.Stats.Regression ] && refs=${refs//..\/Lodestar.Decomposition\/Lodestar.Decomposition.csproj/}
+            [ "$proj" = src/Lodestar.Gpu ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Cluster ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Fuzzy ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Fuzzy ] && refs=${refs//..\/Lodestar.Text\/Lodestar.Text.csproj/}
+            [ "$proj" = src/Lodestar.Conformal ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
             refs=$(echo $refs)
             if [ -n "$refs" ]; then
               echo "::error::$proj references $refs by project; src/ must reference published packages."

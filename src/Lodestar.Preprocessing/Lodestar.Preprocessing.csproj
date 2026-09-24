@@ -24,30 +24,29 @@
 
         export LodestarUseProjectRefs=true
   -->
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
-    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
-    <ProjectReference Include="../Lodestar.Cluster/Lodestar.Cluster.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
-    <PackageReference Include="Lodestar.Stats" />
-    <PackageReference Include="Lodestar.Abstractions" />
-    <PackageReference Include="Lodestar.Cluster" />
-  </ItemGroup>
-
-  <!-- Loud on purpose: a local build that silently differed from the shipped one
-       is the failure mode this whole arrangement is designed to avoid. -->
-  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
-          Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <Message Importance="high"
-             Text="Lodestar.Preprocessing: LodestarUseProjectRefs=true — referencing Lodestar.Stats, Lodestar.Abstractions and Lodestar.Cluster by project, not by package. This is the developer loop, not what ships." />
-  </Target>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Lodestar.Preprocessing.Tests" />
     <!-- Same suite, replayed against the netstandard2.0 build. -->
     <InternalsVisibleTo Include="Lodestar.Preprocessing.NetStandard.Tests" />
+  </ItemGroup>
+
+  <!-- The data types this package forwards to Lodestar.Abstractions (decision 0003, #1142). A
+       ProjectReference, unconditionally, until Lodestar.Abstractions 0.2.0 is on nuget.org: the
+       types leave this assembly in the same commit they arrive in that one, and packing turns
+       the reference into a dependency on 0.2.0. The release swaps it for a PackageReference on
+       the published floor and drops the exception in ci.yml's "src/ ships PackageReference
+       only" step.
+
+       Lodestar.Stats and Lodestar.Cluster are referenced the same way for the same wave: this
+       package names types both of them now forward to Lodestar.Abstractions, which their
+       published floors still declare, so each beside Lodestar.Abstractions 0.2.0 would be
+       CS0433. The release restores their published floors, and the LodestarUseProjectRefs
+       developer loop with them. -->
+  <ItemGroup>
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+    <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
+    <ProjectReference Include="../Lodestar.Cluster/Lodestar.Cluster.csproj" />
   </ItemGroup>
 
 </Project>

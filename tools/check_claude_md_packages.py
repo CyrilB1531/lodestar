@@ -39,7 +39,7 @@ NUSPEC = ROOT / "tools" / "check_nuspec_dependencies.py"
 
 ROW = re.compile(r"^\| `(Lodestar\.[A-Za-z.]+)` \| (core|satellite|interop) \|", re.MULTILINE)
 COUNT = re.compile(r"^(\w+) independently versioned packages under `src/`", re.MULTILINE)
-EDGES = re.compile(r"The edges: \*\*(\w+)\*\*, all asserted", re.MULTILINE)
+EDGES = re.compile(r"The edges: \*\*([\w-]+)\*\*, all asserted", re.MULTILINE)
 
 # Enough to spell the counts this repository can reach; a sixteenth package adds a word.
 WORDS = {
@@ -47,6 +47,9 @@ WORDS = {
     14: "Fourteen", 15: "Fifteen", 16: "Sixteen", 17: "Seventeen", 18: "Eighteen",
     19: "Nineteen", 20: "Twenty",
 }
+# The edge count passed twenty with #1142's wave; hyphenated, as English spells them.
+WORDS.update({n: f"Twenty-{w.lower()}" for n, w in zip(range(21, 30), (
+    "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"))})
 LOWER = {n: w.lower() for n, w in WORDS.items()}
 
 

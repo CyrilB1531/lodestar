@@ -343,4 +343,23 @@ public sealed class ValueEqualityTests
 
         Assert.NotEqual(ncThenNfd, ndThenNfc);
     }
+
+    [Fact]
+    public void Tokenization_results_differing_in_one_token_are_not_equal()
+    {
+        var a = new TokenizationResult(["play"], [1]);
+        var b = new TokenizationResult(["plays"], [1]);
+
+        Assert.True(a.Equals(a));
+        Assert.NotEqual(a, b);
+    }
+
+    [Fact]
+    public void Tokenization_results_of_differing_lengths_are_not_equal()
+    {
+        var a = new TokenizationResult(["play"], [1]);
+        var b = new TokenizationResult(["play", "##ing"], [1, 2]);
+
+        Assert.NotEqual(a, b);
+    }
 }

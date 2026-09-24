@@ -11,6 +11,9 @@ Lot* files and would fail every run until their own lot lands -- the same shape
 docs/wiki-map.json's covered table uses, and the same reason: a gate that fails
 on work nobody has started yet is noise a contributor learns to skip.
 
+A type Lodestar.Abstractions compiles for another package keeps that package's namespace
+(decision 0003, #1142), and is judged with that package: one under a WAITING namespace waits.
+
 An enum is not a class and is excluded by CONTRIBUTING.md's Definition of done: it is demonstrated
 through the class whose parameter it is, and a file exercising one alone would
 have to invent a use for it.
@@ -41,6 +44,14 @@ DECLARATION = re.compile(
     r"^public\s+(?:static\s+|sealed\s+|abstract\s+|partial\s+|readonly\s+)*"
     r"(record\s+class|record\s+struct|class|record|struct|enum|interface)\s+(\w+)",
     re.MULTILINE)
+NAMESPACE = re.compile(r"^namespace\s+([\w.]+)", re.MULTILINE)
+
+
+def waits(text: str) -> bool:
+    """Whether a file declares a namespace belonging to a WAITING package."""
+    match = NAMESPACE.search(text)
+    return match is not None and any(
+        match.group(1) == package or match.group(1).startswith(package + ".") for package in WAITING)
 
 
 def public_classes(package: str) -> dict[str, pathlib.Path]:
@@ -49,7 +60,10 @@ def public_classes(package: str) -> dict[str, pathlib.Path]:
     for path in sorted((ROOT / "src" / package).rglob("*.cs")):
         if "Internal" in path.parts:
             continue
-        for kind, name in DECLARATION.findall(path.read_text(encoding="utf-8")):
+        text = path.read_text(encoding="utf-8")
+        if waits(text):
+            continue
+        for kind, name in DECLARATION.findall(text):
             if kind != "enum":
                 found[name] = path
     return found
