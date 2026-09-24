@@ -21,7 +21,6 @@
     <None Include="../oracles/**/*.json" CopyToOutputDirectory="PreserveNewest" LinkBase="oracles" />
   </ItemGroup>
 
-
   <!-- The gate's engine is shared by every package's suite, so it is linked rather
        than copied; the pages and the map are read from the output directory, the
        way the oracle corpora already are. -->
@@ -33,5 +32,7 @@
     <None Include="../../docs/**/*.md" Exclude="../../docs/superpowers/**"
           CopyToOutputDirectory="PreserveNewest" LinkBase="docs" />
   </ItemGroup>
+
+  <Import Project="../Shared/PublishedLodestarText.targets" />
 
 </Project>

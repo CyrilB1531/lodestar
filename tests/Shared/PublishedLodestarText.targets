@@ -1,0 +1,15 @@
+<Project>
+
+  <!-- The Lodestar.Text a consumer already holds, fetched exactly as published and copied beside the
+       tests instead of referenced, so at run time it binds to the Lodestar.Abstractions under test.
+       0.6.0 was compiled against CreateUnchecked while it was internal (#1142). -->
+  <ItemGroup>
+    <PackageDownload Include="Lodestar.Text" Version="[0.6.0]" />
+  </ItemGroup>
+
+  <Target Name="CopyPublishedLodestarText" AfterTargets="Build">
+    <Copy SourceFiles="$(NuGetPackageRoot)lodestar.text/0.6.0/lib/net10.0/Lodestar.Text.dll"
+          DestinationFolder="$(OutDir)published" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

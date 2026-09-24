@@ -466,7 +466,7 @@ internal static class ReferenceDocumentation
         HashSet<string> linkable = LinkableMembers(assembly, wikiMapPath, package);
 
         foreach (string file in Directory.EnumerateFiles(docsRoot, "*.md", SearchOption.AllDirectories)
-                     .Where(candidate => !IsReferencePage(candidate, docsRoot))
+                     .Where(candidate => !IsReferencePage(candidate, docsRoot) && !IsDecisionRecord(candidate, docsRoot))
                      .OrderBy(candidate => candidate, StringComparer.Ordinal))
         {
             CheckFileLinks(file, docsRoot, linkable, complaints);
@@ -506,6 +506,19 @@ internal static class ReferenceDocumentation
     {
         string relative = Path.GetRelativePath(docsRoot, file).Replace('\\', '/');
         return relative.StartsWith("reference/", StringComparison.Ordinal);
+    }
+
+    /// <summary>Whether a document is a numbered decision record, which this rule cannot ask to change.</summary>
+    /// <remarks>
+    /// A record is never edited (<c>tools/check_adr_immutable.py</c>), so a member that becomes public
+    /// after a record named it would demand an edit the guard refuses. <c>CsrMatrix.CreateUnchecked</c>
+    /// did, in decision 0003's epoch-3 text (#1142). The index beside them is still checked.
+    /// </remarks>
+    private static bool IsDecisionRecord(string file, string docsRoot)
+    {
+        string relative = Path.GetRelativePath(docsRoot, file).Replace('\\', '/');
+        return relative.StartsWith("decisions/", StringComparison.Ordinal)
+            && char.IsDigit(Path.GetFileName(file)[0]);
     }
 
     private static void CheckFileLinks(

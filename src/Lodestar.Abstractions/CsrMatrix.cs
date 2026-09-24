@@ -72,10 +72,24 @@ public sealed class CsrMatrix
     }
 
     /// <summary>
-    /// Creates a matrix from arrays this library has just built, skipping the
-    /// structural pass. Never call it with data that came from outside.
+    /// Creates a matrix from raw arrays (not copied) <strong>without</strong> the structural
+    /// validation the constructor runs: for a producer whose arrays are valid by construction.
     /// </summary>
-    internal static CsrMatrix CreateUnchecked(int rowCount, int columnCount, double[] values, int[] columnIndices, int[] rowPointers) =>
+    /// <param name="rowCount">The number of rows.</param>
+    /// <param name="columnCount">The number of columns.</param>
+    /// <param name="values">The stored values, row by row.</param>
+    /// <param name="columnIndices">The column of each stored value.</param>
+    /// <param name="rowPointers">Where each row starts in <paramref name="values"/>, then the total.</param>
+    /// <returns>The matrix, sharing the three arrays.</returns>
+    /// <exception cref="ArgumentNullException">An array is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A dimension is negative.</exception>
+    /// <exception cref="ArgumentException">The array lengths disagree with each other or with <paramref name="rowCount"/>.</exception>
+    /// <remarks>
+    /// Unvalidated: decreasing row pointers or an out-of-range column are not refused, and surface
+    /// later as a wrong product or an index error; only the null and length checks run. Public
+    /// since 0.2.0, which grants no <c>InternalsVisibleTo</c> (decision 0003, epoch 3).
+    /// </remarks>
+    public static CsrMatrix CreateUnchecked(int rowCount, int columnCount, double[] values, int[] columnIndices, int[] rowPointers) =>
         new(rowCount, columnCount, values, columnIndices, rowPointers, validate: false);
 
     private static void ValidateStructure(int columnCount, int nonZeroCount, int[] columnIndices, int[] rowPointers)
@@ -320,9 +334,8 @@ public sealed class CsrMatrix
 
     /// <summary>Refuses a null array, the way <c>src/Shared/Guard.cs</c> does elsewhere.</summary>
     /// <remarks>
-    /// Local rather than shared: this package grants <c>InternalsVisibleTo</c> to
-    /// <c>Lodestar.Text</c>, which compiles that file too, and one internal type in
-    /// both assemblies is CS0436 at every call site on the consuming side.
+    /// Local rather than shared: this package compiles only the shared helper its moved data types
+    /// call, <c>ValueEquality</c>, and <c>Guard</c> is not one of them (decision 0003, epoch 3).
     /// </remarks>
     private static void RequireNotNull(
         [NotNull] object? value,
