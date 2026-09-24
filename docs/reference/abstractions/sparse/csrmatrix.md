@@ -47,8 +47,7 @@ matrix's **own** `double[]` and `int[]`, handed out without copying, so writing 
 matrix. Treat them as read-only unless that is precisely what you mean.
 
 Within a row, `ColumnIndices` is ascending in every matrix this repository builds, but the constructor
-does not require it ([decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
-left that invariant to a decision of its own). A column stored twice in one row counts as the sum of
+does not require it. A column stored twice in one row counts as the sum of
 its entries in [`CsrMatrix.ToDense`](csrmatrix-todense.md), [`CsrMatrix.Multiply`](csrmatrix-multiply.md) and
 [`CsrMatrix.TransposeMultiply`](csrmatrix-transposemultiply.md), which is how `scipy.sparse.csr_matrix` reads it. `Lodestar.Preprocessing`'s three sparse fits sum them too,
 since `sklearn.utils.sparsefuncs` reduces through scipy.

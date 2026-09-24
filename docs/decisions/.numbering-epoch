@@ -1,4 +1,4 @@
-2
+3
 # The numbering epoch of docs/decisions/, read by .next-adr.
 #
 # Epoch 1 numbered 0001 to 0147 and ended on 2026-09-20, when #1103 kept the
@@ -9,4 +9,11 @@
 # play. A checkout that predates the restart carries epoch 1 numbers, which are
 # not in play here and would push the next number back into the 0148 range, so
 # it skips any tree or ref whose epoch is not this one. Bump this line only when
-# the numbering restarts again.
+# a number comes to name a different record.
+#
+# Epoch 3 began on 2026-09-24, when #1103 rewrote 0003 in place: the number and
+# the file name stayed, and its rule for Lodestar.Abstractions changed from the
+# types packages exchange to the public data types, with no code. The six other
+# records kept their bytes. Epoch 2's 0003 reads at 9f9406c5.
+# tools/check_adr_immutable.py admits a rewritten record only in a diff that
+# raises this line.

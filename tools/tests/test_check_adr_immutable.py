@@ -1,7 +1,10 @@
 """check_adr_immutable.py's own tests: an accepted ADR is never rewritten.
 
 Deleting one is allowed since #1103, which keeps the records stating an axis and
-deletes the rest; the two tests at the end of this file pin both halves.
+deletes the rest; the tests after the frontmatter ones pin both halves. Raising
+the numbering epoch in the same diff is the one route to rewriting a record, and
+the last three tests pin it: refused without the raise, allowed with it, and a
+raise on its own is harmless.
 
 A synthetic repo, not the real one -- the check reads git diffs between two
 commits, and issue #399's own findings are the ADRs this guard exists to have
@@ -237,3 +240,48 @@ def test_a_record_renamed_and_rewritten_is_refused(tmp_path):
     commit(repo, "rename and rewrite")
 
     assert check(repo, base) == 1
+
+
+def epoch(repo: Path, value: int) -> None:
+    (repo / "docs" / "decisions" / ".numbering-epoch").write_text(f"{value}\n# test epoch\n")
+
+
+def test_a_rewritten_record_is_refused_when_the_epoch_stays(tmp_path):
+    """The epoch file being present is not the allowance; raising it is."""
+    repo = make_repo(tmp_path)
+    epoch(repo, 2)
+    adr = repo / "docs" / "decisions" / "0003-layout.md"
+    adr.write_text("# 0003 -- Layout\n\nThe exchange rule.\n")
+    base = commit(repo, "epoch 2, with 0003")
+
+    adr.write_text("# 0003 -- Layout\n\nThe data-types rule.\n")
+    commit(repo, "rewrite 0003 under the same epoch")
+
+    assert check(repo, base) == 1
+
+
+def test_a_rewritten_record_is_allowed_when_the_diff_raises_the_epoch(tmp_path):
+    """#1103's epoch 3: 0003 keeps its number and file, and the raised line says it changed."""
+    repo = make_repo(tmp_path)
+    epoch(repo, 2)
+    adr = repo / "docs" / "decisions" / "0003-layout.md"
+    adr.write_text("# 0003 -- Layout\n\nThe exchange rule.\n")
+    base = commit(repo, "epoch 2, with 0003")
+
+    epoch(repo, 3)
+    adr.write_text("# 0003 -- Layout\n\nThe data-types rule.\n")
+    commit(repo, "rewrite 0003 in epoch 3")
+
+    assert check(repo, base) == 0
+
+
+def test_raising_the_epoch_alone_is_allowed(tmp_path):
+    repo = make_repo(tmp_path)
+    epoch(repo, 2)
+    (repo / "docs" / "decisions" / "0003-layout.md").write_text("# 0003 -- Layout\n\nBody.\n")
+    base = commit(repo, "epoch 2, with 0003")
+
+    epoch(repo, 3)
+    commit(repo, "raise the epoch, touch nothing")
+
+    assert check(repo, base) == 0

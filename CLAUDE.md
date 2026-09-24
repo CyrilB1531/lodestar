@@ -155,7 +155,7 @@ script's `EXPECTED` edge map.
 
 | Package | Tier | Holds |
 | --- | --- | --- |
-| `Lodestar.Abstractions` | core | `CsrMatrix`, `SparseNorm` and the dense-block products — the sparse primitive the others share (decision 0003). |
+| `Lodestar.Abstractions` | core | `CsrMatrix`, `SparseNorm` and the dense-block products — the sparse primitive the others share — and, under decision 0003, the public data types the packages declare, with no code ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142) moves them). |
 | `Lodestar.Text` | core | distances, phonetics, set similarity, stemmers, tokenizers, sparse vectorizers, persistence, `BkTree`, keyword extraction. |
 | `Lodestar.Embeddings` | core | sub-word tokenizers (WordPiece, SentencePiece, BPE/byte-level BPE), batch encoding pipeline, pooling, SIMD kNN `EmbeddingIndex`, `.npy` interop. |
 | `Lodestar.Fuzzy` | core | `fuzz.*`, `process.extract`, blocking deduplication. |
@@ -266,13 +266,17 @@ Three traps, each already worth a session:
 2026-09-20** — [#1103](https://github.com/CyrilB1531/lodestar/issues/1103) restarted the numbering
 after merging the 75 records that stated an axis and deleting the 72 that stated a mechanism. Read
 an older citation against the tree it was written in: `git show 53af23c2:docs/decisions/<file>`.
+**`0003` changed text on 2026-09-24**, when the numbering entered epoch 3: its rule for
+`Lodestar.Abstractions` went from the types packages exchange to the public data types, with no
+code. Its epoch-2 text reads at `9f9406c5`.
 [`docs/decisions/index.yaml`](docs/decisions/index.yaml) carries each record's `supersedes`,
 `amends` and `applies` together with the reverses a record cannot state for itself — `amended_by`,
 which says the decision changed, and `applied_by`, which says it was used again unchanged —
 generated from the frontmatter by `tools/regen_adr_index.py`. Every one of those lists is empty
 today, because **a record is never edited and may only be deleted**: an amendment is a new record,
-and `tools/check_adr_immutable.py` enforces exactly that. Follow both edges before citing a record
-that has them.
+and `tools/check_adr_immutable.py` enforces exactly that — the one exception being a diff that raises
+`docs/decisions/.numbering-epoch`, which is how `0003` was rewritten. Follow both edges before citing
+a record that has them.
 
 Where behaviour deliberately diverges from the Python reference, it goes in
 [`docs/decisions/`](docs/decisions/README.md), the fastest way to understand why
