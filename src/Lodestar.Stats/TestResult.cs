@@ -1,16 +1,5 @@
 namespace Lodestar.Stats;
 
-/// <summary>A test statistic and the p-value that goes with it.</summary>
-/// <remarks>
-/// Eight of the ten families return exactly this, because eight of the ten
-/// scipy calls return exactly this — measured, not assumed. The three that
-/// carry more have their own record below rather than making the other eight
-/// pay for fields they would leave empty.
-/// </remarks>
-/// <param name="Statistic">The test statistic, on whichever scale the family defines.</param>
-/// <param name="PValue">The probability of a statistic at least this extreme under the null.</param>
-public sealed record TestResult(double Statistic, double PValue);
-
 /// <summary>A t-test's result: the statistic, the p-value and the degrees of freedom.</summary>
 /// <param name="Statistic">The t statistic.</param>
 /// <param name="PValue">The p-value on the requested tail.</param>
@@ -72,77 +61,6 @@ public sealed record TTestResult(double Statistic, double PValue, double Df)
         };
     }
 }
-
-/// <summary>A contingency-table chi-square result.</summary>
-/// <param name="Statistic">The chi-square statistic.</param>
-/// <param name="PValue">The upper-tail p-value.</param>
-/// <param name="Dof">The degrees of freedom, <c>(rows - 1) * (columns - 1)</c>.</param>
-/// <param name="ExpectedFrequencies">
-/// The table expected under independence, row-major, same shape as the input.
-/// </param>
-// CA1819 (properties should not return arrays), S2368 (no jagged-array constructor
-// parameters): the expected table mirrors the shape of the caller's own input
-// table, itself double[][] because that is how chi2_contingency takes it. Wrapping
-// one side and not the other buys no safety, only a conversion at the boundary.
-#pragma warning disable CA1819, S2368
-public sealed record Chi2ContingencyResult(
-    double Statistic, double PValue, int Dof, double[][] ExpectedFrequencies)
-{
-    /// <summary>Compares the scalars and the expected table, row by row.</summary>
-    /// <param name="other">The result to compare against.</param>
-    /// <remarks>
-    /// The generated equality would compare <see cref="ExpectedFrequencies"/> by reference, so
-    /// two results holding the same table would be unequal. a record whose member compares by reference writes its own equality.
-    /// </remarks>
-    public bool Equals(Chi2ContingencyResult? other)
-    {
-        if (ReferenceEquals(this, other))
-        {
-            return true;
-        }
-        if (other is null || Dof != other.Dof)
-        {
-            return false;
-        }
-        // S1244: value equality between two stored results, where "the same statistic" means
-        // the same bits. double.Equals also makes NaN equal NaN, which equality must.
-#pragma warning disable S1244
-        if (!Statistic.Equals(other.Statistic) || !PValue.Equals(other.PValue))
-#pragma warning restore S1244
-        {
-            return false;
-        }
-        return ValueEquality.Same(ExpectedFrequencies, other.ExpectedFrequencies);
-    }
-
-    /// <summary>Hashes the scalars and the row count, which is O(1).</summary>
-    /// <remarks>
-    /// Equal results necessarily agree on the row count; unequal ones may collide. Walking the
-    /// table would make the cheap operation cost what the test itself cost.
-    /// </remarks>
-    public override int GetHashCode()
-    {
-        unchecked
-        {
-            int hash = (17 * 31) + Statistic.GetHashCode();
-            hash = (hash * 31) + PValue.GetHashCode();
-            hash = (hash * 31) + Dof;
-            return (hash * 31) + ValueEquality.CountOf(ExpectedFrequencies);
-        }
-    }
-}
-#pragma warning restore CA1819, S2368
-
-/// <summary>A two-sample Kolmogorov-Smirnov result.</summary>
-/// <param name="Statistic">The supremum distance between the two empirical distributions.</param>
-/// <param name="PValue">The p-value on the requested tail.</param>
-/// <param name="StatisticLocation">The observed value at which that supremum is attained.</param>
-/// <param name="StatisticSign">
-/// <c>+1</c> when the first sample's empirical distribution exceeds the second's
-/// at that point, <c>-1</c> when it falls below.
-/// </param>
-public sealed record KsResult(
-    double Statistic, double PValue, double StatisticLocation, int StatisticSign);
 
 /// <summary>A Pearson correlation and the p-value that goes with it.</summary>
 /// <remarks>
@@ -276,69 +194,3 @@ public sealed record BinomialResult(double Statistic, double PValue)
     }
 }
 
-/// <summary>An Anderson-Darling result: the statistic, and the table it is read against.</summary>
-/// <remarks>
-/// Two shapes in one record, because scipy is replacing the first with the second: since 1.17
-/// the critical-value shape warns, and 1.19 removes it for a p-value interpolated from the same
-/// table. Both are carried — the p-value is what a reader of the other families expects, and the
-/// critical values are what carries information, the interpolation being clamped to
-/// <c>[0.01, 0.15]</c>. <c>docs/equivalence.md</c> has the whole of it.
-/// </remarks>
-/// <param name="Statistic">The A² statistic; larger means further from normal.</param>
-/// <param name="PValue">The p-value interpolated from the table, clamped to its ends.</param>
-/// <param name="CriticalValues">The statistic's critical values, one per significance level.</param>
-/// <param name="SignificanceLevels">The significance levels, in percent, as scipy reports them.</param>
-// CA1819 (properties should not return arrays), S2368 (no jagged-array constructor parameters):
-// the two tables mirror what scipy returns and what a caller indexes in step; wrapping one side
-// buys no safety, only a conversion at the boundary. Chi2ContingencyResult is suppressed for the
-// same reason.
-#pragma warning disable CA1819
-public sealed record AndersonResult(
-    double Statistic, double PValue, double[] CriticalValues, double[] SignificanceLevels)
-{
-    /// <summary>Compares the two scalars and both tables, value by value.</summary>
-    /// <param name="other">The result to compare against.</param>
-    /// <remarks>
-    /// The generated equality would compare the tables by reference, so two results holding the
-    /// same numbers would be unequal — a record whose member compares by reference writes its own.
-    /// </remarks>
-    public bool Equals(AndersonResult? other)
-    {
-        if (ReferenceEquals(this, other))
-        {
-            return true;
-        }
-        if (other is null)
-        {
-            return false;
-        }
-
-        // S1244: value equality between two stored results, where "the same statistic" means the
-        // same bits. double.Equals also makes NaN equal NaN, which equality must.
-#pragma warning disable S1244
-        if (!Statistic.Equals(other.Statistic) || !PValue.Equals(other.PValue))
-#pragma warning restore S1244
-        {
-            return false;
-        }
-
-        return ValueEquality.Same(CriticalValues, other.CriticalValues)
-            && ValueEquality.Same(SignificanceLevels, other.SignificanceLevels);
-    }
-
-    /// <summary>Hashes the scalars and the table length, which is O(1).</summary>
-    /// <remarks>
-    /// Equal results necessarily agree on the length; unequal ones may collide. Walking the
-    /// tables would make the cheap operation cost what the test itself cost.
-    /// </remarks>
-    public override int GetHashCode()
-    {
-        unchecked
-        {
-            int hash = (17 * 31) + Statistic.GetHashCode();
-            hash = (hash * 31) + PValue.GetHashCode();
-            return (hash * 31) + CriticalValues.Length;
-        }
-    }
-}
-#pragma warning restore CA1819

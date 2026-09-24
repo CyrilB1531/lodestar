@@ -71,4 +71,14 @@ public sealed class SurvivalCurveEqualityTests
             new NelsonAalenCurve(Steps(), [0.0, 0.25]),
             new NelsonAalenCurve([new(0.0, 4, 0, 0)], [0.0]));
     }
+
+    [Fact]
+    public void Each_curve_equals_itself()
+    {
+        KaplanMeierCurve kaplan = Kaplan([1.0, 0.75]);
+        NelsonAalenCurve nelson = new(Steps(), [0.0, 0.25]);
+
+        Assert.True(kaplan.Equals(kaplan));
+        Assert.True(nelson.Equals(nelson));
+    }
 }

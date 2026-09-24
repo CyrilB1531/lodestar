@@ -19,6 +19,15 @@ public sealed class Chi2ContingencyResultEqualityTests
     }
 
     [Fact]
+    public void A_result_equals_itself_and_not_null()
+    {
+        Chi2ContingencyResult result = Result([[1.0, 2.0]]);
+
+        Assert.True(result.Equals(result));
+        Assert.False(result.Equals(null));
+    }
+
+    [Fact]
     public void A_table_differing_inside_a_row_is_unequal()
     {
         Chi2ContingencyResult left = Result([[1.0, 2.0], [3.0, 4.0]]);

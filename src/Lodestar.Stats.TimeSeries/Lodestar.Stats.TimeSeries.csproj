@@ -22,18 +22,9 @@
     for the fits the augmented Dickey-Fuller test runs per candidate lag. The second is the reason
     this is a package at all.
 
-    Lodestar.Stats is a PackageReference against its published floor, like every other src/ edge
-    (decision 0001), with the usual developer-loop opt-in, never set in CI:
-
-        export LodestarUseProjectRefs=true
+    Both are ProjectReferences for now: Lodestar.Stats.Regression for the reason below, and
+    Lodestar.Stats for the #1142 wave, in the block after it.
   -->
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
-    <PackageReference Include="Lodestar.Stats" />
-  </ItemGroup>
 
   <!--
     TODO(#671, at the Lodestar.Stats.Regression 0.2.0 release): replace this ProjectReference with
@@ -51,19 +42,26 @@
   <ItemGroup>
     <ProjectReference Include="../Lodestar.Stats.Regression/Lodestar.Stats.Regression.csproj" />
   </ItemGroup>
-
-  <!-- Loud on purpose: a local build that silently differed from the shipped one
-       is the failure mode this whole arrangement is designed to avoid. -->
-  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
-          Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <Message Importance="high"
-             Text="Lodestar.Stats.TimeSeries: LodestarUseProjectRefs=true — referencing Lodestar.Stats by project, not by package. This is the developer loop, not what ships." />
-  </Target>
-
   <ItemGroup>
     <InternalsVisibleTo Include="Lodestar.Stats.TimeSeries.Tests" />
     <!-- Same suite, replayed against the netstandard2.0 build. -->
     <InternalsVisibleTo Include="Lodestar.Stats.TimeSeries.NetStandard.Tests" />
+  </ItemGroup>
+
+  <!-- The data types this package forwards to Lodestar.Abstractions (decision 0003, #1142). A
+       ProjectReference, unconditionally, until Lodestar.Abstractions 0.2.0 is on nuget.org: the
+       types leave this assembly in the same commit they arrive in that one, and packing turns
+       the reference into a dependency on 0.2.0. The release swaps it for a PackageReference on
+       the published floor and drops the exception in ci.yml's "src/ ships PackageReference
+       only" step.
+
+       Lodestar.Stats is referenced the same way for the same wave: the Lodestar.Stats.Regression
+       project above brings the working tree's Lodestar.Stats, and a published floor beside it would
+       be the same id at two versions. The release restores the published floors, and the
+       LodestarUseProjectRefs developer loop with them. -->
+  <ItemGroup>
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+    <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
   </ItemGroup>
 
 </Project>

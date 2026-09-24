@@ -23,5 +23,5 @@ public static class Homogeneity
     /// </remarks>
     /// <exception cref="ArgumentException">The two labellings disagree in length.</exception>
     public static double Score(ReadOnlySpan<int> labelsTrue, ReadOnlySpan<int> labelsPred) =>
-        Cluster.Homogeneity(labelsTrue, labelsPred);
+        Internal.Cluster.Homogeneity(labelsTrue, labelsPred);
 }

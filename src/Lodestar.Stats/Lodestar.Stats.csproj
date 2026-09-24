@@ -9,9 +9,21 @@
     <RootNamespace>Lodestar.Stats</RootNamespace>
 
     <PackageId>Lodestar.Stats</PackageId>
-    <Description>Classical hypothesis tests for .NET at scipy.stats parity: Student and Welch t, Mann-Whitney U, Wilcoxon signed-rank, chi-square, Fisher exact, Kolmogorov-Smirnov, one-way ANOVA, Kruskal-Wallis, Shapiro-Wilk, and Bonferroni / Benjamini-Hochberg / Benjamini-Yekutieli corrections. Arrays in, statistic and p-value out. No model, no training loop, no dependencies.</Description>
+    <Description>Classical hypothesis tests for .NET at scipy.stats parity: Student and Welch t, Mann-Whitney U, Wilcoxon signed-rank, chi-square, Fisher exact, Kolmogorov-Smirnov, one-way ANOVA, Kruskal-Wallis, Shapiro-Wilk, and Bonferroni / Benjamini-Hochberg / Benjamini-Yekutieli corrections. Arrays in, statistic and p-value out. No model, no training loop, and no dependency beyond Lodestar.Abstractions, which holds its options and results.</Description>
     <PackageTags>statistics;hypothesis-test;p-value;t-test;anova;mann-whitney;wilcoxon;chi-square;fisher-exact;shapiro-wilk;scipy;lodestar</PackageTags>
   </PropertyGroup>
+
+  <!-- The thirteen data types this package forwards to Lodestar.Abstractions since 0.5.0 — the
+       options enums and the plain results (decision 0003, #1142). Its first Lodestar edge.
+
+       A ProjectReference, unconditionally, until Lodestar.Abstractions 0.2.0 is on nuget.org: the
+       types leave this assembly in the same commit they arrive in that one. Packing turns the
+       reference into a dependency on 0.2.0. #1142's last step swaps it for a PackageReference on
+       the published floor and drops the exception in ci.yml's "src/ ships PackageReference only"
+       step. -->
+  <ItemGroup>
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+  </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Lodestar.Stats.Tests" />

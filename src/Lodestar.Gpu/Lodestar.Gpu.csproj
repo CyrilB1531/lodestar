@@ -41,4 +41,14 @@
     <InternalsVisibleTo Include="Lodestar.Gpu.NetStandard.Tests" />
   </ItemGroup>
 
+  <!-- The data types this package forwards to Lodestar.Abstractions (decision 0003, #1142). A
+       ProjectReference, unconditionally, until Lodestar.Abstractions 0.2.0 is on nuget.org: the
+       types leave this assembly in the same commit they arrive in that one, and packing turns
+       the reference into a dependency on 0.2.0. The release swaps it for a PackageReference on
+       the published floor and drops the exception in ci.yml's "src/ ships PackageReference
+       only" step. -->
+  <ItemGroup>
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+  </ItemGroup>
+
 </Project>

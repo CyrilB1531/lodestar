@@ -33,14 +33,19 @@
 
   <!--
     SetTargetFramework pins the library under test to its netstandard2.1 build. The
-    three baselines this suite compares against are deliberately *not* pinned: they
-    are the CPU paths, and what is being replayed is the GPU assembly.
+    two CPU baselines this suite compares against, Lodestar.Embeddings and Lodestar.Text,
+    are deliberately *not* pinned: what is being replayed is the GPU assembly.
+
+    Lodestar.Abstractions is pinned to netstandard2.0, the build Lodestar.Gpu's own
+    netstandard2.1 target consumes, since #1142 gave Lodestar.Gpu that edge. Unpinned, this
+    reference would win and the GPU assembly would run against the net10.0 one.
   -->
   <ItemGroup>
     <ProjectReference Include="../../src/Lodestar.Gpu/Lodestar.Gpu.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.1" />
     <ProjectReference Include="../../src/Lodestar.Embeddings/Lodestar.Embeddings.csproj" />
-    <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
     <ProjectReference Include="../../src/Lodestar.Text/Lodestar.Text.csproj" />
   </ItemGroup>
 

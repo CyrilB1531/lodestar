@@ -23,8 +23,8 @@ public static class VMeasure
     /// <exception cref="ArgumentException">The two labellings disagree in length.</exception>
     public static double Score(ReadOnlySpan<int> labelsTrue, ReadOnlySpan<int> labelsPred)
     {
-        double homogeneity = Cluster.Homogeneity(labelsTrue, labelsPred);
-        double completeness = Cluster.Homogeneity(labelsPred, labelsTrue);
+        double homogeneity = Internal.Cluster.Homogeneity(labelsTrue, labelsPred);
+        double completeness = Internal.Cluster.Homogeneity(labelsPred, labelsTrue);
         return homogeneity + completeness <= 0.0
             ? 0.0
             : 2.0 * homogeneity * completeness / (homogeneity + completeness);

@@ -1,8 +1,5 @@
 namespace Lodestar.Fuzzy;
 
-/// <summary>A single extraction hit: the matched choice, its score and its index in the input.</summary>
-public readonly record struct ExtractResult(string Choice, double Score, int Index);
-
 /// <summary>
 /// Finds the best matches for a query within a collection of choices, reproducing
 /// <c>rapidfuzz.process</c>.

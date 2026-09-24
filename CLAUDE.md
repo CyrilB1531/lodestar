@@ -174,14 +174,15 @@ script's `EXPECTED` edge map.
 | `Lodestar.Extensions.VectorData` | interop | an in-process `VectorStore` with hybrid keyword and vector search over `EmbeddingIndex` and `Bm25Index`; carries `Microsoft.Extensions.VectorData.Abstractions`. |
 | `Lodestar.Gpu` | satellite | ILGPU kernels over device-resident matrices and text. **The one package on `net10.0;netstandard2.1`** — ILGPU publishes no `netstandard2.0` asset and does publish a 2.1 one. Nothing under `src/` may depend on it, so the SIMD path stays complete. |
 
-The edges: **seventeen**, all asserted per target framework and per version range —
-`Text`, `Decomposition` and `Extensions.MathNet` → `Abstractions`; `Fuzzy` → `Text`;
-`Onnx` → `Embeddings`; `Extensions.AI` → `Embeddings` and `Onnx`;
-`Extensions.VectorData` → `Embeddings` and `Text`; `Stats.Regression` →
-`Stats` and `Decomposition`; `Stats.TimeSeries` → `Stats` and `Stats.Regression`;
-`Survival` → `Stats`; `Preprocessing` → `Stats`, `Abstractions` and `Cluster`, for the normal
-quantile `RobustScaler`'s `unit_variance` divides by, the `CsrMatrix` its sparse overloads take,
-and the Lloyd's algorithm `KBinsDiscretizer`'s `kmeans` strategy runs.
+The edges: **twenty-seven**, all asserted per target framework and per version range —
+`Text`, `Decomposition`, `Extensions.MathNet`, `Stats`, `Cluster`, `Conformal`, `Embeddings`,
+`Fuzzy`, `Gpu`, `Metrics`, `Preprocessing`, `Stats.Regression`, `Stats.TimeSeries` and `Survival`
+→ `Abstractions`, all but the third for the data types they forward there (#1142); `Fuzzy` →
+`Text`; `Onnx` → `Embeddings`; `Extensions.AI` → `Embeddings` and `Onnx`;
+`Extensions.VectorData` → `Embeddings` and `Text`; `Stats.Regression` → `Stats` and
+`Decomposition`; `Stats.TimeSeries` → `Stats` and `Stats.Regression`; `Survival` → `Stats`;
+`Preprocessing` → `Stats` and `Cluster`, for the normal quantile `RobustScaler`'s `unit_variance`
+divides by and the Lloyd's algorithm `KBinsDiscretizer`'s `kmeans` strategy runs.
 `tools/check_nuspec_dependencies.py`'s `EXPECTED` is the authority, and the count above is checked
 against it.
 

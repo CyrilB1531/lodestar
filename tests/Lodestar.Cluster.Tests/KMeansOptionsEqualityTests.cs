@@ -73,4 +73,12 @@ public sealed class KMeansOptionsEqualityTests
 
         Assert.Equal(left, right);
     }
+
+    [Fact]
+    public void Options_equal_themselves()
+    {
+        KMeansOptions options = new() { InitialCentres = [1.0] };
+
+        Assert.True(options.Equals(options));
+    }
 }

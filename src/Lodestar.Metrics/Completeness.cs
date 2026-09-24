@@ -26,6 +26,6 @@ public static class Completeness
         // Validated here rather than inside, because the reversal below would otherwise
         // report the two lengths under each other's names.
         Contingency.Validate(labelsTrue, labelsPred);
-        return Cluster.Homogeneity(labelsPred, labelsTrue);
+        return Internal.Cluster.Homogeneity(labelsPred, labelsTrue);
     }
 }
