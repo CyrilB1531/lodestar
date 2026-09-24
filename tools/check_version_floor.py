@@ -71,8 +71,9 @@ class Floor:
 FLOORS = (
     Floor("Lodestar.Text", "LodestarTextVersion", "TEXT_FLOOR",
           ("Lodestar.Fuzzy", "Lodestar.Extensions.VectorData")),
+    # Lodestar.Text reaches it by ProjectReference until 0.2.0 ships (#1142), so it is off this row.
     Floor("Lodestar.Abstractions", "LodestarAbstractionsVersion", "ABSTRACTIONS_FLOOR",
-          ("Lodestar.Text", "Lodestar.Decomposition", "Lodestar.Extensions.MathNet")),
+          ("Lodestar.Decomposition", "Lodestar.Extensions.MathNet")),
     Floor("Lodestar.Embeddings", "LodestarEmbeddingsVersion", "EMBEDDINGS_FLOOR",
           ("Lodestar.Onnx", "Lodestar.Extensions.AI", "Lodestar.Extensions.VectorData")),
     Floor("Lodestar.Onnx", "LodestarOnnxVersion", "ONNX_FLOOR",

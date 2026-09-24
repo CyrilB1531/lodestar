@@ -5,26 +5,10 @@ using Lodestar.Text.Internal;
 
 namespace Lodestar.Text.Vectorization;
 
-
 // SonarLint S3267: the suggested Select does not compile on netstandard2.0 —
 // MatchCollection implements only the non-generic IEnumerable there, so LINQ
 // would need a Cast<Match>() and an extra allocation in a per-document path.
-// CA1720 (identifier contains type name): AnalyzerKind.Char mirrors
-// scikit-learn's analyzer='char', which is the name a reader arrives with, and it
-// has been public since 0.1.0 — renaming it breaks consumers for a naming rule.
-#pragma warning disable S3267, CA1720
-/// <summary>The kind of tokens a vectorizer extracts.</summary>
-public enum AnalyzerKind
-{
-    /// <summary>Word tokens (via the token pattern), then word n-grams.</summary>
-    Word,
-
-    /// <summary>Character n-grams over the whole preprocessed string.</summary>
-    Char,
-
-    /// <summary>Character n-grams that do not cross word boundaries (words padded with spaces).</summary>
-    CharWordBoundary,
-}
+#pragma warning disable S3267
 
 // CA1308 (normalize to uppercase): lowercasing here is the pipeline's default
 // behavior, when `Lowercase` is set, mirroring scikit-learn's text vectorizers.

@@ -1,6 +1,6 @@
 namespace Lodestar.Text.Keywords;
 
-/// <summary>What <see cref="TextRank"/> is built with.</summary>
+/// <summary>What <c>TextRank</c> is built with.</summary>
 public sealed record TextRankOptions
 {
     /// <summary>The stop words dropped before the graph is built. Null takes <c>StopWords.English</c>.</summary>

@@ -1,16 +1,6 @@
 using Lodestar.Abstractions;
 namespace Lodestar.Text.Vectorization;
 
-/// <summary>Options for <see cref="TfidfVectorizer"/>: tokenization plus TF-IDF weighting.</summary>
-public sealed record TfidfVectorizerOptions
-{
-    /// <summary>Tokenization / vocabulary options (shared with <see cref="CountVectorizer"/>).</summary>
-    public CountVectorizerOptions Count { get; init; } = new();
-
-    /// <summary>TF-IDF weighting options.</summary>
-    public TfidfOptions Tfidf { get; init; } = new();
-}
-
 /// <summary>
 /// Converts documents directly into a TF-IDF matrix, reproducing
 /// <c>sklearn.feature_extraction.text.TfidfVectorizer</c> (a <see cref="CountVectorizer"/>

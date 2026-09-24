@@ -375,16 +375,20 @@ internal static class ReferenceDocumentation
         return sorted.Length == 0 ? "no exception" : string.Join(", ", sorted);
     }
 
-    /// <summary>The exported types of one namespace that owe an entry of their own.</summary>
+    /// <summary>The exported and forwarded types of one namespace that owe an entry of their own.</summary>
     /// <remarks>
     /// A nested exported type does not: the five residual kernels of
     /// <c>Lodestar.Metrics</c> are public only so that a generic constraint can name one,
     /// nobody calls them, and an entry each would be ceremony for a type a reader never
-    /// types. They are described inside their declaring type's entry instead — D7.
+    /// types. They are described inside their declaring type's entry instead — D7. A type the
+    /// package forwards to <c>Lodestar.Abstractions</c> keeps its namespace and its page here,
+    /// so the package that names it is the one that documents it (decision 0003, #1142).
     /// </remarks>
     private static IEnumerable<Type> Documented(Assembly assembly, string space) =>
         assembly.GetExportedTypes()
+            .Concat(assembly.GetForwardedTypes().Where(forwarded => forwarded.IsPublic))
             .Where(candidate => candidate.Namespace == space && !candidate.IsNested)
+            .Distinct()
             .OrderBy(candidate => candidate.Name, StringComparer.Ordinal);
 
     private static void CheckDeclarations(
