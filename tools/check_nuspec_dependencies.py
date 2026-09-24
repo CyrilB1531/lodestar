@@ -52,6 +52,7 @@ what fails when one reappears where it should not.
 from __future__ import annotations
 
 import pathlib
+import re
 import sys
 import xml.etree.ElementTree as ET
 import zipfile
@@ -101,6 +102,18 @@ TEXT_FLOOR = "0.6.0"
 # added: Lodestar.Text stopped declaring CsrMatrix and consumes it from here.
 ABSTRACTIONS_FLOOR = "0.1.1"
 
+
+
+def declared_version(package: str, prop: str) -> str:
+    """The version src/<package>/Version.props declares, which pack emits for a ProjectReference."""
+    text = (pathlib.Path(__file__).resolve().parent.parent / "src" / package / "Version.props").read_text()
+    return re.search(rf"<{prop}>([^<]+)</{prop}>", text).group(1)
+
+
+# The packages moving their data types into Lodestar.Abstractions (#1142) reach it by
+# ProjectReference until 0.2.0 ships, and pack emits that project's own declared version.
+ABSTRACTIONS_PROJECT_FLOOR = declared_version("Lodestar.Abstractions", "LodestarAbstractionsVersion")
+
 # Directory.Packages.props' PackageVersion for the edges #533, #570 and #682 added. 0.6.0,
 # not 0.5.0 (which made EncodeAll and Pad public): 0.5.0 still declares OnnxRuntime (0123).
 EMBEDDINGS_FLOOR = "0.6.0"
@@ -142,8 +155,8 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {**POLYFILLS},
     },
     TEXT: {
-        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS, **PERSISTENCE},
+        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS, **PERSISTENCE},
     },
     FUZZY: {
         NET: {TEXT: TEXT_FLOOR},

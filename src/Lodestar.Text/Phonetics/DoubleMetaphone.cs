@@ -2,15 +2,6 @@ using System.Text;
 
 namespace Lodestar.Text.Phonetics;
 
-/// <summary>A word's two Double Metaphone codes.</summary>
-/// <param name="Primary">The primary code, empty when the word carries no encodable letter.</param>
-/// <param name="Secondary">
-/// The alternate code, or empty when the word has no alternate pronunciation. The reference
-/// repeats the primary there; empty is the convention <c>jellyfish</c>, <c>metaphone</c> and
-/// <c>phonetics</c> share, and <c>docs/decisions/0075</c> takes it for this API.
-/// </param>
-public readonly record struct DoubleMetaphoneCode(string Primary, string Secondary);
-
 // SonarLint S3776: cognitive complexity: a faithful implementation of a published rule-engine; decomposing it would break the 1:1 mapping with the reference that makes divergences auditable.
 // SonarLint S1479: the letter switch has one arm per letter by design, which is the shape the published description has.
 #pragma warning disable S3776, S1479

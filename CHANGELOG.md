@@ -89,6 +89,7 @@ is one sentence, the issue and the commit; see
 
 #### Added
 
+- The sixteen public data types of `Lodestar.Text`, under their `Lodestar.Text.*` namespaces. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
 - `CsrMatrix.CreateUnchecked` is public, for a producer whose arrays are valid by construction, so `Lodestar.Text` 0.6.0 keeps running once the package grants no `InternalsVisibleTo`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
 
 #### Changed
@@ -148,6 +149,7 @@ is one sentence, the issue and the commit; see
 
 #### Changed
 
+- `TextElement`, `AnalyzerKind`, `Bm25Idf`, `MinHashScheme`, `RakeMetric`, `Bm25Options`, `CountVectorizerOptions`, `HashingVectorizerOptions`, `TfidfOptions`, `TfidfVectorizerOptions`, `RakeOptions`, `TextRankOptions`, `SearchHit`, `KeywordMatch`, `BkTreeMatch` and `DoubleMetaphoneCode` are compiled into `Lodestar.Abstractions` under the same names and forwarded from here. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
 - The vectorizers, `MinHash`, `SimHash`, `Bm25Index.Top`, `Osa`, `DoubleMetaphone` and `RatcliffObershelp` shed per-term work, with `Osa.Distance` up to 29 times faster through Hyyrö's bit-parallel kernel. ([#844](https://github.com/CyrilB1531/lodestar/issues/844))
 - `TextRank.Extract` drops every isolated word in one compaction, where it rebuilt the word matrix once per word. ([#816](https://github.com/CyrilB1531/lodestar/issues/816))
 - `DamerauLevenshtein.Distance` reads its last-row table by dense symbol id instead of a dictionary lookup in every cell. ([#828](https://github.com/CyrilB1531/lodestar/issues/828))

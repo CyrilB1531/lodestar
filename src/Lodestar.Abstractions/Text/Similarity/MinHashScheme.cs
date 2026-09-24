@@ -1,11 +1,11 @@
 namespace Lodestar.Text.Similarity;
 
-/// <summary>Which permutation family a <see cref="MinHash"/> signature is built from.</summary>
+/// <summary>Which permutation family a <c>MinHash</c> signature is built from.</summary>
 /// <remarks>
 /// <c>datasketch</c> had one family through 1.6.5 and named three in 2.0.0, making
 /// <c>affine32</c> the default — so the same reference call that returned <see cref="Legacy"/>
 /// values now returns <see cref="Affine32"/> ones. The scheme travels with the coefficients, on
-/// <see cref="MinHashPermutations"/>, because they are chosen together.
+/// <c>MinHashPermutations</c>, because they are chosen together.
 /// </remarks>
 public enum MinHashScheme
 {

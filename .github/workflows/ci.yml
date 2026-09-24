@@ -639,9 +639,11 @@ jobs:
           for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Extensions.VectorData src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Stats.TimeSeries src/Lodestar.Survival src/Lodestar.Gpu; do
             refs=$(dotnet msbuild "$proj" -getItem:ProjectReference -p:TargetFramework=net10.0 \
               | python3 -c 'import sys, json; print(" ".join(i["Identity"] for i in json.load(sys.stdin)["Items"]["ProjectReference"]))')
-            # One temporary exception, explained in src/Lodestar.Stats.TimeSeries's .csproj: this line
-            # goes when that ProjectReference becomes a PackageReference.
+            # Temporary exceptions, each explained in its .csproj: a line goes when its ProjectReference
+            # becomes a PackageReference. #1142 moves data types into Lodestar.Abstractions 0.2.0, which
+            # is not on the feed until the whole move has landed.
             [ "$proj" = src/Lodestar.Stats.TimeSeries ] && refs=${refs//..\/Lodestar.Stats.Regression\/Lodestar.Stats.Regression.csproj/}
+            [ "$proj" = src/Lodestar.Text ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
             refs=$(echo $refs)
             if [ -n "$refs" ]; then
               echo "::error::$proj references $refs by project; src/ must reference published packages."
