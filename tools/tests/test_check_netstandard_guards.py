@@ -222,3 +222,34 @@ def test_the_dependencies_are_followed_to_the_end_of_the_chain(monkeypatch, tmp_
 
     assert guard.dependencies_of("Lodestar.Fuzzy") == {"Lodestar.Text", "Lodestar.Abstractions"}
     assert guard.dependencies_of("Lodestar.Abstractions") == set()
+
+
+def _gpu_on_abstractions(tmp_path, abstractions_pin):
+    """A 2.1 Lodestar.Gpu depending on a Lodestar.Abstractions that ships no 2.1 build."""
+    _library(tmp_path, "Lodestar.Gpu", "net10.0;netstandard2.1",
+             '<ItemGroup><PackageReference Include="Lodestar.Abstractions" /></ItemGroup>')
+    _library(tmp_path, "Lodestar.Abstractions", "net10.0;netstandard2.0")
+    mirror = _mirror(tmp_path, "Lodestar.Gpu", "netstandard2.1")
+    csproj = mirror / "mirror.csproj"
+    csproj.write_text(csproj.read_text(encoding="utf-8").replace(
+        "</ItemGroup>",
+        '<ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj" '
+        f'SetTargetFramework="TargetFramework={abstractions_pin}" /></ItemGroup>'), encoding="utf-8")
+    return mirror
+
+
+def test_a_2_1_mirror_pins_a_dependency_without_2_1_to_netstandard2_0(monkeypatch, tmp_path):
+    """Lodestar.Gpu reaches Lodestar.Abstractions by PackageReference since #1142, which has
+    no netstandard2.1 build: the only pin that loads is its netstandard2.0 one."""
+    monkeypatch.setattr(guard, "ROOT", tmp_path)
+
+    assert guard.failures_in(_gpu_on_abstractions(tmp_path, "netstandard2.0")) == []
+
+
+def test_a_2_1_mirror_pinning_such_a_dependency_to_2_1_is_reported(monkeypatch, tmp_path):
+    monkeypatch.setattr(guard, "ROOT", tmp_path)
+
+    failures = guard.failures_in(_gpu_on_abstractions(tmp_path, "netstandard2.1"))
+
+    assert len(failures) == 1
+    assert 'SetTargetFramework="TargetFramework=netstandard2.0"' in failures[0]

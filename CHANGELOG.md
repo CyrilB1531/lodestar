@@ -24,6 +24,36 @@ is one sentence, the issue and the commit; see
 
 ## [Unreleased]
 
+### Lodestar.Onnx
+
+#### Changed
+
+- The `Lodestar.Embeddings` dependency floor rises from 0.6.0 to 0.8.0, the release that forwards its data types to `Lodestar.Abstractions`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+
+### Lodestar.Extensions.AI
+
+#### Changed
+
+- The `Lodestar.Embeddings` dependency floor rises from 0.6.0 to 0.8.0, the release that forwards its data types to `Lodestar.Abstractions`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+
+### Lodestar.Extensions.VectorData
+
+#### Changed
+
+- The `Lodestar.Embeddings` and `Lodestar.Text` dependency floors rise from 0.6.0 to 0.8.0 and 0.7.0, the releases that forward their data types to `Lodestar.Abstractions`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+
+### Lodestar.Extensions.MathNet
+
+#### Changed
+
+- The `Lodestar.Abstractions` dependency floor rises from 0.1.1 to 0.2.0. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+
+### Lodestar.Survival
+
+#### Changed
+
+- The `Lodestar.Stats` dependency floor rises from 0.4.0 to 0.5.0, the release that forwards its data types to `Lodestar.Abstractions`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+
 ## Released — 2026-09-24
 
 Seventeen packages on one date, and the end of

@@ -13,7 +13,7 @@
     (decisions 0003 and 0139), whose floors live in src/Directory.Packages.props.
   -->
   <PropertyGroup>
-    <LodestarPreprocessingVersion>0.2.0</LodestarPreprocessingVersion>
+    <LodestarPreprocessingVersion>0.2.1</LodestarPreprocessingVersion>
   </PropertyGroup>
 
 </Project>

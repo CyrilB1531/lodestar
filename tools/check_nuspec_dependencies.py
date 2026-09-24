@@ -34,7 +34,7 @@ embedder it adapts, and on ``Lodestar.Embeddings`` because its constructor names
 ``BatchEncoder``, which is the ``EmbedBatch`` overload that owns the padding, and
 ``Lodestar.Stats.Regression`` depends on ``Lodestar.Stats`` for the Student and Fisher
 tails and on ``Lodestar.Decomposition`` for the Householder QR -- the four members
-decision 0003 published for it. The prose above walks the first of the eighteen edges;
+decision 0003 published for it. The prose above walks the first of the twenty-seven edges;
 ``EXPECTED`` below is the authority for all of them. The ranges are asserted too, not
 only the ids: a bare ``"0.2.0"`` is NuGet's shorthand for ``[0.2.0, )``, and an
 edge with the wrong floor is a different edge.
@@ -52,7 +52,6 @@ what fails when one reappears where it should not.
 from __future__ import annotations
 
 import pathlib
-import re
 import sys
 import xml.etree.ElementTree as ET
 import zipfile
@@ -94,57 +93,36 @@ POLYFILLS = {"System.Memory": "4.6.3", "System.Numerics.Vectors": "4.6.1"}
 # netstandard2.0-only, two-package status: docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md.
 PERSISTENCE = {STJ: "10.0.12"}
 
-# Must equal Directory.Packages.props' PackageVersion: a PackageReference
-# emits this floor, but LodestarUseProjectRefs emits Text's own version instead -- catching the escape hatch left on.
-TEXT_FLOOR = "0.6.0"
+# long-comment: Directory.Packages.props' PackageVersion, one per sibling a package reaches, and
+# why the Lodestar floors moved together on 2026-09-24. A PackageReference emits this floor, but
+# LodestarUseProjectRefs emits the sibling's own version instead, which is how a build left in the
+# developer loop is caught. #1142 moved every package's public data types into
+# Lodestar.Abstractions 0.2.0 and forwards them from the package that declared them, so a floor on
+# a release from before the move, beside Lodestar.Abstractions 0.2.0, declares the same type
+# twice (CS0433). Each sibling that moved types is floored at the release that forwards them.
 
-# Must equal Directory.Packages.props' PackageVersion, for the edge decision 0003
-# added: Lodestar.Text stopped declaring CsrMatrix and consumes it from here.
-ABSTRACTIONS_FLOOR = "0.1.1"
+# Lodestar.Abstractions, Lodestar.Cluster and Lodestar.Stats.Regression all sit at their second
+# minor, named once rather than spelled three times (S1192).
+SECOND_MINOR = "0.2.0"
+ABSTRACTIONS_FLOOR = SECOND_MINOR
+TEXT_FLOOR = "0.7.0"
+STATS_FLOOR = "0.5.0"
+DECOMPOSITION_FLOOR = "0.3.0"
+CLUSTER_FLOOR = SECOND_MINOR
+# 0.6.0 was already the lowest possible: 0.5.0 still declares OnnxRuntime.
+EMBEDDINGS_FLOOR = "0.8.0"
 
-
-
-def declared_version(package: str, prop: str) -> str:
-    """The version src/<package>/Version.props declares, which pack emits for a ProjectReference."""
-    text = (pathlib.Path(__file__).resolve().parent.parent / "src" / package / "Version.props").read_text()
-    return re.search(rf"<{prop}>([^<]+)</{prop}>", text).group(1)
-
-
-# The packages moving their data types into Lodestar.Abstractions (#1142) reach it by
-# ProjectReference until 0.2.0 ships, and pack emits that project's own declared version.
-ABSTRACTIONS_PROJECT_FLOOR = declared_version("Lodestar.Abstractions", "LodestarAbstractionsVersion")
-
-# The edges #1142 also moves to ProjectReference for its wave, where a consumer names a type its
-# published floor still declares and Lodestar.Abstractions 0.2.0 now does too (CS0433).
-TEXT_PROJECT_FLOOR = declared_version("Lodestar.Text", "LodestarTextVersion")
-STATS_PROJECT_FLOOR = declared_version("Lodestar.Stats", "LodestarStatsVersion")
-DECOMPOSITION_PROJECT_FLOOR = declared_version("Lodestar.Decomposition", "LodestarDecompositionVersion")
-CLUSTER_PROJECT_FLOOR = declared_version("Lodestar.Cluster", "LodestarClusterVersion")
-
-# Directory.Packages.props' PackageVersion for the edges #533, #570 and #682 added. 0.6.0,
-# not 0.5.0 (which made EncodeAll and Pad public): 0.5.0 still declares OnnxRuntime (0123).
-EMBEDDINGS_FLOOR = "0.6.0"
-
-# Directory.Packages.props' PackageVersion for the edge #570 added. 0.1.0 is
-# Lodestar.Onnx's first release, and OnnxTextEmbedder has been public since it.
+# Lodestar.Onnx moved no type, so 0.1.0 still holds: its first release, and OnnxTextEmbedder has
+# been public since it.
 ONNX_FLOOR = "0.1.0"
 
-# Directory.Packages.props' PackageVersion for the edges #566 and #569 added. One floor
-# per package id, so both consume 0.4.0 -- additive over the 0.2.0 Regression asked for.
-STATS_FLOOR = "0.4.0"
-DECOMPOSITION_FLOOR = "0.2.0"
-
-# Stats.TimeSeries reaches Stats.Regression by ProjectReference until 0.2.0 ships (see the note in
-# its .csproj), and pack emits that project's own version: 0.2.0, the floor it keeps.
-STATS_REGRESSION_FLOOR = "0.2.0"
+# 0.1.0 declares OlsOptions.WithIntercept with a plain setter where 0.2.0 has an init one, so a
+# build against 0.1.0 throws MissingMethodException beside 0.2.0 (#671).
+STATS_REGRESSION_FLOOR = SECOND_MINOR
 
 # Directory.Packages.props' PackageVersion for both Microsoft.Extensions.*.Abstractions
 # pins: Extensions.AI and Extensions.VectorData agree on it without a range to reconcile.
 MS_ABSTRACTIONS_FLOOR = "10.10.0"
-
-# Directory.Packages.props' PackageVersion for the edge #1122 added. 0.1.0 is Lodestar.Cluster's
-# first release, and KMeansOptions.InitialCentres has been public since it.
-CLUSTER_FLOOR = "0.1.0"
 
 # package id -> target framework -> {dependency id: declared version range}.
 # See this module's docstring for what EXPECTED's shape and ranges prove.
@@ -152,8 +130,8 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
     # netstandard2.1 because ILGPU ships no 2.0 asset; no sibling may depend on it. Its one
     # Lodestar edge is to the data types it forwards (#1142).
     GPU: {
-        NET: {ILGPU: "1.5.3", ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD21: {ILGPU: "1.5.3", ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NET: {ILGPU: "1.5.3", ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD21: {ILGPU: "1.5.3", ABSTRACTIONS: ABSTRACTIONS_FLOOR},
     },
     ABSTRACTIONS: {
         # A sparse matrix and its products serialise nothing, so no System.Text.Json
@@ -162,18 +140,18 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {**POLYFILLS},
     },
     TEXT: {
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS, **PERSISTENCE},
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS, **PERSISTENCE},
     },
     FUZZY: {
-        NET: {TEXT: TEXT_PROJECT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {TEXT: TEXT_PROJECT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        NET: {TEXT: TEXT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {TEXT: TEXT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     EMBEDDINGS: {
         # Nothing external since 0.6.0, when ONNX Runtime left with OnnxTextEmbedder; one
         # Lodestar edge, to the data types it forwards (#1142).
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS, **PERSISTENCE},
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS, **PERSISTENCE},
     },
     ONNX: {
         # The repository's only external dependency, and the only package that
@@ -212,71 +190,71 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
     CLUSTER: {
         # One Lodestar edge, to the data types it forwards (#1142): Lloyd's algorithm is
         # arithmetic over spans, and the scoring half lives in Lodestar.Metrics.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     PREPROCESSING: {
         # Three Lodestar edges and nothing external, which keeps this core tier: the normal
         # quantile (0138), the CsrMatrix (0139), and KBinsDiscretizer's Lloyd (1122).
-        NET: {STATS: STATS_PROJECT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, CLUSTER: CLUSTER_PROJECT_FLOOR},
+        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR, CLUSTER: CLUSTER_FLOOR},
         NETSTANDARD: {
-            STATS: STATS_PROJECT_FLOOR,
-            ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR,
-            CLUSTER: CLUSTER_PROJECT_FLOOR,
+            STATS: STATS_FLOOR,
+            ABSTRACTIONS: ABSTRACTIONS_FLOOR,
+            CLUSTER: CLUSTER_FLOOR,
             **POLYFILLS,
         },
     },
     METRICS: {
         # One Lodestar edge, to the data types it forwards (#1142): metrics are pure span
         # computation, no I/O to serialise, so no System.Text.Json.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     CONFORMAL: {
         # The same shape, for the same reason: split conformal prediction is
         # arithmetic over spans, with no model and nothing to serialise.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     STATS_REGRESSION: {
         # Two Lodestar edges and nothing external, which is what keeps this core tier:
         # the tails that make a p-value, and the QR that solves without squaring XtX.
-        NET: {STATS: STATS_PROJECT_FLOOR, DECOMPOSITION: DECOMPOSITION_PROJECT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NET: {STATS: STATS_FLOOR, DECOMPOSITION: DECOMPOSITION_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},
         NETSTANDARD: {
-            STATS: STATS_PROJECT_FLOOR,
-            DECOMPOSITION: DECOMPOSITION_PROJECT_FLOOR,
-            ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR,
+            STATS: STATS_FLOOR,
+            DECOMPOSITION: DECOMPOSITION_FLOOR,
+            ABSTRACTIONS: ABSTRACTIONS_FLOOR,
             **POLYFILLS,
         },
     },
     STATS_TIMESERIES: {
         # Two core edges: the tails from Lodestar.Stats, and the per-lag least-squares fits of the
         # augmented Dickey-Fuller test from Lodestar.Stats.Regression -- the edge that earned the package.
-        NET: {STATS: STATS_PROJECT_FLOOR, STATS_REGRESSION: STATS_REGRESSION_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NET: {STATS: STATS_FLOOR, STATS_REGRESSION: STATS_REGRESSION_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},
         NETSTANDARD: {
-            STATS: STATS_PROJECT_FLOOR,
+            STATS: STATS_FLOOR,
             STATS_REGRESSION: STATS_REGRESSION_FLOOR,
-            ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR,
+            ABSTRACTIONS: ABSTRACTIONS_FLOOR,
             **POLYFILLS,
         },
     },
     SURVIVAL: {
         # One Lodestar edge and nothing external, which keeps this core tier: the
         # chi-squared tail and the normal quantile, published for it (0097, 0098).
-        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     DECOMPOSITION: {
         # The one edge of this package, and the reason Lodestar.Abstractions exists:
         # CsrMatrix and its two dense-block products, with no Lodestar.Text behind them.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     STATS: {
         # One Lodestar edge, to the data types it forwards (#1142); otherwise arithmetic over
         # arrays, with tail probabilities computed here, not fetched.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
 }
 

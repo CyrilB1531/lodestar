@@ -10,7 +10,7 @@
     floor moves when one of those publishes API this package needs.
   -->
   <PropertyGroup>
-    <LodestarExtensionsVectorDataVersion>0.1.0</LodestarExtensionsVectorDataVersion>
+    <LodestarExtensionsVectorDataVersion>0.1.1</LodestarExtensionsVectorDataVersion>
   </PropertyGroup>
 
 </Project>

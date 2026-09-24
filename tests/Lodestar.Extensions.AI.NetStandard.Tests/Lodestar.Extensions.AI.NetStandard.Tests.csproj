@@ -31,8 +31,8 @@
   <!--
     SetTargetFramework is what pins the reference to the netstandard2.0 build.
 
-    Lodestar.Onnx and Lodestar.Embeddings are listed explicitly, and that is not
-    redundant. Lodestar.Extensions.AI reaches both through a PackageReference, and
+    Lodestar.Onnx, Lodestar.Embeddings and, since #1142, Lodestar.Abstractions are
+    listed explicitly, and that is not redundant. Lodestar.Extensions.AI reaches both through a PackageReference, and
     SetTargetFramework does not travel across one: NuGet resolves package assets
     against *this* project's target framework (net10.0), so the transitive
     dependencies would come from lib/net10.0 and the mirror would stop mirroring —
@@ -47,6 +47,8 @@
     <ProjectReference Include="../../src/Lodestar.Onnx/Lodestar.Onnx.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.0" />
     <ProjectReference Include="../../src/Lodestar.Embeddings/Lodestar.Embeddings.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
+    <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.0" />
   </ItemGroup>
 

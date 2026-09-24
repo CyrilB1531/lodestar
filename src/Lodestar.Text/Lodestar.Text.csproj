@@ -23,16 +23,10 @@
   </PropertyGroup>
 
   <!-- CsrMatrix and SparseNorm live in Lodestar.Abstractions since 0.5.0, and since 0.7.0 so do the
-       sixteen data types this package forwards there (decision 0003, #1142).
-
-       A ProjectReference, unconditionally, until Lodestar.Abstractions 0.2.0 is on nuget.org: the
-       types leave this assembly in the same commit they arrive in that one, and a published floor
-       of 0.1.1 does not hold them. Packing turns the reference into a dependency on 0.2.0, the
-       floor this package needs. #1142's last step swaps it back to a PackageReference, drops the
-       exception in ci.yml's "src/ ships PackageReference only" step, and moves the floor in
-       src/Directory.Packages.props. -->
+       sixteen data types this package forwards there (decision 0003, #1142). The floor is pinned
+       in src/Directory.Packages.props, like every other src/ reference. -->
   <ItemGroup>
-    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+    <PackageReference Include="Lodestar.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

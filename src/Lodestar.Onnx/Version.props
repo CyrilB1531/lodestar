@@ -10,7 +10,7 @@
     which so far it has not.
   -->
   <PropertyGroup>
-    <LodestarOnnxVersion>0.1.1</LodestarOnnxVersion>
+    <LodestarOnnxVersion>0.1.2</LodestarOnnxVersion>
   </PropertyGroup>
 
 </Project>
