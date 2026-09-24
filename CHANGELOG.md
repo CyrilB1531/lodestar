@@ -87,8 +87,13 @@ is one sentence, the issue and the commit; see
 
 ### Lodestar.Abstractions
 
+#### Added
+
+- `CsrMatrix.CreateUnchecked` is public, for a producer whose arrays are valid by construction, so `Lodestar.Text` 0.6.0 keeps running once the package grants no `InternalsVisibleTo`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+
 #### Changed
 
+- The package grants no `InternalsVisibleTo`, to `Lodestar.Text` or to its own tests, and compiles the shared `ValueEquality` its moved data types will call. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
 - `CsrMatrix.Multiply` and `CsrMatrix.TransposeMultiply` add each non-zero's scaled row over spans with vector lanes, up to 2.5 times faster. ([#845](https://github.com/CyrilB1531/lodestar/issues/845))
 - `CsrMatrix.ToDense` adds a column stored twice in one row instead of keeping its last entry, as `Multiply` and scipy do. ([#878](https://github.com/CyrilB1531/lodestar/issues/878))
 - The `CsrMatrix` page no longer says a column stored twice sums everywhere: the row norms and `NormalizeRows` treat each entry on its own, as scikit-learn does. ([#981](https://github.com/CyrilB1531/lodestar/issues/981))

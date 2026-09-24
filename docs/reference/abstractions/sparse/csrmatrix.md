@@ -66,6 +66,7 @@ where `scipy.sparse.linalg.norm` would sum them first.
 
 | Member | What it does |
 | --- | --- |
+| [`CsrMatrix.CreateUnchecked`](csrmatrix-createunchecked.md) | Builds a matrix without the structural pass, for arrays valid by construction. |
 | [`CsrMatrix.Multiply`](csrmatrix-multiply.md) | The matrix times a dense vector, or times a dense block. |
 | [`CsrMatrix.TransposeMultiply`](csrmatrix-transposemultiply.md) | The transposed matrix times a dense block, without building the transpose. |
 | [`CsrMatrix.NormalizeRows`](csrmatrix-normalizerows.md) | Divide every row by its own norm, in place. |

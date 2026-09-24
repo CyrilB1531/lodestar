@@ -19,14 +19,21 @@
   </ItemGroup>
 
   <!-- Shared internal helpers, compiled into every library that asks for them.
-       Lodestar.Abstractions opts out: it grants InternalsVisibleTo to
-       Lodestar.Text, and one internal type compiled into both assemblies is
-       CS0436 at every call site on the consuming side (#440). -->
+       Lodestar.Abstractions opts out: it carries no code beyond CsrMatrix and what its
+       data types call (decision 0003, epoch 3), so it takes ValueEquality alone below. -->
   <ItemGroup Condition="'$(LodestarIncludesSharedHelpers)' != 'false'">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/GlobalUsings.cs" Link="Internal/GlobalUsings.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Guard.cs" Link="Internal/Guard.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/RegexDefaults.cs" Link="Internal/RegexDefaults.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/StringCompat.cs" Link="Internal/StringCompat.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/ValueEquality.cs" Link="Internal/ValueEquality.cs" />
+  </ItemGroup>
+
+  <!-- The structural equality the data types in Lodestar.Abstractions call, for the one library
+       that opts out of the helpers above. It grants no InternalsVisibleTo, so a copy compiled
+       there and one compiled into a consumer cannot meet as CS0436, which #440 once hit. -->
+  <ItemGroup Condition="'$(LodestarIncludesValueEquality)' == 'true' and '$(LodestarIncludesSharedHelpers)' == 'false'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/GlobalUsings.cs" Link="Internal/GlobalUsings.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/ValueEquality.cs" Link="Internal/ValueEquality.cs" />
   </ItemGroup>
 

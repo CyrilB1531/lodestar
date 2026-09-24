@@ -26,5 +26,10 @@ internal static class CsrMatrixSample
         // non-zeros rather than one per column of the dense operand.
         Console.WriteLine($"  · 3x2 block      = {Inv.List(built.Multiply([1.0, 0.5, 2.0, 1.5, 3.0, 2.5], 2))}");
         Console.WriteLine($"  transposed · 2x2 = {Inv.List(built.TransposeMultiply([1.0, 0.5, 2.0, 1.5], 2))}");
+
+        // The same arrays without the structural pass: for a producer whose output is valid by
+        // construction, as the vectorizers' is. Anything read from outside takes the constructor.
+        CsrMatrix trusted = CsrMatrix.CreateUnchecked(2, 3, [1.0, 2.0, 3.0], [0, 2, 1], [0, 2, 3]);
+        Console.WriteLine($"  unchecked row 0 L1 = {Inv.F4(trusted.RowL1Norm(0))}");
     }
 }
