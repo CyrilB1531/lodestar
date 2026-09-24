@@ -16,8 +16,10 @@ on:
     tags: ['Lodestar.*/v*']
 
 permissions:
-  contents: write   # required to create the GitHub Release at the end
+  contents: write        # required to create the GitHub Release at the end
   packages: write
+  issues: write          # the last step creates the "Release <date>" milestone
+  pull-requests: write   # and moves the pull requests it shipped onto it
 
 jobs:
   publish:
