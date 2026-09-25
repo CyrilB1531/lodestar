@@ -7,7 +7,7 @@ namespace Lodestar.Preprocessing;
 /// </remarks>
 public sealed class FoldSplit
 {
-    internal FoldSplit(int[] trainIndices, int[] testIndices)
+    internal FoldSplit(IReadOnlyList<int> trainIndices, IReadOnlyList<int> testIndices)
     {
         TrainIndices = trainIndices;
         TestIndices = testIndices;

@@ -57,6 +57,54 @@ stable to the third decimal across every run.
 `TrainTest` writes the two index halves straight out: an identity read comes out ascending already,
 so neither half is sorted and no order array is filled.
 
+## The seeded, grouped and time-ordered splitters against scikit-learn (issue #1157)
+
+Method: [`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#44-the-splitters-against-mlnet-and-scikit-learn-issue-762),
+the same `compare-splitters` harness as above with eight operations added. Machine: the AMD Ryzen 7
+8700G named above, 2026-09-25 09:35 to 09:43 UTC, one run of each side under the repository's
+machine lock, `scikit-learn` 1.9.1 on numpy 2.5.3 against .NET 10.0.12. Milliseconds per split,
+best of five; seed 1157 on both sides; five folds, three repeats, groups of 100 rows.
+**No .NET library offers any of these**, so scikit-learn is the only incumbent.
+
+| n | operation | Lodestar | `scikit-learn`, wall / cpu | ratio, cpu |
+| ---: | --- | ---: | ---: | ---: |
+| 10,000 | `KFold`, seeded | **0.096 ms** | 0.384 / 0.384 ms | **3.98** |
+| 10,000 | `StratifiedKFold`, seeded | **0.146 ms** | 0.830 / 0.830 ms | **5.68** |
+| 10,000 | train/test, seeded | **0.042 ms** | 0.209 / 0.209 ms | **5.00** |
+| 10,000 | train/test, stratified | **0.401 ms** | 1.754 / 1.754 ms | **4.37** |
+| 10,000 | `GroupKFold` | **0.073 ms** | 0.273 / 0.273 ms | **3.75** |
+| 10,000 | `StratifiedGroupKFold` | **0.131 ms** | 13.605 / 13.604 ms | **103.75** |
+| 10,000 | `RepeatedKFold` | **0.600 ms** | 1.077 / 1.077 ms | **1.79** |
+| 100,000 | `KFold`, seeded | **2.372 ms** | 5.149 / 5.149 ms | **2.04** |
+| 100,000 | `StratifiedKFold`, seeded | **3.049 ms** | 8.921 / 8.919 ms | **2.73** |
+| 100,000 | train/test, seeded | 1.383 ms | **1.089** / 1.089 ms | 0.76 |
+| 100,000 | train/test, stratified | **4.942 ms** | 18.467 / 18.464 ms | **3.67** |
+| 100,000 | `GroupKFold` | **0.811 ms** | 4.666 / 4.666 ms | **5.16** |
+| 100,000 | `StratifiedGroupKFold` | **1.665 ms** | 139.613 / 139.602 ms | **76.41** |
+| 100,000 | `RepeatedKFold` | **6.916 ms** | 15.019 / 15.015 ms | **2.12** |
+| 1,000,000 | `KFold`, seeded | **27.502 ms** | 42.268 / 42.267 ms | **1.46** |
+| 1,000,000 | `StratifiedKFold`, seeded | **33.369 ms** | 73.994 / 73.987 ms | **2.12** |
+| 1,000,000 | train/test, seeded | 14.748 ms | **13.843** / 13.842 ms | 0.91 |
+| 1,000,000 | train/test, stratified | **60.056 ms** | 190.253 / 190.238 ms | **3.15** |
+| 1,000,000 | `GroupKFold` | **11.437 ms** | 34.160 / 34.153 ms | **2.74** |
+| 1,000,000 | `StratifiedGroupKFold` | **16.800 ms** | 1,400.889 / 1,400.807 ms | **80.00** |
+| 1,000,000 | `RepeatedKFold` | **74.085 ms** | 125.877 / 125.847 ms | **1.66** |
+
+**One row is behind: the seeded train/test split past 10,000 rows**, at 0.76× and 0.91×. It is one
+permutation and two index lists, so what it prices is the generator: about 14 ns a draw here against
+numpy's 10 ns in C. The same draws make the seeded folds, which are ahead because the folds do more
+work around them.
+
+**`TimeSeries` has no row**: both sides describe each block rather than fill it — numpy views of one
+`arange`, and a range here — so the harness times two constant-time constructions, 0.0002 ms against
+0.2 ms at a million rows, and the ratio says nothing about a caller's cost.
+
+**What moved while this was measured**, each on the harness above: the seeded train/test split
+sorted both halves, 56.8 ms at a million rows, and reads them out of a mask now, 14.7 ms; the time
+series copied each block, 2.0 ms, and describes it now; and the classes were numbered by sorting
+every label, which put `GroupKFold` at 37.4 ms against scikit-learn's 32.3, and are hashed first
+now, 11.4 ms.
+
 ## The scalers against ML.NET's normalizers (issue #763)
 
 Full method, and why `fixZero: false` is passed:

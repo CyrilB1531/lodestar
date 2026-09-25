@@ -2748,6 +2748,13 @@ rather than balanced because that is where a stratified splitter does work a pla
 building one are not the same work; its `X` is a dummy column allocated outside the timed region,
 because it takes the matrix only to read `len(X)` from it.
 
+Issue #1157 added eight operations to both sides: the seeded `KFold`, `StratifiedKFold` and
+train/test split, the stratified train/test split, `GroupKFold`, `StratifiedGroupKFold`,
+`TimeSeriesSplit` and `RepeatedKFold` at three repeats. Every seed is 1157 on both sides, and groups
+are runs of 100 rows (`arange(n) // 100`), so the group count grows with the data: 100, 1,000 and
+10,000. Agreement is again the corpus's job, `tests/oracles/preprocessing_splitters_seeded.json`,
+not the harness's.
+
 ```bash
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*SplitterIncumbent*'
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-splitters

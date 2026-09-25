@@ -7,11 +7,14 @@ Cuts the rows into folds that keep each label's share, as `StratifiedKFold` does
 ```csharp
 public static IReadOnlyList<FoldSplit> StratifiedKFold(ReadOnlySpan<int> labels, int foldCount)
 public static IReadOnlyList<FoldSplit> StratifiedKFold(ReadOnlySpan<int> labels, int foldCount, ReadOnlySpan<int> order)
+public static IReadOnlyList<FoldSplit> StratifiedKFold(ReadOnlySpan<int> labels, int foldCount, long randomState)
 ```
 
 **Parameters** — `labels` carries one class label per row; any integers, and the row count is
 `labels.Length`. `foldCount` is how many folds to cut, at least two and at most the row count.
 `order` is a permutation of the rows to read them in; an empty span reads them in order.
+`randomState` is scikit-learn's `random_state`, in `[0, 2³² − 1]`: it selects
+`StratifiedKFold(shuffle=True, random_state=randomState)`.
 
 **Returns** — one `FoldSplit` per fold, in order, each index list ascending.
 
@@ -33,6 +36,9 @@ IReadOnlyList<FoldSplit> folds = Splitters.StratifiedKFold(labels, foldCount: 3)
 string first = string.Join(",", folds[0].TestIndices);   // => 0,1,6,9
 string second = string.Join(",", folds[1].TestIndices);  // => 2,3,7,10
 string third = string.Join(",", folds[2].TestIndices);   // => 4,5,8,11
+
+// scikit-learn's StratifiedKFold(3, shuffle=True, random_state=42), fold for fold.
+string seeded = string.Join(",", Splitters.StratifiedKFold(labels, 3, randomState: 42)[0].TestIndices);  // => 0,1,8,9
 ```
 
 **Remarks** — fold `i` takes as many rows of class `c` as the sorted labels hold at positions `i`,
@@ -64,10 +70,12 @@ does not split the way `[0,0,0,1,1,1,1,1,2,2]` does. Reproduced deliberately: on
 appearance is counted in that order, which is what the reference does when handed the labels read
 that way.
 
-**An order does not reproduce `StratifiedKFold(shuffle=True)`.** The reference shuffles each class's
-list of folds, not the rows, so no permutation of the rows reaches its draw. What `order` gives is the
-unshuffled folds over the rows read in that order — scikit-learn's `StratifiedKFold` over `y[order]`,
-mapped back to row numbers.
+**The seed reproduces `StratifiedKFold(shuffle=True)`; an order gives the unshuffled folds over the
+rows read in it** — scikit-learn's `StratifiedKFold` over `y[order]`, mapped back to row numbers. The
+reference's shuffle deals each class's list of folds over that class's rows, ascending. An order can
+express that too, contrary to what this page said before #1157: each class's rows read in the order
+the generator dealt their folds, classes in order of first appearance. The seed overload makes the
+construction unnecessary.
 
 **Applies to** — net10.0, netstandard2.0.
 

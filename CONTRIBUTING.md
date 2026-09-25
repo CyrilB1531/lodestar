@@ -479,9 +479,9 @@ scikit-learn.
 records that boundary, both packages' reasons for needing it, and the options each beat.
 
 **A decision record is never edited, and may only be deleted.** An amendment is therefore a new
-record, which is why the seven records declare no relation today and
-[`docs/decisions/index.yaml`](docs/decisions/index.yaml)'s `amended_by` and `applied_by` lists are
-empty: `tools/check_adr_immutable.py` refuses a diff that rewrites an accepted record, and allows
+record, which is why `0008` amends `0004` rather than `0004` changing, and why
+[`docs/decisions/index.yaml`](docs/decisions/index.yaml) lists `0008` under `0004`'s `amended_by`
+while every `applied_by` list stays empty: `tools/check_adr_immutable.py` refuses a diff that rewrites an accepted record, and allows
 one that removes it. Should a record ever amend another, it declares `supersedes`, `amends` or
 `applies` in its own frontmatter and the index is regenerated with
 `python tools/regen_adr_index.py`; `tools/check_adr_frontmatter.py` and

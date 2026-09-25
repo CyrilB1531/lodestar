@@ -26,10 +26,10 @@ string fit = string.Join(",", folds[0].TrainIndices);  // => 2,3,4,5,7,8,10,11
 stratifying buys: [`Splitters.KFold`](splitters-kfold.md) on the same twelve rows would hand fold 0
 four rows of class 0 and nothing else.
 
-**The unshuffled splitters are scikit-learn's, fold for fold and index for index**, replayed from
-`tests/oracles/preprocessing_splitters.json`. The shuffled ones take the permutation as an argument
-rather than a seed — the [splitting index](../splitting.md) has why, and which shuffled splits a
-permutation reproduces.
+**Every splitter is scikit-learn's, fold for fold and index for index**, replayed from
+`tests/oracles/preprocessing_splitters.json` and `preprocessing_splitters_seeded.json`. A shuffled one
+takes scikit-learn's own `random_state`, or a permutation — the [splitting index](../splitting.md)
+has why both.
 
 **Applies to** — net10.0, netstandard2.0.
 
@@ -42,4 +42,10 @@ permutation reproduces.
 | --- | --- |
 | [`Splitters.KFold`](splitters-kfold.md) | Cuts the rows into contiguous folds. |
 | [`Splitters.StratifiedKFold`](splitters-stratifiedkfold.md) | Cuts folds that keep each class's share. |
-| [`Splitters.TrainTest`](splitters-traintest.md) | Holds out the last rows as a test set. |
+| [`Splitters.TrainTest`](splitters-traintest.md) | Holds out the last rows as a test set, or a shuffled share. |
+| [`Splitters.StratifiedTrainTest`](splitters-stratifiedtraintest.md) | Holds out a shuffled share that keeps each class's proportion. |
+| [`Splitters.GroupKFold`](splitters-groupkfold.md) | Cuts folds that never split a group. |
+| [`Splitters.StratifiedGroupKFold`](splitters-stratifiedgroupkfold.md) | Cuts group folds that keep each class's share. |
+| [`Splitters.TimeSeries`](splitters-timeseries.md) | Cuts forward-chaining splits over time-ordered rows. |
+| [`Splitters.RepeatedKFold`](splitters-repeatedkfold.md) | Repeats shuffled k-fold. |
+| [`Splitters.RepeatedStratifiedKFold`](splitters-repeatedstratifiedkfold.md) | Repeats shuffled stratified k-fold. |

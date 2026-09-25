@@ -267,8 +267,8 @@ Three traps, each already worth a session:
   than any assertion tolerates, so believe it. On failure the job uploads the regenerated corpora
   as an artefact, so the comparison can be made off the runner.
 
-**Seven records, one per axis, and a number names a different record than it did before
-2026-09-20** — [#1103](https://github.com/CyrilB1531/lodestar/issues/1103) restarted the numbering
+**Seven records, one per axis, an eighth amending the fourth, and a number names a different
+record than it did before 2026-09-20** — [#1103](https://github.com/CyrilB1531/lodestar/issues/1103) restarted the numbering
 after merging the 75 records that stated an axis and deleting the 72 that stated a mechanism. Read
 an older citation against the tree it was written in: `git show 53af23c2:docs/decisions/<file>`.
 **`0003` changed text on 2026-09-24**, when the numbering entered epoch 3: its rule for
@@ -277,8 +277,9 @@ code. Its epoch-2 text reads at `9f9406c5`.
 [`docs/decisions/index.yaml`](docs/decisions/index.yaml) carries each record's `supersedes`,
 `amends` and `applies` together with the reverses a record cannot state for itself — `amended_by`,
 which says the decision changed, and `applied_by`, which says it was used again unchanged —
-generated from the frontmatter by `tools/regen_adr_index.py`. Every one of those lists is empty
-today, because **a record is never edited and may only be deleted**: an amendment is a new record,
+generated from the frontmatter by `tools/regen_adr_index.py`. One edge exists — `0008` amends
+`0004`, numpy's generator now written here — because **a record is never edited and may only be
+deleted**: an amendment is a new record,
 and `tools/check_adr_immutable.py` enforces exactly that — the one exception being a diff that raises
 `docs/decisions/.numbering-epoch`, which is how `0003` was rewritten. Follow both edges before citing
 a record that has them.
