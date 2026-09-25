@@ -603,6 +603,15 @@
         "bench/Lodestar.Text.Benchmarks/CrossLang/PanelCrossLang.cs"
       ]
     },
+    "cross-conformal": {
+      "subcommand": "compare-cross-conformal",
+      "python": "bench/python/bench_cross_conformal.py",
+      "compare": "cross-conformal",
+      "sources": [
+        "src/Lodestar.Conformal/**",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/CrossConformalCrossLang.cs"
+      ]
+    },
     "ols": {
       "subcommand": "compare-ols",
       "python": "bench/python/bench_stats.py",

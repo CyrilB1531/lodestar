@@ -47,7 +47,7 @@ types ([decision 0003](docs/decisions/0003-the-package-layout-tiers-boundaries-a
 | [`Lodestar.Embeddings`](src/Lodestar.Embeddings/README.md) | core | Hugging Face tokenizers without Python, batch encoding, pooling, SIMD nearest-neighbour search |
 | [`Lodestar.Fuzzy`](src/Lodestar.Fuzzy/README.md) | core | rapidfuzz's `fuzz.*` and `process.extract`, and deduplication |
 | [`Lodestar.Metrics`](src/Lodestar.Metrics/README.md) | core | classification, regression, clustering and ranking metrics at scikit-learn parity |
-| [`Lodestar.Conformal`](src/Lodestar.Conformal/README.md) | core | split conformal intervals and prediction sets, at MAPIE parity |
+| [`Lodestar.Conformal`](src/Lodestar.Conformal/README.md) | core | split and cross-conformal intervals (CV+, Jackknife+) and prediction sets, at MAPIE parity |
 | [`Lodestar.Decomposition`](src/Lodestar.Decomposition/README.md) | core | truncated SVD and NMF over a sparse matrix, the Householder QR, explained variance |
 | [`Lodestar.Cluster`](src/Lodestar.Cluster/README.md) | core | k-means, DBSCAN and agglomerative clustering at scikit-learn parity |
 | [`Lodestar.Preprocessing`](src/Lodestar.Preprocessing/README.md) | core | scalers, encoders, imputers and the cross-validation splitters at scikit-learn parity |
@@ -192,7 +192,7 @@ Lodestar.slnx
 ├── src/Lodestar.Embeddings/                sub-word tokenizers, pooling, SIMD kNN
 ├── src/Lodestar.Fuzzy/                     fuzz.*, process.extract, deduplication
 ├── src/Lodestar.Metrics/                   confusion matrix, precision/recall/F1, report, ROC-AUC
-├── src/Lodestar.Conformal/                 split conformal intervals and prediction sets
+├── src/Lodestar.Conformal/                 split and cross-conformal intervals and prediction sets
 ├── src/Lodestar.Decomposition/             truncated SVD, NMF, the Householder QR, and PCA explained variance
 ├── src/Lodestar.Cluster/                   k-means by Lloyd's algorithm over a row-major span
 ├── src/Lodestar.Preprocessing/             feature scaling fitted on arrays and applied to spans

@@ -55,6 +55,7 @@
     <ProjectReference Include="../../src/Lodestar.Fuzzy/Lodestar.Fuzzy.csproj" />
     <ProjectReference Include="../../src/Lodestar.Embeddings/Lodestar.Embeddings.csproj" />
     <ProjectReference Include="../../src/Lodestar.Metrics/Lodestar.Metrics.csproj" />
+    <ProjectReference Include="../../src/Lodestar.Conformal/Lodestar.Conformal.csproj" />
     <ProjectReference Include="../../src/Lodestar.Decomposition/Lodestar.Decomposition.csproj" />
     <ProjectReference Include="../../src/Lodestar.Cluster/Lodestar.Cluster.csproj" />
     <ProjectReference Include="../../src/Lodestar.Preprocessing/Lodestar.Preprocessing.csproj" />

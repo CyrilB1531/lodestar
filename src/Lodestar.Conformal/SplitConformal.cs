@@ -114,6 +114,98 @@ public static class SplitConformal
         return residuals;
     }
 
+    /// <summary>The gamma calibration scores of a regressor, <c>(y − ŷ) / ŷ</c>, for a strictly positive target.</summary>
+    /// <remarks>
+    /// MAPIE's <c>GammaConformityScore</c>: a relative error, signed, so the interval it gives is wider on the side the
+    /// errors fall and grows with the prediction. Hand the result to <see cref="GammaInterval"/>, or to
+    /// <c>CrossConformal.GammaInterval</c> when the predictions are out of sample.
+    /// <b>Exchangeability</b> — see the type's remarks.
+    /// </remarks>
+    /// <param name="yTrue">The observed values, all strictly positive.</param>
+    /// <param name="yPredicted">The model's predictions, same length as <paramref name="yTrue"/>, all strictly positive.</param>
+    /// <exception cref="ArgumentException">The two spans have different lengths.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A value or a prediction is not strictly positive, or is NaN.</exception>
+    public static double[] GammaScores(ReadOnlySpan<double> yTrue, ReadOnlySpan<double> yPredicted)
+    {
+        if (yTrue.Length != yPredicted.Length)
+        {
+            throw new ArgumentException(
+                $"There are {yTrue.Length} observed values but {yPredicted.Length} predictions.",
+                nameof(yPredicted));
+        }
+
+        double[] scores = new double[yTrue.Length];
+        for (int i = 0; i < yTrue.Length; i++)
+        {
+            double observed = GammaPositive(yTrue[i], nameof(yTrue), i);
+            double predicted = GammaPositive(yPredicted[i], nameof(yPredicted), i);
+            scores[i] = (observed - predicted) / predicted;
+        }
+        return scores;
+    }
+
+    /// <summary>The gamma interval <c>[ŷ(1 + q_low), ŷ(1 + q_up)]</c> around a strictly positive prediction.</summary>
+    /// <remarks>
+    /// The score is not symmetric, so each side reads its own quantile of <paramref name="scores"/> at <c>α/2</c>, as
+    /// MAPIE's does; this takes the scores rather than a quantile for that reason. A rank past the scores gives an
+    /// infinite bound on that side, as <see cref="Quantile(ReadOnlySpan{double}, double)"/> does (decision 0007).
+    /// <b>Exchangeability</b> — see the type's remarks.
+    /// </remarks>
+    /// <param name="prediction">The model's point prediction, strictly positive.</param>
+    /// <param name="scores">The calibration scores from <see cref="GammaScores"/>; not modified.</param>
+    /// <param name="alpha">Miscoverage level in <c>(0, 1)</c>.</param>
+    /// <exception cref="ArgumentException"><paramref name="scores"/> is empty or holds a NaN.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="alpha"/> is not in <c>(0, 1)</c>, or <paramref name="prediction"/> is not strictly positive.</exception>
+    public static (double Lower, double Upper) GammaInterval(double prediction, ReadOnlySpan<double> scores, double alpha)
+    {
+        CheckAlpha(alpha);
+        CheckScores(scores);
+        GammaPositive(prediction, nameof(prediction), null);
+        double beta = alpha / 2.0;
+        double low = Internal.RegressionQuantile.Lower(scores.ToArray(), beta);
+        double high = Internal.RegressionQuantile.Upper(scores.ToArray(), (1.0 - alpha) + beta);
+        return (prediction * (1.0 + low), prediction * (1.0 + high));
+    }
+
+    /// <summary>A value the gamma score divides by or reads as a target, refused unless strictly positive, as MAPIE refuses it.</summary>
+    internal static double GammaPositive(double value, string parameterName, int? index)
+    {
+        if (double.IsNaN(value) || value <= 0.0)
+        {
+            string where = index is null ? parameterName : $"{parameterName}[{index}]";
+            throw new ArgumentOutOfRangeException(
+                parameterName, value, $"{where} is not strictly positive, which the gamma score's support requires.");
+        }
+
+        return value;
+    }
+
+    internal static void CheckAlpha(double alpha)
+    {
+        // NaN spelled out: see Quantile.
+        if (double.IsNaN(alpha) || alpha <= 0.0 || alpha >= 1.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(alpha), alpha, "The miscoverage level must lie strictly between 0 and 1.");
+        }
+    }
+
+    private static void CheckScores(ReadOnlySpan<double> scores)
+    {
+        if (scores.Length == 0)
+        {
+            throw new ArgumentException("Conformal calibration needs at least one score.", nameof(scores));
+        }
+
+        for (int i = 0; i < scores.Length; i++)
+        {
+            if (double.IsNaN(scores[i]))
+            {
+                throw new ArgumentException($"Calibration score {i} is NaN.", nameof(scores));
+            }
+        }
+    }
+
     /// <summary>The normalised calibration scores of a regressor, <c>|y − ŷ| / r̂</c>.</summary>
     /// <remarks>
     /// MAPIE's <c>ResidualNormalisedScore</c>. <paramref name="residualEstimates"/> is a second

@@ -3998,6 +3998,138 @@ def _conformal_normalised_fixtures() -> list[dict]:
     ]
 
 
+
+# --- Cross-conformal regression and the gamma score (#1159) -----------------
+CC_KIND = "kind"
+CC_SCORE = "score"
+CC_AGGREGATION = "aggregation"
+CC_ABSOLUTE = "absolute"
+CC_MEAN = "mean"
+CC_PLUS = "plus"
+CC_MINMAX = "minmax"
+CC_LOWER = "lower"
+CC_UPPER = "upper"
+
+
+def _cross_problem(seed: int, rows: int, tests: int) -> tuple:
+    """A positive, heteroskedastic target, so the gamma score applies and the widths differ by method."""
+    draw = np.random.default_rng(seed)
+    x = draw.normal(size=(rows + tests, 2))
+    y = 20.0 + x @ np.array([1.5, -2.0]) + draw.normal(size=rows + tests) * (1.0 + np.abs(x[:, 0]))
+    return x[:rows], y[:rows], x[rows:]
+
+
+def _cross_regressor(kind: str, options: dict):
+    from mapie.regression import CrossConformalRegressor, JackknifeAfterBootstrapRegressor
+    from sklearn.linear_model import LinearRegression
+    from sklearn.model_selection import KFold, LeaveOneOut
+
+    common = {"confidence_level": 1.0 - options["alpha"], "conformity_score": options[CC_SCORE],
+              METHOD: options[METHOD]}
+    if kind == "jackknife-after-bootstrap":
+        return JackknifeAfterBootstrapRegressor(
+            LinearRegression(), resampling=options["resampling"], aggregation_method=options[CC_AGGREGATION],
+            random_state=options["seed"], **common)
+    cv = LeaveOneOut() if kind == "leave-one-out" else KFold(n_splits=5, shuffle=True, random_state=options["seed"])
+    return CrossConformalRegressor(LinearRegression(), cv=cv, **common)
+
+
+def _cross_case(name: str, kind: str, options: dict, problem: tuple) -> dict | None:
+    """One fit, read back as the predictions and the mask the C# takes, beside MAPIE's bounds."""
+    x, y, x_test = problem
+    reg = _cross_regressor(kind, options).fit_conformalize(x, y)
+    try:
+        _, interval = reg.predict_interval(x_test)
+    except ValueError:
+        # Too few out-of-bag samples for the level: MAPIE refuses, and spec decision 6 answers infinite.
+        return None
+    if not np.all(np.isfinite(interval)):
+        # MAPIE's minmax returns NaN when a sample is never out of bag: spec decision 7.
+        return None
+    fitted = reg._mapie_regressor
+    ensemble = fitted.estimator_
+    held = ~np.isnan(ensemble.k_)
+    train = np.column_stack([m.predict(x) for m in ensemble.estimators_])
+    test = np.column_stack([m.predict(x_test) for m in ensemble.estimators_])
+    return {
+        "name": name, CC_KIND: kind, **options, "alpha": float(reg._alphas[0]),
+        "y": y.tolist(), "modelCount": int(held.shape[1]),
+        "trainPredictions": train.ravel().tolist(), "heldOut": held.ravel().tolist(),
+        "testPredictions": test.ravel().tolist(), "fullPredictions": ensemble.single_estimator_.predict(x_test).tolist(),
+        "scores": [None if math.isnan(v) else float(v) for v in np.ravel(fitted.conformity_scores_)],
+        CC_LOWER: interval[:, 0, 0].tolist(), CC_UPPER: interval[:, 1, 0].tolist(),
+    }
+
+
+def _cross_cases() -> list[dict]:
+    problems = {"30 rows": _cross_problem(1159, 30, 6), "57 rows": _cross_problem(1160, 57, 5),
+                "12 rows": _cross_problem(1161, 12, 4)}
+    grid = []
+    for kind in ("k-fold", "leave-one-out"):
+        grid += [(kind, {METHOD: m, CC_SCORE: sc, CC_AGGREGATION: CC_MEAN, "seed": 7})
+                 for m in (CC_PLUS, CC_MINMAX, "base") for sc in (CC_ABSOLUTE, GAMMA)]
+    for aggregation in (CC_MEAN, STRATEGY_MEDIAN):
+        grid += [("jackknife-after-bootstrap", {METHOD: m, CC_SCORE: sc, CC_AGGREGATION: aggregation,
+                                                "resampling": resampling, "seed": 11})
+                 for m in (CC_PLUS, CC_MINMAX) for sc in (CC_ABSOLUTE, GAMMA) for resampling in (6, 25)]
+    cases = []
+    for problem_name, problem in problems.items():
+        for alpha in (0.1, 0.2):
+            if 1.0 / alpha >= len(problem[1]):
+                continue
+            for kind, options in grid:
+                name = _named(problem_name, kind, f"alpha={alpha}", *(f"{k}={v}" for k, v in options.items()))
+                case = _cross_case(name, kind, {**options, "alpha": alpha}, problem)
+                if case is not None:
+                    cases.append(case)
+    return cases
+
+
+def _gamma_split_cases() -> list[dict]:
+    """The split regressor with the gamma score, prefit on a separate training block."""
+    from mapie.regression import SplitConformalRegressor
+    from sklearn.linear_model import LinearRegression
+
+    cases = []
+    for seed, rows in ((1162, 40), (1163, 21)):
+        x, y, x_test = _cross_problem(seed, 2 * rows, 5)
+        model = LinearRegression().fit(x[:rows], y[:rows])
+        for alpha in (0.1, 0.2, 0.3):
+            reg = SplitConformalRegressor(model, confidence_level=1.0 - alpha, conformity_score=GAMMA, prefit=True)
+            reg.conformalize(x[rows:], y[rows:])
+            _, interval = reg.predict_interval(x_test)
+            cases.append({"name": _named(f"{rows} calibration rows", f"alpha={alpha}"), "alpha": float(reg._alphas[0]),
+                          "y": y[rows:].tolist(), "predictions": model.predict(x[rows:]).tolist(),
+                          "testPredictions": model.predict(x_test).tolist(),
+                          CC_LOWER: interval[:, 0, 0].tolist(), CC_UPPER: interval[:, 1, 0].tolist()})
+    return cases
+
+
+def generate_conformal_cross() -> dict:
+    """MAPIE 1.5.0's cross-conformal regressors and the gamma score (#1159).
+
+    long-comment: what the corpus holds and why each fit is read back.
+    K-fold (CV+) and leave-one-out (Jackknife+) under plus, minmax and base, the jackknife-after-
+    bootstrap at mean and median aggregation under plus and minmax (MAPIE offers it no base), each
+    with the absolute and the gamma score, on three
+    problems at two levels; then the split regressor with the gamma score. Each case carries every
+    model's predictions and MAPIE's own held-out mask, read off the fitted object, so its resampling
+    is replayed rather than seeded, and its alpha as MAPIE holds it, 1 - confidence_level.
+    """
+    import warnings
+
+    import mapie
+
+    warnings.simplefilter("ignore")
+    cross = _cross_cases()
+    split = _gamma_split_cases()
+    return {
+        "metadata": {"library": "MAPIE", "version": mapie.__version__, FAMILY: "cross-conformal regression",
+                     "count": len(cross) + len(split)},
+        "cross": cross,
+        "gammaSplit": split,
+    }
+
 def generate_conformal() -> dict:
     """Split conformal prediction, against MAPIE 1.5.0 (#441)."""
     from mapie.classification import SplitConformalClassifier
@@ -14795,6 +14927,7 @@ def main() -> None:
         "regression_conditioning.json": generate_regression_conditioning,
         "regression_deviance.json": generate_regression_deviance,
         "conformal.json": generate_conformal,
+        "conformal_cross.json": generate_conformal_cross,
         "sparse_matmul.json": generate_sparse_matmul,
         "decomposition_qr.json": generate_decomposition_qr,
         "decomposition_lu.json": generate_decomposition_lu,

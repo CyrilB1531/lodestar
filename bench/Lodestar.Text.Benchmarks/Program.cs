@@ -52,6 +52,9 @@ switch (args.Length > 0 ? args[0] : string.Empty)
     case "compare-panel":
         PanelCrossLang.Run();
         return;
+    case "compare-cross-conformal":
+        CrossConformalCrossLang.Run();
+        return;
     case "roc-parallel":
         RocParallelBench.Run();
         return;
