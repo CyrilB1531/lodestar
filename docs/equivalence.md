@@ -636,6 +636,33 @@ GPL-3.0-or-later — [decision 0002](decisions/0002-provenance-and-the-allowed-r
 | `cph.log_likelihood_`, `log_likelihood_ratio_test()`, `concordance_index_` | lifelines | [`CoxSummary`](reference/survival/estimators/coxsummary.md) | `LogLikelihood`, `NullLogLikelihood`, `LikelihoodRatioStatistic`, `LikelihoodRatioPValue`, `LikelihoodRatioDegreesOfFreedom`, `ConcordanceIndex`. The test statistic is `2 · (LogLikelihood − NullLogLikelihood)` to the last bit, as lifelines computes it. |
 | `statistics.logrank_test(dA, dB, event_observed_A=eA, event_observed_B=eB)` | lifelines | [`LogRank.Test(dA, eA, dB, eB)`](reference/survival/estimators/logrank-test.md) | Mantel-Haenszel form with the **hypergeometric variance** under ties, which carries the `(n - d)/(n - 1)` factor a naive implementation drops. The p-value is [`Distributions.ChiSquaredSf`](reference/stats/tails/distributions-chisquaredsf.md) on one degree of freedom rather than a second approximation ([decision 0003](decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)). Where no time compares both arms the result is a statistic of zero and a p-value of one rather than an error. Statistic absolutely at `1e-10`, p-value **relatively**. Exact parity (5 comparisons). |
 
+### The rest of lifelines, read against 1.0 ([#1160](https://github.com/CyrilB1531/lodestar/issues/1160))
+
+Each row answers one part of lifelines 0.30.3's surface. The test is [decision 0004](decisions/0004-what-is-written-here-and-what-is-delegated.md)'s:
+a fit is writable when Newton on lifelines' own autograd likelihood reaches the same optimum from
+its default and from its tight fit, to within `1e-9`. No free, permissive .NET library fits any of
+these; Accord's survival models are LGPL-2.1 and archived.
+
+| Python | Library | C# | Differences |
+| --- | --- | --- | --- |
+| `logrank_test(..., weightings="wilcoxon" \| "tarone-ware" \| "peto" \| "fleming-harrington")` | lifelines | — (to write for 1.0, [#1170](https://github.com/CyrilB1531/lodestar/issues/1170)) | Closed forms over the step table `LogRank` already builds. |
+| `multivariate_logrank_test`, `pairwise_logrank_test` | lifelines | — (to write for 1.0, [#1170](https://github.com/CyrilB1531/lodestar/issues/1170)) | Closed forms; the pairwise form is the two-group test over each pair. |
+| `survival_difference_at_fixed_point_in_time_test` | lifelines | — (to write for 1.0, [#1170](https://github.com/CyrilB1531/lodestar/issues/1170)) | A closed form over two Kaplan-Meier curves. |
+| `utils.restricted_mean_survival_time` | lifelines | — (to write for 1.0, [#1170](https://github.com/CyrilB1531/lodestar/issues/1170)) | The area under a Kaplan-Meier curve up to `t`, a sum over its steps. |
+| `utils.concordance_index` | lifelines | — (to write for 1.0, [#1170](https://github.com/CyrilB1531/lodestar/issues/1170)) | Harrell's C on any scores; [`CoxSummary`](reference/survival/estimators/coxsummary.md) already reports it for its own fit. |
+| `CoxPHFitter(strata=..., penalizer=p)` at `l1_ratio=0`, `fit(robust=True)`, `fit(cluster_col=...)` | lifelines | — (to write for 1.0, [#1171](https://github.com/CyrilB1531/lodestar/issues/1171)) | lifelines' own Newton, rerun at full step from its default and from its tight fit, reaches one optimum to `2.4e-14`, the standard errors to `5.1e-16`; its defaults stop `6.2e-7` to `3.2e-6` short of it, so the corpus will hold the polished optimum. |
+| `proportional_hazard_test` | lifelines | — (to write for 1.0, [#1171](https://github.com/CyrilB1531/lodestar/issues/1171)) | Schoenfeld residuals of a pinned Cox fit, under the rank and Kaplan-Meier time transforms. |
+| `CoxTimeVaryingFitter` | lifelines | — (to write for 1.0, [#1171](https://github.com/CyrilB1531/lodestar/issues/1171)) | Pins itself: two step sizes agree at `1e-13`. |
+| `CoxPHFitter(penalizer=p, l1_ratio>0)` | lifelines | — (not written) | Its answer is lifelines' smoothing schedule for the absolute value, not an optimum: a default and a tight fit part by a factor of 29. |
+| `ExponentialFitter`, `WeibullFitter`, `LogNormalFitter`, `LogLogisticFitter`, `PiecewiseExponentialFitter` | lifelines | — (to write for 1.0, [#1172](https://github.com/CyrilB1531/lodestar/issues/1172)) | Newton reaches one optimum from the default and the tight fit to `8.2e-16`; lifelines' defaults stop `1.2e-6` to `6.8e-6` short of it, a divergence to document as the Cox row does. |
+| `BreslowFlemingHarringtonFitter` | lifelines | — (to write for 1.0, [#1172](https://github.com/CyrilB1531/lodestar/issues/1172)) | `exp(−Nelson-Aalen)`, a closed form. |
+| `WeibullAFTFitter`, `LogNormalAFTFitter`, `LogLogisticAFTFitter` | lifelines | — (to write for 1.0, [#1172](https://github.com/CyrilB1531/lodestar/issues/1172)) | One optimum to `6e-14`; lifelines' defaults stop `8.1e-6`, `2.0e-4` and `1.3e-3` short of it. |
+| `fit_left_censoring`, `fit_interval_censoring` of the parametric fitters; `KaplanMeierFitter.fit_left_censoring` | lifelines | — (to write for 1.0, [#1172](https://github.com/CyrilB1531/lodestar/issues/1172)) | The five univariate fitters' optima pin at `2.9e-15`, left and interval censored alike, their defaults `6e-11` to `1.4e-5` short; the AFT fitters take the same likelihoods. The left-censored Kaplan-Meier is the reversed estimator, a closed form. |
+| `AalenAdditiveFitter(coef_penalizer, smoothing_penalizer)` | lifelines | — (to write for 1.0, [#1173](https://github.com/CyrilB1531/lodestar/issues/1173)) | A ridge-penalised least squares at each event time: no optimiser to pin. |
+| `GeneralizedGammaFitter` | lifelines | — (not written) | Its optimum pins at `1.6e-9`, not `1e-9`: Newton from the default and the tight fit stops `4.9e-11` short of a zero gradient. |
+| `SplineFitter`, `CRCSplineFitter` | lifelines | — (not written) | No optimum to hold. The Newton step leaves `SplineFitter`'s likelihood domain and its tight fit does not converge; `CRCSplineFitter`'s default stops 35 % to 1,900 % away from the stationary point Newton reaches, or at a singular Hessian. |
+| `KaplanMeierFitter.fit_interval_censoring` (Turnbull) | lifelines | — (not written) | An EM whose answer is its stopping rule: the curve still moves `3.1e-5` between tolerances `1e-10` and `1e-13`, and `9.5e-3` from the default `1e-5`. |
+
 ## Conventions
 
 - **Comparison unit.** Unless stated otherwise, string distances compare `char`
