@@ -94,6 +94,11 @@ MultinomialLogitSample.Run();
 MultinomialLogitOptionsSample.Run();
 MultinomialLogitSummarySample.Run();
 GlmOptionsSample.Run();
+InstrumentalVariablesSample.Run();
+IvOptionsSample.Run();
+IvSummarySample.Run();
+IvFirstStageSample.Run();
+IvTestSample.Run();
 
 MinHashPermutationsSample.Run();
 MinHashSample.Run();

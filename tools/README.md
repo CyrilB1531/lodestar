@@ -43,7 +43,7 @@ given:
   commits them directly.
 - `check_nuspec_dependencies.py` verifies what the packages *declare*.
 - `compare_oracles.py` compares two directories of corpora the way the suites
-  do — floats at `1e-9`, everything else exactly — which is what the
+  do — floats at `1e-9`, relative where the suite compares relatively, everything else exactly — which is what the
   `Oracles are reproducible` gate asks instead of byte-identity
   (tools/compare_oracles.py).
 - `check_version_floor.py` verifies that the version numbers the source tree

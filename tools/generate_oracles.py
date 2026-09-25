@@ -127,6 +127,7 @@ COUNTS_KEY = "counts"
 # The OLS corpus repeats its own field names once per fixture and once per emitted case.
 CONFIDENCE_LEVEL = "confidenceLevel"
 COVARIANCE_TYPE = "covarianceType"
+T_STATISTICS = "tStatistics"
 # The HAC and cluster keys of the linear corpora, echoed into each case they configure (#775).
 HAC_LAGS = "hacLags"
 USE_CORRECTION = "useCorrection"
@@ -6851,7 +6852,7 @@ def _linear_case(fixture: dict, model) -> dict:
     case.update({
         COEFFICIENTS: [float(v) for v in fitted.params],
         STANDARD_ERRORS: [float(v) for v in fitted.bse],
-        "tStatistics": [float(v) for v in fitted.tvalues],
+        T_STATISTICS: [float(v) for v in fitted.tvalues],
         P_VALUES: [float(v) for v in fitted.pvalues],
         CONFIDENCE_LOWER: [float(v) for v in interval[:, 0]],
         CONFIDENCE_UPPER: [float(v) for v in interval[:, 1]],
@@ -7597,7 +7598,7 @@ def generate_stats_var() -> dict:
             WITH_INTERCEPT: fixture[WITH_INTERCEPT],
             COEFFICIENTS: np.asarray(fit.params).T.tolist(),
             STANDARD_ERRORS: np.asarray(fit.stderr).T.tolist(),
-            "tStatistics": np.asarray(fit.tvalues).T.tolist(),
+            T_STATISTICS: np.asarray(fit.tvalues).T.tolist(),
             P_VALUES: np.asarray(fit.pvalues).T.tolist(),
             "residualCovariance": np.asarray(fit.sigma_u).ravel().tolist(),
             "residualCovarianceMaximumLikelihood": np.asarray(fit.sigma_u_mle).ravel().tolist(),
@@ -8044,6 +8045,181 @@ def generate_preprocessing_splitters_seeded() -> dict:
     return {
         "metadata": {"library": "scikit-learn", "version": sklearn.__version__, FAMILY: "seeded splitters",
                      "count": len(cases)},
+        "cases": cases,
+    }
+
+
+# The instrumental-variables corpus (#1155): its keys.
+IV_OPTIONS = "options"
+IV_EXPECTED = "expected"
+IV_RESPONSE = "response"
+IV_ROBUST = "robust"
+IV_UNADJUSTED = "unadjusted"
+IV_CLUSTERED = "clustered"
+IV_KERNEL = "kernel"
+IV_BANDWIDTH = "bandwidth"
+IV_CLUSTERS = "clusters"
+IV_DEBIASED = "debiased"
+IV_FULLER = "fuller"
+IV_WITH_INTERCEPT = "withIntercept"
+IV_GMM_WEIGHT_TYPE = "gmmWeightType"
+IV_GMM_WEIGHT_BANDWIDTH = "gmmWeightBandwidth"
+IV_P_VALUE = "pValue"
+IV_R_SQUARED = "rSquared"
+
+
+def _iv_data(seed: int, rows: int, exogenous: int, endogenous: int, instruments: int,
+             heteroskedastic: bool = True) -> dict:
+    """One simulated problem: instruments correlated with the endogenous block, an error shared with it."""
+    import numpy as np
+
+    draw = np.random.default_rng(seed)
+    z = draw.normal(size=(rows, instruments))
+    u = draw.normal(size=rows)
+    endog = z @ draw.normal(size=(instruments, endogenous)) + 0.6 * u[:, None] + draw.normal(size=(rows, endogenous))
+    exog = draw.normal(size=(rows, exogenous))
+    scale = 1.0 + np.abs(exog[:, 0]) if heteroskedastic and exogenous else 1.0
+    y = 0.5 + exog @ draw.normal(size=exogenous) + endog @ draw.normal(size=endogenous) + u * scale
+    # AR(1) in the rows, so a kernel covariance has serial correlation to estimate.
+    for t in range(1, rows):
+        y[t] += 0.3 * u[t - 1]
+    clusters = draw.integers(0, max(12, rows // 6), rows)
+    return {IV_RESPONSE: y.tolist(), "exogenous": exog.ravel().tolist(), "exogenousCount": exogenous,
+            "endogenous": endog.ravel().tolist(), "endogenousCount": endogenous,
+            "instruments": z.ravel().tolist(), "instrumentCount": instruments, IV_CLUSTERS: clusters.tolist()}
+
+
+def _iv_fit(data: dict, method: str, options: dict):
+    """linearmodels' fit for one case, the constant prepended as IvOptions.WithIntercept does."""
+    import numpy as np
+    from linearmodels.iv import IV2SLS, IVGMM, IVLIML
+
+    n = len(data[IV_RESPONSE])
+    exog = np.asarray(data["exogenous"]).reshape(n, data["exogenousCount"])
+    if options.get(IV_WITH_INTERCEPT, True):
+        exog = np.c_[np.ones(n), exog]
+    endog = np.asarray(data["endogenous"]).reshape(n, data["endogenousCount"])
+    instr = np.asarray(data["instruments"]).reshape(n, data["instrumentCount"])
+    clusters = np.asarray(data[IV_CLUSTERS])
+    cov = options.get(COVARIANCE_TYPE, IV_ROBUST)
+    kwargs = {"cov_type": cov, IV_DEBIASED: options.get(IV_DEBIASED, False)}
+    if cov == IV_KERNEL:
+        kwargs[IV_KERNEL] = options.get(IV_KERNEL, BARTLETT)
+        if options.get(IV_BANDWIDTH) is not None:
+            kwargs[IV_BANDWIDTH] = options[IV_BANDWIDTH]
+    if cov == IV_CLUSTERED:
+        kwargs[IV_CLUSTERS] = clusters
+    y = np.asarray(data[IV_RESPONSE])
+    exog_arg = exog if exog.shape[1] else None
+    if method == "2sls":
+        return IV2SLS(y, exog_arg, endog, instr).fit(**kwargs)
+    if method == "liml":
+        return IVLIML(y, exog_arg, endog, instr, fuller=options.get(IV_FULLER, 0.0)).fit(**kwargs)
+    weight = options.get(IV_GMM_WEIGHT_TYPE, IV_ROBUST)
+    weight_config = {}
+    if weight == IV_KERNEL:
+        weight_config[IV_KERNEL] = options.get("gmmWeightKernel", BARTLETT)
+        if options.get(IV_GMM_WEIGHT_BANDWIDTH) is not None:
+            weight_config[IV_BANDWIDTH] = options[IV_GMM_WEIGHT_BANDWIDTH]
+    if weight == IV_CLUSTERED:
+        weight_config[IV_CLUSTERS] = clusters
+    return IVGMM(y, exog_arg, endog, instr, weight_type=weight, **weight_config).fit(**kwargs)
+
+
+def _iv_expected(res, method: str) -> dict:
+    import numpy as np
+
+    ci = res.conf_int()
+    f = res.f_statistic
+    fs = res.first_stage.diagnostics
+    over = None
+    if res.model.instruments.shape[1] > res.model.endog.shape[1]:
+        test = res.j_stat if method == "gmm" else res.sargan
+        over = {STATISTIC: float(test.stat), IV_P_VALUE: float(test.pval), "df": int(test.df)}
+    cov_config = res.cov_config
+    return {
+        "coefficients": np.asarray(res.params).tolist(), "standardErrors": np.asarray(res.std_errors).tolist(),
+        T_STATISTICS: np.asarray(res.tstats).tolist(), "pValues": np.asarray(res.pvalues).tolist(),
+        "confidenceLower": ci["lower"].tolist(), "confidenceUpper": ci["upper"].tolist(),
+        IV_R_SQUARED: float(res.rsquared), "adjustedRSquared": float(res.rsquared_adj),
+        "modelStatistic": float(f.stat), "modelPValue": float(f.pval), "modelDf": int(f.df),
+        "modelDenominatorDf": None if f.df_denom is None else int(f.df_denom),
+        "residualDf": int(res.df_resid),
+        "kappa": None if method == "gmm" else float(res.kappa),
+        IV_BANDWIDTH: None if res.cov_type != IV_KERNEL else int(cov_config[IV_BANDWIDTH]),
+        "firstStage": [{IV_R_SQUARED: float(r["rsquared"]), "partialRSquared": float(r["partial.rsquared"]),
+                        "sheaRSquared": float(r["shea.rsquared"]), STATISTIC: float(r["f.stat"]),
+                        IV_P_VALUE: float(r["f.pval"])} for _, r in fs.iterrows()],
+        "overidentification": over,
+    }
+
+
+def _iv_grid() -> list[tuple[str, dict]]:
+    """Every (estimator, options) pair the corpus fits each problem under."""
+    grid = []
+    for method in ("2sls", "liml", "gmm"):
+        for cov in (IV_UNADJUSTED, IV_ROBUST, IV_CLUSTERED):
+            for debiased in (False, True):
+                grid.append((method, {COVARIANCE_TYPE: cov, IV_DEBIASED: debiased}))
+        for kernel in (BARTLETT, "parzen", "qs"):
+            for bandwidth in (None, 4):
+                grid.append((method, {COVARIANCE_TYPE: IV_KERNEL, IV_KERNEL: kernel, IV_BANDWIDTH: bandwidth,
+                                      IV_DEBIASED: bandwidth is None}))
+    grid += [("liml", {COVARIANCE_TYPE: IV_ROBUST, IV_FULLER: 1.0}), ("liml", {COVARIANCE_TYPE: IV_UNADJUSTED, IV_FULLER: 4.0})]
+    for weight in (IV_UNADJUSTED, IV_KERNEL, IV_CLUSTERED):
+        grid.append(("gmm", {COVARIANCE_TYPE: IV_ROBUST, IV_GMM_WEIGHT_TYPE: weight}))
+    grid.append(("gmm", {COVARIANCE_TYPE: IV_KERNEL, IV_GMM_WEIGHT_TYPE: IV_KERNEL, "gmmWeightKernel": "parzen",
+                         IV_GMM_WEIGHT_BANDWIDTH: 6, IV_BANDWIDTH: 3}))
+    grid.append(("2sls", {COVARIANCE_TYPE: IV_ROBUST, IV_WITH_INTERCEPT: False}))
+    return grid
+
+
+def _iv_cases(problems: dict, grid: list[tuple[str, dict]]) -> list[dict]:
+    """Each problem under each pair, leaving out what the reference cannot hold to 1e-9."""
+    import numpy as np
+
+    cases = []
+    for name, data in problems.items():
+        for method, options in grid:
+            if data is problems["no exogenous regressor"] and method == "2sls" and options.get(IV_WITH_INTERCEPT) is False:
+                continue
+            res = _iv_fit(data, method, options)
+            # A covariance past 1e6 in condition number leaves no digit a 1e-9 comparison can
+            # stand on: GMM's quadratic-spectral covariance at the default n - 2 lags reaches 1.7e7.
+            if np.linalg.cond(np.asarray(res.cov)) > 1e6:
+                continue
+            cases.append({"name": _named(name, method, *(f"{k}={v}" for k, v in options.items())),
+                          METHOD: method, IV_OPTIONS: options, "data": name,
+                          IV_EXPECTED: _iv_expected(res, method)})
+    return cases
+
+
+def generate_stats_iv() -> dict:
+    """linearmodels' IV2SLS, IVLIML and IVGMM, with their tables and diagnostics (#1155).
+
+    long-comment: what the grid covers and why each axis is there.
+    Just- and over-identified models, one and two endogenous regressors, with and without an
+    intercept and with no exogenous regressor at all; every covariance, each kernel at a fixed and
+    at the automatic bandwidth, debiased and not, Fuller's correction, and each GMM weight. The rows
+    carry an AR(1) term so the kernel covariances have serial correlation to find, and heteroskedastic
+    errors so the robust ones differ from the unadjusted.
+    """
+    import warnings
+
+    import linearmodels
+
+    warnings.simplefilter("ignore")
+    problems = {
+        "over-identified, one endogenous": _iv_data(1155, 120, 2, 1, 3),
+        "just-identified, one endogenous": _iv_data(1156, 90, 1, 1, 1),
+        "two endogenous, three instruments": _iv_data(1157, 150, 2, 2, 3),
+        "no exogenous regressor": _iv_data(1158, 80, 0, 1, 2, heteroskedastic=False),
+    }
+    cases = _iv_cases(problems, _iv_grid())
+    return {
+        "metadata": {"library": "linearmodels", "version": linearmodels.__version__, FAMILY: "instrumental variables",
+                     "count": len(cases)},
+        "problems": problems,
         "cases": cases,
     }
 
@@ -14380,6 +14556,7 @@ def main() -> None:
         "survival_logrank.json": generate_survival_logrank,
         "survival_cox.json": generate_survival_cox,
         "stats_ols.json": generate_stats_ols,
+        "stats_iv.json": generate_stats_iv,
         "stats_wls.json": generate_stats_wls,
         "stats_gls.json": generate_stats_gls,
         "preprocessing_encoders.json": generate_preprocessing_encoders,

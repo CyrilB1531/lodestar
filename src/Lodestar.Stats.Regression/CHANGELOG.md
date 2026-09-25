@@ -5,6 +5,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ## [Unreleased]
 
+### Added
+
+- `InstrumentalVariables` fits two-stage least squares, LIML with Fuller's correction and two-step GMM at `linearmodels` parity, with the unadjusted, robust, kernel and clustered covariances, the first-stage diagnostics and the overidentification tests. ([#1155](https://github.com/CyrilB1531/lodestar/issues/1155))
+
 ## [0.2.0] — 2026-09-24
 
 ### Added

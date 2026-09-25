@@ -3,7 +3,9 @@
 Ordinary, weighted and generalized least squares, generalized linear models and the
 multinomial logit, each with the whole inference table statsmodels prints: standard errors, t
 statistics, p-values, confidence intervals, R² and adjusted R², the F test and variance inflation
-factors, with robust (HC0 to HC3, HAC, cluster) covariances.
+factors, with robust (HC0 to HC3, HAC, cluster) covariances. Instrumental variables — two-stage
+least squares, LIML and two-step GMM — with the table, the first-stage diagnostics and the
+overidentification tests `linearmodels` prints.
 
 ## Install
 
@@ -27,7 +29,8 @@ double firstVif = summary.VarianceInflationFactors[0];   // 59483.3…
 
 ## Parity
 
-Replayed against statsmodels' `OLS`, `WLS`, `GLS`, `GLM` and `MNLogit`.
+Replayed against statsmodels' `OLS`, `WLS`, `GLS`, `GLM` and `MNLogit`, and linearmodels'
+`IV2SLS`, `IVLIML` and `IVGMM`.
 [`docs/equivalence.md`](https://github.com/CyrilB1531/lodestar/blob/main/docs/equivalence.md) maps each Python call to its C#
 counterpart, with every deliberate divergence.
 
@@ -38,13 +41,15 @@ built for `net10.0` and `netstandard2.0`:
 
 - `Lodestar.Stats` 0.5.0 or later
 - `Lodestar.Decomposition` 0.3.0 or later
-- `Lodestar.Abstractions` 0.2.0 or later
+- `Lodestar.Abstractions` 0.2.1 or later
 
 ## Documentation
 
 - Guide: [regression inference](https://github.com/CyrilB1531/lodestar/blob/main/docs/guides/regression-inference.md)
 - Reference: [stats-regression/glm](https://github.com/CyrilB1531/lodestar/blob/main/docs/reference/stats-regression/glm.md)
 - Reference: [stats-regression/gls](https://github.com/CyrilB1531/lodestar/blob/main/docs/reference/stats-regression/gls.md)
+- Reference: [stats-regression/instrumental](https://github.com/CyrilB1531/lodestar/blob/main/docs/reference/stats-regression/instrumental.md)
+- Reference: [stats-regression/iv](https://github.com/CyrilB1531/lodestar/blob/main/docs/reference/stats-regression/iv.md)
 - Reference: [stats-regression/mnlogit](https://github.com/CyrilB1531/lodestar/blob/main/docs/reference/stats-regression/mnlogit.md)
 - Reference: [stats-regression/ols](https://github.com/CyrilB1531/lodestar/blob/main/docs/reference/stats-regression/ols.md)
 - Reference: [stats-regression/wls](https://github.com/CyrilB1531/lodestar/blob/main/docs/reference/stats-regression/wls.md)

@@ -293,6 +293,7 @@ formulaic==1.2.2 \
     --hash=sha256:c99e8f11ff7d327eaecaf63855ca69b7fa0da100ad6c0041ef80912fbac667e6
     # via
     #   lifelines
+    #   linearmodels
     #   statsmodels
 fsspec==2026.7.0 \
     --hash=sha256:b57ddbafedfaef7018c1ecab32aa200a9d7ca26b77965f64e48b70061249d279 \
@@ -587,6 +588,39 @@ lifelines==0.30.3 \
     --hash=sha256:44802480a28d6cb836c7fea4a54ec0ba220eb31c6d7444589637a8bd66066e8c \
     --hash=sha256:acd1e0ecada4280c7bb2948f39c760a0f9158a57d752c8ca29f984a86c698b7f
     # via -r tools/requirements.txt
+linearmodels==7.0 \
+    --hash=sha256:09d3952db3105f726ca174d05ce81ea6827e1d1a21f18e56a2b351d95f26c408 \
+    --hash=sha256:0e8d0a6c5e8643d48f17dcea4e08fb7852f593625aac9270dc21b551a389284f \
+    --hash=sha256:15b50271068d8ad7ef58924fea6ca3fced055f8439f9e17d2ce62ba91c64ed24 \
+    --hash=sha256:20f4aa50b28588dc1816c9a1717d614afc8231648a6a065a1795001b3a784681 \
+    --hash=sha256:25cb8343232208b9b8e746774799646eba2ebba6cbc2f2c7e069dd4f9ee9ca69 \
+    --hash=sha256:31fd2214d48dc1f43d9959d3f70d97f9f08a05dda1137e5a78f2beeda8a8e927 \
+    --hash=sha256:33980994b140c45681260bb95c324310e4ecf89c40bb865e4a073a0f737e7ff7 \
+    --hash=sha256:3c32e36af4ffe00a59b85c2eb301f32cdf7bfb9745e6727d70cd5baca476b19b \
+    --hash=sha256:463f009abffaf060c6d5fdf67b057b1bc4a3008e71e37e3eb8501c1ba2703187 \
+    --hash=sha256:4dc1250b53cf5b049dfe4ba30e777a21ba6260418cf5f5315bf2b4452bd8031f \
+    --hash=sha256:576783261a73783119b7f6592a40a946a4e3a280b2d251998863dadec222a3ca \
+    --hash=sha256:57bdfa3dae6da805973f9e38d539bf8a5a3e5fe5f30e6398ded7dc2778d86aba \
+    --hash=sha256:5b5179d07aa6738cc39105645b14edf22617e3a4eebc00285cdb11f111cfba65 \
+    --hash=sha256:5eb43b16fe1125992e5d1d0901397d915e749d72697790f61c71853ba874d0b9 \
+    --hash=sha256:5fd24d35a81e8533a3b830a569df8a9b887b58e5e093d6ce7e50e50e4d9376a7 \
+    --hash=sha256:7022d7d3108ed3315317cb72d5f802f7ba269817c0d84ae7f5a1c2b8fe93cfd6 \
+    --hash=sha256:7690675f5c0aeaa15b375d697b9b0dc50f4390dff09bda3b5a7f335168fd5042 \
+    --hash=sha256:8a9db4a86c55d2dcabce2a7bdca81a2752e533fe347ce551d462f1d41b19b4d7 \
+    --hash=sha256:8ef9fa976b1433b9ef982c469715d4543130606ad08b3bb019825073f38e11a2 \
+    --hash=sha256:90f92093ac8c10ef595f8449771e4361354b6c6c1290496ec9e7bf3c907d7388 \
+    --hash=sha256:a4551c46550917246377b1e1bbf3bd1f79bc5381a88a3391b35743677291295b \
+    --hash=sha256:b09d8e972f4327f10237de404ed479ea93c7ceadd46abbb2df733440456072cb \
+    --hash=sha256:bfea8f069f39cbfe8a62ee9890c0c097a73999a6f5b8092882f702724f1570f0 \
+    --hash=sha256:c57c8b0ab9458529d0f5e7bb44234a5e7a1a3c556043376ff8234e501d4156a4 \
+    --hash=sha256:ca7a338c7108d6ddf880396e3c391207fa189f639e508282c05926cd5c67c963 \
+    --hash=sha256:d891d4c4a9876c8f96cd84be50a54aa0b4e38386afca39d0f634b83f2c0e79eb \
+    --hash=sha256:f121a3e4cc6d399818e191fb9f4c463fe2948b06f37c49a59bb6e2848184cefd \
+    --hash=sha256:f1dea0b9ccc4eb866a6bed4d0049c4920777b38b887fd608865622767ac94e6f \
+    --hash=sha256:f37c3d9262cea593db4a0a73f32a18bcdd952bf8174bb4554d9510d8fcf2cd8b \
+    --hash=sha256:f38b1934cf5bff8675ea9771831131d360c99926c37d0f25a3d969173c4663b6 \
+    --hash=sha256:f448ed731eee2ce1a663923d643ae58ba0a78d25c66bf95a6a62cc7c08bc254b
+    # via -r tools/requirements.txt
 mapie==1.5.0 \
     --hash=sha256:1b6a81797d549b0333d6f6865bd3bca4d26c41037f111fd84160ea87a70c6d72 \
     --hash=sha256:dfc74fc62d5276ec8ab9aa2d9e53cfeb9901fe1df27f8785e724939b6a512483
@@ -646,6 +680,10 @@ matplotlib==3.11.2 \
     --hash=sha256:f2ac30cf5eb5dff1b584627ae0b0e1186551a4f69ae3c75073911da497a29170 \
     --hash=sha256:fea03cf56568cc1cba08b470be6a0559e71c3a5b688d54b7179bb35ba23d0821
     # via lifelines
+mypy-extensions==1.1.0 \
+    --hash=sha256:1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505 \
+    --hash=sha256:52e68efc3284861e772bbcd66823fde5ae21fd2fdb51c62a211403730b916558
+    # via linearmodels
 narwhals==2.26.0 \
     --hash=sha256:29326d74f107c347fd1009bd58e38d9f7c7c5b51e6de97bc93dbc325d9038b54 \
     --hash=sha256:6b9cadca82f375c7e4cf584fdc86ca25da54827307a9c58f94547ee6104b82dd
@@ -732,10 +770,12 @@ numpy==2.5.3 \
     #   datasketch
     #   formulaic
     #   lifelines
+    #   linearmodels
     #   mapie
     #   matplotlib
     #   pandas
     #   patsy
+    #   pyhdfe
     #   rank-bm25
     #   scikit-learn
     #   scipy
@@ -809,6 +849,7 @@ pandas==2.3.3 \
     # via
     #   formulaic
     #   lifelines
+    #   linearmodels
     #   statsmodels
 patsy==1.0.3 \
     --hash=sha256:79ebf4c93ff4d296e58a9d5be2b2ee31bd49d737cf11d70ffbd8a44b2de42e65 \
@@ -921,6 +962,10 @@ pygments==2.21.0 \
     --hash=sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9 \
     --hash=sha256:610ca751c9bc2492b38eb9a38a7fbc93edbbb2d7182edaf34e66ae493dee5c8c
     # via pytest
+pyhdfe==0.2.0 \
+    --hash=sha256:5be73689101b97ff9e6e563874747257cdf86cb683159de8e16a5457130fb532 \
+    --hash=sha256:8cddc5f5a09148d3281fca3c787146a85ecc5a7517be3ae5762bfe507907b7fb
+    # via linearmodels
 pyparsing==3.3.2 \
     --hash=sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d \
     --hash=sha256:c777f4d763f140633dcb6d8a3eda953bf7a214dc4eff598413c070bcdc117cbc
@@ -1375,7 +1420,9 @@ scipy==1.18.1 \
     #   datasketch
     #   formulaic
     #   lifelines
+    #   linearmodels
     #   mapie
+    #   pyhdfe
     #   scikit-learn
     #   statsmodels
 sentencepiece==0.2.2 \
@@ -1506,7 +1553,9 @@ statsmodels==0.15.0 \
     --hash=sha256:ecf84918dcd410ab34d3d85d34e0b16ebb10319c9fc77dbf9a1f1a49324c59f8 \
     --hash=sha256:edd803f4606061af8c7a83e2326ea294cbfa802a908dfbda4a88347301fb6820 \
     --hash=sha256:edee066ac9b171d95c3de925225331a21de1deb5b6452f252bc853e44566e72b
-    # via -r tools/requirements.txt
+    # via
+    #   -r tools/requirements.txt
+    #   linearmodels
 textdistance==4.6.3 \
     --hash=sha256:0cb1b2cc8e3339ddc3e0f8c870e49fb49de6ecc42a718917308b3c971f34aa56 \
     --hash=sha256:d6dabc50b4ea832cdcf0e1e6021bd0c7fcd9ade155888d79bb6a3c31fce2dc6f

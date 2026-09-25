@@ -68,6 +68,12 @@ snowballstemmer==3.1.1
 # formulaic as well.
 statsmodels==0.15.0
 
+# linearmodels -- the reference for Lodestar.Stats.Regression's instrumental variables (#1155):
+# IV2SLS, IVLIML and IVGMM with their covariances, first-stage diagnostics and overidentification
+# tests. NCSA, read from the wheel, which decision 0002's rule admits as permissive. It brings
+# pyhdfe and mypy_extensions (both MIT); pandas, scipy, statsmodels and formulaic were already here.
+linearmodels==7.0
+
 # lifelines -- the reference for Lodestar.Survival's Kaplan-Meier, Nelson-Aalen and
 # log-rank (#569). MIT, read from the wheel rather than the PyPI classifier. Its own
 # Python floor is 3.11, below the 3.12 tools/python_floor.py sets, so it does not raise ours.

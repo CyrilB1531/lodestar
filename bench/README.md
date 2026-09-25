@@ -3444,3 +3444,23 @@ dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*Di
 
 The numbers, with their machine and window, are in
 [`src/Lodestar.Stats/performance.md`](../src/Lodestar.Stats/performance.md).
+
+## 61. Instrumental variables against `linearmodels` (issue #1155)
+
+`compare-iv` puts `InstrumentalVariables` against `linearmodels` 7.0's `IV2SLS`, `IVLIML` and
+`IVGMM` at 1,000, 10,000 and 100,000 rows: three exogenous regressors and a constant, two endogenous
+regressors, four instruments. **No .NET library estimates one**, free or commercial
+([decision 0004](../docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)), so the
+Python reference is the only incumbent.
+
+No corpus file: both sides build each value from its row and column index by one formula, every
+column at its own frequency so the blocks are of full rank. Each operation produces the whole table.
+`linearmodels` computes the first-stage diagnostics and the overidentification test only when they
+are read, so its side reads them; the C# summary always carries them. Agreement is
+`tests/oracles/stats_iv.json`'s job, not the harness's.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-iv
+python3 bench/python/bench_iv.py
+python3 bench/compare.py iv
+```

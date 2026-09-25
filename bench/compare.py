@@ -279,6 +279,11 @@ def transformers(fmt: str = "text") -> None:
     wallcpu_report("transformers", fmt)
 
 
+def iv(fmt: str = "text") -> None:
+    """Lodestar.Stats.Regression's instrumental variables against linearmodels' (#1155)."""
+    wallcpu_report("iv", fmt)
+
+
 def glm(fmt: str = "text") -> None:
     """The negative binomial GLM against statsmodels' GLM, over that same corpus (#781)."""
     wallcpu_report("glm", fmt)
@@ -373,6 +378,8 @@ if __name__ == "__main__":
         glm(output_format)
     elif selected == "var":
         var(output_format)
+    elif selected == "iv":
+        iv(output_format)
     elif selected == "splitters":
         splitters(output_format)
     elif selected == "transformers":
