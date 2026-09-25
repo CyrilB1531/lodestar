@@ -12,8 +12,10 @@ public sealed class OneHotEncoder<T> where T : IComparable<T>, IEquatable<T>
 
 **Properties** — `FeatureCount` and `SampleCount` are the shape it was fitted on.
 `EncodedFeatureCount` is how many columns [`Transform`](onehotencoder-transform.md) produces, which
-is fewer than the total number of categories when one is dropped. `Categories` is each feature's
-categories, sorted — the reference's `categories_`.
+is fewer than the total number of categories when one is dropped or several are grouped.
+`Categories` is each feature's categories, sorted — the reference's `categories_`.
+`InfrequentCategories` is each feature's infrequent ones, sorted, or `null` for a feature with none —
+`infrequent_categories_`; they share the last column of their feature's block.
 
 **Example** — a fitted encoder reports what it will produce before it produces it.
 
@@ -38,3 +40,5 @@ here: a public static on a generic type is what CA1000 refuses, and the factory 
 | Member | What it does |
 | --- | --- |
 | [`OneHotEncoder.Transform`](onehotencoder-transform.md) | Encodes a matrix as one column per category. |
+| [`OneHotEncoder.TransformSparse`](onehotencoder-transformsparse.md) | The same encoding as a `CsrMatrix`, the reference's default output. |
+| [`OneHotEncoder.FeatureNames`](onehotencoder-featurenames.md) | Each output column's name, `get_feature_names_out`. |

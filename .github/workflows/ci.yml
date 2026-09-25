@@ -648,6 +648,8 @@ jobs:
             [ "$proj" = src/Lodestar.Stats.Regression ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
             # The same, for the cross-conformal enums Lodestar.Conformal names (#1159).
             [ "$proj" = src/Lodestar.Conformal ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            # And for the one-hot encoder's options Lodestar.Preprocessing names (#1161).
+            [ "$proj" = src/Lodestar.Preprocessing ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
             refs=$(echo $refs)
             if [ -n "$refs" ]; then
               echo "::error::$proj references $refs by project; src/ must reference published packages."

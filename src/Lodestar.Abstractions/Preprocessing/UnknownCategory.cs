@@ -9,4 +9,10 @@ public enum UnknownCategory
 
     /// <summary>Encode it as all zeros — the reference's <c>"ignore"</c>.</summary>
     Ignore,
+
+    /// <summary>
+    /// Encode it in its feature's infrequent column, or as all zeros where the feature has none — the reference's
+    /// <c>"infrequent_if_exist"</c>.
+    /// </summary>
+    Infrequent,
 }

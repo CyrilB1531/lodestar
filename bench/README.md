@@ -3508,3 +3508,22 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-cross-
 python3 bench/python/bench_cross_conformal.py
 python3 bench/compare.py cross-conformal
 ```
+
+## 64. Sparse one-hot encoding against scikit-learn (issue #1161)
+
+`compare-onehot` puts `OneHotEncoder<int>.TransformSparse` against scikit-learn 1.9.1's
+`OneHotEncoder` at its default sparse output, at 10,000 and 100,000 rows of three integer features,
+with every category kept and with `min_frequency=5` and `max_categories=200` grouping the tail. No
+.NET encoder groups infrequent categories or returns this layout; ML.NET's dense `OneHotEncoding` is
+the incumbent the encoders are already measured against.
+
+No corpus file: both sides build each category from its row and column index by one formula, a
+hashed index folded twice so that small codes are far more frequent. Each operation is a fit and
+the sparse transform of the fitted rows. Agreement is
+`tests/oracles/preprocessing_onehot_infrequent.json`'s job.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-onehot
+python3 bench/python/bench_onehot.py
+python3 bench/compare.py onehot
+```

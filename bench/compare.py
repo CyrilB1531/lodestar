@@ -294,6 +294,11 @@ def cross_conformal(fmt: str = "text") -> None:
     wallcpu_report("cross-conformal", fmt)
 
 
+def onehot(fmt: str = "text") -> None:
+    """Lodestar.Preprocessing's sparse one-hot encoding against scikit-learn's (#1161)."""
+    wallcpu_report("onehot", fmt)
+
+
 def glm(fmt: str = "text") -> None:
     """The negative binomial GLM against statsmodels' GLM, over that same corpus (#781)."""
     wallcpu_report("glm", fmt)
@@ -394,6 +399,8 @@ if __name__ == "__main__":
         panel(output_format)
     elif selected == "cross-conformal":
         cross_conformal(output_format)
+    elif selected == "onehot":
+        onehot(output_format)
     elif selected == "splitters":
         splitters(output_format)
     elif selected == "transformers":

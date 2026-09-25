@@ -8,6 +8,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Added
 
 - `Splitters` takes scikit-learn's `random_state` on every shuffled split and adds `GroupKFold`, `StratifiedGroupKFold`, `TimeSeries`, `RepeatedKFold`, `RepeatedStratifiedKFold` and `StratifiedTrainTest`, replaying numpy's legacy generator for the seed. ([#1157](https://github.com/CyrilB1531/lodestar/issues/1157))
+- `OneHotEncoder` groups infrequent categories by `MinFrequency`, `MinFrequencyShare` and `MaxCategories`, and gains `TransformSparse`, `FeatureNames` and `InfrequentCategories`. ([#1161](https://github.com/CyrilB1531/lodestar/issues/1161))
 
 ### Changed
 

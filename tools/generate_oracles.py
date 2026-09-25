@@ -5466,6 +5466,107 @@ def generate_preprocessing_encoders() -> dict:
     }
 
 
+
+# The infrequent-category corpus (#1161): its own keys, beside the encoder corpus's.
+HANDLE_INFREQUENT = "infrequent_if_exist"
+MIN_FREQUENCY = "minFrequency"
+MAX_CATEGORIES = "maxCategories"
+
+
+def _infrequent_fixtures() -> list[tuple[str, list, list]]:
+    """Two features with skewed counts, a string one and an integer one, and rows the fit never saw."""
+    letters = [["a"]] * 6 + [["b"]] * 4 + [["c"]] * 2 + [["d"], ["e"]]
+    colours = ["red", "red", "red", "blue", "blue", "green", "green", "grey", "teal", "red", "blue", "red", "pink", "blue"]
+    pairs = [[letter[0], colour] for letter, colour in zip(letters, colours)]
+    codes = [[7], [7], [7], [7], [3], [3], [3], [11], [11], [5], [2], [7], [3], [9]]
+    return [
+        ("one string feature", letters, [["a"], ["d"], ["zzz"], ["c"]]),
+        ("two string features", pairs, [["a", "red"], ["e", "teal"], ["zzz", "blue"], ["b", "zzz"]]),
+        ("one integer feature", codes, [[7], [9], [100], [5]]),
+        # Floating categories name their columns as Python's str writes them: 1.0, 1e-05.
+        ("one floating feature", [[0.5]] * 4 + [[1e-05]] * 3 + [[1.5e16]] * 3 + [[1.0]] * 2 + [[2.0]],
+         [[0.5], [1e-05], [3.25], [2.0]]),
+    ]
+
+
+def _infrequent_grid() -> list[dict]:
+    """min_frequency as a count and as a share, max_categories, and each with drop and handle_unknown."""
+    grid = []
+    for frequency in (None, 2, 3, 0.1, 0.25):
+        for most in (None, 1, 2, 3):
+            if frequency is None and most is None:
+                continue
+            for drop in (None, DROP_FIRST, DROP_IF_BINARY):
+                for unknown in (HANDLE_ERROR, HANDLE_IGNORE, HANDLE_INFREQUENT):
+                    grid.append({MIN_FREQUENCY: frequency, MAX_CATEGORIES: most, DROP: drop, HANDLE_UNKNOWN: unknown})
+    return grid
+
+
+def _infrequent_case(name: str, rows: list, unseen: list, setting: dict) -> dict | None:
+    import numpy as np
+    from sklearn.preprocessing import OneHotEncoder
+
+    matrix = np.array(rows, dtype=object)
+    common = {"drop": setting[DROP], "handle_unknown": setting[HANDLE_UNKNOWN],
+              "min_frequency": setting[MIN_FREQUENCY], "max_categories": setting[MAX_CATEGORIES]}
+    try:
+        dense = OneHotEncoder(sparse_output=False, **common).fit(matrix)
+        sparse = OneHotEncoder(sparse_output=True, **common).fit(matrix)
+    except ValueError:
+        return None
+    unseen_rows = unseen if setting[HANDLE_UNKNOWN] != HANDLE_ERROR else [r for r in unseen if all(
+        v in dense.categories_[j] for j, v in enumerate(r))]
+    if isinstance(rows[0][0], int):
+        cast, element = int, ELEMENT_INT
+    elif isinstance(rows[0][0], float):
+        cast, element = float, "double"
+    else:
+        cast, element = str, ELEMENT_STRING
+    csr = sparse.transform(matrix).tocsr()
+    return {
+        "name": _named(name, *(f"{k}={v}" for k, v in setting.items())),
+        ELEMENT_TYPE: element,
+        VALUES: [cast(v) for row in rows for v in row], FEATURE_COUNT: len(rows[0]), **setting,
+        CATEGORIES: [[cast(v) for v in feature] for feature in dense.categories_],
+        # The reference raises AttributeError for infrequent_categories_ when neither setting is given.
+        "infrequentCategories": [None if f is None else [cast(v) for v in f] for f in dense.infrequent_categories_]
+        if setting[MIN_FREQUENCY] is not None or setting[MAX_CATEGORIES] is not None else [None] * len(rows[0]),
+        "encodedFeatureCount": int(len(dense.get_feature_names_out())),
+        "featureNames": [str(v) for v in dense.get_feature_names_out()],
+        ENCODED: [float(v) for row in dense.transform(matrix) for v in row],
+        "sparseValues": [float(v) for v in csr.data], "sparseColumns": [int(v) for v in csr.indices],
+        "sparseRowPointers": [int(v) for v in csr.indptr],
+        UNSEEN_VALUES: [cast(v) for row in unseen_rows for v in row],
+        UNSEEN_ENCODED: [float(v) for row in dense.transform(np.array(unseen_rows, dtype=object)) for v in row]
+        if unseen_rows else [],
+    }
+
+
+def generate_preprocessing_onehot_infrequent() -> dict:
+    """OneHotEncoder's infrequent categories, sparse output and feature names (#1161).
+
+    long-comment: what the grid crosses and why the unseen rows differ by setting.
+    min_frequency as a count and as a share, max_categories, and each against drop and
+    handle_unknown, over a string feature, two string features and an integer feature whose counts
+    are skewed so some categories fall below each threshold. A setting the reference refuses is left
+    out. Under handle_unknown="error" the unseen rows keep only the known values, since an unknown
+    one raises there as it does here.
+    """
+    import warnings
+
+    warnings.simplefilter("ignore")
+    cases = []
+    for name, rows, unseen in _infrequent_fixtures():
+        for setting in _infrequent_grid():
+            case = _infrequent_case(name, rows, unseen, setting)
+            if case is not None:
+                cases.append(case)
+    return {
+        "metadata": {"algorithm": "OneHotEncoder with min_frequency and max_categories", "library": "scikit-learn",
+                     "library_version": version("scikit-learn"), "count": len(cases)},
+        "cases": cases,
+    }
+
 # The incremental-fit corpus (#765): the keys its cases carry, and the scalers it freezes.
 STANDARD = "standard"
 BATCHES = "batches"
@@ -14889,6 +14990,7 @@ def main() -> None:
         "stats_wls.json": generate_stats_wls,
         "stats_gls.json": generate_stats_gls,
         "preprocessing_encoders.json": generate_preprocessing_encoders,
+        "preprocessing_onehot_infrequent.json": generate_preprocessing_onehot_infrequent,
         "preprocessing_splitters.json": generate_preprocessing_splitters,
         "preprocessing_splitters_seeded.json": generate_preprocessing_splitters_seeded,
         "numpy_random_state.json": generate_numpy_random_state,

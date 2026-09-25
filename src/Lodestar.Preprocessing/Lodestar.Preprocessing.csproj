@@ -26,14 +26,21 @@
   -->
   <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
     <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
-    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
     <ProjectReference Include="../Lodestar.Cluster/Lodestar.Cluster.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
     <PackageReference Include="Lodestar.Stats" />
-    <PackageReference Include="Lodestar.Abstractions" />
     <PackageReference Include="Lodestar.Cluster" />
+  </ItemGroup>
+
+  <!-- The one-hot encoder's infrequent-category options live in Lodestar.Abstractions (#1161), so
+       this package reaches that project unconditionally until the next Lodestar.Abstractions is on
+       nuget.org; packing turns the reference into a dependency on that version. The release swaps
+       it back for a PackageReference and drops its exception in ci.yml's "src/ ships
+       PackageReference only" step. -->
+  <ItemGroup>
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>
 
   <!-- Loud on purpose: a local build that silently differed from the shipped one
