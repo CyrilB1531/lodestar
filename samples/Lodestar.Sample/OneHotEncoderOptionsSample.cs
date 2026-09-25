@@ -29,6 +29,17 @@ internal static class OneHotEncoderOptionsSample
             $"  {ifBinary.Drop} on 2 / 3  : "
             + $"{Encoders.OneHot(["y", "n"], 1, ifBinary).EncodedFeatureCount} / "
             + $"{Encoders.OneHot(["a", "b", "c"], 1, ifBinary).EncodedFeatureCount} columns");
+
+        var grouping = new OneHotEncoderOptions
+        {
+            MinFrequencyShare = 0.2,
+            MaxCategories = 3,
+            Unknown = UnknownCategory.Infrequent,
+        };
+        OneHotEncoder<string> grouped = Encoders.OneHot(["a", "a", "a", "b", "b", "c", "d"], 1, grouping);
+        Console.WriteLine(
+            $"  share {Inv.F1(grouping.MinFrequencyShare.Value)}, at most {grouping.MaxCategories} : "
+            + $"{Inv.List(grouped.Transform(["zzz"]))} for an unknown, count {grouping.MinFrequency?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "unset"}");
         Console.WriteLine();
     }
 }

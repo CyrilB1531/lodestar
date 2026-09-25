@@ -38,7 +38,7 @@ A core package ([decision 0003](https://github.com/CyrilB1531/lodestar/blob/main
 built for `net10.0` and `netstandard2.0`:
 
 - `Lodestar.Stats` 0.5.0 or later
-- `Lodestar.Abstractions` 0.2.0 or later
+- `Lodestar.Abstractions` 0.2.1 or later
 - `Lodestar.Cluster` 0.2.0 or later
 
 ## Documentation

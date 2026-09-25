@@ -612,6 +612,15 @@
         "bench/Lodestar.Text.Benchmarks/CrossLang/CrossConformalCrossLang.cs"
       ]
     },
+    "onehot": {
+      "subcommand": "compare-onehot",
+      "python": "bench/python/bench_onehot.py",
+      "compare": "onehot",
+      "sources": [
+        "src/Lodestar.Preprocessing/**",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/OneHotCrossLang.cs"
+      ]
+    },
     "ols": {
       "subcommand": "compare-ols",
       "python": "bench/python/bench_stats.py",

@@ -250,3 +250,26 @@ parallelism gap, not an arithmetic one, and it is the honest candidate for its o
 one: it sorts each column with
 `Array.Sort` against numpy's introsort over a contiguous buffer, and 0.48× is about the constant
 factor that costs.
+
+## Sparse one-hot encoding against scikit-learn (issue #1161)
+
+Full method:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#64-sparse-one-hot-encoding-against-scikit-learn-issue-1161).
+The incumbent for the dense encoding is ML.NET's `OneHotEncoding`, measured above; neither it nor any
+other .NET encoder groups infrequent categories or returns scikit-learn's sparse layout, so the
+reference, scikit-learn 1.9.1 on numpy 2.5.3, is the one compared here. Machine: AMD Ryzen 7 8700G
+w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores, .NET 10.0.12, under the repository's
+machine lock, 2026-09-25 15:42 to 15:43 UTC, one core of sixteen taken by an unrelated process
+throughout. Milliseconds for a fit and the sparse transform of the fitted rows, best of five: three
+integer features with skewed counts, up to 997 categories each.
+
+| rows | encoding | Lodestar | scikit-learn, wall / cpu | ratio, cpu |
+| ---: | --- | ---: | ---: | ---: |
+| 10,000 | every category | **1.26 ms** | 2.39 / 2.39 ms | **1.89** |
+| 10,000 | `min_frequency=5`, `max_categories=200` | **1.43 ms** | 2.96 / 2.96 ms | **2.07** |
+| 100,000 | every category | **12.3 ms** | 21.2 / 21.2 ms | **1.67** |
+| 100,000 | `min_frequency=5`, `max_categories=200` | **12.2 ms** | 24.7 / 24.7 ms | **1.99** |
+
+**How it reads.** Ahead on every row, by 1.7× to 2.1×; grouping the tail costs scikit-learn a
+fifth more and this package nothing measurable, since the grouping is one pass over the counts the
+fit already takes.

@@ -20,6 +20,8 @@
   <ItemGroup>
     <None Include="../oracles/preprocessing_encoders.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
+    <None Include="../oracles/preprocessing_onehot_infrequent.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
     <None Include="../oracles/preprocessing_partial_fit.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
     <None Include="../oracles/preprocessing_sparse.json" CopyToOutputDirectory="PreserveNewest"

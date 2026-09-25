@@ -205,12 +205,12 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     PREPROCESSING: {
-        # Three Lodestar edges and nothing external, which keeps this core tier: the normal
-        # quantile (0138), the CsrMatrix (0139), and KBinsDiscretizer's Lloyd (1122).
-        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR, CLUSTER: CLUSTER_FLOOR},
+        # Three core edges: the normal quantile (0138), the CsrMatrix (0139), KBinsDiscretizer's Lloyd
+        # (1122); Abstractions is the project's version until the release publishes #1161's options.
+        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, CLUSTER: CLUSTER_FLOOR},
         NETSTANDARD: {
             STATS: STATS_FLOOR,
-            ABSTRACTIONS: ABSTRACTIONS_FLOOR,
+            ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR,
             CLUSTER: CLUSTER_FLOOR,
             **POLYFILLS,
         },
@@ -222,8 +222,8 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     CONFORMAL: {
-        # Arithmetic over spans, as above; its cross-conformal enums sit in the unpublished
-        # Lodestar.Abstractions (#1159), so the edge is that project's version until the release.
+        # Arithmetic over spans; its #1159 enums sit in the unpublished Abstractions, so the edge is
+        # that project's version until the release.
         NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
     },

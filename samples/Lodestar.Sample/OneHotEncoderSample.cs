@@ -16,6 +16,14 @@ internal static class OneHotEncoderSample
         Console.WriteLine($"  categories       : [{string.Join(", ", encoder.Categories[0])}]");
         Console.WriteLine($"  columns          : {encoder.EncodedFeatureCount}");
         Console.WriteLine($"  encoded          : {Inv.List(encoder.Transform(values))}");
+
+        // Infrequent categories share one column, and the sparse output stores only the ones.
+        OneHotEncoder<string> grouped = Encoders.OneHot(
+            ["a", "a", "a", "b", "b", "c", "d"], 1, new OneHotEncoderOptions { MinFrequency = 2 });
+        Lodestar.Abstractions.CsrMatrix sparse = grouped.TransformSparse(["a", "d"]);
+        Console.WriteLine($"  infrequent       : [{string.Join(", ", grouped.InfrequentCategories[0]!)}]");
+        Console.WriteLine($"  names            : {string.Join(", ", grouped.FeatureNames())}");
+        Console.WriteLine($"  sparse           : {sparse.NonZeroCount} stored, columns {string.Join(",", sparse.ColumnIndices)}");
         Console.WriteLine();
     }
 }
