@@ -9,7 +9,7 @@ public static double FisherSf(double f, double numeratorDf, double denominatorDf
 ```
 
 **Parameters** — `f` is the statistic. `numeratorDf` and `denominatorDf` are the two degrees of
-freedom, both of which must be positive.
+freedom, both of which must be positive and finite.
 
 **Returns** — `scipy.stats.f.sf(f, dfn, dfd)`.
 
@@ -25,7 +25,7 @@ using Lodestar.Stats;
 double overall = Distributions.FisherSf(4.0, 2.0, 20.0);  // => 0.0345716…
 
 // Far into the tail, where an absolute tolerance would accept a zero.
-double extreme = Distributions.FisherSf(500.0, 3.0, 100.0);  // => 4.8466962308084166E-60
+double extreme = Distributions.FisherSf(500.0, 3.0, 100.0);  // => 4.8466962308085…
 ```
 
 **Remarks** — the same tail one-way ANOVA already reports here, exposed for a caller that computed

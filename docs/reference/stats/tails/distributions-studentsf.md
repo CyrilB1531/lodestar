@@ -8,7 +8,7 @@ The upper tail of Student's *t*: `P(T > t)`.
 public static double StudentSf(double t, double df)
 ```
 
-**Parameters** — `t` is the statistic. `df` is the degrees of freedom, which must be positive.
+**Parameters** — `t` is the statistic. `df` is the degrees of freedom, which must be positive; `+∞` is the standard normal law, as scipy's is.
 
 **Returns** — `scipy.stats.t.sf(t, df)`.
 

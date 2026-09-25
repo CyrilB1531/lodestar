@@ -244,6 +244,10 @@
     "DistributionTailBenchmarks": [
       "src/Lodestar.Stats/**"
     ],
+    "DistributionIncumbentBenchmarks": [
+      "src/Lodestar.Stats/Distributions.cs",
+      "src/Lodestar.Stats/Internal/**"
+    ],
     "SplitterIncumbentBenchmarks": [
       "src/Lodestar.Preprocessing/Splitters.cs",
       "src/Lodestar.Preprocessing/FoldSplit.cs",

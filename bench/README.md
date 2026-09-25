@@ -3415,3 +3415,25 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*Ind
 
 The numbers, with their machine and window, are in
 [`docs/guides/performance.md`](../docs/guides/performance.md).
+
+## 60. The four laws' tails and quantiles against Math.NET Numerics and Meta.Numerics (issue #1158)
+
+`DistributionIncumbentBenchmarks` times the lower tail and the quantile of Student's t, F,
+chi-squared and the standard normal, one call per row, against the two .NET libraries that publish
+the same functions: Math.NET Numerics 5.0.0 (MIT) and Meta.Numerics 4.2.0 (MS-PL). Twenty-four
+rows, eight operations on three libraries.
+
+**Every value is compared before anything is timed.** The three libraries compute the same
+quantity, so a row is a comparison only where their answers agree; `MetaNumericsAgreement`
+records every value that differs from Lodestar's past `1e-9` and prints the list, which the
+performance page quotes. Meta.Numerics' laws are objects, built once in the setup as a caller
+holding a law would hold them; Math.NET's and Lodestar's are static calls. The arguments are the
+reference pages' examples, held in instance fields so the JIT cannot fold a closed form into its
+answer, as `DistributionTailBenchmarks` measured it would.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*DistributionIncumbentBenchmarks*'
+```
+
+The numbers, with their machine and window, are in
+[`src/Lodestar.Stats/performance.md`](../src/Lodestar.Stats/performance.md).
