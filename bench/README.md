@@ -1919,7 +1919,10 @@ is the better .NET choice. This one answers the question `CLAUDE.md`'s thesis ac
 whether it replaces the Python script that exists today — and it is the fifth and sixth
 cross-language harness, alongside `levenshtein`, `indel`, `metrics` and `persistence`.
 
-Two harnesses over one corpus. `stats` is the three hypothesis tests against `scipy.stats`;
+Two harnesses over one corpus. `stats` is the hypothesis tests against `scipy.stats` — the first
+three, and since #1162 Fligner-Killeen and the k-sample Anderson-Darling test on the corpus's two
+samples, Spearman's matrix over its design and the point-biserial correlation of the second sample
+against the first's sign;
 `ols` is the summary table against `statsmodels`. They are mapped separately in
 `bench/bench-map.json` so a change to one package does not re-run the other.
 

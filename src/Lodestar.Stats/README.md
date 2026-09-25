@@ -2,8 +2,9 @@
 
 Classical hypothesis tests with scipy.stats' semantics: Student and Welch t, Mann-Whitney
 U, Wilcoxon signed-rank, chi-square and its contingency form, Fisher exact, Kolmogorov-Smirnov,
-Shapiro-Wilk, Anderson-Darling, one-way ANOVA, Kruskal-Wallis, Levene, Bartlett, Friedman, the
-binomial test and the correlation tests. Each returns its statistic and p-value, with scipy's
+Shapiro-Wilk, Anderson-Darling and its k-sample form, one-way ANOVA, Kruskal-Wallis, Levene,
+Bartlett, Fligner-Killeen, Friedman, the binomial test, and the correlation tests, Spearman's
+matrix and the point-biserial included. Each returns its statistic and p-value, with scipy's
 alternatives and `nan_policy`. It also publishes the four distribution tails its neighbours
 need.
 
@@ -36,7 +37,7 @@ counterpart, with every deliberate divergence.
 A core package ([decision 0003](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)),
 built for `net10.0` and `netstandard2.0`:
 
-- `Lodestar.Abstractions` 0.2.0 or later
+- `Lodestar.Abstractions` 0.2.1 or later
 
 ## Documentation
 

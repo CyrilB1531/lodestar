@@ -28,7 +28,14 @@ internal static class Ranks
             sorted[i] = values[i];
         }
 
-        Array.Sort(sorted, order);
+        if (RadixSort.Worthwhile(values))
+        {
+            RadixSort.Sort(sorted, order);
+        }
+        else
+        {
+            Array.Sort(sorted, order);
+        }
 
         double[] ranks = new double[n];
         tieCorrection = 0.0;

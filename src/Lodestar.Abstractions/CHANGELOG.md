@@ -11,6 +11,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `PanelDesign`, `PanelOptions`, `PanelCovarianceType` and `PanelSummary` in `Lodestar.Stats.Regression.Panel`, the data `PanelRegression` takes and returns. ([#1156](https://github.com/CyrilB1531/lodestar/issues/1156))
 - `CrossConformalMethod` and `CrossConformalAggregation` in `Lodestar.Conformal`, which `CrossConformal` takes. ([#1159](https://github.com/CyrilB1531/lodestar/issues/1159))
 - `OneHotEncoderOptions.MinFrequency`, `MinFrequencyShare` and `MaxCategories`, and `UnknownCategory.Infrequent`. ([#1161](https://github.com/CyrilB1531/lodestar/issues/1161))
+- `AndersonKSampleVariant` and `CorrelationMatrix` in `Lodestar.Stats`, which the k-sample Anderson-Darling test and Spearman's correlation matrix take and return. ([#1162](https://github.com/CyrilB1531/lodestar/issues/1162))
 
 ## [0.2.0] — 2026-09-24
 

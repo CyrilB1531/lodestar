@@ -10,7 +10,7 @@ namespace Lodestar.Stats;
 /// heavily than the centre, which is usually where a departure from normality matters and is the
 /// reason the two disagree on the same sample often enough to be worth running both.
 /// </remarks>
-public static class AndersonDarling
+public static partial class AndersonDarling
 {
     /// <summary>Stephens' critical values for the normal case, at 15%, 10%, 5%, 2.5% and 1%.</summary>
     private static readonly double[] StephensNormal = [0.561, 0.631, 0.752, 0.873, 1.035];

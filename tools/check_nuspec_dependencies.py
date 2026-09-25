@@ -262,10 +262,10 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     STATS: {
-        # One Lodestar edge, to the data types it forwards (#1142); otherwise arithmetic over
-        # arrays, with tail probabilities computed here, not fetched.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
+        # One Lodestar edge, to its data types (#1142), at the project's version until the release
+        # publishes #1162's; otherwise arithmetic over arrays, with tails computed here.
+        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
     },
 }
 

@@ -13,3 +13,4 @@ the same sample often enough to be worth running both.
 | Member | What it does |
 | --- | --- |
 | [`AndersonDarling.Test`](andersondarling-test.md) | Tests a sample against the normal distribution, fitting its mean and spread. |
+| [`AndersonDarling.KSample`](andersondarling-ksample.md) | Tests whether several samples come from one distribution. |

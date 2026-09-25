@@ -13,3 +13,4 @@ exact branch for `spearmanr`, so neither is offered here.
 | Member | What it does |
 | --- | --- |
 | [`Spearman.Test`](spearman-test.md) | Correlates the ranks of two paired samples. |
+| [`Spearman.Matrix`](spearman-matrix.md) | Correlates every pair of variables at once. |

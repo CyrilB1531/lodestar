@@ -650,6 +650,8 @@ jobs:
             [ "$proj" = src/Lodestar.Conformal ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
             # And for the one-hot encoder's options Lodestar.Preprocessing names (#1161).
             [ "$proj" = src/Lodestar.Preprocessing ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            # And for the k-sample variant and correlation matrix Lodestar.Stats names (#1162).
+            [ "$proj" = src/Lodestar.Stats ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
             refs=$(echo $refs)
             if [ -n "$refs" ]; then
               echo "::error::$proj references $refs by project; src/ must reference published packages."

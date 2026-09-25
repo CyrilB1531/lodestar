@@ -234,8 +234,8 @@ internal static class Normal
     /// <remarks>
     /// Wichura, M. J. (1988), "Algorithm AS 241: The percentage points of the normal
     /// distribution", <em>Applied Statistics</em> 37(3), 477-484: the paper's three rational
-    /// functions and coefficients, about 1e-16 relative. A seed for both quantiles here and
-    /// never an answer on its own, so a coefficient off by a digit costs a Newton step.
+    /// functions and coefficients, about 1e-16 relative. The seed for both quantiles here, and
+    /// Fligner-Killeen's normal scores on its own, where a statistic compared at 1e-9 needs no Newton step.
     /// </remarks>
     internal static double RationalUpperQuantile(double p)
     {
