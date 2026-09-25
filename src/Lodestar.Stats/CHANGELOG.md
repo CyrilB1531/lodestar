@@ -8,6 +8,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Added
 
 - `Distributions` publishes the density, the lower tail and the inverse upper tail of the standard normal, Student's t, F and chi-squared laws, and the F and chi-squared quantiles: fifteen members, twenty with the five already published, at `scipy.stats` parity. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))
+- `Fligner.Test`, `AndersonDarling.KSample`, `Spearman.Matrix` and `PointBiserial.Test` add the Fligner-Killeen test, the k-sample Anderson-Darling test, Spearman's correlation matrix and the point-biserial correlation at `scipy.stats` parity. ([#1162](https://github.com/CyrilB1531/lodestar/issues/1162))
 
 ### Changed
 

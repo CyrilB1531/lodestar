@@ -204,10 +204,16 @@ def measure_size(n: int) -> tuple[list[dict], list[dict], list[dict], list[dict]
     suffix = f"n{n}"
     groups = np.arange(n, dtype=np.int64) // CLUSTER_SIZE
 
+    positive = first > 0.0
     tests = [
         measure(f"welch_t_{suffix}", lambda: sps.ttest_ind(first, second, equal_var=False)),
         measure(f"mann_whitney_{suffix}", lambda: sps.mannwhitneyu(first, second)),
         measure(f"chi_square_{suffix}", lambda: sps.chi2_contingency(table)),
+        # #1162: variant is named so scipy skips its deprecation warning, which is not the test's cost.
+        measure(f"fligner_{suffix}", lambda: sps.fligner(first, second)),
+        measure(f"anderson_ksamp_{suffix}", lambda: sps.anderson_ksamp([first, second], variant="midrank")),
+        measure(f"spearman_matrix_{suffix}", lambda: sps.spearmanr(design)),
+        measure(f"pointbiserial_{suffix}", lambda: sps.pointbiserialr(positive, second)),
     ]
     regression = [
         measure(f"ols_summary_{suffix}", lambda: ols_summary(exog, endog)),

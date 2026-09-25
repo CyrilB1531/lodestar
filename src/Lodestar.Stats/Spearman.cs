@@ -11,7 +11,7 @@ namespace Lodestar.Stats;
 /// sample size — scipy publishes no exact branch for <c>spearmanr</c>, so neither is offered
 /// here.
 /// </remarks>
-public static class Spearman
+public static partial class Spearman
 {
     /// <summary>Correlates the ranks of two paired samples.</summary>
     /// <param name="x">The first sample.</param>

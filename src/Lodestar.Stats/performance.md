@@ -39,6 +39,42 @@ Math.NET's rational approximation, because it inverts the library's own normal t
 a separate approximation of the quantile. Both are correct to the corpus's `1e-9` across a grid
 reaching `1e-300`; whether they should trade an evaluation for speed is its own question.
 
+## Lodestar.Stats against scipy (issue #1162) — Fligner-Killeen, the k-sample Anderson-Darling test, Spearman's matrix and the point-biserial correlation
+
+Full method:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#22-lodestarstats-and-lodestarstatsregression-against-scipy-and-statsmodels-issue-595),
+the `stats` harness over its seeded corpus. No free .NET library computes any of the four, so
+scipy 1.18.1 on numpy 2.5.3 is the incumbent. Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics,
+1 CPU, 16 logical and 8 physical cores, .NET 10.0.12, under the repository's machine lock: the
+Python side 2026-09-25 22:09 to 22:17 UTC, the C# side 22:25 to 22:27 UTC, one core of sixteen
+taken by an unrelated process throughout. Milliseconds per call, best of five.
+
+| rows | test | Lodestar | scipy, wall / cpu | ratio, cpu |
+| ---: | --- | ---: | ---: | ---: |
+| 1,000 | Fligner-Killeen | **0.046 ms** | 0.312 / 0.312 ms | **6.82** |
+| 1,000 | k-sample Anderson-Darling | **0.051 ms** | 0.215 / 0.215 ms | **4.21** |
+| 1,000 | Spearman's matrix | **0.063 ms** | 0.337 / 0.337 ms | **5.32** |
+| 1,000 | point-biserial | **0.007 ms** | 0.211 / 0.211 ms | **28.83** |
+| 10,000 | Fligner-Killeen | **0.824 ms** | 2.00 / 2.00 ms | **2.36** |
+| 10,000 | k-sample Anderson-Darling | **1.18 ms** | 3.49 / 3.49 ms | **2.73** |
+| 10,000 | Spearman's matrix | **1.28 ms** | 2.81 / 2.81 ms | **2.10** |
+| 10,000 | point-biserial | **0.069 ms** | 0.248 / 0.248 ms | **3.61** |
+| 100,000 | Fligner-Killeen | **8.34 ms** | 20.7 / 20.7 ms | **2.41** |
+| 100,000 | k-sample Anderson-Darling | **9.16 ms** | 42.4 / 42.4 ms | **4.43** |
+| 100,000 | Spearman's matrix | **10.1 ms** | 32.3 / 32.3 ms | **3.04** |
+| 100,000 | point-biserial | **0.937 ms** | 1.11 / 17.1 ms | **17.94** |
+
+**How it reads.** Ahead on every row. The point-biserial correlation at 100,000 rows is the close
+one in elapsed time, 1.18×, where numpy spreads its reduction over threads and spends sixteen
+times the processor time doing it.
+
+**Ranking was the cost.** The first reading was behind on nine of these rows: Spearman's matrix
+ranked each column once per partner (0.32× at 100,000), the k-sample test sorted with LINQ and
+binary-searched each distinct value (0.64×), and Fligner-Killeen refined every normal score by
+Newton (0.70×). Ranking each column once, walking the sorted samples beside the pooled values,
+reading the scores from Wichura's AS 241 alone and sorting large samples by radix took them to
+the table above. The radix sort serves every rank test in the package from 8,192 values up.
+
 ## Lodestar.Stats against Accord.Statistics (issue #1121) — the variance, proportion and fit tests
 
 Full method, how `Accord`'s names were resolved, why Friedman has no row and what `Accord`'s

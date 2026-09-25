@@ -70,12 +70,20 @@ public static class StatsCrossLang
         Harness.Write(outPath, payload);
     }
 
-    private static List<Harness.OperationResult> Tests(Corpus corpus, string suffix) =>
-    [
-        Harness.Measure($"welch_t_{suffix}", () => TTest.Independent(corpus.First, corpus.Second)),
-        Harness.Measure($"mann_whitney_{suffix}", () => MannWhitney.Test(corpus.First, corpus.Second)),
-        Harness.Measure($"chi_square_{suffix}", () => ChiSquare.Contingency(corpus.Table)),
-    ];
+    private static List<Harness.OperationResult> Tests(Corpus corpus, string suffix)
+    {
+        bool[] positive = [.. corpus.First.Select(value => value > 0.0)];
+        return
+        [
+            Harness.Measure($"welch_t_{suffix}", () => TTest.Independent(corpus.First, corpus.Second)),
+            Harness.Measure($"mann_whitney_{suffix}", () => MannWhitney.Test(corpus.First, corpus.Second)),
+            Harness.Measure($"chi_square_{suffix}", () => ChiSquare.Contingency(corpus.Table)),
+            Harness.Measure($"fligner_{suffix}", () => Fligner.Test(corpus.First, corpus.Second)),
+            Harness.Measure($"anderson_ksamp_{suffix}", () => AndersonDarling.KSample(corpus.First, corpus.Second)),
+            Harness.Measure($"spearman_matrix_{suffix}", () => Spearman.Matrix(corpus.Design, corpus.Regressors)),
+            Harness.Measure($"pointbiserial_{suffix}", () => PointBiserial.Test(positive, corpus.Second)),
+        ];
+    }
 
     /// <summary>The lag count of the HAC row, as bench_stats.py's <c>HAC_LAGS</c> (#775).</summary>
     private const int HacLags = 4;

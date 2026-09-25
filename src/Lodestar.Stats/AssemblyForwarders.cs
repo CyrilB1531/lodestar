@@ -16,3 +16,5 @@ using System.Runtime.CompilerServices;
 [assembly: TypeForwardedTo(typeof(Lodestar.Stats.Chi2ContingencyResult))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Stats.KsResult))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Stats.TestResult))]
+[assembly: TypeForwardedTo(typeof(Lodestar.Stats.AndersonKSampleVariant))]
+[assembly: TypeForwardedTo(typeof(Lodestar.Stats.CorrelationMatrix))]

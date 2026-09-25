@@ -19,5 +19,12 @@ internal static class SpearmanSample
         Console.WriteLine($"  rho                   = {Inv.F4(monotone.Statistic)}");
         Console.WriteLine($"  p                     = {Inv.E3(monotone.PValue)}");
         Console.WriteLine($"  Pearson r, same data  = {Inv.F4(Pearson.Test(Dose, Effect).Statistic)}");
+
+        // Every pair of three variables at once: the dose, the effect, and a side effect that falls.
+        double[] rows = [.. Dose.Select((dose, i) => new[] { dose, Effect[i], 10.0 - i }).SelectMany(row => row)];
+        CorrelationMatrix matrix = Spearman.Matrix(rows, 3, Alternative.TwoSided, NanPolicy.Propagate);
+        Console.WriteLine(
+            $"  matrix {matrix.VariableCount} x {matrix.VariableCount}          : rho(dose, side) = {Inv.F4(matrix.Statistics[2])}, "
+            + $"p = {Inv.E3(matrix.PValues[2])}, equal to itself {matrix.Equals(Spearman.Matrix(rows, 3))}, hash {matrix.GetHashCode()}");
     }
 }

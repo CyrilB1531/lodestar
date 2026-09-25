@@ -14392,7 +14392,7 @@ def generate_stats_levene() -> dict:
 
     cases = []
     for fx in _variance_groups():
-        for center, cut in (("median", 0.05), ("mean", 0.05), ("trimmed", 0.05), ("trimmed", 0.25)):
+        for center, cut in (("median", 0.05), ("mean", 0.05), (CENTER_TRIMMED, 0.05), (CENTER_TRIMMED, 0.25)):
             r = sps.levene(*[np.array(g) for g in fx[GROUPS]],
                            center=center, proportiontocut=cut)
             cases.append({
@@ -14409,6 +14409,144 @@ def generate_stats_levene() -> dict:
 
     return {"metadata": _stats_metadata(LEVENE, len(cases)), CASES: cases}
 
+
+
+# #1162's families: their call names, beside Levene's and Bartlett's.
+FLIGNER = "fligner"
+CENTER_TRIMMED = "trimmed"
+ANDERSON_KSAMP = "anderson_ksamp"
+SPEARMAN_MATRIX = "spearman_matrix"
+POINTBISERIAL = "pointbiserial"
+
+
+def generate_stats_fligner() -> dict:
+    """The Fligner-Killeen test, against scipy.stats.fligner (#1162), on Levene's groups and centres."""
+    from scipy import stats as sps
+
+    cases = []
+    for fx in _variance_groups():
+        for center, cut in ((STRATEGY_MEDIAN, 0.05), ("mean", 0.05), (CENTER_TRIMMED, 0.05), (CENTER_TRIMMED, 0.25)):
+            r = sps.fligner(*[np.array(g) for g in fx[GROUPS]], center=center, proportiontocut=cut)
+            cases.append({
+                "name": _correlation_name(fx["name"], center=center, proportiontocut=cut),
+                "call": FLIGNER, "args": {CENTER: center, PROPORTION_TO_CUT: cut},
+                GROUPS: fx[GROUPS],
+                STATISTIC: _stats_number(float(r.statistic)),
+                PVALUE: _stats_number(float(r.pvalue)),
+            })
+
+    nan_groups = [[1.0, 2.0, float("nan"), 4.0, 9.0], [2.0, 3.0, 4.0, 5.0, 6.0],
+                  [5.0, 6.0, 7.0, 18.0, 8.0]]
+    cases.extend(_group_nan_cases(FLIGNER, sps.fligner, nan_groups, NAN_IN_FIRST))
+    return {"metadata": _stats_metadata(FLIGNER, len(cases)), CASES: cases}
+
+
+def generate_stats_anderson_ksamp() -> dict:
+    """The k-sample Anderson-Darling test, against scipy.stats.anderson_ksamp (#1162).
+
+    long-comment: why discrete samples beside Levene's continuous ones, and the three variants.
+    Levene's groups have no ties, where the midrank and right variants part only by a boundary
+    term; the rounded samples tie heavily, which is what those two variants exist for. Every
+    fixture runs under each variant, and the statistic, the clamped p-value and the critical
+    values are frozen. method=PermutationMethod is left out: its draws are random.
+    """
+    import warnings
+
+    from scipy import stats as sps
+
+    rng = np.random.default_rng(1162)
+    fixtures = [(fx["name"], fx[GROUPS]) for fx in _variance_groups()]
+    fixtures += [
+        ("rounded, heavily tied, three samples",
+         [np.round(rng.normal(0, 1, 30)).tolist(), np.round(rng.normal(0, 1, 25)).tolist(),
+          np.round(rng.normal(0.8, 1, 20)).tolist()]),
+        ("shifted, so the p-value floors", [rng.normal(0, 1, 60).round(6).tolist(), rng.normal(2, 1, 60).round(6).tolist()]),
+        ("mid-table, two samples", [rng.normal(0, 1, 40).round(6).tolist(), rng.normal(0.45, 1, 40).round(6).tolist()]),
+    ]
+    cases = []
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for name, groups in fixtures:
+            for variant in ("midrank", "right", "continuous"):
+                r = sps.anderson_ksamp([np.array(g) for g in groups], variant=variant)
+                legacy = sps.anderson_ksamp([np.array(g) for g in groups], midrank=variant == "midrank")
+                cases.append({
+                    "name": _correlation_name(name, variant=variant), "call": ANDERSON_KSAMP,
+                    "args": {VARIANT: variant}, GROUPS: groups,
+                    STATISTIC: float(r.statistic), PVALUE: float(r.pvalue),
+                    "criticalValues": [float(v) for v in legacy.critical_values],
+                })
+    return {"metadata": _stats_metadata(ANDERSON_KSAMP, len(cases)), CASES: cases}
+
+
+def generate_stats_spearman_matrix() -> dict:
+    """spearmanr on a 2-D array, against scipy.stats.spearmanr (#1162).
+
+    long-comment: which fixtures and why each policy is run on the one with a NaN.
+    Three to five variables, some correlated, one with ties; every alternative. The NaN
+    fixture runs under propagate, where scipy confines the NaN to its variable's row and
+    column, and omit, where it drops rows pair by pair. Two variables are left out: scipy
+    returns a scalar there, and the matrix this answers with is Spearman.Test's.
+    """
+    import warnings
+
+    from scipy import stats as sps
+
+    rng = np.random.default_rng(11620)
+    base = rng.normal(size=(30, 4))
+    base[:, 1] += 0.7 * base[:, 0]
+    base[:, 3] = np.round(base[:, 3])
+    wide = rng.normal(size=(12, 5))
+    missing = rng.normal(size=(20, 3))
+    missing[4, 1] = np.nan
+    missing[9, 2] = np.nan
+    cases = []
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for name, data, policies in (("four variables, one tied", base, (PROPAGATE, "omit")),
+                                     ("five variables, twelve rows", wide, (PROPAGATE,)),
+                                     ("three variables, two NaN", missing, (PROPAGATE, "omit"))):
+            for alternative in (TWO_SIDED, LESS, GREATER):
+                for policy in policies:
+                    r = sps.spearmanr(data, alternative=alternative, nan_policy=policy)
+                    cases.append({
+                        "name": _correlation_name(name, alternative=alternative, nan_policy=policy),
+                        "call": SPEARMAN_MATRIX, "args": {ALTERNATIVE: alternative, NAN_POLICY: policy},
+                        "data": _stats_nan_list(data.ravel().tolist()), "variableCount": int(data.shape[1]),
+                        STATISTIC: [_stats_number(float(v)) for v in np.ravel(r.statistic)],
+                        PVALUE: [_stats_number(float(v)) for v in np.ravel(r.pvalue)],
+                    })
+    return {"metadata": _stats_metadata(SPEARMAN_MATRIX, len(cases)), CASES: cases}
+
+
+def generate_stats_pointbiserial() -> dict:
+    """The point-biserial correlation, against scipy.stats.pointbiserialr (#1162)."""
+    from scipy import stats as sps
+
+    rng = np.random.default_rng(11621)
+    cases = []
+    for n, shift in ((10, 0.0), (25, 0.8), (60, 1.5), (7, 3.0)):
+        x = (rng.random(n) < 0.5).astype(bool)
+        x[0], x[1] = True, False
+        y = (rng.normal(size=n) + shift * x).round(6)
+        r = sps.pointbiserialr(x, y)
+        cases.append({"name": f"{n} pairs, groups apart by {shift}", "call": POINTBISERIAL, "args": {},
+                      "x": [bool(v) for v in x], "y": y.tolist(),
+                      STATISTIC: float(r.statistic), PVALUE: float(r.pvalue)})
+    x = [True, False, True, True, False, False, True]
+    y = [1.0, 2.0, float("nan"), 4.0, 0.5, 1.5, 3.0]
+    for policy in (PROPAGATE, "omit"):
+        r = sps.pointbiserialr(x, y, nan_policy=policy)
+        cases.append({"name": _correlation_name("a NaN in y", nan_policy=policy), "call": POINTBISERIAL,
+                      "args": {NAN_POLICY: policy}, "x": x, "y": _stats_nan_list(y),
+                      STATISTIC: _stats_number(float(r.statistic)), PVALUE: _stats_number(float(r.pvalue))})
+    # Below two pairs scipy answers (nan, nan) rather than raising, one pair given or one left by omit.
+    for name, x, y, policy in (("one pair", [True], [1.0], PROPAGATE),
+                               ("one pair left after omit", [True, False, True], [1.0, float("nan"), float("nan")], "omit")):
+        r = sps.pointbiserialr(x, y, nan_policy=policy)
+        cases.append({"name": name, "call": POINTBISERIAL, "args": {NAN_POLICY: policy}, "x": x, "y": _stats_nan_list(y),
+                      STATISTIC: _stats_number(float(r.statistic)), PVALUE: _stats_number(float(r.pvalue))})
+    return {"metadata": _stats_metadata(POINTBISERIAL, len(cases)), CASES: cases}
 
 def generate_stats_bartlett() -> dict:
     """Bartlett's test, against scipy.stats.bartlett (#1121).
@@ -15075,6 +15213,10 @@ def main() -> None:
         "stats_kendall.json": generate_stats_kendall,
         "stats_beta_quantile.json": generate_stats_beta_quantile,
         "stats_levene.json": generate_stats_levene,
+        "stats_fligner.json": generate_stats_fligner,
+        "stats_anderson_ksamp.json": generate_stats_anderson_ksamp,
+        "stats_spearman_matrix.json": generate_stats_spearman_matrix,
+        "stats_pointbiserial.json": generate_stats_pointbiserial,
         "stats_bartlett.json": generate_stats_bartlett,
         "stats_friedman.json": generate_stats_friedman,
         "stats_binomial.json": generate_stats_binomial,
