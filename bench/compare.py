@@ -289,6 +289,11 @@ def panel(fmt: str = "text") -> None:
     wallcpu_report("panel", fmt)
 
 
+def cross_conformal(fmt: str = "text") -> None:
+    """Lodestar.Conformal's cross-conformal intervals against MAPIE's (#1159)."""
+    wallcpu_report("cross-conformal", fmt)
+
+
 def glm(fmt: str = "text") -> None:
     """The negative binomial GLM against statsmodels' GLM, over that same corpus (#781)."""
     wallcpu_report("glm", fmt)
@@ -387,6 +392,8 @@ if __name__ == "__main__":
         iv(output_format)
     elif selected == "panel":
         panel(output_format)
+    elif selected == "cross-conformal":
+        cross_conformal(output_format)
     elif selected == "splitters":
         splitters(output_format)
     elif selected == "transformers":

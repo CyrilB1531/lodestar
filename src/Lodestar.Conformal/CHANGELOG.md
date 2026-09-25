@@ -5,6 +5,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ## [Unreleased]
 
+### Added
+
+- `CrossConformal` computes CV+, Jackknife+ and jackknife-after-bootstrap intervals at MAPIE parity, and `SplitConformal.GammaScores` and `GammaInterval` the gamma conformity score. ([#1159](https://github.com/CyrilB1531/lodestar/issues/1159))
+
 ## [0.2.0] — 2026-09-24
 
 ### Added

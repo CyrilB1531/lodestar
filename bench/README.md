@@ -3485,3 +3485,26 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-panel
 python3 bench/python/bench_panel.py
 python3 bench/compare.py panel
 ```
+
+## 63. Cross-conformal intervals against MAPIE (issue #1159)
+
+`compare-cross-conformal` puts `CrossConformal` against MAPIE 1.5.0's `CrossConformalRegressor`
+(ten unshuffled folds, plus and min-max, the absolute and the gamma score) and
+`JackknifeAfterBootstrapRegressor` (thirty bootstrap models), at 1,000 and 10,000 training samples
+and 500 test points. **No .NET library computes a conformal interval**
+([decision 0004](../docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)), so MAPIE is
+the only incumbent.
+
+No corpus file: every model is a formula of the row index, shifted by the mean index of the rows it
+was fitted on, and K-fold runs unshuffled, so both sides know each fold's model. What is timed is
+the interval at every test point from fitted models. MAPIE's `predict_interval` also calls each
+model's `predict` on the test block, timed alone as `predict_only` so it can be read off; this
+package takes those predictions, computed outside the timed region. The bootstrap's bags come from
+MAPIE's generator on its side and from a formula on this one, at the same model count and a similar
+out-of-bag share. Agreement is `tests/oracles/conformal_cross.json`'s job.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-cross-conformal
+python3 bench/python/bench_cross_conformal.py
+python3 bench/compare.py cross-conformal
+```

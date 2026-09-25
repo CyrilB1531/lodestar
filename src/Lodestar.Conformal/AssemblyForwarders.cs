@@ -4,3 +4,5 @@ using System.Runtime.CompilerServices;
 // same names (decision 0003); code built against an earlier Lodestar.Conformal still binds through these.
 
 [assembly: TypeForwardedTo(typeof(Lodestar.Conformal.ConformalQuantileRule))]
+[assembly: TypeForwardedTo(typeof(Lodestar.Conformal.CrossConformalMethod))]
+[assembly: TypeForwardedTo(typeof(Lodestar.Conformal.CrossConformalAggregation))]

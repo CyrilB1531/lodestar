@@ -222,10 +222,10 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     CONFORMAL: {
-        # The same shape, for the same reason: split conformal prediction is
-        # arithmetic over spans, with no model and nothing to serialise.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
+        # Arithmetic over spans, as above; its cross-conformal enums sit in the unpublished
+        # Lodestar.Abstractions (#1159), so the edge is that project's version until the release.
+        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
     },
     STATS_REGRESSION: {
         # Two Lodestar edges and nothing external, which is what keeps this core tier:

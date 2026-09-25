@@ -13,5 +13,7 @@ each. Static, stateless, and it never sees your model.
 | [`SplitConformal.Interval`](splitconformal-interval.md) | `[ŷ − q, ŷ + q]` around a point prediction. |
 | [`SplitConformal.NormalisedResiduals`](splitconformal-normalisedresiduals.md) | A regressor's scores divided by a predicted residual, `\|y − ŷ\| / r̂`. |
 | [`SplitConformal.NormalisedInterval`](splitconformal-normalisedinterval.md) | `[ŷ − q·r̂, ŷ + q·r̂]`, whose width varies with the input. |
+| [`SplitConformal.GammaScores`](splitconformal-gammascores.md) | A regressor's signed relative errors, `(y − ŷ) / ŷ`, for a positive target. |
+| [`SplitConformal.GammaInterval`](splitconformal-gammainterval.md) | `[ŷ(1 + q_low), ŷ(1 + q_up)]`, one quantile a side. |
 | [`SplitConformal.LeastAmbiguousScores`](splitconformal-leastambiguousscores.md) | A classifier's LAC calibration scores, `1 − p̂(true class)`. |
 | [`SplitConformal.PredictionSet`](splitconformal-predictionset.md) | Every class whose probability clears `1 − q`. Possibly none. |

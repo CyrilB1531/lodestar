@@ -164,7 +164,7 @@ script's `EXPECTED` edge map.
 | `Lodestar.Embeddings` | core | sub-word tokenizers (WordPiece, SentencePiece, BPE/byte-level BPE), batch encoding pipeline, pooling, SIMD kNN `EmbeddingIndex`, `.npy` interop. |
 | `Lodestar.Fuzzy` | core | `fuzz.*`, `process.extract`, blocking deduplication. |
 | `Lodestar.Metrics` | core | classification, regression, clustering and ranking metrics at scikit-learn parity. |
-| `Lodestar.Conformal` | core | split conformal intervals and prediction sets, at MAPIE parity. |
+| `Lodestar.Conformal` | core | split and cross-conformal intervals (CV+, Jackknife+) and prediction sets, at MAPIE parity. |
 | `Lodestar.Decomposition` | core | truncated SVD and NMF over a `CsrMatrix`, the Householder QR, and the variance principal components explain, with the dense kernels written here. |
 | `Lodestar.Cluster` | core | k-means by Lloyd's algorithm over a row-major span, at scikit-learn parity. |
 | `Lodestar.Preprocessing` | core | feature scaling, encoding, imputation and the cross-validation splitters, fitted on arrays or a `CsrMatrix` and applied to spans, at scikit-learn parity. |

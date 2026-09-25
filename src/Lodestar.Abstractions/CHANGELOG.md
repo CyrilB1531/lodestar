@@ -9,6 +9,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 - `IvDesign`, `IvOptions`, `IvCovarianceType`, `IvSummary` and `IvFirstStage` in `Lodestar.Stats.Regression.Instrumental`, the data `InstrumentalVariables` takes and returns, with `WaldTest` and `KernelType` in `Lodestar.Stats.Regression`, shared with the panel estimators. ([#1155](https://github.com/CyrilB1531/lodestar/issues/1155))
 - `PanelDesign`, `PanelOptions`, `PanelCovarianceType` and `PanelSummary` in `Lodestar.Stats.Regression.Panel`, the data `PanelRegression` takes and returns. ([#1156](https://github.com/CyrilB1531/lodestar/issues/1156))
+- `CrossConformalMethod` and `CrossConformalAggregation` in `Lodestar.Conformal`, which `CrossConformal` takes. ([#1159](https://github.com/CyrilB1531/lodestar/issues/1159))
 
 ## [0.2.0] — 2026-09-24
 

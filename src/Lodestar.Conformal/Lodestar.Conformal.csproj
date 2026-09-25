@@ -9,7 +9,7 @@
     <RootNamespace>Lodestar.Conformal</RootNamespace>
 
     <PackageId>Lodestar.Conformal</PackageId>
-    <Description>Split conformal prediction for .NET at MAPIE parity: turn a point prediction into an interval, or a class into a prediction set, with a finite-sample coverage guarantee. Post-hoc over scores and labels — no model, no training loop, no dependencies. The guarantee assumes exchangeable calibration and test data; it does not hold for time series.</Description>
+    <Description>Conformal prediction for .NET at MAPIE parity — split, CV+ and Jackknife+: turn a point prediction into an interval, or a class into a prediction set, with a finite-sample coverage guarantee. Post-hoc over scores and labels — no model, no training loop, no dependencies. The guarantee assumes exchangeable calibration and test data; it does not hold for time series.</Description>
     <PackageTags>conformal;conformal-prediction;uncertainty;prediction-interval;coverage;mapie;lodestar</PackageTags>
   </PropertyGroup>
 
@@ -20,9 +20,13 @@
   </ItemGroup>
 
   <!-- The data types this package forwards to Lodestar.Abstractions (decision 0003, #1142). The
-       floor is pinned in src/Directory.Packages.props, like every other src/ reference. -->
+       cross-conformal enums it adds live there too (#1159), so it reaches that project
+       unconditionally until the next Lodestar.Abstractions is on nuget.org; packing turns the
+       reference into a dependency on that version. The release swaps it back for a
+       PackageReference on the published floor and drops its exception in ci.yml's
+       "src/ ships PackageReference only" step. -->
   <ItemGroup>
-    <PackageReference Include="Lodestar.Abstractions" />
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

@@ -31,7 +31,7 @@ Each package's comparisons live beside its project ([#1133](https://github.com/C
 | --- | --- |
 | [`Lodestar.Abstractions`](../../src/Lodestar.Abstractions/performance.md) | none yet |
 | [`Lodestar.Cluster`](../../src/Lodestar.Cluster/performance.md) | measured |
-| [`Lodestar.Conformal`](../../src/Lodestar.Conformal/performance.md) | none yet |
+| [`Lodestar.Conformal`](../../src/Lodestar.Conformal/performance.md) | measured |
 | [`Lodestar.Decomposition`](../../src/Lodestar.Decomposition/performance.md) | measured |
 | [`Lodestar.Embeddings`](../../src/Lodestar.Embeddings/performance.md) | measured |
 | [`Lodestar.Extensions.AI`](../../src/Lodestar.Extensions.AI/performance.md) | none yet |
