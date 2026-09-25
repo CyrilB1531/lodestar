@@ -3,12 +3,11 @@ namespace Lodestar.Preprocessing;
 /// <summary>Cross-validation and train/test splits, at <c>sklearn.model_selection</c> parity where it is deterministic.</summary>
 /// <remarks>
 /// The unshuffled splitters are scikit-learn's fold for fold. A shuffled one takes the permutation as an argument
-/// rather than a seed: the rows are read in that order, so a caller who passes scikit-learn's own permutation gets
-/// <c>KFold</c>'s and <c>ShuffleSplit</c>'s shuffled splits, and one who passes their own gets a split this package can
-/// describe without claiming a generator it does not share (decision 0004). <c>StratifiedKFold(shuffle=True)</c> shuffles
-/// each class's fold list rather than the rows, so no permutation reproduces it.
+/// or scikit-learn's <c>random_state</c>. With the seed, the split is the reference's: numpy's legacy generator is
+/// replayed call for call (decision 0008). With a permutation, the rows are read in that order, so a caller who draws
+/// their own gets a split this package can describe without a generator at all.
 /// </remarks>
-public static class Splitters
+public static partial class Splitters
 {
     /// <summary>Cuts the rows into contiguous folds, as <c>KFold(n_splits=foldCount)</c> does without shuffling.</summary>
     /// <param name="sampleCount">How many rows there are.</param>
@@ -17,7 +16,7 @@ public static class Splitters
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="sampleCount"/> is below two, or <paramref name="foldCount"/> is below two or above it.</exception>
     /// <remarks>The first <c>sampleCount % foldCount</c> folds take one extra row, which is where the reference puts them.</remarks>
     public static IReadOnlyList<FoldSplit> KFold(int sampleCount, int foldCount) =>
-        KFold(sampleCount, foldCount, default);
+        KFold(sampleCount, foldCount, ReadOnlySpan<int>.Empty);
 
     /// <summary>Cuts the rows into folds, reading them in the order given.</summary>
     /// <param name="sampleCount">How many rows there are.</param>
@@ -53,7 +52,7 @@ public static class Splitters
     /// <exception cref="ArgumentOutOfRangeException">The row count is below two, or <paramref name="foldCount"/> is below two or above it.</exception>
     /// <exception cref="ArgumentException"><paramref name="foldCount"/> is greater than every class's count, which leaves a fold with nothing to hold out.</exception>
     public static IReadOnlyList<FoldSplit> StratifiedKFold(ReadOnlySpan<int> labels, int foldCount) =>
-        StratifiedKFold(labels, foldCount, default);
+        StratifiedKFold(labels, foldCount, ReadOnlySpan<int>.Empty);
 
     /// <summary>Cuts stratified folds, reading the rows in the order given.</summary>
     /// <param name="labels">One class label per row.</param>
@@ -112,7 +111,7 @@ public static class Splitters
     /// <returns>The training and test indices, ascending.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="sampleCount"/> is below two, or <paramref name="testFraction"/> is outside (0, 1).</exception>
     public static TrainTestSplit TrainTest(int sampleCount, double testFraction) =>
-        TrainTest(sampleCount, testFraction, default);
+        TrainTest(sampleCount, testFraction, ReadOnlySpan<int>.Empty);
 
     /// <summary>Holds out the first rows of the order given, as <c>ShuffleSplit</c> does with that permutation.</summary>
     /// <param name="sampleCount">How many rows there are.</param>

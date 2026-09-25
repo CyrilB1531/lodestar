@@ -55,6 +55,7 @@ KMeansOptionsSample.Run();
 StandardScalerSample.Run();
 StandardScalerOptionsSample.Run();
 SplittersSample.Run();
+SeededSplittersSample.Run();
 FoldSplitSample.Run();
 TrainTestSplitSample.Run();
 MinMaxScalerSample.Run();

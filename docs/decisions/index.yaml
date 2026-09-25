@@ -50,7 +50,7 @@
   amends: []
   applies: []
   superseded_by: []
-  amended_by: []
+  amended_by: ["0008"]
   applied_by: []
 
 "0005":
@@ -78,6 +78,16 @@
   status: "accepted"
   supersedes: []
   amends: []
+  applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0008":
+  title: "numpy's legacy generator is replayed"
+  status: "accepted"
+  supersedes: []
+  amends: ["0004"]
   applies: []
   superseded_by: []
   amended_by: []

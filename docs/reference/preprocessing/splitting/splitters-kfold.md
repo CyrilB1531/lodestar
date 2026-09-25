@@ -7,18 +7,21 @@ Cuts the rows into contiguous folds, as `KFold(n_splits=foldCount)` does without
 ```csharp
 public static IReadOnlyList<FoldSplit> KFold(int sampleCount, int foldCount)
 public static IReadOnlyList<FoldSplit> KFold(int sampleCount, int foldCount, ReadOnlySpan<int> order)
+public static IReadOnlyList<FoldSplit> KFold(int sampleCount, int foldCount, long randomState)
 ```
 
 **Parameters** — `sampleCount` is how many rows there are. `foldCount` is how many folds to cut, at
 least two and at most `sampleCount`. `order` is a permutation of `0..sampleCount−1` the rows are
 read in; an empty span reads them in order, which is what the two-argument overload passes.
+`randomState` is scikit-learn's `random_state`, in `[0, 2³² − 1]`: it selects
+`KFold(shuffle=True, random_state=randomState)`, numpy's generator replayed.
 
 **Returns** — one `FoldSplit` per fold, in order, each index list ascending.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `sampleCount` is below two, or `foldCount` is
 below two or above `sampleCount`. `ArgumentException` when `order` is neither empty nor a
 permutation of the rows — a repeated index, an index out of range, or a length that is not
-`sampleCount`.
+`sampleCount`. `ArgumentOutOfRangeException` when `randomState` is outside numpy's range.
 
 **Example** — ten rows into three folds, and the same ten read in a permuted order.
 
@@ -35,6 +38,9 @@ string third = string.Join(",", folds[2].TestIndices);   // => 7,8,9
 // Reading the rows in another order cuts the same block sizes out of that order.
 int[] order = [9, 4, 1, 7, 0, 3, 6, 8, 2, 5];
 string shuffled = string.Join(",", Splitters.KFold(10, 3, order)[0].TestIndices);  // => 1,4,7,9
+
+// scikit-learn's KFold(3, shuffle=True, random_state=42), fold for fold.
+string seeded = string.Join(",", Splitters.KFold(10, 3, randomState: 42)[0].TestIndices);  // => 0,1,5,8
 ```
 
 **Remarks** — the first `sampleCount % foldCount` folds take one extra row. That is the reference's

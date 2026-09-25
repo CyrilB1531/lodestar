@@ -29,12 +29,16 @@ from pathlib import Path
 from time import perf_counter, process_time
 
 import numpy as np
-from sklearn.model_selection import KFold, StratifiedKFold, train_test_split
+from sklearn.model_selection import (GroupKFold, KFold, RepeatedKFold, StratifiedGroupKFold,
+                                     StratifiedKFold, TimeSeriesSplit, train_test_split)
 
 MIN_TIME = 0.5
 REPEATS = 5
 FOLD_COUNT = 5
 TEST_FRACTION = 0.25
+SEED = 1157
+REPEAT_COUNT = 3
+ROWS_PER_GROUP = 100
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "results" / "python-splitters.json"
@@ -91,6 +95,31 @@ def measure_size(n: int) -> list[dict]:
             lambda: train_test_split(  # NOSONAR S6709
                 indices, test_size=TEST_FRACTION, shuffle=False),
         ),
+    ] + measure_seeded(n, rows, labels, indices)
+
+
+def measure_seeded(n: int, rows: np.ndarray, labels: np.ndarray, indices: np.ndarray) -> list[dict]:
+    """#1157: the seeded forms, and the splitters that arrived with them."""
+    groups = np.arange(n, dtype=np.int64) // ROWS_PER_GROUP
+    suffix = f"n{n}"
+    kfold = KFold(n_splits=FOLD_COUNT, shuffle=True, random_state=SEED)
+    stratified = StratifiedKFold(n_splits=FOLD_COUNT, shuffle=True, random_state=SEED)
+    group_kfold = GroupKFold(n_splits=FOLD_COUNT)
+    stratified_groups = StratifiedGroupKFold(n_splits=FOLD_COUNT)  # NOSONAR S6709: unshuffled, no seed to take
+    series = TimeSeriesSplit(n_splits=FOLD_COUNT)
+    repeated = RepeatedKFold(n_splits=FOLD_COUNT, n_repeats=REPEAT_COUNT, random_state=SEED)
+    return [
+        measure(f"kfold_seeded_{suffix}", lambda: list(kfold.split(rows))),
+        measure(f"stratified_seeded_{suffix}", lambda: list(stratified.split(rows, labels))),
+        measure(f"traintest_seeded_{suffix}",
+                lambda: train_test_split(indices, test_size=TEST_FRACTION, random_state=SEED)),
+        measure(f"stratified_traintest_{suffix}",
+                lambda: train_test_split(indices, test_size=TEST_FRACTION, random_state=SEED, stratify=labels)),
+        measure(f"group_kfold_{suffix}", lambda: list(group_kfold.split(rows, groups=groups))),
+        measure(f"stratified_group_kfold_{suffix}",
+                lambda: list(stratified_groups.split(rows, labels, groups=groups))),
+        measure(f"timeseries_{suffix}", lambda: list(series.split(rows))),
+        measure(f"repeated_kfold_{suffix}", lambda: list(repeated.split(rows))),
     ]
 
 

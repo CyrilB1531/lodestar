@@ -2,8 +2,10 @@
 
 Feature preprocessing with scikit-learn's semantics: the standard, min-max, max-abs and
 robust scalers, the quantile and power transformers, one-hot encoding, binning, imputation
-(simple and k-nearest-neighbour), polynomial features and the cross-validation splitters. Each is
-fitted on arrays or a `CsrMatrix` and applied to spans, with its fitted statistics readable.
+(simple and k-nearest-neighbour), polynomial features and the cross-validation splitters —
+stratified, grouped, time-ordered and repeated, shuffled by scikit-learn's own `random_state`. Each
+transformer is fitted on arrays or a `CsrMatrix` and applied to spans, with its fitted statistics
+readable.
 
 ## Install
 

@@ -30,6 +30,10 @@
           LinkBase="oracles" />
     <None Include="../oracles/preprocessing_splitters.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
+    <None Include="../oracles/preprocessing_splitters_seeded.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
+    <None Include="../oracles/numpy_random_state.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
     <None Include="../oracles/preprocessing_normalizer.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
     <None Include="../oracles/preprocessing_label_encoder.json" CopyToOutputDirectory="PreserveNewest"

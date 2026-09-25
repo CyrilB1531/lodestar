@@ -23,23 +23,24 @@ framework-free **and** reproducible, which is what
 [decision 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md)
 wrote this for.
 
-## The permutation is an argument, not a seed
+## scikit-learn's seed, or a permutation
 
-Each splitter has a second overload taking `order`, a permutation of `0..n−1` that it reads the rows
-in. Passing the permutation scikit-learn drew reproduces `KFold(shuffle=True)` and `ShuffleSplit`
-— the train/test split holds out the permutation's head, as `ShuffleSplit` does. Passing your own
-gives a split this package can describe exactly, without claiming a generator no reference shares —
-the same choice `KMeansOptions.InitialCentres` makes by taking the centres rather than a seed.
+Every shuffled splitter takes `randomState`, scikit-learn's own `random_state`: numpy's legacy
+generator is replayed call for call, so the folds are the reference's for the same seed
+([decision 0008](../../decisions/0008-numpy-s-legacy-generator-is-replayed.md)). NumSharp and
+NumpyDotNet reproduce that generator too, and neither can be a dependency of a core package.
 
-`StratifiedKFold(shuffle=True)` is the exception: it shuffles each class's fold list rather than the
-rows, so no permutation reproduces it, and the stratified `order` gives the unshuffled folds over the
-rows read in that order instead.
+`KFold`, `StratifiedKFold` and `TrainTest` also take `order`, a permutation of `0..n−1` they read the
+rows in. Passing your own gives a split this package can describe exactly without any generator —
+the same choice `KMeansOptions.InitialCentres` makes by taking the centres. The stratified
+train/test split has no such form: the reference breaks ties between classes at random, and no
+permutation carries that choice.
 
 ## Types
 
 | Type | What it is |
 | --- | --- |
-| [`Splitters`](splitting/splitters.md) | The three splitters. |
+| [`Splitters`](splitting/splitters.md) | The splitters. |
 | [`FoldSplit`](splitting/foldsplit.md) | One fold: which rows train, and which are held out. |
 | [`TrainTestSplit`](splitting/traintestsplit.md) | A single train and test split of the rows. |
 

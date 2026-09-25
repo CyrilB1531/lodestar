@@ -16,6 +16,9 @@ public static class SplittersCrossLang
 {
     private const int FoldCount = 5;
     private const double TestFraction = 0.25;
+    private const long Seed = 1157;
+    private const int RepeatCount = 3;
+    private const int RowsPerGroup = 100;
 
     private static readonly int[] Sizes = [10_000, 100_000, 1_000_000];
 
@@ -32,6 +35,21 @@ public static class SplittersCrossLang
             results.Add(Harness.Measure($"kfold_{suffix}", () => Splitters.KFold(n, FoldCount)));
             results.Add(Harness.Measure($"stratified_{suffix}", () => Splitters.StratifiedKFold(labels, FoldCount)));
             results.Add(Harness.Measure($"traintest_{suffix}", () => Splitters.TrainTest(n, TestFraction)));
+
+            // #1157: the seeded forms, and the splitters that arrived with them.
+            int[] groups = Groups(n);
+            results.Add(Harness.Measure($"kfold_seeded_{suffix}", () => Splitters.KFold(n, FoldCount, Seed)));
+            results.Add(Harness.Measure(
+                $"stratified_seeded_{suffix}", () => Splitters.StratifiedKFold(labels, FoldCount, Seed)));
+            results.Add(Harness.Measure($"traintest_seeded_{suffix}", () => Splitters.TrainTest(n, TestFraction, Seed)));
+            results.Add(Harness.Measure(
+                $"stratified_traintest_{suffix}", () => Splitters.StratifiedTrainTest(labels, TestFraction, Seed)));
+            results.Add(Harness.Measure($"group_kfold_{suffix}", () => Splitters.GroupKFold(groups, FoldCount)));
+            results.Add(Harness.Measure(
+                $"stratified_group_kfold_{suffix}", () => Splitters.StratifiedGroupKFold(labels, groups, FoldCount)));
+            results.Add(Harness.Measure($"timeseries_{suffix}", () => Splitters.TimeSeries(n, FoldCount)));
+            results.Add(Harness.Measure(
+                $"repeated_kfold_{suffix}", () => Splitters.RepeatedKFold(n, FoldCount, RepeatCount, Seed)));
         }
 
         Harness.Write(
@@ -49,6 +67,18 @@ public static class SplittersCrossLang
                 },
                 Results = results,
             });
+    }
+
+    /// <summary>A group per run of <see cref="RowsPerGroup"/> rows, the Python side's <c>arange(n) // 100</c>.</summary>
+    private static int[] Groups(int sampleCount)
+    {
+        var groups = new int[sampleCount];
+        for (int row = 0; row < sampleCount; row++)
+        {
+            groups[row] = row / RowsPerGroup;
+        }
+
+        return groups;
     }
 
     /// <summary>Three classes at 60 / 30 / 10, from the row index alone — the Python side's rule.</summary>

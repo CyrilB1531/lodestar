@@ -123,6 +123,7 @@ UPPER = "upper"
 LOWER = "lower"
 NORM_PPF = "norm.ppf"
 FAMILY = "family"
+COUNTS_KEY = "counts"
 # The OLS corpus repeats its own field names once per fixture and once per emitted case.
 CONFIDENCE_LEVEL = "confidenceLevel"
 COVARIANCE_TYPE = "covarianceType"
@@ -6775,7 +6776,7 @@ def generate_search_bm25() -> dict:
         cases.append({
             "name": fixture["name"],
             "vocabulary": vocabulary,
-            "counts": counts,
+            COUNTS_KEY: counts,
             BM25_QUERY: query,
             "queryColumns": [column[term] for term in query if term in column],
             "queryHasUnknownTerm": any(term not in column for term in query),
@@ -7631,16 +7632,18 @@ TRAIN_INDICES = "trainIndices"
 TEST_INDICES = "testIndices"
 FOLDS = "folds"
 CALL_STRATIFIED = "stratified"
+CALL_KFOLD = "kfold"
+CALL_TRAIN_TEST = "trainTest"
 
 
 def generate_preprocessing_splitters() -> dict:
     """scikit-learn's KFold, StratifiedKFold and train_test_split, as index lists (#762).
 
     long-comment: why one shuffled case of each is frozen with its permutation.
-    Unshuffled, the three are deterministic and this package matches them exactly. Shuffled, the
-    reference draws its permutation from `random_state` through numpy's generator, which nothing
-    here reproduces -- so the permutation is frozen beside the folds and handed to the C# as the
-    input it is (decision 0004), which pins the allocation rule rather than the draw.
+    Unshuffled, the three are deterministic and this package matches them exactly. These cases pin
+    the `order` overloads: the permutation is frozen beside the folds and handed to the C# as an
+    input, which pins the allocation rule rather than the draw. The draw itself -- numpy's generator,
+    replayed since #1157 (decision 0008) -- is `preprocessing_splitters_seeded.json`'s subject.
     """
     import numpy as np
     import sklearn
@@ -7653,7 +7656,7 @@ def generate_preprocessing_splitters() -> dict:
         splits = list(KFold(n_splits=folds).split(np.zeros((samples, 1))))  # NOSONAR S6709
         cases.append({
             "name": f"kfold, {samples} rows in {folds} folds",
-            "call": "kfold", SAMPLE_COUNT: samples, FOLD_COUNT: folds,
+            "call": CALL_KFOLD, SAMPLE_COUNT: samples, FOLD_COUNT: folds,
             FOLDS: [{TRAIN_INDICES: train.tolist(), TEST_INDICES: test.tolist()} for train, test in splits],
         })
 
@@ -7679,7 +7682,7 @@ def generate_preprocessing_splitters() -> dict:
             np.arange(samples), test_size=fraction, shuffle=False)
         cases.append({
             "name": f"train/test, {samples} rows at {fraction}",
-            "call": "trainTest", SAMPLE_COUNT: samples, TEST_FRACTION: fraction,
+            "call": CALL_TRAIN_TEST, SAMPLE_COUNT: samples, TEST_FRACTION: fraction,
             TRAIN_INDICES: train.tolist(), TEST_INDICES: test.tolist(),
         })
 
@@ -7695,7 +7698,7 @@ def generate_preprocessing_splitters() -> dict:
     ]
     cases.append({
         "name": "kfold, 12 rows in 3 folds, permuted",
-        "call": "kfold", SAMPLE_COUNT: 12, FOLD_COUNT: 3, ORDER: shuffled.tolist(), FOLDS: kfold_shuffled,
+        "call": CALL_KFOLD, SAMPLE_COUNT: 12, FOLD_COUNT: 3, ORDER: shuffled.tolist(), FOLDS: kfold_shuffled,
     })
 
     labels = [0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2]
@@ -7733,7 +7736,7 @@ def generate_preprocessing_splitters() -> dict:
         train, test = train_test_split(np.arange(samples), test_size=fraction, random_state=893)
         cases.append({
             "name": f"train/test, {samples} rows at {fraction}, permuted",
-            "call": "trainTest", SAMPLE_COUNT: samples, TEST_FRACTION: fraction,
+            "call": CALL_TRAIN_TEST, SAMPLE_COUNT: samples, TEST_FRACTION: fraction,
             # ShuffleSplit permutes with RandomState, so the order it reads has to come from one too.
             ORDER: np.random.RandomState(893).permutation(samples).tolist(),  # NOSONAR S6711
             TRAIN_INDICES: sorted(train.tolist()), TEST_INDICES: sorted(test.tolist()),
@@ -7746,6 +7749,301 @@ def generate_preprocessing_splitters() -> dict:
             FAMILY: "splitters",
             "count": len(cases),
         },
+        "cases": cases,
+    }
+
+
+# The seeded splitter corpus (#1157): the calls it freezes beyond the #762 ones.
+RANDOM_STATE = "randomState"
+GROUPS_KEY = "groups"
+REPEAT_COUNT = "repeatCount"
+CALL_STRATIFIED_GROUP = "stratifiedGroupKfold"
+STRATIFIED_GROUP_NAME = "stratified group kfold"
+SEEDS_1157 = (0, 1, 42, 12345, 2**31 - 1, 2**32 - 1)
+
+
+def generate_numpy_random_state() -> dict:
+    """numpy's legacy RandomState, the draws scikit-learn's splitters make (#1157, decision 0008).
+
+    long-comment: why the raw stream is frozen and not only what the splitters derive from it.
+    A Mersenne Twister one bit wrong still returns plausible permutations, so the raw 32-bit outputs
+    are frozen across two twists (1,250 per seed), then permutations -- one-shot and in sequence
+    from one generator -- and `choice(replace=False)`, over seeds at both ends of numpy's range.
+    """
+    import numpy as np
+
+    cases: list[dict] = []
+    for seed in SEEDS_1157:
+        generator = np.random.RandomState(seed)  # NOSONAR S6711: the legacy generator is the subject
+        cases.append({"name": _named("raw", _seed(seed)), "call": "raw", "seed": seed,
+                      "values": [int(v) for v in generator._bit_generator.random_raw(1250)]})
+        for count in (1, 2, 3, 10, 100, 1000):
+            permutation = np.random.RandomState(seed).permutation(count)  # NOSONAR S6711
+            cases.append({"name": _named(f"permutation({count})", _seed(seed)), "call": "permutation", "seed": seed,
+                          COUNTS_KEY: [count], "values": [permutation.tolist()]})
+        generator = np.random.RandomState(seed)  # NOSONAR S6711
+        counts = [7, 7, 1, 30, 5]
+        cases.append({"name": _named("five permutations in sequence", _seed(seed)), "call": "permutation",
+                      "seed": seed, COUNTS_KEY: counts,
+                      "values": [generator.permutation(c).tolist() for c in counts]})
+        pool = [4, 9, 2, 7, 11, 3]
+        generator = np.random.RandomState(seed)  # NOSONAR S6711
+        sizes = [2, 6, 1, 3]
+        cases.append({"name": _named("choice without replacement", _seed(seed)), "call": "choice", "seed": seed,
+                      "pool": pool, COUNTS_KEY: sizes,
+                      "values": [generator.choice(pool, size=k, replace=False).tolist() for k in sizes]})
+    return {
+        "metadata": {"library": np.__name__, "version": np.__version__, FAMILY: "legacy RandomState",
+                     "count": len(cases)},
+        "cases": cases,
+    }
+
+
+def _named(*parts) -> str:
+    """A case name from its parts, so the corpus's names share one spelling of each."""
+    return ", ".join(str(part) for part in parts)
+
+
+def _rows(count) -> str:
+    return f"{count} rows"
+
+
+def _fold_count(count) -> str:
+    return f"{count} folds"
+
+
+def _seed(seed) -> str:
+    return f"seed {seed}"
+
+
+def _folds_of(splits) -> list[dict]:
+    return [{TRAIN_INDICES: sorted(np_list(train)), TEST_INDICES: sorted(np_list(test))} for train, test in splits]
+
+
+def np_list(indices) -> list[int]:
+    return [int(i) for i in indices]
+
+
+def _seeded_splitter_inputs() -> dict:
+    """Labels and groups drawn once and frozen, so the corpus states its inputs."""
+    import numpy as np
+
+    draw = np.random.default_rng(1157)
+    return {
+        "labels 30, three unequal classes": draw.integers(0, 3, 30).tolist(),
+        "labels 15, three classes of five": [0, 1, 2] * 5,
+        "labels 12, two classes, one of two rows": [5] * 10 + [9, 9],
+        "labels 40, four classes, not contiguous": (draw.integers(0, 4, 40) * 7 - 3).tolist(),
+    }
+
+
+def _zeros(rows: int):
+    import numpy as np
+
+    return np.zeros((rows, 1))
+
+
+def _kfold_seeded_cases() -> list[dict]:
+    from sklearn.model_selection import KFold
+
+    cases = []
+    for samples, folds in ((10, 3), (31, 4), (100, 7)):
+        for seed in (0, 42, 2**32 - 1):
+            cases.append({"name": _named("kfold shuffled", _rows(samples), _fold_count(folds), _seed(seed)),
+                          "call": CALL_KFOLD, SAMPLE_COUNT: samples, FOLD_COUNT: folds, RANDOM_STATE: seed,
+                          FOLDS: _folds_of(KFold(folds, shuffle=True, random_state=seed).split(_zeros(samples)))})
+    return cases
+
+
+def _stratified_seeded_cases(name: str, labels: list[int]) -> list[dict]:
+    import numpy as np
+    from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedKFold
+
+    y = np.array(labels)
+    cases = []
+    for folds in (2, 3):
+        for seed in (0, 7, 12345):
+            cases.append({"name": _named("stratified shuffled", name, _fold_count(folds), _seed(seed)),
+                          "call": CALL_STRATIFIED, LABELS_KEY: labels, FOLD_COUNT: folds, RANDOM_STATE: seed,
+                          FOLDS: _folds_of(StratifiedKFold(folds, shuffle=True, random_state=seed)
+                                           .split(_zeros(len(y)), y))})
+            cases.append({"name": _named("repeated stratified", name, _fold_count(folds) + " x3", _seed(seed)),
+                          "call": "repeatedStratified", LABELS_KEY: labels, FOLD_COUNT: folds,
+                          REPEAT_COUNT: 3, RANDOM_STATE: seed,
+                          FOLDS: _folds_of(RepeatedStratifiedKFold(n_splits=folds, n_repeats=3, random_state=seed)
+                                           .split(_zeros(len(y)), y))})
+    return cases
+
+
+def _stratified_train_test_cases(name: str, labels: list[int]) -> list[dict]:
+    import numpy as np
+    from sklearn.model_selection import train_test_split
+
+    y = np.array(labels)
+    cases = []
+    for fraction in (0.2, 0.3, 0.5):
+        for seed in (0, 42, 2**31 - 1):
+            try:
+                train, test = train_test_split(np.arange(len(y)), test_size=fraction, random_state=seed, stratify=y)
+            except ValueError:
+                continue  # refusals are asserted in SeededSplittersEdgeTests, with the reference's reason
+            cases.append({"name": _named("stratified train/test", name, fraction, _seed(seed)),
+                          "call": "stratifiedTrainTest", LABELS_KEY: labels, TEST_FRACTION: fraction,
+                          RANDOM_STATE: seed, TRAIN_INDICES: sorted(np_list(train)),
+                          TEST_INDICES: sorted(np_list(test))})
+    return cases
+
+
+def _train_test_seeded_cases() -> list[dict]:
+    import numpy as np
+    from sklearn.model_selection import train_test_split
+
+    cases = []
+    for samples, fraction in ((10, 0.25), (37, 0.3), (1000, 0.1)):
+        for seed in SEEDS_1157:
+            train, test = train_test_split(np.arange(samples), test_size=fraction, random_state=seed)
+            cases.append({"name": _named("train/test shuffled", _rows(samples), f"test {fraction}", _seed(seed)),
+                          "call": CALL_TRAIN_TEST, SAMPLE_COUNT: samples, TEST_FRACTION: fraction,
+                          RANDOM_STATE: seed, TRAIN_INDICES: sorted(np_list(train)),
+                          TEST_INDICES: sorted(np_list(test))})
+    return cases
+
+
+def _repeated_kfold_cases() -> list[dict]:
+    from sklearn.model_selection import RepeatedKFold
+
+    cases = []
+    for samples, folds, repeats in ((10, 2, 1), (23, 5, 4), (50, 3, 10)):
+        for seed in (0, 1, 2**32 - 1):
+            cases.append({"name": _named("repeated kfold", _rows(samples), _fold_count(folds) + f" x{repeats}",
+                                         _seed(seed)),
+                          "call": "repeatedKfold", SAMPLE_COUNT: samples, FOLD_COUNT: folds,
+                          REPEAT_COUNT: repeats, RANDOM_STATE: seed,
+                          FOLDS: _folds_of(RepeatedKFold(n_splits=folds, n_repeats=repeats, random_state=seed)
+                                           .split(_zeros(samples)))})
+    return cases
+
+
+def _grouped_cases(name: str, groups: list[int], labels: list[int]) -> list[dict]:
+    """GroupKFold and StratifiedGroupKFold over one frozen input, both forms, at two and three folds."""
+    import numpy as np
+    from sklearn.model_selection import GroupKFold, StratifiedGroupKFold
+
+    g, y = np.array(groups), np.array(labels)
+    cases = []
+    for folds in (2, 3):
+        if folds > len(set(groups)):
+            continue
+        # NOSONAR S6709: unshuffled, and the reference refuses a random_state without shuffling.
+        unshuffled = GroupKFold(folds)  # NOSONAR S6709
+        cases.append({"name": _named("group kfold", name, _fold_count(folds)), "call": "groupKfold",
+                      GROUPS_KEY: groups, FOLD_COUNT: folds,
+                      FOLDS: _folds_of(unshuffled.split(_zeros(len(g)), groups=g))})
+        for seed in (0, 42):
+            cases.append({"name": _named("group kfold shuffled", name, _fold_count(folds), _seed(seed)),
+                          "call": "groupKfold", GROUPS_KEY: groups, FOLD_COUNT: folds, RANDOM_STATE: seed,
+                          FOLDS: _folds_of(GroupKFold(folds, shuffle=True, random_state=seed)
+                                           .split(_zeros(len(g)), groups=g))})
+        if np.all(folds > np.unique(y, return_counts=True)[1]):
+            continue
+        cases.append(_stratified_group_case(_named(STRATIFIED_GROUP_NAME, name, _fold_count(folds)),
+                                            labels, groups, folds, None))
+        for seed in (0, 42):
+            cases.append(_stratified_group_case(
+                _named("stratified group kfold shuffled", name, _fold_count(folds), _seed(seed)),
+                labels, groups, folds, seed))
+    return cases
+
+
+def _stratified_group_case(name: str, labels: list[int], groups: list[int], folds: int, seed) -> dict:
+    """One StratifiedGroupKFold case; `seed` None is the unshuffled form, which takes no random_state."""
+    import numpy as np
+    from sklearn.model_selection import StratifiedGroupKFold
+
+    splitter = (StratifiedGroupKFold(folds) if seed is None  # NOSONAR S6709: unshuffled, no seed to take
+                else StratifiedGroupKFold(folds, shuffle=True, random_state=seed))
+    case = {"name": name, "call": CALL_STRATIFIED_GROUP, LABELS_KEY: labels, GROUPS_KEY: groups,
+            FOLD_COUNT: folds,
+            FOLDS: _folds_of(splitter.split(_zeros(len(labels)), np.array(labels), groups=np.array(groups)))}
+    if seed is not None:
+        case[RANDOM_STATE] = seed
+    return case
+
+
+def _all_grouped_cases() -> list[dict]:
+    import numpy as np
+
+    draw = np.random.default_rng(11570)
+    grouped = {
+        "groups of equal size": [g for g in range(6) for _ in range(4)],
+        "groups of unequal size": draw.integers(0, 9, 45).tolist(),
+        "group labels not contiguous": (draw.integers(0, 5, 20) * 11 - 20).tolist(),
+        "one row per group": list(range(8)),
+        "exactly as many groups as folds": [0, 0, 1, 1, 1, 2, 2, 2, 2],
+    }
+    cases = []
+    for name, groups in grouped.items():
+        labels = (np.array(groups) % 2).tolist() if name != "one row per group" else [0, 1] * 4
+        cases.extend(_grouped_cases(name, groups, labels))
+
+    three_class = draw.integers(0, 3, 60).tolist()
+    groups60 = draw.integers(0, 15, 60).tolist()
+    for folds in (3, 5):
+        for seed in (None, 3, 99):
+            cases.append(_stratified_group_case(
+                _named(STRATIFIED_GROUP_NAME, _rows(60), "three classes, 15 groups", _fold_count(folds), _seed(seed)),
+                three_class, groups60, folds, seed))
+
+    # Found by the random differential run: five classes, where a fold turns on the order numpy
+    # adds a row's class counts in (pairwise from the first element, not the first plus the rest).
+    order_labels = [23, 9, -5, 16, -5, 2, 9, -5, 16, 23, -5, 2, 2, 23, 2, 2, -5, 23, 9, 23, 2, 16, 9, 16, -5, 23, 23, 2]
+    order_groups = [11, 5, 17, 8, 2, -7, 14, 2, 8, 2, -7, 8, -7, 8, 5, 5, 26, 17, 26, 14, -4, 2, 20, 2, 17, -4, 26, 14]
+    cases.append(_stratified_group_case(
+        _named(STRATIFIED_GROUP_NAME, _rows(28), "five classes", _fold_count(6), "summation order decides"),
+        order_labels, order_groups, 6, None))
+    return cases
+
+
+def _time_series_cases() -> list[dict]:
+    from sklearn.model_selection import TimeSeriesSplit
+
+    time_series = [
+        (10, 3, None, 0, None), (12, 5, None, 0, None), (20, 3, 2, 0, None), (20, 3, None, 2, None),
+        (20, 3, None, 0, 5), (30, 4, 3, 4, 6), (14, 2, 5, 3, None), (20, 3, 2, 5, None), (7, 6, None, 0, None),
+        (46, 3, None, 12, None), (25, 4, None, 0, 1),
+        # The reference's own reading of two odd inputs: a cap of 0 is no cap, a negative gap overlaps.
+        (12, 3, None, 0, 0), (12, 3, None, -2, None), (12, 3, 2, -5, 3),
+    ]
+    cases = []
+    for samples, splits, test_size, gap, max_train in time_series:
+        splitter = TimeSeriesSplit(n_splits=splits, test_size=test_size, gap=gap, max_train_size=max_train)
+        cases.append({"name": _named("time series", _rows(samples), f"{splits} splits", f"test {test_size}",
+                                     f"gap {gap}", f"max train {max_train}"),
+                      "call": "timeSeries", SAMPLE_COUNT: samples, "splitCount": splits,
+                      "testSize": test_size, "gap": gap, "maxTrainSize": max_train,
+                      FOLDS: _folds_of(splitter.split(_zeros(samples)))})
+    return cases
+
+
+def generate_preprocessing_splitters_seeded() -> dict:
+    """GroupKFold, StratifiedGroupKFold, TimeSeriesSplit, the repeated splitters, the stratified
+    train/test split and the seeded forms of the #762 three, from sklearn.model_selection (#1157)."""
+    import warnings
+
+    import sklearn
+
+    warnings.simplefilter("ignore", UserWarning)  # a fold count above the smallest class only warns
+    cases = _kfold_seeded_cases()
+    for name, labels in _seeded_splitter_inputs().items():
+        cases.extend(_stratified_seeded_cases(name, labels))
+        cases.extend(_stratified_train_test_cases(name, labels))
+    cases.extend(_train_test_seeded_cases())
+    cases.extend(_repeated_kfold_cases())
+    cases.extend(_all_grouped_cases())
+    cases.extend(_time_series_cases())
+    return {
+        "metadata": {"library": "scikit-learn", "version": sklearn.__version__, FAMILY: "seeded splitters",
+                     "count": len(cases)},
         "cases": cases,
     }
 
@@ -14086,6 +14384,8 @@ def main() -> None:
         "stats_gls.json": generate_stats_gls,
         "preprocessing_encoders.json": generate_preprocessing_encoders,
         "preprocessing_splitters.json": generate_preprocessing_splitters,
+        "preprocessing_splitters_seeded.json": generate_preprocessing_splitters_seeded,
+        "numpy_random_state.json": generate_numpy_random_state,
         "stats_glm.json": generate_stats_glm,
         "stats_var.json": generate_stats_var,
         "stats_mnlogit.json": generate_stats_mnlogit,

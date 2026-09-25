@@ -5,6 +5,14 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ## [Unreleased]
 
+### Added
+
+- `Splitters` takes scikit-learn's `random_state` on every shuffled split and adds `GroupKFold`, `StratifiedGroupKFold`, `TimeSeries`, `RepeatedKFold`, `RepeatedStratifiedKFold` and `StratifiedTrainTest`, replaying numpy's legacy generator for the seed. ([#1157](https://github.com/CyrilB1531/lodestar/issues/1157))
+
+### Changed
+
+- `Splitters.KFold`, `StratifiedKFold` and `TrainTest` called with `default` as their third argument no longer compile, since it now matches both the `order` and the `randomState` overload; pass `ReadOnlySpan<int>.Empty` or drop the argument. ([#1157](https://github.com/CyrilB1531/lodestar/issues/1157))
+
 ## [0.2.0] — 2026-09-24
 
 ### Added
