@@ -14,7 +14,7 @@ public sealed class IvSummary
 chosen, else `null`) and `ConfidenceLevel` echo how they were computed. `HasConstant` says whether
 the regressors hold a constant, which centres `RSquared`; `AdjustedRSquared` and
 `ResidualDegreesOfFreedom` follow. `ModelTest` is the joint test that every coefficient but the
-constant is zero, an [`IvTest`](ivtest.md). `Kappa` is the `k`-class parameter, `null` for GMM.
+constant is zero, a [`WaldTest`](../common/waldtest.md). `Kappa` is the `k`-class parameter, `null` for GMM.
 `FirstStage` holds one [`IvFirstStage`](ivfirststage.md) per endogenous regressor.
 `Overidentification` is Sargan's test for 2SLS and LIML and Hansen's J for GMM, `null` when the
 model is just identified.

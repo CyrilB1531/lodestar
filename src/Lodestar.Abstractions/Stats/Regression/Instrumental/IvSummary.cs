@@ -48,7 +48,7 @@ public sealed class IvSummary
 
     /// <summary>The joint test that every coefficient but the constant is zero: a Wald χ², or an F when debiased.</summary>
     /// <remarks><see langword="null"/> when the model has no coefficient but a constant, where the reference reports the test as invalid.</remarks>
-    public IvTest? ModelTest { get; init; }
+    public WaldTest? ModelTest { get; init; }
 
     /// <summary><c>n − k</c>.</summary>
     public int ResidualDegreesOfFreedom { get; init; }
@@ -60,5 +60,5 @@ public sealed class IvSummary
     public IReadOnlyList<IvFirstStage> FirstStage { get; init; } = [];
 
     /// <summary>Sargan's test for 2SLS and LIML, Hansen's J for GMM; <see langword="null"/> when the model is just identified.</summary>
-    public IvTest? Overidentification { get; init; }
+    public WaldTest? Overidentification { get; init; }
 }

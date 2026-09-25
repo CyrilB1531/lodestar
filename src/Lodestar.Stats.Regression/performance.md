@@ -333,3 +333,42 @@ bandwidth reaches 236 lags there, and the fit, its two first-stage regressions e
 sums a `k × k` cross-product per lag. The lags were first summed two products per element, 2,872 ms
 and 0.85× the reference; summing each lag's cross-product once and adding it with its transpose,
 the reference's own order, took it to 2,257 ms.
+
+## Panel regression against linearmodels (issue #1156)
+
+Full method:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#62-panel-regression-against-linearmodels-issue-1156).
+**No .NET library estimates one**, so `linearmodels` 7.0 on numpy 2.5.3 and pandas 2.3.3 is the only
+incumbent. Machine: the AMD Ryzen 7 8700G named above, .NET 10.0.12, under the repository's machine
+lock, 2026-09-25 12:23 to 12:28 UTC, one core of sixteen taken by an unrelated process throughout.
+Milliseconds per fit, best of five, each producing the whole table — the three R², the model tests,
+the poolability F and the variance decomposition — over ten periods with three regressors and a
+constant.
+
+| rows | fit | Lodestar | `linearmodels`, wall / cpu | ratio, cpu |
+| ---: | --- | ---: | ---: | ---: |
+| 1,000 | fixed effects, entity | **0.134 ms** | 9.09 / 9.09 ms | **67.8** |
+| 1,000 | fixed effects, two-way, clustered | **0.239 ms** | 14.4 / 14.4 ms | **60.1** |
+| 1,000 | fixed effects, Driscoll-Kraay | **0.146 ms** | 9.35 / 9.35 ms | **64.2** |
+| 1,000 | between, robust | **0.076 ms** | 8.78 / 8.77 ms | **115.9** |
+| 1,000 | first difference, robust | **0.155 ms** | 10.4 / 10.4 ms | **67.2** |
+| 1,000 | random effects | **0.142 ms** | 12.1 / 12.1 ms | **85.2** |
+| 10,000 | fixed effects, entity | **1.71 ms** | 15.3 / 15.3 ms | **8.5** |
+| 10,000 | fixed effects, two-way, clustered | **3.19 ms** | 31.3 / 62.7 ms | **18.1** |
+| 10,000 | fixed effects, Driscoll-Kraay | **1.85 ms** | 15.7 / 15.7 ms | **8.3** |
+| 10,000 | between, robust | **1.12 ms** | 14.2 / 14.2 ms | **12.6** |
+| 10,000 | first difference, robust | **1.86 ms** | 17.8 / 17.8 ms | **9.5** |
+| 10,000 | random effects | **1.79 ms** | 20.1 / 20.1 ms | **11.0** |
+| 100,000 | fixed effects, entity | **24.6 ms** | 168 / 2,387 ms | **90.6** |
+| 100,000 | fixed effects, two-way, clustered | **35.4 ms** | 308 / 3,718 ms | **99.9** |
+| 100,000 | fixed effects, Driscoll-Kraay | **22.6 ms** | 188 / 2,538 ms | **105.3** |
+| 100,000 | between, robust | **13.0 ms** | 120 / 1,282 ms | **93.6** |
+| 100,000 | first difference, robust | **23.6 ms** | 170 / 2,143 ms | **85.0** |
+| 100,000 | random effects | **22.5 ms** | 191 / 2,515 ms | **104.8** |
+
+**How it reads.** Ahead on every row, by 6.8× to 116× in elapsed time. At 1,000 rows the reference's
+cost is mostly pandas: building the panel from the frame and reading the index takes more than the
+regression. At 100,000 rows `linearmodels` spends ten to fourteen times more processor time than elapsed
+time, on numpy's threaded BLAS; this runs on one thread, which is why the cpu ratio is the honest
+one there. Driscoll-Kraay costs no more than the unadjusted fit here, since ten periods leave the
+kernel one lag to sum.

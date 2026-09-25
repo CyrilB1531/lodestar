@@ -12,7 +12,13 @@ using System.Runtime.CompilerServices;
 [assembly: TypeForwardedTo(typeof(Lodestar.Stats.Regression.Instrumental.IvCovarianceType))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Stats.Regression.Instrumental.IvDesign))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Stats.Regression.Instrumental.IvFirstStage))]
-[assembly: TypeForwardedTo(typeof(Lodestar.Stats.Regression.Instrumental.IvKernel))]
+[assembly: TypeForwardedTo(typeof(Lodestar.Stats.Regression.KernelType))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Stats.Regression.Instrumental.IvOptions))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Stats.Regression.Instrumental.IvSummary))]
-[assembly: TypeForwardedTo(typeof(Lodestar.Stats.Regression.Instrumental.IvTest))]
+[assembly: TypeForwardedTo(typeof(Lodestar.Stats.Regression.WaldTest))]
+
+// The panel data types, declared in Lodestar.Abstractions (#1156) and forwarded for the same reason.
+[assembly: TypeForwardedTo(typeof(Lodestar.Stats.Regression.Panel.PanelCovarianceType))]
+[assembly: TypeForwardedTo(typeof(Lodestar.Stats.Regression.Panel.PanelDesign))]
+[assembly: TypeForwardedTo(typeof(Lodestar.Stats.Regression.Panel.PanelOptions))]
+[assembly: TypeForwardedTo(typeof(Lodestar.Stats.Regression.Panel.PanelSummary))]

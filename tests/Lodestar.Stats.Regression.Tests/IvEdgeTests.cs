@@ -61,31 +61,35 @@ public sealed class IvEdgeTests
         Assert.Throws<ArgumentException>(() =>
             InstrumentalVariables.TwoStageLeastSquares(Design(Instruments, 2), new IvOptions { CovarianceType = (IvCovarianceType)9 }));
         Assert.Throws<ArgumentException>(() =>
-            InstrumentalVariables.TwoStageLeastSquares(Design(Instruments, 2), new IvOptions { Kernel = (IvKernel)9 }));
+            InstrumentalVariables.TwoStageLeastSquares(Design(Instruments, 2), new IvOptions { Kernel = (KernelType)9 }));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             InstrumentalVariables.TwoStageLeastSquares(Design(Instruments, 2), new IvOptions { ConfidenceLevel = 1.0 }));
         Assert.Throws<ArgumentException>(() =>
             InstrumentalVariables.TwoStageLeastSquares(Design(Instruments, 2), new IvOptions { Bandwidth = 3 }));
         Assert.Throws<ArgumentException>(() =>
-            InstrumentalVariables.Liml(Design(Instruments, 2), new IvOptions { Kernel = IvKernel.Parzen }));
+            InstrumentalVariables.Liml(Design(Instruments, 2), new IvOptions { Kernel = KernelType.Parzen }));
         Assert.Throws<ArgumentException>(() =>
             InstrumentalVariables.TwoStageLeastSquares(Design(Instruments, 2), new IvOptions { GmmWeightType = IvCovarianceType.Unadjusted }));
         Assert.Throws<ArgumentException>(() =>
             InstrumentalVariables.Gmm(Design(Instruments, 2), new IvOptions { GmmWeightBandwidth = 2 }));
     }
 
-    /// <summary>A bandwidth past the sample reads no lag the sample does not have, and allocates none.</summary>
+    /// <summary>A Bartlett or Parzen bandwidth past the sample is refused, as <c>cov_kernel</c> refuses it; the quadratic spectral one is not.</summary>
     [Fact]
-    public void A_bandwidth_past_the_sample_is_the_sample()
+    public void A_truncating_bandwidth_past_the_sample_is_refused()
     {
-        var options = new IvOptions { CovarianceType = IvCovarianceType.Kernel, Bandwidth = int.MaxValue };
-        IvSummary huge = InstrumentalVariables.TwoStageLeastSquares(Design(Instruments, 2), options);
+        var options = new IvOptions { CovarianceType = IvCovarianceType.Kernel, Bandwidth = Response.Length };
 
-        IvSummary sample = InstrumentalVariables.TwoStageLeastSquares(
+        IvSummary last = InstrumentalVariables.TwoStageLeastSquares(
             Design(Instruments, 2), options with { Bandwidth = Response.Length - 1 });
+        IvSummary spectral = InstrumentalVariables.TwoStageLeastSquares(
+            Design(Instruments, 2), options with { Kernel = KernelType.QuadraticSpectral, Bandwidth = Response.Length + 5 });
 
-        Assert.Equal(int.MaxValue, huge.Bandwidth);
-        Assert.Equal(sample.Coefficients, huge.Coefficients);
+        Assert.Equal(Response.Length - 1, last.Bandwidth);
+        Assert.Equal(Response.Length + 5, spectral.Bandwidth);
+        Assert.Throws<ArgumentException>(() => InstrumentalVariables.TwoStageLeastSquares(Design(Instruments, 2), options));
+        Assert.Throws<ArgumentException>(() =>
+            InstrumentalVariables.Gmm(Design(Instruments, 2), options with { Kernel = KernelType.Parzen, Bandwidth = int.MaxValue }));
     }
 
     /// <summary>A regressor in the tens of thousands beside one in the thousandths is badly scaled, not collinear.</summary>

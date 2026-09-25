@@ -208,10 +208,10 @@ public static class InstrumentalVariables
         OptionGuards.ConfidenceLevel(options.ConfidenceLevel);
         RequireDefined(options.CovarianceType, nameof(options));
         RequireDefined(options.GmmWeightType, nameof(options));
-        if (options.Kernel is < IvKernel.Bartlett or > IvKernel.QuadraticSpectral
-            || options.GmmWeightKernel is < IvKernel.Bartlett or > IvKernel.QuadraticSpectral)
+        if (options.Kernel is < KernelType.Bartlett or > KernelType.QuadraticSpectral
+            || options.GmmWeightKernel is < KernelType.Bartlett or > KernelType.QuadraticSpectral)
         {
-            throw new ArgumentException("The kernel is not one of IvKernel's.", nameof(options));
+            throw new ArgumentException("The kernel is not one of KernelType's.", nameof(options));
         }
 
         if (options.Bandwidth < 0 || options.GmmWeightBandwidth < 0)
@@ -245,7 +245,7 @@ public static class InstrumentalVariables
     private static void RequireRead(Estimator estimator, IvOptions options)
     {
         bool kernelCovariance = options.CovarianceType == IvCovarianceType.Kernel;
-        if (!kernelCovariance && (options.Kernel != IvKernel.Bartlett || options.Bandwidth.HasValue))
+        if (!kernelCovariance && (options.Kernel != KernelType.Bartlett || options.Bandwidth.HasValue))
         {
             throw new ArgumentException(
                 $"Kernel and Bandwidth are read by a Kernel covariance only, and the covariance is {options.CovarianceType}.",
@@ -253,7 +253,7 @@ public static class InstrumentalVariables
         }
 
         bool weightSet = options.GmmWeightType != IvCovarianceType.Robust
-            || options.GmmWeightKernel != IvKernel.Bartlett
+            || options.GmmWeightKernel != KernelType.Bartlett
             || options.GmmWeightBandwidth.HasValue;
         if (estimator != Estimator.Gmm && weightSet)
         {
@@ -261,7 +261,7 @@ public static class InstrumentalVariables
         }
 
         if (options.GmmWeightType != IvCovarianceType.Kernel
-            && (options.GmmWeightKernel != IvKernel.Bartlett || options.GmmWeightBandwidth.HasValue))
+            && (options.GmmWeightKernel != KernelType.Bartlett || options.GmmWeightBandwidth.HasValue))
         {
             throw new ArgumentException(
                 $"GmmWeightKernel and GmmWeightBandwidth are read by a Kernel weight only, and the weight is {options.GmmWeightType}.",

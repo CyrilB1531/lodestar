@@ -5,7 +5,9 @@ multinomial logit, each with the whole inference table statsmodels prints: stand
 statistics, p-values, confidence intervals, R² and adjusted R², the F test and variance inflation
 factors, with robust (HC0 to HC3, HAC, cluster) covariances. Instrumental variables — two-stage
 least squares, LIML and two-step GMM — with the table, the first-stage diagnostics and the
-overidentification tests `linearmodels` prints.
+overidentification tests `linearmodels` prints. Panel regression — fixed effects, between,
+first-difference and random effects — with clustered and Driscoll-Kraay covariances and the three
+R² `linearmodels` prints.
 
 ## Install
 
@@ -30,7 +32,7 @@ double firstVif = summary.VarianceInflationFactors[0];   // 59483.3…
 ## Parity
 
 Replayed against statsmodels' `OLS`, `WLS`, `GLS`, `GLM` and `MNLogit`, and linearmodels'
-`IV2SLS`, `IVLIML` and `IVGMM`.
+`IV2SLS`, `IVLIML`, `IVGMM`, `PanelOLS`, `BetweenOLS`, `FirstDifferenceOLS` and `RandomEffects`.
 [`docs/equivalence.md`](https://github.com/CyrilB1531/lodestar/blob/main/docs/equivalence.md) maps each Python call to its C#
 counterpart, with every deliberate divergence.
 

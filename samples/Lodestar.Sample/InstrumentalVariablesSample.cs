@@ -26,10 +26,10 @@ internal static class InstrumentalVariablesSample
         IvSummary liml = InstrumentalVariables.Liml(design, new IvOptions { Fuller = 1.0 });
         IvSummary gmm = InstrumentalVariables.Gmm(
             design,
-            new IvOptions { CovarianceType = IvCovarianceType.Kernel, Kernel = IvKernel.Parzen, Bandwidth = 2 });
+            new IvOptions { CovarianceType = IvCovarianceType.Kernel, Kernel = KernelType.Parzen, Bandwidth = 2 });
 
         IvFirstStage first = twoStage.FirstStage[0];
-        IvTest sargan = twoStage.Overidentification!;
+        WaldTest sargan = twoStage.Overidentification!;
         Console.WriteLine($"  2SLS effect / s.e.   : {Inv.F4(twoStage.Coefficients[2])} / {Inv.F4(twoStage.StandardErrors[2])}");
         Console.WriteLine($"  first-stage partial  : {Inv.F4(first.PartialRSquared)}, test {Inv.F1(first.InstrumentTest.Statistic)}");
         Console.WriteLine($"  Sargan (df {sargan.DegreesOfFreedom})       : {Inv.F4(sargan.Statistic)}, p {Inv.F4(sargan.PValue)}");

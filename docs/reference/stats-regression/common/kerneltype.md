@@ -1,11 +1,12 @@
-# IvKernel
+# KernelType
 
-The lag window a kernel covariance weights its autocovariances with.
+The lag window a kernel covariance weights its autocovariances with: the instrumental-variables
+kernel covariance and weight, and the panels' Driscoll-Kraay covariance.
 
 <!-- docs-declaration -->
 
 ```csharp
-public enum IvKernel
+public enum KernelType
 ```
 
 **Members** — `Bartlett` is Newey and West's triangle, `1 − j/(m+1)`, and the default. `Parzen` is
@@ -39,4 +40,4 @@ quadratic spectral window costs a pass per lag of the sample, so it is quadratic
 
 **Applies to** — net10.0, netstandard2.0.
 
-**See also** — [`IvCovarianceType`](ivcovariancetype.md), [`IvOptions`](ivoptions.md).
+**See also** — [`IvCovarianceType`](../instrumental/ivcovariancetype.md), [`IvOptions`](../instrumental/ivoptions.md).

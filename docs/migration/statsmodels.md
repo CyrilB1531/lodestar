@@ -7,8 +7,8 @@ in [`decisions/0004`](../decisions/0004-what-is-written-here-and-what-is-delegat
 and [`decisions/0004`](../decisions/0004-what-is-written-here-and-what-is-delegated.md)
 settled: **forecasting is already first-party** and is delegated; **the GLM table is
 now native too**, the **time-series diagnostics** — serial correlation, stationarity and
-seasonal decomposition — are native in `Lodestar.Stats.TimeSeries`; **mixed models** have no .NET package at all and wait for a caller; **instrumental-variable estimators** are native in `Lodestar.Stats.Regression`, and **panel estimators**
-have no .NET package either and reproduce exactly in `linearmodels`, so they could be written ([decision 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md)).
+seasonal decomposition — are native in `Lodestar.Stats.TimeSeries`; **mixed models** have no .NET package at all and wait for a caller; **instrumental-variable estimators** and **panel estimators** are native in `Lodestar.Stats.Regression`
+([decision 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md)).
 [`decisions/0004`](../decisions/0004-what-is-written-here-and-what-is-delegated.md)
 read Meta.Numerics and the commercial Numerics.NET on top, and each carries part of what this page
 used to call absent.
@@ -34,7 +34,7 @@ used to call absent.
 | `OrderedModel`: ordinal responses | ⛔ **not written** — [`decisions/0004`](../decisions/0004-what-is-written-here-and-what-is-delegated.md): its numerical Hessian and default Nelder–Mead do not reproduce at `1e-9`, and no .NET package fits one |
 | `GLM(...).fit_regularized()`: lasso, ridge and elastic net | **delegated**: `Microsoft.ML`'s `LbfgsLogisticRegression`, `LbfgsPoissonRegression` and `LbfgsMaximumEntropy` fit the same optimum — MIT and first-party — once the penalty is scaled by the row count: `L1Regularization = alpha·L1_wt·n`, `L2Regularization = alpha·(1 − L1_wt)·n`. Measured identical to six decimals, selected variables included. **The reference returns no inference table here**, deliberately, so there is nothing for this package to add; [`decisions/0004`](../decisions/0004-what-is-written-here-and-what-is-delegated.md), [#789](https://github.com/CyrilB1531/lodestar/issues/789) |
 | `IV2SLS`, `IVLIML`, `IVGMM` (`linearmodels`; `statsmodels.sandbox` for `IV2SLS`) | ✅ **native** — [`InstrumentalVariables`](../reference/stats-regression/iv/instrumentalvariables.md), at `linearmodels` 7.0 parity: 2SLS, LIML with Fuller's correction and two-step GMM, under the unadjusted, robust, kernel and clustered covariances, with the first-stage diagnostics and the overidentification tests. No .NET package estimates one, free or commercial ([decision 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md)). Iterated GMM moves at `1e-6` with its tolerance and is left out |
-| `PanelOLS`, `RandomEffects`, `BetweenOLS`, `FirstDifferenceOLS` (`linearmodels`) | ⚠️ **gap, writable** — the same record: nothing in .NET, and each estimator reproduces at `1e-15`; the errors follow `linearmodels`' own small-sample factors, not `statsmodels`' |
+| `PanelOLS`, `RandomEffects`, `BetweenOLS`, `FirstDifferenceOLS` (`linearmodels`) | ✅ **native** — [`PanelRegression`](../reference/stats-regression/panel/panelregression.md), at `linearmodels` 7.0 parity: fixed effects by entity, period or both, between, first-difference and random effects, under the unadjusted, robust, clustered and Driscoll-Kraay covariances, with the three R², the model tests and the variance decomposition. No .NET package estimates one ([decision 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md)) |
 
 ```csharp
 using MathNet.Numerics;

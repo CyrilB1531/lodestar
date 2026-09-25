@@ -64,7 +64,7 @@ internal sealed class IvFit
 
 /// <summary>The covariance a fit reports, with everything a score estimator reads.</summary>
 internal readonly record struct IvCovarianceSpec(
-    IvCovarianceType Type, bool Debiased, IvKernel Kernel, int? Bandwidth, ClusterLabels? Clusters);
+    IvCovarianceType Type, bool Debiased, KernelType Kernel, int? Bandwidth, ClusterLabels? Clusters);
 
 /// <summary>The <c>k</c>-class estimators and two-step GMM, with <c>linearmodels</c>' covariances.</summary>
 internal static class IvCore
@@ -283,7 +283,7 @@ internal static class IvCore
     }
 
     /// <summary>The kernel covariance's bandwidth when none is given: Newey and West on the scores' non-constant columns summed.</summary>
-    private static int AutomaticBandwidth(double[] xhat, double[] scores, int k, int n, IvKernel kernel)
+    private static int AutomaticBandwidth(double[] xhat, double[] scores, int k, int n, KernelType kernel)
     {
         (bool found, int constant) = IvScores.FindConstant(xhat, k, n);
         int skip = found && k > 1 ? constant : -1;

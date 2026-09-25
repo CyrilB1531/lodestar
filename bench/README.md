@@ -3464,3 +3464,24 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-iv
 python3 bench/python/bench_iv.py
 python3 bench/compare.py iv
 ```
+
+## 62. Panel regression against `linearmodels` (issue #1156)
+
+`compare-panel` puts `PanelRegression` against `linearmodels` 7.0's `PanelOLS`, `BetweenOLS`,
+`FirstDifferenceOLS` and `RandomEffects` at 100, 1,000 and 10,000 entities over ten periods — 1,000,
+10,000 and 100,000 rows — with three regressors and a constant. **No .NET library estimates one**
+([decision 0004](../docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)), so the
+Python reference is the only incumbent.
+
+No corpus file: both sides build each value from its entity, period and column by one formula, an
+entity effect that moves with the regressors so fixed and random effects differ. Each operation
+produces the whole table. `linearmodels` computes the R² family, the model tests and the variance
+decomposition only when they are read, so its side reads them; the C# summary always carries them.
+The frame is built outside the timed region, as the C# arrays are; `linearmodels`' conversion of it
+into a panel is inside, since every fit pays it. Agreement is `tests/oracles/stats_panel.json`'s job.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-panel
+python3 bench/python/bench_panel.py
+python3 bench/compare.py panel
+```

@@ -19,7 +19,7 @@ internal static class IvSummarySample
         var design = new IvDesign(response, exogenous, 1, endogenous, 1, instruments, 2);
 
         IvSummary summary = InstrumentalVariables.TwoStageLeastSquares(design, new IvOptions { Debiased = true });
-        IvTest model = summary.ModelTest!;
+        WaldTest model = summary.ModelTest!;
         Console.WriteLine($"  R² / adjusted       : {Inv.F4(summary.RSquared)} / {Inv.F4(summary.AdjustedRSquared)}");
         Console.WriteLine($"  model F({model.DegreesOfFreedom}, {model.DenominatorDegreesOfFreedom}) : {Inv.F1(model.Statistic)}");
         Console.WriteLine($"  has constant        : {summary.HasConstant}, {summary.ResidualDegreesOfFreedom} residual d.f.");

@@ -98,7 +98,10 @@ InstrumentalVariablesSample.Run();
 IvOptionsSample.Run();
 IvSummarySample.Run();
 IvFirstStageSample.Run();
-IvTestSample.Run();
+WaldTestSample.Run();
+PanelRegressionSample.Run();
+PanelOptionsSample.Run();
+PanelSummarySample.Run();
 
 MinHashPermutationsSample.Run();
 MinHashSample.Run();

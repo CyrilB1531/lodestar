@@ -12,7 +12,7 @@ public sealed record IvOptions
 default, and it has no counterpart in the reference, where a constant is a column the caller
 supplies. [`CovarianceType`](ivcovariancetype.md) is the covariance of the estimates; `Robust` by
 default, the reference's. `Debiased` scales by `n/(n − k)` and reads the tests against t and F
-rather than the normal and χ²; `false` by default. [`Kernel`](ivkernel.md) and `Bandwidth` are a
+rather than the normal and χ²; `false` by default. [`Kernel`](../common/kerneltype.md) and `Bandwidth` are a
 kernel covariance's; Bartlett's and `null` by default, `null` choosing the bandwidth by Newey and
 West's rule. `ConfidenceLevel` is the intervals' level, strictly inside (0, 1); 0.95 by default.
 `Fuller` is LIML's `α`; 0 by default. `GmmWeightType`, `GmmWeightKernel` and
@@ -46,8 +46,9 @@ double error = fixedLag.StandardErrors[2];         // => 0.0232681079…
 **Remarks** — the estimators check the options, not the record: a negative bandwidth, an undeclared
 covariance or kernel, and a confidence level outside (0, 1) are refused by the fit, and so is **any
 option that fit would not read** — a Fuller `α` on anything but LIML, a `GmmWeight` setting on
-anything but GMM, a kernel or bandwidth without a kernel covariance or weight to read it. A bandwidth
-past the sample reads every lag the sample has, and no more.
+anything but GMM, a kernel or bandwidth without a kernel covariance or weight to read it. A Bartlett
+or Parzen bandwidth of `n` or more is refused as the reference refuses it; the quadratic spectral
+kernel reads every lag whatever its bandwidth.
 
 **Applies to** — net10.0, netstandard2.0.
 

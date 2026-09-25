@@ -12,7 +12,7 @@ public sealed class IvFirstStage
 instruments. `PartialRSquared` is the instruments' alone, once both sides are purged of the
 exogenous regressors. `SheaRSquared` is Shea's partial R², which also accounts for the other
 endogenous regressors. `InstrumentTest` is the joint test that the instruments' first-stage
-coefficients are zero, an [`IvTest`](ivtest.md).
+coefficients are zero, a [`WaldTest`](../common/waldtest.md).
 
 **Example** — two instruments that explain the endogenous regressor almost entirely.
 

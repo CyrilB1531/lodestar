@@ -49,6 +49,9 @@ switch (args.Length > 0 ? args[0] : string.Empty)
     case "compare-iv":
         IvCrossLang.Run();
         return;
+    case "compare-panel":
+        PanelCrossLang.Run();
+        return;
     case "roc-parallel":
         RocParallelBench.Run();
         return;
