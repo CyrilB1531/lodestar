@@ -47,4 +47,4 @@ the same factor by default. Under every choice the coefficients are read against
 
 **Applies to** — net10.0, netstandard2.0.
 
-**See also** — [`IvOptions`](ivoptions.md), [`IvKernel`](ivkernel.md).
+**See also** — [`IvOptions`](ivoptions.md), [`KernelType`](../common/kerneltype.md).

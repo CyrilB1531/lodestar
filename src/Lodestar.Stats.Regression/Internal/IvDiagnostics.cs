@@ -63,7 +63,7 @@ internal static class IvDiagnostics
     }
 
     /// <summary>The joint Wald test that every coefficient but the first constant column is zero.</summary>
-    private static IvTest? ModelTest(IvProblem problem, IvFit fit, bool debiased)
+    private static WaldTest? ModelTest(IvProblem problem, IvFit fit, bool debiased)
     {
         int k = problem.K;
         int constant = IvScores.FirstFlatColumn(problem.X, k, problem.N);
@@ -77,8 +77,8 @@ internal static class IvDiagnostics
         int df = tested.Length;
         int residualDf = problem.N - k;
         return debiased
-            ? new IvTest(statistic / df, Distributions.FisherSf(statistic / df, df, residualDf), df, residualDf)
-            : new IvTest(statistic, Distributions.ChiSquaredSf(statistic, df), df, null);
+            ? new WaldTest(statistic / df, Distributions.FisherSf(statistic / df, df, residualDf), df, residualDf)
+            : new WaldTest(statistic, Distributions.ChiSquaredSf(statistic, df), df, null);
     }
 
     /// <summary>One row per endogenous regressor, each regression reported under the fit's own covariance.</summary>
@@ -110,13 +110,13 @@ internal static class IvDiagnostics
             double[] endogenous = Column(problem.X, problem.K, n, shared + j);
             IvFit full = IvCore.KClass(Retarget(ols, endogenous), 1.0, spec);
             double statistic = Quadratic(full.Coefficients, full.Covariance, l, tested);
-            IvTest test = spec.Type == IvCovarianceType.Unadjusted
-                ? new IvTest(
+            WaldTest test = spec.Type == IvCovarianceType.Unadjusted
+                ? new WaldTest(
                     statistic / instrumentCount,
                     Distributions.FisherSf(statistic / instrumentCount, instrumentCount, n - l),
                     instrumentCount,
                     n - l)
-                : new IvTest(statistic, Distributions.ChiSquaredSf(statistic, instrumentCount), instrumentCount, null);
+                : new WaldTest(statistic, Distributions.ChiSquaredSf(statistic, instrumentCount), instrumentCount, null);
 
             double[] partialResponse = exogenous is null ? endogenous : IvCore.Annihilate(endogenous, 1, exogenous, shared, n);
             double[] partialResiduals = IvCore.Annihilate(partialResponse, 1, partialInstruments, instrumentCount, n);
@@ -137,7 +137,7 @@ internal static class IvDiagnostics
     {
         int n = problem.N;
         int k = problem.K;
-        var unadjusted = new IvCovarianceSpec(IvCovarianceType.Unadjusted, false, IvKernel.Bartlett, null, null);
+        var unadjusted = new IvCovarianceSpec(IvCovarianceType.Unadjusted, false, KernelType.Bartlett, null, null);
         IvFit twoStage = IvCore.KClass(problem, 1.0, unadjusted);
         IvFit ols = IvCore.KClass(new IvProblem(problem.X, k, problem.X, k, problem.Y, n, k), 1.0, unadjusted);
         (bool constant, _) = IvScores.FindConstant(problem.X, k, n);
@@ -155,7 +155,7 @@ internal static class IvDiagnostics
     }
 
     /// <summary>Sargan's <c>n·(1 − ûᵀû/eᵀe)</c>, <c>û</c> the residuals purged of the instruments; <see langword="null"/> when just identified.</summary>
-    private static IvTest? Sargan(IvProblem problem, IvFit fit)
+    private static WaldTest? Sargan(IvProblem problem, IvFit fit)
     {
         int df = problem.L - problem.K;
         if (df == 0)
@@ -165,11 +165,11 @@ internal static class IvDiagnostics
 
         double[] purged = IvCore.Annihilate(fit.Residuals, 1, problem.Z, problem.L, problem.N);
         double statistic = problem.N * (1.0 - (Dot(purged, purged) / Dot(fit.Residuals, fit.Residuals)));
-        return new IvTest(statistic, Distributions.ChiSquaredSf(statistic, df), df, null);
+        return new WaldTest(statistic, Distributions.ChiSquaredSf(statistic, df), df, null);
     }
 
     /// <summary>Hansen's <c>n·ḡᵀWḡ</c> at the second step's weight; <see langword="null"/> when just identified.</summary>
-    private static IvTest? HansenJ(IvProblem problem, IvFit fit)
+    private static WaldTest? HansenJ(IvProblem problem, IvFit fit)
     {
         int df = problem.L - problem.K;
         if (df == 0)
@@ -193,7 +193,7 @@ internal static class IvDiagnostics
         }
 
         double statistic = problem.N * Dot(mean, Dense.Multiply(fit.Weight!, mean, l, l, 1));
-        return new IvTest(statistic, Distributions.ChiSquaredSf(statistic, df), df, null);
+        return new WaldTest(statistic, Distributions.ChiSquaredSf(statistic, df), df, null);
     }
 
     private static double TwoSided(double t, bool debiased, int residualDf) =>

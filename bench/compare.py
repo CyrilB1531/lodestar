@@ -284,6 +284,11 @@ def iv(fmt: str = "text") -> None:
     wallcpu_report("iv", fmt)
 
 
+def panel(fmt: str = "text") -> None:
+    """Lodestar.Stats.Regression's panel estimators against linearmodels' (#1156)."""
+    wallcpu_report("panel", fmt)
+
+
 def glm(fmt: str = "text") -> None:
     """The negative binomial GLM against statsmodels' GLM, over that same corpus (#781)."""
     wallcpu_report("glm", fmt)
@@ -380,6 +385,8 @@ if __name__ == "__main__":
         var(output_format)
     elif selected == "iv":
         iv(output_format)
+    elif selected == "panel":
+        panel(output_format)
     elif selected == "splitters":
         splitters(output_format)
     elif selected == "transformers":

@@ -241,9 +241,12 @@
           "docs/reference/stats-regression/gls",
           "docs/reference/stats-regression/glm",
           "docs/reference/stats-regression/mnlogit",
-          "docs/reference/stats-regression/iv"
+          "docs/reference/stats-regression/iv",
+          "docs/reference/stats-regression/panel",
+          "docs/reference/stats-regression/common"
         ],
-        "Lodestar.Stats.Regression.Instrumental": "docs/reference/stats-regression/instrumental"
+        "Lodestar.Stats.Regression.Instrumental": "docs/reference/stats-regression/instrumental",
+        "Lodestar.Stats.Regression.Panel": "docs/reference/stats-regression/paneldata"
       },
       "exceptionsUnchecked": []
     },

@@ -13,10 +13,11 @@ are `linearmodels`' four, not `statsmodels`' seven.
 | [`IvDesign`](instrumental/ivdesign.md) | The response and the three blocks: exogenous, endogenous, instruments. |
 | [`IvOptions`](instrumental/ivoptions.md) | The covariance, its kernel and scaling, Fuller's `α`, GMM's weight and the intercept. |
 | [`IvCovarianceType`](instrumental/ivcovariancetype.md) | Unadjusted, robust, kernel or clustered. |
-| [`IvKernel`](instrumental/ivkernel.md) | Bartlett, Parzen or quadratic spectral. |
 | [`IvSummary`](instrumental/ivsummary.md) | The table, R², the model test, the first stage and the overidentification test. |
 | [`IvFirstStage`](instrumental/ivfirststage.md) | One endogenous regressor's first-stage diagnostics. |
-| [`IvTest`](instrumental/ivtest.md) | A statistic, its p-value and its degrees of freedom. |
+
+The tests they report are [`WaldTest`](common/waldtest.md)s and the kernels [`KernelType`](common/kerneltype.md)s,
+both shared with the panel estimators in the [common types](common.md).
 
 ## See also
 

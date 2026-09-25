@@ -14,5 +14,5 @@ public sealed class IvFirstStage
 
     /// <summary>The joint test that the instruments' first-stage coefficients are zero.</summary>
     /// <remarks>An F under an unadjusted covariance and a χ² under the others, whatever <c>IvOptions.Debiased</c> says, as in the reference.</remarks>
-    public IvTest InstrumentTest { get; init; } = new(0.0, 1.0, 0, null);
+    public WaldTest InstrumentTest { get; init; } = new(0.0, 1.0, 0, null);
 }

@@ -68,7 +68,7 @@ public sealed class IvOracleTests
         JsonElement expected = frozen.GetProperty("expected");
         IvSummary summary = Fit(frozen);
 
-        IvTest model = summary.ModelTest!;
+        WaldTest model = summary.ModelTest!;
         Close(expected.GetProperty("modelStatistic").GetDouble(), model.Statistic, $"{name}: model statistic");
         Probability(expected.GetProperty("modelPValue").GetDouble(), model.PValue, $"{name}: model p-value");
         Assert.Equal(expected.GetProperty("modelDf").GetInt32(), model.DegreesOfFreedom);
@@ -167,11 +167,11 @@ public sealed class IvOracleTests
         _ => IvCovarianceType.Clustered,
     };
 
-    private static IvKernel Kernel(string name) => name switch
+    private static KernelType Kernel(string name) => name switch
     {
-        "bartlett" => IvKernel.Bartlett,
-        "parzen" => IvKernel.Parzen,
-        _ => IvKernel.QuadraticSpectral,
+        "bartlett" => KernelType.Bartlett,
+        "parzen" => KernelType.Parzen,
+        _ => KernelType.QuadraticSpectral,
     };
 
     private static void CloseAll(JsonElement expected, string key, IReadOnlyList<double> actual, string name)

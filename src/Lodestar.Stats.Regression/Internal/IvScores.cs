@@ -82,9 +82,10 @@ internal static class IvScores
     /// <param name="kernel">The kernel.</param>
     /// <param name="bandwidth">The bandwidth; Bartlett and Parzen truncate at it.</param>
     /// <param name="maximumLag">The largest lag the sample has, <c>n − 1</c>, which the quadratic spectral window reaches.</param>
-    public static double[] KernelWeights(IvKernel kernel, int bandwidth, int maximumLag)
+    /// <exception cref="ArgumentException">A Bartlett or Parzen bandwidth past the largest lag, which <c>cov_kernel</c> refuses.</exception>
+    public static double[] KernelWeights(KernelType kernel, int bandwidth, int maximumLag)
     {
-        if (kernel == IvKernel.QuadraticSpectral)
+        if (kernel == KernelType.QuadraticSpectral)
         {
             var weights = new double[maximumLag + 1];
             if (bandwidth == 0)
@@ -103,12 +104,17 @@ internal static class IvScores
             return weights;
         }
 
-        // Lags past the sample are never read, so a bandwidth beyond it allocates nothing for them.
-        var truncated = new double[Math.Min(bandwidth, maximumLag) + 1];
+        if (bandwidth > maximumLag)
+        {
+            throw new ArgumentException(
+                $"A bandwidth of {bandwidth} weights {bandwidth + 1} lags of a sample of {maximumLag + 1}; the reference refuses it too.");
+        }
+
+        var truncated = new double[bandwidth + 1];
         for (int lag = 0; lag < truncated.Length; lag++)
         {
             double z = lag / (bandwidth + 1.0);
-            if (kernel == IvKernel.Bartlett)
+            if (kernel == KernelType.Bartlett)
             {
                 truncated[lag] = 1.0 - z;
             }
@@ -126,13 +132,13 @@ internal static class IvScores
     /// The pilot lag <c>⌈4(n/100)^e⌉</c>, the rate <c>1/(2q+1)</c> and the constants are each kernel's, as the reference
     /// sets them; the result is capped at <c>n − 1</c>.
     /// </remarks>
-    public static int OptimalBandwidth(ReadOnlySpan<double> series, IvKernel kernel)
+    public static int OptimalBandwidth(ReadOnlySpan<double> series, KernelType kernel)
     {
         int n = series.Length;
         (int q, double c, double exponent) = kernel switch
         {
-            IvKernel.Bartlett => (1, 1.1447, 2.0 / 9.0),
-            IvKernel.QuadraticSpectral => (2, 1.3221, 2.0 / 25.0),
+            KernelType.Bartlett => (1, 1.1447, 2.0 / 9.0),
+            KernelType.QuadraticSpectral => (2, 1.3221, 2.0 / 25.0),
             _ => (2, 2.6614, 4.0 / 25.0),
         };
 

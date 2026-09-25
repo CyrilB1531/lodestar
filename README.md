@@ -52,7 +52,7 @@ types ([decision 0003](docs/decisions/0003-the-package-layout-tiers-boundaries-a
 | [`Lodestar.Cluster`](src/Lodestar.Cluster/README.md) | core | k-means, DBSCAN and agglomerative clustering at scikit-learn parity |
 | [`Lodestar.Preprocessing`](src/Lodestar.Preprocessing/README.md) | core | scalers, encoders, imputers and the cross-validation splitters at scikit-learn parity |
 | [`Lodestar.Stats`](src/Lodestar.Stats/README.md) | core | classical hypothesis tests at scipy.stats parity |
-| [`Lodestar.Stats.Regression`](src/Lodestar.Stats.Regression/README.md) | core | least squares, GLM and multinomial logit with statsmodels' whole inference table |
+| [`Lodestar.Stats.Regression`](src/Lodestar.Stats.Regression/README.md) | core | least squares, GLM and multinomial logit with statsmodels' whole inference table; instrumental variables and panel regression at linearmodels parity |
 | [`Lodestar.Stats.TimeSeries`](src/Lodestar.Stats.TimeSeries/README.md) | core | ACF, PACF, Ljung-Box, ADF, KPSS, seasonal decomposition and VAR, at statsmodels parity |
 | [`Lodestar.Survival`](src/Lodestar.Survival/README.md) | core | Kaplan-Meier, Nelson-Aalen, the log-rank test and Cox regression, at lifelines parity |
 | [`Lodestar.Onnx`](src/Lodestar.Onnx/README.md) | satellite | an ONNX encoder run in-process, pooled into a sentence embedding |

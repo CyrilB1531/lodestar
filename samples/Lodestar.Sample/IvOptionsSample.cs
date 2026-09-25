@@ -21,7 +21,7 @@ internal static class IvOptionsSample
         IvSummary automatic = InstrumentalVariables.TwoStageLeastSquares(
             design, new IvOptions { CovarianceType = IvCovarianceType.Kernel });
         IvSummary chosen = InstrumentalVariables.TwoStageLeastSquares(
-            design, new IvOptions { CovarianceType = IvCovarianceType.Kernel, Kernel = IvKernel.QuadraticSpectral, Bandwidth = 2 });
+            design, new IvOptions { CovarianceType = IvCovarianceType.Kernel, Kernel = KernelType.QuadraticSpectral, Bandwidth = 2 });
         Console.WriteLine($"  automatic bandwidth : {automatic.Bandwidth}");
         Console.WriteLine($"  s.e. at bandwidth 2 : {Inv.F4(chosen.StandardErrors[2])}");
 
@@ -30,7 +30,7 @@ internal static class IvOptionsSample
             WithIntercept = true,
             ConfidenceLevel = 0.9,
             GmmWeightType = IvCovarianceType.Kernel,
-            GmmWeightKernel = IvKernel.Bartlett,
+            GmmWeightKernel = KernelType.Bartlett,
             GmmWeightBandwidth = 3,
         };
         IvSummary gmm = InstrumentalVariables.Gmm(design, weighted);

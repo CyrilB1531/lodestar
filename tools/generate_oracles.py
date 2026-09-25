@@ -8053,6 +8053,8 @@ def generate_preprocessing_splitters_seeded() -> dict:
 IV_OPTIONS = "options"
 IV_EXPECTED = "expected"
 IV_RESPONSE = "response"
+IV_EXOGENOUS = "exogenous"
+IV_EXOGENOUS_COUNT = "exogenousCount"
 IV_ROBUST = "robust"
 IV_UNADJUSTED = "unadjusted"
 IV_CLUSTERED = "clustered"
@@ -8084,7 +8086,7 @@ def _iv_data(seed: int, rows: int, exogenous: int, endogenous: int, instruments:
     for t in range(1, rows):
         y[t] += 0.3 * u[t - 1]
     clusters = draw.integers(0, max(12, rows // 6), rows)
-    return {IV_RESPONSE: y.tolist(), "exogenous": exog.ravel().tolist(), "exogenousCount": exogenous,
+    return {IV_RESPONSE: y.tolist(), IV_EXOGENOUS: exog.ravel().tolist(), IV_EXOGENOUS_COUNT: exogenous,
             "endogenous": endog.ravel().tolist(), "endogenousCount": endogenous,
             "instruments": z.ravel().tolist(), "instrumentCount": instruments, IV_CLUSTERS: clusters.tolist()}
 
@@ -8095,7 +8097,7 @@ def _iv_fit(data: dict, method: str, options: dict):
     from linearmodels.iv import IV2SLS, IVGMM, IVLIML
 
     n = len(data[IV_RESPONSE])
-    exog = np.asarray(data["exogenous"]).reshape(n, data["exogenousCount"])
+    exog = np.asarray(data[IV_EXOGENOUS]).reshape(n, data[IV_EXOGENOUS_COUNT])
     if options.get(IV_WITH_INTERCEPT, True):
         exog = np.c_[np.ones(n), exog]
     endog = np.asarray(data["endogenous"]).reshape(n, data["endogenousCount"])
@@ -8138,9 +8140,9 @@ def _iv_expected(res, method: str) -> dict:
         over = {STATISTIC: float(test.stat), IV_P_VALUE: float(test.pval), "df": int(test.df)}
     cov_config = res.cov_config
     return {
-        "coefficients": np.asarray(res.params).tolist(), "standardErrors": np.asarray(res.std_errors).tolist(),
-        T_STATISTICS: np.asarray(res.tstats).tolist(), "pValues": np.asarray(res.pvalues).tolist(),
-        "confidenceLower": ci["lower"].tolist(), "confidenceUpper": ci["upper"].tolist(),
+        COEFFICIENTS: np.asarray(res.params).tolist(), STANDARD_ERRORS: np.asarray(res.std_errors).tolist(),
+        T_STATISTICS: np.asarray(res.tstats).tolist(), P_VALUES: np.asarray(res.pvalues).tolist(),
+        CONFIDENCE_LOWER: ci[LOWER].tolist(), CONFIDENCE_UPPER: ci[UPPER].tolist(),
         IV_R_SQUARED: float(res.rsquared), "adjustedRSquared": float(res.rsquared_adj),
         "modelStatistic": float(f.stat), "modelPValue": float(f.pval), "modelDf": int(f.df),
         "modelDenominatorDf": None if f.df_denom is None else int(f.df_denom),
@@ -8161,14 +8163,14 @@ def _iv_grid() -> list[tuple[str, dict]]:
         for cov in (IV_UNADJUSTED, IV_ROBUST, IV_CLUSTERED):
             for debiased in (False, True):
                 grid.append((method, {COVARIANCE_TYPE: cov, IV_DEBIASED: debiased}))
-        for kernel in (BARTLETT, "parzen", "qs"):
+        for kernel in (BARTLETT, PARZEN, "qs"):
             for bandwidth in (None, 4):
                 grid.append((method, {COVARIANCE_TYPE: IV_KERNEL, IV_KERNEL: kernel, IV_BANDWIDTH: bandwidth,
                                       IV_DEBIASED: bandwidth is None}))
     grid += [("liml", {COVARIANCE_TYPE: IV_ROBUST, IV_FULLER: 1.0}), ("liml", {COVARIANCE_TYPE: IV_UNADJUSTED, IV_FULLER: 4.0})]
     for weight in (IV_UNADJUSTED, IV_KERNEL, IV_CLUSTERED):
         grid.append(("gmm", {COVARIANCE_TYPE: IV_ROBUST, IV_GMM_WEIGHT_TYPE: weight}))
-    grid.append(("gmm", {COVARIANCE_TYPE: IV_KERNEL, IV_GMM_WEIGHT_TYPE: IV_KERNEL, "gmmWeightKernel": "parzen",
+    grid.append(("gmm", {COVARIANCE_TYPE: IV_KERNEL, IV_GMM_WEIGHT_TYPE: IV_KERNEL, "gmmWeightKernel": PARZEN,
                          IV_GMM_WEIGHT_BANDWIDTH: 6, IV_BANDWIDTH: 3}))
     grid.append(("2sls", {COVARIANCE_TYPE: IV_ROBUST, IV_WITH_INTERCEPT: False}))
     return grid
@@ -8223,6 +8225,199 @@ def generate_stats_iv() -> dict:
         "cases": cases,
     }
 
+
+
+# The panel corpus (#1156): its keys, beside the instrumental-variables ones it shares.
+PANEL_ESTIMATOR = "estimator"
+PANEL_ENTITIES = "entities"
+PANEL_PERIODS = "periods"
+PANEL_ENTITY_EFFECTS = "entityEffects"
+PANEL_TIME_EFFECTS = "timeEffects"
+PANEL_CLUSTER_ENTITY = "clusterEntity"
+PANEL_CLUSTER_TIME = "clusterTime"
+PANEL_CUSTOM_CLUSTERS = "customClusters"
+PANEL_FIXED = "fixedEffects"
+PANEL_BETWEEN = "between"
+PANEL_FIRST_DIFFERENCE = "firstDifference"
+PANEL_RANDOM = "randomEffects"
+
+
+def _panel_data(seed: int, entities: int, periods: int, regressors: int, missing: float) -> dict:
+    """One simulated panel: an entity effect correlated with the regressors, heteroskedastic errors, gaps.
+
+    long-comment: why the first entity is complete and the rows sorted.
+    The reference reads its period axis in the order periods are first seen, so a first entity
+    missing a period would reorder that axis and every first difference with it; kept complete, the
+    reference's axis is the sorted one Lodestar reads. The labels are sparse and offset so a
+    renumbering that assumed 0..N-1 would show.
+    """
+    import numpy as np
+
+    draw = np.random.default_rng(seed)
+    entity = np.repeat(np.arange(entities) * 3 + 1, periods)
+    period = np.tile(np.arange(periods) * 2 + 2001, entities)
+    keep = draw.random(entities * periods) >= missing
+    keep[:periods] = True
+    entity, period = entity[keep], period[keep]
+    rows = len(entity)
+    code = np.searchsorted(np.unique(entity), entity)
+    x = draw.normal(size=(rows, regressors)) + 0.4 * (code / entities)[:, None]
+    effect = draw.normal(size=entities)[code]
+    shock = draw.normal(size=periods)[np.searchsorted(np.unique(period), period)]
+    y = 0.7 + x @ draw.normal(size=regressors) + effect + 0.5 * shock + draw.normal(size=rows) * (1.0 + np.abs(x[:, 0]))
+    return {IV_RESPONSE: y.tolist(), IV_EXOGENOUS: x.ravel().tolist(), IV_EXOGENOUS_COUNT: regressors,
+            PANEL_ENTITIES: entity.tolist(), PANEL_PERIODS: period.tolist(), IV_CLUSTERS: (code // 3).tolist()}
+
+
+def _panel_fit(data: dict, options: dict):
+    """linearmodels' fit for one case, the constant prepended as PanelOptions.WithIntercept does."""
+    import numpy as np
+    import pandas as pd
+    from linearmodels.panel import BetweenOLS, FirstDifferenceOLS, PanelOLS, RandomEffects
+
+    n = len(data[IV_RESPONSE])
+    index = pd.MultiIndex.from_arrays([data[PANEL_ENTITIES], data[PANEL_PERIODS]])
+    x = np.asarray(data[IV_EXOGENOUS]).reshape(n, data[IV_EXOGENOUS_COUNT])
+    names = [f"x{j}" for j in range(x.shape[1])]
+    if options.get(IV_WITH_INTERCEPT, True):
+        x = np.c_[np.ones(n), x]
+        names = ["const", *names]
+    exog = pd.DataFrame(x, index=index, columns=names)
+    y = pd.Series(data[IV_RESPONSE], index=index)
+    cov = options[COVARIANCE_TYPE]
+    kwargs = {"cov_type": cov, IV_DEBIASED: options.get(IV_DEBIASED, True)}
+    if cov == IV_KERNEL:
+        kwargs[IV_KERNEL] = options.get(IV_KERNEL, BARTLETT)
+        if options.get(IV_BANDWIDTH) is not None:
+            kwargs[IV_BANDWIDTH] = options[IV_BANDWIDTH]
+    if cov == IV_CLUSTERED:
+        kwargs["cluster_entity"] = options.get(PANEL_CLUSTER_ENTITY, False)
+        kwargs["cluster_time"] = options.get(PANEL_CLUSTER_TIME, False)
+        if options.get(PANEL_CUSTOM_CLUSTERS, False):
+            kwargs[IV_CLUSTERS] = pd.DataFrame({"c": data[IV_CLUSTERS]}, index=index)
+        kwargs = {key: value for key, value in kwargs.items() if value is not False or key == IV_DEBIASED}
+    estimator = options[PANEL_ESTIMATOR]
+    if estimator == PANEL_FIXED:
+        model = PanelOLS(y, exog, entity_effects=options.get(PANEL_ENTITY_EFFECTS, False),
+                         time_effects=options.get(PANEL_TIME_EFFECTS, False))
+    elif estimator == PANEL_BETWEEN:
+        model = BetweenOLS(y, exog)
+    elif estimator == PANEL_FIRST_DIFFERENCE:
+        model = FirstDifferenceOLS(y, exog)
+    else:
+        model = RandomEffects(y, exog)
+    return model.fit(**kwargs)
+
+
+def _panel_test(test) -> dict | None:
+    """A WaldTestStatistic as the C# WaldTest holds it; None for the reference's invalid or irrelevant one."""
+    stat = getattr(test, "stat", float("nan"))
+    if not math.isfinite(stat):
+        return None
+    denominator = getattr(test, "df_denom", None)
+    return {STATISTIC: float(stat), IV_P_VALUE: float(test.pval), "df": int(test.df),
+            "denominatorDf": None if denominator is None else int(denominator)}
+
+
+def _panel_expected(res, estimator: str) -> dict:
+    import numpy as np
+
+    ci = res.conf_int()
+    expected = {
+        COEFFICIENTS: np.asarray(res.params).tolist(), STANDARD_ERRORS: np.asarray(res.std_errors).tolist(),
+        T_STATISTICS: np.asarray(res.tstats).tolist(), P_VALUES: np.asarray(res.pvalues).tolist(),
+        CONFIDENCE_LOWER: ci[LOWER].tolist(), CONFIDENCE_UPPER: ci[UPPER].tolist(),
+        IV_R_SQUARED: float(res.rsquared), "rSquaredWithin": float(res.rsquared_within),
+        "rSquaredBetween": float(res.rsquared_between), "rSquaredOverall": float(res.rsquared_overall),
+        "residualDf": int(res.df_resid), "observationCount": int(res.nobs),
+        "entityCount": int(res.entity_info["total"]), "periodCount": int(res.time_info["total"]),
+        "modelTest": _panel_test(res.f_statistic), "robustModelTest": _panel_test(res.f_statistic_robust),
+        "poolabilityTest": _panel_test(res.f_pooled) if estimator == PANEL_FIXED else None,
+        "residualVariance": None, "effectsVariance": None, "rho": None, "theta": None,
+    }
+    if estimator in (PANEL_FIXED, PANEL_RANDOM):
+        decomposition = res.variance_decomposition
+        expected["residualVariance"] = float(decomposition["Residual"])
+        expected["effectsVariance"] = float(decomposition["Effects"])
+        expected["rho"] = float(decomposition["Percent due to Effects"])
+    if estimator == PANEL_RANDOM:
+        expected["theta"] = np.asarray(res.theta).ravel().tolist()
+    return expected
+
+
+def _panel_covariances(estimator: str) -> list[dict]:
+    """The covariances each estimator reads, the clusters it accepts among them."""
+    plain = [{COVARIANCE_TYPE: IV_UNADJUSTED}, {COVARIANCE_TYPE: IV_UNADJUSTED, IV_DEBIASED: False},
+             {COVARIANCE_TYPE: IV_ROBUST}, {COVARIANCE_TYPE: IV_ROBUST, IV_DEBIASED: False}]
+    if estimator == PANEL_BETWEEN:
+        return [*plain, {COVARIANCE_TYPE: IV_CLUSTERED}, {COVARIANCE_TYPE: IV_CLUSTERED, PANEL_CUSTOM_CLUSTERS: True}]
+    clusters = [{COVARIANCE_TYPE: IV_CLUSTERED, PANEL_CLUSTER_ENTITY: True},
+                {COVARIANCE_TYPE: IV_CLUSTERED, PANEL_CUSTOM_CLUSTERS: True, IV_DEBIASED: False}]
+    if estimator != PANEL_FIRST_DIFFERENCE:
+        clusters += [{COVARIANCE_TYPE: IV_CLUSTERED, PANEL_CLUSTER_TIME: True},
+                     {COVARIANCE_TYPE: IV_CLUSTERED, PANEL_CLUSTER_ENTITY: True, PANEL_CLUSTER_TIME: True},
+                     {COVARIANCE_TYPE: IV_CLUSTERED, PANEL_CUSTOM_CLUSTERS: True, PANEL_CLUSTER_TIME: True}]
+    kernels = [{COVARIANCE_TYPE: IV_KERNEL}, {COVARIANCE_TYPE: IV_KERNEL, IV_KERNEL: PARZEN, IV_BANDWIDTH: 2},
+               {COVARIANCE_TYPE: IV_KERNEL, IV_KERNEL: "qs", IV_BANDWIDTH: 3, IV_DEBIASED: False}]
+    return [*plain, *clusters, *kernels]
+
+
+def _panel_grid() -> list[dict]:
+    """Every option set the corpus fits each panel under."""
+    grid = []
+    for entity, time in ((False, False), (True, False), (False, True), (True, True)):
+        for cov in _panel_covariances(PANEL_FIXED):
+            grid.append({PANEL_ESTIMATOR: PANEL_FIXED, PANEL_ENTITY_EFFECTS: entity, PANEL_TIME_EFFECTS: time, **cov})
+    for estimator in (PANEL_BETWEEN, PANEL_FIRST_DIFFERENCE, PANEL_RANDOM):
+        for cov in _panel_covariances(estimator):
+            options = {PANEL_ESTIMATOR: estimator, **cov}
+            if estimator == PANEL_FIRST_DIFFERENCE:
+                options[IV_WITH_INTERCEPT] = False
+            grid.append(options)
+    for estimator in (PANEL_FIXED, PANEL_BETWEEN, PANEL_RANDOM):
+        grid.append({PANEL_ESTIMATOR: estimator, IV_WITH_INTERCEPT: False, COVARIANCE_TYPE: IV_ROBUST,
+                     PANEL_ENTITY_EFFECTS: estimator == PANEL_FIXED})
+    return grid
+
+
+def generate_stats_panel() -> dict:
+    """linearmodels' PanelOLS, BetweenOLS, FirstDifferenceOLS and RandomEffects (#1156).
+
+    long-comment: what the grid covers and why each axis is there.
+    A balanced panel, an unbalanced one and a long narrow one; fixed effects by entity, by period,
+    both and neither; every covariance each estimator accepts, clustered by entity, by period, by
+    both and by a label of the caller's, Driscoll-Kraay at the automatic and at a fixed bandwidth,
+    debiased and not, and each estimator without its constant. A case whose covariance is past 1e6
+    in condition number is left out, as the instrumental-variables corpus leaves it out.
+    """
+    import warnings
+
+    import linearmodels
+    import numpy as np
+
+    warnings.simplefilter("ignore")
+    problems = {
+        "balanced": _panel_data(1156, 30, 6, 2, 0.0),
+        "unbalanced": _panel_data(1157, 40, 8, 3, 0.25),
+        "long and narrow": _panel_data(1158, 12, 20, 1, 0.1),
+    }
+    cases = []
+    for name, data in problems.items():
+        for options in _panel_grid():
+            res = _panel_fit(data, options)
+            cov = np.asarray(res.cov)
+            # Two-way clustering, S0 + S1 - S01, need not be positive: a balanced panel's constant takes a
+            # negative variance under both effects, and a square root of it is no value to compare.
+            if np.linalg.cond(cov) > 1e6 or np.any(np.diag(cov) <= 0.0):
+                continue
+            cases.append({"name": _named(name, *(f"{k}={v}" for k, v in options.items())),
+                          IV_OPTIONS: options, "data": name, IV_EXPECTED: _panel_expected(res, options[PANEL_ESTIMATOR])})
+    return {
+        "metadata": {"library": "linearmodels", "version": linearmodels.__version__, FAMILY: "panel regression",
+                     "count": len(cases)},
+        "problems": problems,
+        "cases": cases,
+    }
 
 def generate_stats_glm() -> dict:
     """statsmodels' GLM, one block per family (#616).
@@ -12511,6 +12706,7 @@ TABLE = "table"
 SERIES = "series"
 LAG_COUNT = "lag_count"
 BARTLETT = "bartlett"
+PARZEN = "parzen"
 ADFULLER = "adfuller"
 KPSS = "kpss"
 REGRESSION = "regression"
@@ -14557,6 +14753,7 @@ def main() -> None:
         "survival_cox.json": generate_survival_cox,
         "stats_ols.json": generate_stats_ols,
         "stats_iv.json": generate_stats_iv,
+        "stats_panel.json": generate_stats_panel,
         "stats_wls.json": generate_stats_wls,
         "stats_gls.json": generate_stats_gls,
         "preprocessing_encoders.json": generate_preprocessing_encoders,

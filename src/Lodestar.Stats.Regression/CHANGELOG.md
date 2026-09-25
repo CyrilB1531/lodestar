@@ -8,6 +8,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Added
 
 - `InstrumentalVariables` fits two-stage least squares, LIML with Fuller's correction and two-step GMM at `linearmodels` parity, with the unadjusted, robust, kernel and clustered covariances, the first-stage diagnostics and the overidentification tests. ([#1155](https://github.com/CyrilB1531/lodestar/issues/1155))
+- `PanelRegression` fits fixed effects, between, first-difference and random-effects panel regressions at `linearmodels` parity, with the unadjusted, robust, clustered and Driscoll-Kraay covariances. ([#1156](https://github.com/CyrilB1531/lodestar/issues/1156))
 
 ## [0.2.0] — 2026-09-24
 

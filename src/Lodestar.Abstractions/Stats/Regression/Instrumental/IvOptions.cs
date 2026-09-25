@@ -19,7 +19,7 @@ public sealed record IvOptions
     public bool Debiased { get; init; }
 
     /// <summary>The kernel of a <see cref="IvCovarianceType.Kernel"/> covariance; Bartlett's by default.</summary>
-    public IvKernel Kernel { get; init; } = IvKernel.Bartlett;
+    public KernelType Kernel { get; init; } = KernelType.Bartlett;
 
     /// <summary>The kernel covariance's bandwidth; <see langword="null"/>, the default, chooses it by Newey and West's rule.</summary>
     public int? Bandwidth { get; init; }
@@ -34,7 +34,7 @@ public sealed record IvOptions
     public IvCovarianceType GmmWeightType { get; init; } = IvCovarianceType.Robust;
 
     /// <summary>The kernel of a <see cref="IvCovarianceType.Kernel"/> GMM weight; Bartlett's by default.</summary>
-    public IvKernel GmmWeightKernel { get; init; } = IvKernel.Bartlett;
+    public KernelType GmmWeightKernel { get; init; } = KernelType.Bartlett;
 
     /// <summary>A kernel GMM weight's bandwidth; <see langword="null"/>, the default, is <c>n − 2</c>, as the reference's.</summary>
     public int? GmmWeightBandwidth { get; init; }
