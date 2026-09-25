@@ -8,13 +8,12 @@ The value a standard normal falls below with probability `p`.
 public static double NormalQuantile(double p)
 ```
 
-**Parameters** — `p` is a probability strictly inside `(0, 1)`. The endpoints are refused rather
-than answered with the two infinities.
+**Parameters** — `p` is a probability in `[0, 1]`. `0` answers `−∞` and `1` answers `+∞`, as
+scipy's do; they were refused until #1158.
 
 **Returns** — `scipy.stats.norm.ppf(p)`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `p` is not strictly inside `(0, 1)`, `NaN`
-included.
+**Exceptions** — `ArgumentOutOfRangeException` when `p` is outside `[0, 1]`, `NaN` included.
 
 **Example** — the multiplier a large-sample confidence interval takes.
 

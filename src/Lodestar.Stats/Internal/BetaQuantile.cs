@@ -19,6 +19,9 @@ internal static class BetaQuantile
     // double carries -- the loop stops on the bracket rather than on this in the hard cases.
     private const double StepTolerance = 1e-13;
 
+    // Below this, one minus a number near one leaves fewer than thirteen of its digits (InvertBoth).
+    private const double DerivedSideFloor = 1e-3;
+
     // log(double.Epsilon), the smallest positive double: a seed below this is a root no double
     // can name, and the answer is zero rather than wherever the iteration happened to stop.
     private const double LogSmallestDenormal = -744.44;
@@ -70,6 +73,134 @@ internal static class BetaQuantile
         double solved = Solve(mirrored ? 1.0 - p : p, mirrored ? b : a, mirrored ? a : b);
 
         return mirrored ? 1.0 - solved : solved;
+    }
+
+    /// <summary>The <c>x</c> with <c>I_x(a, b) = lower</c> and its complement <c>1 − x</c>, each to full relative precision.</summary>
+    /// <param name="lower">The lower-tail probability, in <c>(0, 1)</c>.</param>
+    /// <param name="upper">The upper-tail probability <c>1 − lower</c>, given rather than formed so a small one keeps its digits.</param>
+    /// <param name="a">The first shape; positive.</param>
+    /// <param name="b">The second shape; positive.</param>
+    /// <remarks>
+    /// <see cref="Invert"/> returns <c>x</c> alone, and a root near one loses <c>1 − x</c>: at shapes
+    /// (5e9, 0.5) the root sits 2e-10 below one, and an F quantile formed from <c>1 − x</c> was 1e-7 off
+    /// (#1158's review). This refines <see cref="Invert"/>'s answer by Newton on whichever of <c>x</c>
+    /// and <c>1 − x</c> is below one half, against the smaller of the two probabilities, reading the
+    /// incomplete beta with both of its arguments so neither is one minus the other.
+    /// </remarks>
+    internal static (double X, double Complement) InvertBoth(double lower, double upper, double a, double b)
+    {
+        (double x0, double complement0) = SeedBoth(lower, upper, a, b);
+
+        // One minus a number near one is off by about 1e-16 absolute, so above 1e-3 it holds 1e-13
+        // relative and Invert's answer stands; only a smaller one, the case that was 1e-7 off, is refined.
+        double derived = lower <= upper ? complement0 : x0;
+        if (derived >= DerivedSideFloor)
+        {
+            return (x0, complement0);
+        }
+
+        bool complementSmall = x0 > 0.5;
+        var tail = new SmallSideTail(a, b, complementSmall, lower <= upper, Math.Min(lower, upper));
+        double s = Refine(tail, complementSmall ? complement0 : x0);
+        return complementSmall ? (1.0 - s, s) : (s, 1.0 - s);
+    }
+
+    /// <summary><see cref="Invert"/>'s root from the smaller probability's own tail, with its complement.</summary>
+    /// <remarks>
+    /// Seeded from the smaller probability so the side solved directly is named rather than formed as
+    /// one minus a root that rounded to one: at an upper tail of 1e-12 and shapes (0.5, 0.5) the
+    /// complement is 1e-24, which 1 - x cannot hold.
+    /// </remarks>
+    private static (double X, double Complement) SeedBoth(double lower, double upper, double a, double b)
+    {
+        if (lower <= upper)
+        {
+            double x = Invert(lower, a, b);
+            return (x, 1.0 - x);
+        }
+        // S2234: I_x(a, b) = 1 - I_(1-x)(b, a), so the upper tail is the swapped shapes' lower tail at
+        // 1 - x, and the exchange is the identity rather than a slip.
+#pragma warning disable S2234
+        double complement = Invert(upper, b, a);
+#pragma warning restore S2234
+        return (1.0 - complement, complement);
+    }
+
+    /// <summary>Newton on <c>log s</c> for the small side, safeguarded by the bracket <c>(0, ½]</c>.</summary>
+    private static double Refine(in SmallSideTail tail, double s)
+    {
+        double low = 0.0;
+        double high = 0.5;
+        for (int i = 0; i < MaxIterations && s > 0.0; i++)
+        {
+            double value = tail.Value(s);
+            if (value < tail.Target == tail.Increasing)
+            {
+                low = s;
+            }
+            else
+            {
+                high = s;
+            }
+
+            double logStep = (Math.Log(tail.Target) - Math.Log(value)) / tail.LogSlope(s, value);
+            double next = s * Math.Exp(logStep);
+            if (!(next > low && next < high) || double.IsNaN(next))
+            {
+                next = Fallback(low, high);
+                logStep = double.NaN;
+            }
+            if (TryFinish(s, next, logStep, low, high, out double settled))
+            {
+                return settled;
+            }
+            s = next;
+        }
+        return s;
+    }
+
+    /// <summary>A beta tail read as a function of whichever of <c>x</c> and <c>1 − x</c> is small.</summary>
+    private readonly struct SmallSideTail
+    {
+        private readonly double _a;
+        private readonly double _b;
+        private readonly bool _complementSmall;
+        private readonly bool _lowerTail;
+
+        internal SmallSideTail(double a, double b, bool complementSmall, bool lowerTail, double target)
+        {
+            _a = a;
+            _b = b;
+            _complementSmall = complementSmall;
+            _lowerTail = lowerTail;
+            Target = target;
+            // I_x(a, b) rises with x; read against 1 - x it falls, and the upper tail is its mirror.
+            Increasing = complementSmall != lowerTail;
+        }
+
+        internal double Target { get; }
+
+        internal bool Increasing { get; }
+
+        internal double Value(double s)
+        {
+            double point = _complementSmall ? 1.0 - s : s;
+            double mirror = _complementSmall ? s : 1.0 - s;
+            // The upper tail is the incomplete beta with its shapes exchanged, read at the complement.
+            return _lowerTail
+                ? Beta.RegularizedIncomplete(_a, _b, point, mirror)
+                : Beta.RegularizedIncomplete(_b, _a, mirror, point);
+        }
+
+        /// <summary><c>d log T / d log s</c>: <c>± s f / T</c>, with <c>f</c> the beta density at the point.</summary>
+        internal double LogSlope(double s, double value)
+        {
+            double x = _complementSmall ? 1.0 - s : s;
+            double y = _complementSmall ? s : 1.0 - s;
+            double density = Beta.Front(_a, _b, x, y) / (x * y);
+            double slope = s * density / value;
+            return Increasing ? slope : -slope;
+        }
     }
 
     private static double Solve(double target, double a, double b)

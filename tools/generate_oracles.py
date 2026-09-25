@@ -5953,6 +5953,92 @@ def generate_stats_distributions() -> dict:
     }
 
 
+# The key naming which of pdf, cdf, sf, ppf and isf a distribution-function case calls (#1158).
+FUNCTION = "function"
+
+
+def _distribution_function_grid() -> list[dict]:
+    """Every (law, function) pair Distributions publishes, over the body and both far tails (#1158).
+
+    The probabilities reach 1e-300 on each side, where a cdf taken as 1 - sf would have lost every
+    digit, and the degrees of freedom run from under one to a million. Points whose value scipy
+    answers as a subnormal are left out: a relative comparison there measures the float format.
+    """
+    probabilities = [1e-300, 1e-100, 1e-20, 1e-08, 0.001, 0.025, 0.3, 0.5, 0.7, 0.975, 0.999,
+                     1.0 - 1e-08, 1.0 - 1e-12]
+    laws = [
+        ("norm", [{}], [-37.0, -20.0, -8.0, -3.0, -1.0, -0.25, 0.0, 0.5, 1.96, 4.0, 12.0, 37.0]),
+        ("t", [{"df": 0.5}, {"df": 1.0}, {"df": 3.0}, {"df": 10.0}, {"df": 30.0}, {"df": 1000000.0}],
+         [-1e6, -200.0, -30.0, -3.0, -1.0, 0.0, 0.7, 2.0, 8.0, 50.0, 1e8]),
+        ("chi2", [{"df": 0.5}, {"df": 1.0}, {"df": 4.0}, {"df": 30.0}, {"df": 500.0}, {"df": 100000.0}],
+         [1e-12, 1e-4, 0.1, 0.5, 1.0, 3.84, 10.0, 29.0, 60.0, 500.0, 2000.0, 100000.0]),
+        # Shapes of 1e6 and 1e8 and a lopsided (1e10, 1), where a density formed from plain
+        # log-gammas lost digits and a quantile's y sits next to one (#1158's review).
+        ("f", [{"dfn": 1.0, "dfd": 1.0}, {"dfn": 2.0, "dfd": 20.0}, {"dfn": 5.0, "dfd": 5.0},
+               {"dfn": 30.0, "dfd": 100.0}, {"dfn": 0.5, "dfd": 3.0}, {"dfn": 1000.0, "dfd": 2000.0},
+               {"dfn": 1e6, "dfd": 1e6}, {"dfn": 1e8, "dfd": 1e8}, {"dfn": 1e10, "dfd": 1.0}],
+         [1e-10, 0.001, 0.2, 0.9, 0.9999, 1.0, 1.0001, 1.1, 3.0, 10.0, 500.0, 1e6]),
+    ]
+    grid = []
+    for law, shapes, points in laws:
+        for shape in shapes:
+            for function in ("pdf", "cdf", "sf"):
+                grid += [{"law": law, FUNCTION: function, "args": {"x": x, **shape}} for x in points]
+            for function in ("ppf", "isf"):
+                grid += [{"law": law, FUNCTION: function, "args": {"x": p, **shape}}
+                         for p in probabilities]
+    return grid
+
+
+def _relative_tolerance_can_judge(value: float) -> bool:
+    """A subnormal, an infinity or a NaN is not a value a relative tolerance can judge."""
+    import math as _math
+    import sys as _sys
+
+    return _math.isfinite(value) and not 0.0 < abs(value) < _sys.float_info.min
+
+
+def _scipy_is_trusted(point: dict, law, shape: list, value: float) -> bool:
+    """Leaves out the points where scipy is shown wrong against itself or a reference."""
+    args = point["args"]
+    # scipy's F density is off past shapes of a million (5e-7 at (1e8, 1e8), against a 60-digit
+    # reference), so DistributionsEdgeTests holds those points to that reference instead.
+    if point["law"] == "f" and point[FUNCTION] == "pdf" and max(args["dfn"], args["dfd"]) >= 1e6:
+        return False
+    # A quantile is kept only where scipy's tail gives its probability back (docs/equivalence.md).
+    if point[FUNCTION] in ("ppf", "isf"):
+        forward = law.cdf if point[FUNCTION] == "ppf" else law.sf
+        back = float(forward(value, *shape))
+        return abs(back / args["x"] - 1.0) <= 1e-11
+    return True
+
+
+def generate_stats_distribution_functions() -> dict:
+    """pdf, cdf, sf, ppf and isf of the normal, t, chi-squared and F laws, from scipy (#1158)."""
+    from scipy import stats as sps
+
+    laws = {"norm": sps.norm, "t": sps.t, "chi2": sps.chi2, "f": sps.f}
+    cases = []
+    for point in _distribution_function_grid():
+        args = point["args"]
+        shape = [args[k] for k in ("df", "dfn", "dfd") if k in args]
+        law = laws[point["law"]]
+        value = float(getattr(law, point[FUNCTION])(args["x"], *shape))
+        if _relative_tolerance_can_judge(value) and _scipy_is_trusted(point, law, shape, value):
+            cases.append({"law": point["law"], FUNCTION: point[FUNCTION], "args": args,
+                          "value": value})
+
+    return {
+        "metadata": {
+            "library": "scipy",
+            "version": version("scipy"),
+            FAMILY: "distribution functions",
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
 def _ols_fixtures() -> list[dict]:
     """Designs chosen for what an inference table can get wrong, not for what a solve can."""
     return [
@@ -13989,6 +14075,7 @@ def main() -> None:
         "silhouette.json": generate_silhouette,
         "internal_validity.json": generate_internal_validity,
         "stats_distributions.json": generate_stats_distributions,
+        "stats_distribution_functions.json": generate_stats_distribution_functions,
         "search_bm25.json": generate_search_bm25,
         "text_similarity.json": generate_text_similarity,
         "survival_curves.json": generate_survival_curves,

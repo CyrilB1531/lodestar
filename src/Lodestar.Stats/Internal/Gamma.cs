@@ -387,9 +387,9 @@ internal static class Gamma
             : (0.5 * Normal.Erfc(-argument)) - remainder;
     }
 
-    // x^a e^-x / Gamma(a). From a = 10 through Stirling, as a (log(x/a) - (x/a - 1)) - log Gamma*(a)
-    // plus log sqrt(a / 2 pi): no term of order a log a is formed, so none cancels.
-    private static double Prefactor(double a, double x)
+    // x^a e^-x / Gamma(a), from a = 10 through Stirling so no term of order a log a cancels; the
+    // chi-squared density is this over x (#1158).
+    internal static double Prefactor(double a, double x)
     {
         if (a < StirlingMinimumShape)
         {

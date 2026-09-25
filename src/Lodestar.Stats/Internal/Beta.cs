@@ -56,9 +56,10 @@ internal static class Beta
         }
 
         // Exact sentinels, not a rounding-error-prone comparison: x is validated
-        // to [0, 1] above, and 0/1 are the interval's own closed endpoints.
+        // to [0, 1] above, and 0/1 are the interval's own closed endpoints. An x that
+        // rounded to one while y still holds digits is not the endpoint (#1158's review).
 #pragma warning disable S1244
-        if (x == 0.0 || x == 1.0)
+        if (x == 0.0 || (x == 1.0 && y == 0.0))
 #pragma warning restore S1244
         {
             return x;
@@ -265,13 +266,15 @@ internal static class Beta
     /// subtracts log-gammas of 1.7e9 at a = b = 1e8. d = x - x0 is taken from the smaller of x and
     /// 1 - x, so the two t share one d instead of two rounded ones.
     /// </remarks>
-    private static double Front(double a, double b, double x, double y)
+    internal static double Front(double a, double b, double x, double y)
     {
         if (a < StirlingMinimumShape || b < StirlingMinimumShape)
         {
-            return Math.Exp(
-                Gamma.LogGamma(a + b) - Gamma.LogGamma(a) - Gamma.LogGamma(b) +
-                (a * Math.Log(x)) + (b * Math.Log(y)));
+            // Each logarithm on the side where its argument is small, so a y of 1e-16 is not lost to
+            // the x = 1 - y it rounds (#1158's review measured 6e-7 at shapes (5e9, 0.5)).
+            double logX = x <= 0.5 ? Math.Log(x) : Gamma.LogOnePlusMinus(-y, x) - y;
+            double logY = y <= 0.5 ? Math.Log(y) : Gamma.LogOnePlusMinus(-x, y) - x;
+            return Math.Exp((a * logX) + (b * logY) - LogBeta(a, b));
         }
 
         double c = a + b;
@@ -294,6 +297,11 @@ internal static class Beta
 
         // I_{df/(df+t^2)}(df/2, 1/2) is twice the tail beyond |t|, so half of it
         // is the tail on one side and the sign says which side we are on.
+        double farTail = FarStudentTail(t, df);
+        if (!double.IsNaN(farTail))
+        {
+            return t >= 0.0 ? farTail : 1.0 - farTail;
+        }
         double tSquared = t * t;
         double denominator = df + tSquared;
         double x = df / denominator;
@@ -303,6 +311,31 @@ internal static class Beta
         double complement = tSquared / denominator;
         double tail = 0.5 * RegularizedIncomplete(df / 2.0, 0.5, x, complement);
         return t >= 0.0 ? tail : 1.0 - tail;
+    }
+
+    /// <summary>Half of <c>I_x(df/2, 1/2)</c> by its leading term, where <c>x = df/(df+t²)</c> is below 1e-100; NaN otherwise.</summary>
+    /// <remarks>
+    /// Past <c>|t| = 1.3e154</c> the square overflows and the tail read zero, which capped every
+    /// quantile there (#1158: the Cauchy's 1e-300 quantile is 3.2e299). Formed in logs from
+    /// <c>log x = log df − 2 log|t| − log1p(df/t²)</c>, the leading term <c>x^a / (a B(a, ½))</c>
+    /// is exact to the next one's relative size, about <c>x</c>, far below a double's precision.
+    /// </remarks>
+    private static double FarStudentTail(double t, double df)
+    {
+        double magnitude = Math.Abs(t);
+        if (magnitude <= 1e50)
+        {
+            return double.NaN;
+        }
+        double ratio = df / magnitude / magnitude;
+        double logX = Math.Log(df) - (2.0 * Math.Log(magnitude)) - Math.Log(1.0 + ratio);
+        if (logX > -230.0)
+        {
+            return double.NaN;
+        }
+        double a = df / 2.0;
+        double logBeta = Gamma.LogGamma(a) + Gamma.LogGamma(0.5) - Gamma.LogGamma(a + 0.5);
+        return 0.5 * Math.Exp((a * logX) - Math.Log(a) - logBeta);
     }
 
     /// <summary>The upper tail of the F distribution: P(F &gt; f).</summary>
@@ -318,9 +351,47 @@ internal static class Beta
         }
 
         // Both halves by division, as in StudentSf: at f = inf the x = 0 return is taken before y is read.
+        (double lower, double upper) = FisherSplit(f, dfn, dfd);
+        return RegularizedIncomplete(dfd / 2.0, dfn / 2.0, upper, lower);
+    }
+
+    /// <summary><c>log B(a, b)</c>, through a Stirling increment when one shape is large and the other is not.</summary>
+    /// <remarks>
+    /// <c>log Γ(a + b) − log Γ(a)</c> subtracts two terms of order <c>a log a</c> when only <c>a</c> is
+    /// large; from Stirling it is <c>(a − ½) log1p(b/a) + b log(a + b) − b</c> plus the corrections'
+    /// difference, with nothing of that order formed.
+    /// </remarks>
+    internal static double LogBeta(double a, double b)
+    {
+        double large = Math.Max(a, b);
+        double small = Math.Min(a, b);
+        if (large < StirlingMinimumShape)
+        {
+            return Gamma.LogGamma(a) + Gamma.LogGamma(b) - Gamma.LogGamma(a + b);
+        }
+        double ratio = small / large;
+        double increment = ((large - 0.5) * (Gamma.LogOnePlusMinus(ratio, 1.0 + ratio) + ratio))
+            + (small * Math.Log(large + small)) - small
+            + Gamma.LogStirlingCorrection(large + small) - Gamma.LogStirlingCorrection(large);
+        return Gamma.LogGamma(small) - increment;
+    }
+
+    /// <summary><c>y = d₁f / (d₁f + d₂)</c> and <c>1 − y</c>, each by division so neither is one minus the other.</summary>
+    /// <remarks>
+    /// Where <c>d₁f</c> or the sum overflows, both come from <c>r = (d₂/d₁)/f</c> as <c>1/(1 + r)</c> and
+    /// <c>r/(1 + r)</c>, which is <c>(1, 0)</c> at <c>f = +∞</c>: forming <c>∞/∞</c> there made the lower
+    /// tail throw and the density NaN (#1158's review).
+    /// </remarks>
+    internal static (double Lower, double Upper) FisherSplit(double f, double dfn, double dfd)
+    {
         double scaled = dfn * f;
         double denominator = dfd + scaled;
-        return RegularizedIncomplete(dfd / 2.0, dfn / 2.0, dfd / denominator, scaled / denominator);
+        if (!double.IsInfinity(denominator))
+        {
+            return (scaled / denominator, dfd / denominator);
+        }
+        double ratio = dfd / dfn / f;
+        return (1.0 / (1.0 + ratio), ratio / (1.0 + ratio));
     }
 
     /// <summary>The t with <c>P(T &gt; t) = p</c>: the inverse of <see cref="StudentSf"/>.</summary>

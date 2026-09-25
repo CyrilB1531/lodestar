@@ -5,6 +5,20 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ## [Unreleased]
 
+### Added
+
+- `Distributions` publishes the density, the lower tail and the inverse upper tail of the standard normal, Student's t, F and chi-squared laws, and the F and chi-squared quantiles: fifteen members, twenty with the five already published, at `scipy.stats` parity. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))
+
+### Changed
+
+- `Distributions.StudentQuantile` and `NormalQuantile` answer `0` and `1` with the support's ends, as scipy's `ppf` does, where they refused them. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))
+
+### Fixed
+
+- The regularized incomplete beta keeps the digits of `1 − x` when `x` rounds to one, and forms `log B` from Stirling's series when one shape is large and the other is not, where it lost up to `6e-7` at shapes `(5e9, 0.5)`. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))
+- An infinite `df` is the standard normal law for the Student members, as in scipy, and refused for the F and chi-squared ones, where it returned wrong values or NaN; a Student quantile past the largest double is `±∞` rather than `±double.MaxValue`. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))
+- Student's upper tail stays exact past `|t| = 1.3e154`, where the square overflowed and the tail read zero, so `StudentQuantile` and `StudentSf` reach the Cauchy's `1e-300` point, `3.18e299`. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))
+
 ## [0.5.0] — 2026-09-24
 
 ### Added

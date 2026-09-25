@@ -8,7 +8,7 @@ The upper tail of the chi-squared distribution: `P(X > x)`.
 public static double ChiSquaredSf(double x, double df)
 ```
 
-**Parameters** — `x` is the statistic. `df` is the degrees of freedom, which must be positive.
+**Parameters** — `x` is the statistic. `df` is the degrees of freedom, which must be positive and finite.
 
 **Returns** — `scipy.stats.chi2.sf(x, df)`.
 

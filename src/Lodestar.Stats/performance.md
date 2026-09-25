@@ -4,6 +4,41 @@ What `Lodestar.Stats` costs against the library a reader would otherwise reach f
 a row, and what this page leaves out:
 [`docs/guides/performance.md`](../../docs/guides/performance.md#how-to-read-a-row).
 
+## The four laws' tails and quantiles against Math.NET Numerics and Meta.Numerics (issue #1158)
+
+Full method: [`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#60-the-four-laws-tails-and-quantiles-against-mathnet-numerics-and-metanumerics-issue-1158).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime — a
+dedicated machine, not a container. Window: one `BenchmarkDotNet` 0.14.0 run, default job,
+2026-09-25 08:04 to 08:13 UTC, across the 24 benchmarks, under the repository's machine lock. The
+three libraries' sixteen values were compared before anything was timed: **0 recorded
+differences past `1e-9`**.
+
+| operation | Lodestar | Math.NET Numerics | Meta.Numerics |
+| --- | ---: | ---: | ---: |
+| Student's t lower tail, `t = −2`, 10 df | **178.1 ns** | 185.4 ns | 203.1 ns |
+| Student's t quantile, `p = 0.975`, 10 df | **500.5 ns** | 3,331 ns | 746.1 ns |
+| F lower tail, `f = 4`, 2 and 20 df | **59.4 ns** | 79.5 ns | 85.3 ns |
+| F quantile, `p = 0.95`, 2 and 20 df | 205.7 ns | 1,532 ns | **201.4 ns** |
+| chi-squared lower tail, `x = 9.488`, 4 df | 40.9 ns | **36.3 ns** | 43.3 ns |
+| chi-squared quantile, `p = 0.95`, 4 df | 377.2 ns | 283.1 ns | **231.8 ns** |
+| normal lower tail, `z = −1.96` | **11.1 ns** | 12.6 ns | 45.5 ns |
+| normal quantile, `p = 0.975` | 69.4 ns | **17.4 ns** | 116.3 ns |
+
+Nothing on Lodestar's side allocates; Math.NET's t and F quantiles allocate 112 B and 104 B, and
+Meta.Numerics' t quantile 288 B.
+
+**How it reads.** On the tails Lodestar is ahead on three of four, and 13% behind Math.NET on the
+chi-squared one. The quantiles split. The Student quantile is **6.7×** Math.NET's and **1.5×**
+Meta.Numerics', and the F quantile **7.4×** Math.NET's and level with Meta.Numerics', 2% behind.
+Two are behind: the chi-squared quantile, **1.6×** slower than Meta.Numerics' and **1.3×** than
+Math.NET's, which is the new inverse of the incomplete gamma paying a Newton step per evaluation
+of a full incomplete gamma; and the normal quantile, published since 0.4.0, **4.0×** slower than
+Math.NET's rational approximation, because it inverts the library's own normal tail rather than
+a separate approximation of the quantile. Both are correct to the corpus's `1e-9` across a grid
+reaching `1e-300`; whether they should trade an evaluation for speed is its own question.
+
 ## Lodestar.Stats against Accord.Statistics (issue #1121) — the variance, proportion and fit tests
 
 Full method, how `Accord`'s names were resolved, why Friedman has no row and what `Accord`'s
