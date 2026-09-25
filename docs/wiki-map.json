@@ -240,8 +240,10 @@
           "docs/reference/stats-regression/wls",
           "docs/reference/stats-regression/gls",
           "docs/reference/stats-regression/glm",
-          "docs/reference/stats-regression/mnlogit"
-        ]
+          "docs/reference/stats-regression/mnlogit",
+          "docs/reference/stats-regression/iv"
+        ],
+        "Lodestar.Stats.Regression.Instrumental": "docs/reference/stats-regression/instrumental"
       },
       "exceptionsUnchecked": []
     },

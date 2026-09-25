@@ -52,6 +52,7 @@ what fails when one reappears where it should not.
 from __future__ import annotations
 
 import pathlib
+import re
 import sys
 import xml.etree.ElementTree as ET
 import zipfile
@@ -119,6 +120,16 @@ ONNX_FLOOR = "0.1.0"
 # 0.1.0 declares OlsOptions.WithIntercept with a plain setter where 0.2.0 has an init one, so a
 # build against 0.1.0 throws MissingMethodException beside 0.2.0 (#671).
 STATS_REGRESSION_FLOOR = SECOND_MINOR
+
+def declared_version(package: str, prop: str) -> str:
+    """The version src/<package>/Version.props declares, which pack emits for a ProjectReference."""
+    text = (pathlib.Path(__file__).resolve().parent.parent / "src" / package / "Version.props").read_text()
+    return re.search(rf"<{prop}>([^<]+)</{prop}>", text).group(1)
+
+
+# Stats.Regression reaches Abstractions by ProjectReference until its IV data types are published
+# (#1155); pack emits the project's declared version, and the release restores ABSTRACTIONS_FLOOR.
+ABSTRACTIONS_PROJECT_FLOOR = declared_version("Lodestar.Abstractions", "LodestarAbstractionsVersion")
 
 # Directory.Packages.props' PackageVersion for both Microsoft.Extensions.*.Abstractions
 # pins: Extensions.AI and Extensions.VectorData agree on it without a range to reconcile.
@@ -219,11 +230,11 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
     STATS_REGRESSION: {
         # Two Lodestar edges and nothing external, which is what keeps this core tier:
         # the tails that make a p-value, and the QR that solves without squaring XtX.
-        NET: {STATS: STATS_FLOOR, DECOMPOSITION: DECOMPOSITION_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NET: {STATS: STATS_FLOOR, DECOMPOSITION: DECOMPOSITION_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
         NETSTANDARD: {
             STATS: STATS_FLOOR,
             DECOMPOSITION: DECOMPOSITION_FLOOR,
-            ABSTRACTIONS: ABSTRACTIONS_FLOOR,
+            ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR,
             **POLYFILLS,
         },
     },

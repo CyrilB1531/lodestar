@@ -169,7 +169,7 @@ script's `EXPECTED` edge map.
 | `Lodestar.Cluster` | core | k-means by Lloyd's algorithm over a row-major span, at scikit-learn parity. |
 | `Lodestar.Preprocessing` | core | feature scaling, encoding, imputation and the cross-validation splitters, fitted on arrays or a `CsrMatrix` and applied to spans, at scikit-learn parity. |
 | `Lodestar.Stats` | core | classical hypothesis tests at scipy parity, plus the four tail members decision 0003 publishes for its neighbours. |
-| `Lodestar.Stats.Regression` | core | ordinary, weighted and generalized least squares with the whole inference table, at statsmodels parity. |
+| `Lodestar.Stats.Regression` | core | ordinary, weighted and generalized least squares with the whole inference table, at statsmodels parity, and instrumental variables at linearmodels parity. |
 | `Lodestar.Stats.TimeSeries` | core | the autocorrelation functions, Ljung-Box, the augmented Dickey-Fuller test, KPSS and seasonal decomposition, at statsmodels parity. |
 | `Lodestar.Survival` | core | Kaplan-Meier, Nelson-Aalen and the log-rank test at lifelines parity, right-censored. |
 | `Lodestar.Onnx` | satellite | `OnnxTextEmbedder`, and the reason the tier exists: `Microsoft.ML.OnnxRuntime`. |
@@ -262,7 +262,8 @@ Three traps, each already worth a session:
   comparison that follows then proves nothing, because nothing was regenerated.
 - **The `Oracles are reproducible` job compares numbers, not bytes** — it copies the committed
   corpora aside, regenerates, and runs `tools/compare_oracles.py` over the two: floats at the same
-  `1e-9` the suites use, everything else exactly. It used to `git diff` them, which failed on the
+  `1e-9` the suites use — relative for `stats_iv.json`, whose suite compares relatively — everything
+  else exactly. It used to `git diff` them, which failed on the
   last digits of a BLAS-reduced value and read as flaky. A red here means a corpus moved by more
   than any assertion tolerates, so believe it. On failure the job uploads the regenerated corpora
   as an artefact, so the comparison can be made off the runner.

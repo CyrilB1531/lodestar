@@ -585,6 +585,15 @@
         "bench/Lodestar.Text.Benchmarks/CrossLang/StatsCrossLang.cs"
       ]
     },
+    "iv": {
+      "subcommand": "compare-iv",
+      "python": "bench/python/bench_iv.py",
+      "compare": "iv",
+      "sources": [
+        "src/Lodestar.Stats.Regression/**",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/IvCrossLang.cs"
+      ]
+    },
     "ols": {
       "subcommand": "compare-ols",
       "python": "bench/python/bench_stats.py",

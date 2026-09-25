@@ -5,6 +5,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ## [Unreleased]
 
+### Added
+
+- `IvDesign`, `IvOptions`, `IvCovarianceType`, `IvKernel`, `IvSummary`, `IvFirstStage` and `IvTest` in `Lodestar.Stats.Regression.Instrumental`, the data `InstrumentalVariables` takes and returns. ([#1155](https://github.com/CyrilB1531/lodestar/issues/1155))
+
 ## [0.2.0] — 2026-09-24
 
 ### Added

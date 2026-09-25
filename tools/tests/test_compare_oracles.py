@@ -194,3 +194,27 @@ def test_help_exits_zero():
 def test_the_success_line_names_the_tolerance(tmp_path, capsys):
     compare(tmp_path, {CORPUS: BASE}, {CORPUS: BASE})
     assert "1e-09" in capsys.readouterr().out
+
+
+IV_CORPUS = "stats_iv.json"
+
+
+def test_a_relative_corpus_accepts_a_large_value_moved_within_its_rate(tmp_path):
+    # 6.8e6 moved by 4e-4: 6e-11 relative, what two hosts' BLAS did to a Wald statistic (#1155).
+    assert compare(tmp_path, {IV_CORPUS: scored(6812205.701842783)}, {IV_CORPUS: scored(6812205.701431695)}) == 0
+
+
+def test_a_relative_corpus_refuses_a_value_moved_past_its_rate(tmp_path):
+    assert compare(tmp_path, {IV_CORPUS: scored(1000.0)}, {IV_CORPUS: scored(1000.0 + 2e-6)}) == 1
+
+
+def test_a_relative_corpus_accepts_zero_moved_within_its_floor(tmp_path):
+    assert compare(tmp_path, {IV_CORPUS: scored(0.0)}, {IV_CORPUS: scored(1e-16)}) == 0
+
+
+def test_a_relative_corpus_refuses_zero_moved_past_its_floor(tmp_path):
+    assert compare(tmp_path, {IV_CORPUS: scored(0.0)}, {IV_CORPUS: scored(1e-12)}) == 1
+
+
+def test_any_other_corpus_stays_absolute(tmp_path):
+    assert compare(tmp_path, {CORPUS: scored(6812205.701842783)}, {CORPUS: scored(6812205.701431695)}) == 1

@@ -294,3 +294,42 @@ the category the count modulo three, milliseconds per fit, best of five.
 
 Part of the difference is the null log-likelihood: `statsmodels` refits the constant-only model with Nelder–Mead and
 BFGS, where this fit takes the closed form that refit approximates (decision 0004).
+
+## Instrumental variables against linearmodels (issue #1155)
+
+Full method:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#61-instrumental-variables-against-linearmodels-issue-1155).
+**No .NET library estimates one**, free or commercial, so `linearmodels` 7.0 on numpy 2.5.3 is the only
+incumbent. Machine: the AMD Ryzen 7 8700G named above, .NET 10.0.12, under the repository's machine
+lock: the Python side 2026-09-25 11:06 to 11:10 UTC, the C# side 11:29 to 11:31 UTC, after the kernel
+change below and the code review's fixes. Milliseconds per fit, best of five, each producing the whole table — first stage, Shea's
+R² and the overidentification test — with three exogenous regressors and a constant, two endogenous
+regressors and four instruments.
+
+| rows | fit | Lodestar | `linearmodels`, wall / cpu | ratio, cpu |
+| ---: | --- | ---: | ---: | ---: |
+| 1,000 | 2SLS, robust | **1.04 ms** | 27.9 / 27.9 ms | **26.8** |
+| 1,000 | LIML, robust | **1.14 ms** | 28.5 / 28.5 ms | **25.1** |
+| 1,000 | GMM, robust weight | **1.05 ms** | 28.1 / 28.1 ms | **26.9** |
+| 1,000 | 2SLS, kernel | **5.67 ms** | 30.1 / 30.1 ms | **5.3** |
+| 1,000 | 2SLS, clustered | **1.01 ms** | 29.3 / 29.3 ms | **28.9** |
+| 10,000 | 2SLS, robust | **10.7 ms** | 131.2 / 262.4 ms | **23.6** |
+| 10,000 | LIML, robust | **11.8 ms** | 132.2 / 264.4 ms | **21.5** |
+| 10,000 | GMM, robust weight | **10.9 ms** | 132.2 / 264.2 ms | **23.5** |
+| 10,000 | 2SLS, kernel | **59.9 ms** | 133.6 / 266.8 ms | **4.4** |
+| 10,000 | 2SLS, clustered | **10.1 ms** | 140.0 / 280.0 ms | **26.9** |
+| 100,000 | 2SLS, robust | **121 ms** | 1,886 / 19,146 ms | **154.6** |
+| 100,000 | LIML, robust | **125 ms** | 1,800 / 18,581 ms | **144.7** |
+| 100,000 | GMM, robust weight | **126 ms** | 1,676 / 17,650 ms | **135.2** |
+| 100,000 | 2SLS, kernel | **2,257 ms** | 2,441 / 24,318 ms | **10.8** |
+| 100,000 | 2SLS, clustered | **111 ms** | 1,790 / 18,794 ms | **166.5** |
+
+**How it reads.** Ahead on every row, by 11× to 28× in elapsed time outside the kernel covariance.
+At 100,000 rows `linearmodels` spends ten times more processor time than elapsed time, on numpy's
+threaded BLAS; this runs on one thread, which is why the cpu ratio is the honest one there.
+
+**The kernel covariance is the close row**, 1.08× in elapsed time at 100,000 rows: the automatic
+bandwidth reaches 236 lags there, and the fit, its two first-stage regressions each repeating it,
+sums a `k × k` cross-product per lag. The lags were first summed two products per element, 2,872 ms
+and 0.85× the reference; summing each lag's cross-product once and adding it with its transpose,
+the reference's own order, took it to 2,257 ms.

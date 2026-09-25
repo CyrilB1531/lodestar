@@ -643,6 +643,9 @@ jobs:
           for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Extensions.VectorData src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Stats.TimeSeries src/Lodestar.Survival src/Lodestar.Gpu; do
             refs=$(dotnet msbuild "$proj" -getItem:ProjectReference -p:TargetFramework=net10.0 \
               | python3 -c 'import sys, json; print(" ".join(i["Identity"] for i in json.load(sys.stdin)["Items"]["ProjectReference"]))')
+            # Until the next Lodestar.Abstractions is on nuget.org: the instrumental-variables data
+            # types Lodestar.Stats.Regression names live there (#1155). The release drops this line.
+            [ "$proj" = src/Lodestar.Stats.Regression ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
             refs=$(echo $refs)
             if [ -n "$refs" ]; then
               echo "::error::$proj references $refs by project; src/ must reference published packages."

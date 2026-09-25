@@ -32,15 +32,22 @@
     It is never set in CI, and the packed .nuspec is asserted there.
   -->
   <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
     <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
     <ProjectReference Include="../Lodestar.Decomposition/Lodestar.Decomposition.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
-    <PackageReference Include="Lodestar.Abstractions" />
     <PackageReference Include="Lodestar.Stats" />
     <PackageReference Include="Lodestar.Decomposition" />
+  </ItemGroup>
+
+  <!-- The instrumental-variables data types this package adds live in Lodestar.Abstractions
+       (decision 0003, #1155), so it reaches that project unconditionally until the next
+       Lodestar.Abstractions is on nuget.org; packing turns the reference into a dependency on
+       that version. The release swaps it back for a PackageReference on the published floor and
+       drops its exception in ci.yml's "src/ ships PackageReference only" step, as after #1142. -->
+  <ItemGroup>
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>
 
   <!-- Loud on purpose: a local build that silently differed from the shipped one
@@ -48,7 +55,7 @@
   <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
           Condition="'$(LodestarUseProjectRefs)' == 'true'">
     <Message Importance="high"
-             Text="Lodestar.Stats.Regression: LodestarUseProjectRefs=true — referencing Lodestar.Abstractions, Lodestar.Stats and Lodestar.Decomposition by project, not by package. This is the developer loop, not what ships." />
+             Text="Lodestar.Stats.Regression: LodestarUseProjectRefs=true — referencing Lodestar.Stats and Lodestar.Decomposition by project, not by package. This is the developer loop, not what ships." />
   </Target>
 
   <ItemGroup>
