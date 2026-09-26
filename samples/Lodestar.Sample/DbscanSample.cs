@@ -24,6 +24,13 @@ internal static class DbscanSample
         Dbscan fromDistances = Dbscan.FitPrecomputed(distances, sampleCount: 6, epsilon: 0.5, minimumSamples: 2);
 
         Console.WriteLine($"  from distances   : [{string.Join(", ", fromDistances.Labels)}]");
+
+        // The lone point at (9, 9) standing for two identical rows is dense on its own.
+        double[] weights = [1.0, 1.0, 1.0, 1.0, 1.0, 2.0];
+        Dbscan weighted = Dbscan.Fit(samples, featureCount: 2, epsilon: 0.5, minimumSamples: 2, weights);
+        Dbscan weightedDistances = Dbscan.FitPrecomputed(distances, sampleCount: 6, epsilon: 0.5, minimumSamples: 2, weights);
+        Console.WriteLine($"  weighted         : [{string.Join(", ", weighted.Labels)}]");
+        Console.WriteLine($"  weighted, dist.  : [{string.Join(", ", weightedDistances.Labels)}]");
         Console.WriteLine();
     }
 

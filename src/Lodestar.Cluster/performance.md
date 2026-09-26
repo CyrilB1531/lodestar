@@ -4,6 +4,35 @@ What `Lodestar.Cluster` costs against the library a reader would otherwise reach
 a row, and what this page leaves out:
 [`docs/guides/performance.md`](../../docs/guides/performance.md#how-to-read-a-row).
 
+## Weighted k-means, restarts and weighted DBSCAN against scikit-learn (issue #1163)
+
+Full method:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#65-weighted-k-means-restarts-and-weighted-dbscan-against-scikit-learn-issue-1163).
+No .NET library weighs a sample in either algorithm, so scikit-learn 1.9.1 on numpy 2.5.3 is the
+incumbent. Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical
+cores, .NET 10.0.12, under the repository's machine lock on 2026-09-26: the Python side 07:07 UTC,
+the C# side 07:14 UTC. Milliseconds per call, best of five.
+
+| operation | rows | Lodestar | scikit-learn, wall / cpu | ratio, cpu | ratio, wall |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| weighted k-means, one start (8 features, 16 clusters) | 10,000 | **2.58 ms** | 1.87 / 14.5 ms | **5.61** | 0.72 |
+| weighted k-means, four starts | 10,000 | **11.5 ms** | 4.70 / 35.6 ms | **3.11** | 0.41 |
+| weighted k-means, one start | 100,000 | **26.1 ms** | 13.5 / 70.1 ms | **2.67** | 0.52 |
+| weighted k-means, four starts | 100,000 | **113 ms** | 27.4 / 169 ms | **1.49** | 0.24 |
+| weighted DBSCAN (2 features) | 5,000 | **5.23 ms** | 16.9 / 16.9 ms | **2.99** | 3.23 |
+| weighted DBSCAN | 20,000 | **69.1 ms** | 114 / 114 ms | **1.59** | 1.65 |
+
+**How it reads.** Ahead on every row in processor time. k-means is behind in elapsed time because
+scikit-learn spreads Lloyd's loop over OpenMP threads, spending five to eight times its elapsed
+time to do it, where this package runs on one core; DBSCAN is single-threaded on both sides, and
+ahead on both clocks.
+
+**Two kernels paid for it.** The first reading was behind on two rows: four starts at 100,000 rows
+(0.92) and DBSCAN at 20,000 (0.48). The E-step now puts one centre per vector lane, each lane
+summing in the scalar loop's order, so every label is unchanged to the bit and the unweighted fit
+is 1.6× faster than before; DBSCAN's neighbour search sorts the rows along their widest feature and
+stops each scan where that feature alone is out of reach, instead of testing every pair.
+
 ## k-means against NumFlat and Meta.Numerics (issue #681)
 
 Full method, the two classes and why only one is like-for-like:

@@ -22,6 +22,8 @@
           LinkBase="oracles" />
     <None Include="../oracles/cluster_dbscan.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
+    <None Include="../oracles/cluster_weighted.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
     <None Include="../oracles/cluster_agglomerative.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
   </ItemGroup>

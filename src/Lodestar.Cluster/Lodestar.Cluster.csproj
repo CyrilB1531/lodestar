@@ -22,7 +22,10 @@
   <!-- The data types this package forwards to Lodestar.Abstractions (decision 0003, #1142). The
        floor is pinned in src/Directory.Packages.props, like every other src/ reference. -->
   <ItemGroup>
-    <PackageReference Include="Lodestar.Abstractions" />
+    <!-- The k-means restart options live in Lodestar.Abstractions (#1163), so this reaches that project
+         unconditionally until its next publication; the release swaps it back and drops the
+         exception in ci.yml's "src/ ships PackageReference only" step. -->
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

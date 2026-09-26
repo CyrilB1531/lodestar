@@ -8,16 +8,28 @@ Clusters a row-major sample matrix by euclidean distance.
 public static Dbscan Fit(ReadOnlySpan<double> samples, int featureCount, double epsilon, int minimumSamples)
 ```
 
+<!-- docs-declaration -->
+
+```csharp
+public static Dbscan Fit(ReadOnlySpan<double> samples, int featureCount, double epsilon, int minimumSamples, ReadOnlySpan<double> sampleWeights)
+```
+
+The second overload weighs each sample, scikit-learn's `fit(X, sample_weight=w)`: a sample is core
+when the weights in its neighbourhood, its own included, sum to at least `minimumSamples`.
+
 **Parameters** — `samples` is the sample matrix, row-major: `featureCount` values per row.
 `featureCount` is how many values each row carries. `epsilon` is the inclusive radius of a
 neighbourhood, scikit-learn's `eps`. `minimumSamples` is how many samples a neighbourhood needs to
-be dense, the sample itself counted.
+be dense, the sample itself counted, or the weight it needs when `sampleWeights` is given. `sampleWeights` is one finite weight per
+sample; zero and negative ones are accepted, a negative one keeping its neighbours from being core,
+as the reference documents.
 
 **Returns** — a fitted `Dbscan`.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` or `minimumSamples` is not
 positive, or `epsilon` is not positive or not finite. `ArgumentException` when `samples` holds no
-row, a partial one, or a `NaN` or infinite value.
+row, a partial one, or a `NaN` or infinite value, or when `sampleWeights` is not one finite value
+per row.
 
 **Example** — the same three points at two radii, where the whole boundary rule is visible.
 
@@ -37,6 +49,18 @@ int one = exact.ClusterCount;    // => 1
 int middle = exact.Labels[1];    // => 0
 ```
 
+Weighted, a row can stand for the several identical rows it replaced.
+
+```csharp
+using Lodestar.Cluster;
+
+// The last row stands for three; alone it is noise at a minimum of three.
+double[] rows = [0.0, 1.0, 5.0];
+Dbscan weighted = Dbscan.Fit(rows, featureCount: 1, epsilon: 0.5, minimumSamples: 3, [1.0, 1.0, 3.0]);
+int dense = weighted.Labels[2];   // => 0
+int alone = weighted.Labels[0];   // => -1
+```
+
 **Remarks** — **`epsilon` is inclusive.** A sample exactly that far away is a neighbour, as the
 example shows; the reference tests `<=` and so does this.
 
@@ -52,7 +76,10 @@ them has a defensible default.
 
 **Distances are compared squared**, against a squared radius, so no square root is taken. That is
 exactness rather than speed: a sample at exactly `epsilon` has to stay inside, and rounding a root
-can put it out.
+can put it out. scikit-learn's own search is not that exact at the boundary: on small inputs it
+goes brute force, which computes `x² + y² − 2xy` and can place a sample exactly `epsilon` away a
+rounding step outside — `1.3` and `0.3` at `epsilon: 1.0` — where its tree searches and this method
+keep it in. Away from exact ties the labels are identical.
 
 **Applies to** — net10.0, netstandard2.0.
 

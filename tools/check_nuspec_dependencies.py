@@ -199,10 +199,10 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0", **POLYFILLS},
     },
     CLUSTER: {
-        # One Lodestar edge, to the data types it forwards (#1142): Lloyd's algorithm is
-        # arithmetic over spans, and the scoring half lives in Lodestar.Metrics.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
+        # One Lodestar edge, to its data types (#1142), at the project's version until the release
+        # publishes #1163's options; Lloyd's algorithm is arithmetic over spans.
+        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
     },
     PREPROCESSING: {
         # Three core edges: the normal quantile (0138), the CsrMatrix (0139), KBinsDiscretizer's Lloyd

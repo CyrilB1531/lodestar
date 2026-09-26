@@ -3530,3 +3530,23 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-onehot
 python3 bench/python/bench_onehot.py
 python3 bench/compare.py onehot
 ```
+
+## 65. Weighted k-means, restarts and weighted DBSCAN against scikit-learn (issue #1163)
+
+`compare-cluster-weighted` puts `KMeans.Fit` with sample weights, from one given start and from four
+through `KMeansOptions.InitialCentreSets`, and the weighted `Dbscan.Fit` against scikit-learn
+1.9.1's `KMeans(algorithm="lloyd")` and `DBSCAN` with `sample_weight`. k-means runs at 10,000 and
+100,000 rows of eight features and sixteen clusters, DBSCAN at 5,000 and 20,000 planar rows. No
+.NET library weighs a sample in either algorithm, so the reference is the incumbent.
+
+No corpus file: both sides build each value from its row and column index by one formula — sixteen
+or ten blobs, each row jittered by a hash of its index — and weigh row `i` `1 + 37i mod 5`. The
+starts are rows picked by a stride, so both sides run the same Lloyd iterations; scikit-learn takes
+the four starts through a callable `init`, handed the centred matrix, as the corpus does.
+Agreement is `tests/oracles/cluster_weighted.json`'s job.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-cluster-weighted
+python3 bench/python/bench_cluster_weighted.py
+python3 bench/compare.py cluster-weighted
+```

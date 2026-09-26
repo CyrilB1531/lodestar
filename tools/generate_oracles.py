@@ -137,6 +137,14 @@ DESIGN = "design"
 RESPONSE = "response"
 WITH_INTERCEPT = "withIntercept"
 WEIGHTS = "weights"
+# The k-means and DBSCAN corpora's shared keys and settings (#1163).
+NEGATIVE_WEIGHT = "a negative weight"
+CENTRES = "centres"
+CLUSTER_COUNT = "cluster_count"
+INERTIA = "inertia"
+KMEANS = "kmeans"
+LLOYD = "lloyd"
+METRIC = "metric"
 ERROR_COVARIANCE = "covariance"
 # The inference table's own field names, shared by the OLS, GLM and Cox corpora (#684).
 COEFFICIENTS = "coefficients"
@@ -5823,18 +5831,18 @@ def generate_cluster_kmeans() -> dict:
         # stating it says the run is deterministic rather than leaving that inferred.
         model = SkKMeans(
             n_clusters=init.shape[0], init=init, n_init=1, random_state=0,
-            max_iter=fixture[MAX_ITER], tol=fixture["tol"], algorithm="lloyd").fit(matrix)
+            max_iter=fixture[MAX_ITER], tol=fixture["tol"], algorithm=LLOYD).fit(matrix)
         cases.append({
             "name": fixture["name"],
             SAMPLES: [float(v) for row in fixture["rows"] for v in row],
             FEATURE_COUNT: int(matrix.shape[1]),
-            "cluster_count": int(init.shape[0]),
+            CLUSTER_COUNT: int(init.shape[0]),
             "initial_centres": [float(v) for row in fixture["init"] for v in row],
             MAX_ITER: fixture[MAX_ITER],
             "tol": fixture["tol"],
-            "centres": [float(v) for row in model.cluster_centers_ for v in row],
+            CENTRES: [float(v) for row in model.cluster_centers_ for v in row],
             "labels": [int(v) for v in model.labels_],
-            "inertia": float(((matrix - model.cluster_centers_[model.labels_]) ** 2).sum()),
+            INERTIA: float(((matrix - model.cluster_centers_[model.labels_]) ** 2).sum()),
             ITERATIONS: int(model.n_iter_),
         })
 
@@ -5932,7 +5940,7 @@ def generate_cluster_dbscan() -> dict:
             FEATURE_COUNT: columns,
             "eps": fixture["eps"],
             MIN_SAMPLES: fixture[MIN_SAMPLES],
-            "metric": metric,
+            METRIC: metric,
             "labels": [int(v) for v in model.labels_],
             "core_sample_indices": [int(v) for v in model.core_sample_indices_],
         }
@@ -6017,9 +6025,133 @@ def _agglomerative_case(name, rows, linkage, model, mode, value) -> dict:
         "labels": [int(v) for v in model.labels_],
         "children": [int(v) for pair in model.children_ for v in pair],
         "distances": [float(v) for v in model.distances_],
-        "cluster_count": int(model.n_clusters_),
+        CLUSTER_COUNT: int(model.n_clusters_),
     }
 
+
+
+# The weighted and restarted corpus (#1163): its keys.
+INIT_SETS = "initial_centre_sets"
+
+
+def _weighted_kmeans_cases() -> list[dict]:
+    """KMeans with sample_weight: whole, fractional, zero and negative weights, from given centres."""
+    import numpy as np
+    from sklearn.cluster import KMeans as SkKMeans
+
+    rng = np.random.default_rng(1163)
+    blobs = np.vstack([rng.normal(c, 0.6, size=(12, 2)) for c in ((0, 0), (5, 5), (0, 6))]).round(6)
+    fixtures = [
+        ("whole weights, as duplicated rows", blobs, rng.integers(1, 5, len(blobs)).astype(float),
+         [[0.5, 0.5], [4.0, 4.0], [1.0, 5.0]], 300),
+        ("fractional weights", blobs, rng.uniform(0.05, 3.0, len(blobs)).round(6), [[0.5, 0.5], [4.0, 4.0], [1.0, 5.0]], 300),
+        # The third cluster weighs nothing, so it is relocated onto a weightless sample and takes the heaviest
+        # cluster's centre; no two distances tie, which argpartition would break its own way (#990).
+        ("a cluster whose members weigh nothing", np.array([[0.0], [1.0], [3.0], [10.0], [12.0]]),
+         np.array([1.0, 1.0, 1.0, 0.0, 0.0]), [[0.2], [3.0], [10.9]], 1),
+        (NEGATIVE_WEIGHT, blobs, np.where(np.arange(len(blobs)) == 7, -0.5, 1.0), [[0.5, 0.5], [4.0, 4.0], [1.0, 5.0]], 300),
+        ("one iteration, weighted", blobs, rng.uniform(0.5, 2.0, len(blobs)).round(6), [[1.0, 1.0], [3.0, 3.0], [2.0, 4.0]], 1),
+    ]
+    cases = []
+    for name, rows, weights, init, iterations in fixtures:
+        init = np.array(init, dtype=np.float64)
+        model = SkKMeans(n_clusters=len(init), init=init, n_init=1, max_iter=iterations, tol=1e-4, random_state=0,
+                         algorithm=LLOYD).fit(rows, sample_weight=weights)
+        distances = ((rows - model.cluster_centers_[model.labels_]) ** 2).sum(axis=1)
+        cases.append({"name": name, SAMPLES: rows.ravel().tolist(), FEATURE_COUNT: int(rows.shape[1]),
+                      WEIGHTS: weights.tolist(), CLUSTER_COUNT: len(init), "initial_centres": init.ravel().tolist(),
+                      MAX_ITER: iterations, "tol": 1e-4,
+                      CENTRES: model.cluster_centers_.ravel().tolist(), "labels": model.labels_.tolist(),
+                      INERTIA: float((weights * distances).sum()), ITERATIONS: int(model.n_iter_)})
+    return cases
+
+
+def _restart_cases() -> list[dict]:
+    """KMeans with n_init over given starts, handed to scikit-learn by a callable init.
+
+    long-comment: why the blocks are centred before scikit-learn sees them.
+    scikit-learn subtracts the column means from X before it calls init, and adds them back to
+    the centres it keeps, so the callable returns each block less those means; the C# receives
+    the blocks as given. The fixtures include a start that ends in a worse partition, one that
+    reaches the same partition, and weighted restarts.
+    """
+    import numpy as np
+    from sklearn.cluster import KMeans as SkKMeans
+
+    rng = np.random.default_rng(1164)
+    rows = np.vstack([rng.normal(c, 0.8, size=(15, 2)) for c in ((0, 0), (6, 1), (3, 6))]).round(6)
+    starts = [
+        [[0.0, 0.0], [0.5, 0.5], [1.0, 1.0]],
+        [[0.0, 0.0], [6.0, 1.0], [3.0, 6.0]],
+        [[6.0, 1.0], [3.0, 6.0], [0.0, 0.0]],
+        [[10.0, 10.0], [-5.0, -5.0], [3.0, 3.0]],
+    ]
+    fixtures = [("four starts, the second best", rows, None, starts),
+                ("a permuted start reaching the same partition", rows, None, [starts[1], starts[2]]),
+                ("weighted restarts", rows, rng.uniform(0.2, 2.0, len(rows)).round(6), starts)]
+    cases = []
+    for name, data, weights, blocks in fixtures:
+        mean = data.mean(axis=0)
+        queue = [np.array(block, dtype=np.float64) - mean for block in blocks]
+
+        def init(x, n_clusters, random_state, queue=queue):
+            return queue.pop(0)
+
+        model = SkKMeans(n_clusters=3, init=init, n_init=len(blocks), max_iter=300, tol=1e-4, random_state=0,
+                         algorithm=LLOYD).fit(data, sample_weight=weights)
+        w = np.ones(len(data)) if weights is None else weights
+        distances = ((data - model.cluster_centers_[model.labels_]) ** 2).sum(axis=1)
+        cases.append({"name": name, SAMPLES: data.ravel().tolist(), FEATURE_COUNT: 2,
+                      WEIGHTS: None if weights is None else weights.tolist(), CLUSTER_COUNT: 3,
+                      INIT_SETS: [np.array(block, dtype=np.float64).ravel().tolist() for block in blocks],
+                      MAX_ITER: 300, "tol": 1e-4, CENTRES: model.cluster_centers_.ravel().tolist(),
+                      "labels": model.labels_.tolist(), INERTIA: float((w * distances).sum()),
+                      ITERATIONS: int(model.n_iter_)})
+    return cases
+
+
+def _weighted_dbscan_cases() -> list[dict]:
+    """DBSCAN with sample_weight, euclidean and precomputed, negative weights included."""
+    import numpy as np
+    from sklearn.cluster import DBSCAN as SkDbscan
+    from sklearn.metrics import pairwise_distances
+
+    rows = np.array([[v] for v in DBSCAN_LEFT + [DBSCAN_BORDER] + DBSCAN_RIGHT] + [[5.0], [5.2]])
+    # eps is 1.05 rather than 1.0: these rows sit exactly 1.0 apart, where scikit-learn's brute search computes
+    # x² + y² − 2xy and can land a hair outside the radius, a distance question rather than a weighting one.
+    fixtures = [
+        # A deduplicated group: two rows standing for several reach min_samples by weight.
+        ("weights make two sparse rows core", rows, [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0], 1.05, 4),
+        ("fractional weights at the threshold", rows, [0.5, 0.5, 0.5, 0.5, 3.0, 1.5, 1.5, 1.5, 1.5, 0.25, 0.25], 1.05, 2),
+        # A negative weight keeps its neighbours from being core, as scikit-learn documents.
+        ("a negative weight inhibits a core", rows, [1.0, 1.0, -3.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], 1.05, 3),
+        ("zero weights", rows, [0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0], 0.5, 2),
+    ]
+    cases = []
+    for name, data, weights, eps, minimum in fixtures:
+        for metric in (EUCLIDEAN, PRECOMPUTED):
+            x = data if metric == EUCLIDEAN else pairwise_distances(data)
+            model = SkDbscan(eps=eps, min_samples=minimum, metric=metric).fit(x, sample_weight=np.array(weights))
+            cases.append({"name": _named(name, metric), SAMPLES: x.ravel().tolist(),
+                          FEATURE_COUNT: int(x.shape[1]), WEIGHTS: weights, "eps": eps, MIN_SAMPLES: minimum,
+                          METRIC: metric, "labels": model.labels_.tolist(),
+                          "core_sample_indices": model.core_sample_indices_.tolist()})
+    return cases
+
+
+def generate_cluster_weighted() -> dict:
+    """KMeans and DBSCAN with sample_weight, and KMeans with n_init over given starts (#1163)."""
+    kmeans = _weighted_kmeans_cases()
+    restarts = _restart_cases()
+    dbscan = _weighted_dbscan_cases()
+    return {
+        "metadata": {"algorithm": "weighted KMeans and DBSCAN, and KMeans restarts", "library": "scikit-learn",
+                     "library_version": version("scikit-learn"),
+                     "count": len(kmeans) + len(restarts) + len(dbscan)},
+        KMEANS: kmeans,
+        "restarts": restarts,
+        "dbscan": dbscan,
+    }
 
 def generate_cluster_agglomerative() -> dict:
     """AgglomerativeClustering, labels and children compared exactly (#760).
@@ -9340,7 +9472,7 @@ def _top_k_fixtures() -> list[dict]:
          "weight": [1.0, 4.0, 1.0]},
         # A negative weight is accepted and takes the fraction out of [0, 1],
         # which the reference does too rather than refusing it.
-        {"name": "a negative weight", "true": [0, 1, 2, 2],
+        {"name": NEGATIVE_WEIGHT, "true": [0, 1, 2, 2],
          "score": [[0.7, 0.2, 0.1], [0.3, 0.5, 0.2], [0.2, 0.3, 0.5], [0.5, 0.3, 0.2]],
          "weight": [-1.0, 1.0, 1.0, 1.0]},
     ]
@@ -9374,7 +9506,7 @@ def _ranking_weighted_fixtures() -> list[dict]:
          "score": [[0.9, 0.5, 0.4, 0.1], [0.9, 0.5, 0.4, 0.1]], "weight": [1.0, 4.0]},
         # Accepted on both sides, and it takes the result outside the range the
         # page promises -- recorded rather than smoothed.
-        {"name": "a negative weight", "true": [[3.0, 2.0, 1.0, 0.0], [3.0, 2.0, 1.0, 0.0]],
+        {"name": NEGATIVE_WEIGHT, "true": [[3.0, 2.0, 1.0, 0.0], [3.0, 2.0, 1.0, 0.0]],
          "score": [[0.9, 0.5, 0.4, 0.1], [0.1, 0.4, 0.5, 0.9]], "weight": [-1.0, 2.0]},
         {"name": "three rows", "true": [[3.0, 2.0, 1.0], [1.0, 2.0, 3.0], [0.0, 1.0, 0.0]],
          "score": [[0.9, 0.5, 0.1], [0.9, 0.5, 0.1], [0.5, 0.5, 0.5]], "weight": [1.0, 2.0, 5.0]},
@@ -12696,7 +12828,7 @@ def generate_keywords_rake() -> dict:
                     "id": len(cases),
                     "name": f"{name}:{metric_name}:repeats={repeats}",
                     "text": text,
-                    "metric": metric_name,
+                    METRIC: metric_name,
                     "min_length": 1,
                     "max_length": 100000,
                     "include_repeated_phrases": repeats,
@@ -14092,8 +14224,8 @@ def _kbins_strategy_cases(discretizer, columns: dict) -> list[dict]:
     cases = []
     for name, rows in columns.items():
         for bins in (2, 3, 5):
-            for strategy in ("uniform", "quantile", "kmeans"):
-                if strategy == "kmeans" and bins not in KMEANS_BIN_COUNTS:
+            for strategy in ("uniform", "quantile", KMEANS):
+                if strategy == KMEANS and bins not in KMEANS_BIN_COUNTS:
                     continue
                 cases.extend(
                     _kbins_case(discretizer, name, rows, bins, strategy, encode,
@@ -15142,6 +15274,7 @@ def main() -> None:
         "stats_seasonal.json": generate_stats_seasonal,
         "cluster_kmeans.json": generate_cluster_kmeans,
         "cluster_dbscan.json": generate_cluster_dbscan,
+        "cluster_weighted.json": generate_cluster_weighted,
         "cluster_agglomerative.json": generate_cluster_agglomerative,
         "preprocessing_partial_fit.json": generate_preprocessing_partial_fit,
         "preprocessing_sparse.json": generate_preprocessing_sparse,
