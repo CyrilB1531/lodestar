@@ -51,11 +51,15 @@ MARKER = "<!-- nightly-baseline: {sha} -->"
 # was measured, so without this a truncated night loses the classes it skipped (#650).
 OWED = "<!-- nightly-owed: {classes} -->"
 
+# By file name, not the wiki's flat name: build_wiki.py rewrites it for the wiki, and github.com and
+# the documentation site resolve it as written (#1180).
+PERFORMANCE = "performance.md"
+
 PREAMBLE = """
 > **Generated. Do not edit.** Produced by `.github/workflows/bench-nightly.yml`; every edit is
 > overwritten by the next run. The curated figures, measured on a named machine, are in
 > [performance]({performance}). The last known reading for a method quiet tonight is in
-> [benchmark_latest](benchmark_latest).
+> [benchmark_latest](benchmark_latest.md).
 
 **Read the ratios, not the means.** These run on a GitHub hosted runner: a shared VM whose
 hardware differs from night to night and whose neighbours are unknown. An absolute figure here
@@ -146,7 +150,7 @@ def render(args: argparse.Namespace,
            comparisons: list[pathlib.Path] | None = None) -> str:
     lines = [HEADER, "", MARKER.format(sha=args.baseline or "none"),
              OWED.format(classes=" ".join(args.owed)), ""]
-    lines.append(PREAMBLE.format(performance="performance").strip())
+    lines.append(PREAMBLE.format(performance=PERFORMANCE).strip())
     lines += ["", "## This run", "", f"- Commit: `{args.commit}`",
               f"- Previous run: `{args.baseline or 'none — every entry was selected'}`",
               f"- Runner: {args.runner}", ""]

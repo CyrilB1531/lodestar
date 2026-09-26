@@ -202,6 +202,8 @@ given:
   runtime — can judge.
 - `build_wiki.py` produces what the GitHub wiki publishes: `docs/` turned into
   a flat page per package channel and per released version.
+- `build_site.py` writes the documentation site's DocFX source tree from the same map: the live
+  pages at readable addresses, with a title and a description each, for GitHub Pages.
 - `select_benchmarks.py` names the benchmark classes a range of commits makes
   worth re-running (#11): it reads `bench/bench-map.json`, asks git what moved
   since the baseline, and prints one class per line — empty when nothing
@@ -744,6 +746,26 @@ drops the hub from that line, because an archive has none. `Home` is
 pages, followed by the generated package table. The sidebar lists each root page
 once, and a globbed directory by its `README.md` alone.
 
+## `build_site.py`
+
+Writes the source tree of the documentation site
+([#1180](https://github.com/CyrilB1531/lodestar/issues/1180)): the same live pages
+`docs/wiki-map.json` publishes to the wiki, which GitHub serves with `x-robots-tag: none`, at
+addresses a search engine indexes — `docs/<path>.md` at `<path>.html`, a package's README at
+`packages/<slug>/`. Each page carries `title` and `description` front matter; its links are
+rewritten to the new addresses, a file the map does not publish becomes a GitHub link, and a link
+naming nothing is left for DocFX to refuse. Archives stay on the wiki.
+
+```bash
+python3 tools/build_site.py --repo . --out artifacts/site \
+  --released Lodestar.Text=0.7.0 [--released ...]
+dotnet tool restore
+dotnet docfx artifacts/site/docfx.json --warningsAsErrors   # the HTML, in artifacts/site/_site
+```
+
+It prints how many pages had no lead sentence and took their title as description. Exit 1 when the
+map and the tree disagree, or when `--out` would clear part of the checkout; 2 on bad usage.
+
 ## `check_no_console_writeline.py`
 
 Refuses a `Console` call under `src/`, always, and one under `bench/` that does
@@ -857,6 +879,19 @@ gh api repos/CyrilB1531/lodestar/pulls/857/files --paginate \
 It prints `true` only when every path ends in `.md`, a rename counting both its names. An image, a
 JSON map the tests read, or an empty list gives `false`: a pull request whose files could not be
 listed takes the full path, never the reduced one.
+
+## `site_changed.py`
+
+Answers whether a pull request could change the documentation site
+([#1180](https://github.com/CyrilB1531/lodestar/issues/1180)), so ci.yml's `site` job runs DocFX
+only when it could fail: on a change under `docs/` or `tools/site/`, to a package's `README.md` or
+`performance.md`, to either builder, the DocFX pin, the icon or `ci.yml` itself. An empty file list
+answers `true`.
+
+```bash
+gh api repos/OWNER/REPO/pulls/N/files --paginate \
+    --jq '.[] | .filename, (.previous_filename // empty)' | python3 tools/site_changed.py
+```
 
 ## `format_needed.py`
 

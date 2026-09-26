@@ -11,6 +11,7 @@ Numbering the later occurrence rather than dropping it is the deliberate half. T
 second measurement is real data, it is almost certainly not wanted, and a reader
 who can see it is the one who can go and remove whatever produced it.
 """
+import re
 import sys
 from pathlib import Path
 
@@ -78,3 +79,13 @@ def test_heading_for_names_the_first_occurrence_bare() -> None:
     # every existing page churns on the next render for no reason.
     assert heading_for("X-report-github", 1) == "X-report-github"
     assert heading_for("X-report-github", 2) == "X-report-github (run 2)"
+
+
+def test_the_preamble_links_each_page_by_its_file_name() -> None:
+    # A flat `(performance)` only resolves on the wiki; `.md` resolves on github.com and the site
+    # too, and build_wiki.py rewrites it back to the flat name for the wiki (#1180).
+    import render_nightly
+
+    text = render_nightly.PREAMBLE.format(performance=render_nightly.PERFORMANCE)
+    targets = re.findall(r"\]\(([^)]+)\)", text)
+    assert targets == ["performance.md", "benchmark_latest.md"]

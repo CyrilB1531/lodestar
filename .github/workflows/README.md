@@ -13,7 +13,7 @@ which workflow answers which question, and what has to be green before the merge
 | [`classify-pull-request.yml`](classify-pull-request.yml) | `Classify a pull request` | a pull request opening, and every push to it | which milestone, labels and boards the changed files earn it. Reconciled on every push, so the attribution follows the diff |
 | [`release.yml`](release.yml) | `Release` | a `Lodestar.*/v*` tag | packs and publishes that one package to GitHub Packages, refusing the job when the tag and `Version.props` disagree |
 | [`release-nuget-org.yml`](release-nuget-org.yml) | `Publish to nuget.org (Trusted Publishing)` | `workflow_dispatch` | the same package, to nuget.org, over OIDC with no stored key |
-| [`wiki.yml`](wiki.yml) | `Wiki` | a push to `main`, a `Lodestar.*/v*` tag, or `workflow_dispatch` | turns `docs/` into the published wiki — a live channel per package on `main`, a frozen archive directory per tag |
+| [`wiki.yml`](wiki.yml) | `Wiki` | a push to `main`, a `Lodestar.*/v*` tag, or `workflow_dispatch` | turns `docs/` into the published wiki — a live channel per package on `main`, a frozen archive directory per tag — and, on a branch only, deploys the same live pages to the documentation site at `https://cyrilb1531.github.io/lodestar/`, which a search engine indexes where it does not index the wiki ([#1180](https://github.com/CyrilB1531/lodestar/issues/1180)) |
 | [`bench-nightly.yml`](bench-nightly.yml) | `Benchmarks (nightly)` | 02:00 UTC, or `workflow_dispatch` | the night's benchmark run, inside the budget `BUDGET_MINUTES` sets |
 | [`bench-ondemand.yml`](bench-ondemand.yml) | `Benchmark (on demand)` | `workflow_dispatch` | one named benchmark, when a `perf/` pull request needs a number |
 
@@ -86,3 +86,8 @@ skip **only on a classified pull request**, and names the class it accepted in i
 waving a bare `skipped` through. It never accepts a skipped `Guide snippets compile, reference
 snippets run` while a Markdown file moved: a documentation change is exactly what breaks a guide
 snippet.
+
+`Documentation site builds` renders the site with DocFX, warnings as errors, without deploying it,
+so a broken link fails the pull request instead of the deployment after the merge. It runs when
+`tools/site_changed.py` says the pull request touches something the site reads, and it is not a
+required check.

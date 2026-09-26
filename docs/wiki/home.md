@@ -5,8 +5,8 @@ equivalent at the reference's parity, with no Python at runtime. Every algorithm
 captured from the Python library it follows, and the [equivalence table](../equivalence.md) maps
 each Python call to its C# counterpart.
 
-These pages describe `main`. Each package's released versions are frozen under their own names,
-listed in the sidebar beneath the package.
+These pages describe `main`. Each package's released versions are frozen under their own names on
+the [wiki](https://github.com/CyrilB1531/lodestar/wiki).
 
 ## What do you want to do?
 

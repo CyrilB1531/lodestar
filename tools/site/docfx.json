@@ -1,0 +1,20 @@
+{
+  "build": {
+    "content": [{ "files": ["**/*.md", "**/toc.yml"] }],
+    "resource": [{ "files": ["images/**", "google*.html"] }],
+    "output": "_site",
+    "template": ["default", "modern"],
+    "globalMetadata": {
+      "_appTitle": "Lodestar",
+      "_appName": "Lodestar",
+      "_appLogoPath": "images/logo.png",
+      "_appFaviconPath": "images/icon.png",
+      "_enableSearch": true,
+      "_disableContribution": true
+    },
+    "sitemap": {
+      "baseUrl": "https://cyrilb1531.github.io/lodestar/",
+      "changefreq": "weekly"
+    }
+  }
+}

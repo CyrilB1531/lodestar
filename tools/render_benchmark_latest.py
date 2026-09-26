@@ -42,7 +42,7 @@ HEADER = "# Latest known benchmark result, per method"
 
 PREAMBLE = """
 > **Generated. Do not edit.** Produced by `.github/workflows/bench-nightly.yml` from the
-> wiki's own history, alongside [nightly_run](nightly_run).
+> wiki's own history, alongside [nightly_run](nightly_run.md).
 
 **Not a comparison across methods.** Each section below is the last night that method was
 actually re-run -- whichever night touched the source near it, not necessarily last night,

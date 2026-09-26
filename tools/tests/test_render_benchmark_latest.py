@@ -79,3 +79,12 @@ def test_the_aggregate_carries_the_page_header_at_most_once_per_source_revision(
     wiki = make_wiki(tmp_path)
     page = render(wiki, limit=200, commit="")
     assert page.count(PAGE_HEADER) <= 1
+
+
+def test_the_preamble_links_nightly_run_by_its_file_name() -> None:
+    # Same reason as test_render_nightly's: `.md` resolves everywhere the page is read (#1180).
+    import re
+
+    import render_benchmark_latest
+
+    assert re.findall(r"\]\(([^)]+)\)", render_benchmark_latest.PREAMBLE) == ["nightly_run.md"]

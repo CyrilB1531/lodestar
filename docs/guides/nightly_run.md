@@ -5,8 +5,8 @@
 
 > **Generated. Do not edit.** Produced by `.github/workflows/bench-nightly.yml`; every edit is
 > overwritten by the next run. The curated figures, measured on a named machine, are in
-> [performance](performance). The last known reading for a method quiet tonight is in
-> [benchmark_latest](benchmark_latest).
+> [performance](performance.md). The last known reading for a method quiet tonight is in
+> [benchmark_latest](benchmark_latest.md).
 
 **Read the ratios, not the means.** These run on a GitHub hosted runner: a shared VM whose
 hardware differs from night to night and whose neighbours are unknown. An absolute figure here
