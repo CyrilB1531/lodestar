@@ -83,4 +83,24 @@ public sealed class TTestEdgeTests
         Assert.True(double.IsNaN(result.Statistic));
         Assert.True(double.IsNaN(result.PValue));
     }
+
+    /// <summary>A kept NaN makes every figure NaN, the degrees of freedom and the interval included, as scipy's are.</summary>
+    [Fact]
+    public void A_propagated_NaN_leaves_no_degrees_of_freedom_and_no_interval()
+    {
+        TTestResult result = TTest.OneSample([1.0, double.NaN, 3.0], 0.0);
+
+        Assert.True(double.IsNaN(result.Df));
+        (double low, double high) = result.ConfidenceInterval();
+        Assert.True(double.IsNaN(low) && double.IsNaN(high));
+    }
+
+    /// <summary>∞ − ∞ is a NaN of the differences, not of the samples, and scipy keeps n − 1 there.</summary>
+    [Fact]
+    public void Infinite_pairs_keep_their_degrees_of_freedom()
+    {
+        TTestResult result = TTest.Paired([double.PositiveInfinity, 1.0, 2.0], [double.PositiveInfinity, 0.0, 5.0]);
+
+        Assert.Equal(2.0, result.Df);
+    }
 }

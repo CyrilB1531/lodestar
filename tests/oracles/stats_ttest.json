@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "ttest",
-  "count": 75
+  "count": 87
  },
  "cases": [
   {
@@ -1103,6 +1103,264 @@
    "df": 77.6071459321254,
    "ci_low": -3.7233415223854283,
    "ci_high": "Infinity"
+  },
+  {
+   "name": "constant, means apart | ind | equal_var=True | two-sided",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": true,
+    "alternative": "two-sided"
+   },
+   "a": [
+    1.0,
+    1.0
+   ],
+   "b": [
+    2.0,
+    2.0
+   ],
+   "statistic": "-Infinity",
+   "pvalue": 0.0,
+   "df": 2.0,
+   "ci_low": -1.0,
+   "ci_high": -1.0
+  },
+  {
+   "name": "constant, means apart | ind | equal_var=True | less",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": true,
+    "alternative": "less"
+   },
+   "a": [
+    1.0,
+    1.0
+   ],
+   "b": [
+    2.0,
+    2.0
+   ],
+   "statistic": "-Infinity",
+   "pvalue": 0.0,
+   "df": 2.0,
+   "ci_low": "NaN",
+   "ci_high": -1.0
+  },
+  {
+   "name": "constant, means apart | ind | equal_var=True | greater",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": true,
+    "alternative": "greater"
+   },
+   "a": [
+    1.0,
+    1.0
+   ],
+   "b": [
+    2.0,
+    2.0
+   ],
+   "statistic": "-Infinity",
+   "pvalue": 1.0,
+   "df": 2.0,
+   "ci_low": -1.0,
+   "ci_high": "NaN"
+  },
+  {
+   "name": "constant, means apart | ind | equal_var=False | two-sided",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": false,
+    "alternative": "two-sided"
+   },
+   "a": [
+    1.0,
+    1.0
+   ],
+   "b": [
+    2.0,
+    2.0
+   ],
+   "statistic": "-Infinity",
+   "pvalue": 0.0,
+   "df": 1.0,
+   "ci_low": -1.0,
+   "ci_high": -1.0
+  },
+  {
+   "name": "constant, means apart | ind | equal_var=False | less",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": false,
+    "alternative": "less"
+   },
+   "a": [
+    1.0,
+    1.0
+   ],
+   "b": [
+    2.0,
+    2.0
+   ],
+   "statistic": "-Infinity",
+   "pvalue": 0.0,
+   "df": 1.0,
+   "ci_low": "NaN",
+   "ci_high": -1.0
+  },
+  {
+   "name": "constant, means apart | ind | equal_var=False | greater",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": false,
+    "alternative": "greater"
+   },
+   "a": [
+    1.0,
+    1.0
+   ],
+   "b": [
+    2.0,
+    2.0
+   ],
+   "statistic": "-Infinity",
+   "pvalue": 1.0,
+   "df": 1.0,
+   "ci_low": -1.0,
+   "ci_high": "NaN"
+  },
+  {
+   "name": "constant, means equal | ind | equal_var=True | two-sided",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": true,
+    "alternative": "two-sided"
+   },
+   "a": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "b": [
+    2.0,
+    2.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "df": 3.0,
+   "ci_low": 0.0,
+   "ci_high": 0.0
+  },
+  {
+   "name": "constant, means equal | ind | equal_var=True | less",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": true,
+    "alternative": "less"
+   },
+   "a": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "b": [
+    2.0,
+    2.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "df": 3.0,
+   "ci_low": "NaN",
+   "ci_high": 0.0
+  },
+  {
+   "name": "constant, means equal | ind | equal_var=True | greater",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": true,
+    "alternative": "greater"
+   },
+   "a": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "b": [
+    2.0,
+    2.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "df": 3.0,
+   "ci_low": 0.0,
+   "ci_high": "NaN"
+  },
+  {
+   "name": "constant, means equal | ind | equal_var=False | two-sided",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": false,
+    "alternative": "two-sided"
+   },
+   "a": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "b": [
+    2.0,
+    2.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "df": 1.0,
+   "ci_low": 0.0,
+   "ci_high": 0.0
+  },
+  {
+   "name": "constant, means equal | ind | equal_var=False | less",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": false,
+    "alternative": "less"
+   },
+   "a": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "b": [
+    2.0,
+    2.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "df": 1.0,
+   "ci_low": "NaN",
+   "ci_high": 0.0
+  },
+  {
+   "name": "constant, means equal | ind | equal_var=False | greater",
+   "call": "ttest_ind",
+   "args": {
+    "equal_var": false,
+    "alternative": "greater"
+   },
+   "a": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "b": [
+    2.0,
+    2.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "df": 1.0,
+   "ci_low": 0.0,
+   "ci_high": "NaN"
   },
   {
    "name": "no zero differences | rel | two-sided",

@@ -10,7 +10,9 @@ public sealed record TTestResult(double Statistic, double PValue, double Df)
 
 **Properties** — `Statistic` is the t statistic. `PValue` is the p-value on the requested tail.
 `Df` is the degrees of freedom: integral for Student and for the paired and one-sample tests,
-fractional for Welch, whose Satterthwaite denominator is not a count of anything.
+fractional for Welch, whose Satterthwaite denominator is not a count of anything. It is one for Welch
+on two constant samples, whose denominator is 0/0, and NaN when `NanPolicy.Propagate` kept a NaN, as
+scipy's are; `ConfidenceInterval` is then NaN at both ends.
 
 **Example** — a one-sample test's degrees of freedom: one less than the number of values
 actually tested, `sample.Length - 1` here since the default

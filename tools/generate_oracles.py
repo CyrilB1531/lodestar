@@ -14367,22 +14367,26 @@ def generate_stats_ttest() -> dict:
     """Student, Welch, paired and one-sample t, against scipy.stats (#442)."""
     from scipy import stats as sps
 
+    def independent(name: str, a: list[float], b: list[float], equal_var: bool, alternative: str) -> dict:
+        r = sps.ttest_ind(a, b, equal_var=equal_var, alternative=alternative)
+        low, high = r.confidence_interval(0.95)
+        return {
+            "name": f"{name} | ind | equal_var={equal_var} | {alternative}",
+            "call": TTEST_IND,
+            "args": {EQUAL_VAR: equal_var, ALTERNATIVE: alternative},
+            "a": a, "b": b,
+            STATISTIC: _stats_number(r.statistic), PVALUE: _stats_number(r.pvalue),
+            "df": float(r.df),
+            "ci_low": _stats_number(low), "ci_high": _stats_number(high),
+        }
+
     cases: list[dict] = []
-    for fx in _stats_samples():
+    # Two constant samples (#1215): Welch's df is 0/0, which scipy takes as one degree of freedom.
+    constant = [("constant, means apart", [1.0, 1.0], [2.0, 2.0]), ("constant, means equal", [2.0, 2.0, 2.0], [2.0, 2.0])]
+    for name, a, b in [(fx["name"], fx["a"], fx["b"]) for fx in _stats_samples()] + constant:
         for equal_var in (True, False):
             for alternative in (TWO_SIDED, "less", GREATER):
-                r = sps.ttest_ind(fx["a"], fx["b"], equal_var=equal_var,
-                                  alternative=alternative)
-                low, high = r.confidence_interval(0.95)
-                cases.append({
-                    "name": f"{fx['name']} | ind | equal_var={equal_var} | {alternative}",
-                    "call": TTEST_IND,
-                    "args": {EQUAL_VAR: equal_var, ALTERNATIVE: alternative},
-                    "a": fx["a"], "b": fx["b"],
-                    STATISTIC: _stats_number(r.statistic), PVALUE: float(r.pvalue),
-                    "df": float(r.df),
-                    "ci_low": _stats_number(low), "ci_high": _stats_number(high),
-                })
+                cases.append(independent(name, a, b, equal_var, alternative))
 
     for fx in _stats_paired():
         for alternative in (TWO_SIDED, "less", GREATER):
