@@ -3550,3 +3550,25 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-cluste
 python3 bench/python/bench_cluster_weighted.py
 python3 bench/compare.py cluster-weighted
 ```
+
+## 66. The log-rank family, the restricted mean and the concordance index against lifelines (issue #1170)
+
+`compare-survival-family` puts `LogRank.Test` under the Wilcoxon weighting with subject weights and
+under Fleming-Harrington, `LogRank.MultiGroup` and `LogRank.Pairwise` over five groups,
+`KaplanMeier.RestrictedMean` after a fit, `KaplanMeier.CompareAt` after two, and `Concordance.Index`
+against lifelines 0.30.3's `logrank_test`, `multivariate_logrank_test`, `pairwise_logrank_test`,
+`restricted_mean_survival_time(return_variance=True)`,
+`survival_difference_at_fixed_point_in_time_test` and `utils.concordance_index`, at 1,000, 10,000
+and 100,000 subjects. No .NET library computes any of them, so the reference is the incumbent.
+
+No corpus file: both sides build each subject from its index by one formula — durations in
+hundredths with ties, seven in ten observed, five groups, a score loosely following the duration,
+weights one to three. Each operation includes the fit it reads, as a caller pays for it. Agreement is
+`tests/oracles/survival_logrank_family.json`, `survival_restricted.json` and
+`survival_concordance.json`'s job.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-survival-family
+python3 bench/python/bench_survival_family.py
+python3 bench/compare.py survival-family
+```

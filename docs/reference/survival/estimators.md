@@ -52,15 +52,20 @@ keeps the size of that last step.
 
 | Type | What it is |
 | --- | --- |
+| [`Concordance`](estimators/concordance.md) | Harrell's concordance index on any predicted scores. |
 | [`CoxOptions`](estimators/coxoptions.md) | The interval level and the iteration budget a Cox fit takes. |
 | [`CoxProportionalHazards`](estimators/coxproportionalhazards.md) | The Cox model, on Efron's partial likelihood. |
 | [`CoxSummary`](estimators/coxsummary.md) | What it returns: the coefficient table, the likelihood-ratio test and the concordance. |
 | [`KaplanMeier`](estimators/kaplanmeier.md) | The survival function, with Greenwood variance and log-log bounds. |
 | [`KaplanMeierCurve`](estimators/kaplanmeiercurve.md) | What it returns: the estimate, its bounds and its steps. |
-| [`LogRank`](estimators/logrank.md) | The two-sample test comparing two survival curves. |
+| [`LogRank`](estimators/logrank.md) | The log-rank family: two groups or more, weighted, pairwise. |
+| [`LogRankOptions`](estimators/logrankoptions.md) | The weighting, its exponents and the truncation a test takes. |
 | [`LogRankResult`](estimators/logrankresult.md) | What it returns: a statistic, a p-value and the degrees of freedom. |
+| [`LogRankWeighting`](estimators/logrankweighting.md) | Which member of the family runs. |
 | [`NelsonAalen`](estimators/nelsonaalen.md) | The cumulative hazard function. |
 | [`NelsonAalenCurve`](estimators/nelsonaalencurve.md) | What it returns: the accumulated hazard and its steps. |
+| [`PairwiseLogRankResult`](estimators/pairwiselogrankresult.md) | One pair of groups from the pairwise test. |
+| [`RestrictedMeanResult`](estimators/restrictedmeanresult.md) | The restricted mean survival time and its variance. |
 | [`SurvivalStep`](estimators/survivalstep.md) | One step of either curve: a time, a risk set, and what happened at it. |
 
 ## See also

@@ -9,14 +9,21 @@ namespace Lodestar.Survival.Internal;
 /// already passed, indexed by predictor rank, so the cost is <c>n log n</c> rather than events × subjects:
 /// a quadratic walk took 270 ms at 10,000 subjects, whatever the covariate count.
 /// </remarks>
-internal static class Concordance
+internal static class HarrellConcordance
 {
     internal static double Harrell(
         ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved,
         ReadOnlySpan<double> coefficients)
     {
+        double[] eta = LinearPredictor(design, coefficients, durations.Length);
+        return Index(durations, eta, eventObserved);
+    }
+
+    /// <summary>The index over any predictor: an earlier event is concordant with a later subject when its predictor is higher.</summary>
+    /// <returns>The concordant share of the comparable pairs, NaN when there is none.</returns>
+    internal static double Index(ReadOnlySpan<double> durations, double[] eta, ReadOnlySpan<bool> eventObserved)
+    {
         int count = durations.Length;
-        double[] eta = LinearPredictor(design, coefficients, count);
         double[] levels = EventLevels(eta, eventObserved);
 
         // Each subject's rank is searched once here, where the walk would search an event's twice.

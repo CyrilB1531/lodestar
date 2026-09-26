@@ -24,6 +24,12 @@
           LinkBase="oracles" />
     <None Include="../oracles/survival_cox.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
+    <None Include="../oracles/survival_logrank_family.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
+    <None Include="../oracles/survival_restricted.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
+    <None Include="../oracles/survival_concordance.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
   </ItemGroup>
 
   <!-- The reference gate reads the published pages and the map beside the assembly,

@@ -1,8 +1,9 @@
 # Lodestar.Survival
 
 Survival analysis for right-censored data: the Kaplan-Meier survival function with
-Greenwood variance and log-log confidence intervals, the Nelson-Aalen cumulative hazard, the
-log-rank test and the Cox proportional-hazards model. No C# implementation of these existed before
+Greenwood variance and log-log confidence intervals, its restricted mean and fixed-time comparison,
+the Nelson-Aalen cumulative hazard, the log-rank family — weighted, multi-group and pairwise — the
+concordance index and the Cox proportional-hazards model. No C# implementation of these existed before
 this package.
 
 ## Install
@@ -34,7 +35,7 @@ A core package ([decision 0003](https://github.com/CyrilB1531/lodestar/blob/main
 built for `net10.0` and `netstandard2.0`:
 
 - `Lodestar.Stats` 0.5.0 or later
-- `Lodestar.Abstractions` 0.2.0 or later
+- `Lodestar.Abstractions` 0.2.1 or later
 
 ## Documentation
 

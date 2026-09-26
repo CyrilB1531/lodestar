@@ -45,5 +45,5 @@ Each package's comparisons live beside its project ([#1133](https://github.com/C
 | [`Lodestar.Stats`](../../src/Lodestar.Stats/performance.md) | measured |
 | [`Lodestar.Stats.Regression`](../../src/Lodestar.Stats.Regression/performance.md) | measured |
 | [`Lodestar.Stats.TimeSeries`](../../src/Lodestar.Stats.TimeSeries/performance.md) | measured |
-| [`Lodestar.Survival`](../../src/Lodestar.Survival/performance.md) | none yet |
+| [`Lodestar.Survival`](../../src/Lodestar.Survival/performance.md) | measured |
 | [`Lodestar.Text`](../../src/Lodestar.Text/performance.md) | measured |

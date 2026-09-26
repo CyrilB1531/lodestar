@@ -1,6 +1,6 @@
 # LogRankResult
 
-The outcome of a two-sample log-rank test.
+The outcome of a log-rank test, two groups or more.
 
 <!-- docs-declaration -->
 
@@ -9,7 +9,7 @@ public sealed record LogRankResult(double Statistic, double PValue, int DegreesO
 ```
 
 **Parameters** — `Statistic` is the log-rank statistic, `PValue` its upper-tail chi-squared
-probability, and `DegreesOfFreedom` is one for a two-sample comparison.
+probability, and `DegreesOfFreedom` is one for two groups and one fewer than the groups for more.
 
 **Example** — two arms that cannot separate.
 
@@ -25,9 +25,9 @@ double p = result.PValue;  // => 1
 int df = result.DegreesOfFreedom;  // => 1
 ```
 
-**Remarks** — `Statistic` is a square and is never negative. `DegreesOfFreedom` is a field rather
-than a constant because a k-sample log-rank would report `k - 1`, and a caller reading it should not
-have to know which test produced the record.
+**Remarks** — `Statistic` is a quadratic form and is never negative. `DegreesOfFreedom` is a field
+rather than a constant because [`LogRank.MultiGroup`](logrank-multigroup.md) reports `k − 1`, and a
+caller reading it should not have to know which test produced the record.
 
 `PValue` comes from
 [`Distributions.ChiSquaredSf`](../../stats/tails/distributions-chisquaredsf.md), the same tail the

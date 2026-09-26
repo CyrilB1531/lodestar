@@ -15,7 +15,7 @@ public sealed class ConcordanceTests
     public void Identical_predictors_count_one_half()
     {
         // Pairs (0,1) tie, (0,2) and (1,2) are concordant: 2.5 of 3.
-        double c = Concordance.Harrell([2.0, 2.0, 0.0], [1.0, 2.0, 3.0], [true, true, true], [1.0]);
+        double c = HarrellConcordance.Harrell([2.0, 2.0, 0.0], [1.0, 2.0, 3.0], [true, true, true], [1.0]);
 
         Assert.Equal(2.5 / 3.0, c, 1e-15);
     }
@@ -25,7 +25,7 @@ public sealed class ConcordanceTests
     {
         // At time 2: an event (subject 0), an event (1) and a censoring (2). Comparable pairs are
         // (0,2), (1,2) and both events against subject 3 at time 5; (0,1) is not comparable.
-        double c = Concordance.Harrell(
+        double c = HarrellConcordance.Harrell(
             [3.0, 1.0, 2.0, 0.0], [2.0, 2.0, 2.0, 5.0], [true, true, false, true], [1.0]);
 
         // (0,2): 3 > 2 concordant; (1,2): 1 < 2 discordant; (0,3) and (1,3) concordant.
@@ -61,7 +61,7 @@ public sealed class ConcordanceTests
 
         double expected = Pairwise(design, durations, events);
 
-        Assert.Equal(expected, Concordance.Harrell(design, durations, events, [0.7]), 1e-15);
+        Assert.Equal(expected, HarrellConcordance.Harrell(design, durations, events, [0.7]), 1e-15);
     }
 
     // S1244: the definition being restated compares durations and predictors exactly; a range
@@ -101,7 +101,7 @@ public sealed class ConcordanceTests
     [Fact]
     public void A_higher_risk_that_fails_later_is_discordant()
     {
-        double c = Concordance.Harrell([0.0, 1.0], [1.0, 2.0], [true, true], [1.0]);
+        double c = HarrellConcordance.Harrell([0.0, 1.0], [1.0, 2.0], [true, true], [1.0]);
 
         Assert.Equal(0.0, c);
     }

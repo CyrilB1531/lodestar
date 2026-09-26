@@ -250,10 +250,10 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         },
     },
     SURVIVAL: {
-        # One Lodestar edge and nothing external, which keeps this core tier: the
-        # chi-squared tail and the normal quantile, published for it (0097, 0098).
-        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},
-        NETSTANDARD: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
+        # Nothing external, which keeps this core tier: the chi-squared tail and the normal quantile,
+        # published for it, and its data types at the project's version until the release publishes #1170's.
+        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NETSTANDARD: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
     },
     DECOMPOSITION: {
         # The one edge of this package, and the reason Lodestar.Abstractions exists:

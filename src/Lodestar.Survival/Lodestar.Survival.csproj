@@ -26,13 +26,18 @@
 
     It is never set in CI, and the packed .nuspec is asserted there.
   -->
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
+  <!-- The log-rank options and the restricted mean live in Lodestar.Abstractions (#1170), so this reaches
+       that project unconditionally until its next publication; the release swaps it back and drops the
+       exception in ci.yml's "src/ ships PackageReference only" step. -->
+  <ItemGroup>
     <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
     <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
-    <PackageReference Include="Lodestar.Abstractions" />
     <PackageReference Include="Lodestar.Stats" />
   </ItemGroup>
 

@@ -630,6 +630,15 @@
         "bench/Lodestar.Text.Benchmarks/CrossLang/ClusterWeightedCrossLang.cs"
       ]
     },
+    "survival-family": {
+      "subcommand": "compare-survival-family",
+      "python": "bench/python/bench_survival_family.py",
+      "compare": "survival-family",
+      "sources": [
+        "src/Lodestar.Survival/**",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/SurvivalFamilyCrossLang.cs"
+      ]
+    },
     "ols": {
       "subcommand": "compare-ols",
       "python": "bench/python/bench_stats.py",

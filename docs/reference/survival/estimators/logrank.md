@@ -1,6 +1,6 @@
 # LogRank
 
-The two-sample log-rank test.
+The log-rank family: two groups or more, weighted, pairwise.
 
 <!-- docs-declaration -->
 
@@ -47,7 +47,12 @@ hypergeometric variance is zero there and the term carries no information. Where
 both groups at all, the result is a statistic of zero and a p-value of one — there is nothing to
 reject rather than an error to raise.
 
-Reference behaviour is `lifelines.statistics.logrank_test` 0.30.3, matched over 5 comparisons.
+**The weightings, the truncation and the subject weights** are [`LogRankOptions`](logrankoptions.md)
+and the weighted overloads: Wilcoxon, Tarone-Ware, Peto and Fleming-Harrington weigh each time before
+it is summed, and a truncation censors every event past it.
+
+Reference behaviour is `lifelines.statistics` 0.30.3 — `logrank_test`, `multivariate_logrank_test`
+and `pairwise_logrank_test` — matched under every weighting, with and without subject weights.
 
 **Applies to** — net10.0, netstandard2.0.
 
@@ -57,4 +62,6 @@ Reference behaviour is `lifelines.statistics.logrank_test` 0.30.3, matched over 
 
 | Member | What it does |
 | --- | --- |
-| [`LogRank.Test`](logrank-test.md) | Compares the survival of two right-censored samples. |
+| [`LogRank.MultiGroup`](logrank-multigroup.md) | Compares several groups at once. |
+| [`LogRank.Pairwise`](logrank-pairwise.md) | Runs the two-sample test on every pair of groups. |
+| [`LogRank.Test`](logrank-test.md) | Compares the survival of two right-censored samples, under any weighting. |

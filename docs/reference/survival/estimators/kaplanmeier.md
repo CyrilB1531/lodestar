@@ -51,4 +51,6 @@ Reference behaviour is `lifelines.KaplanMeierFitter` 0.30.3, matched over 9 samp
 
 | Member | What it does |
 | --- | --- |
+| [`KaplanMeier.CompareAt`](kaplanmeier-compareat.md) | Tests whether two curves differ at one time. |
 | [`KaplanMeier.Estimate`](kaplanmeier-estimate.md) | The survival function of a right-censored sample. |
+| [`KaplanMeier.RestrictedMean`](kaplanmeier-restrictedmean.md) | The area under a curve up to a horizon, with its variance. |
