@@ -23,7 +23,7 @@ internal static class TTestSample
         TTestResult welch = TTest.Independent(Before, After);
         Console.WriteLine($"  Welch t               = {Inv.F3(welch.Statistic)}");
         Console.WriteLine($"  Welch p               = {Inv.E3(welch.PValue)}");
-        Console.WriteLine($"  Welch df              = {Inv.F3(welch.Df)}");
+        Console.WriteLine($"  Welch df              = {Inv.F3(welch.DegreesOfFreedom)}");
 
         TTestResult student = TTest.Independent(
             Before, After, Alternative.TwoSided, Variance.Equal);

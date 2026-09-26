@@ -53,7 +53,7 @@ public class StatsBenchmarks
     public double AccordMannWhitney() => new MannWhitneyWilcoxonTest(_a, _b).PValue;
 
     [Benchmark]
-    public double LodestarChiSquare() => ChiSquare.Contingency(_table).PValue;
+    public double LodestarChiSquare() => ChiSquared.Contingency(_table).PValue;
 
     // yatesCorrection: true matches Lodestar.Stats' own default (Continuity.Applied) --
     // Accord's own default (false) would time two different statistics under one name.

@@ -10,22 +10,38 @@ public sealed class TableTestEdgeTests
     public void GoodnessOfFit_refuses_expectations_that_do_not_sum_to_the_observations()
     {
         Assert.Throws<ArgumentException>(
-            () => ChiSquare.GoodnessOfFit([10.0, 10.0], [5.0, 6.0]));
+            () => ChiSquared.GoodnessOfFit([10.0, 10.0], [5.0, 6.0]));
     }
 
     [Fact]
     public void GoodnessOfFit_refuses_a_zero_expectation()
     {
         Assert.Throws<ArgumentException>(
-            () => ChiSquare.GoodnessOfFit([10.0, 10.0], [20.0, 0.0]));
+            () => ChiSquared.GoodnessOfFit([10.0, 10.0], [20.0, 0.0]));
     }
 
     [Fact]
-    public void GoodnessOfFit_refuses_mismatched_lengths_and_a_single_category()
+    public void GoodnessOfFit_refuses_mismatched_lengths_and_answers_one_category_as_scipy()
     {
         Assert.Throws<ArgumentException>(
-            () => ChiSquare.GoodnessOfFit([10.0, 10.0], [20.0]));
-        Assert.Throws<ArgumentException>(() => ChiSquare.GoodnessOfFit([10.0]));
+            () => ChiSquared.GoodnessOfFit([10.0, 10.0], [20.0]));
+        Assert.Throws<ArgumentException>(() => ChiSquared.GoodnessOfFit([]));
+
+        // scipy's chisquare([5]) is (0, nan): one category leaves no degree of freedom (#1217).
+        TestResult one = ChiSquared.GoodnessOfFit([10.0]);
+        Assert.Equal(0.0, one.Statistic);
+        Assert.True(double.IsNaN(one.PValue));
+    }
+
+    /// <summary>scipy's binomtest(0, 0) answers NaN throughout, and so does this (#1217).</summary>
+    [Fact]
+    public void No_trial_answers_NaN()
+    {
+        BinomialResult result = Binomial.Test(0, 0);
+        Assert.True(double.IsNaN(result.Statistic) && double.IsNaN(result.PValue));
+        (double low, double high) = result.ProportionConfidenceInterval();
+        Assert.True(double.IsNaN(low) && double.IsNaN(high));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Binomial.Test(0, -1));
     }
 
     [Fact]
@@ -33,11 +49,11 @@ public sealed class TableTestEdgeTests
     {
         // Measured against scipy 1.18.0: both cases are (nan, nan); unguarded, the
         // NaN statistic reached Gamma.RegularizedQ's Validate, which threw on it.
-        TestResult nanResult = ChiSquare.GoodnessOfFit([1.0, double.NaN, 3.0]);
+        TestResult nanResult = ChiSquared.GoodnessOfFit([1.0, double.NaN, 3.0]);
         Assert.True(double.IsNaN(nanResult.Statistic));
         Assert.True(double.IsNaN(nanResult.PValue));
 
-        TestResult infResult = ChiSquare.GoodnessOfFit([1.0, double.PositiveInfinity, 3.0]);
+        TestResult infResult = ChiSquared.GoodnessOfFit([1.0, double.PositiveInfinity, 3.0]);
         Assert.True(double.IsNaN(infResult.Statistic));
         Assert.True(double.IsNaN(infResult.PValue));
     }
@@ -49,13 +65,13 @@ public sealed class TableTestEdgeTests
         double[][] threeByTwo = [[10.0, 20.0], [30.0, 40.0], [15.0, 5.0]];
 
         Assert.NotEqual(
-            ChiSquare.Contingency(twoByTwo, Continuity.Applied).Statistic,
-            ChiSquare.Contingency(twoByTwo, Continuity.None).Statistic);
+            ChiSquared.Contingency(twoByTwo, Continuity.Applied).Statistic,
+            ChiSquared.Contingency(twoByTwo, Continuity.None).Statistic);
 
         // Above 2x2 the correction is not defined, so asking for it changes nothing.
         Assert.Equal(
-            ChiSquare.Contingency(threeByTwo, Continuity.Applied).Statistic,
-            ChiSquare.Contingency(threeByTwo, Continuity.None).Statistic,
+            ChiSquared.Contingency(threeByTwo, Continuity.Applied).Statistic,
+            ChiSquared.Contingency(threeByTwo, Continuity.None).Statistic,
             1e-15);
     }
 
@@ -72,8 +88,8 @@ public sealed class TableTestEdgeTests
         // correction=False gives.
         double[][] table = [[10.0, 10.0], [10.0, 11.0]];
 
-        Chi2ContingencyResult corrected = ChiSquare.Contingency(table, Continuity.Applied);
-        Chi2ContingencyResult uncorrected = ChiSquare.Contingency(table, Continuity.None);
+        ChiSquaredContingencyResult corrected = ChiSquared.Contingency(table, Continuity.Applied);
+        ChiSquaredContingencyResult uncorrected = ChiSquared.Contingency(table, Continuity.None);
 
         Assert.Equal(0.0, corrected.Statistic, 1e-15);
         StatsOracleAsserts.Statistic(0.023242630385487566, uncorrected.Statistic, "no clamp");
@@ -85,8 +101,8 @@ public sealed class TableTestEdgeTests
         double[][] ragged = [[1.0, 2.0], [3.0]];
         double[][] emptyRow = [[0.0, 0.0], [3.0, 4.0]];
 
-        Assert.Throws<ArgumentException>(() => ChiSquare.Contingency(ragged));
-        Assert.Throws<ArgumentException>(() => ChiSquare.Contingency(emptyRow));
+        Assert.Throws<ArgumentException>(() => ChiSquared.Contingency(ragged));
+        Assert.Throws<ArgumentException>(() => ChiSquared.Contingency(emptyRow));
     }
 
     [Fact]
@@ -96,7 +112,7 @@ public sealed class TableTestEdgeTests
         // docs/equivalence.md's nan_policy row names this as the deliberate exception.
         double[][] table = [[1.0, double.NaN], [3.0, 4.0]];
 
-        Assert.Throws<ArgumentException>(() => ChiSquare.Contingency(table));
+        Assert.Throws<ArgumentException>(() => ChiSquared.Contingency(table));
     }
 
     [Fact]
@@ -107,7 +123,7 @@ public sealed class TableTestEdgeTests
         double[][] table = [[1.0, double.PositiveInfinity], [3.0, 4.0]];
 
         ArgumentException exception =
-            Assert.Throws<ArgumentException>(() => ChiSquare.Contingency(table));
+            Assert.Throws<ArgumentException>(() => ChiSquared.Contingency(table));
         Assert.Equal("table", exception.ParamName);
     }
 

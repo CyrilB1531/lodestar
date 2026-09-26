@@ -5,11 +5,11 @@ A t-test's result: the statistic, the p-value and the degrees of freedom.
 <!-- docs-declaration -->
 
 ```csharp
-public sealed record TTestResult(double Statistic, double PValue, double Df)
+public sealed record TTestResult(double Statistic, double PValue, double DegreesOfFreedom)
 ```
 
 **Properties** — `Statistic` is the t statistic. `PValue` is the p-value on the requested tail.
-`Df` is the degrees of freedom: integral for Student and for the paired and one-sample tests,
+`DegreesOfFreedom` is the degrees of freedom: integral for Student and for the paired and one-sample tests,
 fractional for Welch, whose Satterthwaite denominator is not a count of anything. It is one for Welch
 on two constant samples, whose denominator is 0/0, and NaN when `NanPolicy.Propagate` kept a NaN, as
 scipy's are; `ConfidenceInterval` is then NaN at both ends.
@@ -26,10 +26,10 @@ double[] sample = [12.1, 9.4, 15.0, 11.2, 8.8, 13.9, 10.5];
 
 TTestResult result = TTest.OneSample(sample, populationMean: 10.0);
 
-double df = result.Df;   // => 6
+double df = result.DegreesOfFreedom;   // => 6
 ```
 
-**Remarks** — `Df` is a `double`, not an `int`, because [`TTest.Independent`](ttest-independent.md)
+**Remarks** — `DegreesOfFreedom` is a `double`, not an `int`, because [`TTest.Independent`](ttest-independent.md)
 under [`Variance.Welch`](variance.md) needs to report a fractional value; every other entry
 point happens to land on a whole number, which is why this example's `6` prints with no decimal
 point at all — it is still the same `double` field.

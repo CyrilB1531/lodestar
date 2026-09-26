@@ -58,7 +58,7 @@ public sealed class DistributionsOracleTests
                 break;
             default:
                 AssertRelative(
-                    expected, Distributions.FisherSf(x, Arg(args, "dfn"), Arg(args, "dfd")));
+                    expected, Distributions.FisherSnedecorSf(x, Arg(args, "dfn"), Arg(args, "dfd")));
                 break;
         }
     }

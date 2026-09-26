@@ -18,8 +18,7 @@ the degrees of freedom — one less than the number of pairs actually tested. Th
 `a.Length - 1` under the default [`NanPolicy.Propagate`](../nanpolicy.md), and one less than the
 aligned-filtered pair count under [`NanPolicy.Omit`](../nanpolicy.md).
 
-**Exceptions** — `ArgumentException` when the two samples differ in length, hold fewer than
-two pairs, or `nanPolicy` is `NanPolicy.Raise` and either sample holds a `NaN`.
+**Exceptions** — `ArgumentException` when the two samples differ in length, hold no pair, or `nanPolicy` is `NanPolicy.Raise` and either sample holds a `NaN`.
 
 **Example** — the same seven machines, measured before and after a configuration change.
 
@@ -32,7 +31,7 @@ double[] after = [99.0, 96.0, 104.0, 103.0, 95.0, 99.0, 102.0];
 TTestResult result = TTest.Paired(before, after);
 
 double t = Math.Round(result.Statistic, 4);   // => 5.2129
-double df = result.Df;                        // => 6
+double df = result.DegreesOfFreedom;                        // => 6
 ```
 
 **Remarks** — this is `TTest.OneSample` on the pairwise differences against a population mean of

@@ -49,7 +49,7 @@ table unequal.
 
 **See also** — [`AndersonDarling.Test`](andersondarling-test.md),
 [`ShapiroWilk.Test`](shapirowilk-test.md),
-[`Chi2ContingencyResult`](chi2contingencyresult.md) for the other result carrying a table, the
+[`ChiSquaredContingencyResult`](chisquaredcontingencyresult.md) for the other result carrying a table, the
 [Python equivalence table](../../../equivalence.md).
 
 ## Members

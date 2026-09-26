@@ -50,11 +50,11 @@ public static class OneWayAnova
         double dfBetween = groups.Length - 1;
         double dfWithin = total - groups.Length;
 
-        // within = 0, between > 0 makes this +Infinity, not NaN -- FisherSf(+Infinity, ...)
+        // within = 0, between > 0 makes this +Infinity, not NaN -- FisherSnedecorSf(+Infinity, ...)
         // is already exact and returns 0.0, honest for a perfect, noiseless separation.
         double statistic = (between / dfBetween) / (within / dfWithin);
 
-        return new TestResult(statistic, Beta.FisherSf(statistic, dfBetween, dfWithin));
+        return new TestResult(statistic, Beta.FisherSnedecorSf(statistic, dfBetween, dfWithin));
     }
 
     /// <summary>The same test, with a policy for the <c>NaN</c> values in the groups.</summary>

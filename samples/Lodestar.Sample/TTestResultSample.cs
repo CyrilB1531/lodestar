@@ -19,7 +19,7 @@ internal static class TTestResultSample
 
         Console.WriteLine($"  statistic             = {Inv.F3(result.Statistic)}");
         Console.WriteLine($"  p-value               = {Inv.F3(result.PValue)}");
-        Console.WriteLine($"  degrees of freedom    = {Inv.F3(result.Df)}");
+        Console.WriteLine($"  degrees of freedom    = {Inv.F3(result.DegreesOfFreedom)}");
         Console.WriteLine($"  95 % interval         = [{Inv.F3(low)}, {Inv.F3(high)}]");
 
         // A one-sided test spends its whole error budget on one side, so the

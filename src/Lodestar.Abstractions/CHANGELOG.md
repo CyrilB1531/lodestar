@@ -17,6 +17,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `CoxBaseline` and `CoxTimeTransform` in `Lodestar.Survival`, the Cox baselines and the proportional hazards test's time scale. ([#1171](https://github.com/CyrilB1531/lodestar/issues/1171))
 - `ParametricModel`, `AftModel` and `SurvivalCurve` in `Lodestar.Survival`, the parametric models and the Breslow-Fleming-Harrington curve. ([#1172](https://github.com/CyrilB1531/lodestar/issues/1172))
 
+### Changed
+
+- `Chi2ContingencyResult` is `ChiSquaredContingencyResult` and its `Dof` is `DegreesOfFreedom`, the spellings `Lodestar.Stats` settles on before 1.0; `Lodestar.Stats` 0.5.0 forwards the old name, so take this release with the next `Lodestar.Stats`. ([#1217](https://github.com/CyrilB1531/lodestar/issues/1217))
+
 ## [0.2.0] — 2026-09-24
 
 ### Added

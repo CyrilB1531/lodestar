@@ -40,12 +40,12 @@ public static class FisherExact
     /// <exception cref="ArgumentOutOfRangeException">
     /// A count is negative, or the table's total exceeds 1,000,000 — the exact
     /// enumeration costs O(total), so a table past that bound is refused rather
-    /// than run for however long that takes. <see cref="ChiSquare.Contingency"/>
+    /// than run for however long that takes. <see cref="ChiSquared.Contingency"/>
     /// is the asymptotic alternative at that scale.
     /// </exception>
     // S2368: the table arrives from the caller already in this shape -- that is
     // how scipy.stats.fisher_exact takes it. Wrapping it buys no safety, only a
-    // conversion at the boundary (same reasoning as ChiSquare.Contingency's
+    // conversion at the boundary (same reasoning as ChiSquared.Contingency's
     // suppression).
 #pragma warning disable S2368
     public static TestResult Test(int[][] table, Alternative alternative = Alternative.TwoSided)
@@ -105,7 +105,7 @@ public static class FisherExact
                 totalLong,
                 $"Fisher's exact enumerates every table sharing these margins, an O(total) " +
                 $"cost; a table summing to {totalLong} exceeds the {MaxTableTotal} it is " +
-                "refused past. Use ChiSquare.Contingency instead, which is asymptotic and " +
+                "refused past. Use ChiSquared.Contingency instead, which is asymptotic and " +
                 "appropriate at that scale.");
         }
 

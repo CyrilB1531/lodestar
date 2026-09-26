@@ -9,7 +9,7 @@ point is static.
 | Student / Welch *t* | do two samples have the same mean? | [`TTest`](tests/ttest.md) |
 | Mann-Whitney *U* | the same question, assuming no shape | [`MannWhitney`](tests/mannwhitney.md) |
 | Wilcoxon signed-rank | the same, on paired measurements | [`Wilcoxon`](tests/wilcoxon.md) |
-| χ² | do counts match an expected distribution, or are two factors independent? | [`ChiSquare`](tests/chisquare.md) |
+| χ² | do counts match an expected distribution, or are two factors independent? | [`ChiSquared`](tests/chisquared.md) |
 | Fisher exact | the same for a 2×2 table, at any sample size | [`FisherExact`](tests/fisherexact.md) |
 | Kolmogorov-Smirnov | do two samples share a distribution? | [`KolmogorovSmirnov`](tests/kolmogorovsmirnov.md) |
 | one-way ANOVA | do several groups share one mean? | [`OneWayAnova`](tests/onewayanova.md) |
@@ -30,7 +30,7 @@ point is static.
 Every family but six returns the same two numbers, [`TestResult`](tests/testresult.md); a
 t-test also carries its degrees of freedom ([`TTestResult`](tests/ttestresult.md)), a
 contingency table also carries the table independence would have produced
-([`Chi2ContingencyResult`](tests/chi2contingencyresult.md)), Kolmogorov-Smirnov also carries
+([`ChiSquaredContingencyResult`](tests/chisquaredcontingencyresult.md)), Kolmogorov-Smirnov also carries
 where and in which direction the two samples parted furthest ([`KsResult`](tests/ksresult.md)),
 a Pearson correlation and a binomial test each carry what their intervals need
 ([`PearsonResult`](tests/pearsonresult.md), [`BinomialResult`](tests/binomialresult.md)), and
@@ -42,7 +42,7 @@ both matrices ([`CorrelationMatrix`](tests/correlationmatrix.md)).
 | --- | --- | --- |
 | [`TestResult`](tests/testresult.md) | a statistic, a p-value | fourteen of the twenty families |
 | [`TTestResult`](tests/ttestresult.md) | + degrees of freedom, a confidence interval | [`TTest`](tests/ttest.md) |
-| [`Chi2ContingencyResult`](tests/chi2contingencyresult.md) | + degrees of freedom, the expected table | [`ChiSquare.Contingency`](tests/chisquare-contingency.md) |
+| [`ChiSquaredContingencyResult`](tests/chisquaredcontingencyresult.md) | + degrees of freedom, the expected table | [`ChiSquared.Contingency`](tests/chisquared-contingency.md) |
 | [`KsResult`](tests/ksresult.md) | + where the gap was reached, and its sign | [`KolmogorovSmirnov`](tests/kolmogorovsmirnov.md) |
 | [`PearsonResult`](tests/pearsonresult.md) | + a confidence interval for the correlation | [`Pearson`](tests/pearson.md) |
 | [`BinomialResult`](tests/binomialresult.md) | + a confidence interval for the proportion | [`Binomial`](tests/binomial.md) |

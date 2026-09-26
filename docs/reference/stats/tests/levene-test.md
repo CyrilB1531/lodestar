@@ -30,7 +30,9 @@ to [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Exceptions** — `ArgumentException` when there are fewer than two groups, a group is empty, or
 `nanPolicy` is [`NanPolicy.Raise`](../nanpolicy.md) and a group holds a `NaN`.
-`ArgumentOutOfRangeException` when `proportionToCut` would trim a group away entirely.
+`ArgumentOutOfRangeException` when `proportionToCut` is `NaN` under [`Center.Trimmed`](center.md),
+or cuts a count below zero or past a group's middle, as scipy refuses them. One that trims a group
+to nothing answers NaN, as scipy's does.
 
 **Example — three machines filling the same bottle, and the reason this test exists.** One-way
 ANOVA says their means are indistinguishable. It is entitled to say that only if their variances

@@ -15,8 +15,8 @@ public sealed class TTestEdgeTests
         TTestResult welch = TTest.Independent(a, b, Alternative.TwoSided, Variance.Welch);
         TTestResult student = TTest.Independent(a, b, Alternative.TwoSided, Variance.Equal);
 
-        Assert.Equal(welch.Df, chosen.Df);
-        Assert.NotEqual(student.Df, chosen.Df);
+        Assert.Equal(welch.DegreesOfFreedom, chosen.DegreesOfFreedom);
+        Assert.NotEqual(student.DegreesOfFreedom, chosen.DegreesOfFreedom);
     }
 
     [Fact]
@@ -25,16 +25,26 @@ public sealed class TTestEdgeTests
         double[] a = [1.0, 2.0, 3.0, 4.0];
         double[] b = [2.0, 3.0, 8.0, 12.0, 15.0, 20.0];
 
-        double df = TTest.Independent(a, b, Alternative.TwoSided, Variance.Welch).Df;
+        double df = TTest.Independent(a, b, Alternative.TwoSided, Variance.Welch).DegreesOfFreedom;
 
         Assert.NotEqual(df, Math.Round(df));
     }
 
     [Fact]
-    public void Independent_refuses_a_sample_of_fewer_than_two()
+    public void Independent_refuses_an_empty_sample_and_answers_one_value_as_scipy()
     {
-        Assert.Throws<ArgumentException>(() => TTest.Independent([1.0], [1.0, 2.0]));
-        Assert.Throws<ArgumentException>(() => TTest.Independent([1.0, 2.0], [1.0]));
+        Assert.Throws<ArgumentException>(() => TTest.Independent([], [1.0, 2.0]));
+
+        // scipy's ttest_ind([1,2,3],[0]): pooled t = 1.7320508, p = 0.2254033, df = 2; Welch nan with df 1 (#1217).
+        TTestResult pooled = TTest.Independent([1.0, 2.0, 3.0], [0.0], Alternative.TwoSided, Variance.Equal);
+        Assert.Equal(1.7320508075688774, pooled.Statistic, 12);
+        Assert.Equal(0.22540333075851665, pooled.PValue, 12);
+        Assert.Equal(2.0, pooled.DegreesOfFreedom);
+        TTestResult welch = TTest.Independent([1.0, 2.0, 3.0], [0.0]);
+        Assert.True(double.IsNaN(welch.Statistic));
+        Assert.Equal(1.0, welch.DegreesOfFreedom);
+        (double low, double high) = TTest.OneSample([4.0], 0.0).ConfidenceInterval();
+        Assert.True(double.IsNaN(low) && double.IsNaN(high));
     }
 
     [Fact]
@@ -90,7 +100,7 @@ public sealed class TTestEdgeTests
     {
         TTestResult result = TTest.OneSample([1.0, double.NaN, 3.0], 0.0);
 
-        Assert.True(double.IsNaN(result.Df));
+        Assert.True(double.IsNaN(result.DegreesOfFreedom));
         (double low, double high) = result.ConfidenceInterval();
         Assert.True(double.IsNaN(low) && double.IsNaN(high));
     }
@@ -101,6 +111,6 @@ public sealed class TTestEdgeTests
     {
         TTestResult result = TTest.Paired([double.PositiveInfinity, 1.0, 2.0], [double.PositiveInfinity, 0.0, 5.0]);
 
-        Assert.Equal(2.0, result.Df);
+        Assert.Equal(2.0, result.DegreesOfFreedom);
     }
 }

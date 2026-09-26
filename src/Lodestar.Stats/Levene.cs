@@ -40,7 +40,8 @@ public static class Levene
     /// Fewer than two groups, an empty group, or a <c>NaN</c> under <see cref="NanPolicy.Raise"/>.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="proportionToCut"/> trims a group away entirely.
+    /// <paramref name="proportionToCut"/> is NaN under <see cref="Center.Trimmed"/>, or cuts a count below zero or past
+    /// a group's middle, as scipy refuses them; one that trims a group to nothing answers NaN, as scipy's does.
     /// </exception>
     /// <remarks>
     /// The centre and the policy come first because the groups are a <c>params</c> array and C#
@@ -52,6 +53,7 @@ public static class Levene
 #pragma warning restore S2368
     {
         Guard.NotNull(groups);
+        GroupSpread.RequireProportion(center, proportionToCut);
         double[][] samples = nanPolicy == NanPolicy.Propagate
             ? groups
             : NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups));
@@ -125,6 +127,6 @@ public static class Levene
         // (nan, nan), and the F tail refuses a NaN rather than passing one through.
         return double.IsNaN(w)
             ? new TestResult(double.NaN, double.NaN)
-            : new TestResult(w, Distributions.FisherSf(w, numeratorDf, denominatorDf));
+            : new TestResult(w, Distributions.FisherSnedecorSf(w, numeratorDf, denominatorDf));
     }
 }

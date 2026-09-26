@@ -118,7 +118,7 @@ public sealed class BetaTests
     {
         Assert.Equal(
             2.0 * Beta.StudentSf(Math.Sqrt(f), dfd),
-            Beta.FisherSf(f, dfn, dfd),
+            Beta.FisherSnedecorSf(f, dfn, dfd),
             Tolerance);
     }
 
@@ -130,12 +130,12 @@ public sealed class BetaTests
     public void FisherSf_forms_both_halves_of_its_argument_at_large_dfd(
         double f, double dfn, double dfd, double expected)
     {
-        Assert.Equal(1.0, Beta.FisherSf(f, dfn, dfd) / expected, 1e-13);
+        Assert.Equal(1.0, Beta.FisherSnedecorSf(f, dfn, dfd) / expected, 1e-13);
     }
 
     [Fact]
     public void FisherSf_is_one_at_the_origin()
     {
-        Assert.Equal(1.0, Beta.FisherSf(0.0, 3.0, 12.0));
+        Assert.Equal(1.0, Beta.FisherSnedecorSf(0.0, 3.0, 12.0));
     }
 }

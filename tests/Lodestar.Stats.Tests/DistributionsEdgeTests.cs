@@ -13,8 +13,8 @@ public sealed class DistributionsEdgeTests
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.StudentSf(1.0, df));
         Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.StudentQuantile(0.5, df));
-        Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSf(1.0, df, 5.0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSf(1.0, 5.0, df));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSnedecorSf(1.0, df, 5.0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSnedecorSf(1.0, 5.0, df));
         Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.ChiSquaredSf(1.0, df));
     }
 
@@ -40,12 +40,12 @@ public sealed class DistributionsEdgeTests
     [Fact]
     public void Chi_squared_agrees_with_the_test_that_already_used_it_internally()
     {
-        Chi2ContingencyResult table = ChiSquare.Contingency(
+        ChiSquaredContingencyResult table = ChiSquared.Contingency(
             [[20.0, 30.0], [30.0, 20.0]], Continuity.None);
 
         Assert.Equal(
             table.PValue,
-            Distributions.ChiSquaredSf(table.Statistic, table.Dof),
+            Distributions.ChiSquaredSf(table.Statistic, table.DegreesOfFreedom),
             1e-12);
     }
 
@@ -73,8 +73,8 @@ public sealed class DistributionsEdgeTests
         Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.NormalQuantile(p));
         Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.StudentIsf(p, 5.0));
         Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.NormalIsf(p));
-        Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherQuantile(p, 2.0, 3.0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherIsf(p, 2.0, 3.0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSnedecorQuantile(p, 2.0, 3.0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSnedecorIsf(p, 2.0, 3.0));
         Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.ChiSquaredQuantile(p, 4.0));
         Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.ChiSquaredIsf(p, 4.0));
     }
@@ -94,10 +94,10 @@ public sealed class DistributionsEdgeTests
         Assert.Equal(double.PositiveInfinity, Distributions.StudentQuantile(1.0, 5.0));
         Assert.Equal(double.PositiveInfinity, Distributions.StudentIsf(0.0, 5.0));
         Assert.Equal(double.NegativeInfinity, Distributions.StudentIsf(1.0, 5.0));
-        Assert.Equal(0.0, Distributions.FisherQuantile(0.0, 2.0, 3.0));
-        Assert.Equal(double.PositiveInfinity, Distributions.FisherQuantile(1.0, 2.0, 3.0));
-        Assert.Equal(double.PositiveInfinity, Distributions.FisherIsf(0.0, 2.0, 3.0));
-        Assert.Equal(0.0, Distributions.FisherIsf(1.0, 2.0, 3.0));
+        Assert.Equal(0.0, Distributions.FisherSnedecorQuantile(0.0, 2.0, 3.0));
+        Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorQuantile(1.0, 2.0, 3.0));
+        Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorIsf(0.0, 2.0, 3.0));
+        Assert.Equal(0.0, Distributions.FisherSnedecorIsf(1.0, 2.0, 3.0));
         Assert.Equal(0.0, Distributions.ChiSquaredQuantile(0.0, 4.0));
         Assert.Equal(double.PositiveInfinity, Distributions.ChiSquaredQuantile(1.0, 4.0));
         Assert.Equal(double.PositiveInfinity, Distributions.ChiSquaredIsf(0.0, 4.0));
@@ -111,7 +111,7 @@ public sealed class DistributionsEdgeTests
         [
             Distributions.NormalPdf(double.NaN), Distributions.NormalCdf(double.NaN), Distributions.NormalSf(double.NaN),
             Distributions.StudentPdf(double.NaN, 3.0), Distributions.StudentCdf(double.NaN, 3.0), Distributions.StudentSf(double.NaN, 3.0),
-            Distributions.FisherPdf(double.NaN, 2.0, 3.0), Distributions.FisherCdf(double.NaN, 2.0, 3.0), Distributions.FisherSf(double.NaN, 2.0, 3.0),
+            Distributions.FisherSnedecorPdf(double.NaN, 2.0, 3.0), Distributions.FisherSnedecorCdf(double.NaN, 2.0, 3.0), Distributions.FisherSnedecorSf(double.NaN, 2.0, 3.0),
             Distributions.ChiSquaredPdf(double.NaN, 4.0), Distributions.ChiSquaredCdf(double.NaN, 4.0), Distributions.ChiSquaredSf(double.NaN, 4.0),
         ];
 
@@ -124,9 +124,9 @@ public sealed class DistributionsEdgeTests
         Assert.Equal(0.0, Distributions.ChiSquaredPdf(-1.0, 4.0));
         Assert.Equal(0.0, Distributions.ChiSquaredCdf(-1.0, 4.0));
         Assert.Equal(1.0, Distributions.ChiSquaredSf(-1.0, 4.0));
-        Assert.Equal(0.0, Distributions.FisherPdf(-1.0, 2.0, 3.0));
-        Assert.Equal(0.0, Distributions.FisherCdf(-1.0, 2.0, 3.0));
-        Assert.Equal(1.0, Distributions.FisherSf(-1.0, 2.0, 3.0));
+        Assert.Equal(0.0, Distributions.FisherSnedecorPdf(-1.0, 2.0, 3.0));
+        Assert.Equal(0.0, Distributions.FisherSnedecorCdf(-1.0, 2.0, 3.0));
+        Assert.Equal(1.0, Distributions.FisherSnedecorSf(-1.0, 2.0, 3.0));
     }
 
     /// <summary>At the origin the density is infinite, finite or zero by the first shape alone, as scipy answers.</summary>
@@ -136,9 +136,9 @@ public sealed class DistributionsEdgeTests
         Assert.Equal(double.PositiveInfinity, Distributions.ChiSquaredPdf(0.0, 1.0));
         Assert.Equal(0.5, Distributions.ChiSquaredPdf(0.0, 2.0));
         Assert.Equal(0.0, Distributions.ChiSquaredPdf(0.0, 4.0));
-        Assert.Equal(double.PositiveInfinity, Distributions.FisherPdf(0.0, 1.0, 3.0));
-        Assert.Equal(1.0, Distributions.FisherPdf(0.0, 2.0, 3.0), 1e-14);
-        Assert.Equal(0.0, Distributions.FisherPdf(0.0, 4.0, 3.0));
+        Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorPdf(0.0, 1.0, 3.0));
+        Assert.Equal(1.0, Distributions.FisherSnedecorPdf(0.0, 2.0, 3.0), 1e-14);
+        Assert.Equal(0.0, Distributions.FisherSnedecorPdf(0.0, 4.0, 3.0));
     }
 
     /// <summary>
@@ -222,18 +222,22 @@ public sealed class DistributionsEdgeTests
     [InlineData(1e6, 1e10, 1.0, 3.989420809203688e-10)]
     public void The_F_density_holds_at_shapes_scipy_loses_digits_on(double f, double dfn, double dfd, double exact)
     {
-        Assert.Equal(1.0, Distributions.FisherPdf(f, dfn, dfd) / exact, 1e-12);
+        Assert.Equal(1.0, Distributions.FisherSnedecorPdf(f, dfn, dfd) / exact, 1e-12);
     }
 
     /// <summary>At an infinite statistic, or one whose product with the degrees of freedom overflows, the F laws answer their limits rather than NaN or an exception.</summary>
     [Fact]
     public void An_infinite_or_overflowing_F_statistic_answers_the_limits()
     {
-        Assert.Equal(1.0, Distributions.FisherCdf(double.PositiveInfinity, 2.0, 20.0));
-        Assert.Equal(0.0, Distributions.FisherSf(double.PositiveInfinity, 2.0, 20.0));
-        Assert.Equal(0.0, Distributions.FisherPdf(double.PositiveInfinity, 2.0, 20.0));
-        Assert.Equal(1.0, Distributions.FisherCdf(1e308, 10.0, 5.0));
-        double density = Distributions.FisherPdf(1e308, 10.0, 5.0);
+        Assert.Equal(1.0, Distributions.FisherSnedecorCdf(double.PositiveInfinity, 2.0, 20.0));
+        Assert.Equal(0.0, Distributions.FisherSnedecorSf(double.PositiveInfinity, 2.0, 20.0));
+        // At +∞ scipy's pdf is zero up to two degrees of freedom (the numerator's for F) and NaN past them (#1217).
+        Assert.Equal(0.0, Distributions.FisherSnedecorPdf(double.PositiveInfinity, 2.0, 20.0));
+        Assert.True(double.IsNaN(Distributions.FisherSnedecorPdf(double.PositiveInfinity, 3.0, 20.0)));
+        Assert.Equal(0.0, Distributions.ChiSquaredPdf(double.PositiveInfinity, 2.0));
+        Assert.True(double.IsNaN(Distributions.ChiSquaredPdf(double.PositiveInfinity, 3.0)));
+        Assert.Equal(1.0, Distributions.FisherSnedecorCdf(1e308, 10.0, 5.0));
+        double density = Distributions.FisherSnedecorPdf(1e308, 10.0, 5.0);
         Assert.True(density >= 0.0 && !double.IsNaN(density), $"a density, got {density}");
     }
 
@@ -252,8 +256,8 @@ public sealed class DistributionsEdgeTests
     [Fact]
     public void Infinite_degrees_of_freedom_are_refused_for_F_and_chi_squared()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherCdf(1.0, 3.0, double.PositiveInfinity));
-        Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherPdf(1.0, double.PositiveInfinity, 3.0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSnedecorCdf(1.0, 3.0, double.PositiveInfinity));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSnedecorPdf(1.0, double.PositiveInfinity, 3.0));
         Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.ChiSquaredPdf(1.0, double.PositiveInfinity));
         Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.ChiSquaredQuantile(0.5, double.PositiveInfinity));
     }

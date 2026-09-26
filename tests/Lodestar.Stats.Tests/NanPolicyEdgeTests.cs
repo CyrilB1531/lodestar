@@ -56,7 +56,7 @@ public sealed class NanPolicyEdgeTests
         double[] observed = [10.0, 20.0, double.NaN, 40.0];
         double[] expected = [15.0, 25.0, 30.0, 30.0];
 
-        TestResult result = ChiSquare.GoodnessOfFit(observed, expected, NanPolicy.Omit);
+        TestResult result = ChiSquared.GoodnessOfFit(observed, expected, NanPolicy.Omit);
 
         Assert.Equal(6.0, result.Statistic, 9);
         Assert.Equal(0.04978706836786395, result.PValue, 9);

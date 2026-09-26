@@ -19,12 +19,12 @@ public static partial class AndersonDarling
     private static readonly double[] Levels = [15.0, 10.0, 5.0, 2.5, 1.0];
 
     /// <summary>Tests a sample against the normal distribution, fitting its mean and spread.</summary>
-    /// <param name="x">The sample; at least two values, since the spread is estimated from it.</param>
+    /// <param name="x">The sample; at least one value. One value or a constant sample has no spread, and answers NaN as scipy's.</param>
     /// <returns>
     /// The A² statistic, the p-value interpolated from the table, and the table itself — the
     /// critical values for this sample size, and the significance levels they belong to.
     /// </returns>
-    /// <exception cref="ArgumentException">Fewer than two values, or a constant sample.</exception>
+    /// <exception cref="ArgumentException">The sample is empty.</exception>
     /// <remarks>
     /// The distribution is fitted rather than given, which is what makes the critical values
     /// depend on the sample size: they are Stephens' constants divided by
@@ -32,10 +32,9 @@ public static partial class AndersonDarling
     /// </remarks>
     public static AndersonResult Test(ReadOnlySpan<double> x)
     {
-        if (x.Length < 2)
+        if (x.Length < 1)
         {
-            throw new ArgumentException(
-                $"Anderson-Darling needs at least two values; got {x.Length}.", nameof(x));
+            throw new ArgumentException("Anderson-Darling needs at least one value.", nameof(x));
         }
 
         int n = x.Length;
@@ -45,19 +44,18 @@ public static partial class AndersonDarling
         double mean = Mean(sorted);
         double deviation = StandardDeviation(sorted, mean);
 
-        // S1244: a constant sample has an exactly zero spread, and standardising it would divide
-        // by that zero rather than by something merely small.
+        double[] critical = Critical(n);
+
+        // S1244: a constant sample has an exactly zero spread, and one value none at all; scipy answers NaN
+        // for both, with the table.
 #pragma warning disable S1244
-        if (deviation == 0.0)
+        if (n == 1 || deviation == 0.0)
 #pragma warning restore S1244
         {
-            throw new ArgumentException(
-                "Every value in the sample is the same, so it has no spread to standardise by.",
-                nameof(x));
+            return new AndersonResult(double.NaN, double.NaN, critical, (double[])Levels.Clone());
         }
 
         double squared = Squared(sorted, mean, deviation, n);
-        double[] critical = Critical(n);
 
         return new AndersonResult(squared, Interpolated(squared, critical), critical, (double[])Levels.Clone());
     }

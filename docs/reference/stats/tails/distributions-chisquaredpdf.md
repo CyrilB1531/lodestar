@@ -8,7 +8,7 @@ The chi-squared density.
 public static double ChiSquaredPdf(double x, double df)
 ```
 
-**Parameters** — `x` is the point; below zero the density is zero, and `NaN` answers `NaN`. `df` is the degrees of freedom, which must be positive and finite.
+**Parameters** — `x` is the point; below zero the density is zero, `NaN` answers `NaN`, and `+∞` answers zero up to two degrees of freedom and `NaN` past them, as scipy's does. `df` is the degrees of freedom, which must be positive and finite.
 
 **Returns** — `scipy.stats.chi2.pdf(x, df)`.
 

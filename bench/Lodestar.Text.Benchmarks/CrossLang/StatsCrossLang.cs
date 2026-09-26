@@ -77,7 +77,7 @@ public static class StatsCrossLang
         [
             Harness.Measure($"welch_t_{suffix}", () => TTest.Independent(corpus.First, corpus.Second)),
             Harness.Measure($"mann_whitney_{suffix}", () => MannWhitney.Test(corpus.First, corpus.Second)),
-            Harness.Measure($"chi_square_{suffix}", () => ChiSquare.Contingency(corpus.Table)),
+            Harness.Measure($"chi_square_{suffix}", () => ChiSquared.Contingency(corpus.Table)),
             Harness.Measure($"fligner_{suffix}", () => Fligner.Test(corpus.First, corpus.Second)),
             Harness.Measure($"anderson_ksamp_{suffix}", () => AndersonDarling.KSample(corpus.First, corpus.Second)),
             Harness.Measure($"spearman_matrix_{suffix}", () => Spearman.Matrix(corpus.Design, corpus.Regressors)),
@@ -218,7 +218,7 @@ public static class StatsCrossLang
             file.CountResponse, file.CountAlpha, file.GammaResponse);
     }
 
-    /// <summary>The contingency table as the jagged double rows <c>ChiSquare</c> takes.</summary>
+    /// <summary>The contingency table as the jagged double rows <c>ChiSquared</c> takes.</summary>
     private static double[][] Counts(int[][] rows)
     {
         var table = new double[rows.Length][];

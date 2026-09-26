@@ -26,7 +26,7 @@ bool same = left == right;  // => True
 
 **Remarks** — written rather than generated because the two members are arrays, which a record's
 generated equality compares by reference: two results holding the same critical values would
-otherwise be unequal. [`Chi2ContingencyResult.Equals`](chi2contingencyresult-equals.md) exists for
+otherwise be unequal. [`ChiSquaredContingencyResult.Equals`](chisquaredcontingencyresult-equals.md) exists for
 the same reason.
 
 **Applies to** — net10.0, netstandard2.0.

@@ -44,5 +44,5 @@ routes have no continuous approximation to correct, so `continuity` is silently 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`MannWhitney.Test`](mannwhitney-test.md), [`Wilcoxon.Paired`](wilcoxon-paired.md),
-[`ChiSquare.Contingency`](chisquare-contingency.md), the
+[`ChiSquared.Contingency`](chisquared-contingency.md), the
 [Python equivalence table](../../../equivalence.md).

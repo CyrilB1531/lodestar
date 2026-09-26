@@ -66,6 +66,9 @@ internal static class PackagingGate
     /// </summary>
     private static readonly Dictionary<string, string> Excluded = new(StringComparer.Ordinal)
     {
+        ["Lodestar.Stats.Distributions.FisherSf"] =
+            "an obsolete binary shim for packages compiled against 0.5.0; calling it here would only earn CS0618 "
+            + "for a name the sample must not teach (#1217)",
         ["Lodestar.Onnx.OnnxTextEmbedder"] =
             "constructing it loads an ONNX model, and model weights are never committed "
             + "(CONTRIBUTING.md); CONTRIBUTING.md's Definition of done already records that the sample stops at the tokenizer",
@@ -104,8 +107,8 @@ internal static class PackagingGate
         ["Lodestar.Metrics.ClassificationReport.ToString"] = RecordPlumbing,
         ["Lodestar.Stats.AndersonResult.Equals"] = RecordPlumbing,
         ["Lodestar.Stats.AndersonResult.GetHashCode"] = RecordPlumbing,
-        ["Lodestar.Stats.Chi2ContingencyResult.Equals"] = RecordPlumbing,
-        ["Lodestar.Stats.Chi2ContingencyResult.GetHashCode"] = RecordPlumbing,
+        ["Lodestar.Stats.ChiSquaredContingencyResult.Equals"] = RecordPlumbing,
+        ["Lodestar.Stats.ChiSquaredContingencyResult.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Survival.KaplanMeierCurve.Equals"] = RecordPlumbing,
         ["Lodestar.Survival.KaplanMeierCurve.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Survival.NelsonAalenCurve.Equals"] = RecordPlumbing,
@@ -141,7 +144,7 @@ internal static class PackagingGate
         ["Lodestar.Metrics.AverageRow..ctor"] = ResultRecordCtor,
         ["Lodestar.Metrics.ClassRow..ctor"] = ResultRecordCtor,
         ["Lodestar.Metrics.PairConfusionMatrix..ctor"] = ResultRecordCtor,
-        ["Lodestar.Stats.Chi2ContingencyResult..ctor"] = ResultRecordCtor,
+        ["Lodestar.Stats.ChiSquaredContingencyResult..ctor"] = ResultRecordCtor,
         ["Lodestar.Stats.KsResult..ctor"] = ResultRecordCtor,
         ["Lodestar.Stats.AndersonResult..ctor"] = ResultRecordCtor,
         ["Lodestar.Stats.BinomialResult..ctor"] = ResultRecordCtor,

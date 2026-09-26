@@ -66,7 +66,7 @@ public class DistributionIncumbentBenchmarks
     public double MetaNumerics_StudentQuantile() => _metaStudent.InverseLeftProbability(_upper);
 
     [Benchmark]
-    public double Lodestar_FisherCdf() => Distributions.FisherCdf(_f, _fNumerator, _fDenominator);
+    public double Lodestar_FisherCdf() => Distributions.FisherSnedecorCdf(_f, _fNumerator, _fDenominator);
 
     [Benchmark]
     public double MathNet_FisherCdf() => FisherSnedecor.CDF(_fNumerator, _fDenominator, _f);
@@ -75,7 +75,7 @@ public class DistributionIncumbentBenchmarks
     public double MetaNumerics_FisherCdf() => _metaFisher.LeftProbability(_f);
 
     [Benchmark]
-    public double Lodestar_FisherQuantile() => Distributions.FisherQuantile(_critical, _fNumerator, _fDenominator);
+    public double Lodestar_FisherQuantile() => Distributions.FisherSnedecorQuantile(_critical, _fNumerator, _fDenominator);
 
     [Benchmark]
     public double MathNet_FisherQuantile() => FisherSnedecor.InvCDF(_fNumerator, _fDenominator, _critical);
@@ -87,7 +87,7 @@ public class DistributionIncumbentBenchmarks
     public double Lodestar_ChiSquaredCdf() => Distributions.ChiSquaredCdf(_chi, _chiDf);
 
     [Benchmark]
-    public double MathNet_ChiSquaredCdf() => ChiSquared.CDF(_chiDf, _chi);
+    public double MathNet_ChiSquaredCdf() => MathNet.Numerics.Distributions.ChiSquared.CDF(_chiDf, _chi);
 
     [Benchmark]
     public double MetaNumerics_ChiSquaredCdf() => _metaChi.LeftProbability(_chi);
@@ -96,7 +96,7 @@ public class DistributionIncumbentBenchmarks
     public double Lodestar_ChiSquaredQuantile() => Distributions.ChiSquaredQuantile(_critical, _chiDf);
 
     [Benchmark]
-    public double MathNet_ChiSquaredQuantile() => ChiSquared.InvCDF(_chiDf, _critical);
+    public double MathNet_ChiSquaredQuantile() => MathNet.Numerics.Distributions.ChiSquared.InvCDF(_chiDf, _critical);
 
     [Benchmark]
     public double MetaNumerics_ChiSquaredQuantile() => _metaChi.InverseLeftProbability(_critical);

@@ -100,7 +100,10 @@ public sealed class HacClusterEdgeTests
     {
         OlsSummary summary = OrdinaryLeastSquares.Fit(Design, Response, Clusters, 2, ClusterOptions);
 
+        // CS0618: FisherSf is the one name both the published Stats this suite may build against and the working tree export.
+#pragma warning disable CS0618
         Assert.Equal(Distributions.FisherSf(summary.FStatistic, 2, 3), summary.FPValue, 1e-15);
+#pragma warning restore CS0618
         Assert.Equal(7, summary.ResidualDegreesOfFreedom);
     }
 

@@ -8,15 +8,16 @@ Compares the means of two independent samples.
 public static TTestResult Independent(ReadOnlySpan<double> a, ReadOnlySpan<double> b, Alternative alternative = Alternative.TwoSided, Variance variance = Variance.Welch, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
-**Parameters** — `a` and `b` are the two samples, each at least two values; both spans are read,
-never modified. `alternative` says which tail the p-value covers. `variance` says whether to pool
+**Parameters** — `a` and `b` are the two samples, each at least one value; both spans are read,
+never modified. A one-value sample answers as scipy's does: pooled, the other sample's variance
+carries the test; under Welch the statistic is NaN on one degree of freedom. `alternative` says which tail the p-value covers. `variance` says whether to pool
 the two sample variances. `nanPolicy` says what to do with a `NaN`; scipy's `nan_policy`,
 defaulting to [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TTestResult`: the t statistic, the p-value, and the degrees of freedom, which are
 fractional under `Variance.Welch`.
 
-**Exceptions** — `ArgumentException` when either sample holds fewer than two values, or
+**Exceptions** — `ArgumentException` when either sample is empty, or
 `nanPolicy` is `NanPolicy.Raise` and either sample holds a `NaN`.
 
 **Example** — two samples with clearly different means.
