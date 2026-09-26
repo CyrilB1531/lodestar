@@ -114,8 +114,9 @@ hazard ratio of 4 for a treatment means four times the hazard in the first month
 twentieth. If the effect fades or reverses, the one number the table reports is an average of
 something that changed, and its p-value tests that average.
 
-**This release does not test the assumption for you.** Before trusting a table, look for its
-failure:
+**Test it before trusting a table.**
+[`CoxProportionalHazards.TestProportionalHazards`](../reference/survival/estimators/coxproportionalhazards-testproportionalhazards.md)
+runs lifelines' test on the scaled Schoenfeld residuals, and two informal checks find the same failure:
 
 - **Plot the curves first.** Fit [`KaplanMeier`](../reference/survival/estimators/kaplanmeier.md) on
   each level of a binary covariate. Curves that cross are the clearest sign that its hazards are not
@@ -123,8 +124,6 @@ failure:
 - **Fit an early window and a late one.** Censor everyone at a midpoint for the first fit, then fit
   only those still at risk after it. A coefficient that moves materially between the two is not
   constant in time.
-
-Schoenfeld residuals, the formal test, are a later lot.
 
 ```csharp
 using Lodestar.Survival;
@@ -163,13 +162,50 @@ has to look at the interval before the ratio.
 Both throw `ArgumentException` naming the cause. `lifelines` would return a table behind a warning
 there.
 
+## When the curve has a shape: parametric models
+
+A Kaplan-Meier curve steps only where events happened. A **parametric model** draws a smooth curve
+from a few parameters, which extrapolates past the last event and gives a median even when the curve
+never falls to one half. [`ParametricSurvival`](../reference/survival/estimators/parametricsurvival.md)
+fits lifelines' six through
+[`ParametricSurvival.Fit`](../reference/survival/estimators/parametricsurvival-fit.md): exponential,
+Weibull, log-normal, log-logistic, piecewise exponential and generalized gamma. Compare them by their
+AIC, lower being better.
+
+**The accelerated failure time model** puts covariates on the time scale instead of the hazard: a
+coefficient of `log 2` means the covariate doubles every survival time.
+[`AcceleratedFailureTime.Fit`](../reference/survival/estimators/acceleratedfailuretime-fit.md) fits
+the Weibull, log-normal and log-logistic forms, and predicts each subject's median, percentiles, mean and
+curves.
+
+```csharp
+using Lodestar.Survival;
+
+double[] months = [12, 5, 20, 3, 15, 9, 8, 14, 2, 18];
+bool[] died = [true, true, false, true, true, true, true, false, true, true];
+
+ParametricFit weibull = ParametricSurvival.Fit(ParametricModel.Weibull, months, died);
+double median = weibull.MedianSurvivalTime;
+
+// One covariate per patient: 1 if on the new treatment.
+double[] treated = [0, 1, 1, 0, 1, 0, 1, 1, 0, 0];
+AftSummary aft = AcceleratedFailureTime.Fit(AftModel.Weibull, treated, months, died, featureCount: 1);
+double timeRatio = aft.ExpCoefficients[0];   // how much the treatment stretches survival time
+```
+
+**Three kinds of censoring, one likelihood each.** A right-censored time is a lower bound on the
+event; a **left-censored** one an upper bound — the event had already happened by then — and an
+**interval-censored** one a pair of bounds, the last visit without the event and the first with it.
+Each fit has a `FitLeftCensored` and a `FitIntervalCensored` form, and every form takes subject weights
+and **late entry**: a subject who joins the study at month three was not at risk before it.
+[`KaplanMeier.EstimateLeftCensored`](../reference/survival/estimators/kaplanmeier-estimateleftcensored.md)
+and [`BreslowFlemingHarrington`](../reference/survival/estimators/breslowflemingharrington.md), with
+entry, are the non-parametric curves for those cases.
+
 ## What is not here
 
-Right censoring only. **Left truncation** (subjects who enter late), **interval censoring** (an event
-known only to fall between two visits) and the **accelerated-failure-time** models are each their own
-lot — and each changes the risk table rather than adding a step on top of it, which is why none of
-them is a flag on these calls. The Cox model has no strata, time-varying covariates, weights or
-penalty, no prediction for a new subject, and no test of its own assumption.
+Turnbull's non-parametric curve for interval-censored data, and the Kaplan-Meier and Cox fits with
+late entry. The spline models and the lasso on an AFT fit are [#1184](https://github.com/CyrilB1531/lodestar/issues/1184).
 
 ## See also
 

@@ -70,6 +70,27 @@ class Relative(NamedTuple):
 # of 6.8e6 by 4e-4, 6e-11 relative, which an absolute 1e-9 refuses and the suite accepts.
 RELATIVE: dict[str, Relative] = {"stats_iv.json": Relative(1e-9, 1e-15)}
 
+class CaseRule(NamedTuple):
+    """Wider tolerances for some fields of the cases a field's value selects, as their suite holds them."""
+
+    field: str
+    value: str
+    tolerances: dict[str, float]
+
+
+# long-comment: why the generalized gamma's cases are held wider, field by field.
+# ParametricOracleTests holds the generalized gamma at 2e-9 and its inference at 1e-6, lifelines' own
+# standard errors at 1e-3: its incomplete gamma's shape derivative is a finite difference, and the
+# corpus's Hessian is one of values, both amplifying the last bit gammaincc rounds differently on two
+# hosts -- measured, 4e-8 on a standard error and 3e-5 on lifelines' (#1172). Every other case of the
+# corpus, and every other field, stays at 1e-9.
+CASE_WIDER: dict[str, CaseRule] = {
+    "survival_parametric.json": CaseRule("model", "GeneralizedGamma", {
+        "parameters": 2e-9, "logLikelihood": 2e-9, "aic": 2e-9, "survival": 2e-9, "cumulativeHazard": 2e-9,
+        "hazard": 2e-9, "median": 1e-8, "quartile": 1e-8, "standardErrors": 1e-6, "zStatistics": 1e-6,
+        "pValues": 1e-6, "survivalBounds": 1e-6, "cumulativeHazardBounds": 1e-6, "lifelinesStandardErrors": 1e-3}),
+}
+
 # What reaches the log. The workflow uploads both directories when this fails,
 # so the cap costs a reader nothing and keeps a wholesale mismatch readable.
 MAX_REPORTED = 40
@@ -161,7 +182,7 @@ def _child(path: str, step: str) -> str:
 
 
 def compare_values(path: str, expected, actual, found: Differences,
-                   tolerance: float | Relative = TOLERANCE) -> None:
+                   tolerance: float | Relative = TOLERANCE, rule: CaseRule | None = None) -> None:
     """Walk two parsed values in step, recording what differs and where."""
     expected_kind = kind_of(expected)
     actual_kind = kind_of(actual)
@@ -171,9 +192,9 @@ def compare_values(path: str, expected, actual, found: Differences,
         return
 
     if expected_kind == "object":
-        _compare_objects(path, expected, actual, found, tolerance)
+        _compare_objects(path, expected, actual, found, tolerance, rule)
     elif expected_kind == "array":
-        _compare_arrays(path, expected, actual, found, tolerance)
+        _compare_arrays(path, expected, actual, found, tolerance, rule)
     elif expected_kind == "float":
         if not floats_agree(expected, actual, tolerance):
             found.add(NUMERIC, path, f"{render(expected)} vs {render(actual)}")
@@ -182,7 +203,7 @@ def compare_values(path: str, expected, actual, found: Differences,
 
 
 def _compare_objects(path: str, expected: dict, actual: dict, found: Differences,
-                     tolerance: float | Relative) -> None:
+                     tolerance: float | Relative, rule: CaseRule | None = None) -> None:
     for key in expected:
         if key not in actual:
             found.add(STRUCTURAL, _child(path, key), "in the expected corpus only")
@@ -198,17 +219,19 @@ def _compare_objects(path: str, expected: dict, actual: dict, found: Differences
         found.add(STRUCTURAL, path,
                   f"keys reordered: {render(shared_expected)} vs {render(shared_actual)}")
 
+    selected = rule is not None and expected.get(rule.field) == rule.value
     for key in shared_expected:
-        compare_values(_child(path, key), expected[key], actual[key], found, tolerance)
+        wider = rule.tolerances.get(key, tolerance) if selected else tolerance
+        compare_values(_child(path, key), expected[key], actual[key], found, wider, rule)
 
 
 def _compare_arrays(path: str, expected: list, actual: list, found: Differences,
-                    tolerance: float | Relative) -> None:
+                    tolerance: float | Relative, rule: CaseRule | None = None) -> None:
     if len(expected) != len(actual):
         found.add(STRUCTURAL, path, f"{len(expected)} elements vs {len(actual)}")
 
     for index in range(min(len(expected), len(actual))):
-        compare_values(f"{path}[{index}]", expected[index], actual[index], found, tolerance)
+        compare_values(f"{path}[{index}]", expected[index], actual[index], found, tolerance, rule)
 
 
 def corpus_files(directory: pathlib.Path) -> list[str]:
@@ -238,7 +261,7 @@ def compare_file(name: str, expected_path: pathlib.Path, actual_path: pathlib.Pa
         return
 
     nested = Differences()
-    compare_values("", expected, actual, nested, RELATIVE.get(name) or WIDER.get(name, TOLERANCE))
+    compare_values("", expected, actual, nested, RELATIVE.get(name) or WIDER.get(name, TOLERANCE), CASE_WIDER.get(name))
     for difference in nested.kept:
         found.add(difference.rank, f"{name}: {difference.path or '<root>'}", difference.detail)
     found.total += nested.total - len(nested.kept)
@@ -298,7 +321,8 @@ def main(argv: list[str]) -> int:
 
     if not found.total:
         wider = ", ".join([f"{name} within {value:g}" for name, value in sorted(WIDER.items())]
-                          + [f"{name} within {value.rate:g} relative" for name, value in sorted(RELATIVE.items())])
+                          + [f"{name} within {value.rate:g} relative" for name, value in sorted(RELATIVE.items())]
+                          + [f"{name}'s {rule.value} cases wider by field" for name, rule in sorted(CASE_WIDER.items())])
         print(f"ok  {len(corpus_files(expected_dir))} corpora agree: floats within "
               f"{TOLERANCE:g} ({wider}), everything else exactly")
         return 0

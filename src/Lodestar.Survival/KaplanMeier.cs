@@ -5,8 +5,8 @@ namespace Lodestar.Survival;
 
 /// <summary>The Kaplan-Meier estimator of a survival function.</summary>
 /// <remarks>
-/// Reference behavior: <c>lifelines.KaplanMeierFitter</c> 0.30.3. Right-censored data
-/// only; left truncation and interval censoring are each their own lot. Thread-safe.
+/// Reference behavior: <c>lifelines.KaplanMeierFitter</c> 0.30.3, right- and left-censored; left truncation and
+/// interval censoring are each their own lot. Thread-safe.
 /// </remarks>
 public static class KaplanMeier
 {
@@ -73,6 +73,78 @@ public static class KaplanMeier
 
             survival[i] = product;
             (lower[i], upper[i]) = LogLogInterval(product, greenwood, z);
+        }
+
+        return new KaplanMeierCurve(steps, survival, lower, upper, confidenceLevel);
+    }
+
+    /// <summary>Estimates the survival function of a left-censored sample, lifelines' <c>fit_left_censoring</c>.</summary>
+    /// <param name="durations">One duration per subject; non-negative.</param>
+    /// <param name="eventObserved"><c>true</c> where the duration is the event's own time, <c>false</c> where the event came before it.</param>
+    /// <param name="confidenceLevel">A level strictly inside <c>(0, 1)</c>.</param>
+    /// <returns>The survival, one minus the reverse Kaplan-Meier estimate of the cumulative density, with its bounds.</returns>
+    /// <exception cref="ArgumentException">The spans differ in length, the sample is empty, or a duration is negative or NaN.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="confidenceLevel"/> is not strictly inside <c>(0, 1)</c>.</exception>
+    /// <remarks>
+    /// The cumulative density is the product of <c>1 − d/n</c> over the later times, <c>n</c> counting the subjects
+    /// whose duration is at most that time, with its log-log interval; the survival and its bounds are one minus those.
+    /// lifelines names the larger bound its lower one; <see cref="KaplanMeierCurve.Lower"/> is the smaller.
+    /// </remarks>
+    public static KaplanMeierCurve EstimateLeftCensored(
+        ReadOnlySpan<double> durations,
+        ReadOnlySpan<bool> eventObserved,
+        double confidenceLevel = DefaultLevel)
+    {
+        RiskTable.Validate(durations, eventObserved, nameof(durations));
+        if (double.IsNaN(confidenceLevel) || confidenceLevel <= 0.0 || confidenceLevel >= 1.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(confidenceLevel), confidenceLevel,
+                "A confidence level lies strictly inside (0, 1).");
+        }
+
+        SurvivalStep[] steps = RiskTable.Build(durations, eventObserved);
+        int count = steps.Length;
+        double[] survival = new double[count];
+        double[] lower = new double[count];
+        double[] upper = new double[count];
+        double z = Critical(confidenceLevel);
+
+        // Walking back, n counts the subjects whose duration is at most this step's time; a step's own term is
+        // added only once every step at its time has read the sums of the later ones.
+        int notLater = durations.Length;
+        double logDensity = 0.0;
+        double greenwood = 0.0;
+        double pendingLog = 0.0;
+        double pendingGreenwood = 0.0;
+        for (int i = count - 1; i >= 0; i--)
+        {
+            // S1244: steps at one recorded time share one set of later steps.
+#pragma warning disable S1244
+            if (i == count - 1 || steps[i].Time != steps[i + 1].Time)
+#pragma warning restore S1244
+            {
+                logDensity += pendingLog;
+                greenwood += pendingGreenwood;
+                pendingLog = 0.0;
+                pendingGreenwood = 0.0;
+            }
+
+            double density = Math.Exp(logDensity);
+            survival[i] = 1.0 - density;
+            (double densityLower, double densityUpper) = LogLogInterval(density, greenwood, z);
+            (lower[i], upper[i]) = (1.0 - densityUpper, 1.0 - densityLower);
+
+            SurvivalStep step = steps[i];
+            if (step.Events > 0)
+            {
+                pendingLog += Math.Log(notLater - step.Events) - Math.Log(notLater);
+                // lifelines replaces the infinite increment where every such subject had the event by zero.
+                double denominator = (double)notLater * (notLater - step.Events);
+                pendingGreenwood += denominator > 0.0 ? step.Events / denominator : 0.0;
+            }
+
+            notLater -= step.Events + step.Censored;
         }
 
         return new KaplanMeierCurve(steps, survival, lower, upper, confidenceLevel);

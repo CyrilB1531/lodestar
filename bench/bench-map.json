@@ -648,6 +648,16 @@
         "bench/Lodestar.Text.Benchmarks/CrossLang/CoxExtendedCrossLang.cs"
       ]
     },
+    "survival-parametric": {
+      "subcommand": "compare-survival-parametric",
+      "python": "bench/python/bench_survival_parametric.py",
+      "compare": "survival-parametric",
+      "sources": [
+        "src/Lodestar.Survival/**",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/SurvivalParametricCrossLang.cs",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/CoxExtendedCrossLang.cs"
+      ]
+    },
     "ols": {
       "subcommand": "compare-ols",
       "python": "bench/python/bench_stats.py",

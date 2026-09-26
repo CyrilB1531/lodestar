@@ -121,6 +121,12 @@ T_PPF = "t.ppf"
 CHI2_SF = "chi2.sf"
 # A bound key three corpora write, which is what takes it to S1192's threshold (#569).
 UPPER = "upper"
+SURVIVAL = "survival"
+SE_COEF = "se(coef)"
+PLAIN = "plain"
+CENSOR_RIGHT = "right"
+HEAVY_CENSORING = "heavy censoring"
+CENSORED_KEY = "censored"
 LOWER = "lower"
 NORM_PPF = "norm.ppf"
 FAMILY = "family"
@@ -6729,11 +6735,11 @@ def generate_survival_curves() -> dict:
             DURATIONS: fixture[DURATIONS],
             EVENTS: fixture[EVENTS],
             "timeline": [float(t) for t in kmf.survival_function_.index],
-            "survival": [float(v) for v in kmf.survival_function_.iloc[:, 0]],
+            SURVIVAL: [float(v) for v in kmf.survival_function_.iloc[:, 0]],
             "cumulativeHazard": [float(v) for v in naf.cumulative_hazard_.iloc[:, 0]],
             "atRisk": [int(v) for v in table["at_risk"]],
             OBSERVED: [int(v) for v in table[OBSERVED]],
-            "censored": [int(v) for v in table["censored"]],
+            CENSORED_KEY: [int(v) for v in table[CENSORED_KEY]],
             LOWER: [float(v) for v in kmf.confidence_interval_[lower]],
             UPPER: [float(v) for v in kmf.confidence_interval_[upper]],
         }
@@ -6991,7 +6997,7 @@ def generate_survival_concordance() -> dict:
     cases = []
     for name, n, decimals, censoring, score_decimals in (
             ("continuous, no ties", 50, 4, 0.3, 6), ("whole-unit durations, tied scores", 60, 0, 0.3, 0),
-            ("heavy censoring", 40, 1, 0.7, 2), ("every event observed", 30, 1, 0.0, 1)):
+            (HEAVY_CENSORING, 40, 1, 0.7, 2), ("every event observed", 30, 1, 0.0, 1)):
         durations, events = _survival_sample(rng, n, 6.0, censoring, decimals)
         scores = [round(float(v) + 0.3 * t, score_decimals) for v, t in zip(rng.normal(0, 2, n), durations, strict=True)]
         observed = None if censoring <= 0.0 else events
@@ -7051,7 +7057,7 @@ def _cox_fixtures() -> list[dict]:
         # Where Efron and Breslow coincide: pins the untied path rather than discriminating.
         _cox_fixture(rng, "no ties at all", 40, [NORMAL_COVARIATE, BINARY_COVARIATE], 0.75, 10.0, tied=False),
         # Around 70% censored: the risk sets move and the events do not.
-        _cox_fixture(rng, "heavy censoring", 60, [NORMAL_COVARIATE, BINARY_COVARIATE], 0.3, 5.0, tied=True),
+        _cox_fixture(rng, HEAVY_CENSORING, 60, [NORMAL_COVARIATE, BINARY_COVARIATE], 0.3, 5.0, tied=True),
         # The p x p algebra degenerates to a scalar, where a Cholesky bug would hide.
         _cox_fixture(rng, "a single covariate", 50, [NORMAL_COVARIATE], 0.8, 5.0, tied=True),
         # The smallest case where the inverse is not a closed formula.
@@ -7092,7 +7098,7 @@ def generate_survival_cox() -> dict:
             **fixture,
             CONFIDENCE_LEVEL: 1.0 - model.alpha,
             COEFFICIENTS: [float(v) for v in summary["coef"]],
-            STANDARD_ERRORS: [float(v) for v in summary["se(coef)"]],
+            STANDARD_ERRORS: [float(v) for v in summary[SE_COEF]],
             Z_STATISTICS: [float(v) for v in summary["z"]],
             P_VALUES: [float(v) for v in summary["p"]],
             CONFIDENCE_LOWER: [float(v) for v in summary["coef lower 95%"]],
@@ -7181,7 +7187,7 @@ def _cox_extended_fit(fixture: dict) -> tuple[dict, object, object]:
     case = {
         **fixture,
         COEFFICIENTS: [float(v) for v in summary["coef"]],
-        STANDARD_ERRORS: [float(v) for v in summary["se(coef)"]],
+        STANDARD_ERRORS: [float(v) for v in summary[SE_COEF]],
         P_VALUES: [float(v) for v in summary["p"]],
         LOG_LIKELIHOOD: float(model.log_likelihood_),
         COX_NULL_LOG_LIKELIHOOD: float(model._ll_null_),
@@ -7193,7 +7199,7 @@ def _cox_extended_fit(fixture: dict) -> tuple[dict, object, object]:
         COX_PREDICT_STRATA: [int(v) for v in rows[COX_STRATA]] if fixture.get(COX_STRATA) is not None else None,
         COX_PREDICT_TIMES: times,
         "logPartialHazards": [float(v) for v in model.predict_log_partial_hazard(rows)],
-        "survival": [float(v) for v in survival.to_numpy().T.ravel()],
+        SURVIVAL: [float(v) for v in survival.to_numpy().T.ravel()],
         COX_CUMULATIVE: [float(v) for v in cumulative.to_numpy().T.ravel()],
         "medians": [float(v) if math.isfinite(v) else None for v in np.atleast_1d(model.predict_median(rows))],
         "expectations": [float(v) for v in np.atleast_1d(model.predict_expectation(rows))],
@@ -7218,7 +7224,7 @@ def _cox_extended_fixtures() -> list[dict]:
         return [round(0.2 + 1.8 * rng.random(), 6) for _ in fixture[DURATIONS]]
 
     settings = [
-        ("plain", {}),
+        (PLAIN, {}),
         ("stratified", {COX_STRATA: 3}),
         ("whole weights", {WEIGHTS: whole}),
         ("fractional weights, robust", {WEIGHTS: fractional, ROBUST: True}),
@@ -7269,7 +7275,7 @@ def _time_varying_fixture(rng, name: str, subjects: int, event_rate: float) -> d
 def _time_varying_cases() -> list[dict]:
     """CoxTimeVaryingFitter fits, plain, weighted, stratified and penalised, with the baseline and partial hazards (#1171)."""
     rng = SeededRandom(SEED + 117101)
-    settings = (("plain", 0.0, 0.0, False, False), ("weighted", 0.0, 0.0, True, False),
+    settings = ((PLAIN, 0.0, 0.0, False, False), ("weighted", 0.0, 0.0, True, False),
                 ("by stratum", 0.0, 0.0, False, True), ("ridge 0.1", 0.1, 0.0, False, False),
                 ("elastic net 0.05, l1 0.5", 0.05, 0.5, False, False))
     fixtures = (_time_varying_fixture(rng, "sixty subjects", 60, 0.7), _time_varying_fixture(rng, "ninety subjects", 90, 0.6))
@@ -7337,6 +7343,466 @@ def generate_survival_cox_extended() -> dict:
         "fits": fits,
         "ph_tests": tests,
         "time_varying": varying,
+    }
+
+
+# The parametric corpus (#1172): its keys.
+MODEL_WEIBULL = "Weibull"
+MODEL_LOGNORMAL = "LogNormal"
+MODEL_LOGLOGISTIC = "LogLogistic"
+MODEL_GG = "GeneralizedGamma"
+MODEL_PIECEWISE = "PiecewiseExponential"
+CENSOR_INTERVAL = "interval"
+ENTRY = "entry"
+AFT_ANCILLARY = "ancillary"
+AFT_FIT_INTERCEPT = "fitIntercept"
+PARAM_MODEL = "model"
+PARAM_CENSORING = "censoring"
+PARAM_LOWER = LOWER
+PARAM_UPPER = UPPER
+PARAM_ENTRIES = "entries"
+PARAM_BREAKPOINTS = "breakpoints"
+PARAM_TIMES = "times"
+PARAM_NAMES = "names"
+PARAM_VALUES = "parameters"
+PARAM_AIC = "aic"
+PARAM_SURVIVAL = SURVIVAL
+PARAM_BOUNDS = "survivalBounds"
+PARAM_CUMULATIVE_BOUNDS = "cumulativeHazardBounds"
+PARAM_HAZARD = "hazard"
+PARAM_MEDIAN = STRATEGY_MEDIAN
+PARAM_QUARTILE = "quartile"
+PARAMETRIC_MODELS = ["Exponential", MODEL_WEIBULL, MODEL_LOGNORMAL, MODEL_LOGLOGISTIC, MODEL_PIECEWISE, MODEL_GG]
+CENSORINGS = [CENSOR_RIGHT, "left", CENSOR_INTERVAL]
+
+
+def _polish(negative_log_likelihood, start, args, steps: int = 60):
+    """Newton on lifelines' own autograd likelihood, from its fit to the maximum (#1160's measurement)."""
+    from autograd import grad, hessian  # noqa: PLC0415
+
+    x = np.array(start, dtype=float)
+    gradient, curvature = grad(negative_log_likelihood), hessian(negative_log_likelihood)
+    current = negative_log_likelihood(x, *args)
+    for _ in range(steps):
+        step = np.linalg.solve(curvature(x, *args), gradient(x, *args))
+        # Halved while it leaves the likelihood's domain or raises the objective; a full step otherwise.
+        for _ in range(40):
+            value = negative_log_likelihood(x - step, *args)
+            if np.isfinite(value) and value <= current + 1e-12 * abs(current):
+                break
+            step = step / 2
+        else:
+            break
+        x, current = x - step, value
+        if np.max(np.abs(step)) < 1e-15 * max(1.0, np.max(np.abs(x))):
+            break
+    if np.max(np.abs(gradient(x, *args))) > 1e-8:
+        raise ValueError("Newton stopped short of a stationary point")
+    return x
+
+
+def _univariate_fitter(name: str, breakpoints):
+    import lifelines  # noqa: PLC0415
+
+    if name == MODEL_PIECEWISE:
+        return lifelines.PiecewiseExponentialFitter(breakpoints)
+    return getattr(lifelines, f"{name}Fitter")()
+
+
+def _polished_univariate(name: str, censoring: str, data: dict, breakpoints):
+    """lifelines' univariate fit, Newton-polished: the fitter with its parameters set there, the likelihood and its arguments."""
+    fitter = _univariate_fitter(name, breakpoints)
+    weights, entries = data.get(WEIGHTS), data.get(PARAM_ENTRIES)
+    kwargs = {"weights": None if weights is None else np.array(weights),
+              ENTRY: None if entries is None else np.array(entries)}
+    if censoring == CENSOR_INTERVAL:
+        fitter.fit_interval_censoring(np.array(data[PARAM_LOWER]), np.array(data[PARAM_UPPER]), **kwargs)
+        ts, likelihood = (fitter.lower_bound, fitter.upper_bound), fitter._negative_log_likelihood_interval_censoring
+        ts = (np.clip(ts[0], 1e-20, 1e25), np.clip(ts[1], 1e-20, 1e25))
+    elif censoring == "left":
+        fitter.fit_left_censoring(np.array(data[DURATIONS]), np.array(data[EVENTS]), **kwargs)
+        ts, likelihood = (None, np.array(data[DURATIONS], dtype=float)), fitter._negative_log_likelihood_left_censoring
+    else:
+        fitter.fit(np.array(data[DURATIONS]), np.array(data[EVENTS]), **kwargs)
+        ts, likelihood = (np.array(data[DURATIONS], dtype=float), None), fitter._negative_log_likelihood_right_censoring
+    args = (ts, fitter.event_observed.astype(bool), fitter.entry, fitter.weights)
+    from autograd import grad  # noqa: PLC0415
+    value_only = not np.all(np.isfinite(grad(likelihood)(fitter._fitted_parameters_, *args)))
+    if value_only:
+        # autograd_gamma's derivative of an interval's S(L) - S(U) in the shape is NaN: Newton on values alone.
+        x = _value_polish(lambda v: likelihood(v, *args), fitter._fitted_parameters_)
+    else:
+        x = _polish(likelihood, fitter._fitted_parameters_, args)
+    fitter.value_only = value_only
+    total = fitter.weights.sum()
+    fitter._fitted_parameters_ = x
+    # The closed-form percentiles read the named attributes, which lifelines set before the polish.
+    for parameter_name, value in zip(fitter._fitted_parameter_names, x, strict=True):
+        setattr(fitter, parameter_name, value)
+    fitter.log_likelihood_ = -likelihood(x, *args) * total
+    return fitter, x, likelihood, args, total
+
+
+def _univariate_case(label: str, name: str, censoring: str, data: dict, breakpoints) -> dict:
+    """One lifelines fit polished to its maximum, with the table and the curves lifelines computes from it."""
+    import pandas as pd  # noqa: PLC0415
+    from autograd import hessian  # noqa: PLC0415
+
+    fitter, x, likelihood, args, total = _polished_univariate(name, censoring, data, breakpoints)
+    names = fitter._fitted_parameter_names
+    curvature = hessian(likelihood)(x, *args) * total
+    lifelines_errors = None
+    if fitter.value_only:
+        curvature = _value_hessian(lambda v: likelihood(v, *args) * total, x)
+    elif name == MODEL_GG:
+        # autograd_gamma's finite difference in the shape leaves lifelines' standard errors up to 2e-5 relative off;
+        # the independent Hessian below, from values alone, holds them to about 1e-8.
+        lifelines_errors = [float(v) for v in np.sqrt(np.diag(np.linalg.inv(curvature)))]
+        curvature = _value_hessian(lambda v: likelihood(v, *args) * total, x)
+    fitter.variance_matrix_ = pd.DataFrame(np.linalg.inv(curvature), index=names, columns=names)
+    summary = fitter.summary
+    finite = [t for t in (data[PARAM_UPPER] if censoring == CENSOR_INTERVAL else data[DURATIONS]) if math.isfinite(t)]
+    times = sorted({float(v) for v in np.quantile(finite, [0.1, 0.4, 0.8])})
+    # An array, not a list: lifelines' hazard differentiates the cumulative hazard in time, and a list yields zero.
+    at = np.array(times)
+    # lifelines' delta method reads its own timeline for the variance, whatever times it is given, so it is set to them.
+    fitter.timeline = np.array(times)
+    band = fitter._compute_confidence_bounds_of_transform(fitter._survival_function, fitter.alpha, None, np.array(times))
+    cum = fitter._compute_confidence_bounds_of_transform(fitter._cumulative_hazard, fitter.alpha, None, np.array(times))
+    median, quartile = fitter.percentile(0.5), fitter.percentile(0.25)
+    stored = {**data, PARAM_UPPER: [None if math.isinf(v) else v for v in data[PARAM_UPPER]]}
+    return {"name": label, PARAM_MODEL: name, PARAM_CENSORING: censoring, **stored, PARAM_BREAKPOINTS: breakpoints,
+            PARAM_NAMES: list(names), PARAM_VALUES: [float(v) for v in x],
+            STANDARD_ERRORS: [float(v) for v in summary[SE_COEF]], Z_STATISTICS: [float(v) for v in summary["z"]],
+            P_VALUES: [float(v) for v in summary["p"]], LOG_LIKELIHOOD: float(fitter.log_likelihood_),
+            PARAM_AIC: float(fitter.AIC_), PARAM_TIMES: times,
+            PARAM_SURVIVAL: [float(v) for v in fitter.survival_function_at_times(at)],
+            COX_CUMULATIVE: [float(v) for v in fitter.cumulative_hazard_at_times(at)],
+            PARAM_HAZARD: [float(v) for v in fitter.hazard_at_times(at)],
+            PARAM_BOUNDS: [[float(v) for v in band.iloc[:, 0]], [float(v) for v in band.iloc[:, 1]]],
+            PARAM_CUMULATIVE_BOUNDS: [[float(v) for v in cum.iloc[:, 0]], [float(v) for v in cum.iloc[:, 1]]],
+            PARAM_MEDIAN: None if median is None else float(median), PARAM_QUARTILE: None if quartile is None else float(quartile),
+            "lifelinesStandardErrors": lifelines_errors, "valueOnly": fitter.value_only}
+
+
+def _value_gradient(function, x, step: float = 2e-3):
+    """The gradient by central differences of values alone at two steps, Richardson-extrapolated."""
+    def at(h):
+        return np.array([(function(x + e * h) - function(x - e * h)) / (2 * h) for e in np.eye(len(x))])
+    return (4 * at(step / 2) - at(step)) / 3
+
+
+def _value_polish(function, start, steps: int = 12):
+    """Newton on values alone, halved while it raises the objective: where autograd's derivative is NaN."""
+    x, current = np.array(start, dtype=float), function(np.array(start, dtype=float))
+    for _ in range(steps):
+        step = np.linalg.solve(_value_hessian(function, x), _value_gradient(function, x))
+        for _ in range(40):
+            value = function(x - step)
+            if np.isfinite(value) and value <= current:
+                break
+            step = step / 2
+        else:
+            break
+        x, current = x - step, value
+    if np.max(np.abs(_value_gradient(function, x))) > 1e-5 * max(1.0, abs(current)):
+        raise ValueError("the value-only Newton stopped short of a stationary point")
+    return x
+
+
+def _value_hessian(function, x, step: float = 2e-3):
+    """The Hessian by central differences of values alone at two steps, Richardson-extrapolated.
+
+    The step is 2e-3: below 5e-4 rounding in the likelihood's value moved the standard errors at the sixth figure,
+    and from 1e-3 to 4e-3 they agree to the eighth.
+    """
+    def at(h):
+        k = len(x)
+        result = np.zeros((k, k))
+        for i in range(k):
+            for j in range(k):
+                ei, ej = np.eye(k)[i] * h, np.eye(k)[j] * h
+                result[i, j] = (function(x + ei + ej) - function(x + ei - ej) - function(x - ei + ej)
+                                + function(x - ei - ej)) / (4 * h * h)
+        return result
+    return (4 * at(step / 2) - at(step)) / 3
+
+
+def _interval_bounds(rng, durations: list[float], events: list[int]) -> tuple[list[float], list[float]]:
+    """A censored time's whole-number interval around it, one in three open; an event's time twice."""
+    # A lower bound of zero puts log(0) in the log-normal and generalized gamma likelihoods, NaN in lifelines.
+    lower = [(float(math.floor(d)) or round(d / 2, 4)) if e == 0 else d for d, e in zip(durations, events, strict=True)]
+    upper = [math.inf if e == 0 and rng.random() < 0.3 else (math.ceil(d) if e == 0 else d)
+             for d, e in zip(durations, events, strict=True)]
+    upper = [u if u > lo else lo + 1.0 for lo, u in zip(lower, upper, strict=True)]
+    return lower, [d if e == 1 else u for d, e, u in zip(durations, events, upper, strict=True)]
+
+
+def _univariate_samples(seed: int = 117201, shapes=(("weibull-like", 70, 1.6, 0.3), (HEAVY_CENSORING, 60, 0.9, 0.6))):
+    """Right-, left- and interval-censored samples, plain, weighted and with delayed entry."""
+    rng = np.random.default_rng(seed)
+    samples = []
+    for name, n, shape, censoring_rate in shapes:
+        durations = [round(float(v), 4) for v in rng.weibull(shape, n) * 6.0 + 0.05]
+        events = [int(v) for v in rng.random(n) >= censoring_rate]
+        weights = [float(v) for v in rng.integers(1, 4, n)]
+        entries = [round(d * float(rng.random()) * 0.5, 4) if rng.random() < 0.3 else 0.0 for d in durations]
+        lower, upper = _interval_bounds(rng, durations, events)
+        base = {DURATIONS: durations, EVENTS: events, PARAM_LOWER: lower, PARAM_UPPER: upper}
+        samples.append((name, {**base, WEIGHTS: None, PARAM_ENTRIES: None}))
+        samples.append((f"{name}, weighted", {**base, WEIGHTS: weights, PARAM_ENTRIES: None}))
+        samples.append((f"{name}, delayed entry", {**base, WEIGHTS: None, PARAM_ENTRIES: entries}))
+    return samples
+
+
+AFT_MODELS = [MODEL_WEIBULL, MODEL_LOGNORMAL, MODEL_LOGLOGISTIC]
+AFT_DESIGN = "design"
+AFT_OPTIONS = "options"
+AFT_PREDICT_DESIGN = "predictDesign"
+
+
+def _aft_sample(seed: int = 117202, n: int = 80) -> dict:
+    """Two covariates, one continuous and one binary, and Weibull times accelerated by them, with every censoring's columns."""
+    rng = np.random.default_rng(seed)
+    x0 = [round(float(v), 4) for v in rng.normal(0.0, 1.0, n)]
+    x1 = [float(v) for v in rng.integers(0, 2, n)]
+    scale = np.exp(1.2 + 0.4 * np.array(x0) - 0.6 * np.array(x1))
+    durations = [round(float(v), 4) for v in scale * rng.weibull(1.4, n) + 0.02]
+    events = [int(v) for v in rng.random(n) >= 0.3]
+    # A lower bound of zero puts log(0) in the log-normal's likelihood, where lifelines' fit does not converge.
+    lower = [(float(math.floor(d)) or round(d / 2, 4)) if e == 0 else d for d, e in zip(durations, events, strict=True)]
+    upper = [math.inf if e == 0 and rng.random() < 0.3 else (float(math.ceil(d)) if e == 0 else d)
+             for d, e in zip(durations, events, strict=True)]
+    upper = [u if (u > lo or e == 1) else lo + 1.0 for lo, u, e in zip(lower, upper, events, strict=True)]
+    weights = [float(v) for v in rng.integers(1, 4, n)]
+    entries = [round(d * float(rng.random()) * 0.5, 4) if rng.random() < 0.3 else 0.0 for d in durations]
+    return {AFT_DESIGN: [[a, b] for a, b in zip(x0, x1, strict=True)], DURATIONS: durations, EVENTS: events,
+            PARAM_LOWER: lower, PARAM_UPPER: upper, WEIGHTS: weights, PARAM_ENTRIES: entries}
+
+
+def _aft_fit(name: str, censoring: str, data: dict, options: dict, frame):
+    """lifelines' own AFT fit at its defaults, and the times its likelihood reads."""
+    import lifelines  # noqa: PLC0415
+
+    weighted, entered = options["weighted"], options[PARAM_ENTRIES]
+    fitter = getattr(lifelines, f"{name}AFTFitter")(
+        penalizer=options[COX_PENALIZER], fit_intercept=options[AFT_FIT_INTERCEPT], model_ancillary=options[AFT_ANCILLARY])
+    # LogLogisticAFTFitter's constructor drops model_ancillary, so the attribute its fit reads is set here.
+    fitter.model_ancillary = options[AFT_ANCILLARY]
+    kwargs = {"weights_col": "w" if weighted else None, "entry_col": ENTRY if entered else None,
+              ROBUST: options[ROBUST]}
+    df = frame.copy()
+    if weighted:
+        df["w"] = data[WEIGHTS]
+    if entered:
+        df[ENTRY] = data[PARAM_ENTRIES]
+    if censoring == CENSOR_INTERVAL:
+        df["lb"], df["ub"] = data[PARAM_LOWER], data[PARAM_UPPER]
+        fitter.fit_interval_censoring(df, "lb", "ub", **kwargs)
+        return fitter, (np.array(data[PARAM_LOWER], dtype=float), np.clip(np.array(data[PARAM_UPPER], dtype=float), 0, 1e25))
+    df["T"], df["E"] = data[DURATIONS], data[EVENTS]
+    fit = fitter.fit_left_censoring if censoring == "left" else fitter.fit
+    fit(df, "T", "E", **kwargs)
+    durations = np.array(data[DURATIONS], dtype=float)
+    return fitter, ((None, durations) if censoring == "left" else (durations, None))
+
+
+def _aft_case(label: str, name: str, censoring: str, data: dict, options: dict) -> dict:
+    """One lifelines AFT fit, Newton-polished on its own penalised objective, with the table and predictions there."""
+    import pandas as pd  # noqa: PLC0415
+    from autograd import hessian  # noqa: PLC0415
+    from lifelines import utils as lifelines_utils  # noqa: PLC0415
+
+    weighted, entered = options["weighted"], options[PARAM_ENTRIES]
+    frame = pd.DataFrame(data[AFT_DESIGN], columns=["x0", "x1"])
+    fitter, ts = _aft_fit(name, censoring, data, options, frame)
+    n = len(data[DURATIONS])
+    events = fitter.event_observed.values.astype(bool)
+    weights = np.array(data[WEIGHTS], dtype=float) if weighted else np.ones(n)
+    entries = np.array(data[PARAM_ENTRIES], dtype=float) if entered else np.zeros(n)
+    xs = fitter.regressors.transform_df(frame)
+    norm = fitter._norm_std.values
+    args = (ts, events, weights, entries, lifelines_utils.DataframeSlicer(lifelines_utils.normalize(xs, 0, fitter._norm_std)))
+    objective = fitter._neg_likelihood_with_penalty_function
+    x = _polish(objective, fitter.params_.values * norm, args)
+    total = weights.sum()
+    fitter.params_ = pd.Series(x / norm, index=fitter.params_.index)
+    fitter.log_likelihood_ = -objective(x, *args) * total
+    curvature = hessian(objective)(x, *args) * total
+    fitter._hessian_ = (curvature + curvature.T) / 2
+    fitter.variance_matrix_ = pd.DataFrame(fitter._compute_variance_matrix(), index=fitter.params_.index,
+                                           columns=fitter.params_.index)
+    fitter.standard_errors_ = fitter._compute_standard_errors(ts, events, weights, entries, xs)
+    fitter.confidence_intervals_ = fitter._compute_confidence_intervals()
+    univariate_data = {DURATIONS: data[DURATIONS], EVENTS: data[EVENTS], PARAM_LOWER: data[PARAM_LOWER],
+                       PARAM_UPPER: data[PARAM_UPPER], WEIGHTS: data[WEIGHTS] if weighted else None,
+                       PARAM_ENTRIES: data[PARAM_ENTRIES] if entered else None}
+    fitter._ll_null_ = float(_polished_univariate(name, censoring, univariate_data, None)[0].log_likelihood_)
+    concordance = None
+    if censoring != CENSOR_INTERVAL:
+        fitter._predicted_median = fitter.predict_median(frame)
+        if hasattr(fitter, "_concordance_index_"):
+            del fitter._concordance_index_
+        concordance = float(fitter.concordance_index_)
+    summary = fitter.summary
+    test = fitter.log_likelihood_ratio_test()
+    new = pd.DataFrame(data[AFT_PREDICT_DESIGN], columns=["x0", "x1"])
+    times = [0.5, 2.0, 5.0]
+    survival = fitter.predict_survival_function(new, times=times).T.values
+    cumulative = fitter.predict_cumulative_hazard(new, times=times).T.values
+    stored = {key: value for key, value in data.items() if key != AFT_PREDICT_DESIGN}
+    stored[PARAM_UPPER] = [None if math.isinf(v) else v for v in data[PARAM_UPPER]]
+    return {"name": label, PARAM_MODEL: name, PARAM_CENSORING: censoring, **stored, AFT_OPTIONS: options,
+            PARAM_NAMES: [f"{p}:{c}" for p, c in fitter.params_.index],
+            COEFFICIENTS: [float(v) for v in fitter.params_.values],
+            STANDARD_ERRORS: [float(v) for v in summary[SE_COEF]], Z_STATISTICS: [float(v) for v in summary["z"]],
+            P_VALUES: [float(v) for v in summary["p"]], CONFIDENCE_LOWER: [float(v) for v in summary["coef lower 95%"]],
+            CONFIDENCE_UPPER: [float(v) for v in summary["coef upper 95%"]],
+            "expCoefficients": [float(v) for v in summary["exp(coef)"]],
+            LOG_LIKELIHOOD: float(fitter.log_likelihood_), "nullLogLikelihood": fitter._ll_null_,
+            "likelihoodRatio": float(test.test_statistic), "likelihoodRatioP": float(test.p_value),
+            "likelihoodRatioDf": int(test.degrees_freedom), PARAM_AIC: float(fitter.AIC_), "concordance": concordance,
+            AFT_PREDICT_DESIGN: data[AFT_PREDICT_DESIGN], PARAM_TIMES: times,
+            PARAM_MEDIAN: [float(v) for v in fitter.predict_median(new)],
+            PARAM_QUARTILE: [float(v) for v in fitter.predict_percentile(new, p=0.25)],
+            "expectation": [float(v) for v in fitter.predict_expectation(new)],
+            PARAM_SURVIVAL: [float(v) for v in survival.ravel()], COX_CUMULATIVE: [float(v) for v in cumulative.ravel()]}
+
+
+def _aft_variants() -> list[tuple[str, str, dict]]:
+    """Which fits each model takes: every censoring plain, weighted and robust, and the right-censored options besides."""
+    plain = {COX_PENALIZER: 0.0, AFT_FIT_INTERCEPT: True, AFT_ANCILLARY: False, ROBUST: False, "weighted": False, PARAM_ENTRIES: False}
+    variants = []
+    for censoring in CENSORINGS:
+        variants.append((censoring, PLAIN, plain))
+        variants.append((censoring, "weighted", {**plain, "weighted": True}))
+        variants.append((censoring, ROBUST, {**plain, ROBUST: True}))
+        variants.append((censoring, "penalised", {**plain, COX_PENALIZER: 0.1}))
+    variants.append((CENSOR_RIGHT, "delayed entry", {**plain, PARAM_ENTRIES: True}))
+    variants.append((CENSOR_RIGHT, AFT_ANCILLARY, {**plain, AFT_ANCILLARY: True}))
+    variants.append((CENSOR_RIGHT, "no intercept", {**plain, AFT_FIT_INTERCEPT: False}))
+    variants.append((CENSOR_RIGHT, "everything", {**plain, AFT_ANCILLARY: True, COX_PENALIZER: 0.05, ROBUST: True,
+                                             "weighted": True, PARAM_ENTRIES: True}))
+    return variants
+
+
+def _aft_cases(seed: int = 117202, n: int = 80) -> list[dict]:
+    data = {**_aft_sample(seed, n), AFT_PREDICT_DESIGN: [[-1.0, 0.0], [0.0, 1.0], [0.5, 0.0], [1.5, 1.0]]}
+    cases = []
+    for name in AFT_MODELS:
+        for censoring, variant, options in _aft_variants():
+            label = f"{name}, {censoring}, {variant}"
+            try:
+                case = _aft_case(label, name, censoring, data, options)
+                json.dumps(case, allow_nan=False)
+                cases.append(case)
+            except Exception as error:  # noqa: BLE001
+                print(f"skipped {label}: {str(error)[:120]}", file=sys.stderr)
+    return cases
+
+
+def _curve_case(label: str, fitter, durations, events, entries) -> dict:
+    """A non-parametric curve with lifelines' own bound columns, whichever way round it labels them."""
+    table = fitter.event_table
+    interval = fitter.confidence_interval_
+    return {"name": label, DURATIONS: durations, EVENTS: events, PARAM_ENTRIES: entries,
+            PARAM_TIMES: [float(v) for v in fitter.timeline],
+            PARAM_SURVIVAL: [float(v) for v in fitter.survival_function_.iloc[:, 0]],
+            "lifelinesLower": [float(v) for v in interval.iloc[:, 0]],
+            "lifelinesUpper": [float(v) for v in interval.iloc[:, 1]],
+            "atRisk": [int(v) for v in table["at_risk"]], "events": [int(v) for v in table[OBSERVED]],
+            CENSORED_KEY: [int(v) for v in table[CENSORED_KEY]]}
+
+
+def _curve_cases() -> tuple[list[dict], list[dict]]:
+    """Breslow-Fleming-Harrington, with and without entry, and the left-censored Kaplan-Meier, on the univariate samples."""
+    import lifelines  # noqa: PLC0415
+
+    bfh, left = [], []
+    samples = [(label, data) for label, data in _univariate_samples() if data[WEIGHTS] is None]
+    # Whole-number durations, so that events, censorings and entries tie.
+    samples += [(f"{label}, tied", {**data, DURATIONS: [float(math.ceil(d)) for d in data[DURATIONS]],
+                                    PARAM_ENTRIES: None if data[PARAM_ENTRIES] is None
+                                    else [float(math.floor(e)) for e in data[PARAM_ENTRIES]]})
+                for label, data in samples]
+    for label, data in samples:
+        durations, events, entries = data[DURATIONS], data[EVENTS], data[PARAM_ENTRIES]
+        fitter = lifelines.BreslowFlemingHarringtonFitter().fit(
+            np.array(durations), np.array(events), entry=None if entries is None else np.array(entries))
+        bfh.append(_curve_case(label, fitter, durations, events, entries))
+        if entries is None:
+            fitter = lifelines.KaplanMeierFitter().fit_left_censoring(np.array(durations), np.array(events))
+            left.append(_curve_case(label, fitter, durations, events, None))
+    return bfh, left
+
+
+def _fixed_point_cases() -> list[dict]:
+    """lifelines' fixed-point test between two polished parametric fits, of one model and of two."""
+    import pandas as pd  # noqa: PLC0415
+    from autograd import hessian  # noqa: PLC0415
+    from lifelines.statistics import survival_difference_at_fixed_point_in_time_test  # noqa: PLC0415
+
+    def fitted(name, data):
+        breakpoints = [2.0, 5.0] if name == MODEL_PIECEWISE else None
+        fitter, x, likelihood, args, total = _polished_univariate(name, CENSOR_RIGHT, data, breakpoints)
+        names = fitter._fitted_parameter_names
+        covariance = np.linalg.inv(hessian(likelihood)(x, *args) * total)
+        fitter.variance_matrix_ = pd.DataFrame(covariance, index=names, columns=names)
+        return fitter, breakpoints
+
+    plain = [data for label, data in _univariate_samples() if data[WEIGHTS] is None and data[PARAM_ENTRIES] is None]
+    pairs = [(m, m) for m in PARAMETRIC_MODELS if m != MODEL_GG] + [(MODEL_WEIBULL, MODEL_LOGNORMAL), ("Exponential", MODEL_LOGLOGISTIC)]
+    cases = []
+    for model_a, model_b in pairs:
+        fit_a, breakpoints = fitted(model_a, plain[0])
+        fit_b, _ = fitted(model_b, plain[1])
+        for time in (2.0, 4.0):
+            result = survival_difference_at_fixed_point_in_time_test(time, fit_a, fit_b)
+            cases.append({"name": f"{model_a} against {model_b} at {time}", "modelA": model_a, "modelB": model_b,
+                          PARAM_BREAKPOINTS: breakpoints, "durationsA": plain[0][DURATIONS], "eventsA": plain[0][EVENTS],
+                          "durationsB": plain[1][DURATIONS], "eventsB": plain[1][EVENTS], "time": time,
+                          LOGRANK_STATISTIC: float(result.test_statistic), LOGRANK_P: float(result.p_value)})
+    return cases
+
+
+def _univariate_cases() -> list[dict]:
+    """Every model under every censoring, on each sample; delayed entry right-censored only."""
+    cases = []
+    for (label, data), name, censoring in itertools.product(_univariate_samples(), PARAMETRIC_MODELS, CENSORINGS):
+        if data[PARAM_ENTRIES] is not None and censoring != CENSOR_RIGHT:
+            continue
+        breakpoints = [2.0, 5.0] if name == MODEL_PIECEWISE else None
+        try:
+            case = _univariate_case(f"{label}, {name}, {censoring}", name, censoring, data, breakpoints)
+            json.dumps(case, allow_nan=False)
+            cases.append(case)
+        except Exception as error:  # noqa: BLE001
+            # lifelines' own fit fails, or its table carries a NaN: nothing to freeze.
+            print(f"skipped {label}, {name}, {censoring}: {str(error)[:80]}", file=sys.stderr)
+    return cases
+
+
+def generate_survival_parametric() -> dict:
+    """lifelines' parametric univariate fitters, right-, left- and interval-censored, polished to their maximum (#1172).
+
+    long-comment: why the corpus is polished rather than lifelines' own answer.
+    lifelines runs Nelder-Mead then L-BFGS-B, which stop 1e-6 to 1e-3 short of the maximum; the corpus runs Newton on
+    lifelines' own autograd likelihood from that answer to the maximum, as #1160 measured it, and records lifelines'
+    table and curves there. The generalized gamma's gradient stops near 3e-11, lifelines differentiating the incomplete
+    gamma in its shape by finite differences, which is why its section is compared at 2e-9.
+    """
+    univariate = _univariate_cases()
+    aft = _aft_cases()
+    bfh, left = _curve_cases()
+    fixed = _fixed_point_cases()
+    return {
+        "metadata": {"library": LIFELINES, "version": version(LIFELINES), FAMILY: "survival-parametric",
+                     "count": len(univariate) + len(aft) + len(bfh) + len(left) + len(fixed)},
+        "univariate": univariate,
+        "aft": aft,
+        "breslow_fleming_harrington": bfh,
+        "kaplan_meier_left": left,
+        "fixed_point": fixed,
     }
 
 # --- Lodestar.Text.Similarity, oracled by datasketch and simhash (#602) -------
@@ -7416,7 +7882,7 @@ def generate_text_similarity() -> dict:
             ) / permutation_count
             pairs.append({
                 "left": first,
-                "right": second,
+                CENSOR_RIGHT: second,
                 JACCARD: float(estimate),
                 HAMMING: bin(
                     int(Simhash(documents[left][SIM_TOKENS]).value)
@@ -15695,6 +16161,7 @@ def main() -> None:
         "survival_logrank.json": generate_survival_logrank,
         "survival_cox.json": generate_survival_cox,
         "survival_cox_extended.json": generate_survival_cox_extended,
+        "survival_parametric.json": generate_survival_parametric,
         "survival_logrank_family.json": generate_survival_logrank_family,
         "survival_restricted.json": generate_survival_restricted,
         "survival_concordance.json": generate_survival_concordance,

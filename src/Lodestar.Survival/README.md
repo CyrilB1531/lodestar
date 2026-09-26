@@ -1,11 +1,13 @@
 # Lodestar.Survival
 
-Survival analysis for right-censored data: the Kaplan-Meier survival function with
-Greenwood variance and log-log confidence intervals, its restricted mean and fixed-time comparison,
-the Nelson-Aalen cumulative hazard, the log-rank family — weighted, multi-group and pairwise — the
-concordance index, and the Cox proportional-hazards model — stratified, weighted, penalised, robust,
-with its proportional hazards test, predictions and a time-varying form. No C# implementation of these
-existed before this package.
+Survival analysis: the Kaplan-Meier survival function with Greenwood variance and log-log confidence
+intervals, right- or left-censored, its restricted mean and fixed-time comparison, the Nelson-Aalen
+cumulative hazard and the Breslow-Fleming-Harrington curve, the log-rank family — weighted,
+multi-group and pairwise — the concordance index, the Cox proportional-hazards model — stratified,
+weighted, penalised, robust, with its proportional hazards test, predictions and a time-varying
+form — and the parametric models: six univariate fits and three accelerated failure time
+regressions, right-, left- or interval-censored, with weights and delayed entry. No C#
+implementation of these existed before this package.
 
 ## Install
 
@@ -35,7 +37,7 @@ counterpart, with every deliberate divergence.
 A core package ([decision 0003](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)),
 built for `net10.0` and `netstandard2.0`:
 
-- `Lodestar.Stats` 0.5.0 or later
+- `Lodestar.Stats` 0.5.1 or later
 - `Lodestar.Abstractions` 0.2.1 or later
 
 ## Documentation

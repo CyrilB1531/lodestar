@@ -4,6 +4,37 @@ What `Lodestar.Survival` costs against the library a reader would otherwise reac
 a row, and what this page leaves out:
 [`docs/guides/performance.md`](../../docs/guides/performance.md#how-to-read-a-row).
 
+## Parametric survival models against lifelines (issue #1172)
+
+Full method:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#68-parametric-survival-models-against-lifelines-issue-1172).
+lifelines 0.30.3 on numpy 2.5.3 is the incumbent: no free .NET library fits these models. Machine: AMD
+Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores, .NET 10.0.12, under the
+repository's machine lock on 2026-09-26: the Python side 12:48 to 12:52 UTC, the C# side 12:57 to 12:59
+UTC. Milliseconds of processor time per call, best of five, four covariates for the regressions, each
+fit at lifelines' defaults as a caller runs it — which stop short of the maximum this reaches.
+
+| operation | 1,000 | 10,000 |
+| --- | ---: | ---: |
+| [`ParametricSurvival.Fit`](../../docs/reference/survival/estimators/parametricsurvival-fit.md), Weibull | 1.84 / 25.2 (**13.7**) | 18.4 / 30.0 (**1.63**) |
+| [`FitLeftCensored`](../../docs/reference/survival/estimators/parametricsurvival-fitleftcensored.md), log-logistic | 3.69 / 36.7 (**9.95**) | 40.9 / 69.4 (**1.70**) |
+| [`FitIntervalCensored`](../../docs/reference/survival/estimators/parametricsurvival-fitintervalcensored.md), log-normal | 3.37 / 68.3 (**20.3**) | 34.7 / 142 (**4.10**) |
+| `Fit`, generalized gamma | 37.4 / 429 (**11.5**) | 481 / 1,130 (**2.35**) |
+| [`AcceleratedFailureTime.Fit`](../../docs/reference/survival/estimators/acceleratedfailuretime-fit.md), Weibull | 4.04 / 49.6 (**12.3**) | 40.4 / 58.3 (**1.44**) |
+| `Fit`, log-normal, ridge 0.1, robust variance | 6.70 / 1,897 (**283**) | 87.4 / 18,108 (**207**) |
+| [`FitIntervalCensored`](../../docs/reference/survival/estimators/acceleratedfailuretime-fitintervalcensored.md), log-logistic | 6.72 / 77.0 (**11.5**) | 62.5 / 113 (**1.81**) |
+| [`BreslowFlemingHarrington.Estimate`](../../docs/reference/survival/estimators/breslowflemingharrington-estimate.md) | 0.087 / 2.81 (**32.4**) | 1.62 / 3.81 (**2.36**) |
+| [`KaplanMeier.EstimateLeftCensored`](../../docs/reference/survival/estimators/kaplanmeier-estimateleftcensored.md) | 0.054 / 3.38 (**63.2**) | 0.647 / 4.48 (**6.92**) |
+
+Each cell is Lodestar / lifelines, and the ratio lifelines over Lodestar.
+
+**How it reads.** Ahead on every row, by less at 10,000: lifelines' likelihoods are vectorised numpy
+whose cost barely grows from 1,000 to 10,000, while each Newton step here is a pass over the subjects.
+The regressions differentiate each subject in its two linear predictors alone and carry the result to
+the coefficients, so a step costs the square of the coefficients once per subject, not per operation.
+The robust variance is the outlier because lifelines differentiates each subject separately through
+autograd; the generalized gamma pays here for the incomplete gamma evaluated at five shapes per term.
+
 ## The extended Cox model against lifelines (issue #1171)
 
 Full method:
