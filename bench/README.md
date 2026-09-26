@@ -3612,3 +3612,19 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-surviv
 python3 bench/python/bench_survival_parametric.py
 python3 bench/compare.py survival-parametric
 ```
+
+## 69. Aalen's additive model against lifelines (issue #1173)
+
+`compare-survival-aalen` puts `AalenAdditive.Fit`, at its defaults and weighted with both penalties,
+and `AalenSummary.PredictSurvivalFunction` for a hundred subjects against lifelines 0.30.3's
+`AalenAdditiveFitter` and its `predict_survival_function`, at 1,000 and 10,000 subjects of four
+covariates. No .NET library fits the model, so the reference is the incumbent.
+
+No corpus file: both sides build each subject by section 67's formula. Agreement is
+`tests/oracles/survival_aalen.json`'s job.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-survival-aalen
+python3 bench/python/bench_survival_aalen.py
+python3 bench/compare.py survival-aalen
+```

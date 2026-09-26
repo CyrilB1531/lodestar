@@ -59,7 +59,7 @@ types ([decision 0003](docs/decisions/0003-the-package-layout-tiers-boundaries-a
 | [`Lodestar.Stats`](src/Lodestar.Stats/README.md) | core | classical hypothesis tests at scipy.stats parity |
 | [`Lodestar.Stats.Regression`](src/Lodestar.Stats.Regression/README.md) | core | least squares, GLM and multinomial logit with statsmodels' whole inference table; instrumental variables and panel regression at linearmodels parity |
 | [`Lodestar.Stats.TimeSeries`](src/Lodestar.Stats.TimeSeries/README.md) | core | ACF, PACF, Ljung-Box, ADF, KPSS, seasonal decomposition and VAR, at statsmodels parity |
-| [`Lodestar.Survival`](src/Lodestar.Survival/README.md) | core | Kaplan-Meier, Nelson-Aalen, the log-rank family, the concordance index, Cox regression and the parametric and accelerated failure time models, at lifelines parity |
+| [`Lodestar.Survival`](src/Lodestar.Survival/README.md) | core | Kaplan-Meier, Nelson-Aalen, the log-rank family, the concordance index, Cox regression, Aalen's additive model and the parametric and accelerated failure time models, at lifelines parity |
 | [`Lodestar.Onnx`](src/Lodestar.Onnx/README.md) | satellite | an ONNX encoder run in-process, pooled into a sentence embedding |
 | [`Lodestar.Gpu`](src/Lodestar.Gpu/README.md) | satellite | ILGPU kernels over device-resident embeddings, matrices and text |
 | [`Lodestar.Extensions.AI`](src/Lodestar.Extensions.AI/README.md) | interop | the ONNX embedding path behind `IEmbeddingGenerator` |
@@ -204,7 +204,7 @@ Lodestar.slnx
 ├── src/Lodestar.Stats/                     classical hypothesis tests, at scipy.stats parity
 ├── src/Lodestar.Stats.Regression/          ordinary, weighted and generalized least squares with the inference table
 ├── src/Lodestar.Stats.TimeSeries/          autocorrelation, Ljung-Box, ADF, KPSS and seasonal decomposition
-├── src/Lodestar.Survival/                  Kaplan-Meier, Nelson-Aalen, log-rank, Cox and parametric survival models
+├── src/Lodestar.Survival/                  Kaplan-Meier, Nelson-Aalen, log-rank, Cox, Aalen and parametric models
 ├── src/Lodestar.Onnx/                      ONNX inference — satellite, carries Microsoft.ML.OnnxRuntime (decision 0003)
 ├── src/Lodestar.Gpu/                       ILGPU kernels — satellite, the one package on net10.0;netstandard2.1
 ├── src/Lodestar.Extensions.AI/             interop: the ONNX embedding path behind IEmbeddingGenerator

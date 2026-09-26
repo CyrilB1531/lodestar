@@ -4,6 +4,30 @@ What `Lodestar.Survival` costs against the library a reader would otherwise reac
 a row, and what this page leaves out:
 [`docs/guides/performance.md`](../../docs/guides/performance.md#how-to-read-a-row).
 
+## Aalen's additive model against lifelines (issue #1173)
+
+Full method:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#69-aalens-additive-model-against-lifelines-issue-1173).
+lifelines 0.30.3 on numpy 2.5.3 is the incumbent: no free .NET library fits the model. Machine: AMD
+Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores, .NET 10.0.12, under the
+repository's machine lock on 2026-09-26: the C# side 16:22 to 16:23 UTC, the Python side at 16:23 UTC.
+Milliseconds of processor time per call, best of five, four covariates.
+
+| operation | 1,000 | 10,000 |
+| --- | ---: | ---: |
+| [`AalenAdditive.Fit`](../../docs/reference/survival/estimators/aalenadditive-fit.md) | 5.02 / 278 (**55.3**) | 139 / 1,458 (**10.5**) |
+| `Fit`, weighted, both penalties | 5.00 / 280 (**55.9**) | 139 / 1,435 (**10.3**) |
+| [`PredictSurvivalFunction`](../../docs/reference/survival/estimators/aalensummary-predictsurvivalfunction.md), 100 subjects | 0.577 / 0.931 (**1.61**) | 2.42 / 4.57 (**1.89**) |
+
+Each cell is Lodestar / lifelines, and the ratio lifelines over Lodestar.
+
+**How it reads.** Ahead on every row in processor time. lifelines spreads its products over BLAS
+threads, so on the elapsed clock its fit is 2.6× behind at 10,000 rather than 10×, and its prediction
+at 10,000 is ahead, 1.14 ms against 2.21: the prediction is a product and an exponential per subject
+and event time, which numpy vectorises and this computes one at a time. Both fits rebuild the product
+of the covariates over the subjects at risk at every event time, so the cost grows with events times
+subjects on both sides.
+
 ## Parametric survival models against lifelines (issue #1172)
 
 Full method:

@@ -171,7 +171,7 @@ script's `EXPECTED` edge map.
 | `Lodestar.Stats` | core | classical hypothesis tests at scipy parity, plus the four tail members decision 0003 publishes for its neighbours. |
 | `Lodestar.Stats.Regression` | core | ordinary, weighted and generalized least squares with the whole inference table, at statsmodels parity, and instrumental variables and panel regression at linearmodels parity. |
 | `Lodestar.Stats.TimeSeries` | core | the autocorrelation functions, Ljung-Box, the augmented Dickey-Fuller test, KPSS and seasonal decomposition, at statsmodels parity. |
-| `Lodestar.Survival` | core | Kaplan-Meier, Nelson-Aalen, the log-rank family, Cox regression and the parametric and AFT models at lifelines parity, right-, left- and interval-censored. |
+| `Lodestar.Survival` | core | Kaplan-Meier, Nelson-Aalen, the log-rank family, Cox and Aalen regression and the parametric and AFT models at lifelines parity, right-, left- and interval-censored. |
 | `Lodestar.Onnx` | satellite | `OnnxTextEmbedder`, and the reason the tier exists: `Microsoft.ML.OnnxRuntime`. |
 | `Lodestar.Extensions.AI` | interop | the ONNX embedding path behind `IEmbeddingGenerator`; carries `Microsoft.Extensions.AI.Abstractions`. |
 | `Lodestar.Extensions.MathNet` | interop | `CsrMatrix` to and from Math.NET's sparse matrix; carries `MathNet.Numerics`. |

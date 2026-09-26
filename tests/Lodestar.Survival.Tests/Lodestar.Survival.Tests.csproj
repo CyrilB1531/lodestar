@@ -28,6 +28,8 @@
           LinkBase="oracles" />
     <None Include="../oracles/survival_parametric.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
+    <None Include="../oracles/survival_aalen.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
     <None Include="../oracles/survival_logrank_family.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
     <None Include="../oracles/survival_restricted.json" CopyToOutputDirectory="PreserveNewest"
