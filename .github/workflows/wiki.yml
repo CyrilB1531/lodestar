@@ -17,6 +17,12 @@ on:
     paths:
       - 'docs/**'
       - 'tools/build_wiki.py'
+      - 'tools/build_site.py'
+      - 'tools/site/**'
+      - '.config/dotnet-tools.json'
+      - 'src/*/README.md'
+      - 'src/*/performance.md'
+      - 'assets/icon.png'
       - '.github/workflows/wiki.yml'
   workflow_dispatch:
     inputs:
@@ -25,8 +31,8 @@ on:
         required: false
         default: ''
 
-permissions:
-  contents: write
+# Nothing by default: each job names what it writes (S8233).
+permissions: {}
 
 concurrency:
   group: wiki
@@ -35,6 +41,8 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # pushes to the wiki repository
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -134,3 +142,62 @@ jobs:
           fi
           git commit -m "Publish ${GITHUB_REF_NAME}"
           git push
+
+  # The same live pages, where a search engine reads them: GitHub serves the wiki with
+  # x-robots-tag: none (#1180). No needs: on publish, so either can fail alone; and from
+  # main only: a tag makes an archive, which stays on the wiki, and a dispatch from
+  # another branch must not publish that branch.
+  # The workflow's one concurrency slot can let a queued tag run replace a queued push; the next push to main redeploys.
+  pages:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0   # the released versions are read from the tags
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      # The publish job's own step: Home's table shows the same versions the wiki's does.
+      - name: The released version of each package
+        id: released
+        run: |
+          set -euo pipefail
+          args=""
+          for package in $(python -c "import json; print(' '.join(sorted(json.load(open('docs/wiki-map.json'))['packages'])))"); do
+            version=$(git tag --list "$package/v*" | sed "s|$package/v||" | sort -V | tail -1)
+            if [ -n "$version" ]; then
+              args="$args --released $package=$version"
+            fi
+          done
+          echo "args=$args" >> "$GITHUB_OUTPUT"
+
+      - name: Build the site
+        env:
+          RELEASED: ${{ steps.released.outputs.args }}
+        run: |
+          python tools/build_site.py --repo . --out artifacts/site $RELEASED   # unquoted: one argument per word
+          dotnet tool restore
+          dotnet docfx artifacts/site/docfx.json --warningsAsErrors
+
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: artifacts/site/_site
+
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -289,6 +289,7 @@ jobs:
       format_needed: ${{ steps.classify.outputs.format_needed }}
       skip_build: ${{ steps.classify.outputs.skip_build }}
       workflows_only: ${{ steps.classify.outputs.workflows_only }}
+      site_changed: ${{ steps.classify.outputs.site_changed }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -296,6 +297,7 @@ jobs:
             tools/docs_only.py
             tools/format_needed.py
             tools/skip_build.py
+            tools/site_changed.py
           sparse-checkout-cone-mode: false
 
       # A pull request that changes only Markdown takes a reduced path (#857). The files come
@@ -311,6 +313,7 @@ jobs:
             echo "format_needed=true" >> "$GITHUB_OUTPUT"
             echo "skip_build=false" >> "$GITHUB_OUTPUT"
             echo "workflows_only=false" >> "$GITHUB_OUTPUT"
+            echo "site_changed=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           files=$(gh api "repos/${{ github.repository }}/pulls/$PR/files" --paginate \
@@ -322,10 +325,13 @@ jobs:
           skip_build=$(printf '%s\n' "$files" | python3 tools/skip_build.py)
           # Narrower: no Markdown at all, so no guide snippet can have moved either.
           workflows_only=$(printf '%s\n' "$files" | python3 tools/skip_build.py --workflows-only)
+          # Whether DocFX could fail on this: a page, the map, a builder or the site's config (#1180).
+          site_changed=$(printf '%s\n' "$files" | python3 tools/site_changed.py)
           echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
           echo "format_needed=$format_needed" >> "$GITHUB_OUTPUT"
           echo "skip_build=$skip_build" >> "$GITHUB_OUTPUT"
           echo "workflows_only=$workflows_only" >> "$GITHUB_OUTPUT"
+          echo "site_changed=$site_changed" >> "$GITHUB_OUTPUT"
           echo "docs-only: $docs_only, format needed: $format_needed, build needed: $([ "$skip_build" = true ] && echo no || echo yes)"
 
   build-test:
@@ -887,6 +893,31 @@ jobs:
         env:
           NUGET_PACKAGES: ${{ runner.temp }}/snippet-packages
         run: dotnet run --project samples/Lodestar.DocSnippets --configuration Release
+
+  # Renders the documentation site without deploying it, so a broken link fails here rather
+  # than in wiki.yml's pages job after the merge (#1180). Not a required check.
+  # Same three build lines as wiki.yml's pages job, which deploys what this only renders.
+  site:
+    name: Documentation site builds
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.site_changed == 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build the site
+        run: |
+          python tools/build_site.py --repo . --out artifacts/site
+          dotnet tool restore
+          dotnet docfx artifacts/site/docfx.json --warningsAsErrors
 
   stopwords-pinned:
     name: Stop-word lists match their pinned source
