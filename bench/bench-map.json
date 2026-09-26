@@ -658,6 +658,16 @@
         "bench/Lodestar.Text.Benchmarks/CrossLang/CoxExtendedCrossLang.cs"
       ]
     },
+    "survival-aalen": {
+      "subcommand": "compare-survival-aalen",
+      "python": "bench/python/bench_survival_aalen.py",
+      "compare": "survival-aalen",
+      "sources": [
+        "src/Lodestar.Survival/**",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/SurvivalAalenCrossLang.cs",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/CoxExtendedCrossLang.cs"
+      ]
+    },
     "ols": {
       "subcommand": "compare-ols",
       "python": "bench/python/bench_stats.py",

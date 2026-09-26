@@ -7,6 +7,8 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Added
 
+- `AalenAdditive.Fit` fits Aalen's additive hazards model, lifelines' `AalenAdditiveFitter`, with its penalties, weights, slopes table, concordance and predictions. ([#1173](https://github.com/CyrilB1531/lodestar/issues/1173))
+
 - `ParametricSurvival` fits lifelines' six parametric univariate models right-, left- and interval-censored with weights and delayed entry, `AcceleratedFailureTime` its Weibull, log-normal and log-logistic regressions, and `BreslowFlemingHarrington.Estimate` and `KaplanMeier.EstimateLeftCensored` complete its non-parametric curves. ([#1172](https://github.com/CyrilB1531/lodestar/issues/1172))
 
 - `CoxProportionalHazards.Fit` takes subject weights, strata, clusters, lifelines' elastic-net penalty and the robust variance, `CoxSummary` carries the baselines and lifelines' predictions, `TestProportionalHazards` runs the proportional hazards test, and `CoxTimeVarying` fits start-stop intervals. ([#1171](https://github.com/CyrilB1531/lodestar/issues/1171))
