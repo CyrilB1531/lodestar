@@ -44,7 +44,7 @@ there whatever is asked; here the setting is read for every [`AftModel`](aftmode
 
 **The penalty is the ridge part of lifelines' elastic net**, `penalizer · Σ β² / 2` on the
 coefficients of the covariates scaled by their sample deviations, added to the mean negative
-log-likelihood; the L1 part is issue #1184. **An intercept is left unpenalised only when its block
+log-likelihood; the L1 part is not written, for the reason [`docs/equivalence.md`](../../../equivalence.md) gives. **An intercept is left unpenalised only when its block
 holds covariates**, as lifelines leaves it: by default the ancillary block is an intercept alone, so
 its `rho_` intercept is penalised and shrinks towards zero, a Weibull shape towards one.
 `LogLikelihood` is then the penalised one, as lifelines' `log_likelihood_` is.

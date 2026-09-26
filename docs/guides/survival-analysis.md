@@ -205,7 +205,9 @@ entry, are the non-parametric curves for those cases.
 ## What is not here
 
 Turnbull's non-parametric curve for interval-censored data, and the Kaplan-Meier and Cox fits with
-late entry. The spline models and the lasso on an AFT fit are [#1184](https://github.com/CyrilB1531/lodestar/issues/1184).
+late entry. The spline models and the lasso on an AFT fit are not written: lifelines' answer for them is where its
+optimisers stop, from a Nelder-Mead point that the last bit of the likelihood moves
+([#1184](https://github.com/CyrilB1531/lodestar/issues/1184)).
 
 ## See also
 
