@@ -8,17 +8,28 @@ Fits k-means on a row-major sample matrix.
 public static KMeans Fit(ReadOnlySpan<double> samples, int featureCount, int clusterCount, KMeansOptions options = null)
 ```
 
+<!-- docs-declaration -->
+
+```csharp
+public static KMeans Fit(ReadOnlySpan<double> samples, ReadOnlySpan<double> sampleWeights, int featureCount, int clusterCount, KMeansOptions options = null)
+```
+
+The second overload weighs each sample, scikit-learn's `fit(X, sample_weight=w)`.
+
 **Parameters** — `samples` is the sample matrix, row-major: `featureCount` values per row.
-`featureCount` is how many values each row carries. `clusterCount` is how many clusters to find.
+`sampleWeights` is one finite weight per row, not all zero; a negative one is accepted, as the
+reference accepts it. `featureCount` is how many values each row carries. `clusterCount` is how many clusters to find.
 `options` says where to start and when to stop; `null` takes the defaults.
 
-**Returns** — a fitted `KMeans`.
+**Returns** — a fitted `KMeans`, whose `Inertia` is weighted when the weights are given.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` or `clusterCount` is not
 positive, or `options` asks for fewer than one iteration or a `Tolerance` that is negative, infinite
 or `NaN`. `ArgumentException` when `samples` holds no row, a partial one or a `NaN` or infinite
 value, when there are fewer rows than clusters, or when the given initial centres are the wrong
-shape or not finite.
+shape or not finite, or when `sampleWeights` is not one finite value per row or is all zeros. Both
+also when `options` pairs `InitialCentreSets` with `InitialCentres` or `Restarts`, gives it no
+block, pairs `Restarts` with `InitialCentres`, or asks for fewer than one restart.
 
 **Example** — a starting centre no sample is nearest to leaves its cluster empty, and the fit
 recovers.
@@ -36,6 +47,21 @@ KMeans model = KMeans.Fit(samples, featureCount: 2, clusterCount: 3,
 // on the same partition as a sensible start would.
 double inertia = model.Inertia;   // => 1
 int middle = model.Labels[4];     // => 2
+```
+
+A weight of two is the row written twice, which is what makes weights a way to cluster deduplicated
+rows.
+
+```csharp
+using Lodestar.Cluster;
+
+var start = new KMeansOptions { InitialCentres = [0.5, 10.5] };
+
+KMeans weighted = KMeans.Fit([0.0, 1.0, 10.0, 11.0], [3.0, 1.0, 1.0, 1.0], featureCount: 1, clusterCount: 2, start);
+KMeans repeated = KMeans.Fit([0.0, 0.0, 0.0, 1.0, 10.0, 11.0], featureCount: 1, clusterCount: 2, start);
+
+double centre = weighted.Centres[0];                    // => 0.25
+double sameInertia = weighted.Inertia - repeated.Inertia; // => 0
 ```
 
 **Remarks** — **`Tolerance` is scaled before it is used**, by the mean feature variance, exactly as
@@ -66,6 +92,19 @@ matched on all 1,000, whatever the pairing; over 1,000 fits of a few points repe
 disagreed with itself across tiers on 35 centre sets and this method disagreed with it on 214, and
 taking ties highest row first instead leaves 210. With no cluster emptied the same kind of input
 matched on all 1,000. The same reasoning as decision 0007; no frozen case turns on it yet.
+
+**Weights change every step but the tolerance.** Each centre is its members' weighted mean, and
+`Inertia` sums weight times squared distance. A cluster is empty when its members weigh exactly
+nothing, and is relocated as above — onto the furthest sample by unweighted distance, taking that
+sample's weight from its old cluster; if that weight is zero too, the cluster takes the heaviest
+cluster's centre. k-means++ draws in proportion to weight, a negative one counted as zero. The
+tolerance is still scaled by the unweighted feature variance, as `_tolerance` scales it.
+
+**Several starts keep the reference's winner.** With
+[`KMeansOptions.InitialCentreSets`](kmeansoptions.md) or `Restarts`, one Lloyd run goes from each
+start and the first is kept unless a later one has a strictly lower `Inertia` **and a different
+partition** — scikit-learn's `n_init` rule, which will not trade a partition for itself on a
+rounding-level gain. `Iterations` is the kept run's.
 
 **The starting centres are an input, not a seed.** Passing
 [`KMeansOptions.InitialCentres`](kmeansoptions.md) replaces the choice entirely and makes the run an

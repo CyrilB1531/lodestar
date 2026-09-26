@@ -80,6 +80,49 @@ public sealed class Dbscan
         return From(featureCount, offsets, indices, minimumSamples);
     }
 
+    /// <summary>Clusters by euclidean distance, a neighbourhood's density counted by weight — <c>fit(X, sample_weight=w)</c>.</summary>
+    /// <param name="samples">The samples, row-major: <paramref name="featureCount"/> values per row.</param>
+    /// <param name="featureCount">How many values each row carries.</param>
+    /// <param name="epsilon">The inclusive radius of a neighbourhood; scikit-learn's <c>eps</c>.</param>
+    /// <param name="minimumSamples">The summed weight a neighbourhood needs to be dense, the sample's own counted.</param>
+    /// <param name="sampleWeights">One finite weight per sample; negative ones are allowed, as scikit-learn allows them.</param>
+    /// <returns>A fitted clustering.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">As <see cref="Fit(ReadOnlySpan{double}, int, double, int)"/>.</exception>
+    /// <exception cref="ArgumentException">As <see cref="Fit(ReadOnlySpan{double}, int, double, int)"/>, or the weights are not one finite value per sample.</exception>
+    /// <remarks>
+    /// A sample standing for several identical rows weighs their count, so a deduplicated matrix clusters as the full
+    /// one would; a negative weight can keep its neighbours from being core, as scikit-learn documents.
+    /// </remarks>
+    public static Dbscan Fit(
+        ReadOnlySpan<double> samples, int featureCount, double epsilon, int minimumSamples, ReadOnlySpan<double> sampleWeights)
+    {
+        Guard.NotLessThan(featureCount, 1);
+        Guard.NotLessThan(minimumSamples, 1);
+        Positive(epsilon, nameof(epsilon));
+
+        int sampleCount = Rows(samples, featureCount);
+        Finite.Require(samples, nameof(samples));
+        double[] weights = Weights(sampleWeights, sampleCount);
+        (int[] offsets, int[] indices) = Neighbourhoods.Euclidean(samples, featureCount, sampleCount, epsilon);
+        return From(featureCount, offsets, indices, minimumSamples, weights);
+    }
+
+    /// <summary>Clusters from a square distance matrix, a neighbourhood's density counted by weight.</summary>
+    /// <param name="distances">The pairwise distances, row-major and square.</param>
+    /// <param name="sampleCount">The side of that matrix.</param>
+    /// <param name="epsilon">The inclusive radius of a neighbourhood; scikit-learn's <c>eps</c>.</param>
+    /// <param name="minimumSamples">The summed weight a neighbourhood needs to be dense, the sample's own counted.</param>
+    /// <param name="sampleWeights">One finite weight per sample.</param>
+    /// <returns>A fitted clustering.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">As <see cref="FitPrecomputed(ReadOnlySpan{double}, int, double, int)"/>.</exception>
+    /// <exception cref="ArgumentException">As <see cref="FitPrecomputed(ReadOnlySpan{double}, int, double, int)"/>, or the weights are not one finite value per sample.</exception>
+    public static Dbscan FitPrecomputed(
+        ReadOnlySpan<double> distances, int sampleCount, double epsilon, int minimumSamples, ReadOnlySpan<double> sampleWeights)
+    {
+        (int[] offsets, int[] indices) = PrecomputedNeighbourhoods(distances, sampleCount, epsilon, minimumSamples);
+        return From(sampleCount, offsets, indices, minimumSamples, Weights(sampleWeights, sampleCount));
+    }
+
     /// <summary>Clusters from a square distance matrix — <c>metric="precomputed"</c>.</summary>
     /// <param name="distances">The pairwise distances, row-major and square.</param>
     /// <param name="sampleCount">The side of that matrix.</param>
@@ -89,13 +132,21 @@ public sealed class Dbscan
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="sampleCount"/> or <paramref name="minimumSamples"/> is not positive, or <paramref name="epsilon"/> is not positive or not finite.</exception>
     /// <exception cref="ArgumentException"><paramref name="distances"/> is not <paramref name="sampleCount"/> squared values, or holds a value that is not finite.</exception>
     /// <remarks>
-    /// Named rather than an overload of <see cref="Fit"/>: both take a row-major
+    /// Named rather than an overload of <see cref="Fit(ReadOnlySpan{double}, int, double, int)"/>: both take a row-major
     /// <see cref="ReadOnlySpan{T}"/> of doubles and an <see cref="int"/>, so an overload pair
     /// would be told apart only by what the second argument <em>means</em>. The diagonal's zero
     /// distance makes a sample its own neighbour, so <paramref name="minimumSamples"/> counts
     /// the same way here as it does there.
     /// </remarks>
     public static Dbscan FitPrecomputed(
+        ReadOnlySpan<double> distances, int sampleCount, double epsilon, int minimumSamples)
+    {
+        (int[] offsets, int[] indices) = PrecomputedNeighbourhoods(distances, sampleCount, epsilon, minimumSamples);
+        return From(sampleCount, offsets, indices, minimumSamples);
+    }
+
+    /// <summary>The checks both precomputed fits share, then the neighbourhoods.</summary>
+    private static (int[] Offsets, int[] Indices) PrecomputedNeighbourhoods(
         ReadOnlySpan<double> distances, int sampleCount, double epsilon, int minimumSamples)
     {
         Guard.NotLessThan(sampleCount, 1);
@@ -114,14 +165,25 @@ public sealed class Dbscan
         }
 
         Finite.Require(distances, nameof(distances));
-        (int[] offsets, int[] indices) = Neighbourhoods.Precomputed(distances, sampleCount, epsilon);
-        return From(sampleCount, offsets, indices, minimumSamples);
+        return Neighbourhoods.Precomputed(distances, sampleCount, epsilon);
     }
 
-    private static Dbscan From(int featureCount, int[] offsets, int[] indices, int minimumSamples)
+    private static Dbscan From(int featureCount, int[] offsets, int[] indices, int minimumSamples, double[]? weights = null)
     {
-        (int[] labels, int[] cores, int clusters) = Growth.Label(offsets, indices, minimumSamples);
+        (int[] labels, int[] cores, int clusters) = Growth.Label(offsets, indices, minimumSamples, weights);
         return new Dbscan(featureCount, labels, cores, clusters);
+    }
+
+    private static double[] Weights(ReadOnlySpan<double> sampleWeights, int sampleCount)
+    {
+        if (sampleWeights.Length != sampleCount)
+        {
+            throw new ArgumentException(
+                $"sampleWeights holds {sampleWeights.Length} values for {sampleCount} samples.", nameof(sampleWeights));
+        }
+
+        Finite.Require(sampleWeights, nameof(sampleWeights));
+        return sampleWeights.ToArray();
     }
 
     private static void Positive(double epsilon, string paramName)

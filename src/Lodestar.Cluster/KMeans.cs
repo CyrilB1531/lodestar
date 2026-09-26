@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using Lodestar.Cluster.Internal;
 
@@ -65,20 +66,56 @@ public sealed class KMeans
     /// relocates it. The reference page carries the tolerance scaling and the tie divergences.
     /// </remarks>
     public static KMeans Fit(
-        ReadOnlySpan<double> samples, int featureCount, int clusterCount, KMeansOptions? options = null)
+        ReadOnlySpan<double> samples, int featureCount, int clusterCount, KMeansOptions? options = null) =>
+        FitCore(samples, null, featureCount, clusterCount, options);
+
+    /// <summary>Fits k-means with one weight per sample — scikit-learn's <c>fit(X, sample_weight=w)</c>.</summary>
+    /// <param name="samples">The samples, row-major: <paramref name="featureCount"/> values per row.</param>
+    /// <param name="sampleWeights">One finite weight per sample, not all zero; negative ones are allowed, as scikit-learn allows them.</param>
+    /// <param name="featureCount">How many values each row carries.</param>
+    /// <param name="clusterCount">How many clusters to find.</param>
+    /// <param name="options">Where to start and when to stop; <see langword="null"/> takes the defaults.</param>
+    /// <returns>A fitted clustering whose <see cref="Inertia"/> is weighted.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">As <see cref="Fit(ReadOnlySpan{double}, int, int, KMeansOptions)"/>.</exception>
+    /// <exception cref="ArgumentException">As <see cref="Fit(ReadOnlySpan{double}, int, int, KMeansOptions)"/>, or the weights are not one finite value per sample, or are all zero.</exception>
+    /// <remarks>
+    /// A sample standing for several identical rows weighs their count, and the fit is the one the full matrix gives.
+    /// Each centre is its members' weighted mean, the inertia is weighted, a cluster whose members weigh nothing is
+    /// relocated, and k-means++ draws in proportion to weight; the tolerance's scaling stays unweighted, as the
+    /// reference's does.
+    /// </remarks>
+    public static KMeans Fit(
+        ReadOnlySpan<double> samples,
+        ReadOnlySpan<double> sampleWeights,
+        int featureCount,
+        int clusterCount,
+        KMeansOptions? options = null)
+    {
+        Guard.NotLessThan(featureCount, 1);
+        int rows = Rows(samples, featureCount);
+        if (sampleWeights.Length != rows)
+        {
+            throw new ArgumentException(
+                $"sampleWeights holds {sampleWeights.Length} values, not one per row of samples.", nameof(sampleWeights));
+        }
+
+        Finite.Require(sampleWeights, nameof(sampleWeights));
+        if (!ContainsNonZero(sampleWeights))
+        {
+            throw new ArgumentException("The sample weights are all zero, which leaves nothing to cluster.", nameof(sampleWeights));
+        }
+
+        return FitCore(samples, sampleWeights.ToArray(), featureCount, clusterCount, options);
+    }
+
+    private static KMeans FitCore(
+        ReadOnlySpan<double> samples, double[]? weights, int featureCount, int clusterCount, KMeansOptions? options)
     {
         Guard.NotLessThan(featureCount, 1);
         Guard.NotLessThan(clusterCount, 1);
         KMeansOptions settings = options ?? new KMeansOptions();
         Guard.NotLessThan(settings.MaxIterations, 1);
-
-        // `!(>= 0)` so a NaN is refused rather than silently disabling the shift test; infinity is
-        // refused as the reference refuses it, whose range for tol is [0, inf).
-        if (!(settings.Tolerance >= 0.0) || double.IsPositiveInfinity(settings.Tolerance))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(options), settings.Tolerance, "Tolerance must be finite and zero or greater.");
-        }
+        CheckSettings(settings, nameof(options));
 
         int sampleCount = Rows(samples, featureCount);
         Finite.Require(samples, nameof(samples));
@@ -89,9 +126,41 @@ public sealed class KMeans
                 nameof(clusterCount));
         }
 
-        double[] centres = StartingCentres(samples, featureCount, clusterCount, sampleCount, settings);
+        double[] weighting = weights ?? Ones(sampleCount);
         double tolerance = ScaledTolerance(samples, featureCount, sampleCount, settings.Tolerance);
+        Run? best = null;
+        foreach (double[] start in Starts(samples, weights, featureCount, clusterCount, sampleCount, settings))
+        {
+            Run run = Once(samples, weighting, featureCount, clusterCount, start, settings.MaxIterations, tolerance);
 
+            // scikit-learn's rule: the first fit is kept, and a later one only with a strictly lower inertia and a
+            // partition that differs, since a rounding-level gain on the same partition is no gain.
+            if (best is null || (run.Inertia < best.Inertia && !SameClustering(run.Labels, best.Labels, clusterCount)))
+            {
+                best = run;
+            }
+        }
+
+        return new KMeans(clusterCount, featureCount, best!.Centres, best.Labels, best.Inertia, best.Iterations);
+    }
+
+    /// <summary>One Lloyd run from one starting block.</summary>
+    private sealed record Run(double[] Centres, int[] Labels, double Inertia, int Iterations);
+
+    /// <remarks>
+    /// The loop is the reference's: assign, update, stop on unchanged labels or on a centre shift within the scaled
+    /// tolerance — and when it stops on the shift, a final assignment runs so the labels match the centres.
+    /// </remarks>
+    private static Run Once(
+        ReadOnlySpan<double> samples,
+        double[] weights,
+        int featureCount,
+        int clusterCount,
+        double[] centres,
+        int maxIterations,
+        double tolerance)
+    {
+        int sampleCount = weights.Length;
         var labels = new int[sampleCount];
         var previous = new int[sampleCount];
         for (int row = 0; row < sampleCount; row++)
@@ -102,11 +171,11 @@ public sealed class KMeans
 
         bool strict = false;
         int iterations = 0;
-        for (int step = 0; step < settings.MaxIterations; step++)
+        for (int step = 0; step < maxIterations; step++)
         {
             iterations = step + 1;
             Nearest(samples, featureCount, centres, clusterCount, labels);
-            double shift = Update(samples, featureCount, clusterCount, sampleCount, labels, centres);
+            double shift = Update(samples, weights, featureCount, clusterCount, labels, centres);
 
             if (SameLabels(labels, previous))
             {
@@ -129,8 +198,124 @@ public sealed class KMeans
             Nearest(samples, featureCount, centres, clusterCount, labels);
         }
 
-        double inertia = Inertias(samples, featureCount, centres, labels);
-        return new KMeans(clusterCount, featureCount, centres, labels, inertia, iterations);
+        return new Run(centres, labels, Inertias(samples, weights, featureCount, centres, labels), iterations);
+    }
+
+    private static void CheckSettings(KMeansOptions settings, string parameterName)
+    {
+        // `!(>= 0)` so a NaN is refused rather than silently disabling the shift test; infinity is
+        // refused as the reference refuses it, whose range for tol is [0, inf).
+        if (!(settings.Tolerance >= 0.0) || double.IsPositiveInfinity(settings.Tolerance))
+        {
+            throw new ArgumentOutOfRangeException(
+                parameterName, settings.Tolerance, "Tolerance must be finite and zero or greater.");
+        }
+
+        if (settings.Restarts < 1)
+        {
+            throw new ArgumentOutOfRangeException(parameterName, settings.Restarts, "Restarts counts fits, at least one.");
+        }
+
+        if (settings.InitialCentreSets is { } sets
+            && (settings.InitialCentres is not null || settings.Restarts != 1 || sets.Count == 0))
+        {
+            throw new ArgumentException(
+                "InitialCentreSets holds one or more starts on its own, without InitialCentres or Restarts.", parameterName);
+        }
+
+        if (settings.InitialCentres is not null && settings.Restarts != 1)
+        {
+            throw new ArgumentException("Restarts is read when the fit chooses its starts, not beside InitialCentres.", parameterName);
+        }
+    }
+
+    /// <summary>The starting blocks: the caller's, each checked, or k-means++ from successive seeds.</summary>
+    private static List<double[]> Starts(
+        ReadOnlySpan<double> samples, double[]? weights, int featureCount, int clusterCount, int sampleCount, KMeansOptions settings)
+    {
+        var starts = new List<double[]>();
+        if (settings.InitialCentreSets is { } sets)
+        {
+            starts.AddRange(sets.Select(set => Checked(set, featureCount, clusterCount, nameof(KMeansOptions.InitialCentreSets))));
+        }
+        else if (settings.InitialCentres is { } given)
+        {
+            starts.Add(Checked(given, featureCount, clusterCount, nameof(KMeansOptions.InitialCentres)));
+        }
+        else
+        {
+            for (int restart = 0; restart < settings.Restarts; restart++)
+            {
+                starts.Add(PlusPlus(samples, weights, featureCount, clusterCount, sampleCount, unchecked(settings.Seed + restart)));
+            }
+        }
+
+        return starts;
+    }
+
+    private static double[] Checked(double[]? block, int featureCount, int clusterCount, string name)
+    {
+        if (block is null || block.Length != clusterCount * featureCount)
+        {
+            throw new ArgumentException(
+                $"{name} holds a block of {block?.Length ?? 0} values, not the "
+                + $"{clusterCount} x {featureCount} a starting block needs.",
+                name);
+        }
+
+        Finite.Require(block, name);
+        return (double[])block.Clone();
+    }
+
+    /// <summary>scikit-learn's <c>_is_same_clustering</c>: the first partition maps onto the second, label by label.</summary>
+    private static bool SameClustering(int[] left, int[] right, int clusterCount)
+    {
+        var mapping = new int[clusterCount];
+        for (int cluster = 0; cluster < clusterCount; cluster++)
+        {
+            mapping[cluster] = -1;
+        }
+
+        for (int row = 0; row < left.Length; row++)
+        {
+            if (mapping[left[row]] == -1)
+            {
+                mapping[left[row]] = right[row];
+            }
+            else if (mapping[left[row]] != right[row])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool ContainsNonZero(ReadOnlySpan<double> weights)
+    {
+        foreach (double weight in weights)
+        {
+            // S1244: the reference refuses weights that are all exactly zero, and so does this.
+#pragma warning disable S1244
+            if (weight != 0.0)
+#pragma warning restore S1244
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static double[] Ones(int count)
+    {
+        var ones = new double[count];
+        for (int row = 0; row < count; row++)
+        {
+            ones[row] = 1.0;
+        }
+
+        return ones;
     }
 
     /// <summary>Assigns unseen samples to the fitted centres.</summary>
@@ -159,27 +344,6 @@ public sealed class KMeans
         }
 
         return samples.Length / featureCount;
-    }
-
-    /// <summary>The caller's centres, checked, or k-means++ over this package's generator.</summary>
-    private static double[] StartingCentres(
-        ReadOnlySpan<double> samples, int featureCount, int clusterCount, int sampleCount, KMeansOptions settings)
-    {
-        if (settings.InitialCentres is not null)
-        {
-            if (settings.InitialCentres.Length != clusterCount * featureCount)
-            {
-                throw new ArgumentException(
-                    $"InitialCentres holds {settings.InitialCentres.Length} values, not the "
-                    + $"{clusterCount} x {featureCount} a starting block needs.",
-                    nameof(settings));
-            }
-
-            Finite.Require(settings.InitialCentres, nameof(KMeansOptions.InitialCentres));
-            return (double[])settings.InitialCentres.Clone();
-        }
-
-        return PlusPlus(samples, featureCount, clusterCount, sampleCount, settings.Seed);
     }
 
     /// <summary>scikit-learn's tolerance scaling: the raw value times the mean feature variance.</summary>
@@ -228,7 +392,11 @@ public sealed class KMeans
     private static void Nearest(
         ReadOnlySpan<double> samples, int featureCount, double[] centres, int clusterCount, int[] labels)
     {
-        if (featureCount > NarrowFeatures)
+        if (Vector.IsHardwareAccelerated && clusterCount >= Vector<double>.Count)
+        {
+            AssignLanes(samples, featureCount, centres, clusterCount, labels);
+        }
+        else if (featureCount > NarrowFeatures)
         {
             AssignWide(samples, featureCount, centres, clusterCount, labels);
         }
@@ -299,6 +467,70 @@ public sealed class KMeans
         }
     }
 
+    /// <summary><see cref="Assign"/> with one centre per vector lane, over the centres transposed.</summary>
+    /// <remarks>
+    /// Each lane sums its own centre's squared gaps in feature order, the scalar loop's order, and the JIT
+    /// fuses no multiply into an add, so every distance and every label is the scalar one to the bit. It
+    /// is the whole E-step's cost: 16 centres of 8 features took 5.4 ms an iteration at 100,000 rows scalar.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void AssignLanes(
+        ReadOnlySpan<double> samples, int featureCount, double[] centres, int clusterCount, int[] labels)
+    {
+        int lanes = Vector<double>.Count;
+        int vectorised = clusterCount - (clusterCount % lanes);
+        var transposed = new double[featureCount * clusterCount];
+        for (int cluster = 0; cluster < clusterCount; cluster++)
+        {
+            for (int feature = 0; feature < featureCount; feature++)
+            {
+                transposed[(feature * clusterCount) + cluster] = centres[(cluster * featureCount) + feature];
+            }
+        }
+
+        var distances = new double[clusterCount];
+        for (int row = 0; row < labels.Length; row++)
+        {
+            ReadOnlySpan<double> sample = samples.Slice(row * featureCount, featureCount);
+            for (int first = 0; first < vectorised; first += lanes)
+            {
+                Vector<double> total = Vector<double>.Zero;
+                for (int feature = 0; feature < featureCount; feature++)
+                {
+                    Vector<double> gap = new Vector<double>(sample[feature])
+                        - new Vector<double>(transposed, (feature * clusterCount) + first);
+                    total += gap * gap;
+                }
+
+                total.CopyTo(distances, first);
+            }
+
+            for (int cluster = vectorised; cluster < clusterCount; cluster++)
+            {
+                distances[cluster] = RowDistance(sample, centres.AsSpan(cluster * featureCount, featureCount));
+            }
+
+            labels[row] = Smallest(distances);
+        }
+    }
+
+    /// <summary>The index of the smallest distance, ties to the lower index as <see cref="Assign"/> breaks them.</summary>
+    private static int Smallest(double[] distances)
+    {
+        double best = double.PositiveInfinity;
+        int chosen = 0;
+        for (int cluster = 0; cluster < distances.Length; cluster++)
+        {
+            if (distances[cluster] < best)
+            {
+                best = distances[cluster];
+                chosen = cluster;
+            }
+        }
+
+        return chosen;
+    }
+
     private static double RowDistance(ReadOnlySpan<double> sample, ReadOnlySpan<double> centre)
     {
         double total = 0.0;
@@ -312,29 +544,31 @@ public sealed class KMeans
     }
 
     /// <summary>The M-step, returning the summed squared distance the centres moved.</summary>
+    /// <remarks>Each cluster's weighted sum and weight, as <c>_update_chunk_dense</c> accumulates them; all ones is the unweighted fit.</remarks>
     private static double Update(
         ReadOnlySpan<double> samples,
+        double[] weights,
         int featureCount,
         int clusterCount,
-        int sampleCount,
         int[] labels,
         double[] centres)
     {
         var totals = new double[clusterCount * featureCount];
-        var counts = new int[clusterCount];
+        var mass = new double[clusterCount];
 
-        for (int row = 0; row < sampleCount; row++)
+        for (int row = 0; row < weights.Length; row++)
         {
             int cluster = labels[row];
-            counts[cluster]++;
+            double weight = weights[row];
+            mass[cluster] += weight;
             for (int feature = 0; feature < featureCount; feature++)
             {
-                totals[(cluster * featureCount) + feature] += samples[(row * featureCount) + feature];
+                totals[(cluster * featureCount) + feature] += samples[(row * featureCount) + feature] * weight;
             }
         }
 
-        Relocate(samples, featureCount, centres, labels, totals, counts);
-        Average(samples, featureCount, totals, counts);
+        Relocate(samples, weights, featureCount, centres, labels, totals, mass);
+        Average(samples, featureCount, totals, mass);
 
         double shift = 0.0;
         for (int index = 0; index < centres.Length; index++)
@@ -359,21 +593,25 @@ public sealed class KMeans
     /// </remarks>
     private static void Relocate(
         ReadOnlySpan<double> samples,
+        double[] weights,
         int featureCount,
         double[] centres,
         int[] labels,
         double[] totals,
-        int[] counts)
+        double[] mass)
     {
         // Listed before any move, as np.where(weight_in_clusters == 0) is: a donor emptied by a
         // relocation stays empty this iteration rather than taking a row past the end (#975).
         int[]? empty = null;
         int emptyCount = 0;
-        for (int cluster = 0; cluster < counts.Length; cluster++)
+        for (int cluster = 0; cluster < mass.Length; cluster++)
         {
-            if (counts[cluster] == 0)
+            // S1244: np.equal(weight_in_clusters, 0) — a cluster whose members weigh exactly nothing is empty.
+#pragma warning disable S1244
+            if (mass[cluster] == 0.0)
+#pragma warning restore S1244
             {
-                empty ??= new int[counts.Length - cluster];
+                empty ??= new int[mass.Length - cluster];
                 empty[emptyCount++] = cluster;
             }
         }
@@ -403,12 +641,13 @@ public sealed class KMeans
             int cluster = empty[index];
             int row = furthest[index];
             int donor = labels[row];
-            counts[donor]--;
-            counts[cluster] = 1;
+            double weight = weights[row];
+            mass[donor] -= weight;
+            mass[cluster] = weight;
 
             for (int feature = 0; feature < featureCount; feature++)
             {
-                double value = samples[(row * featureCount) + feature];
+                double value = samples[(row * featureCount) + feature] * weight;
                 totals[(donor * featureCount) + feature] -= value;
                 totals[(cluster * featureCount) + feature] = value;
             }
@@ -442,26 +681,26 @@ public sealed class KMeans
     /// that sum is rebuilt here as it holds it: minus the count times the column mean, plus the
     /// mean added back when the fit ends.
     /// </remarks>
-    private static void Average(ReadOnlySpan<double> samples, int featureCount, double[] totals, int[] counts)
+    private static void Average(ReadOnlySpan<double> samples, int featureCount, double[] totals, double[] mass)
     {
         int largest = 0;
-        for (int cluster = 1; cluster < counts.Length; cluster++)
+        for (int cluster = 1; cluster < mass.Length; cluster++)
         {
-            if (counts[cluster] > counts[largest])
+            if (mass[cluster] > mass[largest])
             {
                 largest = cluster;
             }
         }
 
         double[]? means = null;
-        for (int cluster = 0; cluster < counts.Length; cluster++)
+        for (int cluster = 0; cluster < mass.Length; cluster++)
         {
             int offset = cluster * featureCount;
-            if (counts[cluster] > 0)
+            if (mass[cluster] > 0.0)
             {
                 for (int feature = 0; feature < featureCount; feature++)
                 {
-                    totals[offset + feature] /= counts[cluster];
+                    totals[offset + feature] /= mass[cluster];
                 }
 
                 continue;
@@ -477,7 +716,7 @@ public sealed class KMeans
             for (int feature = 0; feature < featureCount; feature++)
             {
                 totals[offset + feature] =
-                    totals[(largest * featureCount) + feature] - ((counts[largest] - 1) * means[feature]);
+                    totals[(largest * featureCount) + feature] - ((mass[largest] - 1.0) * means[feature]);
             }
         }
     }
@@ -504,12 +743,12 @@ public sealed class KMeans
 
     /// <summary>Summed squared distance from every sample to the centre it was assigned.</summary>
     private static double Inertias(
-        ReadOnlySpan<double> samples, int featureCount, double[] centres, int[] labels)
+        ReadOnlySpan<double> samples, double[] weights, int featureCount, double[] centres, int[] labels)
     {
         double total = 0.0;
         for (int row = 0; row < labels.Length; row++)
         {
-            total += SquaredDistance(
+            total += weights[row] * SquaredDistance(
                 samples, row * featureCount, centres, labels[row] * featureCount, featureCount);
         }
 
@@ -543,14 +782,27 @@ public sealed class KMeans
     }
 
     /// <summary>k-means++ over this package's own generator — reproducible here, not portable.</summary>
+    /// <remarks>
+    /// With weights the draws are in proportion to weight, then to weight times distance, as the reference's are; a
+    /// negative weight takes no share of a draw. Without them the draws are the ones this package has always made.
+    /// </remarks>
     private static double[] PlusPlus(
-        ReadOnlySpan<double> samples, int featureCount, int clusterCount, int sampleCount, int seed)
+        ReadOnlySpan<double> samples, double[]? weights, int featureCount, int clusterCount, int sampleCount, int seed)
     {
         var centres = new double[clusterCount * featureCount];
         var random = new SplitMix64((ulong)seed);
 
-        int first = (int)(random.NextDouble() * sampleCount);
-        first = Math.Min(first, sampleCount - 1);
+        int first;
+        if (weights is null)
+        {
+            first = Math.Min((int)(random.NextDouble() * sampleCount), sampleCount - 1);
+        }
+        else
+        {
+            double[] shares = [.. weights.Select(weight => Math.Max(0.0, weight))];
+            first = Weighted(shares, shares.Sum(), random.NextDouble(), sampleCount);
+        }
+
         Copy(samples, first * featureCount, centres, 0, featureCount);
 
         var closest = new double[sampleCount];
@@ -561,13 +813,16 @@ public sealed class KMeans
 
         for (int cluster = 1; cluster < clusterCount; cluster++)
         {
+            double[] shares = weights is null
+                ? closest
+                : [.. closest.Select((distance, row) => distance * Math.Max(0.0, weights[row]))];
             double total = 0.0;
-            foreach (double distance in closest)
+            foreach (double share in shares)
             {
-                total += distance;
+                total += share;
             }
 
-            int chosen = Weighted(closest, total, random.NextDouble(), sampleCount);
+            int chosen = Weighted(shares, total, random.NextDouble(), sampleCount);
             Copy(samples, chosen * featureCount, centres, cluster * featureCount, featureCount);
 
             for (int row = 0; row < sampleCount; row++)

@@ -38,6 +38,20 @@ public sealed record KMeansOptions
     public double[]? InitialCentres { get; init; }
 #pragma warning restore CA1819
 
+    /// <summary>Several starting blocks, each row-major, the fit keeping the best — scikit-learn's <c>n_init</c> over given starts.</summary>
+    /// <remarks>
+    /// Each block is fitted in turn; a later one replaces the kept fit only when its inertia is strictly lower and its
+    /// partition differs, scikit-learn's rule. Refused together with <see cref="InitialCentres"/> or <see cref="Restarts"/>.
+    /// </remarks>
+    public IReadOnlyList<double[]>? InitialCentreSets { get; init; }
+
+    /// <summary>How many k-means++ starts to fit and keep the best of, by the same rule; 1, the default, fits one.</summary>
+    /// <remarks>
+    /// Start <c>i</c> seeds this package's generator with <see cref="Seed"/> plus <c>i</c>, so it reproduces here and is not
+    /// scikit-learn's <c>n_init</c> draw. Read only when the fit chooses its own starts.
+    /// </remarks>
+    public int Restarts { get; init; } = 1;
+
     /// <summary>Compares every option, the centres element by element.</summary>
     /// <param name="other">The options to compare against.</param>
     /// <remarks>
@@ -54,6 +68,7 @@ public sealed record KMeansOptions
         if (other is null
             || MaxIterations != other.MaxIterations
             || Seed != other.Seed
+            || Restarts != other.Restarts
             // S1244 warns against exact floating-point comparison, which is right for
             // arithmetic and wrong here: this is value equality between two configurations,
             // where "the same tolerance" means the same bits. double.Equals also makes NaN
@@ -64,7 +79,17 @@ public sealed record KMeansOptions
         {
             return false;
         }
-        return ValueEquality.Same(InitialCentres, other.InitialCentres);
+        return ValueEquality.Same(InitialCentres, other.InitialCentres) && SameSets(InitialCentreSets, other.InitialCentreSets);
+    }
+
+    private static bool SameSets(IReadOnlyList<double[]>? left, IReadOnlyList<double[]>? right)
+    {
+        if (left is null || right is null)
+        {
+            return left is null && right is null;
+        }
+
+        return left.Count == right.Count && left.Zip(right, (a, b) => ValueEquality.Same(a, b)).All(same => same);
     }
 
     /// <summary>Hashes the scalars and the centre count, which is O(1).</summary>
@@ -78,6 +103,8 @@ public sealed record KMeansOptions
         {
             int hash = (17 * 31) + MaxIterations;
             hash = (hash * 31) + Seed;
+            hash = (hash * 31) + Restarts;
+            hash = (hash * 31) + (InitialCentreSets?.Count ?? -1);
             hash = (hash * 31) + Tolerance.GetHashCode();
             return (hash * 31) + ValueEquality.CountOf(InitialCentres);
         }

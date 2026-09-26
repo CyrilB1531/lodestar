@@ -299,6 +299,11 @@ def onehot(fmt: str = "text") -> None:
     wallcpu_report("onehot", fmt)
 
 
+def cluster_weighted(fmt: str = "text") -> None:
+    """Lodestar.Cluster's weighted k-means, restarts and weighted DBSCAN against scikit-learn's (#1163)."""
+    wallcpu_report("cluster-weighted", fmt)
+
+
 def glm(fmt: str = "text") -> None:
     """The negative binomial GLM against statsmodels' GLM, over that same corpus (#781)."""
     wallcpu_report("glm", fmt)
@@ -401,6 +406,8 @@ if __name__ == "__main__":
         cross_conformal(output_format)
     elif selected == "onehot":
         onehot(output_format)
+    elif selected == "cluster-weighted":
+        cluster_weighted(output_format)
     elif selected == "splitters":
         splitters(output_format)
     elif selected == "transformers":

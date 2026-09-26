@@ -58,6 +58,9 @@ switch (args.Length > 0 ? args[0] : string.Empty)
     case "compare-onehot":
         OneHotCrossLang.Run();
         return;
+    case "compare-cluster-weighted":
+        ClusterWeightedCrossLang.Run();
+        return;
     case "roc-parallel":
         RocParallelBench.Run();
         return;

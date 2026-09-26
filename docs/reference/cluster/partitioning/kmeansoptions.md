@@ -11,7 +11,10 @@ public sealed record KMeansOptions
 **Properties** — `MaxIterations` caps the Lloyd loop (`max_iter`, default 300). `Tolerance` is the
 convergence threshold before scaling (`tol`, default `1e-4`). `Seed` drives this package's own
 generator when no centres are given. `InitialCentres` is the starting block itself, row-major and
-`clusterCount × featureCount`, or `null` to choose one.
+`clusterCount × featureCount`, or `null` to choose one. `InitialCentreSets` is several such blocks,
+one run from each — `n_init` over given starts — and excludes the other two ways of starting.
+`Restarts` is how many k-means++ draws to run when no centres are given (`n_init`, default 1), the
+draw `i` seeded `Seed + i`.
 
 **Example** — the same data, started two ways.
 
@@ -40,6 +43,10 @@ against Python must pass too.
 the shift test and iterates until the labels settle. A negative, infinite or `NaN` tolerance is
 refused by [`KMeans.Fit`](kmeans-fit.md) with `ArgumentOutOfRangeException`, as scikit-learn refuses
 a `tol` outside `[0, inf)` — a `NaN` would otherwise switch the shift test off without a word.
+
+Several runs keep the first unless a later one reaches a strictly lower inertia on a different
+partition, scikit-learn's rule; [`KMeans.Fit`](kmeans-fit.md) has why. `Restarts` below `1`, or
+beside `InitialCentres`, is refused.
 
 **Applies to** — net10.0, netstandard2.0.
 

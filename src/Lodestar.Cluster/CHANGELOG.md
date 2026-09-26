@@ -5,6 +5,14 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ## [Unreleased]
 
+### Added
+
+- `KMeans.Fit`, `Dbscan.Fit` and `Dbscan.FitPrecomputed` take one weight per sample, and `KMeans` restarts from several given or drawn starts, keeping scikit-learn's winner. ([#1163](https://github.com/CyrilB1531/lodestar/issues/1163))
+
+### Changed
+
+- `KMeans` assigns one centre per vector lane, and `Dbscan.Fit` scans only the rows within reach along the widest feature. ([#1163](https://github.com/CyrilB1531/lodestar/issues/1163))
+
 ## [0.2.0] — 2026-09-24
 
 ### Added

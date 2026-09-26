@@ -22,19 +22,54 @@ internal static class Neighbourhoods
         ReadOnlySpan<double> samples, int featureCount, int sampleCount, double epsilon)
     {
         double limit = epsilon * epsilon;
+        (int[] degree, List<int> from, List<int> to) = Pairs(samples, featureCount, sampleCount, limit);
+        return Adjacency(degree, from, to);
+    }
 
-        // Each pair once: d(i, j) and d(j, i) are the same sum, so the upper triangle decides both, kept
-        // in (i, j) order so the rows below come out ascending without a sort (#818).
+    /// <summary>Every pair within the squared radius, each once, with every row's neighbourhood size.</summary>
+    /// <remarks>
+    /// Sorted along the widest feature, a row's candidates end at the first whose gap on that feature alone
+    /// squares past the limit: the full sum is never below one of its terms, so no pair inside is dropped.
+    /// </remarks>
+    private static (int[] Degree, List<int> From, List<int> To) Pairs(
+        ReadOnlySpan<double> samples, int featureCount, int sampleCount, double limit)
+    {
+        int axis = WidestFeature(samples, featureCount, sampleCount);
+        var order = new int[sampleCount];
+        var keys = new double[sampleCount];
+        for (int i = 0; i < sampleCount; i++)
+        {
+            order[i] = i;
+            keys[i] = samples[(i * featureCount) + axis];
+        }
+
+        Array.Sort(keys, order);
+
+        // The rows copied in that order, so a row's candidates are read contiguously rather than scattered.
+        var sorted = new double[samples.Length];
+        for (int position = 0; position < sampleCount; position++)
+        {
+            samples.Slice(order[position] * featureCount, featureCount).CopyTo(sorted.AsSpan(position * featureCount));
+        }
+
         var degree = new int[sampleCount];
         var from = new List<int>(sampleCount * 2);
         var to = new List<int>(sampleCount * 2);
-        for (int i = 0; i < sampleCount; i++)
+        for (int position = 0; position < sampleCount; position++)
         {
+            int i = order[position];
             degree[i]++;
-            for (int j = i + 1; j < sampleCount; j++)
+            for (int next = position + 1; next < sampleCount; next++)
             {
-                if (Within(samples, featureCount, i, j, limit))
+                double gap = keys[next] - keys[position];
+                if (gap * gap > limit)
                 {
+                    break;
+                }
+
+                if (Within(sorted, featureCount, position, next, limit))
+                {
+                    int j = order[next];
                     from.Add(i);
                     to.Add(j);
                     degree[i]++;
@@ -43,29 +78,65 @@ internal static class Neighbourhoods
             }
         }
 
+        return (degree, from, to);
+    }
+
+    /// <summary>The pairs as one flat adjacency, each row itself first, then its neighbours as the scan found them.</summary>
+    /// <remarks>
+    /// Not ascending, and no label depends on it: <see cref="Growth"/> grows each cluster whole before starting the
+    /// next. A weighted density sums in this order, as scikit-learn's tree search sums in its own (#1163).
+    /// </remarks>
+    private static (int[] Offsets, int[] Indices) Adjacency(int[] degree, List<int> from, List<int> to)
+    {
+        int sampleCount = degree.Length;
         var offsets = new int[sampleCount + 1];
         for (int i = 0; i < sampleCount; i++)
         {
             offsets[i + 1] = offsets[i] + degree[i];
         }
 
-        // Row i receives its smaller neighbours from earlier rows' pairs, then itself, then its
-        // larger neighbours from its own pairs: ascending, as the full scan wrote it.
         var fill = (int[])offsets.Clone();
-        var indices = new int[offsets[sampleCount]];
-        int pair = 0;
+        var unordered = new int[offsets[sampleCount]];
         for (int i = 0; i < sampleCount; i++)
         {
-            indices[fill[i]++] = i;
-            for (; pair < from.Count && from[pair] == i; pair++)
+            unordered[fill[i]++] = i;
+        }
+
+        for (int pair = 0; pair < from.Count; pair++)
+        {
+            int i = from[pair];
+            int j = to[pair];
+            unordered[fill[i]++] = j;
+            unordered[fill[j]++] = i;
+        }
+
+        return (offsets, unordered);
+    }
+
+    /// <summary>The feature whose values spread widest, the one along which sorting prunes the most pairs.</summary>
+    private static int WidestFeature(ReadOnlySpan<double> samples, int featureCount, int sampleCount)
+    {
+        int widest = 0;
+        double widestRange = -1.0;
+        for (int feature = 0; feature < featureCount; feature++)
+        {
+            double low = double.PositiveInfinity;
+            double high = double.NegativeInfinity;
+            for (int i = 0; i < sampleCount; i++)
             {
-                int j = to[pair];
-                indices[fill[i]++] = j;
-                indices[fill[j]++] = i;
+                double value = samples[(i * featureCount) + feature];
+                low = Math.Min(low, value);
+                high = Math.Max(high, value);
+            }
+
+            if (high - low > widestRange)
+            {
+                widestRange = high - low;
+                widest = feature;
             }
         }
 
-        return (offsets, indices);
+        return widest;
     }
 
     /// <summary>The same adjacency, read off a square distance matrix instead of computed.</summary>

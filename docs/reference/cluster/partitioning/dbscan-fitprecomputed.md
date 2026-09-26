@@ -8,16 +8,28 @@ Clusters from a square distance matrix rather than from the samples themselves.
 public static Dbscan FitPrecomputed(ReadOnlySpan<double> distances, int sampleCount, double epsilon, int minimumSamples)
 ```
 
+<!-- docs-declaration -->
+
+```csharp
+public static Dbscan FitPrecomputed(ReadOnlySpan<double> distances, int sampleCount, double epsilon, int minimumSamples, ReadOnlySpan<double> sampleWeights)
+```
+
+The second overload weighs each sample, scikit-learn's `fit(X, sample_weight=w)`: a sample is core
+when the weights in its neighbourhood, its own included, sum to at least `minimumSamples`.
+
 **Parameters** — `distances` is the pairwise distances, row-major and square. `sampleCount` is the
 side of that matrix. `epsilon` is the inclusive radius of a neighbourhood, scikit-learn's `eps`.
-`minimumSamples` is how many samples a neighbourhood needs to be dense, the sample itself counted.
+`minimumSamples` is how many samples a neighbourhood needs to be dense, the sample itself counted, or the weight it needs when `sampleWeights` is given. `sampleWeights` is one finite weight per
+sample; zero and negative ones are accepted, a negative one keeping its neighbours from being core,
+as the reference documents.
 
 **Returns** — a fitted `Dbscan`.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `sampleCount` or `minimumSamples` is not
 positive, or `epsilon` is not positive or not finite. `ArgumentException` when `distances` is not
 `sampleCount` squared values, or holds a `NaN` or infinite one — an infinite distance is refused
-too, as the reference refuses it, rather than read as unreachable.
+too, as the reference refuses it, rather than read as unreachable, or when `sampleWeights` is not
+one finite value per sample.
 
 **Example** — three samples, given as the distances between them.
 

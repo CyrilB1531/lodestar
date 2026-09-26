@@ -15,6 +15,7 @@ internal static class Growth
     /// <param name="offsets">Where each sample's neighbours start in <paramref name="indices"/>.</param>
     /// <param name="indices">The neighbours themselves, the sample's own index included.</param>
     /// <param name="minimumSamples">How large a neighbourhood makes its centre core.</param>
+    /// <param name="weights">One weight per sample, summed over a neighbourhood in place of its size; <see langword="null"/> counts.</param>
     /// <remarks>
     /// A sample already labelled is never relabelled, which is the whole rule for a border point
     /// two clusters can reach: it joins whichever is grown first. Measured on four orderings of
@@ -23,7 +24,7 @@ internal static class Growth
     /// the order clusters are <em>started</em> in could not.
     /// </remarks>
     public static (int[] Labels, int[] CoreIndices, int ClusterCount) Label(
-        int[] offsets, int[] indices, int minimumSamples)
+        int[] offsets, int[] indices, int minimumSamples, double[]? weights = null)
     {
         int sampleCount = offsets.Length - 1;
         var labels = new int[sampleCount];
@@ -32,7 +33,7 @@ internal static class Growth
         for (int row = 0; row < sampleCount; row++)
         {
             labels[row] = Noise;
-            if (offsets[row + 1] - offsets[row] >= minimumSamples)
+            if (Density(offsets, indices, row, weights) >= minimumSamples)
             {
                 core[row] = true;
                 cores.Add(row);
@@ -59,6 +60,23 @@ internal static class Growth
         }
 
         return (labels, [.. cores], cluster);
+    }
+
+    /// <summary>How dense a neighbourhood is: its size, or with weights their sum — scikit-learn's <c>n_neighbors</c>.</summary>
+    private static double Density(int[] offsets, int[] indices, int row, double[]? weights)
+    {
+        if (weights is null)
+        {
+            return offsets[row + 1] - offsets[row];
+        }
+
+        double total = 0.0;
+        for (int at = offsets[row]; at < offsets[row + 1]; at++)
+        {
+            total += weights[indices[at]];
+        }
+
+        return total;
     }
 
     private static void Expand(

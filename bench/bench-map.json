@@ -621,6 +621,15 @@
         "bench/Lodestar.Text.Benchmarks/CrossLang/OneHotCrossLang.cs"
       ]
     },
+    "cluster-weighted": {
+      "subcommand": "compare-cluster-weighted",
+      "python": "bench/python/bench_cluster_weighted.py",
+      "compare": "cluster-weighted",
+      "sources": [
+        "src/Lodestar.Cluster/**",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/ClusterWeightedCrossLang.cs"
+      ]
+    },
     "ols": {
       "subcommand": "compare-ols",
       "python": "bench/python/bench_stats.py",

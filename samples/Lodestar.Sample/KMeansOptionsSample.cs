@@ -18,6 +18,15 @@ internal static class KMeansOptionsSample
         Console.WriteLine($"  from given centres : inertia {Inv.F4(KMeans.Fit(samples, 2, 3, given).Inertia)}");
         Console.WriteLine($"  from a drawn start : inertia {Inv.F4(KMeans.Fit(samples, 2, 3, drawn).Inertia)}");
         Console.WriteLine($"  max {drawn.MaxIterations} iterations, tolerance {Inv.E3(drawn.Tolerance)}");
+
+        // Several starts, scikit-learn's n_init: the lowest inertia on a new partition wins.
+        var sets = new KMeansOptions
+        {
+            InitialCentreSets = [[0.0, 0.0, 0.0, 1.0, 10.0, 10.0], [0.0, 0.0, 10.0, 10.0, 5.0, 5.0]],
+        };
+        var restarts = new KMeansOptions { Seed = 11, Restarts = 4 };
+        Console.WriteLine($"  best of {sets.InitialCentreSets.Count} starts : inertia {Inv.F4(KMeans.Fit(samples, 2, 3, sets).Inertia)}");
+        Console.WriteLine($"  best of {restarts.Restarts} draws  : inertia {Inv.F4(KMeans.Fit(samples, 2, 3, restarts).Inertia)}");
         Console.WriteLine();
     }
 }
