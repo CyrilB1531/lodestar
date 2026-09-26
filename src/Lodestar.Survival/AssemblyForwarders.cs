@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 
 // Its data types live in Lodestar.Abstractions (decision 0003): those declared here before #1142 bind old
-// callers through these, and those #1170 and #1171 added are forwarded so this assembly exports every type its API names.
+// callers through these, and those added since are forwarded so this assembly exports every type its API names.
 
 [assembly: TypeForwardedTo(typeof(Lodestar.Survival.KaplanMeierCurve))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Survival.LogRankResult))]
@@ -13,3 +13,6 @@ using System.Runtime.CompilerServices;
 [assembly: TypeForwardedTo(typeof(Lodestar.Survival.RestrictedMeanResult))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Survival.CoxBaseline))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Survival.CoxTimeTransform))]
+[assembly: TypeForwardedTo(typeof(Lodestar.Survival.ParametricModel))]
+[assembly: TypeForwardedTo(typeof(Lodestar.Survival.AftModel))]
+[assembly: TypeForwardedTo(typeof(Lodestar.Survival.SurvivalCurve))]

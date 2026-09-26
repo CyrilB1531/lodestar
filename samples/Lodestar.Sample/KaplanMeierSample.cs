@@ -20,6 +20,10 @@ internal static class KaplanMeierSample
         KaplanMeierCurve control = KaplanMeier.Estimate(Trial.ControlDurations, Trial.ControlObserved);
         Console.WriteLine($"  RMST to 10       : {Inv.F4(tenWeeks.Mean)} (variance {Inv.F4(tenWeeks.Variance)})");
         Console.WriteLine($"  differ at 10     : p {Inv.F4(KaplanMeier.CompareAt(10.0, curve, control).PValue)}");
+
+        // Read the censored subjects as having had the event by their time instead: the left-censored curve.
+        KaplanMeierCurve left = KaplanMeier.EstimateLeftCensored(Trial.TreatmentDurations, Trial.TreatmentObserved);
+        Console.WriteLine($"  left-censored    : S(6) {Inv.F4(left.Survival[1])}");
         Console.WriteLine();
     }
 }

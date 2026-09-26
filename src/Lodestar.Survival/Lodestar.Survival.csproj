@@ -29,16 +29,11 @@
   <!-- The log-rank options and the restricted mean live in Lodestar.Abstractions (#1170), so this reaches
        that project unconditionally until its next publication; the release swaps it back and drops the
        exception in ci.yml's "src/ ships PackageReference only" step. -->
+  <!-- And the normal and chi-squared tails the parametric fitters read (#1172) are Lodestar.Stats members its
+       published floor does not carry yet, so it too is reached by project until its next publication. -->
   <ItemGroup>
     <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
     <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
-    <PackageReference Include="Lodestar.Stats" />
   </ItemGroup>
 
   <!-- Loud on purpose: a local build that silently differed from the shipped one

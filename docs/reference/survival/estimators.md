@@ -11,9 +11,14 @@ have survived *at least* 20 months. Averaging durations throws that away, and dr
 subject throws away more. **Right censoring** is a subject whose duration is a lower bound, and
 the three estimators below are the ones that use it rather than discard it.
 
-The Cox proportional hazards model adds covariates: by how much each changes the hazard. Left
-truncation, interval censoring and the accelerated-failure-time models are each their own lot;
-nothing here does them.
+The Cox proportional hazards model adds covariates: by how much each changes the hazard. The
+parametric fits trade the data's own shape for a smooth one — Weibull, log-normal and the rest — and
+the accelerated failure time regressions put covariates on that shape, stretching or shrinking time.
+Both take **left censoring**, a duration that is an upper bound, **interval censoring**, an event
+known to lie between two visits, and **delayed entry**, a subject watched only from some time on;
+[`KaplanMeier.EstimateLeftCensored`](estimators/kaplanmeier-estimateleftcensored.md) and
+[`BreslowFlemingHarrington`](estimators/breslowflemingharrington.md) take the first and the last
+respectively, without a model. Turnbull's non-parametric estimate for interval-censored data is not here.
 
 ## Which estimator?
 
@@ -27,6 +32,10 @@ flowchart TD
     C --> F["NelsonAalen"]
     D --> G["LogRank"]
     H --> I["CoxProportionalHazards"]
+    A --> J["a smooth curve, past the data too"]
+    J --> K["ParametricSurvival"]
+    A --> L["how much a covariate stretches time"]
+    L --> M["AcceleratedFailureTime"]
 ```
 
 `KaplanMeier` and `NelsonAalen` are two readings of one table, and they share a timeline by
@@ -52,6 +61,11 @@ keeps the size of that last step.
 
 | Type | What it is |
 | --- | --- |
+| [`AcceleratedFailureTime`](estimators/acceleratedfailuretime.md) | The Weibull, log-normal and log-logistic regressions on the time axis. |
+| [`AftModel`](estimators/aftmodel.md) | Which accelerated failure time regression runs. |
+| [`AftOptions`](estimators/aftoptions.md) | The level, the intercept, the ancillary model, the penalty and the robust errors an AFT fit takes. |
+| [`AftSummary`](estimators/aftsummary.md) | What it returns: the coefficient table, the likelihood-ratio test and the predictions. |
+| [`BreslowFlemingHarrington`](estimators/breslowflemingharrington.md) | The survival function as the exponential of minus the Nelson-Aalen hazard. |
 | [`Concordance`](estimators/concordance.md) | Harrell's concordance index on any predicted scores. |
 | [`CoxBaseline`](estimators/coxbaseline.md) | One stratum's Breslow baseline of a Cox fit. |
 | [`CoxOptions`](estimators/coxoptions.md) | The interval level, the iteration budget, the penalty and the robust variance a Cox fit takes. |
@@ -68,7 +82,12 @@ keeps the size of that last step.
 | [`NelsonAalen`](estimators/nelsonaalen.md) | The cumulative hazard function. |
 | [`NelsonAalenCurve`](estimators/nelsonaalencurve.md) | What it returns: the accumulated hazard and its steps. |
 | [`PairwiseLogRankResult`](estimators/pairwiselogrankresult.md) | One pair of groups from the pairwise test. |
+| [`ParametricFit`](estimators/parametricfit.md) | What a parametric fit returns: the parameter table and the fitted curves. |
+| [`ParametricModel`](estimators/parametricmodel.md) | Which parametric model runs. |
+| [`ParametricOptions`](estimators/parametricoptions.md) | The level, the iteration budget and the piecewise breakpoints a parametric fit takes. |
+| [`ParametricSurvival`](estimators/parametricsurvival.md) | lifelines' six parametric fitters, right-, left- and interval-censored. |
 | [`RestrictedMeanResult`](estimators/restrictedmeanresult.md) | The restricted mean survival time and its variance. |
+| [`SurvivalCurve`](estimators/survivalcurve.md) | What the Breslow-Fleming-Harrington estimator returns: the estimate, its bounds and its steps. |
 | [`SurvivalStep`](estimators/survivalstep.md) | One step of either curve: a time, a risk set, and what happened at it. |
 
 ## See also

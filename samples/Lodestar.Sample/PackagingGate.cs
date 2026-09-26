@@ -110,6 +110,8 @@ internal static class PackagingGate
         ["Lodestar.Survival.KaplanMeierCurve.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Survival.NelsonAalenCurve.Equals"] = RecordPlumbing,
         ["Lodestar.Survival.NelsonAalenCurve.GetHashCode"] = RecordPlumbing,
+        ["Lodestar.Survival.SurvivalCurve.Equals"] = RecordPlumbing,
+        ["Lodestar.Survival.SurvivalCurve.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Text.Keywords.RakeOptions.Equals"] = RecordPlumbing,
         ["Lodestar.Text.Keywords.RakeOptions.GetHashCode"] = RecordPlumbing,
         ["Lodestar.Text.Keywords.TextRankOptions.Equals"] = RecordPlumbing,
@@ -154,6 +156,7 @@ internal static class PackagingGate
         ["Lodestar.Survival.LogRankResult..ctor"] = ResultRecordCtor,
         ["Lodestar.Survival.NelsonAalenCurve..ctor"] = ResultRecordCtor,
         ["Lodestar.Survival.SurvivalStep..ctor"] = ResultRecordCtor,
+        ["Lodestar.Survival.SurvivalCurve..ctor"] = ResultRecordCtor,
         ["Lodestar.Text.Keywords.KeywordMatch..ctor"] = ResultRecordCtor,
     };
 

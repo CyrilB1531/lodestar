@@ -49,8 +49,8 @@ public static class CoxExtendedCrossLang
             });
     }
 
-    /// <summary>The Python side's formula, from the index alone.</summary>
-    private static (double[] X, double[] T, bool[] E, int[] S, double[] W) Subjects(int n)
+    /// <summary>The Python side's formula, from the index alone; <see cref="SurvivalParametricCrossLang"/> reads it too.</summary>
+    internal static (double[] X, double[] T, bool[] E, int[] S, double[] W) Subjects(int n)
     {
         var x = new double[n * Features];
         var t = new double[n];

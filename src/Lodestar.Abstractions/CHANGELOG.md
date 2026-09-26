@@ -15,6 +15,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `KMeansOptions.InitialCentreSets` and `Restarts`, the starts `KMeans` runs from. ([#1163](https://github.com/CyrilB1531/lodestar/issues/1163))
 - `LogRankOptions`, `LogRankWeighting`, `PairwiseLogRankResult` and `RestrictedMeanResult` in `Lodestar.Survival`, which the log-rank family and the restricted mean take and return. ([#1170](https://github.com/CyrilB1531/lodestar/issues/1170))
 - `CoxBaseline` and `CoxTimeTransform` in `Lodestar.Survival`, the Cox baselines and the proportional hazards test's time scale. ([#1171](https://github.com/CyrilB1531/lodestar/issues/1171))
+- `ParametricModel`, `AftModel` and `SurvivalCurve` in `Lodestar.Survival`, the parametric models and the Breslow-Fleming-Harrington curve. ([#1172](https://github.com/CyrilB1531/lodestar/issues/1172))
 
 ## [0.2.0] — 2026-09-24
 

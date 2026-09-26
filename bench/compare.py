@@ -314,6 +314,11 @@ def cox_extended(fmt: str = "text") -> None:
     wallcpu_report("cox-extended", fmt)
 
 
+def survival_parametric(fmt: str = "text") -> None:
+    """Lodestar.Survival's parametric fits, AFT regressions and curves against lifelines' (#1172)."""
+    wallcpu_report("survival-parametric", fmt)
+
+
 def glm(fmt: str = "text") -> None:
     """The negative binomial GLM against statsmodels' GLM, over that same corpus (#781)."""
     wallcpu_report("glm", fmt)
@@ -422,6 +427,8 @@ if __name__ == "__main__":
         survival_family(output_format)
     elif selected == "cox-extended":
         cox_extended(output_format)
+    elif selected == "survival-parametric":
+        survival_parametric(output_format)
     elif selected == "splitters":
         splitters(output_format)
     elif selected == "transformers":

@@ -130,6 +130,9 @@ def declared_version(package: str, prop: str) -> str:
 # Stats.Regression reaches Abstractions by ProjectReference until its IV data types are published
 # (#1155); pack emits the project's declared version, and the release restores ABSTRACTIONS_FLOOR.
 ABSTRACTIONS_PROJECT_FLOOR = declared_version("Lodestar.Abstractions", "LodestarAbstractionsVersion")
+# Lodestar.Survival reaches Lodestar.Stats by project too, for the tails #1172's parametric fitters read, until the
+# release publishes them.
+STATS_PROJECT_FLOOR = declared_version("Lodestar.Stats", "LodestarStatsVersion")
 
 # Directory.Packages.props' PackageVersion for both Microsoft.Extensions.*.Abstractions
 # pins: Extensions.AI and Extensions.VectorData agree on it without a range to reconcile.
@@ -250,10 +253,10 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         },
     },
     SURVIVAL: {
-        # Nothing external, which keeps this core tier: the chi-squared tail and the normal quantile,
-        # published for it, and its data types at the project's version until the release publishes #1170's.
-        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        # Nothing external, which keeps this core tier: the distribution tails, published for it, and its data
+        # types, both at the projects' versions until the release publishes #1170's types and #1172's tails.
+        NET: {STATS: STATS_PROJECT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NETSTANDARD: {STATS: STATS_PROJECT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
     },
     DECOMPOSITION: {
         # The one edge of this package, and the reason Lodestar.Abstractions exists:

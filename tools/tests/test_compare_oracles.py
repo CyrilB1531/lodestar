@@ -218,3 +218,24 @@ def test_a_relative_corpus_refuses_zero_moved_past_its_floor(tmp_path):
 
 def test_any_other_corpus_stays_absolute(tmp_path):
     assert compare(tmp_path, {CORPUS: scored(6812205.701842783)}, {CORPUS: scored(6812205.701431695)}) == 1
+
+
+PARAMETRIC = "survival_parametric.json"
+
+
+def fitted(model: str, error: float) -> dict:
+    """A parametric corpus of one case, its standard error moved by `error`."""
+    return {"univariate": [{"model": model, "standardErrors": [0.3 + error]}]}
+
+
+def test_a_selected_case_is_held_at_its_wider_field_tolerance(tmp_path):
+    """The generalized gamma's inference moves by 4e-8 between hosts, and its suite holds it at 1e-6 (#1172)."""
+    assert compare(tmp_path, {PARAMETRIC: fitted("GeneralizedGamma", 0.0)}, {PARAMETRIC: fitted("GeneralizedGamma", 4e-8)}) == 0
+
+
+def test_a_selected_case_past_its_wider_tolerance_fails(tmp_path):
+    assert compare(tmp_path, {PARAMETRIC: fitted("GeneralizedGamma", 0.0)}, {PARAMETRIC: fitted("GeneralizedGamma", 1e-5)}) == 1
+
+
+def test_a_case_the_rule_does_not_select_stays_at_the_default(tmp_path):
+    assert compare(tmp_path, {PARAMETRIC: fitted("Weibull", 0.0)}, {PARAMETRIC: fitted("Weibull", 4e-8)}) == 1

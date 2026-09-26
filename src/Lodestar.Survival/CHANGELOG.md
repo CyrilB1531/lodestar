@@ -7,12 +7,15 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Added
 
+- `ParametricSurvival` fits lifelines' six parametric univariate models right-, left- and interval-censored with weights and delayed entry, `AcceleratedFailureTime` its Weibull, log-normal and log-logistic regressions, and `BreslowFlemingHarrington.Estimate` and `KaplanMeier.EstimateLeftCensored` complete its non-parametric curves. ([#1172](https://github.com/CyrilB1531/lodestar/issues/1172))
+
 - `CoxProportionalHazards.Fit` takes subject weights, strata, clusters, lifelines' elastic-net penalty and the robust variance, `CoxSummary` carries the baselines and lifelines' predictions, `TestProportionalHazards` runs the proportional hazards test, and `CoxTimeVarying` fits start-stop intervals. ([#1171](https://github.com/CyrilB1531/lodestar/issues/1171))
 
 - `LogRank` runs the Wilcoxon, Tarone-Ware, Peto and Fleming-Harrington weightings, subject weights and a truncation, over two groups, several or every pair, and `KaplanMeier.RestrictedMean`, `KaplanMeier.CompareAt` and `Concordance.Index` complete lifelines' closed forms. ([#1170](https://github.com/CyrilB1531/lodestar/issues/1170))
 
 ### Changed
 
+- `Lodestar.Survival` needs the next `Lodestar.Stats`, for the normal and chi-squared tails the parametric fits read. ([#1172](https://github.com/CyrilB1531/lodestar/issues/1172))
 - The `Lodestar.Stats` dependency floor rises from 0.4.0 to 0.5.0, the release that forwards its data types to `Lodestar.Abstractions`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
 
 ## [0.2.0] — 2026-09-24

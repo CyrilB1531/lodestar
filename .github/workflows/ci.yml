@@ -662,6 +662,8 @@ jobs:
             [ "$proj" = src/Lodestar.Cluster ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
             # And for the log-rank options and restricted mean Lodestar.Survival names (#1170).
             [ "$proj" = src/Lodestar.Survival ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            # And for the distribution tails its parametric fitters read from Lodestar.Stats (#1172).
+            [ "$proj" = src/Lodestar.Survival ] && refs=${refs//..\/Lodestar.Stats\/Lodestar.Stats.csproj/}
             refs=$(echo $refs)
             if [ -n "$refs" ]; then
               echo "::error::$proj references $refs by project; src/ must reference published packages."

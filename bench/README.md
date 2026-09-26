@@ -3592,3 +3592,23 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-cox-ex
 python3 bench/python/bench_cox_extended.py
 python3 bench/compare.py cox-extended
 ```
+
+## 68. Parametric survival models against lifelines (issue #1172)
+
+`compare-survival-parametric` puts `ParametricSurvival.Fit` (Weibull, generalized gamma),
+`FitLeftCensored` (log-logistic) and `FitIntervalCensored` (log-normal), `AcceleratedFailureTime.Fit`
+(Weibull; log-normal with a ridge penalty and the robust variance) and `FitIntervalCensored`
+(log-logistic), `BreslowFlemingHarrington.Estimate` and `KaplanMeier.EstimateLeftCensored` against
+lifelines 0.30.3's fitters of the same names, at 1,000 and 10,000 subjects of four covariates. Every
+fit runs at lifelines' defaults, as a caller runs it; those stop short of the maximum this reaches. No
+.NET library fits any of these models, so the reference is the incumbent.
+
+No corpus file: both sides build each subject by section 67's formula; an interval runs from the
+duration to half as far again, one censored subject in five open-ended. Agreement is
+`tests/oracles/survival_parametric.json`'s job.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-survival-parametric
+python3 bench/python/bench_survival_parametric.py
+python3 bench/compare.py survival-parametric
+```

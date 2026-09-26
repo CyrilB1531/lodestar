@@ -67,6 +67,9 @@ switch (args.Length > 0 ? args[0] : string.Empty)
     case "compare-cox-extended":
         CoxExtendedCrossLang.Run();
         return;
+    case "compare-survival-parametric":
+        SurvivalParametricCrossLang.Run();
+        return;
     case "roc-parallel":
         RocParallelBench.Run();
         return;
