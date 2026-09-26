@@ -36,6 +36,8 @@ flowchart TD
     J --> K["ParametricSurvival"]
     A --> L["how much a covariate stretches time"]
     L --> M["AcceleratedFailureTime"]
+    A --> N["how a covariate's effect moves with time"]
+    N --> O["AalenAdditive"]
 ```
 
 `KaplanMeier` and `NelsonAalen` are two readings of one table, and they share a timeline by
@@ -61,6 +63,9 @@ keeps the size of that last step.
 
 | Type | What it is |
 | --- | --- |
+| [`AalenAdditive`](estimators/aalenadditive.md) | Aalen's additive hazards model, whose covariate effects move with time. |
+| [`AalenOptions`](estimators/aalenoptions.md) | The level, the intercept and the two penalties an Aalen fit takes. |
+| [`AalenSummary`](estimators/aalensummary.md) | What it returns: the cumulative coefficients, their bounds, the slopes and the predictions. |
 | [`AcceleratedFailureTime`](estimators/acceleratedfailuretime.md) | The Weibull, log-normal and log-logistic regressions on the time axis. |
 | [`AftModel`](estimators/aftmodel.md) | Which accelerated failure time regression runs. |
 | [`AftOptions`](estimators/aftoptions.md) | The level, the intercept, the ancillary model, the penalty and the robust errors an AFT fit takes. |

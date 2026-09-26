@@ -202,6 +202,30 @@ and **late entry**: a subject who joins the study at month three was not at risk
 and [`BreslowFlemingHarrington`](../reference/survival/estimators/breslowflemingharrington.md), with
 entry, are the non-parametric curves for those cases.
 
+## When an effect changes with time: Aalen's additive model
+
+A Cox coefficient is one number for the whole follow-up. **Aalen's additive model** lets each
+covariate's effect move with time: the hazard is a sum, each covariate adding its own amount, and
+[`AalenAdditive.Fit`](../reference/survival/estimators/aalenadditive-fit.md) estimates how much each
+adds at every event time. Read the cumulative coefficients rather than the increments: a straight
+line means a constant effect, a bend means the effect changed there.
+
+```csharp
+using Lodestar.Survival;
+
+double[] months = [12, 5, 20, 3, 15, 9, 8, 14, 2, 18, 7, 11];
+bool[] died = [true, true, false, true, true, true, true, false, true, true, true, false];
+double[] treated = [0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0];
+
+AalenSummary aalen = AalenAdditive.Fit(treated, months, died, featureCount: 1);
+IReadOnlyList<double> byTime = aalen.CumulativeHazards;   // row-major: event time by coefficient
+double slope = aalen.Slopes[0];                           // the treatment's average added hazard per month
+```
+
+The fit reproduces lifelines' `AalenAdditiveFitter`, readings included: a subject censored between
+two event times stays in its risk set to the end, and the variance is rescaled as lifelines rescales
+it. [`docs/equivalence.md`](../equivalence.md) has the three.
+
 ## What is not here
 
 Turnbull's non-parametric curve for interval-censored data, and the Kaplan-Meier and Cox fits with

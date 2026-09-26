@@ -319,6 +319,11 @@ def survival_parametric(fmt: str = "text") -> None:
     wallcpu_report("survival-parametric", fmt)
 
 
+def survival_aalen(fmt: str = "text") -> None:
+    """Lodestar.Survival's Aalen additive fit against lifelines' (#1173)."""
+    wallcpu_report("survival-aalen", fmt)
+
+
 def glm(fmt: str = "text") -> None:
     """The negative binomial GLM against statsmodels' GLM, over that same corpus (#781)."""
     wallcpu_report("glm", fmt)
@@ -429,6 +434,8 @@ if __name__ == "__main__":
         cox_extended(output_format)
     elif selected == "survival-parametric":
         survival_parametric(output_format)
+    elif selected == "survival-aalen":
+        survival_aalen(output_format)
     elif selected == "splitters":
         splitters(output_format)
     elif selected == "transformers":

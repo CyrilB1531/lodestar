@@ -7805,6 +7805,99 @@ def generate_survival_parametric() -> dict:
         "fixed_point": fixed,
     }
 
+# The Aalen additive corpus (#1173): its keys.
+AALEN_COEF_PENALIZER = "coefPenalizer"
+AALEN_SMOOTHING_PENALIZER = "smoothingPenalizer"
+AALEN_TIMES = "eventTimes"
+AALEN_PREDICT = "predictDesign"
+
+
+def _aalen_samples() -> list[tuple[str, dict]]:
+    """Two covariates, one continuous and one binary: tie-free durations, then durations rounded into ties."""
+    rng = np.random.default_rng(117301)
+    samples = []
+    for label, n, digits in (("continuous", 90, 6), ("tied", 70, 0), ("few subjects", 14, 1)):
+        x0 = [round(float(v), 4) for v in rng.normal(0.0, 1.0, n)]
+        x1 = [float(v) for v in rng.integers(0, 2, n)]
+        rate = 0.2 + 0.1 * np.abs(np.array(x0)) + 0.15 * np.array(x1)
+        durations = [round(float(v), digits) + (1.0 if digits == 0 else 0.0) for v in rng.exponential(1.0 / rate) * 3.0 + 0.05]
+        events = [int(v) for v in rng.random(n) < 0.75]
+        weights = [float(v) for v in rng.integers(1, 4, n)]
+        samples.append((label, {AFT_DESIGN: [[a, b] for a, b in zip(x0, x1, strict=True)], DURATIONS: durations,
+                                EVENTS: events, WEIGHTS: weights}))
+    # One treatment covariate that is constant among the last subjects at risk: lifelines' solve fails there.
+    treated = [0.0, 1.0] * 6
+    samples.append(("singular tail", {AFT_DESIGN: [[v] for v in treated], DURATIONS: [3, 10, 5, 4, 8, 18, 12, 6, 9, 20, 7, 15],
+                                      EVENTS: [1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1], WEIGHTS: [1.0, 2.0] * 6}))
+    return samples
+
+
+def _aalen_case(label: str, data: dict, options: dict) -> dict:
+    """One lifelines Aalen fit, with every table, bound and prediction it reports."""
+    import pandas as pd  # noqa: PLC0415
+    from lifelines import AalenAdditiveFitter  # noqa: PLC0415
+
+    columns = [f"x{j}" for j in range(len(data[AFT_DESIGN][0]))]
+    frame = pd.DataFrame(data[AFT_DESIGN], columns=columns)
+    frame["T"], frame["E"] = data[DURATIONS], data[EVENTS]
+    weighted = options["weighted"]
+    if weighted:
+        frame["w"] = data[WEIGHTS]
+    fitter = AalenAdditiveFitter(fit_intercept=options[AFT_FIT_INTERCEPT], alpha=options["alpha"],
+                                 coef_penalizer=options[AALEN_COEF_PENALIZER], smoothing_penalizer=options[AALEN_SMOOTHING_PENALIZER])
+    fitter.fit(frame, "T", "E", weights_col="w" if weighted else None)
+    summary = fitter.summary
+    ci = fitter.confidence_intervals_
+    level = f"{100 * (1 - options['alpha']):g}%"
+    new = pd.DataFrame(data[AALEN_PREDICT], columns=columns)
+    cumulative = fitter.predict_cumulative_hazard(new).T.values
+    # With tied durations the pairing lifelines scores follows numpy's unstable sort, which the CPU decides.
+    tied = len(set(data[DURATIONS])) < len(data[DURATIONS])
+    return {"name": label, **{k: v for k, v in data.items() if k != AALEN_PREDICT}, AFT_OPTIONS: options,
+            PARAM_NAMES: list(fitter.cumulative_hazards_.columns),
+            AALEN_TIMES: [float(v) for v in fitter.cumulative_hazards_.index],
+            "hazards": [float(v) for v in fitter.hazards_.values.ravel()],
+            COX_CUMULATIVE: [float(v) for v in fitter.cumulative_hazards_.values.ravel()],
+            "cumulativeVariance": [float(v) for v in fitter.cumulative_variance_.values.ravel()],
+            CONFIDENCE_LOWER: [float(v) for v in ci.loc[f"{level} lower-bound"].values.ravel()],
+            CONFIDENCE_UPPER: [float(v) for v in ci.loc[f"{level} upper-bound"].values.ravel()],
+            "slopes": [float(v) for v in summary["slope(coef)"]], "slopeErrors": [float(v) for v in summary["se(slope(coef))"]],
+            "concordance": None if tied else float(fitter.concordance_index_),
+            AALEN_PREDICT: data[AALEN_PREDICT], "predictedCumulativeHazard": [float(v) for v in cumulative.ravel()],
+            PARAM_MEDIAN: [None if math.isinf(v) else float(v) for v in np.atleast_1d(fitter.predict_median(new))],
+            PARAM_QUARTILE: [None if math.isinf(v) else float(v) for v in np.atleast_1d(fitter.predict_percentile(new, p=0.75))],
+            "expectation": [float(v) for v in fitter.predict_expectation(new)],
+            "smoothed": [float(v) for v in fitter.smoothed_hazards_(bandwidth=1.5).values.ravel()]}
+
+
+def generate_survival_aalen() -> dict:
+    """lifelines' AalenAdditiveFitter, its tables, bounds, slopes, concordance and predictions (#1173).
+
+    A closed form: a ridge-penalised least squares at each event time, with no optimiser to pin. lifelines' own readings
+    are what the corpus holds, a subject censored between event times kept at risk and the variance rescaled by the
+    deviation, not its square.
+    """
+    plain = {AFT_FIT_INTERCEPT: True, "alpha": 0.05, AALEN_COEF_PENALIZER: 0.0, AALEN_SMOOTHING_PENALIZER: 0.0, "weighted": False}
+    variants = [("plain", plain), ("no intercept", {**plain, AFT_FIT_INTERCEPT: False}),
+                ("coefficient penalty", {**plain, AALEN_COEF_PENALIZER: 0.5}),
+                ("smoothing penalty", {**plain, AALEN_SMOOTHING_PENALIZER: 1.0}),
+                ("both penalties", {**plain, AALEN_COEF_PENALIZER: 0.2, AALEN_SMOOTHING_PENALIZER: 0.3}),
+                ("weighted", {**plain, "weighted": True}), ("level 0.9", {**plain, "alpha": 0.1})]
+    predict = [[-1.0, 0.0], [0.0, 1.0], [0.5, 0.0], [1.5, 1.0]]
+    cases = []
+    for label, data in _aalen_samples():
+        width = len(data[AFT_DESIGN][0])
+        for variant, options in variants:
+            # Weighted, the singular tail's pivot rounds to +2e-16 at month 15 and LAPACK solves where it fails unweighted.
+            if label == "singular tail" and options["weighted"]:
+                continue
+            case = _aalen_case(f"{label}, {variant}", {**data, AALEN_PREDICT: [row[:width] for row in predict]}, options)
+            json.dumps(case, allow_nan=False)
+            cases.append(case)
+    return {"metadata": {"library": LIFELINES, "version": version(LIFELINES), FAMILY: "survival-aalen", "count": len(cases)},
+            "fits": cases}
+
+
 # --- Lodestar.Text.Similarity, oracled by datasketch and simhash (#602) -------
 
 SIM_TOKENS = "tokens"
@@ -16165,6 +16258,7 @@ def main() -> None:
         "survival_logrank_family.json": generate_survival_logrank_family,
         "survival_restricted.json": generate_survival_restricted,
         "survival_concordance.json": generate_survival_concordance,
+        "survival_aalen.json": generate_survival_aalen,
         "stats_ols.json": generate_stats_ols,
         "stats_iv.json": generate_stats_iv,
         "stats_panel.json": generate_stats_panel,

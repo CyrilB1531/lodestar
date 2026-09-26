@@ -5,8 +5,9 @@ intervals, right- or left-censored, its restricted mean and fixed-time compariso
 cumulative hazard and the Breslow-Fleming-Harrington curve, the log-rank family — weighted,
 multi-group and pairwise — the concordance index, the Cox proportional-hazards model — stratified,
 weighted, penalised, robust, with its proportional hazards test, predictions and a time-varying
-form — and the parametric models: six univariate fits and three accelerated failure time
-regressions, right-, left- or interval-censored, with weights and delayed entry. No C#
+form — Aalen's additive hazards model, and the parametric models: six univariate fits and three
+accelerated failure time regressions, right-, left- or interval-censored, with weights and delayed
+entry. No C#
 implementation of these existed before this package.
 
 ## Install
