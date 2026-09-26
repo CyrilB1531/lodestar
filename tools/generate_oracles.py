@@ -15844,6 +15844,10 @@ def generate_stats_anderson() -> dict:
          "x": [1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 9.0]},
         {"name": "two values, the smallest sample with a spread",
          "x": [1.0, 4.0]},
+        # A non-finite value makes the statistic and the p-value NaN, the table unchanged (#1216).
+        {"name": "a NaN in the sample", "x": [1.0, 2.0, math.nan, 4.0, 5.0]},
+        {"name": "an infinity in the sample", "x": [1.0, 2.0, math.inf, 4.0]},
+        {"name": "a negative infinity in the sample", "x": [1.0, 2.0, -math.inf, 4.0]},
     ]
 
     cases = []
@@ -15863,7 +15867,7 @@ def generate_stats_anderson() -> dict:
 
         cases.append({
             "name": fx["name"], "call": ANDERSON, "args": {},
-            "x": fx["x"],
+            "x": [_stats_number(v) for v in fx["x"]],
             STATISTIC: _stats_number(float(interpolated.statistic)),
             PVALUE: _stats_number(float(interpolated.pvalue)),
             CRITICAL_VALUES: [float(v) for v in stated],

@@ -13,7 +13,8 @@ the span is read, never modified.
 
 **Returns** — `AndersonResult`: the A² statistic, the p-value interpolated from Stephens' table,
 and the table itself — the critical values for this sample size, and the significance levels they
-belong to.
+belong to. A NaN or an infinity in the sample makes the statistic and the p-value NaN, as scipy's are,
+and leaves the table unchanged.
 
 **Exceptions** — `ArgumentException` when the sample holds fewer than two values, or every value
 is the same and there is no spread to standardise by.

@@ -22,7 +22,8 @@ public static partial class AndersonDarling
     /// <param name="x">The sample; at least two values, since the spread is estimated from it.</param>
     /// <returns>
     /// The A² statistic, the p-value interpolated from the table, and the table itself — the
-    /// critical values for this sample size, and the significance levels they belong to.
+    /// critical values for this sample size, and the significance levels they belong to. The statistic and the
+    /// p-value are NaN when the sample holds a NaN or an infinity, as scipy's are.
     /// </returns>
     /// <exception cref="ArgumentException">Fewer than two values, or a constant sample.</exception>
     /// <remarks>
@@ -102,6 +103,12 @@ public static partial class AndersonDarling
     /// </remarks>
     private static double Interpolated(double squared, double[] critical)
     {
+        // A NaN statistic, from a NaN or an infinity in the sample, compares false with every value; scipy answers NaN.
+        if (double.IsNaN(squared))
+        {
+            return double.NaN;
+        }
+
         int last = critical.Length - 1;
         if (squared <= critical[0])
         {
