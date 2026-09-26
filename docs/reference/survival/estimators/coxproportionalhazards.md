@@ -27,16 +27,16 @@ double p = summary.PValues[0];                  // => 0.02669…
 
 **Remarks** — **the model assumes the covariates multiply the hazard by the same factor at every
 time.** That is the "proportional" in its name, and a hazard ratio of 4.07 per milligram means
-nothing if the dose's effect fades after the first months. This release does not test the
-assumption. [The guide](../../../guides/survival-analysis.md) says how to look for its failure
-before trusting a table.
+nothing if the dose's effect fades after the first months.
+[`TestProportionalHazards`](coxproportionalhazards-testproportionalhazards.md) tests it covariate
+by covariate, and [the guide](../../../guides/survival-analysis.md) says how to read a failure.
 
 It answers a different question from its neighbours. [`KaplanMeier`](kaplanmeier.md) says what
 survival looks like, and [`LogRank`](logrank.md) whether two groups differ. This says by how much
 each covariate changes the hazard, holding the others fixed.
 
-Reference behaviour is `lifelines.CoxPHFitter` 0.30.3, right-censored, unpenalised and
-unstratified, matched over five fixtures. The divergences are recorded in
+Reference behaviour is `lifelines.CoxPHFitter` 0.30.3, right-censored, with its strata, subject
+weights, elastic-net penalty, robust and clustered variances, baselines and predictions. The divergences are recorded in
 [decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
 and the [equivalence table](../../../equivalence.md).
 
@@ -50,3 +50,4 @@ and the [equivalence table](../../../equivalence.md).
 | Member | What it does |
 | --- | --- |
 | [`CoxProportionalHazards.Fit`](coxproportionalhazards-fit.md) | Fits the model and reports its inference table. |
+| [`CoxProportionalHazards.TestProportionalHazards`](coxproportionalhazards-testproportionalhazards.md) | Tests each covariate for a hazard ratio that drifts with time. |

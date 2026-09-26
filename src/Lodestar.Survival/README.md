@@ -3,8 +3,9 @@
 Survival analysis for right-censored data: the Kaplan-Meier survival function with
 Greenwood variance and log-log confidence intervals, its restricted mean and fixed-time comparison,
 the Nelson-Aalen cumulative hazard, the log-rank family — weighted, multi-group and pairwise — the
-concordance index and the Cox proportional-hazards model. No C# implementation of these existed before
-this package.
+concordance index, and the Cox proportional-hazards model — stratified, weighted, penalised, robust,
+with its proportional hazards test, predictions and a time-varying form. No C# implementation of these
+existed before this package.
 
 ## Install
 

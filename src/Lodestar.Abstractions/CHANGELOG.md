@@ -14,6 +14,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `AndersonKSampleVariant` and `CorrelationMatrix` in `Lodestar.Stats`, which the k-sample Anderson-Darling test and Spearman's correlation matrix take and return. ([#1162](https://github.com/CyrilB1531/lodestar/issues/1162))
 - `KMeansOptions.InitialCentreSets` and `Restarts`, the starts `KMeans` runs from. ([#1163](https://github.com/CyrilB1531/lodestar/issues/1163))
 - `LogRankOptions`, `LogRankWeighting`, `PairwiseLogRankResult` and `RestrictedMeanResult` in `Lodestar.Survival`, which the log-rank family and the restricted mean take and return. ([#1170](https://github.com/CyrilB1531/lodestar/issues/1170))
+- `CoxBaseline` and `CoxTimeTransform` in `Lodestar.Survival`, the Cox baselines and the proportional hazards test's time scale. ([#1171](https://github.com/CyrilB1531/lodestar/issues/1171))
 
 ## [0.2.0] — 2026-09-24
 

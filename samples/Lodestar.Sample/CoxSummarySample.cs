@@ -29,6 +29,17 @@ internal static class CoxSummarySample
         Console.WriteLine(
             $"  likelihood ratio : {Inv.F3(s.LikelihoodRatioStatistic)} on {s.LikelihoodRatioDegreesOfFreedom} df, "
             + $"p {Inv.F4(s.LikelihoodRatioPValue)}");
+
+        // What the model predicts for a patient on 2 mg of the new treatment, against one at the sample's means.
+        double[] patient = [2.0, 1.0];
+        Console.WriteLine($"  means            : {Inv.F3(s.CovariateMeans[0])}, {Inv.F3(s.CovariateMeans[1])} (robust {s.Robust})");
+        Console.WriteLine($"  log / partial    : {Inv.F4(s.PredictLogPartialHazard(patient)[0])} / {Inv.F4(s.PredictPartialHazard(patient)[0])}");
+        double[] survival = s.PredictSurvivalFunction(patient, [], [5.0, 10.0]);
+        double[] cumulative = s.PredictCumulativeHazard(patient, [], [5.0, 10.0]);
+        Console.WriteLine($"  S(5), S(10)      : {Inv.F4(survival[0])}, {Inv.F4(survival[1])} (H {Inv.F4(cumulative[0])}, {Inv.F4(cumulative[1])})");
+        Console.WriteLine(
+            $"  median / p25     : {Inv.F1(s.PredictMedian(patient, [])[0])} / {Inv.F1(s.PredictPercentile(patient, [], 0.25)[0])}, "
+            + $"expected {Inv.F3(s.PredictExpectation(patient, [])[0])}");
         Console.WriteLine($"  concordance      : {Inv.F3(s.ConcordanceIndex)} at level {Inv.F3(s.ConfidenceLevel)}");
         Console.WriteLine();
     }

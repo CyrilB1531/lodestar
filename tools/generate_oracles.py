@@ -7101,7 +7101,7 @@ def generate_survival_cox() -> dict:
             "hazardRatioLower": [float(v) for v in summary["exp(coef) lower 95%"]],
             "hazardRatioUpper": [float(v) for v in summary["exp(coef) upper 95%"]],
             LOG_LIKELIHOOD: float(model.log_likelihood_),
-            "nullLogLikelihood": float(model.log_likelihood_ - ratio.test_statistic / 2.0),
+            COX_NULL_LOG_LIKELIHOOD: float(model.log_likelihood_ - ratio.test_statistic / 2.0),
             "likelihoodRatioStatistic": float(ratio.test_statistic),
             "likelihoodRatioPValue": float(ratio.p_value),
             "likelihoodRatioDegreesOfFreedom": int(ratio.degrees_freedom),
@@ -7120,6 +7120,224 @@ def generate_survival_cox() -> dict:
         "cases": cases,
     }
 
+
+
+# The extended Cox corpus (#1171): its keys.
+COX_STRATA = "strata"
+COX_CLUSTERS = "clusters"
+COX_PENALIZER = "penalizer"
+COX_L1_RATIO = "l1Ratio"
+COX_NULL_LOG_LIKELIHOOD = "nullLogLikelihood"
+COX_CONCORDANCE = "concordanceIndex"
+COX_BASELINES = "baselines"
+COX_PREDICT_ROWS = "predictRows"
+COX_PREDICT_STRATA = "predictStrata"
+COX_PREDICT_TIMES = "predictTimes"
+COX_STRATUM = "stratum"
+COX_TIMES = "times"
+COX_CUMULATIVE = "cumulativeHazard"
+COX_PARTIAL = "partialHazards"
+COX_TRANSFORMS = {"rank": "rank", "km": "kaplanMeier", "identity": "identity", "log": "log"}
+TV_START = "start"
+TV_STOP = "stop"
+TV_STARTS = "starts"
+TV_STOPS = "stops"
+
+
+def _cox_frame(fixture: dict, names: list[str]):
+    """The fixture as the DataFrame lifelines fits: covariates, duration, event, and whichever columns it carries."""
+    import pandas as pd  # noqa: PLC0415
+
+    frame = pd.DataFrame(np.array(fixture[DESIGN]).reshape(-1, len(names)), columns=names)
+    frame[COX_DURATION_COLUMN] = fixture[DURATIONS]
+    frame[COX_EVENT_COLUMN] = fixture[EVENTS]
+    for key in (WEIGHTS, COX_STRATA, COX_CLUSTERS):
+        if fixture.get(key) is not None:
+            frame[key] = fixture[key]
+    return frame
+
+
+def _cox_extended_fit(fixture: dict) -> tuple[dict, object, object]:
+    """One CoxPHFitter fit with its table, baselines and predictions; the tight stopping rule unless an L1 part asks for lifelines' own."""
+    from lifelines import CoxPHFitter  # noqa: PLC0415
+
+    names = [f"x{index}" for index in range(fixture[FEATURE_COUNT])]
+    frame = _cox_frame(fixture, names)
+    l1 = fixture[COX_L1_RATIO]
+    model = CoxPHFitter(penalizer=fixture[COX_PENALIZER], l1_ratio=l1).fit(
+        frame, COX_DURATION_COLUMN, COX_EVENT_COLUMN,
+        weights_col=WEIGHTS if fixture.get(WEIGHTS) is not None else None,
+        strata=[COX_STRATA] if fixture.get(COX_STRATA) is not None else None,
+        cluster_col=COX_CLUSTERS if fixture.get(COX_CLUSTERS) is not None else None,
+        robust=fixture[ROBUST], fit_options=None if l1 > 0 else COX_FIT_OPTIONS)
+    summary = model.summary
+    baselines = model.baseline_cumulative_hazard_
+    rows = frame.iloc[[0, len(frame) // 2, len(frame) - 1]]
+    # Distinct times: lifelines' stratified prediction merges on the time index, and a repeated time multiplies rows.
+    times = sorted({float(v) for v in np.quantile(fixture[DURATIONS], [0.25, 0.5, 0.75])} | {float(max(fixture[DURATIONS]) + 1.0)})
+    # A stratified prediction comes back grouped by stratum; the subjects' own order is the columns' labels.
+    survival = model.predict_survival_function(rows, times=times)[rows.index]
+    cumulative = model.predict_cumulative_hazard(rows, times=times)[rows.index]
+    case = {
+        **fixture,
+        COEFFICIENTS: [float(v) for v in summary["coef"]],
+        STANDARD_ERRORS: [float(v) for v in summary["se(coef)"]],
+        P_VALUES: [float(v) for v in summary["p"]],
+        LOG_LIKELIHOOD: float(model.log_likelihood_),
+        COX_NULL_LOG_LIKELIHOOD: float(model._ll_null_),
+        COX_CONCORDANCE: float(model.concordance_index_),
+        COX_BASELINES: [{COX_STRATUM: int(column) if fixture.get(COX_STRATA) is not None else 0,
+                         COX_TIMES: [float(t) for t in baselines.index],
+                         COX_CUMULATIVE: [float(v) for v in baselines[column]]} for column in baselines.columns],
+        COX_PREDICT_ROWS: [float(v) for v in rows[names].to_numpy().ravel()],
+        COX_PREDICT_STRATA: [int(v) for v in rows[COX_STRATA]] if fixture.get(COX_STRATA) is not None else None,
+        COX_PREDICT_TIMES: times,
+        "logPartialHazards": [float(v) for v in model.predict_log_partial_hazard(rows)],
+        "survival": [float(v) for v in survival.to_numpy().T.ravel()],
+        COX_CUMULATIVE: [float(v) for v in cumulative.to_numpy().T.ravel()],
+        "medians": [float(v) if math.isfinite(v) else None for v in np.atleast_1d(model.predict_median(rows))],
+        "expectations": [float(v) for v in np.atleast_1d(model.predict_expectation(rows))],
+    }
+    return case, model, frame
+
+
+def _cox_extended_fixtures() -> list[dict]:
+    """Stratified, weighted, penalised, robust and clustered fits, each over a seeded design (#1171)."""
+    rng = SeededRandom(SEED + 117100)
+    base = [(_cox_fixture(rng, "tied", 80, [NORMAL_COVARIATE, BINARY_COVARIATE], 0.8, 5.0, tied=True)),
+            (_cox_fixture(rng, "untied", 60, [NORMAL_COVARIATE, NORMAL_COVARIATE], 0.7, 10.0, tied=False)),
+            (_cox_fixture(rng, "three covariates", 90, [NORMAL_COVARIATE, BINARY_COVARIATE, NORMAL_COVARIATE], 0.75, 5.0,
+                          tied=True))]
+    def labels(fixture, count):
+        return [int(rng.random() * count) for _ in fixture[DURATIONS]]
+
+    def whole(fixture):
+        return [float(1 + int(rng.random() * 3)) for _ in fixture[DURATIONS]]
+
+    def fractional(fixture):
+        return [round(0.2 + 1.8 * rng.random(), 6) for _ in fixture[DURATIONS]]
+
+    settings = [
+        ("plain", {}),
+        ("stratified", {COX_STRATA: 3}),
+        ("whole weights", {WEIGHTS: whole}),
+        ("fractional weights, robust", {WEIGHTS: fractional, ROBUST: True}),
+        ("robust variance", {ROBUST: True}),
+        ("clustered", {COX_CLUSTERS: 12}),
+        ("ridge 0.1", {COX_PENALIZER: 0.1}),
+        ("ridge 0.5, stratified", {COX_PENALIZER: 0.5, COX_STRATA: 2}),
+        ("elastic net 0.05, l1 0.5", {COX_PENALIZER: 0.05, COX_L1_RATIO: 0.5}),
+        ("lasso 0.1", {COX_PENALIZER: 0.1, COX_L1_RATIO: 1.0}),
+        ("everything", {COX_STRATA: 2, WEIGHTS: whole, COX_CLUSTERS: 10, COX_PENALIZER: 0.2}),
+    ]
+    fixtures = []
+    for fixture in base:
+        for name, setting in settings:
+            case = {**fixture, "name": f"{fixture['name']}, {name}", WEIGHTS: None, COX_STRATA: None, COX_CLUSTERS: None,
+                    ROBUST: bool(setting.get(ROBUST, False)), COX_PENALIZER: float(setting.get(COX_PENALIZER, 0.0)),
+                    COX_L1_RATIO: float(setting.get(COX_L1_RATIO, 0.0))}
+            if COX_STRATA in setting:
+                case[COX_STRATA] = labels(fixture, setting[COX_STRATA])
+            if COX_CLUSTERS in setting:
+                case[COX_CLUSTERS] = labels(fixture, setting[COX_CLUSTERS])
+            if WEIGHTS in setting:
+                case[WEIGHTS] = setting[WEIGHTS](fixture)
+            fixtures.append(case)
+    return fixtures
+
+
+def _time_varying_fixture(rng, name: str, subjects: int, event_rate: float) -> dict:
+    """Subjects observed over one to three intervals: one fixed covariate, one that changes between intervals."""
+    design, starts, stops, events, ids = [], [], [], [], []
+    for subject in range(subjects):
+        fixed = rng.gauss(0.0, 1.0)
+        start = 0.0
+        pieces = 1 + int(rng.random() * 3)
+        for piece in range(pieces):
+            varying = rng.gauss(0.0, 1.0)
+            rate = math.exp(0.5 * fixed - 0.4 * varying)
+            stop = round(start + 0.1 + (-math.log(1.0 - rng.random()) / rate), 3)
+            design += [fixed, varying]
+            starts.append(round(start, 3))
+            stops.append(stop)
+            events.append(1 if piece == pieces - 1 and rng.random() < event_rate else 0)
+            ids.append(subject)
+            start = stop
+    return {"name": name, FEATURE_COUNT: 2, DESIGN: design, TV_STARTS: starts, TV_STOPS: stops, EVENTS: events, "ids": ids}
+
+
+def _time_varying_cases() -> list[dict]:
+    """CoxTimeVaryingFitter fits, plain, weighted, stratified and penalised, with the baseline and partial hazards (#1171)."""
+    rng = SeededRandom(SEED + 117101)
+    settings = (("plain", 0.0, 0.0, False, False), ("weighted", 0.0, 0.0, True, False),
+                ("by stratum", 0.0, 0.0, False, True), ("ridge 0.1", 0.1, 0.0, False, False),
+                ("elastic net 0.05, l1 0.5", 0.05, 0.5, False, False))
+    fixtures = (_time_varying_fixture(rng, "sixty subjects", 60, 0.7), _time_varying_fixture(rng, "ninety subjects", 90, 0.6))
+    return [_time_varying_case(rng, fixture, setting) for fixture in fixtures for setting in settings]
+
+
+def _time_varying_case(rng, fixture: dict, setting: tuple) -> dict:
+    """One CoxTimeVaryingFitter fit: the tight stopping rule unless an L1 part asks for lifelines' own."""
+    import pandas as pd  # noqa: PLC0415
+    from lifelines import CoxTimeVaryingFitter  # noqa: PLC0415
+
+    name, penalizer, l1, weighted, stratified = setting
+    n = len(fixture[TV_STOPS])
+    frame = pd.DataFrame(np.array(fixture[DESIGN]).reshape(-1, 2), columns=["x0", "x1"])
+    frame[TV_START], frame[TV_STOP], frame[COX_EVENT_COLUMN], frame["id"] = (
+        fixture[TV_STARTS], fixture[TV_STOPS], fixture[EVENTS], fixture["ids"])
+    weights = [float(1 + int(rng.random() * 3)) for _ in range(n)] if weighted else None
+    strata = [int(rng.random() * 2) for _ in range(n)] if stratified else None
+    if weights is not None:
+        frame[WEIGHTS] = weights
+    if strata is not None:
+        frame[COX_STRATA] = strata
+    model = CoxTimeVaryingFitter(penalizer=penalizer, l1_ratio=l1).fit(
+        frame, event_col=COX_EVENT_COLUMN, start_col=TV_START, stop_col=TV_STOP, id_col="id",
+        weights_col=WEIGHTS if weighted else None, strata=[COX_STRATA] if stratified else None,
+        fit_options=None if l1 > 0 else {"precision": 1e-20, "r_precision": 0.0})
+    rows = frame[["x0", "x1"]].iloc[[0, n // 2, n - 1]]
+    baseline = model.baseline_cumulative_hazard_
+    return {**fixture, "name": f"{fixture['name']}, {name}", WEIGHTS: weights, COX_STRATA: strata,
+            COX_PENALIZER: penalizer, COX_L1_RATIO: l1,
+            COEFFICIENTS: [float(v) for v in model.params_], STANDARD_ERRORS: [float(v) for v in model.standard_errors_],
+            LOG_LIKELIHOOD: float(model.log_likelihood_),
+            COX_NULL_LOG_LIKELIHOOD: float(model._log_likelihood_null),
+            COX_TIMES: [float(t) for t in baseline.index], COX_CUMULATIVE: [float(v) for v in baseline.iloc[:, 0]],
+            COX_PREDICT_ROWS: [float(v) for v in rows.to_numpy().ravel()],
+            COX_PARTIAL: [float(v) for v in model.predict_partial_hazard(rows)]}
+
+
+def generate_survival_cox_extended() -> dict:
+    """Stratified, weighted, penalised, robust and clustered Cox fits, the proportional hazards test and time-varying Cox (#1171).
+
+    long-comment: which stopping rule each section records.
+    Every fit without an L1 part runs at COX_FIT_OPTIONS, lifelines' Newton pushed to its optimum, as the Cox corpus
+    records it; an L1 part runs at lifelines' defaults, because its smoothed absolute value is sharpened at every step
+    and the answer is where the loop stops, which the C# reproduces step for step. The time-varying fits do the same
+    with that fitter's own options. Robust variance is absent from the time-varying fitter, as it is from lifelines.
+    """
+    from lifelines.statistics import proportional_hazard_test  # noqa: PLC0415
+
+    fits, tests = [], []
+    for fixture in _cox_extended_fixtures():
+        case, model, frame = _cox_extended_fit(fixture)
+        fits.append(case)
+        if fixture[COX_L1_RATIO] <= 0.0 and fixture[COX_CLUSTERS] is None:
+            statistics = {}
+            for transform, key in COX_TRANSFORMS.items():
+                result = proportional_hazard_test(model, frame, time_transform=transform)
+                statistics[key] = {STATISTICS: [float(v) for v in np.atleast_1d(result.test_statistic)],
+                                   P_VALUES: [float(v) for v in np.atleast_1d(result.p_value)]}
+            tests.append({**case, STATISTICS: statistics})
+    varying = _time_varying_cases()
+    return {
+        "metadata": {"library": LIFELINES, "version": version(LIFELINES), FAMILY: "survival-cox-extended",
+                     "fitOptions": COX_FIT_OPTIONS, "count": len(fits) + len(tests) + len(varying)},
+        "fits": fits,
+        "ph_tests": tests,
+        "time_varying": varying,
+    }
 
 # --- Lodestar.Text.Similarity, oracled by datasketch and simhash (#602) -------
 
@@ -8071,7 +8289,7 @@ def generate_stats_mnlogit() -> dict:
             CONFIDENCE_LOWER: interval[:, :, 0].tolist(),
             CONFIDENCE_UPPER: interval[:, :, 1].tolist(),
             LOG_LIKELIHOOD: float(fit.llf),
-            "nullLogLikelihood": float(fit.llnull),
+            COX_NULL_LOG_LIKELIHOOD: float(fit.llnull),
             "pseudoRSquared": float(fit.prsquared),
             "likelihoodRatio": float(fit.llr),
             "likelihoodRatioPValue": float(fit.llr_pvalue),
@@ -15204,7 +15422,7 @@ def generate_stats_timeseries() -> dict:
                 "name": f"{fx['name']} | ljungbox | model_df={model_df}",
                 "call": "acorr_ljungbox",
                 SERIES: fx[SERIES], LAG_COUNT: lags, "model_df": model_df,
-                "statistics": [float(v) for v in frame["lb_stat"]],
+                STATISTICS: [float(v) for v in frame["lb_stat"]],
                 "pvalues": [_stats_number(v) for v in frame["lb_pvalue"]],
                 "bp_statistics": [float(v) for v in frame["bp_stat"]],
                 "bp_pvalues": [_stats_number(v) for v in frame["bp_pvalue"]],
@@ -15476,6 +15694,7 @@ def main() -> None:
         "survival_curves.json": generate_survival_curves,
         "survival_logrank.json": generate_survival_logrank,
         "survival_cox.json": generate_survival_cox,
+        "survival_cox_extended.json": generate_survival_cox_extended,
         "survival_logrank_family.json": generate_survival_logrank_family,
         "survival_restricted.json": generate_survival_restricted,
         "survival_concordance.json": generate_survival_concordance,

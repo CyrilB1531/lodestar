@@ -639,6 +639,15 @@
         "bench/Lodestar.Text.Benchmarks/CrossLang/SurvivalFamilyCrossLang.cs"
       ]
     },
+    "cox-extended": {
+      "subcommand": "compare-cox-extended",
+      "python": "bench/python/bench_cox_extended.py",
+      "compare": "cox-extended",
+      "sources": [
+        "src/Lodestar.Survival/**",
+        "bench/Lodestar.Text.Benchmarks/CrossLang/CoxExtendedCrossLang.cs"
+      ]
+    },
     "ols": {
       "subcommand": "compare-ols",
       "python": "bench/python/bench_stats.py",

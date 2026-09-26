@@ -8,11 +8,22 @@ Fits the model and reports its inference table.
 public static CoxSummary Fit(ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, int featureCount, CoxOptions options = null)
 ```
 
+<!-- docs-declaration -->
+
+```csharp
+public static CoxSummary Fit(ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, ReadOnlySpan<double> weights, ReadOnlySpan<int> strata, ReadOnlySpan<int> clusters, int featureCount, CoxOptions options = null)
+```
+
+The second overload takes lifelines' `weights_col`, `strata` and `cluster_col`.
+
 **Parameters** — `design` holds the covariates row-major, `featureCount` values per subject, in the
 subjects' order. `durations` and `eventObserved` are the pair [`KaplanMeier.Estimate`](kaplanmeier-estimate.md)
 takes: one non-negative duration per subject, and `true` where it ends in the event. `featureCount`
-is how many covariates each subject carries, at least one. `options` sets the interval level and the
-iteration budget; `null` takes the defaults.
+is how many covariates each subject carries, at least one. `weights` holds one positive, finite
+weight per subject; `strata` one stratum label per subject, each stratum with its own baseline
+hazard; `clusters` one cluster label per subject, whose residuals the sandwich variance sums; any of
+the three may be empty. `options` sets the interval level, the iteration budget, the penalty and
+the robust variance; `null` takes the defaults.
 
 **Returns** — a [`CoxSummary`](coxsummary.md): per covariate the coefficient, its standard error,
 z statistic, p-value, interval and hazard ratio; for the model the log and null log partial
@@ -22,11 +33,14 @@ likelihood, the likelihood-ratio test and the concordance index.
 `ArgumentException` in any of these cases:
 
 - the spans disagree in length, or a duration is negative or `NaN`;
-- a covariate is not finite;
+- a covariate is not finite, or does not vary;
+- a weight, stratum or cluster span is neither empty nor one value per subject, or a weight is not
+  positive and finite;
 - no event is observed;
 - a covariate separates the events, or is collinear with the others.
 
-`InvalidOperationException` when the fit does not converge within `CoxOptions.MaximumIterations`.
+`InvalidOperationException` when the fit does not converge within `CoxOptions.MaximumIterations`,
+or lifelines' own loop, which an L1 penalty runs, gives up.
 
 **Example** — a covariate the others already determine is refused rather than fitted.
 
@@ -60,6 +74,14 @@ budget throws: a table built from where it stopped would carry standard errors o
 **Ties are handled by Efron's method**, the only one the reference offers. At a time carrying `m`
 events, the `l`-th divides by the risk set less `l/m` of the tied events' own share. With no tie that
 is the same as Breslow's.
+
+**Weights, strata and clusters are lifelines'.** A weighted time multiplies its Efron terms by the
+mean weight of its events, lifelines' reading, which is not the same as replicating tied subjects.
+Each stratum has its own risk sets and baseline, and the concordance counts pairs within strata.
+Clusters force the sandwich variance, whose score residuals are lifelines' row-level ones: tied
+subjects' residuals depend on their input order, which the fit keeps as lifelines' stable sort does.
+The covariates are standardised before the Newton loop and the answer rescaled, as lifelines does;
+[`CoxOptions`](coxoptions.md) has what that means for the penalty.
 
 **Two designs are refused where the reference returns numbers behind a warning.**
 

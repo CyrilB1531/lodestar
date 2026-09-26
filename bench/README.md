@@ -3572,3 +3572,23 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-surviv
 python3 bench/python/bench_survival_family.py
 python3 bench/compare.py survival-family
 ```
+
+## 67. The extended Cox model against lifelines (issue #1171)
+
+`compare-cox-extended` puts `CoxProportionalHazards.Fit` stratified and weighted, with a ridge penalty
+and the robust variance, and with a lasso penalty, `CoxProportionalHazards.TestProportionalHazards`,
+`CoxSummary.PredictSurvivalFunction` and `CoxTimeVarying.Fit` against lifelines 0.30.3's
+`CoxPHFitter`, `proportional_hazard_test`, `predict_survival_function` and `CoxTimeVaryingFitter`, at
+1,000 and 10,000 subjects of four covariates. Every fit runs at lifelines' defaults, as a caller runs
+it. No .NET library fits a Cox model, so the reference is the incumbent.
+
+No corpus file: both sides build each subject from its index by one formula — four covariates in
+`[-1, 1)`, each column hashed by its own multiplier so that no two are collinear, durations from a
+hashed uniform, seven in ten observed, three strata, weights one to three; the time-varying data
+splits each subject at half its duration. Agreement is `tests/oracles/survival_cox_extended.json`'s job.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-cox-extended
+python3 bench/python/bench_cox_extended.py
+python3 bench/compare.py cox-extended
+```

@@ -309,6 +309,11 @@ def survival_family(fmt: str = "text") -> None:
     wallcpu_report("survival-family", fmt)
 
 
+def cox_extended(fmt: str = "text") -> None:
+    """Lodestar.Survival's extended Cox fits, proportional hazards test, predictions and time-varying fit against lifelines' (#1171)."""
+    wallcpu_report("cox-extended", fmt)
+
+
 def glm(fmt: str = "text") -> None:
     """The negative binomial GLM against statsmodels' GLM, over that same corpus (#781)."""
     wallcpu_report("glm", fmt)
@@ -415,6 +420,8 @@ if __name__ == "__main__":
         cluster_weighted(output_format)
     elif selected == "survival-family":
         survival_family(output_format)
+    elif selected == "cox-extended":
+        cox_extended(output_format)
     elif selected == "splitters":
         splitters(output_format)
     elif selected == "transformers":
