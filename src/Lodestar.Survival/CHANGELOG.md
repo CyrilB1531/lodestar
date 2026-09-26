@@ -5,6 +5,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ## [Unreleased]
 
+### Added
+
+- `LogRank` runs the Wilcoxon, Tarone-Ware, Peto and Fleming-Harrington weightings, subject weights and a truncation, over two groups, several or every pair, and `KaplanMeier.RestrictedMean`, `KaplanMeier.CompareAt` and `Concordance.Index` complete lifelines' closed forms. ([#1170](https://github.com/CyrilB1531/lodestar/issues/1170))
+
 ### Changed
 
 - The `Lodestar.Stats` dependency floor rises from 0.4.0 to 0.5.0, the release that forwards its data types to `Lodestar.Abstractions`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))

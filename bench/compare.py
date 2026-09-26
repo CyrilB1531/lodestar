@@ -304,6 +304,11 @@ def cluster_weighted(fmt: str = "text") -> None:
     wallcpu_report("cluster-weighted", fmt)
 
 
+def survival_family(fmt: str = "text") -> None:
+    """Lodestar.Survival's log-rank family, restricted mean, fixed-point test and concordance against lifelines' (#1170)."""
+    wallcpu_report("survival-family", fmt)
+
+
 def glm(fmt: str = "text") -> None:
     """The negative binomial GLM against statsmodels' GLM, over that same corpus (#781)."""
     wallcpu_report("glm", fmt)
@@ -408,6 +413,8 @@ if __name__ == "__main__":
         onehot(output_format)
     elif selected == "cluster-weighted":
         cluster_weighted(output_format)
+    elif selected == "survival-family":
+        survival_family(output_format)
     elif selected == "splitters":
         splitters(output_format)
     elif selected == "transformers":

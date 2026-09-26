@@ -1,4 +1,5 @@
 using Lodestar.Stats;
+using Lodestar.Survival.Internal;
 
 namespace Lodestar.Survival;
 
@@ -75,6 +76,92 @@ public static class KaplanMeier
         }
 
         return new KaplanMeierCurve(steps, survival, lower, upper, confidenceLevel);
+    }
+
+    /// <summary>Tests whether two survival curves differ at one time, lifelines' <c>survival_difference_at_fixed_point_in_time_test</c>.</summary>
+    /// <param name="time">The time both curves are read at; non-negative.</param>
+    /// <param name="curveA">The first curve, from <see cref="Estimate"/>.</param>
+    /// <param name="curveB">The second curve, from <see cref="Estimate"/>.</param>
+    /// <returns>The chi-squared statistic on one degree of freedom and its upper-tail p-value.</returns>
+    /// <exception cref="ArgumentNullException">A curve is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">A curve holds no step, or not one estimate per step.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="time"/> is negative or NaN.</exception>
+    /// <remarks>
+    /// Klein, Logan, Harhoff and Andersen's test on the <c>log(−log S)</c> scale: the squared difference of the two
+    /// transformed estimates over the sum of their delta-method variances. As lifelines reads them, each estimate
+    /// is the curve's step at <paramref name="time"/> while its Greenwood sum is interpolated linearly between the
+    /// times either side, and a step where every subject left at risk has the event adds nothing to that sum.
+    /// A curve at one or zero at <paramref name="time"/> leaves the transform undefined, and the answer is NaN, as
+    /// lifelines' is.
+    /// </remarks>
+    public static TestResult CompareAt(double time, KaplanMeierCurve curveA, KaplanMeierCurve curveB)
+    {
+        Guard.NotNull(curveA);
+        Guard.NotNull(curveB);
+        if (!(time >= 0.0))
+        {
+            throw new ArgumentOutOfRangeException(nameof(time), time, "A time is non-negative.");
+        }
+
+        (double survivalA, double varianceA) = CurveTimeline.At(curveA, time);
+        (double survivalB, double varianceB) = CurveTimeline.At(curveB, time);
+        double logA = Math.Log(survivalA);
+        double logB = Math.Log(survivalB);
+        double gap = Math.Log(-logA) - Math.Log(-logB);
+        double statistic = gap * gap / ((varianceA / (logA * logA)) + (varianceB / (logB * logB)));
+        return new TestResult(statistic, Distributions.ChiSquaredSf(statistic, 1.0));
+    }
+
+    /// <summary>The unrestricted mean survival time of a curve and its variance, lifelines' <c>restricted_mean_survival_time</c> at its default <c>t=inf</c>.</summary>
+    /// <param name="curve">The curve, from <see cref="Estimate"/>.</param>
+    /// <returns>The whole area under the curve and its variance: infinite unless the curve reaches zero.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="curve"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="curve"/> holds no step, or not one estimate per step.</exception>
+    public static RestrictedMeanResult RestrictedMean(KaplanMeierCurve curve) =>
+        RestrictedMean(curve, double.PositiveInfinity);
+
+    /// <summary>The restricted mean survival time of a curve and its variance, lifelines' <c>restricted_mean_survival_time</c>.</summary>
+    /// <param name="curve">The curve, from <see cref="Estimate"/>.</param>
+    /// <param name="horizon">The upper limit of the integral, lifelines' <c>t</c>; non-negative, and infinity allowed.</param>
+    /// <returns>The area under the curve up to <paramref name="horizon"/>, and its variance.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="curve"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="curve"/> holds no step, or not one estimate per step.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="horizon"/> is negative or NaN.</exception>
+    /// <remarks>
+    /// Both integrals are exact sums over the steps: the mean <c>∫ S</c>, and the variance <c>2 ∫ τ S(τ) dτ</c> less
+    /// the squared mean, as lifelines defines it. lifelines computes the mean the same way and the second moment
+    /// by numerical quadrature of the step function, which landed up to 1.5 % relative from the exact integral over 300 random curves;
+    /// the reference page has the measurement. Past the last step a curve above zero never closes its area, so an
+    /// infinite horizon gives an infinite mean and variance unless the curve reaches zero.
+    /// </remarks>
+    public static RestrictedMeanResult RestrictedMean(KaplanMeierCurve curve, double horizon)
+    {
+        Guard.NotNull(curve);
+        if (!(horizon >= 0.0))
+        {
+            throw new ArgumentOutOfRangeException(nameof(horizon), horizon, "A horizon is a non-negative time.");
+        }
+
+        (double[] times, double[] survival, _) = CurveTimeline.Of(curve);
+        double mean = 0.0;
+        double second = 0.0;
+        for (int j = 0; j < times.Length && times[j] <= horizon; j++)
+        {
+            double end = j + 1 < times.Length && times[j + 1] <= horizon ? times[j + 1] : horizon;
+            // S1244: a curve at exactly zero closes the area, and ∞ · 0 must not turn the sum into NaN.
+#pragma warning disable S1244
+            if (survival[j] == 0.0)
+#pragma warning restore S1244
+            {
+                continue;
+            }
+
+            mean += survival[j] * (end - times[j]);
+            second += survival[j] * ((end * end) - (times[j] * times[j]));
+        }
+
+        double variance = double.IsInfinity(mean) ? double.PositiveInfinity : second - (mean * mean);
+        return new RestrictedMeanResult(mean, variance);
     }
 
     /// <summary>The two-sided normal critical value for a level.</summary>

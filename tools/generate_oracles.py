@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import itertools
 import json
 import math
 import os
@@ -2052,7 +2053,7 @@ def generate_knn() -> dict:
         q = q / np.linalg.norm(q)
         sims = c @ q
         order = np.argsort(-sims, kind="stable")[:k]
-        results = [{"index": int(j), "score": stable(sims[j])} for j in order]
+        results = [{INDEX_KEY: int(j), "score": stable(sims[j])} for j in order]
         cases.append({"id": i, "query": raw, "k": k, "results": results})
 
     return {
@@ -2170,7 +2171,7 @@ PROCESS_CASES = [
 
 
 def _process_hit(choice: str, score: float, index: int) -> dict:
-    return {"choice": choice, "score": score, "index": index}
+    return {"choice": choice, "score": score, INDEX_KEY: index}
 
 
 def generate_process() -> dict:
@@ -6765,8 +6766,8 @@ def generate_survival_logrank() -> dict:
             "name": fixture["name"],
             DURATIONS_A: fixture[DURATIONS_A], EVENTS_A: fixture[EVENTS_A],
             DURATIONS_B: fixture[DURATIONS_B], EVENTS_B: fixture[EVENTS_B],
-            "statistic": float(result.test_statistic),
-            "pValue": float(result.p_value),
+            LOGRANK_STATISTIC: float(result.test_statistic),
+            LOGRANK_P: float(result.p_value),
             "degreesOfFreedom": int(result.degrees_of_freedom),
         })
 
@@ -6780,6 +6781,227 @@ def generate_survival_logrank() -> dict:
         "cases": cases,
     }
 
+
+
+# The log-rank family, the restricted mean and the concordance index (#1170): their keys.
+WEIGHTING = "weighting"
+FH_P = "p"
+FH_Q = "q"
+TRUNCATION = "truncation"
+WEIGHTS_A = "weightsA"
+WEIGHTS_B = "weightsB"
+LOGRANK_STATISTIC = "statistic"
+LOGRANK_P = "pValue"
+LOGRANK_DOF = "degreesOfFreedom"
+LOGRANK_NAME = "logrank"
+INDEX_KEY = "index"
+FLEMING_HARRINGTON = "fleming-harrington"
+# lifelines' names for the weightings, mapped to LogRankWeighting by the suite.
+LOGRANK_WEIGHTINGS = [(None, 0.0, 0.0), ("wilcoxon", 0.0, 0.0), ("tarone-ware", 0.0, 0.0), ("peto", 0.0, 0.0),
+                      (FLEMING_HARRINGTON, 1.0, 0.0), (FLEMING_HARRINGTON, 0.0, 1.0),
+                      (FLEMING_HARRINGTON, 1.0, 1.0), (FLEMING_HARRINGTON, 0.5, 2.0)]
+
+
+def _survival_sample(rng, n: int, scale: float, censoring: float, decimals: int) -> tuple[list, list]:
+    """Positive exponential durations, rounded so some tie, and a censoring flag drawn per subject."""
+    durations = [max(round(float(v), decimals), 10.0 ** -decimals) for v in rng.exponential(scale, n)]
+    events = [int(v) for v in rng.random(n) >= censoring]
+    return durations, events
+
+
+def _logrank_result(result) -> dict:
+    return {LOGRANK_STATISTIC: float(result.test_statistic), LOGRANK_P: float(result.p_value),
+            LOGRANK_DOF: int(result.degrees_of_freedom)}
+
+
+def _two_sample_family_cases() -> list[dict]:
+    """logrank_test under every weighting, with the truncation and the subject weights."""
+    import numpy as np  # noqa: PLC0415
+    from lifelines.statistics import logrank_test  # noqa: PLC0415
+
+    rng = np.random.default_rng(1170)
+    freireich = _logrank_fixtures()[0]
+    tied = _logrank_fixtures()[1]
+    a, ea = _survival_sample(rng, 40, 8.0, 0.3, 1)
+    b, eb = _survival_sample(rng, 35, 11.0, 0.25, 1)
+    pairs = [(freireich["name"], freireich[DURATIONS_A], freireich[EVENTS_A], freireich[DURATIONS_B], freireich[EVENTS_B]),
+             (tied["name"], tied[DURATIONS_A], tied[EVENTS_A], tied[DURATIONS_B], tied[EVENTS_B]),
+             ("two seeded exponential arms, tenths tied", a, ea, b, eb)]
+    whole = [float(v) for v in rng.integers(1, 4, len(a))], [float(v) for v in rng.integers(1, 4, len(b))]
+    fractional = [float(v) for v in rng.uniform(0.2, 2.0, len(a)).round(6)], [float(v) for v in rng.uniform(0.2, 2.0, len(b)).round(6)]
+    small = [0.3] * len(a), [0.3] * len(b)
+    variants = [(None, None, None)] + [(None, weights, label) for weights, label in
+                                       ((whole, "whole weights"), (fractional, "fractional weights"),
+                                        (small, "weights of 0.3, the tail's risk set below one"))]
+    cases = []
+    for pair in pairs:
+        weighted = variants if pair[0].startswith("two seeded") else variants[:1]
+        for (weighting, p, q), truncation, (_, weights, label) in itertools.product(
+                LOGRANK_WEIGHTINGS, (None, 15.5), weighted):
+            cases.append(_two_sample_family_case(logrank_test, pair, (weighting, p, q), truncation, weights, label))
+    return cases
+
+
+def _two_sample_family_case(logrank_test, pair, weighting_triple, truncation, weights, label) -> dict:
+    """One logrank_test call, its arguments and its answer as a corpus case."""
+    name, da, fa, db, fb = pair
+    weighting, p, q = weighting_triple
+    kwargs = {"weightings": weighting, "p": p, "q": q} if weighting else {}
+    if truncation is not None:
+        kwargs["t_0"] = truncation
+    if weights is not None:
+        kwargs["weights_A"], kwargs["weights_B"] = weights
+    result = logrank_test(da, db, event_observed_A=fa, event_observed_B=fb, **kwargs)
+    return {"name": f"{name}, {weighting or LOGRANK_NAME} {p} {q}, t_0 {truncation}, {label}",
+            DURATIONS_A: da, EVENTS_A: fa, DURATIONS_B: db, EVENTS_B: fb,
+            WEIGHTING: weighting, FH_P: p, FH_Q: q, TRUNCATION: truncation,
+            WEIGHTS_A: None if weights is None else weights[0],
+            WEIGHTS_B: None if weights is None else weights[1],
+            **_logrank_result(result)}
+
+
+def _multigroup_cases() -> tuple[list[dict], list[dict]]:
+    """multivariate_logrank_test and pairwise_logrank_test over three and four groups."""
+    import numpy as np  # noqa: PLC0415
+    from lifelines.statistics import multivariate_logrank_test, pairwise_logrank_test  # noqa: PLC0415
+
+    rng = np.random.default_rng(1171)
+    fixtures = [_grouped_fixture(rng, name, labels, scales)
+                for name, labels, scales in (("three groups, labels out of order", [7, 3, 5], [6.0, 9.0, 12.0]),
+                                             ("four groups", [0, 1, 2, 3], [5.0, 5.0, 8.0, 14.0]))]
+    # A group whose subjects are all censored before the first event: its row of the covariance is zero.
+    fixtures.append(("a group censored before any event", [5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 1.0, 1.5, 6.5, 7.5, 9.5],
+                     [1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0], [1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3]))
+    multi, pairwise = [], []
+    for name, durations, events, groups in fixtures:
+        weights = [float(v) for v in rng.uniform(0.5, 2.0, len(durations)).round(6)]
+        for weighting, p, q in LOGRANK_WEIGHTINGS[:5]:
+            kwargs = {"weightings": weighting, "p": p, "q": q} if weighting else {}
+            base = {"name": f"{name}, {weighting or LOGRANK_NAME}", DURATIONS: durations, EVENTS: events,
+                    GROUPS: groups, WEIGHTING: weighting, FH_P: p, FH_Q: q, TRUNCATION: None}
+            for sample_weights in (None, weights):
+                result = multivariate_logrank_test(
+                    durations, groups, events, weights=None if sample_weights is None else np.array(sample_weights), **kwargs)
+                multi.append({**base, WEIGHTS: sample_weights, **_logrank_result(result)})
+            table = pairwise_logrank_test(durations, groups, events, **kwargs).summary
+            pairwise.append({**base, "pairs": [{"groupA": int(a), "groupB": int(b),
+                                                LOGRANK_STATISTIC: float(row["test_statistic"]),
+                                                LOGRANK_P: float(row["p"])} for (a, b), row in table.iterrows()]})
+    return multi, pairwise
+
+
+def _grouped_fixture(rng, name: str, labels: list[int], scales: list[float]) -> tuple:
+    """One seeded sample per group label, shuffled together so the labels do not arrive in order."""
+    durations, events, groups = [], [], []
+    for label, scale in zip(labels, scales, strict=True):
+        d, e = _survival_sample(rng, int(rng.integers(12, 30)), scale, 0.25, 0)
+        durations += d
+        events += e
+        groups += [label] * len(d)
+    order = rng.permutation(len(durations))
+    return name, [durations[i] for i in order], [events[i] for i in order], [groups[i] for i in order]
+
+
+def generate_survival_logrank_family() -> dict:
+    """The weighted, truncated, weighted-subject, multi-group and pairwise log-rank tests (#1170)."""
+    two_sample = _two_sample_family_cases()
+    multi, pairwise = _multigroup_cases()
+    return {
+        "metadata": {"library": LIFELINES, "version": version(LIFELINES), FAMILY: "survival-logrank-family",
+                     "count": len(two_sample) + len(multi) + len(pairwise)},
+        "two_sample": two_sample,
+        "multigroup": multi,
+        "pairwise": pairwise,
+    }
+
+
+def _exact_restricted_moments(times, survival, horizon: float) -> tuple[float, float]:
+    """∫ S and 2 ∫ τ S dτ over the steps up to the horizon, summed exactly rather than by quadrature."""
+    mean, second = 0.0, 0.0
+    for j, (start, value) in enumerate(zip(times, survival, strict=True)):
+        if start > horizon:
+            break
+        end = times[j + 1] if j + 1 < len(times) and times[j + 1] <= horizon else horizon
+        if value <= 0.0:
+            continue
+        mean += value * (end - start)
+        second += value * (end * end - start * start)
+    return mean, second - mean * mean
+
+
+def generate_survival_restricted() -> dict:
+    """restricted_mean_survival_time and survival_difference_at_fixed_point_in_time_test (#1170).
+
+    long-comment: why the variance is frozen twice.
+    lifelines computes the mean exactly over the Kaplan-Meier steps and the second moment by scipy's quad over
+    the step function, which landed up to 1.5 % from the exact integral over 300 random curves. The corpus freezes the exact
+    variance, summed here over the steps, as the value to match at 1e-9, and lifelines' own beside it.
+    """
+    import numpy as np  # noqa: PLC0415
+    from lifelines import KaplanMeierFitter  # noqa: PLC0415
+    from lifelines.statistics import survival_difference_at_fixed_point_in_time_test  # noqa: PLC0415
+    from lifelines.utils import restricted_mean_survival_time  # noqa: PLC0415
+
+    rng = np.random.default_rng(1172)
+    samples = [("seeded, censored at the end", *_survival_sample(rng, 60, 7.0, 0.3, 1))]
+    d, e = _survival_sample(rng, 45, 5.0, 0.2, 0)
+    e[int(np.argmax(d))] = 1
+    samples.append(("seeded, whole-unit ties, reaching zero", d, e))
+    samples.append(("Freireich control", _logrank_fixtures()[0][DURATIONS_B], _logrank_fixtures()[0][EVENTS_B]))
+    rmst = []
+    for name, durations, events in samples:
+        fitter = KaplanMeierFitter().fit(durations, events)
+        times = fitter.survival_function_.index.values.tolist()
+        survival = fitter.survival_function_.values[:, 0].tolist()
+        horizons = [float(np.quantile(durations, q)) for q in (0.25, 0.6)] + [float(times[3]), float(max(durations))]
+        if survival[-1] <= 0.0:
+            horizons.append(math.inf)
+        for horizon in horizons:
+            mean, lifelines_variance = restricted_mean_survival_time(fitter, t=horizon, return_variance=True)
+            exact_mean, exact_variance = _exact_restricted_moments(times, survival, horizon)
+            rmst.append({"name": f"{name}, up to {horizon}", DURATIONS: durations, EVENTS: events,
+                         "horizon": None if math.isinf(horizon) else horizon, "mean": float(mean),
+                         "exactMean": exact_mean, "variance": exact_variance,
+                         "lifelinesVariance": float(lifelines_variance)})
+    fixed = []
+    a, ea = _survival_sample(rng, 50, 8.0, 0.3, 1)
+    b, eb = _survival_sample(rng, 40, 12.0, 0.3, 1)
+    fitter_a = KaplanMeierFitter().fit(a, ea)
+    fitter_b = KaplanMeierFitter().fit(b, eb)
+    step = float(sorted(set(a))[5])
+    for time in (0.5, step, step + 0.05, float(np.median(a)), 30.0):
+        result = survival_difference_at_fixed_point_in_time_test(time, fitter_a, fitter_b)
+        fixed.append({"name": f"two seeded arms at {time}", DURATIONS_A: a, EVENTS_A: ea, DURATIONS_B: b,
+                      EVENTS_B: eb, "time": time, LOGRANK_STATISTIC: float(result.test_statistic),
+                      LOGRANK_P: float(result.p_value)})
+    return {
+        "metadata": {"library": LIFELINES, "version": version(LIFELINES), FAMILY: "survival-restricted",
+                     "count": len(rmst) + len(fixed)},
+        "rmst": rmst,
+        "fixed_point": fixed,
+    }
+
+
+def generate_survival_concordance() -> dict:
+    """lifelines.utils.concordance_index on arbitrary scores (#1170)."""
+    import numpy as np  # noqa: PLC0415
+    from lifelines.utils import concordance_index  # noqa: PLC0415
+
+    rng = np.random.default_rng(1173)
+    cases = []
+    for name, n, decimals, censoring, score_decimals in (
+            ("continuous, no ties", 50, 4, 0.3, 6), ("whole-unit durations, tied scores", 60, 0, 0.3, 0),
+            ("heavy censoring", 40, 1, 0.7, 2), ("every event observed", 30, 1, 0.0, 1)):
+        durations, events = _survival_sample(rng, n, 6.0, censoring, decimals)
+        scores = [round(float(v) + 0.3 * t, score_decimals) for v, t in zip(rng.normal(0, 2, n), durations, strict=True)]
+        observed = None if censoring <= 0.0 else events
+        cases.append({"name": name, DURATIONS: durations, "scores": scores, EVENTS: observed,
+                      INDEX_KEY: float(concordance_index(durations, scores, observed))})
+    return {
+        "metadata": {"library": LIFELINES, "version": version(LIFELINES), FAMILY: "survival-concordance",
+                     "count": len(cases)},
+        "cases": cases,
+    }
 
 # The default precision stops lifelines 8.6e-6 relative from the maximum; at 1e-20 all five fixtures
 # are within 3.1e-13 of an independent Newton-Raphson (#684, the specification has the table).
@@ -15254,6 +15476,9 @@ def main() -> None:
         "survival_curves.json": generate_survival_curves,
         "survival_logrank.json": generate_survival_logrank,
         "survival_cox.json": generate_survival_cox,
+        "survival_logrank_family.json": generate_survival_logrank_family,
+        "survival_restricted.json": generate_survival_restricted,
+        "survival_concordance.json": generate_survival_concordance,
         "stats_ols.json": generate_stats_ols,
         "stats_iv.json": generate_stats_iv,
         "stats_panel.json": generate_stats_panel,

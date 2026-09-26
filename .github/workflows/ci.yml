@@ -654,6 +654,8 @@ jobs:
             [ "$proj" = src/Lodestar.Stats ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
             # And for the k-means restart options Lodestar.Cluster names (#1163).
             [ "$proj" = src/Lodestar.Cluster ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            # And for the log-rank options and restricted mean Lodestar.Survival names (#1170).
+            [ "$proj" = src/Lodestar.Survival ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
             refs=$(echo $refs)
             if [ -n "$refs" ]; then
               echo "::error::$proj references $refs by project; src/ must reference published packages."

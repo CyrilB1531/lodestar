@@ -72,7 +72,7 @@ public static class CoxProportionalHazards
 
         return Summarize(
             fitted.Coefficients, fitted.Covariance, fitted.LogLikelihood, fitted.NullLogLikelihood,
-            settings.ConfidenceLevel, Concordance.Harrell(design, durations, eventObserved, fitted.Coefficients));
+            settings.ConfidenceLevel, HarrellConcordance.Harrell(design, durations, eventObserved, fitted.Coefficients));
     }
 
     private enum Outcome

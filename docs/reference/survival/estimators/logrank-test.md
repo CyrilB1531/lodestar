@@ -8,16 +8,35 @@ Compares the survival of two right-censored samples.
 public static LogRankResult Test(ReadOnlySpan<double> durationsA, ReadOnlySpan<bool> eventObservedA, ReadOnlySpan<double> durationsB, ReadOnlySpan<bool> eventObservedB)
 ```
 
+<!-- docs-declaration -->
+
+```csharp
+public static LogRankResult Test(ReadOnlySpan<double> durationsA, ReadOnlySpan<bool> eventObservedA, ReadOnlySpan<double> durationsB, ReadOnlySpan<bool> eventObservedB, LogRankOptions options)
+```
+
+<!-- docs-declaration -->
+
+```csharp
+public static LogRankResult Test(ReadOnlySpan<double> durationsA, ReadOnlySpan<bool> eventObservedA, ReadOnlySpan<double> weightsA, ReadOnlySpan<double> durationsB, ReadOnlySpan<bool> eventObservedB, ReadOnlySpan<double> weightsB, LogRankOptions options)
+```
+
+The second overload runs a weighting of the family, lifelines' `weightings=`, `p`, `q` and `t_0`; the
+third also weighs each subject, lifelines' `weights_A` and `weights_B`.
+
 **Parameters** — `durationsA` holds the first group's non-negative durations and `eventObservedA`
 the flag for each of them, `true` where the duration ends in the event. `durationsB` and
 `eventObservedB` are the same pair for the second group. Each group's two spans must be the same
-length; the two groups need not be the same size as each other.
+length; the two groups need not be the same size as each other. `weightsA` and `weightsB` hold one
+positive, finite weight per subject of their group, or are empty for ones. `options` is the
+[`LogRankOptions`](logrankoptions.md): the weighting, its exponents and the truncation.
 
 **Returns** — a `LogRankResult` carrying the statistic, its upper-tail chi-squared p-value, and the
 degrees of freedom, which are one for a two-sample comparison.
 
-**Exceptions** — `ArgumentException` when a group's spans differ in length, a group is empty, or a
-duration is negative or `NaN`.
+**Exceptions** — `ArgumentException` when a group's spans differ in length, a group is empty, a
+duration is negative or `NaN`, or a weight span is neither empty nor one positive, finite value per
+subject. `ArgumentOutOfRangeException` when `options` names no weighting, or holds a negative or non-finite
+exponent, or a negative or `NaN` truncation.
 
 **Example** — two arms that separate, and two that cannot.
 
@@ -47,6 +66,10 @@ which is why there is no "reference group" argument.
 **A group entirely censored still contributes.** Its subjects sit in the pooled risk sets and raise
 the other arm's expected counts, which is the opposite of dropping them — and the result is a larger
 statistic, not a smaller one.
+
+**A weight of two is the subject written twice**, in every risk set and every event count — except in
+the pooled curve Fleming-Harrington weighs by, which counts subjects unweighted, as lifelines' does;
+[`LogRank.MultiGroup`](logrank-multigroup.md) has what lifelines keeps about fractional ones.
 
 **Applies to** — net10.0, netstandard2.0.
 
