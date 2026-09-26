@@ -50,7 +50,7 @@ public sealed record AftOptions
     /// <remarks>
     /// <c>penalizer · Σ β² / 2</c> on the coefficients of the covariates scaled by their sample deviations, added to
     /// the mean negative log-likelihood, and an intercept is left out when its block holds covariates, as lifelines
-    /// leaves it. The L1 part belongs to #1184.
+    /// leaves it. The L1 part is not written; docs/equivalence.md has why.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative, infinite or not a number.</exception>
     public double Penalizer
