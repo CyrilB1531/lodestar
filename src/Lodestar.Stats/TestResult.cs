@@ -45,16 +45,24 @@ public sealed record TTestResult(double Statistic, double PValue, double Df)
                 nameof(level), level, "The confidence level must lie strictly inside (0, 1).");
         }
 
+        // A NaN kept in the input leaves nothing to bound, as scipy's interval is NaN at both ends.
+        if (double.IsNaN(Df))
+        {
+            return (double.NaN, double.NaN);
+        }
+
         // A one-sided test spends its whole error budget on one side, so the tail
         // is 1 - level rather than half of it, and the other bound is infinite.
         double tail = Alternative == Alternative.TwoSided ? (1.0 - level) / 2.0 : 1.0 - level;
         double half = Internal.Beta.StudentQuantile(tail, Df) * StandardError;
 
+        // The open bound is scipy's estimate plus an infinite quantile times the standard error, NaN where that is zero.
+        double open = double.PositiveInfinity * StandardError;
         return Alternative switch
         {
             Alternative.TwoSided => (Estimate - half, Estimate + half),
-            Alternative.Greater => (Estimate - half, double.PositiveInfinity),
-            Alternative.Less => (double.NegativeInfinity, Estimate + half),
+            Alternative.Greater => (Estimate - half, Estimate + open),
+            Alternative.Less => (Estimate - open, Estimate + half),
             // CA2208: Alternative is a field, not a parameter here -- a bad
             // value stored on the result is a broken invariant, not a bad call.
             _ => throw new InvalidOperationException($"Unrecognised alternative: {Alternative}."),

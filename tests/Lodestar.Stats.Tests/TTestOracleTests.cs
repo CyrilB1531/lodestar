@@ -45,7 +45,7 @@ public sealed class TTestOracleTests
 
             StatsOracleAsserts.Statistic(
                 StatsCorpus.Number(c.GetProperty("statistic")), result.Statistic, name);
-            StatsOracleAsserts.PValue(c.GetProperty("pvalue").GetDouble(), result.PValue, name);
+            StatsOracleAsserts.PValue(StatsCorpus.Number(c.GetProperty("pvalue")), result.PValue, name);
             StatsOracleAsserts.Statistic(c.GetProperty("df").GetDouble(), result.Df, $"{name} df");
 
             (double low, double high) = result.ConfidenceInterval(0.95);
@@ -97,6 +97,7 @@ public sealed class TTestOracleTests
             double pValue = StatsCorpus.Number(c.GetProperty("pvalue"));
             StatsOracleAsserts.Statistic(statistic, actual.Statistic, name);
             StatsOracleAsserts.PValue(pValue, actual.PValue, name);
+            StatsOracleAsserts.Statistic(StatsCorpus.Number(c.GetProperty("df")), actual.Df, $"{name} df");
             replayed++;
         }
 

@@ -63,6 +63,18 @@ public static class TTest
             // is why both samples must hold at least two values.
             double numerator = (termA + termB) * (termA + termB);
             df = numerator / ((termA * termA / (n - 1)) + (termB * termB / (m - 1)));
+
+            // Two constant samples make it 0/0, and scipy's ttest_ind takes one degree of freedom there.
+            if (double.IsNaN(df))
+            {
+                df = 1.0;
+            }
+        }
+
+        // A NaN kept by NanPolicy.Propagate makes every figure NaN, the degrees of freedom included, as scipy's are.
+        if (x.IndexOf(double.NaN) >= 0 || y.IndexOf(double.NaN) >= 0)
+        {
+            df = double.NaN;
         }
 
         double difference = meanA - meanB;
@@ -110,7 +122,8 @@ public static class TTest
             differences[i] = x[i] - y[i];
         }
 
-        return OneSample(differences, 0.0, alternative);
+        // scipy looks for a NaN in the two samples, not in their differences, where ∞ − ∞ makes one.
+        return FromValues(differences, 0.0, alternative, x.IndexOf(double.NaN) >= 0 || y.IndexOf(double.NaN) >= 0);
     }
 
     /// <summary>The one-sample t-test against a stated population mean.</summary>
@@ -144,13 +157,19 @@ public static class TTest
                 nameof(populationMean), populationMean, "The population mean must be finite.");
         }
 
+        return FromValues(values, populationMean, alternative, values.IndexOf(double.NaN) >= 0);
+    }
+
+    /// <summary>The one-sample test on validated values; a NaN kept in the input makes the degrees of freedom NaN.</summary>
+    private static TTestResult FromValues(ReadOnlySpan<double> values, double populationMean, Alternative alternative, bool nanKept)
+    {
         (double mean, double variance) = MeanAndVariance(values);
         double standardError = Math.Sqrt(variance / values.Length);
         double statistic = (mean - populationMean) / standardError;
 
         // A confidence interval centres on the sample mean, not the statistic's
         // offset from populationMean: scipy brackets the population mean itself.
-        return Build(statistic, mean, standardError, values.Length - 1, alternative);
+        return Build(statistic, mean, standardError, nanKept ? double.NaN : values.Length - 1, alternative);
     }
 
     private static void RequireAtLeastTwo(ReadOnlySpan<double> values, string name)
