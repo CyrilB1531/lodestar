@@ -1,6 +1,11 @@
 # Lodestar
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=CyrilB1531_data.net&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=CyrilB1531_data.net)
+[![Lodestar.Text on NuGet](https://img.shields.io/nuget/v/Lodestar.Text?label=Lodestar.Text&color=004880)](https://www.nuget.org/packages/Lodestar.Text)
+[![Lodestar.Embeddings on NuGet](https://img.shields.io/nuget/v/Lodestar.Embeddings?label=Lodestar.Embeddings&color=004880)](https://www.nuget.org/packages/Lodestar.Embeddings)
+[![Lodestar.Stats on NuGet](https://img.shields.io/nuget/v/Lodestar.Stats?label=Lodestar.Stats&color=004880)](https://www.nuget.org/packages/Lodestar.Stats)
+[![Targets net10.0 and netstandard2.0](https://img.shields.io/badge/targets-net10.0%20%7C%20netstandard2.0-512bd4)](docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)
+[![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 **The data-science pieces .NET has no maintained library for, at the parity of the Python
 library you already trust** — with no Python at runtime, on .NET 10 and .NET Standard 2.0 from one
