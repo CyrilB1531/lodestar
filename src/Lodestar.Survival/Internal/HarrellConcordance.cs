@@ -23,6 +23,13 @@ internal static class HarrellConcordance
     /// <returns>The concordant share of the comparable pairs, NaN when there is none.</returns>
     internal static double Index(ReadOnlySpan<double> durations, double[] eta, ReadOnlySpan<bool> eventObserved)
     {
+        (double credit, double pairs) = Counts(durations, eta, eventObserved);
+        return credit / pairs;
+    }
+
+    /// <summary>The credit the pairs earn and how many are comparable, which strata add before dividing.</summary>
+    internal static (double Credit, double Pairs) Counts(ReadOnlySpan<double> durations, double[] eta, ReadOnlySpan<bool> eventObserved)
+    {
         int count = durations.Length;
         double[] levels = EventLevels(eta, eventObserved);
 
@@ -51,7 +58,7 @@ internal static class HarrellConcordance
             start = end;
         }
 
-        return tally.Credit / tally.Pairs;
+        return (tally.Credit, tally.Pairs);
     }
 
     /// <summary>One time's subjects: its events meet the pool of earlier events and then join it; its

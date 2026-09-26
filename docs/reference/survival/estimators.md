@@ -53,9 +53,12 @@ keeps the size of that last step.
 | Type | What it is |
 | --- | --- |
 | [`Concordance`](estimators/concordance.md) | Harrell's concordance index on any predicted scores. |
-| [`CoxOptions`](estimators/coxoptions.md) | The interval level and the iteration budget a Cox fit takes. |
+| [`CoxBaseline`](estimators/coxbaseline.md) | One stratum's Breslow baseline of a Cox fit. |
+| [`CoxOptions`](estimators/coxoptions.md) | The interval level, the iteration budget, the penalty and the robust variance a Cox fit takes. |
 | [`CoxProportionalHazards`](estimators/coxproportionalhazards.md) | The Cox model, on Efron's partial likelihood. |
 | [`CoxSummary`](estimators/coxsummary.md) | What it returns: the coefficient table, the likelihood-ratio test and the concordance. |
+| [`CoxTimeTransform`](estimators/coxtimetransform.md) | The time scale of the proportional hazards test. |
+| [`CoxTimeVarying`](estimators/coxtimevarying.md) | The Cox model on start-stop intervals. |
 | [`KaplanMeier`](estimators/kaplanmeier.md) | The survival function, with Greenwood variance and log-log bounds. |
 | [`KaplanMeierCurve`](estimators/kaplanmeiercurve.md) | What it returns: the estimate, its bounds and its steps. |
 | [`LogRank`](estimators/logrank.md) | The log-rank family: two groups or more, weighted, pairwise. |

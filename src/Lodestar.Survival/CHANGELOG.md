@@ -7,6 +7,8 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Added
 
+- `CoxProportionalHazards.Fit` takes subject weights, strata, clusters, lifelines' elastic-net penalty and the robust variance, `CoxSummary` carries the baselines and lifelines' predictions, `TestProportionalHazards` runs the proportional hazards test, and `CoxTimeVarying` fits start-stop intervals. ([#1171](https://github.com/CyrilB1531/lodestar/issues/1171))
+
 - `LogRank` runs the Wilcoxon, Tarone-Ware, Peto and Fleming-Harrington weightings, subject weights and a truncation, over two groups, several or every pair, and `KaplanMeier.RestrictedMean`, `KaplanMeier.CompareAt` and `Concordance.Index` complete lifelines' closed forms. ([#1170](https://github.com/CyrilB1531/lodestar/issues/1170))
 
 ### Changed

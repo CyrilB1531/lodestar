@@ -25,6 +25,12 @@ For the model:
   tail on `LikelihoodRatioDegreesOfFreedom` degrees, one per covariate.
 - `ConcordanceIndex` is Harrell's C.
 - `ConfidenceLevel` is the level the intervals were built at.
+- `Robust` says whether the standard errors, and everything built on them, are the sandwich.
+- `CovariateMeans` are the covariates' means in the fitted sample, where the partial hazards are
+  centred.
+- `Baselines` holds one [`CoxBaseline`](coxbaseline.md) per stratum, labels ascending; one, labelled
+  zero, when the fit is unstratified, and one pooled over the strata for a `CoxTimeVarying` fit, as
+  lifelines' time-varying fitter computes it.
 
 **Example** — the model as a whole, beside one covariate.
 
@@ -61,3 +67,15 @@ rather than a record, as `OlsSummary` is: two fitted tables are not values a cal
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`CoxProportionalHazards.Fit`](coxproportionalhazards-fit.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`CoxSummary.PredictCumulativeHazard`](coxsummary-predictcumulativehazard.md) | Each subject's cumulative hazard at given times. |
+| [`CoxSummary.PredictExpectation`](coxsummary-predictexpectation.md) | The area under each subject's survival curve over the observed span. |
+| [`CoxSummary.PredictLogPartialHazard`](coxsummary-predictlogpartialhazard.md) | Each subject's centred linear predictor. |
+| [`CoxSummary.PredictMedian`](coxsummary-predictmedian.md) | Each subject's median survival time. |
+| [`CoxSummary.PredictPartialHazard`](coxsummary-predictpartialhazard.md) | Each subject's hazard relative to one at the means. |
+| [`CoxSummary.PredictPercentile`](coxsummary-predictpercentile.md) | The time each subject's survival falls to a level. |
+| [`CoxSummary.PredictSurvivalFunction`](coxsummary-predictsurvivalfunction.md) | Each subject's survival at given times. |

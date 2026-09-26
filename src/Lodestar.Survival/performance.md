@@ -4,6 +4,33 @@ What `Lodestar.Survival` costs against the library a reader would otherwise reac
 a row, and what this page leaves out:
 [`docs/guides/performance.md`](../../docs/guides/performance.md#how-to-read-a-row).
 
+## The extended Cox model against lifelines (issue #1171)
+
+Full method:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#67-the-extended-cox-model-against-lifelines-issue-1171).
+lifelines 0.30.3 on numpy 2.5.3 is the incumbent: no free .NET library fits a Cox model. Machine: AMD
+Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores, .NET 10.0.12, under the
+repository's machine lock on 2026-09-26: the C# side 10:18 to 10:19 UTC, the Python side 10:19 to 10:21
+UTC. Milliseconds of processor time per call, best of five, four covariates, each fit at lifelines'
+defaults as a caller runs it.
+
+| operation | 1,000 | 10,000 |
+| --- | ---: | ---: |
+| [`CoxProportionalHazards.Fit`](../../docs/reference/survival/estimators/coxproportionalhazards-fit.md), three strata, weighted | 0.493 / 56.6 (**115**) | 5.74 / 316 (**55.1**) |
+| `Fit`, ridge 0.1, robust variance | 0.551 / 54.7 (**99.3**) | 6.79 / 568 (**83.7**) |
+| `Fit`, lasso 0.05 | 4.00 / 480 (**120**) | 36.8 / 3,155 (**85.8**) |
+| [`TestProportionalHazards`](../../docs/reference/survival/estimators/coxproportionalhazards-testproportionalhazards.md), rank | 0.081 / 10.3 (**126**) | 1.43 / 98.5 (**69.0**) |
+| [`PredictSurvivalFunction`](../../docs/reference/survival/estimators/coxsummary-predictsurvivalfunction.md), 100 subjects × 10 times | 0.020 / 0.790 (**40.0**) | 0.021 / 0.786 (**37.6**) |
+| [`CoxTimeVarying.Fit`](../../docs/reference/survival/estimators/coxtimevarying-fit.md), two intervals per subject | 40.0 / 159 (**3.98**) | 1,563 / 2,802 (**1.79**) |
+
+Each cell is Lodestar / lifelines, and the ratio lifelines over Lodestar.
+
+**How it reads.** Ahead on every row. The time-varying fit is the close one: at each event time both
+sides rebuild the risk set from every interval, lifelines' algorithm and this one's, so the cost grows
+with events times intervals on both sides and the margin is only the per-interval arithmetic. The lasso
+is lifelines' own loop, reproduced step for step, so both sides take the same number of steps; the
+robust variance is linear here where lifelines' score residuals are quadratic in the subjects.
+
 ## The log-rank family, the restricted mean and the concordance index against lifelines (issue #1170)
 
 Full method:

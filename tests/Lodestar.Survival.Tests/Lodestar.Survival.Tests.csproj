@@ -24,6 +24,8 @@
           LinkBase="oracles" />
     <None Include="../oracles/survival_cox.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
+    <None Include="../oracles/survival_cox_extended.json" CopyToOutputDirectory="PreserveNewest"
+          LinkBase="oracles" />
     <None Include="../oracles/survival_logrank_family.json" CopyToOutputDirectory="PreserveNewest"
           LinkBase="oracles" />
     <None Include="../oracles/survival_restricted.json" CopyToOutputDirectory="PreserveNewest"

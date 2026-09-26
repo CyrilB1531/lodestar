@@ -5,39 +5,56 @@ namespace Lodestar.Survival;
 
 /// <summary>The Cox proportional hazards model, fitted by Newton-Raphson on Efron's partial likelihood.</summary>
 /// <remarks>
-/// Reference behavior: <c>lifelines.CoxPHFitter</c> 0.30.3, right-censored, unpenalised and unstratified.
-/// Efron is the only handling of ties the reference offers, so it is the only one here. Thread-safe.
+/// Reference behavior: <c>lifelines.CoxPHFitter</c> 0.30.3, right-censored, with its strata, subject weights,
+/// elastic-net penalty, robust and clustered variances, baseline and predictions. Efron is the only handling of ties
+/// the reference offers, so it is the only one here. Thread-safe.
 /// </remarks>
 public static class CoxProportionalHazards
 {
-    // The largest step component below which the fit has converged. Four or five iterations reach it on
-    // every fixture of the corpus, from coefficients at zero.
-    private const double StepTolerance = 1e-10;
-
-    // Past this many units of log hazard ratio in one step, a flat likelihood is read as a
-    // coefficient running away rather than as slow convergence.
-    private const double RunawayStep = 0.5;
-
-    // A separated fit "converges" once the score underflows to zero: on five subjects the
-    // information fell to 3e-16 of its value at zero, where a strong finite effect kept 0.1.
-    private const double CollapsedInformation = 1e-10;
-
     /// <summary>Fits the model and reports its inference table.</summary>
     /// <param name="design">The covariates, row-major: <paramref name="featureCount"/> values per subject.</param>
     /// <param name="durations">Each subject's duration, non-negative.</param>
     /// <param name="eventObserved">Whether each subject's event was observed rather than censored.</param>
     /// <param name="featureCount">How many covariates each subject carries.</param>
-    /// <param name="options">The interval level and the iteration budget, or <see langword="null"/> for the defaults.</param>
-    /// <returns>The coefficients with their standard errors, tests and intervals, the likelihood-ratio test and the concordance.</returns>
+    /// <param name="options">The interval level, the iteration budget, the penalty and the variance, or <see langword="null"/> for the defaults.</param>
+    /// <returns>The coefficients with their standard errors, tests and intervals, the likelihood-ratio test, the concordance and the baseline.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one.</exception>
-    /// <exception cref="ArgumentException">The spans disagree in length, a duration is negative or NaN, a covariate is not finite, no event is observed, or a covariate separates the events or is collinear with the others.</exception>
+    /// <exception cref="ArgumentException">The spans disagree in length, a duration is negative or NaN, a covariate is not finite or does not vary, no event is observed, or a covariate separates the events or is collinear with the others.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge within <see cref="CoxOptions.MaximumIterations"/>.</exception>
     public static CoxSummary Fit(
         ReadOnlySpan<double> design,
         ReadOnlySpan<double> durations,
         ReadOnlySpan<bool> eventObserved,
         int featureCount,
+        CoxOptions? options = null) =>
+        Fit(design, durations, eventObserved, [], [], [], featureCount, options);
+
+    /// <summary>Fits the model with subject weights, strata and clusters, lifelines' <c>weights_col</c>, <c>strata</c> and <c>cluster_col</c>.</summary>
+    /// <param name="design">The covariates, row-major: <paramref name="featureCount"/> values per subject.</param>
+    /// <param name="durations">Each subject's duration, non-negative.</param>
+    /// <param name="eventObserved">Whether each subject's event was observed rather than censored.</param>
+    /// <param name="weights">One positive, finite weight per subject, or empty for ones.</param>
+    /// <param name="strata">One stratum label per subject, or empty for none: each stratum has its own baseline hazard.</param>
+    /// <param name="clusters">One cluster label per subject, or empty for none: the sandwich variance sums each cluster's residuals.</param>
+    /// <param name="featureCount">How many covariates each subject carries.</param>
+    /// <param name="options">The interval level, the iteration budget, the penalty and the variance, or <see langword="null"/> for the defaults.</param>
+    /// <returns>The coefficients with their standard errors, tests and intervals, the likelihood-ratio test, the concordance and the baselines.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one.</exception>
+    /// <exception cref="ArgumentException">As the unweighted overload, or a weight, stratum or cluster span is neither empty nor one value per subject, or a weight is not positive and finite.</exception>
+    /// <exception cref="InvalidOperationException">The fit did not converge within <see cref="CoxOptions.MaximumIterations"/>, or lifelines' own loop, which an L1 penalty runs, gave up.</exception>
+    // S107: the six spans are lifelines' columns, one value per subject each; a record could not hold spans, and
+    // arrays in one would copy what the caller already holds.
+#pragma warning disable S107
+    public static CoxSummary Fit(
+        ReadOnlySpan<double> design,
+        ReadOnlySpan<double> durations,
+        ReadOnlySpan<bool> eventObserved,
+        ReadOnlySpan<double> weights,
+        ReadOnlySpan<int> strata,
+        ReadOnlySpan<int> clusters,
+        int featureCount,
         CoxOptions? options = null)
+#pragma warning restore S107
     {
         Guard.NotLessThan(featureCount, 1);
         RiskTable.Validate(durations, eventObserved, nameof(durations));
@@ -50,175 +67,127 @@ public static class CoxProportionalHazards
         }
 
         CoxOptions settings = options ?? new CoxOptions();
-        var likelihood = new EfronPartialLikelihood(design, durations, eventObserved, featureCount);
-        Fitted fitted = Maximize(likelihood, featureCount, settings.MaximumIterations);
-        switch (fitted.Outcome)
-        {
-            case Outcome.Collinear:
-                throw new ArgumentException(
-                    "The observed information is singular: a covariate is collinear with the others, "
-                    + "so its coefficient is not identified. Drop or combine the redundant columns.",
-                    nameof(design));
-            case Outcome.Separated:
-                throw new ArgumentException(
-                    "A covariate separates the events: the likelihood keeps rising as a coefficient "
-                    + "grows, so it has no maximum and the coefficient is infinite.",
-                    nameof(design));
-            case Outcome.Exhausted:
-                throw new InvalidOperationException(
-                    $"The Cox fit did not converge within {settings.MaximumIterations} Newton-Raphson "
-                    + "iterations; a table built from where it stopped would carry standard errors of no meaning.");
-        }
-
-        return Summarize(
-            fitted.Coefficients, fitted.Covariance, fitted.LogLikelihood, fitted.NullLogLikelihood,
-            settings.ConfidenceLevel, HarrellConcordance.Harrell(design, durations, eventObserved, fitted.Coefficients));
+        CoxData data = CoxData.Build(design, durations, eventObserved, weights, strata, clusters, featureCount);
+        var likelihood = new EfronPartialLikelihood(data);
+        var penalty = new ElasticNet(data.Count, settings.Penalizer, settings.L1Ratio);
+        CoxFit fitted = settings.L1Ratio > 0.0 && !penalty.IsZero
+            ? CoxNewton.Lifelines(likelihood, featureCount, penalty, LoopVariant.ProportionalHazards)
+            : CoxNewton.Optimum(likelihood, featureCount, penalty, settings.MaximumIterations);
+        CoxReport.ThrowUnlessConverged(fitted, settings.MaximumIterations, nameof(design));
+        bool robust = settings.Robust || !clusters.IsEmpty;
+        return CoxReport.Summarize(
+            data, fitted, settings.ConfidenceLevel, robust, Concordance(data, fitted.Coefficients), CoxReport.Breslow(data, fitted.Coefficients));
     }
 
-    private enum Outcome
-    {
-        Converged,
-        Collinear,
-        Separated,
-        Exhausted,
-    }
+    /// <summary>Tests each covariate for a hazard ratio that drifts with time, lifelines' <c>proportional_hazard_test</c>.</summary>
+    /// <param name="design">The covariates the model was fitted on, row-major.</param>
+    /// <param name="durations">Each subject's duration, as fitted.</param>
+    /// <param name="eventObserved">Each subject's event flag, as fitted.</param>
+    /// <param name="fit">The model fitted on these subjects.</param>
+    /// <param name="transform">The time scale the residuals are correlated with; the rank of the event by default, as lifelines'.</param>
+    /// <returns>One chi-squared test on one degree of freedom per covariate, in the design's column order.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="fit"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">The spans disagree with each other or with the fit's covariate count, a value is not finite, or no event is observed.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="transform"/> names no time scale.</exception>
+    public static IReadOnlyList<TestResult> TestProportionalHazards(
+        ReadOnlySpan<double> design,
+        ReadOnlySpan<double> durations,
+        ReadOnlySpan<bool> eventObserved,
+        CoxSummary fit,
+        CoxTimeTransform transform = CoxTimeTransform.Rank) =>
+        TestProportionalHazards(design, durations, eventObserved, [], [], fit, transform);
 
-    private sealed record Fitted(
-        Outcome Outcome, double[] Coefficients, double LogLikelihood, double NullLogLikelihood, double[] Covariance);
-
-    /// <summary>Newton-Raphson from zero, reporting how it ended rather than throwing, so <see cref="Fit"/> names its own parameters.</summary>
+    /// <summary>Tests each covariate of a weighted or stratified fit for a hazard ratio that drifts with time.</summary>
+    /// <param name="design">The covariates the model was fitted on, row-major.</param>
+    /// <param name="durations">Each subject's duration, as fitted.</param>
+    /// <param name="eventObserved">Each subject's event flag, as fitted.</param>
+    /// <param name="weights">The weights the model was fitted with, or empty.</param>
+    /// <param name="strata">The strata the model was fitted with, or empty.</param>
+    /// <param name="fit">The model fitted on these subjects.</param>
+    /// <param name="transform">The time scale the residuals are correlated with.</param>
+    /// <returns>One chi-squared test on one degree of freedom per covariate, in the design's column order.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="fit"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">As the unweighted overload, or a weight or stratum span is neither empty nor one value per subject, or the strata are not the fit's, or the fit is a time-varying one.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="transform"/> names no time scale.</exception>
     /// <remarks>
-    /// A singular information while the likelihood is still rising is a coefficient running to
-    /// infinity; a singular one that is not is a covariate the others already determine.
+    /// The Schoenfeld residuals are lifelines' approximation, which R's <c>cox.zph</c> left in 2019, so they are
+    /// comparable with lifelines and not with a current R. A weighted fit's rank still counts events, unweighted.
     /// </remarks>
-    private static Fitted Maximize(EfronPartialLikelihood likelihood, int p, int maximumIterations)
+    public static IReadOnlyList<TestResult> TestProportionalHazards(
+        ReadOnlySpan<double> design,
+        ReadOnlySpan<double> durations,
+        ReadOnlySpan<bool> eventObserved,
+        ReadOnlySpan<double> weights,
+        ReadOnlySpan<int> strata,
+        CoxSummary fit,
+        CoxTimeTransform transform)
     {
-        double[] coefficients = new double[p];
-        double[] score = new double[p];
-        double[] information = new double[p * p];
-        double nullLogLikelihood = likelihood.Evaluate(coefficients, score, information);
-        double[] initial = Diagonal(information, p);
-        double logLikelihood = nullLogLikelihood;
-        for (int iteration = 1; iteration <= maximumIterations; iteration++)
+        Guard.NotNull(fit);
+        if (transform < CoxTimeTransform.Rank || transform > CoxTimeTransform.Log)
         {
-            if (!Cholesky.TryFactor(information, p, out double[] lower))
+            throw new ArgumentOutOfRangeException(nameof(transform), transform, "The transform names no time scale.");
+        }
+
+        int featureCount = fit.Coefficients.Count;
+        RiskTable.Validate(durations, eventObserved, nameof(durations));
+        ValidateDesign(design, durations.Length, featureCount);
+        if (eventObserved.IndexOf(true) < 0)
+        {
+            throw new ArgumentException("The test reads the events' residuals, and every subject here is censored.", nameof(eventObserved));
+        }
+
+        CheckFitMatches(fit, strata);
+        CoxData data = CoxData.Build(design, durations, eventObserved, weights, strata, [], featureCount);
+        data.UseDesignAsGiven(design);
+        return [.. Schoenfeld.Statistics(data, fit, fit.ModelCovariance, transform)
+            .Select(statistic => new TestResult(statistic, Distributions.ChiSquaredSf(statistic, 1.0)))];
+    }
+
+    /// <summary>Refuses a time-varying fit, and strata that are not the ones the fit was stratified by.</summary>
+    private static void CheckFitMatches(CoxSummary fit, ReadOnlySpan<int> strata)
+    {
+        if (fit.TimeVarying)
+        {
+            throw new ArgumentException(
+                "The test reads a proportional hazards fit; lifelines' test takes no time-varying one either.", nameof(fit));
+        }
+
+        int[] labels = [.. strata.ToArray().Distinct().OrderBy(label => label)];
+        int[] fitted = [.. fit.Baselines.Select(baseline => baseline.Stratum)];
+        bool unstratified = fitted.Length == 1 && fitted[0] == 0 && strata.IsEmpty;
+        if (!unstratified && !labels.SequenceEqual(fitted))
+        {
+            throw new ArgumentException(
+                "The strata are not the ones the fit was stratified by; pass the same labels, or none for an unstratified fit.",
+                nameof(strata));
+        }
+    }
+
+    /// <summary>Harrell's index summed over the strata, the pairs of each counted within it, as lifelines counts them.</summary>
+    private static double Concordance(CoxData data, double[] beta)
+    {
+        double credit = 0.0;
+        double pairs = 0.0;
+        foreach ((_, int start, int end) in data.Strata)
+        {
+            int length = end - start;
+            var eta = new double[length];
+            for (int i = 0; i < length; i++)
             {
-                return Ended(iteration > 1 && logLikelihood > nullLogLikelihood ? Outcome.Separated : Outcome.Collinear);
+                ReadOnlySpan<double> row = data.Row(start + i);
+                for (int a = 0; a < beta.Length; a++)
+                {
+                    eta[i] += row[a] * beta[a];
+                }
             }
 
-            double largest = Step(coefficients, Cholesky.Solve(lower, p, score));
-            double next = likelihood.Evaluate(coefficients, score, information);
-            if (largest < StepTolerance)
-            {
-                return Finish(coefficients, next, nullLogLikelihood, information, initial);
-            }
-
-            if (iteration == maximumIterations && largest > RunawayStep && next - logLikelihood < StepTolerance)
-            {
-                return Ended(Outcome.Separated);
-            }
-
-            logLikelihood = next;
+            (double c, double n) = HarrellConcordance.Counts(
+                data.Durations.AsSpan(start, length), eta, data.Events.AsSpan(start, length));
+            credit += c;
+            pairs += n;
         }
 
-        return Ended(Outcome.Exhausted);
-    }
-
-    /// <summary>The table's inputs at a converged step, unless the information collapsed getting there.</summary>
-    private static Fitted Finish(
-        double[] coefficients, double logLikelihood, double nullLogLikelihood, double[] information, double[] initial)
-    {
-        int p = coefficients.Length;
-        if (Collapsed(information, initial, p))
-        {
-            return Ended(Outcome.Separated);
-        }
-
-        return Cholesky.TryFactor(information, p, out double[] lower)
-            ? new Fitted(Outcome.Converged, coefficients, logLikelihood, nullLogLikelihood, Cholesky.Inverse(lower, p))
-            : Ended(Outcome.Collinear);
-    }
-
-    private static Fitted Ended(Outcome outcome) => new(outcome, [], double.NaN, double.NaN, []);
-
-    private static double[] Diagonal(double[] matrix, int p)
-    {
-        double[] diagonal = new double[p];
-        for (int j = 0; j < p; j++)
-        {
-            diagonal[j] = matrix[(j * p) + j];
-        }
-
-        return diagonal;
-    }
-
-    /// <summary>Whether any coefficient's information fell to a vanishing fraction of its value at zero.</summary>
-    private static bool Collapsed(double[] information, double[] initial, int p)
-    {
-        for (int j = 0; j < p; j++)
-        {
-            if (information[(j * p) + j] < CollapsedInformation * initial[j])
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>Applies a Newton step and returns its largest component.</summary>
-    private static double Step(double[] coefficients, double[] step)
-    {
-        double largest = 0.0;
-        for (int j = 0; j < coefficients.Length; j++)
-        {
-            coefficients[j] += step[j];
-            largest = Math.Max(largest, Math.Abs(step[j]));
-        }
-
-        return largest;
-    }
-
-    private static CoxSummary Summarize(
-        double[] coefficients, double[] covariance, double logLikelihood, double nullLogLikelihood,
-        double level, double concordance)
-    {
-        int p = coefficients.Length;
-        double multiplier = Distributions.NormalQuantile(1.0 - ((1.0 - level) / 2.0));
-        double[] errors = new double[p];
-        double[] z = new double[p];
-        double[] pValues = new double[p];
-        double[] lower = new double[p];
-        double[] upper = new double[p];
-        for (int j = 0; j < p; j++)
-        {
-            errors[j] = Math.Sqrt(covariance[(j * p) + j]);
-            z[j] = coefficients[j] / errors[j];
-            pValues[j] = Distributions.ChiSquaredSf(z[j] * z[j], 1.0);
-            lower[j] = coefficients[j] - (multiplier * errors[j]);
-            upper[j] = coefficients[j] + (multiplier * errors[j]);
-        }
-
-        double statistic = 2.0 * (logLikelihood - nullLogLikelihood);
-        return new CoxSummary
-        {
-            Coefficients = coefficients,
-            StandardErrors = errors,
-            ZStatistics = z,
-            PValues = pValues,
-            ConfidenceLower = lower,
-            ConfidenceUpper = upper,
-            HazardRatios = [.. coefficients.Select(Math.Exp)],
-            HazardRatioLower = [.. lower.Select(Math.Exp)],
-            HazardRatioUpper = [.. upper.Select(Math.Exp)],
-            LogLikelihood = logLikelihood,
-            NullLogLikelihood = nullLogLikelihood,
-            LikelihoodRatioStatistic = statistic,
-            LikelihoodRatioPValue = Distributions.ChiSquaredSf(statistic, p),
-            LikelihoodRatioDegreesOfFreedom = p,
-            ConcordanceIndex = concordance,
-            ConfidenceLevel = level,
-        };
+        return credit / pairs;
     }
 
     private static void ValidateDesign(ReadOnlySpan<double> design, int subjects, int featureCount)

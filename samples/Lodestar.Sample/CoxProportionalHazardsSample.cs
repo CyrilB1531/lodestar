@@ -18,6 +18,24 @@ internal static class CoxProportionalHazardsSample
         CoxSummary summary = CoxProportionalHazards.Fit(design, months, died, featureCount: 2);
         Console.WriteLine($"  hazard ratio/mg  : {Inv.F3(summary.HazardRatios[0])} (p {Inv.F4(summary.PValues[0])})");
 
+        // Weighted, stratified by centre, clustered by family, ridge-penalised: lifelines' columns and options.
+        double[] weights = [1, 2, 1, 1, 3, 1, 1, 2, 1, 1];
+        int[] centres = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0];
+        int[] families = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4];
+        var ridge = new CoxOptions { Penalizer = 0.1, L1Ratio = 0.0, Robust = true };
+        CoxSummary full = CoxProportionalHazards.Fit(design, months, died, weights, centres, families, 2, ridge);
+        Console.WriteLine($"  ridge, robust    : {Inv.F3(full.Coefficients[0])} (se {Inv.F3(full.StandardErrors[0])}, robust {full.Robust}, L1 {Inv.F1(ridge.L1Ratio)}, penalty {Inv.F1(ridge.Penalizer)}, asked {ridge.Robust})");
+
+        // Does either covariate's hazard ratio drift with time?
+        foreach (Lodestar.Stats.TestResult test in CoxProportionalHazards.TestProportionalHazards(design, months, died, summary))
+        {
+            Console.WriteLine($"  PH test (rank)   : p {Inv.F4(test.PValue)}");
+        }
+
+        Lodestar.Stats.TestResult byCurve = CoxProportionalHazards.TestProportionalHazards(
+            design, months, died, [], [], summary, CoxTimeTransform.KaplanMeier)[0];
+        Console.WriteLine($"  PH test (KM)     : p {Inv.F4(byCurve.PValue)}");
+
         // The second column repeats the first, so neither coefficient is identified.
         double[] duplicated = [0.2, 0.2, 1.1, 1.1, -0.4, -0.4, 0.9, 0.9, -1.3, -1.3, 0.5, 0.5];
         try

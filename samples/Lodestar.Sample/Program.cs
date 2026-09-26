@@ -141,6 +141,8 @@ RestrictedMeanResultSample.Run();
 CoxProportionalHazardsSample.Run();
 CoxSummarySample.Run();
 CoxOptionsSample.Run();
+CoxBaselineSample.Run();
+CoxTimeVaryingSample.Run();
 MathNetInteropSample.Run();
 LodestarVectorStoreOptionsSample.Run();
 await LodestarVectorStoreSample.RunAsync().ConfigureAwait(false);
