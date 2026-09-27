@@ -87,6 +87,10 @@ THE_CAT = "the cat"
 # Double Metaphone input contract, which is what took it to S1192's threshold (#177).
 NAIVE = "naïve"
 NAIVE_FOLDED = "naive"
+# jellyfish's Metaphone, as a corpus key and as the call it names (S1192).
+METAPHONE_KEY = "metaphone"
+JF_METAPHONE = "jellyfish.metaphone"
+STRIP_ACCENTS = "strip_accents"  # scikit-learn's parameter name, as a config key
 # "the house", definite and genitive, which all three Scandinavian corpora reach
 # for -- and that is what takes both spellings to S1192's threshold (#308).
 HUSET = "huset"
@@ -715,19 +719,21 @@ METAPHONE_WORDS = [
     "Yellow", "Yes", "Young", "Beyond", "Layer", "Player", "Day", "Boy", "Guy",
     "Whale", "White", "Where", "Which", "Whisper", "Hour", "Honest", "Heir", "Herb",
     "Ghana", "Spaghetti", "Bologna", "Lasagna", "Champagne", "Foreign", "Reign",
+    # #1194: T silent before CH, GH silent before a consonant or Y
+    "Fletcher", "Mitchell", "Pritchard", "Hutchinson", "kitchen", "Highness", "doughy",
 ]
 
 
 def generate_metaphone() -> dict:
     cases = []
     for idx, word in enumerate(METAPHONE_WORDS):
-        cases.append({"id": idx, "word": word, "metaphone": jellyfish.metaphone(word)})
+        cases.append({"id": idx, "word": word, METAPHONE_KEY: jellyfish.metaphone(word)})
     return {
         "metadata": {
             "algorithm": "Metaphone",
             "library": "jellyfish",
             "library_version": version("jellyfish"),
-            "reference_calls": ["jellyfish.metaphone"],
+            "reference_calls": [JF_METAPHONE],
             "corpus": "real English words/names (see decision 0005)",
             "seed": SEED,
             "count": len(cases),
@@ -744,7 +750,7 @@ def generate_phonetics() -> dict:
             "id": idx,
             "word": word,
             "soundex": jellyfish.soundex(word),
-            "metaphone": jellyfish.metaphone(word),
+            METAPHONE_KEY: jellyfish.metaphone(word),
             "nysiis": jellyfish.nysiis(word),
         })
     return {
@@ -752,7 +758,7 @@ def generate_phonetics() -> dict:
             "algorithm": "Phonetics",
             "library": "jellyfish",
             "library_version": version("jellyfish"),
-            "reference_calls": ["jellyfish.soundex", "jellyfish.metaphone", "jellyfish.nysiis"],
+            "reference_calls": ["jellyfish.soundex", JF_METAPHONE, "jellyfish.nysiis"],
             "seed": SEED,
             "count": len(cases),
         },
@@ -854,6 +860,68 @@ def generate_match_rating_codex() -> dict:
     }
 
 
+# Decision 0009: jellyfish 1.2.1's input contract beyond letters -- apostrophes, spaces, the full
+# uppercase, decomposition, grapheme clusters, UTF-8 codex lengths. Fixed points, then seeded strings.
+PHONETIC_CONTRACT_WORDS = [
+    "O'Brien", "Keats's", "station's", "Anne-Marie", "van der Berg", "Mac Donald", "  ", "123",
+    "a1b", "AA", "KN", "SCH", "PH", "Straße", "ßa", "émigrés", "Ångström", NAIVE, "ﬁne",
+    "並丝七世", "日本", "दुनिया", "q\u0301u", "\u1e9b\u0323", "Ⅻ", "ǰa", "ŉ", "ıſ", "😀a", "x*y",
+]
+PHONETIC_CONTRACT_ALPHABET = list("abcdeghiknorstuwyzABCDEGHKNSTWY '-") + [
+    "ß", "é", "Ö", "\u0301", "\u0941", "😀", "ﬁ", "ı", "Ⅻ", "*",
+]
+
+
+def phonetic_contract_words(rng: SeededRandom):
+    yield from PHONETIC_CONTRACT_WORDS
+    for _ in range(300):
+        yield "".join(rng.choice(PHONETIC_CONTRACT_ALPHABET) for _ in range(rng.randint(1, 10)))
+
+
+def _codex_or_refusal(word: str):
+    try:
+        return jellyfish.match_rating_codex(word)
+    except ValueError:
+        return None
+
+
+def _jellyfish_metadata(algorithm: str, calls: list[str], count: int) -> dict:
+    return {
+        "algorithm": algorithm,
+        "library": "jellyfish",
+        "library_version": version("jellyfish"),
+        "reference_calls": calls,
+        "corpus": "fixed points beyond ASCII letters, then seeded strings over them (decision 0009)",
+        "seed": SEED,
+        "count": count,
+    }
+
+
+def generate_phonetics_contract() -> dict:
+    words = list(phonetic_contract_words(SeededRandom(SEED)))
+    cases = [{
+        "id": idx,
+        "word": word,
+        "soundex": jellyfish.soundex(word),
+        METAPHONE_KEY: jellyfish.metaphone(word),
+        "nysiis": jellyfish.nysiis(word),
+        # null where jellyfish raises ValueError, which the C# codex raises as ArgumentException.
+        "codex": _codex_or_refusal(word),
+    } for idx, word in enumerate(words)]
+    calls = ["jellyfish.soundex", JF_METAPHONE, "jellyfish.nysiis", "jellyfish.match_rating_codex"]
+    return {"metadata": _jellyfish_metadata("Phonetics input contract", calls, len(cases)), "cases": cases}
+
+
+def generate_phonetics_contract_pairs() -> dict:
+    words = list(phonetic_contract_words(SeededRandom(SEED)))
+    cases = [
+        {"id": idx, "a": a, "b": b, "comparison": jellyfish.match_rating_comparison(a, b)}
+        for idx, (a, b) in enumerate(zip(words, words[1:] + words[:1]))
+    ]
+    calls = ["jellyfish.match_rating_comparison"]
+    return {"metadata": _jellyfish_metadata("MatchRatingApproach.Compare input contract", calls, len(cases)), "cases": cases}
+
+
 def generate_match_rating_comparison() -> dict:
     # phonetic_words alone, not match_rating_words: its words are ASCII, so character
     # and UTF-8 byte length always agree and decision 0007's divergence cannot enter.
@@ -889,6 +957,8 @@ CORPUS_A = [
     QUICK_FOX,
 ]
 CORPUS_ACCENTS = ["Café crème", "Cafe creme", "Élève à l'école", "eleve a l ecole"]
+# #1198: Devanagari vowel signs are marks of combining class 0 and stay; a virama and an acute go.
+CORPUS_MARKS = ["दुनिया नमस्ते", "cafe\u0301 \u1e9b\u0323", "\U0001d167x \u0e01\u0e34"]
 CORPUS_WHITESPACE = ["a\tb c", "x\n\ny  z\r\n", "p\x1cq\x1c\x1dr", "u\u2003v\u00a0\u00a0w"]
 CHAR_WB = "char_wb"  # scikit-learn's analyzer name, spelled once (S1192).
 
@@ -901,7 +971,7 @@ def _build_count_vectorizer(cfg: dict):
         max_df=cfg.get("max_df", 1.0),
         binary=cfg.get("binary", False),
         lowercase=cfg.get("lowercase", True),
-        strip_accents="unicode" if cfg.get("strip_accents", False) else None,
+        strip_accents="unicode" if cfg.get(STRIP_ACCENTS, False) else None,
         stop_words=cfg.get("stop_words", None),
     )
 
@@ -915,7 +985,7 @@ COUNT_CASES = [
     {"config": {"stop_words": ["the", "a", "and"]}, "docs": CORPUS_A},
     {"config": {"stop_words": "english"}, "docs": CORPUS_A},
     {"config": {"lowercase": False}, "docs": CORPUS_A},
-    {"config": {"strip_accents": True}, "docs": CORPUS_ACCENTS},
+    {"config": {STRIP_ACCENTS: True}, "docs": CORPUS_ACCENTS},
     {"config": {"analyzer": "char", "ngram_min": 2, "ngram_max": 3}, "docs": CORPUS_A[:3]},
     {"config": {"analyzer": CHAR_WB, "ngram_min": 2, "ngram_max": 3}, "docs": CORPUS_A[:3]},
     # #879: only runs of two or more whitespace collapse (\s\s+), and U+001C..U+001F are whitespace.
@@ -931,6 +1001,7 @@ COUNT_CASES = [
     {"config": {"analyzer": "char", "ngram_min": -1, "ngram_max": 1}, "docs": CORPUS_A[:3]},
     {"config": {"analyzer": CHAR_WB, "ngram_min": 0, "ngram_max": 2}, "docs": CORPUS_A[:3]},
     {"config": {"analyzer": CHAR_WB, "ngram_min": -1, "ngram_max": 1}, "docs": CORPUS_A[:3]},
+    {"config": {"analyzer": "char", STRIP_ACCENTS: True}, "docs": CORPUS_MARKS},
 ]
 
 
@@ -1015,6 +1086,10 @@ def generate_hashingvectorizer() -> dict:
         {"n_features": 8, "ngram_min": 1, "ngram_max": 2, "norm": None},
         # #1065: the empty term a zero first length adds, hashed like any other.
         {"n_features": 8, "ngram_min": 0, "ngram_max": 2, "norm": None},
+        # #1196: binary sets every stored bucket to 1, a cancelled one included.
+        {"n_features": 4, "binary": True, "norm": None},
+        {"n_features": 4, "binary": True, "alternate_sign": False, "norm": None},
+        {"n_features": 16, "binary": True, "norm": "l2"},
     ]
     cases = []
     for idx, cfg in enumerate(configs):
@@ -1023,6 +1098,7 @@ def generate_hashingvectorizer() -> dict:
             alternate_sign=cfg.get("alternate_sign", True),
             norm=cfg.get("norm", "l2"),
             ngram_range=(cfg.get("ngram_min", 1), cfg.get("ngram_max", 1)),
+            binary=cfg.get("binary", False),
         )
         x = hv.fit_transform(CORPUS_A)
         cases.append({"id": idx, "config": cfg, "docs": CORPUS_A, "matrix": x.toarray().tolist()})
@@ -1066,7 +1142,30 @@ PORTER_WORDS = [
     # common words
     "running", "runner", "easily", "fairly", "national", "generalization",
     "organization", "happiness", "argument", "arguing", "meetings",
+    # #1193: where ORIGINAL_ALGORITHM and MARTIN_EXTENSIONS part -- abli/bli, logi, short words
+    "analogy", "analogies", "apology", "archaeology", "anthology", "biology",
+    "accessibly", "sensibly", "possibly", "terribly", "probably", "notably", "capably",
+    "a", "s", "is", "as", "us", "ss", "ye", "sky", "by", "ties",
 ]
+
+
+def generate_porter_martin() -> dict:
+    """The same words under MARTIN_EXTENSIONS, the second mode PorterStemmer offers (#1193)."""
+    from nltk.stem.porter import PorterStemmer  # noqa: PLC0415 (lazy: sandbox import guard)
+
+    stemmer = PorterStemmer(mode=PorterStemmer.MARTIN_EXTENSIONS)
+    cases = [{"id": i, "word": w, "stem": stemmer.stem(w)} for i, w in enumerate(PORTER_WORDS)]
+    return {
+        "metadata": {
+            "algorithm": "PorterStemmer",
+            "library": "nltk",
+            "library_version": version("nltk"),
+            "mode": "MARTIN_EXTENSIONS",
+            "reference_calls": ["nltk.stem.porter.PorterStemmer(mode=MARTIN_EXTENSIONS)"],
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
 
 
 def generate_porter() -> dict:
@@ -1108,6 +1207,8 @@ SNOWBALL_EN_WORDS = PORTER_WORDS + [
     "running", "runner", "runs", "swimmer", "swimming", "beginner", "beginning",
     "european", "america", "france", "england", "computer", "internet",
     "walking", "talked", "jumped", "wanted", "needed", "worked", "looked",
+    # #1198: a step 2 rewrite longer than R2 leaves nltk's R2 empty, or "e"
+    "ionization", "ionizer", "irrationality", "irrationally", "realization", "proceed", "exceedly",
 ]
 
 
@@ -1266,6 +1367,11 @@ SNOWBALL_ES_WORDS = [
     # short / residual
     "casa", "casas", "libro", "libros", "papel", "papeles", "sol", "mar",
     "país", "países", "café", "bebé", "and", "yo", "el", "la",
+    # #1192: a longer suffix outside RV gives way to a shorter one inside it
+    "frías", "guías", "leías", "reías", "caías", "veían", "envían", "comíamos", "vivíamos",
+    "cantará", "comeré", "vivirá", "saldré", "hablaré", "nación", "canción", "situacion",
+    # nltk drops every acute of the word after step 0 removes a pronoun, not the verb's alone
+    "sonreírlas", "tálugúñíirlas", "partíirlo",
 ]
 
 
@@ -1289,6 +1395,9 @@ SNOWBALL_PT_WORDS = [
     "casa", "casas", "livro", "livros", "papel", "papéis", "sol", "mar",
     "país", "países", "café", "bebê", "coração", "corações",
     "nação", "nações", "irmã", "irmãs", "logia", "logias",
+    # #1191: -em and -ávamos in step 2, and the trema nltk drops after g and q
+    "sabem", "põem", "creem", "sairem", "comem", "vivem", "partirem", "falávamos",
+    "lingüiça", "agüentar", "freqüente", "cinqüenta", "tranqüilo", "bilíngüe",
 ]
 
 
@@ -1311,6 +1420,8 @@ SNOWBALL_IT_WORDS = [
     "finire", "finisci", "finiamo", "finirono", "finendo", "finito",
     "casa", "case", "libro", "libri", "carta", "carte", "sole", "mare",
     "paese", "paesi", "caffè", "abbandonare", "abbandonato",
+    # #1198: step 2 has no bare "er"
+    "poter", "dover", "voler", "aver", "esser",
 ]
 
 
@@ -1338,6 +1449,9 @@ SNOWBALL_DE_WORDS = [
     "sprechen", "spricht", "sprach", "gesprochen",
     # short / residual
     "der", "die", "das", "und", "ist", "ein", "eine", "einen",
+    # #1190: -ung in step 3, and the ig it uncovers unless an e precedes
+    "bedeutung", "regierung", "entwicklung", "erfahrung", "beziehung", "veränderung",
+    "verwaltung", "beendigung", "reinigung", "entschuldigung", "heiligung", "lesend",
 ]
 
 
@@ -1568,6 +1682,8 @@ SNOWBALL_DA_WORDS = [
     "og", "at", "det", "en", "et", "er", "som", "på", "med", "for",
     "ikke", "han", "hun", "den", "var", "jeg", "til", "af",
     "a", "ab", "abc", "abcd",
+    # #1198: nltk undoubles every consonant pair over the whole word, not only in R1
+    "gåcc", "vynåtazz", "blogg", "jazz", "grill", "hopp", "stopp",
 ]
 
 
@@ -8113,6 +8229,14 @@ def _bm25_fixtures() -> list[dict]:
             BM25_QUERY: [BM25_LEARNING, BM25_DOCUMENTS],
         },
         {
+            # rank_bm25 has no IDF for a term no document holds, so such a column must
+            # not dilute the average the negative floor is a share of.
+            "name": "vocabulary columns no document uses, beside a negative IDF",
+            BM25_DOCUMENTS: animals,
+            BM25_QUERY: ["sat"],
+            "unused": ["zebra", "yak"],
+        },
+        {
             "name": "one document only, where every term is in every document",
             BM25_DOCUMENTS: [["solo", "document", "here"]],
             BM25_QUERY: ["solo"],
@@ -8133,7 +8257,7 @@ def generate_search_bm25() -> dict:
     for fixture in _bm25_fixtures():
         documents = fixture[BM25_DOCUMENTS]
         okapi = BM25Okapi(documents)
-        vocabulary = sorted({term for document in documents for term in document})
+        vocabulary = sorted({term for document in documents for term in document} | set(fixture.get("unused", [])))
         column = {term: index for index, term in enumerate(vocabulary)}
         counts = [[document.count(term) for term in vocabulary] for document in documents]
         query = fixture[BM25_QUERY]
@@ -16213,11 +16337,14 @@ def main() -> None:
         "metaphone.json": generate_metaphone,
         "double_metaphone.json": generate_double_metaphone,
         "match_rating_codex.json": generate_match_rating_codex,
+        "phonetics_contract.json": generate_phonetics_contract,
+        "phonetics_contract_pairs.json": generate_phonetics_contract_pairs,
         "match_rating_comparison.json": generate_match_rating_comparison,
         "countvectorizer.json": generate_countvectorizer,
         "tfidfvectorizer.json": generate_tfidfvectorizer,
         "hashingvectorizer.json": generate_hashingvectorizer,
         "porter.json": generate_porter,
+        "porter_martin.json": generate_porter_martin,
         "snowball_en.json": generate_snowball_en,
         "snowball_fr.json": generate_snowball_fr,
         "snowball_es.json": generate_snowball_es,

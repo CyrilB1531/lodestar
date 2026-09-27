@@ -77,7 +77,11 @@ public sealed class HashingVectorizerOracleTests
 
         return new HashingVectorizerOptions
         {
-            Count = new CountVectorizerOptions { NgramRange = (ngramMin, ngramMax) },
+            Count = new CountVectorizerOptions
+            {
+                NgramRange = (ngramMin, ngramMax),
+                Binary = config.TryGetProperty("binary", out JsonElement bin) && bin.GetBoolean(),
+            },
             NumFeatures = config.GetProperty("n_features").GetInt32(),
             AlternateSign = !config.TryGetProperty("alternate_sign", out JsonElement asg) || asg.GetBoolean(),
             Norm = norm,

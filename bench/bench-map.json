@@ -445,6 +445,10 @@
       "src/Lodestar.Stats/**",
       "src/Lodestar.Decomposition/**",
       "src/Shared/JacobiSpectrum.cs"
+    ],
+    "BkTreeNearestBenchmarks": [
+      "src/Lodestar.Text/Indexing/**",
+      "src/Lodestar.Text/Distances/**"
     ]
   },
   "harnesses": {

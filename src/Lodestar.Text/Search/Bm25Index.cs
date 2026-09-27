@@ -188,28 +188,36 @@ public sealed class Bm25Index
             idf[term] = options.Idf == Bm25Idf.Lucene ? Math.Log(1.0 + ratio) : Math.Log(ratio);
         }
 
-        return options.Idf == Bm25Idf.Lucene ? idf : FloorNegatives(idf, options.Epsilon);
+        return options.Idf == Bm25Idf.Lucene ? idf : FloorNegatives(idf, documentFrequency, options.Epsilon);
     }
 
     /// <summary>Replaces every negative IDF with a small positive share of the mean.</summary>
     /// <remarks>
     /// The mean is taken over the <em>raw</em> values, negatives included, which is what
     /// the reference does — flooring first and averaging after would give a larger floor.
+    /// It runs over the terms the corpus holds: rank_bm25 has no entry for a column no document
+    /// uses, so such a column does not dilute the mean (#1198).
     /// </remarks>
-    private static double[] FloorNegatives(double[] idf, double epsilon)
+    private static double[] FloorNegatives(double[] idf, int[] documentFrequency, double epsilon)
     {
-        if (idf.Length == 0)
+        double sum = 0.0;
+        int present = 0;
+        for (int term = 0; term < idf.Length; term++)
+        {
+            if (documentFrequency[term] > 0)
+            {
+                sum += idf[term];
+                present++;
+            }
+        }
+
+        // With no term present there is no negative to floor: a negative needs df above N/2.
+        if (present == 0)
         {
             return idf;
         }
 
-        double sum = 0.0;
-        foreach (double value in idf)
-        {
-            sum += value;
-        }
-
-        double floor = epsilon * (sum / idf.Length);
+        double floor = epsilon * (sum / present);
         for (int term = 0; term < idf.Length; term++)
         {
             if (idf[term] < 0.0)

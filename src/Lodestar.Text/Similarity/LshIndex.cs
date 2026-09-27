@@ -11,7 +11,8 @@ namespace Lodestar.Text.Similarity;
 public sealed class LshIndex
 {
     private readonly Dictionary<BandKey, List<string>> _buckets = [];
-    private readonly HashSet<string> _keys = new(StringComparer.Ordinal);
+    // Each key's insertion ordinal, which orders what Query returns.
+    private readonly Dictionary<string, int> _keys = new(StringComparer.Ordinal);
 
     /// <summary>How the signatures are cut.</summary>
     public LshBanding Banding { get; }
@@ -47,10 +48,11 @@ public sealed class LshIndex
     {
         Guard.NotNull(key);
         RequireLength(signature);
-        if (!_keys.Add(key))
+        if (_keys.ContainsKey(key))
         {
             throw new ArgumentException($"'{key}' is already in the index.", nameof(key));
         }
+        _keys.Add(key, _keys.Count);
 
         for (int band = 0; band < Banding.Bands; band++)
         {
@@ -77,7 +79,7 @@ public sealed class LshIndex
         RequireLength(signature);
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        var candidates = new List<string>();
+        var candidates = new List<(int Ordinal, string Key)>();
         for (int band = 0; band < Banding.Bands; band++)
         {
             if (!_buckets.TryGetValue(KeyOf(band, signature), out List<string>? members))
@@ -90,12 +92,19 @@ public sealed class LshIndex
                 bool firstSighting = seen.Add(member);
                 if (firstSighting)
                 {
-                    candidates.Add(member);
+                    candidates.Add((_keys[member], member));
                 }
             }
         }
 
-        return candidates;
+        // Band by band, a later band can surface an earlier key; the ordinal restores insertion order.
+        candidates.Sort((x, y) => x.Ordinal.CompareTo(y.Ordinal));
+        var keys = new string[candidates.Count];
+        for (int i = 0; i < keys.Length; i++)
+        {
+            keys[i] = candidates[i].Key;
+        }
+        return keys;
     }
 
     private void RequireLength(ReadOnlySpan<uint> signature)

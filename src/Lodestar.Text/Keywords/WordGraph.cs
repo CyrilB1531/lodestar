@@ -14,7 +14,11 @@ internal sealed class WordGraph
 {
     private readonly List<string> _nodes = [];
     private readonly Dictionary<string, int> _index = new(StringComparer.Ordinal);
-    private double[][] _weights;
+
+    // Each node's off-diagonal neighbours ascending, and its self-loop: every weight is 1, so that
+    // is the whole row, where a dense n x n matrix cost 6.4 GB at 20,000 stems (#1199).
+    private int[][] _neighbours;
+    private bool[] _selfLoop;
 
     public WordGraph(IReadOnlyList<string?> stream, int window)
     {
@@ -27,7 +31,7 @@ internal sealed class WordGraph
             _nodes.Add(token);
         }
 
-        _weights = BuildWeights(stream, window);
+        (_neighbours, _selfLoop) = BuildAdjacency(stream, window);
         RemoveUnreachable();
     }
 
@@ -42,19 +46,13 @@ internal sealed class WordGraph
     {
         get
         {
-            int edges = 0;
-            for (int i = 0; i < _nodes.Count; i++)
+            int ends = 0;
+            foreach (int[] row in _neighbours)
             {
-                for (int j = i + 1; j < _nodes.Count; j++)
-                {
-                    if (!IsZero(_weights[i][j]))
-                    {
-                        edges++;
-                    }
-                }
+                ends += row.Length;
             }
 
-            return edges;
+            return ends / 2;
         }
     }
 
@@ -71,13 +69,22 @@ internal sealed class WordGraph
             return [];
         }
 
-        double[][] m = BuildTransitionMatrix(damping, n);
+        // Degree sums the whole row, diagonal included, but only i != j gets a damping term —
+        // build_adjacency_matrix's rule. Every surviving node has a degree of at least 1.
+        double[] share = new double[n];
+        for (int i = 0; i < n; i++)
+        {
+            share[i] = damping / (_neighbours[i].Length + (_selfLoop[i] ? 1 : 0));
+        }
+
+        double teleport = (1 - damping) / n;
         double[] x = InitialVector(n);
         double[] next = new double[n];
+        double[] weighted = new double[n];
 
         for (int iteration = 0; iteration < maxIterations; iteration++)
         {
-            double delta = Iterate(m, x, next, n);
+            double delta = Iterate(x, next, weighted, share, teleport);
             (x, next) = (next, x);
             if (delta < tolerance)
             {
@@ -90,24 +97,6 @@ internal sealed class WordGraph
 
         throw new InvalidOperationException(
             $"The power iteration did not converge to {tolerance} within {maxIterations} iterations.");
-    }
-
-    // Every stored weight is set, never accumulated, to exactly 1.0 or left at the array's
-    // default 0.0, so testing against zero is exact rather than an approximation S1244 wants
-    // ranged.
-#pragma warning disable S1244
-    private static bool IsZero(double weight) => weight == 0;
-#pragma warning restore S1244
-
-    private static double[][] CreateMatrix(int n)
-    {
-        var matrix = new double[n][];
-        for (int i = 0; i < n; i++)
-        {
-            matrix[i] = new double[n];
-        }
-
-        return matrix;
     }
 
     private static double[] InitialVector(int n)
@@ -130,25 +119,30 @@ internal sealed class WordGraph
         }
     }
 
-    // One power-iteration step, x·M renormalised to unit L2 norm, returning the largest
-    // per-component change so the caller can test convergence without a second pass.
-    private static double Iterate(double[][] m, double[] x, double[] next, int n)
+    // x·M renormalised, returning the largest component change. M is teleport plus share[i] on each
+    // edge, and symmetric, so column j of x·M reads j's own neighbour list.
+    private double Iterate(double[] x, double[] next, double[] weighted, double[] share, double teleport)
     {
-        for (int j = 0; j < n; j++)
+        int n = x.Length;
+        double total = 0;
+        for (int i = 0; i < n; i++)
         {
-            double sum = 0;
-            for (int i = 0; i < n; i++)
-            {
-                sum += x[i] * m[i][j];
-            }
-
-            next[j] = sum;
+            total += x[i];
+            weighted[i] = x[i] * share[i];
         }
 
+        double base_ = teleport * total;
         double norm = 0;
         for (int j = 0; j < n; j++)
         {
-            norm += next[j] * next[j];
+            double sum = base_;
+            foreach (int i in _neighbours[j])
+            {
+                sum += weighted[i];
+            }
+
+            next[j] = sum;
+            norm += sum * sum;
         }
 
         norm = Math.Sqrt(norm);
@@ -167,108 +161,96 @@ internal sealed class WordGraph
         return delta;
     }
 
-    private double[][] BuildWeights(IReadOnlyList<string?> stream, int window)
+    // Pairs token i with i+1 .. i+window-1 (summa's window), always at weight 1 — mirrors
+    // add_edge's `not has_edge` guard. a == b marks the one self-loop, not a skip.
+    private (int[][] Neighbours, bool[] SelfLoop) BuildAdjacency(IReadOnlyList<string?> stream, int window)
     {
-        double[][] weights = CreateMatrix(_nodes.Count);
+        int n = _nodes.Count;
+        var sets = new HashSet<int>[n];
+        bool[] selfLoop = new bool[n];
         for (int i = 0; i < stream.Count; i++)
         {
-            if (stream[i] is string left)
-            {
-                AddEdgesFrom(stream, weights, i, left, window);
-            }
-        }
-
-        return weights;
-    }
-
-    // Pairs token i with i+1 .. i+window-1 (summa's window), always at weight 1 — mirrors
-    // add_edge's `not has_edge` guard. a == b writes the one diagonal cell, not a skip.
-    private void AddEdgesFrom(IReadOnlyList<string?> stream, double[][] weights, int i, string left, int window)
-    {
-        int end = Math.Min(i + window, stream.Count);
-        int a = _index[left];
-        for (int j = i + 1; j < end; j++)
-        {
-            if (stream[j] is not string right)
+            if (stream[i] is not string left)
             {
                 continue;
             }
 
-            int b = _index[right];
-            weights[a][b] = 1;
-            if (a != b)
+            int a = _index[left];
+            int end = Math.Min(i + window, stream.Count);
+            for (int j = i + 1; j < end; j++)
             {
-                weights[b][a] = 1;
+                if (stream[j] is not string right)
+                {
+                    continue;
+                }
+
+                int b = _index[right];
+                if (a == b)
+                {
+                    selfLoop[a] = true;
+                    continue;
+                }
+
+                (sets[a] ??= []).Add(b);
+                (sets[b] ??= []).Add(a);
             }
         }
-    }
 
-    // The row-stochastic transition matrix d·A + (1 − d)/n. Degree sums the whole row,
-    // diagonal included, but only i != j gets a damping term — build_adjacency_matrix's rule.
-    private double[][] BuildTransitionMatrix(double damping, int n)
-    {
-        double[][] m = CreateMatrix(n);
-        double teleport = (1 - damping) / n;
+        var neighbours = new int[n][];
         for (int i = 0; i < n; i++)
         {
-            double degree = 0;
-            for (int j = 0; j < n; j++)
-            {
-                degree += _weights[i][j];
-            }
-
-            for (int j = 0; j < n; j++)
-            {
-                bool offDiagonal = i != j && !IsZero(degree);
-                m[i][j] = teleport + (offDiagonal ? damping * _weights[i][j] / degree : 0);
-            }
+            neighbours[i] = sets[i] is null ? [] : [.. sets[i]];
+            Array.Sort(neighbours[i]);
         }
 
-        return m;
+        return (neighbours, selfLoop);
     }
 
     // One pass is enough: an isolated node lowers nobody's degree when removed. All of them go in one
-    // compaction, where dropping them one at a time rebuilt the n x n matrix per node (#816).
+    // compaction (#816), renumbering the survivors' neighbour lists.
     private void RemoveUnreachable()
     {
         int n = _nodes.Count;
-        var kept = new List<int>(n);
+        int[] renumber = new int[n];
+        int kept = 0;
         for (int i = 0; i < n; i++)
         {
-            double degree = 0;
-            for (int j = 0; j < n; j++)
-            {
-                degree += _weights[i][j];
-            }
-
-            if (!IsZero(degree))
-            {
-                kept.Add(i);
-            }
+            renumber[i] = _neighbours[i].Length > 0 || _selfLoop[i] ? kept++ : -1;
         }
 
-        if (kept.Count == n)
+        if (kept == n)
         {
             return;
         }
 
-        double[][] trimmed = CreateMatrix(kept.Count);
-        var nodes = new List<string>(kept.Count);
-        for (int a = 0; a < kept.Count; a++)
+        var neighbours = new int[kept][];
+        bool[] selfLoop = new bool[kept];
+        var nodes = new List<string>(kept);
+        for (int i = 0; i < n; i++)
         {
-            double[] source = _weights[kept[a]];
-            double[] target = trimmed[a];
-            for (int b = 0; b < kept.Count; b++)
+            int target = renumber[i];
+            if (target < 0)
             {
-                target[b] = source[kept[b]];
+                continue;
             }
 
-            nodes.Add(_nodes[kept[a]]);
+            // A neighbour has this node as its neighbour, so it survives too; ascending order holds.
+            int[] row = _neighbours[i];
+            int[] mapped = new int[row.Length];
+            for (int k = 0; k < row.Length; k++)
+            {
+                mapped[k] = renumber[row[k]];
+            }
+
+            neighbours[target] = mapped;
+            selfLoop[target] = _selfLoop[i];
+            nodes.Add(_nodes[i]);
         }
 
         _nodes.Clear();
         _nodes.AddRange(nodes);
-        _weights = trimmed;
+        _neighbours = neighbours;
+        _selfLoop = selfLoop;
         _index.Clear();
         for (int i = 0; i < _nodes.Count; i++)
         {

@@ -55,9 +55,10 @@ public static class PortugueseSnowballStemmer
             c is 'a' or 'e' or 'i' or 'o' or 'u' or 'á' or 'é' or 'í' or 'ó' or 'ú' or 'â' or 'ê' or 'ô';
 
 
-        // Nasals are expanded before the base computes regions: the tilde must act
-        // as a consonant, or the vowel before it would close a region early.
-        public Worker(string s) : base(s.Replace("ã", "a~").Replace("õ", "o~"), Vowels)
+        // Nasals expand before regions are computed, so the tilde acts as a consonant; the
+        // trema goes after g and q, as nltk drops it (#1191): "lingüiça" stems as "linguiça".
+        public Worker(string s)
+            : base(s.Replace("ã", "a~").Replace("õ", "o~").Replace("qü", "qu").Replace("gü", "gu"), Vowels)
         {
         }
 
@@ -154,13 +155,13 @@ public static class PortugueseSnowballStemmer
             "eremos", "iremos", "ariam", "eriam", "iriam", "assem", "essem", "issem", "ara~o",
             "era~o", "ira~o", "arias", "erias", "irias", "ardes", "erdes", "irdes", "asses",
             "esses", "isses", "astes", "estes", "istes", "áreis", "areis", "éreis", "ereis",
-            "íreis", "ireis", "áveis", "íamos", "armos", "ermos", "irmos", "aria", "eria",
+            "íreis", "ireis", "áveis", "ávamos", "íamos", "armos", "ermos", "irmos", "aria", "eria",
             "iria", "asse", "esse", "isse", "aste", "este", "iste", "arei", "erei", "irei",
             "aram", "eram", "iram", "avam", "arem", "erem", "irem", "ando", "endo", "indo",
             "adas", "idas", "arás", "aras", "erás", "eras", "irás", "avas", "ares", "eres",
             "ires", "íeis", "ados", "idos", "ámos", "amos", "emos", "imos", "iras", "ada",
             "ida", "ará", "ara", "erá", "era", "irá", "ava", "iam", "ado", "ido", "ias",
-            "ais", "eis", "ira", "ear", "ar", "er", "ir", "am", "ia", "ei", "am", "as",
+            "ais", "eis", "ira", "ar", "er", "ir", "am", "em", "ia", "ei", "as",
             "es", "is", "eu", "iu", "ou",
         ];
 

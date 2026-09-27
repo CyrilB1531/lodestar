@@ -14,25 +14,37 @@ namespace Lodestar.Text.Stemming;
 /// The Porter stemming algorithm (Martin Porter, 1980) for English.
 /// </summary>
 /// <remarks>
-/// Reference behavior: the original five-step algorithm as implemented by
-/// <c>nltk.stem.porter.PorterStemmer(mode=ORIGINAL_ALGORITHM)</c>. An original
-/// implementation of the published algorithm, not a transcription — see
-/// <c>docs/equivalence.md</c>'s stemming row. Input is lowercased; only ASCII
-/// letters are treated as such. Thread-safe.
+/// Reference behavior: <c>nltk.stem.porter.PorterStemmer</c> in the mode
+/// <see cref="PorterStemmerMode"/> names — <c>ORIGINAL_ALGORITHM</c> unless another is asked for. An
+/// original implementation of the published algorithm, not a transcription — see
+/// <c>docs/equivalence.md</c>'s stemming row. Input is lowercased; only ASCII letters are treated as
+/// such. Thread-safe.
 /// </remarks>
 public static class PorterStemmer
 {
-    /// <summary>Returns the Porter stem of <paramref name="word"/>.</summary>
+    /// <summary>Returns the Porter stem of <paramref name="word"/>, by the 1980 paper's rules.</summary>
     /// <exception cref="ArgumentNullException"><paramref name="word"/> is null.</exception>
-    public static string Stem(string word)
+    public static string Stem(string word) => Stem(word, PorterStemmerMode.OriginalAlgorithm);
+
+    /// <summary>Returns the Porter stem of <paramref name="word"/>, by the rules <paramref name="mode"/> names.</summary>
+    /// <exception cref="ArgumentNullException"><paramref name="word"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="mode"/> is not a defined mode.</exception>
+    public static string Stem(string word, PorterStemmerMode mode)
     {
         Guard.NotNull(word);
-        if (word.Length <= 2)
+        if (mode is not (PorterStemmerMode.OriginalAlgorithm or PorterStemmerMode.MartinExtensions))
+        {
+            throw new ArgumentException($"{mode} is not a Porter stemmer mode.", nameof(mode));
+        }
+
+        bool martin = mode == PorterStemmerMode.MartinExtensions;
+        // Martin's implementation leaves words of one or two letters alone; the paper does not.
+        if (word.Length == 0 || (martin && word.Length <= 2))
         {
             return word.ToLowerInvariant();
         }
 
-        var w = new Worker(word.ToLowerInvariant());
+        var w = new Worker(word.ToLowerInvariant(), martin);
         w.Step1a();
         w.Step1b();
         w.Step1c();
@@ -46,11 +58,13 @@ public static class PorterStemmer
 
     private sealed class Worker
     {
+        private readonly bool _martin;
         private char[] _b;
-        private int _k; // index of the last character (inclusive)
+        private int _k; // index of the last character (inclusive); -1 once step 1a empties "s"
 
-        public Worker(string word)
+        public Worker(string word, bool martin)
         {
+            _martin = martin;
             _b = word.ToCharArray();
             _k = _b.Length - 1;
         }
@@ -234,19 +248,24 @@ public static class PorterStemmer
                 'a' => TryReplace("ational", "ate", 0) || TryReplace("tional", "tion", 0),
                 'c' => TryReplace("enci", "ence", 0) || TryReplace("anci", "ance", 0),
                 'e' => TryReplace("izer", "ize", 0),
-                'l' => TryReplace("bli", "ble", 0) || TryReplace("alli", "al", 0) || TryReplace("entli", "ent", 0)
+                'l' => (_martin ? TryReplace("bli", "ble", 0) : TryReplace("abli", "able", 0))
+                       || TryReplace("alli", "al", 0) || TryReplace("entli", "ent", 0)
                        || TryReplace("eli", "e", 0) || TryReplace("ousli", "ous", 0),
                 'o' => TryReplace("ization", "ize", 0) || TryReplace("ation", "ate", 0) || TryReplace("ator", "ate", 0),
                 's' => TryReplace("alism", "al", 0) || TryReplace("iveness", "ive", 0)
                        || TryReplace("fulness", "ful", 0) || TryReplace("ousness", "ous", 0),
                 't' => TryReplace("aliti", "al", 0) || TryReplace("iviti", "ive", 0) || TryReplace("biliti", "ble", 0),
-                'g' => TryReplace("logi", "log", 0),
+                'g' => _martin && TryReplace("logi", "log", 0),
                 _ => false,
             };
         }
 
         public void Step3()
         {
+            if (_k < 0)
+            {
+                return;
+            }
             _ = _b[_k] switch
             {
                 'e' => TryReplace("icate", "ic", 0) || TryReplace("ative", string.Empty, 0) || TryReplace("alize", "al", 0),
@@ -310,7 +329,7 @@ public static class PorterStemmer
 
         public void Step5b()
         {
-            if (_b[_k] == 'l' && EndsDoubleConsonant() && Measure(_k) > 1)
+            if (_k >= 0 && _b[_k] == 'l' && EndsDoubleConsonant() && Measure(_k) > 1)
             {
                 _k--;
             }

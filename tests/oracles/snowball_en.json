@@ -6,7 +6,7 @@
   "reference_calls": [
    "nltk.stem.snowball.SnowballStemmer('english')"
   ],
-  "count": 190
+  "count": 215
  },
  "cases": [
   {
@@ -441,523 +441,648 @@
   },
   {
    "id": 86,
-   "word": "generous",
-   "stem": "generous"
-  },
-  {
-   "id": 87,
-   "word": "generously",
-   "stem": "generous"
-  },
-  {
-   "id": 88,
-   "word": "generation",
-   "stem": "generat"
-  },
-  {
-   "id": 89,
-   "word": "communication",
-   "stem": "communic"
-  },
-  {
-   "id": 90,
-   "word": "arsenic",
-   "stem": "arsenic"
-  },
-  {
-   "id": 91,
-   "word": "nationally",
-   "stem": "nation"
-  },
-  {
-   "id": 92,
-   "word": "rationalization",
-   "stem": "ration"
-  },
-  {
-   "id": 93,
-   "word": "sensational",
-   "stem": "sensat"
-  },
-  {
-   "id": 94,
-   "word": "consciously",
-   "stem": "conscious"
-  },
-  {
-   "id": 95,
-   "word": "beautiful",
-   "stem": "beauti"
-  },
-  {
-   "id": 96,
-   "word": "beautifully",
-   "stem": "beauti"
-  },
-  {
-   "id": 97,
-   "word": "happily",
-   "stem": "happili"
-  },
-  {
-   "id": 98,
-   "word": "quickly",
-   "stem": "quick"
-  },
-  {
-   "id": 99,
-   "word": "slowly",
-   "stem": "slowli"
-  },
-  {
-   "id": 100,
-   "word": "friendly",
-   "stem": "friend"
-  },
-  {
-   "id": 101,
-   "word": "management",
-   "stem": "manag"
-  },
-  {
-   "id": 102,
-   "word": "development",
-   "stem": "develop"
-  },
-  {
-   "id": 103,
-   "word": "government",
-   "stem": "govern"
-  },
-  {
-   "id": 104,
-   "word": "measurement",
-   "stem": "measur"
-  },
-  {
-   "id": 105,
-   "word": "achievement",
-   "stem": "achiev"
-  },
-  {
-   "id": 106,
-   "word": "creation",
-   "stem": "creation"
-  },
-  {
-   "id": 107,
-   "word": "relation",
-   "stem": "relat"
-  },
-  {
-   "id": 108,
-   "word": "position",
-   "stem": "posit"
-  },
-  {
-   "id": 109,
-   "word": "decision",
-   "stem": "decis"
-  },
-  {
-   "id": 110,
-   "word": "television",
-   "stem": "televis"
-  },
-  {
-   "id": 111,
-   "word": "discussion",
-   "stem": "discuss"
-  },
-  {
-   "id": 112,
-   "word": "activity",
-   "stem": "activ"
-  },
-  {
-   "id": 113,
-   "word": "sensitivity",
-   "stem": "sensit"
-  },
-  {
-   "id": 114,
-   "word": "productivity",
-   "stem": "product"
-  },
-  {
-   "id": 115,
-   "word": "ability",
-   "stem": "abil"
-  },
-  {
-   "id": 116,
-   "word": "possibility",
-   "stem": "possibl"
-  },
-  {
-   "id": 117,
-   "word": "organize",
-   "stem": "organ"
-  },
-  {
-   "id": 118,
-   "word": "realize",
-   "stem": "realiz"
-  },
-  {
-   "id": 119,
-   "word": "recognize",
-   "stem": "recogn"
-  },
-  {
-   "id": 120,
-   "word": "characterize",
-   "stem": "character"
-  },
-  {
-   "id": 121,
-   "word": "modernize",
-   "stem": "modern"
-  },
-  {
-   "id": 122,
-   "word": "connected",
-   "stem": "connect"
-  },
-  {
-   "id": 123,
-   "word": "connecting",
-   "stem": "connect"
-  },
-  {
-   "id": 124,
-   "word": "connection",
-   "stem": "connect"
-  },
-  {
-   "id": 125,
-   "word": "connects",
-   "stem": "connect"
-  },
-  {
-   "id": 126,
-   "word": "connect",
-   "stem": "connect"
-  },
-  {
-   "id": 127,
-   "word": "studies",
-   "stem": "studi"
-  },
-  {
-   "id": 128,
-   "word": "studied",
-   "stem": "studi"
-  },
-  {
-   "id": 129,
-   "word": "studying",
-   "stem": "studi"
-  },
-  {
-   "id": 130,
-   "word": "study",
-   "stem": "studi"
-  },
-  {
-   "id": 131,
-   "word": "cries",
-   "stem": "cri"
-  },
-  {
-   "id": 132,
-   "word": "cried",
-   "stem": "cri"
-  },
-  {
-   "id": 133,
-   "word": "crying",
-   "stem": "cri"
-  },
-  {
-   "id": 134,
-   "word": "agreement",
-   "stem": "agreement"
-  },
-  {
-   "id": 135,
-   "word": "agreeing",
-   "stem": "agre"
-  },
-  {
-   "id": 136,
-   "word": "agrees",
-   "stem": "agre"
-  },
-  {
-   "id": 137,
-   "word": "agree",
-   "stem": "agre"
-  },
-  {
-   "id": 138,
-   "word": "controlling",
-   "stem": "control"
-  },
-  {
-   "id": 139,
-   "word": "controlled",
-   "stem": "control"
-  },
-  {
-   "id": 140,
-   "word": "controls",
-   "stem": "control"
-  },
-  {
-   "id": 141,
-   "word": "control",
-   "stem": "control"
-  },
-  {
-   "id": 142,
-   "word": "rolling",
-   "stem": "roll"
-  },
-  {
-   "id": 143,
-   "word": "rolled",
-   "stem": "roll"
-  },
-  {
-   "id": 144,
-   "word": "flying",
-   "stem": "fli"
-  },
-  {
-   "id": 145,
-   "word": "denying",
-   "stem": "deni"
-  },
-  {
-   "id": 146,
-   "word": "trying",
-   "stem": "tri"
-  },
-  {
-   "id": 147,
-   "word": "buying",
-   "stem": "buy"
-  },
-  {
-   "id": 148,
-   "word": "playing",
-   "stem": "play"
-  },
-  {
-   "id": 149,
-   "word": "enjoying",
-   "stem": "enjoy"
-  },
-  {
-   "id": 150,
-   "word": "careful",
-   "stem": "care"
-  },
-  {
-   "id": 151,
-   "word": "wonderful",
-   "stem": "wonder"
-  },
-  {
-   "id": 152,
-   "word": "powerful",
-   "stem": "power"
-  },
-  {
-   "id": 153,
-   "word": "successful",
-   "stem": "success"
-  },
-  {
-   "id": 154,
-   "word": "kindness",
-   "stem": "kind"
-  },
-  {
-   "id": 155,
-   "word": "darkness",
-   "stem": "dark"
-  },
-  {
-   "id": 156,
-   "word": "weakness",
-   "stem": "weak"
-  },
-  {
-   "id": 157,
-   "word": "faithfully",
-   "stem": "faith"
-  },
-  {
-   "id": 158,
-   "word": "hopefully",
-   "stem": "hope"
-  },
-  {
-   "id": 159,
-   "word": "carefully",
-   "stem": "care"
-  },
-  {
-   "id": 160,
-   "word": "exactly",
-   "stem": "exact"
-  },
-  {
-   "id": 161,
-   "word": "absolutely",
-   "stem": "absolut"
-  },
-  {
-   "id": 162,
-   "word": "biology",
-   "stem": "biolog"
-  },
-  {
-   "id": 163,
-   "word": "psychology",
-   "stem": "psycholog"
-  },
-  {
-   "id": 164,
-   "word": "technology",
-   "stem": "technolog"
-  },
-  {
-   "id": 165,
-   "word": "apology",
-   "stem": "apolog"
-  },
-  {
-   "id": 166,
    "word": "analogy",
    "stem": "analog"
   },
   {
+   "id": 87,
+   "word": "analogies",
+   "stem": "analog"
+  },
+  {
+   "id": 88,
+   "word": "apology",
+   "stem": "apolog"
+  },
+  {
+   "id": 89,
+   "word": "archaeology",
+   "stem": "archaeolog"
+  },
+  {
+   "id": 90,
+   "word": "anthology",
+   "stem": "antholog"
+  },
+  {
+   "id": 91,
+   "word": "biology",
+   "stem": "biolog"
+  },
+  {
+   "id": 92,
+   "word": "accessibly",
+   "stem": "access"
+  },
+  {
+   "id": 93,
+   "word": "sensibly",
+   "stem": "sensibl"
+  },
+  {
+   "id": 94,
+   "word": "possibly",
+   "stem": "possibl"
+  },
+  {
+   "id": 95,
+   "word": "terribly",
+   "stem": "terribl"
+  },
+  {
+   "id": 96,
+   "word": "probably",
+   "stem": "probabl"
+  },
+  {
+   "id": 97,
+   "word": "notably",
+   "stem": "notabl"
+  },
+  {
+   "id": 98,
+   "word": "capably",
+   "stem": "capabl"
+  },
+  {
+   "id": 99,
+   "word": "a",
+   "stem": "a"
+  },
+  {
+   "id": 100,
+   "word": "s",
+   "stem": "s"
+  },
+  {
+   "id": 101,
+   "word": "is",
+   "stem": "is"
+  },
+  {
+   "id": 102,
+   "word": "as",
+   "stem": "as"
+  },
+  {
+   "id": 103,
+   "word": "us",
+   "stem": "us"
+  },
+  {
+   "id": 104,
+   "word": "ss",
+   "stem": "ss"
+  },
+  {
+   "id": 105,
+   "word": "ye",
+   "stem": "ye"
+  },
+  {
+   "id": 106,
+   "word": "by",
+   "stem": "by"
+  },
+  {
+   "id": 107,
+   "word": "generous",
+   "stem": "generous"
+  },
+  {
+   "id": 108,
+   "word": "generously",
+   "stem": "generous"
+  },
+  {
+   "id": 109,
+   "word": "generation",
+   "stem": "generat"
+  },
+  {
+   "id": 110,
+   "word": "communication",
+   "stem": "communic"
+  },
+  {
+   "id": 111,
+   "word": "arsenic",
+   "stem": "arsenic"
+  },
+  {
+   "id": 112,
+   "word": "nationally",
+   "stem": "nation"
+  },
+  {
+   "id": 113,
+   "word": "rationalization",
+   "stem": "ration"
+  },
+  {
+   "id": 114,
+   "word": "sensational",
+   "stem": "sensat"
+  },
+  {
+   "id": 115,
+   "word": "consciously",
+   "stem": "conscious"
+  },
+  {
+   "id": 116,
+   "word": "beautiful",
+   "stem": "beauti"
+  },
+  {
+   "id": 117,
+   "word": "beautifully",
+   "stem": "beauti"
+  },
+  {
+   "id": 118,
+   "word": "happily",
+   "stem": "happili"
+  },
+  {
+   "id": 119,
+   "word": "quickly",
+   "stem": "quick"
+  },
+  {
+   "id": 120,
+   "word": "slowly",
+   "stem": "slowli"
+  },
+  {
+   "id": 121,
+   "word": "friendly",
+   "stem": "friend"
+  },
+  {
+   "id": 122,
+   "word": "management",
+   "stem": "manag"
+  },
+  {
+   "id": 123,
+   "word": "development",
+   "stem": "develop"
+  },
+  {
+   "id": 124,
+   "word": "government",
+   "stem": "govern"
+  },
+  {
+   "id": 125,
+   "word": "measurement",
+   "stem": "measur"
+  },
+  {
+   "id": 126,
+   "word": "achievement",
+   "stem": "achiev"
+  },
+  {
+   "id": 127,
+   "word": "creation",
+   "stem": "creation"
+  },
+  {
+   "id": 128,
+   "word": "relation",
+   "stem": "relat"
+  },
+  {
+   "id": 129,
+   "word": "position",
+   "stem": "posit"
+  },
+  {
+   "id": 130,
+   "word": "decision",
+   "stem": "decis"
+  },
+  {
+   "id": 131,
+   "word": "television",
+   "stem": "televis"
+  },
+  {
+   "id": 132,
+   "word": "discussion",
+   "stem": "discuss"
+  },
+  {
+   "id": 133,
+   "word": "activity",
+   "stem": "activ"
+  },
+  {
+   "id": 134,
+   "word": "sensitivity",
+   "stem": "sensit"
+  },
+  {
+   "id": 135,
+   "word": "productivity",
+   "stem": "product"
+  },
+  {
+   "id": 136,
+   "word": "ability",
+   "stem": "abil"
+  },
+  {
+   "id": 137,
+   "word": "possibility",
+   "stem": "possibl"
+  },
+  {
+   "id": 138,
+   "word": "organize",
+   "stem": "organ"
+  },
+  {
+   "id": 139,
+   "word": "realize",
+   "stem": "realiz"
+  },
+  {
+   "id": 140,
+   "word": "recognize",
+   "stem": "recogn"
+  },
+  {
+   "id": 141,
+   "word": "characterize",
+   "stem": "character"
+  },
+  {
+   "id": 142,
+   "word": "modernize",
+   "stem": "modern"
+  },
+  {
+   "id": 143,
+   "word": "connected",
+   "stem": "connect"
+  },
+  {
+   "id": 144,
+   "word": "connecting",
+   "stem": "connect"
+  },
+  {
+   "id": 145,
+   "word": "connection",
+   "stem": "connect"
+  },
+  {
+   "id": 146,
+   "word": "connects",
+   "stem": "connect"
+  },
+  {
+   "id": 147,
+   "word": "connect",
+   "stem": "connect"
+  },
+  {
+   "id": 148,
+   "word": "studies",
+   "stem": "studi"
+  },
+  {
+   "id": 149,
+   "word": "studied",
+   "stem": "studi"
+  },
+  {
+   "id": 150,
+   "word": "studying",
+   "stem": "studi"
+  },
+  {
+   "id": 151,
+   "word": "study",
+   "stem": "studi"
+  },
+  {
+   "id": 152,
+   "word": "cries",
+   "stem": "cri"
+  },
+  {
+   "id": 153,
+   "word": "cried",
+   "stem": "cri"
+  },
+  {
+   "id": 154,
+   "word": "crying",
+   "stem": "cri"
+  },
+  {
+   "id": 155,
+   "word": "agreement",
+   "stem": "agreement"
+  },
+  {
+   "id": 156,
+   "word": "agreeing",
+   "stem": "agre"
+  },
+  {
+   "id": 157,
+   "word": "agrees",
+   "stem": "agre"
+  },
+  {
+   "id": 158,
+   "word": "agree",
+   "stem": "agre"
+  },
+  {
+   "id": 159,
+   "word": "controlling",
+   "stem": "control"
+  },
+  {
+   "id": 160,
+   "word": "controlled",
+   "stem": "control"
+  },
+  {
+   "id": 161,
+   "word": "controls",
+   "stem": "control"
+  },
+  {
+   "id": 162,
+   "word": "control",
+   "stem": "control"
+  },
+  {
+   "id": 163,
+   "word": "rolling",
+   "stem": "roll"
+  },
+  {
+   "id": 164,
+   "word": "rolled",
+   "stem": "roll"
+  },
+  {
+   "id": 165,
+   "word": "flying",
+   "stem": "fli"
+  },
+  {
+   "id": 166,
+   "word": "denying",
+   "stem": "deni"
+  },
+  {
    "id": 167,
+   "word": "trying",
+   "stem": "tri"
+  },
+  {
+   "id": 168,
+   "word": "buying",
+   "stem": "buy"
+  },
+  {
+   "id": 169,
+   "word": "playing",
+   "stem": "play"
+  },
+  {
+   "id": 170,
+   "word": "enjoying",
+   "stem": "enjoy"
+  },
+  {
+   "id": 171,
+   "word": "careful",
+   "stem": "care"
+  },
+  {
+   "id": 172,
+   "word": "wonderful",
+   "stem": "wonder"
+  },
+  {
+   "id": 173,
+   "word": "powerful",
+   "stem": "power"
+  },
+  {
+   "id": 174,
+   "word": "successful",
+   "stem": "success"
+  },
+  {
+   "id": 175,
+   "word": "kindness",
+   "stem": "kind"
+  },
+  {
+   "id": 176,
+   "word": "darkness",
+   "stem": "dark"
+  },
+  {
+   "id": 177,
+   "word": "weakness",
+   "stem": "weak"
+  },
+  {
+   "id": 178,
+   "word": "faithfully",
+   "stem": "faith"
+  },
+  {
+   "id": 179,
+   "word": "hopefully",
+   "stem": "hope"
+  },
+  {
+   "id": 180,
+   "word": "carefully",
+   "stem": "care"
+  },
+  {
+   "id": 181,
+   "word": "exactly",
+   "stem": "exact"
+  },
+  {
+   "id": 182,
+   "word": "absolutely",
+   "stem": "absolut"
+  },
+  {
+   "id": 183,
+   "word": "psychology",
+   "stem": "psycholog"
+  },
+  {
+   "id": 184,
+   "word": "technology",
+   "stem": "technolog"
+  },
+  {
+   "id": 185,
    "word": "universities",
    "stem": "univers"
   },
   {
-   "id": 168,
+   "id": 186,
    "word": "abilities",
    "stem": "abil"
   },
   {
-   "id": 169,
+   "id": 187,
    "word": "cities",
    "stem": "citi"
   },
   {
-   "id": 170,
+   "id": 188,
    "word": "parties",
    "stem": "parti"
   },
   {
-   "id": 171,
+   "id": 189,
    "word": "countries",
    "stem": "countri"
   },
   {
-   "id": 172,
+   "id": 190,
    "word": "runs",
    "stem": "run"
   },
   {
-   "id": 173,
+   "id": 191,
    "word": "swimmer",
    "stem": "swimmer"
   },
   {
-   "id": 174,
+   "id": 192,
    "word": "swimming",
    "stem": "swim"
   },
   {
-   "id": 175,
+   "id": 193,
    "word": "beginner",
    "stem": "beginn"
   },
   {
-   "id": 176,
+   "id": 194,
    "word": "beginning",
    "stem": "begin"
   },
   {
-   "id": 177,
+   "id": 195,
    "word": "european",
    "stem": "european"
   },
   {
-   "id": 178,
+   "id": 196,
    "word": "america",
    "stem": "america"
   },
   {
-   "id": 179,
+   "id": 197,
    "word": "france",
    "stem": "franc"
   },
   {
-   "id": 180,
+   "id": 198,
    "word": "england",
    "stem": "england"
   },
   {
-   "id": 181,
+   "id": 199,
    "word": "computer",
    "stem": "comput"
   },
   {
-   "id": 182,
+   "id": 200,
    "word": "internet",
    "stem": "internet"
   },
   {
-   "id": 183,
+   "id": 201,
    "word": "walking",
    "stem": "walk"
   },
   {
-   "id": 184,
+   "id": 202,
    "word": "talked",
    "stem": "talk"
   },
   {
-   "id": 185,
+   "id": 203,
    "word": "jumped",
    "stem": "jump"
   },
   {
-   "id": 186,
+   "id": 204,
    "word": "wanted",
    "stem": "want"
   },
   {
-   "id": 187,
+   "id": 205,
    "word": "needed",
    "stem": "need"
   },
   {
-   "id": 188,
+   "id": 206,
    "word": "worked",
    "stem": "work"
   },
   {
-   "id": 189,
+   "id": 207,
    "word": "looked",
    "stem": "look"
+  },
+  {
+   "id": 208,
+   "word": "ionization",
+   "stem": "ionize"
+  },
+  {
+   "id": 209,
+   "word": "ionizer",
+   "stem": "ionize"
+  },
+  {
+   "id": 210,
+   "word": "irrationality",
+   "stem": "irrate"
+  },
+  {
+   "id": 211,
+   "word": "irrationally",
+   "stem": "irrate"
+  },
+  {
+   "id": 212,
+   "word": "realization",
+   "stem": "realize"
+  },
+  {
+   "id": 213,
+   "word": "proceed",
+   "stem": "proceed"
+  },
+  {
+   "id": 214,
+   "word": "exceedly",
+   "stem": "exce"
   }
  ]
 }

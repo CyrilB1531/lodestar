@@ -154,8 +154,9 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {**POLYFILLS},
     },
     TEXT: {
-        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS, **PERSISTENCE},
+        # The project's version until the release publishes #1193's PorterStemmerMode.
+        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS, **PERSISTENCE},
     },
     FUZZY: {
         NET: {TEXT: TEXT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},

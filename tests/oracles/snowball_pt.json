@@ -6,7 +6,7 @@
   "reference_calls": [
    "nltk.stem.snowball.SnowballStemmer('portuguese')"
   ],
-  "count": 105
+  "count": 119
  },
  "cases": [
   {
@@ -533,6 +533,76 @@
    "id": 104,
    "word": "logias",
    "stem": "log"
+  },
+  {
+   "id": 105,
+   "word": "sabem",
+   "stem": "sab"
+  },
+  {
+   "id": 106,
+   "word": "põem",
+   "stem": "põ"
+  },
+  {
+   "id": 107,
+   "word": "creem",
+   "stem": "cre"
+  },
+  {
+   "id": 108,
+   "word": "sairem",
+   "stem": "sair"
+  },
+  {
+   "id": 109,
+   "word": "comem",
+   "stem": "com"
+  },
+  {
+   "id": 110,
+   "word": "vivem",
+   "stem": "viv"
+  },
+  {
+   "id": 111,
+   "word": "partirem",
+   "stem": "part"
+  },
+  {
+   "id": 112,
+   "word": "falávamos",
+   "stem": "fal"
+  },
+  {
+   "id": 113,
+   "word": "lingüiça",
+   "stem": "linguic"
+  },
+  {
+   "id": 114,
+   "word": "agüentar",
+   "stem": "aguent"
+  },
+  {
+   "id": 115,
+   "word": "freqüente",
+   "stem": "frequent"
+  },
+  {
+   "id": 116,
+   "word": "cinqüenta",
+   "stem": "cinquent"
+  },
+  {
+   "id": 117,
+   "word": "tranqüilo",
+   "stem": "tranquil"
+  },
+  {
+   "id": 118,
+   "word": "bilíngüe",
+   "stem": "bilíng"
   }
  ]
 }

@@ -172,6 +172,27 @@ public sealed class VectorizerPersistenceTests
         AssertIdentical(original.Transform(HoldoutCorpus), reloaded.Transform(HoldoutCorpus));
     }
 
+    [Theory]
+    [InlineData(0, 2)]
+    [InlineData(-1, 1)]
+    public void A_first_ngram_length_below_one_loads_back(int min, int max)
+    {
+        // The constructors accept it since #1065; the loader refused it (#1197).
+        var count = new CountVectorizerOptions { NgramRange = (min, max) };
+        var tfidf = new TfidfVectorizer(new TfidfVectorizerOptions { Count = count }).Fit(TrainingCorpus);
+        var hashing = new HashingVectorizer(new HashingVectorizerOptions { Count = count });
+
+        using var tfidfStream = new MemoryStream();
+        tfidf.Save(tfidfStream);
+        tfidfStream.Position = 0;
+        using var hashingStream = new MemoryStream();
+        hashing.Save(hashingStream);
+        hashingStream.Position = 0;
+
+        AssertIdentical(tfidf.Transform(HoldoutCorpus), TfidfVectorizer.Load(tfidfStream).Transform(HoldoutCorpus));
+        AssertIdentical(hashing.Transform(HoldoutCorpus), HashingVectorizer.Load(hashingStream).Transform(HoldoutCorpus));
+    }
+
     [Fact]
     public void Save_and_load_round_trip_through_a_file()
     {

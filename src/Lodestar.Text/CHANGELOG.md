@@ -5,6 +5,35 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ## [Unreleased]
 
+### Added
+
+- `PorterStemmer.Stem(word, PorterStemmerMode)` stems by Martin Porter's extensions as well as by the 1980 paper, which `Stem(word)` keeps. ([#1193](https://github.com/CyrilB1531/lodestar/issues/1193))
+
+### Changed
+
+- `Metaphone`, `Nysiis`, `Soundex` and `MatchRatingApproach` follow jellyfish on every input, apostrophes, spaces, full uppercase mapping and UTF-8 codex lengths included, and `MatchRatingApproach.Compare` answers `null` for a name the codex refuses. ([#1194](https://github.com/CyrilB1531/lodestar/issues/1194), [#1195](https://github.com/CyrilB1531/lodestar/issues/1195), [#1198](https://github.com/CyrilB1531/lodestar/issues/1198))
+- `EnglishSnowballStemmer` and `DanishSnowballStemmer` follow nltk, their stated reference, where they followed Snowball: English R2 after a long rewrite, and Danish undoubling over the whole word. ([#1198](https://github.com/CyrilB1531/lodestar/issues/1198))
+- `HashingVectorizer` keeps a bucket whose signs cancel as a stored zero, as scikit-learn does. ([#1198](https://github.com/CyrilB1531/lodestar/issues/1198))
+- `CountVectorizerOptions.StripAccents` drops the characters of non-zero combining class rather than every nonspacing mark. ([#1198](https://github.com/CyrilB1531/lodestar/issues/1198))
+- `Tversky.Similarity` scores an empty input 0 and a pair with nothing to divide by 0, as textdistance does. ([#1198](https://github.com/CyrilB1531/lodestar/issues/1198))
+- `JaroWinkler` refuses a `prefixWeight` outside `[0, 1]` and caps the score at 1, as rapidfuzz does. ([#1198](https://github.com/CyrilB1531/lodestar/issues/1198))
+- `LshIndex.Query` returns candidates in insertion order whichever band found them. ([#1198](https://github.com/CyrilB1531/lodestar/issues/1198))
+- The vectorizers refuse an undefined `AnalyzerKind` when built rather than at `Save`. ([#1198](https://github.com/CyrilB1531/lodestar/issues/1198))
+- `Bm25Index` averages the negative-IDF floor over the terms some document holds, as rank_bm25 does. ([#1198](https://github.com/CyrilB1531/lodestar/issues/1198))
+- The token patterns of the vectorizers, `Rake` and `TextRank` are read as Python's `re` reads them: `\w`, `\b`, `\d` and `\s` over code points, marks outside `\w` and every number inside, and `(?u)` accepted. ([#1239](https://github.com/CyrilB1531/lodestar/pull/1239))
+- `CountVectorizer` and `TfidfVectorizer` refuse a corpus that yields no term, or none left by `MinDf` and `MaxDf`, as scikit-learn does. ([#1239](https://github.com/CyrilB1531/lodestar/pull/1239))
+- `TextRank` ranks over a sparse adjacency, `DamerauLevenshtein` strips the common affixes and keeps three rows, and `BkTree.Nearest` holds its hits in a bounded heap. ([#1199](https://github.com/CyrilB1531/lodestar/issues/1199))
+
+### Fixed
+
+- `GermanSnowballStemmer` removes `-ung` and the `ig` it uncovers. ([#1190](https://github.com/CyrilB1531/lodestar/issues/1190))
+- `PortugueseSnowballStemmer` removes `-em` and `-ávamos`, and drops the trema after `g` and `q` as nltk does. ([#1191](https://github.com/CyrilB1531/lodestar/issues/1191))
+- `SpanishSnowballStemmer` searches steps 2a and 2b inside RV, takes nltk's step 2b list, and drops the whole word's accents after a pronoun as nltk does. ([#1192](https://github.com/CyrilB1531/lodestar/issues/1192))
+- `PorterStemmer.Stem(word)` applies the 1980 rules it claimed, where it applied Martin's extensions. ([#1193](https://github.com/CyrilB1531/lodestar/issues/1193))
+- `ItalianSnowballStemmer` has no bare `-er` in step 2. ([#1198](https://github.com/CyrilB1531/lodestar/issues/1198))
+- `HashingVectorizer` honours `CountVectorizerOptions.Binary`. ([#1196](https://github.com/CyrilB1531/lodestar/issues/1196))
+- A vectorizer saved with an n-gram range starting below 1 loads back. ([#1197](https://github.com/CyrilB1531/lodestar/issues/1197))
+
 ## [0.7.0] — 2026-09-24
 
 ### Added

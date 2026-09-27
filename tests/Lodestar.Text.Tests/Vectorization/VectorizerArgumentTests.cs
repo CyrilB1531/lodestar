@@ -62,9 +62,14 @@ public sealed class VectorizerArgumentTests
     }
 
     [Fact]
-    public void An_empty_corpus_still_fits_to_no_columns()
+    public void A_corpus_leaving_no_term_is_refused()
     {
-        Assert.Equal(0, new CountVectorizer().FitTransform([]).ColumnCount);
+        // scikit-learn raises ValueError on each (#1239): no term at all, and none left by the bounds.
+        Assert.Throws<InvalidOperationException>(() => new CountVectorizer().FitTransform([]));
+        Assert.Throws<InvalidOperationException>(() => new CountVectorizer().Fit(["a b", ""]));
+        Assert.Throws<InvalidOperationException>(() => new TfidfVectorizer().Fit(["a b"]));
+        Assert.Throws<InvalidOperationException>(
+            () => new CountVectorizer(new CountVectorizerOptions { MinDf = 2 }).Fit(["ab cd", "ef gh"]));
     }
 
     [Fact]
@@ -77,6 +82,36 @@ public sealed class VectorizerArgumentTests
 
         Assert.Equal("options", width.ParamName);
         Assert.Equal("options", range.ParamName);
+    }
+
+    [Fact]
+    public void An_undefined_analyzer_is_refused_at_construction()
+    {
+        // It used to run the word analyzer and then fail at Save, 98 bytes into the stream (#1198).
+        var count = new CountVectorizerOptions { Analyzer = (AnalyzerKind)7 };
+
+        Assert.Equal("options", Assert.Throws<ArgumentException>(() => new CountVectorizer(count)).ParamName);
+        Assert.Equal("options", Assert.Throws<ArgumentException>(
+            () => new TfidfVectorizer(new TfidfVectorizerOptions { Count = count })).ParamName);
+        Assert.Equal("options", Assert.Throws<ArgumentException>(
+            () => new HashingVectorizer(new HashingVectorizerOptions { Count = count })).ParamName);
+    }
+
+    [Fact]
+    public void Binary_hashing_stores_one_for_every_bucket_a_term_reached()
+    {
+        // scikit-learn fills every stored entry with 1, a bucket whose signs cancelled included (#1196).
+        var options = new HashingVectorizerOptions
+        {
+            Count = new CountVectorizerOptions { Binary = true },
+            NumFeatures = 2,
+            Norm = null,
+        };
+
+        CsrMatrix hashed = new HashingVectorizer(options).Transform(Corpus);
+
+        Assert.All(hashed.Values, value => Assert.Equal(1.0, value));
+        Assert.Equal(new HashingVectorizer(options with { Count = new CountVectorizerOptions() }).Transform(Corpus).ColumnIndices, hashed.ColumnIndices);
     }
 
     [Theory]

@@ -7,6 +7,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Changed
 
+- A collection whose texts yield no term still degrades to the vector ranking once `Lodestar.Text` refuses such a corpus, as scikit-learn does; crossed `MinDf`/`MaxDf` bounds still throw. ([#1239](https://github.com/CyrilB1531/lodestar/pull/1239))
 - The `Lodestar.Embeddings` and `Lodestar.Text` dependency floors rise from 0.6.0 to 0.8.0 and 0.7.0, the releases that forward their data types to `Lodestar.Abstractions`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
 
 ## [0.1.0] — 2026-09-24

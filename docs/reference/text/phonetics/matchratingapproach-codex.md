@@ -9,15 +9,17 @@ public static string Codex(string value)
 public static string Codex(ReadOnlySpan<char> value)
 ```
 
-**Parameters** — `value` is a single name: any Unicode letter plus a single space is accepted; a
-digit, punctuation or any other whitespace is refused rather than ignored. Case does not matter.
-The `string` overload forwards to the span one.
+**Parameters** — `value` is a single name: any alphabetic character — a letter, a letter number, or
+a mark the Unicode Alphabetic property takes in, such as a Devanagari vowel sign — plus a space is
+accepted; a digit, punctuation or any other whitespace is refused rather than ignored. Case does not
+matter: the name is uppercased by the full case mapping, so `ß` reads as `SS`. The `string`
+overload forwards to the span one.
 
-**Returns** — `string`, an uppercase code of 1 to 6 characters, or the empty string when `value` is
-empty.
+**Returns** — `string`, an uppercase code, or the empty string when `value` is empty. A code over
+six UTF-8 bytes keeps its first three and last three characters.
 
 **Exceptions** — `ArgumentNullException` when `value` is `null` (the `string` overload only).
-`ArgumentException` when `value` holds a character that is neither a letter nor a space.
+`ArgumentException` when `value` holds a character that is neither alphabetic nor a space.
 
 **Example** — doubles collapse before non-leading vowels are dropped, and a code over six
 characters keeps only its first three and last three.
@@ -36,14 +38,16 @@ its adjacent-letter runs first (`M-I-S-I-S-I-P-I`), and only then loses every vo
 character, whatever it is — a leading vowel is kept, as in `Codex("aeiou")` → `"A"`.
 
 `Bhattacharya` reducing to six characters (`BHTCHRY` would be seven) keeps its first three and its
-last three: `BHT` + `HRY`. A name that already fits in six is never touched, however it was spelled.
+last three: `BHT` + `HRY`. The six is counted in UTF-8 **bytes**, as `jellyfish` counts it, so a
+four-character name outside ASCII can be truncated too, and repeat its middle:
+`Codex("並丝七世")` is `並丝七丝七世`, jellyfish's own answer
+([decision 0009](../../../decisions/0009-the-phonetic-encoders-follow-jellyfish-whole.md)).
 
-A character that is neither a letter nor a space throws instead of being dropped —
+A character that is neither alphabetic nor a space throws instead of being dropped —
 `Codex("O'Brien")` and `Codex("Anne-Marie")` both raise `ArgumentException`, naming the character
-that stopped them. [`Soundex.Encode`](soundex-encode.md), [`Metaphone.Encode`](metaphone-encode.md)
-and [`Nysiis.Encode`](nysiis-encode.md) ignore the same input instead — a deliberate difference,
-recorded in [the phonetics index](../phonetics.md) and the
-[equivalence table](../../../equivalence.md).
+that stopped them — where [`Compare`](matchratingapproach-compare.md) answers `null` for the same
+input. [`Soundex.Encode`](soundex-encode.md), [`Metaphone.Encode`](metaphone-encode.md) and
+[`Nysiis.Encode`](nysiis-encode.md) accept it, each by its own rule; all four are jellyfish's.
 
 **Applies to** — net10.0, netstandard2.0.
 

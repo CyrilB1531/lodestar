@@ -7,7 +7,7 @@
   "reference_calls": [
    "nltk.stem.porter.PorterStemmer(mode=ORIGINAL_ALGORITHM)"
   ],
-  "count": 86
+  "count": 109
  },
  "cases": [
   {
@@ -439,6 +439,121 @@
    "id": 85,
    "word": "meetings",
    "stem": "meet"
+  },
+  {
+   "id": 86,
+   "word": "analogy",
+   "stem": "analogi"
+  },
+  {
+   "id": 87,
+   "word": "analogies",
+   "stem": "analogi"
+  },
+  {
+   "id": 88,
+   "word": "apology",
+   "stem": "apologi"
+  },
+  {
+   "id": 89,
+   "word": "archaeology",
+   "stem": "archaeologi"
+  },
+  {
+   "id": 90,
+   "word": "anthology",
+   "stem": "anthologi"
+  },
+  {
+   "id": 91,
+   "word": "biology",
+   "stem": "biologi"
+  },
+  {
+   "id": 92,
+   "word": "accessibly",
+   "stem": "accessibli"
+  },
+  {
+   "id": 93,
+   "word": "sensibly",
+   "stem": "sensibli"
+  },
+  {
+   "id": 94,
+   "word": "possibly",
+   "stem": "possibli"
+  },
+  {
+   "id": 95,
+   "word": "terribly",
+   "stem": "terribli"
+  },
+  {
+   "id": 96,
+   "word": "probably",
+   "stem": "probabl"
+  },
+  {
+   "id": 97,
+   "word": "notably",
+   "stem": "notabl"
+  },
+  {
+   "id": 98,
+   "word": "capably",
+   "stem": "capabl"
+  },
+  {
+   "id": 99,
+   "word": "a",
+   "stem": "a"
+  },
+  {
+   "id": 100,
+   "word": "s",
+   "stem": ""
+  },
+  {
+   "id": 101,
+   "word": "is",
+   "stem": "i"
+  },
+  {
+   "id": 102,
+   "word": "as",
+   "stem": "a"
+  },
+  {
+   "id": 103,
+   "word": "us",
+   "stem": "u"
+  },
+  {
+   "id": 104,
+   "word": "ss",
+   "stem": "ss"
+  },
+  {
+   "id": 105,
+   "word": "ye",
+   "stem": "ye"
+  },
+  {
+   "id": 106,
+   "word": "sky",
+   "stem": "sky"
+  },
+  {
+   "id": 107,
+   "word": "by",
+   "stem": "by"
+  },
+  {
+   "id": 108,
+   "word": "ties",
+   "stem": "ti"
   }
  ]
 }

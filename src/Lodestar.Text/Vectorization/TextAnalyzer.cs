@@ -27,7 +27,14 @@ internal sealed class TextAnalyzer
     private readonly AnalyzerKind _kind;
     private readonly int _minN;
     private readonly int _maxN;
-    private readonly Regex _tokenPattern;
+    private readonly PythonTokenPattern _tokenPattern;
+
+    // One scratch list per thread for a document's raw matches, so tokenizing allocates nothing new
+    // for them; the analyzer itself is shared across threads.
+    [ThreadStatic]
+    private static List<(int Start, int Length)>? _matches;
+
+    private static List<(int Start, int Length)> ScratchMatches() => _matches ??= [];
     private readonly StopWordSet? _stopWords;
 
     public TextAnalyzer(
@@ -39,6 +46,7 @@ internal sealed class TextAnalyzer
         IReadOnlyCollection<string>? stopWords)
     {
         RequireNgramRange(ngramRange, nameof(ngramRange));
+        RequireAnalyzer(kind, nameof(kind));
 
         _lowercase = lowercase;
         _stripAccents = stripAccents;
@@ -47,8 +55,18 @@ internal sealed class TextAnalyzer
         _maxN = ngramRange.Max;
         // The pattern comes from the caller, so an unbounded match would let a
         // crafted pattern/document pair hang the thread. Bound it.
-        _tokenPattern = new Regex(tokenPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
+        _tokenPattern = new PythonTokenPattern(tokenPattern);
         _stopWords = stopWords is null ? null : StopWordSet.Adopt(stopWords);
+    }
+
+    /// <summary>Refuses an analyzer outside <see cref="AnalyzerKind"/>, naming the caller's parameter.</summary>
+    /// <remarks>scikit-learn refuses any analyzer but its three names; an undefined value used to run the word analyzer and then fail at <c>Save</c>.</remarks>
+    public static void RequireAnalyzer(AnalyzerKind kind, string paramName)
+    {
+        if (kind is not (AnalyzerKind.Word or AnalyzerKind.Char or AnalyzerKind.CharWordBoundary))
+        {
+            throw new ArgumentException($"{kind} is not an analyzer.", paramName);
+        }
     }
 
     /// <summary>Refuses a descending n-gram range, naming the caller's parameter.</summary>
@@ -110,23 +128,9 @@ internal sealed class TextAnalyzer
         }
         if (_stripAccents)
         {
-            s = StripAccents(s);
+            s = CombiningMarks.StripAccents(s);
         }
         return s;
-    }
-
-    private static string StripAccents(string s)
-    {
-        string decomposed = WellFormedNormalization.Normalize(s, NormalizationForm.FormKD);
-        var sb = new StringBuilder(decomposed.Length);
-        foreach (char c in decomposed)
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
-            {
-                sb.Append(c);
-            }
-        }
-        return sb.ToString();
     }
 
     /// <summary>The kept tokens of <paramref name="s"/> as start and length pairs, in document order.</summary>
@@ -135,31 +139,35 @@ internal sealed class TextAnalyzer
     {
         var tokens = new List<(int Start, int Length)>();
 #if NET9_0_OR_GREATER
-        foreach (ValueMatch m in _tokenPattern.EnumerateMatches(s))
+        List<(int Start, int Length)> matches = ScratchMatches();
+        _tokenPattern.Matches(s, matches);
+        foreach ((int index, int length) in matches)
         {
             // Judged as a span over the document, so a filtered-out (and by
             // definition frequent) stop word is never allocated as a string.
-            ReadOnlySpan<char> token = s.AsSpan(m.Index, m.Length);
+            ReadOnlySpan<char> token = s.AsSpan(index, length);
             if (_stopWords is null || !_stopWords.Contains(token))
             {
-                Keep(tokens, m.Index, m.Length, token, ref sink, emit);
+                Keep(tokens, index, length, token, ref sink, emit);
             }
         }
 #else
-        foreach (Match m in _tokenPattern.Matches(s))
+        List<(int Start, int Length)> matches = ScratchMatches();
+        _tokenPattern.Matches(s, matches);
+        foreach ((int index, int length) in matches)
         {
             if (_stopWords is null)
             {
-                Keep(tokens, m.Index, m.Length, s.AsSpan(m.Index, m.Length), ref sink, emit);
+                Keep(tokens, index, length, s.AsSpan(index, length), ref sink, emit);
                 continue;
             }
 
             // netstandard2.0 has no span lookup, so the token is materialised for the
             // filter and handed on as that string rather than copied a second time.
-            string tok = m.Value;
+            string tok = s.Substring(index, length);
             if (!_stopWords.Contains(tok))
             {
-                tokens.Add((m.Index, m.Length));
+                tokens.Add((index, length));
                 if (emit)
                 {
                     sink.Add(tok);

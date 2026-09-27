@@ -1,9 +1,10 @@
 # Architecture decision records — index
 
-Eight records. Seven state one axis each of the project's trajectory: what it targets, what it may
+Nine records. Seven state one axis each of the project's trajectory: what it targets, what it may
 read, how it is laid out, what it writes rather than delegates, what proves it, which reference
 each stemmer follows, and where it knowingly differs from that reference. The eighth amends the
-fourth: numpy's legacy generator is written here. One row per file. The status and date
+fourth: numpy's legacy generator is written here. The ninth amends the fifth and the seventh: the
+phonetic encoders follow jellyfish on every input. One row per file. The status and date
 columns are copied from each file's own `**Status:** … · **Date:** …` line — correct the record to
 correct this table, not the other way around.
 
@@ -16,7 +17,7 @@ in [`../equivalence.md`](../equivalence.md) when it is a divergence. That rule i
 `index.yaml` is the mechanical layer beneath the table. Each record declares `supersedes`, `amends`
 and `applies` in its own frontmatter; `tools/regen_adr_index.py` reverses those edges, because an
 immutable record cannot name the decision that later amended it, and `tools/check_adr_index_sync.py`
-refuses any drift. One edge exists today, `0008` amending `0004`: an amendment to one of these
+refuses any drift. Three edges exist today, `0008` amending `0004` and `0009` amending `0005` and `0007`: an amendment to one of these
 records is a new record, which is what immutability means here — **a record is never edited, and may only be
 deleted**, as `tools/check_adr_immutable.py` enforces. The one route past that is a new numbering
 epoch, below: a diff that raises `.numbering-epoch` may rewrite a record in place, and the raised
@@ -32,10 +33,11 @@ line is what tells a reader the number now holds a different text.
 | [`0006`](0006-the-stemmers-references.md) | The stemmers' references | accepted | 2026-09-20 | — |
 | [`0007`](0007-the-deliberate-divergences.md) | The deliberate divergences | accepted | 2026-09-20 | — |
 | [`0008`](0008-numpy-s-legacy-generator-is-replayed.md) | numpy's legacy generator is replayed | accepted | 2026-09-25 | amends `0004` |
+| [`0009`](0009-the-phonetic-encoders-follow-jellyfish-whole.md) | The phonetic encoders follow jellyfish whole | accepted | 2026-09-27 | amends `0005`, `0007` |
 
 ## What `accepted` means here
 
-All eight carry `accepted`. None has been rejected or withdrawn — a status this table would
+All nine carry `accepted`. None has been rejected or withdrawn — a status this table would
 otherwise need a second word for.
 
 ## The numbering restarted at 0001

@@ -193,8 +193,12 @@ internal sealed class HashTally
         Push(MurmurHash3.Hash32(_bytes.AsSpan(0, length)));
     }
 
-    /// <summary>Appends the document's non-zero buckets in column order, then resets.</summary>
-    public void DrainNonZero(List<int> columns, List<double> values)
+    /// <summary>
+    /// Appends the document's buckets in column order, then resets. A bucket whose signs cancel stays
+    /// stored as an explicit zero, as scikit-learn's <c>sum_duplicates</c> leaves it: a downstream
+    /// TF-IDF counts it in the column's document frequency, and <paramref name="binary"/> sets it to 1.
+    /// </summary>
+    public void Drain(List<int> columns, List<double> values, bool binary)
     {
         Array.Sort(_buckets, _signs, 0, _count);
         int i = 0;
@@ -207,19 +211,8 @@ internal sealed class HashTally
                 value += _signs[i];
                 i++;
             }
-
-            // SonarLint S1244: this decides what the sparse matrix stores, and
-            // "stored" means "not exactly zero". Every accumulated value is a sum
-            // of ±1, so exact cancellation is the ordinary outcome when
-            // AlternateSign sends two terms to the same column — and it is
-            // representable. A tolerance would drop real entries.
-#pragma warning disable S1244
-            if (value != 0.0)
-#pragma warning restore S1244
-            {
-                columns.Add(column);
-                values.Add(value);
-            }
+            columns.Add(column);
+            values.Add(binary ? 1.0 : value);
         }
         _count = 0;
     }

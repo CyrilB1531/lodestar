@@ -157,18 +157,32 @@ public static class GermanSnowballStemmer
             }
         }
 
-        private static readonly string[] Step3EndErn = ["end", "ern"];
+        private static readonly string[] Step3EndUng = ["end", "ung"];
         private static readonly string[] Step3IgIk = ["ig", "ik", "isch"];
         private static readonly string[] Step3LichHeit = ["lich", "heit"];
         private static readonly string[] Step3Keit = ["keit"];
 
         private void Step3() => ApplyLongestRule(
         [
-            new(Step3EndErn, DeleteIfInR2),
+            new(Step3EndUng, DeleteEndUng),
             new(Step3IgIk, DeleteIgIk),
             new(Step3LichHeit, DeleteLichHeit),
             new(Step3Keit, n => DeleteInR2ThenStrip(n, ["lich", "ig"])),
         ]);
+
+        /// <summary>"end"/"ung" go in R2; a preceding "ig" then goes too, on the "ig" rule's terms.</summary>
+        private void DeleteEndUng(int n)
+        {
+            if (!InR2(n))
+            {
+                return;
+            }
+            Delete(n);
+            if (Ends("ig"))
+            {
+                DeleteIgIk(2);
+            }
+        }
 
         /// <summary>"ig"/"ik"/"isch" go in R2, but never straight after an e.</summary>
         private void DeleteIgIk(int n)

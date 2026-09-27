@@ -107,10 +107,13 @@ public sealed class ArgumentValidationTests
     }
 
     [Fact]
-    public void DamerauLevenshtein_refuses_a_table_past_the_largest_array()
+    public void DamerauLevenshtein_measures_long_inputs_that_once_needed_a_table_past_the_largest_array()
     {
-        string side = new('a', 46_341);
+        // 60,002 a side used to need a (m + 2) × (n + 2) table and throw; the shared affixes go
+        // first and two rows remain (#1199). rapidfuzz gives 1 for the swapped pair.
+        string a = new string('x', 60_000) + "ab" + new string('y', 60_000);
+        string b = new string('x', 60_000) + "ba" + new string('y', 60_000);
 
-        Assert.Throws<ArgumentException>(() => DamerauLevenshtein.Distance(side, side));
+        Assert.Equal(1, DamerauLevenshtein.Distance(a, b));
     }
 }

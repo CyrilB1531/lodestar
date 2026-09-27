@@ -13,7 +13,7 @@ public sealed partial class TfidfVectorizer
 
     /// <summary>Creates a vectorizer with the given options (defaults if omitted).</summary>
     /// <exception cref="ArgumentOutOfRangeException"><c>Count.MinDf</c> or <c>Count.MaxDf</c> is negative, not finite, or a fraction above 1.</exception>
-    /// <exception cref="ArgumentException"><c>Count.NgramRange</c> is not an ascending range starting at 1 or more.</exception>
+    /// <exception cref="ArgumentException"><c>Count.NgramRange</c> descends, or <c>Count.Analyzer</c> is not an <see cref="AnalyzerKind"/>.</exception>
     public TfidfVectorizer(TfidfVectorizerOptions? options = null)
     {
         options ??= new TfidfVectorizerOptions();
@@ -30,7 +30,7 @@ public sealed partial class TfidfVectorizer
 
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="documents"/> holds a null document.</exception>
-    /// <exception cref="InvalidOperationException"><c>MaxDf</c> corresponds to fewer documents than <c>MinDf</c> over this corpus.</exception>
+    /// <exception cref="InvalidOperationException">The corpus yields no term, <c>MinDf</c> and <c>MaxDf</c> leave none, or <c>MaxDf</c> corresponds to fewer documents than <c>MinDf</c>, as scikit-learn refuses each.</exception>
     /// <summary>Learns the vocabulary and idf weights.</summary>
     public TfidfVectorizer Fit(IEnumerable<string> documents)
     {
@@ -40,7 +40,7 @@ public sealed partial class TfidfVectorizer
 
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="documents"/> holds a null document.</exception>
-    /// <exception cref="InvalidOperationException"><c>MaxDf</c> corresponds to fewer documents than <c>MinDf</c> over this corpus.</exception>
+    /// <exception cref="InvalidOperationException">The corpus yields no term, <c>MinDf</c> and <c>MaxDf</c> leave none, or <c>MaxDf</c> corresponds to fewer documents than <c>MinDf</c>, as scikit-learn refuses each.</exception>
     /// <summary>Learns and returns the TF-IDF matrix in one pass.</summary>
     public CsrMatrix FitTransform(IEnumerable<string> documents)
     {

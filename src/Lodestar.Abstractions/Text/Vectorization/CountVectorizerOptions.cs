@@ -34,7 +34,7 @@ public sealed record CountVectorizerOptions
     /// <summary>Stop words to remove after tokenizing (word analyzer only). Default none.</summary>
     public IReadOnlyCollection<string>? StopWords { get; init; }
 
-    /// <summary>Regex selecting word tokens. Default matches runs of two or more word characters.</summary>
+    /// <summary>Regex selecting word tokens, read as Python's <c>re</c> reads it. Default matches runs of two or more word characters.</summary>
     public string TokenPattern { get; init; } = @"\b\w\w+\b";
 
     /// <summary>Compares every option, treating <see cref="StopWords"/> as a set.</summary>

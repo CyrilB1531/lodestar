@@ -13,8 +13,9 @@ character, exactly as it does for `NormalizedDistance`, which this is computed f
 
 **Returns** — `double` in `[0, 1]`, larger meaning more alike.
 
-**Exceptions** — `ArgumentException` when the two lengths need a `(len(a) + 2) × (len(b) + 2)`
-table larger than the largest array .NET allocates, about 46 000 characters on each side.
+**Exceptions** — none: the two inputs may be any length. Their shared prefix and suffix go first,
+as rapidfuzz strips them, and the rest keeps three rows of the table rather than all of it, so the
+memory grows with the length of `b` alone.
 
 **Example** — the same pair as above, read the other way round.
 

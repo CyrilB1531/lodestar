@@ -23,7 +23,6 @@ public static class DamerauLevenshtein
     private static readonly CodePointPair.Measure MeasureCodePoints = Distance<int>;
 
     /// <summary>Computes the Damerau-Levenshtein distance between <paramref name="a"/> and <paramref name="b"/>.</summary>
-    /// <exception cref="ArgumentException">The two lengths need a table larger than the largest array .NET allocates.</exception>
     public static int Distance(ReadOnlySpan<char> a, ReadOnlySpan<char> b, TextElement element = TextElement.Utf16Unit)
     {
         return element == TextElement.CodePoint
@@ -32,7 +31,6 @@ public static class DamerauLevenshtein
     }
 
     /// <summary>Length-normalized distance in <c>[0, 1]</c>: <c>distance / max(len(a), len(b))</c>.</summary>
-    /// <exception cref="ArgumentException">The two lengths need a table larger than the largest array .NET allocates.</exception>
     public static double NormalizedDistance(ReadOnlySpan<char> a, ReadOnlySpan<char> b, TextElement element = TextElement.Utf16Unit)
     {
         int distance;
@@ -52,17 +50,29 @@ public static class DamerauLevenshtein
     }
 
     /// <summary>Length-normalized similarity in <c>[0, 1]</c>: <c>1 - NormalizedDistance</c>.</summary>
-    /// <exception cref="ArgumentException">The two lengths need a table larger than the largest array .NET allocates.</exception>
     public static double NormalizedSimilarity(ReadOnlySpan<char> a, ReadOnlySpan<char> b, TextElement element = TextElement.Utf16Unit)
     {
         return 1.0 - NormalizedDistance(a, b, element);
     }
 
     /// <summary>Computes the Damerau-Levenshtein distance over any sequence of equatable elements.</summary>
-    /// <exception cref="ArgumentException">The two lengths need a table larger than the largest array .NET allocates.</exception>
+    /// <remarks>
+    /// The common prefix and suffix go first, as rapidfuzz strips them; the rest runs Zhao and
+    /// Sahni's linear-space recurrence over the shorter side, three rows instead of the whole
+    /// (m + 2) × (n + 2) table (#1199).
+    /// </remarks>
     public static int Distance<T>(ReadOnlySpan<T> a, ReadOnlySpan<T> b)
         where T : IEquatable<T>
     {
+        Affixes.Trim(ref a, ref b);
+        // The distance is symmetric, so the shorter side takes the columns and the rows cost its length.
+        if (b.Length > a.Length)
+        {
+            ReadOnlySpan<T> longer = b;
+            b = a;
+            a = longer;
+        }
+
         int m = a.Length;
         int n = b.Length;
         if (m == 0)
@@ -74,91 +84,78 @@ public static class DamerauLevenshtein
             return m;
         }
 
-        // Matrix indexed from -1..m and -1..n via a +1 offset; width = n + 2.
-        int width = n + 2;
-        long cells = (long)(m + 2) * width;
-        if (cells > WideAlphabet.MaxTableLength)
+        // Each symbol of b gets a dense id once and a reuses them (0 when b lacks it): a transposition
+        // only ever asks where b's symbol last occurred in a, so a's other symbols need no slot (#828).
+        var ids = new Dictionary<T, int>();
+        int[] bId = new int[n];
+        for (int j = 0; j < n; j++)
         {
-            // In int this wrapped at about 46k per side and surfaced from Rent or AsSpan (#413 did the same for Myers).
-            throw new ArgumentException(
-                $"Damerau-Levenshtein needs a ({m} + 2) × ({n} + 2) table, {cells} cells, past the largest array .NET allocates.",
-                nameof(a));
+            if (!ids.TryGetValue(b[j], out int id))
+            {
+                id = ids.Count + 1;
+                ids.Add(b[j], id);
+            }
+
+            bId[j] = id;
         }
 
-        int maxDistance = m + n;
-        int[] rented = ArrayPool<int>.Shared.Rent((int)cells);
+        int[] lastRow = new int[ids.Count + 1]; // symbol id -> last row of a holding it, 0 for none
+        int big = m + 1; // past any distance, which is at most the longer length
+        int width = n + 2;
+        int[] rented = ArrayPool<int>.Shared.Rent(3 * width);
         try
         {
-            Span<int> d = rented.AsSpan(0, (int)cells);
-            int Idx(int i, int j) => (i + 1) * width + (j + 1);
-
-            d[Idx(-1, -1)] = maxDistance;
-            for (int i = 0; i <= m; i++)
-            {
-                d[Idx(i, -1)] = maxDistance;
-                d[Idx(i, 0)] = i;
-            }
+            // Three rows offset by one, so column -1 exists: the row being written, the row
+            // before it, and each column's value two rows up at its last match (Zhao's FR).
+            Span<int> all = rented.AsSpan(0, 3 * width);
+            Span<int> row = all.Slice(0, width);
+            Span<int> previous = all.Slice(width, width);
+            Span<int> saved = all.Slice(2 * width, width);
+            row[0] = big;
             for (int j = 0; j <= n; j++)
             {
-                d[Idx(-1, j)] = maxDistance;
-                d[Idx(0, j)] = j;
+                row[j + 1] = j;
             }
+            previous.Fill(big);
+            saved.Fill(big);
 
-            // Each symbol of b gets a dense id once and a reuses them (0 when b lacks it, never read back),
-            // so the last-row table is an array read rather than a dictionary lookup per cell (#828).
-            var ids = new Dictionary<T, int>();
-            int[] bId = new int[n];
-            for (int j = 0; j < n; j++)
-            {
-                if (!ids.TryGetValue(b[j], out int id))
-                {
-                    id = ids.Count + 1;
-                    ids.Add(b[j], id);
-                }
-
-                bId[j] = id;
-            }
-
-            int[] lastRow = new int[ids.Count + 1]; // symbol id -> last row of a where it occurred
             for (int i = 1; i <= m; i++)
             {
-                int lastMatchCol = 0; // db
+                // row now holds the row two up, which the transpositions read before it is overwritten.
+                Span<int> swap = row;
+                row = previous;
+                previous = swap;
+
                 int aId = ids.TryGetValue(a[i - 1], out int known) ? known : 0;
+                int lastMatchCol = 0;   // l: the last column of this row where b matched a[i - 1]
+                int twoUpLeft = row[1]; // H[i-2][j-1] as j advances
+                int twoUpAtMatch = big; // H[i-2][l-1], saved at the last match of this row
+                row[1] = i;
+
                 for (int j = 1; j <= n; j++)
                 {
-                    int k = lastRow[bId[j - 1]];
-                    int l = lastMatchCol;
-
-                    int cost;
+                    int value = Math.Min(previous[j] + (aId == bId[j - 1] ? 0 : 1), Math.Min(row[j] + 1, previous[j + 1] + 1));
                     if (aId == bId[j - 1])
                     {
-                        cost = 0;
                         lastMatchCol = j;
+                        saved[j + 1] = previous[j - 1];
+                        twoUpAtMatch = twoUpLeft;
                     }
                     else
                     {
-                        cost = 1;
+                        int k = lastRow[bId[j - 1]];
+                        if (lastMatchCol != 0 && j - lastMatchCol == 1 && k != 0)
+                        {
+                            value = Math.Min(value, saved[j + 1] + (i - k));
+                        }
+                        else if (k != 0 && i - k == 1 && lastMatchCol != 0)
+                        {
+                            value = Math.Min(value, twoUpAtMatch + (j - lastMatchCol));
+                        }
                     }
 
-                    int substitution = d[Idx(i - 1, j - 1)] + cost;
-                    int insertion = d[Idx(i, j - 1)] + 1;
-                    int deletion = d[Idx(i - 1, j)] + 1;
-                    int transposition = d[Idx(k - 1, l - 1)] + (i - k - 1) + 1 + (j - l - 1);
-
-                    int value = substitution;
-                    if (insertion < value)
-                    {
-                        value = insertion;
-                    }
-                    if (deletion < value)
-                    {
-                        value = deletion;
-                    }
-                    if (transposition < value)
-                    {
-                        value = transposition;
-                    }
-                    d[Idx(i, j)] = value;
+                    twoUpLeft = row[j + 1];
+                    row[j + 1] = value;
                 }
 
                 if (aId != 0)
@@ -167,7 +164,7 @@ public static class DamerauLevenshtein
                 }
             }
 
-            return d[Idx(m, n)];
+            return row[n + 1];
         }
         finally
         {

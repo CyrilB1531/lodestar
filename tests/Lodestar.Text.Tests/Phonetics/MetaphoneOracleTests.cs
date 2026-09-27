@@ -6,13 +6,13 @@ namespace Lodestar.Text.Tests.Phonetics;
 
 public sealed class MetaphoneOracleTests
 {
-    // Real words, which is Metaphone's domain: decision 0005 scopes out the
-    // letter-soup quirks jellyfish has and this does not reproduce.
+    // Real words and names chosen to cover the rules; decision 0009 puts every other input
+    // inside the claim too, and phonetics_contract.json replays those.
     private static readonly OracleFile<PhoneticCase> Corpus =
         OracleCorpus.Load<PhoneticCase>("metaphone.json");
 
     [Fact]
-    public void Metaphone_matches_jellyfish_on_real_words()
+    public void Metaphone_matches_jellyfish()
     {
         OracleAsserts.ExactString(Corpus.Cases,
             c => c.Metaphone,
@@ -27,6 +27,9 @@ public sealed class MetaphoneOracleTests
     [InlineData("MacDonald", "MKTNLT")]
     [InlineData("Knighted", "NTT")]
     [InlineData("Thomas", "0MS")]
+    [InlineData("Fletcher", "FLXR")]
+    [InlineData("Highness", "HNS")]
+    [InlineData("Keats's", "KTSS")]
     [InlineData("", "")]
     public void Metaphone_known_values(string word, string expected)
     {

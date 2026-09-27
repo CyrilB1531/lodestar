@@ -8,7 +8,7 @@
   ],
   "corpus": "real English words/names (see decision 0005)",
   "seed": 20260801,
-  "count": 123
+  "count": 130
  },
  "cases": [
   {
@@ -625,6 +625,41 @@
    "id": 122,
    "word": "Reign",
    "metaphone": "R"
+  },
+  {
+   "id": 123,
+   "word": "Fletcher",
+   "metaphone": "FLXR"
+  },
+  {
+   "id": 124,
+   "word": "Mitchell",
+   "metaphone": "MXL"
+  },
+  {
+   "id": 125,
+   "word": "Pritchard",
+   "metaphone": "PRXRT"
+  },
+  {
+   "id": 126,
+   "word": "Hutchinson",
+   "metaphone": "HXNSN"
+  },
+  {
+   "id": 127,
+   "word": "kitchen",
+   "metaphone": "KXN"
+  },
+  {
+   "id": 128,
+   "word": "Highness",
+   "metaphone": "HNS"
+  },
+  {
+   "id": 129,
+   "word": "doughy",
+   "metaphone": "T"
   }
  ]
 }

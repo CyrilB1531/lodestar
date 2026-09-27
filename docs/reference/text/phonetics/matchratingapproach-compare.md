@@ -10,15 +10,16 @@ public static bool? Compare(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
 ```
 
 **Parameters** — `a` and `b` are the two names to compare, under the same rules
-[`Codex`](matchratingapproach-codex.md) applies to a single one: any Unicode letter plus a single
-space is accepted, and anything else is refused. The `string` overload forwards to the span one.
+[`Codex`](matchratingapproach-codex.md) applies to a single one: any alphabetic character plus a
+space is accepted. The `string` overload forwards to the span one.
 
 **Returns** — `bool?`. `true` when the two codices rate as a match, `false` when they do not, and
-`null` — not `false` — when their lengths differ by 3 or more characters, which the algorithm
-declares too far apart to rate at all.
+`null` — not `false` — when either name holds a character `Codex` refuses, or when the codices'
+lengths differ by 3 or more UTF-8 bytes, which the algorithm declares too far apart to rate at all.
 
 **Exceptions** — `ArgumentNullException` when `a` or `b` is `null` (the `string` overload only).
-`ArgumentException` when `a` or `b` holds a character that is neither a letter nor a space.
+A name `Codex` would refuse is answered with `null` here, as `jellyfish` answers `None`:
+`Compare("O'Brien", "Obrien")` is `null`.
 
 **Example** — the 1977 description's own pair, and the length gap that makes a rating impossible.
 
@@ -47,10 +48,10 @@ clears it. `Tim`/`Timothy` codes to `TM`/`TMTHY`, 2 and 5 characters apart — a
 comparison returns `null` before the table is even consulted.
 
 That table, and the length it is keyed by, were measured directly against `jellyfish` 1.2.1 by
-bisection rather than assumed from a textbook — see
-[decision 0007](../../../decisions/0007-the-deliberate-divergences.md)
-for why the length is counted in **characters**, where jellyfish counts UTF-8 bytes for a handful
-of non-Latin inputs, and the two cases that changes.
+bisection rather than assumed from a textbook. The length is counted in **UTF-8 bytes**, as
+jellyfish counts it: identical to the character count for ASCII names, and larger for anything
+else, so `Compare("日本", "AB")` is `null` — six bytes against two —
+[decision 0009](../../../decisions/0009-the-phonetic-encoders-follow-jellyfish-whole.md).
 
 **Applies to** — net10.0, netstandard2.0.
 

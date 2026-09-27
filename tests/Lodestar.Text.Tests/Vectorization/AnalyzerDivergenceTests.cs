@@ -18,12 +18,32 @@ public sealed class AnalyzerDivergenceTests
     }
 
     [Fact]
-    public void Word_characters_are_the_dotnet_class()
+    public void Word_characters_are_pythons_class()
     {
-        // scikit-learn: ['nai', 've'], ['\u0928\u092E\u0938'] and ['x\u00B2y'].
-        Assert.Equal(["nai\u0308ve"], Features(new CountVectorizerOptions(), "nai\u0308ve"));
-        Assert.Equal(["\u0928\u092E\u0938\u094D\u0924\u0947"], Features(new CountVectorizerOptions(), "\u0928\u092E\u0938\u094D\u0924\u0947"));
-        Assert.Empty(Features(new CountVectorizerOptions(), "x\u00B2y"));
+        // A mark is not a word character and a number of any kind is, over code points (#1239).
+        Assert.Equal(["nai", "ve"], Features(new CountVectorizerOptions(), "nai\u0308ve"));
+        Assert.Equal(["\u0928\u092E\u0938"], Features(new CountVectorizerOptions(), "\u0928\u092E\u0938\u094D\u0924\u0947"));
+        Assert.Equal(["x\u00B2y"], Features(new CountVectorizerOptions(), "x\u00B2y"));
+        Assert.Equal(["de", "\U0001D400bc"], Features(new CountVectorizerOptions(), "\U0001D400bc de"));
+        Assert.Equal(["cd"], Features(new CountVectorizerOptions(), "a\u203Fb cd"));
+    }
+
+    [Fact]
+    public void A_custom_pattern_reads_its_classes_as_python_does()
+    {
+        // scikit-learn: ['nai', "ve's", 'x²', '𝐀'], through the translated regex rather than the scanner.
+        var options = new CountVectorizerOptions { TokenPattern = @"[\w']+", Lowercase = false };
+
+        Assert.Equal(["nai", "ve's", "x\u00B2", "\U0001D400"], Features(options, "nai\u0308ve's x\u00B2 \U0001D400"));
+    }
+
+    [Fact]
+    public void Scikit_learns_own_default_pattern_is_accepted()
+    {
+        // token_pattern=r"(?u)\b\w\w+\b" as scikit-learn spells it; .NET alone refuses the flag.
+        var options = new CountVectorizerOptions { TokenPattern = @"(?u)\b\w\w+\b" };
+
+        Assert.Equal(["nai", "ve"], Features(options, "nai\u0308ve"));
     }
 
     [Fact]

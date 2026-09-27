@@ -9,11 +9,13 @@ public static string Encode(ReadOnlySpan<char> value)
 public static string Encode(string value)
 ```
 
-**Parameters** — `value` is a single name. Non-letters in it are ignored rather than rejected, and
-case does not matter. The `string` overload forwards to the span one.
+**Parameters** — `value` is a single name. Case does not matter: the name is uppercased by the full
+case mapping and read one grapheme cluster at a time. A character no rule names — an apostrophe,
+a hyphen, a space — is kept in the code where it stands, as jellyfish keeps it: `O'Brien` is
+`O'BRAN`. The `string` overload forwards to the span one.
 
-**Returns** — `string`, an uppercase letter code of variable length — 1 to 11 characters over the
-corpus it is pinned to — or the empty string when `value` holds no letter.
+**Returns** — `string`, an uppercase code of variable length, or the empty string when `value` is
+empty.
 
 **Exceptions** — `ArgumentNullException` when `value` is `null` (the `string` overload only; a
 `ReadOnlySpan<char>` cannot be null). An empty string is accepted and encodes to the empty string.

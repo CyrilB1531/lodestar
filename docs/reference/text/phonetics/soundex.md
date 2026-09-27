@@ -26,7 +26,8 @@ Four characters is why it merges so much: over the 402-word corpus it pins,
 [101 words share a code](../phonetics.md) with at least one other. That is the point of it —
 recall first — and the reason not to reach for it when a wrong match is expensive.
 
-Reference behaviour is `jellyfish.soundex`, matched over 402 words.
+Reference behaviour is `jellyfish.soundex` 1.2.1, rule for rule on any input,
+[decision 0009](../../../decisions/0009-the-phonetic-encoders-follow-jellyfish-whole.md).
 
 **Applies to** — net10.0, netstandard2.0.
 

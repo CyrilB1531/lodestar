@@ -70,12 +70,14 @@ is usually the one that matters.
 
 - **A code is a key, not a pronunciation.** Compare codes to each other; never show one, and never
   try to read a word back out of one.
-- **They are English heuristics.** None is Unicode-aware beyond case folding, and none has
-  anything reliable to say about a name that is not English in origin — which includes many of
+- **They are English heuristics.** Each reads Unicode as jellyfish does — the full uppercase
+  mapping, and a decomposition or a grapheme cluster where jellyfish takes one — but none has
+  anything reliable to say about a name that is not English in origin, which includes many of
   the names a real dataset holds.
-- **Non-letters are ignored, except by `MatchRatingApproach`**, which refuses one instead — see
-  [its own page](phonetics/matchratingapproach.md) for why. The empty string always encodes to
-  the empty string.
+- **A character outside the rules is jellyfish's business, not dropped here.** An apostrophe
+  separates two Soundex codes, parts a Metaphone double and stays in a NYSIIS code;
+  `MatchRatingApproach` refuses it — see [its own page](phonetics/matchratingapproach.md) for why.
+  The empty string always encodes to the empty string.
 - **A `null` word is refused**, the same rule the [stemmers next door](stemming.md) apply —
   the null-word refusal.
   [`Soundex.Encode`](phonetics/soundex-encode.md) shows it.

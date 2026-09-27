@@ -23,16 +23,16 @@ bool? match = MatchRatingApproach.Compare("Byrne", "Boern");   // => True
 the other three do not: not "what does this sound like" but "do these two sound alike", and its
 answer depends on **both** codices at once — their combined length picks a stricter or looser
 threshold from a fixed table, so a caller holding two codices already still needs `Compare` rather
-than comparing them by hand. Second, its accepted alphabet is narrower and stricter: any Unicode
-letter plus a single space is accepted, and anything else — a digit, an apostrophe, a hyphen — is
-**refused** with `ArgumentException`, where [`Soundex`](soundex.md), [`Metaphone`](metaphone.md)
-and [`Nysiis`](nysiis.md) silently ignore it. The published algorithm has no rule for what a digit
-sounds like, and refusing says so rather than guessing.
+than comparing them by hand. Second, its accepted alphabet is narrower and stricter: any alphabetic
+character plus a space is accepted, and anything else — a digit, an apostrophe, a hyphen — is
+**refused**: `Codex` throws `ArgumentException` and `Compare` answers `null`, where
+[`Soundex`](soundex.md), [`Metaphone`](metaphone.md) and [`Nysiis`](nysiis.md) accept it. The
+published algorithm has no rule for what a digit sounds like, and refusing says so rather than
+guessing.
 
-Reference behaviour is `jellyfish.match_rating_codex` and `jellyfish.match_rating_comparison`,
-matched over 420 words and 212 pairs — except where codex length is measured in UTF-8 bytes rather
-than characters, which [decision 0007](../../../decisions/0007-the-deliberate-divergences.md)
-does not reproduce.
+Reference behaviour is `jellyfish.match_rating_codex` and `jellyfish.match_rating_comparison`
+1.2.1, rule for rule — codex length included, which jellyfish measures in UTF-8 bytes —
+[decision 0009](../../../decisions/0009-the-phonetic-encoders-follow-jellyfish-whole.md).
 
 **Applies to** — net10.0, netstandard2.0.
 

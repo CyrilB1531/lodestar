@@ -261,20 +261,25 @@ public static class Tversky
         int qval = 1,
         TextElement element = TextElement.Utf16Unit)
     {
-        (int inter, int sizeA, int sizeB) = QgramCounts.Compute(a, b, qval, element);
-        if (sizeA == 0 && sizeB == 0)
+        // textdistance answers before weighing anything: equal inputs score 1, and an empty one 0.
+        if (qval >= 1 && a.SequenceEqual(b))
         {
-            return QgramCounts.NoGrams(a, b);
+            return 1.0;
         }
+        if (qval >= 1 && (a.IsEmpty || b.IsEmpty))
+        {
+            return 0.0;
+        }
+
+        (int inter, int sizeA, int sizeB) = QgramCounts.Compute(a, b, qval, element);
         double denom = inter + alpha * (sizeA - inter) + beta * (sizeB - inter);
 
         // SonarLint S1244: the guard is against dividing by zero, not against a
-        // denominator that is merely small. Exact zero is the degenerate case the
-        // documentation defines as 1.0 — an empty side under a zero weight — and alpha and beta are the
-        // caller's, so a negative denominator is a legitimate quotient rather than
-        // something to fold into the same branch.
+        // denominator that is merely small. Exact zero means no shared gram and no
+        // weighted surplus — two differing inputs under zero weights, or too short for
+        // a gram — where textdistance divides by zero; they share nothing, so 0.
 #pragma warning disable S1244
-        return denom == 0.0 ? 1.0 : inter / denom;
+        return denom == 0.0 ? 0.0 : inter / denom;
 #pragma warning restore S1244
     }
 }
