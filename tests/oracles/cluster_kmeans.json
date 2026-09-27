@@ -6,7 +6,7 @@
   "reference_calls": [
    "sklearn.cluster.KMeans(init=..., n_init=1, algorithm=\"lloyd\")"
   ],
-  "count": 12
+  "count": 13
  },
  "cases": [
   {
@@ -476,6 +476,39 @@
    ],
    "inertia": 0.5,
    "iterations": 1
+  },
+  {
+   "name": "a zero shift only the centred samples reach",
+   "samples": [
+    4.2,
+    5.0,
+    4.3,
+    7.4,
+    1.2
+   ],
+   "featureCount": 1,
+   "cluster_count": 3,
+   "initial_centres": [
+    3.6,
+    3.9,
+    2.8
+   ],
+   "max_iter": 300,
+   "tol": 0.0,
+   "centres": [
+    7.4,
+    4.5,
+    1.2000000000000002
+   ],
+   "labels": [
+    1,
+    1,
+    1,
+    0,
+    2
+   ],
+   "inertia": 0.38,
+   "iterations": 2
   }
  ]
 }

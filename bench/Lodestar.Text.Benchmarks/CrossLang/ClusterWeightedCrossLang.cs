@@ -31,8 +31,8 @@ public static class ClusterWeightedCrossLang
             {
                 InitialCentreSets = [.. Enumerable.Range(0, Starts).Select(s => Start(x, n, s))],
             };
-            results.Add(Harness.Measure($"kmeans_weighted_{n}", () => KMeans.Fit(x, w, KMeansFeatures, Clusters, one)));
-            results.Add(Harness.Measure($"kmeans_restarts_{n}", () => KMeans.Fit(x, w, KMeansFeatures, Clusters, several)));
+            results.Add(Harness.Measure($"kmeans_weighted_{n}", () => KMeans.Fit(x, KMeansFeatures, Clusters, w, one)));
+            results.Add(Harness.Measure($"kmeans_restarts_{n}", () => KMeans.Fit(x, KMeansFeatures, Clusters, w, several)));
         }
 
         foreach (int n in DbscanSizes)

@@ -6033,6 +6033,10 @@ def _kmeans_fixtures() -> list[dict]:
         # One iteration: the next relocation ties two samples, left out as in 0093.
         {"name": "a relocation that empties a higher-numbered donor", "rows": [[0.0], [1.0], [10.0]],
          "init": [[0.5], [-100.0], [12.0]], MAX_ITER: 1, "tol": 1e-4},
+        # tol = 0 and no tie or empty cluster: the reference stops on a shift of exactly zero after two iterations,
+        # because it runs on X minus its means; uncentred, the same shift rounds to 7.9e-31 and a third runs (#1208).
+        {"name": "a zero shift only the centred samples reach", "rows": [[4.2], [5.0], [4.3], [7.4], [1.2]],
+         "init": [[3.6], [3.9], [2.8]], MAX_ITER: 300, "tol": 0.0},
     ]
 
 

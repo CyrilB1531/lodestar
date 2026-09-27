@@ -71,9 +71,9 @@ public sealed class KMeans
 
     /// <summary>Fits k-means with one weight per sample — scikit-learn's <c>fit(X, sample_weight=w)</c>.</summary>
     /// <param name="samples">The samples, row-major: <paramref name="featureCount"/> values per row.</param>
-    /// <param name="sampleWeights">One finite weight per sample, not all zero; negative ones are allowed, as scikit-learn allows them.</param>
     /// <param name="featureCount">How many values each row carries.</param>
     /// <param name="clusterCount">How many clusters to find.</param>
+    /// <param name="sampleWeight">One finite weight per sample, not all zero; negative ones are allowed, as scikit-learn allows them.</param>
     /// <param name="options">Where to start and when to stop; <see langword="null"/> takes the defaults.</param>
     /// <returns>A fitted clustering whose <see cref="Inertia"/> is weighted.</returns>
     /// <exception cref="ArgumentOutOfRangeException">As <see cref="Fit(ReadOnlySpan{double}, int, int, KMeansOptions)"/>.</exception>
@@ -86,26 +86,26 @@ public sealed class KMeans
     /// </remarks>
     public static KMeans Fit(
         ReadOnlySpan<double> samples,
-        ReadOnlySpan<double> sampleWeights,
         int featureCount,
         int clusterCount,
+        ReadOnlySpan<double> sampleWeight,
         KMeansOptions? options = null)
     {
         Guard.NotLessThan(featureCount, 1);
         int rows = Rows(samples, featureCount);
-        if (sampleWeights.Length != rows)
+        if (sampleWeight.Length != rows)
         {
             throw new ArgumentException(
-                $"sampleWeights holds {sampleWeights.Length} values, not one per row of samples.", nameof(sampleWeights));
+                $"sampleWeight holds {sampleWeight.Length} values, not one per row of samples.", nameof(sampleWeight));
         }
 
-        Finite.Require(sampleWeights, nameof(sampleWeights));
-        if (!ContainsNonZero(sampleWeights))
+        Finite.Require(sampleWeight, nameof(sampleWeight));
+        if (!ContainsNonZero(sampleWeight))
         {
-            throw new ArgumentException("The sample weights are all zero, which leaves nothing to cluster.", nameof(sampleWeights));
+            throw new ArgumentException("The sample weights are all zero, which leaves nothing to cluster.", nameof(sampleWeight));
         }
 
-        return FitCore(samples, sampleWeights.ToArray(), featureCount, clusterCount, options);
+        return FitCore(samples, sampleWeight.ToArray(), featureCount, clusterCount, options);
     }
 
     private static KMeans FitCore(
@@ -128,10 +128,17 @@ public sealed class KMeans
 
         double[] weighting = weights ?? Ones(sampleCount);
         double tolerance = ScaledTolerance(samples, featureCount, sampleCount, settings.Tolerance);
+
+        // The reference runs Lloyd on X minus its column means, starts included, and adds them back to the centres.
+        // Uncentred, a shift it rounds to 4.9e-32 came out exactly zero, and n_iter_ was one lower (#1208).
+        double[] means = ColumnMeans(samples, featureCount);
+        double[] centred = samples.ToArray();
+        Offset(centred, means, -1.0);
         Run? best = null;
         foreach (double[] start in Starts(samples, weights, featureCount, clusterCount, sampleCount, settings))
         {
-            Run run = Once(samples, weighting, featureCount, clusterCount, start, settings.MaxIterations, tolerance);
+            Offset(start, means, -1.0);
+            Run run = Once(centred, weighting, featureCount, clusterCount, start, settings.MaxIterations, tolerance);
 
             // scikit-learn's rule: the first fit is kept, and a later one only with a strictly lower inertia and a
             // partition that differs, since a rounding-level gain on the same partition is no gain.
@@ -141,7 +148,17 @@ public sealed class KMeans
             }
         }
 
-        return new KMeans(clusterCount, featureCount, best!.Centres, best.Labels, best.Inertia, best.Iterations);
+        Offset(best!.Centres, means, 1.0);
+        return new KMeans(clusterCount, featureCount, best.Centres, best.Labels, best.Inertia, best.Iterations);
+    }
+
+    /// <summary>Adds <paramref name="sign"/> times the column means to every row of a row-major block.</summary>
+    private static void Offset(double[] rows, double[] means, double sign)
+    {
+        for (int index = 0; index < rows.Length; index++)
+        {
+            rows[index] += sign * means[index % means.Length];
+        }
     }
 
     /// <summary>One Lloyd run from one starting block.</summary>
@@ -568,7 +585,7 @@ public sealed class KMeans
         }
 
         Relocate(samples, weights, featureCount, centres, labels, totals, mass);
-        Average(samples, featureCount, totals, mass);
+        Average(featureCount, totals, mass);
 
         double shift = 0.0;
         for (int index = 0; index < centres.Length; index++)
@@ -677,11 +694,9 @@ public sealed class KMeans
     /// <summary>Turns the sums into means, in place, as <c>_average_centers</c> does.</summary>
     /// <remarks>
     /// A cluster still empty takes the largest cluster's row as the loop has left it, so a later
-    /// largest cluster lends its sum rather than its mean. The reference sums centred samples, so
-    /// that sum is rebuilt here as it holds it: minus the count times the column mean, plus the
-    /// mean added back when the fit ends.
+    /// largest cluster lends its sum of centred samples rather than its mean, as the reference's does.
     /// </remarks>
-    private static void Average(ReadOnlySpan<double> samples, int featureCount, double[] totals, double[] mass)
+    private static void Average(int featureCount, double[] totals, double[] mass)
     {
         int largest = 0;
         for (int cluster = 1; cluster < mass.Length; cluster++)
@@ -692,7 +707,6 @@ public sealed class KMeans
             }
         }
 
-        double[]? means = null;
         for (int cluster = 0; cluster < mass.Length; cluster++)
         {
             int offset = cluster * featureCount;
@@ -702,21 +716,10 @@ public sealed class KMeans
                 {
                     totals[offset + feature] /= mass[cluster];
                 }
-
-                continue;
             }
-
-            if (largest < cluster)
+            else
             {
                 Array.Copy(totals, largest * featureCount, totals, offset, featureCount);
-                continue;
-            }
-
-            means ??= ColumnMeans(samples, featureCount);
-            for (int feature = 0; feature < featureCount; feature++)
-            {
-                totals[offset + feature] =
-                    totals[(largest * featureCount) + feature] - ((mass[largest] - 1.0) * means[feature]);
             }
         }
     }

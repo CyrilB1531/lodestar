@@ -85,7 +85,7 @@ public sealed class Dbscan
     /// <param name="featureCount">How many values each row carries.</param>
     /// <param name="epsilon">The inclusive radius of a neighbourhood; scikit-learn's <c>eps</c>.</param>
     /// <param name="minimumSamples">The summed weight a neighbourhood needs to be dense, the sample's own counted.</param>
-    /// <param name="sampleWeights">One finite weight per sample; negative ones are allowed, as scikit-learn allows them.</param>
+    /// <param name="sampleWeight">One finite weight per sample; negative ones are allowed, as scikit-learn allows them.</param>
     /// <returns>A fitted clustering.</returns>
     /// <exception cref="ArgumentOutOfRangeException">As <see cref="Fit(ReadOnlySpan{double}, int, double, int)"/>.</exception>
     /// <exception cref="ArgumentException">As <see cref="Fit(ReadOnlySpan{double}, int, double, int)"/>, or the weights are not one finite value per sample.</exception>
@@ -94,7 +94,7 @@ public sealed class Dbscan
     /// one would; a negative weight can keep its neighbours from being core, as scikit-learn documents.
     /// </remarks>
     public static Dbscan Fit(
-        ReadOnlySpan<double> samples, int featureCount, double epsilon, int minimumSamples, ReadOnlySpan<double> sampleWeights)
+        ReadOnlySpan<double> samples, int featureCount, double epsilon, int minimumSamples, ReadOnlySpan<double> sampleWeight)
     {
         Guard.NotLessThan(featureCount, 1);
         Guard.NotLessThan(minimumSamples, 1);
@@ -102,7 +102,7 @@ public sealed class Dbscan
 
         int sampleCount = Rows(samples, featureCount);
         Finite.Require(samples, nameof(samples));
-        double[] weights = Weights(sampleWeights, sampleCount);
+        double[] weights = Weights(sampleWeight, sampleCount);
         (int[] offsets, int[] indices) = Neighbourhoods.Euclidean(samples, featureCount, sampleCount, epsilon);
         return From(featureCount, offsets, indices, minimumSamples, weights);
     }
@@ -112,15 +112,15 @@ public sealed class Dbscan
     /// <param name="sampleCount">The side of that matrix.</param>
     /// <param name="epsilon">The inclusive radius of a neighbourhood; scikit-learn's <c>eps</c>.</param>
     /// <param name="minimumSamples">The summed weight a neighbourhood needs to be dense, the sample's own counted.</param>
-    /// <param name="sampleWeights">One finite weight per sample.</param>
+    /// <param name="sampleWeight">One finite weight per sample.</param>
     /// <returns>A fitted clustering.</returns>
     /// <exception cref="ArgumentOutOfRangeException">As <see cref="FitPrecomputed(ReadOnlySpan{double}, int, double, int)"/>.</exception>
     /// <exception cref="ArgumentException">As <see cref="FitPrecomputed(ReadOnlySpan{double}, int, double, int)"/>, or the weights are not one finite value per sample.</exception>
     public static Dbscan FitPrecomputed(
-        ReadOnlySpan<double> distances, int sampleCount, double epsilon, int minimumSamples, ReadOnlySpan<double> sampleWeights)
+        ReadOnlySpan<double> distances, int sampleCount, double epsilon, int minimumSamples, ReadOnlySpan<double> sampleWeight)
     {
         (int[] offsets, int[] indices) = PrecomputedNeighbourhoods(distances, sampleCount, epsilon, minimumSamples);
-        return From(sampleCount, offsets, indices, minimumSamples, Weights(sampleWeights, sampleCount));
+        return From(sampleCount, offsets, indices, minimumSamples, Weights(sampleWeight, sampleCount));
     }
 
     /// <summary>Clusters from a square distance matrix — <c>metric="precomputed"</c>.</summary>
@@ -130,7 +130,7 @@ public sealed class Dbscan
     /// <param name="minimumSamples">How many samples a neighbourhood needs to be dense, the sample itself counted.</param>
     /// <returns>A fitted clustering.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="sampleCount"/> or <paramref name="minimumSamples"/> is not positive, or <paramref name="epsilon"/> is not positive or not finite.</exception>
-    /// <exception cref="ArgumentException"><paramref name="distances"/> is not <paramref name="sampleCount"/> squared values, or holds a value that is not finite.</exception>
+    /// <exception cref="ArgumentException"><paramref name="distances"/> is not <paramref name="sampleCount"/> squared values, or holds a value that is negative or not finite.</exception>
     /// <remarks>
     /// Named rather than an overload of <see cref="Fit(ReadOnlySpan{double}, int, double, int)"/>: both take a row-major
     /// <see cref="ReadOnlySpan{T}"/> of doubles and an <see cref="int"/>, so an overload pair
@@ -165,6 +165,16 @@ public sealed class Dbscan
         }
 
         Finite.Require(distances, nameof(distances));
+        for (int i = 0; i < distances.Length; i++)
+        {
+            // check_non_negative's refusal: a negative distance is within any radius, so it would join two samples silently.
+            if (distances[i] < 0.0)
+            {
+                throw new ArgumentException(
+                    $"distances[{i}] is {distances[i]}; a distance cannot be negative.", nameof(distances));
+            }
+        }
+
         return Neighbourhoods.Precomputed(distances, sampleCount, epsilon);
     }
 
@@ -174,16 +184,16 @@ public sealed class Dbscan
         return new Dbscan(featureCount, labels, cores, clusters);
     }
 
-    private static double[] Weights(ReadOnlySpan<double> sampleWeights, int sampleCount)
+    private static double[] Weights(ReadOnlySpan<double> sampleWeight, int sampleCount)
     {
-        if (sampleWeights.Length != sampleCount)
+        if (sampleWeight.Length != sampleCount)
         {
             throw new ArgumentException(
-                $"sampleWeights holds {sampleWeights.Length} values for {sampleCount} samples.", nameof(sampleWeights));
+                $"sampleWeight holds {sampleWeight.Length} values for {sampleCount} samples.", nameof(sampleWeight));
         }
 
-        Finite.Require(sampleWeights, nameof(sampleWeights));
-        return sampleWeights.ToArray();
+        Finite.Require(sampleWeight, nameof(sampleWeight));
+        return sampleWeight.ToArray();
     }
 
     private static void Positive(double epsilon, string paramName)

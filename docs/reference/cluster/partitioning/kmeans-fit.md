@@ -11,14 +11,15 @@ public static KMeans Fit(ReadOnlySpan<double> samples, int featureCount, int clu
 <!-- docs-declaration -->
 
 ```csharp
-public static KMeans Fit(ReadOnlySpan<double> samples, ReadOnlySpan<double> sampleWeights, int featureCount, int clusterCount, KMeansOptions options = null)
+public static KMeans Fit(ReadOnlySpan<double> samples, int featureCount, int clusterCount, ReadOnlySpan<double> sampleWeight, KMeansOptions options = null)
 ```
 
 The second overload weighs each sample, scikit-learn's `fit(X, sample_weight=w)`.
 
 **Parameters** — `samples` is the sample matrix, row-major: `featureCount` values per row.
-`sampleWeights` is one finite weight per row, not all zero; a negative one is accepted, as the
-reference accepts it. `featureCount` is how many values each row carries. `clusterCount` is how many clusters to find.
+`featureCount` is how many values each row carries. `clusterCount` is how many clusters to find.
+`sampleWeight` is one finite weight per row, not all zero; a negative one is accepted, as the
+reference accepts it.
 `options` says where to start and when to stop; `null` takes the defaults.
 
 **Returns** — a fitted `KMeans`, whose `Inertia` is weighted when the weights are given.
@@ -27,7 +28,7 @@ reference accepts it. `featureCount` is how many values each row carries. `clust
 positive, or `options` asks for fewer than one iteration or a `Tolerance` that is negative, infinite
 or `NaN`. `ArgumentException` when `samples` holds no row, a partial one or a `NaN` or infinite
 value, when there are fewer rows than clusters, or when the given initial centres are the wrong
-shape or not finite, or when `sampleWeights` is not one finite value per row or is all zeros. Both
+shape or not finite, or when `sampleWeight` is not one finite value per row or is all zeros. Both
 also when `options` pairs `InitialCentreSets` with `InitialCentres` or `Restarts`, gives it no
 block, pairs `Restarts` with `InitialCentres`, or asks for fewer than one restart.
 
@@ -57,7 +58,7 @@ using Lodestar.Cluster;
 
 var start = new KMeansOptions { InitialCentres = [0.5, 10.5] };
 
-KMeans weighted = KMeans.Fit([0.0, 1.0, 10.0, 11.0], [3.0, 1.0, 1.0, 1.0], featureCount: 1, clusterCount: 2, start);
+KMeans weighted = KMeans.Fit([0.0, 1.0, 10.0, 11.0], featureCount: 1, clusterCount: 2, [3.0, 1.0, 1.0, 1.0], start);
 KMeans repeated = KMeans.Fit([0.0, 0.0, 0.0, 1.0, 10.0, 11.0], featureCount: 1, clusterCount: 2, start);
 
 double centre = weighted.Centres[0];                    // => 0.25
@@ -68,6 +69,12 @@ double sameInertia = weighted.Inertia - repeated.Inertia; // => 0
 `sklearn.cluster._kmeans._tolerance` scales it. The same number therefore means the same thing on a
 matrix of millimetres and one of kilometres. A `Tolerance` of `0` removes the shift test entirely
 and iterates until the labels settle.
+
+**The loop runs on the samples minus their column means**, starting centres included, and the
+means are added back to `Centres` — what `KMeans.fit` does before it calls the Lloyd loop. It
+changes nothing but rounding, and rounding is what `Iterations` turns on: uncentred, a centre shift
+the reference rounds to `4.9e-32` came out exactly `0`, and a fit with `Tolerance` `0` stopped one
+iteration early.
 
 **A sample exactly equidistant from two centres takes the lowest-indexed one.** That is
 `numpy.argmin`'s rule and a **measured divergence** from the reference, whose choice was observed

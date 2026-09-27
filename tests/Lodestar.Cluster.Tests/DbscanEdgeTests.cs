@@ -142,6 +142,23 @@ public sealed class DbscanEdgeTests
     }
 
     /// <summary>
+    /// A negative distance is within every radius, so it once joined two samples silently; scikit-learn's
+    /// <c>check_non_negative</c> refuses it, and lets a negative zero through (#1207).
+    /// </summary>
+    [Fact]
+    public void A_negative_distance_is_refused_and_a_negative_zero_is_not()
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => Dbscan.FitPrecomputed([0.0, -1.0, -1.0, 0.0], 2, 0.5, 2));
+        Assert.Equal("distances", error.ParamName);
+        Assert.Throws<ArgumentException>(
+            () => Dbscan.FitPrecomputed([0.0, -1.0, -1.0, 0.0], 2, 0.5, 1, [1.0, 1.0]));
+
+        Dbscan zero = Dbscan.FitPrecomputed([0.0, -0.0, -0.0, 0.0], 2, 0.5, 2);
+        Assert.Equal([0, 0], zero.Labels);
+    }
+
+    /// <summary>
     /// 65536 squared wraps an int to zero and 65537 squared to 131073, spans the check matched:
     /// each must be refused as a shape rather than fail on an index later (#911).
     /// </summary>
