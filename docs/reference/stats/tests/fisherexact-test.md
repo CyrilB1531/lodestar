@@ -34,7 +34,10 @@ double p = Math.Round(result.PValue, 6);           // => 0.485714
 **Remarks** — the one-sided p-value on the same table is smaller,
 `Math.Round(FisherExact.Test(table, Alternative.Greater).PValue, 6)` giving `0.242857`: the
 two-sided p-value sums every table at least as extreme in *either* direction, so it is never
-smaller than the one-sided sum on its own tail.
+smaller than the one-sided sum on its own tail. A table counts as no likelier than the observed
+one within a relative margin of `1e-14`, scipy's `fisher_exact` margin: wide enough to catch two
+tables that differ only by rounding, and too narrow to count `[[20, 38], [40, 106]]`'s nearest
+neighbour, which is likelier by 8.4e-8.
 
 **The exact enumeration has a cost proportional to the table's total.** Every table sharing the
 observed margins is walked, so a table summing past 1,000,000 is refused with

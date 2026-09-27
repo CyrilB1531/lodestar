@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "anova",
-  "count": 7
+  "count": 10
  },
  "cases": [
   {
@@ -186,6 +186,64 @@
    ],
    "statistic": 470.8995372815668,
    "pvalue": 2.1513343666115613e-47
+  },
+  {
+   "name": "two groups of the same repeated 0.1",
+   "call": "f_oneway",
+   "args": {},
+   "groups": [
+    [
+     0.1,
+     0.1,
+     0.1
+    ],
+    [
+     0.1,
+     0.1,
+     0.1
+    ]
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN"
+  },
+  {
+   "name": "unequal groups of the same repeated 0.7",
+   "call": "f_oneway",
+   "args": {},
+   "groups": [
+    [
+     0.7,
+     0.7,
+     0.7
+    ],
+    [
+     0.7,
+     0.7,
+     0.7,
+     0.7
+    ]
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN"
+  },
+  {
+   "name": "groups each repeating their own value",
+   "call": "f_oneway",
+   "args": {},
+   "groups": [
+    [
+     0.1,
+     0.1,
+     0.1
+    ],
+    [
+     0.2,
+     0.2,
+     0.2
+    ]
+   ],
+   "statistic": "Infinity",
+   "pvalue": 0.0
   },
   {
    "name": "nan in the first group | nan_policy=propagate",

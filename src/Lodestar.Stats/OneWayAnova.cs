@@ -5,11 +5,11 @@ namespace Lodestar.Stats;
 /// <summary>One-way analysis of variance: do several groups share one mean?</summary>
 /// <remarks>
 /// The k-sample generalisation of <see cref="TTest.Independent"/> with <see cref="Variance.Equal"/>:
-/// on two groups F is the square of Student's t, and the two p-values agree. A degenerate input
-/// where both the between- and within-group sums of squares are exactly zero returns a
-/// <c>NaN</c> statistic and p-value, propagated rather than guarded against -- matching scipy's
-/// own <c>f_oneway</c>, and unlike <see cref="KruskalWallis"/> (which throws on its analogous
-/// input, since the ranks there are provably meaningless rather than merely indeterminate).
+/// on two groups F is the square of Student's t, and the two p-values agree. Groups each holding
+/// one repeated value answer an infinite statistic and a zero p-value, and a single value repeated
+/// across every group answers <c>NaN</c> for both -- matching scipy's own <c>f_oneway</c>, and
+/// unlike <see cref="KruskalWallis"/> (which throws on its analogous input, since the ranks there
+/// are provably meaningless rather than merely indeterminate).
 /// </remarks>
 public static class OneWayAnova
 {
@@ -50,9 +50,14 @@ public static class OneWayAnova
         double dfBetween = groups.Length - 1;
         double dfWithin = total - groups.Length;
 
-        // within = 0, between > 0 makes this +Infinity, not NaN -- FisherSnedecorSf(+Infinity, ...)
-        // is already exact and returns 0.0, honest for a perfect, noiseless separation.
-        double statistic = (between / dfBetween) / (within / dfWithin);
+        // Constant groups are decided by equality, as f_oneway does: three 0.1 leave the sums at
+        // 1e-33, not zero (#1244). FisherSnedecorSf(+Infinity, ...) is an exact 0.0.
+        double statistic = Constancy(groups) switch
+        {
+            GroupConstancy.AllEqual => double.NaN,
+            GroupConstancy.EachGroup => double.PositiveInfinity,
+            _ => (between / dfBetween) / (within / dfWithin),
+        };
 
         return new TestResult(statistic, Beta.FisherSnedecorSf(statistic, dfBetween, dfWithin));
     }
@@ -78,6 +83,46 @@ public static class OneWayAnova
             ? Test(groups)
             : Test(NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups)));
     }
+
+    private enum GroupConstancy
+    {
+        None,
+        EachGroup,
+        AllEqual,
+    }
+
+    // S1244: a zero difference is the test itself, scipy's diff(...) == 0, which inf - inf fails.
+    // A lone NaN leaves the arithmetic to answer NaN, as scipy's nan_policy wrapper does.
+#pragma warning disable S1244
+    private static GroupConstancy Constancy(double[][] groups)
+    {
+        bool allEqual = true;
+        for (int g = 0; g < groups.Length; g++)
+        {
+            double[] group = groups[g];
+            if (double.IsNaN(group[0]))
+            {
+                return GroupConstancy.None;
+            }
+
+            for (int i = 1; i < group.Length; i++)
+            {
+                if (group[i] - group[i - 1] != 0.0)
+                {
+                    return GroupConstancy.None;
+                }
+            }
+
+            if (g > 0)
+            {
+                double[] before = groups[g - 1];
+                allEqual &= group[0] - before[before.Length - 1] == 0.0;
+            }
+        }
+
+        return allEqual ? GroupConstancy.AllEqual : GroupConstancy.EachGroup;
+    }
+#pragma warning restore S1244
 
     private static (int Total, double GrandSum) ValidatedTotals(double[][] groups)
     {

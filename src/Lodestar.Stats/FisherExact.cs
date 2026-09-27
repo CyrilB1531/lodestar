@@ -10,9 +10,9 @@ namespace Lodestar.Stats;
 /// </remarks>
 public static class FisherExact
 {
-    // Two tables differing only in the last bits are the same table here; a bare
-    // <= would include or exclude one by rounding. scipy guards it the same way.
-    private const double ProbabilityTolerance = 1e-7;
+    // Tables differing only by rounding are the same table: fisher_exact's 1e-14, not binomtest's
+    // 1e-7, which counted [[20,38],[40,106]]'s k = 14, likelier by 8.4e-8 (#1243).
+    private const double ProbabilityTolerance = 1e-14;
 
     // long-comment: the bound below is a measured performance ceiling, not an
     // arbitrary round number, and a reviewer should be able to see the

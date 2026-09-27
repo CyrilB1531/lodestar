@@ -39,10 +39,10 @@ internal static class Correlation
             }
         }
 
-        // S1244: a constant sample is one whose values are literally equal, so every deviation
-        // is an exact zero -- a tolerance would call a merely narrow sample constant.
+        // S1244: a constant sample is one whose values are literally equal, as scipy's
+        // x == x[0]; the deviations need not be zero, the mean of three 0.1 being 0.1 + 2e-17 (#1246).
 #pragma warning disable S1244
-        if (xScale == 0.0 || yScale == 0.0)
+        if (IsConstant(x) || IsConstant(y) || xScale == 0.0 || yScale == 0.0)
 #pragma warning restore S1244
         {
             return double.NaN;
@@ -102,6 +102,22 @@ internal static class Correlation
         double coefficient = xy / ddof / Math.Sqrt(xx / ddof) / Math.Sqrt(yy / ddof);
 
         return Math.Min(1.0, Math.Max(-1.0, coefficient));
+    }
+
+    private static bool IsConstant(ReadOnlySpan<double> values)
+    {
+        for (int i = 1; i < values.Length; i++)
+        {
+            // S1244: equality is the test itself, the one scipy's pearsonr makes.
+#pragma warning disable S1244
+            if (values[i] != values[0])
+#pragma warning restore S1244
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>Both samples' means in one pass, which is the only pass either needs.</summary>

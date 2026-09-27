@@ -17,6 +17,8 @@ aligned.
 **Returns** — `PearsonResult`: the coefficient in `[-1, 1]`, the p-value, and a
 [`ConfidenceInterval`](pearsonresult-confidenceinterval.md) the result can be asked for
 afterwards. A sample that is constant has no correlation defined, and both numbers are `NaN`.
+Constant means every value equal to the first, as scipy tests it, and not a zero deviation from the
+mean: six copies of `0.1` average to `0.10000000000000002`.
 
 **Exceptions** — `ArgumentException` when the samples differ in length, when either holds fewer
 than two values, or when `nanPolicy` is [`NanPolicy.Raise`](../nanpolicy.md) and either sample

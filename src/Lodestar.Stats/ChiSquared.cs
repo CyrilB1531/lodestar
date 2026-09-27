@@ -8,6 +8,9 @@ public static class ChiSquared
     // 256 doubles is 2 KB of stack at most, per marginal; a wider table allocates as before.
     private const int MaxStackMarginal = 256;
 
+    // sqrt(2.220446049250313e-16), numpy's finfo(float64).eps ** 0.5: scipy's chisquare sum check.
+    private const double SumTolerance = 1.4901161193847656e-8;
+
     /// <summary>Tests observed counts against an expected distribution.</summary>
     /// <param name="observed">The observed counts; at least one category, one alone giving a NaN p-value as scipy's.</param>
     /// <param name="expected">
@@ -116,9 +119,9 @@ public static class ChiSquared
             expectedTotal += expected[i];
         }
 
-        // scipy refuses the same way: an expectation summing elsewhere is not a
-        // distribution over these categories, so the p-value would mean nothing.
-        if (Math.Abs(expectedTotal - observedTotal) > 1e-8 * Math.Abs(observedTotal))
+        // An expectation summing elsewhere is no distribution over these categories; scipy's bound,
+        // sqrt(eps) relative to the smaller total (#1248).
+        if (Math.Abs(expectedTotal - observedTotal) / Math.Min(expectedTotal, observedTotal) > SumTolerance)
         {
             throw new ArgumentException(
                 $"The expectations sum to {expectedTotal} and the observations to {observedTotal}.",

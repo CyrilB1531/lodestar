@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "binomtest",
-  "count": 225
+  "count": 227
  },
  "cases": [
   {
@@ -15303,6 +15303,142 @@
      "level": 0.99,
      "low": 0.993661850654414,
      "high": 1.0
+    }
+   ]
+  },
+  {
+   "name": "k=49999999 of n=100000000 | p=0.5 | alternative=two-sided",
+   "call": "binomtest",
+   "args": {
+    "k": 49999999,
+    "n": 100000000,
+    "p": 0.5,
+    "alternative": "two-sided"
+   },
+   "statistic": 0.49999999,
+   "pvalue": 1.0,
+   "intervals": [
+    {
+     "method": "exact",
+     "level": 0.9,
+     "low": 0.4999177423194146,
+     "high": 0.5000822376805858
+    },
+    {
+     "method": "exact",
+     "level": 0.95,
+     "low": 0.4999019868019596,
+     "high": 0.5000979931980409
+    },
+    {
+     "method": "exact",
+     "level": 0.99,
+     "low": 0.4998711935372816,
+     "high": 0.5001287864627195
+    },
+    {
+     "method": "wilson",
+     "level": 0.9,
+     "low": 0.49991774731976524,
+     "high": 0.5000822326802353
+    },
+    {
+     "method": "wilson",
+     "level": 0.95,
+     "low": 0.49990199180265565,
+     "high": 0.5000979881973451
+    },
+    {
+     "method": "wilson",
+     "level": 0.99,
+     "low": 0.49987119853909584,
+     "high": 0.5001287814609056
+    },
+    {
+     "method": "wilsoncc",
+     "level": 0.9,
+     "low": 0.4999177423197654,
+     "high": 0.5000822376802352
+    },
+    {
+     "method": "wilsoncc",
+     "level": 0.95,
+     "low": 0.49990198680265585,
+     "high": 0.5000979931973449
+    },
+    {
+     "method": "wilsoncc",
+     "level": 0.99,
+     "low": 0.49987119353909615,
+     "high": 0.5001287864609052
+    }
+   ]
+  },
+  {
+   "name": "k=499999983 of n=1000000000 | p=0.5 | alternative=two-sided",
+   "call": "binomtest",
+   "args": {
+    "k": 499999983,
+    "n": 1000000000,
+    "p": 0.5,
+    "alternative": "two-sided"
+   },
+   "statistic": 0.499999983,
+   "pvalue": 0.9991925977312157,
+   "intervals": [
+    {
+     "method": "exact",
+     "level": 0.9,
+     "low": 0.49997397508063035,
+     "high": 0.5000259909193697
+    },
+    {
+     "method": "exact",
+     "level": 0.95,
+     "low": 0.4999689927484224,
+     "high": 0.5000309732515777
+    },
+    {
+     "method": "exact",
+     "level": 0.99,
+     "low": 0.4999592550627627,
+     "high": 0.5000407109372375
+    },
+    {
+     "method": "wilson",
+     "level": 0.9,
+     "low": 0.49997397558064144,
+     "high": 0.5000259904193586
+    },
+    {
+     "method": "wilson",
+     "level": 0.95,
+     "low": 0.4999689932484444,
+     "high": 0.5000309727515558
+    },
+    {
+     "method": "wilson",
+     "level": 0.99,
+     "low": 0.4999592555628201,
+     "high": 0.5000407104371801
+    },
+    {
+     "method": "wilsoncc",
+     "level": 0.9,
+     "low": 0.49997397508064145,
+     "high": 0.5000259909193586
+    },
+    {
+     "method": "wilsoncc",
+     "level": 0.95,
+     "low": 0.49996899274844436,
+     "high": 0.5000309732515558
+    },
+    {
+     "method": "wilsoncc",
+     "level": 0.99,
+     "low": 0.49995925506282013,
+     "high": 0.50004071093718
     }
    ]
   }
