@@ -88,6 +88,9 @@ public sealed class CountVectorizerOracleTests
             Lowercase = !config.TryGetProperty("lowercase", out JsonElement lc) || lc.GetBoolean(),
             StripAccents = config.TryGetProperty("strip_accents", out JsonElement sa) && sa.GetBoolean(),
             StopWords = stopWords,
+            TokenPattern = config.TryGetProperty("token_pattern", out JsonElement tp)
+                ? tp.GetString()!
+                : new CountVectorizerOptions().TokenPattern,
         };
     }
 }

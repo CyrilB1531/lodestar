@@ -71,6 +71,25 @@ public sealed class SetSimilarityOracleTests
         Assert.Equal(expected, Jaccard.Similarity(a, b), 12);
     }
 
+    [Theory]
+    [InlineData(1, 2.0 / 3, 0.8, 1.0, 0.816496580927726, 2.0 / 3)]
+    [InlineData(2, 0.0, 0.0, 0.0, 0.0, 0.0)]
+    public void A_lone_surrogate_is_one_code_point_rather_than_an_error(
+        int qval, double jaccard, double dice, double overlap, double cosine, double tversky)
+    {
+        // textdistance 4.6.3 over "a\ud800b" and "ab"; the lone surrogate used to throw in
+        // char.ConvertFromUtf32 (#1261).
+        const string a = "a\uD800b";
+        const string b = "ab";
+        const TextElement cp = TextElement.CodePoint;
+
+        Assert.Equal(jaccard, Jaccard.Similarity(a, b, qval, cp), 12);
+        Assert.Equal(dice, SorensenDice.Similarity(a, b, qval, cp), 12);
+        Assert.Equal(overlap, Overlap.Similarity(a, b, qval, cp), 12);
+        Assert.Equal(cosine, Cosine.Similarity(a, b, qval, cp), 12);
+        Assert.Equal(tversky, Tversky.Similarity(a, b, qval: qval, element: cp), 12);
+    }
+
     [Fact]
     public void Cosine_bigrams_dupont_dupond()
     {

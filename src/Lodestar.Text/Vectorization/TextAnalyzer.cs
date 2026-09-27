@@ -27,7 +27,7 @@ internal sealed class TextAnalyzer
     private readonly AnalyzerKind _kind;
     private readonly int _minN;
     private readonly int _maxN;
-    private readonly PythonTokenPattern _tokenPattern;
+    private readonly PythonTokenPattern? _tokenPattern;
 
     // One scratch list per thread for a document's raw matches, so tokenizing allocates nothing new
     // for them; the analyzer itself is shared across threads.
@@ -53,9 +53,15 @@ internal sealed class TextAnalyzer
         _kind = kind;
         _minN = ngramRange.Min;
         _maxN = ngramRange.Max;
-        // The pattern comes from the caller, so an unbounded match would let a
-        // crafted pattern/document pair hang the thread. Bound it.
-        _tokenPattern = new PythonTokenPattern(tokenPattern);
+        // Refused whatever the analyzer, since Save writes the pattern and Load requires a string.
+        if (tokenPattern is null)
+        {
+            throw new ArgumentException("TokenPattern is null.", nameof(tokenPattern));
+        }
+
+        // Only the word analyzer tokenizes: scikit-learn neither compiles nor checks the pattern
+        // for the character analyzers, so a pattern it would refuse there is accepted.
+        _tokenPattern = kind == AnalyzerKind.Word ? new PythonTokenPattern(tokenPattern) : null;
         _stopWords = stopWords is null ? null : StopWordSet.Adopt(stopWords);
     }
 
@@ -140,7 +146,7 @@ internal sealed class TextAnalyzer
         var tokens = new List<(int Start, int Length)>();
 #if NET9_0_OR_GREATER
         List<(int Start, int Length)> matches = ScratchMatches();
-        _tokenPattern.Matches(s, matches);
+        _tokenPattern!.Matches(s, matches);
         foreach ((int index, int length) in matches)
         {
             // Judged as a span over the document, so a filtered-out (and by
@@ -153,7 +159,7 @@ internal sealed class TextAnalyzer
         }
 #else
         List<(int Start, int Length)> matches = ScratchMatches();
-        _tokenPattern.Matches(s, matches);
+        _tokenPattern!.Matches(s, matches);
         foreach ((int index, int length) in matches)
         {
             if (_stopWords is null)
@@ -288,39 +294,83 @@ internal sealed class TextAnalyzer
     {
         // scikit-learn rewrites only runs of two or more (\s\s+) as one space; a lone tab stays.
         s = CollapseWhitespaceRuns(s);
-        int len = s.Length;
+        int[] bounds = [];
+        int len = CodePointBounds(s.AsSpan(), ref bounds);
+        bounds = Offsets(bounds, len, s.Length);
         for (int n = _minN; n <= _maxN; n++)
         {
             if (n < 1)
             {
-                SlicedCharNgrams(s, n, ref sink);
+                SlicedCharNgrams(s.AsSpan(), bounds, len, n, ref sink);
                 continue;
             }
 
             for (int i = 0; i + n <= len; i++)
             {
-                sink.Add(s.AsSpan(i, n));
+                sink.Add(Gram(s.AsSpan(), bounds, i, n));
             }
         }
     }
 
     /// <summary>The character n-grams of a length below <c>1</c>, which scikit-learn takes as Python slices.</summary>
-    private static void SlicedCharNgrams<TSink>(string s, int n, ref TSink sink)
+    private static void SlicedCharNgrams<TSink>(ReadOnlySpan<char> s, int[] bounds, int len, int n, ref TSink sink)
         where TSink : struct, ITermSink
     {
-        int len = s.Length;
         for (int i = 0; i + n <= len; i++)
         {
             (int start, int taken) = PythonSlice(i, n, len);
-            sink.Add(s.AsSpan(start, taken));
+            sink.Add(Gram(s, bounds, start, taken));
         }
     }
+
+    /// <summary>The number of code points in <paramref name="s"/>, with their UTF-16 offsets in <paramref name="bounds"/> when a surrogate pair makes them differ.</summary>
+    /// <remarks>
+    /// scikit-learn slices a <c>str</c>, whose unit is the code point, so an astral character is one
+    /// character of a gram and never two surrogates that JSON cannot write back (#1263). A lone
+    /// surrogate stays one character, as Python keeps it. <paramref name="bounds"/> is left as it was
+    /// when every unit is its own code point; <see cref="Offsets"/> then gives direct slicing.
+    /// </remarks>
+    private static int CodePointBounds(ReadOnlySpan<char> s, ref int[] bounds)
+    {
+#if NET8_0_OR_GREATER
+        if (!s.ContainsAnyInRange('\uD800', '\uDFFF'))
+        {
+            return s.Length;
+        }
+#endif
+        int count = CodePoints.Count(s);
+        if (count == s.Length)
+        {
+            return count;
+        }
+
+        if (bounds.Length < count + 1)
+        {
+            bounds = new int[Math.Max(count + 1, bounds.Length * 2)];
+        }
+        int at = 0;
+        for (int k = 0; k < count; k++)
+        {
+            bounds[k] = at;
+            at += char.IsHighSurrogate(s[at]) && at + 1 < s.Length && char.IsLowSurrogate(s[at + 1]) ? 2 : 1;
+        }
+        bounds[count] = at;
+        return count;
+    }
+
+    /// <summary>What <see cref="Gram"/> reads: no offsets when every unit is a code point, <paramref name="bounds"/> otherwise.</summary>
+    private static int[] Offsets(int[] bounds, int count, int units) => count == units ? [] : bounds;
+
+    /// <summary>The <paramref name="length"/> code points of <paramref name="s"/> from the <paramref name="start"/>-th, as a span over it.</summary>
+    private static ReadOnlySpan<char> Gram(ReadOnlySpan<char> s, int[] bounds, int start, int length) =>
+        bounds.Length == 0 ? s.Slice(start, length) : s.Slice(bounds[start], bounds[start + length] - bounds[start]);
 
     private void CharWordBoundaryNgrams<TSink>(string s, ref TSink sink)
         where TSink : struct, ITermSink
     {
         // Words are the runs Python's str.split() yields, separated by IsPythonWhiteSpace.
         char[] padded = [];
+        int[] bounds = [];
         int at = 0;
         while (at < s.Length)
         {
@@ -344,31 +394,32 @@ internal sealed class TextAnalyzer
             padded[0] = ' ';
             s.CopyTo(wordStart, padded, 1, len - 2);
             padded[len - 1] = ' ';
-            PaddedWordNgrams(padded.AsSpan(0, len), ref sink);
+            PaddedWordNgrams(padded.AsSpan(0, len), ref bounds, ref sink);
         }
     }
 
-    private void PaddedWordNgrams<TSink>(ReadOnlySpan<char> w, ref TSink sink)
+    private void PaddedWordNgrams<TSink>(ReadOnlySpan<char> w, ref int[] bounds, ref TSink sink)
         where TSink : struct, ITermSink
     {
         // Mirrors scikit-learn's _char_wb_ngrams: always emit w[0:n] (clamped),
         // then slide; a word shorter than n is emitted once and breaks the n-loop.
-        int len = w.Length;
+        int len = CodePointBounds(w, ref bounds);
+        int[] offsets = Offsets(bounds, len, w.Length);
         for (int n = _minN; n <= _maxN; n++)
         {
             if (n < 1)
             {
                 // The sliding loop runs to len - n whatever n is, so the break never fires here.
-                SlicedPaddedWordNgrams(w, n, ref sink);
+                SlicedPaddedWordNgrams(w, offsets, len, n, ref sink);
                 continue;
             }
 
-            sink.Add(w.Slice(0, Math.Min(n, len)));
+            sink.Add(Gram(w, offsets, 0, Math.Min(n, len)));
             int offset = 0;
             while (offset + n < len)
             {
                 offset++;
-                sink.Add(w.Slice(offset, n));
+                sink.Add(Gram(w, offsets, offset, n));
             }
             if (offset == 0)
             {
@@ -378,14 +429,13 @@ internal sealed class TextAnalyzer
     }
 
     /// <summary>The padded-word n-grams of a length below <c>1</c>, which scikit-learn takes as Python slices.</summary>
-    private static void SlicedPaddedWordNgrams<TSink>(ReadOnlySpan<char> w, int n, ref TSink sink)
+    private static void SlicedPaddedWordNgrams<TSink>(ReadOnlySpan<char> w, int[] bounds, int len, int n, ref TSink sink)
         where TSink : struct, ITermSink
     {
-        int len = w.Length;
         for (int offset = 0; offset + n <= len; offset++)
         {
             (int start, int taken) = PythonSlice(offset, n, len);
-            sink.Add(w.Slice(start, taken));
+            sink.Add(Gram(w, bounds, start, taken));
         }
     }
 

@@ -960,7 +960,12 @@ CORPUS_ACCENTS = ["Café crème", "Cafe creme", "Élève à l'école", "eleve a 
 # #1198: Devanagari vowel signs are marks of combining class 0 and stay; a virama and an acute go.
 CORPUS_MARKS = ["दुनिया नमस्ते", "cafe\u0301 \u1e9b\u0323", "\U0001d167x \u0e01\u0e34"]
 CORPUS_WHITESPACE = ["a\tb c", "x\n\ny  z\r\n", "p\x1cq\x1c\x1dr", "u\u2003v\u00a0\u00a0w"]
+# #1263, #1264: an astral character is one character of a gram, and the vocabulary sorts by code
+# point, so 𠮟 (U+20B9F) follows the halfwidth ｶ (U+FF76) its leading surrogate sorts below.
+CORPUS_ASTRAL = ["a\U0001F600", "\U0001F600x \uff76\uff80\uff76\uff85 \U00020B9F\u308b",
+                 "\U00020B9F\u308b \uff76\uff80\uff76\uff85 \uff80 \U0001F600\U0001F600"]
 CHAR_WB = "char_wb"  # scikit-learn's analyzer name, spelled once (S1192).
+TOKEN_PATTERN = "token_pattern"
 
 
 def _build_count_vectorizer(cfg: dict):
@@ -973,6 +978,7 @@ def _build_count_vectorizer(cfg: dict):
         lowercase=cfg.get("lowercase", True),
         strip_accents="unicode" if cfg.get(STRIP_ACCENTS, False) else None,
         stop_words=cfg.get("stop_words", None),
+        token_pattern=cfg.get(TOKEN_PATTERN, r"(?u)\b\w\w+\b"),
     )
 
 
@@ -1002,6 +1008,16 @@ COUNT_CASES = [
     {"config": {"analyzer": CHAR_WB, "ngram_min": 0, "ngram_max": 2}, "docs": CORPUS_A[:3]},
     {"config": {"analyzer": CHAR_WB, "ngram_min": -1, "ngram_max": 1}, "docs": CORPUS_A[:3]},
     {"config": {"analyzer": "char", STRIP_ACCENTS: True}, "docs": CORPUS_MARKS},
+    {"config": {}, "docs": CORPUS_ASTRAL},
+    {"config": {"analyzer": "char", "ngram_min": 1, "ngram_max": 2}, "docs": CORPUS_ASTRAL},
+    {"config": {"analyzer": "char", "ngram_min": 0, "ngram_max": 2}, "docs": CORPUS_ASTRAL},
+    {"config": {"analyzer": CHAR_WB, "ngram_min": 1, "ngram_max": 3}, "docs": CORPUS_ASTRAL},
+    {"config": {"analyzer": CHAR_WB, "ngram_min": -1, "ngram_max": 1}, "docs": CORPUS_ASTRAL},
+    # #1262: re.findall returns the one group's text, and the empty string where it took no part.
+    {"config": {TOKEN_PATTERN: r"(\w+)ing\b"}, "docs": ["running and jumping", "singing ring"]},
+    {"config": {TOKEN_PATTERN: r"(?:\w+)-(\w+)", "ngram_min": 1, "ngram_max": 2},
+     "docs": ["pre-trained self-made", "well-known"]},
+    {"config": {TOKEN_PATTERN: r"(a)?b\w*"}, "docs": ["ab b bc", "abba"]},
 ]
 
 
@@ -1090,6 +1106,8 @@ def generate_hashingvectorizer() -> dict:
         {"n_features": 4, "binary": True, "norm": None},
         {"n_features": 4, "binary": True, "alternate_sign": False, "norm": None},
         {"n_features": 16, "binary": True, "norm": "l2"},
+        # #1263: an astral character hashes as its four UTF-8 bytes, not as two U+FFFD.
+        {"n_features": 32, "analyzer": "char", "ngram_min": 1, "ngram_max": 2, "norm": None},
     ]
     cases = []
     for idx, cfg in enumerate(configs):
@@ -1099,9 +1117,11 @@ def generate_hashingvectorizer() -> dict:
             norm=cfg.get("norm", "l2"),
             ngram_range=(cfg.get("ngram_min", 1), cfg.get("ngram_max", 1)),
             binary=cfg.get("binary", False),
+            analyzer=cfg.get("analyzer", "word"),
         )
-        x = hv.fit_transform(CORPUS_A)
-        cases.append({"id": idx, "config": cfg, "docs": CORPUS_A, "matrix": x.toarray().tolist()})
+        docs = CORPUS_A if cfg.get("analyzer", "word") == "word" else CORPUS_ASTRAL
+        x = hv.fit_transform(docs)
+        cases.append({"id": idx, "config": cfg, "docs": docs, "matrix": x.toarray().tolist()})
     return {
         "metadata": {
             "algorithm": "HashingVectorizer",

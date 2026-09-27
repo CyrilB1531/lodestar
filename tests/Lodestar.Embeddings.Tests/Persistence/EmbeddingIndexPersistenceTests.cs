@@ -51,6 +51,22 @@ public sealed class EmbeddingIndexPersistenceTests
     }
 
     [Fact]
+    public void An_id_holding_a_lone_surrogate_reads_back_unchanged()
+    {
+        // The writer alone turns the surrogate into U+FFFD, which made these two ids one.
+        string lone = "a" + (char)0xD800;
+        string replaced = "a" + (char)0xFFFD;
+        var index = new EmbeddingIndex(dimension: 3);
+        index.Add([1f, 0f, 0f], lone);
+        index.Add([0f, 1f, 0f], replaced);
+
+        EmbeddingIndex reloaded = RoundTrip(index);
+
+        Assert.Equal(lone, reloaded.GetId(0));
+        Assert.Equal(replaced, reloaded.GetId(1));
+    }
+
+    [Fact]
     public void An_empty_index_still_writes_a_complete_artifact()
     {
         string json = SaveToString(new EmbeddingIndex(dimension: 3));

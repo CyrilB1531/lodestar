@@ -1,5 +1,5 @@
 using System.Buffers;
-using System.Text;
+using System.Runtime.CompilerServices;
 using Lodestar.Text.Internal;
 
 namespace Lodestar.Text.Similarity;
@@ -25,36 +25,36 @@ internal static class QgramCounts
 
         if (element == TextElement.Utf16Unit)
         {
-            return CountSorted(a, b, qval);
-        }
-
-        Dictionary<string, int> ca = Build(a, qval, element);
-        Dictionary<string, int> cb = Build(b, qval, element);
-
-        int sizeA = 0;
-        foreach (int v in ca.Values)
-        {
-            sizeA += v;
-        }
-        int sizeB = 0;
-        foreach (int v in cb.Values)
-        {
-            sizeB += v;
-        }
-
-        int intersection = 0;
-        // Iterate the smaller dictionary for the shared grams.
-        Dictionary<string, int> small = ca.Count <= cb.Count ? ca : cb;
-        Dictionary<string, int> large = ReferenceEquals(small, ca) ? cb : ca;
-        foreach (KeyValuePair<string, int> kv in small)
-        {
-            if (large.TryGetValue(kv.Key, out int other))
+            char[] unitsA = ArrayPool<char>.Shared.Rent(Math.Max(1, a.Length));
+            char[] unitsB = ArrayPool<char>.Shared.Rent(Math.Max(1, b.Length));
+            try
             {
-                intersection += Math.Min(kv.Value, other);
+                a.CopyTo(unitsA);
+                b.CopyTo(unitsB);
+                return CountSorted(unitsA, a.Length, unitsB, b.Length, qval);
+            }
+            finally
+            {
+                ArrayPool<char>.Shared.Return(unitsA);
+                ArrayPool<char>.Shared.Return(unitsB);
             }
         }
 
-        return (intersection, sizeA, sizeB);
+        // A code point is an int, so a lone surrogate is a gram element like any other rather than
+        // a string char.ConvertFromUtf32 refuses to build (#1261).
+        int[] pointsA = ArrayPool<int>.Shared.Rent(Math.Max(1, a.Length));
+        int[] pointsB = ArrayPool<int>.Shared.Rent(Math.Max(1, b.Length));
+        try
+        {
+            int countA = CodePoints.Decode(a, pointsA);
+            int countB = CodePoints.Decode(b, pointsB);
+            return CountSorted(pointsA, countA, pointsB, countB, qval);
+        }
+        finally
+        {
+            ArrayPool<int>.Shared.Return(pointsA);
+            ArrayPool<int>.Shared.Return(pointsB);
+        }
     }
 
     /// <summary>
@@ -74,25 +74,26 @@ internal static class QgramCounts
     /// <remarks>
     /// A gram is its start index; sorting the starts by the gram's characters puts equal grams in runs,
     /// and walking both sorted lists together takes the smaller run of every gram both hold. Ordinal
-    /// character order is the equality the string keys used, and the counts are integers.
+    /// element order is the equality the string keys used, and the counts are integers. The elements
+    /// are UTF-16 units or code points, in the first <paramref name="lengthA"/> and
+    /// <paramref name="lengthB"/> items of the caller's buffers.
     /// </remarks>
-    private static (int Intersection, int SizeA, int SizeB) CountSorted(ReadOnlySpan<char> a, ReadOnlySpan<char> b, int qval)
+    // Kept out of Compute: inlined there, a trigram count over UTF-16 units ran 20% slower.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static (int Intersection, int SizeA, int SizeB) CountSorted<T>(T[] textA, int lengthA, T[] textB, int lengthB, int qval)
+        where T : IComparable<T>, IEquatable<T>
     {
-        int sizeA = Math.Max(0, a.Length - qval + 1);
-        int sizeB = Math.Max(0, b.Length - qval + 1);
+        int sizeA = Math.Max(0, lengthA - qval + 1);
+        int sizeB = Math.Max(0, lengthB - qval + 1);
         if (sizeA == 0 || sizeB == 0)
         {
             return (0, sizeA, sizeB);
         }
 
-        char[] textA = ArrayPool<char>.Shared.Rent(a.Length);
-        char[] textB = ArrayPool<char>.Shared.Rent(b.Length);
         int[] startsA = ArrayPool<int>.Shared.Rent(sizeA);
         int[] startsB = ArrayPool<int>.Shared.Rent(sizeB);
         try
         {
-            a.CopyTo(textA);
-            b.CopyTo(textB);
             SortStarts(textA, startsA, sizeA, qval);
             SortStarts(textB, startsB, sizeB, qval);
 
@@ -124,27 +125,27 @@ internal static class QgramCounts
         }
         finally
         {
-            ArrayPool<char>.Shared.Return(textA);
-            ArrayPool<char>.Shared.Return(textB);
             ArrayPool<int>.Shared.Return(startsA);
             ArrayPool<int>.Shared.Return(startsB);
         }
     }
 
-    private static void SortStarts(char[] text, int[] starts, int count, int qval)
+    private static void SortStarts<T>(T[] text, int[] starts, int count, int qval)
+        where T : IComparable<T>
     {
         for (int i = 0; i < count; i++)
         {
             starts[i] = i;
         }
 
-        Array.Sort(starts, 0, count, new GramOrder(text, qval));
+        Array.Sort(starts, 0, count, new GramOrder<T>(text, qval));
     }
 
-    private static int RunLength(char[] text, int[] starts, int at, int count, int qval)
+    private static int RunLength<T>(T[] text, int[] starts, int at, int count, int qval)
+        where T : IEquatable<T>
     {
         int end = at + 1;
-        ReadOnlySpan<char> gram = text.AsSpan(starts[at], qval);
+        ReadOnlySpan<T> gram = text.AsSpan(starts[at], qval);
         while (end < count && text.AsSpan(starts[end], qval).SequenceEqual(gram))
         {
             end++;
@@ -153,51 +154,11 @@ internal static class QgramCounts
         return end - at;
     }
 
-    /// <summary>Orders gram start positions by the grams' characters, ordinally.</summary>
-    private sealed class GramOrder(char[] text, int qval) : IComparer<int>
+    /// <summary>Orders gram start positions by the grams' elements.</summary>
+    private sealed class GramOrder<T>(T[] text, int qval) : IComparer<int>
+        where T : IComparable<T>
     {
         public int Compare(int x, int y) => text.AsSpan(x, qval).SequenceCompareTo(text.AsSpan(y, qval));
-    }
-
-    private static Dictionary<string, int> Build(ReadOnlySpan<char> s, int qval, TextElement element)
-    {
-        var counts = new Dictionary<string, int>();
-
-        if (element == TextElement.CodePoint)
-        {
-            int[] buf = ArrayPool<int>.Shared.Rent(Math.Max(1, s.Length));
-            try
-            {
-                int n = CodePoints.Decode(s, buf);
-                for (int i = 0; i + qval <= n; i++)
-                {
-                    var sb = new StringBuilder(qval * 2);
-                    for (int k = 0; k < qval; k++)
-                    {
-                        sb.Append(char.ConvertFromUtf32(buf[i + k]));
-                    }
-                    Add(counts, sb.ToString());
-                }
-            }
-            finally
-            {
-                ArrayPool<int>.Shared.Return(buf);
-            }
-        }
-        else
-        {
-            for (int i = 0; i + qval <= s.Length; i++)
-            {
-                Add(counts, s.Slice(i, qval).ToString());
-            }
-        }
-
-        return counts;
-    }
-
-    private static void Add(Dictionary<string, int> counts, string gram)
-    {
-        counts[gram] = counts.TryGetValue(gram, out int c) ? c + 1 : 1;
     }
 }
 

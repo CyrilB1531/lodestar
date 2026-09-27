@@ -8,7 +8,7 @@ The term each column stands for, in column order.
 public IReadOnlyList<string> GetFeatureNames()
 ```
 
-**Returns** — `IReadOnlyList<string>` of length `ColumnCount`, sorted, where index `i` is the term
+**Returns** — `IReadOnlyList<string>` of length `ColumnCount`, sorted by code point, where index `i` is the term
 counted by column `i`.
 
 **Exceptions** — `InvalidOperationException` when nothing has been fitted yet.

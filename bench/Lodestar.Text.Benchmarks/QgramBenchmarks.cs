@@ -14,6 +14,10 @@ public class QgramBenchmarks
     [Params(1, 3)]
     public int Q { get; set; }
 
+    /// <summary>Gram element: UTF-16 unit or code point.</summary>
+    [Params(TextElement.Utf16Unit, TextElement.CodePoint)]
+    public TextElement Element { get; set; }
+
     [Benchmark]
-    public double JaccardSimilarity() => Jaccard.Similarity(A, B, Q);
+    public double JaccardSimilarity() => Jaccard.Similarity(A, B, Q, Element);
 }

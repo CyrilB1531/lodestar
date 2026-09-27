@@ -79,6 +79,14 @@ public sealed class HashingVectorizerOracleTests
         {
             Count = new CountVectorizerOptions
             {
+                Analyzer = config.TryGetProperty("analyzer", out JsonElement an)
+                    ? an.GetString() switch
+                    {
+                        "char" => AnalyzerKind.Char,
+                        "char_wb" => AnalyzerKind.CharWordBoundary,
+                        _ => AnalyzerKind.Word,
+                    }
+                    : AnalyzerKind.Word,
                 NgramRange = (ngramMin, ngramMax),
                 Binary = config.TryGetProperty("binary", out JsonElement bin) && bin.GetBoolean(),
             },

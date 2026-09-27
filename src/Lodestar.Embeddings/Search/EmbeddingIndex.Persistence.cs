@@ -106,7 +106,7 @@ public sealed partial class EmbeddingIndex
                 }
                 else
                 {
-                    writer.WriteStringValue(id);
+                    JsonArtifact.WriteText(writer, id);
                 }
             }
             writer.WriteEndArray();
@@ -332,7 +332,7 @@ public sealed partial class EmbeddingIndex
         int read = 0;
         while (reader.Read() && reader.TokenType is JsonTokenType.String or JsonTokenType.Null)
         {
-            string? id = reader.TokenType == JsonTokenType.Null ? null : reader.GetString();
+            string? id = reader.TokenType == JsonTokenType.Null ? null : JsonArtifact.GetText(ref reader);
             if (id is not null)
             {
                 limits.CheckTokenLength(id.Length);

@@ -48,10 +48,10 @@ internal sealed class PhraseTokenizer
         var current = new List<string>();
         int previousEnd = -1;
 
-        foreach ((int index, int length) in _token.Matches(lowered))
+        foreach ((int index, int length, int matchStart, int matchEnd) in _token.MatchesWithSpans(lowered))
         {
             string value = lowered.Substring(index, length);
-            bool gap = previousEnd >= 0 && HasNonSpace(lowered, previousEnd, index);
+            bool gap = previousEnd >= 0 && HasNonSpace(lowered, previousEnd, matchStart);
             if (gap || _stopWords.Contains(value))
             {
                 Flush(runs, current);
@@ -61,7 +61,7 @@ internal sealed class PhraseTokenizer
             {
                 current.Add(value);
             }
-            previousEnd = index + length;
+            previousEnd = matchEnd;
         }
 
         Flush(runs, current);
