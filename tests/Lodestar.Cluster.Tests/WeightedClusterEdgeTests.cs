@@ -10,12 +10,12 @@ public sealed class WeightedClusterEdgeTests
     [Fact]
     public void Weights_that_are_not_one_finite_value_per_row_are_refused()
     {
-        Assert.Equal("sampleWeights", Assert.Throws<ArgumentException>(
-            () => KMeans.Fit(Line, [1.0, 1.0], 1, 2)).ParamName);
-        Assert.Equal("sampleWeights", Assert.Throws<ArgumentException>(
-            () => KMeans.Fit(Line, [1.0, 1.0, double.NaN, 1.0, 1.0, 1.0], 1, 2)).ParamName);
-        Assert.Equal("sampleWeights", Assert.Throws<ArgumentException>(
-            () => KMeans.Fit(Line, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 1, 2)).ParamName);
+        Assert.Equal("sampleWeight", Assert.Throws<ArgumentException>(
+            () => KMeans.Fit(Line, 1, 2, [1.0, 1.0])).ParamName);
+        Assert.Equal("sampleWeight", Assert.Throws<ArgumentException>(
+            () => KMeans.Fit(Line, 1, 2, [1.0, 1.0, double.NaN, 1.0, 1.0, 1.0])).ParamName);
+        Assert.Equal("sampleWeight", Assert.Throws<ArgumentException>(
+            () => KMeans.Fit(Line, 1, 2, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])).ParamName);
     }
 
     /// <summary>The shape is judged before the weights, so a bad shape blames the argument the unweighted fit blames.</summary>
@@ -23,9 +23,9 @@ public sealed class WeightedClusterEdgeTests
     public void A_bad_shape_is_refused_before_the_weights_are_read()
     {
         Assert.Equal("featureCount", Assert.Throws<ArgumentOutOfRangeException>(
-            () => KMeans.Fit(Line, [1.0], 0, 2)).ParamName);
+            () => KMeans.Fit(Line, 0, 2, [1.0])).ParamName);
         Assert.Equal("samples", Assert.Throws<ArgumentException>(
-            () => KMeans.Fit([1.0, 2.0, 3.0], [1.0], 2, 1)).ParamName);
+            () => KMeans.Fit([1.0, 2.0, 3.0], 2, 1, [1.0])).ParamName);
     }
 
     /// <summary>A weight of one on every row is no weighting, so the two overloads agree to the bit.</summary>
@@ -35,7 +35,7 @@ public sealed class WeightedClusterEdgeTests
         var options = new KMeansOptions { InitialCentres = [0.5, 10.5] };
 
         KMeans plain = KMeans.Fit(Line, 1, 2, options);
-        KMeans weighted = KMeans.Fit(Line, [1.0, 1.0, 1.0, 1.0, 1.0, 1.0], 1, 2, options);
+        KMeans weighted = KMeans.Fit(Line, 1, 2, [1.0, 1.0, 1.0, 1.0, 1.0, 1.0], options);
 
         Assert.Equal(plain.Centres.ToArray(), weighted.Centres.ToArray());
         Assert.Equal(plain.Labels.ToArray(), weighted.Labels.ToArray());
@@ -48,7 +48,7 @@ public sealed class WeightedClusterEdgeTests
     {
         var options = new KMeansOptions { InitialCentres = [0.5, 10.5] };
 
-        KMeans weighted = KMeans.Fit(Line, [2.0, 1.0, 1.0, 1.0, 1.0, 1.0], 1, 2, options);
+        KMeans weighted = KMeans.Fit(Line, 1, 2, [2.0, 1.0, 1.0, 1.0, 1.0, 1.0], options);
         KMeans duplicated = KMeans.Fit([0.0, 0.0, 1.0, 2.0, 10.0, 11.0, 12.0], 1, 2, options);
 
         Assert.Equal(duplicated.Centres[0], weighted.Centres[0], 12);
@@ -98,11 +98,11 @@ public sealed class WeightedClusterEdgeTests
     [Fact]
     public void Dbscan_weights_that_are_not_one_finite_value_per_row_are_refused()
     {
-        Assert.Equal("sampleWeights", Assert.Throws<ArgumentException>(
+        Assert.Equal("sampleWeight", Assert.Throws<ArgumentException>(
             () => Dbscan.Fit(Line, 1, 1.5, 2, [1.0])).ParamName);
-        Assert.Equal("sampleWeights", Assert.Throws<ArgumentException>(
+        Assert.Equal("sampleWeight", Assert.Throws<ArgumentException>(
             () => Dbscan.Fit(Line, 1, 1.5, 2, [1.0, 1.0, 1.0, double.PositiveInfinity, 1.0, 1.0])).ParamName);
-        Assert.Equal("sampleWeights", Assert.Throws<ArgumentException>(
+        Assert.Equal("sampleWeight", Assert.Throws<ArgumentException>(
             () => Dbscan.FitPrecomputed([0.0, 1.0, 1.0, 0.0], 2, 1.5, 2, [1.0])).ParamName);
     }
 

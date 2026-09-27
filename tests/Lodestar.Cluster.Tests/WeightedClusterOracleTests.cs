@@ -62,7 +62,7 @@ public sealed class WeightedClusterOracleTests
         JsonElement weights = c.GetProperty("weights");
         KMeans model = weights.ValueKind == JsonValueKind.Null
             ? KMeans.Fit(samples, features, clusters, options)
-            : KMeans.Fit(samples, Doubles(weights), features, clusters, options);
+            : KMeans.Fit(samples, features, clusters, Doubles(weights), options);
 
         double[] centres = Doubles(c.GetProperty("centres"));
         for (int i = 0; i < centres.Length; i++)

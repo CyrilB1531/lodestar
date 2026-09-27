@@ -22,7 +22,7 @@ internal static class KMeansSample
         Console.WriteLine($"  unseen rows      : [{string.Join(", ", model.Predict([0.5, 0.5, 9.5, 10.5]))}]");
 
         // One weight per row: the middle point counts three times, and alone in its cluster it moves no centre.
-        KMeans weighted = KMeans.Fit(samples, [1.0, 1.0, 1.0, 1.0, 3.0], featureCount: 2, clusterCount: 3,
+        KMeans weighted = KMeans.Fit(samples, featureCount: 2, clusterCount: 3, [1.0, 1.0, 1.0, 1.0, 3.0],
             new KMeansOptions { InitialCentres = [0.0, 0.0, 10.0, 10.0, 5.0, 5.0] });
         Console.WriteLine($"  weighted inertia : {Inv.F4(weighted.Inertia)}");
         Console.WriteLine();

@@ -11,7 +11,7 @@ public static Dbscan Fit(ReadOnlySpan<double> samples, int featureCount, double 
 <!-- docs-declaration -->
 
 ```csharp
-public static Dbscan Fit(ReadOnlySpan<double> samples, int featureCount, double epsilon, int minimumSamples, ReadOnlySpan<double> sampleWeights)
+public static Dbscan Fit(ReadOnlySpan<double> samples, int featureCount, double epsilon, int minimumSamples, ReadOnlySpan<double> sampleWeight)
 ```
 
 The second overload weighs each sample, scikit-learn's `fit(X, sample_weight=w)`: a sample is core
@@ -20,7 +20,7 @@ when the weights in its neighbourhood, its own included, sum to at least `minimu
 **Parameters** — `samples` is the sample matrix, row-major: `featureCount` values per row.
 `featureCount` is how many values each row carries. `epsilon` is the inclusive radius of a
 neighbourhood, scikit-learn's `eps`. `minimumSamples` is how many samples a neighbourhood needs to
-be dense, the sample itself counted, or the weight it needs when `sampleWeights` is given. `sampleWeights` is one finite weight per
+be dense, the sample itself counted, or the weight it needs when `sampleWeight` is given. `sampleWeight` is one finite weight per
 sample; zero and negative ones are accepted, a negative one keeping its neighbours from being core,
 as the reference documents.
 
@@ -28,7 +28,7 @@ as the reference documents.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` or `minimumSamples` is not
 positive, or `epsilon` is not positive or not finite. `ArgumentException` when `samples` holds no
-row, a partial one, or a `NaN` or infinite value, or when `sampleWeights` is not one finite value
+row, a partial one, or a `NaN` or infinite value, or when `sampleWeight` is not one finite value
 per row.
 
 **Example** — the same three points at two radii, where the whole boundary rule is visible.

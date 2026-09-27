@@ -12,6 +12,12 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Changed
 
 - `KMeans` assigns one centre per vector lane, and `Dbscan.Fit` scans only the rows within reach along the widest feature. ([#1163](https://github.com/CyrilB1531/lodestar/issues/1163))
+- The weighted overloads take `sampleWeight`, and `KMeans.Fit` takes it after `clusterCount`, as every other package names and places it. ([#1208](https://github.com/CyrilB1531/lodestar/issues/1208))
+
+### Fixed
+
+- `Dbscan.FitPrecomputed` refuses a negative distance, as scikit-learn refuses it. ([#1207](https://github.com/CyrilB1531/lodestar/issues/1207))
+- `KMeans` runs Lloyd on the centred samples, as scikit-learn does, so `Iterations` matches `n_iter_` where a zero shift turned on rounding. ([#1208](https://github.com/CyrilB1531/lodestar/issues/1208))
 
 ## [0.2.0] — 2026-09-24
 

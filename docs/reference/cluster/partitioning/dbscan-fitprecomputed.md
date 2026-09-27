@@ -11,7 +11,7 @@ public static Dbscan FitPrecomputed(ReadOnlySpan<double> distances, int sampleCo
 <!-- docs-declaration -->
 
 ```csharp
-public static Dbscan FitPrecomputed(ReadOnlySpan<double> distances, int sampleCount, double epsilon, int minimumSamples, ReadOnlySpan<double> sampleWeights)
+public static Dbscan FitPrecomputed(ReadOnlySpan<double> distances, int sampleCount, double epsilon, int minimumSamples, ReadOnlySpan<double> sampleWeight)
 ```
 
 The second overload weighs each sample, scikit-learn's `fit(X, sample_weight=w)`: a sample is core
@@ -19,7 +19,7 @@ when the weights in its neighbourhood, its own included, sum to at least `minimu
 
 **Parameters** — `distances` is the pairwise distances, row-major and square. `sampleCount` is the
 side of that matrix. `epsilon` is the inclusive radius of a neighbourhood, scikit-learn's `eps`.
-`minimumSamples` is how many samples a neighbourhood needs to be dense, the sample itself counted, or the weight it needs when `sampleWeights` is given. `sampleWeights` is one finite weight per
+`minimumSamples` is how many samples a neighbourhood needs to be dense, the sample itself counted, or the weight it needs when `sampleWeight` is given. `sampleWeight` is one finite weight per
 sample; zero and negative ones are accepted, a negative one keeping its neighbours from being core,
 as the reference documents.
 
@@ -27,9 +27,9 @@ as the reference documents.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `sampleCount` or `minimumSamples` is not
 positive, or `epsilon` is not positive or not finite. `ArgumentException` when `distances` is not
-`sampleCount` squared values, or holds a `NaN` or infinite one — an infinite distance is refused
-too, as the reference refuses it, rather than read as unreachable, or when `sampleWeights` is not
-one finite value per sample.
+`sampleCount` squared values, or holds a negative, `NaN` or infinite one — a negative distance is
+refused as the reference refuses it, rather than counted within every radius, and an infinite one
+rather than read as unreachable — or when `sampleWeight` is not one finite value per sample.
 
 **Example** — three samples, given as the distances between them.
 
