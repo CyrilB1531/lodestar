@@ -95,8 +95,8 @@ statistic was asserted equal before anything was timed; the one disagreement is 
 | `Accord_Levene` | 100 | 2.365 μs | 5,480 B |
 | `Lodestar_Bartlett` | 100 | 374.9 ns | 80 B |
 | `Accord_Bartlett` | 100 | 723.4 ns | 168 B |
-| `Lodestar_Binomial` | 100 | 765.4 ns | 48 B |
-| `Accord_Binomial` | 100 | 2.586 μs | 2,216 B |
+| `Lodestar_Binomial` | 100 | 451.1 ns | 0 B |
+| `Accord_Binomial` | 100 | 2.649 μs | 2,216 B |
 | `Lodestar_AndersonDarling` | 100 | 4.777 μs | 1,000 B |
 | `Accord_AndersonDarling` | 100 | 3.659 μs | 1,096 B |
 | `Lodestar_ClopperPearson` | 100 | 3.008 μs | 48 B |
@@ -104,14 +104,16 @@ statistic was asserted equal before anything was timed; the one disagreement is 
 | `Accord_Levene` | 10,000 | 892.4 μs | 480,681 B |
 | `Lodestar_Bartlett` | 10,000 | 36.77 μs | 80 B |
 | `Accord_Bartlett` | 10,000 | 73.32 μs | 168 B |
-| `Lodestar_Binomial` | 10,000 | 1.173 μs | 48 B |
-| `Accord_Binomial` | 10,000 | 522.2 μs | 200,217 B |
+| `Lodestar_Binomial` | 10,000 | 570.7 ns | 0 B |
+| `Accord_Binomial` | 10,000 | 529.5 μs | 200,217 B |
 | `Lodestar_AndersonDarling` | 10,000 | 845.1 μs | 80,201 B |
 | `Accord_AndersonDarling` | 10,000 | refused | — |
 | `Lodestar_ClopperPearson` | 10,000 | 22.00 μs | 48 B |
 
-**[`Binomial.Test`](../../docs/reference/stats/tests/binomial-test.md) is 3.4× ahead at a hundred trials
-and 445× at ten thousand, allocating 48 bytes against 200 kilobytes.** That is a difference in
+**[`Binomial.Test`](../../docs/reference/stats/tests/binomial-test.md) is 5.9× ahead at a hundred trials
+and 928× at ten thousand, allocating nothing against 200 kilobytes.** Its four rows are from a
+later run on the same machine, 2026-09-27, after the saddle-point mass of
+[#1247](https://github.com/CyrilB1531/lodestar/issues/1247). That is a difference in
 what is computed, not in how well: `Accord` sums the binomial mass term by term, which is `O(n)`
 and allocates an array of it, where this evaluates the regularized incomplete beta that sum *is*,
 in constant time and constant space. The gap therefore widens with every further order of

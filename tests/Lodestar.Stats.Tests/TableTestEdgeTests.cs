@@ -13,6 +13,17 @@ public sealed class TableTestEdgeTests
             () => ChiSquared.GoodnessOfFit([10.0, 10.0], [5.0, 6.0]));
     }
 
+    // scipy's chisquare allows sqrt(eps) = 1.49e-8 relative to the smaller total (#1248).
+    [Fact]
+    public void GoodnessOfFit_allows_the_totals_scipy_allows()
+    {
+        TestResult inside = ChiSquared.GoodnessOfFit([100.0, 100.0], [100.0, 100.0 + 2.8e-6]);
+
+        Assert.True(inside.PValue > 0.99);
+        Assert.Throws<ArgumentException>(
+            () => ChiSquared.GoodnessOfFit([100.0, 100.0], [100.0, 100.0 + 3.2e-6]));
+    }
+
     [Fact]
     public void GoodnessOfFit_refuses_a_zero_expectation()
     {

@@ -55,7 +55,11 @@ public static class KruskalWallis
         h /= tieCorrection;
         double dof = groups.Length - 1;
 
-        return new TestResult(h, Gamma.RegularizedQ(dof / 2.0, h / 2.0));
+        // Rounding can land H a hair below zero on a perfectly balanced split (#1245); scipy's
+        // chdtrc answers NaN there, where the regularized Q would throw.
+        double pValue = h < 0.0 ? double.NaN : Gamma.RegularizedQ(dof / 2.0, h / 2.0);
+
+        return new TestResult(h, pValue);
     }
 
     /// <summary>The same test, with a policy for the <c>NaN</c> values in the groups.</summary>

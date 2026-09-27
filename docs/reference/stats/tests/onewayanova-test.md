@@ -42,9 +42,11 @@ double f = Math.Round(result.Statistic, 4);   // => 32.6667
 double p = Math.Round(result.PValue, 8);      // => 1.396E-05
 ```
 
-**Remarks — a fully degenerate input answers `NaN`, not an exception.** Two groups that are each
-internally constant, and constant at the *same* value, drive both the between- and the
-within-group sums of squares to exactly zero:
+**Remarks — a fully degenerate input answers `NaN`, not an exception.** Groups that are each
+internally constant, and constant at the *same* value, leave no variation to compare. Constancy is
+read off the values, as scipy's `f_oneway` does, not off the sums of squares: three copies of
+`0.1` average to `0.10000000000000002`, which leaves the within-group sum at `1e-33` rather than
+zero.
 
 ```csharp
 using Lodestar.Stats;
@@ -52,13 +54,26 @@ using Lodestar.Stats;
 TestResult degenerate = OneWayAnova.Test([5.0, 5.0], [5.0, 5.0]);
 
 bool isNaN = double.IsNaN(degenerate.Statistic);   // => True
+bool alsoNaN = double.IsNaN(OneWayAnova.Test([0.1, 0.1, 0.1], [0.1, 0.1, 0.1]).Statistic);   // => True
 ```
 
-Zero divided by zero has no value, and scipy's own `f_oneway` returns the same `NaN` on the same
-input — propagating it is the honest answer, not a guard this package chose to skip. Compare
+No variation within and none between has no ratio, and scipy's own `f_oneway` returns the same
+`NaN` on the same input — the honest answer, not a guard this package chose to skip. Compare
 [`KruskalWallis.Test`](kruskalwallis-test.md), which *throws* on the analogous all-tied input: an
 ANOVA on constants is a well-formed question with an undefined answer, where the rank-based
 statistic's inputs there are provably meaningless rather than merely indeterminate.
+
+Groups each constant at *different* values are a perfect separation: the statistic is
+`PositiveInfinity` and the p-value an exact `0`, as scipy's.
+
+```csharp
+using Lodestar.Stats;
+
+TestResult separated = OneWayAnova.Test([0.1, 0.1, 0.1], [0.2, 0.2, 0.2]);
+
+bool infinite = double.IsPositiveInfinity(separated.Statistic);   // => True
+double p = separated.PValue;                                      // => 0
+```
 
 **Applies to** — net10.0, netstandard2.0.
 

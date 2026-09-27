@@ -30,9 +30,10 @@ public sealed class GroupTestOracleTests
                 ? OneWayAnova.Test(groups)
                 : KruskalWallis.Test(groups);
 
+            // Number, not GetDouble: constant groups freeze an infinite or NaN statistic (#1244).
             StatsOracleAsserts.Statistic(
-                c.GetProperty("statistic").GetDouble(), result.Statistic, name);
-            StatsOracleAsserts.PValue(c.GetProperty("pvalue").GetDouble(), result.PValue, name);
+                StatsCorpus.Number(c.GetProperty("statistic")), result.Statistic, name);
+            StatsOracleAsserts.PValue(StatsCorpus.Number(c.GetProperty("pvalue")), result.PValue, name);
             replayed++;
         }
 

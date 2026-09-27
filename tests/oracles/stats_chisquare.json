@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "chisquare",
-  "count": 14
+  "count": 15
  },
  "cases": [
   {
@@ -71,6 +71,32 @@
    "expected_input": [],
    "statistic": 470.86956521739137,
    "pvalue": 9.801281007923163e-102
+  },
+  {
+   "name": "totals apart by 1.2e-8, which scipy accepts | chisquare",
+   "call": "chisquare",
+   "args": {
+    "f_exp": [
+     10.0,
+     20.0,
+     30.0,
+     40.0000012
+    ]
+   },
+   "observed": [
+    10.0,
+    20.0,
+    30.0,
+    40.0
+   ],
+   "expected_input": [
+    10.0,
+    20.0,
+    30.0,
+    40.0000012
+   ],
+   "statistic": 3.599999890874776e-14,
+   "pvalue": 1.0
   },
   {
    "name": "2x2, Yates applies | correction=True",

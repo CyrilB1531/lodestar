@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "fisher",
-  "count": 15
+  "count": 18
  },
  "cases": [
   {
@@ -290,6 +290,63 @@
    ],
    "statistic": 10.5,
    "pvalue": 0.024172422005239336
+  },
+  {
+   "name": "a near tie that 1e-7 would count | two-sided",
+   "call": "fisher_exact",
+   "args": {
+    "alternative": "two-sided"
+   },
+   "table": [
+    [
+     20,
+     38
+    ],
+    [
+     40,
+     106
+    ]
+   ],
+   "statistic": 1.394736842105263,
+   "pvalue": 0.31361807548372905
+  },
+  {
+   "name": "a near tie that 1e-7 would count | less",
+   "call": "fisher_exact",
+   "args": {
+    "alternative": "less"
+   },
+   "table": [
+    [
+     20,
+     38
+    ],
+    [
+     40,
+     106
+    ]
+   ],
+   "statistic": 1.394736842105263,
+   "pvalue": 0.8788344597315392
+  },
+  {
+   "name": "a near tie that 1e-7 would count | greater",
+   "call": "fisher_exact",
+   "args": {
+    "alternative": "greater"
+   },
+   "table": [
+    [
+     20,
+     38
+    ],
+    [
+     40,
+     106
+    ]
+   ],
+   "statistic": 1.394736842105263,
+   "pvalue": 0.2019924341844145
   }
  ]
 }

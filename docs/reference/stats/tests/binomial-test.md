@@ -38,8 +38,10 @@ Seven of twenty is well inside what a fair coin produces; nothing here is eviden
 probabilities rather than a chi-squared approximation of one, so it stays right where the
 approximation is worst: few trials, or a probability near zero or one. The cost is that the
 two-sided p-value has to decide which outcomes on the far side are "at least as extreme", and two
-outcomes whose probabilities differ only in the last bits are counted as equally extreme — the
-same `1 + 1e-7` relative margin [`FisherExact.Test`](fisherexact-test.md) uses, and scipy's own.
+outcomes whose probabilities differ only in the last bits are counted as equally extreme — within
+the `1 + 1e-7` relative margin scipy's `binomtest` uses. Each probability is computed in Loader's
+saddle-point form rather than from three log-gammas, whose rounding past 1e8 trials would already
+exceed that margin.
 
 **The two-sided p-value is not twice the one-sided one.** The binomial is discrete and, unless
 `probability` is `0.5`, asymmetric; doubling a tail would be wrong in both directions at once.

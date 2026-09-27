@@ -14760,6 +14760,10 @@ def generate_stats_chisquare() -> dict:
          "expected": [20.0, 18.0, 16.0, 14.0, 12.0, 8.0]},
         {"name": "a far tail, p below 1e-15",
          OBSERVED: [200.0, 10.0, 10.0, 10.0], "expected": []},
+        # Totals 1.2e-8 apart, relative: inside scipy's sqrt(eps), outside the 1e-8 the
+        # C# side used to allow (#1248).
+        {"name": "totals apart by 1.2e-8, which scipy accepts",
+         OBSERVED: [10.0, 20.0, 30.0, 40.0], "expected": [10.0, 20.0, 30.0, 40.0 + 1.2e-6]},
     ]
     tables = [
         {"name": "2x2, Yates applies", TABLE: [[10.0, 20.0], [30.0, 40.0]]},
@@ -14822,6 +14826,9 @@ def generate_stats_fisher() -> dict:
         {"name": "two zero cells", TABLE: [[5, 0], [0, 5]]},
         {"name": "large counts", TABLE: [[100, 40], [35, 120]]},
         {"name": "an empty row is refused by the C# side", TABLE: [[7, 3], [2, 9]]},
+        # k = 14 is likelier than the observed table by a ratio of 1 + 8.4e-8: outside
+        # fisher_exact's 1e-14, inside binomtest's 1e-7, which the C# side used (#1243).
+        {"name": "a near tie that 1e-7 would count", TABLE: [[20, 38], [40, 106]]},
     ]
 
     cases: list[dict] = []
@@ -14931,13 +14938,21 @@ def generate_stats_anova() -> dict:
     """One-way ANOVA, against scipy.stats.f_oneway (#442)."""
     from scipy import stats as sps
 
+    # Constant groups whose mean is not the value itself: scipy decides them by equality,
+    # where the sums of squares are left at 1e-33 rather than zero (#1244).
+    constant = [
+        {"name": "two groups of the same repeated 0.1", GROUPS: [[0.1] * 3, [0.1] * 3]},
+        {"name": "unequal groups of the same repeated 0.7", GROUPS: [[0.7] * 3, [0.7] * 4]},
+        {"name": "groups each repeating their own value", GROUPS: [[0.1] * 3, [0.2] * 3]},
+    ]
+
     cases = []
-    for fx in _stats_groups():
+    for fx in _stats_groups() + constant:
         r = sps.f_oneway(*[np.array(g) for g in fx[GROUPS]])
         cases.append({
             "name": fx["name"], "call": F_ONEWAY, "args": {},
             GROUPS: fx[GROUPS],
-            STATISTIC: float(r.statistic), PVALUE: float(r.pvalue),
+            STATISTIC: _stats_number(float(r.statistic)), PVALUE: _stats_number(float(r.pvalue)),
         })
 
     nan_groups = [[1.0, 2.0, float("nan"), 4.0], [2.0, 3.0, 4.0, 5.0], [5.0, 6.0, 7.0, 8.0]]
@@ -14962,13 +14977,20 @@ def generate_stats_kruskal() -> dict:
     """Kruskal-Wallis, against scipy.stats.kruskal (#442)."""
     from scipy import stats as sps
 
+    # 1..148 split so both rank sums are equal: H rounds to -5.7e-14, and scipy's chdtrc
+    # answers NaN below zero where the regularized Q threw (#1245).
+    balanced = [x for i in range(1, 75, 2) for x in (float(i), float(149 - i))]
+    balanced_rest = [float(x) for x in range(1, 149) if float(x) not in balanced]
+    split = {"name": "a balanced split whose H rounds below zero",
+             GROUPS: [balanced, balanced_rest]}
+
     cases = []
-    for fx in _stats_groups():
+    for fx in _stats_groups() + [split]:
         r = sps.kruskal(*[np.array(g) for g in fx[GROUPS]])
         cases.append({
             "name": fx["name"], "call": KRUSKAL, "args": {},
             GROUPS: fx[GROUPS],
-            STATISTIC: float(r.statistic), PVALUE: float(r.pvalue),
+            STATISTIC: _stats_number(float(r.statistic)), PVALUE: _stats_number(float(r.pvalue)),
         })
 
     nan_groups = [[1.0, 2.0, float("nan"), 4.0], [2.0, 3.0, 4.0, 5.0], [5.0, 6.0, 7.0, 8.0]]
@@ -15134,8 +15156,12 @@ def generate_stats_pearson() -> dict:
     """
     from scipy import stats as sps
 
+    # A constant x whose mean is not 0.1 itself: scipy tests x == x[0] (#1246).
+    constant = {"name": "six pairs, x a repeated 0.1",
+                "x": [0.1] * 6, "y": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]}
+
     cases = []
-    for fx in _correlation_pairs():
+    for fx in _correlation_pairs() + [constant]:
         x = np.array(fx["x"])
         y = np.array(fx["y"])
         for alternative in _correlation_alternatives():
@@ -16062,6 +16088,20 @@ def generate_stats_binomial() -> dict:
     for trials in (1, 5, 20, 50, 1000):
         for successes in sorted({0, 1, trials // 3, trials // 2, trials - 1, trials}):
             cases.extend(_binomial_cases(successes, trials))
+
+    # Past 1e8 trials three log-gammas lose the mass's last 1e-7, which the two-sided cut
+    # compares at (#1247).
+    for successes, trials in ((49_999_999, 100_000_000), (499_999_983, 1_000_000_000)):
+        r = sps.binomtest(successes, trials, 0.5, alternative=TWO_SIDED)
+        cases.append({
+            "name": _correlation_name(
+                f"k={successes} of n={trials}", p=0.5, alternative=TWO_SIDED),
+            "call": BINOMTEST,
+            "args": {"k": successes, "n": trials, "p": 0.5, ALTERNATIVE: TWO_SIDED},
+            STATISTIC: _stats_number(float(r.statistic)),
+            PVALUE: _stats_number(float(r.pvalue)),
+            INTERVALS: _binomial_intervals(r),
+        })
 
     return {"metadata": _stats_metadata(BINOMTEST, len(cases)), CASES: cases}
 

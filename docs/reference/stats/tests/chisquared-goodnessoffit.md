@@ -36,14 +36,17 @@ double p = Math.Round(result.PValue, 6);            // => 0.849145
 **Remarks** — a p-value this large says the rolls are entirely consistent with a fair die; the
 uniform expectation here is `88 / 6` in every category, since `expected` was omitted. Passing an
 explicit `expected` answers a different question — not "is this uniform?" but "does this match
-*this* distribution?" — and it must sum to within `1e-8` of the observed total, relative to that
-total, or the p-value would be comparing tables of different sizes.
+*this* distribution?" — and it must sum to the observed total within `1.49e-8`, the square root of
+the double's machine epsilon, relative to the smaller of the two totals, as scipy's `chisquare`
+checks, or the p-value would be comparing tables of different sizes.
 
 **Under `NanPolicy.Propagate`, a NaN or an infinity reaches the statistic.** A NaN or an infinite
 value anywhere in `observed` drives `statistic` itself to `NaN` (an `inf - inf`, then an
 `inf / inf`, inside the loop above), and the p-value follows it rather than throwing the
 `ArgumentOutOfRangeException` calling the incomplete gamma function on a `NaN` would otherwise
-raise. Compare [`ChiSquared.Contingency`](chisquared-contingency.md), which raises
+raise. An infinity with an explicit `expected` is the exception: the totals then disagree
+without bound, and the check above refuses it with `ArgumentException`, as scipy's `chisquare`
+raises `ValueError`. Compare [`ChiSquared.Contingency`](chisquared-contingency.md), which raises
 `ArgumentException` on a NaN cell instead, unchanged by this rule.
 
 Under [`NanPolicy.Omit`](../nanpolicy.md) the two inputs are filtered **together**: an index is

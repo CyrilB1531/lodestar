@@ -39,6 +39,30 @@ public sealed class GroupTestEdgeTests
         Assert.Equal(0.0, result.PValue);
     }
 
+    // scipy 1.18.1 tests constancy as diff(...) == 0, which inf - inf fails (#1244): a group of two
+    // infinities is not constant, and one infinity alone is.
+    [Fact]
+    public void Anova_reads_constancy_off_differences_as_scipy_does()
+    {
+        TestResult twoInfinities = OneWayAnova.Test(
+            [double.PositiveInfinity, double.PositiveInfinity], [1.0, 1.0]);
+        TestResult oneInfinity = OneWayAnova.Test([double.PositiveInfinity], [1.0, 1.0]);
+
+        Assert.True(double.IsNaN(twoInfinities.Statistic));
+        Assert.True(double.IsNaN(twoInfinities.PValue));
+        Assert.True(double.IsPositiveInfinity(oneInfinity.Statistic));
+        Assert.Equal(0.0, oneInfinity.PValue);
+    }
+
+    // Signed zeros differ by nothing, so scipy counts [-0.0, 0.0] and [0.0] as one repeated value.
+    [Fact]
+    public void Anova_counts_signed_zeros_as_one_value()
+    {
+        TestResult result = OneWayAnova.Test([-0.0, 0.0], [0.0]);
+
+        Assert.True(double.IsNaN(result.Statistic));
+    }
+
     // Fully degenerate: both between and within are exactly 0.0, so 0.0/0.0 is NaN, not
     // +Infinity -- matches scipy's own f_oneway; Kruskal-Wallis on the same shape throws instead.
     [Fact]

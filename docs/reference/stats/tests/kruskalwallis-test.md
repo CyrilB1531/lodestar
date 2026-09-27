@@ -67,6 +67,12 @@ exactly `0` — not close to zero, not a value a tolerance would need to catch �
 that would follow is refused instead of silently producing an infinite or NaN statistic from
 ranks that carry no information at all.
 
+**H can round a hair below zero, and the p-value is then `NaN`.** When the groups' mean ranks are
+equal, H is zero in exact arithmetic, and rounding can leave it at `-5.7e-14` — the values `1` to
+`148` split into two groups with equal rank sums do. The chi-squared tail is undefined below zero,
+so the p-value is `NaN`, as scipy's `kruskal` answers on the same split, and the statistic is
+returned as computed.
+
 **Under `NanPolicy.Propagate`, a NaN reaches the statistic and the p-value.** The check runs
 before ranking — unguarded, `Array.Sort` sorts a NaN to the front and it would take a finite rank
 like any other value, the same failure mode [`MannWhitney.Test`](mannwhitney-test.md) shares and
