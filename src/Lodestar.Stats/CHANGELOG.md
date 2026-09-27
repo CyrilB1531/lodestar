@@ -17,6 +17,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Fixed
 
 - Welch's `TTest.Independent` on two constant samples takes one degree of freedom, as scipy does, where the 0/0 threw from the log-gamma; a propagated NaN makes the degrees of freedom and the interval NaN, and a one-sided interval's open bound is NaN where the standard error is zero, as scipy's are. ([#1215](https://github.com/CyrilB1531/lodestar/issues/1215))
+- `AndersonDarling.Test` answers a NaN p-value for a sample holding a NaN or an infinity, as scipy does, where the table's interpolation fell through to 0.01. ([#1216](https://github.com/CyrilB1531/lodestar/issues/1216))
 - The regularized incomplete beta keeps the digits of `1 − x` when `x` rounds to one, and forms `log B` from Stirling's series when one shape is large and the other is not, where it lost up to `6e-7` at shapes `(5e9, 0.5)`. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))
 - An infinite `df` is the standard normal law for the Student members, as in scipy, and refused for the F and chi-squared ones, where it returned wrong values or NaN; a Student quantile past the largest double is `±∞` rather than `±double.MaxValue`. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))
 - Student's upper tail stays exact past `|t| = 1.3e154`, where the square overflowed and the tail read zero, so `StudentQuantile` and `StudentSf` reach the Cauchy's `1e-300` point, `3.18e299`. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))

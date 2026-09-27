@@ -3,7 +3,7 @@
   "library": "scipy",
   "version": "1.18.1",
   "family": "anderson",
-  "count": 7
+  "count": 10
  },
  "cases": [
   {
@@ -461,6 +461,88 @@
     0.388,
     0.451,
     0.534
+   ],
+   "significance_level": [
+    15.0,
+    10.0,
+    5.0,
+    2.5,
+    1.0
+   ]
+  },
+  {
+   "name": "a NaN in the sample",
+   "call": "anderson",
+   "args": {},
+   "x": [
+    1.0,
+    2.0,
+    "NaN",
+    4.0,
+    5.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "critical_values": [
+    0.452,
+    0.509,
+    0.606,
+    0.704,
+    0.835
+   ],
+   "significance_level": [
+    15.0,
+    10.0,
+    5.0,
+    2.5,
+    1.0
+   ]
+  },
+  {
+   "name": "an infinity in the sample",
+   "call": "anderson",
+   "args": {},
+   "x": [
+    1.0,
+    2.0,
+    "Infinity",
+    4.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "critical_values": [
+    0.422,
+    0.475,
+    0.566,
+    0.657,
+    0.779
+   ],
+   "significance_level": [
+    15.0,
+    10.0,
+    5.0,
+    2.5,
+    1.0
+   ]
+  },
+  {
+   "name": "a negative infinity in the sample",
+   "call": "anderson",
+   "args": {},
+   "x": [
+    1.0,
+    2.0,
+    "-Infinity",
+    4.0
+   ],
+   "statistic": "NaN",
+   "pvalue": "NaN",
+   "critical_values": [
+    0.422,
+    0.475,
+    0.566,
+    0.657,
+    0.779
    ],
    "significance_level": [
     15.0,
