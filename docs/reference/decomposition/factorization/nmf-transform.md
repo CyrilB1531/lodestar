@@ -38,8 +38,8 @@ CsrMatrix unseen = new(1, 3, [2.0, 5.0], [0, 2], [0, 2]);
 
 double[] weights = fitted.Transform(unseen);
 
-double firstComponent = Math.Round(weights[0], 3);    // => 2.046
-double secondComponent = Math.Round(weights[1], 3);   // => 0.835
+double firstComponent = Math.Round(weights[0], 3);    // => 1.775
+double secondComponent = Math.Round(weights[1], 3);   // => 0.599
 ```
 
 **Remarks — this iterates where [`TruncatedSvd.Transform`](truncatedsvd-transform.md)

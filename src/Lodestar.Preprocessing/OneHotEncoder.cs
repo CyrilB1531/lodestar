@@ -32,6 +32,7 @@ public sealed class OneHotEncoder<T>
         FeatureCount = featureCount;
         SampleCount = sampleCount;
         _categories = categories;
+        Categories = Array.AsReadOnly(Array.ConvertAll(_categories, row => (IReadOnlyList<T>)Array.AsReadOnly(row)));
         _index = index;
         _grouped = grouped;
         _dropped = dropped;
@@ -50,7 +51,7 @@ public sealed class OneHotEncoder<T>
         }
 
         EncodedFeatureCount = width;
-        InfrequentCategories = infrequent;
+        InfrequentCategories = Array.AsReadOnly(infrequent);
     }
 
     /// <summary>How many values each row of the input carries.</summary>
@@ -64,7 +65,7 @@ public sealed class OneHotEncoder<T>
 
     /// <summary>Each feature's categories, sorted — the reference's <c>categories_</c>.</summary>
     /// <remarks>Strings sort by code point, which is numpy's order rather than a culture's.</remarks>
-    public IReadOnlyList<IReadOnlyList<T>> Categories => _categories;
+    public IReadOnlyList<IReadOnlyList<T>> Categories { get; }
 
     /// <summary>
     /// Each feature's infrequent categories, sorted, sharing its block's last column; <see langword="null"/> for a

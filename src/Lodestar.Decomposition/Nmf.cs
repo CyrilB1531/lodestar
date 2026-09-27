@@ -11,7 +11,6 @@ namespace Lodestar.Decomposition;
 /// </remarks>
 public sealed class Nmf
 {
-    private readonly double[] _weights;
     private readonly double[] _components;
 
     // long-comment: which settings are kept and which are not is the whole reason Transform
@@ -28,8 +27,9 @@ public sealed class Nmf
     {
         FeatureCount = featureCount;
         ComponentCount = componentCount;
-        _weights = weights;
+        Weights = Array.AsReadOnly(weights);
         _components = components;
+        Components = Array.AsReadOnly(_components);
         Iterations = iterations;
         ReconstructionError = reconstructionError;
         _betaLoss = settings.BetaLoss;
@@ -50,10 +50,10 @@ public sealed class Nmf
     public double ReconstructionError { get; }
 
     /// <summary><c>W</c>, row-major rows × <see cref="ComponentCount"/>: each row's mix of components.</summary>
-    public IReadOnlyList<double> Weights => _weights;
+    public IReadOnlyList<double> Weights { get; }
 
     /// <summary><c>H</c>, row-major <see cref="ComponentCount"/> × <see cref="FeatureCount"/> — scikit-learn's <c>components_</c>.</summary>
-    public IReadOnlyList<double> Components => _components;
+    public IReadOnlyList<double> Components { get; }
 
     /// <summary>Factorizes <paramref name="matrix"/>, initialising it with the NNDSVD family.</summary>
     /// <param name="matrix">The non-negative matrix to factorize, rows as samples and columns as features.</param>

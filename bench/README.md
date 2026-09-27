@@ -3628,3 +3628,23 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-surviv
 python3 bench/python/bench_survival_aalen.py
 python3 bench/compare.py survival-aalen
 ```
+
+## 70. The sparse scalers, a wide discretizer and the unused left vectors (issue #1232)
+
+Three rows measured against the code they replaced rather than against an incumbent, since each
+is wasted work removed and no other library does the same work:
+
+- `ScalerIncumbentBenchmarks.Lodestar_Standard_SparseFit`, `Lodestar_MaxAbs_SparseFit` and
+  `Lodestar_MaxAbs_SparseClip` fit and transform a `CsrMatrix` a fifth full, built from its own
+  seed so the dense rows beside it keep their values; each used to scan the matrix for duplicate
+  cells two or three times.
+- `TransformerIncumbentBenchmarks.Lodestar_Discretize_64Bins` transforms through sixty-four
+  quantile bins, equally populated, where a linear scan of the edges costs the most.
+- `DecompositionBenchmarks.TruncatedSvd_Rank20`, unchanged, no longer forms the left singular
+  vectors it discarded. `Nmf_Rank20` beside it now starts from NNDSVDA, the new default, so its
+  number is not comparable with an earlier run's.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- \
+  --filter '*ScalerIncumbentBenchmarks.Lodestar_*Sparse*' '*Lodestar_Discretize*' '*TruncatedSvd_Rank20'
+```

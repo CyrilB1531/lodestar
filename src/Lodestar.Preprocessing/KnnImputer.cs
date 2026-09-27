@@ -36,6 +36,7 @@ public sealed class KnnImputer
         _fitted = fitted;
         _columnMeans = columnMeans;
         _kept = kept;
+        KeptFeatures = Array.AsReadOnly(_kept);
         _settings = settings;
     }
 
@@ -54,7 +55,7 @@ public sealed class KnnImputer
     public int OutputFeatureCount => _kept.Length;
 
     /// <summary>The indices of the features a transformed row carries, ascending.</summary>
-    public IReadOnlyList<int> KeptFeatures => _kept;
+    public IReadOnlyList<int> KeptFeatures { get; }
 
     /// <summary>Keeps the fitted rows, which are the donors every later call draws from.</summary>
     /// <param name="samples">The matrix, row-major: <paramref name="featureCount"/> values per row. A <c>NaN</c> is a missing value.</param>

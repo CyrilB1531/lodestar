@@ -1,7 +1,7 @@
 namespace Lodestar.Decomposition;
 
 /// <summary>What <c>TruncatedSvd.Fit</c> is allowed to vary.</summary>
-public sealed class TruncatedSvdOptions
+public sealed record TruncatedSvdOptions
 {
     /// <summary>Extra columns drawn beyond the rank asked for. scikit-learn's default is 10.</summary>
     public int Oversampling { get; init; } = 10;
@@ -27,4 +27,32 @@ public sealed class TruncatedSvdOptions
 #pragma warning disable CA1819
     public double[]? RandomMatrix { get; init; }
 #pragma warning restore CA1819
+
+    /// <summary>Compares every option, <see cref="RandomMatrix"/> element by element.</summary>
+    /// <param name="other">The options to compare against.</param>
+    /// <remarks>
+    /// The generated equality would compare <see cref="RandomMatrix"/> by reference, so two
+    /// option sets built from separate arrays holding the same Ω would be unequal.
+    /// </remarks>
+    public bool Equals(TruncatedSvdOptions? other) =>
+        ReferenceEquals(this, other)
+        || (other is not null
+            && Oversampling == other.Oversampling
+            && PowerIterations == other.PowerIterations
+            && Normalizer == other.Normalizer
+            && Seed == other.Seed
+            && ValueEquality.Same(RandomMatrix, other.RandomMatrix));
+
+    /// <summary>Hashes the scalars and the length of Ω, which is O(1).</summary>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + Oversampling;
+            hash = (hash * 31) + PowerIterations;
+            hash = (hash * 31) + (int)Normalizer;
+            hash = (hash * 31) + Seed;
+            return (hash * 31) + ValueEquality.CountOf(RandomMatrix);
+        }
+    }
 }

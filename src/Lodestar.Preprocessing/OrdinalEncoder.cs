@@ -23,6 +23,7 @@ public sealed class OrdinalEncoder<T>
         FeatureCount = featureCount;
         SampleCount = sampleCount;
         _categories = categories;
+        Categories = Array.AsReadOnly(Array.ConvertAll(_categories, row => (IReadOnlyList<T>)Array.AsReadOnly(row)));
         _index = new CategoryIndex<T>(categories);
     }
 
@@ -33,7 +34,7 @@ public sealed class OrdinalEncoder<T>
     public int SampleCount { get; }
 
     /// <summary>Each feature's categories, sorted — the reference's <c>categories_</c>.</summary>
-    public IReadOnlyList<IReadOnlyList<T>> Categories => _categories;
+    public IReadOnlyList<IReadOnlyList<T>> Categories { get; }
 
     /// <summary>What <see cref="Encoders.Ordinal"/> calls; the factory is there so this type carries no public static.</summary>
     internal static OrdinalEncoder<T> FitCore(ReadOnlySpan<T> values, int featureCount)

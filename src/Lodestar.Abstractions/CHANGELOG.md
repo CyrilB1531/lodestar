@@ -20,6 +20,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Changed
 
 - `Chi2ContingencyResult` is `ChiSquaredContingencyResult` and its `Dof` is `DegreesOfFreedom`, the spellings `Lodestar.Stats` settles on before 1.0; `Lodestar.Stats` 0.5.0 forwards the old name, so take this release with the next `Lodestar.Stats`. ([#1217](https://github.com/CyrilB1531/lodestar/issues/1217))
+- `TruncatedSvdOptions` and `NmfOptions` are records comparing Ω by value like every other options type, and `NmfOptions.Initialization` defaults to `NndSvda`, which is scikit-learn's `init=None` at every rank a fit accepts — a default `Nmf.Fit` reads from this package, so taking this release changes what `Lodestar.Decomposition` 0.3.0 computes too. ([#1232](https://github.com/CyrilB1531/lodestar/issues/1232))
 
 ## [0.2.0] — 2026-09-24
 

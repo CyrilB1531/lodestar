@@ -32,7 +32,9 @@ public sealed class QuantileTransformer
         FeatureCount = featureCount;
         SampleCount = sampleCount;
         _references = references;
+        References = Array.AsReadOnly(_references);
         _quantiles = quantiles;
+        Quantiles = Array.AsReadOnly(Array.ConvertAll(_quantiles, row => (IReadOnlyList<double>)Array.AsReadOnly(row)));
         _output = output;
 
         // Built once rather than per value: the per-value form allocated 1.25 GB and took 104 ms
@@ -58,10 +60,10 @@ public sealed class QuantileTransformer
     public int SampleCount { get; }
 
     /// <summary>The quantile levels read, evenly spaced over <c>[0, 1]</c> — the reference's <c>references_</c>.</summary>
-    public IReadOnlyList<double> References => _references;
+    public IReadOnlyList<double> References { get; }
 
     /// <summary>Each feature's values at those levels — the reference's <c>quantiles_</c>, one row per feature.</summary>
-    public IReadOnlyList<IReadOnlyList<double>> Quantiles => _quantiles;
+    public IReadOnlyList<IReadOnlyList<double>> Quantiles { get; }
 
     /// <summary>Fits the quantiles of every feature.</summary>
     /// <param name="samples">The matrix, row-major: <paramref name="featureCount"/> values per row.</param>

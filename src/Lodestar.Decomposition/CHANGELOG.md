@@ -5,6 +5,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ## [Unreleased]
 
+### Changed
+
+- `Nmf.Fit` starts from NNDSVDA by default, as scikit-learn's `init=None` does, every fitted array is a read-only view, and `TruncatedSvd.Fit` no longer forms the left singular vectors it discards. ([#1232](https://github.com/CyrilB1531/lodestar/issues/1232))
+
 ## [0.3.0] — 2026-09-24
 
 ### Added

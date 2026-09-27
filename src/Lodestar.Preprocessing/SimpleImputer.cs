@@ -19,6 +19,7 @@ public sealed class SimpleImputer
         FeatureCount = featureCount;
         SampleCount = sampleCount;
         _statistics = statistics;
+        Statistics = Array.AsReadOnly(_statistics);
     }
 
     /// <summary>How many values each row carries.</summary>
@@ -28,7 +29,7 @@ public sealed class SimpleImputer
     public int SampleCount { get; }
 
     /// <summary>What each feature's missing values are filled with — the reference's <c>statistics_</c>.</summary>
-    public IReadOnlyList<double> Statistics => _statistics;
+    public IReadOnlyList<double> Statistics { get; }
 
     /// <summary>Fits an imputer on a row-major sample matrix.</summary>
     /// <param name="samples">The samples, row-major: <paramref name="featureCount"/> values per row, <c>NaN</c> where a value is missing.</param>

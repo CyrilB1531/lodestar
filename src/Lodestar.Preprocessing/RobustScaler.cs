@@ -23,7 +23,9 @@ public sealed class RobustScaler
         FeatureCount = featureCount;
         SampleCount = sampleCount;
         _centre = centre;
+        Centre = _centre is null ? null : Array.AsReadOnly(_centre);
         _scale = scale;
+        Scale = _scale is null ? null : Array.AsReadOnly(_scale);
     }
 
     /// <summary>How many values each row of a sample matrix carries.</summary>
@@ -33,10 +35,10 @@ public sealed class RobustScaler
     public int SampleCount { get; }
 
     /// <summary>Each feature's median, or <see langword="null"/> when centring is off — <c>center_</c>.</summary>
-    public IReadOnlyList<double>? Centre => _centre;
+    public IReadOnlyList<double>? Centre { get; }
 
     /// <summary>The interpercentile range divided by, or <see langword="null"/> when scaling is off — <c>scale_</c>.</summary>
-    public IReadOnlyList<double>? Scale => _scale;
+    public IReadOnlyList<double>? Scale { get; }
 
     /// <summary>Fits a scaler on a row-major sample matrix.</summary>
     /// <param name="samples">The samples, row-major: <paramref name="featureCount"/> values per row.</param>
@@ -114,7 +116,7 @@ public sealed class RobustScaler
             throw new ArgumentException("samples holds no row or no column.", nameof(samples));
         }
 
-        SparseColumns.RequireFinite(samples, nameof(samples), SparseColumns.FitReason);
+        CsrMatrix read = SparseColumns.RequireFinite(samples, nameof(samples), SparseColumns.FitReason);
 
         if (!settings.WithScaling)
         {
@@ -122,7 +124,7 @@ public sealed class RobustScaler
         }
 
         var scale = new double[samples.ColumnCount];
-        (double[] grouped, int[] offsets) = SparseColumns.ByColumn(samples);
+        (double[] grouped, int[] offsets) = SparseColumns.ByColumn(read);
         var buffer = new double[samples.RowCount];
         for (int feature = 0; feature < samples.ColumnCount; feature++)
         {

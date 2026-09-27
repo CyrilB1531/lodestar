@@ -5,8 +5,8 @@ public sealed class TrainTestSplit
 {
     internal TrainTestSplit(int[] trainIndices, int[] testIndices)
     {
-        TrainIndices = trainIndices;
-        TestIndices = testIndices;
+        TrainIndices = Array.AsReadOnly(trainIndices);
+        TestIndices = Array.AsReadOnly(testIndices);
     }
 
     /// <summary>The rows to fit on, ascending.</summary>

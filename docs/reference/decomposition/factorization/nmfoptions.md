@@ -4,12 +4,18 @@ What [`Nmf.Fit`](nmf-fit.md) is allowed to vary. Every property has an initialis
 `new NmfOptions()` is scikit-learn's own default configuration and you set only what you are
 changing.
 
+<!-- docs-declaration -->
+
+```csharp
+public sealed record NmfOptions
+```
+
 ## Properties
 
 | Property | Default | What it does |
 | --- | --- | --- |
 | `BetaLoss` | `Frobenius` | What the factorization minimises — see [`NmfBetaLoss`](nmfbetaloss.md). |
-| `Initialization` | `NndSvd` | Where the iteration starts — see [`NmfInitialization`](nmfinitialization.md). Ignored by the overload handed `W₀` and `H₀`. |
+| `Initialization` | `NndSvda` | Where the iteration starts, scikit-learn's `init=None` at every rank a fit accepts — see [`NmfInitialization`](nmfinitialization.md). Ignored by the overload handed `W₀` and `H₀`. |
 | `MaxIterations` | `200` | The iteration cap, and the exact iteration count when `Tolerance` is zero. scikit-learn's default is the same 200. |
 | `Tolerance` | `1e-4` | The relative improvement below which the loop stops, measured every tenth iteration. Zero disables the stop. |
 | `Seed` | `0` | Seeds this package's generator for the initialisation's Ω when `RandomMatrix` is null. It reproduces a run of Lodestar, never a run of NumPy. |
@@ -32,3 +38,13 @@ early.
 an `Initialization` are enums, and a value outside either falls back to nothing: the loss that is
 not `KullbackLeibler` is Frobenius, and the initialisation that is not `NndSvda` leaves the zeros
 alone.
+
+A record since #1232, like every other options type: `with` copies one and changes a property,
+and two option sets built from separate arrays holding the same Ω compare equal.
+
+## Members
+
+| member | what it does |
+| --- | --- |
+| [`NmfOptions.Equals`](nmfoptions-equals.md) | Value equality, Ω element by element. |
+| [`NmfOptions.GetHashCode`](nmfoptions-gethashcode.md) | A hash consistent with it. |

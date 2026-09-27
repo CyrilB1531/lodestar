@@ -25,6 +25,7 @@ public sealed class PowerTransformer
         FeatureCount = featureCount;
         SampleCount = sampleCount;
         _lambdas = lambdas;
+        Lambdas = Array.AsReadOnly(_lambdas);
         _means = means;
         _deviations = deviations;
         _method = method;
@@ -37,7 +38,7 @@ public sealed class PowerTransformer
     public int SampleCount { get; }
 
     /// <summary>Each feature's fitted exponent — the reference's <c>lambdas_</c>.</summary>
-    public IReadOnlyList<double> Lambdas => _lambdas;
+    public IReadOnlyList<double> Lambdas { get; }
 
     /// <summary>Fits one exponent per feature by maximum likelihood.</summary>
     /// <param name="samples">The matrix, row-major: <paramref name="featureCount"/> values per row.</param>

@@ -20,8 +20,9 @@ public sealed class MaxAbsScaler
     {
         FeatureCount = featureCount;
         SampleCount = sampleCount;
-        MaximumAbsolute = maximumAbsolute;
+        MaximumAbsolute = Array.AsReadOnly(maximumAbsolute);
         _scale = scale;
+        Scale = Array.AsReadOnly(_scale);
         _clips = clips;
     }
 
@@ -35,7 +36,7 @@ public sealed class MaxAbsScaler
     public IReadOnlyList<double> MaximumAbsolute { get; }
 
     /// <summary>What <see cref="Transform(ReadOnlySpan{double})"/> divides by — <c>scale_</c>, which is <see cref="MaximumAbsolute"/> with a near-constant feature floored to 1.</summary>
-    public IReadOnlyList<double> Scale => _scale;
+    public IReadOnlyList<double> Scale { get; }
 
     /// <summary>Fits a scaler on a row-major sample matrix.</summary>
     /// <param name="samples">The samples, row-major: <paramref name="featureCount"/> values per row.</param>
@@ -84,9 +85,9 @@ public sealed class MaxAbsScaler
             throw new ArgumentException("samples holds no row or no column.", nameof(samples));
         }
 
-        SparseColumns.RequireFinite(samples, nameof(samples), SparseColumns.FitReason);
+        CsrMatrix read = SparseColumns.RequireFinite(samples, nameof(samples), SparseColumns.FitReason);
 
-        double[] maximumAbsolute = SparseColumns.MaximumAbsolute(samples);
+        double[] maximumAbsolute = SparseColumns.MaximumAbsolute(read);
         double[] scale = [.. maximumAbsolute];
         ScaleFloor.Apply(scale);
 
@@ -160,10 +161,15 @@ public sealed class MaxAbsScaler
     /// </remarks>
     public CsrMatrix Transform(CsrMatrix samples)
     {
-        CsrMatrix result = SparseColumns.Divided(samples, FeatureCount, _scale, requireFinite: true);
+        CsrMatrix result = SparseColumns.Divided(
+            samples, FeatureCount, _scale, requireFinite: true, out bool storesDuplicates);
         if (_clips)
         {
-            result = SparseColumns.Consolidated(result);
+            if (storesDuplicates)
+            {
+                result = SparseColumns.Consolidated(result);
+            }
+
             double[] values = result.Values;
             for (int i = 0; i < values.Length; i++)
             {

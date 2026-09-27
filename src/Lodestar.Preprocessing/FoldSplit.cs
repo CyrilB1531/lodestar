@@ -13,6 +13,12 @@ public sealed class FoldSplit
         TestIndices = testIndices;
     }
 
+    /// <summary>Holds two index arrays behind read-only views, so a caller cannot cast one back and edit the fold (#1232).</summary>
+    internal FoldSplit(int[] trainIndices, int[] testIndices)
+        : this(Array.AsReadOnly(trainIndices), Array.AsReadOnly(testIndices))
+    {
+    }
+
     /// <summary>The rows this fold fits on, ascending.</summary>
     public IReadOnlyList<int> TrainIndices { get; }
 

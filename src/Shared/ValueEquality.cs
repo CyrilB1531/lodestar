@@ -9,7 +9,7 @@ namespace Lodestar.Internal;
 /// O(1) hash contributions that stay consistent with them.
 /// </summary>
 /// <remarks>
-/// Twelve records need these, and six wrote them independently before the rule was stated;
+/// Fourteen records need these, and six wrote them independently before the rule was stated;
 /// every method is total on null, since a record's equality must answer for an absent member.
 /// </remarks>
 internal static class ValueEquality

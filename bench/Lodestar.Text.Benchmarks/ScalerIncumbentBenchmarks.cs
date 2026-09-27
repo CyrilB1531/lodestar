@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
+using Lodestar.Abstractions;
 using Lodestar.Preprocessing;
 using Microsoft.ML;
 using Microsoft.ML.Data;
@@ -43,6 +44,8 @@ public class ScalerIncumbentBenchmarks
     private MLContext _context = null!;
     private IDataView _data = null!;
     private double[] _matrix = [];
+    private CsrMatrix _sparse = null!;
+    private MaxAbsScaler _clipping = null!;
 
     /// <summary>
     /// How many rows to scale, at ten features each. Twenty thousand rather than a hundred: an
@@ -74,6 +77,9 @@ public class ScalerIncumbentBenchmarks
             rows[row] = new ScalerRow { Features = values };
         }
 
+        _sparse = SparseTwin(RowCount);
+        _clipping = MaxAbsScaler.Fit(_sparse, new MaxAbsScalerOptions { Clip = true });
+
         _context = new MLContext(seed: 763);
         _data = _context.Data.LoadFromEnumerable(rows);
         RequireSameScaling();
@@ -96,6 +102,18 @@ public class ScalerIncumbentBenchmarks
     public double[] Lodestar_Standard() =>
         StandardScaler.Fit(_matrix, Features).Transform(_matrix);
 
+    /// <summary>The sparse fits, which read the matrix once for finiteness, duplicates and the statistic (#1232).</summary>
+    [Benchmark]
+    public StandardScaler Lodestar_Standard_SparseFit() =>
+        StandardScaler.Fit(_sparse, new StandardScalerOptions { WithMean = false });
+
+    [Benchmark]
+    public MaxAbsScaler Lodestar_MaxAbs_SparseFit() => MaxAbsScaler.Fit(_sparse);
+
+    /// <summary>The clipping transform, which consolidated its answer again after checking its input (#1232).</summary>
+    [Benchmark]
+    public CsrMatrix Lodestar_MaxAbs_SparseClip() => _clipping.Transform(_sparse);
+
     [Benchmark]
     public NormalizingTransformer MlNet_NormalizeMinMax_Fit() =>
         _context.Transforms.NormalizeMinMax(Column, fixZero: false).Fit(_data);
@@ -108,6 +126,33 @@ public class ScalerIncumbentBenchmarks
     [Benchmark]
     public int MlNet_NormalizeRobustScaling_Read() =>
         Read(_context.Transforms.NormalizeRobustScaling(Column).Fit(_data));
+
+    /// <summary>A fifth of the cells stored, each row's columns ascending and none twice: what a vectorizer hands over.</summary>
+    // SonarLint S2245, CA5394: a seeded Random builds a reproducible benchmark block; no security use.
+#pragma warning disable S2245, CA5394
+    private static CsrMatrix SparseTwin(int rowCount)
+    {
+        var random = new Random(1232);
+        var values = new List<double>();
+        var columns = new List<int>();
+        var pointers = new int[rowCount + 1];
+        for (int row = 0; row < rowCount; row++)
+        {
+            for (int feature = 0; feature < Features; feature++)
+            {
+                if (random.Next(5) == 0)
+                {
+                    values.Add((random.NextDouble() - 0.5) * (1 + feature));
+                    columns.Add(feature);
+                }
+            }
+
+            pointers[row + 1] = values.Count;
+        }
+
+        return new CsrMatrix(rowCount, Features, [.. values], [.. columns], pointers);
+    }
+#pragma warning restore S2245, CA5394
 
     private int Read(NormalizingTransformer model)
     {

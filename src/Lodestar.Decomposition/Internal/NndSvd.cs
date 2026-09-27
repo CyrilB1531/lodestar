@@ -32,7 +32,7 @@ internal static class NndSvd
 
         (double[] u, double[] s, double[] vt, int rank) = RandomizedSvd.Compute(
             matrix, componentCount, Oversampling, PowerIterations(matrix, componentCount),
-            PowerIterationNormalizer.Auto, omega);
+            PowerIterationNormalizer.Auto, omega, leftVectors: true);
         // _initialize_nmf calls _randomized_svd with flip_sign at its default, so the
         // initialisation inherits the LEFT-based convention, not the estimator's.
         SignFlip.Apply(u, rows, rank, vt, features);

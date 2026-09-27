@@ -12,8 +12,6 @@ namespace Lodestar.Decomposition;
 public sealed class PrincipalComponentVariance
 {
     private readonly double[] _explainedVariance;
-    private readonly double[] _explainedVarianceRatio;
-    private readonly double[] _cumulativeExplainedVarianceRatio;
 
     private PrincipalComponentVariance(
         int sampleCount,
@@ -27,8 +25,9 @@ public sealed class PrincipalComponentVariance
         FeatureCount = featureCount;
         TotalVariance = totalVariance;
         _explainedVariance = explainedVariance;
-        _explainedVarianceRatio = explainedVarianceRatio;
-        _cumulativeExplainedVarianceRatio = cumulativeExplainedVarianceRatio;
+        ExplainedVariance = Array.AsReadOnly(_explainedVariance);
+        ExplainedVarianceRatio = Array.AsReadOnly(explainedVarianceRatio);
+        CumulativeExplainedVarianceRatio = Array.AsReadOnly(cumulativeExplainedVarianceRatio);
     }
 
     /// <summary>Rows of the matrix, each one sample.</summary>
@@ -44,13 +43,13 @@ public sealed class PrincipalComponentVariance
     public double TotalVariance { get; }
 
     /// <summary>The variance along each component, largest first, with <c>n − 1</c> degrees of freedom.</summary>
-    public IReadOnlyList<double> ExplainedVariance => _explainedVariance;
+    public IReadOnlyList<double> ExplainedVariance { get; }
 
     /// <summary>Each component's share of <see cref="TotalVariance"/>, largest first.</summary>
-    public IReadOnlyList<double> ExplainedVarianceRatio => _explainedVarianceRatio;
+    public IReadOnlyList<double> ExplainedVarianceRatio { get; }
 
     /// <summary>The running sum of <see cref="ExplainedVarianceRatio"/>: the curve a component count is read off.</summary>
-    public IReadOnlyList<double> CumulativeExplainedVarianceRatio => _cumulativeExplainedVarianceRatio;
+    public IReadOnlyList<double> CumulativeExplainedVarianceRatio { get; }
 
     /// <summary>Computes the variance each principal component of a row-major matrix explains.</summary>
     /// <param name="matrix">The matrix, row-major: <paramref name="columnCount"/> values per row. It is not modified.</param>
