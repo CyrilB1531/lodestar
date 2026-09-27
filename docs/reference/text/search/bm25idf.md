@@ -39,7 +39,8 @@ a score. `rank_bm25` replaces every negative with `Epsilon × (mean of the raw v
 reproduces that. Two details matter and are easy to get wrong:
 
 - the mean is taken over the **raw** values, negatives included — flooring first and averaging after
-  gives a larger floor;
+  gives a larger floor — and over the terms some document holds: a vocabulary column no document
+  uses has no IDF in `rank_bm25`, and would otherwise pull the mean up;
 - the floor is **itself negative** when that mean is below zero, so scores in such a corpus are
   negative and a longer document scores *higher*. That is the reference's behaviour, not a defect.
 

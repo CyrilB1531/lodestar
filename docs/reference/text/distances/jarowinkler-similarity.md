@@ -10,14 +10,15 @@ public static double Similarity(ReadOnlySpan<char> a, ReadOnlySpan<char> b, doub
 ```
 
 **Parameters** — `a` and `b` are the two strings to compare. `prefixWeight` is how much each
-shared
-leading character is worth, `0.1` by default, which is jellyfish's value and is also available as
-the constant `JaroWinkler.DefaultPrefixWeight`. `element` says what counts as one character; pass
+shared leading character is worth, `0.1` by default, which is jellyfish's value and is also
+available as the constant `JaroWinkler.DefaultPrefixWeight`; it must lie in `[0, 1]`, rapidfuzz's
+range for the same parameter. `element` says what counts as one character; pass
 `TextElement.CodePoint` for parity with jellyfish outside the Basic Multilingual Plane.
 
-**Returns** — `double`, normally in `[0, 1]` and larger meaning more alike — see the trap below
-for
-when it is not.
+**Returns** — `double` in `[0, 1]`, larger meaning more alike.
+
+**Exceptions** — `ArgumentOutOfRangeException` when `prefixWeight` is below `0`, above `1`, or
+`NaN`.
 
 **Example** — a shared `DI` prefix lifts a middling Jaro score.
 
@@ -39,10 +40,9 @@ but little else gets no lift at all and reads as identical to plain `Jaro`. And 
 four
 characters ever count, however long the shared prefix runs.
 
-The trap is `prefixWeight` itself: it is not validated. The default of `0.1` with a four-character
-cap keeps the result at or below `1`, and `0.25` is the largest value that still does — pass `0.5`
-and `JaroWinkler.Similarity("MARTHA", "MARHTA")` returns `1.0277…`, which will quietly break
-anything downstream that assumes a `[0, 1]` score.
+A `prefixWeight` above `0.25` could lift four shared characters past `1`, so the score is capped
+there, as rapidfuzz caps it: at `0.5`, `JaroWinkler.Similarity("MARTHA", "MARHTA")` reads `1`
+rather than `1.0277…`.
 
 **Applies to** — net10.0, netstandard2.0.
 

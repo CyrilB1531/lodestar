@@ -3648,3 +3648,30 @@ is wasted work removed and no other library does the same work:
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- \
   --filter '*ScalerIncumbentBenchmarks.Lodestar_*Sparse*' '*Lodestar_Discretize*' '*TruncatedSvd_Rank20'
 ```
+
+## 71. The three quadratic paths of `Lodestar.Text` (issue #1199)
+
+Three classes, measured against the code they replaced for the pull request, and one of them
+against an incumbent as well:
+
+- `DamerauLevenshteinBenchmarks` now runs to 1,000 characters a side, where the full
+  `(m + 2) × (n + 2)` table was a million cells, and times F23.StringSimilarity's `Damerau`
+  beside it: the maintained .NET implementation of the unrestricted distance, and a full table
+  per call. Both arms are checked to agree before anything is timed; the pair shares almost no
+  affix, so the rows price the recurrence rather than the trimming.
+- `TextRankBenchmarks` gains a 32,000-word document, whose 8,000 distinct terms made two dense
+  8,000 × 8,000 matrices — a gigabyte — before the adjacency became neighbour lists. No .NET
+  library ranks keywords by TextRank, so there is no incumbent row.
+- `BkTreeNearestBenchmarks` asks each of 20 queries for its 10 and its 2,000 nearest words of
+  the 20,000-word `uniform` dictionary, against the scan a caller writes instead: every distance,
+  then a sort. At 2,000 each hit used to be inserted into a sorted list. The dictionary is the
+  one section 17 generates, and `BkTreeBenchmarks.Dictionary` loads it for both classes.
+
+```bash
+python3 bench/corpus/generate_dictionary.py
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- \
+  --filter '*DamerauLevenshteinBenchmarks*' '*TextRankBenchmarks*' '*BkTreeNearestBenchmarks*'
+```
+
+The incumbent row, with its machine and window, is in
+[`src/Lodestar.Text/performance.md`](../src/Lodestar.Text/performance.md).

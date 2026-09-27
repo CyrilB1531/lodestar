@@ -16,6 +16,8 @@ public sealed class PorterStemmerOracleTests
 {
     private static readonly OracleFile<PorterCase> Corpus = OracleCorpus.Load<PorterCase>("porter.json");
 
+    private static readonly OracleFile<PorterCase> Martin = OracleCorpus.Load<PorterCase>("porter_martin.json");
+
     [Fact]
     public void Metadata_is_nltk()
     {
@@ -30,6 +32,35 @@ public sealed class PorterStemmerOracleTests
             c => c.Stem,
             c => PorterStemmer.Stem(c.Word),
             c => $"[#{c.Id}] \"{c.Word}\"");
+    }
+
+    [Fact]
+    public void Stem_under_martins_extensions_matches_nltk()
+    {
+        Assert.Equal(Corpus.Cases.Count, Martin.Cases.Count);
+        OracleAsserts.ExactString(Martin.Cases,
+            c => c.Stem,
+            c => PorterStemmer.Stem(c.Word, PorterStemmerMode.MartinExtensions),
+            c => $"[#{c.Id}] \"{c.Word}\"");
+    }
+
+    [Theory]
+    [InlineData("analogy", "analogi", "analog")]
+    [InlineData("accessibly", "accessibli", "access")]
+    [InlineData("as", "a", "as")]
+    [InlineData("IS", "i", "is")]
+    [InlineData("", "", "")]
+    public void The_two_modes_part_where_nltk_parts_them(string word, string original, string martin)
+    {
+        Assert.Equal(original, PorterStemmer.Stem(word));
+        Assert.Equal(original, PorterStemmer.Stem(word, PorterStemmerMode.OriginalAlgorithm));
+        Assert.Equal(martin, PorterStemmer.Stem(word, PorterStemmerMode.MartinExtensions));
+    }
+
+    [Fact]
+    public void Stem_refuses_an_undefined_mode()
+    {
+        Assert.Throws<ArgumentException>(() => PorterStemmer.Stem("word", (PorterStemmerMode)2));
     }
 
     [Theory]

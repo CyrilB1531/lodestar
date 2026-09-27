@@ -91,9 +91,10 @@ internal static class VectorizerOptionsJson
         }
 
         EnsureEndOfObject(ref reader, artifact);
-        if (ngramMin < 1 || ngramMax < ngramMin)
+        // The constructors' rule and scikit-learn's: only a descending range is refused (#1197).
+        if (ngramMax < ngramMin)
         {
-            throw JsonArtifact.Inconsistent(artifact, $"n-gram range ({ngramMin}, {ngramMax}) is not a valid ascending range starting at 1 or more.");
+            throw JsonArtifact.Inconsistent(artifact, $"n-gram range ({ngramMin}, {ngramMax}) has a lower boundary larger than its upper boundary.");
         }
         return result with { NgramRange = (ngramMin, ngramMax) };
     }

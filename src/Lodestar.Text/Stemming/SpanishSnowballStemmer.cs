@@ -99,19 +99,9 @@ public static class SpanishSnowballStemmer
             "selas", "selos", "sela", "selo", "las", "les", "los", "nos", "me", "se", "la", "le", "lo",
         ];
 
-        // Verb forms the pronoun may attach to. Group (a) also loses its accent.
+        // Verb forms the pronoun may attach to, accented or not; step 0 drops every acute after either.
         private static readonly string[] AccentedGerundInfinitive = ["iéndo", "ándo", "ár", "ér", "ír"];
         private static readonly string[] PlainGerundInfinitive = ["ando", "iendo", "ar", "er", "ir"];
-
-        private static string Deaccent(string suffix) => suffix switch
-        {
-            "iéndo" => "iendo",
-            "ándo" => "ando",
-            "ár" => "ar",
-            "ér" => "er",
-            "ír" => "ir",
-            _ => suffix,
-        };
 
         private void Step0()
         {
@@ -123,30 +113,13 @@ public static class SpanishSnowballStemmer
 
             string stem = S.Substring(0, S.Length - pronoun.Length);
 
-            // (a) accented gerund/infinitive: delete the pronoun, then drop the accent.
-            foreach (string suf in AccentedGerundInfinitive)
+            // After a gerund, an infinitive or a u + "yendo" (that u may lie outside RV), the pronoun
+            // goes and, as in nltk, every acute of the word: "tálugúñíirlas" stems to "taluguñi".
+            bool verb = AccentedGerundInfinitive.Concat(PlainGerundInfinitive)
+                .Any(suf => stem.EndsWith(suf, StringComparison.Ordinal) && InRv(suf.Length + pronoun.Length));
+            if (verb || (stem.EndsWith("uyendo", StringComparison.Ordinal) && InRv(5 + pronoun.Length)))
             {
-                if (stem.EndsWith(suf, StringComparison.Ordinal) && InRv(suf.Length + pronoun.Length))
-                {
-                    S = stem.Substring(0, stem.Length - suf.Length) + Deaccent(suf);
-                    return;
-                }
-            }
-
-            // (b) plain gerund/infinitive: delete the pronoun only.
-            foreach (string suf in PlainGerundInfinitive)
-            {
-                if (stem.EndsWith(suf, StringComparison.Ordinal) && InRv(suf.Length + pronoun.Length))
-                {
-                    S = stem;
-                    return;
-                }
-            }
-
-            // (c) "yendo" in RV, itself preceded by u (that u need not be in RV).
-            if (stem.EndsWith("uyendo", StringComparison.Ordinal) && InRv(5 + pronoun.Length))
-            {
-                S = stem;
+                S = RemoveAcuteAccents(stem);
             }
         }
 
@@ -158,9 +131,9 @@ public static class SpanishSnowballStemmer
             "ables", "icos", "icas", "osos", "osas", "anza", "ible", "ista", "ismo", "able",
             "ico", "ica", "oso", "osa",
         ];
-        private static readonly string[] Step1DeleteThenIc = ["aciones", "adoras", "adores", "ancias", "ación", "adora", "antes", "ancia", "ador", "ante"];
+        private static readonly string[] Step1DeleteThenIc = ["aciones", "adoras", "adores", "ancias", "ación", "acion", "adora", "antes", "ancia", "ador", "ante"];
         private static readonly string[] Step1Logia = ["logías", "logía"];
-        private static readonly string[] Step1Ucion = ["uciones", "ución"];
+        private static readonly string[] Step1Ucion = ["uciones", "ución", "ucion"];
         private static readonly string[] Step1Encia = ["encias", "encia"];
         private static readonly string[] Step1Idad = ["idades", "idad"];
         private static readonly string[] Step1Iva = ["ivas", "ivos", "iva", "ivo"];
@@ -195,8 +168,10 @@ public static class SpanishSnowballStemmer
 
         private void Step2a()
         {
-            string? hit = LongestSuffix(Step2aSuffixes);
-            if (hit is null || !InRv(hit.Length))
+            // Snowball searches inside RV (setlimit tomark pV), so a longer match
+            // outside it gives way to a shorter one inside.
+            string? hit = LongestSuffixInRv(Step2aSuffixes);
+            if (hit is null)
             {
                 return;
             }
@@ -213,31 +188,28 @@ public static class SpanishSnowballStemmer
 
         private static readonly string[] Step2bPlain =
         [
-            "aríamos", "eríamos", "iríamos", "iéramos", "iésemos", "ábamos", "áramos", "ásemos",
-            "aríais", "aremos", "eríais", "eremos", "iríais", "iremos", "ierais", "ieseis",
-            "asteis", "isteis", "ábais", "arían", "arías", "eríais", "erían", "erías", "irían",
-            "irías", "íamos", "abais", "arais", "aseis", "íais",
-            "arán", "arás", "aría", "aréis", "erán", "erás", "ería", "eréis", "irán", "irás",
-            "iría", "iréis", "aban", "aran", "asen", "aron", "ando", "abas", "adas", "idas",
-            "aras", "ases", "íais", "ados", "idos", "amos", "imos", "iendo", "ieran", "iesen",
-            "ieron", "ieras", "ieses", "ábam",
-            "aba", "ada", "ida", "ara", "ase", "ían", "ado", "ido", "ías", "áis", "éis",
-            "ía", "ad", "ed", "id", "an", "ió", "ar", "er", "ir", "as", "ís",
-            "aste", "iste", "iera", "iese",
+            "aríamos", "eríamos", "iríamos", "iéramos", "iésemos", "áramos", "ásemos", "aremos",
+            "eremos", "iremos", "aríais", "eríais", "iríais", "ierais", "ieseis", "asteis",
+            "isteis", "ábamos", "iendo", "ieran", "iesen", "ieron", "ieras", "ieses", "abais",
+            "arais", "aseis", "éamos", "arán", "arás", "aría", "aréis", "erán", "erás", "ería",
+            "eréis", "irán", "irás", "iría", "iréis", "aban", "aran", "asen", "aron", "ando",
+            "abas", "adas", "idas", "aras", "ases", "íais", "ados", "idos", "amos", "imos",
+            "aste", "iste", "iera", "iese", "arían", "arías", "erían", "erías", "irían", "irías",
+            "aba", "ada", "ida", "ara", "ase", "ían", "ado", "ido", "ías", "áis", "ará", "aré",
+            "erá", "eré", "irá", "iré", "ía", "ad", "ed", "id", "an", "ió", "ar", "er", "ir",
+            "as", "ís",
         ];
 
         private void Step2b()
         {
-            string? gu = LongestSuffix(Step2bGu);
-            string? plain = LongestSuffix(Step2bPlain);
+            // Searched inside RV, as in step 2a: "frías" must fall through from "ías"
+            // (outside RV) to "as".
+            string? gu = LongestSuffixInRv(Step2bGu);
+            string? plain = LongestSuffixInRv(Step2bPlain);
 
             // Longest wins; on a tie the "gu" group is the more specific rule.
             if (gu is not null && (plain is null || gu.Length >= plain.Length))
             {
-                if (!InRv(gu.Length))
-                {
-                    return;
-                }
                 Delete(gu.Length);
                 if (Ends("gu"))
                 {
@@ -246,7 +218,7 @@ public static class SpanishSnowballStemmer
                 return;
             }
 
-            if (plain is not null && InRv(plain.Length))
+            if (plain is not null)
             {
                 Delete(plain.Length);
             }

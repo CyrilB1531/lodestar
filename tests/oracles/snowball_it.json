@@ -6,7 +6,7 @@
   "reference_calls": [
    "nltk.stem.snowball.SnowballStemmer('italian')"
   ],
-  "count": 96
+  "count": 101
  },
  "cases": [
   {
@@ -488,6 +488,31 @@
    "id": 95,
    "word": "abbandonato",
    "stem": "abbandon"
+  },
+  {
+   "id": 96,
+   "word": "poter",
+   "stem": "poter"
+  },
+  {
+   "id": 97,
+   "word": "dover",
+   "stem": "dover"
+  },
+  {
+   "id": 98,
+   "word": "voler",
+   "stem": "voler"
+  },
+  {
+   "id": 99,
+   "word": "aver",
+   "stem": "aver"
+  },
+  {
+   "id": 100,
+   "word": "esser",
+   "stem": "esser"
   }
  ]
 }

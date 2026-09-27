@@ -160,6 +160,28 @@ it is `3.23 ms + 15.2 μs·q` against `86.3 ms + 10.6 μs·q`, which crosses nea
 text Lucene stays ahead from the first query. These crossings mix `Stopwatch` build figures with
 `BenchmarkDotNet` query figures, so read them as orders of magnitude.
 
+## [`DamerauLevenshtein.Distance`](../../docs/reference/text/distances/dameraulevenshtein-distance.md) against F23.StringSimilarity (issue #1199)
+
+[`DamerauLevenshtein.Distance`](../../docs/reference/text/distances/dameraulevenshtein-distance.md)
+against F23.StringSimilarity 7.0.1's `Damerau`, the maintained .NET implementation of the
+unrestricted distance, on one pair of each length sharing almost no affix, so the rows price the
+recurrence rather than the trimming. Both arms are checked to agree before timing. Method:
+[`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#71-the-three-quadratic-paths-of-lodestartext-issue-1199).
+
+Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+(BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime,
+AVX-512. Window: one BenchmarkDotNet run, default job, 2026-09-27, no other load.
+
+| Length | F23.StringSimilarity | Lodestar | | Allocated, F23 / Lodestar |
+| ---: | ---: | ---: | --- | ---: |
+| 12 | 1,123.2 ns | **481.9 ns** | **2.33× C# faster** | 1,520 B / 840 B |
+| 120 | 89,160.2 ns | **36,239.3 ns** | **2.46× C# faster** | 61,064 B / 2,128 B |
+| 1,000 | 7,577,094.9 ns | **2,326,732.7 ns** | **3.26× C# faster** | 4,018,545 B / 5,651 B |
+
+**The gap widens with length, and the memory gap is the finding.** F23 allocates the full
+`(m + 2) × (n + 2)` table per call, 4 MB at 1,000 characters a side; this keeps three rows of the
+shorter side, rented from the pool, whatever the length.
+
 ## BK-tree vs a length-filtered scan (issue #526)
 
 **No .NET package publishes a BK-tree**, so the alternative is the loop a caller would otherwise

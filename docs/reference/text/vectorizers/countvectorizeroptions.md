@@ -10,12 +10,19 @@ public sealed record CountVectorizerOptions
 
 **Properties** — `Lowercase` (default `true`) folds case before tokenizing, so `Apple` and `apple`
 are one term. `TokenPattern` (default `\b\w\w+\b`) is the regular expression a token must match —
-note the two `\w`, which is why **single-letter words are dropped**. `Analyzer` (default
+note the two `\w`, which is why **single-letter words are dropped**. It is read as Python's `re`
+reads it, not as .NET does: `\w` is a letter, a number of any kind or `_` and never a combining
+mark, `\b`, `\d` and `\s` follow, all over code points, and scikit-learn's own spelling
+`(?u)\b\w\w+\b` is accepted. `Analyzer` (default
 [`AnalyzerKind.Word`](analyzerkind.md)) chooses words or character n-grams. `NgramRange` (default
 `(1, 1)`) is the inclusive range of n-gram lengths. `StopWords` (default none) is a set removed
-after tokenizing. `StripAccents` (default `false`) folds accented characters to their base.
+after tokenizing. `StripAccents` (default `false`) decomposes the text (NFKD) and drops every character of a
+non-zero combining class, as scikit-learn's `strip_accents="unicode"` does — an acute goes, a
+Devanagari vowel sign, of class 0, stays.
 `MinDf` and `MaxDf` (defaults `1` and `1.0`) drop terms appearing in too few or too many
-documents. `Binary` (default `false`) records presence as `1` rather than the count.
+documents. `Binary` (default `false`) records presence as `1` rather than the count; `HashingVectorizer`
+reads it too, and writes `1` in every bucket a term reached. `Analyzer` must be one of the three
+[`AnalyzerKind`](analyzerkind.md) members: a vectorizer refuses any other value when it is built.
 
 **Example** — the two defaults that surprise people, made visible.
 

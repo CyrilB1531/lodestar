@@ -1,0 +1,2658 @@
+{
+ "metadata": {
+  "algorithm": "Phonetics input contract",
+  "library": "jellyfish",
+  "library_version": "1.2.1",
+  "reference_calls": [
+   "jellyfish.soundex",
+   "jellyfish.metaphone",
+   "jellyfish.nysiis",
+   "jellyfish.match_rating_codex"
+  ],
+  "corpus": "fixed points beyond ASCII letters, then seeded strings over them (decision 0009)",
+  "seed": 20260801,
+  "count": 330
+ },
+ "cases": [
+  {
+   "id": 0,
+   "word": "O'Brien",
+   "soundex": "O165",
+   "metaphone": "OBRN",
+   "nysiis": "O'BRAN",
+   "codex": null
+  },
+  {
+   "id": 1,
+   "word": "Keats's",
+   "soundex": "K322",
+   "metaphone": "KTSS",
+   "nysiis": "CATS'",
+   "codex": null
+  },
+  {
+   "id": 2,
+   "word": "station's",
+   "soundex": "S335",
+   "metaphone": "STXNS",
+   "nysiis": "STATAN'",
+   "codex": null
+  },
+  {
+   "id": 3,
+   "word": "Anne-Marie",
+   "soundex": "A556",
+   "metaphone": "ANMR",
+   "nysiis": "ANA-NARY",
+   "codex": null
+  },
+  {
+   "id": 4,
+   "word": "van der Berg",
+   "soundex": "V536",
+   "metaphone": "FN TR BRK",
+   "nysiis": "VAN DAR BARG",
+   "codex": "VN BRG"
+  },
+  {
+   "id": 5,
+   "word": "Mac Donald",
+   "soundex": "M235",
+   "metaphone": "MK TNLT",
+   "nysiis": "MC DANALD",
+   "codex": "MC NLD"
+  },
+  {
+   "id": 6,
+   "word": "  ",
+   "soundex": " 000",
+   "metaphone": "",
+   "nysiis": " ",
+   "codex": " "
+  },
+  {
+   "id": 7,
+   "word": "123",
+   "soundex": "1000",
+   "metaphone": "",
+   "nysiis": "123",
+   "codex": null
+  },
+  {
+   "id": 8,
+   "word": "a1b",
+   "soundex": "A100",
+   "metaphone": "AB",
+   "nysiis": "A1B",
+   "codex": null
+  },
+  {
+   "id": 9,
+   "word": "AA",
+   "soundex": "A000",
+   "metaphone": "",
+   "nysiis": "A",
+   "codex": "A"
+  },
+  {
+   "id": 10,
+   "word": "KN",
+   "soundex": "K500",
+   "metaphone": "N",
+   "nysiis": "N",
+   "codex": "KN"
+  },
+  {
+   "id": 11,
+   "word": "SCH",
+   "soundex": "S000",
+   "metaphone": "SX",
+   "nysiis": "S",
+   "codex": "SCH"
+  },
+  {
+   "id": 12,
+   "word": "PH",
+   "soundex": "P000",
+   "metaphone": "F",
+   "nysiis": "F",
+   "codex": "PH"
+  },
+  {
+   "id": 13,
+   "word": "Straße",
+   "soundex": "S362",
+   "metaphone": "STRS",
+   "nysiis": "STRAS",
+   "codex": "STRS"
+  },
+  {
+   "id": 14,
+   "word": "ßa",
+   "soundex": "S000",
+   "metaphone": "S",
+   "nysiis": "S",
+   "codex": "S"
+  },
+  {
+   "id": 15,
+   "word": "émigrés",
+   "soundex": "E526",
+   "metaphone": "EMKRS",
+   "nysiis": "ÉNAGRÉ",
+   "codex": "ÉMGRÉS"
+  },
+  {
+   "id": 16,
+   "word": "Ångström",
+   "soundex": "A523",
+   "metaphone": "ANKSTRM",
+   "nysiis": "ÅNGSTRÖN",
+   "codex": "ÅNGRÖM"
+  },
+  {
+   "id": 17,
+   "word": "naïve",
+   "soundex": "N100",
+   "metaphone": "NF",
+   "nysiis": "NAÏV",
+   "codex": "NÏV"
+  },
+  {
+   "id": 18,
+   "word": "ﬁne",
+   "soundex": "F500",
+   "metaphone": "FN",
+   "nysiis": "FAN",
+   "codex": "FN"
+  },
+  {
+   "id": 19,
+   "word": "並丝七世",
+   "soundex": "並000",
+   "metaphone": "",
+   "nysiis": "並丝七世",
+   "codex": "並丝七丝七世"
+  },
+  {
+   "id": 20,
+   "word": "日本",
+   "soundex": "日000",
+   "metaphone": "",
+   "nysiis": "日本",
+   "codex": "日本"
+  },
+  {
+   "id": 21,
+   "word": "दुनिया",
+   "soundex": "द000",
+   "metaphone": "",
+   "nysiis": "दुनिया",
+   "codex": "दुनिया"
+  },
+  {
+   "id": 22,
+   "word": "q́u",
+   "soundex": "Q000",
+   "metaphone": "K",
+   "nysiis": "Q́",
+   "codex": null
+  },
+  {
+   "id": 23,
+   "word": "ẛ̣",
+   "soundex": "S000",
+   "metaphone": "S",
+   "nysiis": "Ṩ",
+   "codex": null
+  },
+  {
+   "id": 24,
+   "word": "Ⅻ",
+   "soundex": "X000",
+   "metaphone": "S",
+   "nysiis": "Ⅻ",
+   "codex": "Ⅻ"
+  },
+  {
+   "id": 25,
+   "word": "ǰa",
+   "soundex": "J000",
+   "metaphone": "J",
+   "nysiis": "J̌",
+   "codex": null
+  },
+  {
+   "id": 26,
+   "word": "ŉ",
+   "soundex": "ʼ500",
+   "metaphone": "N",
+   "nysiis": "ʼN",
+   "codex": "ʼN"
+  },
+  {
+   "id": 27,
+   "word": "ıſ",
+   "soundex": "I200",
+   "metaphone": "IS",
+   "nysiis": "I",
+   "codex": "IS"
+  },
+  {
+   "id": 28,
+   "word": "😀a",
+   "soundex": "😀000",
+   "metaphone": "",
+   "nysiis": "😀",
+   "codex": null
+  },
+  {
+   "id": 29,
+   "word": "x*y",
+   "soundex": "X000",
+   "metaphone": "S",
+   "nysiis": "X*Y",
+   "codex": null
+  },
+  {
+   "id": 30,
+   "word": "ⅫzßⅫnhuzs",
+   "soundex": "X252",
+   "metaphone": "SSSKSNHSS",
+   "nysiis": "ⅫSⅫN",
+   "codex": "ⅫZSHZS"
+  },
+  {
+   "id": 31,
+   "word": "b́eoéT",
+   "soundex": "B300",
+   "metaphone": "BT",
+   "nysiis": "B́AÉT",
+   "codex": null
+  },
+  {
+   "id": 32,
+   "word": "ुßA",
+   "soundex": "ु200",
+   "metaphone": "S",
+   "nysiis": "ुS",
+   "codex": "ुS"
+  },
+  {
+   "id": 33,
+   "word": "EwwkeCußu",
+   "soundex": "E222",
+   "metaphone": "EKKS",
+   "nysiis": "EWCACAS",
+   "codex": "EWKCS"
+  },
+  {
+   "id": 34,
+   "word": "N",
+   "soundex": "N000",
+   "metaphone": "N",
+   "nysiis": "N",
+   "codex": "N"
+  },
+  {
+   "id": 35,
+   "word": "Kcoe zaEY",
+   "soundex": "K200",
+   "metaphone": "KK S",
+   "nysiis": "CA SY",
+   "codex": "KC ZY"
+  },
+  {
+   "id": 36,
+   "word": "SBhHु c",
+   "soundex": "S120",
+   "metaphone": "SBH K",
+   "nysiis": "SBHु C",
+   "codex": "SBHु C"
+  },
+  {
+   "id": 37,
+   "word": "E u",
+   "soundex": "E000",
+   "metaphone": "E U",
+   "nysiis": "E ",
+   "codex": "E "
+  },
+  {
+   "id": 38,
+   "word": "Ög😀ckhytr",
+   "soundex": "O223",
+   "metaphone": "OKKHTR",
+   "nysiis": "ÖG😀CKYTR",
+   "codex": null
+  },
+  {
+   "id": 39,
+   "word": "GbDrA'-",
+   "soundex": "G136",
+   "metaphone": "KBTR",
+   "nysiis": "GBDRA'-",
+   "codex": null
+  },
+  {
+   "id": 40,
+   "word": "'NWuY",
+   "soundex": "'500",
+   "metaphone": "NW",
+   "nysiis": "'NWY",
+   "codex": null
+  },
+  {
+   "id": 41,
+   "word": "ﬁr'kYK",
+   "soundex": "F622",
+   "metaphone": "FRKK",
+   "nysiis": "FAR'CYC",
+   "codex": null
+  },
+  {
+   "id": 42,
+   "word": "kﬁosSk",
+   "soundex": "K120",
+   "metaphone": "KFSK",
+   "nysiis": "CFASC",
+   "codex": "KFSK"
+  },
+  {
+   "id": 43,
+   "word": "ﬁgeK",
+   "soundex": "F220",
+   "metaphone": "FJK",
+   "nysiis": "FAGAC",
+   "codex": "FGK"
+  },
+  {
+   "id": 44,
+   "word": "z",
+   "soundex": "Z000",
+   "metaphone": "S",
+   "nysiis": "Z",
+   "codex": "Z"
+  },
+  {
+   "id": 45,
+   "word": "KHaßsnGAt",
+   "soundex": "K252",
+   "metaphone": "KHSNKT",
+   "nysiis": "CASNGAT",
+   "codex": "KHSNGT"
+  },
+  {
+   "id": 46,
+   "word": "ÖoWTC",
+   "soundex": "O320",
+   "metaphone": "OTK",
+   "nysiis": "ÖAOTC",
+   "codex": "ÖWTC"
+  },
+  {
+   "id": 47,
+   "word": "NihYH́ıSE",
+   "soundex": "N200",
+   "metaphone": "NHS",
+   "nysiis": "NAYH́AS",
+   "codex": null
+  },
+  {
+   "id": 48,
+   "word": "*YY'r*ﬁ",
+   "soundex": "*610",
+   "metaphone": "RF",
+   "nysiis": "*Y'R*F",
+   "codex": null
+  },
+  {
+   "id": 49,
+   "word": "u",
+   "soundex": "U000",
+   "metaphone": "U",
+   "nysiis": "U",
+   "codex": "U"
+  },
+  {
+   "id": 50,
+   "word": "gByG",
+   "soundex": "G120",
+   "metaphone": "KBK",
+   "nysiis": "GBYG",
+   "codex": "GBYG"
+  },
+  {
+   "id": 51,
+   "word": "GNY-H́éıw",
+   "soundex": "G500",
+   "metaphone": "NH",
+   "nysiis": "GNY-H́ÉAI",
+   "codex": null
+  },
+  {
+   "id": 52,
+   "word": "cD*",
+   "soundex": "C300",
+   "metaphone": "KT",
+   "nysiis": "CD*",
+   "codex": null
+  },
+  {
+   "id": 53,
+   "word": "NsुYw'B́",
+   "soundex": "N210",
+   "metaphone": "NSB",
+   "nysiis": "NSुYW'B́",
+   "codex": null
+  },
+  {
+   "id": 54,
+   "word": "BéźnEHnGk",
+   "soundex": "B255",
+   "metaphone": "BSNNKK",
+   "nysiis": "BÉŹNANGC",
+   "codex": null
+  },
+  {
+   "id": 55,
+   "word": "éTkYcyc",
+   "soundex": "E322",
+   "metaphone": "ETKSK",
+   "nysiis": "ÉTCYCYC",
+   "codex": null
+  },
+  {
+   "id": 56,
+   "word": "SD D'TÖo😀😀",
+   "soundex": "S333",
+   "metaphone": "ST TT",
+   "nysiis": "SD D'TÖA😀",
+   "codex": null
+  },
+  {
+   "id": 57,
+   "word": "́otWcCSAyb",
+   "soundex": "́321",
+   "metaphone": "TKKSB",
+   "nysiis": "́ATWCSAYB",
+   "codex": null
+  },
+  {
+   "id": 58,
+   "word": "cुHBt",
+   "soundex": "C130",
+   "metaphone": "KHBT",
+   "nysiis": "CुBT",
+   "codex": "CुHHBT"
+  },
+  {
+   "id": 59,
+   "word": "ET",
+   "soundex": "E300",
+   "metaphone": "ET",
+   "nysiis": "ET",
+   "codex": "ET"
+  },
+  {
+   "id": 60,
+   "word": "neEzyुddc",
+   "soundex": "N232",
+   "metaphone": "NSTK",
+   "nysiis": "NASYुDC",
+   "codex": "NZYुDC"
+  },
+  {
+   "id": 61,
+   "word": "-Ke-",
+   "soundex": "-200",
+   "metaphone": "K",
+   "nysiis": "-CA-",
+   "codex": null
+  },
+  {
+   "id": 62,
+   "word": "GE",
+   "soundex": "G000",
+   "metaphone": "J",
+   "nysiis": "G",
+   "codex": "G"
+  },
+  {
+   "id": 63,
+   "word": "HKGNé",
+   "soundex": "H250",
+   "metaphone": "HKKN",
+   "nysiis": "HCGNÉ",
+   "codex": "HKGNÉ"
+  },
+  {
+   "id": 64,
+   "word": "́😀t'H",
+   "soundex": "́300",
+   "metaphone": "TH",
+   "nysiis": "́😀T'",
+   "codex": null
+  },
+  {
+   "id": 65,
+   "word": "́bु",
+   "soundex": "́100",
+   "metaphone": "B",
+   "nysiis": "́Bु",
+   "codex": null
+  },
+  {
+   "id": 66,
+   "word": "aı",
+   "soundex": "A000",
+   "metaphone": "A",
+   "nysiis": "A",
+   "codex": "A"
+  },
+  {
+   "id": 67,
+   "word": "CıéyiW",
+   "soundex": "C000",
+   "metaphone": "SY",
+   "nysiis": "CAÉYAI",
+   "codex": "CÉYW"
+  },
+  {
+   "id": 68,
+   "word": "ıS",
+   "soundex": "I200",
+   "metaphone": "IS",
+   "nysiis": "I",
+   "codex": "IS"
+  },
+  {
+   "id": 69,
+   "word": "Ⅻi",
+   "soundex": "X000",
+   "metaphone": "S",
+   "nysiis": "Ⅻ",
+   "codex": "Ⅻ"
+  },
+  {
+   "id": 70,
+   "word": "z*ुyg",
+   "soundex": "Z200",
+   "metaphone": "SK",
+   "nysiis": "Z*ुYG",
+   "codex": null
+  },
+  {
+   "id": 71,
+   "word": "NC*😀ctÖुT",
+   "soundex": "N223",
+   "metaphone": "NKKTT",
+   "nysiis": "NC*😀CTÖुT",
+   "codex": null
+  },
+  {
+   "id": 72,
+   "word": "CthBWDC",
+   "soundex": "C313",
+   "metaphone": "K0BTK",
+   "nysiis": "CTBWDC",
+   "codex": "CTHWDC"
+  },
+  {
+   "id": 73,
+   "word": "*bE",
+   "soundex": "*100",
+   "metaphone": "B",
+   "nysiis": "*B",
+   "codex": null
+  },
+  {
+   "id": 74,
+   "word": "wGw'**Ẃ",
+   "soundex": "W200",
+   "metaphone": "K",
+   "nysiis": "WGW'*Ẃ",
+   "codex": null
+  },
+  {
+   "id": 75,
+   "word": "hTıaDुANrt",
+   "soundex": "H335",
+   "metaphone": "HXTNRT",
+   "nysiis": "HTADुAND",
+   "codex": "HTDNRT"
+  },
+  {
+   "id": 76,
+   "word": "dⅫ́Ⅻ",
+   "soundex": "D220",
+   "metaphone": "TKSKS",
+   "nysiis": "DⅫ́Ⅻ",
+   "codex": null
+  },
+  {
+   "id": 77,
+   "word": "WDaß",
+   "soundex": "W320",
+   "metaphone": "TS",
+   "nysiis": "WD",
+   "codex": "WDS"
+  },
+  {
+   "id": 78,
+   "word": "CeYaु",
+   "soundex": "C000",
+   "metaphone": "SY",
+   "nysiis": "CAYAु",
+   "codex": "CYAु"
+  },
+  {
+   "id": 79,
+   "word": "d",
+   "soundex": "D000",
+   "metaphone": "T",
+   "nysiis": "D",
+   "codex": "D"
+  },
+  {
+   "id": 80,
+   "word": "S'ⅫsुhⅫN😀",
+   "soundex": "S222",
+   "metaphone": "SKSSHKSN",
+   "nysiis": "S'ⅫSुⅫN😀",
+   "codex": null
+  },
+  {
+   "id": 81,
+   "word": "GW",
+   "soundex": "G000",
+   "metaphone": "K",
+   "nysiis": "GW",
+   "codex": "GW"
+  },
+  {
+   "id": 82,
+   "word": "ÖGGyĆSbⅫh",
+   "soundex": "O222",
+   "metaphone": "OJKSBKS",
+   "nysiis": "ÖGYĆSBⅫ",
+   "codex": null
+  },
+  {
+   "id": 83,
+   "word": "wAsÖNKoz",
+   "soundex": "W252",
+   "metaphone": "WSNKS",
+   "nysiis": "WASÖNC",
+   "codex": "WSÖNKZ"
+  },
+  {
+   "id": 84,
+   "word": "tcNoarWNAc",
+   "soundex": "T256",
+   "metaphone": "TKNRNK",
+   "nysiis": "TCNARWNAC",
+   "codex": "TCNWNC"
+  },
+  {
+   "id": 85,
+   "word": "Sı́DEAdd",
+   "soundex": "S330",
+   "metaphone": "STT",
+   "nysiis": "SÍDAD",
+   "codex": null
+  },
+  {
+   "id": 86,
+   "word": "éḰß",
+   "soundex": "E220",
+   "metaphone": "EKS",
+   "nysiis": "ÉḰ",
+   "codex": null
+  },
+  {
+   "id": 87,
+   "word": "'iswCkrY",
+   "soundex": "'260",
+   "metaphone": "SKR",
+   "nysiis": "'ASWCRY",
+   "codex": null
+  },
+  {
+   "id": 88,
+   "word": "wßﬁwy 😀Ⅻsb",
+   "soundex": "W212",
+   "metaphone": "SF KSSB",
+   "nysiis": "WSFAIY 😀ⅫSB",
+   "codex": null
+  },
+  {
+   "id": 89,
+   "word": "aुÖrⅫß",
+   "soundex": "A622",
+   "metaphone": "ARKSS",
+   "nysiis": "AुÖRⅫ",
+   "codex": "AुÖRⅫS"
+  },
+  {
+   "id": 90,
+   "word": "ßTeDbNsk",
+   "soundex": "S331",
+   "metaphone": "STTBNSK",
+   "nysiis": "STADBNSC",
+   "codex": "STDNSK"
+  },
+  {
+   "id": 91,
+   "word": "a",
+   "soundex": "A000",
+   "metaphone": "A",
+   "nysiis": "A",
+   "codex": "A"
+  },
+  {
+   "id": 92,
+   "word": "Ac'uhı",
+   "soundex": "A200",
+   "metaphone": "AKH",
+   "nysiis": "AC'AH",
+   "codex": null
+  },
+  {
+   "id": 93,
+   "word": "SESsyoEnN",
+   "soundex": "S250",
+   "metaphone": "SSYN",
+   "nysiis": "SASYAN",
+   "codex": "SSYN"
+  },
+  {
+   "id": 94,
+   "word": "ﬁA",
+   "soundex": "F000",
+   "metaphone": "F",
+   "nysiis": "F",
+   "codex": "F"
+  },
+  {
+   "id": 95,
+   "word": "Ör",
+   "soundex": "O600",
+   "metaphone": "OR",
+   "nysiis": "ÖR",
+   "codex": "ÖR"
+  },
+  {
+   "id": 96,
+   "word": "*Doßne'ǵW",
+   "soundex": "*325",
+   "metaphone": "TSNK",
+   "nysiis": "*DASNA'ǴW",
+   "codex": null
+  },
+  {
+   "id": 97,
+   "word": "́",
+   "soundex": "́000",
+   "metaphone": "",
+   "nysiis": "́",
+   "codex": null
+  },
+  {
+   "id": 98,
+   "word": "a😀idEz",
+   "soundex": "A320",
+   "metaphone": "ATS",
+   "nysiis": "A😀AD",
+   "codex": null
+  },
+  {
+   "id": 99,
+   "word": "WGBs",
+   "soundex": "W212",
+   "metaphone": "KBS",
+   "nysiis": "WGB",
+   "codex": "WGBS"
+  },
+  {
+   "id": 100,
+   "word": "WaNh́*S",
+   "soundex": "W520",
+   "metaphone": "WNHS",
+   "nysiis": "WANH́*",
+   "codex": null
+  },
+  {
+   "id": 101,
+   "word": "kﬁh 😀EYYı*",
+   "soundex": "K100",
+   "metaphone": "KF Y",
+   "nysiis": "CFA 😀AYA*",
+   "codex": null
+  },
+  {
+   "id": 102,
+   "word": "KnKW '",
+   "soundex": "K520",
+   "metaphone": "NK ",
+   "nysiis": "NCW '",
+   "codex": null
+  },
+  {
+   "id": 103,
+   "word": " Ö",
+   "soundex": " 000",
+   "metaphone": "O",
+   "nysiis": " Ö",
+   "codex": " Ö"
+  },
+  {
+   "id": 104,
+   "word": "wnKydBN😀z",
+   "soundex": "W523",
+   "metaphone": "NKTBNS",
+   "nysiis": "WNCYDBN😀",
+   "codex": null
+  },
+  {
+   "id": 105,
+   "word": "bıßcK*",
+   "soundex": "B200",
+   "metaphone": "BSK",
+   "nysiis": "BASC*",
+   "codex": null
+  },
+  {
+   "id": 106,
+   "word": "😀yA-",
+   "soundex": "😀000",
+   "metaphone": "Y",
+   "nysiis": "😀YA-",
+   "codex": null
+  },
+  {
+   "id": 107,
+   "word": "ihgHK KⅫ",
+   "soundex": "I220",
+   "metaphone": "IK KKS",
+   "nysiis": "IAGC CⅫ",
+   "codex": "IHG KⅫ"
+  },
+  {
+   "id": 108,
+   "word": "SwE'aYé",
+   "soundex": "S000",
+   "metaphone": "SWY",
+   "nysiis": "SWA'AYÉ",
+   "codex": null
+  },
+  {
+   "id": 109,
+   "word": "a*éNrN",
+   "soundex": "A565",
+   "metaphone": "ANRN",
+   "nysiis": "A*ÉNRN",
+   "codex": null
+  },
+  {
+   "id": 110,
+   "word": "WDHdC*yNGW",
+   "soundex": "W325",
+   "metaphone": "THTKNK",
+   "nysiis": "WDC*YNGW",
+   "codex": null
+  },
+  {
+   "id": 111,
+   "word": "ÖßﬁtY",
+   "soundex": "O213",
+   "metaphone": "OSFT",
+   "nysiis": "ÖSFATY",
+   "codex": "ÖSFTY"
+  },
+  {
+   "id": 112,
+   "word": "ykßaAwHzु",
+   "soundex": "Y220",
+   "metaphone": "KSHS",
+   "nysiis": "YCSAWZु",
+   "codex": "YKSHZु"
+  },
+  {
+   "id": 113,
+   "word": "Ts-nSs",
+   "soundex": "T252",
+   "metaphone": "TSNS",
+   "nysiis": "TS-N",
+   "codex": null
+  },
+  {
+   "id": 114,
+   "word": "aNwrkwuH-",
+   "soundex": "A562",
+   "metaphone": "ANRKW",
+   "nysiis": "ANWRCWA-",
+   "codex": null
+  },
+  {
+   "id": 115,
+   "word": "aédkh",
+   "soundex": "A320",
+   "metaphone": "ATKH",
+   "nysiis": "AÉDCK",
+   "codex": "AÉDKH"
+  },
+  {
+   "id": 116,
+   "word": "C",
+   "soundex": "C000",
+   "metaphone": "K",
+   "nysiis": "C",
+   "codex": "C"
+  },
+  {
+   "id": 117,
+   "word": "Cwb*e",
+   "soundex": "C100",
+   "metaphone": "KB",
+   "nysiis": "CWB*",
+   "codex": null
+  },
+  {
+   "id": 118,
+   "word": "oﬁुé",
+   "soundex": "O100",
+   "metaphone": "OF",
+   "nysiis": "OFIुÉ",
+   "codex": "OFIIुÉ"
+  },
+  {
+   "id": 119,
+   "word": "'' Ⅻु-BBtg",
+   "soundex": "'213",
+   "metaphone": "KSBTK",
+   "nysiis": "' Ⅻु-BTG",
+   "codex": null
+  },
+  {
+   "id": 120,
+   "word": "gE",
+   "soundex": "G000",
+   "metaphone": "J",
+   "nysiis": "G",
+   "codex": "G"
+  },
+  {
+   "id": 121,
+   "word": "Tuk😀rn-yrı",
+   "soundex": "T265",
+   "metaphone": "TKRNR",
+   "nysiis": "TAC😀RN-YR",
+   "codex": null
+  },
+  {
+   "id": 122,
+   "word": "kÖﬁi",
+   "soundex": "K100",
+   "metaphone": "KF",
+   "nysiis": "CÖF",
+   "codex": "KÖF"
+  },
+  {
+   "id": 123,
+   "word": "DA*d",
+   "soundex": "D300",
+   "metaphone": "TT",
+   "nysiis": "DA*D",
+   "codex": null
+  },
+  {
+   "id": 124,
+   "word": "cwiﬁBı-cb",
+   "soundex": "C112",
+   "metaphone": "KWFBKB",
+   "nysiis": "CWAFABA-CB",
+   "codex": null
+  },
+  {
+   "id": 125,
+   "word": "ı",
+   "soundex": "I000",
+   "metaphone": "I",
+   "nysiis": "I",
+   "codex": "I"
+  },
+  {
+   "id": 126,
+   "word": "ßeeSy",
+   "soundex": "S200",
+   "metaphone": "SS",
+   "nysiis": "SASY",
+   "codex": "SSY"
+  },
+  {
+   "id": 127,
+   "word": "kT",
+   "soundex": "K300",
+   "metaphone": "KT",
+   "nysiis": "CT",
+   "codex": "KT"
+  },
+  {
+   "id": 128,
+   "word": "ु",
+   "soundex": "ु000",
+   "metaphone": "",
+   "nysiis": "ु",
+   "codex": "ु"
+  },
+  {
+   "id": 129,
+   "word": "*sw",
+   "soundex": "*200",
+   "metaphone": "S",
+   "nysiis": "*SW",
+   "codex": null
+  },
+  {
+   "id": 130,
+   "word": "ⅫEs*arrKNo",
+   "soundex": "X262",
+   "metaphone": "SSRKN",
+   "nysiis": "ⅫAS*ARN",
+   "codex": null
+  },
+  {
+   "id": 131,
+   "word": "uHGAd😀",
+   "soundex": "U230",
+   "metaphone": "UKT",
+   "nysiis": "UAGAD😀",
+   "codex": null
+  },
+  {
+   "id": 132,
+   "word": "NrNhN",
+   "soundex": "N650",
+   "metaphone": "NRNHN",
+   "nysiis": "NRN",
+   "codex": "NRNHN"
+  },
+  {
+   "id": 133,
+   "word": "yoDﬁwe",
+   "soundex": "Y310",
+   "metaphone": "YTFW",
+   "nysiis": "YADFAI",
+   "codex": "YDFW"
+  },
+  {
+   "id": 134,
+   "word": "u benwTGt😀",
+   "soundex": "U153",
+   "metaphone": "U BNTKT",
+   "nysiis": "U BANWTGT😀",
+   "codex": null
+  },
+  {
+   "id": 135,
+   "word": "r😀 HSk-",
+   "soundex": "R200",
+   "metaphone": "R HSK",
+   "nysiis": "R😀 SC-",
+   "codex": null
+  },
+  {
+   "id": 136,
+   "word": "GgnsßGB",
+   "soundex": "G521",
+   "metaphone": "KNSKB",
+   "nysiis": "GNSGB",
+   "codex": "GNSGB"
+  },
+  {
+   "id": 137,
+   "word": "́ds",
+   "soundex": "́320",
+   "metaphone": "TS",
+   "nysiis": "́D",
+   "codex": null
+  },
+  {
+   "id": 138,
+   "word": "hDuyⅫzK",
+   "soundex": "H322",
+   "metaphone": "HTKSSK",
+   "nysiis": "HDAYⅫSC",
+   "codex": "HDYⅫZK"
+  },
+  {
+   "id": 139,
+   "word": "i",
+   "soundex": "I000",
+   "metaphone": "I",
+   "nysiis": "I",
+   "codex": "I"
+  },
+  {
+   "id": 140,
+   "word": "hétWSYooDs",
+   "soundex": "H323",
+   "metaphone": "HTSYTS",
+   "nysiis": "HÉTWSYAD",
+   "codex": "HÉTYDS"
+  },
+  {
+   "id": 141,
+   "word": "urⅫÖe",
+   "soundex": "U620",
+   "metaphone": "URKS",
+   "nysiis": "URⅫÖ",
+   "codex": "URⅫRⅫÖ"
+  },
+  {
+   "id": 142,
+   "word": "DsBHıe",
+   "soundex": "D210",
+   "metaphone": "TSBH",
+   "nysiis": "DSBY",
+   "codex": "DSBH"
+  },
+  {
+   "id": 143,
+   "word": "ⅫtwwYEo😀",
+   "soundex": "X300",
+   "metaphone": "STY",
+   "nysiis": "ⅫTWYA😀",
+   "codex": null
+  },
+  {
+   "id": 144,
+   "word": "yy😀😀e",
+   "soundex": "Y000",
+   "metaphone": "",
+   "nysiis": "Y😀",
+   "codex": null
+  },
+  {
+   "id": 145,
+   "word": "dı NNb*z'",
+   "soundex": "D512",
+   "metaphone": "T NBS",
+   "nysiis": "DA NB*S'",
+   "codex": null
+  },
+  {
+   "id": 146,
+   "word": "wrid",
+   "soundex": "W630",
+   "metaphone": "RT",
+   "nysiis": "WRAD",
+   "codex": "WRD"
+  },
+  {
+   "id": 147,
+   "word": "cßgah",
+   "soundex": "C000",
+   "metaphone": "KSK",
+   "nysiis": "CSG",
+   "codex": "CSGH"
+  },
+  {
+   "id": 148,
+   "word": "uz",
+   "soundex": "U200",
+   "metaphone": "US",
+   "nysiis": "U",
+   "codex": "UZ"
+  },
+  {
+   "id": 149,
+   "word": "ﬁ",
+   "soundex": "F000",
+   "metaphone": "F",
+   "nysiis": "F",
+   "codex": "F"
+  },
+  {
+   "id": 150,
+   "word": "cCahNH",
+   "soundex": "C500",
+   "metaphone": "KKNH",
+   "nysiis": "CAN",
+   "codex": "CHNH"
+  },
+  {
+   "id": 151,
+   "word": "S",
+   "soundex": "S000",
+   "metaphone": "S",
+   "nysiis": "S",
+   "codex": "S"
+  },
+  {
+   "id": 152,
+   "word": "BYy",
+   "soundex": "B000",
+   "metaphone": "B",
+   "nysiis": "BY",
+   "codex": "BY"
+  },
+  {
+   "id": 153,
+   "word": "diKYHeGKo",
+   "soundex": "D220",
+   "metaphone": "TKHKK",
+   "nysiis": "DACYAGC",
+   "codex": "DKYHGK"
+  },
+  {
+   "id": 154,
+   "word": "TG**E-́gE",
+   "soundex": "T220",
+   "metaphone": "TKJ",
+   "nysiis": "TG*A-́G",
+   "codex": null
+  },
+  {
+   "id": 155,
+   "word": "b",
+   "soundex": "B000",
+   "metaphone": "B",
+   "nysiis": "B",
+   "codex": "B"
+  },
+  {
+   "id": 156,
+   "word": "dAhGुgbe",
+   "soundex": "D221",
+   "metaphone": "TKKB",
+   "nysiis": "DAGुGB",
+   "codex": "DHGुGB"
+  },
+  {
+   "id": 157,
+   "word": "WaTcBBc",
+   "soundex": "W321",
+   "metaphone": "WTKBK",
+   "nysiis": "WATCBC",
+   "codex": "WTCBC"
+  },
+  {
+   "id": 158,
+   "word": "z😀kb",
+   "soundex": "Z210",
+   "metaphone": "SKB",
+   "nysiis": "Z😀CB",
+   "codex": null
+  },
+  {
+   "id": 159,
+   "word": "*bcyo",
+   "soundex": "*120",
+   "metaphone": "BS",
+   "nysiis": "*BCY",
+   "codex": null
+  },
+  {
+   "id": 160,
+   "word": "😀ßkD",
+   "soundex": "😀230",
+   "metaphone": "SKT",
+   "nysiis": "😀SCD",
+   "codex": null
+  },
+  {
+   "id": 161,
+   "word": "wyAaHigßY",
+   "soundex": "W200",
+   "metaphone": "YHKS",
+   "nysiis": "WYAHAGSY",
+   "codex": "WYHGSY"
+  },
+  {
+   "id": 162,
+   "word": "ḱBGnyﬁH",
+   "soundex": "K125",
+   "metaphone": "KBKNF",
+   "nysiis": "CBGNYF",
+   "codex": null
+  },
+  {
+   "id": 163,
+   "word": "EıT",
+   "soundex": "E300",
+   "metaphone": "ET",
+   "nysiis": "EAT",
+   "codex": "ET"
+  },
+  {
+   "id": 164,
+   "word": "k*́wıyßw't",
+   "soundex": "K230",
+   "metaphone": "KWST",
+   "nysiis": "C*́WAYSW'T",
+   "codex": null
+  },
+  {
+   "id": 165,
+   "word": "o-'*e😀Th",
+   "soundex": "O300",
+   "metaphone": "O0",
+   "nysiis": "O-'*A😀T",
+   "codex": null
+  },
+  {
+   "id": 166,
+   "word": "o😀Ad́",
+   "soundex": "O300",
+   "metaphone": "OT",
+   "nysiis": "O😀AD́",
+   "codex": null
+  },
+  {
+   "id": 167,
+   "word": "eﬁacNkE'",
+   "soundex": "E125",
+   "metaphone": "EFKNK",
+   "nysiis": "EFACNCA'",
+   "codex": null
+  },
+  {
+   "id": 168,
+   "word": "Nुr",
+   "soundex": "N600",
+   "metaphone": "NR",
+   "nysiis": "NुR",
+   "codex": "NुR"
+  },
+  {
+   "id": 169,
+   "word": "Ö",
+   "soundex": "O000",
+   "metaphone": "O",
+   "nysiis": "Ö",
+   "codex": "Ö"
+  },
+  {
+   "id": 170,
+   "word": "g*KéÖ😀ÖA",
+   "soundex": "G200",
+   "metaphone": "KK",
+   "nysiis": "G*CÉÖ😀Ö",
+   "codex": null
+  },
+  {
+   "id": 171,
+   "word": "Hkek*ÖAa",
+   "soundex": "H220",
+   "metaphone": "HKK",
+   "nysiis": "HCAC*Ö",
+   "codex": null
+  },
+  {
+   "id": 172,
+   "word": "'",
+   "soundex": "'000",
+   "metaphone": "",
+   "nysiis": "'",
+   "codex": null
+  },
+  {
+   "id": 173,
+   "word": "'",
+   "soundex": "'000",
+   "metaphone": "",
+   "nysiis": "'",
+   "codex": null
+  },
+  {
+   "id": 174,
+   "word": "Ⅻ*A* ",
+   "soundex": "X000",
+   "metaphone": "S ",
+   "nysiis": "Ⅻ*A* ",
+   "codex": null
+  },
+  {
+   "id": 175,
+   "word": "túWY",
+   "soundex": "T000",
+   "metaphone": "T",
+   "nysiis": "TÚWY",
+   "codex": null
+  },
+  {
+   "id": 176,
+   "word": "'i-ßÖⅫeBß",
+   "soundex": "'221",
+   "metaphone": "SKSBS",
+   "nysiis": "'A-SÖⅫAB",
+   "codex": null
+  },
+  {
+   "id": 177,
+   "word": "AHﬁHDh'",
+   "soundex": "A130",
+   "metaphone": "AFTH",
+   "nysiis": "AFAD'",
+   "codex": null
+  },
+  {
+   "id": 178,
+   "word": "butﬁB",
+   "soundex": "B311",
+   "metaphone": "BTFB",
+   "nysiis": "BATFAB",
+   "codex": "BTFB"
+  },
+  {
+   "id": 179,
+   "word": "réh-*bDYB",
+   "soundex": "R131",
+   "metaphone": "RHBTB",
+   "nysiis": "RÉ-*BDYB",
+   "codex": null
+  },
+  {
+   "id": 180,
+   "word": "uⅫﬁ-Y",
+   "soundex": "U210",
+   "metaphone": "UKSF",
+   "nysiis": "UⅫFA-Y",
+   "codex": null
+  },
+  {
+   "id": 181,
+   "word": "BEÖG",
+   "soundex": "B200",
+   "metaphone": "BK",
+   "nysiis": "BAÖG",
+   "codex": "BÖG"
+  },
+  {
+   "id": 182,
+   "word": "nt TGy😀y",
+   "soundex": "N332",
+   "metaphone": "NT TJ",
+   "nysiis": "NT TGY😀Y",
+   "codex": null
+  },
+  {
+   "id": 183,
+   "word": "K😀u😀ßⅫcs",
+   "soundex": "K220",
+   "metaphone": "KSKSKS",
+   "nysiis": "C😀A😀SⅫC",
+   "codex": null
+  },
+  {
+   "id": 184,
+   "word": "GÖhNु",
+   "soundex": "G500",
+   "metaphone": "KHN",
+   "nysiis": "GÖNु",
+   "codex": "GÖHHNु"
+  },
+  {
+   "id": 185,
+   "word": "bhNgn",
+   "soundex": "B525",
+   "metaphone": "BHN",
+   "nysiis": "BNGN",
+   "codex": "BHNGN"
+  },
+  {
+   "id": 186,
+   "word": "*EiHT",
+   "soundex": "*300",
+   "metaphone": "T",
+   "nysiis": "*AT",
+   "codex": null
+  },
+  {
+   "id": 187,
+   "word": "ED'y",
+   "soundex": "E300",
+   "metaphone": "ET",
+   "nysiis": "ED'Y",
+   "codex": null
+  },
+  {
+   "id": 188,
+   "word": "i😀HéYुıCe",
+   "soundex": "I200",
+   "metaphone": "IHS",
+   "nysiis": "I😀ÉYुAC",
+   "codex": null
+  },
+  {
+   "id": 189,
+   "word": "nHsEⅫu",
+   "soundex": "N220",
+   "metaphone": "NHSKS",
+   "nysiis": "NSAⅫ",
+   "codex": "NHSⅫ"
+  },
+  {
+   "id": 190,
+   "word": "cDA",
+   "soundex": "C300",
+   "metaphone": "KT",
+   "nysiis": "CD",
+   "codex": "CD"
+  },
+  {
+   "id": 191,
+   "word": "o ß ńDB",
+   "soundex": "O253",
+   "metaphone": "O S NTB",
+   "nysiis": "O S ŃDB",
+   "codex": null
+  },
+  {
+   "id": 192,
+   "word": "Ö",
+   "soundex": "O000",
+   "metaphone": "O",
+   "nysiis": "Ö",
+   "codex": "Ö"
+  },
+  {
+   "id": 193,
+   "word": "yrⅫzzu",
+   "soundex": "Y622",
+   "metaphone": "RKSS",
+   "nysiis": "YRⅫS",
+   "codex": "YRⅫZ"
+  },
+  {
+   "id": 194,
+   "word": "bYA",
+   "soundex": "B000",
+   "metaphone": "BY",
+   "nysiis": "BY",
+   "codex": "BY"
+  },
+  {
+   "id": 195,
+   "word": "́ÖhGgHik",
+   "soundex": "́220",
+   "metaphone": "HKHK",
+   "nysiis": "́ÖGAC",
+   "codex": null
+  },
+  {
+   "id": 196,
+   "word": "D*ySKıGKg",
+   "soundex": "D220",
+   "metaphone": "TSKKKK",
+   "nysiis": "D*YSCAGCG",
+   "codex": null
+  },
+  {
+   "id": 197,
+   "word": "eaASD'a",
+   "soundex": "E230",
+   "metaphone": "EST",
+   "nysiis": "EASD'",
+   "codex": null
+  },
+  {
+   "id": 198,
+   "word": "éH*bbhaB",
+   "soundex": "E110",
+   "metaphone": "EHBHB",
+   "nysiis": "É*BAB",
+   "codex": null
+  },
+  {
+   "id": 199,
+   "word": " AcK😀ttio",
+   "soundex": " 230",
+   "metaphone": "AKX",
+   "nysiis": " AC😀T",
+   "codex": null
+  },
+  {
+   "id": 200,
+   "word": "TC",
+   "soundex": "T200",
+   "metaphone": "TK",
+   "nysiis": "TC",
+   "codex": "TC"
+  },
+  {
+   "id": 201,
+   "word": "SkÖ*a",
+   "soundex": "S000",
+   "metaphone": "SK",
+   "nysiis": "SCÖ*",
+   "codex": null
+  },
+  {
+   "id": 202,
+   "word": "z",
+   "soundex": "Z000",
+   "metaphone": "S",
+   "nysiis": "Z",
+   "codex": "Z"
+  },
+  {
+   "id": 203,
+   "word": "ınE",
+   "soundex": "I500",
+   "metaphone": "IN",
+   "nysiis": "IN",
+   "codex": "IN"
+  },
+  {
+   "id": 204,
+   "word": "abßNु",
+   "soundex": "A125",
+   "metaphone": "ABSN",
+   "nysiis": "ABSNु",
+   "codex": "ABSSNु"
+  },
+  {
+   "id": 205,
+   "word": "c",
+   "soundex": "C000",
+   "metaphone": "K",
+   "nysiis": "C",
+   "codex": "C"
+  },
+  {
+   "id": 206,
+   "word": "aNgAYeTYK",
+   "soundex": "A523",
+   "metaphone": "ANKYTK",
+   "nysiis": "ANGAYATYC",
+   "codex": "ANGTYK"
+  },
+  {
+   "id": 207,
+   "word": "skwnCY",
+   "soundex": "S520",
+   "metaphone": "SKNS",
+   "nysiis": "SCWNCY",
+   "codex": "SKWNCY"
+  },
+  {
+   "id": 208,
+   "word": "́iHkCrkb'",
+   "soundex": "́262",
+   "metaphone": "KKRKB",
+   "nysiis": "́ACRCB'",
+   "codex": null
+  },
+  {
+   "id": 209,
+   "word": "gY",
+   "soundex": "G000",
+   "metaphone": "J",
+   "nysiis": "GY",
+   "codex": "GY"
+  },
+  {
+   "id": 210,
+   "word": "BYÖerrN",
+   "soundex": "B650",
+   "metaphone": "BYRN",
+   "nysiis": "BYÖARN",
+   "codex": "BYÖRN"
+  },
+  {
+   "id": 211,
+   "word": "Ab",
+   "soundex": "A100",
+   "metaphone": "AB",
+   "nysiis": "AB",
+   "codex": "AB"
+  },
+  {
+   "id": 212,
+   "word": "ßhun",
+   "soundex": "S500",
+   "metaphone": "XN",
+   "nysiis": "SAN",
+   "codex": "SHN"
+  },
+  {
+   "id": 213,
+   "word": "ywCew ÖoⅫu",
+   "soundex": "Y220",
+   "metaphone": "S OKS",
+   "nysiis": "YWCAE ÖAⅫ",
+   "codex": "YWC ÖⅫ"
+  },
+  {
+   "id": 214,
+   "word": "ue",
+   "soundex": "U000",
+   "metaphone": "U",
+   "nysiis": "U",
+   "codex": "U"
+  },
+  {
+   "id": 215,
+   "word": "ÖHुcw",
+   "soundex": "O200",
+   "metaphone": "OHK",
+   "nysiis": "ÖHुCW",
+   "codex": "ÖHुुCW"
+  },
+  {
+   "id": 216,
+   "word": "rBdnHu",
+   "soundex": "R135",
+   "metaphone": "RBTNH",
+   "nysiis": "RBDN",
+   "codex": "RBDNH"
+  },
+  {
+   "id": 217,
+   "word": "ißrCiⅫyD",
+   "soundex": "I262",
+   "metaphone": "ISRSKST",
+   "nysiis": "ISRCAⅫYD",
+   "codex": "ISRⅫYD"
+  },
+  {
+   "id": 218,
+   "word": "N",
+   "soundex": "N000",
+   "metaphone": "N",
+   "nysiis": "N",
+   "codex": "N"
+  },
+  {
+   "id": 219,
+   "word": "😀ddCébWsk",
+   "soundex": "😀321",
+   "metaphone": "TSBSK",
+   "nysiis": "😀DCÉBWSC",
+   "codex": null
+  },
+  {
+   "id": 220,
+   "word": "zÖ́KK",
+   "soundex": "Z200",
+   "metaphone": "SK",
+   "nysiis": "ZÖ́C",
+   "codex": null
+  },
+  {
+   "id": 221,
+   "word": "iWE",
+   "soundex": "I000",
+   "metaphone": "IW",
+   "nysiis": "I",
+   "codex": "IW"
+  },
+  {
+   "id": 222,
+   "word": "KGßTzc-tw",
+   "soundex": "K323",
+   "metaphone": "KKSTSKT",
+   "nysiis": "CGSTSC-TW",
+   "codex": null
+  },
+  {
+   "id": 223,
+   "word": "sdi",
+   "soundex": "S300",
+   "metaphone": "ST",
+   "nysiis": "SD",
+   "codex": "SD"
+  },
+  {
+   "id": 224,
+   "word": "rnbAYiBd",
+   "soundex": "R511",
+   "metaphone": "RNBYBT",
+   "nysiis": "RNBAYABD",
+   "codex": "RNBYBD"
+  },
+  {
+   "id": 225,
+   "word": "KुⅫbAYew",
+   "soundex": "K210",
+   "metaphone": "KKSBY",
+   "nysiis": "CⅫBAYAE",
+   "codex": "KुⅫBYW"
+  },
+  {
+   "id": 226,
+   "word": "AtyY",
+   "soundex": "A300",
+   "metaphone": "AT",
+   "nysiis": "ATY",
+   "codex": "ATY"
+  },
+  {
+   "id": 227,
+   "word": "́Áa",
+   "soundex": "́000",
+   "metaphone": "",
+   "nysiis": "́Á",
+   "codex": null
+  },
+  {
+   "id": 228,
+   "word": "u😀",
+   "soundex": "U000",
+   "metaphone": "U",
+   "nysiis": "U😀",
+   "codex": null
+  },
+  {
+   "id": 229,
+   "word": "zhﬁi aSDCw",
+   "soundex": "Z123",
+   "metaphone": "SHF ASTK",
+   "nysiis": "ZFA ASDCW",
+   "codex": "ZHFDCW"
+  },
+  {
+   "id": 230,
+   "word": "EǴnEEWdwa",
+   "soundex": "E253",
+   "metaphone": "EKNTW",
+   "nysiis": "EǴNAEDW",
+   "codex": null
+  },
+  {
+   "id": 231,
+   "word": "éÖS",
+   "soundex": "E200",
+   "metaphone": "ES",
+   "nysiis": "ÉÖ",
+   "codex": "ÉÖS"
+  },
+  {
+   "id": 232,
+   "word": "AceygwwhT",
+   "soundex": "A223",
+   "metaphone": "ASKHT",
+   "nysiis": "ACAYGWT",
+   "codex": "ACYWHT"
+  },
+  {
+   "id": 233,
+   "word": "CÖⅫwbB😀😀n",
+   "soundex": "C215",
+   "metaphone": "KKSBN",
+   "nysiis": "CÖⅫWB😀N",
+   "codex": null
+  },
+  {
+   "id": 234,
+   "word": "zBEsk ",
+   "soundex": "Z120",
+   "metaphone": "SBSK ",
+   "nysiis": "ZBASC ",
+   "codex": "ZBSK "
+  },
+  {
+   "id": 235,
+   "word": "íı'uduG",
+   "soundex": "I320",
+   "metaphone": "ITK",
+   "nysiis": "ÍA'ADAG",
+   "codex": null
+  },
+  {
+   "id": 236,
+   "word": "*",
+   "soundex": "*000",
+   "metaphone": "",
+   "nysiis": "*",
+   "codex": null
+  },
+  {
+   "id": 237,
+   "word": "G😀YDhbgK",
+   "soundex": "G312",
+   "metaphone": "KTHBKK",
+   "nysiis": "G😀YDBGC",
+   "codex": null
+  },
+  {
+   "id": 238,
+   "word": "KDßbGﬁ",
+   "soundex": "K321",
+   "metaphone": "KTSBKF",
+   "nysiis": "CDSBGF",
+   "codex": "KDSBGF"
+  },
+  {
+   "id": 239,
+   "word": "okYCुNbbß",
+   "soundex": "O225",
+   "metaphone": "OKKNBS",
+   "nysiis": "OCYCुNB",
+   "codex": "OKYNBS"
+  },
+  {
+   "id": 240,
+   "word": "gcﬁy-os",
+   "soundex": "G120",
+   "metaphone": "KKFS",
+   "nysiis": "GCFAY-",
+   "codex": null
+  },
+  {
+   "id": 241,
+   "word": "BrKHit",
+   "soundex": "B623",
+   "metaphone": "BRKHT",
+   "nysiis": "BRCKAT",
+   "codex": "BRKHT"
+  },
+  {
+   "id": 242,
+   "word": "c",
+   "soundex": "C000",
+   "metaphone": "K",
+   "nysiis": "C",
+   "codex": "C"
+  },
+  {
+   "id": 243,
+   "word": "uु'H",
+   "soundex": "U000",
+   "metaphone": "UH",
+   "nysiis": "Uु'",
+   "codex": null
+  },
+  {
+   "id": 244,
+   "word": "-yıYBEı",
+   "soundex": "-100",
+   "metaphone": "YB",
+   "nysiis": "-YAYB",
+   "codex": null
+  },
+  {
+   "id": 245,
+   "word": "hNﬁr-",
+   "soundex": "H516",
+   "metaphone": "HNFR",
+   "nysiis": "HNFAR-",
+   "codex": null
+  },
+  {
+   "id": 246,
+   "word": "B",
+   "soundex": "B000",
+   "metaphone": "B",
+   "nysiis": "B",
+   "codex": "B"
+  },
+  {
+   "id": 247,
+   "word": "WBiSıⅫ ु",
+   "soundex": "W122",
+   "metaphone": "BSKS ",
+   "nysiis": "WBASAⅫ ु",
+   "codex": "WBSⅫ ु"
+  },
+  {
+   "id": 248,
+   "word": "aNÖ",
+   "soundex": "A500",
+   "metaphone": "AN",
+   "nysiis": "ANÖ",
+   "codex": "ANÖ"
+  },
+  {
+   "id": 249,
+   "word": "*heE aC",
+   "soundex": "*200",
+   "metaphone": "H AK",
+   "nysiis": "*A AC",
+   "codex": null
+  },
+  {
+   "id": 250,
+   "word": "oN",
+   "soundex": "O500",
+   "metaphone": "ON",
+   "nysiis": "ON",
+   "codex": "ON"
+  },
+  {
+   "id": 251,
+   "word": "'*",
+   "soundex": "'000",
+   "metaphone": "",
+   "nysiis": "'*",
+   "codex": null
+  },
+  {
+   "id": 252,
+   "word": "sß WDT😀",
+   "soundex": "S300",
+   "metaphone": "S TT",
+   "nysiis": "S WDT😀",
+   "codex": null
+  },
+  {
+   "id": 253,
+   "word": "AﬁctsTha",
+   "soundex": "A123",
+   "metaphone": "AFKTS0",
+   "nysiis": "AFACTST",
+   "codex": "AFCSTH"
+  },
+  {
+   "id": 254,
+   "word": "'ﬁKुıE",
+   "soundex": "'120",
+   "metaphone": "FK",
+   "nysiis": "'FAKुY",
+   "codex": null
+  },
+  {
+   "id": 255,
+   "word": "ﬁGß",
+   "soundex": "F200",
+   "metaphone": "FKS",
+   "nysiis": "FAG",
+   "codex": "FGS"
+  },
+  {
+   "id": 256,
+   "word": "e",
+   "soundex": "E000",
+   "metaphone": "E",
+   "nysiis": "E",
+   "codex": "E"
+  },
+  {
+   "id": 257,
+   "word": "g",
+   "soundex": "G000",
+   "metaphone": "K",
+   "nysiis": "G",
+   "codex": "G"
+  },
+  {
+   "id": 258,
+   "word": "géAd",
+   "soundex": "G300",
+   "metaphone": "JT",
+   "nysiis": "GÉAD",
+   "codex": "GÉD"
+  },
+  {
+   "id": 259,
+   "word": "-y",
+   "soundex": "-000",
+   "metaphone": "",
+   "nysiis": "-Y",
+   "codex": null
+  },
+  {
+   "id": 260,
+   "word": "SsुEtY",
+   "soundex": "S300",
+   "metaphone": "ST",
+   "nysiis": "SSुATY",
+   "codex": "SSुुTY"
+  },
+  {
+   "id": 261,
+   "word": "ẂyAz'",
+   "soundex": "W200",
+   "metaphone": "YS",
+   "nysiis": "ẂYAS'",
+   "codex": null
+  },
+  {
+   "id": 262,
+   "word": "ßß-acuTC",
+   "soundex": "S232",
+   "metaphone": "SKTK",
+   "nysiis": "S-ACATC",
+   "codex": null
+  },
+  {
+   "id": 263,
+   "word": "Kु ızSB ",
+   "soundex": "K210",
+   "metaphone": "K ISSB ",
+   "nysiis": "C ASB ",
+   "codex": "Kु SB "
+  },
+  {
+   "id": 264,
+   "word": "W",
+   "soundex": "W000",
+   "metaphone": "",
+   "nysiis": "W",
+   "codex": "W"
+  },
+  {
+   "id": 265,
+   "word": "s",
+   "soundex": "S000",
+   "metaphone": "S",
+   "nysiis": "S",
+   "codex": "S"
+  },
+  {
+   "id": 266,
+   "word": "AA*uzg'*Ö",
+   "soundex": "A200",
+   "metaphone": "SK",
+   "nysiis": "A*ASG'*Ö",
+   "codex": null
+  },
+  {
+   "id": 267,
+   "word": "tté",
+   "soundex": "T000",
+   "metaphone": "T",
+   "nysiis": "TÉ",
+   "codex": "TÉ"
+  },
+  {
+   "id": 268,
+   "word": "gHA",
+   "soundex": "G000",
+   "metaphone": "KH",
+   "nysiis": "G",
+   "codex": "GH"
+  },
+  {
+   "id": 269,
+   "word": "ﬁti😀H",
+   "soundex": "F300",
+   "metaphone": "FTH",
+   "nysiis": "FATA😀",
+   "codex": null
+  },
+  {
+   "id": 270,
+   "word": "ßtaz",
+   "soundex": "S320",
+   "metaphone": "STS",
+   "nysiis": "ST",
+   "codex": "STZ"
+  },
+  {
+   "id": 271,
+   "word": "ßı",
+   "soundex": "S000",
+   "metaphone": "S",
+   "nysiis": "S",
+   "codex": "S"
+  },
+  {
+   "id": 272,
+   "word": "Ⅻn",
+   "soundex": "X500",
+   "metaphone": "SN",
+   "nysiis": "ⅫN",
+   "codex": "ⅫN"
+  },
+  {
+   "id": 273,
+   "word": "yEA'CrGुo",
+   "soundex": "Y262",
+   "metaphone": "YKRK",
+   "nysiis": "YA'CRGु",
+   "codex": null
+  },
+  {
+   "id": 274,
+   "word": "o😀hKD*",
+   "soundex": "O230",
+   "metaphone": "OHKT",
+   "nysiis": "O😀CD*",
+   "codex": null
+  },
+  {
+   "id": 275,
+   "word": "Öo",
+   "soundex": "O000",
+   "metaphone": "O",
+   "nysiis": "Ö",
+   "codex": "Ö"
+  },
+  {
+   "id": 276,
+   "word": "g-iuıhⅫ",
+   "soundex": "G200",
+   "metaphone": "KKS",
+   "nysiis": "G-AⅫ",
+   "codex": null
+  },
+  {
+   "id": 277,
+   "word": "b",
+   "soundex": "B000",
+   "metaphone": "B",
+   "nysiis": "B",
+   "codex": "B"
+  },
+  {
+   "id": 278,
+   "word": "*ßn",
+   "soundex": "*250",
+   "metaphone": "SN",
+   "nysiis": "*SN",
+   "codex": null
+  },
+  {
+   "id": 279,
+   "word": "uoyuﬁES",
+   "soundex": "U120",
+   "metaphone": "UYFS",
+   "nysiis": "UAYAF",
+   "codex": "UYFS"
+  },
+  {
+   "id": 280,
+   "word": "t",
+   "soundex": "T000",
+   "metaphone": "T",
+   "nysiis": "T",
+   "codex": "T"
+  },
+  {
+   "id": 281,
+   "word": "AeﬁAhbsge",
+   "soundex": "A112",
+   "metaphone": "EFBSJ",
+   "nysiis": "AFABSG",
+   "codex": "AFHBSG"
+  },
+  {
+   "id": 282,
+   "word": "gHbhh",
+   "soundex": "G100",
+   "metaphone": "BH",
+   "nysiis": "GBH",
+   "codex": "GHBH"
+  },
+  {
+   "id": 283,
+   "word": "😀cSeadtd",
+   "soundex": "😀230",
+   "metaphone": "KSTTT",
+   "nysiis": "😀CSADTD",
+   "codex": null
+  },
+  {
+   "id": 284,
+   "word": "Aot -NHi",
+   "soundex": "A350",
+   "metaphone": "AT NH",
+   "nysiis": "AT -N",
+   "codex": null
+  },
+  {
+   "id": 285,
+   "word": "HC*AHT'ßc",
+   "soundex": "H232",
+   "metaphone": "HKTSK",
+   "nysiis": "HC*AT'SC",
+   "codex": null
+  },
+  {
+   "id": 286,
+   "word": "oıTwुDéK",
+   "soundex": "O332",
+   "metaphone": "OTTK",
+   "nysiis": "OATWुDÉC",
+   "codex": "OTWDÉK"
+  },
+  {
+   "id": 287,
+   "word": "ıTK* To",
+   "soundex": "I323",
+   "metaphone": "ITK T",
+   "nysiis": "ITC* T",
+   "codex": null
+  },
+  {
+   "id": 288,
+   "word": "EiWshsTcw",
+   "soundex": "E232",
+   "metaphone": "EXSTK",
+   "nysiis": "EAISTCW",
+   "codex": "EWSTCW"
+  },
+  {
+   "id": 289,
+   "word": "Ś😀ßTw'Et",
+   "soundex": "S233",
+   "metaphone": "SSTT",
+   "nysiis": "Ś😀STW'AT",
+   "codex": null
+  },
+  {
+   "id": 290,
+   "word": "ßA ",
+   "soundex": "S000",
+   "metaphone": "S ",
+   "nysiis": "SA ",
+   "codex": "S "
+  },
+  {
+   "id": 291,
+   "word": "ुE'Kgs ",
+   "soundex": "ु200",
+   "metaphone": "KKS ",
+   "nysiis": "ुA'CGS ",
+   "codex": null
+  },
+  {
+   "id": 292,
+   "word": "ÖGßrkYrG",
+   "soundex": "O262",
+   "metaphone": "OKSRKRK",
+   "nysiis": "ÖGSRCYRG",
+   "codex": "ÖGSYRG"
+  },
+  {
+   "id": 293,
+   "word": "nCChaaAT",
+   "soundex": "N230",
+   "metaphone": "NKXT",
+   "nysiis": "NCAT",
+   "codex": "NCHT"
+  },
+  {
+   "id": 294,
+   "word": "Dु",
+   "soundex": "D000",
+   "metaphone": "T",
+   "nysiis": "Dु",
+   "codex": "Dु"
+  },
+  {
+   "id": 295,
+   "word": "dbwruुsﬁ😀D",
+   "soundex": "D162",
+   "metaphone": "TBRSFT",
+   "nysiis": "DBWRUुSFA😀D",
+   "codex": null
+  },
+  {
+   "id": 296,
+   "word": "rßu ﬁ EY",
+   "soundex": "R210",
+   "metaphone": "RS F E",
+   "nysiis": "RSA FA Y",
+   "codex": "RS F Y"
+  },
+  {
+   "id": 297,
+   "word": "😀-cuTß*KrⅫ",
+   "soundex": "😀232",
+   "metaphone": "KTSKRKS",
+   "nysiis": "😀-CATS*CRⅫ",
+   "codex": null
+  },
+  {
+   "id": 298,
+   "word": "C",
+   "soundex": "C000",
+   "metaphone": "K",
+   "nysiis": "C",
+   "codex": "C"
+  },
+  {
+   "id": 299,
+   "word": " né",
+   "soundex": " 500",
+   "metaphone": "N",
+   "nysiis": " NÉ",
+   "codex": " NÉ"
+  },
+  {
+   "id": 300,
+   "word": "oSAcHyNWbd",
+   "soundex": "O225",
+   "metaphone": "OSXNBT",
+   "nysiis": "OSACYNWBD",
+   "codex": "OSCWBD"
+  },
+  {
+   "id": 301,
+   "word": "CEwn-cdB",
+   "soundex": "C523",
+   "metaphone": "SNKTB",
+   "nysiis": "CAEN-CDB",
+   "codex": null
+  },
+  {
+   "id": 302,
+   "word": "N'z DtⅫY",
+   "soundex": "N232",
+   "metaphone": "NS TTKS",
+   "nysiis": "N'S DTⅫY",
+   "codex": null
+  },
+  {
+   "id": 303,
+   "word": "o'Ẃ",
+   "soundex": "O000",
+   "metaphone": "O",
+   "nysiis": "O'Ẃ",
+   "codex": null
+  },
+  {
+   "id": 304,
+   "word": "*tC",
+   "soundex": "*320",
+   "metaphone": "TK",
+   "nysiis": "*TC",
+   "codex": null
+  },
+  {
+   "id": 305,
+   "word": " T",
+   "soundex": " 300",
+   "metaphone": "T",
+   "nysiis": " T",
+   "codex": " T"
+  },
+  {
+   "id": 306,
+   "word": "K",
+   "soundex": "K000",
+   "metaphone": "K",
+   "nysiis": "C",
+   "codex": "K"
+  },
+  {
+   "id": 307,
+   "word": "kSAS😀W'AéN",
+   "soundex": "K250",
+   "metaphone": "KSSN",
+   "nysiis": "CSAS😀W'AÉN",
+   "codex": null
+  },
+  {
+   "id": 308,
+   "word": "wBwcE Ah",
+   "soundex": "W120",
+   "metaphone": "BS A",
+   "nysiis": "WBWCA ",
+   "codex": "WBWC H"
+  },
+  {
+   "id": 309,
+   "word": "ÁBa ib'o",
+   "soundex": "A110",
+   "metaphone": "AB IB",
+   "nysiis": "ÁBA AB'",
+   "codex": null
+  },
+  {
+   "id": 310,
+   "word": " hßŕéKnEﬁ",
+   "soundex": " 262",
+   "metaphone": "HSRKNF",
+   "nysiis": " SŔÉNAF",
+   "codex": null
+  },
+  {
+   "id": 311,
+   "word": "SWHi",
+   "soundex": "S000",
+   "metaphone": "SH",
+   "nysiis": "SW",
+   "codex": "SWH"
+  },
+  {
+   "id": 312,
+   "word": "AyGßhⅫEⅫ",
+   "soundex": "A220",
+   "metaphone": "AKXKSKS",
+   "nysiis": "AYGSⅫAⅫ",
+   "codex": "AYGHⅫⅫ"
+  },
+  {
+   "id": 313,
+   "word": "dcⅫowCुHA",
+   "soundex": "D220",
+   "metaphone": "TKKSKH",
+   "nysiis": "DCⅫAOCु",
+   "codex": "DCⅫCुH"
+  },
+  {
+   "id": 314,
+   "word": "ु",
+   "soundex": "ु000",
+   "metaphone": "",
+   "nysiis": "ु",
+   "codex": "ु"
+  },
+  {
+   "id": 315,
+   "word": "CⅫreriH",
+   "soundex": "C660",
+   "metaphone": "KKSRR",
+   "nysiis": "CⅫRAR",
+   "codex": "CⅫRRRH"
+  },
+  {
+   "id": 316,
+   "word": "sⅫczhc",
+   "soundex": "S200",
+   "metaphone": "SKSKSHK",
+   "nysiis": "SⅫCSZC",
+   "codex": "SⅫCZHC"
+  },
+  {
+   "id": 317,
+   "word": "T-😀eT",
+   "soundex": "T300",
+   "metaphone": "TT",
+   "nysiis": "T-😀AT",
+   "codex": null
+  },
+  {
+   "id": 318,
+   "word": "BEC",
+   "soundex": "B200",
+   "metaphone": "BK",
+   "nysiis": "BAC",
+   "codex": "BC"
+  },
+  {
+   "id": 319,
+   "word": "B'",
+   "soundex": "B000",
+   "metaphone": "B",
+   "nysiis": "B'",
+   "codex": null
+  },
+  {
+   "id": 320,
+   "word": "y",
+   "soundex": "Y000",
+   "metaphone": "",
+   "nysiis": "Y",
+   "codex": "Y"
+  },
+  {
+   "id": 321,
+   "word": "BWeSewn KY",
+   "soundex": "B252",
+   "metaphone": "BWSN K",
+   "nysiis": "BWASAEN CY",
+   "codex": "BWS KY"
+  },
+  {
+   "id": 322,
+   "word": "g",
+   "soundex": "G000",
+   "metaphone": "K",
+   "nysiis": "G",
+   "codex": "G"
+  },
+  {
+   "id": 323,
+   "word": "😀ßb'",
+   "soundex": "😀210",
+   "metaphone": "SB",
+   "nysiis": "😀SB'",
+   "codex": null
+  },
+  {
+   "id": 324,
+   "word": "ShÖboGK",
+   "soundex": "S120",
+   "metaphone": "XBKK",
+   "nysiis": "SÖBAGC",
+   "codex": "SHÖBGK"
+  },
+  {
+   "id": 325,
+   "word": "-'ı",
+   "soundex": "-000",
+   "metaphone": "",
+   "nysiis": "-'",
+   "codex": null
+  },
+  {
+   "id": 326,
+   "word": " bCzu*",
+   "soundex": " 120",
+   "metaphone": "BKS",
+   "nysiis": " BCSA*",
+   "codex": null
+  },
+  {
+   "id": 327,
+   "word": "iır",
+   "soundex": "I600",
+   "metaphone": "R",
+   "nysiis": "IAR",
+   "codex": "IR"
+  },
+  {
+   "id": 328,
+   "word": "oﬁ",
+   "soundex": "O100",
+   "metaphone": "OF",
+   "nysiis": "OF",
+   "codex": "OF"
+  },
+  {
+   "id": 329,
+   "word": "dbyE",
+   "soundex": "D100",
+   "metaphone": "TBY",
+   "nysiis": "DBY",
+   "codex": "DBY"
+  }
+ ]
+}

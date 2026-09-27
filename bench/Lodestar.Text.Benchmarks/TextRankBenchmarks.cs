@@ -8,6 +8,8 @@ namespace Lodestar.Text.Benchmarks;
 #pragma warning disable S2245, CA5394
 
 /// <summary>TextRank over a long document whose stop words isolate many of its content words.</summary>
+/// <remarks>At 32,000 words the graph has 8,000 distinct terms: two dense 8,000 × 8,000 matrices were
+/// 1 GB before #1199 made the adjacency sparse.</remarks>
 [MemoryDiagnoser]
 public class TextRankBenchmarks
 {
@@ -16,7 +18,7 @@ public class TextRankBenchmarks
     private string _document = "";
 
     /// <summary>How many words the document holds.</summary>
-    [Params(2_000, 8_000)]
+    [Params(2_000, 8_000, 32_000)]
     public int Words { get; set; }
 
     [GlobalSetup]

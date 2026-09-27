@@ -9,11 +9,14 @@ public static string Encode(ReadOnlySpan<char> value)
 public static string Encode(string value)
 ```
 
-**Parameters** — `value` is a single word. Non-letters in it are ignored rather than rejected, and
-case does not matter. The `string` overload forwards to the span one.
+**Parameters** — `value` is a single word, or several separated by spaces. Case does not matter:
+the word is uppercased by the full case mapping and decomposed (NFKD), so `é` reads as `E` and `ß`
+as `SS`. A character no rule names — an apostrophe, a digit — writes nothing, but it still stands
+where it is, so it parts a doubled letter: `Keats's` keeps both of its `S` sounds. The `string`
+overload forwards to the span one.
 
-**Returns** — `string`, a variable-length code drawn from `B X S K J T F H L M N P R 0 W Y`, or
-the empty string when `value` holds no letter.
+**Returns** — `string`, a variable-length code drawn from `B X S K J T F H L M N P R 0 W Y`, with
+a space between the codes of two words, or the empty string when nothing in `value` sounds.
 
 **Exceptions** — `ArgumentNullException` when `value` is `null` (the `string` overload only; a
 `ReadOnlySpan<char>` cannot be null). An empty string is accepted and encodes to the empty string.
@@ -37,10 +40,10 @@ also the reason to prefer it for ordinary English words over `Soundex.Encode`. S
 `g` and `b` are all handled, along with `GH`, `DGE`, `-TION` and the rest of the spellings English
 uses for sounds it does not write plainly.
 
-**Parity is claimed on real words only.** The shared 402-word corpus contains random letter
-sequences, and on those jellyfish behaves in ways specific to its C implementation;
-[decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md) is the reasoning, and the practical
-form of it is that a code for `xhdzhumzj` is not something this package promises to match.
+`T` goes silent before `CH`, and `GH` before a consonant: `Fletcher` is `FLXR` and `Highness` is
+`HNS`. Every rule is jellyfish's, on any input at all — a random letter sequence such as
+`xhdzhumzj` encodes to jellyfish's own `XHTSHMSJ` — which is what
+[decision 0009](../../../decisions/0009-the-phonetic-encoders-follow-jellyfish-whole.md) settles.
 
 **Applies to** — net10.0, netstandard2.0.
 

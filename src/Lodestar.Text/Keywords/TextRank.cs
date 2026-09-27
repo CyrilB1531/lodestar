@@ -1,3 +1,4 @@
+using Lodestar.Text.Internal;
 using System.Text.RegularExpressions;
 using Lodestar.Text.Stemming;
 using Lodestar.Text.Vectorization;
@@ -23,7 +24,7 @@ public sealed class TextRank
 {
     private readonly TextRankOptions _options;
     private readonly StopWordSet _stopWords;
-    private readonly Regex _rawToken;
+    private readonly PythonTokenPattern _rawToken;
 
     /// <summary>Builds an extractor.</summary>
     /// <param name="options">Null takes every default.</param>
@@ -59,7 +60,7 @@ public sealed class TextRank
 
         IReadOnlyCollection<string> stop = _options.StopWords ?? StopWords.English;
         _stopWords = StopWordSet.Adopt(stop);
-        _rawToken = new Regex(_options.TokenPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
+        _rawToken = new PythonTokenPattern(_options.TokenPattern);
     }
 
     /// <summary>Extracts the ranked keywords of one document.</summary>
@@ -95,13 +96,14 @@ public sealed class TextRank
     {
         var words = new List<string>();
         var clean = new List<bool>();
-        foreach (Match m in _rawToken.Matches(text))
+        foreach ((int index, int length) in _rawToken.Matches(text))
         {
-            words.Add(m.Value.ToLowerInvariant());
-            bool precededByGap = m.Index == 0 || char.IsWhiteSpace(text[m.Index - 1]);
-            int end = m.Index + m.Length;
+            string value = text.Substring(index, length);
+            words.Add(value.ToLowerInvariant());
+            bool precededByGap = index == 0 || char.IsWhiteSpace(text[index - 1]);
+            int end = index + length;
             bool followedByGap = end == text.Length || char.IsWhiteSpace(text[end]);
-            clean.Add(precededByGap && followedByGap && string.Equals(m.Value, m.Value.ToLowerInvariant(), StringComparison.Ordinal));
+            clean.Add(precededByGap && followedByGap && string.Equals(value, value.ToLowerInvariant(), StringComparison.Ordinal));
         }
 
         return (words.ToArray(), clean.ToArray());

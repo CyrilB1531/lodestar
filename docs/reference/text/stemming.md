@@ -102,6 +102,7 @@ keys never meet.
 | [`ItalianSnowballStemmer`](stemming/italiansnowballstemmer.md) | Italian Snowball. |
 | [`NorwegianSnowballStemmer`](stemming/norwegiansnowballstemmer.md) | Norwegian Snowball (Bokmål). |
 | [`PorterStemmer`](stemming/porterstemmer.md) | English Porter (1980), for compatibility with an existing index. |
+| [`PorterStemmerMode`](stemming/porterstemmermode.md) | The paper's rules, or Martin Porter's extensions to them. |
 | [`PortugueseSnowballStemmer`](stemming/portuguesesnowballstemmer.md) | Portuguese Snowball. |
 | [`RomanianSnowballStemmer`](stemming/romaniansnowballstemmer.md) | Romanian Snowball — the one Romance language of the later nine. |
 | [`RussianSnowballStemmer`](stemming/russiansnowballstemmer.md) | Russian Snowball — the one Cyrillic alphabet. |

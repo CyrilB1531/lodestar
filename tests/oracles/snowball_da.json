@@ -6,7 +6,7 @@
   "reference_calls": [
    "nltk.stem.snowball.SnowballStemmer('danish')"
   ],
-  "count": 240
+  "count": 247
  },
  "cases": [
   {
@@ -1208,6 +1208,41 @@
    "id": 239,
    "word": "abcd",
    "stem": "abcd"
+  },
+  {
+   "id": 240,
+   "word": "gåcc",
+   "stem": "gåc"
+  },
+  {
+   "id": 241,
+   "word": "vynåtazz",
+   "stem": "vynåtaz"
+  },
+  {
+   "id": 242,
+   "word": "blogg",
+   "stem": "blog"
+  },
+  {
+   "id": 243,
+   "word": "jazz",
+   "stem": "jaz"
+  },
+  {
+   "id": 244,
+   "word": "grill",
+   "stem": "gril"
+  },
+  {
+   "id": 245,
+   "word": "hopp",
+   "stem": "hop"
+  },
+  {
+   "id": 246,
+   "word": "stopp",
+   "stem": "stop"
   }
  ]
 }

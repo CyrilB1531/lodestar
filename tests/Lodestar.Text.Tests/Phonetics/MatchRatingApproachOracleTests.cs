@@ -67,22 +67,28 @@ public sealed class MatchRatingApproachOracleTests
         Assert.Equal(expected, MatchRatingApproach.Compare(a, b));
     }
 
-    // Decision 0007: jellyfish measures a codex's length in bytes, so these two are pinned
-    // directly rather than replayed from the jellyfish-parity oracle.
+    // jellyfish measures a codex's length in UTF-8 bytes (decision 0009, amending 0007), so the
+    // six-character truncation fires on a four-character CJK word and repeats its middle.
     [Fact]
-    public void Codex_does_not_grow_a_short_multibyte_word_under_truncation()
+    public void Codex_truncates_on_utf8_bytes_as_jellyfish_does()
     {
-        // jellyfish.match_rating_codex("並丝七世") == "並丝七丝七世" (corrupted, 6 characters
-        // out of 4 in): its truncation fires on the 12 UTF-8 bytes, past 6.
-        Assert.Equal("並丝七世", MatchRatingApproach.Codex("並丝七世"));
+        // jellyfish.match_rating_codex("並丝七世") == "並丝七丝七世": 12 bytes, past 6.
+        Assert.Equal("並丝七丝七世", MatchRatingApproach.Codex("並丝七世"));
     }
 
     [Fact]
-    public void Compare_rates_two_short_multibyte_codices_of_equal_character_length()
+    public void Compare_measures_the_length_gap_in_utf8_bytes()
     {
-        // jellyfish.match_rating_comparison("日本", "AB") == None: "日本"'s codex is 2
-        // characters but 6 UTF-8 bytes, so its byte-based length-gap check refuses a rating.
-        Assert.False(MatchRatingApproach.Compare("日本", "AB"));
+        // jellyfish.match_rating_comparison("日本", "AB") is None: 6 bytes against 2.
+        Assert.Null(MatchRatingApproach.Compare("日本", "AB"));
+    }
+
+    [Fact]
+    public void Codex_uppercases_by_the_full_case_mapping()
+    {
+        // jellyfish.match_rating_codex("ßa") == "S": "ß" uppercases to "SS", which collapses.
+        Assert.Equal("S", MatchRatingApproach.Codex("ßa"));
+        Assert.True(MatchRatingApproach.Compare("ßa", "Sa"));
     }
 
     [Theory]
@@ -106,10 +112,11 @@ public sealed class MatchRatingApproachOracleTests
     [InlineData("a_b")]
     [InlineData("a\tb")]
     [InlineData("-")]
-    public void Compare_refuses_a_non_letter_non_space_character_in_either_operand(string value)
+    public void Compare_answers_null_for_a_non_letter_non_space_character_in_either_operand(string value)
     {
-        Assert.Throws<ArgumentException>(() => MatchRatingApproach.Compare(value, "Smith"));
-        Assert.Throws<ArgumentException>(() => MatchRatingApproach.Compare("Smith", value));
+        // jellyfish.match_rating_comparison("O'Brien", "Smith") is None, where the codex raises (#1198).
+        Assert.Null(MatchRatingApproach.Compare(value, "Smith"));
+        Assert.Null(MatchRatingApproach.Compare("Smith", value));
     }
 
     [Fact]

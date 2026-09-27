@@ -134,10 +134,11 @@ public sealed class BkTree
             return [];
         }
 
-        // Capped at what the tree could ever hand back -- never more than count and never
-        // more than this.count -- so count == int.MaxValue cannot overflow the +1 below.
+        // At most what the tree holds. The worst hit sits at a max-heap's root, so a nearer one replaces
+        // it in O(log count), where a sorted list shifted every entry behind it (#1199).
         int capacity = Math.Min(count, this.count);
-        var best = new List<Hit>(capacity + 1);
+        var heap = new Hit[capacity];
+        int held = 0;
         int radius = int.MaxValue;
         var stack = new Stack<Node>();
         stack.Push(this.root);
@@ -149,10 +150,10 @@ public sealed class BkTree
 
             if (d <= radius)
             {
-                Insert(best, new Hit(node.Item, d, node.Order), count);
-                if (best.Count == count)
+                held = Offer(heap, held, new Hit(node.Item, d, node.Order));
+                if (held == count)
                 {
-                    radius = best[count - 1].Distance;
+                    radius = heap[0].Distance;
                 }
             }
 
@@ -167,7 +168,83 @@ public sealed class BkTree
             }
         }
 
-        return [.. best.Select(static h => new BkTreeMatch(h.Item, h.Distance))];
+        return DrainAscending(heap, held);
+    }
+
+    /// <summary>Adds <paramref name="hit"/> to the bounded max-heap, evicting the worst when full; returns the new size.</summary>
+    private static int Offer(Hit[] heap, int held, Hit hit)
+    {
+        if (held < heap.Length)
+        {
+            heap[held] = hit;
+            SiftUp(heap, held);
+            return held + 1;
+        }
+
+        if (Worse(heap[0], hit))
+        {
+            heap[0] = hit;
+            SiftDown(heap, 0, held);
+        }
+        return held;
+    }
+
+    /// <summary>Empties the max-heap worst first into the array's tail, which leaves it ascending.</summary>
+    private static BkTreeMatch[] DrainAscending(Hit[] heap, int held)
+    {
+        var ordered = new BkTreeMatch[held];
+        for (int last = held - 1; last >= 0; last--)
+        {
+            ordered[last] = new BkTreeMatch(heap[0].Item, heap[0].Distance);
+            heap[0] = heap[last];
+            SiftDown(heap, 0, last);
+        }
+
+        return ordered;
+    }
+
+    /// <summary>Whether <paramref name="x"/> ranks after <paramref name="y"/>: farther, or as far and inserted later.</summary>
+    private static bool Worse(Hit x, Hit y) =>
+        x.Distance > y.Distance || (x.Distance == y.Distance && x.Order > y.Order);
+
+    private static void SiftUp(Hit[] heap, int at)
+    {
+        while (at > 0)
+        {
+            int parent = (at - 1) / 2;
+            if (!Worse(heap[at], heap[parent]))
+            {
+                return;
+            }
+
+            (heap[at], heap[parent]) = (heap[parent], heap[at]);
+            at = parent;
+        }
+    }
+
+    private static void SiftDown(Hit[] heap, int at, int size)
+    {
+        while (true)
+        {
+            int worst = at;
+            int left = (2 * at) + 1;
+            int right = left + 1;
+            if (left < size && Worse(heap[left], heap[worst]))
+            {
+                worst = left;
+            }
+            if (right < size && Worse(heap[right], heap[worst]))
+            {
+                worst = right;
+            }
+            if (worst == at)
+            {
+                return;
+            }
+
+            (heap[at], heap[worst]) = (heap[worst], heap[at]);
+            at = worst;
+        }
     }
 
     /// <summary>Walks the tree once, keeping everything inside the radius.</summary>
@@ -220,23 +297,6 @@ public sealed class BkTree
             ordered[i] = new BkTreeMatch(hits[i].Item, hits[i].Distance);
         }
         return ordered;
-    }
-
-    /// <summary>Inserts into an already-sorted bounded list, dropping the worst past the cap.</summary>
-    private static void Insert(List<Hit> best, Hit hit, int capacity)
-    {
-        int at = best.Count;
-        while (at > 0 && (best[at - 1].Distance > hit.Distance
-            || (best[at - 1].Distance == hit.Distance && best[at - 1].Order > hit.Order)))
-        {
-            at--;
-        }
-
-        best.Insert(at, hit);
-        if (best.Count > capacity)
-        {
-            best.RemoveAt(best.Count - 1);
-        }
     }
 
     /// <summary>A hit carrying the insertion rank the public result drops.</summary>

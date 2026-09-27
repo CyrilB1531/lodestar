@@ -95,11 +95,9 @@ public sealed class TermSinkTests
                 actual[matrix.ColumnIndices[i]] = matrix.Values[i];
             }
 
-            // S1244: sums of +1 and -1 are exact, and a stored entry is one that is not exactly zero.
-#pragma warning disable S1244
-            var nonZero = new SortedDictionary<int, double>(expected.Where(entry => entry.Value != 0.0).ToDictionary(e => e.Key, e => e.Value));
-#pragma warning restore S1244
-            Assert.Equal(nonZero, actual);
+            // Every bucket a term reached is stored, a cancelled one as an explicit zero, as
+            // scikit-learn's sum_duplicates leaves it (#1198).
+            Assert.Equal(expected, actual);
         }
     }
 

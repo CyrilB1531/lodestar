@@ -6,7 +6,7 @@
   "reference_calls": [
    "nltk.stem.snowball.SnowballStemmer('spanish')"
   ],
-  "count": 127
+  "count": 147
  },
  "cases": [
   {
@@ -643,6 +643,106 @@
    "id": 126,
    "word": "la",
    "stem": "la"
+  },
+  {
+   "id": 127,
+   "word": "frías",
+   "stem": "fri"
+  },
+  {
+   "id": 128,
+   "word": "guías",
+   "stem": "gui"
+  },
+  {
+   "id": 129,
+   "word": "leías",
+   "stem": "lei"
+  },
+  {
+   "id": 130,
+   "word": "reías",
+   "stem": "rei"
+  },
+  {
+   "id": 131,
+   "word": "caías",
+   "stem": "cai"
+  },
+  {
+   "id": 132,
+   "word": "veían",
+   "stem": "vei"
+  },
+  {
+   "id": 133,
+   "word": "envían",
+   "stem": "envi"
+  },
+  {
+   "id": 134,
+   "word": "comíamos",
+   "stem": "com"
+  },
+  {
+   "id": 135,
+   "word": "vivíamos",
+   "stem": "viv"
+  },
+  {
+   "id": 136,
+   "word": "cantará",
+   "stem": "cant"
+  },
+  {
+   "id": 137,
+   "word": "comeré",
+   "stem": "com"
+  },
+  {
+   "id": 138,
+   "word": "vivirá",
+   "stem": "viv"
+  },
+  {
+   "id": 139,
+   "word": "saldré",
+   "stem": "saldr"
+  },
+  {
+   "id": 140,
+   "word": "hablaré",
+   "stem": "habl"
+  },
+  {
+   "id": 141,
+   "word": "nación",
+   "stem": "nacion"
+  },
+  {
+   "id": 142,
+   "word": "canción",
+   "stem": "cancion"
+  },
+  {
+   "id": 143,
+   "word": "situacion",
+   "stem": "situacion"
+  },
+  {
+   "id": 144,
+   "word": "sonreírlas",
+   "stem": "sonr"
+  },
+  {
+   "id": 145,
+   "word": "tálugúñíirlas",
+   "stem": "taluguñi"
+  },
+  {
+   "id": 146,
+   "word": "partíirlo",
+   "stem": "parti"
   }
  ]
 }

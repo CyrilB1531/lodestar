@@ -222,7 +222,7 @@ public static class ItalianSnowballStemmer
             "ano", "are", "ata", "ate", "ati", "ato", "ava", "avi", "avo", "erà", "ere",
             "erò", "ete", "eva", "evi", "evo", "irà", "ire", "irò", "ita", "ite", "iti",
             "ito", "iva", "ivi", "ivo", "ono", "uta", "ute", "uti", "uto",
-            "ar", "er", "ir",
+            "ar", "ir",
         ];
 
         private void Step2()

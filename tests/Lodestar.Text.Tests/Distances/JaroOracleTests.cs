@@ -51,4 +51,23 @@ public sealed class JaroOracleTests
     {
         Assert.Equal(expected, JaroWinkler.Similarity(a, b), 12);
     }
+
+    [Theory]
+    [InlineData(-0.1)]
+    [InlineData(1.1)]
+    [InlineData(double.NaN)]
+    public void JaroWinkler_refuses_a_prefix_weight_outside_the_unit_interval(double weight)
+    {
+        // rapidfuzz raises ValueError outside [0, 1] for the same parameter (#1198).
+        Assert.Throws<ArgumentOutOfRangeException>(() => JaroWinkler.Similarity("MARTHA", "MARHTA", weight));
+        Assert.Throws<ArgumentOutOfRangeException>(() => JaroWinkler.Distance("MARTHA", "MARHTA", weight));
+    }
+
+    [Fact]
+    public void JaroWinkler_caps_a_heavy_prefix_weight_at_one_as_rapidfuzz_does()
+    {
+        // At 0.5 four shared letters would reach 1.0277...; rapidfuzz answers 1.0.
+        Assert.Equal(1.0, JaroWinkler.Similarity("MARTHA", "MARHTA", 0.5));
+        Assert.Equal(0.0, JaroWinkler.Distance("MARTHA", "MARHTA", 0.5));
+    }
 }

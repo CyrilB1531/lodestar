@@ -12,10 +12,11 @@ public TfidfVectorizer Fit(IEnumerable<string> documents)
 
 **Returns** — `TfidfVectorizer`, the same instance, so a call can be chained.
 
-**Exceptions** — `ArgumentNullException` when `documents` is null. `ArgumentException` when `documents` holds a null document. `InvalidOperationException` when [`MaxDf`](countvectorizeroptions.md) corresponds to fewer documents than
-[`MinDf`](countvectorizeroptions.md) over this corpus, as scikit-learn refuses. A corpus that leaves no terms does **not**
-throw: it yields a model of zero columns, which every later transform will produce empty
-rows against.
+**Exceptions** — `ArgumentNullException` when `documents` is null. `ArgumentException` when `documents` holds a null document. `InvalidOperationException` when the corpus yields no term at all — every document empty or
+made only of stop words — when [`MinDf`](countvectorizeroptions.md) and
+[`MaxDf`](countvectorizeroptions.md) leave no term, or when `MaxDf` corresponds to fewer
+documents than `MinDf`: scikit-learn raises `ValueError` for each, and so there is no model of
+zero columns.
 
 **Example** — fit on training documents, weight a later one with those frequencies.
 

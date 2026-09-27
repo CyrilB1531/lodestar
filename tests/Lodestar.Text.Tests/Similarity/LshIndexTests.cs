@@ -79,6 +79,17 @@ public sealed class LshIndexTests
     }
 
     [Fact]
+    public void A_key_surfaced_by_a_later_band_keeps_its_insertion_place()
+    {
+        // "early" matches only on band 1, "late" on band 0: band order would put "late" first (#1198).
+        var index = new LshIndex(new LshBanding(2, 1));
+        index.Add("early", Signature(1, 9));
+        index.Add("late", Signature(9, 2));
+
+        Assert.Equal(["early", "late"], index.Query(Signature(9, 9)));
+    }
+
+    [Fact]
     public void A_longer_signature_than_the_banding_needs_is_accepted()
     {
         // Solve returns a banding that usually consumes fewer slots than the signature

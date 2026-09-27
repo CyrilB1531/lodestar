@@ -17,7 +17,7 @@ public sealed partial class HashingVectorizer
 
     /// <summary>Creates a vectorizer with the given options (defaults if omitted).</summary>
     /// <exception cref="ArgumentOutOfRangeException"><c>NumFeatures</c> is below 1.</exception>
-    /// <exception cref="ArgumentException"><c>Count.NgramRange</c> is not an ascending range starting at 1 or more.</exception>
+    /// <exception cref="ArgumentException"><c>Count.NgramRange</c> descends, or <c>Count.Analyzer</c> is not an <see cref="AnalyzerKind"/>.</exception>
     public HashingVectorizer(HashingVectorizerOptions? options = null)
     {
         _options = options ?? new HashingVectorizerOptions();
@@ -28,6 +28,7 @@ public sealed partial class HashingVectorizer
 
         CountVectorizerOptions c = _options.Count;
         TextAnalyzer.RequireNgramRange(c.NgramRange, nameof(options));
+        TextAnalyzer.RequireAnalyzer(c.Analyzer, nameof(options));
         _analyzer = new TextAnalyzer(c.Lowercase, c.StripAccents, c.Analyzer, c.NgramRange, c.TokenPattern, c.StopWords);
     }
 
@@ -51,7 +52,7 @@ public sealed partial class HashingVectorizer
         for (int row = 0; row < docs.Count; row++)
         {
             _analyzer.Analyze(TextAnalyzer.Document(docs, row, nameof(documents)), ref terms);
-            terms.Tally.DrainNonZero(columns, values);
+            terms.Tally.Drain(columns, values, _options.Count.Binary);
             rowPointers[row + 1] = values.Count;
         }
 

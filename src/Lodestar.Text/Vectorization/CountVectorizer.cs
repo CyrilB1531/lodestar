@@ -18,13 +18,14 @@ public sealed partial class CountVectorizer
 
     /// <summary>Creates a vectorizer with the given options (defaults if omitted).</summary>
     /// <exception cref="ArgumentOutOfRangeException"><c>MinDf</c> or <c>MaxDf</c> is negative, not finite, or a fraction above 1.</exception>
-    /// <exception cref="ArgumentException"><c>NgramRange</c> is not an ascending range starting at 1 or more.</exception>
+    /// <exception cref="ArgumentException"><c>NgramRange</c> descends, or <c>Analyzer</c> is not an <see cref="AnalyzerKind"/>.</exception>
     public CountVectorizer(CountVectorizerOptions? options = null)
     {
         _options = options ?? new CountVectorizerOptions();
         RequireDocumentFrequency(_options.MinDf, nameof(CountVectorizerOptions.MinDf), nameof(options));
         RequireDocumentFrequency(_options.MaxDf, nameof(CountVectorizerOptions.MaxDf), nameof(options));
         TextAnalyzer.RequireNgramRange(_options.NgramRange, nameof(options));
+        TextAnalyzer.RequireAnalyzer(_options.Analyzer, nameof(options));
         _analyzer = new TextAnalyzer(
             _options.Lowercase,
             _options.StripAccents,
@@ -44,7 +45,7 @@ public sealed partial class CountVectorizer
 
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="documents"/> holds a null document.</exception>
-    /// <exception cref="InvalidOperationException"><c>MaxDf</c> corresponds to fewer documents than <c>MinDf</c> over this corpus.</exception>
+    /// <exception cref="InvalidOperationException">The corpus yields no term, <c>MinDf</c> and <c>MaxDf</c> leave none, or <c>MaxDf</c> corresponds to fewer documents than <c>MinDf</c>, as scikit-learn refuses each.</exception>
     /// <summary>Learns the vocabulary from <paramref name="documents"/>.</summary>
     public CountVectorizer Fit(IEnumerable<string> documents)
     {
@@ -54,7 +55,7 @@ public sealed partial class CountVectorizer
 
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="documents"/> holds a null document.</exception>
-    /// <exception cref="InvalidOperationException"><c>MaxDf</c> corresponds to fewer documents than <c>MinDf</c> over this corpus.</exception>
+    /// <exception cref="InvalidOperationException">The corpus yields no term, <c>MinDf</c> and <c>MaxDf</c> leave none, or <c>MaxDf</c> corresponds to fewer documents than <c>MinDf</c>, as scikit-learn refuses each.</exception>
     /// <summary>Learns the vocabulary and returns the count matrix in one pass.</summary>
     public CsrMatrix FitTransform(IEnumerable<string> documents)
     {
@@ -74,6 +75,12 @@ public sealed partial class CountVectorizer
             docStart[row + 1] = perDoc.Count;
         }
 
+        // scikit-learn's _count_vocab refuses a corpus that yields no term, before any bound is read.
+        if (provisional.Terms.Count == 0)
+        {
+            throw new InvalidOperationException("empty vocabulary; perhaps the documents only contain stop words.");
+        }
+
         // Document frequencies over the provisional columns.
         var df = new int[provisional.Terms.Count];
         foreach ((int col, _) in perDoc)
@@ -84,8 +91,7 @@ public sealed partial class CountVectorizer
         // Document-frequency limits (sklearn _limit_features semantics).
         double low = _options.MinDf is > 0 and < 1 ? _options.MinDf * nDocs : _options.MinDf;
         double high = _options.MaxDf <= 1.0 ? _options.MaxDf * nDocs : _options.MaxDf;
-        // An empty corpus has no terms to keep either way, and refusing it would break a documented no-throw.
-        if (nDocs > 0 && high < low)
+        if (high < low)
         {
             throw new InvalidOperationException(
                 $"MaxDf ({_options.MaxDf}) corresponds to fewer documents than MinDf ({_options.MinDf}) over {nDocs} documents.");
@@ -101,6 +107,10 @@ public sealed partial class CountVectorizer
             {
                 kept.Add(term);
             }
+        }
+        if (kept.Count == 0)
+        {
+            throw new InvalidOperationException("After pruning, no terms remain. Try a lower MinDf or a higher MaxDf.");
         }
         kept.Sort(StringComparer.Ordinal);
 

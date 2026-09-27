@@ -26,11 +26,8 @@ The output alphabet is `B X S K J T F H L M N P R 0 W Y`, where `X` is "sh" and 
 The code is variable length, and on the 123 real words it is pinned to it runs from 1 to 6
 characters.
 
-Reference behaviour is `jellyfish.metaphone` **on real words**.
-[Decision 0005](../../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md) records why the corpus is real words
-rather than the shared random one: on degenerate letter sequences, jellyfish exhibits quirks of
-its C implementation that are not worth reproducing, so this implementation does not claim parity
-there.
+Reference behaviour is `jellyfish.metaphone` 1.2.1, on any input: real words, random letter
+sequences, punctuation and non-ASCII letters alike, [decision 0009](../../../decisions/0009-the-phonetic-encoders-follow-jellyfish-whole.md).
 
 **Applies to** — net10.0, netstandard2.0.
 

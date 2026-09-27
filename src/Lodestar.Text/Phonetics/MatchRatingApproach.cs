@@ -1,44 +1,48 @@
 using System.Text;
+using Lodestar.Text.Internal;
 
 namespace Lodestar.Text.Phonetics;
 
 // SonarLint S3776: cognitive complexity: a faithful implementation of a published rule-engine; decomposing it would break the 1:1 mapping with the reference that makes divergences auditable.
-#pragma warning disable S3776
+// SonarLint S127: a surrogate pair advances the loop variable past its low half.
+#pragma warning disable S3776, S127
 
 /// <summary>
 /// Match Rating Approach: a phonetic codex, and the rule for deciding whether two
 /// codices name a match (Western Airlines, 1977).
 /// </summary>
 /// <remarks>
-/// Reference behavior: <c>jellyfish.match_rating_codex</c> and
-/// <c>jellyfish.match_rating_comparison</c>. Unlike <see cref="Soundex"/>,
-/// <see cref="Metaphone"/> and <see cref="Nysiis"/>, a non-letter, non-space
-/// character is <b>refused</b>. English-oriented, not Unicode-aware; thread-safe.
+/// Reference behavior: <c>jellyfish.match_rating_codex</c> and <c>match_rating_comparison</c> 1.2.1,
+/// over the full uppercase mapping, by grapheme cluster, lengths in UTF-8 bytes. A character neither
+/// alphabetic nor a space is <b>refused</b>: <see cref="Codex(string)"/> throws and
+/// <see cref="Compare(string, string)"/> returns <c>null</c>. Thread-safe.
 /// </remarks>
 public static class MatchRatingApproach
 {
     /// <summary>Encodes a string to its Match Rating codex.</summary>
     /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="value"/> holds a character that is
-    /// neither a letter nor a space.</exception>
+    /// neither alphabetic nor a space.</exception>
     public static string Codex(string value)
     {
         Guard.NotNull(value);
-        return CodexCore(value.AsSpan(), nameof(value));
+        return Codex(value.AsSpan());
     }
 
     /// <summary>Encodes <paramref name="value"/> to its Match Rating codex (or empty).</summary>
     /// <exception cref="ArgumentException"><paramref name="value"/> holds a character that is
-    /// neither a letter nor a space.</exception>
-    public static string Codex(ReadOnlySpan<char> value) => CodexCore(value, nameof(value));
+    /// neither alphabetic nor a space.</exception>
+    public static string Codex(ReadOnlySpan<char> value) =>
+        TryCodex(value, out List<int> codex, out _, out string? refused)
+            ? FromScalars(codex)
+            : throw new ArgumentException(refused, nameof(value));
 
     /// <summary>
     /// Compares the Match Rating codices of two names. Returns <c>null</c>, rather than
-    /// <c>false</c>, when the codices' lengths differ too much for a rating to mean anything.
+    /// <c>false</c>, when either holds a character that is neither alphabetic nor a space, or when
+    /// the codices' lengths differ too much for a rating to mean anything.
     /// </summary>
     /// <exception cref="ArgumentNullException"><paramref name="a"/> or <paramref name="b"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="a"/> or <paramref name="b"/> holds a
-    /// character that is neither a letter nor a space.</exception>
     public static bool? Compare(string a, string b)
     {
         Guard.NotNull(a);
@@ -48,60 +52,131 @@ public static class MatchRatingApproach
 
     /// <summary>
     /// Compares the Match Rating codices of <paramref name="a"/> and <paramref name="b"/>.
-    /// Returns <c>null</c>, rather than <c>false</c>, when the codices' lengths differ too much
-    /// for a rating to mean anything.
+    /// Returns <c>null</c>, rather than <c>false</c>, when either holds a character that is neither
+    /// alphabetic nor a space, or when the codices' lengths differ too much for a rating to mean
+    /// anything.
     /// </summary>
-    /// <exception cref="ArgumentException"><paramref name="a"/> or <paramref name="b"/> holds a
-    /// character that is neither a letter nor a space.</exception>
     public static bool? Compare(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
     {
-        string codexA = CodexCore(a, nameof(a));
-        string codexB = CodexCore(b, nameof(b));
-
-        // Lengths 3 or more apart cannot be rated at all — measured against jellyfish 1.2.1.
-        if (Math.Abs(codexA.Length - codexB.Length) >= 3)
+        if (!TryCodex(a, out List<int> codexA, out int bytesA, out _)
+            || !TryCodex(b, out List<int> codexB, out int bytesB, out _))
         {
             return null;
         }
 
-        int minimumRating = MinimumRating(codexA.Length + codexB.Length);
-        int similarityRating = SimilarityRating(codexA, codexB);
-        return similarityRating >= minimumRating;
+        // Lengths 3 or more apart cannot be rated at all — measured against jellyfish 1.2.1.
+        if (Math.Abs(bytesA - bytesB) >= 3)
+        {
+            return null;
+        }
+
+        // jellyfish cancels from the longer codex's side; the count is symmetric but the residue is not.
+        (List<int> longer, List<int> shorter) = bytesA > bytesB ? (codexA, codexB) : (codexB, codexA);
+        return SimilarityRating(longer, shorter) >= MinimumRating(bytesA + bytesB);
     }
 
-    private static string CodexCore(ReadOnlySpan<char> value, string paramName)
+    /// <summary>The codex as scalars and its UTF-8 length, or the message refusing the input.</summary>
+    private static bool TryCodex(ReadOnlySpan<char> value, out List<int> codex, out int bytes, out string? refused)
     {
-        foreach (char ch in value)
+        string s = PhoneticText.ToUpperFull(value);
+        for (int i = 0; i < s.Length; i++)
         {
-            if (!char.IsLetter(ch) && ch != ' ')
+            bool pair = char.IsSurrogatePair(s, i);
+            if (s[i] != ' ' && !PhoneticText.IsAlphabetic(s, i))
             {
-                throw new ArgumentException(
-                    $"'{ch}' (U+{(int)ch:X4}) is neither a letter nor a space.", paramName);
+                int scalar = pair ? char.ConvertToUtf32(s, i) : s[i];
+                codex = [];
+                bytes = 0;
+                refused = $"U+{scalar:X4} is neither alphabetic nor a space.";
+                return false;
+            }
+            if (pair)
+            {
+                i++;
             }
         }
-        if (value.Length == 0)
-        {
-            return string.Empty;
-        }
 
-        // Compared against the *raw* previous character, not the previously kept one, so
+        // Compared against the *raw* previous cluster, not the previously kept one, so
         // doubles collapse even across a dropped vowel ("Mississippi" -> "MSSP").
-        var kept = new StringBuilder(value.Length);
-        char prevRaw = '\0';
-        for (int i = 0; i < value.Length; i++)
+        var kept = new List<int>(s.Length);
+        string previous = string.Empty;
+        List<string> clusters = PhoneticText.Graphemes(s);
+        for (int i = 0; i < clusters.Count; i++)
         {
-            char c = char.ToUpperInvariant(value[i]);
-            bool isVowel = c is 'A' or 'E' or 'I' or 'O' or 'U';
-            if (i == 0 || (!isVowel && c != prevRaw))
+            string c = clusters[i];
+            bool isVowel = c is "A" or "E" or "I" or "O" or "U";
+            if (i == 0 || (!isVowel && c != previous))
             {
-                kept.Append(c);
+                AddScalars(c, kept);
             }
-            prevRaw = c;
+            previous = c;
         }
 
-        return kept.Length > 6
-            ? kept.ToString(0, 3) + kept.ToString(kept.Length - 3, 3)
-            : kept.ToString();
+        bytes = 0;
+        foreach (int cp in kept)
+        {
+            bytes += Utf8Length(cp);
+        }
+
+        // Six bytes, not six letters: jellyfish measures the codex in UTF-8 and then keeps up to
+        // three characters from each end, so two four-byte letters come back twice.
+        if (bytes > 6)
+        {
+            int take = Math.Min(3, kept.Count);
+            List<int> truncated = kept.GetRange(0, take);
+            truncated.AddRange(kept.GetRange(kept.Count - take, take));
+            kept = truncated;
+            bytes = 0;
+            foreach (int cp in kept)
+            {
+                bytes += Utf8Length(cp);
+            }
+        }
+
+        codex = kept;
+        refused = null;
+        return true;
+    }
+
+    private static int Utf8Length(int cp) => cp switch
+    {
+        < 0x80 => 1,
+        < 0x800 => 2,
+        < 0x10000 => 3,
+        _ => 4,
+    };
+
+    private static void AddScalars(string s, List<int> scalars)
+    {
+        for (int i = 0; i < s.Length; i++)
+        {
+            if (char.IsSurrogatePair(s, i))
+            {
+                scalars.Add(char.ConvertToUtf32(s[i], s[i + 1]));
+                i++;
+            }
+            else
+            {
+                scalars.Add(s[i]);
+            }
+        }
+    }
+
+    private static string FromScalars(List<int> scalars)
+    {
+        var sb = new StringBuilder(scalars.Count);
+        foreach (int cp in scalars)
+        {
+            if (cp > 0xFFFF)
+            {
+                sb.Append(char.ConvertFromUtf32(cp));
+            }
+            else
+            {
+                sb.Append((char)cp);
+            }
+        }
+        return sb.ToString();
     }
 
     // Combined-codex-length bucket, coarser the longer the codices are — measured by
@@ -116,62 +191,49 @@ public static class MatchRatingApproach
 
     // Cancel same-index characters from the start, then cancel again over what is left,
     // from the end. What survives both passes on the longer side is the unmatched count.
-    private static int SimilarityRating(string codexA, string codexB)
+    private static int SimilarityRating(List<int> longer, List<int> shorter)
     {
-        (StringBuilder residualA, StringBuilder residualB) = CancelFromStart(codexA, codexB);
-        (int unmatchedA, int unmatchedB) = CancelFromEnd(residualA, residualB);
-        return 6 - Math.Max(unmatchedA, unmatchedB);
-    }
-
-    private static (StringBuilder ResidualA, StringBuilder ResidualB) CancelFromStart(string codexA, string codexB)
-    {
-        var residualA = new StringBuilder();
-        var residualB = new StringBuilder();
-        int n = Math.Max(codexA.Length, codexB.Length);
+        var residualA = new List<int>();
+        var residualB = new List<int>();
+        int n = Math.Max(longer.Count, shorter.Count);
         for (int i = 0; i < n; i++)
         {
-            char? ca = i < codexA.Length ? codexA[i] : null;
-            char? cb = i < codexB.Length ? codexB[i] : null;
-            if (ca == cb)
+            bool hasA = i < longer.Count;
+            bool hasB = i < shorter.Count;
+            if (hasA && hasB && longer[i] == shorter[i])
             {
                 continue;
             }
-            if (ca.HasValue)
+            if (hasA)
             {
-                residualA.Append(ca.Value);
+                residualA.Add(longer[i]);
             }
-            if (cb.HasValue)
+            if (hasB)
             {
-                residualB.Append(cb.Value);
+                residualB.Add(shorter[i]);
             }
         }
-        return (residualA, residualB);
-    }
 
-    private static (int UnmatchedA, int UnmatchedB) CancelFromEnd(StringBuilder residualA, StringBuilder residualB)
-    {
         int unmatchedA = 0;
         int unmatchedB = 0;
-        int n = Math.Max(residualA.Length, residualB.Length);
+        n = Math.Max(residualA.Count, residualB.Count);
         for (int i = 0; i < n; i++)
         {
-            int ia = residualA.Length - 1 - i;
-            int ib = residualB.Length - 1 - i;
-            char? ca = ia >= 0 ? residualA[ia] : null;
-            char? cb = ib >= 0 ? residualB[ib] : null;
-            if (ca == cb)
+            int ia = residualA.Count - 1 - i;
+            int ib = residualB.Count - 1 - i;
+            if (ia >= 0 && ib >= 0 && residualA[ia] == residualB[ib])
             {
                 continue;
             }
-            if (ca.HasValue)
+            if (ia >= 0)
             {
                 unmatchedA++;
             }
-            if (cb.HasValue)
+            if (ib >= 0)
             {
                 unmatchedB++;
             }
         }
-        return (unmatchedA, unmatchedB);
+        return 6 - Math.Max(unmatchedA, unmatchedB);
     }
 }

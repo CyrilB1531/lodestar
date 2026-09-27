@@ -75,7 +75,7 @@ public static class EnglishSnowballStemmer
     {
         private string _s;
         private readonly int _r1;
-        private readonly int _r2;
+        private int _r2;
 
         public Worker(string s)
         {
@@ -239,7 +239,7 @@ public static class EnglishSnowballStemmer
             {
                 if (InR1(5))
                 {
-                    Replace("eedly", "ee");
+                    ReplaceAsNltk("eedly", "ee", 0);
                 }
                 return;
             }
@@ -247,7 +247,7 @@ public static class EnglishSnowballStemmer
             {
                 if (InR1(3))
                 {
-                    Replace("eed", "ee");
+                    ReplaceAsNltk("eed", "ee", 0);
                 }
                 return;
             }
@@ -334,11 +334,39 @@ public static class EnglishSnowballStemmer
                         }
                         return;
                     default:
-                        Replace(suffix, replacement);
+                        ReplaceAsNltk(suffix, replacement, Step2NltkTail(suffix));
                         return;
                 }
             }
         }
+
+        /// <summary>
+        /// Replaces the suffix, moving R2 as nltk moves it: nltk holds R2 as a string, and when a
+        /// replaced suffix is longer than it, R2 becomes empty — or keeps just the final "e" of
+        /// "ate" and "ive" in step 2 — rather than keeping its start (#1198).
+        /// </summary>
+        /// <remarks>A plain deletion needs no care: slicing and a fixed start agree. Measured on
+        /// 73,445 dictionary words against nltk 3.10.3; "ionization" stems to "ionize" there.</remarks>
+        private void ReplaceAsNltk(string suffix, string replacement, int keptTail)
+        {
+            bool r2Shorter = !InR2(suffix.Length);
+            Replace(suffix, replacement);
+            if (r2Shorter && keptTail >= 0)
+            {
+                _r2 = _s.Length - keptTail;
+            }
+        }
+
+        private const string Ational = "ational";
+
+        // What of R2 nltk keeps when it rewrites a step 2 suffix longer than R2: nothing, the
+        // final "e", or -1 where it slices instead ("tional" loses two letters) and R2 keeps its start.
+        private static int Step2NltkTail(string suffix) => suffix switch
+        {
+            Ational or "ation" or "ator" or "iveness" or "iviti" => 1,
+            "izer" or "ization" or "alism" or "aliti" or "alli" or "ousli" or "ousness" or "biliti" or "bli" => 0,
+            _ => -1,
+        };
 
         private static bool IsLiEnding(char c) => c is 'c' or 'd' or 'e' or 'g' or 'h' or 'k' or 'm' or 'n' or 'r' or 't';
 
@@ -362,7 +390,7 @@ public static class EnglishSnowballStemmer
                     }
                     return;
                 }
-                Replace(suffix, replacement);
+                ReplaceAsNltk(suffix, replacement, suffix is Ational or "icate" or "iciti" or "ical" ? 0 : -1);
                 return;
             }
         }
@@ -410,7 +438,7 @@ public static class EnglishSnowballStemmer
         // Ordered longest-first within the algorithm's groups.
         private static readonly (string Suffix, string Replacement)[] Step2Rules =
         {
-            ("ational", "ate"), ("fulness", "ful"), ("iveness", "ive"), ("ousness", "ous"),
+            (Ational, "ate"), ("fulness", "ful"), ("iveness", "ive"), ("ousness", "ous"),
             ("ization", "ize"), ("tional", "tion"), ("biliti", "ble"), ("lessli", "less"),
             ("ousli", "ous"), ("fulli", "ful"), ("entli", "ent"), ("aliti", "al"),
             ("iviti", "ive"), ("ation", "ate"), ("alism", "al"), ("enci", "ence"),
@@ -420,7 +448,7 @@ public static class EnglishSnowballStemmer
 
         private static readonly (string Suffix, string Replacement)[] Step3Rules =
         {
-            ("ational", "ate"), ("tional", "tion"), ("alize", "al"), ("icate", "ic"),
+            (Ational, "ate"), ("tional", "tion"), ("alize", "al"), ("icate", "ic"),
             ("iciti", "ic"), ("ative", ""), ("ical", "ic"), ("ness", ""), ("ful", ""),
         };
 

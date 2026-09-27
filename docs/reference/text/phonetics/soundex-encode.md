@@ -9,12 +9,14 @@ public static string Encode(ReadOnlySpan<char> value)
 public static string Encode(string value)
 ```
 
-**Parameters** — `value` is a single word. Non-letters in it are ignored rather than rejected, and
-case does not matter. The `string` overload forwards to the span one, so passing a `string`
-allocates nothing extra.
+**Parameters** — `value` is a single word. Case does not matter: the word is uppercased by the full
+case mapping and decomposed (NFKD). Its first character leads the code whatever it is, and any
+character that is not a coded consonant, `H` or `W` — a vowel, an apostrophe, a space — separates
+two equal codes: `Keats's` is `K322`, where dropping the apostrophe would give `K320`. The
+`string` overload forwards to the span one.
 
-**Returns** — `string`: an uppercase letter followed by three digits, always exactly four
-characters — or the empty string when `value` holds no letter at all.
+**Returns** — `string`: the first character followed by three digits, or the empty string when
+`value` is empty.
 
 **Exceptions** — `ArgumentNullException` when `value` is `null` (the `string` overload only; a
 `ReadOnlySpan<char>` cannot be null). An empty string is accepted and encodes to the empty string.

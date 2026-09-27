@@ -28,7 +28,8 @@ a customer list, say, where merging two real people is worse than leaving a dupl
 This is the **modern, non-truncated variant** — the original NYSIIS capped the code at six
 characters, and that cap is not applied here, which is why a code can run to eleven.
 
-Reference behaviour is `jellyfish.nysiis`, matched over 402 words.
+Reference behaviour is `jellyfish.nysiis` 1.2.1, rule for rule on any input,
+[decision 0009](../../../decisions/0009-the-phonetic-encoders-follow-jellyfish-whole.md).
 
 **Applies to** — net10.0, netstandard2.0.
 

@@ -1,21 +1,25 @@
-using System.Text;
+using Lodestar.Text.Internal;
 
 namespace Lodestar.Text.Phonetics;
 
 // SonarLint S3776: cognitive complexity: a faithful implementation of a published rule-engine; decomposing it would break the 1:1 mapping with the reference that makes divergences auditable.
-#pragma warning disable S3776
+// SonarLint S127: digraph consumption advances the loop variable by design.
+#pragma warning disable S3776, S127
 
 /// <summary>
 /// NYSIIS (New York State Identification and Intelligence System) phonetic encoding.
 /// </summary>
 /// <remarks>
-/// Reference behavior: <c>jellyfish.nysiis</c> — the modern, non-truncated variant
-/// (the original 6-character limit is not applied). Non-letters are ignored; the
-/// empty string encodes to the empty string. English-oriented heuristic, not
-/// Unicode-aware; thread-safe.
+/// Reference behavior: <c>jellyfish.nysiis</c> 1.2.1 — the modern, non-truncated variant (the
+/// original 6-character limit is not applied), rule for rule. The input is uppercased by the full
+/// case mapping and read one grapheme cluster at a time; a character outside the rules, an
+/// apostrophe or a space among them, is kept in the code as it stands (<c>O'Brien</c> is
+/// <c>O'BRAN</c>). The empty string encodes to the empty string. Thread-safe.
 /// </remarks>
 public static class Nysiis
 {
+    private const string A = "A";
+
     /// <summary>Encodes a string to its NYSIIS code.</summary>
     /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
     public static string Encode(string value)
@@ -27,158 +31,133 @@ public static class Nysiis
     /// <summary>Encodes <paramref name="value"/> to its NYSIIS code (or empty).</summary>
     public static string Encode(ReadOnlySpan<char> value)
     {
-        // Keep letters only, uppercase.
-        var buffer = new StringBuilder(value.Length);
-        foreach (char ch in value)
-        {
-            if (char.IsLetter(ch))
-            {
-                buffer.Append(char.ToUpperInvariant(ch));
-            }
-        }
-        if (buffer.Length == 0)
+        if (value.IsEmpty)
         {
             return string.Empty;
         }
 
-        string s = buffer.ToString();
+        string s = PhoneticText.ToUpperFull(value);
+        List<string> v = PhoneticText.Graphemes(s);
 
-        // Prefix transforms.
+        // Prefixes and suffixes are read on the string, and rewritten on its clusters.
         if (s.StartsWith("MAC", StringComparison.Ordinal))
         {
-            s = "MCC" + s[3..];
+            v[1] = "C";
         }
         else if (s.StartsWith("KN", StringComparison.Ordinal))
         {
-            s = "N" + s[2..];
+            v.RemoveAt(0);
         }
         else if (s.StartsWith('K'))
         {
-            s = "C" + s[1..];
+            v[0] = "C";
         }
         else if (s.StartsWith("PH", StringComparison.Ordinal) || s.StartsWith("PF", StringComparison.Ordinal))
         {
-            s = "FF" + s[2..];
+            v[0] = "F";
+            v[1] = "F";
         }
         else if (s.StartsWith("SCH", StringComparison.Ordinal))
         {
-            s = "SSS" + s[3..];
+            v[1] = "S";
+            v[2] = "S";
         }
 
-        // Suffix transforms.
-        if (s.EndsWith("EE", StringComparison.Ordinal) || s.EndsWith("IE", StringComparison.Ordinal))
+        if (s.EndsWith("IE", StringComparison.Ordinal) || s.EndsWith("EE", StringComparison.Ordinal))
         {
-            s = s[..^2] + "Y";
+            ReplaceLastTwo(v, "Y");
         }
         else if (s.EndsWith("DT", StringComparison.Ordinal) || s.EndsWith("RT", StringComparison.Ordinal)
             || s.EndsWith("RD", StringComparison.Ordinal) || s.EndsWith("NT", StringComparison.Ordinal)
             || s.EndsWith("ND", StringComparison.Ordinal))
         {
-            s = s[..^2] + "D";
+            ReplaceLastTwo(v, "D");
         }
 
-        var key = new StringBuilder();
-        key.Append(s[0]);
-
-        int i = 1;
-        while (i < s.Length)
+        var key = new List<string>(v.Count) { v[0] };
+        for (int i = 1; i < v.Count; i++)
         {
-            char c = s[i];
-            char next = i + 1 < s.Length ? s[i + 1] : '\0';
-            char prev = s[i - 1];
-            string replacement;
+            string c = v[i];
+            string? next = i + 1 < v.Count ? v[i + 1] : null;
+            string first;
+            string? second = null;
 
-            if (c == 'E' && next == 'V')
+            if (c == "E" && next == "V")
             {
-                replacement = "AF";
+                first = A;
+                second = "F";
                 i++;
             }
             else if (IsVowel(c))
             {
-                replacement = "A";
+                first = A;
             }
-            else if (c == 'Q')
+            else if (c == "S" && next == "C" && i + 2 < v.Count && v[i + 2] == "H")
             {
-                replacement = "G";
-            }
-            else if (c == 'Z')
-            {
-                replacement = "S";
-            }
-            else if (c == 'M')
-            {
-                replacement = "N";
-            }
-            else if (c == 'K')
-            {
-                replacement = next == 'N' ? "N" : "C";
-            }
-            else if (c == 'S' && next == 'C' && i + 2 < s.Length && s[i + 2] == 'H')
-            {
-                replacement = "SSS";
+                first = "S";
+                second = "S";
                 i += 2;
             }
-            else if (c == 'P' && next == 'H')
+            else if (c == "P" && next == "H")
             {
-                replacement = "FF";
+                first = "F";
                 i++;
             }
-            else if (c == 'H')
+            else if (c == "H" && (!IsVowel(v[i - 1]) || next is null || !IsVowel(next)))
             {
-                // Kept between two vowels; after vowel+consonant it becomes A; after
-                // a consonant it repeats that consonant, which then collapses away.
-                if (!IsVowel(prev))
-                {
-                    replacement = prev.ToString();
-                }
-                else if (IsVowel(next))
-                {
-                    replacement = "H";
-                }
-                else
-                {
-                    replacement = "A";
-                }
+                // After a vowel it becomes A; after anything else it repeats that, which then collapses.
+                first = IsVowel(v[i - 1]) ? A : v[i - 1];
             }
-            else if (c == 'W')
+            else if (c == "W" && IsVowel(v[i - 1]))
             {
-                // W after a vowel takes that vowel; otherwise it stays.
-                replacement = IsVowel(prev) ? prev.ToString() : "W";
+                first = v[i - 1];
             }
             else
             {
-                replacement = c.ToString();
+                first = c switch
+                {
+                    "Q" => "G",
+                    "Z" => "S",
+                    "M" => "N",
+                    "K" => next == "N" ? "N" : "C",
+                    _ => c,
+                };
             }
 
-            // Append each replacement char, collapsing adjacent duplicates.
-            foreach (char rc in replacement)
+            // jellyfish compares only the replacement's last letter with the key's last, and then
+            // appends the replacement whole: "EV" after an A still writes "AF" (#1195).
+            if ((second ?? first) != key[key.Count - 1])
             {
-                if (key.Length == 0 || rc != key[^1])
+                key.Add(first);
+                if (second is not null)
                 {
-                    key.Append(rc);
+                    key.Add(second);
                 }
             }
-
-            i++;
         }
 
-        // Trailing cleanups.
-        if (key.Length > 1 && key[^1] == 'S')
+        if (key.Count > 1 && key[key.Count - 1] == "S")
         {
-            key.Length--;
+            key.RemoveAt(key.Count - 1);
         }
-        if (key.Length > 1 && key[^1] == 'Y' && key[^2] == 'A')
+        if (key.Count >= 2 && key[key.Count - 2] == A && key[key.Count - 1] == "Y")
         {
-            key.Length--;      // "AY" -> "A"
-            key[^1] = 'Y';     // then represent as trailing Y
+            key.RemoveAt(key.Count - 2);
         }
-        if (key.Length > 1 && key[^1] == 'A')
+        if (key.Count > 1 && key[key.Count - 1] == A)
         {
-            key.Length--;
+            key.RemoveAt(key.Count - 1);
         }
 
-        return key.ToString();
+        return string.Concat(key);
     }
 
-    private static bool IsVowel(char c) => c is 'A' or 'E' or 'I' or 'O' or 'U';
+    // Reached only when the string ends in a two-letter suffix, so two clusters are always there.
+    private static void ReplaceLastTwo(List<string> v, string replacement)
+    {
+        v.RemoveRange(v.Count - 2, 2);
+        v.Add(replacement);
+    }
+
+    private static bool IsVowel(string c) => c is "A" or "E" or "I" or "O" or "U";
 }

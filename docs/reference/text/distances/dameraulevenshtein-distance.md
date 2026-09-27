@@ -19,8 +19,9 @@ tokens, decoded code points — and compares elements rather than characters.
 
 **Returns** — `int`, the number of edits. Zero when the two are equal, and never negative.
 
-**Exceptions** — `ArgumentException` when the two lengths need a `(len(a) + 2) × (len(b) + 2)`
-table larger than the largest array .NET allocates, about 46 000 characters on each side.
+**Exceptions** — none: the two inputs may be any length. Their shared prefix and suffix go first,
+as rapidfuzz strips them, and the rest keeps three rows of the table rather than all of it, so the
+memory grows with the length of `b` alone.
 
 **Example** — a swap and an insertion, where `Osa` charges three edits for the same pair.
 

@@ -17,7 +17,8 @@ and non-negative.
 `MaxIterations` (default `1_000`) is how many power-iteration steps `Extract` runs before giving up
 rather than return a half-ranked vector. `Ratio` (default `0.2`) is what proportion of ranked words
 to keep, ignored when `Words` is set. `Words` (default `null`) overrides `Ratio` with an exact
-count, non-negative when set. `TokenPattern` (default `\b\w+\b`) is what counts as a word.
+count, non-negative when set. `TokenPattern` (default `\b\w+\b`) is what counts as a word, read as Python's `re` reads it — see
+[`CountVectorizerOptions`](../vectorizers/countvectorizeroptions.md).
 
 **Example** — `Words` overriding `Ratio` on the same document.
 

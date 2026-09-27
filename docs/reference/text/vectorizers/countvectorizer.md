@@ -16,7 +16,8 @@ public sealed class CountVectorizer
 **Constructor** — `CountVectorizer(CountVectorizerOptions? options = null)`. The default options
 are scikit-learn's defaults, so `new CountVectorizer()` is `CountVectorizer()`. It throws
 `ArgumentOutOfRangeException` when `MinDf` or `MaxDf` is negative, not finite or a fraction above
-`1`, and `ArgumentException` when `NgramRange` descends, the one range scikit-learn refuses too.
+`1`, and `ArgumentException` when `NgramRange` descends, the one range scikit-learn refuses too, or when `Analyzer`
+is not an [`AnalyzerKind`](analyzerkind.md) member.
 
 **Example** — three documents, and the vocabulary they produce.
 

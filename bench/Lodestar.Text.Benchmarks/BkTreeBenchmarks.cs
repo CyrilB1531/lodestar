@@ -31,6 +31,19 @@ public class BkTreeBenchmarks
     [GlobalSetup]
     public void Setup()
     {
+        this.words = Dictionary(this.Shape);
+
+        this.tree = BkTree.OverLevenshtein();
+        this.tree.AddRange(this.words);
+
+        // Queries drawn from the corpus itself: looking up a word that is present is the
+        // spelling-corrector case, and it is the one the tree has to work hardest for.
+        this.queries = [.. Enumerable.Range(0, 200).Select(i => this.words[i * 97 % this.words.Length])];
+    }
+
+    /// <summary>One shape of <c>bench/corpus/dictionary.json</c>, which <c>generate_dictionary.py</c> writes.</summary>
+    internal static string[] Dictionary(string shape)
+    {
         string path = Path.Combine(BenchCorpus.RepoRoot(), "bench", "corpus", "dictionary.json");
         if (!File.Exists(path))
         {
@@ -40,15 +53,7 @@ public class BkTreeBenchmarks
         }
 
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(path));
-        this.words = [.. document.RootElement.GetProperty(this.Shape).EnumerateArray()
-            .Select(static e => e.GetString()!)];
-
-        this.tree = BkTree.OverLevenshtein();
-        this.tree.AddRange(this.words);
-
-        // Queries drawn from the corpus itself: looking up a word that is present is the
-        // spelling-corrector case, and it is the one the tree has to work hardest for.
-        this.queries = [.. Enumerable.Range(0, 200).Select(i => this.words[i * 97 % this.words.Length])];
+        return [.. document.RootElement.GetProperty(shape).EnumerateArray().Select(static e => e.GetString()!)];
     }
 
     [Benchmark(Baseline = true)]

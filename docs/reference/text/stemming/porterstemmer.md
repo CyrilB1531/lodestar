@@ -25,16 +25,19 @@ The algorithm is five steps of suffix rules, gated on a measure of vowel-consona
 rather than on named regions — the mechanism Porter2 replaced with R1 and R2. It knows only ASCII
 letters, so an accented word is not something it was built to receive.
 
-Reference behaviour is `nltk.stem.porter.PorterStemmer(mode=ORIGINAL_ALGORITHM)`, matched over
-86 words.
+Two forms of the algorithm are published, and [`PorterStemmerMode`](porterstemmermode.md) picks
+one: the 1980 paper as printed, the default, or the departures Martin Porter's own reference
+implementation makes from it. Reference behaviour is `nltk.stem.porter.PorterStemmer` in the
+matching mode — `ORIGINAL_ALGORITHM` or `MARTIN_EXTENSIONS` — matched in both over every entry of a
+73,456-word English dictionary.
 
 **Applies to** — net10.0, netstandard2.0.
 
-**See also** — [`EnglishSnowballStemmer`](englishsnowballstemmer.md),
-[the stemming index](../stemming.md).
+**See also** — [`PorterStemmerMode`](porterstemmermode.md),
+[`EnglishSnowballStemmer`](englishsnowballstemmer.md), [the stemming index](../stemming.md).
 
 ## Members
 
 | Member | What it does |
 | --- | --- |
-| [`PorterStemmer.Stem`](porterstemmer-stem.md) | The Porter stem of one English word. |
+| [`PorterStemmer.Stem`](porterstemmer-stem.md) | The Porter stem of one English word, by the paper or by Martin's extensions. |

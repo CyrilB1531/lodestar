@@ -60,7 +60,7 @@
   amends: []
   applies: []
   superseded_by: []
-  amended_by: []
+  amended_by: ["0009"]
   applied_by: []
 
 "0006":
@@ -80,7 +80,7 @@
   amends: []
   applies: []
   superseded_by: []
-  amended_by: []
+  amended_by: ["0009"]
   applied_by: []
 
 "0008":
@@ -88,6 +88,16 @@
   status: "accepted"
   supersedes: []
   amends: ["0004"]
+  applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0009":
+  title: "The phonetic encoders follow jellyfish whole"
+  status: "accepted"
+  supersedes: []
+  amends: ["0005", "0007"]
   applies: []
   superseded_by: []
   amended_by: []

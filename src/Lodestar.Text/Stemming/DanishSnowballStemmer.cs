@@ -87,21 +87,23 @@ public static class DanishSnowballStemmer
         }
 
         private static readonly string[] DoubleConsonants =
-            ["bb", "dd", "ff", "gg", "kk", "ll", "mm", "nn", "pp", "rr", "ss", "tt"];
+        [
+            "bb", "cc", "dd", "ff", "gg", "hh", "jj", "kk", "ll", "mm",
+            "nn", "pp", "qq", "rr", "ss", "tt", "vv", "ww", "xx", "zz",
+        ];
 
         /// <summary>
-        /// The last letter of a doubled consonant goes when that letter lies in R1:
+        /// The last letter of any doubled consonant goes from a word longer than three letters:
         /// "bestemmelse" reaches "bestemm" through step 3 and ends at "bestem".
         /// </summary>
         /// <remarks>
-        /// What has to be in R1 is the letter removed, not the pair — Snowball states
-        /// a region condition against the suffix an action deletes, and here that is
-        /// one character. "hyggelig" reaches "hygg", whose second 'g' is in R1 while
-        /// the pair is not, and stems to "hyg".
+        /// nltk's rule, the reference decision 0006 names for Danish: the whole word, not R1, and
+        /// every consonant, not the twelve Snowball's Danish letters double. The two part on a double
+        /// before R1 — "popyddllqq" keeps its "qq" under Snowball and loses a "q" here (#1198).
         /// </remarks>
         private void Step4()
         {
-            if (LongestSuffix(DoubleConsonants) is not null && InR1(1))
+            if (S.Length > 3 && LongestSuffix(DoubleConsonants) is not null)
             {
                 Delete(1);
             }

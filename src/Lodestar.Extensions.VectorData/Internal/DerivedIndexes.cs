@@ -113,8 +113,27 @@ internal sealed class DerivedIndexes<TKey, TRecord>
         }
 
         var vectorizer = new CountVectorizer(options.Vectorizer);
-        CsrMatrix counts = vectorizer.FitTransform(documents);
+        CsrMatrix counts;
+        try
+        {
+            counts = vectorizer.FitTransform(documents);
+        }
+        catch (InvalidOperationException) when (!BoundsCross(options.Vectorizer ?? new CountVectorizerOptions(), documents.Count))
+        {
+            // Texts that yield no term: Lodestar.Text refuses them as scikit-learn does (#1239), and
+            // this store degrades to the vector ranking instead. Crossed bounds are the caller's error.
+            return new DerivedIndexes<TKey, TRecord>(vectors, block, null, null, null, keys, held);
+        }
+
         return new DerivedIndexes<TKey, TRecord>(
             vectors, block, counts, new Bm25Index(counts, options.Bm25), vectorizer, keys, held);
+    }
+
+    // CountVectorizer's own test of MinDf against MaxDf, restated so that error is not swallowed.
+    private static bool BoundsCross(CountVectorizerOptions vectorizer, int documents)
+    {
+        double low = vectorizer.MinDf is > 0 and < 1 ? vectorizer.MinDf * documents : vectorizer.MinDf;
+        double high = vectorizer.MaxDf <= 1.0 ? vectorizer.MaxDf * documents : vectorizer.MaxDf;
+        return high < low;
     }
 }

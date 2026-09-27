@@ -1,3 +1,4 @@
+using Lodestar.Text.Internal;
 using System.Text.RegularExpressions;
 using Lodestar.Text.Vectorization;
 
@@ -18,22 +19,23 @@ internal sealed class PhraseTokenizer
 {
     // Anything that is not a token character ends a run, which is what makes
     // "red, green" two candidates rather than one two-word phrase.
-    private readonly Regex _token;
+    private readonly PythonTokenPattern _token;
     private readonly StopWordSet _stopWords;
 
     public PhraseTokenizer(IReadOnlyCollection<string> stopWords, string tokenPattern)
     {
         _stopWords = StopWordSet.Adopt(stopWords);
-        _token = new Regex(tokenPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
+        _token = new PythonTokenPattern(tokenPattern);
     }
 
     /// <summary>Every token of the document, lower-cased, in order, stop words included.</summary>
     public IReadOnlyList<string> Words(string text)
     {
         var words = new List<string>();
-        foreach (Match m in _token.Matches(text.ToLowerInvariant()))
+        string lowered = text.ToLowerInvariant();
+        foreach ((int index, int length) in _token.Matches(lowered))
         {
-            words.Add(m.Value);
+            words.Add(lowered.Substring(index, length));
         }
         return words;
     }
@@ -46,19 +48,20 @@ internal sealed class PhraseTokenizer
         var current = new List<string>();
         int previousEnd = -1;
 
-        foreach (Match m in _token.Matches(lowered))
+        foreach ((int index, int length) in _token.Matches(lowered))
         {
-            bool gap = previousEnd >= 0 && HasNonSpace(lowered, previousEnd, m.Index);
-            if (gap || _stopWords.Contains(m.Value))
+            string value = lowered.Substring(index, length);
+            bool gap = previousEnd >= 0 && HasNonSpace(lowered, previousEnd, index);
+            if (gap || _stopWords.Contains(value))
             {
                 Flush(runs, current);
             }
 
-            if (!_stopWords.Contains(m.Value))
+            if (!_stopWords.Contains(value))
             {
-                current.Add(m.Value);
+                current.Add(value);
             }
-            previousEnd = m.Index + m.Length;
+            previousEnd = index + length;
         }
 
         Flush(runs, current);

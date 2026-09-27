@@ -18,7 +18,7 @@ one character: `TextElement.Utf16Unit` by default, or `TextElement.CodePoint` to
 outside the Basic Multilingual Plane.
 
 **Returns** — `double`, in `[0, 1]` for non-negative `alpha` and `beta`. `1` when the weighted
-surpluses vanish, `0` when the two share no gram.
+surpluses vanish or the inputs are equal, `0` when the two share no gram or one is empty.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `qval` is below `1`.
 
@@ -43,26 +43,23 @@ Two settings reproduce neighbours exactly: `alpha: 1, beta: 1` is
 [`SorensenDice.Similarity`](sorensendice-similarity.md) — `0.7142…` above, the number that page
 prints for the same pair.
 
-Two edges belong to the caller rather than to the measure, because the weights are theirs.
-
-**A zero weight makes an empty input score `1`.** With `beta: 0` nothing is charged for what `b`
-holds alone, so an empty `a` has no surplus, no intersection and no denominator at all — and the
-degenerate case answers `1`, the same value two empty inputs get. An empty query is *vacuously*
-contained in everything, which is arithmetically right and rarely what a caller wanted:
+An empty input scores `0` against anything but another empty input, whatever the weights — the
+answer textdistance gives before it weighs anything. A zero weight does not make an empty query
+*vacuously* contained:
 
 ```csharp
 using Lodestar.Text.Similarity;
 
-double vacuous = Tversky.Similarity("", "abc", alpha: 1, beta: 0);  // => 1
+double empty = Tversky.Similarity("", "abc", alpha: 1, beta: 0);  // => 0
 ```
 
 **Negative weights leave `[0, 1]`.** They are accepted rather than rejected, and a negative
 denominator yields a legitimate quotient, so the bound in **Returns** holds only for non-negative
 `alpha` and `beta`.
 
-Two empty inputs give `1` whatever the weights. Two inputs shorter than `qval` hold no gram
-and score `1` only when they are equal, whatever the weights — `"a"` against `"b"` at `qval: 2`
-gives `0`, where textdistance divides by zero.
+Equal inputs, two empty ones included, give `1` whatever the weights. A pair that leaves nothing
+to divide by — no shared gram and no weighted surplus, as `alpha: 0, beta: 0` on two disjoint
+inputs, or `"a"` against `"b"` at `qval: 2` — gives `0`, where textdistance divides by zero.
 
 **Applies to** — net10.0, netstandard2.0.
 

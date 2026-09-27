@@ -1,4 +1,5 @@
 using System.Text;
+using Lodestar.Text.Internal;
 
 namespace Lodestar.Text.Phonetics;
 
@@ -6,72 +7,51 @@ namespace Lodestar.Text.Phonetics;
 #pragma warning disable S3776
 
 /// <summary>
-/// American Soundex phonetic encoding: an initial letter followed by three digits.
+/// American Soundex phonetic encoding: an initial character followed by three digits.
 /// </summary>
 /// <remarks>
-/// Reference behavior: <c>jellyfish.soundex</c>. Non-letters are ignored; the empty
-/// string encodes to the empty string. Codes: <c>bfpv→1</c>, <c>cgjkqsxz→2</c>,
-/// <c>dt→3</c>, <c>l→4</c>, <c>mn→5</c>, <c>r→6</c>; vowels (and <c>y</c>) separate
-/// equal codes, <c>h</c>/<c>w</c> are transparent. English-oriented heuristic, not
-/// Unicode-aware; thread-safe.
+/// Reference behavior: <c>jellyfish.soundex</c> 1.2.1 over the full uppercase and NFKD; the first
+/// character leads whatever it is. <c>bfpv→1</c>, <c>cgjkqsxz→2</c>, <c>dt→3</c>, <c>l→4</c>,
+/// <c>mn→5</c>, <c>r→6</c>; <c>h</c>/<c>w</c> are transparent, and anything else — a vowel, an
+/// apostrophe — separates equal codes (<c>Keats's</c> is <c>K322</c>). Thread-safe.
 /// </remarks>
 public static class Soundex
 {
     /// <summary>Encodes <paramref name="value"/> to its 4-character Soundex code (or empty).</summary>
     public static string Encode(ReadOnlySpan<char> value)
     {
-        // First letter.
-        int i = 0;
-        char first = '\0';
-        while (i < value.Length)
-        {
-            char c = char.ToUpperInvariant(value[i]);
-            i++;
-            if (c is >= 'A' and <= 'Z')
-            {
-                first = c;
-                break;
-            }
-        }
-        if (first == '\0')
+        if (value.IsEmpty)
         {
             return string.Empty;
         }
 
-        var sb = new StringBuilder(4);
-        sb.Append(first);
-        int previous = Code(first);
+        string v = WellFormedNormalization.Normalize(PhoneticText.ToUpperFull(value), NormalizationForm.FormKD);
+        int firstLength = char.IsSurrogatePair(v, 0) ? 2 : 1;
+        var sb = new StringBuilder(firstLength + 3);
+        sb.Append(v, 0, firstLength);
+        int previous = Code(v[0]);
+        int digits = 0;
 
-        for (; i < value.Length && sb.Length < 4; i++)
+        for (int i = firstLength; i < v.Length && digits < 3; i++)
         {
-            char c = char.ToUpperInvariant(value[i]);
-            if (c is < 'A' or > 'Z')
-            {
-                continue;
-            }
-            if (c is 'H' or 'W')
-            {
-                continue; // transparent: do not reset the previous code
-            }
-            if (c is 'A' or 'E' or 'I' or 'O' or 'U' or 'Y')
-            {
-                previous = 0; // vowels separate equal consonant codes
-                continue;
-            }
-
+            char c = v[i];
             int code = Code(c);
-            if (code != previous)
+            if (code != 0)
             {
-                sb.Append((char)('0' + code));
+                if (code != previous)
+                {
+                    sb.Append((char)('0' + code));
+                    digits++;
+                }
+                previous = code;
             }
-            previous = code;
+            else if (c is not ('H' or 'W'))
+            {
+                previous = 0;
+            }
         }
 
-        while (sb.Length < 4)
-        {
-            sb.Append('0');
-        }
-        return sb.ToString();
+        return sb.Append('0', 3 - digits).ToString();
     }
 
     /// <summary>Encodes a string to its Soundex code.</summary>
@@ -90,6 +70,6 @@ public static class Soundex
         'L' => 4,
         'M' or 'N' => 5,
         'R' => 6,
-        _ => 0, // vowels, H, W, Y
+        _ => 0, // everything else, H and W included
     };
 }

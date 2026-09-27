@@ -97,4 +97,18 @@ public sealed class SetSimilarityOracleTests
             Assert.Equal(expected, Cosine.Similarity(a, b, qval, element));
         }
     }
+
+    [Theory]
+    [InlineData("", "abc", 1.0, 0.0, 0.0)]
+    [InlineData("abc", "", 0.0, 1.0, 0.0)]
+    [InlineData("ab", "cd", 0.0, 0.0, 0.0)]
+    [InlineData("ab", "ab", 0.0, 0.0, 1.0)]
+    [InlineData("ab", "abc", 0.0, 0.0, 1.0)]
+    [InlineData("apple", "pineapple", 1.0, 0.0, 1.0)]
+    public void Tversky_answers_textdistance_where_a_weight_is_zero(string a, string b, double alpha, double beta, double expected)
+    {
+        // textdistance gives 0 for an empty side before weighing anything, and divides by zero for
+        // "ab"/"cd" under zero weights; both used to score 1 here (#1198).
+        Assert.Equal(expected, Tversky.Similarity(a, b, alpha, beta), 12);
+    }
 }

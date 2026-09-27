@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 
-// The sixteen data types this package declared until 0.6.x live in Lodestar.Abstractions under the
-// same names (decision 0003, #1142); code built against 0.6.x still binds through these forwarders.
+// Data types declared here until 0.6.x live in Lodestar.Abstractions (decision 0003, #1142), and
+// PorterStemmerMode was born there (#1193); these forwarders keep both bound to this package.
 
 [assembly: TypeForwardedTo(typeof(Lodestar.Text.TextElement))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Text.Indexing.BkTreeMatch))]
@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 [assembly: TypeForwardedTo(typeof(Lodestar.Text.Search.Bm25Idf))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Text.Search.Bm25Options))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Text.Search.SearchHit))]
+[assembly: TypeForwardedTo(typeof(Lodestar.Text.Stemming.PorterStemmerMode))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Text.Similarity.MinHashScheme))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Text.Vectorization.AnalyzerKind))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Text.Vectorization.CountVectorizerOptions))]

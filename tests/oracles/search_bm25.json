@@ -4,7 +4,7 @@
   "version": "0.2.2",
   "family": "search-bm25",
   "variant": "BM25Okapi: Robertson IDF, negatives floored at epsilon * average_idf",
-  "count": 8
+  "count": 9
  },
  "cases": [
   {
@@ -488,6 +488,79 @@
     0.6187228051601253,
     0.0,
     0.6187228051601253
+   ]
+  },
+  {
+   "name": "vocabulary columns no document uses, beside a negative IDF",
+   "vocabulary": [
+    "away",
+    "bird",
+    "cat",
+    "dog",
+    "far",
+    "flew",
+    "sat",
+    "the",
+    "today",
+    "yak",
+    "zebra"
+   ],
+   "counts": [
+    [
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     1,
+     1,
+     0,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     2,
+     1,
+     0,
+     0,
+     0
+    ],
+    [
+     1,
+     1,
+     0,
+     0,
+     1,
+     1,
+     0,
+     1,
+     1,
+     0,
+     0
+    ]
+   ],
+   "query": [
+    "sat"
+   ],
+   "queryColumns": [
+    6
+   ],
+   "queryHasUnknownTerm": false,
+   "k1": 1.5,
+   "b": 0.75,
+   "epsilon": 0.25,
+   "averageDocumentLength": 4.333333333333333,
+   "scores": [
+    0.036080274593323906,
+    0.045532290191011585,
+    0.0
    ]
   },
   {

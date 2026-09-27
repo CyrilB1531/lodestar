@@ -35,6 +35,11 @@ int alsoWidth = second.ColumnCount; // => 16
 comparable — the same term lands in the same column both times, and on another machine too. That
 is the property the count vectorizers cannot offer without saving and shipping a fitted model.
 
+A bucket two terms reached with opposite signs sums to `0` and **stays stored**, as scikit-learn's
+`sum_duplicates` leaves it: a `TfidfTransformer` fitted on the matrix counts it in the column's
+document frequency, and [`CountVectorizerOptions.Binary`](countvectorizeroptions.md) turns it into
+`1` with the rest.
+
 A row can hold **negative** values when `AlternateSign` is on, which is the default. That is not a
 defect: it is what makes two colliding terms tend to cancel rather than sum, and it means a
 `CsrMatrix` from here is the one place in this namespace where

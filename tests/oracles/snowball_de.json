@@ -6,7 +6,7 @@
   "reference_calls": [
    "nltk.stem.snowball.SnowballStemmer('german')"
   ],
-  "count": 88
+  "count": 100
  },
  "cases": [
   {
@@ -448,6 +448,66 @@
    "id": 87,
    "word": "einen",
    "stem": "ein"
+  },
+  {
+   "id": 88,
+   "word": "bedeutung",
+   "stem": "bedeut"
+  },
+  {
+   "id": 89,
+   "word": "regierung",
+   "stem": "regier"
+  },
+  {
+   "id": 90,
+   "word": "entwicklung",
+   "stem": "entwickl"
+  },
+  {
+   "id": 91,
+   "word": "erfahrung",
+   "stem": "erfahr"
+  },
+  {
+   "id": 92,
+   "word": "beziehung",
+   "stem": "bezieh"
+  },
+  {
+   "id": 93,
+   "word": "veränderung",
+   "stem": "verander"
+  },
+  {
+   "id": 94,
+   "word": "verwaltung",
+   "stem": "verwalt"
+  },
+  {
+   "id": 95,
+   "word": "beendigung",
+   "stem": "beendig"
+  },
+  {
+   "id": 96,
+   "word": "reinigung",
+   "stem": "reinig"
+  },
+  {
+   "id": 97,
+   "word": "entschuldigung",
+   "stem": "entschuld"
+  },
+  {
+   "id": 98,
+   "word": "heiligung",
+   "stem": "heilig"
+  },
+  {
+   "id": 99,
+   "word": "lesend",
+   "stem": "lesend"
   }
  ]
 }

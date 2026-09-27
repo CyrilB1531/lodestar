@@ -24,12 +24,19 @@ public static class JaroWinkler
     private const double BoostThreshold = 0.7;
 
     /// <summary>Computes the Jaro-Winkler similarity of <paramref name="a"/> and <paramref name="b"/>.</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="prefixWeight"/> is outside [0, 1], or NaN.</exception>
     public static double Similarity(
         ReadOnlySpan<char> a,
         ReadOnlySpan<char> b,
         double prefixWeight = DefaultPrefixWeight,
         TextElement element = TextElement.Utf16Unit)
     {
+        // rapidfuzz's range for the same parameter; jellyfish fixes it at 0.1 (#1198).
+        if (!(prefixWeight is >= 0.0 and <= 1.0))
+        {
+            throw new ArgumentOutOfRangeException(nameof(prefixWeight), prefixWeight, "prefixWeight must lie in [0, 1].");
+        }
+
         if (element != TextElement.CodePoint)
         {
             return WinklerCore<char>(a, b, prefixWeight);
@@ -51,6 +58,7 @@ public static class JaroWinkler
     }
 
     /// <summary>Jaro-Winkler distance: <c>1 - Similarity</c>.</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="prefixWeight"/> is outside [0, 1], or NaN.</exception>
     public static double Distance(
         ReadOnlySpan<char> a,
         ReadOnlySpan<char> b,
@@ -76,6 +84,7 @@ public static class JaroWinkler
             prefix++;
         }
 
-        return jaro + prefix * prefixWeight * (1.0 - jaro);
+        // Past 0.25 four shared letters would overshoot 1; rapidfuzz caps it there.
+        return Math.Min(1.0, jaro + prefix * prefixWeight * (1.0 - jaro));
     }
 }
