@@ -20,7 +20,7 @@ double twoSided = 2.0 * Distributions.StudentSf(2.0, 12.0);   // => 0.0686550…
 double multiplier = Distributions.StudentQuantile(0.975, 12.0); // => 2.1788128296672298
 
 // And the overall F test of a model with two regressors and twenty residual df.
-double overall = Distributions.FisherSf(4.0, 2.0, 20.0);        // => 0.0345716…
+double overall = Distributions.FisherSnedecorSf(4.0, 2.0, 20.0);        // => 0.0345716…
 
 // And a log-rank test's p-value, on one degree of freedom.
 double logRank = Distributions.ChiSquaredSf(3.84, 1.0);          // => 0.0500…
@@ -51,11 +51,12 @@ the [distributions index](../tails.md).
 | [`Distributions.ChiSquaredPdf`](distributions-chisquaredpdf.md) | The chi-squared density. |
 | [`Distributions.ChiSquaredQuantile`](distributions-chisquaredquantile.md) | The value a chi-squared falls below with a given probability. |
 | [`Distributions.ChiSquaredSf`](distributions-chisquaredsf.md) | The upper tail of the chi-squared distribution. |
-| [`Distributions.FisherCdf`](distributions-fishercdf.md) | The lower tail of the *F* distribution. |
-| [`Distributions.FisherIsf`](distributions-fisherisf.md) | The inverse of the *F* upper tail. |
-| [`Distributions.FisherPdf`](distributions-fisherpdf.md) | The *F* density. |
-| [`Distributions.FisherQuantile`](distributions-fisherquantile.md) | The value an *F* falls below with a given probability. |
-| [`Distributions.FisherSf`](distributions-fishersf.md) | The upper tail of the *F* distribution. |
+| [`Distributions.FisherSnedecorCdf`](distributions-fishersnedecorcdf.md) | The lower tail of the *F* distribution. |
+| [`Distributions.FisherSnedecorIsf`](distributions-fishersnedecorisf.md) | The inverse of the *F* upper tail. |
+| [`Distributions.FisherSnedecorPdf`](distributions-fishersnedecorpdf.md) | The *F* density. |
+| [`Distributions.FisherSnedecorQuantile`](distributions-fishersnedecorquantile.md) | The value an *F* falls below with a given probability. |
+| [`Distributions.FisherSnedecorSf`](distributions-fishersnedecorsf.md) | The upper tail of the *F* distribution. |
+| [`Distributions.FisherSf`](distributions-fishersf.md) | Its former name, obsolete, kept for binaries compiled against 0.5.0. |
 | [`Distributions.NormalCdf`](distributions-normalcdf.md) | The lower tail of the standard normal. |
 | [`Distributions.NormalIsf`](distributions-normalisf.md) | The inverse of the standard normal's upper tail. |
 | [`Distributions.NormalPdf`](distributions-normalpdf.md) | The standard normal density. |

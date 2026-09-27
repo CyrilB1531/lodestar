@@ -6,7 +6,7 @@ using Xunit;
 namespace Lodestar.Stats.Tests;
 
 /// <summary>Replays <c>tests/oracles/stats_chisquare.json</c>, both calls.</summary>
-public sealed class ChiSquareOracleTests
+public sealed class ChiSquaredOracleTests
 {
     [Fact]
     public void Every_case_matches_scipy()
@@ -66,12 +66,12 @@ public sealed class ChiSquareOracleTests
             if (c.TryGetProperty("raises", out JsonElement r) && r.GetBoolean())
             {
                 Assert.Throws<ArgumentException>(
-                    () => ChiSquare.GoodnessOfFit(observed, expectedInput, policy));
+                    () => ChiSquared.GoodnessOfFit(observed, expectedInput, policy));
                 replayed++;
                 continue;
             }
 
-            TestResult actual = ChiSquare.GoodnessOfFit(observed, expectedInput, policy);
+            TestResult actual = ChiSquared.GoodnessOfFit(observed, expectedInput, policy);
             double statistic = StatsCorpus.Number(c.GetProperty("statistic"));
             double pValue = StatsCorpus.Number(c.GetProperty("pvalue"));
             StatsOracleAsserts.Statistic(statistic, actual.Statistic, name);
@@ -89,8 +89,8 @@ public sealed class ChiSquareOracleTests
         double[] expected = StatsCorpus.Doubles(c.GetProperty("expected_input"));
 
         TestResult result = expected.Length == 0
-            ? ChiSquare.GoodnessOfFit(observed)
-            : ChiSquare.GoodnessOfFit(observed, expected);
+            ? ChiSquared.GoodnessOfFit(observed)
+            : ChiSquared.GoodnessOfFit(observed, expected);
 
         StatsOracleAsserts.Statistic(expectedStatistic, result.Statistic, name);
         StatsOracleAsserts.PValue(expectedP, result.PValue, name);
@@ -99,7 +99,7 @@ public sealed class ChiSquareOracleTests
     private static void AssertContingency(
         JsonElement c, string name, double expectedStatistic, double expectedP)
     {
-        Chi2ContingencyResult result = ChiSquare.Contingency(
+        ChiSquaredContingencyResult result = ChiSquared.Contingency(
             StatsCorpus.Table(c.GetProperty("table")),
             c.GetProperty("args").GetProperty("correction").GetBoolean()
                 ? Continuity.Applied
@@ -107,7 +107,7 @@ public sealed class ChiSquareOracleTests
 
         StatsOracleAsserts.Statistic(expectedStatistic, result.Statistic, name);
         StatsOracleAsserts.PValue(expectedP, result.PValue, name);
-        Assert.Equal(c.GetProperty("dof").GetInt32(), result.Dof);
+        Assert.Equal(c.GetProperty("dof").GetInt32(), result.DegreesOfFreedom);
 
         double[][] expectedFreq = StatsCorpus.Table(c.GetProperty("expected_freq"));
         for (int i = 0; i < expectedFreq.Length; i++)

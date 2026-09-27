@@ -33,12 +33,13 @@ public static class Fligner
     /// deviation ties, as scipy answers.
     /// </returns>
     /// <exception cref="ArgumentException">Fewer than two groups, or a <c>NaN</c> under <see cref="NanPolicy.Raise"/>.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="proportionToCut"/> trims a group away entirely.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="proportionToCut"/> is NaN under <see cref="Center.Trimmed"/>, or cuts a count below zero or past a group's middle, as scipy refuses them; one that trims a group to nothing answers NaN, as scipy's does.</exception>
 #pragma warning disable S2368
     public static TestResult Test(Center center, double proportionToCut, NanPolicy nanPolicy, params double[][] groups)
 #pragma warning restore S2368
     {
         Guard.NotNull(groups);
+        GroupSpread.RequireProportion(center, proportionToCut);
         if (groups.Length < 2)
         {
             throw new ArgumentException($"The Fligner-Killeen test needs at least two groups; got {groups.Length}.", nameof(groups));
@@ -59,9 +60,19 @@ public static class Fligner
         int total = samples.Sum(group => group.Length);
         var deviations = new double[total];
         int at = 0;
-        foreach (double[] group in samples)
+        // Every centre first, so a trim refused in a later group is refused as scipy refuses it.
+        double[] centres = [.. samples.Select(group => GroupSpread.Centre(group, center, proportionToCut))];
+
+        // A group trimmed to nothing has no centre, and scipy's test answers NaN; ranking NaN deviations would not.
+        if (Array.Exists(centres, double.IsNaN))
         {
-            double centre = GroupSpread.Centre(group, center, proportionToCut);
+            return new TestResult(double.NaN, double.NaN);
+        }
+
+        for (int g = 0; g < samples.Length; g++)
+        {
+            double[] group = samples[g];
+            double centre = centres[g];
             foreach (double value in group)
             {
                 deviations[at++] = Math.Abs(value - centre);

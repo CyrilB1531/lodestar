@@ -3,7 +3,7 @@ namespace Lodestar.Stats;
 /// <summary>A contingency-table chi-square result.</summary>
 /// <param name="Statistic">The chi-square statistic.</param>
 /// <param name="PValue">The upper-tail p-value.</param>
-/// <param name="Dof">The degrees of freedom, <c>(rows - 1) * (columns - 1)</c>.</param>
+/// <param name="DegreesOfFreedom">The degrees of freedom, <c>(rows - 1) * (columns - 1)</c>.</param>
 /// <param name="ExpectedFrequencies">
 /// The table expected under independence, row-major, same shape as the input.
 /// </param>
@@ -12,8 +12,8 @@ namespace Lodestar.Stats;
 // table, itself double[][] because that is how chi2_contingency takes it. Wrapping
 // one side and not the other buys no safety, only a conversion at the boundary.
 #pragma warning disable CA1819, S2368
-public sealed record Chi2ContingencyResult(
-    double Statistic, double PValue, int Dof, double[][] ExpectedFrequencies)
+public sealed record ChiSquaredContingencyResult(
+    double Statistic, double PValue, int DegreesOfFreedom, double[][] ExpectedFrequencies)
 {
     /// <summary>Compares the scalars and the expected table, row by row.</summary>
     /// <param name="other">The result to compare against.</param>
@@ -21,13 +21,13 @@ public sealed record Chi2ContingencyResult(
     /// The generated equality would compare <see cref="ExpectedFrequencies"/> by reference, so
     /// two results holding the same table would be unequal. a record whose member compares by reference writes its own equality.
     /// </remarks>
-    public bool Equals(Chi2ContingencyResult? other)
+    public bool Equals(ChiSquaredContingencyResult? other)
     {
         if (ReferenceEquals(this, other))
         {
             return true;
         }
-        if (other is null || Dof != other.Dof)
+        if (other is null || DegreesOfFreedom != other.DegreesOfFreedom)
         {
             return false;
         }
@@ -53,7 +53,7 @@ public sealed record Chi2ContingencyResult(
         {
             int hash = (17 * 31) + Statistic.GetHashCode();
             hash = (hash * 31) + PValue.GetHashCode();
-            hash = (hash * 31) + Dof;
+            hash = (hash * 31) + DegreesOfFreedom;
             return (hash * 31) + ValueEquality.CountOf(ExpectedFrequencies);
         }
     }

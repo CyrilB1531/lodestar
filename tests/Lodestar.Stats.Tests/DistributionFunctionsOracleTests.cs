@@ -58,11 +58,11 @@ public sealed class DistributionFunctionsOracleTests
             "chi2.sf" => Distributions.ChiSquaredSf(x, Arg(args, "df")),
             "chi2.ppf" => Distributions.ChiSquaredQuantile(x, Arg(args, "df")),
             "chi2.isf" => Distributions.ChiSquaredIsf(x, Arg(args, "df")),
-            "f.pdf" => Distributions.FisherPdf(x, Arg(args, "dfn"), Arg(args, "dfd")),
-            "f.cdf" => Distributions.FisherCdf(x, Arg(args, "dfn"), Arg(args, "dfd")),
-            "f.sf" => Distributions.FisherSf(x, Arg(args, "dfn"), Arg(args, "dfd")),
-            "f.ppf" => Distributions.FisherQuantile(x, Arg(args, "dfn"), Arg(args, "dfd")),
-            "f.isf" => Distributions.FisherIsf(x, Arg(args, "dfn"), Arg(args, "dfd")),
+            "f.pdf" => Distributions.FisherSnedecorPdf(x, Arg(args, "dfn"), Arg(args, "dfd")),
+            "f.cdf" => Distributions.FisherSnedecorCdf(x, Arg(args, "dfn"), Arg(args, "dfd")),
+            "f.sf" => Distributions.FisherSnedecorSf(x, Arg(args, "dfn"), Arg(args, "dfd")),
+            "f.ppf" => Distributions.FisherSnedecorQuantile(x, Arg(args, "dfn"), Arg(args, "dfd")),
+            "f.isf" => Distributions.FisherSnedecorIsf(x, Arg(args, "dfn"), Arg(args, "dfd")),
             _ => throw new InvalidOperationException($"No function for {call}."),
         };
 

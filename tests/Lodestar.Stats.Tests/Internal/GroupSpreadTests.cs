@@ -67,10 +67,31 @@ public sealed class GroupSpreadTests
     }
 
     [Fact]
-    public void Trimming_everything_away_is_refused()
+    public void Trimming_everything_away_leaves_no_mean()
     {
+        Assert.True(double.IsNaN(GroupSpread.TrimmedMean([1.0, 2.0, 3.0, 4.0], 0.5)));
+    }
+
+    /// <summary>scipy refuses a NaN proportion and a count below zero, and answers NaN for one that trims everything (#1217).</summary>
+    [Fact]
+    public void A_negative_or_NaN_proportion_is_refused_and_a_full_trim_answers_NaN()
+    {
+        double[] a = [1, 2, 3, 4];
+        double[] b = [2, 3, 4, 9];
+        Assert.Throws<ArgumentOutOfRangeException>(() => Levene.Test(Center.Trimmed, -0.5, NanPolicy.Propagate, a, b));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Fligner.Test(Center.Trimmed, double.NaN, NanPolicy.Propagate, a, b));
+        Assert.True(double.IsNaN(Levene.Test(Center.Trimmed, 0.5, NanPolicy.Propagate, a, b).PValue));
+        Assert.True(double.IsNaN(Fligner.Test(Center.Trimmed, 0.5, NanPolicy.Propagate, a, b).PValue));
+
+        // A small negative truncates to no trim at all, as scipy's int() does; past the middle is refused.
+        Assert.Equal(Levene.Test(Center.Trimmed, 0.0, NanPolicy.Propagate, a, b), Levene.Test(Center.Trimmed, -0.1, NanPolicy.Propagate, a, b));
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => GroupSpread.TrimmedMean([1.0, 2.0, 3.0, 4.0], 0.5));
+            () => Levene.Test(Center.Trimmed, 0.6, NanPolicy.Propagate, [1, 2, 3, 4, 5], [2, 3, 4, 9, 1]));
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => Fligner.Test(Center.Trimmed, 0.6, NanPolicy.Propagate, [1, 2], [1, 2, 3, 4, 5]));
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => Levene.Test(Center.Trimmed, double.PositiveInfinity, NanPolicy.Propagate, [1, 2, 3], [1, 2, 3, 4]));
+        Assert.Equal(Levene.Test(Center.Mean, 0.05, NanPolicy.Propagate, a, b), Levene.Test(Center.Mean, -1.0, NanPolicy.Propagate, a, b));
     }
 }
 

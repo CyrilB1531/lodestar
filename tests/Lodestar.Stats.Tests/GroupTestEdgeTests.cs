@@ -29,7 +29,7 @@ public sealed class GroupTestEdgeTests
     }
 
     // Identical *within* every group (not the fact above's between=0): within/dfWithin = 0
-    // gives ordinary IEEE +Infinity, and FisherSf(+Infinity, ...) is exact there, returning 0.0.
+    // gives ordinary IEEE +Infinity, and FisherSnedecorSf(+Infinity, ...) is exact there, returning 0.0.
     [Fact]
     public void Anova_of_two_zero_variance_groups_is_certain()
     {

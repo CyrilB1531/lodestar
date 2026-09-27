@@ -1671,7 +1671,7 @@ guess:
 | --- | --- | --- |
 | independent-samples t-test | `TTest.Independent` | `TwoSampleTTest(double[], double[], assumeEqualVariances: false)` |
 | Mann-Whitney U | `MannWhitney.Test` | `MannWhitneyWilcoxonTest(double[], double[])` |
-| chi-square test of independence | `ChiSquare.Contingency` | `new ChiSquareTest(new Accord.Statistics.Analysis.ConfusionMatrix(a, b, c, d), yatesCorrection: …)` |
+| chi-square test of independence | `ChiSquared.Contingency` | `new ChiSquareTest(new Accord.Statistics.Analysis.ConfusionMatrix(a, b, c, d), yatesCorrection: …)` |
 
 No pair was dropped — `Accord` carries a counterpart for every one of the three families #442
 names, so nothing here records an absence.
@@ -1684,8 +1684,8 @@ ships a `lib/netstandard2.0` asset — inspected directly in the local NuGet cac
 `Accord.Math` and `Accord` (the two transitive dependencies) resolve the same way.
 
 **The chi-square comparison needs `yatesCorrection: true` to compare the same statistic.**
-`ChiSquare.Contingency`'s own default is `Continuity.Applied`, which is Yates's correction on a 2x2
-table ([`src/Lodestar.Stats/ChiSquare.cs`](../src/Lodestar.Stats/ChiSquare.cs)); `ChiSquareTest`'s
+`ChiSquared.Contingency`'s own default is `Continuity.Applied`, which is Yates's correction on a 2x2
+table ([`src/Lodestar.Stats/ChiSquared.cs`](../src/Lodestar.Stats/ChiSquared.cs)); `ChiSquareTest`'s
 own default is `yatesCorrection: false`. Left at their defaults the two rows would time two
 different statistics under one name — checked once by running both settings on the corpus case
 below, where `false` reproduces the *uncorrected* scipy figure and `true` the corrected one to the
@@ -1736,7 +1736,7 @@ belongs" table).
 
 ### The tails underneath: `DistributionTailBenchmarks`
 
-`ChiSquare.Contingency`'s row above is mostly the chi-squared tail, which no whole-test row can
+`ChiSquared.Contingency`'s row above is mostly the chi-squared tail, which no whole-test row can
 separate out. `DistributionTailBenchmarks`, in the same project, times one published tail call per
 row and has no incumbent: `Distributions.ChiSquaredSf` at one, three, four, a hundred and a
 fractional 2.5 degrees of freedom (arguments from `tests/oracles/stats_distributions.json`, plus
@@ -3014,7 +3014,7 @@ n=100 the run records six:
 
 | pair | this package | Meta.Numerics | why |
 | --- | ---: | ---: | --- |
-| chi-square statistic | 7.91919 | 9.09091 | **Yates**: `ChiSquare.Contingency` applies the continuity correction by default and `PearsonChiSquaredTest` does not |
+| chi-square statistic | 7.91919 | 9.09091 | **Yates**: `ChiSquared.Contingency` applies the continuity correction by default and `PearsonChiSquaredTest` does not |
 | chi-square p | 0.00489131 | 0.00256883 | the same correction, read through the distribution |
 | Mann-Whitney p | 0.0113229 | 0.0112835 | continuity correction; **the statistic agrees exactly** |
 | Kolmogorov-Smirnov p | 0.111195 | 0.111133 | **exact against asymptotic** — `ExactMethod.Auto` takes the exact branch at 100×100; the statistic agrees |

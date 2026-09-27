@@ -14,7 +14,7 @@ namespace Lodestar.Stats;
 /// <param name="SignificanceLevels">The significance levels, in percent, as scipy reports them.</param>
 // CA1819 (properties should not return arrays), S2368 (no jagged-array constructor parameters):
 // the two tables mirror what scipy returns and what a caller indexes in step; wrapping one side
-// buys no safety, only a conversion at the boundary. Chi2ContingencyResult is suppressed for the
+// buys no safety, only a conversion at the boundary. ChiSquaredContingencyResult is suppressed for the
 // same reason.
 #pragma warning disable CA1819
 public sealed record AndersonResult(

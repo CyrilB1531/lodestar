@@ -28,7 +28,8 @@ scipy answers.
 
 **Exceptions** — `ArgumentException` when there are fewer than two groups, or `nanPolicy` is
 [`NanPolicy.Raise`](../nanpolicy.md) and a group holds a `NaN`. `ArgumentOutOfRangeException`
-when `proportionToCut` would trim a group away entirely.
+when `proportionToCut` is `NaN` under [`Center.Trimmed`](center.md), or cuts a count below zero or
+past a group's middle, as scipy refuses them; one that trims a group to nothing answers NaN.
 
 **Example** — the three bottling machines [`Levene.Test`](levene-test.md) compares, by ranks.
 

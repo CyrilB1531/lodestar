@@ -43,4 +43,4 @@ A point past the largest double, such as the `1e-300` point on half a degree of 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`Distributions.StudentSf`](distributions-studentsf.md),
-[`Distributions.FisherSf`](distributions-fishersf.md).
+[`Distributions.FisherSnedecorSf`](distributions-fishersnedecorsf.md).

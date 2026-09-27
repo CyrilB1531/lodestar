@@ -23,14 +23,14 @@ public sealed class ResultShapeTests
     {
         // Welch-Satterthwaite degrees of freedom are not a count of anything, so
         // the field is a double and a fractional value must survive the record.
-        TTestResult result = new(Statistic: -2.0, PValue: 0.06, Df: 12.7431)
+        TTestResult result = new(Statistic: -2.0, PValue: 0.06, DegreesOfFreedom: 12.7431)
         {
             Estimate = -1.5,
             StandardError = 0.75,
             Alternative = Alternative.TwoSided,
         };
 
-        Assert.Equal(12.7431, result.Df);
+        Assert.Equal(12.7431, result.DegreesOfFreedom);
         Assert.Equal(-1.5, result.Estimate);
     }
 
@@ -38,9 +38,9 @@ public sealed class ResultShapeTests
     public void Contingency_result_keeps_the_expected_table_row_major()
     {
         double[][] expected = [[5.0, 15.0], [15.0, 45.0]];
-        Chi2ContingencyResult result = new(0.0, 1.0, Dof: 1, ExpectedFrequencies: expected);
+        ChiSquaredContingencyResult result = new(0.0, 1.0, DegreesOfFreedom: 1, ExpectedFrequencies: expected);
 
-        Assert.Equal(1, result.Dof);
+        Assert.Equal(1, result.DegreesOfFreedom);
         Assert.Equal(45.0, result.ExpectedFrequencies[1][1]);
     }
 

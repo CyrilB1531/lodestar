@@ -3,12 +3,12 @@ namespace Lodestar.Stats;
 /// <summary>A t-test's result: the statistic, the p-value and the degrees of freedom.</summary>
 /// <param name="Statistic">The t statistic.</param>
 /// <param name="PValue">The p-value on the requested tail.</param>
-/// <param name="Df">
+/// <param name="DegreesOfFreedom">
 /// The degrees of freedom. Integral for Student and for the paired and
 /// one-sample tests; fractional for Welch, whose Satterthwaite denominator is
 /// not a count of anything.
 /// </param>
-public sealed record TTestResult(double Statistic, double PValue, double Df)
+public sealed record TTestResult(double Statistic, double PValue, double DegreesOfFreedom)
 {
     /// <summary>The quantity the test compared: a mean, or a difference of means.</summary>
     /// <remarks>
@@ -45,8 +45,8 @@ public sealed record TTestResult(double Statistic, double PValue, double Df)
                 nameof(level), level, "The confidence level must lie strictly inside (0, 1).");
         }
 
-        // A NaN kept in the input leaves nothing to bound, as scipy's interval is NaN at both ends.
-        if (double.IsNaN(Df))
+        // A NaN kept in the input, or no degree of freedom, leaves nothing to bound: scipy's interval is NaN.
+        if (!(DegreesOfFreedom > 0.0))
         {
             return (double.NaN, double.NaN);
         }
@@ -54,7 +54,7 @@ public sealed record TTestResult(double Statistic, double PValue, double Df)
         // A one-sided test spends its whole error budget on one side, so the tail
         // is 1 - level rather than half of it, and the other bound is infinite.
         double tail = Alternative == Alternative.TwoSided ? (1.0 - level) / 2.0 : 1.0 - level;
-        double half = Internal.Beta.StudentQuantile(tail, Df) * StandardError;
+        double half = Internal.Beta.StudentQuantile(tail, DegreesOfFreedom) * StandardError;
 
         // The open bound is scipy's estimate plus an infinite quantile times the standard error, NaN where that is zero.
         double open = double.PositiveInfinity * StandardError;
@@ -173,6 +173,12 @@ public sealed record BinomialResult(double Statistic, double PValue)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(level), level, "The confidence level must lie strictly inside (0, 1).");
+        }
+
+        // No trial bounds no proportion, as scipy's interval is NaN at both ends.
+        if (Trials == 0)
+        {
+            return (double.NaN, double.NaN);
         }
 
         // A one-sided interval spends its whole error budget on one side, so the tail is

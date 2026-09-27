@@ -28,10 +28,10 @@ bool isReal = double.IsNaN(dropped.Statistic);  // => False
 
 **Remarks** — offered on the eleven entry points whose scipy counterpart takes `nan_policy`, and
 on no others: `chi2_contingency`, `fisher_exact` and `false_discovery_control` do not take it, so
-`ChiSquare.Contingency`, `FisherExact.Test` and the `MultipleComparisons` methods do not either.
+`ChiSquared.Contingency`, `FisherExact.Test` and the `MultipleComparisons` methods do not either.
 
 `Omit` drops **pairs** where the two inputs are aligned — `TTest.Paired`, `Wilcoxon.Paired`, and
-`ChiSquare.GoodnessOfFit` when an expectation is given — and values everywhere else. Dropping each
+`ChiSquared.GoodnessOfFit` when an expectation is given — and values everywhere else. Dropping each
 sample independently would silently change what a paired test is testing.
 
 Omission is a filter, not a second policy: a family's own guards run afterwards on what survives,

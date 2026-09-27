@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Lodestar.Stats.Internal;
 
 namespace Lodestar.Stats;
@@ -57,6 +58,24 @@ public static class Distributions
             ?? Unbounded(-Beta.StudentQuantile(p, df));
     }
 
+    /// <summary>The former name of <see cref="FisherSnedecorSf"/>, which it calls.</summary>
+    /// <param name="f">The statistic.</param>
+    /// <param name="numeratorDf">Numerator degrees of freedom; must be positive and finite.</param>
+    /// <param name="denominatorDf">Denominator degrees of freedom; must be positive and finite.</param>
+    /// <returns><c>scipy.stats.f.sf(f, dfn, dfd)</c>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Either degrees-of-freedom argument is not positive.</exception>
+    /// <remarks>
+    /// Kept for binaries compiled against 0.5.0 — <c>Lodestar.Stats.Regression</c> 0.2 among them — until their floors
+    /// move past this release (#1217).
+    /// </remarks>
+    // S1133: the removal is scheduled, not forgotten — when Lodestar.Stats.Regression's floor passes this release.
+#pragma warning disable S1133
+    [Obsolete("Renamed FisherSnedecorSf, so that \"Fisher\" names Fisher's exact test alone (#1217).")]
+#pragma warning restore S1133
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static double FisherSf(double f, double numeratorDf, double denominatorDf) =>
+        FisherSnedecorSf(f, numeratorDf, denominatorDf);
+
     /// <summary>The upper tail of the <em>F</em> distribution: <c>P(F &gt; f)</c>.</summary>
     /// <param name="f">The statistic.</param>
     /// <param name="numeratorDf">Numerator degrees of freedom; must be positive and finite.</param>
@@ -64,11 +83,11 @@ public static class Distributions
     /// <returns><c>scipy.stats.f.sf(f, dfn, dfd)</c>.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Either degrees-of-freedom argument is not positive.</exception>
     /// <remarks>What a regression's overall significance test reports, and what one-way ANOVA already uses here.</remarks>
-    public static double FisherSf(double f, double numeratorDf, double denominatorDf)
+    public static double FisherSnedecorSf(double f, double numeratorDf, double denominatorDf)
     {
         RequirePositive(numeratorDf, nameof(numeratorDf));
         RequirePositive(denominatorDf, nameof(denominatorDf));
-        return Beta.FisherSf(f, numeratorDf, denominatorDf);
+        return Beta.FisherSnedecorSf(f, numeratorDf, denominatorDf);
     }
 
     /// <summary>The upper tail of the chi-squared distribution: <c>P(X &gt; x)</c>.</summary>
@@ -191,11 +210,13 @@ public static class Distributions
     /// <param name="denominatorDf">Denominator degrees of freedom; must be positive and finite.</param>
     /// <returns><c>scipy.stats.f.pdf(f, dfn, dfd)</c>.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Either degrees-of-freedom argument is not positive.</exception>
-    public static double FisherPdf(double f, double numeratorDf, double denominatorDf)
+    public static double FisherSnedecorPdf(double f, double numeratorDf, double denominatorDf)
     {
         RequirePositive(numeratorDf, nameof(numeratorDf));
         RequirePositive(denominatorDf, nameof(denominatorDf));
-        return Densities.Fisher(f, numeratorDf, denominatorDf);
+
+        // At +∞ scipy's pdf is zero up to a numerator of two and NaN past it, where its formula forms ∞/∞.
+        return double.IsPositiveInfinity(f) && numeratorDf > 2.0 ? double.NaN : Densities.Fisher(f, numeratorDf, denominatorDf);
     }
 
     /// <summary>The <em>F</em> lower tail: <c>P(F ≤ f)</c>.</summary>
@@ -204,7 +225,7 @@ public static class Distributions
     /// <param name="denominatorDf">Denominator degrees of freedom; must be positive and finite.</param>
     /// <returns><c>scipy.stats.f.cdf(f, dfn, dfd)</c>, the incomplete beta on the lower side rather than one minus the tail.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Either degrees-of-freedom argument is not positive.</exception>
-    public static double FisherCdf(double f, double numeratorDf, double denominatorDf)
+    public static double FisherSnedecorCdf(double f, double numeratorDf, double denominatorDf)
     {
         RequirePositive(numeratorDf, nameof(numeratorDf));
         RequirePositive(denominatorDf, nameof(denominatorDf));
@@ -228,7 +249,7 @@ public static class Distributions
     /// <param name="denominatorDf">Denominator degrees of freedom; must be positive and finite.</param>
     /// <returns><c>scipy.stats.f.ppf(p, dfn, dfd)</c>.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="p"/> is outside <c>[0, 1]</c>, or a degrees-of-freedom argument is not positive.</exception>
-    public static double FisherQuantile(double p, double numeratorDf, double denominatorDf)
+    public static double FisherSnedecorQuantile(double p, double numeratorDf, double denominatorDf)
     {
         RequireProbability(p, nameof(p));
         RequirePositive(numeratorDf, nameof(numeratorDf));
@@ -237,13 +258,13 @@ public static class Distributions
             ?? FisherFromTail(p, lowerTail: true, numeratorDf, denominatorDf);
     }
 
-    /// <summary>The <c>f</c> with <c>P(F &gt; f) = p</c>: the inverse of <see cref="FisherSf"/>.</summary>
+    /// <summary>The <c>f</c> with <c>P(F &gt; f) = p</c>: the inverse of <see cref="FisherSnedecorSf"/>.</summary>
     /// <param name="p">A probability in <c>[0, 1]</c>; the endpoints answer <c>+∞</c> and <c>0</c>.</param>
     /// <param name="numeratorDf">Numerator degrees of freedom; must be positive and finite.</param>
     /// <param name="denominatorDf">Denominator degrees of freedom; must be positive and finite.</param>
     /// <returns><c>scipy.stats.f.isf(p, dfn, dfd)</c>.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="p"/> is outside <c>[0, 1]</c>, or a degrees-of-freedom argument is not positive.</exception>
-    public static double FisherIsf(double p, double numeratorDf, double denominatorDf)
+    public static double FisherSnedecorIsf(double p, double numeratorDf, double denominatorDf)
     {
         RequireProbability(p, nameof(p));
         RequirePositive(numeratorDf, nameof(numeratorDf));
@@ -260,7 +281,9 @@ public static class Distributions
     public static double ChiSquaredPdf(double x, double df)
     {
         RequirePositive(df, nameof(df));
-        return Densities.ChiSquared(x, df);
+
+        // At +∞ scipy's pdf is zero up to two degrees of freedom and NaN past them, where its formula forms ∞/∞.
+        return double.IsPositiveInfinity(x) && df > 2.0 ? double.NaN : Densities.ChiSquared(x, df);
     }
 
     /// <summary>The chi-squared lower tail: <c>P(X ≤ x)</c>.</summary>

@@ -60,6 +60,18 @@ public sealed class AndersonDarlingOracleTests
         Assert.InRange(close.PValue, 0.01, 0.15);
         Assert.Equal(0.01, far.PValue, 12);
     }
-}
 
-#pragma warning restore S2245, CA5394
+    /// <summary>scipy answers NaN for one value or a constant sample, with the table, and so does this (#1217).</summary>
+    [Fact]
+    public void One_value_or_a_constant_sample_answers_NaN_with_the_table()
+    {
+        foreach (double[] sample in new[] { new[] { 3.0 }, new[] { 3.0, 3.0, 3.0 } })
+        {
+            AndersonResult result = AndersonDarling.Test(sample);
+            Assert.True(double.IsNaN(result.Statistic) && double.IsNaN(result.PValue));
+            Assert.Equal(5, result.CriticalValues.Length);
+        }
+
+        Assert.Throws<ArgumentException>(() => AndersonDarling.Test([]));
+    }
+}

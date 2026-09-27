@@ -17,7 +17,7 @@ internal static class DistributionsSample
         Console.WriteLine($"  95% multiplier   = {Inv.F5(multiplier)}");
 
         // The overall F test of a model with two regressors and twenty residual df.
-        Console.WriteLine($"  overall F tail   = {Inv.F5(Distributions.FisherSf(4.0, 2.0, 20.0))}");
+        Console.WriteLine($"  overall F tail   = {Inv.F5(Distributions.FisherSnedecorSf(4.0, 2.0, 20.0))}");
 
         // A log-rank test's p-value, on one degree of freedom.
         Console.WriteLine($"  log-rank tail    = {Inv.F5(Distributions.ChiSquaredSf(3.84, 1.0))}");
@@ -34,9 +34,9 @@ internal static class DistributionsSample
             + $"{Inv.F5(Distributions.NormalIsf(0.025))}");
         Console.WriteLine($"  t pdf, cdf, isf           = {Inv.F5(Distributions.StudentPdf(2.0, 5.0))}, "
             + $"{Inv.F5(Distributions.StudentCdf(-2.0, 10.0))}, {Inv.F5(Distributions.StudentIsf(0.025, 12.0))}");
-        Console.WriteLine($"  F pdf, cdf, ppf, isf      = {Inv.F5(Distributions.FisherPdf(1.0, 2.0, 20.0))}, "
-            + $"{Inv.F5(Distributions.FisherCdf(4.0, 2.0, 20.0))}, {Inv.F5(Distributions.FisherQuantile(0.95, 2.0, 20.0))}, "
-            + $"{Inv.F5(Distributions.FisherIsf(0.05, 2.0, 20.0))}");
+        Console.WriteLine($"  F pdf, cdf, ppf, isf      = {Inv.F5(Distributions.FisherSnedecorPdf(1.0, 2.0, 20.0))}, "
+            + $"{Inv.F5(Distributions.FisherSnedecorCdf(4.0, 2.0, 20.0))}, {Inv.F5(Distributions.FisherSnedecorQuantile(0.95, 2.0, 20.0))}, "
+            + $"{Inv.F5(Distributions.FisherSnedecorIsf(0.05, 2.0, 20.0))}");
         Console.WriteLine($"  chi2 pdf, cdf, ppf, isf   = {Inv.F5(Distributions.ChiSquaredPdf(2.0, 4.0))}, "
             + $"{Inv.F5(Distributions.ChiSquaredCdf(3.84, 1.0))}, {Inv.F5(Distributions.ChiSquaredQuantile(0.95, 1.0))}, "
             + $"{Inv.F5(Distributions.ChiSquaredIsf(0.05, 4.0))}");

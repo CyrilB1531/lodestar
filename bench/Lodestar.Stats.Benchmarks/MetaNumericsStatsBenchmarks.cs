@@ -109,7 +109,7 @@ public class MetaNumericsStatsBenchmarks
         Table(_grid).Binary.FisherExactTest().Probability;
 
     [Benchmark]
-    public double Lodestar_ChiSquare() => ChiSquare.Contingency(_table).PValue;
+    public double Lodestar_ChiSquare() => ChiSquared.Contingency(_table).PValue;
 
     [Benchmark]
     public double MetaNumerics_ChiSquare() =>
@@ -168,7 +168,7 @@ public class MetaNumericsStatsBenchmarks
         MetaStatistics.TestResult theirFisher = Table(_grid).Binary.FisherExactTest();
         MetaNumericsAgreement.Record("fisher exact p", ourFisher.PValue, theirFisher.Probability);
 
-        Chi2ContingencyResult ourChi = ChiSquare.Contingency(_table);
+        ChiSquaredContingencyResult ourChi = ChiSquared.Contingency(_table);
         MetaStatistics.TestResult theirChi = Table(_grid).PearsonChiSquaredTest();
         MetaNumericsAgreement.Record("chi-square statistic", ourChi.Statistic, theirChi.Statistic.Value);
         MetaNumericsAgreement.Record("chi-square p", ourChi.PValue, theirChi.Probability);

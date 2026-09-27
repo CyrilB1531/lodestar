@@ -40,4 +40,4 @@ an implementation returning zero there fails rather than passing on an absolute 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`Distributions.StudentQuantile`](distributions-studentquantile.md),
-[`Distributions.FisherSf`](distributions-fishersf.md), [`TTest`](../tests/ttest.md).
+[`Distributions.FisherSnedecorSf`](distributions-fishersnedecorsf.md), [`TTest`](../tests/ttest.md).

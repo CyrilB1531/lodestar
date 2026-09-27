@@ -3,6 +3,15 @@ namespace Lodestar.Stats.Internal;
 /// <summary>The centre a group's spread is measured around, in the three shapes scipy offers.</summary>
 internal static class GroupSpread
 {
+    /// <summary>Refuses a NaN proportion, which scipy cannot convert to a count either.</summary>
+    internal static void RequireProportion(Center center, double proportionToCut)
+    {
+        if (center == Center.Trimmed && double.IsNaN(proportionToCut))
+        {
+            throw new ArgumentOutOfRangeException(nameof(proportionToCut), proportionToCut, "The proportion to cut is a number.");
+        }
+    }
+
     /// <summary>The group's centre under <paramref name="center"/>.</summary>
     /// <param name="values">The group; at least one value.</param>
     /// <param name="center">Which centre to take.</param>
@@ -137,17 +146,21 @@ internal static class GroupSpread
         double[] sorted = (double[])values.Clone();
         Array.Sort(sorted);
 
-        int cut = (int)(sorted.Length * proportionToCut);
-        int kept = sorted.Length - (2 * cut);
-        if (kept <= 0)
+        // In doubles, so an infinite or enormous proportion is refused on both targets rather than saturating one cast.
+        double scaled = Math.Truncate(sorted.Length * proportionToCut);
+        double left = sorted.Length - (2.0 * scaled);
+
+        // scipy's trimboth refuses a count below zero and one that crosses the middle, and averages nothing — NaN —
+        // where the two ends meet exactly.
+        if (!(scaled >= 0.0) || !(left >= 0.0))
         {
             throw new ArgumentOutOfRangeException(
-                nameof(proportionToCut),
-                proportionToCut,
-                $"Trimming {cut} values from each end of {sorted.Length} leaves nothing to average.");
+                nameof(proportionToCut), proportionToCut, $"Trimming {scaled} values from each end of {sorted.Length} is not a trim.");
         }
 
-        return Mean(sorted, cut, kept);
+        int cut = (int)scaled;
+        int kept = sorted.Length - (2 * cut);
+        return kept == 0 ? double.NaN : Mean(sorted, cut, kept);
     }
 
     private static double Mean(double[] values, int start, int length)

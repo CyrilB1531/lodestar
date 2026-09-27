@@ -1,11 +1,11 @@
-# Chi2ContingencyResult.Equals
+# ChiSquaredContingencyResult.Equals
 
 Compares the scalars and the expected table, row by row.
 
 <!-- docs-declaration -->
 
 ```csharp
-public bool Equals(Chi2ContingencyResult other)
+public bool Equals(ChiSquaredContingencyResult other)
 ```
 
 **Parameters** — `other` is the result to compare against, or `null`.
@@ -18,8 +18,8 @@ tables hold the same frequencies.
 ```csharp
 using Lodestar.Stats;
 
-Chi2ContingencyResult left = new(1.5, 0.2, 1, [[1.0, 2.0], [3.0, 4.0]]);
-Chi2ContingencyResult right = new(1.5, 0.2, 1, [[1.0, 2.0], [3.0, 4.0]]);
+ChiSquaredContingencyResult left = new(1.5, 0.2, 1, [[1.0, 2.0], [3.0, 4.0]]);
+ChiSquaredContingencyResult right = new(1.5, 0.2, 1, [[1.0, 2.0], [3.0, 4.0]]);
 
 bool same = left == right;  // => True
 ```
@@ -30,5 +30,5 @@ has the rule.
 
 **Applies to** — net10.0, netstandard2.0.
 
-**See also** — [`Chi2ContingencyResult.GetHashCode`](chi2contingencyresult-gethashcode.md),
-[`Chi2ContingencyResult`](chi2contingencyresult.md).
+**See also** — [`ChiSquaredContingencyResult.GetHashCode`](chisquaredcontingencyresult-gethashcode.md),
+[`ChiSquaredContingencyResult`](chisquaredcontingencyresult.md).

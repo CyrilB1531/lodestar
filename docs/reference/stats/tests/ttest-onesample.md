@@ -8,7 +8,8 @@ The one-sample *t*-test against a stated population mean.
 public static TTestResult OneSample(ReadOnlySpan<double> sample, double populationMean, Alternative alternative = Alternative.TwoSided, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
-**Parameters** — `sample` is the data, at least two values; the span is read, never modified.
+**Parameters** — `sample` is the data, at least one value, one alone answering NaN on zero
+degrees of freedom as scipy's does; the span is read, never modified.
 `populationMean` is the mean the null hypothesis states. `alternative` says which tail the
 p-value covers. `nanPolicy` says what to do with a `NaN`; scipy's `nan_policy`, defaulting to
 [`NanPolicy.Propagate`](../nanpolicy.md).
@@ -18,7 +19,7 @@ than the count of values actually tested. That is `sample.Length - 1` under the 
 [`NanPolicy.Propagate`](../nanpolicy.md), and one less than the filtered length under
 [`NanPolicy.Omit`](../nanpolicy.md).
 
-**Exceptions** — `ArgumentException` when `sample` holds fewer than two values, or `nanPolicy`
+**Exceptions** — `ArgumentException` when `sample` is empty, or `nanPolicy`
 is `NanPolicy.Raise` and the sample holds a `NaN`. `ArgumentOutOfRangeException` when
 `populationMean` is `NaN` or infinite.
 
@@ -32,7 +33,7 @@ double[] sample = [12.1, 9.4, 15.0, 11.2, 8.8, 13.9, 10.5];
 TTestResult result = TTest.OneSample(sample, populationMean: 10.0);
 
 double t = Math.Round(result.Statistic, 4);   // => 1.8085
-double df = result.Df;                        // => 6
+double df = result.DegreesOfFreedom;                        // => 6
 ```
 
 **Remarks** — the confidence interval [`TTestResult.ConfidenceInterval`](ttestresult-confidenceinterval.md)

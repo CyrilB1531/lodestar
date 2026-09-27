@@ -8,16 +8,16 @@ Tests a sample against the normal distribution, fitting its mean and spread.
 public static AndersonResult Test(ReadOnlySpan<double> x)
 ```
 
-**Parameters** — `x` is the sample, at least two values, since the spread is estimated from it;
-the span is read, never modified.
+**Parameters** — `x` is the sample, at least one value; the span is read, never modified. One
+value or a constant sample has no spread to standardise by, and answers a NaN statistic and p-value
+with the table, as scipy's does.
 
 **Returns** — `AndersonResult`: the A² statistic, the p-value interpolated from Stephens' table,
 and the table itself — the critical values for this sample size, and the significance levels they
 belong to. A NaN or an infinity in the sample makes the statistic and the p-value NaN, as scipy's are,
 and leaves the table unchanged.
 
-**Exceptions** — `ArgumentException` when the sample holds fewer than two values, or every value
-is the same and there is no spread to standardise by.
+**Exceptions** — `ArgumentException` when the sample is empty.
 
 **Example** — ten heights, and the table they are read against.
 

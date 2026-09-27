@@ -30,8 +30,8 @@ double kSample = Distributions.ChiSquaredSf(9.488, 4.0);  // => 0.0499…
 double extreme = Distributions.ChiSquaredSf(120.0, 3.0);  // => 7.716…
 ```
 
-**Remarks** — the same tail [`ChiSquare.GoodnessOfFit`](../tests/chisquare-goodnessoffit.md) and
-[`ChiSquare.Contingency`](../tests/chisquare-contingency.md) already report, exposed for a caller
+**Remarks** — the same tail [`ChiSquared.GoodnessOfFit`](../tests/chisquared-goodnessoffit.md) and
+[`ChiSquared.Contingency`](../tests/chisquared-contingency.md) already report, exposed for a caller
 that computed its own statistic rather than handing this package a table. A log-rank test is the
 case that asked for it.
 
@@ -47,5 +47,5 @@ argued a re-derived tail would lose.
 
 **Applies to** — net10.0, netstandard2.0.
 
-**See also** — [`ChiSquare.Contingency`](../tests/chisquare-contingency.md),
-[`Distributions.FisherSf`](distributions-fishersf.md).
+**See also** — [`ChiSquared.Contingency`](../tests/chisquared-contingency.md),
+[`Distributions.FisherSnedecorSf`](distributions-fishersnedecorsf.md).

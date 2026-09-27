@@ -24,7 +24,7 @@ bool agree = left.GetHashCode() == right.GetHashCode();  // => True
 **Remarks** — the tables are not walked. Equal results necessarily agree on the table length, so
 the contract holds; unequal ones may collide, which a hash is allowed to do. Walking both tables
 would make the cheap operation cost what the test itself cost, and
-[`Chi2ContingencyResult.GetHashCode`](chi2contingencyresult-gethashcode.md) is written the same
+[`ChiSquaredContingencyResult.GetHashCode`](chisquaredcontingencyresult-gethashcode.md) is written the same
 way.
 
 **Applies to** — net10.0, netstandard2.0.

@@ -4,7 +4,7 @@ namespace Lodestar.Stats;
 
 /// <summary>The binomial test: is this proportion of successes consistent with a stated one?</summary>
 /// <remarks>
-/// The exact counterpart of what <see cref="ChiSquare.GoodnessOfFit"/> answers asymptotically
+/// The exact counterpart of what <see cref="ChiSquared.GoodnessOfFit"/> answers asymptotically
 /// over two categories. Exact means the p-value is a sum of binomial probabilities rather than a
 /// chi-squared approximation of one, so it is right at any number of trials — which is the whole
 /// point, because the approximation is worst exactly where a proportion is most often tested:
@@ -18,7 +18,7 @@ public static class Binomial
 
     /// <summary>Tests a count of successes against a stated probability.</summary>
     /// <param name="successes">The number of successes; between zero and <paramref name="trials"/>.</param>
-    /// <param name="trials">The number of trials; at least one.</param>
+    /// <param name="trials">The number of trials; zero or more, zero answering NaN as scipy does.</param>
     /// <param name="probability">The probability of success under the null, in <c>[0, 1]</c>.</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
     /// <returns>
@@ -26,7 +26,7 @@ public static class Binomial
     /// <see cref="BinomialResult.ProportionConfidenceInterval"/> the result can be asked for.
     /// </returns>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="trials"/> is not positive, <paramref name="successes"/> lies outside
+    /// <paramref name="trials"/> is negative, <paramref name="successes"/> lies outside
     /// <c>[0, trials]</c>, or <paramref name="probability"/> lies outside <c>[0, 1]</c>.
     /// </exception>
     public static BinomialResult Test(
@@ -35,10 +35,10 @@ public static class Binomial
         double probability = 0.5,
         Alternative alternative = Alternative.TwoSided)
     {
-        if (trials < 1)
+        if (trials < 0)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(trials), trials, "The number of trials must be at least one.");
+                nameof(trials), trials, "The number of trials must not be negative.");
         }
         if (successes < 0 || successes > trials)
         {
@@ -49,6 +49,12 @@ public static class Binomial
         {
             throw new ArgumentOutOfRangeException(
                 nameof(probability), probability, "The probability must lie in [0, 1].");
+        }
+
+        // No trial leaves nothing to test, and scipy's binomtest answers NaN throughout.
+        if (trials == 0)
+        {
+            return new BinomialResult(double.NaN, double.NaN) { Trials = 0, Alternative = alternative };
         }
 
         double pValue = alternative switch

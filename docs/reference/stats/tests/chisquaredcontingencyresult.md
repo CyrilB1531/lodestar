@@ -1,18 +1,18 @@
-# Chi2ContingencyResult
+# ChiSquaredContingencyResult
 
 A contingency-table chi-square result.
 
 <!-- docs-declaration -->
 
 ```csharp
-public sealed record Chi2ContingencyResult(double Statistic, double PValue, int Dof, double[][] ExpectedFrequencies)
+public sealed record ChiSquaredContingencyResult(double Statistic, double PValue, int DegreesOfFreedom, double[][] ExpectedFrequencies)
 ```
 
 **Properties** — `Statistic` is the chi-square statistic. `PValue` is the upper-tail p-value.
-`Dof` is the degrees of freedom, `(rows - 1) * (columns - 1)`. `ExpectedFrequencies` is the table
+`DegreesOfFreedom` is the degrees of freedom, `(rows - 1) * (columns - 1)`. `ExpectedFrequencies` is the table
 expected under independence, row-major, the same shape as the input table.
 
-**Example** — the table [`ChiSquare.Contingency`](chisquare-contingency.md) tests for
+**Example** — the table [`ChiSquared.Contingency`](chisquared-contingency.md) tests for
 independence.
 
 ```csharp
@@ -24,9 +24,9 @@ double[][] table =
     [15.0, 35.0],
 ];
 
-Chi2ContingencyResult result = ChiSquare.Contingency(table);
+ChiSquaredContingencyResult result = ChiSquared.Contingency(table);
 
-int dof = result.Dof;                                  // => 1
+int dof = result.DegreesOfFreedom;                                  // => 1
 double expected01 = result.ExpectedFrequencies[0][1];   // => 27.5
 ```
 
@@ -42,12 +42,12 @@ has the rule.
 
 **Applies to** — net10.0, netstandard2.0.
 
-**See also** — [`ChiSquare.Contingency`](chisquare-contingency.md), [`TestResult`](testresult.md),
+**See also** — [`ChiSquared.Contingency`](chisquared-contingency.md), [`TestResult`](testresult.md),
 the [Python equivalence table](../../../equivalence.md).
 
 ## Members
 
 | member | what it does |
 | --- | --- |
-| [`Chi2ContingencyResult.Equals`](chi2contingencyresult-equals.md) | Value equality, the table row by row. |
-| [`Chi2ContingencyResult.GetHashCode`](chi2contingencyresult-gethashcode.md) | A hash consistent with it. |
+| [`ChiSquaredContingencyResult.Equals`](chisquaredcontingencyresult-equals.md) | Value equality, the table row by row. |
+| [`ChiSquaredContingencyResult.GetHashCode`](chisquaredcontingencyresult-gethashcode.md) | A hash consistent with it. |

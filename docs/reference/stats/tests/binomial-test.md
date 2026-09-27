@@ -9,7 +9,7 @@ public static BinomialResult Test(int successes, int trials, double probability 
 ```
 
 **Parameters** — `successes` is the count observed, between zero and `trials`. `trials` is how
-many there were, at least one. `probability` is the probability of success under the null, in
+many there were, zero or more; zero trials answer NaN throughout, as scipy's `binomtest` does. `probability` is the probability of success under the null, in
 `[0, 1]`, defaulting to `0.5` as `scipy.stats.binomtest` does. `alternative` says which tail the
 p-value covers.
 
@@ -17,7 +17,7 @@ p-value covers.
 [`ProportionConfidenceInterval`](binomialresult-proportionconfidenceinterval.md) the result can be
 asked for afterwards.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `trials` is not positive, `successes` lies
+**Exceptions** — `ArgumentOutOfRangeException` when `trials` is negative, `successes` lies
 outside `[0, trials]`, or `probability` lies outside `[0, 1]`.
 
 **Example** — seven heads in twenty tosses of a coin assumed fair.
@@ -34,7 +34,7 @@ double p = Math.Round(result.PValue, 6);               // => 0.263176
 Seven of twenty is well inside what a fair coin produces; nothing here is evidence against it.
 
 **Remarks — exact means exact at any size, which is the whole reason this exists beside
-[`ChiSquare.GoodnessOfFit`](chisquare-goodnessoffit.md).** The p-value is a sum of binomial
+[`ChiSquared.GoodnessOfFit`](chisquared-goodnessoffit.md).** The p-value is a sum of binomial
 probabilities rather than a chi-squared approximation of one, so it stays right where the
 approximation is worst: few trials, or a probability near zero or one. The cost is that the
 two-sided p-value has to decide which outcomes on the far side are "at least as extreme", and two
@@ -57,5 +57,5 @@ double upper = Math.Round(greater.PValue, 6);    // => 0.942341
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`BinomialResult`](binomialresult.md),
-[`ChiSquare.GoodnessOfFit`](chisquare-goodnessoffit.md),
+[`ChiSquared.GoodnessOfFit`](chisquared-goodnessoffit.md),
 [`FisherExact.Test`](fisherexact-test.md), the [Python equivalence table](../../../equivalence.md).

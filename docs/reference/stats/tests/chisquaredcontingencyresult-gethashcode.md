@@ -1,4 +1,4 @@
-# Chi2ContingencyResult.GetHashCode
+# ChiSquaredContingencyResult.GetHashCode
 
 A hash consistent with the equality, in constant time.
 
@@ -15,8 +15,8 @@ public int GetHashCode()
 ```csharp
 using Lodestar.Stats;
 
-Chi2ContingencyResult left = new(1.5, 0.2, 1, [[1.0, 2.0], [3.0, 4.0]]);
-Chi2ContingencyResult right = new(1.5, 0.2, 1, [[1.0, 2.0], [3.0, 4.0]]);
+ChiSquaredContingencyResult left = new(1.5, 0.2, 1, [[1.0, 2.0], [3.0, 4.0]]);
+ChiSquaredContingencyResult right = new(1.5, 0.2, 1, [[1.0, 2.0], [3.0, 4.0]]);
 
 bool alike = left.GetHashCode() == right.GetHashCode();  // => True
 ```
@@ -26,5 +26,5 @@ that count, and walking the table would make hashing cost what the test itself c
 
 **Applies to** — net10.0, netstandard2.0.
 
-**See also** — [`Chi2ContingencyResult.Equals`](chi2contingencyresult-equals.md),
-[`Chi2ContingencyResult`](chi2contingencyresult.md).
+**See also** — [`ChiSquaredContingencyResult.Equals`](chisquaredcontingencyresult-equals.md),
+[`ChiSquaredContingencyResult`](chisquaredcontingencyresult.md).

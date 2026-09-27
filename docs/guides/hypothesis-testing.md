@@ -22,8 +22,8 @@ exists to prevent.
 | two independent samples | nothing about the shape | [`MannWhitney.Test`](../reference/stats/tests/mannwhitney-test.md) |
 | the same subjects measured twice | roughly normal differences | [`TTest.Paired`](../reference/stats/tests/ttest-paired.md) |
 | the same subjects measured twice | nothing about the shape | [`Wilcoxon.Paired`](../reference/stats/tests/wilcoxon-paired.md) |
-| counts in categories | a stated expected distribution | [`ChiSquare.GoodnessOfFit`](../reference/stats/tests/chisquare-goodnessoffit.md) |
-| a contingency table | cells large enough for the approximation | [`ChiSquare.Contingency`](../reference/stats/tests/chisquare-contingency.md) |
+| counts in categories | a stated expected distribution | [`ChiSquared.GoodnessOfFit`](../reference/stats/tests/chisquared-goodnessoffit.md) |
+| a contingency table | cells large enough for the approximation | [`ChiSquared.Contingency`](../reference/stats/tests/chisquared-contingency.md) |
 | a 2×2 table with small cells | nothing | [`FisherExact.Test`](../reference/stats/tests/fisherexact-test.md) |
 | two samples, whole distributions | nothing | [`KolmogorovSmirnov.TwoSample`](../reference/stats/tests/kolmogorovsmirnov-twosample.md) |
 | three or more groups | roughly normal, similar spread | [`OneWayAnova.Test`](../reference/stats/tests/onewayanova-test.md) |
@@ -217,7 +217,7 @@ has the reading that corrected it):
 `Accord.Statistics` is the one measured so far, because #442's own constraint asks for a named
 .NET incumbent where one exists at all. [`TTest.Independent`](../reference/stats/tests/ttest-independent.md),
 [`MannWhitney.Test`](../reference/stats/tests/mannwhitney-test.md) and
-[`ChiSquare.Contingency`](../reference/stats/tests/chisquare-contingency.md) are benchmarked and
+[`ChiSquared.Contingency`](../reference/stats/tests/chisquared-contingency.md) are benchmarked and
 cross-checked against it in
 [`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/main/bench/README.md#18-lodestarstats-against-accordstatistics-issue-442)
 and [`docs/guides/performance.md`](../../src/Lodestar.Stats/performance.md#lodestarstats-against-accordstatistics-issue-442) —

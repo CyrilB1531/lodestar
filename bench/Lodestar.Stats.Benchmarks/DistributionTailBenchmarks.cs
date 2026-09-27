@@ -11,7 +11,7 @@ namespace Lodestar.Stats.Benchmarks;
 /// hand them.
 /// </summary>
 /// <remarks>
-/// No incumbent row: these time the incomplete gamma underneath <c>ChiSquare.Contingency</c>,
+/// No incumbent row: these time the incomplete gamma underneath <c>ChiSquared.Contingency</c>,
 /// <c>KruskalWallis</c>, the Ljung-Box statistic and the normal tail, which StatsBenchmarks can
 /// only see as part of a whole test. The arguments are the corpus's own
 /// (tests/oracles/stats_distributions.json), and 4.41 where the corpus has no case.

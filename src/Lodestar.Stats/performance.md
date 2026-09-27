@@ -237,15 +237,15 @@ allocating 61-62% less at both sizes — both sides take the guarded asymptotic 
 [#711](https://github.com/CyrilB1531/lodestar/issues/711), after which the ranking no longer
 allocates the pooled arrays; that allocation column measures a path this package no longer ships
 and has not been re-measured against `Accord`. `Accord` is faster on
-[`ChiSquare.Contingency`](../../docs/reference/stats/tests/chisquare-contingency.md) (roughly 380 ns against 294 ns, flat with
+[`ChiSquared.Contingency`](../../docs/reference/stats/tests/chisquared-contingency.md) (roughly 380 ns against 294 ns, flat with
 sample size since a 2×2 table has four cells regardless of how many observations produced it) — the
-one family where this package's richer result (`Chi2ContingencyResult` carries the expected-value
+one family where this package's richer result (`ChiSquaredContingencyResult` carries the expected-value
 table; `Accord`'s `ChiSquareTest` does not expose one) costs more than it buys at this shape.
 
 **The chi-square row has since reversed, on a different machine.** The tail reads an integer or
 half-integer degree of freedom up to 100 as a finite sum rather than iterating the incomplete
 gamma's continued fraction, and
-[`ChiSquare.Contingency`](../../docs/reference/stats/tests/chisquare-contingency.md) reads **66.52 ns** at 100 samples and
+[`ChiSquared.Contingency`](../../docs/reference/stats/tests/chisquared-contingency.md) reads **66.52 ns** at 100 samples and
 **63.42 ns** at 10,000 against `Accord`'s 121.7 ns at both, at 168 B on both sides — AMD Ryzen 7
 8700G, Ubuntu 26.04.1 LTS, .NET 10.0.12, `BenchmarkDotNet` 0.14.0 default job, 2026-09-13,
 `StatsBenchmarks` and `DistributionTailBenchmarks`. Correctness against `scipy` is unchanged or

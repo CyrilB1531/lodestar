@@ -1,5 +1,9 @@
 using Lodestar.Stats.Regression.Internal;
 
+// CS0618: FisherSf is the F tail's name in the published Lodestar.Stats this package builds against, obsolete in the
+// working tree (#1217); the call moves to FisherSnedecorSf with the floor.
+#pragma warning disable CS0618
+
 namespace Lodestar.Stats.Regression;
 
 /// <summary>

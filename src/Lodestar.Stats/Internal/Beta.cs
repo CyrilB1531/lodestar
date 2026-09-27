@@ -339,7 +339,7 @@ internal static class Beta
     }
 
     /// <summary>The upper tail of the F distribution: P(F &gt; f).</summary>
-    internal static double FisherSf(double f, double dfn, double dfd)
+    internal static double FisherSnedecorSf(double f, double dfn, double dfd)
     {
         if (double.IsNaN(f))
         {

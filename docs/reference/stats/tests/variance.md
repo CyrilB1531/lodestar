@@ -23,8 +23,8 @@ double[] after = [95.0, 92.0, 99.0, 91.0, 97.0];
 TTestResult welch = TTest.Independent(before, after, Alternative.TwoSided, Variance.Welch);
 TTestResult student = TTest.Independent(before, after, Alternative.TwoSided, Variance.Equal);
 
-double welchDf = Math.Round(welch.Df, 4);     // => 7.0904
-double studentDf = student.Df;                // => 8
+double welchDf = Math.Round(welch.DegreesOfFreedom, 4);     // => 7.0904
+double studentDf = student.DegreesOfFreedom;                // => 8
 ```
 
 **Remarks — this package's one deliberate divergence from scipy.**
@@ -34,7 +34,7 @@ variance, which is an assumption a caller rarely has grounds to make going in �
 safer choice when it is wrong and loses nothing when it happens to be right, so the safer default
 costs one word at the call site here rather than a wrong answer by default. `Equal`'s degrees of
 freedom are always `n + m - 2`, a whole number; `Welch`'s Satterthwaite denominator is not a
-count of anything, which is why `TTestResult.Df` is a `double` rather than an `int` — `7.0904`
+count of anything, which is why `TTestResult.DegreesOfFreedom` is a `double` rather than an `int` — `7.0904`
 above is not a rounding artefact.
 
 On these two samples the *t* statistic itself does not move — both give `3.028` — because the

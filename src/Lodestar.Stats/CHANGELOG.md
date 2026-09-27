@@ -13,9 +13,11 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Changed
 
 - `Distributions.StudentQuantile` and `NormalQuantile` answer `0` and `1` with the support's ends, as scipy's `ppf` does, where they refused them. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))
+- `TTestResult.Df` and `Chi2ContingencyResult.Dof` are `DegreesOfFreedom`, `ChiSquare` and `Chi2ContingencyResult` are `ChiSquared` and `ChiSquaredContingencyResult`, and the F law's `Distributions.Fisher*` members are `FisherSnedecor*`, one spelling each before 1.0. ([#1217](https://github.com/CyrilB1531/lodestar/issues/1217))
 
 ### Fixed
 
+- The t-tests answer a one-value sample, `ChiSquared.GoodnessOfFit` one category, `Binomial.Test` zero trials, `AndersonDarling.Test` one value or a constant sample, and `ChiSquaredPdf`/`FisherSnedecorPdf` at `+∞` past two degrees of freedom as scipy does, where they threw or answered zero; Levene's and Fligner's tests refuse a NaN `proportionToCut` or a cut below zero, and answer NaN for one that trims a group to nothing. ([#1217](https://github.com/CyrilB1531/lodestar/issues/1217))
 - Welch's `TTest.Independent` on two constant samples takes one degree of freedom, as scipy does, where the 0/0 threw from the log-gamma; a propagated NaN makes the degrees of freedom and the interval NaN, and a one-sided interval's open bound is NaN where the standard error is zero, as scipy's are. ([#1215](https://github.com/CyrilB1531/lodestar/issues/1215))
 - `AndersonDarling.Test` answers a NaN p-value for a sample holding a NaN or an infinity, as scipy does, where the table's interpolation fell through to 0.01. ([#1216](https://github.com/CyrilB1531/lodestar/issues/1216))
 - The regularized incomplete beta keeps the digits of `1 − x` when `x` rounds to one, and forms `log B` from Stirling's series when one shape is large and the other is not, where it lost up to `6e-7` at shapes `(5e9, 0.5)`. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))

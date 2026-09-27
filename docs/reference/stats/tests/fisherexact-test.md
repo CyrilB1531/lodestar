@@ -39,10 +39,10 @@ smaller than the one-sided sum on its own tail.
 **The exact enumeration has a cost proportional to the table's total.** Every table sharing the
 observed margins is walked, so a table summing past 1,000,000 is refused with
 `ArgumentOutOfRangeException` rather than run for however long that takes.
-[`ChiSquare.Contingency`](chisquare-contingency.md) is the asymptotic alternative at that scale —
+[`ChiSquared.Contingency`](chisquared-contingency.md) is the asymptotic alternative at that scale —
 right at large samples, where this test's exactness stops mattering and its cost starts.
 
 **Applies to** — net10.0, netstandard2.0.
 
-**See also** — [`ChiSquare.Contingency`](chisquare-contingency.md), [`Alternative`](alternative.md),
+**See also** — [`ChiSquared.Contingency`](chisquared-contingency.md), [`Alternative`](alternative.md),
 the [Python equivalence table](../../../equivalence.md).

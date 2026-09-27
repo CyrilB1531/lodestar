@@ -1,6 +1,6 @@
 # Distributions.FisherSf
 
-The upper tail of the *F* distribution: `P(F > f)`.
+The former name of [`Distributions.FisherSnedecorSf`](distributions-fishersnedecorsf.md), which it calls.
 
 <!-- docs-declaration -->
 
@@ -16,26 +16,11 @@ freedom, both of which must be positive and finite.
 **Exceptions** — `ArgumentOutOfRangeException` when either degrees-of-freedom argument is not
 positive, `NaN` included.
 
-**Example** — the overall significance of a model with two regressors on twenty residual degrees
-of freedom.
-
-```csharp
-using Lodestar.Stats;
-
-double overall = Distributions.FisherSf(4.0, 2.0, 20.0);  // => 0.0345716…
-
-// Far into the tail, where an absolute tolerance would accept a zero.
-double extreme = Distributions.FisherSf(500.0, 3.0, 100.0);  // => 4.8466962308085…
-```
-
-**Remarks** — the same tail one-way ANOVA already reports here, exposed for a caller that computed
-its own *F* — a regression's overall test, or a nested-model comparison — rather than handing this
-package its groups.
-
-The two degrees of freedom are **not** interchangeable: `FisherSf(f, a, b)` and `FisherSf(f, b, a)`
-are different numbers, and the numerator's is the one that counts the constraints being tested.
+**Remarks** — obsolete and hidden from IntelliSense: renamed so that "Fisher" names Fisher's exact
+test alone ([#1217](https://github.com/CyrilB1531/lodestar/issues/1217)). It stays for binaries
+compiled against 0.5.0, `Lodestar.Stats.Regression` 0.2 among them, until their floors move past
+this release.
 
 **Applies to** — net10.0, netstandard2.0.
 
-**See also** — [`OneWayAnova`](../tests/onewayanova.md),
-[`Distributions.StudentSf`](distributions-studentsf.md).
+**See also** — [`Distributions`](distributions.md).

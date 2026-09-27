@@ -3,13 +3,13 @@ using Lodestar.Stats.Internal;
 namespace Lodestar.Stats;
 
 /// <summary>Pearson's chi-square: goodness of fit, and independence in a contingency table.</summary>
-public static class ChiSquare
+public static class ChiSquared
 {
     // 256 doubles is 2 KB of stack at most, per marginal; a wider table allocates as before.
     private const int MaxStackMarginal = 256;
 
     /// <summary>Tests observed counts against an expected distribution.</summary>
-    /// <param name="observed">The observed counts; at least two categories.</param>
+    /// <param name="observed">The observed counts; at least one category, one alone giving a NaN p-value as scipy's.</param>
     /// <param name="expected">
     /// The expected counts, which must sum to the observed total; omit them for a uniform
     /// expectation, matching <c>scipy.stats.chisquare</c> with <c>f_exp=None</c>.
@@ -17,7 +17,7 @@ public static class ChiSquare
     /// <param name="nanPolicy">What to do with a <c>NaN</c>; scipy's <c>nan_policy</c>.</param>
     /// <returns>The statistic and the upper-tail p-value.</returns>
     /// <exception cref="ArgumentException">
-    /// Fewer than two categories, mismatched lengths, a non-positive expectation, or
+    /// No category, mismatched lengths, a non-positive expectation, or
     /// expectations that do not sum to the observations. An explicit <paramref
     /// name="expected"/> is filtered together with <paramref name="observed"/>, so omission
     /// usually raises here -- it drops matched pairs and so breaks the sum-agreement check
@@ -46,11 +46,9 @@ public static class ChiSquare
             }
         }
 
-        if (counts.Length < 2)
+        if (counts.Length < 1)
         {
-            throw new ArgumentException(
-                $"A goodness-of-fit test needs at least two categories; got {counts.Length}.",
-                nameof(observed));
+            throw new ArgumentException("A goodness-of-fit test needs at least one category.", nameof(observed));
         }
 
         double observedTotal = 0.0;
@@ -72,9 +70,9 @@ public static class ChiSquare
 
         int dof = counts.Length - 1;
 
-        // statistic is already NaN here for a NaN or an infinite observation (inf - inf,
-        // then inf / inf, above); Gamma.RegularizedQ's Validate would otherwise throw on it.
-        double pValue = double.IsNaN(statistic)
+        // A NaN or infinite observation has made the statistic NaN, which RegularizedQ would refuse, and one
+        // category leaves no degree of freedom: scipy's p-value is NaN for both.
+        double pValue = double.IsNaN(statistic) || dof < 1
             ? double.NaN
             : Gamma.RegularizedQ(dof / 2.0, statistic / 2.0);
 
@@ -143,12 +141,12 @@ public static class ChiSquare
     /// or column total.
     /// </exception>
     // S2368: the table arrives from the caller already in this shape -- that is
-    // how scipy.stats.chi2_contingency takes it, and how Chi2ContingencyResult
+    // how scipy.stats.chi2_contingency takes it, and how ChiSquaredContingencyResult
     // hands the expected table back. Wrapping one side and not the other buys
     // no safety, only a conversion at the boundary (same reasoning as
-    // Chi2ContingencyResult's own suppression in TestResult.cs).
+    // ChiSquaredContingencyResult's own suppression in TestResult.cs).
 #pragma warning disable S2368
-    public static Chi2ContingencyResult Contingency(
+    public static ChiSquaredContingencyResult Contingency(
         double[][] table, Continuity continuity = Continuity.Applied)
 #pragma warning restore S2368
     {
@@ -178,7 +176,7 @@ public static class ChiSquare
         int dof = (rows - 1) * (columns - 1);
         double pValue = Gamma.RegularizedQ(dof / 2.0, statistic / 2.0);
 
-        return new Chi2ContingencyResult(statistic, pValue, dof, expected);
+        return new ChiSquaredContingencyResult(statistic, pValue, dof, expected);
     }
 
     private static double ComputeMarginals(

@@ -13,14 +13,14 @@ namespace Lodestar.Stats;
 public static class TTest
 {
     /// <summary>The two-sample t-test on independent samples.</summary>
-    /// <param name="a">The first sample; at least two values.</param>
-    /// <param name="b">The second sample; at least two values.</param>
+    /// <param name="a">The first sample; at least one value.</param>
+    /// <param name="b">The second sample; at least one value.</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
     /// <param name="variance">Whether to pool the two variances.</param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>The statistic, the p-value and the degrees of freedom.</returns>
     /// <exception cref="ArgumentException">
-    /// Either sample holds fewer than two values. When <paramref name="nanPolicy"/> is
+    /// Either sample is empty. When <paramref name="nanPolicy"/> is
     /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
     /// </exception>
     public static TTestResult Independent(
@@ -37,8 +37,8 @@ public static class TTest
             ? b
             : NanFilter.Apply(b, nanPolicy, nameof(b));
 
-        RequireAtLeastTwo(x, nameof(a));
-        RequireAtLeastTwo(y, nameof(b));
+        RequireAtLeastOne(x, nameof(a));
+        RequireAtLeastOne(y, nameof(b));
 
         (double meanA, double varianceA) = MeanAndVariance(x);
         (double meanB, double varianceB) = MeanAndVariance(y);
@@ -49,7 +49,8 @@ public static class TTest
         double df;
         if (variance == Variance.Equal)
         {
-            double pooled = (((n - 1) * varianceA) + ((m - 1) * varianceB)) / (n + m - 2);
+            // From the sums of squares, not (n − 1)·variance: a one-value sample adds none rather than 0·NaN.
+            double pooled = (SumOfSquares(x, meanA) + SumOfSquares(y, meanB)) / (n + m - 2);
             standardError = Math.Sqrt(pooled * ((1.0 / n) + (1.0 / m)));
             df = n + m - 2;
         }
@@ -59,8 +60,8 @@ public static class TTest
             double termB = varianceB / m;
             standardError = Math.Sqrt(termA + termB);
 
-            // Welch-Satterthwaite. The denominator divides by n-1 and m-1, which
-            // is why both samples must hold at least two values.
+            // Welch-Satterthwaite. The denominator divides by n-1 and m-1; a one-value sample makes it NaN, and the
+            // substitution below one, as scipy's does.
             double numerator = (termA + termB) * (termA + termB);
             df = numerator / ((termA * termA / (n - 1)) + (termB * termB / (m - 1)));
 
@@ -88,7 +89,7 @@ public static class TTest
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>The statistic, the p-value and the degrees of freedom.</returns>
     /// <exception cref="ArgumentException">
-    /// The samples differ in length, or hold fewer than two pairs. When <paramref
+    /// The samples differ in length, or hold no pair. When <paramref
     /// name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and either sample holds a
     /// <c>NaN</c>.
     /// </exception>
@@ -114,7 +115,7 @@ public static class TTest
                 nameof(b));
         }
 
-        RequireAtLeastTwo(x, nameof(a));
+        RequireAtLeastOne(x, nameof(a));
 
         double[] differences = new double[x.Length];
         for (int i = 0; i < x.Length; i++)
@@ -127,13 +128,13 @@ public static class TTest
     }
 
     /// <summary>The one-sample t-test against a stated population mean.</summary>
-    /// <param name="sample">The sample; at least two values.</param>
+    /// <param name="sample">The sample; at least one value.</param>
     /// <param name="populationMean">The mean the null hypothesis states.</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in the sample.</param>
     /// <returns>The statistic, the p-value and the degrees of freedom.</returns>
     /// <exception cref="ArgumentException">
-    /// <paramref name="sample"/> holds fewer than two values. When <paramref name="nanPolicy"/>
+    /// <paramref name="sample"/> is empty. When <paramref name="nanPolicy"/>
     /// is <see cref="NanPolicy.Raise"/> and the sample holds a <c>NaN</c>.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -149,7 +150,7 @@ public static class TTest
             ? sample
             : NanFilter.Apply(sample, nanPolicy, nameof(sample));
 
-        RequireAtLeastTwo(values, nameof(sample));
+        RequireAtLeastOne(values, nameof(sample));
 
         if (double.IsNaN(populationMean) || double.IsInfinity(populationMean))
         {
@@ -172,12 +173,11 @@ public static class TTest
         return Build(statistic, mean, standardError, nanKept ? double.NaN : values.Length - 1, alternative);
     }
 
-    private static void RequireAtLeastTwo(ReadOnlySpan<double> values, string name)
+    private static void RequireAtLeastOne(ReadOnlySpan<double> values, string name)
     {
-        if (values.Length < 2)
+        if (values.IsEmpty)
         {
-            throw new ArgumentException(
-                $"A t-test needs at least two values; got {values.Length}.", name);
+            throw new ArgumentException("A t-test needs at least one value.", name);
         }
     }
 
@@ -193,6 +193,11 @@ public static class TTest
 
         double mean = sum / values.Length;
 
+        return (mean, SumOfSquares(values, mean) / (values.Length - 1));
+    }
+
+    private static double SumOfSquares(ReadOnlySpan<double> values, double mean)
+    {
         double squares = 0.0;
         for (int i = 0; i < values.Length; i++)
         {
@@ -200,7 +205,7 @@ public static class TTest
             squares += deviation * deviation;
         }
 
-        return (mean, squares / (values.Length - 1));
+        return squares;
     }
 
     // estimate is what a confidence interval centres on; it is not always the
