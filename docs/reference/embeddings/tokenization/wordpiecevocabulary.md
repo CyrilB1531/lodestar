@@ -11,8 +11,12 @@ public sealed record WordPieceVocabulary
 **Properties** — `Vocab` maps token to id. `UnkToken` is the token a word that cannot be covered
 becomes. `ContinuationPrefix` marks a piece that continues a word, `##` in BERT. `Lowercase` says
 whether text is folded before matching. `AddedTokens` are the literal matches applied first. `BasicTokenization` runs BERT's BasicTokenizer
-ahead of WordPiece; [`VocabTxtLoader`](../persistence/vocabtxtloader.md) sets it, and off, text is split
-as `pre_tokenizers.Whitespace()` splits it.
+ahead of WordPiece; [`VocabTxtLoader`](../persistence/vocabtxtloader.md) sets it, as
+[`TokenizerJsonLoader.LoadWordPiece`](../persistence/tokenizerjsonloader-loadwordpiece.md) does for a stock
+BERT file, and off, text is split as `pre_tokenizers.Whitespace()` splits it. `PrefixTokens` and
+`SuffixTokens` are what a `tokenizer.json`'s `post_processor` wraps a sequence in — `["[CLS]"]` and
+`["[SEP]"]` for BERT, empty when it declares none — the two lists a caller pairs with a pad token to
+build a [`SpecialTokenTemplate`](specialtokentemplate.md).
 `Count` is how many entries the vocabulary holds.
 
 **Example** — loading one from the `vocab.txt` a model ships.

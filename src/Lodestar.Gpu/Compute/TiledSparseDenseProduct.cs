@@ -32,6 +32,7 @@ public sealed class TiledSparseDenseProduct
     /// <summary>Loads the kernel onto the accelerator.</summary>
     /// <param name="context">The accelerator to compile for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
     /// <remarks>Loading compiles, so build this once and reuse it (bench/README.md's GPU gate).</remarks>
     public TiledSparseDenseProduct(GpuContext context)
         : this(context, RowLaunch.Limit(context))
@@ -43,6 +44,7 @@ public sealed class TiledSparseDenseProduct
     internal TiledSparseDenseProduct(GpuContext context, int rowsPerLaunch)
     {
         Guard.NotNull(context);
+        context.EnsureNotDisposed();
         _context = context;
         _groupSize = Math.Min(MaxGroupSize, context.Accelerator.MaxGroupSize.X);
         _rowsPerLaunch = rowsPerLaunch;
@@ -60,10 +62,15 @@ public sealed class TiledSparseDenseProduct
     /// <returns><c>matrix.RowCount</c> rows of <paramref name="width"/>, row-major.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="width"/> is below 1.</exception>
-    /// <exception cref="ArgumentException"><paramref name="block"/> is not that shape.</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="matrix"/>, or the context it and this kernel share, was disposed.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="block"/> is not that shape, or <paramref name="matrix"/> was uploaded to another context.
+    /// </exception>
     public double[] Multiply(DeviceSparseMatrix matrix, ReadOnlySpan<double> block, int width)
     {
         Guard.NotNull(matrix);
+        _context.EnsureNotDisposed();
+        matrix.EnsureUsableBy(_context, nameof(matrix));
         Guard.NotLessThan(width, 1);
         if (block.Length != (long)matrix.ColumnCount * width)
         {
@@ -82,7 +89,8 @@ public sealed class TiledSparseDenseProduct
     /// <param name="block">The resident dense right operand, as many rows as the matrix has columns.</param>
     /// <returns>A resident block of <c>matrix.RowCount</c> rows and <c>block.ColumnCount</c> columns.</returns>
     /// <exception cref="ArgumentNullException">An argument is null.</exception>
-    /// <exception cref="ArgumentException">The two operands do not compose.</exception>
+    /// <exception cref="ObjectDisposedException">An operand, or the context the operands and this kernel share, was disposed.</exception>
+    /// <exception cref="ArgumentException">The two operands do not compose, or one was uploaded to another context.</exception>
     /// <remarks>
     /// The chaining entry point: its result is the type its own operand is, so a second product
     /// consumes it without crossing the bus. The caller ends the chain with
@@ -92,6 +100,9 @@ public sealed class TiledSparseDenseProduct
     {
         Guard.NotNull(matrix);
         Guard.NotNull(block);
+        _context.EnsureNotDisposed();
+        matrix.EnsureUsableBy(_context, nameof(matrix));
+        block.EnsureUsableBy(_context, nameof(block));
         if (block.RowCount != matrix.ColumnCount)
         {
             throw new ArgumentException(
@@ -115,7 +126,7 @@ public sealed class TiledSparseDenseProduct
 
         accelerator.Synchronize();
 
-        return new DeviceDenseBlock(result, matrix.RowCount, block.ColumnCount);
+        return new DeviceDenseBlock(_context, result, matrix.RowCount, block.ColumnCount);
     }
 
     /// <summary>One group per row and column tile, the row's non-zeros tiled through shared memory.</summary>

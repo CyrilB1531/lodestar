@@ -9,6 +9,11 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 - The `Lodestar.Embeddings` dependency floor rises from 0.6.0 to 0.8.0, the release that forwards its data types to `Lodestar.Abstractions`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
 
+### Fixed
+
+- `OnnxEmbeddingGenerator.GenerateAsync` returns every failure in a faulted or cancelled task, as Microsoft.Extensions.AI's own generators do, where it threw from the call. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
+- Each `Embedding<float>` `OnnxEmbeddingGenerator` returns carries the generator's `ModelId` and a `CreatedAt` timestamp, where both were null. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
+
 ## [0.1.1] — 2026-09-24
 
 ### Changed

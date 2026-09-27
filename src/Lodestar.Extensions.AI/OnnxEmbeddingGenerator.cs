@@ -11,7 +11,7 @@ namespace Lodestar.Extensions.AI;
 /// <remarks>
 /// Adds no arithmetic: every vector is <see cref="OnnxTextEmbedder"/>'s, unchanged. Three
 /// contracts the interface hides are stated on the members below — the task comes back
-/// completed, a requested dimension is checked rather than honoured, and this generator
+/// completed, failures included, a requested dimension is checked rather than honoured, and this generator
 /// owns the embedder it was given.
 /// </remarks>
 public sealed class OnnxEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<float>>
@@ -54,14 +54,14 @@ public sealed class OnnxEmbeddingGenerator : IEmbeddingGenerator<string, Embeddi
     /// <param name="values">The texts to embed.</param>
     /// <param name="options">Only <see cref="EmbeddingGenerationOptions.Dimensions"/> is read; see the remarks.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
-    /// <returns>One <see cref="Embedding{T}"/> per input, in the order they were given.</returns>
+    /// <returns>One <see cref="Embedding{T}"/> per input, in the order they were given, each carrying the generator's model identifier and the time it was generated.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="values"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="options"/> asks for a dimension the loaded model does not produce.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled, before or between sub-batches.</exception>
     /// <exception cref="ObjectDisposedException">This generator has been disposed.</exception>
     /// <remarks>
-    /// The task is already completed: the model runs in this process, so the work happens
-    /// on the calling thread. <see cref="EmbeddingGenerationOptions.Dimensions"/> is
+    /// The task is already completed, a failure included: the model runs in this process, so
+    /// the work happens on the calling thread. <see cref="EmbeddingGenerationOptions.Dimensions"/> is
     /// checked rather than honoured — an ONNX model's width is fixed at export — and only
     /// where the model declares a fixed output axis, since refusing a symbolic one would
     /// mean guessing. <see cref="EmbeddingGenerationOptions.ModelId"/> is not read: it
@@ -72,19 +72,45 @@ public sealed class OnnxEmbeddingGenerator : IEmbeddingGenerator<string, Embeddi
         EmbeddingGenerationOptions? options = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
+            return Task.FromResult(Generate(values, options, cancellationToken));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled<GeneratedEmbeddings<Embedding<float>>>(cancellationToken);
+        }
+        // CA1031: every failure belongs in the task, as an async method would put it there and
+        // as Microsoft.Extensions.AI's own generators do; nothing is swallowed.
+#pragma warning disable CA1031
+        catch (Exception exception)
+#pragma warning restore CA1031
+        {
+            return Task.FromException<GeneratedEmbeddings<Embedding<float>>>(exception);
+        }
+    }
+
+    /// <summary>The synchronous body of <see cref="GenerateAsync"/>, whose failures it turns into the task's.</summary>
+    private GeneratedEmbeddings<Embedding<float>> Generate(
+        IEnumerable<string> values,
+        EmbeddingGenerationOptions? options,
+        CancellationToken cancellationToken)
+    {
         ThrowIfDisposed();
         Guard.NotNull(values);
         RequireCompatibleDimensions(options);
 
         float[][] vectors = _embedder.EmbedBatch(values, _encoder, cancellationToken);
 
+        // One timestamp for the call: the vectors come from one batch run, not one run each.
+        DateTimeOffset createdAt = DateTimeOffset.UtcNow;
         var embeddings = new GeneratedEmbeddings<Embedding<float>>(vectors.Length);
         foreach (float[] vector in vectors)
         {
-            embeddings.Add(new Embedding<float>(vector));
+            embeddings.Add(new Embedding<float>(vector) { ModelId = _metadata.DefaultModelId, CreatedAt = createdAt });
         }
 
-        return Task.FromResult(embeddings);
+        return embeddings;
     }
 
     /// <summary>Answers for the services this generator can hand out.</summary>

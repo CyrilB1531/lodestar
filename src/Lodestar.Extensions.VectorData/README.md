@@ -1,8 +1,9 @@
 # Lodestar.Extensions.VectorData
 
 An in-process `Microsoft.Extensions.VectorData` store: collections of records with
-vector search over Lodestar's `EmbeddingIndex`, keyword search over `Bm25Index`, and hybrid search
-fusing the two by reciprocal rank. Nothing to deploy: the store lives in the process that uses
+vector search ranked as Lodestar's `EmbeddingIndex` ranks, keyword search scored as its `Bm25Index`
+scores, and hybrid search fusing the two by reciprocal rank, each kept current one written record at
+a time. Nothing to deploy: the store lives in the process that uses
 it.
 
 `Note` is any record class carrying a key, a text and a vector property.

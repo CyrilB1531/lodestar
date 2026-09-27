@@ -64,6 +64,9 @@ internal static class WhitespaceScanner
         return true;
     }
 
+    /// <summary>Whether the code point starting at <paramref name="at"/> is in <c>\w</c>; a lone surrogate is not.</summary>
+    public static bool IsWordAt(string text, int at) => Classify(text, at, text.Length, out _) == Word;
+
     private static byte Classify(string text, int at, int end, out int width)
     {
         char c = text[at];

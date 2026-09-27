@@ -21,10 +21,11 @@
   </ItemGroup>
 
   <!--
-    Two Lodestar edges, both load-bearing: Lodestar.Embeddings' EmbeddingIndex is
-    the vector half and Lodestar.Text's Bm25Index, CountVectorizer and RankFusion
-    are the keyword half. Neither is a transitive convenience — decision 0003
-    parked this package until the second was published.
+    Two Lodestar edges, both load-bearing: Lodestar.Embeddings' VectorMath scores
+    the vector half as its EmbeddingIndex does, and Lodestar.Text's CountVectorizer
+    tokenizes the keyword half, which ranks as its Bm25Index and RankFusion do.
+    Neither is a transitive convenience — decision 0003 parked this package until
+    the second was published.
 
     Expressed as PackageReferences against the published packages, like every
     other src/ edge, so the build graph is the graph consumers see

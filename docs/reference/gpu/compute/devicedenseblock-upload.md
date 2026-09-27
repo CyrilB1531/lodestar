@@ -14,7 +14,8 @@ product of the two has to be exactly `values.Length`.
 
 **Returns** — `DeviceDenseBlock`, owning device memory the caller disposes.
 
-**Exceptions** — `ArgumentNullException` when `context` is null; `ArgumentOutOfRangeException` when
+**Exceptions** — `ArgumentNullException` when `context` is null; `ObjectDisposedException` when
+`context` was disposed; `ArgumentOutOfRangeException` when
 a dimension is below 1; `ArgumentException` when `values` is not exactly the block.
 
 **Example** — the shape a caller writes.

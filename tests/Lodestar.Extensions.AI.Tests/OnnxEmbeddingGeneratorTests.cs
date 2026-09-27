@@ -231,4 +231,59 @@ public sealed class OnnxEmbeddingGeneratorTests
 
         await Assert.ThrowsAsync<ArgumentNullException>(() => generator.GenerateAsync(null!, cancellationToken: TestContext.Current.CancellationToken));
     }
+
+    /// <summary>
+    /// Every failure comes back in the task, never from the call, as Microsoft.Extensions.AI's own
+    /// generators do (#1214): a caller composing tasks never sees an exception it did not await.
+    /// </summary>
+    [Fact]
+    public async Task Every_failure_surfaces_through_the_returned_task()
+    {
+        using var embedder = Embedder();
+        var generator = new OnnxEmbeddingGenerator(embedder, Encoder(), ModelId);
+        using var source = new CancellationTokenSource();
+        await source.CancelAsync();
+
+        Task<GeneratedEmbeddings<Embedding<float>>> nullValues = generator.GenerateAsync(null!, cancellationToken: TestContext.Current.CancellationToken);
+        Task<GeneratedEmbeddings<Embedding<float>>> wrongWidth = generator.GenerateAsync(
+            Texts, new EmbeddingGenerationOptions { Dimensions = embedder.Dimension + 1 }, TestContext.Current.CancellationToken);
+        Task<GeneratedEmbeddings<Embedding<float>>> cancelled = generator.GenerateAsync(Texts, options: null, source.Token);
+        generator.Dispose();
+        Task<GeneratedEmbeddings<Embedding<float>>> disposed = generator.GenerateAsync(Texts, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.True(nullValues.IsFaulted);
+        Assert.True(wrongWidth.IsFaulted);
+        Assert.True(cancelled.IsCanceled);
+        Assert.True(disposed.IsFaulted);
+        await Assert.ThrowsAsync<ArgumentNullException>(() => nullValues);
+        await Assert.ThrowsAsync<ArgumentException>(() => wrongWidth);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelled);
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => disposed);
+    }
+
+    /// <summary>
+    /// Each embedding names the model that made it and when, as the metadata and the clock say;
+    /// Microsoft.Extensions.AI's OpenAI generator fills both the same way.
+    /// </summary>
+    [Fact]
+    public async Task Each_embedding_carries_the_model_id_and_its_creation_time()
+    {
+        using var first = Embedder();
+        using var second = Embedder();
+        using var named = new OnnxEmbeddingGenerator(first, Encoder(), ModelId);
+        using var anonymous = new OnnxEmbeddingGenerator(second, Encoder());
+
+        DateTimeOffset before = DateTimeOffset.UtcNow;
+        GeneratedEmbeddings<Embedding<float>> withId = await named.GenerateAsync(Texts, cancellationToken: TestContext.Current.CancellationToken);
+        GeneratedEmbeddings<Embedding<float>> withoutId = await anonymous.GenerateAsync(Texts, cancellationToken: TestContext.Current.CancellationToken);
+        DateTimeOffset after = DateTimeOffset.UtcNow;
+
+        Assert.All(withId, embedding => Assert.Equal(ModelId, embedding.ModelId));
+        Assert.All(withoutId, embedding => Assert.Null(embedding.ModelId));
+        Assert.All(withId.Concat(withoutId), embedding =>
+        {
+            Assert.NotNull(embedding.CreatedAt);
+            Assert.InRange(embedding.CreatedAt.Value, before, after);
+        });
+    }
 }

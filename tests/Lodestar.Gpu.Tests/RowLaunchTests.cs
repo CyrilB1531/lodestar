@@ -1,4 +1,5 @@
 using Lodestar.Abstractions;
+using Lodestar.Embeddings.Search;
 using Lodestar.Gpu.Compute;
 using Xunit;
 
@@ -63,9 +64,9 @@ public sealed class RowLaunchTests
         using var context = GpuContext.Create(preferCpu: true);
         using var matrix = DeviceEmbeddingMatrix.Upload(context, rows, count, dimension);
 
-        IReadOnlyList<IReadOnlyList<GpuSearchResult>> whole =
+        IReadOnlyList<IReadOnlyList<SearchResult>> whole =
             new TiledCosineTopK(context).Search(matrix, batch, queries, 5);
-        IReadOnlyList<IReadOnlyList<GpuSearchResult>> sliced =
+        IReadOnlyList<IReadOnlyList<SearchResult>> sliced =
             new TiledCosineTopK(context, Slice).Search(matrix, batch, queries, 5);
 
         Assert.Equal(whole, sliced);

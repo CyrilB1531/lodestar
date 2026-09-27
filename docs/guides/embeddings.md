@@ -27,13 +27,14 @@ var wp = new WordPieceTokenizer(vocab);
 TokenizationResult t = wp.Encode("playing");   // pieces: play ##ing
 ```
 
-A stock HuggingFace BERT `tokenizer.json` — `BertPreTokenizer` plus a full
-`BertNormalizer` — **is refused** by [`TokenizerJsonLoader.LoadWordPiece`](../reference/embeddings/persistence/tokenizerjsonloader-loadwordpiece.md); that is
-the correct outcome for that file. The same steps run on the `vocab.txt` route instead:
-`VocabTxtLoader` returns a vocabulary with `BasicTokenization` set, so accents, punctuation runs and
-CJK text tokenize as `BertTokenizer` tokenizes them. `VocabTxtLoader` is the route for BERT, and `LoadWordPiece` is for a `tokenizer.json`
-whose pipeline already matches Lodestar's own (see
-[Models that are refused](#models-that-are-refused)).
+A stock HuggingFace BERT `tokenizer.json` — all-MiniLM-L6-v2's, say: the default `BertNormalizer`
+and a `BertPreTokenizer` — loads through
+[`TokenizerJsonLoader.LoadWordPiece`](../reference/embeddings/persistence/tokenizerjsonloader-loadwordpiece.md)
+with `BasicTokenization` set, as `VocabTxtLoader` sets it, so accents, punctuation runs and CJK
+text tokenize as `BertTokenizer` tokenizes them. The file's `post_processor` lands in
+`PrefixTokens` and `SuffixTokens`, `["[CLS]"]` and `["[SEP]"]`; its `truncation` and `padding` are
+call settings, and `EncodingOptions` carries those (see
+[Models that are refused](#models-that-are-refused) for what still is).
 
 **SentencePiece** (ALBERT, T5, camemBERT, XLM-R) — unigram Viterbi segmentation,
 from the trained `spiece.model`. The model's own `precompiled_charsmap` is
@@ -189,8 +190,11 @@ different one is **rejected**, with a message naming what was found:
   compiled map, never from `normalizer_spec.name`;
 - for `tokenizer.json`, a normalizer other than `Precompiled` on the Unigram
   path, or `Lowercase`/a plain `BertNormalizer` on the WordPiece one — `NFKC`
-  asks for the runtime's Unicode tables where the model asked for a frozen map;
-- a pre-tokenizer other than `Whitespace` (WordPiece) or `Metaspace` (Unigram),
+  asks for the runtime's Unicode tables where the model asked for a frozen map.
+  A `BertPreTokenizer` runs after the default `BertNormalizer` only, which is
+  BERT's BasicTokenizer; a `BertNormalizer` ahead of `Whitespace` may lowercase
+  and nothing more;
+- a pre-tokenizer other than `Whitespace` or `BertPreTokenizer` (WordPiece) or `Metaspace` (Unigram),
   and a `Metaspace` whose `replacement`, `prepend_scheme` (or the older
   `add_prefix_space`) or `split` is away from the default;
 - for BPE, a pre-tokenizer other than a bare `ByteLevel` (stock GPT-2),
@@ -255,10 +259,12 @@ different one is **rejected**, with a message naming what was found:
   whether a leading space is added. An omitted `use_regex` is fine (the
   reference defaults it to `true`, and stock GPT-2 leaves it out) and so is an
   omitted `trim_offsets`, which nothing here reads;
-- a `post_processor` — the wrapping lives in `EncodingOptions.Template`
-  ([Embed a batch](#embed-a-batch)), and a `post_processor` in the file would be
-  a second source of truth for it, free to disagree with the first;
-- a `truncation` or `padding` section;
+- a `post_processor` other than `TemplateProcessing`, `BertProcessing` and
+  `RobertaProcessing` — those three are read into the vocabulary's
+  `PrefixTokens` and `SuffixTokens`, which the caller hands to
+  `EncodingOptions.Template` ([Embed a batch](#embed-a-batch)) with a pad token.
+  A `truncation` or `padding` section is accepted and not read: the length and
+  the padding are `EncodingOptions`' own;
 - an `added_tokens` entry that contradicts `model.vocab` — the same content at a
   different id, or a negative id, which is an out-of-range index in the caller's
   embedding lookup wherever it lands. The matching flags are **not** a refusal

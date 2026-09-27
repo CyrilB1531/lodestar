@@ -14,7 +14,8 @@ hashes per document; a document may be empty, and repeats are harmless.
 **Returns** — `DeviceTokenHashes`, owning two device buffers the caller disposes.
 
 **Exceptions** — `ArgumentNullException` when `context`, `documents`, or one of the documents, is
-null; `ArgumentException` when `documents` is empty.
+null; `ObjectDisposedException` when `context` was disposed; `ArgumentException` when `documents`
+is empty.
 
 **Example** — the shape a caller writes.
 

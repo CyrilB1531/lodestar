@@ -14,9 +14,12 @@ that means. `cancellationToken` abandons the run.
 
 **Returns** — a `GeneratedEmbeddings<Embedding<float>>` holding one embedding per input, in input
 order. Each is what `OnnxTextEmbedder.EmbedBatch` returned for that text — mean-pooled and L2
-normalized — with nothing added on top.
+normalized — with nothing added to the vector. Each carries `ModelId`, the identifier the generator
+was built with (null if none was given), and `CreatedAt`, one UTC timestamp taken when the batch
+finished, as Microsoft.Extensions.AI's own OpenAI generator fills them.
 
-**Exceptions** — `ArgumentNullException` when `values` is null. `ArgumentException` when `options`
+**Exceptions** — every one of these comes back in the returned task, never from the call itself.
+`ArgumentNullException` when `values` is null. `ArgumentException` when `options`
 asks for a dimension the loaded model does not produce. `OperationCanceledException` when
 `cancellationToken` is already cancelled, or is cancelled between sub-batches — it is the batch path
 underneath that observes it, so the point at which it fires is that path's, not this one's.
@@ -56,7 +59,10 @@ own code, `await` it.
 **Remarks** — **the task is already completed when it comes back.** The model runs in this process,
 so the work happens on the calling thread and there is nothing to wait for. That is the honest
 shape: an implementation that posted the same CPU to the thread pool would return a task the caller
-could await without the machine doing less.
+could await without the machine doing less. A failure completes it too — faulted, or cancelled when
+`cancellationToken` was — rather than throwing from the call, which is where
+Microsoft.Extensions.AI's own generators put it: theirs are `async` methods, so even their null
+checks reach the caller through the task.
 
 **`Dimensions` is checked, not honoured.** An ONNX model's output width is fixed at export, so a
 different width cannot be produced; asking for one the model does not produce is refused rather

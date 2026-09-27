@@ -12,6 +12,8 @@ namespace Lodestar.Gpu.Compute;
 /// </remarks>
 public sealed class DeviceSparseMatrix : IDisposable
 {
+    private readonly DeviceResidency _residency;
+
     internal MemoryBuffer1D<int, Stride1D.Dense> RowPointers { get; }
 
     internal MemoryBuffer1D<int, Stride1D.Dense> ColumnIndices { get; }
@@ -28,12 +30,14 @@ public sealed class DeviceSparseMatrix : IDisposable
     public int NonZeroCount => (int)Values.Length;
 
     private DeviceSparseMatrix(
+        GpuContext context,
         MemoryBuffer1D<int, Stride1D.Dense> rowPointers,
         MemoryBuffer1D<int, Stride1D.Dense> columnIndices,
         MemoryBuffer1D<double, Stride1D.Dense> values,
         int rowCount,
         int columnCount)
     {
+        _residency = new DeviceResidency(context);
         RowPointers = rowPointers;
         ColumnIndices = columnIndices;
         Values = values;
@@ -49,6 +53,7 @@ public sealed class DeviceSparseMatrix : IDisposable
     /// <param name="rowCount">How many rows the matrix has.</param>
     /// <param name="columnCount">How many columns the matrix has.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="rowCount"/> or <paramref name="columnCount"/> is below 1.</exception>
     /// <exception cref="ArgumentException">The three arrays do not describe one CSR matrix.</exception>
     public static DeviceSparseMatrix Upload(
@@ -60,6 +65,7 @@ public sealed class DeviceSparseMatrix : IDisposable
         int columnCount)
     {
         Guard.NotNull(context);
+        context.EnsureNotDisposed();
         Guard.NotLessThan(rowCount, 1);
         Guard.NotLessThan(columnCount, 1);
         if (rowPointers.Length != rowCount + 1)
@@ -88,7 +94,7 @@ public sealed class DeviceSparseMatrix : IDisposable
         MemoryBuffer1D<int, Stride1D.Dense> pointers = accelerator.Allocate1D(rowPointers.ToArray());
         MemoryBuffer1D<int, Stride1D.Dense> columns = accelerator.Allocate1D(columnIndices.ToArray());
         MemoryBuffer1D<double, Stride1D.Dense> stored = accelerator.Allocate1D(values.ToArray());
-        return new DeviceSparseMatrix(pointers, columns, stored, rowCount, columnCount);
+        return new DeviceSparseMatrix(context, pointers, columns, stored, rowCount, columnCount);
     }
 
     /// <summary>Throws unless the offsets and the columns stay inside the arrays the kernel reads.</summary>
@@ -127,9 +133,20 @@ public sealed class DeviceSparseMatrix : IDisposable
         }
     }
 
-    /// <summary>Frees the three device buffers.</summary>
+    /// <summary>Throws unless a kernel loaded on <paramref name="context"/> may read this matrix.</summary>
+    /// <exception cref="ObjectDisposedException">This matrix, or the context it lives on, was disposed.</exception>
+    /// <exception cref="ArgumentException">This matrix was uploaded to another context.</exception>
+    internal void EnsureUsableBy(GpuContext context, string parameter) =>
+        _residency.EnsureUsableBy(context, parameter);
+
+    /// <summary>Frees the three device buffers; a second call does nothing.</summary>
     public void Dispose()
     {
+        if (!_residency.Release())
+        {
+            return;
+        }
+
         RowPointers.Dispose();
         ColumnIndices.Dispose();
         Values.Dispose();

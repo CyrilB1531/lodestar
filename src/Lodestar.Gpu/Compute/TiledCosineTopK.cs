@@ -1,15 +1,18 @@
 using System.Diagnostics.CodeAnalysis;
 using ILGPU;
 using ILGPU.Runtime;
+using Lodestar.Embeddings.Search;
 
 namespace Lodestar.Gpu.Compute;
 
 /// <summary>Sweeps a resident matrix with a batch of queries: cosine similarity, then top-k.</summary>
 /// <remarks>
 /// Two kernels on one stream. The first tiles the query vector through shared memory so a
-/// group reads it once rather than once per thread; the second selects the best k by
-/// repeated parallel argmax, which keeps the selection on the accelerator instead of
-/// copying every score back. Ties break by row index ascending, matching the CPU path.
+/// group reads it once rather than once per thread; the second keeps the selection on the
+/// accelerator instead of copying every score back. Each lane of the second holds a heap of
+/// its own best rows, and the group merges the lanes' sorted lists, so a query costs one pass
+/// over its scores rather than one per hit (#1214). Ties break by row index ascending,
+/// matching the CPU path.
 /// </remarks>
 public sealed class TiledCosineTopK
 {
@@ -27,11 +30,13 @@ public sealed class TiledCosineTopK
     private readonly int _groupSize;
     private readonly int _queriesPerLaunch;
     private readonly Action<KernelConfig, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int, int> _score;
-    private readonly Action<KernelConfig, ArrayView<float>, ArrayView<int>, ArrayView<float>, int, int> _select;
+    private readonly Action<KernelConfig, ArrayView<float>, ArrayView<int>, ArrayView<int>, ArrayView<float>,
+        int, int, int> _select;
 
     /// <summary>Loads both kernels onto the accelerator.</summary>
     /// <param name="context">The accelerator to compile for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
     /// <remarks>
     /// Loading compiles, so build this once and reuse it. A first launch on a freshly
     /// loaded kernel measures the compiler, which is why bench/README.md's GPU gate asks a benchmark
@@ -47,13 +52,15 @@ public sealed class TiledCosineTopK
     internal TiledCosineTopK(GpuContext context, int queriesPerLaunch)
     {
         Guard.NotNull(context);
+        context.EnsureNotDisposed();
         _context = context;
         _groupSize = LargestPowerOfTwo(Math.Min(MaxGroupSize, context.Accelerator.MaxGroupSize.X));
         _queriesPerLaunch = queriesPerLaunch;
         _score = context.Accelerator
             .LoadStreamKernel<ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int, int>(ScoreKernel);
         _select = context.Accelerator
-            .LoadStreamKernel<ArrayView<float>, ArrayView<int>, ArrayView<float>, int, int>(SelectKernel);
+            .LoadStreamKernel<ArrayView<float>, ArrayView<int>, ArrayView<int>, ArrayView<float>, int, int, int>(
+                SelectKernel);
     }
 
     /// <summary>The best <paramref name="k"/> rows for each query, best first.</summary>
@@ -67,11 +74,17 @@ public sealed class TiledCosineTopK
     /// <returns>One list per query, in the batch's own order.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="queryCount"/> or <paramref name="k"/> is below 1.</exception>
-    /// <exception cref="ArgumentException"><paramref name="queries"/> is not exactly the batch, or holds a non-finite value.</exception>
-    public IReadOnlyList<IReadOnlyList<GpuSearchResult>> Search(
+    /// <exception cref="ObjectDisposedException"><paramref name="matrix"/>, or the context it and this kernel share, was disposed.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="queries"/> is not exactly the batch or holds a non-finite value, or
+    /// <paramref name="matrix"/> was uploaded to another context.
+    /// </exception>
+    public IReadOnlyList<IReadOnlyList<SearchResult>> Search(
         DeviceEmbeddingMatrix matrix, ReadOnlySpan<float> queries, int queryCount, int k)
     {
         Guard.NotNull(matrix);
+        _context.EnsureNotDisposed();
+        matrix.EnsureUsableBy(_context, nameof(matrix));
         Guard.NotLessThan(queryCount, 1);
         Guard.NotLessThan(k, 1);
         if (queries.Length != (long)queryCount * matrix.Dimension)
@@ -83,6 +96,8 @@ public sealed class TiledCosineTopK
 
         DeviceEmbeddingMatrix.RefuseNonFinite(queries, nameof(queries));
         int take = Math.Min(k, matrix.Count);
+        // A lane sees every width-th row, so it never holds more than that many candidates.
+        int capacity = Math.Min(take, (matrix.Count + _groupSize - 1) / _groupSize);
         float[] staged = queries.ToArray();
         DeviceEmbeddingMatrix.NormalizeRows(staged, queryCount, matrix.Dimension);
 
@@ -90,6 +105,8 @@ public sealed class TiledCosineTopK
         using MemoryBuffer1D<float, Stride1D.Dense> queryBuffer = accelerator.Allocate1D(staged);
         using MemoryBuffer1D<float, Stride1D.Dense> scores =
             accelerator.Allocate1D<float>((long)queryCount * matrix.Count);
+        using MemoryBuffer1D<int, Stride1D.Dense> heaps =
+            accelerator.Allocate1D<int>((long)queryCount * _groupSize * capacity);
         using MemoryBuffer1D<int, Stride1D.Dense> hitIndices =
             accelerator.Allocate1D<int>((long)queryCount * take);
         using MemoryBuffer1D<float, Stride1D.Dense> hitScores =
@@ -106,19 +123,19 @@ public sealed class TiledCosineTopK
 
         _select(
             new KernelConfig(new Index1D(queryCount), new Index1D(_groupSize)),
-            scores.View, hitIndices.View, hitScores.View, matrix.Count, take);
+            scores.View, heaps.View, hitIndices.View, hitScores.View, matrix.Count, take, capacity);
         accelerator.Synchronize();
 
         int[] flatIndices = hitIndices.GetAsArray1D();
         float[] flatScores = hitScores.GetAsArray1D();
-        var results = new IReadOnlyList<GpuSearchResult>[queryCount];
+        var results = new IReadOnlyList<SearchResult>[queryCount];
         for (int query = 0; query < queryCount; query++)
         {
-            var hits = new GpuSearchResult[take];
+            var hits = new SearchResult[take];
             for (int slot = 0; slot < take; slot++)
             {
                 int at = (query * take) + slot;
-                hits[slot] = new GpuSearchResult(flatIndices[at], flatScores[at]);
+                hits[slot] = new SearchResult(flatIndices[at], flatScores[at]);
             }
 
             results[query] = hits;
@@ -174,43 +191,38 @@ public sealed class TiledCosineTopK
         }
     }
 
-    /// <summary>One group per query, selecting k winners by repeated parallel argmax.</summary>
+    /// <summary>One group per query: a heap per lane, then a merge of the lanes' lists.</summary>
     /// <remarks>
-    /// The taken row is masked to <c>NaN</c> so the next pass cannot see it, which is why
-    /// <c>scores</c> is scratch and never read again by the caller. Not negative infinity: a
-    /// row can score that honestly, unnormalized, and a mask equal to it left a slot unfilled.
+    /// A lane keeps the best of rows <c>lane, lane + w, …</c> in a heap worst first — n/w reads, and
+    /// a log k sift only when a row beats the root — then heapsorts it best first. The group runs k
+    /// rounds of a parallel argmax over the lanes' heads, the winner's lane stepping on: k·log w,
+    /// where the argmax this replaced rescanned all n rows per hit. No score is NaN — the inputs are
+    /// finite, and a finite sum overflows only to an infinity — so the order is total.
     /// </remarks>
-        // Same reason as the kernel above: coverage instrumentation reads a mutable static.
+    // Same reason as the kernel above: coverage instrumentation reads a mutable static.
     [ExcludeFromCodeCoverage]
     private static void SelectKernel(
-        ArrayView<float> scores, ArrayView<int> hitIndices, ArrayView<float> hitScores, int count, int take)
+        ArrayView<float> scores, ArrayView<int> heaps, ArrayView<int> hitIndices, ArrayView<float> hitScores,
+        int count, int take, int capacity)
     {
         ArrayView<float> bestScore = SharedMemory.Allocate1D<float>(MaxGroupSize);
         ArrayView<int> bestIndex = SharedMemory.Allocate1D<int>(MaxGroupSize);
         int width = Group.DimX;
         int query = Grid.IdxX;
         int lane = Group.IdxX;
-        long rowBase = (long)query * count;
+        ArrayView<float> row = scores.SubView((long)query * count, count);
+        ArrayView<int> heap = heaps.SubView((((long)query * width) + lane) * capacity, capacity);
 
+        int size = KeepBest(row, heap, lane, width, count, capacity);
+        SortBestFirst(row, heap, size);
+
+        int head = 0;
         for (int slot = 0; slot < take; slot++)
         {
-            float localScore = float.NegativeInfinity;
-            int localIndex = int.MaxValue;
-            // Strided so a lane's own candidates arrive in ascending index order, which
-            // makes a strict > enough to keep the lower index on a tie.
-            for (int row = lane; row < count; row += width)
-            {
-                float candidate = scores[rowBase + row];
-                // The second clause takes a first negative infinity; a masked NaN fails both.
-                if (candidate > localScore || (localIndex == int.MaxValue && candidate >= localScore))
-                {
-                    localScore = candidate;
-                    localIndex = row;
-                }
-            }
-
-            bestScore[lane] = localScore;
-            bestIndex[lane] = localIndex;
+            // An exhausted lane offers negative infinity at int.MaxValue, which any real row
+            // outranks: a row scoring negative infinity wins the tie on its lower index.
+            bestScore[lane] = head < size ? row[heap[head]] : float.NegativeInfinity;
+            bestIndex[lane] = head < size ? heap[head] : int.MaxValue;
             Group.Barrier();
 
             for (int stride = width / 2; stride > 0; stride >>= 1)
@@ -223,16 +235,124 @@ public sealed class TiledCosineTopK
                 Group.Barrier();
             }
 
+            int winner = bestIndex[0];
             if (lane == 0)
             {
                 long at = ((long)query * take) + slot;
-                hitIndices[at] = bestIndex[0];
+                hitIndices[at] = winner;
                 hitScores[at] = bestScore[0];
-                scores[rowBase + bestIndex[0]] = float.NaN;
+            }
+
+            // Rows are dealt to lanes by index modulo the width, so the winner names its lane.
+            if (winner % width == lane)
+            {
+                head++;
             }
 
             Group.Barrier();
         }
+    }
+
+    /// <summary>The best <paramref name="capacity"/> of rows <paramref name="lane"/>, + width, …, as a heap worst first.</summary>
+    /// <returns>How many rows the heap holds.</returns>
+    // Called from a kernel, so it is device code and carries the same exclusion.
+    [ExcludeFromCodeCoverage]
+    private static int KeepBest(
+        ArrayView<float> row, ArrayView<int> heap, int lane, int width, int count, int capacity)
+    {
+        int size = 0;
+        for (int candidate = lane; candidate < count; candidate += width)
+        {
+            if (size < capacity)
+            {
+                SiftUp(row, heap, size, candidate);
+                size++;
+            }
+            else if (Outranks(row, candidate, heap[0]))
+            {
+                SiftDown(row, heap, size, candidate);
+            }
+        }
+
+        return size;
+    }
+
+    /// <summary>Heapsorts the first <paramref name="size"/> entries in place, best first.</summary>
+    /// <remarks>Moving the root, the worst, to the end of a shrinking heap is what leaves the best at the front.</remarks>
+    // Called from a kernel, so it is device code and carries the same exclusion.
+    [ExcludeFromCodeCoverage]
+    private static void SortBestFirst(ArrayView<float> row, ArrayView<int> heap, int size)
+    {
+        for (int end = size - 1; end > 0; end--)
+        {
+            int last = heap[end];
+            heap[end] = heap[0];
+            SiftDown(row, heap, end, last);
+        }
+    }
+
+    /// <summary>Whether row <paramref name="a"/> ranks above row <paramref name="b"/>: score, then lower index.</summary>
+    // Called from a kernel, so it is device code and carries the same exclusion.
+    [ExcludeFromCodeCoverage]
+    private static bool Outranks(ArrayView<float> row, int a, int b)
+    {
+        // S1244: an exact tie is the case this decides, and the CPU path's sort decides it
+        // the same way -- a tolerance here would make the two disagree on which row wins.
+#pragma warning disable S1244
+        return row[a] > row[b] || (row[a] == row[b] && a < b);
+#pragma warning restore S1244
+    }
+
+    /// <summary>Inserts <paramref name="candidate"/> at <paramref name="size"/>, keeping the worst at the root.</summary>
+    // Called from a kernel, so it is device code and carries the same exclusion.
+    [ExcludeFromCodeCoverage]
+    private static void SiftUp(ArrayView<float> row, ArrayView<int> heap, int size, int candidate)
+    {
+        int at = size;
+        while (at > 0)
+        {
+            int parent = (at - 1) / 2;
+            if (!Outranks(row, heap[parent], candidate))
+            {
+                break;
+            }
+
+            heap[at] = heap[parent];
+            at = parent;
+        }
+
+        heap[at] = candidate;
+    }
+
+    /// <summary>Puts <paramref name="candidate"/> at the root of the first <paramref name="size"/> entries and sinks it.</summary>
+    // Called from a kernel, so it is device code and carries the same exclusion.
+    [ExcludeFromCodeCoverage]
+    private static void SiftDown(ArrayView<float> row, ArrayView<int> heap, int size, int candidate)
+    {
+        int at = 0;
+        while (true)
+        {
+            int child = (2 * at) + 1;
+            if (child >= size)
+            {
+                break;
+            }
+
+            if (child + 1 < size && Outranks(row, heap[child], heap[child + 1]))
+            {
+                child++;
+            }
+
+            if (!Outranks(row, candidate, heap[child]))
+            {
+                break;
+            }
+
+            heap[at] = heap[child];
+            at = child;
+        }
+
+        heap[at] = candidate;
     }
 
     /// <summary>The largest power of two at or below <paramref name="limit"/>, at least one.</summary>

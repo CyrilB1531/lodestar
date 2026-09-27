@@ -1,3 +1,4 @@
+using Lodestar.Embeddings.Search;
 using Lodestar.Gpu.Compute;
 
 namespace Lodestar.Sample;
@@ -16,11 +17,11 @@ internal static class TiledCosineTopKSample
 
         // Two queries in one call. A batch is what makes the kernel worth its transfers.
         float[] queries = [1f, 0f, 0f, 1f];
-        IReadOnlyList<IReadOnlyList<GpuSearchResult>> hits = kernel.Search(matrix, queries, 2, 2);
+        IReadOnlyList<IReadOnlyList<SearchResult>> hits = kernel.Search(matrix, queries, 2, 2);
 
         for (int query = 0; query < hits.Count; query++)
         {
-            IReadOnlyList<GpuSearchResult> best = hits[query];
+            IReadOnlyList<SearchResult> best = hits[query];
             Console.WriteLine($"  query {query} best : doc {best[0].Index} at {Inv.F3(best[0].Score)}");
         }
 

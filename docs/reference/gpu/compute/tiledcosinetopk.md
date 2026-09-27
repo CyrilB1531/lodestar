@@ -11,6 +11,7 @@ public sealed class TiledCosineTopK
 **Example** — the shape a caller writes.
 
 ```csharp
+using Lodestar.Embeddings.Search;
 using Lodestar.Gpu.Compute;
 
 using var context = GpuContext.Create(preferCpu: true);
@@ -18,7 +19,7 @@ float[] rows = [1f, 0f, 0f, 1f, 1f, 1f];
 using var matrix = DeviceEmbeddingMatrix.Upload(context, rows, count: 3, dimension: 2);
 var kernel = new TiledCosineTopK(context);
 
-IReadOnlyList<IReadOnlyList<GpuSearchResult>> hits = kernel.Search(matrix, [1f, 0f], 1, 2);
+IReadOnlyList<IReadOnlyList<SearchResult>> hits = kernel.Search(matrix, [1f, 0f], 1, 2);
 
 int best = hits[0][0].Index;  // => 0
 int howMany = hits[0].Count;  // => 2
@@ -31,9 +32,15 @@ int howMany = hits[0].Count;  // => 2
 | [`TiledCosineTopK.Search`](tiledcosinetopk-search.md) | The best *k* rows for each query in a batch |
 
 **Remarks** — two kernels on one stream. The first tiles the **query** vector through shared
-memory so a group reads it once rather than once per thread; the second selects the best *k* by
-repeated parallel argmax, keeping the selection on the accelerator instead of copying every score
-back.
+memory so a group reads it once rather than once per thread; the second keeps the selection on the
+accelerator instead of copying every score back. Each thread keeps a heap of the best rows it
+reads, and the group merges the threads' sorted lists, so a query's scores are read once however
+large *k* is — the repeated parallel argmax this replaced read them once per hit
+([#1214](https://github.com/CyrilB1531/lodestar/issues/1214)).
+
+**Hits are [`SearchResult`](../../embeddings/search/searchresult.md)**, the record
+[`EmbeddingIndex.Search`](../../embeddings/search/embeddingindex-search.md) returns, so a caller moving
+between the two paths changes no type.
 
 **Ties break by row index ascending**, matching [`EmbeddingIndex.Search`](../../embeddings/search/embeddingindex-search.md). That is the one thing the
 CPU sort and the GPU reduction have to agree on by construction rather than by luck, and a corpus
@@ -51,4 +58,4 @@ threads runs on a GPU and refuses to launch exactly where correctness is tested.
 **Applies to** — net10.0, netstandard2.1.
 
 **See also** — [`DeviceEmbeddingMatrix`](deviceembeddingmatrix.md),
-[`GpuSearchResult`](gpusearchresult.md), [the namespace index](../compute.md).
+[`SearchResult`](../../embeddings/search/searchresult.md), [the namespace index](../compute.md).

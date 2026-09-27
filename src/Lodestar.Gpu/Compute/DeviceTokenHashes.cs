@@ -14,6 +14,8 @@ namespace Lodestar.Gpu.Compute;
 /// </remarks>
 public sealed class DeviceTokenHashes : IDisposable
 {
+    private readonly DeviceResidency _residency;
+
     internal MemoryBuffer1D<uint, Stride1D.Dense> Hashes { get; }
 
     internal MemoryBuffer1D<int, Stride1D.Dense> Offsets { get; }
@@ -22,10 +24,12 @@ public sealed class DeviceTokenHashes : IDisposable
     public int Count { get; }
 
     private DeviceTokenHashes(
+        GpuContext context,
         MemoryBuffer1D<uint, Stride1D.Dense> hashes,
         MemoryBuffer1D<int, Stride1D.Dense> offsets,
         int count)
     {
+        _residency = new DeviceResidency(context);
         Hashes = hashes;
         Offsets = offsets;
         Count = count;
@@ -38,11 +42,13 @@ public sealed class DeviceTokenHashes : IDisposable
     /// harmless: a minimum is idempotent, which is what makes this a set sketch.
     /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/>, <paramref name="documents"/>, or one of them, is null.</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
     /// <exception cref="ArgumentException"><paramref name="documents"/> is empty.</exception>
     public static DeviceTokenHashes Upload(
         GpuContext context, IReadOnlyList<IReadOnlyList<uint>> documents)
     {
         Guard.NotNull(context);
+        context.EnsureNotDisposed();
         Guard.NotNull(documents);
         if (documents.Count == 0)
         {
@@ -70,7 +76,7 @@ public sealed class DeviceTokenHashes : IDisposable
 
         offsets[documents.Count] = at;
         Accelerator accelerator = context.Accelerator;
-        return new DeviceTokenHashes(Upload(accelerator, flat), accelerator.Allocate1D(offsets),
+        return new DeviceTokenHashes(context, Upload(accelerator, flat), accelerator.Allocate1D(offsets),
             documents.Count);
     }
 
@@ -84,10 +90,19 @@ public sealed class DeviceTokenHashes : IDisposable
     private static MemoryBuffer1D<uint, Stride1D.Dense> Upload(Accelerator accelerator, uint[] values) =>
         values.Length == 0 ? accelerator.Allocate1D<uint>(0) : accelerator.Allocate1D(values);
 
-    /// <summary>Frees the two device buffers.</summary>
+    /// <summary>Throws unless a kernel loaded on <paramref name="context"/> may read this batch.</summary>
+    /// <exception cref="ObjectDisposedException">This batch, or the context it lives on, was disposed.</exception>
+    /// <exception cref="ArgumentException">This batch was uploaded to another context.</exception>
+    internal void EnsureUsableBy(GpuContext context, string parameter) =>
+        _residency.EnsureUsableBy(context, parameter);
+
+    /// <summary>Frees the two device buffers; a second call does nothing.</summary>
     public void Dispose()
     {
-        Hashes.Dispose();
-        Offsets.Dispose();
+        if (_residency.Release())
+        {
+            Hashes.Dispose();
+            Offsets.Dispose();
+        }
     }
 }

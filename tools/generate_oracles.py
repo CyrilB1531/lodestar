@@ -2547,6 +2547,69 @@ def generate_vocab_txt() -> dict:
     }
 
 
+def _bert_tokenizer_json(vocab: dict[str, int], lowercase: bool, processor: str):
+    """A stock BERT tokenizer.json, all-MiniLM-L6-v2's shape: the BERT pipeline, a post-processor,
+    truncation at 128 and fixed padding to 128, as sentence-transformers writes them."""
+    from tokenizers import AddedToken, processors  # noqa: PLC0415
+
+    tokenizer = _bert_basic_tokenizer(vocab, lowercase)
+    tokenizer.add_special_tokens([AddedToken(t, special=True) for t in (PAD_TOKEN, CLS_TOKEN, SEP_TOKEN)])
+    if processor == "TemplateProcessing":
+        tokenizer.post_processor = processors.TemplateProcessing(
+            single=f"{CLS_TOKEN} $A {SEP_TOKEN}", pair=f"{CLS_TOKEN} $A {SEP_TOKEN} $B:1 {SEP_TOKEN}:1",
+            special_tokens=[(CLS_TOKEN, tokenizer.token_to_id(CLS_TOKEN)), (SEP_TOKEN, tokenizer.token_to_id(SEP_TOKEN))])
+    else:
+        tokenizer.post_processor = processors.BertProcessing(
+            (SEP_TOKEN, tokenizer.token_to_id(SEP_TOKEN)), (CLS_TOKEN, tokenizer.token_to_id(CLS_TOKEN)))
+    tokenizer.enable_truncation(max_length=128)
+    tokenizer.enable_padding(length=128, pad_id=tokenizer.token_to_id(PAD_TOKEN), pad_token=PAD_TOKEN)
+    return tokenizer
+
+
+def generate_tokenizer_json_bert() -> dict:
+    """Stock BERT tokenizer.json files, which LoadWordPiece refused before #1210.
+
+    Each case keeps two encodings: the model's own ("tokens", no special token,
+    no truncation, no padding -- what WordPieceTokenizer.Encode answers) and the
+    post-processed one ("wrapped", padding off), whose ends are the prefix and
+    suffix the loader reads. The file's truncation and padding ride along
+    unread: they are call settings, which EncodingOptions carries.
+    """
+    import json as _json  # noqa: PLC0415
+    from tokenizers import Tokenizer  # noqa: PLC0415
+
+    tokens = list(WORDPIECE_VOCAB) + BERT_BASIC_VOCAB
+    vocab = {token: index for index, token in enumerate(tokens)}
+    models = {}
+    cases = []
+    for model, lowercase, processor in (("uncased_template", True, "TemplateProcessing"),
+                                        ("cased_bert_processing", False, "BertProcessing")):
+        tokenizer = _bert_tokenizer_json(vocab, lowercase, processor)
+        models[model] = _json.loads(tokenizer.to_str())
+        bare = Tokenizer.from_str(tokenizer.to_str())
+        bare.no_truncation()
+        bare.no_padding()
+        for text in WORDPIECE_TEXTS + BERT_BASIC_TEXTS:
+            enc = bare.encode(text, add_special_tokens=False)
+            cases.append({"id": len(cases), "model": model, "text": text, "tokens": enc.tokens,
+                          "ids": enc.ids, "wrapped": bare.encode(text).tokens})
+
+    return {
+        "metadata": {
+            "algorithm": "TokenizerJsonLoader.LoadWordPiece over a stock BERT file",
+            "library": "tokenizers",
+            "library_version": version("tokenizers"),
+            "reference_calls": [
+                "tokenizers.Tokenizer.from_str(...).encode(text, add_special_tokens=False)",
+                "tokenizers.Tokenizer.from_str(...).encode(text), padding and truncation off",
+            ],
+            "tokenizer_json": models,
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
 def generate_tokenizer_json() -> dict:
     """Freeze two tokenizer.json documents — WordPiece and Unigram — and their encodings."""
     import json as _json  # noqa: PLC0415
@@ -2635,6 +2698,48 @@ def generate_spiece_model() -> dict:
             "eos_id": proto.trainer_spec.eos_id,
             "pad_id": proto.trainer_spec.pad_id,
             "pieces": pieces,
+            "count": len(cases),
+        },
+        "cases": cases,
+    }
+
+
+# Issue #1213: the pieces tiny_sp.model is re-typed UNUSED with, and texts where each would win.
+SENTENCEPIECE_UNUSED_PIECES = ["\u2581the", "ing", "he"]
+SENTENCEPIECE_UNUSED_TEXTS = LOADER_TEXTS + ["hello help", "the thing", "sing a song", "he", "ing"]
+
+
+def generate_sentencepiece_unused() -> dict:
+    """tiny_sp.model with three pieces typed UNUSED, as a restricted vocabulary leaves them.
+
+    sentencepiece keeps an UNUSED piece's id -- piece_to_id still answers -- but
+    never segments onto it, so each text that would have used one takes the next
+    best path. The model rides in the metadata, since the loader is what reads the type.
+    """
+    import sentencepiece as spm  # noqa: PLC0415
+    from sentencepiece import sentencepiece_model_pb2 as model_pb2  # noqa: PLC0415
+
+    proto = model_pb2.ModelProto()
+    proto.ParseFromString((ORACLE_DIR / TINY_SP_MODEL).read_bytes())
+    for piece in proto.pieces:
+        if piece.piece in SENTENCEPIECE_UNUSED_PIECES:
+            piece.type = model_pb2.ModelProto.SentencePiece.UNUSED
+    model = proto.SerializeToString()
+    sp = spm.SentencePieceProcessor(model_proto=model)
+
+    cases = [
+        {"id": k, "text": t, "pieces": sp.encode(t, out_type=str), "ids": sp.encode(t, out_type=int)}
+        for k, t in enumerate(SENTENCEPIECE_UNUSED_TEXTS)
+    ]
+    return {
+        "metadata": {
+            "algorithm": "SentencePieceTokenizer over UNUSED pieces",
+            "library": "sentencepiece",
+            "library_version": version("sentencepiece"),
+            "model": "tiny_sp.model with the unused pieces re-typed UNUSED",
+            "reference_calls": ["sentencepiece.SentencePieceProcessor(model_proto=…).encode"],
+            "unused_pieces": [{"piece": p, "id": sp.piece_to_id(p)} for p in SENTENCEPIECE_UNUSED_PIECES],
+            "model_base64": base64.b64encode(model).decode("ascii"),
             "count": len(cases),
         },
         "cases": cases,
@@ -12587,6 +12692,22 @@ WORDPIECE_ADDED_TOKEN_TEXTS = [
     ("single_word_blocked_by_accented_letters", "é<S>é"),
     ("single_word_blocked_by_letters", "the<S>cat"),
     ("single_word_is_the_whole_text", "<S>"),
+    # Issue #1213: tokenizers' \w is Unicode's over code points -- marks, Pc, Nl, Join_Control,
+    # the circled letters and astral letters bound a word; a No and an astral So do not.
+    ("single_word_blocked_by_a_combining_mark_before", "e\u0301<S>"),
+    ("single_word_blocked_by_a_combining_mark_after", "<S>\u0301"),
+    ("single_word_blocked_by_connector_punctuation", "\u203f<S>\u203f"),
+    ("single_word_blocked_by_an_astral_letter", "\U0001d400<S>"),
+    ("single_word_blocked_by_a_letter_number", "\u216b<S>"),
+    ("single_word_blocked_by_a_zero_width_joiner", "\u200d<S>"),
+    ("single_word_blocked_by_a_circled_letter", "\u24b6<S>"),
+    ("single_word_beside_an_astral_symbol", "\U0001f600<S>"),
+    ("single_word_beside_a_superscript_digit", "\u00b2<S>"),
+    # Issue #1209: a rejected single_word match still consumes its characters, so the
+    # shorter bc overlapping it never matches; standing alone, both do.
+    ("a_rejected_single_word_match_hides_an_overlapping_entry", "xabc"),
+    ("a_rejected_single_word_match_at_the_start", "abc"),
+    ("the_overlapping_entries_standing_alone", "ab bc"),
 ]
 
 
@@ -12617,7 +12738,9 @@ def generate_wordpiece_added_tokens() -> dict:
       outcome a single merged leftmost-wins scan cannot produce.
 
     Plus the strip and single_word shapes from the BPE corpus, with lstrip on
-    a raw entry and rstrip on a normalized one so both passes carry a strip.
+    a raw entry and rstrip on a normalized one so both passes carry a strip,
+    and ab (single_word) overlapping bc: tokenizers' leftmost-longest automaton
+    lets a rejected ab consume the b that bc would otherwise start on.
 
     Note for anyone regenerating: `tokenizers` refuses a tokenizer.json that
     omits `normalized`, so every entry states it. The absent-field default is
@@ -12637,6 +12760,8 @@ def generate_wordpiece_added_tokens() -> dict:
         AddedToken("<L>", lstrip=True, special=True),
         AddedToken("<W>", rstrip=True),
         AddedToken("<S>", single_word=True),
+        AddedToken("ab", single_word=True),
+        AddedToken("bc"),
     ])
 
     cases = []
@@ -16456,6 +16581,8 @@ def main() -> None:
         "bpe_metaspace.json": generate_bpe_metaspace,
         "bpe_byte_fallback.json": generate_bpe_byte_fallback,
         "sentencepiece_bpe_lineage.json": generate_sentencepiece_bpe_lineage,
+        "sentencepiece_unused.json": generate_sentencepiece_unused,
+        "tokenizer_json_bert.json": generate_tokenizer_json_bert,
         "bytelevel_decode_stream.json": generate_bytelevel_decode_stream,
         "unicode_forms.json": generate_unicode_forms,
         "bpe_added_tokens.json": generate_bpe_added_tokens,

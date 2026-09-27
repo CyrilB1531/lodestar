@@ -36,7 +36,7 @@ string after = RecycleAsync().GetAwaiter().GetResult();  // => True True 1
 ```
 
 **Remarks** — deleting a collection that does not exist does nothing, which is the abstraction's
-meaning of "ensure". The indexes are marked stale with the records, so a search after a deletion
+meaning of "ensure". Both halves are emptied with the records, so a search after a deletion
 never finds a record the deletion removed.
 
 The object remains usable, and a store that handed it out keeps holding it under its name — see

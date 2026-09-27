@@ -1,3 +1,4 @@
+using System.Globalization;
 using Lodestar.Embeddings.Tokenization;
 using Xunit;
 
@@ -108,29 +109,29 @@ public sealed class AddedTokenScannerTests
     }
 
     [Fact]
-    public void One_pass_finds_what_one_scan_per_entry_finds()
+    public void One_pass_finds_what_a_leftmost_longest_automaton_finds()
     {
         // Shared first characters, a prefix of another entry, a duplicate content and word boundaries:
-        // every tie the bucketed scan has to break the way the per-entry scan did.
+        // every tie the bucketed scan has to break the way tokenizers' aho-corasick scan does.
         AddedToken[] tokens =
         [
             new("<s>", 1) { SingleWord = true }, new("<s>", 2), new("<|im_start|>", 3) { Lstrip = true },
             new("<|", 4), new("<|im", 5) { Rstrip = true }, new("ab", 6) { SingleWord = true }, new("abc", 7),
-            new("b", 8), new("\u00e9", 9), new(string.Empty, 10),
+            new("b", 8), new("\u00e9", 9), new("bc", 10), new("ab ", 11) { SingleWord = true }, new(string.Empty, 12),
         ];
         var scanner = Scanner(tokens);
-        string[] parts = ["<s>", "<|im_start|>", "<|", "<", "|", "ab", "abc", "b", "a", " ", "_", "\u00e9", "x", "\n"];
+        string[] parts = ["<s>", "<|im_start|>", "<|", "<", "|", "ab", "abc", "b", "a", "c", " ", "_", "\u00e9", "x", "\n", "\u0301"];
 
         // S2245 / CA5394: seeded, so a failure reproduces; nothing here is security-sensitive.
 #pragma warning disable S2245, CA5394
         var random = new Random(522);
-        for (int trial = 0; trial < 2000; trial++)
+        for (int trial = 0; trial < 5000; trial++)
         {
             string text = string.Concat(Enumerable.Range(0, random.Next(0, 16)).Select(_ => parts[random.Next(parts.Length)]));
             int from = random.Next(0, text.Length + 1);
 #pragma warning restore S2245, CA5394
 
-            AddedToken? expected = ScanPerEntry(tokens, text, from, out int expectedAt);
+            AddedToken? expected = ScanLeftmostLongest(tokens, text, from, out int expectedAt);
             bool found = scanner.TryNext(text, from, out int start, out int end, out AddedToken? actual);
             Assert.Equal(expected is not null, found);
             if (expected is not null)
@@ -141,38 +142,53 @@ public sealed class AddedTokenScannerTests
         }
     }
 
-    /// <summary>The scan the bucketed one replaced: every entry searched on its own, earliest then longest then first.</summary>
-    private static AddedToken? ScanPerEntry(AddedToken[] tokens, string text, int from, out int at)
+    /// <summary>
+    /// tokenizers' <c>find_iter</c> under <c>LeftmostLongest</c>, one position at a time: the longest entry
+    /// present wins its position, the first on a tie, and a failed single_word check skips its whole span (#1209).
+    /// </summary>
+    private static AddedToken? ScanLeftmostLongest(AddedToken[] tokens, string text, int from, out int at)
     {
+        int position = from;
+        while (position < text.Length)
+        {
+            AddedToken? longest = LongestAt(tokens, text, position);
+            if (longest is null)
+            {
+                position++;
+                continue;
+            }
+            int end = position + longest.Content.Length;
+            if (!longest.SingleWord
+                || ((position == 0 || !IsWord(text[position - 1])) && (end == text.Length || !IsWord(text[end]))))
+            {
+                at = position;
+                return longest;
+            }
+            position = end;
+        }
         at = -1;
-        AddedToken? best = null;
+        return null;
+    }
+
+    private static AddedToken? LongestAt(AddedToken[] tokens, string text, int position)
+    {
+        AddedToken? longest = null;
         foreach (AddedToken candidate in tokens.Where(t => t.Content.Length > 0))
         {
-            int found = FirstWholeMatch(candidate, text, from);
-            if (found >= 0 && (best is null || found < at || (found == at && candidate.Content.Length > best.Content.Length)))
+            if (position + candidate.Content.Length <= text.Length
+                && string.CompareOrdinal(text, position, candidate.Content, 0, candidate.Content.Length) == 0
+                && (longest is null || candidate.Content.Length > longest.Content.Length))
             {
-                at = found;
-                best = candidate;
+                longest = candidate;
             }
         }
-        return best;
+        return longest;
     }
 
-    private static int FirstWholeMatch(AddedToken candidate, string text, int from)
-    {
-        for (int found = text.IndexOf(candidate.Content, from, StringComparison.Ordinal);
-            found >= 0;
-            found = text.IndexOf(candidate.Content, found + 1, StringComparison.Ordinal))
-        {
-            int end = found + candidate.Content.Length;
-            if (!candidate.SingleWord
-                || ((found == 0 || !IsWord(text[found - 1])) && (end == text.Length || !IsWord(text[end]))))
-            {
-                return found;
-            }
-        }
-        return -1;
-    }
-
-    private static bool IsWord(char c) => char.IsLetterOrDigit(c) || c == '_';
+    // The regex crate's \w, restricted to the BMP code points the parts above use.
+    private static bool IsWord(char c) =>
+        char.GetUnicodeCategory(c) is UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter
+            or UnicodeCategory.TitlecaseLetter or UnicodeCategory.ModifierLetter or UnicodeCategory.OtherLetter
+            or UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.EnclosingMark
+            or UnicodeCategory.DecimalDigitNumber or UnicodeCategory.LetterNumber or UnicodeCategory.ConnectorPunctuation;
 }

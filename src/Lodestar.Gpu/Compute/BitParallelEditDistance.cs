@@ -28,10 +28,12 @@ public sealed class BitParallelEditDistance
     /// <summary>Loads the kernel onto the accelerator.</summary>
     /// <param name="context">The accelerator to compile for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
     /// <remarks>Loading compiles, so build this once and reuse it (bench/README.md's GPU gate).</remarks>
     public BitParallelEditDistance(GpuContext context)
     {
         Guard.NotNull(context);
+        context.EnsureNotDisposed();
         _context = context;
         _kernel = context.Accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<ulong>,
             ArrayView<byte>, ArrayView<int>, ArrayView<int>, int>(DistanceKernel);
@@ -42,14 +44,17 @@ public sealed class BitParallelEditDistance
     /// <param name="texts">The resident batch, uploaded against that same pattern.</param>
     /// <returns>One distance per string, in the batch's own order.</returns>
     /// <exception cref="ArgumentNullException">An argument is null.</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="texts"/>, or the context it and this kernel share, was disposed.</exception>
     /// <exception cref="ArgumentException">
-    /// The pattern is empty or longer than <see cref="MaxPatternLength"/>, or the batch was
-    /// renamed against a different alphabet.
+    /// The pattern is empty or longer than <see cref="MaxPatternLength"/>, the batch was
+    /// renamed against a different alphabet, or it was uploaded to another context.
     /// </exception>
     public int[] Distance(string pattern, DeviceTextBlock texts)
     {
         Guard.NotNull(pattern);
         Guard.NotNull(texts);
+        _context.EnsureNotDisposed();
+        texts.EnsureUsableBy(_context, nameof(texts));
         if (pattern.Length is 0 or > MaxPatternLength)
         {
             throw new ArgumentException(

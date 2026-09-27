@@ -27,7 +27,7 @@ public sealed class NetStandardAssemblyGuardTests
     [Fact]
     public void Suite_runs_against_the_netstandard2_0_build_of_Lodestar_Abstractions()
     {
-        string? framework = typeof(GpuSearchResult).Assembly
+        string? framework = typeof(MinHashScheme).Assembly
             .GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName;
 
         Assert.Equal(".NETStandard,Version=v2.0", framework);

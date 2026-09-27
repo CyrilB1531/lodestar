@@ -13,8 +13,10 @@ characters. `texts` is that resident batch.
 
 **Returns** — `int[]`, one distance per string, in the batch's own order.
 
-**Exceptions** — `ArgumentNullException` when an argument is null; `ArgumentException` when the
-pattern is empty or longer than 64, or when the batch was renamed against a different alphabet.
+**Exceptions** — `ArgumentNullException` when an argument is null; `ObjectDisposedException` when
+`texts`, or the context it and the kernel share, was disposed; `ArgumentException` when the pattern
+is empty or longer than 64, when the batch was renamed against a different alphabet, or when it was
+uploaded to another context than the kernel's.
 
 **Example** — the shape a caller writes.
 

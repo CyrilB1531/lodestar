@@ -24,7 +24,7 @@ public sealed class TiledCosineTopKTests
         float[] query = CosineCorpus.Rows(1, dimension, seed: 4442);
 
         IReadOnlyList<SearchResult> expected = CosineCorpus.Baseline(rows, count, dimension, query, k);
-        IReadOnlyList<GpuSearchResult> actual = RunKernel(rows, count, dimension, query, 1, k)[0];
+        IReadOnlyList<SearchResult> actual = RunKernel(rows, count, dimension, query, 1, k)[0];
 
         AssertSameRanking(expected, actual);
     }
@@ -39,7 +39,7 @@ public sealed class TiledCosineTopKTests
         float[] rows = CosineCorpus.Rows(count, dimension, seed: 4443);
         float[] batch = CosineCorpus.Rows(queries, dimension, seed: 4444);
 
-        IReadOnlyList<IReadOnlyList<GpuSearchResult>> actual =
+        IReadOnlyList<IReadOnlyList<SearchResult>> actual =
             RunKernel(rows, count, dimension, batch, queries, k);
 
         Assert.Equal(queries, actual.Count);
@@ -87,7 +87,7 @@ public sealed class TiledCosineTopKTests
         float[] rows = CosineCorpus.Rows(count, dimension, seed: 4449);
         float[] query = CosineCorpus.Rows(1, dimension, seed: 4450);
 
-        IReadOnlyList<GpuSearchResult> actual = RunKernel(rows, count, dimension, query, 1, 50)[0];
+        IReadOnlyList<SearchResult> actual = RunKernel(rows, count, dimension, query, 1, 50)[0];
 
         Assert.Equal(count, actual.Count);
         Assert.Equal(count, actual.Select(hit => hit.Index).Distinct().Count());
@@ -107,7 +107,7 @@ public sealed class TiledCosineTopKTests
         }
 
         float[] query = rows[..dimension];
-        IReadOnlyList<GpuSearchResult> actual = RunKernel(rows, count, dimension, query, 1, 6)[0];
+        IReadOnlyList<SearchResult> actual = RunKernel(rows, count, dimension, query, 1, 6)[0];
 
         Assert.Equal([0, 1, 2, 3, 4, 5], actual.Select(hit => hit.Index).ToArray());
     }
@@ -142,8 +142,8 @@ public sealed class TiledCosineTopKTests
     [Fact]
     public void A_second_search_on_one_instance_agrees_with_the_first()
     {
-        // The select kernel masks taken rows to NaN, so this fails the day
-        // the scores buffer stops being per-call scratch and gets reused.
+        // The select kernel writes each lane's heap into per-call scratch, so this fails
+        // the day that buffer, or the scores beside it, is reused across calls.
         const int count = 120;
         const int dimension = 24;
         float[] rows = CosineCorpus.Rows(count, dimension, seed: 4451);
@@ -153,8 +153,8 @@ public sealed class TiledCosineTopKTests
         using var matrix = DeviceEmbeddingMatrix.Upload(context, rows, count, dimension);
         var kernel = new TiledCosineTopK(context);
 
-        IReadOnlyList<GpuSearchResult> first = kernel.Search(matrix, query, 1, 4)[0];
-        IReadOnlyList<GpuSearchResult> second = kernel.Search(matrix, query, 1, 4)[0];
+        IReadOnlyList<SearchResult> first = kernel.Search(matrix, query, 1, 4)[0];
+        IReadOnlyList<SearchResult> second = kernel.Search(matrix, query, 1, 4)[0];
 
         Assert.Equal(first, second);
     }
@@ -177,10 +177,10 @@ public sealed class TiledCosineTopKTests
         using var context = GpuContext.Create(preferCpu: true);
         using var matrix = DeviceEmbeddingMatrix.Upload(context, rows, count, dimension);
 
-        IReadOnlyList<GpuSearchResult> cold = new TiledCosineTopK(context).Search(matrix, query, 1, 4)[0];
+        IReadOnlyList<SearchResult> cold = new TiledCosineTopK(context).Search(matrix, query, 1, 4)[0];
         var warmed = new TiledCosineTopK(context);
         warmed.Search(matrix, query, 1, 4);
-        IReadOnlyList<GpuSearchResult> warm = warmed.Search(matrix, query, 1, 4)[0];
+        IReadOnlyList<SearchResult> warm = warmed.Search(matrix, query, 1, 4)[0];
 
         Assert.Equal(cold, warm);
     }
@@ -247,13 +247,13 @@ public sealed class TiledCosineTopKTests
             context, [1f, 0f, -3e38f, -3e38f], count: 2, dimension: 2, normalize: false);
         var kernel = new TiledCosineTopK(context);
 
-        IReadOnlyList<GpuSearchResult> hits = kernel.Search(matrix, [1f, 1f], 1, 2)[0];
+        IReadOnlyList<SearchResult> hits = kernel.Search(matrix, [1f, 1f], 1, 2)[0];
 
         Assert.Equal([0, 1], hits.Select(hit => hit.Index).ToArray());
         Assert.Equal(float.NegativeInfinity, hits[1].Score);
     }
 
-    private static IReadOnlyList<IReadOnlyList<GpuSearchResult>> RunKernel(
+    private static IReadOnlyList<IReadOnlyList<SearchResult>> RunKernel(
         float[] rows, int count, int dimension, ReadOnlySpan<float> queries, int queryCount, int k)
     {
         using var context = GpuContext.Create(preferCpu: true);
@@ -263,7 +263,7 @@ public sealed class TiledCosineTopKTests
     }
 
     private static void AssertSameRanking(
-        IReadOnlyList<SearchResult> expected, IReadOnlyList<GpuSearchResult> actual)
+        IReadOnlyList<SearchResult> expected, IReadOnlyList<SearchResult> actual)
     {
         Assert.Equal(expected.Count, actual.Count);
         for (int slot = 0; slot < expected.Count; slot++)

@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The two tiny models tools/build_tiny_models.py writes; the whole suite is an
+    <!-- The tiny models tools/build_tiny_models.py writes; the whole suite is an
          ONNX Runtime session, so there is nothing here to test without them. -->
     <None Include="../oracles/**/*.onnx" CopyToOutputDirectory="PreserveNewest" LinkBase="oracles" />
     <!-- batch_encoding.json carries the vocabulary and the embedding table the

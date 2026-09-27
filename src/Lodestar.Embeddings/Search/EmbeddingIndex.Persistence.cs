@@ -28,9 +28,15 @@ public sealed partial class EmbeddingIndex
     /// </remarks>
     /// <param name="destination">The stream to write to. Flushed but never disposed — the caller owns it.</param>
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
-    public void Save(Stream destination) =>
+    public void Save(Stream destination)
+    {
+        // Before the first byte: disposing the writer flushes the header, so a refusal
+        // raised mid-write would leave a truncated artifact in the caller's stream (#1214).
+        Guard.NotNull(destination);
+        EnsureFinite();
         ArtifactIo.SaveWithBlock(
-            destination, ArtifactName, ArtifactVersion, WriteHead, VectorsProperty, _data.AsSpan(0, _length));
+            destination, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty, _data.AsSpan(0, _length));
+    }
 
     /// <summary>Writes the index to <paramref name="path"/>, replacing any existing file.</summary>
     /// <param name="path">The file to write. UTF-8 without a byte-order mark.</param>
@@ -54,12 +60,24 @@ public sealed partial class EmbeddingIndex
     /// <param name="cancellationToken">Cancels the write.</param>
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) =>
-        ArtifactIo.SaveWithBlockAsync(
-            destination, ArtifactName, ArtifactVersion, WriteHead, VectorsProperty,
+    public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            Guard.NotNull(destination);
+            EnsureFinite();
+        }
+        catch (Exception e) when (e is ArgumentNullException or InvalidDataException)
+        {
+            // Faulted, as both were when the write raised them, but before the first byte as in Save.
+            return Task.FromException(e);
+        }
+        return ArtifactIo.SaveWithBlockAsync(
+            destination, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty,
             _data.AsMemory(0, _length), cancellationToken);
+    }
 
-    /// <summary>Writes every property that precedes the vector block.</summary>
+    /// <summary>Writes every property that precedes the vector block, once <see cref="EnsureFinite()"/> has passed.</summary>
     /// <remarks>
     /// The block itself is written by <see cref="ArtifactIo.SaveWithBlock"/> rather than
     /// here, a slice at a time, so the writer's buffer never grows to hold its whole
@@ -67,13 +85,6 @@ public sealed partial class EmbeddingIndex
     /// end to end: see the performance guide's save profile for what the difference is
     /// worth.
     /// </remarks>
-    private void WriteHead(Utf8JsonWriter writer)
-    {
-        EnsureFinite();
-        WriteHeadChecked(writer);
-    }
-
-    /// <summary>As <see cref="WriteHead"/>, for a caller that has already run <see cref="EnsureFinite()"/>.</summary>
     private void WriteHeadChecked(Utf8JsonWriter writer)
     {
         writer.WriteNumber(DimensionProperty, _dim);

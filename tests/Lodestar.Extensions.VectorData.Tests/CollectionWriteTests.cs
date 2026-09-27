@@ -165,8 +165,8 @@ public sealed class CollectionWriteTests
         await collection.DeleteAsync("a");
 
         Assert.Null(await collection.GetAsync("a"));
-        Assert.Equal(1, collection.Current().Vectors.Count);
-        Assert.Equal(["b"], collection.Current().Keys);
+        VectorSearchResult<Document> left = Assert.Single(await Nearest(collection, TowardA, 5));
+        Assert.Equal("b", left.Record.Id);
     }
 
     [Fact]
@@ -176,36 +176,120 @@ public sealed class CollectionWriteTests
 
         await collection.DeleteAsync("missing");
 
-        Assert.Equal(0, collection.Current().Vectors.Count);
+        Assert.Empty(await Nearest(collection, TowardA, 1));
+    }
+
+    private static Task<List<VectorSearchResult<Document>>> Hybrid(
+        LodestarVectorStoreCollection<string, Document> collection, params string[] keywords) =>
+        collection.HybridSearchAsync(TowardA, keywords, 3).ToListAsync().AsTask();
+
+    // A rebuild on every write tokenizes all 50 texts again; a write that costs its own record, one.
+    [Fact]
+    public async Task A_write_between_hybrid_searches_tokenizes_only_the_written_text()
+    {
+        using var collection = Collection();
+        await collection.UpsertAsync(Enumerable.Range(0, 50).Select(i => Doc($"k{i}", $"the cat {i}", 1f, i, 0f)));
+        await Hybrid(collection, "cat");
+        Assert.Equal(50, collection.TokenizedTexts);
+
+        await collection.UpsertAsync(Doc("k7", "the dog", 0f, 1f, 0f));
+        await Hybrid(collection, "dog");
+        await collection.DeleteAsync("k8");
+        await Hybrid(collection, "dog");
+
+        Assert.Equal(51, collection.TokenizedTexts);
     }
 
     [Fact]
-    public async Task A_batch_of_writes_rebuilds_once()
+    public async Task A_batch_of_writes_is_tokenized_once_and_a_vector_search_tokenizes_nothing()
     {
         using var collection = Collection();
-        await collection.UpsertAsync([
-            Doc("a", "the cat sat", 1f, 0f, 0f),
-            Doc("b", "the dog ran", 0f, 1f, 0f),
-            Doc("c", "the bird flew", 0f, 0f, 1f),
-        ]);
+        await collection.UpsertAsync([Doc("a", "the cat sat", 1f, 0f, 0f), Doc("b", "the dog ran", 0f, 1f, 0f)]);
+        await collection.UpsertAsync(Doc("a", "the bird flew", 0f, 0f, 1f));
+        await Nearest(collection, TowardA, 2);
+        Assert.Equal(0, collection.TokenizedTexts);
 
-        collection.Current();
-        collection.Current();
+        await Hybrid(collection, "bird");
+        await Hybrid(collection, "cat");
 
-        Assert.Equal(1, collection.RebuildCount);
+        Assert.Equal(2, collection.TokenizedTexts);
     }
 
     [Fact]
-    public async Task A_write_after_a_read_rebuilds_again()
+    public async Task A_replaced_text_no_longer_matches_and_its_replacement_does()
     {
         using var collection = Collection();
+        await collection.UpsertAsync([Doc("a", "the cat sat", 0f, 1f, 0f), Doc("b", "the dog ran", 0f, 1f, 0f)]);
+        Assert.Equal(["a", "b"], (await Hybrid(collection, "cat")).Select(hit => hit.Record.Id));
+
+        await collection.UpsertAsync(Doc("a", "the bird flew", 0f, 1f, 0f));
+        await collection.UpsertAsync(Doc("b", "the cat ran", 0f, 1f, 0f));
+
+        // b now holds the keyword and a does not: b fuses 1/62 + 1/61 ahead of a's 1/61.
+        Assert.Equal(["b", "a"], (await Hybrid(collection, "cat")).Select(hit => hit.Record.Id));
+    }
+
+    [Fact]
+    public async Task A_record_changed_in_place_is_searched_as_it_was_written()
+    {
+        using var collection = Collection();
+        Document a = Doc("a", "the cat sat", 1f, 0f, 0f);
+        await collection.UpsertAsync([a, Doc("b", "the dog ran", 0f, 1f, 0f)]);
+
+        a.Embedding = new ReadOnlyMemory<float>([0f, 1f]);
+        a.Text = "the dog barked";
+        await collection.UpsertAsync(Doc("c", "the bird flew", 0f, 0f, 1f));
+
+        VectorSearchResult<Document> nearest = (await Nearest(collection, TowardA, 1))[0];
+        Assert.Same(a, nearest.Record);
+        Assert.Equal(1d, nearest.Score!.Value, 6);
+        Assert.Equal(["a", "b", "c"], (await Hybrid(collection, "cat")).Select(hit => hit.Record.Id));
+    }
+
+    [Fact]
+    public async Task Keyword_options_a_corpus_refuses_refuse_the_hybrid_search_and_not_the_vector_one()
+    {
+        // MaxDf = 0.5 of two records is one, below MinDf = 2: crossed bounds, the caller's error.
+        using var collection = new LodestarVectorStoreCollection<string, Document>(
+            "documents", new LodestarVectorStoreOptions { Vectorizer = new() { MinDf = 2, MaxDf = 0.5 } });
+        await collection.UpsertAsync([Doc("a", "the cat sat", 1f, 0f, 0f), Doc("b", "the dog ran", 0f, 1f, 0f)]);
+
+        Assert.Equal(2, (await Nearest(collection, TowardA, 2)).Count);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Hybrid(collection, "cat"));
+    }
+
+    [Fact]
+    public async Task Out_of_range_bm25_options_are_refused_by_the_first_hybrid_search_and_nothing_is_lost()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, Document>(
+            "documents", new LodestarVectorStoreOptions { Bm25 = new(K1: -1) });
         await collection.UpsertAsync(Doc("a", "the cat sat", 1f, 0f, 0f));
-        collection.Current();
 
-        await collection.UpsertAsync(Doc("b", "the dog ran", 0f, 1f, 0f));
-        collection.Current();
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => Hybrid(collection, "cat"));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => Hybrid(collection, "cat"));
+        Assert.Equal(0, collection.TokenizedTexts);
+    }
 
-        Assert.Equal(2, collection.RebuildCount);
+    // The first search after a write tokenizes what the write staged; racing ones must not do it twice.
+    [Fact]
+    public async Task Concurrent_hybrid_searches_after_a_write_all_answer_as_one_alone()
+    {
+        using var collection = Collection();
+        await collection.UpsertAsync(Enumerable.Range(0, 200).Select(i => Doc($"k{i}", $"the cat {i % 7} dog{i % 5}", 1f, i % 3, i % 11)));
+        await Hybrid(collection, "cat");
+
+        await collection.UpsertAsync(Doc("k3", "the cat sat dog3", 1f, 0f, 0f));
+        // CA2025: every task below is awaited by the WhenAll that follows, before the using disposes.
+#pragma warning disable CA2025
+        Task<List<VectorSearchResult<Document>>>[] racing =
+            [.. Enumerable.Range(0, 8).Select(_ => Task.Run(() => Hybrid(collection, "cat", "dog3")))];
+#pragma warning restore CA2025
+        List<VectorSearchResult<Document>>[] answers = await Task.WhenAll(racing);
+        List<VectorSearchResult<Document>> alone = await Hybrid(collection, "cat", "dog3");
+
+        Assert.All(answers, answer => Assert.Equal(
+            alone.Select(hit => (hit.Record.Id, hit.Score)), answer.Select(hit => (hit.Record.Id, hit.Score))));
+        Assert.Equal(201, collection.TokenizedTexts);
     }
 
     [Fact]

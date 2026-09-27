@@ -4,7 +4,7 @@ Four kernels over ILGPU, and the device-resident types they read and write. Ever
 **additive**: no package under `src/` depends on this one, so the SIMD and scalar paths the rest
 of Lodestar ships stay the complete answer on every target framework ([decision 0003](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)).
 
-Two facts run through the whole namespace, and knowing them saves reading every entry.
+Three facts run through the whole namespace, and knowing them saves reading every entry.
 
 - **Residency is the point, not an optimisation.** A kernel that uploads its corpus per call is
   *slower* than the CPU path it replaces — measured at 9.25× slower for a hundred thousand
@@ -13,6 +13,9 @@ Two facts run through the whole namespace, and knowing them saves reading every 
 - **A kernel parameter must be blittable**, so nothing here takes a `string` or a Lodestar type.
   Text is renamed to symbol codes on the host; matrices are taken as spans and dimensions. That is
   also why this package carries no inter-package edge in either direction.
+- **Device data belongs to the context it was uploaded to.** A kernel refuses a `Device*` object
+  from another `GpuContext`, or one disposed, or its own context once disposed, before anything
+  launches — a buffer is a pointer into one accelerator's memory, and a launch would trust it.
 
 ## The types
 
@@ -29,7 +32,6 @@ Two facts run through the whole namespace, and knowing them saves reading every 
 | [`DeviceTextBlock`](compute/devicetextblock.md) | A batch of strings renamed to a dense alphabet and held on the device. |
 | [`DeviceTokenHashes`](compute/devicetokenhashes.md) | One document's token hashes per row, held flat. |
 | [`MinHashScheme`](compute/minhashscheme.md) | Which permutation family a signature is built from. |
-| [`GpuSearchResult`](compute/gpusearchresult.md) | One hit from a device sweep: a row index and its score. |
 
 ## Which device runs, and how to be sure
 

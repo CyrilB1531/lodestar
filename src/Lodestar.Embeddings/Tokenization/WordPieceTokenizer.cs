@@ -127,21 +127,22 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
         var tokens = new List<string>();
         var ids = new List<int>();
 
-        // Raw-text positions hold because ToLowerInvariant keeps length; BERT's normalizer does not,
-        // so under it EncodeGap normalizes each gap on its own, as BpeTokenizer's forms do.
-        string normalized = _lowercase && !_basic ? text.ToLowerInvariant() : text;
+        // Raw-text positions hold while lowercasing keeps length, which only U+0130 breaks; BERT's
+        // normalizer and that case normalize each gap on its own, as BpeTokenizer's forms do.
+        bool perGap = _basic || (_lowercase && text.AsSpan().IndexOf('\u0130') >= 0);
+        string normalized = _lowercase && !perGap ? text.ToLowerInvariant() : text;
 
         int pos = 0;
         while (pos < text.Length)
         {
             if (!_rawScanner.TryNext(text, pos, out int start, out int end, out var raw))
             {
-                EncodeGap(normalized, pos, normalized.Length, tokens, ids);
+                EncodeGap(normalized, pos, normalized.Length, perGap, tokens, ids);
                 break;
             }
             if (start > pos)
             {
-                EncodeGap(normalized, pos, start, tokens, ids);
+                EncodeGap(normalized, pos, start, perGap, tokens, ids);
             }
             // The raw slice, not the entry's content: a match that stripped
             // whitespace consumed that whitespace into the token it emits.
@@ -203,12 +204,13 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     /// word character; no committed case puts a <see cref="AddedToken.SingleWord"/>
     /// or stripping entry at a gap edge.
     /// </remarks>
-    private void EncodeGap(string normalized, int from, int to, List<string> tokens, List<int> ids)
+    private void EncodeGap(string normalized, int from, int to, bool perGap, List<string> tokens, List<int> ids)
     {
-        if (_basic)
+        if (perGap)
         {
             // HuggingFace normalizes what the raw pass left, piece by piece, then scans it for normalized tokens.
-            string piece = BertBasicTokenization.Normalize(Slice(normalized, from, to), _lowercase);
+            string slice = Slice(normalized, from, to);
+            string piece = _basic ? BertBasicTokenization.Normalize(slice, _lowercase) : Lowercase(slice);
             EncodeNormalizedGap(piece, 0, piece.Length, tokens, ids);
             return;
         }
@@ -275,8 +277,20 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
             return BertBasicTokenization.Normalize(content, lowercase);
         }
 
-        return lowercase ? content.ToLowerInvariant() : content;
+        return lowercase ? Lowercase(content) : content;
     }
+
+    /// <summary><c>normalizers.Lowercase</c>: Rust's <c>char::to_lowercase</c>, one code point at a time.</summary>
+    /// <remarks>
+    /// The invariant simple mapping agrees with it everywhere but U+0130, whose full mapping is
+    /// <c>i</c> + U+0307 — the one unconditional multi-character entry of SpecialCasing.txt, and
+    /// the reason <c>İstanbul</c> finds <c>i̇stanbul</c> in a vocabulary (#1213).
+    /// </remarks>
+    // CA1307: Replace(string, string) is ordinal already, and netstandard2.0 has no overload taking a comparison.
+#pragma warning disable CA1307
+    private static string Lowercase(string text) =>
+        (text.Contains('\u0130') ? text.Replace("\u0130", "i\u0307") : text).ToLowerInvariant();
+#pragma warning restore CA1307
 
     /// <summary>The slice, or the string itself when the slice is the whole of it.</summary>
     /// <remarks>

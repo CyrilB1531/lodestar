@@ -23,6 +23,7 @@ CSR matrix, [`DeviceDenseBlock.Upload`](../reference/gpu/compute/devicedensebloc
 dense operand — and every query after it is cheap.
 
 ```csharp
+using Lodestar.Embeddings.Search;
 using Lodestar.Gpu.Compute;
 
 const int documents = 2_000;
@@ -39,7 +40,7 @@ var kernel = new TiledCosineTopK(context);
 
 // The corpus crossed the bus once. Every query after this is cheap.
 float[] queries = rows[..(4 * dimension)];
-IReadOnlyList<IReadOnlyList<GpuSearchResult>> hits = kernel.Search(matrix, queries, 4, 10);
+IReadOnlyList<IReadOnlyList<SearchResult>> hits = kernel.Search(matrix, queries, 4, 10);
 
 int answered = hits.Count;  // => 4
 ```

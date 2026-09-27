@@ -6,9 +6,9 @@
   "reference_calls": [
    "tokenizers.Tokenizer(WordPiece(...)) with normalizers.Lowercase, then .add_tokens and .encode"
   ],
-  "tokenizer_json": "{\"version\":\"1.0\",\"truncation\":null,\"padding\":null,\"added_tokens\":[{\"id\":45,\"content\":\"[CLS]\",\"single_word\":false,\"lstrip\":false,\"rstrip\":false,\"normalized\":false,\"special\":true},{\"id\":46,\"content\":\"<MASK>\",\"single_word\":false,\"lstrip\":false,\"rstrip\":false,\"normalized\":true,\"special\":false},{\"id\":47,\"content\":\"[SEP]\",\"single_word\":false,\"lstrip\":false,\"rstrip\":false,\"normalized\":true,\"special\":true},{\"id\":48,\"content\":\"<R>\",\"single_word\":false,\"lstrip\":false,\"rstrip\":false,\"normalized\":false,\"special\":true},{\"id\":49,\"content\":\"A<R>\",\"single_word\":false,\"lstrip\":false,\"rstrip\":false,\"normalized\":true,\"special\":false},{\"id\":50,\"content\":\"<L>\",\"single_word\":false,\"lstrip\":true,\"rstrip\":false,\"normalized\":false,\"special\":true},{\"id\":51,\"content\":\"<W>\",\"single_word\":false,\"lstrip\":false,\"rstrip\":true,\"normalized\":true,\"special\":false},{\"id\":52,\"content\":\"<S>\",\"single_word\":true,\"lstrip\":false,\"rstrip\":false,\"normalized\":true,\"special\":false}],\"normalizer\":{\"type\":\"Lowercase\"},\"pre_tokenizer\":{\"type\":\"Whitespace\"},\"post_processor\":null,\"decoder\":null,\"model\":{\"type\":\"WordPiece\",\"unk_token\":\"[UNK]\",\"continuing_subword_prefix\":\"##\",\"max_input_chars_per_word\":100,\"vocab\":{\"[UNK]\":0,\"the\":1,\"cat\":2,\"dog\":3,\"play\":4,\"un\":5,\"love\":6,\"run\":7,\"quick\":8,\"brown\":9,\"fox\":10,\"jump\":11,\"hello\":12,\"world\":13,\"token\":14,\"embed\":15,\"semantic\":16,\"search\":17,\"is\":18,\"are\":19,\"and\":20,\"this\":21,\"big\":22,\"a\":23,\".\":24,\"!\":25,\"?\":26,\"##s\":27,\"##ing\":28,\"##ed\":29,\"##er\":30,\"##aff\":31,\"##able\":32,\"##ly\":33,\"##ner\":34,\"##ning\":35,\"##ization\":36,\"##ize\":37,\"##ding\":38,\"##dings\":39,\"##ger\":40,\"##gest\":41,\"##a\":42,\"##b\":43,\"##c\":44}}}",
+  "tokenizer_json": "{\"version\":\"1.0\",\"truncation\":null,\"padding\":null,\"added_tokens\":[{\"id\":45,\"content\":\"[CLS]\",\"single_word\":false,\"lstrip\":false,\"rstrip\":false,\"normalized\":false,\"special\":true},{\"id\":46,\"content\":\"<MASK>\",\"single_word\":false,\"lstrip\":false,\"rstrip\":false,\"normalized\":true,\"special\":false},{\"id\":47,\"content\":\"[SEP]\",\"single_word\":false,\"lstrip\":false,\"rstrip\":false,\"normalized\":true,\"special\":true},{\"id\":48,\"content\":\"<R>\",\"single_word\":false,\"lstrip\":false,\"rstrip\":false,\"normalized\":false,\"special\":true},{\"id\":49,\"content\":\"A<R>\",\"single_word\":false,\"lstrip\":false,\"rstrip\":false,\"normalized\":true,\"special\":false},{\"id\":50,\"content\":\"<L>\",\"single_word\":false,\"lstrip\":true,\"rstrip\":false,\"normalized\":false,\"special\":true},{\"id\":51,\"content\":\"<W>\",\"single_word\":false,\"lstrip\":false,\"rstrip\":true,\"normalized\":true,\"special\":false},{\"id\":52,\"content\":\"<S>\",\"single_word\":true,\"lstrip\":false,\"rstrip\":false,\"normalized\":true,\"special\":false},{\"id\":53,\"content\":\"ab\",\"single_word\":true,\"lstrip\":false,\"rstrip\":false,\"normalized\":true,\"special\":false},{\"id\":54,\"content\":\"bc\",\"single_word\":false,\"lstrip\":false,\"rstrip\":false,\"normalized\":true,\"special\":false}],\"normalizer\":{\"type\":\"Lowercase\"},\"pre_tokenizer\":{\"type\":\"Whitespace\"},\"post_processor\":null,\"decoder\":null,\"model\":{\"type\":\"WordPiece\",\"unk_token\":\"[UNK]\",\"continuing_subword_prefix\":\"##\",\"max_input_chars_per_word\":100,\"vocab\":{\"[UNK]\":0,\"the\":1,\"cat\":2,\"dog\":3,\"play\":4,\"un\":5,\"love\":6,\"run\":7,\"quick\":8,\"brown\":9,\"fox\":10,\"jump\":11,\"hello\":12,\"world\":13,\"token\":14,\"embed\":15,\"semantic\":16,\"search\":17,\"is\":18,\"are\":19,\"and\":20,\"this\":21,\"big\":22,\"a\":23,\".\":24,\"!\":25,\"?\":26,\"##s\":27,\"##ing\":28,\"##ed\":29,\"##er\":30,\"##aff\":31,\"##able\":32,\"##ly\":33,\"##ner\":34,\"##ning\":35,\"##ization\":36,\"##ize\":37,\"##ding\":38,\"##dings\":39,\"##ger\":40,\"##gest\":41,\"##a\":42,\"##b\":43,\"##c\":44}}}",
   "unk_token": "[UNK]",
-  "count": 29
+  "count": 41
  },
  "cases": [
   {
@@ -450,6 +450,192 @@
    ],
    "ids": [
     52
+   ]
+  },
+  {
+   "id": 29,
+   "name": "single_word_blocked_by_a_combining_mark_before",
+   "text": "é<S>",
+   "tokens": [
+    "[UNK]",
+    "[UNK]",
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": 30,
+   "name": "single_word_blocked_by_a_combining_mark_after",
+   "text": "<S>́",
+   "tokens": [
+    "[UNK]",
+    "[UNK]",
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": 31,
+   "name": "single_word_blocked_by_connector_punctuation",
+   "text": "‿<S>‿",
+   "tokens": [
+    "[UNK]",
+    "[UNK]",
+    "[UNK]",
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": 32,
+   "name": "single_word_blocked_by_an_astral_letter",
+   "text": "𝐀<S>",
+   "tokens": [
+    "[UNK]",
+    "[UNK]",
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": 33,
+   "name": "single_word_blocked_by_a_letter_number",
+   "text": "Ⅻ<S>",
+   "tokens": [
+    "[UNK]",
+    "[UNK]",
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": 34,
+   "name": "single_word_blocked_by_a_zero_width_joiner",
+   "text": "‍<S>",
+   "tokens": [
+    "[UNK]",
+    "[UNK]",
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": 35,
+   "name": "single_word_blocked_by_a_circled_letter",
+   "text": "Ⓐ<S>",
+   "tokens": [
+    "[UNK]",
+    "[UNK]",
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": 36,
+   "name": "single_word_beside_an_astral_symbol",
+   "text": "😀<S>",
+   "tokens": [
+    "[UNK]",
+    "<s>"
+   ],
+   "ids": [
+    0,
+    52
+   ]
+  },
+  {
+   "id": 37,
+   "name": "single_word_beside_a_superscript_digit",
+   "text": "²<S>",
+   "tokens": [
+    "[UNK]",
+    "<s>"
+   ],
+   "ids": [
+    0,
+    52
+   ]
+  },
+  {
+   "id": 38,
+   "name": "a_rejected_single_word_match_hides_an_overlapping_entry",
+   "text": "xabc",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ]
+  },
+  {
+   "id": 39,
+   "name": "a_rejected_single_word_match_at_the_start",
+   "text": "abc",
+   "tokens": [
+    "a",
+    "##b",
+    "##c"
+   ],
+   "ids": [
+    23,
+    43,
+    44
+   ]
+  },
+  {
+   "id": 40,
+   "name": "the_overlapping_entries_standing_alone",
+   "text": "ab bc",
+   "tokens": [
+    "ab",
+    "bc"
+   ],
+   "ids": [
+    53,
+    54
    ]
   }
  ]

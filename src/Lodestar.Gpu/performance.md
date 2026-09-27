@@ -56,6 +56,30 @@ roughly a hundred queries per corpus, a GPU package that uploads per call is a p
 Allocation is the secondary win: 434 KB against the SIMD path's 200 MB at the largest size, a
 ratio of 0.002, because the kernel returns *k* hits rather than a score per document.
 
+### Tiled cosine + top-k as *k* grows, against [`EmbeddingIndex.Search`](../../docs/reference/embeddings/search/embeddingindex-search.md)
+
+Measured 2026-09-27 on the machine above, same OS, runtime, ILGPU and job: 16 queries of 384
+dimensions per batch, seeded corpus, `CosineTopKSelectionBenchmarks` (`bench/README.md` section 72).
+`GpuResident` is a second run of that row alone three minutes after the first, which agreed with it
+within its own error and carried more noise.
+
+| Documents | *k* | `SimdBaseline` | `GpuResident` | gain |
+| ---: | ---: | ---: | ---: | ---: |
+| 10 000 | 10 | 5.75 ms | 1.19 ms | 4.8× |
+| 10 000 | 100 | 6.11 ms | 1.43 ms | 4.3× |
+| 10 000 | 1 000 | 9.38 ms | 2.73 ms | 3.4× |
+| 100 000 | 10 | 62.0 ms | 11.2 ms | **5.5×** |
+| 100 000 | 100 | 59.6 ms | 13.6 ms | **4.4×** |
+| 100 000 | 1 000 | 65.8 ms | 16.0 ms | **4.1×** |
+
+**The gain holds as *k* grows**, because each thread keeps a heap of its best rows and the group
+merges the threads' lists: a query's scores are read once, not once per hit
+([#1214](https://github.com/CyrilB1531/lodestar/issues/1214)). The `SimdBaseline` rows at
+100 000 documents carry a standard deviation of up to 2.4 ms and the 100-hit `GpuResident` row one
+of 1.3 ms — three iterations on a machine other sessions were building on — so read those gains to
+one figure. Host allocation is 28 KB to 276 KB per batch on the accelerator side, 26 KB to 150 KB
+on the CPU side; the selection's scratch lives on the device and no column counts it.
+
 ### Sparse-dense product, against [`CsrMatrix.Multiply`](../../docs/reference/abstractions/sparse/csrmatrix-multiply.md)
 
 20 000 terms at 0.2 % density, double precision on both sides.

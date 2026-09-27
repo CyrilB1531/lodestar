@@ -15,9 +15,11 @@ coefficients belong to; naming none means [`MinHashScheme.Legacy`](minhashscheme
 
 **Returns** — one signature per document, each as long as there are permutations.
 
-**Exceptions** — `ArgumentNullException` when `documents` is null; `ArgumentException` when the two
-coefficient spans are not the same non-zero length, when `scheme` is not a declared member, or when
-a coefficient does not fit the scheme it is given.
+**Exceptions** — `ArgumentNullException` when `documents` is null; `ObjectDisposedException` when
+`documents`, or the context it and the kernel share, was disposed; `ArgumentException` when the two
+coefficient spans are not the same non-zero length, when `scheme` is not a declared member, when a
+coefficient does not fit the scheme it is given, or when `documents` was uploaded to another
+context than the kernel's.
 
 **Example** — an empty document gives every slot its maximum.
 

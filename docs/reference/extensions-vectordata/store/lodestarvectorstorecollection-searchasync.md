@@ -18,8 +18,7 @@ record and its cosine similarity to the query. At most `top` results, fewer only
 pass the filter and the threshold after `Skip`.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `top` is less than 1. `ArgumentException` when
-the query is not the collection's vector width — an empty collection included — or when a held
-record's vector was changed in place to another width since it was written.
+the query is not the collection's vector width — an empty collection included.
 `NotSupportedException` when `searchValue` is not a vector — a `string` included.
 `OperationCanceledException` when `cancellationToken` is cancelled between results. All of them are
 raised when enumeration begins, not when the method is called.
@@ -76,7 +75,8 @@ value is refused with that reason rather than embedded behind the caller's back.
 record declares.
 
 A filter is compiled with `Expression.Compile`, once per call, which is not available under trimming
-or ahead-of-time compilation. The first search after a write rebuilds the indexes; see
+or ahead-of-time compilation. A search never rebuilds anything and never tokenizes a text: each
+vector was normalized when its record was written; see
 [`LodestarVectorStoreCollection`](lodestarvectorstorecollection.md). An empty collection returns no
 results.
 

@@ -48,6 +48,23 @@ public sealed class PoolingTests
         Assert.Equal(0.8f, v[1], 5);
     }
 
+    /// <summary>
+    /// torch.nn.functional.normalize divides by max(norm, eps = 1e-12), per its documentation (torch is
+    /// not in the oracle environment): a norm under the floor scales by 1e12, not to unit length (#1214).
+    /// </summary>
+    [Fact]
+    public void L2Normalize_divides_by_no_less_than_the_torch_floor()
+    {
+        float[] tiny = [3e-14f, 4e-14f];
+        Pooler.L2Normalize(tiny);
+        Assert.Equal(0.03f, tiny[0], 1e-6f);
+        Assert.Equal(0.04f, tiny[1], 1e-6f);
+
+        float[] zero = [0f, 0f];
+        Pooler.L2Normalize(zero);
+        Assert.Equal([0f, 0f], zero);
+    }
+
     [Fact]
     public void Masked_tokens_are_excluded()
     {

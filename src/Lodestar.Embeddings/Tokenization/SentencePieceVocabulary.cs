@@ -39,7 +39,25 @@ public sealed record SentencePieceVocabulary(
     /// </remarks>
     public PrecompiledNormalizer? Normalizer { get; init; }
 
-    /// <summary>Compares the special-token ids and the normalizer, then every piece and every type.</summary>
+    /// <summary>
+    /// The tokens the file's <c>post_processor</c> puts before the text, in that order,
+    /// empty when it declares none.
+    /// </summary>
+    /// <remarks>
+    /// Read by <see cref="Persistence.TokenizerJsonLoader"/> from a <c>TemplateProcessing</c>, <c>BertProcessing</c>
+    /// or <c>RobertaProcessing</c>: <c>[&quot;&lt;s&gt;&quot;]</c> for a RoBERTa-shaped one. Public because the caller composes the
+    /// <see cref="SpecialTokenTemplate"/>, which also needs a pad token the vocabulary does not carry (#1210).
+    /// </remarks>
+    public IReadOnlyList<string> PrefixTokens { get; init; } = [];
+
+    /// <summary>
+    /// The tokens the file's <c>post_processor</c> puts after the text, in that order,
+    /// empty when it declares none.
+    /// </summary>
+    /// <remarks>See <see cref="PrefixTokens"/>.</remarks>
+    public IReadOnlyList<string> SuffixTokens { get; init; } = [];
+
+    /// <summary>Compares the special-token ids, the normalizer and the post-processor templates, then every piece and every type.</summary>
     /// <param name="other">The vocabulary to compare against.</param>
     /// <remarks>
     /// The generated equality would compare <see cref="Pieces"/> and
@@ -55,6 +73,8 @@ public sealed record SentencePieceVocabulary(
         if (other is null
             || UnkId != other.UnkId || BosId != other.BosId
             || EosId != other.EosId || PadId != other.PadId
+            || !PrefixTokens.SequenceEqual(other.PrefixTokens, StringComparer.Ordinal)
+            || !SuffixTokens.SequenceEqual(other.SuffixTokens, StringComparer.Ordinal)
             || Pieces.Count != other.Pieces.Count
             || Types.Count != other.Types.Count
             || !Equals(Normalizer, other.Normalizer))
@@ -99,8 +119,8 @@ public sealed record SentencePieceVocabulary(
 
     /// <summary>Whether the piece with this id may be matched against input text.</summary>
     /// <remarks>
-    /// Control and unknown pieces are excluded; normal, user-defined, unused and
-    /// byte pieces are not. This is the check that replaces guessing by id.
+    /// Control, unknown and unused pieces are excluded, the last keeping its id as in
+    /// sentencepiece (#1213); normal, user-defined and byte pieces are not. This is the check that replaces guessing by id.
     /// </remarks>
     /// <param name="id">A piece id, in <c>[0, Types.Count)</c>.</param>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -118,6 +138,6 @@ public sealed record SentencePieceVocabulary(
                 id,
                 $"The piece id is outside the vocabulary's {Types.Count} declared types.");
         }
-        return Types[id] is not (SentencePieceType.Control or SentencePieceType.Unknown);
+        return Types[id] is not (SentencePieceType.Control or SentencePieceType.Unknown or SentencePieceType.Unused);
     }
 }

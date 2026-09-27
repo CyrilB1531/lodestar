@@ -59,10 +59,15 @@ order is restored before returning, so it is a performance switch and never an
 observable one. `EmbedBatch` takes a `CancellationToken`, observed while
 tokenizing and between sub-batches.
 
-`MaxLength` left null asks the model for its declared maximum — which most
-exports do not have, since `torch.onnx.export` with `dynamic_axes` writes a
-symbolic sequence dimension. The real positional limit lives in the model's
-`config.json`, not in the graph, so for a real encoder pass it explicitly.
+`MaxLength` left null asks the model for its maximum. Most exports declare none
+— `torch.onnx.export` with `dynamic_axes` writes a symbolic sequence dimension —
+so it is read from the graph's position-embedding table instead: 512 rows for
+`all-MiniLM-L6-v2`, and a RoBERTa-style table of 514 rows, whose first two
+positions are the padding offset, reads 512. That is the model's hard limit, not
+sentence-transformers' configured one: it truncates to `max_seq_length` from
+`sentence_bert_config.json` (256 for `all-MiniLM-L6-v2`), a file the graph does
+not carry. Pass that value as `MaxLength` to match it exactly. A model with no
+table the reader recognises is not truncated at all.
 
 The single-sequence entry point is still there for a caller who owns the
 tokenization:

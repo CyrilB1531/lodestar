@@ -59,6 +59,21 @@ public sealed class EmbeddingIndexTests
     }
 
     [Fact]
+    public void A_query_past_the_float_norm_range_is_still_normalized()
+    {
+        // A float norm overflowed to infinity past ~1e19 per component and zeroed every score (#1214).
+        var index = new EmbeddingIndex(dimension: 2);
+        index.Add([1f, 0f]);
+        index.Add([0f, 1f]);
+
+        IReadOnlyList<SearchResult> hits = index.Search([3e30f, 4e30f], k: 2);
+
+        Assert.Equal(1, hits[0].Index);
+        Assert.Equal(0.8f, hits[0].Score, 1e-6f);
+        Assert.Equal(0.6f, hits[1].Score, 1e-6f);
+    }
+
+    [Fact]
     public void Identical_vector_scores_one()
     {
         var index = new EmbeddingIndex(3);
