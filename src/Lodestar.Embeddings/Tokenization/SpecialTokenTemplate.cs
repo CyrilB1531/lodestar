@@ -28,11 +28,9 @@ public sealed record SpecialTokenTemplate(
     /// <summary>No special tokens at all; padding still needs a token, and uses <c>[PAD]</c>.</summary>
     /// <remarks>
     /// The equivalent of a HuggingFace tokenizer with no <c>post_processor</c>. A file
-    /// that carries a <c>TemplateProcessing</c> one lands in
-    /// <see cref="BpeVocabulary.PrefixTokens"/> and <see cref="BpeVocabulary.SuffixTokens"/>
-    /// instead, which the caller pairs with a pad token of their own — the file states no
-    /// such token. <c>LoadWordPiece</c> and <c>LoadUnigram</c> still refuse any
-    /// post-processor outright.
+    /// that carries one lands in the vocabulary's <c>PrefixTokens</c> and <c>SuffixTokens</c>
+    /// instead — <see cref="BpeVocabulary.PrefixTokens"/> among them — which the caller pairs
+    /// with a pad token of their own.
     /// </remarks>
     public static SpecialTokenTemplate None { get; } = new([], [], "[PAD]");
 

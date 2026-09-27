@@ -5,6 +5,15 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ## [Unreleased]
 
+### Changed
+
+- `TiledCosineTopK.Search` returns `SearchResult`, the record `EmbeddingIndex.Search` returns, and `GpuSearchResult` is no longer forwarded to `Lodestar.Abstractions`, which drops it. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
+- `TiledCosineTopK` selects through a heap per thread merged across the group, reading a query's scores once rather than once per hit, 4.8× faster at 100,000 rows and 1,000 hits. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
+
+### Fixed
+
+- Every kernel and upload refuses a disposed `GpuContext`, and every kernel refuses device data disposed or uploaded to another context, where it launched on a freed or foreign buffer. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
+
 ## [0.2.0] — 2026-09-24
 
 ### Added

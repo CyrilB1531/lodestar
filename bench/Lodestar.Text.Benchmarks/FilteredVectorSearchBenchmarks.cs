@@ -9,6 +9,9 @@ namespace Lodestar.Text.Benchmarks;
 /// <summary>A record for <see cref="FilteredVectorSearchBenchmarks"/>: a key, a filterable tag and a 384-wide vector.</summary>
 public sealed class TaggedVector
 {
+    /// <summary>The width every vector here has.</summary>
+    public const int Dimension = 384;
+
     /// <summary>The key.</summary>
     [VectorStoreKey]
     public int Id { get; set; }
@@ -22,8 +25,66 @@ public sealed class TaggedVector
     public string Text { get; set; } = string.Empty;
 
     /// <summary>The embedding, MiniLM's width.</summary>
-    [VectorStoreVector(384)]
+    [VectorStoreVector(Dimension)]
     public ReadOnlyMemory<float> Embedding { get; set; }
+
+    /// <summary>
+    /// <paramref name="count"/> records and a query, the same on every call: uniform vectors, a random
+    /// tag, and eight words of 2,000 after <c>common</c>, with <c>needle</c> in the middle record alone.
+    /// </summary>
+    internal static (TaggedVector[] Records, float[] Query) Corpus(int count)
+    {
+        // S2245 / CA5394: a seeded Random makes the collection reproducible; nothing here is security-sensitive.
+#pragma warning disable S2245, CA5394
+        var random = new Random(682);
+        var records = new TaggedVector[count];
+        for (int i = 0; i < count; i++)
+        {
+            // The vector is drawn before the tag, in that order, as it always was.
+            records[i] = new TaggedVector { Id = i, Embedding = Uniform(random), Tag = random.Next() };
+        }
+
+        float[] query = Uniform(random);
+
+        // A second generator, so the vectors above are drawn exactly as before the text existed.
+        var words = new Random(1036);
+        for (int i = 0; i < count; i++)
+        {
+            records[i].Text = Words(words, i == count / 2 ? "common needle" : "common");
+        }
+#pragma warning restore S2245, CA5394
+        return (records, query);
+    }
+
+    /// <summary>A vector of uniform draws in [-1, 1), drawn in order from <paramref name="random"/>.</summary>
+    internal static float[] Uniform(Random random)
+    {
+        var vector = new float[Dimension];
+        for (int j = 0; j < Dimension; j++)
+        {
+            // CA5394: seeded benchmark data, see Corpus.
+#pragma warning disable CA5394
+            vector[j] = (float)((random.NextDouble() * 2) - 1);
+#pragma warning restore CA5394
+        }
+
+        return vector;
+    }
+
+    /// <summary><paramref name="prefix"/> then eight words drawn from <c>w0</c> to <c>w1999</c>.</summary>
+    internal static string Words(Random random, string prefix)
+    {
+        var text = new StringBuilder(prefix);
+        for (int w = 0; w < 8; w++)
+        {
+            // CA5394: seeded benchmark data, see Corpus.
+#pragma warning disable CA5394
+            text.Append(" w").Append(random.Next(2_000).ToString(CultureInfo.InvariantCulture));
+#pragma warning restore CA5394
+        }
+
+        return text.ToString();
+    }
 }
 
 /// <summary>
@@ -43,7 +104,6 @@ public sealed class TaggedVector
 [MemoryDiagnoser]
 public class FilteredVectorSearchBenchmarks
 {
-    private const int Dimension = 384;
     private LodestarVectorStoreCollection<int, TaggedVector> _collection = null!;
     private ReadOnlyMemory<float> _query;
     private VectorSearchOptions<TaggedVector> _filtered = null!;
@@ -55,41 +115,7 @@ public class FilteredVectorSearchBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        // S2245 / CA5394: a seeded Random makes the collection reproducible; nothing here is security-sensitive.
-#pragma warning disable S2245, CA5394
-        var random = new Random(682);
-        var records = new TaggedVector[Records];
-        for (int i = 0; i < Records; i++)
-        {
-            var vector = new float[Dimension];
-            for (int j = 0; j < Dimension; j++)
-            {
-                vector[j] = (float)((random.NextDouble() * 2) - 1);
-            }
-            records[i] = new TaggedVector { Id = i, Tag = random.Next(), Embedding = vector };
-        }
-
-        var query = new float[Dimension];
-        for (int j = 0; j < Dimension; j++)
-        {
-            query[j] = (float)((random.NextDouble() * 2) - 1);
-        }
-
-        // A second generator, so the vectors above are drawn exactly as before the text existed.
-        var words = new Random(1036);
-        var text = new StringBuilder();
-        for (int i = 0; i < Records; i++)
-        {
-            text.Clear().Append(i == Records / 2 ? "common needle" : "common");
-            for (int w = 0; w < 8; w++)
-            {
-                text.Append(" w").Append(words.Next(2_000).ToString(CultureInfo.InvariantCulture));
-            }
-            records[i].Text = text.ToString();
-        }
-#pragma warning restore S2245, CA5394
-        _query = query;
-
+        (TaggedVector[] records, _query) = TaggedVector.Corpus(Records);
         _collection = new LodestarVectorStoreCollection<int, TaggedVector>("bench");
         _collection.UpsertAsync(records).GetAwaiter().GetResult();
         _filtered = new VectorSearchOptions<TaggedVector> { Filter = record => record.Tag % 2 == 0 };
@@ -113,7 +139,8 @@ public class FilteredVectorSearchBenchmarks
     [Benchmark]
     public Task<int> HybridBroad() => Count(_collection.HybridSearchAsync(_query, ["common"], 10));
 
-    private static async Task<int> Count(IAsyncEnumerable<VectorSearchResult<TaggedVector>> hits)
+    /// <summary>Enumerates <paramref name="hits"/> to the end, which is when a search does its work.</summary>
+    internal static async Task<int> Count(IAsyncEnumerable<VectorSearchResult<TaggedVector>> hits)
     {
         int count = 0;
         await foreach (VectorSearchResult<TaggedVector> _ in hits.ConfigureAwait(false))

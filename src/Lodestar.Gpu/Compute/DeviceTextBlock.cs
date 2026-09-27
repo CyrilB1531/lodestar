@@ -13,6 +13,8 @@ namespace Lodestar.Gpu.Compute;
 /// </remarks>
 public sealed class DeviceTextBlock : IDisposable
 {
+    private readonly DeviceResidency _residency;
+
     /// <summary>The code every character outside the pattern's alphabet renames to.</summary>
     internal const int Unmatched = 255;
 
@@ -30,11 +32,13 @@ public sealed class DeviceTextBlock : IDisposable
     internal IReadOnlyDictionary<char, byte> Alphabet { get; }
 
     private DeviceTextBlock(
+        GpuContext context,
         MemoryBuffer1D<byte, Stride1D.Dense> symbols,
         MemoryBuffer1D<int, Stride1D.Dense> offsets,
         int count,
         IReadOnlyDictionary<char, byte> alphabet)
     {
+        _residency = new DeviceResidency(context);
         Symbols = symbols;
         Offsets = offsets;
         Count = count;
@@ -46,10 +50,12 @@ public sealed class DeviceTextBlock : IDisposable
     /// <param name="pattern">The pattern whose characters define the alphabet.</param>
     /// <param name="texts">The strings to rename; none may be null.</param>
     /// <exception cref="ArgumentNullException">An argument, or one of the texts, is null.</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
     /// <exception cref="ArgumentException"><paramref name="texts"/> is empty, or the pattern holds too many distinct characters.</exception>
     public static DeviceTextBlock Upload(GpuContext context, string pattern, IReadOnlyList<string> texts)
     {
         Guard.NotNull(context);
+        context.EnsureNotDisposed();
         Guard.NotNull(pattern);
         Guard.NotNull(texts);
         if (texts.Count == 0)
@@ -110,13 +116,22 @@ public sealed class DeviceTextBlock : IDisposable
             ? accelerator.Allocate1D<byte>(0)
             : accelerator.Allocate1D(symbols);
         MemoryBuffer1D<int, Stride1D.Dense> deviceOffsets = accelerator.Allocate1D(offsets);
-        return new DeviceTextBlock(deviceSymbols, deviceOffsets, texts.Count, alphabet);
+        return new DeviceTextBlock(context, deviceSymbols, deviceOffsets, texts.Count, alphabet);
     }
 
-    /// <summary>Frees the two device buffers.</summary>
+    /// <summary>Throws unless a kernel loaded on <paramref name="context"/> may read this block.</summary>
+    /// <exception cref="ObjectDisposedException">This block, or the context it lives on, was disposed.</exception>
+    /// <exception cref="ArgumentException">This block was uploaded to another context.</exception>
+    internal void EnsureUsableBy(GpuContext context, string parameter) =>
+        _residency.EnsureUsableBy(context, parameter);
+
+    /// <summary>Frees the two device buffers; a second call does nothing.</summary>
     public void Dispose()
     {
-        Symbols.Dispose();
-        Offsets.Dispose();
+        if (_residency.Release())
+        {
+            Symbols.Dispose();
+            Offsets.Dispose();
+        }
     }
 }

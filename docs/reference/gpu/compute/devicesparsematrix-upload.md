@@ -16,7 +16,8 @@ columns no row stores anything in.
 
 **Returns** — `DeviceSparseMatrix`, owning three device buffers the caller disposes.
 
-**Exceptions** — `ArgumentNullException` when `context` is null; `ArgumentOutOfRangeException` when
+**Exceptions** — `ArgumentNullException` when `context` is null; `ObjectDisposedException` when
+`context` was disposed; `ArgumentOutOfRangeException` when
 a dimension is below 1; `ArgumentException` when the three arrays do not describe one CSR matrix —
 `rowPointers` not starting at 0, decreasing, or ending anywhere but at the value count, or a column
 index outside `[0, columnCount)`.

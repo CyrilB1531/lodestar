@@ -46,6 +46,7 @@ public sealed class TiledMinHashSignatures
     /// <summary>Loads the kernel onto the accelerator.</summary>
     /// <param name="context">The accelerator to compile for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
     /// <remarks>Loading compiles, so build this once and reuse it (bench/README.md's GPU gate).</remarks>
     public TiledMinHashSignatures(GpuContext context)
         : this(context, RowLaunch.Limit(context))
@@ -57,6 +58,7 @@ public sealed class TiledMinHashSignatures
     internal TiledMinHashSignatures(GpuContext context, int documentsPerLaunch)
     {
         Guard.NotNull(context);
+        context.EnsureNotDisposed();
         _context = context;
         _groupSize = Math.Min(MaxGroupSize, context.Accelerator.MaxGroupSize.X);
         _documentsPerLaunch = documentsPerLaunch;
@@ -70,7 +72,11 @@ public sealed class TiledMinHashSignatures
     /// <param name="addends">The <c>b</c> coefficient of each, one per multiplier.</param>
     /// <returns>One signature per document, each as long as there are permutations.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
-    /// <exception cref="ArgumentException">The two coefficient spans are not the same non-zero length.</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="documents"/>, or the context it and this kernel share, was disposed.</exception>
+    /// <exception cref="ArgumentException">
+    /// The two coefficient spans are not the same non-zero length, or <paramref name="documents"/>
+    /// was uploaded to another context.
+    /// </exception>
     /// <remarks>
     /// An empty document gives every slot <c>uint.MaxValue</c>, which is the identity a minimum
     /// starts from rather than a sentinel — so two empty documents estimate a similarity of 1, as
@@ -87,9 +93,11 @@ public sealed class TiledMinHashSignatures
     /// <param name="scheme">Which arithmetic the coefficients belong to.</param>
     /// <returns>One signature per document, each as long as there are permutations.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="documents"/>, or the context it and this kernel share, was disposed.</exception>
     /// <exception cref="ArgumentException">
     /// The two coefficient spans are not the same non-zero length, <paramref name="scheme"/> is
-    /// not a declared member, or a coefficient does not fit the scheme it is given.
+    /// not a declared member, a coefficient does not fit the scheme it is given, or
+    /// <paramref name="documents"/> was uploaded to another context.
     /// </exception>
     /// <remarks>
     /// The batch is deliberately not re-uploaded per scheme: the finalizer <c>affine32</c> needs
@@ -100,6 +108,8 @@ public sealed class TiledMinHashSignatures
         MinHashScheme scheme)
     {
         Guard.NotNull(documents);
+        _context.EnsureNotDisposed();
+        documents.EnsureUsableBy(_context, nameof(documents));
         if (scheme is not (MinHashScheme.Legacy or MinHashScheme.Affine32))
         {
             throw new ArgumentException($"{scheme} is not a permutation scheme.", nameof(scheme));

@@ -4,9 +4,6 @@ using Lodestar.Gpu.Compute;
 
 namespace Lodestar.Gpu.Benchmarks;
 
-// SonarLint S2245 / CA5394: a seeded Random builds a reproducible corpus; no security use.
-#pragma warning disable S2245, CA5394
-
 // CA1822 (mark members static): BenchmarkDotNet rejects static benchmarks, and the
 // build succeeds either way -- so following the rule breaks the run, not the compile.
 #pragma warning disable CA1822
@@ -54,35 +51,15 @@ public class TiledCosineTopKBenchmarks
     public string Device { get; set; } = string.Empty;
 
     /// <summary>The one device this run uses, named so the report carries it.</summary>
-    public static IEnumerable<string> Devices() => [Describe()];
-
-    private static string Describe()
-    {
-        using var probe = GpuContext.Create();
-        return probe.IsHardwareGpu ? probe.DeviceName : $"{probe.DeviceName} (NOT a GPU)";
-    }
+    public static IEnumerable<string> Devices() => [SeededVectors.Device()];
 
     [GlobalSetup]
     public void Setup()
     {
-        var random = new Random(444);
-        _rows = new float[Documents * Dimension];
-        for (int i = 0; i < _rows.Length; i++)
-        {
-            _rows[i] = (float)((random.NextDouble() * 2.0) - 1.0);
-        }
-
-        _queries = new float[Queries * Dimension];
-        for (int i = 0; i < _queries.Length; i++)
-        {
-            _queries[i] = (float)((random.NextDouble() * 2.0) - 1.0);
-        }
-
-        _index = new EmbeddingIndex(Dimension);
-        for (int row = 0; row < Documents; row++)
-        {
-            _index.Add(_rows.AsSpan(row * Dimension, Dimension));
-        }
+        Random random = SeededVectors.Seeded(444);
+        _rows = SeededVectors.Uniform(random, Documents * Dimension);
+        _queries = SeededVectors.Uniform(random, Queries * Dimension);
+        _index = SeededVectors.Index(_rows, Documents, Dimension);
 
         _context = GpuContext.Create();
         _kernel = new TiledCosineTopK(_context);

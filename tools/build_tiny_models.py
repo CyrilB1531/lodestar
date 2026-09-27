@@ -1,4 +1,4 @@
-"""Rebuild the tiny fixtures committed under ``tests/oracles/``: two synthetic
+"""Rebuild the tiny fixtures committed under ``tests/oracles/``: nine synthetic
 ONNX encoders, a trained character-level BPE, a hand-constructed BPE holding
 one orphaned vocabulary entry, and a hand-constructed BPE shaped after
 ``roberta-base``'s own ``added_tokens`` table.
@@ -10,8 +10,8 @@ verifiable claim rather than an assertion about two opaque binaries.
 
 It is deliberately **not** part of ``generate_oracles.py``: building an ONNX
 graph needs the ``onnx`` package, which the oracle lock file does not carry,
-and none of the five outputs here are reference values that must track a
-library version the way ``generate_oracles.py``'s are — all five are frozen
+and none of the outputs here are reference values that must track a
+library version the way ``generate_oracles.py``'s are — all are frozen
 fixtures, rebuilt only when one of them has to change:
 
     python -m venv .venv-tiny-models
@@ -31,6 +31,28 @@ fixtures, rebuilt only when one of them has to change:
     ``E[0]`` enters the mean and moves the vector. It also declares
     ``token_type_ids``, which ``tiny_encoder.onnx`` does not, so the branch that
     feeds it is covered.
+
+``tiny_embedder_fp16.onnx``, ``tiny_embedder_bf16.onnx``, ``tiny_embedder_fp64.onnx``
+    ``tiny_embedder.onnx``'s table stored at another precision, so the output is
+    ``float16``, ``bfloat16`` or ``double``. Every entry is k/64 with ``|k| <= 32``,
+    exact in all four formats, so the first two must embed bit for bit as the
+    float32 model does; the third is the element type the embedder refuses.
+
+``tiny_transposed.onnx``
+    ``tiny_embedder.onnx`` followed by a ``Transpose``, so the output is
+    ``[seq, batch, dim]``: the same element count as the ``[batch, seq, dim]``
+    the embedder pools, and only its shape tells the two apart.
+
+``tiny_positional.onnx``
+    ``tiny_embedder.onnx`` plus a BERT-style position table,
+    ``embeddings.position_embeddings.weight`` of ``POSITIONS`` rows, gathered at a slice
+    of ``0 .. POSITIONS-1``: the longest input it takes is ``POSITIONS`` tokens.
+
+``tiny_positional_offset.onnx``, ``tiny_positional_offset_init.onnx``
+    The RoBERTa-style table instead: positions are a ``CumSum`` of the non-padding
+    mask plus ``padding_idx`` (1), so ``POSITIONS + 2`` rows take ``POSITIONS``
+    tokens. The mask compares against ``[PAD]``'s id, 47, not ``padding_idx``. The first holds ``padding_idx`` in a ``Constant`` node, as
+    ``torch.onnx.export`` writes it; the second in an initializer.
 
 ``tiny_bpe.json``
     A trained character-level BPE — see ``build_tiny_bpe()`` for what it proves
@@ -71,6 +93,10 @@ OPSET = 13
 EMBEDDING_ROWS = 64
 EMBEDDING_DIM = 4
 
+# Named once: every graph below gathers, and every one declares the mask input.
+GATHER = "Gather"
+ATTENTION_MASK = "attention_mask"
+
 
 def embedding_table() -> np.ndarray:
     """The synthetic embedding matrix: distinct rows, all exact in float32.
@@ -102,7 +128,7 @@ def build_tiny_encoder() -> onnx.ModelProto:
         ],
         "tiny",
         [_int64_input("input_ids", ["batch", "seq"]),
-         _int64_input("attention_mask", ["batch", "seq"])],
+         _int64_input(ATTENTION_MASK, ["batch", "seq"])],
         [helper.make_tensor_value_info(
             "last_hidden_state", TensorProto.FLOAT, ["batch", "seq", EMBEDDING_DIM])],
         [weights, axis2],
@@ -114,10 +140,10 @@ def build_tiny_encoder() -> onnx.ModelProto:
 def build_tiny_embedder() -> onnx.ModelProto:
     table = numpy_helper.from_array(embedding_table(), name="E")
     graph = helper.make_graph(
-        [helper.make_node("Gather", ["E", "input_ids"], ["last_hidden_state"], axis=0)],
+        [helper.make_node(GATHER, ["E", "input_ids"], ["last_hidden_state"], axis=0)],
         "tiny_embedder",
         [_int64_input("input_ids", ["batch", "seq"]),
-         _int64_input("attention_mask", ["batch", "seq"]),
+         _int64_input(ATTENTION_MASK, ["batch", "seq"]),
          _int64_input("token_type_ids", ["batch", "seq"])],
         [helper.make_tensor_value_info(
             "last_hidden_state", TensorProto.FLOAT, ["batch", "seq", EMBEDDING_DIM])],
@@ -125,6 +151,126 @@ def build_tiny_embedder() -> onnx.ModelProto:
     )
     return helper.make_model(graph, ir_version=IR_VERSION,
                              opset_imports=[helper.make_opsetid("", OPSET)])
+
+
+def build_tiny_embedder_as(elem_type: int, dtype: type) -> onnx.ModelProto:
+    """``tiny_embedder.onnx``'s lookup, with the table stored as ``dtype``."""
+    table = helper.make_tensor(
+        "E", elem_type, list(embedding_table().shape),
+        embedding_table().astype(dtype).flatten().tolist())
+    graph = helper.make_graph(
+        [helper.make_node(GATHER, ["E", "input_ids"], ["last_hidden_state"], axis=0)],
+        "tiny_embedder_typed",
+        [_int64_input("input_ids", ["batch", "seq"]),
+         _int64_input(ATTENTION_MASK, ["batch", "seq"])],
+        [helper.make_tensor_value_info(
+            "last_hidden_state", elem_type, ["batch", "seq", EMBEDDING_DIM])],
+        [table],
+    )
+    return helper.make_model(graph, ir_version=IR_VERSION,
+                             opset_imports=[helper.make_opsetid("", OPSET)])
+
+
+def build_tiny_transposed() -> onnx.ModelProto:
+    table = numpy_helper.from_array(embedding_table(), name="E")
+    graph = helper.make_graph(
+        [helper.make_node(GATHER, ["E", "input_ids"], ["gathered"], axis=0),
+         helper.make_node("Transpose", ["gathered"], ["last_hidden_state"], perm=[1, 0, 2])],
+        "tiny_transposed",
+        [_int64_input("input_ids", ["batch", "seq"]),
+         _int64_input(ATTENTION_MASK, ["batch", "seq"])],
+        [helper.make_tensor_value_info(
+            "last_hidden_state", TensorProto.FLOAT, ["seq", "batch", EMBEDDING_DIM])],
+        [table],
+    )
+    return helper.make_model(graph, ir_version=IR_VERSION,
+                             opset_imports=[helper.make_opsetid("", OPSET)])
+
+
+POSITIONS = 6
+POSITION_TABLE = "embeddings.position_embeddings.weight"
+PADDING_IDX = "padding_idx"
+POSITION_IDS = "position_ids"
+
+
+def position_table(rows: int) -> np.ndarray:
+    """Distinct rows, k/64 like the word table, so sums stay exact in float32."""
+    return np.array([[((5 * r + 3 * d) % 16 - 8) / 64.0 for d in range(EMBEDDING_DIM)]
+                     for r in range(rows)], dtype=np.float32)
+
+
+def _positional_graph(name: str, position_nodes: list, position_inits: list,
+                      rows: int) -> onnx.ModelProto:
+    graph = helper.make_graph(
+        [helper.make_node(GATHER, ["E", "input_ids"], ["words"], axis=0),
+         *position_nodes,
+         helper.make_node(GATHER, [POSITION_TABLE, POSITION_IDS], ["positions"], axis=0),
+         helper.make_node("Add", ["words", "positions"], ["last_hidden_state"])],
+        name,
+        [_int64_input("input_ids", ["batch", "seq"]),
+         _int64_input(ATTENTION_MASK, ["batch", "seq"])],
+        [helper.make_tensor_value_info(
+            "last_hidden_state", TensorProto.FLOAT, ["batch", "seq", EMBEDDING_DIM])],
+        [numpy_helper.from_array(embedding_table(), name="E"),
+         numpy_helper.from_array(position_table(rows), name=POSITION_TABLE),
+         *position_inits],
+    )
+    return helper.make_model(graph, ir_version=IR_VERSION,
+                             opset_imports=[helper.make_opsetid("", OPSET)])
+
+
+def build_tiny_positional() -> onnx.ModelProto:
+    """BERT: ``position_ids[:, :seq]`` sliced from a 0..N-1 buffer."""
+    def ints(name: str, values: list[int]) -> onnx.TensorProto:
+        return numpy_helper.from_array(np.array(values, dtype=np.int64), name=name)
+    return _positional_graph(
+        "tiny_positional",
+        [helper.make_node("Shape", ["input_ids"], ["shape"]),
+         helper.make_node("Slice", ["shape", "one", "two"], ["seq_len"]),
+         helper.make_node("Slice", ["position_buffer", "zero", "seq_len", "one"], [POSITION_IDS])],
+        [numpy_helper.from_array(np.arange(POSITIONS, dtype=np.int64).reshape(1, POSITIONS),
+                                 name="position_buffer"),
+         ints("zero", [0]), ints("one", [1]), ints("two", [2])],
+        POSITIONS)
+
+
+def build_tiny_positional_offset(padding_in_initializer: bool) -> onnx.ModelProto:
+    """RoBERTa: ``cumsum(ids != pad) * (ids != pad) + padding_idx``."""
+    if padding_in_initializer:
+        padding_nodes = []
+        padding_inits = [numpy_helper.from_array(np.array(1, dtype=np.int64), name=PADDING_IDX)]
+    else:
+        padding_nodes = [helper.make_node(
+            "Constant", [], [PADDING_IDX],
+            value=helper.make_tensor("padding_value", TensorProto.INT64, [], [1]))]
+        padding_inits = []
+    axis = numpy_helper.from_array(np.array(1, dtype=np.int64), name="axis")
+    # [PAD] of batch_encoding.json's vocabulary. RoBERTa's pad id is its padding_idx; kept
+    # apart here because id 1 is "the", and the offset depends on padding_idx alone.
+    pad_token = numpy_helper.from_array(np.array(47, dtype=np.int64), name="pad_token_id")
+    return _positional_graph(
+        "tiny_positional_offset",
+        [*padding_nodes,
+         helper.make_node("Equal", ["input_ids", "pad_token_id"], ["is_pad"]),
+         helper.make_node("Not", ["is_pad"], ["not_pad"]),
+         helper.make_node("Cast", ["not_pad"], ["mask"], to=TensorProto.INT64),
+         helper.make_node("CumSum", ["mask", "axis"], ["counted"]),
+         helper.make_node("Mul", ["counted", "mask"], ["incremental"]),
+         helper.make_node("Add", ["incremental", PADDING_IDX], [POSITION_IDS])],
+        [*padding_inits, axis, pad_token],
+        POSITIONS + 2)
+
+
+# Written by main() beside the two models above.
+VARIANT_MODELS = (
+    ("tiny_embedder_fp16.onnx", lambda: build_tiny_embedder_as(TensorProto.FLOAT16, np.float16)),
+    ("tiny_embedder_bf16.onnx", lambda: build_tiny_embedder_as(TensorProto.BFLOAT16, np.float32)),
+    ("tiny_embedder_fp64.onnx", lambda: build_tiny_embedder_as(TensorProto.DOUBLE, np.float64)),
+    ("tiny_transposed.onnx", build_tiny_transposed),
+    ("tiny_positional.onnx", build_tiny_positional),
+    ("tiny_positional_offset.onnx", lambda: build_tiny_positional_offset(False)),
+    ("tiny_positional_offset_init.onnx", lambda: build_tiny_positional_offset(True)),
+)
 
 
 # A character-level BPE corpus, consumed by build_tiny_bpe() below -- see its
@@ -275,7 +421,7 @@ def build_roberta_shaped() -> str:
 
 
 def main() -> None:
-    """Rebuild and write all five fixtures.
+    """Rebuild and write every fixture.
 
     newline="\\n" on the three text fixtures below: they are committed, and
     generate_oracles.py reads tiny_bpe.json and orphan_bpe_model.json back in
@@ -288,7 +434,8 @@ def main() -> None:
     to disk.)
     """
     for filename, build in (("tiny_encoder.onnx", build_tiny_encoder),
-                            ("tiny_embedder.onnx", build_tiny_embedder)):
+                            ("tiny_embedder.onnx", build_tiny_embedder),
+                            *VARIANT_MODELS):
         model = build()
         onnx.checker.check_model(model)
         path = ORACLE_DIR / filename

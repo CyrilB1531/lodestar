@@ -18,7 +18,7 @@ public static WordPieceVocabulary LoadWordPiece(string path, ArtifactLoadOptions
 when the file declares a different model, declares a pipeline this package does not
 reproduce, or exceeds a bound in `options` — the message names what was refused and why.
 
-**Example** — a `tokenizer.json` whose pipeline already matches this package's.
+**Example** — a stock BERT `tokenizer.json`, all-MiniLM-L6-v2's for one.
 
 <!-- docs-run: skip - the file is a model artifact, and model artifacts are never committed (CONTRIBUTING.md) -->
 
@@ -27,17 +27,21 @@ using Lodestar.Embeddings.Persistence;
 using Lodestar.Embeddings.Tokenization;
 
 WordPieceVocabulary vocab = TokenizerJsonLoader.LoadWordPiece("tokenizer.json");
+var template = new SpecialTokenTemplate(vocab.PrefixTokens, vocab.SuffixTokens, "[PAD]");
 ```
 
-**Remarks** — **A stock HuggingFace BERT `tokenizer.json` is refused here, and that is the correct outcome.**
-Such a file declares a `BertPreTokenizer` and a full `BertNormalizer`, neither of which this
-package reproduces; loading it anyway would produce embeddings that do not match the model and
-carry nothing to say so. The route for stock BERT is
-[`VocabTxtLoader.Load`](vocabtxtloader-load.md), whose format declares no pipeline to disagree
-about.
+**Remarks** — **A stock HuggingFace BERT `tokenizer.json` loads as BERT's BasicTokenizer.** Its
+default `BertNormalizer` — text cleaned, CJK padded, accents stripped exactly when lowercasing —
+followed by a `BertPreTokenizer` sets `BasicTokenization`, the pipeline
+[`VocabTxtLoader.Load`](vocabtxtloader-load.md) gives a `vocab.txt`. A `BertPreTokenizer` after any
+other normalizer is refused, and so is a `BertNormalizer` doing more than lowercasing ahead of a
+`Whitespace` pre-tokenizer: those steps are reproduced as one unit or not at all.
 
-What this entry point is for is a `tokenizer.json` whose pipeline **is** this package's — then the
-settings `vocab.txt` would have left as parameters are read from the file instead.
+The `post_processor` — `TemplateProcessing`'s `single` template, or `BertProcessing` and
+`RobertaProcessing` as `cls $A sep` — lands in `PrefixTokens` and `SuffixTokens`. The file's
+`truncation` and `padding` are accepted and not read: they are call settings, and
+[`EncodingOptions`](../tokenization/encodingoptions.md) carries the length and the template instead,
+with a pad token the vocabulary does not.
 
 Unlike [`VocabTxtLoader.Load`](vocabtxtloader-load.md), there is no `lowercase` parameter: the
 file says.

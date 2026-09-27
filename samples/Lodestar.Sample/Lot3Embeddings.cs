@@ -106,6 +106,10 @@ internal static class Lot3Embeddings
         SentencePieceVocabulary fromUnigramJson = TokenizerJsonLoader.LoadUnigram(Utf8(UnigramJson), bounds);
         Console.WriteLine($"  unigram json     : {fromUnigramJson.Count} pieces");
 
+        // Neither file declares a post_processor, so both pairs print empty.
+        Console.WriteLine($"  WordPiece/unigram special tokens: {fromJson.PrefixTokens.Count + fromJson.SuffixTokens.Count}"
+            + $"/{fromUnigramJson.PrefixTokens.Count + fromUnigramJson.SuffixTokens.Count}");
+
         SentencePieceVocabulary fromModel = SentencePieceModelLoader.Load(new MemoryStream(SpieceModel()), bounds);
         Console.WriteLine($"  spiece.model     : {fromModel.Count} pieces, unk={fromModel.UnkId}");
 

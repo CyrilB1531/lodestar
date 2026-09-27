@@ -82,14 +82,17 @@ public static class Pooler
         return pooled;
     }
 
-    /// <summary>Scales <paramref name="vector"/> in place to unit L2 norm (no-op for a zero vector).</summary>
+    /// <summary>The <c>eps</c> of <c>torch.nn.functional.normalize</c>, the least norm divided by.</summary>
+    private const double NormFloor = 1e-12;
+
+    /// <summary>Scales <paramref name="vector"/> in place to unit L2 norm, dividing by no less than 1e-12 (a zero vector stays zero).</summary>
     /// <remarks>
-    /// Matches <c>torch.nn.functional.normalize(v, p=2, dim=1)</c>. The sum of
-    /// squares is accumulated in <see cref="double"/> and deliberately not
-    /// vectorized: a <c>Vector&lt;float&gt;</c> accumulator would both lose
-    /// precision and make the result depend on the SIMD width of the machine that
-    /// ran it. The scaling pass, which is exact whichever way it is done, is
-    /// vectorized.
+    /// Matches <c>torch.nn.functional.normalize(v, p=2, dim=1)</c>, which divides by
+    /// <c>max(‖v‖, 1e-12)</c>: a norm under the floor scales by 1e12 rather than to unit
+    /// length (#1214). The sum of squares is accumulated in <see cref="double"/> and
+    /// deliberately not vectorized: a <c>Vector&lt;float&gt;</c> accumulator would lose
+    /// precision and make the result depend on the machine's SIMD width. The scaling
+    /// pass, exact whichever way it is done, is vectorized.
     /// </remarks>
     public static void L2Normalize(Span<float> vector)
     {
@@ -98,16 +101,7 @@ public static class Pooler
         {
             sum += (double)vector[i] * vector[i];
         }
-        double norm = Math.Sqrt(sum);
-
-        // SonarLint S1244: exact zero is the only norm that makes the division below
-        // undefined; a tolerance compare would leave short vectors unnormalized instead.
-#pragma warning disable S1244
-        if (norm == 0)
-#pragma warning restore S1244
-        {
-            return;
-        }
+        double norm = Math.Max(Math.Sqrt(sum), NormFloor);
 
         var scale = (float)norm;
         int j = 0;

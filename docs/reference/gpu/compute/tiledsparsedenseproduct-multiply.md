@@ -19,8 +19,9 @@ block instead on the second overload.
 `DeviceDenseBlock` of `matrix.RowCount` × `block.ColumnCount` for the resident one.
 
 **Exceptions** — `ArgumentNullException` when an argument is null;
-`ArgumentOutOfRangeException` when `width` is below 1; `ArgumentException` when the operands do not
-compose.
+`ArgumentOutOfRangeException` when `width` is below 1; `ObjectDisposedException` when an operand, or
+the context the operands and the kernel share, was disposed; `ArgumentException` when the operands
+do not compose, or when one was uploaded to another context than the kernel's.
 
 **Example** — the shape a caller writes.
 

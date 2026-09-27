@@ -20,9 +20,12 @@ read.
 similarity. An empty collection returns no results.
 
 **Exceptions** — `ArgumentNullException` when `keywords` is null. `ArgumentOutOfRangeException` when
-`top` is less than 1. `ArgumentException` when the query is not the collection's vector width, an
-empty collection included, or when a held record's vector was changed in place to another width
-since it was written.
+`top` is less than 1, or when the collection's `Vectorizer` or `Bm25` options are outside their range.
+`ArgumentException` when the query is not the collection's vector width, an empty collection
+included, or when the `Vectorizer` options' `NgramRange` is not an ascending range from 1.
+`InvalidOperationException` when the `Vectorizer` options' `MaxDf` corresponds to fewer
+records than their `MinDf`, as a `CountVectorizer` fit refuses it. Options are checked by the first
+hybrid search over a non-empty collection; a vector search never reads them.
 `NotSupportedException` when `TRecord` marks no `IsFullTextIndexed` property, when `searchValue` is
 not a vector, or when `options` sets `ScoreThreshold`. `OperationCanceledException`
 when `cancellationToken` is cancelled between results. All of them are raised when enumeration
@@ -57,22 +60,35 @@ The vector ranking is `a, b, c`; the keyword ranking is `c` alone, since `zebra`
 `k = 60`, `c` scores `1/63 + 1/61`, `a` scores `1/61` and `b` scores `1/62`, so the fused order is
 `c, a` — a result neither ranking gives on its own.
 
-**Remarks** — three published pieces, joined and nothing added:
+**Remarks** — three published pieces, joined and nothing added, which the collection keeps
+up to date one written record at a time rather than rebuilding:
 
-1. the vector ranking of **every** record, from [`EmbeddingIndex.Search`](../../embeddings/search/embeddingindex-search.md);
-2. the keyword ranking, from [`Bm25Index.Score`](../../text/search/bm25index-score.md), over the
-   vocabulary a [`CountVectorizer`](../../text/vectorizers/countvectorizer.md) fitted on the
-   full-text values during the same rebuild — so a query is tokenized exactly as the records were;
+1. the vector ranking of **every** record, as [`EmbeddingIndex.Search`](../../embeddings/search/embeddingindex-search.md)
+   ranks it;
+2. the keyword ranking, as [`Bm25Index.Score`](../../text/search/bm25index-score.md) scores it over
+   the vocabulary a [`CountVectorizer`](../../text/vectorizers/countvectorizer.md) would fit on the
+   full-text values held now — each text is tokenized by that vectorizer once, and a query exactly as
+   the records were;
 3. the fusion, [`RankFusion.Rrf`](../../text/search/rankfusion-rrf.md), at
    [`LodestarVectorStoreOptions`](lodestarvectorstoreoptions.md)' `RankFusionK`, 60 by default.
+
+Every result, score and tie is the one those three would give over a from-scratch build; the suite
+replays random writes against exactly that build to hold it so.
+
+**What a query costs.** Every record's vector is scored, as an exact search must, and every
+matched record's BM25 score. Neither ranking is then sorted in full: both are read to a depth, each
+record read has its rank in the other counted exactly, and a record read in neither can fuse to no
+more than `2 / (k + depth + 1)` — so once the last result wanted fuses above that, the answer is
+settled, and otherwise the depth doubles. The first depth is `2k`, 120 at the default, or `top +
+Skip` when that is more. The BM25 figures that are whole-corpus by definition — the average length, and the floor
+on a negative IDF, a share of the mean IDF over the vocabulary — are counts kept as records are
+written, and the floor, when a keyword needs it, costs one pass over the vocabulary after each write.
 
 **The keyword ranking holds only the records the keywords matched**, ordered by score descending and
 then by index, which is [`Bm25Index.Top`](../../text/search/bm25index-top.md)'s own order over that
 subset. `RankFusion.Rrf` reads a ranking's positions rather than its scores, so passing every
 document through would hand an unmatched record credit for the order it was inserted in. Only the
-matched records are sorted, read from the queried terms' postings rather than from a pass over every
-stored count; scoring them still costs one `double` per record of the collection per query, since
-`Bm25Index.Score` returns every record's score. A record enters the keyword ranking when its full-text
+matched records are scored and sorted, read from the queried terms' postings. A record enters the keyword ranking when its full-text
 value holds
 at least one of the keywords, **whatever the sign of its BM25 score**: the default IDF is zero for a
 term in exactly half the records, and its floor for a commoner term is negative whenever the mean IDF
@@ -80,7 +96,7 @@ is, so a matched record can score zero or less — in a one-record collection it
 
 **A keyword outside the vocabulary contributes nothing** and does not fail, which is what BM25 means
 by an unseen term. A collection whose full-text values yield no tokens at all — every word a stop
-word, say — builds a keyword index over no terms and does not throw either: every search on it
+word, say — has a vocabulary of no terms and does not throw either: every search on it
 degrades to the vector ranking alone, scored through the fusion.
 
 **`Filter` and `Skip` apply after the fusion**, and since the vector ranking holds every record, the

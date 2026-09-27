@@ -12,19 +12,25 @@ public sealed class OnnxTextEmbedder : IDisposable
 this type is the one place in Lodestar that needs a file you supply.
 
 **Properties** — `Dimension` is the width of the vectors the model produces. `MaxSequenceLength`
-is the longest input, in tokens, the model accepts; longer inputs are truncated by the encoder
-rather than refused here.
+is the longest input, in tokens, the model takes: its declared sequence axis when fixed, else
+the positions its position-embedding table can index, read from the graph once at construction
+(a RoBERTa-style table of 514 rows reads 512); null when it has neither. It is what
+[`EmbedBatch`](onnxtextembedder-embedbatch.md) truncates to when `MaxLength` is left null.
 
 **Example** — the shape of a call. It is not executed: see below.
 
 <!-- docs-run: skip - constructing it loads an ONNX model, and model weights are never committed (CONTRIBUTING.md, ADR 0002) -->
 
 ```csharp
+using Lodestar.Embeddings.Persistence;
+using Lodestar.Embeddings.Tokenization;
 using Lodestar.Onnx;
 
-using var embedder = new OnnxTextEmbedder("model.onnx");
+var tokenizer = new WordPieceTokenizer(VocabTxtLoader.Load("vocab.txt"));
+using var embedder = new OnnxTextEmbedder("model.onnx", tokenizer);
 
-float[][] vectors = embedder.EmbedBatch(["a first sentence", "a second one"]);
+float[][] vectors = embedder.EmbedBatch(
+    ["a first sentence", "a second one"], new EncodingOptions { MaxLength = 256 });
 int width = embedder.Dimension;
 ```
 

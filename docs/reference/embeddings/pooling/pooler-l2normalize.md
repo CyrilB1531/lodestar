@@ -12,7 +12,7 @@ public static void L2Normalize(Span<float> vector)
 
 **Returns** — nothing — the argument is the result.
 
-**Exceptions** — none. A zero vector is left alone rather than producing `NaN`.
+**Exceptions** — none. A zero vector stays zero rather than producing `NaN`.
 
 **Example** — the 3-4-5 triangle, scaled to unit length.
 
@@ -35,10 +35,10 @@ The consequence is worth stating plainly: a pooled vector is **bit-identical** a
 `net10.0`, `netstandard2.0`, and machines with different vector widths. That is the opposite trade
 from `VectorMath.Dot`, where the SIMD accumulation is the point and the last bits may differ.
 
-A **zero vector is a no-op**, not a `NaN`. That matters because an all-padding sequence pools to
-zero, and a `NaN` there would spread into every score it ever touched.
-
-Matches `torch.nn.functional.normalize(v, p=2, dim=1)`.
+The divisor is **never below `1e-12`**, as in `torch.nn.functional.normalize(v, p=2, dim=1)`, which
+this matches: a vector whose norm is under that floor is scaled by `1e12` rather than to unit
+length, and a zero vector stays zero, not `NaN`. That matters because an all-padding sequence pools
+to zero, and a `NaN` there would spread into every score it ever touched.
 
 **Applies to** — net10.0, netstandard2.0.
 

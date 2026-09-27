@@ -10,6 +10,8 @@ public double[] Download()
 
 **Returns** — `RowCount` × `ColumnCount` values, row-major.
 
+**Exceptions** — `ObjectDisposedException` when the block, or the context it lives on, was disposed.
+
 **Example** — the shape a caller writes.
 
 ```csharp

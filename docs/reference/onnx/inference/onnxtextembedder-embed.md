@@ -14,6 +14,10 @@ them. `attentionMask` is the same length, `1` for a real token and `0` for paddi
 **Returns** — `float[]` of length `Dimension`, the pooled vector for that text.
 
 **Exceptions** — `ArgumentException` when the two spans differ in length.
+`InvalidOperationException` when the model output is not `[batch, sequence, dim]` (or `[batch, dim]`,
+pooled by the graph) for the batch it was fed; the message names the output and both shapes.
+`NotSupportedException` when its elements are not float, float16 or bfloat16 — the two
+half-precision types are widened to float before pooling.
 `ObjectDisposedException` after [`Dispose`](onnxtextembedder-dispose.md) — the type
 checks a flag of its own, because reaching a disposed ONNX Runtime session surfaces as a
 null dereference from inside it, naming neither the object nor the mistake.

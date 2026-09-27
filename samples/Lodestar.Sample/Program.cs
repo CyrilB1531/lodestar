@@ -111,7 +111,6 @@ LshBandingSample.Run();
 LshIndexSample.Run();
 
 GpuContextSample.Run();
-GpuSearchResultSample.Run();
 DeviceEmbeddingMatrixSample.Run();
 TiledCosineTopKSample.Run();
 DeviceSparseMatrixSample.Run();

@@ -72,6 +72,29 @@ public sealed class EmbeddingIndexPersistenceTests
         Assert.Contains("component 1", error.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>The refusal comes before the first byte, not after a header the writer flushed (#1214).</summary>
+    [Fact]
+    public async Task A_refused_save_writes_nothing_to_the_stream()
+    {
+        var index = new EmbeddingIndex(dimension: 2, normalize: false);
+        index.Add([1f, float.PositiveInfinity]);
+
+        using var stream = new MemoryStream();
+        Assert.Throws<InvalidDataException>(() => index.Save(stream));
+        Assert.Equal(0, stream.Length);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => index.SaveAsync(stream));
+        Assert.Equal(0, stream.Length);
+    }
+
+    [Fact]
+    public async Task A_null_stream_still_faults_the_asynchronous_save()
+    {
+        Task pending = Sample().SaveAsync(null!);
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => pending);
+    }
+
     [Fact]
     public void Saving_leaves_the_callers_stream_open()
     {

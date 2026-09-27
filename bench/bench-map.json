@@ -216,6 +216,9 @@
     "SurvivalBenchmarks": [
       "src/Lodestar.Survival/**"
     ],
+    "CosineTopKSelectionBenchmarks": [
+      "src/Lodestar.Gpu/**"
+    ],
     "TiledCosineTopKBenchmarks": [
       "src/Lodestar.Gpu/**"
     ],
@@ -385,6 +388,11 @@
     "FilteredVectorSearchBenchmarks": [
       "src/Lodestar.Extensions.VectorData/**",
       "src/Lodestar.Embeddings/Search/**"
+    ],
+    "VectorStoreChurnBenchmarks": [
+      "src/Lodestar.Extensions.VectorData/**",
+      "src/Lodestar.Embeddings/Search/**",
+      "bench/Lodestar.Text.Benchmarks/FilteredVectorSearchBenchmarks.cs"
     ],
     "SentencePieceBpeLineageBenchmarks": [
       "src/Lodestar.Embeddings/Tokenization/**",

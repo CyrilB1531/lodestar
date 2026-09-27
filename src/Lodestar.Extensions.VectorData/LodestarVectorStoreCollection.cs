@@ -1,22 +1,20 @@
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
-using Lodestar.Abstractions;
 using Lodestar.Embeddings.Search;
 using Lodestar.Text.Search;
-using Lodestar.Text.Vectorization;
 using Microsoft.Extensions.VectorData;
 
 namespace Lodestar.Extensions.VectorData;
 
-/// <summary>An in-process collection: the records are the state, the indexes are caches.</summary>
+/// <summary>An in-process collection: the records, and the two indexes kept beside them.</summary>
 /// <typeparam name="TKey">The key type the record's key property carries.</typeparam>
 /// <typeparam name="TRecord">The record type, whose schema is read once on construction.</typeparam>
 /// <remarks>
-/// A write updates the dictionary and marks the caches stale; the first read after it
-/// rebuilds them, so a batch of writes costs one rebuild rather than one per record. An
-/// updated record's superseded vector is gone rather than masked — the case an
-/// append-with-tombstones store gets wrong. Not thread-safe for concurrent writes: an
-/// in-memory collection built for one process is not a database.
+/// A write costs its own record, never the collection's (#1214): its vector is normalized into
+/// its slot, and its text staged for the keyword half, which tokenizes what was staged when a
+/// hybrid search next needs it. An updated record's superseded vector is overwritten rather than
+/// masked. Searches may run concurrently with each other; a write may not run beside anything:
+/// an in-memory collection built for one process is not a database.
 /// </remarks>
 // Every provider of this abstraction names its collection type after the base class it
 // extends; CA1711 flags the suffix, but matching Microsoft.Extensions.VectorData is the point.
@@ -26,10 +24,10 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     where TKey : notnull
     where TRecord : class
 {
-    private readonly Dictionary<TKey, TRecord> _records = [];
+    private readonly HeldRecords<TKey, TRecord> _held;
+    private readonly KeywordIndex? _keywords;
     private readonly RecordSchema<TKey, TRecord> _schema;
     private readonly LodestarVectorStoreOptions _options;
-    private DerivedIndexes<TKey, TRecord>? _indexes;
     private bool _exists;
     private bool _deleted;
 
@@ -49,25 +47,15 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         Name = name;
         _options = options ?? new LodestarVectorStoreOptions();
         _schema = RecordSchema<TKey, TRecord>.Create(definition);
+        _held = new HeldRecords<TKey, TRecord>(_schema.Dimension);
+        _keywords = _schema.HasFullText ? new KeywordIndex(_options) : null;
     }
 
     /// <inheritdoc />
     public override string Name { get; }
 
-    /// <summary>How many times the caches have been rebuilt, which the suite asserts on.</summary>
-    internal int RebuildCount { get; private set; }
-
-    /// <summary>The caches, rebuilt first when a write has happened since the last read.</summary>
-    internal DerivedIndexes<TKey, TRecord> Current()
-    {
-        if (_indexes is null)
-        {
-            _indexes = DerivedIndexes<TKey, TRecord>.Build(_records.Values, _schema, _options);
-            RebuildCount++;
-        }
-
-        return _indexes;
-    }
+    /// <summary>How many texts the keyword half has tokenized, which the suite asserts a write does not multiply.</summary>
+    internal int TokenizedTexts => _keywords?.TokenizedTexts ?? 0;
 
     /// <summary>The schema this collection reads its records through.</summary>
     internal RecordSchema<TKey, TRecord> Schema => _schema;
@@ -92,8 +80,8 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     {
         _exists = false;
         _deleted = true;
-        Invalidate();
-        _records.Clear();
+        _held.Clear();
+        _keywords?.Clear();
         return Task.CompletedTask;
     }
 
@@ -103,8 +91,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     public override Task UpsertAsync(TRecord record, CancellationToken cancellationToken = default)
     {
         TKey key = _schema.Admit(record, nameof(record));
-        Invalidate();
-        _records[key] = record;
+        Write(key, record);
         _exists = true;
         _deleted = false;
         return Task.CompletedTask;
@@ -123,10 +110,9 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
             admitted.Add(new KeyValuePair<TKey, TRecord>(_schema.Admit(record, nameof(records)), record));
         }
 
-        Invalidate();
         foreach (KeyValuePair<TKey, TRecord> entry in admitted)
         {
-            _records[entry.Key] = entry.Value;
+            Write(entry.Key, entry.Value);
         }
 
         _exists = true;
@@ -138,12 +124,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <exception cref="ArgumentNullException"><paramref name="key"/> is null.</exception>
     public override Task DeleteAsync(TKey key, CancellationToken cancellationToken = default)
     {
-        if (_records.ContainsKey(key))
-        {
-            Invalidate();
-            _records.Remove(key);
-        }
-
+        Erase(key);
         return Task.CompletedTask;
     }
 
@@ -159,22 +140,34 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
             throw new ArgumentNullException(nameof(keys), "A null key cannot address a record.");
         }
 
-        if (Array.Exists(batch, _records.ContainsKey))
+        foreach (TKey key in batch)
         {
-            Invalidate();
-            foreach (TKey key in batch)
-            {
-                _records.Remove(key);
-            }
+            Erase(key);
         }
 
         return Task.CompletedTask;
     }
 
+    /// <summary>Holds an admitted record: its vector into its slot, its text staged.</summary>
+    private void Write(TKey key, TRecord record)
+    {
+        int slot = _held.Put(key, record, _schema.VectorOf(record).Span);
+        _keywords?.Stage(slot, _schema.FullTextOf(record));
+    }
+
+    private void Erase(TKey key)
+    {
+        int slot = _held.Remove(key);
+        if (slot >= 0)
+        {
+            _keywords?.Remove(slot);
+        }
+    }
+
     /// <inheritdoc />
     public override Task<TRecord?> GetAsync(
         TKey key, RecordRetrievalOptions? options = null, CancellationToken cancellationToken = default) =>
-        Task.FromResult(_records.TryGetValue(key, out TRecord? record) ? record : null);
+        Task.FromResult(_held.TryGet(key, out TRecord? record) ? record : null);
 
     /// <inheritdoc />
     /// <exception cref="ArgumentNullException"><paramref name="keys"/> is null.</exception>
@@ -188,9 +181,9 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         var found = new List<TRecord>();
         foreach (TKey key in keys)
         {
-            if (_records.TryGetValue(key, out TRecord? record))
+            if (_held.TryGet(key, out TRecord? record))
             {
-                found.Add(record);
+                found.Add(record!);
             }
         }
 
@@ -230,8 +223,8 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         }
 
         // Materialised before the first yield, so a write made while the caller enumerates
-        // cannot invalidate the dictionary enumerator this walk would otherwise still hold.
-        List<TRecord> admitted = [.. _records.Values.Where(filter.Compile()).Skip(options?.Skip ?? 0).Take(top)];
+        // changes nothing already answered.
+        List<TRecord> admitted = [.. _held.Records().Where(filter.Compile()).Skip(options?.Skip ?? 0).Take(top)];
         foreach (TRecord record in admitted)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -256,7 +249,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
 
     /// <inheritdoc />
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="top"/> is less than 1.</exception>
-    /// <exception cref="ArgumentException">The query, or a held record changed in place since its upsert, is not the collection's vector width.</exception>
+    /// <exception cref="ArgumentException">The query is not the collection's vector width.</exception>
     /// <exception cref="NotSupportedException"><paramref name="searchValue"/> is not a vector, and this package generates none.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> is cancelled between results.</exception>
     /// <remarks>
@@ -274,7 +267,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         Guard.NotLessThan(top, 1);
         ReadOnlyMemory<float> query = QueryOf(searchValue);
         VectorSearchOptions<TRecord> settings = options ?? new VectorSearchOptions<TRecord>();
-        List<VectorSearchResult<TRecord>> results = Nearest(Current(), query, top, settings);
+        List<VectorSearchResult<TRecord>> results = Nearest(query, top, settings);
 
         foreach (VectorSearchResult<TRecord> result in results)
         {
@@ -287,70 +280,24 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
 
     /// <summary>The whole of a vector search, computed before anything is yielded.</summary>
     /// <remarks>
-    /// Hits resolve through the records the indexes were built from, never the live dictionary,
-    /// so every score belongs to the record it is returned with.
+    /// The filter, when there is one, runs before any scoring, so a rejected record costs no dot
+    /// product, and only the survivors wanted are kept in a bounded heap. Hits resolve to their
+    /// records here, so a write made while the results are enumerated cannot pair a score with
+    /// another record. The threshold is safe to apply after the cut: it drops a suffix of the
+    /// order, never a record ahead of one it keeps.
     /// </remarks>
-    private static List<VectorSearchResult<TRecord>> Nearest(
-        DerivedIndexes<TKey, TRecord> indexes, ReadOnlyMemory<float> query, int top, VectorSearchOptions<TRecord> settings)
+    private List<VectorSearchResult<TRecord>> Nearest(
+        ReadOnlyMemory<float> query, int top, VectorSearchOptions<TRecord> settings)
     {
-        Func<TRecord, bool>? admits = RecordFilter.Compile(settings.Filter);
-        IEnumerable<VectorSearchResult<TRecord>> ranked = admits is null
-            ? Scored(indexes, query, (int)Math.Min((long)top + settings.Skip, indexes.Vectors.Count))
-                .Select(hit => new VectorSearchResult<TRecord>(indexes.Records[hit.Index], hit.Score))
-            : Admitted(indexes, query, top, settings.Skip, admits);
-
-        // A huge Skip overflows int, so top + Skip is summed in long, here and in Admitted.
+        // A huge Skip overflows int, so top + Skip is summed in long.
+        int wanted = (int)Math.Min((long)top + settings.Skip, _held.Count);
+        SearchResult[] ranked = _held.Nearest(query.Span, wanted, RecordFilter.Compile(settings.Filter));
         return [.. ranked
+            .Select(hit => new VectorSearchResult<TRecord>(_held.At(hit.Index)!, hit.Score))
             .Where(result => settings.ScoreThreshold is not { } threshold || result.Score >= threshold)
             .Skip(settings.Skip)
             .Take(top)];
     }
-
-    /// <summary>The best <paramref name="top"/> + <paramref name="skip"/> records the filter admits, best first.</summary>
-    /// <remarks>
-    /// The filter runs before any scoring, so a rejected record costs no dot product, and only
-    /// the survivors wanted are kept in a bounded heap rather than the whole collection sorted.
-    /// Scores are <see cref="EmbeddingIndex.Search"/>'s own: the same normalized query dotted with
-    /// the same stored row, ordered by score descending then position ascending. The threshold is
-    /// safe to apply after the cut: it drops a suffix of that order, never a record ahead of one it keeps.
-    /// </remarks>
-    private static IEnumerable<VectorSearchResult<TRecord>> Admitted(
-        DerivedIndexes<TKey, TRecord> indexes, ReadOnlyMemory<float> query, int top, int skip, Func<TRecord, bool> admits)
-    {
-        EmbeddingIndex vectors = indexes.Vectors;
-        if (vectors.Count == 0)
-        {
-            return [];
-        }
-        float[] normalized = query.ToArray();
-        float norm = VectorMath.L2Norm(normalized);
-        if (norm > 0)
-        {
-            for (int i = 0; i < normalized.Length; i++)
-            {
-                normalized[i] /= norm;
-            }
-        }
-
-        int dimension = vectors.Dimension;
-        ReadOnlySpan<float> block = indexes.Block.Span;
-        var best = new TopHits((int)Math.Min((long)top + skip, vectors.Count));
-        for (int row = 0; row < vectors.Count; row++)
-        {
-            if (admits(indexes.Records[row]))
-            {
-                best.Offer(new SearchResult(row, VectorMath.Dot(normalized, block.Slice(row * dimension, dimension))));
-            }
-        }
-
-        return best.Ranked().Select(hit => new VectorSearchResult<TRecord>(indexes.Records[hit.Index], hit.Score));
-    }
-
-    private static IReadOnlyList<SearchResult> Scored(
-        DerivedIndexes<TKey, TRecord> indexes, ReadOnlyMemory<float> query, int wanted) =>
-        indexes.Vectors.Count == 0
-            ? []
-            : indexes.Vectors.Search(query.Span, Math.Min(wanted, indexes.Vectors.Count));
 
     /// <summary>The search value as a vector of the collection's width.</summary>
     /// <remarks>Checked against the schema, not the index, so an empty collection refuses a wrong width too.</remarks>
@@ -385,8 +332,9 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <param name="options">A filter and a skip, applied to the fused ranking.</param>
     /// <param name="cancellationToken">Checked between results.</param>
     /// <exception cref="ArgumentNullException"><paramref name="keywords"/> is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="top"/> is less than 1.</exception>
-    /// <exception cref="ArgumentException">The query, or a held record changed in place since its upsert, is not the collection's vector width.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="top"/> is less than 1, or the options' vectorizer or BM25 settings are outside their range.</exception>
+    /// <exception cref="ArgumentException">The query is not the collection's vector width, or the options' <c>NgramRange</c> is not an ascending range from 1.</exception>
+    /// <exception cref="InvalidOperationException">The options' <c>MaxDf</c> corresponds to fewer records than their <c>MinDf</c>.</exception>
     /// <exception cref="NotSupportedException">The record type marks no <c>IsFullTextIndexed</c> property, the search value is not a vector, or <paramref name="options"/> sets <c>ScoreThreshold</c>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> is cancelled between results.</exception>
     /// <remarks>
@@ -423,7 +371,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
                 + "similarities means anything against it.");
         }
 
-        List<VectorSearchResult<TRecord>> results = Fused(Current(), query, keywords, top, settings);
+        List<VectorSearchResult<TRecord>> results = Fused(query, keywords, top, settings);
         foreach (VectorSearchResult<TRecord> result in results)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -434,58 +382,31 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     }
 
     /// <summary>The whole of a hybrid search, computed before anything is yielded.</summary>
+    /// <remarks>
+    /// Only matched records enter the keyword ranking, since <see cref="RankFusion.Rrf"/> reads rank
+    /// position and not score; <see cref="FusedTop"/> then fuses it with the vector ranking without
+    /// ranking either in full, and the filter and <c>Skip</c> apply to the fused order.
+    /// </remarks>
     private List<VectorSearchResult<TRecord>> Fused(
-        DerivedIndexes<TKey, TRecord> indexes,
         ReadOnlyMemory<float> query,
         ICollection<string> keywords,
         int top,
         HybridSearchOptions<TRecord> settings)
     {
-        Func<TRecord, bool>? admits = RecordFilter.Compile(settings.Filter);
-        int[] byVector = [.. Scored(indexes, query, indexes.Vectors.Count).Select(hit => hit.Index)];
-        int[] byKeyword = KeywordRanking(indexes, keywords);
-
-        IEnumerable<VectorSearchResult<TRecord>> fused = RankFusion.Rrf([byVector, byKeyword], Options.RankFusionK)
-            .Select(hit => new VectorSearchResult<TRecord>(indexes.Records[hit.Document], hit.Score))
-            .Where(result => admits is null || admits(result.Record));
-
-        return [.. fused.Skip(settings.Skip).Take(top)];
-    }
-
-    /// <summary>The documents the keywords matched, best first; none when nothing is held.</summary>
-    /// <remarks>
-    /// A marked schema over no records builds no keyword index, so the empty ranking is the answer
-    /// rather than a refusal. Only matched documents are ranked, since <see cref="RankFusion.Rrf"/>
-    /// reads rank position and not score; matching is read from the term postings
-    /// and not from the score, whose sign Robertson's IDF leaves open. The order is <c>Top</c>'s:
-    /// score descending, then document index (#993).
-    /// </remarks>
-    private static int[] KeywordRanking(DerivedIndexes<TKey, TRecord> indexes, ICollection<string> keywords)
-    {
-        if (indexes.Keywords is null || indexes.Vectorizer is null || indexes.Postings is null)
+        if (_held.Count == 0)
         {
             return [];
         }
 
-        return indexes.Postings.Ranked(QueryTerms(indexes.Vectorizer, keywords), indexes.Keywords);
-    }
+        KeywordMatches matched = _keywords!.Matched(keywords);
+        int wanted = (int)Math.Min((long)top + settings.Skip, _held.Count);
+        List<(int Slot, double Score)> fused = FusedTop.Select(
+            _held, query.Span, matched, Options.RankFusionK, wanted, RecordFilter.Compile(settings.Filter));
 
-    /// <summary>The keywords as column indices of the fitted vocabulary, unseen terms dropped.</summary>
-    /// <remarks>
-    /// <see cref="CsrMatrix"/> publishes no per-row column enumerator, so this walks
-    /// <see cref="CsrMatrix.RowPointers"/> and <see cref="CsrMatrix.ColumnIndices"/> directly —
-    /// the same pattern <c>Bm25Index</c> itself uses to enumerate a row's non-zeros.
-    /// </remarks>
-    private static List<int> QueryTerms(CountVectorizer vectorizer, ICollection<string> keywords)
-    {
-        CsrMatrix row = vectorizer.Transform([string.Join(" ", keywords)]);
-        var terms = new List<int>();
-        for (int k = row.RowPointers[0]; k < row.RowPointers[1]; k++)
-        {
-            terms.Add(row.ColumnIndices[k]);
-        }
-
-        return terms;
+        return [.. fused
+            .Select(hit => new VectorSearchResult<TRecord>(_held.At(hit.Slot)!, hit.Score))
+            .Skip(settings.Skip)
+            .Take(top)];
     }
 
     /// <summary>Releases resources — none, here: the base class declares the pattern and a consumer's <c>using</c> has to reach something.</summary>
@@ -501,7 +422,5 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <inheritdoc />
     Task IExistingCollection.EnsureDeletedAsync(CancellationToken cancellationToken) =>
         EnsureCollectionDeletedAsync(cancellationToken);
-
-    private void Invalidate() => _indexes = null;
 }
 #pragma warning restore CA1711

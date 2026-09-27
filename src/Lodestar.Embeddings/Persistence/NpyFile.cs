@@ -77,17 +77,18 @@ public static class NpyFile
             source,
             MemoryMarshal.AsBytes(values.AsSpan()),
             ShortPayload(elements * sizeof(float)));
+        ToHostOrder(values, BitConverter.IsLittleEndian);
 
         return new NpyBlock(values, header.Shape) { OwnedArray = values };
     }
 
-    /// <summary>Reads a <c>.npy</c> from bytes already in memory, copying nothing.</summary>
+    /// <summary>Reads a <c>.npy</c> from bytes already in memory, copying nothing on a little-endian host.</summary>
     /// <remarks>
     /// For a caller holding the file already — a blob, a cache entry, an embedded resource.
     /// <b>The returned block aliases those bytes, so they must not change while it is read</b>,
     /// the contract <c>EmbeddingIndex.Load(ReadOnlyMemory)</c> states for the same reason.
     /// <see cref="NpyBlock.OwnedArray"/> is therefore null: a borrowed block has no array to
-    /// hand over. The performance guide has the trade.
+    /// hand over. The performance guide has the trade. A big-endian host copies and swaps instead.
     /// </remarks>
     /// <param name="npy">The file's bytes, which outlive the block.</param>
     /// <param name="options">Bounds applied while reading, or <see langword="null"/> for the defaults.</param>
@@ -106,7 +107,17 @@ public static class NpyFile
                 $"holds {available} bytes of data where its shape needs {expected}.");
         }
 
-        var manager = new NpyPayloadManager(npy.Slice(dataStart, (int)expected));
+        ReadOnlyMemory<byte> payload = npy.Slice(dataStart, (int)expected);
+        if (!BitConverter.IsLittleEndian)
+        {
+            // Nothing to alias on a big-endian host: the bits have to move (#1214).
+            float[] values = new float[elements];
+            payload.Span.CopyTo(MemoryMarshal.AsBytes(values.AsSpan()));
+            ToHostOrder(values, hostIsLittleEndian: false);
+            return new NpyBlock(values, header.Shape) { OwnedArray = values };
+        }
+
+        var manager = new NpyPayloadManager(payload);
         return new NpyBlock(manager.Memory, header.Shape);
     }
 
@@ -119,6 +130,20 @@ public static class NpyFile
     {
         using FileStream file = JsonArtifact.OpenRead(path);
         return Read(file, options);
+    }
+
+    /// <summary>Reverses each little-endian word the file holds when the host is big-endian, as <see cref="WriteBlock"/> does going out.</summary>
+    internal static void ToHostOrder(Span<float> values, bool hostIsLittleEndian)
+    {
+        if (hostIsLittleEndian)
+        {
+            return;
+        }
+        Span<int> words = MemoryMarshal.Cast<float, int>(values);
+        for (int i = 0; i < words.Length; i++)
+        {
+            words[i] = BinaryPrimitives.ReverseEndianness(words[i]);
+        }
     }
 
     /// <summary>Magic, version and the widest header length: the prefix one read always covers.</summary>

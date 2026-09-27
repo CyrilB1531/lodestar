@@ -7,25 +7,29 @@ search with no database and no service running anywhere**. Every other provider 
 search talks to a server, and the providers that run in process offer none; this one holds the
 records in the calling process and fuses both rankings there.
 
-It adds **no retrieval arithmetic of its own**. The vector half is
-[`EmbeddingIndex`](../embeddings/search/embeddingindex.md), the keyword half is
-[`Bm25Index`](../text/search/bm25index.md) over a
-[`CountVectorizer`](../text/vectorizers/countvectorizer.md) vocabulary, and the fusion is
-[`RankFusion.Rrf`](../text/search/rankfusion-rrf.md). What this package owes is the interface
-contract: keys, upserts, deletes, filters, and the one place the two rankings meet.
+It ranks **exactly as the published pieces rank**. The vector half scores as
+[`EmbeddingIndex`](../embeddings/search/embeddingindex.md) does, the keyword half as
+[`Bm25Index`](../text/search/bm25index.md) does over the vocabulary a
+[`CountVectorizer`](../text/vectorizers/countvectorizer.md) would fit, and the fusion is
+[`RankFusion.Rrf`](../text/search/rankfusion-rrf.md)'s. What this package owes is the interface
+contract — keys, upserts, deletes, filters, and the one place the two rankings meet — and keeping
+both halves current as records are written.
 
-## The shape: records are the truth, indexes are caches
+## The shape: a write costs its own record
 
-Neither index can honour an upsert as it stands — `EmbeddingIndex` only appends, and `Bm25Index` is
-built whole from a matrix and never changes. So each collection keeps its records in a dictionary
-keyed by the record's key, and both indexes are **rebuilt from it on the first search after a write**.
-A batch of writes costs one rebuild, and an updated record's old vector is gone rather than masked.
-`decisions/0123`
-records the choice and the two alternatives it beat.
+Neither published index can honour an upsert as it stands — `EmbeddingIndex` only appends, and
+`Bm25Index` is built whole from a matrix and never changes — and rebuilding them after every write
+made a workload alternating writes and searches pay for **every** record on every search. So each
+collection keeps what they are built from, per record: a vector normalized once into the record's
+slot, and its text tokenized once by the vectorizer, with the postings and the counts BM25 reads
+added and removed in place. An updated record's old vector and text are gone rather than masked.
 
-That is also the cost to know about: the search that follows a write pays for a rebuild over
-**every** record. A workload that alternates one write with one search rebuilds on every search;
-reading a record by key never rebuilds anything.
+What stays whole-corpus is what BM25 defines that way: a term's IDF depends on how many records
+hold it, and the floor on a negative IDF is a share of the mean IDF over the whole vocabulary. Both
+are kept as counts; the floor, when a query needs it, costs one pass over the vocabulary after each
+write, and never one over the records. Results, scores and ties are those a from-scratch build over
+the same records gives, which the suite replays random writes against. Reading a record by key
+touches neither half.
 
 ## What it refuses, and why each refusal names its reason
 
@@ -54,7 +58,7 @@ a filter; with one, it cannot.
 | Type | What it is |
 | --- | --- |
 | [`LodestarVectorStore`](store/lodestarvectorstore.md) | An in-process vector store: named collections, held for the store's lifetime. |
-| [`LodestarVectorStoreCollection`](store/lodestarvectorstorecollection.md) | One collection: records in a dictionary, a vector index and a BM25 index derived from them. |
+| [`LodestarVectorStoreCollection`](store/lodestarvectorstorecollection.md) | One collection: its records, and a vector index and a BM25 index kept current as they are written. |
 | [`LodestarVectorStoreOptions`](store/lodestarvectorstoreoptions.md) | How a collection builds its keyword half, and the offset reciprocal-rank fusion uses. |
 
 ## See also

@@ -11,12 +11,12 @@ namespace Lodestar.Extensions.VectorData;
 /// </remarks>
 internal sealed class TopHits
 {
-    private readonly SearchResult[] _heap;
+    private readonly Hit[] _heap;
     private int _count;
 
     /// <summary>Creates an empty set that keeps at most <paramref name="capacity"/> hits.</summary>
     /// <param name="capacity">How many hits to keep; zero keeps none.</param>
-    public TopHits(int capacity) => _heap = new SearchResult[capacity];
+    public TopHits(int capacity) => _heap = new Hit[capacity];
 
     /// <summary>Keeps <paramref name="hit"/> if it ranks among the best offered so far.</summary>
     /// <param name="hit">A scored position.</param>
@@ -24,13 +24,13 @@ internal sealed class TopHits
     {
         if (_count < _heap.Length)
         {
-            _heap[_count] = hit;
-            SiftUp(_count++);
+            _heap[_count] = new Hit(hit);
+            MaxHeap.SiftUp(_heap, _count++);
         }
-        else if (_count > 0 && Ahead(hit, _heap[0]))
+        else if (_count > 0 && Compare(hit, _heap[0].Result) < 0)
         {
-            _heap[0] = hit;
-            SiftDown(0);
+            _heap[0] = new Hit(hit);
+            MaxHeap.SiftDown(_heap, _count);
         }
     }
 
@@ -38,7 +38,11 @@ internal sealed class TopHits
     public SearchResult[] Ranked()
     {
         var ranked = new SearchResult[_count];
-        Array.Copy(_heap, ranked, _count);
+        for (int i = 0; i < _count; i++)
+        {
+            ranked[i] = _heap[i].Result;
+        }
+
         Array.Sort(ranked, Compare);
         return ranked;
     }
@@ -50,44 +54,11 @@ internal sealed class TopHits
         return byScore != 0 ? byScore : x.Index.CompareTo(y.Index);
     }
 
-    /// <summary>Whether <paramref name="x"/> ranks before <paramref name="y"/>.</summary>
-    private static bool Ahead(SearchResult x, SearchResult y) => Compare(x, y) < 0;
-
-    private void SiftUp(int at)
+    /// <summary>A hit ordered worst last, so the heap's root is the worst kept.</summary>
+    private readonly struct Hit(SearchResult result) : IComparable<Hit>
     {
-        while (at > 0)
-        {
-            int parent = (at - 1) / 2;
-            if (!Ahead(_heap[parent], _heap[at]))
-            {
-                return;
-            }
-            (_heap[parent], _heap[at]) = (_heap[at], _heap[parent]);
-            at = parent;
-        }
-    }
+        public SearchResult Result { get; } = result;
 
-    private void SiftDown(int at)
-    {
-        while (true)
-        {
-            int worst = at;
-            int left = (2 * at) + 1;
-            int right = left + 1;
-            if (left < _count && Ahead(_heap[worst], _heap[left]))
-            {
-                worst = left;
-            }
-            if (right < _count && Ahead(_heap[worst], _heap[right]))
-            {
-                worst = right;
-            }
-            if (worst == at)
-            {
-                return;
-            }
-            (_heap[worst], _heap[at]) = (_heap[at], _heap[worst]);
-            at = worst;
-        }
+        public int CompareTo(Hit other) => Compare(Result, other.Result);
     }
 }

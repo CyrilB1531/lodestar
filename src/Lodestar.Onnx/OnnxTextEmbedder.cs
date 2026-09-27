@@ -13,8 +13,8 @@ namespace Lodestar.Onnx;
 /// <remarks>
 /// Delegates to ONNX Runtime; weights are <em>not</em> shipped, supply a path you
 /// downloaded. Only declared inputs are fed, so a model with no
-/// <c>token_type_ids</c> still runs (<c>OnnxTextEmbedderTests.Embed_runs_model_and_pools</c>).
-/// See the guide's "Embed a batch" section for the pipeline.
+/// <c>token_type_ids</c> still runs (<c>OnnxTextEmbedderTests.Embed_runs_model_and_pools</c>);
+/// a float16 or bfloat16 output is widened to float. "Embed a batch" in the guide has the rest.
 /// </remarks>
 public sealed class OnnxTextEmbedder : IDisposable
 {
@@ -30,6 +30,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     private readonly string _outputName;
     private readonly string[] _outputNames;
     private readonly ISubwordTokenizer? _tokenizer;
+    private readonly int? _maxSequenceLength;
     private bool _disposed;
 
     /// <summary>Opens an ONNX encoder model from <paramref name="modelPath"/>.</summary>
@@ -65,6 +66,8 @@ public sealed class OnnxTextEmbedder : IDisposable
             _tokenTypeIdsName = _session.InputMetadata.ContainsKey(tokenTypeIdsName) ? tokenTypeIdsName : null;
             _outputName = ChooseOutput(_session, outputName, nameof(outputName));
             _outputNames = [_outputName];
+            _maxSequenceLength = DeclaredSequenceLength(_session, _inputIdsName)
+                ?? PositionTable.UsableLength(modelPath, _inputIdsName);
         }
         catch
         {
@@ -115,22 +118,16 @@ public sealed class OnnxTextEmbedder : IDisposable
     }
 
     /// <summary>
-    /// The sequence length the model declares, when it declares a fixed one; else
-    /// <see langword="null"/>.
+    /// The longest sequence the model can take: its declared sequence axis when that is fixed,
+    /// else the positions its position-embedding table can index; else <see langword="null"/>.
     /// </summary>
     /// <remarks>
-    /// What <see cref="EncodingOptions.MaxLength"/> falls back to; see the guide's
-    /// "Embed a batch" section for why most exports report none (a symbolic axis
-    /// reads back negative here) and the real limit must be passed explicitly.
+    /// What a null <see cref="EncodingOptions.MaxLength"/> falls back to. The table is the
+    /// model's hard limit, not sentence-transformers' <c>max_seq_length</c> (256 for
+    /// all-MiniLM-L6-v2, whose table holds 512), which no graph carries: see the guide's
+    /// "Embed a batch". A RoBERTa-style table's padding offset is subtracted (514 reads 512).
     /// </remarks>
-    public int? MaxSequenceLength
-    {
-        get
-        {
-            int[] shape = _session.InputMetadata[_inputIdsName].Dimensions;
-            return shape.Length >= 2 && shape[^1] > 0 ? shape[^1] : null;
-        }
-    }
+    public int? MaxSequenceLength => _maxSequenceLength;
 
     /// <summary>Embeds a single tokenized sequence into a normalized sentence vector.</summary>
     /// <remarks>
@@ -143,6 +140,8 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="inputIds">Token ids.</param>
     /// <param name="attentionMask">Attention mask (same length as <paramref name="inputIds"/>).</param>
     /// <exception cref="ArgumentException"><paramref name="inputIds"/> and <paramref name="attentionMask"/> differ in length.</exception>
+    /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
+    /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed.</exception>
     public float[] Embed(ReadOnlySpan<long> inputIds, ReadOnlySpan<long> attentionMask)
     {
@@ -183,7 +182,8 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="texts">The texts to embed.</param>
     /// <param name="options">Template, truncation and batching settings; <see langword="null"/> uses the defaults, with <c>MaxLength</c> taken from <see cref="MaxSequenceLength"/>.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
-    /// <exception cref="InvalidOperationException">The embedder was built without a tokenizer.</exception>
+    /// <exception cref="InvalidOperationException">The embedder was built without a tokenizer, or the model output is not shaped for the batch it was fed.</exception>
+    /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed.</exception>
     public float[][] EmbedBatch(
@@ -211,6 +211,8 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="encoder">The encoder that owns the tokenizer, template and truncation.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
+    /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed.</exception>
     public float[][] EmbedBatch(IEnumerable<string> texts, BatchEncoder encoder, CancellationToken cancellationToken = default)
     {
@@ -251,6 +253,8 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="batch">A batch from <see cref="BatchEncoder.EncodeBatch"/>.</param>
     /// <param name="cancellationToken">Observed before the call is made.</param>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
+    /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed.</exception>
     public float[][] EmbedBatch(EncodedBatch batch, CancellationToken cancellationToken = default)
     {
@@ -285,9 +289,16 @@ public sealed class OnnxTextEmbedder : IDisposable
     private EncodingOptions ResolveOptions(EncodingOptions? options)
     {
         EncodingOptions resolved = options ?? new EncodingOptions();
-        return resolved.MaxLength is null && MaxSequenceLength is int declared
-            ? resolved with { MaxLength = declared }
+        return resolved.MaxLength is null && _maxSequenceLength is int limit
+            ? resolved with { MaxLength = limit }
             : resolved;
+    }
+
+    /// <summary>The token-ids input's last axis, when fixed; a symbolic axis reads back negative.</summary>
+    private static int? DeclaredSequenceLength(InferenceSession session, string inputIdsName)
+    {
+        int[] shape = session.InputMetadata[inputIdsName].Dimensions;
+        return shape.Length >= 2 && shape[^1] > 0 ? shape[^1] : null;
     }
 
     /// <summary>Indices of <paramref name="sequences"/> ordered by length, ties by original position.</summary>
@@ -344,36 +355,106 @@ public sealed class OnnxTextEmbedder : IDisposable
         }
 
         using IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results = _session.Run(inputs, _outputNames);
-        Tensor<float> output = results[0].AsTensor<float>();
+        object value = results[0].Value;
+        int[] shape = value switch
+        {
+            Tensor<float> single => single.Dimensions.ToArray(),
+            Tensor<Float16> half => half.Dimensions.ToArray(),
+            Tensor<BFloat16> brain => brain.Dimensions.ToArray(),
+            _ => throw new NotSupportedException(
+                $"The model output '{_outputName}' holds {_session.OutputMetadata[_outputName].ElementDataType} elements. " +
+                "A token-embedding output must be float, float16 or bfloat16."),
+        };
+        RequireShape(shape, batchSize, seqLen);
 
-        int rank = output.Dimensions.Length;
-        if (rank is not (2 or 3))
+        int dim = shape[^1];
+        int length = batchSize * dim * (shape.Length == 3 ? seqLen : 1);
+        float[]? widened = value is Tensor<float> ? null : Widen(value, length);
+        try
+        {
+            // Reading the tensor's own buffer, rather than ToArray(), keeps the whole
+            // [batch, sequence, dim] block from being copied on the way to the pooler.
+            ReadOnlySpan<float> flat = value switch
+            {
+                DenseTensor<float> dense => dense.Buffer.Span,
+                Tensor<float> single => single.ToArray(),
+                _ => widened.AsSpan(0, length),
+            };
+
+            if (shape.Length == 2)
+            {
+                // Already pooled by the graph: normalize each row and stop.
+                var pooled = new float[batchSize][];
+                for (int b = 0; b < batchSize; b++)
+                {
+                    float[] vector = flat.Slice(b * dim, dim).ToArray();
+                    Pooler.L2Normalize(vector);
+                    pooled[b] = vector;
+                }
+                return pooled;
+            }
+
+            return Pooler.MeanPoolAndNormalizeBatch(flat, batchSize, seqLen, dim, mask.AsSpan(0, elements));
+        }
+        finally
+        {
+            if (widened is not null)
+            {
+                ArrayPool<float>.Shared.Return(widened);
+            }
+        }
+    }
+
+    /// <summary>Refuses an output whose leading axes are not the batch the model was fed.</summary>
+    /// <remarks>
+    /// <c>[seq, batch, dim]</c> holds as many elements as <c>[batch, seq, dim]</c>, so the pooler's
+    /// own length check passed a transposed output and averaged the wrong rows (#1214).
+    /// </remarks>
+    private void RequireShape(int[] shape, int batchSize, int seqLen)
+    {
+        if (shape.Length is not (2 or 3))
         {
             throw new InvalidOperationException(
-                $"The model output '{_outputName}' has rank {rank}. A token-embedding output must be " +
+                $"The model output '{_outputName}' has rank {shape.Length}. A token-embedding output must be " +
                 "[batch, sequence, dim] (rank 3), or [batch, dim] (rank 2) if the model pools internally. " +
                 "Pass outputName to select a different output.");
         }
-
-        int dim = output.Dimensions[^1];
-        // Reading the tensor's own buffer, rather than ToArray(), keeps the whole
-        // [batch, sequence, dim] block from being copied on the way to the pooler.
-        ReadOnlySpan<float> flat = output is DenseTensor<float> dense ? dense.Buffer.Span : output.ToArray();
-
-        if (rank == 2)
+        bool matches = shape[0] == batchSize && (shape.Length == 2 || shape[1] == seqLen);
+        if (!matches)
         {
-            // Already pooled by the graph: normalize each row and stop.
-            var pooled = new float[batchSize][];
-            for (int b = 0; b < batchSize; b++)
-            {
-                float[] vector = flat.Slice(b * dim, dim).ToArray();
-                Pooler.L2Normalize(vector);
-                pooled[b] = vector;
-            }
-            return pooled;
+            string expected = shape.Length == 3 ? $"[{batchSize}, {seqLen}, dim]" : $"[{batchSize}, dim]";
+            throw new InvalidOperationException(
+                $"The model output '{_outputName}' has shape [{string.Join(", ", shape)}] where {expected} was expected " +
+                $"for a batch of {batchSize} sequence(s) of {seqLen} token(s). " +
+                "Pass outputName to select a different output.");
         }
+    }
 
-        return Pooler.MeanPoolAndNormalizeBatch(flat, batchSize, seqLen, dim, mask.AsSpan(0, elements));
+    /// <summary>Converts a half-precision output to a rented float buffer the caller returns.</summary>
+    private static float[] Widen(object value, int length)
+    {
+        float[] widened = ArrayPool<float>.Shared.Rent(length);
+        switch (value)
+        {
+            case DenseTensor<Float16> half:
+                ReadOnlySpan<Float16> halves = half.Buffer.Span;
+                for (int i = 0; i < length; i++)
+                {
+                    widened[i] = (float)halves[i];
+                }
+                break;
+            case DenseTensor<BFloat16> brain:
+                ReadOnlySpan<BFloat16> brains = brain.Buffer.Span;
+                for (int i = 0; i < length; i++)
+                {
+                    widened[i] = (float)brains[i];
+                }
+                break;
+            default:
+                ArrayPool<float>.Shared.Return(widened);
+                throw new NotSupportedException($"ONNX Runtime returned a {value.GetType().Name}, which is not a dense tensor.");
+        }
+        return widened;
     }
 
     /// <summary>Refuses a null tokenizer, then hands back the model path.</summary>

@@ -46,10 +46,10 @@ static async Task<string> RemoveAsync()
 string remaining = RemoveAsync().GetAwaiter().GetResult();  // => b
 ```
 
-**Remarks** — **a key that is not held is not an error**, in either overload. A delete that removed
-nothing leaves the indexes as they were, so it costs no rebuild; one that removed anything marks them
-stale, and the next search rebuilds them without the deleted records. The positions of the records
-that remain are recomputed with them, so no result ever maps back to the wrong key.
+**Remarks** — **a key that is not held is not an error**, in either overload, and costs nothing. A
+delete costs the removed record alone: its slot is freed for the next new key, and its text's
+postings leave the keyword half's terms, so no later search can return it or count it in a term's
+document frequency. The records that remain keep their slots.
 
 Deleting the last record does not delete the collection:
 [`LodestarVectorStoreCollection.CollectionExistsAsync`](lodestarvectorstorecollection-collectionexistsasync.md)

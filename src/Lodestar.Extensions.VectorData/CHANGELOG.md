@@ -9,6 +9,13 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 - A collection whose texts yield no term still degrades to the vector ranking once `Lodestar.Text` refuses such a corpus, as scikit-learn does; crossed `MinDf`/`MaxDf` bounds still throw. ([#1239](https://github.com/CyrilB1531/lodestar/pull/1239))
 - The `Lodestar.Embeddings` and `Lodestar.Text` dependency floors rise from 0.6.0 to 0.8.0 and 0.7.0, the releases that forward their data types to `Lodestar.Abstractions`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+- A write costs its own record, its vector normalized into its slot and its text tokenized once by the next hybrid search, where every write made the next search rebuild both indexes over every record: replacing one record then searching 100,000 takes 4.1 ms where it took 148 ms. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
+- `HybridSearchAsync` reads both rankings only as deep as the fused top needs, where it sorted the whole vector ranking and fused every record, 3.2× to 4.5× faster at 100,000 records. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
+- A vector search no longer reads the keyword options, so options the records refuse fail `HybridSearchAsync` alone, and a record changed in place after its upsert is searched as it was written rather than as the next rebuild found it. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
+
+### Fixed
+
+- A query is normalized in double, as the stored vectors are, so one whose components pass about 1e19 ranks by direction where its float norm overflowed and every score came back zero. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
 
 ## [0.1.0] — 2026-09-24
 

@@ -78,7 +78,7 @@ public sealed class WordPieceAddedTokenTests
         using JsonDocument doc = OracleLoader.Load("wordpiece_added_tokens.json");
         WordPieceVocabulary vocabulary = Vocabulary(doc);
 
-        Assert.Equal(8, vocabulary.AddedTokens.Count);
+        Assert.Equal(10, vocabulary.AddedTokens.Count);
         Assert.DoesNotContain("[CLS]", vocabulary.Vocab.Keys, StringComparer.Ordinal);
         Assert.True(vocabulary.Lowercase);
 

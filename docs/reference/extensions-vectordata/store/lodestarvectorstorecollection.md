@@ -1,6 +1,6 @@
 # LodestarVectorStoreCollection
 
-One collection: records in a dictionary, a vector index and a BM25 index derived from them.
+One collection: its records, and a vector index and a BM25 index kept current as they are written.
 
 <!-- docs-declaration -->
 
@@ -47,16 +47,19 @@ static async Task<string> RoundTripAsync()
 string seen = RoundTripAsync().GetAwaiter().GetResult();  // => notes: b, the cat sat on the mat
 ```
 
-**Remarks** — **the records are the state, and the indexes are caches.** A write changes the
-dictionary and marks the caches stale; the next search rebuilds an `EmbeddingIndex` over every
-vector, a `CountVectorizer` vocabulary and `Bm25Index` over every full-text value, and the table that
-maps an index position back to a key. A batch of writes therefore costs one rebuild, and an upserted
-record's previous vector is gone rather than filtered out of results.
+**Remarks** — **a write costs its own record, never the collection's.** An upsert normalizes the
+record's vector into the record's slot and stages its full-text value; the first hybrid search after
+it tokenizes what was staged, once, and adds its postings and counts to the keyword half. A delete
+takes them out again. An upserted record's previous vector and text are gone rather than filtered
+out of results. Every search ranks exactly as an `EmbeddingIndex`, a `CountVectorizer` vocabulary
+with a `Bm25Index` over it, and `RankFusion.Rrf` built from scratch over the records held would —
+results, scores and ties.
 
-That is the trade to know before choosing this collection. **A search after a write is `O(n)` in the
-records held**, before any scoring — which is right for a collection written in batches and searched
-many times, and wrong for one that interleaves single writes with searches at scale. Reads by key
-never rebuild.
+A search still reads every record, as an exact search must: `n` dot products, and a hybrid search
+a pass over each ranking per depth it reads, to find the fused top without sorting either. What
+BM25 defines over the whole corpus — a term's IDF, the average length, the floor on a negative IDF,
+a share of the mean IDF over the vocabulary — is kept as counts, and only the floor, when a keyword
+needs it, costs a pass over the vocabulary after a write. Reads by key touch neither index.
 
 **Scores are cosine similarities.** The vector index normalizes each vector and the query, so a
 vector's length never moves its rank — see [`EmbeddingIndex`](../../embeddings/search/embeddingindex.md).
@@ -68,8 +71,8 @@ is accepted. `IndexKind` is not read: every search here is exact, which any inde
 
 **The collection hands back the records it holds, not copies.** Changing a record returned by
 [`LodestarVectorStoreCollection.GetAsync`](lodestarvectorstorecollection-getasync.md) or a search
-changes the stored one without marking the caches stale, so its old vector and text keep scoring
-until the next write. Upsert the changed record to have it indexed.
+changes the stored one, and what a filter sees, but its vector and text were read at its write and
+keep scoring as they were. Upsert the changed record to have it indexed.
 
 **Every asynchronous member completes synchronously.** The work is done in memory before the task or
 the first element comes back, and nothing pretends otherwise with a `Task.Yield`. Because an
@@ -78,8 +81,10 @@ enumerates them changes nothing already answered, and never throws out of the en
 here is already completed; an `IAsyncEnumerable` does its work when enumeration begins, which is
 also when its arguments are checked.
 
-**Thread safety** — not safe for concurrent writes, or for a search concurrent with a write. An
-in-memory collection built for one process is not a database.
+**Thread safety** — searches may run concurrently with each other, the first hybrid search after a
+write included: tokenizing what the write staged is done once, under a lock. Not safe for concurrent
+writes, or for a search concurrent with a write. An in-memory collection built for one process is
+not a database.
 
 **Applies to** — net10.0, netstandard2.0.
 

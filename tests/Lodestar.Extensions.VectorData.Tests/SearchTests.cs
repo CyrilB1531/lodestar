@@ -19,6 +19,21 @@ public sealed class SearchTests
         return collection;
     }
 
+    // Squared in float, 1e20 overflows to infinity and every score to zero, which ties a, b and c in slot order.
+    [Fact]
+    public async Task A_query_whose_components_overflow_a_float_norm_still_ranks_by_direction()
+    {
+        using LodestarVectorStoreCollection<string, Document> collection = await Seeded();
+        var query = new ReadOnlyMemory<float>([0f, 1e20f, 0f]);
+
+        List<VectorSearchResult<Document>> nearest = await collection.SearchAsync(query, 1).ToListAsync();
+        List<VectorSearchResult<Document>> fused = await collection.HybridSearchAsync(query, ["zebra"], 1).ToListAsync();
+
+        Assert.Equal("b", Assert.Single(nearest).Record.Id);
+        Assert.Equal(1d, nearest[0].Score!.Value, 6);
+        Assert.Equal("b", Assert.Single(fused).Record.Id);
+    }
+
     [Fact]
     public async Task An_empty_collection_refuses_a_query_of_the_wrong_width()
     {

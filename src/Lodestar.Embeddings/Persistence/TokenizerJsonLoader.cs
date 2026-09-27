@@ -10,8 +10,8 @@ namespace Lodestar.Embeddings.Persistence;
 /// <remarks>
 /// The vocabulary side of <c>tokenizers.Tokenizer.from_file</c>. Each tokenizer here
 /// implements one fixed pipeline, so a file describing another is refused by name —
-/// <c>docs/guides/embeddings.md</c>'s "Models that are refused" lists them, stock BERT
-/// included, whose route is <see cref="VocabTxtLoader"/>. An unknown top-level property
+/// <c>docs/guides/embeddings.md</c>'s "Models that are refused" lists them; stock BERT is
+/// read since #1210, as <see cref="VocabTxtLoader"/> reads it. An unknown top-level property
 /// is accepted in silence: <c>docs/equivalence.md</c>'s loader row.
 /// </remarks>
 /// <example>
@@ -38,6 +38,13 @@ public static class TokenizerJsonLoader
     /// <summary>The <c>type</c> a normalizer or a pre-tokenizer wrapping several steps declares.</summary>
     private const string SequenceName = "Sequence";
     private const string MetaSymbol = "\u2581";
+    private const string NormalizerProperty = "normalizer";
+    private const string BertNormalizerName = "BertNormalizer";
+    private const string BertPreTokenizerName = "BertPreTokenizer";
+
+    /// <summary>Why a <c>BertNormalizer</c> step is refused ahead of <c>Whitespace</c>: BERT's steps are reproduced as one unit.</summary>
+    private const string BertStepsTogether =
+        "that step is reproduced only as BERT's BasicTokenizer, the default BertNormalizer followed by a BertPreTokenizer";
 
     /// <summary>The <c>content</c> property an added token, the normalizer <c>Replace</c> and a decoder <c>Replace</c>/<c>Strip</c> step all carry.</summary>
     private const string ContentProperty = "content";
@@ -208,7 +215,9 @@ public static class TokenizerJsonLoader
         // complaint about a pipeline the caller was never going to use.
         JsonElement model = RequireObject(root, "model");
         EnsureModelType(model, "WordPiece");
-        EnsurePipelineIsReproduced(root, PipelineKind.WordPiece);
+        bool basic = EnsurePipelineIsReproduced(root, PipelineKind.WordPiece);
+        bool lowercase = basic ? ReadBertBasicLowercase(root) : ReadLowercase(root);
+        ReadPostProcessor(root, out IReadOnlyList<string> prefixTokens, out IReadOnlyList<string> suffixTokens);
 
         string unkToken = RequireString(model, "unk_token");
         string continuationPrefix = OptionalString(model, "continuing_subword_prefix") ?? "##";
@@ -237,9 +246,12 @@ public static class TokenizerJsonLoader
             // row has why a table entry alone can't cover the fallback.
             throw new InvalidDataException($"The {SourceName} names '{unkToken}' as its unknown token but does not define it.");
         }
-        return new WordPieceVocabulary(vocab, unkToken, continuationPrefix, ReadLowercase(root))
+        return new WordPieceVocabulary(vocab, unkToken, continuationPrefix, lowercase)
         {
             AddedTokens = addedTokens,
+            BasicTokenization = basic,
+            PrefixTokens = prefixTokens,
+            SuffixTokens = suffixTokens,
         };
     }
 
@@ -249,7 +261,8 @@ public static class TokenizerJsonLoader
         EnsureNotByteFallbackBpe(model);
         EnsureModelType(model, "Unigram");
         EnsureByteFallbackIsOff(model);
-        EnsurePipelineIsReproduced(root, PipelineKind.Unigram);
+        _ = EnsurePipelineIsReproduced(root, PipelineKind.Unigram);
+        ReadPostProcessor(root, out IReadOnlyList<string> prefixTokens, out IReadOnlyList<string> suffixTokens);
 
         if (!model.TryGetProperty("vocab", out JsonElement vocabElement) || vocabElement.ValueKind != JsonValueKind.Array)
         {
@@ -292,6 +305,8 @@ public static class TokenizerJsonLoader
             FindSpecialId(pieces, types, "<pad>"))
         {
             Normalizer = ReadUnigramNormalizer(root),
+            PrefixTokens = prefixTokens,
+            SuffixTokens = suffixTokens,
         };
     }
 
@@ -530,9 +545,7 @@ public static class TokenizerJsonLoader
         EnsureBpeModelSettingsAreReproduced(model);
         IReadOnlyList<NormalizationForm> normalizationForms =
             ReadBpeNormalizer(root, out MetaspaceEscape? normalizerEscape);
-        RejectNonNull(root, "truncation", "Lodestar tokenizers do not truncate");
-        RejectNonNull(root, "padding", "Lodestar tokenizers do not pad");
-        ReadBpePostProcessor(root, out IReadOnlyList<string> prefixTokens, out IReadOnlyList<string> suffixTokens);
+        ReadPostProcessor(root, out IReadOnlyList<string> prefixTokens, out IReadOnlyList<string> suffixTokens);
         (bool byteLevel, bool addPrefixSpace, BpeSplitStep? preSplit, string? pattern, bool noPreTokenizer) =
             ReadBpePreTokenizer(root, out MetaspaceEscape? preTokenizerEscape);
         EnsureDecoderMatchesModel(root, byteLevel);
@@ -576,15 +589,16 @@ public static class TokenizerJsonLoader
     }
 
     /// <summary>
-    /// Reads a <c>TemplateProcessing</c> post-processor into the tokens it wraps a single
-    /// sequence in, refusing every other kind of post-processor by name.
+    /// Reads a <c>TemplateProcessing</c>, <c>BertProcessing</c> or <c>RobertaProcessing</c>
+    /// post-processor into the tokens it wraps a single sequence in, refusing every other kind by name.
     /// </summary>
     /// <remarks>
     /// Only <c>single</c> is read; <c>pair</c> and <c>type_id</c> are discarded, and the pad
     /// token is not read at all — docs/equivalence.md's loader row says why, and the two Llama-2 mirrors that
-    /// disagree on <c>pair</c> while agreeing on everything else.
+    /// disagree on <c>pair</c> while agreeing on everything else. The file's <c>truncation</c> and
+    /// <c>padding</c> are call settings, which <see cref="EncodingOptions"/> carries instead (#1210).
     /// </remarks>
-    private static void ReadBpePostProcessor(
+    private static void ReadPostProcessor(
         JsonElement root,
         out IReadOnlyList<string> prefixTokens,
         out IReadOnlyList<string> suffixTokens)
@@ -598,11 +612,18 @@ public static class TokenizerJsonLoader
         }
 
         string? kind = OptionalString(processor, "type");
+        if (kind is "BertProcessing" or "RobertaProcessing")
+        {
+            // Both wrap one sequence as cls $A sep; Roberta's other settings move offsets, never tokens.
+            prefixTokens = [ReadProcessorToken(processor, "cls", kind)];
+            suffixTokens = [ReadProcessorToken(processor, "sep", kind)];
+            return;
+        }
         if (!string.Equals(kind, "TemplateProcessing", StringComparison.Ordinal))
         {
             throw Unsupported(
                 $"its post_processor is '{kind ?? "unnamed"}'",
-                "only TemplateProcessing is reproduced, and the others insert tokens this loader would have to guess at");
+                "only TemplateProcessing, BertProcessing and RobertaProcessing are reproduced, and the others insert tokens this loader would have to guess at");
         }
 
         if (!processor.TryGetProperty("single", out JsonElement single)
@@ -630,6 +651,21 @@ public static class TokenizerJsonLoader
 
         prefixTokens = prefix;
         suffixTokens = suffix;
+    }
+
+    /// <summary>The token a <c>BertProcessing</c> or <c>RobertaProcessing</c> names as its <c>[token, id]</c> pair.</summary>
+    private static string ReadProcessorToken(JsonElement processor, string propertyName, string kind)
+    {
+        if (!processor.TryGetProperty(propertyName, out JsonElement pair)
+            || pair.ValueKind != JsonValueKind.Array
+            || pair.GetArrayLength() != 2
+            || pair[0].ValueKind != JsonValueKind.String)
+        {
+            throw Unsupported(
+                $"its {kind} post_processor has no '{propertyName}' pair of a token and an id",
+                "the token is resolved by name, so a missing one names nothing");
+        }
+        return pair[0].GetString()!;
     }
 
     /// <summary>
@@ -742,7 +778,7 @@ public static class TokenizerJsonLoader
     private static List<NormalizationForm> ReadBpeNormalizer(JsonElement root, out MetaspaceEscape? escape)
     {
         escape = null;
-        if (!root.TryGetProperty("normalizer", out JsonElement normalizer) || normalizer.ValueKind == JsonValueKind.Null)
+        if (!root.TryGetProperty(NormalizerProperty, out JsonElement normalizer) || normalizer.ValueKind == JsonValueKind.Null)
         {
             return [];
         }
@@ -1373,15 +1409,8 @@ public static class TokenizerJsonLoader
         Unigram,
     }
 
-    private static void EnsurePipelineIsReproduced(JsonElement root, PipelineKind kind)
-    {
-        RejectNonNull(root, "truncation", "Lodestar tokenizers do not truncate");
-        RejectNonNull(root, "padding", "Lodestar tokenizers do not pad");
-        RejectNonNull(root, "post_processor", "Lodestar tokenizers do not insert special tokens such as [CLS] and [SEP]");
-        EnsurePreTokenizerIsReproduced(root, kind);
-    }
-
-    private static void EnsurePreTokenizerIsReproduced(JsonElement root, PipelineKind kind)
+    /// <summary>Refuses a pre-tokenizer the tokenizer does not reproduce; <see langword="true"/> for WordPiece's <c>BertPreTokenizer</c>.</summary>
+    private static bool EnsurePipelineIsReproduced(JsonElement root, PipelineKind kind)
     {
         if (!root.TryGetProperty("pre_tokenizer", out JsonElement pre) || pre.ValueKind == JsonValueKind.Null)
         {
@@ -1395,13 +1424,14 @@ public static class TokenizerJsonLoader
         }
 
         string type = OptionalString(pre, "type") ?? UntypedName;
-        bool accepted = kind == PipelineKind.WordPiece
+        bool bert = kind == PipelineKind.WordPiece && string.Equals(type, BertPreTokenizerName, StringComparison.Ordinal);
+        bool accepted = bert || (kind == PipelineKind.WordPiece
             ? string.Equals(type, "Whitespace", StringComparison.Ordinal)
-            : string.Equals(type, "Metaspace", StringComparison.Ordinal);
+            : string.Equals(type, "Metaspace", StringComparison.Ordinal));
         if (!accepted)
         {
             throw Unsupported($"its pre_tokenizer is '{type}'", kind == PipelineKind.WordPiece
-                ? "WordPieceTokenizer reproduces the Whitespace pre-tokenizer only"
+                ? "WordPieceTokenizer reproduces the Whitespace and BertPreTokenizer pre-tokenizers only"
                 : "SentencePieceTokenizer reproduces the Metaspace pre-tokenizer only");
         }
 
@@ -1409,6 +1439,39 @@ public static class TokenizerJsonLoader
         {
             EnsureMetaspaceIsReproduced(pre);
         }
+        return bert;
+    }
+
+    /// <summary>
+    /// The <c>lowercase</c> of the default <c>BertNormalizer</c> a <c>BertPreTokenizer</c> must follow,
+    /// which together are <see cref="WordPieceVocabulary.BasicTokenization"/> (#1210).
+    /// </summary>
+    /// <remarks>
+    /// Default means cleaning text and padding CJK, with accents stripped exactly when lowercasing:
+    /// BERT's BasicTokenizer, which is what all-MiniLM-L6-v2's <c>tokenizer.json</c> declares.
+    /// </remarks>
+    private static bool ReadBertBasicLowercase(JsonElement root)
+    {
+        string type = root.TryGetProperty(NormalizerProperty, out JsonElement normalizer) && normalizer.ValueKind == JsonValueKind.Object
+            ? OptionalString(normalizer, "type") ?? UntypedName
+            : "none";
+        if (!string.Equals(type, BertNormalizerName, StringComparison.Ordinal))
+        {
+            throw Unsupported(
+                $"its {BertPreTokenizerName} follows a '{type}' normalizer",
+                $"{BertPreTokenizerName} is reproduced as BERT's BasicTokenizer, which runs after the default {BertNormalizerName} only");
+        }
+
+        bool lowercase = OptionalBoolean(normalizer, "lowercase") ?? true;
+        if (!(OptionalBoolean(normalizer, "clean_text") ?? true)
+            || !(OptionalBoolean(normalizer, "handle_chinese_chars") ?? true)
+            || (OptionalBoolean(normalizer, "strip_accents") ?? lowercase) != lowercase)
+        {
+            throw Unsupported(
+                $"its {BertNormalizerName} departs from the default ahead of a {BertPreTokenizerName}",
+                "BERT's BasicTokenizer cleans text, pads CJK and strips accents exactly when it lowercases, and no other combination is reproduced");
+        }
+        return lowercase;
     }
 
     /// <summary>
@@ -1461,7 +1524,7 @@ public static class TokenizerJsonLoader
     /// </remarks>
     private static PrecompiledNormalizer? ReadUnigramNormalizer(JsonElement root)
     {
-        if (!root.TryGetProperty("normalizer", out JsonElement normalizer)
+        if (!root.TryGetProperty(NormalizerProperty, out JsonElement normalizer)
             || normalizer.ValueKind == JsonValueKind.Null)
         {
             return null;
@@ -1500,7 +1563,7 @@ public static class TokenizerJsonLoader
 
     private static bool ReadLowercase(JsonElement root)
     {
-        if (!root.TryGetProperty("normalizer", out JsonElement normalizer) || normalizer.ValueKind == JsonValueKind.Null)
+        if (!root.TryGetProperty(NormalizerProperty, out JsonElement normalizer) || normalizer.ValueKind == JsonValueKind.Null)
         {
             return false;
         }
@@ -1518,7 +1581,7 @@ public static class TokenizerJsonLoader
             case SequenceName:
                 return ReadLowercaseFromSequence(normalizer);
 
-            case "BertNormalizer":
+            case BertNormalizerName:
                 EnsureBertNormalizerIsReproduced(normalizer);
                 return OptionalBoolean(normalizer, "lowercase") ?? true;
 
@@ -1544,21 +1607,22 @@ public static class TokenizerJsonLoader
         return lowercase;
     }
 
+    /// <summary>Refuses a <c>BertNormalizer</c> ahead of <c>Whitespace</c> that does more than lowercase.</summary>
     private static void EnsureBertNormalizerIsReproduced(JsonElement normalizer)
     {
         if (OptionalBoolean(normalizer, "handle_chinese_chars") ?? true)
         {
-            throw Unsupported("its BertNormalizer pads CJK characters", "Lodestar does not reproduce that step");
+            throw Unsupported("its BertNormalizer pads CJK characters ahead of a Whitespace pre_tokenizer", BertStepsTogether);
         }
         // tokenizers strips accents when strip_accents is true, or absent with lowercase
         // on -- reading an absent value as "off" would accept a file Python strips accents for.
         if (OptionalBoolean(normalizer, "strip_accents") ?? (OptionalBoolean(normalizer, "lowercase") ?? true))
         {
-            throw Unsupported("its BertNormalizer strips accents", "Lodestar does not reproduce that step");
+            throw Unsupported("its BertNormalizer strips accents ahead of a Whitespace pre_tokenizer", BertStepsTogether);
         }
         if (OptionalBoolean(normalizer, "clean_text") ?? true)
         {
-            throw Unsupported("its BertNormalizer cleans control characters", "Lodestar does not reproduce that step");
+            throw Unsupported("its BertNormalizer cleans control characters ahead of a Whitespace pre_tokenizer", BertStepsTogether);
         }
     }
 
@@ -1581,14 +1645,6 @@ public static class TokenizerJsonLoader
             throw Unsupported(
                 $"its max_input_chars_per_word is {maxChars}",
                 $"WordPieceVocabulary does not carry it — pass maxCharsPerWord: {maxChars} to the WordPieceTokenizer constructor");
-        }
-    }
-
-    private static void RejectNonNull(JsonElement root, string propertyName, string why)
-    {
-        if (root.TryGetProperty(propertyName, out JsonElement value) && value.ValueKind != JsonValueKind.Null)
-        {
-            throw Unsupported($"it declares a '{propertyName}' section", why);
         }
     }
 

@@ -46,9 +46,11 @@ outscores a record fourth in both (`2/5`). At `k = 60` the same record (`1/61`) 
 anywhere up to 61st in both, and ties one ranked 62nd in both. Sixty is the value Cormack et al.
 (2009) used, and the one `RankFusion.Rrf` takes by default.
 
-The options are **read when used**, at each rebuild and each hybrid search, rather than copied at
-construction. Every property is `init`-only, so the difference only shows if a
-`CountVectorizerOptions` handed in holds a stop-word collection its caller later mutates.
+The options are **checked when first used**, by the first hybrid search over a non-empty
+collection, rather than at construction: an out-of-range `Bm25` or `Vectorizer` setting, or a
+`MaxDf` below `MinDf` over the records held, fails that search, and a vector search never reads them.
+Every property is `init`-only, and a stop-word collection handed in is not to be mutated afterwards:
+texts already tokenized would not follow it.
 
 A store passes one options object to every collection it creates. A collection that needs different
 options is constructed directly, with its own.

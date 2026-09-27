@@ -14,6 +14,8 @@ namespace Lodestar.Gpu.Compute;
 /// </remarks>
 public sealed class DeviceEmbeddingMatrix : IDisposable
 {
+    private readonly DeviceResidency _residency;
+
     internal MemoryBuffer1D<float, Stride1D.Dense> Buffer { get; }
 
     /// <summary>How many rows the matrix holds.</summary>
@@ -22,8 +24,10 @@ public sealed class DeviceEmbeddingMatrix : IDisposable
     /// <summary>The embedding dimension.</summary>
     public int Dimension { get; }
 
-    private DeviceEmbeddingMatrix(MemoryBuffer1D<float, Stride1D.Dense> buffer, int count, int dimension)
+    private DeviceEmbeddingMatrix(
+        GpuContext context, MemoryBuffer1D<float, Stride1D.Dense> buffer, int count, int dimension)
     {
+        _residency = new DeviceResidency(context);
         Buffer = buffer;
         Count = count;
         Dimension = dimension;
@@ -38,12 +42,14 @@ public sealed class DeviceEmbeddingMatrix : IDisposable
     /// <param name="dimension">How many values each row holds.</param>
     /// <param name="normalize">L2-normalize each row on upload (default true).</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> or <paramref name="dimension"/> is below 1.</exception>
     /// <exception cref="ArgumentException"><paramref name="rows"/> is not exactly the block, or holds a non-finite value.</exception>
     public static DeviceEmbeddingMatrix Upload(
         GpuContext context, ReadOnlySpan<float> rows, int count, int dimension, bool normalize = true)
     {
         Guard.NotNull(context);
+        context.EnsureNotDisposed();
         Guard.NotLessThan(count, 1);
         Guard.NotLessThan(dimension, 1);
         if (rows.Length != (long)count * dimension)
@@ -60,7 +66,7 @@ public sealed class DeviceEmbeddingMatrix : IDisposable
         }
 
         MemoryBuffer1D<float, Stride1D.Dense> buffer = context.Accelerator.Allocate1D(staged);
-        return new DeviceEmbeddingMatrix(buffer, count, dimension);
+        return new DeviceEmbeddingMatrix(context, buffer, count, dimension);
     }
 
     /// <summary>Throws when a value is <c>NaN</c> or infinite.</summary>
@@ -111,6 +117,18 @@ public sealed class DeviceEmbeddingMatrix : IDisposable
         }
     }
 
-    /// <summary>Frees the device memory the matrix holds.</summary>
-    public void Dispose() => Buffer.Dispose();
+    /// <summary>Throws unless a kernel loaded on <paramref name="context"/> may read this matrix.</summary>
+    /// <exception cref="ObjectDisposedException">This matrix, or the context it lives on, was disposed.</exception>
+    /// <exception cref="ArgumentException">This matrix was uploaded to another context.</exception>
+    internal void EnsureUsableBy(GpuContext context, string parameter) =>
+        _residency.EnsureUsableBy(context, parameter);
+
+    /// <summary>Frees the device memory the matrix holds; a second call does nothing.</summary>
+    public void Dispose()
+    {
+        if (_residency.Release())
+        {
+            Buffer.Dispose();
+        }
+    }
 }

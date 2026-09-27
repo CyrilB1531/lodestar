@@ -1,0 +1,2583 @@
+{
+ "metadata": {
+  "algorithm": "TokenizerJsonLoader.LoadWordPiece over a stock BERT file",
+  "library": "tokenizers",
+  "library_version": "0.23.2",
+  "reference_calls": [
+   "tokenizers.Tokenizer.from_str(...).encode(text, add_special_tokens=False)",
+   "tokenizers.Tokenizer.from_str(...).encode(text), padding and truncation off"
+  ],
+  "tokenizer_json": {
+   "uncased_template": {
+    "version": "1.0",
+    "truncation": {
+     "direction": "Right",
+     "max_length": 128,
+     "strategy": "LongestFirst",
+     "stride": 0
+    },
+    "padding": {
+     "strategy": {
+      "Fixed": 128
+     },
+     "direction": "Right",
+     "pad_to_multiple_of": null,
+     "pad_id": 104,
+     "pad_type_id": 0,
+     "pad_token": "[PAD]"
+    },
+    "added_tokens": [
+     {
+      "id": 104,
+      "content": "[PAD]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+     },
+     {
+      "id": 105,
+      "content": "[CLS]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+     },
+     {
+      "id": 106,
+      "content": "[SEP]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+     }
+    ],
+    "normalizer": {
+     "type": "BertNormalizer",
+     "clean_text": true,
+     "handle_chinese_chars": true,
+     "strip_accents": null,
+     "lowercase": true
+    },
+    "pre_tokenizer": {
+     "type": "BertPreTokenizer"
+    },
+    "post_processor": {
+     "type": "TemplateProcessing",
+     "single": [
+      {
+       "SpecialToken": {
+        "id": "[CLS]",
+        "type_id": 0
+       }
+      },
+      {
+       "Sequence": {
+        "id": "A",
+        "type_id": 0
+       }
+      },
+      {
+       "SpecialToken": {
+        "id": "[SEP]",
+        "type_id": 0
+       }
+      }
+     ],
+     "pair": [
+      {
+       "SpecialToken": {
+        "id": "[CLS]",
+        "type_id": 0
+       }
+      },
+      {
+       "Sequence": {
+        "id": "A",
+        "type_id": 0
+       }
+      },
+      {
+       "SpecialToken": {
+        "id": "[SEP]",
+        "type_id": 0
+       }
+      },
+      {
+       "Sequence": {
+        "id": "B",
+        "type_id": 1
+       }
+      },
+      {
+       "SpecialToken": {
+        "id": "[SEP]",
+        "type_id": 1
+       }
+      }
+     ],
+     "special_tokens": {
+      "[CLS]": {
+       "id": "[CLS]",
+       "ids": [
+        105
+       ],
+       "tokens": [
+        "[CLS]"
+       ]
+      },
+      "[SEP]": {
+       "id": "[SEP]",
+       "ids": [
+        106
+       ],
+       "tokens": [
+        "[SEP]"
+       ]
+      }
+     }
+    },
+    "decoder": null,
+    "model": {
+     "type": "WordPiece",
+     "unk_token": "[UNK]",
+     "continuing_subword_prefix": "##",
+     "max_input_chars_per_word": 100,
+     "vocab": {
+      "[UNK]": 0,
+      "the": 1,
+      "cat": 2,
+      "dog": 3,
+      "play": 4,
+      "un": 5,
+      "love": 6,
+      "run": 7,
+      "quick": 8,
+      "brown": 9,
+      "fox": 10,
+      "jump": 11,
+      "hello": 12,
+      "world": 13,
+      "token": 14,
+      "embed": 15,
+      "semantic": 16,
+      "search": 17,
+      "is": 18,
+      "are": 19,
+      "and": 20,
+      "this": 21,
+      "big": 22,
+      "a": 23,
+      ".": 24,
+      "!": 25,
+      "?": 26,
+      "##s": 27,
+      "##ing": 28,
+      "##ed": 29,
+      "##er": 30,
+      "##aff": 31,
+      "##able": 32,
+      "##ly": 33,
+      "##ner": 34,
+      "##ning": 35,
+      "##ization": 36,
+      "##ize": 37,
+      "##ding": 38,
+      "##dings": 39,
+      "##ger": 40,
+      "##gest": 41,
+      "##a": 42,
+      "##b": 43,
+      "##c": 44,
+      "wait": 45,
+      "_": 46,
+      "b": 47,
+      "cafe": 48,
+      "café": 49,
+      "naive": 50,
+      "resume": 51,
+      "ang": 52,
+      "##strom": 53,
+      "que": 54,
+      "¿": 55,
+      "中": 56,
+      "文": 57,
+      "日": 58,
+      "本": 59,
+      "語": 60,
+      "テ": 61,
+      "##キ": 62,
+      "##ス": 63,
+      "##ト": 64,
+      "x": 65,
+      "##y": 66,
+      "ab": 67,
+      "##world": 68,
+      ",": 69,
+      "'": 70,
+      "-": 71,
+      "$": 72,
+      "@": 73,
+      "#": 74,
+      "don": 75,
+      "t": 76,
+      "e": 77,
+      "mail": 78,
+      "tab": 79,
+      "here": 80,
+      "100": 81,
+      "50": 82,
+      "user": 83,
+      "tag": 84,
+      "c": 85,
+      "ok": 86,
+      "𠀀": 87,
+      "ecole": 88,
+      "“": 89,
+      "”": 90,
+      "—": 91,
+      "dash": 92,
+      "quoted": 93,
+      "y": 94,
+      "Hello": 95,
+      "World": 96,
+      "𝐀": 97,
+      "##𝐀": 98,
+      "￾": 99,
+      "##￾": 100,
+      "a᫏᫝b": 101,
+      "a᫏᫝a": 102,
+      "a͸᫏᫝e": 103
+     }
+    }
+   },
+   "cased_bert_processing": {
+    "version": "1.0",
+    "truncation": {
+     "direction": "Right",
+     "max_length": 128,
+     "strategy": "LongestFirst",
+     "stride": 0
+    },
+    "padding": {
+     "strategy": {
+      "Fixed": 128
+     },
+     "direction": "Right",
+     "pad_to_multiple_of": null,
+     "pad_id": 104,
+     "pad_type_id": 0,
+     "pad_token": "[PAD]"
+    },
+    "added_tokens": [
+     {
+      "id": 104,
+      "content": "[PAD]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+     },
+     {
+      "id": 105,
+      "content": "[CLS]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+     },
+     {
+      "id": 106,
+      "content": "[SEP]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+     }
+    ],
+    "normalizer": {
+     "type": "BertNormalizer",
+     "clean_text": true,
+     "handle_chinese_chars": true,
+     "strip_accents": null,
+     "lowercase": false
+    },
+    "pre_tokenizer": {
+     "type": "BertPreTokenizer"
+    },
+    "post_processor": {
+     "type": "BertProcessing",
+     "sep": [
+      "[SEP]",
+      106
+     ],
+     "cls": [
+      "[CLS]",
+      105
+     ]
+    },
+    "decoder": null,
+    "model": {
+     "type": "WordPiece",
+     "unk_token": "[UNK]",
+     "continuing_subword_prefix": "##",
+     "max_input_chars_per_word": 100,
+     "vocab": {
+      "[UNK]": 0,
+      "the": 1,
+      "cat": 2,
+      "dog": 3,
+      "play": 4,
+      "un": 5,
+      "love": 6,
+      "run": 7,
+      "quick": 8,
+      "brown": 9,
+      "fox": 10,
+      "jump": 11,
+      "hello": 12,
+      "world": 13,
+      "token": 14,
+      "embed": 15,
+      "semantic": 16,
+      "search": 17,
+      "is": 18,
+      "are": 19,
+      "and": 20,
+      "this": 21,
+      "big": 22,
+      "a": 23,
+      ".": 24,
+      "!": 25,
+      "?": 26,
+      "##s": 27,
+      "##ing": 28,
+      "##ed": 29,
+      "##er": 30,
+      "##aff": 31,
+      "##able": 32,
+      "##ly": 33,
+      "##ner": 34,
+      "##ning": 35,
+      "##ization": 36,
+      "##ize": 37,
+      "##ding": 38,
+      "##dings": 39,
+      "##ger": 40,
+      "##gest": 41,
+      "##a": 42,
+      "##b": 43,
+      "##c": 44,
+      "wait": 45,
+      "_": 46,
+      "b": 47,
+      "cafe": 48,
+      "café": 49,
+      "naive": 50,
+      "resume": 51,
+      "ang": 52,
+      "##strom": 53,
+      "que": 54,
+      "¿": 55,
+      "中": 56,
+      "文": 57,
+      "日": 58,
+      "本": 59,
+      "語": 60,
+      "テ": 61,
+      "##キ": 62,
+      "##ス": 63,
+      "##ト": 64,
+      "x": 65,
+      "##y": 66,
+      "ab": 67,
+      "##world": 68,
+      ",": 69,
+      "'": 70,
+      "-": 71,
+      "$": 72,
+      "@": 73,
+      "#": 74,
+      "don": 75,
+      "t": 76,
+      "e": 77,
+      "mail": 78,
+      "tab": 79,
+      "here": 80,
+      "100": 81,
+      "50": 82,
+      "user": 83,
+      "tag": 84,
+      "c": 85,
+      "ok": 86,
+      "𠀀": 87,
+      "ecole": 88,
+      "“": 89,
+      "”": 90,
+      "—": 91,
+      "dash": 92,
+      "quoted": 93,
+      "y": 94,
+      "Hello": 95,
+      "World": 96,
+      "𝐀": 97,
+      "##𝐀": 98,
+      "￾": 99,
+      "##￾": 100,
+      "a᫏᫝b": 101,
+      "a᫏᫝a": 102,
+      "a͸᫏᫝e": 103
+     }
+    }
+   }
+  },
+  "count": 84
+ },
+ "cases": [
+  {
+   "id": 0,
+   "model": "uncased_template",
+   "text": "the cats playing",
+   "tokens": [
+    "the",
+    "cat",
+    "##s",
+    "play",
+    "##ing"
+   ],
+   "ids": [
+    1,
+    2,
+    27,
+    4,
+    28
+   ],
+   "wrapped": [
+    "[CLS]",
+    "the",
+    "cat",
+    "##s",
+    "play",
+    "##ing",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 1,
+   "model": "uncased_template",
+   "text": "unaffable",
+   "tokens": [
+    "un",
+    "##aff",
+    "##able"
+   ],
+   "ids": [
+    5,
+    31,
+    32
+   ],
+   "wrapped": [
+    "[CLS]",
+    "un",
+    "##aff",
+    "##able",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 2,
+   "model": "uncased_template",
+   "text": "unknownxyz",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 3,
+   "model": "uncased_template",
+   "text": "quick brown fox jumps.",
+   "tokens": [
+    "quick",
+    "brown",
+    "fox",
+    "jump",
+    "##s",
+    "."
+   ],
+   "ids": [
+    8,
+    9,
+    10,
+    11,
+    27,
+    24
+   ],
+   "wrapped": [
+    "[CLS]",
+    "quick",
+    "brown",
+    "fox",
+    "jump",
+    "##s",
+    ".",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 4,
+   "model": "uncased_template",
+   "text": "tokenization is embedding embeddings",
+   "tokens": [
+    "token",
+    "##ization",
+    "is",
+    "embed",
+    "##ding",
+    "embed",
+    "##dings"
+   ],
+   "ids": [
+    14,
+    36,
+    18,
+    15,
+    38,
+    15,
+    39
+   ],
+   "wrapped": [
+    "[CLS]",
+    "token",
+    "##ization",
+    "is",
+    "embed",
+    "##ding",
+    "embed",
+    "##dings",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 5,
+   "model": "uncased_template",
+   "text": "hello world!",
+   "tokens": [
+    "hello",
+    "world",
+    "!"
+   ],
+   "ids": [
+    12,
+    13,
+    25
+   ],
+   "wrapped": [
+    "[CLS]",
+    "hello",
+    "world",
+    "!",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 6,
+   "model": "uncased_template",
+   "text": "the dog runs and the cat plays",
+   "tokens": [
+    "the",
+    "dog",
+    "run",
+    "##s",
+    "and",
+    "the",
+    "cat",
+    "play",
+    "##s"
+   ],
+   "ids": [
+    1,
+    3,
+    7,
+    27,
+    20,
+    1,
+    2,
+    4,
+    27
+   ],
+   "wrapped": [
+    "[CLS]",
+    "the",
+    "dog",
+    "run",
+    "##s",
+    "and",
+    "the",
+    "cat",
+    "play",
+    "##s",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 7,
+   "model": "uncased_template",
+   "text": "bigger biggest",
+   "tokens": [
+    "big",
+    "##ger",
+    "big",
+    "##gest"
+   ],
+   "ids": [
+    22,
+    40,
+    22,
+    41
+   ],
+   "wrapped": [
+    "[CLS]",
+    "big",
+    "##ger",
+    "big",
+    "##gest",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 8,
+   "model": "uncased_template",
+   "text": "lovely love loved lover",
+   "tokens": [
+    "love",
+    "##ly",
+    "love",
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    6,
+    33,
+    6,
+    0,
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "love",
+    "##ly",
+    "love",
+    "[UNK]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 9,
+   "model": "uncased_template",
+   "text": "wait...",
+   "tokens": [
+    "wait",
+    ".",
+    ".",
+    "."
+   ],
+   "ids": [
+    45,
+    24,
+    24,
+    24
+   ],
+   "wrapped": [
+    "[CLS]",
+    "wait",
+    ".",
+    ".",
+    ".",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 10,
+   "model": "uncased_template",
+   "text": "café",
+   "tokens": [
+    "cafe"
+   ],
+   "ids": [
+    48
+   ],
+   "wrapped": [
+    "[CLS]",
+    "cafe",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 11,
+   "model": "uncased_template",
+   "text": "a_b",
+   "tokens": [
+    "a",
+    "_",
+    "b"
+   ],
+   "ids": [
+    23,
+    46,
+    47
+   ],
+   "wrapped": [
+    "[CLS]",
+    "a",
+    "_",
+    "b",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 12,
+   "model": "uncased_template",
+   "text": "naïve résumé",
+   "tokens": [
+    "naive",
+    "resume"
+   ],
+   "ids": [
+    50,
+    51
+   ],
+   "wrapped": [
+    "[CLS]",
+    "naive",
+    "resume",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 13,
+   "model": "uncased_template",
+   "text": "Ångström",
+   "tokens": [
+    "ang",
+    "##strom"
+   ],
+   "ids": [
+    52,
+    53
+   ],
+   "wrapped": [
+    "[CLS]",
+    "ang",
+    "##strom",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 14,
+   "model": "uncased_template",
+   "text": "¿Qué?",
+   "tokens": [
+    "¿",
+    "que",
+    "?"
+   ],
+   "ids": [
+    55,
+    54,
+    26
+   ],
+   "wrapped": [
+    "[CLS]",
+    "¿",
+    "que",
+    "?",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 15,
+   "model": "uncased_template",
+   "text": "中文字",
+   "tokens": [
+    "中",
+    "文",
+    "[UNK]"
+   ],
+   "ids": [
+    56,
+    57,
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "中",
+    "文",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 16,
+   "model": "uncased_template",
+   "text": "日本語テキスト",
+   "tokens": [
+    "日",
+    "本",
+    "語",
+    "テ",
+    "##キ",
+    "##ス",
+    "##ト"
+   ],
+   "ids": [
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64
+   ],
+   "wrapped": [
+    "[CLS]",
+    "日",
+    "本",
+    "語",
+    "テ",
+    "##キ",
+    "##ス",
+    "##ト",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 17,
+   "model": "uncased_template",
+   "text": "x\u0000y",
+   "tokens": [
+    "x",
+    "##y"
+   ],
+   "ids": [
+    65,
+    66
+   ],
+   "wrapped": [
+    "[CLS]",
+    "x",
+    "##y",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 18,
+   "model": "uncased_template",
+   "text": "a​b",
+   "tokens": [
+    "ab"
+   ],
+   "ids": [
+    67
+   ],
+   "wrapped": [
+    "[CLS]",
+    "ab",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 19,
+   "model": "uncased_template",
+   "text": "hello­world",
+   "tokens": [
+    "hello",
+    "##world"
+   ],
+   "ids": [
+    12,
+    68
+   ],
+   "wrapped": [
+    "[CLS]",
+    "hello",
+    "##world",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 20,
+   "model": "uncased_template",
+   "text": "x́",
+   "tokens": [
+    "x"
+   ],
+   "ids": [
+    65
+   ],
+   "wrapped": [
+    "[CLS]",
+    "x",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 21,
+   "model": "uncased_template",
+   "text": "Hello, World!",
+   "tokens": [
+    "hello",
+    ",",
+    "world",
+    "!"
+   ],
+   "ids": [
+    12,
+    69,
+    13,
+    25
+   ],
+   "wrapped": [
+    "[CLS]",
+    "hello",
+    ",",
+    "world",
+    "!",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 22,
+   "model": "uncased_template",
+   "text": "don't",
+   "tokens": [
+    "don",
+    "'",
+    "t"
+   ],
+   "ids": [
+    75,
+    70,
+    76
+   ],
+   "wrapped": [
+    "[CLS]",
+    "don",
+    "'",
+    "t",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 23,
+   "model": "uncased_template",
+   "text": "e-mail",
+   "tokens": [
+    "e",
+    "-",
+    "mail"
+   ],
+   "ids": [
+    77,
+    71,
+    78
+   ],
+   "wrapped": [
+    "[CLS]",
+    "e",
+    "-",
+    "mail",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 24,
+   "model": "uncased_template",
+   "text": "tab\there",
+   "tokens": [
+    "tab",
+    "here"
+   ],
+   "ids": [
+    79,
+    80
+   ],
+   "wrapped": [
+    "[CLS]",
+    "tab",
+    "here",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 25,
+   "model": "uncased_template",
+   "text": "$100.50",
+   "tokens": [
+    "$",
+    "100",
+    ".",
+    "50"
+   ],
+   "ids": [
+    72,
+    81,
+    24,
+    82
+   ],
+   "wrapped": [
+    "[CLS]",
+    "$",
+    "100",
+    ".",
+    "50",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 26,
+   "model": "uncased_template",
+   "text": "@user #tag",
+   "tokens": [
+    "@",
+    "user",
+    "#",
+    "tag"
+   ],
+   "ids": [
+    73,
+    83,
+    74,
+    84
+   ],
+   "wrapped": [
+    "[CLS]",
+    "@",
+    "user",
+    "#",
+    "tag",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 27,
+   "model": "uncased_template",
+   "text": "a　b c",
+   "tokens": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ids": [
+    23,
+    47,
+    85
+   ],
+   "wrapped": [
+    "[CLS]",
+    "a",
+    "b",
+    "c",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 28,
+   "model": "uncased_template",
+   "text": "𠀀x 😀 ok",
+   "tokens": [
+    "𠀀",
+    "x",
+    "[UNK]",
+    "ok"
+   ],
+   "ids": [
+    87,
+    65,
+    0,
+    86
+   ],
+   "wrapped": [
+    "[CLS]",
+    "𠀀",
+    "x",
+    "[UNK]",
+    "ok",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 29,
+   "model": "uncased_template",
+   "text": "école ÉCOLE",
+   "tokens": [
+    "ecole",
+    "ecole"
+   ],
+   "ids": [
+    88,
+    88
+   ],
+   "wrapped": [
+    "[CLS]",
+    "ecole",
+    "ecole",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 30,
+   "model": "uncased_template",
+   "text": "x�y",
+   "tokens": [
+    "x",
+    "##y"
+   ],
+   "ids": [
+    65,
+    66
+   ],
+   "wrapped": [
+    "[CLS]",
+    "x",
+    "##y",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 31,
+   "model": "uncased_template",
+   "text": "“quoted” — dash",
+   "tokens": [
+    "“",
+    "quoted",
+    "”",
+    "—",
+    "dash"
+   ],
+   "ids": [
+    89,
+    93,
+    90,
+    91,
+    92
+   ],
+   "wrapped": [
+    "[CLS]",
+    "“",
+    "quoted",
+    "”",
+    "—",
+    "dash",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 32,
+   "model": "uncased_template",
+   "text": "x͸y",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 33,
+   "model": "uncased_template",
+   "text": "🛘 hi",
+   "tokens": [
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 34,
+   "model": "uncased_template",
+   "text": "hi 🫩",
+   "tokens": [
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 35,
+   "model": "uncased_template",
+   "text": "É͸é",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 36,
+   "model": "uncased_template",
+   "text": "𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀",
+   "tokens": [
+    "𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀"
+   ],
+   "ids": [
+    97,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98
+   ],
+   "wrapped": [
+    "[CLS]",
+    "𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 37,
+   "model": "uncased_template",
+   "text": "a￾a",
+   "tokens": [
+    "a",
+    "##￾",
+    "##a"
+   ],
+   "ids": [
+    23,
+    100,
+    42
+   ],
+   "wrapped": [
+    "[CLS]",
+    "a",
+    "##￾",
+    "##a",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 38,
+   "model": "uncased_template",
+   "text": "Á￾á",
+   "tokens": [
+    "a",
+    "##￾",
+    "##a"
+   ],
+   "ids": [
+    23,
+    100,
+    42
+   ],
+   "wrapped": [
+    "[CLS]",
+    "a",
+    "##￾",
+    "##a",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 39,
+   "model": "uncased_template",
+   "text": "a᫏᫝b",
+   "tokens": [
+    "a᫏᫝b"
+   ],
+   "ids": [
+    101
+   ],
+   "wrapped": [
+    "[CLS]",
+    "a᫏᫝b",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 40,
+   "model": "uncased_template",
+   "text": "Á᫏᫝á",
+   "tokens": [
+    "a᫏᫝a"
+   ],
+   "ids": [
+    102
+   ],
+   "wrapped": [
+    "[CLS]",
+    "a᫏᫝a",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 41,
+   "model": "uncased_template",
+   "text": "Á͸᫏᫝é",
+   "tokens": [
+    "a͸᫏᫝e"
+   ],
+   "ids": [
+    103
+   ],
+   "wrapped": [
+    "[CLS]",
+    "a͸᫏᫝e",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 42,
+   "model": "cased_bert_processing",
+   "text": "the cats playing",
+   "tokens": [
+    "the",
+    "cat",
+    "##s",
+    "play",
+    "##ing"
+   ],
+   "ids": [
+    1,
+    2,
+    27,
+    4,
+    28
+   ],
+   "wrapped": [
+    "[CLS]",
+    "the",
+    "cat",
+    "##s",
+    "play",
+    "##ing",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 43,
+   "model": "cased_bert_processing",
+   "text": "unaffable",
+   "tokens": [
+    "un",
+    "##aff",
+    "##able"
+   ],
+   "ids": [
+    5,
+    31,
+    32
+   ],
+   "wrapped": [
+    "[CLS]",
+    "un",
+    "##aff",
+    "##able",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 44,
+   "model": "cased_bert_processing",
+   "text": "unknownxyz",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 45,
+   "model": "cased_bert_processing",
+   "text": "quick brown fox jumps.",
+   "tokens": [
+    "quick",
+    "brown",
+    "fox",
+    "jump",
+    "##s",
+    "."
+   ],
+   "ids": [
+    8,
+    9,
+    10,
+    11,
+    27,
+    24
+   ],
+   "wrapped": [
+    "[CLS]",
+    "quick",
+    "brown",
+    "fox",
+    "jump",
+    "##s",
+    ".",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 46,
+   "model": "cased_bert_processing",
+   "text": "tokenization is embedding embeddings",
+   "tokens": [
+    "token",
+    "##ization",
+    "is",
+    "embed",
+    "##ding",
+    "embed",
+    "##dings"
+   ],
+   "ids": [
+    14,
+    36,
+    18,
+    15,
+    38,
+    15,
+    39
+   ],
+   "wrapped": [
+    "[CLS]",
+    "token",
+    "##ization",
+    "is",
+    "embed",
+    "##ding",
+    "embed",
+    "##dings",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 47,
+   "model": "cased_bert_processing",
+   "text": "hello world!",
+   "tokens": [
+    "hello",
+    "world",
+    "!"
+   ],
+   "ids": [
+    12,
+    13,
+    25
+   ],
+   "wrapped": [
+    "[CLS]",
+    "hello",
+    "world",
+    "!",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 48,
+   "model": "cased_bert_processing",
+   "text": "the dog runs and the cat plays",
+   "tokens": [
+    "the",
+    "dog",
+    "run",
+    "##s",
+    "and",
+    "the",
+    "cat",
+    "play",
+    "##s"
+   ],
+   "ids": [
+    1,
+    3,
+    7,
+    27,
+    20,
+    1,
+    2,
+    4,
+    27
+   ],
+   "wrapped": [
+    "[CLS]",
+    "the",
+    "dog",
+    "run",
+    "##s",
+    "and",
+    "the",
+    "cat",
+    "play",
+    "##s",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 49,
+   "model": "cased_bert_processing",
+   "text": "bigger biggest",
+   "tokens": [
+    "big",
+    "##ger",
+    "big",
+    "##gest"
+   ],
+   "ids": [
+    22,
+    40,
+    22,
+    41
+   ],
+   "wrapped": [
+    "[CLS]",
+    "big",
+    "##ger",
+    "big",
+    "##gest",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 50,
+   "model": "cased_bert_processing",
+   "text": "lovely love loved lover",
+   "tokens": [
+    "love",
+    "##ly",
+    "love",
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    6,
+    33,
+    6,
+    0,
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "love",
+    "##ly",
+    "love",
+    "[UNK]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 51,
+   "model": "cased_bert_processing",
+   "text": "wait...",
+   "tokens": [
+    "wait",
+    ".",
+    ".",
+    "."
+   ],
+   "ids": [
+    45,
+    24,
+    24,
+    24
+   ],
+   "wrapped": [
+    "[CLS]",
+    "wait",
+    ".",
+    ".",
+    ".",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 52,
+   "model": "cased_bert_processing",
+   "text": "café",
+   "tokens": [
+    "café"
+   ],
+   "ids": [
+    49
+   ],
+   "wrapped": [
+    "[CLS]",
+    "café",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 53,
+   "model": "cased_bert_processing",
+   "text": "a_b",
+   "tokens": [
+    "a",
+    "_",
+    "b"
+   ],
+   "ids": [
+    23,
+    46,
+    47
+   ],
+   "wrapped": [
+    "[CLS]",
+    "a",
+    "_",
+    "b",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 54,
+   "model": "cased_bert_processing",
+   "text": "naïve résumé",
+   "tokens": [
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 55,
+   "model": "cased_bert_processing",
+   "text": "Ångström",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 56,
+   "model": "cased_bert_processing",
+   "text": "¿Qué?",
+   "tokens": [
+    "¿",
+    "[UNK]",
+    "?"
+   ],
+   "ids": [
+    55,
+    0,
+    26
+   ],
+   "wrapped": [
+    "[CLS]",
+    "¿",
+    "[UNK]",
+    "?",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 57,
+   "model": "cased_bert_processing",
+   "text": "中文字",
+   "tokens": [
+    "中",
+    "文",
+    "[UNK]"
+   ],
+   "ids": [
+    56,
+    57,
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "中",
+    "文",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 58,
+   "model": "cased_bert_processing",
+   "text": "日本語テキスト",
+   "tokens": [
+    "日",
+    "本",
+    "語",
+    "テ",
+    "##キ",
+    "##ス",
+    "##ト"
+   ],
+   "ids": [
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64
+   ],
+   "wrapped": [
+    "[CLS]",
+    "日",
+    "本",
+    "語",
+    "テ",
+    "##キ",
+    "##ス",
+    "##ト",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 59,
+   "model": "cased_bert_processing",
+   "text": "x\u0000y",
+   "tokens": [
+    "x",
+    "##y"
+   ],
+   "ids": [
+    65,
+    66
+   ],
+   "wrapped": [
+    "[CLS]",
+    "x",
+    "##y",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 60,
+   "model": "cased_bert_processing",
+   "text": "a​b",
+   "tokens": [
+    "ab"
+   ],
+   "ids": [
+    67
+   ],
+   "wrapped": [
+    "[CLS]",
+    "ab",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 61,
+   "model": "cased_bert_processing",
+   "text": "hello­world",
+   "tokens": [
+    "hello",
+    "##world"
+   ],
+   "ids": [
+    12,
+    68
+   ],
+   "wrapped": [
+    "[CLS]",
+    "hello",
+    "##world",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 62,
+   "model": "cased_bert_processing",
+   "text": "x́",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 63,
+   "model": "cased_bert_processing",
+   "text": "Hello, World!",
+   "tokens": [
+    "Hello",
+    ",",
+    "World",
+    "!"
+   ],
+   "ids": [
+    95,
+    69,
+    96,
+    25
+   ],
+   "wrapped": [
+    "[CLS]",
+    "Hello",
+    ",",
+    "World",
+    "!",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 64,
+   "model": "cased_bert_processing",
+   "text": "don't",
+   "tokens": [
+    "don",
+    "'",
+    "t"
+   ],
+   "ids": [
+    75,
+    70,
+    76
+   ],
+   "wrapped": [
+    "[CLS]",
+    "don",
+    "'",
+    "t",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 65,
+   "model": "cased_bert_processing",
+   "text": "e-mail",
+   "tokens": [
+    "e",
+    "-",
+    "mail"
+   ],
+   "ids": [
+    77,
+    71,
+    78
+   ],
+   "wrapped": [
+    "[CLS]",
+    "e",
+    "-",
+    "mail",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 66,
+   "model": "cased_bert_processing",
+   "text": "tab\there",
+   "tokens": [
+    "tab",
+    "here"
+   ],
+   "ids": [
+    79,
+    80
+   ],
+   "wrapped": [
+    "[CLS]",
+    "tab",
+    "here",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 67,
+   "model": "cased_bert_processing",
+   "text": "$100.50",
+   "tokens": [
+    "$",
+    "100",
+    ".",
+    "50"
+   ],
+   "ids": [
+    72,
+    81,
+    24,
+    82
+   ],
+   "wrapped": [
+    "[CLS]",
+    "$",
+    "100",
+    ".",
+    "50",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 68,
+   "model": "cased_bert_processing",
+   "text": "@user #tag",
+   "tokens": [
+    "@",
+    "user",
+    "#",
+    "tag"
+   ],
+   "ids": [
+    73,
+    83,
+    74,
+    84
+   ],
+   "wrapped": [
+    "[CLS]",
+    "@",
+    "user",
+    "#",
+    "tag",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 69,
+   "model": "cased_bert_processing",
+   "text": "a　b c",
+   "tokens": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ids": [
+    23,
+    47,
+    85
+   ],
+   "wrapped": [
+    "[CLS]",
+    "a",
+    "b",
+    "c",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 70,
+   "model": "cased_bert_processing",
+   "text": "𠀀x 😀 ok",
+   "tokens": [
+    "𠀀",
+    "x",
+    "[UNK]",
+    "ok"
+   ],
+   "ids": [
+    87,
+    65,
+    0,
+    86
+   ],
+   "wrapped": [
+    "[CLS]",
+    "𠀀",
+    "x",
+    "[UNK]",
+    "ok",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 71,
+   "model": "cased_bert_processing",
+   "text": "école ÉCOLE",
+   "tokens": [
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 72,
+   "model": "cased_bert_processing",
+   "text": "x�y",
+   "tokens": [
+    "x",
+    "##y"
+   ],
+   "ids": [
+    65,
+    66
+   ],
+   "wrapped": [
+    "[CLS]",
+    "x",
+    "##y",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 73,
+   "model": "cased_bert_processing",
+   "text": "“quoted” — dash",
+   "tokens": [
+    "“",
+    "quoted",
+    "”",
+    "—",
+    "dash"
+   ],
+   "ids": [
+    89,
+    93,
+    90,
+    91,
+    92
+   ],
+   "wrapped": [
+    "[CLS]",
+    "“",
+    "quoted",
+    "”",
+    "—",
+    "dash",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 74,
+   "model": "cased_bert_processing",
+   "text": "x͸y",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 75,
+   "model": "cased_bert_processing",
+   "text": "🛘 hi",
+   "tokens": [
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 76,
+   "model": "cased_bert_processing",
+   "text": "hi 🫩",
+   "tokens": [
+    "[UNK]",
+    "[UNK]"
+   ],
+   "ids": [
+    0,
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 77,
+   "model": "cased_bert_processing",
+   "text": "É͸é",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 78,
+   "model": "cased_bert_processing",
+   "text": "𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀𝐀",
+   "tokens": [
+    "𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀"
+   ],
+   "ids": [
+    97,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98,
+    98
+   ],
+   "wrapped": [
+    "[CLS]",
+    "𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "##𝐀",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 79,
+   "model": "cased_bert_processing",
+   "text": "a￾a",
+   "tokens": [
+    "a",
+    "##￾",
+    "##a"
+   ],
+   "ids": [
+    23,
+    100,
+    42
+   ],
+   "wrapped": [
+    "[CLS]",
+    "a",
+    "##￾",
+    "##a",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 80,
+   "model": "cased_bert_processing",
+   "text": "Á￾á",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 81,
+   "model": "cased_bert_processing",
+   "text": "a᫏᫝b",
+   "tokens": [
+    "a᫏᫝b"
+   ],
+   "ids": [
+    101
+   ],
+   "wrapped": [
+    "[CLS]",
+    "a᫏᫝b",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 82,
+   "model": "cased_bert_processing",
+   "text": "Á᫏᫝á",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  },
+  {
+   "id": 83,
+   "model": "cased_bert_processing",
+   "text": "Á͸᫏᫝é",
+   "tokens": [
+    "[UNK]"
+   ],
+   "ids": [
+    0
+   ],
+   "wrapped": [
+    "[CLS]",
+    "[UNK]",
+    "[SEP]"
+   ]
+  }
+ ]
+}

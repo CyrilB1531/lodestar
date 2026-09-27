@@ -144,15 +144,9 @@ public sealed partial class EmbeddingIndex
         ReadOnlySpan<float> q = query;
         if (_normalize)
         {
+            // The stored rows' own arithmetic: a float norm overflowed past ~1e19 per component (#1214).
             owned = query.ToArray();
-            float norm = VectorMath.L2Norm(owned);
-            if (norm > 0)
-            {
-                for (int i = 0; i < owned.Length; i++)
-                {
-                    owned[i] /= norm;
-                }
-            }
+            NormalizeRow(owned);
             q = owned;
         }
 
@@ -250,10 +244,11 @@ public sealed partial class EmbeddingIndex
         }
     }
 
-    private void NormalizeStored(int start)
-    {
-        Span<float> row = _data.AsSpan(start, _dim);
+    private void NormalizeStored(int start) => NormalizeRow(_data.AsSpan(start, _dim));
 
+    /// <summary>Scales <paramref name="row"/> to unit length, leaving a zero row alone.</summary>
+    private static void NormalizeRow(Span<float> row)
+    {
         // The sum stays scalar and in order: a vector reduction would regroup it and move bits.
         double sum = 0;
         for (int i = 0; i < row.Length; i++)

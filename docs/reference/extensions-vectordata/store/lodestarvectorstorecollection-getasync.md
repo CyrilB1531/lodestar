@@ -50,25 +50,24 @@ static async Task<string> ReadAsync()
 string read = ReadAsync().GetAwaiter().GetResult();  // => b | c,a | 2
 ```
 
-**Remarks** — **none of these rebuild an index.** Reading by key goes straight to the dictionary, and
-the filtered overload walks the records rather than a ranking, so a read after a write costs nothing
-the write had not already paid.
+**Remarks** — **none of these touch an index.** Reading by key is one dictionary lookup, and the
+filtered overload walks the records rather than a ranking, so a read after a write costs nothing the
+write had not already paid.
 
 **`OrderBy` is refused rather than ignored.** A dictionary has no order of its own to sort from, and
 ordering by an arbitrary property expression is a feature this package has not decided; an ordering
 silently dropped would hand a caller records in an order they did not ask for, with nothing to say
-so. `Skip` has an order to count in — the records the filter admits, in the dictionary's enumeration
-order — and that order is **not promised**. Page through a filter with `Skip` only where the page
+so. `Skip` has an order to count in — the records the filter admits, in the order they are held,
+which a delete and a later insert rearrange — and that order is **not promised**. Page through a filter with `Skip` only where the page
 boundaries do not have to be stable.
 
 **The filter is compiled with `Expression.Compile`** once per call, which needs dynamic code: this
 overload is not available under trimming or ahead-of-time compilation.
 
 `IncludeVectors` does not apply. The record returned is the one the collection holds, vector
-included — the same instance, not a copy, so a change made to it changes the stored record without
-marking the indexes stale. The next search picks it up only when the indexes are rebuilt — after any
-write, or at once if a write had already made them stale; upsert the changed record to be sure of
-it.
+included — the same instance, not a copy, so a change made to it changes the stored record, and
+what a filter sees, but not how a search ranks it: its vector and text were read when it was
+written. Upsert the changed record to have it searched as it now stands.
 
 **Applies to** — net10.0, netstandard2.0.
 

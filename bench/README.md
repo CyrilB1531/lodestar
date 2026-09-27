@@ -3675,3 +3675,46 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- \
 
 The incumbent row, with its machine and window, is in
 [`src/Lodestar.Text/performance.md`](../src/Lodestar.Text/performance.md).
+
+## 72. The cosine kernel's selection as *k* grows (issue #1214)
+
+`CosineTopKSelectionBenchmarks` holds a batch of 16 queries of 384 dimensions and moves *k* from
+10 to 1,000, over 10,000 and 100,000 seeded rows. `TiledCosineTopKBenchmarks` beside it holds *k* at
+10, where scoring dominates and the selection barely shows; this class is where the selection's own
+cost is written. The two rows are the gate's pair: `SimdBaseline` is `EmbeddingIndex.Search` per
+query, and `GpuResident` is one `TiledCosineTopK.Search` over the batch with the matrix resident.
+Read `Device` before any figure, as for every class in this project.
+
+No corpus file: the rows and queries come from a fixed seed through `SeededVectors`, which
+`TiledCosineTopKBenchmarks` draws from too. Agreement is the suite's job —
+`TopKSelectionDifferentialTests` ranks hundreds of random cases exactly on the CPU accelerator.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Gpu.Benchmarks -- --filter '*CosineTopKSelection*' --job short
+```
+
+`BenchmarkDotNet`'s `Allocated` column counts the host only: the selection's scratch lives on the
+device and appears in no column.
+
+## 73. A vector store written and searched in alternation (issue #1214)
+
+`VectorStoreChurnBenchmarks` holds a `LodestarVectorStoreCollection` of 1,000, 10,000 and 100,000
+records — `FilteredVectorSearchBenchmarks`' own corpus, from `TaggedVector.Corpus` — and times three
+rows against the code they replaced, since no in-process .NET store offers hybrid search to compare
+with:
+
+- `UpsertThenSearch` and `UpsertThenHybrid` replace one record, then search: top 10 by vector, and
+  top 10 fused with the keyword `w7`. The 64 replacements are prepared in the setup with keys spread
+  over the collection, so its size never moves and every row replaces a record already held. A
+  store that rebuilds its indexes on the first read after a write pays for every record here.
+- `Hybrid` searches alone, with no write: the fusion's own cost, which used to rank and sort every
+  record by vector on every query.
+
+`FilteredVectorSearchBenchmarks.HybridSelective` and `HybridBroad` are the fusion at a keyword one
+record holds and one every record holds; run them beside it, since a keyword every record holds is
+the fusion's worst case, with every record a candidate.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- \
+  --filter '*VectorStoreChurnBenchmarks*' '*FilteredVectorSearchBenchmarks.Hybrid*'
+```

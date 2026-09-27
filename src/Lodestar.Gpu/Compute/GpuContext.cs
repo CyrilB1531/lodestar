@@ -13,6 +13,7 @@ namespace Lodestar.Gpu.Compute;
 public sealed class GpuContext : IDisposable
 {
     private readonly Context _context;
+    private bool _disposed;
 
     /// <summary>The accelerator kernels are loaded onto.</summary>
     public Accelerator Accelerator { get; }
@@ -87,10 +88,23 @@ public sealed class GpuContext : IDisposable
         _ => false,
     };
 
-    /// <summary>Releases the accelerator and the context, in that order.</summary>
+    /// <summary>Whether <see cref="Dispose"/> has run, which every kernel and upload asks first.</summary>
+    internal bool IsDisposed => _disposed;
+
+    /// <summary>Releases the accelerator and the context, in that order; a second call does nothing.</summary>
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
         Accelerator.Dispose();
         _context.Dispose();
     }
+
+    /// <summary>Throws when this context was disposed, before its accelerator is touched.</summary>
+    /// <exception cref="ObjectDisposedException">The context was disposed.</exception>
+    internal void EnsureNotDisposed() => Guard.NotDisposed(_disposed, this);
 }

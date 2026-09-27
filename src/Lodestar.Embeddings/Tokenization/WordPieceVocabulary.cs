@@ -36,12 +36,30 @@ public sealed record WordPieceVocabulary(
     /// </remarks>
     public bool BasicTokenization { get; init; }
 
+    /// <summary>
+    /// The tokens the file's <c>post_processor</c> puts before the text, in that order,
+    /// empty when it declares none.
+    /// </summary>
+    /// <remarks>
+    /// Read by <see cref="Persistence.TokenizerJsonLoader"/> from a <c>TemplateProcessing</c>, <c>BertProcessing</c>
+    /// or <c>RobertaProcessing</c>: <c>[&quot;[CLS]&quot;]</c> for a BERT file. Public because the caller composes the
+    /// <see cref="SpecialTokenTemplate"/>, which also needs a pad token the vocabulary does not carry (#1210).
+    /// </remarks>
+    public IReadOnlyList<string> PrefixTokens { get; init; } = [];
+
+    /// <summary>
+    /// The tokens the file's <c>post_processor</c> puts after the text, in that order,
+    /// empty when it declares none.
+    /// </summary>
+    /// <remarks>See <see cref="PrefixTokens"/>.</remarks>
+    public IReadOnlyList<string> SuffixTokens { get; init; } = [];
+
     /// <summary>Number of entries in the vocabulary.</summary>
     public int Count => Vocab.Count;
 
     /// <summary>
-    /// Compares the settings, then every token-to-id mapping and every
-    /// <see cref="AddedTokens"/> entry, in order.
+    /// Compares the settings and the <see cref="PrefixTokens"/> and <see cref="SuffixTokens"/>
+    /// templates, then every token-to-id mapping and every <see cref="AddedTokens"/> entry, in order.
     /// </summary>
     /// <remarks>
     /// The generated equality would compare <see cref="Vocab"/> by reference, so two
@@ -60,7 +78,9 @@ public sealed record WordPieceVocabulary(
             || !string.Equals(UnkToken, other.UnkToken, StringComparison.Ordinal)
             || !string.Equals(ContinuationPrefix, other.ContinuationPrefix, StringComparison.Ordinal)
             || Vocab.Count != other.Vocab.Count
-            || AddedTokens.Count != other.AddedTokens.Count)
+            || AddedTokens.Count != other.AddedTokens.Count
+            || !PrefixTokens.SequenceEqual(other.PrefixTokens, StringComparer.Ordinal)
+            || !SuffixTokens.SequenceEqual(other.SuffixTokens, StringComparer.Ordinal))
         {
             return false;
         }
@@ -96,6 +116,8 @@ public sealed record WordPieceVocabulary(
             hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(UnkToken);
             hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(ContinuationPrefix);
             hash = (hash * 31) + (BasicTokenization ? 1 : 0);
+            hash = (hash * 31) + PrefixTokens.Count;
+            hash = (hash * 31) + SuffixTokens.Count;
             return (hash * 31) + (Lowercase ? 1 : 0);
         }
     }

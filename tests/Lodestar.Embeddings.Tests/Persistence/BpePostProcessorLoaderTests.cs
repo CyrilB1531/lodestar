@@ -82,9 +82,30 @@ public sealed class BpePostProcessorLoaderTests
     public void A_post_processor_of_another_kind_is_refused_by_name()
     {
         InvalidDataException thrown = Assert.Throws<InvalidDataException>(
-            () => Load(File("{\"type\":\"RobertaProcessing\",\"sep\":[\"</s>\",2],\"cls\":[\"<s>\",0]}")));
+            () => Load(File("{\"type\":\"Sequence\",\"processors\":[]}")));
 
-        Assert.Contains("its post_processor is 'RobertaProcessing'", thrown.Message, StringComparison.Ordinal);
+        Assert.Contains("its post_processor is 'Sequence'", thrown.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>BertProcessing and RobertaProcessing wrap one sequence as <c>cls $A sep</c> (#1210).</summary>
+    [Theory]
+    [InlineData("BertProcessing")]
+    [InlineData("RobertaProcessing")]
+    public void A_cls_and_sep_processor_reads_as_a_one_token_prefix_and_suffix(string kind)
+    {
+        BpeVocabulary vocabulary = Load(File($"{{\"type\":\"{kind}\",\"sep\":[\"</s>\",2],\"cls\":[\"<s>\",0]}}"));
+
+        Assert.Equal(["<s>"], vocabulary.PrefixTokens);
+        Assert.Equal(["</s>"], vocabulary.SuffixTokens);
+    }
+
+    [Fact]
+    public void A_cls_and_sep_processor_missing_its_sep_is_refused()
+    {
+        InvalidDataException thrown = Assert.Throws<InvalidDataException>(
+            () => Load(File("{\"type\":\"BertProcessing\",\"cls\":[\"[CLS]\",0]}")));
+
+        Assert.Contains("no 'sep' pair", thrown.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -133,14 +154,9 @@ public sealed class BpePostProcessorLoaderTests
         Assert.Contains("declares no 'single' template", thrown.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>The other two loaders keep refusing any post-processor at all.</summary>
-    /// <remarks>
-    /// Only the BPE path reads one: this lot exists for the SentencePiece-BPE lineage, and
-    /// widening the WordPiece and Unigram paths on the same commit would accept files
-    /// nothing has measured.
-    /// </remarks>
+    /// <summary>The WordPiece loader reads the same template since #1210, as the Unigram one does.</summary>
     [Fact]
-    public void The_wordpiece_loader_still_refuses_a_template_processing()
+    public void The_wordpiece_loader_reads_a_template_processing_too()
     {
         string json = "{\"version\":\"1.0\",\"truncation\":null,\"padding\":null,\"added_tokens\":[]," +
             "\"normalizer\":null,\"pre_tokenizer\":{\"type\":\"Whitespace\"}," +
@@ -148,10 +164,10 @@ public sealed class BpePostProcessorLoaderTests
             "\"model\":{\"type\":\"WordPiece\",\"unk_token\":\"[UNK]\",\"continuing_subword_prefix\":\"##\"," +
             "\"max_input_chars_per_word\":100,\"vocab\":{\"[UNK]\":0,\"a\":1}}}";
 
-        InvalidDataException thrown = Assert.Throws<InvalidDataException>(
-            () => TokenizerJsonLoader.LoadWordPiece(new MemoryStream(Encoding.UTF8.GetBytes(json))));
+        WordPieceVocabulary vocabulary = TokenizerJsonLoader.LoadWordPiece(new MemoryStream(Encoding.UTF8.GetBytes(json)));
 
-        Assert.Contains("post_processor", thrown.Message, StringComparison.Ordinal);
+        Assert.Equal(["<s>"], vocabulary.PrefixTokens);
+        Assert.Empty(vocabulary.SuffixTokens);
     }
 
     private static string Template(string steps) =>

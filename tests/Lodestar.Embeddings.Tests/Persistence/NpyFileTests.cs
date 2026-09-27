@@ -22,6 +22,25 @@ public sealed class NpyFileTests
     private static string Fixture(string name) =>
         Path.Combine(AppContext.BaseDirectory, "Fixtures", "Npy", name);
 
+    /// <summary>A big-endian host reverses every word the little-endian file holds, as the writer does (#1214).</summary>
+    [Fact]
+    public void A_big_endian_host_reverses_each_word_it_reads()
+    {
+        float[] values = [1f, -2.5f];
+        float[] original = [.. values];
+
+        NpyFile.ToHostOrder(values, hostIsLittleEndian: false);
+        Assert.Equal(
+            BinaryPrimitives.ReverseEndianness(BitConverter.SingleToInt32Bits(1f)),
+            BitConverter.SingleToInt32Bits(values[0]));
+
+        NpyFile.ToHostOrder(values, hostIsLittleEndian: false);
+        Assert.Equal(original, values);
+
+        NpyFile.ToHostOrder(values, hostIsLittleEndian: true);
+        Assert.Equal(original, values);
+    }
+
     [Fact]
     public void A_matrix_numpy_wrote_reads_with_its_shape()
     {

@@ -47,21 +47,23 @@ string scored = ReplaceAsync().GetAwaiter().GetResult();  // => a=0,b=0
 Nothing scores `1` any more: the vector `a` once had is not in the index, rather than hidden from
 the results.
 
-**Remarks** — **a write never rebuilds anything.** It stores the record under its key, marks the
-collection as existing, and marks the indexes stale; the next
-[`LodestarVectorStoreCollection.SearchAsync`](lodestarvectorstorecollection-searchasync.md) or
+**Remarks** — **a write costs its own record, never the collection's.** It stores the record under
+its key, marks the collection as existing, normalizes the record's vector into its slot, and stages
+its text; the next
 [`LodestarVectorStoreCollection.HybridSearchAsync`](lodestarvectorstorecollection-hybridsearchasync.md)
-rebuilds them once, however many writes came first. Prefer the batch overload for a bulk load only
-for readability — a hundred single upserts followed by one search cost the same single rebuild.
+tokenizes every staged text in one pass, and
+[`LodestarVectorStoreCollection.SearchAsync`](lodestarvectorstorecollection-searchasync.md) never
+tokenizes anything. Prefer the batch overload for a bulk load only for readability — a hundred single
+upserts cost what one batch of a hundred does.
 
 **A vector of the wrong width is refused here, at the write.** A record whose vector is not the
 schema's `Dimensions` long throws `ArgumentException` naming its key and both widths, and nothing is
 stored. The batch overload checks **every** record before it writes any, so a batch holding one bad
 record — a wrong width, a null key, a null record — leaves the collection exactly as it was.
 
-The record is **held, not copied**: mutating it after the upsert changes what the collection holds
-without marking the indexes stale. Upsert it again after changing it — a vector changed in place to
-another width is the one case the write cannot see, and the next rebuild refuses it instead.
+The record is **held, not copied**, but its vector and text are **read at the write**: mutating the
+record afterwards changes what a filter and the caller see, while searches keep ranking it by the
+vector and text it had when it was upserted. Upsert it again after changing it.
 
 **Applies to** — net10.0, netstandard2.0.
 

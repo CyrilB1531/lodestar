@@ -106,19 +106,71 @@ public sealed class TokenizerJsonLoaderTests
     public void A_pre_tokenizer_that_is_not_reproduced_is_rejected()
     {
         InvalidDataException error = Assert.Throws<InvalidDataException>(
-            () => LoadWordPieceFrom(SyntheticWordPiece(preTokenizer: "{\"type\":\"BertPreTokenizer\"}")));
+            () => LoadWordPieceFrom(SyntheticWordPiece(preTokenizer: "{\"type\":\"Metaspace\"}")));
 
-        Assert.Contains("its pre_tokenizer is 'BertPreTokenizer'", error.Message, StringComparison.Ordinal);
+        Assert.Contains("its pre_tokenizer is 'Metaspace'", error.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>BertPreTokenizer is reproduced as BERT's BasicTokenizer, after the default BertNormalizer only (#1210).</summary>
+    [Theory]
+    [InlineData("{\"type\":\"Lowercase\"}", "follows a 'Lowercase' normalizer")]
+    [InlineData("null", "follows a 'none' normalizer")]
+    [InlineData("{\"type\":\"BertNormalizer\",\"handle_chinese_chars\":false}", "departs from the default")]
+    [InlineData("{\"type\":\"BertNormalizer\",\"clean_text\":false}", "departs from the default")]
+    [InlineData("{\"type\":\"BertNormalizer\",\"lowercase\":true,\"strip_accents\":false}", "departs from the default")]
+    [InlineData("{\"type\":\"BertNormalizer\",\"lowercase\":false,\"strip_accents\":true}", "departs from the default")]
+    public void A_bert_pre_tokenizer_after_anything_but_the_default_bert_normalizer_is_rejected(string normalizer, string expected)
+    {
+        InvalidDataException error = Assert.Throws<InvalidDataException>(
+            () => LoadWordPieceFrom(SyntheticWordPiece(normalizer: normalizer, preTokenizer: "{\"type\":\"BertPreTokenizer\"}")));
+
+        Assert.Contains(expected, error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("{\"type\":\"BertNormalizer\"}", true)]
+    [InlineData("{\"type\":\"BertNormalizer\",\"lowercase\":false,\"strip_accents\":null}", false)]
+    [InlineData("{\"type\":\"BertNormalizer\",\"lowercase\":true,\"strip_accents\":true}", true)]
+    public void The_default_bert_normalizer_and_pre_tokenizer_load_as_basic_tokenization(string normalizer, bool lowercase)
+    {
+        WordPieceVocabulary vocabulary = LoadWordPieceFrom(
+            SyntheticWordPiece(normalizer: normalizer, preTokenizer: "{\"type\":\"BertPreTokenizer\"}"));
+
+        Assert.True(vocabulary.BasicTokenization);
+        Assert.Equal(lowercase, vocabulary.Lowercase);
     }
 
     [Fact]
-    public void A_post_processor_that_would_insert_special_tokens_is_rejected()
+    public void A_template_processing_with_no_single_template_is_rejected()
     {
         InvalidDataException error = Assert.Throws<InvalidDataException>(
             () => LoadWordPieceFrom(SyntheticWordPiece(postProcessor: "{\"type\":\"TemplateProcessing\"}")));
 
-        Assert.Contains("post_processor", error.Message, StringComparison.Ordinal);
-        Assert.Contains("[CLS]", error.Message, StringComparison.Ordinal);
+        Assert.Contains("declares no 'single' template", error.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>The Unigram loader reads a post-processor as the BPE one does (#1210).</summary>
+    [Fact]
+    public void A_unigram_file_s_roberta_processing_reads_as_its_prefix_and_suffix()
+    {
+        SentencePieceVocabulary vocabulary = LoadUnigramFrom(SyntheticUnigram(
+            postProcessor: "{\"type\":\"RobertaProcessing\",\"sep\":[\"</s>\",2],\"cls\":[\"<s>\",0],\"trim_offsets\":true}"));
+
+        Assert.Equal(["<s>"], vocabulary.PrefixTokens);
+        Assert.Equal(["</s>"], vocabulary.SuffixTokens);
+    }
+
+    /// <summary>Truncation and padding are call settings, <see cref="EncodingOptions"/>'s, and are not read (#1210).</summary>
+    [Fact]
+    public void Truncation_and_padding_are_accepted_and_left_to_the_encoding_options()
+    {
+        string json = SyntheticWordPiece().Replace(
+            "\"truncation\":null,\"padding\":null",
+            "\"truncation\":{\"max_length\":128,\"strategy\":\"LongestFirst\",\"stride\":0}," +
+            "\"padding\":{\"strategy\":{\"Fixed\":128},\"pad_id\":0,\"pad_token\":\"[PAD]\"}",
+            StringComparison.Ordinal);
+
+        Assert.Equal(LoadWordPieceFrom(SyntheticWordPiece()), LoadWordPieceFrom(json));
     }
 
     [Theory]
@@ -652,9 +704,10 @@ public sealed class TokenizerJsonLoaderTests
         string byteFallback = "false",
         string unkId = "0",
         string normalizer = "null",
-        string vocab = "[[\"<unk>\",0.0],[\"\\u2581alpha\",-1.5],[\"\\u2581beta\",-2.5]]") =>
+        string vocab = "[[\"<unk>\",0.0],[\"\\u2581alpha\",-1.5],[\"\\u2581beta\",-2.5]]",
+        string postProcessor = "null") =>
         "{\"version\":\"1.0\",\"truncation\":null,\"padding\":null,\"added_tokens\":[]," +
-        $"\"normalizer\":{normalizer},\"pre_tokenizer\":{preTokenizer},\"post_processor\":null,\"decoder\":null," +
+        $"\"normalizer\":{normalizer},\"pre_tokenizer\":{preTokenizer},\"post_processor\":{postProcessor},\"decoder\":null," +
         $"\"model\":{{\"type\":\"Unigram\",\"unk_id\":{unkId},\"byte_fallback\":{byteFallback},\"vocab\":{vocab}}}}}";
 
     // ---- BPE ----

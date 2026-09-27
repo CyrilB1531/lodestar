@@ -101,8 +101,10 @@ internal sealed class AddedTokenScanner
     /// <param name="at">The raw index the winner matched at, before stripping; -1 when none matched.</param>
     /// <remarks>
     /// One pass for every entry, stopping where some entry's first character sits: a scan per
-    /// entry cost Llama-3's 256 entries 256 passes over text holding none of them. A rejected
-    /// <see cref="AddedToken.SingleWord"/> position just moves the pass on to the next one.
+    /// entry cost Llama-3's 256 entries 256 passes over text holding none of them. The longest
+    /// entry present wins its position before any word check, as tokenizers' leftmost-longest
+    /// automaton does, so a rejected <see cref="AddedToken.SingleWord"/> match consumes its
+    /// characters and a shorter overlapping entry never gets them (#1209).
     /// </remarks>
     private AddedToken? BestMatch(string text, int from, out int at)
     {
@@ -120,34 +122,48 @@ internal sealed class AddedTokenScanner
                 break;
             }
 
-            AddedToken[] bucket = _byFirstChar[text[found]];
-            for (int c = 0; c < bucket.Length; c++)
+            AddedToken? longest = LongestAt(text, found);
+            if (longest is null)
             {
-                if (Matches(text, found, bucket[c]))
-                {
-                    at = found;
-                    return bucket[c];
-                }
+                position = found + 1;
+                continue;
             }
-            position = found + 1;
+            if (!longest.SingleWord || IsWholeWord(text, found, found + longest.Content.Length))
+            {
+                at = found;
+                return longest;
+            }
+            position = found + longest.Content.Length;
         }
 
         at = -1;
         return null;
     }
 
-    /// <summary>Whether <paramref name="candidate"/> matches at <paramref name="found"/>, word boundaries included.</summary>
-    private static bool Matches(string text, int found, AddedToken candidate)
+    /// <summary>The longest entry whose content sits at <paramref name="found"/>, the first on a tie, word boundaries aside.</summary>
+    private AddedToken? LongestAt(string text, int found)
     {
-        string content = candidate.Content;
-        return found + content.Length <= text.Length
-            && text.AsSpan(found, content.Length).SequenceEqual(content.AsSpan())
-            && (!candidate.SingleWord || IsWholeWord(text, found, found + content.Length));
+        AddedToken[] bucket = _byFirstChar[text[found]];
+        for (int c = 0; c < bucket.Length; c++)
+        {
+            string content = bucket[c].Content;
+            if (found + content.Length <= text.Length
+                && text.AsSpan(found, content.Length).SequenceEqual(content.AsSpan()))
+            {
+                return bucket[c];
+            }
+        }
+        return null;
     }
 
+    // tokenizers tests \w$ and ^\w with the regex crate, whose \w is Unicode's over code points:
+    // WhitespaceScanner's predicate, so a mark, Pc, Nl or astral letter bounds a word here too (#1213).
     private static bool IsWholeWord(string text, int start, int end) =>
-        (start == 0 || !IsWordCharacter(text[start - 1]))
-        && (end == text.Length || !IsWordCharacter(text[end]));
+        (start == 0 || !WhitespaceScanner.IsWordAt(text, CodePointStartBefore(text, start)))
+        && (end == text.Length || !WhitespaceScanner.IsWordAt(text, end));
 
-    private static bool IsWordCharacter(char c) => char.IsLetterOrDigit(c) || c == '_';
+    private static int CodePointStartBefore(string text, int index) =>
+        index >= 2 && char.IsLowSurrogate(text[index - 1]) && char.IsHighSurrogate(text[index - 2])
+            ? index - 2
+            : index - 1;
 }
