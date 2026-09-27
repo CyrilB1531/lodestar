@@ -15,8 +15,6 @@ public sealed class TruncatedSvd
 {
     private readonly double[] _components;
     private readonly double[] _singularValues;
-    private readonly double[] _explainedVariance;
-    private readonly double[] _explainedVarianceRatio;
 
     private TruncatedSvd(
         int featureCount,
@@ -27,9 +25,11 @@ public sealed class TruncatedSvd
     {
         FeatureCount = featureCount;
         _components = components;
+        Components = Array.AsReadOnly(_components);
         _singularValues = singularValues;
-        _explainedVariance = explainedVariance;
-        _explainedVarianceRatio = explainedVarianceRatio;
+        SingularValues = Array.AsReadOnly(_singularValues);
+        ExplainedVariance = Array.AsReadOnly(explainedVariance);
+        ExplainedVarianceRatio = Array.AsReadOnly(explainedVarianceRatio);
     }
 
     /// <summary>How many components were kept.</summary>
@@ -39,13 +39,13 @@ public sealed class TruncatedSvd
     public int FeatureCount { get; }
 
     /// <summary>The right singular vectors, row-major <see cref="ComponentCount"/> × <see cref="FeatureCount"/>.</summary>
-    public IReadOnlyList<double> Components => _components;
+    public IReadOnlyList<double> Components { get; }
 
     /// <summary>The singular values kept, largest first.</summary>
-    public IReadOnlyList<double> SingularValues => _singularValues;
+    public IReadOnlyList<double> SingularValues { get; }
 
     /// <summary>The variance of each column of <see cref="Transform"/>'s answer on the fitted matrix.</summary>
-    public IReadOnlyList<double> ExplainedVariance => _explainedVariance;
+    public IReadOnlyList<double> ExplainedVariance { get; }
 
     /// <summary>Each component's share of the input's total column variance.</summary>
     /// <remarks>
@@ -53,7 +53,7 @@ public sealed class TruncatedSvd
     /// these sum to less than one — and why the sum is the number that says whether the rank is
     /// enough.
     /// </remarks>
-    public IReadOnlyList<double> ExplainedVarianceRatio => _explainedVarianceRatio;
+    public IReadOnlyList<double> ExplainedVarianceRatio { get; }
 
     /// <summary>Fits a truncated SVD of <paramref name="matrix"/> at rank <paramref name="componentCount"/>.</summary>
     /// <param name="matrix">The term-document matrix to factorize, never centred.</param>
@@ -84,7 +84,7 @@ public sealed class TruncatedSvd
         // right vectors itself, which is why the kernel hands back an unflipped pair.
         (_, double[] s, double[] vt, int rank) = RandomizedSvd.Compute(
             matrix, componentCount, settings.Oversampling, settings.PowerIterations,
-            settings.Normalizer, omega);
+            settings.Normalizer, omega, leftVectors: false);
         SignFlip.Apply(vt, rank, features);
 
         double[] components = new double[checked(componentCount * features)];

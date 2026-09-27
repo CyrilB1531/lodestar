@@ -50,6 +50,7 @@ public class TransformerIncumbentBenchmarks
     private double[] _samples = [];
     private double[] _withGaps = [];
     private KBinsDiscretizer _bins = null!;
+    private KBinsDiscretizer _wideBins = null!;
     private QuantileTransformer _quantiles = null!;
     private PowerTransformer _power = null!;
     private KnnImputer _imputer = null!;
@@ -96,6 +97,10 @@ public class TransformerIncumbentBenchmarks
         // The fitted objects are built once: this class times the transform, and the fits are
         // measured by their own rows below.
         _bins = KBinsDiscretizer.Fit(_samples, Features);
+        _wideBins = KBinsDiscretizer.Fit(
+            _samples,
+            Features,
+            new KBinsDiscretizerOptions { BinCount = 64, Encoding = BinEncoding.Ordinal });
         _quantiles = QuantileTransformer.Fit(_samples, Features);
         _power = PowerTransformer.Fit(_samples, Features);
         _imputer = KnnImputer.Fit(_withGaps, Features);
@@ -110,6 +115,10 @@ public class TransformerIncumbentBenchmarks
 
     [Benchmark]
     public double[] Lodestar_Discretize() => _bins.Transform(_samples);
+
+    /// <summary>Sixty-four equally populated bins, where a linear scan of the edges would cost the most (#1232).</summary>
+    [Benchmark]
+    public double[] Lodestar_Discretize_64Bins() => _wideBins.Transform(_samples);
 
     [Benchmark]
     public KBinsDiscretizer Lodestar_Discretize_Fit() => KBinsDiscretizer.Fit(_samples, Features);

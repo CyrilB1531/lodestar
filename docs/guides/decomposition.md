@@ -192,7 +192,8 @@ path to the same numbers.
 is unpenalised.
 
 **A fitted model on disk.** Neither type has `Save` or `Load`; `Components` and `SingularValues`
-are plain lists, and persisting them is the caller's to arrange.
+are read-only lists — copy one with `ToArray()` rather than casting it — and persisting them is the
+caller's to arrange.
 
 **`nndsvdar`.** scikit-learn's third initialisation fills the zeros from NumPy's Gaussian stream,
 so it cannot be checked against the reference entry by entry — the reason above, and

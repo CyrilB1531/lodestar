@@ -26,17 +26,19 @@ public sealed class MinMaxScaler
     {
         FeatureCount = featureCount;
         SampleCount = sampleCount;
-        DataMinimum = dataMinimum;
-        DataMaximum = dataMaximum;
+        DataMinimum = Array.AsReadOnly(dataMinimum);
+        DataMaximum = Array.AsReadOnly(dataMaximum);
         var dataRange = new double[featureCount];
         for (int feature = 0; feature < featureCount; feature++)
         {
             dataRange[feature] = dataMaximum[feature] - dataMinimum[feature];
         }
 
-        DataRange = dataRange;
+        DataRange = Array.AsReadOnly(dataRange);
         _scale = scale;
+        Scale = Array.AsReadOnly(_scale);
         _minimum = minimum;
+        Minimum = Array.AsReadOnly(_minimum);
         _options = options;
     }
 
@@ -57,10 +59,10 @@ public sealed class MinMaxScaler
     public IReadOnlyList<double> DataRange { get; }
 
     /// <summary>What <see cref="Transform"/> multiplies by — <c>scale_</c>.</summary>
-    public IReadOnlyList<double> Scale => _scale;
+    public IReadOnlyList<double> Scale { get; }
 
     /// <summary>What <see cref="Transform"/> then adds — <c>min_</c>.</summary>
-    public IReadOnlyList<double> Minimum => _minimum;
+    public IReadOnlyList<double> Minimum { get; }
 
     /// <summary>Fits a scaler on a row-major sample matrix.</summary>
     /// <param name="samples">The samples, row-major: <paramref name="featureCount"/> values per row.</param>

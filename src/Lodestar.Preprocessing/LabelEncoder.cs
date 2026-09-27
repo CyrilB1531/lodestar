@@ -21,6 +21,7 @@ public sealed class LabelEncoder<T>
     private LabelEncoder(T[] classes, int sampleCount)
     {
         _classes = classes;
+        Classes = Array.AsReadOnly(_classes);
         SampleCount = sampleCount;
         _index = new CategoryIndex<T>([classes]);
     }
@@ -29,7 +30,7 @@ public sealed class LabelEncoder<T>
     public int SampleCount { get; }
 
     /// <summary>The distinct labels, sorted — the reference's <c>classes_</c>.</summary>
-    public IReadOnlyList<T> Classes => _classes;
+    public IReadOnlyList<T> Classes { get; }
 
     /// <summary>What <see cref="Encoders.Label"/> calls; the factory is there so this type carries no public static.</summary>
     internal static LabelEncoder<T> FitCore(ReadOnlySpan<T> labels)

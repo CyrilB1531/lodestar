@@ -4,6 +4,12 @@ What [`TruncatedSvd.Fit`](truncatedsvd-fit.md) is allowed to vary. Every propert
 initialiser, so `new TruncatedSvdOptions()` is scikit-learn's own default configuration and you
 set only what you are changing.
 
+<!-- docs-declaration -->
+
+```csharp
+public sealed record TruncatedSvdOptions
+```
+
 ## Properties
 
 | Property | Default | What it does |
@@ -27,3 +33,13 @@ too large to add to the rank asked for — an `int` that wrapped would be a bloc
 asked for rather than an error anybody could read. `Oversampling = 0` is allowed and means the
 probe block is exactly as wide as the rank, which is the fastest and the least accurate the
 method gets.
+
+A record since #1232, like every other options type: `with` copies one and changes a property,
+and two option sets built from separate arrays holding the same Ω compare equal.
+
+## Members
+
+| member | what it does |
+| --- | --- |
+| [`TruncatedSvdOptions.Equals`](truncatedsvdoptions-equals.md) | Value equality, Ω element by element. |
+| [`TruncatedSvdOptions.GetHashCode`](truncatedsvdoptions-gethashcode.md) | A hash consistent with it. |

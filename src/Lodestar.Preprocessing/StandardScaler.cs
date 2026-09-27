@@ -33,8 +33,11 @@ public sealed class StandardScaler
         FeatureCount = featureCount;
         SampleCount = sampleCount;
         _mean = mean;
+        Mean = _mean is null ? null : Array.AsReadOnly(_mean);
         _variance = variance;
+        Variance = _variance is null ? null : Array.AsReadOnly(_variance);
         _scale = scale;
+        Scale = _scale is null ? null : Array.AsReadOnly(_scale);
         _centres = centres;
     }
 
@@ -50,14 +53,14 @@ public sealed class StandardScaler
     /// <see cref="StandardScalerOptions.WithStd"/> are <em>both</em> off, which is what
     /// scikit-learn does: <c>with_mean=False</c> alone still computes <c>mean_</c>.
     /// </remarks>
-    public IReadOnlyList<double>? Mean => _mean;
+    public IReadOnlyList<double>? Mean { get; }
 
     /// <summary>Per-feature population variance, or <see langword="null"/> when not scaling.</summary>
-    public IReadOnlyList<double>? Variance => _variance;
+    public IReadOnlyList<double>? Variance { get; }
 
     /// <summary>What <see cref="Transform(ReadOnlySpan{double})"/> divides by, or <see langword="null"/> when not scaling.</summary>
     /// <remarks>The square root of <see cref="Variance"/>, except on a near-constant feature — see <see cref="Fit(ReadOnlySpan{double}, int, StandardScalerOptions)"/>.</remarks>
-    public IReadOnlyList<double>? Scale => _scale;
+    public IReadOnlyList<double>? Scale { get; }
 
     /// <summary>Fits a scaler on a row-major sample matrix.</summary>
     /// <param name="samples">The samples, row-major: <paramref name="featureCount"/> values per row.</param>
@@ -128,11 +131,11 @@ public sealed class StandardScaler
             throw new ArgumentException("samples holds no row or no column.", nameof(samples));
         }
 
-        SparseColumns.RequireFinite(samples, nameof(samples), SparseColumns.FitReason);
+        CsrMatrix read = SparseColumns.RequireFinite(samples, nameof(samples), SparseColumns.FitReason);
 
         int featureCount = samples.ColumnCount;
         int sampleCount = samples.RowCount;
-        (double[] sums, double[] squares) = SparseColumns.Moments(samples);
+        (double[] sums, double[] squares) = SparseColumns.Moments(read);
 
         var mean = new double[featureCount];
         for (int feature = 0; feature < featureCount; feature++)

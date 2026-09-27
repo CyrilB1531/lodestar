@@ -16,7 +16,8 @@ internal static class RandomizedSvd
     /// <c>U</c> is row-major <c>matrix.RowCount × Rank</c>, <c>Vt</c> row-major
     /// <c>Rank × matrix.ColumnCount</c>, and <c>Rank</c> is <c>S.Length</c> — which falls below
     /// <c>componentCount + oversampling</c> whenever a normalizer's economic factorization
-    /// narrowed the block on the way, so a caller reads it back rather than assuming it.
+    /// narrowed the block on the way, so a caller reads it back rather than assuming it. <c>U</c>
+    /// is empty unless <paramref name="leftVectors"/> asks for it: the estimator never reads it (#1232).
     /// </remarks>
     internal static (double[] U, double[] S, double[] Vt, int Rank) Compute(
         CsrMatrix matrix,
@@ -24,7 +25,8 @@ internal static class RandomizedSvd
         int oversampling,
         int powerIterations,
         PowerIterationNormalizer normalizer,
-        ReadOnlySpan<double> omega)
+        ReadOnlySpan<double> omega,
+        bool leftVectors)
     {
         int features = matrix.ColumnCount;
         int size = componentCount + oversampling;
@@ -38,14 +40,14 @@ internal static class RandomizedSvd
             matrix.TransposeMultiply(basis, basisSize), features, basisSize);
         (double[] uhat, double[] s, double[] vt) = JacobiSvd.DecomposeOverwriting(b, basisSize, features);
 
-        double[] u = Product(basis, uhat, matrix.RowCount, basisSize, s.Length);
+        double[] u = leftVectors ? Product(basis, uhat, matrix.RowCount, basisSize, s.Length) : [];
         return (u, s, vt, s.Length);
     }
 
     /// <summary><c>U = Q Û</c>, one <c>m × basisSize × rank</c> product.</summary>
     /// <remarks>
-    /// It is negligible beside the sparse products the range finder has already run, and it is
-    /// what lets a caller that needs the left vectors share this path instead of forking it.
+    /// What lets a caller that needs the left vectors share this path instead of forking it; the
+    /// one that does not skips its <c>m × basisSize × rank</c> multiply and its <c>m × rank</c> block.
     /// </remarks>
     private static double[] Product(
         double[] left, double[] right, int rows, int inner, int columns)

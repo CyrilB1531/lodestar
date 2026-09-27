@@ -25,8 +25,10 @@ public sealed class KBinsDiscretizer
         FeatureCount = featureCount;
         SampleCount = sampleCount;
         _binEdges = binEdges;
+        BinEdges = Array.AsReadOnly(Array.ConvertAll(_binEdges, row => (IReadOnlyList<double>)Array.AsReadOnly(row)));
         _encoding = encoding;
         _binCounts = new int[binEdges.Length];
+        BinCounts = Array.AsReadOnly(_binCounts);
         for (int feature = 0; feature < binEdges.Length; feature++)
         {
             _binCounts[feature] = binEdges[feature].Length - 1;
@@ -40,13 +42,13 @@ public sealed class KBinsDiscretizer
     public int SampleCount { get; }
 
     /// <summary>Each feature's bin edges, ascending — the reference's <c>bin_edges_</c>.</summary>
-    public IReadOnlyList<IReadOnlyList<double>> BinEdges => _binEdges;
+    public IReadOnlyList<IReadOnlyList<double>> BinEdges { get; }
 
     /// <summary>
     /// How many bins each feature ended with — the reference's <c>n_bins_</c>, which can be fewer
     /// than asked for when two edges fall within <c>1e-8</c> of each other.
     /// </summary>
-    public IReadOnlyList<int> BinCounts => _binCounts;
+    public IReadOnlyList<int> BinCounts { get; }
 
     /// <summary>How many values a transformed row carries.</summary>
     public int OutputFeatureCount => _encoding == BinEncoding.Ordinal ? FeatureCount : Sum(_binCounts);
@@ -162,15 +164,23 @@ public sealed class KBinsDiscretizer
     {
         double[] edges = _binEdges[feature];
 
-        // The reference searches the interior edges and clips, so a value below the fitted range
-        // lands in the first bin and one above it in the last rather than being refused.
-        int bin = 0;
-        while (bin < edges.Length - 2 && value >= edges[bin + 1])
+        // np.searchsorted(edges[1:-1], value, side='right'): a value outside the fitted range clips to
+        // the first or last bin, as the reference's does. Halved without a branch to mispredict (#1232).
+        int interior = edges.Length - 2;
+        if (interior == 0)
         {
-            bin++;
+            return 0;
         }
 
-        return bin;
+        int first = 1;
+        while (interior > 1)
+        {
+            int half = interior >> 1;
+            first += half & -(value >= edges[first + half] ? 1 : 0);
+            interior -= half;
+        }
+
+        return first - 1 + (value >= edges[first] ? 1 : 0);
     }
 
     private static double[] Edges(double[] sortedColumn, KBinsDiscretizerOptions settings)

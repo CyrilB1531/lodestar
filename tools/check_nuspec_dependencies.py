@@ -259,10 +259,10 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {STATS: STATS_PROJECT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
     },
     DECOMPOSITION: {
-        # The one edge of this package, and the reason Lodestar.Abstractions exists:
-        # CsrMatrix and its two dense-block products, with no Lodestar.Text behind them.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
+        # The one edge of this package, and the reason Lodestar.Abstractions exists: CsrMatrix and its
+        # dense-block products; the project's version until the release publishes #1232's records.
+        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
     },
     STATS: {
         # One Lodestar edge, to its data types (#1142), at the project's version until the release

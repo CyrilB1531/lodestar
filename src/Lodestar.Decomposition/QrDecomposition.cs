@@ -13,15 +13,12 @@ namespace Lodestar.Decomposition;
 /// </remarks>
 public sealed class QrDecomposition
 {
-    private readonly double[] _q;
-    private readonly double[] _r;
-
     private QrDecomposition(int rowCount, int columnCount, double[] q, double[] r)
     {
         RowCount = rowCount;
         ColumnCount = columnCount;
-        _q = q;
-        _r = r;
+        Q = Array.AsReadOnly(q);
+        R = Array.AsReadOnly(r);
     }
 
     /// <summary>Rows of the factorized matrix.</summary>
@@ -31,10 +28,10 @@ public sealed class QrDecomposition
     public int ColumnCount { get; }
 
     /// <summary>The orthonormal factor, row-major and <see cref="RowCount"/> × <see cref="ColumnCount"/>.</summary>
-    public IReadOnlyList<double> Q => _q;
+    public IReadOnlyList<double> Q { get; }
 
     /// <summary>The upper-triangular factor, row-major and <see cref="ColumnCount"/> square.</summary>
-    public IReadOnlyList<double> R => _r;
+    public IReadOnlyList<double> R { get; }
 
     /// <summary>Factorizes a row-major matrix by Householder reflections.</summary>
     /// <param name="matrix">The matrix, row-major: <paramref name="columnCount"/> values per row.</param>

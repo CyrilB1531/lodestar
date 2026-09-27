@@ -12,9 +12,9 @@ namespace Lodestar.Preprocessing.Internal;
 internal static class SparseColumns
 {
     /// <summary>Each column's sum of values and sum of squares, the zeros contributing nothing to either.</summary>
-    public static (double[] Sums, double[] Squares) Moments(CsrMatrix matrix)
+    /// <param name="read">The matrix as <see cref="RequireFinite"/> returned it, each cell stored once.</param>
+    public static (double[] Sums, double[] Squares) Moments(CsrMatrix read)
     {
-        CsrMatrix read = Consolidated(matrix);
         var sums = new double[read.ColumnCount];
         var squares = new double[read.ColumnCount];
         for (int i = 0; i < read.Values.Length; i++)
@@ -110,9 +110,9 @@ internal static class SparseColumns
     }
 
     /// <summary>Each column's largest absolute value, which is zero for a column with no stored entry.</summary>
-    public static double[] MaximumAbsolute(CsrMatrix matrix)
+    /// <param name="read">The matrix as <see cref="RequireFinite"/> returned it, each cell stored once.</param>
+    public static double[] MaximumAbsolute(CsrMatrix read)
     {
-        CsrMatrix read = Consolidated(matrix);
         var maxima = new double[read.ColumnCount];
         for (int i = 0; i < read.Values.Length; i++)
         {
@@ -132,9 +132,9 @@ internal static class SparseColumns
     /// One pass over the matrix for every column, where reading a column by scanning all stored
     /// values cost O(stored values x columns). Group <c>c</c> is <c>Values[Offsets[c]..Offsets[c + 1]]</c>.
     /// </remarks>
-    public static (double[] Values, int[] Offsets) ByColumn(CsrMatrix matrix)
+    /// <param name="read">The matrix as <see cref="RequireFinite"/> returned it, each cell stored once.</param>
+    public static (double[] Values, int[] Offsets) ByColumn(CsrMatrix read)
     {
-        CsrMatrix read = Consolidated(matrix);
         var offsets = new int[read.ColumnCount + 1];
         for (int i = 0; i < read.ColumnIndices.Length; i++)
         {
@@ -160,7 +160,7 @@ internal static class SparseColumns
     /// <remarks>
     /// The buffer receives the column's stored values in storage order and zeros after them — the
     /// same sequence a scan of the whole matrix built — so the sort returns the same array. It is
-    /// one slot per row, which fits because <see cref="ByColumn"/> consolidated the matrix first:
+    /// one slot per row, which fits because <see cref="ByColumn"/> reads a consolidated matrix:
     /// a column is then stored at most once per row, so it cannot hold more values than there are
     /// rows, which is what used to reach the caller as an <c>Array.Copy</c> failure (#1045).
     /// </remarks>
@@ -176,11 +176,15 @@ internal static class SparseColumns
         return buffer;
     }
 
-    /// <summary>Refuses a matrix carrying a value the caller cannot answer for.</summary>
+    /// <summary>Refuses a matrix carrying a value the caller cannot answer for, and hands back what it read.</summary>
     /// <param name="matrix">The matrix to read.</param>
     /// <param name="parameterName">The public parameter it arrived as.</param>
     /// <param name="because">Why that value is refused, which a fit and a transform say differently (#989).</param>
-    public static void RequireFinite(CsrMatrix matrix, string parameterName, string because)
+    /// <returns>
+    /// <see cref="Consolidated"/>'s answer, which the column statistics read: the duplicate scan runs
+    /// here once, where every statistic used to run it again (#1232).
+    /// </returns>
+    public static CsrMatrix RequireFinite(CsrMatrix matrix, string parameterName, string because)
     {
         for (int i = 0; i < matrix.Values.Length; i++)
         {
@@ -196,7 +200,7 @@ internal static class SparseColumns
         CsrMatrix read = Consolidated(matrix);
         if (ReferenceEquals(read, matrix))
         {
-            return;
+            return read;
         }
 
         for (int row = 0; row < read.RowCount; row++)
@@ -212,6 +216,8 @@ internal static class SparseColumns
                 }
             }
         }
+
+        return read;
     }
 
     /// <summary>Why a fit refuses a non-finite stored value.</summary>
@@ -229,9 +235,17 @@ internal static class SparseColumns
     /// Multiplied by <c>1 / scale</c> rather than divided, as <c>sklearn.utils.sparsefuncs.inplace_column_scale</c>
     /// is given it: <c>x · (1/s)</c> is not bit for bit <c>x / s</c>. A <see langword="null"/> scale copies (#895).
     /// </remarks>
-    public static CsrMatrix Divided(CsrMatrix samples, int featureCount, IReadOnlyList<double>? scale, bool requireFinite)
+    public static CsrMatrix Divided(CsrMatrix samples, int featureCount, IReadOnlyList<double>? scale, bool requireFinite) =>
+        Divided(samples, featureCount, scale, requireFinite, out _);
+
+    /// <summary>
+    /// <see cref="Divided(CsrMatrix, int, IReadOnlyList{double}, bool)"/>, saying whether a row stores a column twice —
+    /// which the finiteness check has just found out, so a caller consolidating the answer need not scan again.
+    /// </summary>
+    public static CsrMatrix Divided(
+        CsrMatrix samples, int featureCount, IReadOnlyList<double>? scale, bool requireFinite, out bool storesDuplicates)
     {
-        double[] factors = Factors(samples, featureCount, scale, requireFinite);
+        double[] factors = Factors(samples, featureCount, scale, requireFinite, out storesDuplicates);
         for (int i = 0; i < factors.Length; i++)
         {
             factors[i] = 1.0 / factors[i];
@@ -242,7 +256,7 @@ internal static class SparseColumns
 
     /// <summary>A copy of <paramref name="samples"/> with every stored value multiplied by its column's scale.</summary>
     public static CsrMatrix Multiplied(CsrMatrix samples, int featureCount, IReadOnlyList<double>? scale, bool requireFinite) =>
-        MultiplyColumns(samples, Factors(samples, featureCount, scale, requireFinite));
+        MultiplyColumns(samples, Factors(samples, featureCount, scale, requireFinite, out _));
 
     /// <summary>Refuses a null matrix, and any matrix at all when the scaler subtracts a centre.</summary>
     /// <exception cref="InvalidOperationException"><paramref name="centres"/> is set.</exception>
@@ -258,7 +272,8 @@ internal static class SparseColumns
     }
 
     /// <summary>The checks both directions share, then a fresh copy of the scale to multiply by, ones when there is none.</summary>
-    private static double[] Factors(CsrMatrix samples, int featureCount, IReadOnlyList<double>? scale, bool requireFinite)
+    private static double[] Factors(
+        CsrMatrix samples, int featureCount, IReadOnlyList<double>? scale, bool requireFinite, out bool storesDuplicates)
     {
         Guard.NotNull(samples);
         if (samples.RowCount == 0)
@@ -275,10 +290,9 @@ internal static class SparseColumns
                 nameof(samples));
         }
 
-        if (requireFinite)
-        {
-            RequireFinite(samples, nameof(samples), TransformReason);
-        }
+        // Unknown without the check, so reported as possible: consolidating a clean matrix returns it.
+        storesDuplicates = !requireFinite
+            || !ReferenceEquals(RequireFinite(samples, nameof(samples), TransformReason), samples);
 
         var factors = new double[featureCount];
         for (int i = 0; i < factors.Length; i++)

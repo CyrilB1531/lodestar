@@ -17,7 +17,7 @@ at least 1 and no greater than `min(rows, columns)`, which is scikit-learn's own
 `H₀`, row-major `componentCount × matrix.ColumnCount`; both are non-negative, both are copied, and
 the rank is read off their lengths rather than passed again — so that overload, and only that one,
 reaches a rank above `min(rows, columns)`. `options` carries the solver's settings, or is left out
-for scikit-learn's defaults: the Frobenius loss, NNDSVD, 200 iterations and a tolerance of `1e-4`.
+for scikit-learn's defaults: the Frobenius loss, NNDSVDA (its `init=None` at any rank a fit accepts), 200 iterations and a tolerance of `1e-4`.
 
 **Returns** — an `Nmf` holding `W`, `H`, the iteration count and the reconstruction error. Every
 property is populated; there is no second call to make.
@@ -50,7 +50,7 @@ Nmf fitted = Nmf.Fit(matrix, 2);
 
 int rounds = fitted.Iterations;                             // => 50
 double error = Math.Round(fitted.ReconstructionError, 3);   // => 1.066
-double firstTerm = Math.Round(fitted.Components[0], 3);     // => 0.049
+double firstTerm = Math.Round(fitted.Components[0], 3);     // => 0.055
 ```
 
 **Example** — the same matrix from an initialisation written down rather than computed, with the
@@ -94,7 +94,7 @@ iteration count — the form the oracle corpus freezes, and the form to use when
 compared step for step.
 
 The answer is a local minimum, not the minimum. Two initialisations reach two different
-factorizations of the same rank, both non-negative and both valid; `NndSvd` is deterministic once
+factorizations of the same rank, both non-negative and both valid; either initialisation is deterministic once
 Ω is fixed, which is what makes a run repeatable at all.
 
 **Applies to** — net10.0, netstandard2.0.
