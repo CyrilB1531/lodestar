@@ -16,6 +16,7 @@ values, row `i`'s coordinates starting at `i * ComponentCount`.
 
 **Exceptions** — `ArgumentNullException` when `matrix` is null. `ArgumentException` when `matrix`
 does not have `FeatureCount` columns, or holds a `NaN` or an infinity.
+`ArgumentException` also when the rows times the components are more cells than one array holds ([#1314](https://github.com/CyrilB1531/lodestar/issues/1314)).
 
 **Example** — the same four documents, projected onto the two components fitted from them.
 

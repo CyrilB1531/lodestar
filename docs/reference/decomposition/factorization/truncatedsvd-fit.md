@@ -19,7 +19,8 @@ ten extra columns of oversampling, five power iterations, and the normalizer cho
 variance. Every property is populated; there is no second call to make.
 
 **Exceptions** — `ArgumentNullException` when `matrix` is null. `ArgumentOutOfRangeException` when
-`componentCount` is below 1 or above the number of columns, when an
+`componentCount` is below 1 or above the number of columns, or needs a range-finder block of the
+longer side by `componentCount + Oversampling` past the largest array ([#1315](https://github.com/CyrilB1531/lodestar/issues/1315)), when an
 option is negative, or when `Oversampling` and `componentCount` do not add up within an `int`. `ArgumentException` when
 `matrix` has no row, holds a `NaN` or an infinity, as scikit-learn's input check refuses, or when
 [`RandomMatrix`](truncatedsvdoptions.md) is given and is not

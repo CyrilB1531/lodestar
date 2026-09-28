@@ -24,7 +24,7 @@ property is populated; there is no second call to make.
 
 **Exceptions** — `ArgumentNullException` when `matrix`, `initialWeights` or `initialComponents` is
 null. `ArgumentOutOfRangeException` when `componentCount` is below 1 or above the smaller of the two
-dimensions, or when `MaxIterations` is below one or `Tolerance` is negative or `NaN`; the options
+dimensions, or needs a range-finder block past the largest array ([#1315](https://github.com/CyrilB1531/lodestar/issues/1315)), or when `MaxIterations` is below one or `Tolerance` is negative or `NaN`; the options
 are checked first, before the matrix is read or initialised. `ArgumentException` when `matrix`
 holds a negative value, a `NaN` or an infinity, on either overload — the precondition is checked
 rather than assumed, since a negative entry does not fail the loop, it returns signed factors under

@@ -60,7 +60,7 @@ public sealed class Nmf
     /// <param name="componentCount">How many components to keep.</param>
     /// <param name="options">The solver's settings, or null for scikit-learn's defaults.</param>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="componentCount"/> is not in <c>[1, min(matrix.RowCount, matrix.ColumnCount)]</c>, or an option is out of range.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="componentCount"/> is not in <c>[1, min(matrix.RowCount, matrix.ColumnCount)]</c>, needs a range-finder block past the largest array, or an option is out of range.</exception>
     /// <exception cref="ArgumentException"><paramref name="matrix"/> holds a negative value, a NaN or an infinity, or <see cref="NmfOptions.RandomMatrix"/> is not <c>min(matrix.RowCount, matrix.ColumnCount) × (componentCount + 10)</c>.</exception>
     public static Nmf Fit(CsrMatrix matrix, int componentCount, NmfOptions? options = null)
     {
@@ -82,6 +82,15 @@ public sealed class Nmf
         }
 
         int size = componentCount + NndSvd.Oversampling;
+        long block = (long)Math.Max(matrix.RowCount, matrix.ColumnCount) * size;
+        if (block > TableLength.MaxLength)
+        {
+            // The initialisation's range-finder block and W and H all fit inside this bound (#1315).
+            throw new ArgumentOutOfRangeException(
+                nameof(componentCount), componentCount,
+                $"{componentCount} components need a {block}-cell block, more than one array holds.");
+        }
+
         int omegaRows = RandomizedSvd.OmegaRows(matrix);
         if (settings.RandomMatrix is { } omega && omega.Length != (long)omegaRows * size)
         {
@@ -166,7 +175,7 @@ public sealed class Nmf
     /// <param name="matrix">The matrix to factorize against this fit; it must have <see cref="FeatureCount"/> columns.</param>
     /// <returns>W, row-major <c>matrix.RowCount × <see cref="ComponentCount"/></c>.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="matrix"/> has no row, does not have <see cref="FeatureCount"/> columns, or holds a negative value, a NaN or an infinity.</exception>
+    /// <exception cref="ArgumentException"><paramref name="matrix"/> has no row, does not have <see cref="FeatureCount"/> columns, or holds a negative value, a NaN or an infinity, or its rows times the components are more cells than one array holds.</exception>
     /// <remarks>
     /// The same multiplicative update the fit ran, with H untouched, from the loss, the cap and
     /// the tolerance that fit was given. It is a factorization and not a projection, which is why
@@ -191,7 +200,7 @@ public sealed class Nmf
 
         int rows = matrix.RowCount;
         double[] h = DenseBlock.Transpose(_components, ComponentCount, FeatureCount);
-        var w = new double[(long)rows * ComponentCount];
+        var w = new double[TableLength.Of(rows, ComponentCount, nameof(matrix))];
 
         // long-comment: this fill is the reason a transform can be frozen at all, and a reader
         // who replaces it with a random start would break the corpus without breaking a test.

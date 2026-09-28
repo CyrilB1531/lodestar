@@ -16,6 +16,7 @@ cuts. `repeatCount` is how many repeats, at least one. `randomState` is scikit-l
 
 **Exceptions** — `ArgumentOutOfRangeException` when a count or `randomState` is out of range.
 `ArgumentException` when `foldCount` is above every class's count.
+`ArgumentException` also when the folds times the classes are more cells than one array holds ([#1314](https://github.com/CyrilB1531/lodestar/issues/1314)).
 
 **Example** — twelve rows in three classes, three folds, two repeats.
 

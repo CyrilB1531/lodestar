@@ -22,6 +22,7 @@ public static IReadOnlyList<FoldSplit> StratifiedKFold(ReadOnlySpan<int> labels,
 below two or above it. `ArgumentException` when `order` is not a permutation of the rows, or when
 `foldCount` is greater than **every** class's count, which would leave a fold with nothing to hold
 out.
+`ArgumentException` also when the folds times the classes are more cells than one array holds ([#1314](https://github.com/CyrilB1531/lodestar/issues/1314)).
 
 **Example** — twelve rows in three classes, three folds.
 

@@ -83,14 +83,14 @@ public sealed class KBinsDiscretizer
     /// <summary>Reads each value as the bin it falls in.</summary>
     /// <param name="samples">The matrix to transform, row-major.</param>
     /// <returns>A new matrix, <see cref="OutputFeatureCount"/> values per row.</returns>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> holds a partial row or a non-finite value.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds a partial row or a non-finite value, or its rows times the output width are more cells than one array holds.</exception>
     public double[] Transform(ReadOnlySpan<double> samples)
     {
         int sampleCount = SampleMatrix.Rows(samples, FeatureCount);
         SampleMatrix.RequireFinite(samples, nameof(samples));
 
         int width = OutputFeatureCount;
-        var transformed = new double[sampleCount * width];
+        var transformed = new double[TableLength.Of(sampleCount, width, nameof(samples))];
         for (int row = 0; row < sampleCount; row++)
         {
             int source = row * FeatureCount;
