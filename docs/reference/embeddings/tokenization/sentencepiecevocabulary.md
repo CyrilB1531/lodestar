@@ -12,7 +12,10 @@ public sealed record SentencePieceVocabulary
 [`SentencePieceType`](sentencepiecetype.md), the same length and index-aligned. `UnkId`, `BosId`,
 `EosId` and `PadId` are the four special ids, **`-1` when the model declares none**. `Count` is
 how many pieces. `Normalizer` is the [`PrecompiledNormalizer`](precompilednormalizer.md) the
-model shipped, or `null`. `PrefixTokens` and `SuffixTokens` are what a `tokenizer.json`'s
+model shipped, or `null`. `RemoveExtraWhitespaces` collapses runs of spaces and trims the ends, as a `.model` does, and
+`SplitsAtMetaSymbol` stops a piece at the next `▁`, as a `tokenizer.json`'s `Metaspace` does; the
+`tokenizer.json` loader turns the first off and the second on
+([#1259](https://github.com/CyrilB1531/lodestar/issues/1259)). `PrefixTokens` and `SuffixTokens` are what a `tokenizer.json`'s
 `post_processor` wraps a sequence in, empty for a `spiece.model`, which declares none — the two
 lists a caller pairs with a pad token to build a [`SpecialTokenTemplate`](specialtokentemplate.md).
 

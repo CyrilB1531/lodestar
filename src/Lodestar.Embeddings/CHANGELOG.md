@@ -15,6 +15,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - WordPiece lowercasing maps `İ` to `i` and U+0307 as `tokenizers` does, `SentencePieceTokenizer` never segments onto an `UNUSED` piece, and `single_word` treats marks, `Pc`, `Nl`, ZWJ and astral letters as word characters. ([#1213](https://github.com/CyrilB1531/lodestar/issues/1213))
 - `Pooler.L2Normalize` divides by no less than `1e-12` as `F.normalize` does, `NpyFile.Read` byte-swaps on a big-endian host, `EmbeddingIndex.Search` normalizes a query past `1e19` without overflowing, and `EmbeddingIndex.Save` refuses a non-finite vector before writing anything. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
 - `EmbeddingIndex` ids holding a lone surrogate survive `Save` and `Load` rather than becoming U+FFFD. ([#1263](https://github.com/CyrilB1531/lodestar/issues/1263))
+- A `tokenizer.json` Unigram keeps every space and splits before each `▁`, as `tokenizers`' `Metaspace` does, and reads its `Precompiled` charsmap by grapheme, as `tokenizers` does, where a `.model` keeps sentencepiece's reading; `SentencePieceVocabulary` gains `RemoveExtraWhitespaces` and `SplitsAtMetaSymbol`. ([#1259](https://github.com/CyrilB1531/lodestar/issues/1259), [#1260](https://github.com/CyrilB1531/lodestar/issues/1260))
 
 ## [0.8.0] — 2026-09-24
 

@@ -38,6 +38,12 @@ this is a per-model artifact rather than a call to `string.Normalize`.
 It runs **before** tokenization, so a piece in the vocabulary is spelled in normalized form, and
 looking one up with unnormalized text can fail to match.
 
+A normalizer read by [`TokenizerJsonLoader`](../persistence/tokenizerjsonloader-loadunigram.md) applies
+the same charsmap as `tokenizers` does rather than as `sentencepiece` does: by grapheme, a cluster
+under six UTF-8 bytes replaced whole by the shortest rule matching its start. The two readings part
+on decomposed text — `"pho\u031b\u0309"` is `phở` from a `.model` and `phơ` from a `tokenizer.json`
+([#1260](https://github.com/CyrilB1531/lodestar/issues/1260)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`PrecompiledNormalizer.FromCharsMap`](precompilednormalizer-fromcharsmap.md),

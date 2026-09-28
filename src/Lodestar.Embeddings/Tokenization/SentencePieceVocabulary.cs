@@ -39,6 +39,21 @@ public sealed record SentencePieceVocabulary(
     /// </remarks>
     public PrecompiledNormalizer? Normalizer { get; init; }
 
+    /// <summary>Whether runs of whitespace collapse to one and the ends are trimmed before the pieces are matched.</summary>
+    /// <remarks>
+    /// sentencepiece's <c>remove_extra_whitespaces</c>, which a <c>.model</c> always sets, hence the default.
+    /// Off, the escape is <c>tokenizers</c>' <c>Metaspace</c> whole: every space kept, and no second meta symbol
+    /// before text that already starts with one. A <c>tokenizer.json</c> Unigram's loader sets it off (#1259).
+    /// </remarks>
+    public bool RemoveExtraWhitespaces { get; init; } = true;
+
+    /// <summary>Whether the escaped text is split before each meta symbol, so that no piece spans one.</summary>
+    /// <remarks>
+    /// <c>tokenizers</c>' <c>Metaspace</c> pre-tokenizer with <c>split</c>, which a <c>tokenizer.json</c> Unigram
+    /// always declares here; sentencepiece's <c>.model</c> path splits at nothing (#1259).
+    /// </remarks>
+    public bool SplitsAtMetaSymbol { get; init; }
+
     /// <summary>
     /// The tokens the file's <c>post_processor</c> puts before the text, in that order,
     /// empty when it declares none.
@@ -77,7 +92,9 @@ public sealed record SentencePieceVocabulary(
             || !SuffixTokens.SequenceEqual(other.SuffixTokens, StringComparer.Ordinal)
             || Pieces.Count != other.Pieces.Count
             || Types.Count != other.Types.Count
-            || !Equals(Normalizer, other.Normalizer))
+            || !Equals(Normalizer, other.Normalizer)
+            || RemoveExtraWhitespaces != other.RemoveExtraWhitespaces
+            || SplitsAtMetaSymbol != other.SplitsAtMetaSymbol)
         {
             return false;
         }

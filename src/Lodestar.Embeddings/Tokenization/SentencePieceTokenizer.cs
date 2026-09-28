@@ -27,6 +27,13 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
     private static readonly MetaspaceEscape Escape =
         new('▁', MetaspacePrependScheme.Always, removeExtraWhitespaces: true, skipPrependWhenAlreadyPrefixed: false);
 
+    /// <summary>tokenizers' Metaspace, for a <c>tokenizer.json</c> Unigram: every space kept, no second prefix (#1259).</summary>
+    private static readonly MetaspaceEscape EscapeKeepingSpaces =
+        new('▁', MetaspacePrependScheme.Always, removeExtraWhitespaces: false, skipPrependWhenAlreadyPrefixed: true);
+
+    private readonly MetaspaceEscape _escape;
+    private readonly bool _splitsAtMetaSymbol;
+
     // The matchable pieces, each array indexed by the value the trie holds for the piece.
     private readonly CharTrie _trie;
     private readonly string[] _pieceStrings;
@@ -68,6 +75,8 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
                 nameof(vocabulary));
         }
 
+        _escape = vocabulary.RemoveExtraWhitespaces ? Escape : EscapeKeepingSpaces;
+        _splitsAtMetaSymbol = vocabulary.SplitsAtMetaSymbol;
         var matchable = new List<SentencePiece>(vocabulary.Count);
         _nonMatchableIds = new Dictionary<string, int>(StringComparer.Ordinal);
         double minScore = 0;
@@ -134,6 +143,12 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
                 int node = CharTrie.Root;
                 for (int end = i; end < n; end++)
                 {
+                    // Metaspace's split: a meta symbol past the first character starts the next segment.
+                    if (_splitsAtMetaSymbol && end > i && s[end] == '▁')
+                    {
+                        break;
+                    }
+
                     node = _trie.Step(node, s[end]);
                     if (node < 0)
                     {
@@ -212,7 +227,7 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
         for (int j = s.Length; j > 0; j = startAt[j])
         {
             bool unknown = IdAt(pieceAt[j]) == _unkId;
-            count += unknown && inRun ? 0 : 1;
+            count += unknown && inRun && !StartsSegment(s, j) ? 0 : 1;
             inRun = unknown;
         }
 
@@ -225,7 +240,7 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
             int i = startAt[j];
             int piece = pieceAt[j];
             int id = IdAt(piece);
-            if (id == _unkId && runEnd >= 0)
+            if (id == _unkId && runEnd >= 0 && !StartsSegment(s, j))
             {
                 // One unknown piece per run of uncovered characters -- docs/equivalence.md's
                 // Unigram row. Rewriting from the run's start keeps this to one substring per step.
@@ -245,14 +260,17 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
 
     private int IdAt(int piece) => piece < 0 ? _unkId : _ids[piece];
 
+    /// <summary>Whether position <paramref name="at"/> opens a Metaspace segment, which an unknown run does not cross (#1259).</summary>
+    private bool StartsSegment(string s, int at) => _splitsAtMetaSymbol && at < s.Length && s[at] == '▁';
+
     private string Preprocess(string text)
     {
         // The model's own normalization first -- it turns a tab, a non-breaking space
         // or an ideographic space into an ordinary space, among what else it rewrites.
         string normalized = _normalizer is null ? text : _normalizer.Normalize(text);
 
-        // One text, one piece here: the unigram path splits at nothing, and its scheme
-        // is Always, which prepends to every piece anyway.
-        return Escape.Apply(normalized, isFirstSplit: true);
+        // One text, escaped whole: a tokenizer.json Unigram's split happens in the Viterbi walk,
+        // which stops a piece at the next meta symbol, and the scheme is Always either way.
+        return _escape.Apply(normalized, isFirstSplit: true);
     }
 }

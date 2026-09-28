@@ -305,6 +305,10 @@ public static class TokenizerJsonLoader
             FindSpecialId(pieces, types, "<pad>"))
         {
             Normalizer = ReadUnigramNormalizer(root),
+
+            // tokenizers' Metaspace keeps every space the normalizer leaves and splits before each (#1259).
+            RemoveExtraWhitespaces = false,
+            SplitsAtMetaSymbol = true,
             PrefixTokens = prefixTokens,
             SuffixTokens = suffixTokens,
         };
@@ -1558,7 +1562,8 @@ public static class TokenizerJsonLoader
             throw new InvalidDataException(
                 $"The {SourceName} carries a precompiled_charsmap that is not valid base64.", e);
         }
-        return PrecompiledNormalizer.FromCharsMap(charsMap);
+        // tokenizers reads the charsmap by grapheme, where a .model's sentencepiece takes the longest rule (#1260).
+        return PrecompiledNormalizer.FromCharsMap(charsMap).ByGrapheme();
     }
 
     private static bool ReadLowercase(JsonElement root)
