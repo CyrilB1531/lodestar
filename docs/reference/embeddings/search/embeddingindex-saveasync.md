@@ -14,6 +14,8 @@ public Task SaveAsync(Stream destination, CancellationToken cancellationToken = 
 **Returns** — `Task`, completing when the index has been written and flushed.
 
 **Exceptions** — `InvalidDataException` when any stored vector holds a non-finite component.
+`InvalidOperationException` when the vector block, base64-encoded, is longer than the one array a load
+decodes it into ([#1322](https://github.com/CyrilB1531/lodestar/issues/1322)).
 `OperationCanceledException` when `cancellationToken` is signalled.
 
 **Example** — the asynchronous half of a round trip.

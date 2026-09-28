@@ -66,7 +66,8 @@ public sealed class BatchEncoder
     /// <param name="text">The text to encode. The empty string yields the template's tokens alone.</param>
     /// <exception cref="ArgumentException">
     /// The sequence exceeds <see cref="EncodingOptions.MaxLength"/> and
-    /// <see cref="EncodingOptions.Truncation"/> is <see cref="TruncationStrategy.None"/>.
+    /// <see cref="EncodingOptions.Truncation"/> is <see cref="TruncationStrategy.None"/>, or the tokenizer
+    /// refuses <paramref name="text"/> — a SentencePiece model refuses a lone surrogate (#1324).
     /// </exception>
     public long[] Encode(string text)
     {
@@ -94,6 +95,8 @@ public sealed class BatchEncoder
     /// </remarks>
     /// <param name="texts">The texts to encode.</param>
     /// <param name="cancellationToken">Observed between texts; tokenizing a large corpus is not instant.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="texts"/> is null.</exception>
+    /// <exception cref="ArgumentException">A text is refused, as <see cref="Encode"/> refuses it, or the batch is more cells than one array holds.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public EncodedBatch EncodeBatch(IEnumerable<string> texts, CancellationToken cancellationToken = default)
     {
@@ -114,6 +117,7 @@ public sealed class BatchEncoder
     /// <param name="texts">The texts to encode.</param>
     /// <param name="cancellationToken">Observed between texts; tokenizing a large corpus is not instant.</param>
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> is null.</exception>
+    /// <exception cref="ArgumentException">A text is refused, as <see cref="Encode"/> refuses it; the exception names the text's position.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public IReadOnlyList<long[]> EncodeAll(IEnumerable<string> texts, CancellationToken cancellationToken = default)
     {
@@ -122,7 +126,15 @@ public sealed class BatchEncoder
         foreach (string text in texts)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            sequences.Add(Encode(text));
+            try
+            {
+                sequences.Add(Encode(text));
+            }
+            catch (ArgumentException e) when (e.ParamName == nameof(text))
+            {
+                // Named after this method's parameter, not Encode's, so a caller can tell what to fix (#1324).
+                throw new ArgumentException($"The text at position {sequences.Count} is refused: {e.Message}", nameof(texts), e);
+            }
         }
         return sequences;
     }
@@ -138,6 +150,7 @@ public sealed class BatchEncoder
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="sequences"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The window is negative, or runs past <paramref name="sequences"/> (or <paramref name="order"/>).</exception>
+    /// <exception cref="ArgumentException">The window's rows times its longest row are more cells than one array holds.</exception>
     public EncodedBatch Pad(IReadOnlyList<long[]> sequences, int start, int count, int[]? order = null)
     {
         Guard.NotNull(sequences);
@@ -171,8 +184,10 @@ public sealed class BatchEncoder
             width = Math.Max(width, 1);
         }
 
-        var ids = new long[count * width];
-        var mask = new long[count * width];
+        // Bounded rather than wrapped in int past the largest array (#1323).
+        int cells = TableLength.Of(count, width, nameof(count));
+        var ids = new long[cells];
+        var mask = new long[cells];
         for (int i = 0; i < count; i++)
         {
             long[] sequence = sequences[order is null ? start + i : order[start + i]];

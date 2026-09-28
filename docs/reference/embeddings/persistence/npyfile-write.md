@@ -17,6 +17,8 @@ length.
 **Exceptions** — `ArgumentNullException` for a null destination, path or shape.
 `ArgumentException` when `shape` is empty, has more than two dimensions, holds a negative
 dimension, or describes a different number of elements than `values` holds.
+`ArgumentException` also when `values` is more than the 536,870,911 floats a read can take back,
+checked before a file is opened, so one it would replace is left whole ([#1322](https://github.com/CyrilB1531/lodestar/issues/1322)).
 
 **Example** — a matrix numpy will read back unchanged.
 

@@ -108,9 +108,12 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
     }
 
     /// <summary>Tokenizes <paramref name="text"/> into unigram pieces and their ids.</summary>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="text"/> holds a lone surrogate, which neither reference can be handed (#1324).</exception>
     public TokenizationResult Encode(string text)
     {
         Guard.NotNull(text);
+        WellFormedText.Require(text, nameof(text));
         string s = Preprocess(text);
         if (s.Length == 0)
         {

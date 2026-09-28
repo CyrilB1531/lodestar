@@ -15,7 +15,9 @@ because tokenizing a large corpus is not instant.
 and already truncated. No padding and no rectangle.
 
 **Exceptions** — `OperationCanceledException` when cancelled. `ArgumentNullException` when `texts`
-is null.
+is null. `ArgumentException`, naming `texts` and the text's position, when a text is refused as
+[`Encode`](batchencoder-encode.md) refuses it — past `MaxLength` without truncation, or a lone
+surrogate under a SentencePiece model ([#1324](https://github.com/CyrilB1531/lodestar/issues/1324)).
 
 **Example** — two texts of different lengths stay different lengths.
 

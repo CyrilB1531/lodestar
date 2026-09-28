@@ -12,6 +12,10 @@ public TokenizationResult Encode(string text)
 
 **Returns** — [`TokenizationResult`](tokenizationresult.md), the pieces and their ids.
 
+**Exceptions** — `ArgumentNullException` when `text` is null. `ArgumentException` when `text`
+holds a lone surrogate, which neither `tokenizers` nor sentencepiece can be handed
+([#1324](https://github.com/CyrilB1531/lodestar/issues/1324)).
+
 **Example** — the space is inside the token, not between them.
 
 ```csharp

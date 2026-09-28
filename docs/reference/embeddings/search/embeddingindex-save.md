@@ -15,7 +15,9 @@ it. `path` is a file to create or overwrite, written UTF-8 without a byte-order 
 **Returns** — nothing.
 
 **Exceptions** — `InvalidDataException` when any stored vector holds a non-finite component; the
-message names the item and the component. `IOException` from the stream or file system.
+message names the item and the component. `InvalidOperationException` when the vector block,
+base64-encoded, is longer than the one array a load decodes it into — refused before the first byte, so
+a file it would replace is left whole ([#1322](https://github.com/CyrilB1531/lodestar/issues/1322)). `IOException` from the stream or file system.
 
 **Example** — a round trip through memory, ids and all.
 

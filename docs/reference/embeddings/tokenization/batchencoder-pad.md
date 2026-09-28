@@ -20,6 +20,8 @@ to `MaxLength`, and not to the longest row in `sequences`.
 **Exceptions** — `ArgumentNullException` when `sequences` is null.
 `ArgumentOutOfRangeException` when `start` or `count` is negative, or when the window reaches past
 the end of `sequences` (or of `order`, when one is given).
+`ArgumentException` when the window's rows times its longest row are more cells than one array
+holds ([#1323](https://github.com/CyrilB1531/lodestar/issues/1323)).
 
 **Example** — the same two texts, first together, then the long one alone.
 

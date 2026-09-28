@@ -191,12 +191,11 @@ public static class NpyFile
     /// <paramref name="values"/>'s length. One entry writes a vector, two a matrix.
     /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="destination"/> or <paramref name="shape"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="shape"/> is empty, holds a negative dimension, or does not describe <paramref name="values"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="shape"/> is empty, holds a negative dimension, or does not describe <paramref name="values"/>; or <paramref name="values"/> is more than the 536,870,911 floats <see cref="Read(Stream, ArtifactLoadOptions)"/> can read back.</exception>
     public static void Write(Stream destination, ReadOnlySpan<float> values, params int[] shape)
     {
         Guard.NotNull(destination);
-        Guard.NotNull(shape);
-        CheckShape(values.Length, shape);
+        CheckWritable(values, shape);
 
         byte[] header = BuildHeader(shape);
         destination.Write(header, 0, header.Length);
@@ -209,9 +208,11 @@ public static class NpyFile
     /// <param name="values">The elements, in C order.</param>
     /// <param name="shape">As <see cref="Write(Stream, ReadOnlySpan{float}, int[])"/>.</param>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> or <paramref name="shape"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="shape"/> does not describe <paramref name="values"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="shape"/> does not describe <paramref name="values"/>, or <paramref name="values"/> is more than a read can take back; either is refused before the file is opened.</exception>
     public static void Write(string path, ReadOnlySpan<float> values, params int[] shape)
     {
+        // Before opening: OpenWrite truncates, so a refused write would destroy the file it replaces.
+        CheckWritable(values, shape);
         using FileStream file = JsonArtifact.OpenWrite(path);
         Write(file, values, shape);
     }
@@ -440,39 +441,59 @@ public static class NpyFile
         return header;
     }
 
+    /// <summary>How many floats one slice of the block carries: 240 KiB, as the artifact's own base64 writer slices.</summary>
+    private const int SliceFloats = 60 * 1024;
+
     /// <summary>Writes the block itself, little-endian, a slice at a time.</summary>
     /// <remarks>
-    /// Sliced on <c>netstandard2.0</c> for the reason the artifact's own base64 writer is
-    /// sliced — nothing here should grow a buffer to hold the whole block. <c>net10.0</c>
-    /// writes the span straight out, which needs no buffer at all.
+    /// Sliced on every target, as the artifact's own base64 writer is: nothing here grows a buffer to
+    /// hold the whole block, and no slice's bytes can outgrow a span (#1322). <c>net10.0</c> writes each
+    /// little-endian slice straight out; <c>netstandard2.0</c> and a big-endian host copy it first.
     /// </remarks>
     private static void WriteBlock(Stream destination, ReadOnlySpan<float> values)
     {
-        ReadOnlySpan<byte> raw = MemoryMarshal.AsBytes(values);
-        if (BitConverter.IsLittleEndian)
+        // A slice of floats at a time: the whole block as bytes overflowed past 536 million floats (#1322).
+        byte[]? buffer = null;
+        for (int offset = 0; offset < values.Length; offset += SliceFloats)
         {
-#if NETSTANDARD2_0
-            byte[] buffer = new byte[Math.Min(raw.Length, 240 * 1024)];
-            for (int offset = 0; offset < raw.Length; offset += buffer.Length)
+            ReadOnlySpan<byte> raw = MemoryMarshal.AsBytes(values.Slice(offset, Math.Min(SliceFloats, values.Length - offset)));
+            if (BitConverter.IsLittleEndian)
             {
-                int take = Math.Min(buffer.Length, raw.Length - offset);
-                raw.Slice(offset, take).CopyTo(buffer);
-                destination.Write(buffer, 0, take);
-            }
+#if NETSTANDARD2_0
+                buffer ??= new byte[SliceFloats * sizeof(float)];
+                raw.CopyTo(buffer);
+                destination.Write(buffer, 0, raw.Length);
 #else
-            destination.Write(raw);
+                destination.Write(raw);
 #endif
-            return;
-        }
+                continue;
+            }
 
-        byte[] swapped = new byte[values.Length * sizeof(float)];
-        raw.CopyTo(swapped);
-        Span<int> words = MemoryMarshal.Cast<byte, int>(swapped.AsSpan());
-        for (int i = 0; i < words.Length; i++)
-        {
-            words[i] = BinaryPrimitives.ReverseEndianness(words[i]);
+            buffer ??= new byte[SliceFloats * sizeof(float)];
+            raw.CopyTo(buffer);
+            Span<int> words = MemoryMarshal.Cast<byte, int>(buffer.AsSpan(0, raw.Length));
+            for (int i = 0; i < words.Length; i++)
+            {
+                words[i] = BinaryPrimitives.ReverseEndianness(words[i]);
+            }
+
+            destination.Write(buffer, 0, raw.Length);
         }
-        destination.Write(swapped, 0, swapped.Length);
+    }
+
+    /// <summary>Refuses what <see cref="Write(Stream, ReadOnlySpan{float}, int[])"/> could not write, or no read could take back.</summary>
+    private static void CheckWritable(ReadOnlySpan<float> values, int[] shape)
+    {
+        Guard.NotNull(shape);
+        int length = values.Length;
+        CheckShape(length, shape);
+
+        // Read holds one block in one byte span, so a longer one would be written and never read (#1322).
+        if (length > int.MaxValue / sizeof(float))
+        {
+            throw new ArgumentException(
+                $"{length} floats is more than the {int.MaxValue / sizeof(float)} one .npy block this reads can hold.", nameof(values));
+        }
     }
 
     /// <summary>Refuses a shape that does not describe the block it is given.</summary>
