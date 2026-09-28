@@ -1,3 +1,5 @@
+using Lodestar.Survival.Internal;
+
 namespace Lodestar.Survival;
 
 /// <summary>What a Cox proportional hazards fit reports, at <c>lifelines</c> parity.</summary>
@@ -137,7 +139,7 @@ public sealed class CoxSummary
     /// <param name="strata">Each subject's stratum when the fit was stratified; empty otherwise.</param>
     /// <param name="times">The times to read at; empty for the baseline's own times.</param>
     /// <returns>Row-major, one row per subject and one column per time.</returns>
-    /// <exception cref="ArgumentException">As <see cref="PredictLogPartialHazard"/>, or the strata do not match the subjects or name a stratum the fit did not see, or a time is NaN.</exception>
+    /// <exception cref="ArgumentException">As <see cref="PredictLogPartialHazard"/>, or the strata do not match the subjects or name a stratum the fit did not see, or a time is NaN, or the subjects times the times are more cells than one array holds.</exception>
     /// <remarks>The baseline's cumulative hazard is interpolated linearly between its times and held flat past its ends, lifelines' <c>numpy.interp</c>.</remarks>
     public double[] PredictCumulativeHazard(ReadOnlySpan<double> design, ReadOnlySpan<int> strata, ReadOnlySpan<double> times)
     {
@@ -152,7 +154,7 @@ public sealed class CoxSummary
         }
 
         int columns = times.IsEmpty ? _predictive[0].Times.Length : times.Length;
-        var result = new double[hazards.Length * columns];
+        var result = new double[ResultTable.Length(hazards.Length, columns, nameof(design))];
         for (int i = 0; i < hazards.Length; i++)
         {
             CoxBaseline baseline = baselines[i];

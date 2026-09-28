@@ -34,8 +34,8 @@ positive, finite weight per subject of their group, or are empty for ones. `opti
 degrees of freedom, which are one for a two-sample comparison.
 
 **Exceptions** — `ArgumentException` when a group's spans differ in length, a group is empty, a
-duration is negative or `NaN`, or a weight span is neither empty nor one positive, finite value per
-subject. `ArgumentOutOfRangeException` when `options` names no weighting, or holds a negative or non-finite
+duration is negative or `NaN`, a weight span is neither empty nor one positive, finite value per
+subject, or the distinct durations times two are more cells than one array holds. `ArgumentOutOfRangeException` when `options` names no weighting, or holds a negative or non-finite
 exponent, or a negative or `NaN` truncation.
 
 **Example** — two arms that separate, and two that cannot.

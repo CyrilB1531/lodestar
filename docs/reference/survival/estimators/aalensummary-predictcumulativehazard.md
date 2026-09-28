@@ -15,7 +15,8 @@ for the one subject of a fit with no covariate.
 [`EventTimes`](aalensummary.md) entry: each subject's covariates, with a one for the intercept,
 times the cumulative coefficients.
 
-**Exceptions** — `ArgumentException` when `design` is not whole rows of finite covariates.
+**Exceptions** — `ArgumentException` when `design` is not whole rows of finite covariates, or its rows
+times the event times are more cells than one array holds.
 
 **Example** — an untreated and a treated patient, at the last of the ten event times.
 

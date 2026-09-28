@@ -14,7 +14,7 @@ the one subject of a fit with no covariate. `times` are the positive, finite tim
 **Returns** — row-major, one row per subject and one column per time.
 
 **Exceptions** — `ArgumentException` when `design` is not whole rows of finite covariates, or a time
-is not positive and finite.
+is not positive and finite, or the subjects times the times are more cells than one array holds.
 
 **Example** — two subjects at five and ten months.
 

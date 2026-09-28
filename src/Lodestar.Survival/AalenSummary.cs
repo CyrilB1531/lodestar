@@ -112,12 +112,12 @@ public sealed class AalenSummary
     /// <summary>Each subject's cumulative hazard at every event time, lifelines' <c>predict_cumulative_hazard</c>.</summary>
     /// <param name="design">The subjects' covariates, row-major, <see cref="FeatureCount"/> per row; empty for the one subject of a fit with no covariate.</param>
     /// <returns>Row-major, one row per subject and one column per <see cref="EventTimes"/> entry.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or its rows times the event times are more cells than one array holds.</exception>
     public double[] PredictCumulativeHazard(ReadOnlySpan<double> design)
     {
         double[] x = Rows(design, out int rows);
         int m = EventTimes.Count;
-        var result = new double[rows * m];
+        var result = new double[ResultTable.Length(rows, m, nameof(design))];
         for (int i = 0; i < rows; i++)
         {
             for (int t = 0; t < m; t++)
@@ -267,7 +267,7 @@ public sealed class AalenSummary
         }
 
         double[] raw = AftDesign.Validate(design, rows, FeatureCount, fitIntercept: true);
-        var x = new double[rows * _width];
+        var x = new double[ResultTable.Length(rows, _width, nameof(design))];
         for (int i = 0; i < rows; i++)
         {
             for (int j = 0; j < FeatureCount; j++)

@@ -15,7 +15,9 @@ public enum ParametricModel { Exponential, Weibull, LogNormal, LogLogistic, Piec
 - `LogNormal`, `log T` normal with mean `μ` and deviation `σ`: `mu_`, `sigma_`. `LogNormalFitter`.
 - `LogLogistic`, `S(t) = 1 / (1 + (t / α)^β)`: `alpha_`, `beta_`. `LogLogisticFitter`.
 - `PiecewiseExponential`, a constant hazard `1 / λᵢ` between consecutive breakpoints: `lambda_0_`,
-  `lambda_1_` and so on, one more than there are breakpoints. `PiecewiseExponentialFitter`.
+  `lambda_1_` and so on, one more than there are breakpoints. `PiecewiseExponentialFitter`. An
+  event exactly on a breakpoint takes the mean of the two pieces' hazards, as lifelines' derivative
+  of `min(breakpoint, t)` does ([#1309](https://github.com/CyrilB1531/lodestar/issues/1309)).
 - `GeneralizedGamma`, in `(μ, log σ, λ)`: `mu_`, `ln_sigma_`, `lambda_`. `GeneralizedGammaFitter`.
 
 **Example** — the same ten patients under three models, by AIC.

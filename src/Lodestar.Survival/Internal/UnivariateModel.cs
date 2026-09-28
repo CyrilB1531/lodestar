@@ -192,7 +192,18 @@ internal abstract class UnivariateModel
             return total;
         }
 
-        public override Jet LogHazard(Jet[] p, double t) => -Jet.Log(p[Piece(t)]);
+        public override Jet LogHazard(Jet[] p, double t)
+        {
+            int piece = Piece(t);
+
+            // lifelines differentiates min(breakpoint, t), and autograd splits that tie in half (#1309).
+            // S1244: a time on a breakpoint is the tie itself, not a neighbourhood of it.
+#pragma warning disable S1244
+            return piece < breakpoints.Length && breakpoints[piece] == t
+#pragma warning restore S1244
+                ? Jet.Log((0.5 / p[piece]) + (0.5 / p[piece + 1]))
+                : -Jet.Log(p[piece]);
+        }
 
         public override double Percentile(double[] p, double probability)
         {
