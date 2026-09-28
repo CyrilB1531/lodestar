@@ -1,7 +1,7 @@
 # Panel data — `Lodestar.Stats.Regression.Panel`
 
 The data types [`PanelRegression`](panel/panelregression.md) takes and returns. They are compiled
-into `Lodestar.Abstractions`, as every public data type of the packages is
+into `Lodestar.Abstractions`, as every public data type that carries no logic is
 ([decision 0003](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)), in their
 own namespace: the covariances here are `linearmodels`' panel four, clustered by entity or period
 and Driscoll-Kraay's, not the instrumental-variables four.

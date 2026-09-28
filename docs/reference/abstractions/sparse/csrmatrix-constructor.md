@@ -42,6 +42,6 @@ one row is accepted, and read as scipy reads it; [`CsrMatrix`](csrmatrix.md) say
 the two. [`CsrMatrix.CreateUnchecked`](csrmatrix-createunchecked.md) skips the per-entry pass for
 arrays valid by construction.
 
-Runs on both target frameworks: net10.0, netstandard2.0.
+**Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`CsrMatrix`](csrmatrix.md), [`CsrMatrix.CreateUnchecked`](csrmatrix-createunchecked.md).

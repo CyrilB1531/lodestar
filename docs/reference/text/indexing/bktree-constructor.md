@@ -35,6 +35,6 @@ and bring the proof with it: `AdmissibleMetricTests` in the test suite shows the
 takes, an exhaustive sweep over every triple of words up to a bounded length and alphabet, not a
 sample.
 
-Runs on both target frameworks: net10.0, netstandard2.0.
+**Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`BkTree`](bktree.md), [`BkTree.OverLevenshtein`](bktree-overlevenshtein.md).
