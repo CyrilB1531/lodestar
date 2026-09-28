@@ -113,31 +113,31 @@ public sealed class CalibrationCurve
     }
 
     /// <summary>The <c>nBins + 1</c> edges, from the interval or from the data.</summary>
+    /// <remarks>
+    /// numpy's own grid and percentile, bit for bit: <c>linspace(0, 1, n + 1)</c> for the uniform
+    /// edges, and <c>percentile(y_prob, linspace(0, 1, n + 1) * 100)</c> for the quantile ones, so a
+    /// probability on an edge falls in the bin scikit-learn puts it in (#1204).
+    /// </remarks>
     private static double[] Edges(ReadOnlySpan<double> yProb, int nBins, BinStrategy strategy)
     {
-        var edges = new double[nBins + 1];
+        double[] grid = NumpyGrid.Linspace(0.0, 1.0, nBins + 1);
         if (strategy == BinStrategy.Uniform)
         {
-            for (int i = 0; i <= nBins; i++)
-            {
-                edges[i] = (double)i / nBins;
-            }
-
-            return edges;
+            return grid;
         }
 
         double[] rented = ArrayPool<double>.Shared.Rent(yProb.Length);
         try
         {
-            Span<double> sorted = rented.AsSpan(0, yProb.Length);
-            yProb.CopyTo(sorted);
+            yProb.CopyTo(rented);
 
             // Array.Sort over the rented range rather than Span<T>.Sort, which
             // netstandard2.0 does not carry.
             Array.Sort(rented, 0, yProb.Length);
+            var edges = new double[nBins + 1];
             for (int i = 0; i <= nBins; i++)
             {
-                edges[i] = Percentile(sorted, (double)i / nBins);
+                edges[i] = NumpyGrid.Percentile(rented.AsSpan(0, yProb.Length), grid[i] * 100.0);
             }
 
             return edges;
@@ -146,21 +146,6 @@ public sealed class CalibrationCurve
         {
             ArrayPool<double>.Shared.Return(rented);
         }
-    }
-
-    /// <summary>The linear-interpolation percentile <c>np.percentile</c> computes by default.</summary>
-    /// <remarks>
-    /// Not <see cref="WeightedPercentile"/>: the reference reaches for <c>np.percentile</c>
-    /// here, whose rule is a linear interpolation between the two neighbouring order
-    /// statistics, where the weighted one this package already carries interpolates
-    /// differently. Reusing it would disagree in the third decimal.
-    /// </remarks>
-    private static double Percentile(ReadOnlySpan<double> sorted, double fraction)
-    {
-        double position = fraction * (sorted.Length - 1);
-        int below = (int)Math.Floor(position);
-        int above = (int)Math.Ceiling(position);
-        return below == above ? sorted[below] : sorted[below] + ((position - below) * (sorted[above] - sorted[below]));
     }
 
     /// <summary>The bin an interior-edge <c>searchsorted</c> puts a probability in.</summary>

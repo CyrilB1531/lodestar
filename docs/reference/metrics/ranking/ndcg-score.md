@@ -28,7 +28,8 @@ outside it, which the reference does too rather than refusing — frozen in `ran
 `-0.7039180890341348` at `k = 2` on weights `[-1, 2]`. [`Dcg.Score`](dcg-score.md) is unbounded
 above and so has nothing to lose here.
 
-**Exceptions** — `ArgumentException` when `labelCount` is below `2` (scikit-learn's own sentence,
+**Exceptions** — `ArgumentException` when a relevance or score is not finite, as
+[`Dcg.Score`](dcg-score.md) refuses it, when `labelCount` is below `2` (scikit-learn's own sentence,
 "Computing NDCG is only meaningful when there is more than 1 document."), when `sampleWeight` is
 neither empty nor one value per query, when it sums to zero — `numpy.average`'s own refusal — when
 `yTrue` and `yScore`

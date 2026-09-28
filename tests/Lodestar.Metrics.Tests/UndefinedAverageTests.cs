@@ -22,7 +22,7 @@ public sealed class UndefinedAverageTests
         int[] yPred = MetricsCorpus.Ints(c, "y_pred");
         int[] labels = MetricsCorpus.OptionalInts(c, "labels");
         double[] sampleWeight = MetricsCorpus.OptionalDoubles(c, "sample_weight");
-        ConfusionMatrix cm = ConfusionMatrix.Compute(yTrue, yPred, labels, sampleWeight);
+        ConfusionMatrix? cm = MatrixOrRefusal(yTrue, yPred, labels, sampleWeight);
 
         foreach (JsonProperty entry in c.GetProperty("scores").EnumerateObject())
         {
@@ -32,14 +32,29 @@ public sealed class UndefinedAverageTests
             string what = $"{c.GetProperty("fixture").GetString()} {entry.Name}";
             JsonElement want = entry.Value;
 
-            AssertClose(want, "precision", Precision.Score(cm, average, zeroDivision: zero), what);
             AssertClose(want, "precision",
                 Precision.Score(yTrue, yPred, average, zeroDivision: zero, labels: labels, sampleWeight: sampleWeight),
                 what);
-            AssertClose(want, "recall", Recall.Score(cm, average, zeroDivision: zero), what);
-            AssertClose(want, "f1", F1.Score(cm, average, zeroDivision: zero), what);
-            AssertClose(want, "fbeta_0.5", FBeta.Score(cm, 0.5, average, zeroDivision: zero), what);
-            AssertClose(want, "fbeta_2.0", FBeta.Score(cm, 2.0, average, zeroDivision: zero), what);
+            AssertClose(want, "recall",
+                Recall.Score(yTrue, yPred, average, zeroDivision: zero, labels: labels, sampleWeight: sampleWeight),
+                what);
+            AssertClose(want, "f1",
+                F1.Score(yTrue, yPred, average, zeroDivision: zero, labels: labels, sampleWeight: sampleWeight),
+                what);
+            AssertClose(want, "fbeta_0.5",
+                FBeta.Score(yTrue, yPred, 0.5, average, zeroDivision: zero, labels: labels, sampleWeight: sampleWeight),
+                what);
+            AssertClose(want, "fbeta_2.0",
+                FBeta.Score(yTrue, yPred, 2.0, average, zeroDivision: zero, labels: labels, sampleWeight: sampleWeight),
+                what);
+            if (cm is not null)
+            {
+                AssertClose(want, "precision", Precision.Score(cm, average, zeroDivision: zero), what);
+                AssertClose(want, "recall", Recall.Score(cm, average, zeroDivision: zero), what);
+                AssertClose(want, "f1", F1.Score(cm, average, zeroDivision: zero), what);
+                AssertClose(want, "fbeta_0.5", FBeta.Score(cm, 0.5, average, zeroDivision: zero), what);
+                AssertClose(want, "fbeta_2.0", FBeta.Score(cm, 2.0, average, zeroDivision: zero), what);
+            }
 
             // jaccard_score refuses zero_division=nan, so that mode has no reference
             // value; a weighted average whose supports cancel has a refusal instead (#988).
@@ -65,16 +80,43 @@ public sealed class UndefinedAverageTests
     public void Report_average_rows_match_sklearn(int index)
     {
         JsonElement c = MetricsCorpus.UndefinedAverages[index];
-        ConfusionMatrix cm = MetricsCorpus.Matrix(c);
+        int[] yTrue = MetricsCorpus.Ints(c, "y_true");
+        int[] yPred = MetricsCorpus.Ints(c, "y_pred");
+        int[] labels = MetricsCorpus.OptionalInts(c, "labels");
+        double[] sampleWeight = MetricsCorpus.OptionalDoubles(c, "sample_weight");
+        ConfusionMatrix? cm = MatrixOrRefusal(yTrue, yPred, labels, sampleWeight);
 
         foreach (JsonProperty entry in c.GetProperty("report").EnumerateObject())
         {
-            ClassificationReport report = ClassificationReport.Compute(cm, zeroDivision: ParseZeroDivision(entry.Name));
+            ZeroDivision zero = ParseZeroDivision(entry.Name);
             string what = $"{c.GetProperty("fixture").GetString()} {entry.Name}";
+            ClassificationReport fromSamples = ClassificationReport.Compute(
+                yTrue, yPred, zeroDivision: zero, labels: labels, sampleWeight: sampleWeight);
+            AssertRow(entry.Value.GetProperty("macro avg"), fromSamples.MacroAverage, what);
+            AssertRow(entry.Value.GetProperty("weighted avg"), fromSamples.WeightedAverage, what);
 
-            AssertRow(entry.Value.GetProperty("macro avg"), report.MacroAverage, what);
-            AssertRow(entry.Value.GetProperty("weighted avg"), report.WeightedAverage, what);
+            if (cm is not null)
+            {
+                ClassificationReport report = ClassificationReport.Compute(cm, zeroDivision: zero);
+                AssertRow(entry.Value.GetProperty("macro avg"), report.MacroAverage, what);
+                AssertRow(entry.Value.GetProperty("weighted avg"), report.WeightedAverage, what);
+            }
         }
+    }
+
+    /// <summary>The matrix, or <see langword="null"/> where <c>confusion_matrix</c> refuses labels absent from y_true.</summary>
+    /// <remarks>Only the matrix refuses them: the scores and the report read the samples (#1202).</remarks>
+    private static ConfusionMatrix? MatrixOrRefusal(int[] yTrue, int[] yPred, int[] labels, double[] sampleWeight)
+    {
+        if (labels.Length == 0 || labels.Any(yTrue.Contains))
+        {
+            return ConfusionMatrix.Compute(yTrue, yPred, labels, sampleWeight);
+        }
+
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => ConfusionMatrix.Compute(yTrue, yPred, labels, sampleWeight));
+        Assert.StartsWith("At least one supplied label must occur in yTrue", error.Message, StringComparison.Ordinal);
+        return null;
     }
 
     [Fact]

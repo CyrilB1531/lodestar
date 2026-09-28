@@ -17,8 +17,8 @@ label counted as positive, `1` by default, which is what scikit-learn infers for
 **Returns** — `double` in `[0, 1]`: `1` when every positive outranks every negative, `0.5` for a
 random ranking, and below `0.5` when the ranking is inverted.
 
-**Exceptions** — `ArgumentException` when the spans disagree in length, are empty, contain a `NaN`
-score, or only one class occurs.
+**Exceptions** — `ArgumentException` when the spans disagree in length, are empty, contain a score
+or weight that is not finite, or only one class occurs.
 
 **Example** — four samples and the model's confidence in each.
 

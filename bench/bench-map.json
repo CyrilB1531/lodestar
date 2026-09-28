@@ -172,6 +172,9 @@
     "MetricsBenchmarks": [
       "src/Lodestar.Metrics/**"
     ],
+    "ManyLabelsMetricsBenchmarks": [
+      "src/Lodestar.Metrics/**"
+    ],
     "RegressionMetricsBenchmarks": [
       "src/Lodestar.Metrics/**"
     ],

@@ -24,7 +24,7 @@ public static class CalinskiHarabasz
     /// cluster centroids, and a distance matrix does not carry them. Euclidean only,
     /// because the reference offers nothing else here either.
     /// </remarks>
-    /// <exception cref="ArgumentException">The inputs disagree in length, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, a feature is not finite, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
     public static double Score(ReadOnlySpan<int> labels, ReadOnlySpan<double> features, int featureCount)
     {

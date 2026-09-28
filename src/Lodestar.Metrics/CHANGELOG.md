@@ -5,6 +5,23 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ## [Unreleased]
 
+### Changed
+
+- Precision, recall, the F-scores, Jaccard and `ClassificationReport` count per label in `O(n + k)` from the samples, where they built a `k × k` matrix that overflowed past 46,341 labels. ([#1200](https://github.com/CyrilB1531/lodestar/issues/1200))
+
+### Fixed
+
+- `Averaging.Binary` scores a batch without the positive class through `zeroDivision` and refuses only a target with more than two classes, or two without `posLabel`. ([#1201](https://github.com/CyrilB1531/lodestar/issues/1201))
+- `Averaging.Binary` ignores `labels` on a binary target, as scikit-learn replaces it with `[pos_label]`. ([#1249](https://github.com/CyrilB1531/lodestar/issues/1249))
+- The precision family and `ClassificationReport` score requested labels absent from `yTrue`, which only `ConfusionMatrix` and `CohenKappa` refuse, as `confusion_matrix` and `cohen_kappa_score` do. ([#1202](https://github.com/CyrilB1531/lodestar/issues/1202))
+- `RocCurve`, `PrecisionRecallCurve` and `DetCurve` drop zero-weight samples before forming thresholds, and `RocCurve` answers a `NaN` axis, the origin included, for a class with no weight. ([#1203](https://github.com/CyrilB1531/lodestar/issues/1203))
+- `CalibrationCurve` places its edges with numpy's `linspace` and `percentile`, bit for bit, so a probability on an edge falls in scikit-learn's bin. ([#1204](https://github.com/CyrilB1531/lodestar/issues/1204))
+- `DaviesBouldin.Score` answers 0 when every spread or centroid distance is within `np.allclose` of zero, as `davies_bouldin_score` does. ([#1205](https://github.com/CyrilB1531/lodestar/issues/1205))
+- The ranking, label-ranking, clustering-validity and curve scores refuse non-finite input, the curves and the area refuse weights that are zero throughout, `Silhouette.ScoreFromDistances` refuses a non-zero diagonal, `RocAuc.MultiClass` refuses a `yTrue` label outside `Labels`, and `MeanSquaredLogError` no longer overflows near `1e306`. ([#1206](https://github.com/CyrilB1531/lodestar/issues/1206))
+- `LikelihoodRatios.Compute` replaces `LR-` when there is no true negative even without a positive sample, and refuses a target with one class or two without `posLabel`. ([#1250](https://github.com/CyrilB1531/lodestar/issues/1250))
+- `LikelihoodRatios.Compute` computes both ratios from the counts, as scikit-learn does, rather than through `1 − specificity`. ([#1252](https://github.com/CyrilB1531/lodestar/issues/1252))
+- `DetCurve.Compute` refuses a `yTrue` holding other than two classes, as `det_curve` does. ([#1251](https://github.com/CyrilB1531/lodestar/issues/1251))
+
 ## [0.4.0] — 2026-09-24
 
 ### Changed

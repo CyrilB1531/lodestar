@@ -17,8 +17,9 @@ default for this curve and **not** for the other two.
 **Returns** — a `RocCurve` whose `FalsePositiveRate`, `TruePositiveRate` and `Thresholds` are three
 parallel arrays of equal length, the first point being the origin at an infinite threshold.
 
-**Exceptions** — `ArgumentException` when the inputs disagree in length, are empty, or hold a `NaN`
-score.
+**Exceptions** — `ArgumentException` when the inputs disagree in length, are empty, hold a score
+or weight that is not finite, or weigh every sample zero. A zero-weight sample is dropped
+before the thresholds form, as scikit-learn drops it.
 
 **Example** — four samples, and the area under what it draws.
 

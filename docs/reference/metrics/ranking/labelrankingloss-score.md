@@ -19,7 +19,8 @@ outscores every irrelevant one. A sample where all labels or no labels are relev
 and contributes `0` — a perfect score for a row that said nothing, which is what the reference does
 and the reason this metric is read beside a count of relevant labels.
 
-**Exceptions** — `ArgumentException` in six shapes, all of them scikit-learn's or numpy's refusals:
+**Exceptions** — `ArgumentException` in seven shapes, all of them scikit-learn's or numpy's refusals:
+a score that is not finite, with `check_array`'s "Input contains NaN." or its infinity counterpart;
 `labelCount` below `1`; `labelCount` exactly `1`, with "binary format is not supported" — where
 [`LabelRankingAveragePrecision.Score`](labelrankingaverageprecision-score.md) accepts a single label
 column and returns `1`; `yTrue` and `yScore` disagreeing in length; `yTrue` empty, or not a whole

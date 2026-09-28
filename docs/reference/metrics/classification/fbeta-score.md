@@ -21,8 +21,9 @@ samples.
 **Returns** — `double` in `[0, 1]`, larger meaning better.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `beta` is negative, `NaN` or infinite;
-`ArgumentNullException` when `cm` is null; `ArgumentException` when `Averaging.Binary` is used on
-more than two classes, or `posLabel` does not occur, or `sampleWeight` holds a non-finite value or is zero throughout; `UndefinedMetricException` when the metric is
+`ArgumentNullException` when `cm` is null; `ArgumentException` when `Averaging.Binary` meets
+more than two classes, or two without `posLabel` — an absent positive class takes the `zeroDivision`
+value instead, and `labels` is not read on a binary target — or `sampleWeight` holds a non-finite value or is zero throughout; `UndefinedMetricException` when the metric is
 undefined and `zeroDivision` is `ZeroDivision.Throw`.
 
 **Example** — the same filter scored twice: once as if a missed spam cost twice a false alarm,

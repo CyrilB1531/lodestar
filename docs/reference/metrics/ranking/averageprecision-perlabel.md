@@ -18,7 +18,7 @@ empty, the default.
 on its own. A label no sample carries scores `0` rather than being dropped, which is why the
 `Macro` mean over these is not the mean over the labels that actually occur.
 
-**Exceptions** — `ArgumentException` when `labelCount` is below `1`, when `yTrue` and `yScore`
+**Exceptions** — `ArgumentException` when a relevance or score is not finite, as `check_array` refuses it, when `labelCount` is below `1`, when `yTrue` and `yScore`
 disagree in length, when `yTrue` is empty or not a whole number of rows of `labelCount`, or when a
 non-empty `sampleWeight` is not one per row.
 

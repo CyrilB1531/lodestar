@@ -27,7 +27,7 @@ public static class ReciprocalRank
     public static double Score(
         ReadOnlySpan<double> relevance, ReadOnlySpan<double> yScore, int labelCount)
     {
-        Internal.Ranking.Validate(relevance, yScore, labelCount, nameof(relevance), nameof(yScore));
+        Internal.Ranking.Validate(relevance, yScore, labelCount, nameof(relevance), nameof(yScore), requireFinite: false);
 
         double total = 0.0;
         int rows = relevance.Length / labelCount;

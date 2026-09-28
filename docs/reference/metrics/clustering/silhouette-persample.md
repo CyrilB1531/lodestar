@@ -13,7 +13,8 @@ public static double[] PerSample(ReadOnlySpan<int> labels, ReadOnlySpan<double> 
 
 **Returns** — `double[]`, one value per sample in the order the samples were given.
 
-**Exceptions** — `ArgumentException` when the inputs disagree in size, and when the number of
+**Exceptions** — `ArgumentException` when the inputs disagree in size, when a feature is not
+finite — "Input X contains NaN." or its infinity counterpart, `check_X_y`'s sentences — and when the number of
 distinct labels falls outside `[2, n - 1]` — scikit-learn's own bound, carried with its own
 sentence: `Number of labels is 1. Valid values are 2 to n_samples - 1 (inclusive)`.
 

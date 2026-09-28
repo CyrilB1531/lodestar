@@ -37,7 +37,7 @@ public sealed class RocCurve
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <param name="dropIntermediate">Drop points that do not turn the curve. <see langword="true"/> here, matching the reference's default for this curve and not for the other two.</param>
     /// <returns>Three parallel arrays of the same length, with the origin prepended.</returns>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or contain a NaN score.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or contain a score that is not finite.</exception>
     public static RocCurve Compute(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yScore,
@@ -55,11 +55,13 @@ public sealed class RocCurve
             kept += ClassifierCurve.Turns(tp, fp, i, dropIntermediate) ? 1 : 0;
         }
 
-        // The origin is a point no threshold produces: nothing is above +inf, so both
-        // rates are 0 there. The reference prepends it rather than deriving it.
+        // The origin, where nothing is above +inf: the reference prepends it rather than
+        // deriving it, then divides the whole axis, the origin included.
         var fpr = new double[kept + 1];
         var tpr = new double[kept + 1];
         var scores = new double[kept + 1];
+        fpr[0] = Rate(0.0, points.NegativeTotal);
+        tpr[0] = Rate(0.0, points.PositiveTotal);
         scores[0] = double.PositiveInfinity;
 
         int at = 1;
@@ -79,9 +81,7 @@ public sealed class RocCurve
         return new RocCurve(fpr, tpr, scores);
     }
 
-    // S1244: whether the class is absent altogether, which the reference answers with
-    // nan rather than dividing -- it warns about it and returns the array anyway.
-#pragma warning disable S1244
-    private static double Rate(double part, double total) => total == 0.0 ? double.NaN : part / total;
-#pragma warning restore S1244
+    // roc_curve's own test, fps[-1] <= 0: a class with no weight, or a negative total, makes the
+    // whole axis NaN, the origin included -- it warns and returns the array anyway.
+    private static double Rate(double part, double total) => total <= 0.0 ? double.NaN : part / total;
 }

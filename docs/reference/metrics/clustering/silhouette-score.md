@@ -15,7 +15,8 @@ row-major: sample `i` occupies `featureCount` values starting at `i * featureCou
 **Returns** — `double` in `[-1, 1]`. Near `1` the clusters are well separated, near `0` they touch, and
 below `0` the samples are mostly closer to another cluster than to their own.
 
-**Exceptions** — `ArgumentException` when the inputs disagree in size, and when the number of
+**Exceptions** — `ArgumentException` when the inputs disagree in size, when a feature is not
+finite — "Input X contains NaN." or its infinity counterpart, `check_X_y`'s sentences — and when the number of
 distinct labels falls outside `[2, n - 1]` — scikit-learn's own bound, carried with its own
 sentence: `Number of labels is 1. Valid values are 2 to n_samples - 1 (inclusive)`.
 

@@ -9,7 +9,7 @@
    "sklearn.metrics.det_curve",
    "sklearn.metrics.auc"
   ],
-  "count": 7
+  "count": 8
  },
  "cases": [
   {
@@ -1042,6 +1042,138 @@
     ]
    },
    "roc_trapezoid": 0.5
+  },
+  {
+   "name": "a zero-weight sample",
+   "y_true": [
+    0,
+    1,
+    0,
+    1,
+    1
+   ],
+   "y_score": [
+    0.1,
+    0.9,
+    0.4,
+    0.8,
+    0.05
+   ],
+   "sample_weight": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    0.0
+   ],
+   "roc_auc": 1.0,
+   "roc_True": {
+    "first": [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ],
+    "second": [
+     0.0,
+     0.5,
+     1.0,
+     1.0
+    ],
+    "thresholds": [
+     "Infinity",
+     0.9,
+     0.8,
+     0.1
+    ]
+   },
+   "pr_True": {
+    "first": [
+     0.5,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "second": [
+     1.0,
+     1.0,
+     0.5,
+     0.0
+    ],
+    "thresholds": [
+     0.1,
+     0.8,
+     0.9
+    ]
+   },
+   "det_True": {
+    "first": [
+     0.0
+    ],
+    "second": [
+     0.0
+    ],
+    "thresholds": [
+     0.8
+    ]
+   },
+   "roc_False": {
+    "first": [
+     0.0,
+     0.0,
+     0.0,
+     0.5,
+     1.0
+    ],
+    "second": [
+     0.0,
+     0.5,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "thresholds": [
+     "Infinity",
+     0.9,
+     0.8,
+     0.4,
+     0.1
+    ]
+   },
+   "pr_False": {
+    "first": [
+     0.5,
+     0.6666666666666666,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "second": [
+     1.0,
+     1.0,
+     1.0,
+     0.5,
+     0.0
+    ],
+    "thresholds": [
+     0.1,
+     0.4,
+     0.8,
+     0.9
+    ]
+   },
+   "det_False": {
+    "first": [
+     0.0
+    ],
+    "second": [
+     0.0
+    ],
+    "thresholds": [
+     0.8
+    ]
+   },
+   "roc_trapezoid": 1.0
   }
  ]
 }

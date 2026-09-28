@@ -24,7 +24,7 @@ public static class AveragePrecision
     /// that recall is taken as one for all thresholds and returns that, and this
     /// reproduces the value rather than refusing the input.
     /// </returns>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or contain a NaN score.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or contain a score that is not finite.</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yScore,
@@ -41,7 +41,7 @@ public static class AveragePrecision
     /// <param name="labelCount">How many labels each row holds.</param>
     /// <param name="averaging">How the per-label scores are combined. <see cref="Averaging.Binary"/> has no meaning over a matrix and is refused.</param>
     /// <param name="sampleWeight">One weight per sample — per row, not per label. Omit to weight every sample by 1.</param>
-    /// <exception cref="ArgumentException">The shapes disagree, or <paramref name="sampleWeight"/> has the wrong length.</exception>
+    /// <exception cref="ArgumentException">A relevance or score is not finite, the shapes disagree, or <paramref name="sampleWeight"/> has the wrong length.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="averaging"/> is <see cref="Averaging.Binary"/> or is not a declared member.</exception>
     public static double Score(
         ReadOnlySpan<bool> yTrue,
@@ -71,7 +71,7 @@ public static class AveragePrecision
     /// <param name="labelCount">How many labels each row holds.</param>
     /// <param name="sampleWeight">One weight per sample — per row, not per label. Omit to weight every sample by 1.</param>
     /// <returns>A score per label, in column order. A label no sample carries scores <c>0</c>, for the reason <see cref="Score(ReadOnlySpan{int}, ReadOnlySpan{double}, int, ReadOnlySpan{double})"/> gives.</returns>
-    /// <exception cref="ArgumentException">The shapes disagree, or <paramref name="sampleWeight"/> has the wrong length.</exception>
+    /// <exception cref="ArgumentException">A relevance or score is not finite, the shapes disagree, or <paramref name="sampleWeight"/> has the wrong length.</exception>
     public static double[] PerLabel(
         ReadOnlySpan<bool> yTrue,
         ReadOnlySpan<double> yScore,

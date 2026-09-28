@@ -19,7 +19,7 @@ all. `labels` fixes the label set and its order, and `sampleWeight` weights the 
 **Returns** — `double` in `[0, 1]`, larger meaning fewer misses.
 
 **Exceptions** — `ArgumentNullException` when `cm` is null; `ArgumentException` when
-`Averaging.Binary` is used on more than two classes, or `posLabel` does not occur, or `sampleWeight` holds a non-finite value or is zero throughout;
+`Averaging.Binary` meets more than two classes, or two without `posLabel` — an absent positive class takes the `zeroDivision` value instead, and `labels` is not read on a binary target, as scikit-learn replaces it with `[pos_label]` — or `sampleWeight` holds a non-finite value or is zero throughout;
 `UndefinedMetricException` when the class has no true samples and `zeroDivision` is
 `ZeroDivision.Throw`.
 

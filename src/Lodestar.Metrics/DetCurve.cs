@@ -36,7 +36,7 @@ public sealed class DetCurve
     /// <param name="posLabel">The label counted as positive.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <param name="dropIntermediate">Drop points that do not turn the curve. <see langword="false"/> here, as the reference has it.</param>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or contain a NaN score.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, contain a score that is not finite, or <paramref name="yTrue"/> does not hold exactly two classes.</exception>
     public static DetCurve Compute(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yScore,
@@ -45,6 +45,14 @@ public sealed class DetCurve
         bool dropIntermediate = false)
     {
         ClassifierCurve.Points points = ClassifierCurve.Build(yTrue, yScore, posLabel, sampleWeight);
+
+        // det_curve reads the classes off yTrue itself, whatever their weights (#1251).
+        if (!HoldsExactlyTwoValues(yTrue))
+        {
+            throw new ArgumentException(
+                "Only one class is present in y_true. Detection error tradeoff curve is not defined in that case.",
+                nameof(yTrue));
+        }
 
         // A threshold at +inf, where the model always answers negative, prepended
         // before the drop rather than after -- which is where the reference puts it.
@@ -86,6 +94,28 @@ public sealed class DetCurve
         }
 
         return new DetCurve(fpr, fnr, scores);
+    }
+
+    // len(np.unique(y_true)) == 2: one class and three are refused alike.
+    private static bool HoldsExactlyTwoValues(ReadOnlySpan<int> values)
+    {
+        int first = values[0];
+        int? second = null;
+        foreach (int value in values)
+        {
+            if (value == first || value == second)
+            {
+                continue;
+            }
+
+            if (second is not null)
+            {
+                return false;
+            }
+
+            second = value;
+        }
+        return second is not null;
     }
 
     // S1244: each asks whether an accumulated weight equals a particular value, which

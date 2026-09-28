@@ -36,10 +36,10 @@ public sealed class LikelihoodRatios
     /// <returns>
     /// Both ratios. Either is replaced when it has no value: <see cref="Positive"/>
     /// when no sample was predicted into the class wrongly, <see cref="Negative"/>
-    /// when none was predicted out of it rightly, and **both** when the truth carries
-    /// only one of the two classes.
+    /// when none was predicted out of it rightly. With no positive sample at all, a
+    /// ratio that is not replaced is <c>NaN</c>, as in scikit-learn.
     /// </returns>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, the weights do not match, hold a non-finite value or are zero throughout, or more than two distinct labels occur.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, the weights do not match, hold a non-finite value or are zero throughout, or other than two distinct labels occur, or two without <paramref name="posLabel"/>.</exception>
     public static LikelihoodRatios Compute(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<int> yPred,
@@ -49,7 +49,7 @@ public sealed class LikelihoodRatios
         ReadOnlySpan<double> sampleWeight = default)
     {
         Inputs.Validate(yTrue, yPred, sampleWeight);
-        RequireBinary(yTrue, yPred);
+        RequireBinary(yTrue, yPred, posLabel);
 
         double truePositive = 0.0;
         double falseNegative = 0.0;
@@ -83,43 +83,29 @@ public sealed class LikelihoodRatios
             }
         }
 
+        // The reference's own arithmetic, straight from the counts, since one minus specificity cancels (#1252).
+        // Each ratio is replaced only where its own count vanishes, and is otherwise NaN as there (#1250).
         double positives = truePositive + falseNegative;
         double negatives = trueNegative + falsePositive;
 
-        // S1244: whether a class is absent, which is what the reference tests before
-        // dividing. The two absences do not answer alike: with no positive sample
-        // there is no sensitivity to build either ratio from, and the reference
-        // returns nan *without* substituting -- measured, replace_undefined_by=1
-        // leaves (nan, nan) there and gives (1, 1) when the negatives are missing.
-#pragma warning disable S1244
-        if (positives == 0.0)
-        {
-            return new LikelihoodRatios(double.NaN, double.NaN);
-        }
-
-        if (negatives == 0.0)
-        {
-            return new LikelihoodRatios(undefinedPositive, undefinedNegative);
-        }
-#pragma warning restore S1244
-
-        double sensitivity = truePositive / positives;
-        double specificity = trueNegative / negatives;
-
         return new LikelihoodRatios(
-            Ratio(sensitivity, 1.0 - specificity, undefinedPositive),
-            Ratio(1.0 - sensitivity, specificity, undefinedNegative));
+            Ratio(truePositive * negatives, falsePositive, falsePositive * positives, undefinedPositive),
+            Ratio(falseNegative * negatives, trueNegative, trueNegative * positives, undefinedNegative));
     }
 
-    // S1244: whether the denominator vanished, which is the reference's own test --
-    // it warns that the ratio is ill-defined and substitutes rather than dividing.
+    // S1244: whether the count vanished, which is the reference's own test -- it warns that the
+    // ratio is ill-defined and substitutes rather than dividing.
 #pragma warning disable S1244
-    private static double Ratio(double numerator, double denominator, double undefined) =>
-        denominator == 0.0 ? undefined : numerator / denominator;
+    private static double Ratio(double numerator, double count, double denominator, double undefined) =>
+        count == 0.0 ? undefined : numerator / denominator;
 #pragma warning restore S1244
 
-    /// <summary>Refuses more than two classes, as the reference does.</summary>
-    private static void RequireBinary(ReadOnlySpan<int> yTrue, ReadOnlySpan<int> yPred)
+    /// <summary>Refuses anything but two classes, as the reference does.</summary>
+    /// <remarks>
+    /// One class alone is refused too: <c>class_likelihood_ratios</c> unpacks four counts from a
+    /// <c>1 × 1</c> matrix there and raises, measured on scikit-learn 1.9.1.
+    /// </remarks>
+    private static void RequireBinary(ReadOnlySpan<int> yTrue, ReadOnlySpan<int> yPred, int posLabel)
     {
         var seen = new SortedSet<int>();
         for (int i = 0; i < yTrue.Length; i++)
@@ -132,6 +118,22 @@ public sealed class LikelihoodRatios
                     "class_likelihood_ratios only supports binary classification problems.",
                     nameof(yTrue));
             }
+        }
+
+        if (seen.Count < 2)
+        {
+            throw new ArgumentException(
+                "class_likelihood_ratios needs both classes to occur in yTrue or yPred; only one does.",
+                nameof(yTrue));
+        }
+
+        // The reference takes the greater label as positive; asked for one the data lacks, every
+        // sample would count negative, so it is refused as the precision family refuses it.
+        if (!seen.Contains(posLabel))
+        {
+            throw new ArgumentException(
+                $"posLabel {posLabel} does not occur in the data, which holds {seen.Min} and {seen.Max}.",
+                nameof(posLabel));
         }
     }
 }

@@ -7,7 +7,7 @@
    "sklearn.metrics.calinski_harabasz_score",
    "sklearn.metrics.davies_bouldin_score"
   ],
-  "count": 8
+  "count": 9
  },
  "cases": [
   {
@@ -221,6 +221,24 @@
    ],
    "calinski_harabasz": 4800.000000000023,
    "davies_bouldin": 0.020412414523218674
+  },
+  {
+   "name": "spreads within allclose of zero",
+   "features": [
+    0.0,
+    2e-09,
+    3e-09,
+    5e-09
+   ],
+   "featureCount": 1,
+   "labels": [
+    0,
+    0,
+    1,
+    1
+   ],
+   "calinski_harabasz": 4.5,
+   "davies_bouldin": 0.0
   }
  ]
 }

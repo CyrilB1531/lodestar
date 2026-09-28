@@ -95,17 +95,13 @@ public sealed class CountingPathTests
     {
         var rng = new Random(43);
         const int labelCount = 12;
-        double[] choices = [0.25, 0.5, -0.0, 0.0, double.PositiveInfinity, double.NegativeInfinity];
+        // Ties and both zeros; a score that is not finite is refused before either path (#1206).
+        double[] choices = [0.25, 0.5, -0.0, 0.0];
         int[] ranks = new int[labelCount];
         for (int trial = 0; trial < 400; trial++)
         {
             bool[] relevant = [.. Enumerable.Range(0, labelCount).Select(_ => rng.Next(3) == 0)];
             double[] scores = [.. Enumerable.Range(0, labelCount).Select(_ => rng.Next(2) == 0 ? rng.NextDouble() : choices[rng.Next(choices.Length)])];
-            if (trial % 4 == 0)
-            {
-                // The ranked path, which a NaN anywhere in the row still takes.
-                scores[rng.Next(labelCount)] = double.NaN;
-            }
 
             LabelRanking.MaxRank(scores, ranks);
             int worst = Enumerable.Range(0, labelCount).Where(label => relevant[label]).Select(label => ranks[label]).DefaultIfEmpty(0).Max();
@@ -132,25 +128,15 @@ public sealed class CountingPathTests
     }
 
     [Fact]
-    public void A_one_vs_one_pair_ignores_samples_of_a_label_outside_the_classes()
+    public void A_true_label_outside_the_classes_is_refused()
     {
+        // _multiclass_roc_auc_score's np.setdiff1d(y_true, labels) check, before either strategy (#1206).
         int[] yTrue = [0, 1, 2, 3, 0, 1, 2, 3, 2, 1];
-        double[] yScore =
-        [
-            0.6, 0.3, 0.1, 0.2, 0.5, 0.3, 0.1, 0.2, 0.7, 0.3, 0.3, 0.4, 0.5, 0.4, 0.1,
-            0.2, 0.3, 0.5, 0.1, 0.1, 0.8, 0.2, 0.2, 0.6, 0.1, 0.1, 0.8, 0.3, 0.4, 0.3,
-        ];
-        int[] kept = [.. Enumerable.Range(0, yTrue.Length).Where(i => yTrue[i] != 3)];
-        int[] keptTrue = [.. kept.Select(i => yTrue[i])];
-        double[] keptScore = [.. kept.SelectMany(i => yScore.Skip(i * 3).Take(3))];
+        double[] yScore = [.. Enumerable.Repeat(1.0 / 3, yTrue.Length * 3)];
 
-        // Macro averaging reads no prevalence, so the extra samples can only reach the pair scans.
-        double withExtra = RocAuc.MultiClass(
-            yTrue, yScore, 3, new MultiClassRocOptions { Strategy = MultiClassStrategy.OneVsOne, Labels = [0, 1, 2] });
-        double without = RocAuc.MultiClass(
-            keptTrue, keptScore, 3, new MultiClassRocOptions { Strategy = MultiClassStrategy.OneVsOne });
-
-        Assert.Equal(without, withExtra);
+        var error = Assert.Throws<ArgumentException>(() => RocAuc.MultiClass(
+            yTrue, yScore, 3, new MultiClassRocOptions { Strategy = MultiClassStrategy.OneVsOne, Labels = [0, 1, 2] }));
+        Assert.StartsWith("'y_true' contains labels not in parameter 'labels'", error.Message, StringComparison.Ordinal);
     }
 
     private static (bool[] YTrue, bool[] YPred, double[] Weights) LabelMatrix(bool weighted)

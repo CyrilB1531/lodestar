@@ -28,24 +28,13 @@ internal static class ClassifierCurve
     }
 
     /// <summary>Builds the points, descending by score.</summary>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or hold a NaN score.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, hold a score or weight that is not finite, or weigh every sample zero.</exception>
     public static Points Build(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight)
     {
-        int n = Validate(yTrue, yScore, sampleWeight);
-
-        // The sample travels with its key rather than as an index into the inputs: the sort
-        // permutes both the same way whatever they carry, and the walk below then reads in order.
-        var keys = new double[n];
-        var samples = new Sample[n];
-        bool weighted = !sampleWeight.IsEmpty;
-        for (int i = 0; i < n; i++)
-        {
-            keys[i] = -yScore[i];
-            samples[i] = new Sample(weighted ? sampleWeight[i] : 1.0, yTrue[i] == posLabel);
-        }
-
-        Array.Sort(keys, samples);
+        Validate(yTrue, yScore, sampleWeight);
+        (double[] keys, Sample[] samples) = SortedByScore(yTrue, yScore, posLabel, sampleWeight);
+        int n = keys.Length;
 
         int count = 1;
         for (int i = 0; i + 1 < n; i++)
@@ -85,6 +74,45 @@ internal static class ClassifierCurve
         }
 
         return new Points(truePositives, falsePositives, thresholds);
+    }
+
+    /// <summary>The scores negated and sorted, each carrying its sample's weight and class, zero weights left out.</summary>
+    private static (double[] Keys, Sample[] Samples) SortedByScore(
+        ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight)
+    {
+        int n = yTrue.Length;
+        // _binary_clf_curve drops the zero-weight samples before sorting, so one never forms a
+        // threshold of its own (#1203).
+        bool weighted = !sampleWeight.IsEmpty;
+        if (weighted)
+        {
+            n = 0;
+            foreach (double weight in sampleWeight)
+            {
+                n += IsZero(weight) ? 0 : 1;
+            }
+
+        }
+
+        // The sample travels with its key rather than as an index into the inputs: the sort
+        // permutes both the same way whatever they carry, and the walk below then reads in order.
+        var keys = new double[n];
+        var samples = new Sample[n];
+        int at = 0;
+        for (int i = 0; i < yTrue.Length; i++)
+        {
+            if (weighted && IsZero(sampleWeight[i]))
+            {
+                continue;
+            }
+
+            keys[at] = -yScore[i];
+            samples[at] = new Sample(weighted ? sampleWeight[i] : 1.0, yTrue[i] == posLabel);
+            at++;
+        }
+
+        Array.Sort(keys, samples);
+        return (keys, samples);
     }
 
     /// <summary>
@@ -192,6 +220,26 @@ internal static class ClassifierCurve
 #pragma warning restore S1244
     }
 
+    /// <summary>Refuses a score <c>assert_all_finite</c> refuses, naming where it sits.</summary>
+    /// <exception cref="ArgumentException">The score is NaN or infinite.</exception>
+    public static void RequireFiniteScore(ReadOnlySpan<double> yScore, int i)
+    {
+        if (double.IsNaN(yScore[i]))
+        {
+            throw new ArgumentException($"yScore[{i}] is NaN; scores must be numbers.", nameof(yScore));
+        }
+
+        if (double.IsInfinity(yScore[i]))
+        {
+            throw new ArgumentException($"yScore[{i}] is infinite; scores must be finite.", nameof(yScore));
+        }
+    }
+
+    // S1244: the reference's own mask, sample_weight != 0, exactly.
+#pragma warning disable S1244
+    private static bool IsZero(double weight) => weight == 0.0;
+#pragma warning restore S1244
+
     /// <summary>One sample's weight and class, carried through the sort beside its key.</summary>
     private readonly struct Sample(double weight, bool positive)
     {
@@ -200,7 +248,7 @@ internal static class ClassifierCurve
         public bool Positive { get; } = positive;
     }
 
-    private static int Validate(ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, ReadOnlySpan<double> sampleWeight)
+    private static void Validate(ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, ReadOnlySpan<double> sampleWeight)
     {
         int n = yTrue.Length;
         if (yScore.Length != n)
@@ -221,14 +269,13 @@ internal static class ClassifierCurve
                 nameof(sampleWeight));
         }
 
+        // assert_all_finite on the scores, then _check_sample_weight on the weights (#1206).
         for (int i = 0; i < n; i++)
         {
-            if (double.IsNaN(yScore[i]))
-            {
-                throw new ArgumentException($"yScore[{i}] is NaN; scores must be numbers.", nameof(yScore));
-            }
+            RequireFiniteScore(yScore, i);
         }
 
-        return n;
+        Inputs.ValidateSampleWeight(sampleWeight);
+
     }
 }

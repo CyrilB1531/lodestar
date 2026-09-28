@@ -36,7 +36,7 @@ public sealed class PrecisionRecallCurve
     /// <param name="posLabel">The label counted as positive.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <param name="dropIntermediate">Drop points that do not turn the curve. <see langword="false"/> here, matching the reference's default for this curve and not for <see cref="RocCurve"/>.</param>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or contain a NaN score.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or contain a score that is not finite.</exception>
     public static PrecisionRecallCurve Compute(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yScore,

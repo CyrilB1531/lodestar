@@ -14,13 +14,13 @@ namespace Lodestar.Metrics;
 /// </remarks>
 public static class JaccardScore
 {
-    /// <summary>The coefficient, counting the matrix on the way.</summary>
+    /// <summary>The coefficient, counted per label without a matrix.</summary>
     /// <param name="yTrue">The true labels.</param>
     /// <param name="yPred">The predicted labels, same length as <paramref name="yTrue"/>.</param>
     /// <param name="average">How per-class scores are reduced.</param>
     /// <param name="posLabel">The class reported under <see cref="Averaging.Binary"/>.</param>
     /// <param name="zeroDivision">What to return when neither side holds the class.</param>
-    /// <param name="labels">The label set and its order. Omit for the sorted union of both inputs.</param>
+    /// <param name="labels">The label set and its order. Omit for the sorted union of both inputs. Not read under <see cref="Averaging.Binary"/> on a binary target, which scikit-learn scores at <paramref name="posLabel"/> alone.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <exception cref="ArgumentException">The inputs disagree in length; the weights do not match, hold a non-finite value or are zero throughout; or under <see cref="Averaging.Weighted"/> the class supports sum to zero without all being zero.</exception>
     /// <exception cref="UndefinedMetricException">A class is empty on both sides and <paramref name="zeroDivision"/> is <see cref="ZeroDivision.Throw"/>.</exception>
@@ -32,9 +32,7 @@ public static class JaccardScore
         ZeroDivision zeroDivision = ZeroDivision.Zero,
         ReadOnlySpan<int> labels = default,
         ReadOnlySpan<double> sampleWeight = default) =>
-        Prf.Aggregate(
-            ConfusionMatrix.Compute(yTrue, yPred, labels, sampleWeight),
-            PrfMetric.Jaccard, 1.0, average, posLabel, zeroDivision);
+        Prf.Score(yTrue, yPred, labels, sampleWeight, PrfMetric.Jaccard, 1.0, average, posLabel, zeroDivision);
 
     /// <summary>The coefficient for every class, in label order — <c>jaccard_score(average=None)</c>.</summary>
     /// <param name="yTrue">The true labels.</param>
@@ -50,6 +48,5 @@ public static class JaccardScore
         ZeroDivision zeroDivision = ZeroDivision.Zero,
         ReadOnlySpan<int> labels = default,
         ReadOnlySpan<double> sampleWeight = default) =>
-        Prf.PerClass(
-            ConfusionMatrix.Compute(yTrue, yPred, labels, sampleWeight), PrfMetric.Jaccard, 1.0, zeroDivision);
+        Prf.PerClass(PrfCounts.Compute(yTrue, yPred, labels, sampleWeight), PrfMetric.Jaccard, 1.0, zeroDivision);
 }

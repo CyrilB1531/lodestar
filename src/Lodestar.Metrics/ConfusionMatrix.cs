@@ -22,6 +22,8 @@ public sealed class ConfusionMatrix
     private readonly ReadOnlyCollection<int> _labelView;
     private readonly int _stride;
     private readonly double[] _trueSum;
+    private readonly int[] _allLabels;
+    private readonly int[] _observed;
 
     // SonarLint S107 warns above 7 parameters; this constructor just names the
     // nine pieces of state the matrix is immutably built from, once, from
@@ -30,9 +32,11 @@ public sealed class ConfusionMatrix
 #pragma warning disable S107
     private ConfusionMatrix(
         double[] cells, int[] labels, int stride, double[] trueSum, bool noSampleCorrect,
-        double totalWeight, bool weighted, bool dropped, bool explicitLabels)
+        double totalWeight, bool weighted, bool dropped, bool explicitLabels, int[] allLabels, int[] observed)
 #pragma warning restore S107
     {
+        _allLabels = allLabels;
+        _observed = observed;
         _cells = cells;
         _labels = labels;
         _labelView = Array.AsReadOnly(labels);
@@ -82,9 +86,15 @@ public sealed class ConfusionMatrix
     /// <c>true_sum</c> — the same way, via <c>np.bincount</c> over the samples in
     /// their original order; summing the already-built matrix's cells instead
     /// groups the same additions differently and, being floating-point, can land
-    /// on a different last bit. <see cref="Prf.Support"/> is the only reader.
+    /// on a different last bit. <see cref="PrfCounts.FromMatrix"/> and <see cref="PrfCounts.Binary(ConfusionMatrix, int)"/> read it.
     /// </summary>
     internal ReadOnlySpan<double> TrueSum => _trueSum;
+
+    /// <summary>Every label the cells are laid out over, the requested ones first; <see cref="Stride"/> long.</summary>
+    internal ReadOnlySpan<int> AllLabels => _allLabels;
+
+    /// <summary>The labels that occur in the data, ascending; what binary averaging reads the target's classes from.</summary>
+    internal ReadOnlySpan<int> Observed => _observed;
 
     /// <summary>
     /// True when not one sample in the whole dataset was predicted correctly,
@@ -116,7 +126,7 @@ public sealed class ConfusionMatrix
     /// </remarks>
     internal static ConfusionMatrix FromBinaryCells(
         double[] cells, double[] trueSum, double totalWeight, bool anySampleCorrect, bool weighted) =>
-        new(cells, [0, 1], 2, trueSum, !anySampleCorrect, totalWeight, weighted, dropped: false, explicitLabels: true);
+        new(cells, [0, 1], 2, trueSum, !anySampleCorrect, totalWeight, weighted, dropped: false, explicitLabels: true, [0, 1], [0, 1]);
 
     /// <summary>Copies the matrix into a two-dimensional array.</summary>
     /// <returns>A fresh <c>[rows, columns]</c> array; the matrix keeps its own storage.</returns>
@@ -220,29 +230,41 @@ public sealed class ConfusionMatrix
         ReadOnlySpan<double> sampleWeight = default)
     {
         Inputs.Validate(yTrue, yPred, sampleWeight);
+        ConfusionMatrix counted = Count(
+            yTrue, yPred, LabelIndex.Create(yTrue, yPred, labels), sampleWeight, out bool anyTrueLabelRequested);
+        if (counted.ExplicitLabels && !anyTrueLabelRequested)
+        {
+            throw new ArgumentException(
+                "At least one supplied label must occur in yTrue.", nameof(labels));
+        }
 
-        LabelIndex index = LabelIndex.Create(yTrue, yPred, labels);
+        return counted;
+    }
+
+    /// <summary>The matrix over an index already built, for the precision family's counts on few labels.</summary>
+    /// <remarks>
+    /// Refuses nothing: only <c>confusion_matrix</c> refuses requested labels absent from y_true, which
+    /// <see cref="Compute"/> does from <paramref name="anyTrueLabelRequested"/> (#1202).
+    /// </remarks>
+    internal static ConfusionMatrix Count(
+        ReadOnlySpan<int> yTrue, ReadOnlySpan<int> yPred, LabelIndex index, ReadOnlySpan<double> sampleWeight,
+        out bool anyTrueLabelRequested)
+    {
         int k = index.RequestedCount;
         int m = index.Count;
         bool weighted = !sampleWeight.IsEmpty;
         double[] cells = new double[m * m];
         double[] trueSum = new double[k];
-        (double total, bool anySampleCorrect, bool anyTrueLabelRequested) = weighted
+        (double total, bool anySampleCorrect, anyTrueLabelRequested) = weighted
             ? AccumulateWeighted(yTrue, yPred, sampleWeight, index, cells, trueSum)
             : CountUnweighted(yTrue, yPred, index, cells, trueSum);
-
-        if (index.Explicit && !anyTrueLabelRequested)
-        {
-            throw new ArgumentException(
-                "At least one supplied label must occur in yTrue.", nameof(labels));
-        }
 
         int[] reportedLabels = new int[k];
         Array.Copy(index.Labels, reportedLabels, k);
         bool dropped = m > k;
 
         return new ConfusionMatrix(
-            cells, reportedLabels, m, trueSum, !anySampleCorrect, total, weighted, dropped, index.Explicit);
+            cells, reportedLabels, m, trueSum, !anySampleCorrect, total, weighted, dropped, index.Explicit, index.Labels, index.Observed);
     }
 
     private static (double Total, bool AnySampleCorrect, bool AnyTrueLabelRequested) AccumulateWeighted(

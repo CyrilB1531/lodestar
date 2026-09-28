@@ -3304,6 +3304,13 @@ def _metric_fixtures() -> list[dict]:
     # A class predicted but never true; see this function's docstring for why.
     add("class_only_in_pred", [0, 0, 1], [0, 2, 1])
 
+    # Binary averaging: an absent positive class scores through zero_division (#1201), labels= is
+    # replaced by [pos_label] (#1249). Appended last, so every weight drawn above is unchanged.
+    add("positive_class_absent", [0, 0, 0], [0, 0, 0])
+    add("binary_target_labels_subset", [0, 1, 1, 0], [0, 1, 0, 1], labels=[1])
+    add("binary_target_labels_superset", [0, 1, 1, 0], [0, 1, 1, 1], labels=[1, 2])
+    add("binary_target_labels_with_absent", [0, 1, 1, 0], [0, 1, 0, 1], labels=[0, 1, 2])
+
     return fixtures
 
 
@@ -3431,6 +3438,12 @@ def _undefined_average_fixtures() -> list[dict]:
          "labels": [0, 2], "sample_weight": [0.0, 0.0, 1.0, 1.0]},
         {"name": "supports_cancel", "y_true": [0, 0, 1, 1], "y_pred": [0, 1, 1, 0],
          "labels": None, "sample_weight": [1.0, 1.0, -1.0, -1.0]},
+        # Requested labels absent from y_true, which confusion_matrix refuses and
+        # precision_recall_fscore_support scores (#1202).
+        {"name": "label_absent_from_truth", "y_true": [0, 1], "y_pred": [0, 1],
+         "labels": [5], "sample_weight": None},
+        {"name": "label_only_in_prediction", "y_true": [0, 0, 1], "y_pred": [0, 2, 1],
+         "labels": [2], "sample_weight": None},
     ]
 
 
@@ -5271,6 +5284,10 @@ def _internal_validity_fixtures() -> list[dict]:
          "features": [[1.0, 2.0, 3.0, 4.0, 5.0], [1.1, 2.1, 3.1, 4.1, 5.1],
                       [9.0, 8.0, 7.0, 6.0, 5.0], [9.1, 8.1, 7.1, 6.1, 5.1]],
          "labels": [0, 0, 1, 1]},
+        # Every intra-cluster distance within np.allclose's 1e-8 of zero: Davies-Bouldin
+        # answers 0, where the same samples scaled by 1e9 score 0.6667 (#1205).
+        {"name": "spreads within allclose of zero",
+         "features": [[0.0], [2e-9], [3e-9], [5e-9]], "labels": [0, 0, 1, 1]},
     ]
 
 
@@ -10295,6 +10312,15 @@ def _calibration_curve_fixtures() -> list[dict]:
         {"name": "ten points over three bins", "true": [0, 0, 1, 0, 1, 1, 0, 1, 1, 1],
          "proba": [0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95],
          "pos_label": 1, "n_bins": 3, "strategy": "uniform"},
+        # 5/6 sits above linspace's fifth edge, 5 * (1/6), and on 5/6 itself (#1204).
+        {"name": "a probability on linspace's edge", "true": [0, 1, 1, 0],
+         "proba": [0.1, 5 / 6, 0.9, 0.5], "pos_label": 1, "n_bins": 6, "strategy": "uniform"},
+        # Found by search: numpy's lerp puts an inner quantile edge an ulp from the textbook one,
+        # and a probability on it changes bin (#1204).
+        {"name": "a probability on numpy's quantile edge",
+         "true": [1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1],
+         "proba": [0.05, 0.16, 0.43, 0.08, 0.44, 0.45, 0.78, 0.92, 0.88, 0.58, 0.57, 0.06, 0.32],
+         "pos_label": 1, "n_bins": 3, "strategy": "quantile"},
     ]
 
 
@@ -10358,6 +10384,9 @@ def _curve_fixtures() -> list[dict]:
          "weight": None},
         {"name": "a tie spanning both classes", "true": [1, 0, 1, 0, 1],
          "score": [0.9, 0.5, 0.5, 0.5, 0.1], "weight": None},
+        # A zero-weight sample is dropped before the thresholds form, so 0.05 is no point (#1203).
+        {"name": "a zero-weight sample", "true": [0, 1, 0, 1, 1],
+         "score": [0.1, 0.9, 0.4, 0.8, 0.05], "weight": [1.0, 1.0, 1.0, 1.0, 0.0]},
     ]
 
 
@@ -10581,6 +10610,13 @@ def _likelihood_ratio_fixtures() -> list[dict]:
         {"name": "no negative sample", "true": [1, 1], "pred": [0, 1], "weight": None},
         {"name": "an ordinary imbalanced case", "true": [0, 0, 0, 0, 1, 1],
          "pred": [0, 0, 0, 1, 1, 0], "weight": None},
+        # No positive and no true negative: LR+ is 0/0, LR- still takes its replacement (#1250).
+        {"name": "no positive sample and no true negative", "true": [0, 0], "pred": [1, 1],
+         "weight": None},
+        # A false-positive weight far below the true negatives': 1 - specificity cancels,
+        # the counts do not (#1252).
+        {"name": "a false positive dwarfed by the true negatives", "true": [1, 0, 1, 0],
+         "pred": [1, 1, 0, 0], "weight": [1.0, 1.0, 1.0, 1e9]},
     ]
 
 

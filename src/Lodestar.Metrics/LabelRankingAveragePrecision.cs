@@ -14,7 +14,7 @@ public static class LabelRankingAveragePrecision
     /// <param name="labelCount">How many labels each row holds.</param>
     /// <param name="sampleWeight">One weight per sample, or empty for an unweighted mean.</param>
     /// <returns><c>1</c> when every relevant label outranks every irrelevant one. A row where every label or no label is relevant scores <c>1</c> too — its ranking carries no information, and the reference says so in a comment.</returns>
-    /// <exception cref="ArgumentException">The shapes disagree, or <paramref name="sampleWeight"/> has the wrong length.</exception>
+    /// <exception cref="ArgumentException">A relevance or score is not finite, the shapes disagree, or <paramref name="sampleWeight"/> has the wrong length.</exception>
     public static double Score(
         ReadOnlySpan<bool> yTrue,
         ReadOnlySpan<double> yScore,
