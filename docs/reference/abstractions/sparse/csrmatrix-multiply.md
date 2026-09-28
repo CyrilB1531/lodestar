@@ -48,6 +48,11 @@ contiguous memory on both sides. That is the operation a randomized SVD's power 
 its time in — `A Ω` for a thin dense `Ω` — and
 [`TransposeMultiply`](csrmatrix-transposemultiply.md) is its other half.
 
+**On .NET Framework the cap is lower.** The bound is .NET's `Array.MaxLength`; .NET Framework
+refuses a `double` array past 2 GB, or past `0x7FEFFFFF` elements under `gcAllowVeryLargeObjects`,
+so a result between its cap and this one fails there with the runtime's own out-of-memory error,
+raised before any memory is taken.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`CsrMatrix.TransposeMultiply`](csrmatrix-transposemultiply.md), [`CsrMatrix`](csrmatrix.md), [`CsrMatrix.ToDense`](csrmatrix-todense.md).

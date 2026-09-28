@@ -52,3 +52,9 @@ says so with the example.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`CategoryDrop`](categorydrop.md), [`UnknownCategory`](unknowncategory.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`OneHotEncoderOptions.GetHashCode`](onehotencoderoptions-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

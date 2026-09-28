@@ -159,14 +159,15 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS, **PERSISTENCE},
     },
     FUZZY: {
-        NET: {TEXT: TEXT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},
-        NETSTANDARD: {TEXT: TEXT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
+        # The project's version until the release publishes #1285's ExtractResult hash.
+        NET: {TEXT: TEXT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NETSTANDARD: {TEXT: TEXT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
     },
     EMBEDDINGS: {
-        # Nothing external since 0.6.0, when ONNX Runtime left with OnnxTextEmbedder; one
-        # Lodestar edge, to the data types it forwards (#1142).
-        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS, **PERSISTENCE},
+        # Nothing external since 0.6.0; one Lodestar edge, to the data types it forwards (#1142),
+        # at the project's version until the release publishes #1285's SentencePiece hash.
+        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS, **PERSISTENCE},
     },
     ONNX: {
         # The repository's only external dependency, and the only package that
@@ -220,10 +221,10 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         },
     },
     METRICS: {
-        # One Lodestar edge, to the data types it forwards (#1142): metrics are pure span
-        # computation, no I/O to serialise, so no System.Text.Json.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
+        # One Lodestar edge, to the data types it forwards (#1142), no System.Text.Json; the
+        # project's version until the release publishes #1285's ClassRow and AverageRow hashes.
+        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
     },
     CONFORMAL: {
         # Arithmetic over spans; its #1159 enums sit in the unpublished Abstractions, so the edge is

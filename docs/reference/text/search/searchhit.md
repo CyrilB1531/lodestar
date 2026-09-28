@@ -33,3 +33,9 @@ which is exactly why fusing them goes through ranks rather than through scores.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`Bm25Index.Top`](bm25index-top.md), [`RankFusion`](rankfusion.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`SearchHit.GetHashCode`](searchhit-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

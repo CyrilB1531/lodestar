@@ -17,7 +17,8 @@ public sealed record NelsonAalenCurve(SurvivalStep[] Steps, double[] CumulativeH
     /// <param name="other">The curve to compare against.</param>
     /// <remarks>
     /// The generated equality would compare both arrays by reference, so two curves fitted from
-    /// the same data would be unequal. a record whose member compares by reference writes its own equality.
+    /// the same data would be unequal, which is why
+    /// this record writes its own.
     /// </remarks>
     public bool Equals(NelsonAalenCurve? other)
     {

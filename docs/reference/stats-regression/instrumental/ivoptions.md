@@ -53,3 +53,9 @@ kernel reads every lag whatever its bandwidth.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`InstrumentalVariables`](../iv/instrumentalvariables.md), [`IvSummary`](ivsummary.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`IvOptions.GetHashCode`](ivoptions-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

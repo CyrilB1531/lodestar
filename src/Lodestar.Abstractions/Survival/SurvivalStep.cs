@@ -11,4 +11,17 @@ namespace Lodestar.Survival;
 /// step is always time zero, where nothing has happened yet — the shape lifelines' own
 /// event table has.
 /// </remarks>
-public sealed record SurvivalStep(double Time, int AtRisk, int Events, int Censored);
+public sealed record SurvivalStep(double Time, int AtRisk, int Events, int Censored)
+{
+    /// <summary>Hashes every member as the generated equality compares it, each <c>NaN</c> alike (#1285).</summary>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + ValueEquality.HashOf(Time);
+            hash = (hash * 31) + AtRisk;
+            hash = (hash * 31) + Events;
+            return (hash * 31) + Censored;
+        }
+    }
+}

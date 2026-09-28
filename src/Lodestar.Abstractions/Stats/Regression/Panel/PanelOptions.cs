@@ -38,4 +38,22 @@ public sealed record PanelOptions
 
     /// <summary>The level of the confidence intervals, strictly inside (0, 1); 0.95 by default.</summary>
     public double ConfidenceLevel { get; init; } = 0.95;
+
+    /// <summary>Hashes every member as the generated equality compares it, each <c>NaN</c> alike (#1285).</summary>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + ValueEquality.HashOfItem(WithIntercept);
+            hash = (hash * 31) + ValueEquality.HashOfItem(EntityEffects);
+            hash = (hash * 31) + ValueEquality.HashOfItem(TimeEffects);
+            hash = (hash * 31) + ValueEquality.HashOfItem(CovarianceType);
+            hash = (hash * 31) + ValueEquality.HashOfItem(Debiased);
+            hash = (hash * 31) + ValueEquality.HashOfItem(ClusterEntity);
+            hash = (hash * 31) + ValueEquality.HashOfItem(ClusterTime);
+            hash = (hash * 31) + ValueEquality.HashOfItem(Kernel);
+            hash = (hash * 31) + ValueEquality.HashOfItem(Bandwidth);
+            return (hash * 31) + ValueEquality.HashOf(ConfidenceLevel);
+        }
+    }
 }

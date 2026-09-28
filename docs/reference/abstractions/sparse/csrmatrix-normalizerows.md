@@ -15,6 +15,9 @@ that sums to `1`, or `SparseNorm.L2` for a row of unit Euclidean length.
 **Returns** — nothing. **The matrix is modified in place**, which is what makes it cheap and what
 makes it a trap: a caller holding another reference to the same matrix sees the change.
 
+**Exceptions** — `ArgumentOutOfRangeException` when `norm` is not a defined `SparseNorm`, as
+`sklearn.preprocessing.normalize` refuses an unknown norm; the matrix is left untouched.
+
 **Example** — after normalizing, every row's norm is `1`.
 
 ```csharp

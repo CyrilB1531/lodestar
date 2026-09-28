@@ -36,3 +36,9 @@ chi-squared tests in `Lodestar.Stats` report.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`LogRank.Test`](logrank-test.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`LogRankResult.GetHashCode`](logrankresult-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

@@ -10,8 +10,10 @@ oblige a caller to take the other's distances, stemmers, tokenizers and JSON.
 [Decision 0003](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) records that
 move and what it cost.
 
-The package is deliberately small and has no dependencies. It holds one class and one enum, no I/O,
-and nothing to configure.
+The package has no dependencies, no I/O and nothing to configure. `CsrMatrix` and `SparseNorm`
+are the only code it carries; since 0.2.0 it also holds the public data types the other packages
+declare — options, results and enums, each under its original namespace — so that upgrading one
+package never duplicates a type ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142)).
 
 ## Compressed sparse row, in one paragraph
 

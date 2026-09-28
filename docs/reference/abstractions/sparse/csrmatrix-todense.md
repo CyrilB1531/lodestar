@@ -11,6 +11,9 @@ public double[,] ToDense()
 **Returns** — `double[,]` of `RowCount × ColumnCount`, every cell present, the stored values in
 their places and zeros everywhere else.
 
+**Exceptions** — `InvalidOperationException` when `RowCount × ColumnCount` exceeds the largest
+array the runtime allows, `0x7FFFFFC7` cells, rather than failing inside the allocation.
+
 **Example** — the cell that says `the` appears twice in the third document.
 
 ```csharp
@@ -38,6 +41,11 @@ vector, [`Multiply`](csrmatrix-multiply.md) does it without densifying.
 
 A column stored twice in one row is written out as the sum of its entries, which is what
 [`Multiply`](csrmatrix-multiply.md) computes from the same row and what scipy's `toarray()` returns.
+
+**On .NET Framework the cap is lower.** The bound is .NET's `Array.MaxLength`; .NET Framework
+refuses a `double` array past 2 GB, or past `0x7FEFFFFF` elements under `gcAllowVeryLargeObjects`,
+so a result between its cap and this one fails there with the runtime's own out-of-memory error,
+raised before any memory is taken.
 
 **Applies to** — net10.0, netstandard2.0.
 

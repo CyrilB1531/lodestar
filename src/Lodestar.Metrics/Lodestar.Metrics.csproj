@@ -20,10 +20,13 @@
     <InternalsVisibleTo Include="Lodestar.Metrics.NetStandard.Tests" />
   </ItemGroup>
 
-  <!-- The data types this package forwards to Lodestar.Abstractions (decision 0003, #1142). The
-       floor is pinned in src/Directory.Packages.props, like every other src/ reference. -->
+  <!-- The data types this package forwards to Lodestar.Abstractions (decision 0003, #1142). ClassRow
+       and AverageRow hash every NaN alike since #1285, so this reaches that project unconditionally until the next
+       Lodestar.Abstractions is on nuget.org; packing turns the reference into a dependency on that
+       version. The release swaps it back for a PackageReference and drops its exception in ci.yml's
+       "src/ ships PackageReference only" step. -->
   <ItemGroup>
-    <PackageReference Include="Lodestar.Abstractions" />
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

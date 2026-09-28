@@ -47,3 +47,4 @@ table](../../../equivalence.md).
 
 | Member | What it does |
 | --- | --- |
+| [`AverageRow.GetHashCode`](averagerow-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

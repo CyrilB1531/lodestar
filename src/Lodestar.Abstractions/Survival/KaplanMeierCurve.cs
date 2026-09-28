@@ -26,7 +26,8 @@ public sealed record KaplanMeierCurve(
     /// <param name="other">The curve to compare against.</param>
     /// <remarks>
     /// The generated equality would compare the four arrays by reference, so two curves fitted
-    /// from the same data would be unequal. a record whose member compares by reference writes its own equality.
+    /// from the same data would be unequal, which is why
+    /// this record writes its own.
     /// </remarks>
     public bool Equals(KaplanMeierCurve? other)
     {
@@ -56,7 +57,7 @@ public sealed record KaplanMeierCurve(
     {
         unchecked
         {
-            int hash = (17 * 31) + ConfidenceLevel.GetHashCode();
+            int hash = (17 * 31) + ValueEquality.HashOf(ConfidenceLevel);
             return (hash * 31) + ValueEquality.CountOf(Steps);
         }
     }

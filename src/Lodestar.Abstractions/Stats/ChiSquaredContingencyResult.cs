@@ -19,7 +19,8 @@ public sealed record ChiSquaredContingencyResult(
     /// <param name="other">The result to compare against.</param>
     /// <remarks>
     /// The generated equality would compare <see cref="ExpectedFrequencies"/> by reference, so
-    /// two results holding the same table would be unequal. a record whose member compares by reference writes its own equality.
+    /// two results holding the same table would be unequal, which is why
+    /// this record writes its own.
     /// </remarks>
     public bool Equals(ChiSquaredContingencyResult? other)
     {
@@ -51,8 +52,8 @@ public sealed record ChiSquaredContingencyResult(
     {
         unchecked
         {
-            int hash = (17 * 31) + Statistic.GetHashCode();
-            hash = (hash * 31) + PValue.GetHashCode();
+            int hash = (17 * 31) + ValueEquality.HashOf(Statistic);
+            hash = (hash * 31) + ValueEquality.HashOf(PValue);
             hash = (hash * 31) + DegreesOfFreedom;
             return (hash * 31) + ValueEquality.CountOf(ExpectedFrequencies);
         }

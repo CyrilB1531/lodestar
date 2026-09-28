@@ -43,3 +43,9 @@ Being a `record`, two results with the same statistic and p-value are equal.
 
 **See also** — [`TTestResult`](ttestresult.md), [`ChiSquaredContingencyResult`](chisquaredcontingencyresult.md),
 [`KsResult`](ksresult.md), the [Python equivalence table](../../../equivalence.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`TestResult.GetHashCode`](testresult-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

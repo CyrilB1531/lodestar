@@ -28,4 +28,17 @@ public sealed record RobustScalerOptions
     /// scales to a standard deviation of 1 rather than to an interquartile range of 1.
     /// </remarks>
     public bool UnitVariance { get; init; }
+
+    /// <summary>Hashes every member as the generated equality compares it, each <c>NaN</c> alike (#1285).</summary>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + ValueEquality.HashOfItem(WithCentring);
+            hash = (hash * 31) + ValueEquality.HashOfItem(WithScaling);
+            hash = (hash * 31) + ValueEquality.HashOf(LowerPercentile);
+            hash = (hash * 31) + ValueEquality.HashOf(UpperPercentile);
+            return (hash * 31) + ValueEquality.HashOfItem(UnitVariance);
+        }
+    }
 }

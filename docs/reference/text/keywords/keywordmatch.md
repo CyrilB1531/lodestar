@@ -31,3 +31,9 @@ Being a `record struct`, it compares by value and deconstructs — `var (phrase,
 
 **See also** — [`Rake.Extract`](rake-extract.md), [`TextRank.Extract`](textrank-extract.md),
 [the keyword extraction guide](../../../guides/keyword-extraction.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`KeywordMatch.GetHashCode`](keywordmatch-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

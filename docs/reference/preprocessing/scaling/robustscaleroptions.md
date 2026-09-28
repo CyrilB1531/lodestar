@@ -59,3 +59,9 @@ finite quantile, where the reference divides by an infinity and reports a scale 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`RobustScaler`](robustscaler.md), [`RobustScaler.Fit`](robustscaler-fit.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`RobustScalerOptions.GetHashCode`](robustscaleroptions-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

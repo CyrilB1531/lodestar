@@ -29,13 +29,20 @@
    .nuspec is asserted there — see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md.
   -->
   <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
     <ProjectReference Include="../Lodestar.Text/Lodestar.Text.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
-    <PackageReference Include="Lodestar.Abstractions" />
     <PackageReference Include="Lodestar.Text" />
+  </ItemGroup>
+
+  <!-- ExtractResult, forwarded to Lodestar.Abstractions (#1142), hashes every NaN alike since #1285,
+       so this reaches that project unconditionally until the next Lodestar.Abstractions is on
+       nuget.org; packing turns the reference into a dependency on that version. The release swaps it
+       back for a PackageReference and drops its exception in ci.yml's "src/ ships PackageReference
+       only" step. -->
+  <ItemGroup>
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>
 
   <!-- Loud on purpose: a local build that silently differed from the shipped one

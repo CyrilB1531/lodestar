@@ -59,9 +59,9 @@ public sealed record AndersonResult(
     {
         unchecked
         {
-            int hash = (17 * 31) + Statistic.GetHashCode();
-            hash = (hash * 31) + PValue.GetHashCode();
-            return (hash * 31) + CriticalValues.Length;
+            int hash = (17 * 31) + ValueEquality.HashOf(Statistic);
+            hash = (hash * 31) + ValueEquality.HashOf(PValue);
+            return (hash * 31) + ValueEquality.CountOf(CriticalValues);
         }
     }
 }

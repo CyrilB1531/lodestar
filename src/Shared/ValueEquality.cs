@@ -67,6 +67,29 @@ internal static class ValueEquality
         return true;
     }
 
+    /// <summary>Whether two lists hold equal elements, in order.</summary>
+    /// <remarks>The list form of <see cref="Same{T}(T[], T[])"/>, for a member typed as an interface (#1284).</remarks>
+    public static bool Same<T>(IReadOnlyList<T>? left, IReadOnlyList<T>? right)
+        where T : IEquatable<T>
+    {
+        if (ReferenceEquals(left, right))
+        {
+            return true;
+        }
+        if (left is null || right is null || left.Count != right.Count)
+        {
+            return false;
+        }
+        for (int i = 0; i < left.Count; i++)
+        {
+            if (!EqualityComparer<T>.Default.Equals(left[i], right[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /// <summary>Whether two collections hold the same words, order and repetition aside.</summary>
     public static bool SameSet(IReadOnlyCollection<string>? left, IReadOnlyCollection<string>? right)
     {
@@ -88,6 +111,23 @@ internal static class ValueEquality
     /// they must not: <c>Same</c> reports them unequal.
     /// </remarks>
     public static int CountOf(ICollection? collection) => collection?.Count ?? -1;
+
+    /// <summary>A list's length, or <c>-1</c> for an absent one, as <see cref="CountOf(ICollection)"/> gives an array's.</summary>
+    public static int LengthOf<T>(IReadOnlyList<T>? list) => list?.Count ?? -1;
+
+    /// <summary>A double's hash, with every <c>NaN</c> hashed alike.</summary>
+    /// <remarks>
+    /// <c>double.Equals</c> makes every <c>NaN</c> equal, and .NET Framework's <c>GetHashCode</c>
+    /// hashes their payloads apart, so equal records would hash apart there (#1285).
+    /// </remarks>
+    public static int HashOf(double value) => double.IsNaN(value) ? 0 : value.GetHashCode();
+
+    /// <summary>An optional double's hash, <c>-1</c> when absent and every <c>NaN</c> alike.</summary>
+    public static int HashOf(double? value) => value is { } present ? HashOf(present) : -1;
+
+    /// <summary>Any other member's hash, as the generated record equality's comparer gives it.</summary>
+    /// <remarks>For a record that keeps its generated equality and hashes its doubles through <see cref="HashOf(double)"/> (#1285).</remarks>
+    public static int HashOfItem<T>(T value) => value is null ? 0 : EqualityComparer<T>.Default.GetHashCode(value);
 
     /// <summary>Whether a member is present, as the only hash contribution a set may make.</summary>
     /// <remarks>

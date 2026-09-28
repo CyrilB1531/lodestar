@@ -1,8 +1,3 @@
-#if NET
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-#endif
-
 namespace Lodestar.Abstractions;
 
 /// <summary>The vector norm used when normalizing rows of a <see cref="CsrMatrix"/>.</summary>
@@ -148,6 +143,7 @@ public sealed class CsrMatrix
     public int NonZeroCount => Values.Length;
 
     /// <summary>Materializes the matrix as a dense 2-D array.</summary>
+    /// <exception cref="InvalidOperationException">The matrix has more cells than the runtime allows in one array.</exception>
     // CA1814 (prefer jagged arrays): a confusion matrix and a densified CSR
     // matrix are rectangular by construction, and double[,] is the shape every
     // consumer expects to interop with. A jagged array would cost one allocation
@@ -155,6 +151,13 @@ public sealed class CsrMatrix
 #pragma warning disable CA1814
     public double[,] ToDense()
     {
+        if ((long)RowCount * ColumnCount > MaxArrayLength)
+        {
+            // The constructor accepts a 1 × int.MaxValue matrix in a few bytes; densified it is 16 GB (#1287).
+            throw new InvalidOperationException(
+                $"A {RowCount} × {ColumnCount} matrix has more cells than one array can hold.");
+        }
+
         var dense = new double[RowCount, ColumnCount];
         for (int row = 0; row < RowCount; row++)
         {
@@ -197,8 +200,14 @@ public sealed class CsrMatrix
     /// Normalizes each row in place to unit norm. Zero rows are left unchanged.
     /// Matches <c>sklearn.preprocessing.normalize</c>.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="norm"/> is not a defined <see cref="SparseNorm"/>, which the reference refuses too (#1286).</exception>
     public void NormalizeRows(SparseNorm norm)
     {
+        if (norm is not (SparseNorm.L1 or SparseNorm.L2))
+        {
+            throw new ArgumentOutOfRangeException(nameof(norm), norm, "The norm is either L1 or L2.");
+        }
+
         for (int row = 0; row < RowCount; row++)
         {
             double n = norm == SparseNorm.L1 ? RowL1Norm(row) : RowL2Norm(row);
@@ -314,11 +323,15 @@ public sealed class CsrMatrix
         }
     }
 
-    /// <summary>The result's length, refused rather than wrapped when it overflows an int.</summary>
+    /// <summary><c>Array.MaxLength</c>, which netstandard2.0 does not declare.</summary>
+    /// <remarks>.NET Framework caps a <c>double</c> array lower, so between the two it fails in the allocation.</remarks>
+    private const int MaxArrayLength = 0x7FFFFFC7;
+
+    /// <summary>The result's length, refused rather than wrapped, or left to fail allocation, past the largest array.</summary>
     private static int ProductLength(int rows, int columnCount)
     {
         long length = (long)rows * columnCount;
-        if (length > int.MaxValue)
+        if (length > MaxArrayLength)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(columnCount), columnCount, "The product would not fit in a single array.");

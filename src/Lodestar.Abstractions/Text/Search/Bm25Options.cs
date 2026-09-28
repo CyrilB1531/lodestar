@@ -18,4 +18,17 @@ public sealed record Bm25Options(
     double K1 = 1.5,
     double B = 0.75,
     Bm25Idf Idf = Bm25Idf.RobertsonFloored,
-    double Epsilon = 0.25);
+    double Epsilon = 0.25)
+{
+    /// <summary>Hashes every member as the generated equality compares it, each <c>NaN</c> alike (#1285).</summary>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + ValueEquality.HashOf(K1);
+            hash = (hash * 31) + ValueEquality.HashOf(B);
+            hash = (hash * 31) + ValueEquality.HashOfItem(Idf);
+            return (hash * 31) + ValueEquality.HashOf(Epsilon);
+        }
+    }
+}
