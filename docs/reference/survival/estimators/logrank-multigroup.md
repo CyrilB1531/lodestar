@@ -24,8 +24,9 @@ exponents and the truncation; `null` runs the log-rank test.
 **Returns** — a [`LogRankResult`](logrankresult.md) on one degree of freedom fewer than the groups.
 
 **Exceptions** — `ArgumentException` when the spans differ in length, the sample is empty, a
-duration is negative or `NaN`, fewer than two groups appear, or `weights` is neither empty nor one
-positive, finite value per subject. `ArgumentOutOfRangeException` when `options` names no
+duration is negative or `NaN`, fewer than two groups appear, `weights` is neither empty nor one
+positive, finite value per subject, or the distinct durations times the groups are more cells than
+one array holds. `ArgumentOutOfRangeException` when `options` names no
 weighting, or holds a negative or non-finite exponent, or a negative or `NaN` truncation.
 
 **Example** — three groups that do not differ.

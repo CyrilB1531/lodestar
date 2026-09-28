@@ -8044,6 +8044,16 @@ def _univariate_cases() -> list[dict]:
     return cases
 
 
+def _piecewise_tie_cases() -> list[dict]:
+    """Durations on the breakpoints, where lifelines' hazard splits the tie between two pieces (#1309)."""
+    durations = [1.0, 2.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 2.0, 5.0, 8.0, 1.5, 3.0, 5.0, 2.0, 9.0, 4.5, 6.0]
+    events = [1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0]
+    data = {DURATIONS: durations, EVENTS: events, PARAM_LOWER: list(durations), PARAM_UPPER: list(durations),
+            WEIGHTS: None, PARAM_ENTRIES: None}
+    return [_univariate_case(f"ties on the breakpoints, {MODEL_PIECEWISE}, {CENSOR_RIGHT}",
+                             MODEL_PIECEWISE, CENSOR_RIGHT, data, [2.0, 5.0])]
+
+
 def generate_survival_parametric() -> dict:
     """lifelines' parametric univariate fitters, right-, left- and interval-censored, polished to their maximum (#1172).
 
@@ -8053,7 +8063,7 @@ def generate_survival_parametric() -> dict:
     table and curves there. The generalized gamma's gradient stops near 3e-11, lifelines differentiating the incomplete
     gamma in its shape by finite differences, which is why its section is compared at 2e-9.
     """
-    univariate = _univariate_cases()
+    univariate = _univariate_cases() + _piecewise_tie_cases()
     aft = _aft_cases()
     bfh, left = _curve_cases()
     fixed = _fixed_point_cases()

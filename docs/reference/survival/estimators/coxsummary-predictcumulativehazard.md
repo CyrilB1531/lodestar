@@ -12,7 +12,7 @@ public double[] PredictCumulativeHazard(ReadOnlySpan<double> design, ReadOnlySpa
 
 **Returns** — row-major, one row per subject and one column per time.
 
-**Exceptions** — `ArgumentException` when `design` is not a whole number of rows of finite values, or `strata` does not match the subjects or names a stratum the fit did not see, or is empty for a stratified fit, or a time is `NaN`.
+**Exceptions** — `ArgumentException` when `design` is not a whole number of rows of finite values, or `strata` does not match the subjects or names a stratum the fit did not see, or is empty for a stratified fit, or a time is `NaN`, or the subjects times the times are more cells than one array holds.
 
 **Example** — a subject at `(2, 1)` in the fit of the [`CoxSummary`](coxsummary.md) page.
 

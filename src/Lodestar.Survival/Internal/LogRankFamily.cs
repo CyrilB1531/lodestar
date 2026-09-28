@@ -82,7 +82,7 @@ internal static class LogRankFamily
             _removedBefore = new double[_k];
             ObservedTotals = new double[_k];
             ExpectedTotals = new double[_k];
-            Products = new double[_k * _k];
+            Products = new double[ResultTable.Length(_k, _k, "groups")];
             CrossTotal = new double[_k];
         }
 
@@ -186,8 +186,9 @@ internal static class LogRankFamily
             Rows = rows;
             Count = count;
             GroupTotals = new double[groupCount];
-            RemovedByGroup = new double[rows * groupCount];
-            Events = new double[rows * groupCount];
+            int cells = ResultTable.Length(rows, groupCount, "durations");
+            RemovedByGroup = new double[cells];
+            Events = new double[cells];
             CountRemoved = new int[rows];
             CountEvents = new int[rows];
         }

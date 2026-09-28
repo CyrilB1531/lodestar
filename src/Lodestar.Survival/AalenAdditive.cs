@@ -26,7 +26,7 @@ public static class AalenAdditive
     /// <param name="featureCount">The number of covariates, the design's row length.</param>
     /// <param name="options">The level, the intercept and the two penalties; <see langword="null"/> for the defaults.</param>
     /// <returns>The cumulative coefficients with their variance, the slopes table, the concordance, and the predictions.</returns>
-    /// <exception cref="ArgumentException">The spans do not match the subjects, a value is not finite, a duration is negative, no subject has the event, fewer than two subjects are given, a covariate does not vary beside the intercept, or there is no column at all.</exception>
+    /// <exception cref="ArgumentException">The spans do not match the subjects, a value is not finite, a duration is negative, no subject has the event, fewer than two subjects are given, a covariate does not vary beside the intercept, or there is no column at all, or the subjects times the columns are more cells than one array holds.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is negative.</exception>
     public static AalenSummary Fit(
         ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, int featureCount, AalenOptions? options = null) =>
@@ -145,7 +145,7 @@ public static class AalenAdditive
     private static double[] Rows(double[] raw, int[] order, int featureCount, bool intercept)
     {
         int d = featureCount + (intercept ? 1 : 0);
-        var x = new double[order.Length * d];
+        var x = new double[ResultTable.Length(order.Length, d, "design")];
         for (int i = 0; i < order.Length; i++)
         {
             for (int j = 0; j < featureCount; j++)

@@ -177,7 +177,7 @@ public sealed class AftSummary
     /// <param name="design">The subjects' covariates, row-major.</param>
     /// <param name="times">The positive times to read at.</param>
     /// <returns>Row-major, one row per subject and one column per time.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or a time is not positive and finite.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or a time is not positive and finite, or the subjects times the times are more cells than one array holds.</exception>
     public double[] PredictCumulativeHazard(ReadOnlySpan<double> design, ReadOnlySpan<double> times)
     {
         foreach (double time in times)
@@ -190,7 +190,7 @@ public sealed class AftSummary
 
         (double Primary, double Ancillary)[] scores = Scores(design);
         double[] at = times.ToArray();
-        var result = new double[scores.Length * at.Length];
+        var result = new double[ResultTable.Length(scores.Length, at.Length, nameof(design))];
         for (int i = 0; i < scores.Length; i++)
         {
             Jet primary = Jet.Constant(scores[i].Primary, 0);

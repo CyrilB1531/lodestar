@@ -19,7 +19,7 @@ public static class LogRank
     /// <param name="eventObservedA">The first group's event flags.</param>
     /// <param name="durationsB">The second group's durations.</param>
     /// <param name="eventObservedB">The second group's event flags.</param>
-    /// <exception cref="ArgumentException">A group's spans differ in length, a group is empty, or a duration is negative or NaN.</exception>
+    /// <exception cref="ArgumentException">A group's spans differ in length, a group is empty, a duration is negative or NaN, or the distinct durations times two are more cells than one array holds.</exception>
     /// <remarks>
     /// At each time carrying an event anywhere, the first group's observed events are
     /// compared against what the pooled risk sets would give it. The statistic is the
@@ -107,7 +107,7 @@ public static class LogRank
     /// <param name="eventObserved">One event flag per subject.</param>
     /// <param name="options">The weighting, its exponents and the truncation; <see langword="null"/> for the log-rank test.</param>
     /// <returns>The statistic on one degree of freedom fewer than the groups.</returns>
-    /// <exception cref="ArgumentException">The spans differ in length, the sample is empty, a duration is negative or NaN, or fewer than two groups appear.</exception>
+    /// <exception cref="ArgumentException">The spans differ in length, the sample is empty, a duration is negative or NaN, or fewer than two groups appear, or the distinct durations times the groups are more cells than one array holds.</exception>
     /// <exception cref="ArgumentOutOfRangeException">As the weighted two-sample overload.</exception>
     public static LogRankResult MultiGroup(
         ReadOnlySpan<double> durations,

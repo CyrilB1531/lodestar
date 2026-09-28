@@ -4,9 +4,9 @@ namespace Lodestar.Survival;
 /// <remarks>Each setting is checked where it is set, as <see cref="CoxOptions"/> checks its own.</remarks>
 public sealed record ParametricOptions
 {
-    private double _confidenceLevel = 0.95;
-    private int _maximumIterations = 100;
-    private double[] _breakpoints = [];
+    private readonly double _confidenceLevel = 0.95;
+    private readonly int _maximumIterations = 100;
+    private readonly double[] _breakpoints = [];
 
     /// <summary>The two-sided level the intervals are reported at. Default 0.95.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The value does not lie strictly inside (0, 1).</exception>
@@ -48,7 +48,8 @@ public sealed record ParametricOptions
     public double[] Breakpoints
 #pragma warning restore CA1819
     {
-        get => _breakpoints;
+        // A copy: the array the init validated is not the caller's to rewrite afterwards (#1307).
+        get => [.. _breakpoints];
         init
         {
             Guard.NotNull(value);
@@ -61,6 +62,36 @@ public sealed record ParametricOptions
             }
 
             _breakpoints = [.. value];
+        }
+    }
+
+    /// <summary>Compares every option, the breakpoints element by element.</summary>
+    /// <param name="other">The options to compare against.</param>
+    /// <remarks>The generated equality would compare the breakpoints by reference, and the init copies them (#1307).</remarks>
+    public bool Equals(ParametricOptions? other)
+    {
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+
+        // S1244: two option sets are equal when they hold the same level, bit for bit.
+#pragma warning disable S1244
+        return other is not null
+            && _confidenceLevel == other._confidenceLevel
+            && _maximumIterations == other._maximumIterations
+            && ValueEquality.Same(_breakpoints, other._breakpoints);
+#pragma warning restore S1244
+    }
+
+    /// <summary>Hashes the scalars and the breakpoint count, which is O(1).</summary>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + ValueEquality.HashOf(_confidenceLevel);
+            hash = (hash * 31) + _maximumIterations;
+            return (hash * 31) + ValueEquality.CountOf(_breakpoints);
         }
     }
 }
