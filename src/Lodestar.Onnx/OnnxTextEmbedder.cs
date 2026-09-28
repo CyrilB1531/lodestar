@@ -100,6 +100,8 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="attentionMaskName">Name of the attention-mask input (default <c>attention_mask</c>).</param>
     /// <param name="tokenTypeIdsName">Name of the token-type-ids input (default <c>token_type_ids</c>), used only if the model declares it.</param>
     /// <param name="outputName">Name of the token-embeddings output; defaults as described on the other constructor.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="modelPath"/>, <paramref name="tokenizer"/>, <paramref name="inputIdsName"/>, <paramref name="attentionMaskName"/> or <paramref name="tokenTypeIdsName"/> is null.</exception>
+    /// <exception cref="ArgumentException">The model declares no input under <paramref name="inputIdsName"/> or <paramref name="attentionMaskName"/>, or no output under <paramref name="outputName"/>.</exception>
     public OnnxTextEmbedder(
         string modelPath,
         ISubwordTokenizer tokenizer,

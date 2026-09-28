@@ -19,8 +19,6 @@ public static class BpeFilesLoader
 {
     private const string SourceName = "merges.txt";
 
-    /// <summary>What Python's text mode treats as ending a line.</summary>
-
     /// <summary>Reads a BPE model from two streams.</summary>
     /// <param name="vocabJson">A <c>vocab.json</c>: a JSON object of token to id. Never disposed by this method.</param>
     /// <param name="merges">A <c>merges.txt</c>: one space-separated pair per line, in rank order. Never disposed by this method.</param>

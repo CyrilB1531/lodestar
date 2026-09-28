@@ -266,4 +266,73 @@ public sealed class ReviewBFindingsTests
 
         return file;
     }
+    [Fact]
+    public void Vocabularies_with_absent_members_hash_and_compare_as_equal()
+    {
+        var types = new[] { SentencePieceType.Normal };
+        var pieces = new SentencePieceVocabulary(null!, types, 0, -1, -1, -1);
+        var bpe = new BpeVocabulary(null!, null!) { AddedTokens = null!, NormalizationForms = null! };
+
+        Assert.Equal(pieces, new SentencePieceVocabulary(null!, types, 0, -1, -1, -1));
+        Assert.Equal(pieces.GetHashCode(), new SentencePieceVocabulary(null!, types, 0, -1, -1, -1).GetHashCode());
+        Assert.Equal(bpe, new BpeVocabulary(null!, null!) { AddedTokens = null!, NormalizationForms = null! });
+        Assert.Equal(bpe.GetHashCode(), new BpeVocabulary(null!, null!) { AddedTokens = null!, NormalizationForms = null! }.GetHashCode());
+
+        // Every list absent at once, and one present against one absent.
+        var bare = new SentencePieceVocabulary(null!, null!, 0, -1, -1, -1) { PrefixTokens = null!, SuffixTokens = null! };
+        var bareBpe = new BpeVocabulary(null!, null!)
+        {
+            AddedTokens = null!,
+            NormalizationForms = null!,
+            PrefixTokens = null!,
+            SuffixTokens = null!,
+        };
+        Assert.Equal(bare, bare with { });
+        Assert.Equal(bare.GetHashCode(), (bare with { }).GetHashCode());
+        Assert.NotEqual(bare, bare with { Types = types });
+        Assert.NotEqual(bare with { Types = types }, bare);
+        Assert.Equal(bareBpe, bareBpe with { });
+        Assert.Equal(bareBpe.GetHashCode(), (bareBpe with { }).GetHashCode());
+        Assert.NotEqual(bareBpe, bareBpe with { NormalizationForms = [NormalizationForm.FormC] });
+        Assert.NotEqual(bareBpe with { Vocab = new Dictionary<string, int>(StringComparer.Ordinal) }, bareBpe);
+    }
+
+    [Fact]
+    public void A_bpe_vocabulary_missing_a_list_or_holding_a_null_token_is_refused_under_vocabulary()
+    {
+        var vocab = new Dictionary<string, int>(StringComparer.Ordinal) { ["a"] = 0 };
+
+        foreach (BpeVocabulary broken in new[]
+        {
+            new BpeVocabulary(null!, []) { PreTokenizerPattern = @"\S+" },
+            new BpeVocabulary(vocab, null!) { PreTokenizerPattern = @"\S+" },
+            new BpeVocabulary(vocab, [new MergePair(null!, "a")]) { PreTokenizerPattern = @"\S+" },
+            new BpeVocabulary(vocab, []) { PreTokenizerPattern = @"\S+", AddedTokens = [null!] },
+            new BpeVocabulary(vocab, []) { PreTokenizerPattern = @"\S+", NormalizationForms = null! },
+        })
+        {
+            Assert.Equal("vocabulary", Assert.Throws<ArgumentException>(() => new BpeTokenizer(broken)).ParamName);
+        }
+    }
+
+    [Fact]
+    public void A_word_piece_added_token_with_no_string_or_a_negative_id_is_refused()
+    {
+        var vocab = new Dictionary<string, int>(StringComparer.Ordinal) { ["[UNK]"] = 0 };
+
+        foreach (AddedToken added in new[] { null!, new AddedToken("<x>", -1), new AddedToken(null!, 1) })
+        {
+            var vocabulary = new WordPieceVocabulary(vocab, "[UNK]", "##", false) { AddedTokens = [added] };
+
+            Assert.Equal("vocabulary", Assert.Throws<ArgumentException>(() => new WordPieceTokenizer(vocabulary)).ParamName);
+        }
+    }
+
+    [Fact]
+    public void Pooling_an_empty_batch_wider_than_the_largest_array_is_refused()
+    {
+        Assert.Equal(
+            "batchSize",
+            Assert.Throws<ArgumentException>(() => Pooler.MeanPoolBatch([], int.MaxValue, 0, 0, [])).ParamName);
+    }
 }

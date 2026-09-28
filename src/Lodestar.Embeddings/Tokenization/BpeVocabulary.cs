@@ -213,37 +213,16 @@ public sealed record BpeVocabulary(
             || PreSplit != other.PreSplit
             || !SameMetaspace(Metaspace, other.Metaspace)
             || !SameDecoder(Decoder, other.Decoder)
-            || Vocab.Count != other.Vocab.Count
-            || Merges.Count != other.Merges.Count
-            || AddedTokens.Count != other.AddedTokens.Count
-            || NormalizationForms.Count != other.NormalizationForms.Count
-            || !SameTokens(PrefixTokens, other.PrefixTokens)
-            || !SameTokens(SuffixTokens, other.SuffixTokens))
+            || (Vocab?.Count ?? -1) != (other.Vocab?.Count ?? -1)
+            || !ValueEquality.Same(Merges, other.Merges)
+            || !ValueEquality.Same(AddedTokens, other.AddedTokens)
+            || !SameForms(NormalizationForms, other.NormalizationForms)
+            || !ValueEquality.Same(PrefixTokens, other.PrefixTokens)
+            || !ValueEquality.Same(SuffixTokens, other.SuffixTokens))
         {
             return false;
         }
-        for (int i = 0; i < Merges.Count; i++)
-        {
-            if (!Merges[i].Equals(other.Merges[i]))
-            {
-                return false;
-            }
-        }
-        for (int i = 0; i < AddedTokens.Count; i++)
-        {
-            if (!AddedTokens[i].Equals(other.AddedTokens[i]))
-            {
-                return false;
-            }
-        }
-        for (int i = 0; i < NormalizationForms.Count; i++)
-        {
-            if (NormalizationForms[i] != other.NormalizationForms[i])
-            {
-                return false;
-            }
-        }
-        return SameEntries(Vocab, other.Vocab);
+        return Vocab is null || other.Vocab is null ? Vocab is null && other.Vocab is null : SameEntries(Vocab, other.Vocab);
     }
 
     /// <summary>Hashes the scalars and the counts, which is O(1) and consistent with equality.</summary>
@@ -251,12 +230,13 @@ public sealed record BpeVocabulary(
     {
         unchecked
         {
-            int hash = (17 * 31) + Vocab.Count;
-            hash = (hash * 31) + Merges.Count;
-            hash = (hash * 31) + AddedTokens.Count;
-            hash = (hash * 31) + NormalizationForms.Count;
-            hash = (hash * 31) + PrefixTokens.Count;
-            hash = (hash * 31) + SuffixTokens.Count;
+            // Total on an absent member, as the equality above is (#1370).
+            int hash = (17 * 31) + (Vocab?.Count ?? -1);
+            hash = (hash * 31) + ValueEquality.LengthOf(Merges);
+            hash = (hash * 31) + ValueEquality.LengthOf(AddedTokens);
+            hash = (hash * 31) + ValueEquality.LengthOf(NormalizationForms);
+            hash = (hash * 31) + ValueEquality.LengthOf(PrefixTokens);
+            hash = (hash * 31) + ValueEquality.LengthOf(SuffixTokens);
             hash = (hash * 31) + (ByteLevel ? 1 : 0);
             hash = (hash * 31) + (AddPrefixSpace ? 1 : 0);
             hash = (hash * 31) + (IgnoreMerges ? 1 : 0);
@@ -273,20 +253,27 @@ public sealed record BpeVocabulary(
         }
     }
 
-    /// <summary>Compares two template token lists element by element, ordinally.</summary>
-    private static bool SameTokens(IReadOnlyList<string> left, IReadOnlyList<string> right)
+    /// <summary>Compares two form lists in order, an absent one equal only to another; an enum is not <c>IEquatable</c>.</summary>
+    private static bool SameForms(IReadOnlyList<NormalizationForm>? left, IReadOnlyList<NormalizationForm>? right)
     {
+        if (left is null || right is null)
+        {
+            return left is null && right is null;
+        }
+
         if (left.Count != right.Count)
         {
             return false;
         }
+
         for (int i = 0; i < left.Count; i++)
         {
-            if (!string.Equals(left[i], right[i], StringComparison.Ordinal))
+            if (left[i] != right[i])
             {
                 return false;
             }
         }
+
         return true;
     }
 

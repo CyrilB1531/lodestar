@@ -365,7 +365,8 @@ public sealed partial class EmbeddingIndex
             limits.CheckArrayLength(read + 1L, IdsProperty);
             if (read == ids.Length)
             {
-                Array.Resize(ref ids, ids.Length * 2);
+                // In long and clamped, as Add's growth is (#1378): the limit may be raised to int.MaxValue.
+                Array.Resize(ref ids, (int)Math.Min(Math.Max(1L, (long)ids.Length * 2), TableLength.MaxLength));
             }
             ids[read++] = id;
         }
