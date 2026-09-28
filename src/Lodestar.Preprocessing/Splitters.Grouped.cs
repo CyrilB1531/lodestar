@@ -85,7 +85,7 @@ public static partial class Splitters
     /// <param name="foldCount">How many folds to cut.</param>
     /// <returns>One <see cref="FoldSplit"/> per fold, in order, each index list ascending.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The row count or <paramref name="foldCount"/> is out of range.</exception>
-    /// <exception cref="ArgumentException">The two spans differ in length, <paramref name="foldCount"/> is above every class's count, or above the number of groups.</exception>
+    /// <exception cref="ArgumentException">The two spans differ in length, <paramref name="foldCount"/> is above every class's count, or above the number of groups, or the groups or the folds times the classes are more cells than one array holds.</exception>
     /// <remarks>
     /// The reference's greedy search: groups by descending spread of their class counts, each to the fold that
     /// minimises the mean, over classes, of the spread of the folds' shares of that class; a fold within
@@ -145,7 +145,7 @@ public static partial class Splitters
             }
         }
 
-        var groupCounts = new double[groupCount * classCount];
+        var groupCounts = new double[TableLength.Of(groupCount, classCount, nameof(groups))];
         for (int row = 0; row < labels.Length; row++)
         {
             groupCounts[(rank[groupOf[row]] * classCount) + classOf[row]]++;
@@ -178,8 +178,9 @@ public static partial class Splitters
     private static int[] GreedyFolds(double[] groupCounts, int[] visit, int[] classSizes, int foldCount)
     {
         int classCount = classSizes.Length;
-        var foldCounts = new double[foldCount * classCount];
-        var shares = new double[foldCount * classCount];
+        int cells = TableLength.Of(foldCount, classCount, "labels");
+        var foldCounts = new double[cells];
+        var shares = new double[cells];
         var spreads = new double[classCount];
         var rowFold = new int[visit.Length];
         foreach (int row in visit)

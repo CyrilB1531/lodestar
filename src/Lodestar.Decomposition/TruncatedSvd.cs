@@ -64,7 +64,7 @@ public sealed class TruncatedSvd
     /// <param name="componentCount">How many components to keep.</param>
     /// <param name="options">The randomized solver's settings, or null for scikit-learn's defaults.</param>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="componentCount"/> is not in <c>[1, matrix.ColumnCount]</c>, or an option is negative or too large to add to it.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="componentCount"/> is not in <c>[1, matrix.ColumnCount]</c>, the range finder's block of the longer side by <c>componentCount + oversampling</c> is more cells than one array holds, or an option is negative or too large to add to it.</exception>
     /// <exception cref="ArgumentException"><paramref name="matrix"/> has no row, holds a NaN or an infinity, or <see cref="TruncatedSvdOptions.RandomMatrix"/> is not <c>min(RowCount, ColumnCount) × (componentCount + oversampling)</c> — <c>ColumnCount</c> rows for a tall matrix, <c>RowCount</c> for a wide one, which is factored as its transpose.</exception>
     public static TruncatedSvd Fit(
         CsrMatrix matrix, int componentCount, TruncatedSvdOptions? options = null)
@@ -108,7 +108,7 @@ public sealed class TruncatedSvd
     /// <summary>Projects <paramref name="matrix"/> onto the components, row-major and <see cref="ComponentCount"/> wide.</summary>
     /// <param name="matrix">The matrix to project; it must have <see cref="FeatureCount"/> columns.</param>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="matrix"/> does not have <see cref="FeatureCount"/> columns, or holds a NaN or an infinity.</exception>
+    /// <exception cref="ArgumentException"><paramref name="matrix"/> does not have <see cref="FeatureCount"/> columns, holds a NaN or an infinity, or its rows times the components are more cells than one array holds.</exception>
     public double[] Transform(CsrMatrix matrix)
     {
         Guard.NotNull(matrix);
@@ -148,13 +148,13 @@ public sealed class TruncatedSvd
     /// </remarks>
     private static void Validate(CsrMatrix matrix, int componentCount, TruncatedSvdOptions options)
     {
-        // The randomized path's own bound, n_components <= n_features (#1231).
         if (matrix.RowCount < 1)
         {
             // check_array refuses a matrix with no sample before the solver is reached.
             throw new ArgumentException("A truncated SVD needs at least one row; matrix has none.", nameof(matrix));
         }
 
+        // The randomized path's own bound, n_components <= n_features (#1231).
         if (componentCount < 1 || componentCount > matrix.ColumnCount)
         {
             throw new ArgumentOutOfRangeException(
@@ -175,6 +175,15 @@ public sealed class TruncatedSvd
                 nameof(options), options.Oversampling,
                 $"Oversampling of {options.Oversampling} and {componentCount} components do not add up within an int.");
         }
+        long block = (long)Math.Max(matrix.RowCount, matrix.ColumnCount) * (componentCount + options.Oversampling);
+        if (block > TableLength.MaxLength)
+        {
+            // The range finder's block is the longer side by k + p; past the largest array it could
+            // only fail inside CsrMatrix under a parameter Fit does not have (#1315).
+            throw new ArgumentOutOfRangeException(
+                nameof(componentCount), componentCount,
+                $"{componentCount} components and {options.Oversampling} extra columns need a {block}-cell block, more than one array holds.");
+        }
         if (options.PowerIterations < 0)
         {
             throw new ArgumentOutOfRangeException(
@@ -194,7 +203,7 @@ public sealed class TruncatedSvd
         double[] values = matrix.Values;
         int[] columns = matrix.ColumnIndices;
         int[] pointers = matrix.RowPointers;
-        double[] result = new double[checked(matrix.RowCount * componentCount)];
+        double[] result = new double[TableLength.Of(matrix.RowCount, componentCount, nameof(matrix))];
         for (int row = 0; row < matrix.RowCount; row++)
         {
             Span<double> target = result.AsSpan(row * componentCount, componentCount);

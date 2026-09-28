@@ -12,6 +12,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Fixed
 
 - `TruncatedSvd.Fit` and `Nmf.Fit` factor a matrix with fewer rows than columns as its transpose, as scikit-learn's `transpose="auto"` does, `TruncatedSvd.Fit` takes scikit-learn's `n_components <= n_features` bound and its variance ratio's two-pass total, and `PrincipalComponentVariance.Compute` rescales by a power of two a block whose Gram would leave the doubles, and refuses a variance past the largest double instead of throwing from the solver. ([#1228](https://github.com/CyrilB1531/lodestar/issues/1228), [#1231](https://github.com/CyrilB1531/lodestar/issues/1231), [#1255](https://github.com/CyrilB1531/lodestar/issues/1255), [#1256](https://github.com/CyrilB1531/lodestar/issues/1256))
+- `TruncatedSvd.Fit` and `Nmf.Fit` refuse a range-finder block past the largest array by `componentCount`, where it failed inside `CsrMatrix` under a parameter `Fit` does not have, and both `Transform`s refuse a projection past it instead of throwing `OverflowException`. ([#1315](https://github.com/CyrilB1531/lodestar/issues/1315))
 
 ## [0.3.0] — 2026-09-24
 

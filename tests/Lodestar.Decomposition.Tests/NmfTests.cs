@@ -339,4 +339,15 @@ public sealed class NmfTests
 
         Assert.Equal(OptionsParameter, thrown.ParamName);
     }
+
+    [Fact]
+    public void An_initialisation_block_past_the_largest_array_is_refused_by_the_component_count()
+    {
+        // 50,000 by 45,010 is 2.25e9 cells; the range finder once failed inside CsrMatrix (#1315).
+        CsrMatrix empty = new(50_000, 50_000, [], [], new int[50_001]);
+
+        ArgumentOutOfRangeException refused = Assert.Throws<ArgumentOutOfRangeException>(() => Nmf.Fit(empty, 45_000));
+
+        Assert.Equal("componentCount", refused.ParamName);
+    }
 }

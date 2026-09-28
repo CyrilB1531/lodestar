@@ -16,6 +16,7 @@ index under [`BinEncoding.Ordinal`](binencoding.md), or one column per bin of ea
 exactly one of them set under `OneHot`.
 
 **Exceptions** — `ArgumentException` when `samples` holds a partial row or a non-finite value.
+`ArgumentException` also when the rows times the output width are more cells than one array holds ([#1314](https://github.com/CyrilB1531/lodestar/issues/1314)).
 
 **Example** — one age, one-hot across four bins.
 

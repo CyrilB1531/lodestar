@@ -17,6 +17,7 @@ values, row `i`'s mix of components starting at `i * ComponentCount`.
 **Exceptions** — `ArgumentNullException` when `matrix` is null. `ArgumentException` when `matrix`
 has no row, does not have `FeatureCount` columns, or holds a negative value, a `NaN` or an
 infinity.
+`ArgumentException` also when the rows times the components are more cells than one array holds ([#1314](https://github.com/CyrilB1531/lodestar/issues/1314)).
 
 **Example** — one unseen document scored against the fit from
 [`Nmf.Fit`](nmf-fit.md)'s own example.

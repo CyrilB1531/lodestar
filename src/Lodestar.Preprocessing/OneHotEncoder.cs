@@ -123,7 +123,8 @@ public sealed class OneHotEncoder<T>
     /// <returns>A new array of <c>rows × <see cref="EncodedFeatureCount"/></c> values, each 0 or 1.</returns>
     /// <exception cref="ArgumentException">
     /// <paramref name="values"/> holds no row, a partial one, or a null; or it holds a category the
-    /// fit never saw and <see cref="OneHotEncoderOptions.Unknown"/> is <see cref="UnknownCategory.Refuse"/>.
+    /// fit never saw and <see cref="OneHotEncoderOptions.Unknown"/> is <see cref="UnknownCategory.Refuse"/>;
+    /// or its rows times the encoded width are more cells than one array holds.
     /// </exception>
     /// <remarks>
     /// An ignored unknown encodes to all zeros, and so does a dropped first category: a row of zeros
@@ -134,7 +135,7 @@ public sealed class OneHotEncoder<T>
         int rows = CategoryMatrix.Rows(values, FeatureCount);
         CategoryMatrix.RequireNoNull(values);
 
-        var encoded = new double[rows * EncodedFeatureCount];
+        var encoded = new double[TableLength.Of(rows, EncodedFeatureCount, nameof(values))];
         for (int row = 0; row < rows; row++)
         {
             for (int feature = 0; feature < FeatureCount; feature++)

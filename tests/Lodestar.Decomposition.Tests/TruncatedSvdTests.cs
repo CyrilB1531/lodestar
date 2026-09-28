@@ -182,6 +182,16 @@ public sealed class TruncatedSvdTests
     }
 
     [Fact]
+    public void A_range_finder_block_past_the_largest_array_is_refused_by_the_component_count()
+    {
+        // 50,000 columns by 50,010 is 2.5e9 cells; CsrMatrix refused it under "columnCount" (#1315).
+        ArgumentOutOfRangeException refused = Assert.Throws<ArgumentOutOfRangeException>(
+            () => TruncatedSvd.Fit(new CsrMatrix(1, 50_000, [], [], [0, 0]), 50_000));
+
+        Assert.Equal("componentCount", refused.ParamName);
+    }
+
+    [Fact]
     public void A_matrix_with_no_row_is_refused() =>
         // Refused by the row bound before #1231 relaxed it; check_array refuses zero samples too.
         Assert.Throws<ArgumentException>(() => TruncatedSvd.Fit(new CsrMatrix(0, 5, [], [], [0]), 2));

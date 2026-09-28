@@ -50,7 +50,7 @@ public static partial class Splitters
     /// <param name="foldCount">How many folds to cut.</param>
     /// <returns>One <see cref="FoldSplit"/> per fold, in order.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The row count is below two, or <paramref name="foldCount"/> is below two or above it.</exception>
-    /// <exception cref="ArgumentException"><paramref name="foldCount"/> is greater than every class's count, which leaves a fold with nothing to hold out.</exception>
+    /// <exception cref="ArgumentException"><paramref name="foldCount"/> is greater than every class's count, which leaves a fold with nothing to hold out, or the folds times the classes are more cells than one array holds.</exception>
     public static IReadOnlyList<FoldSplit> StratifiedKFold(ReadOnlySpan<int> labels, int foldCount) =>
         StratifiedKFold(labels, foldCount, ReadOnlySpan<int>.Empty);
 
@@ -60,7 +60,7 @@ public static partial class Splitters
     /// <param name="order">A permutation of the rows to read them in; empty reads them in order.</param>
     /// <returns>One <see cref="FoldSplit"/> per fold, in order, each index list ascending.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The row count or <paramref name="foldCount"/> is out of range.</exception>
-    /// <exception cref="ArgumentException"><paramref name="order"/> is not a permutation, or <paramref name="foldCount"/> is greater than every class's count.</exception>
+    /// <exception cref="ArgumentException"><paramref name="order"/> is not a permutation, <paramref name="foldCount"/> is greater than every class's count, or the folds times the classes are more cells than one array holds.</exception>
     /// <remarks>
     /// Fold <c>i</c> takes as many rows of class <c>c</c> as the sorted labels hold at positions <c>i</c>, <c>i +
     /// foldCount</c>, and so on — the reference's own allocation, which is why a class of two rows over three folds
@@ -171,7 +171,7 @@ public static partial class Splitters
     /// <summary>Fold <c>i</c>'s share of each class: what the sorted labels hold at positions <c>i</c>, <c>i + foldCount</c>, …</summary>
     private static int[] Allocation(int[] counts, int foldCount)
     {
-        var allocation = new int[foldCount * counts.Length];
+        var allocation = new int[TableLength.Of(foldCount, counts.Length, "labels")];
         int position = 0;
         for (int cls = 0; cls < counts.Length; cls++)
         {

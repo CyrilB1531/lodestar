@@ -19,6 +19,7 @@ folds.
 **Exceptions** — `ArgumentOutOfRangeException` when the row count, `foldCount` or `randomState` is
 out of range. `ArgumentException` when the two spans differ in length, when `foldCount` is above
 every class's count, or when it is above the number of distinct groups.
+`ArgumentException` also when the groups or the folds times the classes are more cells than one array holds ([#1314](https://github.com/CyrilB1531/lodestar/issues/1314)).
 
 **Example** — two classes over four groups, in two folds.
 

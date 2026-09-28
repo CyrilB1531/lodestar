@@ -20,7 +20,7 @@ public static class PolynomialFeatures
     /// <param name="options">Degree, interactions and the bias; <see langword="null"/> takes the reference's defaults.</param>
     /// <returns>A new matrix, <see cref="OutputFeatureCount"/> values per row.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or the degree is negative.</exception>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value; or the degree is 0 with no bias, which leaves no term.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value; or the degree is 0 with no bias, which leaves no term; or the rows times the terms are more cells than one array holds.</exception>
     public static double[] Transform(
         ReadOnlySpan<double> samples, int featureCount, PolynomialFeaturesOptions? options = null)
     {
@@ -29,11 +29,8 @@ public static class PolynomialFeatures
         SampleMatrix.RequireFinite(samples, nameof(samples));
 
         int[][] terms = Terms(featureCount, settings);
-        var expanded = new double[(long)sampleCount * terms.Length <= int.MaxValue
-            ? sampleCount * terms.Length
-            : throw new ArgumentOutOfRangeException(
-                nameof(options), settings.Degree,
-                $"Expanding {sampleCount} rows into {terms.Length} terms needs more than int.MaxValue values.")];
+        // Bounded by the largest array rather than int.MaxValue, and blamed on the rows it expands (#1314).
+        var expanded = new double[TableLength.Of(sampleCount, terms.Length, nameof(samples))];
 
         for (int row = 0; row < sampleCount; row++)
         {
