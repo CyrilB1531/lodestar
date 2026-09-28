@@ -20,7 +20,8 @@
 
   <!-- Shared internal helpers, compiled into every library that asks for them.
        Lodestar.Abstractions opts out: it carries no code beyond CsrMatrix and what its
-       data types call (decision 0003, epoch 3), so it takes ValueEquality alone below. -->
+       data types call (decision 0003, epoch 3), so it takes ValueEquality, Guard and ElementWise
+       one by one below. -->
   <ItemGroup Condition="'$(LodestarIncludesSharedHelpers)' != 'false'">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/GlobalUsings.cs" Link="Internal/GlobalUsings.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Guard.cs" Link="Internal/Guard.cs" />
@@ -33,8 +34,20 @@
        that opts out of the helpers above. It grants no InternalsVisibleTo, so a copy compiled
        there and one compiled into a consumer cannot meet as CS0436, which #440 once hit. -->
   <ItemGroup Condition="'$(LodestarIncludesValueEquality)' == 'true' and '$(LodestarIncludesSharedHelpers)' == 'false'">
-    <Compile Include="$(MSBuildThisFileDirectory)Shared/GlobalUsings.cs" Link="Internal/GlobalUsings.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/ValueEquality.cs" Link="Internal/ValueEquality.cs" />
+  </ItemGroup>
+
+  <!-- The global using the shared helpers are reached through, once for a library that opted out
+       and takes any of them one by one. -->
+  <ItemGroup Condition="'$(LodestarIncludesSharedHelpers)' == 'false' and ('$(LodestarIncludesValueEquality)' == 'true' or '$(LodestarIncludesGuard)' == 'true')">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/GlobalUsings.cs" Link="Internal/GlobalUsings.cs" />
+  </ItemGroup>
+
+  <!-- The argument guards, for a library that opts out of the helpers above: CsrMatrix's constructor
+       and products call them in Lodestar.Abstractions (#1282). The whole file comes with them,
+       NotDisposed included, which that package does not call. -->
+  <ItemGroup Condition="'$(LodestarIncludesGuard)' == 'true' and '$(LodestarIncludesSharedHelpers)' == 'false'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/Guard.cs" Link="Internal/Guard.cs" />
   </ItemGroup>
 
   <!-- The affine-32 coefficient refusal, compiled into the two libraries that sketch.

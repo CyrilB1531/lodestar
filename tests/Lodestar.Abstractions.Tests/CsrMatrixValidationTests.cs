@@ -90,15 +90,15 @@ public sealed class CsrMatrixValidationTests
     [Fact]
     public void A_negative_row_or_column_count_is_rejected()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new CsrMatrix(-1, 2, [], [], [0]));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new CsrMatrix(0, -2, [], [], [0]));
+        Assert.Equal("rowCount", Assert.Throws<ArgumentOutOfRangeException>(() => new CsrMatrix(-1, 2, [], [], [0])).ParamName);
+        Assert.Equal("columnCount", Assert.Throws<ArgumentOutOfRangeException>(() => new CsrMatrix(0, -2, [], [], [0])).ParamName);
     }
 
     [Fact]
     public void Null_arrays_are_rejected()
     {
-        Assert.Throws<ArgumentNullException>(() => new CsrMatrix(1, 1, null!, [0], [0, 1]));
-        Assert.Throws<ArgumentNullException>(() => new CsrMatrix(1, 1, [1.0], null!, [0, 1]));
-        Assert.Throws<ArgumentNullException>(() => new CsrMatrix(1, 1, [1.0], [0], null!));
+        Assert.Equal("values", Assert.Throws<ArgumentNullException>(() => new CsrMatrix(1, 1, null!, [0], [0, 1])).ParamName);
+        Assert.Equal("columnIndices", Assert.Throws<ArgumentNullException>(() => new CsrMatrix(1, 1, [1.0], null!, [0, 1])).ParamName);
+        Assert.Equal("rowPointers", Assert.Throws<ArgumentNullException>(() => new CsrMatrix(1, 1, [1.0], [0], null!)).ParamName);
     }
 }

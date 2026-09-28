@@ -1,6 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using Lodestar.Internal;
 #if NET
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -24,8 +21,9 @@ public enum SparseNorm
 /// <remarks>
 /// Stores only non-zero entries, row by row: <see cref="Values"/> and <see cref="ColumnIndices"/> hold the
 /// non-zeros, and <see cref="RowPointers"/> (length <c>RowCount + 1</c>) delimits each row — the layout
-/// <c>CsrMatrixValidationTests</c> checks the constructor enforces. Instances are immutable except for
-/// <see cref="NormalizeRows"/>, which mutates values in place.
+/// <c>CsrMatrixValidationTests</c> checks the constructor enforces. The three arrays are taken and
+/// exposed as they are, not copied: no member but <see cref="NormalizeRows"/> writes to them, but any
+/// holder of an array can, and the matrix then sees the change (#1282).
 /// </remarks>
 public sealed class CsrMatrix
 {
@@ -46,11 +44,11 @@ public sealed class CsrMatrix
 
     private CsrMatrix(int rowCount, int columnCount, double[] values, int[] columnIndices, int[] rowPointers, bool validate)
     {
-        RequireNotNull(values);
-        RequireNotNull(columnIndices);
-        RequireNotNull(rowPointers);
-        RequireNotNegative(rowCount);
-        RequireNotNegative(columnCount);
+        Guard.NotNull(values);
+        Guard.NotNull(columnIndices);
+        Guard.NotNull(rowPointers);
+        Guard.NotLessThan(rowCount, 0);
+        Guard.NotLessThan(columnCount, 0);
         if (rowPointers.Length != rowCount + 1)
         {
             throw new ArgumentException("rowPointers length must be rowCount + 1.", nameof(rowPointers));
@@ -306,11 +304,7 @@ public sealed class CsrMatrix
     /// <summary>Refuses a dense operand whose shape does not fit the side it multiplies.</summary>
     private static void GuardBlock(ReadOnlySpan<double> block, int expectedRows, int columnCount)
     {
-        if (columnCount <= 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(columnCount), columnCount, "A dense block has at least one column.");
-        }
+        Guard.NotLessThan(columnCount, 1);
         if (block.Length != (long)expectedRows * columnCount)
         {
             throw new ArgumentException(
@@ -330,39 +324,5 @@ public sealed class CsrMatrix
                 nameof(columnCount), columnCount, "The product would not fit in a single array.");
         }
         return (int)length;
-    }
-
-    /// <summary>Refuses a null array, the way <c>src/Shared/Guard.cs</c> does elsewhere.</summary>
-    /// <remarks>
-    /// Local rather than shared: this package compiles only the shared helper its moved data types
-    /// call, <c>ValueEquality</c>, and <c>Guard</c> is not one of them (decision 0003, epoch 3).
-    /// </remarks>
-    private static void RequireNotNull(
-        [NotNull] object? value,
-        [CallerArgumentExpression(nameof(value))] string? paramName = null)
-    {
-#if NET5_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(value, paramName);
-#else
-        if (value is null)
-        {
-            throw new ArgumentNullException(paramName);
-        }
-#endif
-    }
-
-    /// <summary>Refuses a negative dimension; see <see cref="RequireNotNull"/> for why it is local.</summary>
-    private static void RequireNotNegative(
-        int value,
-        [CallerArgumentExpression(nameof(value))] string? paramName = null)
-    {
-#if NET8_0_OR_GREATER
-        ArgumentOutOfRangeException.ThrowIfNegative(value, paramName);
-#else
-        if (value < 0)
-        {
-            throw new ArgumentOutOfRangeException(paramName, value, "Must be at least 0.");
-        }
-#endif
     }
 }
