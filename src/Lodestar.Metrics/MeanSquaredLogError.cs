@@ -91,7 +91,7 @@ public static class MeanSquaredLogError
             return shifted == 1.0
 #pragma warning restore S1244
                 ? value
-                : Math.Log(shifted) * value / (shifted - 1.0);
+                : Math.Log(shifted) * (value / (shifted - 1.0)); // not log·value first, which overflows past ~2.5e305 (#1206)
         }
     }
 

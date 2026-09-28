@@ -19,7 +19,7 @@ public static class Silhouette
     /// matrix and passes it to the method that takes one. Both paths run the same arithmetic on the
     /// same distances, and the corpus checks they agree at <c>1e-9</c> on every case.
     /// </remarks>
-    /// <exception cref="ArgumentException">The inputs disagree in length, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, a feature is not finite, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
     public static double Score(ReadOnlySpan<int> labels, ReadOnlySpan<double> features, int featureCount) =>
         Mean(PerSample(labels, features, featureCount));
 
@@ -32,7 +32,7 @@ public static class Silhouette
     /// same signature, since a matrix and a feature block are both a span of <c>double</c> with a
     /// count. That is the ruling of the equality rule, applied to an input rather than to a return.
     /// </remarks>
-    /// <exception cref="ArgumentException">The matrix is not <c>n × n</c> for the labels given, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
+    /// <exception cref="ArgumentException">The matrix is not <c>n × n</c> for the labels given, holds a value that is not finite or a diagonal entry other than 0, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
     public static double ScoreFromDistances(ReadOnlySpan<int> labels, ReadOnlySpan<double> distances) =>
         Mean(PerSampleFromDistances(labels, distances));
 
@@ -45,7 +45,7 @@ public static class Silhouette
     /// This is what makes silhouette a diagnostic rather than a number: a mean near zero says the
     /// clustering is mediocre, and this says which samples are on the wrong side of a boundary.
     /// </remarks>
-    /// <exception cref="ArgumentException">The inputs disagree in length, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, a feature is not finite, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
     public static double[] PerSample(ReadOnlySpan<int> labels, ReadOnlySpan<double> features, int featureCount)
     {
         int samples = Partition.Samples(labels, features, featureCount);
@@ -68,7 +68,7 @@ public static class Silhouette
             int clusterI = ordinals[i];
             for (int j = i + 1; j < samples; j++)
             {
-                double distance = Euclidean(features, featureCount, i, j);
+                double distance = Partition.Euclidean(features, i, features, j, featureCount);
                 sums[rowI + ordinals[j]] += distance;
                 sums[(j * clusters) + clusterI] += distance;
             }
@@ -94,7 +94,7 @@ public static class Silhouette
     /// answer rather than a division by zero: there is no other member to be close to, and the
     /// sample is neither well nor badly placed.
     /// </remarks>
-    /// <exception cref="ArgumentException">The matrix is not <c>n × n</c> for the labels given, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
+    /// <exception cref="ArgumentException">The matrix is not <c>n × n</c> for the labels given, holds a value that is not finite or a diagonal entry other than 0, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
     public static double[] PerSampleFromDistances(ReadOnlySpan<int> labels, ReadOnlySpan<double> distances)
     {
         int samples = Square(labels, distances);
@@ -153,18 +153,6 @@ public static class Silhouette
         return total / scores.Length;
     }
 
-    private static double Euclidean(ReadOnlySpan<double> features, int featureCount, int left, int right)
-    {
-        double total = 0.0;
-        for (int f = 0; f < featureCount; f++)
-        {
-            double difference = features[(left * featureCount) + f] - features[(right * featureCount) + f];
-            total += difference * difference;
-        }
-
-        return Math.Sqrt(total);
-    }
-
     private static int Square(ReadOnlySpan<int> labels, ReadOnlySpan<double> distances)
     {
         if (distances.Length != labels.Length * labels.Length)
@@ -174,6 +162,22 @@ public static class Silhouette
                 nameof(distances));
         }
 
-        return labels.Length;
+        // check_X_y first, then silhouette_samples' own diagonal test, at 100 ulps of 1 (#1206).
+        Inputs.RequireFinite(distances, nameof(distances), "X");
+        int n = labels.Length;
+        for (int i = 0; i < n; i++)
+        {
+            if (Math.Abs(distances[(i * n) + i]) > DiagonalTolerance)
+            {
+                throw new ArgumentException(
+                    "The precomputed distance matrix contains non-zero elements on the diagonal. Use np.fill_diagonal(X, 0).",
+                    nameof(distances));
+            }
+        }
+
+        return n;
     }
+
+    // np.finfo(np.float64).eps * 100, silhouette_samples' atol for a floating matrix.
+    private const double DiagonalTolerance = 2.220446049250313e-14;
 }

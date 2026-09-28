@@ -27,7 +27,7 @@ reproduced here — where [`RocAuc.Score`](../classification/rocauc-score.md) on
 because a ROC area genuinely has no value without both classes and this has one.
 
 **Exceptions** — `ArgumentException` when `yTrue` and `yScore` disagree in length, when they are
-empty, when a score is `NaN`, or — on the matrix overload — when `labelCount` is below `1`, when
+empty, when a score or weight is not finite, or — on the matrix overload — when `labelCount` is below `1`, when
 `yTrue` is not a whole number of rows of `labelCount`, or when a non-empty `sampleWeight` is not one
 per row. `ArgumentOutOfRangeException` when `averaging` is `Averaging.Binary`, which scores one
 positive label of two and has no meaning over a matrix, or is not a declared member at all.

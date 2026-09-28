@@ -13,7 +13,9 @@ public static double[] PerSampleFromDistances(ReadOnlySpan<int> labels, ReadOnly
 
 **Returns** — `double[]`, one value per sample in the order the samples were given.
 
-**Exceptions** — `ArgumentException` when the inputs disagree in size, and when the number of
+**Exceptions** — `ArgumentException` when the inputs disagree in size, when a distance is not
+finite, when a diagonal entry exceeds `100·ε` — "The precomputed distance matrix contains non-zero
+elements on the diagonal. Use np.fill_diagonal(X, 0)." — and when the number of
 distinct labels falls outside `[2, n - 1]` — scikit-learn's own bound, carried with its own
 sentence: `Number of labels is 1. Valid values are 2 to n_samples - 1 (inclusive)`.
 

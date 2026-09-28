@@ -6,7 +6,7 @@
   "reference_calls": [
    "sklearn.metrics.class_likelihood_ratios"
   ],
-  "count": 8
+  "count": 10
  },
  "cases": [
   {
@@ -185,6 +185,51 @@
    "negative_replaced_by_one": 0.6666666666666666,
    "positive_replaced_apart": 2.0,
    "negative_replaced_apart": 0.6666666666666666
+  },
+  {
+   "name": "no positive sample and no true negative",
+   "y_true": [
+    0,
+    0
+   ],
+   "y_pred": [
+    1,
+    1
+   ],
+   "sample_weight": null,
+   "positive": null,
+   "negative": null,
+   "positive_replaced_by_one": null,
+   "negative_replaced_by_one": 1.0,
+   "positive_replaced_apart": null,
+   "negative_replaced_apart": 0.5
+  },
+  {
+   "name": "a false positive dwarfed by the true negatives",
+   "y_true": [
+    1,
+    0,
+    1,
+    0
+   ],
+   "y_pred": [
+    1,
+    1,
+    0,
+    0
+   ],
+   "sample_weight": [
+    1.0,
+    1.0,
+    1.0,
+    1000000000.0
+   ],
+   "positive": 500000000.5,
+   "negative": 0.5000000005,
+   "positive_replaced_by_one": 500000000.5,
+   "negative_replaced_by_one": 0.5000000005,
+   "positive_replaced_apart": 500000000.5,
+   "negative_replaced_apart": 0.5000000005
   }
  ]
 }

@@ -14,7 +14,7 @@ public static class Recall
     /// <param name="posLabel">The class reported under <see cref="Averaging.Binary"/>.</param>
     /// <param name="zeroDivision">What to return when a class has no samples.</param>
     /// <exception cref="ArgumentNullException"><paramref name="cm"/> is null.</exception>
-    /// <exception cref="ArgumentException"><see cref="Averaging.Binary"/> on a target with more than two classes, or a <paramref name="posLabel"/> that does not occur.</exception>
+    /// <exception cref="ArgumentException"><see cref="Averaging.Binary"/> on a target with more than two classes, or with two of which neither is <paramref name="posLabel"/>; an absent positive class scores through <paramref name="zeroDivision"/> instead.</exception>
     /// <exception cref="UndefinedMetricException"><paramref name="zeroDivision"/> is <see cref="ZeroDivision.Throw"/> and the metric is undefined.</exception>
     public static double Score(
         ConfusionMatrix cm,
@@ -23,16 +23,16 @@ public static class Recall
         ZeroDivision zeroDivision = ZeroDivision.Zero)
     {
         Guard.NotNull(cm);
-        return Prf.Aggregate(cm, PrfMetric.Recall, 1.0, average, posLabel, zeroDivision);
+        return Prf.Score(cm, PrfMetric.Recall, 1.0, average, posLabel, zeroDivision);
     }
 
-    /// <summary>Recall straight from the labels, counting the matrix on the way.</summary>
+    /// <summary>Recall straight from the labels, counted per label without a matrix.</summary>
     /// <param name="yTrue">The true labels.</param>
     /// <param name="yPred">The predicted labels, same length as <paramref name="yTrue"/>.</param>
     /// <param name="average">How per-class scores are reduced.</param>
     /// <param name="posLabel">The class reported under <see cref="Averaging.Binary"/>.</param>
     /// <param name="zeroDivision">What to return when a class has no samples.</param>
-    /// <param name="labels">The label set and its order. Omit for the sorted union of both inputs.</param>
+    /// <param name="labels">The label set and its order. Omit for the sorted union of both inputs. Not read under <see cref="Averaging.Binary"/> on a binary target, which scikit-learn scores at <paramref name="posLabel"/> alone.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     public static double Score(
         ReadOnlySpan<int> yTrue,
@@ -42,7 +42,7 @@ public static class Recall
         ZeroDivision zeroDivision = ZeroDivision.Zero,
         ReadOnlySpan<int> labels = default,
         ReadOnlySpan<double> sampleWeight = default) =>
-        Score(ConfusionMatrix.Compute(yTrue, yPred, labels, sampleWeight), average, posLabel, zeroDivision);
+        Prf.Score(yTrue, yPred, labels, sampleWeight, PrfMetric.Recall, 1.0, average, posLabel, zeroDivision);
 
     /// <summary>Recall for every class, in label order (<c>recall_score(average=None)</c>).</summary>
     /// <param name="cm">The matrix to read.</param>
@@ -51,7 +51,7 @@ public static class Recall
     public static double[] PerClass(ConfusionMatrix cm, ZeroDivision zeroDivision = ZeroDivision.Zero)
     {
         Guard.NotNull(cm);
-        return Prf.PerClass(cm, PrfMetric.Recall, 1.0, zeroDivision);
+        return Prf.PerClass(PrfCounts.FromMatrix(cm), PrfMetric.Recall, 1.0, zeroDivision);
     }
 
     /// <summary>Per-class recall straight from the labels.</summary>
@@ -67,5 +67,5 @@ public static class Recall
         ZeroDivision zeroDivision = ZeroDivision.Zero,
         ReadOnlySpan<int> labels = default,
         ReadOnlySpan<double> sampleWeight = default) =>
-        PerClass(ConfusionMatrix.Compute(yTrue, yPred, labels, sampleWeight), zeroDivision);
+        Prf.PerClass(PrfCounts.Compute(yTrue, yPred, labels, sampleWeight), PrfMetric.Recall, 1.0, zeroDivision);
 }

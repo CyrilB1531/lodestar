@@ -18,7 +18,8 @@ carries the strategy, the averaging, the label set, the sample weights and the w
 
 **Exceptions** — `ArgumentException` when any of the shape rules is broken — a length that does
 not
-match, a row that does not sum to 1, a `NaN`, a sample weight under one-vs-one;
+match, a row that does not sum to 1, a `NaN`, a sample weight under one-vs-one, a `yTrue` label
+outside `MultiClassRocOptions.Labels` — "'y_true' contains labels not in parameter 'labels'";
 `ArgumentOutOfRangeException` when `classCount` is below two or
 `MultiClassRocOptions.MaxDegreeOfParallelism` is negative.
 

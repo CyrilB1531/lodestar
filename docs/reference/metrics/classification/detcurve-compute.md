@@ -16,8 +16,10 @@ here, as the reference has it.
 **Returns** — a `DetCurve` whose `FalsePositiveRate`, `FalseNegativeRate` and `Thresholds` are three
 parallel arrays of equal length, ordered by **ascending** threshold.
 
-**Exceptions** — `ArgumentException` when the inputs disagree in length, are empty, or hold a `NaN`
-score.
+**Exceptions** — `ArgumentException` when the inputs disagree in length, are empty, hold a score
+or weight that is not finite, or weigh every sample zero, or when `yTrue` does not hold exactly two classes — "Only one class is present in y_true. Detection
+error tradeoff curve is not defined in that case.", the reference's sentence for both. A zero-weight sample is dropped
+before the thresholds form, as scikit-learn drops it.
 
 **Example** — the shortest of the three curves on the same four samples.
 

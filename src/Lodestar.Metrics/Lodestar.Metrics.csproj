@@ -7,6 +7,7 @@
     <Version>$(LodestarMetricsVersion)</Version>
     <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
     <RootNamespace>Lodestar.Metrics</RootNamespace>
+    <LodestarIncludesNumpyGrid>true</LodestarIncludesNumpyGrid>
 
     <PackageId>Lodestar.Metrics</PackageId>
     <Description>Classification metrics for .NET at exact scikit-learn parity: precision, recall, F1, FBeta, confusion matrix, classification report and ROC-AUC, with sklearn's averaging modes and zero-division semantics. No dependencies.</Description>

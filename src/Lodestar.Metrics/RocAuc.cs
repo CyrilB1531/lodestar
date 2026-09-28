@@ -20,7 +20,7 @@ public static class RocAuc
     /// <param name="yScore">A score per sample: the higher, the more the model believes <paramref name="posLabel"/>.</param>
     /// <param name="posLabel">The label counted as positive. scikit-learn infers this; 1 is what it infers for 0/1 labels.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, contain a NaN score, or only one class occurs.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, contain a score that is not finite, or only one class occurs.</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yScore,

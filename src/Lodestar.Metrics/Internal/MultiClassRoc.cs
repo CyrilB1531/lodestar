@@ -120,6 +120,15 @@ internal static class MultiClassRoc
                     nameof(labels));
             }
         }
+
+        // _multiclass_roc_auc_score's last check on labels, np.setdiff1d(y_true, classes) (#1206).
+        foreach (int label in yTrue)
+        {
+            if (labels.BinarySearch(label) < 0)
+            {
+                throw new ArgumentException("'y_true' contains labels not in parameter 'labels'", nameof(labels));
+            }
+        }
         return labels.ToArray();
     }
 

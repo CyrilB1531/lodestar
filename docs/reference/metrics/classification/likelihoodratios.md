@@ -25,12 +25,12 @@ curves, applied to two scalars instead of three arrays.
 | nothing false-positive — specificity is `1` | undefined | a value |
 | nothing true-negative — specificity is `0` | a value | undefined |
 | no negative sample in the truth | undefined | undefined |
-| **no positive sample in the truth** | undefined, and **not replaceable** | the same |
+| **no positive sample in the truth** | `NaN`, replaced only if nothing is false-positive | `NaN`, replaced only if nothing is true-negative |
 
-The last row is the one worth knowing. `undefinedPositive` and `undefinedNegative` substitute for the
-first three; on the fourth the reference returns `nan` **regardless** of what was asked for, and this
-reproduces that. Measured: with the replacement set to `1`, a truth of all negatives gives `(nan, nan)`
-and a truth of all positives gives `(1, 1)`. Nothing in the reference's signature says so.
+The last row is the one worth knowing. A ratio is replaced only where its own count vanishes, as the
+reference replaces it; with no positive sample, the one that is not replaced is `0/0`, `NaN`.
+Measured, with the replacement set to `1`: `([0, 0], [0, 1])` gives `(NaN, NaN)`, `([0, 0], [1, 1])`
+gives `(NaN, 1)`, and a truth of all positives gives `(1, 1)` (#1250).
 
 ## Members
 

@@ -26,8 +26,8 @@ The answer is `NaN` when `sampleWeight` sums to zero, where
 by the weight sum directly on this path instead of going through `numpy.average`, which is the only
 one of the three that refuses a zero sum.
 
-**Exceptions** — `ArgumentException` in four shapes, each of them a refusal the reference also
-makes: `labelCount` below `1`; `yTrue` and `yScore` disagreeing in length; `yTrue` empty, or not a
+**Exceptions** — `ArgumentException` in five shapes, each of them a refusal the reference also
+makes: a score that is not finite, with `check_array`'s sentence; `labelCount` below `1`; `yTrue` and `yScore` disagreeing in length; `yTrue` empty, or not a
 whole number of rows of `labelCount`; and a non-empty `sampleWeight` whose length is not the row
 count. A `labelCount` of exactly `1` is **not** refused here, and is refused by the other two.
 

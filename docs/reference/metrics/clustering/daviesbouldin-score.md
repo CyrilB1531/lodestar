@@ -15,7 +15,8 @@ contiguous. `features` is the samples row-major: sample `i` occupies `featureCou
 **Returns** — `double`, `0` or above. **Lower is better**, unlike every other clustering score in
 this package. `0` when no cluster has any spread, or when the centroids coincide.
 
-**Exceptions** — `ArgumentException` when `features` is not `labels.Length × featureCount`, or when
+**Exceptions** — `ArgumentException` when `features` is not `labels.Length × featureCount`, when a
+feature is not finite — "Input X contains NaN." or its infinity counterpart — or when
 the number of distinct labels is outside `[2, n - 1]`, with scikit-learn's own sentence — the same
 range and the same message as [`CalinskiHarabasz.Score`](calinskiharabasz-score.md) and
 [`Silhouette.Score`](silhouette-score.md). `ArgumentOutOfRangeException` when `featureCount` is not

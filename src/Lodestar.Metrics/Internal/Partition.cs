@@ -97,7 +97,7 @@ internal static class Partition
 
     /// <summary>Checks a feature block against its labels and returns the sample count.</summary>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
-    /// <exception cref="ArgumentException">The block is not <c>labels.Length × featureCount</c>.</exception>
+    /// <exception cref="ArgumentException">The block is not <c>labels.Length × featureCount</c>, or holds a value that is not finite.</exception>
     public static int Samples(ReadOnlySpan<int> labels, ReadOnlySpan<double> features, int featureCount)
     {
         if (featureCount <= 0)
@@ -114,6 +114,8 @@ internal static class Partition
                 nameof(features));
         }
 
+        // check_X_y refuses a non-finite sample before anything reads the labels (#1206).
+        Inputs.RequireFinite(features, nameof(features), "X");
         return labels.Length;
     }
 

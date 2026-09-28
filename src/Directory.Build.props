@@ -80,6 +80,13 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shared/CodePointOrder.cs" Link="Internal/CodePointOrder.cs" />
   </ItemGroup>
 
+  <!-- numpy's linspace and linear percentile, compiled into the libraries whose bin edges must
+       land where numpy's do: Lodestar.Metrics for calibration_curve (#1204). Lodestar.Preprocessing
+       is to take it for KBinsDiscretizer with #1226 and #1237. -->
+  <ItemGroup Condition="'$(LodestarIncludesNumpyGrid)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/NumpyGrid.cs" Link="Internal/NumpyGrid.cs" />
+  </ItemGroup>
+
   <!-- Persistence plumbing, compiled only into the libraries that ship artifacts
        (Lodestar.Text, Lodestar.Embeddings). It needs System.Text.Json, which those
        two opt into individually — Lodestar.Fuzzy stays dependency-free.

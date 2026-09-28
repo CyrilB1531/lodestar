@@ -17,7 +17,7 @@ public static class FBeta
     /// <param name="zeroDivision">What to return when the metric is undefined.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="beta"/> is negative, NaN or infinite.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="cm"/> is null.</exception>
-    /// <exception cref="ArgumentException"><see cref="Averaging.Binary"/> on a target with more than two classes, or a <paramref name="posLabel"/> that does not occur.</exception>
+    /// <exception cref="ArgumentException"><see cref="Averaging.Binary"/> on a target with more than two classes, or with two of which neither is <paramref name="posLabel"/>; an absent positive class scores through <paramref name="zeroDivision"/> instead.</exception>
     /// <exception cref="UndefinedMetricException"><paramref name="zeroDivision"/> is <see cref="ZeroDivision.Throw"/> and the metric is undefined.</exception>
     public static double Score(
         ConfusionMatrix cm,
@@ -28,17 +28,17 @@ public static class FBeta
     {
         Guard.NotNull(cm);
         Prf.ValidateBeta(beta);
-        return Prf.Aggregate(cm, PrfMetric.FScore, beta, average, posLabel, zeroDivision);
+        return Prf.Score(cm, PrfMetric.FScore, beta, average, posLabel, zeroDivision);
     }
 
-    /// <summary>F-beta straight from the labels, counting the matrix on the way.</summary>
+    /// <summary>F-beta straight from the labels, counted per label without a matrix.</summary>
     /// <param name="yTrue">The true labels.</param>
     /// <param name="yPred">The predicted labels, same length as <paramref name="yTrue"/>.</param>
     /// <param name="beta">The weight of recall relative to precision.</param>
     /// <param name="average">How per-class scores are reduced.</param>
     /// <param name="posLabel">The class reported under <see cref="Averaging.Binary"/>.</param>
     /// <param name="zeroDivision">What to return when the metric is undefined.</param>
-    /// <param name="labels">The label set and its order.</param>
+    /// <param name="labels">The label set and its order. Not read under <see cref="Averaging.Binary"/> on a binary target, which scikit-learn scores at <paramref name="posLabel"/> alone.</param>
     /// <param name="sampleWeight">A weight per sample.</param>
     // SonarLint S107 counts eight parameters here and wants fewer, which is
     // wrong for this method: this signature is a specification, not a design
@@ -62,8 +62,11 @@ public static class FBeta
         int posLabel = 1,
         ZeroDivision zeroDivision = ZeroDivision.Zero,
         ReadOnlySpan<int> labels = default,
-        ReadOnlySpan<double> sampleWeight = default) =>
-        Score(ConfusionMatrix.Compute(yTrue, yPred, labels, sampleWeight), beta, average, posLabel, zeroDivision);
+        ReadOnlySpan<double> sampleWeight = default)
+    {
+        Prf.ValidateBeta(beta);
+        return Prf.Score(yTrue, yPred, labels, sampleWeight, PrfMetric.FScore, beta, average, posLabel, zeroDivision);
+    }
 #pragma warning restore S107
 
     /// <summary>F-beta for every class, in label order (<c>fbeta_score(average=None)</c>).</summary>
@@ -76,7 +79,7 @@ public static class FBeta
     {
         Guard.NotNull(cm);
         Prf.ValidateBeta(beta);
-        return Prf.PerClass(cm, PrfMetric.FScore, beta, zeroDivision);
+        return Prf.PerClass(PrfCounts.FromMatrix(cm), PrfMetric.FScore, beta, zeroDivision);
     }
 
     /// <summary>Per-class F-beta straight from the labels.</summary>
@@ -93,6 +96,9 @@ public static class FBeta
         double beta,
         ZeroDivision zeroDivision = ZeroDivision.Zero,
         ReadOnlySpan<int> labels = default,
-        ReadOnlySpan<double> sampleWeight = default) =>
-        PerClass(ConfusionMatrix.Compute(yTrue, yPred, labels, sampleWeight), beta, zeroDivision);
+        ReadOnlySpan<double> sampleWeight = default)
+    {
+        Prf.ValidateBeta(beta);
+        return Prf.PerClass(PrfCounts.Compute(yTrue, yPred, labels, sampleWeight), PrfMetric.FScore, beta, zeroDivision);
+    }
 }

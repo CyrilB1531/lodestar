@@ -16,7 +16,8 @@ contiguous. `features` is the samples row-major: sample `i` occupies `featureCou
 apart relative to their own spread. `1` when the clusters have no spread at all, which the reference
 answers rather than dividing by zero.
 
-**Exceptions** — `ArgumentException` when `features` is not `labels.Length × featureCount`, or when
+**Exceptions** — `ArgumentException` when `features` is not `labels.Length × featureCount`, when a
+feature is not finite — "Input X contains NaN." or its infinity counterpart — or when
 the number of distinct labels is outside `[2, n - 1]` — one cluster leaves nothing to compare
 against and one cluster per sample leaves nothing inside one. The message is scikit-learn's own,
 "Number of labels is k. Valid values are 2 to n_samples - 1 (inclusive)", and

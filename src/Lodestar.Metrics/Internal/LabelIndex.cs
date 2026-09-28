@@ -21,9 +21,10 @@ internal sealed class LabelIndex
     private readonly int[]? _sorted;     // ascending label values
     private readonly int[]? _ordinals;   // _sorted[i] -> ordinal in _labels
 
-    private LabelIndex(int[] labels, int requestedCount, bool isExplicit)
+    private LabelIndex(int[] labels, int requestedCount, bool isExplicit, int[] observed)
     {
         _labels = labels;
+        Observed = observed;
         RequestedCount = requestedCount;
         Explicit = isExplicit;
 
@@ -94,6 +95,9 @@ internal sealed class LabelIndex
     /// </summary>
     public int[] Labels => _labels;
 
+    /// <summary>The labels that occur in either input, ascending: scikit-learn's <c>unique_labels(y_true, y_pred)</c>.</summary>
+    public int[] Observed { get; }
+
     /// <summary>How many labels the extended set holds.</summary>
     public int Count => _labels.Length;
 
@@ -141,12 +145,13 @@ internal sealed class LabelIndex
         if (labels.IsEmpty)
         {
             int[] union = SortedUnion(yTrue, yPred);
-            return new LabelIndex(union, union.Length, isExplicit: false);
+            return new LabelIndex(union, union.Length, isExplicit: false, union);
         }
 
         int[] requested = labels.ToArray();
-        int[] extended = AppendObserved(requested, SortedUnion(yTrue, yPred));
-        return new LabelIndex(extended, requested.Length, isExplicit: true);
+        int[] observed = SortedUnion(yTrue, yPred);
+        int[] extended = AppendObserved(requested, observed);
+        return new LabelIndex(extended, requested.Length, isExplicit: true, observed);
     }
 
     /// <summary>

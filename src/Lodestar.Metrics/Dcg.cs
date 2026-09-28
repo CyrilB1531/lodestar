@@ -22,7 +22,7 @@ public static class Dcg
     /// <c>2^relevance − 1</c> instead, which on the same row gives <c>9.3927…</c> where this
     /// gives <c>4.7618…</c> — the difference is the definition, not an error on either side.
     /// </remarks>
-    /// <exception cref="ArgumentException">The rows disagree in length, hold fewer than two documents, or <paramref name="sampleWeight"/> has the wrong length or sums to zero.</exception>
+    /// <exception cref="ArgumentException">A relevance or score is not finite, the rows disagree in length, hold fewer than two documents, or <paramref name="sampleWeight"/> has the wrong length or sums to zero.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="k"/> is below 1, or <paramref name="logBase"/> is outside <c>(0, ∞)</c> — zero, negative, <c>NaN</c> or infinite.</exception>
     public static double Score(
         ReadOnlySpan<double> yTrue,

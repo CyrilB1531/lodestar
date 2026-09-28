@@ -17,7 +17,8 @@ defaults reproduce `replace_undefined_by=nan`. `sampleWeight` is one weight per 
 
 **Exceptions** — `ArgumentException` when the inputs disagree in length, are empty, the weights do
 not match, hold a non-finite value or are zero throughout, or **more than two distinct labels occur** — with the reference's own sentence,
-"class_likelihood_ratios only supports binary classification problems."
+"class_likelihood_ratios only supports binary classification problems." — or only one, where
+the reference fails unpacking a `1 × 1` matrix; and when the two do not include `posLabel`.
 
 **Example** — six samples, half of them positive.
 
@@ -28,7 +29,7 @@ int[] truth = [0, 1, 1, 0, 1, 0];
 int[] predicted = [0, 1, 0, 0, 1, 1];
 
 LikelihoodRatios ratios = LikelihoodRatios.Compute(truth, predicted);
-double positive = ratios.Positive;  // => 1.9999…
+double positive = ratios.Positive;  // => 2
 ```
 
 A positive prediction doubles the odds; the negative ratio on the same input is `0.5`, so a negative
@@ -38,9 +39,11 @@ prediction halves them.
 scalar or a mapping of `{"LR+": …, "LR-": …}`, a union C# has no equivalent of; passing the same
 value to both reproduces the scalar form and passing different ones reproduces the mapping.
 
-Neither substitution applies when the truth carries **no positive sample**: there is no sensitivity
-to build either ratio from, and the reference returns `nan` whatever was asked for.
-[The type page](likelihoodratios.md) has the table of all four undefined shapes.
+Each ratio is computed from the counts, `tp·(tn+fp) / (fp·(tp+fn))` and `fn·(tn+fp) / (tn·(tp+fn))`,
+as the reference computes it — not through `1 − specificity`, which is how this example used to
+read `1.9999…` — and each is replaced only where its own count vanishes. With **no positive sample**
+a ratio that is not replaced comes out `0/0`, `NaN`.
+[The type page](likelihoodratios.md) has the table of the undefined shapes.
 
 **Applies to** — net10.0, netstandard2.0.
 

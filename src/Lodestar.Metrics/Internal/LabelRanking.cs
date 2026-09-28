@@ -77,6 +77,8 @@ internal static class LabelRanking
         ReadOnlySpan<double> sampleWeight,
         bool singleLabelAllowed)
     {
+        // check_array on the scores comes first in coverage_error and both label-ranking scores (#1206).
+        Inputs.RequireFinite(yScore, nameof(yScore));
         if (labelCount < 1)
         {
             throw new ArgumentException(

@@ -87,8 +87,13 @@ public sealed class ClassificationReport
         ZeroDivision zeroDivision = ZeroDivision.Zero)
     {
         Guard.NotNull(cm);
+        return Compute(PrfCounts.FromMatrix(cm), targetNames, zeroDivision);
+    }
 
-        int k = cm.Size;
+    private static ClassificationReport Compute(
+        PrfCounts counts, IReadOnlyList<string>? targetNames, ZeroDivision zeroDivision)
+    {
+        int k = counts.Labels.Length;
         if (targetNames is not null && targetNames.Count != k)
         {
             throw new ArgumentException(
@@ -98,9 +103,9 @@ public sealed class ClassificationReport
 
         // Read once and shared by all nine scores below: each used to read the matrix again, the
         // predicted sums alone costing a pass over every cell of it.
-        double[] tp = Prf.TruePositives(cm);
-        double[] predictedSum = Prf.PredictedSum(cm);
-        double[] support = Prf.Support(cm);
+        double[] tp = counts.TruePositives;
+        double[] predictedSum = counts.Predicted;
+        double[] support = counts.Support;
         double[] precision = Prf.PerClass(tp, predictedSum, support, PrfMetric.Precision, 1.0, zeroDivision);
         double[] recall = Prf.PerClass(tp, predictedSum, support, PrfMetric.Recall, 1.0, zeroDivision);
         double[] f1 = Prf.PerClass(tp, predictedSum, support, PrfMetric.FScore, 1.0, zeroDivision);
@@ -109,7 +114,7 @@ public sealed class ClassificationReport
         double totalSupport = 0.0;
         for (int i = 0; i < k; i++)
         {
-            rows[i] = new ClassRow(cm.Labels[i], targetNames?[i], precision[i], recall[i], f1[i], support[i]);
+            rows[i] = new ClassRow(counts.Labels[i], targetNames?[i], precision[i], recall[i], f1[i], support[i]);
             totalSupport += support[i];
         }
 
@@ -128,23 +133,28 @@ public sealed class ClassificationReport
             totalSupport);
 
         AverageRow? micro = null;
-        if (cm.ExplicitLabels && cm.DroppedSamples)
+        if (counts.DropsObservedLabels)
         {
             micro = new AverageRow(
                 "micro avg",
-                Prf.Aggregate(cm, PrfMetric.Precision, 1.0, Averaging.Micro, 0, zeroDivision),
-                Prf.Aggregate(cm, PrfMetric.Recall, 1.0, Averaging.Micro, 0, zeroDivision),
-                Prf.Aggregate(cm, PrfMetric.FScore, 1.0, Averaging.Micro, 0, zeroDivision),
+                Prf.Micro(counts, PrfMetric.Precision, 1.0, zeroDivision),
+                Prf.Micro(counts, PrfMetric.Recall, 1.0, zeroDivision),
+                Prf.Micro(counts, PrfMetric.FScore, 1.0, zeroDivision),
                 totalSupport);
         }
 
-        // Fully qualified on purpose: this class has an `Accuracy` property, and an
-        // unqualified `Accuracy.Score(cm)` binds to it rather than to the type.
-        double accuracy = Lodestar.Metrics.Accuracy.Score(cm);
+        // Accuracy over the samples the requested labels keep: the diagonal over their weight.
+        double correct = 0.0;
+        foreach (double value in tp)
+        {
+            correct += value;
+        }
+
+        double accuracy = correct / counts.KeptTotal;
 
         return new ClassificationReport(
             Array.AsReadOnly(rows), accuracy, macro, weighted, micro, totalSupport,
-            cm.IsWeighted, cm.NoSampleCorrect);
+            counts.IsWeighted, !counts.AnySampleCorrect);
     }
 
     /// <summary>Builds the report straight from the labels, counting the matrix on the way.</summary>
@@ -161,7 +171,7 @@ public sealed class ClassificationReport
         ZeroDivision zeroDivision = ZeroDivision.Zero,
         ReadOnlySpan<int> labels = default,
         ReadOnlySpan<double> sampleWeight = default) =>
-        Compute(ConfusionMatrix.Compute(yTrue, yPred, labels, sampleWeight), targetNames, zeroDivision);
+        Compute(PrfCounts.Compute(yTrue, yPred, labels, sampleWeight), targetNames, zeroDivision);
 
     /// <summary>
     /// Renders the table the way <c>sklearn.metrics.classification_report</c>

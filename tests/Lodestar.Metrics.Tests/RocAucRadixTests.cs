@@ -68,17 +68,15 @@ public sealed class RocAucRadixTests
         Assert.Equal(Reference(yTrue, scores), RocAuc.Score(yTrue, scores), 12);
     }
 
-    /// <summary>Infinities are ordered, not rejected; the encoding has to carry them.</summary>
+    /// <summary>An infinite score is refused, as <c>assert_all_finite</c> refuses it in scikit-learn 1.9.1 (#1206).</summary>
     [Fact]
-    public void Infinities_sort_to_the_ends()
+    public void An_infinite_score_is_refused()
     {
         (int[] yTrue, double[] scores) = Sample(20_000, distinctScores: 500);
-        scores[0] = double.PositiveInfinity;
-        yTrue[0] = 1;
         scores[1] = double.NegativeInfinity;
-        yTrue[1] = 0;
 
-        Assert.Equal(Reference(yTrue, scores), RocAuc.Score(yTrue, scores), 12);
+        var error = Assert.Throws<ArgumentException>(() => RocAuc.Score(yTrue, scores));
+        Assert.StartsWith("yScore[1] is infinite", error.Message, StringComparison.Ordinal);
     }
 
     private static (int[] YTrue, double[] Scores) Sample(int n, int distinctScores)

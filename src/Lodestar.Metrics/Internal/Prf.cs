@@ -48,68 +48,29 @@ internal static class Prf
             + "Pass ZeroDivision.Zero, One or NaN to get a value instead."),
     };
 
-    /// <summary>
-    /// The support of each requested class — scikit-learn's <c>true_sum</c>,
-    /// counted against every observed label; see <see cref="ConfusionMatrix.Stride"/>.
-    /// </summary>
-    /// <remarks>
-    /// Returns <see cref="ConfusionMatrix.TrueSum"/> directly rather than
-    /// summing <see cref="ConfusionMatrix.Cells"/> — the two totals agree
-    /// mathematically but not always in the last bit; see <see cref="ConfusionMatrix.TrueSum"/>'s own remarks.
-    /// </remarks>
-    public static double[] Support(ConfusionMatrix cm) => cm.TrueSum.ToArray();
+    /// <summary>The score of a matrix the caller built: the binary counts for <see cref="Averaging.Binary"/>, its requested labels otherwise.</summary>
+    public static double Score(
+        ConfusionMatrix cm, PrfMetric metric, double beta, Averaging average, int posLabel, ZeroDivision zeroDivision) =>
+        Aggregate(
+            average == Averaging.Binary ? PrfCounts.Binary(cm, posLabel) : PrfCounts.FromMatrix(cm),
+            metric, beta, average, zeroDivision);
 
-    /// <summary>
-    /// Column sums: how much weight was predicted into each requested class,
-    /// again counted against every observed label — scikit-learn's
-    /// <c>pred_sum</c>. Runs over <see cref="ConfusionMatrix.Stride"/> rows
-    /// rather than just the requested <see cref="ConfusionMatrix.Size"/> for the
-    /// same reason <see cref="ConfusionMatrix.Stride"/>'s own remarks give: a
-    /// predicted label outside the request still belongs in a requested true
-    /// label's column sum, the same as scikit-learn counts it.
-    /// </summary>
-    public static double[] PredictedSum(ConfusionMatrix cm)
-    {
-        int k = cm.Size;
-        int stride = cm.Stride;
-        ReadOnlySpan<double> cells = cm.Cells;
-        double[] predicted = new double[k];
-        for (int row = 0; row < stride; row++)
-        {
-            int offset = row * stride;
-            for (int col = 0; col < k; col++)
-            {
-                predicted[col] += cells[offset + col];
-            }
-        }
-        return predicted;
-    }
+    /// <summary>The score of the samples themselves, counted per label without a matrix (#1200).</summary>
+    // S107: the public overloads' own parameters, passed through; the five metric types each call this once.
+#pragma warning disable S107
+    public static double Score(
+        ReadOnlySpan<int> yTrue, ReadOnlySpan<int> yPred, ReadOnlySpan<int> labels, ReadOnlySpan<double> sampleWeight,
+        PrfMetric metric, double beta, Averaging average, int posLabel, ZeroDivision zeroDivision) =>
+        Aggregate(
+            average == Averaging.Binary
+                ? PrfCounts.Binary(yTrue, yPred, posLabel, sampleWeight)
+                : PrfCounts.Compute(yTrue, yPred, labels, sampleWeight),
+            metric, beta, average, zeroDivision);
+#pragma warning restore S107
 
-    /// <summary>The diagonal: correctly predicted weight per requested class.</summary>
-    public static double[] TruePositives(ConfusionMatrix cm)
-    {
-        int k = cm.Size;
-        int stride = cm.Stride;
-        ReadOnlySpan<double> cells = cm.Cells;
-        double[] tp = new double[k];
-        for (int i = 0; i < k; i++)
-        {
-            tp[i] = cells[(i * stride) + i];
-        }
-        return tp;
-    }
-
-    public static double[] PerClass(ConfusionMatrix cm, PrfMetric metric, double beta, ZeroDivision zeroDivision) =>
-        PerClass(cm, metric, beta, zeroDivision, out _);
-
-    // Same computation, support out for Aggregate's Weighted branch to reuse
-    // instead of a second O(k*stride) pass.
-    private static double[] PerClass(
-        ConfusionMatrix cm, PrfMetric metric, double beta, ZeroDivision zeroDivision, out double[] support)
-    {
-        support = Support(cm);
-        return PerClass(TruePositives(cm), PredictedSum(cm), support, metric, beta, zeroDivision);
-    }
+    /// <summary>One score per requested label.</summary>
+    public static double[] PerClass(PrfCounts counts, PrfMetric metric, double beta, ZeroDivision zeroDivision) =>
+        PerClass(counts.TruePositives, counts.Predicted, counts.Support, metric, beta, zeroDivision);
 
     /// <summary>The per-class scores from sums already read off a matrix, so several scores can share one read.</summary>
     public static double[] PerClass(
@@ -132,14 +93,15 @@ internal static class Prf
     }
 
     public static double Aggregate(
-        ConfusionMatrix cm, PrfMetric metric, double beta, Averaging average, int posLabel, ZeroDivision zeroDivision)
+        PrfCounts counts, PrfMetric metric, double beta, Averaging average, ZeroDivision zeroDivision)
     {
         if (average == Averaging.Micro)
         {
-            return Micro(cm, metric, beta, zeroDivision);
+            return Micro(counts, metric, beta, zeroDivision);
         }
 
-        double[] perClass = PerClass(cm, metric, beta, zeroDivision, out double[] support);
+        double[] perClass = PerClass(counts, metric, beta, zeroDivision);
+        double[] support = counts.Support;
 
         // jaccard_score averages through numpy.average and the other three through
         // _nanaverage, which catches its zero-sum error (#988 corrects #861).
@@ -155,7 +117,8 @@ internal static class Prf
                 return Average(perClass, support, average);
 
             case Averaging.Binary:
-                return perClass[BinaryOrdinal(cm, posLabel)];
+                // The counts hold the positive label alone; see PrfCounts.Binary.
+                return perClass[0];
 
             default:
                 throw new ArgumentOutOfRangeException(nameof(average), average, "Unknown averaging mode.");
@@ -260,11 +223,11 @@ internal static class Prf
     private static double Jaccard(double tp, double predicted, double support, ZeroDivision zeroDivision) =>
         Divide(tp, predicted + support - tp, zeroDivision, "Jaccard");
 
-    private static double Micro(ConfusionMatrix cm, PrfMetric metric, double beta, ZeroDivision zeroDivision)
+    public static double Micro(PrfCounts counts, PrfMetric metric, double beta, ZeroDivision zeroDivision)
     {
-        double[] tp = TruePositives(cm);
-        double[] predicted = PredictedSum(cm);
-        double[] support = Support(cm);
+        double[] tp = counts.TruePositives;
+        double[] predicted = counts.Predicted;
+        double[] support = counts.Support;
 
         double tpSum = 0.0;
         double predictedSum = 0.0;
@@ -306,29 +269,6 @@ internal static class Prf
         double numerator = (1.0 + beta2) * tp;
         double denominator = predicted + (beta2 * support);
         return Divide(numerator, denominator, zeroDivision, "F-score");
-    }
-
-    private static int BinaryOrdinal(ConfusionMatrix cm, int posLabel)
-    {
-        // scikit-learn refuses average="binary" once the *observed* target has
-        // more than two classes — which a dropped-samples matrix also implies.
-        if (cm.Size > 2 || (cm.ExplicitLabels && cm.DroppedSamples))
-        {
-            throw new ArgumentException(
-                "Averaging.Binary needs a two-class target. Use Micro, Macro or Weighted, or PerClass.",
-                nameof(posLabel));
-        }
-
-        for (int i = 0; i < cm.Labels.Count; i++)
-        {
-            if (cm.Labels[i] == posLabel)
-            {
-                return i;
-            }
-        }
-
-        throw new ArgumentException(
-            $"posLabel {posLabel} does not occur in the data.", nameof(posLabel));
     }
 
     public static void ValidateBeta(double beta)

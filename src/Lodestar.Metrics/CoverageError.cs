@@ -14,7 +14,7 @@ public static class CoverageError
     /// <param name="labelCount">How many labels each row holds.</param>
     /// <param name="sampleWeight">One weight per sample, or empty for an unweighted mean.</param>
     /// <returns>The mean position of the worst-ranked relevant label. <c>1</c> is the best a row can do; a row with no relevant label contributes <c>0</c>, so the mean can sit below <c>1</c>.</returns>
-    /// <exception cref="ArgumentException">The shapes disagree, <paramref name="labelCount"/> is <c>1</c>, or <paramref name="sampleWeight"/> sums to zero.</exception>
+    /// <exception cref="ArgumentException">A relevance or score is not finite, the shapes disagree, <paramref name="labelCount"/> is <c>1</c>, or <paramref name="sampleWeight"/> sums to zero.</exception>
     public static double Score(
         ReadOnlySpan<bool> yTrue,
         ReadOnlySpan<double> yScore,

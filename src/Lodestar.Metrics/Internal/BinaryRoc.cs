@@ -266,6 +266,7 @@ internal static class BinaryRoc
                     $"sampleWeight has {sampleWeight.Length} entries but there are {n} samples.",
                     nameof(sampleWeight));
             }
+            Inputs.ValidateSampleWeight(sampleWeight);
 
             return n;
         }
@@ -279,10 +280,7 @@ internal static class BinaryRoc
             for (int i = 0; i < yTrue.Length; i++)
             {
                 double score = yScore[i];
-                if (double.IsNaN(score))
-                {
-                    throw new ArgumentException($"yScore[{i}] is NaN; scores must be numbers.", nameof(yScore));
-                }
+                ClassifierCurve.RequireFiniteScore(yScore, i);
 
                 double weight = weighted ? sampleWeight[i] : 1.0;
                 keys[i] = -score;

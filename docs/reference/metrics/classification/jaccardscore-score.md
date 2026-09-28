@@ -17,7 +17,8 @@ reported under `Averaging.Binary`. `zeroDivision` is the answer for a class neit
 [`Recall.Score`](recall-score.md) on the same class.
 
 **Exceptions** — `ArgumentException` when the inputs disagree in length or the weights do not match, hold a non-finite value or are zero throughout; when `average` is `Averaging.Binary` and
-`posLabel` occurs in neither input, which is the refusal `Precision.Score` already makes; and
+the target has more than two classes, or two without `posLabel`, which is the refusal `Precision.Score`
+already makes — an absent positive class takes the `zeroDivision` value instead; and
 when `average` is `Averaging.Weighted` and the class supports sum to zero without all being
 zero, which only a negative weight reaches and which `jaccard_score` refuses in the same words.
 `UndefinedMetricException` when a class is empty on both sides and `zeroDivision` is

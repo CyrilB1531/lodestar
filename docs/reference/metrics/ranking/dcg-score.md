@@ -22,7 +22,8 @@ over a single query it cancels, since it multiplies both halves of the mean.
 above**: it grows with the relevance values, so two rows are comparable only on the same judgement
 scale. Use [`Ndcg.Score`](ndcg-score.md) for a number in `[0, 1]`.
 
-**Exceptions** — `ArgumentException` when `labelCount` is below `2` (scikit-learn's own sentence,
+**Exceptions** — `ArgumentException` when a relevance or score is not finite ("Input contains
+NaN." or its infinity counterpart, `check_array`'s sentences), when `labelCount` is below `2` (scikit-learn's own sentence,
 "Computing NDCG is only meaningful when there is more than 1 document."), when `yTrue` and `yScore`
 disagree in length, or when the length is not a whole number of rows of `labelCount`.
 `ArgumentOutOfRangeException` when `k` is below `1`, and when `logBase` falls outside `(0, ∞)` —

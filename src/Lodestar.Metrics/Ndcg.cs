@@ -21,7 +21,7 @@ public static class Ndcg
     /// only when the base is shared, and scikit-learn shares base 2 on both halves. A row with
     /// no relevant document scores <c>0</c> rather than dividing by zero, measured.
     /// </remarks>
-    /// <exception cref="ArgumentException">The rows disagree in length, hold fewer than two documents, hold a negative relevance, or <paramref name="sampleWeight"/> has the wrong length or sums to zero.</exception>
+    /// <exception cref="ArgumentException">A relevance or score is not finite, the rows disagree in length, hold fewer than two documents, hold a negative relevance, or <paramref name="sampleWeight"/> has the wrong length or sums to zero.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="k"/> is below 1.</exception>
     public static double Score(
         ReadOnlySpan<double> yTrue,

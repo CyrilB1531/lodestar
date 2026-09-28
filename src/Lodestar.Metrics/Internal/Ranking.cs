@@ -178,8 +178,17 @@ internal static class Ranking
         ReadOnlySpan<double> scores,
         int labelCount,
         string relevanceName,
-        string scoresName)
+        string scoresName,
+        bool requireFinite = true)
     {
+        // The scikit-learn ranking metrics run check_array on both before anything else (#1206): a NaN
+        // score would otherwise open a tie group of its own. Reciprocal rank has no reference to follow.
+        if (requireFinite)
+        {
+            Inputs.RequireFinite(relevance, relevanceName);
+            Inputs.RequireFinite(scores, scoresName);
+        }
+
         if (labelCount < 2)
         {
             throw new ArgumentException(
