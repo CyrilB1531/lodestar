@@ -3,9 +3,10 @@
 The types the other Lodestar packages share, and nothing that computes with them beyond
 what a sparse matrix needs. `CsrMatrix` is a compressed sparse row matrix with its row norms and
 the vector and dense-block products a decomposition runs on; `SparseNorm` names the row norm a
-vectorizer applies. Since 0.2.0 it also holds the public data types every other package declares
-(options, results, enums), each under its original namespace and forwarded from the package that
-declared it, so upgrading one package never duplicates a type (decision 0003).
+vectorizer applies. Since 0.2.0 it also holds the public data types the packages declare that
+carry no logic — options, results, enums — each under its original namespace, forwarded from the
+package that declared it where it moved, so upgrading one package never duplicates a type. A type
+with logic of its own stays in its package (decision 0003).
 
 Most applications reach it through another package rather than install it directly.
 

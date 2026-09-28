@@ -31,7 +31,14 @@ public sealed class CsrMatrix
     /// rejected shape is a case in <c>CsrMatrixValidationTests</c>. The vectorizers build their own arrays
     /// and bypass this pass through <see cref="CreateUnchecked"/>: they cannot produce an invalid one.
     /// </remarks>
-    /// <exception cref="ArgumentException">The arrays do not describe a valid CSR matrix.</exception>
+    /// <param name="rowCount">The number of rows.</param>
+    /// <param name="columnCount">The number of columns.</param>
+    /// <param name="values">The stored values, row by row.</param>
+    /// <param name="columnIndices">The column of each stored value.</param>
+    /// <param name="rowPointers">Where each row starts in <paramref name="values"/>, then the total.</param>
+    /// <exception cref="ArgumentNullException">An array is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A dimension is negative.</exception>
+    /// <exception cref="ArgumentException">The arrays do not describe a valid CSR matrix: their lengths disagree, a row pointer decreases or does not start at zero and end at the stored count, or a column index is outside <c>[0, columnCount)</c>.</exception>
     public CsrMatrix(int rowCount, int columnCount, double[] values, int[] columnIndices, int[] rowPointers)
         : this(rowCount, columnCount, values, columnIndices, rowPointers, validate: true)
     {
@@ -50,7 +57,7 @@ public sealed class CsrMatrix
         }
         if (values.Length != columnIndices.Length)
         {
-            throw new ArgumentException("values and columnIndices must have equal length.");
+            throw new ArgumentException("values and columnIndices must have equal length.", nameof(columnIndices));
         }
         if (validate)
         {

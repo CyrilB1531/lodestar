@@ -39,6 +39,27 @@ internal static class ValueEquality
         return true;
     }
 
+    /// <summary>Whether two lists of blocks hold the same blocks, in order and value by value.</summary>
+    public static bool Same(IReadOnlyList<double[]>? left, IReadOnlyList<double[]>? right)
+    {
+        if (ReferenceEquals(left, right))
+        {
+            return true;
+        }
+        if (left is null || right is null || left.Count != right.Count)
+        {
+            return false;
+        }
+        for (int i = 0; i < left.Count; i++)
+        {
+            if (!Same(left[i], right[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /// <summary>Whether two arrays hold equal elements, in order.</summary>
     /// <remarks>
     /// <c>EqualityComparer&lt;T&gt;.Default</c> reaches <c>IEquatable&lt;T&gt;.Equals</c>, which for

@@ -84,7 +84,13 @@ public sealed class CsrMatrixValidationTests
     [Fact]
     public void Values_and_column_indices_of_different_lengths_are_rejected()
     {
-        Assert.Throws<ArgumentException>(() => new CsrMatrix(1, 2, [1.0, 2.0], [0], [0, 2]));
+        ArgumentException error = Assert.Throws<ArgumentException>(() => new CsrMatrix(1, 2, [1.0, 2.0], [0], [0, 2]));
+
+        // #1326: named, as every sibling refusal is, and through the unchecked factory as well.
+        Assert.Equal("columnIndices", error.ParamName);
+        Assert.Equal(
+            "columnIndices",
+            Assert.Throws<ArgumentException>(() => CsrMatrix.CreateUnchecked(1, 2, [1.0, 2.0], [0], [0, 2])).ParamName);
     }
 
     [Fact]
