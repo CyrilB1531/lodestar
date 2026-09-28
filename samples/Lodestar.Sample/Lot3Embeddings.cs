@@ -110,6 +110,10 @@ internal static class Lot3Embeddings
         Console.WriteLine($"  WordPiece/unigram special tokens: {fromJson.PrefixTokens.Count + fromJson.SuffixTokens.Count}"
             + $"/{fromUnigramJson.PrefixTokens.Count + fromUnigramJson.SuffixTokens.Count}");
 
+        // A tokenizer.json keeps every space and splits before each meta symbol, as tokenizers does (#1259).
+        Console.WriteLine($"  unigram JSON whitespace: collapses={fromUnigramJson.RemoveExtraWhitespaces}, "
+            + $"splits at the meta symbol={fromUnigramJson.SplitsAtMetaSymbol}");
+
         SentencePieceVocabulary fromModel = SentencePieceModelLoader.Load(new MemoryStream(SpieceModel()), bounds);
         Console.WriteLine($"  spiece.model     : {fromModel.Count} pieces, unk={fromModel.UnkId}");
 

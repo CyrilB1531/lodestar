@@ -343,7 +343,7 @@ public static class SentencePieceModelLoader
         }
         if (!removeExtraWhitespaces)
         {
-            throw Unsupported("remove_extra_whitespaces is off", "the tokenizer always collapses whitespace runs");
+            throw Unsupported("remove_extra_whitespaces is off", "a .model is always tokenized with whitespace runs collapsed");
         }
         if (!escapeWhitespaces)
         {

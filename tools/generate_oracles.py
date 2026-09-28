@@ -2656,6 +2656,13 @@ def generate_tokenizer_json() -> dict:
         enc = unigram.encode(text)
         unigram_cases.append({"id": i, "model": "Unigram", "text": text, "tokens": enc.tokens, "ids": enc.ids})
 
+    # Appended last: runs of spaces, leading and trailing ones, kept and split before by Metaspace, and
+    # uncovered characters each side of a space, which tokenizers keeps apart (#1259).
+    for text in ["a  b", " a", "hello ", "  hello   world ", "a\tb", "   ", "\u2603 \u2603", "x\u2603  \u2603y"]:
+        enc = unigram.encode(text)
+        unigram_cases.append({"id": len(unigram_cases), "model": "Unigram", "text": text,
+                              "tokens": enc.tokens, "ids": enc.ids})
+
     return {
         "metadata": {
             "algorithm": "TokenizerJsonLoader",
@@ -2792,6 +2799,40 @@ XLMR_TEXTS = [
 
 # The five strings a vocabulary in this layout must never segment onto.
 XLMR_MARKERS = [BOS_TOKEN, "<pad>", "</s>", UNK_TOKEN_LOWER, MASK_TOKEN]
+
+
+def generate_precompiled_grapheme() -> dict:
+    """Freeze tokenizers' Precompiled normalizer over XLM-R's nmt_nfkc charsmap (#1260).
+
+    tokenizers reads a charsmap by grapheme: a cluster under six UTF-8 bytes is replaced whole by the
+    shortest rule matching its start, a longer one character by character, where sentencepiece takes the
+    longest rule anywhere. The texts are a base letter and up to three combining marks, some in NFD, the
+    shape on which the two readings part, plus the issue's three examples.
+    """
+    import unicodedata as _unicodedata  # noqa: PLC0415
+
+    from sentencepiece import sentencepiece_model_pb2 as model_pb2  # noqa: PLC0415
+    from tokenizers import normalizers  # noqa: PLC0415
+
+    proto = model_pb2.ModelProto()
+    proto.ParseFromString((ORACLE_DIR / XLMR_FAIRSEQ_MODEL).read_bytes())
+    precompiled = normalizers.Precompiled(proto.normalizer_spec.precompiled_charsmap)
+    rng = SeededRandom(SEED + 1260)
+    bases = list("aeiouAEIOUnNcCyY") + ["\uff21", "\uff41", "\uff76", "\uff8a", "\u3042", "\u00e7", "\u00f8",
+                                        "1", "\u216b", "\ufb01", "\u00df", "\u0130", "\u03a9", "\u0451"]
+    marks = ["\u0300", "\u0301", "\u0302", "\u0303", "\u0308", "\u0323", "\u0327", "\u031b", "\u0306",
+             "\u0304", "\u20dd", "\u0345", "\u3099", "\u309a", "\ufe0f", "\u200d"]
+    texts = ["Nguy\u00ea\u0303n", "pho\u031b\u0309", "\uff21\u0301"]
+    for _ in range(300):
+        words = ["".join([rng.choice(bases)] + [rng.choice(marks) for _ in range(rng.randint(0, 3))])
+                 for _ in range(rng.randint(1, 4))]
+        text = rng.choice(["", " "]).join(words)
+        texts.append(_unicodedata.normalize("NFD", text) if rng.random() < 0.3 else text)
+    cases = [{"id": i, "text": text, "normalized": precompiled.normalize_str(text)} for i, text in enumerate(texts)]
+    return {"metadata": {"library": "tokenizers", "library_version": version("tokenizers"),
+                         "reference_calls": ["tokenizers.normalizers.Precompiled(charsmap).normalize_str"],
+                         "model": XLMR_FAIRSEQ_MODEL, "seed": SEED + 1260, "count": len(cases)},
+            "cases": cases}
 
 
 def generate_xlmr_fairseq() -> dict:
@@ -16629,6 +16670,7 @@ def main() -> None:
         "tokenizer_json.json": generate_tokenizer_json,
         "spiece_model.json": generate_spiece_model,
         "xlmr_fairseq.json": generate_xlmr_fairseq,
+        "precompiled_grapheme.json": generate_precompiled_grapheme,
         "normalizer.json": generate_normalizer,
         "fuzz.json": generate_fuzz,
         "process.json": generate_process,

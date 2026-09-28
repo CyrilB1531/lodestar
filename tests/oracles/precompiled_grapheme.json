@@ -1,0 +1,1529 @@
+{
+ "metadata": {
+  "library": "tokenizers",
+  "library_version": "0.23.2",
+  "reference_calls": [
+   "tokenizers.normalizers.Precompiled(charsmap).normalize_str"
+  ],
+  "model": "xlmr_fairseq.model",
+  "seed": 20262061,
+  "count": 303
+ },
+ "cases": [
+  {
+   "id": 0,
+   "text": "Nguyễn",
+   "normalized": "Nguyễn"
+  },
+  {
+   "id": 1,
+   "text": "phở",
+   "normalized": "phơ"
+  },
+  {
+   "id": 2,
+   "text": "Ａ́",
+   "normalized": "A"
+  },
+  {
+   "id": 3,
+   "text": "ŏ゙ͅ á",
+   "normalized": "ŏ゙ͅ á"
+  },
+  {
+   "id": 4,
+   "text": "Ω̃̂ İ Ω̛ Ñ゙⃝",
+   "normalized": "Ω̃̂ İ Ω̛ Ñ゙⃝"
+  },
+  {
+   "id": 5,
+   "text": "õ̆",
+   "normalized": "õ"
+  },
+  {
+   "id": 6,
+   "text": "U̧ あ̧̆̂ ａ",
+   "normalized": "U̧ あ̧̆̂ a"
+  },
+  {
+   "id": 7,
+   "text": "ă̧",
+   "normalized": "ă"
+  },
+  {
+   "id": 8,
+   "text": "E‍ Õ゚̆ ū゙",
+   "normalized": "E  Õ゚̆ ū゙"
+  },
+  {
+   "id": 9,
+   "text": "E゙ ụ゚ İ́ N̆",
+   "normalized": "E゙ ụ゚ İ N̆"
+  },
+  {
+   "id": 10,
+   "text": "İ̧‍ﾊ",
+   "normalized": "İ̧ ハ"
+  },
+  {
+   "id": 11,
+   "text": "u Uͅ⃝゙",
+   "normalized": "u Uͅ⃝゙"
+  },
+  {
+   "id": 12,
+   "text": "N‍ ú̄️ Ⅻ",
+   "normalized": "N  ú̄️ XII"
+  },
+  {
+   "id": 13,
+   "text": "Ȩ̣ a⃝́ ﬁ",
+   "normalized": "Ȩ a⃝́ fi"
+  },
+  {
+   "id": 14,
+   "text": "1⃝゙‍",
+   "normalized": "1⃝゙ "
+  },
+  {
+   "id": 15,
+   "text": "ё i ｶ",
+   "normalized": "ё i カ"
+  },
+  {
+   "id": 16,
+   "text": "ß́️̆ơ゚Ⅻ゚",
+   "normalized": "ß́️̆ơ゚XII゚"
+  },
+  {
+   "id": 17,
+   "text": "ｶ⃝",
+   "normalized": "カ⃝"
+  },
+  {
+   "id": 18,
+   "text": "N️̈Ａ̧Uﾊ́",
+   "normalized": "N️̈AUハ"
+  },
+  {
+   "id": 19,
+   "text": "ῼ̣",
+   "normalized": "ῼ̣"
+  },
+  {
+   "id": 20,
+   "text": "a⃝̂",
+   "normalized": "a⃝̂"
+  },
+  {
+   "id": 21,
+   "text": "ａ̈ Y n",
+   "normalized": "a Y n"
+  },
+  {
+   "id": 22,
+   "text": "y ĩ゚̆ ﬁ️",
+   "normalized": "y ĩ゚̆ fi️"
+  },
+  {
+   "id": 23,
+   "text": "CỊ゚̇C‍゙Ａ́̆ͅ",
+   "normalized": "CỊ゚̇C ゙Á̆ͅ"
+  },
+  {
+   "id": 24,
+   "text": "ø ｶͅ ỳ",
+   "normalized": "ø カ ỳ"
+  },
+  {
+   "id": 25,
+   "text": "U゙1⃝⃝‍ø゙",
+   "normalized": "U゙1⃝⃝ ø゙"
+  },
+  {
+   "id": 26,
+   "text": "ç̃́ ǹ",
+   "normalized": "ç̃́ ǹ"
+  },
+  {
+   "id": 27,
+   "text": "ø",
+   "normalized": "ø"
+  },
+  {
+   "id": 28,
+   "text": "あ̈ß゙̧‍1",
+   "normalized": "あ̈ß゙̧ 1"
+  },
+  {
+   "id": 29,
+   "text": "N‍̆ͅ 1̧",
+   "normalized": "N ̆ͅ 1̧"
+  },
+  {
+   "id": 30,
+   "text": "ｶ̀I",
+   "normalized": "カI"
+  },
+  {
+   "id": 31,
+   "text": "ß ﾊ̃̂",
+   "normalized": "ß ハ̃̂"
+  },
+  {
+   "id": 32,
+   "text": "É̈ͅ",
+   "normalized": "É̈ͅ"
+  },
+  {
+   "id": 33,
+   "text": "y",
+   "normalized": "y"
+  },
+  {
+   "id": 34,
+   "text": "Ａ゚̀̀C̛Ó̀ａ",
+   "normalized": "À゚̀C̛Óa"
+  },
+  {
+   "id": 35,
+   "text": "ｶ Ａ C̈",
+   "normalized": "カ A C̈"
+  },
+  {
+   "id": 36,
+   "text": "ú̧ あ̧️",
+   "normalized": "ú あ̧️"
+  },
+  {
+   "id": 37,
+   "text": "a̛‍øȩ̄̂A⃝゚̧",
+   "normalized": "a̛ øȩ̄̂A⃝゚̧"
+  },
+  {
+   "id": 38,
+   "text": "ó⃝ Ⅻ̧̄ a゙⃝̀",
+   "normalized": "ó⃝ XIĪ̧ a゙⃝̀"
+  },
+  {
+   "id": 39,
+   "text": "A⃝̄ í̄",
+   "normalized": "A⃝̄ í"
+  },
+  {
+   "id": 40,
+   "text": "ё゙Uあё̣̆̃",
+   "normalized": "ё゙Uあё̣̆̃"
+  },
+  {
+   "id": 41,
+   "text": "Ĭ゚ͅŭ⃝̄",
+   "normalized": "Ĭ゚ͅŭ⃝̄"
+  },
+  {
+   "id": 42,
+   "text": "A̧Y",
+   "normalized": "A̧Y"
+  },
+  {
+   "id": 43,
+   "text": "İ゙́̄",
+   "normalized": "İ゙́̄"
+  },
+  {
+   "id": 44,
+   "text": "ũ゚ ｶ⃝̛ U u゚",
+   "normalized": "ũ゚ カ⃝̛ U u゚"
+  },
+  {
+   "id": 45,
+   "text": "y",
+   "normalized": "y"
+  },
+  {
+   "id": 46,
+   "text": "1",
+   "normalized": "1"
+  },
+  {
+   "id": 47,
+   "text": "ё̧̈ß️゙ͅ",
+   "normalized": "ё̧̈ß️゙ͅ"
+  },
+  {
+   "id": 48,
+   "text": "Ỹİͅ",
+   "normalized": "Ỹİͅ"
+  },
+  {
+   "id": 49,
+   "text": "Y゙️̃ O゚",
+   "normalized": "Y゙️̃ O゚"
+  },
+  {
+   "id": 50,
+   "text": "ç̆ Y ﬁ̂ͅ",
+   "normalized": "ç̆ Y fîͅ"
+  },
+  {
+   "id": 51,
+   "text": "Ư̧️İ̂⃝ͅC̃",
+   "normalized": "Ư̧️İ̂⃝ͅC̃"
+  },
+  {
+   "id": 52,
+   "text": "y̆ o e Ẹ",
+   "normalized": "y̆ o e Ẹ"
+  },
+  {
+   "id": 53,
+   "text": "c̀",
+   "normalized": "c̀"
+  },
+  {
+   "id": 54,
+   "text": "ø̃̃ 1̂ ﾊ̈‍⃝ ß゙̛",
+   "normalized": "ø̃̃ 1̂ ハ̈ ⃝ ß゙̛"
+  },
+  {
+   "id": 55,
+   "text": "ø̣̆̆Uç̧̄️ａ̛",
+   "normalized": "ø̣̆̆Uç̧̄️a"
+  },
+  {
+   "id": 56,
+   "text": "nͅĉ̛",
+   "normalized": "nͅĉ̛"
+  },
+  {
+   "id": 57,
+   "text": "Î ç̃️゙",
+   "normalized": "Î ç̃️゙"
+  },
+  {
+   "id": 58,
+   "text": "ß Ũ",
+   "normalized": "ß Ũ"
+  },
+  {
+   "id": 59,
+   "text": "ＡY‍゚n1゚̈̄",
+   "normalized": "AY ゚n1゚̈̄"
+  },
+  {
+   "id": 60,
+   "text": "ｶ̀Ω",
+   "normalized": "カΩ"
+  },
+  {
+   "id": 61,
+   "text": "i A️ 1̆⃝",
+   "normalized": "i A️ 1̆⃝"
+  },
+  {
+   "id": 62,
+   "text": "e",
+   "normalized": "e"
+  },
+  {
+   "id": 63,
+   "text": "E あ゙゙ e ﾊ̧̆",
+   "normalized": "E あ゙゙ e ハ̧̆"
+  },
+  {
+   "id": 64,
+   "text": "ﾊņ̂",
+   "normalized": "ハņ̂"
+  },
+  {
+   "id": 65,
+   "text": "ç̃️あ⃝́̆ａ⃝̛⃝",
+   "normalized": "ç̃️あ⃝́̆a⃝̛⃝"
+  },
+  {
+   "id": 66,
+   "text": "ø",
+   "normalized": "ø"
+  },
+  {
+   "id": 67,
+   "text": "ё゚ O⃝̄ e",
+   "normalized": "ё゚ O⃝̄ e"
+  },
+  {
+   "id": 68,
+   "text": "1̈ͅụ⃝",
+   "normalized": "1̈ͅụ⃝"
+  },
+  {
+   "id": 69,
+   "text": "ёﬁCﬁ",
+   "normalized": "ёfiCfi"
+  },
+  {
+   "id": 70,
+   "text": "o゙Ị́⃝I️N̂",
+   "normalized": "o゙Ị́⃝I️N̂"
+  },
+  {
+   "id": 71,
+   "text": "C",
+   "normalized": "C"
+  },
+  {
+   "id": 72,
+   "text": "Ａ̆️ａ̂️Ａ",
+   "normalized": "Ă️â️A"
+  },
+  {
+   "id": 73,
+   "text": "Ÿͅ E Ａ",
+   "normalized": "Ÿ E A"
+  },
+  {
+   "id": 74,
+   "text": "ﬁ̧̧̈oİ́",
+   "normalized": "fï̧̧oİ́"
+  },
+  {
+   "id": 75,
+   "text": "a゙ Ⅻ̣ n̂‍̆ è⃝",
+   "normalized": "a゙ XII n̂ ̆ è⃝"
+  },
+  {
+   "id": 76,
+   "text": "U‍⃝̂ Yͅ Ņ",
+   "normalized": "U ⃝̂ Yͅ Ņ"
+  },
+  {
+   "id": 77,
+   "text": "ａ",
+   "normalized": "a"
+  },
+  {
+   "id": 78,
+   "text": "c Ⅻ̂̂ îͅ",
+   "normalized": "c XIÎ̂ îͅ"
+  },
+  {
+   "id": 79,
+   "text": "øͅ️゙âc̃‍́",
+   "normalized": "øͅ️゙âc̃ ́"
+  },
+  {
+   "id": 80,
+   "text": "ẹ̀Á",
+   "normalized": "ẹÁ"
+  },
+  {
+   "id": 81,
+   "text": "ﾊﾊ́ﬁ゙y",
+   "normalized": "ハハfi゙y"
+  },
+  {
+   "id": 82,
+   "text": "y",
+   "normalized": "y"
+  },
+  {
+   "id": 83,
+   "text": "y‍Ņ゚ͅ",
+   "normalized": "y Ņ゚ͅ"
+  },
+  {
+   "id": 84,
+   "text": "c⃝́o",
+   "normalized": "c⃝́o"
+  },
+  {
+   "id": 85,
+   "text": "N̛Ơ‍̄Eͅ",
+   "normalized": "N̛Ơ ̄Eͅ"
+  },
+  {
+   "id": 86,
+   "text": "Ⅻ゙️̄ﾊ̛̂́Uͅ",
+   "normalized": "XII゙️̄ハ̛̂́Uͅ"
+  },
+  {
+   "id": 87,
+   "text": "e‍゚I̧̛ａ̛̄̆O̧‍️",
+   "normalized": "e ゚I̧̛ā̛̆O̧ ️"
+  },
+  {
+   "id": 88,
+   "text": "Ω ȩ̃ e⃝̆ U",
+   "normalized": "Ω ȩ e⃝̆ U"
+  },
+  {
+   "id": 89,
+   "text": "ĬΩợ",
+   "normalized": "ĬΩơ"
+  },
+  {
+   "id": 90,
+   "text": "ａ゚̣̣",
+   "normalized": "ạ゚̣"
+  },
+  {
+   "id": 91,
+   "text": "ṓ̧ǿ゚̂",
+   "normalized": "ṓ̧ǿ゚̂"
+  },
+  {
+   "id": 92,
+   "text": "ßn̆ｶ̀̆1̧",
+   "normalized": "ßn̆カ̀̆1̧"
+  },
+  {
+   "id": 93,
+   "text": "E",
+   "normalized": "E"
+  },
+  {
+   "id": 94,
+   "text": "Ỳ゙️e゚゚ё️゙Ⅻ̂̂",
+   "normalized": "Ỳ゙️e゚゚ё️゙XIÎ̂"
+  },
+  {
+   "id": 95,
+   "text": "Ư̄ ß̆⃝̀",
+   "normalized": "Ư ß̆⃝̀"
+  },
+  {
+   "id": 96,
+   "text": "I",
+   "normalized": "I"
+  },
+  {
+   "id": 97,
+   "text": "o Ω",
+   "normalized": "o Ω"
+  },
+  {
+   "id": 98,
+   "text": "É̛",
+   "normalized": "É̛"
+  },
+  {
+   "id": 99,
+   "text": "ẸͅＡ",
+   "normalized": "ẸA"
+  },
+  {
+   "id": 100,
+   "text": "1̧ n̄ 1̀̃️",
+   "normalized": "1̧ n̄ 1̀̃️"
+  },
+  {
+   "id": 101,
+   "text": "Ω️ n ａ̛⃝̄ N̛",
+   "normalized": "Ω️ n a̛⃝̄ N̛"
+  },
+  {
+   "id": 102,
+   "text": "i",
+   "normalized": "i"
+  },
+  {
+   "id": 103,
+   "text": "Ã",
+   "normalized": "Ã"
+  },
+  {
+   "id": 104,
+   "text": "e̛U",
+   "normalized": "e̛U"
+  },
+  {
+   "id": 105,
+   "text": "ì゚Ëe⃝",
+   "normalized": "ì゚Ëe⃝"
+  },
+  {
+   "id": 106,
+   "text": "E‍️̛U",
+   "normalized": "E ️̛U"
+  },
+  {
+   "id": 107,
+   "text": "Ö️İ゙́n̂̄ͅⅫ̆̃",
+   "normalized": "Ö️İ゙́n̂̄ͅXIĬ̃"
+  },
+  {
+   "id": 108,
+   "text": "è İ",
+   "normalized": "è İ"
+  },
+  {
+   "id": 109,
+   "text": "ﬁ゙̛Ω̃̆́",
+   "normalized": "fi゙̛Ω̃̆́"
+  },
+  {
+   "id": 110,
+   "text": "e゚⃝",
+   "normalized": "e゚⃝"
+  },
+  {
+   "id": 111,
+   "text": "Y ῼ Ａ̛ Ω̄",
+   "normalized": "Y ῼ A Ω̄"
+  },
+  {
+   "id": 112,
+   "text": "A̧",
+   "normalized": "A̧"
+  },
+  {
+   "id": 113,
+   "text": "ﾊ̧‍️ä̛̀ﬁ゚̛̄ụ̧",
+   "normalized": "ハ̧ ️ä̛̀fī゚̛ụ"
+  },
+  {
+   "id": 114,
+   "text": "ṇ゚́ Ọ゚́ ﬁ̄̈",
+   "normalized": "ṇ゚́ Ọ゚́ fī̈"
+  },
+  {
+   "id": 115,
+   "text": "Iё̛̃Ὼ⃝́C̄̀",
+   "normalized": "Iё̛̃Ὼ⃝́C̄̀"
+  },
+  {
+   "id": 116,
+   "text": "Ŷ⃝ ç ç",
+   "normalized": "Ŷ⃝ ç ç"
+  },
+  {
+   "id": 117,
+   "text": "E n ё",
+   "normalized": "E n ё"
+  },
+  {
+   "id": 118,
+   "text": "ａ̄⃝ N a",
+   "normalized": "ā⃝ N a"
+  },
+  {
+   "id": 119,
+   "text": "e⃝ỵ゚̛Äc",
+   "normalized": "e⃝ỵ゚̛Äc"
+  },
+  {
+   "id": 120,
+   "text": "È️Ụ̀",
+   "normalized": "È️Ụ"
+  },
+  {
+   "id": 121,
+   "text": "Ω゚",
+   "normalized": "Ω゚"
+  },
+  {
+   "id": 122,
+   "text": "ȩC゙̈̂",
+   "normalized": "ȩC゙̈̂"
+  },
+  {
+   "id": 123,
+   "text": "ﬁ I゙‍̆",
+   "normalized": "fi I゙ ̆"
+  },
+  {
+   "id": 124,
+   "text": "ỳ゚ c゙ a⃝̄̆ ø̀",
+   "normalized": "ỳ゚ c゙ a⃝̄̆ ø̀"
+  },
+  {
+   "id": 125,
+   "text": "ｶ̧️̀ ß̧̃ Ņ゚̆",
+   "normalized": "カ̧️̀ ß̧̃ Ņ゚̆"
+  },
+  {
+   "id": 126,
+   "text": "あ́ İ̧̂̆",
+   "normalized": "あ́ İ̧̂̆"
+  },
+  {
+   "id": 127,
+   "text": "ａ̛ụﾊ̃ͅ",
+   "normalized": "aụハ̃ͅ"
+  },
+  {
+   "id": 128,
+   "text": "aß̃️Yç̧̛̄",
+   "normalized": "aß̃️Yç̧̛̄"
+  },
+  {
+   "id": 129,
+   "text": "Y‍゚̃",
+   "normalized": "Y ゚̃"
+  },
+  {
+   "id": 130,
+   "text": "é̂",
+   "normalized": "é"
+  },
+  {
+   "id": 131,
+   "text": "i İ゚̀̂",
+   "normalized": "i İ゚̀̂"
+  },
+  {
+   "id": 132,
+   "text": "İ",
+   "normalized": "İ"
+  },
+  {
+   "id": 133,
+   "text": "ﾊﬁ‍̛̀ï̆",
+   "normalized": "ハfi ̛̀ï"
+  },
+  {
+   "id": 134,
+   "text": "C⃝̛ｶ‍̛̄",
+   "normalized": "C⃝̛カ ̛̄"
+  },
+  {
+   "id": 135,
+   "text": "ĩ゚̃ Ŭ̂",
+   "normalized": "ĩ゚̃ Ŭ"
+  },
+  {
+   "id": 136,
+   "text": "ß️̧ͅｶ̆",
+   "normalized": "ß️̧ͅカ"
+  },
+  {
+   "id": 137,
+   "text": "Ａ̄̂‍ Ω̛̆ ﬁ́ Eͅ",
+   "normalized": "Ā̂  Ω̛̆ fi Eͅ"
+  },
+  {
+   "id": 138,
+   "text": "c",
+   "normalized": "c"
+  },
+  {
+   "id": 139,
+   "text": "Ω Ώ ﬁ‍̣̃",
+   "normalized": "Ω Ώ fi ̣̃"
+  },
+  {
+   "id": 140,
+   "text": "Ḉ゚",
+   "normalized": "Ḉ゚"
+  },
+  {
+   "id": 141,
+   "text": "C̆ͅu⃝ç̂",
+   "normalized": "C̆ͅu⃝ç̂"
+  },
+  {
+   "id": 142,
+   "text": "ọâ̛‍N̈ｶ",
+   "normalized": "ọâ̛ N̈カ"
+  },
+  {
+   "id": 143,
+   "text": "ａͅn̂",
+   "normalized": "an̂"
+  },
+  {
+   "id": 144,
+   "text": "ﾊA̧ⅫＡ́",
+   "normalized": "ハA̧XIIA"
+  },
+  {
+   "id": 145,
+   "text": "á️ёŌ",
+   "normalized": "á️ёŌ"
+  },
+  {
+   "id": 146,
+   "text": "A゚ Ö゙̆ O",
+   "normalized": "A゚ Ö゙̆ O"
+  },
+  {
+   "id": 147,
+   "text": "i゚ ﾊ̛",
+   "normalized": "i゚ ハ"
+  },
+  {
+   "id": 148,
+   "text": "ΏͅAO‍ï",
+   "normalized": "ΏͅAO ï"
+  },
+  {
+   "id": 149,
+   "text": "Ω̃̃⃝ụ",
+   "normalized": "Ω̃̃⃝ụ"
+  },
+  {
+   "id": 150,
+   "text": "ßͅ あ N゚‍⃝ あ̀",
+   "normalized": "ßͅ あ N゚ ⃝ あ̀"
+  },
+  {
+   "id": 151,
+   "text": "O̧ĭ⃝̂Ị̇⃝̈",
+   "normalized": "O̧ĭ⃝̂Ị̇⃝̈"
+  },
+  {
+   "id": 152,
+   "text": "I ç̧̀",
+   "normalized": "I ç̧̀"
+  },
+  {
+   "id": 153,
+   "text": "n‍́C̣",
+   "normalized": "n ́C̣"
+  },
+  {
+   "id": 154,
+   "text": "Ỳ️̆",
+   "normalized": "Ỳ️̆"
+  },
+  {
+   "id": 155,
+   "text": "Oͅ⃝ あ́ͅͅ",
+   "normalized": "Oͅ⃝ あ́ͅͅ"
+  },
+  {
+   "id": 156,
+   "text": "é",
+   "normalized": "é"
+  },
+  {
+   "id": 157,
+   "text": "あyi⃝゚゚ﬁ̣",
+   "normalized": "あyi⃝゚゚fi"
+  },
+  {
+   "id": 158,
+   "text": "Ω̃‍a⃝́Ị̇̄̈",
+   "normalized": "Ω̃ a⃝́Ị̇̄̈"
+  },
+  {
+   "id": 159,
+   "text": "Uё⃝‍̃ß̃⃝̆",
+   "normalized": "Uё⃝ ̃ß̃⃝̆"
+  },
+  {
+   "id": 160,
+   "text": "ó́ E U̧‍ U",
+   "normalized": "ó E U̧  U"
+  },
+  {
+   "id": 161,
+   "text": "A゙ I O",
+   "normalized": "A゙ I O"
+  },
+  {
+   "id": 162,
+   "text": "C̃ Cͅ â̛ ŏ‍",
+   "normalized": "C̃ Cͅ â ŏ "
+  },
+  {
+   "id": 163,
+   "text": "ǹ A゙̛⃝ ａ̈ i",
+   "normalized": "ǹ A゙̛⃝ a i"
+  },
+  {
+   "id": 164,
+   "text": "I⃝Ȩ⃝゚1",
+   "normalized": "I⃝Ȩ⃝゚1"
+  },
+  {
+   "id": 165,
+   "text": "ç̧̆̃",
+   "normalized": "ç̧̆̃"
+  },
+  {
+   "id": 166,
+   "text": "あ️ͅ",
+   "normalized": "あ️ͅ"
+  },
+  {
+   "id": 167,
+   "text": "c̆⃝̃ İ̈́️ e⃝̧ C",
+   "normalized": "c̆⃝̃ İ̈́️ e⃝̧ C"
+  },
+  {
+   "id": 168,
+   "text": "Nͅİ̧",
+   "normalized": "Nͅİ̧"
+  },
+  {
+   "id": 169,
+   "text": "Icç⃝̧",
+   "normalized": "Icç⃝̧"
+  },
+  {
+   "id": 170,
+   "text": "E️゚️ N n゙ ａ゙",
+   "normalized": "E️゚️ N n゙ a゙"
+  },
+  {
+   "id": 171,
+   "text": "uä‍̣ﾊ゚️̈",
+   "normalized": "uä ̣パ️̈"
+  },
+  {
+   "id": 172,
+   "text": "İ️̆̂E゙U‍゙Ω̛̆̆",
+   "normalized": "İ️̆̂E゙U ゙Ω̛̆̆"
+  },
+  {
+   "id": 173,
+   "text": "Ĉͅͅ Ａ̣ ò c",
+   "normalized": "Ĉͅͅ A ò c"
+  },
+  {
+   "id": 174,
+   "text": "ī゚́Ώ̛",
+   "normalized": "ī゚́Ώ̛"
+  },
+  {
+   "id": 175,
+   "text": "u̧️Ẽ゚゚ｶë̆",
+   "normalized": "u̧️Ẽ゚゚カë"
+  },
+  {
+   "id": 176,
+   "text": "ç゚⃝ Ẹ̛⃝",
+   "normalized": "ç゚⃝ Ẹ̛⃝"
+  },
+  {
+   "id": 177,
+   "text": "u゙⃝",
+   "normalized": "u゙⃝"
+  },
+  {
+   "id": 178,
+   "text": "1ﾊ",
+   "normalized": "1ハ"
+  },
+  {
+   "id": 179,
+   "text": "UYあͅ",
+   "normalized": "UYあͅ"
+  },
+  {
+   "id": 180,
+   "text": "1 í゚́",
+   "normalized": "1 í゚́"
+  },
+  {
+   "id": 181,
+   "text": "Iy",
+   "normalized": "Iy"
+  },
+  {
+   "id": 182,
+   "text": "I n ａ ȩ゚̂",
+   "normalized": "I n a ȩ゚̂"
+  },
+  {
+   "id": 183,
+   "text": "ё̧̛⃝",
+   "normalized": "ё̧̛⃝"
+  },
+  {
+   "id": 184,
+   "text": "ĭß̃̆Yò️",
+   "normalized": "ĭß̃̆Yò️"
+  },
+  {
+   "id": 185,
+   "text": "ụ゚ a ｶ̧̧̄",
+   "normalized": "ụ゚ a カ̧̧̄"
+  },
+  {
+   "id": 186,
+   "text": "1eN‍",
+   "normalized": "1eN "
+  },
+  {
+   "id": 187,
+   "text": "ÚN̂̂⃝ａ̛O",
+   "normalized": "ÚN̂̂⃝aO"
+  },
+  {
+   "id": 188,
+   "text": "y゙ i⃝゙̂",
+   "normalized": "y゙ i⃝゙̂"
+  },
+  {
+   "id": 189,
+   "text": "ç̂Onあ̆ͅ",
+   "normalized": "çOnあ̆ͅ"
+  },
+  {
+   "id": 190,
+   "text": "ì C⃝̄́ ãͅ",
+   "normalized": "ì C⃝̄́ ã"
+  },
+  {
+   "id": 191,
+   "text": "Ç̆ｶ̛̃ị̧",
+   "normalized": "Ç̆カ̛̃ị"
+  },
+  {
+   "id": 192,
+   "text": "á゚ ß̧̂̈ Y゙",
+   "normalized": "á゚ ß̧̂̈ Y゙"
+  },
+  {
+   "id": 193,
+   "text": "ị̣̆ß゚̈",
+   "normalized": "ị̣̆ß゚̈"
+  },
+  {
+   "id": 194,
+   "text": "ﾊ̛̆Ⅻ̧̀́y̧",
+   "normalized": "ハ̛̆XIÌ̧́y̧"
+  },
+  {
+   "id": 195,
+   "text": "Ỳ⃝̂",
+   "normalized": "Ỳ⃝̂"
+  },
+  {
+   "id": 196,
+   "text": "a️̃U゙️ａ̧̆",
+   "normalized": "a️̃U゙️ă̧"
+  },
+  {
+   "id": 197,
+   "text": "Ⅻ̛ﾊ",
+   "normalized": "XIIハ"
+  },
+  {
+   "id": 198,
+   "text": "ёİE",
+   "normalized": "ёİE"
+  },
+  {
+   "id": 199,
+   "text": "A゚ａ̣ͅ️y゙ͅ",
+   "normalized": "A゚ạͅ️y゙ͅ"
+  },
+  {
+   "id": 200,
+   "text": "ｶ️̆ͅ",
+   "normalized": "カ️̆ͅ"
+  },
+  {
+   "id": 201,
+   "text": "Ÿ゚Ａ‍",
+   "normalized": "Ÿ゚A "
+  },
+  {
+   "id": 202,
+   "text": "N",
+   "normalized": "N"
+  },
+  {
+   "id": 203,
+   "text": "ﬁ̃̃ あ̣̄̈ ć̣ ß́̂⃝",
+   "normalized": "fĩ̃ あ̣̄̈ ć̣ ß́̂⃝"
+  },
+  {
+   "id": 204,
+   "text": "ﾊß゚̀‍",
+   "normalized": "ハß゚̀ "
+  },
+  {
+   "id": 205,
+   "text": "1̄",
+   "normalized": "1̄"
+  },
+  {
+   "id": 206,
+   "text": "n İ️̛́",
+   "normalized": "n İ️̛́"
+  },
+  {
+   "id": 207,
+   "text": "Ⅻ̣̃ ĭ̛ 1̄",
+   "normalized": "XIỊ̃ ĭ̛ 1̄"
+  },
+  {
+   "id": 208,
+   "text": "C̛ͅͅ O N̛̆ O⃝̄",
+   "normalized": "C̛ͅͅ O N̛̆ O⃝̄"
+  },
+  {
+   "id": 209,
+   "text": "1̄ Ê N‍̄ Ē̆̃",
+   "normalized": "1̄ Ê N ̄ Ē̆̃"
+  },
+  {
+   "id": 210,
+   "text": "ŷ̧̈n⃝",
+   "normalized": "ŷ̧̈n⃝"
+  },
+  {
+   "id": 211,
+   "text": "Ⅻ̣‍",
+   "normalized": "XIỊ "
+  },
+  {
+   "id": 212,
+   "text": "Ⅻ゚̛ ø ß‍ 1̈️",
+   "normalized": "XII゚̛ ø ß  1̈️"
+  },
+  {
+   "id": 213,
+   "text": "ặ̛n⃝Ａё̃",
+   "normalized": "ặ̛n⃝Aё̃"
+  },
+  {
+   "id": 214,
+   "text": "o゚ͅ Ị̛️ ĕ̛ͅ",
+   "normalized": "o゚ͅ Ị̛️ ĕ̛ͅ"
+  },
+  {
+   "id": 215,
+   "text": "iΩen̂",
+   "normalized": "iΩen̂"
+  },
+  {
+   "id": 216,
+   "text": "ß̣̀️Ω",
+   "normalized": "ß̣̀️Ω"
+  },
+  {
+   "id": 217,
+   "text": "ﬁ゚̀ͅ",
+   "normalized": "fì゚ͅ"
+  },
+  {
+   "id": 218,
+   "text": "ﾊ゚゚cａ゙̈̆ø⃝゚",
+   "normalized": "パ゚cä゙̆ø⃝゚"
+  },
+  {
+   "id": 219,
+   "text": "c",
+   "normalized": "c"
+  },
+  {
+   "id": 220,
+   "text": "õあⅫあ̧̃",
+   "normalized": "õあXIIあ̧̃"
+  },
+  {
+   "id": 221,
+   "text": "ё‍̀ｶ̛̣Ａ‍゚̣A⃝̂̀",
+   "normalized": "ё ̀カ̛̣A ゚̣A⃝̂̀"
+  },
+  {
+   "id": 222,
+   "text": "ａ̧̣️İあ̆",
+   "normalized": "ạ̧️İあ̆"
+  },
+  {
+   "id": 223,
+   "text": "İ̀̆",
+   "normalized": "İ̀̆"
+  },
+  {
+   "id": 224,
+   "text": "c⃝ａ̧̣",
+   "normalized": "c⃝ạ̧"
+  },
+  {
+   "id": 225,
+   "text": "n̂ C ｶ‍̂̈ あ‍",
+   "normalized": "n̂ C カ ̂̈ あ "
+  },
+  {
+   "id": 226,
+   "text": "ē̃️A️̆️Ω̣̂ë",
+   "normalized": "ē̃️A️̆️Ω̣̂ë"
+  },
+  {
+   "id": 227,
+   "text": "Ⅻ̧",
+   "normalized": "XII"
+  },
+  {
+   "id": 228,
+   "text": "ﾊ̛",
+   "normalized": "ハ"
+  },
+  {
+   "id": 229,
+   "text": "1̄Ａ゙̣",
+   "normalized": "1̄Ạ゙"
+  },
+  {
+   "id": 230,
+   "text": "Ωöͅ",
+   "normalized": "Ωö"
+  },
+  {
+   "id": 231,
+   "text": "i️́a",
+   "normalized": "i️́a"
+  },
+  {
+   "id": 232,
+   "text": "Ａ",
+   "normalized": "A"
+  },
+  {
+   "id": 233,
+   "text": "ø",
+   "normalized": "ø"
+  },
+  {
+   "id": 234,
+   "text": "Ａ̈̈ A⃝ C̛̈",
+   "normalized": "Ä̈ A⃝ C̛̈"
+  },
+  {
+   "id": 235,
+   "text": "ß̄̀́",
+   "normalized": "ß̄̀́"
+  },
+  {
+   "id": 236,
+   "text": "İ̧̈ i️️‍",
+   "normalized": "İ̧̈ i️️ "
+  },
+  {
+   "id": 237,
+   "text": "ａa‍ё̄",
+   "normalized": "aa ё̄"
+  },
+  {
+   "id": 238,
+   "text": "Ⅻ‍̀c̣á⃝̄あ️̣̀",
+   "normalized": "XII ̀c̣á⃝̄あ️̣̀"
+  },
+  {
+   "id": 239,
+   "text": "ĉ゚゚",
+   "normalized": "ĉ゚゚"
+  },
+  {
+   "id": 240,
+   "text": "ﾊͅﬁ̧̂",
+   "normalized": "ハfî̧"
+  },
+  {
+   "id": 241,
+   "text": "Ỹ゙̆あ̈̀Ⅻ",
+   "normalized": "Ỹ゙̆あ̈̀XII"
+  },
+  {
+   "id": 242,
+   "text": "ё E️ ё",
+   "normalized": "ё E️ ё"
+  },
+  {
+   "id": 243,
+   "text": "Ĩ̄̆ Ị̇̀ͅ",
+   "normalized": "Ĩ̄̆ Ị̇̀ͅ"
+  },
+  {
+   "id": 244,
+   "text": "ё̄ i",
+   "normalized": "ё̄ i"
+  },
+  {
+   "id": 245,
+   "text": "Eａ̛̂́o̧‍ａ̛",
+   "normalized": "Eấ̛o̧ a"
+  },
+  {
+   "id": 246,
+   "text": "I゚̧̧",
+   "normalized": "I゚̧̧"
+  },
+  {
+   "id": 247,
+   "text": "ị̧̈ y Ω ç゚️",
+   "normalized": "ị̧̈ y Ω ç゚️"
+  },
+  {
+   "id": 248,
+   "text": "ĭỊ̇eﾊ゙̂̂",
+   "normalized": "ĭỊ̇eバ̂̂"
+  },
+  {
+   "id": 249,
+   "text": "c̆̄ͅ Ａ̃̄‍ O̧",
+   "normalized": "c̆̄ͅ Ã̄  O̧"
+  },
+  {
+   "id": 250,
+   "text": "Ŷ ć゙ ё̂̃",
+   "normalized": "Ŷ ć゙ ё̂̃"
+  },
+  {
+   "id": 251,
+   "text": "ç゙️️ ĉ̀̂ あ゙̆",
+   "normalized": "ç゙️️ ĉ̀̂ あ゙̆"
+  },
+  {
+   "id": 252,
+   "text": "ﬁ",
+   "normalized": "fi"
+  },
+  {
+   "id": 253,
+   "text": "İ̀",
+   "normalized": "İ̀"
+  },
+  {
+   "id": 254,
+   "text": "í",
+   "normalized": "í"
+  },
+  {
+   "id": 255,
+   "text": "İNí‍̄y",
+   "normalized": "İNí ̄y"
+  },
+  {
+   "id": 256,
+   "text": "ç⃝́あ̈̀̂",
+   "normalized": "ç⃝́あ̈̀̂"
+  },
+  {
+   "id": 257,
+   "text": "ΩßE️̛̀",
+   "normalized": "ΩßE️̛̀"
+  },
+  {
+   "id": 258,
+   "text": "ﾊ゙̂Ǹａ゚️E⃝̆̀",
+   "normalized": "バ̂Ǹa゚️E⃝̆̀"
+  },
+  {
+   "id": 259,
+   "text": "İ",
+   "normalized": "İ"
+  },
+  {
+   "id": 260,
+   "text": "ﾊOＡ️",
+   "normalized": "ハOA️"
+  },
+  {
+   "id": 261,
+   "text": "Y̛",
+   "normalized": "Y̛"
+  },
+  {
+   "id": 262,
+   "text": "c゚̛️ ṇ̆̆ Ω̣̃‍ ụ̂",
+   "normalized": "c゚̛️ ṇ̆̆ Ω̣̃  ụ"
+  },
+  {
+   "id": 263,
+   "text": "çﾊ̛̆Ĕ̛ͅ",
+   "normalized": "çハ̛̆Ĕ̛ͅ"
+  },
+  {
+   "id": 264,
+   "text": "n̛̂ç̛ͅ",
+   "normalized": "n̛̂ç̛ͅ"
+  },
+  {
+   "id": 265,
+   "text": "ａ゙️ͅ",
+   "normalized": "a゙️ͅ"
+  },
+  {
+   "id": 266,
+   "text": "ç̀̈̈I",
+   "normalized": "ç̀̈̈I"
+  },
+  {
+   "id": 267,
+   "text": "Ⅻ̆ͅ U‍̣ 1゙̣̈ o",
+   "normalized": "XIĬͅ U ̣ 1゙̣̈ o"
+  },
+  {
+   "id": 268,
+   "text": "ć゙̃",
+   "normalized": "ć゙̃"
+  },
+  {
+   "id": 269,
+   "text": "ý̧ Ĕ̈̆ 1̃̂",
+   "normalized": "ý̧ Ĕ̈̆ 1̃̂"
+  },
+  {
+   "id": 270,
+   "text": "ũ゙Ò゙",
+   "normalized": "ũ゙Ò゙"
+  },
+  {
+   "id": 271,
+   "text": "û Ŷͅͅ I",
+   "normalized": "û Ŷͅͅ I"
+  },
+  {
+   "id": 272,
+   "text": "i‍̈ͅ",
+   "normalized": "i ̈ͅ"
+  },
+  {
+   "id": 273,
+   "text": "O⃝ ń゚̈ Ć️ y゚",
+   "normalized": "O⃝ ń゚̈ Ć️ y゚"
+  },
+  {
+   "id": 274,
+   "text": "ụ̃̆",
+   "normalized": "ụ̃̆"
+  },
+  {
+   "id": 275,
+   "text": "ū⃝ё̄ç゙̃‍",
+   "normalized": "ū⃝ё̄ç゙̃ "
+  },
+  {
+   "id": 276,
+   "text": "Y̛ O",
+   "normalized": "Y̛ O"
+  },
+  {
+   "id": 277,
+   "text": "ａ̈ͅ ị̄ ç̛ c̀̆̀",
+   "normalized": "äͅ ị ç̛ c̀̆̀"
+  },
+  {
+   "id": 278,
+   "text": "ｶ",
+   "normalized": "カ"
+  },
+  {
+   "id": 279,
+   "text": "Ω",
+   "normalized": "Ω"
+  },
+  {
+   "id": 280,
+   "text": "ü̃‍ î゚̈",
+   "normalized": "ü̃  î゚̈"
+  },
+  {
+   "id": 281,
+   "text": "Ω",
+   "normalized": "Ω"
+  },
+  {
+   "id": 282,
+   "text": "Ieﬁ゚゙̄ё̀̂",
+   "normalized": "Iefī゚゙ё̀̂"
+  },
+  {
+   "id": 283,
+   "text": "c̆",
+   "normalized": "c̆"
+  },
+  {
+   "id": 284,
+   "text": "o⃝ U゙",
+   "normalized": "o⃝ U゙"
+  },
+  {
+   "id": 285,
+   "text": "ｶ̀️ O",
+   "normalized": "カ̀️ O"
+  },
+  {
+   "id": 286,
+   "text": "İn゙̄̂c゚̀Ñ̛̆",
+   "normalized": "İn゙̄̂c゚̀Ñ̛̆"
+  },
+  {
+   "id": 287,
+   "text": "ç⃝゚̄",
+   "normalized": "ç⃝゚̄"
+  },
+  {
+   "id": 288,
+   "text": "A゚ͅ‍Ω‍️Ωあ",
+   "normalized": "A゚ͅ Ω ️Ωあ"
+  },
+  {
+   "id": 289,
+   "text": "o️゚゚",
+   "normalized": "o️゚゚"
+  },
+  {
+   "id": 290,
+   "text": "Ń̈️ṇ̣C̀ͅ",
+   "normalized": "Ń̈️ṇC̀ͅ"
+  },
+  {
+   "id": 291,
+   "text": "ø̧̈̄ Ụ",
+   "normalized": "ø̧̈̄ Ụ"
+  },
+  {
+   "id": 292,
+   "text": "I Ⅻ️‍",
+   "normalized": "I XII️ "
+  },
+  {
+   "id": 293,
+   "text": "A̧ Y̆ ё️̆ Y゙",
+   "normalized": "A̧ Y̆ ё️̆ Y゙"
+  },
+  {
+   "id": 294,
+   "text": "A̧ ø̛ ố⃝ ﾊ̛",
+   "normalized": "A̧ ø̛ ố⃝ ハ"
+  },
+  {
+   "id": 295,
+   "text": "ư",
+   "normalized": "ư"
+  },
+  {
+   "id": 296,
+   "text": "ø̂",
+   "normalized": "ø̂"
+  },
+  {
+   "id": 297,
+   "text": "ē゚️ Ⅻ",
+   "normalized": "ē゚️ XII"
+  },
+  {
+   "id": 298,
+   "text": "ﾊ Ĭ̧̧",
+   "normalized": "ハ Ĭ̧̧"
+  },
+  {
+   "id": 299,
+   "text": "ﬁ゚ a゚̛",
+   "normalized": "fi゚ a゚̛"
+  },
+  {
+   "id": 300,
+   "text": "Ω̛̛⃝ U️ I゙",
+   "normalized": "Ω̛̛⃝ U️ I゙"
+  },
+  {
+   "id": 301,
+   "text": "ẹ̈̂ ﬁ̄ c゚゚̆",
+   "normalized": "ẹ̈̂ fi c゚゚̆"
+  },
+  {
+   "id": 302,
+   "text": "Nё゚́ẹͅ",
+   "normalized": "Nё゚́ẹ"
+  }
+ ]
+}
