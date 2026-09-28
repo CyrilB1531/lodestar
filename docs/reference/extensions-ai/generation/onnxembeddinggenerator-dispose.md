@@ -38,8 +38,9 @@ The session is **native memory**, not managed, so it is not reclaimed by a garba
 forgotten generator holds the model until the process ends.
 
 Disposing twice is safe. Calling
-[`OnnxEmbeddingGenerator.GenerateAsync`](onnxembeddinggenerator-generateasync.md) afterwards is not,
-and throws.
+[`OnnxEmbeddingGenerator.GenerateAsync`](onnxembeddinggenerator-generateasync.md) afterwards returns
+a task faulted with `ObjectDisposedException`, as every failure of that method comes back in its task
+([#1346](https://github.com/CyrilB1531/lodestar/issues/1346)).
 
 **Applies to** — net10.0, netstandard2.0.
 

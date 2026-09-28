@@ -10,14 +10,17 @@ public Task UpsertAsync(IEnumerable<TRecord> records, CancellationToken cancella
 ```
 
 **Parameters** — `record` is one record to write. `records` is several, written in order, so a key
-repeated inside the batch keeps its last record. `cancellationToken` is accepted for the
-abstraction's sake and not observed.
+repeated inside the batch keeps its last record. `cancellationToken` is checked once the
+records are read and before any is written.
 
-**Returns** — a completed `Task`.
+**Returns** — a completed `Task`, or a cancelled one, writing nothing, when `cancellationToken` is
+already cancelled ([#1354](https://github.com/CyrilB1531/lodestar/issues/1354)).
 
 **Exceptions** — `ArgumentNullException` when `record` or `records` is null, or when `records` holds a
 null record. `ArgumentException` when a record's key is null, or when its vector is not the width the
-schema declares; the message names the key and both widths.
+schema declares; the message names the key and both widths. `InvalidOperationException` when the
+records would take the collection past the largest array, checked before any is written
+([#1338](https://github.com/CyrilB1531/lodestar/issues/1338)).
 
 **Example** — writing the same key twice replaces the record, and its old vector with it.
 

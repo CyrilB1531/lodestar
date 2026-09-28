@@ -8,7 +8,8 @@ Whether the collection has been ensured or written to.
 public Task<bool> CollectionExistsAsync(CancellationToken cancellationToken = default)
 ```
 
-**Parameters** — `cancellationToken` is accepted for the abstraction's sake and not observed.
+**Parameters** — `cancellationToken` is checked on entry: one already cancelled returns a cancelled
+task ([#1354](https://github.com/CyrilB1531/lodestar/issues/1354)).
 
 **Returns** — a completed `Task<bool>`: `true` once
 [`LodestarVectorStoreCollection.EnsureCollectionExistsAsync`](lodestarvectorstorecollection-ensurecollectionexistsasync.md)

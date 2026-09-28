@@ -48,6 +48,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// key order is not part of ONNX Runtime's contract, so "the model's first
     /// output" was a coin toss on a multi-output model.
     /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="modelPath"/>, <paramref name="inputIdsName"/>, <paramref name="attentionMaskName"/> or <paramref name="tokenTypeIdsName"/> is null.</exception>
     /// <exception cref="ArgumentException">The model declares no input under <paramref name="inputIdsName"/> or <paramref name="attentionMaskName"/>, or no output under <paramref name="outputName"/>.</exception>
     public OnnxTextEmbedder(
         string modelPath,
@@ -58,6 +59,11 @@ public sealed class OnnxTextEmbedder : IDisposable
         string? outputName = null)
     {
         Guard.NotNull(modelPath);
+
+        // Before the session opens: a null name reached ONNX Runtime's dictionary as ArgumentNullException("key") (#1343).
+        Guard.NotNull(inputIdsName);
+        Guard.NotNull(attentionMaskName);
+        Guard.NotNull(tokenTypeIdsName);
         _session = options is null ? new InferenceSession(modelPath) : new InferenceSession(modelPath, options);
         try
         {
@@ -148,7 +154,7 @@ public sealed class OnnxTextEmbedder : IDisposable
         ThrowIfDisposed();
         if (inputIds.Length != attentionMask.Length)
         {
-            throw new ArgumentException("inputIds and attentionMask must have equal length.");
+            throw new ArgumentException("inputIds and attentionMask must have equal length.", nameof(attentionMask));
         }
 
         int seqLen = inputIds.Length;
@@ -182,6 +188,8 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="texts">The texts to embed.</param>
     /// <param name="options">Template, truncation and batching settings; <see langword="null"/> uses the defaults, with <c>MaxLength</c> taken from <see cref="MaxSequenceLength"/>.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="texts"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="options"/> is refused by <see cref="BatchEncoder"/>, or a text is, as one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/> is.</exception>
     /// <exception cref="InvalidOperationException">The embedder was built without a tokenizer, or the model output is not shaped for the batch it was fed.</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
@@ -210,6 +218,8 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="texts">The texts to embed.</param>
     /// <param name="encoder">The encoder that owns the tokenizer, template and truncation.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="texts"/> or <paramref name="encoder"/> is null.</exception>
+    /// <exception cref="ArgumentException">The encoder refuses a text, as it refuses one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
@@ -252,6 +262,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// </remarks>
     /// <param name="batch">A batch from <see cref="BatchEncoder.EncodeBatch"/>.</param>
     /// <param name="cancellationToken">Observed before the call is made.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="batch"/> is null.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>

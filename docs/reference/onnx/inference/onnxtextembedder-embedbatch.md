@@ -18,7 +18,11 @@ abandons the run.
 
 **Returns** — `float[][]`, one vector of `Dimension` per input text, in input order.
 
-**Exceptions** — `InvalidOperationException` from the overload taking only texts, when the
+**Exceptions** — `ArgumentNullException` when `texts`, `encoder` or `batch` is null.
+`ArgumentException` when the encoder refuses a text — as it refuses one over `MaxLength` under
+`TruncationStrategy.None` — naming `texts`, or, from the overload taking `options`, when
+[`BatchEncoder`](../../embeddings/tokenization/batchencoder.md) refuses them.
+`InvalidOperationException` from the overload taking only texts, when the
 embedder was built without a tokenizer: the other two overloads are the way to supply one. All
 three throw it when the model output is not shaped for the batch it was fed, and `NotSupportedException` when its elements
 are not float, float16 or bfloat16, as [`Embed`](onnxtextembedder-embed.md) does.

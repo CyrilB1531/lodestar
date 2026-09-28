@@ -8,9 +8,10 @@ Marks the collection as existing.
 public Task EnsureCollectionExistsAsync(CancellationToken cancellationToken = default)
 ```
 
-**Parameters** — `cancellationToken` is accepted for the abstraction's sake and not observed.
+**Parameters** — `cancellationToken` is checked before the collection is marked as existing.
 
-**Returns** — a completed `Task`.
+**Returns** — a completed `Task`, or a cancelled one, changing nothing, when `cancellationToken` is
+already cancelled ([#1354](https://github.com/CyrilB1531/lodestar/issues/1354)).
 
 **Example** — an empty collection that exists, and is listed.
 

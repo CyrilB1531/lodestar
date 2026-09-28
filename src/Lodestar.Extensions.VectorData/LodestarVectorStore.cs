@@ -82,13 +82,30 @@ public sealed class LodestarVectorStore : VectorStore
     }
 
     /// <inheritdoc />
-    public override Task<bool> CollectionExistsAsync(string name, CancellationToken cancellationToken = default) =>
-        Task.FromResult(_collections.TryGetValue(name, out object? held)
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
+    public override Task<bool> CollectionExistsAsync(string name, CancellationToken cancellationToken = default)
+    {
+        // Named, as GetCollection names it, rather than surfacing as Dictionary's "key" (#1353).
+        Guard.NotNull(name);
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled<bool>(cancellationToken);
+        }
+
+        return Task.FromResult(_collections.TryGetValue(name, out object? held)
             && held is IExistingCollection { Exists: true });
+    }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
     public override Task EnsureCollectionDeletedAsync(string name, CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(name);
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled(cancellationToken);
+        }
+
         if (_collections.TryGetValue(name, out object? held) && held is IExistingCollection collection)
         {
             return collection.EnsureDeletedAsync(cancellationToken);

@@ -286,4 +286,19 @@ public sealed class OnnxEmbeddingGeneratorTests
             Assert.InRange(embedding.CreatedAt.Value, before, after);
         });
     }
+
+    /// <summary>A text the encoder refuses faults the task under <c>values</c>, this method's parameter (#1345).</summary>
+    [Fact]
+    public async Task A_refused_text_faults_the_task_under_values()
+    {
+        using var embedder = Embedder();
+        using var generator = new OnnxEmbeddingGenerator(
+            embedder,
+            new BatchEncoder(BatchCorpus.Tokenizer(), new EncodingOptions { MaxLength = 3, Truncation = TruncationStrategy.None }));
+
+        ArgumentException error = await Assert.ThrowsAsync<ArgumentException>(
+            () => generator.GenerateAsync(["the cat sat on the mat"], cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal("values", error.ParamName);
+    }
 }
