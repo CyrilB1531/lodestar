@@ -15,6 +15,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `Splitters.KFold`, `StratifiedKFold` and `TrainTest` called with `default` as their third argument no longer compile, since it now matches both the `order` and the `randomState` overload; pass `ReadOnlySpan<int>.Empty` or drop the argument. ([#1157](https://github.com/CyrilB1531/lodestar/issues/1157))
 - Every fitted statistic, category list and split index is a read-only view, so casting one back to its array no longer edits the fitted object; `KBinsDiscretizer.Transform` finds a bin by binary search and the sparse scalers scan for duplicate cells once. ([#1232](https://github.com/CyrilB1531/lodestar/issues/1232))
 
+### Fixed
+
+- `StandardScaler.Fit` over a `CsrMatrix` takes each column's variance in scikit-learn's two passes, so a column far from zero no longer loses its variance to cancellation. ([#1228](https://github.com/CyrilB1531/lodestar/issues/1228))
+
 ## [0.2.0] — 2026-09-24
 
 ### Added

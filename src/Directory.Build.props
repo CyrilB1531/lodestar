@@ -50,6 +50,13 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Guard.cs" Link="Internal/Guard.cs" />
   </ItemGroup>
 
+  <!-- mean_variance_axis over a sparse matrix, compiled into the two libraries that read a column's
+       variance off one: Lodestar.Decomposition for TruncatedSvd's total variance, Lodestar.Preprocessing
+       for StandardScaler (#1228). Neither reaches the other's internals across a published floor. -->
+  <ItemGroup Condition="'$(LodestarIncludesSparseMoments)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/SparseMoments.cs" Link="Internal/SparseMoments.cs" />
+  </ItemGroup>
+
   <!-- The affine-32 coefficient refusal, compiled into the two libraries that sketch.
        Lodestar.Gpu carries no edge to any Lodestar package and Lodestar.Text is where the
        CPU path lives, so shared source is the only way the two hold one copy (#645). -->

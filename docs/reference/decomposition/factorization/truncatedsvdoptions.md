@@ -18,7 +18,7 @@ public sealed record TruncatedSvdOptions
 | `PowerIterations` | `5` | How many times the probe block is pushed through `A` and `Aᵀ`. This is the knob that matters when the singular values decay slowly. |
 | `Normalizer` | `Auto` | What happens to the block between the two products — see [`PowerIterationNormalizer`](poweriterationnormalizer.md). |
 | `Seed` | `0` | Seeds this package's generator when `RandomMatrix` is null. It reproduces a run of Lodestar, never a run of NumPy. |
-| `RandomMatrix` | `null` | Ω itself, row-major and `FeatureCount × (componentCount + Oversampling)`. Given, it replaces the draw entirely. |
+| `RandomMatrix` | `null` | Ω itself, row-major and `min(rows, columns) × (componentCount + Oversampling)`: a matrix with fewer rows than columns is factored as its transpose, as `randomized_svd(transpose="auto")` factors it. Given, it replaces the draw entirely. |
 
 **`Seed` and `RandomMatrix` answer two different questions.** `Seed` makes a run repeatable on
 your machine; the block it draws comes from a SplitMix64 generator this package owns, because

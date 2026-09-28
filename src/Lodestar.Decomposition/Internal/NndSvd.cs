@@ -28,7 +28,7 @@ internal static class NndSvd
         int rows = matrix.RowCount;
         int features = matrix.ColumnCount;
         int size = componentCount + Oversampling;
-        double[] omega = randomMatrix ?? new GaussianSampler(seed).Normal(features, size);
+        double[] omega = randomMatrix ?? new GaussianSampler(seed).Normal(RandomizedSvd.OmegaRows(matrix), size);
 
         (double[] u, double[] s, double[] vt, int rank) = RandomizedSvd.Compute(
             matrix, componentCount, Oversampling, PowerIterations(matrix, componentCount),

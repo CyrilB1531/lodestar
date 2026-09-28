@@ -13,19 +13,23 @@ namespace Lodestar.Decomposition;
 /// </remarks>
 public sealed class TruncatedSvd
 {
-    private readonly double[] _components;
     private readonly double[] _singularValues;
+
+    // The components by feature, as the projection reads them: transposed once at the fit, where
+    // every Transform allocated and filled them again, a 3.2 MB block at 20 × 20,000.
+    private readonly double[] _byFeature;
 
     private TruncatedSvd(
         int featureCount,
         double[] components,
+        double[] byFeature,
         double[] singularValues,
         double[] explainedVariance,
         double[] explainedVarianceRatio)
     {
         FeatureCount = featureCount;
-        _components = components;
-        Components = Array.AsReadOnly(_components);
+        _byFeature = byFeature;
+        Components = Array.AsReadOnly(components);
         _singularValues = singularValues;
         SingularValues = Array.AsReadOnly(_singularValues);
         ExplainedVariance = Array.AsReadOnly(explainedVariance);
@@ -60,8 +64,8 @@ public sealed class TruncatedSvd
     /// <param name="componentCount">How many components to keep.</param>
     /// <param name="options">The randomized solver's settings, or null for scikit-learn's defaults.</param>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="componentCount"/> is not in <c>[1, matrix.ColumnCount)</c>, is above <c>matrix.RowCount</c>, or an option is negative or too large to add to it.</exception>
-    /// <exception cref="ArgumentException"><paramref name="matrix"/> holds a NaN or an infinity, or <see cref="TruncatedSvdOptions.RandomMatrix"/> is not <c>matrix.ColumnCount × (componentCount + oversampling)</c>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="componentCount"/> is not in <c>[1, matrix.ColumnCount]</c>, or an option is negative or too large to add to it.</exception>
+    /// <exception cref="ArgumentException"><paramref name="matrix"/> has no row, holds a NaN or an infinity, or <see cref="TruncatedSvdOptions.RandomMatrix"/> is not <c>min(RowCount, ColumnCount) × (componentCount + oversampling)</c> — <c>ColumnCount</c> rows for a tall matrix, <c>RowCount</c> for a wide one, which is factored as its transpose.</exception>
     public static TruncatedSvd Fit(
         CsrMatrix matrix, int componentCount, TruncatedSvdOptions? options = null)
     {
@@ -72,12 +76,13 @@ public sealed class TruncatedSvd
 
         int features = matrix.ColumnCount;
         int size = componentCount + settings.Oversampling;
+        int omegaRows = RandomizedSvd.OmegaRows(matrix);
         double[] omega = settings.RandomMatrix
-            ?? new GaussianSampler(settings.Seed).Normal(features, size);
-        if (omega.Length != (long)features * size)
+            ?? new GaussianSampler(settings.Seed).Normal(omegaRows, size);
+        if (omega.Length != (long)omegaRows * size)
         {
             throw new ArgumentException(
-                $"Ω is {omega.Length} long, not {features} × {size}.", nameof(options));
+                $"Ω is {omega.Length} long, not {omegaRows} × {size}.", nameof(options));
         }
 
         // Since 1.6 the estimator asks randomized_svd for flip_sign=False and flips on the
@@ -87,13 +92,17 @@ public sealed class TruncatedSvd
             settings.Normalizer, omega, leftVectors: false);
         SignFlip.Apply(vt, rank, features);
 
-        double[] components = new double[checked(componentCount * features)];
+        // Past the row count the transposed factorization has only that many components, and
+        // scikit-learn keeps what there is rather than refusing (#1231).
+        int kept = Math.Min(componentCount, rank);
+        double[] components = new double[checked(kept * features)];
         Array.Copy(vt, components, components.Length);
-        double[] singularValues = new double[componentCount];
-        Array.Copy(s, singularValues, componentCount);
+        double[] singularValues = new double[kept];
+        Array.Copy(s, singularValues, kept);
 
-        (double[] variance, double[] ratio) = ExplainedBy(components, matrix, componentCount);
-        return new TruncatedSvd(features, components, singularValues, variance, ratio);
+        double[] byFeature = DenseBlock.Transpose(components, kept, features);
+        (double[] variance, double[] ratio) = ExplainedBy(byFeature, matrix, kept);
+        return new TruncatedSvd(features, components, byFeature, singularValues, variance, ratio);
     }
 
     /// <summary>Projects <paramref name="matrix"/> onto the components, row-major and <see cref="ComponentCount"/> wide.</summary>
@@ -111,13 +120,14 @@ public sealed class TruncatedSvd
         }
 
         RequireFinite(matrix);
-        return Project(matrix, _components, ComponentCount, FeatureCount);
+        return Project(matrix, _byFeature, ComponentCount);
     }
 
     /// <summary>Refuses a stored NaN or infinity, as scikit-learn's input check does.</summary>
     /// <remarks>
-    /// Left in, a NaN reaches the QR's sign test and throws <see cref="ArithmeticException"/> from
-    /// inside the solver on a fit, and comes back as NaN coordinates from a projection.
+    /// Left in, a NaN reaches the Jacobi rotation's <c>Math.Sign</c> and throws
+    /// <see cref="ArithmeticException"/> from inside the solver on a fit (#1255), and comes back as
+    /// NaN coordinates from a projection.
     /// </remarks>
     private static void RequireFinite(CsrMatrix matrix)
     {
@@ -138,17 +148,18 @@ public sealed class TruncatedSvd
     /// </remarks>
     private static void Validate(CsrMatrix matrix, int componentCount, TruncatedSvdOptions options)
     {
-        if (componentCount < 1 || componentCount >= matrix.ColumnCount)
+        // The randomized path's own bound, n_components <= n_features (#1231).
+        if (matrix.RowCount < 1)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(componentCount), componentCount,
-                $"A truncated SVD keeps between 1 and {matrix.ColumnCount - 1} components.");
+            // check_array refuses a matrix with no sample before the solver is reached.
+            throw new ArgumentException("A truncated SVD needs at least one row; matrix has none.", nameof(matrix));
         }
-        if (componentCount > matrix.RowCount)
+
+        if (componentCount < 1 || componentCount > matrix.ColumnCount)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(componentCount), componentCount,
-                $"A matrix of {matrix.RowCount} rows has no more than that many components.");
+                $"A truncated SVD keeps between 1 and {matrix.ColumnCount} components.");
         }
         if (options.Oversampling < 0)
         {
@@ -178,10 +189,8 @@ public sealed class TruncatedSvd
     /// row-major, every non-zero paid k reads a whole feature count apart. Each cell sums the same
     /// products in the same order.
     /// </remarks>
-    private static double[] Project(
-        CsrMatrix matrix, double[] components, int componentCount, int featureCount)
+    private static double[] Project(CsrMatrix matrix, double[] byFeature, int componentCount)
     {
-        double[] byFeature = DenseBlock.Transpose(components, componentCount, featureCount);
         double[] values = matrix.Values;
         int[] columns = matrix.ColumnIndices;
         int[] pointers = matrix.RowPointers;
@@ -205,9 +214,9 @@ public sealed class TruncatedSvd
     /// behind — which on these corpora is the third decimal, not the last bits.
     /// </remarks>
     private static (double[] Variance, double[] Ratio) ExplainedBy(
-        double[] components, CsrMatrix matrix, int componentCount)
+        double[] byFeature, CsrMatrix matrix, int componentCount)
     {
-        double[] projection = Project(matrix, components, componentCount, matrix.ColumnCount);
+        double[] projection = Project(matrix, byFeature, componentCount);
         double[] variance = ColumnVariance(projection, matrix.RowCount, componentCount);
         double total = TotalVariance(matrix);
         double[] ratio = new double[componentCount];
@@ -244,27 +253,17 @@ public sealed class TruncatedSvd
 
     /// <summary>The input's total column variance — the denominator of the ratio.</summary>
     /// <remarks>
-    /// Computed from the sums of a sparse column and of its squares, which is what
-    /// <c>mean_variance_axis</c> does: nothing is densified to reach it, and the zeros count
-    /// towards the mean exactly as they must.
+    /// Computed in <c>mean_variance_axis</c>'s two passes over the stored values: nothing is
+    /// densified to reach it, and the absent zeros count towards the mean exactly as they must.
     /// </remarks>
     private static double TotalVariance(CsrMatrix matrix)
     {
-        double[] sums = new double[matrix.ColumnCount];
-        double[] squares = new double[matrix.ColumnCount];
-        for (int index = 0; index < matrix.Values.Length; index++)
-        {
-            double value = matrix.Values[index];
-            int column = matrix.ColumnIndices[index];
-            sums[column] += value;
-            squares[column] += value * value;
-        }
-
+        // mean_variance_axis's own two-pass form, which E[x²] − E[x]² cancelled against (#1228).
+        (_, double[] variances) = SparseMoments.MeanVariance(matrix);
         double total = 0;
-        for (int column = 0; column < matrix.ColumnCount; column++)
+        foreach (double variance in variances)
         {
-            double mean = sums[column] / matrix.RowCount;
-            total += (squares[column] / matrix.RowCount) - (mean * mean);
+            total += variance;
         }
         return total;
     }

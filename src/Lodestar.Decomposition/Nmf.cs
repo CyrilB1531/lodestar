@@ -61,7 +61,7 @@ public sealed class Nmf
     /// <param name="options">The solver's settings, or null for scikit-learn's defaults.</param>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="componentCount"/> is not in <c>[1, min(matrix.RowCount, matrix.ColumnCount)]</c>, or an option is out of range.</exception>
-    /// <exception cref="ArgumentException"><paramref name="matrix"/> holds a negative value, a NaN or an infinity, or <see cref="NmfOptions.RandomMatrix"/> is not <c>matrix.ColumnCount × (componentCount + 10)</c>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="matrix"/> holds a negative value, a NaN or an infinity, or <see cref="NmfOptions.RandomMatrix"/> is not <c>min(matrix.RowCount, matrix.ColumnCount) × (componentCount + 10)</c>.</exception>
     public static Nmf Fit(CsrMatrix matrix, int componentCount, NmfOptions? options = null)
     {
         Guard.NotNull(matrix);
@@ -82,10 +82,11 @@ public sealed class Nmf
         }
 
         int size = componentCount + NndSvd.Oversampling;
-        if (settings.RandomMatrix is { } omega && omega.Length != (long)matrix.ColumnCount * size)
+        int omegaRows = RandomizedSvd.OmegaRows(matrix);
+        if (settings.RandomMatrix is { } omega && omega.Length != (long)omegaRows * size)
         {
             throw new ArgumentException(
-                $"Ω is {omega.Length} long, not {matrix.ColumnCount} × {size}.", nameof(options));
+                $"Ω is {omega.Length} long, not {omegaRows} × {size}.", nameof(options));
         }
 
         RequireNonNegativeMatrix(matrix);

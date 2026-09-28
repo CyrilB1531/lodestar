@@ -110,9 +110,10 @@ internal static class JacobiSpectrum
         cosine = 1;
         sine = 0;
         // S1244: whether the pair is already orthogonal (gamma vanished entirely), not
-        // whether two computed quantities are close.
+        // whether two computed quantities are close. The two roots are taken apart: their
+        // product under one root overflows past 1.8e308 and calls every pair orthogonal (#1255).
 #pragma warning disable S1244
-        if (gamma == 0 || Math.Abs(gamma) <= Threshold * Math.Sqrt(alpha * beta))
+        if (gamma == 0 || Math.Abs(gamma) <= Threshold * Math.Sqrt(alpha) * Math.Sqrt(beta))
 #pragma warning restore S1244
         {
             return false;

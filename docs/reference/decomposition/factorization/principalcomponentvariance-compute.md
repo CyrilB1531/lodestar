@@ -17,7 +17,8 @@ first.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `rowCount` is below two or `columnCount` is not
 positive. `ArgumentException` when `matrix` does not hold `rowCount × columnCount` values, holds a
-`NaN` or an infinity, or has no variance at all because every column is constant.
+`NaN` or an infinity, holds values too large to centre or a variance past the largest double, or has
+no variance at all because every column is constant.
 
 **Example** — fewer samples than features caps the component count at the samples.
 

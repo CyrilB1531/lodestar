@@ -21,22 +21,31 @@ internal static class RandomizedRangeFinder
         ReadOnlySpan<double> omega,
         int size,
         int powerIterations,
-        PowerIterationNormalizer normalizer)
+        PowerIterationNormalizer normalizer,
+        bool transposed)
     {
         PowerIterationNormalizer resolved = Resolve(normalizer, powerIterations);
 
-        double[] block = matrix.Multiply(omega, size);
+        // The range of A, where A is the matrix or, under transpose="auto", its transpose: A·Q is
+        // then Xᵀ·Q and Aᵀ·Q is X·Q, and the sparse matrix itself is never transposed (#1256).
+        int rows = transposed ? matrix.ColumnCount : matrix.RowCount;
+        int columns = transposed ? matrix.RowCount : matrix.ColumnCount;
+        double[] block = Apply(matrix, omega, size, transposed);
         int width = size;
         for (int iteration = 0; iteration < powerIterations; iteration++)
         {
-            (block, width) = Normalize(block, matrix.RowCount, width, resolved);
-            block = matrix.TransposeMultiply(block, width);
-            (block, width) = Normalize(block, matrix.ColumnCount, width, resolved);
-            block = matrix.Multiply(block, width);
+            (block, width) = Normalize(block, rows, width, resolved);
+            block = Apply(matrix, block, width, !transposed);
+            (block, width) = Normalize(block, columns, width, resolved);
+            block = Apply(matrix, block, width, transposed);
         }
 
-        return Orthonormalize(block, matrix.RowCount, width).Block;
+        return Orthonormalize(block, rows, width).Block;
     }
+
+    /// <summary><c>X·B</c>, or <c>Xᵀ·B</c> when <paramref name="transposed"/>.</summary>
+    internal static double[] Apply(CsrMatrix matrix, ReadOnlySpan<double> block, int width, bool transposed) =>
+        transposed ? matrix.TransposeMultiply(block, width) : matrix.Multiply(block, width);
 
     /// <summary>scikit-learn's <c>auto</c>: no normalizer below three iterations, LU above.</summary>
     internal static PowerIterationNormalizer Resolve(

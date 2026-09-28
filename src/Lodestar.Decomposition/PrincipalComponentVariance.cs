@@ -57,7 +57,7 @@ public sealed class PrincipalComponentVariance
     /// <param name="columnCount">How many features it has.</param>
     /// <returns>The variance, the ratio and the cumulative curve, one entry per component.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="rowCount"/> is below two, or <paramref name="columnCount"/> is not positive.</exception>
-    /// <exception cref="ArgumentException"><paramref name="matrix"/> does not hold <paramref name="rowCount"/> × <paramref name="columnCount"/> values, holds a value that is not finite, or has no variance at all.</exception>
+    /// <exception cref="ArgumentException"><paramref name="matrix"/> does not hold <paramref name="rowCount"/> × <paramref name="columnCount"/> values, holds a value that is not finite or too large to centre, has a variance past the largest double, or has no variance at all.</exception>
     public static PrincipalComponentVariance Compute(
         ReadOnlySpan<double> matrix, int rowCount, int columnCount)
     {
@@ -71,15 +71,34 @@ public sealed class PrincipalComponentVariance
         }
 
         double[] means = ColumnMeans(matrix, rowCount, columnCount);
-        double[] eigenvalues = GramEigenvalues(matrix, means, rowCount, columnCount);
+
+        // Only a Gram whose squares would leave the doubles is rescaled, by a power of two, which is
+        // exact; at an ordinary scale nothing is scaled and the spectrum is main's, bit for bit (#1255).
+        double[] gram = Gram(matrix, means, rowCount, columnCount, 1.0, out int order);
+        int exponent = 0;
+        if (!Representable(gram, order))
+        {
+            exponent = LargestExponent(matrix, means, rowCount, columnCount);
+            gram = Gram(matrix, means, rowCount, columnCount, Math.Pow(2.0, -exponent), out order);
+        }
+
+        // A symmetric positive semi-definite matrix's singular values are its eigenvalues.
+        double[] eigenvalues = JacobiSvd.SingularValues(gram, order, order);
+        double unscale = Math.Pow(2.0, exponent);
 
         int components = eigenvalues.Length;
         double[] variance = new double[components];
         double total = 0.0;
         for (int k = 0; k < components; k++)
         {
-            variance[k] = eigenvalues[k] / (rowCount - 1);
+            variance[k] = eigenvalues[k] * unscale * unscale / (rowCount - 1);
             total += variance[k];
+        }
+
+        // Past about 1e154 the variance itself leaves the doubles; scikit-learn's PCA fails there too.
+        if (double.IsInfinity(total))
+        {
+            throw new ArgumentException("The variance overflows: the values are too large.", nameof(matrix));
         }
 
         // S1244: a block whose every column is constant centres to exactly zero, and that
@@ -107,7 +126,7 @@ public sealed class PrincipalComponentVariance
             rowCount, columnCount, total, variance, ratio, cumulative);
     }
 
-    /// <summary>The eigenvalues of the centred block's Gram matrix, largest first.</summary>
+    /// <summary>The centred block's Gram matrix, both triangles, scaled by <paramref name="scale"/>.</summary>
     /// <remarks>
     /// <c>XᵀX</c> for a tall block and <c>XXᵀ</c> for a wide one share their non-zero eigenvalues,
     /// which are the squared singular values scikit-learn's <c>svd_solver="full"</c> reads, so the
@@ -115,14 +134,14 @@ public sealed class PrincipalComponentVariance
     /// <c>covariance_eigh</c> does for tall blocks; the loss is absolute accuracy near
     /// <c>ε · λ₁</c>, which no ratio can show. Decision 0003 has the timings that chose it.
     /// </remarks>
-    private static double[] GramEigenvalues(
-        ReadOnlySpan<double> matrix, double[] means, int rowCount, int columnCount)
+    private static double[] Gram(
+        ReadOnlySpan<double> matrix, double[] means, int rowCount, int columnCount, double scale, out int order)
     {
         bool tall = rowCount >= columnCount;
-        int order = tall ? columnCount : rowCount;
+        order = tall ? columnCount : rowCount;
         double[] gram = tall
-            ? ColumnGram(matrix, means, rowCount, columnCount)
-            : RowGram(Centre(matrix, means, rowCount, columnCount), rowCount, columnCount);
+            ? ColumnGram(matrix, means, rowCount, columnCount, scale)
+            : RowGram(Centre(matrix, means, rowCount, columnCount, scale), rowCount, columnCount);
 
         for (int a = 0; a < order; a++)
         {
@@ -132,8 +151,53 @@ public sealed class PrincipalComponentVariance
             }
         }
 
-        // A symmetric positive semi-definite matrix's singular values are its eigenvalues.
-        return JacobiSvd.SingularValues(gram, order, order);
+        return gram;
+    }
+
+    /// <summary>Whether the Jacobi sweep can square this Gram's entries without leaving the normal doubles.</summary>
+    private static bool Representable(double[] gram, int order)
+    {
+        double largest = 0.0;
+        for (int a = 0; a < order; a++)
+        {
+            double diagonal = gram[(a * order) + a];
+            if (double.IsNaN(diagonal) || double.IsInfinity(diagonal))
+            {
+                return false;
+            }
+
+            largest = Math.Max(largest, diagonal);
+        }
+
+        // The sweep squares these entries, so both ends keep a square inside the normal doubles.
+        // S1244: an all-zero Gram is the constant block refused below, not a scale to fix.
+#pragma warning disable S1244
+        return largest == 0.0 || (largest > 1e-140 && largest < 1e140);
+#pragma warning restore S1244
+    }
+
+    /// <summary>The binary exponent of the largest centred magnitude, which the rescaled Gram divides out.</summary>
+    private static int LargestExponent(ReadOnlySpan<double> matrix, double[] means, int rowCount, int columnCount)
+    {
+        double largest = 0.0;
+        for (int row = 0; row < rowCount; row++)
+        {
+            for (int column = 0; column < columnCount; column++)
+            {
+                largest = Math.Max(largest, Math.Abs(matrix[(row * columnCount) + column] - means[column]));
+            }
+        }
+
+        // A column summing past the largest double has no mean to centre on; scikit-learn's
+        // LAPACK call fails there too, as LinAlgError.
+        if (double.IsNaN(largest) || double.IsInfinity(largest))
+        {
+            throw new ArgumentException(
+                "The column means overflow: the values are too large to centre.", nameof(matrix));
+        }
+
+        // Every power of two in ±1022 is a normal double, so the scaled magnitudes land near one.
+        return largest > 0.0 ? Math.Max(-1022, Math.Min(1022, (int)Math.Floor(Math.Log(largest, 2.0)))) : 0;
     }
 
     /// <summary>The upper triangle of the centred <c>XᵀX</c>, one row at a time, so the walk stays row-major.</summary>
@@ -143,7 +207,7 @@ public sealed class PrincipalComponentVariance
     /// the accuracy that subtracting <c>n · μμᵀ</c> afterwards would lose on a large mean.
     /// </remarks>
     private static double[] ColumnGram(
-        ReadOnlySpan<double> matrix, double[] means, int rowCount, int columnCount)
+        ReadOnlySpan<double> matrix, double[] means, int rowCount, int columnCount, double scale)
     {
         double[] gram = new double[checked(columnCount * columnCount)];
         double[] centred = new double[columnCount];
@@ -152,7 +216,7 @@ public sealed class PrincipalComponentVariance
             ReadOnlySpan<double> values = matrix.Slice(row * columnCount, columnCount);
             for (int column = 0; column < columnCount; column++)
             {
-                centred[column] = values[column] - means[column];
+                centred[column] = (values[column] - means[column]) * scale;
             }
 
             for (int a = 0; a < columnCount; a++)
@@ -199,11 +263,15 @@ public sealed class PrincipalComponentVariance
             for (int column = 0; column < columnCount; column++)
             {
                 double value = matrix[(row * columnCount) + column];
-                if (double.IsNaN(value) || double.IsInfinity(value))
+                if (double.IsNaN(value))
+                {
+                    throw new ArgumentException("Input X contains NaN.", nameof(matrix));
+                }
+
+                if (double.IsInfinity(value))
                 {
                     throw new ArgumentException(
-                        $"matrix holds {value} at row {row}, column {column}; a variance needs finite values.",
-                        nameof(matrix));
+                        "Input X contains infinity or a value too large for dtype('float64').", nameof(matrix));
                 }
 
                 means[column] += value;
@@ -220,14 +288,15 @@ public sealed class PrincipalComponentVariance
 
     /// <summary>A centred copy of the block, for the wide path whose Gram pairs whole rows.</summary>
     private static double[] Centre(
-        ReadOnlySpan<double> matrix, double[] means, int rowCount, int columnCount)
+        ReadOnlySpan<double> matrix, double[] means, int rowCount, int columnCount, double scale)
     {
         double[] centred = matrix.ToArray();
         for (int row = 0; row < rowCount; row++)
         {
             for (int column = 0; column < columnCount; column++)
             {
-                centred[(row * columnCount) + column] -= means[column];
+                int at = (row * columnCount) + column;
+                centred[at] = (centred[at] - means[column]) * scale;
             }
         }
 

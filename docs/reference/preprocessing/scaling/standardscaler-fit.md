@@ -60,7 +60,8 @@ papers give the error analysis, not the threshold.
 **The sparse overload takes a `CsrMatrix` and refuses centring.** Subtracting a mean turns every
 absent zero into a stored value, so a matrix that fitted in memory sparse would not fit dense — the
 reference refuses it for the same reason, and `WithMean` must be off. The variance is still the
-column's, the absent zeros counted: `E[x²] − E[x]²` over every row rather than over the stored ones.
+column's, the absent zeros counted, taken in two passes over every row as scikit-learn's
+`mean_variance_axis` takes it — `E[x²] − E[x]²` would cancel on a column far from zero.
 
 **Applies to** — net10.0, netstandard2.0.
 
