@@ -201,11 +201,22 @@ public sealed class CsrMatrix
     /// Matches <c>sklearn.preprocessing.normalize</c>.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="norm"/> is not a defined <see cref="SparseNorm"/>, which the reference refuses too (#1286).</exception>
+    /// <exception cref="InvalidOperationException">A stored value is <c>NaN</c> or infinite, which the reference's input check refuses (#1295).</exception>
     public void NormalizeRows(SparseNorm norm)
     {
         if (norm is not (SparseNorm.L1 or SparseNorm.L2))
         {
             throw new ArgumentOutOfRangeException(nameof(norm), norm, "The norm is either L1 or L2.");
+        }
+
+        // Checked before the first row is written, so a refused matrix is left as it was.
+        double[] values = Values;
+        for (int k = 0; k < values.Length; k++)
+        {
+            if (double.IsNaN(values[k]) || double.IsInfinity(values[k]))
+            {
+                throw new InvalidOperationException("The matrix holds a NaN or an infinity, which has no norm to divide by.");
+            }
         }
 
         for (int row = 0; row < RowCount; row++)

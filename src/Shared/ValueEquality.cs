@@ -122,6 +122,9 @@ internal static class ValueEquality
     /// </remarks>
     public static int HashOf(double value) => double.IsNaN(value) ? 0 : value.GetHashCode();
 
+    /// <summary>A float's hash, with every <c>NaN</c> hashed alike, as <see cref="HashOf(double)"/> (#1294).</summary>
+    public static int HashOf(float value) => float.IsNaN(value) ? 0 : value.GetHashCode();
+
     /// <summary>An optional double's hash, <c>-1</c> when absent and every <c>NaN</c> alike.</summary>
     public static int HashOf(double? value) => value is { } present ? HashOf(present) : -1;
 

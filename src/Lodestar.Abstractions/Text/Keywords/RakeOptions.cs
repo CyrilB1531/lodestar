@@ -67,7 +67,7 @@ public sealed record RakeOptions
             hash = (hash * 31) + MinLength;
             hash = (hash * 31) + MaxLength;
             hash = (hash * 31) + (IncludeRepeatedPhrases ? 1 : 0);
-            hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(TokenPattern);
+            hash = (hash * 31) + ValueEquality.HashOfItem(TokenPattern);
             return (hash * 31) + ValueEquality.PresenceOf(StopWords);
         }
     }

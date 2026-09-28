@@ -92,7 +92,7 @@ public sealed record CountVectorizerOptions
             hash = (hash * 31) + ValueEquality.HashOf(MinDf);
             hash = (hash * 31) + ValueEquality.HashOf(MaxDf);
             hash = (hash * 31) + (Binary ? 1 : 0);
-            hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(TokenPattern);
+            hash = (hash * 31) + ValueEquality.HashOfItem(TokenPattern);
             return (hash * 31) + ValueEquality.PresenceOf(StopWords);
         }
     }

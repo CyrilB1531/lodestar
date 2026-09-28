@@ -85,6 +85,19 @@ public sealed class CsrMatrixTests
         Assert.Equal([3.0, 4.0], matrix.Values);
     }
 
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void A_non_finite_value_is_refused_before_any_row_is_normalized(double value)
+    {
+        // sklearn.preprocessing.normalize raises on NaN and infinity; this wrote [NaN, 0] (#1295).
+        CsrMatrix matrix = new(2, 2, [3.0, 4.0, value, 1.0], [0, 1, 0, 1], [0, 2, 4]);
+
+        Assert.Throws<InvalidOperationException>(() => matrix.NormalizeRows(SparseNorm.L2));
+        Assert.Equal(3.0, matrix.Values[0]);
+    }
+
     [Fact]
     public void A_matrix_too_large_to_densify_is_refused_before_allocating() =>
         // A few bytes stored, 16 GB densified (#1287).

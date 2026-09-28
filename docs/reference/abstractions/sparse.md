@@ -18,7 +18,8 @@ package never duplicates a type ([#1142](https://github.com/CyrilB1531/lodestar/
 ## Compressed sparse row, in one paragraph
 
 Three arrays. `Values` holds the non-zero cells, row by row. `ColumnIndices` holds the column each
-one sits in, ascending within a row. `RowPointers` has `RowCount + 1` entries and delimits the
+one sits in — ascending within a row in every matrix this repository builds, though the type
+accepts any order. `RowPointers` has `RowCount + 1` entries and delimits the
 rows: row `i` occupies the values from `RowPointers[i]` up to `RowPointers[i + 1]`. Reading a row
 is a slice; reading a column is not, which is what makes the two products below the operations
 worth having.
@@ -26,6 +27,7 @@ worth having.
 | Member | What it does |
 | --- | --- |
 | [`CsrMatrix`](sparse/csrmatrix.md) | The matrix: three arrays, and what the layout guarantees. |
+| [`CsrMatrix.CreateUnchecked`](sparse/csrmatrix-createunchecked.md) | Wraps three arrays already valid by construction, without the constructor's checks. |
 | [`CsrMatrix.Multiply`](sparse/csrmatrix-multiply.md) | The matrix times a dense vector, or times a dense block. |
 | [`CsrMatrix.TransposeMultiply`](sparse/csrmatrix-transposemultiply.md) | The transposed matrix times a dense block, without building the transpose. |
 | [`CsrMatrix.NormalizeRows`](sparse/csrmatrix-normalizerows.md) | Divide every row by its own norm, in place. |

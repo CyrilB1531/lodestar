@@ -20,17 +20,18 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Changed
 
-- `Chi2ContingencyResult` is `ChiSquaredContingencyResult` and its `Dof` is `DegreesOfFreedom`, the spellings `Lodestar.Stats` settles on before 1.0; `Lodestar.Stats` 0.5.0 forwards the old name, so take this release with the next `Lodestar.Stats`. ([#1217](https://github.com/CyrilB1531/lodestar/issues/1217))
+- `Chi2ContingencyResult` is `ChiSquaredContingencyResult` and its `Dof` is `DegreesOfFreedom`, the spellings `Lodestar.Stats` settles on before 1.0 — a breaking rename, since a type forward cannot carry the old name ([#1298](https://github.com/CyrilB1531/lodestar/issues/1298)); take this release with the next `Lodestar.Stats`. ([#1217](https://github.com/CyrilB1531/lodestar/issues/1217))
 - `TruncatedSvdOptions` and `NmfOptions` are records comparing Ω by value like every other options type, and `NmfOptions.Initialization` defaults to `NndSvda`, which is scikit-learn's `init=None` at every rank a fit accepts — a default `Nmf.Fit` reads from this package, so taking this release changes what `Lodestar.Decomposition` 0.3.0 computes too. ([#1232](https://github.com/CyrilB1531/lodestar/issues/1232))
 - `CsrMatrix` refuses a null array, a negative dimension or a dense operand without a column through the shared `Guard` rather than its own copy — on net10.0 the negative-dimension message is now `ThrowIfLessThan`'s — and its remarks no longer call instances immutable while the arrays they hold are shared. ([#1282](https://github.com/CyrilB1531/lodestar/issues/1282))
 
 ### Removed
 
-- `GpuSearchResult`, which duplicated `SearchResult`; `Lodestar.Gpu` 0.2.0 forwards it here, so take this release with the next `Lodestar.Gpu`, which returns `SearchResult`. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
+- `GpuSearchResult`, which duplicated `SearchResult`, removed with no forward, so code built against it fails to load ([#1299](https://github.com/CyrilB1531/lodestar/issues/1299)); take this release with the next `Lodestar.Gpu`, which returns `SearchResult`. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
 
 ### Fixed
 
 - The records that write their own equality hash an absent member and every `NaN` as they compare them, `CsrMatrix.NormalizeRows` refuses an undefined `SparseNorm`, and `CsrMatrix.ToDense` and the block products refuse a result past the largest array rather than failing to allocate it. ([#1284](https://github.com/CyrilB1531/lodestar/issues/1284), [#1285](https://github.com/CyrilB1531/lodestar/issues/1285), [#1286](https://github.com/CyrilB1531/lodestar/issues/1286), [#1287](https://github.com/CyrilB1531/lodestar/issues/1287))
+- `SearchResult` hashes its `float` score, and the Rake, TextRank and count-vectorizer options their token pattern, as they compare them, and `CsrMatrix.NormalizeRows` refuses a `NaN` or an infinity as scikit-learn's `normalize` does. ([#1294](https://github.com/CyrilB1531/lodestar/issues/1294), [#1295](https://github.com/CyrilB1531/lodestar/issues/1295), [#1296](https://github.com/CyrilB1531/lodestar/issues/1296))
 - Records hash NaN doubles consistently across all NaN bit-patterns, the twenty that keep their generated equality included. ([#1285](https://github.com/CyrilB1531/lodestar/issues/1285))
 
 ## [0.2.0] — 2026-09-24

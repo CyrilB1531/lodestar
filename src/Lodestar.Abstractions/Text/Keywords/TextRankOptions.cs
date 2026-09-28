@@ -83,7 +83,7 @@ public sealed record TextRankOptions
             hash = (hash * 31) + ValueEquality.HashOf(Damping);
             hash = (hash * 31) + ValueEquality.HashOf(Tolerance);
             hash = (hash * 31) + ValueEquality.HashOf(Ratio);
-            hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(TokenPattern);
+            hash = (hash * 31) + ValueEquality.HashOfItem(TokenPattern);
             return (hash * 31) + ValueEquality.PresenceOf(StopWords);
         }
     }
