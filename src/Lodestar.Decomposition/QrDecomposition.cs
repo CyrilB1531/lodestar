@@ -41,10 +41,10 @@ public sealed class QrDecomposition
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="rowCount"/> or <paramref name="columnCount"/> is not positive, or there are more columns than rows.</exception>
     /// <exception cref="ArgumentException"><paramref name="matrix"/> does not hold exactly <paramref name="rowCount"/> × <paramref name="columnCount"/> values.</exception>
     /// <remarks>
-    /// The signs are the reflections', not a convention: a QR is unique only up to the sign
-    /// of each column, and no normalisation is applied here. A caller comparing against
-    /// <c>numpy.linalg.qr</c> should compare <c>Q · R</c>, or compare column by column up to
-    /// sign, rather than expecting the two to agree entry for entry.
+    /// The reflections are LAPACK's <c>dgeqr2</c> and <c>dorg2r</c>, so the signs are
+    /// <c>numpy.linalg.qr</c>'s and, on a matrix of full rank, the two agree entry for entry, to
+    /// rounding — infinities and NaNs included: a matrix holding one comes back with the same entries
+    /// non-finite as numpy's. Past a vanished pivot a column of Q is built from rounding noise, on both sides.
     /// </remarks>
     public static QrDecomposition Householder(
         ReadOnlySpan<double> matrix, int rowCount, int columnCount)

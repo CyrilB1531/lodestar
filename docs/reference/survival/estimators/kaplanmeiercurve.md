@@ -32,6 +32,10 @@ subjects it reaches 1.0067.
 Where the curve reaches zero, as above, the transform is undefined and both bounds collapse onto the
 estimate.
 
+The four arrays are taken and exposed as they are, not copied: writing to one
+changes this record and what it equals, and every holder of the same array, a `with` copy included
+([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`KaplanMeier.Estimate`](kaplanmeier-estimate.md), [`SurvivalStep`](survivalstep.md).

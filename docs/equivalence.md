@@ -557,7 +557,7 @@ Oracled against **`statsmodels` 0.15.0**, already in the lock since #566
 
 | Python | Library | C# | Differences |
 | --- | --- | --- | --- |
-| `numpy.linalg.qr(A, mode="reduced")` | numpy | [`QrDecomposition.Householder(matrix, rowCount, columnCount)`](reference/decomposition/factorization/qrdecomposition-householder.md) | Same thin shape. **The signs are not normalised on either side**: a QR is unique only up to the sign of each column, so compare `Q · R`, or column by column up to sign, rather than entry for entry. A wide matrix is refused here where numpy returns a factorization of a different shape. |
+| `numpy.linalg.qr(A, mode="reduced")` | numpy | [`QrDecomposition.Householder(matrix, rowCount, columnCount)`](reference/decomposition/factorization/qrdecomposition-householder.md) | Same thin shape, and on a matrix of full rank the same factors entry for entry: the reflections are LAPACK's `dgeqr2` and `dorg2r`, so the signs agree, and a matrix holding `±∞` or NaN comes back with the same entries infinite, NaN or finite. Past a vanished pivot a column of Q is rounding noise on both sides, and only `Q · R` agrees ([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)). A wide matrix is refused here where numpy returns a factorization of a different shape. |
 | `scipy.linalg.qr`, `numpy.linalg.qr(mode="complete")`, pivoting | numpy, scipy | — (no counterpart) | The full factorization, column pivoting and the `raw` mode are out of scope: the thin one is what a least-squares solve wants. |
 
 ## Lodestar.Stats.Regression — ordinary least squares

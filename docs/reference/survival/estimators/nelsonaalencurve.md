@@ -29,6 +29,10 @@ index-by-index comparison with no alignment step.
 The last value above is `1/3 + 1/2 + 1/1`. Kaplan-Meier on that sample ends at zero; this ends at
 1.833, and the difference is the information a curve pinned to zero has lost.
 
+`Steps` and `CumulativeHazard` are taken and exposed as they are, not copied:
+writing to one changes this record and what it equals, and every holder of the same array, a `with`
+copy included ([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`NelsonAalen.Estimate`](nelsonaalen-estimate.md), [`SurvivalStep`](survivalstep.md).

@@ -38,8 +38,8 @@ public sealed class DenseKernelPathTests
         (double[] q, double[] r) = HouseholderQr.Decompose(block, rows, columns);
         (double[] expectedQ, double[] expectedR) = ColumnByColumnQr(block, rows, columns);
 
-        Assert.Equal(Bits(expectedQ), Bits(q));
-        Assert.Equal(Bits(expectedR), Bits(r));
+        Assert.Equal(CanonicalBits(expectedQ), CanonicalBits(q));
+        Assert.Equal(CanonicalBits(expectedR), CanonicalBits(r));
     }
 
     [Theory]
@@ -103,50 +103,72 @@ public sealed class DenseKernelPathTests
 
     private static long[] Bits(double[] values) => [.. values.Select(BitConverter.DoubleToInt64Bits)];
 
-    /// <summary>The QR as it was written before the reflections walked rows: every column, one at a time.</summary>
+    /// <summary>The bits, with every NaN as one: the JIT may swap an addition's operands, and x86 keeps the first NaN's sign.</summary>
+    private static long[] CanonicalBits(double[] values) =>
+        [.. values.Select(value => BitConverter.DoubleToInt64Bits(double.IsNaN(value) ? double.NaN : value))];
+
+    /// <summary>The same reflectors applied column by column: dgeqr2 and dorg2r as LAPACK walks them.</summary>
     private static (double[] Q, double[] R) ColumnByColumnQr(double[] block, int rows, int columns)
     {
         double[] work = (double[])block.Clone();
         var vectors = new double[columns][];
-        var norms = new double[columns];
+        var taus = new double[columns];
         for (int k = 0; k < columns; k++)
         {
             double[] v = new double[rows - k];
-            double norm = 0;
-            for (int i = k; i < rows; i++)
+            double sum = 0;
+            for (int i = k + 1; i < rows; i++)
             {
                 v[i - k] = work[(i * columns) + k];
-                norm += v[i - k] * v[i - k];
+                sum += v[i - k] * v[i - k];
             }
-            norm = Math.Sqrt(norm);
+            v[0] = 1.0;
             vectors[k] = v;
+            double norm = Math.Sqrt(sum);
             if (norm == 0)
             {
                 continue;
             }
 
-            v[0] -= v[0] >= 0 ? -norm : norm;
-            foreach (double value in v)
+            double alpha = work[(k * columns) + k];
+            double beta = -Hypotenuse(alpha, norm);
+            beta = BitConverter.DoubleToInt64Bits(alpha) < 0 ? -beta : beta;
+            taus[k] = (beta - alpha) / beta;
+            double scale = 1.0 / (alpha - beta);
+            for (int i = 1; i < v.Length; i++)
             {
-                norms[k] += value * value;
+                v[i] *= scale;
             }
-            ColumnByColumn(work, rows, columns, k, v, norms[k]);
+            work[(k * columns) + k] = beta;
+            ColumnByColumn(work, rows, columns, k, k + 1, v, taus[k]);
         }
 
         double[] q = new double[rows * columns];
-        for (int j = 0; j < columns; j++)
-        {
-            q[(j * columns) + j] = 1.0;
-        }
         for (int k = columns - 1; k >= 0; k--)
         {
-            if (norms[k] != 0)
+            ColumnByColumn(q, rows, columns, k, k + 1, vectors[k], taus[k]);
+            q[(k * columns) + k] = 1.0 - taus[k];
+            for (int i = k + 1; i < rows; i++)
             {
-                ColumnByColumn(q, rows, columns, k, vectors[k], norms[k]);
+                q[(i * columns) + k] = -taus[k] * vectors[k][i - k];
             }
         }
 
         return (q, UpperTriangle(work, columns));
+    }
+
+    private static double Hypotenuse(double x, double y)
+    {
+        if (double.IsNaN(x) || double.IsNaN(y))
+        {
+            return double.IsNaN(x) ? x : y;
+        }
+
+        double larger = Math.Max(Math.Abs(x), Math.Abs(y));
+        double smaller = Math.Min(Math.Abs(x), Math.Abs(y));
+        return smaller == 0 || double.IsInfinity(larger)
+            ? larger
+            : larger * Math.Sqrt(1 + ((smaller / larger) * (smaller / larger)));
     }
 
     private static double[] UpperTriangle(double[] work, int columns)
@@ -162,19 +184,38 @@ public sealed class DenseKernelPathTests
         return r;
     }
 
-    private static void ColumnByColumn(double[] block, int rows, int columns, int from, double[] v, double normSquared)
+    /// <summary>dlarf, one column at a time: v's trailing zeros and the trailing all-zero columns are skipped.</summary>
+    private static void ColumnByColumn(
+        double[] block, int rows, int columns, int from, int firstColumn, double[] v, double tau)
     {
-        for (int j = 0; j < columns; j++)
+        if (tau == 0)
+        {
+            return;
+        }
+
+        int length = rows - from;
+        while (length > 0 && v[length - 1] == 0)
+        {
+            length--;
+        }
+
+        int last = columns;
+        while (last > firstColumn && Enumerable.Range(from, length).All(i => block[(i * columns) + last - 1] == 0))
+        {
+            last--;
+        }
+
+        for (int j = firstColumn; j < last; j++)
         {
             double dot = 0;
-            for (int i = from; i < rows; i++)
+            for (int i = 0; i < length; i++)
             {
-                dot += v[i - from] * block[(i * columns) + j];
+                dot += v[i] * block[((from + i) * columns) + j];
             }
-            double scale = 2.0 * dot / normSquared;
-            for (int i = from; i < rows; i++)
+            double scale = tau * dot;
+            for (int i = 0; i < length; i++)
             {
-                block[(i * columns) + j] -= scale * v[i - from];
+                block[((from + i) * columns) + j] -= v[i] * scale;
             }
         }
     }

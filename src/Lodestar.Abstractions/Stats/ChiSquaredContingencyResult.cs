@@ -1,6 +1,10 @@
 namespace Lodestar.Stats;
 
 /// <summary>A contingency-table chi-square result.</summary>
+/// <remarks>
+/// The expected table and its rows are taken and exposed as they are, not copied: writing to one
+/// changes this record and what it equals, and every holder of the same array, a <c>with</c> copy included (#1305).
+/// </remarks>
 /// <param name="Statistic">The chi-square statistic.</param>
 /// <param name="PValue">The upper-tail p-value.</param>
 /// <param name="DegreesOfFreedom">The degrees of freedom, <c>(rows - 1) * (columns - 1)</c>.</param>

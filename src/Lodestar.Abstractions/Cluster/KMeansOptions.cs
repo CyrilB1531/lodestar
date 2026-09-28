@@ -28,7 +28,9 @@ public sealed record KMeansOptions
     /// <strong>The centres are an input, not a seed</strong> — decision 0004's move. Given
     /// here they replace the choice entirely, which turns k-means into an ordinary parity
     /// target. Left <see langword="null"/>, k-means++ chooses them using <see cref="Seed"/>,
-    /// which is reproducible here and is not scikit-learn's draw.
+    /// which is reproducible here and is not scikit-learn's draw. It is taken and exposed as it is,
+    /// not copied: writing to it changes these options, what they equal and a <c>with</c> copy of
+    /// them, not a fit already run, which copied it (#1305).
     /// </remarks>
     // CA1819 (properties should not return arrays): the same bargain decision 0004 struck
     // for Ω. The whole point of accepting a block is that the caller already holds the
@@ -42,6 +44,7 @@ public sealed record KMeansOptions
     /// <remarks>
     /// Each block is fitted in turn; a later one replaces the kept fit only when its inertia is strictly lower and its
     /// partition differs, scikit-learn's rule. Refused together with <see cref="InitialCentres"/> or <see cref="Restarts"/>.
+    /// The list and its blocks are taken as they are, not copied, as <see cref="InitialCentres"/> is (#1305).
     /// </remarks>
     public IReadOnlyList<double[]>? InitialCentreSets { get; init; }
 

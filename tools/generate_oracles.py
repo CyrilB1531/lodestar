@@ -59,6 +59,8 @@ from sklearn.feature_extraction.text import CountVectorizer as SkCountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer as SkTfidfVectorizer
 
 SEED = 20260801
+# The library two corpora name in their metadata; S1192 counts it like any other literal.
+NUMPY = "numpy"
 ORACLE_DIR = Path(__file__).resolve().parent.parent / "tests" / "oracles"
 
 # The metadata key every numeric corpus carries, named once because S1192 counts a
@@ -2201,8 +2203,8 @@ def generate_knn() -> dict:
     return {
         "metadata": {
             "algorithm": "CosineKnn",
-            "library": "numpy",
-            "library_version": version("numpy"),
+            "library": NUMPY,
+            "library_version": version(NUMPY),
             "reference_calls": ["brute-force cosine similarity + argsort"],
             "dim": dim,
             "count": len(cases),
@@ -4651,6 +4653,50 @@ def generate_decomposition_qr() -> dict:
     return {"metadata": {"library": "scipy", "version": version("scipy"),
                          "reference_calls": ["scipy.linalg.qr"],
                          "seed": SEED, "count": len(cases), TOLERANCE_KEY: 1e-9},
+            "cases": cases}
+
+
+def generate_decomposition_qr_numpy() -> dict:
+    """Thin QR, against numpy's factors themselves, infinities and NaNs included (#1305).
+
+    Lodestar's reflectors are LAPACK's dgeqr2/dorg2r, so Q and R carry numpy's signs and
+    can be asserted entry by entry, which decomposition_qr.json could not. A non-finite
+    input has no invariant to freeze instead: which entries come out NaN, which infinite
+    and which finite is LAPACK's walk, and that walk is what these cases pin. No block is
+    rank-deficient past an exact zero column, whose reflector is the identity, not noise.
+    """
+    rng = SeededRandom(SEED + 1305)
+    matrices = [(3, 2, [1.0, math.inf, 1.0, 1.0, 2.0, 3.0]),
+                (3, 2, [math.inf, 1.0, 1.0, 1.0, 2.0, 3.0])]
+    specials = [math.inf, -math.inf, math.nan]
+    for index in range(60):
+        rows = 1 + rng.randrange(8)
+        columns = 1 + rng.randrange(rows)
+        values = [rng.gauss(0.0, 1.0) for _ in range(rows * columns)]
+        kind = index % 6
+        if kind in (1, 2):
+            for _ in range(kind):
+                values[rng.randrange(rows * columns)] = rng.choice(specials)
+        elif kind == 3:
+            dropped = rng.randrange(columns)
+            values = [0.0 if i % columns == dropped else v for i, v in enumerate(values)]
+        elif kind == 4:
+            values = [v * 1e200 for v in values]
+        elif kind == 5:
+            values = [v * 1e-300 for v in values]
+        matrices.append((rows, columns, values))
+
+    cases = []
+    for rows, columns, values in matrices:
+        with np.errstate(all="ignore"):
+            q, r = np.linalg.qr(np.array(values).reshape(rows, columns))
+        cases.append({ROWS_KEY: rows, COLUMNS_KEY: columns,
+                      MATRIX_KEY: [_stats_number(v) for v in values],
+                      "q": [_stats_number(v) for v in q.ravel()],
+                      "r": [_stats_number(v) for v in r.ravel()]})
+    return {"metadata": {"library": NUMPY, "version": version(NUMPY),
+                         "reference_calls": ["numpy.linalg.qr"],
+                         "seed": SEED + 1305, "count": len(cases), TOLERANCE_KEY: 1e-9},
             "cases": cases}
 
 
@@ -16745,6 +16791,7 @@ def main() -> None:
         "conformal_cross.json": generate_conformal_cross,
         "sparse_matmul.json": generate_sparse_matmul,
         "decomposition_qr.json": generate_decomposition_qr,
+        "decomposition_qr_numpy.json": generate_decomposition_qr_numpy,
         "decomposition_lu.json": generate_decomposition_lu,
         "decomposition_svd.json": generate_decomposition_svd,
         "decomposition_nmf.json": generate_decomposition_nmf,

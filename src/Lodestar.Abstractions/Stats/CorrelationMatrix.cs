@@ -4,7 +4,8 @@ namespace Lodestar.Stats;
 /// <remarks>
 /// What <c>scipy.stats.spearmanr</c> returns for a 2-D array: two square matrices, here row-major, entry
 /// <c>i × VariableCount + j</c> relating variable <c>i</c> to variable <c>j</c>. The diagonal is each variable against
-/// itself. scipy returns a scalar where there are only two variables; this keeps the matrix.
+/// itself. scipy returns a scalar where there are only two variables; this keeps the matrix. The arrays are taken and exposed as they are, not copied: writing to one changes this record and what it equals, and
+/// every holder of the same array, a <c>with</c> copy included (#1305).
 /// </remarks>
 /// <param name="VariableCount">How many variables, the side of both matrices.</param>
 /// <param name="Statistics">The correlations, row-major.</param>

@@ -9,8 +9,9 @@ namespace Lodestar.Survival;
 /// <remarks>
 /// The four arrays share one index with <paramref name="Steps"/>. Bounds are built on the
 /// <strong>log-log transform</strong> of the estimate, which is what lifelines reports by
-/// default and is not the same as the estimate plus or minus its own standard error — the
-/// reference page has the two numbers side by side.
+/// default and is not the same as the estimate plus or minus its own standard error — the reference page has the two
+/// numbers side by side. The arrays are taken and exposed as they are, not copied: writing to one
+/// changes this record and what it equals, and every holder of the same array, a <c>with</c> copy included (#1305).
 /// </remarks>
 // CA1819 (properties should not return arrays): the curves hand back the arrays the fitter produced, and a caller reads them positionally against Steps.
 // Copying them defensively would allocate a second copy of every curve to protect values the type only ever returns.

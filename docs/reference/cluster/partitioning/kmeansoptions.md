@@ -48,6 +48,10 @@ Several runs keep the first unless a later one reaches a strictly lower inertia 
 partition, scikit-learn's rule; [`KMeans.Fit`](kmeans-fit.md) has why. `Restarts` below `1`, or
 beside `InitialCentres`, is refused.
 
+`InitialCentres` and `InitialCentreSets` are taken and exposed as they are, not copied: writing to a
+block changes these options, what they equal and a `with` copy of them, not a fit already run, which
+copied it ([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`KMeans.Fit`](kmeans-fit.md), [`KMeans`](kmeans.md),

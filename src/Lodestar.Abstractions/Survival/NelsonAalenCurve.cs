@@ -4,9 +4,11 @@ namespace Lodestar.Survival;
 /// <param name="Steps">The curve's steps, ascending in time, starting at zero.</param>
 /// <param name="CumulativeHazard">The cumulative hazard at each step.</param>
 /// <remarks>
-/// A step with <c>d</c> events among <c>n</c> at risk adds <c>1/n + 1/(n - 1) + … + 1/(n - d + 1)</c>,
-/// not <c>d / n</c>, and the hazard sums those rather than multiplying survival fractions. So it
-/// keeps rising where a Kaplan-Meier curve that has reached zero can no longer move.
+/// A step with <c>d</c> events among <c>n</c> at risk adds <c>1/n + 1/(n - 1) + … + 1/(n - d + 1)</c>, not <c>d /
+/// n</c>, and the hazard sums those rather than multiplying survival fractions. So it keeps rising where a Kaplan-Meier
+/// curve that has reached zero can no longer move. The arrays are taken and exposed as they are, not
+/// copied: writing to one changes this record and what it equals, and every holder of the same array, a <c>with</c>
+/// copy included (#1305).
 /// </remarks>
 // CA1819 (properties should not return arrays): the curves hand back the arrays the fitter produced, and a caller reads them positionally against Steps.
 // Copying them defensively would allocate a second copy of every curve to protect values the type only ever returns.
