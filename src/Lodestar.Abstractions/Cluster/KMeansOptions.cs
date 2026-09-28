@@ -82,17 +82,7 @@ public sealed record KMeansOptions
         {
             return false;
         }
-        return ValueEquality.Same(InitialCentres, other.InitialCentres) && SameSets(InitialCentreSets, other.InitialCentreSets);
-    }
-
-    private static bool SameSets(IReadOnlyList<double[]>? left, IReadOnlyList<double[]>? right)
-    {
-        if (left is null || right is null)
-        {
-            return left is null && right is null;
-        }
-
-        return left.Count == right.Count && left.Zip(right, (a, b) => ValueEquality.Same(a, b)).All(same => same);
+        return ValueEquality.Same(InitialCentres, other.InitialCentres) && ValueEquality.Same(InitialCentreSets, other.InitialCentreSets);
     }
 
     /// <summary>Hashes the scalars and the centre count, which is O(1).</summary>

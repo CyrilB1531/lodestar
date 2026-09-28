@@ -47,7 +47,7 @@ types ([decision 0003](docs/decisions/0003-the-package-layout-tiers-boundaries-a
 
 | package | tier | what it does |
 | --- | --- | --- |
-| [`Lodestar.Abstractions`](src/Lodestar.Abstractions/README.md) | core | `CsrMatrix`, its products, and the public data types every other package declares |
+| [`Lodestar.Abstractions`](src/Lodestar.Abstractions/README.md) | core | `CsrMatrix`, its products, and the public data types the packages declare that carry no logic |
 | [`Lodestar.Text`](src/Lodestar.Text/README.md) | core | string distances, phonetics, stemmers, tokenizers, sparse vectorizers, BM25, keyword extraction |
 | [`Lodestar.Embeddings`](src/Lodestar.Embeddings/README.md) | core | Hugging Face tokenizers without Python, batch encoding, pooling, SIMD nearest-neighbour search |
 | [`Lodestar.Fuzzy`](src/Lodestar.Fuzzy/README.md) | core | rapidfuzz's `fuzz.*` and `process.extract`, and deduplication |

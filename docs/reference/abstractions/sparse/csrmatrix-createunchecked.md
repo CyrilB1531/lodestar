@@ -33,12 +33,13 @@ double first = matrix.RowL1Norm(0);          // => 3
 **Remarks** — **unvalidated, and that is the whole difference from the constructor.** The length and
 null checks run; the per-entry pass does not. Row pointers that decrease, a column index at or past
 `columnCount`, or a pointer past the stored values are accepted here and surface later — as a wrong
-product, or as an `IndexOutOfRangeException` from whichever member reads the bad entry first.
+product, or as an `IndexOutOfRangeException` or `ArgumentOutOfRangeException` from whichever member
+reads the bad entry first — the block products slice their operand at the bad column.
 
 Reach for it only when the arrays come from your own code and are correct by the way they were
 built: [`CountVectorizer`](../../text/vectorizers/countvectorizer.md) and the other vectorizers call
 it on arrays they have just filled. Anything read from a file, a network or a caller goes through
-[the constructor](csrmatrix.md), which refuses every malformed shape.
+[the constructor](csrmatrix-constructor.md), which refuses every malformed shape.
 
 Public since 0.2.0. It was internal before, reached by `Lodestar.Text` through an
 `InternalsVisibleTo` this package no longer grants
