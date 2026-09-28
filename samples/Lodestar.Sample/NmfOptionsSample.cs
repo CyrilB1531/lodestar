@@ -39,9 +39,12 @@ internal static class NmfOptionsSample
         Nmf pinned = Nmf.Fit(corpus, 2, exact);
         Console.WriteLine($"  tol = 0, 25 updates   = {Inv.F3(pinned.ReconstructionError)} after {pinned.Iterations}");
 
-        // Ω as an input rather than a seed: the initialisation's random block, written down, so
-        // the fit is reproducible across implementations and not merely across runs.
-        NmfOptions frozen = new() { RandomMatrix = Omega(6, 2 + 10), MaxIterations = 25, Tolerance = 0.0 };
+        // Ω as an input rather than a seed, written down so the fit is reproducible across implementations.
+        // It has min(rows, columns) rows: five documents over six terms is factored as its transpose.
+        NmfOptions frozen = new()
+        {
+            RandomMatrix = Omega(Math.Min(corpus.RowCount, corpus.ColumnCount), 2 + 10), MaxIterations = 25, Tolerance = 0.0,
+        };
         Console.WriteLine($"  over a frozen omega   = {Inv.F3(Nmf.Fit(corpus, 2, frozen).ReconstructionError)}");
         Console.WriteLine();
     }
@@ -54,9 +57,9 @@ internal static class NmfOptionsSample
 #pragma warning restore S1244
 
     /// <summary>A block written down rather than drawn, so the run is portable as well as repeatable.</summary>
-    private static double[] Omega(int features, int width)
+    private static double[] Omega(int rows, int width)
     {
-        double[] omega = new double[features * width];
+        double[] omega = new double[rows * width];
         for (int i = 0; i < omega.Length; i++)
         {
             omega[i] = (((i * 7) % 13) - 6) / 6.0;

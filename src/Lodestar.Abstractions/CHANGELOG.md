@@ -24,6 +24,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `TruncatedSvdOptions` and `NmfOptions` are records comparing Ω by value like every other options type, and `NmfOptions.Initialization` defaults to `NndSvda`, which is scikit-learn's `init=None` at every rank a fit accepts — a default `Nmf.Fit` reads from this package, so taking this release changes what `Lodestar.Decomposition` 0.3.0 computes too. ([#1232](https://github.com/CyrilB1531/lodestar/issues/1232))
 - `CsrMatrix` refuses a null array, a negative dimension or a dense operand without a column through the shared `Guard` rather than its own copy — on net10.0 the negative-dimension message is now `ThrowIfLessThan`'s — and its remarks no longer call instances immutable while the arrays they hold are shared. ([#1282](https://github.com/CyrilB1531/lodestar/issues/1282))
 - `CoxBaseline` says its arrays are the record's own and that the summary it came from predicts from a copy. ([#1304](https://github.com/CyrilB1531/lodestar/issues/1304))
+- `TruncatedSvdOptions.RandomMatrix` and `NmfOptions.RandomMatrix` are `min(rows, features)` rows tall, since a matrix with fewer rows than features is factored as its transpose. ([#1256](https://github.com/CyrilB1531/lodestar/issues/1256))
 
 ### Removed
 

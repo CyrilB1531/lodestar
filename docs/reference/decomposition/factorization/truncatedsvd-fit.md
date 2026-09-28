@@ -9,8 +9,9 @@ public static TruncatedSvd Fit(CsrMatrix matrix, int componentCount, TruncatedSv
 ```
 
 **Parameters** — `matrix` is the term-document matrix, rows as samples and columns as features; it
-is read, never modified. `componentCount` is the rank to keep, at least 1 and strictly below the
-number of columns — a factorization that kept them all would be an SVD, not a truncated one.
+is read, never modified. `componentCount` is the rank to ask for, at least 1 and no greater than the
+number of columns, which is scikit-learn's own bound; a matrix with fewer rows than that keeps one
+component per row, as the reference keeps them.
 `options` carries the randomized solver's settings, or is left out for scikit-learn's defaults:
 ten extra columns of oversampling, five power iterations, and the normalizer chosen automatically.
 
@@ -18,11 +19,11 @@ ten extra columns of oversampling, five power iterations, and the normalizer cho
 variance. Every property is populated; there is no second call to make.
 
 **Exceptions** — `ArgumentNullException` when `matrix` is null. `ArgumentOutOfRangeException` when
-`componentCount` is below 1, at or above the number of columns, above the number of rows, when an
+`componentCount` is below 1 or above the number of columns, when an
 option is negative, or when `Oversampling` and `componentCount` do not add up within an `int`. `ArgumentException` when
-`matrix` holds a `NaN` or an infinity, as scikit-learn's input check refuses, or when
+`matrix` has no row, holds a `NaN` or an infinity, as scikit-learn's input check refuses, or when
 [`RandomMatrix`](truncatedsvdoptions.md) is given and is not
-`FeatureCount × (componentCount + Oversampling)` values long.
+`min(rows, columns) × (componentCount + Oversampling)` values long.
 
 **Example** — four documents over three terms, kept at rank 2.
 

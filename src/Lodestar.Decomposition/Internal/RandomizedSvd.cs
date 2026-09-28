@@ -28,27 +28,46 @@ internal static class RandomizedSvd
         ReadOnlySpan<double> omega,
         bool leftVectors)
     {
+        int rows = matrix.RowCount;
         int features = matrix.ColumnCount;
         int size = componentCount + oversampling;
 
+        // randomized_svd's transpose="auto": a matrix with fewer rows than columns is factored
+        // as its transpose, from an Ω drawn for that shape, and the factors swapped back (#1256).
+        bool transposed = IsTransposed(matrix);
+        int aRows = transposed ? features : rows;
+        int aColumns = transposed ? rows : features;
+
         double[] basis = RandomizedRangeFinder.Find(
-            matrix, omega, size, powerIterations, normalizer);
-        int basisSize = basis.Length / matrix.RowCount;
+            matrix, omega, size, powerIterations, normalizer, transposed);
+        int basisSize = basis.Length / aRows;
 
         // B = Qᵀ A, reached as (Aᵀ Q)ᵀ so the sparse matrix is never transposed.
         double[] b = DenseBlock.Transpose(
-            matrix.TransposeMultiply(basis, basisSize), features, basisSize);
-        (double[] uhat, double[] s, double[] vt) = JacobiSvd.DecomposeOverwriting(b, basisSize, features);
+            RandomizedRangeFinder.Apply(matrix, basis, basisSize, !transposed), aColumns, basisSize);
+        (double[] uhat, double[] s, double[] vt) = JacobiSvd.DecomposeOverwriting(b, basisSize, aColumns);
+        int rank = s.Length;
 
-        double[] u = leftVectors ? Product(basis, uhat, matrix.RowCount, basisSize, s.Length) : [];
-        return (u, s, vt, s.Length);
+        if (!transposed)
+        {
+            double[] u = leftVectors ? Product(basis, uhat, rows, basisSize, rank) : [];
+            return (u, s, vt, rank);
+        }
+
+        // A = Xᵀ: X's right vectors are A's left ones, Q·Û, and X's left vectors are A's right ones.
+        double[] aLeft = Product(basis, uhat, features, basisSize, rank);
+        double[] xRight = DenseBlock.Transpose(aLeft, features, rank);
+        double[] xLeft = leftVectors ? DenseBlock.Transpose(vt, rank, rows) : [];
+        return (xLeft, s, xRight, rank);
     }
 
-    /// <summary><c>U = Q Û</c>, one <c>m × basisSize × rank</c> product.</summary>
-    /// <remarks>
-    /// What lets a caller that needs the left vectors share this path instead of forking it; the
-    /// one that does not skips its <c>m × basisSize × rank</c> multiply and its <c>m × rank</c> block.
-    /// </remarks>
+    /// <summary>Whether <c>randomized_svd(transpose="auto")</c> factors the transpose: fewer rows than columns.</summary>
+    internal static bool IsTransposed(CsrMatrix matrix) => matrix.RowCount < matrix.ColumnCount;
+
+    /// <summary>The number of rows Ω must have: the columns of the matrix factored, which is <c>Xᵀ</c> for a wide one.</summary>
+    internal static int OmegaRows(CsrMatrix matrix) =>
+        IsTransposed(matrix) ? matrix.RowCount : matrix.ColumnCount;
+
     private static double[] Product(
         double[] left, double[] right, int rows, int inner, int columns)
     {

@@ -99,7 +99,7 @@ comparing this package against `sklearn.decomposition.TruncatedSVD` means fixing
 using System.Globalization;
 using Lodestar.Decomposition;
 
-// Ω exactly as NumPy drew it: ColumnCount × (20 + 10) values, row-major.
+// Ω exactly as NumPy drew it: min(rows, columns) × (20 + 10) values, row-major.
 // np.savetxt("omega.txt", omega.ravel()) writes one value a line, which is what the
 // parse below reads; np.savetxt on the two-dimensional block writes one row a line.
 double[] omega = Array.ConvertAll(
@@ -125,9 +125,9 @@ shared Ω the two implementations agree to **exactly 0.0**, which is what the fr
 from a generator this package owns, and that generator is not NumPy's — no seed is portable
 between the two ecosystems, and one that looked portable would be the expensive mistake here.
 [ADR 0004](../decisions/0004-what-is-written-here-and-what-is-delegated.md) records why Ω is an input, the
-measurement that makes it affordable, and the two features refused along with the generator:
-`transpose="auto"`, which would swap the products on a matrix with fewer rows than columns, and
-the `nndsvdar` initialisation below.
+measurement that makes it affordable, and the feature refused along with the generator: the
+`nndsvdar` initialisation below. A matrix with fewer rows than columns is factored as its
+transpose, as scikit-learn's `transpose="auto"` factors it, so its Ω has one row per row.
 
 ## Non-negative factorization, and which loss
 

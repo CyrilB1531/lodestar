@@ -135,13 +135,9 @@ public sealed class StandardScaler
 
         int featureCount = samples.ColumnCount;
         int sampleCount = samples.RowCount;
-        (double[] sums, double[] squares) = SparseColumns.Moments(read);
 
-        var mean = new double[featureCount];
-        for (int feature = 0; feature < featureCount; feature++)
-        {
-            mean[feature] = sums[feature] / sampleCount;
-        }
+        // mean_variance_axis's two-pass form (#1228), over what ToDense reads (#1044).
+        (double[] mean, double[] twoPass) = SparseMoments.MeanVarianceOfConsolidated(read);
 
         if (!settings.WithStd)
         {
@@ -151,13 +147,9 @@ public sealed class StandardScaler
         var variance = new double[featureCount];
         for (int feature = 0; feature < featureCount; feature++)
         {
-            // E[x^2] - E[x]^2 over the whole column, the absent zeros contributing to neither sum
-            // and to the count of both -- the reference's own sparse path.
-            variance[feature] = (squares[feature] / sampleCount) - (mean[feature] * mean[feature]);
-            if (variance[feature] < 0.0)
-            {
-                variance[feature] = 0.0;
-            }
+            // mean_variance_axis's two-pass form, the reference's own sparse path; E[x^2] - E[x]^2
+            // cancelled on a column with a large offset (#1228). A rounding below zero stays at zero.
+            variance[feature] = Math.Max(twoPass[feature], 0.0);
         }
 
         return new StandardScaler(

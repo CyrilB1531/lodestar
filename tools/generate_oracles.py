@@ -4563,6 +4563,9 @@ ROWS_KEY = "rows"
 COLUMNS_KEY = "columns"
 # The SVD, PCA and regression corpora all name an explained variance; one spelling for three keys.
 EXPLAINED_VARIANCE_KEY = "explained_variance"
+EXPLAINED_VARIANCE_RATIO_KEY = "explained_variance_ratio"
+TRANSFORM_KEY = "transform"
+RANDOMIZED = "randomized"
 
 
 def _dense_fixtures() -> list[dict]:
@@ -4709,6 +4712,8 @@ def _randomized_settings() -> list[tuple[int, int, float, int, int, int, str]]:
         (60, 30, 0.20, 8, 10, 5, "auto"),
         (30, 12, 0.50, 3, 10, 4, "auto"),
         (25, 8, 0.60, 2, 10, 7, "QR"),
+        # k equal to the feature count, which the randomized path accepts (#1231).
+        (10, 4, 0.70, 4, 10, 2, "auto"),
     ]
 
 
@@ -4732,16 +4737,12 @@ def _randomized_cases() -> list[dict]:
     from sklearn.decomposition import TruncatedSVD
     from sklearn.utils.extmath import randomized_svd, svd_flip
 
-    rng = SeededRandom(SEED + 44500)
-    cases = []
-    for index, (rows, columns, density, k, p, iterations, normalizer) in enumerate(
-            _randomized_settings()):
-        fixture = _sparse_fixture(rng, rows, columns, density)
+    def case_for(fixture: dict, k: int, p: int, iterations: int, normalizer: str, seed: int) -> dict:
+        rows, columns = fixture[ROWS_KEY], fixture[COLUMNS_KEY]
         a = csr_matrix(
             (fixture["values"], fixture["column_indices"], fixture["row_pointers"]),
             shape=(rows, columns))
-
-        seed = SEED + 44600 + index
+        index = seed - SEED - 44600
         # check_random_state takes None, an int or a RandomState and rejects a Generator,
         # and the first draw off this one has to be the Omega scikit-learn itself draws.
         omega = np.random.RandomState(seed).normal(size=(columns, k + p))  # NOSONAR S6711
@@ -4752,13 +4753,13 @@ def _randomized_cases() -> list[dict]:
         u, vt = svd_flip(u, vt, u_based_decision=False)
 
         svd = TruncatedSVD(
-            n_components=k, algorithm="randomized", n_oversamples=p, n_iter=iterations,
+            n_components=k, algorithm=RANDOMIZED, n_oversamples=p, n_iter=iterations,
             power_iteration_normalizer=normalizer, random_state=seed)
         svd.fit(a)
         assert np.array_equal(vt, svd.components_), f"{CASE}{index}: components diverged"
         assert np.array_equal(s, svd.singular_values_), f"{CASE}{index}: sigma diverged"
 
-        cases.append({
+        return {
             **fixture,
             COMPONENT_COUNT_KEY: k,
             "oversampling": p,
@@ -4771,9 +4772,25 @@ def _randomized_cases() -> list[dict]:
             "singular_values": [settled(v) for v in s],
             "components": [settled(v) for v in vt.ravel()],
             EXPLAINED_VARIANCE_KEY: [settled(v) for v in svd.explained_variance_],
-            "explained_variance_ratio": [settled(v) for v in svd.explained_variance_ratio_],
-            "transform": [settled(v) for v in svd.transform(a).ravel()],
-        })
+            EXPLAINED_VARIANCE_RATIO_KEY: [settled(v) for v in svd.explained_variance_ratio_],
+            TRANSFORM_KEY: [settled(v) for v in svd.transform(a).ravel()],
+        }
+
+    rng = SeededRandom(SEED + 44500)
+    cases = []
+    for index, (rows, columns, density, k, p, iterations, normalizer) in enumerate(
+            _randomized_settings()):
+        fixture = _sparse_fixture(rng, rows, columns, density)
+        cases.append(case_for(fixture, k, p, iterations, normalizer, SEED + 44600 + index))
+
+    # A column at a large offset, where E[x²] − E[x]² cancelled the total variance behind the
+    # ratio (#1228): the issue's own matrix, after the random ones so their seeds are unchanged.
+    offset = csr_matrix(np.array([[1e8 + 1, 1, 0], [1e8 + 2, 2, 1], [1e8 + 3, 5, 0], [1e8 + 4, 3, 2]]))
+    cases.append(case_for(
+        {ROWS_KEY: 4, COLUMNS_KEY: 3, "values": [float(v) for v in offset.data],
+         "column_indices": [int(v) for v in offset.indices],
+         "row_pointers": [int(v) for v in offset.indptr]},
+        2, 10, 5, "auto", SEED + 44600 + len(cases)))
     return cases
 
 
@@ -4781,32 +4798,28 @@ def _randomized_wide_settings() -> list[tuple[int, int, float, int, int, int, st
     """rows, columns, density, k, oversampling, power iterations, normalizer.
 
     The mirror of _randomized_settings: every matrix here has fewer rows than columns,
-    which is the shape a term-document matrix actually has and the one the corpus above
-    cannot carry. The last case draws k + p past the row count, so the range finder has
-    to narrow the block on the short side.
+    which is the shape a term-document matrix actually has. The third draws k + p past the
+    row count, so the range finder narrows the block on the short side; the last two ask
+    for more components than rows, and the estimator keeps what the rows allow (#1231).
     """
     return [
         (12, 40, 0.30, 3, 6, 2, "auto"),
         (20, 50, 0.20, 5, 10, 4, "LU"),
         (8, 30, 0.40, 2, 10, 1, "QR"),
+        (4, 10, 0.60, 6, 10, 2, "auto"),
+        (5, 9, 0.50, 9, 10, 3, "QR"),
     ]
 
 
 def _randomized_wide_cases() -> list[dict]:
-    """randomized_svd on a wide matrix, without the estimator.
+    """TruncatedSVD on a wide matrix, whose transpose="auto" factors the transpose (#1256).
 
-    TruncatedSVD is deliberately not called: its ``transpose="auto"`` resolves to True
-    exactly here, so it would factorize the transpose and the comparison would be against
-    a different factorization rather than against this package. ``randomized_svd`` with
-    ``transpose=False`` is what Lodestar computes, and the right-based ``svd_flip`` the
-    estimator applies is reapplied here so the signs are the ones a caller sees.
-
-    Only the singular values and the components are frozen. The estimator's own outputs --
-    explained variance, the projection -- have no reference to compare against once the
-    estimator is out of the loop, and U is not reported by the C# side either.
+    Omega is the estimator's own first draw, ``random_state.normal(size=(rows, k + p))``:
+    randomized_range_finder draws it for the matrix it factors, here Xᵀ, whose column count
+    is X's row count. Every output the estimator reports is frozen, as the tall corpus does.
     """
     from scipy.sparse import csr_matrix
-    from sklearn.utils.extmath import randomized_svd, svd_flip
+    from sklearn.decomposition import TruncatedSVD
 
     rng = SeededRandom(SEED + 44700)
     cases = []
@@ -4819,12 +4832,12 @@ def _randomized_wide_cases() -> list[dict]:
             shape=(rows, columns))
 
         seed = SEED + 44800 + index
-        omega = np.random.RandomState(seed).normal(size=(columns, k + p))  # NOSONAR S6711
+        omega = np.random.RandomState(seed).normal(size=(rows, k + p))  # NOSONAR S6711
 
-        u, s, vt = randomized_svd(
-            a, n_components=k, n_oversamples=p, n_iter=iterations,
-            power_iteration_normalizer=normalizer, transpose=False, random_state=seed)
-        _, vt = svd_flip(u, vt, u_based_decision=False)
+        svd = TruncatedSVD(
+            n_components=k, algorithm=RANDOMIZED, n_oversamples=p, n_iter=iterations,
+            power_iteration_normalizer=normalizer, random_state=seed)
+        svd.fit(a)
 
         cases.append({
             **fixture,
@@ -4833,15 +4846,18 @@ def _randomized_wide_cases() -> list[dict]:
             "power_iterations": iterations,
             "normalizer": normalizer,
             OMEGA_KEY: omega.ravel().tolist(),
-            "singular_values": [settled(v) for v in s],
-            "components": [settled(v) for v in vt.ravel()],
+            "singular_values": [settled(v) for v in svd.singular_values_],
+            "components": [settled(v) for v in svd.components_.ravel()],
+            EXPLAINED_VARIANCE_KEY: [settled(v) for v in svd.explained_variance_],
+            EXPLAINED_VARIANCE_RATIO_KEY: [settled(v) for v in svd.explained_variance_ratio_],
+            TRANSFORM_KEY: [settled(v) for v in svd.transform(a).ravel()],
         })
     return cases
 
 
 def generate_decomposition_svd() -> dict:
-    """The dense SVD, randomized_svd composed on top of it, and the wide shape
-    TruncatedSVD's transpose="auto" puts out of the estimator's reach (#440)."""
+    """The dense SVD, randomized_svd composed on top of it, and the wide shape, which
+    TruncatedSVD's transpose="auto" factors as its transpose (#440, #1256)."""
     dense, randomized = _dense_svd_cases(), _randomized_cases()
     wide = _randomized_wide_cases()
     return {"metadata": {"library": "scipy and scikit-learn",
@@ -4854,7 +4870,7 @@ def generate_decomposition_svd() -> dict:
                          "count": len(dense) + len(randomized) + len(wide),
                          TOLERANCE_KEY: 1e-9},
             "dense": dense,
-            "randomized": randomized,
+            RANDOMIZED: randomized,
             "randomized_wide": wide}
 
 
@@ -4873,7 +4889,7 @@ KULLBACK_LEIBLER = "kullback-leibler"
 
 
 def _nmf_settings() -> list[tuple[int, int, float, int, str]]:
-    """rows, columns, density, k, init. Tall again, for transpose='auto'.
+    """rows, columns, density, k, init. Tall, then wide, which transpose='auto' factors as Xᵀ.
 
     The last row is the only one that resolves ``n_iter='auto'`` to seven rather than
     four: 3 < 0.1 * min(60, 40). That is the ordinary shape of the data this package
@@ -4889,6 +4905,11 @@ def _nmf_settings() -> list[tuple[int, int, float, int, str]]:
         (48, 20, 0.30, 5, NNDSVDA),
         (16, 6, 0.70, 2, NNDSVD),
         (60, 40, 0.20, 3, NNDSVD),
+        # Wide: _initialize_nmf's randomized_svd factors the transpose there, from an Omega
+        # drawn for Xᵀ, rows × (k + 10) (#1256). Appended, so the fixtures above are unchanged.
+        (12, 30, 0.45, 3, NNDSVD),
+        (12, 30, 0.45, 3, NNDSVDA),
+        (20, 60, 0.30, 4, NNDSVD),
     ]
 
 
@@ -4920,15 +4941,16 @@ def _nmf_initialization_cases() -> list[dict]:
             shape=(rows, columns))
 
         seed = SEED + 44800 + index
-        # _initialize_nmf's own randomized_svd call takes n_oversamples=10 and
-        # n_iter='auto'; the first draw off this RandomState is the same Omega.
-        omega = np.random.RandomState(seed).normal(size=(columns, k + 10))  # NOSONAR S6711
+        # _initialize_nmf's randomized_svd takes n_oversamples=10 and transpose="auto", so this
+        # first draw is its Omega, one row per row of Xᵀ when rows < columns (#1256).
+        omega_rows = rows if rows < columns else columns
+        omega = np.random.RandomState(seed).normal(size=(omega_rows, k + 10))  # NOSONAR S6711
         w, h = _initialize_nmf(a, k, init=init, random_state=seed)
 
         iterations = 7 if k < 0.1 * min(a.shape) else 4
         u, s, vt = randomized_svd(
             a, n_components=k, n_oversamples=10, n_iter=iterations,
-            power_iteration_normalizer="auto", transpose=False, random_state=seed)
+            power_iteration_normalizer="auto", random_state=seed)
         for expected, rebuilt in ((w[:, 0], np.sqrt(s[0]) * np.abs(u[:, 0])),
                                   (h[0, :], np.sqrt(s[0]) * np.abs(vt[0, :]))):
             rebuilt[rebuilt < 1e-6] = 0
@@ -5251,7 +5273,7 @@ def generate_decomposition_pca() -> dict:
             **fixture,
             COMPONENT_COUNT_KEY: int(model.n_components_),
             EXPLAINED_VARIANCE_KEY: [settled(v) for v in model.explained_variance_],
-            "explained_variance_ratio": [settled(v) for v in ratio],
+            EXPLAINED_VARIANCE_RATIO_KEY: [settled(v) for v in ratio],
             "cumulative_explained_variance_ratio": [settled(v) for v in np.cumsum(ratio)],
             "total_variance": settled(np.sum(model.explained_variance_)),
         })
@@ -5957,6 +5979,9 @@ def _sparse_fixtures() -> list[dict]:
         # Dense enough that the quartiles are not all zero, so the robust scale is not floored.
         {"name": "half the entries stored",
          "rows": [[1.0, 5.0], [0.0, 6.0], [3.0, 0.0], [4.0, 8.0], [0.0, 9.0], [7.0, 0.0]]},
+        # A column at a large offset, where E[x²] − E[x]² cancelled: 2 where the variance is 1.25 (#1228).
+        {"name": "a column at a large offset",
+         "rows": [[1e8 + 1, 1.0], [1e8 + 2, 0.0], [1e8 + 3, 2.0], [1e8 + 4, 0.0]]},
     ]
 
 

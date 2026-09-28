@@ -65,7 +65,10 @@ public sealed class TruncatedSvdTests
         Assert.Equal(expected.Length, actual.Count);
         for (int i = 0; i < expected.Length; i++)
         {
-            Assert.Equal(expected[i], actual[i], Tolerance);
+            // Relative past 1: a singular value near 2e8 carries its last few ulps above 1e-9 absolute.
+            Assert.True(
+                Math.Abs(expected[i] - actual[i]) <= Tolerance * Math.Max(1.0, Math.Abs(expected[i])),
+                $"[{i}] expected {expected[i]:R}, got {actual[i]:R}");
         }
     }
 
@@ -168,22 +171,28 @@ public sealed class TruncatedSvdTests
     }
 
     [Fact]
-    public void A_component_count_at_or_above_the_feature_count_is_refused()
+    public void A_component_count_above_the_feature_count_is_refused_and_one_equal_to_it_fitted()
     {
+        // The randomized path's bound is n_components <= n_features (#1231).
         CsrMatrix matrix = Matrix(Cases[0]);
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => TruncatedSvd.Fit(matrix, matrix.ColumnCount));
+            () => TruncatedSvd.Fit(matrix, matrix.ColumnCount + 1));
+        Assert.Equal(matrix.ColumnCount, TruncatedSvd.Fit(matrix, matrix.ColumnCount).ComponentCount);
     }
 
     [Fact]
-    public void A_rank_above_the_row_count_is_refused()
+    public void A_matrix_with_no_row_is_refused() =>
+        // Refused by the row bound before #1231 relaxed it; check_array refuses zero samples too.
+        Assert.Throws<ArgumentException>(() => TruncatedSvd.Fit(new CsrMatrix(0, 5, [], [], [0]), 2));
+
+    [Fact]
+    public void A_rank_above_the_row_count_keeps_as_many_components_as_rows()
     {
-        // scikit-learn accepts it; here the range finder narrows the basis below k and the
-        // truncation would throw out of Array.Copy, so it is refused where a caller can read it.
+        // As scikit-learn does: the transposed factorization has no more components than rows (#1231).
         CsrMatrix wide = new(2, 5, [1.0, 2.0, 3.0, 4.0], [0, 2, 1, 4], [0, 2, 4]);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => TruncatedSvd.Fit(wide, 3));
+        Assert.Equal(2, TruncatedSvd.Fit(wide, 3).ComponentCount);
     }
 
     [Fact]

@@ -7,6 +7,7 @@
     <Version>$(LodestarDecompositionVersion)</Version>
     <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
     <RootNamespace>Lodestar.Decomposition</RootNamespace>
+    <LodestarIncludesSparseMoments>true</LodestarIncludesSparseMoments>
 
     <PackageId>Lodestar.Decomposition</PackageId>
     <Description>Truncated SVD and non-negative matrix factorization for .NET at scikit-learn parity, over a sparse matrix and without centring it: latent semantic analysis on a term-document matrix, with explained variance, and NMF for a parts-based decomposition. Randomized SVD with all three power-iteration normalizers; the dense kernels are written here, so the only dependency is Lodestar.Abstractions.</Description>

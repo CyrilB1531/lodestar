@@ -5,13 +5,12 @@ using Xunit;
 namespace Lodestar.Decomposition.Tests;
 
 /// <summary>
-/// The wide shape — fewer rows than columns — against <c>randomized_svd(transpose=False)</c>.
+/// The wide shape — fewer rows than columns — against the <c>TruncatedSVD</c> estimator.
 /// </summary>
 /// <remarks>
-/// The reference is the bare function rather than <c>TruncatedSVD</c>, because the estimator's
-/// <c>transpose="auto"</c> resolves to True exactly here: it would factorize the transpose and
-/// hand back a different factorization to compare against. Only the singular values and the
-/// components are frozen, so this class asserts the two the corpus carries and nothing else.
+/// Its <c>transpose="auto"</c> factors the transpose here, from an Ω drawn for <c>Xᵀ</c>, and so
+/// does <see cref="TruncatedSvd.Fit"/> (#1256); two cases ask for more components than rows, and
+/// keep what the rows allow (#1231). Every output the estimator reports is frozen and asserted.
 /// </remarks>
 public sealed class TruncatedSvdWideTests
 {
@@ -67,7 +66,10 @@ public sealed class TruncatedSvdWideTests
         Assert.Equal(expected.Length, actual.Count);
         for (int i = 0; i < expected.Length; i++)
         {
-            Assert.Equal(expected[i], actual[i], Tolerance);
+            // Relative past 1: a singular value near 2e8 carries its last few ulps above 1e-9 absolute.
+            Assert.True(
+                Math.Abs(expected[i] - actual[i]) <= Tolerance * Math.Max(1.0, Math.Abs(expected[i])),
+                $"[{i}] expected {expected[i]:R}, got {actual[i]:R}");
         }
     }
 
@@ -82,7 +84,7 @@ public sealed class TruncatedSvdWideTests
 
     [Theory]
     [MemberData(nameof(Indices))]
-    public void The_singular_values_match_randomized_svd(int index)
+    public void The_singular_values_match_the_estimator(int index)
     {
         JsonElement c = Cases[index];
 
@@ -91,10 +93,30 @@ public sealed class TruncatedSvdWideTests
 
     [Theory]
     [MemberData(nameof(Indices))]
-    public void The_components_match_randomized_svd(int index)
+    public void The_components_match_the_estimator(int index)
     {
         JsonElement c = Cases[index];
 
         AssertSame(Doubles(c, "components"), Fit(c).Components);
+    }
+
+    [Theory]
+    [MemberData(nameof(Indices))]
+    public void The_explained_variance_and_its_ratio_match_the_estimator(int index)
+    {
+        JsonElement c = Cases[index];
+        TruncatedSvd fitted = Fit(c);
+
+        AssertSame(Doubles(c, "explained_variance"), fitted.ExplainedVariance);
+        AssertSame(Doubles(c, "explained_variance_ratio"), fitted.ExplainedVarianceRatio);
+    }
+
+    [Theory]
+    [MemberData(nameof(Indices))]
+    public void The_projection_matches_the_estimator(int index)
+    {
+        JsonElement c = Cases[index];
+
+        AssertSame(Doubles(c, "transform"), Fit(c).Transform(Matrix(c)));
     }
 }

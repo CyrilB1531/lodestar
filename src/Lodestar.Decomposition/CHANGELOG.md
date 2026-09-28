@@ -9,6 +9,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 - `Nmf.Fit` starts from NNDSVDA by default, as scikit-learn's `init=None` does, every fitted array is a read-only view, and `TruncatedSvd.Fit` no longer forms the left singular vectors it discards. ([#1232](https://github.com/CyrilB1531/lodestar/issues/1232))
 
+### Fixed
+
+- `TruncatedSvd.Fit` and `Nmf.Fit` factor a matrix with fewer rows than columns as its transpose, as scikit-learn's `transpose="auto"` does, `TruncatedSvd.Fit` takes scikit-learn's `n_components <= n_features` bound and its variance ratio's two-pass total, and `PrincipalComponentVariance.Compute` rescales by a power of two a block whose Gram would leave the doubles, and refuses a variance past the largest double instead of throwing from the solver. ([#1228](https://github.com/CyrilB1531/lodestar/issues/1228), [#1231](https://github.com/CyrilB1531/lodestar/issues/1231), [#1255](https://github.com/CyrilB1531/lodestar/issues/1255), [#1256](https://github.com/CyrilB1531/lodestar/issues/1256))
+
 ## [0.3.0] — 2026-09-24
 
 ### Added

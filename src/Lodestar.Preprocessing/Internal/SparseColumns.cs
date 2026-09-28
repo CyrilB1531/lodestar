@@ -11,23 +11,6 @@ namespace Lodestar.Preprocessing.Internal;
 /// </remarks>
 internal static class SparseColumns
 {
-    /// <summary>Each column's sum of values and sum of squares, the zeros contributing nothing to either.</summary>
-    /// <param name="read">The matrix as <see cref="RequireFinite"/> returned it, each cell stored once.</param>
-    public static (double[] Sums, double[] Squares) Moments(CsrMatrix read)
-    {
-        var sums = new double[read.ColumnCount];
-        var squares = new double[read.ColumnCount];
-        for (int i = 0; i < read.Values.Length; i++)
-        {
-            int column = read.ColumnIndices[i];
-            double value = read.Values[i];
-            sums[column] += value;
-            squares[column] += value * value;
-        }
-
-        return (sums, squares);
-    }
-
     /// <summary>The matrix with each row storing every column once, a row's duplicates summed.</summary>
     /// <remarks>
     /// Returns <paramref name="matrix"/> itself when no row stores a column twice, which is every

@@ -26,7 +26,8 @@ public sealed record NmfOptions
     /// <summary>Seeds the initialisation's own generator when <see cref="RandomMatrix"/> is null.</summary>
     public int Seed { get; init; }
 
-    /// <summary>Ω for the initialisation, row-major <c>features × (components + 10)</c>.</summary>
+    /// <summary>Ω for the initialisation, row-major <c>min(rows, features) × (components + 10)</c>.</summary>
+    /// <remarks>A matrix with fewer rows than features is factored as its transpose, as <c>_initialize_nmf</c>'s <c>randomized_svd</c> factors it, so its Ω has one row per row of the matrix (#1256).</remarks>
     // CA1819 (properties should not return arrays): the same bargain
     // TruncatedSvdOptions.RandomMatrix strikes. Ω is a dense block the caller already
     // holds — copying it defensively would double the largest allocation the fit makes,
