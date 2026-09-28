@@ -81,6 +81,7 @@ public static partial class Splitters
     /// <param name="randomState">scikit-learn's <c>random_state</c>, in <c>[0, 2³² − 1]</c>.</param>
     /// <returns><c>repeatCount · foldCount</c> folds, repeat by repeat, as the reference yields them.</returns>
     /// <exception cref="ArgumentOutOfRangeException">A count or <paramref name="randomState"/> is out of range.</exception>
+    /// <exception cref="ArgumentException">The repeats times the folds are more splits than one list holds.</exception>
     /// <remarks>One generator serves every repeat, so repeat <c>r</c> reads the rows in the generator's <c>r</c>-th permutation.</remarks>
     public static IReadOnlyList<FoldSplit> RepeatedKFold(int sampleCount, int foldCount, int repeatCount, long randomState)
     {
@@ -88,7 +89,7 @@ public static partial class Splitters
         Guard.NotLessThan(repeatCount, 1);
         NumpyRandomState.RequireSeed(randomState, nameof(randomState));
         var generator = new NumpyRandomState(randomState);
-        var folds = new List<FoldSplit>(repeatCount * foldCount);
+        var folds = new List<FoldSplit>(TableLength.Of(repeatCount, foldCount, nameof(repeatCount)));
         for (int repeat = 0; repeat < repeatCount; repeat++)
         {
             folds.AddRange(KFold(sampleCount, foldCount, generator.Permutation(sampleCount)));
@@ -104,7 +105,7 @@ public static partial class Splitters
     /// <param name="randomState">scikit-learn's <c>random_state</c>, in <c>[0, 2³² − 1]</c>.</param>
     /// <returns><c>repeatCount · foldCount</c> folds, repeat by repeat.</returns>
     /// <exception cref="ArgumentOutOfRangeException">A count or <paramref name="randomState"/> is out of range.</exception>
-    /// <exception cref="ArgumentException"><paramref name="foldCount"/> is greater than every class's count, or the folds times the classes are more cells than one array holds.</exception>
+    /// <exception cref="ArgumentException"><paramref name="foldCount"/> is greater than every class's count, or the folds times the classes, or the repeats times the folds, are more than one array holds.</exception>
     public static IReadOnlyList<FoldSplit> RepeatedStratifiedKFold(
         ReadOnlySpan<int> labels, int foldCount, int repeatCount, long randomState)
     {
@@ -112,7 +113,7 @@ public static partial class Splitters
         Guard.NotLessThan(repeatCount, 1);
         NumpyRandomState.RequireSeed(randomState, nameof(randomState));
         var generator = new NumpyRandomState(randomState);
-        var folds = new List<FoldSplit>(repeatCount * foldCount);
+        var folds = new List<FoldSplit>(TableLength.Of(repeatCount, foldCount, nameof(repeatCount)));
         for (int repeat = 0; repeat < repeatCount; repeat++)
         {
             folds.AddRange(ShuffledStratified(labels, foldCount, generator));

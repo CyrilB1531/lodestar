@@ -19,6 +19,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 - `StandardScaler.Fit` over a `CsrMatrix` takes each column's variance in scikit-learn's two passes, so a column far from zero no longer loses its variance to cancellation. ([#1228](https://github.com/CyrilB1531/lodestar/issues/1228))
 - `OneHotEncoder.Transform`, `KBinsDiscretizer.Transform`, `PolynomialFeatures.Transform` and the stratified splitters refuse a table past the largest array with a documented `ArgumentException` instead of wrapping in `int`. ([#1314](https://github.com/CyrilB1531/lodestar/issues/1314))
+- `RepeatedKFold` and `RepeatedStratifiedKFold` refuse more repeats times folds than one list holds with a documented `ArgumentException` naming `repeatCount`, where the capacity wrapped under `capacity`. ([#1318](https://github.com/CyrilB1531/lodestar/issues/1318))
 
 ## [0.2.0] — 2026-09-24
 

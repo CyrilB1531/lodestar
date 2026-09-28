@@ -16,6 +16,7 @@ cuts. `repeatCount` is how many repeats, at least one. `randomState` is scikit-l
 order the reference yields them in.
 
 **Exceptions** — `ArgumentOutOfRangeException` when a count or `randomState` is out of range.
+`ArgumentException` when the repeats times the folds are more splits than one list holds ([#1318](https://github.com/CyrilB1531/lodestar/issues/1318)).
 
 **Example** — six rows, three folds, two repeats.
 
