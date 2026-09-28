@@ -14,6 +14,13 @@ name: Pull request closes
 #   on every pull request. It skips nothing: not a draft, whose body is written before the code,
 #   not a Dependabot or fork pull request, not the documentation-only path. A required check that
 #   never arrives stays pending for ever (.github/workflows/README.md).
+#
+# No concurrency group (#1317). GitHub keeps one pending run per group and cancels it when the
+# next arrives, whatever cancel-in-progress says; `gh pr create --label ... --label ...` fires one
+# event per label within a second, and the newest runs, cancelled, some before their job began,
+# left pull requests blocked with every visible check green. Every run now goes to completion, and
+# none is skipped: a skipped job posts a success, which would let any label clear a failure. Each
+# run reads the pull request as it stands, so the newest judges the newest body and labels.
 
 on:
   pull_request:
@@ -26,10 +33,6 @@ permissions:
   contents: read
   issues: read
   pull-requests: read
-
-concurrency:
-  group: pr-closes-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
 
 jobs:
   closes:
@@ -45,12 +48,19 @@ jobs:
           sparse-checkout-cone-mode: false
           persist-credentials: false
 
-      # The body, the author and the labels go through the environment, never into the script's
-      # text, so whatever the author wrote cannot become shell.
+      # The body and the labels are read as they stand, not as the event carried them, so a run for
+      # an earlier edit judges the same pull request as the run for the last one (#1317). They reach
+      # the script through variables, never its text, so whatever the author wrote cannot become shell.
       - name: The pull request closes open issues assigned to its author
         env:
-          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: printf '%s' "$PR_BODY" | python3 tools/check_pr_closes.py
+        # One read for both, and pipefail: a failed read must fail the check, not hand it an empty body.
+        run: |
+          set -euo pipefail
+          view="$(gh pr view "$PR_NUMBER" --json body,labels)"
+          PR_LABELS="$(jq -r '[.labels[].name] | join(",")' <<<"$view")"
+          export PR_LABELS
+          jq -r .body <<<"$view" | python3 tools/check_pr_closes.py

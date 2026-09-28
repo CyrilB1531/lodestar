@@ -33,6 +33,10 @@ four checks to pass before the merge button becomes available: `Lint (markdown +
 `Oracles are reproducible`, `Build and analyze` and `Pull request closes only open issues`. The
 last comes from `pr-closes.yml`, which runs on every pull request and skips none, since a required
 check that is never posted stays pending ([#1152](https://github.com/CyrilB1531/lodestar/issues/1152)).
+It has no concurrency group, since a group cancels its pending run and the newest, cancelled runs
+of a required check block the merge with every visible check green, and it skips no event, since a
+skipped job posts a success that would clear a failure; each run reads the pull request as it
+stands ([#1317](https://github.com/CyrilB1531/lodestar/issues/1317)).
 [`CONTRIBUTING.md`](../../CONTRIBUTING.md#the-four-checks-that-guard-main) has what each one guards,
 which is what a contributor reads when one goes red.
 
