@@ -25,8 +25,8 @@ exponents and the truncation; `null` runs the log-rank test.
 
 **Exceptions** — `ArgumentException` when the spans differ in length, the sample is empty, a
 duration is negative or `NaN`, fewer than two groups appear, `weights` is neither empty nor one
-positive, finite value per subject, or the distinct durations times the groups are more cells than
-one array holds. `ArgumentOutOfRangeException` when `options` names no
+positive, finite value per subject, or the distinct durations or the groups times the groups are more
+cells than one array holds. `ArgumentOutOfRangeException` when `options` names no
 weighting, or holds a negative or non-finite exponent, or a negative or `NaN` truncation.
 
 **Example** — three groups that do not differ.

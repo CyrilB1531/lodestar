@@ -100,7 +100,7 @@ internal static class CoxNewton
     {
         double[] coefficients = new double[p];
         double[] score = new double[p];
-        double[] information = new double[p * p];
+        double[] information = new double[ResultTable.Length(p, p, ResultTable.FeatureCount)];
         // At zero the ridge penalty is zero, so this is the null likelihood, with the penalty's curvature folded in.
         double nullLogLikelihood = Penalised(likelihood, coefficients, penalty, 1.0, score, information);
         double[] initial = Diagonal(information, p);
@@ -181,7 +181,7 @@ internal static class CoxNewton
     private sealed class LoopState(int p)
     {
         private readonly double[] _score = new double[p];
-        private readonly double[] _information = new double[p * p];
+        private readonly double[] _information = new double[ResultTable.Length(p, p, ResultTable.FeatureCount)];
         private double[] _direction = [];
 
         public double[] Beta { get; } = new double[p];
@@ -189,7 +189,7 @@ internal static class CoxNewton
         public double[] Delta { get; } = new double[p];
 
         /// <summary>The information of the step that ends the loop, which lifelines returns rather than the next one's.</summary>
-        public double[] Kept { get; } = new double[p * p];
+        public double[] Kept { get; } = new double[ResultTable.Length(p, p, ResultTable.FeatureCount)];
 
         public double LogLikelihood { get; private set; }
 

@@ -61,8 +61,8 @@ public sealed class AalenSummary
         int m = fitted.Times.Length;
         int d = fitted.FeatureCount + (fitted.Settings.FitIntercept ? 1 : 0);
         double z = AalenAdditive.Critical(fitted.Settings.ConfidenceLevel);
-        var lower = new double[m * d];
-        var upper = new double[m * d];
+        var lower = new double[ResultTable.Length(m, d, ResultTable.FeatureCount)];
+        var upper = new double[ResultTable.Length(m, d, ResultTable.FeatureCount)];
         for (int k = 0; k < m * d; k++)
         {
             double error = Math.Sqrt(fitted.Variance[k]);
@@ -211,7 +211,7 @@ public sealed class AalenSummary
         }
 
         int m = EventTimes.Count;
-        var result = new double[m * _width];
+        var result = new double[ResultTable.Length(m, _width, ResultTable.FeatureCount)];
         for (int a = 0; a < m; a++)
         {
             for (int b = 0; b < m; b++)

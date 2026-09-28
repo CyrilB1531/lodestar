@@ -26,7 +26,7 @@ public static class AalenAdditive
     /// <param name="featureCount">The number of covariates, the design's row length.</param>
     /// <param name="options">The level, the intercept and the two penalties; <see langword="null"/> for the defaults.</param>
     /// <returns>The cumulative coefficients with their variance, the slopes table, the concordance, and the predictions.</returns>
-    /// <exception cref="ArgumentException">The spans do not match the subjects, a value is not finite, a duration is negative, no subject has the event, fewer than two subjects are given, a covariate does not vary beside the intercept, or there is no column at all, or the subjects times the columns are more cells than one array holds.</exception>
+    /// <exception cref="ArgumentException">The spans do not match the subjects, a value is not finite, a duration is negative, no subject has the event, fewer than two subjects are given, a covariate does not vary beside the intercept, or there is no column at all, or the subjects, the event times or the columns themselves times the columns are more cells than one array holds.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is negative.</exception>
     public static AalenSummary Fit(
         ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, int featureCount, AalenOptions? options = null) =>
@@ -81,9 +81,9 @@ public static class AalenAdditive
 
         (double[] eventTimes, double[] increments, double[] variances) = Increments(x, times, events, roots, d, settings);
         int m = eventTimes.Length;
-        var hazards = new double[m * d];
-        var cumulative = new double[m * d];
-        var variance = new double[m * d];
+        var hazards = new double[ResultTable.Length(m, d, ResultTable.FeatureCount)];
+        var cumulative = new double[ResultTable.Length(m, d, ResultTable.FeatureCount)];
+        var variance = new double[ResultTable.Length(m, d, ResultTable.FeatureCount)];
         for (int j = 0; j < d; j++)
         {
             double sum = 0.0;
@@ -215,8 +215,8 @@ public static class AalenAdditive
     {
         int n = times.Length;
         double[] eventTimes = [.. times.Where((_, i) => events[i]).Distinct().OrderBy(t => t)];
-        var increments = new double[eventTimes.Length * d];
-        var variances = new double[eventTimes.Length * d];
+        var increments = new double[ResultTable.Length(eventTimes.Length, d, ResultTable.FeatureCount)];
+        var variances = new double[ResultTable.Length(eventTimes.Length, d, ResultTable.FeatureCount)];
         var atRisk = new bool[n];
         atRisk.AsSpan().Fill(true);
         double ridge = settings.CoefficientPenalizer + settings.SmoothingPenalizer;
@@ -319,7 +319,7 @@ public static class AalenAdditive
     /// <summary><c>XᵀX</c> over the subjects at risk.</summary>
     private static double[] Gram(double[] x, bool[] atRisk, int d)
     {
-        var a = new double[d * d];
+        var a = new double[ResultTable.Length(d, d, ResultTable.FeatureCount)];
         for (int i = 0; i < atRisk.Length; i++)
         {
             if (!atRisk[i])
@@ -348,7 +348,7 @@ public static class AalenAdditive
     /// </summary>
     private static double[]? Factor(double[] a, int d, double relative)
     {
-        var l = new double[d * d];
+        var l = new double[ResultTable.Length(d, d, ResultTable.FeatureCount)];
         for (int j = 0; j < d; j++)
         {
             double pivot = a[(j * d) + j];

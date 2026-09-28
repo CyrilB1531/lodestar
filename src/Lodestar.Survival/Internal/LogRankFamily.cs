@@ -42,7 +42,7 @@ internal static class LogRankFamily
     {
         int size = k - 1;
         var difference = new double[size];
-        var covariance = new double[size * size];
+        var covariance = new double[ResultTable.Length(size, size, ResultTable.Groups)];
         for (int g = 0; g < size; g++)
         {
             difference[g] = observedTotals[g] - expectedTotals[g];
@@ -82,7 +82,7 @@ internal static class LogRankFamily
             _removedBefore = new double[_k];
             ObservedTotals = new double[_k];
             ExpectedTotals = new double[_k];
-            Products = new double[ResultTable.Length(_k, _k, "groups")];
+            Products = new double[ResultTable.Length(_k, _k, ResultTable.Groups)];
             CrossTotal = new double[_k];
         }
 

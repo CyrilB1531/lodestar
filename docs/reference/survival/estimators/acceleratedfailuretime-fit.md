@@ -33,6 +33,7 @@ a duration is not positive, a weight or entry span is neither empty nor one vali
 or the primary parameter has no column at all. `ArgumentOutOfRangeException` when `model` names no
 model, or `featureCount` is negative. `InvalidOperationException` when the fit does not converge, or
 its parameters are not identified.
+`ArgumentException` also when the parameters are too many for their square to fit in one array ([#1311](https://github.com/CyrilB1531/lodestar/issues/1311)).
 
 **Example** — a design that is not a whole number of rows is refused.
 

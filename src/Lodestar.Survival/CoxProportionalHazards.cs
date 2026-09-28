@@ -19,7 +19,7 @@ public static class CoxProportionalHazards
     /// <param name="options">The interval level, the iteration budget, the penalty and the variance, or <see langword="null"/> for the defaults.</param>
     /// <returns>The coefficients with their standard errors, tests and intervals, the likelihood-ratio test, the concordance and the baseline.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one.</exception>
-    /// <exception cref="ArgumentException">The spans disagree in length, a duration is negative or NaN, a covariate is not finite or does not vary, no event is observed, or a covariate separates the events or is collinear with the others.</exception>
+    /// <exception cref="ArgumentException">The spans disagree in length, a duration is negative or NaN, a covariate is not finite or does not vary, no event is observed, or a covariate separates the events or is collinear with the others, or the covariates are too many for their square to fit in one array.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge within <see cref="CoxOptions.MaximumIterations"/>.</exception>
     public static CoxSummary Fit(
         ReadOnlySpan<double> design,

@@ -24,6 +24,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 - `CoxSummary`, `AftSummary`, `AalenSummary` and `ParametricFit` hand out read-only views of the arrays their predictions read, and `CoxSummary` predicts from its own copy of each baseline, so writing to what a fit returns no longer changes its next prediction. ([#1304](https://github.com/CyrilB1531/lodestar/issues/1304))
 - `ParametricOptions` compares its breakpoints by value and hands out a copy, the Cox, AFT and Aalen predictions refuse a table past the largest array instead of wrapping, and `PiecewiseExponential` takes the mean of both pieces' hazards at an event on a breakpoint, as lifelines does. ([#1307](https://github.com/CyrilB1531/lodestar/issues/1307), [#1308](https://github.com/CyrilB1531/lodestar/issues/1308), [#1309](https://github.com/CyrilB1531/lodestar/issues/1309))
+- The Cox, AFT, Aalen and log-rank fits refuse a square table of covariates, parameters or groups past the largest array instead of wrapping. ([#1311](https://github.com/CyrilB1531/lodestar/issues/1311))
 
 ## [0.2.0] — 2026-09-24
 

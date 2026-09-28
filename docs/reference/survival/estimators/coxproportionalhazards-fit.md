@@ -37,7 +37,8 @@ likelihood, the likelihood-ratio test and the concordance index.
 - a weight, stratum or cluster span is neither empty nor one value per subject, or a weight is not
   positive and finite;
 - no event is observed;
-- a covariate separates the events, or is collinear with the others.
+- a covariate separates the events, or is collinear with the others;
+- the covariates are too many for their square to fit in one array.
 
 `InvalidOperationException` when the fit does not converge within `CoxOptions.MaximumIterations`,
 or lifelines' own loop, which an L1 penalty runs, gives up.
