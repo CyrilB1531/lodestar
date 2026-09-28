@@ -34,3 +34,10 @@ A `readonly record struct`, so it is copied rather than referenced and compares 
 
 **See also** — [`Process.Extract`](process-extract.md),
 [`Process.ExtractOne`](process-extractone.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`ExtractResult.GetHashCode`](extractresult-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |
+| [`ExtractResult.GetHashCode`](extractresult-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

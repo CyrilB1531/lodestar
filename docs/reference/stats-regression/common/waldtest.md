@@ -38,3 +38,9 @@ bool chiSquared = sargan.DenominatorDegreesOfFreedom is null;  // => True
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`IvSummary`](../instrumental/ivsummary.md), [`IvFirstStage`](../instrumental/ivfirststage.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`WaldTest.GetHashCode`](waldtest-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

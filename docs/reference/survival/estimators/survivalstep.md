@@ -34,3 +34,9 @@ lifelines' own event table has, and what lets a curve be plotted without inventi
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`KaplanMeierCurve`](kaplanmeiercurve.md), [`NelsonAalenCurve`](nelsonaalencurve.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`SurvivalStep.GetHashCode`](survivalstep-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

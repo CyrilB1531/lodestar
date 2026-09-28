@@ -5,6 +5,6 @@ namespace Lodestar.Text.Phonetics;
 /// <param name="Secondary">
 /// The alternate code, or empty when the word has no alternate pronunciation. The reference
 /// repeats the primary there; empty is the convention <c>jellyfish</c>, <c>metaphone</c> and
-/// <c>phonetics</c> share, and <c>docs/decisions/0075</c> takes it for this API.
+/// <c>phonetics</c> share, which this API takes.
 /// </param>
 public readonly record struct DoubleMetaphoneCode(string Primary, string Secondary);

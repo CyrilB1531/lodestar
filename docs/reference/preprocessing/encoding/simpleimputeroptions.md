@@ -37,3 +37,9 @@ the input, which the reference's default does not guarantee.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`SimpleImputer.Fit`](simpleimputer-fit.md), [`ImputationStrategy`](imputationstrategy.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`SimpleImputerOptions.GetHashCode`](simpleimputeroptions-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

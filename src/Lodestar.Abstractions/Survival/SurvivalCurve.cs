@@ -45,7 +45,7 @@ public sealed record SurvivalCurve(
     {
         unchecked
         {
-            return (((17 * 31) + ConfidenceLevel.GetHashCode()) * 31) + ValueEquality.CountOf(Steps);
+            return (((17 * 31) + ValueEquality.HashOf(ConfidenceLevel)) * 31) + ValueEquality.CountOf(Steps);
         }
     }
 }

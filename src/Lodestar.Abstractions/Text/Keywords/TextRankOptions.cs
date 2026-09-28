@@ -80,9 +80,9 @@ public sealed record TextRankOptions
             int hash = (17 * 31) + Window;
             hash = (hash * 31) + MaxIterations;
             hash = (hash * 31) + (Words ?? -1);
-            hash = (hash * 31) + Damping.GetHashCode();
-            hash = (hash * 31) + Tolerance.GetHashCode();
-            hash = (hash * 31) + Ratio.GetHashCode();
+            hash = (hash * 31) + ValueEquality.HashOf(Damping);
+            hash = (hash * 31) + ValueEquality.HashOf(Tolerance);
+            hash = (hash * 31) + ValueEquality.HashOf(Ratio);
             hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(TokenPattern);
             return (hash * 31) + ValueEquality.PresenceOf(StopWords);
         }

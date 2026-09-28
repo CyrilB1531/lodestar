@@ -69,8 +69,7 @@ public sealed record NmfOptions
             hash = (hash * 31) + (int)Initialization;
             hash = (hash * 31) + MaxIterations;
             hash = (hash * 31) + Seed;
-            // .NET Framework hashes NaN payloads apart where double.Equals makes them equal.
-            hash = (hash * 31) + (double.IsNaN(Tolerance) ? 0 : Tolerance.GetHashCode());
+            hash = (hash * 31) + ValueEquality.HashOf(Tolerance);
             return (hash * 31) + ValueEquality.CountOf(RandomMatrix);
         }
     }

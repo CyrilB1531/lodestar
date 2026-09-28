@@ -33,3 +33,9 @@ pair. A low bound at or above the high one is refused, as is a non-finite one.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`MinMaxScaler`](minmaxscaler.md), [`MinMaxScaler.Fit`](minmaxscaler-fit.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`MinMaxScalerOptions.GetHashCode`](minmaxscaleroptions-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

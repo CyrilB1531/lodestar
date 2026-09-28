@@ -38,3 +38,9 @@ or `q`. The truncation censors events; the subjects stay in the risk sets up to 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`LogRankWeighting`](logrankweighting.md), [`LogRank`](logrank.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`LogRankOptions.GetHashCode`](logrankoptions-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

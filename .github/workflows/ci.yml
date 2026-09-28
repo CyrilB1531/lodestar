@@ -668,6 +668,10 @@ jobs:
             [ "$proj" = src/Lodestar.Survival ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
             # And for the distribution tails its parametric fitters read from Lodestar.Stats (#1172).
             [ "$proj" = src/Lodestar.Survival ] && refs=${refs//..\/Lodestar.Stats\/Lodestar.Stats.csproj/}
+            # And for the NaN-stable hashes of the records Metrics, Embeddings and Fuzzy name (#1285).
+            [ "$proj" = src/Lodestar.Metrics ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Embeddings ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
+            [ "$proj" = src/Lodestar.Fuzzy ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
             refs=$(echo $refs)
             if [ -n "$refs" ]; then
               echo "::error::$proj references $refs by project; src/ must reference published packages."

@@ -9,4 +9,15 @@ namespace Lodestar.Stats;
 /// </remarks>
 /// <param name="Statistic">The test statistic, on whichever scale the family defines.</param>
 /// <param name="PValue">The probability of a statistic at least this extreme under the null.</param>
-public sealed record TestResult(double Statistic, double PValue);
+public sealed record TestResult(double Statistic, double PValue)
+{
+    /// <summary>Hashes every member as the generated equality compares it, each <c>NaN</c> alike (#1285).</summary>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + ValueEquality.HashOf(Statistic);
+            return (hash * 31) + ValueEquality.HashOf(PValue);
+        }
+    }
+}

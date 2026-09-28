@@ -38,4 +38,22 @@ public sealed record IvOptions
 
     /// <summary>A kernel GMM weight's bandwidth; <see langword="null"/>, the default, is <c>n − 2</c>, as the reference's.</summary>
     public int? GmmWeightBandwidth { get; init; }
+
+    /// <summary>Hashes every member as the generated equality compares it, each <c>NaN</c> alike (#1285).</summary>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + ValueEquality.HashOfItem(WithIntercept);
+            hash = (hash * 31) + ValueEquality.HashOfItem(CovarianceType);
+            hash = (hash * 31) + ValueEquality.HashOfItem(Debiased);
+            hash = (hash * 31) + ValueEquality.HashOfItem(Kernel);
+            hash = (hash * 31) + ValueEquality.HashOfItem(Bandwidth);
+            hash = (hash * 31) + ValueEquality.HashOf(ConfidenceLevel);
+            hash = (hash * 31) + ValueEquality.HashOf(Fuller);
+            hash = (hash * 31) + ValueEquality.HashOfItem(GmmWeightType);
+            hash = (hash * 31) + ValueEquality.HashOfItem(GmmWeightKernel);
+            return (hash * 31) + ValueEquality.HashOfItem(GmmWeightBandwidth);
+        }
+    }
 }

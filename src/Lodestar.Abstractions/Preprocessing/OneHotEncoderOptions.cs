@@ -31,4 +31,17 @@ public sealed record OneHotEncoderOptions
     /// are grouped — the reference's <c>max_categories</c>; <see langword="null"/>, the default, sets no limit.
     /// </summary>
     public int? MaxCategories { get; init; }
+
+    /// <summary>Hashes every member as the generated equality compares it, each <c>NaN</c> alike (#1285).</summary>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + ValueEquality.HashOfItem(Drop);
+            hash = (hash * 31) + ValueEquality.HashOfItem(Unknown);
+            hash = (hash * 31) + ValueEquality.HashOfItem(MinFrequency);
+            hash = (hash * 31) + ValueEquality.HashOf(MinFrequencyShare);
+            return (hash * 31) + ValueEquality.HashOfItem(MaxCategories);
+        }
+    }
 }

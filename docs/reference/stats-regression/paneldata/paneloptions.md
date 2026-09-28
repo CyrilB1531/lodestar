@@ -50,3 +50,9 @@ of `T` or more is refused as the reference refuses it.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`PanelRegression`](../panel/panelregression.md), [`PanelSummary`](panelsummary.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`PanelOptions.GetHashCode`](paneloptions-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

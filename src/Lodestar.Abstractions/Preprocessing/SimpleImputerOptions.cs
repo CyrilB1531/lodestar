@@ -21,4 +21,15 @@ public sealed record SimpleImputerOptions
     /// trap, and the refusal names the feature and this option.
     /// </remarks>
     public bool KeepEmptyFeatures { get; init; }
+
+    /// <summary>Hashes every member as the generated equality compares it, each <c>NaN</c> alike (#1285).</summary>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + ValueEquality.HashOfItem(Strategy);
+            hash = (hash * 31) + ValueEquality.HashOf(FillValue);
+            return (hash * 31) + ValueEquality.HashOfItem(KeepEmptyFeatures);
+        }
+    }
 }

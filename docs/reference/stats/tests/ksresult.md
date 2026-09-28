@@ -39,3 +39,9 @@ Being a `record`, two results with the same four fields are equal.
 
 **See also** — [`KolmogorovSmirnov.TwoSample`](kolmogorovsmirnov-twosample.md),
 [`TestResult`](testresult.md), the [Python equivalence table](../../../equivalence.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`KsResult.GetHashCode`](ksresult-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

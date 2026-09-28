@@ -7,4 +7,17 @@ namespace Lodestar.Stats.Regression;
 /// <param name="PValue">Its upper-tail probability.</param>
 /// <param name="DegreesOfFreedom">The numerator degrees of freedom.</param>
 /// <param name="DenominatorDegreesOfFreedom">The denominator's, when the statistic is an F; <see langword="null"/> for a χ².</param>
-public sealed record WaldTest(double Statistic, double PValue, int DegreesOfFreedom, int? DenominatorDegreesOfFreedom);
+public sealed record WaldTest(double Statistic, double PValue, int DegreesOfFreedom, int? DenominatorDegreesOfFreedom)
+{
+    /// <summary>Hashes every member as the generated equality compares it, each <c>NaN</c> alike (#1285).</summary>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + ValueEquality.HashOf(Statistic);
+            hash = (hash * 31) + ValueEquality.HashOf(PValue);
+            hash = (hash * 31) + DegreesOfFreedom;
+            return (hash * 31) + ValueEquality.HashOfItem(DenominatorDegreesOfFreedom);
+        }
+    }
+}

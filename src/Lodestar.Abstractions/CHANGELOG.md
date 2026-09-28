@@ -28,6 +28,11 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 - `GpuSearchResult`, which duplicated `SearchResult`; `Lodestar.Gpu` 0.2.0 forwards it here, so take this release with the next `Lodestar.Gpu`, which returns `SearchResult`. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
 
+### Fixed
+
+- The records that write their own equality hash an absent member and every `NaN` as they compare them, `CsrMatrix.NormalizeRows` refuses an undefined `SparseNorm`, and `CsrMatrix.ToDense` and the block products refuse a result past the largest array rather than failing to allocate it. ([#1284](https://github.com/CyrilB1531/lodestar/issues/1284), [#1285](https://github.com/CyrilB1531/lodestar/issues/1285), [#1286](https://github.com/CyrilB1531/lodestar/issues/1286), [#1287](https://github.com/CyrilB1531/lodestar/issues/1287))
+- Records hash NaN doubles consistently across all NaN bit-patterns, the twenty that keep their generated equality included. ([#1285](https://github.com/CyrilB1531/lodestar/issues/1285))
+
 ## [0.2.0] — 2026-09-24
 
 ### Added

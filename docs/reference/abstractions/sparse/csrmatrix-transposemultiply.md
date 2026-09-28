@@ -47,6 +47,11 @@ rather than a single vector product.
 The result is **not** the transpose of `Multiply`'s. `Multiply` produces one row per row of the
 matrix; this produces one per column.
 
+**On .NET Framework the cap is lower.** The bound is .NET's `Array.MaxLength`; .NET Framework
+refuses a `double` array past 2 GB, or past `0x7FEFFFFF` elements under `gcAllowVeryLargeObjects`,
+so a result between its cap and this one fails there with the runtime's own out-of-memory error,
+raised before any memory is taken.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`CsrMatrix.Multiply`](csrmatrix-multiply.md), [`CsrMatrix`](csrmatrix.md), the

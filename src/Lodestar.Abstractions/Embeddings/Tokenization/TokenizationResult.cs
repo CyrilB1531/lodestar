@@ -16,25 +16,9 @@ public sealed record TokenizationResult(IReadOnlyList<string> Tokens, IReadOnlyL
         {
             return true;
         }
-        if (other is null || Tokens.Count != other.Tokens.Count || Ids.Count != other.Ids.Count)
-        {
-            return false;
-        }
-        for (int i = 0; i < Tokens.Count; i++)
-        {
-            if (!string.Equals(Tokens[i], other.Tokens[i], StringComparison.Ordinal))
-            {
-                return false;
-            }
-        }
-        for (int i = 0; i < Ids.Count; i++)
-        {
-            if (Ids[i] != other.Ids[i])
-            {
-                return false;
-            }
-        }
-        return true;
+        return other is not null
+            && ValueEquality.Same(Tokens, other.Tokens)
+            && ValueEquality.Same(Ids, other.Ids);
     }
 
     /// <summary>Hashes the lengths only, which is O(1) and still consistent with equality.</summary>
@@ -47,7 +31,7 @@ public sealed record TokenizationResult(IReadOnlyList<string> Tokens, IReadOnlyL
     {
         unchecked
         {
-            return (17 * 31 + Tokens.Count) * 31 + Ids.Count;
+            return (((17 * 31) + ValueEquality.LengthOf(Tokens)) * 31) + ValueEquality.LengthOf(Ids);
         }
     }
 }

@@ -21,7 +21,8 @@ dotnet add package Lodestar.Abstractions
 using Lodestar.Abstractions;
 
 // Two rows, three columns: row 0 holds 1 at column 0 and 2 at column 2; row 1 holds 3 at column 1.
-CsrMatrix matrix = CsrMatrix.CreateUnchecked(2, 3, [1.0, 2.0, 3.0], [0, 2, 1], [0, 2, 3]);
+// The constructor validates the three arrays; CreateUnchecked skips that, for arrays valid by construction.
+CsrMatrix matrix = new(2, 3, [1.0, 2.0, 3.0], [0, 2, 1], [0, 2, 3]);
 
 int rows = matrix.RowCount;             // 2
 double firstRow = matrix.RowL1Norm(0);  // 3

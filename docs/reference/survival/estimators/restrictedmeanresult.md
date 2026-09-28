@@ -29,3 +29,9 @@ curve, not the sampling variance of the mean; lifelines names it the same way.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`KaplanMeier.RestrictedMean`](kaplanmeier-restrictedmean.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`RestrictedMeanResult.GetHashCode`](restrictedmeanresult-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

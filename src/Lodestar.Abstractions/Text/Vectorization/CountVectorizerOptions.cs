@@ -89,8 +89,8 @@ public sealed record CountVectorizerOptions
             hash = (hash * 31) + (StripAccents ? 1 : 0);
             hash = (hash * 31) + (int)Analyzer;
             hash = (hash * 31) + NgramRange.GetHashCode();
-            hash = (hash * 31) + MinDf.GetHashCode();
-            hash = (hash * 31) + MaxDf.GetHashCode();
+            hash = (hash * 31) + ValueEquality.HashOf(MinDf);
+            hash = (hash * 31) + ValueEquality.HashOf(MaxDf);
             hash = (hash * 31) + (Binary ? 1 : 0);
             hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(TokenPattern);
             return (hash * 31) + ValueEquality.PresenceOf(StopWords);

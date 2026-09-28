@@ -67,13 +67,38 @@ public sealed class CsrMatrixTests
         Assert.Throws<ArgumentException>(() => Sample().Multiply([1.0, 2.0]));
 
     /// <summary>
-    /// The unchecked factory is what the vectorizers use, and it stays internal after
-    /// the move: <c>InternalsVisibleTo</c> is what keeps step B compiling.
+    /// The unchecked factory, public since 0.2.0, takes the arrays as given; the published
+    /// <c>Lodestar.Text</c> that calls it is <c>PublishedTextCompatibilityTests</c>' concern (#1290).
     /// </summary>
     [Fact]
-    public void The_unchecked_factory_is_reachable_from_a_friend_assembly() =>
+    public void The_unchecked_factory_builds_the_matrix_it_is_given() =>
         Assert.Equal(3, CsrMatrix.CreateUnchecked(2, 3, [1.0, 2.0, 3.0], [0, 2, 1], [0, 2, 3])
                                  .NonZeroCount);
+
+    [Fact]
+    public void An_undefined_norm_is_refused_rather_than_read_as_l2()
+    {
+        // sklearn.preprocessing.normalize raises on an unknown norm; this read it as L2 (#1286).
+        CsrMatrix matrix = new(1, 2, [3.0, 4.0], [0, 1], [0, 2]);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => matrix.NormalizeRows((SparseNorm)2));
+        Assert.Equal([3.0, 4.0], matrix.Values);
+    }
+
+    [Fact]
+    public void A_matrix_too_large_to_densify_is_refused_before_allocating() =>
+        // A few bytes stored, 16 GB densified (#1287).
+        Assert.Throws<InvalidOperationException>(
+            () => new CsrMatrix(1, int.MaxValue, [], [], [0, 0]).ToDense());
+
+    [Fact]
+    public void A_product_past_the_largest_array_is_refused_rather_than_allocated()
+    {
+        // No row, so the operand is empty: 0x7FFFFFC8 result cells fit an int and no array (#1287).
+        CsrMatrix matrix = new(0, 1, [], [], [0]);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => matrix.TransposeMultiply([], 0x7FFFFFC8));
+    }
 
     [Fact]
     public void A_column_stored_twice_in_a_row_densifies_to_the_sum_the_product_reads()

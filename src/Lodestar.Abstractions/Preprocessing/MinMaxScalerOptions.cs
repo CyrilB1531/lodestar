@@ -16,4 +16,15 @@ public sealed record MinMaxScalerOptions
 
     /// <summary>Whether <c>MinMaxScaler.Transform</c> clips an unseen value into the range.</summary>
     public bool Clip { get; init; }
+
+    /// <summary>Hashes every member as the generated equality compares it, each <c>NaN</c> alike (#1285).</summary>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = (17 * 31) + ValueEquality.HashOf(Low);
+            hash = (hash * 31) + ValueEquality.HashOf(High);
+            return (hash * 31) + ValueEquality.HashOfItem(Clip);
+        }
+    }
 }

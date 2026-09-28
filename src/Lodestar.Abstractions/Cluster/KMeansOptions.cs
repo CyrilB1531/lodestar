@@ -56,8 +56,8 @@ public sealed record KMeansOptions
     /// <param name="other">The options to compare against.</param>
     /// <remarks>
     /// The generated equality would compare <see cref="InitialCentres"/> by reference, so two
-    /// option sets built from separate arrays holding the same centres would be unequal.
-    /// the rule has the rule and the six records that reached it first.
+    /// option sets built from separate arrays holding the same centres would be unequal, which is
+    /// why a record with an array member writes its own equality.
     /// </remarks>
     public bool Equals(KMeansOptions? other)
     {
@@ -105,7 +105,7 @@ public sealed record KMeansOptions
             hash = (hash * 31) + Seed;
             hash = (hash * 31) + Restarts;
             hash = (hash * 31) + (InitialCentreSets?.Count ?? -1);
-            hash = (hash * 31) + Tolerance.GetHashCode();
+            hash = (hash * 31) + ValueEquality.HashOf(Tolerance);
             return (hash * 31) + ValueEquality.CountOf(InitialCentres);
         }
     }

@@ -40,3 +40,9 @@ exactly what it scores in a thousand-word one. `B = 1` divides fully by relative
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`Bm25Index`](bm25index.md), [`Bm25Idf`](bm25idf.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`Bm25Options.GetHashCode`](bm25options-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

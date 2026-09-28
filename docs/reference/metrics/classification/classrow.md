@@ -44,3 +44,5 @@ the [Python equivalence table](../../../equivalence.md).
 
 | Member | What it does |
 | --- | --- |
+| [`ClassRow.GetHashCode`](classrow-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |
+| [`ClassRow.GetHashCode`](classrow-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |
