@@ -22,10 +22,12 @@ public sealed class ParametricFit
         int k = parameters.Length;
         _shape = shape;
         _parameters = parameters;
+        // A read-only view of the array the predictions read, so a cast back cannot edit the fit (#1304).
+        Parameters = Array.AsReadOnly(parameters);
         _covariance = Covariance(information, k);
         _z = Distributions.NormalQuantile(1.0 - ((1.0 - level) / 2.0));
         Model = model;
-        ParameterNames = shape.Names;
+        ParameterNames = Array.AsReadOnly(shape.Names);
         ConfidenceLevel = level;
         LogLikelihood = logLikelihood;
         Aic = (-2.0 * logLikelihood) + (2.0 * k);
@@ -44,11 +46,11 @@ public sealed class ParametricFit
             upper[j] = parameters[j] + (_z * errors[j]);
         }
 
-        StandardErrors = errors;
-        ZStatistics = z;
-        PValues = p;
-        ConfidenceLower = lower;
-        ConfidenceUpper = upper;
+        StandardErrors = Array.AsReadOnly(errors);
+        ZStatistics = Array.AsReadOnly(z);
+        PValues = Array.AsReadOnly(p);
+        ConfidenceLower = Array.AsReadOnly(lower);
+        ConfidenceUpper = Array.AsReadOnly(upper);
     }
 
     /// <summary>The model fitted.</summary>
@@ -58,7 +60,7 @@ public sealed class ParametricFit
     public IReadOnlyList<string> ParameterNames { get; }
 
     /// <summary>The fitted parameters, parallel to <see cref="ParameterNames"/>.</summary>
-    public IReadOnlyList<double> Parameters => _parameters;
+    public IReadOnlyList<double> Parameters { get; }
 
     /// <summary>The square roots of the inverse observed information's diagonal.</summary>
     public IReadOnlyList<double> StandardErrors { get; }

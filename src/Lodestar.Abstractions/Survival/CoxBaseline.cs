@@ -8,7 +8,9 @@ namespace Lodestar.Survival;
 /// <param name="Survival"><c>exp(−CumulativeHazard)</c>.</param>
 /// <remarks>
 /// The baseline is the one of a subject at the covariates' means, as lifelines centres them; multiplying by a
-/// subject's partial hazard, <c>exp((x − mean) · β)</c>, gives that subject's cumulative hazard.
+/// subject's partial hazard, <c>exp((x − mean) · β)</c>, gives that subject's cumulative hazard. The four
+/// arrays are this record's own, not copied: writing to one changes the record, and never the predictions of
+/// the <c>CoxSummary</c> it came from, which reads a copy of its own (#1304).
 /// </remarks>
 // CA1819 (properties should not return arrays): the arrays share one index with Times and are read positionally,
 // as KaplanMeierCurve's are.
@@ -38,7 +40,7 @@ public sealed record CoxBaseline(int Stratum, double[] Times, double[] Hazard, d
     {
         unchecked
         {
-            return ((17 * 31) + Stratum) * 31 + ValueEquality.CountOf(Times);
+            return (((17 * 31) + Stratum) * 31) + ValueEquality.CountOf(Times);
         }
     }
 }
