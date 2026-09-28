@@ -14,13 +14,15 @@ public IAsyncEnumerable<TRecord> GetAsync(Expression<Func<TRecord, bool>> filter
 predicate over the record type, and `top` is the most records it returns. `options` carries the
 abstraction's retrieval settings: on the filtered overload `Skip` is honoured and `OrderBy` refused,
 and `IncludeVectors` is not read on any overload. `cancellationToken` is checked between records on
-the two enumerating overloads and not observed on the first.
+the two enumerating overloads and on entry on the first, which returns a cancelled task for one
+already cancelled ([#1354](https://github.com/CyrilB1531/lodestar/issues/1354)).
 
 **Returns** — the first overload, a completed task holding the record, or `null` when the key is not
 held. The second, the records held under `keys`, in the order of `keys`, skipping any key not held.
 The third, at most `top` records the filter admits, after skipping `Skip` of them.
 
-**Exceptions** — `ArgumentNullException` when `keys` or `filter` is null.
+**Exceptions** — `ArgumentNullException` when `key`, `keys` or `filter` is null, or when `keys` holds
+a null key ([#1353](https://github.com/CyrilB1531/lodestar/issues/1353)).
 `ArgumentOutOfRangeException` when `top` is less than 1. `NotSupportedException` when `options` sets
 `OrderBy`. `OperationCanceledException` when `cancellationToken` is cancelled between records. The
 enumerating overloads check their arguments when enumeration begins, not when they are called.

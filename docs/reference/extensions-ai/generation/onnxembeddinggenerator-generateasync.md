@@ -20,7 +20,8 @@ finished, as Microsoft.Extensions.AI's own OpenAI generator fills them.
 
 **Exceptions** — every one of these comes back in the returned task, never from the call itself.
 `ArgumentNullException` when `values` is null. `ArgumentException` when `options`
-asks for a dimension the loaded model does not produce. `OperationCanceledException` when
+asks for a dimension the loaded model does not produce, or when the encoder refuses a text in
+`values` — as it refuses one over its `MaxLength` under `TruncationStrategy.None` — naming `values` ([#1345](https://github.com/CyrilB1531/lodestar/issues/1345)). `OperationCanceledException` when
 `cancellationToken` is already cancelled, or is cancelled between sub-batches — it is the batch path
 underneath that observes it, so the point at which it fires is that path's, not this one's.
 `ObjectDisposedException` after

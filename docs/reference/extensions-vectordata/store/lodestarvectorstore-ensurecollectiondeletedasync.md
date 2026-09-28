@@ -8,10 +8,13 @@ Empties a collection and marks it as not existing.
 public Task EnsureCollectionDeletedAsync(string name, CancellationToken cancellationToken = default)
 ```
 
-**Parameters** — `name` is the collection to delete. `cancellationToken` is accepted for the
-abstraction's sake and not observed.
+**Parameters** — `name` is the collection to delete. `cancellationToken` is checked before the
+collection is emptied, whether or not the store holds one under `name`.
 
-**Returns** — a completed `Task`.
+**Returns** — a completed `Task`, or a cancelled one, changing nothing, when `cancellationToken` is
+already cancelled ([#1354](https://github.com/CyrilB1531/lodestar/issues/1354)).
+
+**Exceptions** — `ArgumentNullException` when `name` is null ([#1353](https://github.com/CyrilB1531/lodestar/issues/1353)).
 
 **Example** — the records go, the collection object stays usable.
 

@@ -8,12 +8,14 @@ Whether a collection of that name has been created or written to.
 public Task<bool> CollectionExistsAsync(string name, CancellationToken cancellationToken = default)
 ```
 
-**Parameters** — `name` is the collection asked about. `cancellationToken` is accepted for the
-abstraction's sake and not observed: the answer is a dictionary lookup.
+**Parameters** — `name` is the collection asked about. `cancellationToken` is checked on entry:
+one already cancelled returns a cancelled task ([#1354](https://github.com/CyrilB1531/lodestar/issues/1354)).
 
 **Returns** — a completed `Task<bool>`: `true` when the store holds a collection under `name` that
 has been ensured or written to and not deleted since; `false` otherwise, including for a name the
 store has never seen.
+
+**Exceptions** — `ArgumentNullException` when `name` is null ([#1353](https://github.com/CyrilB1531/lodestar/issues/1353)).
 
 **Example** — requested, ensured, deleted.
 

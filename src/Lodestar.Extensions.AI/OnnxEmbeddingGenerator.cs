@@ -56,7 +56,7 @@ public sealed class OnnxEmbeddingGenerator : IEmbeddingGenerator<string, Embeddi
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <returns>One <see cref="Embedding{T}"/> per input, in the order they were given, each carrying the generator's model identifier and the time it was generated.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="values"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="options"/> asks for a dimension the loaded model does not produce.</exception>
+    /// <exception cref="ArgumentException"><paramref name="options"/> asks for a dimension the loaded model does not produce, or the encoder refuses a text in <paramref name="values"/>, as it refuses one over its <c>MaxLength</c> under <c>TruncationStrategy.None</c>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled, before or between sub-batches.</exception>
     /// <exception cref="ObjectDisposedException">This generator has been disposed.</exception>
     /// <remarks>
@@ -100,7 +100,17 @@ public sealed class OnnxEmbeddingGenerator : IEmbeddingGenerator<string, Embeddi
         Guard.NotNull(values);
         RequireCompatibleDimensions(options);
 
-        float[][] vectors = _embedder.EmbedBatch(values, _encoder, cancellationToken);
+        float[][] vectors;
+        try
+        {
+            vectors = _embedder.EmbedBatch(values, _encoder, cancellationToken);
+        }
+        catch (ArgumentException e) when (e is not ArgumentNullException && e.ParamName is "texts" or "text")
+        {
+            // Named after this method's parameter, not the encoder's, so a caller can tell what to fix (#1345).
+            // An encoder older than Lodestar.Embeddings' #1324 names the single text rather than the list.
+            throw new ArgumentException("A text in values is refused; the inner exception says why.", nameof(values), e);
+        }
 
         // One timestamp for the call: the vectors come from one batch run, not one run each.
         DateTimeOffset createdAt = DateTimeOffset.UtcNow;
@@ -146,7 +156,7 @@ public sealed class OnnxEmbeddingGenerator : IEmbeddingGenerator<string, Embeddi
     }
 
     /// <summary>Disposes the embedder this generator was given.</summary>
-    /// <remarks>Disposing twice is safe; calling <see cref="GenerateAsync"/> afterwards is not.</remarks>
+    /// <remarks>Disposing twice is safe; <see cref="GenerateAsync"/> afterwards returns a task faulted with <see cref="ObjectDisposedException"/> (#1346).</remarks>
     public void Dispose()
     {
         if (_disposed)

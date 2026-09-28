@@ -9,10 +9,11 @@ public Task DeleteAsync(TKey key, CancellationToken cancellationToken = default)
 public Task DeleteAsync(IEnumerable<TKey> keys, CancellationToken cancellationToken = default)
 ```
 
-**Parameters** — `key` is one record's key. `keys` is several. `cancellationToken` is accepted for the
-abstraction's sake and not observed.
+**Parameters** — `key` is one record's key. `keys` is several. `cancellationToken` is checked before any
+record is removed.
 
-**Returns** — a completed `Task`.
+**Returns** — a completed `Task`, or a cancelled one, removing nothing, when `cancellationToken` is
+already cancelled ([#1354](https://github.com/CyrilB1531/lodestar/issues/1354)).
 
 **Exceptions** — `ArgumentNullException` when `key` or `keys` is null, or when `keys` holds a null
 key. The batch overload reads and checks every key before it removes any, so a refused batch removes

@@ -65,11 +65,16 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
 
     /// <inheritdoc />
     public override Task<bool> CollectionExistsAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult(_exists);
+        cancellationToken.IsCancellationRequested ? Task.FromCanceled<bool>(cancellationToken) : Task.FromResult(_exists);
 
     /// <inheritdoc />
     public override Task EnsureCollectionExistsAsync(CancellationToken cancellationToken = default)
     {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled(cancellationToken);
+        }
+
         _exists = true;
         _deleted = false;
         return Task.CompletedTask;
@@ -78,6 +83,11 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <inheritdoc />
     public override Task EnsureCollectionDeletedAsync(CancellationToken cancellationToken = default)
     {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled(cancellationToken);
+        }
+
         _exists = false;
         _deleted = true;
         _held.Clear();
@@ -88,9 +98,19 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <inheritdoc />
     /// <exception cref="ArgumentNullException"><paramref name="record"/> is null.</exception>
     /// <exception cref="ArgumentException">The record's key is null, or its vector is not the collection's width.</exception>
+    /// <exception cref="InvalidOperationException">The record would take the collection past the largest array.</exception>
     public override Task UpsertAsync(TRecord record, CancellationToken cancellationToken = default)
     {
         TKey key = _schema.Admit(record, nameof(record));
+
+        // A token cancelled before the write leaves the collection as it was (#1354).
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled(cancellationToken);
+        }
+
+        _held.EnsureRoomFor([key]);
+
         Write(key, record);
         _exists = true;
         _deleted = false;
@@ -100,6 +120,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <inheritdoc />
     /// <exception cref="ArgumentNullException"><paramref name="records"/> is null, or holds a null record.</exception>
     /// <exception cref="ArgumentException">A record's key is null, or its vector is not the collection's width.</exception>
+    /// <exception cref="InvalidOperationException">The records would take the collection past the largest array; checked before any is written.</exception>
     /// <remarks>Every record is checked before any is written, so a refused batch writes nothing.</remarks>
     public override Task UpsertAsync(IEnumerable<TRecord> records, CancellationToken cancellationToken = default)
     {
@@ -109,6 +130,14 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         {
             admitted.Add(new KeyValuePair<TKey, TRecord>(_schema.Admit(record, nameof(records)), record));
         }
+
+        // Checked once the batch is read and before any of it is written: a cancelled batch writes nothing.
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled(cancellationToken);
+        }
+
+        _held.EnsureRoomFor(admitted.ConvertAll(entry => entry.Key));
 
         foreach (KeyValuePair<TKey, TRecord> entry in admitted)
         {
@@ -124,6 +153,12 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <exception cref="ArgumentNullException"><paramref name="key"/> is null.</exception>
     public override Task DeleteAsync(TKey key, CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(key);
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled(cancellationToken);
+        }
+
         Erase(key);
         return Task.CompletedTask;
     }
@@ -138,6 +173,11 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         if (Array.Exists(batch, key => key is null))
         {
             throw new ArgumentNullException(nameof(keys), "A null key cannot address a record.");
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled(cancellationToken);
         }
 
         foreach (TKey key in batch)
@@ -164,13 +204,43 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         }
     }
 
-    /// <inheritdoc />
-    public override Task<TRecord?> GetAsync(
-        TKey key, RecordRetrievalOptions? options = null, CancellationToken cancellationToken = default) =>
-        Task.FromResult(_held.TryGet(key, out TRecord? record) ? record : null);
+    /// <summary>The records held under <paramref name="keys"/>, in their order, skipping any key not held.</summary>
+    private List<TRecord> Held(IEnumerable<TKey> keys)
+    {
+        var found = new List<TRecord>();
+        foreach (TKey key in keys)
+        {
+            // Named for GetAsync's parameter, as DeleteAsync names its own, not Dictionary's "key" (#1353).
+            if (key is null)
+            {
+                throw new ArgumentNullException(nameof(keys), "A null key cannot address a record.");
+            }
+
+            if (_held.TryGet(key, out TRecord? record))
+            {
+                found.Add(record!);
+            }
+        }
+
+        return found;
+    }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException"><paramref name="keys"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="key"/> is null.</exception>
+    public override Task<TRecord?> GetAsync(
+        TKey key, RecordRetrievalOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        Guard.NotNull(key);
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled<TRecord?>(cancellationToken);
+        }
+
+        return Task.FromResult(_held.TryGet(key, out TRecord? record) ? record : null);
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentNullException"><paramref name="keys"/> is null, or holds a null key.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> is cancelled between records.</exception>
     public override async IAsyncEnumerable<TRecord> GetAsync(
         IEnumerable<TKey> keys,
@@ -178,14 +248,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         Guard.NotNull(keys);
-        var found = new List<TRecord>();
-        foreach (TKey key in keys)
-        {
-            if (_held.TryGet(key, out TRecord? record))
-            {
-                found.Add(record!);
-            }
-        }
+        List<TRecord> found = Held(keys);
 
         foreach (TRecord record in found)
         {

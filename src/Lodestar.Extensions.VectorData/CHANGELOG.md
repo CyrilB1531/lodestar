@@ -16,6 +16,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Fixed
 
 - A query is normalized in double, as the stored vectors are, so one whose components pass about 1e19 ranks by direction where its float norm overflowed and every score came back zero. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
+- Collections refuse a record past the largest array before resizing, name a null collection name or key under the caller's parameter, and return a cancelled task, writing nothing, for a token already cancelled. ([#1338](https://github.com/CyrilB1531/lodestar/issues/1338), [#1353](https://github.com/CyrilB1531/lodestar/issues/1353), [#1354](https://github.com/CyrilB1531/lodestar/issues/1354))
 
 ## [0.1.0] — 2026-09-24
 

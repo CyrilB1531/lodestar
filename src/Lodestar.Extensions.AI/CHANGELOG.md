@@ -13,6 +13,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 - `OnnxEmbeddingGenerator.GenerateAsync` returns every failure in a faulted or cancelled task, as Microsoft.Extensions.AI's own generators do, where it threw from the call. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
 - Each `Embedding<float>` `OnnxEmbeddingGenerator` returns carries the generator's `ModelId` and a `CreatedAt` timestamp, where both were null. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
+- `OnnxEmbeddingGenerator.GenerateAsync` faults with a refused text under `values`, and `Dispose` says a later call faults its task rather than throwing. ([#1345](https://github.com/CyrilB1531/lodestar/issues/1345), [#1346](https://github.com/CyrilB1531/lodestar/issues/1346))
 
 ## [0.1.1] — 2026-09-24
 

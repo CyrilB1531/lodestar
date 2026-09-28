@@ -8,9 +8,10 @@ Drops every record and marks the collection as not existing.
 public Task EnsureCollectionDeletedAsync(CancellationToken cancellationToken = default)
 ```
 
-**Parameters** — `cancellationToken` is accepted for the abstraction's sake and not observed.
+**Parameters** — `cancellationToken` is checked before the collection is emptied.
 
-**Returns** — a completed `Task`.
+**Returns** — a completed `Task`, or a cancelled one, changing nothing, when `cancellationToken` is
+already cancelled ([#1354](https://github.com/CyrilB1531/lodestar/issues/1354)).
 
 **Example** — deleted, then written to again.
 

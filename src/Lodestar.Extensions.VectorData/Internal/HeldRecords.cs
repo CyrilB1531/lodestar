@@ -172,12 +172,41 @@ internal sealed class HeldRecords<TKey, TRecord>
         }
     }
 
+    /// <summary>Refuses, before anything is written, keys that would take the records past the largest array (#1338).</summary>
+    /// <remarks>Counts the keys not yet held, each once; freed slots are not counted, so it may refuse early, never late.</remarks>
+    public void EnsureRoomFor(ICollection<TKey> keys)
+    {
+        // Every key new, and still room: the case of every write short of the limit, without a set.
+        if ((long)_used + keys.Count <= MaxSlots)
+        {
+            return;
+        }
+
+        var incoming = new HashSet<TKey>(keys.Where(key => !_slots.ContainsKey(key)));
+
+        if ((long)_used + incoming.Count > MaxSlots)
+        {
+            throw new InvalidOperationException(
+                $"The collection holds {Count} records of {_dimension} floats, and {incoming.Count} more are past the largest array.");
+        }
+    }
+
+    private long MaxSlots => TableLength.MaxLength / Math.Max(_dimension, 1);
+
     /// <summary>A fresh slot at the end, doubling the storage when it is full.</summary>
     private int Grow()
     {
         if (_used == _records.Length)
         {
-            int capacity = Math.Max(4, _records.Length * 2);
+            // Slots times the width stays within one array; in int the product wrapped negative (#1338).
+            long maxSlots = MaxSlots;
+            if (_used >= maxSlots)
+            {
+                throw new InvalidOperationException(
+                    $"The collection holds {_used} records of {_dimension} floats, and one more is past the largest array.");
+            }
+
+            int capacity = (int)Math.Min(Math.Max(4L, (long)_records.Length * 2), maxSlots);
             Array.Resize(ref _records, capacity);
             Array.Resize(ref _rows, capacity * _dimension);
         }
