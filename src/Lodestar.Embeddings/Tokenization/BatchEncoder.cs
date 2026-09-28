@@ -21,8 +21,8 @@ public sealed class BatchEncoder
     /// <param name="tokenizer">The tokenizer whose vocabulary resolves the template's special tokens.</param>
     /// <param name="options">Template, truncation and batching settings; defaults to <see cref="EncodingOptions"/>'s own defaults.</param>
     /// <exception cref="ArgumentException">
-    /// The tokenizer's vocabulary does not contain one of the template's tokens, or
-    /// <see cref="EncodingOptions.MaxLength"/> leaves no room for them.
+    /// The tokenizer's vocabulary does not contain one of the template's tokens, the template or one of its members
+    /// is null, or <see cref="EncodingOptions.MaxLength"/> leaves no room for them.
     /// </exception>
     public BatchEncoder(ISubwordTokenizer tokenizer, EncodingOptions? options = null)
     {
@@ -35,7 +35,14 @@ public sealed class BatchEncoder
             throw new ArgumentException($"BatchSize must be at least 1, was {Options.BatchSize}.", nameof(options));
         }
 
+        // A template built with nulls would fail as NullReferenceException far from its cause (#1352).
         SpecialTokenTemplate template = Options.Template;
+        if (template?.PrefixTokens is null || template.SuffixTokens is null || template.PadToken is null
+            || template.PrefixTokens.Contains(null!) || template.SuffixTokens.Contains(null!))
+        {
+            throw new ArgumentException("The options' template, one of its token lists, a token in them or its pad token is null.", nameof(options));
+        }
+
         _prefixIds = ResolveAll(tokenizer, template.PrefixTokens);
         _suffixIds = ResolveAll(tokenizer, template.SuffixTokens);
         _padId = Resolve(tokenizer, template.PadToken);
@@ -139,6 +146,20 @@ public sealed class BatchEncoder
         return sequences;
     }
 
+    /// <summary>Row <paramref name="at"/> of the window, through <paramref name="order"/>, refused where it is not a sequence (#1352).</summary>
+    private static long[] Row(IReadOnlyList<long[]> sequences, int[]? order, int at)
+    {
+        int index = order is null ? at : order[at];
+        if (index < 0 || index >= sequences.Count)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(order), index, $"order names row {index}, outside the {sequences.Count} sequences.");
+        }
+
+        return sequences[index]
+            ?? throw new ArgumentException($"The sequence at {index} is null.", nameof(sequences));
+    }
+
     /// <summary>Lays a window of <paramref name="count"/> sequences out as one rectangle, padded to its own longest row.</summary>
     /// <param name="sequences">The unpadded encodings.</param>
     /// <param name="start">Index of the first sequence to take.</param>
@@ -149,8 +170,8 @@ public sealed class BatchEncoder
     /// rows itself does not write a second padding that can drift from this one.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="sequences"/> is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">The window is negative, or runs past <paramref name="sequences"/> (or <paramref name="order"/>).</exception>
-    /// <exception cref="ArgumentException">The window's rows times its longest row are more cells than one array holds.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The window is negative, runs past <paramref name="sequences"/> (or <paramref name="order"/>), or <paramref name="order"/> names a row outside <paramref name="sequences"/>.</exception>
+    /// <exception cref="ArgumentException">A sequence in the window is null, or the window's rows times its longest row are more cells than one array holds.</exception>
     public EncodedBatch Pad(IReadOnlyList<long[]> sequences, int start, int count, int[]? order = null)
     {
         Guard.NotNull(sequences);
@@ -172,7 +193,7 @@ public sealed class BatchEncoder
         var lengths = new int[count];
         for (int i = 0; i < count; i++)
         {
-            int length = sequences[order is null ? start + i : order[start + i]].Length;
+            int length = Row(sequences, order, start + i).Length;
             lengths[i] = length;
             width = Math.Max(width, length);
         }
@@ -190,7 +211,7 @@ public sealed class BatchEncoder
         var mask = new long[cells];
         for (int i = 0; i < count; i++)
         {
-            long[] sequence = sequences[order is null ? start + i : order[start + i]];
+            long[] sequence = Row(sequences, order, start + i);
             int offset = i * width;
             sequence.CopyTo(ids, offset);
             for (int t = 0; t < sequence.Length; t++)

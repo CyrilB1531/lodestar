@@ -86,7 +86,7 @@ public sealed record AddedToken(string Content, int Id)
     {
         unchecked
         {
-            int hash = (17 * 31) + StringComparer.Ordinal.GetHashCode(Content);
+            int hash = (17 * 31) + ValueEquality.HashOfItem(Content);
             hash = (hash * 31) + Id;
             hash = (hash * 31) + (Lstrip ? 1 : 0);
             hash = (hash * 31) + (Rstrip ? 1 : 0);

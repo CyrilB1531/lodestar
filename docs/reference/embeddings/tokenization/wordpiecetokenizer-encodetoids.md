@@ -1,6 +1,6 @@
 # WordPieceTokenizer.EncodeToIds
 
-Ids only, without building the token strings.
+The ids alone: [`Encode`](wordpiecetokenizer-encode.md)'s, with the token strings left behind.
 
 <!-- docs-declaration -->
 
@@ -13,7 +13,7 @@ public IReadOnlyList<int> EncodeToIds(string text)
 **Returns** — `IReadOnlyList<int>`, the same ids [`Encode`](wordpiecetokenizer-encode.md) would
 give.
 
-**Example** — the same ids, one allocation fewer.
+**Example** — the ids of a two-word text.
 
 ```csharp
 using Lodestar.Embeddings.Tokenization;

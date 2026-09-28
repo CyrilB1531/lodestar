@@ -38,6 +38,8 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     /// <param name="continuationPrefix">Prefix marking non-initial word pieces (default <c>##</c>).</param>
     /// <param name="maxCharsPerWord">Words longer than this become a single unknown token.</param>
     /// <param name="lowercase">Lowercase the text before tokenizing.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="vocab"/>, <paramref name="unkToken"/> or <paramref name="continuationPrefix"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="unkToken"/> is not in <paramref name="vocab"/>, or an id is negative.</exception>
     public WordPieceTokenizer(
         IReadOnlyDictionary<string, int> vocab,
         string unkToken = "[UNK]",
@@ -58,6 +60,8 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     /// </remarks>
     /// <param name="vocabulary">A vocabulary from <see cref="Persistence.VocabTxtLoader"/> or <see cref="Persistence.TokenizerJsonLoader"/>.</param>
     /// <param name="maxCharsPerWord">Words longer than this become a single unknown token.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="vocabulary"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="vocabulary"/> lacks its entries, unknown token, continuation prefix or added tokens, its unknown token is not among its entries, or an id is negative.</exception>
     public WordPieceTokenizer(WordPieceVocabulary vocabulary, int maxCharsPerWord = 100)
         : this(
             Checked(vocabulary).Vocab,
@@ -81,6 +85,11 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
         IReadOnlyList<AddedToken> addedTokens)
     {
         Guard.NotNull(vocab);
+        Guard.NotNull(unkToken);
+
+        // A null prefix read as a span is empty, and continuations would match unprefixed keys (#1350).
+        Guard.NotNull(continuationPrefix);
+        RequireIds(vocab, nameof(vocab));
         if (!vocab.TryGetValue(unkToken, out int unkId))
         {
             throw new ArgumentException($"The unknown token '{unkToken}' is not in the vocabulary.", nameof(unkToken));
@@ -192,7 +201,35 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     private static WordPieceVocabulary Checked(WordPieceVocabulary vocabulary)
     {
         Guard.NotNull(vocabulary);
+
+        // Named for the parameter the caller passed, not the private constructor's (#1350).
+        if (vocabulary.Vocab is null || vocabulary.UnkToken is null || vocabulary.ContinuationPrefix is null
+            || vocabulary.AddedTokens is null)
+        {
+            throw new ArgumentException(
+                "The vocabulary is missing its entries, its unknown token, its continuation prefix or its added tokens.",
+                nameof(vocabulary));
+        }
+
+        RequireIds(vocabulary.Vocab, nameof(vocabulary));
+        if (!vocabulary.Vocab.ContainsKey(vocabulary.UnkToken))
+        {
+            throw new ArgumentException($"The unknown token '{vocabulary.UnkToken}' is not in the vocabulary.", nameof(vocabulary));
+        }
+
         return vocabulary;
+    }
+
+    /// <summary>Refuses a negative id, which tokenizers' <c>u32</c> ids cannot hold and ONNX would be handed (#1334).</summary>
+    private static void RequireIds(IReadOnlyDictionary<string, int> vocab, string paramName)
+    {
+        foreach (KeyValuePair<string, int> entry in vocab)
+        {
+            if (entry.Value < 0)
+            {
+                throw new ArgumentException($"The vocabulary maps '{entry.Key}' to the negative id {entry.Value}.", paramName);
+            }
+        }
     }
 
     /// <summary>Encodes <c>text[from..to]</c> -- what no raw-matched added token claimed -- normalizing it under BERT, scanning it for normalized added tokens, and handing the rest to the model.</summary>

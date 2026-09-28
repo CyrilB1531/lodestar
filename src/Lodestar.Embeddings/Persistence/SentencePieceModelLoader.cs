@@ -28,6 +28,7 @@ public static class SentencePieceModelLoader
 
     // TrainerSpec field numbers: the algorithm, then the special-token ids.
     private const int TrainerFieldModelType = 3;
+    private const int TrainerFieldTreatWhitespaceAsSuffix = 24;
     private const int TrainerFieldByteFallback = 35;
     private const int TrainerFieldUnkId = 40;
     private const int TrainerFieldBosId = 41;
@@ -208,6 +209,16 @@ public static class SentencePieceModelLoader
         {
             throw new InvalidDataException($"The SentencePiece model has a piece with no string at id {pieces.Count}.");
         }
+
+        // A NaN or infinite log-probability on a piece segmentation can reach leaves the Viterbi walk with no finite
+        // path (#1331); a control, unknown or unused piece never scores, as SentencePieceTokenizer skips it.
+        bool matchable = type is not (SentencePieceType.Control or SentencePieceType.Unknown or SentencePieceType.Unused);
+        if (matchable && (double.IsNaN(score) || double.IsInfinity(score)))
+        {
+            throw new InvalidDataException(
+                $"The SentencePiece model has a piece at id {pieces.Count} whose score is not a finite number.");
+        }
+
         pieces.Add(new SentencePiece(piece, score, pieces.Count));
         types.Add(type);
     }
@@ -229,6 +240,9 @@ public static class SentencePieceModelLoader
                     break;
                 case TrainerFieldByteFallback:
                     EnsureByteFallbackIsOff(reader.ReadVarint() != 0);
+                    break;
+                case TrainerFieldTreatWhitespaceAsSuffix:
+                    EnsureWhitespaceIsAPrefix(reader.ReadVarint() != 0);
                     break;
                 case TrainerFieldUnkId:
                     unkId = reader.ReadInt32();
@@ -275,6 +289,16 @@ public static class SentencePieceModelLoader
             throw Unsupported(
                 "it was trained with byte_fallback",
                 "Python resolves an uncovered character into <0x..> byte pieces where this tokenizer emits the unknown piece");
+        }
+    }
+
+    private static void EnsureWhitespaceIsAPrefix(bool asSuffix)
+    {
+        if (asSuffix)
+        {
+            throw Unsupported(
+                "it was trained with treat_whitespace_as_suffix",
+                "Python attaches the meta symbol after a word, 'hello▁', where this tokenizer prefixes it");
         }
     }
 
@@ -349,7 +373,7 @@ public static class SentencePieceModelLoader
         {
             throw Unsupported("escape_whitespaces is off", "the tokenizer always maps spaces to U+2581");
         }
-        return charsMap is null ? null : PrecompiledNormalizer.FromCharsMap(charsMap);
+        return charsMap is null ? null : PrecompiledNormalizer.FromOwnedCharsMap(charsMap);
     }
 
     private static InvalidDataException Unsupported(string found, string why) =>

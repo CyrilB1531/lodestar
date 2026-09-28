@@ -17,7 +17,8 @@ interpreted; `null` is exactly equivalent to the single-argument overload.
 higher.
 
 **Exceptions** — `ArgumentException` when `vector.Length` differs from `Dimension`. The message
-names both lengths.
+names both lengths. `InvalidOperationException` when one more vector would take the stored floats
+past the largest array ([#1339](https://github.com/CyrilB1531/lodestar/issues/1339)).
 
 **Example** — two vectors, one with an id and one without.
 

@@ -11,7 +11,7 @@ public static class VectorMath
     {
         if (a.Length != b.Length)
         {
-            throw new ArgumentException($"length mismatch: {a.Length} vs {b.Length}.");
+            throw new ArgumentException($"length mismatch: {a.Length} vs {b.Length}.", nameof(b));
         }
 
         float sum = 0;
@@ -37,5 +37,34 @@ public static class VectorMath
     }
 
     /// <summary>Computes the Euclidean (L2) norm of a vector.</summary>
-    public static float L2Norm(ReadOnlySpan<float> v) => (float)Math.Sqrt(Dot(v, v));
+    /// <remarks>
+    /// <see cref="Dot"/><c>(v, v)</c> under a square root, recomputed in <see cref="double"/> only where that float
+    /// sum overflowed or fell to where its squares underflow: <c>[1e20f]</c> and <c>[1e-23f]</c> have norms a float
+    /// holds, which the float sum lost (#1355).
+    /// </remarks>
+    public static float L2Norm(ReadOnlySpan<float> v)
+    {
+        float squares = Dot(v, v);
+        if (squares >= SmallestExactSquares && !float.IsInfinity(squares))
+        {
+            return (float)Math.Sqrt(squares);
+        }
+
+        return (float)Math.Sqrt(SquaresInDouble(v));
+    }
+
+    /// <summary>Below this a float sum of squares may have lost a square to underflow.</summary>
+    internal const float SmallestExactSquares = 1e-24f;
+
+    /// <summary>The sum of squares in <see cref="double"/>, in order: the slow path, for the extremes alone.</summary>
+    internal static double SquaresInDouble(ReadOnlySpan<float> v)
+    {
+        double sum = 0;
+        foreach (float value in v)
+        {
+            sum += (double)value * value;
+        }
+
+        return sum;
+    }
 }

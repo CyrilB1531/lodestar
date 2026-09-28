@@ -226,9 +226,9 @@ public static class TokenizerJsonLoader
         var vocab = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (JsonProperty entry in RequireObject(model, "vocab").EnumerateObject())
         {
-            if (entry.Value.ValueKind != JsonValueKind.Number || !entry.Value.TryGetInt32(out int id))
+            if (entry.Value.ValueKind != JsonValueKind.Number || !entry.Value.TryGetInt32(out int id) || id < 0)
             {
-                throw new InvalidDataException($"The {SourceName} maps token '{entry.Name}' to a value that is not an integer id.");
+                throw new InvalidDataException($"The {SourceName} maps token '{entry.Name}' to a value that is not a non-negative integer id.");
             }
             limits.CheckTokenLength(entry.Name.Length);
             vocab[entry.Name] = id;
@@ -954,9 +954,9 @@ public static class TokenizerJsonLoader
         var vocab = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (JsonProperty entry in RequireObject(model, "vocab").EnumerateObject())
         {
-            if (entry.Value.ValueKind != JsonValueKind.Number || !entry.Value.TryGetInt32(out int id))
+            if (entry.Value.ValueKind != JsonValueKind.Number || !entry.Value.TryGetInt32(out int id) || id < 0)
             {
-                throw new InvalidDataException($"The {SourceName} maps token '{entry.Name}' to a value that is not an integer id.");
+                throw new InvalidDataException($"The {SourceName} maps token '{entry.Name}' to a value that is not a non-negative integer id.");
             }
             limits.CheckTokenLength(entry.Name.Length);
             vocab[entry.Name] = id;
@@ -1563,7 +1563,7 @@ public static class TokenizerJsonLoader
                 $"The {SourceName} carries a precompiled_charsmap that is not valid base64.", e);
         }
         // tokenizers reads the charsmap by grapheme, where a .model's sentencepiece takes the longest rule (#1260).
-        return PrecompiledNormalizer.FromCharsMap(charsMap).ByGrapheme();
+        return PrecompiledNormalizer.FromOwnedCharsMap(charsMap).ByGrapheme();
     }
 
     private static bool ReadLowercase(JsonElement root)

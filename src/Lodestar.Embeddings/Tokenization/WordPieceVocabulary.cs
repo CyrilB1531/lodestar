@@ -77,19 +77,16 @@ public sealed record WordPieceVocabulary(
             || BasicTokenization != other.BasicTokenization
             || !string.Equals(UnkToken, other.UnkToken, StringComparison.Ordinal)
             || !string.Equals(ContinuationPrefix, other.ContinuationPrefix, StringComparison.Ordinal)
-            || Vocab.Count != other.Vocab.Count
-            || AddedTokens.Count != other.AddedTokens.Count
-            || !PrefixTokens.SequenceEqual(other.PrefixTokens, StringComparer.Ordinal)
-            || !SuffixTokens.SequenceEqual(other.SuffixTokens, StringComparer.Ordinal))
+            || (Vocab?.Count ?? -1) != (other.Vocab?.Count ?? -1)
+            || !ValueEquality.Same(PrefixTokens, other.PrefixTokens)
+            || !ValueEquality.Same(SuffixTokens, other.SuffixTokens)
+            || !ValueEquality.Same(AddedTokens, other.AddedTokens))
         {
             return false;
         }
-        for (int i = 0; i < AddedTokens.Count; i++)
+        if (Vocab is null || other.Vocab is null)
         {
-            if (!AddedTokens[i].Equals(other.AddedTokens[i]))
-            {
-                return false;
-            }
+            return Vocab is null && other.Vocab is null;
         }
         foreach (KeyValuePair<string, int> entry in Vocab)
         {
@@ -111,13 +108,14 @@ public sealed record WordPieceVocabulary(
     {
         unchecked
         {
-            int hash = (17 * 31) + Vocab.Count;
-            hash = (hash * 31) + AddedTokens.Count;
-            hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(UnkToken);
-            hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(ContinuationPrefix);
+            // Total on an absent member, as the equality above is (#1341).
+            int hash = (17 * 31) + (Vocab?.Count ?? -1);
+            hash = (hash * 31) + ValueEquality.LengthOf(AddedTokens);
+            hash = (hash * 31) + ValueEquality.HashOfItem(UnkToken);
+            hash = (hash * 31) + ValueEquality.HashOfItem(ContinuationPrefix);
             hash = (hash * 31) + (BasicTokenization ? 1 : 0);
-            hash = (hash * 31) + PrefixTokens.Count;
-            hash = (hash * 31) + SuffixTokens.Count;
+            hash = (hash * 31) + ValueEquality.LengthOf(PrefixTokens);
+            hash = (hash * 31) + ValueEquality.LengthOf(SuffixTokens);
             return (hash * 31) + (Lowercase ? 1 : 0);
         }
     }

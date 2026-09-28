@@ -51,10 +51,18 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
     /// <c>spiece.model</c> or, base64-encoded, by a <c>Precompiled</c> normalizer
     /// in a <c>tokenizer.json</c>.
     /// </param>
-    /// <exception cref="InvalidDataException">The blob is truncated or its trie is malformed.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="charsMap"/> is null.</exception>
+    /// <exception cref="InvalidDataException">The blob is shorter than its header, or its trie is empty, ragged or truncated.</exception>
+    /// <remarks>The blob is copied: a later write to the caller's array changes neither the output nor the equality (#1342).</remarks>
     public static PrecompiledNormalizer FromCharsMap(byte[] charsMap)
     {
         Guard.NotNull(charsMap);
+        return FromOwnedCharsMap((byte[])charsMap.Clone());
+    }
+
+    /// <summary><see cref="FromCharsMap"/> over a blob nothing else holds, which the loaders have just read.</summary>
+    internal static PrecompiledNormalizer FromOwnedCharsMap(byte[] charsMap)
+    {
 
         // 4-byte little-endian trie size, the trie, then the replacements.
         if (charsMap.Length < sizeof(uint))
@@ -90,6 +98,26 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
         return new PrecompiledNormalizer(charsMap, trie, (int)replacementsAt);
     }
 
+    /// <summary>A buffer size <paramref name="text"/>'s UTF-8 fits in, refused past the largest array (#1356).</summary>
+    private static int Utf8Capacity(string text)
+    {
+        // GetMaxByteCount is (length + 1) × 3, which overflows int past this many characters.
+        const int MaxCharsForBound = (int.MaxValue / 3) - 1;
+        if (text.Length <= MaxCharsForBound)
+        {
+            return JsonArtifact.Utf8NoBom.GetMaxByteCount(text.Length);
+        }
+
+        try
+        {
+            return JsonArtifact.Utf8NoBom.GetByteCount(text);
+        }
+        catch (Exception e) when (e is ArgumentException or OverflowException)
+        {
+            throw new ArgumentException("text encodes to more UTF-8 bytes than one array holds.", nameof(text), e);
+        }
+    }
+
     /// <summary>Number of bytes in the underlying <c>precompiled_charsmap</c>.</summary>
     public int CharsMapLength => _charsMap.Length;
 
@@ -103,6 +131,8 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
     /// here; <see cref="SentencePieceTokenizer"/> applies it after this pass, which
     /// is the order the reference implementation uses.
     /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="text"/> encodes to more UTF-8 bytes than one array holds.</exception>
     /// <exception cref="InvalidDataException">The charsmap points at a replacement it does not contain.</exception>
     public string Normalize(string text)
     {
@@ -119,7 +149,7 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
 
         // Both buffers are rented: an encode otherwise allocated the input bytes, a list,
         // its copy and the string, each the size of the text.
-        byte[] input = ArrayPool<byte>.Shared.Rent(JsonArtifact.Utf8NoBom.GetMaxByteCount(text.Length));
+        byte[] input = ArrayPool<byte>.Shared.Rent(Utf8Capacity(text));
         byte[]? output = null;
         try
         {
@@ -172,7 +202,7 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
     /// <summary>tokenizers' walk: by grapheme, a short cluster replaced whole by its shortest rule, a long one per character.</summary>
     private string NormalizeByGrapheme(string text)
     {
-        byte[] input = ArrayPool<byte>.Shared.Rent(JsonArtifact.Utf8NoBom.GetMaxByteCount(text.Length));
+        byte[] input = ArrayPool<byte>.Shared.Rent(Utf8Capacity(text));
         byte[]? output = null;
         try
         {

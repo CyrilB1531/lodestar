@@ -33,7 +33,7 @@ Three properties describe an index without touching its contents:
 | --- | --- |
 | `Count` | How many vectors have been added. |
 | `Dimension` | The length every vector must have — what the constructor was given. |
-| `HasIds` | Whether any vector in this index carries an id. |
+| `HasIds` | Whether this index keeps an id list — from an `Add` given an id, or from a list a factory was handed or a file declared, even one holding only nulls. |
 
 Vectors are stored contiguously in one `float[]` that grows by doubling, so an index of *n*
 vectors of dimension *d* is one allocation of about *n·d* floats rather than *n* small ones. That

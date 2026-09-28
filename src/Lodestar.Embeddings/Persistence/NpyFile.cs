@@ -304,9 +304,16 @@ public static class NpyFile
     /// </remarks>
     private static NpyHeader ParseHeader(string header)
     {
-        string descr = RequiredValue(header, "descr");
-        string fortran = RequiredValue(header, "fortran_order");
-        string shape = RequiredValue(header, "shape");
+        Dictionary<string, string> entries = Entries(header);
+        string descr = Required(entries, "descr");
+        string fortran = Required(entries, "fortran_order");
+        string shape = Required(entries, "shape");
+
+        // numpy's _read_array_header refuses a header whose keys are not exactly these three (#1349).
+        if (entries.Count != 3)
+        {
+            throw Malformed($"has {entries.Count} keys in its header, where numpy reads exactly descr, fortran_order and shape.");
+        }
 
         // First and by name: '|O' is numpy's object dtype and its payload is a pickle,
         // which is arbitrary code. ADR 0001 rules that out, wherever the file came from.
@@ -330,33 +337,100 @@ public static class NpyFile
         return new NpyHeader(ParseShape(shape));
     }
 
-    /// <summary>The value of one key, as the literal text between its quotes or up to the next comma.</summary>
-    private static string RequiredValue(string header, string key)
+    /// <summary>The header's dict literal, key by key, each value as its quoted text, its tuple or its bare token.</summary>
+    /// <remarks>Nothing may stand outside the braces or between entries but whitespace and commas; a repeated key keeps its last value.</remarks>
+    private static Dictionary<string, string> Entries(string header)
     {
-        int at = header.IndexOf($"'{key}':", StringComparison.Ordinal);
-        if (at < 0)
+        string text = header.TrimEnd();
+        if (text.Length < 2 || text[0] != '{' || text[^1] != '}')
         {
-            throw Malformed($"has no '{key}' in its header.");
+            throw Malformed("has a header that is not one dict literal.");
         }
 
-        int from = at + key.Length + 3;
-        while (from < header.Length && header[from] == ' ')
+        var entries = new Dictionary<string, string>(StringComparer.Ordinal);
+        int at = 1;
+        int end = text.Length - 1;
+        while (true)
+        {
+            at = SkipSeparators(text, at, end);
+            if (at >= end)
+            {
+                return entries;
+            }
+
+            (string key, string value, int next) = Entry(text, at);
+            // A key given twice keeps its last value, as the dict literal numpy evaluates does.
+            entries[key] = value;
+
+            at = next;
+        }
+    }
+
+    private static int SkipSeparators(string text, int at, int end)
+    {
+        while (at < end && (text[at] == ' ' || text[at] == ','))
+        {
+            at++;
+        }
+
+        return at;
+    }
+
+    /// <summary>One <c>'key': value</c> starting at <paramref name="at"/>, and where the text after it starts.</summary>
+    private static (string Key, string Value, int Next) Entry(string text, int at)
+    {
+        if (text[at] != '\'')
+        {
+            throw Malformed($"has '{text[at]}' where its header expects a quoted key.");
+        }
+
+        int close = text.IndexOf('\'', at + 1);
+        if (close < 0 || close + 1 >= text.Length || text[close + 1] != ':')
+        {
+            throw Malformed("has a key in its header that is not followed by ':'.");
+        }
+
+        string key = text[(at + 1)..close];
+        int from = close + 2;
+        while (from < text.Length && text[from] == ' ')
         {
             from++;
         }
-        if (from >= header.Length)
+
+        string value = text[from] switch
         {
-            throw Malformed($"ends inside its '{key}'.");
+            '\'' => Delimited(text, from, '\'', key, trim: true),
+            '(' => Delimited(text, from, ')', key, trim: false),
+            _ => BareToken(text, from),
+        };
+        int next = from + value.Length;
+        if (text[from] is '\'' or '(')
+        {
+            char closer = text[from] == '(' ? ')' : '\'';
+            next = text.IndexOf(closer, from + 1) + 1;
         }
 
-        // A quoted dtype, a parenthesised shape, or a bare token up to the comma.
-        return header[from] switch
+        next = SkipSpaces(text, next);
+        if (text[next] != ',' && text[next] != '}')
         {
-            '\'' => Delimited(header, from, '\'', key, trim: true),
-            '(' => Delimited(header, from, ')', key, trim: false),
-            _ => BareToken(header, from),
-        };
+            throw Malformed($"has stray text after '{key}' in its header.");
+        }
+
+        return (key, value, next);
     }
+
+    private static int SkipSpaces(string text, int at)
+    {
+        while (at < text.Length && text[at] == ' ')
+        {
+            at++;
+        }
+
+        return at;
+    }
+
+    private static string Required(Dictionary<string, string> entries, string key) =>
+        entries.TryGetValue(key, out string? value) ? value : throw Malformed($"has no '{key}' in its header.");
 
     /// <summary>The text from one opener to its closer, with the opener implied by the caller.</summary>
     private static string Delimited(string header, int from, char close, string key, bool trim)

@@ -17,7 +17,11 @@ public static class Mmr
     /// <param name="count">How many to select. More than there are selects them all.</param>
     /// <param name="lambda">1 is pure relevance, 0 pure diversity.</param>
     /// <returns>The chosen indices, <b>in selection order</b>.</returns>
-    /// <remarks><see cref="VectorMath.Dot"/> sums in a different order on net10 (SIMD) than on netstandard2.0 (scalar), so a genuine near-tie between two candidates can select a different index on the two targets -- accepted, not a defect.</remarks>
+    /// <remarks>
+    /// <see cref="VectorMath.Dot"/> sums in a different order on net10 (SIMD) than on netstandard2.0 (scalar), so a genuine
+    /// near-tie can select a different index on the two targets. A dot or norm whose float sum overflowed or underflowed is
+    /// recomputed in <see cref="double"/>: <c>[1e20f]</c> and <c>[1e-23f]</c> were refused though their norms are finite (#1355).
+    /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="candidates"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative, or <paramref name="lambda"/> is outside <c>[0, 1]</c> or <c>NaN</c>.</exception>
     /// <exception cref="ArgumentException">A candidate is null, of a different length than <paramref name="query"/>, or has a zero or non-finite norm; so does <paramref name="query"/> itself. Cosine is undefined in either case.</exception>
@@ -37,11 +41,11 @@ public static class Mmr
 
         // Validated before the count short-circuit below: an invalid query must throw
         // whether or not anything would end up selected, not only when count > 0.
-        float[] norms = ComputeNorms(query, candidates);
-        float queryNorm = VectorMath.L2Norm(query);
+        double[] norms = ComputeNorms(query, candidates);
+        double queryNorm = Norm(query);
         // NaN and infinity spelled out rather than left to a negated comparison: `!(x > 0)`
         // rejects both too, but reads as if it meant `x <= 0` (SplitConformal.cs's choice).
-        if (float.IsNaN(queryNorm) || float.IsInfinity(queryNorm) || queryNorm <= 0)
+        if (double.IsNaN(queryNorm) || double.IsInfinity(queryNorm) || queryNorm <= 0)
         {
             throw new ArgumentException("The query has a zero or non-finite norm, whose cosine is undefined.", nameof(query));
         }
@@ -58,9 +62,9 @@ public static class Mmr
 
     // Split from Select so each half stays under the cognitive-complexity cap: this one
     // owns validation -- a candidate's shape, and a norm too degenerate to give a cosine.
-    private static float[] ComputeNorms(ReadOnlySpan<float> query, IReadOnlyList<float[]> candidates)
+    private static double[] ComputeNorms(ReadOnlySpan<float> query, IReadOnlyList<float[]> candidates)
     {
-        var norms = new float[candidates.Count];
+        var norms = new double[candidates.Count];
         for (int i = 0; i < candidates.Count; i++)
         {
             float[]? candidate = candidates[i];
@@ -70,8 +74,8 @@ public static class Mmr
                     $"Candidate at index {i} is null or is not {query.Length} wide.", nameof(candidates));
             }
 
-            norms[i] = VectorMath.L2Norm(candidate);
-            if (float.IsNaN(norms[i]) || float.IsInfinity(norms[i]) || norms[i] <= 0)
+            norms[i] = Norm(candidate);
+            if (double.IsNaN(norms[i]) || double.IsInfinity(norms[i]) || norms[i] <= 0)
             {
                 throw new ArgumentException(
                     $"Candidate at index {i} has a zero or non-finite norm, whose cosine is undefined.", nameof(candidates));
@@ -82,12 +86,12 @@ public static class Mmr
     }
 
     private static double[] ComputeQuerySimilarities(
-        ReadOnlySpan<float> query, IReadOnlyList<float[]> candidates, float[] norms, float queryNorm)
+        ReadOnlySpan<float> query, IReadOnlyList<float[]> candidates, double[] norms, double queryNorm)
     {
         var toQuery = new double[candidates.Count];
         for (int i = 0; i < candidates.Count; i++)
         {
-            toQuery[i] = VectorMath.Dot(query, candidates[i]) / ((double)queryNorm * norms[i]);
+            toQuery[i] = Cosine(query, candidates[i], queryNorm, norms[i]);
         }
 
         return toQuery;
@@ -96,7 +100,7 @@ public static class Mmr
     // The first pick has nothing to be redundant with yet, so it is chosen by relevance
     // alone rather than folded into the loop below against a not-yet-seeded redundancy array.
     private static int[] SelectIndices(
-        IReadOnlyList<float[]> candidates, float[] norms, double[] toQuery, int n, double lambda)
+        IReadOnlyList<float[]> candidates, double[] norms, double[] toQuery, int n, double lambda)
     {
         var chosen = new int[n];
         var taken = new bool[candidates.Count];
@@ -161,7 +165,7 @@ public static class Mmr
     }
 
     private static void UpdateRedundancy(
-        IReadOnlyList<float[]> candidates, float[] norms, double[] redundancy, int justChosen)
+        IReadOnlyList<float[]> candidates, double[] norms, double[] redundancy, int justChosen)
     {
         for (int i = 0; i < candidates.Count; i++)
         {
@@ -170,6 +174,41 @@ public static class Mmr
         }
     }
 
-    private static double Cosine(ReadOnlySpan<float> a, ReadOnlySpan<float> b, float normA, float normB) =>
-        VectorMath.Dot(a, b) / ((double)normA * normB);
+    private static double Cosine(ReadOnlySpan<float> a, ReadOnlySpan<float> b, double normA, double normB)
+    {
+        // The float SIMD dot, as before, unless it overflowed or its terms may have underflowed (#1355).
+        double scale = normA * normB;
+        if (scale >= VectorMath.SmallestExactSquares)
+        {
+            float dot = VectorMath.Dot(a, b);
+
+            // NaN too: products overflowing to +inf and -inf sum to it, from finite vectors.
+            if (!float.IsInfinity(dot) && !float.IsNaN(dot))
+            {
+                return dot / scale;
+            }
+        }
+
+        return Dot(a, b) / scale;
+    }
+
+    private static double Dot(ReadOnlySpan<float> a, ReadOnlySpan<float> b)
+    {
+        double sum = 0;
+        for (int i = 0; i < a.Length; i++)
+        {
+            sum += (double)a[i] * b[i];
+        }
+
+        return sum;
+    }
+
+    /// <summary>The norm in double: the float one, unless its sum of squares overflowed or underflowed.</summary>
+    private static double Norm(ReadOnlySpan<float> v)
+    {
+        float squares = VectorMath.Dot(v, v);
+        return squares >= VectorMath.SmallestExactSquares && !float.IsInfinity(squares)
+            ? Math.Sqrt(squares)
+            : Math.Sqrt(VectorMath.SquaresInDouble(v));
+    }
 }

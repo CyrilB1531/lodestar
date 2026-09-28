@@ -38,6 +38,7 @@ public sealed partial class EmbeddingIndex
 
     /// <summary>Adds a vector to the index (a normalized copy is stored when normalization is on).</summary>
     /// <exception cref="ArgumentException"><paramref name="vector"/> is not <see cref="Dimension"/> long.</exception>
+    /// <exception cref="InvalidOperationException">One more vector would take the stored floats past the largest array.</exception>
     public void Add(ReadOnlySpan<float> vector)
     {
         if (vector.Length != _dim)
@@ -45,14 +46,18 @@ public sealed partial class EmbeddingIndex
             throw new ArgumentException($"vector length {vector.Length} != dimension {_dim}.", nameof(vector));
         }
 
-        if (_data.Length < _length + _dim)
+        // In long and clamped to the largest array: doubling past it failed to allocate what still fit (#1339).
+        long needed = (long)_length + _dim;
+        if (_data.Length < needed)
         {
-            int newCapacity = _data.Length == 0 ? Math.Max(_dim * 4, _dim) : _data.Length * 2;
-            if (newCapacity < _length + _dim)
+            if (needed > TableLength.MaxLength)
             {
-                newCapacity = _length + _dim;
+                throw new InvalidOperationException(
+                    $"The index holds {_count} vectors of {_dim} floats, and one more is past the largest array.");
             }
-            Array.Resize(ref _data, newCapacity);
+
+            long doubled = _data.Length == 0 ? (long)_dim * 4 : (long)_data.Length * 2;
+            Array.Resize(ref _data, (int)Math.Min(Math.Max(doubled, needed), TableLength.MaxLength));
         }
 
         int start = _length;
@@ -78,6 +83,7 @@ public sealed partial class EmbeddingIndex
     /// signature and break every already-compiled caller.
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="vector"/> is not <see cref="Dimension"/> long.</exception>
+    /// <exception cref="InvalidOperationException">One more vector would take the stored floats past the largest array.</exception>
     public void Add(ReadOnlySpan<float> vector, string? id)
     {
         Add(vector);
@@ -96,7 +102,8 @@ public sealed partial class EmbeddingIndex
         _ids[_count - 1] = id;
     }
 
-    /// <summary>Whether any vector in this index carries an id.</summary>
+    /// <summary>Whether this index keeps an id list: from the first <c>Add</c> given an id, or from an id list a factory was handed or a file declared.</summary>
+    /// <remarks>A list holding only nulls counts: the file declared the section, and saving writes it back (#1348).</remarks>
     public bool HasIds => _ids is not null;
 
     /// <summary>The id of the item at <paramref name="index"/>, or <c>null</c> if it has none.</summary>

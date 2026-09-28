@@ -14,8 +14,9 @@ public static Task<SentencePieceVocabulary> LoadAsync(Stream source, ArtifactLoa
 **Returns** — `Task<SentencePieceVocabulary>`, completing with the loaded vocabulary.
 
 **Exceptions** — `ArgumentNullException` for a null source or path. `InvalidDataException`
-when the content is not the format expected, declares a model this loader does not read, or
-exceeds a bound in `options` — the message names both the limit and the value. `OperationCanceledException` when `cancellationToken` is signalled.
+when the content is not the format expected, declares a model this loader does not read (not
+unigram, or trained with `byte_fallback` or `treat_whitespace_as_suffix`), holds a piece whose score
+is not finite, or exceeds a bound in `options` — the message names both the limit and the value. `OperationCanceledException` when `cancellationToken` is signalled.
 
 **Example** — the same load, awaited.
 
