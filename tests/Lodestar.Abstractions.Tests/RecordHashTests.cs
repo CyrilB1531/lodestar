@@ -1,5 +1,6 @@
 using Lodestar.Cluster;
 using Lodestar.Decomposition;
+using Lodestar.Embeddings.Search;
 using Lodestar.Embeddings.Tokenization;
 using Lodestar.Fuzzy;
 using Lodestar.Metrics;
@@ -18,8 +19,8 @@ namespace Lodestar.Abstractions.Tests;
 
 /// <summary>The records hash as they compare, every NaN alike and an absent member included (#1284, #1285).</summary>
 /// <remarks>
-/// net10 hashes every NaN alike on its own, so these pin the contract that .NET Framework, where
-/// the payload reaches the hash, would otherwise break.
+/// net10 hashes every NaN alike on its own, so bit patterns alone cannot fail here; each record is
+/// also held to hashing a NaN as <c>0.0</c>, which net10's own hash does not (#1297).
 /// </remarks>
 public sealed class RecordHashTests
 {
@@ -136,6 +137,27 @@ public sealed class RecordHashTests
     public void Panel_options_hash_every_nan_alike() => AssertNaNStable(n => new PanelOptions { ConfidenceLevel = n });
 
     [Fact]
+    public void A_search_result_hashes_every_nan_alike()
+    {
+        // A float Score, which #1285's double overload did not reach (#1294).
+        Assert.Equal(new SearchResult(2, 0f).GetHashCode(), new SearchResult(2, float.NaN).GetHashCode());
+        Assert.Equal(
+            new SearchResult(2, float.NaN).GetHashCode(),
+            new SearchResult(2, BitConverter.Int32BitsToSingle(unchecked((int)0xFFC0_0001))).GetHashCode());
+    }
+
+    [Fact]
+    public void Options_with_an_absent_token_pattern_hash_and_compare()
+    {
+        // Equals compared a null pattern; the hash threw on it (#1296).
+        Assert.Equal(new RakeOptions { TokenPattern = null! }.GetHashCode(), new RakeOptions { TokenPattern = null! }.GetHashCode());
+        Assert.Equal(new TextRankOptions { TokenPattern = null! }.GetHashCode(), new TextRankOptions { TokenPattern = null! }.GetHashCode());
+        Assert.Equal(
+            new CountVectorizerOptions { TokenPattern = null! }.GetHashCode(),
+            new CountVectorizerOptions { TokenPattern = null! }.GetHashCode());
+    }
+
+    [Fact]
     public void Log_rank_options_hash_every_nan_alike() => AssertNaNStable(n => new LogRankOptions { P = n, Q = n, Truncation = n });
 
     // Every NaN double.Equals makes equal, whatever its sign, payload or signalling bit.
@@ -145,6 +167,9 @@ public sealed class RecordHashTests
     private static void AssertNaNStable<T>(Func<double, T> make)
         where T : IEquatable<T>
     {
+        // net10 hashes NaN to 0x7FF00000 and 0.0 to 0; ValueEquality.HashOf sends NaN to 0 (#1297).
+        Assert.Equal(make(0.0).GetHashCode(), make(double.NaN).GetHashCode());
+
         T first = make(BitConverter.Int64BitsToDouble(NaNPatterns[0]));
         foreach (long bits in NaNPatterns)
         {

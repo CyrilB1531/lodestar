@@ -16,7 +16,9 @@ that sums to `1`, or `SparseNorm.L2` for a row of unit Euclidean length.
 makes it a trap: a caller holding another reference to the same matrix sees the change.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `norm` is not a defined `SparseNorm`, as
-`sklearn.preprocessing.normalize` refuses an unknown norm; the matrix is left untouched.
+`sklearn.preprocessing.normalize` refuses an unknown norm. `InvalidOperationException` when a
+stored value is `NaN` or infinite, which scikit-learn's input check refuses too. Either way the
+matrix is left untouched.
 
 **Example** — after normalizing, every row's norm is `1`.
 
@@ -45,8 +47,8 @@ A row that is entirely zero has no norm to divide by and is **left alone** rathe
 matrix.
 
 [`TfidfVectorizer`](../../text/vectorizers/tfidfvectorizer.md) already normalizes, by
-[`TfidfOptions.Norm`](../../text/vectorizers/tfidfoptions.md); calling this on its output normalizes twice, which for L2
-is a no-op and for L1 is not.
+[`TfidfOptions.Norm`](../../text/vectorizers/tfidfoptions.md); calling this on its output with the same norm changes
+nothing beyond rounding, and with the other norm rescales every row.
 
 **Applies to** — net10.0, netstandard2.0.
 

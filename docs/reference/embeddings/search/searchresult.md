@@ -45,3 +45,9 @@ works.
 
 **See also** — [`EmbeddingIndex.Search`](embeddingindex-search.md),
 [`EmbeddingIndex.GetId`](embeddingindex-getid.md), [the search index](../search.md).
+
+## Members
+
+| Member | What it does |
+| --- | --- |
+| [`SearchResult.GetHashCode`](searchresult-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |
