@@ -132,7 +132,7 @@ internal static class CoxReport
     private static double[] Rescaled(double[] inverse, double[] deviations)
     {
         int p = deviations.Length;
-        var covariance = new double[p * p];
+        var covariance = new double[ResultTable.Length(p, p, ResultTable.FeatureCount)];
         for (int a = 0; a < p; a++)
         {
             for (int b = 0; b < p; b++)

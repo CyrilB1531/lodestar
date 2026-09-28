@@ -34,7 +34,8 @@ in any of these cases:
 - fewer than two subjects are given, or no subject has the event;
 - a covariate does not vary beside the intercept, or there is no column at all;
 - the weights are neither empty nor one positive, finite value per subject;
-- the subjects times the columns are more cells than one array holds.
+- the subjects, the event times or the columns themselves times the columns are more cells than
+  one array holds.
 
 **Example** — a covariate that does not vary has no coefficient beside the intercept, and is refused.
 

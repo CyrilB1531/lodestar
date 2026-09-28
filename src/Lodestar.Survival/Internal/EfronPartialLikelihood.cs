@@ -201,7 +201,7 @@ internal sealed class EfronPartialLikelihood : IPartialLikelihood
 
         internal double[] First { get; } = new double[featureCount];
 
-        internal double[] Second { get; } = new double[checked(featureCount * featureCount)];
+        internal double[] Second { get; } = new double[ResultTable.Length(featureCount, featureCount, ResultTable.FeatureCount)];
 
         internal void Add(double weight, ReadOnlySpan<double> row)
         {

@@ -107,7 +107,7 @@ public static class LogRank
     /// <param name="eventObserved">One event flag per subject.</param>
     /// <param name="options">The weighting, its exponents and the truncation; <see langword="null"/> for the log-rank test.</param>
     /// <returns>The statistic on one degree of freedom fewer than the groups.</returns>
-    /// <exception cref="ArgumentException">The spans differ in length, the sample is empty, a duration is negative or NaN, or fewer than two groups appear, or the distinct durations times the groups are more cells than one array holds.</exception>
+    /// <exception cref="ArgumentException">The spans differ in length, the sample is empty, a duration is negative or NaN, or fewer than two groups appear, or the distinct durations or the groups times the groups are more cells than one array holds.</exception>
     /// <exception cref="ArgumentOutOfRangeException">As the weighted two-sample overload.</exception>
     public static LogRankResult MultiGroup(
         ReadOnlySpan<double> durations,

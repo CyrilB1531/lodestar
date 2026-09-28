@@ -32,6 +32,7 @@ finite, a bound is `NaN` or negative, an upper bound is below its lower one, a w
 neither empty nor one valid value per subject, or the primary parameter has no column at all.
 `ArgumentOutOfRangeException` when `model` names no model, or `featureCount` is negative.
 `InvalidOperationException` when the fit does not converge, or its parameters are not identified.
+`ArgumentException` also when the parameters are too many for their square to fit in one array ([#1311](https://github.com/CyrilB1531/lodestar/issues/1311)).
 
 **Example** — visits bracketing each event, against a dose.
 

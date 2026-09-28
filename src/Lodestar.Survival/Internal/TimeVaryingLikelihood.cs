@@ -146,7 +146,7 @@ internal sealed class TimeVaryingLikelihood : IPartialLikelihood
 
         public double[] First { get; } = new double[p];
 
-        public double[] Second { get; } = new double[p * p];
+        public double[] Second { get; } = new double[ResultTable.Length(p, p, ResultTable.FeatureCount)];
 
         public void Add(double weight, ReadOnlySpan<double> row)
         {

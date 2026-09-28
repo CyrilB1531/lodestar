@@ -41,7 +41,7 @@ internal static class CoxResiduals
             }
         }
 
-        var sandwich = new double[p * p];
+        var sandwich = new double[ResultTable.Length(p, p, ResultTable.FeatureCount)];
         foreach (int key in order)
         {
             double[] delta = deltas[key];

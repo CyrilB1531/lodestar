@@ -54,7 +54,7 @@ internal static class SymmetricPseudoInverse
     /// <summary>Rotates <paramref name="matrix"/> to its eigenvalues in place and returns the eigenvectors, column by column.</summary>
     private static double[] Diagonalise(double[] matrix, int size)
     {
-        var vectors = new double[size * size];
+        var vectors = new double[ResultTable.Length(size, size, ResultTable.Groups)];
         for (int i = 0; i < size; i++)
         {
             vectors[(i * size) + i] = 1.0;
