@@ -17,4 +17,13 @@ public sealed class TableBoundTests
 
         Assert.Equal("values", refused.ParamName);
     }
+
+    [Fact]
+    public void Repeated_splits_past_the_largest_list_are_refused_by_the_repeat_count()
+    {
+        // 2 folds by 2^30 repeats wrapped negative and threw under "capacity" (#1318).
+        ArgumentException refused = Assert.Throws<ArgumentException>(() => Splitters.RepeatedKFold(4, 2, 1 << 30, 0));
+
+        Assert.Equal("repeatCount", refused.ParamName);
+    }
 }
