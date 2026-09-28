@@ -216,6 +216,18 @@ def test_a_relative_corpus_refuses_zero_moved_past_its_floor(tmp_path):
     assert compare(tmp_path, {IV_CORPUS: scored(0.0)}, {IV_CORPUS: scored(1e-12)}) == 1
 
 
+QR_CORPUS = "decomposition_qr_numpy.json"
+
+
+def test_the_qr_corpus_is_relative_where_its_blocks_are_scaled_by_1e200(tmp_path):
+    # Two OpenBLAS kernels on one R entry of a block scaled by 1e200: 2e-16 relative (#1357's CI).
+    assert compare(tmp_path, {QR_CORPUS: scored(-2.2662006809693725e+200)}, {QR_CORPUS: scored(-2.266200680969373e+200)}) == 0
+
+
+def test_the_qr_corpus_still_refuses_a_value_moved_past_its_rate(tmp_path):
+    assert compare(tmp_path, {QR_CORPUS: scored(1000.0)}, {QR_CORPUS: scored(1000.0 + 2e-6)}) == 1
+
+
 def test_any_other_corpus_stays_absolute(tmp_path):
     assert compare(tmp_path, {CORPUS: scored(6812205.701842783)}, {CORPUS: scored(6812205.701431695)}) == 1
 

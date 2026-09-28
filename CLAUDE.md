@@ -262,7 +262,7 @@ Three traps, each already worth a session:
   comparison that follows then proves nothing, because nothing was regenerated.
 - **The `Oracles are reproducible` job compares numbers, not bytes** — it copies the committed
   corpora aside, regenerates, and runs `tools/compare_oracles.py` over the two: floats at the same
-  `1e-9` the suites use — relative for `stats_iv.json`, whose suite compares relatively — everything
+  `1e-9` the suites use — relative for `stats_iv.json` and `decomposition_qr_numpy.json`, whose suites compare relatively — everything
   else exactly. It used to `git diff` them, which failed on the
   last digits of a BLAS-reduced value and read as flaky. A red here means a corpus moved by more
   than any assertion tolerates, so believe it. On failure the job uploads the regenerated corpora

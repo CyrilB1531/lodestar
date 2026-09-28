@@ -66,9 +66,12 @@ class Relative(NamedTuple):
     floor: float
 
 
-# stats_iv.json is compared relatively, as IvOracleTests is: two hosts' BLAS moved a Wald statistic
-# of 6.8e6 by 4e-4, 6e-11 relative, which an absolute 1e-9 refuses and the suite accepts.
-RELATIVE: dict[str, Relative] = {"stats_iv.json": Relative(1e-9, 1e-15)}
+RELATIVE: dict[str, Relative] = {
+    # As IvOracleTests is: two hosts' BLAS moved a Wald statistic of 6.8e6 by 4e-4, 6e-11 relative.
+    "stats_iv.json": Relative(1e-9, 1e-15),
+    # As QrNumpyOracleTests is: OpenBLAS kernels move a 1e200-scaled block's R by 1e184, 1e-16 relative.
+    "decomposition_qr_numpy.json": Relative(1e-9, 1e-15),
+}
 
 class CaseRule(NamedTuple):
     """Wider tolerances for some fields of the cases a field's value selects, as their suite holds them."""
