@@ -88,19 +88,20 @@ public sealed class AalenSummary
             risk[i] = sum;
         }
 
+        // Read-only views: CumulativeHazards shares _cumulative, and EventTimes is read back (#1304).
         return new AalenSummary
         {
             _cumulative = fitted.Cumulative,
             _width = d,
-            EventTimes = fitted.Times,
+            EventTimes = Array.AsReadOnly(fitted.Times),
             CovariateIndices = [.. Enumerable.Range(0, fitted.FeatureCount), .. fitted.Settings.FitIntercept ? (int[])[-1] : []],
-            Hazards = fitted.Hazards,
-            CumulativeHazards = fitted.Cumulative,
-            CumulativeVariance = fitted.Variance,
-            ConfidenceLower = lower,
-            ConfidenceUpper = upper,
-            Slopes = slopes,
-            SlopeStandardErrors = errors,
+            Hazards = Array.AsReadOnly(fitted.Hazards),
+            CumulativeHazards = Array.AsReadOnly(fitted.Cumulative),
+            CumulativeVariance = Array.AsReadOnly(fitted.Variance),
+            ConfidenceLower = Array.AsReadOnly(lower),
+            ConfidenceUpper = Array.AsReadOnly(upper),
+            Slopes = Array.AsReadOnly(slopes),
+            SlopeStandardErrors = Array.AsReadOnly(errors),
             ConcordanceIndex = HarrellConcordance.Index(training.SortedDurations, risk, training.SortedEvents),
             ConfidenceLevel = fitted.Settings.ConfidenceLevel,
             FeatureCount = fitted.FeatureCount,

@@ -82,7 +82,8 @@ internal static class CoxReport
             cumulative[t] = sum;
         }
 
-        return new CoxBaseline(label, times, hazard, cumulative, [.. cumulative.Select(h => Math.Exp(-h))]);
+        // Its own times: the strata of one fit share one array, and a baseline's arrays are its own (#1304).
+        return new CoxBaseline(label, [.. times], hazard, cumulative, [.. cumulative.Select(h => Math.Exp(-h))]);
     }
 
     /// <summary>The summary: coefficients and covariance rescaled to the covariates' units, then the table.</summary>
@@ -170,14 +171,15 @@ internal static class CoxReport
         }
 
         double statistic = 2.0 * (fitted.LogLikelihood - fitted.NullLogLikelihood);
+        // Read-only views, so a cast back to the array cannot edit what the predictions read (#1304).
         return new CoxSummary
         {
-            Coefficients = coefficients,
-            StandardErrors = errors,
-            ZStatistics = z,
-            PValues = pValues,
-            ConfidenceLower = lower,
-            ConfidenceUpper = upper,
+            Coefficients = Array.AsReadOnly(coefficients),
+            StandardErrors = Array.AsReadOnly(errors),
+            ZStatistics = Array.AsReadOnly(z),
+            PValues = Array.AsReadOnly(pValues),
+            ConfidenceLower = Array.AsReadOnly(lower),
+            ConfidenceUpper = Array.AsReadOnly(upper),
             HazardRatios = [.. coefficients.Select(Math.Exp)],
             HazardRatioLower = [.. lower.Select(Math.Exp)],
             HazardRatioUpper = [.. upper.Select(Math.Exp)],
@@ -191,8 +193,8 @@ internal static class CoxReport
             Robust = settings.Robust,
             TimeVarying = settings.TimeVarying,
             ModelCovariance = covariances.Model,
-            CovariateMeans = means,
-            Baselines = baselines,
+            CovariateMeans = Array.AsReadOnly(means),
+            Baselines = Array.AsReadOnly(baselines),
         };
     }
 }

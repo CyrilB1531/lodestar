@@ -20,6 +20,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `Lodestar.Survival` needs the next `Lodestar.Stats`, for the normal and chi-squared tails the parametric fits read. ([#1172](https://github.com/CyrilB1531/lodestar/issues/1172))
 - The `Lodestar.Stats` dependency floor rises from 0.4.0 to 0.5.0, the release that forwards its data types to `Lodestar.Abstractions`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
 
+### Fixed
+
+- `CoxSummary`, `AftSummary`, `AalenSummary` and `ParametricFit` hand out read-only views of the arrays their predictions read, and `CoxSummary` predicts from its own copy of each baseline, so writing to what a fit returns no longer changes its next prediction. ([#1304](https://github.com/CyrilB1531/lodestar/issues/1304))
+
 ## [0.2.0] — 2026-09-24
 
 ### Added

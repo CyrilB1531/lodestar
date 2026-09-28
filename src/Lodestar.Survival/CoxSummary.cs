@@ -74,8 +74,24 @@ public sealed class CoxSummary
     public IReadOnlyList<double> CovariateMeans { get; init; } = [];
 
     /// <summary>The baseline hazard of each stratum, labels ascending; one, labelled zero, when the fit is unstratified.</summary>
-    /// <remarks>A <c>CoxTimeVarying</c> fit carries one baseline, labelled zero, pooled over its strata, as lifelines' time-varying fitter computes it.</remarks>
-    public IReadOnlyList<CoxBaseline> Baselines { get; init; } = [];
+    /// <remarks>
+    /// A <c>CoxTimeVarying</c> fit carries one baseline, labelled zero, pooled over its strata, as lifelines'
+    /// time-varying fitter computes it. The predictions read a private copy taken here, so writing to a
+    /// baseline's arrays changes what this list shows and never what the predictions return (#1304).
+    /// </remarks>
+    public IReadOnlyList<CoxBaseline> Baselines
+    {
+        get => _baselines;
+        init
+        {
+            _baselines = value;
+            _predictive = [.. value.Select(b => b with { Times = [.. b.Times], CumulativeHazard = [.. b.CumulativeHazard] })];
+        }
+    }
+
+    private readonly IReadOnlyList<CoxBaseline> _baselines = [];
+
+    private readonly CoxBaseline[] _predictive = [];
 
     /// <summary>Each subject's log partial hazard, lifelines' <c>predict_log_partial_hazard</c>: <c>(x − mean) · β</c>.</summary>
     /// <param name="design">The subjects' covariates, row-major, one value per coefficient per subject.</param>
@@ -135,7 +151,7 @@ public sealed class CoxSummary
             }
         }
 
-        int columns = times.IsEmpty ? Baselines[0].Times.Length : times.Length;
+        int columns = times.IsEmpty ? _predictive[0].Times.Length : times.Length;
         var result = new double[hazards.Length * columns];
         for (int i = 0; i < hazards.Length; i++)
         {
@@ -174,7 +190,7 @@ public sealed class CoxSummary
         }
 
         double[] survival = PredictSurvivalFunction(design, strata, []);
-        double[] times = Baselines[0].Times;
+        double[] times = _predictive[0].Times;
         int columns = times.Length;
         var result = new double[survival.Length / columns];
         for (int i = 0; i < result.Length; i++)
@@ -217,7 +233,7 @@ public sealed class CoxSummary
     public double[] PredictExpectation(ReadOnlySpan<double> design, ReadOnlySpan<int> strata)
     {
         double[] survival = PredictSurvivalFunction(design, strata, []);
-        double[] times = Baselines[0].Times;
+        double[] times = _predictive[0].Times;
         int columns = times.Length;
         var result = new double[survival.Length / columns];
         for (int i = 0; i < result.Length; i++)
@@ -239,14 +255,14 @@ public sealed class CoxSummary
         var result = new CoxBaseline[subjects];
         if (strata.IsEmpty)
         {
-            if (Baselines.Count > 1)
+            if (_predictive.Length > 1)
             {
                 throw new ArgumentException("The fit was stratified, so each subject needs its stratum.", nameof(strata));
             }
 
             for (int i = 0; i < subjects; i++)
             {
-                result[i] = Baselines[0];
+                result[i] = _predictive[0];
             }
 
             return result;
@@ -260,7 +276,7 @@ public sealed class CoxSummary
         for (int i = 0; i < subjects; i++)
         {
             int label = strata[i];
-            result[i] = Baselines.FirstOrDefault(b => b.Stratum == label)
+            result[i] = _predictive.FirstOrDefault(b => b.Stratum == label)
                 ?? throw new ArgumentException($"The fit saw no stratum {label}.", nameof(strata));
         }
 

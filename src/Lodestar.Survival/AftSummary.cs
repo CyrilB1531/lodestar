@@ -114,6 +114,7 @@ public sealed class AftSummary
 
         double statistic = 2.0 * (logLikelihood - nullLogLikelihood);
         int freedom = k - 2;
+        // Read-only views: Coefficients shares _theta, which the predictions read (#1304).
         return new AftSummary
         {
             _shape = shape,
@@ -122,12 +123,12 @@ public sealed class AftSummary
             Model = model,
             ParameterNames = [.. blocks.PrimaryColumns.Select(_ => shape.Primary), .. blocks.AncillaryColumns.Select(_ => shape.AncillaryName)],
             CovariateIndices = [.. blocks.PrimaryColumns, .. blocks.AncillaryColumns],
-            Coefficients = theta,
-            StandardErrors = errors,
-            ZStatistics = z,
-            PValues = p,
-            ConfidenceLower = lower,
-            ConfidenceUpper = upper,
+            Coefficients = Array.AsReadOnly(theta),
+            StandardErrors = Array.AsReadOnly(errors),
+            ZStatistics = Array.AsReadOnly(z),
+            PValues = Array.AsReadOnly(p),
+            ConfidenceLower = Array.AsReadOnly(lower),
+            ConfidenceUpper = Array.AsReadOnly(upper),
             ExpCoefficients = [.. theta.Select(Math.Exp)],
             ExpConfidenceLower = [.. lower.Select(Math.Exp)],
             ExpConfidenceUpper = [.. upper.Select(Math.Exp)],
