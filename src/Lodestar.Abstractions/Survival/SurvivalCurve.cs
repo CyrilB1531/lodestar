@@ -1,6 +1,10 @@
 namespace Lodestar.Survival;
 
 /// <summary>A survival curve with its confidence bounds, one value per step: what the Breslow-Fleming-Harrington estimator returns.</summary>
+/// <remarks>
+/// The arrays are taken and exposed as they are, not copied: writing to one changes this record and
+/// what it equals, and every holder of the same array, a <c>with</c> copy included (#1305).
+/// </remarks>
 /// <param name="Steps">The curve's steps, ascending in time, starting at zero.</param>
 /// <param name="Survival">The survival estimate at each step.</param>
 /// <param name="Lower">The lower confidence bound at each step.</param>

@@ -151,7 +151,7 @@ public static class LogRank
     /// <param name="eventObserved">One event flag per subject.</param>
     /// <param name="options">The weighting, its exponents and the truncation; <see langword="null"/> for the log-rank test.</param>
     /// <returns>One result per pair, the labels ascending and each pair lower label first.</returns>
-    /// <exception cref="ArgumentException">As <see cref="MultiGroup(ReadOnlySpan{double}, ReadOnlySpan{int}, ReadOnlySpan{bool}, LogRankOptions)"/>.</exception>
+    /// <exception cref="ArgumentException">The spans differ in length, the sample is empty, a duration is negative or NaN, or fewer than two groups appear, or a pair's distinct durations times two are more cells than one array holds.</exception>
     /// <exception cref="ArgumentOutOfRangeException">As the weighted two-sample overload.</exception>
     /// <remarks>
     /// Each pair is tested on its own two groups alone, the others left out of its risk sets and, under

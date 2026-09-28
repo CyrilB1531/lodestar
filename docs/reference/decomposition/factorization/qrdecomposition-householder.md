@@ -32,10 +32,11 @@ double rebuilt = (qr.Q[0] * qr.R[0]) + (qr.Q[1] * qr.R[2]);   // => 0.9999999999
 double lengthSquared = (qr.Q[0] * qr.Q[0]) + (qr.Q[2] * qr.Q[2]) + (qr.Q[4] * qr.Q[4]);
 ```
 
-**Remarks** — **the signs are the reflections', not a convention.** A QR is unique only up to the
-sign of each column, and nothing is normalised here. A caller comparing against
-`numpy.linalg.qr` should compare `Q · R`, or compare column by column up to sign, rather than
-expecting the two to agree entry for entry.
+**Remarks** — **the reflections are LAPACK's**, `dgeqr2` and `dorg2r`, so the signs are
+`numpy.linalg.qr`'s and, on a matrix of full rank, the two agree entry for entry, to rounding. So do
+their infinities and NaNs: a matrix holding `±∞` or NaN comes back with the same entries infinite,
+NaN or finite as numpy's. On a rank-deficient matrix, past the pivot that vanishes, a column of Q is
+built from rounding noise on both sides, and the two agree only in `Q · R`.
 
 A wide matrix is refused rather than padded: there is no thin QR of one, and answering with a full
 factorization under a method that promises a thin one would be worse than saying so.

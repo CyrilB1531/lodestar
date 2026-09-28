@@ -16,9 +16,11 @@ the weighting, its exponents and the truncation; `null` runs the log-rank test.
 ascending and each pair lower label first: lifelines' row order.
 
 **Exceptions** — `ArgumentException` when the spans differ in length, the sample is empty, a
-duration is negative or `NaN`, or fewer than two groups appear. `ArgumentOutOfRangeException` when
-`options` names no weighting, or holds a negative or non-finite exponent, or a negative or `NaN`
-truncation.
+duration is negative or `NaN`, fewer than two groups appear, or a pair's distinct durations times
+two are more cells than one array holds; each pair is tested on its own, so the groups-by-groups
+table [`MultiGroup`](logrank-multigroup.md) refuses is never built. `ArgumentOutOfRangeException`
+when `options` names no weighting, or holds a negative or non-finite exponent, or a negative or
+`NaN` truncation.
 
 **Example** — the three groups of the multi-group page, two at a time.
 

@@ -19,7 +19,7 @@ public sealed record NmfOptions
 | `MaxIterations` | `200` | The iteration cap, and the exact iteration count when `Tolerance` is zero. scikit-learn's default is the same 200. |
 | `Tolerance` | `1e-4` | The relative improvement below which the loop stops, measured every tenth iteration. Zero disables the stop. |
 | `Seed` | `0` | Seeds this package's generator for the initialisation's Ω when `RandomMatrix` is null. It reproduces a run of Lodestar, never a run of NumPy. |
-| `RandomMatrix` | `null` | Ω itself, row-major and `min(rows, columns) × (componentCount + 10)`: a matrix with fewer rows than columns is factored as its transpose, as the reference's initialisation factors it. Given, it replaces the draw entirely. |
+| `RandomMatrix` | `null` | Ω itself, row-major and `min(rows, columns) × (componentCount + 10)`: a matrix with fewer rows than columns is factored as its transpose, as the reference's initialisation factors it. Given, it replaces the draw entirely. It is not copied: writing to it changes these options, what they equal and a `with` copy of them, not a fit already run ([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)). |
 
 **The ten in that shape is not this type's to choose.** NNDSVD reaches for the randomized SVD with
 scikit-learn's own defaults rather than the ones

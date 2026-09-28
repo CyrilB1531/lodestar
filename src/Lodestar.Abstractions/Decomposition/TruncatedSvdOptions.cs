@@ -20,7 +20,12 @@ public sealed record TruncatedSvdOptions
     public int Seed { get; init; }
 
     /// <summary>Ω itself, row-major and <c>min(rows, features) × (components + oversampling)</c>, or null to draw one.</summary>
-    /// <remarks>A matrix with fewer rows than features is factored as its transpose, as <c>randomized_svd(transpose="auto")</c> factors it, so its Ω has one row per row of the matrix (#1256).</remarks>
+    /// <remarks>
+    /// A matrix with fewer rows than features is factored as its transpose, as <c>randomized_svd(transpose="auto")</c>
+    /// factors it, so its Ω has one row per row of the matrix (#1256). It is taken and exposed as it is, not copied:
+    /// writing to it changes these options, what they equal and a <c>with</c> copy of them, not a fit already run, which
+    /// read it once (#1305).
+    /// </remarks>
     // CA1819 (properties should not return arrays): Ω is a dense block, and the whole
     // point of accepting one is that the caller already holds the numbers scikit-learn
     // drew. Copying it defensively would double the largest allocation the fit makes,

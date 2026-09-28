@@ -40,6 +40,10 @@ Being a `record`, equality would otherwise compare `double[][]` by reference; `E
 compare equal. the equality rule
 has the rule.
 
+`ExpectedFrequencies` and its rows are taken and exposed as they are, not copied:
+writing to one changes this record and what it equals, and every holder of the same array, a `with`
+copy included ([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`ChiSquared.Contingency`](chisquared-contingency.md), [`TestResult`](testresult.md),

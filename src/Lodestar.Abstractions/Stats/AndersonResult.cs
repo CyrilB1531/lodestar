@@ -2,11 +2,12 @@ namespace Lodestar.Stats;
 
 /// <summary>An Anderson-Darling result: the statistic, and the table it is read against.</summary>
 /// <remarks>
-/// Two shapes in one record, because scipy is replacing the first with the second: since 1.17
-/// the critical-value shape warns, and 1.19 removes it for a p-value interpolated from the same
-/// table. Both are carried — the p-value is what a reader of the other families expects, and the
-/// critical values are what carries information, the interpolation being clamped to
-/// <c>[0.01, 0.15]</c>. <c>docs/equivalence.md</c> has the whole of it.
+/// Two shapes in one record, because scipy is replacing the first with the second: since 1.17 the critical-value shape
+/// warns, and 1.19 removes it for a p-value interpolated from the same table. Both are carried — the p-value is what a
+/// reader of the other families expects, and the critical values are what carries information, the interpolation being
+/// clamped to <c>[0.01, 0.15]</c>. <c>docs/equivalence.md</c> has the whole of it. The arrays are taken and exposed
+/// as they are, not copied: writing to one changes this record and what it equals, and every holder of the same array,
+/// a <c>with</c> copy included (#1305).
 /// </remarks>
 /// <param name="Statistic">The A² statistic; larger means further from normal.</param>
 /// <param name="PValue">The p-value interpolated from the table, clamped to its ends.</param>

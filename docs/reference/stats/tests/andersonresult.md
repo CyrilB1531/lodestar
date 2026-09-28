@@ -45,6 +45,10 @@ Being a `record`, two results with the same numbers are equal, and both tables a
 by value rather than by reference — the generated equality would call two results holding the same
 table unequal.
 
+`CriticalValues` and `SignificanceLevels` are taken and exposed as they are, not
+copied: writing to one changes this record and what it equals, and every holder of the same array, a
+`with` copy included ([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`AndersonDarling.Test`](andersondarling-test.md),
