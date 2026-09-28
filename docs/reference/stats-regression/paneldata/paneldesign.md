@@ -13,6 +13,11 @@ public readonly ref struct PanelDesign
 [`PanelOptions.WithIntercept`](paneloptions.md) adds it. `Entities` and `Periods` are one integer
 label per row, any values; their order is what matters, not their spacing.
 
+**Constructor** — `PanelDesign(response, exogenous, exogenousCount, entities, periods)` takes the
+response, the regressors with their width, and one entity and one period label per row, and keeps
+the spans as they are: it checks nothing, and [`PanelRegression`](../panel/panelregression.md) refuses
+a shape that does not agree when it fits.
+
 **Example** — the same data described once and fitted twice.
 
 ```csharp

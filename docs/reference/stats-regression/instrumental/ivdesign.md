@@ -15,6 +15,11 @@ regressors assumed uncorrelated with the error, the ones that are not, and the e
 `Exogenous` is empty and `ExogenousCount` zero when there are none. None of the blocks carries a
 constant column of its own: [`IvOptions.WithIntercept`](ivoptions.md) adds it.
 
+**Constructor** — `IvDesign(response, exogenous, exogenousCount, endogenous, endogenousCount,
+instruments, instrumentCount)` takes each block with its width, in that order, and keeps the spans
+as they are: it checks nothing, and [`InstrumentalVariables`](../iv/instrumentalvariables.md)
+refuses a block whose length is not its rows times its width when it fits.
+
 **Example** — the same data described once and fitted twice.
 
 ```csharp

@@ -439,6 +439,7 @@ internal static class ReferenceDocumentation
     {
         HashSet<string> exported = Documented(assembly, space)
             .SelectMany(type => Methods(type).Select(group => $"{Title(type)}.{group.Key}")
+                .Concat(Constructors(type))
                 .Append(Title(type)))
             .ToHashSet(StringComparer.Ordinal);
 
@@ -451,6 +452,11 @@ internal static class ReferenceDocumentation
             }
         }
     }
+
+    /// <summary>A public constructor's entry title, as its page heads it: <c>BkTree(metric)</c> (#1366).</summary>
+    private static IEnumerable<string> Constructors(Type type) =>
+        type.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
+            .Select(constructor => $"{Title(type)}({string.Join(", ", constructor.GetParameters().Select(parameter => parameter.Name))})");
 
     /// <summary>One reference page: where it came from, its raw text, and its entries.</summary>
     private sealed record Sheet(string Source, string Text, Page Parsed);

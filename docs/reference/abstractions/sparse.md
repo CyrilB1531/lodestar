@@ -29,6 +29,7 @@ worth having.
 | Member | What it does |
 | --- | --- |
 | [`CsrMatrix`](sparse/csrmatrix.md) | The matrix: three arrays, and what the layout guarantees. |
+| [`CsrMatrix(rowCount, columnCount, values, columnIndices, rowPointers)`](sparse/csrmatrix-constructor.md) | Builds a matrix from its three arrays, refusing any that do not describe one. |
 | [`CsrMatrix.CreateUnchecked`](sparse/csrmatrix-createunchecked.md) | Wraps three arrays already valid by construction, without the constructor's checks. |
 | [`CsrMatrix.Multiply`](sparse/csrmatrix-multiply.md) | The matrix times a dense vector, or times a dense block. |
 | [`CsrMatrix.TransposeMultiply`](sparse/csrmatrix-transposemultiply.md) | The transposed matrix times a dense block, without building the transpose. |

@@ -192,7 +192,7 @@ What each package holds, and which it depends on, is `CLAUDE.md`'s
 
 ```text
 Lodestar.slnx
-├── src/Lodestar.Abstractions/              CsrMatrix, SparseNorm and the packages' public data types (no dependencies)
+├── src/Lodestar.Abstractions/              CsrMatrix, SparseNorm and the logic-free public data types (no dependencies)
 ├── src/Lodestar.Text/                      distances, similarity, tokenizers, vectorizers, stemmers
 ├── src/Lodestar.Embeddings/                sub-word tokenizers, pooling, SIMD kNN
 ├── src/Lodestar.Fuzzy/                     fuzz.*, process.extract, deduplication

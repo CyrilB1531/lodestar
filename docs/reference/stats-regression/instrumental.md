@@ -1,7 +1,7 @@
 # Instrumental-variables data — `Lodestar.Stats.Regression.Instrumental`
 
 The data types [`InstrumentalVariables`](iv/instrumentalvariables.md) takes and returns. They are
-compiled into `Lodestar.Abstractions`, as every public data type of the packages is
+compiled into `Lodestar.Abstractions`, as every public data type that carries no logic is
 ([decision 0003](../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)), in their
 own namespace so that none of them borrows a name from ordinary least squares: the covariances here
 are `linearmodels`' four, not `statsmodels`' seven.

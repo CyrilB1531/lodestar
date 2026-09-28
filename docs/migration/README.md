@@ -147,8 +147,8 @@ are worth more than the list.
    is a client of a server, and the two that run in process offer none; the arithmetic was already
    published in `Lodestar.Embeddings` and `Lodestar.Text`, so the package is the store around it.
 
-Three more packages carry no lot of their own. `Lodestar.Abstractions` holds the
-`CsrMatrix` the others share; `Lodestar.Onnx` exists to carry the one dependency that is
+Four more packages carry no lot of their own. `Lodestar.Abstractions` holds the
+`CsrMatrix` the others share and the public data types they declare that carry no logic; `Lodestar.Onnx` exists to carry the one dependency that is
 its whole reason to be a package; `Lodestar.Extensions.AI` and `Lodestar.Extensions.MathNet`
 convert to foreign types, which
 [decision 0003](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
