@@ -20,7 +20,6 @@ public static class BpeFilesLoader
     private const string SourceName = "merges.txt";
 
     /// <summary>What Python's text mode treats as ending a line.</summary>
-    private static readonly char[] LineTerminators = ['\n', '\r'];
 
     /// <summary>Reads a BPE model from two streams.</summary>
     /// <param name="vocabJson">A <c>vocab.json</c>: a JSON object of token to id. Never disposed by this method.</param>
@@ -111,9 +110,9 @@ public static class BpeFilesLoader
             {
                 // TryGetInt32, not GetInt32: a string value leaks InvalidOperationException,
                 // an out-of-range/non-integer leaks FormatException, not InvalidDataException.
-                if (entry.Value.ValueKind != JsonValueKind.Number || !entry.Value.TryGetInt32(out int id))
+                if (entry.Value.ValueKind != JsonValueKind.Number || !entry.Value.TryGetInt32(out int id) || id < 0)
                 {
-                    throw new InvalidDataException($"The vocab.json maps token '{entry.Name}' to a value that is not an integer id.");
+                    throw new InvalidDataException($"The vocab.json maps token '{entry.Name}' to a value that is not a non-negative integer id.");
                 }
                 limits.CheckTokenLength(entry.Name.Length);
                 limits.CheckVocabularySize(vocab.Count + 1);
@@ -155,17 +154,24 @@ public static class BpeFilesLoader
     {
         var merges = new List<MergePair>();
         string text = DecodeMerges(mergesPayload);
+
+        // Lines end at '\n' alone, one '\r' before it dropped, as Rust's BufRead::lines reads them:
+        // a bare '\r' stays inside its line, which tokenizers then refuses (#1337).
         int start = 0;
+        int line = 1;
         while (start < text.Length)
         {
-            int terminator = text.IndexOfAny(LineTerminators, start);
+            int terminator = text.IndexOf('\n', start);
             int stop = terminator < 0 ? text.Length : terminator;
-            ParseMergeLine(text, start, stop, merges, limits, isFirstLine: start == 0);
-            if (stop >= text.Length)
+            int end = terminator >= 0 && stop > start && text[stop - 1] == '\r' ? stop - 1 : stop;
+            ParseMergeLine(text, start, end, line, merges, limits);
+            if (terminator < 0)
             {
                 break;
             }
-            start = stop + 1 < text.Length && text[stop] == '\r' && text[stop + 1] == '\n' ? stop + 2 : stop + 1;
+
+            start = stop + 1;
+            line++;
         }
         return merges;
     }
@@ -183,19 +189,23 @@ public static class BpeFilesLoader
             : JsonArtifact.Utf8NoBom.GetString(text.ToArray());
     }
 
-    private static void ParseMergeLine(string text, int start, int stop, List<MergePair> merges, in ArtifactLimits limits, bool isFirstLine)
+    private static void ParseMergeLine(string text, int start, int stop, int line, List<MergePair> merges, in ArtifactLimits limits)
     {
         int length = stop - start;
-        // Blank / "#version" lines are skipped, as in Python; '#' is not a comment
+
+        // "#version" is skipped on any line, as tokenizers skips it; '#' is otherwise no comment
         // marker -- GPT-2 leaves it in its alphabet, see A_merge_whose_left_symbol_starts_with_a_hash_is_kept.
+        if (length >= 8 && string.CompareOrdinal(text, start, "#version", 0, 8) == 0)
+        {
+            return;
+        }
+
+        // A blank line is refused, as tokenizers refuses it ("Merges text file invalid at line n").
         if (length == 0)
         {
-            return;
+            throw new InvalidDataException($"The {SourceName} has a blank line at line {line}; each line is two symbols separated by a space.");
         }
-        if (isFirstLine && length >= 8 && string.CompareOrdinal(text, start, "#version", 0, 8) == 0)
-        {
-            return;
-        }
+
         limits.CheckTokenLength(length);
         limits.CheckArrayLength(merges.Count + 1, SourceName);
 

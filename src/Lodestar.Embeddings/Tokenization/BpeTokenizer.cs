@@ -53,7 +53,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// measurement. Coverage therefore reads this one.
     /// </remarks>
     private readonly Dictionary<string, int> _modelVocab;
-    private readonly string[] _tokens;          // id -> token, the inverse of _vocab
+    private readonly TokenTable _tokens;        // id -> token, the inverse of _vocab
     private readonly PairRanks _ranks;          // (left, right) -> rank
     private readonly int[] _merged;             // rank -> the id the pair becomes
     // rank -> the pair's two ids, so a queued candidate is validated by two reads, not a lookup.
@@ -323,35 +323,40 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// <c>token_to_id</c> answers the raw spelling and <c>id_to_token</c> the normalized
     /// one for such an entry -- an asymmetry in the reference itself, not a choice made here.
     /// </remarks>
-    private (Dictionary<string, int> Vocab, Dictionary<string, int> ModelVocab, string[] Tokens) BuildVocabulary(BpeVocabulary vocabulary)
+    private (Dictionary<string, int> Vocab, Dictionary<string, int> ModelVocab, TokenTable Tokens) BuildVocabulary(BpeVocabulary vocabulary)
     {
         var vocab = new Dictionary<string, int>(vocabulary.Vocab.Count, StringComparer.Ordinal);
-        int maxId = -1;
+        var entries = new List<KeyValuePair<int, string>>(vocabulary.Vocab.Count + vocabulary.AddedTokens.Count);
         foreach (KeyValuePair<string, int> entry in vocabulary.Vocab)
         {
+            RequireId(entry.Value, nameof(vocabulary));
             vocab[entry.Key] = entry.Value;
-            maxId = Math.Max(maxId, entry.Value);
+            entries.Add(new KeyValuePair<int, string>(entry.Value, entry.Key));
         }
         var modelVocab = new Dictionary<string, int>(vocab, StringComparer.Ordinal);
         foreach (AddedToken added in vocabulary.AddedTokens)
         {
+            RequireId(added.Id, nameof(vocabulary));
             vocab[added.Content] = added.Id;
-            maxId = Math.Max(maxId, added.Id);
-        }
 
-        var tokens = new string[maxId + 1];
-        foreach (KeyValuePair<string, int> entry in vocabulary.Vocab)
-        {
-            tokens[entry.Value] = entry.Key;
-        }
-        foreach (AddedToken added in vocabulary.AddedTokens)
-        {
             // The pattern the scanner matches, which is what id_to_token reports. Handing
             // Decode the unescaped content instead costs a space its Strip was going to take.
-            tokens[added.Id] = added.Normalized ? NormalizeAddedTokenContent(added.Content) : added.Content;
+            entries.Add(new KeyValuePair<int, string>(
+                added.Id, added.Normalized ? NormalizeAddedTokenContent(added.Content) : added.Content));
         }
 
+        TokenTable tokens = TokenTable.Build(entries);
+
         return (vocab, modelVocab, tokens);
+    }
+
+    /// <summary>Refuses a negative id, as tokenizers' <c>u32</c> ids cannot hold one (#1334).</summary>
+    private static void RequireId(int id, string paramName)
+    {
+        if (id < 0)
+        {
+            throw new ArgumentException($"The vocabulary maps a token to the negative id {id}.", paramName);
+        }
     }
 
     /// <summary>Tokenizes <paramref name="text"/> into sub-word tokens and their ids.</summary>
@@ -551,7 +556,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
             if (_modelVocab.TryGetValue(mapped, out int whole))
             {
                 ids.Add(whole);
-                tokens.Add(_tokens[whole]);
+                tokens.Add(_tokens[whole]!);
                 return;
             }
         }
@@ -607,7 +612,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         foreach (int id in merged)
         {
             ids.Add(id);
-            tokens.Add(_tokens[id]);
+            tokens.Add(_tokens[id]!);
         }
     }
 
@@ -1047,7 +1052,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         var pending = new List<byte>();
         for (int i = 0; i < ids.Count; i++)
         {
-            Append(buffer, pending, ids[i], skipSpecialTokens);
+            Append(buffer, pending, Token(ids[i], nameof(ids)), ids[i], skipSpecialTokens);
         }
         FlushBytes(buffer, pending);
         return Finish(buffer);
@@ -1066,11 +1071,16 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         var pending = new List<byte>();
         for (int i = 0; i < ids.Length; i++)
         {
-            Append(buffer, pending, ids[i], skipSpecialTokens);
+            Append(buffer, pending, Token(ids[i], nameof(ids)), ids[i], skipSpecialTokens);
         }
         FlushBytes(buffer, pending);
         return Finish(buffer);
     }
+
+    /// <summary>The token of <paramref name="id"/>, refused under Decode's own parameter when none has it (#1336).</summary>
+    private string Token(int id, string paramName) =>
+        _tokens[id] ?? throw new ArgumentOutOfRangeException(
+            paramName, id, $"The id {id} is not in the vocabulary [0, {_tokens.Bound}).");
 
     /// <summary>Appends one token, or the byte it names when the file's decoder undoes byte pieces.</summary>
     /// <remarks>
@@ -1078,13 +1088,8 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// concatenated, and nothing downstream could tell them from text. Any other token flushes
     /// the pending bytes first, so a run decodes as one UTF-8 sequence.
     /// </remarks>
-    private void Append(StringBuilder buffer, List<byte> pending, int id, bool skipSpecialTokens)
+    private void Append(StringBuilder buffer, List<byte> pending, string token, int id, bool skipSpecialTokens)
     {
-        if (id < 0 || id >= _tokens.Length || _tokens[id] is not { } token)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(id), id, $"The id is outside the vocabulary [0, {_tokens.Length}).");
-        }
         if (skipSpecialTokens && _addedIds.Contains(id))
         {
             return;
@@ -1095,7 +1100,38 @@ public sealed class BpeTokenizer : ISubwordTokenizer
             return;
         }
         FlushBytes(buffer, pending);
-        buffer.Append(_decoder?.MetaspaceReplacement is char meta ? token.Replace(meta, ' ') : token);
+        string text = _decoder?.MetaspaceReplacement is char meta ? token.Replace(meta, ' ') : token;
+        buffer.Append(_byteLevel && !InByteAlphabet(text) ? ToByteAlphabet(text) : text);
+    }
+
+    private static bool InByteAlphabet(string token)
+    {
+        foreach (char c in token)
+        {
+            if (!ByteLevelAlphabet.TryToByte(c, out _))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>A token with a character outside the byte alphabet, spelled as its own UTF-8 bytes in that alphabet.</summary>
+    /// <remarks>
+    /// tokenizers' <c>ByteLevel</c> decoder maps a token char by char only when every char has a byte, and emits
+    /// its raw UTF-8 otherwise: an added <c>&lt;日本&gt;</c> decodes whole rather than losing its two ideographs (#1335).
+    /// </remarks>
+    private static string ToByteAlphabet(string token)
+    {
+        byte[] utf8 = Encoding.UTF8.GetBytes(token);
+        var spelled = new StringBuilder(utf8.Length);
+        foreach (byte value in utf8)
+        {
+            spelled.Append(ByteLevelAlphabet.ToChar(value));
+        }
+
+        return spelled.ToString();
     }
 
     /// <summary>Turns the pending byte run into text, or into one U+FFFD per byte when the run is not well-formed UTF-8.</summary>
@@ -1142,7 +1178,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
                 : buffer.Replace(_endOfWord, " ").ToString().TrimEnd();
         }
 
-        // Every character stands for one byte; anything else never came from Encode.
+        // Every character stands for one byte: Append spelled any token outside the alphabet as its UTF-8.
         byte[] bytes = new byte[buffer.Length];
         int n = 0;
         for (int i = 0; i < buffer.Length; i++)

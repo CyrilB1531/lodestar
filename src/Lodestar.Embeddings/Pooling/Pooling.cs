@@ -25,7 +25,7 @@ public static class Pooler
     /// <param name="dim">Embedding dimension.</param>
     /// <param name="attentionMask">Length <paramref name="seqLen"/>; non-zero marks a real token.</param>
     /// <returns>The pooled <c>dim</c>-length vector.</returns>
-    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> does not hold exactly <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, or <paramref name="attentionMask"/> does not cover one mask entry per token.</exception>
+    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> does not hold exactly <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, <paramref name="attentionMask"/> does not cover one mask entry per token, or <paramref name="dim"/> is past the largest array.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="seqLen"/> or <paramref name="dim"/> is negative.</exception>
     public static float[] MeanPool(ReadOnlySpan<float> tokenEmbeddings, int seqLen, int dim, ReadOnlySpan<long> attentionMask)
     {
@@ -41,7 +41,8 @@ public static class Pooler
             throw new ArgumentException($"attentionMask length {attentionMask.Length} != seqLen {seqLen}.", nameof(attentionMask));
         }
 
-        var pooled = new float[dim];
+        // With seqLen 0 nothing above bounds dim, and new float[int.MaxValue] failed to allocate (#1340).
+        var pooled = new float[TableLength.Of(1, dim, nameof(dim))];
         PoolInto(pooled, tokenEmbeddings, seqLen, dim, attentionMask);
         return pooled;
     }
@@ -61,16 +62,18 @@ public static class Pooler
     /// <param name="seqLen">Padded length of every sequence.</param>
     /// <param name="dim">Embedding dimension.</param>
     /// <param name="attentionMask">Row-major <c>[batchSize × seqLen]</c>.</param>
-    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> does not hold exactly <paramref name="batchSize"/> &#215; <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, or <paramref name="attentionMask"/> does not cover one mask entry per token.</exception>
+    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> does not hold exactly <paramref name="batchSize"/> &#215; <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, <paramref name="attentionMask"/> does not cover one mask entry per token, or <paramref name="dim"/> is past the largest array.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="batchSize"/>, <paramref name="seqLen"/> or <paramref name="dim"/> is negative.</exception>
     public static float[][] MeanPoolBatch(ReadOnlySpan<float> tokenEmbeddings, int batchSize, int seqLen, int dim, ReadOnlySpan<long> attentionMask)
     {
         ValidateBatch(tokenEmbeddings, batchSize, seqLen, dim, attentionMask);
 
+        // Each vector is its own array, so dim is what one allocation is sized by (#1340).
+        int width = TableLength.Of(1, dim, nameof(dim));
         var pooled = new float[batchSize][];
         for (int b = 0; b < batchSize; b++)
         {
-            var vector = new float[dim];
+            var vector = new float[width];
             PoolInto(
                 vector,
                 tokenEmbeddings.Slice(b * seqLen * dim, seqLen * dim),
@@ -128,7 +131,7 @@ public static class Pooler
     /// <param name="seqLen">Number of tokens.</param>
     /// <param name="dim">Embedding dimension.</param>
     /// <param name="attentionMask">Length <paramref name="seqLen"/>; non-zero marks a real token.</param>
-    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> does not hold exactly <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, or <paramref name="attentionMask"/> does not cover one mask entry per token.</exception>
+    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> does not hold exactly <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, <paramref name="attentionMask"/> does not cover one mask entry per token, or <paramref name="dim"/> is past the largest array.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="seqLen"/> or <paramref name="dim"/> is negative.</exception>
     public static float[] MeanPoolAndNormalize(ReadOnlySpan<float> tokenEmbeddings, int seqLen, int dim, ReadOnlySpan<long> attentionMask)
     {
@@ -148,7 +151,7 @@ public static class Pooler
     /// <param name="seqLen">Padded length of every sequence.</param>
     /// <param name="dim">Embedding dimension.</param>
     /// <param name="attentionMask">Row-major <c>[batchSize × seqLen]</c>.</param>
-    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> does not hold exactly <paramref name="batchSize"/> &#215; <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, or <paramref name="attentionMask"/> does not cover one mask entry per token.</exception>
+    /// <exception cref="ArgumentException"><paramref name="tokenEmbeddings"/> does not hold exactly <paramref name="batchSize"/> &#215; <paramref name="seqLen"/> &#215; <paramref name="dim"/> elements, <paramref name="attentionMask"/> does not cover one mask entry per token, or <paramref name="dim"/> is past the largest array.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="batchSize"/>, <paramref name="seqLen"/> or <paramref name="dim"/> is negative.</exception>
     public static float[][] MeanPoolAndNormalizeBatch(ReadOnlySpan<float> tokenEmbeddings, int batchSize, int seqLen, int dim, ReadOnlySpan<long> attentionMask)
     {

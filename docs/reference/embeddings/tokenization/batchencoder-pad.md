@@ -18,10 +18,12 @@ out. `order` is an optional indirection: with it, row *i* of the batch is
 to `MaxLength`, and not to the longest row in `sequences`.
 
 **Exceptions** — `ArgumentNullException` when `sequences` is null.
-`ArgumentOutOfRangeException` when `start` or `count` is negative, or when the window reaches past
-the end of `sequences` (or of `order`, when one is given).
-`ArgumentException` when the window's rows times its longest row are more cells than one array
-holds ([#1323](https://github.com/CyrilB1531/lodestar/issues/1323)).
+`ArgumentOutOfRangeException` when `start` or `count` is negative, when the window reaches past
+the end of `sequences` (or of `order`, when one is given), or when `order` names a row outside
+`sequences`. `ArgumentException` when a sequence in the window is null, or when the window's rows
+times its longest row are more cells than one array holds
+([#1323](https://github.com/CyrilB1531/lodestar/issues/1323),
+[#1352](https://github.com/CyrilB1531/lodestar/issues/1352)).
 
 **Example** — the same two texts, first together, then the long one alone.
 

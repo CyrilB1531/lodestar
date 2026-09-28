@@ -51,8 +51,8 @@ public sealed record SpecialTokenTemplate(
         }
         return other is not null
             && string.Equals(PadToken, other.PadToken, StringComparison.Ordinal)
-            && SameTokens(PrefixTokens, other.PrefixTokens)
-            && SameTokens(SuffixTokens, other.SuffixTokens);
+            && ValueEquality.Same(PrefixTokens, other.PrefixTokens)
+            && ValueEquality.Same(SuffixTokens, other.SuffixTokens);
     }
 
     /// <summary>Hashes the pad token and the two counts, which is O(1) and consistent with equality.</summary>
@@ -60,25 +60,9 @@ public sealed record SpecialTokenTemplate(
     {
         unchecked
         {
-            int hash = (17 * 31) + StringComparer.Ordinal.GetHashCode(PadToken);
-            hash = (hash * 31) + PrefixTokens.Count;
-            return (hash * 31) + SuffixTokens.Count;
+            int hash = (17 * 31) + ValueEquality.HashOfItem(PadToken);
+            hash = (hash * 31) + ValueEquality.LengthOf(PrefixTokens);
+            return (hash * 31) + ValueEquality.LengthOf(SuffixTokens);
         }
-    }
-
-    private static bool SameTokens(IReadOnlyList<string> a, IReadOnlyList<string> b)
-    {
-        if (a.Count != b.Count)
-        {
-            return false;
-        }
-        for (int i = 0; i < a.Count; i++)
-        {
-            if (!string.Equals(a[i], b[i], StringComparison.Ordinal))
-            {
-                return false;
-            }
-        }
-        return true;
     }
 }

@@ -58,10 +58,15 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
     /// see <c>docs/equivalence.md</c>'s <c>sp.IsControl(i)</c> row.
     /// </remarks>
     /// <param name="vocabulary">A vocabulary from <see cref="Persistence.SentencePieceModelLoader"/> or <see cref="Persistence.TokenizerJsonLoader"/>.</param>
-    /// <exception cref="ArgumentException">The vocabulary's pieces and types disagree in length, or its unknown id is out of range.</exception>
+    /// <exception cref="ArgumentException">The vocabulary's pieces and types disagree in length, its pieces or types are missing, its unknown id is out of range, a piece has no string, or a matchable piece's score is not finite.</exception>
     public SentencePieceTokenizer(SentencePieceVocabulary vocabulary)
     {
         Guard.NotNull(vocabulary);
+        if (vocabulary.Pieces is null || vocabulary.Types is null)
+        {
+            throw new ArgumentException("The vocabulary is missing its pieces or its types.", nameof(vocabulary));
+        }
+
         if (vocabulary.Pieces.Count != vocabulary.Types.Count)
         {
             throw new ArgumentException(
@@ -82,12 +87,23 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
         double minScore = 0;
         for (int id = 0; id < vocabulary.Count; id++)
         {
+            // A null piece would surface from a dictionary as ArgumentNullException("key") (#1351).
+            if (vocabulary.Pieces[id].Piece is null)
+            {
+                throw new ArgumentException($"The piece at id {id} has no string.", nameof(vocabulary));
+            }
+
             if (!vocabulary.IsMatchable(id))
             {
                 _nonMatchableIds[vocabulary.Pieces[id].Piece] = id;
                 continue;
             }
             SentencePiece p = vocabulary.Pieces[id];
+            if (double.IsNaN(p.Score) || double.IsInfinity(p.Score))
+            {
+                throw new ArgumentException($"The piece at id {id} has a score that is not a finite number.", nameof(vocabulary));
+            }
+
             matchable.Add(p);
             minScore = Math.Min(minScore, p.Score);
         }

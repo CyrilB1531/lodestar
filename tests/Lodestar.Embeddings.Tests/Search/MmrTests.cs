@@ -99,26 +99,22 @@ public sealed class MmrTests
     }
 
     [Fact]
-    public void An_overflowing_candidate_has_no_cosine_and_is_refused()
+    public void A_candidate_whose_float_squares_overflow_is_measured_in_double()
     {
-        float[][] withOverflow = [[1f, 0f, 0f], [2e38f, 2e38f, 0f]];
+        // 2e38² overflows a float; its norm, 2.83e38, does not (#1355). It ranks as its direction does.
+        float[][] large = [[1f, 0f, 0f], [2e38f, 2e38f, 0f]];
+        float[][] small = [[1f, 0f, 0f], [1f, 1f, 0f]];
 
-        ArgumentException error = Assert.Throws<ArgumentException>(
-            () => Mmr.Select(Query, withOverflow, count: 2));
-
-        Assert.Contains("index 1", error.Message, StringComparison.Ordinal);
+        Assert.Equal(Mmr.Select(Query, small, count: 2), Mmr.Select(Query, large, count: 2));
     }
 
     [Fact]
-    public void An_overflowing_query_has_no_cosine_and_is_refused()
+    public void A_query_whose_float_squares_overflow_or_underflow_is_measured_in_double()
     {
-        float[] overflowingQuery = [2e38f, 2e38f, 0f];
+        int[] expected = Mmr.Select([1f, 1f, 0f], Candidates, count: 2);
 
-        ArgumentException error = Assert.Throws<ArgumentException>(
-            () => Mmr.Select(overflowingQuery, Candidates, count: 2));
-
-        Assert.Contains("query", error.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("index", error.Message, StringComparison.Ordinal);
+        Assert.Equal(expected, Mmr.Select([2e38f, 2e38f, 0f], Candidates, count: 2));
+        Assert.Equal(expected, Mmr.Select([1e-23f, 1e-23f, 0f], Candidates, count: 2));
     }
 
     [Fact]

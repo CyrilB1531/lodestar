@@ -217,6 +217,52 @@ public sealed class SentencePieceModelLoaderTests
     }
 
     [Fact]
+    public void A_model_trained_with_whitespace_as_a_suffix_is_rejected()
+    {
+        // A second trainer_spec merges into the first, as protobuf reads repeated embedded messages (#1332).
+        var model = new List<byte>(SyntheticModel(modelType: 1));
+        var trainer = new List<byte>();
+        AppendVarintField(trainer, fieldNumber: 24, 1UL);
+        AppendLengthDelimited(model, fieldNumber: 2, trainer.ToArray());
+        using var stream = new MemoryStream(model.ToArray());
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => SentencePieceModelLoader.Load(stream));
+
+        Assert.Contains("treat_whitespace_as_suffix", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(float.NaN)]
+    [InlineData(float.NegativeInfinity)]
+    [InlineData(float.PositiveInfinity)]
+    public void A_piece_whose_score_is_not_finite_is_rejected(float score)
+    {
+        // The three pieces score -1.5f; the first one's score is rewritten in place (#1331).
+        byte[] model = SyntheticModel(modelType: 1);
+        byte[] original = BitConverter.GetBytes(-1.5f);
+        int at = IndexOf(model, original);
+        BitConverter.GetBytes(score).CopyTo(model, at);
+        using var stream = new MemoryStream(model);
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => SentencePieceModelLoader.Load(stream));
+
+        Assert.Contains("not a finite number", error.Message, StringComparison.Ordinal);
+    }
+
+    private static int IndexOf(byte[] haystack, byte[] needle)
+    {
+        for (int i = 0; i <= haystack.Length - needle.Length; i++)
+        {
+            if (haystack.AsSpan(i, needle.Length).SequenceEqual(needle))
+            {
+                return i;
+            }
+        }
+
+        throw new InvalidOperationException("The synthetic model does not hold the score it was built with.");
+    }
+
+    [Fact]
     public void A_piece_longer_than_the_token_limit_is_rejected()
     {
         using var stream = new MemoryStream(SyntheticModel(modelType: 1, extraPiece: new string('a', 40)));

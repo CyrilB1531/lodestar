@@ -24,8 +24,10 @@ float length = VectorMath.L2Norm(new float[] { 3f, 4f });  // => 5
 float unit = VectorMath.L2Norm(new float[] { 0f, 1f });  // => 1
 ```
 
-**Remarks** — this is `Dot(v, v)` under a square root, and it is implemented as exactly that, so
-it inherits [`Dot`](vectormath-dot.md)'s SIMD path and its accumulation order.
+**Remarks** — this is `Dot(v, v)` under a square root, and it inherits [`Dot`](vectormath-dot.md)'s
+SIMD path and its accumulation order, except where that `float` sum overflowed or fell to where its
+squares underflow: then the squares are summed again in `double`, so `[1e20f]` and `[1e-23f]` have
+the norms a `float` holds ([#1355](https://github.com/CyrilB1531/lodestar/issues/1355)).
 
 Dividing a vector by its norm is what makes it a unit vector, which is what makes
 [`VectorMath.Dot`](vectormath-dot.md) a cosine similarity.

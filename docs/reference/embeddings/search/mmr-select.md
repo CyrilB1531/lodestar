@@ -46,7 +46,9 @@ dissimilar to anything, which is not what an undefined value means.
 [`VectorMath.Dot`](vectormath-dot.md) sums in a different order on `net10.0` (SIMD) than on
 `netstandard2.0` (scalar), so a genuine near-tie between two candidates can select a different
 index on the two targets — accepted, not a defect, and the same divergence
-[`VectorMath`](vectormath.md) already documents for the dot product itself.
+[`VectorMath`](vectormath.md) already documents for the dot product itself. A dot product or norm
+whose `float` sum overflowed or underflowed is recomputed in `double`: `[1e20f]` and `[1e-23f]` were
+refused, though their norms are finite ([#1355](https://github.com/CyrilB1531/lodestar/issues/1355)).
 
 **Applies to** — net10.0, netstandard2.0.
 

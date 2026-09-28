@@ -51,5 +51,5 @@ counts **code points**, as `max_input_chars_per_word` does, so a surrogate pair 
 | Member | What it does |
 | --- | --- |
 | [`WordPieceTokenizer.Encode`](wordpiecetokenizer-encode.md) | Tokens and ids for one string. |
-| [`WordPieceTokenizer.EncodeToIds`](wordpiecetokenizer-encodetoids.md) | Ids only, without building the token strings. |
+| [`WordPieceTokenizer.EncodeToIds`](wordpiecetokenizer-encodetoids.md) | The ids alone, `Encode`'s with the token strings left behind. |
 | [`WordPieceTokenizer.TryGetId`](wordpiecetokenizer-trygetid.md) | The id of a token, if the vocabulary holds it. |
