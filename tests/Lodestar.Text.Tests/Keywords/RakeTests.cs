@@ -30,6 +30,28 @@ public sealed class RakeTests
     }
 
     [Fact]
+    public void A_tie_breaks_by_code_point_so_an_astral_phrase_sorts_above_the_halfwidth_forms()
+    {
+        // rake-nltk 1.0.6 over "ｶ, 𠮟, b": [(1.0, '𠮟'), (1.0, 'ｶ'), (1.0, 'b')]. By UTF-16 unit
+        // the leading surrogate 0xD842 sorts below 0xFF76 and the first two swap (#1264).
+        IReadOnlyList<KeywordMatch> hits = Extractor().Extract("\uFF76, \U00020B9F, b");
+
+        Assert.Equal(["\U00020B9F", "\uFF76", "b"], hits.Select(h => h.Phrase));
+    }
+
+    [Fact]
+    public void A_capturing_group_gives_the_word_while_the_whole_match_decides_the_gaps()
+    {
+        // rake-nltk 1.0.6 with findall(r"(\w+)ing\b") as its word tokenizer, over
+        // "running jumping, singing": [(4.0, 'runn jump'), (1.0, 'sing')] (#1262).
+        var options = new RakeOptions { TokenPattern = @"(\w+)ing\b" };
+        IReadOnlyList<KeywordMatch> hits = Extractor(options).Extract("running jumping, singing");
+
+        Assert.Equal(["runn jump", "sing"], hits.Select(h => h.Phrase));
+        Assert.Equal(4.0, hits[0].Score, 12);
+    }
+
+    [Fact]
     public void A_three_way_tie_breaks_by_phrase_descending_not_by_text_order()
     {
         // Three pairs tied at 4.0, ordered the same way by text order and by ascending

@@ -33,6 +33,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `ItalianSnowballStemmer` has no bare `-er` in step 2. ([#1198](https://github.com/CyrilB1531/lodestar/issues/1198))
 - `HashingVectorizer` honours `CountVectorizerOptions.Binary`. ([#1196](https://github.com/CyrilB1531/lodestar/issues/1196))
 - A vectorizer saved with an n-gram range starting below 1 loads back. ([#1197](https://github.com/CyrilB1531/lodestar/issues/1197))
+- `Jaccard`, `SorensenDice`, `Overlap`, `Cosine` and `Tversky` take a lone surrogate as one code point at `TextElement.CodePoint` rather than throwing. ([#1261](https://github.com/CyrilB1531/lodestar/issues/1261))
+- A token pattern with one capturing group yields the group's text, as `re.findall` does, and one with two is refused by the word analyzer. ([#1262](https://github.com/CyrilB1531/lodestar/issues/1262))
+- The `char` and `char_wb` analyzers cut n-grams by code point, so an astral character is one character, and a lone surrogate in a term, a stop word or the pattern survives `Save` and `Load`. ([#1263](https://github.com/CyrilB1531/lodestar/issues/1263))
+- The vectorizers' vocabulary and `Rake`'s tie-break sort by code point, as Python sorts a `str`. ([#1264](https://github.com/CyrilB1531/lodestar/issues/1264))
 
 ## [0.7.0] — 2026-09-24
 

@@ -40,6 +40,9 @@ they are robust in exactly the cases a word analyzer breaks.
 while refusing to invent features that span two of them. scikit-learn calls the three
 `analyzer='word'`, `'char'` and `'char_wb'`, and the behaviour is the same.
 
+A character is a code point, as it is in a Python `str`: an emoji or a supplementary CJK ideograph is
+one character of a gram, never two surrogates.
+
 `NgramRange` applies to whichever of the three is chosen, and means something different in each:
 a range of `(1, 2)` under `Word` is unigrams and bigrams of *words*, and under `Char` is one- and
 two-*character* runs.

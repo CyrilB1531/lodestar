@@ -11,6 +11,25 @@ public sealed class TextRankTests
         "Compatibility of systems of linear constraints over the set of natural numbers. " +
         "Criteria of compatibility of a system of linear Diophantine equations.";
 
+    [Fact]
+    public void A_capturing_group_gives_the_word_as_re_findall_does()
+    {
+        // The group's text is the word, so no keyword keeps the suffix the pattern matched
+        // around it (#1262).
+        var options = new TextRankOptions { TokenPattern = @"(\w+)ing\b", Words = 3 };
+        IReadOnlyList<KeywordMatch> hits = new TextRank(options)
+            .Extract("running jumping swimming. running jumping. swimming running.");
+
+        Assert.NotEmpty(hits);
+        Assert.All(hits, h => Assert.DoesNotContain("ing", h.Phrase, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_token_pattern_with_two_groups_is_refused()
+    {
+        Assert.Throws<ArgumentException>(() => new TextRank(new TextRankOptions { TokenPattern = @"(\w)(\w)" }));
+    }
+
     // A clean run reaching the document's last token is dropped whole (summa's inner loop
     // reports only on a rejected continuation). Measured against summa 1.2.0.
     [Fact]

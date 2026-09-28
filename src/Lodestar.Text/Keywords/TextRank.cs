@@ -29,6 +29,7 @@ public sealed class TextRank
     /// <summary>Builds an extractor.</summary>
     /// <param name="options">Null takes every default.</param>
     /// <exception cref="ArgumentOutOfRangeException"><c>Window</c> is below 1, <c>Damping</c> is outside <c>(0, 1)</c>, <c>Ratio</c> is outside <c>(0, 1]</c>, <c>Tolerance</c> is negative or not finite, <c>MaxIterations</c> is below 1, or <c>Words</c> is set and negative.</exception>
+    /// <exception cref="ArgumentException"><c>TokenPattern</c> has more than one capturing group.</exception>
     public TextRank(TextRankOptions? options = null)
     {
         _options = options ?? new TextRankOptions();
@@ -96,13 +97,12 @@ public sealed class TextRank
     {
         var words = new List<string>();
         var clean = new List<bool>();
-        foreach ((int index, int length) in _rawToken.Matches(text))
+        foreach ((int index, int length, int matchStart, int matchEnd) in _rawToken.MatchesWithSpans(text))
         {
             string value = text.Substring(index, length);
             words.Add(value.ToLowerInvariant());
-            bool precededByGap = index == 0 || char.IsWhiteSpace(text[index - 1]);
-            int end = index + length;
-            bool followedByGap = end == text.Length || char.IsWhiteSpace(text[end]);
+            bool precededByGap = matchStart == 0 || char.IsWhiteSpace(text[matchStart - 1]);
+            bool followedByGap = matchEnd == text.Length || char.IsWhiteSpace(text[matchEnd]);
             clean.Add(precededByGap && followedByGap && string.Equals(value, value.ToLowerInvariant(), StringComparison.Ordinal));
         }
 

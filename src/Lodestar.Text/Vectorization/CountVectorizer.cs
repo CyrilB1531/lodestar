@@ -18,7 +18,7 @@ public sealed partial class CountVectorizer
 
     /// <summary>Creates a vectorizer with the given options (defaults if omitted).</summary>
     /// <exception cref="ArgumentOutOfRangeException"><c>MinDf</c> or <c>MaxDf</c> is negative, not finite, or a fraction above 1.</exception>
-    /// <exception cref="ArgumentException"><c>NgramRange</c> descends, or <c>Analyzer</c> is not an <see cref="AnalyzerKind"/>.</exception>
+    /// <exception cref="ArgumentException"><c>NgramRange</c> descends, <c>Analyzer</c> is not an <see cref="AnalyzerKind"/>, or <c>TokenPattern</c> is null, or has more than one capturing group under the word analyzer.</exception>
     public CountVectorizer(CountVectorizerOptions? options = null)
     {
         _options = options ?? new CountVectorizerOptions();
@@ -112,7 +112,8 @@ public sealed partial class CountVectorizer
         {
             throw new InvalidOperationException("After pruning, no terms remain. Try a lower MinDf or a higher MaxDf.");
         }
-        kept.Sort(StringComparer.Ordinal);
+        // scikit-learn sorts the vocabulary as Python sorts a str, by code point (#1264).
+        kept.Sort(CodePointOrder.Instance);
 
         _featureNames = kept.ToArray();
         _vocabulary = new Dictionary<string, int>(kept.Count, StringComparer.Ordinal);

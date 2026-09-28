@@ -133,7 +133,17 @@ public sealed class ArtifactHardeningTests
         InvalidDataException error = LoadCount(
             Baseline().Replace("[\"alpha\",\"beta\"", "[\"beta\",\"alpha\"", StringComparison.Ordinal));
 
-        Assert.Contains("must be sorted in ordinal order", error.Message, StringComparison.Ordinal);
+        Assert.Contains("must be sorted by code point", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_vocabulary_in_utf16_order_is_rejected_when_code_point_order_differs()
+    {
+        // 𠮟 (U+20B9F) sorts above ｶ (U+FF76) by code point and below it by UTF-16 unit (#1264).
+        InvalidDataException error = LoadCount(
+            Baseline().Replace("[\"alpha\",\"beta\"", "[\"\U00020B9F\",\"\uFF76\"", StringComparison.Ordinal));
+
+        Assert.Contains("must be sorted by code point", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -24,7 +24,7 @@ internal static class FeatureVocabularyJson
         writer.WriteStartArray(VocabularyProperty);
         for (int i = 0; i < featureNames.Count; i++)
         {
-            writer.WriteStringValue(featureNames[i]);
+            JsonArtifact.WriteText(writer, featureNames[i]);
         }
         writer.WriteEndArray();
     }
@@ -76,11 +76,11 @@ internal static class FeatureVocabularyJson
         string? previous = null;
         while (reader.Read() && reader.TokenType == JsonTokenType.String)
         {
-            string name = reader.GetString()!;
+            string name = JsonArtifact.GetText(ref reader);
             limits.CheckTokenLength(name.Length);
             // Checked inline, not in a second pass: the predecessor is already in
             // cache, and 30k strings do not need walking twice.
-            if (previous is not null && string.CompareOrdinal(previous, name) >= 0)
+            if (previous is not null && CodePointOrder.Compare(previous.AsSpan(), name.AsSpan()) >= 0)
             {
                 throw OutOfOrder(artifact, previous, name);
             }
@@ -167,5 +167,5 @@ internal static class FeatureVocabularyJson
             ? JsonArtifact.Inconsistent(artifact, $"'{VocabularyProperty}' contains the duplicate entry '{current}'.")
             : JsonArtifact.Inconsistent(
                 artifact,
-                $"'{VocabularyProperty}' must be sorted in ordinal order, but '{previous}' precedes '{current}'.");
+                $"'{VocabularyProperty}' must be sorted by code point, but '{previous}' precedes '{current}'.");
 }

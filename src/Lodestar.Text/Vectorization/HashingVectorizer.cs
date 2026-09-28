@@ -17,7 +17,7 @@ public sealed partial class HashingVectorizer
 
     /// <summary>Creates a vectorizer with the given options (defaults if omitted).</summary>
     /// <exception cref="ArgumentOutOfRangeException"><c>NumFeatures</c> is below 1.</exception>
-    /// <exception cref="ArgumentException"><c>Count.NgramRange</c> descends, or <c>Count.Analyzer</c> is not an <see cref="AnalyzerKind"/>.</exception>
+    /// <exception cref="ArgumentException"><c>Count.NgramRange</c> descends, <c>Count.Analyzer</c> is not an <see cref="AnalyzerKind"/>, or <c>Count.TokenPattern</c> is null, or has more than one capturing group under the word analyzer.</exception>
     public HashingVectorizer(HashingVectorizerOptions? options = null)
     {
         _options = options ?? new HashingVectorizerOptions();

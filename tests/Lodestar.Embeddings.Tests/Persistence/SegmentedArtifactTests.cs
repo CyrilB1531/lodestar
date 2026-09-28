@@ -76,6 +76,26 @@ public sealed class SegmentedArtifactTests
             () => JsonArtifact.ReadAllSegments(stream, Limits(1024, maxTotalBytes: 2048)));
     }
 
+    [Fact]
+    public void Ids_holding_lone_surrogates_read_back_across_segment_boundaries()
+    {
+        // Long enough ids that some straddle a 1 KiB segment, where the reader hands out a sequence.
+        var original = new EmbeddingIndex(dimension: 2);
+        for (int i = 0; i < 60; i++)
+        {
+            original.Add([1f, i], new string('x', i) + (char)(0xD800 + i) + char.ConvertFromUtf32(0x1F600 + i) + (char)(0xDC00 + i));
+        }
+        using var stream = new MemoryStream();
+        original.Save(stream);
+
+        EmbeddingIndex reloaded = LoadSegmented(stream.ToArray(), 1024);
+
+        for (int i = 0; i < original.Count; i++)
+        {
+            Assert.Equal(original.GetId(i), reloaded.GetId(i));
+        }
+    }
+
     private static EmbeddingIndex LoadSegmented(byte[] artifact, long singleBuffer)
     {
         using var stream = new MemoryStream(artifact);

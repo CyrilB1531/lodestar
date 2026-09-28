@@ -555,8 +555,200 @@ internal static class JsonArtifact
         {
             throw UnexpectedToken(artifact, propertyName, reader.TokenType);
         }
-        return reader.GetString()!;
+        return GetText(ref reader);
     }
+
+    /// <summary>Writes <paramref name="value"/> as a JSON string that reads back unchanged, a lone surrogate included.</summary>
+    /// <remarks>
+    /// <see cref="Utf8JsonWriter"/> writes an unpaired surrogate as U+FFFD, so a vocabulary holding
+    /// one saved two equal keys, or a term its counts no longer reached. Here it becomes an escape,
+    /// which Python's <c>json</c> reads back too, and <see cref="GetText"/> reads it; the text around
+    /// it goes through the writer's own encoder, so it is escaped as it always was. A string with no
+    /// lone surrogate is written exactly as before.
+    /// </remarks>
+    public static void WriteText(Utf8JsonWriter writer, string value)
+    {
+        if (!HasLoneSurrogate(value))
+        {
+            writer.WriteStringValue(value);
+            return;
+        }
+
+        var sb = new StringBuilder(value.Length + 16).Append('"');
+        int start = 0;
+        int i = 0;
+        while (i < value.Length)
+        {
+            if (char.IsSurrogatePair(value, i))
+            {
+                i += 2;
+                continue;
+            }
+            if (char.IsSurrogate(value[i]))
+            {
+                sb.Append(RelaxedEncoder.Encode(value.Substring(start, i - start)))
+                  .Append('\\').Append('u').Append(((int)value[i]).ToString("X4", CultureInfo.InvariantCulture));
+                start = i + 1;
+            }
+            i++;
+        }
+        sb.Append(RelaxedEncoder.Encode(value.Substring(start))).Append('"');
+        // Built from the encoder's output and four-digit escapes, so already valid JSON.
+        writer.WriteRawValue(sb.ToString(), skipInputValidation: true);
+    }
+
+    /// <summary>Writes the property <paramref name="propertyName"/> with <paramref name="value"/>, as <see cref="WriteText(Utf8JsonWriter, string)"/> writes it.</summary>
+    public static void WriteText(Utf8JsonWriter writer, string propertyName, string value)
+    {
+        writer.WritePropertyName(propertyName);
+        WriteText(writer, value);
+    }
+
+    /// <summary>The current string token's text, an escaped lone surrogate included.</summary>
+    /// <remarks>
+    /// <see cref="Utf8JsonReader.GetString"/> refuses an unpaired surrogate escape, which
+    /// <see cref="WriteText(Utf8JsonWriter, string)"/> and Python's <c>json</c> both write. Only such a
+    /// token is unescaped here; every other one, an escaped pair included, still goes through the
+    /// reader, and invalid UTF-8 raises the reader's own <see cref="InvalidOperationException"/>.
+    /// </remarks>
+    public static string GetText(ref Utf8JsonReader reader)
+    {
+        if (!reader.ValueIsEscaped)
+        {
+            return reader.GetString()!;
+        }
+
+        if (reader.HasValueSequence)
+        {
+            byte[] joined = reader.ValueSequence.ToArray();
+            return HoldsLoneSurrogateEscape(joined) ? Unescape(joined) : reader.GetString()!;
+        }
+        return HoldsLoneSurrogateEscape(reader.ValueSpan) ? Unescape(reader.ValueSpan.ToArray()) : reader.GetString()!;
+    }
+
+    /// <summary>The encoder <see cref="WriterOptions"/> names, for text written around a lone surrogate.</summary>
+    private static JavaScriptEncoder RelaxedEncoder => JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+
+    private static bool HasLoneSurrogate(string s)
+    {
+        // Every term is checked on Save and almost none holds a surrogate, so the common case is one
+        // unsigned comparison per unit; a vectorised search costs more than that on a short term.
+        int i = 0;
+        while (i < s.Length && (uint)(s[i] - 0xD800) > 0x7FF)
+        {
+            i++;
+        }
+        while (i < s.Length)
+        {
+            if (char.IsSurrogatePair(s, i))
+            {
+                i += 2;
+                continue;
+            }
+            if (char.IsSurrogate(s[i]))
+            {
+                return true;
+            }
+            i++;
+        }
+        return false;
+    }
+
+    // Whether the raw token holds a surrogate escape that is not half of an escaped pair, the one
+    // escape GetString refuses. A surrogate cannot be raw UTF-8, so both halves of a pair are escapes.
+    private static bool HoldsLoneSurrogateEscape(ReadOnlySpan<byte> raw)
+    {
+        int i = 0;
+        while (i < raw.Length)
+        {
+            if (raw[i] != '\\')
+            {
+                i++;
+                continue;
+            }
+            if (raw[i + 1] != 'u')
+            {
+                i += 2;
+                continue;
+            }
+
+            int unit = EscapedUnit(raw, i);
+            if (unit is >= 0xD800 and <= 0xDBFF && i + 11 < raw.Length && raw[i + 6] == '\\' && raw[i + 7] == 'u'
+                && EscapedUnit(raw, i + 6) is >= 0xDC00 and <= 0xDFFF)
+            {
+                i += 12;
+                continue;
+            }
+            if (unit is >= 0xD800 and <= 0xDFFF)
+            {
+                return true;
+            }
+            i += 6;
+        }
+        return false;
+    }
+
+    // JSON's escapes, over a token the reader has already validated: each \uXXXX becomes one UTF-16
+    // unit, so a pair written as two escapes is joined again and a lone one stays alone.
+    private static string Unescape(byte[] raw)
+    {
+        var sb = new StringBuilder(raw.Length);
+        int i = 0;
+        while (i < raw.Length)
+        {
+            int next = Array.IndexOf(raw, (byte)'\\', i);
+            int end = next < 0 ? raw.Length : next;
+            sb.Append(DecodeUtf8(raw, i, end - i));
+            if (next < 0)
+            {
+                break;
+            }
+
+            byte kind = raw[next + 1];
+            if (kind == 'u')
+            {
+                sb.Append((char)EscapedUnit(raw, next));
+                i = next + 6;
+                continue;
+            }
+            sb.Append(kind switch
+            {
+                (byte)'b' => '\b',
+                (byte)'f' => '\f',
+                (byte)'n' => '\n',
+                (byte)'r' => '\r',
+                (byte)'t' => '\t',
+                _ => (char)kind,
+            });
+            i = next + 2;
+        }
+        return sb.ToString();
+    }
+
+    // The reader does not check UTF-8 inside a string until GetString, which throws this type.
+    private static string DecodeUtf8(byte[] raw, int index, int count)
+    {
+        try
+        {
+            return Utf8NoBom.GetString(raw, index, count);
+        }
+        catch (DecoderFallbackException e)
+        {
+            throw new InvalidOperationException("Cannot read invalid UTF-8 JSON text as string.", e);
+        }
+    }
+
+    // The unit a \uXXXX escape starting at at spells.
+    private static int EscapedUnit(ReadOnlySpan<byte> raw, int at) =>
+        (HexValue(raw[at + 2]) << 12) | (HexValue(raw[at + 3]) << 8) | (HexValue(raw[at + 4]) << 4) | HexValue(raw[at + 5]);
+
+    private static int HexValue(byte b) => b switch
+    {
+        >= (byte)'0' and <= (byte)'9' => b - '0',
+        >= (byte)'a' and <= (byte)'f' => b - 'a' + 10,
+        >= (byte)'A' and <= (byte)'F' => b - 'A' + 10,
+        _ => -1,
+    };
 
     /// <summary>Advances onto the value of the current property, allowing an explicit JSON <c>null</c>.</summary>
     public static string? ReadNullableString(ref Utf8JsonReader reader, string artifact, string propertyName)
@@ -568,7 +760,7 @@ internal static class JsonArtifact
         return reader.TokenType switch
         {
             JsonTokenType.Null => null,
-            JsonTokenType.String => reader.GetString(),
+            JsonTokenType.String => GetText(ref reader),
             _ => throw UnexpectedToken(artifact, propertyName, reader.TokenType),
         };
     }

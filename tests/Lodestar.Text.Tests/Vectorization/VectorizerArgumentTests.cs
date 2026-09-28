@@ -98,6 +98,35 @@ public sealed class VectorizerArgumentTests
     }
 
     [Fact]
+    public void A_token_pattern_with_two_groups_is_refused_for_the_word_analyzer()
+    {
+        // scikit-learn's build_tokenizer: "More than 1 capturing group in token pattern" (#1262).
+        var options = new CountVectorizerOptions { TokenPattern = @"(\w)(\w)" };
+
+        var error = Assert.Throws<ArgumentException>(() => new CountVectorizer(options));
+        Assert.Contains("2 capturing groups", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_null_token_pattern_is_refused_whatever_the_analyzer()
+    {
+        // Save writes the pattern and Load requires a string, so the character analyzers,
+        // which never read it, still cannot take a null one.
+        var options = new CountVectorizerOptions { Analyzer = AnalyzerKind.Char, TokenPattern = null! };
+
+        Assert.Throws<ArgumentException>(() => new CountVectorizer(options));
+    }
+
+    [Fact]
+    public void A_token_pattern_with_two_groups_is_ignored_by_the_character_analyzers()
+    {
+        // scikit-learn builds no tokenizer for char and char_wb, so it never reads the pattern.
+        var options = new CountVectorizerOptions { Analyzer = AnalyzerKind.Char, TokenPattern = @"(\w)(\w)" };
+
+        Assert.Equal(["a", "b"], new CountVectorizer(options).Fit(["ab"]).GetFeatureNames());
+    }
+
+    [Fact]
     public void Binary_hashing_stores_one_for_every_bucket_a_term_reached()
     {
         // scikit-learn fills every stored entry with 1, a bucket whose signs cancelled included (#1196).

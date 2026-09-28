@@ -151,6 +151,87 @@ public sealed class VectorizerPersistenceTests
         Assert.Equal(original.GetFeatureNames(), reloaded.GetFeatureNames());
     }
 
+    [Theory]
+    [InlineData(AnalyzerKind.Char, 1, 1, "\U0001F600")]
+    [InlineData(AnalyzerKind.Char, 2, 2, "\U0001F600x")]
+    [InlineData(AnalyzerKind.CharWordBoundary, 1, 3, "a\U0001F600 \U00020B9F\uFF76")]
+    public void Count_round_trip_survives_an_astral_character_gram(AnalyzerKind analyzer, int min, int max, string document)
+    {
+        // A gram used to hold half a surrogate pair, which the writer turned into U+FFFD: two such
+        // keys failed Load as duplicates, one lost its count (#1263).
+        var options = new CountVectorizerOptions { Analyzer = analyzer, NgramRange = (min, max) };
+        var original = new CountVectorizer(options).Fit([document]);
+
+        using var stream = new MemoryStream();
+        original.Save(stream);
+        stream.Position = 0;
+        CountVectorizer reloaded = CountVectorizer.Load(stream);
+
+        Assert.Equal(original.GetFeatureNames(), reloaded.GetFeatureNames());
+        AssertIdentical(original.Transform([document]), reloaded.Transform([document]));
+    }
+
+    [Theory]
+    [InlineData(AnalyzerKind.Word, 1, 2)]
+    [InlineData(AnalyzerKind.Char, 1, 1)]
+    [InlineData(AnalyzerKind.Char, 2, 3)]
+    [InlineData(AnalyzerKind.CharWordBoundary, 1, 3)]
+    public void Count_round_trip_survives_a_lone_surrogate_in_the_input(AnalyzerKind analyzer, int min, int max)
+    {
+        // Built in code: an attribute stores its strings as UTF-8, where a lone surrogate becomes U+FFFD.
+        // The writer used to write it as U+FFFD too, so two terms saved as one key and Load refused them.
+        string high = ((char)0xD800).ToString();
+        string low = ((char)0xDC00).ToString();
+        string[] corpus = ["ab" + high + "cd " + low + "x", low + high + "yz", "ab" + low + "cd \"q\"\\" + high];
+        var options = new CountVectorizerOptions { Analyzer = analyzer, NgramRange = (min, max) };
+        var original = new CountVectorizer(options).Fit(corpus);
+
+        using var stream = new MemoryStream();
+        original.Save(stream);
+        stream.Position = 0;
+        CountVectorizer reloaded = CountVectorizer.Load(stream);
+
+        Assert.Equal(original.GetFeatureNames(), reloaded.GetFeatureNames());
+        AssertIdentical(original.Transform(corpus), reloaded.Transform(corpus));
+    }
+
+    [Fact]
+    public void Count_round_trip_keeps_a_lone_surrogate_in_the_stop_words_and_the_pattern()
+    {
+        string high = ((char)0xDBFF).ToString();
+        var options = new CountVectorizerOptions { StopWords = ["the", "x" + high], TokenPattern = "[^ ]+" + high + "?" };
+        var original = new CountVectorizer(options).Fit(["the x" + high + " fox", "a fox x" + high]);
+
+        using var stream = new MemoryStream();
+        original.Save(stream);
+        stream.Position = 0;
+        CountVectorizer reloaded = CountVectorizer.Load(stream);
+
+        Assert.Equal(original.Options, reloaded.Options);
+        Assert.Equal(original.GetFeatureNames(), reloaded.GetFeatureNames());
+    }
+
+    [Fact]
+    public void A_vocabulary_python_escaped_loads_its_lone_surrogates()
+    {
+        // One term holds a lone surrogate beside an astral character, so its token carries a lone
+        // escape and a pair escape together; json.dumps writes both in lowercase.
+        string high = ((char)0xD800).ToString();
+        var options = new CountVectorizerOptions { TokenPattern = "[^ ]+" };
+        var original = new CountVectorizer(options).Fit(["a" + high + "\U0001F600 b"]);
+        using var stream = new MemoryStream();
+        original.Save(stream);
+        string json = Encoding.UTF8.GetString(stream.ToArray());
+        string bs = "\\";
+        string written = bs + "uD800" + bs + "uD83D" + bs + "uDE00";
+        string pythonShaped = json.Replace(written, bs + "ud800" + bs + "ud83d" + bs + "ude00", StringComparison.Ordinal);
+        Assert.NotEqual(json, pythonShaped);
+
+        CountVectorizer reloaded = CountVectorizer.Load(new MemoryStream(Encoding.UTF8.GetBytes(pythonShaped)));
+
+        Assert.Equal(original.GetFeatureNames(), reloaded.GetFeatureNames());
+    }
+
     [Fact]
     public void Hashing_round_trip_preserves_the_configuration()
     {

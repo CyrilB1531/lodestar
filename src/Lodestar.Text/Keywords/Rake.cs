@@ -19,7 +19,7 @@ public sealed class Rake
     /// <summary>Builds an extractor.</summary>
     /// <param name="options">Null takes every default.</param>
     /// <exception cref="ArgumentOutOfRangeException"><c>MinLength</c> is below 1.</exception>
-    /// <exception cref="ArgumentException"><c>MaxLength</c> is below <c>MinLength</c>, so nothing can match.</exception>
+    /// <exception cref="ArgumentException"><c>MaxLength</c> is below <c>MinLength</c>, so nothing can match, or <c>TokenPattern</c> has more than one capturing group.</exception>
     public Rake(RakeOptions? options = null)
     {
         _options = options ?? new RakeOptions();
@@ -40,12 +40,9 @@ public sealed class Rake
     /// <summary>Extracts the ranked candidates of one document.</summary>
     /// <param name="text">The document.</param>
     /// <returns>
-    /// Candidates in descending score; a tie breaks by phrase, ordinal <b>descending</b> over
-    /// UTF-16 code units -- rake-nltk's own rule, sorting <c>(score, phrase)</c> tuples with
-    /// <c>reverse=True</c> over Python's code-point order. The two agree everywhere except a
-    /// tie whose deciding character sits outside the Basic Multilingual Plane, where a
-    /// UTF-16 comparison and a code-point comparison can disagree. Empty when the document
-    /// has none.
+    /// Candidates in descending score; a tie breaks by phrase, <b>descending</b> by code point --
+    /// rake-nltk's own rule, sorting <c>(score, phrase)</c> tuples with <c>reverse=True</c> over
+    /// Python's order for a <c>str</c>. Empty when the document has none.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
     public IReadOnlyList<KeywordMatch> Extract(string text)
@@ -69,11 +66,11 @@ public sealed class Rake
         List<KeywordMatch> scored = ScoreCandidates(candidates, degree, frequency);
 
         // rake-nltk sorts (score, phrase) with reverse=True (rake_nltk/rake.py:241): a tie
-        // breaks by phrase descending, not by whatever order this list happens to hold.
+        // breaks by phrase descending, by code point as Python compares a str (#1264).
         scored.Sort((a, b) =>
         {
             int byScore = b.Score.CompareTo(a.Score);
-            return byScore != 0 ? byScore : string.CompareOrdinal(b.Phrase, a.Phrase);
+            return byScore != 0 ? byScore : CodePointOrder.Instance.Compare(b.Phrase, a.Phrase);
         });
         return scored;
     }

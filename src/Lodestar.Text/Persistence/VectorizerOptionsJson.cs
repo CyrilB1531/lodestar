@@ -27,7 +27,7 @@ internal static class VectorizerOptionsJson
         JsonArtifact.WriteExactDouble(writer, "minDf", options.MinDf);
         JsonArtifact.WriteExactDouble(writer, "maxDf", options.MaxDf);
         writer.WriteBoolean("binary", options.Binary);
-        writer.WriteString("tokenPattern", options.TokenPattern);
+        JsonArtifact.WriteText(writer, "tokenPattern", options.TokenPattern);
         WriteStopWords(writer, options.StopWords);
         writer.WriteEndObject();
     }
@@ -193,7 +193,7 @@ internal static class VectorizerOptionsJson
         writer.WriteStartArray("stopWords");
         foreach (string word in sorted)
         {
-            writer.WriteStringValue(word);
+            JsonArtifact.WriteText(writer, word);
         }
         writer.WriteEndArray();
     }
@@ -216,7 +216,7 @@ internal static class VectorizerOptionsJson
         var words = new List<string>();
         while (reader.Read() && reader.TokenType == JsonTokenType.String)
         {
-            string word = reader.GetString()!;
+            string word = JsonArtifact.GetText(ref reader);
             limits.CheckTokenLength(word.Length);
             words.Add(word);
             limits.CheckArrayLength(words.Count, "options.stopWords");

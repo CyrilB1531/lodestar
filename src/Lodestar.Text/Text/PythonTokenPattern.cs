@@ -11,12 +11,14 @@ namespace Lodestar.Text.Internal;
 /// The default patterns, <c>\b\w\w+\b</c> and <c>\b\w+\b</c> with or without <c>\b</c> and
 /// <c>(?u)</c>, mean every maximal run of word characters of at least two or one code points, and
 /// are scanned by hand: the translated regex costs ten times the .NET one (#1239). Any other
-/// pattern goes through <see cref="PythonPattern"/>.
+/// pattern goes through <see cref="PythonPattern"/>, and yields what <c>re.findall</c> yields: the
+/// whole match, or the one capturing group's text when the pattern has one (#1262).
 /// </remarks>
 internal sealed class PythonTokenPattern
 {
     private readonly int _minimumRun;
     private readonly Regex? _regex;
+    private readonly int _group;
 
     public PythonTokenPattern(string pattern)
     {
@@ -31,6 +33,15 @@ internal sealed class PythonTokenPattern
         {
             _regex = PythonPattern.Compile(
                 pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
+            // Group 0 is the match itself. scikit-learn's build_tokenizer refuses a second group,
+            // since findall would return tuples of them.
+            int[] groups = _regex.GetGroupNumbers();
+            if (groups.Length > 2)
+            {
+                throw new ArgumentException(
+                    $"The token pattern '{pattern}' has {groups.Length - 1} capturing groups; at most one may capture the token.");
+            }
+            _group = groups.Length == 2 ? groups[1] : 0;
         }
     }
 
@@ -54,8 +65,45 @@ internal sealed class PythonTokenPattern
 
         foreach (Match m in _regex.Matches(s))
         {
-            matches.Add((m.Index, m.Length));
+            matches.Add(Token(m));
         }
+    }
+
+    /// <summary>Each match's token, as <see cref="Matches(string)"/> gives it, with the span the whole match covers.</summary>
+    /// <remarks>
+    /// The two differ only under a capturing group; the characters the rest of the match consumed
+    /// belong to the token's match and are not a gap between two tokens.
+    /// </remarks>
+    public List<(int Start, int Length, int MatchStart, int MatchEnd)> MatchesWithSpans(string s)
+    {
+        var spans = new List<(int Start, int Length, int MatchStart, int MatchEnd)>();
+        if (_regex is null)
+        {
+            foreach ((int start, int length) in Matches(s))
+            {
+                spans.Add((start, length, start, start + length));
+            }
+            return spans;
+        }
+
+        foreach (Match m in _regex.Matches(s))
+        {
+            (int start, int length) = Token(m);
+            spans.Add((start, length, m.Index, m.Index + m.Length));
+        }
+        return spans;
+    }
+
+    // re.findall's item: the match without a group, the group's last capture with one, and the
+    // empty string where the group took no part in the match.
+    private (int Start, int Length) Token(Match m)
+    {
+        if (_group == 0)
+        {
+            return (m.Index, m.Length);
+        }
+        Group g = m.Groups[_group];
+        return g.Success ? (g.Index, g.Length) : (m.Index, 0);
     }
 
     /// <summary>Every maximal run of word characters at least <paramref name="minimum"/> code points long.</summary>

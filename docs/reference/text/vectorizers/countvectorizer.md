@@ -33,9 +33,11 @@ CsrMatrix counts = cv.FitTransform(docs);
 int features = counts.ColumnCount;  // => 5
 ```
 
-**Remarks** — the vocabulary is **sorted**, as scikit-learn's is, so the column order depends only
+**Remarks** — the vocabulary is **sorted by code point**, as scikit-learn's is, so the column order depends only
 on the terms and not on the order the documents arrived in. Two fits over the same corpus give the
-same matrix, and a corpus shuffled before fitting gives the same matrix too.
+same matrix, and a corpus shuffled before fitting gives the same matrix too. Code point and not
+UTF-16 unit: `𠮟る` follows `ｶﾀｶﾅ`, as it does in Python, although its leading surrogate sorts below
+U+FF76.
 
 What decides the counts is [`CountVectorizerOptions`](countvectorizeroptions.md) rather than
 anything here — the token pattern that drops single-letter words, the stop words, the n-gram

@@ -13,7 +13,11 @@ are one term. `TokenPattern` (default `\b\w\w+\b`) is the regular expression a t
 note the two `\w`, which is why **single-letter words are dropped**. It is read as Python's `re`
 reads it, not as .NET does: `\w` is a letter, a number of any kind or `_` and never a combining
 mark, `\b`, `\d` and `\s` follow, all over code points, and scikit-learn's own spelling
-`(?u)\b\w\w+\b` is accepted. `Analyzer` (default
+`(?u)\b\w\w+\b` is accepted. A token is what `re.findall` returns: the whole match, or the text of
+the pattern's one capturing group when it has one — `(\w+)ing\b` makes `running` the token `runn`,
+and a group that took no part in a match gives the empty token. A pattern with two groups is
+refused by the word analyzer, as scikit-learn refuses it, and never read by the character ones.
+`Analyzer` (default
 [`AnalyzerKind.Word`](analyzerkind.md)) chooses words or character n-grams. `NgramRange` (default
 `(1, 1)`) is the inclusive range of n-gram lengths. `StopWords` (default none) is a set removed
 after tokenizing. `StripAccents` (default `false`) decomposes the text (NFKD) and drops every character of a

@@ -74,6 +74,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shared/RankBracket.cs" Link="Internal/RankBracket.cs" />
   </ItemGroup>
 
+  <!-- Python's string order, by code point rather than by UTF-16 unit, compiled into the libraries
+       that sort text the way their references sort a str (#1264, #1254). -->
+  <ItemGroup Condition="'$(LodestarIncludesCodePointOrder)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/CodePointOrder.cs" Link="Internal/CodePointOrder.cs" />
+  </ItemGroup>
+
   <!-- Persistence plumbing, compiled only into the libraries that ship artifacts
        (Lodestar.Text, Lodestar.Embeddings). It needs System.Text.Json, which those
        two opt into individually — Lodestar.Fuzzy stays dependency-free.
