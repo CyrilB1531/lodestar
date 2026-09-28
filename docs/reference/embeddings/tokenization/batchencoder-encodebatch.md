@@ -13,7 +13,10 @@ public EncodedBatch EncodeBatch(IEnumerable<string> texts, CancellationToken can
 **Returns** — [`EncodedBatch`](encodedbatch.md): the ids, the attention mask, and each sequence's
 true length before padding.
 
-**Exceptions** — `OperationCanceledException` when cancelled.
+**Exceptions** — `OperationCanceledException` when cancelled. `ArgumentNullException` when `texts`
+is null. `ArgumentException` when a text is refused, as
+[`EncodeAll`](batchencoder-encodeall.md) refuses it, or when the batch is more cells than one array
+holds ([#1323](https://github.com/CyrilB1531/lodestar/issues/1323), [#1324](https://github.com/CyrilB1531/lodestar/issues/1324)).
 
 **Example** — a short text and a longer one, in one rectangle.
 

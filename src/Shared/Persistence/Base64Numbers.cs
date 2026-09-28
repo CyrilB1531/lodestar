@@ -90,6 +90,9 @@ internal static class Base64Numbers
     /// </remarks>
     private const int SliceBytes = 240 * 1024;
 
+    /// <summary><see cref="SliceBytes"/> in floats, which the writers step by so no slice's bytes outgrow a span.</summary>
+    private const int SliceFloats = SliceBytes / sizeof(float);
+
     /// <summary>
     /// Writes the same base64 string <see cref="WriteSingles"/> writes, as a quoted
     /// value straight to <paramref name="destination"/>, encoding it a slice at a time.
@@ -102,16 +105,17 @@ internal static class Base64Numbers
     /// </remarks>
     public static void WriteSinglesChunked(Stream destination, ReadOnlySpan<float> values)
     {
-        ReadOnlySpan<byte> raw = MemoryMarshal.AsBytes(values);
         byte[] scratch = ArrayPool<byte>.Shared.Rent(Base64.GetMaxEncodedToUtf8Length(SliceBytes));
         byte[]? swapped = BitConverter.IsLittleEndian ? null : ArrayPool<byte>.Shared.Rent(SliceBytes);
         try
         {
             destination.WriteByte(Quote);
-            for (int offset = 0; offset < raw.Length; offset += SliceBytes)
+
+            // Sliced in floats, not bytes: the whole block as bytes overflowed past 536 million floats (#1322).
+            for (int offset = 0; offset < values.Length; offset += SliceFloats)
             {
-                int take = Math.Min(SliceBytes, raw.Length - offset);
-                int written = EncodeSlice(raw.Slice(offset, take), scratch, swapped);
+                ReadOnlySpan<float> slice = values.Slice(offset, Math.Min(SliceFloats, values.Length - offset));
+                int written = EncodeSlice(MemoryMarshal.AsBytes(slice), scratch, swapped);
                 destination.Write(scratch, 0, written);
             }
             destination.WriteByte(Quote);
@@ -145,12 +149,13 @@ internal static class Base64Numbers
         {
             await WriteAsync(destination, quote, 1, cancellationToken).ConfigureAwait(false);
 
-            int totalBytes = values.Length * sizeof(float);
-            for (int offset = 0; offset < totalBytes; offset += SliceBytes)
+            // values.Length * sizeof(float) wrapped in int and wrote an empty block, silently (#1322).
+            for (int offset = 0; offset < values.Length; offset += SliceFloats)
             {
-                int take = Math.Min(SliceBytes, totalBytes - offset);
                 int written = EncodeSlice(
-                    MemoryMarshal.AsBytes(values.Span).Slice(offset, take), scratch, swapped);
+                    MemoryMarshal.AsBytes(values.Span.Slice(offset, Math.Min(SliceFloats, values.Length - offset))),
+                    scratch,
+                    swapped);
                 await WriteAsync(destination, scratch, written, cancellationToken).ConfigureAwait(false);
             }
 

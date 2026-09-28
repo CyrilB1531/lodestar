@@ -42,6 +42,8 @@ long first = ids[0];      // => 4
 [`Truncation`](truncationstrategy.md) is `None`. Measured: with `MaxLength = 3` and
 `TruncationStrategy.None` a four-token text throws; the same text with
 `TruncationStrategy.Right` is cut and returns.
+`ArgumentException` also when the tokenizer refuses `text`: a SentencePiece model refuses a lone
+surrogate, as neither reference can be handed one ([#1324](https://github.com/CyrilB1531/lodestar/issues/1324)).
 
 **Remarks** — three ids for a one-token text: `[CLS]` is `4`, `text` is `3`, `[SEP]` is `5`. The
 template is the difference between this and

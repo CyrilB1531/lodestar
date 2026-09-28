@@ -28,12 +28,14 @@ public sealed partial class EmbeddingIndex
     /// </remarks>
     /// <param name="destination">The stream to write to. Flushed but never disposed — the caller owns it.</param>
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
+    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into.</exception>
     public void Save(Stream destination)
     {
         // Before the first byte: disposing the writer flushes the header, so a refusal
         // raised mid-write would leave a truncated artifact in the caller's stream (#1214).
         Guard.NotNull(destination);
         EnsureFinite();
+        EnsureSavable();
         ArtifactIo.SaveWithBlock(
             destination, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty, _data.AsSpan(0, _length));
     }
@@ -41,12 +43,14 @@ public sealed partial class EmbeddingIndex
     /// <summary>Writes the index to <paramref name="path"/>, replacing any existing file.</summary>
     /// <param name="path">The file to write. UTF-8 without a byte-order mark.</param>
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
+    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into.</exception>
     /// <exception cref="IOException">The file cannot be written.</exception>
     public void Save(string path)
     {
         // Before opening: OpenWrite truncates, so a refused save would otherwise
         // destroy a good artifact and leave a header where it used to be.
         EnsureFinite();
+        EnsureSavable();
         using FileStream file = JsonArtifact.OpenWrite(path);
 
         // WriteHeadChecked, not Save(file): the scan above already ran, and a second pass
@@ -59,6 +63,7 @@ public sealed partial class EmbeddingIndex
     /// <param name="destination">The stream to write to; never disposed by this method.</param>
     /// <param name="cancellationToken">Cancels the write.</param>
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
+    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)
     {
@@ -66,8 +71,9 @@ public sealed partial class EmbeddingIndex
         {
             Guard.NotNull(destination);
             EnsureFinite();
+            EnsureSavable();
         }
-        catch (Exception e) when (e is ArgumentNullException or InvalidDataException)
+        catch (Exception e) when (e is ArgumentNullException or InvalidDataException or InvalidOperationException)
         {
             // Faulted, as both were when the write raised them, but before the first byte as in Save.
             return Task.FromException(e);
@@ -75,6 +81,22 @@ public sealed partial class EmbeddingIndex
         return ArtifactIo.SaveWithBlockAsync(
             destination, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty,
             _data.AsMemory(0, _length), cancellationToken);
+    }
+
+    /// <summary>Refuses a block whose base64 would not fit the one array a load decodes it into (#1322).</summary>
+    /// <remarks>
+    /// Checked before the first byte, as <see cref="EnsureFinite()"/> is: past it the base64 length
+    /// wrapped and the asynchronous save wrote an empty block, silently, into an artifact no load could take.
+    /// </remarks>
+    private void EnsureSavable()
+    {
+        long encoded = (((long)_length * sizeof(float)) + 2) / 3 * 4;
+        // Load decodes the string into one byte[], which cannot pass Array.MaxLength.
+        if (encoded > TableLength.MaxLength)
+        {
+            throw new InvalidOperationException(
+                $"The index holds {_length} values, whose base64 block of {encoded} characters no load can read back.");
+        }
     }
 
     /// <summary>Writes every property that precedes the vector block, once <see cref="EnsureFinite()"/> has passed.</summary>

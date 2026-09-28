@@ -267,4 +267,16 @@ public sealed class BatchEncoderTests
         // And they are still unreachable from text, which is why they were excluded.
         Assert.DoesNotContain("<s>", tokenizer.Encode("<s> cat").Tokens);
     }
+
+    [Fact]
+    public void A_padded_batch_past_the_largest_array_is_refused_before_it_is_allocated()
+    {
+        // 50,000 windows of one 50,000-token sequence: 2.5e9 cells, which wrapped in int (#1323).
+        long[] sequence = new long[50_000];
+        long[][] sequences = [.. Enumerable.Repeat(sequence, 50_000)];
+
+        ArgumentException refused = Assert.Throws<ArgumentException>(() => Encoder().Pad(sequences, 0, sequences.Length));
+
+        Assert.Equal("count", refused.ParamName);
+    }
 }
