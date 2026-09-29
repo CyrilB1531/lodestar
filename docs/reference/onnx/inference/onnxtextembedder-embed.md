@@ -16,7 +16,9 @@ them. `attentionMask` is the same length, `1` for a real token and `0` for paddi
 **Exceptions** — `ArgumentException` when the two spans differ in length, or are longer than
 [`MaxSequenceLength`](onnxtextembedder.md) — a fixed sequence axis or the position-embedding table,
 refused here rather than failing inside the graph
-([#1423](https://github.com/CyrilB1531/lodestar/issues/1423)).
+([#1423](https://github.com/CyrilB1531/lodestar/issues/1423)); and when a static export's fixed
+batch and sequence make one chunk larger than one array, refused before allocating it
+([#1555](https://github.com/CyrilB1531/lodestar/issues/1555)).
 `InvalidOperationException` when the model output is not `[batch, sequence, dim]` (or `[batch, dim]`,
 pooled by the graph) for the batch it was fed, or declares its axes as the input's two swapped, which
 sizes alone miss when the batch is as long as the sequence

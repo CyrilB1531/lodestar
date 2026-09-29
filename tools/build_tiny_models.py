@@ -1,4 +1,4 @@
-"""Rebuild the tiny fixtures committed under ``tests/oracles/``: nine synthetic
+"""Rebuild the tiny fixtures committed under ``tests/oracles/``: eleven synthetic
 ONNX encoders, a trained character-level BPE, a hand-constructed BPE holding
 one orphaned vocabulary entry, and a hand-constructed BPE shaped after
 ``roberta-base``'s own ``added_tokens`` table.
@@ -41,6 +41,10 @@ fixtures, rebuilt only when one of them has to change:
 ``tiny_embedder_static.onnx``
     ``tiny_embedder.onnx``'s lookup with its axes fixed, ``[2, 16]``: ONNX Runtime refuses any other
     batch or sequence dimension, so the embedder must pad and chunk to the export's shape (#1258).
+
+``tiny_embedder_huge_static.onnx``
+    The same lookup with its axes fixed at ``[65536, 32768]``: one chunk is 2^31 cells, past one
+    array, which the embedder must refuse by name before allocating it (#1555). Declared, never run.
 
 ``tiny_transposed.onnx``
     ``tiny_embedder.onnx`` followed by a ``Transpose``, so the output is
@@ -157,15 +161,15 @@ def build_tiny_embedder() -> onnx.ModelProto:
                              opset_imports=[helper.make_opsetid("", OPSET)])
 
 
-def build_tiny_embedder_static() -> onnx.ModelProto:
-    """``tiny_embedder.onnx`` exported with fixed axes, ``[2, 16]``, as a static or mobile export is."""
+def build_tiny_embedder_static(batch: int = 2, sequence: int = 16) -> onnx.ModelProto:
+    """``tiny_embedder.onnx`` exported with fixed axes, ``[2, 16]`` by default, as a static or mobile export is."""
     table = numpy_helper.from_array(embedding_table(), name="E")
     graph = helper.make_graph(
         [helper.make_node(GATHER, ["E", "input_ids"], ["last_hidden_state"], axis=0)],
         "tiny_embedder_static",
-        [helper.make_tensor_value_info("input_ids", TensorProto.INT64, [2, 16]),
-         helper.make_tensor_value_info(ATTENTION_MASK, TensorProto.INT64, [2, 16])],
-        [helper.make_tensor_value_info("last_hidden_state", TensorProto.FLOAT, [2, 16, EMBEDDING_DIM])],
+        [helper.make_tensor_value_info("input_ids", TensorProto.INT64, [batch, sequence]),
+         helper.make_tensor_value_info(ATTENTION_MASK, TensorProto.INT64, [batch, sequence])],
+        [helper.make_tensor_value_info("last_hidden_state", TensorProto.FLOAT, [batch, sequence, EMBEDDING_DIM])],
         [table],
     )
     return helper.make_model(graph, ir_version=IR_VERSION,
@@ -287,6 +291,7 @@ VARIANT_MODELS = (
     ("tiny_embedder_fp64.onnx", lambda: build_tiny_embedder_as(TensorProto.DOUBLE, np.float64)),
     ("tiny_transposed.onnx", build_tiny_transposed),
     ("tiny_embedder_static.onnx", build_tiny_embedder_static),
+    ("tiny_embedder_huge_static.onnx", lambda: build_tiny_embedder_static(65536, 32768)),
     ("tiny_positional.onnx", build_tiny_positional),
     ("tiny_positional_offset.onnx", lambda: build_tiny_positional_offset(False)),
     ("tiny_positional_offset_init.onnx", lambda: build_tiny_positional_offset(True)),
