@@ -1,4 +1,4 @@
-"""Rebuild the tiny fixtures committed under ``tests/oracles/``: eleven synthetic
+"""Rebuild the tiny fixtures committed under ``tests/oracles/``: twelve synthetic
 ONNX encoders, a trained character-level BPE, a hand-constructed BPE holding
 one orphaned vocabulary entry, and a hand-constructed BPE shaped after
 ``roberta-base``'s own ``added_tokens`` table.
@@ -44,7 +44,12 @@ fixtures, rebuilt only when one of them has to change:
 
 ``tiny_embedder_huge_static.onnx``
     The same lookup with its axes fixed at ``[65536, 32768]``: one chunk is 2^31 cells, past one
-    array, which the embedder must refuse by name before allocating it (#1555). Declared, never run.
+    array, which the embedder must refuse by name before allocating it (#1555). Declared, never run;
+    the constructor refuses it, the two fixed axes alone deciding the chunk (#1589).
+
+``tiny_embedder_huge_batch.onnx``
+    The same lookup with only its batch fixed, ``[65536, sequence]``: the caller's sequence length
+    decides the chunk, so the refusal comes per call, under the caller's argument (#1589).
 
 ``tiny_transposed.onnx``
     ``tiny_embedder.onnx`` followed by a ``Transpose``, so the output is
@@ -161,8 +166,8 @@ def build_tiny_embedder() -> onnx.ModelProto:
                              opset_imports=[helper.make_opsetid("", OPSET)])
 
 
-def build_tiny_embedder_static(batch: int = 2, sequence: int = 16) -> onnx.ModelProto:
-    """``tiny_embedder.onnx`` exported with fixed axes, ``[2, 16]`` by default, as a static or mobile export is."""
+def build_tiny_embedder_static(batch: int = 2, sequence: int | str = 16) -> onnx.ModelProto:
+    """``tiny_embedder.onnx`` exported with its batch, and its sequence unless named, fixed: ``[2, 16]`` by default."""
     table = numpy_helper.from_array(embedding_table(), name="E")
     graph = helper.make_graph(
         [helper.make_node(GATHER, ["E", "input_ids"], ["last_hidden_state"], axis=0)],
@@ -292,6 +297,7 @@ VARIANT_MODELS = (
     ("tiny_transposed.onnx", build_tiny_transposed),
     ("tiny_embedder_static.onnx", build_tiny_embedder_static),
     ("tiny_embedder_huge_static.onnx", lambda: build_tiny_embedder_static(65536, 32768)),
+    ("tiny_embedder_huge_batch.onnx", lambda: build_tiny_embedder_static(65536, "sequence")),
     ("tiny_positional.onnx", build_tiny_positional),
     ("tiny_positional_offset.onnx", lambda: build_tiny_positional_offset(False)),
     ("tiny_positional_offset_init.onnx", lambda: build_tiny_positional_offset(True)),

@@ -27,8 +27,9 @@ abandons the run.
 [`BatchEncoder`](../../embeddings/tokenization/batchencoder.md) refuses them; and when a sequence is
 past [`MaxSequenceLength`](onnxtextembedder.md) — a static export's fixed sequence axis or the
 position-embedding table — naming `options`, `encoder` or `batch`
-([#1423](https://github.com/CyrilB1531/lodestar/issues/1423)), or when a static export's fixed batch
-and sequence make one chunk more than `Array.MaxLength` cells, naming the same three
+([#1423](https://github.com/CyrilB1531/lodestar/issues/1423)), or when the batch times the
+sequence — one fixed by the model, the other brought by the call — makes one chunk more than
+`Array.MaxLength` cells, naming the same three
 ([#1555](https://github.com/CyrilB1531/lodestar/issues/1555),
 [#1581](https://github.com/CyrilB1531/lodestar/issues/1581)); below that bound the memory the
 chunk takes is what [`Embed`](onnxtextembedder-embed.md) describes.

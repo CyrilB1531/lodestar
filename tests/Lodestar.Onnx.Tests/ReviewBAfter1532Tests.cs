@@ -51,13 +51,16 @@ public sealed class ReviewBAfter1532Tests
     }
 
     [Fact]
-    public void A_static_chunk_past_one_array_is_refused_by_name_before_allocating()
+    public void A_chunk_past_one_array_is_refused_by_name_before_allocating()
     {
-        // [65536, 32768] is 2^31 cells: new long[(long)chunk * width] threw OverflowException (#1555).
-        using var embedder = new OnnxTextEmbedder(Oracle("tiny_embedder_huge_static.onnx"));
+        // A fixed batch of 65,536 and a 32,768-token input is 2^31 cells: new long[chunk * width] threw
+        // OverflowException (#1555). Only the batch is fixed here, so the caller's length decides it (#1589).
+        using var embedder = new OnnxTextEmbedder(Oracle("tiny_embedder_huge_batch.onnx"));
+        long[] ids = new long[32_768];
+        long[] mask = [.. Enumerable.Repeat(1L, 32_768)];
 
-        ArgumentException error = Assert.Throws<ArgumentException>(() => embedder.Embed([2, 7, 9, 3], [1, 1, 1, 1]));
+        ArgumentException error = Assert.Throws<ArgumentException>(() => embedder.Embed(ids, mask));
         Assert.Equal("inputIds", error.ParamName);
-        Assert.Equal(32768, embedder.MaxSequenceLength);
+        Assert.Null(embedder.MaxSequenceLength);
     }
 }

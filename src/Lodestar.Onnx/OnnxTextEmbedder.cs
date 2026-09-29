@@ -52,7 +52,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// output" was a coin toss on a multi-output model.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="modelPath"/>, <paramref name="inputIdsName"/>, <paramref name="attentionMaskName"/> or <paramref name="tokenTypeIdsName"/> is null.</exception>
-    /// <exception cref="ArgumentException">The model declares no input under <paramref name="inputIdsName"/> or <paramref name="attentionMaskName"/>, or no output under <paramref name="outputName"/>.</exception>
+    /// <exception cref="ArgumentException">The model declares no input under <paramref name="inputIdsName"/> or <paramref name="attentionMaskName"/>, or no output under <paramref name="outputName"/>, or fixes a batch and a sequence axis whose product is more cells than one array holds (#1589).</exception>
     /// <exception cref="OnnxRuntimeException">ONNX Runtime refuses the file at <paramref name="modelPath"/>, missing or not a model it reads (#1524).</exception>
     public OnnxTextEmbedder(
         string modelPath,
@@ -78,6 +78,14 @@ public sealed class OnnxTextEmbedder : IDisposable
             _outputNames = [_outputName];
             _fixedSequence = DeclaredSequenceLength(_session, _inputIdsName);
             _fixedBatch = DeclaredBatchSize(_session, _inputIdsName);
+
+            // Two fixed axes decide every chunk alone, so a model whose chunk passes one array is refused here, once (#1589).
+            if (_fixedBatch is int batch && _fixedSequence is int sequence && (long)batch * sequence > TableLength.MaxLength)
+            {
+                throw new ArgumentException(
+                    $"The model fixes its input at {batch} × {sequence}, more cells than one array holds.", nameof(modelPath));
+            }
+
             _maxSequenceLength = _fixedSequence ?? PositionTable.UsableLength(modelPath, _inputIdsName);
             _axesSwapped = AxesSwapped(_session, _inputIdsName, _outputName);
         }
@@ -107,7 +115,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="tokenTypeIdsName">Name of the token-type-ids input (default <c>token_type_ids</c>), used only if the model declares it.</param>
     /// <param name="outputName">Name of the token-embeddings output; defaults as described on the other constructor.</param>
     /// <exception cref="ArgumentNullException"><paramref name="modelPath"/>, <paramref name="tokenizer"/>, <paramref name="inputIdsName"/>, <paramref name="attentionMaskName"/> or <paramref name="tokenTypeIdsName"/> is null.</exception>
-    /// <exception cref="ArgumentException">The model declares no input under <paramref name="inputIdsName"/> or <paramref name="attentionMaskName"/>, or no output under <paramref name="outputName"/>.</exception>
+    /// <exception cref="ArgumentException">The model declares no input under <paramref name="inputIdsName"/> or <paramref name="attentionMaskName"/>, or no output under <paramref name="outputName"/>, or fixes a batch and a sequence axis whose product is more cells than one array holds (#1589).</exception>
     /// <exception cref="OnnxRuntimeException">ONNX Runtime refuses the file at <paramref name="modelPath"/>, missing or not a model it reads (#1524).</exception>
     public OnnxTextEmbedder(
         string modelPath,
@@ -164,7 +172,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// </remarks>
     /// <param name="inputIds">Token ids.</param>
     /// <param name="attentionMask">Attention mask (same length as <paramref name="inputIds"/>).</param>
-    /// <exception cref="ArgumentException"><paramref name="inputIds"/> and <paramref name="attentionMask"/> differ in length, or are longer than <see cref="MaxSequenceLength"/>, or a static export's fixed batch and sequence make one chunk larger than one array.</exception>
+    /// <exception cref="ArgumentException"><paramref name="inputIds"/> and <paramref name="attentionMask"/> differ in length, or are longer than <see cref="MaxSequenceLength"/>, or the model's fixed batch and the sequence make one chunk larger than one array.</exception>
     /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed, or declares its first two axes as the input's two swapped (#1424).</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed.</exception>
@@ -208,7 +216,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="options">Template, truncation and batching settings; <see langword="null"/> uses the defaults, with <c>MaxLength</c> taken from <see cref="MaxSequenceLength"/>.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="options"/> is refused by <see cref="BatchEncoder"/> or sets a <c>MaxLength</c> past <see cref="MaxSequenceLength"/>, or a text is refused, as one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/> is, or a static export's fixed batch and sequence make one chunk larger than one array.</exception>
+    /// <exception cref="ArgumentException"><paramref name="options"/> is refused by <see cref="BatchEncoder"/> or sets a <c>MaxLength</c> past <see cref="MaxSequenceLength"/>, or a text is refused, as one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/> is, or the batch and sequence, fixed by the model or brought by the call, make one chunk larger than one array.</exception>
     /// <exception cref="InvalidOperationException">The embedder was built without a tokenizer, or the model output is not shaped for the batch it was fed or declares its first two axes as the input's two swapped (#1424).</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
@@ -225,7 +233,8 @@ public sealed class OnnxTextEmbedder : IDisposable
                 "This embedder has no tokenizer. Use the constructor overload that takes one, " +
                 "or call EmbedBatch(texts, encoder, cancellationToken) with a BatchEncoder you built.");
         }
-        // The width a chunk refusal meets came from options here, so it is named, not the encoder built from it (#1581).
+        // A chunk refusal here meets a width or a batch size options let through, one axis at most being fixed: options
+        // is named, not the encoder built from it (#1581). Two fixed axes are refused by the constructor (#1589).
         return EmbedAll(texts, new BatchEncoder(_tokenizer, ResolveOptions(options)), nameof(options), cancellationToken);
     }
 
@@ -239,7 +248,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="encoder">The encoder that owns the tokenizer, template and truncation.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> or <paramref name="encoder"/> is null.</exception>
-    /// <exception cref="ArgumentException">The encoder refuses a text, as it refuses one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/>, or encodes one past <see cref="MaxSequenceLength"/>, or a static export's fixed batch and sequence make one chunk larger than one array.</exception>
+    /// <exception cref="ArgumentException">The encoder refuses a text, as it refuses one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/>, or encodes one past <see cref="MaxSequenceLength"/>, or the batch and sequence, fixed by the model or brought by the call, make one chunk larger than one array.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed, or declares its first two axes as the input's two swapped (#1424).</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
@@ -261,7 +270,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="batch">A batch from <see cref="BatchEncoder.EncodeBatch"/>.</param>
     /// <param name="cancellationToken">Observed before the call is made.</param>
     /// <exception cref="ArgumentNullException"><paramref name="batch"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="batch"/> is longer than <see cref="MaxSequenceLength"/>, or a static export's fixed batch and sequence make one chunk larger than one array.</exception>
+    /// <exception cref="ArgumentException"><paramref name="batch"/> is longer than <see cref="MaxSequenceLength"/>, or the batch and sequence, fixed by the model or brought by the call, make one chunk larger than one array.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed, or declares its first two axes as the input's two swapped (#1424).</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
