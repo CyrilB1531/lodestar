@@ -39,8 +39,10 @@ side can mutate the other's. **Any other storage is walked over what it stores.*
 read from its own column-major array and a diagonal one enumerated over its stored entries; either
 way the non-zero ones are counted per row and then placed, so a diagonal matrix costs its diagonal,
 not its square ([#1220](https://github.com/CyrilB1531/lodestar/issues/1220)), and a dense one its
-cells, which is the honest cost of changing layout. A stored `NaN` is kept and a stored zero
-dropped.
+cells, which is the honest cost of changing layout. On those two paths a stored `NaN` is kept and a
+stored zero dropped; the compressed-row path copies explicit zeros with the rest, so a
+`CsrMatrix` with sorted rows and no repeated column round-trips unchanged, zeros included
+([#1403](https://github.com/CyrilB1531/lodestar/issues/1403)).
 
 An empty row is a row: it contributes no stored value and its row pointer repeats the previous one,
 which is what the example's middle row shows.

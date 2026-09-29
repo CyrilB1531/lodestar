@@ -12,10 +12,10 @@ namespace Lodestar.Extensions.MathNet;
 /// Converts between <see cref="CsrMatrix"/> and Math.NET Numerics' sparse matrix.
 /// </summary>
 /// <remarks>
-/// Both directions move the three compressed-row arrays in one pass over the stored
-/// values, rather than rebuilding a matrix cell by cell: Math.NET's storage is CSR too,
-/// and exposes it. The whole package, and the only conversion neither side can already
-/// do for itself — decision 0003 records why the dense pair is not offered.
+/// A compressed-row matrix crosses in either direction as a copy of its three arrays,
+/// rather than being rebuilt cell by cell: Math.NET's sparse storage is CSR too, and
+/// exposes it. The only conversion neither side can already do for itself; the dense pair
+/// is not offered because each side builds it unaided.
 /// </remarks>
 public static class MathNetInterop
 {
@@ -25,27 +25,22 @@ public static class MathNetInterop
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
     /// <remarks>
     /// <see cref="CsrMatrix"/> promises no order among the column indices of a row, and
-    /// Math.NET reaches a cell by searching the row, so the rows are sorted here and
-    /// duplicate columns are added together. A matrix already in that shape — everything
-    /// this repository's vectorizers produce — takes a single comparison per stored value
-    /// and no allocation beyond the copy Math.NET makes anyway.
+    /// Math.NET reaches a cell by searching the row. Its compressed-row factory copies the
+    /// arrays, sorts each row of the copy and adds duplicate columns together, so any valid
+    /// matrix is handed over as it is (#1402).
     /// </remarks>
     public static SparseMatrix ToSparseMatrix(CsrMatrix matrix)
     {
         Guard.NotNull(matrix);
 
-        double[] values = matrix.Values;
-        int[] columns = matrix.ColumnIndices;
-        int[] pointers = matrix.RowPointers;
-
-        if (!IsCanonical(columns, pointers))
-        {
-            Canonicalize(matrix, out values, out columns, out pointers);
-        }
-
         SparseCompressedRowMatrixStorage<double> storage =
             SparseCompressedRowMatrixStorage<double>.OfCompressedSparseRowFormat(
-                matrix.RowCount, matrix.ColumnCount, values.Length, pointers, columns, values);
+                matrix.RowCount,
+                matrix.ColumnCount,
+                matrix.NonZeroCount,
+                matrix.RowPointers,
+                matrix.ColumnIndices,
+                matrix.Values);
 
         return new SparseMatrix(storage);
     }
@@ -77,64 +72,6 @@ public static class MathNetInterop
         return matrix.Storage is DenseColumnMajorMatrixStorage<double> dense
             ? FromDense(dense)
             : FromAnyStorage(matrix);
-    }
-
-    /// <summary>Whether the rows are already sorted by column with no duplicate.</summary>
-    private static bool IsCanonical(int[] columns, int[] pointers)
-    {
-        for (int row = 0; row + 1 < pointers.Length; row++)
-        {
-            for (int k = pointers[row] + 1; k < pointers[row + 1]; k++)
-            {
-                if (columns[k] <= columns[k - 1])
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>Sorts each row by column index and adds duplicate columns together.</summary>
-    private static void Canonicalize(
-        CsrMatrix matrix, out double[] values, out int[] columns, out int[] pointers)
-    {
-        int rows = matrix.RowCount;
-        var sortedValues = new List<double>(matrix.NonZeroCount);
-        var sortedColumns = new List<int>(matrix.NonZeroCount);
-        pointers = new int[rows + 1];
-
-        for (int row = 0; row < rows; row++)
-        {
-            int start = matrix.RowPointers[row];
-            int end = matrix.RowPointers[row + 1];
-
-            var entries = new (int Column, double Value)[end - start];
-            for (int k = start; k < end; k++)
-            {
-                entries[k - start] = (matrix.ColumnIndices[k], matrix.Values[k]);
-            }
-
-            Array.Sort(entries, static (left, right) => left.Column.CompareTo(right.Column));
-
-            foreach ((int column, double value) in entries)
-            {
-                if (sortedColumns.Count > pointers[row] && sortedColumns[sortedColumns.Count - 1] == column)
-                {
-                    sortedValues[sortedValues.Count - 1] += value;
-                    continue;
-                }
-
-                sortedColumns.Add(column);
-                sortedValues.Add(value);
-            }
-
-            pointers[row + 1] = sortedColumns.Count;
-        }
-
-        values = sortedValues.ToArray();
-        columns = sortedColumns.ToArray();
     }
 
     /// <summary>Collects a dense matrix's non-zero entries straight from its column-major array.</summary>

@@ -6,8 +6,8 @@
 
     0.1.0 is this package's first release. It carries one edge, to
     Lodestar.Abstractions, because CsrMatrix is the type it converts — so its
-    floor moves when that package publishes API this one needs, which so far it
-    has not.
+    floor moves when that package publishes API this one needs. It has moved
+    once, from 0.1.1 to 0.2.0 with #1142.
   -->
   <PropertyGroup>
     <LodestarExtensionsMathNetVersion>0.1.1</LodestarExtensionsMathNetVersion>

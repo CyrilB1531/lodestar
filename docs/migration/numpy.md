@@ -19,7 +19,7 @@ densifying a term-document matrix to reach `Svd()` is the cost the sparse repres
 to avoid. See [`docs/guides/decomposition.md`](../guides/decomposition.md).
 
 **You do not have to choose one side.** `Lodestar.Extensions.MathNet` converts a `CsrMatrix` to and
-from Math.NET's `SparseMatrix` in one pass over the stored values, so a matrix can be vectorized and
+from Math.NET's `SparseMatrix` as a copy of the stored values, so a matrix can be vectorized and
 factorized here and then solved, inverted or eigendecomposed there — without a densify-and-rebuild
 round trip in between. It is the only package in this repository that references Math.NET, and it
 references it _to convert to it_ rather than to compute with it, which is why the paragraph above

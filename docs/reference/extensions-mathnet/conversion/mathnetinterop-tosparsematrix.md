@@ -37,17 +37,17 @@ double last = sparse[0, 4];     // => 9
 double gap = sparse[0, 3];      // => 0
 ```
 
-**Remarks** — **the rows are sorted, and duplicate columns are added together.** That is not
-tidiness: `CsrMatrix` never promised an order, Math.NET reaches a cell by searching the row, and a
-matrix handed over unsorted would convert without complaint and then answer lookups with zeros. The
-example above is exactly that case.
-
-The cost is a single pass that decides whether anything needs doing. Everything this repository's
-vectorizers produce is already sorted, so the common path is one comparison per stored value and no
-allocation beyond the copy Math.NET makes anyway. Only a matrix built by hand pays for the sort.
+**Remarks** — **the rows are sorted, and duplicate columns are added together**, by Math.NET's
+own compressed-row factory, which copies the three arrays and then normalises its copy. That is not
+tidiness: `CsrMatrix` never promised an order, and Math.NET reaches a cell by searching the row. The
+example above is exactly that case, and the tests pin it, so a Math.NET release that stopped
+normalising would fail them rather than answer lookups with zeros
+([#1402](https://github.com/CyrilB1531/lodestar/issues/1402)).
 
 Explicit zeros are carried across rather than dropped — Math.NET's own compressed-row storage counts
-*"stored values including explicit zeros"*, so the structure survives unchanged.
+*"stored values including explicit zeros"*, so a matrix with sorted rows and no repeated column
+keeps its structure unchanged; an unsorted row comes back sorted, and a repeated column as one
+stored sum, zero if the two cancel.
 
 **Applies to** — net10.0, netstandard2.0.
 
