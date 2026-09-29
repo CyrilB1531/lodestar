@@ -55,11 +55,10 @@ total and the one just past the last that comes within one machine epsilon of it
 tolerance
 is load-bearing rather than decoration: a uniform weight is *usually* the ordinary median and not
 always. Measured, `[0.7] * 10` gives `5.0` on the weighted path against `4.5` unweighted, while
-`[0.1] * 10` gives `4.5` on both. Both agree, divergently, with scikit-learn —
-the weighted-percentile rule.
+`[0.1] * 10` gives `4.5` on both. Both agree with scikit-learn, whose `_weighted_percentile` compares against
+`np.finfo(np.float64).eps` rather than zero.
 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `MedianAbsoluteError.PerOutput`, `MeanAbsoluteError.Score`, `MaxError.Score`,
-the weighted-percentile rule,
 the [Python equivalence table](../../../equivalence.md).

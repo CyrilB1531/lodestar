@@ -37,8 +37,8 @@ The trap is that this is a projection and not a parameter on `Compute`. There is
 a
 normalized `ConfusionMatrix` here, and that is deliberate: `Accuracy`, `Precision` and the rest
 read
-a matrix's cells directly, and would be silently wrong if those cells had become fractions —
-the projection rule.
+a matrix's cells directly, and would be silently wrong if those cells had become fractions; a `double[,]` cannot be handed to
+them at all.
 
 A row, column or total that counted nothing divides to **zero**, not `NaN`, matching
 scikit-learn's
@@ -47,7 +47,6 @@ scikit-learn's
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `ConfusionMatrix.ToArray`, `ConfusionMatrix.Compute`,
-the projection rule,
 the [Python equivalence table](../../../equivalence.md).
 
 ## Members

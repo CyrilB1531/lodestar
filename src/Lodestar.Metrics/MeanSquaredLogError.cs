@@ -76,8 +76,8 @@ public static class MeanSquaredLogError
         /// costs — numpy's <c>log1p</c>, which is what scikit-learn calls.
         /// </summary>
         /// <remarks>
-        /// Kahan's identity, not <c>Math.Log(1.0 + value)</c>: see
-        /// decision 0028 at 53af23c2 for the measurement and the derivation.
+        /// Kahan's identity, not <c>Math.Log(1.0 + value)</c>, which loses
+        /// the low bits of a small <c>value</c> in the addition.
         /// </remarks>
         private static double Log1P(double value)
         {

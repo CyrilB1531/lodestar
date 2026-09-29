@@ -100,7 +100,7 @@ public sealed class ConfusionMatrix
     /// True when not one sample in the whole dataset was predicted correctly,
     /// checked over every observed label rather than only the requested ones —
     /// the condition that drives scikit-learn's float-vs-integer support
-    /// formatting; see decision 0031 at 53af23c2. Not the same as accuracy over the
+    /// formatting. Not the same as accuracy over the
     /// requested labels being zero: a sample outside the request can be the one
     /// correct prediction that keeps this false while <see cref="Prf"/>'s
     /// requested-label accuracy is nonetheless zero.
@@ -253,7 +253,8 @@ public sealed class ConfusionMatrix
         int k = index.RequestedCount;
         int m = index.Count;
         bool weighted = !sampleWeight.IsEmpty;
-        double[] cells = new double[m * m];
+        // Bounded rather than wrapped in int: 65,536 labels made an empty table and an index failure (#1467).
+        double[] cells = new double[TableLength.Of(m, m, nameof(yTrue))];
         double[] trueSum = new double[k];
         (double total, bool anySampleCorrect, anyTrueLabelRequested) = weighted
             ? AccumulateWeighted(yTrue, yPred, sampleWeight, index, cells, trueSum)

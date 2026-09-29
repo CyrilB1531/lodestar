@@ -13,10 +13,12 @@ dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- compare-metric
 python bench/compare.py metrics
 ```
 
-Six operations — `confusion_matrix`, `accuracy`, `precision_recall_f1_macro`,
-`classification_report`, `roc_auc_binary`, `roc_auc_ovr_macro` — over six shapes
-(1 000 / 100 000 / 1 000 000 samples, 2 or 10 classes), on the same corpus files
-on both sides. **This is the merge gate for the branch, on processor time**: every
+Twenty-nine rows, on the same corpus files on both sides: `confusion_matrix`, `accuracy`,
+`precision_recall_f1_macro` and `classification_report` over six shapes (1 000 / 100 000 /
+1 000 000 samples, 2 or 10 classes), `roc_auc_binary` over the three two-class shapes, and
+`roc_auc_ovr_macro` over the two ten-class shapes up to 100 000 samples — the corpus generator stops
+writing ten-class scores there, a million rows by ten being 200 MB of JSON (`SCORE_LIMIT` in
+`bench/corpus/generate_metrics.py`), so there is no `roc_auc_ovr_macro_n1000000_k10` row. **This is the merge gate for the branch, on processor time**: every
 row must be ≥ 1×, and it is.
 
 Machine: Intel Core i7-4770S, .NET 10.0.10, against scikit-learn 1.9.0 / NumPy 2.5.1 on Python

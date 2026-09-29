@@ -166,20 +166,18 @@ public sealed class TopKAccuracyTests
             MetricsCorpus.Tolerance);
     }
 
-    [Fact]
-    public void A_row_holding_NaN_ranks_as_the_sort_ranked_it()
+    [Theory]
+    [InlineData(double.NaN, "Input contains NaN.")]
+    [InlineData(double.PositiveInfinity, "Input contains infinity or a value too large for dtype('float64').")]
+    public void A_score_that_is_not_finite_is_refused_as_the_reference_refuses_it(double value, string message)
     {
-        // Pinned from main before the rank count replaced the sort; NaN rows still take the sort.
-        double[] yScore =
-        [
-            double.NaN, 0.5, 0.2,
-            0.1, double.NaN, 0.9,
-            0.3, 0.3, double.NaN,
-            double.NaN, double.NaN, 0.4,
-        ];
-        int[] yTrue = [1, 2, 0, 1];
+        // It used to rank a NaN row by the sort; top_k_accuracy_score raises (#1463).
+        double[] yScore = [value, 0.5, 0.2, 0.1, 0.3, 0.9];
 
-        Assert.Equal(2.0, TopKAccuracy.Score(yTrue, yScore, 3, k: 1, normalize: false), MetricsCorpus.Tolerance);
-        Assert.Equal(4.0, TopKAccuracy.Score(yTrue, yScore, 3, k: 2, normalize: false), MetricsCorpus.Tolerance);
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => TopKAccuracy.Score([1, 2], yScore, 3, k: 1));
+
+        Assert.Equal("yScore", error.ParamName);
+        Assert.StartsWith(message, error.Message, StringComparison.Ordinal);
     }
 }

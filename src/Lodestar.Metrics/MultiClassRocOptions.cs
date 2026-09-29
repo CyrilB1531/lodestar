@@ -8,7 +8,7 @@ namespace Lodestar.Metrics;
 /// <remarks>
 /// A <c>ref struct</c>, because <see cref="Labels"/> and
 /// <see cref="SampleWeight"/> are spans: build it at the call site. <c>default</c>
-/// reproduces scikit-learn's own defaults. Both argued in decision 0018 at <c>53af23c2</c>.
+/// reproduces scikit-learn's own defaults.
 /// </remarks>
 public readonly ref struct MultiClassRocOptions
 {

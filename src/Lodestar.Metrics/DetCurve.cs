@@ -16,9 +16,10 @@ public sealed class DetCurve
 {
     private DetCurve(double[] falsePositiveRate, double[] falseNegativeRate, double[] thresholds)
     {
-        FalsePositiveRate = falsePositiveRate;
-        FalseNegativeRate = falseNegativeRate;
-        Thresholds = thresholds;
+        // Read-only views: cast back to double[], the arrays let a caller rewrite the curve (#1473).
+        FalsePositiveRate = Array.AsReadOnly(falsePositiveRate);
+        FalseNegativeRate = Array.AsReadOnly(falseNegativeRate);
+        Thresholds = Array.AsReadOnly(thresholds);
     }
 
     /// <summary>The false-positive rate at each threshold.</summary>

@@ -27,7 +27,8 @@ reproduced here — where [`RocAuc.Score`](../classification/rocauc-score.md) on
 because a ROC area genuinely has no value without both classes and this has one.
 
 **Exceptions** — `ArgumentException` when `yTrue` and `yScore` disagree in length, when they are
-empty, when a score or weight is not finite, or — on the matrix overload — when `labelCount` is below `1`, when
+empty, when a score or weight is not finite, when every weight is zero — scikit-learn's own "Sample
+weights must contain at least one non-zero number." — or, on the matrix overload, when `labelCount` is below `1`, when
 `yTrue` is not a whole number of rows of `labelCount`, or when a non-empty `sampleWeight` is not one
 per row. `ArgumentOutOfRangeException` when `averaging` is `Averaging.Binary`, which scores one
 positive label of two and has no meaning over a matrix, or is not a declared member at all.
@@ -59,18 +60,17 @@ Two of the three labels score `0.5` and the third is carried by no sample and sc
 plain mean is `0.3333…`. `Averaging.Weighted` gives `0.5` on the same input, because the empty
 column carries no positive weight and drops out of the average.
 
-**Remarks** — three weight vectors take the answer outside what either side defines, and all six
-numbers below are measured rather than reasoned about.
+**Remarks** — two inputs take the answer outside what either side defines, and all four numbers
+below are measured rather than reasoned about.
 
 | input | scikit-learn 1.9.1 | here |
 | --- | --- | --- |
 | a weight vector summing to zero, `[1, 1, 1, -3]` | `0.5`, through a numpy "divide by zero encountered" warning | `-0` |
-| every weight `0` | `ValueError`, "Sample weights must contain at least one non-zero number." | `0` |
 | a `posLabel` no sample carries | `ValueError`, "pos_label=7 is not a valid label." | `0` |
 
-The first two are the same defect seen twice: the running total of weight reaches zero, and the
-precision at that threshold is a division the reference performs under a warning and this one
-guards. The third is the package's standing position rather than an accident — `posLabel` is a
+In the first, the running total of weight reaches zero, and the precision at that threshold is a
+division the reference performs under a warning and this one guards. Every weight `0` does not
+reach it: both sides refuse that vector with the same message. The second is the package's standing position rather than an accident — `posLabel` is a
 parameter here where scikit-learn infers it, so a label no sample carries is the no-positive case
 and answers `0`, exactly as [`TopKAccuracy.Score`](topkaccuracy-score.md) accepts a class no sample
 carries. A negative weight that leaves the total positive is accepted by both and agrees:

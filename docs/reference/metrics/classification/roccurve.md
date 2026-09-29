@@ -5,8 +5,9 @@ The receiver operating characteristic as **plot data** rather than as a number:
 what says where to put a threshold.
 
 Three parallel arrays of the same length — the false-positive rate, the true-positive rate, and the
-score at each point. A class rather than a record, for the reason
-the curve-shape rule gives.
+score at each point. A sealed class rather than a record, because a record over arrays compares them by reference and
+its `with` copy shares them. Each list is a read-only view the curve owns, so no cast writes through
+it ([#1473](https://github.com/CyrilB1531/lodestar/issues/1473)).
 
 ## The first threshold is infinite
 

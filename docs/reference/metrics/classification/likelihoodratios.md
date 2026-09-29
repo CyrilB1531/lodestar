@@ -15,8 +15,7 @@ specificity fixed while adding negatives leaves both ratios where they were and 
 positive prediction is evidence *for* the class, `LR-` below `1` says a negative prediction is
 evidence *against* it. A tuple would have carried no names and no documentation, so this is a sealed
 class with two named properties — the shape
-the curve-shape rule settled for the
-curves, applied to two scalars instead of three arrays.
+[`RocCurve`](roccurve.md) and the other curves take, applied to two scalars instead of three arrays.
 
 ## Four ways a ratio has no value, and they do not answer alike
 

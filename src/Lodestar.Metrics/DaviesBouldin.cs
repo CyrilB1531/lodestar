@@ -38,7 +38,8 @@ public static class DaviesBouldin
         double[] spread = Spreads(features, featureCount, centroids, ordinals, sizes);
 
         // centroid_distances once, as the reference builds it, its diagonal filled with 0.
-        var apart = new double[clusters * clusters];
+        // Bounded rather than wrapped in int past some 46,000 clusters (#1468).
+        var apart = new double[TableLength.Of(clusters, clusters, nameof(labels))];
         for (int i = 0; i < clusters; i++)
         {
             for (int j = 0; j < clusters; j++)

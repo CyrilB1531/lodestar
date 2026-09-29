@@ -16,9 +16,10 @@ public sealed class RocCurve
 {
     private RocCurve(double[] falsePositiveRate, double[] truePositiveRate, double[] thresholds)
     {
-        FalsePositiveRate = falsePositiveRate;
-        TruePositiveRate = truePositiveRate;
-        Thresholds = thresholds;
+        // Read-only views: cast back to double[], the arrays let a caller rewrite the curve (#1473).
+        FalsePositiveRate = Array.AsReadOnly(falsePositiveRate);
+        TruePositiveRate = Array.AsReadOnly(truePositiveRate);
+        Thresholds = Array.AsReadOnly(thresholds);
     }
 
     /// <summary>The false-positive rate at each threshold, ascending from <c>0</c>.</summary>

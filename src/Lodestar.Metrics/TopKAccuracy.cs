@@ -21,7 +21,7 @@ public static class TopKAccuracy
     /// what it found, unless given <c>labels</c>. Here the count is a parameter, so a class no
     /// sample happens to carry raises nothing — there is no inference to be wrong about.
     /// </remarks>
-    /// <exception cref="ArgumentException">The inputs disagree in shape, <paramref name="classCount"/> is below 2, <paramref name="yTrue"/> names a class outside <c>[0, classCount)</c>, or <paramref name="sampleWeight"/> has the wrong length — or sums to zero while <paramref name="normalize"/> is true.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in shape, <paramref name="classCount"/> is below 2, <paramref name="yTrue"/> names a class outside <c>[0, classCount)</c>, <paramref name="yScore"/> holds a NaN or an infinity, or <paramref name="sampleWeight"/> has the wrong length — or sums to zero while <paramref name="normalize"/> is true.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="k"/> is below 1.</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
@@ -73,7 +73,8 @@ public static class TopKAccuracy
                 nameof(yTrue));
         }
 
-        if (yScore.Length != yTrue.Length * classCount)
+        // In long: an int product wraps and a mismatched span passes the check (#1470).
+        if (yScore.Length != (long)yTrue.Length * classCount)
         {
             throw new ArgumentException(
                 $"yScore holds {yScore.Length} values, which is not {yTrue.Length} samples of " +
@@ -81,6 +82,8 @@ public static class TopKAccuracy
                 nameof(yScore));
         }
 
+        // check_array refuses a non-finite score, as the other ranking scores here do (#1463).
+        Inputs.RequireFinite(yScore, nameof(yScore));
         Weights.Validate(sampleWeight, yTrue.Length, nameof(sampleWeight));
     }
 
@@ -124,8 +127,7 @@ public static class TopKAccuracy
     /// <remarks>
     /// The ranking sorts descending and puts a tie in descending index order, so a class's position
     /// is the count of higher scores plus the count of equal scores at a higher index. Counting it
-    /// needs no sort and no allocation. A row holding a NaN goes through the sort instead, since the
-    /// sort does not order NaNs among themselves.
+    /// needs no sort and no allocation; a NaN never reaches it, refused as the reference refuses it (#1463).
     /// </remarks>
     private static bool RanksWithin(ReadOnlySpan<double> row, int trueClass, int k)
     {
@@ -134,10 +136,6 @@ public static class TopKAccuracy
         for (int other = 0; other < row.Length; other++)
         {
             double score = row[other];
-            if (double.IsNaN(score))
-            {
-                return SortedWithin(row, trueClass, k);
-            }
 
             // S1244: a tie is exact equality, the grouping Ranking.Descending uses.
 #pragma warning disable S1244
@@ -149,19 +147,5 @@ public static class TopKAccuracy
         }
 
         return ahead < k;
-    }
-
-    private static bool SortedWithin(ReadOnlySpan<double> row, int trueClass, int k)
-    {
-        int[] order = Ranking.Descending(row);
-        for (int rank = 0; rank < k && rank < row.Length; rank++)
-        {
-            if (order[rank] == trueClass)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

@@ -6,7 +6,7 @@ namespace Lodestar.Sample;
 /// <remarks>
 /// Interpolation formats through <c>CurrentCulture</c>, so one commit printed <c>0.807</c>
 /// on CI and <c>0,807</c> on a French console with nothing failing, and <c>CA1305</c> never
-/// reaches that syntax (<c>docs/decisions/0019</c>, issue #205). <c>Program</c> pins the
+/// reaches that syntax (issue #205). <c>Program</c> pins the
 /// thread culture for what this cannot cover, and <c>tools/check_sample_culture.py</c>
 /// keeps both. Called through the type name rather than a <c>using static</c>:
 /// <c>Lodestar.Metrics</c> exports a type named <c>F1</c> that an import would hide.

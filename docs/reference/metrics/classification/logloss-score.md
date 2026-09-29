@@ -17,7 +17,9 @@ default. `normalize` divides by the total weight; pass `false` for the sum, whic
 `2.2204460492503136e-16` rather than `0`, because the clip applies at the top end too.
 
 **Exceptions** — `ArgumentException` when the lengths disagree, the input is empty, or a probability
-falls outside `[0, 1]`. The message is the reference's — "y_prob contains values greater than 1: 1.5"
+falls outside `[0, 1]`; and, from the binary overload, when `yTrue` holds a single label, which
+`log_loss` refuses without its `labels` argument — `MultiClass`, whose `classCount` names every
+class, scores it ([#1465](https://github.com/CyrilB1531/lodestar/issues/1465)). The message is the reference's — "y_prob contains values greater than 1: 1.5"
 above, and "y_prob contains values lower than 0: -0.1" below.
 [`BrierScore.Score`](brierscore-score.md) words that second one as *less than*, which is its own
 reference's wording rather than an inconsistency here. `yTrue` holding more than two distinct labels is refused as `log_loss` refuses it, "y_true and y_prob contain different number of classes: 3 vs 2.", rather than counting the third as negative — [`LogLoss.MultiClass`](logloss-multiclass.md) scores it. A `sampleWeight` holding `NaN` or an infinity is refused with "Input sample_weight contains NaN." or its infinity counterpart, and one that is zero throughout with "Sample weights must contain at least one non-zero number." — both `ArgumentException` naming `sampleWeight`, as scikit-learn's `_check_sample_weight` refuses them. Weights that merely sum to zero are refused too, with numpy's "Weights sum to zero, can't be normalized." — only while `normalize` is true.

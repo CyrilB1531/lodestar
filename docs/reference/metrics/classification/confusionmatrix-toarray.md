@@ -39,9 +39,7 @@ unchanged,
 and asking for it twice with different modes is legal and cheap. That choice is deliberate,
 because
 several metrics read a `ConfusionMatrix` and would be silently wrong if its cells had become
-fractions —
-the projection rule has the
-argument.
+fractions, and the `double[,]` this returns cannot be handed to them.
 
 Each mode answers a different question. `True` divides each row by its own sum, so the diagonal
 becomes per-class recall — the most useful heat map of the four. `Pred` divides each column by its
@@ -57,5 +55,4 @@ support before reading a normalized row as a recall.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `ConfusionMatrix.Compute`, `Normalization`, `Recall.PerClass`,
-the projection rule,
 the [Python equivalence table](../../../equivalence.md).

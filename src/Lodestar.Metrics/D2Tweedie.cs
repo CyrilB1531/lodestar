@@ -23,7 +23,7 @@ public static class D2Tweedie
     /// <param name="zeroDivision">What to answer for fewer than two samples, the case scikit-learn leaves undefined. The default reproduces its <c>nan</c>.</param>
     /// <returns><c>1</c> for a perfect prediction, <c>0</c> for one no better than the constant average, and negative below that.</returns>
     /// <exception cref="ArgumentException">The lengths disagree, the input is empty or non-finite, or an operand is outside <paramref name="power"/>'s domain.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="power"/> lies in the open interval (0, 1).</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="power"/> is NaN, infinite, or lies in the open interval (0, 1).</exception>
     /// <exception cref="UndefinedMetricException">Every truth is the same value, so the constant model is already perfect and there is no deviance to explain; or there are fewer than two samples and <paramref name="zeroDivision"/> is <see cref="ZeroDivision.Throw"/>.</exception>
     public static double Score(
         ReadOnlySpan<double> yTrue,

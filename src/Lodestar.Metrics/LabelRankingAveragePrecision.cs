@@ -46,7 +46,7 @@ public static class LabelRankingAveragePrecision
         }
 
         // Divided directly rather than through LabelRanking.Weighted: the reference divides
-        // here too, so a weight vector summing to zero gives NaN where the other two throw.
+        // here too, so weights summing to zero give ±inf, or NaN when total is 0 too, where the others throw.
         return total / weights;
     }
 

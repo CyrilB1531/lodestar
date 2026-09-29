@@ -24,8 +24,7 @@ internal static class MultiClassRoc
         int[] classes = ResolveLabels(yTrue, options.Labels, classCount);
         ValidateRowSums(yScore, n, classCount);
 
-        // 0 and 1 both mean sequential: see decision 0018 at 53af23c2 for why, and for
-        // what changed in the drivers' allocation profile on this branch.
+        // 0 and 1 both mean sequential.
         int workers = Math.Max(1, options.MaxDegreeOfParallelism);
 
         if (options.Strategy == MultiClassStrategy.OneVsRest)
@@ -170,7 +169,7 @@ internal static class MultiClassRoc
             ClassMembers? members = null)
         {
             // sampleCount is explicit, not derived from yTrue.Length: two spans
-            // sliced to a rented array's length can silently agree. See decision 0018 at 53af23c2.
+            // sliced to a rented array's length can silently agree.
             if (yTrue.Length != sampleCount)
             {
                 throw new ArgumentException(
@@ -366,8 +365,7 @@ internal static class MultiClassRoc
     /// </summary>
     /// <remarks>
     /// A copy is the only legal option, and every span sliced from the result
-    /// must use the sample count, never the rented length. See
-    /// decision 0018 at 53af23c2 for both arguments.
+    /// must use the sample count, never the rented length.
     /// </remarks>
     private static (int[] YTrue, double[] ColumnMajor, double[] Weights) CopyForWorkers(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int classCount, ReadOnlySpan<double> sampleWeight)
@@ -419,7 +417,7 @@ internal static class MultiClassRoc
     /// The determinism lives here, not in each driver, so a second parallel driver — the
     /// one-vs-one pair loop — cannot re-derive it differently. <paramref name="body"/> returns
     /// its caught exception rather than being wrapped in a <c>catch</c> here, so a broken
-    /// internal invariant in its own setup still escapes as the defect it is. See decision 0018 at 53af23c2.
+    /// internal invariant in its own setup still escapes as the defect it is.
     /// </remarks>
     private static void RunPerIndex(
         int count, int workers, int scratchLength, Func<int, BinaryRoc.Scratch, ArgumentException?> body)
@@ -504,14 +502,14 @@ internal static class MultiClassRoc
     /// Reads pairs from the same <see cref="Pairs"/> table <see cref="OneVsOne"/>
     /// walks, rather than decoding a triangular index, so the two orders cannot
     /// disagree. No weights: <see cref="Validate"/> refuses them here, as
-    /// scikit-learn does; see decision 0018 at 53af23c2 for the copy this drives.
+    /// scikit-learn does.
     /// </remarks>
     private static double OneVsOneParallel(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int[] classes, Averaging average, int workers)
     {
         int n = yTrue.Length;
         int k = classes.Length;
-        (int A, int B)[] pairs = Pairs(k);
+        (int A, int B)[] pairs = Pairs(k, "classCount");
         double[] pairScores = new double[pairs.Length];
         double[] prevalence = new double[pairs.Length];
         var copy = CopyForWorkers(yTrue, yScore, k, default);
@@ -554,9 +552,10 @@ internal static class MultiClassRoc
     /// exception the sequential path would have produced.
     /// </summary>
     /// <remarks>
-    /// See decision 0018 at 53af23c2 for why <see cref="RunPerIndex"/> never stops
-    /// early and why <see cref="ExceptionDispatchInfo"/> rethrows the original
-    /// instance instead of wrapping it in an <see cref="AggregateException"/>.
+    /// <see cref="RunPerIndex"/> never stops early, so every index has run and the
+    /// lowest failing one is known; <see cref="ExceptionDispatchInfo"/> rethrows the
+    /// original instance rather than an <see cref="AggregateException"/>, so the caller
+    /// catches the type and message the sequential path throws.
     /// </remarks>
     private static void RethrowFirst(ArgumentException?[] failures)
     {
@@ -576,7 +575,7 @@ internal static class MultiClassRoc
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int[] classes, Averaging average)
     {
         int k = classes.Length;
-        (int A, int B)[] pairs = Pairs(k);
+        (int A, int B)[] pairs = Pairs(k, "classCount");
         double[] pairScores = new double[pairs.Length];
         double[] prevalence = new double[pairs.Length];
         BinaryRoc.Scratch scratch = BinaryRoc.Scratch.Rent(yTrue.Length);
@@ -620,9 +619,16 @@ internal static class MultiClassRoc
     }
 
     /// <summary>Every unordered class pair, in the order this method's nested loops produce them.</summary>
-    private static (int A, int B)[] Pairs(int k)
+    private static (int A, int B)[] Pairs(int k, string paramName)
     {
-        (int A, int B)[] pairs = new (int, int)[k * (k - 1) / 2];
+        // In long: k * (k - 1) wraps in int past 46,341 classes and threw OverflowException (#1469).
+        long count = (long)k * (k - 1) / 2;
+        if (count > TableLength.MaxLength)
+        {
+            throw new ArgumentException($"{k} classes make {count} pairs, more than one array holds.", paramName);
+        }
+
+        (int A, int B)[] pairs = new (int, int)[count];
         int next = 0;
         for (int a = 0; a < k; a++)
         {

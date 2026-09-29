@@ -15,7 +15,7 @@ public static class FBeta
     /// <param name="average">How per-class scores are reduced.</param>
     /// <param name="posLabel">The class reported under <see cref="Averaging.Binary"/>.</param>
     /// <param name="zeroDivision">What to return when the metric is undefined.</param>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="beta"/> is negative, NaN or infinite.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="beta"/> is negative or NaN; positive infinity scores the recall, as the reference does.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="cm"/> is null.</exception>
     /// <exception cref="ArgumentException"><see cref="Averaging.Binary"/> on a target with more than two classes, or with two of which neither is <paramref name="posLabel"/>; an absent positive class scores through <paramref name="zeroDivision"/> instead.</exception>
     /// <exception cref="UndefinedMetricException"><paramref name="zeroDivision"/> is <see cref="ZeroDivision.Throw"/> and the metric is undefined.</exception>
@@ -74,7 +74,7 @@ public static class FBeta
     /// <param name="beta">The weight of recall relative to precision.</param>
     /// <param name="zeroDivision">What to return when the metric is undefined.</param>
     /// <exception cref="ArgumentNullException"><paramref name="cm"/> is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="beta"/> is negative, NaN or infinite.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="beta"/> is negative or NaN; positive infinity scores the recall, as the reference does.</exception>
     public static double[] PerClass(ConfusionMatrix cm, double beta, ZeroDivision zeroDivision = ZeroDivision.Zero)
     {
         Guard.NotNull(cm);

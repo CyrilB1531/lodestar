@@ -64,8 +64,8 @@ says.
   the default — a perfect prediction of that constant scores `1` and any other scores `0`; with
   `false` you get `nan` and `-inf` instead.
 
-the undefined-case rule
-has the argument for keeping them separate. Both passes are Neumaier-compensated, which is
+Merged, a single wrong sample would reach `forceFinite: false` and score `-inf`, where scikit-learn
+returns `nan`. Both passes are Neumaier-compensated, which is
 load-bearing on an ill-conditioned target: a sequential sum was measured 357 times outside the
 oracle's tolerance —
 Neumaier's compensated sum.
@@ -73,6 +73,5 @@ Neumaier's compensated sum.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `R2.PerOutput`, `R2.VarianceWeighted`, `ExplainedVariance.Score`,
-the undefined-case rule,
 [the ZeroDivision entry](../classification/zerodivision.md),
 the [Python equivalence table](../../../equivalence.md).

@@ -24,7 +24,7 @@ public static class AveragePrecision
     /// that recall is taken as one for all thresholds and returns that, and this
     /// reproduces the value rather than refusing the input.
     /// </returns>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or contain a score that is not finite.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, contain a score that is not finite, or every weight is zero, which the reference refuses too (#1477).</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yScore,

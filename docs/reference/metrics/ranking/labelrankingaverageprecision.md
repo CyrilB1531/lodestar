@@ -16,7 +16,8 @@ validates its input differently from `coverage_error` and `label_ranking_loss`, 
 is reproduced rather than smoothed — making the three agree would invent a difference from the
 reference instead of copying one.
 
-**A weight vector summing to zero returns `NaN` here and raises in the other two**, for the same
+**A weight vector summing to zero returns `±∞` here — `NaN` when the weighted total is zero too —
+and raises in the other two**, for the same
 kind of reason: the reference divides by the weight sum directly on this path and calls
 `numpy.average` on the other two, and only `numpy.average` refuses a zero sum.
 
