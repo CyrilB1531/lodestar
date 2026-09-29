@@ -13,7 +13,10 @@ public static SparseMatrix ToSparseMatrix(CsrMatrix matrix)
 **Returns** — a `SparseMatrix` of the same shape holding the same values, sharing no array with the
 source.
 
-**Exceptions** — `ArgumentNullException` when `matrix` is null.
+**Exceptions** — `ArgumentNullException` when `matrix` is null. `ArgumentException` when it is not a
+valid CSR matrix — built through `CsrMatrix.CreateUnchecked`, or its arrays changed after
+construction — which Math.NET would answer with an error of its own base type, or accept with a
+column outside the matrix ([#1549](https://github.com/CyrilB1531/lodestar/issues/1549)).
 
 **Example** — a row whose columns arrive out of order still reads correctly.
 
@@ -37,12 +40,16 @@ double last = sparse[0, 4];     // => 9
 double gap = sparse[0, 3];      // => 0
 ```
 
-**Remarks** — **the rows are sorted, and duplicate columns are added together**, by Math.NET's
-own compressed-row factory, which copies the three arrays and then normalises its copy. That is not
-tidiness: `CsrMatrix` never promised an order, and Math.NET reaches a cell by searching the row. The
-example above is exactly that case, and the tests pin it, so a Math.NET release that stopped
-normalising would fail them rather than answer lookups with zeros
-([#1402](https://github.com/CyrilB1531/lodestar/issues/1402)).
+**Remarks** — **the rows are sorted, and duplicate columns are added together**, because
+`CsrMatrix` never promised an order and Math.NET reaches a cell by searching the row. The example
+above is exactly that case, and the tests pin it
+([#1402](https://github.com/CyrilB1531/lodestar/issues/1402)). A matrix whose rows are already
+strictly increasing — what every vectorizer here produces — is copied into Math.NET's storage as
+it is; any other is sorted here first, a repeated column summed in stored order as
+`CsrMatrix.ToDense` sums it. Math.NET's compressed-row factory is not used: its sort is unstable
+past 16 entries in a row, so a row holding `1e16`, `1`, `-1e16` in one column could read `1` where
+`ToDense` reads `0`, and it would sort again what is already sorted
+([#1548](https://github.com/CyrilB1531/lodestar/issues/1548)).
 
 Explicit zeros are carried across rather than dropped — Math.NET's own compressed-row storage counts
 *"stored values including explicit zeros"*, so a matrix with sorted rows and no repeated column

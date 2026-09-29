@@ -9,7 +9,7 @@
     <RootNamespace>Lodestar.Extensions.MathNet</RootNamespace>
 
     <PackageId>Lodestar.Extensions.MathNet</PackageId>
-    <Description>Math.NET Numerics interoperability for Lodestar: converts a CsrMatrix to and from Math.NET's sparse matrix in one pass over the stored values, so a caller already holding Math.NET types can reach Lodestar.Decomposition and the sparse vectorizers without rebuilding a matrix cell by cell.</Description>
+    <Description>Math.NET Numerics interoperability for Lodestar: converts a CsrMatrix to and from Math.NET's sparse matrix by copying the compressed-row arrays both sides store, so a caller already holding Math.NET types can reach Lodestar.Decomposition and the sparse vectorizers without rebuilding a matrix cell by cell.</Description>
     <PackageTags>mathnet;mathnet-numerics;sparse-matrix;csr;interop;linear-algebra;lodestar</PackageTags>
   </PropertyGroup>
 

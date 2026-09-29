@@ -37,10 +37,12 @@ is mutable through `At`, and a shared buffer would let a write on one matrix mov
 **One asymmetry is worth knowing.** `CsrMatrix` validates four things — the row pointers start at
 zero, do not decrease, end at the stored count, and every column index is in range — and says
 nothing about the **order** of column indices within a row, about explicit zeros, or about a column
-appearing twice. Math.NET reaches a cell by searching the row, which assumes the order, and its own
-compressed-row factory establishes it: it sorts each row of its copy and adds duplicate columns
-together, so [`MathNetInterop.ToSparseMatrix`](mathnetinterop-tosparsematrix.md) hands any valid
-`CsrMatrix` over as it is.
+appearing twice. Math.NET reaches a cell by searching the row, which assumes the order. Its own
+compressed-row factory sorts each row of its copy and adds duplicate columns, but with a sort that
+is unstable past 16 entries, so [`MathNetInterop.ToSparseMatrix`](mathnetinterop-tosparsematrix.md)
+bypasses it: a matrix with strictly increasing rows is copied as it is, and any other sorted here
+first, a repeated column added in stored order as `CsrMatrix.ToDense` does
+([#1548](https://github.com/CyrilB1531/lodestar/issues/1548)).
 
 **Applies to** — net10.0, netstandard2.0.
 
