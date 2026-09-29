@@ -28,6 +28,9 @@ internal static class PositionTable
     /// <summary>How deep the walk from a position index back to a <c>CumSum</c> may go.</summary>
     private const int AncestryBudget = 64;
 
+    /// <summary>The most dimensions read from one tensor; a file past it is answered null, as one this reader cannot follow is.</summary>
+    private const int MaxDims = 64;
+
     /// <summary>The longest name, op type or domain read; a graph's are a few dozen bytes.</summary>
     private const int MaxStringBytes = 1 << 16;
 
@@ -434,6 +437,12 @@ internal static class PositionTable
         {
             if (wire == Varint)
             {
+                // Unpacked, the values arrive one field at a time: the same cap holds across them (#1526).
+                if (into.Count >= MaxDims)
+                {
+                    throw new InvalidDataException("A repeated field holds more values than any tensor has dimensions.");
+                }
+
                 into.Add((long)ReadVarint());
                 return;
             }
@@ -446,6 +455,12 @@ internal static class PositionTable
             long end = stream.Position + length;
             while (stream.Position < end)
             {
+                // A tensor of more axes than any graph declares is a file this reader misparses, answered null (#1526).
+                if (into.Count >= MaxDims)
+                {
+                    throw new InvalidDataException("A packed field holds more values than any tensor has dimensions.");
+                }
+
                 into.Add((long)ReadVarint());
             }
         }

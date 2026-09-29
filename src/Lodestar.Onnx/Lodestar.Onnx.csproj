@@ -13,8 +13,8 @@
     <PackageTags>onnx;onnxruntime;embeddings;inference;sentence-embedding;transformer;nlp;lodestar</PackageTags>
   </PropertyGroup>
 
-  <!-- The only external dependency in the repository, and the reason this package
-       exists: a core package carries none, so ONNX Runtime gets its own. -->
+  <!-- The one external dependency of this package, and the reason it exists: a core
+       package carries none, so ONNX Runtime gets a satellite of its own (#1528). -->
   <ItemGroup>
     <PackageReference Include="Microsoft.ML.OnnxRuntime" />
   </ItemGroup>

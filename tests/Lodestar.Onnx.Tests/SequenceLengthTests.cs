@@ -70,4 +70,35 @@ public sealed class SequenceLengthTests
         Assert.Equal(untruncated[0], defaulted[0]);
         Assert.NotEqual(truncated[0], defaulted[0]);
     }
+
+    /// <summary>
+    /// Past the table, each entry point refuses under its own parameter, as #1423's page says: the encoder, the
+    /// encoded batch and a span of ids alike (#1522).
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Positional))]
+    public void Every_entry_past_the_table_is_refused_under_its_own_name(string file)
+    {
+        using OnnxTextEmbedder embedder = Embedder(file);
+        var encoder = new BatchEncoder(BatchCorpus.Tokenizer(), new EncodingOptions { MaxLength = Positions + 3 });
+        EncodedBatch batch = encoder.EncodeBatch(Long, TestContext.Current.CancellationToken);
+        long[] ids = [.. Enumerable.Repeat(1L, Positions + 1)];
+        long[] mask = [.. Enumerable.Repeat(1L, Positions + 1)];
+
+        Assert.Equal("encoder", Assert.Throws<ArgumentException>(
+            () => embedder.EmbedBatch(Long, encoder, TestContext.Current.CancellationToken)).ParamName);
+        Assert.Equal("batch", Assert.Throws<ArgumentException>(
+            () => embedder.EmbedBatch(batch, TestContext.Current.CancellationToken)).ParamName);
+        Assert.Equal("inputIds", Assert.Throws<ArgumentException>(() => embedder.Embed(ids, mask)).ParamName);
+    }
+
+    /// <summary>Dimension read a disposed session's metadata where every other member throws (#1521).</summary>
+    [Fact]
+    public void Dimension_after_dispose_throws_as_the_other_members_do()
+    {
+        OnnxTextEmbedder embedder = Embedder("tiny_positional.onnx");
+        embedder.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(() => embedder.Dimension);
+    }
 }

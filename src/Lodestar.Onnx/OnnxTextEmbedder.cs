@@ -53,6 +53,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="modelPath"/>, <paramref name="inputIdsName"/>, <paramref name="attentionMaskName"/> or <paramref name="tokenTypeIdsName"/> is null.</exception>
     /// <exception cref="ArgumentException">The model declares no input under <paramref name="inputIdsName"/> or <paramref name="attentionMaskName"/>, or no output under <paramref name="outputName"/>.</exception>
+    /// <exception cref="OnnxRuntimeException">ONNX Runtime refuses the file at <paramref name="modelPath"/>, missing or not a model it reads (#1524).</exception>
     public OnnxTextEmbedder(
         string modelPath,
         SessionOptions? options = null,
@@ -107,6 +108,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="outputName">Name of the token-embeddings output; defaults as described on the other constructor.</param>
     /// <exception cref="ArgumentNullException"><paramref name="modelPath"/>, <paramref name="tokenizer"/>, <paramref name="inputIdsName"/>, <paramref name="attentionMaskName"/> or <paramref name="tokenTypeIdsName"/> is null.</exception>
     /// <exception cref="ArgumentException">The model declares no input under <paramref name="inputIdsName"/> or <paramref name="attentionMaskName"/>, or no output under <paramref name="outputName"/>.</exception>
+    /// <exception cref="OnnxRuntimeException">ONNX Runtime refuses the file at <paramref name="modelPath"/>, missing or not a model it reads (#1524).</exception>
     public OnnxTextEmbedder(
         string modelPath,
         ISubwordTokenizer tokenizer,
@@ -121,10 +123,12 @@ public sealed class OnnxTextEmbedder : IDisposable
     }
 
     /// <summary>The embedding dimension reported by the model output, if known (else -1).</summary>
+    /// <exception cref="ObjectDisposedException">The embedder has been disposed, as every other member reports (#1521).</exception>
     public int Dimension
     {
         get
         {
+            ThrowIfDisposed();
             int[] shape = _session.OutputMetadata[_outputName].Dimensions;
             return shape.Length > 0 ? shape[^1] : -1;
         }
@@ -153,7 +157,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="inputIds">Token ids.</param>
     /// <param name="attentionMask">Attention mask (same length as <paramref name="inputIds"/>).</param>
     /// <exception cref="ArgumentException"><paramref name="inputIds"/> and <paramref name="attentionMask"/> differ in length, or are longer than <see cref="MaxSequenceLength"/>.</exception>
-    /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
+    /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed, or declares its first two axes as the input's two swapped (#1424).</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed.</exception>
     public float[] Embed(ReadOnlySpan<long> inputIds, ReadOnlySpan<long> attentionMask)
@@ -197,7 +201,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="options"/> is refused by <see cref="BatchEncoder"/> or sets a <c>MaxLength</c> past <see cref="MaxSequenceLength"/>, or a text is refused, as one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/> is.</exception>
-    /// <exception cref="InvalidOperationException">The embedder was built without a tokenizer, or the model output is not shaped for the batch it was fed.</exception>
+    /// <exception cref="InvalidOperationException">The embedder was built without a tokenizer, or the model output is not shaped for the batch it was fed or declares its first two axes as the input's two swapped (#1424).</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed.</exception>
@@ -228,7 +232,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> or <paramref name="encoder"/> is null.</exception>
     /// <exception cref="ArgumentException">The encoder refuses a text, as it refuses one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/>, or encodes one past <see cref="MaxSequenceLength"/>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
+    /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed, or declares its first two axes as the input's two swapped (#1424).</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed.</exception>
     public float[][] EmbedBatch(IEnumerable<string> texts, BatchEncoder encoder, CancellationToken cancellationToken = default)
@@ -273,7 +277,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <exception cref="ArgumentNullException"><paramref name="batch"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="batch"/> is longer than <see cref="MaxSequenceLength"/>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
+    /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed, or declares its first two axes as the input's two swapped (#1424).</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed.</exception>
     public float[][] EmbedBatch(EncodedBatch batch, CancellationToken cancellationToken = default)
@@ -291,19 +295,9 @@ public sealed class OnnxTextEmbedder : IDisposable
         _session.Dispose();
     }
 
-    // Without this, a call on a disposed embedder reaches into a disposed
-    // InferenceSession and surfaces as NullReferenceException (measured, #266).
-    private void ThrowIfDisposed()
-    {
-#if NET
-        ObjectDisposedException.ThrowIf(_disposed, this);
-#else
-        if (_disposed)
-        {
-            throw new ObjectDisposedException(nameof(OnnxTextEmbedder));
-        }
-#endif
-    }
+    // A disposed session surfaced as NullReferenceException (measured, #266); the shared guard names the type in full
+    // on both targets, where nameof gave the short name on netstandard (#1527).
+    private void ThrowIfDisposed() => Guard.NotDisposed(_disposed, this);
 
     /// <summary>Fills in the model-derived defaults the caller left open.</summary>
     private EncodingOptions ResolveOptions(EncodingOptions? options)
