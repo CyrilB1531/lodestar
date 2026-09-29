@@ -256,9 +256,11 @@ def emit(entries: dict[str, dict[str, object]]) -> str:
     lines.append("")
     for number in sorted(entries):
         entry = entries[number]
-        lines.append(f"{quote(number)}:")
-        lines.append(f"  {KEY_TITLE}: {quote(str(entry[KEY_TITLE]))}")
-        lines.append(f"  {KEY_STATUS}: {quote(str(entry[KEY_STATUS]))}")
+        lines.extend([
+            f"{quote(number)}:",
+            f"  {KEY_TITLE}: {quote(str(entry[KEY_TITLE]))}",
+            f"  {KEY_STATUS}: {quote(str(entry[KEY_STATUS]))}",
+        ])
         for key in (*FORWARD, *REVERSE.values()):
             numbers = ", ".join(quote(value) for value in entry[key])
             lines.append(f"  {key}: [{numbers}]")

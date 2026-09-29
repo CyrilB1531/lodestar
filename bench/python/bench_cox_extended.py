@@ -70,14 +70,16 @@ def main() -> None:
         rows = frame[NAMES].iloc[:100]
         times = np.quantile(frame["T"], np.linspace(0.05, 0.95, 10))
         varying = intervals(frame)
-        results.append(measure(f"stratified_weighted_{n}", lambda f=frame: CoxPHFitter().fit(
-            f[NAMES + ["T", "E", "s", "w"]], "T", "E", strata=["s"], weights_col="w")))
-        results.append(measure(f"ridge_robust_{n}", lambda p=plain: CoxPHFitter(penalizer=0.1).fit(p, "T", "E", robust=True)))
-        results.append(measure(f"lasso_{n}", lambda p=plain: CoxPHFitter(penalizer=0.05, l1_ratio=1.0).fit(p, "T", "E")))
-        results.append(measure(f"ph_test_{n}", lambda m=fitted, p=plain: proportional_hazard_test(m, p, time_transform="rank")))
-        results.append(measure(f"predict_survival_{n}", lambda m=fitted, r=rows, t=times: m.predict_survival_function(r, times=t)))
-        results.append(measure(f"time_varying_{n}", lambda v=varying: CoxTimeVaryingFitter().fit(
-            v, id_col="id", event_col="E", start_col="start", stop_col="stop")))
+        results.extend([
+            measure(f"stratified_weighted_{n}", lambda f=frame: CoxPHFitter().fit(
+                f[NAMES + ["T", "E", "s", "w"]], "T", "E", strata=["s"], weights_col="w")),
+            measure(f"ridge_robust_{n}", lambda p=plain: CoxPHFitter(penalizer=0.1).fit(p, "T", "E", robust=True)),
+            measure(f"lasso_{n}", lambda p=plain: CoxPHFitter(penalizer=0.05, l1_ratio=1.0).fit(p, "T", "E")),
+            measure(f"ph_test_{n}", lambda m=fitted, p=plain: proportional_hazard_test(m, p, time_transform="rank")),
+            measure(f"predict_survival_{n}", lambda m=fitted, r=rows, t=times: m.predict_survival_function(r, times=t)),
+            measure(f"time_varying_{n}", lambda v=varying: CoxTimeVaryingFitter().fit(
+                v, id_col="id", event_col="E", start_col="start", stop_col="stop")),
+        ])
     write(OUT, results, {"lifelines": version("lifelines"), "numpy": version("numpy")})
 
 

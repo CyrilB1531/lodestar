@@ -64,15 +64,17 @@ def main() -> None:
         d, e, g, s = subjects(n)
         a, b = g == 0, g == 1
         w = 1.0 + (np.arange(n) % 3)
-        results.append(measure(f"logrank_wilcoxon_weighted_{n}", lambda d=d, e=e, a=a, b=b, w=w: logrank_test(
-            d[a], d[b], e[a], e[b], weights_A=w[a], weights_B=w[b], weightings="wilcoxon")))
-        results.append(measure(f"logrank_fleming_harrington_{n}", lambda d=d, e=e, a=a, b=b: logrank_test(
-            d[a], d[b], e[a], e[b], weightings="fleming-harrington", p=1.0, q=1.0)))
-        results.append(measure(f"multigroup_{n}", lambda d=d, e=e, g=g: multivariate_logrank_test(d, g, e)))
-        results.append(measure(f"pairwise_{n}", lambda d=d, e=e, g=g: pairwise_logrank_test(d, g, e)))
-        results.append(measure(f"rmst_{n}", lambda d=d, e=e: rmst(d, e)))
-        results.append(measure(f"fixed_point_{n}", lambda d=d, e=e, g=g: fixed(d, e, g)))
-        results.append(measure(f"concordance_{n}", lambda d=d, e=e, s=s: concordance_index(d, s, e)))
+        results.extend([
+            measure(f"logrank_wilcoxon_weighted_{n}", lambda d=d, e=e, a=a, b=b, w=w: logrank_test(
+                d[a], d[b], e[a], e[b], weights_A=w[a], weights_B=w[b], weightings="wilcoxon")),
+            measure(f"logrank_fleming_harrington_{n}", lambda d=d, e=e, a=a, b=b: logrank_test(
+                d[a], d[b], e[a], e[b], weightings="fleming-harrington", p=1.0, q=1.0)),
+            measure(f"multigroup_{n}", lambda d=d, e=e, g=g: multivariate_logrank_test(d, g, e)),
+            measure(f"pairwise_{n}", lambda d=d, e=e, g=g: pairwise_logrank_test(d, g, e)),
+            measure(f"rmst_{n}", lambda d=d, e=e: rmst(d, e)),
+            measure(f"fixed_point_{n}", lambda d=d, e=e, g=g: fixed(d, e, g)),
+            measure(f"concordance_{n}", lambda d=d, e=e, s=s: concordance_index(d, s, e)),
+        ])
     write(OUT, results, {"lifelines": version("lifelines"), "numpy": version("numpy")})
 
 

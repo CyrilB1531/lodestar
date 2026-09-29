@@ -442,7 +442,10 @@ internal static class LeastSquares
                 }
             }
 
+            // S4143: the write above is read through `below`, which aliases a[diagonal], before this one replaces it.
+#pragma warning disable S4143
             a[diagonal] = alpha;
+#pragma warning restore S4143
         }
     }
 

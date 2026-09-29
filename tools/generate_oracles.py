@@ -7923,9 +7923,11 @@ def _univariate_samples(seed: int = 117201, shapes=(("weibull-like", 70, 1.6, 0.
         entries = [round(d * float(rng.random()) * 0.5, 4) if rng.random() < 0.3 else 0.0 for d in durations]
         lower, upper = _interval_bounds(rng, durations, events)
         base = {DURATIONS: durations, EVENTS: events, PARAM_LOWER: lower, PARAM_UPPER: upper}
-        samples.append((name, {**base, WEIGHTS: None, PARAM_ENTRIES: None}))
-        samples.append((f"{name}, weighted", {**base, WEIGHTS: weights, PARAM_ENTRIES: None}))
-        samples.append((f"{name}, delayed entry", {**base, WEIGHTS: None, PARAM_ENTRIES: entries}))
+        samples.extend([
+            (name, {**base, WEIGHTS: None, PARAM_ENTRIES: None}),
+            (f"{name}, weighted", {**base, WEIGHTS: weights, PARAM_ENTRIES: None}),
+            (f"{name}, delayed entry", {**base, WEIGHTS: None, PARAM_ENTRIES: entries}),
+        ])
     return samples
 
 
@@ -8048,15 +8050,19 @@ def _aft_variants() -> list[tuple[str, str, dict]]:
     plain = {COX_PENALIZER: 0.0, AFT_FIT_INTERCEPT: True, AFT_ANCILLARY: False, ROBUST: False, "weighted": False, PARAM_ENTRIES: False}
     variants = []
     for censoring in CENSORINGS:
-        variants.append((censoring, PLAIN, plain))
-        variants.append((censoring, "weighted", {**plain, "weighted": True}))
-        variants.append((censoring, ROBUST, {**plain, ROBUST: True}))
-        variants.append((censoring, "penalised", {**plain, COX_PENALIZER: 0.1}))
-    variants.append((CENSOR_RIGHT, "delayed entry", {**plain, PARAM_ENTRIES: True}))
-    variants.append((CENSOR_RIGHT, AFT_ANCILLARY, {**plain, AFT_ANCILLARY: True}))
-    variants.append((CENSOR_RIGHT, "no intercept", {**plain, AFT_FIT_INTERCEPT: False}))
-    variants.append((CENSOR_RIGHT, "everything", {**plain, AFT_ANCILLARY: True, COX_PENALIZER: 0.05, ROBUST: True,
-                                             "weighted": True, PARAM_ENTRIES: True}))
+        variants.extend([
+            (censoring, PLAIN, plain),
+            (censoring, "weighted", {**plain, "weighted": True}),
+            (censoring, ROBUST, {**plain, ROBUST: True}),
+            (censoring, "penalised", {**plain, COX_PENALIZER: 0.1}),
+        ])
+    variants.extend([
+        (CENSOR_RIGHT, "delayed entry", {**plain, PARAM_ENTRIES: True}),
+        (CENSOR_RIGHT, AFT_ANCILLARY, {**plain, AFT_ANCILLARY: True}),
+        (CENSOR_RIGHT, "no intercept", {**plain, AFT_FIT_INTERCEPT: False}),
+        (CENSOR_RIGHT, "everything", {**plain, AFT_ANCILLARY: True, COX_PENALIZER: 0.05, ROBUST: True,
+                                 "weighted": True, PARAM_ENTRIES: True}),
+    ])
     return variants
 
 
@@ -12277,41 +12283,43 @@ def _regression_fixtures() -> list[dict]:
                 round(rng.uniform(0.5, 400.0), 12)]
         rows_true.extend(base)
         rows_pred.extend(round(b + rng.gauss(0.0, 0.05 * b), 12) for b in base)
-    fixtures.append({"name": "positive_three_outputs", "output_count": 3,
-                     "y_true": rows_true, "y_pred": rows_pred,
-                     "sample_weight": weights(150)})
+    fixtures.extend([
+        {"name": "positive_three_outputs", "output_count": 3,
+         "y_true": rows_true, "y_pred": rows_pred,
+         "sample_weight": weights(150)},
 
-    # --- the degenerate cases, one fixture each ---
+        # --- the degenerate cases, one fixture each ---
 
-    # A truth with zero variance: force_finite decides, zeroDivision does not.
-    fixtures.append({"name": "constant_truth_perfect", "output_count": 1,
-                     "y_true": [2.0, 2.0, 2.0], "y_pred": [2.0, 2.0, 2.0],
-                     "sample_weight": [1.0, 2.0, 3.0]})
-    fixtures.append({"name": "constant_truth_imperfect", "output_count": 1,
-                     "y_true": [2.0, 2.0, 2.0], "y_pred": [1.0, 2.0, 3.0],
-                     "sample_weight": [1.0, 2.0, 3.0]})
+        # A truth with zero variance: force_finite decides, zeroDivision does not.
+        {"name": "constant_truth_perfect", "output_count": 1,
+         "y_true": [2.0, 2.0, 2.0], "y_pred": [2.0, 2.0, 2.0],
+         "sample_weight": [1.0, 2.0, 3.0]},
+        {"name": "constant_truth_imperfect", "output_count": 1,
+         "y_true": [2.0, 2.0, 2.0], "y_pred": [1.0, 2.0, 3.0],
+         "sample_weight": [1.0, 2.0, 3.0]},
 
-    # One sample: r2 is nan under either force_finite, which is zeroDivision's
-    # territory and nothing else's.
-    fixtures.append({"name": "single_sample", "output_count": 1,
-                     "y_true": [3.0], "y_pred": [5.0], "sample_weight": [2.0]})
+        # One sample: r2 is nan under either force_finite, which is zeroDivision's
+        # territory and nothing else's.
+        {"name": "single_sample", "output_count": 1,
+         "y_true": [3.0], "y_pred": [5.0], "sample_weight": [2.0]},
 
-    # An exact zero in the truth: mape's epsilon clamp, and nothing else's.
-    fixtures.append({"name": "zero_in_truth", "output_count": 1,
-                     "y_true": [0.0, 4.0, -2.0], "y_pred": [1.0, 5.0, -1.0],
-                     "sample_weight": [1.0, 1.0, 2.0]})
+        # An exact zero in the truth: mape's epsilon clamp, and nothing else's.
+        {"name": "zero_in_truth", "output_count": 1,
+         "y_true": [0.0, 4.0, -2.0], "y_pred": [1.0, 5.0, -1.0],
+         "sample_weight": [1.0, 1.0, 2.0]},
 
-    # An even sample count with a lopsided weight, where the averaged weighted
-    # percentile and a plain median part company.
-    fixtures.append({"name": "lopsided_weights", "output_count": 1,
-                     "y_true": [0.0, 2.0, 4.0, 10.0], "y_pred": [0.0, 0.0, 0.0, 0.0],
-                     "sample_weight": [1.0, 1.0, 1.0, 7.0]})
+        # An even sample count with a lopsided weight, where the averaged weighted
+        # percentile and a plain median part company.
+        {"name": "lopsided_weights", "output_count": 1,
+         "y_true": [0.0, 2.0, 4.0, 10.0], "y_pred": [0.0, 0.0, 0.0, 0.0],
+         "sample_weight": [1.0, 1.0, 1.0, 7.0]},
 
-    # See this function's docstring for why 0.1 needs a fractional weight.
-    fixtures.append({"name": "uniform_fractional_weights", "output_count": 1,
-                     "y_true": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
-                     "y_pred": [1.0] * 10,
-                     "sample_weight": [0.1] * 10})
+        # See this function's docstring for why 0.1 needs a fractional weight.
+        {"name": "uniform_fractional_weights", "output_count": 1,
+         "y_true": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+         "y_pred": [1.0] * 10,
+         "sample_weight": [0.1] * 10},
+    ])
 
     return fixtures
 
@@ -13065,33 +13073,35 @@ def _fuse_unk_models() -> list[tuple]:
     models_out = []
     for fuse in (False, True):
         suffix = "fused" if fuse else "unfused"
-        models_out.append((
-            f"in_piece_{suffix}", "a run inside a single piece", fuse,
-            _fuse_unk_model(_FUSE_VOCAB, _FUSE_MERGES, fuse), plain_texts))
-        # Only the texts that HAVE a boundary; see this function's docstring.
-        models_out.append((
-            f"across_split_{suffix}", "a run interrupted by a piece boundary", fuse,
-            _fuse_unk_model(_FUSE_VOCAB, _FUSE_MERGES, fuse), split_texts))
-        models_out.append((
-            f"unk_merge_{suffix}", "a merge whose left side is the unknown token", fuse,
-            _fuse_unk_model(_FUSE_MERGE_VOCAB, _FUSE_MERGE_MERGES, fuse), ["ZZa", "Za", "ZZZa"]))
-        models_out.append((
-            f"covered_unk_{suffix}", "an unknown token that is also a covered character", fuse,
-            _fuse_unk_model(_FUSE_COVERED_UNK_VOCAB, [], fuse, unk="q"),
-            ["qZ", "Zq", "qq", "ZZ", "qZa", "aqZ"]))
-        models_out.append((
-            f"no_unk_{suffix}", "fuse_unk with no unknown token declared", fuse,
-            _fuse_unk_model(_FUSE_VOCAB, _FUSE_MERGES, fuse, unk=None), ["aZZa", "ZZZ"]))
-        models_out.append((
-            f"byte_level_{suffix}", "byte-level, where no character is uncovered", fuse,
-            _fuse_unk_model(byte_vocab, [], fuse, unk=None, byte_level=True),
-            ["a\U0001F600b", "ab"]))
-        models_out.append((
-            f"end_of_word_{suffix}",
-            "a character covered bare but not suffixed, where the end-of-word suffix decides"
-            " the last-position lookup rather than the character's own coverage (D7)", fuse,
-            _fuse_unk_model(_FUSE_EOW_VOCAB, [], fuse, eow=_FUSE_EOW_SUFFIX),
-            ["aYZ", "aZZ", "Za", "aZ"]))
+        models_out.extend([
+            (
+                f"in_piece_{suffix}", "a run inside a single piece", fuse,
+                _fuse_unk_model(_FUSE_VOCAB, _FUSE_MERGES, fuse), plain_texts),
+            # Only the texts that HAVE a boundary; see this function's docstring.
+            (
+                f"across_split_{suffix}", "a run interrupted by a piece boundary", fuse,
+                _fuse_unk_model(_FUSE_VOCAB, _FUSE_MERGES, fuse), split_texts),
+            (
+                f"unk_merge_{suffix}", "a merge whose left side is the unknown token", fuse,
+                _fuse_unk_model(_FUSE_MERGE_VOCAB, _FUSE_MERGE_MERGES, fuse), ["ZZa", "Za", "ZZZa"]),
+            (
+                f"covered_unk_{suffix}", "an unknown token that is also a covered character", fuse,
+                _fuse_unk_model(_FUSE_COVERED_UNK_VOCAB, [], fuse, unk="q"),
+                ["qZ", "Zq", "qq", "ZZ", "qZa", "aqZ"]),
+            (
+                f"no_unk_{suffix}", "fuse_unk with no unknown token declared", fuse,
+                _fuse_unk_model(_FUSE_VOCAB, _FUSE_MERGES, fuse, unk=None), ["aZZa", "ZZZ"]),
+            (
+                f"byte_level_{suffix}", "byte-level, where no character is uncovered", fuse,
+                _fuse_unk_model(byte_vocab, [], fuse, unk=None, byte_level=True),
+                ["a\U0001F600b", "ab"]),
+            (
+                f"end_of_word_{suffix}",
+                "a character covered bare but not suffixed, where the end-of-word suffix decides"
+                " the last-position lookup rather than the character's own coverage (D7)", fuse,
+                _fuse_unk_model(_FUSE_EOW_VOCAB, [], fuse, eow=_FUSE_EOW_SUFFIX),
+                ["aYZ", "aZZ", "Za", "aZ"]),
+        ])
     return models_out
 
 
@@ -15368,23 +15378,25 @@ def generate_stats_pearson() -> dict:
         x, y = fx["x"], fx["y"]
         kept = [(a, b) for a, b in zip(x, y) if not (math.isnan(a) or math.isnan(b))]
         r = sps.pearsonr(np.array([a for a, _ in kept]), np.array([b for _, b in kept]))
-        cases.append({
-            "name": _correlation_name(fx["name"], nan_policy="omit"),
-            "call": PEARSONR, "args": {NAN_POLICY: "omit"},
-            "x": _stats_nan_list(x), "y": _stats_nan_list(y),
-            STATISTIC: _stats_number(float(r.statistic)), PVALUE: _stats_number(float(r.pvalue)),
-        })
-        cases.append({
-            "name": _correlation_name(fx["name"], nan_policy=PROPAGATE),
-            "call": PEARSONR, "args": {NAN_POLICY: PROPAGATE},
-            "x": _stats_nan_list(x), "y": _stats_nan_list(y),
-            STATISTIC: "NaN", PVALUE: "NaN",
-        })
-        cases.append({
-            "name": _correlation_name(fx["name"], nan_policy=RAISE_POLICY),
-            "call": PEARSONR, RAISES: True, "args": {NAN_POLICY: RAISE_POLICY},
-            "x": _stats_nan_list(x), "y": _stats_nan_list(y),
-        })
+        cases.extend([
+            {
+                "name": _correlation_name(fx["name"], nan_policy="omit"),
+                "call": PEARSONR, "args": {NAN_POLICY: "omit"},
+                "x": _stats_nan_list(x), "y": _stats_nan_list(y),
+                STATISTIC: _stats_number(float(r.statistic)), PVALUE: _stats_number(float(r.pvalue)),
+            },
+            {
+                "name": _correlation_name(fx["name"], nan_policy=PROPAGATE),
+                "call": PEARSONR, "args": {NAN_POLICY: PROPAGATE},
+                "x": _stats_nan_list(x), "y": _stats_nan_list(y),
+                STATISTIC: "NaN", PVALUE: "NaN",
+            },
+            {
+                "name": _correlation_name(fx["name"], nan_policy=RAISE_POLICY),
+                "call": PEARSONR, RAISES: True, "args": {NAN_POLICY: RAISE_POLICY},
+                "x": _stats_nan_list(x), "y": _stats_nan_list(y),
+            },
+        ])
 
     return {"metadata": _stats_metadata(PEARSONR, len(cases)), CASES: cases}
 

@@ -48,17 +48,19 @@ def main() -> None:
         design = frame[NAMES + ["T", "E"]]
         bounded = frame[NAMES].copy()
         bounded["L"], bounded["U"] = lower, upper
-        results.append(measure(f"weibull_{n}", lambda t=t, e=e: WeibullFitter().fit(t, e)))
-        results.append(measure(f"loglogistic_left_{n}", lambda t=t, e=e: LogLogisticFitter().fit_left_censoring(t, e)))
-        results.append(measure(f"lognormal_interval_{n}", lambda lo=lower, up=upper: LogNormalFitter().fit_interval_censoring(lo, up)))
-        results.append(measure(f"generalized_gamma_{n}", lambda t=t, e=e: GeneralizedGammaFitter().fit(t, e)))
-        results.append(measure(f"weibull_aft_{n}", lambda d=design: WeibullAFTFitter().fit(d, "T", "E")))
-        results.append(measure(f"lognormal_aft_ridge_robust_{n}", lambda d=design: LogNormalAFTFitter(penalizer=0.1).fit(
-            d, "T", "E", robust=True)))
-        results.append(measure(f"loglogistic_aft_interval_{n}", lambda b=bounded: LogLogisticAFTFitter().fit_interval_censoring(
-            b, "L", "U")))
-        results.append(measure(f"breslow_fleming_harrington_{n}", lambda t=t, e=e: BreslowFlemingHarringtonFitter().fit(t, e)))
-        results.append(measure(f"kaplan_meier_left_{n}", lambda t=t, e=e: KaplanMeierFitter().fit_left_censoring(t, e)))
+        results.extend([
+            measure(f"weibull_{n}", lambda t=t, e=e: WeibullFitter().fit(t, e)),
+            measure(f"loglogistic_left_{n}", lambda t=t, e=e: LogLogisticFitter().fit_left_censoring(t, e)),
+            measure(f"lognormal_interval_{n}", lambda lo=lower, up=upper: LogNormalFitter().fit_interval_censoring(lo, up)),
+            measure(f"generalized_gamma_{n}", lambda t=t, e=e: GeneralizedGammaFitter().fit(t, e)),
+            measure(f"weibull_aft_{n}", lambda d=design: WeibullAFTFitter().fit(d, "T", "E")),
+            measure(f"lognormal_aft_ridge_robust_{n}", lambda d=design: LogNormalAFTFitter(penalizer=0.1).fit(
+                d, "T", "E", robust=True)),
+            measure(f"loglogistic_aft_interval_{n}", lambda b=bounded: LogLogisticAFTFitter().fit_interval_censoring(
+                b, "L", "U")),
+            measure(f"breslow_fleming_harrington_{n}", lambda t=t, e=e: BreslowFlemingHarringtonFitter().fit(t, e)),
+            measure(f"kaplan_meier_left_{n}", lambda t=t, e=e: KaplanMeierFitter().fit_left_censoring(t, e)),
+        ])
     write(OUT, results, {"lifelines": version("lifelines"), "numpy": version("numpy")})
 
 

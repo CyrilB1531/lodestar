@@ -39,10 +39,12 @@ def main() -> None:
         weighted = frame[NAMES + ["T", "E", "w"]]
         fitted = AalenAdditiveFitter().fit(plain, "T", "E")
         rows = frame[NAMES].iloc[:100]
-        results.append(measure(f"fit_{n}", lambda p=plain: AalenAdditiveFitter().fit(p, "T", "E")))
-        results.append(measure(f"fit_penalised_weighted_{n}", lambda w=weighted: AalenAdditiveFitter(
-            coef_penalizer=0.5, smoothing_penalizer=1.0).fit(w, "T", "E", weights_col="w")))
-        results.append(measure(f"predict_survival_{n}", lambda m=fitted, r=rows: m.predict_survival_function(r)))
+        results.extend([
+            measure(f"fit_{n}", lambda p=plain: AalenAdditiveFitter().fit(p, "T", "E")),
+            measure(f"fit_penalised_weighted_{n}", lambda w=weighted: AalenAdditiveFitter(
+                coef_penalizer=0.5, smoothing_penalizer=1.0).fit(w, "T", "E", weights_col="w")),
+            measure(f"predict_survival_{n}", lambda m=fitted, r=rows: m.predict_survival_function(r)),
+        ])
     write(OUT, results, {"lifelines": version("lifelines"), "numpy": version("numpy")})
 
 
