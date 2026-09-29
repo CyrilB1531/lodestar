@@ -21,6 +21,7 @@ are not the target's units and not a fraction either.
 it
 holds a non-finite value, or either array holds a value at or below `−1`;
 `ArgumentOutOfRangeException` when `outputCount` is below one.
+`outputWeights` holding `NaN` or an infinity is `ArgumentException` too, with scikit-learn's "Input contains NaN." or its infinity counterpart ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461)), and so is any `outputWeights` on a single output, with "Custom weights are useful only in multi-output cases." ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533)).
 
 **Example** — four counts, one of them predicted 60% high.
 
@@ -54,12 +55,11 @@ side the offending value was on, which scikit-learn's does not.
 The logarithm is numpy's `log1p`, reached through Kahan's identity rather than `Math.Log(1.0 +
 x)`.
 That is not decoration: on targets around `1e-9` the naive spelling is out by `1.7e-8` relative,
-where this agrees with scikit-learn to a unit in the last place —
-Kahan's identity.
+where this agrees with scikit-learn to a unit in the last place, because
+`log(1 + x) · x / ((1 + x) − 1)` divides out the rounding the addition made.
 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `MeanSquaredLogError.PerOutput`, `RootMeanSquaredLogError.Score`,
 `MeanAbsolutePercentageError.Score`,
-Kahan's identity,
 the [Python equivalence table](../../../equivalence.md).

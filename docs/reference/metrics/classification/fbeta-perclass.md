@@ -18,7 +18,9 @@ the label set and its order, and `sampleWeight` weights the samples.
 **Returns** — a fresh `double[]`, one entry per label, in the matrix's label order.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `beta` is negative or `NaN` — positive infinity scores the recall, as `fbeta_score` does
-([#1466](https://github.com/CyrilB1531/lodestar/issues/1466));
+([#1466](https://github.com/CyrilB1531/lodestar/issues/1466)) — and when `beta` is finite but its
+square overflows, past `√double.MaxValue ≈ 1.3407807929942596e154`, where `fbeta_score`'s `beta ** 2`
+raises `OverflowError` ([#1540](https://github.com/CyrilB1531/lodestar/issues/1540));
 `ArgumentNullException` when `cm` is null; `ArgumentException` when the label spans disagree in
 length or are empty. A `sampleWeight` holding `NaN` or an infinity is refused with "Input sample_weight contains NaN." or its infinity counterpart, and one that is zero throughout with "Sample weights must contain at least one non-zero number." — both `ArgumentException` naming `sampleWeight`, as scikit-learn's `_check_sample_weight` refuses them.
 
@@ -44,14 +46,12 @@ was usually about one class in particular.
 The trap is the arithmetic behind the scenes rather than in the result. `beta` is applied by
 substituting the true positives, the predicted count and the support algebraically rather than by
 computing precision and recall and combining them, which is what keeps the answer exact at the
-edges where one of the two is undefined —
-the substituted F-score formula has
-the derivation. Nothing about the call changes; it is the reason the undefined cases here agree
+edges where one of the two is undefined: `(1 + β²)·tp / (predicted + β²·support)` has no
+precision or recall in it to be undefined, so only its own denominator can be zero. Nothing about the call changes; it is the reason the undefined cases here agree
 with
 scikit-learn rather than approximately agreeing.
 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `FBeta.Score`, `F1.PerClass`, `ClassificationReport.Compute`,
-the substituted F-score formula,
 the [Python equivalence table](../../../equivalence.md).

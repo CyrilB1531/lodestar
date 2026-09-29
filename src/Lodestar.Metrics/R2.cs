@@ -33,7 +33,7 @@ public static class R2
     /// What to answer when there are fewer than two samples, which is the only case
     /// scikit-learn leaves undefined regardless of <paramref name="forceFinite"/>. The default reproduces its <c>nan</c>.
     /// </param>
-    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value.</exception>
+    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value; or output weights meet a single output (#1533), or the sample weights sum to zero (#1273).</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
     /// <exception cref="UndefinedMetricException">
     /// There are fewer than two samples and <paramref name="zeroDivision"/> is
@@ -63,7 +63,7 @@ public static class R2
     /// <param name="forceFinite">scikit-learn's <c>force_finite</c>. See <see cref="Score"/>.</param>
     /// <param name="zeroDivision">The answer for fewer than two samples. See <see cref="Score"/>.</param>
     /// <returns>A fresh array of <paramref name="outputCount"/> entries, in column order.</returns>
-    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value.</exception>
+    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value; or the sample weights sum to zero (#1273).</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
     /// <exception cref="UndefinedMetricException">
     /// There are fewer than two samples and <paramref name="zeroDivision"/> is

@@ -246,8 +246,7 @@ internal static class BinaryRoc
             return (bits & SignBit) != 0 ? ~bits : bits | SignBit;
         }
 
-        // These five — Validate, BuildPoints, Accumulate, IsLastOfGroup,
-        // RequireBothClassesPresent — are reachable only from Scratch (S3398).
+        // These four — Validate, BuildPoints, Accumulate, IsLastOfGroup — are reachable only from Scratch (S3398).
         private static int Validate(ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, ReadOnlySpan<double> sampleWeight)
         {
             int n = yTrue.Length;
@@ -312,9 +311,10 @@ internal static class BinaryRoc
                 previousFalse = falsePositives;
             }
 
-            RequireBothClassesPresent(truePositives, falsePositives);
-
-            return area / (truePositives * falsePositives);
+            // One class, or a class whose weight is all zero, gives 0/0: roc_auc_score 1.9.1 warns and answers NaN (#1277).
+#pragma warning disable S1244
+            return truePositives == 0.0 || falsePositives == 0.0 ? double.NaN : area / (truePositives * falsePositives);
+#pragma warning restore S1244
         }
 
         /// <summary>The step sum over the precision-recall curve, not the area under it.</summary>
@@ -370,39 +370,6 @@ internal static class BinaryRoc
 #pragma warning disable S1244
             return i == n - 1 || keys[i] != keys[i + 1];
 #pragma warning restore S1244
-        }
-
-        private static void RequireBothClassesPresent(double truePositives, double falsePositives)
-        {
-            // SonarLint S1244 warns against comparing floating point for exact
-            // equality, which is right for arithmetic and wrong here: this asks
-            // whether anything accumulated at all, not whether two computed
-            // quantities are close. Zero true positives or zero false positives
-            // means one class is absent from yTrue, which is exactly the case
-            // scikit-learn refuses. A tolerance would reject legitimate inputs
-            // whose weights are merely small.
-#pragma warning disable S1244
-            if (truePositives == 0.0 || falsePositives == 0.0)
-            {
-#pragma warning restore S1244
-                // SonarLint S3928 wants this paramName to be nameof()'d against a
-                // parameter of the enclosing method, which is right in general and
-                // wrong here specifically: yTrue isn't a parameter of this
-                // extracted helper, so nameof(yTrue) isn't available, but the
-                // literal is not a made-up name either — it is the actual
-                // parameter of the public RocAuc.Score/RocAuc.MultiClass call this
-                // exception reports back to, exactly as it was before Score was
-                // split into Validate/BuildPoints/Accumulate/this method. Dropping
-                // ParamName instead would change ArgumentException.Message itself
-                // (it appends "(Parameter 'yTrue')" whenever ParamName is set),
-                // which is the regression this comment exists to prevent.
-                // CA2208 reads the same literal and reaches the same verdict from the
-                // helper's own signature, where yTrue is genuinely not a parameter. It
-                // is disabled for the reason spelled out above, not waived.
-#pragma warning disable S3928, CA2208
-                throw new ArgumentException("Only one class is present in yTrue; ROC AUC is undefined for it.", "yTrue");
-#pragma warning restore S3928, CA2208
-            }
         }
     }
 

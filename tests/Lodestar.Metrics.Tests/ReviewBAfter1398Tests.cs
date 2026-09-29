@@ -99,7 +99,8 @@ public sealed class ReviewBAfter1398Tests
         int[] yTrue = [.. Enumerable.Range(0, 32_768)];
         int[] yPred = [.. Enumerable.Range(32_768, 32_768)];
 
-        Assert.Throws<ArgumentException>(() => ConfusionMatrix.Compute(yTrue, yPred));
+        ArgumentException error = Assert.Throws<ArgumentException>(() => ConfusionMatrix.Compute(yTrue, yPred));
+        Assert.Contains("cells, more than one array holds", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -109,7 +110,9 @@ public sealed class ReviewBAfter1398Tests
         int[] labels = [.. Enumerable.Range(0, 65_536), 0];
         double[] features = [.. Enumerable.Range(0, 65_537).Select(i => (double)i)];
 
-        Assert.Throws<ArgumentException>(() => DaviesBouldin.Score(labels, features, 1));
+        ArgumentException error = Assert.Throws<ArgumentException>(() => DaviesBouldin.Score(labels, features, 1));
+        Assert.Equal("labels", error.ParamName);
+        Assert.Contains("cells, more than one array holds", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

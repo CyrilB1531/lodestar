@@ -132,9 +132,9 @@ internal static class LogLikelihood
 
     /// <summary><c>log(k!)</c> for <c>k</c> below <see cref="TabulatedCounts"/>, built once.</summary>
     /// <remarks>
-    /// The same device as <c>Lodestar.Metrics.Internal.ExpectedMutualInformation.LogFactorials</c>,
-    /// whose own remark measured plain prefix sums at <c>8.4e-10</c> relative error at twenty
-    /// thousand terms. The running sum below is Kahan-compensated instead, which holds the error near
+    /// The same device as <c>Lodestar.Metrics.Internal.ExpectedMutualInformation.LogFactorials</c>, which a plain
+    /// prefix sum drifted 1.2e-8 off at 160 000 terms until it too was compensated (#1281). The running sum below is
+    /// Kahan-compensated, which holds the error near
     /// <c>eps * sum</c>; it was sized by the largest response until #665, which made it 8 MB at a million.
     /// </remarks>
     private static readonly double[] SmallLogFactorials = BuildSmallLogFactorials();

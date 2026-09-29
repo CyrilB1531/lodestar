@@ -29,6 +29,14 @@ internal static class MultiClassRoc
 
         if (options.Strategy == MultiClassStrategy.OneVsRest)
         {
+            // _average_binary_score returns 0 when the weighted positives, here the weights' sum, are close to zero
+            // (#1534); check_array refuses a NaN score first, so the shortcut waits for a finite yScore.
+            if (average == Averaging.Weighted && !options.SampleWeight.IsEmpty
+                && Math.Abs(Sum(options.SampleWeight)) <= ZeroTotalTolerance && IsFinite(yScore))
+            {
+                return 0.0;
+            }
+
             return workers == 1
                 ? OneVsRest(yTrue, yScore, classes, average, options.SampleWeight)
                 : OneVsRestParallel(yTrue, yScore, classes, average, options.SampleWeight, workers);
@@ -509,11 +517,11 @@ internal static class MultiClassRoc
     {
         int n = yTrue.Length;
         int k = classes.Length;
-        (int A, int B)[] pairs = Pairs(k, "classCount");
+        var members = new ClassMembers(yTrue, classes);
+        (int A, int B)[] pairs = PresentPairs(Pairs(k, "classCount"), members);
         double[] pairScores = new double[pairs.Length];
         double[] prevalence = new double[pairs.Length];
         var copy = CopyForWorkers(yTrue, yScore, k, default);
-        var members = new ClassMembers(yTrue, classes);
 
         try
         {
@@ -575,7 +583,8 @@ internal static class MultiClassRoc
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int[] classes, Averaging average)
     {
         int k = classes.Length;
-        (int A, int B)[] pairs = Pairs(k, "classCount");
+        var members = new ClassMembers(yTrue, classes);
+        (int A, int B)[] pairs = PresentPairs(Pairs(k, "classCount"), members);
         double[] pairScores = new double[pairs.Length];
         double[] prevalence = new double[pairs.Length];
         BinaryRoc.Scratch scratch = BinaryRoc.Scratch.Rent(yTrue.Length);
@@ -583,7 +592,7 @@ internal static class MultiClassRoc
         try
         {
             ScoreSource source = new(
-                yTrue, yScore, yTrue.Length, k, columnMajor: false, new ClassMembers(yTrue, classes));
+                yTrue, yScore, yTrue.Length, k, columnMajor: false, members);
             for (int pair = 0; pair < pairs.Length; pair++)
             {
                 ScorePair(source, classes, pairs[pair], pair, pairScores, prevalence, scratch);
@@ -650,12 +659,55 @@ internal static class MultiClassRoc
         return total / values.Length;
     }
 
+    /// <summary><c>numpy.isclose(total, 0)</c>'s absolute tolerance, which is all it applies against zero.</summary>
+    internal const double ZeroTotalTolerance = 1e-8;
+
+    private static bool IsFinite(ReadOnlySpan<double> values)
+    {
+        foreach (double value in values)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>The pairs whose two classes both occur in the target, the only ones scikit-learn scores.</summary>
+    /// <remarks>
+    /// <c>_average_multiclass_ovo_score</c> pairs the classes <c>np.unique(y_true)</c> holds, so a class <c>labels</c>
+    /// names and no sample carries is in no pair: 0.8888888888888888 where this answered NaN (#1277).
+    /// </remarks>
+    private static (int A, int B)[] PresentPairs((int A, int B)[] pairs, ClassMembers members) =>
+        Array.FindAll(pairs, pair => members.Count(pair.A) > 0 && members.Count(pair.B) > 0);
+
+    private static double Sum(ReadOnlySpan<double> values)
+    {
+        double total = 0.0;
+        foreach (double value in values)
+        {
+            total += value;
+        }
+
+        return total;
+    }
+
     private static double WeightedMean(double[] values, double[] weights)
     {
         double total = 0.0;
         double weightSum = 0.0;
         for (int i = 0; i < values.Length; i++)
         {
+            // _average_binary_score forces a zero-weighted score to 0, so its NaN never reaches the average (#1277).
+#pragma warning disable S1244
+            if (weights[i] == 0.0)
+#pragma warning restore S1244
+            {
+                continue;
+            }
+
             total += values[i] * weights[i];
             weightSum += weights[i];
         }

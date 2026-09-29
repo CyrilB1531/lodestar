@@ -19,7 +19,10 @@ reads a cell, and whose `TotalWeight` is what it counted.
 
 **Exceptions** — `ArgumentException` when the spans disagree in length, are empty, contain
 duplicate
-labels, or no supplied label occurs in `yTrue`. A `sampleWeight` holding `NaN` or an infinity is refused with "Input sample_weight contains NaN." or its infinity counterpart, and one that is zero throughout with "Sample weights must contain at least one non-zero number." — both `ArgumentException` naming `sampleWeight`, as scikit-learn's `_check_sample_weight` refuses them. Weights that merely sum to zero are counted, as the reference counts them.
+labels, or no supplied label occurs in `yTrue`; also when the table needs more cells than one
+array holds — its `m × m` cells over `m` labels, naming `yTrue`, or, on labels too sparse to mark
+in a table, the `yTrue.Length + yPred.Length` values sorted to find them, naming `yPred`
+([#1480](https://github.com/CyrilB1531/lodestar/issues/1480)). A `sampleWeight` holding `NaN` or an infinity is refused with "Input sample_weight contains NaN." or its infinity counterpart, and one that is zero throughout with "Sample weights must contain at least one non-zero number." — both `ArgumentException` naming `sampleWeight`, as scikit-learn's `_check_sample_weight` refuses them. Weights that merely sum to zero are counted, as the reference counts them.
 
 **Example** — the four cells of the spam filter, read by index.
 

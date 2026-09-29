@@ -49,6 +49,26 @@ internal interface IVectorResidualKernel : IResidualKernel
 /// same keeps its own code — the median sorts, R² and explained variance need
 /// two passes, and <see cref="MaxError"/> takes no weights.
 /// </remarks>
+/// <summary>Which of the reference's weight refusals a regression metric shares.</summary>
+[Flags]
+internal enum WeightRules
+{
+    /// <summary>Neither refusal.</summary>
+    None = 0,
+
+    /// <summary>Output weights on a single output are refused, as every metric but <c>root_mean_squared_error</c> does.</summary>
+    OutputWeightsNeedOutputs = 1,
+
+    /// <summary>Sample weights summing to zero are refused, as every metric but <c>median_absolute_error</c> does.</summary>
+    SampleWeightsNormalize = 2,
+
+    /// <summary>Non-finite output weights are refused through <c>check_array</c>, which <c>root_mean_squared_error</c> skips.</summary>
+    OutputWeightsFinite = 4,
+
+    /// <summary>All three, the shape most metrics take.</summary>
+    Reference = OutputWeightsNeedOutputs | SampleWeightsNormalize | OutputWeightsFinite,
+}
+
 internal static class Outputs
 {
     /// <summary>Checks the shape and returns the sample count.</summary>
@@ -59,13 +79,18 @@ internal static class Outputs
     /// <param name="outputWeights">A weight per output, or empty for a plain mean.</param>
     /// <returns>The number of samples, <c>yTrue.Length / outputCount</c>.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
-    /// <exception cref="ArgumentException">A length disagrees with the shape, or an output weight is not finite.</exception>
+    /// <param name="rules">Which of the reference's weight refusals the calling metric shares; most share both.</param>
+    /// <exception cref="ArgumentException">
+    /// A length disagrees with the shape, an output weight is not finite, output weights meet a single output, or
+    /// the weights of either kind sum to zero.
+    /// </exception>
     public static int Validate(
         ReadOnlySpan<double> yTrue,
         ReadOnlySpan<double> yPred,
         int outputCount,
         ReadOnlySpan<double> sampleWeight,
-        ReadOnlySpan<double> outputWeights)
+        ReadOnlySpan<double> outputWeights,
+        WeightRules rules = WeightRules.Reference)
     {
         Inputs.Validate(yTrue, yPred, sampleWeight);
         Guard.NotLessThan(outputCount, 1);
@@ -86,17 +111,31 @@ internal static class Outputs
         }
         if (!outputWeights.IsEmpty)
         {
+            // _check_reg_targets' order: check_array's finiteness (#1461), then one output (#1533), then the count.
+            if ((rules & WeightRules.OutputWeightsFinite) != 0)
+            {
+                Inputs.RequireFinite(outputWeights, nameof(outputWeights));
+            }
+
+            if (outputCount == 1 && (rules & WeightRules.OutputWeightsNeedOutputs) != 0)
+            {
+                throw new ArgumentException("Custom weights are useful only in multi-output cases.", nameof(outputWeights));
+            }
+
             if (outputWeights.Length != outputCount)
             {
                 throw new ArgumentException(
-                    $"outputWeights has {outputWeights.Length} entries but there are {outputCount} outputs.",
+                    $"There must be equally many custom weights ({outputWeights.Length}) as outputs ({outputCount}).",
                     nameof(outputWeights));
             }
 
-            // multioutput goes through check_array before numpy.average sums it: a NaN or an infinity is refused
-            // with the targets' own message rather than scored (#1461).
-            Inputs.RequireFinite(outputWeights, nameof(outputWeights));
-            RequireNormalizable(outputWeights);
+            RequireNormalizable(outputWeights, nameof(outputWeights));
+        }
+
+        // numpy.average refuses sample weights that merely sum to zero, not only all-zero ones (#1273).
+        if (!sampleWeight.IsEmpty && (rules & WeightRules.SampleWeightsNormalize) != 0)
+        {
+            RequireNormalizable(sampleWeight, nameof(sampleWeight));
         }
 
         return samples;
@@ -112,10 +151,10 @@ internal static class Outputs
     /// own check: <c>[1, -1]</c> is refused here though not all zero, while
     /// <c>[-1, -1]</c> scores, since its sum normalizes fine.
     /// </remarks>
-    private static void RequireNormalizable(ReadOnlySpan<double> outputWeights)
+    private static void RequireNormalizable(ReadOnlySpan<double> weights, string paramName)
     {
         double total = 0.0;
-        foreach (double weight in outputWeights)
+        foreach (double weight in weights)
         {
             total += weight;
         }
@@ -128,7 +167,7 @@ internal static class Outputs
 #pragma warning restore S1244
         {
             throw new ArgumentException(
-                "Weights sum to zero, can't be normalized.", nameof(outputWeights));
+                "Weights sum to zero, can't be normalized.", paramName);
         }
     }
 
@@ -226,13 +265,7 @@ internal static class Outputs
     /// </remarks>
     public static bool OnlyTargetsNeedScanning(
         ReadOnlySpan<double> yTrue, ReadOnlySpan<double> yPred, ReadOnlySpan<double> outputWeights) =>
-        yTrue.Length == yPred.Length && !yTrue.IsEmpty
-        && (outputWeights.IsEmpty || (outputWeights.Length == 1 && IsNormalizable(outputWeights[0])));
-
-    // S1244: RequireNormalizable's own exact-zero test, over one weight; a non-finite one takes the path that refuses it.
-#pragma warning disable S1244
-    private static bool IsNormalizable(double weight) => weight != 0.0 && !double.IsNaN(weight) && !double.IsInfinity(weight);
-#pragma warning restore S1244
+        yTrue.Length == yPred.Length && !yTrue.IsEmpty && outputWeights.IsEmpty;
 
     /// <summary>
     /// The unweighted mean of <typeparamref name="TKernel"/> over one output, which also reports

@@ -29,7 +29,7 @@ public static class MeanAbsolutePercentageError
     /// <param name="outputCount">How many outputs each row holds. One, the default, is the ordinary case.</param>
     /// <param name="sampleWeight">A weight per sample — per <em>row</em>, not per value. Omit to weight every sample by 1.</param>
     /// <param name="outputWeights">A weight per output (<c>multioutput=[…]</c>). Omit for <c>multioutput="uniform_average"</c>.</param>
-    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value.</exception>
+    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value; or output weights meet a single output (#1533), or the sample weights sum to zero (#1273).</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
     public static double Score(
         ReadOnlySpan<double> yTrue,
@@ -47,7 +47,7 @@ public static class MeanAbsolutePercentageError
     /// <param name="outputCount">How many outputs each row holds.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <returns>A fresh array of <paramref name="outputCount"/> entries, in column order.</returns>
-    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value.</exception>
+    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value; or the sample weights sum to zero (#1273).</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
     public static double[] PerOutput(
         ReadOnlySpan<double> yTrue,

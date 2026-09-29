@@ -21,7 +21,7 @@ internal sealed class LabelIndex
     private readonly int[]? _sorted;     // ascending label values
     private readonly int[]? _ordinals;   // _sorted[i] -> ordinal in _labels
 
-    private LabelIndex(int[] labels, int requestedCount, bool isExplicit, int[] observed)
+    private LabelIndex(int[] labels, int requestedCount, bool isExplicit, int[] observed, int samples)
     {
         _labels = labels;
         Observed = observed;
@@ -31,7 +31,9 @@ internal sealed class LabelIndex
         (int min, int max) = MinMax(labels);
         long range = (long)max - min + 1;
 
-        if (range <= MaxDirectTableSize)
+        // SortedUnion's density bound, over labels and samples so the fill stays linear in the input:
+        // two sparse labels cost a 16 MB fill a call without it, and the lookups are per sample (#1280).
+        if (range <= MaxDirectTableSize && range <= (4L * ((long)labels.Length + samples)) + 1024)
         {
             _min = min;
             _direct = BuildDirectTable(labels, min, (int)range);
@@ -145,13 +147,13 @@ internal sealed class LabelIndex
         if (labels.IsEmpty)
         {
             int[] union = SortedUnion(yTrue, yPred);
-            return new LabelIndex(union, union.Length, isExplicit: false, union);
+            return new LabelIndex(union, union.Length, isExplicit: false, union, yTrue.Length);
         }
 
         int[] requested = labels.ToArray();
         int[] observed = SortedUnion(yTrue, yPred);
-        int[] extended = AppendObserved(requested, observed);
-        return new LabelIndex(extended, requested.Length, isExplicit: true, observed);
+        int[] extended = AppendObserved(requested, observed, nameof(labels));
+        return new LabelIndex(extended, requested.Length, isExplicit: true, observed, yTrue.Length);
     }
 
     /// <summary>
@@ -160,7 +162,7 @@ internal sealed class LabelIndex
     /// ascending order — <c>np.setdiff1d(present_labels, labels)</c> stacked
     /// after <paramref name="requested"/>.
     /// </summary>
-    private static int[] AppendObserved(int[] requested, int[] observed)
+    private static int[] AppendObserved(int[] requested, int[] observed, string paramName)
     {
         var seen = new HashSet<int>(requested);
         int[] extra = [.. observed.Where(seen.Add)];
@@ -169,14 +171,15 @@ internal sealed class LabelIndex
             return requested;
         }
 
-        int[] result = new int[requested.Length + extra.Length];
+        // Bounded in long as SortedUnion's sum is: two lengths past the largest array wrapped (#1539).
+        int[] result = new int[UnionLength(requested.Length, extra.Length, paramName)];
         Array.Copy(requested, result, requested.Length);
         Array.Copy(extra, 0, result, requested.Length, extra.Length);
         return result;
     }
 
     /// <summary>The two lengths' sum, refused rather than wrapped past the largest array (#1472).</summary>
-    private static int UnionLength(int trueLength, int predLength, string paramName)
+    internal static int UnionLength(int trueLength, int predLength, string paramName)
     {
         long length = (long)trueLength + predLength;
         return length <= TableLength.MaxLength

@@ -20,16 +20,13 @@ public sealed class RocAucBinaryTests
     }
 
     [Fact]
-    public void Rejects_a_single_class()
+    public void A_single_class_scores_NaN_as_the_reference_does()
     {
         int[] yTrue = [1, 1, 1];
         double[] scores = [0.1, 0.4, 0.9];
 
-        // Assert.Throws alone missed it once: when BinaryRoc.Score was split, the
-        // single-class throw silently lost its ParamName argument. Pin both.
-        ArgumentException ex = Assert.Throws<ArgumentException>(() => RocAuc.Score(yTrue, scores));
-        Assert.Equal("yTrue", ex.ParamName);
-        Assert.Contains("Only one class is present", ex.Message, StringComparison.Ordinal);
+        // roc_auc_score 1.9.1 warns and answers nan; this threw (#1277).
+        Assert.True(double.IsNaN(RocAuc.Score(yTrue, scores)));
     }
 
     [Fact]

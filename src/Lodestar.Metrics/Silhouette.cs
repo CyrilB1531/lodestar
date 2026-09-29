@@ -32,7 +32,7 @@ public static class Silhouette
     /// same signature, since a matrix and a feature block are both a span of <c>double</c> with a
     /// count, and a variant a parameter cannot carry gets a name, as <c>PerOutput</c> does for a return.
     /// </remarks>
-    /// <exception cref="ArgumentException">The matrix is not <c>n × n</c> for the labels given, holds a value that is not finite or a diagonal entry other than 0, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
+    /// <exception cref="ArgumentException">The matrix is not <c>n × n</c> for the labels given, holds a value that is not finite, a diagonal entry other than 0 or a negative value, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
     public static double ScoreFromDistances(ReadOnlySpan<int> labels, ReadOnlySpan<double> distances) =>
         Mean(PerSampleFromDistances(labels, distances));
 
@@ -95,12 +95,13 @@ public static class Silhouette
     /// answer rather than a division by zero: there is no other member to be close to, and the
     /// sample is neither well nor badly placed.
     /// </remarks>
-    /// <exception cref="ArgumentException">The matrix is not <c>n × n</c> for the labels given, holds a value that is not finite or a diagonal entry other than 0, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
+    /// <exception cref="ArgumentException">The matrix is not <c>n × n</c> for the labels given, holds a value that is not finite, a diagonal entry other than 0 or a negative value, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
     public static double[] PerSampleFromDistances(ReadOnlySpan<int> labels, ReadOnlySpan<double> distances)
     {
         int samples = Square(labels, distances);
         int[] sizes = Partition.Sizes(labels, out int[] ordinals, out int clusters);
         Partition.RequireScorableCount(clusters, samples, nameof(labels));
+        RequireNonNegative(distances);
 
         double[] scores = new double[samples];
         double[] sums = new double[clusters];
@@ -178,6 +179,23 @@ public static class Silhouette
         }
 
         return n;
+    }
+
+    /// <summary>
+    /// <c>pairwise_distances</c>' own <c>check_non_negative</c>, sentence verbatim: scikit-learn
+    /// reaches it after the diagonal test and the label count, so it runs last here too (#1275).
+    /// </summary>
+    private static void RequireNonNegative(ReadOnlySpan<double> distances)
+    {
+        foreach (double distance in distances)
+        {
+            if (distance < 0.0)
+            {
+                throw new ArgumentException(
+                    "Negative values in data passed to `pairwise_distances`. Precomputed distance  need to have non-negative values..",
+                    nameof(distances));
+            }
+        }
     }
 
     // np.finfo(np.float64).eps * 100, silhouette_samples' atol for a floating matrix.

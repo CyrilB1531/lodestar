@@ -38,10 +38,16 @@ There is no two-dimensional overload because a `ReadOnlySpan<T>` cannot carry on
 is a method rather than an enum member because it changes the return type, which no argument can.
 
 Two refusals every metric here shares, both reproducing the message their Python layer prints. A
-`sampleWeight` that is zero **throughout** is refused — the rule is every weight, not the sum, so
-`[-1, -2, -3]` still scores — and `outputWeights` whose **sum** is zero are refused, so `[1, -1]` is
-refused and `[-1, -1]` scores. Both arrive as `ArgumentException`. Non-finite values in `yTrue` or
-`yPred` are refused too.
+`sampleWeight` that is zero **throughout** is refused, and so is a `sampleWeight` or `outputWeights`
+whose **sum** is zero, so `[1, -1, 0]` is refused and `[-1, -2, -3]` scores — except that
+`MedianAbsoluteError` never divides by the total and scores a zero-sum `sampleWeight`, as
+`median_absolute_error` does ([#1273](https://github.com/CyrilB1531/lodestar/issues/1273)). Both arrive as `ArgumentException`. Non-finite values in `yTrue` or
+`yPred` are refused too, and so are non-finite `outputWeights`, with the targets' own "Input contains
+NaN." or its infinity counterpart ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461)) —
+except by `RootMeanSquaredError`, whose reference never checks them and averages them into `NaN`. On a single output, any `outputWeights`
+is refused with "Custom weights are useful only in multi-output cases." — by every metric that takes
+them except `RootMeanSquaredError`, which accepts one as `root_mean_squared_error` does
+([#1533](https://github.com/CyrilB1531/lodestar/issues/1533)).
 
 Classification metrics — how often a label was right — are on the
 [classification page](classification.md), not here. `ZeroDivision`, which `R2` takes, is documented

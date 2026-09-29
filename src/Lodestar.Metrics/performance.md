@@ -70,16 +70,21 @@ rewrite of `BinaryRoc`. It did not: even the heaviest sort-bound row clears the
 gate by a comfortable margin, so no algorithmic change was needed on this
 branch.
 
-**Read this before quoting a single ratio.** The rows at n=1 000 (70×–620×) are
-dominated by CPython's per-call interpreter overhead, not by the computation —
-a confusion matrix over 1 000 samples is sub-microsecond work on either side.
+**Read this before quoting a single ratio.** The rows at n=1 000 (70×–623×, and
+19.13× for `roc_auc_ovr_macro_n1000_k10`, ten one-vs-rest curves at 0.550 ms)
+are dominated by CPython's per-call interpreter overhead, not by the
+computation — a confusion matrix over 1 000 samples is sub-microsecond work on
+either side.
 The rows that carry the argument are the ones at n=100 000 and n=1 000 000,
 where the ratios settle to a more modest but still decisive 2.7×–43×.
 
 Unlike the persistence comparison, wall and processor time agree here to
-within about 1% on every row (up to 3.4% on the single heaviest-cpu row): these
-metrics allocate little enough per call that .NET's background collector is
-never a factor, so there is no gap between the two columns to explain away.
+within 0.2% on 26 of the 29 rows. The three others are ROC rows, on the
+Lodestar side: 3.4% on `roc_auc_ovr_macro_n100000_k10` (88.385 ms wall,
+91.396 ms cpu), 1.4% on `roc_auc_binary_n100000_k2` and 0.5% on
+`roc_auc_binary_n1000000_k2`, the heaviest row on processor time. These metrics
+allocate little enough per call that .NET's background collector is never a
+factor, so no gap between the two columns is large enough to change a verdict.
 
 Full breakdown, including the intra-C# and net10-vs-netstandard2.0 tiers and
 where the two language sides do not do identical work, in

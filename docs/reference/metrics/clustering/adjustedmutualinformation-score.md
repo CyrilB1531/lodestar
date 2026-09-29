@@ -46,13 +46,12 @@ chance, summed over the hypergeometric distribution of every cell the marginals 
 factorial that sum needs is of an integer, so it comes from a cumulative `log(k!)` table rather
 than from a `gammaln` series approximation.
 
-**That table is not exact, and the error grows with the sample count.** A cumulative sum of
-logarithms accumulates: measured against `lgamma` and propagated through the nine-term combination
-the sum uses, the relative error on each term is `5.9e-12` at 1 000 samples, `8.4e-10` at 20 000 and
-`2.0e-08` at 200 000. Two different bounds, worth keeping apart: the table's own error budget stays under `1e-9` up to
-**n ≈ 20 000** (measured above), while the frozen corpus **enforces** parity only up to **n = 10**,
-its largest fixture. Between the two, parity is expected and untested; past 20 000 it is neither.
-Treat the last digits as indicative there.
+**The table is summed with compensation** (#1281). A plain running sum of logarithms drifted
+`8.4e-9` from `gammaln` at 160 000 samples, and each exponent of the sum combines nine entries, so
+the expected mutual information carried about `1e-8` relative error there. Compensated, every entry
+up to 160 000 sits within 3 ulps of scipy's `gammaln`, and the expected mutual information of a
+160 000-sample clustering agrees with scikit-learn's to `1e-9` relative, which a test pins. The
+frozen corpus enforces parity on its own fixtures, the largest of which holds 10 samples.
 
 **Applies to** — net10.0, netstandard2.0.
 

@@ -14,7 +14,7 @@ public static class LabelRankingLoss
     /// <param name="labelCount">How many labels each row holds.</param>
     /// <param name="sampleWeight">One weight per sample, or empty for an unweighted mean.</param>
     /// <returns>The mean fraction of wrongly ordered pairs, in <c>[0, 1]</c>. <c>0</c> is perfect, and a row where every label or no label is relevant contributes <c>0</c> — it holds no pair to order.</returns>
-    /// <exception cref="ArgumentException">A relevance or score is not finite, the shapes disagree, <paramref name="labelCount"/> is <c>1</c>, or <paramref name="sampleWeight"/> sums to zero.</exception>
+    /// <exception cref="ArgumentException">A score is not finite, the shapes disagree, <paramref name="labelCount"/> is <c>1</c>, or <paramref name="sampleWeight"/> sums to zero.</exception>
     public static double Score(
         ReadOnlySpan<bool> yTrue,
         ReadOnlySpan<double> yScore,

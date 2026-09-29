@@ -31,7 +31,7 @@ public static class ExplainedVariance
     /// variance: 1 when the residuals had no variance either and 0 otherwise.
     /// Pass <see langword="false"/> for the unclamped <c>nan</c> and <c>-inf</c>.
     /// </param>
-    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value.</exception>
+    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value; or output weights meet a single output (#1533), or the sample weights sum to zero (#1273).</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
     public static double Score(
         ReadOnlySpan<double> yTrue,
@@ -55,7 +55,7 @@ public static class ExplainedVariance
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <param name="forceFinite">scikit-learn's <c>force_finite</c>. See <see cref="Score"/>.</param>
     /// <returns>A fresh array of <paramref name="outputCount"/> entries, in column order.</returns>
-    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value.</exception>
+    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value; or the sample weights sum to zero (#1273).</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
     public static double[] PerOutput(
         ReadOnlySpan<double> yTrue,
@@ -77,7 +77,7 @@ public static class ExplainedVariance
     /// <param name="outputCount">How many outputs each row holds.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <param name="forceFinite">scikit-learn's <c>force_finite</c>. See <see cref="Score"/>.</param>
-    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value.</exception>
+    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value; or the sample weights sum to zero (#1273).</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
     /// <remarks>
     /// A method rather than a member of an averaging enum, because the weights

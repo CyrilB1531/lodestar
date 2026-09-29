@@ -28,7 +28,7 @@ public static class RootMeanSquaredLogError
     /// </remarks>
     /// <exception cref="ArgumentException">
     /// A length disagrees with the shape, the input is empty, it holds a
-    /// non-finite value, or either array holds a value at or below −1.
+    /// non-finite value, or either array holds a value at or below −1; or output weights meet a single output (#1533), or the sample weights sum to zero (#1273).
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
     public static double Score(
@@ -52,7 +52,7 @@ public static class RootMeanSquaredLogError
     /// <returns>A fresh array of <paramref name="outputCount"/> entries, in column order.</returns>
     /// <exception cref="ArgumentException">
     /// A length disagrees with the shape, the input is empty, it holds a
-    /// non-finite value, or either array holds a value at or below −1.
+    /// non-finite value, or either array holds a value at or below −1; or the sample weights sum to zero (#1273).
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
     public static double[] PerOutput(

@@ -21,7 +21,7 @@ public static class MedianAbsoluteError
     /// <param name="outputCount">How many outputs each row holds. One, the default, is the ordinary case.</param>
     /// <param name="sampleWeight">A weight per sample — per <em>row</em>, not per value. Omit to weight every sample by 1.</param>
     /// <param name="outputWeights">A weight per output (<c>multioutput=[…]</c>). Omit for <c>multioutput="uniform_average"</c>.</param>
-    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value.</exception>
+    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value; or output weights meet a single output (#1533).</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
     public static double Score(
         ReadOnlySpan<double> yTrue,
@@ -30,7 +30,8 @@ public static class MedianAbsoluteError
         ReadOnlySpan<double> sampleWeight = default,
         ReadOnlySpan<double> outputWeights = default)
     {
-        int samples = Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, outputWeights);
+        // Its weighted percentile never divides by the total, so a zero-sum vector scores, as the reference's does (#1273).
+        int samples = Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, outputWeights, WeightRules.OutputWeightsNeedOutputs);
         return Outputs.Reduce(Compute(yTrue, yPred, outputCount, sampleWeight, samples), outputWeights);
     }
 
@@ -50,7 +51,7 @@ public static class MedianAbsoluteError
         int outputCount = 1,
         ReadOnlySpan<double> sampleWeight = default)
     {
-        int samples = Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, default);
+        int samples = Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, default, WeightRules.OutputWeightsNeedOutputs);
         return Compute(yTrue, yPred, outputCount, sampleWeight, samples);
     }
 

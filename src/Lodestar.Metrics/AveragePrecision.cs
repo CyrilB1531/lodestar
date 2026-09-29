@@ -24,13 +24,22 @@ public static class AveragePrecision
     /// that recall is taken as one for all thresholds and returns that, and this
     /// reproduces the value rather than refusing the input.
     /// </returns>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, contain a score that is not finite, or every weight is zero, which the reference refuses too (#1477).</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, contain a score that is not finite, or every weight is zero, which the reference refuses too (#1477); <paramref name="yTrue"/> holds more than two labels, or two without <paramref name="posLabel"/> (#1277).</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yScore,
         int posLabel = 1,
-        ReadOnlySpan<double> sampleWeight = default) =>
-        BinaryRoc.AveragePrecision(yTrue, yScore, posLabel, sampleWeight);
+        ReadOnlySpan<double> sampleWeight = default)
+    {
+        // Read off the labels present, not their weights, as average_precision_score reads them (#1277).
+        if (!yTrue.IsEmpty)
+        {
+            PositiveLabel.RequireAtMostTwo(yTrue, "Score a label matrix with the multilabel overload.", nameof(yTrue));
+            PositiveLabel.RequireAmongTwo(yTrue, posLabel, nameof(posLabel));
+        }
+
+        return BinaryRoc.AveragePrecision(yTrue, yScore, posLabel, sampleWeight);
+    }
 
     /// <summary>
     /// The multilabel case — <c>average_precision_score(y_true, y_score, average=…, sample_weight=…)</c>
@@ -134,7 +143,6 @@ public static class AveragePrecision
     private static double Weighted(
         ReadOnlySpan<bool> yTrue, ReadOnlySpan<double> yScore, int labelCount, ReadOnlySpan<double> sampleWeight)
     {
-        double[] scores = PerLabelScores(yTrue, yScore, labelCount, sampleWeight);
         int rows = yTrue.Length / labelCount;
         var weights = new double[labelCount];
         double total = 0.0;
@@ -152,14 +160,14 @@ public static class AveragePrecision
             }
         }
 
-        // No label carries a positive sample, so there is nothing to weight by and
-        // the reference returns zero rather than dividing.
-#pragma warning disable S1244
-        if (total == 0.0)
+        // _average_binary_score returns 0 when the weighted positives are close to zero, before scoring a label, so
+        // an all-zero or cancelling weight vector answers 0 rather than a refusal or a division (#1534).
+        if (Math.Abs(total) <= MultiClassRoc.ZeroTotalTolerance)
         {
             return 0.0;
         }
-#pragma warning restore S1244
+
+        double[] scores = PerLabelScores(yTrue, yScore, labelCount, sampleWeight);
 
         double sum = 0.0;
         for (int label = 0; label < labelCount; label++)
