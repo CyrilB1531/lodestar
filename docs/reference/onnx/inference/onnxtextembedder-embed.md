@@ -17,8 +17,14 @@ them. `attentionMask` is the same length, `1` for a real token and `0` for paddi
 [`MaxSequenceLength`](onnxtextembedder.md) — a fixed sequence axis or the position-embedding table,
 refused here rather than failing inside the graph
 ([#1423](https://github.com/CyrilB1531/lodestar/issues/1423)); and when a static export's fixed
-batch and sequence make one chunk larger than one array, refused before allocating it
-([#1555](https://github.com/CyrilB1531/lodestar/issues/1555)).
+batch and sequence make one chunk more than `Array.MaxLength` cells, refused before allocating it
+([#1555](https://github.com/CyrilB1531/lodestar/issues/1555)). Below that bound the chunk is
+allocated: 8 bytes a cell for the ids, 8 for the mask and 8 more for the token types of a model
+that declares them, then 4 × the dimension a cell for the output ONNX Runtime returns. An export
+declaring axes near the bound can exhaust memory before any refusal, and on .NET Framework, where
+one object stops at 2 GB unless `gcAllowVeryLargeObjects` is set, from about 268 million cells, a
+`long[]` stopping at `0x7FEFFFFF` elements even when it is set
+([#1582](https://github.com/CyrilB1531/lodestar/issues/1582)).
 `InvalidOperationException` when the model output is not `[batch, sequence, dim]` (or `[batch, dim]`,
 pooled by the graph) for the batch it was fed, or declares its axes as the input's two swapped, which
 sizes alone miss when the batch is as long as the sequence
