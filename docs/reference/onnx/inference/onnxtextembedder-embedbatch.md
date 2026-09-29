@@ -30,7 +30,8 @@ position-embedding table — naming `options`, `encoder` or `batch`
 ([#1423](https://github.com/CyrilB1531/lodestar/issues/1423)).
 `InvalidOperationException` from the overload taking only texts, when the
 embedder was built without a tokenizer: the other two overloads are the way to supply one. All
-three throw it when the model output is not shaped for the batch it was fed, and `NotSupportedException` when its elements
+three throw it when the model output is not shaped for the batch it was fed, or declares its first two
+axes as the input's two swapped ([#1424](https://github.com/CyrilB1531/lodestar/issues/1424)), and `NotSupportedException` when its elements
 are not float, float16 or bfloat16, as [`Embed`](onnxtextembedder-embed.md) does.
 `OperationCanceledException` when `cancellationToken` is already cancelled, or is cancelled
 between sub-batches. `ObjectDisposedException` after

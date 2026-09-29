@@ -89,7 +89,7 @@ public sealed class OutputContractTests
         Assert.Contains("declared axes", error.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>An output whose axes are as the input names them runs, at every batch size.</summary>
+    /// <summary>An output whose axes are as the input names them runs; one sample is enough to show it is not refused.</summary>
     [Fact]
     public void An_output_declared_batch_first_is_not_refused()
     {

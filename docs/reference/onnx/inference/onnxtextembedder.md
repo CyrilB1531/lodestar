@@ -18,12 +18,16 @@ null, it is the model's only output, else the first of `last_hidden_state`, `tok
 text overloads of [`EmbedBatch`](onnxtextembedder-embedbatch.md) encode with. Either throws
 `ArgumentNullException` for a null path, tokenizer or input name, before the model opens, and
 `ArgumentException` when the model declares no input or output under a name given; the session is
-released on the way out ([#1427](https://github.com/CyrilB1531/lodestar/issues/1427)).
+released on the way out ([#1427](https://github.com/CyrilB1531/lodestar/issues/1427)). A missing file,
+or one ONNX Runtime cannot read as a model, fails with its `OnnxRuntimeException`
+([#1524](https://github.com/CyrilB1531/lodestar/issues/1524)).
 Constructing it loads the model, which is why this type is the one place in Lodestar that needs a
 file you supply.
 
 **Properties** — `Dimension` is the width of the vectors the model produces, read from the output's
-last axis: `-1` when that axis is symbolic, or when the output declares none. `MaxSequenceLength`
+last axis: `-1` when that axis is symbolic, or when the output declares none. Read after
+[`Dispose`](onnxtextembedder-dispose.md), it throws `ObjectDisposedException`, as every other member
+does ([#1521](https://github.com/CyrilB1531/lodestar/issues/1521)). `MaxSequenceLength`
 is the longest input, in tokens, the model takes: its declared sequence axis when fixed, else
 the positions its position-embedding table can index, read from the graph once at construction
 (a RoBERTa-style table of 514 rows reads 512); null when it has neither. It is what
