@@ -29,19 +29,18 @@ CsrMatrix back = MathNetInterop.ToCsrMatrix(sparse);
 int stored = back.NonZeroCount;            // => 3
 ```
 
-**Remarks** — the two sides agree on the layout, so a conversion moves three arrays rather than
-visiting `rows × columns` cells. Neither result shares an array with its source: Math.NET's storage
+**Remarks** — the two sides agree on the layout, so a compressed-row matrix moves as three arrays
+rather than `rows × columns` cells; a dense or diagonal Math.NET matrix is walked over what it
+stores. Neither result shares an array with its source: Math.NET's storage
 is mutable through `At`, and a shared buffer would let a write on one matrix move the other.
 
 **One asymmetry is worth knowing.** `CsrMatrix` validates four things — the row pointers start at
 zero, do not decrease, end at the stored count, and every column index is in range — and says
 nothing about the **order** of column indices within a row, about explicit zeros, or about a column
-appearing twice. Math.NET reaches a cell by searching the row, which assumes the order. So
-[`MathNetInterop.ToSparseMatrix`](mathnetinterop-tosparsematrix.md) sorts each row and adds
-duplicate columns together, after a pass that detects the already-sorted case and copies straight
-through — the case every vectorizer in this repository produces.
-[`decisions/0003`](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
-records why it repairs rather than refuses.
+appearing twice. Math.NET reaches a cell by searching the row, which assumes the order, and its own
+compressed-row factory establishes it: it sorts each row of its copy and adds duplicate columns
+together, so [`MathNetInterop.ToSparseMatrix`](mathnetinterop-tosparsematrix.md) hands any valid
+`CsrMatrix` over as it is.
 
 **Applies to** — net10.0, netstandard2.0.
 

@@ -45,7 +45,7 @@ counterpart, with every deliberate divergence.
 
 ## Dependencies
 
-A interop package ([decision 0003](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)),
+An interop package ([decision 0003](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)),
 built for `net10.0` and `netstandard2.0`:
 
 - `Lodestar.Embeddings` 0.8.0 or later

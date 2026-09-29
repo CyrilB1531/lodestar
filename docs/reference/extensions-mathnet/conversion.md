@@ -5,8 +5,9 @@ Math.NET Numerics' sparse matrix, so a caller who already holds Math.NET types c
 [`Lodestar.Decomposition`](../decomposition/factorization.md) and the sparse vectorizers without
 rebuilding a matrix cell by cell.
 
-Both sides store a matrix in compressed sparse row form and both expose those arrays, so each
-direction is one pass over the stored values rather than a walk over every cell. That is the whole
+Both sides store a sparse matrix in compressed sparse row form and both expose those arrays, so a
+sparse matrix crosses in either direction as a copy of its stored values rather than a walk over
+every cell; a dense or diagonal Math.NET matrix costs what it stores. That is the whole
 reason this package is worth installing: the conversion anyone can write by hand is the slow one.
 
 ## Why this package exists at all

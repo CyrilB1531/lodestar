@@ -11,7 +11,7 @@ namespace Lodestar.Extensions.MathNet.Tests;
 /// </summary>
 /// <remarks>
 /// No oracle corpus: there is no Python call this maps to, and the arithmetic is a
-/// copy. What is pinned instead is the invariant gap decision 0003 records —
+/// copy. What is pinned instead is the invariant gap between the two types —
 /// <c>CsrMatrix</c> promises no column order, Math.NET searches the row, so the
 /// unsorted and duplicate-column cases are facts here rather than assumptions.
 /// </remarks>
@@ -80,10 +80,10 @@ public sealed class MathNetInteropTests
     }
 
     /// <summary>
-    /// The fact decision 0003 turns on. <c>CsrMatrix</c> validates four things and the
-    /// order of column indices is not among them, so a hand-built matrix may hand over a
-    /// row in any order — and Math.NET reaches a cell by searching that row. Without the
-    /// sort this returns zeros for cells that hold values, silently.
+    /// <c>CsrMatrix</c> validates four things and the order of column indices is not among
+    /// them, so a hand-built matrix may hand over a row in any order — and Math.NET reaches
+    /// a cell by searching that row. Its factory sorts the copy; a release that stopped
+    /// would return zeros here for cells that hold values (#1402).
     /// </summary>
     [Fact]
     public void A_row_whose_columns_are_out_of_order_converts_correctly()
@@ -124,6 +124,27 @@ public sealed class MathNetInteropTests
         Assert.Equal(1.0, converted.At(0, 0));
         Assert.Equal(7.0, converted.At(0, 1));
         Assert.Equal(0.0, converted.At(0, 2));
+    }
+
+    /// <summary>
+    /// A compressed-row matrix is copied as it stands, so an explicit zero survives the
+    /// round trip, where the dense and diagonal walks drop one (#1403).
+    /// </summary>
+    [Fact]
+    public void An_explicit_zero_survives_the_compressed_row_round_trip()
+    {
+        var withZero = new CsrMatrix(
+            rowCount: 2,
+            columnCount: 3,
+            values: [0.0, 4.0, 5.0],
+            columnIndices: [0, 2, 1],
+            rowPointers: [0, 2, 3]);
+
+        CsrMatrix back = MathNetInterop.ToCsrMatrix(MathNetInterop.ToSparseMatrix(withZero));
+
+        Assert.Equal(withZero.Values, back.Values);
+        Assert.Equal(withZero.ColumnIndices, back.ColumnIndices);
+        Assert.Equal(withZero.RowPointers, back.RowPointers);
     }
 
     /// <summary>

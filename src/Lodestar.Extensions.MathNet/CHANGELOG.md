@@ -9,6 +9,11 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 - The `Lodestar.Abstractions` dependency floor rises from 0.1.1 to 0.2.0. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
 - `MathNetInterop.ToCsrMatrix` walks a diagonal matrix over its diagonal and a dense one over its own array, 86 to 330 times faster on a diagonal and 2.4 times on a 4,000-square dense matrix, where it read every cell. ([#1220](https://github.com/CyrilB1531/lodestar/issues/1220))
+- `MathNetInterop.ToSparseMatrix` leaves sorting each row and adding duplicate columns to Math.NET's own compressed-row factory, which already did both on its copy. ([#1402](https://github.com/CyrilB1531/lodestar/issues/1402))
+
+### Fixed
+
+- The package's README, remarks and reference pages say which conversions copy three arrays and which walk a storage, which keep an explicit zero, and cite no decision for what it does not record. ([#1403](https://github.com/CyrilB1531/lodestar/issues/1403), [#1404](https://github.com/CyrilB1531/lodestar/issues/1404), [#1405](https://github.com/CyrilB1531/lodestar/issues/1405), [#1406](https://github.com/CyrilB1531/lodestar/issues/1406), [#1407](https://github.com/CyrilB1531/lodestar/issues/1407), [#1408](https://github.com/CyrilB1531/lodestar/issues/1408))
 
 ## [0.1.0] — 2026-09-10
 
