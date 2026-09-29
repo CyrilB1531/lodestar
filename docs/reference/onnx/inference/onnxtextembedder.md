@@ -8,10 +8,22 @@ Runs an ONNX sentence-transformer and returns one vector per text.
 public sealed class OnnxTextEmbedder : IDisposable
 ```
 
-**Constructor** — takes the path to an ONNX model. Constructing it loads that model, which is why
-this type is the one place in Lodestar that needs a file you supply.
+**Constructors** — `OnnxTextEmbedder(modelPath, options, inputIdsName, attentionMaskName,
+tokenTypeIdsName, outputName)` opens the model at `modelPath`, with ONNX Runtime `SessionOptions`
+when given; the three input names default to `input_ids`, `attention_mask` and `token_type_ids`,
+the last fed only when the model declares it. `outputName` picks the token-embeddings output; left
+null, it is the model's only output, else the first of `last_hidden_state`, `token_embeddings`,
+`sentence_embedding` and `output` it declares, else the ordinally first name.
+`OnnxTextEmbedder(modelPath, tokenizer, …)` takes the same parameters and the `ISubwordTokenizer` the
+text overloads of [`EmbedBatch`](onnxtextembedder-embedbatch.md) encode with. Either throws
+`ArgumentNullException` for a null path, tokenizer or input name, before the model opens, and
+`ArgumentException` when the model declares no input or output under a name given; the session is
+released on the way out ([#1427](https://github.com/CyrilB1531/lodestar/issues/1427)).
+Constructing it loads the model, which is why this type is the one place in Lodestar that needs a
+file you supply.
 
-**Properties** — `Dimension` is the width of the vectors the model produces. `MaxSequenceLength`
+**Properties** — `Dimension` is the width of the vectors the model produces, read from the output's
+last axis: `-1` when that axis is symbolic, or when the output declares none. `MaxSequenceLength`
 is the longest input, in tokens, the model takes: its declared sequence axis when fixed, else
 the positions its position-embedding table can index, read from the graph once at construction
 (a RoBERTa-style table of 514 rows reads 512); null when it has neither. It is what
@@ -60,4 +72,4 @@ It is `IDisposable` and holds native resources: the model session outlives garba
 | --- | --- |
 | [`OnnxTextEmbedder.Dispose`](onnxtextembedder-dispose.md) | Release the native model session. |
 | [`OnnxTextEmbedder.Embed`](onnxtextembedder-embed.md) | One vector, from token ids you already have. |
-| [`OnnxTextEmbedder.EmbedBatch`](onnxtextembedder-embedbatch.md) | A vector per text, in one session run. |
+| [`OnnxTextEmbedder.EmbedBatch`](onnxtextembedder-embedbatch.md) | A vector per text: one session run per sub-batch of `BatchSize`, and per chunk of a static export's fixed batch axis. |

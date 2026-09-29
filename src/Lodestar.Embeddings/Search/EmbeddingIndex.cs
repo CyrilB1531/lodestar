@@ -129,6 +129,23 @@ public sealed partial class EmbeddingIndex
         return IdAt(index);
     }
 
+    /// <summary>Refuses a query holding a NaN or an infinity.</summary>
+    /// <remarks>
+    /// A NaN scores NaN against every item and ranks as a tie, so the result looks like a ranking and is none;
+    /// <see cref="Mmr"/> and the persisted artifact already refuse it (#1434).
+    /// </remarks>
+    private static void RefuseNonFinite(ReadOnlySpan<float> query)
+    {
+        for (int component = 0; component < query.Length; component++)
+        {
+            if (float.IsNaN(query[component]) || float.IsInfinity(query[component]))
+            {
+                throw new ArgumentException(
+                    $"The query holds a non-finite value at component {component}, which scores no item.", nameof(query));
+            }
+        }
+    }
+
     /// <summary>The id at <paramref name="index"/>, unchecked, tolerating a short id buffer.</summary>
     /// <remarks>
     /// The buffer stops at the last item that was given an id, so positions past it
@@ -138,7 +155,7 @@ public sealed partial class EmbeddingIndex
         _ids is not null && index < _ids.Length ? _ids[index] : null;
 
     /// <summary>Returns the <paramref name="k"/> most similar items to <paramref name="query"/>, best first.</summary>
-    /// <exception cref="ArgumentException"><paramref name="query"/> is not <see cref="Dimension"/> long.</exception>
+    /// <exception cref="ArgumentException"><paramref name="query"/> is not <see cref="Dimension"/> long, or holds a NaN or infinite component.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="k"/> is below 1.</exception>
     public IReadOnlyList<SearchResult> Search(ReadOnlySpan<float> query, int k)
     {
@@ -147,6 +164,8 @@ public sealed partial class EmbeddingIndex
             throw new ArgumentException($"query length {query.Length} != dimension {_dim}.", nameof(query));
         }
         Guard.NotLessThan(k, 1);
+
+        RefuseNonFinite(query);
 
         float[]? owned = null;
         ReadOnlySpan<float> q = query;

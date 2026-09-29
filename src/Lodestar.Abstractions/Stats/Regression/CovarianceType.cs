@@ -6,7 +6,7 @@ namespace Lodestar.Stats.Regression;
 /// unbiased and their standard errors stop being trustworthy. <strong>Choosing anything else
 /// also changes the distribution the tests are read against</strong>, as it does in
 /// <c>statsmodels</c>: the coefficients get <em>z</em> against the normal, the overall test keeps
-/// the F, and <c>OlsSummary.CovarianceType</c> says which was used. Decision 0004 has why
+/// the F, and <c>OlsSummary.CovarianceType</c> says which was used. Decision 0007 has why
 /// that asymmetry is reproduced rather than tidied (#686).
 /// </remarks>
 public enum CovarianceType

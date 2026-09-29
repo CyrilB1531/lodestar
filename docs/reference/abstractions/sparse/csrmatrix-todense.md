@@ -11,8 +11,10 @@ public double[,] ToDense()
 **Returns** — `double[,]` of `RowCount × ColumnCount`, every cell present, the stored values in
 their places and zeros everywhere else.
 
-**Exceptions** — `InvalidOperationException` when `RowCount × ColumnCount` exceeds the largest
-array the runtime allows, `0x7FFFFFC7` cells, rather than failing inside the allocation.
+**Exceptions** — `InvalidOperationException` when the matrix has more cells than a
+two-dimensional array holds — `uint.MaxValue` in all, `0x7FFFFFC7` along one side — rather than
+failing inside the allocation. A 50,000-square matrix is within that; it still needs 20 GB
+([#1412](https://github.com/CyrilB1531/lodestar/issues/1412)).
 
 **Example** — the cell that says `the` appears twice in the third document.
 
@@ -41,6 +43,8 @@ vector, [`Multiply`](csrmatrix-multiply.md) does it without densifying.
 
 A column stored twice in one row is written out as the sum of its entries, which is what
 [`Multiply`](csrmatrix-multiply.md) computes from the same row and what scipy's `toarray()` returns.
+
+A stored `NaN` or infinity is written out as it is, not refused, as `toarray()` writes it.
 
 **On .NET Framework the cap is lower.** The bound is .NET's `Array.MaxLength`; .NET Framework
 refuses a `double` array past 2 GB, or past `0x7FEFFFFF` elements under `gcAllowVeryLargeObjects`,

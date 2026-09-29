@@ -28,8 +28,10 @@ float[] vector = embedder.Embed(ids, mask);
 
 ## Parity
 
-Embeddings are replayed against the same model run through ONNX Runtime's Python
-binding.
+Embeddings are replayed against `batch_encoding.json`, whose ids come from HuggingFace `tokenizers`
+and whose vectors are float64 numpy arithmetic over the same embedding table the synthetic test
+model gathers from, computed by `tools/generate_oracles.py` — not a run of ONNX Runtime's Python
+binding. ONNX Runtime returns float32, so agreement with it is bounded by float32 precision.
 [`docs/equivalence.md`](https://github.com/CyrilB1531/lodestar/blob/main/docs/equivalence.md) maps each Python call to its C#
 counterpart, with every deliberate divergence.
 

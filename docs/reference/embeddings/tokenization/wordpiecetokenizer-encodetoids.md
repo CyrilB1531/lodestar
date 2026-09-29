@@ -13,6 +13,8 @@ public IReadOnlyList<int> EncodeToIds(string text)
 **Returns** — `IReadOnlyList<int>`, the same ids [`Encode`](wordpiecetokenizer-encode.md) would
 give.
 
+**Exceptions** — `ArgumentNullException` when `text` is null.
+
 **Example** — the ids of a two-word text.
 
 ```csharp

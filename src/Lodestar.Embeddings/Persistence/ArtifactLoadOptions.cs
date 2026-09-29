@@ -25,9 +25,9 @@ public sealed record ArtifactLoadOptions
     public long MaxTotalBytes { get; init; } = ArtifactLimits.DefaultMaxTotalBytes;
 
     /// <summary>
-    /// Maximum length of any single array in the source, except an
-    /// <c>EmbeddingIndex</c>'s vector block, which <see cref="MaxTotalBytes"/>
-    /// bounds instead. Default 1 000 000.
+    /// Maximum length of any single array in the source, except a vector block — an
+    /// <c>EmbeddingIndex</c>'s or a <c>.npy</c> file's, which <see cref="MaxTotalBytes"/>
+    /// bounds instead, since an embedding matrix is routinely past it (#1441). Default 1 000 000.
     /// </summary>
     public int MaxArrayLength { get; init; } = ArtifactLimits.DefaultMaxArrayLength;
 

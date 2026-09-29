@@ -37,19 +37,20 @@ TokenizationResult encoded = tokenizer.Encode("token");
 string text = tokenizer.Decode(encoded.Ids);  // => token
 ```
 
-**Exceptions** — `ArgumentOutOfRangeException` when an id falls outside the vocabulary.
+**Exceptions** — `ArgumentNullException` when the `IReadOnlyList<int>` overload's `ids` is null. `ArgumentOutOfRangeException` when an id falls outside the vocabulary.
 Decoding cannot silently skip one, since the caller would get back a shorter text than it
 asked for with nothing said about it. Nothing else on this path throws: a byte sequence that is
 not well-formed UTF-8 becomes U+FFFD rather than an exception, under whichever rule the file's own
-shape calls for. On the byte-level path it is one U+FFFD per maximal invalid subpart, which is what
-[decision 0007](../../../decisions/0007-the-deliberate-divergences.md) settled. On a
+shape calls for. On the byte-level path it is one U+FFFD per maximal invalid subpart. On a
 `byte_fallback` file's run of byte pieces it is one U+FFFD **per byte of the run** — HuggingFace's
-own `ByteFallback` rule, measured and reproduced by
-[decision 0007](../../../decisions/0007-the-deliberate-divergences.md).
+own `ByteFallback` rule, reproduced.
+[Decision 0007](../../../decisions/0007-the-deliberate-divergences.md) records why substituting
+rather than throwing is the reference's behaviour and not a divergence.
 
 **Remarks** — byte-level BPE round-trips **exactly**, and that is the property that makes decoding
-worth having: the vocabulary covers all 256 byte values through printable stand-ins, so emoji,
-mixed scripts and even malformed UTF-8 come back as they went in.
+worth having: the vocabulary covers all 256 byte values through printable stand-ins, so emoji and
+mixed scripts come back as they went in. The text must be well-formed UTF-16 to be encoded at all,
+and a declared normalizer changes it before encoding.
 
 **The SentencePiece-BPE lineage is the one qualified case, and only for a file declaring neither a
 `decoder` this package undoes nor `byte_fallback`.** Where the model declares the whitespace
@@ -63,8 +64,6 @@ records it. **For a file declaring `byte_fallback`, the chain is reproduced inst
 `ByteFallback` decoder undoes the byte pieces alone, and Llama-2's own `Sequence` of `[Replace,
 ByteFallback, Fuse, Strip]` undoes the byte pieces and the whitespace escape together, so
 `Decode(Encode(x))` is `x` again for such a file.
-[Decision 0007](../../../decisions/0007-the-deliberate-divergences.md)
-has the measurements.
 
 `skipSpecialTokens` is what you want when showing a generated sequence to a person, and not what
 you want when comparing against a reference that includes them.

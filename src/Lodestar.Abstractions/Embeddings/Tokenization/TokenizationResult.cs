@@ -1,6 +1,10 @@
 namespace Lodestar.Embeddings.Tokenization;
 
 /// <summary>The result of tokenizing a piece of text: the sub-word tokens and their vocabulary ids.</summary>
+/// <remarks>
+/// The lists are the tokenizer's own, taken and exposed as they are, not copied: writing to one through a
+/// cast changes this result and what it equals, and every holder of it, a <c>with</c> copy included (#1305).
+/// </remarks>
 public sealed record TokenizationResult(IReadOnlyList<string> Tokens, IReadOnlyList<int> Ids)
 {
     /// <summary>Compares the tokens and ids element by element.</summary>

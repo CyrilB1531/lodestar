@@ -29,6 +29,7 @@ public sealed partial class EmbeddingIndex
     /// <param name="destination">The stream to write to. Flushed but never disposed — the caller owns it.</param>
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
     /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="destination"/> is null.</exception>
     public void Save(Stream destination)
     {
         // Before the first byte: disposing the writer flushes the header, so a refusal
@@ -45,6 +46,7 @@ public sealed partial class EmbeddingIndex
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
     /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into.</exception>
     /// <exception cref="IOException">The file cannot be written.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
     public void Save(string path)
     {
         // Before opening: OpenWrite truncates, so a refused save would otherwise
@@ -65,6 +67,7 @@ public sealed partial class EmbeddingIndex
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
     /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="destination"/> is null.</exception>
     public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)
     {
         try
@@ -148,6 +151,7 @@ public sealed partial class EmbeddingIndex
     /// <param name="source">The stream to read from; never disposed by this method.</param>
     /// <param name="options">Bounds applied while reading, or <c>null</c> for the defaults.</param>
     /// <exception cref="InvalidDataException">The artifact is malformed, of the wrong kind, of an unsupported version, internally inconsistent, or exceeds a limit.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
     public static EmbeddingIndex Load(Stream source, ArtifactLoadOptions? options = null)
     {
         // Checked here rather than left to the readers below: the choice between them
@@ -203,6 +207,7 @@ public sealed partial class EmbeddingIndex
     /// <param name="path">The artifact file, as written by <see cref="Save(string)"/>.</param>
     /// <param name="options">Bounds applied while reading, or <c>null</c> for the defaults.</param>
     /// <exception cref="InvalidDataException">The artifact is malformed, of the wrong kind, of an unsupported version, internally inconsistent, or exceeds a limit.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
     public static EmbeddingIndex Load(string path, ArtifactLoadOptions? options = null)
     {
         using FileStream file = JsonArtifact.OpenRead(path);
@@ -215,6 +220,7 @@ public sealed partial class EmbeddingIndex
     /// <param name="cancellationToken">Cancels the read.</param>
     /// <exception cref="InvalidDataException">The artifact is malformed, of the wrong kind, of an unsupported version, internally inconsistent, or exceeds a limit.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
     public static Task<EmbeddingIndex> LoadAsync(
         Stream source,
         ArtifactLoadOptions? options = null,
@@ -441,7 +447,7 @@ public sealed partial class EmbeddingIndex
                 ArtifactName,
                 $"'{CountProperty}' is {itemCount} but '{IdsProperty}' holds {ids.Length} entries.");
         }
-        EnsureFinite(vectors, dim);
+        EnsureFinite(vectors, dim, loading: true);
 
         // AlreadyNormalized, never Normalize: a stored vector is restored exactly as it was
         // written, and normalizing a second time would move its bits.
@@ -454,9 +460,9 @@ public sealed partial class EmbeddingIndex
     }
 
     /// <summary>Throws unless every stored component is a finite number.</summary>
-    private void EnsureFinite() => EnsureFinite(_data.AsSpan(0, _length), _dim);
+    private void EnsureFinite() => EnsureFinite(_data.AsSpan(0, _length), _dim, loading: false);
 
-    private static void EnsureFinite(ReadOnlySpan<float> data, int dimension)
+    private static void EnsureFinite(ReadOnlySpan<float> data, int dimension, bool loading)
     {
         int i = 0;
 #if NET5_0_OR_GREATER
@@ -482,8 +488,9 @@ public sealed partial class EmbeddingIndex
             float value = data[i];
             if (float.IsNaN(value) || float.IsInfinity(value))
             {
+                // The one check serves both directions, so the message names the one that failed (#1450).
                 throw new InvalidDataException(
-                    $"Cannot persist a non-finite value at item {i / dimension}, component {i % dimension}. "
+                    $"Cannot {(loading ? "load" : "persist")} a non-finite value at item {i / dimension}, component {i % dimension}. "
                     + "Add accepts such a vector; the artifact does not, because it would score NaN "
                     + "for every query a reloaded index is ever given.");
             }

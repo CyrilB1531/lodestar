@@ -33,6 +33,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     private readonly int? _maxSequenceLength;
     private readonly int? _fixedSequence;
     private readonly int? _fixedBatch;
+    private readonly bool _axesSwapped;
     private bool _disposed;
 
     /// <summary>Opens an ONNX encoder model from <paramref name="modelPath"/>.</summary>
@@ -77,6 +78,7 @@ public sealed class OnnxTextEmbedder : IDisposable
             _fixedSequence = DeclaredSequenceLength(_session, _inputIdsName);
             _fixedBatch = DeclaredBatchSize(_session, _inputIdsName);
             _maxSequenceLength = _fixedSequence ?? PositionTable.UsableLength(modelPath, _inputIdsName);
+            _axesSwapped = AxesSwapped(_session, _inputIdsName, _outputName);
         }
         catch
         {
@@ -150,7 +152,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// </remarks>
     /// <param name="inputIds">Token ids.</param>
     /// <param name="attentionMask">Attention mask (same length as <paramref name="inputIds"/>).</param>
-    /// <exception cref="ArgumentException"><paramref name="inputIds"/> and <paramref name="attentionMask"/> differ in length, or are longer than the model's fixed sequence axis.</exception>
+    /// <exception cref="ArgumentException"><paramref name="inputIds"/> and <paramref name="attentionMask"/> differ in length, or are longer than <see cref="MaxSequenceLength"/>.</exception>
     /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed.</exception>
@@ -194,7 +196,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="options">Template, truncation and batching settings; <see langword="null"/> uses the defaults, with <c>MaxLength</c> taken from <see cref="MaxSequenceLength"/>.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="options"/> is refused by <see cref="BatchEncoder"/> or sets a <c>MaxLength</c> past the model's fixed sequence axis, or a text is refused, as one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/> is.</exception>
+    /// <exception cref="ArgumentException"><paramref name="options"/> is refused by <see cref="BatchEncoder"/> or sets a <c>MaxLength</c> past <see cref="MaxSequenceLength"/>, or a text is refused, as one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/> is.</exception>
     /// <exception cref="InvalidOperationException">The embedder was built without a tokenizer, or the model output is not shaped for the batch it was fed.</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
@@ -224,7 +226,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="encoder">The encoder that owns the tokenizer, template and truncation.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> or <paramref name="encoder"/> is null.</exception>
-    /// <exception cref="ArgumentException">The encoder refuses a text, as it refuses one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/>, or encodes one past the model's fixed sequence axis.</exception>
+    /// <exception cref="ArgumentException">The encoder refuses a text, as it refuses one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/>, or encodes one past <see cref="MaxSequenceLength"/>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
@@ -269,7 +271,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="batch">A batch from <see cref="BatchEncoder.EncodeBatch"/>.</param>
     /// <param name="cancellationToken">Observed before the call is made.</param>
     /// <exception cref="ArgumentNullException"><paramref name="batch"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="batch"/> is longer than the model's fixed sequence axis.</exception>
+    /// <exception cref="ArgumentException"><paramref name="batch"/> is longer than <see cref="MaxSequenceLength"/>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
@@ -307,15 +309,34 @@ public sealed class OnnxTextEmbedder : IDisposable
     private EncodingOptions ResolveOptions(EncodingOptions? options)
     {
         EncodingOptions resolved = options ?? new EncodingOptions();
-        if (_fixedSequence is int axis && resolved.MaxLength > axis)
+        if (_maxSequenceLength is int axis && resolved.MaxLength > axis)
         {
             throw new ArgumentException(
-                $"MaxLength {resolved.MaxLength} is past the model's fixed sequence axis of {axis}.", nameof(options));
+                $"MaxLength {resolved.MaxLength} is past the model's {LimitSource} of {axis}.", nameof(options));
         }
 
         return resolved.MaxLength is null && _maxSequenceLength is int limit
             ? resolved with { MaxLength = limit }
             : resolved;
+    }
+
+    /// <summary>What <see cref="MaxSequenceLength"/> was read from, for a refusal's message.</summary>
+    private string LimitSource => _fixedSequence is null ? "position-embedding table" : "fixed sequence axis";
+
+    /// <summary>Whether the output names its first two axes as the token-ids input names its two, swapped.</summary>
+    /// <remarks>
+    /// Sizes alone cannot tell <c>[seq, batch, dim]</c> from <c>[batch, seq, dim]</c> when the batch and the sequence
+    /// are as long; the names a dynamic export declares can (#1424). A fixed or unnamed axis says nothing.
+    /// </remarks>
+    private static bool AxesSwapped(InferenceSession session, string inputIdsName, string outputName)
+    {
+        string[] input = session.InputMetadata[inputIdsName].SymbolicDimensions;
+        string[] output = session.OutputMetadata[outputName].SymbolicDimensions;
+        return input.Length >= 2 && output.Length == 3
+            && !string.IsNullOrEmpty(input[0]) && !string.IsNullOrEmpty(input[1])
+            && !string.Equals(input[0], input[1], StringComparison.Ordinal)
+            && string.Equals(output[0], input[1], StringComparison.Ordinal)
+            && string.Equals(output[1], input[0], StringComparison.Ordinal);
     }
 
     /// <summary>The token-ids input's last axis, when fixed; a symbolic axis reads back negative.</summary>
@@ -378,11 +399,12 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// </remarks>
     private float[][] Run(long[] ids, long[] mask, int batchSize, int seqLen, string paramName)
     {
-        // A row past a fixed axis cannot be fed; refused under the caller's parameter rather than by the runtime.
-        if (_fixedSequence is int axis && seqLen > axis)
+        // A row past a fixed axis or the position table cannot be fed; refused under the caller's parameter rather
+        // than as an OnnxRuntimeException from inside the graph (#1423).
+        if (_maxSequenceLength is int axis && seqLen > axis)
         {
             throw new ArgumentException(
-                $"A sequence of {seqLen} tokens is past the model's fixed sequence axis of {axis}.", paramName);
+                $"A sequence of {seqLen} tokens is past the model's {LimitSource} of {axis}.", paramName);
         }
 
         int width = _fixedSequence is int fixedWidth && fixedWidth > seqLen ? fixedWidth : seqLen;
@@ -495,12 +517,13 @@ public sealed class OnnxTextEmbedder : IDisposable
                 "Pass outputName to select a different output.");
         }
         bool matches = shape[0] == batchSize && (shape.Length == 2 || shape[1] == seqLen);
-        if (!matches)
+        if (!matches || _axesSwapped)
         {
             string expected = shape.Length == 3 ? $"[{batchSize}, {seqLen}, dim]" : $"[{batchSize}, dim]";
+            string declared = _axesSwapped ? " Its declared axes put the sequence before the batch." : string.Empty;
             throw new InvalidOperationException(
                 $"The model output '{_outputName}' has shape [{string.Join(", ", shape)}] where {expected} was expected " +
-                $"for a batch of {batchSize} sequence(s) of {seqLen} token(s). " +
+                $"for a batch of {batchSize} sequence(s) of {seqLen} token(s).{declared} " +
                 "Pass outputName to select a different output.");
         }
     }

@@ -17,13 +17,17 @@ public sealed class EncodedBatch
     internal readonly long[] Ids;
     internal readonly long[] Mask;
 
+    private readonly int[] _lengths;
+
     internal EncodedBatch(long[] ids, long[] mask, int count, int sequenceLength, int[] lengths)
     {
         Ids = ids;
         Mask = mask;
         Count = count;
         SequenceLength = sequenceLength;
-        Lengths = lengths;
+        _lengths = lengths;
+        // A read-only view rather than the array: cast back to int[], it let a caller move what Sequence slices (#1452).
+        Lengths = Array.AsReadOnly(lengths);
     }
 
     /// <summary>Number of sequences in the batch.</summary>
@@ -38,17 +42,18 @@ public sealed class EncodedBatch
     /// <summary>Attention mask, row-major <c>[Count × SequenceLength]</c>: 1 for a real token, 0 for padding.</summary>
     public ReadOnlySpan<long> AttentionMask => Mask;
 
-    /// <summary>The unpadded length of each sequence, in batch order.</summary>
+    /// <summary>The unpadded length of each sequence, in batch order, as a read-only view no cast can write through.</summary>
     public IReadOnlyList<int> Lengths { get; }
 
     /// <summary>The ids of one sequence, without its padding.</summary>
     /// <param name="index">Position in the batch.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside the batch.</exception>
     public ReadOnlySpan<long> Sequence(int index)
     {
         if ((uint)index >= (uint)Count)
         {
             throw new ArgumentOutOfRangeException(nameof(index), index, $"The batch holds {Count} sequences.");
         }
-        return Ids.AsSpan(index * SequenceLength, Lengths[index]);
+        return Ids.AsSpan(index * SequenceLength, _lengths[index]);
     }
 }

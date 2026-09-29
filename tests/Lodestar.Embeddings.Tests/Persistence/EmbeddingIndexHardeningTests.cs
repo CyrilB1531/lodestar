@@ -127,7 +127,11 @@ public sealed class EmbeddingIndexHardeningTests
         BitConverter.GetBytes(float.NaN).CopyTo(raw, 0);
         string json = ReplaceVectors(Baseline(), Convert.ToBase64String(raw));
 
-        Assert.Contains("non-finite", Load(json).Message, StringComparison.Ordinal);
+        string message = Load(json).Message;
+
+        Assert.Contains("non-finite", message, StringComparison.Ordinal);
+        // The check shared with Save names the direction that failed (#1450).
+        Assert.StartsWith("Cannot load", message, StringComparison.Ordinal);
     }
 
     [Fact]

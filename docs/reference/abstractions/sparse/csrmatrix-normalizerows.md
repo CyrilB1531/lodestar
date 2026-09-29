@@ -46,6 +46,9 @@ A row that is entirely zero has no norm to divide by and is **left alone** rathe
 `NaN`. That is scikit-learn's choice too, and it is the reason an empty document does not poison a
 matrix.
 
+A row of finite values whose norm overflows to `+∞` is divided to zeros, as scikit-learn's
+`inplace_csr_row_normalize_l2` divides it.
+
 [`TfidfVectorizer`](../../text/vectorizers/tfidfvectorizer.md) already normalizes, by
 [`TfidfOptions.Norm`](../../text/vectorizers/tfidfoptions.md); calling this on its output with the same norm changes
 nothing beyond rounding, and with the other norm rescales every row.

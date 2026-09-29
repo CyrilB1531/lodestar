@@ -71,7 +71,7 @@ strictly: a bare `{"type": "ByteFallback"}` or a `Sequence` of exactly `[Replace
 Fuse, Strip]` in that order — Llama-2's own chain — undoes the byte pieces and, for the four-step
 form, the whitespace escape with them; any other shape is refused by name.
 [Decision 0007](../../../decisions/0007-the-deliberate-divergences.md)
-has the measurements and the refusal.
+has the refusal.
 
 `docs/decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md` has the parity scope — end to end for GPT-2 and the
 classic lineage, split-pattern only for Llama-3 and Qwen2 — and a known split divergence above the

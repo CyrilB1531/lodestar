@@ -130,6 +130,7 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     /// (<c>wordpiece_added_tokens.json</c>), raw stays case-sensitive, normalized does not.
     /// </remarks>
     /// <param name="text">The text to tokenize.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
     public TokenizationResult Encode(string text)
     {
         Guard.NotNull(text);
@@ -163,6 +164,7 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     }
 
     /// <summary>Tokenizes <paramref name="text"/> and returns only the token ids.</summary>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
     public IReadOnlyList<int> EncodeToIds(string text) => Encode(text).Ids;
 
     /// <summary>Looks up a literal vocabulary entry, added tokens included.</summary>
@@ -176,6 +178,7 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     /// </remarks>
     /// <param name="token">The token string.</param>
     /// <param name="id">Receives the id when the token is present.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="token"/> is null.</exception>
     public bool TryGetId(string token, out int id)
     {
         Guard.NotNull(token);

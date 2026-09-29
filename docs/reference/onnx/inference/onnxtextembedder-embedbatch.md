@@ -1,6 +1,7 @@
 # OnnxTextEmbedder.EmbedBatch
 
-A vector per text, in one session run.
+A vector per text: one session run per sub-batch of `BatchSize`, and per chunk of a static export's
+fixed batch axis.
 
 <!-- docs-declaration -->
 
@@ -10,8 +11,10 @@ public float[][] EmbedBatch(IEnumerable<string> texts, BatchEncoder encoder, Can
 public float[][] EmbedBatch(EncodedBatch batch, CancellationToken cancellationToken = default)
 ```
 
-**Parameters** — `texts` are the strings to embed. `options` tunes the encoding — padding,
-truncation, the maximum length. `encoder` is a `BatchEncoder`
+**Parameters** — `texts` are the strings to embed. `options` tunes the encoding — the special-token
+template, the truncation strategy, the maximum length, the batch size and whether to sort by
+length; padding is not an option: each sub-batch is padded to its own longest sequence, or to a static
+export's fixed axis. `encoder` is a `BatchEncoder`
 you have already configured, for when the model's tokenizer is not the default. `batch` is an
 `EncodedBatch` you encoded yourself. `cancellationToken`
 abandons the run.
@@ -22,7 +25,9 @@ abandons the run.
 `ArgumentException` when the encoder refuses a text — as it refuses one over `MaxLength` under
 `TruncationStrategy.None` — naming `texts`, or, from the overload taking `options`, when
 [`BatchEncoder`](../../embeddings/tokenization/batchencoder.md) refuses them; and when a sequence is
-past a static export's fixed sequence axis, naming `options`, `encoder` or `batch`.
+past [`MaxSequenceLength`](onnxtextembedder.md) — a static export's fixed sequence axis or the
+position-embedding table — naming `options`, `encoder` or `batch`
+([#1423](https://github.com/CyrilB1531/lodestar/issues/1423)).
 `InvalidOperationException` from the overload taking only texts, when the
 embedder was built without a tokenizer: the other two overloads are the way to supply one. All
 three throw it when the model output is not shaped for the batch it was fed, and `NotSupportedException` when its elements
@@ -68,7 +73,8 @@ with masked rows whose vectors are dropped; the vectors are the ones a dynamic e
 model gives ([#1258](https://github.com/CyrilB1531/lodestar/issues/1258)). A sequence past the fixed
 axis cannot be fed, and is refused rather than truncated: a `MaxLength` above it names `options`, an
 encoder producing one names `encoder`, a batch holding one names `batch`. The same holds for
-[`Embed`](onnxtextembedder-embed.md).
+[`Embed`](onnxtextembedder-embed.md), and for a sequence past the position-embedding table a
+dynamic export's `MaxSequenceLength` is read from.
 
 **Where a null `MaxLength` truncates.** The overload taking `EncodingOptions` takes it from
 [`MaxSequenceLength`](onnxtextembedder.md): the model's declared sequence axis when fixed, else the

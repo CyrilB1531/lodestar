@@ -33,6 +33,9 @@ double third = counts.RowL1Norm(2);   // => 5
 [`HashingVectorizer`](../../text/vectorizers/hashingvectorizer.md) with `AlternateSign` on produces them by design, and
 there the L1 norm is the total weight rather than a net one.
 
+A stored `NaN` or infinity is carried into the norm, not refused: the row's norm is then `NaN` or
+`+∞`.
+
 Dividing a row by this norm turns it into a distribution over terms, which is what
 [`NormalizeRows(SparseNorm.L1)`](csrmatrix-normalizerows.md) does.
 

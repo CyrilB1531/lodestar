@@ -9,8 +9,9 @@ namespace Lodestar.Abstractions.Tests;
 /// <summary>Decision 0003(e) on the assembly as compiled: no code in a data type — no logic, no validation (#1381 to #1386).</summary>
 /// <remarks>
 /// Read from the IL, as 0003 says it is: no method, accessor or non-public member the compiler did not write but a
-/// structural <c>Equals</c>/<c>GetHashCode</c>; no nested type; no interface body; constructors that only load,
-/// build the values their defaults name, call their base constructor and store. The shared helpers are named below.
+/// structural <c>Equals</c>/<c>GetHashCode</c>, whose own IL is read too (#1418); no nested type; no interface body;
+/// constructors that only load, build the values their defaults name, call their base constructor and store. Every
+/// namespace is scanned, a polyfill the compiler or PolySharp wrote aside (#1419). The shared helpers are named below.
 /// </remarks>
 public sealed class DataTypesCarryNoCodeTests
 {
@@ -49,6 +50,29 @@ public sealed class DataTypesCarryNoCodeTests
         "ldtoken", "ldsfld", "ldfld", "stfld", "stsfld", "initobj", "newarr", "stelem", "stelem.ref",
         "stelem.i1", "stelem.i2", "stelem.i4", "stelem.i8", "stelem.r4", "stelem.r8", "ldflda", "conv.i8", "conv.r4",
         "conv.r8", "call", "newobj",
+    };
+
+    /// <summary>
+    /// The instructions structural equality never needs: arithmetic but combining, ordering, a float constant, a throw.
+    /// <c>cgt.un</c> stays allowed: it is how C# compiles <c>x is not null</c>.
+    /// </summary>
+    private static readonly HashSet<string> NonStructuralOpCodes = new(StringComparer.Ordinal)
+    {
+        "sub", "sub.ovf", "sub.ovf.un", "div", "div.un", "rem", "rem.un", "neg", "clt", "clt.un", "cgt",
+        "ldc.r4", "ldc.r8", "throw", "rethrow", "newobj", "newarr", "localloc", "calli",
+    };
+
+    /// <summary>The types a structural <c>Equals</c>/<c>GetHashCode</c> may call into, beside the data types themselves.</summary>
+    private static readonly HashSet<string> EqualityCallees = new(StringComparer.Ordinal)
+    {
+        "System.Object", "System.Double", "System.Single", "System.Int32", "System.Int64", "System.Boolean",
+        "System.String", "System.Type", "System.HashCode", "System.Nullable`1", "System.Linq.Enumerable",
+        "System.Collections.Generic.EqualityComparer`1", "System.Collections.Generic.IReadOnlyList`1",
+        "System.Collections.Generic.IReadOnlyCollection`1", "System.Collections.Generic.IReadOnlyDictionary`2",
+        "System.Collections.Generic.IEnumerable`1", "System.Collections.Generic.IEnumerator`1",
+        "System.Collections.IEnumerator", "System.IDisposable", "System.Collections.Generic.KeyValuePair`2",
+        "System.StringComparer", "System.ReadOnlyMemory`1", "System.ReadOnlySpan`1", "System.MemoryExtensions",
+        "Lodestar.Internal.ValueEquality",
     };
 
     private static readonly Dictionary<short, OpCode> OpCodesByValue = typeof(OpCodes)
@@ -105,14 +129,51 @@ public sealed class DataTypesCarryNoCodeTests
         Assert.Equal("1", new Printed(1).ToString());
     }
 
+    [Fact]
+    public void Every_type_outside_Lodestar_is_one_the_compiler_or_a_polyfill_wrote()
+    {
+        string[] strays = [.. Abstractions.GetTypes()
+            .Where(type => !type.IsNested && !IsLodestars(type) && !IsWrittenForUs(type))
+            .Select(type => type.FullName!)];
+
+        Assert.Empty(strays);
+    }
+
+    [Fact]
+    public void The_scan_refuses_an_equality_that_is_not_structural()
+    {
+        Assert.Contains(Offences(typeof(Tolerant)), offence => offence.EndsWith(".Equals", StringComparison.Ordinal));
+        Assert.Contains(Offences(typeof(Refusing)), offence => offence.EndsWith(".Equals", StringComparison.Ordinal));
+        Assert.Contains(Offences(typeof(Hasher)), offence => offence.EndsWith(".GetHashCode", StringComparison.Ordinal));
+        Assert.True(new Tolerant(1.0).Equals(new Tolerant(1.0)));
+        Assert.Throws<InvalidOperationException>(() => new Refusing().Equals(null));
+        Assert.Equal(2, Hasher.GetHashCode([1.0, 2.0]));
+    }
+
     private static IEnumerable<Type> DataTypes() =>
-        Abstractions.GetTypes().Where(type => type.Namespace is { } space
-            // Lodestar's own: netstandard2.0 also compiles PolySharp's System.* polyfills in.
-            && space.StartsWith("Lodestar.", StringComparison.Ordinal)
-            && space != "Lodestar.Internal"
+        Abstractions.GetTypes().Where(type => IsLodestars(type)
+            && type.Namespace != "Lodestar.Internal"
             && !type.IsNested
             && !SparsePrimitive.Contains(type.FullName!)
             && !type.IsEnum);
+
+    /// <summary>A type in a namespace of Lodestar's, the root and the global namespace included (#1419).</summary>
+    private static bool IsLodestars(Type type) =>
+        !IsWrittenForUs(type) && (type.Namespace is null or "Lodestar"
+            || type.Namespace.StartsWith("Lodestar.", StringComparison.Ordinal));
+
+    /// <summary>
+    /// A type the compiler emits (<c>&lt;Module&gt;</c>, <c>&lt;PrivateImplementationDetails&gt;</c>, an embedded
+    /// attribute), a polyfill PolySharp writes into the netstandard2.0 build, which it marks as generated code, or the
+    /// tracker Microsoft Code Coverage injects when CI collects coverage, as it injects the probes skipped below.
+    /// </summary>
+    private static bool IsWrittenForUs(Type type) =>
+        type.Name.StartsWith('<')
+        || (type.Namespace?.StartsWith("Microsoft.CodeCoverage", StringComparison.Ordinal) ?? false)
+        || IsCompilerGenerated(type)
+        || type.GetCustomAttributesData().Any(attribute =>
+            attribute.AttributeType.FullName is "System.CodeDom.Compiler.GeneratedCodeAttribute"
+                or "Microsoft.CodeAnalysis.EmbeddedAttribute");
 
     private static IEnumerable<string> Offences(Type type) =>
         type.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic).Select(nested => nested.FullName!)
@@ -164,7 +225,7 @@ public sealed class DataTypesCarryNoCodeTests
     {
         if (method.Name is nameof(Equals) or nameof(GetHashCode))
         {
-            return method.IsPublic;
+            return IsStructuralEquality(method);
         }
 
         // A local function or lambda compiles to a '<'-named method on the type itself: never allowed.
@@ -177,6 +238,65 @@ public sealed class DataTypesCarryNoCodeTests
         // public, anywhere.
         return (RecordMembers.Contains(method.Name) && IsCompilerGenerated(method))
             || (method.IsPublic && method.IsSpecialName && IsCompilerGenerated(method));
+    }
+
+    /// <summary>
+    /// A public instance <c>Equals(object)</c>, <c>Equals</c> of this type or a base, or <c>GetHashCode()</c>, whose IL
+    /// compares and combines what it reads and nothing else: no arithmetic beyond combining a hash, no ordering, no float
+    /// constant, no throw, no allocation, and calls only into the types <see cref="EqualityCallees"/> names or this
+    /// assembly's own data types (#1418).
+    /// </summary>
+    private static bool IsStructuralEquality(MethodInfo method)
+    {
+        Type type = method.DeclaringType!;
+        ParameterInfo[] parameters = method.GetParameters();
+        bool shaped = method.IsPublic && !method.IsStatic && (method.Name == nameof(GetHashCode)
+            ? parameters.Length == 0 && method.ReturnType == typeof(int)
+            : parameters is [{ } other] && method.ReturnType == typeof(bool)
+                && (other.ParameterType == typeof(object) || other.ParameterType.IsAssignableFrom(type)));
+        if (!shaped)
+        {
+            return false;
+        }
+
+        byte[] il = method.GetMethodBody()?.GetILAsByteArray() ?? [];
+        for (int at = 0; at < il.Length;)
+        {
+            OpCode code = Decode(il, at);
+            int operandAt = at + code.Size;
+            if (IsCoverageProbe(method, il, at, out int probeEnd))
+            {
+                at = probeEnd;
+                continue;
+            }
+
+            if (NonStructuralOpCodes.Contains(code.Name!)
+                || (code.OperandType == OperandType.InlineMethod
+                    && !IsEqualityCallee(Resolve(method, BitConverter.ToInt32(il, operandAt)))))
+            {
+                return false;
+            }
+
+            at = operandAt + OperandSize(code, il, operandAt);
+        }
+
+        return true;
+    }
+
+    private static bool IsEqualityCallee(MethodBase callee)
+    {
+        Type? declaring = callee.DeclaringType;
+        if (declaring is null)
+        {
+            return false;
+        }
+
+        string name = (declaring.IsGenericType ? declaring.GetGenericTypeDefinition() : declaring).FullName ?? string.Empty;
+        return EqualityCallees.Contains(name)
+            || name.StartsWith("System.ValueTuple`", StringComparison.Ordinal)
+            || (declaring.Assembly == Abstractions && !SparsePrimitive.Contains(name) && declaring.Namespace != "Lodestar.Internal"
+                && (callee.Name is nameof(Equals) or nameof(GetHashCode) or "op_Equality" or "op_Inequality"
+                    || callee.Name.StartsWith("get_", StringComparison.Ordinal)));
     }
 
     /// <summary>Whether a constructor only stores what it is given or what the type's defaults name.</summary>
@@ -218,7 +338,7 @@ public sealed class DataTypesCarryNoCodeTests
     /// collects coverage: <c>ldsfld Tracker::Begin; ldc.i4 n; add; ldc.i4.1; stind.i1</c>, recognised whole and nothing
     /// else, so the scan reads the constructor the compiler wrote.
     /// </summary>
-    private static bool IsCoverageProbe(ConstructorInfo constructor, byte[] il, int at, out int end)
+    private static bool IsCoverageProbe(MethodBase constructor, byte[] il, int at, out int end)
     {
         end = at;
         OpCode first = Decode(il, at);
@@ -281,8 +401,8 @@ public sealed class DataTypesCarryNoCodeTests
             || callee is MethodInfo { Name: "InitializeArray", DeclaringType.FullName: "System.Runtime.CompilerServices.RuntimeHelpers" };
     }
 
-    /// <summary>A method token read in its constructor's generic context, so a generic data type does not throw.</summary>
-    private static MethodBase Resolve(ConstructorInfo constructor, int token)
+    /// <summary>A method token read in its method's generic context, so a generic data type does not throw.</summary>
+    private static MethodBase Resolve(MethodBase constructor, int token)
     {
         Type declaring = constructor.DeclaringType!;
         return constructor.Module.ResolveMethod(
@@ -326,6 +446,33 @@ public sealed class DataTypesCarryNoCodeTests
     private sealed record Printed(int Value)
     {
         public override string ToString() => $"{Value}";
+    }
+
+    /// <summary>An <c>Equals</c> that compares within a tolerance: numerical logic, not structure.</summary>
+    private sealed class Tolerant(double value)
+    {
+        public double Value { get; } = value;
+
+        public override bool Equals(object? obj) => obj is Tolerant other && Math.Abs(Value - other.Value) < 1e-9;
+
+        public override int GetHashCode() => 0;
+    }
+
+    /// <summary>An <c>Equals</c> that validates by throwing.</summary>
+    private sealed class Refusing
+    {
+        // S3877, CA1065: the throw is the very thing this probe exists to put in front of the scan.
+#pragma warning disable S3877, CA1065
+        public override bool Equals(object? obj) => obj is null ? throw new InvalidOperationException() : ReferenceEquals(this, obj);
+#pragma warning restore S3877, CA1065
+
+        public override int GetHashCode() => 0;
+    }
+
+    /// <summary>A static utility that only borrows the name <c>GetHashCode</c>.</summary>
+    private static class Hasher
+    {
+        public static int GetHashCode(double[] values) => values.Length;
     }
 
     /// <summary>A type with each kind of code the scan must see.</summary>

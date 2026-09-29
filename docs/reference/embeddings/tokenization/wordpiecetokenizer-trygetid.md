@@ -13,6 +13,8 @@ applies. `id` receives the token's id, or `0` when the lookup fails.
 
 **Returns** — `bool`, true when found; `id` is the id then and `0` otherwise.
 
+**Exceptions** — `ArgumentNullException` when `token` is null.
+
 **Example** — a whole word and a continuation piece.
 
 ```csharp

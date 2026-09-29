@@ -13,7 +13,7 @@ public class PairRanksTests
     public void A_pair_and_its_mirror_keep_separate_ranks()
     {
         // (1, 2), (2, 1) and (0, 3) share the exclusive or long.GetHashCode reduced them to.
-        var ranks = new PairRanks(3);
+        var ranks = new PairRanks(3, "pairs");
         ranks.Set(1, 2, 0);
         ranks.Set(2, 1, 1);
         ranks.Set(0, 3, 2);
@@ -28,7 +28,7 @@ public class PairRanksTests
     [Fact]
     public void Setting_a_pair_again_replaces_its_rank()
     {
-        var ranks = new PairRanks(2);
+        var ranks = new PairRanks(2, "pairs");
         ranks.Set(5, 7, 0);
         ranks.Set(5, 7, 1);
 
@@ -40,7 +40,7 @@ public class PairRanksTests
     public void A_table_filled_to_its_sizing_finds_every_pair_and_no_other()
     {
         const int Pairs = 5000;
-        var ranks = new PairRanks(Pairs);
+        var ranks = new PairRanks(Pairs, "pairs");
         for (int i = 0; i < Pairs; i++)
         {
             ranks.Set(i, Pairs - i, i);
@@ -57,6 +57,15 @@ public class PairRanksTests
     [Fact]
     public void An_empty_table_finds_nothing()
     {
-        Assert.False(new PairRanks(0).TryGetRank(0, 0, out _));
+        Assert.False(new PairRanks(0, "pairs").TryGetRank(0, 0, out _));
+    }
+
+    /// <summary>Past 2^29 pairs the table cannot be half full in one array: refused, where the sizing loop never exited (#1435).</summary>
+    [Fact]
+    public void A_merge_count_past_the_largest_table_is_refused_rather_than_looping()
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(() => new PairRanks(PairRanks.MaxPairs + 1, "vocabulary"));
+
+        Assert.Equal("vocabulary", error.ParamName);
     }
 }

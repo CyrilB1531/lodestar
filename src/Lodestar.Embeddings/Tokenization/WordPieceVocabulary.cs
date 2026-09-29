@@ -84,18 +84,7 @@ public sealed record WordPieceVocabulary(
         {
             return false;
         }
-        if (Vocab is null || other.Vocab is null)
-        {
-            return Vocab is null && other.Vocab is null;
-        }
-        foreach (KeyValuePair<string, int> entry in Vocab)
-        {
-            if (!other.Vocab.TryGetValue(entry.Key, out int id) || id != entry.Value)
-            {
-                return false;
-            }
-        }
-        return true;
+        return MapEquality.SameEntries(Vocab, other.Vocab);
     }
 
     /// <summary>Hashes the scalars and the entry count, which is O(1).</summary>

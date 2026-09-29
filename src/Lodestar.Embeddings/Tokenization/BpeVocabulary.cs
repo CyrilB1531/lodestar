@@ -222,7 +222,7 @@ public sealed record BpeVocabulary(
         {
             return false;
         }
-        return Vocab is null || other.Vocab is null ? Vocab is null && other.Vocab is null : SameEntries(Vocab, other.Vocab);
+        return MapEquality.SameEntries(Vocab, other.Vocab);
     }
 
     /// <summary>Hashes the scalars and the counts, which is O(1) and consistent with equality.</summary>
@@ -305,16 +305,4 @@ public sealed record BpeVocabulary(
                 && left.ByteFallback == right.ByteFallback
                 && left.MetaspaceReplacement == right.MetaspaceReplacement
                 && left.StripLeadingSpace == right.StripLeadingSpace;
-
-    private static bool SameEntries(IReadOnlyDictionary<string, int> left, IReadOnlyDictionary<string, int> right)
-    {
-        foreach (KeyValuePair<string, int> entry in left)
-        {
-            if (!right.TryGetValue(entry.Key, out int id) || id != entry.Value)
-            {
-                return false;
-            }
-        }
-        return true;
-    }
 }

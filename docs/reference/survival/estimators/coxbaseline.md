@@ -35,8 +35,9 @@ them; a subject's own cumulative hazard is this one times its partial hazard `ex
 which is what [`CoxSummary.PredictCumulativeHazard`](coxsummary-predictcumulativehazard.md) computes.
 Equality compares the label and the four arrays element by element.
 
-The four arrays are the record's own and are not copied, so writing to one changes that record. It
-never changes a prediction: the [`CoxSummary`](coxsummary.md) the baseline came from predicts from a
+The four arrays are taken and exposed as they are, not copied: writing to one changes this record
+and what it equals, and every holder of the same array, a `with` copy included
+([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)). It never changes a prediction: the [`CoxSummary`](coxsummary.md) the baseline came from predicts from a
 copy it took when it was fitted ([#1304](https://github.com/CyrilB1531/lodestar/issues/1304)).
 
 **Applies to** — net10.0, netstandard2.0.

@@ -145,20 +145,21 @@ public sealed record SentencePieceVocabulary(
     /// </remarks>
     /// <param name="id">A piece id, in <c>[0, Types.Count)</c>.</param>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="id"/> is outside <see cref="Types"/>. The record is a data carrier and
+    /// <paramref name="id"/> is outside <see cref="Types"/>, which an absent list declares none of. The record is a data carrier and
     /// does not itself require <see cref="Pieces"/> and <see cref="Types"/> to agree in length —
     /// <see cref="SentencePieceTokenizer"/> is what refuses a vocabulary where they do not.
     /// Reporting that here as a raw index failure would name neither the argument nor the reason.
     /// </exception>
     public bool IsMatchable(int id)
     {
-        if ((uint)id >= (uint)Types.Count)
+        // An absent list declares no type, as the record's equality reads it, rather than a null dereference (#1440).
+        if (Types is not { } types || (uint)id >= (uint)types.Count)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(id),
                 id,
-                $"The piece id is outside the vocabulary's {Types.Count} declared types.");
+                $"The piece id is outside the vocabulary's {Types?.Count ?? 0} declared types.");
         }
-        return Types[id] is not (SentencePieceType.Control or SentencePieceType.Unknown or SentencePieceType.Unused);
+        return types[id] is not (SentencePieceType.Control or SentencePieceType.Unknown or SentencePieceType.Unused);
     }
 }

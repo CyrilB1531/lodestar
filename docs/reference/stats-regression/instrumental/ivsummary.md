@@ -48,6 +48,10 @@ zero below `1e-16`; this returns the tail itself, and the two agree to `1e-15` a
 `Debiased` the model test is an F and the coefficients read Student's t with
 `ResidualDegreesOfFreedom`; otherwise a χ² and the normal.
 
+The per-coefficient lists are the fit's own arrays, taken and exposed as they are, not copied: a
+caller casting one back to its array and writing to it changes this summary, and every holder of
+the same array ([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`InstrumentalVariables`](../iv/instrumentalvariables.md), [`IvFirstStage`](ivfirststage.md).

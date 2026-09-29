@@ -35,12 +35,15 @@ double first = totals[0];   // => 3
 double third = totals[2];   // => 5
 ```
 
-**Remarks** — the cost is `NonZeroCount`, not `RowCount × ColumnCount`, which is the whole reason
-to keep the matrix sparse. The third document totals `5` rather than `4` because `the` appears
+**Remarks** — the cost is `O(RowCount + NonZeroCount)`, not `RowCount × ColumnCount`, which is the
+whole reason to keep the matrix sparse. The third document totals `5` rather than `4` because `the` appears
 twice in it and the count is a count.
 
 This is the operation behind scoring a corpus against a linear model: the weights are the vector,
 and each row's dot product is that document's score.
+
+A `NaN` or infinite value, stored or in the operand, is carried through, not refused — and a stored
+zero times an infinity is `NaN`, as it is in scipy's product.
 
 **The block overload is not a loop over the vector one.** It makes one pass over the non-zeros
 rather than `columnCount` passes: each column index is read once and the inner loop walks

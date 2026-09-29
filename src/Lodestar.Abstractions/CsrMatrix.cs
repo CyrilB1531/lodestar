@@ -150,7 +150,8 @@ public sealed class CsrMatrix
     public int NonZeroCount => Values.Length;
 
     /// <summary>Materializes the matrix as a dense 2-D array.</summary>
-    /// <exception cref="InvalidOperationException">The matrix has more cells than the runtime allows in one array.</exception>
+    /// <remarks>A stored <c>NaN</c> or infinity is written out as it is, not refused.</remarks>
+    /// <exception cref="InvalidOperationException">The matrix has more cells than a two-dimensional array holds: <c>uint.MaxValue</c> in all, <c>0x7FFFFFC7</c> along one side.</exception>
     // CA1814 (prefer jagged arrays): a confusion matrix and a densified CSR
     // matrix are rectangular by construction, and double[,] is the shape every
     // consumer expects to interop with. A jagged array would cost one allocation
@@ -158,11 +159,10 @@ public sealed class CsrMatrix
 #pragma warning disable CA1814
     public double[,] ToDense()
     {
-        if ((long)RowCount * ColumnCount > MaxArrayLength)
+        if (!FitsDense(RowCount, ColumnCount))
         {
-            // The constructor accepts a 1 × int.MaxValue matrix in a few bytes; densified it is 16 GB (#1287).
             throw new InvalidOperationException(
-                $"A {RowCount} × {ColumnCount} matrix has more cells than one array can hold.");
+                $"A {RowCount} × {ColumnCount} matrix has more cells than a two-dimensional array can hold.");
         }
 
         var dense = new double[RowCount, ColumnCount];
@@ -180,6 +180,7 @@ public sealed class CsrMatrix
 
     /// <exception cref="IndexOutOfRangeException"><paramref name="row"/> is negative or not below <see cref="RowCount"/>.</exception>
     /// <summary>Computes the L1 norm (sum of absolute values) of a row.</summary>
+    /// <remarks>A stored <c>NaN</c> or infinity is carried into the norm, not refused.</remarks>
     public double RowL1Norm(int row)
     {
         double sum = 0;
@@ -192,6 +193,7 @@ public sealed class CsrMatrix
 
     /// <exception cref="IndexOutOfRangeException"><paramref name="row"/> is negative or not below <see cref="RowCount"/>.</exception>
     /// <summary>Computes the L2 (Euclidean) norm of a row.</summary>
+    /// <remarks>A stored <c>NaN</c> or infinity is carried into the norm, not refused.</remarks>
     public double RowL2Norm(int row)
     {
         double sum = 0;
@@ -249,6 +251,7 @@ public sealed class CsrMatrix
 
     /// <exception cref="ArgumentException"><paramref name="vector"/> is not <see cref="ColumnCount"/> long.</exception>
     /// <summary>Computes the matrix-vector product <c>this · vector</c>.</summary>
+    /// <remarks>A <c>NaN</c> or infinity is carried through, not refused; a stored zero times an infinity is <c>NaN</c>.</remarks>
     public double[] Multiply(ReadOnlySpan<double> vector)
     {
         if (vector.Length != ColumnCount)
@@ -275,6 +278,7 @@ public sealed class CsrMatrix
     /// <see cref="ColumnCount"/> times that; the result is <see cref="RowCount"/> rows of the same
     /// width. One pass over the non-zeros rather than <paramref name="columnCount"/> passes: each
     /// column index is read once and the inner loop walks contiguous memory on both sides.
+    /// A <c>NaN</c> or infinity is carried through, not refused; a stored zero times an infinity is <c>NaN</c>.
     /// </remarks>
     /// <param name="block">The dense right operand, row-major.</param>
     /// <param name="columnCount">How many columns <paramref name="block"/> holds.</param>
@@ -304,6 +308,7 @@ public sealed class CsrMatrix
     /// The dense operand is <see cref="RowCount"/> rows of <paramref name="columnCount"/>, and the
     /// result is <see cref="ColumnCount"/> of them. Materializing the transpose would cost a second
     /// matrix; scattering into the result instead reads each non-zero once, which is the same work.
+    /// A <c>NaN</c> or infinity is carried through, not refused; a stored zero times an infinity is <c>NaN</c>.
     /// </remarks>
     /// <param name="block">The dense right operand, row-major.</param>
     /// <param name="columnCount">How many columns <paramref name="block"/> holds.</param>
@@ -344,6 +349,17 @@ public sealed class CsrMatrix
     /// <summary><c>Array.MaxLength</c>, which netstandard2.0 does not declare.</summary>
     /// <remarks>.NET Framework caps a <c>double</c> array lower, so between the two it fails in the allocation.</remarks>
     private const int MaxArrayLength = 0x7FFFFFC7;
+
+    /// <summary>The most elements a multi-dimensional array holds in all.</summary>
+    private const long MaxDenseCells = uint.MaxValue;
+
+    /// <summary>Whether a <c>double[rows, columns]</c> is one the runtime can allocate at all.</summary>
+    /// <remarks>
+    /// Bounded in total by <c>uint.MaxValue</c>, not by the one-dimensional limit: 50,000 square allocates, 70,000
+    /// square does not (measured, #1412). The constructor takes a 1 × int.MaxValue matrix in a few bytes (#1287).
+    /// </remarks>
+    private static bool FitsDense(int rows, int columns) =>
+        (long)rows * columns <= MaxDenseCells && rows <= MaxArrayLength && columns <= MaxArrayLength;
 
     /// <summary>The result's length, refused rather than wrapped, or left to fail allocation, past the largest array.</summary>
     private static int ProductLength(int rows, int columnCount)

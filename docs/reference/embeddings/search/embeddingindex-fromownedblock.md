@@ -54,11 +54,8 @@ library can see is unnecessary.
 
 The array whose ownership is easiest to give up is one nobody else has ever held — the freshly
 allocated block that [`NpyFile.Read`](../persistence/npyfile-read.md) returns is the shape this
-exists for. That block is not yet reachable from here: `NpyFile.Read` hands it back as a
-`ReadOnlyMemory<float>`, and there is no supported way from that back to the array. Closing that
-gap is
-[decision 0001](../../../decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)'s
-work.
+exists for. Its `OwnedArray` names that array when the file or stream overload read it, and is null
+on a block borrowed from memory the caller holds, which has no array to hand over.
 
 **A block holding `NaN` or an infinity is accepted here, exactly as [`Add`](embeddingindex-add.md)
 accepts one** — the two ingest paths cannot disagree about what an index may hold. It is

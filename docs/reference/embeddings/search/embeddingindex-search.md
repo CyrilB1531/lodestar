@@ -15,7 +15,9 @@ hits to return and must be at least `1`.
 `min(k, Count)` entries: asking for more than the index contains is **not** an error, it simply
 returns everything.
 
-**Exceptions** — `ArgumentException` when `query.Length` differs from `Dimension`.
+**Exceptions** — `ArgumentException` when `query.Length` differs from `Dimension`, or `query` holds a
+`NaN` or an infinity, which would score every item `NaN` and rank them as a tie
+([#1434](https://github.com/CyrilB1531/lodestar/issues/1434)).
 `ArgumentOutOfRangeException` when `k` is less than `1`.
 
 **Example** — the query is scaled and the score is still a cosine, and `k` past the end is
@@ -42,8 +44,10 @@ order, which makes the result reproducible across runs rather than dependent on 
 matters more than it sounds: duplicate documents in a corpus produce exact ties routinely.
 
 Every stored vector is scored on every call — that is what exhaustive means, and it is why the
-result is exact with no recall parameter to tune. The cost is linear in `Count × Dimension`, with
-a small constant from [`VectorMath.Dot`](vectormath-dot.md).
+result is exact with no recall parameter to tune. The cost is the scoring, linear in
+`Count × Dimension` with a small constant from [`VectorMath.Dot`](vectormath-dot.md), plus the
+selection: `O(Count log k)` through a bounded heap while `k` is at most half of `Count`, and a full
+`O(Count log Count)` sort past that.
 
 Concurrent calls are safe on an index nobody is adding to. Adding while searching is not.
 

@@ -42,4 +42,3 @@ A `readonly record struct`, so it is copied rather than referenced and compares 
 | Member | What it does |
 | --- | --- |
 | [`SentencePiece.GetHashCode`](sentencepiece-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |
-| [`SentencePiece.GetHashCode`](sentencepiece-gethashcode.md) | A hash consistent with the equality, every `NaN` alike. |

@@ -2,10 +2,11 @@
 
 The suite for [`Lodestar.Onnx`](../../src/Lodestar.Onnx/README.md): `OnnxTextEmbedder` against a small synthetic ONNX model committed under `oracles/`. Where a Python reference
 exists, the tests replay its frozen values from [`tests/oracles/`](../oracles); the files a suite
-reads are the ones its sources name:
+reads are the ones its sources name, `tests/Shared/BatchCorpus.cs` included — the project compiles
+it, and it is what reads `batch_encoding.json`:
 
 ```bash
-grep -rhoE "[a-z0-9_]+\.json" tests/Lodestar.Onnx.Tests --include=*.cs | sort -u
+grep -rhoE "[a-z0-9_-]+\.json" tests/Lodestar.Onnx.Tests tests/Shared/BatchCorpus.cs --include=*.cs | sort -u
 ```
 
 `Documentation/` holds the tests that read this package's reference pages under `docs/reference/`

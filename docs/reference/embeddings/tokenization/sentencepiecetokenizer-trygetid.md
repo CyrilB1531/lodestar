@@ -13,6 +13,8 @@ piece begins a word. `id` receives the piece's id, or `0` when the lookup fails.
 
 **Returns** — `bool`, true when found; `id` is the id then and `0` otherwise.
 
+**Exceptions** — `ArgumentNullException` when `token` is null.
+
 **Example** — the prefixed form is found and the bare one is not.
 
 ```csharp

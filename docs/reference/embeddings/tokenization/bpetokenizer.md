@@ -40,9 +40,11 @@ int pieces = encoded.Tokens.Count;  // => 2
 result is two tokens, and no rule joins them because none is listed.
 
 It is the only one of the three that can [`Decode`](bpetokenizer-decode.md), and byte-level is why:
-the vocabulary covers all 256 byte values through printable stand-ins, so any input round-trips
-exactly — emoji, mixed scripts and malformed UTF-8 alike. WordPiece and SentencePiece have thrown
-information away by then.
+the vocabulary covers all 256 byte values through printable stand-ins, so well-formed text
+round-trips exactly, emoji and mixed scripts alike. Two limits: an unpaired surrogate is not
+well-formed and throws on [`Encode`](bpetokenizer-encode.md), and a declared normalizer — NFC, say
+— changes the text before it is encoded, so decoding returns the normalized text. WordPiece and
+SentencePiece have thrown information away by then.
 
 **Applies to** — net10.0, netstandard2.0.
 

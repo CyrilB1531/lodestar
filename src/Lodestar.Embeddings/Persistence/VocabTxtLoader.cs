@@ -28,7 +28,7 @@ public static class VocabTxtLoader
     /// <param name="continuationPrefix">Marks non-initial word pieces.</param>
     /// <param name="lowercase">Whether the model was trained on lowercased text.</param>
     /// <exception cref="InvalidDataException">The file is empty, exceeds a limit, or lacks <paramref name="unkToken"/>.</exception>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/>, <paramref name="unkToken"/> or <paramref name="continuationPrefix"/> is null.</exception>
     public static WordPieceVocabulary Load(
         Stream source,
         ArtifactLoadOptions? options = null,
@@ -36,6 +36,7 @@ public static class VocabTxtLoader
         string continuationPrefix = "##",
         bool lowercase = false)
     {
+        RefuseNullNames(unkToken, continuationPrefix);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         return Parse(JsonArtifact.ReadAllBytes(source, limits), limits, unkToken, continuationPrefix, lowercase);
     }
@@ -47,7 +48,7 @@ public static class VocabTxtLoader
     /// <param name="continuationPrefix">Marks non-initial word pieces.</param>
     /// <param name="lowercase">Whether the model was trained on lowercased text.</param>
     /// <exception cref="InvalidDataException">The file is empty, exceeds a limit, or lacks <paramref name="unkToken"/>.</exception>
-    /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="path"/>, <paramref name="unkToken"/> or <paramref name="continuationPrefix"/> is null.</exception>
     public static WordPieceVocabulary Load(
         string path,
         ArtifactLoadOptions? options = null,
@@ -55,6 +56,7 @@ public static class VocabTxtLoader
         string continuationPrefix = "##",
         bool lowercase = false)
     {
+        RefuseNullNames(unkToken, continuationPrefix);
         using FileStream file = JsonArtifact.OpenRead(path);
         return Load(file, options, unkToken, continuationPrefix, lowercase);
     }
@@ -66,7 +68,7 @@ public static class VocabTxtLoader
     /// <param name="continuationPrefix">Marks non-initial word pieces.</param>
     /// <param name="lowercase">Whether the model was trained on lowercased text.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/>, <paramref name="unkToken"/> or <paramref name="continuationPrefix"/> is null.</exception>
     /// <exception cref="InvalidDataException">The file is empty, exceeds a limit, or lacks <paramref name="unkToken"/>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public static async Task<WordPieceVocabulary> LoadAsync(
@@ -77,9 +79,17 @@ public static class VocabTxtLoader
         bool lowercase = false,
         CancellationToken cancellationToken = default)
     {
+        RefuseNullNames(unkToken, continuationPrefix);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         ReadOnlyMemory<byte> payload = await JsonArtifact.ReadAllBytesAsync(source, limits, cancellationToken).ConfigureAwait(false);
         return Parse(payload, limits, unkToken, continuationPrefix, lowercase);
+    }
+
+    /// <summary>Refuses a null name before a byte is read, rather than after the whole stream (#1439).</summary>
+    private static void RefuseNullNames(string unkToken, string continuationPrefix)
+    {
+        Guard.NotNull(unkToken);
+        Guard.NotNull(continuationPrefix);
     }
 
     private static WordPieceVocabulary Parse(
@@ -89,9 +99,6 @@ public static class VocabTxtLoader
         string continuationPrefix,
         bool lowercase)
     {
-        Guard.NotNull(unkToken);
-        Guard.NotNull(continuationPrefix);
-
         var vocab = new Dictionary<string, int>(StringComparer.Ordinal);
         string text = Decode(payload);
         int id = 0;
