@@ -93,9 +93,13 @@ public sealed class GpuContext : IDisposable
         { AcceleratorType: AcceleratorType.Cuda } => true,
         // The OpenCL device type is a bitfield: a driver may report GPU together with DEFAULT (#1516).
         // ILGPU's enum carries no [Flags], so the test is on the underlying cl_device_type bits.
-        CLDevice open => ((long)open.DeviceType & (long)CLDeviceType.CL_DEVICE_TYPE_GPU) != 0,
+        CLDevice open => HasGpuBit(open.DeviceType),
         _ => false,
     };
+
+    /// <summary>Whether an OpenCL device type carries the GPU bit; separate so it is testable without a device.</summary>
+    internal static bool HasGpuBit(CLDeviceType type) =>
+        ((long)type & (long)CLDeviceType.CL_DEVICE_TYPE_GPU) != 0;
 
     /// <summary>Whether <see cref="Dispose"/> has run, which every kernel and upload asks first.</summary>
     internal bool IsDisposed => _disposed;

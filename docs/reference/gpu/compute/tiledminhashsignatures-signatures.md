@@ -18,8 +18,10 @@ coefficients belong to; naming none means [`MinHashScheme.Legacy`](minhashscheme
 **Exceptions** — `ArgumentNullException` when `documents` is null; `ObjectDisposedException` when
 `documents`, or the context it and the kernel share, was disposed; `ArgumentException` when the two
 coefficient spans are not the same non-zero length, when `scheme` is not a declared member, when a
-coefficient does not fit the scheme it is given, or when `documents` was uploaded to another
-context than the kernel's.
+coefficient does not fit the scheme it is given, when `documents.Count` × the permutations are
+more signature values than one array holds — refused before the kernel runs, not after
+([#1558](https://github.com/CyrilB1531/lodestar/issues/1558)) — or when `documents` was uploaded
+to another context than the kernel's.
 
 **Example** — an empty document gives every slot its maximum.
 

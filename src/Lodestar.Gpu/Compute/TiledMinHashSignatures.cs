@@ -96,8 +96,9 @@ public sealed class TiledMinHashSignatures
     /// <exception cref="ObjectDisposedException"><paramref name="documents"/>, or the context it and this kernel share, was disposed.</exception>
     /// <exception cref="ArgumentException">
     /// The two coefficient spans are not the same non-zero length, <paramref name="scheme"/> is
-    /// not a declared member, a coefficient does not fit the scheme it is given, or
-    /// <paramref name="documents"/> was uploaded to another context.
+    /// not a declared member, a coefficient does not fit the scheme it is given, the signatures
+    /// would be more values than one array holds, or <paramref name="documents"/> was uploaded to
+    /// another context.
     /// </exception>
     /// <remarks>
     /// The batch is deliberately not re-uploaded per scheme: the finalizer <c>affine32</c> needs
@@ -128,6 +129,15 @@ public sealed class TiledMinHashSignatures
         }
 
         int permutations = multipliers.Length;
+
+        // The signatures come back as one host array: refused before the kernel runs, not after it (#1558).
+        if ((long)documents.Count * permutations > TableLength.MaxLength)
+        {
+            throw new ArgumentException(
+                $"{documents.Count} documents of {permutations} permutations are more signature values than one array holds.",
+                nameof(multipliers));
+        }
+
         Accelerator accelerator = _context.Accelerator;
         using MemoryBuffer1D<ulong, Stride1D.Dense> a = accelerator.Allocate1D(multipliers.ToArray());
         using MemoryBuffer1D<ulong, Stride1D.Dense> b = accelerator.Allocate1D(addends.ToArray());
