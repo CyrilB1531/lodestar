@@ -30,7 +30,9 @@ last axis: `-1` when that axis is symbolic, or when the output declares none. Re
 does ([#1521](https://github.com/CyrilB1531/lodestar/issues/1521)). `MaxSequenceLength`
 is the longest input, in tokens, the model takes: its declared sequence axis when fixed, else
 the positions its position-embedding table can index, read from the graph once at construction
-(a RoBERTa-style table of 514 rows reads 512); null when it has neither. It is what
+(a RoBERTa-style table of 514 rows reads 512); null when it has neither. It too throws
+`ObjectDisposedException` after `Dispose`, where it answered from its cached value
+([#1552](https://github.com/CyrilB1531/lodestar/issues/1552)). It is what
 [`EmbedBatch`](onnxtextembedder-embedbatch.md) truncates to when `MaxLength` is left null.
 
 **Example** — the shape of a call. It is not executed: see below.

@@ -27,7 +27,9 @@ abandons the run.
 [`BatchEncoder`](../../embeddings/tokenization/batchencoder.md) refuses them; and when a sequence is
 past [`MaxSequenceLength`](onnxtextembedder.md) — a static export's fixed sequence axis or the
 position-embedding table — naming `options`, `encoder` or `batch`
-([#1423](https://github.com/CyrilB1531/lodestar/issues/1423)).
+([#1423](https://github.com/CyrilB1531/lodestar/issues/1423)), or when a static export's fixed batch
+and sequence make one chunk larger than one array
+([#1555](https://github.com/CyrilB1531/lodestar/issues/1555)).
 `InvalidOperationException` from the overload taking only texts, when the
 embedder was built without a tokenizer: the other two overloads are the way to supply one. All
 three throw it when the model output is not shaped for the batch it was fed, or declares its first two
