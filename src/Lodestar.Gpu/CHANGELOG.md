@@ -12,6 +12,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- `TiledMinHashSignatures.Signatures` and `TiledSparseDenseProduct.Multiply` refuse a result larger than one array before launching the kernel, where it failed copying the result back, and the README and pages name bit-parallel edit distance and the package's own performance page. ([#1556](https://github.com/CyrilB1531/lodestar/issues/1556), [#1557](https://github.com/CyrilB1531/lodestar/issues/1557), [#1558](https://github.com/CyrilB1531/lodestar/issues/1558), [#1559](https://github.com/CyrilB1531/lodestar/issues/1559))
 - Every kernel and upload refuses a disposed `GpuContext`, and every kernel refuses device data disposed or uploaded to another context, where it launched on a freed or foreign buffer. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
 - `DeviceSparseMatrix.Upload` accepts a matrix storing nothing, where ILGPU's array overload threw, and it, `DeviceTokenHashes`, `DeviceTextBlock` and the resident `TiledSparseDenseProduct.Multiply` release the buffers already allocated when a later step fails. ([#1265](https://github.com/CyrilB1531/lodestar/issues/1265))
 - `GpuContext.Accelerator` throws `ObjectDisposedException` after `Dispose`, and an OpenCL device reporting GPU together with another type counts as graphics hardware. ([#1512](https://github.com/CyrilB1531/lodestar/issues/1512), [#1516](https://github.com/CyrilB1531/lodestar/issues/1516))

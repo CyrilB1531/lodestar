@@ -64,7 +64,7 @@ public sealed class TiledSparseDenseProduct
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="width"/> is below 1.</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="matrix"/>, or the context it and this kernel share, was disposed.</exception>
     /// <exception cref="ArgumentException">
-    /// <paramref name="block"/> is not that shape, or <paramref name="matrix"/> was uploaded to another context.
+    /// <paramref name="block"/> is not that shape, the product is more values than one array holds, or <paramref name="matrix"/> was uploaded to another context.
     /// </exception>
     public double[] Multiply(DeviceSparseMatrix matrix, ReadOnlySpan<double> block, int width)
     {
@@ -90,7 +90,7 @@ public sealed class TiledSparseDenseProduct
     /// <returns>A resident block of <c>matrix.RowCount</c> rows and <c>block.ColumnCount</c> columns.</returns>
     /// <exception cref="ArgumentNullException">An argument is null.</exception>
     /// <exception cref="ObjectDisposedException">An operand, or the context the operands and this kernel share, was disposed.</exception>
-    /// <exception cref="ArgumentException">The two operands do not compose, or one was uploaded to another context.</exception>
+    /// <exception cref="ArgumentException">The two operands do not compose, their product is more values than one array holds, or one was uploaded to another context.</exception>
     /// <remarks>
     /// The chaining entry point: its result is the type its own operand is, so a second product
     /// consumes it without crossing the bus. The caller ends the chain with
@@ -108,6 +108,14 @@ public sealed class TiledSparseDenseProduct
             throw new ArgumentException(
                 $"a matrix of {matrix.RowCount} x {matrix.ColumnCount} does not multiply a block "
                 + $"of {block.RowCount} rows.", nameof(block));
+        }
+
+        // A block holds one array, as Upload bounds it: refused before the launch, not at Download (#1558).
+        if ((long)matrix.RowCount * block.ColumnCount > TableLength.MaxLength)
+        {
+            throw new ArgumentException(
+                $"a product of {matrix.RowCount} x {block.ColumnCount} is more values than one array holds.",
+                nameof(block));
         }
 
         Accelerator accelerator = _context.Accelerator;

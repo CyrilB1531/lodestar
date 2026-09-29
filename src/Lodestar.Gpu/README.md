@@ -2,7 +2,7 @@
 
 GPU kernels over device-resident data, through ILGPU: an embedding matrix swept by a
 batch of queries with cosine similarity and top-k on the accelerator, sparse and dense products,
-and MinHash signatures over tokenized text. Each kernel ships only where it beat this repository's
+MinHash signatures over tokenized text, and bit-parallel edit distance. Each kernel ships only where it beat this repository's
 own CPU path. It targets `net10.0` and `netstandard2.1`, the one package without a
 `netstandard2.0` build, because ILGPU publishes none; nothing else depends on it.
 

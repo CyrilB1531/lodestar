@@ -9,7 +9,7 @@ Three facts run through the whole namespace, and knowing them saves reading ever
 - **Residency is the point, not an optimisation.** A kernel that uploads its corpus per call is
   *slower* than the CPU path it replaces — measured at 9.25× slower for a hundred thousand
   documents answering one query. The `Device*` types exist so a corpus crosses the bus once and is
-  swept many times, and [`docs/guides/performance.md`](../../guides/performance.md) has the figures.
+  swept many times, and [`src/Lodestar.Gpu/performance.md`](../../../src/Lodestar.Gpu/performance.md) has the figures.
 - **A kernel parameter must be blittable**, so no kernel takes a `string` or a `CsrMatrix`. Text
   is renamed to symbol codes on the host; matrices are taken as spans and dimensions. The package's
   one inter-package edge is to `Lodestar.Abstractions`, which declares the two Lodestar types its
@@ -54,6 +54,6 @@ No approximate index, no Block-Max WAND, no query language. `TiledCosineTopK` is
 scores every row and selects the best *k*. That is the trade this package makes — brute force is
 what a GPU is good at, and an approximate structure would spend its parallelism on branching.
 
-**See also** — [the performance guide](../../guides/performance.md) for what each kernel measured,
+**See also** — [the package's performance page](../../../src/Lodestar.Gpu/performance.md) for what each kernel measured,
 and `bench/README.md` sections 24 to 26 and 72 for how. Every type here applies to net10.0 and
 netstandard2.1; its own page says so.

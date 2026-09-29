@@ -77,16 +77,7 @@ public sealed class DeviceTextBlock : IDisposable
         }
 
         // Summed in long and refused past one array: three 800M-character texts wrapped int negative (#1511).
-        long sum = 0;
-        foreach (string text in texts)
-        {
-            Guard.NotNull(text);
-            sum += text.Length;
-        }
-
-        int total = sum <= TableLength.MaxLength
-            ? (int)sum
-            : throw new ArgumentException($"The texts hold {sum} characters, more than one array holds.", nameof(texts));
+        int total = CharacterTotal(Lengths(texts), nameof(texts));
 
         // One code per UTF-16 unit, read by index: a 64 KB table costs less to fill once than a
         // dictionary probe on every character of the batch.
@@ -143,5 +134,31 @@ public sealed class DeviceTextBlock : IDisposable
             Symbols.Dispose();
             Offsets.Dispose();
         }
+    }
+
+    /// <summary>Each text's length, a null text refused as it is reached.</summary>
+    private static IEnumerable<int> Lengths(IEnumerable<string> texts)
+    {
+        foreach (string text in texts)
+        {
+            Guard.NotNull(text);
+            yield return text.Length;
+        }
+    }
+
+    /// <summary>The characters a batch holds, summed in <c>long</c> and refused past one array.</summary>
+    /// <remarks>Its own method so the refusal is testable: no string reports a length it does not hold.</remarks>
+    /// <exception cref="ArgumentException">The lengths sum past one array.</exception>
+    internal static int CharacterTotal(IEnumerable<int> lengths, string paramName)
+    {
+        long sum = 0;
+        foreach (int length in lengths)
+        {
+            sum += length;
+        }
+
+        return sum <= TableLength.MaxLength
+            ? (int)sum
+            : throw new ArgumentException($"The texts hold {sum} characters, more than one array holds.", paramName);
     }
 }

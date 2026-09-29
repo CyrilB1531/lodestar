@@ -6,7 +6,7 @@ it, so the SIMD and scalar paths the rest of Lodestar ships remain the complete 
 target framework.
 
 This guide is about **when the accelerator is worth using**, which is a narrower question than
-whether it is faster. [`docs/guides/performance.md`](performance.md) has the figures;
+whether it is faster. [`src/Lodestar.Gpu/performance.md`](../../src/Lodestar.Gpu/performance.md) has the figures;
 `bench/README.md` sections 24 to 26 and 72 have how they were taken.
 
 ```bash
@@ -128,4 +128,4 @@ publishes no such asset
 caller reaches the SIMD paths, which lose nothing by this package existing.
 
 **See also** — [the reference pages](../reference/gpu/compute.md),
-[what was measured](performance.md).
+[what was measured](../../src/Lodestar.Gpu/performance.md).
