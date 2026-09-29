@@ -74,8 +74,8 @@ public sealed class TiledMinHashSignatures
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="documents"/>, or the context it and this kernel share, was disposed.</exception>
     /// <exception cref="ArgumentException">
-    /// The two coefficient spans are not the same non-zero length, or <paramref name="documents"/>
-    /// was uploaded to another context.
+    /// The two coefficient spans are not the same non-zero length, the signatures would be more
+    /// values than one array holds, or <paramref name="documents"/> was uploaded to another context.
     /// </exception>
     /// <remarks>
     /// An empty document gives every slot <c>uint.MaxValue</c>, which is the identity a minimum
