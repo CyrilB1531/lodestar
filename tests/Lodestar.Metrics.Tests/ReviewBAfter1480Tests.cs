@@ -29,7 +29,8 @@ public sealed class ReviewBAfter1480Tests
         Assert.Equal("sampleWeight", error.ParamName);
         Assert.Equal(error.Message, Assert.Throws<ArgumentException>(
             () => R2.Score([1, 2, 3], [1, 2, 4], sampleWeight: [1, -1, 0])).Message);
-        Assert.False(double.IsNaN(MedianAbsoluteError.Score([1, 2, 3], [1, 2, 4], sampleWeight: [1, -1, 0])));
+        // median_absolute_error([1,2,3], [1,2,4], sample_weight=[1,-1,0]) is 1.0 (#1546).
+        Assert.Equal(1.0, MedianAbsoluteError.Score([1, 2, 3], [1, 2, 4], sampleWeight: [1, -1, 0]));
     }
 
     [Fact]
@@ -152,8 +153,8 @@ public sealed class ReviewBAfter1480Tests
         // check_array raises "Input contains NaN." before _average_binary_score's shortcut.
         ArgumentException error = Assert.Throws<ArgumentException>(() => RocAuc.MultiClass(
             yTrue, yScore, 3, new MultiClassRocOptions { Average = Averaging.Weighted, SampleWeight = [1e-9, 1e-9, 1e-9, 1e-9, 1e-9, 1e-9] }));
-        // The NaN reaches the per-class curve, which names it, rather than the zero-weight shortcut's 0 (#1568).
-        Assert.Contains("is NaN; scores must be numbers.", error.Message, StringComparison.Ordinal);
+        // Refused up front in check_array's words since #1569, not by a class curve naming a compacted index.
+        Assert.StartsWith("Input contains NaN.", error.Message, StringComparison.Ordinal);
         Assert.Equal("yScore", error.ParamName);
     }
 

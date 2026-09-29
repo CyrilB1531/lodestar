@@ -398,7 +398,7 @@ internal static class BinaryRoc
     public static double Score(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight,
         Scratch scratch) =>
-        scratch.Compute(yTrue, yScore, posLabel, sampleWeight, scoresFinite: false);
+        scratch.Compute(yTrue, yScore, posLabel, sampleWeight, scoresFinite: true);
 
     public static double AveragePrecision(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight)

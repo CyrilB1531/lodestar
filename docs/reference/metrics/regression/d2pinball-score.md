@@ -47,10 +47,12 @@ The upper quantile scores below zero: these predictions are a decent median and 
 percentile, which is the distinction the metric exists to draw.
 
 **Remarks** — the denominator is the loss of predicting the weighted quantile of the truth at the
-same `alpha`. Which of the two candidate order statistics that quantile takes cannot be observed
-here: the two differ exactly where the quantile is ambiguous, and the pinball loss is flat across
-that interval — measured over four fixtures at five alphas each, both readings give the same score
-every time.
+same `alpha`, taken as scikit-learn's `_weighted_percentile(…, average=True)` takes it, negative
+sample weights included: `alpha: 0.3` with weights `[1, -1, -0.5, -0.5, 2, 1]` gives
+`-4.429203539823007` on both sides ([#1546](https://github.com/CyrilB1531/lodestar/issues/1546)).
+Equal truth values carrying different negative weights follow numpy's `argsort` order, which is not
+stable and depends on the CPU, as [`MedianAbsoluteError.Score`](medianabsoluteerror-score.md)
+describes.
 
 **Applies to** — net10.0, netstandard2.0.
 

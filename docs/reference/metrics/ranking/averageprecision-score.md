@@ -28,12 +28,15 @@ reproduced here — where [`RocAuc.Score`](../classification/rocauc-score.md) on
 
 **Exceptions** — `ArgumentException` when `yTrue` and `yScore` disagree in length, when they are
 empty, when a score or weight is not finite, when every weight is zero — scikit-learn's own "Sample
-weights must contain at least one non-zero number.", except under `Averaging.Weighted`, below — or, on the matrix overload, when `labelCount` is below `1`, when
-`yTrue` is not a whole number of rows of `labelCount`, or when a non-empty `sampleWeight` is not one
-per row; and, on the binary overload, when `yTrue` holds more than two labels, or two neither of
-which is `posLabel`, as `average_precision_score` refuses its explicit `pos_label`
-([#1277](https://github.com/CyrilB1531/lodestar/issues/1277)). `ArgumentOutOfRangeException` when `averaging` is `Averaging.Binary`, which scores one
-positive label of two and has no meaning over a matrix, or is not a declared member at all.
+weights must contain at least one non-zero number.", except under `Averaging.Weighted` over two
+labels or more, below, a single label being scored as the binary problem it is
+([#1594](https://github.com/CyrilB1531/lodestar/issues/1594)) — or, on the matrix overload, when
+`labelCount` is below `1`, when `yTrue` is not a whole number of rows of `labelCount`, or when a
+non-empty `sampleWeight` is not one per row; and, on the binary overload, when `yTrue` holds more
+than two labels, or two neither of which is `posLabel`, as `average_precision_score` refuses its
+explicit `pos_label` ([#1277](https://github.com/CyrilB1531/lodestar/issues/1277)).
+`ArgumentOutOfRangeException` when `averaging` is `Averaging.Binary`, which scores one positive
+label of two and has no meaning over a matrix, or is not a declared member at all.
 
 **Example** — the worked binary case, where the sum and the trapezoid part company.
 

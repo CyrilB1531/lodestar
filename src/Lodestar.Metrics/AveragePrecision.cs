@@ -50,7 +50,7 @@ public static class AveragePrecision
     /// <param name="labelCount">How many labels each row holds.</param>
     /// <param name="averaging">How the per-label scores are combined. <see cref="Averaging.Binary"/> has no meaning over a matrix and is refused.</param>
     /// <param name="sampleWeight">One weight per sample — per row, not per label. Omit to weight every sample by 1.</param>
-    /// <exception cref="ArgumentException">A relevance or score is not finite, the shapes disagree, or <paramref name="sampleWeight"/> has the wrong length.</exception>
+    /// <exception cref="ArgumentException">A relevance or score is not finite, the shapes disagree, <paramref name="sampleWeight"/> has the wrong length, or every weight is zero — under <see cref="Averaging.Weighted"/> only over a single label, two or more scoring 0 instead (#1594).</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="averaging"/> is <see cref="Averaging.Binary"/> or is not a declared member.</exception>
     public static double Score(
         ReadOnlySpan<bool> yTrue,
@@ -80,7 +80,7 @@ public static class AveragePrecision
     /// <param name="labelCount">How many labels each row holds.</param>
     /// <param name="sampleWeight">One weight per sample — per row, not per label. Omit to weight every sample by 1.</param>
     /// <returns>A score per label, in column order. A label no sample carries scores <c>0</c>, for the reason <see cref="Score(ReadOnlySpan{int}, ReadOnlySpan{double}, int, ReadOnlySpan{double})"/> gives.</returns>
-    /// <exception cref="ArgumentException">A relevance or score is not finite, the shapes disagree, or <paramref name="sampleWeight"/> has the wrong length.</exception>
+    /// <exception cref="ArgumentException">A relevance or score is not finite, the shapes disagree, <paramref name="sampleWeight"/> has the wrong length, or every weight is zero, as <c>average=None</c> refuses it (#1594).</exception>
     public static double[] PerLabel(
         ReadOnlySpan<bool> yTrue,
         ReadOnlySpan<double> yScore,

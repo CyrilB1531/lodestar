@@ -44,10 +44,9 @@ internal static class WeightedPercentile
     /// <see cref="Median"/> is the half of.
     /// </summary>
     /// <remarks>
-    /// Only <c>d2_pinball_score</c>'s denominator needs one away from the middle, and it cannot
-    /// observe which of the two order statistics is taken: the two differ exactly where the
-    /// quantile is ambiguous, and the pinball loss is flat across that interval. Measured over
-    /// four fixtures at five alphas each, the averaged and single-statistic readings agree.
+    /// Only <c>d2_pinball_score</c>'s denominator needs one away from the middle. It is the same
+    /// <c>_weighted_percentile(…, average=True)</c> the median takes, so a negative weight moves it
+    /// exactly as it moves the median: scikit-learn's value, not a reading that differed (#1546).
     /// </remarks>
     /// <param name="values">The values. Sorted in place.</param>
     /// <param name="weights">One weight per value, or empty for weight 1 each.</param>
@@ -216,10 +215,8 @@ internal static class WeightedPercentile
     /// The pair of order-statistic indices the median needs when every weight is
     /// 1: the cumulative count crosses half the total at <c>(n - 1) / 2</c>, and
     /// the last index still at or under half is <c>n / 2</c>. The single place
-    /// that derives that pair — <see cref="Average"/>'s weighted-cumulative loop
-    /// collapses to it when <c>weights</c> is <see langword="null"/>, and
-    /// <see cref="MedianUnweighted"/> selects for the same pair before sorting —
-    /// so the weighted and unweighted paths cannot silently drift apart.
+    /// that derives that pair: <see cref="Average"/>'s closed form for the unweighted
+    /// median uses it, and <see cref="MedianUnweighted"/> selects for the same pair.
     /// </summary>
     private static void MedianIndices(int n, out int lower, out int upper)
     {
@@ -239,38 +236,109 @@ internal static class WeightedPercentile
             return (values[lower] + values[upper]) / 2.0;
         }
 
-        double total = 0.0;
-        for (int i = 0; i < values.Length; i++)
-        {
-            total += weights is null ? 1.0 : weights[i];
-        }
-
-        double half = total * fraction;
-        int weightedLower = values.Length - 1;
-        int weightedUpper = 0;
-        double cumulative = 0.0;
-        bool lowerFound = false;
-
-        for (int i = 0; i < values.Length; i++)
-        {
-            cumulative += weights is null ? 1.0 : weights[i];
-            if (!lowerFound && cumulative >= half)
-            {
-                weightedLower = i;
-                lowerFound = true;
-            }
-            // Within one epsilon of half, not exactly at or below it, as scikit-learn tests.
-            if (cumulative - half <= MachineEpsilon)
-            {
-                weightedUpper = i + 1;
-            }
-        }
-
-        if (weightedUpper >= values.Length)
-        {
-            weightedUpper = values.Length - 1;
-        }
-
-        return (values[weightedLower] + values[weightedUpper]) / 2.0;
+        return weights is null ? Averaged(values, UnitWeights(values.Length), fraction) : Averaged(values, weights, fraction);
     }
+
+    private static double[] UnitWeights(int count)
+    {
+        var ones = new double[count];
+        ones.AsSpan().Fill(1.0);
+        return ones;
+    }
+
+    /// <summary>
+    /// <c>_weighted_percentile(…, average=True)</c> step for step over sorted values: the cumulative weight,
+    /// numpy's <c>searchsorted</c> on it, and the averaging rule. A negative weight makes that cumulative weight
+    /// non-monotone, where the binary search's own answer is the reference's (#1546).
+    /// </summary>
+    private static double Averaged(double[] values, double[] weights, double fraction)
+    {
+        int n = values.Length;
+        var cdf = new double[n];
+        double running = 0.0;
+        bool allZero = true;
+        for (int i = 0; i < n; i++)
+        {
+            running += weights[i];
+            cdf[i] = running;
+
+            // S1244: scikit-learn tests `sample_weight == 0` exactly, and so must this.
+#pragma warning disable S1244
+            allZero &= weights[i] == 0.0;
+#pragma warning restore S1244
+        }
+
+        if (allZero)
+        {
+            return double.NaN;
+        }
+
+        // percentile_rank / 100 * total, the rank passed in percent as scikit-learn passes it.
+        double rank = fraction * 100.0;
+        double adjusted = rank / 100.0 * cdf[n - 1];
+
+        // S1244: an exact zero rank is the one numpy nudges with nextafter.
+#pragma warning disable S1244
+        if (adjusted == 0.0)
+#pragma warning restore S1244
+        {
+            // Leading zero weights are skipped at rank 0 by stepping just above it (#20528 in scikit-learn).
+            adjusted = double.Epsilon;
+        }
+
+        int last = n - 1;
+        int index = Math.Min(SearchSorted(cdf, adjusted, right: false), last);
+        bool fractionAbove = cdf[index] - adjusted > MachineEpsilon;
+        if (fractionAbove)
+        {
+            return values[index];
+        }
+
+        int next = Math.Min(index + 1, last);
+
+        // S1244: a zero weight skipped exactly, as scikit-learn skips it.
+#pragma warning disable S1244
+        if (weights[next] == 0.0)
+#pragma warning restore S1244
+        {
+            next = SearchSorted(cdf, cdf[index], right: true);
+            if (next > last)
+            {
+                next = index;
+            }
+        }
+
+        return (values[index] + values[next]) / 2.0;
+    }
+
+    /// <summary>
+    /// numpy 2.5's branchless <c>searchsorted</c>: halve by probing <c>base + half</c>, then compare once more.
+    /// On a sorted array any binary search agrees; on a non-monotone cumulative weight only this one gives numpy's
+    /// index — it matched <c>np.searchsorted</c> on 40,000 random cases where the textbook search matched 97.7 %.
+    /// </summary>
+    private static int SearchSorted(double[] sorted, double key, bool right)
+    {
+        int start = 0;
+        int length = sorted.Length;
+        while (length > 1)
+        {
+            int half = length >> 1;
+            if (Before(sorted[start + half], key, right))
+            {
+                start += half;
+            }
+
+            length -= half;
+        }
+
+        if (length == 0)
+        {
+            return 0;
+        }
+
+        return Before(sorted[start], key, right) ? start + 1 : start;
+    }
+
+    /// <summary>Whether a cumulative weight falls before <paramref name="key"/>: strictly for a left search, or equal too for a right one.</summary>
+    private static bool Before(double value, double key, bool right) => right ? value <= key : value < key;
 }

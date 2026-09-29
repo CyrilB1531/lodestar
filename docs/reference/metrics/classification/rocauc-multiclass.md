@@ -23,16 +23,21 @@ the same way here: labels `[0, 1, 0, 2]` weighted `[1e16, -1e16, 1, 0]`, for ins
 sample order and `0` by class ([#1586](https://github.com/CyrilB1531/lodestar/issues/1586)), and
 both averages end in `np.average`'s pairwise sums.
 
-**Exceptions** — `ArgumentException` when any of the shape rules is broken — a length that does
-not
-match, a row that does not sum to 1, a `NaN`, a sample weight under one-vs-one, a `yTrue` label
-outside `MultiClassRocOptions.Labels` — "'y_true' contains labels not in parameter 'labels'" — or,
-under one-vs-one, `k (k - 1) / 2` class pairs past what one array holds, naming `classCount`
-([#1480](https://github.com/CyrilB1531/lodestar/issues/1480)), or, under one-vs-one weighted, a
-`yTrue` holding one class alone, which pairs with nothing — "Weights sum to zero, can't be
-normalized." as scikit-learn raises it ([#1566](https://github.com/CyrilB1531/lodestar/issues/1566));
-`ArgumentOutOfRangeException` when `classCount` is below two or
-`MultiClassRocOptions.MaxDegreeOfParallelism` is negative.
+**Exceptions** — `ArgumentException`, first, when `yTrue` or `yScore` is empty — "Found array with 0
+sample(s) (shape=(0,))…" and "(shape=(0, k))…", in `check_array`'s words
+([#1593](https://github.com/CyrilB1531/lodestar/issues/1593)) — or a score is not finite — "Input
+contains NaN." or its infinity counterpart, before any row is summed
+([#1569](https://github.com/CyrilB1531/lodestar/issues/1569)); under one-vs-rest, when a sample
+weight is not finite, or every one is zero under `Averaging.Macro` — the weighted average returns
+`0` first, as its zero-total shortcut does — refused once before any class is scored; then when any
+of the shape rules is broken — a length that does not match, a row that does not sum to 1, a sample
+weight under one-vs-one, a `yTrue` label outside `MultiClassRocOptions.Labels` — "'y_true' contains
+labels not in parameter 'labels'" — or, under one-vs-one, `k (k - 1) / 2` class pairs past what one
+array holds, naming `classCount` ([#1480](https://github.com/CyrilB1531/lodestar/issues/1480)), or,
+under one-vs-one weighted, a `yTrue` holding one class alone, which pairs with nothing — "Weights
+sum to zero, can't be normalized." as scikit-learn raises it
+([#1566](https://github.com/CyrilB1531/lodestar/issues/1566)); `ArgumentOutOfRangeException` when
+`classCount` is below two or `MultiClassRocOptions.MaxDegreeOfParallelism` is negative.
 
 **Example** — six samples over three classes, one probability row each.
 
