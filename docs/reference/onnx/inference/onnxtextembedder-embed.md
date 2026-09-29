@@ -16,14 +16,22 @@ them. `attentionMask` is the same length, `1` for a real token and `0` for paddi
 **Exceptions** — `ArgumentException` when the two spans differ in length, or are longer than
 [`MaxSequenceLength`](onnxtextembedder.md) — a fixed sequence axis or the position-embedding table,
 refused here rather than failing inside the graph
-([#1423](https://github.com/CyrilB1531/lodestar/issues/1423)); and when a static export's fixed
-batch and sequence make one chunk more than `Array.MaxLength` cells, refused before allocating it
-([#1555](https://github.com/CyrilB1531/lodestar/issues/1555)). Below that bound the chunk is
-allocated: 8 bytes a cell for the ids, 8 for the mask and 8 more for the token types of a model
-that declares them, then 4 × the dimension a cell for the output ONNX Runtime returns. An export
-declaring axes near the bound can exhaust memory before any refusal, and on .NET Framework, where
-one object stops at 2 GB unless `gcAllowVeryLargeObjects` is set, from about 268 million cells, a
-`long[]` stopping at `0x7FEFFFFF` elements even when it is set
+([#1423](https://github.com/CyrilB1531/lodestar/issues/1423)); and when the model's fixed batch
+times the input's length makes one chunk more than `Array.MaxLength` cells, refused before
+allocating it ([#1555](https://github.com/CyrilB1531/lodestar/issues/1555)) — a model fixing both
+axes that far is refused when it is opened instead
+([#1589](https://github.com/CyrilB1531/lodestar/issues/1589)). Below that bound the chunk is
+allocated: about 8 bytes a cell for the ids and 8 for the mask — rented from the pool, which rounds
+a length up to a power of two below its largest bucket, and alongside the caller's unpadded copies
+when a static export is chunked — and 8 for the token types of a model that declares them, a
+buffer each thread keeps for its lifetime at the largest size it has reached. The output ONNX
+Runtime returns adds 4 × the dimension a cell for a float output, and for a float16 or bfloat16
+output 2 × the dimension plus the `float` array it is widened into, rounded up the same way: at
+least 6 × and up to about 10 × the dimension a cell. A pooled `[batch, dim]` output costs that per
+row rather than per cell ([#1590](https://github.com/CyrilB1531/lodestar/issues/1590)). An
+export declaring axes near the bound can exhaust memory before any refusal, and on .NET Framework,
+where one object stops at 2 GB unless `gcAllowVeryLargeObjects` is set, from about 268 million
+cells, a `long[]` stopping at `0x7FEFFFFF` elements even when it is set
 ([#1582](https://github.com/CyrilB1531/lodestar/issues/1582)).
 `InvalidOperationException` when the model output is not `[batch, sequence, dim]` (or `[batch, dim]`,
 pooled by the graph) for the batch it was fed, or declares its axes as the input's two swapped, which

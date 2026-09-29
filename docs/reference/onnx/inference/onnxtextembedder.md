@@ -17,8 +17,10 @@ null, it is the model's only output, else the first of `last_hidden_state`, `tok
 `OnnxTextEmbedder(modelPath, tokenizer, …)` takes the same parameters and the `ISubwordTokenizer` the
 text overloads of [`EmbedBatch`](onnxtextembedder-embedbatch.md) encode with. Either throws
 `ArgumentNullException` for a null path, tokenizer or input name, before the model opens, and
-`ArgumentException` when the model declares no input or output under a name given; the session is
-released on the way out ([#1427](https://github.com/CyrilB1531/lodestar/issues/1427)). A missing file,
+`ArgumentException` when the model declares no input or output under a name given, or fixes both its
+batch and its sequence axis at more cells than one array holds, which no call could then run
+([#1589](https://github.com/CyrilB1531/lodestar/issues/1589)); the session is released on the way
+out ([#1427](https://github.com/CyrilB1531/lodestar/issues/1427)). A missing file,
 or one ONNX Runtime cannot read as a model, fails with its `OnnxRuntimeException`
 ([#1524](https://github.com/CyrilB1531/lodestar/issues/1524)).
 Constructing it loads the model, which is why this type is the one place in Lodestar that needs a
