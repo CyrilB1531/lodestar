@@ -29,7 +29,7 @@ defaults are generous enough that a real model never meets one.
 | `MaxTokenLength` | Characters in a single token. | 1024 |
 | `MaxJsonDepth` | JSON nesting depth. | 32 |
 | `MaxTotalBytes` | Bytes read from the source. | 256 MiB |
-| `MaxArrayLength` | Elements in one array. | 1 000 000 |
+| `MaxArrayLength` | Elements in one array, a vector block aside: an `EmbeddingIndex`'s and a `.npy` file's are bounded by `MaxTotalBytes` alone ([#1441](https://github.com/CyrilB1531/lodestar/issues/1441)). | 1 000 000 |
 
 **Exceeding a bound is a refusal, not a truncation.** A model that silently loaded smaller than it
 was saved would tokenize differently and say nothing, which is worse than failing. The

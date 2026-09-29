@@ -46,12 +46,17 @@ and one that lacks it fails at construction instead of embedding a plausible
 wrong id.
 
 It also builds the attention mask, which is the part a caller most often gets
-wrong. Each sub-batch is padded to **its own longest sequence**, never to
+wrong. Each sub-batch is padded to **its own longest sequence**, not to
 `MaxLength` — padding every batch to 512 when the median length is 30 wastes
 most of the compute — and the padded positions are masked to 0 so they cannot
-reach the pooled vector. That last property is asserted directly: a text
+reach the pooled vector. The one exception is a static export, whose fixed axes
+ONNX Runtime insists on: each row is padded, masked, to the fixed sequence axis
+([#1258](https://github.com/CyrilB1531/lodestar/issues/1258)). The masking is
+asserted directly on the suite's synthetic model, a lone `Gather`: there a text
 embedded in a batch gets the same vector, bit for bit, as the same text embedded
-alone.
+alone. The suite runs no real transformer, so bit-for-bit is not promised for
+one: there the mask still keeps padding out, but a batched kernel may round
+differently in the last bits.
 
 `SortByLength` groups sequences of similar length into the same call so the long
 ones stop dictating the width of every row they share it with. The caller's

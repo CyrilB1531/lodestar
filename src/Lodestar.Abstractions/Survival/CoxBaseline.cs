@@ -9,8 +9,9 @@ namespace Lodestar.Survival;
 /// <remarks>
 /// The baseline is the one of a subject at the covariates' means, as lifelines centres them; multiplying by a
 /// subject's partial hazard, <c>exp((x − mean) · β)</c>, gives that subject's cumulative hazard. The four
-/// arrays are this record's own, not copied: writing to one changes the record, and never the predictions of
-/// the <c>CoxSummary</c> it came from, which reads a copy of its own (#1304).
+/// arrays are taken and exposed as they are, not copied: writing to one changes this record and what it
+/// equals, and every holder of the same array, a <c>with</c> copy included (#1305). It never changes the
+/// predictions of the <c>CoxSummary</c> it came from, which reads a copy of its own (#1304).
 /// </remarks>
 // CA1819 (properties should not return arrays): the arrays share one index with Times and are read positionally,
 // as KaplanMeierCurve's are.

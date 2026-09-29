@@ -14,7 +14,7 @@ weights are not among them.
 
 So the fences on these pages **compile** against the packed package and are marked
 `docs-run: skip`, which is what that marker is for. The same exclusion is declared in the
-packaging sample, where `OnnxTextEmbedder` is one of its two documented exclusions.
+packaging sample, whose documented exclusions list `OnnxTextEmbedder` for this reason.
 
 ## Where the vectors come from, and where they go
 

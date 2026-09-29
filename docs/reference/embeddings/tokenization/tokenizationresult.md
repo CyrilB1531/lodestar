@@ -40,6 +40,10 @@ which skips them.
 
 Being a `record`, two results with the same tokens and ids are equal.
 
+`Tokens` and `Ids` are the tokenizer's own lists, taken and exposed as they are, not copied: a
+caller casting one back to its list and writing to it changes this result and what it equals, and
+every holder of the same list, a `with` copy included ([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`ISubwordTokenizer.Encode`](isubwordtokenizer-encode.md),

@@ -40,6 +40,9 @@ A matrix straight out of [`TfidfVectorizer`](../../text/vectorizers/tfidfvectori
 every row's norm is `1` and calling this on one is a way to confirm that rather than to learn
 something new.
 
+A stored `NaN` or infinity is carried into the norm, not refused: the row's norm is then `NaN` or
+`+∞`.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`CsrMatrix.RowL1Norm`](csrmatrix-rowl1norm.md),

@@ -1,7 +1,11 @@
 namespace Lodestar.Stats.Regression.Panel;
 
 /// <summary>A panel fit's inference table and diagnostics, as <c>linearmodels</c> reports them.</summary>
-/// <remarks>Every per-coefficient list runs in one order: the constant when <c>PanelOptions.WithIntercept</c> added it, then the regressors.</remarks>
+/// <remarks>
+/// Every per-coefficient list runs in one order: the constant when <c>PanelOptions.WithIntercept</c> added it,
+/// then the regressors. The lists are the fit's own arrays, taken and exposed as they are, not copied:
+/// writing to one through a cast changes this summary, and every holder of it (#1305).
+/// </remarks>
 public sealed class PanelSummary
 {
     /// <summary>The estimates.</summary>

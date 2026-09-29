@@ -45,8 +45,7 @@ a checkpoint that declares it, unconditionally: that pipeline does not reproduce
 lineage does: [`TokenizerJsonLoader.LoadBpe`](persistence/tokenizerjsonloader-loadbpe.md) resolves
 an uncovered symbol into the `<0xXX>` byte pieces the flag promises, which is what lets Llama-2 and
 Mistral v0.1 — the SentencePiece-BPE lineage tracked at
-[#175](https://github.com/CyrilB1531/lodestar/issues/175) and scoped by
-[decision 0005 §3](../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md) — load at all, and refuses only a
+[#175](https://github.com/CyrilB1531/lodestar/issues/175) — load at all, and refuses only a
 vocabulary that declares the flag without carrying all 256 pieces ([decision 0007](../../decisions/0007-the-deliberate-divergences.md)).
 
 The same routing, as a table:

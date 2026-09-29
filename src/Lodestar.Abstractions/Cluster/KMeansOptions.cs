@@ -32,8 +32,8 @@ public sealed record KMeansOptions
     /// not copied: writing to it changes these options, what they equal and a <c>with</c> copy of
     /// them, not a fit already run, which copied it (#1305).
     /// </remarks>
-    // CA1819 (properties should not return arrays): the same bargain decision 0004 struck
-    // for Ω. The whole point of accepting a block is that the caller already holds the
+    // CA1819 (properties should not return arrays): the centres are an input, as the
+    // truncated SVD's Ω is. The whole point of accepting a block is that the caller already holds the
     // numbers scikit-learn chose; copying it defensively to hand it back would protect a
     // value this type reads once, at the cost of the allocation the fit exists to avoid.
 #pragma warning disable CA1819

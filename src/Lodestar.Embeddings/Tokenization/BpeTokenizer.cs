@@ -157,7 +157,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
             _hasUnk = true;
         }
 
-        _ranks = new PairRanks(vocabulary.Merges.Count);
+        _ranks = new PairRanks(vocabulary.Merges.Count, nameof(vocabulary));
         _merged = new int[vocabulary.Merges.Count];
         _mergeLeft = new int[vocabulary.Merges.Count];
         _mergeRight = new int[vocabulary.Merges.Count];
@@ -397,11 +397,11 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// unpaired surrogate throws either way. Neither declared, nothing re-encodes at all.
     /// </exception>
     /// <exception cref="ArgumentException">
-    /// Either a byte-level vocabulary missing one of the 256 alphabet characters
-    /// (see <see cref="ByteLevelSymbols"/>), or, once a normalizer is declared, an
-    /// unpaired surrogate in a gap -- <see cref="string.Normalize(NormalizationForm)"/>
-    /// throws on that before the re-encoding above gets a chance to.
+    /// A byte-level vocabulary missing one of the 256 alphabet characters (<see cref="ByteLevelSymbols"/>); once a
+    /// normalizer is declared, an unpaired surrogate in a gap, which <see cref="string.Normalize(NormalizationForm)"/>
+    /// refuses first; or a piece needing more symbols than one array holds (#1436, #1437).
     /// </exception>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
     public TokenizationResult Encode(string text)
     {
         Guard.NotNull(text);
@@ -436,6 +436,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// <remarks>Matches <c>tokenizers.Tokenizer.token_to_id(token)</c>.</remarks>
     /// <param name="token">The token string.</param>
     /// <param name="id">Receives the id when the token is present.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="token"/> is null.</exception>
     public bool TryGetId(string token, out int id)
     {
         Guard.NotNull(token);
@@ -593,9 +594,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
 
         // Byte-level sizes by UTF-8 byte count: one character can become four bytes.
         // byte_fallback has the same shape, plus whatever Decorate adds per symbol.
-        int capacity = _byteLevel || _byteFallback
-            ? JsonArtifact.Utf8NoBom.GetByteCount(piece) + DecorationBytes(piece)
-            : piece.Length;
+        int capacity = SymbolCapacity(piece);
         bool small = capacity <= StackThreshold;
         int[]? rented = small ? null : ArrayPool<int>.Shared.Rent(capacity);
         Span<int> symbols = small ? stackalloc int[capacity] : rented!.AsSpan(0, capacity);
@@ -652,7 +651,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// first and the suffix on the last, and an expanded symbol carries them as bytes of its
     /// own. Counting one prefix per character is loose and never short.
     /// </remarks>
-    private int DecorationBytes(string piece)
+    private long DecorationBytes(string piece)
     {
         if (!_byteFallback)
         {
@@ -660,8 +659,46 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         }
         int prefix = _continuingPrefix is null ? 0 : JsonArtifact.Utf8NoBom.GetByteCount(_continuingPrefix);
         int suffix = _endOfWord is null ? 0 : JsonArtifact.Utf8NoBom.GetByteCount(_endOfWord);
-        return (prefix * piece.Length) + suffix;
+        return ((long)prefix * piece.Length) + suffix;
     }
+
+    /// <summary>How many symbols <paramref name="piece"/> can become, refused past one array.</summary>
+    /// <remarks>
+    /// Summed in <c>long</c>: in <c>int</c> a piece of some 700 million characters wrapped negative, read as small, and
+    /// reached <c>stackalloc</c> (#1437). No <c>try</c> on the common path: a guarded one cost the BPE bench 3.6 %.
+    /// </remarks>
+    private int SymbolCapacity(string piece)
+    {
+        if (!_byteLevel && !_byteFallback)
+        {
+            return piece.Length;
+        }
+
+        // At three bytes a UTF-16 unit at most, a piece this short cannot overflow GetByteCount's int.
+        long bytes = piece.Length <= int.MaxValue / 3 ? JsonArtifact.Utf8NoBom.GetByteCount(piece) : HugeByteCount(piece);
+        long capacity = bytes + DecorationBytes(piece);
+        return capacity <= TableLength.MaxLength ? (int)capacity : throw PieceTooLong(capacity, TextParameter);
+    }
+
+    /// <summary>The UTF-8 byte count of a piece long enough for the encoding's own <c>int</c> to overflow.</summary>
+    private static long HugeByteCount(string piece)
+    {
+        try
+        {
+            return JsonArtifact.Utf8NoBom.GetByteCount(piece);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            throw PieceTooLong((long)piece.Length * 3, TextParameter);
+        }
+    }
+
+    /// <summary>The refusal for a piece whose symbols or merge queue one array cannot hold.</summary>
+    private static ArgumentException PieceTooLong(long slots, string paramName) =>
+        new($"A pre-tokenized piece needs some {slots} slots, more than one array holds.", paramName);
+
+    /// <summary><see cref="Encode"/>'s parameter, which a piece deep inside it is refused under.</summary>
+    private const string TextParameter = "text";
 
     /// <summary>
     /// Fills <paramref name="symbols"/> with one id per Unicode code point, substituting the
@@ -853,10 +890,9 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// <remarks>
     /// Symbols are threaded on a doubly-linked list and candidate merges kept in a hand-rolled
     /// binary heap, validated when they come off the queue and dropped in silence when stale
-    /// rather than hunted down at merge time — see decision 0005's "Merge loop" section for
-    /// the scaling measurements that justified the rewrite over a rescan-and-shift loop, and
-    /// for the leftmost-wins tie-break, which this reproduces from HuggingFace's own heap
-    /// ordering rather than inventing.
+    /// rather than hunted down at merge time, which scales where a rescan-and-shift loop did not.
+    /// The leftmost-wins tie-break is reproduced from HuggingFace's own heap ordering rather
+    /// than invented.
     /// </remarks>
     private int Merge(Span<int> symbols, int count)
     {
@@ -865,7 +901,8 @@ public sealed class BpeTokenizer : ISubwordTokenizer
             return count;
         }
 
-        int capacity = QueueCapacity(count);
+        long queued = QueueCapacity(count);
+        int capacity = queued <= TableLength.MaxLength ? (int)queued : throw PieceTooLong(queued, TextParameter);
         // Most pieces are a word: two rentals per word was measurable across a corpus, so a
         // piece this short takes its scratch space from the stack instead.
         if (count <= MergeStackThreshold)
@@ -900,7 +937,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// merge applied, of which there can be at most <c>count - 1</c> since each
     /// one removes a symbol and one always remains.
     /// </summary>
-    private static int QueueCapacity(int count) => 3 * (count - 1);
+    private static long QueueCapacity(int count) => 3L * (count - 1);
 
     /// <summary>Runs the merge loop over a linked list of symbols and a queue of candidates.</summary>
     /// <param name="symbols">The symbols, rewritten in place; only the first <c>count</c> entries are read.</param>
@@ -1070,11 +1107,12 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// well-formed UTF-8 becomes U+FFFD rather than throwing, matching the reference (decision 0007).
     /// <c>skipSpecialTokens</c> defaults to <see langword="false"/>, so <c>Decode(Encode(x)) == x</c> holds
     /// without passing it — except that the metaspace escape and the byte pieces stay as symbols unless the
-    /// file's decoder undoes them, and a bare <c>ByteFallback</c> undoes the pieces while leaving the escape in (decision 0007).
+    /// file's decoder undoes them, and a bare <c>ByteFallback</c> undoes the pieces while leaving the escape in.
     /// </remarks>
     /// <param name="ids">Token ids, e.g. from <see cref="Encode"/>.</param>
     /// <param name="skipSpecialTokens">Drop tokens whose <c>added_tokens</c> entry is <c>special</c> (<see cref="AddedToken.Special"/>), matching Python's <c>skip_special_tokens</c>.</param>
     /// <exception cref="ArgumentOutOfRangeException">An id is outside the vocabulary.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="ids"/> is null.</exception>
     public string Decode(IReadOnlyList<int> ids, bool skipSpecialTokens = false)
     {
         Guard.NotNull(ids);

@@ -34,7 +34,7 @@ public sealed class SequenceLengthTests
 
     /// <summary>
     /// Left to the default, a long text is truncated to the table and embeds as it does with that
-    /// length passed explicitly; one token more indexes past the table, which is what makes the
+    /// length passed explicitly; one token more would index past the table, which is what makes the
     /// length the model's limit and not a guess — for the offset tables, the offset included.
     /// </summary>
     [Theory]
@@ -48,8 +48,10 @@ public sealed class SequenceLengthTests
             Long, new EncodingOptions { MaxLength = Positions }, TestContext.Current.CancellationToken);
 
         Assert.Equal(explicitLength[0], derived[0]);
-        Assert.Throws<OnnxRuntimeException>(() => embedder.EmbedBatch(
+        // One token more indexes past the table: refused by name before the graph runs, not by it (#1423).
+        ArgumentException error = Assert.Throws<ArgumentException>(() => embedder.EmbedBatch(
             Long, new EncodingOptions { MaxLength = Positions + 1 }, TestContext.Current.CancellationToken));
+        Assert.Equal("options", error.ParamName);
     }
 
     /// <summary>With no position table to read, nothing is truncated, as before.</summary>

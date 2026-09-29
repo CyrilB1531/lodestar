@@ -1063,8 +1063,8 @@ public static class TokenizerJsonLoader
     /// </summary>
     /// <remarks>
     /// Splitting is refused rather than reproduced, since <see cref="BpeTokenizer"/> has
-    /// no pattern for Metaspace's own segmentation and decision 0005 §3's rule is that
-    /// what is not reproduced fails at load naming itself. What is left is a text
+    /// no pattern for Metaspace's own segmentation, and what is not reproduced fails at
+    /// load naming itself rather than being partly applied. What is left is a text
     /// transform, so nothing splits at all — which is what the last field carries.
     /// </remarks>
     private static (bool ByteLevel, bool AddPrefixSpace, BpeSplitStep? PreSplit, string? Pattern, bool NoPreTokenizer)

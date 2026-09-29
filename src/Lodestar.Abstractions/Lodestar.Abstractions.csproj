@@ -9,11 +9,12 @@
     <RootNamespace>Lodestar.Abstractions</RootNamespace>
     <!-- No code beyond CsrMatrix and what the moved data types call (decision 0003, epoch 3), so of
          the shared helpers only three: ValueEquality for the data types' structural equality, and
-         ElementWise and Guard for CsrMatrix's products and constructor (#1282). -->
+         ElementWise's AddScaled and Guard for CsrMatrix's products and constructor (#1282, #1417). -->
     <LodestarIncludesSharedHelpers>false</LodestarIncludesSharedHelpers>
     <LodestarIncludesValueEquality>true</LodestarIncludesValueEquality>
     <LodestarIncludesGuard>true</LodestarIncludesGuard>
     <LodestarIncludesElementWise>true</LodestarIncludesElementWise>
+    <LodestarElementWiseAddScaledOnly>true</LodestarElementWiseAddScaledOnly>
 
     <PackageId>Lodestar.Abstractions</PackageId>
     <Description>The types Lodestar's packages share: a compressed sparse row matrix with the vector and dense-block products a decomposition needs, and the public options, results and enums the packages declare that carry no logic. No dependencies, no I/O, nothing to configure.</Description>

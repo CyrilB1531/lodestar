@@ -227,6 +227,7 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
     /// </remarks>
     /// <param name="token">The piece string.</param>
     /// <param name="id">Receives the id when the piece is present.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="token"/> is null.</exception>
     public bool TryGetId(string token, out int id)
     {
         Guard.NotNull(token);

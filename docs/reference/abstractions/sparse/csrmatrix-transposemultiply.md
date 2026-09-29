@@ -47,6 +47,9 @@ rather than a single vector product.
 The result is **not** the transpose of `Multiply`'s. `Multiply` produces one row per row of the
 matrix; this produces one per column.
 
+A `NaN` or infinite value, stored or in `block`, is carried through, not refused — and a stored
+zero times an infinity is `NaN`, as it is in scipy's product.
+
 **On .NET Framework the cap is lower.** The bound is .NET's `Array.MaxLength`; .NET Framework
 refuses a `double` array past 2 GB, or past `0x7FEFFFFF` elements under `gcAllowVeryLargeObjects`,
 so a result between its cap and this one fails there with the runtime's own out-of-memory error,

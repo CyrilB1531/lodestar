@@ -13,10 +13,15 @@ them. `attentionMask` is the same length, `1` for a real token and `0` for paddi
 
 **Returns** — `float[]` of length `Dimension`, the pooled vector for that text.
 
-**Exceptions** — `ArgumentException` when the two spans differ in length, or are longer than the
-model's fixed sequence axis.
+**Exceptions** — `ArgumentException` when the two spans differ in length, or are longer than
+[`MaxSequenceLength`](onnxtextembedder.md) — a fixed sequence axis or the position-embedding table,
+refused here rather than failing inside the graph
+([#1423](https://github.com/CyrilB1531/lodestar/issues/1423)).
 `InvalidOperationException` when the model output is not `[batch, sequence, dim]` (or `[batch, dim]`,
-pooled by the graph) for the batch it was fed; the message names the output and both shapes.
+pooled by the graph) for the batch it was fed, or declares its axes as the input's two swapped, which
+sizes alone miss when the batch is as long as the sequence
+([#1424](https://github.com/CyrilB1531/lodestar/issues/1424)); the message names the output and both
+shapes.
 `NotSupportedException` when its elements are not float, float16 or bfloat16 — the two
 half-precision types are widened to float before pooling.
 `ObjectDisposedException` after [`Dispose`](onnxtextembedder-dispose.md) — the type

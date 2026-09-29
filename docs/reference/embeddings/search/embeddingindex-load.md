@@ -17,7 +17,7 @@ defaults to [`ArtifactLoadOptions`](../persistence/artifactloadoptions.md)'s own
 **Returns** — `EmbeddingIndex`, with the same `Dimension`, `Count`, ids and normalization setting
 it was saved with.
 
-**Exceptions** — `InvalidDataException` when the content is not an embedding index, is of an
+**Exceptions** — `ArgumentNullException` when `source` or `path` is null. `InvalidDataException` when the content is not an embedding index, is of an
 unsupported version, is internally inconsistent, holds a non-finite value, or exceeds a bound in
 `options`.
 

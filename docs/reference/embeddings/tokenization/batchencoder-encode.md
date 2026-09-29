@@ -37,7 +37,7 @@ int length = ids.Length;  // => 3
 long first = ids[0];      // => 4
 ```
 
-**Exceptions** — `ArgumentException` when the sequence exceeds
+**Exceptions** — `ArgumentNullException` when `text` is null. `ArgumentException` when the sequence exceeds
 [`EncodingOptions.MaxLength`](encodingoptions.md) and
 [`Truncation`](truncationstrategy.md) is `None`. Measured: with `MaxLength = 3` and
 `TruncationStrategy.None` a four-token text throws; the same text with

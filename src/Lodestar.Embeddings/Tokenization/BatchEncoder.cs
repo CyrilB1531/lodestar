@@ -16,14 +16,17 @@ public sealed class BatchEncoder
     private readonly long[] _prefixIds;
     private readonly long[] _suffixIds;
     private readonly long _padId;
+    private readonly int _specialTokenCount;
 
     /// <summary>Creates an encoder over a tokenizer and a set of encoding options.</summary>
     /// <param name="tokenizer">The tokenizer whose vocabulary resolves the template's special tokens.</param>
     /// <param name="options">Template, truncation and batching settings; defaults to <see cref="EncodingOptions"/>'s own defaults.</param>
     /// <exception cref="ArgumentException">
     /// The tokenizer's vocabulary does not contain one of the template's tokens, the template or one of its members
-    /// is null, or <see cref="EncodingOptions.MaxLength"/> leaves no room for them.
+    /// is null, <see cref="EncodingOptions.BatchSize"/> or <see cref="EncodingOptions.MaxLength"/> is below 1, or
+    /// <see cref="EncodingOptions.MaxLength"/> leaves no room for the template's tokens.
     /// </exception>
+    /// <exception cref="ArgumentNullException"><paramref name="tokenizer"/> is null.</exception>
     public BatchEncoder(ISubwordTokenizer tokenizer, EncodingOptions? options = null)
     {
         Guard.NotNull(tokenizer);
@@ -47,22 +50,29 @@ public sealed class BatchEncoder
         _suffixIds = ResolveAll(tokenizer, template.SuffixTokens);
         _padId = Resolve(tokenizer, template.PadToken);
 
+        // Counted with the ids, once: a caller's list read live later would shrink the budget the ids no longer match (#1453).
+        _specialTokenCount = _prefixIds.Length + _suffixIds.Length;
+
         if (Options.MaxLength is int max)
         {
             if (max < 1)
             {
                 throw new ArgumentException($"MaxLength must be at least 1, was {max}.", nameof(options));
             }
-            if (max < template.SpecialTokenCount)
+            if (max < _specialTokenCount)
             {
                 throw new ArgumentException(
-                    $"MaxLength {max} is smaller than the {template.SpecialTokenCount} special tokens the template inserts.",
+                    $"MaxLength {max} is smaller than the {_specialTokenCount} special tokens the template inserts.",
                     nameof(options));
             }
         }
     }
 
-    /// <summary>The options this encoder was built with, with <c>MaxLength</c> as resolved.</summary>
+    /// <summary>The options this encoder was built with, as given, or <see cref="EncodingOptions"/>' defaults when none were.</summary>
+    /// <remarks>
+    /// Nothing is resolved into them: a null <c>MaxLength</c> stays null and means no truncation (#1446). The template's
+    /// ids and its token count are read once at construction, so a list the caller changes afterwards is not seen.
+    /// </remarks>
     public EncodingOptions Options { get; }
 
     /// <summary>
@@ -76,6 +86,7 @@ public sealed class BatchEncoder
     /// <see cref="EncodingOptions.Truncation"/> is <see cref="TruncationStrategy.None"/>, or the tokenizer
     /// refuses <paramref name="text"/> — a SentencePiece model refuses a lone surrogate (#1324).
     /// </exception>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
     public long[] Encode(string text)
     {
         Guard.NotNull(text);
@@ -198,8 +209,8 @@ public sealed class BatchEncoder
             width = Math.Max(width, length);
         }
 
-        // A zero-width batch is a tensor ONNX Runtime cannot shape. One padded
-        // column, masked off, means "no tokens" without being an empty dimension.
+        // One padded column, masked off, means "no tokens" without an empty dimension, which a graph whose
+        // sequence axis is fixed or positive cannot take; ONNX Runtime itself accepts [1, 0] where the graph does (#1459).
         if (count > 0)
         {
             width = Math.Max(width, 1);
@@ -255,7 +266,7 @@ public sealed class BatchEncoder
             return tokenCount;
         }
 
-        int budget = max - Options.Template.SpecialTokenCount;
+        int budget = max - _specialTokenCount;
         if (tokenCount <= budget)
         {
             return tokenCount;
@@ -263,7 +274,7 @@ public sealed class BatchEncoder
         if (Options.Truncation == TruncationStrategy.None)
         {
             throw new ArgumentException(
-                $"The text encodes to {tokenCount + Options.Template.SpecialTokenCount} tokens, over the MaxLength of {max}, " +
+                $"The text encodes to {tokenCount + _specialTokenCount} tokens, over the MaxLength of {max}, " +
                 $"and TruncationStrategy.None refuses to shorten it: \"{Preview(text)}\".",
                 nameof(text));
         }

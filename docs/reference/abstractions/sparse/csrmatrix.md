@@ -38,8 +38,8 @@ int start = counts.RowPointers[2];   // => 6
 int end = counts.RowPointers[3];     // => 10
 ```
 
-**Remarks** — fifteen cells, ten of them stored: the third document is the only one holding `and`,
-and the first two hold neither `and` nor one of `cat`/`dog`.
+**Remarks** — fifteen cells, ten of them stored. The five absent are `and` and `dog` from the first
+document, `and` and `cat` from the second, and `eats` from the third.
 
 The three arrays are exposed rather than hidden because reading them is often the point — feeding
 another library, writing a file format, or checking what a vectorizer produced. They are the

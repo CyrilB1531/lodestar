@@ -16,7 +16,7 @@ what will be accepted and defaults to
 **Returns** — `Task<EmbeddingIndex>`, completing with an index ready to
 [`Search`](embeddingindex-search.md).
 
-**Exceptions** — `InvalidDataException` for the same reasons as
+**Exceptions** — `ArgumentNullException` when `source` is null. `InvalidDataException` for the same reasons as
 [`Load`](embeddingindex-load.md). `OperationCanceledException` when `cancellationToken` is
 signalled.
 

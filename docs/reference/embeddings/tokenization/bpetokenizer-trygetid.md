@@ -13,6 +13,8 @@ is byte-level. `id` receives the token's id, or `0` when the lookup fails.
 
 **Returns** — `bool`, true when found; `id` is the id then and `0` otherwise.
 
+**Exceptions** — `ArgumentNullException` when `token` is null.
+
 **Example** — an entry that exists, and the byte-level spelling of a leading space.
 
 ```csharp

@@ -68,13 +68,33 @@ public sealed class OutputContractTests
         Assert.Contains("[1, 3, dim]", error.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>A transposed output of a one-by-one batch has the expected shape, so it runs.</summary>
-    [Fact]
-    public void A_shape_that_matches_is_not_refused()
+    /// <summary>
+    /// A batch as long as its sequences gives a transposed output the expected sizes; the axis names the
+    /// export declares still say the sequence comes first, and that is refused (#1424).
+    /// </summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public void A_declared_transposition_is_refused_where_the_sizes_agree(int side)
     {
         using var embedder = new OnnxTextEmbedder(Oracle("tiny_transposed.onnx"));
-        using var reference = new OnnxTextEmbedder(Oracle("tiny_embedder.onnx"));
+        long[] ids = [.. Enumerable.Repeat(7L, side * side)];
+        long[] mask = [.. Enumerable.Repeat(1L, side * side)];
+        var batch = new BatchEncoder(BatchCorpus.Tokenizer()).EncodeBatch(Enumerable.Repeat("a", side).ToList());
 
-        Assert.Equal(reference.Embed([7], [1]), embedder.Embed([7], [1]));
+        InvalidOperationException error = side == 1
+            ? Assert.Throws<InvalidOperationException>(() => embedder.Embed(ids, mask))
+            : Assert.Throws<InvalidOperationException>(() => embedder.EmbedBatch(batch, TestContext.Current.CancellationToken));
+
+        Assert.Contains("declared axes", error.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>An output whose axes are as the input names them runs, at every batch size.</summary>
+    [Fact]
+    public void An_output_declared_batch_first_is_not_refused()
+    {
+        using var embedder = new OnnxTextEmbedder(Oracle("tiny_embedder.onnx"));
+
+        Assert.Equal(4, embedder.Embed([7], [1]).Length);
     }
 }

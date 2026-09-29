@@ -12,6 +12,8 @@ public TokenizationResult Encode(string text)
 
 **Returns** — [`TokenizationResult`](tokenizationresult.md), tokens and ids of the same length.
 
+**Exceptions** — `ArgumentNullException` when `text` is null.
+
 **Example** — a word outside the vocabulary becomes one unknown token.
 
 ```csharp

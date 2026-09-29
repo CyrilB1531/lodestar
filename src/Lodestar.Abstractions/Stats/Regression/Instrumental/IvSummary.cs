@@ -3,7 +3,8 @@ namespace Lodestar.Stats.Regression.Instrumental;
 /// <summary>An instrumental-variables fit's inference table and diagnostics, as <c>linearmodels</c> reports them.</summary>
 /// <remarks>
 /// Every per-coefficient list runs in one order: the constant when <c>IvOptions.WithIntercept</c> added it, the
-/// exogenous regressors, then the endogenous ones.
+/// exogenous regressors, then the endogenous ones. The lists are the fit's own arrays, taken and exposed as
+/// they are, not copied: writing to one through a cast changes this summary, and every holder of it (#1305).
 /// </remarks>
 public sealed class IvSummary
 {

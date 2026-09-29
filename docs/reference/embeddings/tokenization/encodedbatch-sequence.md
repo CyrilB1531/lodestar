@@ -13,6 +13,8 @@ public ReadOnlySpan<long> Sequence(int index)
 **Returns** — `ReadOnlySpan<long>` of that sequence's **true** length — `Lengths[index]`, not
 `SequenceLength`. A view into `InputIds`, copying nothing.
 
+**Exceptions** — `ArgumentOutOfRangeException` when `index` is outside the batch.
+
 **Example** — the shorter of two sequences, three ids rather than five.
 
 ```csharp

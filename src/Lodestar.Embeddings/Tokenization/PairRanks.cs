@@ -18,9 +18,22 @@ internal sealed class PairRanks
     private readonly int _shift;
     private readonly int _mask;
 
+    /// <summary>The most pairs a table can hold at half full: 2^30 slots is the largest power of two an array holds.</summary>
+    internal const int MaxPairs = 1 << 29;
+
     /// <summary>Sizes the table at no more than half full for <paramref name="pairs"/> entries.</summary>
-    internal PairRanks(int pairs)
+    /// <param name="pairs">How many pairs the table will hold.</param>
+    /// <param name="paramName">The caller's parameter the pairs came from, named by the refusal.</param>
+    /// <exception cref="ArgumentException"><paramref name="pairs"/> is past <see cref="MaxPairs"/>.</exception>
+    internal PairRanks(int pairs, string paramName)
     {
+        // Past 2^29 the doubling below wraps through int.MinValue to 1 and never exits (#1435).
+        if (pairs > MaxPairs)
+        {
+            throw new ArgumentException(
+                $"{pairs} merges are more than one open-addressed table of {MaxPairs} pairs holds.", paramName);
+        }
+
         int bits = 4;
         while ((1 << bits) < 2 * Math.Max(pairs, 1))
         {
