@@ -29,17 +29,20 @@ internal static class MultiClassRoc
 
         if (options.Strategy == MultiClassStrategy.OneVsRest)
         {
-            // _average_binary_score returns 0 when the weighted positives, here the weights' sum, are close to zero
-            // (#1534); check_array refuses a NaN score first, so the shortcut waits for a finite yScore.
+            // One total per class, the weights NumpyAverage.Weighted averages by and the shortcut below reads; macro reads neither (#1586).
+            double[] classTotals = average == Averaging.Weighted ? ClassTotals(yTrue, classes, options.SampleWeight) : [];
+
+            // _average_binary_score returns 0 when the class totals sum close to zero (#1534, #1586). check_array
+            // refuses a NaN score first, so the shortcut waits for a finite yScore.
             if (average == Averaging.Weighted && !options.SampleWeight.IsEmpty
-                && Math.Abs(Sum(options.SampleWeight)) <= ZeroTotalTolerance && IsFinite(yScore))
+                && Math.Abs(NumpyAverage.Sum(classTotals)) <= ZeroTotalTolerance && IsFinite(yScore))
             {
                 return 0.0;
             }
 
             return workers == 1
-                ? OneVsRest(yTrue, yScore, classes, average, options.SampleWeight)
-                : OneVsRestParallel(yTrue, yScore, classes, average, options.SampleWeight, workers);
+                ? OneVsRest(yTrue, yScore, classes, average, options.SampleWeight, classTotals)
+                : OneVsRestParallel(yTrue, yScore, classes, average, options.SampleWeight, classTotals, workers);
         }
 
         return workers == 1
@@ -58,14 +61,22 @@ internal static class MultiClassRoc
                 nameof(options), options.MaxDegreeOfParallelism,
                 "MaxDegreeOfParallelism cannot be negative. 0 and 1 are both sequential.");
         }
-        if (n == 0)
-        {
-            throw new ArgumentException("yTrue is empty; there is nothing to score.", nameof(yTrue));
-        }
         if (classCount < 2)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(classCount), classCount, "Multiclass ROC AUC needs at least two classes.");
+        }
+
+        // check_array's sentences, y_true's before y_score's, ahead of any length comparison (#1585).
+        if (n == 0)
+        {
+            throw new ArgumentException(
+                "Found array with 0 sample(s) (shape=(0,)) while a minimum of 1 is required.", nameof(yTrue));
+        }
+        if (yScore.IsEmpty)
+        {
+            throw new ArgumentException(
+                $"Found array with 0 sample(s) (shape=(0, {classCount})) while a minimum of 1 is required.", nameof(yScore));
         }
         if (yScore.Length != (long)n * classCount)
         {
@@ -228,7 +239,7 @@ internal static class MultiClassRoc
     /// </remarks>
     private static double ClassScore(
         ScoreSource source, int column, int positiveLabel, ReadOnlySpan<double> sampleWeight,
-        BinaryRoc.Scratch scratch, out double positiveWeight)
+        BinaryRoc.Scratch scratch)
     {
         ReadOnlySpan<int> yTrue = source.YTrue;
         int offset = source.Offset(column);
@@ -236,18 +247,10 @@ internal static class MultiClassRoc
         int n = yTrue.Length;
         int[] binary = scratch.Binary;
         double[] scoreColumn = scratch.Column;
-        bool weighted = !sampleWeight.IsEmpty;
-        positiveWeight = 0.0;
-
         for (int i = 0; i < n; i++)
         {
-            bool positive = yTrue[i] == positiveLabel;
-            binary[i] = positive ? 1 : 0;
+            binary[i] = yTrue[i] == positiveLabel ? 1 : 0;
             scoreColumn[i] = source.Scores[offset + (i * step)];
-            if (positive)
-            {
-                positiveWeight += weighted ? sampleWeight[i] : 1.0;
-            }
         }
 
         return BinaryRoc.Score(
@@ -342,11 +345,10 @@ internal static class MultiClassRoc
 
     private static double OneVsRest(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int[] classes,
-        Averaging average, ReadOnlySpan<double> sampleWeight)
+        Averaging average, ReadOnlySpan<double> sampleWeight, double[] classTotals)
     {
         int k = classes.Length;
         double[] scores = new double[k];
-        double[] weights = new double[k];
         BinaryRoc.Scratch scratch = BinaryRoc.Scratch.Rent(yTrue.Length);
 
         try
@@ -354,8 +356,7 @@ internal static class MultiClassRoc
             ScoreSource source = new(yTrue, yScore, yTrue.Length, k, columnMajor: false);
             for (int c = 0; c < k; c++)
             {
-                scores[c] = ClassScore(source, c, classes[c], sampleWeight, scratch, out double positiveWeight);
-                weights[c] = positiveWeight;
+                scores[c] = ClassScore(source, c, classes[c], sampleWeight, scratch);
             }
         }
         finally
@@ -363,7 +364,7 @@ internal static class MultiClassRoc
             scratch.Return();
         }
 
-        return average == Averaging.Macro ? Mean(scores) : WeightedMean(scores, weights, nameof(yTrue));
+        return average == Averaging.Macro ? NumpyAverage.Mean(scores) : NumpyAverage.Weighted(scores, classTotals, nameof(yTrue));
     }
 
     /// <summary>
@@ -458,19 +459,18 @@ internal static class MultiClassRoc
 
     /// <summary>
     /// One-vs-rest with the per-class loop spread over workers. Bit-identical to
-    /// <see cref="OneVsRest"/>: class <c>c</c> writes <c>scores[c]</c> and
-    /// <c>weights[c]</c> and nothing else, and the averaging below runs on this
-    /// thread in array order, so no thread's timing can reach a sum.
+    /// <see cref="OneVsRest"/>: class <c>c</c> writes <c>scores[c]</c> and nothing
+    /// else, and the averaging below runs on this thread over the caller's class
+    /// totals, so no thread's timing can reach a sum.
     /// </summary>
     private static double OneVsRestParallel(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int[] classes,
-        Averaging average, ReadOnlySpan<double> sampleWeight, int workers)
+        Averaging average, ReadOnlySpan<double> sampleWeight, double[] classTotals, int workers)
     {
         int n = yTrue.Length;
         int k = classes.Length;
         bool weighted = !sampleWeight.IsEmpty;
         double[] scores = new double[k];
-        double[] weights = new double[k];
         var copy = CopyForWorkers(yTrue, yScore, k, sampleWeight);
 
         try
@@ -490,8 +490,7 @@ internal static class MultiClassRoc
                 {
                     // classes[c], not c: the column and the positive label are
                     // the same number only when the labels happen to be 0..k-1.
-                    scores[c] = ClassScore(source, c, classes[c], classWeight, scratch, out double positiveWeight);
-                    weights[c] = positiveWeight;
+                    scores[c] = ClassScore(source, c, classes[c], classWeight, scratch);
                     return null;
                 }
                 catch (ArgumentException ex)
@@ -505,7 +504,7 @@ internal static class MultiClassRoc
             ReturnToPool(copy);
         }
 
-        return average == Averaging.Macro ? Mean(scores) : WeightedMean(scores, weights, nameof(yTrue));
+        return average == Averaging.Macro ? NumpyAverage.Mean(scores) : NumpyAverage.Weighted(scores, classTotals, nameof(yTrue));
     }
 
     /// <summary>
@@ -558,7 +557,7 @@ internal static class MultiClassRoc
             ReturnToPool(copy);
         }
 
-        return average == Averaging.Macro ? Mean(pairScores) : WeightedMean(pairScores, prevalence, nameof(yTrue));
+        return average == Averaging.Macro ? NumpyAverage.Mean(pairScores) : NumpyAverage.Weighted(pairScores, prevalence, nameof(yTrue));
     }
 
     /// <summary>
@@ -609,7 +608,7 @@ internal static class MultiClassRoc
             scratch.Return();
         }
 
-        return average == Averaging.Macro ? Mean(pairScores) : WeightedMean(pairScores, prevalence, nameof(yTrue));
+        return average == Averaging.Macro ? NumpyAverage.Mean(pairScores) : NumpyAverage.Weighted(pairScores, prevalence, nameof(yTrue));
     }
 
     /// <summary>
@@ -655,16 +654,6 @@ internal static class MultiClassRoc
         return pairs;
     }
 
-    private static double Mean(double[] values)
-    {
-        double total = 0.0;
-        foreach (double value in values)
-        {
-            total += value;
-        }
-        return total / values.Length;
-    }
-
     /// <summary><c>numpy.isclose(total, 0)</c>'s absolute tolerance, which is all it applies against zero.</summary>
     internal const double ZeroTotalTolerance = 1e-8;
 
@@ -689,43 +678,23 @@ internal static class MultiClassRoc
     private static (int A, int B)[] PresentPairs((int A, int B)[] pairs, ClassMembers members) =>
         Array.FindAll(pairs, pair => members.Count(pair.A) > 0 && members.Count(pair.B) > 0);
 
-    private static double Sum(ReadOnlySpan<double> values)
+    /// <summary>
+    /// The weight each class carries, summed in sample order — a count when the samples are unweighted:
+    /// <c>average_weight</c> in <c>_average_binary_score</c>, which the weighted mean averages by (#1586).
+    /// </summary>
+    private static double[] ClassTotals(ReadOnlySpan<int> yTrue, int[] classes, ReadOnlySpan<double> sampleWeight)
     {
-        double total = 0.0;
-        foreach (double value in values)
+        double[] totals = new double[classes.Length];
+        bool weighted = !sampleWeight.IsEmpty;
+        for (int i = 0; i < yTrue.Length; i++)
         {
-            total += value;
-        }
-
-        return total;
-    }
-
-    private static double WeightedMean(double[] values, double[] weights, string paramName)
-    {
-        double total = 0.0;
-        double weightSum = 0.0;
-        for (int i = 0; i < values.Length; i++)
-        {
-            // _average_binary_score forces a zero-weighted score to 0, so its NaN never reaches the average (#1277).
-#pragma warning disable S1244
-            if (weights[i] == 0.0)
-#pragma warning restore S1244
+            int c = Array.BinarySearch(classes, yTrue[i]);
+            if (c >= 0)
             {
-                continue;
+                totals[c] += weighted ? sampleWeight[i] : 1.0;
             }
-
-            total += values[i] * weights[i];
-            weightSum += weights[i];
         }
 
-        // One class alone pairs with nothing, and np.average refuses the empty weighting (#1566).
-#pragma warning disable S1244
-        if (weightSum == 0.0)
-#pragma warning restore S1244
-        {
-            throw new ArgumentException("Weights sum to zero, can't be normalized.", paramName);
-        }
-
-        return total / weightSum;
+        return totals;
     }
 }

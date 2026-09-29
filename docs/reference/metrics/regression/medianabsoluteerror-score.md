@@ -16,10 +16,17 @@ and `outputWeights` weights the outputs in the reduction.
 
 **Returns** — `double`, never negative, in the target's own units.
 
-**Exceptions** — `ArgumentException` when a length disagrees with the shape, the input is empty,
-or
+**Exceptions** — `ArgumentException` when a length disagrees with the shape, the input is empty, or
 it holds a non-finite value; `ArgumentOutOfRangeException` when `outputCount` is below one.
-`outputWeights` holding `NaN` or an infinity is `ArgumentException` too, with scikit-learn's "Input contains NaN." or its infinity counterpart ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461)), and so is any `outputWeights` on a single output, with "Custom weights are useful only in multi-output cases." ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533)).
+`outputWeights` are refused with an `ArgumentException` too, in scikit-learn's words, in three cases:
+
+- holding `NaN` or an infinity — "Input contains NaN." or its infinity counterpart
+  ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461));
+- given for a single output — "Custom weights are useful only in multi-output cases."
+  ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533));
+- summing to zero, such as `[0, 0]` or `[-1, 1]` — "Weights sum to zero, can't be normalized.",
+  where scikit-learn raises `ZeroDivisionError`
+  ([#1588](https://github.com/CyrilB1531/lodestar/issues/1588)).
 
 **Example** — three exact predictions and one catastrophic one. `MeanAbsoluteError.Score` on this
 data is `24`.

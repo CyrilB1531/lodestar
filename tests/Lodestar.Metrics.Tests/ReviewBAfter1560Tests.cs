@@ -47,7 +47,8 @@ public sealed class ReviewBAfter1560Tests
         // roc_auc_score([1,1,1], [.1,.2]) is nan; with [] check_array raises.
         Assert.True(double.IsNaN(RocAuc.Score([1, 1, 1], [.1, .2])));
         Assert.True(double.IsNaN(RocAuc.Score([1, 1, 1], [.1, .2, .3, .4])));
-        Assert.Throws<ArgumentException>(() => RocAuc.Score([1, 1, 1], []));
+        ArgumentException error = Assert.Throws<ArgumentException>(() => RocAuc.Score([1, 1, 1], []));
+        Assert.Equal("Found array with 0 sample(s) (shape=(0,)) while a minimum of 1 is required. (Parameter 'yScore')", error.Message);
     }
 
     [Fact]
@@ -69,6 +70,7 @@ public sealed class ReviewBAfter1560Tests
         Assert.Equal("Weights sum to zero, can't be normalized. (Parameter 'yTrue')", error.Message);
         Assert.Throws<ArgumentException>(() => OneClassOneVsOne(Averaging.Weighted, 2));
         Assert.True(double.IsNaN(OneClassOneVsOne(Averaging.Macro, 1)));
+        Assert.True(double.IsNaN(OneClassOneVsOne(Averaging.Macro, 2)));
     }
 
     /// <summary>One-vs-one over <c>[0, 0, 0]</c> with three labels declared: no pair holds two present classes.</summary>

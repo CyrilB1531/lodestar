@@ -20,27 +20,29 @@ public static class RocAuc
     /// <param name="yScore">A score per sample: the higher, the more the model believes <paramref name="posLabel"/>.</param>
     /// <param name="posLabel">The label counted as positive. scikit-learn infers this; 1 is what it infers for 0/1 labels.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, or contain a score that is not finite; <paramref name="yTrue"/> holds more than two labels, or two without <paramref name="posLabel"/> (#1277).</exception>
+    /// <exception cref="ArgumentException">An input is empty or a score is not finite, refused first as <c>check_array</c> refuses them (#1585); <paramref name="yTrue"/> holds more than two labels, or two without <paramref name="posLabel"/> (#1277); or, over two labels, the inputs disagree in length or a weight is not finite. One label alone answers NaN before either is checked (#1584).</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yScore,
         int posLabel = 1,
         ReadOnlySpan<double> sampleWeight = default)
     {
-        // Read off the labels present, not their weights, as roc_auc_score reads them (#1277).
-        if (!yTrue.IsEmpty)
+        // roc_auc_score checks y_true, then y_score, for samples and finiteness before any label is counted (#1585).
+        if (yTrue.IsEmpty || yScore.IsEmpty)
         {
-            PositiveLabel.RequireAtMostTwo(yTrue, "Score several with RocAuc.MultiClass.", nameof(yTrue));
-            PositiveLabel.RequireAmongTwo(yTrue, posLabel, nameof(posLabel));
-            if (Probabilities.HoldsOneLabel(yTrue) && !yScore.IsEmpty)
-            {
-                // roc_auc_score answers NaN before roc_curve reads a weight or compares lengths (#1565).
-                Inputs.RequireFinite(yScore, nameof(yScore));
-                return double.NaN;
-            }
+            throw new ArgumentException(
+                "Found array with 0 sample(s) (shape=(0,)) while a minimum of 1 is required.",
+                yTrue.IsEmpty ? nameof(yTrue) : nameof(yScore));
         }
 
-        return BinaryRoc.Score(yTrue, yScore, posLabel, sampleWeight);
+        Inputs.RequireFinite(yScore, nameof(yScore));
+
+        // Read off the labels present, not their weights, as roc_auc_score reads them (#1277).
+        PositiveLabel.RequireAtMostTwo(yTrue, "Score several with RocAuc.MultiClass.", nameof(yTrue));
+        PositiveLabel.RequireAmongTwo(yTrue, posLabel, nameof(posLabel));
+
+        // roc_auc_score answers NaN before roc_curve reads a weight or compares lengths (#1565).
+        return Probabilities.HoldsOneLabel(yTrue) ? double.NaN : BinaryRoc.Score(yTrue, yScore, posLabel, sampleWeight);
     }
 
     /// <summary>

@@ -64,7 +64,7 @@ public static class AveragePrecision
         return averaging switch
         {
             Averaging.Micro => Ravelled(yTrue, yScore, labelCount, sampleWeight),
-            Averaging.Macro => Mean(PerLabelScores(yTrue, yScore, labelCount, sampleWeight)),
+            Averaging.Macro => NumpyAverage.Mean(PerLabelScores(yTrue, yScore, labelCount, sampleWeight)),
             Averaging.Weighted => Weighted(yTrue, yScore, labelCount, sampleWeight),
             Averaging.Binary => throw new ArgumentOutOfRangeException(
                 nameof(averaging),
@@ -139,13 +139,18 @@ public static class AveragePrecision
         return BinaryRoc.AveragePrecision(flat, yScore, 1, repeated);
     }
 
-    /// <summary>Per-label scores averaged by how much positive weight each label carries.</summary>
+    /// <summary>Per-label scores averaged by how much positive weight each label carries, as <c>np.average</c> takes them.</summary>
     private static double Weighted(
         ReadOnlySpan<bool> yTrue, ReadOnlySpan<double> yScore, int labelCount, ReadOnlySpan<double> sampleWeight)
     {
+        // One column is a binary problem to scikit-learn, which scores it without the shortcut or the average.
+        if (labelCount == 1)
+        {
+            return PerLabelScores(yTrue, yScore, labelCount, sampleWeight)[0];
+        }
+
         int rows = yTrue.Length / labelCount;
         var weights = new double[labelCount];
-        double total = 0.0;
 
         for (int row = 0; row < rows; row++)
         {
@@ -155,37 +160,17 @@ public static class AveragePrecision
                 if (yTrue[(row * labelCount) + label])
                 {
                     weights[label] += weight;
-                    total += weight;
                 }
             }
         }
 
-        // _average_binary_score returns 0 when the weighted positives are close to zero, before scoring a label, so
-        // an all-zero or cancelling weight vector answers 0 rather than a refusal or a division (#1534).
-        if (Math.Abs(total) <= MultiClassRoc.ZeroTotalTolerance)
+        // _average_binary_score returns 0 when the label totals sum close to zero, before scoring a label, so an
+        // all-zero or cancelling weight vector answers 0 (#1534); the totals are summed as numpy sums them (#1586).
+        if (Math.Abs(NumpyAverage.Sum(weights)) <= MultiClassRoc.ZeroTotalTolerance)
         {
             return 0.0;
         }
 
-        double[] scores = PerLabelScores(yTrue, yScore, labelCount, sampleWeight);
-
-        double sum = 0.0;
-        for (int label = 0; label < labelCount; label++)
-        {
-            sum += scores[label] * weights[label];
-        }
-
-        return sum / total;
-    }
-
-    private static double Mean(double[] scores)
-    {
-        double sum = 0.0;
-        foreach (double score in scores)
-        {
-            sum += score;
-        }
-
-        return sum / scores.Length;
+        return NumpyAverage.Weighted(PerLabelScores(yTrue, yScore, labelCount, sampleWeight), weights, nameof(yTrue));
     }
 }

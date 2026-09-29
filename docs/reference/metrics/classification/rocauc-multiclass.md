@@ -15,10 +15,13 @@ carries the strategy, the averaging, the label set, the sample weights and the w
 `default` is scikit-learn's own defaults, on one thread.
 
 **Returns** — `double` in `[0, 1]`, larger meaning a better ranking. Under one-vs-rest with
-`Averaging.Weighted`, a `SampleWeight` whose total is within `1e-8` of zero — every weight `0`
-included — returns `0` rather than a refusal, as `roc_auc_score` returns it: `_average_binary_score`
-sums the weighted positives, which is that total, and answers `0` when numpy's `isclose` finds it
-zero ([#1534](https://github.com/CyrilB1531/lodestar/issues/1534)).
+`Averaging.Weighted`, sample weights whose class totals sum within `1e-8` of zero — every weight `0`
+included — return `0` rather than a refusal, as `roc_auc_score` returns it: `_average_binary_score`
+sums each class's weight, adds the totals with numpy's pairwise sum and answers `0` when `isclose`
+finds that zero ([#1534](https://github.com/CyrilB1531/lodestar/issues/1534)). The totals are summed
+the same way here: labels `[0, 1, 0, 2]` weighted `[1e16, -1e16, 1, 0]`, for instance, total `1` in
+sample order and `0` by class ([#1586](https://github.com/CyrilB1531/lodestar/issues/1586)), and
+both averages end in `np.average`'s pairwise sums.
 
 **Exceptions** — `ArgumentException` when any of the shape rules is broken — a length that does
 not

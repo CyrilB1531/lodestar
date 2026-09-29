@@ -37,7 +37,9 @@ public sealed class RocAucFrozenBitsTests
         ["multiclass_5 (weighted=False) ovr|macro"] = 0x3FED6A6AA113FF66, // moves to …67 under the Mean mutation
         ["multiclass_5 (weighted=False) ovr|weighted"] = 0x3FED6A992BCF7AFB,
         ["multiclass_5 (weighted=False) ovo|macro"] = 0x3FED6A47AF012772,
-        ["multiclass_5 (weighted=False) ovo|weighted"] = 0x3FED6A6B9C6F6349, // moves to …4A under the Mean mutation
+        // roc_auc_score's own bits once np.average's pairwise sums were followed (#1586), …49 before. Not every
+        // pin here is scikit-learn's: the sample-weighted one-vs-rest ones still differ in the per-class curve.
+        ["multiclass_5 (weighted=False) ovo|weighted"] = 0x3FED6A6B9C6F6347,
 
         // multiclass_5 with sample weights.
         ["multiclass_5 (weighted=True) ovr|macro"] = 0x3FEDB3CE17739D58,

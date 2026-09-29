@@ -110,10 +110,12 @@ internal static class BinaryRoc
 
         // _keys/_points stay private (Point is private to BinaryRoc). Named
         // Compute, not Score, so it doesn't shadow BinaryRoc.Score (S3218).
-        internal double Compute(ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight)
+        internal double Compute(
+            ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight,
+            bool scoresFinite)
         {
             int n = Validate(yTrue, yScore, sampleWeight);
-            BuildPoints(yTrue, yScore, posLabel, sampleWeight, _keys, _points);
+            BuildPoints(yTrue, yScore, posLabel, sampleWeight, _keys, _points, scoresFinite);
 
             if (_codes is null || n < RadixThreshold)
             {
@@ -133,7 +135,7 @@ internal static class BinaryRoc
             ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight)
         {
             int n = Validate(yTrue, yScore, sampleWeight);
-            BuildPoints(yTrue, yScore, posLabel, sampleWeight, _keys, _points);
+            BuildPoints(yTrue, yScore, posLabel, sampleWeight, _keys, _points, scoresFinite: false);
 
             if (_codes is null || n < RadixThreshold)
             {
@@ -272,14 +274,19 @@ internal static class BinaryRoc
 
         private static void BuildPoints(
             ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight,
-            double[] keys, Point[] points)
+            double[] keys, Point[] points, bool scoresFinite)
         {
             bool weighted = !sampleWeight.IsEmpty;
 
             for (int i = 0; i < yTrue.Length; i++)
             {
                 double score = yScore[i];
-                ClassifierCurve.RequireFiniteScore(yScore, i);
+
+                // RocAuc.Score has already refused a non-finite score in check_array's words (#1585).
+                if (!scoresFinite)
+                {
+                    ClassifierCurve.RequireFiniteScore(yScore, i);
+                }
 
                 double weight = weighted ? sampleWeight[i] : 1.0;
                 keys[i] = -score;
@@ -373,13 +380,14 @@ internal static class BinaryRoc
         }
     }
 
+    /// <summary>The binary score for <c>RocAuc.Score</c>, its one caller, which has refused a non-finite score already.</summary>
     public static double Score(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight)
     {
         Scratch scratch = Scratch.Rent(yTrue.Length);
         try
         {
-            return scratch.Compute(yTrue, yScore, posLabel, sampleWeight);
+            return scratch.Compute(yTrue, yScore, posLabel, sampleWeight, scoresFinite: true);
         }
         finally
         {
@@ -390,7 +398,7 @@ internal static class BinaryRoc
     public static double Score(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight,
         Scratch scratch) =>
-        scratch.Compute(yTrue, yScore, posLabel, sampleWeight);
+        scratch.Compute(yTrue, yScore, posLabel, sampleWeight, scoresFinite: false);
 
     public static double AveragePrecision(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight)
