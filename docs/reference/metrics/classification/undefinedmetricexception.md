@@ -9,8 +9,8 @@ public sealed class UndefinedMetricException : InvalidOperationException
 ```
 
 **Constructors** — the parameterless one carries a default message; the others take a `message`, and
-a `message` with an `innerException`. None refuses anything: a null message falls back to the base
-type's own.
+a `message` with an `innerException`. None refuses anything: a null message gives `System.Exception`'s
+generic "Exception of type 'Lodestar.Metrics.UndefinedMetricException' was thrown."
 
 **Example** — asking to be told instead of scoring `0`.
 
