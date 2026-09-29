@@ -21,7 +21,8 @@ abandons the run.
 **Exceptions** — `ArgumentNullException` when `texts`, `encoder` or `batch` is null.
 `ArgumentException` when the encoder refuses a text — as it refuses one over `MaxLength` under
 `TruncationStrategy.None` — naming `texts`, or, from the overload taking `options`, when
-[`BatchEncoder`](../../embeddings/tokenization/batchencoder.md) refuses them.
+[`BatchEncoder`](../../embeddings/tokenization/batchencoder.md) refuses them; and when a sequence is
+past a static export's fixed sequence axis, naming `options`, `encoder` or `batch`.
 `InvalidOperationException` from the overload taking only texts, when the
 embedder was built without a tokenizer: the other two overloads are the way to supply one. All
 three throw it when the model output is not shaped for the batch it was fed, and `NotSupportedException` when its elements
@@ -59,6 +60,15 @@ several models.
 
 Batching is not merely convenient. A session run has a fixed cost, so embedding a hundred texts
 one at a time costs a hundred of those; the vectors are identical either way, and the time is not.
+
+**A static export is fed its own shape.** Where the model fixes its batch or sequence axis, as a
+quantized or mobile export does, each row is padded to the fixed sequence length with masked
+positions the mean leaves out, and the rows run in chunks of the fixed batch size, the last filled
+with masked rows whose vectors are dropped; the vectors are the ones a dynamic export of the same
+model gives ([#1258](https://github.com/CyrilB1531/lodestar/issues/1258)). A sequence past the fixed
+axis cannot be fed, and is refused rather than truncated: a `MaxLength` above it names `options`, an
+encoder producing one names `encoder`, a batch holding one names `batch`. The same holds for
+[`Embed`](onnxtextembedder-embed.md).
 
 **Where a null `MaxLength` truncates.** The overload taking `EncodingOptions` takes it from
 [`MaxSequenceLength`](onnxtextembedder.md): the model's declared sequence axis when fixed, else the

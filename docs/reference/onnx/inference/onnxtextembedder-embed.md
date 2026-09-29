@@ -13,7 +13,8 @@ them. `attentionMask` is the same length, `1` for a real token and `0` for paddi
 
 **Returns** — `float[]` of length `Dimension`, the pooled vector for that text.
 
-**Exceptions** — `ArgumentException` when the two spans differ in length.
+**Exceptions** — `ArgumentException` when the two spans differ in length, or are longer than the
+model's fixed sequence axis.
 `InvalidOperationException` when the model output is not `[batch, sequence, dim]` (or `[batch, dim]`,
 pooled by the graph) for the batch it was fed; the message names the output and both shapes.
 `NotSupportedException` when its elements are not float, float16 or bfloat16 — the two
