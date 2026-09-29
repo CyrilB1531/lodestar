@@ -40,7 +40,8 @@ are tiled through shared memory so a group reads them once rather than once per 
 The coefficients are **supplied rather than seeded**, which is the call
 `Lodestar.Text.Similarity.MinHashPermutations` already makes for the same reason — deriving them
 from a seed would make parity depend on a random number generator instead of on an algorithm. Taking
-them as spans is also what keeps this package free of an edge.
+them as spans is also what spares this package an edge to `Lodestar.Text`, which declares
+`MinHashPermutations`.
 
 **The permuted value is masked with an AND, not a modulo.** The two agree only below the mask, so
 the choice moves every signature rather than rounding one, and the CPU path records the measured

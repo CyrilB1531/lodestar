@@ -7,8 +7,8 @@ namespace Lodestar.Gpu.Tests.Documentation;
 /// <summary>The reference gate over the pages <c>Lodestar.Gpu</c> declares covered.</summary>
 /// <remarks>
 /// The engine and its own unit tests live with <c>Lodestar.Text</c>; what is here is this
-/// package's half — its namespace against its pages. There is one build rather than two,
-/// because decision 0003 gives this package a single target framework.
+/// package's half — its namespace against its pages. The netstandard2.1 mirror links this file,
+/// so the pages are checked against both of the package's builds.
 /// </remarks>
 public sealed class ReferenceDocumentationTests
 {

@@ -34,8 +34,8 @@
     <PackageVersion Include="Lodestar.Stats.Regression" Version="0.2.0" />
     <PackageVersion Include="Lodestar.Text" Version="0.7.0" />
     <!-- 1.5.3 (2025-07-12) is the newest, and its newest asset is net7.0.
-         Carried by Lodestar.Gpu alone, which is net10.0 only because ILGPU
-         publishes no netstandard2.0 asset at all (decision 0003). -->
+         Carried by Lodestar.Gpu alone, which targets net10.0 and netstandard2.1
+         because ILGPU publishes no netstandard2.0 asset (decision 0003). -->
     <PackageVersion Include="ILGPU" Version="1.5.3" />
     <!-- Abstractions only: the interfaces a consumer already has, and no
          implementation. Carried by Lodestar.Extensions.AI alone, which is the

@@ -5,19 +5,17 @@
 
   <PropertyGroup>
     <!--
-      net10.0 alone, and the only package here that does not ship netstandard2.0.
-      ILGPU publishes no netstandard2.0 asset, so the target is absent upstream
-      rather than a gap a polyfill could close — and no polyfill produces an
-      accelerator (decision 0003). net10.0 rather than the net8.0 #444 proposed:
-      ILGPU's newest asset is net7.0 and both consume it identically, so a second
-      target framework would add a matrix dimension ILGPU does not distinguish.
+      net10.0 and netstandard2.1, the only package here without netstandard2.0.
+      ILGPU publishes no netstandard2.0 asset, so that target is absent upstream
+      rather than a gap a polyfill could close, and no polyfill produces an
+      accelerator; it does publish netstandard2.1, the floor taken here (decision 0003).
     -->
     <TargetFrameworks>net10.0;netstandard2.1</TargetFrameworks>
     <Version>$(LodestarGpuVersion)</Version>
     <RootNamespace>Lodestar.Gpu</RootNamespace>
 
     <PackageId>Lodestar.Gpu</PackageId>
-    <Description>GPU kernels for Lodestar over ILGPU: a device-resident embedding matrix swept by a batch of queries, with cosine similarity and top-k computed on the accelerator. Additive — no Lodestar package depends on this one, so the SIMD path stays complete on every target framework.</Description>
+    <Description>GPU kernels for Lodestar over ILGPU, on device-resident data: cosine similarity and top-k over an embedding matrix swept by a batch of queries, a sparse-dense matrix product, bit-parallel edit distance, and MinHash signatures over tokenized text. Additive — no Lodestar package depends on this one, so the SIMD path stays complete on every target framework.</Description>
     <PackageTags>gpu;gpgpu;ilgpu;cuda;opencl;cosine-similarity;top-k;knn;embeddings;lodestar</PackageTags>
     <LodestarIncludesMinHash>true</LodestarIncludesMinHash>
   </PropertyGroup>
@@ -30,10 +28,9 @@
   </ItemGroup>
 
   <!--
-    No Lodestar edge, deliberately, and not only because kernel 1 needs none: an
-    edge inwards is forbidden by decision 0003, and every edge outwards is a floor
-    on a published sibling that this package would have to carry for one kernel.
-    Kernels take spans and dimensions; the callers that own Lodestar types adapt.
+    One Lodestar edge, to Lodestar.Abstractions, below. None inwards, which decision 0003
+    forbids, and no other outwards: kernels take spans and dimensions, so a caller holding
+    another package's type adapts it rather than this package flooring on that sibling.
   -->
 
   <ItemGroup>
@@ -41,8 +38,9 @@
     <InternalsVisibleTo Include="Lodestar.Gpu.NetStandard.Tests" />
   </ItemGroup>
 
-  <!-- The data types this package forwards to Lodestar.Abstractions (decision 0003, #1142). The
-       floor is pinned in src/Directory.Packages.props, like every other src/ reference. -->
+  <!-- MinHashScheme, forwarded to Lodestar.Abstractions (decision 0003, #1142), and SearchResult,
+       which TiledCosineTopK.Search returns (#1214). The floor is pinned in
+       src/Directory.Packages.props, like every other src/ reference. -->
   <ItemGroup>
     <PackageReference Include="Lodestar.Abstractions" />
   </ItemGroup>

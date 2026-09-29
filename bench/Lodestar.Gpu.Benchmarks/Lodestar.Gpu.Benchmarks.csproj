@@ -14,9 +14,9 @@
   </ItemGroup>
 
   <!--
-    Lodestar.Embeddings, Lodestar.Abstractions and Lodestar.Text are the baselines, not
-    dependencies of the package: bench/README.md's GPU gate prices a kernel against this repository's
-    own CPU path in the same process, and decision 0003 forbids those edges inside src/.
+    Lodestar.Embeddings, Lodestar.Abstractions and Lodestar.Text hold the baselines; the package
+    itself reaches only Lodestar.Abstractions. src/Lodestar.Gpu/performance.md's gate prices a
+    kernel against this repository's own CPU path in the same process.
   -->
   <ItemGroup>
     <ProjectReference Include="../../src/Lodestar.Gpu/Lodestar.Gpu.csproj" />

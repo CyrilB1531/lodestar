@@ -6,8 +6,12 @@ a row, and what this page leaves out:
 
 ## Lodestar.Gpu — four kernels against their CPU paths (issue #444)
 
-Measured 2026-09-10, on the one machine `bench/README.md`'s GPU gate
-says a GPU figure has to be published beside:
+**The gate** every table here is read against: a kernel clears it when its resident row runs 5–10×
+faster than this repository's own single-threaded CPU path for the same operation, warm-up
+excluded because ILGPU compiles a kernel on its first launch, on a named machine published beside
+the figure.
+
+Measured 2026-09-10, on this machine:
 
 | | |
 | --- | --- |
@@ -19,8 +23,8 @@ says a GPU figure has to be published beside:
 
 **Read this before the numbers.** Three caveats travel with every table below.
 
-1. **The baseline is single-threaded.** bench/README.md's GPU gate asks a kernel to be priced against *this
-   repository's own path*, and none of those paths is parallel. A `Parallel.For` over eight cores
+1. **The baseline is single-threaded.** The gate prices a kernel against *this repository's own
+   path*, and none of those paths is parallel. A `Parallel.For` over eight cores
    would close a large part of every gain here, most of all Myers'. These are honest against the
    gate as written; they are not a claim about a parallel CPU implementation.
 2. **`--job short` is three iterations.** The `GpuResident` rows sit at 0.7–7 % standard error,
@@ -91,7 +95,7 @@ on the CPU side; the selection's scratch lives on the device and no column count
 | 50 000 | 64 | 71.5 ms | 8.25 ms | **8.66×** |
 | 50 000 | 256 | 377.5 ms | 20.0 ms | **18.9×** |
 
-`bench/README.md` predicted this kernel might miss the gate on FP64, since a consumer card runs
+This kernel was predicted to miss the gate on FP64, since a consumer card runs
 double precision at a fraction of single. **That was wrong, and the reason is worth keeping**:
 sparse-dense is bound by memory bandwidth, not by the double-precision units, so the reduced FP64
 rate never becomes the constraint. It clears the gate at both realistic vectorizer sizes.
@@ -137,7 +141,7 @@ minimises in one pass, while the kernel takes hashes the host already computed.
 
 **`GpuWithHashing` is the row that matters, and it is the one that misses the gate.** The
 minimisation is 34× to 66× faster on the accelerator; a caller starting from tokens sees 1.27× to
-1.57×, because hashing is most of the work and it stays on the host. This kernel clears the GPU gate on the part it took and misses it on the part a caller experiences.
+1.57×, because hashing is most of the work and it stays on the host. This kernel clears the gate on the part it took and misses it on the part a caller experiences.
 
 Located rather than disappointing: the next move is to hash on the accelerator, which is a separate
 kernel because parity requires the first four bytes of SHA-1 little-endian and a device

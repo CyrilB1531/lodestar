@@ -10,9 +10,10 @@ Three facts run through the whole namespace, and knowing them saves reading ever
   *slower* than the CPU path it replaces — measured at 9.25× slower for a hundred thousand
   documents answering one query. The `Device*` types exist so a corpus crosses the bus once and is
   swept many times, and [`docs/guides/performance.md`](../../guides/performance.md) has the figures.
-- **A kernel parameter must be blittable**, so nothing here takes a `string` or a Lodestar type.
-  Text is renamed to symbol codes on the host; matrices are taken as spans and dimensions. That is
-  also why this package carries no inter-package edge in either direction.
+- **A kernel parameter must be blittable**, so no kernel takes a `string` or a `CsrMatrix`. Text
+  is renamed to symbol codes on the host; matrices are taken as spans and dimensions. The package's
+  one inter-package edge is to `Lodestar.Abstractions`, which declares the two Lodestar types its
+  API names: `SearchResult`, which `TiledCosineTopK.Search` returns, and `MinHashScheme`.
 - **Device data belongs to the context it was uploaded to.** A kernel refuses a `Device*` object
   from another `GpuContext`, or one disposed, or its own context once disposed, before anything
   launches — a buffer is a pointer into one accelerator's memory, and a launch would trust it.
@@ -44,8 +45,8 @@ So read [`IsHardwareGpu`](compute/gpucontext.md), not the accelerator type, and 
 [`DeviceName`](compute/gpucontext.md) beside any figure. `Create(preferCpu: true)` forces ILGPU's
 CPU accelerator, which is what proves a kernel **correct** where there is no graphics hardware —
 a different question from whether it is **faster**, which
-`bench/README.md`'s GPU gate answers on a
-named machine.
+[the package's performance page](../../../src/Lodestar.Gpu/performance.md) answers on a named
+machine.
 
 ## What this namespace does not offer
 
@@ -54,5 +55,5 @@ scores every row and selects the best *k*. That is the trade this package makes 
 what a GPU is good at, and an approximate structure would spend its parallelism on branching.
 
 **See also** — [the performance guide](../../guides/performance.md) for what each kernel measured,
-and `bench/README.md` sections 21 to 25 for how. Every type here applies to net10.0 and
+and `bench/README.md` sections 24 to 26 and 72 for how. Every type here applies to net10.0 and
 netstandard2.1; its own page says so.

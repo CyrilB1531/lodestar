@@ -57,7 +57,7 @@ public class CosineTopKSelectionBenchmarks
         _kernel = new TiledCosineTopK(_context);
         _resident = DeviceEmbeddingMatrix.Upload(_context, rows, Documents, Dimension);
 
-        // bench/README.md's GPU gate, rule 3: ILGPU compiles on first launch, so warm up first.
+        // The gate excludes warm-up (src/Lodestar.Gpu/performance.md): ILGPU compiles on first launch.
         _kernel.Search(_resident, _queries, Queries, K);
     }
 

@@ -2005,8 +2005,9 @@ this section documents how to measure, not what was measured.
 ## 24. Myers on the accelerator, against a bit-parallel CPU path (issue #444, kernel 3)
 
 **This section was written expecting to report a kernel that does not ship, and the measurement
-said otherwise — by two orders of magnitude.** The reasoning was that bench/README.md's GPU gate prices a
-kernel against this repository's own path, that the path here is `Levenshtein.Distance`, and that
+said otherwise — by two orders of magnitude.** The GPU gate is not defined here: it is stated at the
+top of [`src/Lodestar.Gpu/performance.md`](../src/Lodestar.Gpu/performance.md). The reasoning was
+that the gate prices a kernel against this repository's own path, that the path here is `Levenshtein.Distance`, and that
 Myers is bit-parallel on both sides: one machine word per dynamic-programming row, tens of
 nanoseconds for a short pair, against an accelerator amortising a renaming, two transfers and a
 launch.
@@ -2014,9 +2015,9 @@ launch.
 Every step of that is true and the conclusion was still wrong. What it missed is that
 **the baseline is one thread** and the kernel is tens of thousands, over a workload with no
 dependency between pairs. The measured gain is 28× to 146×
-([`docs/guides/performance.md`](../docs/guides/performance.md) has the table), and the honest
+([`src/Lodestar.Gpu/performance.md`](../src/Lodestar.Gpu/performance.md) has the table), and the honest
 caveat travels with it: a `Parallel.For` over the CPU path would close much of that gap, and
-bench/README.md's GPU gate's baseline does not ask for one. A reader comparing against a parallel CPU
+the gate's baseline does not ask for one. A reader comparing against a parallel CPU
 implementation should expect a smaller number.
 
 ```bash
@@ -2050,8 +2051,7 @@ this section documents how to measure, not what was measured.
 
 ## 25. What residency buys across two operations (issue #444, kernel 4)
 
-the GPU gate deferred the chainable device-resident types until three kernels existed, on the
-ground that **chainability is a claim about two operations sharing a residency** and cannot be
+The chainable device-resident types waited until three kernels existed, on the ground that **chainability is a claim about two operations sharing a residency** and cannot be
 measured with one. Three exist, so here it is priced.
 
 ```bash
@@ -2110,7 +2110,7 @@ dotnet run -c Release --project bench/Lodestar.Gpu.Benchmarks -- --filter '*MinH
 **Read `GpuWithHashing`. It is what a caller starting from tokens pays, and it is the row that
 matters.** Measured: the minimisation is **34× to 66×** faster on the accelerator, and end to end a
 caller sees **1.27× to 1.57×** — because hashing is most of the work and it stays on the host. The
-kernel clears bench/README.md's GPU gate's 5–10× gate on the part it took and **misses it on the part a caller
+kernel clears the 5–10× gate on the part it took and **misses it on the part a caller
 experiences.**
 
 That is not a disappointing result, it is a located one. The obvious next move is to hash on the

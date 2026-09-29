@@ -15,7 +15,8 @@ hashes per document; a document may be empty, and repeats are harmless.
 
 **Exceptions** — `ArgumentNullException` when `context`, `documents`, or one of the documents, is
 null; `ObjectDisposedException` when `context` was disposed; `ArgumentException` when `documents`
-is empty.
+is empty, or holds more hashes in all than one array holds, where the sum wrapped
+([#1511](https://github.com/CyrilB1531/lodestar/issues/1511)).
 
 **Example** — the shape a caller writes.
 

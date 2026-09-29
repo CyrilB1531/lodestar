@@ -8,10 +8,10 @@ namespace Lodestar.Gpu.Compute;
 /// <remarks>
 /// The parallelism is <strong>across pairs, not inside one</strong>: Myers already collapses a
 /// dynamic-programming row into one machine word, so a thread runs a whole distance in
-/// registers. That shape is why this is the hardest of the three to clear the GPU gate's
-/// gate — the CPU path it is priced against is bit-parallel too. Written from Myers (1999)
-/// as that path was, and limited to a 64-character pattern: the blocked formulation beyond
-/// that carries state a thread would loop over, which is a second kernel not a wider one.
+/// registers. The CPU path it is priced against is bit-parallel too, yet single-threaded, and
+/// this kernel posted the largest gain of the four, 28× to 146× (src/Lodestar.Gpu/performance.md).
+/// Written from Myers (1999) as that path was, and limited to a 64-character pattern: the blocked
+/// formulation beyond that carries state a thread would loop over, a second kernel not a wider one.
 /// </remarks>
 public sealed class BitParallelEditDistance
 {
@@ -29,7 +29,7 @@ public sealed class BitParallelEditDistance
     /// <param name="context">The accelerator to compile for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
-    /// <remarks>Loading compiles, so build this once and reuse it (bench/README.md's GPU gate).</remarks>
+    /// <remarks>Loading compiles, so build this once and reuse it (src/Lodestar.Gpu/performance.md's gate).</remarks>
     public BitParallelEditDistance(GpuContext context)
     {
         Guard.NotNull(context);

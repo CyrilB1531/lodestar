@@ -8,15 +8,24 @@ namespace Lodestar.Gpu.Compute;
 /// <remarks>
 /// One per process is the intended shape: creating an accelerator is expensive and ILGPU
 /// compiles each kernel on first launch, so a context built per call would measure a compiler
-/// rather than a kernel (bench/README.md's GPU gate).
+/// rather than a kernel; the gate <c>src/Lodestar.Gpu/performance.md</c> applies excludes that warm-up.
 /// </remarks>
 public sealed class GpuContext : IDisposable
 {
     private readonly Context _context;
+    private readonly Accelerator _accelerator;
     private bool _disposed;
 
     /// <summary>The accelerator kernels are loaded onto.</summary>
-    public Accelerator Accelerator { get; }
+    /// <exception cref="ObjectDisposedException">The context was disposed: the accelerator behind it is freed (#1512).</exception>
+    public Accelerator Accelerator
+    {
+        get
+        {
+            EnsureNotDisposed();
+            return _accelerator;
+        }
+    }
 
     /// <summary>The device's own name, which is what a published figure has to carry.</summary>
     public string DeviceName { get; }
@@ -34,7 +43,7 @@ public sealed class GpuContext : IDisposable
     private GpuContext(Context context, Accelerator accelerator, bool isHardwareGpu)
     {
         _context = context;
-        Accelerator = accelerator;
+        _accelerator = accelerator;
         DeviceName = accelerator.Name;
         IsHardwareGpu = isHardwareGpu;
     }
@@ -44,12 +53,10 @@ public sealed class GpuContext : IDisposable
     /// Forces the CPU accelerator. That is what a machine with no GPU runs, and what proves a
     /// kernel <em>correct</em> where the 5–10× gate cannot be evaluated at all.
     /// </param>
-    /// <exception cref="InvalidOperationException">No device could be opened.</exception>
     /// <remarks>
-    /// <c>Context.GetPreferredDevice</c> is deliberately not used. Measured: asked for a
-    /// non-CPU device it returned the OpenCL-on-CPU runtime ahead of a CUDA card, so every
-    /// figure a benchmark produced would have been the processor's. This orders the devices
-    /// itself — CUDA, then OpenCL on graphics hardware, then anything else.
+    /// <c>Context.GetPreferredDevice</c> is asked only for the CPU fallback: for a non-CPU device it returned the
+    /// OpenCL-on-CPU runtime ahead of a CUDA card (measured), so this orders CUDA, then graphics OpenCL, itself. A
+    /// device that fails to open surfaces ILGPU's own exception (#1513).
     /// </remarks>
     public static GpuContext Create(bool preferCpu = false)
     {
@@ -84,7 +91,9 @@ public sealed class GpuContext : IDisposable
     private static bool IsGpu(Device device) => device switch
     {
         { AcceleratorType: AcceleratorType.Cuda } => true,
-        CLDevice open => open.DeviceType == CLDeviceType.CL_DEVICE_TYPE_GPU,
+        // The OpenCL device type is a bitfield: a driver may report GPU together with DEFAULT (#1516).
+        // ILGPU's enum carries no [Flags], so the test is on the underlying cl_device_type bits.
+        CLDevice open => ((long)open.DeviceType & (long)CLDeviceType.CL_DEVICE_TYPE_GPU) != 0,
         _ => false,
     };
 
@@ -100,7 +109,7 @@ public sealed class GpuContext : IDisposable
         }
 
         _disposed = true;
-        Accelerator.Dispose();
+        _accelerator.Dispose();
         _context.Dispose();
     }
 

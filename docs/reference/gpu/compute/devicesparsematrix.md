@@ -30,11 +30,11 @@ int stored = matrix.NonZeroCount;  // => 2
 
 **Properties** — `RowCount`, `ColumnCount` and `NonZeroCount`.
 
-**Remarks** — the three CSR arrays are taken as **spans rather than as a `CsrMatrix`**.
-[Decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
-forbids an edge from a core package into this one, and an edge the other way would floor this
-package on a published `Lodestar.Abstractions` for the sake of one type. A caller holding a
-`CsrMatrix` passes its `RowPointers`, `ColumnIndices` and `Values` directly.
+**Remarks** — the three CSR arrays are taken as **spans rather than as a `CsrMatrix`**. This
+package could take one now: it references `Lodestar.Abstractions`, which declares `CsrMatrix`, since
+[#1142](https://github.com/CyrilB1531/lodestar/issues/1142). Spans upload arrays a caller already
+holds without building a matrix first, and a caller holding a `CsrMatrix` passes its
+`RowPointers`, `ColumnIndices` and `Values` directly.
 
 Double precision, because `CsrMatrix` is. A consumer card runs FP64 at a fraction of FP32, and
 the kernel clears its gate anyway — it is bound by memory bandwidth rather than by the

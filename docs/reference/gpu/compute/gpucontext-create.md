@@ -13,7 +13,8 @@ and what proves a kernel *correct* where the 5–10× gate cannot be evaluated a
 
 **Returns** — `GpuContext`, owning an accelerator the caller disposes.
 
-**Exceptions** — `InvalidOperationException` when no device could be opened.
+**Exceptions** — none of its own. A device that fails to open surfaces ILGPU's own exception,
+after the context opened for it is disposed.
 
 **Example** — the shape a caller writes.
 
@@ -25,10 +26,11 @@ using var forced = GpuContext.Create(preferCpu: true);
 bool graphics = forced.IsHardwareGpu;  // => False
 ```
 
-**Remarks** — **`Context.GetPreferredDevice` is deliberately not used.** Measured: asked for a
+**Remarks** — **`Context.GetPreferredDevice` is not trusted to pick a GPU.** Measured: asked for a
 non-CPU device it returned an OpenCL runtime executing on the processor, ahead of a CUDA card, so
 every figure a benchmark produced would have been the CPU's. This orders the devices itself — CUDA
-first, then OpenCL on hardware whose device type is a GPU, then anything else.
+first, then OpenCL on hardware whose device type is a GPU — and asks `GetPreferredDevice` only for
+the CPU accelerator, with `preferCPU: true`.
 
 Where no graphics device exists the CPU accelerator is opened rather than throwing, because a
 correctness suite has to run on a machine without one. Check `IsHardwareGpu` before reading a

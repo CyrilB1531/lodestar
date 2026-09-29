@@ -10,8 +10,8 @@ namespace Lodestar.Gpu.Compute;
 /// their column indices into shared memory, so a row's non-zeros are read once per group
 /// rather than once per thread, and accumulation walks the row in stored order — the order
 /// the CPU path walks it, so the two agree far beyond the asserted tolerance. Double
-/// precision, because the CPU operand is: FP64 runs at a fraction of FP32 on a consumer
-/// card, which is a real reason this kernel may miss the GPU gate.
+/// precision, because the CPU operand is: FP64 runs at a fraction of FP32 on a consumer card, yet
+/// the kernel clears src/Lodestar.Gpu/performance.md's gate, bound by memory bandwidth instead.
 /// </remarks>
 public sealed class TiledSparseDenseProduct
 {
@@ -33,7 +33,7 @@ public sealed class TiledSparseDenseProduct
     /// <param name="context">The accelerator to compile for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
-    /// <remarks>Loading compiles, so build this once and reuse it (bench/README.md's GPU gate).</remarks>
+    /// <remarks>Loading compiles, so build this once and reuse it (src/Lodestar.Gpu/performance.md's gate).</remarks>
     public TiledSparseDenseProduct(GpuContext context)
         : this(context, RowLaunch.Limit(context))
     {

@@ -134,7 +134,8 @@ are worth more than the list.
 13. **GPU kernels** — ILGPU over device-resident matrices and text. *(done,
    `Lodestar.Gpu`)* The one package that does not ship `netstandard2.0`, and the one whose
    figures are **not** measured by CI: a hosted runner has no GPU, so the 5–10× gate is
-   measured on a named machine and published by hand (`bench/README.md`'s GPU gate).
+   measured on a named machine and published by hand
+   ([`src/Lodestar.Gpu/performance.md`](../../src/Lodestar.Gpu/performance.md)).
 14. **The generalized linear model** — binomial and Poisson fitted by IRLS, with the same
    inference table entry 9 describes, at statsmodels parity. *(done,
    `Lodestar.Stats.Regression`)* A GLM exists in .NET three times and none of them is

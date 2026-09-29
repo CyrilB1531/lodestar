@@ -48,8 +48,8 @@ of identical rows is what the tests use to prove it.
 
 **Build this once.** Loading compiles, and a first launch on a freshly loaded kernel measures
 ILGPU's compiler — which is why
-`bench/README.md`'s GPU gate asks a
-benchmark for an explicit warm-up.
+[the package's performance page](../../../../src/Lodestar.Gpu/performance.md) measures its gate
+with the warm-up excluded.
 
 The group size is clamped to what the accelerator allows and rounded down to a power of two:
 ILGPU's CPU accelerator caps a group dimension at **16**, not 256, so a kernel hard-coded to 256

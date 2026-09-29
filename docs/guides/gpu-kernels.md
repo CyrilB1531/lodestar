@@ -7,7 +7,7 @@ target framework.
 
 This guide is about **when the accelerator is worth using**, which is a narrower question than
 whether it is faster. [`docs/guides/performance.md`](performance.md) has the figures;
-`bench/README.md` sections 21 to 25 have how they were taken.
+`bench/README.md` sections 24 to 26 and 72 have how they were taken.
 
 ```bash
 dotnet add package Lodestar.Gpu
@@ -124,8 +124,7 @@ approximate structure would spend its parallelism on branching.
 
 It also targets `net10.0` and `netstandard2.1` and **not** `netstandard2.0`, because ILGPU
 publishes no such asset
-([decisions 0003](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
-and [0003](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)). A .NET Framework
+([decision 0003](../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)). A .NET Framework
 caller reaches the SIMD paths, which lose nothing by this package existing.
 
 **See also** — [the reference pages](../reference/gpu/compute.md),

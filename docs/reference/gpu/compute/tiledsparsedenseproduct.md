@@ -38,8 +38,8 @@ once per group rather than once per thread.
 two agree far inside the tolerance the tests assert.** A looser agreement would mean the orders had
 diverged, which is why the tests compare at `1e-6` and the real agreement is much tighter.
 
-Double precision, because the CPU operand is. `bench/README.md` predicted that would cost the gate
-on a consumer card; it does not, because the kernel is bound by memory bandwidth rather than by the
+Double precision, because the CPU operand is. That was expected to cost the gate on a consumer
+card; it does not, because the kernel is bound by memory bandwidth rather than by the
 double-precision units. It clears at **8.66×** and **18.9×** at vectorizer sizes and misses below
 them, which is where the crossing point belongs.
 
