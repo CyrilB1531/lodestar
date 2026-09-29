@@ -130,16 +130,20 @@ def measure_shape(n: int, k: int) -> list[dict]:
             lambda: skm.roc_auc_score(y_true, scores, multi_class="ovr", average="macro"),
         ))
 
-    results.append(measure(f"balanced_accuracy_{suffix}", lambda: skm.balanced_accuracy_score(y_true, y_pred)))
-    results.append(measure(f"matthews_{suffix}", lambda: skm.matthews_corrcoef(y_true, y_pred)))
-    results.append(measure(f"cohen_kappa_{suffix}", lambda: skm.cohen_kappa_score(y_true, y_pred)))
+    results.extend([
+        measure(f"balanced_accuracy_{suffix}", lambda: skm.balanced_accuracy_score(y_true, y_pred)),
+        measure(f"matthews_{suffix}", lambda: skm.matthews_corrcoef(y_true, y_pred)),
+        measure(f"cohen_kappa_{suffix}", lambda: skm.cohen_kappa_score(y_true, y_pred)),
+    ])
 
     yt_real = np.asarray(data["y_true_real"], dtype=np.float64)
     yp_real = np.asarray(data["y_pred_real"], dtype=np.float64)
-    results.append(measure(f"mse_{suffix}", lambda: skm.mean_squared_error(yt_real, yp_real)))
-    results.append(measure(f"mae_{suffix}", lambda: skm.mean_absolute_error(yt_real, yp_real)))
-    results.append(measure(f"median_ae_{suffix}", lambda: skm.median_absolute_error(yt_real, yp_real)))
-    results.append(measure(f"r2_{suffix}", lambda: skm.r2_score(yt_real, yp_real)))
+    results.extend([
+        measure(f"mse_{suffix}", lambda: skm.mean_squared_error(yt_real, yp_real)),
+        measure(f"mae_{suffix}", lambda: skm.mean_absolute_error(yt_real, yp_real)),
+        measure(f"median_ae_{suffix}", lambda: skm.median_absolute_error(yt_real, yp_real)),
+        measure(f"r2_{suffix}", lambda: skm.r2_score(yt_real, yp_real)),
+    ])
 
     return results
 

@@ -75,7 +75,10 @@ internal sealed class SharedReflections
                 }
             }
 
+            // S4143: the write above is read through `below`, which aliases _a[diagonal], before this one replaces it.
+#pragma warning disable S4143
             _a[diagonal] = alpha;
+#pragma warning restore S4143
         }
 
         _reflected = Math.Max(_reflected, columnCount);
