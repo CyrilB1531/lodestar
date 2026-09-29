@@ -91,11 +91,12 @@ public sealed class BpeTokenizer : ISubwordTokenizer
 
     /// <summary>Creates a tokenizer from a loaded BPE model.</summary>
     /// <param name="vocabulary">A vocabulary from <see cref="Persistence.BpeFilesLoader"/> or <see cref="Persistence.TokenizerJsonLoader"/>.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="vocabulary"/> is null.</exception>
     /// <exception cref="ArgumentException">
-    /// The unknown token or a merge's token is not in the vocabulary; a byte-level vocabulary declares a continuing
-    /// prefix; <see cref="BpeVocabulary.PreSplit"/> is undefined, or the split is declared no way or two; byte fallback
-    /// lacks one of its 256 pieces; or a list is missing, a merge symbol or added token is null, or an id is negative.
-    /// The <c>Ensure…</c> helpers say why each is refused.
+    /// A token a merge or the unknown token names is not in the vocabulary; a byte-level one declares a continuing
+    /// prefix; the split's behaviour is none of the five, its pattern null, or the split declared no way or two; a
+    /// normalization form is undefined; byte fallback lacks a piece; a Metaspace escape meets a normalized added
+    /// token; or a list is missing, a symbol or added token null, an id negative. Each <c>Ensure…</c> says why.
     /// </exception>
     public BpeTokenizer(BpeVocabulary vocabulary)
         : this(vocabulary, WordCacheCapacity)
@@ -108,6 +109,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         Guard.NotNull(vocabulary);
         _wordCacheCapacity = wordCacheCapacity;
         EnsureMembersArePresent(vocabulary);
+        EnsureNormalizationFormsAreDefined(vocabulary);
         EnsureByteLevelDeclaresNoContinuingPrefix(vocabulary);
         EnsureSplitBehaviorIsDefined(vocabulary);
         EnsurePreTokenizerIsDeclared(vocabulary);
@@ -353,13 +355,28 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     {
         if (vocabulary.Vocab is null || vocabulary.Merges is null || vocabulary.AddedTokens is null
             || vocabulary.NormalizationForms is null
+            || vocabulary.PreSplit is { Pattern: null }
             || vocabulary.Merges.Any(merge => merge.Left is null || merge.Right is null)
             || vocabulary.AddedTokens.Any(added => added?.Content is null))
         {
             throw new ArgumentException(
                 "The vocabulary is missing its entries, merges, added tokens or normalization forms, "
-                + "or holds a merge or an added token with no string.",
+                + "or holds a merge, an added token or a split pattern with no string.",
                 nameof(vocabulary));
+        }
+    }
+
+    /// <summary>Refuses a normalization form outside the four, which <c>Encode</c> would meet as its own failure (#1389).</summary>
+    private static void EnsureNormalizationFormsAreDefined(BpeVocabulary vocabulary)
+    {
+        NormalizationForm? undefined = vocabulary.NormalizationForms
+            .Select(form => (NormalizationForm?)form)
+            .FirstOrDefault(form => form is not (NormalizationForm.FormC or NormalizationForm.FormD
+                or NormalizationForm.FormKC or NormalizationForm.FormKD));
+        if (undefined is { } form)
+        {
+            throw new ArgumentException(
+                $"The vocabulary declares normalization form {(int)form}, which is none of the four.", nameof(vocabulary));
         }
     }
 
@@ -492,7 +509,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
                 "This tokenizer declares a Metaspace pre-tokenizer and an added token with " +
                 "'normalized': true. The escape a pre-tokenizer applies depends on the piece's " +
                 "position, so the entry's pattern cannot be spelled ahead of the text it is " +
-                "matched against. See docs/decisions/0085.",
+                "matched against. See docs/equivalence.md's tokenizer.add_tokens row.",
                 nameof(vocabulary));
         }
     }
@@ -1153,8 +1170,8 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// <c>ByteFallback</c> decoder pushes one U+FFFD for every byte of a run it cannot decode, so
     /// <c>&lt;0xF0&gt; &lt;0x9F&gt;</c> is two characters here and would be one through that helper, and
     /// <c>&lt;0xC3&gt; &lt;0x28&gt;</c> two rather than U+FFFD and <c>(</c>. A generation truncated mid-character
-    /// is the ordinary way such a run arises on Llama-2, so parity is worth more than the shared helper. Decision
-    /// 0023 is the <c>ByteLevel</c> decoder, where HuggingFace uses <c>from_utf8_lossy</c> and the two agree.
+    /// is the ordinary way such a run arises on Llama-2, so parity is worth more than the shared helper. The
+    /// <c>ByteLevel</c> decoder is where HuggingFace uses <c>from_utf8_lossy</c>, and there the two agree.
     /// </remarks>
     private static void FlushBytes(StringBuilder buffer, List<byte> pending)
     {

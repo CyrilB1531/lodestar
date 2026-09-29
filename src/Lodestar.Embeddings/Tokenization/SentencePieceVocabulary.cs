@@ -25,7 +25,7 @@ public sealed record SentencePieceVocabulary(
     int PadId)
 {
     /// <summary>Number of pieces in the vocabulary.</summary>
-    public int Count => Pieces.Count;
+    public int Count => Pieces?.Count ?? 0;
 
     /// <summary>
     /// The normalization the model carries in its <c>precompiled_charsmap</c>, or

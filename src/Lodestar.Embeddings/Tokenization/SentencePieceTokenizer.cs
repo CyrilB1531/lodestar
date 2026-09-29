@@ -58,7 +58,8 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
     /// see <c>docs/equivalence.md</c>'s <c>sp.IsControl(i)</c> row.
     /// </remarks>
     /// <param name="vocabulary">A vocabulary from <see cref="Persistence.SentencePieceModelLoader"/> or <see cref="Persistence.TokenizerJsonLoader"/>.</param>
-    /// <exception cref="ArgumentException">The vocabulary's pieces and types disagree in length, its pieces or types are missing, its unknown id is out of range, a piece has no string, or a matchable piece's score is not finite.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="vocabulary"/> is null.</exception>
+    /// <exception cref="ArgumentException">The vocabulary's pieces and types disagree in length, a piece's id is not its position, its pieces or types are missing, its unknown id is out of range, a piece has no string, or a matchable piece's score is not finite.</exception>
     public SentencePieceTokenizer(SentencePieceVocabulary vocabulary)
     {
         Guard.NotNull(vocabulary);
@@ -91,6 +92,13 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
             if (vocabulary.Pieces[id].Piece is null)
             {
                 throw new ArgumentException($"The piece at id {id} has no string.", nameof(vocabulary));
+            }
+
+            // Encode emits a matchable piece's own Id and a non-matchable one's position: the two must agree (#1390).
+            if (vocabulary.Pieces[id].Id != id)
+            {
+                throw new ArgumentException(
+                    $"The piece at position {id} declares id {vocabulary.Pieces[id].Id}.", nameof(vocabulary));
             }
 
             if (!vocabulary.IsMatchable(id))

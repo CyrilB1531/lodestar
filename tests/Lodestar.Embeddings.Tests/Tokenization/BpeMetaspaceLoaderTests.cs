@@ -185,7 +185,7 @@ public sealed class BpeMetaspaceLoaderTests
 
         ArgumentException error = Assert.Throws<ArgumentException>(() => new BpeTokenizer(vocabulary));
         Assert.Contains("normalized", error.Message, StringComparison.Ordinal);
-        Assert.Contains("0085", error.Message, StringComparison.Ordinal);
+        Assert.Contains("equivalence.md", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

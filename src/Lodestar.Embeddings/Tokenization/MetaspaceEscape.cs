@@ -43,8 +43,8 @@ internal sealed class MetaspaceEscape
     /// The one field the two declarations disagree on: a <c>Metaspace</c> block guards its
     /// prepend on <c>starts_with</c>, and the <c>Prepend</c> + <c>Replace</c> normalizer
     /// sequence prepends unconditionally, since <c>Prepend</c> runs before <c>Replace</c>
-    /// and knows nothing of the symbol. docs/equivalence.md's Metaspace rows measure the boundary and amend
-    /// 0050 §2's "two writings of one value" to hold everywhere but here.
+    /// and knows nothing of the symbol. docs/equivalence.md's Metaspace rows measure the boundary: the two
+    /// writings are one value everywhere but here.
     /// </remarks>
     public bool SkipPrependWhenAlreadyPrefixed { get; }
 
