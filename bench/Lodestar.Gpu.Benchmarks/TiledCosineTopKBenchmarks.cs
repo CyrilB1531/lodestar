@@ -14,7 +14,7 @@ namespace Lodestar.Gpu.Benchmarks;
 
 /// <summary>The tiled cosine + top-k kernel against this repository's SIMD path.</summary>
 /// <remarks>
-/// the GPU gate is <c>GpuResident</c> against <c>SimdBaseline</c>: transfers are
+/// src/Lodestar.Gpu/performance.md's gate is <c>GpuResident</c> against <c>SimdBaseline</c>: transfers are
 /// inside the measured region and the baseline is our own path in the same process.
 /// <c>GpuKernelOnly</c> sits beside it, excluded from the gate, to show where the time
 /// goes. Read <c>Accelerator</c> in the output before believing any of it — a run with no
@@ -65,7 +65,7 @@ public class TiledCosineTopKBenchmarks
         _kernel = new TiledCosineTopK(_context);
         _resident = DeviceEmbeddingMatrix.Upload(_context, _rows, Documents, Dimension);
 
-        // the GPU gate's rule 3 in bench/README.md: ILGPU compiles a kernel on first launch, so this runs
+        // The gate excludes warm-up (src/Lodestar.Gpu/performance.md): ILGPU compiles on first launch, so this runs
         // both once on the real corpus before anything is timed.
         _kernel.Search(_resident, _queries, Queries, TopK);
     }

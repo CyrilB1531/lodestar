@@ -33,14 +33,15 @@ bool agree = legacy[0][0] == affine[0][0];  // => False
 | `Affine32` | `a·fmix32(h) + b` in 32-bit arithmetic, with an odd `a` |
 
 **Remarks** — the same two families `Lodestar.Text.Similarity.MinHashScheme` names, and **a
-separate enum on purpose**. This package carries no edge to any other, which is what the satellite
-tier is for and why `MersennePrime` and the 32-bit mask are spelled twice as well.
+separate enum**. Both live in `Lodestar.Abstractions` since
+[#1142](https://github.com/CyrilB1531/lodestar/issues/1142), each under the namespace it first
+shipped in and forwarded from its package, so code built against either keeps binding; merging them
+would break one set of callers. This package takes no edge to `Lodestar.Text`, which is why
+`MersennePrime` and the 32-bit mask are spelled twice.
 
-The cost of that is visible to a caller using both packages: `using Lodestar.Gpu.Compute;` and
+The cost is visible to a caller using both: `using Lodestar.Gpu.Compute;` and
 `using Lodestar.Text.Similarity;` together make the bare name ambiguous, and one of them needs a
-`using` alias. That is the honest price of the missing edge rather than an oversight —
-the MinHash permutation rule records why
-the edge is not worth creating for two members.
+`using` alias.
 
 `Affine32` applies the MurmurHash3 finalizer **inside the kernel**, as the shared tile fills, so
 one [`DeviceTokenHashes`](devicetokenhashes.md) serves both families rather than belonging to one.

@@ -26,7 +26,9 @@ bool named = context.DeviceName.Length > 0;  // => True
 | [`GpuContext.Create`](gpucontext-create.md) | Opens the best available device, or the CPU accelerator |
 | [`GpuContext.Dispose`](gpucontext-dispose.md) | Frees the accelerator and then the context, in that order |
 
-**Properties** — `Accelerator` is the ILGPU accelerator kernels load onto. `DeviceName` is the
+**Properties** — `Accelerator` is the ILGPU accelerator kernels load onto; read after `Dispose`, it
+throws `ObjectDisposedException` rather than hand out a freed accelerator
+([#1512](https://github.com/CyrilB1531/lodestar/issues/1512)). `DeviceName` is the
 device's own name, which a published figure has to carry. `IsHardwareGpu` says whether that
 device is real graphics hardware.
 
@@ -46,4 +48,4 @@ against a context must be disposed before it.
 **Applies to** — net10.0, netstandard2.1.
 
 **See also** — [the namespace index](../compute.md),
-`bench/README.md`'s GPU gate.
+[the package's performance page](../../../../src/Lodestar.Gpu/performance.md) and its gate.

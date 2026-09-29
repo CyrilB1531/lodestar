@@ -2,10 +2,9 @@ namespace Lodestar.Gpu.Compute;
 
 /// <summary>Which permutation family a signature is built from.</summary>
 /// <remarks>
-/// Declared here rather than shared with <c>Lodestar.Text</c>'s enum of the same name, because
-/// this package carries no edge to any other — the whole point of the satellite tier, and the
-/// reason <c>MersennePrime</c> and <c>Mask32</c> are spelled twice as well. The two are the same
-/// two families, and the corpus that freezes one freezes the other.
+/// Separate from <c>Lodestar.Text</c>'s enum of the same name: each shipped in its own package and
+/// is forwarded from it (#1142), so merging them would break code built against one. The two are
+/// the same two families, and the corpus that freezes one freezes the other.
 /// </remarks>
 public enum MinHashScheme
 {

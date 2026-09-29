@@ -15,7 +15,10 @@ characters define the alphabet; the batch is renamed against it and can only be 
 **Returns** — `DeviceTextBlock`, owning two device buffers the caller disposes.
 
 **Exceptions** — `ArgumentNullException` when an argument, or one of the texts, is null;
-`ObjectDisposedException` when `context` was disposed; `ArgumentException` when `texts` is empty, or the pattern holds more than 255 distinct characters.
+`ObjectDisposedException` when `context` was disposed; `ArgumentException` when `texts` is empty or
+holds more characters in all than one array holds, where the sum wrapped
+([#1511](https://github.com/CyrilB1531/lodestar/issues/1511)), or the pattern holds more than 255
+distinct characters.
 
 **Example** — the shape a caller writes.
 

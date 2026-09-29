@@ -30,8 +30,8 @@ int held = resident.Count;  // => 2
 **Properties** — `Count` is how many documents the block holds.
 
 **Remarks** — **hashes rather than tokens**, for the reason every other type here takes data rather
-than a Lodestar type: a kernel parameter must be blittable, and taking the hashes keeps this package
-free of an edge in either direction.
+than a Lodestar type: a kernel parameter must be blittable. A host that hashes first also spares
+this package an edge to `Lodestar.Text`, which owns the hash.
 
 That is also the split that makes the kernel worth running. Hashing a token is cheap and
 sequential, so the host keeps it; minimising over the permutations is `O(tokens × permutations)`,

@@ -4,10 +4,10 @@
     Lodestar.Gpu owns its version here, independently of the other packages
     (see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
-    0.1.0 is this package's first release. It carries no inter-package edge at
-    all: the kernels take spans and dimensions rather than Lodestar types, so
-    nothing here floors on a sibling. Decision 0003 is why nothing may floor on
-    *this* one either.
+    0.1.0 is this package's first release. Its one inter-package edge, taken in
+    0.2.0 (#1142), floors it on Lodestar.Abstractions; the kernels take spans and
+    dimensions, so it floors on no other sibling. Decision 0003 is why nothing may
+    floor on *this* one.
   -->
   <PropertyGroup>
     <LodestarGpuVersion>0.2.1</LodestarGpuVersion>

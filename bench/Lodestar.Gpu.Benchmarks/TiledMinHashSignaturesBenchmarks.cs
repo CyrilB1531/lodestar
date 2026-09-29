@@ -78,7 +78,7 @@ public class TiledMinHashSignaturesBenchmarks
         _kernel = new TiledMinHashSignatures(_context);
         _resident = DeviceTokenHashes.Upload(_context, Hash(_tokens));
 
-        // the GPU gate's rule 3 in bench/README.md: ILGPU compiles on first launch, so this runs once on the
+        // The gate excludes warm-up (src/Lodestar.Gpu/performance.md): ILGPU compiles on first launch, so this runs once on the
         // real corpus before anything is timed.
         _kernel.Signatures(_resident, _multipliers, _addends);
     }

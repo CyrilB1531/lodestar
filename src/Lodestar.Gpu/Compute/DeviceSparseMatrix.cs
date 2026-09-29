@@ -5,10 +5,10 @@ namespace Lodestar.Gpu.Compute;
 
 /// <summary>A CSR matrix held on the accelerator across many products.</summary>
 /// <remarks>
-/// The three CSR arrays are taken as spans rather than as a <c>CsrMatrix</c>: decision 0003
-/// forbids an edge into this package and an edge out would floor it on a published sibling
-/// for one type. A caller holding a <c>CsrMatrix</c> passes its
-/// <c>RowPointers</c>, <c>ColumnIndices</c> and <c>Values</c> directly.
+/// The three CSR arrays are taken as spans rather than as a <c>CsrMatrix</c>, which this package
+/// could now take, since it references <c>Lodestar.Abstractions</c> (#1142): spans upload arrays
+/// a caller already holds without building a matrix first. A caller holding a <c>CsrMatrix</c>
+/// passes its <c>RowPointers</c>, <c>ColumnIndices</c> and <c>Values</c> directly.
 /// </remarks>
 public sealed class DeviceSparseMatrix : IDisposable
 {

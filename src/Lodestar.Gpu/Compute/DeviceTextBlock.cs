@@ -51,7 +51,7 @@ public sealed class DeviceTextBlock : IDisposable
     /// <param name="texts">The strings to rename; none may be null.</param>
     /// <exception cref="ArgumentNullException">An argument, or one of the texts, is null.</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
-    /// <exception cref="ArgumentException"><paramref name="texts"/> is empty, or the pattern holds too many distinct characters.</exception>
+    /// <exception cref="ArgumentException"><paramref name="texts"/> is empty or holds more characters in all than one array holds, or the pattern holds too many distinct characters.</exception>
     public static DeviceTextBlock Upload(GpuContext context, string pattern, IReadOnlyList<string> texts)
     {
         Guard.NotNull(context);
@@ -76,12 +76,17 @@ public sealed class DeviceTextBlock : IDisposable
             alphabet[symbol] = (byte)alphabet.Count;
         }
 
-        int total = 0;
+        // Summed in long and refused past one array: three 800M-character texts wrapped int negative (#1511).
+        long sum = 0;
         foreach (string text in texts)
         {
             Guard.NotNull(text);
-            total += text.Length;
+            sum += text.Length;
         }
+
+        int total = sum <= TableLength.MaxLength
+            ? (int)sum
+            : throw new ArgumentException($"The texts hold {sum} characters, more than one array holds.", nameof(texts));
 
         // One code per UTF-16 unit, read by index: a 64 KB table costs less to fill once than a
         // dictionary probe on every character of the batch.

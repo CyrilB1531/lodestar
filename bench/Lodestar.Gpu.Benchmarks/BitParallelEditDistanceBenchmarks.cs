@@ -16,12 +16,10 @@ namespace Lodestar.Gpu.Benchmarks;
 
 /// <summary>The Myers kernel against <c>Levenshtein.Distance</c>, which is bit-parallel too.</summary>
 /// <remarks>
-/// <strong>This is the row expected to miss the GPU gate, and publishing that is the
-/// point.</strong> Myers collapses a dynamic-programming row into one machine word on either
-/// side, so the CPU already spends tens of nanoseconds on a short pair and the accelerator has
-/// to amortise a renaming, two transfers and a launch on top of that. A failed gate is a row in
-/// the guide and a kernel that does not ship, which is worth more to the next reader than
-/// an absence. Read <c>Accelerator</c> before believing any figure here.
+/// <strong>Written expecting this row to miss the gate, it posted the largest gain of the four</strong>
+/// (src/Lodestar.Gpu/performance.md). Myers collapses a dynamic-programming row into one machine
+/// word on either side, but the baseline is one thread and the kernel tens of thousands, over pairs
+/// with no dependency between them. Read <c>Accelerator</c> before believing any figure here.
 /// </remarks>
 [MemoryDiagnoser]
 public class BitParallelEditDistanceBenchmarks
@@ -72,7 +70,7 @@ public class BitParallelEditDistanceBenchmarks
         _kernel = new BitParallelEditDistance(_context);
         _resident = DeviceTextBlock.Upload(_context, _pattern, _texts);
 
-        // the GPU gate's rule 3 in bench/README.md: ILGPU compiles on first launch, so this runs once on the
+        // The gate excludes warm-up (src/Lodestar.Gpu/performance.md): ILGPU compiles on first launch, so this runs once on the
         // real corpus before anything is timed.
         _kernel.Distance(_pattern, _resident);
     }

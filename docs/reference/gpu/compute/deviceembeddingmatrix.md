@@ -35,10 +35,9 @@ than the SIMD path it replaces: measured at **9.25× slower** for a hundred thou
 answering one query, against 6.6× *faster* once the same matrix is resident. The crossing point is
 around a hundred queries per corpus.
 
-This is residency only. `bench/README.md`'s GPU gate
-defers the chainable device-resident types until three kernels exist, because chainability is a
-claim about two operations sharing a residency — [`DeviceDenseBlock`](devicedenseblock.md) is that
-half, and it carries doubles rather than the floats an embedding matrix holds.
+This is residency only: [`TiledCosineTopK`](tiledcosinetopk.md) is the one kernel that reads it.
+Chaining two operations on the accelerator is [`DeviceDenseBlock`](devicedenseblock.md)'s job,
+and it carries doubles rather than the floats an embedding matrix holds.
 
 Rows are L2-normalized on upload by default, which is what turns cosine similarity into a dot
 product. A zero row is left alone rather than divided by zero.

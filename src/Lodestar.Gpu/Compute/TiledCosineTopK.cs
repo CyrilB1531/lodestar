@@ -39,8 +39,8 @@ public sealed class TiledCosineTopK
     /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
     /// <remarks>
     /// Loading compiles, so build this once and reuse it. A first launch on a freshly
-    /// loaded kernel measures the compiler, which is why bench/README.md's GPU gate asks a benchmark
-    /// for an explicit warm-up.
+    /// loaded kernel measures the compiler, which is why src/Lodestar.Gpu/performance.md's gate
+    /// excludes the warm-up.
     /// </remarks>
     public TiledCosineTopK(GpuContext context)
         : this(context, RowLaunch.Limit(context))

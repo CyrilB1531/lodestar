@@ -618,7 +618,7 @@ memory limit, a synchronisation the CPU accelerator happens to serialise.
 So a correctness test passes `preferCpu: true`, and the few whose subject *is* the
 preferred device are named in the script's `EXEMPT` set with the reason. Benchmarks are
 deliberately out of scope: their whole purpose is the device a machine actually has, and
-`bench/README.md`'s GPU gate
+[`src/Lodestar.Gpu/performance.md`](../src/Lodestar.Gpu/performance.md)'s gate
 requires them to report which one produced a figure rather than to force one.
 
 ## `generate_sonar_globalconfig.py`

@@ -11,7 +11,7 @@ namespace Lodestar.Gpu.Compute;
 /// permutation of one document and reduces in a register. Measured, hashing is most of the total —
 /// bench/README.md section 26 has what that leaves a caller. The coefficients are supplied rather
 /// than seeded, as <c>MinHashPermutations</c> already requires, and taken as spans so this package
-/// keeps no edge.
+/// needs no edge to <c>Lodestar.Text</c>, which declares that type.
 /// </remarks>
 public sealed class TiledMinHashSignatures
 {
@@ -47,7 +47,7 @@ public sealed class TiledMinHashSignatures
     /// <param name="context">The accelerator to compile for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
-    /// <remarks>Loading compiles, so build this once and reuse it (bench/README.md's GPU gate).</remarks>
+    /// <remarks>Loading compiles, so build this once and reuse it (src/Lodestar.Gpu/performance.md's gate).</remarks>
     public TiledMinHashSignatures(GpuContext context)
         : this(context, RowLaunch.Limit(context))
     {

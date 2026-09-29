@@ -5,8 +5,8 @@ namespace Lodestar.Gpu.Compute;
 
 /// <summary>One document's token hashes per row, held flat on the accelerator.</summary>
 /// <remarks>
-/// Hashes rather than tokens: a kernel parameter must be blittable, and taking the hashes keeps
-/// this package free of an edge in either direction (decisions 0003 and 0103).
+/// Hashes rather than tokens: a kernel parameter must be blittable, and a host that hashes first
+/// spares this package an edge to <c>Lodestar.Text</c>, which owns the hash.
 /// <strong>The hash has to be the one the CPU path uses, or the signatures will not match</strong>
 /// — <c>Lodestar.Text.Similarity.MinHash</c> takes the first four bytes of a token's SHA-1,
 /// little-endian, which is what <c>datasketch</c> exports as <c>sha1_hash32</c>. Anything else is
@@ -43,7 +43,7 @@ public sealed class DeviceTokenHashes : IDisposable
     /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/>, <paramref name="documents"/>, or one of them, is null.</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="context"/> was disposed.</exception>
-    /// <exception cref="ArgumentException"><paramref name="documents"/> is empty.</exception>
+    /// <exception cref="ArgumentException"><paramref name="documents"/> is empty, or holds more hashes in all than one array holds.</exception>
     public static DeviceTokenHashes Upload(
         GpuContext context, IReadOnlyList<IReadOnlyList<uint>> documents)
     {
@@ -55,12 +55,17 @@ public sealed class DeviceTokenHashes : IDisposable
             throw new ArgumentException("A batch holds at least one document.", nameof(documents));
         }
 
-        int total = 0;
+        // Summed in long and refused past one array: counts of int.MaxValue twice and 3 wrapped to 1 (#1511).
+        long sum = 0;
         foreach (IReadOnlyList<uint> document in documents)
         {
             Guard.NotNull(document);
-            total += document.Count;
+            sum += document.Count;
         }
+
+        int total = sum <= TableLength.MaxLength
+            ? (int)sum
+            : throw new ArgumentException($"The documents hold {sum} hashes, more than one array holds.", nameof(documents));
 
         uint[] flat = new uint[total];
         int[] offsets = new int[documents.Count + 1];

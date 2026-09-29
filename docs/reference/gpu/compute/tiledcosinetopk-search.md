@@ -40,10 +40,12 @@ rows measured 6.6× faster than the SIMD path; two hundred and fifty-six queries
 rows measured 13.2×, because a launch and a read-back are amortised across the batch. A caller
 with one query at a time is better served by [`EmbeddingIndex.Search`](../../embeddings/search/embeddingindex-search.md).
 
-Query transfer and result read-back are per call; the matrix is not. Two scratch buffers are
-allocated per call: the scores, one per row and query, and the selection's heaps, one per lane of
-at most *k* rows each and never more than the scores. An unnormalized row can score negative
-infinity honestly, and is still selected.
+Query transfer and result read-back are per call; the matrix is not. Five device buffers are
+allocated per call and freed before it returns: the queries; the scores, one per row and query; the
+selection's heaps, one per lane of the group, each of `min(k, ⌈rows / group size⌉)` entries; and
+the hits' indices and scores, `min(k, rows)` per query each. The heaps can outnumber the scores: a
+one-row matrix swept by a 256-wide group holds 256 heap entries against one score. An unnormalized
+row can score negative infinity honestly, and is still selected.
 
 **The matrix must have been uploaded to the kernel's own context, and neither may be disposed.**
 A buffer is a pointer into one accelerator's memory, so a foreign or released one is refused
