@@ -42,15 +42,11 @@ medians
 that `Score` returns is not the median of anything, so it is a summary of summaries rather than a
 statistic of the data. On multioutput targets, read the array.
 
-Internally each column is selected rather than fully sorted, which is what keeps this from costing
-an
-`n log n` per output —
-the selection rule.
-Nothing
+Unweighted, each column is selected rather than fully sorted — a quickselect that falls back to a
+sort past `2·log2(n) + 4` passes — which keeps this from costing an `n log n` per output. Nothing
 about the answer depends on it.
 
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `MedianAbsoluteError.Score`, `MeanAbsoluteError.PerOutput`,
-the selection rule,
 the [Python equivalence table](../../../equivalence.md).

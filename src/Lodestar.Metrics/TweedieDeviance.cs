@@ -22,7 +22,7 @@ public static class TweedieDeviance
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <returns><c>0</c> for a perfect prediction, and larger the worse it is. Unbounded above.</returns>
     /// <exception cref="ArgumentException">The lengths disagree, the input is empty or non-finite, or an operand is outside what <paramref name="power"/>'s regime allows: any real against a strictly positive prediction below 0, anything at all at 0, a non-negative truth against a strictly positive prediction in [1, 2), and both strictly positive from 2 up.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="power"/> lies in the open interval (0, 1).</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="power"/> is NaN, infinite, or lies in the open interval (0, 1).</exception>
     public static double Score(
         ReadOnlySpan<double> yTrue,
         ReadOnlySpan<double> yPred,

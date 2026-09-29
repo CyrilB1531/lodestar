@@ -20,7 +20,8 @@ samples.
 
 **Returns** — `double` in `[0, 1]`, larger meaning better.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `beta` is negative, `NaN` or infinite;
+**Exceptions** — `ArgumentOutOfRangeException` when `beta` is negative or `NaN` — positive infinity scores the recall, as `fbeta_score` does
+([#1466](https://github.com/CyrilB1531/lodestar/issues/1466));
 `ArgumentNullException` when `cm` is null; `ArgumentException` when `Averaging.Binary` meets
 more than two classes, or two without `posLabel` — an absent positive class takes the `zeroDivision`
 value instead, and `labels` is not read on a binary target — or `sampleWeight` holds a non-finite value or is zero throughout; `UndefinedMetricException` when the metric is

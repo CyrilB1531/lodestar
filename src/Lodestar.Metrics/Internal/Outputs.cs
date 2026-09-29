@@ -59,7 +59,7 @@ internal static class Outputs
     /// <param name="outputWeights">A weight per output, or empty for a plain mean.</param>
     /// <returns>The number of samples, <c>yTrue.Length / outputCount</c>.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
-    /// <exception cref="ArgumentException">A length disagrees with the shape.</exception>
+    /// <exception cref="ArgumentException">A length disagrees with the shape, or an output weight is not finite.</exception>
     public static int Validate(
         ReadOnlySpan<double> yTrue,
         ReadOnlySpan<double> yPred,
@@ -93,6 +93,9 @@ internal static class Outputs
                     nameof(outputWeights));
             }
 
+            // multioutput goes through check_array before numpy.average sums it: a NaN or an infinity is refused
+            // with the targets' own message rather than scored (#1461).
+            Inputs.RequireFinite(outputWeights, nameof(outputWeights));
             RequireNormalizable(outputWeights);
         }
 
@@ -226,9 +229,9 @@ internal static class Outputs
         yTrue.Length == yPred.Length && !yTrue.IsEmpty
         && (outputWeights.IsEmpty || (outputWeights.Length == 1 && IsNormalizable(outputWeights[0])));
 
-    // S1244: RequireNormalizable's own exact-zero test, over one weight; a NaN passes both.
+    // S1244: RequireNormalizable's own exact-zero test, over one weight; a non-finite one takes the path that refuses it.
 #pragma warning disable S1244
-    private static bool IsNormalizable(double weight) => weight != 0.0;
+    private static bool IsNormalizable(double weight) => weight != 0.0 && !double.IsNaN(weight) && !double.IsInfinity(weight);
 #pragma warning restore S1244
 
     /// <summary>
@@ -444,9 +447,10 @@ internal static class Outputs
     /// <param name="samples">The sample count <see cref="Validate"/> returned.</param>
     /// <param name="kernel">The kernel instance.</param>
     /// <remarks>
-    /// Both conditions are decision 0027's at <c>53af23c2</c>, settled there for R² and explained
-    /// variance: <c>outputCount == 1</c> is the only contiguous shape, a strided column
-    /// being what a <see cref="Vector{T}"/> load cannot gather, and
+    /// Reached only by the two <see cref="IVectorResidualKernel"/> kernels, <c>MeanSquaredError</c>'s
+    /// and <c>MeanAbsoluteError</c>'s; R² and explained variance take their own paths. Two
+    /// conditions gate the SIMD walk: <c>outputCount == 1</c> is the only contiguous shape, a
+    /// strided column being what a <see cref="Vector{T}"/> load cannot gather, and
     /// <see cref="Vector.IsHardwareAccelerated"/> is checked apart from it so a runtime
     /// emulating the type keeps the scalar loop.
     /// </remarks>

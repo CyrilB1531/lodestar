@@ -24,6 +24,8 @@ count is `3.0`. A negative weight is accepted and takes the fraction outside `[0
 `classCount` is below `2`, when `yTrue` is empty, when `yScore` is not exactly `yTrue.Length` rows
 of `classCount`, or when `yTrue` names a class outside `[0, classCount)` — that last one would
 otherwise be counted as a miss, and read as a bad model rather than as the caller error it is.
+`ArgumentException` when `yScore` holds a NaN or an infinity, with scikit-learn's message
+([#1463](https://github.com/CyrilB1531/lodestar/issues/1463)).
 `ArgumentException` also when `sampleWeight` is neither empty nor one value per sample, and when it
 sums to zero **while `normalize` is true**. `normalize: false` never divides, so it does not
 refuse a zero-sum vector at all: it returns the weighted sum of the hits, which is `3.0` on weights

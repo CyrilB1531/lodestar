@@ -175,6 +175,15 @@ internal sealed class LabelIndex
         return result;
     }
 
+    /// <summary>The two lengths' sum, refused rather than wrapped past the largest array (#1472).</summary>
+    private static int UnionLength(int trueLength, int predLength, string paramName)
+    {
+        long length = (long)trueLength + predLength;
+        return length <= TableLength.MaxLength
+            ? (int)length
+            : throw new ArgumentException($"{length} labels in all are more than one array holds.", paramName);
+    }
+
     /// <summary>The ascending distinct labels of both inputs; <paramref name="yPred"/> may be empty.</summary>
     internal static int[] SortedUnion(ReadOnlySpan<int> yTrue, ReadOnlySpan<int> yPred)
     {
@@ -217,7 +226,7 @@ internal sealed class LabelIndex
             return union;
         }
 
-        int[] all = new int[yTrue.Length + yPred.Length];
+        int[] all = new int[UnionLength(yTrue.Length, yPred.Length, nameof(yPred))];
         yTrue.CopyTo(all);
         yPred.CopyTo(all.AsSpan(yTrue.Length));
         Array.Sort(all);

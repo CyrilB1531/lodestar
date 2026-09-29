@@ -41,8 +41,8 @@ Two things are not identical, and both are stated rather than hidden. A report b
 `ZeroDivision.NaN` renders .NET's `NaN` where Python writes `nan` — the numbers match, the eight
 characters do not. And the support column switches between integer and float formatting on a rule
 that keys off whether **any** sample anywhere was predicted correctly, not off whether accuracy is
-zero; the two differ when a label subset is in play, and the reasoning is in
-the pre-restriction rule.
+zero; the two differ when a label subset is in play, because scikit-learn's counts turn float when no
+sample at all was predicted correctly, which it checks before restricting to the requested labels.
 
 The trap is treating this as a data format. It is aligned for a human eye, columns can run
 together
@@ -53,5 +53,4 @@ you want the numbers.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `ClassificationReport.Compute`, `ClassificationReport.ToString`,
-the pre-restriction rule,
 the [Python equivalence table](../../../equivalence.md).

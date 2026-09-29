@@ -21,7 +21,7 @@ public static class LogLoss
     /// <param name="normalize">Divide by the total weight. <see langword="false"/> returns the sum, as <c>normalize=False</c> does.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <returns><c>0</c> for a perfect prediction — to within one epsilon, since the clip below never lets a logarithm reach zero.</returns>
-    /// <exception cref="ArgumentException">The lengths disagree, the input is empty, a probability falls outside <c>[0, 1]</c>, <paramref name="yTrue"/> holds more than two labels, a weight is not finite, every weight is zero, or the weights sum to zero while <paramref name="normalize"/> is true.</exception>
+    /// <exception cref="ArgumentException">The lengths disagree, the input is empty, a probability falls outside <c>[0, 1]</c>, <paramref name="yTrue"/> holds more than two labels or only one, a weight is not finite, every weight is zero, or the weights sum to zero while <paramref name="normalize"/> is true.</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yProba,
@@ -38,6 +38,16 @@ public static class LogLoss
             throw new ArgumentException(
                 $"y_true and y_prob contain different number of classes: {labels} vs 2. " +
                 "Score more than two classes with LogLoss.MultiClass.",
+                nameof(yTrue));
+        }
+
+        // log_loss refuses one label without the labels argument, which this overload has no room for; MultiClass's
+        // classCount names every class, as labels does (#1465).
+        if (Probabilities.HoldsOneLabel(yTrue))
+        {
+            throw new ArgumentException(
+                $"y_true contains only one label ({yTrue[0]}). Score it with LogLoss.MultiClass, whose classCount " +
+                "names every expected class as the reference's labels argument does.",
                 nameof(yTrue));
         }
 

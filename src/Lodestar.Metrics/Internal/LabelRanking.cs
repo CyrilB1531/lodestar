@@ -120,7 +120,8 @@ internal static class LabelRanking
     /// <remarks>
     /// <see cref="Weights.Mean"/> is where this lives, shared with the ordered-list metrics
     /// since #216. <c>LabelRankingAveragePrecision</c> does not call it: the reference
-    /// divides by the weight sum directly there and returns <c>NaN</c>, which C# does too.
+    /// divides by the weight sum directly there, so a zero sum returns <c>±∞</c>, or
+    /// <c>NaN</c> when the weighted total is zero too, which C# does too.
     /// </remarks>
     public static double Weighted(ReadOnlySpan<double> perRow, ReadOnlySpan<double> sampleWeight) =>
         Weights.Mean(perRow, sampleWeight);

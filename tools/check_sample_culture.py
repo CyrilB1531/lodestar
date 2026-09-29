@@ -6,7 +6,7 @@ contributor reads its output to see that a package works. String interpolation
 formats through CurrentCulture, so `{value:F3}` printed 0,807 on a French
 console and 0.807 on CI -- the same commit, two outputs, and nothing failing,
 because the gate checks that every public type is reachable rather than what
-the run said (#205, and docs/decisions/0019 which left it open).
+the run said (#205).
 
 CA1305 cannot catch this. It fires on an explicit ToString(string) and never on
 an interpolated hole, at any AnalysisMode -- the gap is in the rule, not in the

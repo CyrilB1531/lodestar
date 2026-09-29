@@ -13,7 +13,7 @@ namespace Lodestar.Metrics;
 /// One term separates this from <see cref="R2"/>: residuals are centred on
 /// their own mean before squaring, so a uniform bias still scores 1 here,
 /// where <see cref="R2"/> pays for it. That is also why this metric takes no
-/// <see cref="ZeroDivision"/> — see decision 0026 at 53af23c2.
+/// <see cref="ZeroDivision"/>.
 /// </remarks>
 public static class ExplainedVariance
 {
@@ -142,7 +142,7 @@ public static class ExplainedVariance
         int outputCount = numerators.Length;
 
         // Vectorizes only for a single contiguous output; falls through to the
-        // scalar loop below otherwise. See decision 0027 at 53af23c2.
+        // scalar loop below otherwise.
 #if NET5_0_OR_GREATER
         if (outputCount == 1 && Vector.IsHardwareAccelerated)
         {

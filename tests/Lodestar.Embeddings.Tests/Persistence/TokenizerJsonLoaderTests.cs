@@ -330,7 +330,7 @@ public sealed class TokenizerJsonLoaderTests
     public void A_unigram_model_with_a_normalizer_that_is_not_precompiled_is_rejected(string normalizer, string expectedName)
     {
         // NFKC asks for the runtime's Unicode tables where the model asked for a map frozen at
-        // compile time -- the two already disagree on 181 code points (docs/decisions/0014).
+        // compile time -- the two already disagree on 181 code points.
         InvalidDataException error = Assert.Throws<InvalidDataException>(
             () => LoadUnigramFrom(SyntheticUnigram(normalizer: normalizer)));
 

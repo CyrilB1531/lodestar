@@ -12,8 +12,7 @@ namespace Lodestar.Metrics;
 /// </summary>
 /// <remarks>
 /// <c>forceFinite</c> and <see cref="ZeroDivision"/> answer two different
-/// undefined cases and must not be merged into one. See
-/// decision 0026 at 53af23c2.
+/// undefined cases and must not be merged into one.
 /// </remarks>
 public static class R2
 {
@@ -99,7 +98,7 @@ public static class R2
     /// </exception>
     /// <remarks>
     /// A method rather than a member of an averaging enum: the weights are this computation's
-    /// own per-output variances, produced by the same pass as the scores and not recoverable from them. See decision 0021 at 53af23c2.
+    /// own per-output variances, produced by the same pass as the scores and not recoverable from them.
     /// </remarks>
     public static double VarianceWeighted(
         ReadOnlySpan<double> yTrue,
@@ -123,7 +122,7 @@ public static class R2
         bool forceFinite,
         ZeroDivision zeroDivision)
     {
-        // A single contiguous output is the only shape that vectorizes. See decision 0027 at 53af23c2.
+        // A single contiguous output is the only shape that vectorizes.
         if (outputCount == 1 && sampleWeight.IsEmpty && Outputs.OnlyTargetsNeedScanning(yTrue, yPred, outputWeights)
             && TryAccumulateSingleOutput(yTrue, yPred, out CompensatedSum numerator, out CompensatedSum centredSquare))
         {
@@ -221,8 +220,8 @@ public static class R2
     /// <remarks>
     /// The mean pass reads the truth and the second pass both spans, each testing what it reads, in
     /// place of two more passes spent only on validation. Per lane on <c>net10.0</c> and in four
-    /// stripes elsewhere; not guaranteed bit-identical with the multi-output loop, for
-    /// decision 0033 at <c>53af23c2</c>'s reason.
+    /// stripes elsewhere; not guaranteed bit-identical with the multi-output loop: the
+    /// two sum in a different order.
     /// </remarks>
     private static bool TryAccumulateSingleOutput(
         ReadOnlySpan<double> yTrue,

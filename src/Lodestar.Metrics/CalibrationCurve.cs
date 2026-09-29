@@ -16,8 +16,9 @@ public sealed class CalibrationCurve
 {
     private CalibrationCurve(double[] probTrue, double[] probPred)
     {
-        ProbTrue = probTrue;
-        ProbPred = probPred;
+        // Read-only views: cast back to double[], the arrays let a caller rewrite the curve (#1473).
+        ProbTrue = Array.AsReadOnly(probTrue);
+        ProbPred = Array.AsReadOnly(probPred);
     }
 
     /// <summary>The share of positives in each non-empty bin.</summary>
@@ -88,13 +89,7 @@ public sealed class CalibrationCurve
                 $"y_true and y_prob must be the same non-empty length; got {yTrue.Length} and {yProb.Length}.");
         }
 
-        foreach (double probability in yProb)
-        {
-            if (!(probability >= 0.0 && probability <= 1.0))
-            {
-                throw new ArgumentException("y_prob has values outside [0, 1].");
-            }
-        }
+        RequireInUnitInterval(yProb);
 
         int first = yTrue[0];
         int second = first;
@@ -126,6 +121,14 @@ public sealed class CalibrationCurve
             return grid;
         }
 
+        if (HasNaN(yProb))
+        {
+            // numpy.percentile propagates a NaN to every edge, so every probability lands in one bin.
+            double[] undefined = new double[nBins + 1];
+            undefined.AsSpan().Fill(double.NaN);
+            return undefined;
+        }
+
         double[] rented = ArrayPool<double>.Shared.Rent(yProb.Length);
         try
         {
@@ -146,6 +149,40 @@ public sealed class CalibrationCurve
         {
             ArrayPool<double>.Shared.Return(rented);
         }
+    }
+
+    /// <summary>The reference's <c>y_prob.min() &lt; 0 or y_prob.max() &gt; 1</c>, numpy's NaN-propagating extremes included.</summary>
+    /// <remarks>
+    /// A NaN turns numpy's minimum and maximum into NaN, so the reference's test passes; the NaN is binned last and
+    /// averaged into a NaN mean rather than refused (#1464).
+    /// </remarks>
+    private static void RequireInUnitInterval(ReadOnlySpan<double> yProb)
+    {
+        if (HasNaN(yProb))
+        {
+            return;
+        }
+
+        foreach (double probability in yProb)
+        {
+            if (probability < 0.0 || probability > 1.0)
+            {
+                throw new ArgumentException("y_prob has values outside [0, 1].");
+            }
+        }
+    }
+
+    private static bool HasNaN(ReadOnlySpan<double> values)
+    {
+        foreach (double value in values)
+        {
+            if (double.IsNaN(value))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>The bin an interior-edge <c>searchsorted</c> puts a probability in.</summary>

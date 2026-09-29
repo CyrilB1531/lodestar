@@ -16,9 +16,10 @@ public sealed class PrecisionRecallCurve
 {
     private PrecisionRecallCurve(double[] precision, double[] recall, double[] thresholds)
     {
-        Precision = precision;
-        Recall = recall;
-        Thresholds = thresholds;
+        // Read-only views: cast back to double[], the arrays let a caller rewrite the curve (#1473).
+        Precision = Array.AsReadOnly(precision);
+        Recall = Array.AsReadOnly(recall);
+        Thresholds = Array.AsReadOnly(thresholds);
     }
 
     /// <summary>The precision at each point, ending at <c>1</c>.</summary>

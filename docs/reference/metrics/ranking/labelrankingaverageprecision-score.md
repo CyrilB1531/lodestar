@@ -20,7 +20,8 @@ every irrelevant one in every sample, and `1` as well for a sample where all lab
 relevant — such a ranking carries no information, and the reference scores it perfect rather than
 dropping it from the average.
 
-The answer is `NaN` when `sampleWeight` sums to zero, where
+When `sampleWeight` sums to zero the answer is the weighted total over zero — `±∞`, or `NaN` when
+that total is zero too — where
 [`CoverageError.Score`](coverageerror-score.md) and
 [`LabelRankingLoss.Score`](labelrankingloss-score.md) throw on the same input. The reference divides
 by the weight sum directly on this path instead of going through `numpy.average`, which is the only

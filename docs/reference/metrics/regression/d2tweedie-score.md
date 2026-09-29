@@ -17,7 +17,8 @@ case scikit-learn leaves undefined; the default reproduces its `nan`.
 **Returns** — `double`. `1` for a perfect prediction, `0` for one no better than predicting the
 weighted average of the truth, and negative below that. Unbounded below.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `power` lies in `(0, 1)`. `ArgumentException`
+**Exceptions** — `ArgumentOutOfRangeException` when `power` is NaN or infinite
+([#1462](https://github.com/CyrilB1531/lodestar/issues/1462)) or lies in `(0, 1)`. `ArgumentException`
 when the lengths disagree, the input is empty or non-finite, or an operand is outside the regime's
 domain. `UndefinedMetricException` when every truth is the same value — the constant baseline is
 already perfect, so there is nothing to explain — or when there are fewer than two samples and

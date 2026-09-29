@@ -121,8 +121,8 @@ internal static class Lot6Regression
     }
 
     /// <summary>
-    /// <c>multioutput</c> is the choice of method, not an enum: see
-    /// <c>docs/decisions/0021</c>.
+    /// <c>multioutput</c> is the choice of method, not an enum:
+    /// <c>raw_values</c> changes the return type.
     /// </summary>
     private static void MultiOutput()
     {

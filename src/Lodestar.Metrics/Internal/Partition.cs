@@ -106,7 +106,8 @@ internal static class Partition
                 nameof(featureCount), featureCount, "featureCount must be positive.");
         }
 
-        if (features.Length != labels.Length * featureCount)
+        // In long: a wrapped int product let a mismatched block through (#1470).
+        if (features.Length != (long)labels.Length * featureCount)
         {
             throw new ArgumentException(
                 $"features holds {features.Length} values, which is not {labels.Length} samples " +

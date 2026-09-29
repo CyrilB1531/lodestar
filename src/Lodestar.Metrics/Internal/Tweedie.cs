@@ -108,6 +108,13 @@ internal static class Tweedie
 
     private static void RequirePower(double power)
     {
+        // scikit-learn's parameter check refuses NaN and both infinities as it refuses (0, 1) (#1462).
+        if (double.IsNaN(power) || double.IsInfinity(power))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(power), power, "The power must be a finite number, at most 0 or at least 1.");
+        }
+
         if (power > 0.0 && power < 1.0)
         {
             throw new ArgumentOutOfRangeException(

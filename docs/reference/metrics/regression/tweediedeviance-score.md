@@ -17,8 +17,9 @@ is one weight per sample, or empty — the default — to weight every sample by
 and not comparable across powers: the same pair scores `0.4375` at power `0`, `0.1967…` at `1` and
 `0.0982…` at `2`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `power` lies in the open interval `(0, 1)`,
-which names no distribution. `ArgumentException` when the lengths disagree, the input is empty or
+**Exceptions** — `ArgumentOutOfRangeException` when `power` is NaN or infinite, as scikit-learn's
+parameter check refuses it ([#1462](https://github.com/CyrilB1531/lodestar/issues/1462)), or lies in the
+open interval `(0, 1)`, which names no distribution. `ArgumentException` when the lengths disagree, the input is empty or
 holds a non-finite value, or an operand falls outside the regime's domain —
 [the table on the type page](tweediedeviance.md) has all four regimes, and the message is
 scikit-learn's own sentence, naming the power.

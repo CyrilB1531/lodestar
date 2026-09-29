@@ -4,6 +4,9 @@ The precision-recall curve as plot data. Where [`RocCurve`](roccurve.md) barely 
 thousand negatives are ranked above a handful of positives, this collapses — which is why it is the
 curve to plot when positives are rare.
 
+Each list is a read-only view the curve owns, so no cast writes through it
+([#1473](https://github.com/CyrilB1531/lodestar/issues/1473)).
+
 ## Its thresholds array is one shorter, deliberately
 
 `Precision` and `Recall` have one more entry than `Thresholds`. The extra point is the endpoint at
@@ -11,8 +14,8 @@ recall `0` and precision `1`, which **no threshold produces** — it is where th
 nothing positive at all.
 
 Padding the array to match would invent a threshold for that point, and a caller plotting thresholds
-against precision would silently plot one pair too many. The asymmetry is the reference's, and
-the curve-shape rule keeps it.
+against precision would silently plot one pair too many. The asymmetry is the reference's, and named properties keep it visible where three `out` arrays
+would hide it.
 
 ## The area under it is not the average precision
 

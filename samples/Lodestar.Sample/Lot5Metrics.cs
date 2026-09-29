@@ -156,8 +156,8 @@ internal static class Lot5Metrics
 
         // A probability of 0 for a class that occurred: bounded on one, and on the
         // other the clip at machine epsilon is what decides the number.
-        int[] certain = [1, 1];
-        double[] wrong = [0.0, 0.0];
+        int[] certain = [1, 0];
+        double[] wrong = [0.0, 1.0];
         Console.WriteLine($"    certain and wrong   = {Inv.F3(BrierScore.Score(certain, wrong))} brier, "
             + $"{Inv.F3(LogLoss.Score(certain, wrong))} log loss");
 

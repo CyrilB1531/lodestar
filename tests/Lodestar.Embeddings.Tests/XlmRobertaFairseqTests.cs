@@ -11,7 +11,7 @@ namespace Lodestar.Embeddings.Tests;
 /// xlm-roberta-base's own 250 000 pieces at HuggingFace's own ids: <c>&lt;s&gt;</c>=0, <c>&lt;pad&gt;</c>=1,
 /// <c>&lt;/s&gt;</c>=2, <c>&lt;unk&gt;</c>=3 and <c>&lt;mask&gt;</c>=250001, every marker but one outside
 /// the 0-2 window the old constructor tested. Since #75 the fixture also carries XLM-R's own
-/// <c>nmt_nfkc</c> charsmap (docs/decisions/0014), so the last six oracle inputs -- full width forms,
+/// <c>nmt_nfkc</c> charsmap, so the last six oracle inputs -- full width forms,
 /// ligatures, decomposed accents, exotic spaces, control characters -- are segmented through a real
 /// normalization pass rather than an inert one.
 /// </summary>

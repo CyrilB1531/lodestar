@@ -39,8 +39,7 @@ of its own truth, so the outputs that carry the information carry the score.
 
 It is a method rather than an `outputWeights` value you could pass to `Score`, because the weights
 are this computation's own per-output variances: they come out of the same pass that produced the
-scores and cannot be recovered from the scores alone —
-the multioutput rule.
+scores and cannot be recovered from the scores alone.
 
 The trap is that it is not comparable with `Score` across datasets. Two models on the same data
 can
@@ -50,5 +49,4 @@ summaries, and swapping one for the other between two reports invents a change t
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `ExplainedVariance.Score`, `ExplainedVariance.PerOutput`, `R2.VarianceWeighted`,
-the multioutput rule,
 the [Python equivalence table](../../../equivalence.md).

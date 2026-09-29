@@ -8,6 +8,9 @@ Where [`BrierScore`](brierscore.md) and [`LogLoss`](logloss.md) answer *how badl
 one number, this shows *where*: a model can score well overall and still be systematically
 over-confident at the top of its range.
 
+Each list is a read-only view the curve owns, so no cast writes through it
+([#1473](https://github.com/CyrilB1531/lodestar/issues/1473)).
+
 ## Its arrays are as long as the bins that held something
 
 `ProbTrue` and `ProbPred` always share a length, and that length is **not** `nBins`. A bin no sample

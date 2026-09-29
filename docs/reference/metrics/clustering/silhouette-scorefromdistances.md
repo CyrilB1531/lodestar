@@ -44,8 +44,8 @@ rounding, not the method.
 
 A name of its own rather than an overload of `Silhouette.Score`, because a distance
 matrix and a block of features are both a span of `double` and the two signatures would collide.
-That is the multioutput rule's ruling
-applied to an input rather than to a return type.
+A variant a parameter cannot carry gets a name, as `PerOutput` does on the regression metrics —
+here for an input rather than a return type.
 
 Nothing checks that the matrix is a metric — symmetric, zero on the diagonal, positive elsewhere.
 scikit-learn does not either, and a caller who passes a similarity by mistake gets a number rather

@@ -249,7 +249,7 @@ internal static class Prf
     }
 
     // Derived from the raw counts, not the already-divided precision and
-    // recall — see decision 0032 at 53af23c2 for why the two diverge.
+    // recall, whose rounding would move the result.
     private static double FScore(double tp, double predicted, double support, double beta, ZeroDivision zeroDivision)
     {
         // SonarLint S1244 warns against comparing floating point for exact
@@ -265,6 +265,12 @@ internal static class Prf
             return Divide(tp, predicted, zeroDivision, "Precision");
         }
 
+        // fbeta_score's own branch: an infinite beta weighs precision to nothing and returns the recall (#1466).
+        if (double.IsPositiveInfinity(beta))
+        {
+            return Divide(tp, support, zeroDivision, "Recall");
+        }
+
         double beta2 = beta * beta;
         double numerator = (1.0 + beta2) * tp;
         double denominator = predicted + (beta2 * support);
@@ -273,10 +279,10 @@ internal static class Prf
 
     public static void ValidateBeta(double beta)
     {
-        if (double.IsNaN(beta) || double.IsInfinity(beta) || beta < 0.0)
+        if (double.IsNaN(beta) || beta < 0.0)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(beta), beta, "beta must be a finite number greater than or equal to zero.");
+                nameof(beta), beta, "beta must be a number greater than or equal to zero.");
         }
     }
 }

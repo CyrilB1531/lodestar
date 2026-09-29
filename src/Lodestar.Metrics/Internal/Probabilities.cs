@@ -89,7 +89,8 @@ internal static class Probabilities
                 nameof(classCount), classCount, "A probability matrix needs at least two classes.");
         }
 
-        if (yProba.Length != yTrue.Length * classCount)
+        // In long: a wrapped int product let a mismatched matrix through (#1470).
+        if (yProba.Length != (long)yTrue.Length * classCount)
         {
             throw new ArgumentException(
                 $"yProba holds {yProba.Length} values, which is not {yTrue.Length} samples of {classCount}.",
@@ -114,6 +115,20 @@ internal static class Probabilities
         }
 
         return yTrue.Length;
+    }
+
+    /// <summary>Whether every label is the first; netstandard2.0 carries no <c>ContainsAnyExcept</c>.</summary>
+    public static bool HoldsOneLabel(ReadOnlySpan<int> yTrue)
+    {
+        foreach (int label in yTrue)
+        {
+            if (label != yTrue[0])
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>

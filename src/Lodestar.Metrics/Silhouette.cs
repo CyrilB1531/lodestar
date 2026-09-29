@@ -30,7 +30,7 @@ public static class Silhouette
     /// <remarks>
     /// A name of its own rather than an overload: the two entry points would otherwise have the
     /// same signature, since a matrix and a feature block are both a span of <c>double</c> with a
-    /// count. That is the ruling of the equality rule, applied to an input rather than to a return.
+    /// count, and a variant a parameter cannot carry gets a name, as <c>PerOutput</c> does for a return.
     /// </remarks>
     /// <exception cref="ArgumentException">The matrix is not <c>n × n</c> for the labels given, holds a value that is not finite or a diagonal entry other than 0, or the number of distinct labels is outside <c>[2, n - 1]</c>.</exception>
     public static double ScoreFromDistances(ReadOnlySpan<int> labels, ReadOnlySpan<double> distances) =>
@@ -51,7 +51,8 @@ public static class Silhouette
         int samples = Partition.Samples(labels, features, featureCount);
         int[] sizes = Partition.Sizes(labels, out int[] ordinals, out int clusters);
         Partition.RequireScorableCount(clusters, samples, nameof(labels));
-        if ((long)samples * clusters > int.MaxValue)
+        // The largest array, not int.MaxValue: the products between the two failed in the allocation (#1471).
+        if ((long)samples * clusters > TableLength.MaxLength)
         {
             throw new ArgumentException(
                 $"{samples} samples in {clusters} clusters need {(long)samples * clusters} sums, " +
@@ -155,7 +156,8 @@ public static class Silhouette
 
     private static int Square(ReadOnlySpan<int> labels, ReadOnlySpan<double> distances)
     {
-        if (distances.Length != labels.Length * labels.Length)
+        // In long: a wrapped int square let a mismatched matrix through (#1470).
+        if (distances.Length != (long)labels.Length * labels.Length)
         {
             throw new ArgumentException(
                 $"distances holds {distances.Length} values, which is not {labels.Length} squared.",

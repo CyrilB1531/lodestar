@@ -7,6 +7,9 @@ That is the whole difference, and it matters for reading a plot: on a DET curve 
 you want small, so a better model sits nearer the origin, where on a ROC curve a better model bows
 away from the diagonal.
 
+Each list is a read-only view the curve owns, so no cast writes through it
+([#1473](https://github.com/CyrilB1531/lodestar/issues/1473)).
+
 ## It is the shortest of the three on the same input
 
 Neither endpoint is carried. The curve starts where false positives stop being zero and stops where

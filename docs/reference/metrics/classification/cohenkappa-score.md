@@ -62,9 +62,9 @@ three
 labels as `[3, 1, 2]` and the quadratic score above becomes `0.3846…`; the unweighted score does
 not
 move at all. If your labels are ordinal, pass `labels` in the ordinal order every time, and never
-let it default to the sorted union without checking that sorted *is* the ordinal order. The
-reasoning, and the expected-matrix orientation this keeps from scikit-learn, are in
-the expected-matrix rule.
+let it default to the sorted union without checking that sorted *is* the ordinal order. The expected
+matrix keeps scikit-learn's orientation, `colSums[row] · rowSums[col] / total`: every weighting
+here is symmetric, so its transpose would score the same, but an asymmetric one would not.
 
 The parameter is named `weighting` and not scikit-learn's `weights` because `sampleWeight` sits in
 the same signature and the two are unrelated senses of the word.
@@ -72,5 +72,4 @@ the same signature and the two are unrelated senses of the word.
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `KappaWeighting`, `MatthewsCorrelation.Score`, `BalancedAccuracy.Score`,
-the expected-matrix rule,
 the [Python equivalence table](../../../equivalence.md).

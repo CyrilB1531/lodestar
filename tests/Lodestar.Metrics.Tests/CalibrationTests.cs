@@ -110,8 +110,9 @@ public sealed class CalibrationTests
     [Fact]
     public void Brier_never_exceeds_one_where_log_loss_is_unbounded()
     {
-        int[] yTrue = [1, 1];
-        double[] confidentlyWrong = [0.0, 0.0];
+        // Two classes: log_loss refuses one without its labels argument (#1465).
+        int[] yTrue = [1, 0];
+        double[] confidentlyWrong = [0.0, 1.0];
 
         Assert.Equal(1.0, BrierScore.Score(yTrue, confidentlyWrong));
         Assert.True(LogLoss.Score(yTrue, confidentlyWrong) > 30.0);

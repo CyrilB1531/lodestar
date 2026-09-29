@@ -18,7 +18,10 @@ the two divide.
 `nBins`: a bin no sample fell into is dropped.
 
 **Exceptions** — `ArgumentException` when the inputs disagree in length, are empty, carry a
-probability outside `[0, 1]`, or name more than two classes. `ArgumentOutOfRangeException` when
+probability outside `[0, 1]`, or name more than two classes. A NaN probability is not refused, as
+scikit-learn does not refuse it: numpy's minimum and maximum turn NaN, so its range test passes; the
+NaN falls in the last bin, or every bin's edge is NaN under the quantile strategy, and the bin's mean
+comes out NaN ([#1464](https://github.com/CyrilB1531/lodestar/issues/1464)). `ArgumentOutOfRangeException` when
 `nBins` is below `1`.
 
 **Example** — four probabilities over five bins, one of which nothing falls into.

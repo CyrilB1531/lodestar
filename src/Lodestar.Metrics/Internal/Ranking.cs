@@ -221,16 +221,8 @@ internal static class Ranking
     /// 16-element insertion-sort threshold — measured, a row of 17 equal scores comes back
     /// in an arbitrary order — so each tied group is reordered afterwards. Only the
     /// tie-averaged path is indifferent to that; <c>ignoreTies</c> is not, and neither is
-    /// top-k accuracy.
+    /// reciprocal rank. Written into buffers a caller reuses across rows.
     /// </remarks>
-    public static int[] Descending(ReadOnlySpan<double> scores)
-    {
-        int[] order = new int[scores.Length];
-        Descending(scores, order, new double[scores.Length]);
-        return order;
-    }
-
-    /// <summary>The same order, written into buffers a caller reuses across rows.</summary>
     /// <param name="scores">The row to rank.</param>
     /// <param name="order">Receives the ranking; exactly the row's length.</param>
     /// <param name="copy">Overwritten scratch; exactly the row's length.</param>

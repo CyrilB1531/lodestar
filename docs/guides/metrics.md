@@ -83,7 +83,7 @@ Most members take an optional `sampleWeight`, one weight per sample, and it is a
 **weighted mean** rather than a repetition count. A vector summing to zero raises in
 `numpy.average`'s own sentence — except in
 [`LabelRankingAveragePrecision.Score`](../reference/metrics/ranking/labelrankingaverageprecision-score.md),
-which divides directly and returns `NaN`, and in
+which divides directly and returns `±∞`, or `NaN` when the weighted total is zero too, and in
 [`TopKAccuracy.Score`](../reference/metrics/ranking/topkaccuracy-score.md) with
 `normalize: false`, which never divides at all. A negative weight is accepted
 everywhere and can take the result outside the range its page promises. All three are
@@ -93,8 +93,8 @@ An undefined metric — precision for a class nothing was predicted into — is 
 by a `ZeroDivision` argument rather than a warning: return `0`, return `1`, return
 `NaN` — which is what [`R2.Score`](../reference/metrics/regression/r2-score.md)
 defaults to — or throw `UndefinedMetricException`. scikit-learn warns and continues;
-this package makes you choose, which is
-the projection rule.
+this package makes you choose, and each metric's default is the value scikit-learn returns after
+its warning — `0` for precision and recall, `NaN` for `R2`.
 
 ## A worked example in each family
 
