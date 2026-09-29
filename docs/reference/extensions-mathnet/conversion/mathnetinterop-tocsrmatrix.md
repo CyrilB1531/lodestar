@@ -13,7 +13,9 @@ public static CsrMatrix ToCsrMatrix(Matrix<double> matrix)
 **Returns** — a `CsrMatrix` of the same shape holding the same values, sharing no array with the
 source.
 
-**Exceptions** — `ArgumentNullException` when `matrix` is null.
+**Exceptions** — `ArgumentNullException` when `matrix` is null. `ArgumentException` when it has more
+rows than one array of row pointers holds, which a diagonal matrix of `int.MaxValue` rows reaches in
+a few bytes ([#1529](https://github.com/CyrilB1531/lodestar/issues/1529)).
 
 **Example** — a dense matrix keeps only what it actually stores.
 

@@ -239,4 +239,14 @@ public sealed class MathNetInteropTests
         Assert.Equal([1, 3, 0, 2, 3], csr.ColumnIndices);
         Assert.Equal([0, 2, 2, 5], csr.RowPointers);
     }
+
+    /// <summary>A diagonal matrix of int.MaxValue rows costs one stored value and wrapped rows + 1 (#1529).</summary>
+    [Fact]
+    public void A_row_count_past_one_array_of_pointers_is_refused()
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => MathNetInterop.ToCsrMatrix(new DiagonalMatrix(int.MaxValue, 1, 1.0)));
+
+        Assert.Equal("matrix", error.ParamName);
+    }
 }

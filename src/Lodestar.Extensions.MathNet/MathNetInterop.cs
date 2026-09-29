@@ -49,6 +49,7 @@ public static class MathNetInterop
     /// <param name="matrix">The matrix to convert; sparse or dense.</param>
     /// <returns>A CSR matrix of the same shape holding the same values.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="matrix"/> has more rows than one array of row pointers holds.</exception>
     /// <remarks>
     /// A matrix already stored in compressed-row form hands over its three arrays, copied
     /// so neither side can mutate the other's. Any other storage — dense or diagonal — is
@@ -58,6 +59,13 @@ public static class MathNetInterop
     public static CsrMatrix ToCsrMatrix(Matrix<double> matrix)
     {
         Guard.NotNull(matrix);
+
+        // A diagonal matrix of int.MaxValue rows is cheap to build and wrapped rows + 1 to int.MinValue (#1529).
+        if (matrix.RowCount >= TableLength.MaxLength)
+        {
+            throw new ArgumentException(
+                $"A matrix of {matrix.RowCount} rows needs more row pointers than one array holds.", nameof(matrix));
+        }
 
         if (matrix.Storage is SparseCompressedRowMatrixStorage<double> csr)
         {
@@ -127,7 +135,8 @@ public static class MathNetInterop
     /// <remarks>
     /// Walks what the storage stores, <c>EnumerateIndexed(Zeros.AllowSkip)</c>, twice — once to count each row, once
     /// to place it — rather than reading every cell: a 100k-square diagonal matrix costs its 1e5 entries, not 1e10
-    /// reads (#1220). Math.NET accepts no storage but its three, and the diagonal one enumerates in row order.
+    /// reads (#1220). Any other storage lands here, a caller's own subclass included (#1530): each entry is placed by
+    /// its row, so the order a storage enumerates in does not matter, and <c>CsrMatrix</c> accepts a row in any order.
     /// </remarks>
     private static CsrMatrix FromAnyStorage(Matrix<double> matrix)
     {
