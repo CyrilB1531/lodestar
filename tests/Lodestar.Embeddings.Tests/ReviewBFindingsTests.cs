@@ -335,4 +335,73 @@ public sealed class ReviewBFindingsTests
             "batchSize",
             Assert.Throws<ArgumentException>(() => Pooler.MeanPoolBatch([], int.MaxValue, 0, 0, [])).ParamName);
     }
+    [Fact]
+    public void A_split_with_no_pattern_or_an_undefined_normalization_form_is_refused_under_vocabulary()
+    {
+        var vocab = new Dictionary<string, int>(StringComparer.Ordinal) { ["a"] = 0 };
+
+        foreach (BpeVocabulary broken in new[]
+        {
+            new BpeVocabulary(vocab, []) { PreSplit = new BpeSplitStep(null!, SplitBehavior.Isolated, false) },
+            new BpeVocabulary(vocab, []) { PreTokenizerPattern = @"\S+", NormalizationForms = [(NormalizationForm)99] },
+        })
+        {
+            Assert.Equal("vocabulary", Assert.Throws<ArgumentException>(() => new BpeTokenizer(broken)).ParamName);
+        }
+    }
+
+    [Fact]
+    public void A_unigram_piece_whose_id_is_not_its_position_is_refused()
+    {
+        SentencePieceVocabulary vocabulary = Unigram(new("<unk>", -10, 0), new("▁a", -1, 5));
+
+        Assert.Equal("vocabulary", Assert.Throws<ArgumentException>(() => new SentencePieceTokenizer(vocabulary)).ParamName);
+    }
+
+    [Fact]
+    public void Records_with_absent_lists_print_as_they_compare()
+    {
+        var types = new[] { SentencePieceType.Normal };
+
+        Assert.Contains("Count = 0", new SentencePieceVocabulary(null!, types, 0, -1, -1, -1).ToString(), StringComparison.Ordinal);
+        Assert.Contains("Count = 0", new BpeVocabulary(null!, []).ToString(), StringComparison.Ordinal);
+        Assert.Contains("Count = 0", (new WordPieceVocabulary(null!, "[UNK]", "##", false)).ToString(), StringComparison.Ordinal);
+        Assert.Contains("SpecialTokenCount = 0", new SpecialTokenTemplate(null!, null!, "[PAD]").ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Absent_and_differing_lists_compare_unequal_and_a_record_equals_itself()
+    {
+        var vocab = new Dictionary<string, int>(StringComparer.Ordinal) { ["[UNK]"] = 0 };
+        var pieces = Unigram(new("<unk>", -10, 0), new("▁a", -1, 1));
+        var bpe = new BpeVocabulary(vocab, []) { NormalizationForms = [NormalizationForm.FormC] };
+        var wordPiece = new WordPieceVocabulary(vocab, "[UNK]", "##", false);
+        var template = new SpecialTokenTemplate(["[CLS]"], ["[SEP]"], "[PAD]");
+
+        Assert.True(pieces.Equals(pieces));
+        Assert.True(bpe.Equals(bpe));
+        Assert.True(wordPiece.Equals(wordPiece));
+        Assert.True(template.Equals(template));
+        Assert.NotEqual(pieces, pieces with { Types = [SentencePieceType.Normal] });
+        Assert.NotEqual(bpe, bpe with { NormalizationForms = [NormalizationForm.FormD] });
+        Assert.Equal(wordPiece with { Vocab = null! }, wordPiece with { Vocab = null! });
+        Assert.NotEqual(wordPiece with { Vocab = null! }, wordPiece);
+    }
+
+    [Fact]
+    public void The_trie_builder_grows_to_what_it_is_asked_and_refuses_past_the_largest_array()
+    {
+        // The growth a large vocabulary reaches, driven directly: no committed vocabulary is big enough to need it.
+        Type builderType = typeof(CharTrie).GetNestedType("Builder", BindingFlags.NonPublic)!;
+        object builder = Activator.CreateInstance(builderType, (IReadOnlyList<string>)["ab"], new int[128], 2)!;
+        MethodInfo growToReach = builderType.GetMethod("GrowToReach", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        int before = ((int[])builderType.GetProperty("Check")!.GetValue(builder)!).Length;
+
+        growToReach.Invoke(builder, [(long)before + 1]);
+
+        Assert.Equal(before * 2, ((int[])builderType.GetProperty("Check")!.GetValue(builder)!).Length);
+        TargetInvocationException refused = Assert.Throws<TargetInvocationException>(
+            () => growToReach.Invoke(builder, [0x7FFFFFC7L + 1]));
+        Assert.IsType<InvalidOperationException>(refused.InnerException);
+    }
 }

@@ -35,7 +35,7 @@ public sealed record SpecialTokenTemplate(
     public static SpecialTokenTemplate None { get; } = new([], [], "[PAD]");
 
     /// <summary>How many special tokens a sequence carries; the truncation budget is reduced by this much.</summary>
-    public int SpecialTokenCount => PrefixTokens.Count + SuffixTokens.Count;
+    public int SpecialTokenCount => (PrefixTokens?.Count ?? 0) + (SuffixTokens?.Count ?? 0);
 
     /// <summary>Compares the pad token and both token lists element by element.</summary>
     /// <remarks>

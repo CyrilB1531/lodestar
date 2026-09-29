@@ -262,7 +262,7 @@ internal sealed class CharTrie
                 {
                     if (slot < 0)
                     {
-                        slot = Grow(Math.Max(Check.Length * 2, code + 1));
+                        slot = Grow(Math.Max((long)Check.Length * 2, code + 1L));
                     }
                     if (slot >= code)
                     {
@@ -332,14 +332,14 @@ internal sealed class CharTrie
             {
                 if (slot < 0)
                 {
-                    slot = Grow(Check.Length * 2);
+                    slot = Grow((long)Check.Length * 2);
                 }
                 int candidate = slot - minCode;
                 if (candidate >= 0)
                 {
                     if (candidate + maxCode >= Check.Length)
                     {
-                        Grow(Math.Max(Check.Length * 2, candidate + maxCode + 1));
+                        GrowToReach((long)candidate + maxCode + 1);
                     }
                     if (Fits(candidate, children))
                     {
@@ -369,10 +369,28 @@ internal sealed class CharTrie
             return true;
         }
 
-        /// <summary>Grows every array to <paramref name="capacity"/> and appends the new slots to the free list, returning the first of them.</summary>
-        private int Grow(int capacity)
+        /// <summary>Grows to at least <paramref name="needed"/> slots, refusing a base whose children lie past the largest array.</summary>
+        private void GrowToReach(long needed)
+        {
+            if (needed > TableLength.MaxLength)
+            {
+                throw new InvalidOperationException("The trie's keys need more slots than one array holds.");
+            }
+
+            Grow(Math.Max((long)Check.Length * 2, needed));
+        }
+
+        /// <summary>Grows every array to <paramref name="wanted"/> and appends the new slots to the free list, returning the first of them.</summary>
+        /// <remarks>Doubled in <see cref="long"/> and clamped to the largest array: in int it overflowed past 2^30 slots (#1393).</remarks>
+        private int Grow(long wanted)
         {
             int old = Check.Length;
+            if (old >= TableLength.MaxLength)
+            {
+                throw new InvalidOperationException("The trie's keys need more slots than one array holds.");
+            }
+
+            int capacity = (int)Math.Min(wanted, TableLength.MaxLength);
             Base = Resized(Base, capacity, 0);
             Check = Resized(Check, capacity, Free);
             Values = Resized(Values, capacity, -1);

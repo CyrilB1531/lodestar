@@ -63,7 +63,7 @@ internal sealed class BpePreTokenizer
         }
 
         // A null pre-split still needs a behaviour to drive Apply: Removed with invert,
-        // never Isolated -- docs/decisions/0035 has the measured case that separates them.
+        // never Isolated, which splits differently on a measured case.
         if (preSplit is null)
         {
             // Not null here: BpeTokenizer.EnsurePreTokenizerIsDeclared refuses a

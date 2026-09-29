@@ -171,8 +171,8 @@ public sealed record BpeVocabulary(
     /// <remarks>
     /// A file writes it two ways — a <c>Metaspace</c> pre-tokenizer, or a <c>Prepend</c>
     /// plus <c>Replace</c> normalizer sequence — and
-    /// <see cref="Persistence.TokenizerJsonLoader"/> reduces both to one value (decision
-    /// 0050 §2). Internal because nothing outside this assembly reads it: public, it would
+    /// <see cref="Persistence.TokenizerJsonLoader"/> reduces both to one value. Internal because nothing outside
+    /// this assembly reads it: public, it would
     /// owe a <c>docs/reference/</c> entry and a <c>samples/Lodestar.Sample</c> member
     /// reference for a value only <see cref="BpeTokenizer"/> consumes.
     /// </remarks>
@@ -182,7 +182,7 @@ public sealed record BpeVocabulary(
     internal BpeDecoderSteps? Decoder { get; init; }
 
     /// <summary>Number of entries in the vocabulary.</summary>
-    public int Count => Vocab.Count;
+    public int Count => Vocab?.Count ?? 0;
 
     /// <summary>
     /// Compares the flags, the <see cref="PrefixTokens"/> and <see cref="SuffixTokens"/> templates,

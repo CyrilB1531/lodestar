@@ -55,7 +55,7 @@ public sealed record WordPieceVocabulary(
     public IReadOnlyList<string> SuffixTokens { get; init; } = [];
 
     /// <summary>Number of entries in the vocabulary.</summary>
-    public int Count => Vocab.Count;
+    public int Count => Vocab?.Count ?? 0;
 
     /// <summary>
     /// Compares the settings and the <see cref="PrefixTokens"/> and <see cref="SuffixTokens"/>

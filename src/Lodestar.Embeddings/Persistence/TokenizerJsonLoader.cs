@@ -746,8 +746,7 @@ public static class TokenizerJsonLoader
     /// <remarks>
     /// <c>dropout</c> is training-time augmentation, and no model of the 23 read for
     /// decision 0005 declares one. Refused by name rather than tokenized plausibly
-    /// and wrongly; 0034 also records why "no deterministic tokenizer reproduces it"
-    /// is not the reason.
+    /// and wrongly: the refusal is for want of a model that needs it.
     /// </remarks>
     private static void EnsureBpeModelSettingsAreReproduced(JsonElement model)
     {
