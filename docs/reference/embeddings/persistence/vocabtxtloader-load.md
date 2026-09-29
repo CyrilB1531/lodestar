@@ -16,7 +16,8 @@ piece, and `lowercase` says whether the model was trained on lowercased text.
 
 **Returns** — `WordPieceVocabulary`, ids assigned by line number: the first line is id `0`.
 
-**Exceptions** — `ArgumentNullException` for a null source, path, `unkToken` or
+**Exceptions** — `FileNotFoundException` or `IOException` from the path overload, when the file is missing or cannot be read ([#1504](https://github.com/CyrilB1531/lodestar/issues/1504)).
+`ArgumentNullException` for a null source, path, `unkToken` or
 `continuationPrefix`, the names refused before a byte is read ([#1439](https://github.com/CyrilB1531/lodestar/issues/1439)). `InvalidDataException`
 when the content is not the format expected, declares a model this loader does not read, or
 exceeds a bound in `options` — the message names both the limit and the value.

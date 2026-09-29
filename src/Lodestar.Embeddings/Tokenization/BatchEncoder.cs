@@ -23,7 +23,8 @@ public sealed class BatchEncoder
     /// <param name="options">Template, truncation and batching settings; defaults to <see cref="EncodingOptions"/>'s own defaults.</param>
     /// <exception cref="ArgumentException">
     /// The tokenizer's vocabulary does not contain one of the template's tokens, the template or one of its members
-    /// is null, <see cref="EncodingOptions.BatchSize"/> or <see cref="EncodingOptions.MaxLength"/> is below 1, or
+    /// is null, <see cref="EncodingOptions.BatchSize"/> or <see cref="EncodingOptions.MaxLength"/> is below 1,
+    /// <see cref="EncodingOptions.Truncation"/> is not a declared strategy, or
     /// <see cref="EncodingOptions.MaxLength"/> leaves no room for the template's tokens.
     /// </exception>
     /// <exception cref="ArgumentNullException"><paramref name="tokenizer"/> is null.</exception>
@@ -36,6 +37,12 @@ public sealed class BatchEncoder
         if (Options.BatchSize < 1)
         {
             throw new ArgumentException($"BatchSize must be at least 1, was {Options.BatchSize}.", nameof(options));
+        }
+
+        // An undefined strategy truncated as LongestFirst would; refused as an undefined normalization form is (#1505).
+        if (Options.Truncation is not (TruncationStrategy.None or TruncationStrategy.LongestFirst or TruncationStrategy.Right))
+        {
+            throw new ArgumentException($"Truncation {(int)Options.Truncation} is not a declared strategy.", nameof(options));
         }
 
         // A template built with nulls would fail as NullReferenceException far from its cause (#1352).
@@ -87,6 +94,7 @@ public sealed class BatchEncoder
     /// refuses <paramref name="text"/> — a SentencePiece model refuses a lone surrogate (#1324).
     /// </exception>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
+    /// <exception cref="InvalidDataException">A SentencePiece model's charsmap points at a replacement it lacks, found only when a text walks the map (#1502).</exception>
     public long[] Encode(string text)
     {
         Guard.NotNull(text);
@@ -116,10 +124,19 @@ public sealed class BatchEncoder
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> is null.</exception>
     /// <exception cref="ArgumentException">A text is refused, as <see cref="Encode"/> refuses it, or the batch is more cells than one array holds.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    /// <exception cref="InvalidDataException">A SentencePiece model's charsmap points at a replacement it lacks, found only when a text walks the map (#1502).</exception>
     public EncodedBatch EncodeBatch(IEnumerable<string> texts, CancellationToken cancellationToken = default)
     {
         IReadOnlyList<long[]> sequences = EncodeAll(texts, cancellationToken);
-        return Pad(sequences, 0, sequences.Count);
+        try
+        {
+            return Pad(sequences, 0, sequences.Count);
+        }
+        catch (ArgumentException e) when (e.ParamName == "count")
+        {
+            // Pad's own parameter, which this caller never passed: the batch is what was too large (#1505).
+            throw new ArgumentException("The batch is more cells than one array holds.", nameof(texts), e);
+        }
     }
 
     /// <summary>
@@ -137,6 +154,7 @@ public sealed class BatchEncoder
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> is null.</exception>
     /// <exception cref="ArgumentException">A text is refused, as <see cref="Encode"/> refuses it; the exception names the text's position.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    /// <exception cref="InvalidDataException">A SentencePiece model's charsmap points at a replacement it lacks, found only when a text walks the map (#1502).</exception>
     public IReadOnlyList<long[]> EncodeAll(IEnumerable<string> texts, CancellationToken cancellationToken = default)
     {
         Guard.NotNull(texts);

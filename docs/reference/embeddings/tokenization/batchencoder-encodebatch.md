@@ -13,7 +13,8 @@ public EncodedBatch EncodeBatch(IEnumerable<string> texts, CancellationToken can
 **Returns** — [`EncodedBatch`](encodedbatch.md): the ids, the attention mask, and each sequence's
 true length before padding.
 
-**Exceptions** — `OperationCanceledException` when cancelled. `ArgumentNullException` when `texts`
+**Exceptions** — `InvalidDataException` when a SentencePiece model's charsmap points at a replacement it lacks, found only when a text walks the map ([#1502](https://github.com/CyrilB1531/lodestar/issues/1502)).
+`OperationCanceledException` when cancelled. `ArgumentNullException` when `texts`
 is null. `ArgumentException` when a text is refused, as
 [`EncodeAll`](batchencoder-encodeall.md) refuses it, or when the batch is more cells than one array
 holds ([#1323](https://github.com/CyrilB1531/lodestar/issues/1323), [#1324](https://github.com/CyrilB1531/lodestar/issues/1324)).

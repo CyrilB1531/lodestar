@@ -59,12 +59,13 @@ the payload stages through a chunk on its way in. Nothing is asked of the caller
 [`EmbeddingIndex.FromOwnedBlock`](../search/embeddingindex-fromownedblock.md) can adopt it rather
 than copy it a second time.
 
-`Read(ReadOnlyMemory<byte>)` copies nothing on either target, and **that is the overload with a
-contract**: the block's values alias the bytes you passed, so those bytes must outlive the block
-and must not change while it is read — what
+`Read(ReadOnlyMemory<byte>)` copies nothing on a little-endian host, on either target, and **that
+is the overload with a contract**: the block's values alias the bytes you passed, so those bytes
+must outlive the block and must not change while it is read — what
 [`EmbeddingIndex.Load`](../search/embeddingindex-load.md) already asks of a caller who hands it an
 artifact it holds. `OwnedArray` is null on a block read this way, because a borrowed block has no
-array to hand over, which is what keeps adoption out of reach from here.
+array to hand over, which is what keeps adoption out of reach from here. A big-endian host has to
+move the bits, so it copies and byte-swaps instead, and `OwnedArray` is set to that copy.
 `docs/guides/performance.md`
 has why there are two contracts rather than one.
 

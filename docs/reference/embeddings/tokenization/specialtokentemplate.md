@@ -33,6 +33,11 @@ the unknown token.
 `None` is for models that want none — many sentence-transformer exports do their own wrapping — and
 for measuring what the text alone encodes to.
 
+`PrefixTokens` and `SuffixTokens` are taken as given, not copied: a caller casting one back to
+its list and writing to it changes this template and what it equals, and can change its hash
+([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)). [`BatchEncoder`](batchencoder.md) reads them at construction, so an encoder already
+built is unaffected.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`BatchEncoder`](batchencoder.md), [`EncodingOptions`](encodingoptions.md).

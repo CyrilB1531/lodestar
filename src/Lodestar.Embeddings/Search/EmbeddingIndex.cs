@@ -23,6 +23,7 @@ public sealed partial class EmbeddingIndex
     /// <summary>Creates an index for vectors of the given dimension.</summary>
     /// <param name="dimension">The embedding dimension.</param>
     /// <param name="normalize">L2-normalize vectors on insertion and queries on search (default true).</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="dimension"/> is below 1.</exception>
     public EmbeddingIndex(int dimension, bool normalize = true)
     {
         Guard.NotLessThan(dimension, 1);

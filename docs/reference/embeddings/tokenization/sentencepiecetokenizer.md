@@ -8,7 +8,12 @@ Unigram encoding over a SentencePiece vocabulary — T5, ALBERT, XLM-R, camemBER
 public sealed class SentencePieceTokenizer : ISubwordTokenizer
 ```
 
-**Constructor** — takes a [`SentencePieceVocabulary`](sentencepiecevocabulary.md).
+**Constructor** — takes a [`SentencePieceVocabulary`](sentencepiecevocabulary.md). It throws
+`ArgumentNullException` when the vocabulary is null; `ArgumentException` when its pieces and types
+disagree in length, a piece's id is not its position, its pieces or types are missing, its unknown
+id is out of range, a piece has no string, or a matchable piece's score is not finite; and
+`InvalidOperationException` when its keys need more trie slots than one array holds
+([#1393](https://github.com/CyrilB1531/lodestar/issues/1393)).
 
 **Example** — two words, each one piece, each carrying its space.
 

@@ -43,7 +43,8 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
 
     // Control/unknown pieces stay out of the trie so they never match text; a
     // special-token template still needs their ids, so only those few are duplicated.
-    private readonly Dictionary<string, int> _nonMatchableIds;
+    private readonly Dictionary<string, int> _reservedIds;
+    private readonly Dictionary<string, int> _unusedIds;
     private readonly int _unkId;
     private readonly double _unkScore;
 
@@ -60,6 +61,7 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
     /// <param name="vocabulary">A vocabulary from <see cref="Persistence.SentencePieceModelLoader"/> or <see cref="Persistence.TokenizerJsonLoader"/>.</param>
     /// <exception cref="ArgumentNullException"><paramref name="vocabulary"/> is null.</exception>
     /// <exception cref="ArgumentException">The vocabulary's pieces and types disagree in length, a piece's id is not its position, its pieces or types are missing, its unknown id is out of range, a piece has no string, or a matchable piece's score is not finite.</exception>
+    /// <exception cref="InvalidOperationException">The vocabulary's keys need more trie slots than one array holds (#1393).</exception>
     public SentencePieceTokenizer(SentencePieceVocabulary vocabulary)
     {
         Guard.NotNull(vocabulary);
@@ -84,7 +86,8 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
         _escape = vocabulary.RemoveExtraWhitespaces ? Escape : EscapeKeepingSpaces;
         _splitsAtMetaSymbol = vocabulary.SplitsAtMetaSymbol;
         var matchable = new List<SentencePiece>(vocabulary.Count);
-        _nonMatchableIds = new Dictionary<string, int>(StringComparer.Ordinal);
+        _reservedIds = new Dictionary<string, int>(StringComparer.Ordinal);
+        _unusedIds = new Dictionary<string, int>(StringComparer.Ordinal);
         double minScore = 0;
         for (int id = 0; id < vocabulary.Count; id++)
         {
@@ -101,9 +104,19 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
                     $"The piece at position {id} declares id {vocabulary.Pieces[id].Id}.", nameof(vocabulary));
             }
 
+            // sentencepiece's two maps: control, unknown and byte pieces in the reserved one, looked up first (#1501).
+            SentencePieceType type = vocabulary.Types[id];
+            if (type is SentencePieceType.Control or SentencePieceType.Unknown or SentencePieceType.Byte)
+            {
+                _reservedIds[vocabulary.Pieces[id].Piece] = id;
+            }
+            else if (type == SentencePieceType.Unused)
+            {
+                _unusedIds[vocabulary.Pieces[id].Piece] = id;
+            }
+
             if (!vocabulary.IsMatchable(id))
             {
-                _nonMatchableIds[vocabulary.Pieces[id].Piece] = id;
                 continue;
             }
             SentencePiece p = vocabulary.Pieces[id];
@@ -134,6 +147,7 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
     /// <summary>Tokenizes <paramref name="text"/> into unigram pieces and their ids.</summary>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="text"/> holds a lone surrogate, which neither reference can be handed (#1324).</exception>
+    /// <exception cref="InvalidDataException">The vocabulary's precompiled charsmap points at a replacement it does not contain, found only when the map is walked.</exception>
     public TokenizationResult Encode(string text)
     {
         Guard.NotNull(text);
@@ -221,9 +235,9 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
 
     /// <summary>Looks up a literal vocabulary piece, control markers included.</summary>
     /// <remarks>
-    /// Matches <c>sentencepiece.SentencePieceProcessor.piece_to_id(piece)</c>. The
-    /// control pieces a template names — <c>&lt;s&gt;</c>, <c>&lt;/s&gt;</c>,
-    /// <c>&lt;pad&gt;</c> — resolve here even though they can never match text.
+    /// Matches <c>sentencepiece.SentencePieceProcessor.piece_to_id(piece)</c>, its reserved map first: a string that is
+    /// both a control, unknown or byte piece and a normal one resolves to the former (#1501). The control pieces a
+    /// template names — <c>&lt;s&gt;</c>, <c>&lt;/s&gt;</c>, <c>&lt;pad&gt;</c> — resolve here though they never match text.
     /// </remarks>
     /// <param name="token">The piece string.</param>
     /// <param name="id">Receives the id when the piece is present.</param>
@@ -231,13 +245,18 @@ public sealed class SentencePieceTokenizer : ISubwordTokenizer
     public bool TryGetId(string token, out int id)
     {
         Guard.NotNull(token);
+        if (_reservedIds.TryGetValue(token, out id))
+        {
+            return true;
+        }
+
         int piece = _trie.Find(token.AsSpan());
         if (piece >= 0)
         {
             id = _ids[piece];
             return true;
         }
-        return _nonMatchableIds.TryGetValue(token, out id);
+        return _unusedIds.TryGetValue(token, out id);
     }
 
     /// <summary>Reads the best path back from the end, one unknown piece per run of uncovered characters.</summary>

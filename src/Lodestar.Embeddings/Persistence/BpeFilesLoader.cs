@@ -32,6 +32,9 @@ public static class BpeFilesLoader
         ArtifactLoadOptions? options = null,
         bool byteLevel = true)
     {
+        // Both refused under their own names before either is read, not as ReadAllBytes' "stream" after one (#1500).
+        Guard.NotNull(vocabJson);
+        Guard.NotNull(merges);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         return Parse(
             JsonArtifact.ReadAllBytes(vocabJson, limits),
@@ -47,12 +50,16 @@ public static class BpeFilesLoader
     /// <param name="byteLevel">Whether the model tokenizes through the byte alphabet.</param>
     /// <exception cref="InvalidDataException">Either file is malformed, empty, or exceeds a limit.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="vocabJsonPath"/> or <paramref name="mergesPath"/> is null.</exception>
+    /// <exception cref="FileNotFoundException">The file does not exist (#1504).</exception>
+    /// <exception cref="IOException">The file cannot be opened or read (#1504).</exception>
     public static BpeVocabulary Load(
         string vocabJsonPath,
         string mergesPath,
         ArtifactLoadOptions? options = null,
         bool byteLevel = true)
     {
+        Guard.NotNull(vocabJsonPath);
+        Guard.NotNull(mergesPath);
         using FileStream vocabFile = JsonArtifact.OpenRead(vocabJsonPath);
         using FileStream mergesFile = JsonArtifact.OpenRead(mergesPath);
         return Load(vocabFile, mergesFile, options, byteLevel);
@@ -74,6 +81,8 @@ public static class BpeFilesLoader
         bool byteLevel = true,
         CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(vocabJson);
+        Guard.NotNull(merges);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         ReadOnlyMemory<byte> vocabPayload = await JsonArtifact.ReadAllBytesAsync(vocabJson, limits, cancellationToken).ConfigureAwait(false);
         ReadOnlyMemory<byte> mergesPayload = await JsonArtifact.ReadAllBytesAsync(merges, limits, cancellationToken).ConfigureAwait(false);

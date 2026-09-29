@@ -52,6 +52,7 @@ public static class SentencePieceModelLoader
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
     public static SentencePieceVocabulary Load(Stream source, ArtifactLoadOptions? options = null)
     {
+        Guard.NotNull(source);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         return Parse(JsonArtifact.ReadAllBytes(source, limits), limits);
     }
@@ -61,8 +62,11 @@ public static class SentencePieceModelLoader
     /// <param name="options">Bounds applied while reading, or <c>null</c> for the defaults.</param>
     /// <exception cref="InvalidDataException">The model is malformed, exceeds a limit, or uses a normalizer this library does not reproduce.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
+    /// <exception cref="FileNotFoundException">The file does not exist (#1504).</exception>
+    /// <exception cref="IOException">The file cannot be opened or read (#1504).</exception>
     public static SentencePieceVocabulary Load(string path, ArtifactLoadOptions? options = null)
     {
+        Guard.NotNull(path);
         using FileStream file = JsonArtifact.OpenRead(path);
         return Load(file, options);
     }
@@ -79,6 +83,7 @@ public static class SentencePieceModelLoader
         ArtifactLoadOptions? options = null,
         CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(source);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         ReadOnlyMemory<byte> payload = await JsonArtifact.ReadAllBytesAsync(source, limits, cancellationToken).ConfigureAwait(false);
         return Parse(payload, limits);
@@ -137,6 +142,7 @@ public static class SentencePieceModelLoader
                 "it declares no normalizer_spec",
                 "the normalizer decides how text is preprocessed and cannot be assumed");
         }
+        RefuseRepeatedPieces(pieces, types);
         CheckSpecialId(unkId, pieces.Count, "unk_id", optional: false);
         CheckSpecialId(bosId, pieces.Count, "bos_id", optional: true);
         CheckSpecialId(eosId, pieces.Count, "eos_id", optional: true);
@@ -164,6 +170,26 @@ public static class SentencePieceModelLoader
         {
             throw new InvalidDataException(
                 $"The SentencePiece model declares {name} {id}, outside its own vocabulary range [0, {pieceCount}).");
+        }
+    }
+
+    /// <summary>Refuses a piece defined twice, which sentencepiece's model loader refuses among its other checks.</summary>
+    /// <remarks>
+    /// sentencepiece keeps two maps, the normal, user-defined and unused pieces in one and the control, unknown and byte
+    /// ones in the other, and refuses a repeat within either ("is already defined"); this kept the last (#1501).
+    /// </remarks>
+    private static void RefuseRepeatedPieces(List<SentencePiece> pieces, List<SentencePieceType> types)
+    {
+        var normal = new HashSet<string>(StringComparer.Ordinal);
+        var reserved = new HashSet<string>(StringComparer.Ordinal);
+        for (int id = 0; id < pieces.Count; id++)
+        {
+            bool isNormal = types[id] is SentencePieceType.Normal or SentencePieceType.UserDefined or SentencePieceType.Unused;
+            if (!(isNormal ? normal : reserved).Add(pieces[id].Piece))
+            {
+                throw new InvalidDataException(
+                    $"The SentencePiece model defines the piece '{pieces[id].Piece}' again at id {id}; sentencepiece refuses it as already defined.");
+            }
         }
     }
 

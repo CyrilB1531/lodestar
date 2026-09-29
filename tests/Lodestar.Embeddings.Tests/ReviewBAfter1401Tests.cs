@@ -122,6 +122,10 @@ public sealed class ReviewBAfter1401Tests
         public override int Read(Span<byte> buffer) =>
             throw new InvalidOperationException("The loader read before refusing its arguments.");
 
+        // An empty stream's length probe goes through ReadByte, which the old code reached before refusing (#1492).
+        public override int ReadByte() =>
+            throw new InvalidOperationException("The loader read before refusing its arguments.");
+
         public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
             throw new InvalidOperationException("The loader read before refusing its arguments.");
 

@@ -10,7 +10,11 @@ public sealed class BatchEncoder
 
 **Constructor** — `BatchEncoder(ISubwordTokenizer tokenizer, EncodingOptions? options = null)`.
 The template's special tokens are resolved against the tokenizer's vocabulary **here**, so a
-mismatch is refused at construction rather than encoded into something the model misreads.
+mismatch is refused at construction rather than encoded into something the model misreads. It
+throws `ArgumentNullException` when `tokenizer` is null, and `ArgumentException` when the
+vocabulary lacks one of the template's tokens, the template or one of its members is null,
+`BatchSize` or `MaxLength` is below `1`, `Truncation` is not a declared strategy, or `MaxLength`
+leaves no room for the template's tokens.
 
 **Properties** — `Options` is the [`EncodingOptions`](encodingoptions.md) it was built with.
 

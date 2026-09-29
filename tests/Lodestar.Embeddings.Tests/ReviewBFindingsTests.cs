@@ -359,8 +359,9 @@ public sealed class ReviewBFindingsTests
     }
 
     [Fact]
-    public void Records_with_absent_lists_print_as_they_compare()
+    public void Records_with_absent_lists_print_Count_0_as_empty_ones_do()
     {
+        // Printing does not tell absent from empty; equality does, which the next test asserts.
         var types = new[] { SentencePieceType.Normal };
 
         Assert.Contains("Count = 0", new SentencePieceVocabulary(null!, types, 0, -1, -1, -1).ToString(), StringComparison.Ordinal);

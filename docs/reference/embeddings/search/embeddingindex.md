@@ -23,8 +23,9 @@ string label = index.GetId(best.Index)!;  // => east
 ```
 
 **Remarks** — the constructor is `EmbeddingIndex(int dimension, bool normalize = true)`.
-`dimension` is the length every vector must have and must be at least `1`; `normalize` L2-
-normalizes vectors on insertion and queries on search, which is what makes a dot product a cosine.
+`dimension` is the length every vector must have and must be at least `1`, or the constructor
+throws `ArgumentOutOfRangeException`; `normalize` L2-normalizes vectors on insertion and queries
+on search, which is what makes a dot product a cosine.
 Leave it on unless the vectors are already unit length or you deliberately want a raw dot product.
 
 Three properties describe an index without touching its contents:

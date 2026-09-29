@@ -19,7 +19,8 @@ it was saved with.
 
 **Exceptions** — `ArgumentNullException` when `source` or `path` is null. `InvalidDataException` when the content is not an embedding index, is of an
 unsupported version, is internally inconsistent, holds a non-finite value, or exceeds a bound in
-`options`.
+`options`. `FileNotFoundException` when `path` names no file, and `IOException` when it cannot be
+opened or read.
 
 **Example** — a saved index reloaded and queried.
 
@@ -67,10 +68,11 @@ overload takes one. An index built with normalization on and reloaded with it of
 corpus wrongly while looking entirely healthy, which is the class of bug a file format should make
 impossible rather than document.
 
-`options` is what stands between a file and an allocation. Counts are bounded before they size
-anything, and the vector block is capped in **bytes** by `MaxTotalBytes` before parsing begins —
-an element-count limit sized for a vocabulary is orders of magnitude away from what a corpus of
-embeddings needs. A file that exceeds a bound is refused, never truncated: a quietly smaller index
+`options` is what stands between a file and an allocation. The vector `count` and the id array
+are bounded by `MaxArrayLength` before they size anything, and the vector block is capped in
+**bytes** by `MaxTotalBytes` before parsing begins — an element-count limit sized for a vocabulary
+is orders of magnitude away from what a corpus of embeddings needs. **An index past 1,000,000
+vectors therefore saves but needs a raised `MaxArrayLength` to load.** A file that exceeds a bound is refused, never truncated: a quietly smaller index
 is a wrong answer.
 
 Internal consistency is checked too. A file whose `count` and `dimension` do not account for the

@@ -16,7 +16,8 @@ public static BpeVocabulary Load(string vocabJsonPath, string mergesPath, Artifa
 
 **Returns** — `BpeVocabulary`, with the merge list in the order the file gave it.
 
-**Exceptions** — `ArgumentNullException` for a null source or path. `InvalidDataException`
+**Exceptions** — `FileNotFoundException` or `IOException` from the path overload, when the file is missing or cannot be read ([#1504](https://github.com/CyrilB1531/lodestar/issues/1504)).
+`ArgumentNullException` for a null source or path. `InvalidDataException`
 when the content is not the format expected, declares a model this loader does not read, or
 exceeds a bound in `options` — the message names both the limit and the value.
 

@@ -208,6 +208,8 @@ public sealed partial class EmbeddingIndex
     /// <param name="options">Bounds applied while reading, or <c>null</c> for the defaults.</param>
     /// <exception cref="InvalidDataException">The artifact is malformed, of the wrong kind, of an unsupported version, internally inconsistent, or exceeds a limit.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
+    /// <exception cref="FileNotFoundException"><paramref name="path"/> names no file.</exception>
+    /// <exception cref="IOException">The file cannot be opened or read.</exception>
     public static EmbeddingIndex Load(string path, ArtifactLoadOptions? options = null)
     {
         using FileStream file = JsonArtifact.OpenRead(path);

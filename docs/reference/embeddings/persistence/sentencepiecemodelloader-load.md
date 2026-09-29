@@ -15,7 +15,8 @@ public static SentencePieceVocabulary Load(string path, ArtifactLoadOptions opti
 **Returns** — `SentencePieceVocabulary`, carrying the pieces, their scores, their types and the model's
 special-token ids.
 
-**Exceptions** — `ArgumentNullException` for a null source or path. `InvalidDataException`
+**Exceptions** — `FileNotFoundException` or `IOException` from the path overload, when the file is missing or cannot be read ([#1504](https://github.com/CyrilB1531/lodestar/issues/1504)).
+`ArgumentNullException` for a null source or path. `InvalidDataException`
 when the content is not the format expected, declares a model this loader does not read (not
 unigram, or trained with `byte_fallback` or `treat_whitespace_as_suffix`), holds a piece whose score
 is not finite, or exceeds a bound in `options` — the message names both the limit and the value.

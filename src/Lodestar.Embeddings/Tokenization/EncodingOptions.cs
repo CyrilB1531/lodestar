@@ -17,7 +17,7 @@ public sealed record EncodingOptions
 
     /// <summary>
     /// The maximum total length of an encoded sequence, special tokens included.
-    /// <see langword="null"/> asks the model for its declared maximum.
+    /// <see langword="null"/> caps nothing here (#1505).
     /// </summary>
     /// <remarks>
     /// Matches <c>max_length</c>; the budget covers the special tokens, so with

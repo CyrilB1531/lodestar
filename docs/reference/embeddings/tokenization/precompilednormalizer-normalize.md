@@ -27,7 +27,8 @@ PrecompiledNormalizer normalizer = PrecompiledNormalizer.FromCharsMap(charsMap);
 string folded = normalizer.Normalize("Ｈｅｌｌｏ");
 ```
 
-**Exceptions** — `ArgumentNullException` when `text` is null. `ArgumentException` when `text`
+**Exceptions** — `EncoderFallbackException` when the text holds a lone surrogate, which UTF-8 cannot carry ([#1502](https://github.com/CyrilB1531/lodestar/issues/1502)).
+`ArgumentNullException` when `text` is null. `ArgumentException` when `text`
 encodes to more UTF-8 bytes than one array holds. `InvalidDataException` when the charsmap points
 at a replacement it does not itself contain. That is a defect in the model file rather than in
 the input, and it surfaces here because this is where the trie is walked.
