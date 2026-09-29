@@ -28,7 +28,7 @@ public static class RootMeanSquaredError
     /// is scikit-learn's order and is not the same number as the root of the
     /// reduced mean squared error whenever the outputs differ.
     /// </remarks>
-    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value.</exception>
+    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value; or the sample weights sum to zero (#1273).</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
     public static double Score(
         ReadOnlySpan<double> yTrue,
@@ -37,9 +37,9 @@ public static class RootMeanSquaredError
         ReadOnlySpan<double> sampleWeight = default,
         ReadOnlySpan<double> outputWeights = default)
     {
-        // PerOutput's call to MeanSquaredError.PerOutput never sees
-        // outputWeights, so nothing checks it unless this does too.
-        Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, outputWeights);
+        // PerOutput never sees outputWeights, so this checks them; root_mean_squared_error alone accepts them on one
+        // output (#1533) and averages a non-finite one into NaN, never calling check_array on them.
+        Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, outputWeights, WeightRules.SampleWeightsNormalize);
         return Outputs.Reduce(PerOutput(yTrue, yPred, outputCount, sampleWeight), outputWeights);
     }
 
@@ -49,7 +49,7 @@ public static class RootMeanSquaredError
     /// <param name="outputCount">How many outputs each row holds.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <returns>A fresh array of <paramref name="outputCount"/> entries, in column order.</returns>
-    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value.</exception>
+    /// <exception cref="ArgumentException">A length disagrees with the shape, the input is empty, or it holds a non-finite value; or the sample weights sum to zero (#1273).</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="outputCount"/> is below one.</exception>
     public static double[] PerOutput(
         ReadOnlySpan<double> yTrue,

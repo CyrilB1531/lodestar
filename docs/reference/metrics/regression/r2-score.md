@@ -25,6 +25,7 @@ or
 it holds a non-finite value; `ArgumentOutOfRangeException` when `outputCount` is below one;
 `UndefinedMetricException` when there are fewer than two samples and `zeroDivision` is
 `ZeroDivision.Throw`.
+`outputWeights` holding `NaN` or an infinity is `ArgumentException` too, with scikit-learn's "Input contains NaN." or its infinity counterpart ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461)), and so is any `outputWeights` on a single output, with "Custom weights are useful only in multi-output cases." ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533)).
 
 **Example** — four predictions, close but not exact.
 
@@ -67,8 +68,8 @@ says.
 Merged, a single wrong sample would reach `forceFinite: false` and score `-inf`, where scikit-learn
 returns `nan`. Both passes are Neumaier-compensated, which is
 load-bearing on an ill-conditioned target: a sequential sum was measured 357 times outside the
-oracle's tolerance —
-Neumaier's compensated sum.
+oracle's tolerance, which carrying the low-order bits each addition rounds off brings back
+inside it.
 
 **Applies to** — net10.0, netstandard2.0.
 

@@ -21,6 +21,7 @@ and negative below that. A column whose truth never varies contributes `0`.
 it holds a non-finite value. `ArgumentOutOfRangeException` when `outputCount` is below one, or
 `alpha` is outside `[0, 1]` — `NaN` included. `UndefinedMetricException` when there are fewer than
 two samples and `zeroDivision` is `ZeroDivision.Throw`.
+`outputWeights` holding `NaN` or an infinity is `ArgumentException` too, with scikit-learn's "Input contains NaN." or its infinity counterpart ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461)), and so is any `outputWeights` on a single output, with "Custom weights are useful only in multi-output cases." ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533)).
 
 **Example** — the same four samples read at three quantiles.
 

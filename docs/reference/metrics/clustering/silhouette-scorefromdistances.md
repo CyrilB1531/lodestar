@@ -18,7 +18,11 @@ the same samples.
 finite, when a diagonal entry exceeds `100·ε` — "The precomputed distance matrix contains non-zero
 elements on the diagonal. Use np.fill_diagonal(X, 0)." — and when the number of
 distinct labels falls outside `[2, n - 1]` — scikit-learn's own bound, carried with its own
-sentence: `Number of labels is 1. Valid values are 2 to n_samples - 1 (inclusive)`.
+sentence: `Number of labels is 1. Valid values are 2 to n_samples - 1 (inclusive)`. Last, a negative
+distance, with `pairwise_distances`' sentence "Negative values in data passed to `pairwise_distances`.
+Precomputed distance  need to have non-negative values.." — the double space and the two stops are
+the reference's, and a matrix holding both a negative entry and a bad label count gets the label
+sentence, as scikit-learn orders them (#1275).
 
 **Example** — the matrix of the two clusters above, passed in directly.
 

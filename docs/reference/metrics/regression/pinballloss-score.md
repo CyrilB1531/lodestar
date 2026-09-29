@@ -23,6 +23,7 @@ units.
 or
 it holds a non-finite value; `ArgumentOutOfRangeException` when `outputCount` is below one, or
 `alpha` is outside `[0, 1]` — including `NaN`.
+`outputWeights` holding `NaN` or an infinity is `ArgumentException` too, with scikit-learn's "Input contains NaN." or its infinity counterpart ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461)), and so is any `outputWeights` on a single output, with "Custom weights are useful only in multi-output cases." ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533)).
 
 **Example** — the same four predictions, scored at the median and at the 90th percentile. The
 model

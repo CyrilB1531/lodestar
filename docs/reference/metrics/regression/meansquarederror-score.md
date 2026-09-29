@@ -20,6 +20,7 @@ target's units.
 **Exceptions** — `ArgumentException` when a length disagrees with the shape, the input is empty,
 or
 it holds a non-finite value; `ArgumentOutOfRangeException` when `outputCount` is below one.
+`outputWeights` holding `NaN` or an infinity is `ArgumentException` too, with scikit-learn's "Input contains NaN." or its infinity counterpart ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461)), and so is any `outputWeights` on a single output, with "Custom weights are useful only in multi-output cases." ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533)).
 
 **Example** — the same four predictions `MeanAbsoluteError.Score` scores `0.5`.
 
@@ -49,8 +50,8 @@ and is what you should report to anyone who is going to read the number rather t
 
 The accumulation is Neumaier-compensated, at least as accurate as numpy's pairwise reduction
 rather
-than merely close to it —
-Neumaier's compensated sum.
+than merely close to it, because the compensation carries the low-order bits each addition rounds
+off.
 
 **Applies to** — net10.0, netstandard2.0.
 

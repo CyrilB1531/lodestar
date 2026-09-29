@@ -20,6 +20,7 @@ units.
 **Exceptions** — `ArgumentException` when a length disagrees with the shape, the input is empty,
 or
 it holds a non-finite value; `ArgumentOutOfRangeException` when `outputCount` is below one.
+`outputWeights` holding `NaN` or an infinity is not refused: `root_mean_squared_error` never passes them through `check_array` and averages them into `NaN`, and so does this. A single output takes a custom weight here, as `root_mean_squared_error` takes one ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533)).
 
 **Example** — two outputs, showing that the root is taken **per output**: taking it after the
 reduction instead gives a different number.

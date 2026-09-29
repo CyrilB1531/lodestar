@@ -284,5 +284,12 @@ internal static class Prf
             throw new ArgumentOutOfRangeException(
                 nameof(beta), beta, "beta must be a number greater than or equal to zero.");
         }
+
+        // Past ~1.34e154 a finite beta's square is infinite: fbeta_score raises OverflowError on beta**2 (#1540).
+        if (!double.IsPositiveInfinity(beta) && double.IsInfinity(beta * beta))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(beta), beta, "beta squared overflows a double, which the reference refuses.");
+        }
     }
 }

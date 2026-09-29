@@ -89,19 +89,19 @@ internal static class ExpectedMutualInformation
     /// </summary>
     /// <remarks>
     /// Every argument the sum above needs is <c>gammaln(k + 1)</c> for an integer <c>k</c>, so a
-    /// cumulative table of logarithms answers all of them with no series approximation. It is
-    /// not free of error: the prefix sums accumulate, reaching <c>8.4e-10</c> relative at twenty
-    /// thousand samples and <c>2.0e-8</c> at two hundred thousand, where a real <c>gammaln</c>
-    /// holds ~<c>1e-16</c>. Cheaper here, worse there.
+    /// cumulative table of logarithms answers all of them with no series approximation. The prefix
+    /// is compensated: a plain running sum drifted by <c>8.2e-9</c> absolute at 160,000 samples, <c>1.2e-8</c> at worst below it, and
+    /// each exponent subtracts nine entries (#1281). Compensated, every entry up to 160,000 sits
+    /// within 3 ulps of scipy's <c>gammaln</c>, the reference's own rounding.
     /// </remarks>
-    private static double[] LogFactorials(int samples)
+    internal static double[] LogFactorials(int samples)
     {
         double[] table = new double[samples + 1];
-        double running = 0.0;
+        CompensatedSum running = default;
         for (int k = 2; k <= samples; k++)
         {
-            running += Math.Log(k);
-            table[k] = running;
+            running.Add(Math.Log(k));
+            table[k] = running.Value;
         }
 
         return table;

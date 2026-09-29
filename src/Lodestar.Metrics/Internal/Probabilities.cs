@@ -35,6 +35,8 @@ internal static class Probabilities
     /// <exception cref="ArgumentException">A value falls outside <c>[0, 1]</c>.</exception>
     public static void RequireProbabilities(ReadOnlySpan<double> probabilities, string lowerWord)
     {
+        // check_array runs before the range test, so a NaN or infinity gets its sentence, not a range one (#1541).
+        Inputs.RequireFinite(probabilities, nameof(probabilities));
         for (int i = 0; i < probabilities.Length; i++)
         {
             double p = probabilities[i];

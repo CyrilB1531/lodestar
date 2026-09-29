@@ -14,12 +14,18 @@ count, and each row must sum to 1. `classCount` is how many classes each row sco
 carries the strategy, the averaging, the label set, the sample weights and the worker count;
 `default` is scikit-learn's own defaults, on one thread.
 
-**Returns** — `double` in `[0, 1]`, larger meaning a better ranking.
+**Returns** — `double` in `[0, 1]`, larger meaning a better ranking. Under one-vs-rest with
+`Averaging.Weighted`, a `SampleWeight` whose total is within `1e-8` of zero — every weight `0`
+included — returns `0` rather than a refusal, as `roc_auc_score` returns it: `_average_binary_score`
+sums the weighted positives, which is that total, and answers `0` when numpy's `isclose` finds it
+zero ([#1534](https://github.com/CyrilB1531/lodestar/issues/1534)).
 
 **Exceptions** — `ArgumentException` when any of the shape rules is broken — a length that does
 not
 match, a row that does not sum to 1, a `NaN`, a sample weight under one-vs-one, a `yTrue` label
-outside `MultiClassRocOptions.Labels` — "'y_true' contains labels not in parameter 'labels'";
+outside `MultiClassRocOptions.Labels` — "'y_true' contains labels not in parameter 'labels'" — or,
+under one-vs-one, `k (k - 1) / 2` class pairs past what one array holds, naming `classCount`
+([#1480](https://github.com/CyrilB1531/lodestar/issues/1480));
 `ArgumentOutOfRangeException` when `classCount` is below two or
 `MultiClassRocOptions.MaxDegreeOfParallelism` is negative.
 

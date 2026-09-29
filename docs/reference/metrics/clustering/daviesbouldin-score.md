@@ -19,7 +19,9 @@ this package. `0` when no cluster has any spread, or when the centroids coincide
 feature is not finite — "Input X contains NaN." or its infinity counterpart — or when
 the number of distinct labels is outside `[2, n - 1]`, with scikit-learn's own sentence — the same
 range and the same message as [`CalinskiHarabasz.Score`](calinskiharabasz-score.md) and
-[`Silhouette.Score`](silhouette-score.md). `ArgumentOutOfRangeException` when `featureCount` is not
+[`Silhouette.Score`](silhouette-score.md) — or when the `k × k` centroid distances over `k`
+clusters need more cells than one array holds, naming `labels` ([#1480](https://github.com/CyrilB1531/lodestar/issues/1480)).
+`ArgumentOutOfRangeException` when `featureCount` is not
 positive.
 
 **Example** — the same six samples the variance ratio scores, in the same two clusters.

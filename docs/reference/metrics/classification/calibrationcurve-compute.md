@@ -18,11 +18,16 @@ the two divide.
 `nBins`: a bin no sample fell into is dropped.
 
 **Exceptions** — `ArgumentException` when the inputs disagree in length, are empty, carry a
-probability outside `[0, 1]`, or name more than two classes. A NaN probability is not refused, as
-scikit-learn does not refuse it: numpy's minimum and maximum turn NaN, so its range test passes; the
-NaN falls in the last bin, or every bin's edge is NaN under the quantile strategy, and the bin's mean
-comes out NaN ([#1464](https://github.com/CyrilB1531/lodestar/issues/1464)). `ArgumentOutOfRangeException` when
-`nBins` is below `1`.
+probability outside `[0, 1]` while none is NaN, or name more than two classes. A NaN probability is
+not refused, as scikit-learn does not refuse it: numpy's minimum and maximum turn NaN, so its range
+test passes — for every other probability too — the NaN falls in the last bin, or every bin's edge
+is NaN under the quantile strategy, and the bin's mean comes out NaN
+([#1464](https://github.com/CyrilB1531/lodestar/issues/1464)). `posLabel` is read as an explicit
+`pos_label`: a `yTrue` of two labels, neither of them `posLabel`, scores every sample negative, as
+`calibration_curve(..., pos_label=1)` does on `{0, 2}`; the reference refuses `{0, 2}` only when
+`pos_label` is left out, which a C# default cannot be
+([#1542](https://github.com/CyrilB1531/lodestar/issues/1542)).
+`ArgumentOutOfRangeException` when `nBins` is below `1`, or past the length of the largest array ([#1538](https://github.com/CyrilB1531/lodestar/issues/1538)).
 
 **Example** — four probabilities over five bins, one of which nothing falls into.
 

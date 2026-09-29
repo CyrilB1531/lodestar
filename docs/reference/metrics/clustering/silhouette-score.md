@@ -18,7 +18,9 @@ below `0` the samples are mostly closer to another cluster than to their own.
 **Exceptions** — `ArgumentException` when the inputs disagree in size, when a feature is not
 finite — "Input X contains NaN." or its infinity counterpart, `check_X_y`'s sentences — and when the number of
 distinct labels falls outside `[2, n - 1]` — scikit-learn's own bound, carried with its own
-sentence: `Number of labels is 1. Valid values are 2 to n_samples - 1 (inclusive)`.
+sentence: `Number of labels is 1. Valid values are 2 to n_samples - 1 (inclusive)`. Also
+`ArgumentException`, naming `labels`, when the `n × k` per-cluster distance sums over `n` samples
+and `k` clusters need more cells than one array holds ([#1480](https://github.com/CyrilB1531/lodestar/issues/1480)).
 
 **Example** — two clusters that are genuinely apart.
 

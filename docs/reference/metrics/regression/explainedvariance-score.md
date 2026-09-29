@@ -23,6 +23,7 @@ constant, `0` for one no better than the mean, and negative for one that is wors
 **Exceptions** — `ArgumentException` when a length disagrees with the shape, the input is empty,
 or
 it holds a non-finite value; `ArgumentOutOfRangeException` when `outputCount` is below one.
+`outputWeights` holding `NaN` or an infinity is `ArgumentException` too, with scikit-learn's "Input contains NaN." or its infinity counterpart ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461)), and so is any `outputWeights` on a single output, with "Custom weights are useful only in multi-output cases." ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533)).
 
 **Example** — a prediction that is right about every change and wrong by exactly `1` every time.
 `R2.Score` on the same data is `-0.5`.

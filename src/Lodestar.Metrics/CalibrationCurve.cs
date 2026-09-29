@@ -33,8 +33,8 @@ public sealed class CalibrationCurve
     /// <param name="posLabel">The label counted as positive. Explicit here where the reference infers it.</param>
     /// <param name="nBins">How many bins to cut <c>[0, 1]</c> into. The result may be shorter.</param>
     /// <param name="strategy">Where the bin edges come from.</param>
-    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, carry a probability outside <c>[0, 1]</c>, or name more than two classes.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="nBins"/> is below 1.</exception>
+    /// <exception cref="ArgumentException">The inputs disagree in length, are empty, carry a probability outside <c>[0, 1]</c> while none is <c>NaN</c> (numpy's NaN extremes pass the reference's range test, #1464), or name more than two classes.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="nBins"/> is below 1, or leaves no room for its edges in one array (#1538).</exception>
     public static CalibrationCurve Compute(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yProb,
@@ -79,9 +79,10 @@ public sealed class CalibrationCurve
 
     private static void Validate(ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yProb, int nBins)
     {
-        if (nBins < 1)
+        // nBins + 1 edges must fit one array; at int.MaxValue the count wrapped inside linspace (#1538).
+        if (nBins < 1 || nBins >= TableLength.MaxLength)
         {
-            throw new ArgumentOutOfRangeException(nameof(nBins), nBins, "nBins must be >= 1.");
+            throw new ArgumentOutOfRangeException(nameof(nBins), nBins, "nBins must be >= 1 and leave room for its edges in one array.");
         }
         if (yTrue.Length != yProb.Length || yTrue.Length == 0)
         {

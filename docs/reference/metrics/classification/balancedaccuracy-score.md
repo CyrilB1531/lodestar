@@ -58,9 +58,8 @@ not the classes you asked for — a class named in `labels` with no true sample 
 than
 scored `0`, which is scikit-learn's behaviour and means the divisor is not always `labels.Length`.
 And when only one class survives that filter, `adjusted: true` divides by `1 - 1/1`, so the result
-is `NaN` or `-∞` rather than a number; that is left to IEEE 754 on purpose, and the reasoning is
-in
-the IEEE-754 edge rule.
+is `NaN` or `-∞` rather than a number; that is left to IEEE 754 on purpose, because scikit-learn's
+numpy division returns the same `nan` and `-inf`, with only a `RuntimeWarning` to say so.
 
 The `ConfusionMatrix` overload divides each recall by its own row sum in the `Labels`-sized view,
 where `Recall.Score` divides by scikit-learn's `true_sum` over every observed label. The two agree
@@ -69,5 +68,4 @@ whenever nothing was dropped, and part company on a matrix built with an explici
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — `Accuracy.Score`, `Recall.Score`, `CohenKappa.Score`,
-the IEEE-754 edge rule,
 the [Python equivalence table](../../../equivalence.md).

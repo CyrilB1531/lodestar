@@ -14,7 +14,7 @@ public static class CoverageError
     /// <param name="labelCount">How many labels each row holds.</param>
     /// <param name="sampleWeight">One weight per sample, or empty for an unweighted mean.</param>
     /// <returns>The mean position of the worst-ranked relevant label. <c>1</c> is the best a row can do; a row with no relevant label contributes <c>0</c>, so the mean can sit below <c>1</c>.</returns>
-    /// <exception cref="ArgumentException">A relevance or score is not finite, the shapes disagree, <paramref name="labelCount"/> is <c>1</c>, or <paramref name="sampleWeight"/> sums to zero.</exception>
+    /// <exception cref="ArgumentException">A score is not finite, the shapes disagree, <paramref name="labelCount"/> is <c>1</c>, or <paramref name="sampleWeight"/> sums to zero.</exception>
     public static double Score(
         ReadOnlySpan<bool> yTrue,
         ReadOnlySpan<double> yScore,
@@ -25,13 +25,11 @@ public static class CoverageError
 
         int rows = yTrue.Length / labelCount;
         double[] perRow = new double[rows];
-        int[] ranks = new int[labelCount];
-        double[] sorted = new double[labelCount];
         for (int row = 0; row < rows; row++)
         {
             ReadOnlySpan<bool> relevant = yTrue.Slice(row * labelCount, labelCount);
             ReadOnlySpan<double> scores = yScore.Slice(row * labelCount, labelCount);
-            perRow[row] = WorstRank(relevant, scores, ranks, sorted);
+            perRow[row] = WorstRank(relevant, scores);
         }
 
         return LabelRanking.Weighted(perRow, sampleWeight);
@@ -40,18 +38,16 @@ public static class CoverageError
     /// <summary>The rank of the worst-ranked relevant label, or 0 when none is relevant.</summary>
     /// <remarks>
     /// A max rank is the count of scores at or above a label's own, so the worst relevant rank is
-    /// that count at the lowest relevant score, with no sort. A NaN answers no comparison the
-    /// way a sorted binary search does, so a row holding one keeps the ranked path.
+    /// that count at the lowest relevant score, with no sort. No NaN reaches it: Validate refuses a
+    /// non-finite score first, which left the ranked fallback this held unreachable (#1278).
     /// </remarks>
-    private static int WorstRank(ReadOnlySpan<bool> relevant, ReadOnlySpan<double> scores, int[] ranks, double[] sorted)
+    private static int WorstRank(ReadOnlySpan<bool> relevant, ReadOnlySpan<double> scores)
     {
         bool anyRelevant = false;
-        bool anyNaN = false;
         double lowest = double.PositiveInfinity;
         for (int label = 0; label < scores.Length; label++)
         {
             double score = scores[label];
-            anyNaN |= double.IsNaN(score);
             if (relevant[label] && (!anyRelevant || score < lowest))
             {
                 lowest = score;
@@ -64,11 +60,6 @@ public static class CoverageError
             return 0;
         }
 
-        if (anyNaN)
-        {
-            return RankedWorst(relevant, scores, ranks, sorted);
-        }
-
         int atOrAbove = 0;
         foreach (double score in scores)
         {
@@ -76,20 +67,5 @@ public static class CoverageError
         }
 
         return atOrAbove;
-    }
-
-    private static int RankedWorst(ReadOnlySpan<bool> relevant, ReadOnlySpan<double> scores, int[] ranks, double[] sorted)
-    {
-        LabelRanking.MaxRank(scores, ranks, sorted);
-        int worst = 0;
-        for (int label = 0; label < scores.Length; label++)
-        {
-            if (relevant[label] && ranks[label] > worst)
-            {
-                worst = ranks[label];
-            }
-        }
-
-        return worst;
     }
 }

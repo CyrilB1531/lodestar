@@ -86,23 +86,22 @@ public sealed class RocAucParallelTests
     }
 
     [Fact]
-    public void A_class_absent_from_y_true_throws_the_same_way_in_parallel()
+    public void A_class_absent_from_y_true_scores_NaN_the_same_way_in_parallel()
     {
         int[] yTrue = [0, 0, 1, 1];
         double[] scores = [0.9, 0.05, 0.05, 0.8, 0.1, 0.1, 0.1, 0.8, 0.1, 0.2, 0.7, 0.1];
         int[] labels = [0, 1, 2];
 
-        ArgumentException sequential = Assert.Throws<ArgumentException>(
-            () => RocAuc.MultiClass(yTrue, scores, 3, new MultiClassRocOptions { Labels = labels }));
-        ArgumentException parallel = Assert.Throws<ArgumentException>(
-            () => RocAuc.MultiClass(yTrue, scores, 3, new MultiClassRocOptions
-            {
-                Labels = labels,
-                MaxDegreeOfParallelism = 8,
-            }));
+        // roc_auc_score(..., multi_class='ovr', labels=[0, 1, 2]) answers nan for the absent class; it threw (#1277).
+        double sequential = RocAuc.MultiClass(yTrue, scores, 3, new MultiClassRocOptions { Labels = labels });
+        double parallel = RocAuc.MultiClass(yTrue, scores, 3, new MultiClassRocOptions
+        {
+            Labels = labels,
+            MaxDegreeOfParallelism = 8,
+        });
 
-        Assert.Equal(sequential.Message, parallel.Message);
-        Assert.Equal(sequential.ParamName, parallel.ParamName);
+        Assert.True(double.IsNaN(sequential));
+        Assert.True(double.IsNaN(parallel));
     }
 
     /// <summary>

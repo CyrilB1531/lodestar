@@ -20,6 +20,7 @@ name: `0.125` means 12.5%. It has no upper bound.
 **Exceptions** — `ArgumentException` when a length disagrees with the shape, the input is empty,
 or
 it holds a non-finite value; `ArgumentOutOfRangeException` when `outputCount` is below one.
+`outputWeights` holding `NaN` or an infinity is `ArgumentException` too, with scikit-learn's "Input contains NaN." or its infinity counterpart ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461)), and so is any `outputWeights` on a single output, with "Custom weights are useful only in multi-output cases." ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533)).
 
 **Example** — four quantities of very different sizes, each predicted about 10% out.
 

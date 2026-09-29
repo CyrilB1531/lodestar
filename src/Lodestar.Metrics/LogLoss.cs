@@ -21,7 +21,7 @@ public static class LogLoss
     /// <param name="normalize">Divide by the total weight. <see langword="false"/> returns the sum, as <c>normalize=False</c> does.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
     /// <returns><c>0</c> for a perfect prediction — to within one epsilon, since the clip below never lets a logarithm reach zero.</returns>
-    /// <exception cref="ArgumentException">The lengths disagree, the input is empty, a probability falls outside <c>[0, 1]</c>, <paramref name="yTrue"/> holds more than two labels or only one, a weight is not finite, every weight is zero, or the weights sum to zero while <paramref name="normalize"/> is true.</exception>
+    /// <exception cref="ArgumentException">The lengths disagree, the input is empty, a probability falls outside <c>[0, 1]</c>, <paramref name="yTrue"/> holds more than two labels or only one, a weight is not finite, every weight is zero, or the weights sum to zero while <paramref name="normalize"/> is true; or <paramref name="yTrue"/> holds two labels without <paramref name="posLabel"/> (#1542).</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yProba,
@@ -30,6 +30,7 @@ public static class LogLoss
         ReadOnlySpan<double> sampleWeight = default)
     {
         Probabilities.ValidateBinary(yTrue, yProba, sampleWeight);
+        PositiveLabel.RequireAmongTwo(yTrue, posLabel, nameof(posLabel));
         Probabilities.RequireProbabilities(yProba, "lower than");
         Inputs.ValidateSampleWeight(sampleWeight);
         int labels = Probabilities.LabelCountBeyondTwo(yTrue);

@@ -20,6 +20,7 @@ the weighted median, and negative below that.
 it holds a non-finite value. `ArgumentOutOfRangeException` when `outputCount` is below one.
 `UndefinedMetricException` when there are fewer than two samples and `zeroDivision` is
 `ZeroDivision.Throw`.
+`outputWeights` holding `NaN` or an infinity is `ArgumentException` too, with scikit-learn's "Input contains NaN." or its infinity counterpart ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461)), and so is any `outputWeights` on a single output, with "Custom weights are useful only in multi-output cases." ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533)).
 
 **Example** — the worked case, and the same weights read differently.
 

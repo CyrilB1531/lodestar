@@ -22,6 +22,7 @@ units.
 **Exceptions** — `ArgumentException` when a length disagrees with the shape, the input is empty,
 or
 it holds a non-finite value; `ArgumentOutOfRangeException` when `outputCount` is below one.
+`outputWeights` holding `NaN` or an infinity is `ArgumentException` too, with scikit-learn's "Input contains NaN." or its infinity counterpart ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461)), and so is any `outputWeights` on a single output, with "Custom weights are useful only in multi-output cases." ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533)).
 
 **Example** — four predictions, out by 0.5, 0.5, 0 and 1.
 
@@ -50,8 +51,8 @@ trained
 on squared error and then reported with this one; that mismatch is normal and not a mistake. And
 the
 accumulation is Neumaier-compensated, so the answer is at least as accurate as numpy's pairwise
-reduction rather than merely close to it —
-Neumaier's compensated sum.
+reduction rather than merely close to it, because the compensation carries the low-order bits
+each addition rounds off.
 
 The trap is comparing it across targets. `0.5` is excellent on a target that ranges over thousands
 and hopeless on one that ranges over one; it carries units, so it cannot rank two different

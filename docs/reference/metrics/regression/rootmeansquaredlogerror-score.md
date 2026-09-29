@@ -19,6 +19,7 @@ holds, `sampleWeight` weights the rows, and `outputWeights` weights the outputs 
 it
 holds a non-finite value, or either array holds a value at or below `−1`;
 `ArgumentOutOfRangeException` when `outputCount` is below one.
+`outputWeights` holding `NaN` or an infinity is `ArgumentException` too, with scikit-learn's "Input contains NaN." or its infinity counterpart ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461)), and so is any `outputWeights` on a single output, with "Custom weights are useful only in multi-output cases." ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533)).
 
 **Example** — the same four counts `MeanSquaredLogError.Score` scores `0.0397…`.
 
@@ -56,5 +57,4 @@ one.
 
 **See also** — `RootMeanSquaredLogError.PerOutput`, `MeanSquaredLogError.Score`,
 `MeanAbsolutePercentageError.Score`,
-Kahan's identity,
 the [Python equivalence table](../../../equivalence.md).
