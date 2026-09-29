@@ -11,6 +11,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- `MedianAbsoluteError` refuses a non-finite output weight again, binary `RocAuc` scores one class NaN whatever the weights, and one-vs-one weighted ROC AUC over one present class is refused as scikit-learn refuses it, where the parallel path failed on a degree of zero. ([#1564](https://github.com/CyrilB1531/lodestar/issues/1564), [#1565](https://github.com/CyrilB1531/lodestar/issues/1565), [#1566](https://github.com/CyrilB1531/lodestar/issues/1566), [#1567](https://github.com/CyrilB1531/lodestar/issues/1567), [#1568](https://github.com/CyrilB1531/lodestar/issues/1568))
 - `Averaging.Binary` scores a batch without the positive class through `zeroDivision` and refuses only a target with more than two classes, or two without `posLabel`. ([#1201](https://github.com/CyrilB1531/lodestar/issues/1201))
 - `Averaging.Binary` ignores `labels` on a binary target, as scikit-learn replaces it with `[pos_label]`. ([#1249](https://github.com/CyrilB1531/lodestar/issues/1249))
 - The precision family and `ClassificationReport` score requested labels absent from `yTrue`, which only `ConfusionMatrix` and `CohenKappa` refuse, as `confusion_matrix` and `cohen_kappa_score` do. ([#1202](https://github.com/CyrilB1531/lodestar/issues/1202))

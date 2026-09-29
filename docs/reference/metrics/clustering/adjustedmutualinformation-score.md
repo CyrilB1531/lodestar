@@ -47,7 +47,7 @@ factorial that sum needs is of an integer, so it comes from a cumulative `log(k!
 than from a `gammaln` series approximation.
 
 **The table is summed with compensation** (#1281). A plain running sum of logarithms drifted
-`8.4e-9` from `gammaln` at 160 000 samples, and each exponent of the sum combines nine entries, so
+`8.2e-9` from `gammaln` at 160 000 samples, and each exponent of the sum combines nine entries, so
 the expected mutual information carried about `1e-8` relative error there. Compensated, every entry
 up to 160 000 sits within 3 ulps of scipy's `gammaln`, and the expected mutual information of a
 160 000-sample clustering agrees with scikit-learn's to `1e-9` relative, which a test pins. The

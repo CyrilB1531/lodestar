@@ -32,6 +32,12 @@ public static class RocAuc
         {
             PositiveLabel.RequireAtMostTwo(yTrue, "Score several with RocAuc.MultiClass.", nameof(yTrue));
             PositiveLabel.RequireAmongTwo(yTrue, posLabel, nameof(posLabel));
+            if (Probabilities.HoldsOneLabel(yTrue) && !yScore.IsEmpty)
+            {
+                // roc_auc_score answers NaN before roc_curve reads a weight or compares lengths (#1565).
+                Inputs.RequireFinite(yScore, nameof(yScore));
+                return double.NaN;
+            }
         }
 
         return BinaryRoc.Score(yTrue, yScore, posLabel, sampleWeight);

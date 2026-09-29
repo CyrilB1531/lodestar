@@ -31,7 +31,8 @@ public static class MedianAbsoluteError
         ReadOnlySpan<double> outputWeights = default)
     {
         // Its weighted percentile never divides by the total, so a zero-sum vector scores, as the reference's does (#1273).
-        int samples = Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, outputWeights, WeightRules.OutputWeightsNeedOutputs);
+        // A non-finite output weight is still refused, as scikit-learn's input check refuses it (#1564).
+        int samples = Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, outputWeights, WeightRules.OutputWeightsNeedOutputs | WeightRules.OutputWeightsFinite);
         return Outputs.Reduce(Compute(yTrue, yPred, outputCount, sampleWeight, samples), outputWeights);
     }
 
@@ -51,7 +52,7 @@ public static class MedianAbsoluteError
         int outputCount = 1,
         ReadOnlySpan<double> sampleWeight = default)
     {
-        int samples = Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, default, WeightRules.OutputWeightsNeedOutputs);
+        int samples = Outputs.Validate(yTrue, yPred, outputCount, sampleWeight, default, WeightRules.OutputWeightsNeedOutputs | WeightRules.OutputWeightsFinite);
         return Compute(yTrue, yPred, outputCount, sampleWeight, samples);
     }
 
