@@ -14,6 +14,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Fixed
 
 - The package's README, remarks and reference pages say which conversions copy three arrays and which walk a storage, which keep an explicit zero, and cite no decision for what it does not record. ([#1403](https://github.com/CyrilB1531/lodestar/issues/1403), [#1404](https://github.com/CyrilB1531/lodestar/issues/1404), [#1405](https://github.com/CyrilB1531/lodestar/issues/1405), [#1406](https://github.com/CyrilB1531/lodestar/issues/1406), [#1407](https://github.com/CyrilB1531/lodestar/issues/1407), [#1408](https://github.com/CyrilB1531/lodestar/issues/1408))
+- `MathNetInterop.ToCsrMatrix` refuses a matrix with more rows than one array of row pointers holds, where `rows + 1` wrapped, and its remark no longer says Math.NET accepts only its own storages. ([#1529](https://github.com/CyrilB1531/lodestar/issues/1529), [#1530](https://github.com/CyrilB1531/lodestar/issues/1530))
 
 ## [0.1.0] — 2026-09-10
 
