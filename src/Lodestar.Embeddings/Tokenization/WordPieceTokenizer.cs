@@ -61,7 +61,7 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     /// <param name="vocabulary">A vocabulary from <see cref="Persistence.VocabTxtLoader"/> or <see cref="Persistence.TokenizerJsonLoader"/>.</param>
     /// <param name="maxCharsPerWord">Words longer than this become a single unknown token.</param>
     /// <exception cref="ArgumentNullException"><paramref name="vocabulary"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="vocabulary"/> lacks its entries, unknown token, continuation prefix or added tokens, its unknown token is not among its entries, or an id is negative.</exception>
+    /// <exception cref="ArgumentException"><paramref name="vocabulary"/> lacks its entries, unknown token, continuation prefix or added tokens, holds an added token with no string, its unknown token is not among its entries, or an id is negative.</exception>
     public WordPieceTokenizer(WordPieceVocabulary vocabulary, int maxCharsPerWord = 100)
         : this(
             Checked(vocabulary).Vocab,
@@ -212,6 +212,14 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
         }
 
         RequireIds(vocabulary.Vocab, nameof(vocabulary));
+
+        // An added token is emitted with its own id, so a negative or absent one is refused too (#1371, #1372).
+        if (vocabulary.AddedTokens.Any(added => added?.Content is null || added.Id < 0))
+        {
+            throw new ArgumentException(
+                "The vocabulary holds an added token with no string or a negative id.", nameof(vocabulary));
+        }
+
         if (!vocabulary.Vocab.ContainsKey(vocabulary.UnkToken))
         {
             throw new ArgumentException($"The unknown token '{vocabulary.UnkToken}' is not in the vocabulary.", nameof(vocabulary));

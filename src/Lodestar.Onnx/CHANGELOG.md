@@ -15,6 +15,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `OnnxTextEmbedder` refuses a model output that is not `[batch, sequence, dim]` or `[batch, dim]` for the batch it fed, naming the output and both shapes, where a transposed output was pooled over the wrong rows. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
 - `OnnxTextEmbedder` widens a float16 or bfloat16 output to float before pooling, and refuses any other element type by name with `NotSupportedException`, where both failed with an invalid cast. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
 - `OnnxTextEmbedder` refuses a null input name under its own parameter before opening the model, names `attentionMask` for spans of different lengths, and `EmbedBatch` documents the refusals it passes on. ([#1343](https://github.com/CyrilB1531/lodestar/issues/1343), [#1344](https://github.com/CyrilB1531/lodestar/issues/1344), [#1345](https://github.com/CyrilB1531/lodestar/issues/1345))
+- `OnnxTextEmbedder`'s tokenizer constructor documents the exceptions it throws. ([#1377](https://github.com/CyrilB1531/lodestar/issues/1377))
 
 ## [0.1.1] — 2026-09-24
 

@@ -101,22 +101,33 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
     /// <summary>A buffer size <paramref name="text"/>'s UTF-8 fits in, refused past the largest array (#1356).</summary>
     private static int Utf8Capacity(string text)
     {
-        // GetMaxByteCount is (length + 1) × 3, which overflows int past this many characters.
+        // GetMaxByteCount is (length + 1) × 3, which overflows int past this many characters; its bound is taken
+        // only where it fits one array, and the exact count otherwise (#1374).
         const int MaxCharsForBound = (int.MaxValue / 3) - 1;
         if (text.Length <= MaxCharsForBound)
         {
-            return JsonArtifact.Utf8NoBom.GetMaxByteCount(text.Length);
+            int bound = JsonArtifact.Utf8NoBom.GetMaxByteCount(text.Length);
+            if (bound <= TableLength.MaxLength)
+            {
+                return bound;
+            }
         }
 
+        int exact;
         try
         {
-            return JsonArtifact.Utf8NoBom.GetByteCount(text);
+            exact = JsonArtifact.Utf8NoBom.GetByteCount(text);
         }
         catch (Exception e) when (e is ArgumentException or OverflowException)
         {
-            throw new ArgumentException("text encodes to more UTF-8 bytes than one array holds.", nameof(text), e);
+            throw TooLong(nameof(text), e);
         }
+
+        return exact <= TableLength.MaxLength ? exact : throw TooLong(nameof(text), null);
     }
+
+    private static ArgumentException TooLong(string paramName, Exception? inner) =>
+        new("text encodes to more UTF-8 bytes than one array holds.", paramName, inner);
 
     /// <summary>Number of bytes in the underlying <c>precompiled_charsmap</c>.</summary>
     public int CharsMapLength => _charsMap.Length;
@@ -190,7 +201,15 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
     {
         if (written + bytes.Length > output.Length)
         {
-            byte[] grown = ArrayPool<byte>.Shared.Rent(Math.Max(output.Length * 2, written + bytes.Length));
+            // In long and clamped: doubling past the largest array failed to allocate what still fit (#1374).
+            long needed = (long)written + bytes.Length;
+            if (needed > TableLength.MaxLength)
+            {
+                throw TooLong("text", null);
+            }
+
+            byte[] grown = ArrayPool<byte>.Shared.Rent(
+                (int)Math.Min(Math.Max((long)output.Length * 2, needed), TableLength.MaxLength));
             output.AsSpan(0, written).CopyTo(grown);
             ArrayPool<byte>.Shared.Return(output);
             output = grown;

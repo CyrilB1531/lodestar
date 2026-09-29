@@ -88,23 +88,27 @@ public sealed record SentencePieceVocabulary(
         if (other is null
             || UnkId != other.UnkId || BosId != other.BosId
             || EosId != other.EosId || PadId != other.PadId
-            || !PrefixTokens.SequenceEqual(other.PrefixTokens, StringComparer.Ordinal)
-            || !SuffixTokens.SequenceEqual(other.SuffixTokens, StringComparer.Ordinal)
-            || Pieces.Count != other.Pieces.Count
-            || Types.Count != other.Types.Count
+            || !ValueEquality.Same(PrefixTokens, other.PrefixTokens)
+            || !ValueEquality.Same(SuffixTokens, other.SuffixTokens)
+            || !ValueEquality.Same(Pieces, other.Pieces)
             || !Equals(Normalizer, other.Normalizer)
             || RemoveExtraWhitespaces != other.RemoveExtraWhitespaces
             || SplitsAtMetaSymbol != other.SplitsAtMetaSymbol)
         {
             return false;
         }
-        for (int i = 0; i < Pieces.Count; i++)
+
+        // Total on an absent list, as the rest is (#1370); an enum is not IEquatable, so no shared helper.
+        if (Types is null || other.Types is null)
         {
-            if (!Pieces[i].Equals(other.Pieces[i]))
-            {
-                return false;
-            }
+            return Types is null && other.Types is null;
         }
+
+        if (Types.Count != other.Types.Count)
+        {
+            return false;
+        }
+
         for (int i = 0; i < Types.Count; i++)
         {
             if (Types[i] != other.Types[i])
@@ -125,8 +129,8 @@ public sealed record SentencePieceVocabulary(
     {
         unchecked
         {
-            int hash = (17 * 31) + Pieces.Count;
-            hash = (hash * 31) + Types.Count;
+            int hash = (17 * 31) + ValueEquality.LengthOf(Pieces);
+            hash = (hash * 31) + ValueEquality.LengthOf(Types);
             hash = (hash * 31) + UnkId;
             hash = (hash * 31) + BosId;
             hash = (hash * 31) + EosId;

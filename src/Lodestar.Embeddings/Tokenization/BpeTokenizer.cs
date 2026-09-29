@@ -92,14 +92,10 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// <summary>Creates a tokenizer from a loaded BPE model.</summary>
     /// <param name="vocabulary">A vocabulary from <see cref="Persistence.BpeFilesLoader"/> or <see cref="Persistence.TokenizerJsonLoader"/>.</param>
     /// <exception cref="ArgumentException">
-    /// The declared unknown token is not in the vocabulary; or a merge names a token the vocabulary does
-    /// not declare, or produces one it does not; or a byte-level vocabulary declares a continuing subword
-    /// prefix, which this tokenizer would apply to its merges and not to its symbols — see
-    /// <see cref="EnsureByteLevelDeclaresNoContinuingPrefix"/>; or <see cref="BpeVocabulary.PreSplit"/> declares a
-    /// <see cref="SplitBehavior"/> outside its five defined values — see <see cref="EnsureSplitBehaviorIsDefined"/>;
-    /// or the vocabulary does not say how it is split, or says it two ways at once — see
-    /// <see cref="EnsurePreTokenizerIsDeclared"/>; or it declares <see cref="BpeVocabulary.ByteFallback"/> without
-    /// all 256 <c>&lt;0xXX&gt;</c> byte pieces — see <see cref="EnsureByteFallbackAlphabetIsComplete"/>.
+    /// The unknown token or a merge's token is not in the vocabulary; a byte-level vocabulary declares a continuing
+    /// prefix; <see cref="BpeVocabulary.PreSplit"/> is undefined, or the split is declared no way or two; byte fallback
+    /// lacks one of its 256 pieces; or a list is missing, a merge symbol or added token is null, or an id is negative.
+    /// The <c>Ensure…</c> helpers say why each is refused.
     /// </exception>
     public BpeTokenizer(BpeVocabulary vocabulary)
         : this(vocabulary, WordCacheCapacity)
@@ -111,6 +107,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     {
         Guard.NotNull(vocabulary);
         _wordCacheCapacity = wordCacheCapacity;
+        EnsureMembersArePresent(vocabulary);
         EnsureByteLevelDeclaresNoContinuingPrefix(vocabulary);
         EnsureSplitBehaviorIsDefined(vocabulary);
         EnsurePreTokenizerIsDeclared(vocabulary);
@@ -348,6 +345,22 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         TokenTable tokens = TokenTable.Build(entries);
 
         return (vocab, modelVocab, tokens);
+    }
+
+    /// <summary>Refuses a vocabulary missing a list, or holding a null merge symbol or added token (#1371).</summary>
+    /// <remarks>Each would otherwise surface as a <see cref="NullReferenceException"/> far from its cause.</remarks>
+    private static void EnsureMembersArePresent(BpeVocabulary vocabulary)
+    {
+        if (vocabulary.Vocab is null || vocabulary.Merges is null || vocabulary.AddedTokens is null
+            || vocabulary.NormalizationForms is null
+            || vocabulary.Merges.Any(merge => merge.Left is null || merge.Right is null)
+            || vocabulary.AddedTokens.Any(added => added?.Content is null))
+        {
+            throw new ArgumentException(
+                "The vocabulary is missing its entries, merges, added tokens or normalization forms, "
+                + "or holds a merge or an added token with no string.",
+                nameof(vocabulary));
+        }
     }
 
     /// <summary>Refuses a negative id, as tokenizers' <c>u32</c> ids cannot hold one (#1334).</summary>

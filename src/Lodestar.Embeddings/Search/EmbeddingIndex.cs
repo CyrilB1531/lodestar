@@ -97,7 +97,8 @@ public sealed partial class EmbeddingIndex
         _ids ??= new string?[_count];
         if (_ids.Length < _count)
         {
-            Array.Resize(ref _ids, Math.Max(_count, _ids.Length * 2));
+            // In long and clamped, as _data is: a doubled length past the largest array failed to allocate (#1378).
+            Array.Resize(ref _ids, (int)Math.Min(Math.Max(_count, (long)_ids.Length * 2), TableLength.MaxLength));
         }
         _ids[_count - 1] = id;
     }
