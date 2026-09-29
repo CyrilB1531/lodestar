@@ -78,6 +78,13 @@ public sealed class TiledSparseDenseProduct
                 $"block holds {block.Length} values, not {matrix.ColumnCount} x {width}.", nameof(block));
         }
 
+        // Refused before the block is copied and uploaded, not after (#1578); width is what makes the product large.
+        if ((long)matrix.RowCount * width > TableLength.MaxLength)
+        {
+            throw new ArgumentException(
+                $"a product of {matrix.RowCount} x {width} is more values than one array holds.", nameof(width));
+        }
+
         using DeviceDenseBlock dense =
             DeviceDenseBlock.Upload(_context, block, matrix.ColumnCount, width);
         using DeviceDenseBlock product = Multiply(matrix, dense);

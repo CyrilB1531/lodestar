@@ -22,7 +22,9 @@ block instead on the second overload.
 `ArgumentOutOfRangeException` when `width` is below 1; `ObjectDisposedException` when an operand, or
 the context the operands and the kernel share, was disposed; `ArgumentException` when the operands
 do not compose, when their product is more values than one array holds — refused before the
-launch, since a block is one array ([#1558](https://github.com/CyrilB1531/lodestar/issues/1558)) —
+launch, since a block is one array ([#1558](https://github.com/CyrilB1531/lodestar/issues/1558)),
+and by the span overload before it uploads the block, naming `width`
+([#1578](https://github.com/CyrilB1531/lodestar/issues/1578)) —
 or when one was uploaded to another context than the kernel's.
 
 **Example** — the shape a caller writes.

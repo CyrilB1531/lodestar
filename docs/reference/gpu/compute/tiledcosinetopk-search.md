@@ -17,7 +17,9 @@ hits per query; fewer come back when the matrix is smaller.
 **Exceptions** — `ArgumentNullException` when `matrix` is null; `ArgumentOutOfRangeException` when
 `queryCount` or `k` is below 1; `ObjectDisposedException` when `matrix`, or the context it and the
 kernel share, was disposed; `ArgumentException` when `queries` is not exactly the batch or holds a
-`NaN` or an infinity, or when `matrix` was uploaded to another context than the kernel's.
+`NaN` or an infinity, when `queryCount` × the hits per query are more results than one array holds
+— refused before any launch ([#1576](https://github.com/CyrilB1531/lodestar/issues/1576)) — or
+when `matrix` was uploaded to another context than the kernel's.
 
 **Example** — the shape a caller writes.
 

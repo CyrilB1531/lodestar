@@ -34,7 +34,7 @@ public sealed class ReviewBAfter1545Tests
         var kernel = new TiledSparseDenseProduct(context);
 
         ArgumentException error = Assert.Throws<ArgumentException>(() => kernel.Multiply(matrix, new double[Width], Width));
-        Assert.Equal("block", error.ParamName);
+        Assert.Equal("width", error.ParamName);
     }
 
     [Fact]

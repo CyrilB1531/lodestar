@@ -76,8 +76,9 @@ public sealed class TiledCosineTopK
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="queryCount"/> or <paramref name="k"/> is below 1.</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="matrix"/>, or the context it and this kernel share, was disposed.</exception>
     /// <exception cref="ArgumentException">
-    /// <paramref name="queries"/> is not exactly the batch or holds a non-finite value, or
-    /// <paramref name="matrix"/> was uploaded to another context.
+    /// <paramref name="queries"/> is not exactly the batch or holds a non-finite value, the hits
+    /// would be more results than one array holds, or <paramref name="matrix"/> was uploaded to
+    /// another context.
     /// </exception>
     public IReadOnlyList<IReadOnlyList<SearchResult>> Search(
         DeviceEmbeddingMatrix matrix, ReadOnlySpan<float> queries, int queryCount, int k)
@@ -96,6 +97,14 @@ public sealed class TiledCosineTopK
 
         DeviceEmbeddingMatrix.RefuseNonFinite(queries, nameof(queries));
         int take = Math.Min(k, matrix.Count);
+
+        // The hits come back as one host array: refused before any launch, as Signatures refuses its own (#1576).
+        if ((long)queryCount * take > TableLength.MaxLength)
+        {
+            throw new ArgumentException(
+                $"{queryCount} queries of {take} hits are more results than one array holds.", nameof(k));
+        }
+
         // A lane sees every width-th row, so it never holds more than that many candidates.
         int capacity = Math.Min(take, (matrix.Count + _groupSize - 1) / _groupSize);
         float[] staged = queries.ToArray();
