@@ -13,6 +13,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Fixed
 
 - Every kernel and upload refuses a disposed `GpuContext`, and every kernel refuses device data disposed or uploaded to another context, where it launched on a freed or foreign buffer. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
+- `DeviceSparseMatrix.Upload` accepts a matrix storing nothing, where ILGPU's array overload threw, and it, `DeviceTokenHashes`, `DeviceTextBlock` and the resident `TiledSparseDenseProduct.Multiply` release the buffers already allocated when a later step fails. ([#1265](https://github.com/CyrilB1531/lodestar/issues/1265))
 
 ## [0.2.0] — 2026-09-24
 

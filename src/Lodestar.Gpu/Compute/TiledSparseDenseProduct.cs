@@ -114,19 +114,22 @@ public sealed class TiledSparseDenseProduct
         MemoryBuffer1D<double, Stride1D.Dense> result =
             accelerator.Allocate1D<double>((long)matrix.RowCount * block.ColumnCount);
 
-        int tiles = (block.ColumnCount + _groupSize - 1) / _groupSize;
-        for (int first = 0; first < matrix.RowCount; first += _rowsPerLaunch)
+        // The result a failed launch never hands back is released, as the uploads release theirs (#1265).
+        return DeviceOwnership.ReleaseOnFailure(result, () =>
         {
-            int rows = Math.Min(_rowsPerLaunch, matrix.RowCount - first);
-            _product(
-                new KernelConfig(new Index2D(tiles, rows), new Index2D(_groupSize, 1)),
-                matrix.RowPointers.View, matrix.ColumnIndices.View, matrix.Values.View,
-                block.Buffer.View, result.View, block.ColumnCount, first);
-        }
+            int tiles = (block.ColumnCount + _groupSize - 1) / _groupSize;
+            for (int first = 0; first < matrix.RowCount; first += _rowsPerLaunch)
+            {
+                int rows = Math.Min(_rowsPerLaunch, matrix.RowCount - first);
+                _product(
+                    new KernelConfig(new Index2D(tiles, rows), new Index2D(_groupSize, 1)),
+                    matrix.RowPointers.View, matrix.ColumnIndices.View, matrix.Values.View,
+                    block.Buffer.View, result.View, block.ColumnCount, first);
+            }
 
-        accelerator.Synchronize();
-
-        return new DeviceDenseBlock(_context, result, matrix.RowCount, block.ColumnCount);
+            accelerator.Synchronize();
+            return new DeviceDenseBlock(_context, result, matrix.RowCount, block.ColumnCount);
+        });
     }
 
     /// <summary>One group per row and column tile, the row's non-zeros tiled through shared memory.</summary>
