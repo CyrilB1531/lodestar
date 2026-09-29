@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Runtime.ExceptionServices;
 
 namespace Lodestar.Metrics.Internal;
 
@@ -32,13 +31,16 @@ internal static class MultiClassRoc
             // One total per class, the weights NumpyAverage.Weighted averages by and the shortcut below reads; macro reads neither (#1586).
             double[] classTotals = average == Averaging.Weighted ? ClassTotals(yTrue, classes, options.SampleWeight) : [];
 
-            // _average_binary_score returns 0 when the class totals sum close to zero (#1534, #1586). check_array
-            // refuses a NaN score first, so the shortcut waits for a finite yScore.
+            // _average_binary_score returns 0 when the class totals sum close to zero, before any class curve reads
+            // a weight (#1534, #1586); Validate has already refused a non-finite score (#1569).
             if (average == Averaging.Weighted && !options.SampleWeight.IsEmpty
-                && Math.Abs(NumpyAverage.Sum(classTotals)) <= ZeroTotalTolerance && IsFinite(yScore))
+                && Math.Abs(NumpyAverage.Sum(classTotals)) <= ZeroTotalTolerance)
             {
                 return 0.0;
             }
+
+            // Where roc_curve would refuse a weight in every class alike, refused once, before any worker starts.
+            Inputs.ValidateSampleWeight(options.SampleWeight);
 
             return workers == 1
                 ? OneVsRest(yTrue, yScore, classes, average, options.SampleWeight, classTotals)
@@ -78,6 +80,10 @@ internal static class MultiClassRoc
             throw new ArgumentException(
                 $"Found array with 0 sample(s) (shape=(0, {classCount})) while a minimum of 1 is required.", nameof(yScore));
         }
+
+        // check_array refuses a non-finite score in its own words before any row is summed; the row-sum test lets a
+        // NaN through, and a class curve named it by an index into a compacted column (#1569).
+        Inputs.RequireFinite(yScore, nameof(yScore));
         if (yScore.Length != (long)n * classCount)
         {
             throw new ArgumentException(
@@ -420,16 +426,15 @@ internal static class MultiClassRoc
 
     /// <summary>
     /// Runs indices <c>0 .. count - 1</c> over at most <paramref name="workers"/> threads, one
-    /// <see cref="BinaryRoc.Scratch"/> per worker, rethrowing the lowest index's failure once all have run.
+    /// <see cref="BinaryRoc.Scratch"/> per worker; each index writes only its own slot.
     /// </summary>
     /// <remarks>
     /// The determinism lives here, not in each driver, so a second parallel driver — the
-    /// one-vs-one pair loop — cannot re-derive it differently. <paramref name="body"/> returns
-    /// its caught exception rather than being wrapped in a <c>catch</c> here, so a broken
-    /// internal invariant in its own setup still escapes as the defect it is.
+    /// one-vs-one pair loop — cannot re-derive it differently. Every refusal happens before a
+    /// worker starts, so a body that throws has met a defect and escapes as one.
     /// </remarks>
     private static void RunPerIndex(
-        int count, int workers, int scratchLength, Func<int, BinaryRoc.Scratch, ArgumentException?> body)
+        int count, int workers, int scratchLength, Action<int, BinaryRoc.Scratch> body)
     {
         // One class alone leaves no pair, and ParallelOptions refuses a degree of zero (#1566).
         if (count == 0)
@@ -437,9 +442,10 @@ internal static class MultiClassRoc
             return;
         }
 
-        ArgumentException?[] failures = new ArgumentException?[count];
         var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = Math.Min(workers, count) };
 
+        // Nothing a worker scores can be refused: Score has refused every input first (#1569), so a worker that throws
+        // has met a defect, which Parallel.For surfaces as it is.
         Parallel.For(
             0,
             count,
@@ -447,14 +453,10 @@ internal static class MultiClassRoc
             () => BinaryRoc.Scratch.Rent(scratchLength),
             (index, _, scratch) =>
             {
-                // Its own slot, so which worker lost the race cannot decide which
-                // exception the caller sees.
-                failures[index] = body(index, scratch);
+                body(index, scratch);
                 return scratch;
             },
             scratch => scratch.Return());
-
-        RethrowFirst(failures);
     }
 
     /// <summary>
@@ -477,8 +479,7 @@ internal static class MultiClassRoc
         {
             RunPerIndex(k, workers, n, (c, scratch) =>
             {
-                // Per worker (a span cannot cross into a lambda), and above the try
-                // so a slicing bug escapes instead of being reported as bad input.
+                // Per worker: a span cannot cross into a lambda.
                 ScoreSource source = new(
                     copy.YTrue.AsSpan(0, n), copy.ColumnMajor.AsSpan(0, n * k), n, k, columnMajor: true);
 
@@ -486,17 +487,9 @@ internal static class MultiClassRoc
                 // decide whether weighting applies at all.
                 ReadOnlySpan<double> classWeight = weighted ? copy.Weights.AsSpan(0, n) : default;
 
-                try
-                {
-                    // classes[c], not c: the column and the positive label are
-                    // the same number only when the labels happen to be 0..k-1.
-                    scores[c] = ClassScore(source, c, classes[c], classWeight, scratch);
-                    return null;
-                }
-                catch (ArgumentException ex)
-                {
-                    return ex;
-                }
+                // classes[c], not c: the column and the positive label are
+                // the same number only when the labels happen to be 0..k-1.
+                scores[c] = ClassScore(source, c, classes[c], classWeight, scratch);
             });
         }
         finally
@@ -532,24 +525,11 @@ internal static class MultiClassRoc
         {
             RunPerIndex(pairs.Length, workers, n, (pair, scratch) =>
             {
-                // Per worker, and above the try so a slicing bug escapes instead
-                // of being reported as bad input — as in OneVsRestParallel.
                 ScoreSource source = new(
                     copy.YTrue.AsSpan(0, n), copy.ColumnMajor.AsSpan(0, n * k), n, k, columnMajor: true, members);
 
-                try
-                {
-                    // The pair tuple already carries both columns, so the worker
-                    // asks for nothing new — ScorePair is at S107's seven-parameter limit.
-                    ScorePair(source, classes, pairs[pair], pair, pairScores, prevalence, scratch);
-                    return null;
-                }
-                catch (ArgumentException ex)
-                {
-                    // Belongs here, not in RunPerIndex: deleting it is a live
-                    // mutation only Reports_the_lowest_offending_pair_not_the_fastest_worker catches.
-                    return ex;
-                }
+                // The tuple carries both columns, so the worker asks for nothing new; ScorePair is at S107's limit.
+                ScorePair(source, classes, pairs[pair], pair, pairScores, prevalence, scratch);
             });
         }
         finally
@@ -558,30 +538,6 @@ internal static class MultiClassRoc
         }
 
         return average == Averaging.Macro ? NumpyAverage.Mean(pairScores) : NumpyAverage.Weighted(pairScores, prevalence, nameof(yTrue));
-    }
-
-    /// <summary>
-    /// Rethrows the failure of the lowest index, so a bad input produces the same
-    /// exception the sequential path would have produced.
-    /// </summary>
-    /// <remarks>
-    /// <see cref="RunPerIndex"/> never stops early, so every index has run and the
-    /// lowest failing one is known; <see cref="ExceptionDispatchInfo"/> rethrows the
-    /// original instance rather than an <see cref="AggregateException"/>, so the caller
-    /// catches the type and message the sequential path throws.
-    /// </remarks>
-    private static void RethrowFirst(ArgumentException?[] failures)
-    {
-        // An indexed loop, ascending: "lowest index wins" is then a property of
-        // this code rather than of a library method's documented scan order.
-        for (int i = 0; i < failures.Length; i++)
-        {
-            ArgumentException? failure = failures[i];
-            if (failure is not null)
-            {
-                ExceptionDispatchInfo.Capture(failure).Throw();
-            }
-        }
     }
 
     private static double OneVsOne(
@@ -656,19 +612,6 @@ internal static class MultiClassRoc
 
     /// <summary><c>numpy.isclose(total, 0)</c>'s absolute tolerance, which is all it applies against zero.</summary>
     internal const double ZeroTotalTolerance = 1e-8;
-
-    private static bool IsFinite(ReadOnlySpan<double> values)
-    {
-        foreach (double value in values)
-        {
-            if (double.IsNaN(value) || double.IsInfinity(value))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
 
     /// <summary>The pairs whose two classes both occur in the target, the only ones scikit-learn scores.</summary>
     /// <remarks>

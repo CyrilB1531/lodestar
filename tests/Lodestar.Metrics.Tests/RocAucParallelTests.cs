@@ -61,10 +61,9 @@ public sealed class RocAucParallelTests
     }
 
     [Fact]
-    public void Reports_the_lowest_offending_class_not_the_fastest_worker()
+    public void A_NaN_score_is_refused_up_front_the_same_way_in_parallel()
     {
-        // Classes 1 and 2 both hold NaN, class 1 earlier: the parallel path must
-        // still name class 1 however workers are scheduled.
+        // check_array's sentence before any class is scored, on either path (#1569).
         int[] yTrue = [0, 1, 2, 0, 1, 2];
         double[] scores =
         [
@@ -80,6 +79,25 @@ public sealed class RocAucParallelTests
             () => RocAuc.MultiClass(yTrue, scores, 3));
         ArgumentException parallel = Assert.Throws<ArgumentException>(
             () => RocAuc.MultiClass(yTrue, scores, 3, new MultiClassRocOptions { MaxDegreeOfParallelism = 8 }));
+
+        Assert.StartsWith("Input contains NaN.", sequential.Message, StringComparison.Ordinal);
+        Assert.Equal(sequential.Message, parallel.Message);
+        Assert.Equal(sequential.ParamName, parallel.ParamName);
+    }
+
+    [Fact]
+    public void A_refused_weight_is_reported_the_same_way_in_parallel()
+    {
+        // All-zero weights under macro are refused once, before any worker starts: the parallel path throws the same
+        // ArgumentException as the sequential one, not an AggregateException.
+        int[] yTrue = [0, 1, 2, 0, 1, 2];
+        double[] scores = [.5, .3, .2, .2, .5, .3, .1, .2, .7, .6, .2, .2, .2, .5, .3, .1, .3, .6];
+        double[] weights = new double[6];
+
+        ArgumentException sequential = Assert.Throws<ArgumentException>(
+            () => RocAuc.MultiClass(yTrue, scores, 3, new MultiClassRocOptions { SampleWeight = weights }));
+        ArgumentException parallel = Assert.Throws<ArgumentException>(() => RocAuc.MultiClass(
+            yTrue, scores, 3, new MultiClassRocOptions { SampleWeight = weights, MaxDegreeOfParallelism = 8 }));
 
         Assert.Equal(sequential.Message, parallel.Message);
         Assert.Equal(sequential.ParamName, parallel.ParamName);
@@ -183,106 +201,6 @@ public sealed class RocAucParallelTests
                     BitConverter.DoubleToInt64Bits(parallel));
             }
         }
-    }
-
-    /// <summary>
-    /// docs/guides/performance.md's "does not stop early" hazard: a naive <c>Stop</c> would cancel
-    /// unstarted iterations and report whichever class a worker reached first.
-    /// <see cref="Reports_the_lowest_offending_class_not_the_fastest_worker"/>
-    /// cannot catch that — its lowest failing class, 1, is one trivial class into
-    /// the invoking thread's own range, so no cancellation could hide it. Here
-    /// class 7 fails six full curves in, and class 8 (the second worker's first
-    /// touch) fails immediately; at n=64 the loop was fast enough that the
-    /// invoking thread sometimes reached class 7 first and the mutation survived.
-    /// </summary>
-    [Fact]
-    public void An_early_failure_in_a_later_class_does_not_cancel_an_earlier_one()
-    {
-        const int k = 16;
-        const int n = 4096;
-        (int[] yTrue, double[] scores) = NanColumns(n, k, (7, 5), (8, 3));
-
-        ArgumentException sequential = Assert.Throws<ArgumentException>(
-            () => RocAuc.MultiClass(yTrue, scores, k));
-        ArgumentException parallel = Assert.Throws<ArgumentException>(
-            () => RocAuc.MultiClass(yTrue, scores, k, new MultiClassRocOptions { MaxDegreeOfParallelism = 2 }));
-
-        // Up to the suffix only: the "(Parameter 'x')" tail is a localizable
-        // CoreLib addition (RocAucBinaryTests documents the convention).
-        Assert.StartsWith("yScore[5] is NaN; scores must be numbers.", sequential.Message, StringComparison.Ordinal);
-        Assert.Equal("yScore", sequential.ParamName);
-        Assert.Equal(sequential.Message, parallel.Message);
-        Assert.Equal(sequential.ParamName, parallel.ParamName);
-    }
-
-    /// <summary>
-    /// The one-vs-one twin of
-    /// <see cref="Reports_the_lowest_offending_class_not_the_fastest_worker"/>:
-    /// every other error-path test here drives <c>OneVsRestParallel</c>, so none
-    /// ever pushed a failure through <c>OneVsOneParallel</c>'s own handler before.
-    /// k=4, NaN at (row 3, col 2) and (row 5, col 3): yTrue[i] is i % 4, so pair
-    /// 5=(2,3) reaches the first and pair 4=(1,3) the second, making 4 the lowest
-    /// offending pair — not pair 0, the thread's own starting iteration.
-    /// </summary>
-    [Fact]
-    public void Reports_the_lowest_offending_pair_not_the_fastest_worker()
-    {
-        const int k = 4;
-        const int n = 64;
-        (int[] yTrue, double[] scores) = NanColumns(n, k, (2, 3), (3, 5));
-
-        ArgumentException sequential = Assert.Throws<ArgumentException>(
-            () => RocAuc.MultiClass(yTrue, scores, k, new MultiClassRocOptions
-            {
-                Strategy = MultiClassStrategy.OneVsOne,
-            }));
-
-        // Pair 4's message, not pair 5's: the NaN lands at index 2 of pair 4's
-        // compacted column, naming the index rather than just "a pair won".
-        Assert.StartsWith("yScore[2] is NaN; scores must be numbers.", sequential.Message, StringComparison.Ordinal);
-        Assert.Equal("yScore", sequential.ParamName);
-
-        foreach (int workers in WorkerCounts)
-        {
-            // Exact-type match: an AggregateException reaching the caller fails
-            // here instead of passing via a base-class match.
-            ArgumentException parallel = Assert.Throws<ArgumentException>(
-                () => RocAuc.MultiClass(yTrue, scores, k, new MultiClassRocOptions
-                {
-                    Strategy = MultiClassStrategy.OneVsOne,
-                    MaxDegreeOfParallelism = workers,
-                }));
-
-            Assert.Equal(sequential.Message, parallel.Message);
-            Assert.Equal(sequential.ParamName, parallel.ParamName);
-        }
-    }
-
-    /// <summary>
-    /// An <paramref name="n"/> by <paramref name="k"/> probability matrix whose
-    /// rows sum to 1, with a NaN planted at each given (column, row).
-    /// </summary>
-    private static (int[] YTrue, double[] Scores) NanColumns(int n, int k, params (int Column, int Row)[] nans)
-    {
-        int[] yTrue = new int[n];
-        double[] scores = new double[n * k];
-        double rest = 0.5 / (k - 1);
-
-        for (int i = 0; i < n; i++)
-        {
-            yTrue[i] = i % k;
-            for (int c = 0; c < k; c++)
-            {
-                scores[(i * k) + c] = c == yTrue[i] ? 0.5 : rest;
-            }
-        }
-
-        foreach ((int column, int row) in nans)
-        {
-            scores[(row * k) + column] = double.NaN;
-        }
-
-        return (yTrue, scores);
     }
 
     [Fact]

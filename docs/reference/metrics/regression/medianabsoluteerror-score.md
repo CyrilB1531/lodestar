@@ -58,13 +58,22 @@ Never report this alone; pair it with `MeanAbsoluteError.Score` or `MaxError.Sco
 
 Under `sampleWeight` this stops being the value at the halfway point. scikit-learn takes an
 *averaged* weighted percentile — the mean of the first value whose cumulative weight reaches half
-the
-total and the one just past the last that comes within one machine epsilon of it — and that
-tolerance
-is load-bearing rather than decoration: a uniform weight is *usually* the ordinary median and not
-always. Measured, `[0.7] * 10` gives `5.0` on the weighted path against `4.5` unweighted, while
-`[0.1] * 10` gives `4.5` on both. Both agree with scikit-learn, whose `_weighted_percentile` compares against
-`np.finfo(np.float64).eps` rather than zero.
+the total and the one just past the last that comes within one machine epsilon of it — and that
+tolerance is load-bearing rather than decoration: a uniform weight is *usually* the ordinary median
+and not always. Measured, `[0.7] * 10` gives `5.0` on the weighted path against `4.5` unweighted,
+while `[0.1] * 10` gives `4.5` on both. Both agree with scikit-learn, whose `_weighted_percentile`
+compares against `np.finfo(np.float64).eps` rather than zero.
+
+**Negative weights are read as scikit-learn reads them.** A negative weight makes the cumulative
+weight fall as well as rise, and the halfway point is then found by numpy 2.5's own `searchsorted`,
+whose branchless halving lands where a textbook binary search does not: `sampleWeight: [1, -1, 0]`
+on `[1, 2, 3]` against `[1, 2, 4]` gives `1.0`, as scikit-learn does
+([#1546](https://github.com/CyrilB1531/lodestar/issues/1546)). One case stays out of reach: equal
+errors carrying different weights, where the result follows the order numpy's `argsort` leaves them
+in, which is not stable and depends on the CPU's vector units. `sampleWeight: [-2, 0, 2, -1]` on
+`[2, 2, 0, 1]` against zeros gives `0.0` there and `2.0` here. Measured, 1 random case in 2,000 with
+continuous errors and about 5 % with tied integer errors, both under negative weights; with
+non-negative weights that order changes nothing.
 
 **Applies to** — net10.0, netstandard2.0.
 
