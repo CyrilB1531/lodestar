@@ -11,6 +11,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- `OnnxTextEmbedder.EmbedBatch` over texts names `options` when a static chunk passes one array, where it named `encoder`, and the pages state the bound as `Array.MaxLength` cells and what a chunk below it costs. ([#1581](https://github.com/CyrilB1531/lodestar/issues/1581), [#1582](https://github.com/CyrilB1531/lodestar/issues/1582))
 - `OnnxTextEmbedder.MaxSequenceLength` throws `ObjectDisposedException` after `Dispose` as every other member does, and a static export whose fixed axes make one chunk larger than one array is refused with an `ArgumentException` before allocating it. ([#1552](https://github.com/CyrilB1531/lodestar/issues/1552), [#1553](https://github.com/CyrilB1531/lodestar/issues/1553), [#1554](https://github.com/CyrilB1531/lodestar/issues/1554), [#1555](https://github.com/CyrilB1531/lodestar/issues/1555))
 - `OnnxTextEmbedder.MaxSequenceLength` falls back, on a symbolic sequence axis, to the rows of the graph's position-embedding table net of a RoBERTa-style padding offset, so `EmbedBatch` truncates to the model's limit where it truncated nothing and a longer text failed inside ONNX Runtime. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
 - `OnnxTextEmbedder` refuses a model output that is not `[batch, sequence, dim]` or `[batch, dim]` for the batch it fed, naming the output and both shapes, where a transposed output was pooled over the wrong rows. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))

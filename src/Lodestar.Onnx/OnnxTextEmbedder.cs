@@ -225,7 +225,8 @@ public sealed class OnnxTextEmbedder : IDisposable
                 "This embedder has no tokenizer. Use the constructor overload that takes one, " +
                 "or call EmbedBatch(texts, encoder, cancellationToken) with a BatchEncoder you built.");
         }
-        return EmbedBatch(texts, new BatchEncoder(_tokenizer, ResolveOptions(options)), cancellationToken);
+        // The width a chunk refusal meets came from options here, so it is named, not the encoder built from it (#1581).
+        return EmbedAll(texts, new BatchEncoder(_tokenizer, ResolveOptions(options)), nameof(options), cancellationToken);
     }
 
     /// <summary>Embeds a corpus using an explicit <see cref="BatchEncoder"/>.</summary>
@@ -247,30 +248,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     {
         ThrowIfDisposed();
         Guard.NotNull(encoder);
-        IReadOnlyList<long[]> sequences = encoder.EncodeAll(texts, cancellationToken);
-
-        int total = sequences.Count;
-        var embeddings = new float[total][];
-        if (total == 0)
-        {
-            return embeddings;
-        }
-
-        int batchSize = encoder.Options.BatchSize;
-        int[]? order = encoder.Options.SortByLength && total > batchSize ? SortedByLength(sequences) : null;
-
-        for (int start = 0; start < total; start += batchSize)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            int count = Math.Min(batchSize, total - start);
-            EncodedBatch batch = encoder.Pad(sequences, start, count, order);
-            float[][] vectors = RunBatch(batch, nameof(encoder));
-            for (int i = 0; i < count; i++)
-            {
-                embeddings[order is null ? start + i : order[start + i]] = vectors[i];
-            }
-        }
-        return embeddings;
+        return EmbedAll(texts, encoder, nameof(encoder), cancellationToken);
     }
 
     /// <summary>Embeds an already-encoded batch, in batch order.</summary>
@@ -294,6 +272,35 @@ public sealed class OnnxTextEmbedder : IDisposable
         Guard.NotNull(batch);
         cancellationToken.ThrowIfCancellationRequested();
         return batch.Count == 0 ? [] : RunBatch(batch, nameof(batch));
+    }
+
+    /// <summary>The body both text overloads share, refusing under <paramref name="paramName"/>, the caller's own argument.</summary>
+    private float[][] EmbedAll(IEnumerable<string> texts, BatchEncoder encoder, string paramName, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<long[]> sequences = encoder.EncodeAll(texts, cancellationToken);
+
+        int total = sequences.Count;
+        var embeddings = new float[total][];
+        if (total == 0)
+        {
+            return embeddings;
+        }
+
+        int batchSize = encoder.Options.BatchSize;
+        int[]? order = encoder.Options.SortByLength && total > batchSize ? SortedByLength(sequences) : null;
+
+        for (int start = 0; start < total; start += batchSize)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(batchSize, total - start);
+            EncodedBatch batch = encoder.Pad(sequences, start, count, order);
+            float[][] vectors = RunBatch(batch, paramName);
+            for (int i = 0; i < count; i++)
+            {
+                embeddings[order is null ? start + i : order[start + i]] = vectors[i];
+            }
+        }
+        return embeddings;
     }
 
     /// <summary>Releases the underlying ONNX Runtime session.</summary>
