@@ -24,7 +24,7 @@ internal static class MultiClassRoc
         int[] classes = ResolveLabels(yTrue, options.Labels, classCount);
         ValidateRowSums(yScore, n, classCount);
 
-        // 0 and 1 both mean sequential: see docs/decisions/0018 for why, and for
+        // 0 and 1 both mean sequential: see decision 0018 at 53af23c2 for why, and for
         // what changed in the drivers' allocation profile on this branch.
         int workers = Math.Max(1, options.MaxDegreeOfParallelism);
 
@@ -170,7 +170,7 @@ internal static class MultiClassRoc
             ClassMembers? members = null)
         {
             // sampleCount is explicit, not derived from yTrue.Length: two spans
-            // sliced to a rented array's length can silently agree. See docs/decisions/0018.
+            // sliced to a rented array's length can silently agree. See decision 0018 at 53af23c2.
             if (yTrue.Length != sampleCount)
             {
                 throw new ArgumentException(
@@ -367,7 +367,7 @@ internal static class MultiClassRoc
     /// <remarks>
     /// A copy is the only legal option, and every span sliced from the result
     /// must use the sample count, never the rented length. See
-    /// docs/decisions/0018 for both arguments.
+    /// decision 0018 at 53af23c2 for both arguments.
     /// </remarks>
     private static (int[] YTrue, double[] ColumnMajor, double[] Weights) CopyForWorkers(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int classCount, ReadOnlySpan<double> sampleWeight)
@@ -419,7 +419,7 @@ internal static class MultiClassRoc
     /// The determinism lives here, not in each driver, so a second parallel driver — the
     /// one-vs-one pair loop — cannot re-derive it differently. <paramref name="body"/> returns
     /// its caught exception rather than being wrapped in a <c>catch</c> here, so a broken
-    /// internal invariant in its own setup still escapes as the defect it is. See docs/decisions/0018.
+    /// internal invariant in its own setup still escapes as the defect it is. See decision 0018 at 53af23c2.
     /// </remarks>
     private static void RunPerIndex(
         int count, int workers, int scratchLength, Func<int, BinaryRoc.Scratch, ArgumentException?> body)
@@ -504,7 +504,7 @@ internal static class MultiClassRoc
     /// Reads pairs from the same <see cref="Pairs"/> table <see cref="OneVsOne"/>
     /// walks, rather than decoding a triangular index, so the two orders cannot
     /// disagree. No weights: <see cref="Validate"/> refuses them here, as
-    /// scikit-learn does; see docs/decisions/0018 for the copy this drives.
+    /// scikit-learn does; see decision 0018 at 53af23c2 for the copy this drives.
     /// </remarks>
     private static double OneVsOneParallel(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int[] classes, Averaging average, int workers)
@@ -554,7 +554,7 @@ internal static class MultiClassRoc
     /// exception the sequential path would have produced.
     /// </summary>
     /// <remarks>
-    /// See docs/decisions/0018 for why <see cref="RunPerIndex"/> never stops
+    /// See decision 0018 at 53af23c2 for why <see cref="RunPerIndex"/> never stops
     /// early and why <see cref="ExceptionDispatchInfo"/> rethrows the original
     /// instance instead of wrapping it in an <see cref="AggregateException"/>.
     /// </remarks>

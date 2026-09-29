@@ -444,7 +444,7 @@ internal static class Outputs
     /// <param name="samples">The sample count <see cref="Validate"/> returned.</param>
     /// <param name="kernel">The kernel instance.</param>
     /// <remarks>
-    /// Both conditions are <c>decisions/0027</c>'s, settled there for R² and explained
+    /// Both conditions are decision 0027's at <c>53af23c2</c>, settled there for R² and explained
     /// variance: <c>outputCount == 1</c> is the only contiguous shape, a strided column
     /// being what a <see cref="Vector{T}"/> load cannot gather, and
     /// <see cref="Vector.IsHardwareAccelerated"/> is checked apart from it so a runtime
