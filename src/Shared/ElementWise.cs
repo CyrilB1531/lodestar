@@ -7,12 +7,12 @@ using System.Runtime.Intrinsics;
 
 namespace Lodestar.Internal;
 
-/// <summary>The element-by-element updates the dense kernels share, vectorized where the target allows.</summary>
+/// <summary><c>AddScaled</c>, the update the sparse block products and the dense kernels share, vectorized where the target allows.</summary>
 /// <remarks>
-/// Shared source, compiled into <c>Lodestar.Abstractions</c> and <c>Lodestar.Decomposition</c>: the sparse block
-/// products and the dense kernels make the same update, and neither package can reach the other's internals (#845).
-/// Abstractions takes this file alone, <c>AddScaled</c> being all its products call; the rotations the dense
-/// kernels add live in <c>ElementWise.Kernels.cs</c> (#1417).
+/// Shared source, compiled into <c>Lodestar.Abstractions</c>, <c>Lodestar.Decomposition</c>,
+/// <c>Lodestar.Stats.Regression</c> and <c>Lodestar.Stats.TimeSeries</c>: none can reach another's internals (#845).
+/// Abstractions takes this file alone, <c>AddScaled</c> being all its products call; the others also take
+/// <c>ElementWise.Kernels.cs</c>, which holds <c>Rotate</c> and <c>SubtractScaled</c> (#1417).
 /// Every lane computes exactly the scalar expression on its own element, with no fused multiply-add and no
 /// reordered sum, so the vector path and the scalar tail produce the same bits as the scalar loop they replace.
 /// </remarks>

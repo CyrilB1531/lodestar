@@ -46,10 +46,11 @@ A column stored twice in one row is written out as the sum of its entries, which
 
 A stored `NaN` or infinity is written out as it is, not refused, as `toarray()` writes it.
 
-**On .NET Framework the cap is lower.** The bound is .NET's `Array.MaxLength`; .NET Framework
-refuses a `double` array past 2 GB, or past `0x7FEFFFFF` elements under `gcAllowVeryLargeObjects`,
-so a result between its cap and this one fails there with the runtime's own out-of-memory error,
-raised before any memory is taken.
+**On .NET Framework the cap can be lower.** Without `gcAllowVeryLargeObjects` it refuses any
+array past 2 GB, so a result within this bound but past that fails there with the runtime's own
+out-of-memory error, raised before any memory is taken. Under it, a `double[,]` is capped at
+`UInt32.MaxValue` elements in all and `0x7FEFFFFF` along one side, just below the `0x7FFFFFC7` this
+checks: a side between the two passes the check and fails in the allocation.
 
 **Applies to** — net10.0, netstandard2.0.
 

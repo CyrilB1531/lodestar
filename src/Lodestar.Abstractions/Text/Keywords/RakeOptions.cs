@@ -4,6 +4,10 @@ namespace Lodestar.Text.Keywords;
 public sealed record RakeOptions
 {
     /// <summary>The stop words that delimit candidates. Null takes <c>StopWords.English</c>.</summary>
+    /// <remarks>
+    /// Taken and exposed as it is, not copied: writing to the collection changes these options and what they
+    /// equal, and every holder of it, a <c>with</c> copy included (#1305).
+    /// </remarks>
     public IReadOnlyCollection<string>? StopWords { get; init; }
 
     /// <summary>Which per-word score the phrase sums.</summary>

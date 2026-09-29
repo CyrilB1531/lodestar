@@ -53,26 +53,53 @@ public sealed class DataTypesCarryNoCodeTests
     };
 
     /// <summary>
-    /// The instructions structural equality never needs: arithmetic but combining, ordering, a float constant, a throw.
-    /// <c>cgt.un</c> stays allowed: it is how C# compiles <c>x is not null</c>.
+    /// The instructions structural equality never needs: arithmetic but combining, ordering by comparison or by branch,
+    /// a float constant or conversion, a store, a throw, an allocation (#1482). <c>cgt.un</c> stays allowed: it is how C#
+    /// compiles <c>x is not null</c>. The scan reads opcodes and callees, not dataflow: a float product of two fields passes.
     /// </summary>
     private static readonly HashSet<string> NonStructuralOpCodes = new(StringComparer.Ordinal)
     {
         "sub", "sub.ovf", "sub.ovf.un", "div", "div.un", "rem", "rem.un", "neg", "clt", "clt.un", "cgt",
-        "ldc.r4", "ldc.r8", "throw", "rethrow", "newobj", "newarr", "localloc", "calli",
+        "blt", "blt.s", "blt.un", "blt.un.s", "bgt", "bgt.s", "bgt.un", "bgt.un.s",
+        "ble", "ble.s", "ble.un", "ble.un.s", "bge", "bge.s", "bge.un", "bge.un.s",
+        "ldc.r4", "ldc.r8", "conv.r4", "conv.r8", "conv.r.un",
+        "stfld", "stsfld", "stobj", "stelem", "stelem.ref", "stelem.i", "stelem.i1", "stelem.i2", "stelem.i4",
+        "stelem.i8", "stelem.r4", "stelem.r8", "stind.ref", "stind.i", "stind.i1", "stind.i2", "stind.i4",
+        "stind.i8", "stind.r4", "stind.r8",
+        "throw", "rethrow", "newobj", "newarr", "localloc", "calli",
     };
 
-    /// <summary>The types a structural <c>Equals</c>/<c>GetHashCode</c> may call into, beside the data types themselves.</summary>
-    private static readonly HashSet<string> EqualityCallees = new(StringComparer.Ordinal)
+    /// <summary>
+    /// The members a structural <c>Equals</c>/<c>GetHashCode</c> may call, by declaring type, beside the data types' own
+    /// accessors and equality; <see langword="null"/> admits every member of the shared equality helper (#1482).
+    /// </summary>
+    private static readonly Dictionary<string, HashSet<string>?> EqualityCallees = new(StringComparer.Ordinal)
     {
-        "System.Object", "System.Double", "System.Single", "System.Int32", "System.Int64", "System.Boolean",
-        "System.String", "System.Type", "System.HashCode", "System.Nullable`1", "System.Linq.Enumerable",
-        "System.Collections.Generic.EqualityComparer`1", "System.Collections.Generic.IReadOnlyList`1",
-        "System.Collections.Generic.IReadOnlyCollection`1", "System.Collections.Generic.IReadOnlyDictionary`2",
-        "System.Collections.Generic.IEnumerable`1", "System.Collections.Generic.IEnumerator`1",
-        "System.Collections.IEnumerator", "System.IDisposable", "System.Collections.Generic.KeyValuePair`2",
-        "System.StringComparer", "System.ReadOnlyMemory`1", "System.ReadOnlySpan`1", "System.MemoryExtensions",
-        "Lodestar.Internal.ValueEquality",
+        ["System.Object"] = ["Equals", "GetHashCode", "ReferenceEquals", "GetType"],
+        ["System.Double"] = ["Equals", "GetHashCode", "IsNaN"],
+        ["System.Single"] = ["Equals", "GetHashCode", "IsNaN"],
+        ["System.Int32"] = ["Equals", "GetHashCode"],
+        ["System.Int64"] = ["Equals", "GetHashCode"],
+        ["System.Boolean"] = ["Equals", "GetHashCode"],
+        ["System.String"] = ["Equals", "GetHashCode", "op_Equality", "op_Inequality"],
+        ["System.Type"] = ["op_Equality", "op_Inequality", "GetTypeFromHandle"],
+        ["System.HashCode"] = ["Add", "ToHashCode", "Combine"],
+        ["System.Nullable`1"] = ["get_HasValue", "get_Value", "GetValueOrDefault", "Equals", "GetHashCode"],
+        ["System.Linq.Enumerable"] = ["SequenceEqual"],
+        ["System.Collections.Generic.EqualityComparer`1"] = ["get_Default", "Equals", "GetHashCode"],
+        ["System.Collections.Generic.IReadOnlyList`1"] = ["get_Item"],
+        ["System.Collections.Generic.IReadOnlyCollection`1"] = ["get_Count"],
+        ["System.Collections.Generic.IReadOnlyDictionary`2"] = ["TryGetValue", "ContainsKey", "get_Item"],
+        ["System.Collections.Generic.IEnumerable`1"] = ["GetEnumerator"],
+        ["System.Collections.Generic.IEnumerator`1"] = ["get_Current"],
+        ["System.Collections.IEnumerator"] = ["MoveNext"],
+        ["System.IDisposable"] = ["Dispose"],
+        ["System.Collections.Generic.KeyValuePair`2"] = ["get_Key", "get_Value"],
+        ["System.StringComparer"] = ["get_Ordinal", "Equals", "GetHashCode"],
+        ["System.ReadOnlyMemory`1"] = ["get_Span", "get_Length", "get_IsEmpty"],
+        ["System.ReadOnlySpan`1"] = ["get_Length", "get_Item", "get_IsEmpty"],
+        ["System.MemoryExtensions"] = ["SequenceEqual"],
+        ["Lodestar.Internal.ValueEquality"] = null,
     };
 
     private static readonly Dictionary<short, OpCode> OpCodesByValue = typeof(OpCodes)
@@ -145,6 +172,19 @@ public sealed class DataTypesCarryNoCodeTests
         Assert.Contains(Offences(typeof(Tolerant)), offence => offence.EndsWith(".Equals", StringComparison.Ordinal));
         Assert.Contains(Offences(typeof(Refusing)), offence => offence.EndsWith(".Equals", StringComparison.Ordinal));
         Assert.Contains(Offences(typeof(Hasher)), offence => offence.EndsWith(".GetHashCode", StringComparison.Ordinal));
+        // Each of these trips one check alone: an allowed callee with a forbidden opcode, or the reverse (#1483).
+        Assert.Contains(Offences(typeof(Ordered)), offence => offence.EndsWith(".Equals", StringComparison.Ordinal));
+        Assert.Contains(Offences(typeof(Cached)), offence => offence.EndsWith(".GetHashCode", StringComparison.Ordinal));
+        Assert.Contains(Offences(typeof(Folding)), offence => offence.EndsWith(".Equals", StringComparison.Ordinal));
+        Assert.Contains(Offences(typeof(Summed)), offence => offence.EndsWith(".Equals", StringComparison.Ordinal));
+        Assert.True(IsLodestars(typeof(Generated)));
+        Assert.False(new Ordered(1.0).Equals(new Ordered(2.0)));
+        Assert.True(new Ordered(2.0).Equals(new Ordered(1.0)));
+        var cached = new Cached(3);
+        Assert.Equal(cached.GetHashCode(), cached.Hash);
+        Assert.True(new Folding("A").Equals(new Folding("a")));
+        Assert.True(new Summed([1.0, 2.0]).Equals(new Summed([3.0])));
+        Assert.Equal(1, new Generated(1).Twice() / 2);
         Assert.True(new Tolerant(1.0).Equals(new Tolerant(1.0)));
         Assert.Throws<InvalidOperationException>(() => new Refusing().Equals(null));
         Assert.Equal(2, Hasher.GetHashCode([1.0, 2.0]));
@@ -157,23 +197,25 @@ public sealed class DataTypesCarryNoCodeTests
             && !SparsePrimitive.Contains(type.FullName!)
             && !type.IsEnum);
 
-    /// <summary>A type in a namespace of Lodestar's, the root and the global namespace included (#1419).</summary>
+    /// <summary>
+    /// A type in a namespace of Lodestar's, the root and the global namespace included (#1419), whatever attribute it
+    /// carries: only a compiler-named type (<c>&lt;Module&gt;</c>, <c>&lt;PrivateImplementationDetails&gt;</c>) is left out (#1481).
+    /// </summary>
     private static bool IsLodestars(Type type) =>
-        !IsWrittenForUs(type) && (type.Namespace is null or "Lodestar"
-            || type.Namespace.StartsWith("Lodestar.", StringComparison.Ordinal));
+        !type.Name.StartsWith('<')
+        && (type.Namespace is null or "Lodestar" || type.Namespace.StartsWith("Lodestar.", StringComparison.Ordinal));
 
     /// <summary>
-    /// A type the compiler emits (<c>&lt;Module&gt;</c>, <c>&lt;PrivateImplementationDetails&gt;</c>, an embedded
-    /// attribute), a polyfill PolySharp writes into the netstandard2.0 build, which it marks as generated code, or the
-    /// tracker Microsoft Code Coverage injects when CI collects coverage, as it injects the probes skipped below.
+    /// Outside Lodestar's namespaces: a compiler-named or compiler-generated type, a polyfill PolySharp writes into the
+    /// netstandard2.0 build, which it marks <c>[Microsoft.CodeAnalysis.Embedded]</c>, or the tracker Microsoft Code
+    /// Coverage injects under its instrumentation namespace when CI collects coverage (#1481).
     /// </summary>
     private static bool IsWrittenForUs(Type type) =>
         type.Name.StartsWith('<')
-        || (type.Namespace?.StartsWith("Microsoft.CodeCoverage", StringComparison.Ordinal) ?? false)
         || IsCompilerGenerated(type)
+        || (type.Namespace?.StartsWith("Microsoft.CodeCoverage.Instrumentation", StringComparison.Ordinal) ?? false)
         || type.GetCustomAttributesData().Any(attribute =>
-            attribute.AttributeType.FullName is "System.CodeDom.Compiler.GeneratedCodeAttribute"
-                or "Microsoft.CodeAnalysis.EmbeddedAttribute");
+            attribute.AttributeType.FullName == "Microsoft.CodeAnalysis.EmbeddedAttribute");
 
     private static IEnumerable<string> Offences(Type type) =>
         type.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic).Select(nested => nested.FullName!)
@@ -260,6 +302,7 @@ public sealed class DataTypesCarryNoCodeTests
         }
 
         byte[] il = method.GetMethodBody()?.GetILAsByteArray() ?? [];
+        OpCode previous = OpCodes.Nop;
         for (int at = 0; at < il.Length;)
         {
             OpCode code = Decode(il, at);
@@ -272,18 +315,23 @@ public sealed class DataTypesCarryNoCodeTests
 
             if (NonStructuralOpCodes.Contains(code.Name!)
                 || (code.OperandType == OperandType.InlineMethod
-                    && !IsEqualityCallee(Resolve(method, BitConverter.ToInt32(il, operandAt)))))
+                    && !IsEqualityCallee(method, Resolve(method, BitConverter.ToInt32(il, operandAt)), previous)))
             {
                 return false;
             }
 
+            previous = code;
             at = operandAt + OperandSize(code, il, operandAt);
         }
 
         return true;
     }
 
-    private static bool IsEqualityCallee(MethodBase callee)
+    /// <summary>
+    /// A callee <see cref="EqualityCallees"/> admits, a getter of the method's own type, or a data type's accessor or
+    /// equality; <c>string.Equals</c> with a comparison only under <c>Ordinal</c>, the constant loaded just before it.
+    /// </summary>
+    private static bool IsEqualityCallee(MethodBase method, MethodBase callee, OpCode previous)
     {
         Type? declaring = callee.DeclaringType;
         if (declaring is null)
@@ -291,9 +339,20 @@ public sealed class DataTypesCarryNoCodeTests
             return false;
         }
 
+        if (declaring == method.DeclaringType && callee.Name.StartsWith("get_", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
         string name = (declaring.IsGenericType ? declaring.GetGenericTypeDefinition() : declaring).FullName ?? string.Empty;
-        return EqualityCallees.Contains(name)
-            || name.StartsWith("System.ValueTuple`", StringComparison.Ordinal)
+        // String.Equals with a StringComparison compares case-folded under anything but Ordinal, which is 4.
+        if (name == "System.String" && callee.GetParameters().Any(parameter => parameter.ParameterType == typeof(StringComparison)))
+        {
+            return callee.Name == nameof(Equals) && previous == OpCodes.Ldc_I4_4 && (int)StringComparison.Ordinal == 4;
+        }
+
+        return (EqualityCallees.TryGetValue(name, out HashSet<string>? members) && (members is null || members.Contains(callee.Name)))
+            || (name.StartsWith("System.ValueTuple`", StringComparison.Ordinal) && callee.Name is nameof(Equals) or nameof(GetHashCode))
             || (declaring.Assembly == Abstractions && !SparsePrimitive.Contains(name) && declaring.Namespace != "Lodestar.Internal"
                 && (callee.Name is nameof(Equals) or nameof(GetHashCode) or "op_Equality" or "op_Inequality"
                     || callee.Name.StartsWith("get_", StringComparison.Ordinal)));
@@ -467,6 +526,67 @@ public sealed class DataTypesCarryNoCodeTests
 #pragma warning restore S3877, CA1065
 
         public override int GetHashCode() => 0;
+    }
+
+    /// <summary>An <c>Equals</c> that orders through a branch, calling only its own getter.</summary>
+    private sealed class Ordered(double value)
+    {
+        public double Value { get; } = value;
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is not Ordered other || Value < other.Value)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public override int GetHashCode() => 0;
+    }
+
+    /// <summary>A <c>GetHashCode</c> that writes a field, through allowed callees only.</summary>
+    private sealed class Cached(int value)
+    {
+        // S1104, CA1051: the public field is the store this probe exists to put in front of the scan.
+#pragma warning disable S1104, CA1051
+        public int Hash;
+#pragma warning restore S1104, CA1051
+
+        public int Value { get; } = value;
+
+        public override bool Equals(object? obj) => obj is Cached other && Value == other.Value;
+
+        public override int GetHashCode() => Hash = Value.GetHashCode();
+    }
+
+    /// <summary>An <c>Equals</c> that folds case, through a String member the list refuses by signature.</summary>
+    private sealed class Folding(string name)
+    {
+        public string Name { get; } = name;
+
+        public override bool Equals(object? obj) =>
+            obj is Folding other && string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase);
+
+        public override int GetHashCode() => 0;
+    }
+
+    /// <summary>An <c>Equals</c> that compares sums, through a Linq member the list does not name.</summary>
+    private sealed class Summed(double[] values)
+    {
+        public IReadOnlyList<double> Values { get; } = values;
+
+        public override bool Equals(object? obj) => obj is Summed other && Values.Sum().Equals(other.Values.Sum());
+
+        public override int GetHashCode() => 0;
+    }
+
+    /// <summary>A Lodestar type that claims generated code: scanned all the same (#1481).</summary>
+    [System.CodeDom.Compiler.GeneratedCode("probe", "1")]
+    private sealed class Generated(int value)
+    {
+        public int Twice() => value * 2;
     }
 
     /// <summary>A static utility that only borrows the name <c>GetHashCode</c>.</summary>

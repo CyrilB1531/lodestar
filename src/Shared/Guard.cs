@@ -11,9 +11,10 @@ namespace Lodestar.Internal;
 /// On net10 this delegates to <c>ArgumentNullException.ThrowIfNull</c> (so the
 /// CA1510 analyzer stays happy and no manual null-check pattern appears), while on
 /// netstandard2.0 — where that helper does not exist — it does the equivalent check
-/// by hand. The single <c>#if</c> keeps every call site clean.
+/// by hand. The single <c>#if</c> keeps every call site clean. The disposal guard lives in
+/// <c>Guard.Disposal.cs</c>, which <c>Lodestar.Abstractions</c> does not compile (#1490).
 /// </remarks>
-internal static class Guard
+internal static partial class Guard
 {
     /// <summary>Throws <see cref="ArgumentNullException"/> if <paramref name="value"/> is null.</summary>
     public static void NotNull(
@@ -42,21 +43,6 @@ internal static class Guard
         if (value < min)
         {
             throw new ArgumentOutOfRangeException(paramName, value, $"Must be at least {min}.");
-        }
-#endif
-    }
-
-    /// <summary>Throws <see cref="ObjectDisposedException"/> if <paramref name="disposed"/> is set.</summary>
-    /// <param name="disposed">Whether <paramref name="instance"/> has already been disposed.</param>
-    /// <param name="instance">The instance the call was made on, which names the exception.</param>
-    public static void NotDisposed(bool disposed, object instance)
-    {
-#if NET
-        ObjectDisposedException.ThrowIf(disposed, instance);
-#else
-        if (disposed)
-        {
-            throw new ObjectDisposedException(instance?.GetType().FullName);
         }
 #endif
     }

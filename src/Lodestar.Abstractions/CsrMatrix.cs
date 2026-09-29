@@ -209,6 +209,10 @@ public sealed class CsrMatrix
     /// Normalizes each row in place to unit norm. Zero rows are left unchanged.
     /// Matches <c>sklearn.preprocessing.normalize</c>.
     /// </summary>
+    /// <remarks>
+    /// The L2 norm sums squares unscaled, so a finite row whose sum of squares overflows to infinity is divided
+    /// to zeros, as <c>inplace_csr_row_normalize_l2</c> does (#1411).
+    /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="norm"/> is not a defined <see cref="SparseNorm"/>, which the reference refuses too (#1286).</exception>
     /// <exception cref="InvalidOperationException">A stored value is <c>NaN</c> or infinite, which the reference's input check refuses (#1295).</exception>
     public void NormalizeRows(SparseNorm norm)
@@ -251,7 +255,10 @@ public sealed class CsrMatrix
 
     /// <exception cref="ArgumentException"><paramref name="vector"/> is not <see cref="ColumnCount"/> long.</exception>
     /// <summary>Computes the matrix-vector product <c>this · vector</c>.</summary>
-    /// <remarks>A <c>NaN</c> or infinity is carried through, not refused; a stored zero times an infinity is <c>NaN</c>.</remarks>
+    /// <remarks>
+    /// A <c>NaN</c> or infinity is carried through, not refused; a stored zero times an infinity is <c>NaN</c>.
+    /// One in <paramref name="vector"/> reaches the result only where a row stores that column, as in scipy.
+    /// </remarks>
     public double[] Multiply(ReadOnlySpan<double> vector)
     {
         if (vector.Length != ColumnCount)
@@ -279,6 +286,7 @@ public sealed class CsrMatrix
     /// width. One pass over the non-zeros rather than <paramref name="columnCount"/> passes: each
     /// column index is read once and the inner loop walks contiguous memory on both sides.
     /// A <c>NaN</c> or infinity is carried through, not refused; a stored zero times an infinity is <c>NaN</c>.
+    /// One in <paramref name="block"/> reaches the result only where a row stores that column, as in scipy.
     /// </remarks>
     /// <param name="block">The dense right operand, row-major.</param>
     /// <param name="columnCount">How many columns <paramref name="block"/> holds.</param>
@@ -309,6 +317,7 @@ public sealed class CsrMatrix
     /// result is <see cref="ColumnCount"/> of them. Materializing the transpose would cost a second
     /// matrix; scattering into the result instead reads each non-zero once, which is the same work.
     /// A <c>NaN</c> or infinity is carried through, not refused; a stored zero times an infinity is <c>NaN</c>.
+    /// One in a row of <paramref name="block"/> reaches the result only where that matrix row stores a column, as in scipy.
     /// </remarks>
     /// <param name="block">The dense right operand, row-major.</param>
     /// <param name="columnCount">How many columns <paramref name="block"/> holds.</param>

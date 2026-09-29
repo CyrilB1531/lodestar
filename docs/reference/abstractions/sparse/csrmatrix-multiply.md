@@ -43,7 +43,9 @@ This is the operation behind scoring a corpus against a linear model: the weight
 and each row's dot product is that document's score.
 
 A `NaN` or infinite value, stored or in the operand, is carried through, not refused — and a stored
-zero times an infinity is `NaN`, as it is in scipy's product.
+zero times an infinity is `NaN`, as it is in scipy's product. One in the operand reaches the result
+only where a row stores that column — the vector's entry, or the block's row, is otherwise never
+read — so a row storing `1` at column `0` and nothing else, times `[2, NaN]`, is `2`, as in scipy.
 
 **The block overload is not a loop over the vector one.** It makes one pass over the non-zeros
 rather than `columnCount` passes: each column index is read once and the inner loop walks

@@ -44,6 +44,10 @@ replaying the loop by hand against the frozen corpus measures the agreement itse
 under `4.48e-13` on the loosest case. `Tolerance`'s own `1e-12` is the loop's convergence delta, not
 that distance — the two are different quantities.
 
+`StopWords` is taken and exposed as given, not copied: writing to the caller's collection changes
+what these options equal, and every holder of it, a `with` copy included
+([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`TextRank`](textrank.md), [`KeywordMatch`](keywordmatch.md),
