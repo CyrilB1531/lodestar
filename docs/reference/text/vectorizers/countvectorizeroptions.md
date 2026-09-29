@@ -66,7 +66,9 @@ This is a `record`, so two options objects with the same settings are equal. `St
 compared **as a set** rather than as a sequence, which is why
 [`Equals`](countvectorizeroptions-equals.md) and
 [`GetHashCode`](countvectorizeroptions-gethashcode.md) are written by hand rather than
-synthesised.
+synthesised. `StopWords` is taken and exposed as given, not copied: writing to the caller's collection changes
+what these options equal, and every holder of it, a `with` copy included
+([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)).
 
 **Applies to** — net10.0, netstandard2.0.
 

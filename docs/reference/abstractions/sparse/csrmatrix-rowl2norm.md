@@ -41,7 +41,8 @@ every row's norm is `1` and calling this on one is a way to confirm that rather 
 something new.
 
 A stored `NaN` or infinity is carried into the norm, not refused: the row's norm is then `NaN` or
-`+∞`.
+`+∞`. The squares are summed as they are, unscaled, so a finite row whose sum of squares overflows —
+any value past about `1.34e154`, such as `[1e200]` — reads `+∞` although its true norm is finite.
 
 **Applies to** — net10.0, netstandard2.0.
 

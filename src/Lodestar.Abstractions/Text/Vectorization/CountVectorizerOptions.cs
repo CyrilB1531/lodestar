@@ -32,6 +32,10 @@ public sealed record CountVectorizerOptions
     public bool Binary { get; init; }
 
     /// <summary>Stop words to remove after tokenizing (word analyzer only). Default none.</summary>
+    /// <remarks>
+    /// Taken and exposed as it is, not copied: writing to the collection changes these options and what they
+    /// equal, and every holder of it, a <c>with</c> copy included (#1305).
+    /// </remarks>
     public IReadOnlyCollection<string>? StopWords { get; init; }
 
     /// <summary>Regex selecting word tokens, read as Python's <c>re</c> reads it. Default matches runs of two or more word characters.</summary>

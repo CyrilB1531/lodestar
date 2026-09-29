@@ -4,6 +4,10 @@ namespace Lodestar.Text.Keywords;
 public sealed record TextRankOptions
 {
     /// <summary>The stop words dropped before the graph is built. Null takes <c>StopWords.English</c>.</summary>
+    /// <remarks>
+    /// Taken and exposed as it is, not copied: writing to the collection changes these options and what they
+    /// equal, and every holder of it, a <c>with</c> copy included (#1305).
+    /// </remarks>
     public IReadOnlyCollection<string>? StopWords { get; init; }
 
     /// <summary>How many tokens share a co-occurrence window. 2 pairs adjacent tokens only.</summary>

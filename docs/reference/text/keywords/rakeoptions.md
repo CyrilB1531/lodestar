@@ -43,6 +43,10 @@ and `TokenPattern` ([decision 0005](../../../decisions/0005-the-proof-standard-a
 `Rake`'s constructor validates two of these fields eagerly: a `MinLength` below `1` or a
 `MaxLength` below `MinLength` throws at construction, before any document is read.
 
+`StopWords` is taken and exposed as given, not copied: writing to the caller's collection changes
+what these options equal, and every holder of it, a `with` copy included
+([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`Rake`](rake.md), [`RakeMetric`](rakemetric.md), [`KeywordMatch`](keywordmatch.md),

@@ -48,7 +48,9 @@ The result is **not** the transpose of `Multiply`'s. `Multiply` produces one row
 matrix; this produces one per column.
 
 A `NaN` or infinite value, stored or in `block`, is carried through, not refused — and a stored
-zero times an infinity is `NaN`, as it is in scipy's product.
+zero times an infinity is `NaN`, as it is in scipy's product. One in `block` reaches the result only
+where the matching row of the matrix stores a column, and then only that column's row of the
+result; a row of `block` facing an empty matrix row is never read, as in scipy.
 
 **On .NET Framework the cap is lower.** The bound is .NET's `Array.MaxLength`; .NET Framework
 refuses a `double` array past 2 GB, or past `0x7FEFFFFF` elements under `gcAllowVeryLargeObjects`,

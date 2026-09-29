@@ -25,6 +25,7 @@
   <ItemGroup Condition="'$(LodestarIncludesSharedHelpers)' != 'false'">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/GlobalUsings.cs" Link="Internal/GlobalUsings.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Guard.cs" Link="Internal/Guard.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/Guard.Disposal.cs" Link="Internal/Guard.Disposal.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/MapEquality.cs" Link="Internal/MapEquality.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/RegexDefaults.cs" Link="Internal/RegexDefaults.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/StringCompat.cs" Link="Internal/StringCompat.cs" />
@@ -46,8 +47,8 @@
   </ItemGroup>
 
   <!-- The argument guards, for a library that opts out of the helpers above: CsrMatrix's constructor
-       and products call them in Lodestar.Abstractions (#1282). The whole file comes with them,
-       NotDisposed included, which that package does not call. -->
+       and products call them in Lodestar.Abstractions (#1282). The disposal guard, which that
+       package does not call, lives in Guard.Disposal.cs and stays out (#1490). -->
   <ItemGroup Condition="'$(LodestarIncludesGuard)' == 'true' and '$(LodestarIncludesSharedHelpers)' == 'false'">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Guard.cs" Link="Internal/Guard.cs" />
   </ItemGroup>
