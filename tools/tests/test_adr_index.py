@@ -165,19 +165,21 @@ def test_the_committed_index_is_what_the_records_generate():
     assert adr_index.INDEX.read_text(encoding="utf-8") == adr_index.generate()
 
 
-def test_the_edges_are_0008_and_0009_amending():
-    """#1103 left seven records and no relation; #1157's 0008 amends 0004, #1198's 0009 amends 0005 and 0007.
+def test_the_edges_are_0008_0009_and_0010_amending():
+    """#1103 left seven records and no relation; #1157's 0008 amends 0004, #1198's 0009 amends 0005 and 0007,
+    #1364's 0010 amends 0003.
 
     An amendment is a new record, so an edge on one of the seven other than those reverse
     ones means a record was edited rather than succeeded -- the one thing immutability forbids.
     """
     entries = adr_index.build(adr_index.read_all())
 
-    assert len(entries) == 9
+    assert len(entries) == 10
     expected = {
         ("0008", "amends"): ["0004"], ("0004", "amended_by"): ["0008"],
         ("0009", "amends"): ["0005", "0007"], ("0005", "amended_by"): ["0009"],
         ("0007", "amended_by"): ["0009"],
+        ("0010", "amends"): ["0003"], ("0003", "amended_by"): ["0010"],
     }
     for number, entry in entries.items():
         for relation in ("supersedes", "amends", "applies",

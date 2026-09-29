@@ -269,18 +269,20 @@ Three traps, each already worth a session:
   as an artefact, so the comparison can be made off the runner.
 
 **Seven records, one per axis, an eighth amending the fourth, a ninth amending the fifth and the
-seventh, and a number names a different record than it did before 2026-09-20** — [#1103](https://github.com/CyrilB1531/lodestar/issues/1103) restarted the numbering
+seventh, a tenth amending the third, and a number names a different record than it did before 2026-09-20** — [#1103](https://github.com/CyrilB1531/lodestar/issues/1103) restarted the numbering
 after merging the 75 records that stated an axis and deleting the 72 that stated a mechanism. Read
 an older citation against the tree it was written in: `git show 53af23c2:docs/decisions/<file>`.
 **`0003` changed text on 2026-09-24**, when the numbering entered epoch 3: its rule for
 `Lodestar.Abstractions` went from the types packages exchange to the public data types, with no
-code. Its epoch-2 text reads at `9f9406c5`.
+code. Its epoch-2 text reads at `9f9406c5`, and `0010` says what that code is: logic, not a
+constructor that only stores.
 [`docs/decisions/index.yaml`](docs/decisions/index.yaml) carries each record's `supersedes`,
 `amends` and `applies` together with the reverses a record cannot state for itself — `amended_by`,
 which says the decision changed, and `applied_by`, which says it was used again unchanged —
-generated from the frontmatter by `tools/regen_adr_index.py`. Three edges exist — `0008` amends
-`0004`, numpy's generator now written here, and `0009` amends `0005` and `0007`, the phonetic
-encoders now following jellyfish on every input — because **a record is never edited and may only be
+generated from the frontmatter by `tools/regen_adr_index.py`. Four edges exist — `0008` amends
+`0004`, numpy's generator now written here, `0009` amends `0005` and `0007`, the phonetic
+encoders now following jellyfish on every input, and `0010` amends `0003`, a data type's
+constructor allowed to store what it is given — because **a record is never edited and may only be
 deleted**: an amendment is a new record,
 and `tools/check_adr_immutable.py` enforces exactly that — the one exception being a diff that raises
 `docs/decisions/.numbering-epoch`, which is how `0003` was rewritten. Follow both edges before citing

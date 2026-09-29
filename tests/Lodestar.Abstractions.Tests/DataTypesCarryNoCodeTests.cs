@@ -7,7 +7,7 @@ using Xunit;
 namespace Lodestar.Abstractions.Tests;
 
 /// <summary>
-/// Decision 0003(e) on the assembly as compiled: a data type carries no code the compiler did not write, but for its
+/// Decisions 0003(e) and 0010 on the assembly as compiled: a data type carries no code the compiler did not write, but for its
 /// structural <c>Equals</c> and <c>GetHashCode</c> (#1365).
 /// </summary>
 /// <remarks>
@@ -20,13 +20,10 @@ public sealed class DataTypesCarryNoCodeTests
     private const BindingFlags Declared =
         BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
-    /// <summary>The sparse primitive decision 0003 names, and the types #1364 is deciding.</summary>
+    /// <summary>The sparse primitive decision 0003 names; 0010 admits the constructors that only store, so no other.</summary>
     private static readonly HashSet<string> Exempt = new(StringComparer.Ordinal)
     {
         "Lodestar.Abstractions.CsrMatrix",
-        "Lodestar.Metrics.UndefinedMetricException",
-        "Lodestar.Stats.Regression.Instrumental.IvDesign",
-        "Lodestar.Stats.Regression.Panel.PanelDesign",
     };
 
     /// <summary>What a record's compiler writes without marking every one: its contract, printer and operators.</summary>

@@ -40,7 +40,7 @@
   amends: []
   applies: []
   superseded_by: []
-  amended_by: []
+  amended_by: ["0010"]
   applied_by: []
 
 "0004":
@@ -98,6 +98,16 @@
   status: "accepted"
   supersedes: []
   amends: ["0005", "0007"]
+  applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0010":
+  title: "A data type's constructor may store what it is given"
+  status: "accepted"
+  supersedes: []
+  amends: ["0003"]
   applies: []
   superseded_by: []
   amended_by: []

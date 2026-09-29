@@ -12,10 +12,12 @@ move and what it cost.
 
 The package has no dependencies, no I/O and nothing to configure. Its code is `CsrMatrix` and
 `SparseNorm` with the helpers they compile, and, beside the data types, the records' structural
-`Equals` and `GetHashCode` with the `ValueEquality` helper they call, `UndefinedMetricException`'s
-constructors and the constructors of the instrumental and panel designs; since 0.2.0 it also holds the public data types the packages declare that
-carry no logic — options, results and enums, each under its original namespace — so that upgrading
-one package never duplicates a type ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142)).
+`Equals` and `GetHashCode` with the `ValueEquality` helper they call. Since 0.2.0 it also holds the
+public data types the packages declare that carry no logic — options, results and enums, each under
+its original namespace — so that upgrading one package never duplicates a type
+([#1142](https://github.com/CyrilB1531/lodestar/issues/1142)). A constructor written by hand that
+only stores what it is given, as `IvDesign`'s, `PanelDesign`'s and `UndefinedMetricException`'s
+do, is not logic ([decision 0010](../../decisions/0010-a-data-type-s-constructor-may-store-what-it-is-given.md)).
 
 ## Compressed sparse row, in one paragraph
 
