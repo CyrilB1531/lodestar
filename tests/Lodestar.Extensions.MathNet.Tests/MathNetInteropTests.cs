@@ -186,4 +186,36 @@ public sealed class MathNetInteropTests
         Assert.Throws<ArgumentNullException>(() => MathNetInterop.ToSparseMatrix(null!));
         Assert.Throws<ArgumentNullException>(() => MathNetInterop.ToCsrMatrix(null!));
     }
+
+    [Fact]
+    public void A_diagonal_matrix_converts_from_its_diagonal()
+    {
+        // 100k square: walking every cell was 1e10 reads (#1220); its 1e5 stored entries convert at once.
+        const int size = 100_000;
+        var diagonal = DiagonalMatrix.Create(size, size, i => i % 3 == 0 ? 0.0 : i + 0.5);
+
+        CsrMatrix csr = MathNetInterop.ToCsrMatrix(diagonal);
+
+        Assert.Equal(size - ((size + 2) / 3), csr.NonZeroCount);
+        Assert.Equal(1.5, csr.Values[0]);
+        Assert.Equal(1, csr.ColumnIndices[0]);
+        Assert.Equal(0, csr.RowPointers[1]);
+        Assert.Equal(1, csr.RowPointers[2]);
+    }
+
+    [Fact]
+    public void A_dense_matrix_read_from_its_array_matches_the_cell_by_cell_reading()
+    {
+        // The column-major array, walked column by column, places each row's columns in order; NaN kept, zeros dropped.
+        var dense = DenseMatrix.OfRowArrays(
+            [0.0, 2.0, 0.0, double.NaN],
+            [-0.0, 0.0, 0.0, 0.0],
+            [5.0, 0.0, 7.0, 8.0]);
+
+        CsrMatrix csr = MathNetInterop.ToCsrMatrix(dense);
+
+        Assert.Equal([2.0, double.NaN, 5.0, 7.0, 8.0], csr.Values);
+        Assert.Equal([1, 3, 0, 2, 3], csr.ColumnIndices);
+        Assert.Equal([0, 2, 2, 5], csr.RowPointers);
+    }
 }

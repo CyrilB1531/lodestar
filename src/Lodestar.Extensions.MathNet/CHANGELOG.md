@@ -8,6 +8,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Changed
 
 - The `Lodestar.Abstractions` dependency floor rises from 0.1.1 to 0.2.0. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
+- `MathNetInterop.ToCsrMatrix` walks a diagonal matrix over its diagonal and a dense one over its own array, 86 to 330 times faster on a diagonal and 2.4 times on a 4,000-square dense matrix, where it read every cell. ([#1220](https://github.com/CyrilB1531/lodestar/issues/1220))
 
 ## [0.1.0] — 2026-09-10
 

@@ -303,6 +303,10 @@
       "src/Lodestar.Stats/**",
       "src/Lodestar.Decomposition/**"
     ],
+    "MathNetInteropBenchmarks": [
+      "src/Lodestar.Extensions.MathNet/**",
+      "src/Lodestar.Abstractions/**"
+    ],
     "WeightedLeastSquaresBenchmarks": [
       "src/Lodestar.Stats.Regression/**",
       "src/Lodestar.Stats/**",

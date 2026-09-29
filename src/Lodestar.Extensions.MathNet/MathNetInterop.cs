@@ -56,9 +56,9 @@ public static class MathNetInterop
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
     /// <remarks>
     /// A matrix already stored in compressed-row form hands over its three arrays, copied
-    /// so neither side can mutate the other's. Any other storage — dense, or
-    /// compressed-column — is walked row by row and its non-zero entries collected, which
-    /// is the honest cost of changing layout rather than a defect of this path.
+    /// so neither side can mutate the other's. Any other storage — dense or diagonal — is
+    /// walked over what it stores, so a diagonal matrix costs its diagonal and a dense one
+    /// its cells.
     /// </remarks>
     public static CsrMatrix ToCsrMatrix(Matrix<double> matrix)
     {
@@ -74,7 +74,9 @@ public static class MathNetInterop
                 Copy(csr.RowPointers, matrix.RowCount + 1));
         }
 
-        return FromAnyStorage(matrix);
+        return matrix.Storage is DenseColumnMajorMatrixStorage<double> dense
+            ? FromDense(dense)
+            : FromAnyStorage(matrix);
     }
 
     /// <summary>Whether the rows are already sorted by column with no duplicate.</summary>
@@ -135,36 +137,99 @@ public static class MathNetInterop
         columns = sortedColumns.ToArray();
     }
 
-    /// <summary>Collects the non-zero entries of a matrix this package cannot read directly.</summary>
-    private static CsrMatrix FromAnyStorage(Matrix<double> matrix)
+    /// <summary>Collects a dense matrix's non-zero entries straight from its column-major array.</summary>
+    /// <remarks>
+    /// Counted per row in one pass and placed in a second, columns in order, so each row comes out sorted: the
+    /// enumerator the other storages take cost a dense 1,000-square matrix twice the reads of its own array.
+    /// </remarks>
+    private static CsrMatrix FromDense(DenseColumnMajorMatrixStorage<double> dense)
     {
-        int rows = matrix.RowCount;
-        var values = new List<double>();
-        var columns = new List<int>();
+        int rows = dense.RowCount;
+        int columnCount = dense.ColumnCount;
+        double[] data = dense.Data;
         var pointers = new int[rows + 1];
+        for (int column = 0; column < columnCount; column++)
+        {
+            int offset = column * rows;
+            for (int row = 0; row < rows; row++)
+            {
+                if (IsStored(data[offset + row]))
+                {
+                    pointers[row + 1]++;
+                }
+            }
+        }
 
         for (int row = 0; row < rows; row++)
         {
-            for (int column = 0; column < matrix.ColumnCount; column++)
-            {
-                double value = matrix.At(row, column);
-
-                // S1244: a stored zero carries no information in CSR, and "differs from zero"
-                // is the structural question here rather than a comparison of measurements.
-#pragma warning disable S1244
-                if (value != 0.0)
-#pragma warning restore S1244
-                {
-                    values.Add(value);
-                    columns.Add(column);
-                }
-            }
-
-            pointers[row + 1] = values.Count;
+            pointers[row + 1] += pointers[row];
         }
 
-        return new CsrMatrix(rows, matrix.ColumnCount, values.ToArray(), columns.ToArray(), pointers);
+        var values = new double[pointers[rows]];
+        var columns = new int[pointers[rows]];
+        var next = (int[])pointers.Clone();
+        for (int column = 0; column < columnCount; column++)
+        {
+            int offset = column * rows;
+            for (int row = 0; row < rows; row++)
+            {
+                double value = data[offset + row];
+                if (IsStored(value))
+                {
+                    int at = next[row]++;
+                    values[at] = value;
+                    columns[at] = column;
+                }
+            }
+        }
+
+        return new CsrMatrix(rows, columnCount, values, columns, pointers);
     }
+
+    /// <summary>Collects the non-zero entries of a matrix this package cannot read directly.</summary>
+    /// <remarks>
+    /// Walks what the storage stores, <c>EnumerateIndexed(Zeros.AllowSkip)</c>, twice — once to count each row, once
+    /// to place it — rather than reading every cell: a 100k-square diagonal matrix costs its 1e5 entries, not 1e10
+    /// reads (#1220). Math.NET accepts no storage but its three, and the diagonal one enumerates in row order.
+    /// </remarks>
+    private static CsrMatrix FromAnyStorage(Matrix<double> matrix)
+    {
+        int rows = matrix.RowCount;
+        var pointers = new int[rows + 1];
+        foreach ((int row, _, double value) in matrix.EnumerateIndexed(Zeros.AllowSkip))
+        {
+            if (IsStored(value))
+            {
+                pointers[row + 1]++;
+            }
+        }
+
+        for (int row = 0; row < rows; row++)
+        {
+            pointers[row + 1] += pointers[row];
+        }
+
+        var values = new double[pointers[rows]];
+        var columns = new int[pointers[rows]];
+        var next = (int[])pointers.Clone();
+        foreach ((int row, int column, double value) in matrix.EnumerateIndexed(Zeros.AllowSkip))
+        {
+            if (IsStored(value))
+            {
+                int at = next[row]++;
+                values[at] = value;
+                columns[at] = column;
+            }
+        }
+
+        return new CsrMatrix(rows, matrix.ColumnCount, values, columns, pointers);
+    }
+
+    /// <summary>Whether CSR keeps the value: a stored zero carries no information, a NaN does.</summary>
+    // S1244: "differs from zero" is the structural question here rather than a comparison of measurements.
+#pragma warning disable S1244
+    private static bool IsStored(double value) => value != 0.0;
+#pragma warning restore S1244
 
     /// <summary>The first <paramref name="length"/> entries, so neither side shares an array.</summary>
     private static T[] Copy<T>(T[] source, int length)
