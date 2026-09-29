@@ -139,7 +139,7 @@ internal static class Inputs
     }
 
     // S1764: in both overloads x - x is the test itself, zero only for a finite x; .NET does not
-    // reassociate or fold floating-point arithmetic (docs/decisions/0033), so it survives the JIT.
+    // reassociate or fold floating-point arithmetic (decision 0033 at 53af23c2), so it survives the JIT.
 #pragma warning disable S1764
     /// <summary>Zero exactly when <paramref name="value"/> is finite, and nonzero otherwise.</summary>
     /// <param name="value">The value to test.</param>

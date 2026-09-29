@@ -21,6 +21,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `LikelihoodRatios.Compute` replaces `LR-` when there is no true negative even without a positive sample, and refuses a target with one class or two without `posLabel`. ([#1250](https://github.com/CyrilB1531/lodestar/issues/1250))
 - `LikelihoodRatios.Compute` computes both ratios from the counts, as scikit-learn does, rather than through `1 − specificity`. ([#1252](https://github.com/CyrilB1531/lodestar/issues/1252))
 - `DetCurve.Compute` refuses a `yTrue` holding other than two classes, as `det_curve` does. ([#1251](https://github.com/CyrilB1531/lodestar/issues/1251))
+- The comments and `docs/equivalence.md` rows that cited decision records #1103 renumbered point at them where they still read, at `53af23c2`. ([#1396](https://github.com/CyrilB1531/lodestar/issues/1396))
 
 ## [0.4.0] — 2026-09-24
 

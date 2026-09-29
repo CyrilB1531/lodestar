@@ -14,7 +14,7 @@ public static class CohenKappa
     /// <param name="zeroDivision">What to return when the expected agreement is undefined.</param>
     /// <remarks>
     /// Scores exactly the classes <paramref name="cm"/> holds and keeps
-    /// scikit-learn's expected-matrix orientation; see docs/decisions/0030 for
+    /// scikit-learn's expected-matrix orientation; see decision 0030 at 53af23c2 for
     /// both, including the label-order dependence <paramref name="weighting"/>
     /// other than <see cref="KappaWeighting.None"/> carries. If the view holds
     /// no weight at all, or the expected agreement collapses,
@@ -69,7 +69,7 @@ public static class CohenKappa
                 observed += weight * cells[(row * stride) + col];
 
                 // outer(colSums, rowSums), scikit-learn's term order — symmetric
-                // weights make it untestable here. See docs/decisions/0030.
+                // weights make it untestable here. See decision 0030 at 53af23c2.
                 expected += weight * (colSums[row] * rowSums[col] / total);
             }
         }

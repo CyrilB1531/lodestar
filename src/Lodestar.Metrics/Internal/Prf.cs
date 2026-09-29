@@ -249,7 +249,7 @@ internal static class Prf
     }
 
     // Derived from the raw counts, not the already-divided precision and
-    // recall — see docs/decisions/0032 for why the two diverge.
+    // recall — see decision 0032 at 53af23c2 for why the two diverge.
     private static double FScore(double tp, double predicted, double support, double beta, ZeroDivision zeroDivision)
     {
         // SonarLint S1244 warns against comparing floating point for exact
