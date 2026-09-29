@@ -48,6 +48,11 @@ only to read contiguous memory, so an unsorted row produces the same arithmetic 
 than a wrong answer — but it is what `CsrMatrix` guarantees and what a caller building the arrays
 by hand has to preserve.
 
+**A matrix storing nothing is accepted**, as `CsrMatrix` accepts it: a block of documents holding
+only stop words is the ordinary one, and its product is zeros. If an allocation fails, the buffers
+already on the device are released before the exception leaves
+([#1265](https://github.com/CyrilB1531/lodestar/issues/1265)).
+
 **Applies to** — net10.0, netstandard2.1.
 
 **See also** — [`DeviceSparseMatrix`](devicesparsematrix.md).

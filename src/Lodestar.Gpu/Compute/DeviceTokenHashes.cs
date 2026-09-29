@@ -75,9 +75,15 @@ public sealed class DeviceTokenHashes : IDisposable
         }
 
         offsets[documents.Count] = at;
+        // The first buffer is released if the second, or the batch around them, fails (#1265).
         Accelerator accelerator = context.Accelerator;
-        return new DeviceTokenHashes(context, Upload(accelerator, flat), accelerator.Allocate1D(offsets),
-            documents.Count);
+        MemoryBuffer1D<uint, Stride1D.Dense> hashes = Upload(accelerator, flat);
+        return DeviceOwnership.ReleaseOnFailure(hashes, () =>
+        {
+            MemoryBuffer1D<int, Stride1D.Dense> starts = accelerator.Allocate1D(offsets);
+            return DeviceOwnership.ReleaseOnFailure(
+                starts, () => new DeviceTokenHashes(context, hashes, starts, documents.Count));
+        });
     }
 
     /// <summary>Allocates a buffer for a host array, tolerating an empty one.</summary>

@@ -90,12 +90,28 @@ public sealed class DeviceSparseMatrix : IDisposable
 
         RefuseMalformedStructure(rowPointers, columnIndices, columnCount);
 
+        // An empty matrix is valid, and ILGPU's array overload throws on a zero-length array (#1265); a buffer already
+        // allocated is released if a later one fails, so the device holds nothing of a matrix never returned.
         Accelerator accelerator = context.Accelerator;
+        int[] columnArray = columnIndices.ToArray();
+        double[] valueArray = values.ToArray();
         MemoryBuffer1D<int, Stride1D.Dense> pointers = accelerator.Allocate1D(rowPointers.ToArray());
-        MemoryBuffer1D<int, Stride1D.Dense> columns = accelerator.Allocate1D(columnIndices.ToArray());
-        MemoryBuffer1D<double, Stride1D.Dense> stored = accelerator.Allocate1D(values.ToArray());
-        return new DeviceSparseMatrix(context, pointers, columns, stored, rowCount, columnCount);
+        return DeviceOwnership.ReleaseOnFailure(pointers, () =>
+        {
+            MemoryBuffer1D<int, Stride1D.Dense> columns = Allocate(accelerator, columnArray);
+            return DeviceOwnership.ReleaseOnFailure(columns, () =>
+            {
+                MemoryBuffer1D<double, Stride1D.Dense> stored = Allocate(accelerator, valueArray);
+                return DeviceOwnership.ReleaseOnFailure(
+                    stored, () => new DeviceSparseMatrix(context, pointers, columns, stored, rowCount, columnCount));
+            });
+        });
     }
+
+    /// <summary>A buffer holding <paramref name="values"/>, or an empty one, which ILGPU's array overload refuses.</summary>
+    private static MemoryBuffer1D<T, Stride1D.Dense> Allocate<T>(Accelerator accelerator, T[] values)
+        where T : unmanaged =>
+        values.Length == 0 ? accelerator.Allocate1D<T>(0) : accelerator.Allocate1D(values);
 
     /// <summary>Throws unless the offsets and the columns stay inside the arrays the kernel reads.</summary>
     /// <remarks>

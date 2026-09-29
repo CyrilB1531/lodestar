@@ -115,8 +115,13 @@ public sealed class DeviceTextBlock : IDisposable
         MemoryBuffer1D<byte, Stride1D.Dense> deviceSymbols = symbols.Length == 0
             ? accelerator.Allocate1D<byte>(0)
             : accelerator.Allocate1D(symbols);
-        MemoryBuffer1D<int, Stride1D.Dense> deviceOffsets = accelerator.Allocate1D(offsets);
-        return new DeviceTextBlock(context, deviceSymbols, deviceOffsets, texts.Count, alphabet);
+        int count = texts.Count;
+        return DeviceOwnership.ReleaseOnFailure(deviceSymbols, () =>
+        {
+            MemoryBuffer1D<int, Stride1D.Dense> deviceOffsets = accelerator.Allocate1D(offsets);
+            return DeviceOwnership.ReleaseOnFailure(
+                deviceOffsets, () => new DeviceTextBlock(context, deviceSymbols, deviceOffsets, count, alphabet));
+        });
     }
 
     /// <summary>Throws unless a kernel loaded on <paramref name="context"/> may read this block.</summary>
