@@ -31,6 +31,8 @@ public sealed class OnnxTextEmbedder : IDisposable
     private readonly string[] _outputNames;
     private readonly ISubwordTokenizer? _tokenizer;
     private readonly int? _maxSequenceLength;
+    private readonly int? _fixedSequence;
+    private readonly int? _fixedBatch;
     private bool _disposed;
 
     /// <summary>Opens an ONNX encoder model from <paramref name="modelPath"/>.</summary>
@@ -72,8 +74,9 @@ public sealed class OnnxTextEmbedder : IDisposable
             _tokenTypeIdsName = _session.InputMetadata.ContainsKey(tokenTypeIdsName) ? tokenTypeIdsName : null;
             _outputName = ChooseOutput(_session, outputName, nameof(outputName));
             _outputNames = [_outputName];
-            _maxSequenceLength = DeclaredSequenceLength(_session, _inputIdsName)
-                ?? PositionTable.UsableLength(modelPath, _inputIdsName);
+            _fixedSequence = DeclaredSequenceLength(_session, _inputIdsName);
+            _fixedBatch = DeclaredBatchSize(_session, _inputIdsName);
+            _maxSequenceLength = _fixedSequence ?? PositionTable.UsableLength(modelPath, _inputIdsName);
         }
         catch
         {
@@ -147,7 +150,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// </remarks>
     /// <param name="inputIds">Token ids.</param>
     /// <param name="attentionMask">Attention mask (same length as <paramref name="inputIds"/>).</param>
-    /// <exception cref="ArgumentException"><paramref name="inputIds"/> and <paramref name="attentionMask"/> differ in length.</exception>
+    /// <exception cref="ArgumentException"><paramref name="inputIds"/> and <paramref name="attentionMask"/> differ in length, or are longer than the model's fixed sequence axis.</exception>
     /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed.</exception>
@@ -168,7 +171,7 @@ public sealed class OnnxTextEmbedder : IDisposable
         {
             inputIds.CopyTo(ids);
             attentionMask.CopyTo(mask);
-            return Run(ids, mask, batchSize: 1, seqLen)[0];
+            return Run(ids, mask, batchSize: 1, seqLen, nameof(inputIds))[0];
         }
         finally
         {
@@ -179,8 +182,8 @@ public sealed class OnnxTextEmbedder : IDisposable
 
     /// <summary>
     /// Embeds a corpus: tokenizes, inserts the model's special tokens, truncates,
-    /// pads each sub-batch to its own longest sequence, and returns one normalized
-    /// vector per input text, in the input order.
+    /// pads each sub-batch to its own longest sequence — or to the model's fixed axes, for a static
+    /// export — and returns one normalized vector per input text, in the input order.
     /// </summary>
     /// <remarks>
     /// The equivalent of
@@ -191,7 +194,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="options">Template, truncation and batching settings; <see langword="null"/> uses the defaults, with <c>MaxLength</c> taken from <see cref="MaxSequenceLength"/>.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="options"/> is refused by <see cref="BatchEncoder"/>, or a text is, as one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/> is.</exception>
+    /// <exception cref="ArgumentException"><paramref name="options"/> is refused by <see cref="BatchEncoder"/> or sets a <c>MaxLength</c> past the model's fixed sequence axis, or a text is refused, as one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/> is.</exception>
     /// <exception cref="InvalidOperationException">The embedder was built without a tokenizer, or the model output is not shaped for the batch it was fed.</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
@@ -221,7 +224,7 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <param name="encoder">The encoder that owns the tokenizer, template and truncation.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> or <paramref name="encoder"/> is null.</exception>
-    /// <exception cref="ArgumentException">The encoder refuses a text, as it refuses one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/>.</exception>
+    /// <exception cref="ArgumentException">The encoder refuses a text, as it refuses one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/>, or encodes one past the model's fixed sequence axis.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
@@ -247,7 +250,7 @@ public sealed class OnnxTextEmbedder : IDisposable
             cancellationToken.ThrowIfCancellationRequested();
             int count = Math.Min(batchSize, total - start);
             EncodedBatch batch = encoder.Pad(sequences, start, count, order);
-            float[][] vectors = RunBatch(batch);
+            float[][] vectors = RunBatch(batch, nameof(encoder));
             for (int i = 0; i < count; i++)
             {
                 embeddings[order is null ? start + i : order[start + i]] = vectors[i];
@@ -260,11 +263,13 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// <remarks>
     /// The lowest-level batch entry point: one ONNX Runtime call over
     /// <see cref="EncodedBatch.InputIds"/>, pooled behind
-    /// <see cref="EncodedBatch.AttentionMask"/>. No sub-batching and no reordering.
+    /// <see cref="EncodedBatch.AttentionMask"/>, and no reordering; a static export's fixed batch axis
+    /// splits it into chunks of that size.
     /// </remarks>
     /// <param name="batch">A batch from <see cref="BatchEncoder.EncodeBatch"/>.</param>
     /// <param name="cancellationToken">Observed before the call is made.</param>
     /// <exception cref="ArgumentNullException"><paramref name="batch"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="batch"/> is longer than the model's fixed sequence axis.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed.</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
@@ -274,7 +279,7 @@ public sealed class OnnxTextEmbedder : IDisposable
         ThrowIfDisposed();
         Guard.NotNull(batch);
         cancellationToken.ThrowIfCancellationRequested();
-        return batch.Count == 0 ? [] : RunBatch(batch);
+        return batch.Count == 0 ? [] : RunBatch(batch, nameof(batch));
     }
 
     /// <summary>Releases the underlying ONNX Runtime session.</summary>
@@ -302,6 +307,12 @@ public sealed class OnnxTextEmbedder : IDisposable
     private EncodingOptions ResolveOptions(EncodingOptions? options)
     {
         EncodingOptions resolved = options ?? new EncodingOptions();
+        if (_fixedSequence is int axis && resolved.MaxLength > axis)
+        {
+            throw new ArgumentException(
+                $"MaxLength {resolved.MaxLength} is past the model's fixed sequence axis of {axis}.", nameof(options));
+        }
+
         return resolved.MaxLength is null && _maxSequenceLength is int limit
             ? resolved with { MaxLength = limit }
             : resolved;
@@ -312,6 +323,13 @@ public sealed class OnnxTextEmbedder : IDisposable
     {
         int[] shape = session.InputMetadata[inputIdsName].Dimensions;
         return shape.Length >= 2 && shape[^1] > 0 ? shape[^1] : null;
+    }
+
+    /// <summary>The batch axis a static export fixes, or <see langword="null"/> when it is symbolic.</summary>
+    private static int? DeclaredBatchSize(InferenceSession session, string inputIdsName)
+    {
+        int[] shape = session.InputMetadata[inputIdsName].Dimensions;
+        return shape.Length >= 2 && shape[0] > 0 ? shape[0] : null;
     }
 
     /// <summary>Indices of <paramref name="sequences"/> ordered by length, ties by original position.</summary>
@@ -334,7 +352,7 @@ public sealed class OnnxTextEmbedder : IDisposable
 
     // ONNX Runtime wraps a Memory<T>, which EncodedBatch exposes only as spans:
     // renting and copying beats a second padding that can drift from BatchEncoder's.
-    private float[][] RunBatch(EncodedBatch batch)
+    private float[][] RunBatch(EncodedBatch batch, string paramName)
     {
         long[] ids = ArrayPool<long>.Shared.Rent(batch.InputIds.Length);
         long[] mask = ArrayPool<long>.Shared.Rent(batch.AttentionMask.Length);
@@ -342,7 +360,7 @@ public sealed class OnnxTextEmbedder : IDisposable
         {
             batch.InputIds.CopyTo(ids);
             batch.AttentionMask.CopyTo(mask);
-            return Run(ids, mask, batch.Count, batch.SequenceLength);
+            return Run(ids, mask, batch.Count, batch.SequenceLength, paramName);
         }
         finally
         {
@@ -351,8 +369,52 @@ public sealed class OnnxTextEmbedder : IDisposable
         }
     }
 
-    /// <summary>Runs one padded batch and pools it.</summary>
-    private float[][] Run(long[] ids, long[] mask, int batchSize, int seqLen)
+    /// <summary>Runs one padded batch and pools it, in the shape a static export fixes where it fixes one.</summary>
+    /// <remarks>
+    /// ONNX Runtime refuses any other dimension on a fixed axis (#1258): each row is widened to the fixed sequence
+    /// axis with masked padding, which the mean leaves out, and the rows are run in chunks of the fixed batch axis,
+    /// the last filled with masked rows whose outputs are dropped. A padded id is never read unmasked, so its value
+    /// is irrelevant; it is 0.
+    /// </remarks>
+    private float[][] Run(long[] ids, long[] mask, int batchSize, int seqLen, string paramName)
+    {
+        // A row past a fixed axis cannot be fed; refused under the caller's parameter rather than by the runtime.
+        if (_fixedSequence is int axis && seqLen > axis)
+        {
+            throw new ArgumentException(
+                $"A sequence of {seqLen} tokens is past the model's fixed sequence axis of {axis}.", paramName);
+        }
+
+        int width = _fixedSequence is int fixedWidth && fixedWidth > seqLen ? fixedWidth : seqLen;
+        int chunk = _fixedBatch ?? batchSize;
+        if (width == seqLen && chunk == batchSize)
+        {
+            return RunExact(ids, mask, batchSize, seqLen);
+        }
+
+        var pooled = new float[batchSize][];
+        long[] chunkIds = new long[(long)chunk * width];
+        long[] chunkMask = new long[chunkIds.Length];
+        for (int first = 0; first < batchSize; first += chunk)
+        {
+            int rows = Math.Min(chunk, batchSize - first);
+            Array.Clear(chunkIds, 0, chunkIds.Length);
+            Array.Clear(chunkMask, 0, chunkMask.Length);
+            for (int row = 0; row < rows; row++)
+            {
+                Array.Copy(ids, (first + row) * seqLen, chunkIds, row * width, seqLen);
+                Array.Copy(mask, (first + row) * seqLen, chunkMask, row * width, seqLen);
+            }
+
+            float[][] vectors = RunExact(chunkIds, chunkMask, chunk, width);
+            Array.Copy(vectors, 0, pooled, first, rows);
+        }
+
+        return pooled;
+    }
+
+    /// <summary>Runs one batch exactly as shaped and pools it.</summary>
+    private float[][] RunExact(long[] ids, long[] mask, int batchSize, int seqLen)
     {
         int elements = batchSize * seqLen;
         var inputs = new List<NamedOnnxValue>(3)

@@ -38,6 +38,10 @@ fixtures, rebuilt only when one of them has to change:
     exact in all four formats, so the first two must embed bit for bit as the
     float32 model does; the third is the element type the embedder refuses.
 
+``tiny_embedder_static.onnx``
+    ``tiny_embedder.onnx``'s lookup with its axes fixed, ``[2, 16]``: ONNX Runtime refuses any other
+    batch or sequence dimension, so the embedder must pad and chunk to the export's shape (#1258).
+
 ``tiny_transposed.onnx``
     ``tiny_embedder.onnx`` followed by a ``Transpose``, so the output is
     ``[seq, batch, dim]``: the same element count as the ``[batch, seq, dim]``
@@ -147,6 +151,21 @@ def build_tiny_embedder() -> onnx.ModelProto:
          _int64_input("token_type_ids", ["batch", "seq"])],
         [helper.make_tensor_value_info(
             "last_hidden_state", TensorProto.FLOAT, ["batch", "seq", EMBEDDING_DIM])],
+        [table],
+    )
+    return helper.make_model(graph, ir_version=IR_VERSION,
+                             opset_imports=[helper.make_opsetid("", OPSET)])
+
+
+def build_tiny_embedder_static() -> onnx.ModelProto:
+    """``tiny_embedder.onnx`` exported with fixed axes, ``[2, 16]``, as a static or mobile export is."""
+    table = numpy_helper.from_array(embedding_table(), name="E")
+    graph = helper.make_graph(
+        [helper.make_node(GATHER, ["E", "input_ids"], ["last_hidden_state"], axis=0)],
+        "tiny_embedder_static",
+        [helper.make_tensor_value_info("input_ids", TensorProto.INT64, [2, 16]),
+         helper.make_tensor_value_info(ATTENTION_MASK, TensorProto.INT64, [2, 16])],
+        [helper.make_tensor_value_info("last_hidden_state", TensorProto.FLOAT, [2, 16, EMBEDDING_DIM])],
         [table],
     )
     return helper.make_model(graph, ir_version=IR_VERSION,
@@ -267,6 +286,7 @@ VARIANT_MODELS = (
     ("tiny_embedder_bf16.onnx", lambda: build_tiny_embedder_as(TensorProto.BFLOAT16, np.float32)),
     ("tiny_embedder_fp64.onnx", lambda: build_tiny_embedder_as(TensorProto.DOUBLE, np.float64)),
     ("tiny_transposed.onnx", build_tiny_transposed),
+    ("tiny_embedder_static.onnx", build_tiny_embedder_static),
     ("tiny_positional.onnx", build_tiny_positional),
     ("tiny_positional_offset.onnx", lambda: build_tiny_positional_offset(False)),
     ("tiny_positional_offset_init.onnx", lambda: build_tiny_positional_offset(True)),
