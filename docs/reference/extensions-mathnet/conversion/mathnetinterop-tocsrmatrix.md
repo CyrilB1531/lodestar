@@ -35,10 +35,12 @@ int rows = csr.RowCount;         // => 3
 ```
 
 **Remarks** — a matrix already in compressed-row form hands over its three arrays, copied so neither
-side can mutate the other's. **Any other storage is walked.** A dense matrix, or a compressed-column
-one, has none of the arrays the fast path copies, so its cells are visited row by row and the
-non-zero ones collected — the honest cost of changing layout, not a defect of this path. A caller
-converting a large dense matrix is paying for the layout change and should expect to.
+side can mutate the other's. **Any other storage is walked over what it stores.** A dense matrix is
+read from its own column-major array and a diagonal one enumerated over its stored entries; either
+way the non-zero ones are counted per row and then placed, so a diagonal matrix costs its diagonal,
+not its square ([#1220](https://github.com/CyrilB1531/lodestar/issues/1220)), and a dense one its
+cells, which is the honest cost of changing layout. A stored `NaN` is kept and a stored zero
+dropped.
 
 An empty row is a row: it contributes no stored value and its row pointer repeats the previous one,
 which is what the example's middle row shows.
