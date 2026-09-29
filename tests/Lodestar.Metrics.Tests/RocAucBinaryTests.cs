@@ -44,10 +44,9 @@ public sealed class RocAucBinaryTests
         int[] yTrue = [];
         double[] scores = [];
 
-        // Without the dedicated n == 0 guard, an empty input still throws, from
-        // the single-class check; pin the message to tell the two guards apart.
+        // roc_auc_score([], []) raises check_array's sentence before any label is read (#1585).
         ArgumentException ex = Assert.Throws<ArgumentException>(() => RocAuc.Score(yTrue, scores));
-        Assert.Contains("there is nothing to score", ex.Message, StringComparison.Ordinal);
+        Assert.StartsWith("Found array with 0 sample(s) (shape=(0,)) while a minimum of 1 is required.", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

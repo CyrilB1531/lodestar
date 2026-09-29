@@ -69,16 +69,19 @@ are measured rather than reasoned about.
 | --- | --- | --- |
 | a weight vector summing to zero, `[1, 1, 1, -3]` | `0.5`, through a numpy "divide by zero encountered" warning | `-0` |
 
-There, the running total of weight reaches zero, and the precision at that threshold is a
-division the reference performs under a warning and this one guards. Every weight `0` does not
-reach it: both sides refuse that vector with the same message — except on the matrix overload under
-`Averaging.Weighted`, where `_average_binary_score` first sums the weighted positives over every
-label and returns `0` when that total is within `1e-8` of zero (numpy's `isclose`), before any label
-is scored. Every weight `0`, weights that cancel, and a matrix with no positive at all therefore
-score `0` there, on both sides ([#1534](https://github.com/CyrilB1531/lodestar/issues/1534)). A `yTrue` of two labels neither of which is `posLabel` is refused on both sides, as
-`average_precision_score` refuses its `pos_label` ([#1277](https://github.com/CyrilB1531/lodestar/issues/1277)).
-A negative weight that leaves the total positive is accepted by both and agrees:
-`[-1, 2, 1, 1]` scores `0.75` on either side.
+There, the running total of weight reaches zero, and the precision at that threshold is a division
+the reference performs under a warning and this one guards. Every weight `0` does not reach it: both
+sides refuse that vector with the same message — except on the matrix overload under
+`Averaging.Weighted` over two labels or more, where `_average_binary_score` first sums each label's
+weight, adds the label totals with numpy's pairwise sum and returns `0` when that is within `1e-8`
+of zero (`isclose`), before any label is scored
+([#1586](https://github.com/CyrilB1531/lodestar/issues/1586)); a single column is a binary problem
+there and is scored as one. Every weight `0`, weights that cancel, and a matrix with no positive at
+all therefore score `0` there, on both sides
+([#1534](https://github.com/CyrilB1531/lodestar/issues/1534)). A `yTrue` of two labels neither of
+which is `posLabel` is refused on both sides, as `average_precision_score` refuses its `pos_label`
+([#1277](https://github.com/CyrilB1531/lodestar/issues/1277)). A negative weight that leaves the
+total positive is accepted by both and agrees: `[-1, 2, 1, 1]` scores `0.75` on either side.
 
 **Applies to** — net10.0, netstandard2.0.
 

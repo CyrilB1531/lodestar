@@ -75,8 +75,9 @@ public sealed class RocAucRadixTests
         (int[] yTrue, double[] scores) = Sample(20_000, distinctScores: 500);
         scores[1] = double.NegativeInfinity;
 
+        // check_array refuses it in its own words before the radix sort sees it (#1585).
         var error = Assert.Throws<ArgumentException>(() => RocAuc.Score(yTrue, scores));
-        Assert.StartsWith("yScore[1] is infinite", error.Message, StringComparison.Ordinal);
+        Assert.StartsWith("Input contains infinity or a value too large for dtype('float64').", error.Message, StringComparison.Ordinal);
     }
 
     private static (int[] YTrue, double[] Scores) Sample(int n, int distinctScores)
