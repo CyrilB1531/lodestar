@@ -44,6 +44,8 @@ long first = ids[0];      // => 4
 `TruncationStrategy.Right` is cut and returns.
 `ArgumentException` also when the tokenizer refuses `text`: a SentencePiece model refuses a lone
 surrogate, as neither reference can be handed one ([#1324](https://github.com/CyrilB1531/lodestar/issues/1324)).
+`InvalidDataException` when a SentencePiece model's precompiled charsmap points at a replacement it
+does not contain, which is found only when an encode walks the map.
 
 **Remarks** — three ids for a one-token text: `[CLS]` is `4`, `text` is `3`, `[SEP]` is `5`. The
 template is the difference between this and

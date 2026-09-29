@@ -14,7 +14,11 @@ public TokenizationResult Encode(string text)
 
 **Exceptions** — `ArgumentNullException` when `text` is null. `ArgumentException` when `text`
 holds a lone surrogate, which neither `tokenizers` nor sentencepiece can be handed
-([#1324](https://github.com/CyrilB1531/lodestar/issues/1324)).
+([#1324](https://github.com/CyrilB1531/lodestar/issues/1324)); it is refused before the
+normalizer runs, so [`PrecompiledNormalizer.Normalize`](precompilednormalizer-normalize.md)'s own
+refusal of one never reaches here. `InvalidDataException` when the vocabulary's
+precompiled charsmap points at a replacement it does not contain: construction checks the map's
+header and trie, and this is found only when an encode walks it.
 
 **Example** — the space is inside the token, not between them.
 

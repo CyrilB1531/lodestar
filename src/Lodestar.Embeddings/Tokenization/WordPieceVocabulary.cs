@@ -5,10 +5,10 @@ namespace Lodestar.Embeddings.Tokenization;
 /// <c>model</c> section of a <c>tokenizer.json</c>.
 /// </summary>
 /// <remarks>
-/// Carries the settings that change tokenization and that a caller building the
-/// table by hand would have to guess: which token stands for the unknown, what
-/// marks a continuation piece, and whether the model was trained lowercased.
-/// Getting any of them wrong silently produces embeddings for a different model.
+/// Carries the settings a caller building the table by hand would guess: the unknown token, the continuation mark,
+/// whether the model was trained lowercased. Getting one wrong silently gives embeddings for another model.
+/// Its collections are taken as given, not copied: a write through a cast changes this record and what it
+/// equals, and can change its hash (#1305). A tokenizer copies them at construction, so one built is unaffected.
 /// </remarks>
 /// <param name="Vocab">Token to id, in the order the file declared them.</param>
 /// <param name="UnkToken">The unknown token, e.g. <c>[UNK]</c>; present in <paramref name="Vocab"/>.</param>

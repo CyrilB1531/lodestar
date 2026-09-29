@@ -14,7 +14,8 @@ because tokenizing a large corpus is not instant.
 **Returns** — one `long[]` per text, in the order given, each already carrying its template tokens
 and already truncated. No padding and no rectangle.
 
-**Exceptions** — `OperationCanceledException` when cancelled. `ArgumentNullException` when `texts`
+**Exceptions** — `InvalidDataException` when a SentencePiece model's charsmap points at a replacement it lacks, found only when a text walks the map ([#1502](https://github.com/CyrilB1531/lodestar/issues/1502)).
+`OperationCanceledException` when cancelled. `ArgumentNullException` when `texts`
 is null. `ArgumentException`, naming `texts` and the text's position, when a text is refused as
 [`Encode`](batchencoder-encode.md) refuses it — past `MaxLength` without truncation, or a lone
 surrogate under a SentencePiece model ([#1324](https://github.com/CyrilB1531/lodestar/issues/1324)).

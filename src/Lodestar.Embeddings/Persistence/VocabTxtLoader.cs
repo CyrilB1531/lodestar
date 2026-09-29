@@ -36,6 +36,7 @@ public static class VocabTxtLoader
         string continuationPrefix = "##",
         bool lowercase = false)
     {
+        Guard.NotNull(source);
         RefuseNullNames(unkToken, continuationPrefix);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         return Parse(JsonArtifact.ReadAllBytes(source, limits), limits, unkToken, continuationPrefix, lowercase);
@@ -49,6 +50,8 @@ public static class VocabTxtLoader
     /// <param name="lowercase">Whether the model was trained on lowercased text.</param>
     /// <exception cref="InvalidDataException">The file is empty, exceeds a limit, or lacks <paramref name="unkToken"/>.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="path"/>, <paramref name="unkToken"/> or <paramref name="continuationPrefix"/> is null.</exception>
+    /// <exception cref="FileNotFoundException">The file does not exist (#1504).</exception>
+    /// <exception cref="IOException">The file cannot be opened or read (#1504).</exception>
     public static WordPieceVocabulary Load(
         string path,
         ArtifactLoadOptions? options = null,
@@ -56,6 +59,7 @@ public static class VocabTxtLoader
         string continuationPrefix = "##",
         bool lowercase = false)
     {
+        Guard.NotNull(path);
         RefuseNullNames(unkToken, continuationPrefix);
         using FileStream file = JsonArtifact.OpenRead(path);
         return Load(file, options, unkToken, continuationPrefix, lowercase);
@@ -79,6 +83,7 @@ public static class VocabTxtLoader
         bool lowercase = false,
         CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(source);
         RefuseNullNames(unkToken, continuationPrefix);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         ReadOnlyMemory<byte> payload = await JsonArtifact.ReadAllBytesAsync(source, limits, cancellationToken).ConfigureAwait(false);

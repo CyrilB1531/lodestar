@@ -5,10 +5,10 @@ namespace Lodestar.Embeddings.Tokenization;
 /// <c>spiece.model</c> or the <c>model</c> section of a <c>tokenizer.json</c>.
 /// </summary>
 /// <remarks>
-/// The piece <em>types</em> are the point of this record: without them a
-/// tokenizer has to guess which entries are control markers by id, which fails
-/// silently for any model that does not happen to put <c>&lt;unk&gt;</c>,
-/// <c>&lt;s&gt;</c> and <c>&lt;/s&gt;</c> at 0, 1 and 2.
+/// The piece <em>types</em> are the point of this record: without them a tokenizer guesses control markers by id,
+/// which fails silently for a model not putting <c>&lt;unk&gt;</c>, <c>&lt;s&gt;</c> and <c>&lt;/s&gt;</c> at 0, 1, 2.
+/// Its collections are taken as given, not copied: a write through a cast changes this record and what it
+/// equals, and can change its hash (#1305). A tokenizer copies them at construction, so one built is unaffected.
 /// </remarks>
 /// <param name="Pieces">The pieces with their scores, indexed by id.</param>
 /// <param name="Types">The type of each piece, aligned with <paramref name="Pieces"/>.</param>

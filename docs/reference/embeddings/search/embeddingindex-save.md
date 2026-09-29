@@ -48,6 +48,11 @@ The `path` overload **checks for that before it opens the file**. Truncating a g
 then refusing to write is the failure mode that would cost you the index you already had, so the
 check comes first and a refused save leaves the existing file untouched.
 
+**An index past 1,000,000 vectors saves, but loads only with a raised `MaxArrayLength`**: a load
+holds the vector count to [`ArtifactLoadOptions`](../persistence/artifactloadoptions.md)'
+`MaxArrayLength`, whose default is 1,000,000. Save does not check it, since the ceiling is the
+reader's to choose.
+
 The stream overload leaves `destination` open, so an index can be one entry inside a larger
 archive.
 

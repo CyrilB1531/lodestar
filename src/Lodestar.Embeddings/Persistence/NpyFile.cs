@@ -87,8 +87,9 @@ public static class NpyFile
     /// For a caller holding the file already — a blob, a cache entry, an embedded resource.
     /// <b>The returned block aliases those bytes, so they must not change while it is read</b>,
     /// the contract <c>EmbeddingIndex.Load(ReadOnlyMemory)</c> states for the same reason.
-    /// <see cref="NpyBlock.OwnedArray"/> is therefore null: a borrowed block has no array to
-    /// hand over. The performance guide has the trade. A big-endian host copies and swaps instead.
+    /// <see cref="NpyBlock.OwnedArray"/> is therefore null on a little-endian host: a borrowed block
+    /// has no array to hand over. A big-endian host copies and swaps instead, and sets it to that
+    /// copy. The performance guide has the trade.
     /// </remarks>
     /// <param name="npy">The file's bytes, which outlive the block.</param>
     /// <param name="options">Bounds applied while reading, or <see langword="null"/> for the defaults.</param>

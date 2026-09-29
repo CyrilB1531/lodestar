@@ -56,7 +56,9 @@ Each tokenizer here implements one fixed pipeline, and a `tokenizer.json` descri
 reproduce it. `LoadBpe` reproduces `byte_fallback` instead — Llama-2 and Mistral v0.1 both
 load — and refuses only a vocabulary that declares the flag without carrying the byte alphabet it
 promises; [decision 0007](../../decisions/0007-the-deliberate-divergences.md)
-has why.
+has why. [Decision 0005](../../decisions/0005-the-proof-standard-and-the-oracle-each-family-is-frozen-from.md)'s
+section (b) BPE row, which says `byte_fallback` is refused, predates that support and is kept as
+written.
 
 A refusal is the correct outcome: the alternative is embeddings that do not match the model and
 carry nothing to say so.

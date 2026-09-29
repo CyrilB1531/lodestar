@@ -54,6 +54,11 @@ file, which stores them that way, and keeps the piece a small value type.
 A `Normalizer` of `null` means the text reaches the tokenizer unchanged; a stock T5 or XLM-R ships
 one, and a model built by hand usually does not.
 
+`Pieces`, `Types` and the other collections are taken as given, not copied: a caller casting one
+back to its list and writing to it changes this record and what it equals, and can change its
+hash ([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)). [`SentencePieceTokenizer`](sentencepiecetokenizer.md) copies them at
+construction, so a tokenizer already built is unaffected.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`SentencePieceTokenizer`](sentencepiecetokenizer.md),

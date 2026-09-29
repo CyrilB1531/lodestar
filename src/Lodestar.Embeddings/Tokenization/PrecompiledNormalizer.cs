@@ -118,7 +118,8 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
         {
             exact = JsonArtifact.Utf8NoBom.GetByteCount(text);
         }
-        catch (Exception e) when (e is ArgumentException or OverflowException)
+        // A lone surrogate is an EncoderFallbackException, an ArgumentException too, and is not a length (#1493).
+        catch (Exception e) when (e is (ArgumentException or OverflowException) and not System.Text.EncoderFallbackException)
         {
             throw TooLong(nameof(text), e);
         }
@@ -145,6 +146,7 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="text"/> encodes to more UTF-8 bytes than one array holds.</exception>
     /// <exception cref="InvalidDataException">The charsmap points at a replacement it does not contain.</exception>
+    /// <exception cref="System.Text.EncoderFallbackException">The text holds a lone surrogate, which UTF-8 cannot carry (#1502).</exception>
     public string Normalize(string text)
     {
         Guard.NotNull(text);

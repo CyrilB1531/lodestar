@@ -62,6 +62,7 @@ public static class TokenizerJsonLoader
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
     public static WordPieceVocabulary LoadWordPiece(Stream source, ArtifactLoadOptions? options = null)
     {
+        Guard.NotNull(source);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         using JsonDocument document = ParseDocument(JsonArtifact.ReadAllBytes(source, limits), limits);
         return ReadWordPiece(document.RootElement, limits);
@@ -72,8 +73,11 @@ public static class TokenizerJsonLoader
     /// <param name="options">Bounds applied while reading, or <c>null</c> for the defaults.</param>
     /// <exception cref="InvalidDataException">The file is malformed, exceeds a limit, declares a different model type, or describes a pipeline this library does not reproduce.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
+    /// <exception cref="FileNotFoundException">The file does not exist (#1504).</exception>
+    /// <exception cref="IOException">The file cannot be opened or read (#1504).</exception>
     public static WordPieceVocabulary LoadWordPiece(string path, ArtifactLoadOptions? options = null)
     {
+        Guard.NotNull(path);
         using FileStream file = JsonArtifact.OpenRead(path);
         return LoadWordPiece(file, options);
     }
@@ -90,6 +94,7 @@ public static class TokenizerJsonLoader
         ArtifactLoadOptions? options = null,
         CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(source);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         ReadOnlyMemory<byte> payload = await JsonArtifact.ReadAllBytesAsync(source, limits, cancellationToken).ConfigureAwait(false);
         using JsonDocument document = ParseDocument(payload, limits);
@@ -103,6 +108,7 @@ public static class TokenizerJsonLoader
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
     public static SentencePieceVocabulary LoadUnigram(Stream source, ArtifactLoadOptions? options = null)
     {
+        Guard.NotNull(source);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         using JsonDocument document = ParseDocument(JsonArtifact.ReadAllBytes(source, limits), limits);
         return ReadUnigram(document.RootElement, limits);
@@ -113,8 +119,11 @@ public static class TokenizerJsonLoader
     /// <param name="options">Bounds applied while reading, or <c>null</c> for the defaults.</param>
     /// <exception cref="InvalidDataException">The file is malformed, exceeds a limit, declares a different model type, or describes a pipeline this library does not reproduce.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
+    /// <exception cref="FileNotFoundException">The file does not exist (#1504).</exception>
+    /// <exception cref="IOException">The file cannot be opened or read (#1504).</exception>
     public static SentencePieceVocabulary LoadUnigram(string path, ArtifactLoadOptions? options = null)
     {
+        Guard.NotNull(path);
         using FileStream file = JsonArtifact.OpenRead(path);
         return LoadUnigram(file, options);
     }
@@ -131,6 +140,7 @@ public static class TokenizerJsonLoader
         ArtifactLoadOptions? options = null,
         CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(source);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         ReadOnlyMemory<byte> payload = await JsonArtifact.ReadAllBytesAsync(source, limits, cancellationToken).ConfigureAwait(false);
         using JsonDocument document = ParseDocument(payload, limits);
@@ -149,6 +159,7 @@ public static class TokenizerJsonLoader
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
     public static BpeVocabulary LoadBpe(Stream source, ArtifactLoadOptions? options = null)
     {
+        Guard.NotNull(source);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         using JsonDocument document = ParseDocument(JsonArtifact.ReadAllBytes(source, limits), limits);
         return ReadBpe(document.RootElement, limits);
@@ -159,8 +170,11 @@ public static class TokenizerJsonLoader
     /// <param name="options">Bounds applied while reading, or <c>null</c> for the defaults.</param>
     /// <exception cref="InvalidDataException">The file is malformed, exceeds a limit, declares a different model type, or describes a pipeline this library does not reproduce.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
+    /// <exception cref="FileNotFoundException">The file does not exist (#1504).</exception>
+    /// <exception cref="IOException">The file cannot be opened or read (#1504).</exception>
     public static BpeVocabulary LoadBpe(string path, ArtifactLoadOptions? options = null)
     {
+        Guard.NotNull(path);
         using FileStream file = JsonArtifact.OpenRead(path);
         return LoadBpe(file, options);
     }
@@ -177,6 +191,7 @@ public static class TokenizerJsonLoader
         ArtifactLoadOptions? options = null,
         CancellationToken cancellationToken = default)
     {
+        Guard.NotNull(source);
         ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
         ReadOnlyMemory<byte> payload = await JsonArtifact.ReadAllBytesAsync(source, limits, cancellationToken).ConfigureAwait(false);
         using JsonDocument document = ParseDocument(payload, limits);

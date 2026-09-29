@@ -36,7 +36,7 @@ public sealed class BpeByteFallbackDecodeTests
 
     /// <summary>One U+FFFD per byte of a run that is not well-formed UTF-8, which is the reference's rule.</summary>
     /// <remarks>
-    /// Not decision 0007's, which is the <c>ByteLevel</c> decoder: .NET's lossy UTF-8 decoder
+    /// Not the byte-level path's rule: .NET's lossy UTF-8 decoder, which that path shares,
     /// substitutes once per maximal invalid subpart, so the two agree on a lone lead byte and
     /// part on every longer run — <c>&lt;0xF0&gt; &lt;0x9F&gt;</c> is two characters here and
     /// would be one, and <c>&lt;0xC3&gt; &lt;0x28&gt;</c> two rather than U+FFFD and <c>(</c>.

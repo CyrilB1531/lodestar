@@ -10,7 +10,14 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
 
 **Constructor** — takes a vocabulary, an unknown token, a continuation prefix, a per-word character
 cap and a lowercase flag; or a [`WordPieceVocabulary`](wordpiecevocabulary.md) that carries all of
-them.
+them. Either throws `ArgumentNullException` when the vocabulary, or the unknown token or the
+continuation prefix passed alone, is null; `ArgumentException` when the unknown token is not among
+the entries or an id is negative — and, from a `WordPieceVocabulary`, when it lacks its entries,
+unknown token, continuation prefix or added tokens, or holds an added token with no string;
+`ArgumentOutOfRangeException` when `maxCharsPerWord` is negative, which the reference's unsigned
+count cannot be ([#1505](https://github.com/CyrilB1531/lodestar/issues/1505)); and
+`InvalidOperationException` when the keys need more trie slots than one array holds
+([#1393](https://github.com/CyrilB1531/lodestar/issues/1393)).
 
 **Example** — one word that splits into two pieces, one that does not.
 

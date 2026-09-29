@@ -29,7 +29,11 @@ defaults are generous enough that a real model never meets one.
 | `MaxTokenLength` | Characters in a single token. | 1024 |
 | `MaxJsonDepth` | JSON nesting depth. | 32 |
 | `MaxTotalBytes` | Bytes read from the source. | 256 MiB |
-| `MaxArrayLength` | Elements in one array, a vector block aside: an `EmbeddingIndex`'s and a `.npy` file's are bounded by `MaxTotalBytes` alone ([#1441](https://github.com/CyrilB1531/lodestar/issues/1441)). | 1 000 000 |
+| `MaxArrayLength` | Elements in one array, and an `EmbeddingIndex`'s vector count and id array. Its vector block is bounded in bytes by `MaxTotalBytes` instead, and a `.npy` block by `MaxTotalBytes` alone ([#1441](https://github.com/CyrilB1531/lodestar/issues/1441)). | 1 000 000 |
+
+**An index past 1,000,000 vectors saves but does not load on the defaults**: its count exceeds
+`MaxArrayLength`, so loading it takes a raised `MaxArrayLength`, and a `MaxTotalBytes` its vector
+block fits in.
 
 **Exceeding a bound is a refusal, not a truncation.** A model that silently loaded smaller than it
 was saved would tokenize differently and say nothing, which is worse than failing. The

@@ -7,10 +7,10 @@ namespace Lodestar.Embeddings.Tokenization;
 /// pipeline flags that decide how text reaches them.
 /// </summary>
 /// <remarks>
-/// Read from a <c>tokenizer.json</c> by <see cref="Persistence.TokenizerJsonLoader"/>
-/// or from a <c>vocab.json</c>/<c>merges.txt</c> pair by
-/// <see cref="Persistence.BpeFilesLoader"/>. It restates what the file declared
-/// and decides nothing itself.
+/// Read from a <c>tokenizer.json</c> by <see cref="Persistence.TokenizerJsonLoader"/> or from a <c>vocab.json</c>/
+/// <c>merges.txt</c> pair by <see cref="Persistence.BpeFilesLoader"/>; it restates the file and decides nothing.
+/// Its collections are taken as given, not copied: a write through a cast changes this record and what it
+/// equals, and can change its hash (#1305). A tokenizer copies them at construction, so one built is unaffected.
 /// </remarks>
 /// <param name="Vocab">Token to id.</param>
 /// <param name="Merges">The merge table in rank order; index 0 is rank 0.</param>

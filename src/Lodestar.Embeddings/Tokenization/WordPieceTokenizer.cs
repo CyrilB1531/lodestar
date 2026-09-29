@@ -40,6 +40,8 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     /// <param name="lowercase">Lowercase the text before tokenizing.</param>
     /// <exception cref="ArgumentNullException"><paramref name="vocab"/>, <paramref name="unkToken"/> or <paramref name="continuationPrefix"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="unkToken"/> is not in <paramref name="vocab"/>, or an id is negative.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxCharsPerWord"/> is negative, which the reference's unsigned count cannot be (#1505).</exception>
+    /// <exception cref="InvalidOperationException">The vocabulary's keys need more trie slots than one array holds (#1393).</exception>
     public WordPieceTokenizer(
         IReadOnlyDictionary<string, int> vocab,
         string unkToken = "[UNK]",
@@ -62,6 +64,8 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     /// <param name="maxCharsPerWord">Words longer than this become a single unknown token.</param>
     /// <exception cref="ArgumentNullException"><paramref name="vocabulary"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="vocabulary"/> lacks its entries, unknown token, continuation prefix or added tokens, holds an added token with no string, its unknown token is not among its entries, or an id is negative.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxCharsPerWord"/> is negative, which the reference's unsigned count cannot be (#1505).</exception>
+    /// <exception cref="InvalidOperationException">The vocabulary's keys need more trie slots than one array holds (#1393).</exception>
     public WordPieceTokenizer(WordPieceVocabulary vocabulary, int maxCharsPerWord = 100)
         : this(
             Checked(vocabulary).Vocab,
@@ -86,6 +90,9 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
     {
         Guard.NotNull(vocab);
         Guard.NotNull(unkToken);
+
+        // tokenizers' max_input_chars_per_word is a usize: a negative count made every word the unknown token (#1505).
+        Guard.NotLessThan(maxCharsPerWord, 0);
 
         // A null prefix read as a span is empty, and continuations would match unprefixed keys (#1350).
         Guard.NotNull(continuationPrefix);

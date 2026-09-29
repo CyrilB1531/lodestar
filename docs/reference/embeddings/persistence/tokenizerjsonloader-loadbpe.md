@@ -15,7 +15,8 @@ public static BpeVocabulary LoadBpe(string path, ArtifactLoadOptions options = n
 **Returns** — `BpeVocabulary`, with the merge list, the split pattern and the byte-level flag all read from
 the file.
 
-**Exceptions** — `ArgumentNullException` for a null source or path. `InvalidDataException`
+**Exceptions** — `FileNotFoundException` or `IOException` from the path overload, when the file is missing or cannot be read ([#1504](https://github.com/CyrilB1531/lodestar/issues/1504)).
+`ArgumentNullException` for a null source or path. `InvalidDataException`
 when the file declares a different model, declares a pipeline this package does not
 reproduce, or exceeds a bound in `options` — the message names what was refused and why.
 

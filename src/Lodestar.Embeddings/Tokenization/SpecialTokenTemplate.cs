@@ -2,11 +2,12 @@ namespace Lodestar.Embeddings.Tokenization;
 
 /// <summary>The special tokens a model expects around a single sequence, and the token it pads with — as data, not a hardcoded convention.</summary>
 /// <remarks>
-/// The C# form of a HuggingFace <c>TemplateProcessing(single="[CLS] $A [SEP]", …)</c>
-/// plus <c>enable_padding</c>'s <c>pad_token</c> — see
-/// <c>docs/guides/embeddings.md</c>'s "Embed a batch" for the built-in families.
+/// The C# form of a HuggingFace <c>TemplateProcessing(single="[CLS] $A [SEP]", …)</c> plus <c>enable_padding</c>'s
+/// <c>pad_token</c> — see <c>docs/guides/embeddings.md</c>'s "Embed a batch" for the built-in families.
 /// Tokens are named, not numbered: <see cref="ISubwordTokenizer.TryGetId"/>
 /// resolves the id, so a vocabulary missing one fails loudly at encode time.
+/// Its lists are taken as given, not copied: a write through a cast changes this template and what it equals,
+/// and can change its hash (#1305). A <see cref="BatchEncoder"/> reads them at construction; one built is unaffected.
 /// </remarks>
 /// <param name="PrefixTokens">Tokens inserted before the text, e.g. <c>[CLS]</c>. May be empty.</param>
 /// <param name="SuffixTokens">Tokens appended after the text, e.g. <c>[SEP]</c>. May be empty.</param>

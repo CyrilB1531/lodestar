@@ -8,7 +8,15 @@ Byte-level and classic BPE — GPT-2, Llama-3, Qwen2 — and the only tokenizer 
 public sealed class BpeTokenizer : ISubwordTokenizer
 ```
 
-**Constructor** — takes a [`BpeVocabulary`](bpevocabulary.md).
+**Constructor** — takes a [`BpeVocabulary`](bpevocabulary.md). It throws `ArgumentNullException`
+when the vocabulary is null; `ArgumentException` when a token a merge or the unknown token names
+is not in the vocabulary, a byte-level one declares a continuing prefix, the split is malformed, a
+normalization form is undefined, byte fallback lacks a piece, a `Metaspace` escape meets a
+normalized added token, a list is missing, a symbol or added token is null, an id is negative, the
+merges pass 2^29 ([#1435](https://github.com/CyrilB1531/lodestar/issues/1435)), or a split or
+pre-tokenizer pattern does not parse ([#1494](https://github.com/CyrilB1531/lodestar/issues/1494));
+and `InvalidOperationException` when the vocabulary's keys need more trie slots than one array
+holds ([#1393](https://github.com/CyrilB1531/lodestar/issues/1393)).
 
 **Example** — three merges turning five characters into two tokens, and back.
 

@@ -43,6 +43,12 @@ The settings travel with the vocabulary rather than with the tokenizer because t
 of the file: a vocabulary trained lowercase cannot be read case-sensitively, and pairing it with
 the wrong `ContinuationPrefix` produces tokens that exist nowhere in it.
 
+`Vocab`, `AddedTokens` and the other collections are taken as given, not copied: a caller casting
+one back to its collection and writing to it changes this record and what it equals, and can change
+its hash ([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)).
+[`WordPieceTokenizer`](wordpiecetokenizer.md) copies them at construction, so a tokenizer already
+built is unaffected.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`WordPieceTokenizer`](wordpiecetokenizer.md), [`AddedToken`](addedtoken.md).

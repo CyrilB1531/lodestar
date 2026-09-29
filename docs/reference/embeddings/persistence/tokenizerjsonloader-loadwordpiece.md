@@ -14,7 +14,8 @@ public static WordPieceVocabulary LoadWordPiece(string path, ArtifactLoadOptions
 
 **Returns** — `WordPieceVocabulary`, with the continuation prefix and the unknown piece read from the file.
 
-**Exceptions** — `ArgumentNullException` for a null source or path. `InvalidDataException`
+**Exceptions** — `FileNotFoundException` or `IOException` from the path overload, when the file is missing or cannot be read ([#1504](https://github.com/CyrilB1531/lodestar/issues/1504)).
+`ArgumentNullException` for a null source or path. `InvalidDataException`
 when the file declares a different model, declares a pipeline this package does not
 reproduce, or exceeds a bound in `options` — the message names what was refused and why.
 

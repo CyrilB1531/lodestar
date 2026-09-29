@@ -9,7 +9,7 @@ namespace Lodestar.Embeddings.Tests.Tokenization;
 
 /// <summary>
 /// Replays <c>bpe_byte_fallback.json</c>: an uncovered symbol resolving into byte pieces,
-/// in every shape decision 0007 states the rule has.
+/// in every pipeline shape the loader accepts for a <c>byte_fallback</c> model.
 /// </summary>
 /// <remarks>
 /// Ten pipelines over one model carrying all 256 pieces, so no symbol falls to the

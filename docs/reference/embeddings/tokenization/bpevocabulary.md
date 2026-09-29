@@ -56,6 +56,11 @@ them wrong changes the ids. The ones that surprise:
 - **`ByteFallback`** needs the vocabulary to already carry all 256 `<0xXX>` pieces; `LoadBpe`
   refuses a file that sets the flag without them rather than let it degrade silently.
 
+`Vocab`, `Merges` and the other collections are taken as given, not copied: a caller casting one
+back to its collection and writing to it changes this record and what it equals, and can change
+its hash ([#1305](https://github.com/CyrilB1531/lodestar/issues/1305)). [`BpeTokenizer`](bpetokenizer.md) copies them at construction, so a tokenizer
+already built is unaffected.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`BpeTokenizer`](bpetokenizer.md), [`MergePair`](mergepair.md),

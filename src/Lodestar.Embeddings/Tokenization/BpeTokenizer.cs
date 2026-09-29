@@ -96,8 +96,10 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// A token a merge or the unknown token names is not in the vocabulary; a byte-level one declares a continuing
     /// prefix; the split's behaviour is none of the five, its pattern null, or the split declared no way or two; a
     /// normalization form is undefined; byte fallback lacks a piece; a Metaspace escape meets a normalized added
-    /// token; or a list is missing, a symbol or added token null, an id negative. Each <c>Ensure…</c> says why.
+    /// token; a list is missing, a symbol or added token null, an id negative; the merges pass 2^29 (#1435); or a split
+    /// or pre-tokenizer pattern does not parse, a <c>RegexParseException</c> on net10.0 (#1494).
     /// </exception>
+    /// <exception cref="InvalidOperationException">The vocabulary's keys need more trie slots than one array holds (#1393).</exception>
     public BpeTokenizer(BpeVocabulary vocabulary)
         : this(vocabulary, WordCacheCapacity)
     {
@@ -402,6 +404,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// refuses first; or a piece needing more symbols than one array holds (#1436, #1437).
     /// </exception>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
+    /// <exception cref="System.Text.RegularExpressions.RegexMatchTimeoutException">A split or pre-tokenizer pattern runs past its one-second budget on <paramref name="text"/> (#1503).</exception>
     public TokenizationResult Encode(string text)
     {
         Guard.NotNull(text);
@@ -687,7 +690,9 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         {
             return JsonArtifact.Utf8NoBom.GetByteCount(piece);
         }
-        catch (ArgumentOutOfRangeException)
+        // The overflow is a plain ArgumentException, "Conversion buffer overflow." (measured on .NET 10, #1493); a lone
+        // surrogate is an EncoderFallbackException, itself an ArgumentException, and keeps its own meaning.
+        catch (ArgumentException e) when (e is not EncoderFallbackException)
         {
             throw PieceTooLong((long)piece.Length * 3, TextParameter);
         }
