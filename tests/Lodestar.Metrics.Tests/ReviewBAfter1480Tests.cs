@@ -15,7 +15,8 @@ public sealed class ReviewBAfter1480Tests
         ArgumentException error = Assert.Throws<ArgumentException>(
             () => MeanSquaredError.Score([1, 2, 3], [1, 2, 4], outputWeights: [2.0]));
         Assert.Equal("Custom weights are useful only in multi-output cases. (Parameter 'outputWeights')", error.Message);
-        Assert.Throws<ArgumentException>(() => MedianAbsoluteError.Score([1, 2, 3], [1, 2, 4], outputWeights: [2.0]));
+        Assert.Equal(error.Message, Assert.Throws<ArgumentException>(
+            () => MedianAbsoluteError.Score([1, 2, 3], [1, 2, 4], outputWeights: [2.0])).Message);
         Assert.Equal(0.5773502691896257, RootMeanSquaredError.Score([1, 2, 3], [1, 2, 4], outputWeights: [2.0]), 1e-12);
     }
 
@@ -26,7 +27,8 @@ public sealed class ReviewBAfter1480Tests
         ArgumentException error = Assert.Throws<ArgumentException>(
             () => MeanSquaredError.Score([1, 2, 3], [1, 2, 4], sampleWeight: [1, -1, 0]));
         Assert.Equal("sampleWeight", error.ParamName);
-        Assert.Throws<ArgumentException>(() => R2.Score([1, 2, 3], [1, 2, 4], sampleWeight: [1, -1, 0]));
+        Assert.Equal(error.Message, Assert.Throws<ArgumentException>(
+            () => R2.Score([1, 2, 3], [1, 2, 4], sampleWeight: [1, -1, 0])).Message);
         Assert.False(double.IsNaN(MedianAbsoluteError.Score([1, 2, 3], [1, 2, 4], sampleWeight: [1, -1, 0])));
     }
 
@@ -83,14 +85,15 @@ public sealed class ReviewBAfter1480Tests
     public void A_nBins_past_one_array_is_refused()
     {
         // nBins + 1 wrapped inside linspace (#1538).
-        Assert.Throws<ArgumentOutOfRangeException>(() => CalibrationCurve.Compute([0, 1], [0.2, 0.8], nBins: int.MaxValue));
+        Assert.Equal("nBins", Assert.Throws<ArgumentOutOfRangeException>(
+            () => CalibrationCurve.Compute([0, 1], [0.2, 0.8], nBins: int.MaxValue)).ParamName);
     }
 
     [Fact]
     public void A_finite_beta_whose_square_overflows_is_refused()
     {
         // fbeta_score raises OverflowError on beta**2 at 1e200 (#1540).
-        Assert.Throws<ArgumentOutOfRangeException>(() => FBeta.Score([0, 1, 1], [0, 1, 0], 1e200));
+        Assert.Equal("beta", Assert.Throws<ArgumentOutOfRangeException>(() => FBeta.Score([0, 1, 1], [0, 1, 0], 1e200)).ParamName);
     }
 
     [Theory]
@@ -147,8 +150,11 @@ public sealed class ReviewBAfter1480Tests
         double[] yScore = [double.NaN, .2, .1, .2, .7, .1, .2, .2, .6, .5, .3, .2, .3, .5, .2, .1, .3, .6];
 
         // check_array raises "Input contains NaN." before _average_binary_score's shortcut.
-        Assert.Throws<ArgumentException>(() => RocAuc.MultiClass(
+        ArgumentException error = Assert.Throws<ArgumentException>(() => RocAuc.MultiClass(
             yTrue, yScore, 3, new MultiClassRocOptions { Average = Averaging.Weighted, SampleWeight = [1e-9, 1e-9, 1e-9, 1e-9, 1e-9, 1e-9] }));
+        // The NaN reaches the per-class curve, which names it, rather than the zero-weight shortcut's 0 (#1568).
+        Assert.Contains("is NaN; scores must be numbers.", error.Message, StringComparison.Ordinal);
+        Assert.Equal("yScore", error.ParamName);
     }
 
     [Fact]

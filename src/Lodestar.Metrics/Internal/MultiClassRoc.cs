@@ -363,7 +363,7 @@ internal static class MultiClassRoc
             scratch.Return();
         }
 
-        return average == Averaging.Macro ? Mean(scores) : WeightedMean(scores, weights);
+        return average == Averaging.Macro ? Mean(scores) : WeightedMean(scores, weights, nameof(yTrue));
     }
 
     /// <summary>
@@ -430,6 +430,12 @@ internal static class MultiClassRoc
     private static void RunPerIndex(
         int count, int workers, int scratchLength, Func<int, BinaryRoc.Scratch, ArgumentException?> body)
     {
+        // One class alone leaves no pair, and ParallelOptions refuses a degree of zero (#1566).
+        if (count == 0)
+        {
+            return;
+        }
+
         ArgumentException?[] failures = new ArgumentException?[count];
         var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = Math.Min(workers, count) };
 
@@ -499,7 +505,7 @@ internal static class MultiClassRoc
             ReturnToPool(copy);
         }
 
-        return average == Averaging.Macro ? Mean(scores) : WeightedMean(scores, weights);
+        return average == Averaging.Macro ? Mean(scores) : WeightedMean(scores, weights, nameof(yTrue));
     }
 
     /// <summary>
@@ -552,7 +558,7 @@ internal static class MultiClassRoc
             ReturnToPool(copy);
         }
 
-        return average == Averaging.Macro ? Mean(pairScores) : WeightedMean(pairScores, prevalence);
+        return average == Averaging.Macro ? Mean(pairScores) : WeightedMean(pairScores, prevalence, nameof(yTrue));
     }
 
     /// <summary>
@@ -603,7 +609,7 @@ internal static class MultiClassRoc
             scratch.Return();
         }
 
-        return average == Averaging.Macro ? Mean(pairScores) : WeightedMean(pairScores, prevalence);
+        return average == Averaging.Macro ? Mean(pairScores) : WeightedMean(pairScores, prevalence, nameof(yTrue));
     }
 
     /// <summary>
@@ -694,7 +700,7 @@ internal static class MultiClassRoc
         return total;
     }
 
-    private static double WeightedMean(double[] values, double[] weights)
+    private static double WeightedMean(double[] values, double[] weights, string paramName)
     {
         double total = 0.0;
         double weightSum = 0.0;
@@ -711,6 +717,15 @@ internal static class MultiClassRoc
             total += values[i] * weights[i];
             weightSum += weights[i];
         }
+
+        // One class alone pairs with nothing, and np.average refuses the empty weighting (#1566).
+#pragma warning disable S1244
+        if (weightSum == 0.0)
+#pragma warning restore S1244
+        {
+            throw new ArgumentException("Weights sum to zero, can't be normalized.", paramName);
+        }
+
         return total / weightSum;
     }
 }

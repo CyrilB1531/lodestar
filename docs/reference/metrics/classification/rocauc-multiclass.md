@@ -25,7 +25,9 @@ not
 match, a row that does not sum to 1, a `NaN`, a sample weight under one-vs-one, a `yTrue` label
 outside `MultiClassRocOptions.Labels` — "'y_true' contains labels not in parameter 'labels'" — or,
 under one-vs-one, `k (k - 1) / 2` class pairs past what one array holds, naming `classCount`
-([#1480](https://github.com/CyrilB1531/lodestar/issues/1480));
+([#1480](https://github.com/CyrilB1531/lodestar/issues/1480)), or, under one-vs-one weighted, a
+`yTrue` holding one class alone, which pairs with nothing — "Weights sum to zero, can't be
+normalized." as scikit-learn raises it ([#1566](https://github.com/CyrilB1531/lodestar/issues/1566));
 `ArgumentOutOfRangeException` when `classCount` is below two or
 `MultiClassRocOptions.MaxDegreeOfParallelism` is negative.
 
