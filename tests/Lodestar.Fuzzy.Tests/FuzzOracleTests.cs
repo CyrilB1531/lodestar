@@ -28,8 +28,9 @@ public sealed class FuzzOracleTests
                 continue;
             }
 
-            string a = c.GetProperty("a").GetString()!;
-            string b = c.GetProperty("b").GetString()!;
+            // A JSON null is rapidfuzz's None, which every scorer scores 0 (#1611).
+            string? a = c.GetProperty("a").GetString();
+            string? b = c.GetProperty("b").GetString();
 
             Check(failures, c, "ratio", c.GetProperty("ratio").GetDouble(), Fuzz.Ratio(a, b));
             Check(failures, c, "partial_ratio", c.GetProperty("partial_ratio").GetDouble(), Fuzz.PartialRatio(a, b));
@@ -53,8 +54,9 @@ public sealed class FuzzOracleTests
 
         foreach (JsonElement c in doc.RootElement.GetProperty("cases").EnumerateArray())
         {
-            string a = c.GetProperty("a").GetString()!;
-            string b = c.GetProperty("b").GetString()!;
+            // A JSON null is rapidfuzz's None, which every scorer scores 0 (#1611).
+            string? a = c.GetProperty("a").GetString();
+            string? b = c.GetProperty("b").GetString();
 
             Check(failures, c, "ratio", c.GetProperty("ratio").GetDouble(), Fuzz.Ratio(a, b, unit));
             Check(failures, c, "partial_ratio", c.GetProperty("partial_ratio").GetDouble(), Fuzz.PartialRatio(a, b, unit));
@@ -104,12 +106,10 @@ public sealed class FuzzOracleTests
         Assert.Equal(0.0, Fuzz.WRatio("", wide, TextElement.CodePoint));
     }
 
-    /// <summary>The empty-operand fast path keeps the overload's refusals in their order (#1057).</summary>
+    /// <summary>The empty-operand fast path keeps the unit's refusal (#1057); FuzzNullScoreTests has the null.</summary>
     [Fact]
-    public void WRatio_over_code_points_refuses_before_answering_an_empty_operand()
+    public void WRatio_over_code_points_refuses_an_undeclared_unit_before_answering_an_empty_operand()
     {
-        Assert.Throws<ArgumentNullException>(() => Fuzz.WRatio(null!, "", TextElement.CodePoint));
-        Assert.Throws<ArgumentNullException>(() => Fuzz.WRatio("", null!, TextElement.CodePoint));
         Assert.Throws<ArgumentOutOfRangeException>(() => Fuzz.WRatio("", "b", (TextElement)2));
         Assert.Equal(0.0, Fuzz.WRatio("", "\U0001F600 x", TextElement.CodePoint));
     }
@@ -164,9 +164,12 @@ public sealed class FuzzOracleTests
     {
         if (Math.Abs(expected - actual) > Tolerance)
         {
-            string a = c.GetProperty("a").GetString()!;
-            string b = c.GetProperty("b").GetString()!;
-            failures.Add($"[#{c.GetProperty("id").GetInt32()}] {name}(\"{a}\", \"{b}\"): expected {expected:R}, got {actual:R}");
+            string? a = c.GetProperty("a").GetString();
+            string? b = c.GetProperty("b").GetString();
+            failures.Add($"[#{c.GetProperty("id").GetInt32()}] {name}({Quoted(a)}, {Quoted(b)}): expected {expected:R}, got {actual:R}");
         }
     }
+
+    /// <summary>A string as a failure message shows it, a JSON null — rapidfuzz's None — as <c>null</c>.</summary>
+    private static string Quoted(string? s) => s is null ? "null" : $"\"{s}\"";
 }
