@@ -84,7 +84,8 @@ public sealed class ClassificationInputValidationTests
         ArgumentException error = Assert.Throws<ArgumentException>(() => CheckedMetrics[metric]([1.0, -1.0]));
 
         Assert.Equal("sampleWeight", error.ParamName);
-        Assert.StartsWith("Weights sum to zero, can't be normalized.", error.Message, StringComparison.Ordinal);
+        Assert.StartsWith("Weights sum to zero, can't be normalized", error.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("normalized.", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

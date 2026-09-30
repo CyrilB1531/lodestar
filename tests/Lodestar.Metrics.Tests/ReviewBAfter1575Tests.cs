@@ -92,7 +92,8 @@ public sealed class ReviewBAfter1575Tests
         ArgumentException error = Assert.Throws<ArgumentException>(() => MedianAbsoluteError.Score(
             [1, 2, 1, 1], [1, 3, 2, 2], outputCount: 2, outputWeights: [first, second]));
 
-        Assert.StartsWith("Weights sum to zero, can't be normalized.", error.Message, StringComparison.Ordinal);
+        Assert.StartsWith("Weights sum to zero, can't be normalized", error.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("normalized.", error.Message, StringComparison.Ordinal);
         Assert.Equal("outputWeights", error.ParamName);
     }
 

@@ -24,7 +24,7 @@ it holds a non-finite value; `ArgumentOutOfRangeException` when `outputCount` is
   ([#1461](https://github.com/CyrilB1531/lodestar/issues/1461));
 - given for a single output — "Custom weights are useful only in multi-output cases."
   ([#1533](https://github.com/CyrilB1531/lodestar/issues/1533));
-- summing to zero, such as `[0, 0]` or `[-1, 1]` — "Weights sum to zero, can't be normalized.",
+- summing to zero, such as `[0, 0]` or `[-1, 1]` — "Weights sum to zero, can't be normalized",
   where scikit-learn raises `ZeroDivisionError`
   ([#1588](https://github.com/CyrilB1531/lodestar/issues/1588)).
 

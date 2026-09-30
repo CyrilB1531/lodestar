@@ -91,7 +91,7 @@ internal static class Weights
         if (sum == 0.0)
 #pragma warning restore S1244
         {
-            throw new ArgumentException("Weights sum to zero, can't be normalized.", paramName);
+            throw new ArgumentException("Weights sum to zero, can't be normalized", paramName);
         }
     }
 }

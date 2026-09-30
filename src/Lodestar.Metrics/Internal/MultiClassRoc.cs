@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Runtime.ExceptionServices;
 
 namespace Lodestar.Metrics.Internal;
 
@@ -19,12 +20,26 @@ internal static class MultiClassRoc
         MultiClassRocOptions options)
     {
         Averaging average = options.Average ?? Averaging.Macro;
-        int n = Validate(yTrue, yScore, classCount, options, average);
-        int[] classes = ResolveLabels(yTrue, options.Labels, classCount);
+
+        RefuseBinaryAveraging(average, nameof(options));
+
+        // _multiclass_roc_auc_score's order: the arrays, the row sums, the averaging, the labels, then the weights (#1601).
+        int n = Validate(yTrue, yScore, classCount, options);
         ValidateRowSums(yScore, n, classCount);
+        RefuseMicroOneVsOne(average, options.Strategy, nameof(options));
+
+        int[] classes = ResolveLabels(yTrue, options.Labels, classCount);
+        ValidateWeightShape(options, n);
 
         // 0 and 1 both mean sequential.
         int workers = Math.Max(1, options.MaxDegreeOfParallelism);
+
+        if (options.Strategy == MultiClassStrategy.OneVsRest && average == Averaging.Micro)
+        {
+            // Micro is the one binary score over the class matrix raveled, each weight repeated per class (#1601).
+            Inputs.ValidateSampleWeight(options.SampleWeight);
+            return Micro(yTrue, yScore, classes, options.SampleWeight, nameof(options));
+        }
 
         if (options.Strategy == MultiClassStrategy.OneVsRest)
         {
@@ -39,8 +54,11 @@ internal static class MultiClassRoc
                 return 0.0;
             }
 
-            // Where roc_curve would refuse a weight in every class alike, refused once, before any worker starts.
-            Inputs.ValidateSampleWeight(options.SampleWeight);
+            // roc_curve checks the weights only for a class with both labels; one-label classes answer nan first.
+            if (AnyClassHasBothLabels(yTrue, classes))
+            {
+                Inputs.ValidateSampleWeight(options.SampleWeight);
+            }
 
             return workers == 1
                 ? OneVsRest(yTrue, yScore, classes, average, options.SampleWeight, classTotals)
@@ -52,9 +70,57 @@ internal static class MultiClassRoc
             : OneVsOneParallel(yTrue, yScore, classes, average, workers);
     }
 
+    /// <summary><c>roc_auc_score</c>'s <c>validate_params</c>, which refuses <c>'binary'</c> before any array is read.</summary>
+    private static void RefuseBinaryAveraging(Averaging average, string paramName)
+    {
+        if (average is not (Averaging.Micro or Averaging.Macro or Averaging.Weighted))
+        {
+            string name = average == Averaging.Binary ? "binary" : average.ToString();
+            throw new ArgumentException(
+                $"The 'average' parameter of roc_auc_score must be a str among {{'macro', 'micro', 'samples', 'weighted'}} or None. Got '{name}' instead.",
+                paramName);
+        }
+    }
+
+    /// <summary><c>_multiclass_roc_auc_score</c>'s averaging step: micro has no one-vs-one meaning.</summary>
+    private static void RefuseMicroOneVsOne(Averaging average, MultiClassStrategy strategy, string paramName)
+    {
+        if (average == Averaging.Micro && strategy == MultiClassStrategy.OneVsOne)
+        {
+            throw new ArgumentException(
+                "average must be one of ('macro', 'weighted', None) for multiclass problems", paramName);
+        }
+    }
+
+    /// <summary>
+    /// <c>_average_binary_score(…, average='micro')</c>: <c>label_binarize</c>'s matrix and the scores raveled row by
+    /// row, a sample's weight repeated across its classes, scored as one binary problem.
+    /// </summary>
+    private static double Micro(
+        ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int[] classes, ReadOnlySpan<double> sampleWeight, string weightParam)
+    {
+        int n = yTrue.Length;
+        int k = classes.Length;
+        int[] flat = new int[yScore.Length];
+        double[] repeated = sampleWeight.IsEmpty ? [] : new double[yScore.Length];
+        for (int i = 0; i < n; i++)
+        {
+            for (int c = 0; c < k; c++)
+            {
+                int at = (i * k) + c;
+                flat[at] = yTrue[i] == classes[c] ? 1 : 0;
+                if (repeated.Length != 0)
+                {
+                    repeated[at] = sampleWeight[i];
+                }
+            }
+        }
+
+        return BinaryRoc.Score(flat, yScore, 1, repeated, weightsChecked: true, weightParam);
+    }
+
     private static int Validate(
-        ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int classCount,
-        MultiClassRocOptions options, Averaging average)
+        ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int classCount, MultiClassRocOptions options)
     {
         int n = yTrue.Length;
         if (options.MaxDegreeOfParallelism < 0)
@@ -90,29 +156,31 @@ internal static class MultiClassRoc
                 $"yScore has {yScore.Length} entries; {n} samples over {classCount} classes needs {(long)n * classCount}.",
                 nameof(yScore));
         }
-        if (average is not (Averaging.Macro or Averaging.Weighted))
-        {
-            throw new ArgumentException(
-                "Multiclass ROC AUC accepts only Averaging.Macro and Averaging.Weighted, as scikit-learn does.",
-                nameof(options));
-        }
-        if (!options.SampleWeight.IsEmpty)
-        {
-            if (options.SampleWeight.Length != n)
-            {
-                throw new ArgumentException(
-                    $"sampleWeight has {options.SampleWeight.Length} entries but there are {n} samples.",
-                    nameof(options));
-            }
-            if (options.Strategy == MultiClassStrategy.OneVsOne)
-            {
-                throw new ArgumentException(
-                    "scikit-learn does not support sampleWeight for one-vs-one ROC AUC, and neither does this.",
-                    nameof(options));
-            }
-        }
 
         return n;
+    }
+
+    /// <summary>The weights' refusals scikit-learn reaches after the labels: none under one-vs-one, one per sample.</summary>
+    private static void ValidateWeightShape(MultiClassRocOptions options, int n)
+    {
+        if (options.SampleWeight.IsEmpty)
+        {
+            return;
+        }
+
+        if (options.Strategy == MultiClassStrategy.OneVsOne)
+        {
+            throw new ArgumentException(
+                "sample_weight is not supported for multiclass one-vs-one ROC AUC, 'sample_weight' must be None in this case.",
+                nameof(options));
+        }
+
+        if (options.SampleWeight.Length != n)
+        {
+            throw new ArgumentException(
+                $"sampleWeight has {options.SampleWeight.Length} entries but there are {n} samples.",
+                nameof(options));
+        }
     }
 
     private static int[] ResolveLabels(ReadOnlySpan<int> yTrue, ReadOnlySpan<int> labels, int classCount)
@@ -123,37 +191,41 @@ internal static class MultiClassRoc
             if (resolved.Length != classCount)
             {
                 throw new ArgumentException(
-                    $"yTrue holds {resolved.Length} distinct labels but classCount is {classCount}. "
-                    + "Pass labels when a class is absent from yTrue.",
-                    nameof(classCount));
+                    "Number of classes in y_true not equal to the number of columns in 'y_score'", nameof(classCount));
             }
             return resolved;
         }
 
+        // _multiclass_roc_auc_score's order and sentences: unique, then ordered, then counted, then covering y_true (#1601).
+        int[] sorted = labels.ToArray();
+        Array.Sort(sorted);
+        for (int i = 1; i < sorted.Length; i++)
+        {
+            if (sorted[i] == sorted[i - 1])
+            {
+                throw new ArgumentException("Parameter 'labels' must be unique", nameof(labels));
+            }
+        }
+        if (!labels.SequenceEqual(sorted))
+        {
+            throw new ArgumentException("Parameter 'labels' must be ordered", nameof(labels));
+        }
         if (labels.Length != classCount)
         {
             throw new ArgumentException(
-                $"labels has {labels.Length} entries but classCount is {classCount}.", nameof(labels));
-        }
-        for (int i = 1; i < labels.Length; i++)
-        {
-            if (labels[i] <= labels[i - 1])
-            {
-                throw new ArgumentException(
-                    "labels must be sorted ascending and unique for multiclass ROC AUC, as scikit-learn requires.",
-                    nameof(labels));
-            }
+                $"Number of given labels, {labels.Length}, not equal to the number of columns in 'y_score', {classCount}",
+                nameof(labels));
         }
 
-        // _multiclass_roc_auc_score's last check on labels, np.setdiff1d(y_true, classes) (#1206).
+        // np.setdiff1d(y_true, classes) (#1206).
         foreach (int label in yTrue)
         {
-            if (labels.BinarySearch(label) < 0)
+            if (Array.BinarySearch(sorted, label) < 0)
             {
                 throw new ArgumentException("'y_true' contains labels not in parameter 'labels'", nameof(labels));
             }
         }
-        return labels.ToArray();
+        return sorted;
     }
 
     private static void ValidateRowSums(ReadOnlySpan<double> yScore, int n, int classCount)
@@ -170,7 +242,7 @@ internal static class MultiClassRoc
             if (Math.Abs(sum - 1.0) > AbsoluteTolerance + (RelativeTolerance * Math.Abs(sum)))
             {
                 throw new ArgumentException(
-                    $"yScore row {i} sums to {sum}; multiclass ROC AUC needs probabilities that sum to 1.",
+                    "Target scores need to be probabilities for multiclass roc_auc, i.e. they should sum up to 1.0 over classes",
                     nameof(yScore));
             }
         }
@@ -253,10 +325,18 @@ internal static class MultiClassRoc
         int n = yTrue.Length;
         int[] binary = scratch.Binary;
         double[] scoreColumn = scratch.Column;
+        int positives = 0;
         for (int i = 0; i < n; i++)
         {
             binary[i] = yTrue[i] == positiveLabel ? 1 : 0;
+            positives += binary[i];
             scoreColumn[i] = source.Scores[offset + (i * step)];
+        }
+
+        // _binary_roc_auc_score answers nan on a one-label column before roc_curve reads a weight (#1601).
+        if (positives == 0 || positives == n)
+        {
+            return double.NaN;
         }
 
         return BinaryRoc.Score(
@@ -430,11 +510,12 @@ internal static class MultiClassRoc
     /// </summary>
     /// <remarks>
     /// The determinism lives here, not in each driver, so a second parallel driver — the
-    /// one-vs-one pair loop — cannot re-derive it differently. Every refusal happens before a
-    /// worker starts, so a body that throws has met a defect and escapes as one.
+    /// one-vs-one pair loop — cannot re-derive it differently. A class curve can still refuse its
+    /// rates under a negative weight, so each index returns its refusal into its own slot and the
+    /// lowest one is rethrown as the instance it is, whatever the workers' timing.
     /// </remarks>
     private static void RunPerIndex(
-        int count, int workers, int scratchLength, Action<int, BinaryRoc.Scratch> body)
+        int count, int workers, int scratchLength, bool canRefuse, Func<int, BinaryRoc.Scratch, ArgumentException?> body)
     {
         // One class alone leaves no pair, and ParallelOptions refuses a degree of zero (#1566).
         if (count == 0)
@@ -442,10 +523,9 @@ internal static class MultiClassRoc
             return;
         }
 
+        // Only a negative weight lets a curve refuse; otherwise no slot is ever filled, so none is allocated.
+        ArgumentException?[]? failures = canRefuse ? new ArgumentException?[count] : null;
         var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = Math.Min(workers, count) };
-
-        // Nothing a worker scores can be refused: Score has refused every input first (#1569), so a worker that throws
-        // has met a defect, which Parallel.For surfaces as it is.
         Parallel.For(
             0,
             count,
@@ -453,10 +533,22 @@ internal static class MultiClassRoc
             () => BinaryRoc.Scratch.Rent(scratchLength),
             (index, _, scratch) =>
             {
-                body(index, scratch);
+                // Its own slot, so which worker lost the race cannot decide which refusal the caller sees.
+                ArgumentException? failure = body(index, scratch);
+                if (failures is not null)
+                {
+                    failures[index] = failure;
+                }
                 return scratch;
             },
             scratch => scratch.Return());
+
+        // The lowest class's, as the sequential loop meets it first; the instance itself, not an AggregateException.
+        ArgumentException? first = failures is null ? null : Array.Find(failures, failure => failure is not null);
+        if (first is not null)
+        {
+            ExceptionDispatchInfo.Capture(first).Throw();
+        }
     }
 
     /// <summary>
@@ -477,7 +569,8 @@ internal static class MultiClassRoc
 
         try
         {
-            RunPerIndex(k, workers, n, (c, scratch) =>
+            bool canRefuse = HasNegative(sampleWeight);
+            RunPerIndex(k, workers, n, canRefuse, (c, scratch) =>
             {
                 // Per worker: a span cannot cross into a lambda.
                 ScoreSource source = new(
@@ -487,9 +580,18 @@ internal static class MultiClassRoc
                 // decide whether weighting applies at all.
                 ReadOnlySpan<double> classWeight = weighted ? copy.Weights.AsSpan(0, n) : default;
 
-                // classes[c], not c: the column and the positive label are
-                // the same number only when the labels happen to be 0..k-1.
-                scores[c] = ClassScore(source, c, classes[c], classWeight, scratch);
+                try
+                {
+                    // classes[c], not c: the column and the positive label are
+                    // the same number only when the labels happen to be 0..k-1.
+                    scores[c] = ClassScore(source, c, classes[c], classWeight, scratch);
+                    return null;
+                }
+                catch (ArgumentException ex) when (canRefuse)
+                {
+                    // A class curve can still refuse its own rates under a negative weight (#1601); anything else escapes.
+                    return ex;
+                }
             });
         }
         finally
@@ -507,7 +609,7 @@ internal static class MultiClassRoc
     /// <remarks>
     /// Reads pairs from the same <see cref="Pairs"/> table <see cref="OneVsOne"/>
     /// walks, rather than decoding a triangular index, so the two orders cannot
-    /// disagree. No weights: <see cref="Validate"/> refuses them here, as
+    /// disagree. No weights: <see cref="ValidateWeightShape"/> refuses them here, as
     /// scikit-learn does.
     /// </remarks>
     private static double OneVsOneParallel(
@@ -523,13 +625,15 @@ internal static class MultiClassRoc
 
         try
         {
-            RunPerIndex(pairs.Length, workers, n, (pair, scratch) =>
+            RunPerIndex(pairs.Length, workers, n, canRefuse: false, (pair, scratch) =>
             {
                 ScoreSource source = new(
                     copy.YTrue.AsSpan(0, n), copy.ColumnMajor.AsSpan(0, n * k), n, k, columnMajor: true, members);
 
                 // The tuple carries both columns, so the worker asks for nothing new; ScorePair is at S107's limit.
+                // One-vs-one takes no weights, so no pair curve can refuse.
                 ScorePair(source, classes, pairs[pair], pair, pairScores, prevalence, scratch);
+                return null;
             });
         }
         finally
@@ -620,6 +724,36 @@ internal static class MultiClassRoc
     /// </remarks>
     private static (int A, int B)[] PresentPairs((int A, int B)[] pairs, ClassMembers members) =>
         Array.FindAll(pairs, pair => members.Count(pair.A) > 0 && members.Count(pair.B) > 0);
+
+    /// <summary>Whether any weight is negative, the one case a class curve can refuse its rates.</summary>
+    private static bool HasNegative(ReadOnlySpan<double> weights)
+    {
+        foreach (double weight in weights)
+        {
+            if (weight < 0.0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether some class's one-vs-rest column holds both labels, so that its curve reads the weights.</summary>
+    private static bool AnyClassHasBothLabels(ReadOnlySpan<int> yTrue, int[] classes)
+    {
+        // A column holds both labels unless every sample is its class or none is: two present classes suffice.
+        int first = Array.BinarySearch(classes, yTrue[0]);
+        foreach (int value in yTrue)
+        {
+            if (Array.BinarySearch(classes, value) != first)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// The weight each class carries, summed in sample order — a count when the samples are unweighted:

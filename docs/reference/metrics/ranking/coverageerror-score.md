@@ -25,7 +25,7 @@ a score that is not finite, with `check_array`'s "Input contains NaN." or its in
 [`LabelRankingAveragePrecision.Score`](labelrankingaverageprecision-score.md) accepts a single label
 column and returns `1`; `yTrue` and `yScore` disagreeing in length; `yTrue` empty, or not a whole
 number of rows of `labelCount`; a non-empty `sampleWeight` whose length is not the row count; and a
-`sampleWeight` summing to zero, with numpy's "Weights sum to zero, can't be normalized."
+`sampleWeight` summing to zero, with numpy's "Weights sum to zero, can't be normalized".
 
 **Example** — two samples over three labels, the first sample's relevant label ranked second and the
 second sample's ranked last.

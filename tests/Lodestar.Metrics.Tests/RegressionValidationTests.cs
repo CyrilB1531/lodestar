@@ -191,7 +191,8 @@ public sealed class RegressionValidationTests
             () => MeanSquaredError.Score(yTrue, yPred, 2, outputWeights: [0.0, 0.0]));
 
         Assert.Contains(
-            "Weights sum to zero, can't be normalized.", error.Message, StringComparison.Ordinal);
+            "Weights sum to zero, can't be normalized", error.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("normalized.", error.Message, StringComparison.Ordinal);
 
         Assert.Throws<ArgumentException>(
             () => MeanSquaredError.Score(yTrue, yPred, 2, outputWeights: [1.0, -1.0]));

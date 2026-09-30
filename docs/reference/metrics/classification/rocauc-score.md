@@ -25,7 +25,11 @@ is `posLabel` — the reference would score the greater one, and `posLabel` alwa
 ([#1277](https://github.com/CyrilB1531/lodestar/issues/1277)); or, over two labels, when the spans
 disagree in length or a weight is not finite. One class alone scores `NaN` before a length or a
 weight is looked at, and a class weighted zero throughout scores `NaN` too, as `roc_auc_score` 1.9.1
-answers after its warning ([#1584](https://github.com/CyrilB1531/lodestar/issues/1584)).
+answers after its warning ([#1584](https://github.com/CyrilB1531/lodestar/issues/1584)). Over two
+labels a negative weight that turns the false-positive rate back is refused with `auc`'s "x is
+neither increasing nor decreasing", negative samples whose weights total zero or less give `NaN`, as
+`roc_curve` makes its rates, and so do positive samples whose weights total zero or less unless the
+false-positive rate turns back ([#1601](https://github.com/CyrilB1531/lodestar/issues/1601)).
 
 **Example** — four samples and the model's confidence in each.
 
