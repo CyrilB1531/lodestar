@@ -20,7 +20,7 @@ public static class RocAuc
     /// <param name="yScore">A score per sample: the higher, the more the model believes <paramref name="posLabel"/>.</param>
     /// <param name="posLabel">The label counted as positive. scikit-learn infers this; 1 is what it infers for 0/1 labels.</param>
     /// <param name="sampleWeight">A weight per sample. Omit to weight every sample by 1.</param>
-    /// <exception cref="ArgumentException">An input is empty or a score is not finite, refused first as <c>check_array</c> refuses them (#1585); <paramref name="yTrue"/> holds more than two labels, or two without <paramref name="posLabel"/> (#1277); or, over two labels, the inputs disagree in length or a weight is not finite. One label alone answers NaN before either is checked (#1584).</exception>
+    /// <exception cref="ArgumentException">An input is empty or a score is not finite, refused first as <c>check_array</c> refuses them (#1585); <paramref name="yTrue"/> holds more than two labels, or two without <paramref name="posLabel"/> (#1277); or, over two labels, the inputs disagree in length or a weight is not finite. One label alone answers NaN before either is checked (#1584).; or, over two labels, a negative sample weight turns the false-positive rate back, as <c>auc</c> refuses it (#1601)</exception>
     public static double Score(
         ReadOnlySpan<int> yTrue,
         ReadOnlySpan<double> yScore,
@@ -42,7 +42,7 @@ public static class RocAuc
         PositiveLabel.RequireAmongTwo(yTrue, posLabel, nameof(posLabel));
 
         // roc_auc_score answers NaN before roc_curve reads a weight or compares lengths (#1565).
-        return Probabilities.HoldsOneLabel(yTrue) ? double.NaN : BinaryRoc.Score(yTrue, yScore, posLabel, sampleWeight);
+        return Probabilities.HoldsOneLabel(yTrue) ? double.NaN : BinaryRoc.Score(yTrue, yScore, posLabel, sampleWeight, weightsChecked: false, nameof(sampleWeight));
     }
 
     /// <summary>
@@ -54,12 +54,12 @@ public static class RocAuc
     /// <param name="classCount">How many classes each row scores.</param>
     /// <param name="options">Strategy, averaging, labels, sample weights and worker count. <c>default</c> is scikit-learn's own defaults, on one thread.</param>
     /// <exception cref="ArgumentException">Any of the rules above is broken.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="classCount"/> is below two, or <see cref="MultiClassRocOptions.MaxDegreeOfParallelism"/> is negative.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><see cref="MultiClassRocOptions.MaxDegreeOfParallelism"/> is negative, or <paramref name="classCount"/> is below two.</exception>
     /// <remarks>
-    /// A <c>catch</c> written for the sequential path keeps working above one
-    /// worker: the parallel path rethrows the original exception instance — same
-    /// type, message and <c>ParamName</c>, from the lowest-numbered class or pair
-    /// that failed — and never lets an <see cref="AggregateException"/> escape.
+    /// A <c>catch</c> written for the sequential path keeps working above one worker: the inputs are
+    /// refused before a worker starts, in scikit-learn's order (#1569, #1601), and a class curve that
+    /// refuses its rates under a negative weight is rethrown as the instance it is, the lowest class's,
+    /// never as an <see cref="AggregateException"/>.
     /// </remarks>
     public static double MultiClass(
         ReadOnlySpan<int> yTrue,

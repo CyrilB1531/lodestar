@@ -75,7 +75,7 @@ internal static class NumpyAverage
         if (weightSum == 0.0)
 #pragma warning restore S1244
         {
-            throw new ArgumentException("Weights sum to zero, can't be normalized.", paramName);
+            throw new ArgumentException("Weights sum to zero, can't be normalized", paramName);
         }
 
         return Sum(values) / weightSum;

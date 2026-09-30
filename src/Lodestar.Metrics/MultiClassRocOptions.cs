@@ -19,8 +19,8 @@ public readonly ref struct MultiClassRocOptions
     public MultiClassStrategy Strategy { get; init; }
 
     /// <summary>
-    /// <see cref="Averaging.Macro"/> or <see cref="Averaging.Weighted"/>
-    /// (<c>average=</c>). <see langword="null"/> — the default — means
+    /// <see cref="Averaging.Macro"/> or <see cref="Averaging.Weighted"/>, or <see cref="Averaging.Micro"/> under
+    /// one-vs-rest (<c>average=</c>). <see langword="null"/> — the default — means
     /// <see cref="Averaging.Macro"/>, and is nullable for a reason:
     /// <c>default(Averaging)</c> is <see cref="Averaging.Binary"/>, which
     /// multiclass ROC-AUC refuses, so a non-nullable property would make

@@ -112,19 +112,36 @@ internal static class BinaryRoc
         // Compute, not Score, so it doesn't shadow BinaryRoc.Score (S3218).
         internal double Compute(
             ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight,
-            bool scoresFinite)
+            bool weightsChecked, string weightParam)
         {
-            int n = Validate(yTrue, yScore, sampleWeight);
-            BuildPoints(yTrue, yScore, posLabel, sampleWeight, _keys, _points, scoresFinite);
+            // Every caller has refused a non-finite score already (#1585, #1569); some have checked the weights too.
+            int n = Validate(yTrue, yScore, sampleWeight, weightsChecked);
+            bool hasNegative = BuildPoints(yTrue, yScore, posLabel, sampleWeight, _keys, _points, scoresFinite: true);
 
-            if (_codes is null || n < RadixThreshold)
+            double area;
+            bool monotone;
+            if (hasNegative)
+            {
+                // Only a negative weight can turn the rates back, and then the order ties are summed in decides it.
+                area = AccumulateAsRocCurve(_keys, _points, n, out monotone);
+            }
+            else if (_codes is null || n < RadixThreshold)
             {
                 Array.Sort(_keys, _points, 0, n);
-                return Accumulate(_keys, _points, n);
+                area = Accumulate(_keys, _points, n, checkMonotone: false, out monotone);
+            }
+            else
+            {
+                RadixSort(n);
+                area = Accumulate(_sortedKeys!, _sortedPoints!, n, checkMonotone: false, out monotone);
             }
 
-            RadixSort(n);
-            return Accumulate(_sortedKeys!, _sortedPoints!, n);
+            // auc refuses a false-positive rate that turns back, which only a negative weight can make (#1601).
+            return monotone
+                ? area
+                : throw new ArgumentException(
+                    "x is neither increasing nor decreasing: a negative sample weight turns the false-positive rate back.",
+                    weightParam);
         }
 
         /// <summary>
@@ -248,8 +265,10 @@ internal static class BinaryRoc
             return (bits & SignBit) != 0 ? ~bits : bits | SignBit;
         }
 
-        // These four — Validate, BuildPoints, Accumulate, IsLastOfGroup — are reachable only from Scratch (S3398).
-        private static int Validate(ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, ReadOnlySpan<double> sampleWeight)
+        // These — Validate, BuildPoints, AccumulateAsRocCurve, Accumulate, IsLastOfGroup, and Encode, Pass and
+        // AccumulateAveragePrecision — are reachable only from Scratch (S3398).
+        private static int Validate(
+            ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, ReadOnlySpan<double> sampleWeight, bool weightsChecked = false)
         {
             int n = yTrue.Length;
             if (yScore.Length != n)
@@ -267,16 +286,21 @@ internal static class BinaryRoc
                     $"sampleWeight has {sampleWeight.Length} entries but there are {n} samples.",
                     nameof(sampleWeight));
             }
-            Inputs.ValidateSampleWeight(sampleWeight);
+            if (!weightsChecked)
+            {
+                Inputs.ValidateSampleWeight(sampleWeight);
+            }
 
             return n;
         }
 
-        private static void BuildPoints(
+        /// <summary>Fills the keys and points, and says whether a weight is negative, the one case a curve can turn back.</summary>
+        private static bool BuildPoints(
             ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight,
             double[] keys, Point[] points, bool scoresFinite)
         {
             bool weighted = !sampleWeight.IsEmpty;
+            bool hasNegative = false;
 
             for (int i = 0; i < yTrue.Length; i++)
             {
@@ -289,19 +313,75 @@ internal static class BinaryRoc
                 }
 
                 double weight = weighted ? sampleWeight[i] : 1.0;
+                hasNegative |= weight < 0.0;
                 keys[i] = -score;
                 points[i].Weight = weight;
                 points[i].PositiveWeight = yTrue[i] == posLabel ? weight : 0.0;
             }
+
+            return hasNegative;
         }
 
-        private static double Accumulate(double[] keys, Point[] points, int n)
+        /// <summary>
+        /// The area with the samples in <c>roc_curve</c>'s own order, <c>argsort(y_score, stable=True,
+        /// descending=True)</c>: score descending, a tie's earlier sample first, so its cumulative weights round as
+        /// scikit-learn's do. Pooled buffers, and a (key, index) pair sorted by value, so no comparer is allocated.
+        /// </summary>
+        private static double AccumulateAsRocCurve(double[] keys, Point[] points, int n, out bool monotone)
         {
+            (double Key, int Index)[] order = ArrayPool<(double, int)>.Shared.Rent(n);
+            double[] sortedKeys = ArrayPool<double>.Shared.Rent(n);
+            Point[] sortedPoints = ArrayPool<Point>.Shared.Rent(n);
+            try
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    order[i] = (keys[i], i);
+                }
+
+                Array.Sort(order, 0, n);
+                for (int i = 0; i < n; i++)
+                {
+                    sortedKeys[i] = order[i].Key;
+                    sortedPoints[i] = points[order[i].Index];
+                }
+
+                return Accumulate(sortedKeys, sortedPoints, n, checkMonotone: true, out monotone);
+            }
+            finally
+            {
+                ArrayPool<(double, int)>.Shared.Return(order);
+                ArrayPool<double>.Shared.Return(sortedKeys);
+                ArrayPool<Point>.Shared.Return(sortedPoints);
+            }
+        }
+
+        /// <summary>The trapezoid area under the curve, and whether its false-positive rates move one way only.</summary>
+        /// <remarks>
+        /// <c>roc_curve</c> prepends a 0 and turns a total at or below zero into NaN rates, so such a curve is NaN and
+        /// never refused; <c>auc</c> then refuses rates that rise and fall. Only the false-positive side is checked,
+        /// as <c>auc</c> checks only <c>x</c>.
+        /// </remarks>
+        private static double Accumulate(double[] keys, Point[] points, int n, bool checkMonotone, out bool monotone)
+        {
+            // auc reads fps / fps[-1], so the turn is tested on that quotient, whose rounding can flatten a step.
+            double falseTotal = 0.0;
+            if (checkMonotone)
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    falseTotal += points[i].Weight - points[i].PositiveWeight;
+                }
+            }
+
             double truePositives = 0.0;
             double falsePositives = 0.0;
             double previousTrue = 0.0;
             double previousFalse = 0.0;
+            double previousRate = 0.0;
             double area = 0.0;
+            bool rose = false;
+            bool fell = false;
 
             for (int i = 0; i < n; i++)
             {
@@ -313,15 +393,22 @@ internal static class BinaryRoc
                     continue;
                 }
 
+                if (checkMonotone)
+                {
+                    double rate = falsePositives / falseTotal;
+                    rose |= rate > previousRate;
+                    fell |= rate < previousRate;
+                    previousRate = rate;
+                }
+
                 area += (falsePositives - previousFalse) * (truePositives + previousTrue) * 0.5;
                 previousTrue = truePositives;
                 previousFalse = falsePositives;
             }
 
-            // One class, or a class whose weight is all zero, gives 0/0: roc_auc_score 1.9.1 warns and answers NaN (#1277).
-#pragma warning disable S1244
-            return truePositives == 0.0 || falsePositives == 0.0 ? double.NaN : area / (truePositives * falsePositives);
-#pragma warning restore S1244
+            // A total at or below zero makes roc_curve's rates NaN, one class included: 1.9.1 warns and answers NaN (#1277).
+            monotone = falsePositives <= 0.0 || !(rose && fell);
+            return truePositives <= 0.0 || falsePositives <= 0.0 ? double.NaN : area / (truePositives * falsePositives);
         }
 
         /// <summary>The step sum over the precision-recall curve, not the area under it.</summary>
@@ -380,14 +467,18 @@ internal static class BinaryRoc
         }
     }
 
-    /// <summary>The binary score for <c>RocAuc.Score</c>, its one caller, which has refused a non-finite score already.</summary>
+    /// <summary>
+    /// The binary score for a caller that has refused a non-finite score already — <c>RocAuc.Score</c>, and
+    /// <c>RocAuc.MultiClass</c>'s micro average, which has checked its weights too.
+    /// </summary>
     public static double Score(
-        ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight)
+        ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight,
+        bool weightsChecked, string weightParam)
     {
         Scratch scratch = Scratch.Rent(yTrue.Length);
         try
         {
-            return scratch.Compute(yTrue, yScore, posLabel, sampleWeight, scoresFinite: true);
+            return scratch.Compute(yTrue, yScore, posLabel, sampleWeight, weightsChecked, weightParam);
         }
         finally
         {
@@ -395,10 +486,14 @@ internal static class BinaryRoc
         }
     }
 
+    /// <summary>A multiclass class or pair curve: <c>RocAuc.MultiClass</c> has checked the scores and the weights it carries in <c>options</c>.</summary>
     public static double Score(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight,
         Scratch scratch) =>
-        scratch.Compute(yTrue, yScore, posLabel, sampleWeight, scoresFinite: true);
+        scratch.Compute(yTrue, yScore, posLabel, sampleWeight, weightsChecked: true, MultiClassWeightParam);
+
+    /// <summary>The parameter <c>RocAuc.MultiClass</c> carries its sample weights in.</summary>
+    private const string MultiClassWeightParam = "options";
 
     public static double AveragePrecision(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight)

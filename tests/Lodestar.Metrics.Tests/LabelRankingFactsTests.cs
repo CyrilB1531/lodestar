@@ -46,7 +46,8 @@ public sealed class LabelRankingFactsTests
         ArgumentException error = Assert.Throws<ArgumentException>(
             () => LabelRanking.Weighted([1.0, 2.0, 3.0], [0.0, 0.0, 0.0]));
         Assert.Contains(
-            "Weights sum to zero, can't be normalized.", error.Message, StringComparison.Ordinal);
+            "Weights sum to zero, can't be normalized", error.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("normalized.", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

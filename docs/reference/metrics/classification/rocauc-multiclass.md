@@ -23,21 +23,45 @@ the same way here: labels `[0, 1, 0, 2]` weighted `[1e16, -1e16, 1, 0]`, for ins
 sample order and `0` by class ([#1586](https://github.com/CyrilB1531/lodestar/issues/1586)), and
 both averages end in `np.average`'s pairwise sums.
 
-**Exceptions** — `ArgumentException`, first, when `yTrue` or `yScore` is empty — "Found array with 0
-sample(s) (shape=(0,))…" and "(shape=(0, k))…", in `check_array`'s words
-([#1593](https://github.com/CyrilB1531/lodestar/issues/1593)) — or a score is not finite — "Input
-contains NaN." or its infinity counterpart, before any row is summed
-([#1569](https://github.com/CyrilB1531/lodestar/issues/1569)); under one-vs-rest, when a sample
-weight is not finite, or every one is zero under `Averaging.Macro` — the weighted average returns
-`0` first, as its zero-total shortcut does — refused once before any class is scored; then when any
-of the shape rules is broken — a length that does not match, a row that does not sum to 1, a sample
-weight under one-vs-one, a `yTrue` label outside `MultiClassRocOptions.Labels` — "'y_true' contains
-labels not in parameter 'labels'" — or, under one-vs-one, `k (k - 1) / 2` class pairs past what one
-array holds, naming `classCount` ([#1480](https://github.com/CyrilB1531/lodestar/issues/1480)), or,
-under one-vs-one weighted, a `yTrue` holding one class alone, which pairs with nothing — "Weights
-sum to zero, can't be normalized." as scikit-learn raises it
-([#1566](https://github.com/CyrilB1531/lodestar/issues/1566)); `ArgumentOutOfRangeException` when
-`classCount` is below two or `MultiClassRocOptions.MaxDegreeOfParallelism` is negative.
+**Exceptions**, in the order they are checked, which is `_multiclass_roc_auc_score`'s
+([#1601](https://github.com/CyrilB1531/lodestar/issues/1601)):
+
+1. `ArgumentException` when the averaging is `Averaging.Binary` — "The 'average' parameter of
+   roc_auc_score must be a str among {'macro', 'micro', 'samples', 'weighted'} or None. Got 'binary'
+   instead.", the options listed sorted where Python prints its set in any order — which
+   scikit-learn's parameter validation refuses before any array is read.
+2. `ArgumentOutOfRangeException` when `MultiClassRocOptions.MaxDegreeOfParallelism` is negative,
+   then when `classCount` is below two — neither has a scikit-learn counterpart.
+3. `ArgumentException` when `yTrue`, then `yScore`, is empty — "Found array with 0 sample(s)
+   (shape=(0,))…" and "(shape=(0, k))…" ([#1593](https://github.com/CyrilB1531/lodestar/issues/1593)).
+4. When a score is not finite — "Input contains NaN." or its infinity counterpart
+   ([#1569](https://github.com/CyrilB1531/lodestar/issues/1569)).
+5. When `yScore` does not hold `classCount` values per sample — the shape a flat span has to state.
+6. When a row does not sum to 1 — "Target scores need to be probabilities for multiclass roc_auc,
+   i.e. they should sum up to 1.0 over classes".
+7. When the averaging is `Averaging.Micro` under one-vs-one — "average must be one of ('macro',
+   'weighted', None) for multiclass problems". Under one-vs-rest, micro is the binary score of the
+   raveled class matrix, each weight repeated across its classes, as scikit-learn computes it.
+8. When `MultiClassRocOptions.Labels` repeats a label — "Parameter 'labels' must be unique" — is
+   not ascending — "Parameter 'labels' must be ordered" — or does not hold `classCount` labels;
+   when a `yTrue` label is outside it — "'y_true' contains labels not in parameter 'labels'"; or,
+   without `Labels`, when `yTrue`'s distinct labels are not `classCount`.
+9. When a sample weight is given under one-vs-one — "sample_weight is not supported for multiclass
+   one-vs-one ROC AUC, 'sample_weight' must be None in this case." — then when there is not one
+   weight per sample.
+10. Under one-vs-rest, when some class holds both labels — a column of one label is `NaN` before its
+    curve reads a weight — and a sample weight is not finite, or when every one is zero under
+    `Averaging.Macro` or `Averaging.Micro` — under `Averaging.Weighted` the zero-total shortcut
+    returns `0` first.
+11. When a negative sample weight turns a class's false-positive rate back — "x is neither
+    increasing nor decreasing", as `auc` refuses it, raised as the lowest such class's refusal on
+    any number of workers. A class absent from `yTrue`, or whose negative class's weights total zero
+    or less, is `NaN` instead; one whose positive class's weights total zero or less is `NaN` unless
+    its false-positive rate turns back.
+12. Under one-vs-one, when `k (k - 1) / 2` class pairs pass what one array holds, naming
+    `classCount` ([#1480](https://github.com/CyrilB1531/lodestar/issues/1480)), or, weighted, when
+    `yTrue` holds one class alone, which pairs with nothing — "Weights sum to zero, can't be
+    normalized", as numpy raises it ([#1566](https://github.com/CyrilB1531/lodestar/issues/1566)).
 
 **Example** — six samples over three classes, one probability row each.
 

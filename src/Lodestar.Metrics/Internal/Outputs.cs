@@ -167,7 +167,7 @@ internal static class Outputs
 #pragma warning restore S1244
         {
             throw new ArgumentException(
-                "Weights sum to zero, can't be normalized.", paramName);
+                "Weights sum to zero, can't be normalized", paramName);
         }
     }
 

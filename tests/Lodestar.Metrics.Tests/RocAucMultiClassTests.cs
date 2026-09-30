@@ -69,13 +69,18 @@ public sealed class RocAucMultiClassTests
     }
 
     [Fact]
-    public void Rejects_micro_averaging()
+    public void Micro_averaging_is_refused_under_one_vs_one_and_scored_under_one_vs_rest()
     {
+        // scikit-learn accepts average='micro' for 'ovr' only (#1601).
         int[] yTrue = [0, 1, 2];
         double[] scores = Rows([[0.6, 0.2, 0.2], [0.2, 0.6, 0.2], [0.2, 0.2, 0.6]]);
 
-        Assert.Throws<ArgumentException>(() => RocAuc.MultiClass(
-            yTrue, scores, 3, new MultiClassRocOptions { Average = Averaging.Micro }));
+        Assert.Throws<ArgumentException>(() => RocAuc.MultiClass(yTrue, scores, 3, new MultiClassRocOptions
+        {
+            Strategy = MultiClassStrategy.OneVsOne,
+            Average = Averaging.Micro,
+        }));
+        Assert.Equal(1.0, RocAuc.MultiClass(yTrue, scores, 3, new MultiClassRocOptions { Average = Averaging.Micro }));
     }
 
     [Fact]

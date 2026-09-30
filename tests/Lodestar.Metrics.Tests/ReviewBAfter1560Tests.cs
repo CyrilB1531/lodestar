@@ -67,7 +67,7 @@ public sealed class ReviewBAfter1560Tests
         // roc_auc_score([0,0,0], ..., multi_class='ovo', average='weighted', labels=[0,1,2]) raises ZeroDivisionError (#1566).
         ArgumentException error = Assert.Throws<ArgumentException>(() => OneClassOneVsOne(Averaging.Weighted, 1));
 
-        Assert.Equal("Weights sum to zero, can't be normalized. (Parameter 'yTrue')", error.Message);
+        Assert.Equal("Weights sum to zero, can't be normalized (Parameter 'yTrue')", error.Message);
         Assert.Throws<ArgumentException>(() => OneClassOneVsOne(Averaging.Weighted, 2));
         Assert.True(double.IsNaN(OneClassOneVsOne(Averaging.Macro, 1)));
         Assert.True(double.IsNaN(OneClassOneVsOne(Averaging.Macro, 2)));
