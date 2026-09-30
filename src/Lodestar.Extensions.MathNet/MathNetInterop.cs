@@ -78,20 +78,27 @@ public static class MathNetInterop
     {
         int[] pointers = matrix.RowPointers;
         int[] columns = matrix.ColumnIndices;
-        if (pointers[0] != 0 || pointers[matrix.RowCount] != matrix.NonZeroCount)
+
+        // All three pointer checks come before any column is read, so a middle pointer past the end cannot index out.
+        if (pointers[0] != 0)
         {
-            throw new ArgumentException(
-                $"The row pointers must run from 0 to the {matrix.NonZeroCount} stored values, but run from {pointers[0]} to {pointers[matrix.RowCount]}.",
-                nameof(matrix));
+            throw new ArgumentException($"The row pointers must start at 0, but start at {pointers[0]}.", nameof(matrix));
         }
 
-        // Every pointer is checked before any column is read, so a middle one past the end cannot index out.
         for (int row = 0; row < matrix.RowCount; row++)
         {
             if (pointers[row + 1] < pointers[row])
             {
-                throw new ArgumentException($"The row pointers decrease at row {row}.", nameof(matrix));
+                throw new ArgumentException(
+                    $"The row pointers decrease at pointer {row + 1}, {pointers[row + 1]} after {pointers[row]}.", nameof(matrix));
             }
+        }
+
+        if (pointers[matrix.RowCount] != matrix.NonZeroCount)
+        {
+            throw new ArgumentException(
+                $"The row pointers must end at the number of stored values, {matrix.NonZeroCount}, but end at {pointers[matrix.RowCount]}.",
+                nameof(matrix));
         }
 
         bool ordered = true;
@@ -336,10 +343,10 @@ public static class MathNetInterop
             if (IsStored(value))
             {
                 RequireInside(matrix, row, column);
-                if (++total >= TableLength.MaxLength)
+                if (++total > TableLength.MaxLength)
                 {
                     throw new ArgumentException(
-                        $"The matrix stores more non-zero values than one array holds ({TableLength.MaxLength - 1}).", nameof(matrix));
+                        $"The matrix stores more non-zero values than one array holds ({TableLength.MaxLength}).", nameof(matrix));
                 }
 
                 pointers[row + 1]++;

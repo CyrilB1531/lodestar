@@ -175,6 +175,7 @@ public sealed class ReviewBAfter1531Tests
         CsrMatrix matrix = CsrMatrix.CreateUnchecked(2, 2, [1.0], [0], [0, 1, 1]);
         matrix.RowPointers[1] = 2;
 
-        Assert.Throws<ArgumentException>(() => MathNetInterop.ToSparseMatrix(matrix));
+        ArgumentException error = Assert.Throws<ArgumentException>(() => MathNetInterop.ToSparseMatrix(matrix));
+        Assert.Equal("matrix", error.ParamName);
     }
 }
