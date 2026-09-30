@@ -104,12 +104,14 @@ public sealed class RocAucMultiClassTests
     }
 
     [Fact]
-    public void Rejects_fewer_than_two_classes()
+    public void Rejects_no_score_column_and_answers_one_column_over_one_label_with_NaN()
     {
         int[] yTrue = [0, 0, 0];
         double[] scores = [1.0, 1.0, 1.0];
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => RocAuc.MultiClass(yTrue, scores, 1));
+        // roc_auc_score([0,0,0], shape (3, 1)) takes the binary path and answers nan (#1605); zero columns have no counterpart.
+        Assert.Throws<ArgumentOutOfRangeException>(() => RocAuc.MultiClass(yTrue, scores, 0));
+        Assert.True(double.IsNaN(RocAuc.MultiClass(yTrue, scores, 1)));
     }
 
     [Fact]

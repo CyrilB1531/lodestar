@@ -50,11 +50,11 @@ public static class RocAuc
     /// <c>roc_auc_score(y_true, y_score, multi_class=…, average=…, labels=…)</c>.
     /// </summary>
     /// <param name="yTrue">The true labels, one per sample.</param>
-    /// <param name="yScore">Class probabilities, row-major: sample 0's classes, then sample 1's. Length must be <paramref name="classCount"/> times the sample count, and each row must sum to 1.</param>
+    /// <param name="yScore">Class probabilities, row-major: sample 0's classes, then sample 1's. Length must be <paramref name="classCount"/> times the sample count, and each row must sum to 1, except for one or two columns over a <paramref name="yTrue"/> of two labels or one, which take scikit-learn's binary path: no sum is checked there, one column over two labels is scored, two are refused, and over one label no row or weight count is checked, the answer being NaN (#1605).</param>
     /// <param name="classCount">How many classes each row scores.</param>
     /// <param name="options">Strategy, averaging, labels, sample weights and worker count. <c>default</c> is scikit-learn's own defaults, on one thread.</param>
     /// <exception cref="ArgumentException">Any of the rules above is broken.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><see cref="MultiClassRocOptions.MaxDegreeOfParallelism"/> is negative, or <paramref name="classCount"/> is below two.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><see cref="MultiClassRocOptions.MaxDegreeOfParallelism"/> is negative, or <paramref name="classCount"/> is below one.</exception>
     /// <remarks>
     /// A <c>catch</c> written for the sequential path keeps working above one worker: the inputs are
     /// refused before a worker starts, in scikit-learn's order (#1569, #1601), and a class curve that

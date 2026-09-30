@@ -123,31 +123,41 @@ public sealed class RocAucParallelTests
     }
 
     /// <summary>
-    /// k=2, n=10 is the <c>ArrayPool</c> collision docs/guides/performance.md's <c>ScoreSource</c>
-    /// section measures (<c>Rent(10).Length * 2 == Rent(20).Length</c>): the
-    /// corpus's class counts, 3 and 5, do not collide, so only this fixture would
-    /// catch a span sliced to the rented length reading the wrong column. Both
-    /// strategies, because k=2 is also the only shape giving
-    /// <c>OneVsOneParallel</c> a single pair, collapsing <c>Math.Min(workers,
-    /// count)</c> to one worker regardless of what the caller asked for.
+    /// k=4, n=10 is an <c>ArrayPool</c> collision like the one docs/guides/performance.md's
+    /// <c>ScoreSource</c> section measures (<c>Rent(10).Length * 4 == Rent(40).Length</c>): the
+    /// corpus's class counts, 3 and 5, do not collide, so only this fixture would catch a span
+    /// sliced to the rented length reading the wrong column. It was k=2 until #1605 refused two
+    /// columns as scikit-learn does. One-vs-one also runs with two of the four classes present,
+    /// the one shape giving <c>OneVsOneParallel</c> a single pair and collapsing
+    /// <c>Math.Min(workers, count)</c> to one worker whatever the caller asked for.
     /// </summary>
     [Fact]
     public void A_power_of_two_class_count_is_bit_identical_in_parallel()
     {
-        int[] yTrue = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1];
-        double[] scores = [0.9, 0.1, 0.2, 0.8, 0.7, 0.3, 0.4, 0.6, 0.55, 0.45,
-                           0.35, 0.65, 0.85, 0.15, 0.25, 0.75, 0.6, 0.4, 0.3, 0.7];
+        int[] allPresent = [0, 1, 2, 3, 0, 1, 2, 3, 0, 1];
+        int[] twoPresent = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1];
+        double[] scores =
+        [
+            0.4, 0.3, 0.2, 0.1, 0.1, 0.5, 0.2, 0.2, 0.2, 0.2, 0.5, 0.1, 0.1, 0.2, 0.3, 0.4, 0.35, 0.25, 0.2, 0.2,
+            0.15, 0.45, 0.25, 0.15, 0.25, 0.25, 0.3, 0.2, 0.2, 0.1, 0.3, 0.4, 0.45, 0.2, 0.2, 0.15, 0.3, 0.3, 0.2, 0.2,
+        ];
 
-        foreach (MultiClassStrategy strategy in new[] { MultiClassStrategy.OneVsRest, MultiClassStrategy.OneVsOne })
+        foreach ((MultiClassStrategy strategy, int[] yTrue) in new[]
         {
-            double sequential = RocAuc.MultiClass(yTrue, scores, 2,
-                new MultiClassRocOptions { Strategy = strategy });
+            (MultiClassStrategy.OneVsRest, allPresent),
+            (MultiClassStrategy.OneVsOne, allPresent),
+            (MultiClassStrategy.OneVsOne, twoPresent),
+        })
+        {
+            double sequential = RocAuc.MultiClass(yTrue, scores, 4,
+                new MultiClassRocOptions { Strategy = strategy, Labels = [0, 1, 2, 3] });
 
             foreach (int workers in WorkerCounts)
             {
-                double parallel = RocAuc.MultiClass(yTrue, scores, 2, new MultiClassRocOptions
+                double parallel = RocAuc.MultiClass(yTrue, scores, 4, new MultiClassRocOptions
                 {
                     Strategy = strategy,
+                    Labels = [0, 1, 2, 3],
                     MaxDegreeOfParallelism = workers,
                 });
 
@@ -261,11 +271,11 @@ public sealed class RocAucParallelTests
     [Fact]
     public void More_workers_than_classes_is_not_an_error()
     {
-        int[] yTrue = [0, 1, 0, 1];
-        double[] scores = [0.9, 0.1, 0.2, 0.8, 0.7, 0.3, 0.4, 0.6];
+        int[] yTrue = [0, 1, 2, 1];
+        double[] scores = [0.7, 0.2, 0.1, 0.2, 0.6, 0.2, 0.1, 0.3, 0.6, 0.3, 0.4, 0.3];
 
-        double sequential = RocAuc.MultiClass(yTrue, scores, 2);
-        double parallel = RocAuc.MultiClass(yTrue, scores, 2,
+        double sequential = RocAuc.MultiClass(yTrue, scores, 3);
+        double parallel = RocAuc.MultiClass(yTrue, scores, 3,
             new MultiClassRocOptions { MaxDegreeOfParallelism = 64 });
 
         Assert.Equal(BitConverter.DoubleToInt64Bits(sequential), BitConverter.DoubleToInt64Bits(parallel));
