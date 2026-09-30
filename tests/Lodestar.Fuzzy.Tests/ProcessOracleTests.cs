@@ -15,15 +15,17 @@ public sealed class ProcessOracleTests
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path));
         JsonElement root = doc.RootElement;
 
-        string[] choices = root.GetProperty("metadata").GetProperty("choices")
-            .EnumerateArray().Select(e => e.GetString()!).ToArray();
+        string?[] shared = OracleJson.Strings(root.GetProperty("metadata").GetProperty("choices"));
 
+        int replayed = 0;
         foreach (JsonElement c in root.GetProperty("cases").EnumerateArray())
         {
-            string query = c.GetProperty("query").GetString()!;
+            string? query = c.GetProperty("query").GetString();
             int limit = c.GetProperty("limit").GetInt32();
             double cutoff = c.GetProperty("cutoff").GetDouble();
 
+            // A case with a None among its choices carries its own (#1233).
+            string?[] choices = c.TryGetProperty("choices", out JsonElement own) ? OracleJson.Strings(own) : shared;
             IReadOnlyList<ExtractResult> actual = Process.Extract(query, choices, limit: limit, scoreCutoff: cutoff);
             JsonElement expected = c.GetProperty("results");
 
@@ -38,6 +40,8 @@ public sealed class ProcessOracleTests
                 r++;
             }
 
+            // Counted once extract is asserted: extractOne's null branch below ends the case either way.
+            replayed++;
             ExtractResult? one = Process.ExtractOne(query, choices, scoreCutoff: cutoff);
             JsonElement expectedOne = c.GetProperty("extract_one");
             if (expectedOne.ValueKind == JsonValueKind.Null)
@@ -52,6 +56,8 @@ public sealed class ProcessOracleTests
             Assert.True(Math.Abs(expectedOne.GetProperty("score").GetDouble() - one.Value.Score) < Tolerance,
                 $"case #{c.GetProperty("id").GetInt32()} extractOne: score expected {expectedOne.GetProperty("score").GetDouble():R}, got {one.Value.Score:R}");
         }
+
+        Assert.True(replayed >= 12, $"only {replayed} cases replayed");
     }
 
     [Theory]

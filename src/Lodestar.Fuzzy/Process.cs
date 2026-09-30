@@ -17,22 +17,28 @@ public static class Process
     /// <summary>
     /// Returns the best matches for <paramref name="query"/> among <paramref name="choices"/>.
     /// </summary>
-    /// <param name="query">The query string.</param>
-    /// <param name="choices">The candidate strings.</param>
+    /// <param name="query">The query string; a null one matches nothing, as rapidfuzz's <c>None</c> does.</param>
+    /// <param name="choices">The candidate strings; a null one is skipped, its index kept, as rapidfuzz skips <c>None</c>.</param>
     /// <param name="scorer">Similarity scorer (default <see cref="Fuzz.WRatio(string, string)"/>), returning a value in [0, 100].</param>
     /// <param name="limit">Maximum number of results (default 5); <c>null</c> returns all above the cutoff.</param>
     /// <param name="scoreCutoff">Minimum score to keep (inclusive). Default 0.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="query"/> or <paramref name="choices"/> is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is negative.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="choices"/> is null and <paramref name="query"/> is not.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is negative while neither <paramref name="query"/> nor <paramref name="choices"/> is null.</exception>
     public static IReadOnlyList<ExtractResult> Extract(
-        string query,
-        IEnumerable<string> choices,
+        string? query,
+        IEnumerable<string?> choices,
         Func<string, string, double>? scorer = null,
         int? limit = 5,
         double scoreCutoff = 0.0)
     {
-        Guard.NotNull(query);
+        // process.extract(None, …) answers [] before it reads the choices or the limit (#1233).
+        if (query is null)
+        {
+            return new List<ExtractResult>();
+        }
+
         Guard.NotNull(choices);
+
         if (limit is < 0)
         {
             // rapidfuzz's compiled extract fails on a negative limit too, with no parameter named.
@@ -49,14 +55,19 @@ public static class Process
 
         var hits = new List<ExtractResult>();
         int index = 0;
-        foreach (string choice in choices)
+        foreach (string? choice in choices)
         {
+            int at = index++;
+            if (choice is null)
+            {
+                continue;
+            }
+
             double score = scorer(query, choice);
             if (score >= scoreCutoff)
             {
-                hits.Add(new ExtractResult(choice, score, index));
+                hits.Add(new ExtractResult(choice, score, at));
             }
-            index++;
         }
 
         hits.Sort(Compare);
@@ -72,7 +83,7 @@ public static class Process
 
     private static List<ExtractResult> TopHits(
         string query,
-        IEnumerable<string> choices,
+        IEnumerable<string?> choices,
         Func<string, string, double> scorer,
         int limit,
         double scoreCutoff)
@@ -80,12 +91,18 @@ public static class Process
         // A heap ordered by Compare with the worst kept hit at its root, the one a better hit evicts.
         var heap = new List<ExtractResult>(Math.Min(limit, 64));
         int index = 0;
-        foreach (string choice in choices)
+        foreach (string? choice in choices)
         {
+            int at = index++;
+            if (choice is null)
+            {
+                continue;
+            }
+
             double score = scorer(query, choice);
             if (score >= scoreCutoff && limit > 0)
             {
-                var hit = new ExtractResult(choice, score, index);
+                var hit = new ExtractResult(choice, score, at);
                 if (heap.Count < limit)
                 {
                     heap.Add(hit);
@@ -99,7 +116,6 @@ public static class Process
                     SiftDown(heap, 0);
                 }
             }
-            index++;
         }
 
         heap.Sort(Compare);
@@ -148,8 +164,8 @@ public static class Process
     }
 
     /// <summary>Scores every query against every choice, reproducing <c>rapidfuzz.process.cdist</c>.</summary>
-    /// <param name="queries">The queries, one per row of the result.</param>
-    /// <param name="choices">The choices, one per column.</param>
+    /// <param name="queries">The queries, one per row of the result; a null one, never handed to the scorer, scores <c>0</c> in every column, as rapidfuzz's <c>WRatio</c> scores <c>None</c> where its default <c>ratio</c> reads uninitialised memory.</param>
+    /// <param name="choices">The choices, one per column; a null one, never handed to the scorer, scores <c>0</c> in every row, as rapidfuzz's own scorers score <c>None</c>.</param>
     /// <param name="scorer">
     /// Similarity scorer in <c>[0, 100]</c>. <see langword="null"/> takes
     /// <see cref="Fuzz.Ratio(string, string)"/> — <c>cdist</c>'s default, <strong>not</strong>
@@ -165,8 +181,8 @@ public static class Process
     /// also skips pairs a length bound already put under it — <c>BelowLengthCeiling</c> has why.
     /// </remarks>
     public static ScoreMatrix Cdist(
-        IReadOnlyList<string> queries,
-        IReadOnlyList<string> choices,
+        IReadOnlyList<string?> queries,
+        IReadOnlyList<string?> choices,
         Func<string, string, double>? scorer = null,
         double scoreCutoff = 0.0)
     {
@@ -191,12 +207,17 @@ public static class Process
         var scores = new double[cells];
         for (int row = 0; row < rows; row++)
         {
-            string query = queries[row];
+            string? query = queries[row];
+            if (query is null)
+            {
+                continue;
+            }
+
             int start = row * columns;
             for (int column = 0; column < columns; column++)
             {
-                string choice = choices[column];
-                if (bounded && BelowLengthCeiling(query, choice, scoreCutoff))
+                string? choice = choices[column];
+                if (choice is null || (bounded && BelowLengthCeiling(query, choice, scoreCutoff)))
                 {
                     continue;
                 }
@@ -217,41 +238,52 @@ public static class Process
     /// the last bit survives it. It is <em>false</em> for a length-blind scorer:
     /// <c>partial_ratio("cat", "the cat sat on the mat")</c> is 100 against a ceiling of 24.
     /// </remarks>
-    private static bool BelowLengthCeiling(string? a, string? b, double scoreCutoff)
+    private static bool BelowLengthCeiling(string a, string b, double scoreCutoff)
     {
-        // A null element is left to the scorer, which is what names it in the exception.
-        if (a is null || b is null)
-        {
-            return false;
-        }
-
         int total = a.Length + b.Length;
         return total != 0 &&
             100.0 * (1.0 - ((double)Math.Abs(a.Length - b.Length) / total)) < scoreCutoff;
     }
 
-    /// <summary>Returns the single best match, or <c>null</c> if none clears the cutoff.</summary>
+    /// <summary>Returns the single best match, or <c>null</c> if none clears the cutoff or the query is null.</summary>
+    /// <param name="query">The query string; a null one matches nothing, as rapidfuzz's <c>None</c> does.</param>
+    /// <param name="choices">The candidate strings; a null one is skipped, its index kept, as rapidfuzz skips <c>None</c>.</param>
+    /// <param name="scorer">Similarity scorer (default <see cref="Fuzz.WRatio(string, string)"/>), returning a value in [0, 100].</param>
+    /// <param name="scoreCutoff">Minimum score to keep (inclusive). Default 0.</param>
+    /// <returns>The best match, or <c>null</c> when none clears <paramref name="scoreCutoff"/> or <paramref name="query"/> is null.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="choices"/> is null and <paramref name="query"/> is not.</exception>
     public static ExtractResult? ExtractOne(
-        string query,
-        IEnumerable<string> choices,
+        string? query,
+        IEnumerable<string?> choices,
         Func<string, string, double>? scorer = null,
         double scoreCutoff = 0.0)
     {
-        Guard.NotNull(query);
+        // process.extractOne(None, …) answers None before it reads the choices (#1233).
+        if (query is null)
+        {
+            return null;
+        }
+
         Guard.NotNull(choices);
+
         scorer ??= Fuzz.WRatio;
 
         // Strictly higher only, so the first of equal scores stays: the head of the sorted list.
         ExtractResult? best = null;
         int index = 0;
-        foreach (string choice in choices)
+        foreach (string? choice in choices)
         {
+            int at = index++;
+            if (choice is null)
+            {
+                continue;
+            }
+
             double score = scorer(query, choice);
             if (score >= scoreCutoff && (best is not { } kept || score.CompareTo(kept.Score) > 0))
             {
-                best = new ExtractResult(choice, score, index);
+                best = new ExtractResult(choice, score, at);
             }
-            index++;
         }
         return best;
     }

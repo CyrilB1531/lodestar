@@ -8,10 +8,14 @@ Scores every query against every choice, at `rapidfuzz.process.cdist` parity.
 public static ScoreMatrix Cdist(IReadOnlyList<string> queries, IReadOnlyList<string> choices, Func<string, string, double> scorer = null, double scoreCutoff = 0)
 ```
 
-**Parameters** — `queries` are the rows and `choices` the columns. `scorer` returns a similarity
-in `[0, 100]`; `null` takes [`Fuzz.Ratio`](fuzz-ratio.md). `scoreCutoff` is the minimum score
-reported — a cell below it reads `0` rather than being dropped, and on the default scorer it is
-also what lets a pair be rejected on its lengths alone.
+**Parameters** — `queries` are the rows and `choices` the columns, a null choice scoring `0` in
+every row, as rapidfuzz's own scorers score `None`, and a null query in every column, as its
+`WRatio` does — its default `ratio` reads uninitialised memory for a `None` query. Neither reaches
+the scorer, a caller's included, where rapidfuzz hands `None` to a Python one
+([#1233](https://github.com/CyrilB1531/lodestar/issues/1233)). `scorer` returns a similarity in
+`[0, 100]`; `null` takes [`Fuzz.Ratio`](fuzz-ratio.md). `scoreCutoff` is the minimum score reported
+— a cell below it reads `0` rather than being dropped, and on the default scorer it is also what
+lets a pair be rejected on its lengths alone.
 
 **Returns** — a [`ScoreMatrix`](scorematrix.md) of `queries.Count` rows by `choices.Count` columns.
 

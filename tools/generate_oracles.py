@@ -75,6 +75,9 @@ VARIANT = "variant"
 # Fixture strings reused across several corpora.
 QUICK_FOX = "the quick brown fox"
 METS = "new york mets"
+RED_SOX = "boston red sox"
+# The key a process case or a cdist block lists its choices under (#1233).
+CHOICES = "choices"
 UNK_TOKEN = "[UNK]"
 # WordPiece's spelling; the sentencepiece-based families (Unigram, XLM-R) spell
 # the same concept in angle brackets below.
@@ -2298,7 +2301,7 @@ def generate_fuzz() -> dict:
 NEW_YORK = "new york"
 
 PROCESS_CHOICES = [
-    METS, "new york yankees", "boston red sox", "atlanta braves",
+    METS, "new york yankees", RED_SOX, "atlanta braves",
     "new york knicks", "brooklyn nets", "los angeles lakers", "chicago bulls",
 ]
 PROCESS_CASES = [
@@ -2311,6 +2314,12 @@ PROCESS_CASES = [
     {"query": " " * len(METS), "limit": 3, "cutoff": 0.0},
     {"query": "brooklyn", "limit": 0, "cutoff": 0.0},
     {"query": "zzz", "limit": 5, "cutoff": 90.0},
+    # A None choice is skipped with its index kept (#1233): the case carries its own choices.
+    {"query": NEW_YORK, "limit": 5, "cutoff": 0.0, CHOICES: [None, *PROCESS_CHOICES[:3], None, *PROCESS_CHOICES[3:]]},
+    {"query": METS, "limit": 2, "cutoff": 80.0, CHOICES: [METS, None, None]},
+    {"query": NEW_YORK, "limit": 5, "cutoff": 0.0, CHOICES: [None, None]},
+    # A None query matches nothing (#1233).
+    {"query": None, "limit": 5, "cutoff": 0.0},
 ]
 
 
@@ -2323,20 +2332,25 @@ def generate_process() -> dict:
 
     cases = []
     for i, case in enumerate(PROCESS_CASES):
-        res = process.extract(case["query"], PROCESS_CHOICES, limit=case["limit"], score_cutoff=case["cutoff"])
-        one = process.extractOne(case["query"], PROCESS_CHOICES, score_cutoff=case["cutoff"])
-        cases.append({
+        choices = case.get(CHOICES, PROCESS_CHOICES)
+        res = process.extract(case["query"], choices, limit=case["limit"], score_cutoff=case["cutoff"])
+        one = process.extractOne(case["query"], choices, score_cutoff=case["cutoff"])
+        frozen = {
             "id": i, "query": case["query"], "limit": case["limit"], "cutoff": case["cutoff"],
             "results": [_process_hit(*hit) for hit in res],
             "extract_one": None if one is None else _process_hit(*one),
-        })
+        }
+        if CHOICES in case:
+            frozen[CHOICES] = case[CHOICES]
+        cases.append(frozen)
     return {
         "metadata": {
             "algorithm": "Process",
             "library": "rapidfuzz",
             "library_version": version("rapidfuzz"),
             "reference_calls": ["rapidfuzz.process.{extract,extractOne} (default scorer WRatio)"],
-            "choices": PROCESS_CHOICES,
+            CHOICES: PROCESS_CHOICES,
+            "choices_note": "a case carrying its own 'choices' replays against those instead (#1233)",
             "count": len(cases),
         },
         "cases": cases,
@@ -2350,16 +2364,19 @@ def generate_process() -> dict:
 # otherwise -- seven decimal digits, where decision 0005 compares at 1e-9. The values are the
 # same computation either way; only the storage differs.
 CDIST_RATIO = "ratio"
+CDIST_WRATIO = "WRatio"
 CDIST_UTF16 = "utf16Unit"
 CDIST_DTYPE = "float64"
 
 CDIST_SCORERS = (
     CDIST_RATIO, "partial_ratio", "token_sort_ratio", "token_set_ratio",
-    "partial_token_sort_ratio", "partial_token_set_ratio", "WRatio",
+    "partial_token_sort_ratio", "partial_token_set_ratio", CDIST_WRATIO,
 )
 
-CDIST_CHOICES = [METS, "boston red sox", "atlanta braves", "brooklyn nets"]
+CDIST_CHOICES = [METS, RED_SOX, "atlanta braves", "brooklyn nets"]
 CDIST_QUERIES = [NEW_YORK, "boston", "atlanta falcons"]
+CDIST_NONE_CHOICES = [METS, None, RED_SOX, None]
+CDIST_NONE_QUERIES = [None, "boston", None]
 
 # Text past the BMP, where this package's default UTF-16 unit and rapidfuzz's code point part
 # ways (decision 0001): the C# side replays these through the TextElement.CodePoint overloads.
@@ -2382,7 +2399,7 @@ def _cdist_case(process, np, name: str, queries: list, choices: list,
         "call": "rapidfuzz.process.cdist",
         "args": {"scorer": scorer_name, "scoreCutoff": cutoff, "element": element,
                  "dtype": CDIST_DTYPE},
-        "queries": list(queries), "choices": list(choices),
+        "queries": list(queries), CHOICES: list(choices),
         "rows": len(queries), COLUMNS: len(choices),
         "scores": [float(v) for v in matrix.ravel()],
     }
@@ -2411,6 +2428,14 @@ def generate_process_cdist() -> dict:
     # The two empty shapes, which the reference answers rather than refuses.
     cases.append(_cdist_case(process, np, "no choices", CDIST_QUERIES, [], CDIST_RATIO, 0.0, CDIST_UTF16))
     cases.append(_cdist_case(process, np, "no queries", [], CDIST_CHOICES, CDIST_RATIO, 0.0, CDIST_UTF16))
+
+    # A None choice scores 0 in every row, and a None query 0 in every column, under WRatio (#1233); ratio
+    # answers uninitialised memory for a None query, so its cases hold None choices only.
+    cases.extend(
+        _cdist_case(process, np, "None choices", CDIST_QUERIES, CDIST_NONE_CHOICES, scorer, cutoff, CDIST_UTF16)
+        for scorer, cutoff in ((CDIST_RATIO, 0.0), (CDIST_RATIO, 60.0), (CDIST_WRATIO, 0.0)))
+    cases.append(_cdist_case(process, np, "None queries", CDIST_NONE_QUERIES, CDIST_NONE_CHOICES, CDIST_WRATIO, 0.0,
+                             CDIST_UTF16))
 
     # Past the BMP, through the code-point overloads on the C# side.
     cases.extend(

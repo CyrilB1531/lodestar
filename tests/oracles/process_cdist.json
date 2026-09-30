@@ -6,7 +6,7 @@
   "reference_calls": [
    "rapidfuzz.process.cdist (default scorer ratio, dtype=float64)"
   ],
-  "count": 19
+  "count": 23
  },
  "cases": [
   {
@@ -417,6 +417,154 @@
    "rows": 0,
    "columns": 4,
    "scores": []
+  },
+  {
+   "name": "None choices | scorer=ratio | cutoff=0.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "ratio",
+    "scoreCutoff": 0.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [
+    "new york mets",
+    null,
+    "boston red sox",
+    null
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    76.19047619047619,
+    0.0,
+    36.36363636363637,
+    0.0,
+    21.052631578947366,
+    0.0,
+    60.0,
+    0.0,
+    28.57142857142857,
+    0.0,
+    27.586206896551722,
+    0.0
+   ]
+  },
+  {
+   "name": "None choices | scorer=ratio | cutoff=60.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "ratio",
+    "scoreCutoff": 60.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [
+    "new york mets",
+    null,
+    "boston red sox",
+    null
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    76.19047619047619,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    60.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "None choices | scorer=WRatio | cutoff=0.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "WRatio",
+    "scoreCutoff": 0.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    "new york",
+    "boston",
+    "atlanta falcons"
+   ],
+   "choices": [
+    "new york mets",
+    null,
+    "boston red sox",
+    null
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    90.0,
+    0.0,
+    45.0,
+    0.0,
+    28.5,
+    0.0,
+    90.0,
+    0.0,
+    28.57142857142857,
+    0.0,
+    27.586206896551722,
+    0.0
+   ]
+  },
+  {
+   "name": "None queries | scorer=WRatio | cutoff=0.0 | element=utf16Unit",
+   "call": "rapidfuzz.process.cdist",
+   "args": {
+    "scorer": "WRatio",
+    "scoreCutoff": 0.0,
+    "element": "utf16Unit",
+    "dtype": "float64"
+   },
+   "queries": [
+    null,
+    "boston",
+    null
+   ],
+   "choices": [
+    "new york mets",
+    null,
+    "boston red sox",
+    null
+   ],
+   "rows": 3,
+   "columns": 4,
+   "scores": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    28.5,
+    0.0,
+    90.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
   },
   {
    "name": "past the BMP | scorer=ratio | cutoff=0.0 | element=codePoint",
