@@ -18,7 +18,7 @@ The second overload compares over `element`. At `TextElement.CodePoint` a charac
 Basic Multilingual Plane counts once, tokens split on rapidfuzz's own whitespace and sort by code
 point, which is rapidfuzz's score on any string; `TextElement.Utf16Unit` is the first overload.
 
-**Parameters** — `a` and `b` are the strings to compare; which is longer does not matter. `element` is the unit compared, in the second overload only.
+**Parameters** — `a` and `b` are the strings to compare; which is longer does not matter. `element` is the unit compared, in the second overload only. A null string scores `0`, on either side or both, as rapidfuzz scores `None` ([#1611](https://github.com/CyrilB1531/lodestar/issues/1611)).
 
 **Returns** — `double` in `[0, 100]`, the best [`Ratio`](fuzz-ratio.md) over any window of the
 longer string as long as the shorter.

@@ -2264,12 +2264,16 @@ FUZZ_CODE_POINT_PAIRS = [
     ("a\u00a0b", WIDE_TOKENS), (WIDE_TOKENS, "a\u00a0b"),
 ]
 
+# None on either side or both scores 0 in every scorer (#1611).
+FUZZ_NONE_PAIRS = [(None, "a"), ("a", None), (None, None), (None, ""), ("", None)]
+
 
 def generate_fuzz() -> dict:
     from rapidfuzz import fuzz  # noqa: PLC0415
 
     cases = []
-    pairs = [(a, b, False) for a, b in FUZZ_PAIRS] + [(a, b, True) for a, b in FUZZ_CODE_POINT_PAIRS]
+    pairs = ([(a, b, False) for a, b in FUZZ_PAIRS] + [(a, b, True) for a, b in FUZZ_CODE_POINT_PAIRS]
+             + [(a, b, False) for a, b in FUZZ_NONE_PAIRS])
     for i, (a, b, code_point_only) in enumerate(pairs):
         cases.append({
             "id": i, "a": a, "b": b, "codePointOnly": code_point_only,

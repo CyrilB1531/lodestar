@@ -14,6 +14,10 @@ which two are the same thing.
 
 **Returns** — `IReadOnlyList<IReadOnlyList<int>>`: clusters of **indices** into `records`.
 
+**Exceptions** — `ArgumentNullException` when `records`, `blockingKey` or `similarity` is null.
+`ArgumentException` naming `blockingKey` when it returns null for a record, which belongs to no
+block ([#1612](https://github.com/CyrilB1531/lodestar/issues/1612)).
+
 **Example** — two typo pairs, blocked on the first letter.
 
 ```csharp

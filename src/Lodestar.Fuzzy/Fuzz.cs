@@ -10,15 +10,21 @@ namespace Lodestar.Fuzzy;
 /// Scores are in <c>[0, 100]</c>, case-sensitive with punctuation kept, as in rapidfuzz. <see cref="Ratio(string, string)"/>
 /// is the Indel similarity ×100, <em>not</em> Levenshtein. By default each scorer compares UTF-16 units and splits
 /// on <see cref="char.IsWhiteSpace(char)"/>; its <see cref="TextElement.CodePoint"/> overload compares code points,
-/// splits on rapidfuzz's whitespace and sorts tokens by code point, as rapidfuzz does (decision 0001, #892). Thread-safe.
+/// splits on rapidfuzz's whitespace and sorts tokens by code point, as rapidfuzz does (decision 0001, #892). A null string
+/// scores 0, as rapidfuzz scores <c>None</c> (#1611). Thread-safe.
 /// </remarks>
 public static class Fuzz
 {
+    private const string UndeclaredUnit = "The unit must be Utf16Unit or CodePoint.";
+
     /// <summary>Indel similarity ×100 — the base ratio.</summary>
-    public static double Ratio(string a, string b)
+    public static double Ratio(string? a, string? b)
     {
-        Guard.NotNull(a);
-        Guard.NotNull(b);
+        if (a is null || b is null)
+        {
+            return 0.0;
+        }
+
         return 100.0 * Indel.NormalizedSimilarity(a, b);
     }
 
@@ -27,11 +33,16 @@ public static class Fuzz
     /// <param name="b">The second string.</param>
     /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
-    public static double Ratio(string a, string b, TextElement element)
+    public static double Ratio(string? a, string? b, TextElement element)
     {
         if (element == TextElement.Utf16Unit)
         {
             return Ratio(a, b);
+        }
+
+        if (a is null || b is null)
+        {
+            return NullScore(element);
         }
 
         CodePointPair? pair = CodePointPair.Of(a, b, element, tokens: false);
@@ -39,10 +50,13 @@ public static class Fuzz
     }
 
     /// <summary>Best <see cref="Ratio(string, string)"/> between the shorter string and any substring of the longer.</summary>
-    public static double PartialRatio(string a, string b)
+    public static double PartialRatio(string? a, string? b)
     {
-        Guard.NotNull(a);
-        Guard.NotNull(b);
+        if (a is null || b is null)
+        {
+            return 0.0;
+        }
+
         if (a.Length == 0 && b.Length == 0)
         {
             return 100.0;
@@ -71,11 +85,16 @@ public static class Fuzz
     /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
     /// <exception cref="ArgumentException">The two strings hold more distinct code points than a <see cref="char"/> can rank, which only <see cref="Ratio(string, string, TextElement)"/> answers.</exception>
-    public static double PartialRatio(string a, string b, TextElement element)
+    public static double PartialRatio(string? a, string? b, TextElement element)
     {
         if (element == TextElement.Utf16Unit)
         {
             return PartialRatio(a, b);
+        }
+
+        if (a is null || b is null)
+        {
+            return NullScore(element);
         }
 
         CodePointPair pair = Required(CodePointPair.Of(a, b, element, tokens: false));
@@ -103,10 +122,13 @@ public static class Fuzz
     }
 
     /// <summary><see cref="Ratio(string, string)"/> after splitting, sorting and rejoining the tokens of each string.</summary>
-    public static double TokenSortRatio(string a, string b)
+    public static double TokenSortRatio(string? a, string? b)
     {
-        Guard.NotNull(a);
-        Guard.NotNull(b);
+        if (a is null || b is null)
+        {
+            return 0.0;
+        }
+
         return Ratio(string.Join(" ", SortedTokens(a)), string.Join(" ", SortedTokens(b)));
     }
 
@@ -116,11 +138,16 @@ public static class Fuzz
     /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
     /// <exception cref="ArgumentException">The two strings hold more distinct code points than a <see cref="char"/> can rank, which only <see cref="Ratio(string, string, TextElement)"/> answers.</exception>
-    public static double TokenSortRatio(string a, string b, TextElement element)
+    public static double TokenSortRatio(string? a, string? b, TextElement element)
     {
         if (element == TextElement.Utf16Unit)
         {
             return TokenSortRatio(a, b);
+        }
+
+        if (a is null || b is null)
+        {
+            return NullScore(element);
         }
 
         CodePointPair pair = Required(CodePointPair.Of(a, b, element, tokens: true));
@@ -128,10 +155,13 @@ public static class Fuzz
     }
 
     /// <summary>Token-set ratio: compares the shared tokens against each string's full sorted token set.</summary>
-    public static double TokenSetRatio(string a, string b)
+    public static double TokenSetRatio(string? a, string? b)
     {
-        Guard.NotNull(a);
-        Guard.NotNull(b);
+        if (a is null || b is null)
+        {
+            return 0.0;
+        }
+
         return TokenSet(a, b, partial: false);
     }
 
@@ -141,11 +171,16 @@ public static class Fuzz
     /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
     /// <exception cref="ArgumentException">The two strings hold more distinct code points than a <see cref="char"/> can rank, which only <see cref="Ratio(string, string, TextElement)"/> answers.</exception>
-    public static double TokenSetRatio(string a, string b, TextElement element)
+    public static double TokenSetRatio(string? a, string? b, TextElement element)
     {
         if (element == TextElement.Utf16Unit)
         {
             return TokenSetRatio(a, b);
+        }
+
+        if (a is null || b is null)
+        {
+            return NullScore(element);
         }
 
         CodePointPair pair = Required(CodePointPair.Of(a, b, element, tokens: true));
@@ -153,10 +188,13 @@ public static class Fuzz
     }
 
     /// <summary><see cref="PartialRatio(string, string)"/> on sorted-token strings.</summary>
-    public static double PartialTokenSortRatio(string a, string b)
+    public static double PartialTokenSortRatio(string? a, string? b)
     {
-        Guard.NotNull(a);
-        Guard.NotNull(b);
+        if (a is null || b is null)
+        {
+            return 0.0;
+        }
+
         return PartialRatio(string.Join(" ", SortedTokens(a)), string.Join(" ", SortedTokens(b)));
     }
 
@@ -166,11 +204,16 @@ public static class Fuzz
     /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
     /// <exception cref="ArgumentException">The two strings hold more distinct code points than a <see cref="char"/> can rank, which only <see cref="Ratio(string, string, TextElement)"/> answers.</exception>
-    public static double PartialTokenSortRatio(string a, string b, TextElement element)
+    public static double PartialTokenSortRatio(string? a, string? b, TextElement element)
     {
         if (element == TextElement.Utf16Unit)
         {
             return PartialTokenSortRatio(a, b);
+        }
+
+        if (a is null || b is null)
+        {
+            return NullScore(element);
         }
 
         CodePointPair pair = Required(CodePointPair.Of(a, b, element, tokens: true));
@@ -178,10 +221,13 @@ public static class Fuzz
     }
 
     /// <summary>Token-set ratio using <see cref="PartialRatio(string, string)"/> for the comparisons.</summary>
-    public static double PartialTokenSetRatio(string a, string b)
+    public static double PartialTokenSetRatio(string? a, string? b)
     {
-        Guard.NotNull(a);
-        Guard.NotNull(b);
+        if (a is null || b is null)
+        {
+            return 0.0;
+        }
+
         return TokenSet(a, b, partial: true);
     }
 
@@ -191,11 +237,16 @@ public static class Fuzz
     /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
     /// <exception cref="ArgumentException">The two strings hold more distinct code points than a <see cref="char"/> can rank, which only <see cref="Ratio(string, string, TextElement)"/> answers.</exception>
-    public static double PartialTokenSetRatio(string a, string b, TextElement element)
+    public static double PartialTokenSetRatio(string? a, string? b, TextElement element)
     {
         if (element == TextElement.Utf16Unit)
         {
             return PartialTokenSetRatio(a, b);
+        }
+
+        if (a is null || b is null)
+        {
+            return NullScore(element);
         }
 
         CodePointPair pair = Required(CodePointPair.Of(a, b, element, tokens: true));
@@ -206,10 +257,13 @@ public static class Fuzz
     /// Weighted ratio: combines the base, partial and token ratios with rapidfuzz's
     /// length-dependent weighting and returns the maximum.
     /// </summary>
-    public static double WRatio(string a, string b)
+    public static double WRatio(string? a, string? b)
     {
-        Guard.NotNull(a);
-        Guard.NotNull(b);
+        if (a is null || b is null)
+        {
+            return 0.0;
+        }
+
         // Before the tokenization, which #970 moved behind it: an empty operand scores zero whatever
         // the other holds, and Process.Extract pays this per empty choice (#987).
         if (a.Length == 0 || b.Length == 0)
@@ -226,15 +280,18 @@ public static class Fuzz
     /// <param name="element"><see cref="TextElement.CodePoint"/> for rapidfuzz's score on any string, the BMP or past it.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="element"/> is not a declared value.</exception>
     /// <exception cref="ArgumentException">The two strings hold more distinct code points than a <see cref="char"/> can rank, which only <see cref="Ratio(string, string, TextElement)"/> answers.</exception>
-    public static double WRatio(string a, string b, TextElement element)
+    public static double WRatio(string? a, string? b, TextElement element)
     {
         if (element == TextElement.Utf16Unit)
         {
             return WRatio(a, b);
         }
 
-        Guard.NotNull(a);
-        Guard.NotNull(b);
+        if (a is null || b is null)
+        {
+            return NullScore(element);
+        }
+
         // The UTF-16 overload's fast path, taken before the alphabet and both tokenizations (#1057). An
         // undeclared unit skips it, so the pair below still refuses that unit as it did.
         if (element == TextElement.CodePoint && (a.Length == 0 || b.Length == 0))
@@ -277,6 +334,12 @@ public static class Fuzz
         return best;
     }
 
+    /// <summary>A null string's score, 0 as rapidfuzz scores <c>None</c>, once the unit is declared (#1611).</summary>
+    private static double NullScore(TextElement element) =>
+        element == TextElement.CodePoint
+            ? 0.0
+            : throw new ArgumentOutOfRangeException(nameof(element), element, UndeclaredUnit);
+
     /// <summary>Two strings and their tokens rewritten one unit per code point, the tokens sorted by code point.</summary>
     private readonly struct CodePointPair
     {
@@ -302,11 +365,9 @@ public static class Fuzz
         /// <param name="tokens">Whether the caller reads <see cref="TokensA"/>, which only the token scorers do (#987).</param>
         public static CodePointPair? Of(string a, string b, TextElement element, bool tokens)
         {
-            Guard.NotNull(a);
-            Guard.NotNull(b);
             if (element != TextElement.CodePoint)
             {
-                throw new ArgumentOutOfRangeException(nameof(element), element, "The unit must be Utf16Unit or CodePoint.");
+                throw new ArgumentOutOfRangeException(nameof(element), element, UndeclaredUnit);
             }
 
             CodePointAlphabet? map = CodePointAlphabet.Over(a, b);

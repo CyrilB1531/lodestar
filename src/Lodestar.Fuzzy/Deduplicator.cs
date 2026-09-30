@@ -25,9 +25,11 @@ public static class Deduplicator
     /// <param name="blockingKey">Partitions records; only records sharing a key are compared.</param>
     /// <param name="similarity">Similarity in [0, 100] between two records.</param>
     /// <param name="threshold">Minimum similarity (inclusive) to link two records.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="records"/>, <paramref name="blockingKey"/> or <paramref name="similarity"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="blockingKey"/> returns null for a record, which belongs to no block.</exception>
     public static IReadOnlyList<IReadOnlyList<int>> FindClusters<T>(
         IReadOnlyList<T> records,
-        Func<T, string> blockingKey,
+        Func<T, string?> blockingKey,
         Func<T, T, double> similarity,
         double threshold)
     {
@@ -41,7 +43,9 @@ public static class Deduplicator
         var blocks = new Dictionary<string, List<int>>(StringComparer.Ordinal);
         for (int i = 0; i < records.Count; i++)
         {
-            string key = blockingKey(records[i]);
+            // A null key named the dictionary's own parameter from TryGetValue (#1612).
+            string key = blockingKey(records[i])
+                ?? throw new ArgumentException($"The blocking key of record {i} is null.", nameof(blockingKey));
             if (!blocks.TryGetValue(key, out List<int>? bucket))
             {
                 bucket = [];

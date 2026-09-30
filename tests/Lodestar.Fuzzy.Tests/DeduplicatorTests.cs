@@ -62,4 +62,31 @@ public sealed class DeduplicatorTests
         IReadOnlyList<int> cluster = Assert.Single(clusters);
         Assert.Equal(3, cluster.Count);
     }
+
+    [Fact]
+    public void A_null_blocking_key_is_refused_naming_blocking_key()
+    {
+        // It threw from Dictionary.TryGetValue, naming its parameter key (#1612).
+        string[] records = ["a", "b"];
+
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => Deduplicator.FindClusters(records, r => r == "b" ? null : r, (x, y) => Fuzz.Ratio(x, y), 80));
+        Assert.Equal("blockingKey", error.ParamName);
+        Assert.StartsWith("The blocking key of record 1 is null.", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Null_arguments_are_refused_by_name()
+    {
+        string[] records = ["a"];
+        Func<string, string> key = r => r;
+        Func<string, string, double> similarity = (x, y) => Fuzz.Ratio(x, y);
+
+        Assert.Equal("records", Assert.Throws<ArgumentNullException>(
+            () => Deduplicator.FindClusters(null!, key, similarity, 80)).ParamName);
+        Assert.Equal("blockingKey", Assert.Throws<ArgumentNullException>(
+            () => Deduplicator.FindClusters(records, null!, similarity, 80)).ParamName);
+        Assert.Equal("similarity", Assert.Throws<ArgumentNullException>(
+            () => Deduplicator.FindClusters(records, key, null!, 80)).ParamName);
+    }
 }

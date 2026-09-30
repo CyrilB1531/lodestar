@@ -6,7 +6,7 @@
   "reference_calls": [
    "rapidfuzz.fuzz.{ratio,partial_ratio,token_sort_ratio,token_set_ratio,WRatio,partial_token_sort_ratio,partial_token_set_ratio}"
   ],
-  "count": 53
+  "count": 58
  },
  "cases": [
   {
@@ -697,6 +697,71 @@
    "wratio": 57.0,
    "partial_token_sort_ratio": 66.66666666666667,
    "partial_token_set_ratio": 66.66666666666667
+  },
+  {
+   "id": 53,
+   "a": null,
+   "b": "a",
+   "codePointOnly": false,
+   "ratio": 0,
+   "partial_ratio": 0,
+   "token_sort_ratio": 0,
+   "token_set_ratio": 0,
+   "wratio": 0,
+   "partial_token_sort_ratio": 0,
+   "partial_token_set_ratio": 0
+  },
+  {
+   "id": 54,
+   "a": "a",
+   "b": null,
+   "codePointOnly": false,
+   "ratio": 0,
+   "partial_ratio": 0,
+   "token_sort_ratio": 0,
+   "token_set_ratio": 0,
+   "wratio": 0,
+   "partial_token_sort_ratio": 0,
+   "partial_token_set_ratio": 0
+  },
+  {
+   "id": 55,
+   "a": null,
+   "b": null,
+   "codePointOnly": false,
+   "ratio": 0,
+   "partial_ratio": 0,
+   "token_sort_ratio": 0,
+   "token_set_ratio": 0,
+   "wratio": 0,
+   "partial_token_sort_ratio": 0,
+   "partial_token_set_ratio": 0
+  },
+  {
+   "id": 56,
+   "a": null,
+   "b": "",
+   "codePointOnly": false,
+   "ratio": 0,
+   "partial_ratio": 0,
+   "token_sort_ratio": 0,
+   "token_set_ratio": 0,
+   "wratio": 0,
+   "partial_token_sort_ratio": 0,
+   "partial_token_set_ratio": 0
+  },
+  {
+   "id": 57,
+   "a": "",
+   "b": null,
+   "codePointOnly": false,
+   "ratio": 0,
+   "partial_ratio": 0,
+   "token_sort_ratio": 0,
+   "token_set_ratio": 0,
+   "wratio": 0,
+   "partial_token_sort_ratio": 0,
+   "partial_token_set_ratio": 0
   }
  ]
 }
