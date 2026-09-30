@@ -14595,6 +14595,8 @@ SIGNIFICANCE_LEVELS = "significance_level"
 # different reasons, so STRATEGY_CONSTANT is not the constant to reuse here.
 CONSTANT_COLUMN = "constant"
 LINEAR = "linear"
+# numpy's averaged_inverted_cdf, KBinsDiscretizer's default quantile method since scikit-learn 1.9.
+AVERAGED_INVERTED_CDF = "averaged_inverted_cdf"
 YEO_JOHNSON = "yeo-johnson"
 
 # Correlation (#1120): one spelling each for the three call names and the keys the
@@ -15716,8 +15718,39 @@ def generate_preprocessing_kbins() -> dict:
     cases.append(_kbins_case(
         KBinsDiscretizer, "one to six", [[1.0], [2.0], [3.0], [4.0], [5.0], [6.0]],
         3, "quantile", ORDINAL, LINEAR))
+    cases.extend(_kbins_linspace_cases(KBinsDiscretizer))
 
     return {"metadata": _sklearn_metadata("kbins_discretizer", len(cases)), CASES: cases}
+
+
+def _kbins_linspace_cases(discretizer) -> list[dict]:
+    """Values on an edge, where only np.linspace's own arithmetic puts them in the reference's bin.
+
+    ``lo + (hi - lo) * i / n`` and ``100 * i / n`` land an ulp off ``np.linspace``, which moves a value
+    sitting on an edge into the next bin and can keep an edge the reference collapses (#1226, #1237).
+    """
+    one_to_six = [[1.0], [2.0], [3.0], [4.0], [5.0], [6.0]]
+    cases = [
+        _kbins_case(discretizer, "round values", [[0.0], [0.3], [0.6], [0.7], [1.0]], 10,
+                    "uniform", ORDINAL, AVERAGED_INVERTED_CDF),
+        _kbins_case(discretizer, "wide uniform", [[-21.6], [-0.2], [31.9]], 200,
+                    "uniform", ORDINAL, AVERAGED_INVERTED_CDF),
+        _kbins_case(discretizer, "rounded to a tenth", [[v] for v in KBINS_ROUNDED_COLUMN], 17,
+                    "quantile", ORDINAL, AVERAGED_INVERTED_CDF),
+    ]
+    cases.extend(
+        _kbins_case(discretizer, "one to six", one_to_six, 6, "quantile", ORDINAL, method)
+        for method in (LINEAR, AVERAGED_INVERTED_CDF))
+    return cases
+
+
+# Draw t = 5 of r = random.Random(17), n = r.randint(10, 60) then round(r.uniform(0, 5), 1) n times:
+# the first whose seventeen textbook-percentile edges part from numpy's (#1237).
+KBINS_ROUNDED_COLUMN = [
+    0.1, 2.0, 0.6, 4.8, 3.7, 0.3, 4.9, 1.3, 1.8, 4.7, 2.9, 5.0, 2.1, 4.6, 2.6, 5.0, 0.4, 3.7, 4.0,
+    3.1, 4.3, 1.6, 0.6, 0.6, 4.2, 4.6, 4.1, 2.2, 1.3, 0.4, 2.1, 3.4, 2.4, 0.6, 2.5, 4.9, 2.9, 3.9,
+    0.4, 2.2, 4.5, 3.9, 3.0, 4.5, 3.3, 0.7, 2.9, 4.7, 2.5, 4.4, 1.4,
+]
 
 
 def _kbins_strategy_cases(discretizer, columns: dict) -> list[dict]:
@@ -15730,7 +15763,7 @@ def _kbins_strategy_cases(discretizer, columns: dict) -> list[dict]:
                     continue
                 cases.extend(
                     _kbins_case(discretizer, name, rows, bins, strategy, encode,
-                                "averaged_inverted_cdf")
+                                AVERAGED_INVERTED_CDF)
                     for encode in (ORDINAL, "onehot-dense"))
 
     return cases
@@ -15740,7 +15773,7 @@ def _kbins_collapse_cases(discretizer) -> list[dict]:
     """The columns whose edges collapse, at the bin counts that make them collapse."""
     return [
         _kbins_case(discretizer, name, rows, bins, "quantile", encode,
-                    "averaged_inverted_cdf")
+                    AVERAGED_INVERTED_CDF)
         for name, rows in _kbins_collapsing_columns().items()
         for bins in (4, 5, 6)
         for encode in (ORDINAL, "onehot-dense")

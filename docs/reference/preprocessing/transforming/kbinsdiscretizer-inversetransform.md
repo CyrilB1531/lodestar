@@ -13,7 +13,12 @@ public double[] InverseTransform(ReadOnlySpan<double> encoded)
 
 **Returns** — one value per input feature, per row: the centre of the bin each code names.
 
-**Exceptions** — `ArgumentException` when `encoded` holds a partial row.
+**Exceptions** — `ArgumentException` when `encoded` holds a partial row or a non-finite value; when
+an ordinal code, truncated toward zero, falls outside `[-n, n)` for a feature of `n` bins — the
+reference indexes with `astype(np.int64)`, so a negative code counts from the last bin and one past
+either end raises `IndexError`; or when a one-hot block is all zeros, which the reference's encoder
+refuses. A one-hot block is read by its first largest value, numpy's `argmax`
+([#1230](https://github.com/CyrilB1531/lodestar/issues/1230)).
 
 **Example** — the four bin codes read back.
 

@@ -20,7 +20,9 @@ bias and without the interaction restriction.
 negative. `ArgumentException` when
 `samples` holds no row, a partial one, or a non-finite value; or when the degree is 0 and the bias
 is off, which leaves no term at all — the reference refuses that pair in as many words.
-`ArgumentException` also when the rows times the terms are more cells than one array holds ([#1314](https://github.com/CyrilB1531/lodestar/issues/1314)).
+`ArgumentException` also when the terms, or the rows times the terms, are more than one array holds
+([#1314](https://github.com/CyrilB1531/lodestar/issues/1314)); the terms are counted before any is
+listed ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230)).
 
 **Example** — two features at the default degree, which is what a linear model needs to see a
 curve or an interaction.

@@ -70,12 +70,10 @@ public sealed class StandardScaler
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
     /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value.</exception>
     /// <remarks>
-    /// Variance is the population variance (<c>ddof=0</c>), in two passes as numpy's is.
-    /// <strong>A near-constant feature scales by 1</strong>, and the test is not
-    /// <c>variance == 0</c> but the two-pass error bound of Chan, Golub and LeVeque, read
-    /// from <c>sklearn.preprocessing._data._is_constant_feature</c> (BSD-3, allowed by
-    /// decision 0002). The reference page carries the formula and the corpus pair that
-    /// separates the two readings.
+    /// The population variance (<c>ddof=0</c>) in <c>_incremental_mean_and_var</c>'s passes and numpy's order of
+    /// additions, an overflowing column's infinite or NaN as the reference's. <strong>A near-constant feature scales by
+    /// 1</strong>: not <c>variance == 0</c> but the two-pass error bound of Chan, Golub and LeVeque, read from
+    /// <c>sklearn.preprocessing._data._is_constant_feature</c> (BSD-3, decision 0002); the reference page has the rest.
     /// </remarks>
     public static StandardScaler Fit(
         ReadOnlySpan<double> samples, int featureCount, StandardScalerOptions? options = null)
@@ -83,22 +81,7 @@ public sealed class StandardScaler
         Guard.NotLessThan(featureCount, 1);
         int sampleCount = SampleMatrix.Rows(samples, featureCount);
         SampleMatrix.RequireFinite(samples, nameof(samples));
-        StandardScalerOptions settings = options ?? new StandardScalerOptions();
-
-        if (!settings.WithMean && !settings.WithStd)
-        {
-            return new StandardScaler(featureCount, sampleCount, null, null, null, centres: false);
-        }
-
-        double[] mean = ColumnMeans(samples, featureCount, sampleCount);
-        if (!settings.WithStd)
-        {
-            return new StandardScaler(featureCount, sampleCount, mean, null, null, settings.WithMean);
-        }
-
-        double[] variance = ColumnVariances(samples, featureCount, sampleCount, mean);
-        double[] scale = Divisors(variance, mean, sampleCount);
-        return new StandardScaler(featureCount, sampleCount, mean, variance, scale, settings.WithMean);
+        return FitChecked(samples, featureCount, sampleCount, options ?? new StandardScalerOptions());
     }
 
     /// <summary>Fits a scaler on a sparse matrix, which centring cannot be asked of.</summary>
@@ -164,7 +147,8 @@ public sealed class StandardScaler
     /// <strong>Returns a new scaler rather than mutating this one</strong>, the one place the
     /// spelling differs from the reference. Chaining batches and fitting the concatenation agree to
     /// a couple of units in the last place — <c>3.3e-16</c> relative, measured on the reference's
-    /// own two paths — rather than bit for bit, and the corpus freezes both.
+    /// own two paths — rather than bit for bit, and the corpus freezes both. A column whose sum overflows takes
+    /// numpy's order, as <see cref="Fit(ReadOnlySpan{double}, int, StandardScalerOptions)"/> does: infinite or NaN.
     /// </remarks>
     public StandardScaler PartialFit(ReadOnlySpan<double> samples)
     {
@@ -195,7 +179,7 @@ public sealed class StandardScaler
     /// <param name="samples">The samples to transform, row-major, with <see cref="FeatureCount"/> values per row.</param>
     /// <returns>A new array of the same length, standardised.</returns>
     /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value.</exception>
-    public double[] Transform(ReadOnlySpan<double> samples) => Apply(samples, inverse: false);
+    public double[] Transform(ReadOnlySpan<double> samples) => Checked(samples, inverse: false);
 
     /// <summary>Scales a sparse matrix by the fitted deviations, keeping its structure.</summary>
     /// <param name="samples">The samples to transform, with <see cref="FeatureCount"/> columns.</param>
@@ -222,7 +206,7 @@ public sealed class StandardScaler
     /// <see cref="Scale"/> was forced to 1 — that step threw the feature's spread away
     /// rather than recording it, which is the point of forcing it.
     /// </remarks>
-    public double[] InverseTransform(ReadOnlySpan<double> samples) => Apply(samples, inverse: true);
+    public double[] InverseTransform(ReadOnlySpan<double> samples) => Checked(samples, inverse: true);
 
     /// <summary>Undoes <see cref="Transform(CsrMatrix)"/> on a sparse matrix, keeping its structure.</summary>
     /// <param name="samples">The standardised samples, with <see cref="FeatureCount"/> columns.</param>
@@ -236,31 +220,77 @@ public sealed class StandardScaler
         return SparseColumns.Multiplied(samples, FeatureCount, _scale, requireFinite: true);
     }
 
+    /// <summary>
+    /// <see cref="Fit(ReadOnlySpan{double}, int, StandardScalerOptions)"/> past its refusals, for a
+    /// <c>PowerTransformer</c> that made them already over the powers it hands in.
+    /// </summary>
+    internal static StandardScaler FitChecked(
+        ReadOnlySpan<double> samples, int featureCount, int sampleCount, StandardScalerOptions settings)
+    {
+        if (!settings.WithMean && !settings.WithStd)
+        {
+            return new StandardScaler(featureCount, sampleCount, null, null, null, centres: false);
+        }
+
+        // _incremental_mean_and_var's sums, in numpy's order: an overflowing column ends in ∞ or NaN where the
+        // reference's does, and a nearly constant one standardises as the reference's does (#1230).
+        if (!settings.WithStd)
+        {
+            // last_variance=None: the reference takes the sum alone, (0 + Σx) / n.
+            var mean = new double[featureCount];
+            NumpyReduction.ColumnSums(samples, sampleCount, featureCount, mean);
+            for (int feature = 0; feature < featureCount; feature++)
+            {
+                mean[feature] = (0.0 + mean[feature]) / sampleCount;
+            }
+
+            return new StandardScaler(featureCount, sampleCount, mean, null, null, settings.WithMean);
+        }
+
+        // From nothing, as the reference's first batch: PartialFit's own fold, with no moments behind it.
+        (double[] means, double[] variance) = IncrementalMoments.Update(
+            samples, featureCount, sampleCount, default, default, 0);
+        double[] scale = Divisors(variance, means, sampleCount);
+        return new StandardScaler(featureCount, sampleCount, means, variance, scale, settings.WithMean);
+    }
+
     /// <summary>The mean alone, folded — what a scaler that never computed a variance can update.</summary>
     private double[] FoldedMean(ReadOnlySpan<double> samples, int rows, int updated)
     {
+        // The reference's order: the batch summed as numpy sums an axis, then added to the last sum (#1230).
         var mean = new double[FeatureCount];
+        NumpyReduction.ColumnSums(samples, rows, FeatureCount, mean);
         for (int feature = 0; feature < FeatureCount; feature++)
         {
-            double total = _mean![feature] * SampleCount;
-            for (int row = 0; row < rows; row++)
-            {
-                total += samples[(row * FeatureCount) + feature];
-            }
-
-            mean[feature] = total / updated;
+            double lastSum = _mean![feature] * SampleCount;
+            mean[feature] = (lastSum + mean[feature]) / updated;
         }
 
         return mean;
     }
 
-    /// <summary>Both directions, which differ only in the order and sense of the two steps.</summary>
-    private double[] Apply(ReadOnlySpan<double> samples, bool inverse)
+    /// <summary>
+    /// <see cref="Transform(ReadOnlySpan{double})"/> written over <paramref name="values"/>, past its refusals: the
+    /// powers a standardising <c>PowerTransformer</c> made and checked, which a second array only copied (#1230).
+    /// </summary>
+    internal void TransformInPlace(double[] values) => Apply(values, values, inverse: false);
+
+    /// <summary><see cref="InverseTransform(ReadOnlySpan{double})"/> written over <paramref name="values"/>, its twin.</summary>
+    internal void InverseTransformInPlace(double[] values) => Apply(values, values, inverse: true);
+
+    /// <summary>Both directions, refused as the previous release refused them, into a new array.</summary>
+    private double[] Checked(ReadOnlySpan<double> samples, bool inverse)
     {
         SampleMatrix.Rows(samples, FeatureCount);
         SampleMatrix.RequireFinite(samples, nameof(samples));
         var result = new double[samples.Length];
+        Apply(samples, result, inverse);
+        return result;
+    }
 
+    /// <summary>Both directions, which differ only in the order and sense of the two steps.</summary>
+    private void Apply(ReadOnlySpan<double> samples, double[] result, bool inverse)
+    {
         // An absent centre is a row of zeros that is still added, not skipped: -0.0 + 0.0 is +0.0,
         // and the element-wise version wrote that sum. _mean alone does not say whether to centre.
         ReadOnlySpan<double> centre = _centres && _mean is not null ? _mean : new double[FeatureCount];
@@ -276,8 +306,6 @@ public sealed class StandardScaler
         {
             Standardise(samples, centre, _scale, result);
         }
-
-        return result;
     }
 
     /// <summary>Only the centring step, added back or taken away, row by row.</summary>
@@ -325,85 +353,17 @@ public sealed class StandardScaler
         }
     }
 
-    /// <summary>Per-feature mean, summed with Neumaier compensation.</summary>
-    private static double[] ColumnMeans(ReadOnlySpan<double> samples, int featureCount, int sampleCount)
-    {
-        var total = new double[featureCount];
-        var lost = new double[featureCount];
-
-        for (int start = 0; start < samples.Length; start += featureCount)
-        {
-            ReadOnlySpan<double> row = samples.Slice(start, featureCount);
-            for (int feature = 0; feature < row.Length; feature++)
-            {
-                Add(ref total[feature], ref lost[feature], row[feature]);
-            }
-        }
-
-        var mean = new double[featureCount];
-        for (int feature = 0; feature < featureCount; feature++)
-        {
-            mean[feature] = (total[feature] + lost[feature]) / sampleCount;
-        }
-
-        return mean;
-    }
-
-    /// <summary>Per-feature population variance, in a second pass over the deviations.</summary>
-    private static double[] ColumnVariances(
-        ReadOnlySpan<double> samples, int featureCount, int sampleCount, double[] mean)
-    {
-        var total = new double[featureCount];
-        var lost = new double[featureCount];
-
-        for (int start = 0; start < samples.Length; start += featureCount)
-        {
-            ReadOnlySpan<double> row = samples.Slice(start, featureCount);
-            for (int feature = 0; feature < row.Length; feature++)
-            {
-                double deviation = row[feature] - mean[feature];
-                Add(ref total[feature], ref lost[feature], deviation * deviation);
-            }
-        }
-
-        var variance = new double[featureCount];
-        for (int feature = 0; feature < featureCount; feature++)
-        {
-            variance[feature] = (total[feature] + lost[feature]) / sampleCount;
-        }
-
-        return variance;
-    }
-
     /// <summary>The divisor, with a near-constant feature forced to 1 — see <see cref="Fit(ReadOnlySpan{double}, int, StandardScalerOptions)"/>.</summary>
     private static double[] Divisors(double[] variance, double[] mean, int sampleCount)
     {
-        // long-comment: the threshold is read from a reference rather than derived, so the
-        // attribution and the measurement that pins it belong at the line, not on the page.
-        // Chan, Golub and LeVeque's error bound for the two-pass variance, as
-        // sklearn.preprocessing._data._is_constant_feature applies it. Measured against
-        // scikit-learn 1.9.1: three samples at 1e8 +/- 1e-8 have a variance of 1.48e-16,
-        // which is not zero and is below this bound, and the reference scales them by 1.
-        const double Epsilon = 2.220446049250313e-16;
-
         var scale = new double[variance.Length];
         for (int feature = 0; feature < variance.Length; feature++)
         {
-            double shift = sampleCount * mean[feature] * Epsilon;
-            double bound = (sampleCount * Epsilon * variance[feature]) + (shift * shift);
-            scale[feature] = variance[feature] <= bound ? 1.0 : Math.Sqrt(variance[feature]);
+            scale[feature] = ConstantFeature.IsConstant(sampleCount, mean[feature], variance[feature])
+                ? 1.0
+                : Math.Sqrt(variance[feature]);
         }
 
         return scale;
-    }
-
-    /// <summary>Neumaier's compensated addition, so a long column does not drift.</summary>
-    private static void Add(ref double total, ref double lost, double value)
-    {
-        double sum = total + value;
-        lost += Math.Abs(total) >= Math.Abs(value)
-            ? (total - sum) + value
-            : (value - sum) + total;
-        total = sum;
     }
 }

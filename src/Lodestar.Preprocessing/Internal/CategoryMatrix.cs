@@ -30,4 +30,23 @@ internal static class CategoryMatrix
             }
         }
     }
+
+    /// <summary>
+    /// Refuses an infinite floating category, which the reference's <c>allow-nan</c> check refuses where it lets a
+    /// NaN through; <c>LabelEncoder</c>, which checks nothing, does not call it (#1229).
+    /// </summary>
+    public static void RejectInfinity<T>(ReadOnlySpan<T> values)
+    {
+        if (CategoryTable.FloatingDtype<T>() is { } dtype)
+        {
+            foreach (T value in values)
+            {
+                if (CategoryTable.IsInfinity(value))
+                {
+                    throw new ArgumentException(
+                        $"Input contains infinity or a value too large for dtype('{dtype}').", nameof(values));
+                }
+            }
+        }
+    }
 }

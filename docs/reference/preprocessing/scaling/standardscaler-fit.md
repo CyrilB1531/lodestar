@@ -37,7 +37,10 @@ double scale = scaler.Scale![0];        // => 1
 ```
 
 **Remarks** — variance is the **population** variance (`ddof=0`), computed in two passes as numpy's
-is, so the two agree rather than differing by a factor of `n / (n - 1)`.
+is, so the two agree rather than differing by a factor of `n / (n - 1)`. The mean and variance are
+`_incremental_mean_and_var`'s, its sums added in numpy's order, so they match scikit-learn's to the
+last bit, a column lost to cancellation included
+([#1230](https://github.com/CyrilB1531/lodestar/issues/1230)).
 
 **A near-constant feature scales by 1, and the test is not `variance == 0`.** scikit-learn compares
 the variance against the error bound of the two-pass algorithm,
@@ -56,6 +59,10 @@ is frozen in `tests/oracles/preprocessing_standard_scaler.json`, because an impl
 The bound is read from `sklearn.preprocessing._data._is_constant_feature` (BSD-3, allowed as a
 behaviour reference by [`decisions/0002`](../../../decisions/0002-provenance-and-the-allowed-references.md)): the
 papers give the error analysis, not the threshold.
+
+**A column whose sum overflows is not refused.** Its sums take numpy's order, so its statistics come
+out as scikit-learn's do: `[1e308, 1e308, -1e308]` fits a `Mean` of infinity and a `Variance` of NaN,
+and `[1e200, -1e200]` a `Mean` of 0 and a `Variance` of infinity.
 
 **The sparse overload takes a `CsrMatrix` and refuses centring.** Subtracting a mean turns every
 absent zero into a stored value, so a matrix that fitted in memory sparse would not fit dense — the

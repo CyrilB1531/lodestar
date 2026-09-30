@@ -83,6 +83,7 @@ public sealed class OneHotEncoder<T>
 
         int sampleCount = CategoryMatrix.Rows(values, featureCount);
         CategoryMatrix.RequireNoNull(values);
+        CategoryMatrix.RejectInfinity(values);
 
         T[][] categories = CategoryTable.Build(values, featureCount, sampleCount);
         var index = new CategoryIndex<T>(categories);
@@ -122,7 +123,7 @@ public sealed class OneHotEncoder<T>
     /// <param name="values">The categories to encode, row-major, with <see cref="FeatureCount"/> per row.</param>
     /// <returns>A new array of <c>rows × <see cref="EncodedFeatureCount"/></c> values, each 0 or 1.</returns>
     /// <exception cref="ArgumentException">
-    /// <paramref name="values"/> holds no row, a partial one, or a null; or it holds a category the
+    /// <paramref name="values"/> holds no row, a partial one, a null, or an infinite floating category; or it holds a category the
     /// fit never saw and <see cref="OneHotEncoderOptions.Unknown"/> is <see cref="UnknownCategory.Refuse"/>;
     /// or its rows times the encoded width are more cells than one array holds.
     /// </exception>
@@ -134,6 +135,7 @@ public sealed class OneHotEncoder<T>
     {
         int rows = CategoryMatrix.Rows(values, FeatureCount);
         CategoryMatrix.RequireNoNull(values);
+        RejectIgnoredInfinity(values);
 
         var encoded = new double[TableLength.Of(rows, EncodedFeatureCount, nameof(values))];
         for (int row = 0; row < rows; row++)
@@ -163,6 +165,7 @@ public sealed class OneHotEncoder<T>
     {
         int rows = CategoryMatrix.Rows(values, FeatureCount);
         CategoryMatrix.RequireNoNull(values);
+        RejectIgnoredInfinity(values);
 
         var columns = new List<int>(rows * FeatureCount);
         var pointers = new int[rows + 1];
@@ -271,9 +274,22 @@ public sealed class OneHotEncoder<T>
     {
         double number => PythonRepr.Double(number),
         float number => PythonRepr.Single(number),
+        // A Half as numpy writes a float16, NaN as nan; .NET writes 1 and NaN where numpy writes 1.0 and nan.
+        _ when CategoryTable.IsNaN(category) => "nan",
+        _ when CategoryTable.FloatingDtype<T>() is "float16" => PythonRepr.Half(((IFormattable)category).ToString(null, CultureInfo.InvariantCulture)),
         IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
         _ => category.ToString() ?? string.Empty,
     };
+
+    // An infinity the reference's check refuses, where this encoder would have passed it over; refusing unknowns, it
+    // meets an infinity as the unseen category the previous release refused it as, in its words and order.
+    private void RejectIgnoredInfinity(ReadOnlySpan<T> values)
+    {
+        if (_unknown != UnknownCategory.Refuse)
+        {
+            CategoryMatrix.RejectInfinity(values);
+        }
+    }
 
     /// <summary>The column a value lands in, or <c>-1</c> when it sets none.</summary>
     private int ColumnOf(int feature, T value, string parameterName)

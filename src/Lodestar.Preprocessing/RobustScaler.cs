@@ -52,9 +52,9 @@ public sealed class RobustScaler
     /// </exception>
     /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value.</exception>
     /// <remarks>
-    /// Both statistics read a sorted column: the median is <c>numpy.median</c> and the percentiles are
-    /// <c>numpy.percentile</c>'s linear interpolation (Hyndman–Fan type 7), which is the convention the
-    /// reference uses and not the one <c>SplitConformal.Quantile</c> does.
+    /// Both statistics read a sorted column: the median is <c>np.nanmedian</c>'s, the masked median below 600
+    /// rows and <c>np.median</c> from there (#1230), and the percentiles are <c>numpy.percentile</c>'s linear
+    /// interpolation (Hyndman–Fan type 7), the reference's convention and not <c>SplitConformal.Quantile</c>'s.
     /// </remarks>
     public static RobustScaler Fit(
         ReadOnlySpan<double> samples, int featureCount, RobustScalerOptions? options = null)
@@ -129,8 +129,8 @@ public sealed class RobustScaler
         for (int feature = 0; feature < samples.ColumnCount; feature++)
         {
             double[] column = SparseColumns.SortedColumn(grouped, offsets, feature, buffer);
-            scale[feature] = Percentile.Linear(column, settings.UpperPercentile)
-                - Percentile.Linear(column, settings.LowerPercentile);
+            scale[feature] = NumpyGrid.Percentile(column, settings.UpperPercentile)
+                - NumpyGrid.Percentile(column, settings.LowerPercentile);
         }
 
         ScaleFloor.Apply(scale);
@@ -150,16 +150,17 @@ public sealed class RobustScaler
     {
         for (int feature = 0; feature < featureCount; feature++)
         {
-            double[] column = Percentile.SortedColumn(samples, featureCount, feature, sampleCount);
+            double[] column = SortedColumns.Of(samples, featureCount, feature, sampleCount);
             if (centre is not null)
             {
-                centre[feature] = Percentile.Median(column);
+                // np.nanmedian(X, axis=0) takes np.ma.median below 600 rows and np.median from there (#1230).
+                centre[feature] = sampleCount < 600 ? NumpyGrid.MaskedMedian(column) : NumpyGrid.Median(column);
             }
 
             if (scale is not null)
             {
-                scale[feature] = Percentile.Linear(column, settings.UpperPercentile)
-                    - Percentile.Linear(column, settings.LowerPercentile);
+                scale[feature] = NumpyGrid.Percentile(column, settings.UpperPercentile)
+                    - NumpyGrid.Percentile(column, settings.LowerPercentile);
             }
         }
     }

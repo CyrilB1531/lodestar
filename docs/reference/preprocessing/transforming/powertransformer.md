@@ -45,6 +45,14 @@ The reference's own optimiser stops at `1.48e-8` on the argument, well inside wh
 can distinguish. The [Python equivalence table](../../../equivalence.md) carries the arithmetic;
 it is the one family in this package held to a stated wider tolerance.
 
+**On a likelihood flat to rounding the exponent is not reproducible.** A column whose spread is
+tiny against its offset — large values with a little noise — carries almost nothing about its
+exponent, and there numpy's vectorised `exp`, which parts from .NET's by an ulp on some inputs and
+some processors, and the `log1p` and `expm1` this package writes, an ulp from the C library's on
+others, move where either optimiser stops. Measured against scikit-learn 1.9.1
+on 100 columns of `1e10` plus noise, 66 Yeo-Johnson and 29 Box-Cox exponents differed by more than
+`1e-5` relative, and their transformed values with them.
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`PowerTransformerOptions`](powertransformeroptions.md),

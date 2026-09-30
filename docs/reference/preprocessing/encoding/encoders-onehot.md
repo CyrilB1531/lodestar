@@ -14,13 +14,16 @@ public static OneHotEncoder<T> OneHot<T>(ReadOnlySpan<T> values, int featureCoun
 how many values each row carries. `options` chooses which category to drop and what to do with an
 unseen value; `null` drops none and refuses.
 
-**Returns** — a fitted [`OneHotEncoder<T>`](onehotencoder.md).
+**Returns** — a fitted [`OneHotEncoder<T>`](onehotencoder.md). Its categories are sorted.
+The order is numpy's: a string sorts by code point, not by UTF-16 unit
+([#1254](https://github.com/CyrilB1531/lodestar/issues/1254)), and a floating `NaN` sorts last ([#1229](https://github.com/CyrilB1531/lodestar/issues/1229)).
 
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, or when
 `options` holds a `Drop` or an `Unknown` that is not a defined value, a `MinFrequency` or a
 `MaxCategories` below 1, or a `MinFrequencyShare` outside (0, 1). `ArgumentException` when `values`
 holds no row, a partial one, or a null, or when `options` sets both `MinFrequency` and
-`MinFrequencyShare`.
+`MinFrequencyShare`; and when `values` holds an infinite floating category, as scikit-learn's
+`allow-nan` check refuses it ([#1229](https://github.com/CyrilB1531/lodestar/issues/1229)).
 
 **Example** — two features, and the column layout they produce.
 

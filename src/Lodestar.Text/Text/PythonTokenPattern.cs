@@ -652,8 +652,8 @@ internal sealed class PythonTokenPattern
             () => new Regex(spelling(), options | RegexOptions.CultureInvariant, timeout),
             LazyThreadSafetyMode.PublicationOnly);
 
-        // Compiled once this reader or another of the pattern has compiled it, except where the engines read the pattern
-        // apart (#1675, #1676): there, on this reader's own history alone, so its tokens hang on no other reader's texts.
+        // Compiled once this reader or another of the pattern has compiled it, but for a lazy repeat with a bound over a
+        // group, read on this reader's own history alone (#1676); a repeat of an empty-capable item is always compiled.
         public Regex For(string s)
         {
             if (!_ownHistory && Taken() is { } entry)

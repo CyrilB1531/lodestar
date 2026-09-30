@@ -10,7 +10,7 @@ internal static class Special
 
     public static double LogClipLow { get; } = Math.Log(ClipLow);
 
-    public static double LogClipHigh { get; } = Log1p(-ClipLow);
+    public static double LogClipHigh { get; } = NearZero.Log1P(-ClipLow);
 
     private static readonly double HalfLogTwoPi = 0.5 * Math.Log(2.0 * Math.PI);
 
@@ -25,44 +25,10 @@ internal static class Special
     public static double Logistic(double x) => x >= 0.0 ? 1.0 / (1.0 + Math.Exp(-x)) : Math.Exp(x) / (1.0 + Math.Exp(x));
 
     /// <summary><c>log(1 + eˣ)</c>, numpy's <c>logaddexp(x, 0)</c>.</summary>
-    public static double LogAddExp0(double x) => Math.Max(x, 0.0) + Log1p(Math.Exp(-Math.Abs(x)));
-
-    /// <summary><c>log(1 + x)</c> exact to rounding: Goldberg's correction of the rounded sum.</summary>
-    public static double Log1p(double x)
-    {
-        double u = 1.0 + x;
-        // S1244: an exactly unrounded sum is the case the correction divides by zero in.
-#pragma warning disable S1244
-        return u == 1.0 ? x : Math.Log(u) * x / (u - 1.0);
-#pragma warning restore S1244
-    }
-
-    /// <summary><c>eˣ − 1</c> exact to rounding: Kahan's correction.</summary>
-    public static double Expm1(double x)
-    {
-        if (Math.Abs(x) > 0.5)
-        {
-            return Math.Exp(x) - 1.0;
-        }
-
-        double u = Math.Exp(x);
-        // S1244: an exactly unrounded exponential is the case the correction divides by zero in.
-#pragma warning disable S1244
-        if (u == 1.0)
-#pragma warning restore S1244
-        {
-            return x;
-        }
-
-        double um = u - 1.0;
-        // S1244: as above, for the rounded difference.
-#pragma warning disable S1244
-        return um == -1.0 ? -1.0 : um * x / Math.Log(u);
-#pragma warning restore S1244
-    }
+    public static double LogAddExp0(double x) => Math.Max(x, 0.0) + NearZero.Log1P(Math.Exp(-Math.Abs(x)));
 
     /// <summary><c>log(1 − e⁻ˣ)</c> for <c>x &gt; 0</c>, Mächler's two branches.</summary>
-    public static double Log1mExp(double x) => x <= Math.Log(2.0) ? Math.Log(-Expm1(-x)) : Log1p(-Math.Exp(-x));
+    public static double Log1mExp(double x) => x <= Math.Log(2.0) ? Math.Log(-NearZero.Expm1(-x)) : NearZero.Log1P(-Math.Exp(-x));
 
     /// <summary><c>log φ(z)</c>.</summary>
     public static double NormalLogPdf(double z) => (-0.5 * z * z) - HalfLogTwoPi;
@@ -72,7 +38,7 @@ internal static class Special
     {
         if (z < 0.0)
         {
-            return Log1p(-Distributions.NormalSf(-z));
+            return NearZero.Log1P(-Distributions.NormalSf(-z));
         }
 
         if (z < 30.0)

@@ -35,11 +35,12 @@ double scale = scaler.Scale![0];    // => 2.5
 ```
 
 **Remarks** — **the percentile is `numpy.percentile`'s linear interpolation** (Hyndman and Fan's
-type 7): at `h = (n − 1)·q/100` the value is `x[⌊h⌋] + (h − ⌊h⌋)·(x[⌊h⌋+1] − x[⌊h⌋])` over the
-sorted column. Neither quantile already in this repository is that convention —
-`SplitConformal.Quantile` takes the conformal order statistic `⌈(n+1)(1−α)⌉` and `Lodestar.Metrics`
-averages a weighted percentile — so it is written here rather than shared, and this page says so
-instead of leaving a reader to assume.
+type 7), at `h = (n − 1)·q/100` over the sorted column and through numpy's own `_lerp`, to the last
+bit. The centre is `np.nanmedian` along the rows: `np.ma.median` below 600 rows (the two middle
+values added and halved, the middle one added to itself where the count is odd) and `np.median`
+from there. Both come from the numpy grid `Lodestar.Metrics` shares
+([#1230](https://github.com/CyrilB1531/lodestar/issues/1230)); neither is `SplitConformal.Quantile`'s conformal order statistic
+`⌈(n+1)(1−α)⌉`.
 
 Five values put the quartiles **on** an index (`h = 1` and `h = 3`) and six put them between two,
 which is the pair worth reading twice.

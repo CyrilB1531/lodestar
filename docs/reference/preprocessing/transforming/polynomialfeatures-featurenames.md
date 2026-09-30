@@ -15,7 +15,8 @@ degree, the interaction restriction and the bias; `null` takes the reference's d
 `x0` for a feature, `x0^2` for a power, `x0 x1` for a product.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive or the degree
-is negative. `ArgumentException` when the degree is 0 and the bias is off, which leaves no term.
+is negative. `ArgumentException` when the degree is 0 and the bias is off, which leaves no term,
+or when the terms are more than one array holds — counted, not listed ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230)).
 
 **Example** — the default expansion of two features.
 

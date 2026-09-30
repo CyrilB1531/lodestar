@@ -143,18 +143,18 @@ internal sealed class Jet
     /// <summary><c>log(1 − e⁻ᵘ)</c> for <c>u &gt; 0</c>: the log of a probability from a cumulative hazard.</summary>
     public static Jet Log1mExp(Jet u)
     {
-        double expm1 = Special.Expm1(u.Value);
+        double expm1 = NearZero.Expm1(u.Value);
         return Apply(u, Special.Log1mExp(u.Value), 1.0 / expm1, -Math.Exp(u.Value) / (expm1 * expm1));
     }
 
     /// <summary><c>log(1 + u)</c>.</summary>
-    public static Jet Log1p(Jet u) => Apply(u, Special.Log1p(u.Value), 1.0 / (1.0 + u.Value), -1.0 / ((1.0 + u.Value) * (1.0 + u.Value)));
+    public static Jet Log1p(Jet u) => Apply(u, NearZero.Log1P(u.Value), 1.0 / (1.0 + u.Value), -1.0 / ((1.0 + u.Value) * (1.0 + u.Value)));
 
     /// <summary><c>eᵘ − 1</c>.</summary>
     public static Jet Expm1(Jet u)
     {
         double e = Math.Exp(u.Value);
-        return Apply(u, Special.Expm1(u.Value), e, e);
+        return Apply(u, NearZero.Expm1(u.Value), e, e);
     }
 
     /// <summary><c>log Φ̄(u)</c>, scipy's <c>norm.logsf</c>.</summary>

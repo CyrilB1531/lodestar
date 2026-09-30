@@ -10,10 +10,12 @@ public double[] Transform(ReadOnlySpan<T> values)
 
 **Parameters** — `values` is the categories to encode, row-major, with `FeatureCount` per row.
 
-**Returns** — a new array of the same length, each value the index of its category.
+**Returns** — a new array of the same length, each value the index of its category; a fitted `NaN`
+category is coded `NaN`, the reference's default `encoded_missing_value`, and sorts last, so the
+other codes are the ones the reference reports ([#1229](https://github.com/CyrilB1531/lodestar/issues/1229)).
 
-**Exceptions** — `ArgumentException` when `values` holds no row, a partial one, a null, or a category
-the fit never saw.
+**Exceptions** — `ArgumentException` when `values` holds no row, a partial one, a null, an infinite
+floating category ([#1229](https://github.com/CyrilB1531/lodestar/issues/1229)), or a category the fit never saw.
 
 **Example** — two features, each coded against its own categories.
 

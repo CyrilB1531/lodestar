@@ -74,30 +74,17 @@ public sealed class KnnImputer
         int sampleCount = SampleMatrix.Rows(samples, featureCount);
         RequireNoInfinity(samples);
 
-        // The column mean over the values that are present, which is what the reference falls
-        // back to for a feature no donor can supply.
+        // The fallback for a feature no donor can supply: np.ma.array(_fit_X[:, col]).mean(), the column filled and
+        // copied contiguous, so summed pairwise (#1230).
         var means = new double[featureCount];
-        for (int feature = 0; feature < featureCount; feature++)
-        {
-            double sum = 0.0;
-            int present = 0;
-            for (int row = 0; row < sampleCount; row++)
-            {
-                double value = samples[(row * featureCount) + feature];
-                if (!double.IsNaN(value))
-                {
-                    sum += value;
-                    present++;
-                }
-            }
+        var counts = new int[featureCount];
+        NumpyReduction.MaskedColumnMeans(samples, sampleCount, featureCount, contiguous: true, means, counts);
 
-            means[feature] = present == 0 ? double.NaN : sum / present;
-        }
-
+        // Kept by its mask, as the reference keeps it: a pairwise sum of ±1e308 can be NaN with every value present.
         var kept = new List<int>(featureCount);
         for (int feature = 0; feature < featureCount; feature++)
         {
-            if (!double.IsNaN(means[feature]))
+            if (counts[feature] > 0)
             {
                 kept.Add(feature);
             }
@@ -134,6 +121,7 @@ public sealed class KnnImputer
 
         var filled = new double[sampleCount * _kept.Length];
         var distances = new double[SampleCount];
+        var nearest = new (double Distance, int Donor)[Math.Min(_settings.NeighbourCount, SampleCount)];
         for (int row = 0; row < sampleCount; row++)
         {
             int start = row * FeatureCount;
@@ -152,7 +140,7 @@ public sealed class KnnImputer
                 int feature = _kept[column];
                 double value = samples[start + feature];
                 filled[target + column] = missing && double.IsNaN(value)
-                    ? Impute(distances, feature)
+                    ? Impute(distances, feature, nearest)
                     : value;
             }
         }
@@ -160,34 +148,55 @@ public sealed class KnnImputer
         return filled;
     }
 
-    private double Impute(double[] distances, int feature)
+    /// <summary>A missing cell's value from its nearest donors.</summary>
+    /// <remarks>
+    /// The k nearest are kept in a bounded heap rather than found by sorting every donor per cell, and
+    /// a tie goes to the lower row: the reference breaks ties by <c>numpy.argpartition</c>, whose pick
+    /// varies with the CPU's SIMD tier, so there is no single order of its to match (#1230).
+    /// </remarks>
+    private double Impute(double[] distances, int feature, (double Distance, int Donor)[] nearest)
     {
-        // Only a row that has the feature can donate it, and only a row at a finite distance
-        // shares any coordinate with the receiver at all.
-        var candidates = new List<(double Distance, double Value)>();
+        int capacity = nearest.Length;
+        int kept = 0;
         for (int donor = 0; donor < SampleCount; donor++)
         {
             double value = _fitted[(donor * FeatureCount) + feature];
-            if (!double.IsNaN(value) && !double.IsNaN(distances[donor]))
+            if (double.IsNaN(value) || double.IsNaN(distances[donor]))
             {
-                candidates.Add((distances[donor], value));
+                continue;
+            }
+
+            var candidate = (distances[donor], donor);
+            if (kept < capacity)
+            {
+                nearest[kept++] = candidate;
+                SiftUp(nearest, kept - 1);
+            }
+            else if (Farther(nearest[0], candidate))
+            {
+                nearest[0] = candidate;
+                SiftDown(nearest, kept);
             }
         }
 
-        if (candidates.Count == 0)
+        if (kept == 0)
         {
             return _columnMeans[feature];
         }
 
-        candidates.Sort((left, right) => left.Distance.CompareTo(right.Distance));
-        int take = Math.Min(_settings.NeighbourCount, candidates.Count);
+        Array.Sort(nearest, 0, kept, NearestFirst.Instance);
+
+        // S1244: an exact zero distance, which is what the reference tests for; sorted, the nearest says for all.
+#pragma warning disable S1244
+        bool anyExact = nearest[0].Distance == 0.0;
+#pragma warning restore S1244
 
         double weighted = 0.0;
         double total = 0.0;
-        for (int i = 0; i < take; i++)
+        for (int i = 0; i < kept; i++)
         {
-            double weight = Weight(candidates, take, i);
-            weighted += weight * candidates[i].Value;
+            double weight = Weight(nearest[i].Distance, anyExact);
+            weighted += weight * _fitted[(nearest[i].Donor * FeatureCount) + feature];
             total += weight;
         }
 
@@ -197,33 +206,87 @@ public sealed class KnnImputer
 #pragma warning restore S1244
     }
 
+    /// <summary>Whether <paramref name="left"/> ranks after <paramref name="right"/>: farther, or as far and a later row.</summary>
+    private static bool Farther((double Distance, int Donor) left, (double Distance, int Donor) right) =>
+        NearestFirst.Instance.Compare(left, right) > 0;
+
+    /// <summary>Restores the farthest-at-the-root order after an append.</summary>
+    private static void SiftUp((double Distance, int Donor)[] heap, int child)
+    {
+        while (child > 0)
+        {
+            int parent = (child - 1) >> 1;
+            if (!Farther(heap[child], heap[parent]))
+            {
+                return;
+            }
+
+            (heap[child], heap[parent]) = (heap[parent], heap[child]);
+            child = parent;
+        }
+    }
+
+    /// <summary>Restores the farthest-at-the-root order after the root is replaced.</summary>
+    private static void SiftDown((double Distance, int Donor)[] heap, int count)
+    {
+        int parent = 0;
+        while (true)
+        {
+            int child = (2 * parent) + 1;
+            if (child >= count)
+            {
+                return;
+            }
+
+            if (child + 1 < count && Farther(heap[child + 1], heap[child]))
+            {
+                child++;
+            }
+
+            if (!Farther(heap[child], heap[parent]))
+            {
+                return;
+            }
+
+            (heap[child], heap[parent]) = (heap[parent], heap[child]);
+            parent = child;
+        }
+    }
+
+    /// <summary>Nearest first, the lower row first among equals.</summary>
+    private sealed class NearestFirst : IComparer<(double Distance, int Donor)>
+    {
+        public static readonly NearestFirst Instance = new();
+
+        public int Compare((double Distance, int Donor) x, (double Distance, int Donor) y)
+        {
+            int byDistance = x.Distance.CompareTo(y.Distance);
+            return byDistance != 0 ? byDistance : x.Donor.CompareTo(y.Donor);
+        }
+    }
+
     /// <summary>One donor's weight: equal shares, or the reciprocal of its distance.</summary>
     /// <remarks>
     /// A donor at distance zero is identical to the receiver on everything they share, so the
     /// reference gives it the whole weight and none to the rest rather than dividing by zero.
+    /// Whether any kept donor sits at zero is read once per cell, not once per donor (#1230).
     /// </remarks>
-    private double Weight(List<(double Distance, double Value)> candidates, int take, int index)
+    private double Weight(double distance, bool anyExact)
     {
         if (_settings.Weights == NeighbourWeights.Uniform)
         {
             return 1.0;
         }
 
-        // S1244: an exact zero distance, which is what the reference tests for.
-#pragma warning disable S1244
-        bool anyExact = false;
-        for (int i = 0; i < take; i++)
-        {
-            anyExact |= candidates[i].Distance == 0.0;
-        }
-
         if (anyExact)
         {
-            return candidates[index].Distance == 0.0 ? 1.0 : 0.0;
-        }
+            // S1244: as above.
+#pragma warning disable S1244
+            return distance == 0.0 ? 1.0 : 0.0;
 #pragma warning restore S1244
+        }
 
-        return 1.0 / candidates[index].Distance;
+        return 1.0 / distance;
     }
 
     /// <summary>The distance the reference calls <c>nan_euclidean</c>.</summary>

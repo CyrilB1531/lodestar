@@ -24,7 +24,7 @@ zero that was not one already.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive or `norm` is
 not a defined value. `ArgumentException` when `samples` holds no row, a partial one, or a
-non-finite value.
+non-finite value, or when the sparse `matrix` stores a non-finite value.
 
 **Example** — three documents as word counts, each scaled to unit Euclidean length, which is what
 makes a dot product between two of them a cosine.
@@ -42,7 +42,9 @@ double second = Math.Round(scaled[4], 4);   // => 0.7071
 
 **Remarks — a row of zeros is left alone rather than divided by its own norm.** There is no
 direction to preserve, and the reference makes the same choice; the row comes back as zeros
-rather than as `NaN`s.
+rather than as `NaN`s. On the dense overload a norm below `10 · eps` counts as zero, as the
+reference floors it, so `[1e-17, 0]` comes back unchanged; the sparse overload divides by any norm
+that is not exactly zero, as the reference's sparse kernels do ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230)).
 
 ```csharp
 using Lodestar.Preprocessing;
