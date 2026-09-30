@@ -23,13 +23,23 @@ internal static class MultiClassRoc
 
         RefuseBinaryAveraging(average, nameof(options));
 
-        // _multiclass_roc_auc_score's order: the arrays, the row sums, the averaging, the labels, then the weights (#1601).
+        // roc_auc_score's order: the arrays, the binary path of one or two columns (#1605), then _multiclass_roc_auc_score's —
+        // the row sums, the averaging, the labels, a one-vs-one weight, the row and weight counts, the weights (#1601, #1604).
         int n = Validate(yTrue, yScore, classCount, options);
-        ValidateRowSums(yScore, n, classCount);
+        int rows = yScore.Length / classCount;
+
+        // One or two columns over a y_true of two labels or one is roc_auc_score's binary path, not a multiclass one (#1605).
+        int distinct = classCount <= 2 ? DistinctLabelsUpToThree(yTrue) : 3;
+        if (distinct <= 2)
+        {
+            return BinaryPath(yTrue, yScore, classCount, distinct, options, rows, nameof(yScore));
+        }
+
+        ValidateRowSums(yScore, rows, classCount);
         RefuseMicroOneVsOne(average, options.Strategy, nameof(options));
 
         int[] classes = ResolveLabels(yTrue, options.Labels, classCount);
-        ValidateWeightShape(options, n);
+        ValidateWeightShape(options, n, rows, nameof(yScore));
 
         // 0 and 1 both mean sequential.
         int workers = Math.Max(1, options.MaxDegreeOfParallelism);
@@ -37,7 +47,7 @@ internal static class MultiClassRoc
         if (options.Strategy == MultiClassStrategy.OneVsRest && average == Averaging.Micro)
         {
             // Micro is the one binary score over the class matrix raveled, each weight repeated per class (#1601).
-            Inputs.ValidateSampleWeight(options.SampleWeight);
+            Inputs.ValidateSampleWeight(options.SampleWeight, nameof(options));
             return Micro(yTrue, yScore, classes, options.SampleWeight, nameof(options));
         }
 
@@ -57,7 +67,7 @@ internal static class MultiClassRoc
             // roc_curve checks the weights only for a class with both labels; one-label classes answer nan first.
             if (AnyClassHasBothLabels(yTrue, classes))
             {
-                Inputs.ValidateSampleWeight(options.SampleWeight);
+                Inputs.ValidateSampleWeight(options.SampleWeight, nameof(options));
             }
 
             return workers == 1
@@ -129,10 +139,10 @@ internal static class MultiClassRoc
                 nameof(options), options.MaxDegreeOfParallelism,
                 "MaxDegreeOfParallelism cannot be negative. 0 and 1 are both sequential.");
         }
-        if (classCount < 2)
+        if (classCount < 1)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(classCount), classCount, "Multiclass ROC AUC needs at least two classes.");
+                nameof(classCount), classCount, "yScore needs at least one column of scores.");
         }
 
         // check_array's sentences, y_true's before y_score's, ahead of any length comparison (#1585).
@@ -150,37 +160,101 @@ internal static class MultiClassRoc
         // check_array refuses a non-finite score in its own words before any row is summed; the row-sum test lets a
         // NaN through, and a class curve named it by an index into a compacted column (#1569).
         Inputs.RequireFinite(yScore, nameof(yScore));
-        if (yScore.Length != (long)n * classCount)
+
+        // Only a whole number of rows makes a flat span a matrix; how many rows is checked where scikit-learn does (#1604).
+        if (yScore.Length % classCount != 0)
         {
             throw new ArgumentException(
-                $"yScore has {yScore.Length} entries; {n} samples over {classCount} classes needs {(long)n * classCount}.",
-                nameof(yScore));
+                $"yScore has {yScore.Length} entries, not a whole number of rows of {classCount} classes.", nameof(yScore));
         }
 
         return n;
     }
 
-    /// <summary>The weights' refusals scikit-learn reaches after the labels: none under one-vs-one, one per sample.</summary>
-    private static void ValidateWeightShape(MultiClassRocOptions options, int n)
+    /// <summary>
+    /// What scikit-learn refuses after the labels: a weight under one-vs-one, then a row or weight count other than
+    /// one per sample, under <c>yScore</c> for the rows and <c>options</c> for the weights.
+    /// </summary>
+    private static void ValidateWeightShape(MultiClassRocOptions options, int n, int rows, string scoreParam)
     {
-        if (options.SampleWeight.IsEmpty)
-        {
-            return;
-        }
-
-        if (options.Strategy == MultiClassStrategy.OneVsOne)
+        if (!options.SampleWeight.IsEmpty && options.Strategy == MultiClassStrategy.OneVsOne)
         {
             throw new ArgumentException(
                 "sample_weight is not supported for multiclass one-vs-one ROC AUC, 'sample_weight' must be None in this case.",
                 nameof(options));
         }
 
-        if (options.SampleWeight.Length != n)
+        // check_consistent_length, which the class curves reach after the labels and the one-vs-one weight (#1604).
+        RequireConsistentLengths(options, n, rows, scoreParam);
+    }
+
+    /// <summary>
+    /// <c>check_consistent_length(y_true, y_score, sample_weight)</c>, naming every length it compared, the weights'
+    /// included: <c>[4, 3, 2]</c>, and <c>[4, 4, 2]</c> when only the weights disagree.
+    /// </summary>
+    private static void RequireConsistentLengths(MultiClassRocOptions options, int n, int rows, string scoreParam)
+    {
+        bool weighted = !options.SampleWeight.IsEmpty;
+        if (rows != n || (weighted && options.SampleWeight.Length != n))
         {
+            string lengths = weighted ? $"[{n}, {rows}, {options.SampleWeight.Length}]" : $"[{n}, {rows}]";
             throw new ArgumentException(
-                $"sampleWeight has {options.SampleWeight.Length} entries but there are {n} samples.",
-                nameof(options));
+                $"Found input variables with inconsistent numbers of samples: {lengths}", rows != n ? scoreParam : nameof(options));
         }
+    }
+
+    /// <summary>
+    /// <c>roc_auc_score</c>'s binary path, which one or two score columns take over a <c>y_true</c> of two labels or one,
+    /// once the arrays have passed their own checks: one label is nan; two meet <c>check_consistent_length</c>, then
+    /// <c>column_or_1d</c>, which refuses two columns and scores one against the greater label.
+    /// </summary>
+    private static double BinaryPath(
+        ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int classCount, int distinct,
+        MultiClassRocOptions options, int rows, string scoreParam)
+    {
+        if (distinct == 1)
+        {
+            return double.NaN;
+        }
+
+        int n = yTrue.Length;
+        RequireConsistentLengths(options, n, rows, scoreParam);
+        if (classCount == 2)
+        {
+            throw new ArgumentException($"y should be a 1d array, got an array of shape ({rows}, 2) instead.", scoreParam);
+        }
+
+        // label_binarize(y_true, classes=[a, b])[:, 0] marks the greater label positive.
+        int greater = int.MinValue;
+        foreach (int label in yTrue)
+        {
+            greater = Math.Max(greater, label);
+        }
+
+        return BinaryRoc.Score(yTrue, yScore, greater, options.SampleWeight, weightsChecked: false, nameof(options));
+    }
+
+    /// <summary>How many distinct labels <paramref name="yTrue"/> holds, counted up to three: <c>type_of_target</c>'s binary is two or fewer.</summary>
+    private static int DistinctLabelsUpToThree(ReadOnlySpan<int> yTrue)
+    {
+        int first = yTrue[0];
+        int? second = null;
+        foreach (int label in yTrue)
+        {
+            if (label == first || label == second)
+            {
+                continue;
+            }
+
+            if (second is not null)
+            {
+                return 3;
+            }
+
+            second = label;
+        }
+
+        return second is null ? 1 : 2;
     }
 
     private static int[] ResolveLabels(ReadOnlySpan<int> yTrue, ReadOnlySpan<int> labels, int classCount)

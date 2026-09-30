@@ -115,7 +115,7 @@ internal static class BinaryRoc
             bool weightsChecked, string weightParam)
         {
             // Every caller has refused a non-finite score already (#1585, #1569); some have checked the weights too.
-            int n = Validate(yTrue, yScore, sampleWeight, weightsChecked);
+            int n = Validate(yTrue, yScore, sampleWeight, weightsChecked, weightParam);
             bool hasNegative = BuildPoints(yTrue, yScore, posLabel, sampleWeight, _keys, _points, scoresFinite: true);
 
             double area;
@@ -268,7 +268,8 @@ internal static class BinaryRoc
         // These — Validate, BuildPoints, AccumulateAsRocCurve, Accumulate, IsLastOfGroup, and Encode, Pass and
         // AccumulateAveragePrecision — are reachable only from Scratch (S3398).
         private static int Validate(
-            ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, ReadOnlySpan<double> sampleWeight, bool weightsChecked = false)
+            ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, ReadOnlySpan<double> sampleWeight,
+            bool weightsChecked = false, string weightParam = "sampleWeight")
         {
             int n = yTrue.Length;
             if (yScore.Length != n)
@@ -288,7 +289,7 @@ internal static class BinaryRoc
             }
             if (!weightsChecked)
             {
-                Inputs.ValidateSampleWeight(sampleWeight);
+                Inputs.ValidateSampleWeight(sampleWeight, weightParam);
             }
 
             return n;
@@ -469,7 +470,7 @@ internal static class BinaryRoc
 
     /// <summary>
     /// The binary score for a caller that has refused a non-finite score already — <c>RocAuc.Score</c>, and
-    /// <c>RocAuc.MultiClass</c>'s micro average, which has checked its weights too.
+    /// <c>RocAuc.MultiClass</c>'s micro average and its binary path for one column, which name <c>options</c>.
     /// </summary>
     public static double Score(
         ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yScore, int posLabel, ReadOnlySpan<double> sampleWeight,

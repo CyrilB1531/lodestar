@@ -10,18 +10,16 @@ rest.
 public readonly ref struct MultiClassRocOptions
 ```
 
-**Properties** — `Strategy` is one-vs-rest or one-vs-one, `MultiClassStrategy.OneVsRest` by
-default.
+**Properties** — `Strategy` is one-vs-rest or one-vs-one, `MultiClassStrategy.OneVsRest` by default.
 `Average` is `Averaging.Macro` or `Averaging.Weighted`, or `Averaging.Micro` under one-vs-rest
-([#1601](https://github.com/CyrilB1531/lodestar/issues/1601)), and is nullable so that `default` can mean
-macro: `default(Averaging)` is `Averaging.Binary`, which multiclass ROC-AUC refuses. `Labels`
-names
-the classes the score columns stand for, sorted ascending and unique; empty reads them off
-`yTrue`,
-which is wrong when a class is absent from it. `SampleWeight` weights the samples and is refused
-with one-vs-one, as scikit-learn refuses it. `MaxDegreeOfParallelism` is how many workers run the
-per-class or per-pair loop; `0` and `1` are sequential, and there is no sentinel for "all cores" —
-write `Environment.ProcessorCount`.
+([#1601](https://github.com/CyrilB1531/lodestar/issues/1601)), and is nullable so that `default` can
+mean macro: `default(Averaging)` is `Averaging.Binary`, which multiclass ROC-AUC refuses. `Labels`
+names the classes the score columns stand for, sorted ascending and unique; empty reads them off
+`yTrue`, which is wrong when a class is absent from it. `SampleWeight` weights the samples and is
+refused with one-vs-one over three classes or more, as scikit-learn refuses it; one or two score
+columns over a `yTrue` of two labels or one take its binary path, which never refuses them for the
+strategy. `MaxDegreeOfParallelism` is how many workers run the per-class or per-pair loop; `0` and
+`1` are sequential, and there is no sentinel for "all cores" — write `Environment.ProcessorCount`.
 
 **Example** — the same scores under both strategies and both averages.
 

@@ -15,7 +15,7 @@ internal static class Inputs
     /// <summary>
     /// Checks that <paramref name="yTrue"/> and <paramref name="yPred"/> agree in
     /// length and are not empty, and that <paramref name="sampleWeight"/>, when
-    /// supplied, agrees in length with them and passes <see cref="ValidateSampleWeight"/>.
+    /// supplied, agrees in length with them and passes <see cref="ValidateSampleWeight(ReadOnlySpan{double})"/>.
     /// </summary>
     /// <param name="yTrue">The true labels.</param>
     /// <param name="yPred">The predicted labels, expected to be the same length as <paramref name="yTrue"/>.</param>
@@ -86,12 +86,17 @@ internal static class Inputs
     /// <c>log_loss</c> and <c>brier_score_loss</c>; <c>hinge_loss</c> does not.
     /// </remarks>
     /// <exception cref="ArgumentException">A weight is not finite, or every weight is zero.</exception>
-    public static void ValidateSampleWeight(ReadOnlySpan<double> sampleWeight)
+    public static void ValidateSampleWeight(ReadOnlySpan<double> sampleWeight) =>
+        ValidateSampleWeight(sampleWeight, nameof(sampleWeight));
+
+    /// <summary>The same checks, refused under <paramref name="paramName"/>: <c>options</c> where the weights ride in one.</summary>
+    /// <exception cref="ArgumentException">A weight is not finite, or every weight is zero.</exception>
+    public static void ValidateSampleWeight(ReadOnlySpan<double> sampleWeight, string paramName)
     {
         if (!sampleWeight.IsEmpty)
         {
-            RequireFinite(sampleWeight, nameof(sampleWeight), "sample_weight");
-            RequireAnyNonZero(sampleWeight);
+            RequireFinite(sampleWeight, paramName, "sample_weight");
+            RequireAnyNonZero(sampleWeight, paramName);
         }
     }
 
@@ -105,7 +110,7 @@ internal static class Inputs
     /// it accepts <c>[1, -1, 0]</c>, which numpy refuses one layer later instead.
     /// <see cref="Outputs.Validate"/>'s <c>RequireNormalizable</c> is that other rule.
     /// </remarks>
-    private static void RequireAnyNonZero(ReadOnlySpan<double> sampleWeight)
+    private static void RequireAnyNonZero(ReadOnlySpan<double> sampleWeight, string paramName)
     {
         foreach (double weight in sampleWeight)
         {
@@ -121,8 +126,7 @@ internal static class Inputs
             }
         }
 
-        throw new ArgumentException(
-            "Sample weights must contain at least one non-zero number.", nameof(sampleWeight));
+        throw new ArgumentException("Sample weights must contain at least one non-zero number.", paramName);
     }
 
     /// <summary>Reproduces scikit-learn's two <c>check_array</c> messages, which differ.</summary>

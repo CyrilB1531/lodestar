@@ -37,8 +37,10 @@ public readonly ref struct MultiClassRocOptions
 
     /// <summary>
     /// A weight per sample (<c>sample_weight=</c>). Empty — the default — weights
-    /// every sample by 1. Refused with <see cref="MultiClassStrategy.OneVsOne"/>,
-    /// which scikit-learn also refuses.
+    /// every sample by 1. Refused with <see cref="MultiClassStrategy.OneVsOne"/> over
+    /// three classes or more, which scikit-learn also refuses; one or two columns over a
+    /// <c>yTrue</c> of two labels or one take its binary path, which never refuses them
+    /// for the strategy (#1605).
     /// </summary>
     public ReadOnlySpan<double> SampleWeight { get; init; }
 
