@@ -34,7 +34,7 @@ public static class MathNetInterop
     {
         Guard.NotNull(matrix);
 
-        if (CheckStructure(matrix))
+        if (CheckStructure(matrix, nameof(matrix)))
         {
             return FromCompressedRows(
                 matrix.RowCount,
@@ -74,33 +74,52 @@ public static class MathNetInterop
     /// Math.NET answers an inconsistent matrix with a plain <see cref="Exception"/> and accepts a column outside
     /// the matrix silently (#1549), so the constructor's checks are repeated here, in the same order.
     /// </remarks>
-    private static bool CheckStructure(CsrMatrix matrix)
+    private static bool CheckStructure(CsrMatrix matrix, string paramName)
     {
         int[] pointers = matrix.RowPointers;
-        int[] columns = matrix.ColumnIndices;
 
         // All three pointer checks come before any column is read, so a middle pointer past the end cannot index out.
-        if (pointers[0] != 0)
-        {
-            throw new ArgumentException($"The row pointers must start at 0, but start at {pointers[0]}.", nameof(matrix));
-        }
-
-        for (int row = 0; row < matrix.RowCount; row++)
-        {
-            if (pointers[row + 1] < pointers[row])
-            {
-                throw new ArgumentException(
-                    $"The row pointers decrease at pointer {row + 1}, {pointers[row + 1]} after {pointers[row]}.", nameof(matrix));
-            }
-        }
-
+        CheckPointerOrder(pointers, matrix.RowCount, paramName);
         if (pointers[matrix.RowCount] != matrix.NonZeroCount)
         {
             throw new ArgumentException(
                 $"The row pointers must end at the number of stored values, {matrix.NonZeroCount}, but end at {pointers[matrix.RowCount]}.",
-                nameof(matrix));
+                paramName);
         }
 
+        return CheckColumns(matrix, paramName);
+    }
+
+    /// <summary>The constructor's first two pointer checks: the first pointer is 0, and none decreases.</summary>
+    /// <remarks>
+    /// Shared by both conversions (#1549, #1608). Every private helper in this class taking a <c>paramName</c> is
+    /// handed the conversions' <c>matrix</c>, because CA2208 accepts only a parameter of the throwing method as the name.
+    /// </remarks>
+    private static void CheckPointerOrder(int[] pointers, int rows, string paramName)
+    {
+        if (pointers[0] != 0)
+        {
+            throw new ArgumentException($"The row pointers must start at 0, but start at {pointers[0]}.", paramName);
+        }
+
+        for (int row = 0; row < rows; row++)
+        {
+            if (pointers[row + 1] < pointers[row])
+            {
+                throw new ArgumentException(
+                    $"The row pointers decrease at pointer {row + 1}, {pointers[row + 1]} after {pointers[row]}.", paramName);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The constructor's last check, every column inside the matrix, over pointers already checked; says whether
+    /// every row is strictly increasing.
+    /// </summary>
+    private static bool CheckColumns(CsrMatrix matrix, string paramName)
+    {
+        int[] pointers = matrix.RowPointers;
+        int[] columns = matrix.ColumnIndices;
         bool ordered = true;
         for (int row = 0; row < matrix.RowCount; row++)
         {
@@ -109,7 +128,7 @@ public static class MathNetInterop
                 if ((uint)columns[k] >= (uint)matrix.ColumnCount)
                 {
                     throw new ArgumentException(
-                        $"Stored value {k} sits in column {columns[k]}, outside [0, {matrix.ColumnCount}).", nameof(matrix));
+                        $"Stored value {k} sits in column {columns[k]}, outside [0, {matrix.ColumnCount}).", paramName);
                 }
 
                 ordered &= k == pointers[row] || columns[k - 1] < columns[k];
@@ -211,12 +230,12 @@ public static class MathNetInterop
     /// <param name="matrix">The matrix to convert; sparse or dense.</param>
     /// <returns>A CSR matrix of the same shape holding the same values.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="matrix"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="matrix"/> has more rows than one array of row pointers holds, or its storage — a caller's own — reports an entry outside the matrix, more non-zero values than one array holds, or different entries on two walks.</exception>
+    /// <exception cref="ArgumentException"><paramref name="matrix"/> has more rows than one array of row pointers holds; its compressed-row storage's public arrays were left inconsistent — row pointers not starting at 0, decreasing or ending past the values or the column indices, or a column outside the matrix; or its storage — a caller's own — reports an entry outside the matrix, more non-zero values than one array holds, or different entries on two walks.</exception>
     /// <remarks>
-    /// A matrix already stored in compressed-row form hands over its three arrays, copied
-    /// so neither side can mutate the other's. A dense or diagonal matrix is read from its
-    /// own array, so a diagonal matrix costs its diagonal and a dense one its cells; any
-    /// other storage is walked over what it stores.
+    /// A matrix already stored in compressed-row form hands over its three arrays, checked and copied so neither
+    /// side can mutate the other's; a null array reads as empty. A dense or diagonal matrix is read from its own
+    /// array, so a diagonal matrix costs its diagonal and a dense one its cells; any other storage is walked over
+    /// what it stores.
     /// </remarks>
     public static CsrMatrix ToCsrMatrix(Matrix<double> matrix)
     {
@@ -231,12 +250,7 @@ public static class MathNetInterop
 
         if (matrix.Storage is SparseCompressedRowMatrixStorage<double> csr)
         {
-            return new CsrMatrix(
-                matrix.RowCount,
-                matrix.ColumnCount,
-                Copy(csr.Values, csr.ValueCount),
-                Copy(csr.ColumnIndices, csr.ValueCount),
-                Copy(csr.RowPointers, matrix.RowCount + 1));
+            return FromCompressedRowStorage(csr, nameof(matrix));
         }
 
         return matrix.Storage switch
@@ -245,6 +259,44 @@ public static class MathNetInterop
             DiagonalMatrixStorage<double> diagonal => FromDiagonal(diagonal),
             _ => FromAnyStorage(matrix),
         };
+    }
+
+    /// <summary>Copies a compressed-row storage's three arrays, refusing what the <see cref="CsrMatrix"/> constructor would.</summary>
+    /// <remarks>
+    /// Math.NET's <c>Values</c> and <c>ColumnIndices</c> are public writable fields and <c>RowPointers</c> a public
+    /// array, so a caller can leave them inconsistent: the pointers are checked before they size a copy, and the
+    /// columns once copied, every refusal under <paramref name="paramName"/> (#1608).
+    /// </remarks>
+    private static CsrMatrix FromCompressedRowStorage(SparseCompressedRowMatrixStorage<double> csr, string paramName)
+    {
+        int rows = csr.RowCount;
+        int[] pointers = Copy(csr.RowPointers, rows + 1);
+        CheckPointerOrder(pointers, rows, paramName);
+        int count = pointers[rows];
+
+        // Each public field is read once, so a caller swapping an array cannot pass the check with one and copy another.
+        double[]? values = csr.Values;
+        int[]? columns = csr.ColumnIndices;
+        RequireStored(count, values?.Length, "values", paramName);
+        RequireStored(count, columns?.Length, "column indices", paramName);
+
+        // Unchecked only until the next line checks its columns; the matrix escapes once they pass.
+        var result = CsrMatrix.CreateUnchecked(rows, csr.ColumnCount, Copy(values ?? [], count), Copy(columns ?? [], count), pointers);
+        _ = CheckColumns(result, paramName); // Whether the rows are sorted matters only to ToSparseMatrix.
+        return result;
+    }
+
+    /// <summary>Refuses row pointers ending past one of a compressed-row storage's arrays, a null one holding nothing.</summary>
+    private static void RequireStored(int count, int? length, string arrayName, string paramName)
+    {
+        if (count > (length ?? 0))
+        {
+            throw new ArgumentException(
+                length is null
+                    ? $"The row pointers end at {count}, but the storage's {arrayName} are null."
+                    : $"The row pointers end at {count}, past the storage's {arrayName}, of length {length}.",
+                paramName);
+        }
     }
 
     /// <summary>Collects a dense matrix's non-zero entries straight from its column-major array.</summary>
