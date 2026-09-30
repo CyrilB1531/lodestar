@@ -25,8 +25,8 @@ public sealed class CdistOracleTests
         {
             string name = c.GetProperty("name").GetString()!;
             JsonElement args = c.GetProperty("args");
-            string[] queries = Strings(c.GetProperty("queries"));
-            string[] choices = Strings(c.GetProperty("choices"));
+            string?[] queries = OracleJson.Strings(c.GetProperty("queries"));
+            string?[] choices = OracleJson.Strings(c.GetProperty("choices"));
 
             ScoreMatrix actual = Process.Cdist(
                 queries,
@@ -62,7 +62,7 @@ public sealed class CdistOracleTests
             replayed++;
         }
 
-        Assert.True(replayed >= 19, $"only {replayed} cases replayed");
+        Assert.True(replayed >= 23, $"only {replayed} cases replayed");
     }
 
     /// <summary>The default is <c>Fuzz.Ratio</c>, which is the reference's and not <c>Extract</c>'s.</summary>
@@ -77,9 +77,6 @@ public sealed class CdistOracleTests
         Assert.Equal(Fuzz.Ratio(queries[0], choices[0]), byDefault[0, 0], Tolerance);
         Assert.NotEqual(Fuzz.WRatio(queries[0], choices[0]), byDefault[0, 0], Tolerance);
     }
-
-    private static string[] Strings(JsonElement array) =>
-        [.. array.EnumerateArray().Select(v => v.GetString()!)];
 
     /// <summary>The corpus's scorer name, as a delegate — or <see langword="null"/> where that is the call.</summary>
     /// <remarks>

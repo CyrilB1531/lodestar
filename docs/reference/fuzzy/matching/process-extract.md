@@ -8,14 +8,17 @@ The best candidates, ranked.
 public static IReadOnlyList<ExtractResult> Extract(string query, IEnumerable<string> choices, Func<string, string, double> scorer = null, int? limit = 5, double scoreCutoff = 0)
 ```
 
-**Parameters** — `query` is what to match. `choices` are the candidates. `scorer` is the scoring
-function, [`Fuzz.WRatio`](fuzz-wratio.md) when omitted. `limit` caps how many come back, `5` by
-default and `null` for all of them. `scoreCutoff` drops anything scoring below it.
+**Parameters** — `query` is what to match; a null one matches nothing. `choices` are the candidates,
+a null one skipped with its index kept. Both follow rapidfuzz's `None`
+([#1233](https://github.com/CyrilB1531/lodestar/issues/1233)). `scorer` is the scoring function,
+[`Fuzz.WRatio`](fuzz-wratio.md) when omitted. `limit` caps how many come back, `5` by default and
+`null` for all of them. `scoreCutoff` drops anything scoring below it.
 
 **Returns** — `IReadOnlyList<ExtractResult>`, best first, at most `limit` long.
 
-**Exceptions** — `ArgumentNullException` when `query` or `choices` is null.
-`ArgumentOutOfRangeException` when `limit` is negative; `0` returns an empty list.
+**Exceptions** — `ArgumentNullException` when `choices` is null, and `ArgumentOutOfRangeException`
+when `limit` is negative — neither when `query` is null, which answers an empty list first, as
+rapidfuzz does. A `limit` of `0` returns an empty list.
 
 **Example** — the two best of four candidates.
 

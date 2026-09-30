@@ -5,6 +5,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ## [Unreleased]
 
+### Fixed
+
+- `Process.Extract` and `Process.ExtractOne` skip a null choice with its index kept and match nothing for a null query, and `Process.Cdist` scores either `0`, as rapidfuzz treats `None`, where they threw `ArgumentNullException`. ([#1233](https://github.com/CyrilB1531/lodestar/issues/1233))
+
 ## [0.5.0] — 2026-09-24
 
 ### Added

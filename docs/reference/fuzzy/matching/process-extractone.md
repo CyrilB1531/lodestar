@@ -8,10 +8,16 @@ The single best candidate, or nothing.
 public static ExtractResult? ExtractOne(string query, IEnumerable<string> choices, Func<string, string, double> scorer = null, double scoreCutoff = 0)
 ```
 
-**Parameters** — `query` is what to match. `choices` are the candidates. `scorer` defaults to
+**Parameters** — `query` is what to match; a null one matches nothing. `choices` are the candidates,
+a null one skipped with its index kept. Both follow rapidfuzz's `None`
+([#1233](https://github.com/CyrilB1531/lodestar/issues/1233)). `scorer` defaults to
 [`Fuzz.WRatio`](fuzz-wratio.md). `scoreCutoff` is the score a candidate must clear.
 
-**Returns** — `ExtractResult?` — the best candidate, or **`null`** when none clears `scoreCutoff`.
+**Returns** — `ExtractResult?` — the best candidate, or **`null`** when none clears `scoreCutoff` or
+`query` is null.
+
+**Exceptions** — `ArgumentNullException` when `choices` is null, unless `query` is null too, which
+answers `null` first, as rapidfuzz does.
 
 **Example** — a match, and a query that clears nothing.
 

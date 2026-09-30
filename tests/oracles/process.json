@@ -16,7 +16,8 @@
    "los angeles lakers",
    "chicago bulls"
   ],
-  "count": 8
+  "choices_note": "a case carrying its own 'choices' replays against those instead (#1233)",
+  "count": 12
  },
  "cases": [
   {
@@ -199,6 +200,99 @@
    "query": "zzz",
    "limit": 5,
    "cutoff": 90.0,
+   "results": [],
+   "extract_one": null
+  },
+  {
+   "id": 8,
+   "query": "new york",
+   "limit": 5,
+   "cutoff": 0.0,
+   "results": [
+    {
+     "choice": "new york mets",
+     "score": 90.0,
+     "index": 1
+    },
+    {
+     "choice": "new york yankees",
+     "score": 90.0,
+     "index": 2
+    },
+    {
+     "choice": "new york knicks",
+     "score": 90.0,
+     "index": 6
+    },
+    {
+     "choice": "boston red sox",
+     "score": 45.0,
+     "index": 3
+    },
+    {
+     "choice": "los angeles lakers",
+     "score": 34.2,
+     "index": 8
+    }
+   ],
+   "extract_one": {
+    "choice": "new york mets",
+    "score": 90.0,
+    "index": 1
+   },
+   "choices": [
+    null,
+    "new york mets",
+    "new york yankees",
+    "boston red sox",
+    null,
+    "atlanta braves",
+    "new york knicks",
+    "brooklyn nets",
+    "los angeles lakers",
+    "chicago bulls"
+   ]
+  },
+  {
+   "id": 9,
+   "query": "new york mets",
+   "limit": 2,
+   "cutoff": 80.0,
+   "results": [
+    {
+     "choice": "new york mets",
+     "score": 100.0,
+     "index": 0
+    }
+   ],
+   "extract_one": {
+    "choice": "new york mets",
+    "score": 100.0,
+    "index": 0
+   },
+   "choices": [
+    "new york mets",
+    null,
+    null
+   ]
+  },
+  {
+   "id": 10,
+   "query": "new york",
+   "limit": 5,
+   "cutoff": 0.0,
+   "results": [],
+   "extract_one": null,
+   "choices": [
+    null,
+    null
+   ]
+  },
+  {
+   "id": 11,
+   "query": null,
+   "limit": 5,
+   "cutoff": 0.0,
    "results": [],
    "extract_one": null
   }
