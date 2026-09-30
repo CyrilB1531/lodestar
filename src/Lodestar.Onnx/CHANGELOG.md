@@ -11,6 +11,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- The `OnnxTextEmbedder.Embed` page says a static export's chunk buffers are allocated at their exact size on every call rather than pooled. ([#1598](https://github.com/CyrilB1531/lodestar/issues/1598))
 - `OnnxTextEmbedder` refuses, when it is opened and under `modelPath`, a model whose fixed batch and sequence axes alone make one chunk larger than one array, where every call was refused under an argument no value could fix, and the `Embed` page gives what a half-precision or pooled output costs. ([#1589](https://github.com/CyrilB1531/lodestar/issues/1589), [#1590](https://github.com/CyrilB1531/lodestar/issues/1590))
 - `OnnxTextEmbedder.EmbedBatch` over texts names `options` when a static chunk passes one array, where it named `encoder`, and the pages state the bound as `Array.MaxLength` cells and what a chunk below it costs. ([#1581](https://github.com/CyrilB1531/lodestar/issues/1581), [#1582](https://github.com/CyrilB1531/lodestar/issues/1582))
 - `OnnxTextEmbedder.MaxSequenceLength` throws `ObjectDisposedException` after `Dispose` as every other member does, and a static export whose fixed axes make one chunk larger than one array is refused with an `ArgumentException` before allocating it. ([#1552](https://github.com/CyrilB1531/lodestar/issues/1552), [#1553](https://github.com/CyrilB1531/lodestar/issues/1553), [#1554](https://github.com/CyrilB1531/lodestar/issues/1554), [#1555](https://github.com/CyrilB1531/lodestar/issues/1555))
