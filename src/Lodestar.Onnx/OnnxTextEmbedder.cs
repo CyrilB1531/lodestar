@@ -433,7 +433,8 @@ public sealed class OnnxTextEmbedder : IDisposable
         }
 
         var pooled = new float[batchSize][];
-        // A static export's fixed batch times its fixed sequence is refused past one array, not wrapped (#1555).
+        // The batch times the width is refused past one array, not wrapped (#1555); with both axes fixed the constructor
+        // has refused it already (#1589). Allocated at exact size each call, not pooled (#1598).
         long[] chunkIds = new long[TableLength.Of(chunk, width, paramName)];
         long[] chunkMask = new long[chunkIds.Length];
         for (int first = 0; first < batchSize; first += chunk)
