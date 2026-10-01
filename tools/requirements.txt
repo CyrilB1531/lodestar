@@ -24,7 +24,7 @@ sentencepiece==0.2.2
 # does not declare as a dependency. Without it here the lock omits it and CI fails
 # with "No module named 'google'" while a developer machine that happens to have
 # protobuf installed passes.
-protobuf==7.36.1
+protobuf==7.36.2
 # mapie -- the reference for Lodestar.Conformal's split-conformal corpus (#441).
 # Its own dependencies (numpy, scikit-learn, scipy) were already resolved here, so
 # the graph grows by one package rather than by a tree.
