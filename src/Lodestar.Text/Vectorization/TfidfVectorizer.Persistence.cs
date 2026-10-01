@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text.Json;
 using Lodestar.Internal.Persistence;
 using Lodestar.Text.Persistence;
@@ -20,39 +21,50 @@ public sealed partial class TfidfVectorizer
     /// always written, even when <c>UseIdf</c> is off, so the artifact stays lossless.
     /// </remarks>
     /// <param name="destination">The stream to write to. It is flushed but never disposed — the caller owns it.</param>
-    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted.</exception>
+    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, its idf weights make a base64 block within two mebibytes of the most the JSON writer holds, or a vocabulary term, the token pattern or a stop word is longer than the JSON writer accepts.</exception>
+    /// <exception cref="InvalidDataException">An idf weight is not finite; refused before anything is written.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     public void Save(Stream destination)
     {
         Guard.NotNull(destination);
-        // Before the header: past it, a refusal leaves partial JSON in the caller's stream.
-        EnsureSavable();
-        ArtifactIo.Save(destination, ArtifactName, ArtifactVersion, WriteArtifactBody);
+        // Before the header: past it, a refusal leaves partial JSON in the caller's stream. The strings and weights once
+        // the writer has accepted the stream, which refused a read-only one first on main (#1618).
+        double[] idf = EnsureFitted();
+        ArtifactIo.Save(destination, ArtifactName, ArtifactVersion, WriteArtifactBody, () => EnsureWritable(idf));
     }
 
     /// <summary>Writes the fitted vectorizer to <paramref name="path"/>, replacing any existing file.</summary>
     /// <remarks>Equivalent to <c>joblib.dump(vectorizer, path)</c>; the file is UTF-8 without a byte-order mark.</remarks>
-    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted.</exception>
+    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, its idf weights make a base64 block within two mebibytes of the most the JSON writer holds, or a vocabulary term, the token pattern or a stop word is longer than the JSON writer accepts; refused once the file is open, before its first byte.</exception>
+    /// <exception cref="InvalidDataException">An idf weight is not finite; refused once the file is open, before its first byte.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     public void Save(string path)
     {
-        // Checked before opening: OpenWrite truncates, so a check any later would
-        // destroy a good artifact and leave a half-written header behind.
-        EnsureSavable();
+        // Fitted before opening, as main checked it; the strings and weights once the file is open and before its first
+        // byte, where main's write met them, so a path opening refuses keeps its place (#1617, #1618).
+        double[] idf = EnsureFitted();
         using FileStream file = JsonArtifact.OpenWrite(path);
-        Save(file);
+        ArtifactIo.Save(file, ArtifactName, ArtifactVersion, WriteArtifactBody, () => EnsureWritable(idf));
     }
 
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
     /// <param name="destination">The stream to write to; never disposed by this method.</param>
     /// <exception cref="ArgumentNullException">the stream is null.</exception>
-    /// <exception cref="InvalidOperationException">nothing has been fitted yet.</exception>
+    /// <exception cref="InvalidOperationException">nothing has been fitted yet, the idf weights make a base64 block within two mebibytes of the most the JSON writer holds, or a vocabulary term, the token pattern or a stop word is longer than the JSON writer accepts.</exception>
+    /// <exception cref="InvalidDataException">an idf weight is not finite; refused before anything is written.</exception>
     /// <exception cref="OperationCanceledException">the token is cancelled.</exception>
     /// <param name="cancellationToken">Cancels the write.</param>
-    public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) =>
-        ArtifactIo.SaveAsync(destination, ArtifactName, ArtifactVersion, WriteArtifactBody, cancellationToken);
+    public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)
+    {
+        // The stream first, then the vectorizer before the header, as Save(Stream) checks them, so a refusal leaves
+        // the stream untouched; inside the task, where every refusal of this method has always surfaced (#1617).
+        Guard.NotNull(destination);
+        EnsureSavable();
+        await ArtifactIo.SaveAsync(destination, ArtifactName, ArtifactVersion, WriteArtifactBody, cancellationToken)
+            .ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Reads a vectorizer previously written by <see cref="Save(Stream)"/>, ready
@@ -67,11 +79,12 @@ public sealed partial class TfidfVectorizer
     /// <param name="options">Bounds applied while reading, or <c>null</c> for the defaults.</param>
     /// <exception cref="InvalidDataException">The artifact is malformed, of the wrong kind, of an unsupported version, or exceeds a limit.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
-    public static TfidfVectorizer Load(Stream source, ArtifactLoadOptions? options = null)
-    {
-        ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
-        return FromPayload(JsonArtifact.ReadAllBytes(source, limits), limits);
-    }
+    public static TfidfVectorizer Load(Stream source, ArtifactLoadOptions? options = null) =>
+        Load(source, ArtifactLoadOptions.LimitsOf(options));
+
+    /// <summary>The read, on limits already resolved: the seam a test reaches the segmented read from (#1618).</summary>
+    internal static TfidfVectorizer Load(Stream source, in ArtifactLimits limits) =>
+        FromPayload(JsonArtifact.ReadWhole(source, limits), limits);
 
     /// <summary>Reads a vectorizer from <paramref name="path"/>.</summary>
     /// <param name="path">The artifact file, as written by <see cref="Save(string)"/>.</param>
@@ -94,29 +107,38 @@ public sealed partial class TfidfVectorizer
     public static async Task<TfidfVectorizer> LoadAsync(
         Stream source,
         ArtifactLoadOptions? options = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        await LoadAsync(source, ArtifactLoadOptions.LimitsOf(options), cancellationToken).ConfigureAwait(false);
+
+    /// <summary>The asynchronous read, on limits already resolved: the seam a test drives (#1618).</summary>
+    internal static async Task<TfidfVectorizer> LoadAsync(Stream source, ArtifactLimits limits, CancellationToken cancellationToken)
     {
-        ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
-        ReadOnlyMemory<byte> payload = await JsonArtifact.ReadAllBytesAsync(source, limits, cancellationToken).ConfigureAwait(false);
+        ReadOnlySequence<byte> payload = await JsonArtifact.ReadWholeAsync(source, limits, cancellationToken).ConfigureAwait(false);
         return FromPayload(payload, limits);
     }
 
     /// <summary>Throws unless there is a fitted model to write.</summary>
-    /// <remarks>
-    /// Called before any destination is opened, so a refused save cannot have
-    /// truncated a file first.
-    /// </remarks>
-    private void EnsureSavable()
+    /// <remarks>Called before any destination is opened.</remarks>
+    private double[] EnsureFitted() =>
+        _counts.IsFitted && _tfidf.FittedIdf is { } idf
+            ? idf
+            : throw new InvalidOperationException("The vectorizer has not been fitted. Call Fit or FitTransform first.");
+
+    /// <summary>Throws unless the fitted model can be written, its idf weights and strings checked before any byte (#1617, #1618).</summary>
+    private void EnsureSavable() => EnsureWritable(EnsureFitted());
+
+    /// <summary>Throws unless the fitted <paramref name="idf"/>, vocabulary and options can be written.</summary>
+    private void EnsureWritable(double[] idf)
     {
-        if (!_counts.IsFitted || _tfidf.FittedIdf is null)
-        {
-            throw new InvalidOperationException("The vectorizer has not been fitted. Call Fit or FitTransform first.");
-        }
+        // In the order the artifact writes them, so each refusal stands where main's write failed.
+        VectorizerOptionsJson.EnsureWritable(_counts.Options);
+        FeatureVocabularyJson.EnsureWritableVocabulary(_counts.FittedFeatureNames);
+        FeatureVocabularyJson.EnsureWritableIdf(idf);
     }
 
     private void WriteArtifactBody(Utf8JsonWriter writer)
     {
-        EnsureSavable();
+        // Unreachable once a save has checked the model; it gives the compiler the non-null weights.
         if (_tfidf.FittedIdf is not { } idf)
         {
             throw new InvalidOperationException("The vectorizer has not been fitted. Call Fit or FitTransform first.");
@@ -130,7 +152,7 @@ public sealed partial class TfidfVectorizer
         FeatureVocabularyJson.WriteIdf(writer, idf);
     }
 
-    private static TfidfVectorizer FromPayload(ReadOnlyMemory<byte> payload, in ArtifactLimits limits)
+    private static TfidfVectorizer FromPayload(ReadOnlySequence<byte> payload, in ArtifactLimits limits)
     {
         try
         {
@@ -142,9 +164,9 @@ public sealed partial class TfidfVectorizer
         }
     }
 
-    private static TfidfVectorizer Parse(ReadOnlyMemory<byte> payload, in ArtifactLimits limits)
+    private static TfidfVectorizer Parse(ReadOnlySequence<byte> payload, in ArtifactLimits limits)
     {
-        Utf8JsonReader reader = ArtifactIo.CreateReader(payload.Span, ArtifactName, limits);
+        Utf8JsonReader reader = ArtifactIo.CreateReader(payload, ArtifactName, limits);
         var header = new ArtifactHeader(ArtifactName, ArtifactVersion);
 
         CountVectorizerOptions? countOptions = null;

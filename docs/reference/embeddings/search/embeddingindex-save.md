@@ -16,8 +16,10 @@ it. `path` is a file to create or overwrite, written UTF-8 without a byte-order 
 
 **Exceptions** — `ArgumentNullException` when `destination` or `path` is null. `InvalidDataException` when any stored vector holds a non-finite component; the
 message names the item and the component. `InvalidOperationException` when the vector block,
-base64-encoded, is longer than the one array a load decodes it into — refused before the first byte, so
-a file it would replace is left whole ([#1322](https://github.com/CyrilB1531/lodestar/issues/1322)). `IOException` from the stream or file system.
+base64-encoded, is longer than the one array a load decodes it into — refused before the path is
+opened, so a file it would replace is left whole — or an id is longer than the JSON writer accepts,
+refused once the file is open and before its first byte
+([#1322](https://github.com/CyrilB1531/lodestar/issues/1322), [#1618](https://github.com/CyrilB1531/lodestar/issues/1618)). `IOException` from the stream or file system.
 
 **Example** — a round trip through memory, ids and all.
 

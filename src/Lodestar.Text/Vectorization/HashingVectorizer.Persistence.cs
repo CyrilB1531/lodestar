@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text.Json;
 using Lodestar.Internal.Persistence;
 using Lodestar.Text.Persistence;
@@ -16,29 +17,43 @@ public sealed partial class HashingVectorizer
     /// configuration still matters: a pipeline reloaded with a different <c>NumFeatures</c>,
     /// <c>AlternateSign</c> or analyzer silently produces different columns for the same document.
     /// </remarks>
+    /// <exception cref="InvalidOperationException">The token pattern or a stop word is longer than the JSON writer accepts; refused before anything is written.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     /// <param name="destination">The stream to write to. It is flushed but never disposed — the caller owns it.</param>
-    public void Save(Stream destination) =>
-        ArtifactIo.Save(destination, ArtifactName, ArtifactVersion, WriteArtifactBody);
+    public void Save(Stream destination)
+    {
+        // The strings once the writer has accepted the stream, which refused a read-only one first on main (#1618).
+        ArtifactIo.Save(
+            destination, ArtifactName, ArtifactVersion, WriteArtifactBody, () => VectorizerOptionsJson.EnsureWritable(_options.Count));
+    }
 
     /// <summary>Writes the vectorizer's configuration to <paramref name="path"/>, replacing any existing file.</summary>
+    /// <exception cref="InvalidOperationException">The token pattern or a stop word is longer than the JSON writer accepts; refused once the file is open, before its first byte.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     /// <remarks>Equivalent to <c>joblib.dump(vectorizer, path)</c>; the file is UTF-8 without a byte-order mark.</remarks>
     public void Save(string path)
     {
+        // The strings once the file is open and before its first byte, where main's write failed on them (#1618).
         using FileStream file = JsonArtifact.OpenWrite(path);
-        Save(file);
+        ArtifactIo.Save(file, ArtifactName, ArtifactVersion, WriteArtifactBody, () => VectorizerOptionsJson.EnsureWritable(_options.Count));
     }
 
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
     /// <param name="destination">The stream to write to; never disposed by this method.</param>
     /// <exception cref="ArgumentNullException">the stream is null.</exception>
+    /// <exception cref="InvalidOperationException">The token pattern or a stop word is longer than the JSON writer accepts; refused before anything is written.</exception>
     /// <exception cref="OperationCanceledException">the token is cancelled.</exception>
     /// <param name="cancellationToken">Cancels the write.</param>
-    public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) =>
-        ArtifactIo.SaveAsync(destination, ArtifactName, ArtifactVersion, WriteArtifactBody, cancellationToken);
+    public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)
+    {
+        // Inside the task, the stream first, as every refusal of this method has surfaced (#1618).
+        Guard.NotNull(destination);
+        VectorizerOptionsJson.EnsureWritable(_options.Count);
+        await ArtifactIo.SaveAsync(destination, ArtifactName, ArtifactVersion, WriteArtifactBody, cancellationToken)
+            .ConfigureAwait(false);
+    }
 
     /// <summary>Reads a vectorizer configuration previously written by <see cref="Save(Stream)"/>.</summary>
     /// <remarks>The Lodestar equivalent of <c>joblib.load</c> for a <c>sklearn.feature_extraction.text.HashingVectorizer</c>.</remarks>
@@ -46,11 +61,12 @@ public sealed partial class HashingVectorizer
     /// <param name="options">Bounds applied while reading, or <c>null</c> for the defaults.</param>
     /// <exception cref="InvalidDataException">The artifact is malformed, of the wrong kind, of an unsupported version, or exceeds a limit.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
-    public static HashingVectorizer Load(Stream source, ArtifactLoadOptions? options = null)
-    {
-        ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
-        return FromPayload(JsonArtifact.ReadAllBytes(source, limits), limits);
-    }
+    public static HashingVectorizer Load(Stream source, ArtifactLoadOptions? options = null) =>
+        Load(source, ArtifactLoadOptions.LimitsOf(options));
+
+    /// <summary>The read, on limits already resolved: the seam a test reaches the segmented read from (#1618).</summary>
+    internal static HashingVectorizer Load(Stream source, in ArtifactLimits limits) =>
+        FromPayload(JsonArtifact.ReadWhole(source, limits), limits);
 
     /// <summary>Reads a vectorizer configuration from <paramref name="path"/>.</summary>
     /// <param name="path">The artifact file, as written by <see cref="Save(string)"/>.</param>
@@ -73,10 +89,13 @@ public sealed partial class HashingVectorizer
     public static async Task<HashingVectorizer> LoadAsync(
         Stream source,
         ArtifactLoadOptions? options = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        await LoadAsync(source, ArtifactLoadOptions.LimitsOf(options), cancellationToken).ConfigureAwait(false);
+
+    /// <summary>The asynchronous read, on limits already resolved: the seam a test drives (#1618).</summary>
+    internal static async Task<HashingVectorizer> LoadAsync(Stream source, ArtifactLimits limits, CancellationToken cancellationToken)
     {
-        ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
-        ReadOnlyMemory<byte> payload = await JsonArtifact.ReadAllBytesAsync(source, limits, cancellationToken).ConfigureAwait(false);
+        ReadOnlySequence<byte> payload = await JsonArtifact.ReadWholeAsync(source, limits, cancellationToken).ConfigureAwait(false);
         return FromPayload(payload, limits);
     }
 
@@ -88,7 +107,7 @@ public sealed partial class HashingVectorizer
         VectorizerOptionsJson.WriteNorm(writer, "norm", _options.Norm);
     }
 
-    private static HashingVectorizer FromPayload(ReadOnlyMemory<byte> payload, in ArtifactLimits limits)
+    private static HashingVectorizer FromPayload(ReadOnlySequence<byte> payload, in ArtifactLimits limits)
     {
         try
         {
@@ -100,9 +119,9 @@ public sealed partial class HashingVectorizer
         }
     }
 
-    private static HashingVectorizer Parse(ReadOnlyMemory<byte> payload, in ArtifactLimits limits)
+    private static HashingVectorizer Parse(ReadOnlySequence<byte> payload, in ArtifactLimits limits)
     {
-        Utf8JsonReader reader = ArtifactIo.CreateReader(payload.Span, ArtifactName, limits);
+        Utf8JsonReader reader = ArtifactIo.CreateReader(payload, ArtifactName, limits);
         var header = new ArtifactHeader(ArtifactName, ArtifactVersion);
 
         var result = new HashingVectorizerOptions();

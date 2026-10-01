@@ -13,8 +13,9 @@ write.
 
 **Returns** — `Task`, completing when the options have been written.
 
-**Exceptions** — `ArgumentNullException` for a null stream. `OperationCanceledException` when
-cancelled.
+**Exceptions** — `InvalidOperationException` when the token pattern or a stop word is longer than
+the JSON writer accepts, refused before anything is written ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618)).
+`ArgumentNullException` for a null stream. `OperationCanceledException` when cancelled.
 
 **Example** — the round trip, asynchronously.
 

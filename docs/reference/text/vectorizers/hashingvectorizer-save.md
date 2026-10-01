@@ -12,8 +12,10 @@ public void Save(string path)
 **Parameters** — `destination` is a writable stream, left open for the caller to dispose; `path`
 is a file to create or overwrite.
 
-**Exceptions** — `ArgumentNullException` for a null stream or path. `IOException` from the stream
-or file system.
+**Exceptions** — `InvalidOperationException` when the token pattern or a stop word is longer than
+the JSON writer accepts, refused once the file is open and before a byte is written
+([#1618](https://github.com/CyrilB1531/lodestar/issues/1618)). `ArgumentNullException` for a null stream or path. `IOException` from the stream or file
+system.
 
 **Example** — a round trip that carries the settings and nothing else.
 

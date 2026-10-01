@@ -73,7 +73,9 @@ are bounded by `MaxArrayLength` before they size anything, and the vector block 
 **bytes** by `MaxTotalBytes` before parsing begins — an element-count limit sized for a vocabulary
 is orders of magnitude away from what a corpus of embeddings needs. **An index past 1,000,000
 vectors therefore saves but needs a raised `MaxArrayLength` to load.** A file that exceeds a bound is refused, never truncated: a quietly smaller index
-is a wrong answer.
+is a wrong answer. Past one array, about 2 GB, a stream is read in segments, whether it declares its
+length or not ([#377](https://github.com/CyrilB1531/lodestar/issues/377),
+[#1618](https://github.com/CyrilB1531/lodestar/issues/1618)).
 
 Internal consistency is checked too. A file whose `count` and `dimension` do not account for the
 number of values in its vector block is refused, as is one whose id array is a different length

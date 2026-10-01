@@ -194,8 +194,35 @@ internal static class VectorizerOptionsJson
         foreach (string word in sorted)
         {
             JsonArtifact.WriteText(writer, word);
+            JsonArtifact.FlushIfPending(writer);
         }
         writer.WriteEndArray();
+    }
+
+    /// <summary>Refuses, before a save's first byte, a pattern or stop word the writer cannot write (#1618).</summary>
+    /// <remarks>
+    /// The analyzer and the two frequencies first, as <see cref="Write(Utf8JsonWriter, string, CountVectorizerOptions)"/>
+    /// writes them ahead of the strings: a <c>HashingVectorizer</c> never validates them, and its write refused them first.
+    /// </remarks>
+    /// <exception cref="InvalidDataException">The analyzer is unknown, or a frequency is not finite.</exception>
+    /// <exception cref="InvalidOperationException">A string is longer than the JSON writer accepts.</exception>
+    public static void EnsureWritable(CountVectorizerOptions options)
+    {
+        _ = AnalyzerName(options.Analyzer);
+        JsonArtifact.RequirePersistable(options.MinDf);
+        JsonArtifact.RequirePersistable(options.MaxDf);
+        JsonArtifact.EnsureWritableText(options.TokenPattern, "The token pattern");
+
+        // Sorted, as WriteStopWords writes them, and only when one is long enough to need it.
+        if (options.StopWords is { } stopWords && stopWords.Any(word => word is not null && word.Length > JsonArtifact.AlwaysWritableCharacters))
+        {
+            string[] sorted = [.. stopWords];
+            Array.Sort(sorted, StringComparer.Ordinal);
+            foreach (string word in sorted)
+            {
+                JsonArtifact.EnsureWritableText(word, "A stop word");
+            }
+        }
     }
 
     private static List<string>? ReadStopWords(ref Utf8JsonReader reader, string artifact, in ArtifactLimits limits)

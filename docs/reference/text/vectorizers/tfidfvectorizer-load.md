@@ -39,6 +39,9 @@ string first = restored.GetFeatureNames()[0];  // => cat
 **Remarks** — `options` is what stands between a file and an allocation: a saved vectorizer
 declaring a hundred million vocabulary entries would otherwise be believed. Bounds are refused
 rather than truncated, so an oversized file is an error rather than a quietly smaller model.
+An artifact past one array, about 2 GB, which a raised `MaxTotalBytes` lets through, is read in
+segments from any stream rather than refused, so whatever a save wrote, a load reads back
+([#1618](https://github.com/CyrilB1531/lodestar/issues/1618)).
 
 **Applies to** — net10.0, netstandard2.0.
 

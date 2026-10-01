@@ -28,7 +28,7 @@ public sealed partial class EmbeddingIndex
     /// </remarks>
     /// <param name="destination">The stream to write to. Flushed but never disposed — the caller owns it.</param>
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
-    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into.</exception>
+    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into, or an id is longer than the JSON writer accepts.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="destination"/> is null.</exception>
     public void Save(Stream destination)
     {
@@ -37,14 +37,16 @@ public sealed partial class EmbeddingIndex
         Guard.NotNull(destination);
         EnsureFinite();
         EnsureSavable();
+
+        // The ids once the writer has accepted the stream, which refused a read-only one first on main (#1618).
         ArtifactIo.SaveWithBlock(
-            destination, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty, _data.AsSpan(0, _length));
+            destination, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty, _data.AsSpan(0, _length), EnsureWritableIds);
     }
 
     /// <summary>Writes the index to <paramref name="path"/>, replacing any existing file.</summary>
     /// <param name="path">The file to write. UTF-8 without a byte-order mark.</param>
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
-    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into.</exception>
+    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into, or an id is longer than the JSON writer accepts.</exception>
     /// <exception cref="IOException">The file cannot be written.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
     public void Save(string path)
@@ -55,17 +57,17 @@ public sealed partial class EmbeddingIndex
         EnsureSavable();
         using FileStream file = JsonArtifact.OpenWrite(path);
 
-        // WriteHeadChecked, not Save(file): the scan above already ran, and a second pass
-        // over the block is a whole-block memory sweep that finds nothing new.
+        // WriteHeadChecked, not Save(file): the scan above already ran, and a second would find nothing new.
+        // The ids once the file is open, where main's write met them (#1618).
         ArtifactIo.SaveWithBlock(
-            file, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty, _data.AsSpan(0, _length));
+            file, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty, _data.AsSpan(0, _length), EnsureWritableIds);
     }
 
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
     /// <param name="destination">The stream to write to; never disposed by this method.</param>
     /// <param name="cancellationToken">Cancels the write.</param>
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
-    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into.</exception>
+    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into, or an id is longer than the JSON writer accepts.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="destination"/> is null.</exception>
     public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)
@@ -81,9 +83,16 @@ public sealed partial class EmbeddingIndex
             // Faulted, as both were when the write raised them, but before the first byte as in Save.
             return Task.FromException(e);
         }
-        return ArtifactIo.SaveWithBlockAsync(
+        return SaveCheckedAsync(destination, cancellationToken);
+    }
+
+    /// <summary>The save once main's own checks passed: the writer's refusal of the stream, then the ids, inside the task (#1618).</summary>
+    private async Task SaveCheckedAsync(Stream destination, CancellationToken cancellationToken)
+    {
+        ArtifactIo.CheckOnWriter(destination, EnsureWritableIds);
+        await ArtifactIo.SaveWithBlockAsync(
             destination, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty,
-            _data.AsMemory(0, _length), cancellationToken);
+            _data.AsMemory(0, _length), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Refuses a block whose base64 would not fit the one array a load decodes it into (#1322).</summary>
@@ -93,12 +102,24 @@ public sealed partial class EmbeddingIndex
     /// </remarks>
     private void EnsureSavable()
     {
-        long encoded = (((long)_length * sizeof(float)) + 2) / 3 * 4;
+        long encoded = Base64Numbers.EncodedLength(_length, sizeof(float));
         // Load decodes the string into one byte[], which cannot pass Array.MaxLength.
         if (encoded > TableLength.MaxByteLength)
         {
             throw new InvalidOperationException(
                 $"The index holds {_length} values, whose base64 block of {encoded} characters no load can read back.");
+        }
+    }
+
+    /// <summary>Refuses an id the writer would refuse partway through the head, before the first byte (#1618).</summary>
+    private void EnsureWritableIds()
+    {
+        for (int i = 0; _ids is not null && i < _count; i++)
+        {
+            if (IdAt(i) is { } id)
+            {
+                JsonArtifact.EnsureWritableText(id, "An id");
+            }
         }
     }
 
@@ -133,6 +154,8 @@ public sealed partial class EmbeddingIndex
                 {
                     JsonArtifact.WriteText(writer, id);
                 }
+
+                JsonArtifact.FlushIfPending(writer);
             }
             writer.WriteEndArray();
         }
@@ -170,8 +193,8 @@ public sealed partial class EmbeddingIndex
     {
         Guard.NotNull(source);
 
-        // Past one array the artifact is read in segments instead. Only this loader needs
-        // it: an index is the one artifact here that reaches the ceiling (#377).
+        // Past one array the artifact is read in segments instead (#377), and below this
+        // branch from a stream of undeclared length too (#1618).
         if (source.CanSeek && source.Length - source.Position > limits.MaxSingleBuffer)
         {
             return FromSegments(JsonArtifact.ReadAllSegments(source, limits), limits);
@@ -180,7 +203,9 @@ public sealed partial class EmbeddingIndex
         // Owned here, not in FromPayload: the public Load(ReadOnlyMemory) overload reaches
         // that too, so pooling below this point would return a caller's own buffer (#435).
         using Buffers.RentedPayload payload = JsonArtifact.ReadAllBytesPooled(source, limits);
-        return FromPayload(payload.Memory, limits);
+
+        // A stream of undeclared length past one array comes back in its rented segments (#1618).
+        return payload.IsSegmented ? FromSegments(payload.Sequence, limits) : FromPayload(payload.Memory, limits);
     }
 
     /// <summary>Reads an index from bytes already in memory, without copying them.</summary>
@@ -250,15 +275,9 @@ public sealed partial class EmbeddingIndex
     {
         Guard.NotNull(source);
 
-        // Past one array, segments instead — the same decision Load takes, which #377
-        // gave it alone and #396 gives here.
-        return source.CanSeek && source.Length - source.Position > limits.MaxSingleBuffer
-            ? FromSegments(
-                await JsonArtifact.ReadAllSegmentsAsync(source, limits, cancellationToken).ConfigureAwait(false),
-                limits)
-            : FromPayload(
-                await JsonArtifact.ReadAllBytesAsync(source, limits, cancellationToken).ConfigureAwait(false),
-                limits);
+        // Past one array, segments instead, whether the stream declares its length (#377, #396) or not (#1618).
+        ReadOnlySequence<byte> payload = await JsonArtifact.ReadWholeAsync(source, limits, cancellationToken).ConfigureAwait(false);
+        return payload.IsSingleSegment ? FromPayload(payload.First, limits) : FromSegments(payload, limits);
     }
 
     private static EmbeddingIndex FromPayload(ReadOnlyMemory<byte> payload, in ArtifactLimits limits)
