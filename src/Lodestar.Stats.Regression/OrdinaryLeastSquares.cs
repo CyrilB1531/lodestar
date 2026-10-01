@@ -23,7 +23,7 @@ public static class OrdinaryLeastSquares
     /// <param name="options">Whether to fit an intercept and at what confidence; <see langword="null"/> fits one at 0.95.</param>
     /// <returns>The fitted model, with its standard errors, t statistics, p-values, intervals and VIFs.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
-    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, <paramref name="options"/> sets <see cref="OlsOptions.HacLags"/> or <see cref="OlsOptions.SmallSampleCorrection"/> for a type that does not read it or asks for <see cref="CovarianceType.Hac"/> without lags or <see cref="CovarianceType.Cluster"/> without labels, there are no residual degrees of freedom left, or a column of the design, intercept included, is collinear with the columns before it.</exception>
+    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, <paramref name="options"/> sets <see cref="OlsOptions.HacLags"/> or <see cref="OlsOptions.SmallSampleCorrection"/> for a type that does not read it or asks for <see cref="CovarianceType.Hac"/> without lags or <see cref="CovarianceType.Cluster"/> without labels, there are no residual degrees of freedom left, a column of the design, intercept included, is collinear with the columns before it, or a copy of the design the fit makes — the VIFs' on their QR fallback, or with its intercept on the reflection fallback or for a robust covariance — is more cells than one array holds.</exception>
     /// <remarks>
     /// Solved through the normal equations when a bound on the column-scaled design's condition number
     /// stays within 200, and through Householder reflections of the design otherwise: forming
@@ -60,7 +60,7 @@ public static class OrdinaryLeastSquares
     /// <param name="options">Whether to fit an intercept, the correction and the confidence; its <see cref="OlsOptions.CovarianceType"/> must be <see cref="CovarianceType.Cluster"/>.</param>
     /// <returns>The fitted model, with cluster-robust standard errors, z statistics, p-values, intervals and VIFs.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
-    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> or <paramref name="clusters"/> has a different length, <paramref name="clusters"/> names fewer than two clusters, <paramref name="options"/> asks for another covariance, no residual degrees of freedom are left, or a column of the design, intercept included, is collinear with the columns before it.</exception>
+    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> or <paramref name="clusters"/> has a different length, <paramref name="clusters"/> names fewer than two clusters, <paramref name="options"/> asks for another covariance, no residual degrees of freedom are left, a column of the design, intercept included, is collinear with the columns before it, or a copy of the design the fit makes — the VIFs' on their QR fallback, or with its intercept on the reflection fallback or for a robust covariance — is more cells than one array holds.</exception>
     /// <remarks>
     /// <c>statsmodels</c>' <c>fit(cov_type="cluster", cov_kwds={"groups": clusters})</c>. The labels only say which rows
     /// share a cluster, so relabelling them changes nothing.
@@ -167,7 +167,7 @@ public static class OrdinaryLeastSquares
         // The robust covariances read the design row by row, so it is built — and whitened — only for them.
         double[]? robustMatrix = settings.CovarianceType == CovarianceType.Nonrobust
             ? null
-            : Whiten(LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept), rowCount, parameterCount, weights);
+            : Whiten(LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept, nameof(design)), rowCount, parameterCount, weights);
 
         return Tabulate(
             new SolvedFit(coefficients, inverseUpper, residuals, robustMatrix, clusters),
@@ -293,7 +293,7 @@ public static class OrdinaryLeastSquares
     /// <param name="withIntercept">Whether to fit a constant, prepended to the coefficients. Default true.</param>
     /// <returns>The coefficients, their standard errors and t statistics, and the residual sum of squares.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
-    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, there are no residual degrees of freedom left, or a column of <paramref name="design"/> lies within rounding of the span of the columns before it.</exception>
+    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, there are no residual degrees of freedom left, a column of <paramref name="design"/> lies within rounding of the span of the columns before it, or the design it forms, rows times parameters, is more cells than one array holds.</exception>
     /// <remarks>
     /// Always the Householder reflections <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/> falls back to, for a caller fitting many regressions and
     /// reading a coefficient, a t statistic or a likelihood from each. It skips what <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/>
@@ -634,7 +634,8 @@ public static class OrdinaryLeastSquares
     /// </remarks>
     private static double[] StandardiseRegressors(ReadOnlySpan<double> design, int rowCount, int regressorCount)
     {
-        var working = new double[rowCount * regressorCount];
+        // The QR fallback's copy, which a span over native memory can outgrow: refused where it is made (#1614).
+        var working = new double[TableLength.Of(rowCount, regressorCount, nameof(design))];
 
         for (int column = 0; column < regressorCount; column++)
         {

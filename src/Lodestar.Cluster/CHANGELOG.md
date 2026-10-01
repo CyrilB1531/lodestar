@@ -16,6 +16,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- `AgglomerativeClustering` refuses, under any linkage but single, more rows than one array of pairwise distances holds — from 65,537, 65,521 before .NET 6 — where the allocation failed, and, under single linkage, more rows than a merge tree of twice them less one fits in one array, where the lengths wrapped past 2³⁰ rows or failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - `Dbscan.FitPrecomputed` refuses a negative distance, as scikit-learn refuses it. ([#1207](https://github.com/CyrilB1531/lodestar/issues/1207))
 - `KMeans` runs Lloyd on the centred samples, as scikit-learn does, so `Iterations` matches `n_iter_` where a zero shift turned on rounding. ([#1208](https://github.com/CyrilB1531/lodestar/issues/1208))
 

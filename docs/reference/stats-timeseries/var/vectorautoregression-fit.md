@@ -16,13 +16,16 @@ equation, at least one. `options` chooses whether each equation carries a consta
 **Returns** — [`VarSummary`](varsummary.md): the coefficients per equation with their standard errors, t statistics and
 p-values, the two residual covariances, the log-likelihood and the four criteria.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `variableCount` is below two — one variable is an autoregression
-rather than a vector one — or when `lagOrder` is below one. `ArgumentException` when `series` is empty or not a whole
-number of observations, when it holds a value that is not finite, or when the lags leave no residual degree of freedom:
-`n − lagOrder` usable rows must exceed the `(1 or 0) + variableCount·lagOrder` parameters each equation fits. Also
-when the lagged design is collinear — a variable proportional to another, for instance — with a smallest
-singular value at or below `σmax·max(n, p)·ε`, `numpy.linalg.matrix_rank`'s tolerance and the one
-`Lodestar.Stats.Regression`'s fits refuse at.
+**Exceptions** — `ArgumentOutOfRangeException` when `variableCount` is below two — one variable is
+an autoregression rather than a vector one — or when `lagOrder` is below one. `ArgumentException`
+when `series` is empty or not a whole number of observations, when it holds a value that is not
+finite, or when the lags leave no residual degree of freedom: `n − lagOrder` usable rows must exceed
+the `(1 or 0) + variableCount·lagOrder` parameters each equation fits. Also when the lagged design
+is collinear — a variable proportional to another, for instance — with a smallest singular value at
+or below `σmax·max(n, p)·ε`, `numpy.linalg.matrix_rank`'s tolerance and the one
+`Lodestar.Stats.Regression`'s fits refuse at. `ArgumentException` naming `series` also when the
+lagged design, usable rows by parameters, is more cells than one array holds
+([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — the second equation of a two-variable system, and what the whole model scores.
 

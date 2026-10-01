@@ -17,12 +17,12 @@ public static class GeneralizedLinearModel
     /// <param name="family">The response distribution, with its canonical link.</param>
     /// <param name="options">The fit's settings, or null for the defaults.</param>
     /// <exception cref="ArgumentException">
-    /// <paramref name="design"/> is not a positive whole number of rows, the lengths disagree, a
-    /// response is outside its family, is an infinite count, or is a count response that
-    /// is zero in every row, no residual degree of freedom is left, the design
-    /// is rank deficient, <see cref="GlmOptions.NegativeBinomialAlpha"/> is set for another family,
-    /// <see cref="GlmOptions.Link"/> names a link the family is not fitted through, or the inverse link takes a
-    /// <see cref="GlmFamily.Gamma"/> mean to zero or below during IRLS.
+    /// <paramref name="design"/> is not a positive whole number of rows, the lengths disagree, a response is outside
+    /// its family, is an infinite count, or is a count response that is zero in every row, no residual degree of
+    /// freedom is left, the design is rank deficient, <see cref="GlmOptions.NegativeBinomialAlpha"/> is set for
+    /// another family, <see cref="GlmOptions.Link"/> names a link the family is not fitted through, the inverse link
+    /// takes a <see cref="GlmFamily.Gamma"/> mean to zero or below during IRLS, or the rows times the parameters are
+    /// more cells than one array holds.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="featureCount"/> is below one, or <paramref name="family"/> is not a declared

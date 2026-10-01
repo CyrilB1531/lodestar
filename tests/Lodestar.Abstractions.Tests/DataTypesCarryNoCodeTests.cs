@@ -30,6 +30,7 @@ public sealed class DataTypesCarryNoCodeTests
     {
         "Lodestar.Internal.ElementWise",
         "Lodestar.Internal.Guard",
+        "Lodestar.Internal.TableLength",
         "Lodestar.Internal.ValueEquality",
     };
 

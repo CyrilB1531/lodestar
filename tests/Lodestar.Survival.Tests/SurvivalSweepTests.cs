@@ -1,4 +1,3 @@
-using Lodestar.Survival.Internal;
 using Xunit;
 
 namespace Lodestar.Survival.Tests;
@@ -32,9 +31,9 @@ public sealed class SurvivalSweepTests
     public void A_prediction_table_past_the_largest_array_is_refused_by_name()
     {
         // 46,341 squared is 2,147,488,281: past Array.MaxLength, and past int.MaxValue, where it wrapped.
-        ArgumentException refused = Assert.Throws<ArgumentException>(() => ResultTable.Length(46_341, 46_341, "design"));
+        ArgumentException refused = Assert.Throws<ArgumentException>(() => Lodestar.Internal.TableLength.Of(46_341, 46_341, "design"));
 
         Assert.Equal("design", refused.ParamName);
-        Assert.Equal(6, ResultTable.Length(2, 3, "design"));
+        Assert.Equal(6, Lodestar.Internal.TableLength.Of(2, 3, "design"));
     }
 }

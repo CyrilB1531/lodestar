@@ -123,7 +123,8 @@ internal static class IvCore
         int n = problem.N;
         int endogenous = problem.K - problem.ExogenousCount;
         int width = endogenous + 1;
-        var e = new double[n * width];
+        // [y, X_endog] is one column wider than the regressors when no exogenous one is shared (#1614).
+        var e = new double[TableLength.Of(n, width, IvScores.DesignParameter)];
         for (int row = 0; row < n; row++)
         {
             e[row * width] = problem.Y[row];

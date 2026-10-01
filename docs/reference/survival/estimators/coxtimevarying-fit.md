@@ -31,6 +31,7 @@ start, a covariate is not finite or does not vary, no interval ends in an event,
 collinear with the others or separates the events, or `CoxOptions.Robust` is asked for.
 `InvalidOperationException` when the fit does not converge.
 `ArgumentException` also when the covariates are too many for their square to fit in one array ([#1311](https://github.com/CyrilB1531/lodestar/issues/1311)).
+`ArgumentException` naming `design` also when it is more cells than one array holds ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — one interval per subject from zero is the ordinary fit.
 

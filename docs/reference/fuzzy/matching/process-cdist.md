@@ -20,7 +20,8 @@ lets a pair be rejected on its lengths alone.
 **Returns** — a [`ScoreMatrix`](scorematrix.md) of `queries.Count` rows by `choices.Count` columns.
 
 **Exceptions** — `ArgumentNullException` when either list is null. `ArgumentOutOfRangeException`
-when the matrix would hold more than `int.MaxValue` scores.
+when the matrix would hold more scores than one array holds — `Array.MaxLength`, `0x7FEFFFFF` before
+.NET 6 ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — three queries against four choices, read by the pair that matters.
 

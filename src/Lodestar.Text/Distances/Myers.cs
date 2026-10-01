@@ -276,7 +276,7 @@ internal static class Myers
         // per slot the pattern's characters above Latin-1 need — none, for a Latin-1 one.
         int slots = WideAlphabet.CapacityFor(WideAlphabet.CountWide(pattern));
         long rows = (long)(256 + slots) * blocks;
-        if (rows > WideAlphabet.MaxTableLength)
+        if (rows > TableLength.MaxLength)
         {
             // The DP is O(min(n, m)) in memory where this is O(m·blocks), so a pattern that
             // cannot be tabulated is handed back rather than rounded into a wrapped Rent (#413).
@@ -407,7 +407,7 @@ internal static class Myers
         // Padded to whole pairs: a word past the pattern reads all-zero rows, and nothing above
         // bit m - 1 reaches a lower bit or the masked counts.
         long cells = (long)pairs * 2 * PairedEntries;
-        if (cells > WideAlphabet.MaxTableLength)
+        if (cells > TableLength.MaxLength)
         {
             return false;
         }

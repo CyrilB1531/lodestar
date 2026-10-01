@@ -52,7 +52,7 @@ internal sealed class CoxData
     public double[] Deviations { get; }
 
     /// <summary>Validates and sorts the inputs.</summary>
-    /// <exception cref="ArgumentException">A span disagrees in length, a weight is not positive and finite, or a covariate is constant.</exception>
+    /// <exception cref="ArgumentException">A span disagrees in length, the design is more cells than one array holds, a weight is not positive and finite, or a covariate is constant.</exception>
     public static CoxData Build(
         ReadOnlySpan<double> design,
         ReadOnlySpan<double> durations,
@@ -66,6 +66,9 @@ internal sealed class CoxData
         Check(weights, n, nameof(weights));
         Check(strata, n, nameof(strata));
         Check(clusters, n, nameof(clusters));
+
+        // Where the copy is made: a design over native memory can outgrow one array (#1614).
+        _ = TableLength.Of(n, featureCount, nameof(design));
         var data = new CoxData(n, featureCount);
         int[] order = SortedOrder(durations, eventObserved, strata);
         for (int position = 0; position < n; position++)

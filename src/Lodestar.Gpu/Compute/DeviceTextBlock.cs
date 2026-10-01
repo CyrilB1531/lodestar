@@ -157,7 +157,8 @@ public sealed class DeviceTextBlock : IDisposable
             sum += length;
         }
 
-        return sum <= TableLength.MaxLength
+        // The characters land in one byte[], so the byte bound, the higher one before .NET 6 (#1614).
+        return sum <= TableLength.MaxByteLength
             ? (int)sum
             : throw new ArgumentException($"The texts hold {sum} characters, more than one array holds.", paramName);
     }

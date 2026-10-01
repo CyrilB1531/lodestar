@@ -29,6 +29,7 @@ observed, a weight or stratum span is neither empty nor one value per subject, t
 the ones the fit was stratified by, or the fit is a `CoxTimeVarying` one, which lifelines' test does
 not take either.
 `ArgumentOutOfRangeException` when `transform` names no time scale.
+`ArgumentException` naming `design` also when it is more cells than one array holds ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — neither covariate drifts on this sample.
 

@@ -7,6 +7,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- `Process.Cdist` refuses a matrix past the runtime's largest array, `Array.MaxLength` or `0x7FEFFFFF` before .NET 6, where it bounded it at `int.MaxValue` and a count between failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - `Process.Extract` and `Process.ExtractOne` skip a null choice with its index kept and match nothing for a null query, and `Process.Cdist` scores either `0`, as rapidfuzz treats `None`, where they threw `ArgumentNullException`. ([#1233](https://github.com/CyrilB1531/lodestar/issues/1233))
 - Every `Fuzz` scorer scores a null string `0` on either side, as rapidfuzz scores `None`, where it threw `ArgumentNullException`, so an undeclared `TextElement` beside a null now throws `ArgumentOutOfRangeException`. ([#1611](https://github.com/CyrilB1531/lodestar/issues/1611))
 - `Deduplicator.FindClusters` refuses a null blocking key with an `ArgumentException` naming `blockingKey`, where `Dictionary` threw `ArgumentNullException` naming its own `key`. ([#1612](https://github.com/CyrilB1531/lodestar/issues/1612))

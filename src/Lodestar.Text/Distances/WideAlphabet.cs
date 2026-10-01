@@ -20,15 +20,6 @@ internal static class WideAlphabet
     /// </remarks>
     internal const int Capacity = 128;
 
-    /// <summary>The largest table the blocked routes will build before deferring to the DP.</summary>
-    /// <remarks>
-    /// <c>Array.MaxLength</c>, spelled out because netstandard2.0 has no such constant. The
-    /// length is computed in <c>long</c> and compared against this: past it the multiplication
-    /// wrapped, and <c>Rent</c> then either threw out of a distance function or succeeded on a
-    /// table too small to index (#413).
-    /// </remarks>
-    internal const int MaxTableLength = 0x7FFFFFC7;
-
     /// <summary>How many of a pattern's characters sit above Latin-1.</summary>
     /// <remarks>
     /// Occurrences, not distinct symbols: distinct is what the table holds, counting it costs a

@@ -174,7 +174,7 @@ public static class Process
     /// <param name="scoreCutoff">Minimum score to report; a cell below it reads <c>0</c> rather than being dropped.</param>
     /// <returns>A <see cref="ScoreMatrix"/> of <c>queries.Count</c> rows by <c>choices.Count</c> columns.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="queries"/> or <paramref name="choices"/> is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">The matrix would hold more than <see cref="int.MaxValue"/> scores.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The matrix would hold more scores than one array holds.</exception>
     /// <remarks>
     /// The cutoff zeroes where <see cref="Extract"/>'s filters, the reference's meaning and all a
     /// matrix can do; empty inputs give an empty matrix, not a refusal. On the default scorer it
@@ -197,11 +197,11 @@ public static class Process
         int rows = queries.Count;
         int columns = choices.Count;
         long cells = (long)rows * columns;
-        if (cells > int.MaxValue)
+        // The runtime's largest array, not int.MaxValue, which let a count between the two fail to allocate; past
+        // int.MaxValue the refusal reads as it did (#1614).
+        if (cells > TableLength.MaxLength)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(queries), cells,
-                $"Scoring {rows} queries against {columns} choices needs {cells} scores, past int.MaxValue.");
+            throw TooManyScores(rows, columns, cells, nameof(queries));
         }
 
         var scores = new double[cells];
@@ -228,6 +228,13 @@ public static class Process
         }
 
         return new ScoreMatrix(rows, columns, scores);
+    }
+
+    private static ArgumentOutOfRangeException TooManyScores(int rows, int columns, long cells, string paramName)
+    {
+        string reach = cells > int.MaxValue ? "past int.MaxValue" : "more than one array holds";
+        return new ArgumentOutOfRangeException(
+            paramName, cells, $"Scoring {rows} queries against {columns} choices needs {cells} scores, {reach}.");
     }
 
     /// <summary>Whether the two lengths alone put a pair under the cutoff, with no scan able to lift it.</summary>

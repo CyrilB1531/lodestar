@@ -14,6 +14,8 @@ the one subject of a fit with no covariate.
 **Returns** — one time per subject.
 
 **Exceptions** — `ArgumentException` when `design` is not whole rows of finite covariates.
+`ArgumentException` naming `design` also when it is more cells than one array holds
+([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — no dose, and two units of it, in the fit of the [`AftSummary`](aftsummary.md) page.
 

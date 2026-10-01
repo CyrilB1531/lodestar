@@ -25,7 +25,7 @@ public static class InstrumentalVariables
     /// <param name="options">The covariance, its kernel and scaling, and the intercept; <see langword="null"/> takes the reference's defaults.</param>
     /// <returns>The fitted model's table and diagnostics.</returns>
     /// <exception cref="ArgumentOutOfRangeException">A column count is out of range.</exception>
-    /// <exception cref="ArgumentException">A block's length is not its column count times the rows, the model is under-identified, no residual degree of freedom is left, the options ask for a cluster covariance or set a value this estimator does not read, or the regressors or instruments are collinear.</exception>
+    /// <exception cref="ArgumentException">A block's length is not its column count times the rows, the model is under-identified, no residual degree of freedom is left, the options ask for a cluster covariance or set a value this estimator does not read, the regressors or instruments are collinear, or the rows times the larger of the parameters and the instruments, or that plus one where a rank test or LIML appends a column, are more cells than one array holds.</exception>
     public static IvSummary TwoStageLeastSquares(IvDesign design, IvOptions? options = null) =>
         Fit(Estimator.TwoStageLeastSquares, design, default, clustered: false, options ?? new IvOptions());
 
@@ -142,14 +142,22 @@ public static class InstrumentalVariables
                 nameof(design));
         }
 
+        // Counted in long: with no rows every block length passes, and the int sums of the counts wrapped (#1614).
+        long regressors = exogenousCount + (withIntercept ? 1L : 0L) + endogenousCount;
+        long instrumentColumns = exogenousCount + (withIntercept ? 1L : 0L) + instrumentCount;
+        if (n - Math.Max(regressors, instrumentColumns) < 1)
+        {
+            throw new ArgumentException(
+                $"{n} rows leave no residual degree of freedom for {regressors} regressors and {instrumentColumns} "
+                + "instruments.", nameof(design));
+        }
+
         int shared = exogenousCount + (withIntercept ? 1 : 0);
         int k = shared + endogenousCount;
         int l = shared + instrumentCount;
-        if (n - Math.Max(k, l) < 1)
-        {
-            throw new ArgumentException(
-                $"{n} rows leave no residual degree of freedom for {k} regressors and {l} instruments.", nameof(design));
-        }
+
+        // Both blocks, where they are allocated; the column of ones the rank tests append is bounded there (#1614).
+        _ = TableLength.Of(n, Math.Max(k, l), nameof(design));
 
         var x = new double[n * k];
         var z = new double[n * l];

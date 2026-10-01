@@ -77,12 +77,26 @@ public sealed class TruncatedSvd
         int features = matrix.ColumnCount;
         int size = componentCount + settings.Oversampling;
         int omegaRows = RandomizedSvd.OmegaRows(matrix);
+
+        // Before .NET 6 the lower bound, after the matrix and options refusals: ahead of the Ω a draw allocates, and
+        // behind the length check of an Ω the caller gives (#1614).
+        long block = (long)Math.Max(matrix.RowCount, features) * size;
+        if (settings.RandomMatrix is null && block > TableLength.MaxLength)
+        {
+            throw BlockTooLarge(componentCount, settings.Oversampling, block);
+        }
+
         double[] omega = settings.RandomMatrix
             ?? new GaussianSampler(settings.Seed).Normal(omegaRows, size);
         if (omega.Length != (long)omegaRows * size)
         {
             throw new ArgumentException(
                 $"Ω is {omega.Length} long, not {omegaRows} × {size}.", nameof(options));
+        }
+
+        if (block > TableLength.MaxLength)
+        {
+            throw BlockTooLarge(componentCount, settings.Oversampling, block);
         }
 
         // Since 1.6 the estimator asks randomized_svd for flip_sign=False and flips on the
@@ -176,13 +190,11 @@ public sealed class TruncatedSvd
                 $"Oversampling of {options.Oversampling} and {componentCount} components do not add up within an int.");
         }
         long block = (long)Math.Max(matrix.RowCount, matrix.ColumnCount) * (componentCount + options.Oversampling);
-        if (block > TableLength.MaxLength)
+        // The range finder's block is the longer side by k + p; past the largest array it could only fail inside
+        // CsrMatrix under a parameter Fit does not have (#1315). Before .NET 6 Fit checks the lower bound (#1614).
+        if (block > TableLength.ArrayMaxLength)
         {
-            // The range finder's block is the longer side by k + p; past the largest array it could
-            // only fail inside CsrMatrix under a parameter Fit does not have (#1315).
-            throw new ArgumentOutOfRangeException(
-                nameof(componentCount), componentCount,
-                $"{componentCount} components and {options.Oversampling} extra columns need a {block}-cell block, more than one array holds.");
+            throw BlockTooLarge(componentCount, options.Oversampling, block);
         }
         if (options.PowerIterations < 0)
         {
@@ -191,6 +203,10 @@ public sealed class TruncatedSvd
                 $"PowerIterations counts repetitions, so it cannot be {options.PowerIterations}.");
         }
     }
+
+    private static ArgumentOutOfRangeException BlockTooLarge(int componentCount, int oversampling, long block) =>
+        new(nameof(componentCount), componentCount,
+            $"{componentCount} components and {oversampling} extra columns need a {block}-cell block, more than one array holds.");
 
     /// <summary><c>X · Componentsᵀ</c>, one row at a time over the non-zeros.</summary>
     /// <remarks>

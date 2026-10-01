@@ -120,6 +120,10 @@ decides each case, and its reading is what the table above rests on:
 
 The `netstandard2.0` build reaches .NET Framework 4.6.1+, Mono, Xamarin and Unity with the same
 public API ([decision 0001](docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)).
+Before .NET 6, an array of elements wider than a byte stops at `0x7FEFFFFF` rather than
+`Array.MaxLength` (legacy Mono is held there unmeasured), and .NET Framework needs
+`gcAllowVeryLargeObjects` past 2 GB; the refusals "more than one array holds" read the running
+runtime's bound ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 ## Measured against the .NET incumbents
 

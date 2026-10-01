@@ -68,11 +68,16 @@ public static class Pooler
     {
         ValidateBatch(tokenEmbeddings, batchSize, seqLen, dim, attentionMask);
 
-        // Each vector is its own array, so dim is what one allocation is sized by (#1340).
-        int width = TableLength.Of(1, dim, nameof(dim));
+        // Each vector is its own array, so dim is what one allocation is sized by (#1340). ArrayMaxLength first, then
+        // batchSize's bound, then before .NET 6 the lower one, so neither refusal overtakes the other (#1614).
+        if (dim > TableLength.ArrayMaxLength)
+        {
+            _ = TableLength.Of(1, dim, nameof(dim));
+        }
 
         // With seqLen 0 nothing above bounds batchSize, and the outer array is sized by it alone (#1373).
         var pooled = new float[TableLength.Of(batchSize, 1, nameof(batchSize))][];
+        int width = batchSize == 0 ? dim : TableLength.Of(1, dim, nameof(dim));
         for (int b = 0; b < batchSize; b++)
         {
             var vector = new float[width];

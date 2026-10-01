@@ -137,4 +137,24 @@ public sealed class VectorAutoregressionEdgeTests
         Assert.Equal("series", refusal.ParamName);
         Assert.Contains("collinear", refusal.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_lagged_design_past_one_array_is_refused_before_it_is_allocated()
+    {
+        // Two variables, 200,000 observations, lag 40,000: 160,000 rows of 80,001 columns, which wrapped (#1614).
+        double[] series = Enumerable.Range(0, 400_000).Select(i => Math.Sin(i * 0.37)).ToArray();
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => VectorAutoregression.Fit(series, 2, 40_000));
+        Assert.Equal("series", error.ParamName);
+        Assert.Contains("more than one array holds", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_lag_order_whose_parameter_count_passes_int_is_refused_rather_than_wrapped()
+    {
+        // 2 × 2^30 lags and the intercept wrapped to int.MinValue + 1, passed the check, and overflowed the design (#1614).
+        ArgumentException error = Assert.Throws<ArgumentException>(() => VectorAutoregression.Fit(new double[8], 2, 1 << 30));
+        Assert.Equal("series", error.ParamName);
+        Assert.Contains("for 2147483649 parameters per equation", error.Message, StringComparison.Ordinal);
+    }
 }

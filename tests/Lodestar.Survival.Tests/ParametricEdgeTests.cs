@@ -106,6 +106,9 @@ public sealed class ParametricEdgeTests
         Assert.Throws<ArgumentOutOfRangeException>(() => AcceleratedFailureTime.Fit(AftModel.Weibull, Design, Durations, Events, -1));
         Assert.Equal("design", Assert.Throws<ArgumentException>(
             () => AcceleratedFailureTime.Fit(AftModel.Weibull, Design.AsSpan(0, 5), Durations, Events, 1)).ParamName);
+        // Ten subjects of 429,496,730 covariates wrap to 4 in int, which a four-value design matched (#1614).
+        Assert.Equal("design", Assert.Throws<ArgumentException>(
+            () => AcceleratedFailureTime.Fit(AftModel.Weibull, Design.AsSpan(0, 4), Durations, Events, 429_496_730)).ParamName);
         double[] invalid = [.. Design];
         invalid[3] = double.NaN;
         Assert.Equal("design", Assert.Throws<ArgumentException>(

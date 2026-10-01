@@ -45,6 +45,8 @@ throws `ArgumentException` when `offset` or `exposure` is not empty and has a di
 `exposure` is given with a link other than log (a binomial fit, or `Gamma` through the inverse link),
 and `ArgumentOutOfRangeException` when an offset is not finite or an exposure is not finite and above
 zero. statsmodels raises `ValueError` for each.
+`ArgumentException` naming `design` also when the rows times the parameters are more cells than one
+array holds ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 A `Poisson` count has no upper bound: the log-likelihood's `log(y!)` reads a table below 256 and a
 Stirling series above it, in constant time, where statsmodels evaluates `gammaln(y + 1)`. Until

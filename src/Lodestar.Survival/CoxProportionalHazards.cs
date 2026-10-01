@@ -19,7 +19,7 @@ public static class CoxProportionalHazards
     /// <param name="options">The interval level, the iteration budget, the penalty and the variance, or <see langword="null"/> for the defaults.</param>
     /// <returns>The coefficients with their standard errors, tests and intervals, the likelihood-ratio test, the concordance and the baseline.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one.</exception>
-    /// <exception cref="ArgumentException">The spans disagree in length, a duration is negative or NaN, a covariate is not finite or does not vary, no event is observed, or a covariate separates the events or is collinear with the others, or the covariates are too many for their square to fit in one array.</exception>
+    /// <exception cref="ArgumentException">The spans disagree in length, a duration is negative or NaN, a covariate is not finite or does not vary, no event is observed, or a covariate separates the events or is collinear with the others, or the covariates are too many for their square to fit in one array, or the design is more cells than one array holds.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge within <see cref="CoxOptions.MaximumIterations"/>.</exception>
     public static CoxSummary Fit(
         ReadOnlySpan<double> design,
@@ -87,7 +87,7 @@ public static class CoxProportionalHazards
     /// <param name="transform">The time scale the residuals are correlated with; the rank of the event by default, as lifelines'.</param>
     /// <returns>One chi-squared test on one degree of freedom per covariate, in the design's column order.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="fit"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException">The spans disagree with each other or with the fit's covariate count, a value is not finite, or no event is observed.</exception>
+    /// <exception cref="ArgumentException">The spans disagree with each other or with the fit's covariate count, a value is not finite, or no event is observed, or the design is more cells than one array holds.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="transform"/> names no time scale.</exception>
     public static IReadOnlyList<TestResult> TestProportionalHazards(
         ReadOnlySpan<double> design,

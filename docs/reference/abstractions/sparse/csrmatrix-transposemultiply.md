@@ -52,10 +52,11 @@ zero times an infinity is `NaN`, as it is in scipy's product. One in `block` rea
 where the matching row of the matrix stores a column, and then only that column's row of the
 result; a row of `block` facing an empty matrix row is never read, as in scipy.
 
-**On .NET Framework the cap is lower.** The bound is .NET's `Array.MaxLength`; .NET Framework
-refuses a `double` array past 2 GB, or past `0x7FEFFFFF` elements under `gcAllowVeryLargeObjects`,
-so a result between its cap and this one fails there with the runtime's own out-of-memory error,
-raised before any memory is taken.
+**Before .NET 6 the cap is lower.** The bound is the running runtime's largest array: .NET 6's
+`Array.MaxLength`, or `0x7FEFFFFF` elements earlier, where a result between the two is refused as
+past it rather than failing in the allocation
+([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)). .NET Framework also refuses a
+`double` array past 2 GB without `gcAllowVeryLargeObjects`, with its own out-of-memory error.
 
 **Applies to** — net10.0, netstandard2.0.
 

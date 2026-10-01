@@ -18,7 +18,7 @@ public static class CoxTimeVarying
     /// <param name="options">The interval level, the iteration budget and the penalty, or <see langword="null"/> for the defaults.</param>
     /// <returns>The coefficient table, the likelihood-ratio test and the baseline; there is no concordance, as lifelines computes none here.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one.</exception>
-    /// <exception cref="ArgumentException">The spans disagree in length, an interval is not a finite, non-negative span with its stop after its start, a covariate is not finite or does not vary, no event is observed, a covariate is collinear with the others or separates the events, or <see cref="CoxOptions.Robust"/> is asked for, which lifelines does not implement here, or the covariates are too many for their square to fit in one array.</exception>
+    /// <exception cref="ArgumentException">The spans disagree in length, an interval is not a finite, non-negative span with its stop after its start, a covariate is not finite or does not vary, no event is observed, a covariate is collinear with the others or separates the events, or <see cref="CoxOptions.Robust"/> is asked for, which lifelines does not implement here, or the covariates are too many for their square to fit in one array, or the design is more cells than one array holds.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge.</exception>
     public static CoxSummary Fit(
         ReadOnlySpan<double> design,

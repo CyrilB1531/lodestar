@@ -15,6 +15,8 @@ the one subject of a fit with no covariate.
 mean diverges.
 
 **Exceptions** — `ArgumentException` when `design` is not whole rows of finite covariates.
+`ArgumentException` naming `design` also when it is more cells than one array holds
+([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — the mean lies below the median here, the Weibull's shape being well above one.
 

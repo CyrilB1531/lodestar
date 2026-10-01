@@ -100,7 +100,7 @@ public sealed class ScoreMatrixTests
         Assert.Throws<ArgumentNullException>(() => Process.Cdist(Queries, null!));
     }
 
-    /// <summary>Past <c>int.MaxValue</c> cells the call is refused rather than overflowing the array.</summary>
+    /// <summary>Past the runtime's largest array the call is refused rather than overflowing or failing to allocate it.</summary>
     /// <remarks>
     /// The lists are counted, never read: <see cref="IReadOnlyList{T}"/> lets a fake report a
     /// count it does not hold, so the refusal can be proven without 46,341 strings a side.
@@ -111,6 +111,18 @@ public sealed class ScoreMatrixTests
         var huge = new CountOnly(46_341);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => Process.Cdist(huge, huge));
+    }
+
+    [Fact]
+    public void A_matrix_between_the_largest_array_and_int_MaxValue_is_refused()
+    {
+        // One query against int.MaxValue choices: past Array.MaxLength, and not past the int.MaxValue the check
+        // compared against, so it failed to allocate where it is now refused (#1614).
+        ArgumentOutOfRangeException error = Assert.Throws<ArgumentOutOfRangeException>(
+            () => Process.Cdist(["a"], new CountOnly(int.MaxValue)));
+
+        Assert.Equal("queries", error.ParamName);
+        Assert.Contains("more than one array holds", error.Message, StringComparison.Ordinal);
     }
 
     /// <summary>A list that reports a count and refuses to be read, which is all the guard needs.</summary>

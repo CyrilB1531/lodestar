@@ -130,6 +130,16 @@ public sealed class SplitConformalEdgeTests
             () => SplitConformal.LeastAmbiguousScores([0.5, 0.5, 0.5], [0, 1], 2));
 
     [Fact]
+    public void A_probability_block_whose_expected_length_passes_int_is_refused_rather_than_wrapped()
+    {
+        // Four samples of 2^30 classes need 2^32 probabilities, which wrapped to 0 and let an empty block through (#1614).
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => SplitConformal.LeastAmbiguousScores([], [0, 0, 0, 0], 1 << 30));
+        Assert.Equal("probabilities", error.ParamName);
+        Assert.Contains("need 4294967296 probabilities", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_label_outside_the_class_range_is_refused() =>
         Assert.Throws<ArgumentException>(
             () => SplitConformal.LeastAmbiguousScores([0.5, 0.5], [2], 2));

@@ -37,11 +37,19 @@ internal static class LeastSquares
     }
 
     /// <summary>The design matrix, with an intercept column prepended when asked.</summary>
+    /// <param name="design">The regressors, row-major.</param>
+    /// <param name="rowCount">The rows <paramref name="design"/> holds.</param>
+    /// <param name="featureCount">The regressors each row carries.</param>
+    /// <param name="withIntercept">Whether to prepend the column of ones.</param>
+    /// <param name="paramName">The public parameter a design past one array is blamed on.</param>
+    /// <exception cref="ArgumentException">The rows times the parameters are more cells than one array holds.</exception>
     public static double[] Design(
-        ReadOnlySpan<double> design, int rowCount, int featureCount, bool withIntercept)
+        ReadOnlySpan<double> design, int rowCount, int featureCount, bool withIntercept, string paramName)
     {
         int parameterCount = featureCount + (withIntercept ? 1 : 0);
-        var matrix = new double[rowCount * parameterCount];
+
+        // The intercept column widens a block that fitted one array into one that may not (#1614).
+        var matrix = new double[TableLength.Of(rowCount, parameterCount, paramName)];
         for (int row = 0; row < rowCount; row++)
         {
             int at = row * parameterCount;
@@ -95,7 +103,7 @@ internal static class LeastSquares
         ReadOnlySpan<double> weights = default)
     {
         int parameterCount = featureCount + (withIntercept ? 1 : 0);
-        double[] a = ColumnMajor(Design(design, rowCount, featureCount, withIntercept), rowCount, parameterCount);
+        double[] a = ColumnMajor(Design(design, rowCount, featureCount, withIntercept, nameof(design)), rowCount, parameterCount);
         double[] projected = response.ToArray();
         if (!weights.IsEmpty)
         {

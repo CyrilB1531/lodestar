@@ -120,4 +120,19 @@ public sealed class AgglomerativeClusteringEdgeTests
             Assert.Equal("samples", threshold.ParamName);
         }
     }
+
+    [Theory]
+    [InlineData(Linkage.Ward)]
+    [InlineData(Linkage.Complete)]
+    [InlineData(Linkage.Average)]
+    public void Rows_whose_pairwise_distances_pass_one_array_are_refused_before_they_are_allocated(Linkage linkage)
+    {
+        // 65,537 rows make 2,147,516,416 distances, past Array.MaxLength: the allocation failed where this refuses (#1614).
+        var samples = new double[65_537];
+
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => AgglomerativeClustering.Fit(samples, 1, 2, linkage));
+        Assert.Equal("samples", error.ParamName);
+        Assert.Contains("more than one array holds", error.Message, StringComparison.Ordinal);
+    }
 }

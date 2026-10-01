@@ -25,7 +25,7 @@ internal static class HouseholderEstimate
         }
 
         // Column-major, so each reflection walks one contiguous column.
-        var a = new double[rowCount * parameterCount];
+        var a = new double[TableLength.Of(rowCount, parameterCount, nameof(design))];
         for (int row = 0; row < rowCount; row++)
         {
             int source = row * featureCount;

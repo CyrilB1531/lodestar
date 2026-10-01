@@ -12,8 +12,18 @@ internal static class SpanningTreeLinkage
     /// <param name="samples">The samples, row-major.</param>
     /// <param name="featureCount">How many values each row carries.</param>
     /// <param name="sampleCount">How many rows <paramref name="samples"/> holds, at least two.</param>
-    public static Dendrogram Build(ReadOnlySpan<double> samples, int featureCount, int sampleCount)
+    /// <param name="paramName">The public parameter a sample count too large for the merge tree is blamed on.</param>
+    /// <exception cref="ArgumentException">The merge tree, twice the rows less one, is more than one array holds.</exception>
+    public static Dendrogram Build(ReadOnlySpan<double> samples, int featureCount, int sampleCount, string paramName)
     {
+        // The tree's 2n − 1 roots and 2 (n − 1) children in one array each, which wrapped past 2³⁰ rows (#1614).
+        long nodes = (2L * sampleCount) - 1;
+        if (nodes > TableLength.MaxLength)
+        {
+            throw new ArgumentException(
+                $"{sampleCount} rows need a merge tree of {nodes} nodes, more than one array holds.", paramName);
+        }
+
         Edge[] edges = SpanningTree(samples, featureCount, sampleCount);
         // Found is unique, so the order is total and a plain sort gives what the stable one did.
         Edge[] sorted = edges;

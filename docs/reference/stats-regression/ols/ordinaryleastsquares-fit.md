@@ -36,6 +36,9 @@ this refuses. `ArgumentException` too when `options` and the overload disagree: 
 [`HacLags`](olsoptions.md), `HacLags` or `SmallSampleCorrection` on a type that does not read it,
 `Cluster` through the overload without labels, labels with any other type, or labels that put every
 row in one cluster.
+`ArgumentException` naming `design` also when a copy of the design the fit makes — the VIFs' on
+their QR fallback, or with its intercept on the reflection fallback or for a robust covariance — is
+more cells than one array holds ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — a coefficient can be large, precise-looking and statistically indistinguishable from
 zero, all at once.

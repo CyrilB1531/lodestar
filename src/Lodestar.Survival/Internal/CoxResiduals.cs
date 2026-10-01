@@ -41,7 +41,7 @@ internal static class CoxResiduals
             }
         }
 
-        var sandwich = new double[ResultTable.Length(p, p, ResultTable.FeatureCount)];
+        var sandwich = new double[TableLength.Of(p, p, ResultTable.FeatureCount)];
         foreach (int key in order)
         {
             double[] delta = deltas[key];
@@ -104,17 +104,19 @@ internal static class CoxResiduals
         int p = data.FeatureCount;
         int length = end - start;
         var phi = new double[length];
-        var risk = new double[length + 1];
-        var riskX = new double[(length + 1) * p];
+        var risk = new double[length];
+        // No trailing zero row: a stratum as long as the design already fills one array, and one row more would not (#1614).
+        var riskX = new double[length * p];
         for (int k = length - 1; k >= 0; k--)
         {
             ReadOnlySpan<double> row = data.Row(start + k);
             phi[k] = Math.Exp(CoxReport.Eta(data, start + k, beta));
             double weighted = data.Weights[start + k] * phi[k];
-            risk[k] = weighted + risk[k + 1];
+            bool last = k == length - 1;
+            risk[k] = weighted + (last ? 0.0 : risk[k + 1]);
             for (int a = 0; a < p; a++)
             {
-                riskX[(k * p) + a] = (weighted * row[a]) + riskX[((k + 1) * p) + a];
+                riskX[(k * p) + a] = (weighted * row[a]) + (last ? 0.0 : riskX[((k + 1) * p) + a]);
             }
         }
 

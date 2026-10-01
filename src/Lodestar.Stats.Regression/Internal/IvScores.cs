@@ -157,6 +157,12 @@ internal static class IvScores
         return (int)Math.Min(Math.Ceiling(gamma * Math.Pow(n, rate)), n - 1);
     }
 
+    /// <summary>
+    /// The public parameter every block here comes from, <c>design</c> of both <c>InstrumentalVariables</c> and
+    /// <c>PanelRegression</c>, which a block past one array is blamed on.
+    /// </summary>
+    internal const string DesignParameter = "design";
+
     /// <summary>Whether a block holds a constant, or a set of columns spanning one, and where: <c>has_constant</c>.</summary>
     /// <remarks>
     /// A column of ones first, then any column that does not vary and is not zero; failing both, the rank test — the
@@ -164,6 +170,10 @@ internal static class IvScores
     /// The rank is numpy's: singular values above <c>σ_max·max(n, k)·ε</c>. A projected constant is not exactly one,
     /// which is why the automatic bandwidth reads this test rather than equality.
     /// </remarks>
+    /// <param name="block">The rows, row-major.</param>
+    /// <param name="columns">The values each row carries.</param>
+    /// <param name="rows">The rows <paramref name="block"/> holds.</param>
+    /// <exception cref="ArgumentException">The block with its column of ones is more cells than one array holds.</exception>
     public static (bool Found, int Column) FindConstant(double[] block, int columns, int rows)
     {
         int flat = -1;
@@ -185,6 +195,9 @@ internal static class IvScores
         {
             return (true, flat);
         }
+
+        // The rank test appends a column of ones: refused past one array before either rank is computed (#1614).
+        _ = TableLength.Of(rows, columns + 1, DesignParameter);
 
         int rank = Rank(block, columns, rows, withOnes: false);
         int augmented = Rank(block, columns, rows, withOnes: true);

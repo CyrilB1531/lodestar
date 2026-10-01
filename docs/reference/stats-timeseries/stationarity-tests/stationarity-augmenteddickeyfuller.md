@@ -16,10 +16,12 @@ Schwert's maximum lag.
 critical values, and the lag the regression used.
 
 **Exceptions** — `ArgumentException` when `series` carries a non-finite value, is constant, lies on
-one straight line — a deterministic trend, with no stochastic component to test — is too short
-for its trend terms and default lag, or builds a lagged design with no unique least-squares
-solution at the lag used or at any lag the search tries; or when `options` asks for a maximum lag above `n/2 − terms − 1` or one that leaves the
-widest regression no degree of freedom.
+one straight line — a deterministic trend, with no stochastic component to test — is too short for
+its trend terms and default lag, or builds a lagged design with no unique least-squares solution at
+the lag used or at any lag the search tries; or when `options` asks for a maximum lag above
+`n/2 − terms − 1` or one that leaves the widest regression no degree of freedom. `ArgumentException`
+naming `series` also when the widest lagged design is more cells than one array holds
+([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — a drifting series of 24 points. The lag search keeps three lagged differences, so the
 regression fits 20 rows.

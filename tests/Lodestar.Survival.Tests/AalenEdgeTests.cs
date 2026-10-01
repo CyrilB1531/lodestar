@@ -33,6 +33,11 @@ public sealed class AalenEdgeTests
     {
         Assert.Throws<ArgumentException>(() => AalenAdditive.Fit(Design, Durations, [true], 1));
         Assert.Throws<ArgumentException>(() => AalenAdditive.Fit([1.0], [1.0], [true], 1));
+        // Ten subjects of 429,496,730 covariates wrap to 4 in int, which a four-value design matched (#1614).
+        ArgumentException wrapped = Assert.Throws<ArgumentException>(
+            () => AalenAdditive.Fit(Design.AsSpan(0, 4), Durations, Events, 429_496_730));
+        Assert.Equal("design", wrapped.ParamName);
+        Assert.Contains("holds 4 values for 10 subjects", wrapped.Message, StringComparison.Ordinal);
         Assert.Equal("durations", Assert.Throws<ArgumentException>(
             () => AalenAdditive.Fit(Design, [.. Durations.Select(d => -d)], Events, 1)).ParamName);
         Assert.Equal("weights", Assert.Throws<ArgumentException>(

@@ -27,7 +27,7 @@ internal static class Irls
     {
         int rowCount = response.Length;
         int parameterCount = featureCount + (options.WithIntercept ? 1 : 0);
-        double[] matrix = LeastSquares.Design(design, rowCount, featureCount, options.WithIntercept);
+        double[] matrix = LeastSquares.Design(design, rowCount, featureCount, options.WithIntercept, nameof(design));
 
         // The reference's Family.starting_mu, which is (y + mean(y)) / 2 and which Binomial
         // overrides to (y + 0.5) / 2.

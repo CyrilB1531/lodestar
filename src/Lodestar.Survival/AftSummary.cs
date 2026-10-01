@@ -149,7 +149,7 @@ public sealed class AftSummary
     /// <param name="design">The subjects' covariates, row-major, <see cref="FeatureCount"/> per row; empty for the one subject of a fit with no covariate.</param>
     /// <param name="probability">The survival level, strictly inside (0, 1); a half for the median.</param>
     /// <returns>One time per subject.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or is more cells than one array holds.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="probability"/> is not strictly inside (0, 1).</exception>
     public double[] PredictPercentile(ReadOnlySpan<double> design, double probability)
     {
@@ -164,20 +164,20 @@ public sealed class AftSummary
     /// <summary>Each subject's median survival time, lifelines' <c>predict_median</c>.</summary>
     /// <param name="design">The subjects' covariates, row-major.</param>
     /// <returns>One time per subject.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or is more cells than one array holds.</exception>
     public double[] PredictMedian(ReadOnlySpan<double> design) => PredictPercentile(design, 0.5);
 
     /// <summary>Each subject's expected survival time, lifelines' <c>predict_expectation</c>, in the model's closed form.</summary>
     /// <param name="design">The subjects' covariates, row-major.</param>
     /// <returns>One time per subject; NaN for a log-logistic whose shape is at most one, where the mean diverges.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or is more cells than one array holds.</exception>
     public double[] PredictExpectation(ReadOnlySpan<double> design) => Each(design, _shape.Expectation);
 
     /// <summary>Each subject's cumulative hazard at <paramref name="times"/>, lifelines' <c>predict_cumulative_hazard</c>.</summary>
     /// <param name="design">The subjects' covariates, row-major.</param>
     /// <param name="times">The positive times to read at.</param>
     /// <returns>Row-major, one row per subject and one column per time.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or a time is not positive and finite, or the subjects times the times are more cells than one array holds.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or a time is not positive and finite, or the design, or the subjects times the times, is more cells than one array holds.</exception>
     public double[] PredictCumulativeHazard(ReadOnlySpan<double> design, ReadOnlySpan<double> times)
     {
         foreach (double time in times)
@@ -190,7 +190,7 @@ public sealed class AftSummary
 
         (double Primary, double Ancillary)[] scores = Scores(design);
         double[] at = times.ToArray();
-        var result = new double[ResultTable.Length(scores.Length, at.Length, nameof(design))];
+        var result = new double[TableLength.Of(scores.Length, at.Length, nameof(design))];
         for (int i = 0; i < scores.Length; i++)
         {
             Jet primary = Jet.Constant(scores[i].Primary, 0);

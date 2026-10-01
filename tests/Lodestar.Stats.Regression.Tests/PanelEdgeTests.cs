@@ -205,4 +205,56 @@ public sealed class PanelEdgeTests
             Assert.Equal(expected[i], actual[i], 1e-12);
         }
     }
+
+    [Fact]
+    public void Two_way_dummies_past_one_array_are_refused_before_they_are_allocated()
+    {
+        // 200,000 rows over 60,000 entities and 60,001 periods: 200,000 × 59,999 dummy cells, which wrapped (#1614).
+        const int rows = 200_000;
+        int[] entities = Enumerable.Range(0, rows).Select(i => i % 60_000).ToArray();
+        int[] periods = Enumerable.Range(0, rows).Select(i => (i / 60_000) + (3 * (i % 60_000)) % 60_000).ToArray();
+        double[] response = Enumerable.Range(0, rows).Select(i => Math.Sin(i)).ToArray();
+        double[] exogenous = Enumerable.Range(0, rows).Select(i => Math.Cos(i * 0.7)).ToArray();
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => PanelRegression.FixedEffects(
+            new PanelDesign(response, exogenous, 1, entities, periods),
+            new PanelOptions { EntityEffects = true, TimeEffects = true }));
+        Assert.Equal("design", error.ParamName);
+        Assert.Contains("more than one array holds", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_regressor_count_the_intercept_pushes_past_int_is_refused_rather_than_wrapped()
+    {
+        // With no rows every length passes; int.MaxValue regressors and the intercept wrapped to int.MinValue (#1614).
+        foreach (Func<PanelSummary> fit in new Func<PanelSummary>[]
+        {
+            () => PanelRegression.Between(new PanelDesign([], [], int.MaxValue, [], [])),
+            () => PanelRegression.FixedEffects(new PanelDesign([], [], int.MaxValue, [], [])),
+            () => PanelRegression.RandomEffects(new PanelDesign([], [], int.MaxValue, [], [])),
+        })
+        {
+            ArgumentException error = Assert.Throws<ArgumentException>(fit);
+            Assert.Equal("design", error.ParamName);
+            Assert.Contains("for 2147483648 coefficients", error.Message, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void An_empty_panel_is_refused_for_want_of_rows()
+    {
+        // No rows reached the constant search, which read past the end (#1614's review).
+        foreach (Func<PanelSummary> fit in new Func<PanelSummary>[]
+        {
+            () => PanelRegression.Between(new PanelDesign([], [], 1, [], [])),
+            () => PanelRegression.FixedEffects(new PanelDesign([], [], 1, [], [])),
+            () => PanelRegression.RandomEffects(new PanelDesign([], [], 1, [], [])),
+            () => PanelRegression.FirstDifference(new PanelDesign([], [], 1, [], []), new PanelOptions { WithIntercept = false }),
+        })
+        {
+            ArgumentException error = Assert.Throws<ArgumentException>(fit);
+            Assert.Equal("design", error.ParamName);
+            Assert.Contains("0 rows leave no residual degree of freedom", error.Message, StringComparison.Ordinal);
+        }
+    }
 }

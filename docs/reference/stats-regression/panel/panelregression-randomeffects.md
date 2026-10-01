@@ -30,6 +30,8 @@ bandwidth reaches past the periods, or when the options set a value this estimat
 `ArgumentNullException` when the clustered overload gets no `options`. `ArgumentException` too when
 there are no more rows than entities plus coefficients, or no more entities than coefficients:
 the variance components' degrees of freedom, where the reference divides by zero.
+`ArgumentException` naming `design` also when the rows times the parameters plus one are more cells
+than one array holds ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — the slope, and how much of each entity's mean it removes.
 

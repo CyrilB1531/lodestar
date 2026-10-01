@@ -16,12 +16,16 @@ tolerance; `null` takes the reference's defaults.
 **Returns** — [`MultinomialLogitSummary`](multinomiallogitsummary.md): the coefficients per non-reference category with
 their standard errors, z statistics, p-values and intervals, and the whole-model table.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is below one. `ArgumentException` when `design` is
-not a whole number of rows or `response` has another length, when the response holds fewer than two distinct labels,
-when no residual degree of freedom is left, or when the Hessian is not positive definite. A category the regressors
-separate perfectly and a regressor that is a combination of the others both land there; `statsmodels` returns NaN
-coefficients for the first and reports `converged`. `InvalidOperationException` when Newton spends its budget and
+**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is below one. `ArgumentException`
+when `design` is not a whole number of rows or `response` has another length, when the response
+holds fewer than two distinct labels, when no residual degree of freedom is left, or when the
+Hessian is not positive definite. A category the regressors separate perfectly and a regressor that
+is a combination of the others both land there; `statsmodels` returns NaN coefficients for the first
+and reports `converged`. `InvalidOperationException` when Newton spends its budget and
 [`MultinomialLogitOptions.ThrowOnNonConvergence`](multinomiallogitoptions.md) says throw.
+`ArgumentException` naming `design` also when the rows times the design's columns, intercept
+included, or times the categories, or the parameters squared, are more cells than one array holds
+([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — the second category's equation, and the test against the constant-only model.
 

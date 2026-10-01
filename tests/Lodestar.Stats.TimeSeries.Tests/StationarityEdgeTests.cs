@@ -271,4 +271,31 @@ public sealed class StationarityEdgeTests
         Assert.Contains("at any lag", refusal.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("-", refusal.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_lagged_design_past_one_array_is_refused_before_it_is_allocated()
+    {
+        // 100,000 points at MaxLag 49,990: about 50,000 rows of 50,000 columns, which wrapped or failed to allocate (#1614).
+        double[] series = Enumerable.Range(0, 100_000).Select(i => Math.Sin(i * 0.37) + (i * 1e-3)).ToArray();
+
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => Stationarity.AugmentedDickeyFuller(series, new DickeyFullerOptions { MaxLag = 49_990 }));
+        Assert.Equal("series", error.ParamName);
+        Assert.Contains("more than one array holds", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(LagSelection.Akaike)]
+    [InlineData(LagSelection.Fixed)]
+    public void The_constant_column_counts_toward_the_lagged_design_bound(LagSelection selection)
+    {
+        // 46,684 rows of 46,000 lagged columns fit one array; the constant makes 46,001, which wrapped (#1614).
+        double[] series = Enumerable.Range(0, 92_684).Select(i => Math.Sin(i * 0.37) + (i * 1e-3)).ToArray();
+
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => Stationarity.AugmentedDickeyFuller(
+                series, new DickeyFullerOptions { MaxLag = 45_999, LagSelection = selection }));
+        Assert.Equal("series", error.ParamName);
+        Assert.Contains("more than one array holds", error.Message, StringComparison.Ordinal);
+    }
 }
