@@ -83,12 +83,11 @@ public sealed class Nmf
 
         int size = componentCount + NndSvd.Oversampling;
         long block = (long)Math.Max(matrix.RowCount, matrix.ColumnCount) * size;
-        if (block > TableLength.MaxLength)
+        // The initialisation's range-finder block and W and H all fit inside this bound (#1315); the lower one
+        // before .NET 6 is checked once the refusals that followed this one have run (#1614).
+        if (block > TableLength.ArrayMaxLength)
         {
-            // The initialisation's range-finder block and W and H all fit inside this bound (#1315).
-            throw new ArgumentOutOfRangeException(
-                nameof(componentCount), componentCount,
-                $"{componentCount} components need a {block}-cell block, more than one array holds.");
+            throw BlockTooLarge(componentCount, block);
         }
 
         int omegaRows = RandomizedSvd.OmegaRows(matrix);
@@ -99,6 +98,11 @@ public sealed class Nmf
         }
 
         RequireNonNegativeMatrix(matrix);
+        if (block > TableLength.MaxLength)
+        {
+            throw BlockTooLarge(componentCount, block);
+        }
+
         (double[] w, double[] h) = NndSvd.Initialize(
             matrix, componentCount, settings.Initialization, settings.Seed, settings.RandomMatrix);
         return Fit(matrix, w, h, settings);
@@ -313,4 +317,8 @@ public sealed class Nmf
     /// </remarks>
     private static int FirstNegative(double[] block) =>
         Array.FindIndex(block, value => value < 0 || double.IsNaN(value) || double.IsInfinity(value));
+
+    private static ArgumentOutOfRangeException BlockTooLarge(int componentCount, long block) =>
+        new(nameof(componentCount), componentCount,
+            $"{componentCount} components need a {block}-cell block, more than one array holds.");
 }

@@ -37,6 +37,16 @@ public sealed class IvEdgeTests
     }
 
     [Fact]
+    public void Column_counts_past_int_are_refused_for_want_of_rows_rather_than_wrapped()
+    {
+        // With no rows every block length is zero and passes; the counts' int sum wrapped negative (#1614).
+        ArgumentException error = Assert.Throws<ArgumentException>(() => InstrumentalVariables.TwoStageLeastSquares(
+            new IvDesign([], [], int.MaxValue, [], 1, [], int.MaxValue)));
+        Assert.Equal("design", error.ParamName);
+        Assert.Contains("no residual degree of freedom for 2147483649 regressors", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_cluster_covariance_needs_labels_and_labels_need_a_cluster_covariance()
     {
         var clustered = new IvOptions { CovarianceType = IvCovarianceType.Clustered };

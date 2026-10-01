@@ -26,7 +26,7 @@ public static class PanelRegression
     /// <param name="options">The effects, the covariance and the intercept; <see langword="null"/> takes the reference's defaults, pooled least squares.</param>
     /// <returns>The fitted model's table, with its poolability test when it absorbs effects.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one.</exception>
-    /// <exception cref="ArgumentException">A span's length does not match the rows, two rows share an entity and a period, no residual degree of freedom is left, the options set a value this fit does not read, or the regressors are collinear.</exception>
+    /// <exception cref="ArgumentException">A span's length does not match the rows, two rows share an entity and a period, no residual degree of freedom is left, the options set a value this fit does not read, the regressors are collinear, the rows times the parameters plus one are more cells than one array holds, or two-way effects need more dummy cells, rows by one fewer than the smaller side's levels, than one array holds.</exception>
     public static PanelSummary FixedEffects(PanelDesign design, PanelOptions? options = null) =>
         Fit(Estimator.FixedEffects, design, default, clustered: false, options ?? new PanelOptions());
 
@@ -49,7 +49,7 @@ public static class PanelRegression
     /// <param name="options">The covariance and the intercept; <see langword="null"/> takes the reference's defaults.</param>
     /// <returns>The fitted model's table, one observation per entity.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one.</exception>
-    /// <exception cref="ArgumentException">As <see cref="FixedEffects(PanelDesign, PanelOptions?)"/>, or the options ask for a kernel covariance, for effects, or for entity or period clusters.</exception>
+    /// <exception cref="ArgumentException">As <see cref="FixedEffects(PanelDesign, PanelOptions?)"/> but for its dummy and joined blocks: the rows times the parameters are refused past one array, and that plus one only when no column is constant and the constant search appends one; or the options ask for a kernel covariance, for effects, or for entity or period clusters.</exception>
     public static PanelSummary Between(PanelDesign design, PanelOptions? options = null) =>
         Fit(Estimator.Between, design, default, clustered: false, options ?? new PanelOptions());
 
@@ -72,7 +72,7 @@ public static class PanelRegression
     /// <param name="options">The covariance; <see cref="PanelOptions.WithIntercept"/> must be <see langword="false"/>, since a difference removes a constant.</param>
     /// <returns>The fitted model's table, one observation per differenced pair.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one.</exception>
-    /// <exception cref="ArgumentException">As <see cref="FixedEffects(PanelDesign, PanelOptions?)"/>, or the options ask for an intercept, effects or period clusters, the regressors hold a constant, or the panel has one period.</exception>
+    /// <exception cref="ArgumentException">As <see cref="FixedEffects(PanelDesign, PanelOptions?)"/> but for its dummy and joined blocks: the rows times the parameters are refused past one array, and that plus one only when no column is constant and the constant search appends one; or the options ask for an intercept, effects or period clusters, the regressors hold a constant, or the panel has one period.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>: the default asks for an intercept.</exception>
     public static PanelSummary FirstDifference(PanelDesign design, PanelOptions options)
     {
@@ -99,7 +99,7 @@ public static class PanelRegression
     /// <param name="options">The covariance and the intercept; <see langword="null"/> takes the reference's defaults.</param>
     /// <returns>The fitted model's table, with the variance components and each entity's <c>θ</c>.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one.</exception>
-    /// <exception cref="ArgumentException">As <see cref="FixedEffects(PanelDesign, PanelOptions?)"/>, or the options ask for effects.</exception>
+    /// <exception cref="ArgumentException">As <see cref="FixedEffects(PanelDesign, PanelOptions?)"/> but for its dummy block, or the options ask for effects.</exception>
     public static PanelSummary RandomEffects(PanelDesign design, PanelOptions? options = null) =>
         Fit(Estimator.RandomEffects, design, default, clustered: false, options ?? new PanelOptions());
 
@@ -123,9 +123,23 @@ public static class PanelRegression
         CheckShape(design, clusters, clustered);
         CheckOptions(estimator, options, clustered);
         PanelLayout panel = PanelLayout.Sort(design, clusters, options.WithIntercept, nameof(design));
+
+        // Only a first difference refuses before its row count, on the constant this search finds; every other
+        // estimator is refused for want of rows first (#1614).
+        bool differenced = estimator == Estimator.FirstDifference;
+        if (!differenced)
+        {
+            RequireRows(estimator, panel, hasConstant: false, nameof(design));
+        }
+
         (bool hasConstant, int constantColumn) = IvScores.FindConstant(panel.X, panel.K, panel.N);
-        RequireRows(estimator, panel, hasConstant, nameof(design));
+        if (differenced)
+        {
+            RequireRows(estimator, panel, hasConstant, nameof(design));
+        }
+
         RequireDegreesOfFreedom(estimator, panel, options, hasConstant, nameof(design));
+        RequireJoinedBlocks(estimator, panel, options, nameof(design));
 
         PanelFit fit = estimator switch
         {
@@ -273,6 +287,25 @@ public static class PanelRegression
             "A first difference removes a constant: set WithIntercept to false, as the reference refuses one.", nameof(options));
         Refuse(estimator == Estimator.FirstDifference && options.ClusterTime,
             "First differences cluster by entity or by labels, not by period.", nameof(options));
+    }
+
+    /// <summary>
+    /// Refuses, past one array, the response joined beside the regressors the within fits transform, and the
+    /// two-way dummies — after every refusal the reference makes, before any fitting (#1614).
+    /// </summary>
+    private static void RequireJoinedBlocks(Estimator estimator, PanelLayout panel, PanelOptions options, string designName)
+    {
+        if (estimator is not (Estimator.FixedEffects or Estimator.RandomEffects))
+        {
+            return;
+        }
+
+        _ = TableLength.Of(panel.N, panel.K + 1, designName);
+        if (estimator == Estimator.FixedEffects && options.EntityEffects && options.TimeEffects)
+        {
+            // Two ways purge a dummy per level of the smaller side but its first.
+            _ = TableLength.Of(panel.N, Math.Min(panel.EntityCount, panel.PeriodCount) - 1, designName);
+        }
     }
 
     private static void RequireRows(Estimator estimator, PanelLayout panel, bool hasConstant, string designName)

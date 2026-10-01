@@ -12,6 +12,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- `OrdinaryLeastSquares`, `WeightedLeastSquares` and `GeneralizedLeastSquares` refuse a copy past one array — the design with its intercept column, which a design that fits one array can pass, and the VIFs' copy or the GLS covariance, which only a span over native memory reaches — where the copy failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
+- `InstrumentalVariables` and `PanelRegression` count their columns in `long`, so column counts near `int.MaxValue` over no rows are refused as leaving no residual degree of freedom where their sum wrapped negative and passed. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
+- `PanelRegression` refuses a panel with no rows, where its constant search read past the end, and refuses any other estimator than a first difference for want of rows before that search reads the regressors. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
+- `GeneralizedLinearModel`, `MultinomialLogit`, `InstrumentalVariables` and `PanelRegression` refuse a design, probability, Hessian or dummy block past one array, where the product wrapped or failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - The Jacobi spectrum behind the rank checks and the instrumental-variable diagnostics compares an off-diagonal entry with the product of two square roots rather than the root of a product, which overflowed past `1e154`. ([#1255](https://github.com/CyrilB1531/lodestar/issues/1255))
 
 ## [0.2.0] — 2026-09-24

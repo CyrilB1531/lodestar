@@ -21,7 +21,7 @@ public static class VectorAutoregression
     /// <param name="options">Whether to fit a constant, or null for the reference's default of one.</param>
     /// <returns>The coefficients per equation with their errors, t statistics and p-values, the residual covariances, and the criteria.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="variableCount"/> is below two, or <paramref name="lagOrder"/> is below one.</exception>
-    /// <exception cref="ArgumentException"><paramref name="series"/> is not a whole number of observations, holds a non-finite value, leaves no residual degree of freedom after the lags are taken, or gives a lagged design with a column collinear with the columns before it.</exception>
+    /// <exception cref="ArgumentException"><paramref name="series"/> is not a whole number of observations, holds a non-finite value, leaves no residual degree of freedom after the lags are taken, gives a lagged design with a column collinear with the columns before it, or gives one, usable rows by parameters, of more cells than one array holds.</exception>
     /// <remarks>
     /// The p-values read the normal, as the reference's do, and no intervals are reported because the reference
     /// publishes none for this model.
@@ -37,15 +37,20 @@ public static class VectorAutoregression
         VarOptions settings = options ?? new VarOptions();
         int observations = Observations(series, variableCount);
         int usable = observations - lagOrder;
-        int parameters = (settings.WithIntercept ? 1 : 0) + (variableCount * lagOrder);
-        if (usable - parameters < 1)
+        // In long: variableCount × lagOrder wrapped negative and passed this check (#1614).
+        long counted = (settings.WithIntercept ? 1 : 0) + ((long)variableCount * lagOrder);
+        if (usable - counted < 1)
         {
             throw new ArgumentException(
                 $"{observations} observations of {variableCount} variables at lag {lagOrder} leave {usable} usable rows "
-                + $"for {parameters} parameters per equation, and every standard error here divides by their difference.",
+                + $"for {counted} parameters per equation, and every standard error here divides by their difference.",
                 nameof(series));
         }
 
+        int parameters = (int)counted;
+
+        // The stacked design, usable rows by parameters, refused past one array rather than wrapped (#1614).
+        _ = TableLength.Of(usable, parameters, nameof(series));
         double[] design = LagDesign.Stack(series, variableCount, lagOrder, settings.WithIntercept, out double[][] responses);
         var coefficients = new double[variableCount][];
         var errors = new double[variableCount][];

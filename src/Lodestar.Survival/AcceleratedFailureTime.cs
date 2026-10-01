@@ -21,7 +21,7 @@ public static class AcceleratedFailureTime
     /// <param name="featureCount">The number of covariates, the design's row length.</param>
     /// <param name="options">The level, the intercept, the ancillary model, the penalty and the robust errors; <see langword="null"/> for the defaults.</param>
     /// <returns>The coefficient table, the model's fit statistics, and its predictions.</returns>
-    /// <exception cref="ArgumentException">The spans do not match the subjects, a value is not finite, a duration is not positive, or the primary parameter has no column at all, or the parameters are too many for their square to fit in one array.</exception>
+    /// <exception cref="ArgumentException">The spans do not match the subjects, a value is not finite, a duration is not positive, or the primary parameter has no column at all, or the design, the parameters or their square is more than one array holds.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="model"/> names no model, or <paramref name="featureCount"/> is negative.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge, or its parameters are not identified.</exception>
     public static AftSummary Fit(
@@ -115,7 +115,7 @@ public static class AcceleratedFailureTime
     /// <param name="featureCount">The number of covariates.</param>
     /// <param name="options">The fit's settings; <see langword="null"/> for the defaults.</param>
     /// <returns>The coefficient table, the model's fit statistics, and its predictions; no concordance, which lifelines does not compute here.</returns>
-    /// <exception cref="ArgumentException">The spans do not match the subjects, a covariate is not finite, a bound is NaN or negative, an upper bound is below its lower one, or the primary parameter has no column at all, or the parameters are too many for their square to fit in one array.</exception>
+    /// <exception cref="ArgumentException">The spans do not match the subjects, a covariate is not finite, a bound is NaN or negative, an upper bound is below its lower one, or the primary parameter has no column at all, or the design, the parameters or their square is more than one array holds.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="model"/> names no model, or <paramref name="featureCount"/> is negative.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge, or its parameters are not identified.</exception>
     public static AftSummary FitIntervalCensored(
@@ -164,7 +164,7 @@ public static class AcceleratedFailureTime
         AftOptions settings = options ?? Defaults;
         double[] x = AftDesign.Validate(design, sample.Count, featureCount, settings.FitIntercept);
         AftShape shape = AftShape.For(model);
-        AftDesign blocks = AftDesign.For(featureCount, settings);
+        AftDesign blocks = AftDesign.For(featureCount, settings, nameof(featureCount));
         (double[] deviations, bool[] unpenalised) = blocks.Scales(x, sample.Count);
         var penalty = new Ridge(settings.Penalizer, deviations, unpenalised, sample.TotalWeight);
 
@@ -211,9 +211,9 @@ public static class AcceleratedFailureTime
         int k = theta.Length;
         var observations = new Observations(shape, blocks, x, theta);
         double[] penaltyGradient = penalty.UnscaledGradient(theta);
-        var meat = new double[ResultTable.Length(k, k, ResultTable.FeatureCount)];
+        var meat = new double[TableLength.Of(k, k, ResultTable.FeatureCount)];
         var score = new double[k];
-        var scratch = new double[ResultTable.Length(k, k, ResultTable.FeatureCount)];
+        var scratch = new double[TableLength.Of(k, k, ResultTable.FeatureCount)];
         for (int i = 0; i < sample.Count; i++)
         {
             var gradient = new double[k];
@@ -241,7 +241,7 @@ public static class AcceleratedFailureTime
         int k = theta.Length;
         var observations = new Observations(shape, blocks, x, theta);
         var gradient = new double[k];
-        var hessian = new double[ResultTable.Length(k, k, ResultTable.FeatureCount)];
+        var hessian = new double[TableLength.Of(k, k, ResultTable.FeatureCount)];
         double value = 0.0;
         for (int i = 0; i < sample.Count; i++)
         {
@@ -268,7 +268,7 @@ public static class AcceleratedFailureTime
 
     private static double[] Multiply(double[] left, double[] right, int k)
     {
-        var product = new double[ResultTable.Length(k, k, ResultTable.FeatureCount)];
+        var product = new double[TableLength.Of(k, k, ResultTable.FeatureCount)];
         for (int a = 0; a < k; a++)
         {
             for (int c = 0; c < k; c++)

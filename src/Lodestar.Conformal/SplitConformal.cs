@@ -324,10 +324,10 @@ public static class SplitConformal
             throw new ArgumentOutOfRangeException(
                 nameof(classCount), classCount, "A classifier has at least one class.");
         }
-        if (probabilities.Length != labels.Length * classCount)
+        if (probabilities.Length != (long)labels.Length * classCount)
         {
             throw new ArgumentException(
-                $"{labels.Length} samples of {classCount} classes need {labels.Length * classCount} "
+                $"{labels.Length} samples of {classCount} classes need {(long)labels.Length * classCount} "
                     + $"probabilities, not {probabilities.Length}.",
                 nameof(probabilities));
         }

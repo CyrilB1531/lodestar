@@ -31,6 +31,10 @@ fewer instruments than endogenous regressors, when no residual degree of freedom
 options ask for a cluster covariance without labels or set a value this estimator does not read, or
 when the regressors or instruments are collinear. `ArgumentNullException` when the clustered
 overload gets no `options`.
+`ArgumentException` naming `design` also when the rows times the larger of the parameters and the
+instruments, or that plus one where a rank test or LIML appends a column, are more cells than one
+array holds
+([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — the robust default, and the unadjusted covariance beside it.
 

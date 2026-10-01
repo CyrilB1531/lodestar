@@ -31,6 +31,9 @@ a duration is not positive, a weight or entry span is neither empty nor one vali
 or the primary parameter has no column at all. `ArgumentOutOfRangeException` when `model` names no
 model, or `featureCount` is negative. `InvalidOperationException` when the fit does not converge, or
 its parameters are not identified.
+`ArgumentException` naming `featureCount` also when the parameters are more than one array holds,
+and naming `design` when the design is more cells than one array holds or its length only matches
+the subjects times `featureCount` once that product wraps `int` ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — readings under a detection limit, against a dose.
 

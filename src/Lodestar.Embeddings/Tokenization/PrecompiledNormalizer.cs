@@ -107,7 +107,7 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
         if (text.Length <= MaxCharsForBound)
         {
             int bound = JsonArtifact.Utf8NoBom.GetMaxByteCount(text.Length);
-            if (bound <= TableLength.MaxLength)
+            if (bound <= TableLength.MaxByteLength)
             {
                 return bound;
             }
@@ -124,7 +124,7 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
             throw TooLong(nameof(text), e);
         }
 
-        return exact <= TableLength.MaxLength ? exact : throw TooLong(nameof(text), null);
+        return exact <= TableLength.MaxByteLength ? exact : throw TooLong(nameof(text), null);
     }
 
     private static ArgumentException TooLong(string paramName, Exception? inner) =>
@@ -205,13 +205,13 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
         {
             // In long and clamped: doubling past the largest array failed to allocate what still fit (#1374).
             long needed = (long)written + bytes.Length;
-            if (needed > TableLength.MaxLength)
+            if (needed > TableLength.MaxByteLength)
             {
                 throw TooLong("text", null);
             }
 
             byte[] grown = ArrayPool<byte>.Shared.Rent(
-                (int)Math.Min(Math.Max((long)output.Length * 2, needed), TableLength.MaxLength));
+                (int)Math.Min(Math.Max((long)output.Length * 2, needed), TableLength.MaxByteLength));
             output.AsSpan(0, written).CopyTo(grown);
             ArrayPool<byte>.Shared.Return(output);
             output = grown;

@@ -16,7 +16,8 @@ public static partial class Spearman
     /// <returns>The correlations and p-values, each <c>variableCount × variableCount</c> and row-major.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="variableCount"/> is below two.</exception>
     /// <exception cref="ArgumentException">
-    /// <paramref name="data"/> is not a whole number of rows, or holds a <c>NaN</c> under <see cref="NanPolicy.Raise"/>.
+    /// <paramref name="data"/> is not a whole number of rows, or holds a <c>NaN</c> under <see cref="NanPolicy.Raise"/>; or
+    /// <paramref name="variableCount"/> squared is more cells than one array holds.
     /// </exception>
     /// <remarks>Each pair is <see cref="Test"/> on its two columns; scipy returns a scalar for two variables, this the matrix.</remarks>
     public static CorrelationMatrix Matrix(
@@ -25,16 +26,7 @@ public static partial class Spearman
         Alternative alternative = Alternative.TwoSided,
         NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        if (variableCount < 2)
-        {
-            throw new ArgumentOutOfRangeException(nameof(variableCount), variableCount, "A correlation matrix needs at least two variables.");
-        }
-
-        if (data.Length % variableCount != 0)
-        {
-            throw new ArgumentException($"{data.Length} values are not whole rows of {variableCount}.", nameof(data));
-        }
-
+        CheckShape(data, variableCount, nanPolicy);
         (double[][] columns, bool[] missing) = Columns(data, variableCount, nanPolicy);
         // Each column ranked once, where a pair at a time would rank it once per partner (#1162's benchmark); only the
         // pairwise omission of rows needs the pair's own ranks.
@@ -129,6 +121,51 @@ public static partial class Spearman
         return new TestResult(rho, PValue(rho, left.Length - 2.0, alternative));
     }
 
+    /// <summary>Refuses a shape <see cref="Matrix"/> cannot hold, before anything is allocated for it.</summary>
+    private static void CheckShape(ReadOnlySpan<double> data, int variableCount, NanPolicy nanPolicy)
+    {
+        if (variableCount < 2)
+        {
+            throw new ArgumentOutOfRangeException(nameof(variableCount), variableCount, "A correlation matrix needs at least two variables.");
+        }
+
+        if (data.Length % variableCount != 0)
+        {
+            throw new ArgumentException($"{data.Length} values are not whole rows of {variableCount}.", nameof(data));
+        }
+
+        // Two variableCount-square matrices: from 46,341 variables, 46,330 before .NET 6, the product wrapped or failed (#1614).
+        // Refused before the columns are split out, which such a count allocates first; a raised NaN still comes first.
+        long cells = (long)variableCount * variableCount;
+        if (cells > TableLength.MaxLength)
+        {
+            int raised = nanPolicy == NanPolicy.Raise ? FirstNaNVariable(data, variableCount) : -1;
+            throw raised >= 0
+                ? NaNRaised(raised, nameof(data))
+                : new ArgumentException(
+                    $"{variableCount} variables square to {cells} cells, more than one array holds.", nameof(variableCount));
+        }
+    }
+
+    /// <summary>The lowest variable holding a <c>NaN</c>, the one <see cref="Columns"/> reports; -1 when none does.</summary>
+    private static int FirstNaNVariable(ReadOnlySpan<double> data, int variableCount)
+    {
+        int first = -1;
+        for (int i = 0; i < data.Length && first != 0; i++)
+        {
+            int variable = i % variableCount;
+            if (double.IsNaN(data[i]) && (first < 0 || variable < first))
+            {
+                first = variable;
+            }
+        }
+
+        return first;
+    }
+
+    private static ArgumentException NaNRaised(int variable, string paramName) =>
+        new($"Variable {variable} holds a NaN.", paramName);
+
     /// <summary>Each variable's column, and whether it holds a <c>NaN</c>, refused under <see cref="NanPolicy.Raise"/>.</summary>
     private static (double[][] Columns, bool[] Missing) Columns(ReadOnlySpan<double> data, int variableCount, NanPolicy nanPolicy)
     {
@@ -146,7 +183,7 @@ public static partial class Spearman
 
             if (missing[j] && nanPolicy == NanPolicy.Raise)
             {
-                throw new ArgumentException($"Variable {j} holds a NaN.", nameof(data));
+                throw NaNRaised(j, nameof(data));
             }
         }
 

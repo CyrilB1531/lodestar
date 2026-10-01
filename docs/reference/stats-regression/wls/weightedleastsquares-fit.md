@@ -33,6 +33,9 @@ is negative, `NaN` or infinite. `ArgumentException` when `design` is not a whole
 left, when fewer rows carry a positive weight than the model has parameters, when a column of the
 weighted design is collinear with the columns before it, or when `options` and
 the overload disagree, as on [`OrdinaryLeastSquares.Fit`](../ols/ordinaryleastsquares-fit.md).
+`ArgumentException` naming `design` also when a copy of the design the fit makes — the VIFs' on
+their QR fallback, or with its intercept on the reflection fallback or for a robust covariance — is
+more cells than one array holds ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — the robust covariances apply to a weighted fit as they do to an ordinary one.
 

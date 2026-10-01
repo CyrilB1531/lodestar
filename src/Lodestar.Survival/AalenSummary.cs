@@ -61,8 +61,8 @@ public sealed class AalenSummary
         int m = fitted.Times.Length;
         int d = fitted.FeatureCount + (fitted.Settings.FitIntercept ? 1 : 0);
         double z = AalenAdditive.Critical(fitted.Settings.ConfidenceLevel);
-        var lower = new double[ResultTable.Length(m, d, ResultTable.FeatureCount)];
-        var upper = new double[ResultTable.Length(m, d, ResultTable.FeatureCount)];
+        var lower = new double[TableLength.Of(m, d, ResultTable.FeatureCount)];
+        var upper = new double[TableLength.Of(m, d, ResultTable.FeatureCount)];
         for (int k = 0; k < m * d; k++)
         {
             double error = Math.Sqrt(fitted.Variance[k]);
@@ -112,12 +112,12 @@ public sealed class AalenSummary
     /// <summary>Each subject's cumulative hazard at every event time, lifelines' <c>predict_cumulative_hazard</c>.</summary>
     /// <param name="design">The subjects' covariates, row-major, <see cref="FeatureCount"/> per row; empty for the one subject of a fit with no covariate.</param>
     /// <returns>Row-major, one row per subject and one column per <see cref="EventTimes"/> entry.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or its rows times the event times are more cells than one array holds.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or it, or its rows times the event times, is more cells than one array holds.</exception>
     public double[] PredictCumulativeHazard(ReadOnlySpan<double> design)
     {
         double[] x = Rows(design, out int rows);
         int m = EventTimes.Count;
-        var result = new double[ResultTable.Length(rows, m, nameof(design))];
+        var result = new double[TableLength.Of(rows, m, nameof(design))];
         for (int i = 0; i < rows; i++)
         {
             for (int t = 0; t < m; t++)
@@ -138,14 +138,14 @@ public sealed class AalenSummary
     /// <summary>Each subject's survival at every event time, lifelines' <c>predict_survival_function</c>: <c>exp(−H)</c>.</summary>
     /// <param name="design">The subjects' covariates, row-major.</param>
     /// <returns>Row-major, one row per subject and one column per event time.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or is more cells than one array holds.</exception>
     public double[] PredictSurvivalFunction(ReadOnlySpan<double> design) => [.. PredictCumulativeHazard(design).Select(h => Math.Exp(-h))];
 
     /// <summary>The event time at which each subject's survival reaches <paramref name="probability"/>, lifelines' <c>predict_percentile</c>.</summary>
     /// <param name="design">The subjects' covariates, row-major.</param>
     /// <param name="probability">The survival level, in [0, 1]; a half for the median.</param>
     /// <returns>One time per subject, infinity where the last survival is above the level.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or is more cells than one array holds.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="probability"/> lies outside [0, 1].</exception>
     /// <remarks>
     /// The curve need not fall monotonically, an additive hazard's increments having either sign; the time is where
@@ -173,13 +173,13 @@ public sealed class AalenSummary
     /// <summary>Each subject's median, lifelines' <c>predict_median</c>.</summary>
     /// <param name="design">The subjects' covariates, row-major.</param>
     /// <returns>One time per subject.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or is more cells than one array holds.</exception>
     public double[] PredictMedian(ReadOnlySpan<double> design) => PredictPercentile(design, 0.5);
 
     /// <summary>Each subject's expected lifetime, lifelines' <c>predict_expectation</c>: the trapezoid under its survival over the event times.</summary>
     /// <param name="design">The subjects' covariates, row-major.</param>
     /// <returns>One value per subject, from the first event time, not from zero, as lifelines integrates it.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or is more cells than one array holds.</exception>
     public double[] PredictExpectation(ReadOnlySpan<double> design)
     {
         double[] survival = PredictSurvivalFunction(design);
@@ -211,7 +211,7 @@ public sealed class AalenSummary
         }
 
         int m = EventTimes.Count;
-        var result = new double[ResultTable.Length(m, _width, ResultTable.FeatureCount)];
+        var result = new double[TableLength.Of(m, _width, ResultTable.FeatureCount)];
         for (int a = 0; a < m; a++)
         {
             for (int b = 0; b < m; b++)
@@ -267,7 +267,7 @@ public sealed class AalenSummary
         }
 
         double[] raw = AftDesign.Validate(design, rows, FeatureCount, fitIntercept: true);
-        var x = new double[ResultTable.Length(rows, _width, nameof(design))];
+        var x = new double[TableLength.Of(rows, _width, nameof(design))];
         for (int i = 0; i < rows; i++)
         {
             for (int j = 0; j < FeatureCount; j++)

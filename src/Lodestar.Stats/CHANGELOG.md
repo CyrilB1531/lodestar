@@ -17,6 +17,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- `Spearman.Matrix` refuses a variable count whose square is more cells than one array holds, before splitting out the columns and after a raised NaN, where the product wrapped or failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - `FisherExact.Test` counts a table as extreme within scipy's `1 + 1e-14` margin rather than `binomtest`'s `1 + 1e-7`, which gave `[[20, 38], [40, 106]]` a p-value of 0.394 where scipy has 0.314. ([#1243](https://github.com/CyrilB1531/lodestar/issues/1243))
 - `OneWayAnova.Test` recognises constant groups by their values, as scipy does, so three copies of `0.1` against themselves answer `(NaN, NaN)` rather than `F = 16`, and groups each constant answer `(+∞, 0)`. ([#1244](https://github.com/CyrilB1531/lodestar/issues/1244))
 - `KruskalWallis.Test` answers a NaN p-value when H rounds below zero, as scipy does, where it threw `ArgumentOutOfRangeException`. ([#1245](https://github.com/CyrilB1531/lodestar/issues/1245))

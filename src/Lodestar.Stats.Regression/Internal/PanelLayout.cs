@@ -37,7 +37,10 @@ internal sealed class PanelLayout
     public int N => Y.Length;
 
     /// <summary>Sorts and renumbers a panel, refusing a row that repeats another's entity and period.</summary>
-    /// <exception cref="ArgumentException">Two rows share an entity and a period.</exception>
+    /// <exception cref="ArgumentException">
+    /// The panel has no rows, the regressors and the intercept reach <see cref="int.MaxValue"/>, the rows times them are more cells than one
+    /// array holds, or two rows share an entity and a period.
+    /// </exception>
     public static PanelLayout Sort(PanelDesign design, ReadOnlySpan<int> clusters, bool withIntercept, string parameterName)
     {
         ReadOnlySpan<double> response = design.Response;
@@ -46,10 +49,21 @@ internal sealed class PanelLayout
         ReadOnlySpan<int> periods = design.Periods;
         int exogenousCount = design.ExogenousCount;
         int n = response.Length;
+
+        // Before the sort: no rows, which the constant search read past the end of, and a width reaching int's largest
+        // value, which wrapped, refused alike; then the regressors' copy, before the sort, past one array (#1614).
+        long width = exogenousCount + (withIntercept ? 1L : 0L);
+        if (n == 0 || width >= int.MaxValue)
+        {
+            throw new ArgumentException(
+                $"{n} rows leave no residual degree of freedom for {width} coefficients.", parameterName);
+        }
+
+        int k = (int)width;
+        _ = TableLength.Of(n, k, parameterName);
         (int[] entity, int entityCount) = Codes(entities);
         (int[] period, int periodCount) = Codes(periods);
         int[] order = [.. Enumerable.Range(0, n).OrderBy(row => entity[row]).ThenBy(row => period[row])];
-        int k = exogenousCount + (withIntercept ? 1 : 0);
         var y = new double[n];
         var x = new double[n * k];
         var sortedEntity = new int[n];

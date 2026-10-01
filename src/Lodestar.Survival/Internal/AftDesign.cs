@@ -23,7 +23,24 @@ internal sealed class AftDesign
 
     public int Size => PrimaryColumns.Length + AncillaryColumns.Length;
 
-    public static AftDesign For(int featureCount, AftOptions options) => new(featureCount, options.FitIntercept, options.Ancillary);
+    /// <summary>The blocks <paramref name="options"/> asks for over <paramref name="featureCount"/> covariates.</summary>
+    /// <param name="featureCount">The covariates each subject carries.</param>
+    /// <param name="options">Whether to fit an intercept, and whether the ancillary parameter takes the covariates.</param>
+    /// <param name="paramName">The public parameter a parameter count too large for one array is blamed on.</param>
+    /// <exception cref="ArgumentException">The parameters are more than one array holds.</exception>
+    public static AftDesign For(int featureCount, AftOptions options, string paramName)
+    {
+        // Where the column indices are built and the scales sized next: a count past one array, or past int wrapping
+        // Size, failed there; the Hessian's square is refused later, after the univariate fit, as before (#1614).
+        long primary = featureCount + (options.FitIntercept ? 1L : 0L);
+        long parameters = primary + (options.Ancillary ? primary : 1L);
+        if (parameters > TableLength.MaxLength)
+        {
+            throw new ArgumentException($"{parameters} parameters are more than one array holds.", paramName);
+        }
+
+        return new(featureCount, options.FitIntercept, options.Ancillary);
+    }
 
     /// <summary>The design as an array, checked against the subjects and the blocks it has to fill.</summary>
     public static double[] Validate(ReadOnlySpan<double> design, int rows, int featureCount, bool fitIntercept)
@@ -39,7 +56,7 @@ internal sealed class AftDesign
                 "With no covariate and no intercept the primary parameter has no column to be modelled by.", nameof(featureCount));
         }
 
-        if (design.Length != rows * featureCount)
+        if (design.Length != (long)rows * featureCount)
         {
             throw new ArgumentException(
                 $"The design holds {design.Length} values for {rows} subjects of {featureCount} covariates.", nameof(design));
@@ -53,6 +70,8 @@ internal sealed class AftDesign
             }
         }
 
+        // Where the copy is made: a span over native memory can outgrow one array (#1614).
+        _ = TableLength.Of(rows, featureCount, nameof(design));
         return design.ToArray();
     }
 

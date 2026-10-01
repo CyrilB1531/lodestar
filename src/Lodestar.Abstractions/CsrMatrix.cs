@@ -151,7 +151,7 @@ public sealed class CsrMatrix
 
     /// <summary>Materializes the matrix as a dense 2-D array.</summary>
     /// <remarks>A stored <c>NaN</c> or infinity is written out as it is, not refused.</remarks>
-    /// <exception cref="InvalidOperationException">The matrix has more cells than a two-dimensional array holds: <c>uint.MaxValue</c> in all, <c>0x7FFFFFC7</c> along one side.</exception>
+    /// <exception cref="InvalidOperationException">The matrix has more cells than a two-dimensional array holds: <c>uint.MaxValue</c> in all, <c>Array.MaxLength</c> along one side — <c>0x7FEFFFFF</c> before .NET 6.</exception>
     // CA1814 (prefer jagged arrays): a confusion matrix and a densified CSR
     // matrix are rectangular by construction, and double[,] is the shape every
     // consumer expects to interop with. A jagged array would cost one allocation
@@ -355,10 +355,6 @@ public sealed class CsrMatrix
         }
     }
 
-    /// <summary><c>Array.MaxLength</c>, which netstandard2.0 does not declare.</summary>
-    /// <remarks>.NET Framework caps a <c>double</c> array lower, so between the two it fails in the allocation.</remarks>
-    private const int MaxArrayLength = 0x7FFFFFC7;
-
     /// <summary>The most elements a multi-dimensional array holds in all.</summary>
     private const long MaxDenseCells = uint.MaxValue;
 
@@ -368,13 +364,13 @@ public sealed class CsrMatrix
     /// square does not (measured, #1412). The constructor takes a 1 × int.MaxValue matrix in a few bytes (#1287).
     /// </remarks>
     private static bool FitsDense(int rows, int columns) =>
-        (long)rows * columns <= MaxDenseCells && rows <= MaxArrayLength && columns <= MaxArrayLength;
+        (long)rows * columns <= MaxDenseCells && rows <= TableLength.MaxLength && columns <= TableLength.MaxLength;
 
     /// <summary>The result's length, refused rather than wrapped, or left to fail allocation, past the largest array.</summary>
     private static int ProductLength(int rows, int columnCount)
     {
         long length = (long)rows * columnCount;
-        if (length > MaxArrayLength)
+        if (length > TableLength.MaxLength)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(columnCount), columnCount, "The product would not fit in a single array.");

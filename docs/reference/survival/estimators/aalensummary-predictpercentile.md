@@ -17,6 +17,8 @@ survival is still above the level.
 
 **Exceptions** — `ArgumentException` when `design` is not whole rows of finite covariates.
 `ArgumentOutOfRangeException` when `probability` lies outside `[0, 1]`.
+`ArgumentException` naming `design` also when it is more cells than one array holds
+([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — by when a quarter are still alive: month 9 untreated, never within the fit on
 treatment.

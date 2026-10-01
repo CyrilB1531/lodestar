@@ -395,14 +395,19 @@ public static class MathNetInterop
             if (IsStored(value))
             {
                 RequireInside(matrix, row, column);
-                if (++total > TableLength.MaxLength)
+                if (++total > TableLength.ArrayMaxLength)
                 {
-                    throw new ArgumentException(
-                        $"The matrix stores more non-zero values than one array holds ({TableLength.MaxLength}).", nameof(matrix));
+                    throw TooManyValues(TableLength.ArrayMaxLength, nameof(matrix));
                 }
 
                 pointers[row + 1]++;
             }
+        }
+
+        // Before .NET 6 the lower bound, once the walk has refused every entry outside the matrix (#1614).
+        if (total > TableLength.MaxLength)
+        {
+            throw TooManyValues(TableLength.MaxLength, nameof(matrix));
         }
 
         for (int row = 0; row < rows; row++)
@@ -467,4 +472,7 @@ public static class MathNetInterop
         Array.Copy(source, copy, length);
         return copy;
     }
+
+    private static ArgumentException TooManyValues(long bound, string paramName) =>
+        new($"The matrix stores more non-zero values than one array holds ({bound}).", paramName);
 }

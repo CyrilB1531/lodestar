@@ -26,11 +26,15 @@ least squares.
 **Returns** — a [`PanelSummary`](../paneldata/panelsummary.md) whose `PoolabilityTest` is the F
 test that the effects are zero, `null` without effects.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `ExogenousCount` is below one or the confidence level is outside
-(0, 1). `ArgumentException` when a block's length is not its width times the rows, when two rows
-share an entity and a period, when no residual degree of freedom is left, when a Bartlett or Parzen
-bandwidth reaches past the periods, or when the options set a value this estimator does not read.
-`ArgumentNullException` when the clustered overload gets no `options`. `ArgumentException` too when clustering would run three ways.
+**Exceptions** — `ArgumentOutOfRangeException` when `ExogenousCount` is below one or the confidence
+level is outside (0, 1). `ArgumentException` when a block's length is not its width times the rows,
+when two rows share an entity and a period, when no residual degree of freedom is left, when a
+Bartlett or Parzen bandwidth reaches past the periods, or when the options set a value this
+estimator does not read. `ArgumentNullException` when the clustered overload gets no `options`.
+`ArgumentException` too when clustering would run three ways. `ArgumentException` naming `design`
+also when the rows times the parameters plus one are more cells than one array holds, or when
+two-way effects need more dummy cells, rows by one fewer than the smaller side's levels, than one
+array holds ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — entity and time effects, clustered by entity.
 

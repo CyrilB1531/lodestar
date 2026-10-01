@@ -28,6 +28,10 @@ Hansen's J, and whose `Kappa` is `null`.
 fewer instruments than endogenous regressors, when no residual degree of freedom is left, when the
 options ask for a cluster covariance or weight without labels, when `Fuller` is set, or when the regressors or
 instruments are collinear. `ArgumentNullException` when the clustered overload gets no `options`.
+`ArgumentException` naming `design` also when the rows times the larger of the parameters and the
+instruments, or that plus one where a rank test or LIML appends a column, are more cells than one
+array holds
+([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — the default robust weight, and Hansen's J.
 

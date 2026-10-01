@@ -95,7 +95,7 @@ public sealed partial class EmbeddingIndex
     {
         long encoded = (((long)_length * sizeof(float)) + 2) / 3 * 4;
         // Load decodes the string into one byte[], which cannot pass Array.MaxLength.
-        if (encoded > TableLength.MaxLength)
+        if (encoded > TableLength.MaxByteLength)
         {
             throw new InvalidOperationException(
                 $"The index holds {_length} values, whose base64 block of {encoded} characters no load can read back.");

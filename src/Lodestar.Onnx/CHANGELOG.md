@@ -11,6 +11,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- Before .NET 6 — on .NET Framework, .NET Core and .NET 5, and on legacy Mono, held there unmeasured — the refusals of an array past the largest one read those runtimes' bound for elements wider than a byte, `0x7FEFFFFF`, where a count between it and `Array.MaxLength` passed them and failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - The `OnnxTextEmbedder.Embed` page says a static export's chunk buffers are allocated at their exact size on every call rather than pooled. ([#1598](https://github.com/CyrilB1531/lodestar/issues/1598))
 - `OnnxTextEmbedder` refuses, when it is opened and under `modelPath`, a model whose fixed batch and sequence axes alone make one chunk larger than one array, where every call was refused under an argument no value could fix, and the `Embed` page gives what a half-precision or pooled output costs. ([#1589](https://github.com/CyrilB1531/lodestar/issues/1589), [#1590](https://github.com/CyrilB1531/lodestar/issues/1590))
 - `OnnxTextEmbedder.EmbedBatch` over texts names `options` when a static chunk passes one array, where it named `encoder`, and the pages state the bound as `Array.MaxLength` cells and what a chunk below it costs. ([#1581](https://github.com/CyrilB1531/lodestar/issues/1581), [#1582](https://github.com/CyrilB1531/lodestar/issues/1582))

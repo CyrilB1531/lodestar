@@ -7,6 +7,8 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- `VectorAutoregression.Fit` counts its parameters per equation in `long`, so a lag order whose count passes `int` is refused as leaving no residual degree of freedom, where the count wrapped negative, passed and overflowed the design. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
+- `VectorAutoregression.Fit` and `Stationarity.AugmentedDickeyFuller` refuse a lagged design past one array, where the product wrapped or failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - The Jacobi spectrum behind the rank check of every least-squares fit compares an off-diagonal entry with the product of two square roots rather than the root of a product, which overflowed past `1e154`. ([#1255](https://github.com/CyrilB1531/lodestar/issues/1255))
 
 ## [0.1.0] — 2026-09-24

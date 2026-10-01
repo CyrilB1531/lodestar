@@ -8,11 +8,13 @@
     <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
     <RootNamespace>Lodestar.Abstractions</RootNamespace>
     <!-- No code beyond CsrMatrix and what the moved data types call (decision 0003, epoch 3), so of
-         the shared helpers only three: ValueEquality for the data types' structural equality, and
-         ElementWise's AddScaled and Guard for CsrMatrix's products and constructor (#1282, #1417). -->
+         the shared helpers only four: ValueEquality for the data types' structural equality,
+         ElementWise's AddScaled and Guard for CsrMatrix's products and constructor (#1282, #1417), and
+         TableLength for its dense and product bounds (#1614). -->
     <LodestarIncludesSharedHelpers>false</LodestarIncludesSharedHelpers>
     <LodestarIncludesValueEquality>true</LodestarIncludesValueEquality>
     <LodestarIncludesGuard>true</LodestarIncludesGuard>
+    <LodestarIncludesTableLength>true</LodestarIncludesTableLength>
     <LodestarIncludesElementWise>true</LodestarIncludesElementWise>
     <LodestarElementWiseAddScaledOnly>true</LodestarElementWiseAddScaledOnly>
 

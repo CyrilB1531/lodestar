@@ -79,10 +79,11 @@ public sealed class CalibrationCurve
 
     private static void Validate(ReadOnlySpan<int> yTrue, ReadOnlySpan<double> yProb, int nBins)
     {
-        // nBins + 1 edges must fit one array; at int.MaxValue the count wrapped inside linspace (#1538).
-        if (nBins < 1 || nBins >= TableLength.MaxLength)
+        // nBins + 1 edges must fit one array; at int.MaxValue the count wrapped inside linspace (#1538). Before .NET 6
+        // the lower bound is checked once the input's own refusals have run (#1614).
+        if (nBins < 1 || nBins >= TableLength.ArrayMaxLength)
         {
-            throw new ArgumentOutOfRangeException(nameof(nBins), nBins, "nBins must be >= 1 and leave room for its edges in one array.");
+            throw BinsOutOfRange(nBins);
         }
         if (yTrue.Length != yProb.Length || yTrue.Length == 0)
         {
@@ -106,7 +107,15 @@ public sealed class CalibrationCurve
                 second = label;
             }
         }
+
+        if (nBins >= TableLength.MaxLength)
+        {
+            throw BinsOutOfRange(nBins);
+        }
     }
+
+    private static ArgumentOutOfRangeException BinsOutOfRange(int nBins) =>
+        new(nameof(nBins), nBins, "nBins must be >= 1 and leave room for its edges in one array.");
 
     /// <summary>The <c>nBins + 1</c> edges, from the interval or from the data.</summary>
     /// <remarks>

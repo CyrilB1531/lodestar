@@ -17,7 +17,8 @@ each `variableCount × variableCount` and row-major.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `variableCount` is below two.
 `ArgumentException` when `data` is not a whole number of rows, or holds a `NaN` under
-[`NanPolicy.Raise`](../nanpolicy.md).
+[`NanPolicy.Raise`](../nanpolicy.md). `ArgumentException` naming `variableCount` when its square is
+more cells than one array holds ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — three variables, the second rising with the first and the third falling.
 

@@ -154,7 +154,7 @@ public sealed class CoxSummary
         }
 
         int columns = times.IsEmpty ? _predictive[0].Times.Length : times.Length;
-        var result = new double[ResultTable.Length(hazards.Length, columns, nameof(design))];
+        var result = new double[TableLength.Of(hazards.Length, columns, nameof(design))];
         for (int i = 0; i < hazards.Length; i++)
         {
             CoxBaseline baseline = baselines[i];

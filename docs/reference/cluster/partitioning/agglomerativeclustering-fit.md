@@ -18,7 +18,9 @@ the reference.
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` or `clusterCount` is not
 positive, when `clusterCount` exceeds the sample count, or when `linkage` is not a defined value.
 `ArgumentException` when `samples` holds fewer than two rows, a partial one, or a `NaN` or infinite
-value.
+value; or, under any linkage but single, when the rows' pairwise distances are more than one array
+holds — from 65,537 rows, 65,521 before .NET 6 — and, under single linkage, when a merge tree of
+twice the rows less one is more than one array holds ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — the same five points cut into three under complete linkage, where the labels show the
 reference's numbering.

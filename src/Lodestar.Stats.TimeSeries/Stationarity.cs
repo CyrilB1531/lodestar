@@ -24,8 +24,9 @@ public static class Stationarity
     /// <exception cref="ArgumentException">
     /// <paramref name="series"/> carries a non-finite value, is constant, lies on one straight line, is
     /// too short for its trend terms and default lag, or builds a lagged design with no unique least-squares
-    /// solution at the lag used or any lag the search tries; or <paramref name="options"/> asks for a maximum lag
-    /// above <c>n/2 − terms − 1</c> or one that leaves the widest regression no degree of freedom.
+    /// solution at the lag used or any lag the search tries, or a widest lagged design of more cells than one array holds; or
+    /// <paramref name="options"/> asks for a maximum lag above <c>n/2 − terms − 1</c> or one that leaves the widest
+    /// regression no degree of freedom.
     /// </exception>
     public static DickeyFullerResult AugmentedDickeyFuller(
         ReadOnlySpan<double> series, DickeyFullerOptions? options = null)

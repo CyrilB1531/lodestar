@@ -26,6 +26,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- Before .NET 6 — on .NET Framework, .NET Core and .NET 5, and on legacy Mono, held there unmeasured — the bit-parallel distances hand a pattern over to the dynamic program at those runtimes' largest array of elements wider than a byte, `0x7FEFFFFF`, where a table between it and `Array.MaxLength` failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - `GermanSnowballStemmer` removes `-ung` and the `ig` it uncovers. ([#1190](https://github.com/CyrilB1531/lodestar/issues/1190))
 - `PortugueseSnowballStemmer` removes `-em` and `-ávamos`, and drops the trema after `g` and `q` as nltk does. ([#1191](https://github.com/CyrilB1531/lodestar/issues/1191))
 - `SpanishSnowballStemmer` searches steps 2a and 2b inside RV, takes nltk's step 2b list, and drops the whole word's accents after a pronoun as nltk does. ([#1192](https://github.com/CyrilB1531/lodestar/issues/1192))

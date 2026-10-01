@@ -20,8 +20,8 @@
 
   <!-- Shared internal helpers, compiled into every library that asks for them.
        Lodestar.Abstractions opts out: it carries no code beyond CsrMatrix and what its
-       data types call (decision 0003, epoch 3), so it takes ValueEquality, Guard and ElementWise
-       one by one below. -->
+       data types call (decision 0003, epoch 3), so it takes ValueEquality, Guard, ElementWise and
+       TableLength one by one below. -->
   <ItemGroup Condition="'$(LodestarIncludesSharedHelpers)' != 'false'">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/GlobalUsings.cs" Link="Internal/GlobalUsings.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Guard.cs" Link="Internal/Guard.cs" />
@@ -42,7 +42,7 @@
 
   <!-- The global using the shared helpers are reached through, once for a library that opted out
        and takes any of them one by one. -->
-  <ItemGroup Condition="'$(LodestarIncludesSharedHelpers)' == 'false' and ('$(LodestarIncludesValueEquality)' == 'true' or '$(LodestarIncludesGuard)' == 'true')">
+  <ItemGroup Condition="'$(LodestarIncludesSharedHelpers)' == 'false' and ('$(LodestarIncludesValueEquality)' == 'true' or '$(LodestarIncludesGuard)' == 'true' or '$(LodestarIncludesTableLength)' == 'true')">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/GlobalUsings.cs" Link="Internal/GlobalUsings.cs" />
   </ItemGroup>
 
@@ -51,6 +51,12 @@
        package does not call, lives in Guard.Disposal.cs and stays out (#1490). -->
   <ItemGroup Condition="'$(LodestarIncludesGuard)' == 'true' and '$(LodestarIncludesSharedHelpers)' == 'false'">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Guard.cs" Link="Internal/Guard.cs" />
+  </ItemGroup>
+
+  <!-- The runtime's largest array, for a library that opts out of the helpers above: CsrMatrix's
+       dense and product bounds in Lodestar.Abstractions, which runtimes before .NET 6 cap lower (#1614). -->
+  <ItemGroup Condition="'$(LodestarIncludesTableLength)' == 'true' and '$(LodestarIncludesSharedHelpers)' == 'false'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/TableLength.cs" Link="Internal/TableLength.cs" />
   </ItemGroup>
 
   <!-- mean_variance_axis over a sparse matrix, compiled into the two libraries that read a column's

@@ -11,8 +11,8 @@ public double[,] ToDense()
 **Returns** — `double[,]` of `RowCount × ColumnCount`, every cell present, the stored values in
 their places and zeros everywhere else.
 
-**Exceptions** — `InvalidOperationException` when the matrix has more cells than a
-two-dimensional array holds — `uint.MaxValue` in all, `0x7FFFFFC7` along one side — rather than
+**Exceptions** — `InvalidOperationException` when the matrix has more cells than a two-dimensional
+array holds — `uint.MaxValue` in all, the runtime's largest array along one side — rather than
 failing inside the allocation. A 50,000-square matrix is within that; it still needs 20 GB
 ([#1412](https://github.com/CyrilB1531/lodestar/issues/1412)).
 
@@ -46,11 +46,12 @@ A column stored twice in one row is written out as the sum of its entries, which
 
 A stored `NaN` or infinity is written out as it is, not refused, as `toarray()` writes it.
 
-**On .NET Framework the cap can be lower.** Without `gcAllowVeryLargeObjects` it refuses any
+**Before .NET 6 the cap can be lower.** .NET Framework without `gcAllowVeryLargeObjects` refuses any
 array past 2 GB, so a result within this bound but past that fails there with the runtime's own
-out-of-memory error, raised before any memory is taken. Under it, a `double[,]` is capped at
-`UInt32.MaxValue` elements in all and `0x7FEFFFFF` along one side, just below the `0x7FFFFFC7` this
-checks: a side between the two passes the check and fails in the allocation.
+out-of-memory error, raised before any memory is taken. Otherwise a `double[,]` before .NET 6 is
+capped at `UInt32.MaxValue` elements in all and `0x7FEFFFFF` along one side, below .NET 6's
+`0x7FFFFFC7`: the check reads the running runtime's bound, so a side between the two is refused
+there too ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Applies to** — net10.0, netstandard2.0.
 

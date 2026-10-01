@@ -23,12 +23,16 @@ covariance and the intercept; `null` takes the reference's defaults.
 **Returns** — a [`PanelSummary`](../paneldata/panelsummary.md) over one row per entity:
 `ObservationCount` is the entity count.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `ExogenousCount` is below one or the confidence level is outside
-(0, 1). `ArgumentException` when a block's length is not its width times the rows, when two rows
-share an entity and a period, when no residual degree of freedom is left, when a Bartlett or Parzen
-bandwidth reaches past the periods, or when the options set a value this estimator does not read.
-`ArgumentNullException` when the clustered overload gets no `options`. `ArgumentException` too when a cluster label varies inside an entity,
-or when the options ask for Driscoll-Kraay or for clusters by entity or period.
+**Exceptions** — `ArgumentOutOfRangeException` when `ExogenousCount` is below one or the confidence
+level is outside (0, 1). `ArgumentException` when a block's length is not its width times the rows,
+when two rows share an entity and a period, when no residual degree of freedom is left, when a
+Bartlett or Parzen bandwidth reaches past the periods, or when the options set a value this
+estimator does not read. `ArgumentNullException` when the clustered overload gets no `options`.
+`ArgumentException` too when a cluster label varies inside an entity, or when the options ask for
+Driscoll-Kraay or for clusters by entity or period. `ArgumentException` naming `design` also when
+the rows times the parameters, or times the parameters plus one where no column is constant and the
+constant search appends one, are more cells than one array holds
+([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — the slope across entities rather than within them.
 

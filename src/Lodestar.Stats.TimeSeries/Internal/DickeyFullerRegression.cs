@@ -31,7 +31,7 @@ internal static class DickeyFullerRegression
     internal static (IReadOnlyList<double> TStatistics, double ResidualSumOfSquares) Fit(
         ReadOnlySpan<double> series, TrendTerms regression, int lag, int rows)
     {
-        double[] design = Design(series, regression, lag, rows, out double[] response);
+        double[] design = Design(series, regression, lag, rows, out double[] response, nameof(series));
 
         // The estimate names `design` for a rank-deficient design and for a fit with no residual degree of
         // freedom alike, and `Candidates` raises the second through here on purpose: only the first is ours (#1080).
@@ -76,7 +76,7 @@ internal static class DickeyFullerRegression
             _ = Fit(series, regression, maxLag, rows);
         }
 
-        double[] design = Design(series, regression, maxLag, rows, out double[] response);
+        double[] design = Design(series, regression, maxLag, rows, out double[] response, nameof(series));
         var reflections = new SharedReflections(
             design, TrendColumns(regression) + 1 + maxLag, regression != TrendTerms.None, [response]);
 
@@ -115,7 +115,16 @@ internal static class DickeyFullerRegression
         return (sums, statistics);
     }
 
-    private static double[] Design(ReadOnlySpan<double> series, TrendTerms regression, int lag, int rows, out double[] response)
+    /// <summary>The lagged design at <paramref name="lag"/>, trend columns first, and its differenced response.</summary>
+    /// <param name="series">The observations.</param>
+    /// <param name="regression">The trend terms, the constant among them appended by the fit.</param>
+    /// <param name="lag">The lagged differences each row carries.</param>
+    /// <param name="rows">The rows the regression uses, the last ones of the series.</param>
+    /// <param name="response">The first difference each row explains.</param>
+    /// <param name="paramName">The public parameter a design past one array is blamed on.</param>
+    /// <exception cref="ArgumentException">The design, constant included, is more cells than one array holds.</exception>
+    private static double[] Design(
+        ReadOnlySpan<double> series, TrendTerms regression, int lag, int rows, out double[] response, string paramName)
     {
         // long-comment: why the trend columns come first.
         // Row r of rows is series position t = n - rows + r: the response is dx[t], and the regressors
@@ -127,6 +136,9 @@ internal static class DickeyFullerRegression
         int n = series.Length;
         int trend = TrendColumns(regression);
         int features = trend + 1 + lag;
+        // Rows by features reach about n² / 4 within the allowed lag, and the fit appends the constant:
+        // refused past one array with that column counted, not wrapped (#1614).
+        _ = TableLength.Of(rows, TermCount(regression) + 1 + lag, paramName);
         var design = new double[rows * features];
         response = new double[rows];
 

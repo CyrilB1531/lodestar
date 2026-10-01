@@ -22,6 +22,8 @@ a value that is not finite. `ArgumentException` when `design` is not a whole num
 has a different length, when `covariance` is not the square of that length, is not symmetric or is not
 positive definite, when no residual degrees of freedom are left, or when a column of the whitened design is
 collinear with the columns before it.
+`ArgumentException` naming `covariance` also when it is more cells than one array holds
+([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — a diagonal covariance is the weighted fit with weights `1/σ`, to rounding.
 

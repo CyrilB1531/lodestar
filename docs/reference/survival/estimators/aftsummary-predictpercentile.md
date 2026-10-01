@@ -16,6 +16,8 @@ the one subject of a fit with no covariate. `probability` is the survival level,
 
 **Exceptions** — `ArgumentException` when `design` is not whole rows of finite covariates.
 `ArgumentOutOfRangeException` when `probability` is not strictly inside `(0, 1)`.
+`ArgumentException` naming `design` also when it is more cells than one array holds
+([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — the time by which three quarters have had the event.
 

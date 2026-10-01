@@ -100,4 +100,31 @@ public sealed class MultinomialLogitEdgeTests
         Assert.False(inspected.Converged);
         Assert.Equal(1, inspected.Iterations);
     }
+
+    [Fact]
+    public void Probabilities_past_one_array_are_refused_before_they_are_allocated()
+    {
+        // 100,000 rows over 40,000 categories: 4e9 probabilities, past Array.MaxLength, which wrapped (#1614).
+        const int rows = 100_000;
+        double[] design = Enumerable.Range(0, rows).Select(i => Math.Sin(i * 0.37)).ToArray();
+        int[] response = Enumerable.Range(0, rows).Select(i => i % 40_000).ToArray();
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => MultinomialLogit.Fit(design, response, 1));
+        Assert.Equal("design", error.ParamName);
+        Assert.Contains("more than one array holds", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_Hessian_past_one_array_is_refused_before_the_probabilities_are_allocated()
+    {
+        // 23,171 equations of two columns make 46,342 parameters, whose square passes one array, while the
+        // 46,343 by 23,172 probabilities fit it and were allocated first, about 8.6 GB (#1614).
+        const int rows = 46_343;
+        double[] design = Enumerable.Range(0, rows).Select(i => Math.Sin(i * 0.37)).ToArray();
+        int[] response = Enumerable.Range(0, rows).Select(i => i % 23_172).ToArray();
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => MultinomialLogit.Fit(design, response, 1));
+        Assert.Equal("design", error.ParamName);
+        Assert.Contains("46342 parameters square to", error.Message, StringComparison.Ordinal);
+    }
 }

@@ -63,7 +63,7 @@ public sealed class AgglomerativeClustering
     /// <param name="linkage">How the distance between two clusters is measured.</param>
     /// <returns>A fitted clustering.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> or <paramref name="clusterCount"/> is not positive, <paramref name="clusterCount"/> exceeds the sample count, or <paramref name="linkage"/> is not a defined value.</exception>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> holds fewer than two rows, a partial one, or a value that is not finite.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds fewer than two rows, a partial one, or a value that is not finite; or, under a linkage other than single, more rows than one array holds the pairwise distances of, or, under single linkage, more rows than a merge tree of twice them less one fits in one array.</exception>
     public static AgglomerativeClustering Fit(
         ReadOnlySpan<double> samples, int featureCount, int clusterCount, Linkage linkage = Linkage.Ward)
     {
@@ -90,7 +90,7 @@ public sealed class AgglomerativeClustering
     /// <param name="linkage">How the distance between two clusters is measured.</param>
     /// <returns>A fitted clustering, whose <see cref="ClusterCount"/> says how many clusters the height left.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, <paramref name="distanceThreshold"/> is negative, infinite or not a number, or <paramref name="linkage"/> is not a defined value.</exception>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> holds fewer than two rows, a partial one, or a value that is not finite.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds fewer than two rows, a partial one, or a value that is not finite; or, under a linkage other than single, more rows than one array holds the pairwise distances of, or, under single linkage, more rows than a merge tree of twice them less one fits in one array.</exception>
     /// <remarks>
     /// <strong>The threshold is exclusive</strong>: a merge exactly at it is not made, so the cluster
     /// count is one more than the number of merges at or above it. Zero is allowed and leaves every
@@ -119,8 +119,8 @@ public sealed class AgglomerativeClustering
         ReadOnlySpan<double> samples, int featureCount, int sampleCount, Linkage linkage, Func<Dendrogram, int> count)
     {
         Dendrogram tree = linkage == Linkage.Single
-            ? SpanningTreeLinkage.Build(samples, featureCount, sampleCount)
-            : NearestNeighbourChain.Build(samples, featureCount, sampleCount, linkage);
+            ? SpanningTreeLinkage.Build(samples, featureCount, sampleCount, nameof(samples))
+            : NearestNeighbourChain.Build(samples, featureCount, sampleCount, linkage, nameof(samples));
         int clusters = count(tree);
         return new AgglomerativeClustering(
             featureCount, clusters, linkage, TreeCut.Labels(tree.Children, sampleCount, clusters), tree);

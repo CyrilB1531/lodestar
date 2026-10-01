@@ -19,7 +19,7 @@ public static class MultinomialLogit
     /// <param name="options">The fit's settings, or null for the reference's defaults.</param>
     /// <returns>The coefficients per non-reference category with their errors, z statistics, p-values and intervals, and the whole-model table.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one.</exception>
-    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has another length or fewer than two categories, no residual degree of freedom is left, or the Hessian is not positive definite — a separated category or a rank-deficient design.</exception>
+    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has another length or fewer than two categories, no residual degree of freedom is left, the Hessian is not positive definite — a separated category or a rank-deficient design — or the rows times the design's columns, intercept included, or times the categories, or the parameters squared, are more cells than one array holds.</exception>
     /// <exception cref="InvalidOperationException">Newton spent its budget and <see cref="MultinomialLogitOptions.ThrowOnNonConvergence"/> says throw.</exception>
     /// <remarks>
     /// <see cref="MultinomialLogitSummary.NullLogLikelihood"/> is the closed form <c>Σ nⱼ·log(nⱼ/n)</c>, which the reference
@@ -57,11 +57,21 @@ public static class MultinomialLogit
         if (residualDegreesOfFreedom < 1)
         {
             throw new ArgumentException(
-                $"{rowCount} rows fit {columnCount * equations} parameters with {residualDegreesOfFreedom} residual degrees "
+                $"{rowCount} rows fit {(long)columnCount * equations} parameters with {residualDegreesOfFreedom} residual degrees "
                 + "of freedom left.", nameof(design));
         }
 
-        double[] matrix = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept);
+        // Rows by categories and the parameters squared, the Newton step's probabilities and Hessian: refused past
+        // one array before the design is copied (#1614).
+        _ = TableLength.Of(rowCount, categories.Length, nameof(design));
+        long parameters = (long)columnCount * equations;
+        if (parameters * parameters > TableLength.MaxLength)
+        {
+            throw new ArgumentException(
+                $"{parameters} parameters square to {parameters * parameters} cells, more than one array holds.", nameof(design));
+        }
+
+        double[] matrix = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept, nameof(design));
         MultinomialFit fit = MultinomialNewton.Fit(matrix, labels, columnCount, categories.Length, settings, nameof(design));
         if (!fit.Converged && settings.ThrowOnNonConvergence)
         {

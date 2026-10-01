@@ -35,7 +35,9 @@ in any of these cases:
 - a covariate does not vary beside the intercept, or there is no column at all;
 - the weights are neither empty nor one positive, finite value per subject;
 - the subjects, the event times or the columns themselves times the columns are more cells than
-  one array holds.
+  one array holds;
+- the design is more cells than one array holds, or its length only matches the subjects times
+  `featureCount` once that product wraps `int` ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — a covariate that does not vary has no coefficient beside the intercept, and is refused.
 

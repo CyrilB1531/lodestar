@@ -25,13 +25,17 @@ between two rows that are differenced.
 **Returns** — a [`PanelSummary`](../paneldata/panelsummary.md) over the differenced rows:
 `ObservationCount` counts the differences, one fewer per entity, and one fewer again per gap.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `ExogenousCount` is below one or the confidence level is outside
-(0, 1). `ArgumentException` when a block's length is not its width times the rows, when two rows
-share an entity and a period, when no residual degree of freedom is left, when a Bartlett or Parzen
-bandwidth reaches past the periods, or when the options set a value this estimator does not read.
-`ArgumentNullException` when the clustered overload gets no `options`. `ArgumentException` too when the regressors hold a constant or
-`WithIntercept` is set, when there are fewer than two periods, when a cluster label changes between
-differenced rows, or when the options cluster by period.
+**Exceptions** — `ArgumentOutOfRangeException` when `ExogenousCount` is below one or the confidence
+level is outside (0, 1). `ArgumentException` when a block's length is not its width times the rows,
+when two rows share an entity and a period, when no residual degree of freedom is left, when a
+Bartlett or Parzen bandwidth reaches past the periods, or when the options set a value this
+estimator does not read. `ArgumentNullException` when the clustered overload gets no `options`.
+`ArgumentException` too when the regressors hold a constant or `WithIntercept` is set, when there
+are fewer than two periods, when a cluster label changes between differenced rows, or when the
+options cluster by period. `ArgumentException` naming `design` also when the rows times the
+parameters, or times the parameters plus one where no column is constant and the constant search
+appends one, are more cells than one array holds
+([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — the same panel, differenced.
 

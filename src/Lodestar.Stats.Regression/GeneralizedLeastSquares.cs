@@ -24,7 +24,7 @@ public static class GeneralizedLeastSquares
     /// <param name="options">Whether to fit an intercept, which covariance of the estimates, and at what confidence; <see langword="null"/> fits one at 0.95.</param>
     /// <returns>The fitted model, with its standard errors, t statistics, p-values, intervals and VIFs.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or <paramref name="covariance"/> holds a value that is not finite.</exception>
-    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, <paramref name="covariance"/> is not the square of that length, is not symmetric or is not positive definite, <paramref name="options"/> asks for <see cref="CovarianceType.Hac"/> or <see cref="CovarianceType.Cluster"/>, no residual degrees of freedom are left, or a column of the whitened design, intercept included, is collinear with the columns before it.</exception>
+    /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, <paramref name="covariance"/> is not the square of that length, is not symmetric or is not positive definite, <paramref name="options"/> asks for <see cref="CovarianceType.Hac"/> or <see cref="CovarianceType.Cluster"/>, no residual degrees of freedom are left, a column of the whitened design, intercept included, is collinear with the columns before it, or <paramref name="covariance"/> is more cells than one array holds.</exception>
     /// <remarks>
     /// R² follows the reference: centred, with an intercept, on the mean estimated in whitened space. The VIFs
     /// read the design as given, as <c>variance_inflation_factor</c> does.
@@ -51,7 +51,7 @@ public static class GeneralizedLeastSquares
         OrdinaryLeastSquares.CheckCovariance(settings, default, clustered: false, rowCount, nameof(options));
         double[] lower = Factor(covariance, rowCount);
 
-        double[] whitened = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept);
+        double[] whitened = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept, nameof(design));
         for (int column = 0; column < parameterCount; column++)
         {
             Cholesky.ForwardSubstitute(lower, rowCount, whitened, parameterCount, column);
@@ -133,6 +133,9 @@ public static class GeneralizedLeastSquares
             }
         }
 
+        // The factor is a copy as large. Before .NET 6, 46,330 to 46,340 rows square past one array, which only a
+        // covariance over native memory holds: refused where the copy is made (#1614).
+        _ = TableLength.Of(rowCount, rowCount, nameof(covariance));
         if (!Cholesky.TryFactor(covariance, rowCount, out double[] lower))
         {
             throw new ArgumentException(

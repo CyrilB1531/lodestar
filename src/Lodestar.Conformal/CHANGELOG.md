@@ -9,6 +9,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 - `CrossConformal` computes CV+, Jackknife+ and jackknife-after-bootstrap intervals at MAPIE parity, and `SplitConformal.GammaScores` and `GammaInterval` the gamma conformity score. ([#1159](https://github.com/CyrilB1531/lodestar/issues/1159))
 
+### Fixed
+
+- `SplitConformal.LeastAmbiguousScores` compares the probability block's length in `long`, where a class count wrapping the product let a short block through to an index out of range. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
+
 ## [0.2.0] — 2026-09-24
 
 ### Added

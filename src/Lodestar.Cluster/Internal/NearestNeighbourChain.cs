@@ -14,9 +14,19 @@ internal static class NearestNeighbourChain
     /// <param name="featureCount">How many values each row carries.</param>
     /// <param name="sampleCount">How many rows <paramref name="samples"/> holds, at least two.</param>
     /// <param name="linkage">Ward, complete or average.</param>
+    /// <param name="paramName">The public parameter a sample count too large for the pairwise distances is blamed on.</param>
+    /// <exception cref="ArgumentException">The pairwise distances are more than one array holds.</exception>
     public static Dendrogram Build(
-        ReadOnlySpan<double> samples, int featureCount, int sampleCount, Linkage linkage)
+        ReadOnlySpan<double> samples, int featureCount, int sampleCount, Linkage linkage, string paramName)
     {
+        // n (n - 1) / 2 distances in one array: 65,537 rows pass Array.MaxLength, which failed in the allocation (#1614).
+        long pairs = (long)sampleCount * (sampleCount - 1) / 2;
+        if (pairs > TableLength.MaxLength)
+        {
+            throw new ArgumentException(
+                $"{sampleCount} rows make {pairs} pairwise distances, more than one array holds.", paramName);
+        }
+
         double[] distances = Condensed(samples, featureCount, sampleCount);
         var size = new int[sampleCount];
         var live = new int[sampleCount];

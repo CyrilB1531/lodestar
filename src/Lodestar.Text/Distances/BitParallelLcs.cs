@@ -338,7 +338,7 @@ internal static class BitParallelLcs
         int blocks = (m + 63) / 64;
 
         long rows = (long)(Entries + slots) * blocks;
-        if (rows > WideAlphabet.MaxTableLength)
+        if (rows > TableLength.MaxLength)
         {
             return false;
         }
@@ -420,7 +420,7 @@ internal static class BitParallelLcs
         // Padded to whole groups: a word past the pattern has an all-zero column, and its
         // bits are masked from the count, so the kernel needs no case for a short group.
         long cells = (long)groups * GroupWords * Entries;
-        if (cells > WideAlphabet.MaxTableLength)
+        if (cells > TableLength.MaxLength)
         {
             return false;
         }

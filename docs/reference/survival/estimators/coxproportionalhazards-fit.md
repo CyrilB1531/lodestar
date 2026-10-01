@@ -38,7 +38,8 @@ likelihood, the likelihood-ratio test and the concordance index.
   positive and finite;
 - no event is observed;
 - a covariate separates the events, or is collinear with the others;
-- the covariates are too many for their square to fit in one array.
+- the covariates are too many for their square to fit in one array;
+- the design is more cells than one array holds ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 `InvalidOperationException` when the fit does not converge within `CoxOptions.MaximumIterations`,
 or lifelines' own loop, which an L1 penalty runs, gives up.

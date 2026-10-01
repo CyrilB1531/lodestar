@@ -15,6 +15,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- Before .NET 6 — on .NET Framework, .NET Core and .NET 5, and on legacy Mono, held there unmeasured — the refusals of an array past the largest one read those runtimes' bound for elements wider than a byte, `0x7FEFFFFF`, where a count between it and `Array.MaxLength` passed them and failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - A query is normalized in double, as the stored vectors are, so one whose components pass about 1e19 ranks by direction where its float norm overflowed and every score came back zero. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
 - Collections refuse a record past the largest array before resizing, name a null collection name or key under the caller's parameter, and return a cancelled task, writing nothing, for a token already cancelled. ([#1338](https://github.com/CyrilB1531/lodestar/issues/1338), [#1353](https://github.com/CyrilB1531/lodestar/issues/1353), [#1354](https://github.com/CyrilB1531/lodestar/issues/1354))
 

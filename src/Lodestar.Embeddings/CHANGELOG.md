@@ -11,6 +11,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- Before .NET 6 — on .NET Framework, .NET Core and .NET 5, and on legacy Mono, held there unmeasured — the refusals of an array past the largest one read those runtimes' bound for elements wider than a byte, `0x7FEFFFFF`, where a count between it and `Array.MaxLength` passed them and failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - A `single_word` added token rejected at a position still consumes its characters, as `tokenizers`' leftmost-longest match does, so a shorter overlapping added token no longer matches inside it. ([#1209](https://github.com/CyrilB1531/lodestar/issues/1209))
 - WordPiece lowercasing maps `İ` to `i` and U+0307 as `tokenizers` does, `SentencePieceTokenizer` never segments onto an `UNUSED` piece, and `single_word` treats marks, `Pc`, `Nl`, ZWJ and astral letters as word characters. ([#1213](https://github.com/CyrilB1531/lodestar/issues/1213))
 - `Pooler.L2Normalize` divides by no less than `1e-12` as `F.normalize` does, `NpyFile.Read` byte-swaps on a big-endian host, `EmbeddingIndex.Search` normalizes a query past `1e19` without overflowing, and `EmbeddingIndex.Save` refuses a non-finite vector before writing anything. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))

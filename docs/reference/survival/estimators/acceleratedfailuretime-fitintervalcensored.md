@@ -33,6 +33,9 @@ neither empty nor one valid value per subject, or the primary parameter has no c
 `ArgumentOutOfRangeException` when `model` names no model, or `featureCount` is negative.
 `InvalidOperationException` when the fit does not converge, or its parameters are not identified.
 `ArgumentException` also when the parameters are too many for their square to fit in one array ([#1311](https://github.com/CyrilB1531/lodestar/issues/1311)).
+`ArgumentException` naming `featureCount` also when the parameters are more than one array holds,
+and naming `design` when the design is more cells than one array holds or its length only matches
+the subjects times `featureCount` once that product wraps `int` ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — visits bracketing each event, against a dose.
 

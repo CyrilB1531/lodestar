@@ -19,7 +19,9 @@ height left.
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, when
 `distanceThreshold` is negative, infinite or not a number, or when `linkage` is not a defined value.
 `ArgumentException` when `samples` holds fewer than two rows, a partial one, or a `NaN` or infinite
-value.
+value; or, under any linkage but single, when the rows' pairwise distances are more than one array
+holds — from 65,537 rows, 65,521 before .NET 6 — and, under single linkage, when a merge tree of
+twice the rows less one is more than one array holds ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 **Example** — three points whose gaps are one and two, cut exactly at a gap and just above it.
 

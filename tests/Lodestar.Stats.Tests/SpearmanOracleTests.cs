@@ -54,4 +54,43 @@ public sealed class SpearmanOracleTests
 
         Assert.True(replayed >= 6, $"only {replayed} nan_policy cases replayed");
     }
+
+    [Fact]
+    public void A_variable_count_whose_square_passes_one_array_is_refused()
+    {
+        // 46,341 variables make two 46,341-square matrices, past Array.MaxLength: the product wrapped or failed (#1614).
+        ArgumentException error = Assert.Throws<ArgumentException>(() => Spearman.Matrix([], 46_341));
+        Assert.Equal("variableCount", error.ParamName);
+    }
+
+    [Fact]
+    public void The_square_bound_is_checked_before_the_columns_are_split_out()
+    {
+        // int.MaxValue variables and no rows: the columns' int.MaxValue arrays ran out of memory before the bound (#1614).
+        ArgumentException error = Assert.Throws<ArgumentException>(() => Spearman.Matrix([], int.MaxValue));
+        Assert.Equal("variableCount", error.ParamName);
+    }
+
+    [Fact]
+    public void A_raised_NaN_is_still_reported_before_the_square_bound()
+    {
+        double[] row = new double[46_341];
+        row[7] = double.NaN;
+
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => Spearman.Matrix(row, 46_341, nanPolicy: NanPolicy.Raise));
+        Assert.Equal("data", error.ParamName);
+    }
+
+    [Fact]
+    public void A_raised_NaN_past_the_square_bound_names_the_lowest_variable_that_holds_one()
+    {
+        double[] row = new double[46_341];
+        row[40_000] = double.NaN;
+        row[7] = double.NaN;
+
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => Spearman.Matrix(row, 46_341, nanPolicy: NanPolicy.Raise));
+        Assert.Contains("Variable 7 holds a NaN.", error.Message, StringComparison.Ordinal);
+    }
 }
