@@ -116,6 +116,74 @@ public sealed class WholeArtifactTests
     }
 
     [Fact]
+    public void A_long_token_pattern_is_refused_by_name()
+    {
+        // System.Text.Json 10 writes 166,666,666 characters and refuses one more (#1626).
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(
+            () => VectorizerOptionsJson.EnsureWritable(new CountVectorizerOptions { TokenPattern = new string('a', 166_666_667) }));
+        Assert.StartsWith("The token pattern of 166666667 characters", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_public_save_refuses_a_long_stop_word_through_the_same_check()
+    {
+        // The token pattern's check runs in it too; a stop word reaches it without compiling a 166-million-character pattern.
+        var hashing = new HashingVectorizer(new HashingVectorizerOptions
+        {
+            Count = new CountVectorizerOptions { StopWords = [new string('a', 166_666_667)] },
+        });
+        using var stream = new MemoryStream();
+        Assert.StartsWith("A stop word of 166666667 characters", Assert.Throws<InvalidOperationException>(() => hashing.Save(stream)).Message, StringComparison.Ordinal);
+        Assert.Equal(0, stream.Length);
+    }
+
+    [Fact]
+    public void A_long_vocabulary_term_is_refused_before_a_non_finite_weight()
+    {
+        // In the order the artifact writes them: the vocabulary, then the idf (#1626).
+        var vectorizer = new TfidfVectorizer();
+        vectorizer.Fit([new string('a', 166_666_667), "b c"]);
+        Assert.IsType<double[]>(vectorizer.Idf)[0] = double.NaN;
+        using var stream = new MemoryStream();
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => vectorizer.Save(stream));
+        Assert.StartsWith("A vocabulary term of 166666667 characters", error.Message, StringComparison.Ordinal);
+        Assert.Equal(0, stream.Length);
+    }
+
+    [Fact]
+    public async Task An_asynchronous_save_under_a_mebibyte_makes_one_write()
+    {
+        // Its first chunk grows as the MemoryStream it replaced did, so it goes out in one write, as that did (#1623).
+        var vectorizer = new CountVectorizer();
+        vectorizer.Fit([string.Join(" ", Enumerable.Range(0, 20_000).Select(i => "t" + i.ToString("D8", System.Globalization.CultureInfo.InvariantCulture)))]);
+        var recording = new Recording();
+        try
+        {
+            await vectorizer.SaveAsync(recording, TestContext.Current.CancellationToken);
+            Assert.True(recording.Length > 200_000, $"The artifact is {recording.Length} bytes.");
+            Assert.Equal(1, recording.Writes);
+        }
+        finally
+        {
+            await recording.DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public void A_tiny_artifact_from_a_stream_of_undeclared_length_allocates_what_it_did()
+    {
+        // The read's own 81,920-byte buffer, as before, and segments from 256 bytes, not another 81,920 (#1624).
+        byte[] artifact = Bytes(new HashingVectorizer().Save);
+        using var warmUp = new Unseekable(artifact, 81_920);
+        using var measured = new Unseekable(artifact, 81_920);
+        HashingVectorizer.Load(warmUp);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        HashingVectorizer.Load(measured);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(allocated < 81_920 + 40_000, $"{allocated} bytes allocated.");
+    }
+
+    [Fact]
     public void A_null_stop_word_is_left_to_the_write_after_the_path()
     {
         // Main opened the path before it wrote a stop word, so the path's refusal keeps its place (#1618).

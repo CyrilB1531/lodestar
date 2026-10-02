@@ -25,7 +25,7 @@ public sealed class SegmentedAsyncArtifactTests
 
         stream.Position = 0;
         ReadOnlySequence<byte> segments =
-            await JsonArtifact.ReadAllSegmentsAsync(stream, Limits(1024), CancellationToken.None);
+            await JsonArtifact.ReadWholeAsync(stream, Limits(1024), CancellationToken.None);
 
         Assert.False(segments.IsSingleSegment, "the read should have produced several");
         Assert.Equal(whole, segments.ToArray());
@@ -61,7 +61,7 @@ public sealed class SegmentedAsyncArtifactTests
         stream.Position = 0;
 
         await Assert.ThrowsAsync<InvalidDataException>(
-            () => JsonArtifact.ReadAllSegmentsAsync(
+            () => JsonArtifact.ReadWholeAsync(
                 stream, Limits(1024, maxTotalBytes: 2048), CancellationToken.None));
     }
 

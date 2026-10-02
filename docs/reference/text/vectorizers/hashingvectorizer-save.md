@@ -12,9 +12,11 @@ public void Save(string path)
 **Parameters** — `destination` is a writable stream, left open for the caller to dispose; `path`
 is a file to create or overwrite.
 
-**Exceptions** — `InvalidOperationException` when the token pattern or a stop word is longer than
-the JSON writer accepts, refused once the file is open and before a byte is written
-([#1618](https://github.com/CyrilB1531/lodestar/issues/1618)). `ArgumentNullException` for a null stream or path. `IOException` from the stream or file
+**Exceptions** — `InvalidOperationException` when the token pattern or a stop word is beyond what
+the JSON writer can write. `InvalidDataException` when `MinDf` or `MaxDf` is not finite, which the
+constructor does not refuse. Both are refused before a byte is written: once the writer has accepted
+the stream, or once the file is open ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
+[#1622](https://github.com/CyrilB1531/lodestar/issues/1622)). `ArgumentNullException` for a null stream or path. `IOException` from the stream or file
 system.
 
 **Example** — a round trip that carries the settings and nothing else.

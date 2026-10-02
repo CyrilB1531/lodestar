@@ -21,7 +21,7 @@ public sealed partial class CountVectorizer
     /// <c>docs/guides/vectorization.md</c>.
     /// </remarks>
     /// <param name="destination">The stream to write to. It is flushed but never disposed — the caller owns it.</param>
-    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, or a vocabulary term, the token pattern or a stop word is longer than the JSON writer accepts; refused before anything is written.</exception>
+    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write; refused before anything is written.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     public void Save(Stream destination)
@@ -35,7 +35,7 @@ public sealed partial class CountVectorizer
 
     /// <summary>Writes the fitted vectorizer to <paramref name="path"/>, replacing any existing file.</summary>
     /// <remarks>Equivalent to <c>joblib.dump(vectorizer, path)</c>; the file is UTF-8 without a byte-order mark.</remarks>
-    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, or a vocabulary term, the token pattern or a stop word is longer than the JSON writer accepts; refused once the file is open, before its first byte.</exception>
+    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write; refused once the file is open, before its first byte.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     public void Save(string path)
@@ -50,7 +50,7 @@ public sealed partial class CountVectorizer
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
     /// <param name="destination">The stream to write to; never disposed by this method.</param>
     /// <exception cref="ArgumentNullException">the stream is null.</exception>
-    /// <exception cref="InvalidOperationException">nothing has been fitted yet, or a vocabulary term, the token pattern or a stop word is longer than the JSON writer accepts; refused before anything is written.</exception>
+    /// <exception cref="InvalidOperationException">nothing has been fitted yet, or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write; refused before anything is written.</exception>
     /// <exception cref="OperationCanceledException">the token is cancelled.</exception>
     /// <param name="cancellationToken">Cancels the write.</param>
     public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)

@@ -4,9 +4,9 @@ using System.Text.Json;
 namespace Lodestar.Internal.Persistence;
 
 /// <summary>
-/// The save/load skeleton every Lodestar.Text artifact shares: open the object,
-/// write the header, let the artifact write its body, and on the way back read
-/// the whole (byte-capped) payload into one buffer for a single reader pass.
+/// The save/load skeleton every Lodestar artifact shares: open the object, write
+/// the header, let the artifact write its body, and on the way back read the whole
+/// (byte-capped) payload, in one buffer or past it in segments, for a single reader pass.
 /// </summary>
 /// <remarks>
 /// Streams passed in by the caller are never disposed here — the caller owns

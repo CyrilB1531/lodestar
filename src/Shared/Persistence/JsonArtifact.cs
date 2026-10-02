@@ -12,9 +12,8 @@ namespace Lodestar.Internal.Persistence;
 /// exception shapes the public API documents.
 /// </summary>
 /// <remarks>
-/// Artifacts are read in one pass over a single buffer rather than through a
-/// <c>JsonDocument</c> node tree: the buffer is what <c>MaxTotalBytes</c> bounds,
-/// and a <see cref="Utf8JsonReader"/> over it allocates nothing per token.
+/// Artifacts are read in one pass over one buffer, or segments past one array, not a <c>JsonDocument</c>
+/// tree: the bytes are what <c>MaxTotalBytes</c> bounds, and the reader allocates nothing per token.
 /// </remarks>
 internal static class JsonArtifact
 {
@@ -376,33 +375,11 @@ internal static class JsonArtifact
         }
     }
 
-    /// <summary>Asynchronous counterpart of <see cref="ReadAllSegments"/>.</summary>
+    /// <summary>The chain every segmented read builds, and the bounds each applies to it.</summary>
     /// <remarks>
-    /// Same chain, same bounds, same shape: only the read differs, which is why the
-    /// bookkeeping lives in <see cref="SegmentChain"/> rather than twice here. #377 gave
-    /// the synchronous read its ceiling and left this one behind, so the same index loaded
-    /// one way and failed the other (#396).
-    /// </remarks>
-    /// <param name="stream">The stream to read; never disposed here.</param>
-    /// <param name="limits">Bounds applied while reading.</param>
-    /// <param name="cancellationToken">Cancels between reads; a partial chain is discarded.</param>
-    public static async Task<ReadOnlySequence<byte>> ReadAllSegmentsAsync(
-        Stream stream,
-        ArtifactLimits limits,
-        CancellationToken cancellationToken)
-    {
-        Guard.NotNull(stream);
-        CheckDeclaredLength(stream, limits);
-
-        return (await ReadChainAsync(stream, limits, SegmentChain.Large(limits), cancellationToken).ConfigureAwait(false))
-            .Build();
-    }
-
-    /// <summary>The chain both segmented reads build, and the bounds both apply to it.</summary>
-    /// <remarks>
-    /// Extracted so the two reads differ only in their read call. Duplicating the
-    /// accumulate-and-check would be how the synchronous and asynchronous paths drift
-    /// apart again, which is the defect #396 exists to close rather than to repeat.
+    /// Shared so the reads differ only in their read call and their segment sizes. Duplicating
+    /// the accumulate-and-check would be how the synchronous and asynchronous paths drift apart
+    /// again, which is the defect #396 exists to close rather than to repeat.
     /// </remarks>
     private sealed class SegmentChain
     {
@@ -432,12 +409,15 @@ internal static class JsonArtifact
         }
 
         /// <summary>
-        /// For a stream of undeclared length, most of which are small: the copy buffer's length, under the large-object
-        /// heap, doubling to a mebibyte (#1618).
+        /// For a stream of undeclared length, most of which are small: 256 bytes, where the stream the read took
+        /// before started, doubling to a mebibyte, so a tiny artifact costs no more than it did (#1618, #1624).
         /// </summary>
         public static SegmentChain Growing(in ArtifactLimits limits) => new(
-            (int)Math.Min(limits.MaxSingleBuffer, CopyBufferSize),
+            (int)Math.Min(limits.MaxSingleBuffer, FirstGrowingSegment),
             (int)Math.Min(limits.MaxSingleBuffer, GrowableSegmentBytes));
+
+        /// <summary>The first segment a growing read takes, as <see cref="MemoryStream"/>'s first buffer was.</summary>
+        private const int FirstGrowingSegment = 256;
 
         /// <summary>Copies one read into the chain, counting it against <c>MaxTotalBytes</c> first.</summary>
         public void Write(ReadOnlySpan<byte> data, in ArtifactLimits limits)
@@ -811,7 +791,7 @@ internal static class JsonArtifact
     /// <summary>Refuses, before a save's first byte, a string <see cref="WriteText(Utf8JsonWriter, string)"/> cannot write.</summary>
     /// <param name="value">The string a save will write.</param>
     /// <param name="what">What it is, for the message: <c>"A vocabulary term"</c>, <c>"An id"</c>.</param>
-    /// <exception cref="InvalidOperationException">The writer refuses a value that long.</exception>
+    /// <exception cref="InvalidOperationException">The writer cannot write the value, whatever it raises but cancellation.</exception>
     public static void EnsureWritableText(string? value, string what)
     {
         // A null is left to the write, which main reached it at; a short string cannot fail.
@@ -829,10 +809,12 @@ internal static class JsonArtifact
             WriteText(trial, value);
             trial.Flush();
         }
-        catch (Exception e) when (e is ArgumentException or IndexOutOfRangeException or OutOfMemoryException)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
+            // Whatever the writer throws, the save would throw it too, so nothing it raises is left undocumented:
+            // System.Text.Json 10 raised three types here, and its other builds are not measured (#1625).
             throw new InvalidOperationException(
-                $"{what} of {value.Length} characters is longer than the JSON writer accepts; nothing was written.", e);
+                $"{what} of {value.Length} characters could not be written by the JSON writer ({e.GetType().Name}); nothing was written.", e);
         }
     }
 

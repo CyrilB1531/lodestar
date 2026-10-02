@@ -31,7 +31,7 @@ internal static class FeatureVocabularyJson
     }
 
     /// <summary>Refuses, before a save's first byte, a term the writer cannot write (#1618).</summary>
-    /// <exception cref="InvalidOperationException">A term is longer than the JSON writer accepts.</exception>
+    /// <exception cref="InvalidOperationException">A term is beyond what the JSON writer can write.</exception>
     public static void EnsureWritableVocabulary(IReadOnlyList<string> featureNames)
     {
         for (int i = 0; i < featureNames.Count; i++)

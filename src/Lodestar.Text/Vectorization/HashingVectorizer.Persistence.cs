@@ -17,7 +17,8 @@ public sealed partial class HashingVectorizer
     /// configuration still matters: a pipeline reloaded with a different <c>NumFeatures</c>,
     /// <c>AlternateSign</c> or analyzer silently produces different columns for the same document.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">The token pattern or a stop word is longer than the JSON writer accepts; refused before anything is written.</exception>
+    /// <exception cref="InvalidOperationException">The token pattern or a stop word is beyond what the JSON writer can write; refused before anything is written.</exception>
+    /// <exception cref="InvalidDataException">MinDf or MaxDf is not finite, which the constructor does not refuse; refused before anything is written.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     /// <param name="destination">The stream to write to. It is flushed but never disposed — the caller owns it.</param>
@@ -29,7 +30,8 @@ public sealed partial class HashingVectorizer
     }
 
     /// <summary>Writes the vectorizer's configuration to <paramref name="path"/>, replacing any existing file.</summary>
-    /// <exception cref="InvalidOperationException">The token pattern or a stop word is longer than the JSON writer accepts; refused once the file is open, before its first byte.</exception>
+    /// <exception cref="InvalidOperationException">The token pattern or a stop word is beyond what the JSON writer can write; refused once the file is open, before its first byte.</exception>
+    /// <exception cref="InvalidDataException">MinDf or MaxDf is not finite, which the constructor does not refuse; refused once the file is open, before its first byte.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     /// <remarks>Equivalent to <c>joblib.dump(vectorizer, path)</c>; the file is UTF-8 without a byte-order mark.</remarks>
@@ -43,7 +45,8 @@ public sealed partial class HashingVectorizer
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
     /// <param name="destination">The stream to write to; never disposed by this method.</param>
     /// <exception cref="ArgumentNullException">the stream is null.</exception>
-    /// <exception cref="InvalidOperationException">The token pattern or a stop word is longer than the JSON writer accepts; refused before anything is written.</exception>
+    /// <exception cref="InvalidOperationException">The token pattern or a stop word is beyond what the JSON writer can write; refused before anything is written.</exception>
+    /// <exception cref="InvalidDataException">MinDf or MaxDf is not finite, which the constructor does not refuse; refused before anything is written.</exception>
     /// <exception cref="OperationCanceledException">the token is cancelled.</exception>
     /// <param name="cancellationToken">Cancels the write.</param>
     public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)

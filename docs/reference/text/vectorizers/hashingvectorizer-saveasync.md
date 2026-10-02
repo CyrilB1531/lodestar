@@ -13,8 +13,11 @@ write.
 
 **Returns** — `Task`, completing when the options have been written.
 
-**Exceptions** — `InvalidOperationException` when the token pattern or a stop word is longer than
-the JSON writer accepts, refused before anything is written ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618)).
+**Exceptions** — `InvalidOperationException` when the token pattern or a stop word is beyond what
+the JSON writer can write. `InvalidDataException` when `MinDf` or `MaxDf` is not finite, which the
+constructor does not refuse. Both are refused before anything is written
+([#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
+[#1622](https://github.com/CyrilB1531/lodestar/issues/1622)).
 `ArgumentNullException` for a null stream. `OperationCanceledException` when cancelled.
 
 **Example** — the round trip, asynchronously.
