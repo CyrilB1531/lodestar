@@ -21,10 +21,28 @@ internal static class Base64Numbers
     /// <summary>The quotation mark that opens and closes a JSON string value.</summary>
     private const byte Quote = (byte)'"';
 
+    /// <summary>The base64 length of <paramref name="count"/> values of <paramref name="width"/> bytes, in <c>long</c>.</summary>
+    public static long EncodedLength(long count, int width) => ((count * width) + 2) / 3 * 4;
+
+    /// <summary>
+    /// The longest base64 block a save writes through <c>Utf8JsonWriter</c>, two mebibytes under <c>int.MaxValue</c>.
+    /// System.Text.Json 10's writer, flushed before the block, wrote 201,326,561 doubles and failed at 201,326,562
+    /// with <c>OutOfMemoryException</c> (#1618); the margin stands for the writer builds not measured (#1617).
+    /// </summary>
+    private const long BlockCeiling = int.MaxValue - (2 << 20);
+
+    /// <summary>
+    /// Whether <paramref name="count"/> values of <paramref name="width"/> bytes write as one base64 property through
+    /// <c>Utf8JsonWriter</c>: what a save checks of the block before its first byte (#1617). The artifact around it is
+    /// written a mebibyte at a time, so any length (#1618).
+    /// </summary>
+    public static bool WritableAsProperty(long count, int width) => EncodedLength(count, width) <= BlockCeiling;
+
     /// <summary>Writes <paramref name="values"/> as a base64 property.</summary>
     public static void WriteDoubles(Utf8JsonWriter writer, string propertyName, IReadOnlyList<double> values)
     {
-        byte[] raw = new byte[values.Count * sizeof(double)];
+        // Checked, so a caller that skipped WritableAsProperty fails loudly rather than on a wrapped length (#1617).
+        byte[] raw = new byte[checked(values.Count * sizeof(double))];
         for (int i = 0; i < values.Count; i++)
         {
             BinaryPrimitives.WriteInt64LittleEndian(
@@ -73,7 +91,7 @@ internal static class Base64Numbers
             return;
         }
 
-        byte[] raw = new byte[values.Length * sizeof(float)];
+        byte[] raw = new byte[checked(values.Length * sizeof(float))];
         MemoryMarshal.AsBytes(values).CopyTo(raw);
         SwapIfBigEndian32(raw);
         writer.WriteBase64String(propertyName, raw);

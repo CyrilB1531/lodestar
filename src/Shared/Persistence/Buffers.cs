@@ -43,15 +43,44 @@ internal static class Buffers
     internal readonly struct RentedPayload : IDisposable
     {
         private readonly byte[]? _rented;
+        private readonly List<byte[]>? _segments;
 
         private RentedPayload(byte[]? rented, ReadOnlyMemory<byte> memory)
         {
             _rented = rented;
             Memory = memory;
+            Sequence = new ReadOnlySequence<byte>(memory);
         }
 
-        /// <summary>The bytes read, and only those.</summary>
+        private RentedPayload(List<byte[]> segments, ReadOnlySequence<byte> sequence)
+        {
+            _segments = segments;
+            Sequence = sequence;
+        }
+
+        /// <summary>The bytes read, and only those; empty when they are <see cref="IsSegmented"/>.</summary>
         public ReadOnlyMemory<byte> Memory { get; }
+
+        /// <summary>The bytes read as a sequence: one segment, <see cref="Memory"/>, unless <see cref="IsSegmented"/>.</summary>
+        public ReadOnlySequence<byte> Sequence { get; }
+
+        /// <summary>Whether the bytes passed one array, and are read through <see cref="Sequence"/> alone (#1618).</summary>
+        public bool IsSegmented => _segments is not null;
+
+        /// <summary>Takes ownership of <paramref name="segments"/>, every one full but the last, which holds <paramref name="inLast"/> bytes.</summary>
+        public static RentedPayload RentedSegments(List<byte[]> segments, int inLast)
+        {
+            Link? head = null;
+            Link? tail = null;
+            for (int i = 0; i < segments.Count; i++)
+            {
+                var memory = new ReadOnlyMemory<byte>(segments[i], 0, i == segments.Count - 1 ? inLast : segments[i].Length);
+                tail = tail is null ? new Link(memory, 0) : tail.Append(memory);
+                head ??= tail;
+            }
+
+            return new RentedPayload(segments, new ReadOnlySequence<byte>(head!, 0, tail!, tail!.Memory.Length));
+        }
 
         /// <summary>Takes ownership of <paramref name="buffer"/>, exposing its first <paramref name="filled"/> bytes.</summary>
         public static RentedPayload Rented(byte[] buffer, int filled) =>
@@ -68,6 +97,28 @@ internal static class Buffers
             if (_rented is not null)
             {
                 ArrayPool<byte>.Shared.Return(_rented);
+            }
+
+            foreach (byte[] segment in _segments ?? [])
+            {
+                ArrayPool<byte>.Shared.Return(segment);
+            }
+        }
+
+        /// <summary>One link of a segmented payload, which is all <see cref="ReadOnlySequence{T}"/> asks for.</summary>
+        private sealed class Link : ReadOnlySequenceSegment<byte>
+        {
+            public Link(ReadOnlyMemory<byte> memory, long runningIndex)
+            {
+                Memory = memory;
+                RunningIndex = runningIndex;
+            }
+
+            public Link Append(ReadOnlyMemory<byte> memory)
+            {
+                var next = new Link(memory, RunningIndex + Memory.Length);
+                Next = next;
+                return next;
             }
         }
     }

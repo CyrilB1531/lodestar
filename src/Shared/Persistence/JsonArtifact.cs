@@ -62,11 +62,7 @@ internal static class JsonArtifact
     /// </remarks>
     public static void WriteExactDouble(Utf8JsonWriter writer, double value)
     {
-        if (double.IsNaN(value) || double.IsInfinity(value))
-        {
-            throw new InvalidDataException(
-                $"Cannot persist the non-finite value {value.ToString(CultureInfo.InvariantCulture)}: JSON has no representation for it.");
-        }
+        RequirePersistable(value);
 #if NETSTANDARD2_0
         writer.WriteRawValue(value.ToString("G17", CultureInfo.InvariantCulture), skipInputValidation: true);
 #else
@@ -79,6 +75,17 @@ internal static class JsonArtifact
     {
         writer.WritePropertyName(propertyName);
         WriteExactDouble(writer, value);
+    }
+
+    /// <summary>Refuses a value <see cref="WriteExactDouble(Utf8JsonWriter, double)"/> cannot write, in its words.</summary>
+    /// <exception cref="InvalidDataException"><paramref name="value"/> is not finite.</exception>
+    public static void RequirePersistable(double value)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value))
+        {
+            throw new InvalidDataException(
+                $"Cannot persist the non-finite value {value.ToString(CultureInfo.InvariantCulture)}: JSON has no representation for it.");
+        }
     }
 
     /// <summary>Reads <paramref name="stream"/> to its end, failing past <c>MaxTotalBytes</c>.</summary>
@@ -138,8 +145,10 @@ internal static class JsonArtifact
     /// </remarks>
     private static Buffers.RentedPayload ReadGrowablePooled(Stream stream, in ArtifactLimits limits)
     {
+        // Never past the ceiling itself, so a test reaches the chained payload at a few bytes.
+        int segmentBytes = (int)Math.Min(limits.MaxSingleBuffer, GrowableSegmentBytes);
         var segments = new List<byte[]>();
-        byte[]? current = ArrayPool<byte>.Shared.Rent(GrowableSegmentBytes);
+        byte[]? current = ArrayPool<byte>.Shared.Rent(segmentBytes);
         byte[]? payload = null;
         try
         {
@@ -154,7 +163,7 @@ internal static class JsonArtifact
                 if (inCurrent == current.Length)
                 {
                     segments.Add(current);
-                    current = ArrayPool<byte>.Shared.Rent(GrowableSegmentBytes);
+                    current = ArrayPool<byte>.Shared.Rent(segmentBytes);
                     inCurrent = 0;
                 }
             }
@@ -167,10 +176,14 @@ internal static class JsonArtifact
                 return whole;
             }
 
-            // The growable MemoryStream refused past this ceiling too, as "Stream was too long".
-            if (total > ArtifactLimits.DefaultMaxSingleBuffer)
+            // Past one array the rented segments are the payload, unjoined, as ReadWhole hands them over (#1618).
+            if (total > limits.MaxSingleBuffer)
             {
-                throw new IOException($"A {total}-byte artifact from a stream of undeclared length does not fit one buffer.");
+                segments.Add(current);
+                Buffers.RentedPayload chained = Buffers.RentedPayload.RentedSegments(segments, inCurrent);
+                segments = [];
+                current = null;
+                return chained;
             }
 
             payload = ArrayPool<byte>.Shared.Rent((int)total);
@@ -231,7 +244,65 @@ internal static class JsonArtifact
         Guard.NotNull(stream);
         CheckDeclaredLength(stream, limits);
 
-        var chain = new SegmentChain(limits);
+        return ReadChain(stream, limits, SegmentChain.Large(limits)).Build();
+    }
+
+    /// <summary>The whole artifact: one segment where it fits one array, several past it, whatever the stream (#1618).</summary>
+    /// <remarks>
+    /// <see cref="ReadAllBytes"/> stops at one array, which a save writing a list a mebibyte at a time can pass: a seekable
+    /// stream past it is read in large segments, and one of undeclared length in small ones, joined while they fit one.
+    /// </remarks>
+    /// <param name="stream">The stream to read; never disposed here.</param>
+    /// <param name="limits">Bounds applied while reading.</param>
+    public static ReadOnlySequence<byte> ReadWhole(Stream stream, in ArtifactLimits limits)
+    {
+        Guard.NotNull(stream);
+        CheckDeclaredLength(stream, limits);
+
+        if (stream.CanSeek && stream.Length - stream.Position > limits.MaxSingleBuffer)
+        {
+            return ReadChain(stream, limits, SegmentChain.Large(limits)).Build();
+        }
+
+        if (TryReadDeclaredLength(stream, limits.MaxSingleBuffer, pooled: false, out byte[] exact, out int filled))
+        {
+            return new ReadOnlySequence<byte>(exact, 0, filled);
+        }
+
+        return ReadGrowing(stream, limits).BuildJoined(limits.MaxSingleBuffer);
+    }
+
+    /// <summary>Asynchronous counterpart of <see cref="ReadWhole"/>.</summary>
+    /// <param name="stream">The stream to read; never disposed here.</param>
+    /// <param name="limits">Bounds applied while reading.</param>
+    /// <param name="cancellationToken">Cancels between reads.</param>
+    public static async Task<ReadOnlySequence<byte>> ReadWholeAsync(
+        Stream stream,
+        ArtifactLimits limits,
+        CancellationToken cancellationToken)
+    {
+        Guard.NotNull(stream);
+        CheckDeclaredLength(stream, limits);
+
+        if (stream.CanSeek && stream.Length - stream.Position > limits.MaxSingleBuffer)
+        {
+            return (await ReadChainAsync(stream, limits, SegmentChain.Large(limits), cancellationToken).ConfigureAwait(false))
+                .Build();
+        }
+
+        ReadOnlyMemory<byte>? exact = await TryReadDeclaredLengthAsync(stream, limits.MaxSingleBuffer, cancellationToken).ConfigureAwait(false);
+        if (exact is ReadOnlyMemory<byte> payload)
+        {
+            return new ReadOnlySequence<byte>(payload);
+        }
+
+        return (await ReadGrowingAsync(stream, limits, cancellationToken).ConfigureAwait(false))
+            .BuildJoined(limits.MaxSingleBuffer);
+    }
+
+    /// <summary>Reads <paramref name="stream"/> to its end into <paramref name="chain"/>.</summary>
+    private static SegmentChain ReadChain(Stream stream, in ArtifactLimits limits, SegmentChain chain)
+    {
         while (true)
         {
             byte[] block = chain.NextBlock();
@@ -244,11 +315,65 @@ internal static class JsonArtifact
 
             if (!chain.Add(block, filled, limits))
             {
-                break;
+                return chain;
             }
         }
+    }
 
-        return chain.Build();
+    /// <summary>
+    /// Reads a stream of undeclared length to its end a copy buffer at a time, as the read before it did, each read
+    /// counted against <c>MaxTotalBytes</c> as it was, so a refusal names the byte count it named (#1618).
+    /// </summary>
+    private static SegmentChain ReadGrowing(Stream stream, in ArtifactLimits limits)
+    {
+        SegmentChain chain = SegmentChain.Growing(limits);
+        var buffer = new byte[CopyBufferSize];
+        int read;
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            chain.Write(buffer.AsSpan(0, read), limits);
+        }
+
+        return chain;
+    }
+
+    /// <summary>Asynchronous counterpart of <see cref="ReadGrowing"/>.</summary>
+    private static async Task<SegmentChain> ReadGrowingAsync(Stream stream, ArtifactLimits limits, CancellationToken cancellationToken)
+    {
+        SegmentChain chain = SegmentChain.Growing(limits);
+        var buffer = new byte[CopyBufferSize];
+        int read;
+        while ((read = await ReadChunkAsync(stream, buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            chain.Write(buffer.AsSpan(0, read), limits);
+        }
+
+        return chain;
+    }
+
+    /// <summary>Asynchronous counterpart of <see cref="ReadChain"/>.</summary>
+    private static async Task<SegmentChain> ReadChainAsync(
+        Stream stream,
+        ArtifactLimits limits,
+        SegmentChain chain,
+        CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            byte[] block = chain.NextBlock();
+            int filled = 0;
+            int read;
+            while (filled < block.Length
+                && (read = await ReadChunkAsync(stream, block, filled, block.Length - filled, cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                filled += read;
+            }
+
+            if (!chain.Add(block, filled, limits))
+            {
+                return chain;
+            }
+        }
     }
 
     /// <summary>Asynchronous counterpart of <see cref="ReadAllSegments"/>.</summary>
@@ -269,25 +394,8 @@ internal static class JsonArtifact
         Guard.NotNull(stream);
         CheckDeclaredLength(stream, limits);
 
-        var chain = new SegmentChain(limits);
-        while (true)
-        {
-            byte[] block = chain.NextBlock();
-            int filled = 0;
-            int read;
-            while (filled < block.Length
-                && (read = await ReadChunkAsync(stream, block, filled, block.Length - filled, cancellationToken).ConfigureAwait(false)) > 0)
-            {
-                filled += read;
-            }
-
-            if (!chain.Add(block, filled, limits))
-            {
-                break;
-            }
-        }
-
-        return chain.Build();
+        return (await ReadChainAsync(stream, limits, SegmentChain.Large(limits), cancellationToken).ConfigureAwait(false))
+            .Build();
     }
 
     /// <summary>The chain both segmented reads build, and the bounds both apply to it.</summary>
@@ -298,28 +406,81 @@ internal static class JsonArtifact
     /// </remarks>
     private sealed class SegmentChain
     {
-        // Well under the array ceiling, so a segment is always allocatable, and large
-        // enough that even a maximal artifact is a handful of them rather than thousands.
-        private readonly int segmentSize;
+        private readonly int largest;
+        private int next;
+        private long written;
+        private byte[]? open;
+        private int inOpen;
         private Segment? head;
         private Segment? tail;
         private long total;
 
-        public SegmentChain(in ArtifactLimits limits) =>
-            segmentSize = (int)Math.Min(limits.MaxSingleBuffer, 64L * 1024 * 1024);
-
-        public byte[] NextBlock() => new byte[segmentSize];
-
-        /// <summary>Appends what was read, and answers whether the stream may hold more.</summary>
-        public bool Add(byte[] block, int filled, in ArtifactLimits limits)
+        /// <summary>Segments of <paramref name="first"/> bytes, doubling up to <paramref name="largest"/>.</summary>
+        /// <param name="first">The first segment's length.</param>
+        /// <param name="largest">The length segments double up to.</param>
+        private SegmentChain(int first, int largest)
         {
-            if (filled == 0)
+            next = first;
+            this.largest = largest;
+        }
+
+        /// <summary>For a stream known to pass one array: well under the ceiling, and a handful of them rather than thousands.</summary>
+        public static SegmentChain Large(in ArtifactLimits limits)
+        {
+            int size = (int)Math.Min(limits.MaxSingleBuffer, 64L * 1024 * 1024);
+            return new SegmentChain(size, size);
+        }
+
+        /// <summary>
+        /// For a stream of undeclared length, most of which are small: the copy buffer's length, under the large-object
+        /// heap, doubling to a mebibyte (#1618).
+        /// </summary>
+        public static SegmentChain Growing(in ArtifactLimits limits) => new(
+            (int)Math.Min(limits.MaxSingleBuffer, CopyBufferSize),
+            (int)Math.Min(limits.MaxSingleBuffer, GrowableSegmentBytes));
+
+        /// <summary>Copies one read into the chain, counting it against <c>MaxTotalBytes</c> first.</summary>
+        public void Write(ReadOnlySpan<byte> data, in ArtifactLimits limits)
+        {
+            written += data.Length;
+            limits.CheckTotalBytes(written);
+            while (!data.IsEmpty)
             {
-                return false;
+                if (open is null || inOpen == open.Length)
+                {
+                    Seal();
+                    open = NextBlock();
+                }
+
+                int taken = Math.Min(data.Length, open.Length - inOpen);
+                data.Slice(0, taken).CopyTo(open.AsSpan(inOpen));
+                inOpen += taken;
+                data = data.Slice(taken);
+            }
+        }
+
+        public byte[] NextBlock()
+        {
+            var block = new byte[next];
+            next = Math.Min(next * 2, largest);
+            return block;
+        }
+
+        /// <summary>Links the block <see cref="Write"/> fills, if it holds anything.</summary>
+        private void Seal()
+        {
+            if (open is not null && inOpen > 0)
+            {
+                Link(open, inOpen);
             }
 
+            open = null;
+            inOpen = 0;
+        }
+
+        private void Link(byte[] block, int filled)
+        {
             total += filled;
-            limits.CheckTotalBytes(total);
             if (tail is null)
             {
                 head = new Segment(block, filled, 0);
@@ -329,14 +490,48 @@ internal static class JsonArtifact
             {
                 tail = tail.Append(block, filled);
             }
+        }
 
+        /// <summary>Appends what was read, and answers whether the stream may hold more.</summary>
+        public bool Add(byte[] block, int filled, in ArtifactLimits limits)
+        {
+            if (filled == 0)
+            {
+                return false;
+            }
+
+            Link(block, filled);
+            limits.CheckTotalBytes(total);
             return filled == block.Length;
         }
 
-        public ReadOnlySequence<byte> Build() =>
-            head is null
+        public ReadOnlySequence<byte> Build()
+        {
+            Seal();
+            return head is null
                 ? ReadOnlySequence<byte>.Empty
                 : new ReadOnlySequence<byte>(head, 0, tail!, tail!.Memory.Length);
+        }
+
+        /// <summary>The chain copied into one array where it fits one, which the reader parses fastest; else <see cref="Build"/>.</summary>
+        public ReadOnlySequence<byte> BuildJoined(long maxSingleBuffer)
+        {
+            Seal();
+            if (head is null || ReferenceEquals(head, tail) || total > maxSingleBuffer)
+            {
+                return Build();
+            }
+
+            byte[] joined = Buffers.AllocateUninitialized<byte>((int)total);
+            int offset = 0;
+            for (Segment? segment = head; segment is not null; segment = (Segment?)segment.Next)
+            {
+                segment.Memory.Span.CopyTo(joined.AsSpan(offset));
+                offset += segment.Memory.Length;
+            }
+
+            return new ReadOnlySequence<byte>(joined);
+        }
     }
 
     /// <summary>One link of the read's chain, which is all <see cref="ReadOnlySequence{T}"/> asks for.</summary>
@@ -568,12 +763,82 @@ internal static class JsonArtifact
     /// </remarks>
     public static void WriteText(Utf8JsonWriter writer, string value)
     {
+        // A long string goes to a flushed writer, as EnsureWritableText's trial wrote it (#1618).
+        if (value.Length > AlwaysWritableCharacters)
+        {
+            writer.Flush();
+        }
+
         if (!HasLoneSurrogate(value))
         {
             writer.WriteStringValue(value);
             return;
         }
 
+        // Built from the encoder's output and four-digit escapes, so already valid JSON.
+        writer.WriteRawValue(EscapeWithLoneSurrogates(value), skipInputValidation: true);
+    }
+
+    /// <summary>Writes the property <paramref name="propertyName"/> with <paramref name="value"/>, as <see cref="WriteText(Utf8JsonWriter, string)"/> writes it.</summary>
+    public static void WriteText(Utf8JsonWriter writer, string propertyName, string value)
+    {
+        writer.WritePropertyName(propertyName);
+        WriteText(writer, value);
+    }
+
+    /// <summary>
+    /// The longest string written without a trial: at most six ASCII bytes a unit once escaped, 60 MB, far inside
+    /// every ceiling the writer has. System.Text.Json 10 refuses past 166,666,666 characters, a raw value past
+    /// 715,827,882, and failed on 120,000,000 characters each escaped, so a longer string is tried first (#1618).
+    /// </summary>
+    public const int AlwaysWritableCharacters = 10_000_000;
+
+    /// <summary>
+    /// Pending bytes past which <see cref="FlushIfPending"/> hands them to the stream. <see cref="Utf8JsonWriter"/> holds
+    /// everything until told to flush, and refuses to hold much past two gibibytes (#1618).
+    /// </summary>
+    private const int FlushThreshold = 1 << 20;
+
+    /// <summary>Flushes the writer once a mebibyte is pending, so a list of any length is held in memory a mebibyte at a time.</summary>
+    public static void FlushIfPending(Utf8JsonWriter writer)
+    {
+        if (writer.BytesPending >= FlushThreshold)
+        {
+            writer.Flush();
+        }
+    }
+
+    /// <summary>Refuses, before a save's first byte, a string <see cref="WriteText(Utf8JsonWriter, string)"/> cannot write.</summary>
+    /// <param name="value">The string a save will write.</param>
+    /// <param name="what">What it is, for the message: <c>"A vocabulary term"</c>, <c>"An id"</c>.</param>
+    /// <exception cref="InvalidOperationException">The writer refuses a value that long.</exception>
+    public static void EnsureWritableText(string? value, string what)
+    {
+        // A null is left to the write, which main reached it at; a short string cannot fail.
+        if (value is null || value.Length <= AlwaysWritableCharacters)
+        {
+            return;
+        }
+
+        // Written for real into nothing: what the writer refuses depends on the escaped UTF-8, not on the characters.
+        try
+        {
+            using var trial = new Utf8JsonWriter(Stream.Null, WriterOptions);
+            // In an array, as a list writes it; WriteText flushes first, as it does in the save.
+            trial.WriteStartArray();
+            WriteText(trial, value);
+            trial.Flush();
+        }
+        catch (Exception e) when (e is ArgumentException or IndexOutOfRangeException or OutOfMemoryException)
+        {
+            throw new InvalidOperationException(
+                $"{what} of {value.Length} characters is longer than the JSON writer accepts; nothing was written.", e);
+        }
+    }
+
+    /// <summary><paramref name="value"/> as a quoted JSON string, its lone surrogates as four-digit escapes.</summary>
+    private static string EscapeWithLoneSurrogates(string value)
+    {
         var sb = new StringBuilder(value.Length + 16).Append('"');
         int start = 0;
         int i = 0;
@@ -592,16 +857,7 @@ internal static class JsonArtifact
             }
             i++;
         }
-        sb.Append(RelaxedEncoder.Encode(value.Substring(start))).Append('"');
-        // Built from the encoder's output and four-digit escapes, so already valid JSON.
-        writer.WriteRawValue(sb.ToString(), skipInputValidation: true);
-    }
-
-    /// <summary>Writes the property <paramref name="propertyName"/> with <paramref name="value"/>, as <see cref="WriteText(Utf8JsonWriter, string)"/> writes it.</summary>
-    public static void WriteText(Utf8JsonWriter writer, string propertyName, string value)
-    {
-        writer.WritePropertyName(propertyName);
-        WriteText(writer, value);
+        return sb.Append(RelaxedEncoder.Encode(value.Substring(start))).Append('"').ToString();
     }
 
     /// <summary>The current string token's text, an escaped lone surrogate included.</summary>

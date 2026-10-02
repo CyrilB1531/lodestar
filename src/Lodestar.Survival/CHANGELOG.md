@@ -22,6 +22,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- The `AalenSummary` survival-function, percentile, median and expectation predictions document the refusal of rows times event times past one array they inherit from the cumulative hazard, and every Aalen prediction documents its design bounded with any intercept column. ([#1616](https://github.com/CyrilB1531/lodestar/issues/1616))
 - `AcceleratedFailureTime.Fit`, `FitLeftCensored`, `FitIntervalCensored` and `AalenAdditive.Fit` compare the design's length in `long`, where a covariate count wrapping the product let a short design through; they, the Cox fits, `TestProportionalHazards` and the AFT and Aalen predictions bound the design's copy; and the AFT fit refuses a parameter count past one array where it builds its column indices. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - The robust Cox covariance no longer sizes its risk sums one row past the design, which failed to allocate for a stratum as long as the design that one array holds. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - Before .NET 6 — on .NET Framework, .NET Core and .NET 5, and on legacy Mono, held there unmeasured — the refusals of an array past the largest one read those runtimes' bound for elements wider than a byte, `0x7FEFFFFF`, where a count between it and `Array.MaxLength` passed them and failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))

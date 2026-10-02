@@ -112,7 +112,7 @@ public sealed class AalenSummary
     /// <summary>Each subject's cumulative hazard at every event time, lifelines' <c>predict_cumulative_hazard</c>.</summary>
     /// <param name="design">The subjects' covariates, row-major, <see cref="FeatureCount"/> per row; empty for the one subject of a fit with no covariate.</param>
     /// <returns>Row-major, one row per subject and one column per <see cref="EventTimes"/> entry.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or it, or its rows times the event times, is more cells than one array holds.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or it, with any intercept column, or its rows times the event times, is more cells than one array holds.</exception>
     public double[] PredictCumulativeHazard(ReadOnlySpan<double> design)
     {
         double[] x = Rows(design, out int rows);
@@ -138,14 +138,14 @@ public sealed class AalenSummary
     /// <summary>Each subject's survival at every event time, lifelines' <c>predict_survival_function</c>: <c>exp(−H)</c>.</summary>
     /// <param name="design">The subjects' covariates, row-major.</param>
     /// <returns>Row-major, one row per subject and one column per event time.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or is more cells than one array holds.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or it, with any intercept column, or its rows times the event times, is more cells than one array holds.</exception>
     public double[] PredictSurvivalFunction(ReadOnlySpan<double> design) => [.. PredictCumulativeHazard(design).Select(h => Math.Exp(-h))];
 
     /// <summary>The event time at which each subject's survival reaches <paramref name="probability"/>, lifelines' <c>predict_percentile</c>.</summary>
     /// <param name="design">The subjects' covariates, row-major.</param>
     /// <param name="probability">The survival level, in [0, 1]; a half for the median.</param>
     /// <returns>One time per subject, infinity where the last survival is above the level.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or is more cells than one array holds.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or it, with any intercept column, or its rows times the event times, is more cells than one array holds.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="probability"/> lies outside [0, 1].</exception>
     /// <remarks>
     /// The curve need not fall monotonically, an additive hazard's increments having either sign; the time is where
@@ -173,13 +173,13 @@ public sealed class AalenSummary
     /// <summary>Each subject's median, lifelines' <c>predict_median</c>.</summary>
     /// <param name="design">The subjects' covariates, row-major.</param>
     /// <returns>One time per subject.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or is more cells than one array holds.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or it, with any intercept column, or its rows times the event times, is more cells than one array holds.</exception>
     public double[] PredictMedian(ReadOnlySpan<double> design) => PredictPercentile(design, 0.5);
 
     /// <summary>Each subject's expected lifetime, lifelines' <c>predict_expectation</c>: the trapezoid under its survival over the event times.</summary>
     /// <param name="design">The subjects' covariates, row-major.</param>
     /// <returns>One value per subject, from the first event time, not from zero, as lifelines integrates it.</returns>
-    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or is more cells than one array holds.</exception>
+    /// <exception cref="ArgumentException">The design is not whole rows of finite covariates, or it, with any intercept column, or its rows times the event times, is more cells than one array holds.</exception>
     public double[] PredictExpectation(ReadOnlySpan<double> design)
     {
         double[] survival = PredictSurvivalFunction(design);

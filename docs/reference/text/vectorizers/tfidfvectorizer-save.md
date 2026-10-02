@@ -12,8 +12,16 @@ public void Save(string path)
 **Parameters** — `destination` is a writable stream, left open for the caller to dispose; `path`
 is a file to create or overwrite.
 
-**Exceptions** — `InvalidOperationException` when nothing has been fitted yet.
-`ArgumentNullException` for a null stream or path. `IOException` from the stream or file system.
+**Exceptions** — `InvalidOperationException` when nothing has been fitted yet, or when the idf
+weights make a base64 block within two mebibytes of the most the JSON writer holds in one buffer, from
+201,129,984 weights, or when a vocabulary term, the token pattern or a stop word is longer than the
+JSON writer accepts. `InvalidDataException` when an idf weight is not finite. An unfitted vectorizer
+is refused before the path is opened; the rest once the file is open and before a byte is written, so
+a path that opening refuses is refused first, as it always was, and the file is left empty rather
+than half written
+([#1617](https://github.com/CyrilB1531/lodestar/issues/1617),
+[#1618](https://github.com/CyrilB1531/lodestar/issues/1618)). `ArgumentNullException` for a null
+stream or path. `IOException` from the stream or file system.
 
 **Example** — saving and restoring, with the weights intact.
 

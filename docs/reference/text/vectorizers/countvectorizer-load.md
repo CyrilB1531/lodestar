@@ -41,7 +41,9 @@ string first = names[0];  // => cat
 **Remarks** — `options` is the reason this is not a one-line deserialization. A saved vectorizer is
 a file, a file can come from anywhere, and a vocabulary declaring a hundred million entries would
 otherwise be allocated before anything noticed. The bounds are refused rather than truncated, so a
-file that exceeds one is an error rather than a quietly smaller model.
+file that exceeds one is an error rather than a quietly smaller model. An artifact past one array, about 2 GB, which a raised `MaxTotalBytes` lets through, is read in
+segments from any stream rather than refused, so whatever a save wrote, a load reads back
+([#1618](https://github.com/CyrilB1531/lodestar/issues/1618)).
 
 The vocabulary comes back in the order it was saved, so a matrix produced after loading has the
 same column meanings as one produced before.

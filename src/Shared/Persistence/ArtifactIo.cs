@@ -18,10 +18,16 @@ internal static class ArtifactIo
     /// <summary>The brace that closes an artifact, written by hand when the writer cannot.</summary>
     private const byte CloseBrace = (byte)'}';
 
-    public static void Save(Stream destination, string artifact, int version, Action<Utf8JsonWriter> writeBody)
+    /// <param name="destination">The stream to write to; flushed but never disposed.</param>
+    /// <param name="artifact">The artifact kind, for the header.</param>
+    /// <param name="version">The artifact version, for the header.</param>
+    /// <param name="writeBody">Writes every property after the header.</param>
+    /// <param name="check">Run once the writer has accepted the stream and before its first byte, as main's write met them (#1618).</param>
+    public static void Save(Stream destination, string artifact, int version, Action<Utf8JsonWriter> writeBody, Action? check = null)
     {
         Guard.NotNull(destination);
         using var writer = new Utf8JsonWriter(destination, JsonArtifact.WriterOptions);
+        check?.Invoke();
         WriteDocument(writer, artifact, version, writeBody);
         writer.Flush();
     }
@@ -35,26 +41,19 @@ internal static class ArtifactIo
     {
         Guard.NotNull(destination);
 
-        // Utf8JsonWriter flushes synchronously when its buffer fills, so writing
-        // straight to the stream would block despite the await; compose in memory first.
-        using var buffer = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(buffer, JsonArtifact.WriterOptions))
-        {
-            WriteDocument(writer, artifact, version, writeBody);
-            // CA1849 / SonarLint S6966: the destination here is the MemoryStream above, whose
-            // FlushAsync performs no I/O and returns an already-completed task. The
-            // one async call is the write to the caller's stream below.
-#pragma warning disable S6966, CA1849
-            writer.Flush();
-#pragma warning restore S6966, CA1849
-        }
+        // The body writes through a synchronous Utf8JsonWriter; composed in memory, it never
+        // touches the destination, and the copy to it is what the await covers.
+        using var buffer = new SpillBuffer();
+        Compose(buffer, writer => WriteDocument(writer, artifact, version, writeBody));
+        await buffer.CopyOutAsync(destination, cancellationToken).ConfigureAwait(false);
+    }
 
-        byte[] payload = buffer.GetBuffer();
-#if NETSTANDARD2_0
-        await destination.WriteAsync(payload, 0, (int)buffer.Length, cancellationToken).ConfigureAwait(false);
-#else
-        await destination.WriteAsync(payload.AsMemory(0, (int)buffer.Length), cancellationToken).ConfigureAwait(false);
-#endif
+    /// <summary>Writes through a writer over <paramref name="buffer"/>, flushed into it at the end.</summary>
+    private static void Compose(SpillBuffer buffer, Action<Utf8JsonWriter> write)
+    {
+        using var writer = new Utf8JsonWriter(buffer, JsonArtifact.WriterOptions);
+        write(writer);
+        writer.Flush();
     }
 
     /// <summary>
@@ -73,18 +72,21 @@ internal static class ArtifactIo
     /// <param name="writeHead">Writes every property that precedes the block.</param>
     /// <param name="blockProperty">The name of the block's property.</param>
     /// <param name="block">The float block, written as base64 raw little-endian bits.</param>
+    /// <param name="check">Run once the writer has accepted the stream and before its first byte (#1618).</param>
     public static void SaveWithBlock(
         Stream destination,
         string artifact,
         int version,
         Action<Utf8JsonWriter> writeHead,
         string blockProperty,
-        ReadOnlySpan<float> block)
+        ReadOnlySpan<float> block,
+        Action? check = null)
     {
         Guard.NotNull(destination);
 
         using (var writer = new Utf8JsonWriter(destination, JsonArtifact.WriterOptions))
         {
+            check?.Invoke();
             writer.WriteStartObject();
             ArtifactHeader.Write(writer, artifact, version);
             writeHead(writer);
@@ -97,14 +99,27 @@ internal static class ArtifactIo
         destination.Flush();
     }
 
+    /// <summary>Makes, and leaves unwritten, a writer on <paramref name="destination"/>, then runs <paramref name="check"/>.</summary>
+    /// <remarks>
+    /// For an asynchronous save, whose head composes in memory: main wrote it through a writer on the stream, which
+    /// refused one it cannot write, so that refusal still comes before the save's own checks (#1618).
+    /// </remarks>
+    public static void CheckOnWriter(Stream destination, Action check)
+    {
+        // Pointed away before it is disposed, so its flush never reaches the caller's stream.
+        using (var writer = new Utf8JsonWriter(destination, JsonArtifact.WriterOptions))
+        {
+            writer.Reset(Stream.Null);
+        }
+
+        check();
+    }
+
     /// <summary>The asynchronous counterpart of <see cref="SaveWithBlock"/>.</summary>
     /// <remarks>
-    /// No intermediate <see cref="MemoryStream"/>, which the synchronous-flush comment on
-    /// <see cref="SaveAsync"/> is the reason for: the head is small and its one flush is
-    /// bounded, and the block — every byte that makes this artifact large — is written
-    /// through <c>WriteAsync</c> a slice at a time. Before the block was sliced there was
-    /// no bounded flush to rely on, and the artifact was buffered twice, both times by
-    /// doubling.
+    /// The head is composed in memory and copied out, as <see cref="SaveAsync"/> composes a whole artifact, since
+    /// its ids are any length (#1618); the block, every byte that makes this artifact large, is written through
+    /// <c>WriteAsync</c> a slice at a time.
     /// </remarks>
     public static async Task SaveWithBlockAsync(
         Stream destination,
@@ -117,19 +132,16 @@ internal static class ArtifactIo
     {
         Guard.NotNull(destination);
 
-        using (var writer = new Utf8JsonWriter(destination, JsonArtifact.WriterOptions))
+        using (var head = new SpillBuffer())
         {
-            writer.WriteStartObject();
-            ArtifactHeader.Write(writer, artifact, version);
-            writeHead(writer);
-            writer.WritePropertyName(blockProperty);
-            // CA1849 / SonarLint S6966: the head is at most a few hundred KB of ids and
-            // scalars, and this is the only synchronous flush left on the path — the
-            // block below, which is the whole reason an index artifact is large, is
-            // written asynchronously.
-#pragma warning disable S6966, CA1849
-            writer.Flush();
-#pragma warning restore S6966, CA1849
+            Compose(head, writer =>
+            {
+                writer.WriteStartObject();
+                ArtifactHeader.Write(writer, artifact, version);
+                writeHead(writer);
+                writer.WritePropertyName(blockProperty);
+            });
+            await head.CopyOutAsync(destination, cancellationToken).ConfigureAwait(false);
         }
 
         await Base64Numbers.WriteSinglesChunkedAsync(destination, block, cancellationToken).ConfigureAwait(false);

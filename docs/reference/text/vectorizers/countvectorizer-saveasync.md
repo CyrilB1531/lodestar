@@ -13,8 +13,10 @@ write.
 
 **Returns** — `Task`, completing when the vectorizer has been written.
 
-**Exceptions** — `InvalidOperationException` when nothing has been fitted yet.
-`ArgumentNullException` for a null stream. `OperationCanceledException` when cancelled.
+**Exceptions** — `InvalidOperationException` when nothing has been fitted yet, or when a vocabulary
+term, the token pattern or a stop word is longer than the JSON writer accepts; both refused
+before anything is written ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618)). `ArgumentNullException` for a null stream.
+`OperationCanceledException` when cancelled.
 
 **Example** — the same round trip as [`Save`](countvectorizer-save.md), asynchronously.
 

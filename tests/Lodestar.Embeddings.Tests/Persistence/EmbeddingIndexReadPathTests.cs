@@ -1,6 +1,7 @@
 using System.Text;
 using Lodestar.Embeddings.Persistence;
 using Lodestar.Embeddings.Search;
+using Lodestar.Internal.Persistence;
 using Xunit;
 
 namespace Lodestar.Embeddings.Tests.Persistence;
@@ -87,6 +88,86 @@ public sealed class EmbeddingIndexReadPathTests
     }
 
     [Fact]
+    public void A_non_seekable_source_past_one_array_loads_from_its_segments()
+    {
+        // The pooled read handed past one array refused with an IOException; its rented segments are now the payload,
+        // the last of them empty when the stream ends on a boundary (#1618).
+        byte[] artifact = Artifact();
+        byte[] padded = new byte[(artifact.Length + 63) / 64 * 64];
+        artifact.CopyTo(padded, 0);
+        padded.AsSpan(artifact.Length).Fill((byte)' ');
+
+        using var pipe = new UnseekableStream(artifact, chunk: 7);
+        AssertSameIndex(Reference(artifact), EmbeddingIndex.Load(pipe, SixtyFourByteArray));
+        using var boundary = new UnseekableStream(padded);
+        AssertSameIndex(Reference(artifact), EmbeddingIndex.Load(boundary, SixtyFourByteArray));
+    }
+
+    [Fact]
+    public async Task A_non_seekable_source_past_one_array_loads_asynchronously()
+    {
+        // The asynchronous read gathered it in a MemoryStream, which refuses past one array (#1618).
+        byte[] artifact = Artifact();
+
+        using var pipe = new UnseekableStream(artifact, chunk: 7);
+        AssertSameIndex(
+            Reference(artifact),
+            await EmbeddingIndex.LoadAsync(pipe, SixtyFourByteArray, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task A_read_only_stream_is_refused_by_the_writer_first_asynchronously()
+    {
+        // The head composes in memory now; the writer main wrote it through still refuses the stream first (#1618).
+        var index = new EmbeddingIndex(dimension: 1);
+        index.Add([1f], "a");
+        await using var readOnly = new MemoryStream(new byte[16], writable: false);
+        await Assert.ThrowsAsync<ArgumentException>(() => index.SaveAsync(readOnly, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task A_stream_whose_flush_fails_faults_the_task_rather_than_the_call()
+    {
+        // The writer made for the stream's refusal flushes nothing there; the save's own flush fails inside the task.
+        var index = new EmbeddingIndex(dimension: 1);
+        index.Add([1f], "a");
+        var failing = new FailingFlushStream();
+        try
+        {
+            Task save = index.SaveAsync(failing, TestContext.Current.CancellationToken);
+            await Assert.ThrowsAsync<IOException>(() => save);
+        }
+        finally
+        {
+            await failing.DisposeAsync();
+        }
+    }
+
+    /// <summary>A writable stream whose flush always fails.</summary>
+    private sealed class FailingFlushStream : MemoryStream
+    {
+        public override void Flush() => throw new IOException("flush failed");
+
+        public override Task FlushAsync(CancellationToken cancellationToken) => Task.FromException(new IOException("flush failed"));
+    }
+
+    [Fact]
+    public void Ids_reach_the_stream_a_mebibyte_at_a_time()
+    {
+        // 160,000 ids, about 2.6 MB, were held whole until the block; flushed, no write passes a mebibyte and an id (#1618).
+        var index = new EmbeddingIndex(dimension: 1);
+        for (int item = 0; item < 160_000; item++)
+        {
+            index.Add([1f], $"item-{item:D8}");
+        }
+
+        using var recording = new RecordingStream();
+        index.Save(recording);
+        Assert.True(recording.Length > 5 << 19, $"The artifact is {recording.Length} bytes.");
+        Assert.True(recording.Largest < (1 << 20) + 64, $"One write carried {recording.Largest} bytes.");
+    }
+
+    [Fact]
     public void A_source_that_under_declares_its_length_loads_in_full()
     {
         // The fast path sizes its buffer from Length. A stream that reports less
@@ -133,6 +214,35 @@ public sealed class EmbeddingIndexReadPathTests
         AssertSameIndex(
             Reference(Encoding.UTF8.GetBytes(json)),
             EmbeddingIndex.Load(new MemoryStream(Encoding.UTF8.GetBytes(escaped))));
+    }
+
+    /// <summary>The limits a default load applies, its one-array ceiling brought down to 64 bytes.</summary>
+    private static readonly ArtifactLimits SixtyFourByteArray = new(
+        ArtifactLimits.DefaultMaxVocabularySize,
+        ArtifactLimits.DefaultMaxTokenLength,
+        ArtifactLimits.DefaultMaxJsonDepth,
+        ArtifactLimits.DefaultMaxTotalBytes,
+        ArtifactLimits.DefaultMaxArrayLength,
+        maxSingleBuffer: 64);
+
+    /// <summary>A memory stream that keeps the largest single write it was handed.</summary>
+    private sealed class RecordingStream : MemoryStream
+    {
+        public int Largest { get; private set; }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            Largest = Math.Max(Largest, count);
+            base.Write(buffer, offset, count);
+        }
+
+#if !NETFRAMEWORK
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            Largest = Math.Max(Largest, buffer.Length);
+            base.Write(buffer);
+        }
+#endif
     }
 
     /// <summary>

@@ -25,13 +25,22 @@ internal static class FeatureVocabularyJson
         for (int i = 0; i < featureNames.Count; i++)
         {
             JsonArtifact.WriteText(writer, featureNames[i]);
+            JsonArtifact.FlushIfPending(writer);
         }
         writer.WriteEndArray();
     }
 
-    /// <summary>
-    /// Writes the idf vector as one base64 string of raw little-endian IEEE-754 bits.
-    /// </summary>
+    /// <summary>Refuses, before a save's first byte, a term the writer cannot write (#1618).</summary>
+    /// <exception cref="InvalidOperationException">A term is longer than the JSON writer accepts.</exception>
+    public static void EnsureWritableVocabulary(IReadOnlyList<string> featureNames)
+    {
+        for (int i = 0; i < featureNames.Count; i++)
+        {
+            JsonArtifact.EnsureWritableText(featureNames[i], "A vocabulary term");
+        }
+    }
+
+    /// <summary>Writes the idf vector as base64 of its little-endian bits, once <see cref="EnsureWritableIdf"/> passed.</summary>
     /// <remarks>
     /// The vocabulary stays plain text, because that is the half of an artifact a
     /// human reads; the idf vector does not, because nobody reads thirty thousand
@@ -41,18 +50,44 @@ internal static class FeatureVocabularyJson
     /// </remarks>
     public static void WriteIdf(Utf8JsonWriter writer, IReadOnlyList<double> idf)
     {
+        // Checked again as written: weights changed since the save's own check still never reach the file.
+        RequireFinite(idf);
+        // Flushed first, so the block has the writer's buffer to itself, as WritableAsProperty counts it (#1618).
+        writer.Flush();
+        Base64Numbers.WriteDoubles(writer, IdfProperty, idf);
+    }
+
+    /// <summary>Refuses idf weights no artifact can hold; every save runs it before its first byte.</summary>
+    /// <exception cref="InvalidDataException">A weight is not finite.</exception>
+    /// <exception cref="InvalidOperationException">The weights' base64 block comes within two mebibytes of the most the JSON writer holds in one buffer.</exception>
+    public static void EnsureWritableIdf(IReadOnlyList<double> idf)
+    {
+        RequireFinite(idf);
+
+        // The block after the weights, so a model both would refuse is refused for its weights. A longer block failed
+        // partway through the artifact (#1617).
+        if (!Base64Numbers.WritableAsProperty(idf.Count, sizeof(double)))
+        {
+            throw new InvalidOperationException(
+                $"{idf.Count} idf weights make a base64 block of {Base64Numbers.EncodedLength(idf.Count, sizeof(double))} "
+                + "characters, within two mebibytes of the most the JSON writer holds in one buffer.");
+        }
+    }
+
+    /// <summary>Refuses a non-finite weight: JSON has no NaN or infinity, and a model carrying one is broken already.</summary>
+    /// <exception cref="InvalidDataException">A weight is not finite.</exception>
+    private static void RequireFinite(IReadOnlyList<double> idf)
+    {
         for (int i = 0; i < idf.Count; i++)
         {
             double value = idf[i];
-            // Refused before write: JSON has no NaN/infinity, and a model carrying
-            // one is broken already (0011-persistence-format.md, "Doubles").
+            // Decision 0001's "non-finite values": refused on write, and again on read.
             if (double.IsNaN(value) || double.IsInfinity(value))
             {
                 throw new InvalidDataException(
                     $"Cannot persist a non-finite idf weight at index {i}: the model is broken before it reaches the file.");
             }
         }
-        Base64Numbers.WriteDoubles(writer, IdfProperty, idf);
     }
 
     /// <summary>Reads and bounds-checks the declared feature count.</summary>
@@ -117,8 +152,8 @@ internal static class FeatureVocabularyJson
         double[] values = Base64Numbers.ReadDoubles(ref reader, artifact, IdfProperty, limits);
         for (int i = 0; i < values.Length; i++)
         {
-            // Checked on read too, matching the write-side refusal (see WriteIdf,
-            // and 0011-persistence-format.md's "Doubles" section, for why).
+            // Checked on read too, matching the write-side refusal (see EnsureWritableIdf,
+            // and decision 0001's "non-finite values" row, for why).
             if (double.IsNaN(values[i]) || double.IsInfinity(values[i]))
             {
                 throw JsonArtifact.Inconsistent(

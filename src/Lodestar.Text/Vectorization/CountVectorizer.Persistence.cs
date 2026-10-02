@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text.Json;
 using Lodestar.Internal.Persistence;
 using Lodestar.Text.Persistence;
@@ -20,39 +21,60 @@ public sealed partial class CountVectorizer
     /// <c>docs/guides/vectorization.md</c>.
     /// </remarks>
     /// <param name="destination">The stream to write to. It is flushed but never disposed — the caller owns it.</param>
-    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted.</exception>
+    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, or a vocabulary term, the token pattern or a stop word is longer than the JSON writer accepts; refused before anything is written.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     public void Save(Stream destination)
     {
         Guard.NotNull(destination);
-        // Before the header: past it, a refusal leaves partial JSON in the caller's stream.
+        // Before the header: past it, a refusal leaves partial JSON in the caller's stream. The strings once the writer
+        // has accepted the stream, which refused a read-only one first on main (#1618).
         EnsureFitted();
-        ArtifactIo.Save(destination, ArtifactName, ArtifactVersion, WriteArtifactBody);
+        ArtifactIo.Save(destination, ArtifactName, ArtifactVersion, WriteArtifactBody, EnsureWritable);
     }
 
     /// <summary>Writes the fitted vectorizer to <paramref name="path"/>, replacing any existing file.</summary>
     /// <remarks>Equivalent to <c>joblib.dump(vectorizer, path)</c>; the file is UTF-8 without a byte-order mark.</remarks>
-    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted.</exception>
+    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, or a vocabulary term, the token pattern or a stop word is longer than the JSON writer accepts; refused once the file is open, before its first byte.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     public void Save(string path)
     {
-        // Checked before opening: OpenWrite truncates, so a check any later would
-        // destroy a good artifact and leave a half-written header behind.
+        // Fitted before opening, as main checked it; the strings once the file is open and before its first byte, where
+        // main's write failed on them, so a path opening refuses keeps its place (#1618).
         EnsureFitted();
         using FileStream file = JsonArtifact.OpenWrite(path);
-        Save(file);
+        ArtifactIo.Save(file, ArtifactName, ArtifactVersion, WriteArtifactBody, EnsureWritable);
     }
 
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
     /// <param name="destination">The stream to write to; never disposed by this method.</param>
     /// <exception cref="ArgumentNullException">the stream is null.</exception>
-    /// <exception cref="InvalidOperationException">nothing has been fitted yet.</exception>
+    /// <exception cref="InvalidOperationException">nothing has been fitted yet, or a vocabulary term, the token pattern or a stop word is longer than the JSON writer accepts; refused before anything is written.</exception>
     /// <exception cref="OperationCanceledException">the token is cancelled.</exception>
     /// <param name="cancellationToken">Cancels the write.</param>
-    public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) =>
-        ArtifactIo.SaveAsync(destination, ArtifactName, ArtifactVersion, WriteArtifactBody, cancellationToken);
+    public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)
+    {
+        // The stream first, as Save(Stream) checks it; inside the task, where every refusal here has surfaced (#1618).
+        Guard.NotNull(destination);
+        EnsureSavable();
+        await ArtifactIo.SaveAsync(destination, ArtifactName, ArtifactVersion, WriteArtifactBody, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>Throws unless the fitted model can be written whole, every string checked before any byte (#1618).</summary>
+    private void EnsureSavable()
+    {
+        EnsureFitted();
+        EnsureWritable();
+    }
+
+    /// <summary>Throws unless every string the artifact holds can be written.</summary>
+    private void EnsureWritable()
+    {
+        VectorizerOptionsJson.EnsureWritable(_options);
+        FeatureVocabularyJson.EnsureWritableVocabulary(_featureNames);
+    }
 
     /// <summary>
     /// Reads a vectorizer previously written by <see cref="Save(Stream)"/>, ready
@@ -68,11 +90,12 @@ public sealed partial class CountVectorizer
     /// <param name="options">Bounds applied while reading, or <c>null</c> for the defaults.</param>
     /// <exception cref="InvalidDataException">The artifact is malformed, of the wrong kind, of an unsupported version, or exceeds a limit.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
-    public static CountVectorizer Load(Stream source, ArtifactLoadOptions? options = null)
-    {
-        ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
-        return FromPayload(JsonArtifact.ReadAllBytes(source, limits), limits);
-    }
+    public static CountVectorizer Load(Stream source, ArtifactLoadOptions? options = null) =>
+        Load(source, ArtifactLoadOptions.LimitsOf(options));
+
+    /// <summary>The read, on limits already resolved: the seam a test reaches the segmented read from (#1618).</summary>
+    internal static CountVectorizer Load(Stream source, in ArtifactLimits limits) =>
+        FromPayload(JsonArtifact.ReadWhole(source, limits), limits);
 
     /// <summary>Reads a vectorizer from <paramref name="path"/>.</summary>
     /// <param name="path">The artifact file, as written by <see cref="Save(string)"/>.</param>
@@ -95,10 +118,13 @@ public sealed partial class CountVectorizer
     public static async Task<CountVectorizer> LoadAsync(
         Stream source,
         ArtifactLoadOptions? options = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        await LoadAsync(source, ArtifactLoadOptions.LimitsOf(options), cancellationToken).ConfigureAwait(false);
+
+    /// <summary>The asynchronous read, on limits already resolved: the seam a test drives (#1618).</summary>
+    internal static async Task<CountVectorizer> LoadAsync(Stream source, ArtifactLimits limits, CancellationToken cancellationToken)
     {
-        ArtifactLimits limits = ArtifactLoadOptions.LimitsOf(options);
-        ReadOnlyMemory<byte> payload = await JsonArtifact.ReadAllBytesAsync(source, limits, cancellationToken).ConfigureAwait(false);
+        ReadOnlySequence<byte> payload = await JsonArtifact.ReadWholeAsync(source, limits, cancellationToken).ConfigureAwait(false);
         return FromPayload(payload, limits);
     }
 
@@ -132,7 +158,7 @@ public sealed partial class CountVectorizer
         FeatureVocabularyJson.WriteVocabulary(writer, _featureNames);
     }
 
-    private static CountVectorizer FromPayload(ReadOnlyMemory<byte> payload, in ArtifactLimits limits)
+    private static CountVectorizer FromPayload(ReadOnlySequence<byte> payload, in ArtifactLimits limits)
     {
         try
         {
@@ -144,9 +170,9 @@ public sealed partial class CountVectorizer
         }
     }
 
-    private static CountVectorizer Parse(ReadOnlyMemory<byte> payload, in ArtifactLimits limits)
+    private static CountVectorizer Parse(ReadOnlySequence<byte> payload, in ArtifactLimits limits)
     {
-        Utf8JsonReader reader = ArtifactIo.CreateReader(payload.Span, ArtifactName, limits);
+        Utf8JsonReader reader = ArtifactIo.CreateReader(payload, ArtifactName, limits);
         var header = new ArtifactHeader(ArtifactName, ArtifactVersion);
 
         CountVectorizerOptions? options = null;
