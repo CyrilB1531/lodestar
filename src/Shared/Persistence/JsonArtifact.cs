@@ -249,7 +249,8 @@ internal static class JsonArtifact
     /// <summary>The whole artifact: one segment where it fits one array, several past it, whatever the stream (#1618).</summary>
     /// <remarks>
     /// <see cref="ReadAllBytes"/> stops at one array, which a save writing a list a mebibyte at a time can pass: a seekable
-    /// stream past it is read in large segments, and one of undeclared length in small ones, joined while they fit one.
+    /// stream past it is read in large segments, and one of undeclared length into one array grown as a
+    /// <see cref="MemoryStream"/> grows its buffer, mebibyte segments following only past one array (#1629).
     /// </remarks>
     /// <param name="stream">The stream to read; never disposed here.</param>
     /// <param name="limits">Bounds applied while reading.</param>
@@ -268,7 +269,7 @@ internal static class JsonArtifact
             return new ReadOnlySequence<byte>(exact, 0, filled);
         }
 
-        return ReadGrowing(stream, limits).BuildJoined(limits.MaxSingleBuffer);
+        return ReadGrowing(stream, limits).Build();
     }
 
     /// <summary>Asynchronous counterpart of <see cref="ReadWhole"/>.</summary>
@@ -296,7 +297,7 @@ internal static class JsonArtifact
         }
 
         return (await ReadGrowingAsync(stream, limits, cancellationToken).ConfigureAwait(false))
-            .BuildJoined(limits.MaxSingleBuffer);
+            .Build();
     }
 
     /// <summary>Reads <paramref name="stream"/> to its end into <paramref name="chain"/>.</summary>
@@ -384,6 +385,7 @@ internal static class JsonArtifact
     private sealed class SegmentChain
     {
         private readonly int largest;
+        private readonly int firstLargest;
         private int next;
         private long written;
         private byte[]? open;
@@ -395,10 +397,12 @@ internal static class JsonArtifact
         /// <summary>Segments of <paramref name="first"/> bytes, doubling up to <paramref name="largest"/>.</summary>
         /// <param name="first">The first segment's length.</param>
         /// <param name="largest">The length segments double up to.</param>
-        private SegmentChain(int first, int largest)
+        /// <param name="firstLargest">How far a growing chain's first segment grows before another is linked.</param>
+        private SegmentChain(int first, int largest, int firstLargest = 0)
         {
             next = first;
             this.largest = largest;
+            this.firstLargest = firstLargest;
         }
 
         /// <summary>For a stream known to pass one array: well under the ceiling, and a handful of them rather than thousands.</summary>
@@ -409,14 +413,17 @@ internal static class JsonArtifact
         }
 
         /// <summary>
-        /// For a stream of undeclared length, most of which are small: 256 bytes, where the stream the read took
-        /// before started, doubling to a mebibyte, so a tiny artifact costs no more than it did (#1618, #1624).
+        /// For a stream of undeclared length, most of which are small. Its first segment grows as the
+        /// <see cref="MemoryStream"/> the read used before did, up to one array, so an artifact that fits one is handed
+        /// over uncopied, as there; past it, mebibyte segments (#1618, #1624, #1629).
         /// </summary>
-        public static SegmentChain Growing(in ArtifactLimits limits) => new(
-            (int)Math.Min(limits.MaxSingleBuffer, FirstGrowingSegment),
-            (int)Math.Min(limits.MaxSingleBuffer, GrowableSegmentBytes));
+        public static SegmentChain Growing(in ArtifactLimits limits)
+        {
+            int largest = (int)Math.Min(limits.MaxSingleBuffer, GrowableSegmentBytes);
+            return new SegmentChain(largest, largest, (int)Math.Min(limits.MaxSingleBuffer, ArtifactLimits.DefaultMaxSingleBuffer));
+        }
 
-        /// <summary>The first segment a growing read takes, as <see cref="MemoryStream"/>'s first buffer was.</summary>
+        /// <summary>The least a first segment takes, as <see cref="MemoryStream"/>'s first buffer did.</summary>
         private const int FirstGrowingSegment = 256;
 
         /// <summary>Copies one read into the chain, counting it against <c>MaxTotalBytes</c> first.</summary>
@@ -428,8 +435,7 @@ internal static class JsonArtifact
             {
                 if (open is null || inOpen == open.Length)
                 {
-                    Seal();
-                    open = NextBlock();
+                    open = MakeRoom(data.Length);
                 }
 
                 int taken = Math.Min(data.Length, open.Length - inOpen);
@@ -437,6 +443,26 @@ internal static class JsonArtifact
                 inOpen += taken;
                 data = data.Slice(taken);
             }
+        }
+
+        /// <summary>
+        /// Room for <paramref name="pending"/> more bytes. Before any segment is linked, the open one grows as
+        /// <see cref="MemoryStream"/>'s buffer does, to the larger of what is pending, twice its length and 256 bytes,
+        /// up to one array; past that, the full one is linked and a mebibyte one opened.
+        /// </summary>
+        private byte[] MakeRoom(int pending)
+        {
+            int length = open?.Length ?? 0;
+            if (head is null && length < firstLargest)
+            {
+                long wanted = Math.Max(Math.Max((long)inOpen + pending, 2L * length), FirstGrowingSegment);
+                byte[] grown = open ?? [];
+                Array.Resize(ref grown, (int)Math.Min(wanted, firstLargest));
+                return grown;
+            }
+
+            Seal();
+            return new byte[largest];
         }
 
         public byte[] NextBlock()
@@ -491,26 +517,6 @@ internal static class JsonArtifact
             return head is null
                 ? ReadOnlySequence<byte>.Empty
                 : new ReadOnlySequence<byte>(head, 0, tail!, tail!.Memory.Length);
-        }
-
-        /// <summary>The chain copied into one array where it fits one, which the reader parses fastest; else <see cref="Build"/>.</summary>
-        public ReadOnlySequence<byte> BuildJoined(long maxSingleBuffer)
-        {
-            Seal();
-            if (head is null || ReferenceEquals(head, tail) || total > maxSingleBuffer)
-            {
-                return Build();
-            }
-
-            byte[] joined = Buffers.AllocateUninitialized<byte>((int)total);
-            int offset = 0;
-            for (Segment? segment = head; segment is not null; segment = (Segment?)segment.Next)
-            {
-                segment.Memory.Span.CopyTo(joined.AsSpan(offset));
-                offset += segment.Memory.Length;
-            }
-
-            return new ReadOnlySequence<byte>(joined);
         }
     }
 

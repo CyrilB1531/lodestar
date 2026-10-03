@@ -35,7 +35,7 @@ public sealed partial class CountVectorizer
 
     /// <summary>Writes the fitted vectorizer to <paramref name="path"/>, replacing any existing file.</summary>
     /// <remarks>Equivalent to <c>joblib.dump(vectorizer, path)</c>; the file is UTF-8 without a byte-order mark.</remarks>
-    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write; refused once the file is open, before its first byte.</exception>
+    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, refused before the path is opened; or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write, refused once the file is open, before its first byte.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     public void Save(string path)
