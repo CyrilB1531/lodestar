@@ -3,9 +3,10 @@ namespace Lodestar.Internal.Persistence;
 /// <summary>A write-only stream an asynchronous save composes into, in chunks, before copying them out.</summary>
 /// <remarks>
 /// <see cref="MemoryStream"/> refuses past <c>int.MaxValue</c> bytes, "Stream was too long", where a save writing its
-/// lists a mebibyte at a time writes any length: chunks have no such ceiling. The first grows as that stream's buffer
-/// did — to what a write needs, at least twice its length and 256 bytes — up to a mebibyte, so an artifact under one
-/// makes the one write it did (#1618, #1623); past it, each mebibyte is a chunk of its own.
+/// lists a mebibyte at a time writes any length: chunks have no such ceiling. The last grows as that stream's buffer
+/// did — to what a write needs, at least twice its length and 256 bytes — while it holds less than a mebibyte; past
+/// that a new one starts at what the next write needs. An artifact under a mebibyte is then one chunk and one write,
+/// and a longer one costs no more than that stream did, a write a mebibyte or so where it made one (#1623, #1633).
 /// </remarks>
 internal sealed class SpillBuffer : Stream
 {
@@ -69,32 +70,28 @@ internal sealed class SpillBuffer : Stream
     }
 
     /// <summary>
-    /// Makes room for <paramref name="pending"/> more bytes once the last chunk is full. The first grows as
-    /// <see cref="MemoryStream"/>'s buffer does, to the larger of what the write needs, twice its length and 256 bytes,
-    /// up to a mebibyte, so one flush of the writer is one allocation, as there; past it, a new mebibyte chunk.
+    /// Makes room for <paramref name="pending"/> more bytes once the last chunk is full. While it holds less than a
+    /// mebibyte it grows as <see cref="MemoryStream"/>'s buffer does, to the larger of what the write needs, twice its
+    /// length and 256 bytes, up to one array; past that, a new chunk starts, sized the same way from nothing.
     /// </summary>
     private void Grow(int pending)
     {
-        if (_chunks.Count == 0 || (_chunks.Count == 1 && _chunks[0].Length < LargestChunkBytes))
+        int last = _chunks.Count - 1;
+        if (last >= 0 && _chunks[last].Length < LargestChunkBytes)
         {
-            byte[] first = _chunks.Count == 0 ? [] : _chunks[0];
-            long wanted = Math.Max(Math.Max((long)_inLast + pending, 2L * first.Length), FirstChunkBytes);
-            Array.Resize(ref first, (int)Math.Min(wanted, LargestChunkBytes));
-            if (_chunks.Count == 0)
-            {
-                _chunks.Add(first);
-            }
-            else
-            {
-                _chunks[0] = first;
-            }
-
+            byte[] grown = _chunks[last];
+            Array.Resize(ref grown, Sized(_inLast + (long)pending, grown.Length));
+            _chunks[last] = grown;
             return;
         }
 
-        _chunks.Add(new byte[LargestChunkBytes]);
+        _chunks.Add(new byte[Sized(pending, 0)]);
         _inLast = 0;
     }
+
+    /// <summary><see cref="MemoryStream"/>'s capacity rule: what is needed, at least twice the length and 256 bytes, up to one array.</summary>
+    private static int Sized(long needed, int length) =>
+        (int)Math.Min(Math.Max(Math.Max(needed, 2L * length), FirstChunkBytes), TableLength.MaxByteLength);
 
     /// <summary>The bytes chunk <paramref name="index"/> holds: all of it, but for the last.</summary>
     private int Count(int index) => index == _chunks.Count - 1 ? _inLast : _chunks[index].Length;

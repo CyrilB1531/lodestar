@@ -118,17 +118,22 @@ public sealed class EmbeddingIndexReadPathTests
     [Fact]
     public async Task A_read_only_stream_is_refused_by_the_writer_first_asynchronously()
     {
-        // The head composes in memory now; the writer main wrote it through still refuses the stream first (#1618).
+        // The head goes through a writer on the stream, which refuses a read-only one ahead of a non-finite vector, as
+        // 0.8.0 did, synchronously and through the task (#1618, #1633).
         var index = new EmbeddingIndex(dimension: 1);
-        index.Add([1f], "a");
+        index.Add([float.NaN], "a");
         await using var readOnly = new MemoryStream(new byte[16], writable: false);
-        await Assert.ThrowsAsync<ArgumentException>(() => index.SaveAsync(readOnly, TestContext.Current.CancellationToken));
+        Assert.Equal(typeof(ArgumentException), SyncRefusal(index, readOnly).GetType());
+        Assert.Equal(
+            typeof(ArgumentException),
+            (await Assert.ThrowsAnyAsync<ArgumentException>(() => index.SaveAsync(readOnly, TestContext.Current.CancellationToken))).GetType());
     }
 
     [Fact]
     public async Task A_stream_whose_flush_fails_faults_the_task_rather_than_the_call()
     {
-        // The writer made for the stream's refusal flushes nothing there; the save's own flush fails inside the task.
+        // The head's writer flushes asynchronously and is pointed away before it is disposed, so the failing flush is the
+        // task's, never a synchronous one in the call.
         var index = new EmbeddingIndex(dimension: 1);
         index.Add([1f], "a");
         var failing = new FailingFlushStream();
@@ -176,6 +181,50 @@ public sealed class EmbeddingIndexReadPathTests
 
     private static InvalidOperationException SaveRefusal(EmbeddingIndex index, Stream stream) =>
         Assert.Throws<InvalidOperationException>(() => index.Save(stream));
+
+    [Fact]
+    public async Task An_asynchronous_save_writes_a_long_head_as_it_goes()
+    {
+        // 160,000 ids, a head of about 2.6 MB, flushed through the writer on the stream a mebibyte at a time; composed
+        // whole in memory before being copied out, it cost 5,318,944 bytes; the bytes are the synchronous save's (#1635).
+        var index = new EmbeddingIndex(dimension: 1);
+        for (int item = 0; item < 160_000; item++)
+        {
+            index.Add([1f], $"item-{item:D8}");
+        }
+
+        byte[] expected = SaveBytes(index);
+        var buffered = new MemoryStream();
+        try
+        {
+            await index.SaveAsync(buffered, TestContext.Current.CancellationToken);
+            Assert.Equal(expected, buffered.ToArray());
+        }
+        finally
+        {
+            await buffered.DisposeAsync();
+        }
+
+        // Into a stream that keeps nothing, so what is counted is the save's own.
+        await index.SaveAsync(Stream.Null, TestContext.Current.CancellationToken);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        await index.SaveAsync(Stream.Null, TestContext.Current.CancellationToken);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(allocated < HeadBound, $"{allocated} bytes allocated for {expected.Length}.");
+    }
+
+    /// <summary>What the long-head save may allocate: 2,172,784 measured, where composing the head whole took 5,318,944 (#1635).</summary>
+    private const long HeadBound = 3_000_000;
+
+    private static Exception SyncRefusal(EmbeddingIndex index, Stream stream) =>
+        Assert.ThrowsAny<Exception>(() => index.Save(stream));
+
+    private static byte[] SaveBytes(EmbeddingIndex index)
+    {
+        using var stream = new MemoryStream();
+        index.Save(stream);
+        return stream.ToArray();
+    }
 
     [Fact]
     public void Ids_reach_the_stream_a_mebibyte_at_a_time()

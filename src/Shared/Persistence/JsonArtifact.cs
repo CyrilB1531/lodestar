@@ -386,7 +386,6 @@ internal static class JsonArtifact
     {
         private readonly int largest;
         private readonly int firstLargest;
-        private int next;
         private long written;
         private byte[]? open;
         private int inOpen;
@@ -394,13 +393,11 @@ internal static class JsonArtifact
         private Segment? tail;
         private long total;
 
-        /// <summary>Segments of <paramref name="first"/> bytes, doubling up to <paramref name="largest"/>.</summary>
-        /// <param name="first">The first segment's length.</param>
-        /// <param name="largest">The length segments double up to.</param>
-        /// <param name="firstLargest">How far a growing chain's first segment grows before another is linked.</param>
-        private SegmentChain(int first, int largest, int firstLargest = 0)
+        /// <summary>Segments of <paramref name="largest"/> bytes; a growing chain's first grows instead, up to <paramref name="firstLargest"/>.</summary>
+        /// <param name="largest">Every segment's length, but a growing chain's first.</param>
+        /// <param name="firstLargest">The most a growing chain's first segment grows to: one array.</param>
+        private SegmentChain(int largest, int firstLargest = 0)
         {
-            next = first;
             this.largest = largest;
             this.firstLargest = firstLargest;
         }
@@ -408,20 +405,17 @@ internal static class JsonArtifact
         /// <summary>For a stream known to pass one array: well under the ceiling, and a handful of them rather than thousands.</summary>
         public static SegmentChain Large(in ArtifactLimits limits)
         {
-            int size = (int)Math.Min(limits.MaxSingleBuffer, 64L * 1024 * 1024);
-            return new SegmentChain(size, size);
+            return new SegmentChain((int)Math.Min(limits.MaxSingleBuffer, 64L * 1024 * 1024));
         }
 
         /// <summary>
         /// For a stream of undeclared length, most of which are small. Its first segment grows as the
-        /// <see cref="MemoryStream"/> the read used before did, up to one array, so an artifact that fits one is handed
-        /// over uncopied, as there; past it, mebibyte segments (#1618, #1624, #1629).
+        /// <see cref="MemoryStream"/> the read used before did until it holds a mebibyte, so an artifact it holds is one
+        /// array handed over uncopied, as there; past it, mebibyte segments, where that stream doubled (#1624, #1629, #1634).
         /// </summary>
-        public static SegmentChain Growing(in ArtifactLimits limits)
-        {
-            int largest = (int)Math.Min(limits.MaxSingleBuffer, GrowableSegmentBytes);
-            return new SegmentChain(largest, largest, (int)Math.Min(limits.MaxSingleBuffer, ArtifactLimits.DefaultMaxSingleBuffer));
-        }
+        public static SegmentChain Growing(in ArtifactLimits limits) => new(
+            (int)Math.Min(limits.MaxSingleBuffer, GrowableSegmentBytes),
+            (int)Math.Min(limits.MaxSingleBuffer, ArtifactLimits.DefaultMaxSingleBuffer));
 
         /// <summary>The least a first segment takes, as <see cref="MemoryStream"/>'s first buffer did.</summary>
         private const int FirstGrowingSegment = 256;
@@ -431,6 +425,15 @@ internal static class JsonArtifact
         {
             written += data.Length;
             limits.CheckTotalBytes(written);
+
+            // The common read, which the open segment holds: one copy and no loop, as MemoryStream's write (#1636).
+            if (open is not null && data.Length <= open.Length - inOpen)
+            {
+                data.CopyTo(open.AsSpan(inOpen));
+                inOpen += data.Length;
+                return;
+            }
+
             while (!data.IsEmpty)
             {
                 if (open is null || inOpen == open.Length)
@@ -446,14 +449,14 @@ internal static class JsonArtifact
         }
 
         /// <summary>
-        /// Room for <paramref name="pending"/> more bytes. Before any segment is linked, the open one grows as
-        /// <see cref="MemoryStream"/>'s buffer does, to the larger of what is pending, twice its length and 256 bytes,
-        /// up to one array; past that, the full one is linked and a mebibyte one opened.
+        /// Room for <paramref name="pending"/> more bytes. Before any segment is linked and while the open one holds less
+        /// than a segment, it grows as <see cref="MemoryStream"/>'s buffer does, to the larger of what is pending, twice
+        /// its length and 256 bytes, up to one array; past that, the full one is linked and a segment opened.
         /// </summary>
         private byte[] MakeRoom(int pending)
         {
             int length = open?.Length ?? 0;
-            if (head is null && length < firstLargest)
+            if (head is null && length < largest)
             {
                 long wanted = Math.Max(Math.Max((long)inOpen + pending, 2L * length), FirstGrowingSegment);
                 byte[] grown = open ?? [];
@@ -465,12 +468,7 @@ internal static class JsonArtifact
             return new byte[largest];
         }
 
-        public byte[] NextBlock()
-        {
-            var block = new byte[next];
-            next = Math.Min(next * 2, largest);
-            return block;
-        }
+        public byte[] NextBlock() => new byte[largest];
 
         /// <summary>Links the block <see cref="Write"/> fills, if it holds anything.</summary>
         private void Seal()
@@ -783,7 +781,7 @@ internal static class JsonArtifact
     /// Pending bytes past which <see cref="FlushIfPending"/> hands them to the stream. <see cref="Utf8JsonWriter"/> holds
     /// everything until told to flush, and refuses to hold much past two gibibytes (#1618).
     /// </summary>
-    private const int FlushThreshold = 1 << 20;
+    public const int FlushThreshold = 1 << 20;
 
     /// <summary>Flushes the writer once a mebibyte is pending, so a list of any length is held in memory a mebibyte at a time.</summary>
     public static void FlushIfPending(Utf8JsonWriter writer)

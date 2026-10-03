@@ -1,12 +1,13 @@
 using System.Globalization;
 using BenchmarkDotNet.Attributes;
+using Lodestar.Embeddings.Search;
 using Lodestar.Text.Vectorization;
 
 namespace Lodestar.Text.Benchmarks;
 
 /// <summary>
-/// The costs the Reviews B after #1619 and #1628 found in the #1618 persistence rework: the writes an asynchronous
-/// save makes (#1623), and what a load from a stream of undeclared length allocates, tiny to past a mebibyte (#1624, #1629).
+/// What an asynchronous save writes and allocates, and a load from a stream of undeclared length allocates, tiny to
+/// past a mebibyte: the costs the Reviews B after #1619, #1628 and #1632 found in the #1618 rework.
 /// </summary>
 /// <remarks>
 /// The saves go to a sink whose <c>WriteAsync</c> yields once, standing for a network or pipe round trip, so a save
@@ -24,6 +25,9 @@ public class AsyncArtifactBenchmarks
     private byte[] _countArtifact24K = [];
     private byte[] _countArtifact78K = [];
     private byte[] _countArtifact1M = [];
+    private byte[] _countArtifact2M = [];
+    private CountVectorizer _wide1M = null!;
+    private EmbeddingIndex _longHead = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -52,6 +56,16 @@ public class AsyncArtifactBenchmarks
         _countArtifact24K = CountArtifact(2_000);
         _countArtifact78K = CountArtifact(6_500);
         _countArtifact1M = CountArtifact(90_000);
+        _countArtifact2M = CountArtifact(175_000);
+
+        // 1.08 MB, just past the writer's mebibyte flush; and an index whose ids make a 2.6 MB head (#1633, #1635).
+        _wide1M = new CountVectorizer().Fit(
+            [string.Join(" ", Enumerable.Range(0, 90_000).Select(i => "t" + i.ToString("D8", CultureInfo.InvariantCulture)))]);
+        _longHead = new EmbeddingIndex(dimension: 1);
+        for (int item = 0; item < 160_000; item++)
+        {
+            _longHead.Add([1f], "item-" + item.ToString("D8", CultureInfo.InvariantCulture));
+        }
     }
 
     /// <summary>A small TF-IDF vectorizer saved asynchronously over a round trip a write.</summary>
@@ -112,6 +126,32 @@ public class AsyncArtifactBenchmarks
         return CountVectorizer.Load(pipe);
     }
 
+    /// <summary>A 1.08 MB count vectorizer saved asynchronously over a round trip a write.</summary>
+    [Benchmark]
+    public async Task<long> CountSaveAsync1M()
+    {
+        using var sink = new YieldingSink();
+        await _wide1M.SaveAsync(sink).ConfigureAwait(false);
+        return sink.Writes;
+    }
+
+    /// <summary>An index with a 2.6 MB head of ids saved asynchronously over a round trip a write.</summary>
+    [Benchmark]
+    public async Task<long> IndexSaveAsyncLongHead()
+    {
+        using var sink = new YieldingSink();
+        await _longHead.SaveAsync(sink).ConfigureAwait(false);
+        return sink.Writes;
+    }
+
+    /// <summary>A count vectorizer of about 2.1 MB, past a mebibyte, loaded from a stream of undeclared length.</summary>
+    [Benchmark]
+    public CountVectorizer CountLoadUndeclared2M()
+    {
+        using var pipe = new Undeclared(_countArtifact2M);
+        return CountVectorizer.Load(pipe);
+    }
+
     private static byte[] CountArtifact(int terms)
     {
         var vectorizer = new CountVectorizer().Fit(
@@ -155,6 +195,8 @@ public class AsyncArtifactBenchmarks
         {
             // Nothing is held.
         }
+
+        public override Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
         public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
