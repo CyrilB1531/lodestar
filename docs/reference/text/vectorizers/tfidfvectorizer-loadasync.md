@@ -43,6 +43,10 @@ async code the call is simply `await`.
 **Remarks** — the bounds in `options` are checked as the content is read rather than afterwards,
 so an oversized file is refused before it is allocated.
 
+An artifact past one array, about 2 GB, which a raised `MaxTotalBytes` lets through, is read in
+segments from any stream rather than refused, so whatever a save wrote, a load reads back
+([#1618](https://github.com/CyrilB1531/lodestar/issues/1618)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`TfidfVectorizer.Load`](tfidfvectorizer-load.md),

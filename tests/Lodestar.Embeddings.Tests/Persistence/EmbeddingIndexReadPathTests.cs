@@ -152,6 +152,32 @@ public sealed class EmbeddingIndexReadPathTests
     }
 
     [Fact]
+    public async Task A_long_id_is_refused_by_name_before_a_byte_is_written()
+    {
+        // System.Text.Json 10 writes 166,666,666 characters and refuses one more; sync and through the task (#1626).
+        var index = new EmbeddingIndex(dimension: 1);
+        index.Add([1f], new string('a', 166_666_667));
+        var stream = new MemoryStream();
+        try
+        {
+            Assert.StartsWith("An id of 166666667 characters", SaveRefusal(index, stream).Message, StringComparison.Ordinal);
+            Task save = index.SaveAsync(stream, TestContext.Current.CancellationToken);
+            Assert.StartsWith(
+                "An id of 166666667 characters",
+                (await Assert.ThrowsAsync<InvalidOperationException>(() => save)).Message,
+                StringComparison.Ordinal);
+            Assert.Equal(0, stream.Length);
+        }
+        finally
+        {
+            await stream.DisposeAsync();
+        }
+    }
+
+    private static InvalidOperationException SaveRefusal(EmbeddingIndex index, Stream stream) =>
+        Assert.Throws<InvalidOperationException>(() => index.Save(stream));
+
+    [Fact]
     public void Ids_reach_the_stream_a_mebibyte_at_a_time()
     {
         // 160,000 ids, about 2.6 MB, were held whole until the block; flushed, no write passes a mebibyte and an id (#1618).

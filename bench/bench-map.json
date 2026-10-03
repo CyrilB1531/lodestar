@@ -187,6 +187,11 @@
       "src/Lodestar.Text/Distances/**",
       "src/Lodestar.Text/Text/**"
     ],
+    "AsyncArtifactBenchmarks": [
+      "src/Shared/Persistence/**",
+      "src/Lodestar.Text/Vectorization/**",
+      "src/Lodestar.Text/Persistence/**"
+    ],
     "PersistenceBenchmarks": [
       "src/Lodestar.Embeddings/Persistence/**",
       "src/Lodestar.Embeddings/Search/**",

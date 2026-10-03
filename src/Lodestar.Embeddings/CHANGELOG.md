@@ -11,7 +11,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
-- `EmbeddingIndex` writes its ids a mebibyte at a time, refuses before its first byte an id longer than the JSON writer accepts, and loads an artifact past one array from a stream of undeclared length, where its save held every id in the writer and its loads refused such a stream. ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618))
+- `EmbeddingIndex` writes its ids a mebibyte at a time, refuses before its first byte an id beyond what the JSON writer can write, and loads an artifact past one array from a stream of undeclared length, where its save held every id in the writer and its loads refused such a stream. ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618))
 - Before .NET 6 — on .NET Framework, .NET Core and .NET 5, and on legacy Mono, held there unmeasured — the refusals of an array past the largest one read those runtimes' bound for elements wider than a byte, `0x7FEFFFFF`, where a count between it and `Array.MaxLength` passed them and failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - A `single_word` added token rejected at a position still consumes its characters, as `tokenizers`' leftmost-longest match does, so a shorter overlapping added token no longer matches inside it. ([#1209](https://github.com/CyrilB1531/lodestar/issues/1209))
 - WordPiece lowercasing maps `İ` to `i` and U+0307 as `tokenizers` does, `SentencePieceTokenizer` never segments onto an `UNUSED` piece, and `single_word` treats marks, `Pc`, `Nl`, ZWJ and astral letters as word characters. ([#1213](https://github.com/CyrilB1531/lodestar/issues/1213))

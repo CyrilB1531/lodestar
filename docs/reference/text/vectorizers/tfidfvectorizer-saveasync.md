@@ -16,8 +16,8 @@ write.
 **Exceptions** — `InvalidOperationException` when nothing has been fitted yet, or when the idf
 weights make a base64 block within two mebibytes of the most the JSON writer holds in one buffer, from
 201,129,984 weights, or
-when a vocabulary term, the token pattern or a stop word is longer than the JSON writer
-accepts.
+when a vocabulary term, the token pattern or a stop word is beyond what the JSON writer
+can write.
 `InvalidDataException` when an idf weight is not finite. All are refused before anything is written
 ([#1617](https://github.com/CyrilB1531/lodestar/issues/1617), [#1618](https://github.com/CyrilB1531/lodestar/issues/1618)). `ArgumentNullException` for a null
 stream. `OperationCanceledException` when cancelled.

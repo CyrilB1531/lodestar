@@ -43,6 +43,10 @@ async code the call is simply `await`.
 than for the vectorizers that carry a vocabulary, since the content is a few settings, and they
 are applied anyway so that one loading path behaves the same everywhere.
 
+An artifact past one array, about 2 GB, which a raised `MaxTotalBytes` lets through, is read in
+segments from any stream rather than refused, so whatever a save wrote, a load reads back
+([#1618](https://github.com/CyrilB1531/lodestar/issues/1618)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`HashingVectorizer.Load`](hashingvectorizer-load.md),

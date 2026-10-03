@@ -201,11 +201,12 @@ internal static class VectorizerOptionsJson
 
     /// <summary>Refuses, before a save's first byte, a pattern or stop word the writer cannot write (#1618).</summary>
     /// <remarks>
-    /// The analyzer and the two frequencies first, as <see cref="Write(Utf8JsonWriter, string, CountVectorizerOptions)"/>
-    /// writes them ahead of the strings: a <c>HashingVectorizer</c> never validates them, and its write refused them first.
+    /// The two frequencies first, as <see cref="Write(Utf8JsonWriter, string, CountVectorizerOptions)"/> writes them ahead
+    /// of the strings: a <c>HashingVectorizer</c> never validates them, and its write refused them first. The analyzer
+    /// ahead of them is a guard: every vectorizer's constructor refuses an unknown one already (#1622).
     /// </remarks>
     /// <exception cref="InvalidDataException">The analyzer is unknown, or a frequency is not finite.</exception>
-    /// <exception cref="InvalidOperationException">A string is longer than the JSON writer accepts.</exception>
+    /// <exception cref="InvalidOperationException">A string is beyond what the JSON writer can write.</exception>
     public static void EnsureWritable(CountVectorizerOptions options)
     {
         _ = AnalyzerName(options.Analyzer);

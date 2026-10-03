@@ -57,6 +57,10 @@ a caller who wants it can open the stream and pass it.
 refused before its bytes are ever held, which is the whole point of bounding a load — checking
 afterwards would mean having already allocated whatever the file asked for.
 
+An artifact past one array, about 2 GB, which a raised `MaxTotalBytes` lets through, is read in
+segments from any stream rather than refused, so whatever a save wrote, a load reads back
+([#1618](https://github.com/CyrilB1531/lodestar/issues/1618)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`EmbeddingIndex.Load`](embeddingindex-load.md),

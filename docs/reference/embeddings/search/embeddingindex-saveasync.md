@@ -15,7 +15,7 @@ public Task SaveAsync(Stream destination, CancellationToken cancellationToken = 
 
 **Exceptions** — `ArgumentNullException` when `destination` is null. `InvalidDataException` when any stored vector holds a non-finite component.
 `InvalidOperationException` when the vector block, base64-encoded, is longer than the one array a load
-decodes it into, or an id is longer than the JSON writer accepts
+decodes it into, or an id is beyond what the JSON writer can write
 ([#1322](https://github.com/CyrilB1531/lodestar/issues/1322), [#1618](https://github.com/CyrilB1531/lodestar/issues/1618)).
 `OperationCanceledException` when `cancellationToken` is signalled.
 

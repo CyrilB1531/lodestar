@@ -589,6 +589,20 @@ and an earlier version of that last buffer change, which paid nothing until the
 idf vector stopped dominating the profile. The reasoning is in
 [`docs/decisions/0001`](../docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
+### Asynchronous saves and loads of undeclared length (issues #1623, #1624)
+
+`AsyncArtifactBenchmarks` measures the two costs the Review B after #1619 found:
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*AsyncArtifactBenchmarks*'
+```
+
+The saves go to a sink whose `WriteAsync` yields once, standing for a network or pipe round
+trip, so the number of writes an asynchronous save makes shows in its time. The loads read
+through a stream that declares no length and cannot seek, the path a `GZipStream` or a socket
+takes; `[MemoryDiagnoser]` reports what each allocates. The corpus is generated in
+`GlobalSetup`, so the class needs nothing under `bench/corpus`.
+
 ## 5. Classification metrics (issue #61)
 
 `ConfusionMatrix`, `Accuracy`, `Precision`/`Recall`/`F1`, `ClassificationReport`
