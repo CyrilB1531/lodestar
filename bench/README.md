@@ -589,9 +589,11 @@ and an earlier version of that last buffer change, which paid nothing until the
 idf vector stopped dominating the profile. The reasoning is in
 [`docs/decisions/0001`](../docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
-### Asynchronous saves and loads of undeclared length (issues #1623, #1624)
+### Asynchronous saves and loads of undeclared length (issues #1623, #1624, #1629)
 
-`AsyncArtifactBenchmarks` measures the two costs the Review B after #1619 found:
+`AsyncArtifactBenchmarks` measures the costs the Reviews B after #1619 and #1628 found — the
+loads at a few hundred bytes, 7 KB, 24 KB, 78 KB and 1.08 MB, the band a growing read once
+allocated more than the `MemoryStream` before it:
 
 ```bash
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*AsyncArtifactBenchmarks*'

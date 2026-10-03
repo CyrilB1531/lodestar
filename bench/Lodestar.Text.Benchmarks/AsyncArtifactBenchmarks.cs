@@ -5,8 +5,8 @@ using Lodestar.Text.Vectorization;
 namespace Lodestar.Text.Benchmarks;
 
 /// <summary>
-/// The two costs the Review B after #1619 found in the #1618 persistence rework: the writes an asynchronous save
-/// makes (#1623), and what a load from a stream of undeclared length allocates (#1624).
+/// The costs the Reviews B after #1619 and #1628 found in the #1618 persistence rework: the writes an asynchronous
+/// save makes (#1623), and what a load from a stream of undeclared length allocates, tiny to past a mebibyte (#1624, #1629).
 /// </summary>
 /// <remarks>
 /// The saves go to a sink whose <c>WriteAsync</c> yields once, standing for a network or pipe round trip, so a save
@@ -21,6 +21,9 @@ public class AsyncArtifactBenchmarks
     private CountVectorizer _wide = null!;
     private byte[] _smallArtifact = [];
     private byte[] _hashingArtifact = [];
+    private byte[] _countArtifact24K = [];
+    private byte[] _countArtifact78K = [];
+    private byte[] _countArtifact1M = [];
 
     [GlobalSetup]
     public void Setup()
@@ -44,6 +47,11 @@ public class AsyncArtifactBenchmarks
             new HashingVectorizer().Save(stream);
             _hashingArtifact = stream.ToArray();
         }
+
+        // About 24 KB, 78 KB and 1.08 MB: where a growing read allocated more than the MemoryStream before (#1629).
+        _countArtifact24K = CountArtifact(2_000);
+        _countArtifact78K = CountArtifact(6_500);
+        _countArtifact1M = CountArtifact(90_000);
     }
 
     /// <summary>A small TF-IDF vectorizer saved asynchronously over a round trip a write.</summary>
@@ -78,6 +86,39 @@ public class AsyncArtifactBenchmarks
     {
         using var pipe = new Undeclared(_smallArtifact);
         return TfidfVectorizer.Load(pipe);
+    }
+
+    /// <summary>A count vectorizer of about 24 KB loaded from a stream of undeclared length.</summary>
+    [Benchmark]
+    public CountVectorizer CountLoadUndeclared24K()
+    {
+        using var pipe = new Undeclared(_countArtifact24K);
+        return CountVectorizer.Load(pipe);
+    }
+
+    /// <summary>A count vectorizer of about 78 KB loaded from a stream of undeclared length.</summary>
+    [Benchmark]
+    public CountVectorizer CountLoadUndeclared78K()
+    {
+        using var pipe = new Undeclared(_countArtifact78K);
+        return CountVectorizer.Load(pipe);
+    }
+
+    /// <summary>A count vectorizer of about 1.08 MB, just past a mebibyte, loaded from a stream of undeclared length.</summary>
+    [Benchmark]
+    public CountVectorizer CountLoadUndeclared1M()
+    {
+        using var pipe = new Undeclared(_countArtifact1M);
+        return CountVectorizer.Load(pipe);
+    }
+
+    private static byte[] CountArtifact(int terms)
+    {
+        var vectorizer = new CountVectorizer().Fit(
+            [string.Join(" ", Enumerable.Range(0, terms).Select(i => "t" + i.ToString("D8", CultureInfo.InvariantCulture)))]);
+        using var stream = new MemoryStream();
+        vectorizer.Save(stream);
+        return stream.ToArray();
     }
 
     /// <summary>A write-only stream that discards its bytes, yielding once a write as a round trip would.</summary>

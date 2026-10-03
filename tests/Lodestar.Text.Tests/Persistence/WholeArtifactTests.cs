@@ -88,6 +88,10 @@ public sealed class WholeArtifactTests
             () => FeatureVocabularyJson.EnsureWritableVocabulary(["short", new string('a', 166_666_667)]));
         Assert.StartsWith("A vocabulary term of 166666667 characters", error.Message, StringComparison.Ordinal);
 
+        // The writer's own exception, named and kept, whatever type it is (#1625, #1631).
+        Assert.IsType<ArgumentException>(error.InnerException);
+        Assert.Contains("(ArgumentException)", error.Message, StringComparison.Ordinal);
+
         // Past ten million characters a string is tried on the writer itself; one it takes passes.
         FeatureVocabularyJson.EnsureWritableVocabulary([new string('a', 10_000_001), null!]);
     }
@@ -172,7 +176,7 @@ public sealed class WholeArtifactTests
     [Fact]
     public void A_tiny_artifact_from_a_stream_of_undeclared_length_allocates_what_it_did()
     {
-        // The read's own 81,920-byte buffer, as before, and segments from 256 bytes, not another 81,920 (#1624).
+        // The read's own 81,920-byte buffer, as before, and one array sized to the read, not another 81,920 (#1624, #1629).
         byte[] artifact = Bytes(new HashingVectorizer().Save);
         using var warmUp = new Unseekable(artifact, 81_920);
         using var measured = new Unseekable(artifact, 81_920);
@@ -181,6 +185,32 @@ public sealed class WholeArtifactTests
         HashingVectorizer.Load(measured);
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.True(allocated < 81_920 + 40_000, $"{allocated} bytes allocated.");
+    }
+
+    [Theory]
+    [InlineData(2_000, 81_920 + 16_384)]
+    [InlineData(6_500, 81_920 + 16_384)]
+    [InlineData(90_000, 1_600_000)]
+    public void A_stream_of_undeclared_length_costs_what_the_MemoryStream_before_did(int terms, int bound)
+    {
+        // About 24 KB, 78 KB and 1.08 MB, over what a seekable load allocates: one array grown as 0.7.0's MemoryStream
+        // grew it, 81,984 and 1,541,336 bytes there; segments joined cost 115,032, 213,480 and 2,179,848 (#1629).
+        var vectorizer = new CountVectorizer();
+        vectorizer.Fit([string.Join(" ", Enumerable.Range(0, terms).Select(i => "t" + i.ToString("D8", System.Globalization.CultureInfo.InvariantCulture)))]);
+        byte[] artifact = Bytes(vectorizer.Save);
+        using var warmUp = new Unseekable(artifact, 81_920);
+        using var undeclared = new Unseekable(artifact, 81_920);
+        using var seekable = new MemoryStream(artifact);
+        CountVectorizer.Load(warmUp);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        CountVectorizer.Load(seekable);
+        long seekableBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+        before = GC.GetAllocatedBytesForCurrentThread();
+        CountVectorizer.Load(undeclared);
+        long undeclaredBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(undeclaredBytes - seekableBytes < bound, $"{undeclaredBytes - seekableBytes} bytes more for {artifact.Length}.");
     }
 
     [Fact]

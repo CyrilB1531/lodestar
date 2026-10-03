@@ -14,8 +14,10 @@ is a file to create or overwrite.
 
 **Exceptions** — `InvalidOperationException` when nothing has been fitted yet, or when a vocabulary
 term, the token pattern or a stop word is beyond what the JSON writer can write — about 166 million
-characters, fewer where it escapes — refused before a byte is written: once the writer has accepted
-the stream, or once the file is open, so a path opening refuses is refused first ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618)). `ArgumentNullException` for a null stream or path. `IOException` from the stream or file
+characters, fewer where it escapes. An unfitted vectorizer is refused before the path is opened; a
+string before a byte is written, once the writer has accepted the stream or once the file is open, so
+a path opening refuses is refused ahead of it ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
+[#1630](https://github.com/CyrilB1531/lodestar/issues/1630)). `ArgumentNullException` for a null stream or path. `IOException` from the stream or file
 system.
 
 **Example** — round-tripping through memory.
