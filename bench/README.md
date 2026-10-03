@@ -589,11 +589,12 @@ and an earlier version of that last buffer change, which paid nothing until the
 idf vector stopped dominating the profile. The reasoning is in
 [`docs/decisions/0001`](../docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
-### Asynchronous saves and loads of undeclared length (issues #1623, #1624, #1629)
+### Asynchronous saves and loads of undeclared length (issues #1623, #1624, #1629, #1633–#1636)
 
-`AsyncArtifactBenchmarks` measures the costs the Reviews B after #1619 and #1628 found — the
-loads at a few hundred bytes, 7 KB, 24 KB, 78 KB and 1.08 MB, the band a growing read once
-allocated more than the `MemoryStream` before it:
+`AsyncArtifactBenchmarks` measures the costs the Reviews B after #1619, #1628 and #1632 found:
+asynchronous saves of a small TF-IDF vectorizer, a 240 KB and a 1.08 MB count vectorizer and an
+index whose ids make a 2.6 MB head, and loads at a few hundred bytes, 7 KB, 24 KB, 78 KB, 1.08 MB
+and 2.1 MB, the band where a growing read once allocated more than the `MemoryStream` before it:
 
 ```bash
 dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*AsyncArtifactBenchmarks*'

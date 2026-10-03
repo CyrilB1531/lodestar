@@ -49,7 +49,7 @@ public sealed class WholeArtifactTests
             () => CountVectorizer.Load(new Unseekable(new byte[1_000_000], 81_920), new ArtifactLoadOptions { MaxTotalBytes = 300_000 }));
         Assert.Contains("327680", error.Message, StringComparison.Ordinal);
 
-        // Past the segments' doubling too: 3,000,000 bytes against 2,250,000 stop at 28 reads, 2,293,760.
+        // Past a mebibyte too: 3,000,000 bytes against 2,250,000 stop at 28 reads, 2,293,760.
         error = Assert.Throws<InvalidDataException>(
             () => CountVectorizer.Load(new Unseekable(new byte[3_000_000], 81_920), new ArtifactLoadOptions { MaxTotalBytes = 2_250_000 }));
         Assert.Contains("2293760", error.Message, StringComparison.Ordinal);
@@ -154,22 +154,31 @@ public sealed class WholeArtifactTests
         Assert.Equal(0, stream.Length);
     }
 
-    [Fact]
-    public async Task An_asynchronous_save_under_a_mebibyte_makes_one_write()
+    [Theory]
+    [InlineData(20_000, 1, 773_608)]
+    [InlineData(90_000, 2, 3_300_000)]
+    public async Task An_asynchronous_save_costs_no_more_than_the_MemoryStream_before(int terms, int writes, int bound)
     {
-        // Its first chunk grows as the MemoryStream it replaced did, so it goes out in one write, as that did (#1623).
+        // 0.7.0 saved 240 KB and 1.08 MB in 757,224 and 3,236,504 bytes, one write each; 1.08 MB is two writes here, the
+        // writer flushing at a mebibyte, and before #1633 cost 4,253,536, a mebibyte chunk opened for its last 32 KB.
         var vectorizer = new CountVectorizer();
-        vectorizer.Fit([string.Join(" ", Enumerable.Range(0, 20_000).Select(i => "t" + i.ToString("D8", System.Globalization.CultureInfo.InvariantCulture)))]);
-        var recording = new Recording();
+        vectorizer.Fit([string.Join(" ", Enumerable.Range(0, terms).Select(i => "t" + i.ToString("D8", System.Globalization.CultureInfo.InvariantCulture)))]);
+        var warm = new Sink();
+        var sink = new Sink();
         try
         {
-            await vectorizer.SaveAsync(recording, TestContext.Current.CancellationToken);
-            Assert.True(recording.Length > 200_000, $"The artifact is {recording.Length} bytes.");
-            Assert.Equal(1, recording.Writes);
+            await vectorizer.SaveAsync(warm, TestContext.Current.CancellationToken);
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            await vectorizer.SaveAsync(sink, TestContext.Current.CancellationToken);
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.Equal(writes, sink.Writes);
+            Assert.True(allocated < bound, $"{allocated} bytes for {sink.Total}.");
         }
         finally
         {
-            await recording.DisposeAsync();
+            await warm.DisposeAsync();
+            await sink.DisposeAsync();
         }
     }
 
@@ -187,30 +196,84 @@ public sealed class WholeArtifactTests
         Assert.True(allocated < 81_920 + 40_000, $"{allocated} bytes allocated.");
     }
 
-    [Theory]
-    [InlineData(2_000, 81_920 + 16_384)]
-    [InlineData(6_500, 81_920 + 16_384)]
-    [InlineData(90_000, 1_600_000)]
-    public void A_stream_of_undeclared_length_costs_what_the_MemoryStream_before_did(int terms, int bound)
+    /// <summary>
+    /// Artifacts of about 24 KB, 78 KB, 1.08 MB and 2.1 MB, a read size, and what an undeclared load may allocate over a
+    /// seekable one: under a mebibyte, 0.7.0's MemoryStream cost, 81,984 and 198,608 bytes at 24 and 78 KB (#1629); past
+    /// it, mebibyte segments, where it doubled again to 3,110,864 at 1.1 MB and 6,308,040 at 2.1 MB, as main did (#1634).
+    /// </summary>
+    public static TheoryData<int, int, int> Bands => new()
     {
-        // About 24 KB, 78 KB and 1.08 MB, over what a seekable load allocates: one array grown as 0.7.0's MemoryStream
-        // grew it, 81,984 and 1,541,336 bytes there; segments joined cost 115,032, 213,480 and 2,179,848 (#1629).
+        { 2_000, 81_920, 98_304 },
+        { 2_000, 65_536, 98_304 },
+        { 6_500, 81_920, 98_304 },
+        { 6_500, 65_536, 214_992 },
+        { 90_000, 81_920, 1_600_000 },
+        { 90_000, 65_536, 2_200_000 },
+        { 175_000, 65_536, 3_000_000 },
+    };
+
+    [Theory]
+    [MemberData(nameof(Bands))]
+    public void A_stream_of_undeclared_length_costs_no_more_than_the_MemoryStream_before(int terms, int chunk, int bound)
+    {
+        byte[] artifact = CountArtifact(terms);
+        long extra = ExtraAllocated(artifact, chunk);
+        Assert.True(extra < bound, $"{extra} bytes more for {artifact.Length}.");
+    }
+
+    [Theory]
+    [MemberData(nameof(Bands))]
+    public async Task An_asynchronous_load_of_undeclared_length_costs_no_more_either(int terms, int chunk, int bound)
+    {
+        // ReadGrowingAsync, which LoadAsync and EmbeddingIndex.LoadAsync take (#1638).
+        byte[] artifact = CountArtifact(terms);
+        long extra = await ExtraAllocatedAsync(artifact, chunk);
+        Assert.True(extra < bound, $"{extra} bytes more for {artifact.Length}.");
+    }
+
+    private static byte[] CountArtifact(int terms)
+    {
         var vectorizer = new CountVectorizer();
         vectorizer.Fit([string.Join(" ", Enumerable.Range(0, terms).Select(i => "t" + i.ToString("D8", System.Globalization.CultureInfo.InvariantCulture)))]);
-        byte[] artifact = Bytes(vectorizer.Save);
-        using var warmUp = new Unseekable(artifact, 81_920);
-        using var undeclared = new Unseekable(artifact, 81_920);
-        using var seekable = new MemoryStream(artifact);
-        CountVectorizer.Load(warmUp);
+        return Bytes(vectorizer.Save);
+    }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        CountVectorizer.Load(seekable);
-        long seekableBytes = GC.GetAllocatedBytesForCurrentThread() - before;
-        before = GC.GetAllocatedBytesForCurrentThread();
-        CountVectorizer.Load(undeclared);
-        long undeclaredBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+    /// <summary>What a load of <paramref name="artifact"/> read <paramref name="chunk"/> bytes at a time allocates over a seekable one, both warmed.</summary>
+    private static long ExtraAllocated(byte[] artifact, int chunk)
+    {
+        long Measure(Func<Stream> open)
+        {
+            using (Stream warm = open())
+            {
+                CountVectorizer.Load(warm);
+            }
 
-        Assert.True(undeclaredBytes - seekableBytes < bound, $"{undeclaredBytes - seekableBytes} bytes more for {artifact.Length}.");
+            using Stream measured = open();
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            CountVectorizer.Load(measured);
+            return GC.GetAllocatedBytesForCurrentThread() - before;
+        }
+
+        return Measure(() => new Unseekable(artifact, chunk)) - Measure(() => new MemoryStream(artifact));
+    }
+
+    /// <summary><see cref="ExtraAllocated"/> through <c>LoadAsync</c>, which every read here completes synchronously.</summary>
+    private static async Task<long> ExtraAllocatedAsync(byte[] artifact, int chunk)
+    {
+        async Task<long> Measure(Func<Stream> open)
+        {
+            await using (Stream warm = open())
+            {
+                await CountVectorizer.LoadAsync(warm);
+            }
+
+            await using Stream measured = open();
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            await CountVectorizer.LoadAsync(measured);
+            return GC.GetAllocatedBytesForCurrentThread() - before;
+        }
+
+        return await Measure(() => new Unseekable(artifact, chunk)) - await Measure(() => new MemoryStream(artifact));
     }
 
     [Fact]
@@ -258,6 +321,13 @@ public sealed class WholeArtifactTests
 
         public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, Math.Min(count, chunk));
 
+        // Answered at once, as a buffered pipe would: Stream's own ReadAsync hops threads, which a measure on one cannot follow.
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            Task.FromResult(Read(buffer, offset, count));
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+            new(_inner.Read(buffer.Span[..Math.Min(buffer.Length, chunk)]));
+
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
         public override void SetLength(long value) => throw new NotSupportedException();
@@ -276,6 +346,63 @@ public sealed class WholeArtifactTests
             }
 
             base.Dispose(disposing);
+        }
+    }
+
+    /// <summary>A write-only stream that keeps nothing but how many writes and bytes it was handed.</summary>
+    private sealed class Sink : Stream
+    {
+        public int Writes { get; private set; }
+
+        public long Total { get; private set; }
+
+        public override bool CanRead => false;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => true;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count) => Note(count);
+
+        public override void Write(ReadOnlySpan<byte> buffer) => Note(buffer.Length);
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            Note(count);
+            return Task.CompletedTask;
+        }
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            Note(buffer.Length);
+            return default;
+        }
+
+        public override void Flush()
+        {
+            // Nothing is held.
+        }
+
+        public override Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        private void Note(int count)
+        {
+            Writes++;
+            Total += count;
         }
     }
 

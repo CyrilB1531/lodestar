@@ -99,49 +99,54 @@ internal static class ArtifactIo
         destination.Flush();
     }
 
-    /// <summary>Makes, and leaves unwritten, a writer on <paramref name="destination"/>, then runs <paramref name="check"/>.</summary>
-    /// <remarks>
-    /// For an asynchronous save, whose head composes in memory: main wrote it through a writer on the stream, which
-    /// refused one it cannot write, so that refusal still comes before the save's own checks (#1618).
-    /// </remarks>
-    public static void CheckOnWriter(Stream destination, Action check)
-    {
-        // Pointed away before it is disposed, so its flush never reaches the caller's stream.
-        using (var writer = new Utf8JsonWriter(destination, JsonArtifact.WriterOptions))
-        {
-            writer.Reset(Stream.Null);
-        }
-
-        check();
-    }
-
     /// <summary>The asynchronous counterpart of <see cref="SaveWithBlock"/>.</summary>
     /// <remarks>
-    /// The head is composed in memory and copied out, as <see cref="SaveAsync"/> composes a whole artifact, since
-    /// its ids are any length (#1618); the block, every byte that makes this artifact large, is written through
-    /// <c>WriteAsync</c> a slice at a time.
+    /// The head goes through a writer on the stream, as it did before #1618, flushed asynchronously at each point
+    /// <paramref name="writeHead"/> yields, a mebibyte or so: a head of any length costs that much buffer and no copy of
+    /// itself (#1635). A refusal before the first flush leaves nothing written. The block, every byte that makes this
+    /// artifact large, is written through <c>WriteAsync</c> a slice at a time.
     /// </remarks>
+    /// <param name="destination">The stream to write to; flushed but never disposed.</param>
+    /// <param name="artifact">The artifact kind, for the header.</param>
+    /// <param name="version">The artifact version, for the header.</param>
+    /// <param name="writeHead">Writes every property before the block, yielding where its writer flushed.</param>
+    /// <param name="blockProperty">The name of the block's property.</param>
+    /// <param name="block">The float block, written as base64 raw little-endian bits.</param>
+    /// <param name="cancellationToken">Cancels the writes.</param>
     public static async Task SaveWithBlockAsync(
         Stream destination,
         string artifact,
         int version,
-        Action<Utf8JsonWriter> writeHead,
+        Func<Utf8JsonWriter, IEnumerable<bool>> writeHead,
         string blockProperty,
         ReadOnlyMemory<float> block,
         CancellationToken cancellationToken)
     {
         Guard.NotNull(destination);
 
-        using (var head = new SpillBuffer())
+        using (var writer = new Utf8JsonWriter(destination, JsonArtifact.WriterOptions))
         {
-            Compose(head, writer =>
+            try
             {
                 writer.WriteStartObject();
                 ArtifactHeader.Write(writer, artifact, version);
-                writeHead(writer);
+                foreach (bool _ in writeHead(writer))
+                {
+                    await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+
                 writer.WritePropertyName(blockProperty);
-            });
-            await head.CopyOutAsync(destination, cancellationToken).ConfigureAwait(false);
+                await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+
+                // Nothing is pending, and disposing would still flush the caller's stream synchronously (#1633).
+                writer.Reset(Stream.Null);
+            }
+            catch
+            {
+                // Pointed away, so disposing it never flushes what a refusal left pending into the caller's stream.
+                writer.Reset(Stream.Null);
+                throw;
+            }
         }
 
         await Base64Numbers.WriteSinglesChunkedAsync(destination, block, cancellationToken).ConfigureAwait(false);

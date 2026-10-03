@@ -32,15 +32,11 @@ public sealed partial class EmbeddingIndex
     /// <exception cref="ArgumentNullException"><paramref name="destination"/> is null.</exception>
     public void Save(Stream destination)
     {
-        // Before the first byte: disposing the writer flushes the header, so a refusal
-        // raised mid-write would leave a truncated artifact in the caller's stream (#1214).
+        // Before the first byte (#1214), once the writer has accepted the stream, which refused a read-only one first
+        // in 0.8.0 (#1618, #1633).
         Guard.NotNull(destination);
-        EnsureFinite();
-        EnsureSavable();
-
-        // The ids once the writer has accepted the stream, which refused a read-only one first on main (#1618).
         ArtifactIo.SaveWithBlock(
-            destination, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty, _data.AsSpan(0, _length), EnsureWritableIds);
+            destination, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty, _data.AsSpan(0, _length), EnsureAll);
     }
 
     /// <summary>Writes the index to <paramref name="path"/>, replacing any existing file.</summary>
@@ -70,29 +66,30 @@ public sealed partial class EmbeddingIndex
     /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into, or an id is beyond what the JSON writer can write.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="destination"/> is null.</exception>
-    public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)
+    public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) =>
+        ArtifactIo.SaveWithBlockAsync(
+            destination, ArtifactName, ArtifactVersion, CheckedHeadSteps, VectorsProperty,
+            _data.AsMemory(0, _length), cancellationToken);
+
+    /// <summary>Every refusal a save makes before its first byte, in 0.8.0's order once the stream is accepted.</summary>
+    private void EnsureAll()
     {
-        try
-        {
-            Guard.NotNull(destination);
-            EnsureFinite();
-            EnsureSavable();
-        }
-        catch (Exception e) when (e is ArgumentNullException or InvalidDataException or InvalidOperationException)
-        {
-            // Faulted, as both were when the write raised them, but before the first byte as in Save.
-            return Task.FromException(e);
-        }
-        return SaveCheckedAsync(destination, cancellationToken);
+        EnsureFinite();
+        EnsureSavable();
+        EnsureWritableIds();
     }
 
-    /// <summary>The save once main's own checks passed: the writer's refusal of the stream, then the ids, inside the task (#1618).</summary>
-    private async Task SaveCheckedAsync(Stream destination, CancellationToken cancellationToken)
+    /// <summary>
+    /// <see cref="HeadSteps"/> once every check has run, inside the task and once the writer has accepted the stream,
+    /// as 0.8.0 refused a read-only stream ahead of a non-finite vector (#1214, #1618, #1633).
+    /// </summary>
+    private IEnumerable<bool> CheckedHeadSteps(Utf8JsonWriter writer)
     {
-        ArtifactIo.CheckOnWriter(destination, EnsureWritableIds);
-        await ArtifactIo.SaveWithBlockAsync(
-            destination, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty,
-            _data.AsMemory(0, _length), cancellationToken).ConfigureAwait(false);
+        EnsureAll();
+        foreach (bool step in HeadSteps(writer))
+        {
+            yield return step;
+        }
     }
 
     /// <summary>Refuses a block whose base64 would not fit the one array a load decodes it into (#1322).</summary>
@@ -133,6 +130,15 @@ public sealed partial class EmbeddingIndex
     /// </remarks>
     private void WriteHeadChecked(Utf8JsonWriter writer)
     {
+        foreach (bool _ in HeadSteps(writer))
+        {
+            writer.Flush();
+        }
+    }
+
+    /// <summary>The head, yielding wherever its writer holds a mebibyte: where a save flushes it, an asynchronous one awaiting (#1635).</summary>
+    private IEnumerable<bool> HeadSteps(Utf8JsonWriter writer)
+    {
         writer.WriteNumber(DimensionProperty, _dim);
         writer.WriteBoolean(NormalizeProperty, _normalize);
 
@@ -155,7 +161,10 @@ public sealed partial class EmbeddingIndex
                     JsonArtifact.WriteText(writer, id);
                 }
 
-                JsonArtifact.FlushIfPending(writer);
+                if (writer.BytesPending >= JsonArtifact.FlushThreshold)
+                {
+                    yield return true;
+                }
             }
             writer.WriteEndArray();
         }

@@ -190,7 +190,9 @@
     "AsyncArtifactBenchmarks": [
       "src/Shared/Persistence/**",
       "src/Lodestar.Text/Vectorization/**",
-      "src/Lodestar.Text/Persistence/**"
+      "src/Lodestar.Text/Persistence/**",
+      "src/Lodestar.Embeddings/Search/**",
+      "src/Lodestar.Embeddings/Persistence/**"
     ],
     "PersistenceBenchmarks": [
       "src/Lodestar.Embeddings/Persistence/**",
