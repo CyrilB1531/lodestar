@@ -13,12 +13,17 @@ public Task SaveAsync(Stream destination, CancellationToken cancellationToken = 
 
 **Returns** — `Task`, completing when the index has been written and flushed.
 
-**Exceptions** — `ArgumentException` when the stream cannot be written to, refused before the vectors
-and ids are checked ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641)). `ArgumentNullException` when `destination` is null. `InvalidDataException` when any stored vector holds a non-finite component.
-`InvalidOperationException` when the vector block, base64-encoded, is longer than the one array a load
-decodes it into, or an id is beyond what the JSON writer can write
-([#1322](https://github.com/CyrilB1531/lodestar/issues/1322), [#1618](https://github.com/CyrilB1531/lodestar/issues/1618)).
-`OperationCanceledException` when `cancellationToken` is signalled.
+**Exceptions** — `ArgumentException` when the stream cannot be written to, refused before the
+vectors and ids are checked ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641)), and when
+an id is beyond what the JSON writer can write — the writer's own, as 0.8.0 raised it
+([#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
+[#1646](https://github.com/CyrilB1531/lodestar/issues/1646)). `IndexOutOfRangeException`, the
+writer's own as well, for a string whose escaped form passes its buffer, as 0.8.0 raised it.
+`ArgumentNullException` when `destination` is null. `InvalidDataException` when any stored vector
+holds a non-finite component. `InvalidOperationException` when the vector block, base64-encoded, is
+longer than the one array a load decodes it into
+([#1322](https://github.com/CyrilB1531/lodestar/issues/1322)). `OperationCanceledException` when
+`cancellationToken` is signalled.
 
 **Example** — the asynchronous half of a round trip.
 

@@ -23,6 +23,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - The token patterns of the vectorizers, `Rake` and `TextRank` are read as Python's `re` reads them: `\w`, `\b`, `\d` and `\s` over code points, marks outside `\w` and every number inside, and `(?u)` accepted. ([#1239](https://github.com/CyrilB1531/lodestar/pull/1239))
 - `CountVectorizer` and `TfidfVectorizer` refuse a corpus that yields no term, or none left by `MinDf` and `MaxDf`, as scikit-learn does. ([#1239](https://github.com/CyrilB1531/lodestar/pull/1239))
 - `TextRank` ranks over a sparse adjacency, `DamerauLevenshtein` strips the common affixes and keeps three rows, and `BkTree.Nearest` holds its hits in a bounded heap. ([#1199](https://github.com/CyrilB1531/lodestar/issues/1199))
+- `CountVectorizer`, `TfidfVectorizer` and `HashingVectorizer` save faster, and allocate less where their artifact passes a mebibyte. ([#1643](https://github.com/CyrilB1531/lodestar/issues/1643), [#1649](https://github.com/CyrilB1531/lodestar/issues/1649))
 
 ### Fixed
 
@@ -40,6 +41,8 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - A token pattern with one capturing group yields the group's text, as `re.findall` does, and one with two is refused by the word analyzer. ([#1262](https://github.com/CyrilB1531/lodestar/issues/1262))
 - The `char` and `char_wb` analyzers cut n-grams by code point, so an astral character is one character, and a lone surrogate in a term, a stop word or the pattern survives `Save` and `Load`. ([#1263](https://github.com/CyrilB1531/lodestar/issues/1263))
 - The vectorizers' vocabulary and `Rake`'s tie-break sort by code point, as Python sorts a `str`. ([#1264](https://github.com/CyrilB1531/lodestar/issues/1264))
+- The three vectorizers save the stop words their analyzer filters with, copied when it was built, rather than the caller's collection as it stands at the save. ([#1648](https://github.com/CyrilB1531/lodestar/issues/1648))
+- A refused synchronous save of the three vectorizers raises its refusal rather than the exception of a stream whose flush fails. ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641))
 
 ## [0.7.0] — 2026-09-24
 

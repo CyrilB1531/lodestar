@@ -29,7 +29,8 @@ public sealed class TextRank
     /// <summary>Builds an extractor.</summary>
     /// <param name="options">Null takes every default.</param>
     /// <exception cref="ArgumentOutOfRangeException"><c>Window</c> is below 1, <c>Damping</c> is outside <c>(0, 1)</c>, <c>Ratio</c> is outside <c>(0, 1]</c>, <c>Tolerance</c> is negative or not finite, <c>MaxIterations</c> is below 1, or <c>Words</c> is set and negative.</exception>
-    /// <exception cref="ArgumentException"><c>TokenPattern</c> has more than one capturing group.</exception>
+    /// <exception cref="ArgumentException"><c>TokenPattern</c> has more than one capturing group, or .NET refuses it as written, with its <c>RegexParseException</c> as 0.7.0 raised it — a leading <c>(?u)</c> aside.</exception>
+    /// <exception cref="ArgumentNullException"><c>TokenPattern</c> is null, the parameter named <c>pattern</c>, as 0.7.0's <c>Regex</c> named it.</exception>
     public TextRank(TextRankOptions? options = null)
     {
         _options = options ?? new TextRankOptions();

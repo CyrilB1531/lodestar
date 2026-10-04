@@ -35,12 +35,13 @@ internal static class FeatureVocabularyJson
     }
 
     /// <summary>Refuses, before a save's first byte, a term the writer cannot write (#1618).</summary>
-    /// <exception cref="InvalidOperationException">A term is beyond what the JSON writer can write.</exception>
+    /// <exception cref="ArgumentException">A term is beyond what the JSON writer can write: the writer's own exception.</exception>
+    /// <exception cref="IndexOutOfRangeException">A term whose escaped form passes the writer's buffer: the writer's own exception.</exception>
     public static void EnsureWritableVocabulary(IReadOnlyList<string> featureNames)
     {
         for (int i = 0; i < featureNames.Count; i++)
         {
-            JsonArtifact.EnsureWritableText(featureNames[i], "A vocabulary term");
+            JsonArtifact.EnsureWritableText(featureNames[i]);
         }
     }
 
@@ -56,8 +57,12 @@ internal static class FeatureVocabularyJson
     {
         // Checked again as written: weights changed since the save's own check still never reach the file.
         RequireFinite(idf);
-        // Flushed first, so the block has the writer's buffer to itself, as WritableAsProperty counts it (#1618).
-        writer.Flush();
+        // Flushed first, so a large block has the writer's buffer to itself, as WritableAsProperty counts it (#1618); a
+        // small one shares it, as 0.7.0's did, where a flush split an asynchronous save's buffer for 800 bytes (#1649).
+        if (Base64Numbers.EncodedLength(idf.Count, sizeof(double)) > JsonArtifact.FlushThreshold)
+        {
+            writer.Flush();
+        }
         Base64Numbers.WriteDoubles(writer, IdfProperty, idf);
     }
 
@@ -109,8 +114,9 @@ internal static class FeatureVocabularyJson
     public static string[] ReadVocabulary(
         ref Utf8JsonReader reader, string artifact, in ArtifactLimits limits, int declaredCount, out bool mayHoldSurrogate)
     {
-        // Only an escaped term can carry a lone surrogate, UTF-8 having no other way to; noted as read, for nothing (#1643).
-        mayHoldSurrogate = false;
+        // Only an escaped term can carry a lone surrogate, UTF-8 having no other way to; noted as read, for nothing (#1643),
+        // in a local: an out parameter is a store to memory each term.
+        bool escaped = false;
         JsonArtifact.ReadStartArray(ref reader, artifact, VocabularyProperty);
 
         string[] names = new string[InitialCapacity(declaredCount)];
@@ -118,7 +124,7 @@ internal static class FeatureVocabularyJson
         string? previous = null;
         while (reader.Read() && reader.TokenType == JsonTokenType.String)
         {
-            mayHoldSurrogate |= reader.ValueIsEscaped;
+            escaped |= reader.ValueIsEscaped;
             string name = JsonArtifact.GetText(ref reader);
             limits.CheckTokenLength(name.Length);
             // Checked inline, not in a second pass: the predecessor is already in
@@ -151,6 +157,7 @@ internal static class FeatureVocabularyJson
         {
             Array.Resize(ref names, count);
         }
+        mayHoldSurrogate = escaped;
         return names;
     }
 

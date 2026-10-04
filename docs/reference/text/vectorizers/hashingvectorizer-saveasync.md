@@ -13,12 +13,16 @@ write.
 
 **Returns** — `Task`, completing when the options have been written.
 
-**Exceptions** — `InvalidOperationException` when the token pattern or a stop word is beyond what
-the JSON writer can write. `InvalidDataException` when `MinDf` or `MaxDf` is not finite, which the
-constructor does not refuse. Both are refused before anything is written
-([#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
-[#1622](https://github.com/CyrilB1531/lodestar/issues/1622)).
-`ArgumentNullException` for a null stream. `OperationCanceledException` when cancelled.
+**Exceptions** — `ArgumentException`, the JSON writer's own, as 0.7.0 raised it, when the token
+pattern or a stop word is beyond what the writer can write. `InvalidDataException` when `MinDf` or
+`MaxDf` is not finite, which the constructor does not refuse. Both are refused before anything is
+written ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
+[#1622](https://github.com/CyrilB1531/lodestar/issues/1622),
+[#1646](https://github.com/CyrilB1531/lodestar/issues/1646)). `NotSupportedException`, the stream's
+own, when it cannot be written to, raised by the write once the artifact is composed, as 0.7.0
+raised it. `IndexOutOfRangeException`, the writer's own as well, for a string whose escaped form
+passes its buffer, as 0.7.0 raised it. `ArgumentNullException` for a null stream.
+`OperationCanceledException` when cancelled.
 
 **Example** — the round trip, asynchronously.
 

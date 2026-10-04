@@ -17,6 +17,9 @@ public sealed class WholeArtifactTests
         ArtifactLimits.DefaultMaxArrayLength,
         maxSingleBuffer: 64);
 
+    /// <summary>What the JSON writer, and so 0.7.0, raises for a string of 166,666,667 characters (#1646).</summary>
+    private const string LongValue = "The JSON value of length 166666667 is too large and not supported.";
+
     private static readonly string[] Corpus = ["apple banana", "banana cherry", "cherry date", "the end"];
 
     [Fact]
@@ -81,16 +84,12 @@ public sealed class WholeArtifactTests
     }
 
     [Fact]
-    public void A_string_longer_than_the_writer_takes_is_refused_by_name()
+    public void A_string_longer_than_the_writer_takes_is_refused_as_the_writer_refuses_it()
     {
-        // System.Text.Json 10 writes 166,666,666 characters and refuses one more.
-        InvalidOperationException error = Assert.Throws<InvalidOperationException>(
+        // System.Text.Json 10 writes 166,666,666 characters and refuses one more, with the exception 0.7.0 raised (#1646).
+        ArgumentException error = Assert.Throws<ArgumentException>(
             () => FeatureVocabularyJson.EnsureWritableVocabulary(["short", new string('a', 166_666_667)]));
-        Assert.StartsWith("A vocabulary term of 166666667 characters", error.Message, StringComparison.Ordinal);
-
-        // The writer's own exception, named and kept, whatever type it is (#1625, #1631).
-        Assert.IsType<ArgumentException>(error.InnerException);
-        Assert.Contains("(ArgumentException)", error.Message, StringComparison.Ordinal);
+        Assert.Equal(LongValue, error.Message);
 
         // Past ten million characters a string is tried on the writer itself; one it takes passes.
         FeatureVocabularyJson.EnsureWritableVocabulary([new string('a', 10_000_001), null!]);
@@ -120,12 +119,12 @@ public sealed class WholeArtifactTests
     }
 
     [Fact]
-    public void A_long_token_pattern_is_refused_by_name()
+    public void A_long_token_pattern_is_refused_as_the_writer_refuses_it()
     {
-        // System.Text.Json 10 writes 166,666,666 characters and refuses one more (#1626).
-        InvalidOperationException error = Assert.Throws<InvalidOperationException>(
-            () => VectorizerOptionsJson.EnsureWritable(new CountVectorizerOptions { TokenPattern = new string('a', 166_666_667) }));
-        Assert.StartsWith("The token pattern of 166666667 characters", error.Message, StringComparison.Ordinal);
+        // System.Text.Json 10 writes 166,666,666 characters and refuses one more (#1626, #1646).
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => VectorizerOptionsJson.EnsureWritable(new CountVectorizerOptions { TokenPattern = new string('a', 166_666_667) }, null));
+        Assert.Equal(LongValue, error.Message);
     }
 
     [Fact]
@@ -137,7 +136,7 @@ public sealed class WholeArtifactTests
             Count = new CountVectorizerOptions { StopWords = [new string('a', 166_666_667)] },
         });
         using var stream = new MemoryStream();
-        Assert.StartsWith("A stop word of 166666667 characters", Assert.Throws<InvalidOperationException>(() => hashing.Save(stream)).Message, StringComparison.Ordinal);
+        Assert.Equal(LongValue, Assert.Throws<ArgumentException>(() => hashing.Save(stream)).Message);
         Assert.Equal(0, stream.Length);
     }
 
@@ -149,8 +148,7 @@ public sealed class WholeArtifactTests
         vectorizer.Fit([new string('a', 166_666_667), "b c"]);
         Assert.IsType<double[]>(vectorizer.Idf)[0] = double.NaN;
         using var stream = new MemoryStream();
-        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => vectorizer.Save(stream));
-        Assert.StartsWith("A vocabulary term of 166666667 characters", error.Message, StringComparison.Ordinal);
+        Assert.Equal(LongValue, Assert.Throws<ArgumentException>(() => vectorizer.Save(stream)).Message);
         Assert.Equal(0, stream.Length);
     }
 

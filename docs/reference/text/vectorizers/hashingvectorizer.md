@@ -12,10 +12,14 @@ grows with the corpus, and **no `GetFeatureNames`**: nothing was kept that could
 public sealed class HashingVectorizer
 ```
 
-**Constructor** — `HashingVectorizer(HashingVectorizerOptions? options = null)`, whose defaults
-are scikit-learn's. It throws `ArgumentOutOfRangeException` when `NumFeatures` is below `1`, and
-`ArgumentException` when `Count.NgramRange` descends, the one range scikit-learn refuses too, or when `Count.Analyzer`
-is not an [`AnalyzerKind`](analyzerkind.md) member.
+**Constructor** — `HashingVectorizer(HashingVectorizerOptions? options = null)`, whose defaults are
+scikit-learn's. It throws `ArgumentOutOfRangeException` when `NumFeatures` is below `1`, and
+`ArgumentException` when `Count.NgramRange` descends, the one range scikit-learn refuses too, or
+when `Count.Analyzer` is not an [`AnalyzerKind`](analyzerkind.md) member. The token pattern is
+checked after `NumFeatures` and the n-gram range, where 0.7.0 compiled it, whatever the analyzer: a
+null one throws `ArgumentNullException` with the parameter named `pattern`, and one .NET refuses as
+written its `RegexParseException` — a leading `(?u)` aside — ahead of the analyzer check
+([#1645](https://github.com/CyrilB1531/lodestar/issues/1645)).
 
 **Properties** — `NumFeatures` is how many columns the matrix has.
 

@@ -28,8 +28,9 @@ public sealed partial class EmbeddingIndex
     /// </remarks>
     /// <param name="destination">The stream to write to. Flushed but never disposed — the caller owns it.</param>
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
-    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into, or an id is beyond what the JSON writer can write.</exception>
-    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to; refused before the vectors and ids are checked, as 0.8.0 refused it (#1641).</exception>
+    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into.</exception>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to, refused before the vectors and ids are checked, as 0.8.0 refused it (#1641); or an id is beyond what the JSON writer can write, refused before anything is written with the writer's own exception, as 0.8.0 raised it (#1646).</exception>
+    /// <exception cref="IndexOutOfRangeException">A string whose escaped form passes the JSON writer's buffer: the writer's own exception, as 0.8.0 raised it, before anything is written (#1646).</exception>
     /// <exception cref="ArgumentNullException"><paramref name="destination"/> is null.</exception>
     public void Save(Stream destination)
     {
@@ -43,7 +44,9 @@ public sealed partial class EmbeddingIndex
     /// <summary>Writes the index to <paramref name="path"/>, replacing any existing file.</summary>
     /// <param name="path">The file to write. UTF-8 without a byte-order mark.</param>
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
-    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into, or an id is beyond what the JSON writer can write.</exception>
+    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into.</exception>
+    /// <exception cref="ArgumentException">An id is beyond what the JSON writer can write: the writer's own exception, as 0.8.0 raised it (#1646).</exception>
+    /// <exception cref="IndexOutOfRangeException">A string whose escaped form passes the JSON writer's buffer: the writer's own exception, as 0.8.0 raised it, before anything is written (#1646).</exception>
     /// <exception cref="IOException">The file cannot be written.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
     public void Save(string path)
@@ -64,9 +67,10 @@ public sealed partial class EmbeddingIndex
     /// <param name="destination">The stream to write to; never disposed by this method.</param>
     /// <param name="cancellationToken">Cancels the write.</param>
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
-    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into, or an id is beyond what the JSON writer can write.</exception>
+    /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to; refused before the vectors and ids are checked, as 0.8.0 refused it (#1641).</exception>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to, refused before the vectors and ids are checked, as 0.8.0 refused it (#1641); or an id is beyond what the JSON writer can write, refused before anything is written with the writer's own exception, as 0.8.0 raised it (#1646).</exception>
+    /// <exception cref="IndexOutOfRangeException">A string whose escaped form passes the JSON writer's buffer: the writer's own exception, as 0.8.0 raised it, before anything is written (#1646).</exception>
     /// <exception cref="ArgumentNullException"><paramref name="destination"/> is null.</exception>
     public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) =>
         ArtifactIo.SaveWithBlockAsync(
@@ -88,11 +92,27 @@ public sealed partial class EmbeddingIndex
     private IEnumerable<bool> CheckedHeadSteps(Utf8JsonWriter writer)
     {
         EnsureAll();
-        foreach (bool step in HeadSteps(writer))
+        if (!HeadFitsOneFlush())
         {
-            yield return step;
+            return HeadSteps(writer);
         }
+
+        // No step to yield, so no iterator: two of them cost a 207-byte save 128 bytes and a quarter of 0.8.0's time (#1649).
+        WriteHeadScalars(writer);
+        if (_ids is not null)
+        {
+            writer.WriteStartArray(IdsProperty);
+            WriteIdsUntilStep(writer, 0);
+            writer.WriteEndArray();
+        }
+        return [];
     }
+
+    /// <summary>
+    /// Whether the ids, each escaped to six bytes a character at most and a comma, stay under the mebibyte a step
+    /// flushes at: then no id needs a step of its own either, being far shorter than ten million characters.
+    /// </summary>
+    private bool HeadFitsOneFlush() => _ids is null || _count * (_longestId * 6L + 6) < JsonArtifact.FlushThreshold;
 
     /// <summary>Refuses a block whose base64 would not fit the one array a load decodes it into (#1322).</summary>
     /// <remarks>
@@ -117,7 +137,7 @@ public sealed partial class EmbeddingIndex
         {
             if (IdAt(i) is { } id)
             {
-                JsonArtifact.EnsureWritableText(id, "An id");
+                JsonArtifact.EnsureWritableText(id);
             }
         }
     }
@@ -141,13 +161,7 @@ public sealed partial class EmbeddingIndex
     /// <summary>The head, yielding wherever its writer holds a mebibyte: where a save flushes it, an asynchronous one awaiting (#1635).</summary>
     private IEnumerable<bool> HeadSteps(Utf8JsonWriter writer)
     {
-        writer.WriteNumber(DimensionProperty, _dim);
-        writer.WriteBoolean(NormalizeProperty, _normalize);
-
-        // Written before the block it describes, so a reader sizes its buffer from a
-        // value it has already bounded rather than from the file's appetite.
-        writer.WriteNumber(CountProperty, _count);
-
+        WriteHeadScalars(writer);
         if (_ids is not null)
         {
             writer.WriteStartArray(IdsProperty);
@@ -175,6 +189,17 @@ public sealed partial class EmbeddingIndex
             }
             writer.WriteEndArray();
         }
+    }
+
+    /// <summary>The head's dimension, normalization flag and count.</summary>
+    private void WriteHeadScalars(Utf8JsonWriter writer)
+    {
+        writer.WriteNumber(DimensionProperty, _dim);
+        writer.WriteBoolean(NormalizeProperty, _normalize);
+
+        // Written before the block it describes, so a reader sizes its buffer from a
+        // value it has already bounded rather than from the file's appetite.
+        writer.WriteNumber(CountProperty, _count);
     }
 
     /// <summary>

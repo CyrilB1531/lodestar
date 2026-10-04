@@ -17,9 +17,9 @@ public sealed partial class HashingVectorizer
     /// configuration still matters: a pipeline reloaded with a different <c>NumFeatures</c>,
     /// <c>AlternateSign</c> or analyzer silently produces different columns for the same document.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">The token pattern or a stop word is beyond what the JSON writer can write; refused before anything is written.</exception>
     /// <exception cref="InvalidDataException">MinDf or MaxDf is not finite, which the constructor does not refuse; refused before anything is written.</exception>
-    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to; refused before the options' strings are checked (#1641).</exception>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to, refused before the options' strings are checked (#1641); or the token pattern or a stop word is beyond what the JSON writer can write, refused before anything is written with the writer's own exception, as 0.7.0 raised it (#1646).</exception>
+    /// <exception cref="IndexOutOfRangeException">A string whose escaped form passes the JSON writer's buffer: the writer's own exception, as 0.7.0 raised it, before anything is written (#1646).</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     /// <param name="destination">The stream to write to. It is flushed but never disposed — the caller owns it.</param>
@@ -27,11 +27,12 @@ public sealed partial class HashingVectorizer
     {
         // The strings once the writer has accepted the stream, which refused a read-only one first on main (#1618).
         ArtifactIo.Save(
-            destination, ArtifactName, ArtifactVersion, WriteArtifactBody, () => VectorizerOptionsJson.EnsureWritable(_options.Count));
+            destination, ArtifactName, ArtifactVersion, WriteArtifactBody, () => VectorizerOptionsJson.EnsureWritable(_options.Count, _analyzer.StopWords));
     }
 
     /// <summary>Writes the vectorizer's configuration to <paramref name="path"/>, replacing any existing file.</summary>
-    /// <exception cref="InvalidOperationException">The token pattern or a stop word is beyond what the JSON writer can write; refused once the file is open, before its first byte.</exception>
+    /// <exception cref="ArgumentException">The token pattern or a stop word is beyond what the JSON writer can write; refused once the file is open, before its first byte, with the writer's own exception, as 0.7.0 raised it (#1646).</exception>
+    /// <exception cref="IndexOutOfRangeException">A string whose escaped form passes the JSON writer's buffer: the writer's own exception, as 0.7.0 raised it, before anything is written (#1646).</exception>
     /// <exception cref="InvalidDataException">MinDf or MaxDf is not finite, which the constructor does not refuse; refused once the file is open, before its first byte.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
@@ -40,21 +41,23 @@ public sealed partial class HashingVectorizer
     {
         // The strings once the file is open and before its first byte, where main's write failed on them (#1618).
         using FileStream file = JsonArtifact.OpenWrite(path);
-        ArtifactIo.Save(file, ArtifactName, ArtifactVersion, WriteArtifactBody, () => VectorizerOptionsJson.EnsureWritable(_options.Count));
+        ArtifactIo.Save(file, ArtifactName, ArtifactVersion, WriteArtifactBody, () => VectorizerOptionsJson.EnsureWritable(_options.Count, _analyzer.StopWords));
     }
 
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
     /// <param name="destination">The stream to write to; never disposed by this method.</param>
     /// <exception cref="ArgumentNullException">the stream is null.</exception>
-    /// <exception cref="InvalidOperationException">The token pattern or a stop word is beyond what the JSON writer can write; refused before anything is written.</exception>
+    /// <exception cref="ArgumentException">The token pattern or a stop word is beyond what the JSON writer can write; refused before anything is written, with the writer's own exception, as 0.7.0 raised it (#1646).</exception>
+    /// <exception cref="IndexOutOfRangeException">A string whose escaped form passes the JSON writer's buffer: the writer's own exception, as 0.7.0 raised it, before anything is written (#1646).</exception>
     /// <exception cref="InvalidDataException">MinDf or MaxDf is not finite, which the constructor does not refuse; refused before anything is written.</exception>
+    /// <exception cref="NotSupportedException"><paramref name="destination"/> cannot be written to: the stream's own exception, raised by the write once the artifact is composed, as 0.7.0 raised it.</exception>
     /// <exception cref="OperationCanceledException">the token is cancelled.</exception>
     /// <param name="cancellationToken">Cancels the write.</param>
     public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)
     {
         // Inside the task, the stream first, as every refusal of this method has surfaced (#1618).
         Guard.NotNull(destination);
-        VectorizerOptionsJson.EnsureWritable(_options.Count);
+        VectorizerOptionsJson.EnsureWritable(_options.Count, _analyzer.StopWords);
         await ArtifactIo.SaveAsync(destination, ArtifactName, ArtifactVersion, WriteArtifactBody, cancellationToken)
             .ConfigureAwait(false);
     }
@@ -105,7 +108,7 @@ public sealed partial class HashingVectorizer
 
     private void WriteArtifactBody(Utf8JsonWriter writer)
     {
-        VectorizerOptionsJson.Write(writer, "options", _options.Count);
+        VectorizerOptionsJson.Write(writer, "options", _options.Count, _analyzer.StopWords);
         writer.WriteNumber("numFeatures", _options.NumFeatures);
         writer.WriteBoolean("alternateSign", _options.AlternateSign);
         VectorizerOptionsJson.WriteNorm(writer, "norm", _options.Norm);

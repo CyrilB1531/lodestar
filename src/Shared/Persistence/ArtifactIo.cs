@@ -54,16 +54,16 @@ internal static class ArtifactIo
         // The body writes through a synchronous Utf8JsonWriter; composed in memory, it never
         // touches the destination, and the copy to it is what the await covers.
         using var buffer = new SpillBuffer();
-        Compose(buffer, writer => WriteDocument(writer, artifact, version, writeBody));
+        // Inline, as 0.7.0 wrote it: a lambda here was a closure and a delegate a save (#1649).
+        using (var writer = new Utf8JsonWriter(buffer, JsonArtifact.WriterOptions))
+        {
+            WriteDocument(writer, artifact, version, writeBody);
+            // CA1849 / S6966: the destination is the in-memory buffer, whose writes do no I/O; the copy out is awaited.
+#pragma warning disable S6966, CA1849
+            writer.Flush();
+#pragma warning restore S6966, CA1849
+        }
         await buffer.CopyOutAsync(destination, cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>Writes through a writer over <paramref name="buffer"/>, flushed into it at the end.</summary>
-    private static void Compose(SpillBuffer buffer, Action<Utf8JsonWriter> write)
-    {
-        using var writer = new Utf8JsonWriter(buffer, JsonArtifact.WriterOptions);
-        write(writer);
-        writer.Flush();
     }
 
     /// <summary>

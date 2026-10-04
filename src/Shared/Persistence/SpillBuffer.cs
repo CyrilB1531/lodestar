@@ -14,7 +14,10 @@ internal sealed class SpillBuffer : Stream
 
     private const int LargestChunkBytes = 1 << 20;
 
-    private readonly List<byte[]> _chunks = [];
+    // The chunk being filled, and those before it, listed only once there is one: an artifact under a mebibyte is one
+    // chunk, and a list for it cost a small save 88 bytes on 0.7.0's MemoryStream (#1649).
+    private byte[]? _last;
+    private List<byte[]>? _full;
     private int _inLast;
     private long _length;
 
@@ -42,12 +45,12 @@ internal sealed class SpillBuffer : Stream
     {
         while (!buffer.IsEmpty)
         {
-            if (_chunks.Count == 0 || _inLast == _chunks[_chunks.Count - 1].Length)
+            if (_last is null || _inLast == _last.Length)
             {
                 Grow(buffer.Length);
             }
 
-            byte[] last = _chunks[_chunks.Count - 1];
+            byte[] last = _last!;
             int taken = Math.Min(buffer.Length, last.Length - _inLast);
             buffer.Slice(0, taken).CopyTo(last.AsSpan(_inLast));
             _inLast += taken;
@@ -61,12 +64,24 @@ internal sealed class SpillBuffer : Stream
     /// The token goes to every write, as main handed it to its one write of the whole payload: a stream that honours it
     /// stops where it is and raises what it raised on main, and one that ignores it completes, as on main (#1618).
     /// </remarks>
-    public async Task CopyOutAsync(Stream destination, CancellationToken cancellationToken)
+    public ValueTask CopyOutAsync(Stream destination, CancellationToken cancellationToken)
     {
-        for (int i = 0; i < _chunks.Count; i++)
+        if (_full is null)
         {
-            await WriteAsync(destination, _chunks[i], Count(i), cancellationToken).ConfigureAwait(false);
+            // One chunk, one write, and no state machine of its own, as 0.7.0's one WriteAsync (#1649).
+            return _last is null ? default : WriteAsync(destination, _last, _inLast, cancellationToken);
         }
+
+        return CopyAllOutAsync(destination, cancellationToken);
+    }
+
+    private async ValueTask CopyAllOutAsync(Stream destination, CancellationToken cancellationToken)
+    {
+        foreach (byte[] chunk in _full!)
+        {
+            await WriteAsync(destination, chunk, chunk.Length, cancellationToken).ConfigureAwait(false);
+        }
+        await WriteAsync(destination, _last!, _inLast, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -76,25 +91,23 @@ internal sealed class SpillBuffer : Stream
     /// </summary>
     private void Grow(int pending)
     {
-        int last = _chunks.Count - 1;
-        if (last >= 0 && _chunks[last].Length < LargestChunkBytes)
+        if (_last is not null && _last.Length < LargestChunkBytes)
         {
-            byte[] grown = _chunks[last];
-            Array.Resize(ref grown, Sized(_inLast + (long)pending, grown.Length));
-            _chunks[last] = grown;
+            Array.Resize(ref _last, Sized(_inLast + (long)pending, _last.Length));
             return;
         }
 
-        _chunks.Add(new byte[Sized(pending, 0)]);
+        if (_last is not null)
+        {
+            (_full ??= []).Add(_last);
+        }
+        _last = new byte[Sized(pending, 0)];
         _inLast = 0;
     }
 
     /// <summary><see cref="MemoryStream"/>'s capacity rule: what is needed, at least twice the length and 256 bytes, up to one array.</summary>
     private static int Sized(long needed, int length) =>
         (int)Math.Min(Math.Max(Math.Max(needed, 2L * length), FirstChunkBytes), TableLength.MaxByteLength);
-
-    /// <summary>The bytes chunk <paramref name="index"/> holds: all of it, but for the last.</summary>
-    private int Count(int index) => index == _chunks.Count - 1 ? _inLast : _chunks[index].Length;
 
     private static ValueTask WriteAsync(Stream destination, byte[] buffer, int count, CancellationToken cancellationToken) =>
 #if NETSTANDARD2_0

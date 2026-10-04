@@ -13,15 +13,20 @@ public void Save(string path)
 is a file to create or overwrite.
 
 **Exceptions** — `InvalidOperationException` when nothing has been fitted yet, or when the idf
-weights make a base64 block within two mebibytes of the most the JSON writer holds in one buffer, from
-201,129,984 weights, or when a vocabulary term, the token pattern or a stop word is beyond what the
-JSON writer can write. `InvalidDataException` when an idf weight is not finite. An unfitted vectorizer
-is refused before the path is opened; the rest before a byte is written — once the writer has accepted
-the stream, or once the file is open — so a read-only stream or a path that opening refuses is refused
-first, as it always was, and a file is left empty rather than half written
+weights make a base64 block within two mebibytes of the most the JSON writer holds in one buffer,
+from 201,129,984 weights. `ArgumentException`, the JSON writer's own, as 0.7.0 raised it, when a
+vocabulary term, the token pattern or a stop word is beyond what the writer can write.
+`InvalidDataException` when an idf weight is not finite. An unfitted vectorizer is refused before
+the path is opened; the rest before a byte is written — once the writer has accepted the stream, or
+once the file is open — so a read-only stream or a path that opening refuses is refused first, as it
+always was, and a file is left empty rather than half written
 ([#1617](https://github.com/CyrilB1531/lodestar/issues/1617),
-[#1618](https://github.com/CyrilB1531/lodestar/issues/1618)). `ArgumentException` when the stream cannot be written to, refused once the vectorizer is known fitted, before its strings are checked ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641)). `ArgumentNullException` for a null
-stream or path. `IOException` from the stream or file system.
+[#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
+[#1646](https://github.com/CyrilB1531/lodestar/issues/1646)). `ArgumentException` too when the
+stream cannot be written to, refused once the vectorizer is known fitted, before its strings are
+checked ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641)). `IndexOutOfRangeException`,
+the writer's own as well, for a string whose escaped form passes its buffer, as 0.7.0 raised it.
+`ArgumentNullException` for a null stream or path. `IOException` from the stream or file system.
 
 **Example** — saving and restoring, with the weights intact.
 

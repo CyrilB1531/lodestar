@@ -1,4 +1,5 @@
 using Lodestar.Abstractions;
+using Lodestar.Text.Internal;
 
 namespace Lodestar.Text.Vectorization;
 
@@ -17,7 +18,8 @@ public sealed partial class HashingVectorizer
 
     /// <summary>Creates a vectorizer with the given options (defaults if omitted).</summary>
     /// <exception cref="ArgumentOutOfRangeException"><c>NumFeatures</c> is below 1.</exception>
-    /// <exception cref="ArgumentException"><c>Count.NgramRange</c> descends, <c>Count.Analyzer</c> is not an <see cref="AnalyzerKind"/>, or <c>Count.TokenPattern</c> is null, or has more than one capturing group under the word analyzer.</exception>
+    /// <exception cref="ArgumentException"><c>Count.NgramRange</c> descends, <c>Count.Analyzer</c> is not an <see cref="AnalyzerKind"/>, <c>Count.TokenPattern</c> has more than one capturing group under the word analyzer, or .NET refuses it as written, whatever the analyzer, with its <c>RegexParseException</c> as 0.7.0 raised it — a leading <c>(?u)</c> aside.</exception>
+    /// <exception cref="ArgumentNullException"><c>Count.TokenPattern</c> is null, the parameter named <c>pattern</c>, as 0.7.0's <c>Regex</c> named it.</exception>
     public HashingVectorizer(HashingVectorizerOptions? options = null)
     {
         _options = options ?? new HashingVectorizerOptions();
@@ -28,6 +30,8 @@ public sealed partial class HashingVectorizer
 
         CountVectorizerOptions c = _options.Count;
         TextAnalyzer.RequireNgramRange(c.NgramRange, nameof(options));
+        // The pattern before the analyzer, as 0.7.0 compiled it right after the range (#1645).
+        PythonTokenPattern.RefuseAsWritten(c.TokenPattern);
         TextAnalyzer.RequireAnalyzer(c.Analyzer, nameof(options));
         _analyzer = new TextAnalyzer(c.Lowercase, c.StripAccents, c.Analyzer, c.NgramRange, c.TokenPattern, c.StopWords);
     }

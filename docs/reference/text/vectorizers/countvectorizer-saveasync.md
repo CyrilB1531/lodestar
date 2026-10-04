@@ -13,9 +13,14 @@ write.
 
 **Returns** — `Task`, completing when the vectorizer has been written.
 
-**Exceptions** — `InvalidOperationException` when nothing has been fitted yet, or when a vocabulary
-term, the token pattern or a stop word is beyond what the JSON writer can write; both refused
-before anything is written ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618)). `ArgumentNullException` for a null stream.
+**Exceptions** — `InvalidOperationException` when nothing has been fitted yet. `ArgumentException`,
+the JSON writer's own, as 0.7.0 raised it, when a vocabulary term, the token pattern or a stop word
+is beyond what the writer can write. Both are refused before anything is written
+([#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
+[#1646](https://github.com/CyrilB1531/lodestar/issues/1646)). `NotSupportedException`, the stream's
+own, when it cannot be written to, raised by the write once the artifact is composed, as 0.7.0
+raised it. `IndexOutOfRangeException`, the writer's own as well, for a string whose escaped form
+passes its buffer, as 0.7.0 raised it. `ArgumentNullException` for a null stream.
 `OperationCanceledException` when cancelled.
 
 **Example** — the same round trip as [`Save`](countvectorizer-save.md), asynchronously.

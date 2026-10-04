@@ -237,6 +237,49 @@ public sealed class VectorizerPersistenceTests
     }
 
     [Fact]
+    public void A_null_stop_word_or_term_is_written_as_null_as_0_7_0_wrote_it()
+    {
+        // WriteText read a null's length; 0.7.0's writer wrote it as JSON null, which its own Load refuses for a term (#1647).
+        var withNull = new CountVectorizer(new CountVectorizerOptions { StopWords = new List<string> { "the", null! } }).Fit(["the fox"]);
+        using var stops = new MemoryStream();
+        withNull.Save(stops);
+        Assert.Contains("\"stopWords\":[null,\"the\"]", Encoding.UTF8.GetString(stops.ToArray()), StringComparison.Ordinal);
+
+        var edited = new CountVectorizer().Fit(["alpha beta"]);
+        Assert.IsType<string[]>(edited.GetFeatureNames())[0] = null!;
+        using var terms = new MemoryStream();
+        edited.Save(terms);
+        Assert.Contains("\"vocabulary\":[null,\"beta\"]", Encoding.UTF8.GetString(terms.ToArray()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_save_writes_the_stop_words_the_fitted_analyzer_filters_with()
+    {
+        // The caller's set is theirs to change; the analyzer copied it when built, and the artifact now says what that copy
+        // filters, so a reloaded vectorizer counts what the fitted one counted (#1648).
+        var stopWords = new HashSet<string>(StringComparer.Ordinal) { "the" };
+        var fitted = new CountVectorizer(new CountVectorizerOptions { StopWords = stopWords }).Fit(["the fox jumps"]);
+        stopWords.Add("fox");
+
+        using var stream = new MemoryStream();
+        fitted.Save(stream);
+        Assert.Contains("\"stopWords\":[\"the\"]", Encoding.UTF8.GetString(stream.ToArray()), StringComparison.Ordinal);
+        stream.Position = 0;
+        CountVectorizer reloaded = CountVectorizer.Load(stream);
+        Assert.Equal(fitted.Transform(["fox fox"]).Values.ToArray(), reloaded.Transform(["fox fox"]).Values.ToArray());
+    }
+
+    [Fact]
+    public void A_stop_word_list_with_duplicates_is_saved_as_0_7_0_saved_it()
+    {
+        // The words as the caller gave them at construction, duplicates kept, not the set the analyzer filters with (#1648).
+        var cv = new CountVectorizer(new CountVectorizerOptions { StopWords = ["the", "a", "a"] }).Fit(["the fox and a dog"]);
+        using var stream = new MemoryStream();
+        cv.Save(stream);
+        Assert.Contains("\"stopWords\":[\"a\",\"a\",\"the\"]", Encoding.UTF8.GetString(stream.ToArray()), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_term_edited_through_the_handed_out_vocabulary_is_saved_as_edited()
     {
         // GetFeatureNames hands out the array itself, as 0.7.0 did; a term a cast edits is searched again, its lone

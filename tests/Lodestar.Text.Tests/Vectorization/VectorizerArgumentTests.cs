@@ -110,11 +110,53 @@ public sealed class VectorizerArgumentTests
     [Fact]
     public void A_null_token_pattern_is_refused_whatever_the_analyzer()
     {
-        // Save writes the pattern and Load requires a string, so the character analyzers,
-        // which never read it, still cannot take a null one.
+        // Save writes the pattern and Load requires a string, so the character analyzers, which never read it, still
+        // cannot take a null one; refused as 0.7.0's Regex refused it, its parameter named "pattern" (#1645).
         var options = new CountVectorizerOptions { Analyzer = AnalyzerKind.Char, TokenPattern = null! };
 
-        Assert.Throws<ArgumentException>(() => new CountVectorizer(options));
+        Assert.Equal("pattern", Assert.Throws<ArgumentNullException>(() => new CountVectorizer(options)).ParamName);
+    }
+
+    [Fact]
+    public void A_null_or_unreadable_pattern_is_refused_ahead_of_an_undefined_analyzer()
+    {
+        // 0.7.0 had no analyzer check and compiled the pattern right after the n-gram range, so the pattern's refusal
+        // comes first, for every vectorizer (#1645).
+        var nullPattern = new CountVectorizerOptions { Analyzer = (AnalyzerKind)99, TokenPattern = null! };
+        string unreadable = string.Concat("[", "");
+        var badPattern = new CountVectorizerOptions { Analyzer = (AnalyzerKind)99, TokenPattern = unreadable };
+        string expected = Assert.ThrowsAny<ArgumentException>(() => new System.Text.RegularExpressions.Regex(unreadable)).Message;
+
+        Assert.Equal("pattern", Assert.Throws<ArgumentNullException>(() => new CountVectorizer(nullPattern)).ParamName);
+        Assert.Equal("pattern", Assert.Throws<ArgumentNullException>(
+            () => new HashingVectorizer(new HashingVectorizerOptions { Count = nullPattern })).ParamName);
+        Assert.Equal(expected, Assert.ThrowsAny<ArgumentException>(() => new CountVectorizer(badPattern)).Message);
+        Assert.Equal(expected, Assert.ThrowsAny<ArgumentException>(
+            () => new TfidfVectorizer(new TfidfVectorizerOptions { Count = badPattern })).Message);
+    }
+
+    [Fact]
+    public void Rake_and_text_rank_refuse_a_null_pattern_as_0_7_0_did()
+    {
+        // The token pattern's own constructor checks it first, where it read its prefix and threw NullReferenceException.
+        Assert.Equal("pattern", Assert.Throws<ArgumentNullException>(
+            () => new Lodestar.Text.Keywords.Rake(new Lodestar.Text.Keywords.RakeOptions { TokenPattern = null! })).ParamName);
+        Assert.Equal("pattern", Assert.Throws<ArgumentNullException>(
+            () => new Lodestar.Text.Keywords.TextRank(new Lodestar.Text.Keywords.TextRankOptions { TokenPattern = null! })).ParamName);
+    }
+
+    [Theory]
+    [InlineData(AnalyzerKind.Char)]
+    [InlineData(AnalyzerKind.CharWordBoundary)]
+    public void A_pattern_dotnet_refuses_is_refused_by_the_character_analyzers_as_0_7_0_refused_it(AnalyzerKind analyzer)
+    {
+        // 0.7.0 compiled the pattern whatever the analyzer, so these refused it too, with .NET's message (#1645).
+        // Built in two parts, so no analyzer reads it as a regex literal to correct.
+        string refused = string.Concat(@"[\", "_]");
+        string expected = Assert.ThrowsAny<ArgumentException>(() => new System.Text.RegularExpressions.Regex(refused)).Message;
+        var options = new CountVectorizerOptions { Analyzer = analyzer, TokenPattern = refused };
+
+        Assert.Equal(expected, Assert.ThrowsAny<ArgumentException>(() => new CountVectorizer(options)).Message);
     }
 
     [Fact]

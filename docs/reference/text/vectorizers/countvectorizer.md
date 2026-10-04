@@ -13,11 +13,15 @@ say which.
 public sealed class CountVectorizer
 ```
 
-**Constructor** — `CountVectorizer(CountVectorizerOptions? options = null)`. The default options
-are scikit-learn's defaults, so `new CountVectorizer()` is `CountVectorizer()`. It throws
+**Constructor** — `CountVectorizer(CountVectorizerOptions? options = null)`. The default options are
+scikit-learn's defaults, so `new CountVectorizer()` is `CountVectorizer()`. It throws
 `ArgumentOutOfRangeException` when `MinDf` or `MaxDf` is negative, not finite or a fraction above
-`1`, and `ArgumentException` when `NgramRange` descends, the one range scikit-learn refuses too, or when `Analyzer`
-is not an [`AnalyzerKind`](analyzerkind.md) member.
+`1`, and `ArgumentException` when `NgramRange` descends, the one range scikit-learn refuses too, or
+when `Analyzer` is not an [`AnalyzerKind`](analyzerkind.md) member. The token pattern is checked
+after the document-frequency bounds and the n-gram range, where 0.7.0 compiled it, whatever the
+analyzer: a null one throws `ArgumentNullException` with the parameter named `pattern`, and one .NET
+refuses as written its `RegexParseException` — a leading `(?u)` aside — ahead of the analyzer check
+([#1645](https://github.com/CyrilB1531/lodestar/issues/1645)).
 
 **Example** — three documents, and the vocabulary they produce.
 
