@@ -28,7 +28,8 @@ public sealed partial class EmbeddingIndex
         // Uninitialized: every element is written by the copy that follows.
         float[] data = Buffers.AllocateUninitialized<float>(block.Length);
         block.CopyTo(data);
-        return Seed(data, dimension, count, normalization, CopyIds(ids));
+        string?[]? copy = CopyIds(ids);
+        return Seed(data, dimension, count, normalization, copy, IdFacts.Of(copy));
     }
 
     /// <summary>Builds an index that <b>takes</b> <paramref name="block"/>, without copying it.</summary>
@@ -55,7 +56,8 @@ public sealed partial class EmbeddingIndex
     {
         Guard.NotNull(block);
         int count = CheckBlock(block.Length, dimension, normalization, ids, nameof(block));
-        return Seed(block, dimension, count, normalization, CopyIds(ids));
+        string?[]? copy = CopyIds(ids);
+        return Seed(block, dimension, count, normalization, copy, IdFacts.Of(copy));
     }
 
     /// <summary>Validates the three arguments that can disagree, and returns the vector count.</summary>
@@ -126,7 +128,8 @@ public sealed partial class EmbeddingIndex
         int dimension,
         int count,
         BlockNormalization normalization,
-        string?[]? ids)
+        string?[]? ids,
+        IdFacts idFacts)
     {
         var index = new EmbeddingIndex(dimension, normalization != BlockNormalization.Off)
         {
@@ -134,6 +137,8 @@ public sealed partial class EmbeddingIndex
             _length = count * dimension,
             _count = count,
             _ids = ids,
+            _idsMayHoldSurrogate = idFacts.MayHoldSurrogate,
+            _longestId = idFacts.Longest,
         };
 
         if (normalization == BlockNormalization.Normalize)

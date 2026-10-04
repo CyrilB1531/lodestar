@@ -49,11 +49,18 @@ public sealed partial class HashingVectorizer
         var columns = new List<int>();
 
         var terms = new HashedTerms(new HashTally(nf, _options.AlternateSign));
-        for (int row = 0; row < docs.Count; row++)
+        try
         {
-            _analyzer.Analyze(TextAnalyzer.Document(docs, row, nameof(documents)), ref terms);
-            terms.Tally.Drain(columns, values, _options.Count.Binary);
-            rowPointers[row + 1] = values.Count;
+            for (int row = 0; row < docs.Count; row++)
+            {
+                _analyzer.Analyze(TextAnalyzer.Document(docs, row, nameof(documents)), ref terms);
+                terms.Tally.Drain(columns, values, _options.Count.Binary);
+                rowPointers[row + 1] = values.Count;
+            }
+        }
+        finally
+        {
+            TextAnalyzer.ReleaseScratch();
         }
 
         CsrMatrix matrix = CsrMatrix.CreateUnchecked(docs.Count, nf, values.ToArray(), columns.ToArray(), rowPointers);

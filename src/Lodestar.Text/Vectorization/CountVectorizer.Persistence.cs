@@ -22,6 +22,7 @@ public sealed partial class CountVectorizer
     /// </remarks>
     /// <param name="destination">The stream to write to. It is flushed but never disposed — the caller owns it.</param>
     /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write; refused before anything is written.</exception>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to; refused once the vectorizer is known fitted, before its strings are checked (#1641).</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     public void Save(Stream destination)
@@ -73,7 +74,16 @@ public sealed partial class CountVectorizer
     private void EnsureWritable()
     {
         VectorizerOptionsJson.EnsureWritable(_options);
-        FeatureVocabularyJson.EnsureWritableVocabulary(_featureNames);
+        EnsureWritableVocabulary();
+    }
+
+    /// <summary>Refuses a term the writer cannot write, measuring none when the longest is short enough (#1643).</summary>
+    internal void EnsureWritableVocabulary()
+    {
+        if (_longestTerm > JsonArtifact.AlwaysWritableCharacters)
+        {
+            FeatureVocabularyJson.EnsureWritableVocabulary(_featureNames);
+        }
     }
 
     /// <summary>
@@ -137,12 +147,18 @@ public sealed partial class CountVectorizer
     /// <summary>Whether <see cref="Fit"/> has run.</summary>
     internal bool IsFitted => _vocabulary is not null;
 
+    /// <summary>Whether a fitted term may hold a lone surrogate, which the vocabulary's save then searches each term for.</summary>
+    internal bool VocabularyMayHoldSurrogate => _vocabularyMayHoldSurrogate;
+
     /// <summary>Rebuilds the fitted state from an artifact's already-validated vocabulary.</summary>
-    internal void RestoreVocabulary(string[] sortedFeatureNames)
+    internal void RestoreVocabulary(string[] sortedFeatureNames, bool mayHoldSurrogate)
     {
+        _vocabularyMayHoldSurrogate = mayHoldSurrogate;
+        _longestTerm = 0;
         var vocabulary = new Dictionary<string, int>(sortedFeatureNames.Length, StringComparer.Ordinal);
         for (int i = 0; i < sortedFeatureNames.Length; i++)
         {
+            _longestTerm = Math.Max(_longestTerm, sortedFeatureNames[i].Length);
             vocabulary[sortedFeatureNames[i]] = i;
         }
         _featureNames = sortedFeatureNames;
@@ -155,7 +171,7 @@ public sealed partial class CountVectorizer
         EnsureFitted();
         VectorizerOptionsJson.Write(writer, "options", _options);
         writer.WriteNumber(FeatureVocabularyJson.FeatureCountProperty, _featureNames.Length);
-        FeatureVocabularyJson.WriteVocabulary(writer, _featureNames);
+        FeatureVocabularyJson.WriteVocabulary(writer, _featureNames, _vocabularyMayHoldSurrogate);
     }
 
     private static CountVectorizer FromPayload(ReadOnlySequence<byte> payload, in ArtifactLimits limits)
@@ -177,6 +193,7 @@ public sealed partial class CountVectorizer
 
         CountVectorizerOptions? options = null;
         string[]? vocabulary = null;
+        bool mayHoldSurrogate = false;
         int featureCount = -1;
 
         while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
@@ -195,7 +212,7 @@ public sealed partial class CountVectorizer
                     featureCount = FeatureVocabularyJson.ReadFeatureCount(ref reader, ArtifactName, limits);
                     break;
                 case FeatureVocabularyJson.VocabularyProperty:
-                    vocabulary = FeatureVocabularyJson.ReadVocabulary(ref reader, ArtifactName, limits, featureCount);
+                    vocabulary = FeatureVocabularyJson.ReadVocabulary(ref reader, ArtifactName, limits, featureCount, out mayHoldSurrogate);
                     break;
                 default:
                     throw JsonArtifact.UnknownProperty(ArtifactName, name);
@@ -219,7 +236,7 @@ public sealed partial class CountVectorizer
         FeatureVocabularyJson.EnsureDeclaredCount(ArtifactName, featureCount, vocabulary.Length, FeatureVocabularyJson.VocabularyProperty);
 
         CountVectorizer vectorizer = VectorizerOptionsJson.Build(ArtifactName, () => new CountVectorizer(options));
-        vectorizer.RestoreVocabulary(vocabulary);
+        vectorizer.RestoreVocabulary(vocabulary, mayHoldSurrogate);
         return vectorizer;
     }
 }

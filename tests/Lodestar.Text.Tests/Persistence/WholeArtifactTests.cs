@@ -154,6 +154,27 @@ public sealed class WholeArtifactTests
         Assert.Equal(0, stream.Length);
     }
 
+    [Fact]
+    public async Task A_refused_save_is_refused_alike_whatever_the_stream_does_with_writes()
+    {
+        // The writer is pointed away on a refusal, so a stream whose flush fails cannot mask it, sync as async (#1641).
+        var vectorizer = new TfidfVectorizer();
+        vectorizer.Fit(Corpus);
+        Assert.IsType<double[]>(vectorizer.Idf)[0] = double.NaN;
+        var failing = new FailingStream();
+        try
+        {
+            Assert.IsType<InvalidDataException>(Assert.ThrowsAny<Exception>(() => vectorizer.Save(failing)));
+            Assert.IsType<InvalidDataException>(
+                await Assert.ThrowsAnyAsync<Exception>(() => vectorizer.SaveAsync(failing, TestContext.Current.CancellationToken)));
+            Assert.Equal(0, failing.Calls);
+        }
+        finally
+        {
+            await failing.DisposeAsync();
+        }
+    }
+
     [Theory]
     [InlineData(20_000, 1, 773_608)]
     [InlineData(90_000, 2, 3_300_000)]
@@ -198,8 +219,8 @@ public sealed class WholeArtifactTests
 
     /// <summary>
     /// Artifacts of about 24 KB, 78 KB, 1.08 MB and 2.1 MB, a read size, and what an undeclared load may allocate over a
-    /// seekable one: under a mebibyte, 0.7.0's MemoryStream cost, 81,984 and 198,608 bytes at 24 and 78 KB (#1629); past
-    /// it, mebibyte segments, where it doubled again to 3,110,864 at 1.1 MB and 6,308,040 at 2.1 MB, as main did (#1634).
+    /// seekable one: 0.7.0's MemoryStream cost and 16 KB, the first array growing as that buffer did up to 64 MiB (#1642).
+    /// Read 65,536 bytes at a time, that is 198,608 at 78 KB (#1629) and about 3.13 and 6.31 MB at 1.08 and 2.1 MB.
     /// </summary>
     public static TheoryData<int, int, int> Bands => new()
     {
@@ -208,8 +229,8 @@ public sealed class WholeArtifactTests
         { 6_500, 81_920, 98_304 },
         { 6_500, 65_536, 214_992 },
         { 90_000, 81_920, 1_600_000 },
-        { 90_000, 65_536, 2_200_000 },
-        { 175_000, 65_536, 3_000_000 },
+        { 90_000, 65_536, 3_150_000 },
+        { 175_000, 65_536, 6_325_000 },
     };
 
     [Theory]
@@ -431,6 +452,29 @@ public sealed class WholeArtifactTests
         {
             Writes++;
             Largest = Math.Max(Largest, count);
+        }
+    }
+
+    private sealed class FailingStream : MemoryStream
+    {
+        public int Calls { get; private set; }
+
+        public override void Write(byte[] buffer, int offset, int count) => throw Failed();
+
+        public override void Write(ReadOnlySpan<byte> buffer) => throw Failed();
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => Task.FromException(Failed());
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => ValueTask.FromException(Failed());
+
+        public override void Flush() => throw Failed();
+
+        public override Task FlushAsync(CancellationToken cancellationToken) => Task.FromException(Failed());
+
+        private IOException Failed()
+        {
+            Calls++;
+            return new IOException("flush failed");
         }
     }
 }

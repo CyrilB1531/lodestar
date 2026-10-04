@@ -409,9 +409,10 @@ internal static class JsonArtifact
         }
 
         /// <summary>
-        /// For a stream of undeclared length, most of which are small. Its first segment grows as the
-        /// <see cref="MemoryStream"/> the read used before did until it holds a mebibyte, so an artifact it holds is one
-        /// array handed over uncopied, as there; past it, mebibyte segments, where that stream doubled (#1624, #1629, #1634).
+        /// For a stream of undeclared length. Its first segment grows as the <see cref="MemoryStream"/> the read used
+        /// before did until it holds 64 MiB, one array handed over uncopied, as there; past it, mebibyte segments, where
+        /// that stream doubled again (#1624, #1629, #1634). Segments from a mebibyte were tried: a reader over several
+        /// is slower per token, 35-38 ms against 0.7.0's 27-28 for a 4 MB vocabulary after large fits (#1642).
         /// </summary>
         public static SegmentChain Growing(in ArtifactLimits limits) => new(
             (int)Math.Min(limits.MaxSingleBuffer, GrowableSegmentBytes),
@@ -419,6 +420,9 @@ internal static class JsonArtifact
 
         /// <summary>The least a first segment takes, as <see cref="MemoryStream"/>'s first buffer did.</summary>
         private const int FirstGrowingSegment = 256;
+
+        /// <summary>How far a growing chain's first segment grows before segments follow it: 64 MiB.</summary>
+        private const int ContiguousGrowth = 64 << 20;
 
         /// <summary>Copies one read into the chain, counting it against <c>MaxTotalBytes</c> first.</summary>
         public void Write(ReadOnlySpan<byte> data, in ArtifactLimits limits)
@@ -450,13 +454,13 @@ internal static class JsonArtifact
 
         /// <summary>
         /// Room for <paramref name="pending"/> more bytes. Before any segment is linked and while the open one holds less
-        /// than a segment, it grows as <see cref="MemoryStream"/>'s buffer does, to the larger of what is pending, twice
-        /// its length and 256 bytes, up to one array; past that, the full one is linked and a segment opened.
+        /// than 64 MiB, it grows as <see cref="MemoryStream"/>'s buffer does, to the larger of what is pending, twice its
+        /// length and 256 bytes, up to one array; past that, the full one is linked and a segment opened.
         /// </summary>
         private byte[] MakeRoom(int pending)
         {
             int length = open?.Length ?? 0;
-            if (head is null && length < largest)
+            if (head is null && length < Math.Min(firstLargest, ContiguousGrowth))
             {
                 long wanted = Math.Max(Math.Max((long)inOpen + pending, 2L * length), FirstGrowingSegment);
                 byte[] grown = open ?? [];
@@ -745,22 +749,18 @@ internal static class JsonArtifact
     /// it goes through the writer's own encoder, so it is escaped as it always was. A string with no
     /// lone surrogate is written exactly as before.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void WriteText(Utf8JsonWriter writer, string value)
     {
-        // A long string goes to a flushed writer, as EnsureWritableText's trial wrote it (#1618).
-        if (value.Length > AlwaysWritableCharacters)
-        {
-            writer.Flush();
-        }
-
-        if (!HasLoneSurrogate(value))
+        // The common term — short, no surrogate — costs one search and the writer's own call, inlined into the list's
+        // loop; a vocabulary is that, a few hundred thousand times (#1643).
+        if (value.Length <= AlwaysWritableCharacters && !MayHoldSurrogate(value))
         {
             writer.WriteStringValue(value);
             return;
         }
 
-        // Built from the encoder's output and four-digit escapes, so already valid JSON.
-        writer.WriteRawValue(EscapeWithLoneSurrogates(value), skipInputValidation: true);
+        WriteUncommonText(writer, value);
     }
 
     /// <summary>Writes the property <paramref name="propertyName"/> with <paramref name="value"/>, as <see cref="WriteText(Utf8JsonWriter, string)"/> writes it.</summary>
@@ -771,6 +771,65 @@ internal static class JsonArtifact
     }
 
     /// <summary>
+    /// <see cref="WriteText(Utf8JsonWriter, string)"/> for a list already known to hold no surrogate, which writes
+    /// <paramref name="value"/> straight through the writer and searches nothing: the search, a few hundred thousand
+    /// times a save, cost a vocabulary save 7–12% against 0.7.0's (#1643).
+    /// </summary>
+    /// <param name="writer">The writer.</param>
+    /// <param name="value">The string.</param>
+    /// <param name="mayHoldSurrogate">Whether the list <paramref name="value"/> belongs to may hold a surrogate.</param>
+    public static void WriteText(Utf8JsonWriter writer, string value, bool mayHoldSurrogate)
+    {
+        if (!mayHoldSurrogate && value.Length <= AlwaysWritableCharacters)
+        {
+            writer.WriteStringValue(value);
+            return;
+        }
+
+        WriteText(writer, value);
+    }
+
+    /// <summary>
+    /// Whether <paramref name="value"/> may hold a lone surrogate, all a save's straight write cannot take: any surrogate on
+    /// .NET 8 and later, where that is one vectorised search; only a lone one on netstandard2.0.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static bool MayHoldSurrogate(string value) =>
+#if NET8_0_OR_GREATER
+        value.AsSpan().ContainsAnyInRange('\uD800', '\uDFFF');
+#else
+        HasLoneSurrogate(value);
+#endif
+
+    /// <summary><see cref="WriteText(Utf8JsonWriter, string)"/> for a long string or one holding a surrogate.</summary>
+    private static void WriteUncommonText(Utf8JsonWriter writer, string value)
+    {
+        // A long string goes to a flushed writer, as EnsureWritableText's trial wrote it (#1618).
+        if (value.Length > AlwaysWritableCharacters)
+        {
+            writer.Flush();
+        }
+
+        WriteFlushedText(writer, value);
+    }
+
+    /// <summary>
+    /// <see cref="WriteText(Utf8JsonWriter, string)"/> for a writer its caller has just flushed, which it does not flush
+    /// again: an asynchronous save awaits that flush, where this would make it synchronously on the caller's stream (#1640).
+    /// </summary>
+    public static void WriteFlushedText(Utf8JsonWriter writer, string value)
+    {
+        if (!HasLoneSurrogate(value))
+        {
+            writer.WriteStringValue(value);
+            return;
+        }
+
+        // Built from the encoder's output and four-digit escapes, so already valid JSON.
+        writer.WriteRawValue(EscapeWithLoneSurrogates(value), skipInputValidation: true);
+    }
+
+    /// <summary>
     /// The longest string written without a trial: at most six ASCII bytes a unit once escaped, 60 MB, far inside
     /// every ceiling the writer has. System.Text.Json 10 refuses past 166,666,666 characters, a raw value past
     /// 715,827,882, and failed on 120,000,000 characters each escaped, so a longer string is tried first (#1618).
@@ -778,8 +837,9 @@ internal static class JsonArtifact
     public const int AlwaysWritableCharacters = 10_000_000;
 
     /// <summary>
-    /// Pending bytes past which <see cref="FlushIfPending"/> hands them to the stream. <see cref="Utf8JsonWriter"/> holds
-    /// everything until told to flush, and refuses to hold much past two gibibytes (#1618).
+    /// Pending bytes past which <see cref="FlushIfPending"/> hands them to the stream, and an index's head yields to a
+    /// flush its save awaits. <see cref="Utf8JsonWriter"/> holds everything until told to flush, and refuses to hold much
+    /// past two gibibytes (#1618, #1635).
     /// </summary>
     public const int FlushThreshold = 1 << 20;
 
@@ -873,8 +933,8 @@ internal static class JsonArtifact
 
     private static bool HasLoneSurrogate(string s)
     {
-        // Every term is checked on Save and almost none holds a surrogate, so the common case is one
-        // unsigned comparison per unit; a vectorised search costs more than that on a short term.
+        // Reached for a string MayHoldSurrogate flagged, or on netstandard2.0 as that search itself, where no vectorised
+        // range search exists: one unsigned comparison per unit until a surrogate.
         int i = 0;
         while (i < s.Length && (uint)(s[i] - 0xD800) > 0x7FF)
         {

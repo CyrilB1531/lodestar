@@ -1,4 +1,5 @@
 using System.Numerics;
+using Lodestar.Internal.Persistence;
 
 namespace Lodestar.Embeddings.Search;
 
@@ -19,6 +20,43 @@ public sealed partial class EmbeddingIndex
     private int _length;
     private int _count;
     private string?[]? _ids;
+
+    // Whether an id may hold a lone surrogate, and the longest id's length: found as ids arrive, so a save searches and
+    // measures no id (#1643).
+    private bool _idsMayHoldSurrogate;
+    private int _longestId;
+
+    /// <summary>What a save needs to know of a whole id list, found in one pass by whoever builds it.</summary>
+    private readonly struct IdFacts
+    {
+        public IdFacts(bool mayHoldSurrogate, int longest)
+        {
+            MayHoldSurrogate = mayHoldSurrogate;
+            Longest = longest;
+        }
+
+        /// <summary>Whether an id may hold a lone surrogate, as <c>JsonArtifact.MayHoldSurrogate</c> or a load's escaping finds.</summary>
+        public bool MayHoldSurrogate { get; }
+
+        /// <summary>The longest id's length, 0 for none.</summary>
+        public int Longest { get; }
+
+        /// <summary>Searches and measures <paramref name="ids"/>, for a list handed to a factory.</summary>
+        public static IdFacts Of(string?[]? ids)
+        {
+            bool mayHoldSurrogate = false;
+            int longest = 0;
+            for (int i = 0; ids is not null && i < ids.Length; i++)
+            {
+                if (ids[i] is { } id)
+                {
+                    mayHoldSurrogate |= JsonArtifact.MayHoldSurrogate(id);
+                    longest = Math.Max(longest, id.Length);
+                }
+            }
+            return new IdFacts(mayHoldSurrogate, longest);
+        }
+    }
 
     /// <summary>Creates an index for vectors of the given dimension.</summary>
     /// <param name="dimension">The embedding dimension.</param>
@@ -102,6 +140,8 @@ public sealed partial class EmbeddingIndex
             Array.Resize(ref _ids, (int)Math.Min(Math.Max(_count, (long)_ids.Length * 2), TableLength.MaxLength));
         }
         _ids[_count - 1] = id;
+        _idsMayHoldSurrogate |= JsonArtifact.MayHoldSurrogate(id);
+        _longestId = Math.Max(_longestId, id.Length);
     }
 
     /// <summary>Whether this index keeps an id list: from the first <c>Add</c> given an id, or from an id list a factory was handed or a file declared.</summary>

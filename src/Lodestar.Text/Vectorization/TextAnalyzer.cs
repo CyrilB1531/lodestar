@@ -34,7 +34,29 @@ internal sealed class TextAnalyzer
     [ThreadStatic]
     private static List<(int Start, int Length)>? _matches;
 
+    /// <summary>
+    /// The most matches a scratch list keeps room for once a call ends. One document of 350,000 tokens left 4 MB on the
+    /// thread for good, and every load after it ran 29% slower against that heap: 35.4 ms against 27.4 (#1643).
+    /// </summary>
+    private const int RetainedMatches = 4096;
+
     private static List<(int Start, int Length)> ScratchMatches() => _matches ??= [];
+
+    /// <summary>
+    /// Lets go of a scratch list a long document grew, keeping one an ordinary document fits. Called once a call over
+    /// its documents ends, not after each: let go per document, 200 of 20,000 tokens allocated 253 MB against 153 (#1643).
+    /// </summary>
+    public static void ReleaseScratch()
+    {
+        if (_matches is { Capacity: > RetainedMatches })
+        {
+            _matches = null;
+        }
+    }
+
+    /// <summary>The calling thread's scratch list's capacity, or <see langword="null"/> when it holds none: for the tests.</summary>
+    internal static int? ScratchCapacity => _matches?.Capacity;
+
     private readonly StopWordSet? _stopWords;
 
     public TextAnalyzer(
@@ -97,7 +119,14 @@ internal sealed class TextAnalyzer
     public List<string> Analyze(string document)
     {
         var sink = new TermList(new List<string>());
-        Analyze(document, ref sink);
+        try
+        {
+            Analyze(document, ref sink);
+        }
+        finally
+        {
+            ReleaseScratch();
+        }
         return sink.Terms;
     }
 
@@ -144,8 +173,8 @@ internal sealed class TextAnalyzer
         where TSink : struct, ITermSink
     {
         var tokens = new List<(int Start, int Length)>();
-#if NET9_0_OR_GREATER
         List<(int Start, int Length)> matches = ScratchMatches();
+#if NET9_0_OR_GREATER
         _tokenPattern!.Matches(s, matches);
         foreach ((int index, int length) in matches)
         {
@@ -158,7 +187,6 @@ internal sealed class TextAnalyzer
             }
         }
 #else
-        List<(int Start, int Length)> matches = ScratchMatches();
         _tokenPattern!.Matches(s, matches);
         foreach ((int index, int length) in matches)
         {
@@ -181,6 +209,7 @@ internal sealed class TextAnalyzer
             }
         }
 #endif
+
         return tokens;
     }
 

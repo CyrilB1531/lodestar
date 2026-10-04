@@ -90,7 +90,7 @@ public class AsyncArtifactBenchmarks
     [Benchmark]
     public HashingVectorizer HashingLoadUndeclared()
     {
-        using var pipe = new Undeclared(_hashingArtifact);
+        using var pipe = new UndeclaredStream(_hashingArtifact);
         return HashingVectorizer.Load(pipe);
     }
 
@@ -98,7 +98,7 @@ public class AsyncArtifactBenchmarks
     [Benchmark]
     public TfidfVectorizer TfidfLoadUndeclared()
     {
-        using var pipe = new Undeclared(_smallArtifact);
+        using var pipe = new UndeclaredStream(_smallArtifact);
         return TfidfVectorizer.Load(pipe);
     }
 
@@ -106,7 +106,7 @@ public class AsyncArtifactBenchmarks
     [Benchmark]
     public CountVectorizer CountLoadUndeclared24K()
     {
-        using var pipe = new Undeclared(_countArtifact24K);
+        using var pipe = new UndeclaredStream(_countArtifact24K);
         return CountVectorizer.Load(pipe);
     }
 
@@ -114,7 +114,7 @@ public class AsyncArtifactBenchmarks
     [Benchmark]
     public CountVectorizer CountLoadUndeclared78K()
     {
-        using var pipe = new Undeclared(_countArtifact78K);
+        using var pipe = new UndeclaredStream(_countArtifact78K);
         return CountVectorizer.Load(pipe);
     }
 
@@ -122,7 +122,7 @@ public class AsyncArtifactBenchmarks
     [Benchmark]
     public CountVectorizer CountLoadUndeclared1M()
     {
-        using var pipe = new Undeclared(_countArtifact1M);
+        using var pipe = new UndeclaredStream(_countArtifact1M);
         return CountVectorizer.Load(pipe);
     }
 
@@ -148,7 +148,7 @@ public class AsyncArtifactBenchmarks
     [Benchmark]
     public CountVectorizer CountLoadUndeclared2M()
     {
-        using var pipe = new Undeclared(_countArtifact2M);
+        using var pipe = new UndeclaredStream(_countArtifact2M);
         return CountVectorizer.Load(pipe);
     }
 
@@ -199,45 +199,6 @@ public class AsyncArtifactBenchmarks
         public override Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
         public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-
-        public override void SetLength(long value) => throw new NotSupportedException();
-    }
-
-    /// <summary>A read-only stream over bytes that declares no length and cannot seek, as a pipe does.</summary>
-    private sealed class Undeclared(byte[] bytes) : Stream
-    {
-        private int _position;
-
-        public override bool CanRead => true;
-
-        public override bool CanSeek => false;
-
-        public override bool CanWrite => false;
-
-        public override long Length => throw new NotSupportedException();
-
-        public override long Position
-        {
-            get => throw new NotSupportedException();
-            set => throw new NotSupportedException();
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            int taken = Math.Min(count, bytes.Length - _position);
-            Array.Copy(bytes, _position, buffer, offset, taken);
-            _position += taken;
-            return taken;
-        }
-
-        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-
-        public override void Flush()
-        {
-            // Nothing is written.
-        }
 
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 

@@ -29,6 +29,7 @@ public sealed partial class EmbeddingIndex
     /// <param name="destination">The stream to write to. Flushed but never disposed — the caller owns it.</param>
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
     /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into, or an id is beyond what the JSON writer can write.</exception>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to; refused before the vectors and ids are checked, as 0.8.0 refused it (#1641).</exception>
     /// <exception cref="ArgumentNullException"><paramref name="destination"/> is null.</exception>
     public void Save(Stream destination)
     {
@@ -65,6 +66,7 @@ public sealed partial class EmbeddingIndex
     /// <exception cref="InvalidDataException">A vector holds a non-finite component.</exception>
     /// <exception cref="InvalidOperationException">The vector block, base64-encoded, is longer than the one array a load decodes it into, or an id is beyond what the JSON writer can write.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to; refused before the vectors and ids are checked, as 0.8.0 refused it (#1641).</exception>
     /// <exception cref="ArgumentNullException"><paramref name="destination"/> is null.</exception>
     public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) =>
         ArtifactIo.SaveWithBlockAsync(
@@ -111,7 +113,7 @@ public sealed partial class EmbeddingIndex
     /// <summary>Refuses an id the writer would refuse partway through the head, before the first byte (#1618).</summary>
     private void EnsureWritableIds()
     {
-        for (int i = 0; _ids is not null && i < _count; i++)
+        for (int i = 0; _ids is not null && _longestId > JsonArtifact.AlwaysWritableCharacters && i < _count; i++)
         {
             if (IdAt(i) is { } id)
             {
@@ -149,25 +151,61 @@ public sealed partial class EmbeddingIndex
         if (_ids is not null)
         {
             writer.WriteStartArray(IdsProperty);
-            for (int i = 0; i < _count; i++)
+            int next = 0;
+            while (next < _count)
             {
-                string? id = IdAt(i);
-                if (id is null)
-                {
-                    writer.WriteNullValue();
-                }
-                else
-                {
-                    JsonArtifact.WriteText(writer, id);
-                }
-
+                next = WriteIdsUntilStep(writer, next);
                 if (writer.BytesPending >= JsonArtifact.FlushThreshold)
                 {
                     yield return true;
                 }
+
+                if (next < _count && IdAt(next) is { Length: > JsonArtifact.AlwaysWritableCharacters } id)
+                {
+                    // Flushed by the caller at this step, awaited where the save is asynchronous, as the id's trial
+                    // was written (#1640).
+                    yield return true;
+                    JsonArtifact.WriteFlushedText(writer, id);
+                    next++;
+                    if (writer.BytesPending >= JsonArtifact.FlushThreshold)
+                    {
+                        yield return true;
+                    }
+                }
             }
             writer.WriteEndArray();
         }
+    }
+
+    /// <summary>
+    /// Writes ids from <paramref name="start"/> until the writer holds a mebibyte or the next id needs a step of its
+    /// own, and returns the next id to write. Outside the iterator, whose locals are fields: 155 µs to 149 for 10,000
+    /// ids saved asynchronously, 0.8.0's 148 (#1643).
+    /// </summary>
+    private int WriteIdsUntilStep(Utf8JsonWriter writer, int start)
+    {
+        for (int i = start; i < _count; i++)
+        {
+            string? id = IdAt(i);
+            if (id is null)
+            {
+                writer.WriteNullValue();
+            }
+            else if (id.Length > JsonArtifact.AlwaysWritableCharacters)
+            {
+                return i;
+            }
+            else
+            {
+                JsonArtifact.WriteText(writer, id, _idsMayHoldSurrogate);
+            }
+
+            if (writer.BytesPending >= JsonArtifact.FlushThreshold)
+            {
+                return i + 1;
+            }
+        }
+        return _count;
     }
 
     /// <summary>
@@ -325,6 +363,7 @@ public sealed partial class EmbeddingIndex
         int? count = null;
         bool? normalize = null;
         string?[]? ids = null;
+        IdFacts idFacts = default;
         float[]? vectors = null;
 
         while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
@@ -346,7 +385,7 @@ public sealed partial class EmbeddingIndex
                     count = ReadCount(ref reader, limits);
                     break;
                 case IdsProperty:
-                    ids = ReadIds(ref reader, limits, count);
+                    ids = ReadIds(ref reader, limits, count, out idFacts);
                     break;
                 case VectorsProperty:
                     vectors = Base64Numbers.ReadSingles(ref reader, ArtifactName, VectorsProperty);
@@ -358,7 +397,7 @@ public sealed partial class EmbeddingIndex
 
         ArtifactIo.EnsureEndOfDocument(ref reader, ArtifactName);
         header.EnsureComplete();
-        return Restore(dimension, count, normalize, ids, vectors);
+        return Restore(dimension, count, normalize, ids, idFacts, vectors);
     }
 
     private static int ReadCount(ref Utf8JsonReader reader, in ArtifactLimits limits)
@@ -382,8 +421,11 @@ public sealed partial class EmbeddingIndex
     /// count from sizing the allocation on its own: the file has to actually deliver
     /// the entries before the buffer grows past it.
     /// </remarks>
-    private static string?[] ReadIds(ref Utf8JsonReader reader, in ArtifactLimits limits, int? declaredCount)
+    private static string?[] ReadIds(ref Utf8JsonReader reader, in ArtifactLimits limits, int? declaredCount, out IdFacts facts)
     {
+        // Found as read, for nothing: only an escaped id can carry a lone surrogate, UTF-8 having no other way to (#1643).
+        bool mayHoldSurrogate = false;
+        int longest = 0;
         JsonArtifact.ReadStartArray(ref reader, ArtifactName, IdsProperty);
 
         string?[] ids = new string?[InitialIdCapacity(declaredCount)];
@@ -394,6 +436,8 @@ public sealed partial class EmbeddingIndex
             if (id is not null)
             {
                 limits.CheckTokenLength(id.Length);
+                mayHoldSurrogate |= reader.ValueIsEscaped;
+                longest = Math.Max(longest, id.Length);
             }
 
             // Checked before the array grows: check-after-doubling would let a
@@ -415,6 +459,7 @@ public sealed partial class EmbeddingIndex
         {
             Array.Resize(ref ids, read);
         }
+        facts = new IdFacts(mayHoldSurrogate, longest);
         return ids;
     }
 
@@ -438,6 +483,7 @@ public sealed partial class EmbeddingIndex
         int? count,
         bool? normalize,
         string?[]? ids,
+        IdFacts idFacts,
         float[]? vectors)
     {
         if (dimension is not int dim)
@@ -486,7 +532,8 @@ public sealed partial class EmbeddingIndex
             dim,
             itemCount,
             normalizeFlag ? BlockNormalization.AlreadyNormalized : BlockNormalization.Off,
-            ids);
+            ids,
+            idFacts);
     }
 
     /// <summary>Throws unless every stored component is a finite number.</summary>

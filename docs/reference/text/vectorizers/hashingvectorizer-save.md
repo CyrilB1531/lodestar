@@ -16,7 +16,7 @@ is a file to create or overwrite.
 the JSON writer can write. `InvalidDataException` when `MinDf` or `MaxDf` is not finite, which the
 constructor does not refuse. Both are refused before a byte is written: once the writer has accepted
 the stream, or once the file is open ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
-[#1622](https://github.com/CyrilB1531/lodestar/issues/1622)). `ArgumentNullException` for a null stream or path. `IOException` from the stream or file
+[#1622](https://github.com/CyrilB1531/lodestar/issues/1622)). `ArgumentException` when the stream cannot be written to, refused before the options' strings are checked ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641)). `ArgumentNullException` for a null stream or path. `IOException` from the stream or file
 system.
 
 **Example** — a round trip that carries the settings and nothing else.
