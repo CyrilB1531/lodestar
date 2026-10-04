@@ -606,6 +606,27 @@ through a stream that declares no length and cannot seek, the path a `GZipStream
 takes; `[MemoryDiagnoser]` reports what each allocates. The corpus is generated in
 `GlobalSetup`, so the class needs nothing under `bench/corpus`.
 
+### Save and load time against the release (issues #1642, #1643)
+
+`ArtifactTimeBenchmarks` times what the Review B after #1639 found slower than the latest release:
+synchronous and asynchronous saves of a 240 KB count vectorizer, a 45 KB TF-IDF vectorizer and a 942
+KB index of 10,000 ids, and loads of a 2.1 MB and a 4.2 MB count vectorizer from a stream of
+undeclared length, and a fit of 200 documents of 20,000 tokens, which a scratch list let go after
+each document made allocate 100 MB more. Its setup fits vectorizers of up to 350,000 terms, and the
+heap they leave is part of the measurement: a scratch list one fit kept slowed every later operation
+(#1239). `ArtifactLoadOnlyBenchmarks` runs the same loads in a process that fits nothing large,
+splicing the vocabulary into a two-term artifact; the setup refuses to run if the splice no longer
+matches what a save writes.
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*ArtifactTimeBenchmarks*' '*ArtifactLoadOnlyBenchmarks*'
+```
+
+Against the release, `ArtifactTimeBenchmarks.cs`, `ArtifactLoadOnlyBenchmarks.cs`,
+`ArtifactCorpus.cs` and `UndeclaredStream.cs` are compiled into a project that references
+Lodestar.Text 0.7.0 and Lodestar.Embeddings 0.8.0 from nuget.org, and into one that references
+`src/`, and the two run alternately; the spec of #1640 has the figures.
+
 ## 5. Classification metrics (issue #61)
 
 `ConfusionMatrix`, `Accuracy`, `Precision`/`Recall`/`F1`, `ClassificationReport`

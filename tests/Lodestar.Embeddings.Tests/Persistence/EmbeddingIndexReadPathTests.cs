@@ -157,6 +157,153 @@ public sealed class EmbeddingIndexReadPathTests
     }
 
     [Fact]
+    public async Task A_non_finite_index_is_refused_alike_whatever_the_stream_does_with_writes()
+    {
+        // The refusal comes before the first byte, and the writer is pointed away, so a stream whose writes or flushes fail
+        // sees nothing, synchronously or not (#1641).
+        var index = new EmbeddingIndex(dimension: 1);
+        index.Add([float.NaN], "a");
+        var failing = new FailingStream();
+        try
+        {
+            Assert.IsType<InvalidDataException>(SyncRefusal(index, failing));
+            Assert.IsType<InvalidDataException>(
+                await Assert.ThrowsAnyAsync<Exception>(() => index.SaveAsync(failing, TestContext.Current.CancellationToken)));
+            Assert.Equal(0, failing.Calls);
+        }
+        finally
+        {
+            await failing.DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public void A_loaded_id_holding_a_lone_surrogate_is_saved_again_as_it_was_read()
+    {
+        // The load notes the escaped id as it reads it, so the next save searches it rather than writing it straight (#1643).
+        string lone = "a" + (char)0xD800 + "b";
+        var index = new EmbeddingIndex(dimension: 1);
+        index.Add([1f], lone);
+        byte[] saved = SaveBytes(index);
+
+        using var source = new MemoryStream(saved);
+        EmbeddingIndex loaded = EmbeddingIndex.Load(source);
+        Assert.Equal(saved, SaveBytes(loaded));
+    }
+
+    [Fact]
+    public void A_block_id_holding_a_lone_surrogate_is_saved_and_read_back()
+    {
+        // The factories search the ids they copy, so the save escapes the lone surrogate rather than replacing it (#1643).
+        string lone = "a" + (char)0xD800 + "b";
+        EmbeddingIndex index = EmbeddingIndex.FromBlock([1f], dimension: 1, BlockNormalization.Off, [lone]);
+
+        using var source = new MemoryStream(SaveBytes(index));
+        Assert.Equal(lone, EmbeddingIndex.Load(source).GetId(0));
+    }
+
+    [Fact]
+    public async Task A_long_id_is_written_without_a_synchronous_call_on_the_stream()
+    {
+        // An id past ten million characters is tried and written from a flushed writer, which an asynchronous save now
+        // flushes by awaiting, so a stream refusing synchronous calls takes it (#1640).
+        var index = new EmbeddingIndex(dimension: 1);
+        index.Add([1f], new string('a', 10_000_001));
+        var asyncOnly = new AsyncOnlyStream();
+        try
+        {
+            await index.SaveAsync(asyncOnly, TestContext.Current.CancellationToken);
+            Assert.True(asyncOnly.Length > 10_000_000);
+        }
+        finally
+        {
+            await asyncOnly.DisposeAsync();
+        }
+    }
+
+    /// <summary>A stream whose every write and flush fails, counting how often it was asked.</summary>
+    private sealed class FailingStream : MemoryStream
+    {
+        public int Calls { get; private set; }
+
+        public override void Write(byte[] buffer, int offset, int count) => throw Failed();
+
+        public override void Write(ReadOnlySpan<byte> buffer) => throw Failed();
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => Task.FromException(Failed());
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => ValueTask.FromException(Failed());
+
+        public override void Flush() => throw Failed();
+
+        public override Task FlushAsync(CancellationToken cancellationToken) => Task.FromException(Failed());
+
+        private IOException Failed()
+        {
+            Calls++;
+            return new IOException("disk full");
+        }
+    }
+
+    /// <summary>A stream that refuses synchronous writes and flushes, as an ASP.NET Core response body does by default.</summary>
+    private sealed class AsyncOnlyStream : Stream
+    {
+        private readonly MemoryStream _inner = new();
+
+        public override bool CanRead => false;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => true;
+
+        public override long Length => _inner.Length;
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count) => throw Synchronous();
+
+        public override void Write(ReadOnlySpan<byte> buffer) => throw Synchronous();
+
+        public override void Flush() => throw Synchronous();
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            _inner.Write(buffer, offset, count);
+            return Task.CompletedTask;
+        }
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            _inner.Write(buffer.Span);
+            return default;
+        }
+
+        public override Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        private static InvalidOperationException Synchronous() => new("Synchronous operations are disallowed.");
+    }
+
+    [Fact]
     public async Task A_long_id_is_refused_by_name_before_a_byte_is_written()
     {
         // System.Text.Json 10 writes 166,666,666 characters and refuses one more; sync and through the task (#1626).

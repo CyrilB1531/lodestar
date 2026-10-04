@@ -1,4 +1,6 @@
 using Lodestar.Abstractions;
+using Lodestar.Internal.Persistence;
+
 namespace Lodestar.Text.Vectorization;
 
 // SonarLint S3776: cognitive complexity: a faithful implementation of a published rule-engine; decomposing it would break the 1:1 mapping with the reference that makes divergences auditable.
@@ -15,6 +17,11 @@ public sealed partial class CountVectorizer
     private readonly TextAnalyzer _analyzer;
     private Dictionary<string, int>? _vocabulary;
     private string[] _featureNames = [];
+
+    // Whether a term may hold a lone surrogate, and the longest term's length: found once by the fit or the load, so a save
+    // searches and measures no term (#1643).
+    private bool _vocabularyMayHoldSurrogate;
+    private int _longestTerm;
 
     /// <summary>Creates a vectorizer with the given options (defaults if omitted).</summary>
     /// <exception cref="ArgumentOutOfRangeException"><c>MinDf</c> or <c>MaxDf</c> is negative, not finite, or a fraction above 1.</exception>
@@ -40,6 +47,11 @@ public sealed partial class CountVectorizer
     public IReadOnlyList<string> GetFeatureNames()
     {
         EnsureFitted();
+
+        // The array itself, as 0.7.0 handed it out, which a cast can edit: from here a save searches and measures every
+        // term again, as it did before the fit's findings were kept (#1643).
+        _vocabularyMayHoldSurrogate = true;
+        _longestTerm = int.MaxValue;
         return _featureNames;
     }
 
@@ -68,11 +80,18 @@ public sealed partial class CountVectorizer
         var provisional = new ProvisionalCounts(new Dictionary<string, int>(StringComparer.Ordinal));
         var perDoc = new List<(int Column, int Count)>();
         var docStart = new int[nDocs + 1];
-        for (int row = 0; row < nDocs; row++)
+        try
         {
-            _analyzer.Analyze(TextAnalyzer.Document(docs, row, nameof(documents)), ref provisional);
-            provisional.Tally.Drain(perDoc);
-            docStart[row + 1] = perDoc.Count;
+            for (int row = 0; row < nDocs; row++)
+            {
+                _analyzer.Analyze(TextAnalyzer.Document(docs, row, nameof(documents)), ref provisional);
+                provisional.Tally.Drain(perDoc);
+                docStart[row + 1] = perDoc.Count;
+            }
+        }
+        finally
+        {
+            TextAnalyzer.ReleaseScratch();
         }
 
         // scikit-learn's _count_vocab refuses a corpus that yields no term, before any bound is read.
@@ -116,9 +135,13 @@ public sealed partial class CountVectorizer
         kept.Sort(CodePointOrder.Instance);
 
         _featureNames = kept.ToArray();
+        _vocabularyMayHoldSurrogate = false;
+        _longestTerm = 0;
         _vocabulary = new Dictionary<string, int>(kept.Count, StringComparer.Ordinal);
         for (int i = 0; i < kept.Count; i++)
         {
+            _vocabularyMayHoldSurrogate |= JsonArtifact.MayHoldSurrogate(kept[i]);
+            _longestTerm = Math.Max(_longestTerm, kept[i].Length);
             _vocabulary[kept[i]] = i;
         }
 
@@ -149,11 +172,18 @@ public sealed partial class CountVectorizer
         var columns = new List<int>();
 
         var counts = new VocabularyCounts(_vocabulary!);
-        for (int row = 0; row < docs.Count; row++)
+        try
         {
-            _analyzer.Analyze(TextAnalyzer.Document(docs, row, nameof(documents)), ref counts);
-            counts.Tally.DrainSorted(columns, values, _options.Binary);
-            rowPointers[row + 1] = values.Count;
+            for (int row = 0; row < docs.Count; row++)
+            {
+                _analyzer.Analyze(TextAnalyzer.Document(docs, row, nameof(documents)), ref counts);
+                counts.Tally.DrainSorted(columns, values, _options.Binary);
+                rowPointers[row + 1] = values.Count;
+            }
+        }
+        finally
+        {
+            TextAnalyzer.ReleaseScratch();
         }
 
         return CsrMatrix.CreateUnchecked(docs.Count, _featureNames.Length, values.ToArray(), columns.ToArray(), rowPointers);

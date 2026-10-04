@@ -229,7 +229,26 @@ public sealed class VectorizerPersistenceTests
 
         CountVectorizer reloaded = CountVectorizer.Load(new MemoryStream(Encoding.UTF8.GetBytes(pythonShaped)));
 
+        // Saved again before anything reads the vocabulary out: the load's own finding is what keeps the escape (#1643).
+        using var again = new MemoryStream();
+        reloaded.Save(again);
+        Assert.Equal(json, Encoding.UTF8.GetString(again.ToArray()));
         Assert.Equal(original.GetFeatureNames(), reloaded.GetFeatureNames());
+    }
+
+    [Fact]
+    public void A_term_edited_through_the_handed_out_vocabulary_is_saved_as_edited()
+    {
+        // GetFeatureNames hands out the array itself, as 0.7.0 did; a term a cast edits is searched again, its lone
+        // surrogate escaped rather than replaced (#1643).
+        var original = new CountVectorizer().Fit(["apple banana"]);
+        string[] names = Assert.IsType<string[]>(original.GetFeatureNames());
+        names[1] = "banana" + (char)0xD800;
+
+        using var stream = new MemoryStream();
+        original.Save(stream);
+        stream.Position = 0;
+        Assert.Equal(names[1], CountVectorizer.Load(stream).GetFeatureNames()[1]);
     }
 
     [Fact]

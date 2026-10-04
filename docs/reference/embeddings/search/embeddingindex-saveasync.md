@@ -13,7 +13,8 @@ public Task SaveAsync(Stream destination, CancellationToken cancellationToken = 
 
 **Returns** — `Task`, completing when the index has been written and flushed.
 
-**Exceptions** — `ArgumentNullException` when `destination` is null. `InvalidDataException` when any stored vector holds a non-finite component.
+**Exceptions** — `ArgumentException` when the stream cannot be written to, refused before the vectors
+and ids are checked ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641)). `ArgumentNullException` when `destination` is null. `InvalidDataException` when any stored vector holds a non-finite component.
 `InvalidOperationException` when the vector block, base64-encoded, is longer than the one array a load
 decodes it into, or an id is beyond what the JSON writer can write
 ([#1322](https://github.com/CyrilB1531/lodestar/issues/1322), [#1618](https://github.com/CyrilB1531/lodestar/issues/1618)).

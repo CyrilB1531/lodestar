@@ -19,6 +19,7 @@ public sealed partial class HashingVectorizer
     /// </remarks>
     /// <exception cref="InvalidOperationException">The token pattern or a stop word is beyond what the JSON writer can write; refused before anything is written.</exception>
     /// <exception cref="InvalidDataException">MinDf or MaxDf is not finite, which the constructor does not refuse; refused before anything is written.</exception>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to; refused before the options' strings are checked (#1641).</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     /// <param name="destination">The stream to write to. It is flushed but never disposed — the caller owns it.</param>

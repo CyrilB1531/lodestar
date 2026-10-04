@@ -20,7 +20,7 @@ is refused before the path is opened; the rest before a byte is written — once
 the stream, or once the file is open — so a read-only stream or a path that opening refuses is refused
 first, as it always was, and a file is left empty rather than half written
 ([#1617](https://github.com/CyrilB1531/lodestar/issues/1617),
-[#1618](https://github.com/CyrilB1531/lodestar/issues/1618)). `ArgumentNullException` for a null
+[#1618](https://github.com/CyrilB1531/lodestar/issues/1618)). `ArgumentException` when the stream cannot be written to, refused once the vectorizer is known fitted, before its strings are checked ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641)). `ArgumentNullException` for a null
 stream or path. `IOException` from the stream or file system.
 
 **Example** — saving and restoring, with the weights intact.

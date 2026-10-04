@@ -27,9 +27,19 @@ internal static class ArtifactIo
     {
         Guard.NotNull(destination);
         using var writer = new Utf8JsonWriter(destination, JsonArtifact.WriterOptions);
-        check?.Invoke();
-        WriteDocument(writer, artifact, version, writeBody);
-        writer.Flush();
+        try
+        {
+            check?.Invoke();
+            WriteDocument(writer, artifact, version, writeBody);
+            writer.Flush();
+        }
+        catch
+        {
+            // As SaveWithBlock: disposing flushes nothing pending into the caller's stream, whose own failure would
+            // otherwise mask the refusal SaveAsync raises (#1641).
+            writer.Reset(Stream.Null);
+            throw;
+        }
     }
 
     public static async Task SaveAsync(
@@ -86,12 +96,22 @@ internal static class ArtifactIo
 
         using (var writer = new Utf8JsonWriter(destination, JsonArtifact.WriterOptions))
         {
-            check?.Invoke();
-            writer.WriteStartObject();
-            ArtifactHeader.Write(writer, artifact, version);
-            writeHead(writer);
-            writer.WritePropertyName(blockProperty);
-            writer.Flush();
+            try
+            {
+                check?.Invoke();
+                writer.WriteStartObject();
+                ArtifactHeader.Write(writer, artifact, version);
+                writeHead(writer);
+                writer.WritePropertyName(blockProperty);
+                writer.Flush();
+            }
+            catch
+            {
+                // Pointed away, as the asynchronous save points it, so disposing it flushes nothing a refusal left
+                // pending into the caller's stream, and the stream's own failure cannot mask the refusal (#1641).
+                writer.Reset(Stream.Null);
+                throw;
+            }
         }
 
         Base64Numbers.WriteSinglesChunked(destination, block);

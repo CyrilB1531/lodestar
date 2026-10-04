@@ -19,12 +19,16 @@ internal static class FeatureVocabularyJson
     public const string VocabularyProperty = "vocabulary";
     public const string IdfProperty = "idf";
 
-    public static void WriteVocabulary(Utf8JsonWriter writer, IReadOnlyList<string> featureNames)
+    /// <summary>Writes the vocabulary, a term at a time, searching each for a surrogate only where one may be.</summary>
+    /// <param name="writer">The writer.</param>
+    /// <param name="featureNames">The sorted terms.</param>
+    /// <param name="mayHoldSurrogate">Whether any term may hold a surrogate, as the fit or the load that made them found.</param>
+    public static void WriteVocabulary(Utf8JsonWriter writer, IReadOnlyList<string> featureNames, bool mayHoldSurrogate)
     {
         writer.WriteStartArray(VocabularyProperty);
         for (int i = 0; i < featureNames.Count; i++)
         {
-            JsonArtifact.WriteText(writer, featureNames[i]);
+            JsonArtifact.WriteText(writer, featureNames[i], mayHoldSurrogate);
             JsonArtifact.FlushIfPending(writer);
         }
         writer.WriteEndArray();
@@ -102,8 +106,11 @@ internal static class FeatureVocabularyJson
         return featureCount;
     }
 
-    public static string[] ReadVocabulary(ref Utf8JsonReader reader, string artifact, in ArtifactLimits limits, int declaredCount)
+    public static string[] ReadVocabulary(
+        ref Utf8JsonReader reader, string artifact, in ArtifactLimits limits, int declaredCount, out bool mayHoldSurrogate)
     {
+        // Only an escaped term can carry a lone surrogate, UTF-8 having no other way to; noted as read, for nothing (#1643).
+        mayHoldSurrogate = false;
         JsonArtifact.ReadStartArray(ref reader, artifact, VocabularyProperty);
 
         string[] names = new string[InitialCapacity(declaredCount)];
@@ -111,6 +118,7 @@ internal static class FeatureVocabularyJson
         string? previous = null;
         while (reader.Read() && reader.TokenType == JsonTokenType.String)
         {
+            mayHoldSurrogate |= reader.ValueIsEscaped;
             string name = JsonArtifact.GetText(ref reader);
             limits.CheckTokenLength(name.Length);
             // Checked inline, not in a second pass: the predecessor is already in
