@@ -67,7 +67,7 @@ updates:
       pip:
         patterns: ['*']
         update-types: [minor, patch]
-    # Two that are not bumps at all, so they are refused once here rather than every month.
+    # Three that are not bumps at all, so they are refused once here rather than every month.
     ignore:
       # 0.5.0 publishes an sdist and no wheel, and all five install sites in this repository
       # pass --only-binary :all:. #636 offered it and failed on every job with
@@ -78,3 +78,7 @@ updates:
       # Dependabot reached past the resolver into its output (#639). A recompile from an
       # unchanged requirements.txt keeps 2.3.3, which is also what ADR 0002 recorded.
       - dependency-name: pandas
+      # Transitive, through tokenizers, whose 0.22.2 to 0.23.2, the newest, declare huggingface-hub<2.0: #1621
+      # offered 2.1.1 and pip-compile cannot resolve it (#1653). Minor and patch updates still come.
+      - dependency-name: huggingface-hub
+        update-types: [version-update:semver-major]
