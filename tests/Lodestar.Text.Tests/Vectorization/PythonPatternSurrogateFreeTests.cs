@@ -29,8 +29,8 @@ public sealed partial class PythonPatternSurrogateFreeTests
     [MemberData(nameof(Patterns))]
     public void Both_spellings_find_the_same_matches_in_a_text_without_surrogates(string pattern)
     {
-        var plain = PythonPattern.CompileSurrogateFree(pattern, RegexOptions.CultureInvariant, Regex.InfiniteMatchTimeout);
-        var pairAware = PythonPattern.Compile(pattern, RegexOptions.CultureInvariant, Regex.InfiniteMatchTimeout);
+        var plain = new Regex(PythonPattern.Translate(pattern, surrogateFree: true), RegexOptions.CultureInvariant, Regex.InfiniteMatchTimeout);
+        var pairAware = new Regex(PythonPattern.Translate(pattern), RegexOptions.CultureInvariant, Regex.InfiniteMatchTimeout);
         var random = new Random(pattern.Length * 7919);
         for (int trial = 0; trial < 300; trial++)
         {
@@ -45,11 +45,54 @@ public sealed partial class PythonPatternSurrogateFreeTests
         }
     }
 
+    public static TheoryData<string> ParseProbes => new()
+    {
+        @"\b+", @"\w{2,}", @"[\w]{3}", @"(?<=\w)x", @"\S*?", @"[^\W\d]+", @"\B*", @"(?<!\b)\W+", @"[\D\s]?",
+        @"\w(?", @"[\w-.]", @"x{2,1}", @"\b\w\w+\b", @"(\w+)ing\b", @"[\U0001F600-\U0001F602]", @"(\w)(\d)",
+        @"(?<word>\w+)-(\W)", @"(?(\w)a|b)", @"[\U0001F600]{2}", @"[^\U0001F600]*", @"(?:\S)+?", @"[^\S\n]+", @"\1(\w)",
+    };
+
+    [Theory]
+    [MemberData(nameof(Patterns))]
+    [MemberData(nameof(ParseProbes))]
+    public void The_spelling_parsed_at_construction_parses_exactly_when_the_pair_aware_one_does(string pattern)
+    {
+        // The construction parses the stand-in alone; the first use compiles the plain spelling, the first text holding
+        // a surrogate the full one, and the groups are numbered on the pattern as written (#1658).
+        string parsed = Parse(() => PythonPattern.TranslateForParse(pattern));
+        Assert.Equal(Parse(() => PythonPattern.Translate(pattern)), parsed);
+        string written = pattern.StartsWith("(?u)", StringComparison.Ordinal) ? pattern.Substring(4) : pattern;
+        if (parsed == "parsed")
+        {
+            Assert.Equal("parsed", Parse(() => PythonPattern.Translate(pattern, surrogateFree: true)));
+        }
+        // A pattern .NET refuses as written never reaches the translation: the construction refuses it first.
+        if (parsed == "parsed" && Parse(() => written) == "parsed")
+        {
+            int[] groups = new Regex(written).GetGroupNumbers();
+            Assert.Equal(groups, new Regex(PythonPattern.Translate(pattern, surrogateFree: true)).GetGroupNumbers());
+            Assert.Equal(groups, new Regex(PythonPattern.Translate(pattern)).GetGroupNumbers());
+        }
+    }
+
+    private static string Parse(Func<string> spell)
+    {
+        try
+        {
+            _ = new Regex(spell(), RegexOptions.CultureInvariant, Regex.InfiniteMatchTimeout);
+            return "parsed";
+        }
+        catch (ArgumentException e)
+        {
+            return e.GetType().Name;
+        }
+    }
+
     [Fact]
     public void Whitespace_is_dotnets_and_the_four_separators_on_every_bmp_character()
     {
         // The ranges spell .NET's \s plus U+001C to U+001F, which Python's \s is over every scalar (#1239, #1645).
-        var spelled = PythonPattern.CompileSurrogateFree(@"\s", RegexOptions.CultureInvariant, Regex.InfiniteMatchTimeout);
+        var spelled = new Regex(PythonPattern.Translate(@"\s", surrogateFree: true), RegexOptions.CultureInvariant, Regex.InfiniteMatchTimeout);
         Regex reference = DotnetSpaceAndSeparators();
         for (int c = 0; c < 0x10000; c++)
         {

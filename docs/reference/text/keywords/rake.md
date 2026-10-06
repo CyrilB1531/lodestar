@@ -30,8 +30,9 @@ which is `StopWords.English` for the stop-word list. It throws `ArgumentOutOfRan
 `options.MinLength` is below `1`, and `ArgumentException` when `options.MaxLength` is below
 `options.MinLength` — a range no candidate could ever satisfy. A null `options.TokenPattern` throws
 `ArgumentNullException` with the parameter named `pattern`, and one .NET refuses as written its
-`RegexParseException`, as 0.7.0 raised them
-([#1645](https://github.com/CyrilB1531/lodestar/issues/1645)).
+`RegexParseException` — a plain `ArgumentException` on a runtime without that type — as 0.7.0
+raised them ([#1645](https://github.com/CyrilB1531/lodestar/issues/1645),
+[#1656](https://github.com/CyrilB1531/lodestar/issues/1656)).
 
 The co-occurrence tables — degree and frequency — are built once, over every surviving run, before
 any candidate is scored. That ordering is what makes `IncludeRepeatedPhrases = false` change a

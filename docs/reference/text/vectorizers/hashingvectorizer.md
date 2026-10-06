@@ -18,8 +18,10 @@ scikit-learn's. It throws `ArgumentOutOfRangeException` when `NumFeatures` is be
 when `Count.Analyzer` is not an [`AnalyzerKind`](analyzerkind.md) member. The token pattern is
 checked after `NumFeatures` and the n-gram range, where 0.7.0 compiled it, whatever the analyzer: a
 null one throws `ArgumentNullException` with the parameter named `pattern`, and one .NET refuses as
-written its `RegexParseException` — a leading `(?u)` aside — ahead of the analyzer check
-([#1645](https://github.com/CyrilB1531/lodestar/issues/1645)).
+written its `RegexParseException`, a leading `(?u)` included,
+ahead of the analyzer check — a plain `ArgumentException` on a runtime without that type, as 0.7.0
+raised there ([#1645](https://github.com/CyrilB1531/lodestar/issues/1645),
+[#1656](https://github.com/CyrilB1531/lodestar/issues/1656)).
 
 **Properties** — `NumFeatures` is how many columns the matrix has.
 

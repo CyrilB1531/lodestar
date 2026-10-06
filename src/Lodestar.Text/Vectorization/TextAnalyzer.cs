@@ -72,14 +72,15 @@ internal sealed class TextAnalyzer
         AnalyzerKind kind,
         (int Min, int Max) ngramRange,
         string tokenPattern,
-        IReadOnlyCollection<string>? stopWords)
+        IReadOnlyCollection<string>? stopWords,
+        string optionsName)
     {
-        RequireNgramRange(ngramRange, nameof(ngramRange));
+        RequireNgramRange(ngramRange, optionsName);
 
         // Checked whatever the analyzer, and before it, as 0.7.0 compiled it for every one right after the range: a null
         // with Regex's ArgumentNullException, a pattern .NET refuses as written with its RegexParseException (#1645).
-        PythonTokenPattern.RefuseAsWritten(tokenPattern);
-        RequireAnalyzer(kind, nameof(kind));
+        Regex written = PythonTokenPattern.RefuseAsWritten(tokenPattern);
+        RequireAnalyzer(kind, optionsName);
 
         _lowercase = lowercase;
         _stripAccents = stripAccents;
@@ -87,14 +88,14 @@ internal sealed class TextAnalyzer
         _minN = ngramRange.Min;
         _maxN = ngramRange.Max;
         // Only the word analyzer tokenizes, so only it compiles the translated pattern.
-        _tokenPattern = kind == AnalyzerKind.Word ? new PythonTokenPattern(tokenPattern) : null;
+        _tokenPattern = kind == AnalyzerKind.Word ? new PythonTokenPattern(tokenPattern, written) : null;
         _stopWords = stopWords is null ? null : StopWordSet.Adopt(stopWords);
         _stopWordList = stopWords?.ToArray();
     }
 
     /// <summary>Refuses an analyzer outside <see cref="AnalyzerKind"/>, naming the caller's parameter.</summary>
     /// <remarks>scikit-learn refuses any analyzer but its three names; an undefined value used to run the word analyzer and then fail at <c>Save</c>.</remarks>
-    public static void RequireAnalyzer(AnalyzerKind kind, string paramName)
+    private static void RequireAnalyzer(AnalyzerKind kind, string paramName)
     {
         if (kind is not (AnalyzerKind.Word or AnalyzerKind.Char or AnalyzerKind.CharWordBoundary))
         {
@@ -107,7 +108,7 @@ internal sealed class TextAnalyzer
     /// The only range scikit-learn refuses, and so the only one refused here: a <c>Min</c> below
     /// <c>1</c> is analysed rather than rejected, on the slices #1065 measured.
     /// </remarks>
-    public static void RequireNgramRange((int Min, int Max) ngramRange, string paramName)
+    private static void RequireNgramRange((int Min, int Max) ngramRange, string paramName)
     {
         if (ngramRange.Max < ngramRange.Min)
         {

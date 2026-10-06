@@ -7,7 +7,7 @@ namespace Lodestar.Text.Internal;
 // SonarLint S127: an escape or a surrogate pair advances the loop variable past what it consumed.
 #pragma warning disable S127
 
-/// <summary>Compiles a token pattern written for Python's <c>re</c> so .NET reads its classes as Python does (#1239).</summary>
+/// <summary>Spells a token pattern written for Python's <c>re</c> so .NET reads its classes as Python does (#1239).</summary>
 /// <remarks>
 /// Measured over every scalar against Python 3.12: <c>\w</c> is exactly <c>L*</c>, <c>N*</c> and
 /// <c>_</c>, <c>\d</c> is <c>Nd</c>, <c>\s</c> is .NET's plus U+001C to U+001F. A supplementary
@@ -41,24 +41,33 @@ internal static class PythonPattern
     private static readonly Lazy<string> NonDigitPairs = new(() => $"(?!{DigitPairs.Value}){AnyPair}");
     private static readonly Lazy<string> EveryPair = new(() => AnyPair);
 
-    /// <summary>A regular expression that matches as Python's <c>re.compile(pattern)</c> would.</summary>
-    public static Regex Compile(string pattern, RegexOptions options, TimeSpan timeout) =>
-        new(Translate(pattern), options, timeout);
-
-    /// <summary>
-    /// <see cref="Compile"/> for a text that holds no surrogate, where a code point and a UTF-16 unit are one: each
-    /// class stays a plain class .NET scans vectorised, five to eight times faster than the pair-aware one (#1645).
-    /// </summary>
-    public static Regex CompileSurrogateFree(string pattern, RegexOptions options, TimeSpan timeout) =>
-        new(Translate(pattern, surrogateFree: true), options, timeout);
+    // What stands for a supplementary set in the spelling TranslateForParse gives: one pair, an atom where the set is one.
+    private const string StandInPair = @"\uD800\uDC00";
 
     /// <summary>The .NET spelling of a Python pattern; see the type's remarks for what changes.</summary>
     /// <param name="pattern">The Python pattern.</param>
     /// <param name="surrogateFree">
     /// Spelled for a text without a surrogate: every branch that matches a pair or guards against splitting one is
-    /// dropped, which matches nothing such a text holds, so the two spellings agree on it.
+    /// dropped, which matches nothing such a text holds, so the two spellings agree on it, and each class stays a plain
+    /// class .NET scans vectorised, five to eight times faster than the pair-aware one (#1645).
     /// </param>
-    public static string Translate(string pattern, bool surrogateFree = false)
+    public static string Translate(string pattern, bool surrogateFree = false) =>
+        Translate(pattern, surrogateFree ? Spelling.SurrogateFree : Spelling.PairAware);
+
+    /// <summary>
+    /// The pair-aware spelling with each supplementary set stood in for by one pair, which .NET parses alike: where
+    /// the full one would not parse, neither does this, at a fraction of the parse (#1658).
+    /// </summary>
+    public static string TranslateForParse(string pattern) => Translate(pattern, Spelling.ForParse);
+
+    private enum Spelling
+    {
+        SurrogateFree,
+        PairAware,
+        ForParse,
+    }
+
+    private static string Translate(string pattern, Spelling spelling)
     {
         if (pattern.StartsWith("(?u)", StringComparison.Ordinal))
         {
@@ -71,7 +80,7 @@ internal static class PythonPattern
             char c = pattern[i];
             if (c == '\\' && i + 1 < pattern.Length)
             {
-                sb.Append(Escape(pattern[i + 1], surrogateFree) ?? pattern.Substring(i, 2));
+                sb.Append(Escape(pattern[i + 1], spelling) ?? pattern.Substring(i, 2));
                 i++;
             }
             else if (c == '[')
@@ -82,7 +91,7 @@ internal static class PythonPattern
                     sb.Append(pattern, i, pattern.Length - i);
                     break;
                 }
-                sb.Append(Class(pattern.Substring(i + 1, end - i - 1), surrogateFree));
+                sb.Append(Class(pattern.Substring(i + 1, end - i - 1), spelling));
                 i = end;
             }
             else
@@ -94,31 +103,36 @@ internal static class PythonPattern
     }
 
     /// <summary>A class escape outside brackets, or null when .NET already reads it as Python does.</summary>
-    private static string? Escape(char escape, bool surrogateFree) => escape switch
+    private static string? Escape(char escape, Spelling spelling) => escape switch
     {
-        'w' => Positive(WordBmp, WordPairs, surrogateFree),
-        'W' => Negative(WordBmp, WordPairs, surrogateFree),
-        'd' => Positive(DigitBmp, DigitPairs, surrogateFree),
-        'D' => Negative(DigitBmp, DigitPairs, surrogateFree),
+        'w' => Positive(WordBmp, WordPairs, spelling),
+        'W' => Negative(WordBmp, WordPairs, spelling),
+        'd' => Positive(DigitBmp, DigitPairs, spelling),
+        'D' => Negative(DigitBmp, DigitPairs, spelling),
         's' => $"[{SpaceRanges}]",
-        'S' => surrogateFree ? $"[^{SpaceRanges}]" : $"(?:{AnyPair}|{NotMidPair}[^{SpaceRanges}])",
-        'b' => $"(?:(?<={Behind(surrogateFree)})(?!{Ahead(surrogateFree)})|(?<!{Behind(surrogateFree)})(?={Ahead(surrogateFree)}))",
-        'B' => $"(?:(?<={Behind(surrogateFree)})(?={Ahead(surrogateFree)})|(?<!{Behind(surrogateFree)})(?!{Ahead(surrogateFree)}))",
+        'S' => spelling == Spelling.SurrogateFree ? $"[^{SpaceRanges}]" : $"(?:{AnyPair}|{NotMidPair}[^{SpaceRanges}])",
+        'b' => $"(?:(?<={Behind(spelling)})(?!{Ahead(spelling)})|(?<!{Behind(spelling)})(?={Ahead(spelling)}))",
+        'B' => $"(?:(?<={Behind(spelling)})(?={Ahead(spelling)})|(?<!{Behind(spelling)})(?!{Ahead(spelling)}))",
         _ => null,
     };
 
-    private static string Ahead(bool surrogateFree) => Positive(WordBmp, WordPairs, surrogateFree);
+    private static string Ahead(Spelling spelling) => Positive(WordBmp, WordPairs, spelling);
 
     // Inside a lookbehind .NET matches right to left, so the pairs are listed without the leading
     // lookahead that only speeds the forward match.
-    private static string Behind(bool surrogateFree) => surrogateFree ? $"[{WordBmp}]" : $"[{WordBmp}]|{WordPairs.Value}";
+    private static string Behind(Spelling spelling) =>
+        spelling == Spelling.SurrogateFree ? $"[{WordBmp}]" : $"[{WordBmp}]|{Set(WordPairs, spelling)}";
 
-    private static string Positive(string bmp, Lazy<string> pairs, bool surrogateFree) =>
-        surrogateFree ? $"[{bmp}]" : $"(?:[{bmp}]|(?=[\\uD800-\\uDBFF])(?:{pairs.Value}))";
+    private static string Positive(string bmp, Lazy<string> pairs, Spelling spelling) => spelling == Spelling.SurrogateFree
+        ? $"[{bmp}]"
+        : $"(?:[{bmp}]|(?=[\\uD800-\\uDBFF])(?:{Set(pairs, spelling)}))";
 
     // A pair that is not in the set is one character, as Python counts it; a lone surrogate is too.
-    private static string Negative(string bmp, Lazy<string> pairs, bool surrogateFree) =>
-        surrogateFree ? $"[^{bmp}]" : $"(?:(?!{pairs.Value}){AnyPair}|(?!{AnyPair}){NotMidPair}[^{bmp}])";
+    private static string Negative(string bmp, Lazy<string> pairs, Spelling spelling) => spelling == Spelling.SurrogateFree
+        ? $"[^{bmp}]"
+        : $"(?:(?!{Set(pairs, spelling)}){AnyPair}|(?!{AnyPair}){NotMidPair}[^{bmp}])";
+
+    private static string Set(Lazy<string> pairs, Spelling spelling) => spelling == Spelling.ForParse ? StandInPair : pairs.Value;
 
     /// <summary>A bracketed class, read item by item as Python's <c>re</c> reads one, and spelled so .NET reads it alike.</summary>
     /// <remarks>
@@ -129,7 +143,7 @@ internal static class PythonPattern
     /// by .NET as written (#1645).
     /// </remarks>
     /// <exception cref="ArgumentException">Python's <c>re</c> refuses the class.</exception>
-    private static string Class(string body, bool surrogateFree)
+    private static string Class(string body, Spelling spelling)
     {
         bool negated = body.Length > 0 && body[0] == '^';
         string items = negated ? body.Substring(1) : body;
@@ -152,7 +166,7 @@ internal static class PythonPattern
             }
         }
 
-        return Spell(negated, bmp.ToString(), pairs, loneSurrogates, surrogateFree);
+        return Spell(negated, bmp.ToString(), pairs, loneSurrogates, spelling);
     }
 
     /// <summary>One item of a class: a class escape (<see cref="ClassItem.ClassEscape"/> set), or one code point.</summary>
@@ -339,15 +353,15 @@ internal static class PythonPattern
     /// <param name="bmp">The BMP units the class holds, surrogates apart.</param>
     /// <param name="pairs">Alternatives matching the supplementary characters it holds.</param>
     /// <param name="loneSurrogates">Whether it holds every lone surrogate too, as a complement does: each is a code point.</param>
-    /// <param name="surrogateFree">Spelled for a text without a surrogate.</param>
-    private static string Spell(bool negated, string bmp, List<Lazy<string>> pairs, bool loneSurrogates, bool surrogateFree)
+    /// <param name="spelling">The spelling asked for.</param>
+    private static string Spell(bool negated, string bmp, List<Lazy<string>> pairs, bool loneSurrogates, Spelling spelling)
     {
         // A class of supplementary characters alone has no BMP part: nothing for it to match there, everything for its
         // complement.
         string? positive = bmp.Length == 0 ? null : $"[{bmp}]";
         string excluded = loneSurrogates ? bmp + @"\uD800-\uDFFF" : bmp;
         string negative = excluded.Length == 0 ? @"[\u0000-\uFFFF]" : $"[^{excluded}]";
-        if (surrogateFree)
+        if (spelling == Spelling.SurrogateFree)
         {
             return negated ? negative : positive ?? "(?!)";
         }
@@ -357,7 +371,7 @@ internal static class PythonPattern
         {
             return negated ? $"(?:{AnyPair}|{NotMidPair}{negative})" : positive ?? "(?!)";
         }
-        string astral = string.Join("|", pairs.Select(p => p.Value));
+        string astral = string.Join("|", pairs.Select(p => Set(p, spelling)));
         if (negated)
         {
             return $"(?:(?!{astral}){AnyPair}|(?!{AnyPair}){NotMidPair}{negative})";

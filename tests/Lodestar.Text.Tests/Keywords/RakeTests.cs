@@ -52,6 +52,18 @@ public sealed class RakeTests
     }
 
     [Fact]
+    public void A_token_pattern_with_two_groups_reads_the_whole_match_as_0_7_0_did()
+    {
+        // 0.7.0 built it and read the whole match; rake-nltk has no rule refusing it (#1651, #1657).
+        const string doc = "running jumping, singing and the jumping fox";
+        IReadOnlyList<KeywordMatch> grouped = Extractor(new RakeOptions { TokenPattern = @"(\w)(\w*)" }).Extract(doc);
+        IReadOnlyList<KeywordMatch> whole = Extractor(new RakeOptions { TokenPattern = @"\w\w*" }).Extract(doc);
+
+        Assert.NotEmpty(whole);
+        Assert.Equal(whole.Select(k => (k.Phrase, k.Score)), grouped.Select(k => (k.Phrase, k.Score)));
+    }
+
+    [Fact]
     public void A_three_way_tie_breaks_by_phrase_descending_not_by_text_order()
     {
         // Three pairs tied at 4.0, ordered the same way by text order and by ascending

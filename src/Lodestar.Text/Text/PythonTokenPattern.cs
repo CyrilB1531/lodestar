@@ -20,15 +20,21 @@ internal sealed class PythonTokenPattern
     private readonly int _minimumRun;
     private readonly int _group;
 
-    // The pattern spelled for a text without surrogates, and as Python reads any text, compiled when a text first holds
-    // one: the second's pair-aware classes scan five to eight times slower than plain ones (#1645).
-    private readonly Regex? _regex;
+    // Spelled for a text without surrogates, and pair-aware, five to eight times slower, for one holding them (#1645).
+    // Each is compiled at first use: the first, compiled at construction, took 8 µs of 13 (#1658).
+    private readonly Lazy<Regex>? _plain;
     private readonly Lazy<Regex>? _pairAware;
 
+    // First, as 0.7.0's Regex refused a null or a pattern it cannot read before anything else here (#1645).
     public PythonTokenPattern(string pattern)
+        : this(pattern, RefuseAsWritten(pattern))
     {
-        // First, as 0.7.0's Regex refused a null or a pattern it cannot read before anything else here (#1645).
-        string body = RefuseAsWritten(pattern);
+    }
+
+    /// <summary>The token pattern <paramref name="written"/> holds, which <see cref="RefuseAsWritten"/> gave for <paramref name="pattern"/>.</summary>
+    public PythonTokenPattern(string pattern, Regex written)
+    {
+        string body = written.ToString();
         _minimumRun = body switch
         {
             @"\b\w\w+\b" or @"\w\w+" => 2,
@@ -37,40 +43,39 @@ internal sealed class PythonTokenPattern
         };
         if (_minimumRun == 0)
         {
-            (_regex, _pairAware) = Compile(pattern, body);
-            // Group 0 is the match itself. scikit-learn's build_tokenizer refuses a second group,
-            // since findall would return tuples of them.
-            int[] groups = _regex.GetGroupNumbers();
-            if (groups.Length > 2)
-            {
-                throw new ArgumentException(
-                    $"The token pattern '{pattern}' has {groups.Length - 1} capturing groups; at most one may capture the token.");
-            }
+            (_plain, _pairAware) = Parse(pattern, body);
+            // One group is the token, as re.findall returns it; two or more, which build_tokenizer refuses, the whole
+            // match, as 0.7.0 read it (#1262, #1657). Numbered as written: the translation adds and drops no group.
+            int[] groups = written.GetGroupNumbers();
             _group = groups.Length == 2 ? groups[1] : 0;
         }
     }
 
-    /// <summary>The plain spelling, compiled, and the pair-aware one, compiled when a text first holds a surrogate.</summary>
+    /// <summary>The plain spelling and the pair-aware one, each compiled at its first use.</summary>
     /// <remarks>
-    /// The pattern as written is checked first, as 0.7.0 compiled it, a leading <c>(?u)</c> aside: one .NET refuses goes
-    /// out with 0.7.0's exception and message, whether or not Python reads it. Both spellings are then parsed here, so
-    /// none fails at the first text holding an emoji; one whose class Python refuses, <c>[\w-.]</c>, is read as 0.7.0
-    /// read it, by .NET as written (#1645).
+    /// The pattern as written is checked first, as 0.7.0 compiled it: one .NET refuses goes out with 0.7.0's exception and
+    /// message, whether or not Python reads it. The pair-aware spelling is then parsed here with a stand-in for each
+    /// supplementary set, which parses exactly when both real spellings do, so neither fails when compiled at its first
+    /// use (#1645, #1658); one whose class Python refuses, <c>[\w-.]</c>, is read as 0.7.0 read it, by .NET as written.
     /// </remarks>
-    private static (Regex Plain, Lazy<Regex> PairAware) Compile(string pattern, string written)
+    private static (Lazy<Regex> Plain, Lazy<Regex> PairAware) Parse(string pattern, string written)
     {
-        const RegexOptions Options = RegexOptions.Compiled | RegexOptions.CultureInvariant;
+        const RegexOptions Parsed = RegexOptions.CultureInvariant;
+        const RegexOptions Compiled = RegexOptions.Compiled | Parsed;
         try
         {
-            Regex plain = PythonPattern.CompileSurrogateFree(pattern, Options, RegexDefaults.MatchTimeout);
-            string pairAware = PythonPattern.Translate(pattern);
-            _ = new Regex(pairAware, RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
-            return (plain, new Lazy<Regex>(() => new Regex(pairAware, Options, RegexDefaults.MatchTimeout)));
+            string plain = PythonPattern.Translate(pattern, surrogateFree: true);
+            // A one-pair stand-in for each supplementary set, 30 µs of .NET's parser: it parses exactly when the full
+            // spelling does, and the plain one, whose classes it holds in the same places, then parses too (#1658).
+            _ = new Regex(PythonPattern.TranslateForParse(pattern), Parsed, RegexDefaults.MatchTimeout);
+            return (
+                new Lazy<Regex>(() => new Regex(plain, Compiled, RegexDefaults.MatchTimeout)),
+                new Lazy<Regex>(() => new Regex(PythonPattern.Translate(pattern), Compiled, RegexDefaults.MatchTimeout)));
         }
         catch (ArgumentException)
         {
-            var raw = new Regex(written, Options, RegexDefaults.MatchTimeout);
-            return (raw, new Lazy<Regex>(() => raw));
+            var raw = new Lazy<Regex>(() => new Regex(written, Compiled, RegexDefaults.MatchTimeout));
+            return (raw, raw);
         }
     }
 
@@ -78,14 +83,22 @@ internal sealed class PythonTokenPattern
     /// Refuses what 0.7.0 refused when it compiled the pattern as written: a null, and a pattern .NET refuses, with .NET's
     /// own exceptions. A leading <c>(?u)</c>, Python's default, is accepted and dropped (#1239, #1645).
     /// </summary>
-    /// <returns>The pattern without its <c>(?u)</c>.</returns>
+    /// <returns>The pattern without its <c>(?u)</c>, parsed, which <see cref="PythonTokenPattern(string, Regex)"/> takes.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="pattern"/> is null, its parameter named <c>pattern</c>, as Regex names it.</exception>
     /// <exception cref="ArgumentException">.NET refuses the pattern as written: its <c>RegexParseException</c> where it has one.</exception>
-    public static string RefuseAsWritten(string pattern)
+    public static Regex RefuseAsWritten(string pattern)
     {
         string written = pattern?.StartsWith("(?u)", StringComparison.Ordinal) == true ? pattern.Substring(4) : pattern!;
-        _ = new Regex(written, RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
-        return written;
+        try
+        {
+            return new Regex(written, RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
+        }
+        catch (ArgumentException) when (!ReferenceEquals(written, pattern))
+        {
+            // 0.7.0 parsed the (?u) too, and .NET refuses it: what goes out is that refusal, offset and all (#1656).
+            _ = new Regex(pattern!, RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
+            throw;
+        }
     }
 
     /// <summary>The matches in <paramref name="s"/>, in order, as UTF-16 start and length.</summary>
@@ -100,7 +113,7 @@ internal sealed class PythonTokenPattern
     public void Matches(string s, List<(int Start, int Length)> matches)
     {
         matches.Clear();
-        if (_regex is null)
+        if (_plain is null)
         {
             ScanRuns(s, _minimumRun, matches);
             return;
@@ -132,7 +145,7 @@ internal sealed class PythonTokenPattern
     public List<(int Start, int Length, int MatchStart, int MatchEnd)> MatchesWithSpans(string s)
     {
         var spans = new List<(int Start, int Length, int MatchStart, int MatchEnd)>();
-        if (_regex is null)
+        if (_plain is null)
         {
             foreach ((int start, int length) in Matches(s))
             {
@@ -153,13 +166,13 @@ internal sealed class PythonTokenPattern
     /// <summary>The regex to scan <paramref name="s"/> with, when the pattern has one and no group to read a token from.</summary>
     public bool TryGetGrouplessRegex(string s, [NotNullWhen(true)] out Regex? regex)
     {
-        regex = _regex is not null && _group == 0 ? RegexFor(s) : null;
+        regex = _plain is not null && _group == 0 ? RegexFor(s) : null;
         return regex is not null;
     }
 #endif
 
     /// <summary>The spelling that reads <paramref name="s"/> as Python does: the plain one unless it holds a surrogate.</summary>
-    private Regex RegexFor(string s) => HoldsSurrogate(s) ? _pairAware!.Value : _regex!;
+    private Regex RegexFor(string s) => HoldsSurrogate(s) ? _pairAware!.Value : _plain!.Value;
 
     private static bool HoldsSurrogate(string s)
     {

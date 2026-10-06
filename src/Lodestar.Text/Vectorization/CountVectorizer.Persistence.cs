@@ -32,7 +32,7 @@ public sealed partial class CountVectorizer
         // Before the header: past it, a refusal leaves partial JSON in the caller's stream. The strings once the writer
         // has accepted the stream, which refused a read-only one first on main (#1618).
         EnsureFitted();
-        ArtifactIo.Save(destination, ArtifactName, ArtifactVersion, WriteArtifactBody, EnsureWritable);
+        ArtifactIo.Save(destination, ArtifactName, ArtifactVersion, new Saved(this));
     }
 
     /// <summary>Writes the fitted vectorizer to <paramref name="path"/>, replacing any existing file.</summary>
@@ -48,7 +48,7 @@ public sealed partial class CountVectorizer
         // main's write failed on them, so a path opening refuses keeps its place (#1618).
         EnsureFitted();
         using FileStream file = JsonArtifact.OpenWrite(path);
-        ArtifactIo.Save(file, ArtifactName, ArtifactVersion, WriteArtifactBody, EnsureWritable);
+        ArtifactIo.Save(file, ArtifactName, ArtifactVersion, new Saved(this));
     }
 
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
@@ -74,6 +74,17 @@ public sealed partial class CountVectorizer
     {
         EnsureFitted();
         EnsureWritable();
+    }
+
+    private readonly struct Saved : ArtifactIo.ISavedArtifact
+    {
+        private readonly CountVectorizer _owner;
+
+        public Saved(CountVectorizer owner) => _owner = owner;
+
+        public void Check() => _owner.EnsureWritable();
+
+        public void Write(Utf8JsonWriter writer) => _owner.WriteArtifactBody(writer);
     }
 
     /// <summary>Throws unless every string the artifact holds can be written.</summary>

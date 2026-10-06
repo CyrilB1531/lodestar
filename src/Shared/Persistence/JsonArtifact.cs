@@ -297,8 +297,16 @@ internal static class JsonArtifact
             return new ReadOnlySequence<byte>(payload);
         }
 
-        return (await ReadGrowingAsync(stream, limits, cancellationToken).ConfigureAwait(false))
-            .Build();
+        // The loop inline, as the release read it: a method of its own was a second state machine a load (#1661).
+        SegmentChain chain = SegmentChain.Growing(limits);
+        var buffer = new byte[CopyBufferSize];
+        int read;
+        while ((read = await ReadChunkAsync(stream, buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            chain.Write(buffer.AsSpan(0, read), limits);
+        }
+
+        return chain.Build();
     }
 
     /// <summary>Reads <paramref name="stream"/> to its end into <paramref name="chain"/>.</summary>
@@ -338,20 +346,6 @@ internal static class JsonArtifact
         return chain;
     }
 
-    /// <summary>Asynchronous counterpart of <see cref="ReadGrowing"/>.</summary>
-    private static async Task<SegmentChain> ReadGrowingAsync(Stream stream, ArtifactLimits limits, CancellationToken cancellationToken)
-    {
-        SegmentChain chain = SegmentChain.Growing(limits);
-        var buffer = new byte[CopyBufferSize];
-        int read;
-        while ((read = await ReadChunkAsync(stream, buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
-        {
-            chain.Write(buffer.AsSpan(0, read), limits);
-        }
-
-        return chain;
-    }
-
     /// <summary>Asynchronous counterpart of <see cref="ReadChain"/>.</summary>
     private static async Task<SegmentChain> ReadChainAsync(
         Stream stream,
@@ -381,9 +375,10 @@ internal static class JsonArtifact
     /// <remarks>
     /// Shared so the reads differ only in their read call and their segment sizes. Duplicating
     /// the accumulate-and-check would be how the synchronous and asynchronous paths drift apart
-    /// again, which is the defect #396 exists to close rather than to repeat.
+    /// again, which is the defect #396 exists to close rather than to repeat. A struct, held by the read that fills it:
+    /// a class was the one object a load of undeclared length allocated past the release's MemoryStream (#1661).
     /// </remarks>
-    private sealed class SegmentChain
+    private struct SegmentChain
     {
         private readonly int largest;
         private readonly int firstLargest;
@@ -517,10 +512,15 @@ internal static class JsonArtifact
 
         public ReadOnlySequence<byte> Build()
         {
+            // One array and nothing linked, as most reads of undeclared length end: the sequence over it, with no segment,
+            // as the release returned the memory over its MemoryStream's buffer (#1661).
+            if (head is null)
+            {
+                return open is null || inOpen == 0 ? ReadOnlySequence<byte>.Empty : new ReadOnlySequence<byte>(open, 0, inOpen);
+            }
+
             Seal();
-            return head is null
-                ? ReadOnlySequence<byte>.Empty
-                : new ReadOnlySequence<byte>(head, 0, tail!, tail!.Memory.Length);
+            return new ReadOnlySequence<byte>(head, 0, tail!, tail!.Memory.Length);
         }
     }
 

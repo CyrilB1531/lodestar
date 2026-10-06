@@ -13,7 +13,7 @@ public sealed partial class TfidfVectorizer
 
     /// <summary>Creates a vectorizer with the given options (defaults if omitted).</summary>
     /// <exception cref="ArgumentOutOfRangeException"><c>Count.MinDf</c> or <c>Count.MaxDf</c> is negative, not finite, or a fraction above 1.</exception>
-    /// <exception cref="ArgumentException"><c>Count.NgramRange</c> descends, <c>Count.Analyzer</c> is not an <see cref="AnalyzerKind"/>, <c>Count.TokenPattern</c> has more than one capturing group under the word analyzer, or .NET refuses it as written, whatever the analyzer, with its <c>RegexParseException</c> as 0.7.0 raised it — a leading <c>(?u)</c> aside.</exception>
+    /// <exception cref="ArgumentException"><c>Count.NgramRange</c> descends, <c>Count.Analyzer</c> is not an <see cref="AnalyzerKind"/>, or <c>Count.TokenPattern</c> is one .NET refuses as written, whatever the analyzer, a leading <c>(?u)</c> included: its <c>RegexParseException</c> where the runtime has one, as 0.7.0 raised it.</exception>
     /// <exception cref="ArgumentNullException"><c>Count.TokenPattern</c> is null, the parameter named <c>pattern</c>, as 0.7.0's <c>Regex</c> named it.</exception>
     public TfidfVectorizer(TfidfVectorizerOptions? options = null)
     {

@@ -15,22 +15,43 @@ namespace Lodestar.Internal.Persistence;
 /// </remarks>
 internal static class ArtifactIo
 {
+    /// <summary>What a synchronous save writes, and the refusals it makes once the writer has accepted the stream.</summary>
+    /// <remarks>
+    /// A struct the save is generic over rather than two delegates: a delegate stays off the heap only while the save is
+    /// inlined into its caller, which its try block prevents, and two cost a large save 64 to 190 bytes over the
+    /// releases' (#1659).
+    /// </remarks>
+    internal interface ISavedArtifact
+    {
+        /// <summary>Refuses, before the first byte, what the write would fail on.</summary>
+        void Check();
+
+        /// <summary>Writes every property after the header, or before the block.</summary>
+        void Write(Utf8JsonWriter writer);
+    }
+
     /// <summary>The brace that closes an artifact, written by hand when the writer cannot.</summary>
     private const byte CloseBrace = (byte)'}';
 
     /// <param name="destination">The stream to write to; flushed but never disposed.</param>
     /// <param name="artifact">The artifact kind, for the header.</param>
     /// <param name="version">The artifact version, for the header.</param>
-    /// <param name="writeBody">Writes every property after the header.</param>
-    /// <param name="check">Run once the writer has accepted the stream and before its first byte, as main's write met them (#1618).</param>
-    public static void Save(Stream destination, string artifact, int version, Action<Utf8JsonWriter> writeBody, Action? check = null)
+    /// <param name="body">
+    /// Checked once the writer has accepted the stream and before its first byte, as main's write met them (#1618), then
+    /// written after the header.
+    /// </param>
+    public static void Save<TArtifact>(Stream destination, string artifact, int version, TArtifact body)
+        where TArtifact : struct, ISavedArtifact
     {
         Guard.NotNull(destination);
         using var writer = new Utf8JsonWriter(destination, JsonArtifact.WriterOptions);
         try
         {
-            check?.Invoke();
-            WriteDocument(writer, artifact, version, writeBody);
+            body.Check();
+            writer.WriteStartObject();
+            ArtifactHeader.Write(writer, artifact, version);
+            body.Write(writer);
+            writer.WriteEndObject();
             writer.Flush();
         }
         catch
@@ -71,7 +92,7 @@ internal static class ArtifactIo
     /// writing that block to <paramref name="destination"/> a slice at a time.
     /// </summary>
     /// <remarks>
-    /// <paramref name="writeHead"/> writes every property before the block. <b>Nothing goes through
+    /// <paramref name="head"/> writes every property before the block. <b>Nothing goes through
     /// the <c>Utf8JsonWriter</c> after it</b> — the writer is flushed and disposed on the property
     /// name, the value goes to the stream, and the closing brace is written by hand, because a
     /// writer left on one refuses to close its object. Owning it here, no artifact can get it wrong.
@@ -79,18 +100,17 @@ internal static class ArtifactIo
     /// <param name="destination">The stream to write to; flushed but never disposed.</param>
     /// <param name="artifact">The artifact kind, for the header.</param>
     /// <param name="version">The artifact version, for the header.</param>
-    /// <param name="writeHead">Writes every property that precedes the block.</param>
+    /// <param name="head">Checks before the first byte, once the writer has the stream (#1618); writes what precedes the block.</param>
     /// <param name="blockProperty">The name of the block's property.</param>
     /// <param name="block">The float block, written as base64 raw little-endian bits.</param>
-    /// <param name="check">Run once the writer has accepted the stream and before its first byte (#1618).</param>
-    public static void SaveWithBlock(
+    public static void SaveWithBlock<TArtifact>(
         Stream destination,
         string artifact,
         int version,
-        Action<Utf8JsonWriter> writeHead,
+        TArtifact head,
         string blockProperty,
-        ReadOnlySpan<float> block,
-        Action? check = null)
+        ReadOnlySpan<float> block)
+        where TArtifact : struct, ISavedArtifact
     {
         Guard.NotNull(destination);
 
@@ -98,10 +118,10 @@ internal static class ArtifactIo
         {
             try
             {
-                check?.Invoke();
+                head.Check();
                 writer.WriteStartObject();
                 ArtifactHeader.Write(writer, artifact, version);
-                writeHead(writer);
+                head.Write(writer);
                 writer.WritePropertyName(blockProperty);
                 writer.Flush();
             }

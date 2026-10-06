@@ -102,7 +102,7 @@ public sealed class TermSinkTests
     }
 
     private static TextAnalyzer Analyzer(CountVectorizerOptions options) =>
-        new(options.Lowercase, options.StripAccents, options.Analyzer, options.NgramRange, options.TokenPattern, options.StopWords);
+        new(options.Lowercase, options.StripAccents, options.Analyzer, options.NgramRange, options.TokenPattern, options.StopWords, nameof(options));
 
     private static SortedDictionary<string, int> Row(CsrMatrix matrix, int row, IReadOnlyList<string> names)
     {

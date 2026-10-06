@@ -98,13 +98,34 @@ public sealed class VectorizerArgumentTests
     }
 
     [Fact]
-    public void A_token_pattern_with_two_groups_is_refused_for_the_word_analyzer()
+    public void A_token_pattern_with_two_groups_reads_the_whole_match_as_0_7_0_did()
     {
-        // scikit-learn's build_tokenizer: "More than 1 capturing group in token pattern" (#1262).
+        // scikit-learn's build_tokenizer refuses it; 0.7.0 built it and read the whole match, so it still does (#1657).
         var options = new CountVectorizerOptions { TokenPattern = @"(\w)(\w)" };
 
-        var error = Assert.Throws<ArgumentException>(() => new CountVectorizer(options));
-        Assert.Contains("2 capturing groups", error.Message, StringComparison.Ordinal);
+        Assert.Equal(["ab", "cd"], new CountVectorizer(options).Fit(["ab cd e"]).GetFeatureNames());
+        Assert.Equal(1, new HashingVectorizer(new HashingVectorizerOptions { Count = options }).Transform(["ab"]).NonZeroCount);
+        Assert.Equal(["ab", "cd"], new TfidfVectorizer(new TfidfVectorizerOptions { Count = options }).Fit(["ab cd e"]).GetFeatureNames());
+        Assert.NotNull(new Lodestar.Text.Keywords.Rake(new Lodestar.Text.Keywords.RakeOptions { TokenPattern = @"(\w)(\w*)" }));
+        Assert.NotNull(new Lodestar.Text.Keywords.TextRank(new Lodestar.Text.Keywords.TextRankOptions { TokenPattern = @"(\w)(\w*)" }));
+    }
+
+    [Fact]
+    public void A_refused_pattern_after_a_leading_u_flag_keeps_0_7_0_s_message()
+    {
+        // 0.7.0 parsed the whole pattern, and .NET refuses "(?u" before the rest: that refusal, at offset 3 (#1656).
+        string refused = string.Concat("(?u)", "(");
+        string expected = Assert.ThrowsAny<ArgumentException>(() => new System.Text.RegularExpressions.Regex(refused)).Message;
+
+        foreach (AnalyzerKind analyzer in new[] { AnalyzerKind.Word, AnalyzerKind.Char, AnalyzerKind.CharWordBoundary })
+        {
+            var options = new CountVectorizerOptions { Analyzer = analyzer, TokenPattern = refused };
+            Assert.Equal(expected, Assert.ThrowsAny<ArgumentException>(() => new CountVectorizer(options)).Message);
+        }
+        Assert.Equal(expected, Assert.ThrowsAny<ArgumentException>(
+            () => new Lodestar.Text.Keywords.Rake(new Lodestar.Text.Keywords.RakeOptions { TokenPattern = refused })).Message);
+        Assert.Equal(expected, Assert.ThrowsAny<ArgumentException>(
+            () => new Lodestar.Text.Keywords.TextRank(new Lodestar.Text.Keywords.TextRankOptions { TokenPattern = refused })).Message);
     }
 
     [Fact]

@@ -29,4 +29,13 @@ public class TokenPatternBenchmarks
     /// <summary>One document of 4 MB fitted with <see cref="Pattern"/>.</summary>
     [Benchmark]
     public CountVectorizer Fit() => new CountVectorizer(new CountVectorizerOptions { TokenPattern = Pattern }).Fit([_text]);
+
+    /// <summary>The construction alone, which compiled the pattern in 0.7.0 and took seven times as long after #1645 (#1658).</summary>
+    [Benchmark]
+    public CountVectorizer Construct() => new(new CountVectorizerOptions { TokenPattern = Pattern });
+
+    /// <summary>The construction and a fit of one short document, which pays the compilation construction now leaves to it.</summary>
+    [Benchmark]
+    public CountVectorizer ConstructAndFitOneDocument() =>
+        new CountVectorizer(new CountVectorizerOptions { TokenPattern = Pattern }).Fit(["word12 word345 word6789"]);
 }
