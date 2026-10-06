@@ -136,7 +136,7 @@ colorama==0.4.6
 # Pinned unconditionally for colorama's reason, which holds identically here:
 # tzdata is a standalone leaf (PyPI metadata lists no dependencies at all) and
 # on Linux pandas reads the system zoneinfo instead, so the wheel is inert.
-tzdata==2026.4
+tzdata==2026.5
 
 # datasketch -- the reference for MinHash and its banded LSH index (#602). MIT, read
 # from the wheel's METADATA rather than from PyPI's field, which decision 0005 found
