@@ -21,9 +21,10 @@ public sealed partial class TfidfVectorizer
     /// always written, even when <c>UseIdf</c> is off, so the artifact stays lossless.
     /// </remarks>
     /// <param name="destination">The stream to write to. It is flushed but never disposed — the caller owns it.</param>
-    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, its idf weights make a base64 block within two mebibytes of the most the JSON writer holds, or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write.</exception>
+    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, or its idf weights make a base64 block within two mebibytes of the most the JSON writer holds.</exception>
     /// <exception cref="InvalidDataException">An idf weight is not finite; refused before anything is written.</exception>
-    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to; refused once the vectorizer is known fitted, before its strings are checked (#1641).</exception>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to, refused once the vectorizer is known fitted, before its strings are checked (#1641); or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write, refused before anything is written with the writer's own exception, as 0.7.0 raised it (#1646).</exception>
+    /// <exception cref="IndexOutOfRangeException">A string whose escaped form passes the JSON writer's buffer: the writer's own exception, as 0.7.0 raised it, before anything is written (#1646).</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     public void Save(Stream destination)
@@ -37,7 +38,9 @@ public sealed partial class TfidfVectorizer
 
     /// <summary>Writes the fitted vectorizer to <paramref name="path"/>, replacing any existing file.</summary>
     /// <remarks>Equivalent to <c>joblib.dump(vectorizer, path)</c>; the file is UTF-8 without a byte-order mark.</remarks>
-    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, refused before the path is opened; or its idf weights make a base64 block within two mebibytes of the most the JSON writer holds, or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write, refused once the file is open, before its first byte.</exception>
+    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, refused before the path is opened; or its idf weights make a base64 block within two mebibytes of the most the JSON writer holds, refused once the file is open, before its first byte.</exception>
+    /// <exception cref="ArgumentException">A vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write; refused once the file is open, before its first byte, with the writer's own exception, as 0.7.0 raised it (#1646).</exception>
+    /// <exception cref="IndexOutOfRangeException">A string whose escaped form passes the JSON writer's buffer: the writer's own exception, as 0.7.0 raised it, before anything is written (#1646).</exception>
     /// <exception cref="InvalidDataException">An idf weight is not finite; refused once the file is open, before its first byte.</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
@@ -53,8 +56,11 @@ public sealed partial class TfidfVectorizer
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
     /// <param name="destination">The stream to write to; never disposed by this method.</param>
     /// <exception cref="ArgumentNullException">the stream is null.</exception>
-    /// <exception cref="InvalidOperationException">nothing has been fitted yet, the idf weights make a base64 block within two mebibytes of the most the JSON writer holds, or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write.</exception>
+    /// <exception cref="InvalidOperationException">nothing has been fitted yet, or the idf weights make a base64 block within two mebibytes of the most the JSON writer holds.</exception>
+    /// <exception cref="ArgumentException">a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write; refused before anything is written, with the writer's own exception, as 0.7.0 raised it (#1646).</exception>
+    /// <exception cref="IndexOutOfRangeException">A string whose escaped form passes the JSON writer's buffer: the writer's own exception, as 0.7.0 raised it, before anything is written (#1646).</exception>
     /// <exception cref="InvalidDataException">an idf weight is not finite; refused before anything is written.</exception>
+    /// <exception cref="NotSupportedException"><paramref name="destination"/> cannot be written to: the stream's own exception, raised by the write once the artifact is composed, as 0.7.0 raised it.</exception>
     /// <exception cref="OperationCanceledException">the token is cancelled.</exception>
     /// <param name="cancellationToken">Cancels the write.</param>
     public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)
@@ -132,7 +138,7 @@ public sealed partial class TfidfVectorizer
     private void EnsureWritable(double[] idf)
     {
         // In the order the artifact writes them, so each refusal stands where main's write failed.
-        VectorizerOptionsJson.EnsureWritable(_counts.Options);
+        VectorizerOptionsJson.EnsureWritable(_counts.Options, _counts.AnalyzerStopWords);
         _counts.EnsureWritableVocabulary();
         FeatureVocabularyJson.EnsureWritableIdf(idf);
     }
@@ -146,7 +152,7 @@ public sealed partial class TfidfVectorizer
         }
 
         string[] featureNames = _counts.FittedFeatureNames;
-        VectorizerOptionsJson.Write(writer, "options", _counts.Options);
+        VectorizerOptionsJson.Write(writer, "options", _counts.Options, _counts.AnalyzerStopWords);
         VectorizerOptionsJson.Write(writer, "tfidf", _tfidf.Options);
         writer.WriteNumber(FeatureVocabularyJson.FeatureCountProperty, featureNames.Length);
         FeatureVocabularyJson.WriteVocabulary(writer, featureNames, _counts.VocabularyMayHoldSurrogate);

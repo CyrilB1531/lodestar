@@ -16,7 +16,8 @@ mark, `\b`, `\d` and `\s` follow, all over code points, and scikit-learn's own s
 `(?u)\b\w\w+\b` is accepted. A token is what `re.findall` returns: the whole match, or the text of
 the pattern's one capturing group when it has one — `(\w+)ing\b` makes `running` the token `runn`,
 and a group that took no part in a match gives the empty token. A pattern with two groups is
-refused by the word analyzer, as scikit-learn refuses it, and never read by the character ones.
+refused by the word analyzer, as scikit-learn refuses it, and never read by the character ones;
+every analyzer refuses a null pattern, or one .NET refuses as written, as 0.7.0 did.
 `Analyzer` (default
 [`AnalyzerKind.Word`](analyzerkind.md)) chooses words or character n-grams. `NgramRange` (default
 `(1, 1)`) is the inclusive range of n-gram lengths. `StopWords` (default none) is a set removed

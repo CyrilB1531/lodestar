@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -17,12 +18,17 @@ namespace Lodestar.Text.Internal;
 internal sealed class PythonTokenPattern
 {
     private readonly int _minimumRun;
-    private readonly Regex? _regex;
     private readonly int _group;
+
+    // The pattern spelled for a text without surrogates, and as Python reads any text, compiled when a text first holds
+    // one: the second's pair-aware classes scan five to eight times slower than plain ones (#1645).
+    private readonly Regex? _regex;
+    private readonly Lazy<Regex>? _pairAware;
 
     public PythonTokenPattern(string pattern)
     {
-        string body = pattern.StartsWith("(?u)", StringComparison.Ordinal) ? pattern.Substring(4) : pattern;
+        // First, as 0.7.0's Regex refused a null or a pattern it cannot read before anything else here (#1645).
+        string body = RefuseAsWritten(pattern);
         _minimumRun = body switch
         {
             @"\b\w\w+\b" or @"\w\w+" => 2,
@@ -31,8 +37,7 @@ internal sealed class PythonTokenPattern
         };
         if (_minimumRun == 0)
         {
-            _regex = PythonPattern.Compile(
-                pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
+            (_regex, _pairAware) = Compile(pattern, body);
             // Group 0 is the match itself. scikit-learn's build_tokenizer refuses a second group,
             // since findall would return tuples of them.
             int[] groups = _regex.GetGroupNumbers();
@@ -43,6 +48,44 @@ internal sealed class PythonTokenPattern
             }
             _group = groups.Length == 2 ? groups[1] : 0;
         }
+    }
+
+    /// <summary>The plain spelling, compiled, and the pair-aware one, compiled when a text first holds a surrogate.</summary>
+    /// <remarks>
+    /// The pattern as written is checked first, as 0.7.0 compiled it, a leading <c>(?u)</c> aside: one .NET refuses goes
+    /// out with 0.7.0's exception and message, whether or not Python reads it. Both spellings are then parsed here, so
+    /// none fails at the first text holding an emoji; one whose class Python refuses, <c>[\w-.]</c>, is read as 0.7.0
+    /// read it, by .NET as written (#1645).
+    /// </remarks>
+    private static (Regex Plain, Lazy<Regex> PairAware) Compile(string pattern, string written)
+    {
+        const RegexOptions Options = RegexOptions.Compiled | RegexOptions.CultureInvariant;
+        try
+        {
+            Regex plain = PythonPattern.CompileSurrogateFree(pattern, Options, RegexDefaults.MatchTimeout);
+            string pairAware = PythonPattern.Translate(pattern);
+            _ = new Regex(pairAware, RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
+            return (plain, new Lazy<Regex>(() => new Regex(pairAware, Options, RegexDefaults.MatchTimeout)));
+        }
+        catch (ArgumentException)
+        {
+            var raw = new Regex(written, Options, RegexDefaults.MatchTimeout);
+            return (raw, new Lazy<Regex>(() => raw));
+        }
+    }
+
+    /// <summary>
+    /// Refuses what 0.7.0 refused when it compiled the pattern as written: a null, and a pattern .NET refuses, with .NET's
+    /// own exceptions. A leading <c>(?u)</c>, Python's default, is accepted and dropped (#1239, #1645).
+    /// </summary>
+    /// <returns>The pattern without its <c>(?u)</c>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="pattern"/> is null, its parameter named <c>pattern</c>, as Regex names it.</exception>
+    /// <exception cref="ArgumentException">.NET refuses the pattern as written: its <c>RegexParseException</c> where it has one.</exception>
+    public static string RefuseAsWritten(string pattern)
+    {
+        string written = pattern?.StartsWith("(?u)", StringComparison.Ordinal) == true ? pattern.Substring(4) : pattern!;
+        _ = new Regex(written, RegexOptions.CultureInvariant, RegexDefaults.MatchTimeout);
+        return written;
     }
 
     /// <summary>The matches in <paramref name="s"/>, in order, as UTF-16 start and length.</summary>
@@ -63,7 +106,19 @@ internal sealed class PythonTokenPattern
             return;
         }
 
-        foreach (Match m in _regex.Matches(s))
+        Regex regex = RegexFor(s);
+#if NET7_0_OR_GREATER
+        if (_group == 0)
+        {
+            // No group to read, so no Match per token: 0.7.0's scan, which a short-word text ran six times faster (#1645).
+            foreach (ValueMatch m in regex.EnumerateMatches(s))
+            {
+                matches.Add((m.Index, m.Length));
+            }
+            return;
+        }
+#endif
+        foreach (Match m in regex.Matches(s))
         {
             matches.Add(Token(m));
         }
@@ -86,12 +141,40 @@ internal sealed class PythonTokenPattern
             return spans;
         }
 
-        foreach (Match m in _regex.Matches(s))
+        foreach (Match m in RegexFor(s).Matches(s))
         {
             (int start, int length) = Token(m);
             spans.Add((start, length, m.Index, m.Index + m.Length));
         }
         return spans;
+    }
+
+#if NET7_0_OR_GREATER
+    /// <summary>The regex to scan <paramref name="s"/> with, when the pattern has one and no group to read a token from.</summary>
+    public bool TryGetGrouplessRegex(string s, [NotNullWhen(true)] out Regex? regex)
+    {
+        regex = _regex is not null && _group == 0 ? RegexFor(s) : null;
+        return regex is not null;
+    }
+#endif
+
+    /// <summary>The spelling that reads <paramref name="s"/> as Python does: the plain one unless it holds a surrogate.</summary>
+    private Regex RegexFor(string s) => HoldsSurrogate(s) ? _pairAware!.Value : _regex!;
+
+    private static bool HoldsSurrogate(string s)
+    {
+#if NET8_0_OR_GREATER
+        return s.AsSpan().ContainsAnyInRange('\uD800', '\uDFFF');
+#else
+        for (int i = 0; i < s.Length; i++)
+        {
+            if (char.IsSurrogate(s[i]))
+            {
+                return true;
+            }
+        }
+        return false;
+#endif
     }
 
     // re.findall's item: the match without a group, the group's last capture with one, and the

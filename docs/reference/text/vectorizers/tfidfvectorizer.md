@@ -15,8 +15,12 @@ public sealed class TfidfVectorizer
 **Constructor** — `TfidfVectorizer(TfidfVectorizerOptions? options = null)`, whose two halves
 default to scikit-learn's defaults. It throws `ArgumentOutOfRangeException` when `Count.MinDf` or
 `Count.MaxDf` is negative, not finite or a fraction above `1`, and `ArgumentException` when
-`Count.NgramRange` descends, the one range scikit-learn refuses too, or when `Count.Analyzer`
-is not an [`AnalyzerKind`](analyzerkind.md) member.
+`Count.NgramRange` descends, the one range scikit-learn refuses too, or when `Count.Analyzer` is not
+an [`AnalyzerKind`](analyzerkind.md) member. The token pattern is checked after the
+document-frequency bounds and the n-gram range, where 0.7.0 compiled it, whatever the analyzer: a
+null one throws `ArgumentNullException` with the parameter named `pattern`, and one .NET refuses as
+written its `RegexParseException` — a leading `(?u)` aside — ahead of the analyzer check
+([#1645](https://github.com/CyrilB1531/lodestar/issues/1645)).
 
 **Properties** — `Idf` is the inverse document frequency per column, available after fitting.
 

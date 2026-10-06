@@ -304,20 +304,18 @@ public sealed class EmbeddingIndexReadPathTests
     }
 
     [Fact]
-    public async Task A_long_id_is_refused_by_name_before_a_byte_is_written()
+    public async Task A_long_id_is_refused_as_the_writer_refuses_it_before_a_byte_is_written()
     {
-        // System.Text.Json 10 writes 166,666,666 characters and refuses one more; sync and through the task (#1626).
+        // System.Text.Json 10 writes 166,666,666 characters and refuses one more, with the exception 0.8.0 raised; sync
+        // and through the task (#1626, #1646).
         var index = new EmbeddingIndex(dimension: 1);
         index.Add([1f], new string('a', 166_666_667));
         var stream = new MemoryStream();
         try
         {
-            Assert.StartsWith("An id of 166666667 characters", SaveRefusal(index, stream).Message, StringComparison.Ordinal);
+            Assert.Equal("The JSON value of length 166666667 is too large and not supported.", Assert.Throws<ArgumentException>(() => index.Save(stream)).Message);
             Task save = index.SaveAsync(stream, TestContext.Current.CancellationToken);
-            Assert.StartsWith(
-                "An id of 166666667 characters",
-                (await Assert.ThrowsAsync<InvalidOperationException>(() => save)).Message,
-                StringComparison.Ordinal);
+            Assert.Equal("The JSON value of length 166666667 is too large and not supported.", (await Assert.ThrowsAsync<ArgumentException>(() => save)).Message);
             Assert.Equal(0, stream.Length);
         }
         finally
@@ -325,9 +323,6 @@ public sealed class EmbeddingIndexReadPathTests
             await stream.DisposeAsync();
         }
     }
-
-    private static InvalidOperationException SaveRefusal(EmbeddingIndex index, Stream stream) =>
-        Assert.Throws<InvalidOperationException>(() => index.Save(stream));
 
     [Fact]
     public async Task An_asynchronous_save_writes_a_long_head_as_it_goes()

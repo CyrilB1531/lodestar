@@ -27,9 +27,11 @@ int count = hits.Count;       // => 4
 
 **Remarks** — the constructor is `TextRank(TextRankOptions? options = null)`; `null` takes every
 default, `StopWords.English` for the stop-word list included. It throws
-`ArgumentOutOfRangeException` when `options.Window` is below `1`, `options.Damping` is outside
-`(0, 1)`, `options.Ratio` is outside `(0, 1]`, `options.MaxIterations` is below `1`, or
-`options.Words` is set and negative.
+`ArgumentOutOfRangeException` when `options.Window` is below `1`, `options.Damping` is outside `(0,
+1)`, `options.Ratio` is outside `(0, 1]`, `options.MaxIterations` is below `1`, or `options.Words`
+is set and negative. A null `options.TokenPattern` throws `ArgumentNullException` with the parameter
+named `pattern`, and one .NET refuses as written its `RegexParseException`, as 0.7.0 raised them
+([#1645](https://github.com/CyrilB1531/lodestar/issues/1645)).
 
 A glued phrase — where two ranked stems stood adjacent in the source and are re-joined — scores the
 **mean** of its parts and need not be grammatical; that is summa's own behaviour, reproduced on

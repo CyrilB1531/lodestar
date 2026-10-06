@@ -12,7 +12,7 @@ namespace Lodestar.Internal.Persistence;
 /// exception shapes the public API documents.
 /// </summary>
 /// <remarks>
-/// Artifacts are read in one pass over one buffer, or segments past one array, not a <c>JsonDocument</c>
+/// Artifacts are read in one pass over one buffer or several segments, not a <c>JsonDocument</c>
 /// tree: the bytes are what <c>MaxTotalBytes</c> bounds, and the reader allocates nothing per token.
 /// </remarks>
 internal static class JsonArtifact
@@ -246,11 +246,12 @@ internal static class JsonArtifact
         return ReadChain(stream, limits, SegmentChain.Large(limits)).Build();
     }
 
-    /// <summary>The whole artifact: one segment where it fits one array, several past it, whatever the stream (#1618).</summary>
+    /// <summary>The whole artifact, in one segment or several, whatever the stream (#1618).</summary>
     /// <remarks>
     /// <see cref="ReadAllBytes"/> stops at one array, which a save writing a list a mebibyte at a time can pass: a seekable
     /// stream past it is read in large segments, and one of undeclared length into one array grown as a
-    /// <see cref="MemoryStream"/> grows its buffer, mebibyte segments following only past one array (#1629).
+    /// <see cref="MemoryStream"/> grows its buffer until that array reaches 64 MiB, mebibyte segments following it
+    /// (#1629, #1642).
     /// </remarks>
     /// <param name="stream">The stream to read; never disposed here.</param>
     /// <param name="limits">Bounds applied while reading.</param>
@@ -410,7 +411,8 @@ internal static class JsonArtifact
 
         /// <summary>
         /// For a stream of undeclared length. Its first segment grows as the <see cref="MemoryStream"/> the read used
-        /// before did until it holds 64 MiB, one array handed over uncopied, as there; past it, mebibyte segments, where
+        /// before did while it is under 64 MiB, so by one doubling past it — 80 MiB with 81,920-byte reads — one array
+        /// handed over uncopied, as there; then mebibyte segments, where
         /// that stream doubled again (#1624, #1629, #1634). Segments from a mebibyte were tried: a reader over several
         /// is slower per token, 35-38 ms against 0.7.0's 27-28 for a 4 MB vocabulary after large fits (#1642).
         /// </summary>
@@ -421,7 +423,7 @@ internal static class JsonArtifact
         /// <summary>The least a first segment takes, as <see cref="MemoryStream"/>'s first buffer did.</summary>
         private const int FirstGrowingSegment = 256;
 
-        /// <summary>How far a growing chain's first segment grows before segments follow it: 64 MiB.</summary>
+        /// <summary>The length under which a growing chain's first segment still doubles: 64 MiB.</summary>
         private const int ContiguousGrowth = 64 << 20;
 
         /// <summary>Copies one read into the chain, counting it against <c>MaxTotalBytes</c> first.</summary>
@@ -609,24 +611,38 @@ internal static class JsonArtifact
         buffer = pooled
             ? ArrayPool<byte>.Shared.Rent(length)
             : Buffers.AllocateUninitialized<byte>(length);
-        int read;
-        while (filled < length && (read = stream.Read(buffer, filled, length - filled)) > 0)
+        try
         {
-            filled += read;
-        }
-
-        if (filled == length && stream.ReadByte() >= 0)
-        {
-            stream.Position = origin;
-            if (pooled)
+            int read;
+            while (filled < length && (read = stream.Read(buffer, filled, length - filled)) > 0)
             {
-                ArrayPool<byte>.Shared.Return(buffer);
+                filled += read;
             }
-            buffer = [];
-            filled = 0;
-            return false;
+
+            if (filled == length && stream.ReadByte() >= 0)
+            {
+                stream.Position = origin;
+                ReturnIfRented(buffer, pooled);
+                buffer = [];
+                filled = 0;
+                return false;
+            }
+            return true;
         }
-        return true;
+        catch
+        {
+            // A stream that throws mid-read still gets its rented array back to the pool (#1649).
+            ReturnIfRented(buffer, pooled);
+            throw;
+        }
+    }
+
+    private static void ReturnIfRented(byte[] buffer, bool pooled)
+    {
+        if (pooled)
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 
     /// <summary>Asynchronous counterpart of <see cref="TryReadDeclaredLength"/>; <c>null</c> where that one returns <c>false</c>.</summary>
@@ -750,8 +766,15 @@ internal static class JsonArtifact
     /// lone surrogate is written exactly as before.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void WriteText(Utf8JsonWriter writer, string value)
+    public static void WriteText(Utf8JsonWriter writer, string? value)
     {
+        // A null, which a caller's stop words or an edited vocabulary can hold, is written as 0.7.0 wrote it (#1647).
+        if (value is null)
+        {
+            writer.WriteNullValue();
+            return;
+        }
+
         // The common term — short, no surrogate — costs one search and the writer's own call, inlined into the list's
         // loop; a vocabulary is that, a few hundred thousand times (#1643).
         if (value.Length <= AlwaysWritableCharacters && !MayHoldSurrogate(value))
@@ -778,9 +801,9 @@ internal static class JsonArtifact
     /// <param name="writer">The writer.</param>
     /// <param name="value">The string.</param>
     /// <param name="mayHoldSurrogate">Whether the list <paramref name="value"/> belongs to may hold a surrogate.</param>
-    public static void WriteText(Utf8JsonWriter writer, string value, bool mayHoldSurrogate)
+    public static void WriteText(Utf8JsonWriter writer, string? value, bool mayHoldSurrogate)
     {
-        if (!mayHoldSurrogate && value.Length <= AlwaysWritableCharacters)
+        if (!mayHoldSurrogate && value is not null && value.Length <= AlwaysWritableCharacters)
         {
             writer.WriteStringValue(value);
             return;
@@ -854,9 +877,9 @@ internal static class JsonArtifact
 
     /// <summary>Refuses, before a save's first byte, a string <see cref="WriteText(Utf8JsonWriter, string)"/> cannot write.</summary>
     /// <param name="value">The string a save will write.</param>
-    /// <param name="what">What it is, for the message: <c>"A vocabulary term"</c>, <c>"An id"</c>.</param>
-    /// <exception cref="InvalidOperationException">The writer cannot write the value, whatever it raises but cancellation.</exception>
-    public static void EnsureWritableText(string? value, string what)
+    /// <exception cref="ArgumentException">The writer cannot write the value: its own exception, as the releases raised it.</exception>
+    /// <exception cref="IndexOutOfRangeException">The value's escaped form passes the writer's buffer: its own exception too.</exception>
+    public static void EnsureWritableText(string? value)
     {
         // A null is left to the write, which main reached it at; a short string cannot fail.
         if (value is null || value.Length <= AlwaysWritableCharacters)
@@ -864,22 +887,13 @@ internal static class JsonArtifact
             return;
         }
 
-        // Written for real into nothing: what the writer refuses depends on the escaped UTF-8, not on the characters.
-        try
-        {
-            using var trial = new Utf8JsonWriter(Stream.Null, WriterOptions);
-            // In an array, as a list writes it; WriteText flushes first, as it does in the save.
-            trial.WriteStartArray();
-            WriteText(trial, value);
-            trial.Flush();
-        }
-        catch (Exception e) when (e is not OperationCanceledException)
-        {
-            // Whatever the writer throws, the save would throw it too, so nothing it raises is left undocumented:
-            // System.Text.Json 10 raised three types here, and its other builds are not measured (#1625).
-            throw new InvalidOperationException(
-                $"{what} of {value.Length} characters could not be written by the JSON writer ({e.GetType().Name}); nothing was written.", e);
-        }
+        // Written for real into nothing, as what the writer refuses depends on the escaped UTF-8. Its exception goes out
+        // unwrapped, before the first byte: the ArgumentException 0.7.0 and 0.8.0 raised (#1646).
+        using var trial = new Utf8JsonWriter(Stream.Null, WriterOptions);
+        // In an array, as a list writes it; WriteText flushes first, as it does in the save.
+        trial.WriteStartArray();
+        WriteText(trial, value);
+        trial.Flush();
     }
 
     /// <summary><paramref name="value"/> as a quoted JSON string, its lone surrogates as four-digit escapes.</summary>

@@ -12,13 +12,18 @@ public void Save(string path)
 **Parameters** — `destination` is a writable stream, left open for the caller to dispose; `path`
 is a file to create or overwrite.
 
-**Exceptions** — `InvalidOperationException` when nothing has been fitted yet, or when a vocabulary
-term, the token pattern or a stop word is beyond what the JSON writer can write — about 166 million
-characters, fewer where it escapes. An unfitted vectorizer is refused before the path is opened; a
-string before a byte is written, once the writer has accepted the stream or once the file is open, so
-a path opening refuses is refused ahead of it ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
-[#1630](https://github.com/CyrilB1531/lodestar/issues/1630)). `ArgumentException` when the stream cannot be written to, refused once the vectorizer is known fitted, before its strings are checked ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641)). `ArgumentNullException` for a null stream or path. `IOException` from the stream or file
-system.
+**Exceptions** — `InvalidOperationException` when nothing has been fitted yet, refused before the
+path is opened. `ArgumentException`, the JSON writer's own, as 0.7.0 raised it, when a vocabulary
+term, the token pattern or a stop word is beyond what the writer can write — about 166 million
+characters, fewer where it escapes — refused before a byte is written, once the writer has accepted
+the stream or once the file is open, so a path opening refuses is refused ahead of it
+([#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
+[#1630](https://github.com/CyrilB1531/lodestar/issues/1630),
+[#1646](https://github.com/CyrilB1531/lodestar/issues/1646)); `ArgumentException` too when the
+stream cannot be written to, refused once the vectorizer is known fitted, before its strings are
+checked ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641)). `IndexOutOfRangeException`,
+the writer's own as well, for a string whose escaped form passes its buffer, as 0.7.0 raised it.
+`ArgumentNullException` for a null stream or path. `IOException` from the stream or file system.
 
 **Example** — round-tripping through memory.
 

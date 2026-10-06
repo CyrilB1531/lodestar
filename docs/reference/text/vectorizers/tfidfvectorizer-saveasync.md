@@ -14,13 +14,17 @@ write.
 **Returns** — `Task`, completing when the vectorizer has been written.
 
 **Exceptions** — `InvalidOperationException` when nothing has been fitted yet, or when the idf
-weights make a base64 block within two mebibytes of the most the JSON writer holds in one buffer, from
-201,129,984 weights, or
-when a vocabulary term, the token pattern or a stop word is beyond what the JSON writer
-can write.
+weights make a base64 block within two mebibytes of the most the JSON writer holds in one buffer,
+from 201,129,984 weights. `ArgumentException`, the JSON writer's own, as 0.7.0 raised it, when a
+vocabulary term, the token pattern or a stop word is beyond what the writer can write.
 `InvalidDataException` when an idf weight is not finite. All are refused before anything is written
-([#1617](https://github.com/CyrilB1531/lodestar/issues/1617), [#1618](https://github.com/CyrilB1531/lodestar/issues/1618)). `ArgumentNullException` for a null
-stream. `OperationCanceledException` when cancelled.
+([#1617](https://github.com/CyrilB1531/lodestar/issues/1617),
+[#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
+[#1646](https://github.com/CyrilB1531/lodestar/issues/1646)). `NotSupportedException`, the stream's
+own, when it cannot be written to, raised by the write once the artifact is composed, as 0.7.0
+raised it. `IndexOutOfRangeException`, the writer's own as well, for a string whose escaped form
+passes its buffer, as 0.7.0 raised it. `ArgumentNullException` for a null stream.
+`OperationCanceledException` when cancelled.
 
 **Example** — the round trip, asynchronously.
 

@@ -627,6 +627,20 @@ Against the release, `ArtifactTimeBenchmarks.cs`, `ArtifactLoadOnlyBenchmarks.cs
 Lodestar.Text 0.7.0 and Lodestar.Embeddings 0.8.0 from nuget.org, and into one that references
 `src/`, and the two run alternately; the spec of #1640 has the figures.
 
+### Small saves, and token patterns against the release (issues #1645, #1649)
+
+`SmallArtifactBenchmarks` times asynchronous saves of a few hundred bytes — the fixed cost of the
+path, which a larger artifact hides — and a 1.4 MB load from a `MemoryStream`.
+`TokenPatternBenchmarks` fits one 4 MB document through the default token pattern, which is scanned
+by hand, and through four that go through the Python translation:
+
+```bash
+dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- --filter '*SmallArtifactBenchmarks*' '*TokenPatternBenchmarks*'
+```
+
+Against the release, both are compiled with `ArtifactCorpus.cs` and `UndeclaredStream.cs` as the
+previous section describes; the spec of #1645 has the figures.
+
 ## 5. Classification metrics (issue #61)
 
 `ConfusionMatrix`, `Accuracy`, `Precision`/`Recall`/`F1`, `ClassificationReport`

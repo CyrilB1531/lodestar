@@ -58,6 +58,13 @@ internal sealed class TextAnalyzer
     internal static int? ScratchCapacity => _matches?.Capacity;
 
     private readonly StopWordSet? _stopWords;
+    private readonly string[]? _stopWordList;
+
+    /// <summary>
+    /// The caller's stop words as they stood when this analyzer was built, duplicates kept, which a save writes as 0.7.0
+    /// wrote them; the filter is the same words as a set (#1648).
+    /// </summary>
+    public IReadOnlyCollection<string>? StopWords => _stopWordList;
 
     public TextAnalyzer(
         bool lowercase,
@@ -68,6 +75,10 @@ internal sealed class TextAnalyzer
         IReadOnlyCollection<string>? stopWords)
     {
         RequireNgramRange(ngramRange, nameof(ngramRange));
+
+        // Checked whatever the analyzer, and before it, as 0.7.0 compiled it for every one right after the range: a null
+        // with Regex's ArgumentNullException, a pattern .NET refuses as written with its RegexParseException (#1645).
+        PythonTokenPattern.RefuseAsWritten(tokenPattern);
         RequireAnalyzer(kind, nameof(kind));
 
         _lowercase = lowercase;
@@ -75,16 +86,10 @@ internal sealed class TextAnalyzer
         _kind = kind;
         _minN = ngramRange.Min;
         _maxN = ngramRange.Max;
-        // Refused whatever the analyzer, since Save writes the pattern and Load requires a string.
-        if (tokenPattern is null)
-        {
-            throw new ArgumentException("TokenPattern is null.", nameof(tokenPattern));
-        }
-
-        // Only the word analyzer tokenizes: scikit-learn neither compiles nor checks the pattern
-        // for the character analyzers, so a pattern it would refuse there is accepted.
+        // Only the word analyzer tokenizes, so only it compiles the translated pattern.
         _tokenPattern = kind == AnalyzerKind.Word ? new PythonTokenPattern(tokenPattern) : null;
         _stopWords = stopWords is null ? null : StopWordSet.Adopt(stopWords);
+        _stopWordList = stopWords?.ToArray();
     }
 
     /// <summary>Refuses an analyzer outside <see cref="AnalyzerKind"/>, naming the caller's parameter.</summary>
@@ -169,24 +174,36 @@ internal sealed class TextAnalyzer
     }
 
     /// <summary>The kept tokens of <paramref name="s"/> as start and length pairs, in document order.</summary>
-    private List<(int Start, int Length)> Tokenize<TSink>(string s, ref TSink sink, bool emit)
+    /// <param name="s">The preprocessed document.</param>
+    /// <param name="sink">Where each kept token goes when <paramref name="emit"/> is set.</param>
+    /// <param name="emit">Whether the tokens are unigrams the caller wants.</param>
+    /// <param name="collect">
+    /// Whether to return them, which only n-grams need: kept for every document, they cost a fit of 500,000 tokens 8 MB
+    /// on 0.7.0's 9.5 (#1645).
+    /// </param>
+    private List<(int Start, int Length)>? Tokenize<TSink>(string s, ref TSink sink, bool emit, bool collect)
         where TSink : struct, ITermSink
     {
-        var tokens = new List<(int Start, int Length)>();
-        List<(int Start, int Length)> matches = ScratchMatches();
+        List<(int Start, int Length)>? tokens = collect ? [] : null;
 #if NET9_0_OR_GREATER
-        _tokenPattern!.Matches(s, matches);
+        if (_tokenPattern!.TryGetGrouplessRegex(s, out Regex? regex))
+        {
+            // Straight from the regex, as 0.7.0 scanned, with no list of matches between (#1645).
+            foreach (ValueMatch m in regex.EnumerateMatches(s))
+            {
+                Consider(s, m.Index, m.Length, tokens, ref sink, emit);
+            }
+            return tokens;
+        }
+
+        List<(int Start, int Length)> matches = ScratchMatches();
+        _tokenPattern.Matches(s, matches);
         foreach ((int index, int length) in matches)
         {
-            // Judged as a span over the document, so a filtered-out (and by
-            // definition frequent) stop word is never allocated as a string.
-            ReadOnlySpan<char> token = s.AsSpan(index, length);
-            if (_stopWords is null || !_stopWords.Contains(token))
-            {
-                Keep(tokens, index, length, token, ref sink, emit);
-            }
+            Consider(s, index, length, tokens, ref sink, emit);
         }
 #else
+        List<(int Start, int Length)> matches = ScratchMatches();
         _tokenPattern!.Matches(s, matches);
         foreach ((int index, int length) in matches)
         {
@@ -201,7 +218,7 @@ internal sealed class TextAnalyzer
             string tok = s.Substring(index, length);
             if (!_stopWords.Contains(tok))
             {
-                tokens.Add((index, length));
+                tokens?.Add((index, length));
                 if (emit)
                 {
                     sink.Add(tok);
@@ -213,11 +230,27 @@ internal sealed class TextAnalyzer
         return tokens;
     }
 
-    private static void Keep<TSink>(
-        List<(int Start, int Length)> tokens, int start, int length, ReadOnlySpan<char> token, ref TSink sink, bool emit)
+#if NET9_0_OR_GREATER
+    /// <summary>Keeps the token at <paramref name="index"/> unless it is a stop word.</summary>
+    private void Consider<TSink>(
+        string s, int index, int length, List<(int Start, int Length)>? tokens, ref TSink sink, bool emit)
         where TSink : struct, ITermSink
     {
-        tokens.Add((start, length));
+        // Judged as a span over the document, so a filtered-out (and by
+        // definition frequent) stop word is never allocated as a string.
+        ReadOnlySpan<char> token = s.AsSpan(index, length);
+        if (_stopWords is null || !_stopWords.Contains(token))
+        {
+            Keep(tokens, index, length, token, ref sink, emit);
+        }
+    }
+#endif
+
+    private static void Keep<TSink>(
+        List<(int Start, int Length)>? tokens, int start, int length, ReadOnlySpan<char> token, ref TSink sink, bool emit)
+        where TSink : struct, ITermSink
+    {
+        tokens?.Add((start, length));
         if (emit)
         {
             sink.Add(token);
@@ -230,8 +263,8 @@ internal sealed class TextAnalyzer
         // Unigrams are emitted while matching, in the order the n = 1 pass would give them.
         // scikit-learn skips the slicing when Max is 1, whatever Min is, so the token list is it.
         bool unigramsFirst = _minN == 1 || _maxN == 1;
-        List<(int Start, int Length)> tokens = Tokenize(s, ref sink, unigramsFirst);
-        if (_maxN == 1)
+        List<(int Start, int Length)>? tokens = Tokenize(s, ref sink, unigramsFirst, collect: _maxN != 1);
+        if (tokens is null)
         {
             return;
         }

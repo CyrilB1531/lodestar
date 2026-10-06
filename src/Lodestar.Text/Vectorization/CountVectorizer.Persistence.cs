@@ -21,8 +21,9 @@ public sealed partial class CountVectorizer
     /// <c>docs/guides/vectorization.md</c>.
     /// </remarks>
     /// <param name="destination">The stream to write to. It is flushed but never disposed — the caller owns it.</param>
-    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write; refused before anything is written.</exception>
-    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to; refused once the vectorizer is known fitted, before its strings are checked (#1641).</exception>
+    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted; refused before anything is written.</exception>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written to, refused once the vectorizer is known fitted, before its strings are checked (#1641); or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write, refused before anything is written with the writer's own exception, as 0.7.0 raised it (#1646).</exception>
+    /// <exception cref="IndexOutOfRangeException">A string whose escaped form passes the JSON writer's buffer: the writer's own exception, as 0.7.0 raised it, before anything is written (#1646).</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     public void Save(Stream destination)
@@ -36,7 +37,9 @@ public sealed partial class CountVectorizer
 
     /// <summary>Writes the fitted vectorizer to <paramref name="path"/>, replacing any existing file.</summary>
     /// <remarks>Equivalent to <c>joblib.dump(vectorizer, path)</c>; the file is UTF-8 without a byte-order mark.</remarks>
-    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, refused before the path is opened; or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write, refused once the file is open, before its first byte.</exception>
+    /// <exception cref="InvalidOperationException">The vectorizer has not been fitted, refused before the path is opened.</exception>
+    /// <exception cref="ArgumentException">A vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write; refused once the file is open, before its first byte, with the writer's own exception, as 0.7.0 raised it (#1646).</exception>
+    /// <exception cref="IndexOutOfRangeException">A string whose escaped form passes the JSON writer's buffer: the writer's own exception, as 0.7.0 raised it, before anything is written (#1646).</exception>
     /// <exception cref="ArgumentNullException">the stream or path is null.</exception>
     /// <exception cref="IOException">the stream or file system refuses the write.</exception>
     public void Save(string path)
@@ -51,7 +54,10 @@ public sealed partial class CountVectorizer
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
     /// <param name="destination">The stream to write to; never disposed by this method.</param>
     /// <exception cref="ArgumentNullException">the stream is null.</exception>
-    /// <exception cref="InvalidOperationException">nothing has been fitted yet, or a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write; refused before anything is written.</exception>
+    /// <exception cref="InvalidOperationException">nothing has been fitted yet; refused before anything is written.</exception>
+    /// <exception cref="ArgumentException">a vocabulary term, the token pattern or a stop word is beyond what the JSON writer can write; refused before anything is written, with the writer's own exception, as 0.7.0 raised it (#1646).</exception>
+    /// <exception cref="IndexOutOfRangeException">A string whose escaped form passes the JSON writer's buffer: the writer's own exception, as 0.7.0 raised it, before anything is written (#1646).</exception>
+    /// <exception cref="NotSupportedException"><paramref name="destination"/> cannot be written to: the stream's own exception, raised by the write once the artifact is composed, as 0.7.0 raised it.</exception>
     /// <exception cref="OperationCanceledException">the token is cancelled.</exception>
     /// <param name="cancellationToken">Cancels the write.</param>
     public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)
@@ -73,7 +79,7 @@ public sealed partial class CountVectorizer
     /// <summary>Throws unless every string the artifact holds can be written.</summary>
     private void EnsureWritable()
     {
-        VectorizerOptionsJson.EnsureWritable(_options);
+        VectorizerOptionsJson.EnsureWritable(_options, _analyzer.StopWords);
         EnsureWritableVocabulary();
     }
 
@@ -144,6 +150,9 @@ public sealed partial class CountVectorizer
     /// <summary>The fitted feature names, or an empty array if never fitted.</summary>
     internal string[] FittedFeatureNames => _featureNames;
 
+    /// <summary>The stop words the analyzer filters with, which a save writes (#1648).</summary>
+    internal IReadOnlyCollection<string>? AnalyzerStopWords => _analyzer.StopWords;
+
     /// <summary>Whether <see cref="Fit"/> has run.</summary>
     internal bool IsFitted => _vocabulary is not null;
 
@@ -154,13 +163,14 @@ public sealed partial class CountVectorizer
     internal void RestoreVocabulary(string[] sortedFeatureNames, bool mayHoldSurrogate)
     {
         _vocabularyMayHoldSurrogate = mayHoldSurrogate;
-        _longestTerm = 0;
+        int longest = 0;
         var vocabulary = new Dictionary<string, int>(sortedFeatureNames.Length, StringComparer.Ordinal);
         for (int i = 0; i < sortedFeatureNames.Length; i++)
         {
-            _longestTerm = Math.Max(_longestTerm, sortedFeatureNames[i].Length);
+            longest = Math.Max(longest, sortedFeatureNames[i].Length);
             vocabulary[sortedFeatureNames[i]] = i;
         }
+        _longestTerm = longest;
         _featureNames = sortedFeatureNames;
         _vocabulary = vocabulary;
     }
@@ -169,7 +179,7 @@ public sealed partial class CountVectorizer
     internal void WriteArtifactBody(Utf8JsonWriter writer)
     {
         EnsureFitted();
-        VectorizerOptionsJson.Write(writer, "options", _options);
+        VectorizerOptionsJson.Write(writer, "options", _options, _analyzer.StopWords);
         writer.WriteNumber(FeatureVocabularyJson.FeatureCountProperty, _featureNames.Length);
         FeatureVocabularyJson.WriteVocabulary(writer, _featureNames, _vocabularyMayHoldSurrogate);
     }

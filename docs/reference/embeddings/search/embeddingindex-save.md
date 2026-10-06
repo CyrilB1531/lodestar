@@ -14,13 +14,19 @@ it. `path` is a file to create or overwrite, written UTF-8 without a byte-order 
 
 **Returns** — nothing.
 
-**Exceptions** — `ArgumentException` when the stream cannot be written to, refused before the vectors
-and ids are checked ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641)). `ArgumentNullException` when `destination` or `path` is null. `InvalidDataException` when any stored vector holds a non-finite component; the
-message names the item and the component. `InvalidOperationException` when the vector block,
-base64-encoded, is longer than the one array a load decodes it into — refused before the path is
-opened, so a file it would replace is left whole — or an id is beyond what the JSON writer can write,
-refused before the first byte, once the writer has accepted the stream or the file is open
-([#1322](https://github.com/CyrilB1531/lodestar/issues/1322), [#1618](https://github.com/CyrilB1531/lodestar/issues/1618)). `IOException` from the stream or file system.
+**Exceptions** — `ArgumentException` when the stream cannot be written to, refused before the
+vectors and ids are checked ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641)), and when
+an id is beyond what the JSON writer can write — the writer's own, as 0.8.0 raised it, refused
+before the first byte, once the writer has accepted the stream or the file is open
+([#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
+[#1646](https://github.com/CyrilB1531/lodestar/issues/1646)). `IndexOutOfRangeException`, the
+writer's own as well, for a string whose escaped form passes its buffer, as 0.8.0 raised it.
+`ArgumentNullException` when `destination` or `path` is null. `InvalidDataException` when any stored
+vector holds a non-finite component; the message names the item and the component.
+`InvalidOperationException` when the vector block, base64-encoded, is longer than the one array a
+load decodes it into — refused before the path is opened, so a file it would replace is left whole
+([#1322](https://github.com/CyrilB1531/lodestar/issues/1322)). `IOException` from the stream or file
+system.
 
 **Example** — a round trip through memory, ids and all.
 

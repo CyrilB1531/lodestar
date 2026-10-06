@@ -9,6 +9,10 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 - `TokenizerJsonLoader.LoadWordPiece` reads a stock BERT `tokenizer.json` — the default `BertNormalizer` and a `BertPreTokenizer` as `BasicTokenization`, its post-processor into the new `WordPieceVocabulary.PrefixTokens` and `SuffixTokens` (`SentencePieceVocabulary` gains both for `LoadUnigram`), its truncation and padding accepted unread — where it refused all-MiniLM-L6-v2's file for reasons no longer true. ([#1210](https://github.com/CyrilB1531/lodestar/issues/1210))
 
+### Changed
+
+- `EmbeddingIndex.Save` and `SaveAsync` write faster, and allocate less where the ids pass a mebibyte. ([#1635](https://github.com/CyrilB1531/lodestar/issues/1635), [#1643](https://github.com/CyrilB1531/lodestar/issues/1643), [#1649](https://github.com/CyrilB1531/lodestar/issues/1649))
+
 ### Fixed
 
 - `EmbeddingIndex` writes its ids a mebibyte at a time, refuses before its first byte an id beyond what the JSON writer can write, and loads an artifact past one array from a stream of undeclared length, where its save held every id in the writer and its loads refused such a stream. ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618))
@@ -37,6 +41,8 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `WordPieceTokenizer` refuses a negative `maxCharsPerWord`, `BatchEncoder` an undefined truncation strategy, and `EncodeBatch` names `texts` for a batch too large. ([#1505](https://github.com/CyrilB1531/lodestar/issues/1505))
 - The tokenizers' constructors and `Encode` document the trie, merge-count, pattern and regex-timeout refusals, and the package's pages the charsmap, load-bound, constructor and path exceptions, the live collections, the piece limit and the `byte_fallback` re-encoding. ([#1494](https://github.com/CyrilB1531/lodestar/issues/1494), [#1495](https://github.com/CyrilB1531/lodestar/issues/1495), [#1497](https://github.com/CyrilB1531/lodestar/issues/1497), [#1502](https://github.com/CyrilB1531/lodestar/issues/1502), [#1503](https://github.com/CyrilB1531/lodestar/issues/1503), [#1504](https://github.com/CyrilB1531/lodestar/issues/1504), [#1506](https://github.com/CyrilB1531/lodestar/issues/1506))
 - `docs/equivalence.md` records `Search`'s refusal of a non-finite query, and three tests pin, name and cite what they claim. ([#1492](https://github.com/CyrilB1531/lodestar/issues/1492), [#1496](https://github.com/CyrilB1531/lodestar/issues/1496), [#1498](https://github.com/CyrilB1531/lodestar/issues/1498), [#1499](https://github.com/CyrilB1531/lodestar/issues/1499))
+- `EmbeddingIndex.SaveAsync` completes on a stream that refuses synchronous writes and flushes, such as an ASP.NET Core response body, where it raised `InvalidOperationException`. ([#1635](https://github.com/CyrilB1531/lodestar/issues/1635), [#1640](https://github.com/CyrilB1531/lodestar/issues/1640))
+- A refused `EmbeddingIndex.Save` raises its refusal rather than the exception of a stream whose flush fails. ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641))
 
 ## [0.8.0] — 2026-09-24
 

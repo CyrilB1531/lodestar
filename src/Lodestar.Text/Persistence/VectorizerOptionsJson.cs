@@ -16,7 +16,16 @@ namespace Lodestar.Text.Persistence;
 /// </remarks>
 internal static class VectorizerOptionsJson
 {
-    public static void Write(Utf8JsonWriter writer, string propertyName, CountVectorizerOptions options)
+    /// <summary>Writes <paramref name="options"/>, with the stop words the fitted analyzer filters with.</summary>
+    /// <param name="writer">The writer.</param>
+    /// <param name="propertyName">The property the options object is written under.</param>
+    /// <param name="options">The vectorizer's options.</param>
+    /// <param name="stopWords">
+    /// The analyzer's own copy of <c>options.StopWords</c>, taken at construction: the caller's collection may have changed
+    /// since, and a reloaded vectorizer filtering with it dropped terms its vocabulary holds (#1648).
+    /// </param>
+    public static void Write(
+        Utf8JsonWriter writer, string propertyName, CountVectorizerOptions options, IReadOnlyCollection<string>? stopWords)
     {
         writer.WriteStartObject(propertyName);
         writer.WriteBoolean("lowercase", options.Lowercase);
@@ -28,7 +37,7 @@ internal static class VectorizerOptionsJson
         JsonArtifact.WriteExactDouble(writer, "maxDf", options.MaxDf);
         writer.WriteBoolean("binary", options.Binary);
         JsonArtifact.WriteText(writer, "tokenPattern", options.TokenPattern);
-        WriteStopWords(writer, options.StopWords);
+        WriteStopWords(writer, stopWords);
         writer.WriteEndObject();
     }
 
@@ -201,27 +210,30 @@ internal static class VectorizerOptionsJson
 
     /// <summary>Refuses, before a save's first byte, a pattern or stop word the writer cannot write (#1618).</summary>
     /// <remarks>
-    /// The two frequencies first, as <see cref="Write(Utf8JsonWriter, string, CountVectorizerOptions)"/> writes them ahead
+    /// The two frequencies first, as <see cref="Write(Utf8JsonWriter, string, CountVectorizerOptions, IReadOnlyCollection{string})"/> writes them ahead
     /// of the strings: a <c>HashingVectorizer</c> never validates them, and its write refused them first. The analyzer
     /// ahead of them is a guard: every vectorizer's constructor refuses an unknown one already (#1622).
     /// </remarks>
     /// <exception cref="InvalidDataException">The analyzer is unknown, or a frequency is not finite.</exception>
-    /// <exception cref="InvalidOperationException">A string is beyond what the JSON writer can write.</exception>
-    public static void EnsureWritable(CountVectorizerOptions options)
+    /// <exception cref="ArgumentException">A string is beyond what the JSON writer can write: the writer's own exception.</exception>
+    /// <exception cref="IndexOutOfRangeException">A string whose escaped form passes the writer's buffer: the writer's own exception.</exception>
+    /// <param name="options">The vectorizer's options.</param>
+    /// <param name="stopWords">The stop words <see cref="Write(Utf8JsonWriter, string, CountVectorizerOptions, IReadOnlyCollection{string})"/> writes.</param>
+    public static void EnsureWritable(CountVectorizerOptions options, IReadOnlyCollection<string>? stopWords)
     {
         _ = AnalyzerName(options.Analyzer);
         JsonArtifact.RequirePersistable(options.MinDf);
         JsonArtifact.RequirePersistable(options.MaxDf);
-        JsonArtifact.EnsureWritableText(options.TokenPattern, "The token pattern");
+        JsonArtifact.EnsureWritableText(options.TokenPattern);
 
         // Sorted, as WriteStopWords writes them, and only when one is long enough to need it.
-        if (options.StopWords is { } stopWords && stopWords.Any(word => word is not null && word.Length > JsonArtifact.AlwaysWritableCharacters))
+        if (stopWords is not null && stopWords.Any(word => word is not null && word.Length > JsonArtifact.AlwaysWritableCharacters))
         {
             string[] sorted = [.. stopWords];
             Array.Sort(sorted, StringComparer.Ordinal);
             foreach (string word in sorted)
             {
-                JsonArtifact.EnsureWritableText(word, "A stop word");
+                JsonArtifact.EnsureWritableText(word);
             }
         }
     }

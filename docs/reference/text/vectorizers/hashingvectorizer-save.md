@@ -12,12 +12,17 @@ public void Save(string path)
 **Parameters** — `destination` is a writable stream, left open for the caller to dispose; `path`
 is a file to create or overwrite.
 
-**Exceptions** — `InvalidOperationException` when the token pattern or a stop word is beyond what
-the JSON writer can write. `InvalidDataException` when `MinDf` or `MaxDf` is not finite, which the
-constructor does not refuse. Both are refused before a byte is written: once the writer has accepted
-the stream, or once the file is open ([#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
-[#1622](https://github.com/CyrilB1531/lodestar/issues/1622)). `ArgumentException` when the stream cannot be written to, refused before the options' strings are checked ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641)). `ArgumentNullException` for a null stream or path. `IOException` from the stream or file
-system.
+**Exceptions** — `ArgumentException`, the JSON writer's own, as 0.7.0 raised it, when the token
+pattern or a stop word is beyond what the writer can write. `InvalidDataException` when `MinDf` or
+`MaxDf` is not finite, which the constructor does not refuse. Both are refused before a byte is
+written: once the writer has accepted the stream, or once the file is open
+([#1618](https://github.com/CyrilB1531/lodestar/issues/1618),
+[#1622](https://github.com/CyrilB1531/lodestar/issues/1622),
+[#1646](https://github.com/CyrilB1531/lodestar/issues/1646)). `ArgumentException` too when the
+stream cannot be written to, refused before the options' strings are checked
+([#1641](https://github.com/CyrilB1531/lodestar/issues/1641)). `IndexOutOfRangeException`, the
+writer's own as well, for a string whose escaped form passes its buffer, as 0.7.0 raised it.
+`ArgumentNullException` for a null stream or path. `IOException` from the stream or file system.
 
 **Example** — a round trip that carries the settings and nothing else.
 

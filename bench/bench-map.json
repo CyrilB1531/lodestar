@@ -208,6 +208,13 @@
       "src/Lodestar.Embeddings/Search/**",
       "src/Lodestar.Embeddings/Persistence/**"
     ],
+    "SmallArtifactBenchmarks": [
+      "src/Shared/Persistence/**",
+      "src/Lodestar.Text/Vectorization/**",
+      "src/Lodestar.Text/Persistence/**",
+      "src/Lodestar.Embeddings/Search/**",
+      "src/Lodestar.Embeddings/Persistence/**"
+    ],
     "PersistenceBenchmarks": [
       "src/Lodestar.Embeddings/Persistence/**",
       "src/Lodestar.Embeddings/Search/**",
@@ -223,6 +230,10 @@
       "src/Lodestar.Embeddings/Search/**"
     ],
     "VectorizerBenchmarks": [
+      "src/Lodestar.Text/Vectorization/**",
+      "src/Lodestar.Text/Text/**"
+    ],
+    "TokenPatternBenchmarks": [
       "src/Lodestar.Text/Vectorization/**",
       "src/Lodestar.Text/Text/**"
     ],

@@ -1,4 +1,5 @@
 using Lodestar.Abstractions;
+using Lodestar.Text.Internal;
 using Lodestar.Internal.Persistence;
 
 namespace Lodestar.Text.Vectorization;
@@ -25,13 +26,16 @@ public sealed partial class CountVectorizer
 
     /// <summary>Creates a vectorizer with the given options (defaults if omitted).</summary>
     /// <exception cref="ArgumentOutOfRangeException"><c>MinDf</c> or <c>MaxDf</c> is negative, not finite, or a fraction above 1.</exception>
-    /// <exception cref="ArgumentException"><c>NgramRange</c> descends, <c>Analyzer</c> is not an <see cref="AnalyzerKind"/>, or <c>TokenPattern</c> is null, or has more than one capturing group under the word analyzer.</exception>
+    /// <exception cref="ArgumentException"><c>NgramRange</c> descends, <c>Analyzer</c> is not an <see cref="AnalyzerKind"/>, <c>TokenPattern</c> has more than one capturing group under the word analyzer, or .NET refuses it as written, whatever the analyzer, with its <c>RegexParseException</c> as 0.7.0 raised it — a leading <c>(?u)</c> aside.</exception>
+    /// <exception cref="ArgumentNullException"><c>TokenPattern</c> is null, the parameter named <c>pattern</c>, as 0.7.0's <c>Regex</c> named it.</exception>
     public CountVectorizer(CountVectorizerOptions? options = null)
     {
         _options = options ?? new CountVectorizerOptions();
         RequireDocumentFrequency(_options.MinDf, nameof(CountVectorizerOptions.MinDf), nameof(options));
         RequireDocumentFrequency(_options.MaxDf, nameof(CountVectorizerOptions.MaxDf), nameof(options));
         TextAnalyzer.RequireNgramRange(_options.NgramRange, nameof(options));
+        // The pattern before the analyzer, as 0.7.0 compiled it right after the range (#1645).
+        PythonTokenPattern.RefuseAsWritten(_options.TokenPattern);
         TextAnalyzer.RequireAnalyzer(_options.Analyzer, nameof(options));
         _analyzer = new TextAnalyzer(
             _options.Lowercase,
