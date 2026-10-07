@@ -26,8 +26,7 @@ public sealed partial class HashingVectorizer
     public void Save(Stream destination)
     {
         // The strings once the writer has accepted the stream, which refused a read-only one first on main (#1618).
-        ArtifactIo.Save(
-            destination, ArtifactName, ArtifactVersion, WriteArtifactBody, () => VectorizerOptionsJson.EnsureWritable(_options.Count, _analyzer.StopWords));
+        ArtifactIo.Save(destination, ArtifactName, ArtifactVersion, new Saved(this));
     }
 
     /// <summary>Writes the vectorizer's configuration to <paramref name="path"/>, replacing any existing file.</summary>
@@ -41,7 +40,7 @@ public sealed partial class HashingVectorizer
     {
         // The strings once the file is open and before its first byte, where main's write failed on them (#1618).
         using FileStream file = JsonArtifact.OpenWrite(path);
-        ArtifactIo.Save(file, ArtifactName, ArtifactVersion, WriteArtifactBody, () => VectorizerOptionsJson.EnsureWritable(_options.Count, _analyzer.StopWords));
+        ArtifactIo.Save(file, ArtifactName, ArtifactVersion, new Saved(this));
     }
 
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
@@ -174,5 +173,16 @@ public sealed partial class HashingVectorizer
             throw JsonArtifact.Inconsistent(ArtifactName, $"numFeatures must be at least 1 but is {result.NumFeatures}.");
         }
         return VectorizerOptionsJson.Build(ArtifactName, () => new HashingVectorizer(result with { Count = countOptions }));
+    }
+
+    private readonly struct Saved : ArtifactIo.ISavedArtifact
+    {
+        private readonly HashingVectorizer _owner;
+
+        public Saved(HashingVectorizer owner) => _owner = owner;
+
+        public void Check() => VectorizerOptionsJson.EnsureWritable(_owner._options.Count, _owner._analyzer.StopWords);
+
+        public void Write(Utf8JsonWriter writer) => _owner.WriteArtifactBody(writer);
     }
 }

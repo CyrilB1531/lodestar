@@ -20,8 +20,10 @@ scikit-learn's defaults, so `new CountVectorizer()` is `CountVectorizer()`. It t
 when `Analyzer` is not an [`AnalyzerKind`](analyzerkind.md) member. The token pattern is checked
 after the document-frequency bounds and the n-gram range, where 0.7.0 compiled it, whatever the
 analyzer: a null one throws `ArgumentNullException` with the parameter named `pattern`, and one .NET
-refuses as written its `RegexParseException` — a leading `(?u)` aside — ahead of the analyzer check
-([#1645](https://github.com/CyrilB1531/lodestar/issues/1645)).
+refuses as written its `RegexParseException`, a leading `(?u)` included,
+ahead of the analyzer check — a plain `ArgumentException` on a runtime without that type, as 0.7.0
+raised there ([#1645](https://github.com/CyrilB1531/lodestar/issues/1645),
+[#1656](https://github.com/CyrilB1531/lodestar/issues/1656)).
 
 **Example** — three documents, and the vocabulary they produce.
 

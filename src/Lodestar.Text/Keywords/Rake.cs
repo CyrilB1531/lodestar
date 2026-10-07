@@ -19,7 +19,7 @@ public sealed class Rake
     /// <summary>Builds an extractor.</summary>
     /// <param name="options">Null takes every default.</param>
     /// <exception cref="ArgumentOutOfRangeException"><c>MinLength</c> is below 1.</exception>
-    /// <exception cref="ArgumentException"><c>MaxLength</c> is below <c>MinLength</c>, so nothing can match, or <c>TokenPattern</c> has more than one capturing group, or .NET refuses it as written, with its <c>RegexParseException</c> as 0.7.0 raised it — a leading <c>(?u)</c> aside.</exception>
+    /// <exception cref="ArgumentException"><c>MaxLength</c> is below <c>MinLength</c>, so nothing can match, or .NET refuses <c>TokenPattern</c> as written, a leading <c>(?u)</c> included: its <c>RegexParseException</c> where the runtime has one, as 0.7.0 raised it.</exception>
     /// <exception cref="ArgumentNullException"><c>TokenPattern</c> is null, the parameter named <c>pattern</c>, as 0.7.0's <c>Regex</c> named it.</exception>
     public Rake(RakeOptions? options = null)
     {

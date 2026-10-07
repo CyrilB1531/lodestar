@@ -26,24 +26,22 @@ public sealed partial class CountVectorizer
 
     /// <summary>Creates a vectorizer with the given options (defaults if omitted).</summary>
     /// <exception cref="ArgumentOutOfRangeException"><c>MinDf</c> or <c>MaxDf</c> is negative, not finite, or a fraction above 1.</exception>
-    /// <exception cref="ArgumentException"><c>NgramRange</c> descends, <c>Analyzer</c> is not an <see cref="AnalyzerKind"/>, <c>TokenPattern</c> has more than one capturing group under the word analyzer, or .NET refuses it as written, whatever the analyzer, with its <c>RegexParseException</c> as 0.7.0 raised it — a leading <c>(?u)</c> aside.</exception>
+    /// <exception cref="ArgumentException"><c>NgramRange</c> descends, <c>Analyzer</c> is not an <see cref="AnalyzerKind"/>, or <c>TokenPattern</c> is one .NET refuses as written, whatever the analyzer, a leading <c>(?u)</c> included: its <c>RegexParseException</c> where the runtime has one, as 0.7.0 raised it.</exception>
     /// <exception cref="ArgumentNullException"><c>TokenPattern</c> is null, the parameter named <c>pattern</c>, as 0.7.0's <c>Regex</c> named it.</exception>
     public CountVectorizer(CountVectorizerOptions? options = null)
     {
         _options = options ?? new CountVectorizerOptions();
         RequireDocumentFrequency(_options.MinDf, nameof(CountVectorizerOptions.MinDf), nameof(options));
         RequireDocumentFrequency(_options.MaxDf, nameof(CountVectorizerOptions.MaxDf), nameof(options));
-        TextAnalyzer.RequireNgramRange(_options.NgramRange, nameof(options));
-        // The pattern before the analyzer, as 0.7.0 compiled it right after the range (#1645).
-        PythonTokenPattern.RefuseAsWritten(_options.TokenPattern);
-        TextAnalyzer.RequireAnalyzer(_options.Analyzer, nameof(options));
+        // The range, then the pattern before the analyzer, as 0.7.0 compiled it right after the range (#1645).
         _analyzer = new TextAnalyzer(
             _options.Lowercase,
             _options.StripAccents,
             _options.Analyzer,
             _options.NgramRange,
             _options.TokenPattern,
-            _options.StopWords);
+            _options.StopWords,
+            nameof(options));
     }
 
     /// <exception cref="InvalidOperationException">nothing has been fitted yet.</exception>

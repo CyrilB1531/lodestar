@@ -20,7 +20,8 @@ public sealed class TextAnalyzerRegexTimeoutTests
             kind: AnalyzerKind.Word,
             ngramRange: (1, 1),
             tokenPattern: pattern,
-            stopWords: null);
+            stopWords: null,
+            optionsName: "options");
 
     [Fact]
     public void Pathological_pattern_times_out_instead_of_hanging()

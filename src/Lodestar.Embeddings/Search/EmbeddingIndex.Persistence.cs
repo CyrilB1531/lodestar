@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Lodestar.Embeddings.Persistence;
 using Lodestar.Internal.Persistence;
@@ -38,7 +39,7 @@ public sealed partial class EmbeddingIndex
         // in 0.8.0 (#1618, #1633).
         Guard.NotNull(destination);
         ArtifactIo.SaveWithBlock(
-            destination, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty, _data.AsSpan(0, _length), EnsureAll);
+            destination, ArtifactName, ArtifactVersion, new SavedHead(this, all: true), VectorsProperty, _data.AsSpan(0, _length));
     }
 
     /// <summary>Writes the index to <paramref name="path"/>, replacing any existing file.</summary>
@@ -57,10 +58,10 @@ public sealed partial class EmbeddingIndex
         EnsureSavable();
         using FileStream file = JsonArtifact.OpenWrite(path);
 
-        // WriteHeadChecked, not Save(file): the scan above already ran, and a second would find nothing new.
+        // The ids alone, not Save(file): the scan above already ran, and a second would find nothing new.
         // The ids once the file is open, where main's write met them (#1618).
         ArtifactIo.SaveWithBlock(
-            file, ArtifactName, ArtifactVersion, WriteHeadChecked, VectorsProperty, _data.AsSpan(0, _length), EnsureWritableIds);
+            file, ArtifactName, ArtifactVersion, new SavedHead(this, all: false), VectorsProperty, _data.AsSpan(0, _length));
     }
 
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
@@ -76,6 +77,33 @@ public sealed partial class EmbeddingIndex
         ArtifactIo.SaveWithBlockAsync(
             destination, ArtifactName, ArtifactVersion, CheckedHeadSteps, VectorsProperty,
             _data.AsMemory(0, _length), cancellationToken);
+
+    /// <summary>A synchronous save's head, and its refusals before the first byte: all, or the ids' alone where the rest ran.</summary>
+    private readonly struct SavedHead : ArtifactIo.ISavedArtifact
+    {
+        private readonly EmbeddingIndex _owner;
+        private readonly bool _all;
+
+        public SavedHead(EmbeddingIndex owner, bool all)
+        {
+            _owner = owner;
+            _all = all;
+        }
+
+        public void Write(Utf8JsonWriter writer) => _owner.WriteHeadChecked(writer);
+
+        public void Check()
+        {
+            if (_all)
+            {
+                _owner.EnsureAll();
+            }
+            else
+            {
+                _owner.EnsureWritableIds();
+            }
+        }
+    }
 
     /// <summary>Every refusal a save makes before its first byte, in 0.8.0's order once the stream is accepted.</summary>
     private void EnsureAll()
@@ -98,6 +126,13 @@ public sealed partial class EmbeddingIndex
         }
 
         // No step to yield, so no iterator: two of them cost a 207-byte save 128 bytes and a quarter of 0.8.0's time (#1649).
+        WriteHeadAtOnce(writer);
+        return [];
+    }
+
+    /// <summary>The head of an index <see cref="HeadFitsOneFlush"/> holds, with no step.</summary>
+    private void WriteHeadAtOnce(Utf8JsonWriter writer)
+    {
         WriteHeadScalars(writer);
         if (_ids is not null)
         {
@@ -105,7 +140,6 @@ public sealed partial class EmbeddingIndex
             WriteIdsUntilStep(writer, 0);
             writer.WriteEndArray();
         }
-        return [];
     }
 
     /// <summary>
@@ -152,10 +186,29 @@ public sealed partial class EmbeddingIndex
     /// </remarks>
     private void WriteHeadChecked(Utf8JsonWriter writer)
     {
-        foreach (bool _ in HeadSteps(writer))
+        // HeadSteps' steps as flushes, with no iterator: two of them cost a synchronous save 128 to 390 bytes over
+        // 0.8.0's, which wrote its head in one loop (#1659).
+        WriteHeadScalars(writer);
+        if (_ids is null)
         {
-            writer.Flush();
+            return;
         }
+
+        writer.WriteStartArray(IdsProperty);
+        int next = 0;
+        while (next < _count)
+        {
+            next = WriteIdsUntilStep(writer, next);
+            JsonArtifact.FlushIfPending(writer);
+            if (next < _count && IdAt(next) is { Length: > JsonArtifact.AlwaysWritableCharacters } id)
+            {
+                writer.Flush();
+                JsonArtifact.WriteFlushedText(writer, id);
+                next++;
+                JsonArtifact.FlushIfPending(writer);
+            }
+        }
+        writer.WriteEndArray();
     }
 
     /// <summary>The head, yielding wherever its writer holds a mebibyte: where a save flushes it, an asynchronous one awaiting (#1635).</summary>
@@ -205,8 +258,10 @@ public sealed partial class EmbeddingIndex
     /// <summary>
     /// Writes ids from <paramref name="start"/> until the writer holds a mebibyte or the next id needs a step of its
     /// own, and returns the next id to write. Outside the iterator, whose locals are fields: 155 µs to 149 for 10,000
-    /// ids saved asynchronously, 0.8.0's 148 (#1643).
+    /// ids saved asynchronously, 0.8.0's 148 (#1643). Never inlined: into the head written at once, its loop cost a
+    /// 942 KB index's asynchronous save 183 µs against 0.8.0's 155-162, and 157-162 kept apart (#1659).
     /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private int WriteIdsUntilStep(Utf8JsonWriter writer, int start)
     {
         for (int i = start; i < _count; i++)

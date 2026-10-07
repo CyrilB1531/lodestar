@@ -33,7 +33,7 @@ public sealed partial class TfidfVectorizer
         // Before the header: past it, a refusal leaves partial JSON in the caller's stream. The strings and weights once
         // the writer has accepted the stream, which refused a read-only one first on main (#1618).
         double[] idf = EnsureFitted();
-        ArtifactIo.Save(destination, ArtifactName, ArtifactVersion, WriteArtifactBody, () => EnsureWritable(idf));
+        ArtifactIo.Save(destination, ArtifactName, ArtifactVersion, new Saved(this, idf));
     }
 
     /// <summary>Writes the fitted vectorizer to <paramref name="path"/>, replacing any existing file.</summary>
@@ -50,7 +50,7 @@ public sealed partial class TfidfVectorizer
         // byte, where main's write met them, so a path opening refuses keeps its place (#1617, #1618).
         double[] idf = EnsureFitted();
         using FileStream file = JsonArtifact.OpenWrite(path);
-        ArtifactIo.Save(file, ArtifactName, ArtifactVersion, WriteArtifactBody, () => EnsureWritable(idf));
+        ArtifactIo.Save(file, ArtifactName, ArtifactVersion, new Saved(this, idf));
     }
 
     /// <summary>Asynchronous counterpart of <see cref="Save(Stream)"/>.</summary>
@@ -133,6 +133,22 @@ public sealed partial class TfidfVectorizer
 
     /// <summary>Throws unless the fitted model can be written, its idf weights and strings checked before any byte (#1617, #1618).</summary>
     private void EnsureSavable() => EnsureWritable(EnsureFitted());
+
+    private readonly struct Saved : ArtifactIo.ISavedArtifact
+    {
+        private readonly TfidfVectorizer _owner;
+        private readonly double[] _idf;
+
+        public Saved(TfidfVectorizer owner, double[] idf)
+        {
+            _owner = owner;
+            _idf = idf;
+        }
+
+        public void Check() => _owner.EnsureWritable(_idf);
+
+        public void Write(Utf8JsonWriter writer) => _owner.WriteArtifactBody(writer);
+    }
 
     /// <summary>Throws unless the fitted <paramref name="idf"/>, vocabulary and options can be written.</summary>
     private void EnsureWritable(double[] idf)

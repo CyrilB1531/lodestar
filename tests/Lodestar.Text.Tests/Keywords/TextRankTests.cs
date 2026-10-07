@@ -25,9 +25,15 @@ public sealed class TextRankTests
     }
 
     [Fact]
-    public void A_token_pattern_with_two_groups_is_refused()
+    public void A_token_pattern_with_two_groups_reads_the_whole_match_as_0_7_0_did()
     {
-        Assert.Throws<ArgumentException>(() => new TextRank(new TextRankOptions { TokenPattern = @"(\w)(\w)" }));
+        // 0.7.0 built it and read the whole match; summa has no rule refusing it (#1651, #1657).
+        const string doc = "Copper wires conduct electricity through metal circuits and copper wires";
+        IReadOnlyList<KeywordMatch> grouped = new TextRank(new TextRankOptions { TokenPattern = @"(\w)(\w*)" }).Extract(doc);
+        IReadOnlyList<KeywordMatch> whole = new TextRank(new TextRankOptions { TokenPattern = @"\w\w*" }).Extract(doc);
+
+        Assert.NotEmpty(whole);
+        Assert.Equal(whole.Select(k => (k.Phrase, k.Score)), grouped.Select(k => (k.Phrase, k.Score)));
     }
 
     // A clean run reaching the document's last token is dropped whole (summa's inner loop

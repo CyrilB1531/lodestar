@@ -17,7 +17,8 @@ inclusive. `IncludeRepeatedPhrases` (default `true`) — false reports a repeate
 removes the duplicate **before** the degree and frequency tables are built, so it changes scores
 and not only the output. `TokenPattern` (default `\b\w+\b`) is what counts as a word, read as Python's `re` reads it and
 taken as `re.findall` takes it — a capturing group's text is the word, while the characters the
-rest of the match consumed are not a gap between two words; a second group is refused. Note the
+rest of the match consumed are not a gap between two words; with two groups or more the word is the
+whole match, as 0.7.0 read it ([#1651](https://github.com/CyrilB1531/lodestar/issues/1651)). Note the
 single `\w+` rather than the vectorizers' `\b\w\w+\b` — a one-letter word neighbours a run boundary
 here rather than being filtered out, and dropping it would merge two candidates into one.
 
