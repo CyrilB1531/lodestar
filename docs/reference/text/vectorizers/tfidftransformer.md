@@ -16,7 +16,9 @@ public sealed class TfidfTransformer
 scikit-learn's.
 
 **Properties** — `Idf` is the inverse document frequency learned per column, computed by fitting
-whether or not [`TfidfOptions.UseIdf`](tfidfoptions.md) is set; reading it before fitting throws `InvalidOperationException`.
+whether or not [`TfidfOptions.UseIdf`](tfidfoptions.md) is set, as a read-only view of the fitted
+weights ([#1627](https://github.com/CyrilB1531/lodestar/issues/1627)); reading it before fitting
+throws `InvalidOperationException`.
 
 **Example** — counts from a [`CountVectorizer`](countvectorizer.md), weighted afterwards.
 

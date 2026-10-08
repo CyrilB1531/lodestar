@@ -50,6 +50,8 @@ public sealed partial class PythonPatternSurrogateFreeTests
         @"\b+", @"\w{2,}", @"[\w]{3}", @"(?<=\w)x", @"\S*?", @"[^\W\d]+", @"\B*", @"(?<!\b)\W+", @"[\D\s]?",
         @"\w(?", @"[\w-.]", @"x{2,1}", @"\b\w\w+\b", @"(\w+)ing\b", @"[\U0001F600-\U0001F602]", @"(\w)(\d)",
         @"(?<word>\w+)-(\W)", @"(?(\w)a|b)", @"[\U0001F600]{2}", @"[^\U0001F600]*", @"(?:\S)+?", @"[^\S\n]+", @"\1(\w)",
+        @"[\ud800-\udfff]+", @"[a\udc00]{2}", @"[^\ud83d]?", @"\ud83d+", @"\U0001F600{2}", @"[\U0001F600-\U0001F64F\w]*?",
+        @"[^\U00010000-\U0010FFFF]+", @"\B{2}", @"(?<=\W)\D", @"[\s\U0001F600]|(\d)\1",
     };
 
     [Theory]
@@ -57,21 +59,15 @@ public sealed partial class PythonPatternSurrogateFreeTests
     [MemberData(nameof(ParseProbes))]
     public void The_spelling_parsed_at_construction_parses_exactly_when_the_pair_aware_one_does(string pattern)
     {
-        // The construction parses the stand-in alone; the first use compiles the plain spelling, the first text holding
-        // a surrogate the full one, and the groups are numbered on the pattern as written (#1658).
-        string parsed = Parse(() => PythonPattern.TranslateForParse(pattern));
+        // The construction parses the plain spelling alone; the first text holding a surrogate compiles the pair-aware
+        // one, and the groups are numbered on the plain one (#1658, #1662, #1663).
+        string parsed = Parse(() => PythonPattern.Translate(pattern, surrogateFree: true));
         Assert.Equal(Parse(() => PythonPattern.Translate(pattern)), parsed);
-        string written = pattern.StartsWith("(?u)", StringComparison.Ordinal) ? pattern.Substring(4) : pattern;
         if (parsed == "parsed")
         {
-            Assert.Equal("parsed", Parse(() => PythonPattern.Translate(pattern, surrogateFree: true)));
-        }
-        // A pattern .NET refuses as written never reaches the translation: the construction refuses it first.
-        if (parsed == "parsed" && Parse(() => written) == "parsed")
-        {
-            int[] groups = new Regex(written).GetGroupNumbers();
-            Assert.Equal(groups, new Regex(PythonPattern.Translate(pattern, surrogateFree: true)).GetGroupNumbers());
-            Assert.Equal(groups, new Regex(PythonPattern.Translate(pattern)).GetGroupNumbers());
+            Assert.Equal(
+                new Regex(PythonPattern.Translate(pattern, surrogateFree: true)).GetGroupNumbers(),
+                new Regex(PythonPattern.Translate(pattern)).GetGroupNumbers());
         }
     }
 

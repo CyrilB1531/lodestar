@@ -29,6 +29,9 @@ public sealed partial class TfidfVectorizer
     /// <summary>The learned inverse-document-frequency vector (one per feature).</summary>
     public IReadOnlyList<double> Idf => _tfidf.Idf;
 
+    /// <summary>The fitted weights themselves, or null: the seam a test edits, which <see cref="Idf"/> no longer is (#1627).</summary>
+    internal double[]? FittedIdf => _tfidf.FittedIdf;
+
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="documents"/> holds a null document.</exception>
     /// <exception cref="InvalidOperationException">The corpus yields no term, <c>MinDf</c> and <c>MaxDf</c> leave none, or <c>MaxDf</c> corresponds to fewer documents than <c>MinDf</c>, as scikit-learn refuses each.</exception>

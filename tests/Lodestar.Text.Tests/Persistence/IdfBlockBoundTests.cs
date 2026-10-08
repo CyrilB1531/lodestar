@@ -68,7 +68,7 @@ public sealed class IdfBlockBoundTests
             vectorizer.Save(path);
 
             // Idf hands out the fitted array, the one way to plant a weight no fit produces.
-            Assert.IsType<double[]>(vectorizer.Idf)[0] = double.NaN;
+            vectorizer.FittedIdf![0] = double.NaN;
 
             using var stream = new MemoryStream();
             Assert.Throws<InvalidDataException>(() => vectorizer.Save(stream));

@@ -13,7 +13,9 @@ are one term. `TokenPattern` (default `\b\w\w+\b`) is the regular expression a t
 note the two `\w`, which is why **single-letter words are dropped**. It is read as Python's `re`
 reads it, not as .NET does: `\w` is a letter, a number of any kind or `_` and never a combining
 mark, `\b`, `\d` and `\s` follow, all over code points, and scikit-learn's own spelling
-`(?u)\b\w\w+\b` is accepted. A token is what `re.findall` returns: the whole match, or the text of
+`(?u)\b\w\w+\b` is accepted; so are Python's repeats, groups, flags and comments, read as Python reads them,
+while a construct Python refuses — `\p{L}`, `(?<name>…)` — is read as .NET reads it, as 0.7.0 did
+([#1650](https://github.com/CyrilB1531/lodestar/issues/1650)). A token is what `re.findall` returns: the whole match, or the text of
 the pattern's one capturing group when it has one — `(\w+)ing\b` makes `running` the token `runn`,
 and a group that took no part in a match gives the empty token. A pattern with two groups or more
 gives the whole match, as 0.7.0 read it, where scikit-learn refuses it
