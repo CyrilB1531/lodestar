@@ -38,6 +38,8 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `HashingVectorizer` honours `CountVectorizerOptions.Binary`. ([#1196](https://github.com/CyrilB1531/lodestar/issues/1196))
 - A vectorizer saved with an n-gram range starting below 1 loads back. ([#1197](https://github.com/CyrilB1531/lodestar/issues/1197))
 - `Jaccard`, `SorensenDice`, `Overlap`, `Cosine` and `Tversky` take a lone surrogate as one code point at `TextElement.CodePoint` rather than throwing. ([#1261](https://github.com/CyrilB1531/lodestar/issues/1261))
+- A token pattern is read on Python's grammar — surrogates, ranges past U+FFFF, repeats of supplementary characters, `\Z`, `{,n}` and comments as Python reads them — and one Python refuses as .NET reads it. ([#1650](https://github.com/CyrilB1531/lodestar/issues/1650))
+- `TfidfVectorizer.Idf` and `TfidfTransformer.Idf` hand out a read-only view of the fitted weights rather than the array itself. ([#1627](https://github.com/CyrilB1531/lodestar/issues/1627))
 - A token pattern with one capturing group yields the group's text, as `re.findall` does, and one with two or more the whole match, as before. ([#1262](https://github.com/CyrilB1531/lodestar/issues/1262), [#1657](https://github.com/CyrilB1531/lodestar/issues/1657))
 - The `char` and `char_wb` analyzers cut n-grams by code point, so an astral character is one character, and a lone surrogate in a term, a stop word or the pattern survives `Save` and `Load`. ([#1263](https://github.com/CyrilB1531/lodestar/issues/1263))
 - The vectorizers' vocabulary and `Rake`'s tie-break sort by code point, as Python sorts a `str`. ([#1264](https://github.com/CyrilB1531/lodestar/issues/1264))

@@ -14,13 +14,16 @@ namespace Lodestar.Text.Internal;
 /// character is one, spelled as the surrogate pairs the runtime's tables list; a leading
 /// <c>(?u)</c>, Python's default and scikit-learn's spelling, is dropped since .NET refuses it.
 /// </remarks>
-internal static class PythonPattern
+internal static partial class PythonPattern
 {
     private const string AnyPair = @"[\uD800-\uDBFF][\uDC00-\uDFFF]";
 
     // Not between the two halves of a pair, where Python has no position: a lone low surrogate
     // must not start a match once the pair it belongs to was passed over.
     private const string NotMidPair = @"(?!(?<=[\uD800-\uDBFF])[\uDC00-\uDFFF])";
+
+    // Python's '.': a pair, or any other unit '.' takes that is not the low half of one.
+    private const string AnyCodePoint = $"(?:{AnyPair}|(?!{AnyPair}){NotMidPair}.)";
     private const string WordBmp = @"\p{L}\p{N}_";
     private const string DigitBmp = @"\p{Nd}";
     private const string SpaceBmp = @"\s\x1C-\x1F";
@@ -41,9 +44,6 @@ internal static class PythonPattern
     private static readonly Lazy<string> NonDigitPairs = new(() => $"(?!{DigitPairs.Value}){AnyPair}");
     private static readonly Lazy<string> EveryPair = new(() => AnyPair);
 
-    // What stands for a supplementary set in the spelling TranslateForParse gives: one pair, an atom where the set is one.
-    private const string StandInPair = @"\uD800\uDC00";
-
     /// <summary>The .NET spelling of a Python pattern; see the type's remarks for what changes.</summary>
     /// <param name="pattern">The Python pattern.</param>
     /// <param name="surrogateFree">
@@ -54,17 +54,10 @@ internal static class PythonPattern
     public static string Translate(string pattern, bool surrogateFree = false) =>
         Translate(pattern, surrogateFree ? Spelling.SurrogateFree : Spelling.PairAware);
 
-    /// <summary>
-    /// The pair-aware spelling with each supplementary set stood in for by one pair, which .NET parses alike: where
-    /// the full one would not parse, neither does this, at a fraction of the parse (#1658).
-    /// </summary>
-    public static string TranslateForParse(string pattern) => Translate(pattern, Spelling.ForParse);
-
     private enum Spelling
     {
         SurrogateFree,
         PairAware,
-        ForParse,
     }
 
     private static string Translate(string pattern, Spelling spelling)
@@ -74,32 +67,7 @@ internal static class PythonPattern
             pattern = pattern.Substring(4);
         }
 
-        var sb = new StringBuilder(pattern.Length);
-        for (int i = 0; i < pattern.Length; i++)
-        {
-            char c = pattern[i];
-            if (c == '\\' && i + 1 < pattern.Length)
-            {
-                sb.Append(Escape(pattern[i + 1], spelling) ?? pattern.Substring(i, 2));
-                i++;
-            }
-            else if (c == '[')
-            {
-                int end = ClassEnd(pattern, i);
-                if (end < 0)
-                {
-                    sb.Append(pattern, i, pattern.Length - i);
-                    break;
-                }
-                sb.Append(Class(pattern.Substring(i + 1, end - i - 1), spelling));
-                i = end;
-            }
-            else
-            {
-                sb.Append(c);
-            }
-        }
-        return sb.ToString();
+        return new Translator(pattern, spelling).Run();
     }
 
     /// <summary>A class escape outside brackets, or null when .NET already reads it as Python does.</summary>
@@ -110,7 +78,9 @@ internal static class PythonPattern
         'd' => Positive(DigitBmp, DigitPairs, spelling),
         'D' => Negative(DigitBmp, DigitPairs, spelling),
         's' => $"[{SpaceRanges}]",
-        'S' => spelling == Spelling.SurrogateFree ? $"[^{SpaceRanges}]" : $"(?:{AnyPair}|{NotMidPair}[^{SpaceRanges}])",
+        'S' => spelling == Spelling.SurrogateFree
+            ? $"[^{SpaceRanges}]"
+            : $"(?:{AnyPair}|(?!{AnyPair}){NotMidPair}[^{SpaceRanges}])",
         'b' => $"(?:(?<={Behind(spelling)})(?!{Ahead(spelling)})|(?<!{Behind(spelling)})(?={Ahead(spelling)}))",
         'B' => $"(?:(?<={Behind(spelling)})(?={Ahead(spelling)})|(?<!{Behind(spelling)})(?!{Ahead(spelling)}))",
         _ => null,
@@ -121,18 +91,16 @@ internal static class PythonPattern
     // Inside a lookbehind .NET matches right to left, so the pairs are listed without the leading
     // lookahead that only speeds the forward match.
     private static string Behind(Spelling spelling) =>
-        spelling == Spelling.SurrogateFree ? $"[{WordBmp}]" : $"[{WordBmp}]|{Set(WordPairs, spelling)}";
+        spelling == Spelling.SurrogateFree ? $"[{WordBmp}]" : $"[{WordBmp}]|{WordPairs.Value}";
 
     private static string Positive(string bmp, Lazy<string> pairs, Spelling spelling) => spelling == Spelling.SurrogateFree
         ? $"[{bmp}]"
-        : $"(?:[{bmp}]|(?=[\\uD800-\\uDBFF])(?:{Set(pairs, spelling)}))";
+        : $"(?:[{bmp}]|(?=[\\uD800-\\uDBFF])(?:{pairs.Value}))";
 
     // A pair that is not in the set is one character, as Python counts it; a lone surrogate is too.
     private static string Negative(string bmp, Lazy<string> pairs, Spelling spelling) => spelling == Spelling.SurrogateFree
         ? $"[^{bmp}]"
-        : $"(?:(?!{Set(pairs, spelling)}){AnyPair}|(?!{AnyPair}){NotMidPair}[^{bmp}])";
-
-    private static string Set(Lazy<string> pairs, Spelling spelling) => spelling == Spelling.ForParse ? StandInPair : pairs.Value;
+        : $"(?:(?!{pairs.Value}){AnyPair}|(?!{AnyPair}){NotMidPair}[^{bmp}])";
 
     /// <summary>A bracketed class, read item by item as Python's <c>re</c> reads one, and spelled so .NET reads it alike.</summary>
     /// <remarks>
@@ -147,9 +115,7 @@ internal static class PythonPattern
     {
         bool negated = body.Length > 0 && body[0] == '^';
         string items = negated ? body.Substring(1) : body;
-        var bmp = new StringBuilder(items.Length * 6);
-        var pairs = new List<Lazy<string>>();
-        bool loneSurrogates = false;
+        var parts = new ClassParts(items.Length * 6);
         int i = 0;
         while (i < items.Length)
         {
@@ -158,15 +124,31 @@ internal static class PythonPattern
             if (i + 1 < items.Length && items[i] == '-')
             {
                 i++;
-                AppendRange(bmp, first, ReadClassItem(items, ref i));
+                AppendRange(parts, first, ReadClassItem(items, ref i));
             }
             else
             {
-                AppendItem(bmp, pairs, ref loneSurrogates, first);
+                AppendItem(parts, first);
             }
         }
 
-        return Spell(negated, bmp.ToString(), pairs, loneSurrogates, spelling);
+        return Spell(negated, parts, spelling);
+    }
+
+    /// <summary>What a class holds: BMP units, the surrogate code points it names alone, and its supplementary sets.</summary>
+    private sealed class ClassParts
+    {
+        public ClassParts(int capacity) => Bmp = new StringBuilder(capacity);
+
+        public StringBuilder Bmp { get; }
+
+        // Surrogate code points, which Python matches only where the text holds one alone (#1650).
+        public StringBuilder Lone { get; } = new();
+
+        public List<Lazy<string>> Astral { get; } = [];
+
+        // Every lone surrogate, as a complement holds them.
+        public bool AllLone { get; set; }
     }
 
     /// <summary>One item of a class: a class escape (<see cref="ClassItem.ClassEscape"/> set), or one code point.</summary>
@@ -286,23 +268,66 @@ internal static class PythonPattern
         return value <= 255 ? value : throw NotPython();
     }
 
-    /// <summary>A range of two code points, as Python accepts one: neither a class escape, nor reversed.</summary>
-    private static void AppendRange(StringBuilder bmp, ClassItem first, ClassItem last)
+    /// <summary>
+    /// A range of two code points, as Python accepts one: neither a class escape, nor reversed. Its BMP units, its
+    /// surrogate code points and its supplementary characters each go where a single one would (#1650).
+    /// </summary>
+    private static void AppendRange(ClassParts parts, ClassItem first, ClassItem last)
     {
         if (first.ClassEscape != '\0' || last.ClassEscape != '\0' || first.CodePoint > last.CodePoint)
         {
             throw NotPython();
         }
-        if (last.CodePoint > 0xFFFF)
+
+        int lo = first.CodePoint;
+        int hi = last.CodePoint;
+        AppendUnits(parts.Bmp, lo, Math.Min(hi, 0xD7FF));
+        AppendUnits(parts.Lone, Math.Max(lo, 0xD800), Math.Min(hi, 0xDFFF));
+        AppendUnits(parts.Bmp, Math.Max(lo, 0xE000), Math.Min(hi, 0xFFFF));
+        if (hi > 0xFFFF)
         {
-            // A range into the supplementary planes has no class of units to stand for it; read as main read it, raw.
-            throw NotPython();
+            string spelled = AstralRange(Math.Max(lo, 0x10000), hi);
+            parts.Astral.Add(new Lazy<string>(() => spelled));
         }
-        bmp.Append(Unit(first.CodePoint)).Append('-').Append(Unit(last.CodePoint));
     }
 
-    private static void AppendItem(StringBuilder bmp, List<Lazy<string>> pairs, ref bool loneSurrogates, ClassItem item)
+    private static void AppendUnits(StringBuilder sb, int lo, int hi)
     {
+        if (lo > hi)
+        {
+            return;
+        }
+        sb.Append(Unit(lo));
+        if (hi > lo)
+        {
+            sb.Append('-').Append(Unit(hi));
+        }
+    }
+
+    /// <summary>The supplementary characters <paramref name="lo"/> to <paramref name="hi"/>, as pairs: at most three runs of highs.</summary>
+    private static string AstralRange(int lo, int hi)
+    {
+        string a = char.ConvertFromUtf32(lo);
+        string b = char.ConvertFromUtf32(hi);
+        if (a[0] == b[0])
+        {
+            return $"{Unit(a[0])}[{Unit(a[1])}-{Unit(b[1])}]";
+        }
+
+        var sb = new StringBuilder();
+        sb.Append(Unit(a[0])).Append('[').Append(Unit(a[1])).Append(@"-\uDFFF]");
+        if (b[0] - a[0] > 1)
+        {
+            sb.Append("|[").Append(Unit(a[0] + 1)).Append('-').Append(Unit(b[0] - 1)).Append(@"][\uDC00-\uDFFF]");
+        }
+        sb.Append('|').Append(Unit(b[0])).Append(@"[\uDC00-").Append(Unit(b[1])).Append(']');
+        return sb.ToString();
+    }
+
+    private static void AppendItem(ClassParts parts, ClassItem item)
+    {
+        StringBuilder bmp = parts.Bmp;
+        List<Lazy<string>> pairs = parts.Astral;
         switch (item.ClassEscape)
         {
             case 'w':
@@ -319,20 +344,24 @@ internal static class PythonPattern
             case 'W':
                 bmp.Append(NonWordBmp.Value);
                 pairs.Add(NonWordPairs);
-                loneSurrogates = true;
+                parts.AllLone = true;
                 break;
             case 'D':
                 bmp.Append(NonDigitBmp.Value);
                 pairs.Add(NonDigitPairs);
-                loneSurrogates = true;
+                parts.AllLone = true;
                 break;
             case 'S':
                 bmp.Append(NonSpaceBmp.Value);
                 pairs.Add(EveryPair);
-                loneSurrogates = true;
+                parts.AllLone = true;
                 break;
             default:
-                if (item.CodePoint <= 0xFFFF)
+                if (item.CodePoint is >= 0xD800 and <= 0xDFFF)
+                {
+                    parts.Lone.Append(Unit(item.CodePoint));
+                }
+                else if (item.CodePoint <= 0xFFFF)
                 {
                     bmp.Append(Unit(item.CodePoint));
                 }
@@ -348,36 +377,52 @@ internal static class PythonPattern
 
     private static ArgumentException NotPython() => new("The token pattern holds a class Python's re refuses.");
 
-    /// <summary>A class of <paramref name="bmp"/> and the supplementary sets <paramref name="pairs"/> spell, as one code point.</summary>
+    /// <summary>A class of what <paramref name="parts"/> holds, as one code point.</summary>
     /// <param name="negated">Whether the class is negated.</param>
-    /// <param name="bmp">The BMP units the class holds, surrogates apart.</param>
-    /// <param name="pairs">Alternatives matching the supplementary characters it holds.</param>
-    /// <param name="loneSurrogates">Whether it holds every lone surrogate too, as a complement does: each is a code point.</param>
+    /// <param name="parts">The BMP units, the surrogate code points matched alone, and the supplementary sets.</param>
     /// <param name="spelling">The spelling asked for.</param>
-    private static string Spell(bool negated, string bmp, List<Lazy<string>> pairs, bool loneSurrogates, Spelling spelling)
+    private static string Spell(bool negated, ClassParts parts, Spelling spelling)
     {
+        string bmp = parts.Bmp.ToString();
+        List<Lazy<string>> pairs = parts.Astral;
+        string loneUnits = parts.AllLone ? @"\uD800-\uDFFF" : parts.Lone.ToString();
         // A class of supplementary characters alone has no BMP part: nothing for it to match there, everything for its
         // complement.
         string? positive = bmp.Length == 0 ? null : $"[{bmp}]";
-        string excluded = loneSurrogates ? bmp + @"\uD800-\uDFFF" : bmp;
+        string excluded = bmp + loneUnits;
         string negative = excluded.Length == 0 ? @"[\u0000-\uFFFF]" : $"[^{excluded}]";
         if (spelling == Spelling.SurrogateFree)
         {
             return negated ? negative : positive ?? "(?!)";
         }
 
-        string lone = loneSurrogates ? $"|(?!{AnyPair}){NotMidPair}[\\uD800-\\uDFFF]" : "";
+        // A surrogate it holds is matched where the text holds it alone, never as half a pair.
+        string lone = loneUnits.Length > 0 ? $"|(?!{AnyPair}){NotMidPair}[{loneUnits}]" : "";
         if (pairs.Count == 0)
         {
-            return negated ? $"(?:{AnyPair}|{NotMidPair}{negative})" : positive ?? "(?!)";
+            return SpellBmp(negated, positive, negative, lone);
         }
-        string astral = string.Join("|", pairs.Select(p => Set(p, spelling)));
+        string astral = string.Join("|", pairs.Select(p => p.Value));
         if (negated)
         {
             return $"(?:(?!{astral}){AnyPair}|(?!{AnyPair}){NotMidPair}{negative})";
         }
         string supplementary = $"(?=[\\uD800-\\uDBFF])(?:{astral})";
         return positive is null ? $"(?:{supplementary}{lone})" : $"(?:{positive}|{supplementary}{lone})";
+    }
+
+    /// <summary>The pair-aware spelling of a class holding no supplementary character.</summary>
+    private static string SpellBmp(bool negated, string? positive, string negative, string lone)
+    {
+        if (negated)
+        {
+            return $"(?:{AnyPair}|(?!{AnyPair}){NotMidPair}{negative})";
+        }
+        if (lone.Length == 0)
+        {
+            return positive ?? "(?!)";
+        }
+        return positive is null ? $"(?:{lone.Substring(1)})" : $"(?:{positive}{lone})";
     }
 
     /// <summary>The BMP units <paramref name="member"/> accepts, surrogates apart, as a class body of ranges.</summary>

@@ -24,7 +24,8 @@ ahead of the analyzer check — a plain `ArgumentException` on a runtime without
 raised there ([#1645](https://github.com/CyrilB1531/lodestar/issues/1645),
 [#1656](https://github.com/CyrilB1531/lodestar/issues/1656)).
 
-**Properties** — `Idf` is the inverse document frequency per column, available after fitting.
+**Properties** — `Idf` is the inverse document frequency per column, available after fitting, as a
+read-only view of the fitted weights ([#1627](https://github.com/CyrilB1531/lodestar/issues/1627)).
 
 **Example** — the same corpus as [`CountVectorizer`](countvectorizer.md), weighted.
 

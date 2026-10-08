@@ -146,7 +146,7 @@ public sealed class WholeArtifactTests
         // In the order the artifact writes them: the vocabulary, then the idf (#1626).
         var vectorizer = new TfidfVectorizer();
         vectorizer.Fit([new string('a', 166_666_667), "b c"]);
-        Assert.IsType<double[]>(vectorizer.Idf)[0] = double.NaN;
+        vectorizer.FittedIdf![0] = double.NaN;
         using var stream = new MemoryStream();
         Assert.Equal(LongValue, Assert.Throws<ArgumentException>(() => vectorizer.Save(stream)).Message);
         Assert.Equal(0, stream.Length);
@@ -158,7 +158,7 @@ public sealed class WholeArtifactTests
         // The writer is pointed away on a refusal, so a stream whose flush fails cannot mask it, sync as async (#1641).
         var vectorizer = new TfidfVectorizer();
         vectorizer.Fit(Corpus);
-        Assert.IsType<double[]>(vectorizer.Idf)[0] = double.NaN;
+        vectorizer.FittedIdf![0] = double.NaN;
         var failing = new FailingStream();
         try
         {
@@ -244,7 +244,7 @@ public sealed class WholeArtifactTests
     [MemberData(nameof(Bands))]
     public async Task An_asynchronous_load_of_undeclared_length_costs_no_more_either(int terms, int chunk, int bound)
     {
-        // ReadGrowingAsync, which LoadAsync and EmbeddingIndex.LoadAsync take (#1638).
+        // ReadWholeAsync's growing read, which LoadAsync and EmbeddingIndex.LoadAsync take (#1638, #1662).
         byte[] artifact = CountArtifact(terms);
         long extra = await ExtraAllocatedAsync(artifact, chunk);
         Assert.True(extra < bound, $"{extra} bytes more for {artifact.Length}.");

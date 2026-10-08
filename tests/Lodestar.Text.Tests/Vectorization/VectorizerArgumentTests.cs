@@ -129,6 +129,18 @@ public sealed class VectorizerArgumentTests
     }
 
     [Fact]
+    public void The_fitted_idf_cannot_be_edited_through_its_view()
+    {
+        // The array itself, cast back, edited the model under every later Transform and Save (#1627).
+        TfidfVectorizer vectorizer = new TfidfVectorizer().Fit(["apple banana", "banana cherry"]);
+        IReadOnlyList<double> idf = vectorizer.Idf;
+
+        Assert.IsNotType<double[]>(idf);
+        Assert.Throws<NotSupportedException>(() => ((IList<double>)idf)[0] = double.NaN);
+        Assert.Equal(vectorizer.FittedIdf, idf);
+    }
+
+    [Fact]
     public void A_null_token_pattern_is_refused_whatever_the_analyzer()
     {
         // Save writes the pattern and Load requires a string, so the character analyzers, which never read it, still

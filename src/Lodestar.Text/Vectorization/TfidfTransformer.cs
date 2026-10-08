@@ -9,6 +9,7 @@ public sealed class TfidfTransformer
 {
     private readonly TfidfOptions _options;
     private double[]? _idf;
+    private System.Collections.ObjectModel.ReadOnlyCollection<double>? _idfView;
 
     /// <summary>Creates a transformer with the given options (defaults if omitted).</summary>
     public TfidfTransformer(TfidfOptions? options = null)
@@ -18,7 +19,9 @@ public sealed class TfidfTransformer
 
     /// <summary>The learned inverse-document-frequency vector (one per feature), computed by <see cref="Fit"/> whether or not <c>UseIdf</c> is set.</summary>
     /// <exception cref="InvalidOperationException">nothing has been fitted yet.</exception>
-    public IReadOnlyList<double> Idf => _idf ?? throw new InvalidOperationException("Not fitted.");
+    public IReadOnlyList<double> Idf => _idf is null
+        ? throw new InvalidOperationException("Not fitted.")
+        : _idfView ??= Array.AsReadOnly(_idf);
 
     /// <exception cref="ArgumentNullException"><paramref name="counts"/> is null.</exception>
     /// <summary>Learns the idf vector from a count matrix.</summary>
@@ -40,7 +43,7 @@ public sealed class TfidfTransformer
             // idf = ln((n + smooth) / (df + smooth)) + 1
             idf[c] = Math.Log(numerator / (df[c] + smooth)) + 1.0;
         }
-        _idf = idf;
+        Adopt(idf);
         return this;
     }
 
@@ -106,5 +109,13 @@ public sealed class TfidfTransformer
     internal double[]? FittedIdf => _idf;
 
     /// <summary>Restores the idf vector from an artifact whose length has already been checked.</summary>
-    internal void RestoreIdf(double[] idf) => _idf = idf;
+    internal void RestoreIdf(double[] idf) => Adopt(idf);
+
+    // Idf hands out a read-only view, made at its first read so a fit or a load costs what it did: the array itself,
+    // cast back, edited the model under every later Transform and Save (#1627).
+    private void Adopt(double[] idf)
+    {
+        _idf = idf;
+        _idfView = null;
+    }
 }

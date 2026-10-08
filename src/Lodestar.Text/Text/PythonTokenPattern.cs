@@ -43,40 +43,60 @@ internal sealed class PythonTokenPattern
         };
         if (_minimumRun == 0)
         {
-            (_plain, _pairAware) = Parse(pattern, body);
+            int[] groups;
+            (_plain, _pairAware, groups) = Parse(pattern, written);
             // One group is the token, as re.findall returns it; two or more, which build_tokenizer refuses, the whole
-            // match, as 0.7.0 read it (#1262, #1657). Numbered as written: the translation adds and drops no group.
-            int[] groups = written.GetGroupNumbers();
+            // match, as 0.7.0 read it (#1262, #1657). Numbered on the spelling compiled, as Python numbers them (#1663).
             _group = groups.Length == 2 ? groups[1] : 0;
         }
     }
 
-    /// <summary>The plain spelling and the pair-aware one, each compiled at its first use.</summary>
+    /// <summary>The plain spelling and the pair-aware one, each compiled at its first use, and their group numbers.</summary>
     /// <remarks>
     /// The pattern as written is checked first, as 0.7.0 compiled it: one .NET refuses goes out with 0.7.0's exception and
-    /// message, whether or not Python reads it. The pair-aware spelling is then parsed here with a stand-in for each
-    /// supplementary set, which parses exactly when both real spellings do, so neither fails when compiled at its first
-    /// use (#1645, #1658); one whose class Python refuses, <c>[\w-.]</c>, is read as 0.7.0 read it, by .NET as written.
+    /// message, whether or not Python reads it. The plain spelling is then parsed here. The pair-aware one differs from it
+    /// only by fragments written here, each an atom where the plain spelling has one and none capturing, so it parses
+    /// exactly when the plain one does, numbers its groups alike, and neither fails when compiled at its first use (#1645,
+    /// #1658, #1662); one Python refuses, <c>[\w-.]</c> or <c>\p{L}</c>, is read as 0.7.0 read it, by .NET as written
+    /// (#1650). The groups are Python's, which a comment can make other than .NET's as written: <c>(?#\)(a)</c> has none.
     /// </remarks>
-    private static (Lazy<Regex> Plain, Lazy<Regex> PairAware) Parse(string pattern, string written)
+    private static (Lazy<Regex> Plain, Lazy<Regex> PairAware, int[] Groups) Parse(string pattern, Regex written)
     {
         const RegexOptions Parsed = RegexOptions.CultureInvariant;
         const RegexOptions Compiled = RegexOptions.Compiled | Parsed;
         try
         {
             string plain = PythonPattern.Translate(pattern, surrogateFree: true);
-            // A one-pair stand-in for each supplementary set, 30 µs of .NET's parser: it parses exactly when the full
-            // spelling does, and the plain one, whose classes it holds in the same places, then parses too (#1658).
-            _ = new Regex(PythonPattern.TranslateForParse(pattern), Parsed, RegexDefaults.MatchTimeout);
+            // Parsing the pair-aware spelling instead, the longer one, was 8 KB of the construction's 11 (#1662).
+            int[] groups = new Regex(plain, Parsed, RegexDefaults.MatchTimeout).GetGroupNumbers();
             return (
                 new Lazy<Regex>(() => new Regex(plain, Compiled, RegexDefaults.MatchTimeout)),
-                new Lazy<Regex>(() => new Regex(PythonPattern.Translate(pattern), Compiled, RegexDefaults.MatchTimeout)));
+                new Lazy<Regex>(() => PairAware(pattern, plain)),
+                groups);
         }
         catch (ArgumentException)
         {
-            var raw = new Lazy<Regex>(() => new Regex(written, Compiled, RegexDefaults.MatchTimeout));
-            return (raw, raw);
+            string body = written.ToString();
+            var raw = new Lazy<Regex>(() => new Regex(body, Compiled, RegexDefaults.MatchTimeout));
+            return (raw, raw, written.GetGroupNumbers());
         }
+    }
+
+    // The pair-aware spelling parses where the plain one does, but its translation needs stack the thread compiling it
+    // may lack: there, the plain spelling, numbered alike, rather than an exception every later text would meet.
+    private static Regex PairAware(string pattern, string plain)
+    {
+        const RegexOptions Compiled = RegexOptions.Compiled | RegexOptions.CultureInvariant;
+        string spelled;
+        try
+        {
+            spelled = PythonPattern.Translate(pattern);
+        }
+        catch (ArgumentException)
+        {
+            spelled = plain;
+        }
+        return new Regex(spelled, Compiled, RegexDefaults.MatchTimeout);
     }
 
     /// <summary>
