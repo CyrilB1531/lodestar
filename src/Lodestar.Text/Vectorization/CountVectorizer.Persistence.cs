@@ -183,6 +183,7 @@ public sealed partial class CountVectorizer
         }
         _longestTerm = longest;
         _featureNames = sortedFeatureNames;
+        _featureNamesView = null;
         _vocabulary = vocabulary;
     }
 

@@ -35,7 +35,7 @@ The token-pattern translation scanned a Python pattern for its classes and escap
   newline ends none, as Python's tokenizer reads them. A possessive repeat after the `{,n}` .NET reads as
   text is an atomic group; a flag both set and cleared is refused; a look-behind wider than Python's
   `2**32 - 1` is refused. Nesting is counted as Python's frames, two per group and one per conditional, and
-  past 960 of them — Python 3.12 runs out near 495 groups or 989 conditionals — or on a thread short of
+  past 960 of them — Python 3.12 runs out past 495 groups or 990 conditionals — or on a thread short of
   stack, the pattern is read as written rather than ending the process on a stack overflow.
 - **The groups are numbered on the spelling compiled**, as Python numbers them: every capturing group
   stays one, in order. #1660 numbered them on the pattern as written, which a comment can make other
@@ -71,8 +71,9 @@ release built from nuget.org (Lodestar.Text 0.7.0) and this branch from the work
 | `\S+` | 4.4 µs, 8.85 KB | 1.2 µs, 4.51 KB | 12.71 KB | 18.18 KB |
 
 Construction alone is under the release on every pattern, and under main before this branch, which
-spent 0.7–3.1 µs and 1.8–9.0 KB. A construction and a first fit allocate 4–7 KB more than the release,
-within the 5–10 KB the maintainer accepted on 2026-10-07, and 1–3 KB less than main. A fit of
+spent 0.7–3.1 µs and 1.8–9.0 KB. A construction and a first fit allocate 4.3–7.3 KB more than the
+release for the four translated patterns, within the 5–10 KB the maintainer accepted on 2026-10-07, and
+1–3 KB less than main; for the default pattern, scanned by hand, 11.2 KB less. A fit of
 5,000 documents runs at main's time and allocation for every pattern.
 
 ## Parity with Python

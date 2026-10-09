@@ -187,7 +187,7 @@ internal sealed class TextAnalyzer
     {
         List<(int Start, int Length)>? tokens = collect ? [] : null;
 #if NET9_0_OR_GREATER
-        if (_tokenPattern!.TryGetGrouplessRegex(s, out Regex? regex))
+        if (_tokenPattern!.TryGetGrouplessRegex(s, out Regex? regex, out bool pairAware))
         {
             // Straight from the regex, as 0.7.0 scanned, with no list of matches between (#1645).
             foreach (ValueMatch m in regex.EnumerateMatches(s))
@@ -198,7 +198,7 @@ internal sealed class TextAnalyzer
         }
 
         List<(int Start, int Length)> matches = ScratchMatches();
-        _tokenPattern.Matches(s, matches);
+        _tokenPattern.Matches(s, matches, pairAware);
         foreach ((int index, int length) in matches)
         {
             Consider(s, index, length, tokens, ref sink, emit);

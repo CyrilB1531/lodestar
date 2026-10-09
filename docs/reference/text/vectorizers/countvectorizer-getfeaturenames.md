@@ -32,8 +32,10 @@ string last = names[4];    // => the
 there is no name to return and no method to return it. Choosing that vectorizer is choosing to
 give this up.
 
-The list is the vectorizer's own, exposed read-only rather than copied, so reading it allocates
-nothing.
+The list is a read-only view of the vectorizer's own vocabulary, made at the first call and not
+copied, so reading it allocates nothing after that; a cast back to an array fails rather than
+editing the fitted model under a later `Save`
+([#1670](https://github.com/CyrilB1531/lodestar/issues/1670)).
 
 **Applies to** — net10.0, netstandard2.0.
 

@@ -24,6 +24,9 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `CountVectorizer` and `TfidfVectorizer` refuse a corpus that yields no term, or none left by `MinDf` and `MaxDf`, as scikit-learn does. ([#1239](https://github.com/CyrilB1531/lodestar/pull/1239))
 - `TextRank` ranks over a sparse adjacency, `DamerauLevenshtein` strips the common affixes and keeps three rows, and `BkTree.Nearest` holds its hits in a bounded heap. ([#1199](https://github.com/CyrilB1531/lodestar/issues/1199))
 - `CountVectorizer`, `TfidfVectorizer` and `HashingVectorizer` save faster, and allocate less where their artifact passes a mebibyte. ([#1643](https://github.com/CyrilB1531/lodestar/issues/1643), [#1649](https://github.com/CyrilB1531/lodestar/issues/1649))
+- A token pattern is read on Python's grammar — surrogates, ranges past U+FFFF, repeats of supplementary characters, `\Z`, `{,n}` and comments as Python reads them — and one Python refuses as .NET reads it. ([#1650](https://github.com/CyrilB1531/lodestar/issues/1650))
+- `TfidfVectorizer.Idf` and `TfidfTransformer.Idf` hand out a read-only view of the fitted weights rather than the array itself. ([#1627](https://github.com/CyrilB1531/lodestar/issues/1627))
+- `CountVectorizer.GetFeatureNames` and `TfidfVectorizer.GetFeatureNames` hand out a read-only view of the vocabulary rather than the array itself. ([#1670](https://github.com/CyrilB1531/lodestar/issues/1670))
 
 ### Fixed
 
@@ -38,13 +41,16 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `HashingVectorizer` honours `CountVectorizerOptions.Binary`. ([#1196](https://github.com/CyrilB1531/lodestar/issues/1196))
 - A vectorizer saved with an n-gram range starting below 1 loads back. ([#1197](https://github.com/CyrilB1531/lodestar/issues/1197))
 - `Jaccard`, `SorensenDice`, `Overlap`, `Cosine` and `Tversky` take a lone surrogate as one code point at `TextElement.CodePoint` rather than throwing. ([#1261](https://github.com/CyrilB1531/lodestar/issues/1261))
-- A token pattern is read on Python's grammar — surrogates, ranges past U+FFFF, repeats of supplementary characters, `\Z`, `{,n}` and comments as Python reads them — and one Python refuses as .NET reads it. ([#1650](https://github.com/CyrilB1531/lodestar/issues/1650))
-- `TfidfVectorizer.Idf` and `TfidfTransformer.Idf` hand out a read-only view of the fitted weights rather than the array itself. ([#1627](https://github.com/CyrilB1531/lodestar/issues/1627))
 - A token pattern with one capturing group yields the group's text, as `re.findall` does, and one with two or more the whole match, as before. ([#1262](https://github.com/CyrilB1531/lodestar/issues/1262), [#1657](https://github.com/CyrilB1531/lodestar/issues/1657))
 - The `char` and `char_wb` analyzers cut n-grams by code point, so an astral character is one character, and a lone surrogate in a term, a stop word or the pattern survives `Save` and `Load`. ([#1263](https://github.com/CyrilB1531/lodestar/issues/1263))
 - The vectorizers' vocabulary and `Rake`'s tie-break sort by code point, as Python sorts a `str`. ([#1264](https://github.com/CyrilB1531/lodestar/issues/1264))
 - The three vectorizers save the stop words their analyzer filters with, copied when it was built, rather than the caller's collection as it stands at the save. ([#1648](https://github.com/CyrilB1531/lodestar/issues/1648))
 - A refused synchronous save of the three vectorizers raises its refusal rather than the exception of a stream whose flush fails. ([#1641](https://github.com/CyrilB1531/lodestar/issues/1641))
+- A token pattern over a text holding a surrogate reads `.`, `\S` and a negated class repeated without bound as a loop of units, checks for a match starting inside a pair outside the pattern and, read on Python's grammar, has no match timeout, as Python's has none; a short text is read before the pattern is compiled. ([#1665](https://github.com/CyrilB1531/lodestar/issues/1665), [#1666](https://github.com/CyrilB1531/lodestar/issues/1666))
+- A token pattern reads alike whichever thread first meets a text holding a surrogate, where one short of stack kept reading half-pairs. ([#1667](https://github.com/CyrilB1531/lodestar/issues/1667))
+- `(?i)` in a token pattern folds case as Python's `re` does, where .NET's folding left `ſ`, `İ` and supplementary letters apart. ([#1668](https://github.com/CyrilB1531/lodestar/issues/1668))
+- A `\B` token pattern no longer matches an empty document, as Python's never does. ([#1669](https://github.com/CyrilB1531/lodestar/issues/1669))
+- After an empty match, a token pattern tries a non-empty one at the same place, as Python's `re.findall` does, where `|a` over `a` gave the empty token alone. ([#1650](https://github.com/CyrilB1531/lodestar/issues/1650))
 
 ## [0.7.0] — 2026-09-24
 
