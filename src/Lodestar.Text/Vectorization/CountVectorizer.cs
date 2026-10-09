@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Lodestar.Abstractions;
 using Lodestar.Text.Internal;
 using Lodestar.Internal.Persistence;
@@ -18,6 +19,7 @@ public sealed partial class CountVectorizer
     private readonly TextAnalyzer _analyzer;
     private Dictionary<string, int>? _vocabulary;
     private string[] _featureNames = [];
+    private ReadOnlyCollection<string>? _featureNamesView;
 
     // Whether a term may hold a lone surrogate, and the longest term's length: found once by the fit or the load, so a save
     // searches and measures no term (#1643).
@@ -50,11 +52,8 @@ public sealed partial class CountVectorizer
     {
         EnsureFitted();
 
-        // The array itself, as 0.7.0 handed it out, which a cast can edit: from here a save searches and measures every
-        // term again, as it did before the fit's findings were kept (#1643).
-        _vocabularyMayHoldSurrogate = true;
-        _longestTerm = int.MaxValue;
-        return _featureNames;
+        // A view, as the fitted idf is (#1627): the array, which 0.7.0 handed out, a cast could edit under a save (#1670).
+        return _featureNamesView ??= Array.AsReadOnly(_featureNames);
     }
 
     /// <exception cref="ArgumentNullException"><paramref name="documents"/> is null.</exception>
@@ -137,6 +136,7 @@ public sealed partial class CountVectorizer
         kept.Sort(CodePointOrder.Instance);
 
         _featureNames = kept.ToArray();
+        _featureNamesView = null;
         _vocabularyMayHoldSurrogate = false;
         _longestTerm = 0;
         _vocabulary = new Dictionary<string, int>(kept.Count, StringComparer.Ordinal);

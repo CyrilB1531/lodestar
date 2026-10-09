@@ -244,12 +244,6 @@ public sealed class VectorizerPersistenceTests
         using var stops = new MemoryStream();
         withNull.Save(stops);
         Assert.Contains("\"stopWords\":[null,\"the\"]", Encoding.UTF8.GetString(stops.ToArray()), StringComparison.Ordinal);
-
-        var edited = new CountVectorizer().Fit(["alpha beta"]);
-        Assert.IsType<string[]>(edited.GetFeatureNames())[0] = null!;
-        using var terms = new MemoryStream();
-        edited.Save(terms);
-        Assert.Contains("\"vocabulary\":[null,\"beta\"]", Encoding.UTF8.GetString(terms.ToArray()), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -280,18 +274,18 @@ public sealed class VectorizerPersistenceTests
     }
 
     [Fact]
-    public void A_term_edited_through_the_handed_out_vocabulary_is_saved_as_edited()
+    public void The_handed_out_vocabulary_cannot_be_edited_and_a_lone_surrogate_term_round_trips()
     {
-        // GetFeatureNames hands out the array itself, as 0.7.0 did; a term a cast edits is searched again, its lone
-        // surrogate escaped rather than replaced (#1643).
-        var original = new CountVectorizer().Fit(["apple banana"]);
-        string[] names = Assert.IsType<string[]>(original.GetFeatureNames());
-        names[1] = "banana" + (char)0xD800;
+        // A view, which no cast edits (#1670); a term holding a lone surrogate is escaped rather than replaced (#1643).
+        var original = new CountVectorizer(new CountVectorizerOptions { TokenPattern = @"\S+" }).Fit(["apple banana" + (char)0xD800]);
+        IReadOnlyList<string> names = original.GetFeatureNames();
+        Assert.IsNotType<string[]>(names);
+        Assert.Throws<NotSupportedException>(() => ((IList<string>)names)[0] = "zzz");
 
         using var stream = new MemoryStream();
         original.Save(stream);
         stream.Position = 0;
-        Assert.Equal(names[1], CountVectorizer.Load(stream).GetFeatureNames()[1]);
+        Assert.Equal("banana" + (char)0xD800, CountVectorizer.Load(stream).GetFeatureNames()[1]);
     }
 
     [Fact]

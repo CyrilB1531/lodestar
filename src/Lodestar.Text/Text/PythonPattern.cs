@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -22,7 +23,8 @@ internal static partial class PythonPattern
     // must not start a match once the pair it belongs to was passed over.
     private const string NotMidPair = @"(?!(?<=[\uD800-\uDBFF])[\uDC00-\uDFFF])";
 
-    // Python's '.': a pair, or any other unit '.' takes that is not the low half of one.
+    // Python's '.': a pair, or a unit that starts none and is no pair's low half. Its branches take disjoint units, so
+    // none gives a pair up; atomic, .NET's compiled engine mis-read a lazy bounded repeat of it, .{1,3}? (#1665).
     private const string AnyCodePoint = $"(?:{AnyPair}|(?!{AnyPair}){NotMidPair}.)";
     private const string WordBmp = @"\p{L}\p{N}_";
     private const string DigitBmp = @"\p{Nd}";
@@ -52,7 +54,22 @@ internal static partial class PythonPattern
     /// class .NET scans vectorised, five to eight times faster than the pair-aware one (#1645).
     /// </param>
     public static string Translate(string pattern, bool surrogateFree = false) =>
-        Translate(pattern, surrogateFree ? Spelling.SurrogateFree : Spelling.PairAware);
+        Translate(pattern, surrogateFree, out _, out _);
+
+    /// <summary>
+    /// <see cref="Translate(string, bool)"/>, whether the pattern can match the empty string, and whether a repeat in it
+    /// binds an item that can.
+    /// </summary>
+    public static string Translate(string pattern, bool surrogateFree, out bool mayMatchEmpty, out bool repeatsEmpty)
+    {
+        Translator translated = TranslateOnStack(pattern, surrogateFree ? Spelling.SurrogateFree : Spelling.PairAware);
+        mayMatchEmpty = translated.MayMatchEmpty;
+        repeatsEmpty = translated.RepeatsEmpty;
+        return translated.Result!;
+    }
+
+    // Sixteen times the stack the deepest translation takes.
+    private const int TranslationStack = 16 << 20;
 
     private enum Spelling
     {
@@ -60,14 +77,58 @@ internal static partial class PythonPattern
         PairAware,
     }
 
-    private static string Translate(string pattern, Spelling spelling)
+    private static Translator TranslateOnStack(string pattern, Spelling spelling)
     {
         if (pattern.StartsWith("(?u)", StringComparison.Ordinal))
         {
             pattern = pattern.Substring(4);
         }
 
-        return new Translator(pattern, spelling).Run();
+        try
+        {
+            return Translated(pattern, spelling);
+        }
+        catch (InsufficientExecutionStackException)
+        {
+            // The translation does not depend on the thread that asks: MaxFrames levels take about 1 MB (#1667).
+            Translator? spelled = null;
+            ExceptionDispatchInfo? failed = null;
+            var thread = new Thread(
+                () =>
+                {
+                    try
+                    {
+                        spelled = Translated(pattern, spelling);
+                    }
+                    // CA1031: any failure goes back to the caller's thread, where an unhandled one would end the process.
+#pragma warning disable CA1031
+                    catch (Exception e)
+#pragma warning restore CA1031
+                    {
+                        failed = ExceptionDispatchInfo.Capture(e);
+                    }
+                },
+                TranslationStack);
+            try
+            {
+                thread.Start();
+            }
+            catch (Exception e) when (e is OutOfMemoryException or PlatformNotSupportedException)
+            {
+                // No thread to translate on: read as written, as 0.7.0 did.
+                throw NotPython();
+            }
+            thread.Join();
+            failed?.Throw();
+            return spelled!;
+        }
+    }
+
+    private static Translator Translated(string pattern, Spelling spelling)
+    {
+        var translator = new Translator(pattern, spelling);
+        translator.Result = translator.Run();
+        return translator;
     }
 
     /// <summary>A class escape outside brackets, or null when .NET already reads it as Python does.</summary>
@@ -82,7 +143,8 @@ internal static partial class PythonPattern
             ? $"[^{SpaceRanges}]"
             : $"(?:{AnyPair}|(?!{AnyPair}){NotMidPair}[^{SpaceRanges}])",
         'b' => $"(?:(?<={Behind(spelling)})(?!{Ahead(spelling)})|(?<!{Behind(spelling)})(?={Ahead(spelling)}))",
-        'B' => $"(?:(?<={Behind(spelling)})(?={Ahead(spelling)})|(?<!{Behind(spelling)})(?!{Ahead(spelling)}))",
+        // Python's \B never matches in an empty string, where .NET's does (#1669).
+        'B' => $"(?!\\A\\z)(?:(?<={Behind(spelling)})(?={Ahead(spelling)})|(?<!{Behind(spelling)})(?!{Ahead(spelling)}))",
         _ => null,
     };
 
@@ -111,11 +173,49 @@ internal static partial class PythonPattern
     /// by .NET as written (#1645).
     /// </remarks>
     /// <exception cref="ArgumentException">Python's <c>re</c> refuses the class.</exception>
-    private static string Class(string body, Spelling spelling)
+    private static string Class(string body, Spelling spelling, bool ignoreCase, out string? unitClass)
     {
         bool negated = body.Length > 0 && body[0] == '^';
-        string items = negated ? body.Substring(1) : body;
-        var parts = new ClassParts(items.Length * 6);
+        ClassParts parts = Parts([new SetItem(negated ? body.Substring(1) : body, 0)], ignoreCase);
+
+        // A negated class that excludes no surrogate and no pair takes both halves of every pair as units.
+        unitClass = negated && parts.Astral.Count == 0 && !parts.AllLone && parts.Lone.Length == 0 ? NegatedUnits(parts) : null;
+        return Spell(negated, parts, spelling);
+    }
+
+    /// <summary>
+    /// One class holding what each of <paramref name="items"/> holds, none negated: each read on its own, so a '-' or an
+    /// escape closing one never runs into the next, as Python's parser joins the charsets of single-item branches.
+    /// </summary>
+    private static string Union(List<SetItem> items, Spelling spelling, bool ignoreCase) =>
+        Spell(negated: false, Parts(items, ignoreCase), spelling);
+
+    // What the items hold, each read on its own, and under IGNORECASE what each code point they name is folded with.
+    private static ClassParts Parts(List<SetItem> items, bool ignoreCase)
+    {
+        var parts = new ClassParts(items.Sum(i => i.Body?.Length ?? 2) * 6);
+        List<(int First, int Last)>? named = ignoreCase ? [] : null;
+        foreach (SetItem item in items)
+        {
+            if (item.Body is not null)
+            {
+                ReadItems(item.Body, parts, named);
+            }
+            else
+            {
+                AppendRange(parts, new ClassItem('\0', item.CodePoint), new ClassItem('\0', item.CodePoint));
+                named?.Add((item.CodePoint, item.CodePoint));
+            }
+        }
+        if (named is not null)
+        {
+            AppendCaseSiblings(parts, named);
+        }
+        return parts;
+    }
+
+    private static void ReadItems(string items, ClassParts parts, List<(int First, int Last)>? named)
+    {
         int i = 0;
         while (i < items.Length)
         {
@@ -124,16 +224,23 @@ internal static partial class PythonPattern
             if (i + 1 < items.Length && items[i] == '-')
             {
                 i++;
-                AppendRange(parts, first, ReadClassItem(items, ref i));
+                ClassItem last = ReadClassItem(items, ref i);
+                AppendRange(parts, first, last);
+                named?.Add((first.CodePoint, last.CodePoint));
             }
             else
             {
                 AppendItem(parts, first);
+                if (first.ClassEscape == '\0')
+                {
+                    named?.Add((first.CodePoint, first.CodePoint));
+                }
             }
         }
-
-        return Spell(negated, parts, spelling);
     }
+
+    /// <summary>A branch's one item as Python's parser folds it into a charset: a class body, or a literal's code point.</summary>
+    private readonly record struct SetItem(string? Body, int CodePoint);
 
     /// <summary>What a class holds: BMP units, the surrogate code points it names alone, and its supplementary sets.</summary>
     private sealed class ClassParts
@@ -375,7 +482,7 @@ internal static partial class PythonPattern
         }
     }
 
-    private static ArgumentException NotPython() => new("The token pattern holds a class Python's re refuses.");
+    private static ArgumentException NotPython() => new("Python's re refuses the token pattern.");
 
     /// <summary>A class of what <paramref name="parts"/> holds, as one code point.</summary>
     /// <param name="negated">Whether the class is negated.</param>
@@ -410,6 +517,58 @@ internal static partial class PythonPattern
         string supplementary = $"(?=[\\uD800-\\uDBFF])(?:{astral})";
         return positive is null ? $"(?:{supplementary}{lone})" : $"(?:{positive}|{supplementary}{lone})";
     }
+
+    // Under IGNORECASE a class holds what each code point it names is folded with, as _sre's charset is (#1668), added
+    // as runs: A to Z one range, not 26 items.
+    private static void AppendCaseSiblings(ClassParts parts, List<(int First, int Last)> named)
+    {
+        int[] cased = CasedCodePoints();
+        var added = new List<int>();
+        foreach ((int first, int last) in named)
+        {
+            int k = Array.BinarySearch(cased, first);
+            for (k = k < 0 ? ~k : k; k < cased.Length && cased[k] <= last; k++)
+            {
+                ArraySegment<int> siblings = CaseSiblings(cased[k]);
+                for (int j = 0; j < siblings.Count; j++)
+                {
+                    int sibling = siblings.Array![siblings.Offset + j];
+                    if (sibling < first || sibling > last)
+                    {
+                        added.Add(sibling);
+                    }
+                }
+            }
+        }
+        AppendRuns(parts, added);
+    }
+
+    private static void AppendRuns(ClassParts parts, List<int> codePoints)
+    {
+        codePoints.Sort();
+        int n = 0;
+        while (n < codePoints.Count)
+        {
+            int first = codePoints[n];
+            int last = first;
+            while (++n < codePoints.Count && codePoints[n] <= last + 1)
+            {
+                last = codePoints[n];
+            }
+            AppendRange(parts, new ClassItem('\0', first), new ClassItem('\0', last));
+        }
+    }
+
+    /// <summary>A class of exactly <paramref name="codePoints"/>, a literal's case siblings.</summary>
+    private static string Spelled(ArraySegment<int> codePoints, Spelling spelling)
+    {
+        var parts = new ClassParts(codePoints.Count * 6);
+        AppendRuns(parts, [.. codePoints]);
+        return Spell(negated: false, parts, spelling);
+    }
+
+    // Never empty: a negated class with no surrogate and no pair holds a BMP item.
+    private static string NegatedUnits(ClassParts parts) => $"[^{parts.Bmp}]";
 
     /// <summary>The pair-aware spelling of a class holding no supplementary character.</summary>
     private static string SpellBmp(bool negated, string? positive, string negative, string lone)

@@ -10,8 +10,8 @@ internal static partial class PythonPattern
     private const long MaxRepeat = uint.MaxValue;
     private const long Unbounded = long.MaxValue / 4;
 
-    // Python 3.12's parser recurses twice per group, once per conditional, and runs out of its default 1,000 frames near
-    // 495 nested groups or 989 conditionals.
+    // Python 3.12's parser recurses twice per group, once per conditional, and runs out of its default 1,000 frames past
+    // 495 nested groups or 990 conditionals, fewer under a deeper caller: a margin below both, read as written past it.
     private const int MaxFrames = 960;
 
     private static bool IsVerboseSpace(char c) => c is ' ' or '\t' or '\n' or '\r' or '\v' or '\f';
@@ -55,7 +55,20 @@ internal static partial class PythonPattern
         private List<int>? _conditionalGroups;
         private int? _lookbehindGroups;
         private bool _globalVerbose;
+
+        // Python's IGNORECASE, folded here as _sre folds it rather than handed to .NET, which folds otherwise (#1668).
+        private bool _ignoreCase;
+
+        // The last item's class over UTF-16 units when it takes every surrogate and every pair whole, '.', \S or [^a]:
+        // repeated without bound, it is spelled as a loop of units, which .NET searches as 0.7.0's pattern (#1666).
+        private string? _unitClass;
+
+        // The last item as a class body when Python's parser folds it into a charset, a literal, a class that is not
+        // negated or a category; and the branch's, when it is that one item and nothing more.
+        private SetItem? _setItem;
+        private SetItem? _branchSet;
         private int _depth;
+        private int _lookbehinds;
         private int _i;
 
         public Translator(string pattern, Spelling spelling)
@@ -73,16 +86,18 @@ internal static partial class PythonPattern
             Item,
         }
 
+        // Whether the pattern can match the empty string, its least width 0, as Python's getwidth counts it.
+        public bool MayMatchEmpty { get; private set; }
+
+        // Whether a repeat binds an item that can match the empty string, (?:a|)+?, on which .NET's two engines disagree:
+        // such a pattern is read compiled whatever the text's length, as the plain spelling is.
+        public bool RepeatsEmpty { get; private set; }
+
+        public string? Result { get; set; }
+
         public string Run()
         {
-            // Pair-aware, no match starts between the two halves of a pair, a position Python's str has not (#1650).
-            bool guarded = _spelling != Spelling.SurrogateFree;
-            if (guarded)
-            {
-                _out.Append(NotMidPair).Append("(?:");
-            }
-
-            ParseAlternation(verbose: false, top: true);
+            MayMatchEmpty = ParseAlternation(verbose: false, top: true).Lo == 0;
             if (_i < _p.Length)
             {
                 throw NotPython();
@@ -92,10 +107,6 @@ internal static partial class PythonPattern
                 throw NotPython();
             }
 
-            if (guarded)
-            {
-                _out.Append(')');
-            }
             return _out.ToString();
         }
 
@@ -104,20 +115,42 @@ internal static partial class PythonPattern
             long lo = Unbounded;
             long hi = 0;
             bool first = true;
+            int start = _out.Length;
+            List<SetItem>? sets = null;
+            bool oneItemEach = true;
             while (true)
             {
                 // A global (?x) holds for the branches after the first one too, as Python reads it.
                 (long Lo, long Hi) branch = ParseSequence(verbose || (top && _globalVerbose), top && first);
                 lo = Math.Min(lo, branch.Lo);
                 hi = Math.Max(hi, branch.Hi);
+                oneItemEach &= _branchSet is not null;
+                if (oneItemEach)
+                {
+                    (sets ??= []).Add(_branchSet!.Value);
+                }
                 if (_i >= _p.Length || _p[_i] != '|')
                 {
+                    // At the top, nothing repeats the alternation, and the global flags written in its first branch stay.
+                    if (oneItemEach && !first && !top)
+                    {
+                        MergeBranches(start, sets!);
+                    }
                     return (lo, hi);
                 }
                 _i++;
                 _out.Append('|');
                 first = false;
             }
+        }
+
+        // Branches of one literal, class or category each are one charset to Python's parser, which backtracks once per
+        // position over them: as alternatives, (?:\w|\S)+! over 30 letters ran past the timeout here (#1666).
+        private void MergeBranches(int start, List<SetItem> items)
+        {
+            _out.Length = start;
+            _out.Append(PythonPattern.Union(items, _spelling, _ignoreCase));
+            GuardInLookbehind(start, Kind.Item);
         }
 
         /// <summary>One branch: a sequence of items, each possibly repeated; its width as Python's <c>getwidth</c> sums it.</summary>
@@ -128,6 +161,8 @@ internal static partial class PythonPattern
             var kind = Kind.None;
             (long Lo, long Hi) last = (0, 0);
             int itemStart = _out.Length;
+            int items = 0;
+            SetItem? set = null;
             while (_i < _p.Length && _p[_i] is not ('|' or ')'))
             {
                 if (TrySkip(verbose, first && kind == Kind.None))
@@ -141,12 +176,16 @@ internal static partial class PythonPattern
                 if (c is '?' or '*' or '+' or '{' && TryRepeat(c, kind, itemStart, ref last))
                 {
                     kind = Kind.Repeat;
+                    set = null;
                     continue;
                 }
 
                 lo = Math.Min(lo + last.Lo, Unbounded);
                 hi = Math.Min(hi + last.Hi, Unbounded);
                 itemStart = _out.Length;
+                _unitClass = null;
+                _setItem = null;
+                items++;
                 (kind, last) = c switch
                 {
                     '\\' => ReadEscape(),
@@ -158,8 +197,11 @@ internal static partial class PythonPattern
                     // A '{' that opens no repeat is a literal, as Python reads it.
                     _ => Literal(CodePointAt(_i - 1)),
                 };
+                GuardInLookbehind(itemStart, kind);
+                set = _setItem;
             }
 
+            _branchSet = items == 1 ? set : null;
             return (Math.Min(lo + last.Lo, Unbounded), Math.Min(hi + last.Hi, Unbounded));
         }
 
@@ -224,8 +266,23 @@ internal static partial class PythonPattern
             }
         }
 
+        // Inside a look-behind, which .NET matches right to left, an item may end where the one before it would start
+        // on a low half: there each item checks it does not start inside a pair, as every item did before #1665.
+        private void GuardInLookbehind(int itemStart, Kind kind)
+        {
+            if (_lookbehinds > 0 && _spelling != Spelling.SurrogateFree && kind == Kind.Item)
+            {
+                _out.Insert(itemStart, "(?:" + NotMidPair).Append(')');
+                _unitClass = null;
+            }
+        }
+
         // A pair is one character to Python's '.', and no match starts on its low half (#1650).
-        private (Kind, (long, long)) Dot() => Emit(_spelling == Spelling.SurrogateFree ? "." : AnyCodePoint, Kind.Item, 1);
+        private (Kind, (long, long)) Dot()
+        {
+            _unitClass = ".";
+            return Emit(_spelling == Spelling.SurrogateFree ? "." : AnyCodePoint, Kind.Item, 1);
+        }
 
         /// <summary>The code point at <paramref name="index"/>, a pair being one; moves past it.</summary>
         private int CodePointAt(int index)
@@ -246,6 +303,12 @@ internal static partial class PythonPattern
         /// </summary>
         private (Kind, (long, long)) Literal(int codePoint)
         {
+            _setItem = new SetItem(null, codePoint);
+            if (_ignoreCase && CaseSiblings(codePoint) is { Count: > 1 } siblings)
+            {
+                _out.Append(PythonPattern.Spelled(siblings, _spelling));
+                return (Kind.Item, (1, 1));
+            }
             if (codePoint > 0xFFFF)
             {
                 string pair = char.ConvertFromUtf32(codePoint);
@@ -257,6 +320,7 @@ internal static partial class PythonPattern
             }
             else if (codePoint is >= 0xDC00 and <= 0xDFFF)
             {
+                // Never the low half of a pair, where a search starting there would run on before the scan drops it.
                 _out.Append(@"(?:(?<![\uD800-\uDBFF])").Append(Unit(codePoint)).Append(')');
             }
             else if (codePoint < 0x80 && char.IsLetterOrDigit((char)codePoint))
@@ -304,15 +368,53 @@ internal static partial class PythonPattern
             }
 
             // A bound past int.MaxValue, which only {,n} reaches, .NET reading it as text, is no bound on a string.
-            _out.Append((min, max > int.MaxValue ? MaxRepeat : max) switch
+            long bound = max > int.MaxValue ? MaxRepeat : max;
+            // Unbounded, as many code points as units past the first min - 1: a loop of units ending between two (#1666).
+            bool unitLoop = _spelling != Spelling.SurrogateFree && _unitClass is not null && bound == MaxRepeat;
+            if (unitLoop)
             {
-                (0, 1) => "?",
-                (0, MaxRepeat) => "*",
-                (1, MaxRepeat) => "+",
-                (_, MaxRepeat) => "{" + min.ToString(CultureInfo.InvariantCulture) + ",}",
-                _ when min == max => "{" + min.ToString(CultureInfo.InvariantCulture) + "}",
-                _ => "{" + min.ToString(CultureInfo.InvariantCulture) + "," + max.ToString(CultureInfo.InvariantCulture) + "}",
-            });
+                WriteUnitLoop(itemStart, min);
+            }
+            else
+            {
+                _out.Append(Quantifier(min, bound));
+            }
+            LazyOrPossessive(itemStart);
+            if (unitLoop)
+            {
+                _out.Append(NotMidPair);
+            }
+            _unitClass = null;
+
+            RepeatsEmpty |= last.Lo == 0;
+            last = (Times(last.Lo, min), max == MaxRepeat && last.Hi > 0 ? Unbounded : Times(last.Hi, max));
+            return true;
+        }
+
+        // The item min - 1 times, then a loop of its units: at least one code point, ending wherever a unit does.
+        private void WriteUnitLoop(int itemStart, long min)
+        {
+            string item = _out.ToString(itemStart, _out.Length - itemStart);
+            _out.Length = itemStart;
+            if (min > 1)
+            {
+                _out.Append("(?:").Append(item).Append("){").Append((min - 1).ToString(CultureInfo.InvariantCulture)).Append('}');
+            }
+            _out.Append(_unitClass).Append(min == 0 ? '*' : '+');
+        }
+
+        private static string Quantifier(long min, long bound) => (min, bound) switch
+        {
+            (0, 1) => "?",
+            (0, MaxRepeat) => "*",
+            (1, MaxRepeat) => "+",
+            (_, MaxRepeat) => "{" + min.ToString(CultureInfo.InvariantCulture) + ",}",
+            _ when min == bound => "{" + min.ToString(CultureInfo.InvariantCulture) + "}",
+            _ => "{" + min.ToString(CultureInfo.InvariantCulture) + "," + bound.ToString(CultureInfo.InvariantCulture) + "}",
+        };
+
+        private void LazyOrPossessive(int itemStart)
+        {
             if (_i < _p.Length && _p[_i] == '?')
             {
                 _i++;
@@ -325,9 +427,6 @@ internal static partial class PythonPattern
                 _i++;
                 _out.Insert(itemStart, "(?>").Append(')');
             }
-
-            last = (Times(last.Lo, min), max == MaxRepeat && last.Hi > 0 ? Unbounded : Times(last.Hi, max));
-            return true;
         }
 
         private static long Times(long width, long count)
@@ -430,7 +529,8 @@ internal static partial class PythonPattern
             {
                 _globalVerbose = true;
             }
-            string kept = Without(flags, 'x');
+            _ignoreCase |= Has(flags, 'i');
+            string kept = Without(Without(flags, 'x'), 'i');
             if (kept.Length > 0)
             {
                 _out.Append("(?").Append(kept).Append(')');
@@ -470,6 +570,8 @@ internal static partial class PythonPattern
                 case 'b' or 'B':
                     return Emit(PythonPattern.Escape(e, _spelling)!, Kind.At, 0);
                 case 'd' or 'D' or 's' or 'S' or 'w' or 'W':
+                    _unitClass = e == 'S' ? PythonPattern.Escape('S', Spelling.SurrogateFree) : null;
+                    _setItem = new SetItem("\\" + e, 0);
                     return Emit(PythonPattern.Escape(e, _spelling)!, Kind.Item, 1);
                 case 'a':
                     return Literal(7);
@@ -494,7 +596,8 @@ internal static partial class PythonPattern
                 case >= '1' and <= '9':
                     return NumberedEscape(e);
                 case >= 'a' and <= 'z' or >= 'A' and <= 'Z':
-                    // Python's "bad escape" — \z, \G, \p, \k, \c, \N and the like — which .NET as written reads instead.
+                    // Python's "bad escape" — \z, \G, \p, \k, \c and the like — which .NET as written reads instead; \N{...},
+                    // which Python reads by name, .NET refused as written.
                     throw NotPython();
                 default:
                     return Literal(CodePointAt(_i - 1));
@@ -532,7 +635,8 @@ internal static partial class PythonPattern
             }
             CheckLookbehindGroup(group);
             // A group holding a lone surrogate matches none that is half a pair, as Python's str holds none (#1650).
-            _out.Append(@"(?:\").Append(group.ToString(CultureInfo.InvariantCulture));
+            // Under IGNORECASE, .NET's own folding compares the group's text: the closest a back-reference gets.
+            _out.Append(_ignoreCase ? @"(?i:\" : @"(?:\").Append(group.ToString(CultureInfo.InvariantCulture));
             _out.Append(_spelling == Spelling.SurrogateFree ? ")" : NotMidPair + ")");
             return (Kind.Item, width);
         }
@@ -553,7 +657,9 @@ internal static partial class PythonPattern
             {
                 throw NotPython();
             }
-            _out.Append(PythonPattern.Class(_p.Substring(_i, end - _i), _spelling));
+            string body = _p.Substring(_i, end - _i);
+            _out.Append(PythonPattern.Class(body, _spelling, _ignoreCase, out _unitClass));
+            _setItem = body.Length > 0 && body[0] == '^' ? null : new SetItem(body, 0);
             _i = end + 1;
             return (Kind.Item, (1, 1));
         }
@@ -568,18 +674,13 @@ internal static partial class PythonPattern
             {
                 throw NotPython();
             }
-            try
-            {
-                // Each level takes about 1 KB of stack: on a thread short of it the pattern is read as written, where
-                // running out would end the process, as no catch survives a stack overflow.
-                RuntimeHelpers.EnsureSufficientExecutionStack();
-            }
-            catch (InsufficientExecutionStackException)
-            {
-                throw NotPython();
-            }
+            // Each level takes about 1 KB of stack; Translate starts again on a thread holding enough, where running out
+            // would end the process, as no catch survives a stack overflow (#1667).
+            RuntimeHelpers.EnsureSufficientExecutionStack();
             (Kind, (long, long)) group = GroupBody(verbose);
             _depth -= frames;
+            _unitClass = null;
+            _setItem = null;
             return group;
         }
 
@@ -650,7 +751,9 @@ internal static partial class PythonPattern
             _out.Append("(?<").Append(_p[_i++]);
             int? outer = _lookbehindGroups;
             _lookbehindGroups ??= _groups.Count;
+            _lookbehinds++;
             (long Lo, long Hi) width = Body(verbose);
+            _lookbehinds--;
             _lookbehindGroups = outer;
             // Python 3.12's "looks too much behind" past MAXCODE, 2**32 - 1, which MaxRepeat equals.
             if (width.Lo != width.Hi || width.Hi > MaxRepeat)
@@ -738,14 +841,18 @@ internal static partial class PythonPattern
             _i++;
 
             bool inner = (verbose || Has(add, 'x')) && !Has(remove, 'x');
-            string keepRemove = Without(remove, 'x');
-            _out.Append("(?").Append(Without(add, 'x'));
+            bool outerIgnoreCase = _ignoreCase;
+            _ignoreCase = (_ignoreCase || Has(add, 'i')) && !Has(remove, 'i');
+            string keepRemove = Without(Without(remove, 'x'), 'i');
+            _out.Append("(?").Append(Without(Without(add, 'x'), 'i'));
             if (keepRemove.Length > 0)
             {
                 _out.Append('-').Append(keepRemove);
             }
             _out.Append(':');
-            return (Kind.Item, Body(inner));
+            (long, long) width = Body(inner);
+            _ignoreCase = outerIgnoreCase;
+            return (Kind.Item, width);
         }
     }
 }
