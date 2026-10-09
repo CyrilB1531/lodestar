@@ -45,6 +45,28 @@ public sealed class StopWordsTests
 
     [Theory]
     [MemberData(nameof(SourceCounts))]
+    public void A_list_cannot_be_edited_through_a_cast(string name, int expected)
+    {
+        // On netstandard2.0 the list was a HashSet a cast could edit for the whole process (#1674).
+        // S1944: the cast is the edit a caller can make; FrozenSet<T> and the netstandard2.0 wrapper both implement it.
+#pragma warning disable S1944
+        var list = (ICollection<string>)List(name);
+#pragma warning restore S1944
+        Assert.True(list.IsReadOnly);
+        Assert.Throws<NotSupportedException>(() => list.Add("zzzz"));
+        Assert.Throws<NotSupportedException>(() => list.Remove(list.First()));
+        Assert.Throws<NotSupportedException>(list.Clear);
+        Assert.Equal(expected, List(name).Count);
+        Assert.True(list.Contains(list.First()));
+        // A set, as 0.7.0's HashSet and net10's FrozenSet are: reads answer, edits throw.
+        var set = (ISet<string>)List(name);
+        Assert.True(set.IsSubsetOf(List(name)));
+        Assert.Throws<NotSupportedException>(() => set.UnionWith(["zzzz"]));
+        Assert.Throws<NotSupportedException>(() => set.Add("zzzz"));
+    }
+
+    [Theory]
+    [MemberData(nameof(SourceCounts))]
     public void Entries_are_lowercase_single_words(string name, int expectedCount)
     {
         IReadOnlyCollection<string> list = List(name);

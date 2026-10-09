@@ -56,6 +56,9 @@ internal static partial class PythonPattern
         private int? _lookbehindGroups;
         private bool _globalVerbose;
 
+        // Where the global flags written at the start of the pattern end.
+        private int _flagsEnd;
+
         // Python's IGNORECASE, folded here as _sre folds it rather than handed to .NET, which folds otherwise (#1668).
         private bool _ignoreCase;
 
@@ -92,6 +95,10 @@ internal static partial class PythonPattern
         // Whether a repeat binds an item that can match the empty string, (?:a|)+?, on which .NET's two engines disagree:
         // such a pattern is read compiled whatever the text's length, as the plain spelling is.
         public bool RepeatsEmpty { get; private set; }
+
+        // Whether a lazy repeat with a bound of 2 or more binds a capturing group, which .NET's two engines read apart
+        // (#1676).
+        public bool CapturesLazily { get; private set; }
 
         public string? Result { get; set; }
 
@@ -131,10 +138,9 @@ internal static partial class PythonPattern
                 }
                 if (_i >= _p.Length || _p[_i] != '|')
                 {
-                    // At the top, nothing repeats the alternation, and the global flags written in its first branch stay.
-                    if (oneItemEach && !first && !top)
+                    if (oneItemEach && !first)
                     {
-                        MergeBranches(start, sets!);
+                        MergeBranches(MergeStart(start), sets!);
                     }
                     return (lo, hi);
                 }
@@ -143,6 +149,10 @@ internal static partial class PythonPattern
                 first = false;
             }
         }
+
+        // Past the global flags the first branch wrote, which stand only at the very start: \w|\w spelled the word pairs
+        // twice (#1672).
+        private int MergeStart(int start) => Math.Max(start, _flagsEnd);
 
         // Branches of one literal, class or category each are one charset to Python's parser, which backtracks once per
         // position over them: as alternatives, (?:\w|\S)+! over 30 letters ran past the timeout here (#1666).
@@ -161,6 +171,7 @@ internal static partial class PythonPattern
             var kind = Kind.None;
             (long Lo, long Hi) last = (0, 0);
             int itemStart = _out.Length;
+            int groupsBefore = _groups.Count;
             int items = 0;
             SetItem? set = null;
             while (_i < _p.Length && _p[_i] is not ('|' or ')'))
@@ -173,7 +184,7 @@ internal static partial class PythonPattern
                 }
 
                 char c = _p[_i++];
-                if (c is '?' or '*' or '+' or '{' && TryRepeat(c, kind, itemStart, ref last))
+                if (c is '?' or '*' or '+' or '{' && TryRepeat(c, kind, itemStart, _groups.Count > groupsBefore, ref last))
                 {
                     kind = Kind.Repeat;
                     set = null;
@@ -183,6 +194,7 @@ internal static partial class PythonPattern
                 lo = Math.Min(lo + last.Lo, Unbounded);
                 hi = Math.Min(hi + last.Hi, Unbounded);
                 itemStart = _out.Length;
+                groupsBefore = _groups.Count;
                 _unitClass = null;
                 _setItem = null;
                 items++;
@@ -338,7 +350,7 @@ internal static partial class PythonPattern
         /// A repeat, read as Python reads it: <c>{,n}</c> is zero to n and <c>{,}</c> unbounded, which .NET reads as text,
         /// so each is written out; a <c>{</c> opening none is a literal, and false is returned for it.
         /// </summary>
-        private bool TryRepeat(char c, Kind kind, int itemStart, ref (long Lo, long Hi) last)
+        private bool TryRepeat(char c, Kind kind, int itemStart, bool captures, ref (long Lo, long Hi) last)
         {
             long min;
             long max;
@@ -379,7 +391,7 @@ internal static partial class PythonPattern
             {
                 _out.Append(Quantifier(min, bound));
             }
-            LazyOrPossessive(itemStart);
+            CapturesLazily |= LazyOrPossessive(itemStart) && captures && bound is >= 2 and < MaxRepeat && min < bound;
             if (unitLoop)
             {
                 _out.Append(NotMidPair);
@@ -413,20 +425,23 @@ internal static partial class PythonPattern
             _ => "{" + min.ToString(CultureInfo.InvariantCulture) + "," + bound.ToString(CultureInfo.InvariantCulture) + "}",
         };
 
-        private void LazyOrPossessive(int itemStart)
+        // Whether the repeat is lazy.
+        private bool LazyOrPossessive(int itemStart)
         {
             if (_i < _p.Length && _p[_i] == '?')
             {
                 _i++;
                 _out.Append('?');
+                return true;
             }
-            else if (_i < _p.Length && _p[_i] == '+')
+            if (_i < _p.Length && _p[_i] == '+')
             {
                 // Possessive, which reaches here only after a {,n} or a {,} that .NET reads as text, the rest being
                 // refused as written: an atomic group, as Python 3.11 defines it.
                 _i++;
                 _out.Insert(itemStart, "(?>").Append(')');
             }
+            return false;
         }
 
         private static long Times(long width, long count)
@@ -535,6 +550,7 @@ internal static partial class PythonPattern
             {
                 _out.Append("(?").Append(kept).Append(')');
             }
+            _flagsEnd = _out.Length;
             return true;
         }
 

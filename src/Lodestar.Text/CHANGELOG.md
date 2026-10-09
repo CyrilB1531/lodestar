@@ -50,7 +50,11 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - A token pattern reads alike whichever thread first meets a text holding a surrogate, where one short of stack kept reading half-pairs. ([#1667](https://github.com/CyrilB1531/lodestar/issues/1667))
 - `(?i)` in a token pattern folds case as Python's `re` does, where .NET's folding left `ſ`, `İ` and supplementary letters apart. ([#1668](https://github.com/CyrilB1531/lodestar/issues/1668))
 - A `\B` token pattern no longer matches an empty document, as Python's never does. ([#1669](https://github.com/CyrilB1531/lodestar/issues/1669))
-- After an empty match, a token pattern tries a non-empty one at the same place, as Python's `re.findall` does, where `|a` over `a` gave the empty token alone. ([#1650](https://github.com/CyrilB1531/lodestar/issues/1650))
+- After an empty match, a token pattern tries a non-empty one at the same place, as Python's `re.findall` does, where `|a` over `a` gave the empty token alone. ([#1671](https://github.com/CyrilB1531/lodestar/pull/1671), [`3c3fc415`](https://github.com/CyrilB1531/lodestar/commit/3c3fc415))
+- A token pattern whose class or branches, at any level, join `\w` with `\S` or `\W`, or name one set twice, reads a text holding a surrogate in Python's time, where it spelled the 5,000-character word set twice. ([#1672](https://github.com/CyrilB1531/lodestar/issues/1672))
+- A token pattern reads short texts holding a surrogate compiled once the interpreter has cost what compiling does, or has run out once, where each such text could pay a second again; one with a lazy repeat with a bound over a group, which .NET's two engines read apart, keeps choosing by the text's length as before. ([#1673](https://github.com/CyrilB1531/lodestar/issues/1673))
+- `StopWords.English` and the Snowball lists refuse an edit through a cast on netstandard2.0, as on net10, and so are no longer a `HashSet<string>` there. ([#1674](https://github.com/CyrilB1531/lodestar/issues/1674))
+- The vectorizers, `Rake` and `TextRank` of one token pattern share its compiled readings, of text holding a surrogate and of text without, which each new one compiled again, 10 ms for `\w`; the process holds those of fifteen patterns. ([#1677](https://github.com/CyrilB1531/lodestar/issues/1677))
 
 ## [0.7.0] — 2026-09-24
 

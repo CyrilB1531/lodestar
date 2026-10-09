@@ -54,9 +54,9 @@ holding a surrogate takes, which no in-repo benchmark covers, and fuzzed the gra
   match there as its interpreter does, or throw its `OverflowException`; each search starts past the
   last kept, so a scan ends wherever an engine hands back a match before the search start.
 - **Over a text holding a surrogate, a token pattern has no match timeout, as Python's has none.** A
-  loop that fails at the end of a run of supplementary letters walks back by code point, as in Python:
-  `\w+\d` over 10,000 of them takes Python 0.6 s, `\W+\W+\d` over 4,096 units 18 s, cubic with two
-  loops; 0.7.0 finished both in milliseconds by reading no supplementary letter as one, and its 1 s
+  loop that fails at the end of a run of supplementary characters walks back by code point, as in
+  Python: `\w+\d` over 10,000 letters takes Python 0.6 s, `\W+\W+\d` over 1,024 units of emoji 0.28 s,
+  cubic with two loops; 0.7.0 finished both in milliseconds by reading no supplementary letter as one, and its 1 s
   would turn them into timeouts. A timeout growing with the square of the length, chosen first on
   2026-10-08, held one loop and not two, and a faster spelling of `\W` — a positive set of pairs, or
   the second loop made atomic — took 1.28 and 0.55 s against 1.22 at 1,024 units, a constant and not a
