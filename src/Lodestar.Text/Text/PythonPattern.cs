@@ -54,17 +54,19 @@ internal static partial class PythonPattern
     /// class .NET scans vectorised, five to eight times faster than the pair-aware one (#1645).
     /// </param>
     public static string Translate(string pattern, bool surrogateFree = false) =>
-        Translate(pattern, surrogateFree, out _, out _);
+        Translate(pattern, surrogateFree, out _, out _, out _);
 
     /// <summary>
-    /// <see cref="Translate(string, bool)"/>, whether the pattern can match the empty string, and whether a repeat in it
-    /// binds an item that can.
+    /// <see cref="Translate(string, bool)"/>, whether the pattern can match the empty string, whether a repeat in it
+    /// binds an item that can, and whether a lazy repeat with a bound binds a capturing group.
     /// </summary>
-    public static string Translate(string pattern, bool surrogateFree, out bool mayMatchEmpty, out bool repeatsEmpty)
+    public static string Translate(
+        string pattern, bool surrogateFree, out bool mayMatchEmpty, out bool repeatsEmpty, out bool capturesLazily)
     {
         Translator translated = TranslateOnStack(pattern, surrogateFree ? Spelling.SurrogateFree : Spelling.PairAware);
         mayMatchEmpty = translated.MayMatchEmpty;
         repeatsEmpty = translated.RepeatsEmpty;
+        capturesLazily = translated.CapturesLazily;
         return translated.Result!;
     }
 
@@ -77,12 +79,13 @@ internal static partial class PythonPattern
         PairAware,
     }
 
+    /// <summary>The pattern without a leading <c>(?u)</c>, Python's default, which every reading of it drops (#1239).</summary>
+    public static string WithoutDefaultFlag(string pattern) =>
+        pattern.StartsWith("(?u)", StringComparison.Ordinal) ? pattern.Substring(4) : pattern;
+
     private static Translator TranslateOnStack(string pattern, Spelling spelling)
     {
-        if (pattern.StartsWith("(?u)", StringComparison.Ordinal))
-        {
-            pattern = pattern.Substring(4);
-        }
+        pattern = WithoutDefaultFlag(pattern);
 
         try
         {
@@ -509,13 +512,32 @@ internal static partial class PythonPattern
         {
             return SpellBmp(negated, positive, negative, lone);
         }
-        string astral = string.Join("|", pairs.Select(p => p.Value));
+        string astral = SupplementarySet(pairs);
         if (negated)
         {
-            return $"(?:(?!{astral}){AnyPair}|(?!{AnyPair}){NotMidPair}{negative})";
+            return astral == AnyPair
+                ? $"(?:(?!{AnyPair}){NotMidPair}{negative})"
+                : $"(?:(?!{astral}){AnyPair}|(?!{AnyPair}){NotMidPair}{negative})";
         }
-        string supplementary = $"(?=[\\uD800-\\uDBFF])(?:{astral})";
+        string supplementary = astral == AnyPair ? AnyPair : $"(?=[\\uD800-\\uDBFF])(?:{astral})";
         return positive is null ? $"(?:{supplementary}{lone})" : $"(?:{positive}|{supplementary}{lone})";
+    }
+
+    // A charset is a set, as Python's _uniq makes it: a set written twice, or one another holds, is written once, and two
+    // that hold every pair between them are any pair, so [\w\S] never spells the 5,000-unit word pairs (#1672).
+    private static string SupplementarySet(List<Lazy<string>> pairs)
+    {
+        bool word = pairs.Contains(WordPairs);
+        bool nonDigit = pairs.Contains(NonDigitPairs);
+        if (pairs.Contains(EveryPair) || (word && (nonDigit || pairs.Contains(NonWordPairs)))
+            || (nonDigit && pairs.Contains(DigitPairs)))
+        {
+            return AnyPair;
+        }
+
+        // Python's decimal digits are word characters, and a non-word character is no digit.
+        IEnumerable<Lazy<string>> kept = pairs.Where(p => !(word && p == DigitPairs) && !(nonDigit && p == NonWordPairs));
+        return string.Join("|", kept.Select(p => p.Value).Distinct(StringComparer.Ordinal));
     }
 
     // Under IGNORECASE a class holds what each code point it names is folded with, as _sre's charset is (#1668), added

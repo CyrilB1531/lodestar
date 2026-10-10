@@ -10,8 +10,8 @@ namespace Lodestar.Text.Vectorization;
 /// </summary>
 /// <remarks>
 /// Built-once-read-often is why this type exists: on net10 a <c>FrozenSet&lt;string&gt;</c> answers a stop
-/// word from a span, never materialising it as a string. netstandard2.0 keeps the plain
-/// <see cref="HashSet{T}"/> it always had — the single <c>#if</c> below is the only place either build is
+/// word from a span, never materialising it as a string. netstandard2.0 keeps a plain
+/// <see cref="HashSet{T}"/>, handed out read-only — the single <c>#if</c> below is the only place either build is
 /// named. Matching is always ordinal, against the analyzer's already-lowercased output.
 /// </remarks>
 internal sealed class StopWordSet
@@ -74,23 +74,76 @@ internal sealed class StopWordSet
     public IReadOnlyCollection<string> Words => _words;
 
     /// <summary>Builds one of the shipped lists, once, for a <see cref="StopWords"/> property.</summary>
+    /// <remarks>
+    /// Handed out read-only, as net10's frozen set is: a cast to <see cref="ICollection{T}"/> no longer edits the list
+    /// for the whole process (#1674).
+    /// </remarks>
     public static IReadOnlyCollection<string> Freeze(string[] words)
     {
         Interlocked.Increment(ref _frozen);
-        return new HashSet<string>(words, StringComparer.Ordinal);
+        return new ShippedList(new HashSet<string>(words, StringComparer.Ordinal));
     }
 
     /// <summary>Wraps a caller's collection for use as a filter, always by copy.</summary>
     /// <remarks>
-    /// There is no immutable set to recognise here, so every collection is copied
-    /// — including the shipped lists. That is the netstandard2.0 cost, and it is
-    /// the behaviour this build has always had.
+    /// A shipped list is copied too, so <see cref="Words"/> never hands out the set behind it: that is the netstandard2.0
+    /// cost, and the behaviour this build has always had.
     /// </remarks>
     public static StopWordSet Adopt(IReadOnlyCollection<string> words) =>
-        new(new HashSet<string>(words, StringComparer.Ordinal));
+        new(new HashSet<string>(words is ShippedList shipped ? shipped.Set : words, StringComparer.Ordinal));
 
     /// <summary>Whether <paramref name="token"/> is a stop word.</summary>
     public bool Contains(string token) => _words.Contains(token);
+
+    /// <summary>A shipped list: its set, which only reads go through, an <see cref="ISet{T}"/> as 0.7.0's was.</summary>
+    private sealed class ShippedList : ISet<string>, IReadOnlyCollection<string>
+    {
+        public ShippedList(HashSet<string> set) => Set = set;
+
+        public HashSet<string> Set { get; }
+
+        public int Count => Set.Count;
+
+        public bool IsReadOnly => true;
+
+        public bool Contains(string item) => Set.Contains(item);
+
+        public void CopyTo(string[] array, int arrayIndex) => Set.CopyTo(array, arrayIndex);
+
+        public bool IsProperSubsetOf(IEnumerable<string> other) => Set.IsProperSubsetOf(other);
+
+        public bool IsProperSupersetOf(IEnumerable<string> other) => Set.IsProperSupersetOf(other);
+
+        public bool IsSubsetOf(IEnumerable<string> other) => Set.IsSubsetOf(other);
+
+        public bool IsSupersetOf(IEnumerable<string> other) => Set.IsSupersetOf(other);
+
+        public bool Overlaps(IEnumerable<string> other) => Set.Overlaps(other);
+
+        public bool SetEquals(IEnumerable<string> other) => Set.SetEquals(other);
+
+        IEnumerator<string> IEnumerable<string>.GetEnumerator() => Set.GetEnumerator();
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => Set.GetEnumerator();
+
+        bool ISet<string>.Add(string item) => throw ReadOnly();
+
+        void ICollection<string>.Add(string item) => throw ReadOnly();
+
+        void ICollection<string>.Clear() => throw ReadOnly();
+
+        bool ICollection<string>.Remove(string item) => throw ReadOnly();
+
+        void ISet<string>.ExceptWith(IEnumerable<string> other) => throw ReadOnly();
+
+        void ISet<string>.IntersectWith(IEnumerable<string> other) => throw ReadOnly();
+
+        void ISet<string>.SymmetricExceptWith(IEnumerable<string> other) => throw ReadOnly();
+
+        void ISet<string>.UnionWith(IEnumerable<string> other) => throw ReadOnly();
+
+        private static NotSupportedException ReadOnly() => new("A shipped stop-word list is read-only.");
+    }
 
 #endif
 }

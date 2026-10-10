@@ -108,8 +108,24 @@ public sealed class PythonPatternGrammarTests
         ("\\B", "", []),
         // '.' takes a pair as one character
         (".", "\uD83D\uDE00x\uDE00", [("\uD83D\uDE00", 1), ("x", 1), ("\uDE00", 1)]),
-        ("(?s).", "\uD83D\uDE00\n", [("\n", 1), ("\uD83D\uDE00", 1)]),
+        ("(?s).", "😀\n", [("\n", 1), ("😀", 1)]),
+        // #1672: a class or branches joining sets that hold every pair between them, or one set twice
+        ("[\\w\\S]+\\.i", T, [("1.i", 1)]),
+        ("(?i)(\\w|\\w|\\S)+\\S\\.i", T, []),
+        ("[\\W\\w]", T, [(" ", 2), (".", 1), ("1", 1), ("a", 1), ("i", 1), ("x", 1), ("²", 1), ("𐐀", 1), ("𝟎", 1), ("😀", 1)]),
+        ("[\\d\\D]", T, [(" ", 2), (".", 1), ("1", 1), ("a", 1), ("i", 1), ("x", 1), ("²", 1), ("𐐀", 1), ("𝟎", 1), ("😀", 1)]),
+        ("[\\w\\D]", T, [(" ", 2), (".", 1), ("1", 1), ("a", 1), ("i", 1), ("x", 1), ("²", 1), ("𐐀", 1), ("𝟎", 1), ("😀", 1)]),
+        ("[\\W\\d]+", T, [(" ", 1), ("𝟎", 1), ("😀 1.", 1)]),
+        ("[^\\w\\S]", T, [(" ", 2)]),
+        ("[^\\W\\d]+", T, [("a", 1), ("i", 1), ("x²", 1), ("𐐀", 1)]),
+        ("[\\d\\w]+", T, [("1", 1), ("a𝟎𐐀", 1), ("i", 1), ("x²", 1)]),
+        ("(\\d|\\w|\\W)", T, [(" ", 2), (".", 1), ("1", 1), ("a", 1), ("i", 1), ("x", 1), ("²", 1), ("𐐀", 1), ("𝟎", 1), ("😀", 1)]),
+        ("(\\w|\\W)+", T, [("²", 1)]),
+        ("[^\\d\\D]", "a😀", []),
     ];
+
+    // Letters, digits and symbols, each in the BMP and as a pair.
+    private const string T = "a\uD835\uDFCE\uD801\uDC00\uD83D\uDE00 1.i x\u00B2";
 
     [Fact]
     public void Each_pattern_yields_the_tokens_and_counts_python_finds()
@@ -172,9 +188,70 @@ public sealed class PythonPatternGrammarTests
     }
 
     [Fact]
+    public void A_short_text_read_again_compiled_is_read_compiled_from_then_on()
+    {
+        // The first text pays the interpreter's second, the next one like it no longer does (#1673). A pattern no other
+        // test reads, as the compiled spelling is shared by every reader of the pattern in the process.
+        var pattern = new PythonTokenPattern(@"(?:\W+\W+\W+\d)");
+        string text = string.Concat(Enumerable.Repeat("\uD83D\uDE00", 128));
+        Assert.Empty(pattern.Matches(text));
+        Assert.True(pattern.LastReadInterpreted);
+        Assert.Empty(pattern.Matches(text));
+        Assert.False(pattern.LastReadInterpreted);
+    }
+
+    [Fact]
+    public void A_lazy_repeat_with_a_bound_over_a_group_is_read_as_the_compiled_engine_reads_it()
+    {
+        // Python gives four ''; .NET's compiled engine keeps the capture of an iteration it gave up, as 0.7.0's did, and
+        // docs/equivalence.md says so (#1676).
+        Assert.Equal([("", 3), ("a", 1)], Tokens(@".([a-z]){,2}?I|", "1ai"));
+    }
+
+    [Fact]
+    public void A_pattern_the_engines_read_apart_takes_no_other_readers_compiled_spelling()
+    {
+        // Another reader of the pattern compiles it over a long text; this one still reads its short text interpreted,
+        // as Python does, rather than as the compiled engine, which keeps a capture it gave up (#1676, #1677).
+        const string Pattern = @"(?:.([a-z]){,2}?I|)";
+        Assert.NotEmpty(new PythonTokenPattern(Pattern).Matches(string.Concat(Enumerable.Repeat("1 \uD83D\uDE00", 200))));
+        var reader = new PythonTokenPattern(Pattern);
+        Assert.Equal([0, 0, 0, 0, 0], reader.Matches("1ai\uD83D\uDE00").Select(m => m.Length));
+        Assert.True(reader.LastReadInterpreted);
+        // Nor its own, once it read a long text compiled: a short one is still interpreted, as on main.
+        Assert.NotEmpty(reader.Matches(string.Concat(Enumerable.Repeat("1 \uD83D\uDE00", 200))));
+        Assert.False(reader.LastReadInterpreted);
+        Assert.Equal([0, 0, 0, 0, 0], reader.Matches("1ai\uD83D\uDE00").Select(m => m.Length));
+        Assert.True(reader.LastReadInterpreted);
+    }
+
+    [Theory]
+    [InlineData(@"[\w\S]")]
+    [InlineData(@"(?i)(\w|\w|\S)")]
+    [InlineData(@"[\w\d\w]")]
+    [InlineData(@"\w|\w")]
+    [InlineData(@"(?s)\w|\w|\S")]
+    public void A_class_spells_each_supplementary_set_once(string pattern)
+    {
+        // The word pairs, 5,000 units, written twice or beside any pair, ran a hundred times Python's time (#1672).
+        static int Pairs(string p) => PythonPattern.Translate(p).Length - PythonPattern.Translate(p, surrogateFree: true).Length;
+        Assert.True(Pairs(pattern) < Pairs(@"\w") + 200, $"{Pairs(pattern)} against {Pairs(@"\w")}");
+    }
+
+    [Fact]
+    public void A_repeat_of_an_empty_capable_item_is_read_as_the_compiled_engine_reads_it()
+    {
+        // Python gives 'Ax -²' alone; .NET's interpreter, which loops on (?:a|)+?.+|x, would too: neither engine reads
+        // every such pattern as Python does, and docs/equivalence.md says so (#1675).
+        Assert.Equal(
+            [("", 1), (" \u00B2\uD83D\uDE00", 1), ("Ax -\u00B2", 1)],
+            Tokens(@"(?:^[\w-]{1,3})*?(?>\D.|)+?\w[^\s]?|(?<=1)", "Ax -\u00B2 \u00B2\uD83D\uDE00."));
+    }
+
+    [Fact]
     public void A_scan_ends_where_the_engine_hands_back_a_match_before_the_search_start()
     {
-        // .NET's compiled engine returned (0, 1) over "111" from every start for this pattern, which 0.7.0 scanned for good.
+        // Over "111" .NET's compiled engine returned (0, 1) from start 1, behind it, which 0.7.0 scanned for good.
         var pattern = new PythonTokenPattern(@"(?:(.){0,2}?b+\S*(?=a){0,2}?)*|(a|)");
         Assert.NotEmpty(pattern.Matches("111"));
         Assert.NotEmpty(pattern.MatchesWithSpans("111"));

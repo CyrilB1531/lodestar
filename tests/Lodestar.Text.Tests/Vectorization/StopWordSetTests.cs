@@ -23,8 +23,8 @@ public sealed class StopWordSetTests
 
         if (RunsAgainstNetStandard)
         {
-            // No immutable set to recognise on netstandard2.0: the copy stands, and
-            // all that can be asserted is that it copied the right thing.
+            // netstandard2.0 copies even a shipped list, so the filter never hands out
+            // the set behind StopWords.English (#1674).
             Assert.NotSame(StopWords.English, adopted.Words);
             Assert.Equal(StopWords.English.Count, adopted.Words.Count);
         }
