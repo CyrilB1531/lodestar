@@ -1,3 +1,4 @@
+using System.Globalization;
 using Lodestar.Abstractions;
 
 namespace Lodestar.Preprocessing.Internal;
@@ -174,7 +175,7 @@ internal static class SparseColumns
             if (double.IsNaN(matrix.Values[i]) || double.IsInfinity(matrix.Values[i]))
             {
                 throw new ArgumentException(
-                    $"{parameterName} stores {matrix.Values[i]} at position {i}. {because}",
+                    $"{parameterName} stores {Convert.ToString(matrix.Values[i], CultureInfo.InvariantCulture)} at position {i}. {because}",
                     parameterName);
             }
         }
@@ -194,7 +195,7 @@ internal static class SparseColumns
                 {
                     throw new ArgumentException(
                         $"{parameterName} stores column {read.ColumnIndices[i]} more than once in row {row}, "
-                        + $"and those entries sum to {read.Values[i]}. {because}",
+                        + $"and those entries sum to {Convert.ToString(read.Values[i], CultureInfo.InvariantCulture)}. {because}",
                         parameterName);
                 }
             }

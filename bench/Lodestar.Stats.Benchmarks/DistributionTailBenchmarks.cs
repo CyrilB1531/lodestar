@@ -51,7 +51,7 @@ public class DistributionTailBenchmarks
     [Benchmark]
     public double ChiSquaredSfFractionalDf() => Distributions.ChiSquaredSf(_statistic, _fractionalDf);
 
-    /// <summary>The normal quantile, which inverts the normal tail.</summary>
+    /// <summary>The normal quantile, scipy's ndtri since #1684: a rational approximation, no tail evaluated.</summary>
     [Benchmark]
     public double NormalQuantile() => Distributions.NormalQuantile(_probability);
 }

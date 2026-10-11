@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Lodestar.Preprocessing.Internal;
 
 /// <summary>What every scaler here checks about a row-major matrix before reading it.</summary>
@@ -73,7 +75,7 @@ internal static class SampleMatrix
             if (double.IsNaN(samples[i]) || double.IsInfinity(samples[i]))
             {
                 throw new ArgumentException(
-                    $"{parameterName}[{i}] is {samples[i]}. The reference skips a NaN; a percentile over a "
+                    $"{parameterName}[{i}] is {Convert.ToString(samples[i], CultureInfo.InvariantCulture)}. The reference skips a NaN; a percentile over a "
                     + "sorted column cannot, so it is refused rather than answered wrongly.",
                     parameterName);
             }

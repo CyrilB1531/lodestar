@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Lodestar.Internal;
 
 /// <summary><c>log(1 + x)</c> and <c>eˣ − 1</c> kept accurate near zero, where the plain forms round the answer away.</summary>
@@ -15,6 +17,8 @@ internal static class NearZero
     internal const double SmallestNormal = 2.2250738585072014e-308;
 
     /// <summary><c>log(1 + x)</c>, within an ulp for a small <paramref name="x"/>, where the plain form loses it all.</summary>
+    /// <remarks>Inlined, and branch-free past the zero test: Metrics' residual loop ran 1.14 times its own copy's time with a branch, 1.05 without (#1682).</remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double Log1P(double x)
     {
         double u = 1.0 + x;
@@ -27,8 +31,10 @@ internal static class NearZero
             return x;
         }
 
-        // Divided before multiplied, as log(u) · x overflows past ~2.5e305; past 1/ε the correction moves nothing.
-        return x > 1.0 / MachineEpsilon ? Math.Log(u) : Math.Log(u) * (x / (u - 1.0));
+        // Divided before multiplied, as log(u) · x overflows past ~2.5e305; past 1/ε the correction moves nothing, and
+        // a select on the factor rather than a branch on the result took Metrics' loop from 1.14 to 1.05 (#1682).
+        double correction = x / (u - 1.0);
+        return Math.Log(u) * (x > 1.0 / MachineEpsilon ? 1.0 : correction);
     }
 
     /// <summary><c>eˣ − 1</c>, within an ulp for a small <paramref name="x"/>, where the plain form loses it all.</summary>

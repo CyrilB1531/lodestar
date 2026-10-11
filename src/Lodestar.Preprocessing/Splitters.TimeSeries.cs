@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Lodestar.Preprocessing;
 
 public static partial class Splitters
@@ -33,17 +35,18 @@ public static partial class Splitters
             Guard.NotLessThan(cap, 0);
         }
 
-        if (splitCount + 1 > sampleCount)
+        // In long: at int.MaxValue splits the count of blocks wrapped negative and skipped this refusal.
+        if ((long)splitCount + 1 > sampleCount)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(splitCount), splitCount, $"{splitCount + 1} blocks is more than the {sampleCount} rows there are.");
+                nameof(splitCount), splitCount, $"{Convert.ToString((long)splitCount + 1, CultureInfo.InvariantCulture)} blocks is more than the {Convert.ToString(sampleCount, CultureInfo.InvariantCulture)} rows there are.");
         }
 
         int blockSize = testSize ?? (sampleCount / (splitCount + 1));
         if ((long)sampleCount - gap - ((long)blockSize * splitCount) <= 0)
         {
             throw new ArgumentException(
-                $"{splitCount} test blocks of {blockSize} rows and a gap of {gap} leave no training row out of {sampleCount}.",
+                $"{Convert.ToString(splitCount, CultureInfo.InvariantCulture)} test blocks of {Convert.ToString(blockSize, CultureInfo.InvariantCulture)} rows and a gap of {Convert.ToString(gap, CultureInfo.InvariantCulture)} leave no training row out of {Convert.ToString(sampleCount, CultureInfo.InvariantCulture)}.",
                 nameof(testSize));
         }
 
@@ -53,7 +56,7 @@ public static partial class Splitters
         if (firstTest < 0)
         {
             throw new ArgumentException(
-                $"{splitCount} test blocks of {blockSize} rows need {splitCount * (long)blockSize} rows; there are {sampleCount}.",
+                $"{Convert.ToString(splitCount, CultureInfo.InvariantCulture)} test blocks of {Convert.ToString(blockSize, CultureInfo.InvariantCulture)} rows need {splitCount * (long)blockSize} rows; there are {Convert.ToString(sampleCount, CultureInfo.InvariantCulture)}.",
                 nameof(testSize));
         }
 

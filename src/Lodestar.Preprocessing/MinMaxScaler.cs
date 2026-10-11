@@ -1,3 +1,4 @@
+using System.Globalization;
 using Lodestar.Preprocessing.Internal;
 
 namespace Lodestar.Preprocessing;
@@ -87,7 +88,7 @@ public sealed class MinMaxScaler
         {
             throw new ArgumentOutOfRangeException(
                 nameof(options),
-                $"({settings.Low}, {settings.High})",
+                $"({Convert.ToString(settings.Low, CultureInfo.InvariantCulture)}, {Convert.ToString(settings.High, CultureInfo.InvariantCulture)})",
                 "A feature range is two finite bounds with the low one below the high one.");
         }
 

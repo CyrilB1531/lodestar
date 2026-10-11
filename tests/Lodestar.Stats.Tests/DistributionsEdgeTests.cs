@@ -270,4 +270,29 @@ public sealed class DistributionsEdgeTests
         Assert.Equal(double.PositiveInfinity, Distributions.StudentIsf(1e-300, 0.5));
         Assert.Equal(double.NegativeInfinity, Distributions.StudentQuantile(1e-300, 0.5));
     }
+
+    [Theory]
+    [InlineData(0.75, 0.6744897501960817)]
+    [InlineData(0.25, -0.6744897501960817)]
+    [InlineData(0.51, 0.02506890825871106)]
+    [InlineData(0.5, 0.0)]
+    [InlineData(1e-20, -9.262340089798409)]
+    [InlineData(0.999999999999, 7.0344869100478356)]
+    [InlineData(0.1, -1.2815515655446004)]
+    [InlineData(1e-300, -37.0470962993612)]
+    [InlineData(0.975, 1.959963984540054)]
+    public void The_normal_quantile_is_scipy_s_ndtri_to_the_last_bit(double p, double ppf)
+    {
+        // scipy 1.18.1's norm.ppf and norm.isf, ndtri(p) and -ndtri(p), measured on glibc: the tails go through
+        // Math.Log, glibc's on Linux, so the bit is asserted there and 1e-14 relative where another libm rounds (#1684).
+        if (OperatingSystem.IsLinux())
+        {
+            Assert.Equal(BitConverter.DoubleToInt64Bits(ppf), BitConverter.DoubleToInt64Bits(Distributions.NormalQuantile(p)));
+            Assert.Equal(BitConverter.DoubleToInt64Bits(-ppf + 0.0), BitConverter.DoubleToInt64Bits(Distributions.NormalIsf(p)));
+            return;
+        }
+
+        Assert.Equal(ppf, Distributions.NormalQuantile(p), 1e-14 * Math.Max(1.0, Math.Abs(ppf)));
+        Assert.Equal(-ppf, Distributions.NormalIsf(p), 1e-14 * Math.Max(1.0, Math.Abs(ppf)));
+    }
 }

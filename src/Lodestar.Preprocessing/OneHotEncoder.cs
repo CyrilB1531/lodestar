@@ -1,5 +1,6 @@
-using Lodestar.Abstractions;
 using System.Globalization;
+using System.Runtime.CompilerServices;
+using Lodestar.Abstractions;
 using Lodestar.Preprocessing.Internal;
 
 namespace Lodestar.Preprocessing;
@@ -24,6 +25,8 @@ public sealed class OneHotEncoder<T>
     private readonly int[] _frequentCount;
     private readonly int[] _dropped;
     private readonly int[] _offsets;
+    private readonly int[][] _columns;
+    private readonly int[] _unseenColumns;
     private readonly UnknownCategory _unknown;
 
     private OneHotEncoder(
@@ -40,6 +43,11 @@ public sealed class OneHotEncoder<T>
         _frequentCount = new int[featureCount];
         _offsets = new int[featureCount];
         var infrequent = new IReadOnlyList<T>?[featureCount];
+
+        // Each category's column, and an unseen value's, grouping and drop applied once here rather than per value:
+        // 1.14 times 0.2.0's transform without tiering, back to it with; tiered, within 5% either way (#1681).
+        _columns = new int[featureCount][];
+        _unseenColumns = new int[featureCount];
         int width = 0;
         for (int feature = 0; feature < featureCount; feature++)
         {
@@ -48,6 +56,16 @@ public sealed class OneHotEncoder<T>
             infrequent[feature] = map is null ? null : [.. categories[feature].Where((_, i) => map[i] == _frequentCount[feature])];
             _offsets[feature] = width;
             width += GroupedCount(feature) - (dropped[feature] < 0 ? 0 : 1);
+            _columns[feature] = new int[categories[feature].Length];
+            for (int category = 0; category < categories[feature].Length; category++)
+            {
+                _columns[feature][category] = Column(feature, map is null ? category : map[category]);
+            }
+
+            // Under Infrequent an unseen value takes the infrequent column; otherwise, or with none, it sets none.
+            _unseenColumns[feature] = unknown == UnknownCategory.Infrequent && map is not null
+                ? Column(feature, _frequentCount[feature])
+                : -1;
         }
 
         EncodedFeatureCount = width;
@@ -138,14 +156,16 @@ public sealed class OneHotEncoder<T>
         RejectIgnoredInfinity(values);
 
         var encoded = new double[TableLength.Of(rows, EncodedFeatureCount, nameof(values))];
+        int featureCount = FeatureCount;
+        int width = EncodedFeatureCount;
         for (int row = 0; row < rows; row++)
         {
-            for (int feature = 0; feature < FeatureCount; feature++)
+            for (int feature = 0; feature < featureCount; feature++)
             {
-                int column = ColumnOf(feature, values[(row * FeatureCount) + feature], nameof(values));
+                int column = ColumnOf(feature, values[(row * featureCount) + feature], nameof(values));
                 if (column >= 0)
                 {
-                    encoded[(row * EncodedFeatureCount) + column] = 1.0;
+                    encoded[(row * width) + column] = 1.0;
                 }
             }
         }
@@ -167,13 +187,14 @@ public sealed class OneHotEncoder<T>
         CategoryMatrix.RequireNoNull(values);
         RejectIgnoredInfinity(values);
 
-        var columns = new List<int>(rows * FeatureCount);
+        int featureCount = FeatureCount;
+        var columns = new List<int>(rows * featureCount);
         var pointers = new int[rows + 1];
         for (int row = 0; row < rows; row++)
         {
-            for (int feature = 0; feature < FeatureCount; feature++)
+            for (int feature = 0; feature < featureCount; feature++)
             {
-                int column = ColumnOf(feature, values[(row * FeatureCount) + feature], nameof(values));
+                int column = ColumnOf(feature, values[(row * featureCount) + feature], nameof(values));
                 if (column >= 0)
                 {
                     columns.Add(column);
@@ -295,31 +316,25 @@ public sealed class OneHotEncoder<T>
     private int ColumnOf(int feature, T value, string parameterName)
     {
         int index = _index.IndexOf(feature, value);
-        int grouped;
-        if (index >= 0)
-        {
-            grouped = _grouped[feature] is { } map ? map[index] : index;
-        }
-        else if (_unknown == UnknownCategory.Refuse)
+        return index >= 0 ? _columns[feature][index] : UnknownColumn(feature, value, parameterName);
+    }
+
+    /// <summary>Where an unseen value lands: refused, the infrequent column, or none — kept apart from the hot path.</summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private int UnknownColumn(int feature, T value, string parameterName)
+    {
+        if (_unknown == UnknownCategory.Refuse)
         {
             throw new ArgumentException(
-                $"feature {feature} has no category {value}. Fit saw "
+                $"feature {feature} has no category {Convert.ToString(value, CultureInfo.InvariantCulture)}. Fit saw "
                 + $"{_categories[feature].Length} of them; pass UnknownCategory.Ignore to "
                 + "encode an unseen value as all zeros instead.",
                 parameterName);
         }
-        else if (_unknown == UnknownCategory.Infrequent && _grouped[feature] is not null)
-        {
-            grouped = _frequentCount[feature];
-        }
-        else
-        {
-            // Ignored, or no infrequent column to take it: every column of this feature stays zero, which is also
-            // what a dropped first category looks like. The reference accepts that collision.
-            return -1;
-        }
 
-        return Column(feature, grouped);
+        // Ignored, or no infrequent column to take it: every column of this feature stays zero, which is also what
+        // a dropped first category looks like. The reference accepts that collision.
+        return _unseenColumns[feature];
     }
 
     /// <summary>The column a grouped category lands in, or <c>-1</c> when it is the dropped one.</summary>

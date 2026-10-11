@@ -1,3 +1,4 @@
+using System.Globalization;
 using Lodestar.Preprocessing.Internal;
 
 namespace Lodestar.Preprocessing;
@@ -227,7 +228,7 @@ public static partial class Splitters
         if (testCount >= sampleCount)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(testFraction), testFraction, $"holding out {testCount} of {sampleCount} rows leaves nothing to fit on.");
+                nameof(testFraction), testFraction, $"holding out {Convert.ToString(testCount, CultureInfo.InvariantCulture)} of {Convert.ToString(sampleCount, CultureInfo.InvariantCulture)} rows leaves nothing to fit on.");
         }
 
         return testCount;

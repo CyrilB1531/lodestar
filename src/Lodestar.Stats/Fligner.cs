@@ -80,7 +80,7 @@ public static class Fligner
         }
 
         // The normal scores of the pooled ranks: Φ⁻¹(r / (2(N + 1)) + 1/2), from Wichura's AS 241 alone, about 1e-16
-        // relative, where the published quantile's Newton refinement cost 115 ns a score (#1162's benchmark).
+        // relative: the published quantile, scipy's ndtri, took the test from 8.34 to 9.59 ms at 100,000 rows (#1684).
         double[] ranks = Ranks.Average(deviations);
         var scores = new double[total];
         double sum = 0.0;
