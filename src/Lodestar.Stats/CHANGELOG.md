@@ -12,6 +12,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Changed
 
+- `log1p` and `expm1` come from the one implementation `Lodestar.Preprocessing`, `Lodestar.Stats`, `Lodestar.Survival` and `Lodestar.Metrics` share, which can move a value by an ulp. ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230))
 - `Distributions.StudentQuantile` and `NormalQuantile` answer `0` and `1` with the support's ends, as scipy's `ppf` does, where they refused them. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))
 - `TTestResult.Df` and `Chi2ContingencyResult.Dof` are `DegreesOfFreedom`, `ChiSquare` and `Chi2ContingencyResult` are `ChiSquared` and `ChiSquaredContingencyResult`, and the F law's `Distributions.Fisher*` members are `FisherSnedecor*`, one spelling each before 1.0. ([#1217](https://github.com/CyrilB1531/lodestar/issues/1217))
 

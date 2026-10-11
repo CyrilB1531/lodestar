@@ -67,31 +67,8 @@ public static class MeanSquaredLogError
     {
         public double Apply(double truth, double prediction)
         {
-            double residual = Log1P(truth) - Log1P(prediction);
+            double residual = NearZero.Log1P(truth) - NearZero.Log1P(prediction);
             return residual * residual;
-        }
-
-        /// <summary>
-        /// <c>log(1 + x)</c> without the cancellation that spelling it that way
-        /// costs — numpy's <c>log1p</c>, which is what scikit-learn calls.
-        /// </summary>
-        /// <remarks>
-        /// Kahan's identity, not <c>Math.Log(1.0 + value)</c>, which loses
-        /// the low bits of a small <c>value</c> in the addition.
-        /// </remarks>
-        private static double Log1P(double value)
-        {
-            double shifted = 1.0 + value;
-
-            // S1244: the test is whether the addition rounded `value` away
-            // completely, which is a question about this exact double and not about
-            // two computed quantities being close. It is also what guards the
-            // division by `shifted - 1.0` on the next line.
-#pragma warning disable S1244
-            return shifted == 1.0
-#pragma warning restore S1244
-                ? value
-                : Math.Log(shifted) * (value / (shifted - 1.0)); // not log·value first, which overflows past ~2.5e305 (#1206)
         }
     }
 

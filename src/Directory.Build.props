@@ -116,11 +116,17 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shared/CodePointOrder.cs" Link="Internal/CodePointOrder.cs" />
   </ItemGroup>
 
-  <!-- numpy's linspace and linear percentile, compiled into the libraries whose bin edges must
-       land where numpy's do: Lodestar.Metrics for calibration_curve (#1204). Lodestar.Preprocessing
-       is to take it for KBinsDiscretizer with #1226 and #1237. -->
+  <!-- numpy's linspace, percentiles and medians, compiled into the libraries that must land where
+       numpy does: Lodestar.Metrics for calibration_curve (#1204), Lodestar.Preprocessing for
+       KBinsDiscretizer, RobustScaler, QuantileTransformer and SimpleImputer (#1226, #1230, #1237). -->
   <ItemGroup Condition="'$(LodestarIncludesNumpyGrid)' == 'true'">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/NumpyGrid.cs" Link="Internal/NumpyGrid.cs" />
+  </ItemGroup>
+
+  <!-- log1p and expm1 kept accurate near zero, one implementation for the libraries that need them:
+       Lodestar.Metrics, Lodestar.Preprocessing, Lodestar.Stats and Lodestar.Survival (#1230). -->
+  <ItemGroup Condition="'$(LodestarIncludesNearZero)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/NearZero.cs" Link="Internal/NearZero.cs" />
   </ItemGroup>
 
   <!-- Persistence plumbing, compiled only into the libraries that ship artifacts

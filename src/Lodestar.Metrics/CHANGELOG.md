@@ -7,6 +7,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Changed
 
+- `log1p` and `expm1` come from the one implementation `Lodestar.Preprocessing`, `Lodestar.Stats`, `Lodestar.Survival` and `Lodestar.Metrics` share, which can move a value by an ulp. ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230))
 - Precision, recall, the F-scores, Jaccard and `ClassificationReport` count per label in `O(n + k)` from the samples, where they built a `k × k` matrix that overflowed past 46,341 labels. ([#1200](https://github.com/CyrilB1531/lodestar/issues/1200))
 
 ### Fixed

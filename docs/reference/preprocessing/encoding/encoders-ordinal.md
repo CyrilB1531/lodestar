@@ -13,10 +13,13 @@ public static OrdinalEncoder<T> Ordinal<T>(ReadOnlySpan<T> values, int featureCo
 **Parameters** — `values` is the categories, row-major: `featureCount` per row. `featureCount` is
 how many values each row carries.
 
-**Returns** — a fitted [`OrdinalEncoder<T>`](ordinalencoder.md).
+**Returns** — a fitted [`OrdinalEncoder<T>`](ordinalencoder.md). Its categories are sorted.
+The order is numpy's: a string sorts by code point, not by UTF-16 unit
+([#1254](https://github.com/CyrilB1531/lodestar/issues/1254)), and a floating `NaN` sorts last ([#1229](https://github.com/CyrilB1531/lodestar/issues/1229)).
 
 **Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive.
-`ArgumentException` when `values` holds no row, a partial one, or a null.
+`ArgumentException` when `values` holds no row, a partial one, or a null, or an infinite floating
+category, as scikit-learn's `allow-nan` check refuses it ([#1229](https://github.com/CyrilB1531/lodestar/issues/1229)).
 
 **Example** — integers encode by their rank among the distinct values, not by their own magnitude.
 

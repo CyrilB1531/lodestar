@@ -80,7 +80,7 @@ internal static class ParametricLikelihood
                     return Jet.Constant(Math.Log(1e-25), difference.Size);
                 }
 
-                return difference.Value > 1.0 - 1e-25 ? Jet.Constant(Special.Log1p(-1e-25), difference.Size) : Jet.Log(difference);
+                return difference.Value > 1.0 - 1e-25 ? Jet.Constant(NearZero.Log1P(-1e-25), difference.Size) : Jet.Log(difference);
         }
     }
 }

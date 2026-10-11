@@ -12,7 +12,9 @@ public static LabelEncoder<T> Label<T>(ReadOnlySpan<T> labels) where T : ICompar
 
 **Parameters** — `labels` is one column of labels.
 
-**Returns** — a fitted [`LabelEncoder`](labelencoder.md).
+**Returns** — a fitted [`LabelEncoder`](labelencoder.md). Its classes are sorted.
+The order is numpy's: a string sorts by code point, not by UTF-16 unit
+([#1254](https://github.com/CyrilB1531/lodestar/issues/1254)), and a floating `NaN` sorts last ([#1229](https://github.com/CyrilB1531/lodestar/issues/1229)).
 
 **Exceptions** — `ArgumentException` when `labels` is empty or holds a null.
 

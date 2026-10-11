@@ -60,20 +60,10 @@ internal sealed record ElasticNet(double Scale, double Penalizer, double L1Ratio
     }
 
     /// <summary><c>log(1 + eˣ)</c> without overflow, numpy's <c>logaddexp(0, x)</c>.</summary>
-    private static double LogAddExp(double x) => Math.Max(0.0, x) + Log1P(Math.Exp(-Math.Abs(x)));
+    private static double LogAddExp(double x) => Math.Max(0.0, x) + NearZero.Log1P(Math.Exp(-Math.Abs(x)));
 
     /// <summary>autograd's derivative of <c>logaddexp(0, x)</c>: <c>exp(x − logaddexp(0, x))</c>.</summary>
     private static double Logistic(double x) => Math.Exp(x - LogAddExp(x));
-
-    /// <summary><c>log(1 + x)</c> for <c>0 ≤ x ≤ 1</c>, exact to rounding: Goldberg's correction of the rounded sum.</summary>
-    private static double Log1P(double x)
-    {
-        double u = 1.0 + x;
-        // S1244: an exactly unrounded sum is the case the correction divides by zero in.
-#pragma warning disable S1244
-        return u == 1.0 ? x : Math.Log(u) * x / (u - 1.0);
-#pragma warning restore S1244
-    }
 }
 
 /// <summary>The two ways a Cox fit reaches its coefficients: to the optimum, or along lifelines' own loop.</summary>

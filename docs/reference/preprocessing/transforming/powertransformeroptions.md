@@ -32,8 +32,9 @@ double largest = Math.Round(ends[1], 4);    // => 1.225
 
 **Remarks — `Standardize` changes the output, never the exponent.** The likelihood is maximised
 on the powered column before anything is centred, so both settings fit the same `Lambdas`; the
-switch decides only whether the mean and the population deviation of that column are divided out
-afterwards.
+switch decides only whether a `StandardScaler`, the reference's own, is fitted afterwards, taking
+off each powered column's mean and dividing by its deviation — on a constant Yeo-Johnson feature
+the raw column's, which the reference leaves untransformed at fit ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230)).
 
 **Leave it on unless something downstream needs the raw scale.** The powered values above span
 `1.14` to `1.23`, a range that will disappear beside any unscaled neighbour in the same matrix —

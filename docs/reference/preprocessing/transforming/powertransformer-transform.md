@@ -15,8 +15,10 @@ public double[] Transform(ReadOnlySpan<double> samples)
 [`PowerTransformerOptions.Standardize`](powertransformeroptions.md) is on, centred and scaled
 afterwards.
 
-**Exceptions** — `ArgumentException` when `samples` holds a partial row or a non-finite value; or
-when the family is [`PowerMethod.BoxCox`](powermethod.md) and a value is not strictly positive.
+**Exceptions** — `ArgumentException` when `samples` holds a partial row or a non-finite value; when
+the family is [`PowerMethod.BoxCox`](powermethod.md) and a value is not strictly positive; or,
+standardised, when the power overflows a value, as the reference's `StandardScaler` refuses the
+infinity — unstandardised, the infinity is returned ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230)).
 
 **Example** — with and without the standardisation step.
 
@@ -39,9 +41,10 @@ is the behaviour [`QuantileTransformer`](quantiletransformer.md) cannot offer. W
 decided was the exponent and, under standardisation, the mean and deviation of the transformed
 column; none of the three bounds a later value.
 
-**The standardisation is the transformed column's own.** It is applied after the power, on the
-population deviation of the fitted rows — so a fitted column comes out with mean 0 and deviation
-1, and a later row does not necessarily.
+**The standardisation is a `StandardScaler`'s, as the reference's is.** It is fitted after the power,
+on the fitted rows — so a fitted column comes out with mean 0 and deviation 1, and a later row does
+not necessarily — except on a constant Yeo-Johnson feature, which the reference leaves untransformed
+at fit and so standardises as it was ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230)).
 
 **Applies to** — net10.0, netstandard2.0.
 

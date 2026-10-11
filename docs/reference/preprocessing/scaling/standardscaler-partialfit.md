@@ -31,7 +31,8 @@ double mean = scaler.Mean![0];   // => 6.2
 **Remarks** — **the statistics are the ones a single fit over the concatenation gives**, to a couple
 of units in the last place: the update is `_incremental_mean_and_var`'s, Chan, Golub and LeVeque's
 parallel form, correction term included. Measured, the reference's own two paths differ by at most
-`3.3e-16` relative, and the corpus freezes both to say so.
+`3.3e-16` relative, and the corpus freezes both to say so. A column whose sum overflows takes numpy's
+order, as [`Fit`](standardscaler-fit.md) does, and comes out infinite or NaN rather than refused.
 
 **It returns a new scaler and leaves this one alone**, which is the one place the spelling differs
 from `partial_fit`. `scaler = scaler.PartialFit(batch)` reads the same, and a fitted object here

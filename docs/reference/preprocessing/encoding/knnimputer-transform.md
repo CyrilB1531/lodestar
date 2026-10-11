@@ -40,6 +40,12 @@ double byMean = uniform.Transform(rows)[2];     // => 4
 double byDistance = Math.Round(weighted.Transform(rows)[2], 4);   // => 3.6667
 ```
 
+**Ties between donors go to the lower row.** The reference breaks them by `numpy.argpartition`,
+whose pick varies with the CPU's SIMD tier, so it has no single order to match; the nearest are kept
+in a bounded heap rather than by sorting every donor per missing cell ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230)). The distances
+themselves are summed directly, where the reference expands them through BLAS, so two donors a few
+ulps apart can rank the other way round.
+
 **Remarks — the call is refused past 100 million distance terms.** The cost is
 `rows × fitted rows × features`, and on a Ryzen 7 8700G a hundred million terms over one feature
 take about 0.35 s and the same count over ten features about 1.6 s (measured 2026-09-23). Past

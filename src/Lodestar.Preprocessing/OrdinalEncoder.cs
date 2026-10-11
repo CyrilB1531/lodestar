@@ -42,6 +42,7 @@ public sealed class OrdinalEncoder<T>
         Guard.NotLessThan(featureCount, 1);
         int sampleCount = CategoryMatrix.Rows(values, featureCount);
         CategoryMatrix.RequireNoNull(values);
+        CategoryMatrix.RejectInfinity(values);
 
         return new OrdinalEncoder<T>(
             featureCount, sampleCount, CategoryTable.Build(values, featureCount, sampleCount));
@@ -49,9 +50,9 @@ public sealed class OrdinalEncoder<T>
 
     /// <summary>Encodes a row-major matrix as category indices.</summary>
     /// <param name="values">The categories to encode, row-major, with <see cref="FeatureCount"/> per row.</param>
-    /// <returns>A new array of the same length, each value the index of its category.</returns>
+    /// <returns>A new array of the same length, each value the index of its category — NaN for a fitted NaN category, as the reference's <c>encoded_missing_value</c> codes it.</returns>
     /// <exception cref="ArgumentException">
-    /// <paramref name="values"/> holds no row, a partial one, a null, or a category the fit never saw.
+    /// <paramref name="values"/> holds no row, a partial one, a null, or a category the fit never saw, an infinity among them.
     /// </exception>
     /// <remarks>
     /// An unseen category is refused rather than encoded: the reference's own default raises, and its
@@ -64,6 +65,7 @@ public sealed class OrdinalEncoder<T>
         CategoryMatrix.RequireNoNull(values);
 
         var encoded = new double[values.Length];
+        bool holdsNaN = _index.HoldsNaN;
         for (int row = 0; row < rows; row++)
         {
             for (int feature = 0; feature < FeatureCount; feature++)
@@ -78,7 +80,9 @@ public sealed class OrdinalEncoder<T>
                         nameof(values));
                 }
 
-                encoded[position] = index;
+                // encoded_missing_value's default: a fitted NaN category is coded NaN, and the others
+                // keep the indices NaN, sorted last, leaves them (#1229).
+                encoded[position] = holdsNaN && CategoryTable.IsNaN(values[position]) ? double.NaN : index;
             }
         }
 

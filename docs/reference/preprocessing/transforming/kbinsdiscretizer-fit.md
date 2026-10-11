@@ -47,6 +47,12 @@ widths vary; `Uniform` gives every bin the same width and lets the counts vary, 
 column puts most of the data in the first bin; `KMeans` lets the data decide both, at the cost of
 an iterative fit.
 
+**The edges are numpy's to the last bit.** Uniform edges are `np.linspace(min, max, n + 1)` and the
+quantile levels `np.linspace(0, 100, n + 1)`, each percentile read through numpy's own `_lerp`: an
+edge an ulp off the reference's moves a value sitting on it into the next bin
+([#1226](https://github.com/CyrilB1531/lodestar/issues/1226), [#1237](https://github.com/CyrilB1531/lodestar/issues/1237)). A constant feature is one bin over `[-inf, inf]`, as the
+reference makes it, so its inverse is `NaN` ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230)).
+
 **The fit reads every row of every feature and sorts each column**, so it costs
 `features × n log n`. There is no subsample here, for the reason
 [`QuantileTransformer`](quantiletransformer.md) has none either.

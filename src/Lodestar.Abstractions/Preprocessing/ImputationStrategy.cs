@@ -7,7 +7,10 @@ public enum ImputationStrategy
     /// <summary>The feature's mean over the values that are present.</summary>
     Mean,
 
-    /// <summary>Its median, which for an even count is the average of the two middle values.</summary>
+    /// <summary>
+    /// Its median, numpy's masked median: the average of the two middle values, the middle one with itself for an odd
+    /// count, so a middle value past half the largest double gives infinity, as the reference's does.
+    /// </summary>
     Median,
 
     /// <summary>Its most frequent value; a tie goes to the smaller, as the reference's does.</summary>

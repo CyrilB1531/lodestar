@@ -24,7 +24,7 @@ internal static class Densities
         double half = df / 2.0;
         double logRatio = LogGammaHalfStep(half);
         double logDensity = logRatio - (0.5 * Math.Log(df * Math.PI))
-            - ((df + 1.0) / 2.0 * Log1P(t / df * t));
+            - ((df + 1.0) / 2.0 * NearZero.Log1P(t / df * t));
         return Math.Exp(logDensity);
     }
 
@@ -99,7 +99,7 @@ internal static class Densities
         {
             return Gamma.LogGamma(half + 0.5) - Gamma.LogGamma(half);
         }
-        return (half * Log1P(0.5 / half)) + (0.5 * Math.Log(half)) - 0.5
+        return (half * NearZero.Log1P(0.5 / half)) + (0.5 * Math.Log(half)) - 0.5
             + Gamma.LogStirlingCorrection(half + 0.5) - Gamma.LogStirlingCorrection(half);
     }
 
@@ -115,13 +115,4 @@ internal static class Densities
         return a == 1.0 ? atOne : 0.0;
 #pragma warning restore S1244
     }
-
-    /// <summary><c>log(1 + x)</c> without losing <c>x</c>'s digits when it is small.</summary>
-    /// <remarks>
-    /// Gamma's series computes <c>log(1 + t) − t</c> without cancellation for small <c>t</c>, on both
-    /// frameworks. For a large <c>x</c> adding <c>x</c> back would drown the logarithm in <c>x</c>'s
-    /// rounding, so there the plain logarithm is exact enough and is used instead.
-    /// </remarks>
-    private static double Log1P(double x) =>
-        Math.Abs(x) < 0.5 ? Gamma.LogOnePlusMinus(x, 1.0 + x) + x : Math.Log(1.0 + x);
 }

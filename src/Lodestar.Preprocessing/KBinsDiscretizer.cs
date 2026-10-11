@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using Lodestar.Cluster;
 using Lodestar.Preprocessing.Internal;
 
@@ -41,7 +43,7 @@ public sealed class KBinsDiscretizer
     /// <summary>How many rows the discretizer was fitted on.</summary>
     public int SampleCount { get; }
 
-    /// <summary>Each feature's bin edges, ascending — the reference's <c>bin_edges_</c>.</summary>
+    /// <summary>Each feature's bin edges, ascending — the reference's <c>bin_edges_</c>, <c>[-∞, +∞]</c> for a constant feature.</summary>
     public IReadOnlyList<IReadOnlyList<double>> BinEdges { get; }
 
     /// <summary>
@@ -73,7 +75,7 @@ public sealed class KBinsDiscretizer
         var edges = new double[featureCount][];
         for (int feature = 0; feature < featureCount; feature++)
         {
-            double[] column = Percentile.SortedColumn(samples, featureCount, feature, sampleCount);
+            double[] column = SortedColumns.Of(samples, featureCount, feature, sampleCount);
             edges[feature] = Edges(column, settings);
         }
 
@@ -116,48 +118,147 @@ public sealed class KBinsDiscretizer
     /// <summary>Reads each bin back as its centre, which is what the reference's inverse returns.</summary>
     /// <param name="encoded">A matrix this discretizer produced.</param>
     /// <returns>One value per input feature, per row.</returns>
-    /// <exception cref="ArgumentException"><paramref name="encoded"/> holds a partial row.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="encoded"/> holds a partial row or a non-finite value; an ordinal code, truncated
+    /// toward zero, is outside <c>[-n, n)</c> for a feature of <c>n</c> bins; or a one-hot block is all zeros.
+    /// </exception>
+    /// <remarks>
+    /// The reference indexes the centres with <c>code.astype(np.int64)</c>, so a code is truncated and a
+    /// negative one counts from the last bin, as numpy's indexing does; one past either end is refused
+    /// where the reference raises <c>IndexError</c>. A one-hot block is read by its first largest value,
+    /// numpy's <c>argmax</c>, and an all-zero block is refused as its encoder refuses it (#1230).
+    /// </remarks>
     public double[] InverseTransform(ReadOnlySpan<double> encoded)
     {
         int width = OutputFeatureCount;
         int sampleCount = SampleMatrix.Rows(encoded, width);
+        SampleMatrix.RequireFiniteAsChecked(encoded, nameof(encoded));
+        if (_encoding == BinEncoding.OneHot)
+        {
+            RequireNoEmptyBlock(encoded, sampleCount, width, nameof(encoded));
+        }
+
         var original = new double[sampleCount * FeatureCount];
 
-        for (int row = 0; row < sampleCount; row++)
+        // Feature by feature, as the reference indexes a whole column at once: of two bad codes in two
+        // features, the first feature's is the one refused.
+        int column = 0;
+        for (int feature = 0; feature < FeatureCount; feature++)
         {
-            int source = row * width;
-            int target = row * FeatureCount;
-            int column = 0;
-            for (int feature = 0; feature < FeatureCount; feature++)
+            int count = _binCounts[feature];
+            for (int row = 0; row < sampleCount; row++)
             {
+                int source = row * width;
                 int bin = _encoding == BinEncoding.Ordinal
-                    ? (int)encoded[source + feature]
-                    : HotBin(encoded, source + column, _binCounts[feature]);
-                column += _encoding == BinEncoding.Ordinal ? 0 : _binCounts[feature];
-
-                bin = Math.Min(Math.Max(bin, 0), _binCounts[feature] - 1);
-                original[target + feature] =
-                    0.5 * (_binEdges[feature][bin] + _binEdges[feature][bin + 1]);
+                    ? CodeBin(encoded[source + feature], count, nameof(encoded))
+                    : HotBin(encoded, source + column, count);
+                original[(row * FeatureCount) + feature] =
+                    (_binEdges[feature][bin + 1] + _binEdges[feature][bin]) * 0.5;
             }
+
+            column += _encoding == BinEncoding.Ordinal ? 0 : count;
         }
 
         return original;
     }
 
+    /// <summary>An ordinal code as the bin <c>bin_centers[code.astype(np.int64)]</c> reads.</summary>
+    private static int CodeBin(double code, int count, string paramName)
+    {
+        double index = Math.Truncate(code);
+        if (index < -count || index >= count)
+        {
+            // Past int64, astype(np.int64) reads the minimum on x86-64, which numpy's message then prints; aarch64 saturates.
+            long printed = index > -9.2233720368547758e18 && index < 9.2233720368547758e18 ? (long)index : long.MinValue;
+            throw new ArgumentException(
+                $"index {printed.ToString(CultureInfo.InvariantCulture)} is out of bounds for axis 0 with size {count}",
+                paramName);
+        }
+
+        return index < 0 ? (int)index + count : (int)index;
+    }
+
+    /// <summary>A one-hot block as its encoder reads it: the first largest column, numpy's <c>argmax</c>.</summary>
     private static int HotBin(ReadOnlySpan<double> encoded, int start, int count)
     {
-        for (int i = 0; i < count; i++)
+        int best = 0;
+        for (int i = 1; i < count; i++)
         {
-            // S1244: a one-hot column holds an exact one where it is set; nothing rounds here.
-#pragma warning disable S1244
-            if (encoded[start + i] == 1.0)
-#pragma warning restore S1244
+            if (encoded[start + i] > encoded[start + best])
             {
-                return i;
+                best = i;
             }
         }
 
-        return 0;
+        return best;
+    }
+
+    /// <summary>
+    /// The encoder's refusal of an all-zero block: feature by feature, the first whose blocks sum to zero
+    /// on any row names every such row, as <c>np.flatnonzero</c> prints them.
+    /// </summary>
+    private void RequireNoEmptyBlock(ReadOnlySpan<double> encoded, int sampleCount, int width, string paramName)
+    {
+        int column = 0;
+        for (int feature = 0; feature < FeatureCount; feature++)
+        {
+            List<int>? empty = null;
+            for (int row = 0; row < sampleCount; row++)
+            {
+                // np.sum over the block, numpy's pairwise order, which a long block's rounding depends on.
+                double sum = NumpyReduction.Sum(encoded.Slice((row * width) + column, _binCounts[feature]));
+
+                // S1244: the encoder refuses a block whose sum is exactly zero, and only that.
+#pragma warning disable S1244
+                if (sum == 0.0)
+#pragma warning restore S1244
+                {
+                    (empty ??= []).Add(row);
+                }
+            }
+
+            if (empty is not null)
+            {
+                throw new ArgumentException(
+                    $"Samples {Printed(empty)} can not be inverted when drop=None and handle_unknown='error' because they contain all zeros",
+                    paramName);
+            }
+
+            column += _binCounts[feature];
+        }
+    }
+
+    /// <summary>Row indices as <c>str(np.array(rows))</c> prints them: padded to the widest, wrapped at 75, summarised past 1000.</summary>
+    private static string Printed(List<int> rows)
+    {
+        IEnumerable<int> shown = rows.Count > 1000 ? rows.Take(3).Concat(rows.Skip(rows.Count - 3)) : rows;
+        string[] words = shown.Select(row => row.ToString(CultureInfo.InvariantCulture)).ToArray();
+        int width = words.Max(word => word.Length);
+        var tokens = words.Select(word => word.PadLeft(width)).ToList();
+        if (rows.Count > 1000)
+        {
+            tokens.Insert(3, "...");
+        }
+
+        // numpy's _formatArray: a word wraps when it would pass 75 less the closing bracket.
+        var text = new StringBuilder();
+        var line = new StringBuilder("[");
+        for (int i = 0; i < tokens.Count; i++)
+        {
+            if (line.Length + tokens[i].Length > 74 && line.Length > 1)
+            {
+                text.Append(line.ToString().TrimEnd()).Append('\n');
+                line.Clear().Append(' ');
+            }
+
+            line.Append(tokens[i]);
+            if (i < tokens.Count - 1)
+            {
+                line.Append(' ');
+            }
+        }
+
+        return text.Append(line).Append(']').ToString();
     }
 
     private int BinOf(double value, int feature)
@@ -189,12 +290,12 @@ public sealed class KBinsDiscretizer
         double high = sortedColumn[sortedColumn.Length - 1];
 
         // S1244: a constant feature is one whose extremes are literally equal, and the reference
-        // gives it a single bin rather than cutting a zero-wide range into several.
+        // gives it one bin over the whole line, so its inverse is NaN as the reference's is (#1230).
 #pragma warning disable S1244
         if (low == high)
 #pragma warning restore S1244
         {
-            return [low, high];
+            return [double.NegativeInfinity, double.PositiveInfinity];
         }
 
         double[] edges = settings.Strategy switch
@@ -208,27 +309,20 @@ public sealed class KBinsDiscretizer
         return settings.Strategy == BinStrategy.Uniform ? edges : Widened(edges);
     }
 
-    private static double[] Uniform(double low, double high, int binCount)
-    {
-        var edges = new double[binCount + 1];
-        for (int i = 0; i <= binCount; i++)
-        {
-            edges[i] = low + ((high - low) * i / binCount);
-        }
+    /// <summary><c>np.linspace(low, high, binCount + 1)</c>, which <c>low + (high - low) · i / n</c> misses by an ulp (#1226).</summary>
+    private static double[] Uniform(double low, double high, int binCount) =>
+        NumpyGrid.Linspace(low, high, binCount + 1);
 
-        edges[binCount] = high;
-        return edges;
-    }
-
+    /// <summary>The percentiles at <c>np.linspace(0, 100, binCount + 1)</c>, the levels the reference reads (#1226, #1237).</summary>
     private static double[] Quantiles(double[] sortedColumn, KBinsDiscretizerOptions settings)
     {
-        var edges = new double[settings.BinCount + 1];
-        for (int i = 0; i <= settings.BinCount; i++)
+        double[] levels = NumpyGrid.Linspace(0.0, 100.0, settings.BinCount + 1);
+        var edges = new double[levels.Length];
+        for (int i = 0; i < levels.Length; i++)
         {
-            double percent = 100.0 * i / settings.BinCount;
             edges[i] = settings.QuantileMethod == QuantileMethod.Linear
-                ? Percentile.Linear(sortedColumn, percent)
-                : Percentile.AveragedInvertedCdf(sortedColumn, percent);
+                ? NumpyGrid.Percentile(sortedColumn, levels[i])
+                : NumpyGrid.AveragedInvertedCdf(sortedColumn, levels[i]);
         }
 
         return edges;

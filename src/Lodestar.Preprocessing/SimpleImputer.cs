@@ -50,6 +50,73 @@ public sealed class SimpleImputer
         ReadOnlySpan<double> samples, int featureCount, SimpleImputerOptions? options = null)
     {
         Guard.NotLessThan(featureCount, 1);
+        SimpleImputerOptions settings = Checked(options);
+
+        int sampleCount = SampleMatrix.Rows(samples, featureCount);
+        RequireNoInfinity(samples);
+
+        // np.ma.mean over the whole masked matrix, in one pass: a lone column is contiguous and summed pairwise (#1230).
+        bool mean = settings.Strategy == ImputationStrategy.Mean;
+        var statistics = new double[featureCount];
+        var counts = new int[featureCount];
+        if (mean)
+        {
+            Means(samples, sampleCount, statistics, counts);
+        }
+
+        for (int feature = 0; feature < featureCount; feature++)
+        {
+            double[]? present = mean ? null : Present(samples, featureCount, feature, sampleCount);
+            int count = present?.Length ?? counts[feature];
+            if (count <= 0)
+            {
+                if (!settings.KeepEmptyFeatures)
+                {
+                    throw Empty(feature, overflowed: count < 0, nameof(samples));
+                }
+
+                // The reference's keep_empty_features fills with zero, except that constant keeps its fill value (#894).
+                statistics[feature] = settings.Strategy == ImputationStrategy.Constant ? settings.FillValue : 0.0;
+                continue;
+            }
+
+            if (present is not null)
+            {
+                statistics[feature] = Statistic(present, settings);
+            }
+        }
+
+        return new SimpleImputer(featureCount, sampleCount, statistics);
+    }
+
+    /// <summary>
+    /// <c>np.ma.mean</c> of every feature, with the count of each one's values; a mean that overflowed, which numpy
+    /// masks and the reference then treats as an empty feature, counted <c>-1</c> so its refusal can say so.
+    /// </summary>
+    private static void Means(ReadOnlySpan<double> samples, int sampleCount, double[] means, int[] counts)
+    {
+        NumpyReduction.MaskedColumnMeans(samples, sampleCount, means.Length, means.Length == 1, means, counts);
+        for (int feature = 0; feature < means.Length; feature++)
+        {
+            if (counts[feature] > 0 && (double.IsNaN(means[feature]) || double.IsInfinity(means[feature])))
+            {
+                counts[feature] = -1;
+            }
+        }
+    }
+
+    private static ArgumentException Empty(int feature, bool overflowed, string paramName) => new(
+        (overflowed
+            ? $"feature {feature}'s mean is past the float range, which the reference masks and treats as a feature "
+                + "with no value, so there is no statistic to fill it from. "
+            : $"feature {feature} has no value at all, so there is no statistic to fill it from. ")
+        + "The reference drops such a feature and returns a narrower matrix; set "
+        + "KeepEmptyFeatures to fill it instead, with zero or the constant strategy's "
+        + "fill value, which is what its keep_empty_features=True does.",
+        paramName);
+
+    private static SimpleImputerOptions Checked(SimpleImputerOptions? options)
+    {
         SimpleImputerOptions settings = options ?? new SimpleImputerOptions();
         if (settings.Strategy is < ImputationStrategy.Mean or > ImputationStrategy.Constant)
         {
@@ -63,34 +130,7 @@ public sealed class SimpleImputer
                 nameof(options), settings.FillValue, "A fill value is finite; NaN is what marks a value missing.");
         }
 
-        int sampleCount = SampleMatrix.Rows(samples, featureCount);
-        RequireNoInfinity(samples);
-
-        var statistics = new double[featureCount];
-        for (int feature = 0; feature < featureCount; feature++)
-        {
-            double[] present = Present(samples, featureCount, feature, sampleCount);
-            if (present.Length == 0)
-            {
-                if (!settings.KeepEmptyFeatures)
-                {
-                    throw new ArgumentException(
-                        $"feature {feature} has no value at all, so there is no statistic to fill it from. "
-                        + "The reference drops such a feature and returns a narrower matrix; set "
-                        + "KeepEmptyFeatures to fill it instead, with zero or the constant strategy's "
-                        + "fill value, which is what its keep_empty_features=True does.",
-                        nameof(samples));
-                }
-
-                // The reference's keep_empty_features fills with zero, except that constant keeps its fill value (#894).
-                statistics[feature] = settings.Strategy == ImputationStrategy.Constant ? settings.FillValue : 0.0;
-                continue;
-            }
-
-            statistics[feature] = Statistic(present, settings);
-        }
-
-        return new SimpleImputer(featureCount, sampleCount, statistics);
+        return settings;
     }
 
     /// <summary>Fills the missing values of a row-major sample matrix.</summary>
@@ -115,7 +155,7 @@ public sealed class SimpleImputer
         return result;
     }
 
-    /// <summary>The statistic the strategy names, over the values that are present.</summary>
+    /// <summary>The statistic the strategy names, the mean apart, over the values that are present.</summary>
     private static double Statistic(double[] present, SimpleImputerOptions settings)
     {
         switch (settings.Strategy)
@@ -124,24 +164,12 @@ public sealed class SimpleImputer
                 return settings.FillValue;
             case ImputationStrategy.Median:
                 Array.Sort(present);
-                return Percentile.Median(present);
-            case ImputationStrategy.MostFrequent:
+                // The reference's np.ma.median over the masked column, whatever its length (#1230).
+                return NumpyGrid.MaskedMedian(present);
+            default:
                 Array.Sort(present);
                 return MostFrequent(present);
-            default:
-                return Mean(present);
         }
-    }
-
-    private static double Mean(double[] present)
-    {
-        double total = 0.0;
-        for (int i = 0; i < present.Length; i++)
-        {
-            total += present[i];
-        }
-
-        return total / present.Length;
     }
 
     /// <summary>The most frequent value of a sorted column; a tie goes to the smaller, as the reference's does.</summary>

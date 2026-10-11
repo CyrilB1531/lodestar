@@ -83,20 +83,17 @@ public sealed class QuantileTransformer
         SampleMatrix.RequireFinite(samples, nameof(samples));
 
         int count = Math.Max(1, Math.Min(settings.QuantileCount, sampleCount));
-        var references = new double[count];
-        for (int i = 0; i < count; i++)
-        {
-            references[i] = count == 1 ? 0.0 : (double)i / (count - 1);
-        }
+        // np.linspace(0, 1, n_quantiles_), as the reference spaces them, to the last bit (#1230).
+        double[] references = NumpyGrid.Linspace(0.0, 1.0, count);
 
         var quantiles = new double[featureCount][];
         for (int feature = 0; feature < featureCount; feature++)
         {
-            double[] column = Percentile.SortedColumn(samples, featureCount, feature, sampleCount);
+            double[] column = SortedColumns.Of(samples, featureCount, feature, sampleCount);
             quantiles[feature] = new double[count];
             for (int i = 0; i < count; i++)
             {
-                quantiles[feature][i] = Percentile.Linear(column, references[i] * 100.0);
+                quantiles[feature][i] = NumpyGrid.Percentile(column, references[i] * 100.0);
             }
         }
 

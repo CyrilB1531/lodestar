@@ -30,24 +30,14 @@ public static class Normalizer
         int sampleCount = SampleMatrix.Rows(samples, featureCount);
         SampleMatrix.RequireFinite(samples, nameof(samples));
 
-        var scaled = new double[samples.Length];
-        for (int row = 0; row < sampleCount; row++)
+        // One loop per norm, the norm chosen once: a single loop holding all three inlined made the JIT's code for the
+        // row loop half again as slow on short rows.
+        return norm switch
         {
-            int start = row * featureCount;
-            double length = Length(samples.Slice(start, featureCount), norm);
-
-            // A row of zeros has no direction to preserve, so the reference leaves it alone
-            // rather than dividing by zero. S1244: only an exact zero is that row.
-#pragma warning disable S1244
-            double divisor = length == 0.0 ? 1.0 : length;
-#pragma warning restore S1244
-            for (int feature = 0; feature < featureCount; feature++)
-            {
-                scaled[start + feature] = samples[start + feature] / divisor;
-            }
-        }
-
-        return scaled;
+            RowNorm.L1 => Scaled(samples, featureCount, sampleCount, default(Manhattan)),
+            RowNorm.L2 => Scaled(samples, featureCount, sampleCount, default(Euclidean)),
+            _ => Scaled(samples, featureCount, sampleCount, default(Largest)),
+        };
     }
 
     /// <summary>Scales each row of a sparse matrix to unit norm.</summary>
@@ -55,15 +45,18 @@ public static class Normalizer
     /// <param name="norm">Which norm each row is scaled by.</param>
     /// <returns>A new matrix with the same stored positions and scaled values.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="norm"/> is not a defined value.</exception>
+    /// <exception cref="ArgumentException"><paramref name="matrix"/> stores a non-finite value.</exception>
     /// <remarks>
     /// The stored positions are kept rather than recomputed: scaling a row by a positive number
     /// turns no stored value into a zero that was not one already, and the reference keeps its
-    /// sparsity the same way.
+    /// sparsity the same way. Unlike the dense overload, a norm is not floored: the reference's
+    /// sparse kernels divide by any norm that is not exactly zero.
     /// </remarks>
     public static CsrMatrix Transform(CsrMatrix matrix, RowNorm norm = RowNorm.L2)
     {
         Guard.NotNull(matrix);
         RequireDefined(norm);
+        SampleMatrix.RequireFiniteAsChecked(matrix.Values, nameof(matrix));
 
         double[] values = new double[matrix.Values.Length];
         for (int row = 0; row < matrix.RowCount; row++)
@@ -72,7 +65,7 @@ public static class Normalizer
             int end = matrix.RowPointers[row + 1];
             double length = Length(matrix.Values.AsSpan(start, end - start), norm);
 
-            // S1244: as above, only a row whose every stored value is an exact zero.
+            // S1244: only a row whose every stored value is an exact zero is left undivided, as the reference does.
 #pragma warning disable S1244
             double divisor = length == 0.0 ? 1.0 : length;
 #pragma warning restore S1244
@@ -90,6 +83,65 @@ public static class Normalizer
             (int[])matrix.RowPointers.Clone());
     }
 
+    private static double[] Scaled<TNorm>(ReadOnlySpan<double> samples, int featureCount, int sampleCount, TNorm norm)
+        where TNorm : struct, IDenseNorm
+    {
+        var scaled = new double[samples.Length];
+        for (int row = 0; row < sampleCount; row++)
+        {
+            int start = row * featureCount;
+            // The reference floors a dense norm below 10 · eps to 1, as it floors a scale: a row of
+            // [1e-17, 0] is left alone rather than blown up to [1, 0] (#1230).
+            double divisor = ScaleFloor.Of(norm.Of(samples.Slice(start, featureCount)));
+            for (int feature = 0; feature < featureCount; feature++)
+            {
+                scaled[start + feature] = samples[start + feature] / divisor;
+            }
+        }
+
+        return scaled;
+    }
+
+    /// <summary>
+    /// A dense row's norm in the reference's order: <c>np.abs(X).sum(axis=1)</c> pairwise for L1, <c>row_norms</c>'
+    /// <c>einsum</c> for L2, so the quotient lands on scikit-learn's last bit — L2 against an x86-64 numpy, whose
+    /// baseline kernel does not fuse its multiply-adds; an Arm build's does, and can land an ulp away.
+    /// </summary>
+    private interface IDenseNorm
+    {
+        double Of(ReadOnlySpan<double> row);
+    }
+
+    private readonly struct Manhattan : IDenseNorm
+    {
+        public double Of(ReadOnlySpan<double> row) => NumpyReduction.AbsSum(row);
+    }
+
+    private readonly struct Euclidean : IDenseNorm
+    {
+        public double Of(ReadOnlySpan<double> row) => Math.Sqrt(NumpyReduction.EinsumSquares(row));
+    }
+
+    private readonly struct Largest : IDenseNorm
+    {
+        public double Of(ReadOnlySpan<double> row) => LargestMagnitude(row);
+    }
+
+    /// <summary>The Max norm, dense or sparse alike: the largest magnitude, an exact pick in any order.</summary>
+    private static double LargestMagnitude(ReadOnlySpan<double> row)
+    {
+        double largest = 0.0;
+        foreach (double value in row)
+        {
+            // A select rather than a branch: on random rows the new largest is a coin toss the predictor loses.
+            double magnitude = Math.Abs(value);
+            largest = magnitude > largest ? magnitude : largest;
+        }
+
+        return largest;
+    }
+
+    /// <summary>A sparse row's norm, summed in order as the reference's <c>inplace_csr_row_normalize_*</c> kernels sum it.</summary>
     private static double Length(ReadOnlySpan<double> row, RowNorm norm)
     {
         double total = 0.0;
@@ -104,16 +156,7 @@ public static class Normalizer
                 return total;
 
             case RowNorm.Max:
-                for (int i = 0; i < row.Length; i++)
-                {
-                    double magnitude = Math.Abs(row[i]);
-                    if (magnitude > total)
-                    {
-                        total = magnitude;
-                    }
-                }
-
-                return total;
+                return LargestMagnitude(row);
 
             default:
                 for (int i = 0; i < row.Length; i++)

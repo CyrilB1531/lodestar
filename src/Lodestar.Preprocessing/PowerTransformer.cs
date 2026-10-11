@@ -14,20 +14,17 @@ namespace Lodestar.Preprocessing;
 public sealed class PowerTransformer
 {
     private readonly double[] _lambdas;
-    private readonly double[]? _means;
-    private readonly double[]? _deviations;
+    private readonly StandardScaler? _scaler;
     private readonly PowerMethod _method;
 
     private PowerTransformer(
-        int featureCount, int sampleCount, double[] lambdas, double[]? means, double[]? deviations,
-        PowerMethod method)
+        int featureCount, int sampleCount, double[] lambdas, StandardScaler? scaler, PowerMethod method)
     {
         FeatureCount = featureCount;
         SampleCount = sampleCount;
         _lambdas = lambdas;
         Lambdas = Array.AsReadOnly(_lambdas);
-        _means = means;
-        _deviations = deviations;
+        _scaler = scaler;
         _method = method;
     }
 
@@ -46,10 +43,11 @@ public sealed class PowerTransformer
     /// <param name="options">Family and standardisation; <see langword="null"/> takes the reference's defaults.</param>
     /// <returns>A fitted transformer.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
-    /// <exception cref="ArgumentException">
-    /// <paramref name="samples"/> holds no row, a partial one, or a non-finite value; or the
-    /// family is <see cref="PowerMethod.BoxCox"/> and a value is not strictly positive.
-    /// </exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds no row, a partial one, or a non-finite value; under <see cref="PowerMethod.BoxCox"/>, a value that is not strictly positive, a constant feature, or no bracket for the search; under <see cref="PowerMethod.YeoJohnson"/>, a mixed-sign column whose search bounds invert, past about 1e145; or, standardised, a value the fitted power overflows.</exception>
+    /// <remarks>
+    /// A constant Yeo-Johnson feature keeps exponent 1, the identity; Box-Cox refuses one, as scipy does (#1253).
+    /// Box-Cox searches unbounded from <c>(-2, 2)</c>, pulled back only where the transform would overflow (#1227).
+    /// </remarks>
     public static PowerTransformer Fit(
         ReadOnlySpan<double> samples, int featureCount, PowerTransformerOptions? options = null)
     {
@@ -58,7 +56,23 @@ public sealed class PowerTransformer
         int sampleCount = SampleMatrix.Rows(samples, featureCount);
         SampleMatrix.RequireFinite(samples, nameof(samples));
 
+        if (settings.Method == PowerMethod.BoxCox)
+        {
+            RequirePositive(samples, sampleCount, featureCount);
+        }
+
+        // Only Yeo-Johnson's constant test reads np.mean and np.var; Box-Cox refuses a constant column itself.
+        double[]? means = null;
+        double[]? variances = null;
+        if (settings.Method == PowerMethod.YeoJohnson)
+        {
+            means = new double[featureCount];
+            variances = new double[featureCount];
+            NumpyReduction.ColumnMeansAndVariances(samples, sampleCount, featureCount, means, variances);
+        }
+
         var lambdas = new double[featureCount];
+        var untransformed = new bool[featureCount];
         var column = new double[sampleCount];
         for (int feature = 0; feature < featureCount; feature++)
         {
@@ -67,68 +81,52 @@ public sealed class PowerTransformer
                 column[row] = samples[(row * featureCount) + feature];
             }
 
-            lambdas[feature] = Exponent(column, settings.Method, feature);
+            untransformed[feature] = means is not null && variances is not null
+                && ConstantFeature.IsConstant(sampleCount, means[feature], variances[feature]);
+            lambdas[feature] = settings.Method == PowerMethod.BoxCox
+                ? BoxCoxExponent(column, nameof(samples))
+                : YeoJohnsonExponent(column, untransformed[feature], nameof(samples));
         }
 
-        var fitted = new PowerTransformer(featureCount, sampleCount, lambdas, null, null, settings.Method);
+        var fitted = new PowerTransformer(featureCount, sampleCount, lambdas, null, settings.Method);
         if (!settings.Standardize)
         {
             return fitted;
         }
 
+        // The reference standardises through a StandardScaler, whose constant test and floor are
+        // its own (#1230), fitted on a constant Yeo-Johnson feature as it was, not as λ = 1 maps it.
         double[] powered = fitted.Raise(samples, sampleCount);
-        var means = new double[featureCount];
-        var deviations = new double[featureCount];
-        for (int feature = 0; feature < featureCount; feature++)
+        RequireFinitePower(powered, nameof(samples));
+        for (int i = 0; i < powered.Length; i++)
         {
-            for (int row = 0; row < sampleCount; row++)
+            if (untransformed[i % featureCount])
             {
-                column[row] = powered[(row * featureCount) + feature];
+                powered[i] = samples[i];
             }
-
-            double sum = 0.0;
-            for (int row = 0; row < sampleCount; row++)
-            {
-                sum += column[row];
-            }
-
-            means[feature] = sum / sampleCount;
-            deviations[feature] = Math.Sqrt(PowerLikelihood.PopulationVariance(column));
         }
 
-        // A feature the power left constant has no spread to divide by; the floor the scalers
-        // share turns that zero into a one, so the standardised column is zeros rather than NaNs.
-        ScaleFloor.Apply(deviations);
-
-        return new PowerTransformer(
-            featureCount, sampleCount, lambdas, means, deviations, settings.Method);
+        StandardScaler scaler = StandardScaler.FitChecked(powered, featureCount, sampleCount, new StandardScalerOptions());
+        return new PowerTransformer(featureCount, sampleCount, lambdas, scaler, settings.Method);
     }
 
     /// <summary>Raises each value to its feature's exponent, and standardises if asked to.</summary>
     /// <param name="samples">The matrix to transform, row-major.</param>
     /// <returns>A new matrix of the same shape.</returns>
-    /// <exception cref="ArgumentException"><paramref name="samples"/> holds a partial row, a non-finite value, or a non-positive one under Box-Cox.</exception>
+    /// <exception cref="ArgumentException"><paramref name="samples"/> holds a partial row, a non-finite value, or a non-positive one under Box-Cox; or, standardised, a value the fitted power overflows.</exception>
     public double[] Transform(ReadOnlySpan<double> samples)
     {
         int sampleCount = SampleMatrix.Rows(samples, FeatureCount);
         SampleMatrix.RequireFinite(samples, nameof(samples));
 
         double[] powered = Raise(samples, sampleCount);
-        if (_means is null || _deviations is null)
+        if (_scaler is null)
         {
             return powered;
         }
 
-        for (int row = 0; row < sampleCount; row++)
-        {
-            int start = row * FeatureCount;
-            for (int feature = 0; feature < FeatureCount; feature++)
-            {
-                powered[start + feature] =
-                    (powered[start + feature] - _means[feature]) / _deviations[feature];
-            }
-        }
-
+        RequireFinitePower(powered, nameof(samples));
+        _scaler.TransformInPlace(powered);
         return powered;
     }
 
@@ -141,19 +139,15 @@ public sealed class PowerTransformer
         int sampleCount = SampleMatrix.Rows(samples, FeatureCount);
         SampleMatrix.RequireFinite(samples, nameof(samples));
 
-        var original = new double[samples.Length];
+        // One array: the standardisation undone, then the power, written over it.
+        double[] original = samples.ToArray();
+        _scaler?.InverseTransformInPlace(original);
         for (int row = 0; row < sampleCount; row++)
         {
             int start = row * FeatureCount;
             for (int feature = 0; feature < FeatureCount; feature++)
             {
-                double value = samples[start + feature];
-                if (_means is not null && _deviations is not null)
-                {
-                    value = (value * _deviations[feature]) + _means[feature];
-                }
-
-                original[start + feature] = Lower(value, _lambdas[feature]);
+                original[start + feature] = Lower(original[start + feature], _lambdas[feature]);
             }
         }
 
@@ -185,53 +179,119 @@ public sealed class PowerTransformer
         return powered;
     }
 
-    private static double Exponent(double[] column, PowerMethod method, int feature)
+    /// <summary>
+    /// The refusal the reference's <c>StandardScaler</c> raises on a power that overflowed, in its words: the
+    /// samples were finite, what the exponent made of them is not. That scaler lets a NaN through and refuses only
+    /// an infinity, and so does this; unstandardised, the infinity is returned.
+    /// </summary>
+    private static void RequireFinitePower(double[] powered, string paramName)
     {
-        if (method == PowerMethod.BoxCox)
+        SampleMatrix.RejectInfinityAsChecked(powered, paramName, "X");
+    }
+
+    /// <summary>
+    /// The reference's <c>check_positive</c>, over every value before any exponent is fitted, so it wins over a constant
+    /// feature or a search refused after it; feature by feature, in the previous release's words and order.
+    /// </summary>
+    private static void RequirePositive(ReadOnlySpan<double> samples, int sampleCount, int featureCount)
+    {
+        for (int feature = 0; feature < featureCount; feature++)
         {
-            for (int i = 0; i < column.Length; i++)
+            for (int row = 0; row < sampleCount; row++)
             {
-                if (column[i] <= 0.0)
+                double value = samples[(row * featureCount) + feature];
+                if (value <= 0.0)
                 {
+                    // CA2208, S3928: the previous release named its own column parameter, and a refusal it made keeps it.
+#pragma warning disable CA2208, S3928
                     throw new ArgumentException(
-                        $"Box-Cox needs strictly positive values; feature {feature} holds {column[i]}.",
-                        nameof(column));
+                        $"Box-Cox needs strictly positive values; feature {feature} holds {value}.", "column");
+#pragma warning restore CA2208, S3928
                 }
             }
+        }
+    }
 
-            // The reference searches a fixed interval for Box-Cox, where Yeo-Johnson's is read
-            // off the data; both are wide enough that the optimum is interior in practice.
-            return BrentMinimum.Locate(l => PowerLikelihood.NegativeBoxCox(column, l), -2.0, 2.0);
+    /// <summary>Yeo-Johnson's exponent: 1 on a constant feature, the likelihood's optimum otherwise.</summary>
+    private static double YeoJohnsonExponent(double[] column, bool constant, string paramName)
+    {
+        if (constant)
+        {
+            return 1.0;
         }
 
         (double low, double high) = PowerLikelihood.YeoJohnsonBounds(column);
-        return BrentMinimum.Locate(l => PowerLikelihood.NegativeYeoJohnson(column, l), low, high);
+        return BrentMinimum.Locate(new YeoJohnsonObjective(column).Negative, low, high, paramName);
     }
 
-    /// <summary>The inverse of the power alone, before any standardisation is undone.</summary>
+    /// <summary>Box-Cox's exponent as <c>scipy.stats.boxcox</c> fits it.</summary>
+    private static double BoxCoxExponent(double[] column, string paramName)
+    {
+        // S1244: scipy refuses np.all(x == x[0]), an exactly constant column and only that.
+#pragma warning disable S1244
+        if (Array.TrueForAll(column, value => value == column[0]))
+#pragma warning restore S1244
+        {
+            throw new ArgumentException("Data must not be constant.", paramName);
+        }
+
+        double lambda = BrentUnbounded.Locate(new BoxCoxObjective(column).Negative, -2.0, 2.0, paramName);
+        return OverflowGuarded(column, lambda, double.MaxValue / 10000.0);
+    }
+
+    /// <summary>
+    /// <c>boxcox_normmax</c>'s last step: an exponent under which the transform's most extreme value would pass
+    /// <paramref name="ceiling"/> — <c>double.MaxValue / 10000</c>, scipy's <c>ymax</c> — is pulled back to the
+    /// one that reaches it exactly, through Lambert's W. Internal so a test can lower the ceiling, as
+    /// <c>boxcox_normmax(x, ymax=…)</c> can, to reach a branch no finite data of a sane size does.
+    /// </summary>
+    internal static double OverflowGuarded(double[] column, double lambda, double ceiling)
+    {
+        double smallest = column[0];
+        double largest = column[0];
+        for (int i = 1; i < column.Length; i++)
+        {
+            smallest = Math.Min(smallest, column[i]);
+            largest = Math.Max(largest, column[i]);
+        }
+
+        double extreme;
+        if (smallest >= 1.0)
+        {
+            extreme = largest;
+        }
+        else if (largest <= 1.0)
+        {
+            extreme = smallest;
+        }
+        else
+        {
+            extreme = PowerLikelihood.BoxCox(largest, lambda) > Math.Abs(PowerLikelihood.BoxCox(smallest, lambda))
+                ? largest
+                : smallest;
+        }
+
+        if (!(Math.Abs(PowerLikelihood.BoxCox(extreme, lambda)) > ceiling))
+        {
+            return lambda;
+        }
+
+        // _boxcox_inv_lmbda(x, y): the λ at which boxcox(x, λ) = y, y signed as x - 1 is.
+        double y = ceiling * Math.Sign(extreme - 1.0);
+        double logX = Math.Log(extreme);
+        double w = LambertW.LowerBranch(-Math.Pow(extreme, -1.0 / y) * logX / y);
+        return (-w / logX) - (1.0 / y);
+    }
+
+    /// <summary>The inverse of the power alone, before any standardisation is undone: scipy's <c>inv_boxcox</c>, or
+    /// scikit-learn's <c>_yeo_johnson_inverse_transform</c>, each tested as its reference tests the exponent.</summary>
     private double Lower(double value, double lambda)
     {
         if (_method == PowerMethod.BoxCox)
         {
-            // S1244: the exponent at which the forward map is a logarithm.
-#pragma warning disable S1244
-            return lambda == 0.0 ? Math.Exp(value) : Math.Pow((value * lambda) + 1.0, 1.0 / lambda);
-#pragma warning restore S1244
+            return PowerLikelihood.InverseBoxCox(value, lambda);
         }
 
-        if (value >= 0.0)
-        {
-#pragma warning disable S1244
-            return lambda == 0.0
-#pragma warning restore S1244
-                ? Math.Exp(value) - 1.0
-                : Math.Pow((value * lambda) + 1.0, 1.0 / lambda) - 1.0;
-        }
-
-#pragma warning disable S1244
-        return lambda == 2.0
-#pragma warning restore S1244
-            ? 1.0 - Math.Exp(-value)
-            : 1.0 - Math.Pow(((value * (lambda - 2.0)) + 1.0), 1.0 / (2.0 - lambda));
+        return PowerLikelihood.InverseYeoJohnson(value, lambda);
     }
 }

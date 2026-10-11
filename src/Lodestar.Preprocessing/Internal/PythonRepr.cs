@@ -19,11 +19,11 @@ internal static class PythonRepr
             string text = value.ToString("G" + precision.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
             if (BitConverter.DoubleToInt64Bits(double.Parse(text, CultureInfo.InvariantCulture)) == BitConverter.DoubleToInt64Bits(value))
             {
-                return Float(value, text, single: false);
+                return Float(value, text, positionalBelow: null);
             }
         }
 
-        return Float(value, value.ToString("G17", CultureInfo.InvariantCulture), single: false);
+        return Float(value, value.ToString("G17", CultureInfo.InvariantCulture), positionalBelow: null);
     }
 
     public static string Single(float value)
@@ -33,11 +33,19 @@ internal static class PythonRepr
             string text = value.ToString("G" + precision.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
             if (BitConverter.DoubleToInt64Bits(float.Parse(text, CultureInfo.InvariantCulture)) == BitConverter.DoubleToInt64Bits(value))
             {
-                return Float(value, text, single: true);
+                return Float(value, text, positionalBelow: 1e6);
             }
         }
 
-        return Float(value, value.ToString("G9", CultureInfo.InvariantCulture), single: true);
+        return Float(value, value.ToString("G9", CultureInfo.InvariantCulture), positionalBelow: 1e6);
+    }
+
+    /// <summary>A <c>float16</c> as numpy writes it, from the shortest text .NET 5's <c>Half</c> round-trips.</summary>
+    /// <remarks>Positional from <c>1e-4</c> up to <c>1e3</c>, measured on numpy 2.5.3: 999 is <c>999.0</c>, 1000 <c>1e+03</c>, 65504 <c>6.55e+04</c>.</remarks>
+    public static string Half(string shortest)
+    {
+        double value = double.Parse(shortest, NumberStyles.Float, CultureInfo.InvariantCulture);
+        return Float(value, shortest, positionalBelow: 1e3);
     }
 
     /// <remarks>
@@ -45,7 +53,7 @@ internal static class PythonRepr
     /// <c>float32</c> reads the value itself and stops at <c>1e6</c>, so <c>float32(0.0001)</c>, just below
     /// <c>1e-4</c>, is <c>1e-04</c> there — measured on numpy 2.5.3.
     /// </remarks>
-    private static string Float(double value, string shortest, bool single)
+    private static string Float(double value, string shortest, double? positionalBelow)
     {
         if (double.IsNaN(value))
         {
@@ -75,8 +83,8 @@ internal static class PythonRepr
         // The power of ten of the first significant digit.
         int leading = all.Length - all.TrimStart('0').Length;
         int power = whole.Length - 1 - leading + exponent;
-        bool positional = single
-            ? Math.Abs(value) >= 1e-4 && Math.Abs(value) < 1e6
+        bool positional = positionalBelow is { } ceiling
+            ? Math.Abs(value) >= 1e-4 && Math.Abs(value) < ceiling
             : power is >= -4 and < 16;
         return sign + (positional ? Positional(digits, power) : Scientific(digits, power));
     }

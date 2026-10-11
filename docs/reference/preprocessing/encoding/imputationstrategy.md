@@ -29,7 +29,9 @@ double fill = imputer.Statistics[0];  // => 1
 assumed. An implementation that keeps the last of an equally long run fills with 2 instead and
 passes every untied case, which is why the corpus freezes this one.
 
-`Median` is `numpy.median`: for an even count, the average of the two middle values.
+`Median` is `np.ma.median`, as the reference's is: the two middle values added and halved, the
+middle one added to itself where the count is odd — so three values of `1e308` give infinity
+([#1230](https://github.com/CyrilB1531/lodestar/issues/1230)).
 
 **Applies to** — net10.0, netstandard2.0.
 

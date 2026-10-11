@@ -12,7 +12,8 @@ public double[] Transform(ReadOnlySpan<T> values)
 
 **Returns** — a new array of `rows × EncodedFeatureCount` values, each 0 or 1.
 
-**Exceptions** — `ArgumentException` when `values` holds no row, a partial one, or a null; or when it
+**Exceptions** — `ArgumentException` when `values` holds no row, a partial one, a null, or an infinite
+floating category ([#1229](https://github.com/CyrilB1531/lodestar/issues/1229)); or when it
 holds a category the fit never saw and the encoder was fitted with
 [`UnknownCategory.Refuse`](unknowncategory.md).
 `ArgumentException` also when the rows times the encoded width are more cells than one array holds ([#1314](https://github.com/CyrilB1531/lodestar/issues/1314)).

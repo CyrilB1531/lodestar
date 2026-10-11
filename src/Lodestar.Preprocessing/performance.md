@@ -198,58 +198,56 @@ transform 10,806.04 μs,
 [`PowerTransformer.Fit`](../../docs/reference/preprocessing/transforming/powertransformer-fit.md) 32,350.17 μs against a
 transform of 1,085.94 μs, and
 [`KnnImputer.Transform`](../../docs/reference/preprocessing/encoding/knnimputer-transform.md) 38,939.98 μs over its own fixed
-2,000 rows. **[`PowerTransformer`](../../docs/reference/preprocessing/transforming/powertransformer.md)'s fit is thirty times its transform** — it maximises a
+2,000 rows. **[`PowerTransformer`](../../docs/reference/preprocessing/transforming/powertransformer.md)'s fit is many times its transform** — it maximises a
 log-likelihood by Brent's method per feature — and [`KnnImputer`](../../docs/reference/preprocessing/encoding/knnimputer.md) is the one member here that is
 quadratic in the rows, which is why it is pinned and why the type itself refuses past 100 million
 distance terms.
 
 Against `scikit-learn` 1.9.1 and `numpy` 2.5.3 through `compare-transformers`, one run of each
-side, milliseconds per operation, best of five. **Ratios above 1 mean Lodestar is faster; several
-are below it, and that is the finding.**
+side, milliseconds per operation, best of five, on the same machine on 2026-10-10 under the
+repository's machine lock. **Ratios above 1 mean Lodestar is faster; several are below it, and that
+is the finding.**
 
 | n | operation | Lodestar | `scikit-learn`, wall / cpu | ratio, wall | ratio, cpu |
 | ---: | --- | ---: | ---: | ---: | ---: |
-| 10,000 | `Normalizer` | **0.188 ms** | 0.196 / 0.196 ms | **1.04** | **1.03** |
-| 10,000 | `PolynomialFeatures` | 0.588 ms | **0.492** / 0.492 ms | 0.84 | 0.83 |
-| 10,000 | `KBinsDiscretizer`, fit | **0.964 ms** | 1.147 / 1.147 ms | **1.19** | **1.19** |
-| 10,000 | `KBinsDiscretizer`, transform | **0.261 ms** | 2.661 / 2.660 ms | **10.19** | **8.12** |
-| 10,000 | `QuantileTransformer`, fit | **1.034 ms** | 2.312 / 2.311 ms | **2.24** | **2.24** |
-| 10,000 | `QuantileTransformer`, transform | 1.106 ms | **0.982** / 0.982 ms | 0.89 | 0.89 |
-| 10,000 | `PowerTransformer`, fit | **14.035 ms** | 38.040 / 38.033 ms | **2.71** | **2.71** |
-| 10,000 | `PowerTransformer`, transform | 0.569 ms | **0.453** / 0.452 ms | 0.80 | 0.79 |
-| 10,000 | `KnnImputer`, transform | 28.056 ms | **16.730** / 200.865 ms | 0.60 | **7.13** |
-| 10,000 | `LabelEncoder` | 0.683 ms | **0.445** / 0.445 ms | 0.65 | 0.65 |
-| 100,000 | `Normalizer` | 1.211 ms | **1.067** / 1.067 ms | 0.88 | 0.69 |
-| 100,000 | `PolynomialFeatures` | **4.289 ms** | 4.539 / 4.533 ms | **1.06** | 0.87 |
-| 100,000 | `KBinsDiscretizer`, fit | 9.622 ms | **4.619** / 4.619 ms | 0.48 | 0.45 |
-| 100,000 | `KBinsDiscretizer`, transform | **3.252 ms** | 10.622 / 10.620 ms | **3.27** | **2.61** |
-| 100,000 | `QuantileTransformer`, fit | **9.903 ms** | 11.505 / 11.503 ms | **1.16** | **1.08** |
-| 100,000 | `QuantileTransformer`, transform | 10.161 ms | **9.145** / 9.143 ms | 0.90 | 0.86 |
-| 100,000 | `PowerTransformer`, fit | **147.715 ms** | 272.278 / 272.239 ms | **1.84** | **1.69** |
-| 100,000 | `PowerTransformer`, transform | 4.838 ms | **3.062** / 3.061 ms | 0.63 | 0.58 |
-| 100,000 | `KnnImputer`, transform | 29.016 ms | **13.597** / 163.092 ms | 0.47 | **5.63** |
-| 100,000 | `LabelEncoder` | 8.846 ms | **4.674** / 4.674 ms | 0.53 | 0.51 |
+| 10,000 | `Normalizer` | **0.195 ms** | 0.204 / 0.203 ms | **1.04** | **1.04** |
+| 10,000 | `PolynomialFeatures` | 0.560 ms | **0.493** / 0.493 ms | 0.88 | 0.88 |
+| 10,000 | `KBinsDiscretizer`, fit | **0.979 ms** | 1.156 / 1.156 ms | **1.18** | **1.18** |
+| 10,000 | `KBinsDiscretizer`, transform | **0.815 ms** | 2.734 / 2.733 ms | **3.35** | **3.35** |
+| 10,000 | `QuantileTransformer`, fit | **1.042 ms** | 2.368 / 2.367 ms | **2.27** | **2.28** |
+| 10,000 | `QuantileTransformer`, transform | 1.138 ms | **0.997** / 0.997 ms | 0.88 | 0.87 |
+| 10,000 | `PowerTransformer`, fit | **4.457 ms** | 38.864 / 38.855 ms | **8.72** | **8.56** |
+| 10,000 | `PowerTransformer`, transform | 0.972 ms | **0.464** / 0.464 ms | 0.48 | 0.48 |
+| 10,000 | `KnnImputer`, transform | **4.070 ms** | 20.073 / 240.324 ms | **4.93** | **59.06** |
+| 10,000 | `LabelEncoder` | 0.968 ms | **0.459** / 0.459 ms | 0.47 | 0.47 |
+| 100,000 | `Normalizer` | 1.131 ms | **1.107** / 1.107 ms | 0.98 | 0.75 |
+| 100,000 | `PolynomialFeatures` | **3.586 ms** | 4.663 / 4.662 ms | **1.30** | **1.08** |
+| 100,000 | `KBinsDiscretizer`, fit | 9.820 ms | **4.842** / 4.842 ms | 0.49 | 0.46 |
+| 100,000 | `KBinsDiscretizer`, transform | **4.292 ms** | 10.809 / 10.807 ms | **2.52** | **2.14** |
+| 100,000 | `QuantileTransformer`, fit | **10.103 ms** | 11.789 / 11.788 ms | **1.17** | **1.10** |
+| 100,000 | `QuantileTransformer`, transform | 10.421 ms | **9.705** / 9.636 ms | 0.93 | 0.90 |
+| 100,000 | `PowerTransformer`, fit | **47.071 ms** | 296.342 / 295.848 ms | **6.30** | **5.99** |
+| 100,000 | `PowerTransformer`, transform | 8.554 ms | **3.269** / 3.269 ms | 0.38 | 0.37 |
+| 100,000 | `KnnImputer`, transform | **4.027 ms** | 17.388 / 207.921 ms | **4.32** | **51.64** |
+| 100,000 | `LabelEncoder` | 12.174 ms | **4.882** / 4.876 ms | 0.40 | 0.39 |
 
 **Where this package wins, it wins on the work rather than on the loop.** The discretizer's
-transform is a binary search per value against a `numpy.digitize` that builds an index array; the
-power fit is Brent's method against `scipy.optimize.brent` driven from Python, which is why the fit
-is ahead and the transform — one `Math.Pow` per value against a vectorised `numpy.power` — is
-behind.
+transform is a binary search per value against a `numpy.digitize` that builds an index array, and
+the power fit runs scipy's own searches — `brent` bracketed from `(-2, 2)` for Box-Cox, `fminbound`
+for Yeo-Johnson — compiled rather than driven from Python, its variance taken directly where it holds
+and in scipy's logarithms only where a power overflows or cancels. [`KnnImputer`](../../docs/reference/preprocessing/encoding/knnimputer.md)
+is ahead on both clocks: the nearest donors are kept in a bounded heap per cell, where the reference
+computes and sorts every pairwise distance on every core.
 
 **Where it loses, it loses to vectorised C, and the losses are where a single array operation does
-the whole job**: [`PolynomialFeatures`](../../docs/reference/preprocessing/transforming/polynomialfeatures.md) multiplies column by column
-there, [`LabelEncoder`](../../docs/reference/preprocessing/encoding/labelencoder.md) is one `numpy.unique`, and the quantile map is one `numpy.interp`. Roughly a factor of two at 100,000
-rows, which is what a scalar managed loop costs against SIMD C over a contiguous array.
+the whole job**: [`PolynomialFeatures`](../../docs/reference/preprocessing/transforming/polynomialfeatures.md) at 10,000 rows multiplies column
+by column there, [`LabelEncoder`](../../docs/reference/preprocessing/encoding/labelencoder.md) is one `numpy.unique`, and the quantile map is one `numpy.interp`.
+**[`PowerTransformer`](../../docs/reference/preprocessing/transforming/powertransformer.md)'s transform is the widest loss**, 0.38× at 100,000 rows: it is
+scipy's `expm1(λ · log1p(x)) / λ` per value, with `log1p` and `expm1` written here, where `numpy`
+runs the same per element in vectorised C — the form the reference's values come from (#1227).
 
-**[`KnnImputer`](../../docs/reference/preprocessing/encoding/knnimputer.md) is the row to read twice.** It is behind on elapsed time and **5.6× ahead on
-processor time**, because `scikit-learn`'s pairwise distances run on every core through joblib and
-this runs on one: the reference spends 163 ms of CPU to finish in 13.6 ms. This one is a
-parallelism gap, not an arithmetic one, and it is the honest candidate for its own `perf/` issue.
-
-[`KBinsDiscretizer`](../../docs/reference/preprocessing/transforming/kbinsdiscretizer.md)'s fit at 100,000 rows is the other
-one: it sorts each column with
-`Array.Sort` against numpy's introsort over a contiguous buffer, and 0.48× is about the constant
-factor that costs.
+[`KBinsDiscretizer`](../../docs/reference/preprocessing/transforming/kbinsdiscretizer.md)'s fit at 100,000 rows sorts each column with `Array.Sort` against numpy's
+introsort over a contiguous buffer, and 0.49× is about the constant factor that costs.
 
 ## Sparse one-hot encoding against scikit-learn (issue #1161)
 
