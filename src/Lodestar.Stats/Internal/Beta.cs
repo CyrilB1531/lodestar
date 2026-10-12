@@ -40,7 +40,14 @@ internal static class Beta
     /// Near x = 1 the rounding of x is a relative error of 1e-16 / y in y, which is what the tail
     /// depends on: a Student argument df / (df + t^2) at df = 2e8 and t = 1 leaves y 1e-8 off.
     /// </remarks>
-    internal static double RegularizedIncomplete(double a, double b, double x, double y)
+    internal static double RegularizedIncomplete(double a, double b, double x, double y) =>
+        RegularizedIncomplete(a, b, x, y, double.NaN);
+
+    /// <summary>
+    /// <see cref="RegularizedIncomplete(double, double, double, double)"/> with <c>log B(a, b)</c> of exactly these shapes
+    /// in this order already taken, or NaN to take it here: an inversion holding them fixed takes it once (#1686).
+    /// </summary>
+    private static double RegularizedIncomplete(double a, double b, double x, double y, double logBeta)
     {
         if (double.IsNaN(a) || a <= 0.0)
         {
@@ -77,7 +84,7 @@ internal static class Beta
         }
 #pragma warning restore S2234
 
-        double front = Front(a, b, x, y);
+        double front = Front(a, b, x, y, logBeta);
 
         // The fraction converges quickly only on the side of the distribution's
         // mode; past it the reflection is the fast branch, not a fallback. The
@@ -266,7 +273,10 @@ internal static class Beta
     /// subtracts log-gammas of 1.7e9 at a = b = 1e8. d = x - x0 is taken from the smaller of x and
     /// 1 - x, so the two t share one d instead of two rounded ones.
     /// </remarks>
-    internal static double Front(double a, double b, double x, double y)
+    internal static double Front(double a, double b, double x, double y) => Front(a, b, x, y, double.NaN);
+
+    /// <summary><see cref="Front(double, double, double, double)"/> with <c>log B(a, b)</c> given, or NaN to take it.</summary>
+    private static double Front(double a, double b, double x, double y, double logBeta)
     {
         if (a < StirlingMinimumShape || b < StirlingMinimumShape)
         {
@@ -274,7 +284,7 @@ internal static class Beta
             // the x = 1 - y it rounds (#1158's review measured 6e-7 at shapes (5e9, 0.5)).
             double logX = x <= 0.5 ? Math.Log(x) : Gamma.LogOnePlusMinus(-y, x) - y;
             double logY = y <= 0.5 ? Math.Log(y) : Gamma.LogOnePlusMinus(-x, y) - x;
-            return Math.Exp((a * logX) + (b * logY) - LogBeta(a, b));
+            return Math.Exp((a * logX) + (b * logY) - (double.IsNaN(logBeta) ? LogBeta(a, b) : logBeta));
         }
 
         double c = a + b;
@@ -288,7 +298,10 @@ internal static class Beta
     }
 
     /// <summary>The upper tail of Student's t distribution: P(T &gt; t).</summary>
-    internal static double StudentSf(double t, double df)
+    internal static double StudentSf(double t, double df) => StudentSf(t, df, double.NaN);
+
+    /// <summary><see cref="StudentSf(double, double)"/> with <c>log B(df/2, 1/2)</c> given, or NaN to take it.</summary>
+    private static double StudentSf(double t, double df, double logBeta)
     {
         if (double.IsNaN(t))
         {
@@ -309,7 +322,7 @@ internal static class Beta
         // Both halves by division, so neither is 1 minus the other: which side to evaluate
         // directly is RegularizedIncomplete's choice, and a far tail stays a small number (#841).
         double complement = tSquared / denominator;
-        double tail = 0.5 * RegularizedIncomplete(df / 2.0, 0.5, x, complement);
+        double tail = 0.5 * RegularizedIncomplete(df / 2.0, 0.5, x, complement, logBeta);
         return t >= 0.0 ? tail : 1.0 - tail;
     }
 
@@ -394,9 +407,9 @@ internal static class Beta
         return (1.0 / (1.0 + ratio), ratio / (1.0 + ratio));
     }
 
-    /// <summary>The t with <c>P(T &gt; t) = p</c>: the inverse of <see cref="StudentSf"/>.</summary>
+    /// <summary>The t with <c>P(T &gt; t) = p</c>: the inverse of <see cref="StudentSf(double, double)"/>.</summary>
     /// <remarks>
-    /// The root of <see cref="StudentSf"/> itself, reached by <see cref="TailInversion"/>
+    /// The root of <see cref="StudentSf(double, double)"/> itself, reached by <see cref="TailInversion"/>
     /// rather than read off a rational approximation of its own: the seed only decides how
     /// many tail evaluations Newton needs, so there is no second approximation to keep in
     /// agreement with the tail. Bisection took about sixty; this takes one to three.
@@ -440,14 +453,19 @@ internal static class Beta
         // log of Gamma((df+1)/2) / (Gamma(df/2) sqrt(df pi)), the density's constant.
         private readonly double _logNormalizer;
 
+        // log B(df/2, 1/2), which every step's tail evaluation took afresh (#1686); NaN from df/2 = 1000, where the
+        // large-shape expansion answers each step with t^2 <= df and taking it cost those quantiles a fifth.
+        private readonly double _logBeta;
+
         internal StudentTail(double df)
         {
             _df = df;
+            _logBeta = df / 2.0 < LargeShapeMinimum ? LogBeta(df / 2.0, 0.5) : double.NaN;
             _logNormalizer = Gamma.LogGamma((df + 1.0) / 2.0) - Gamma.LogGamma(df / 2.0)
                 - (0.5 * Math.Log(df * Math.PI));
         }
 
-        public double Survival(double x) => StudentSf(x, _df);
+        public double Survival(double x) => StudentSf(x, _df, _logBeta);
 
         public double LogDensity(double x)
         {
