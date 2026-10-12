@@ -295,4 +295,30 @@ public sealed class DistributionsEdgeTests
         Assert.Equal(ppf, Distributions.NormalQuantile(p), 1e-14 * Math.Max(1.0, Math.Abs(ppf)));
         Assert.Equal(-ppf, Distributions.NormalIsf(p), 1e-14 * Math.Max(1.0, Math.Abs(ppf)));
     }
+
+    [Theory]
+    [InlineData(1e-300, 19, 0xC35502298BE600AD)]
+    [InlineData(0.025, 19, 0xC000BE83653B666F)]
+    [InlineData(0.975, 20, 0x4000B00D9A954439)]
+    [InlineData(1e-20, 20, 0xC043AEA949D929CF)]
+    [InlineData(0.025, 1999.9, 0xBFFF60DFC03A83A4)]
+    [InlineData(1e-300, 1999.9, 0xC04635CBDBB49B91)]
+    [InlineData(0.975, 2000, 0x3FFF60DFB049ED6E)]
+    [InlineData(1e-300, 2000, 0xC04635BDF09FB7D4)]
+    [InlineData(0.4, 2001, 0xBFD037640F98655A)]
+    [InlineData(1e-20, 2001, 0xC022BA3720EE0F1A)]
+    [InlineData(5e-324, 2000, 0xC04768CC558ABEBC)]
+    public void Student_quantiles_keep_their_bits_across_the_cached_log_beta(double p, double df, ulong bits)
+    {
+        // main's values before #1686 cached log B(df/2, 1/2): either side of 20, where LogBeta turns to Stirling, and of
+        // 2000, where the cache stops; (5e-324, 2000) ends past t^2 > df, where Front takes it afresh. Linux's libm.
+        double expected = BitConverter.Int64BitsToDouble(unchecked((long)bits));
+        if (OperatingSystem.IsLinux())
+        {
+            Assert.Equal(bits, unchecked((ulong)BitConverter.DoubleToInt64Bits(Distributions.StudentQuantile(p, df))));
+            return;
+        }
+
+        Assert.Equal(expected, Distributions.StudentQuantile(p, df), 1e-12 * Math.Abs(expected));
+    }
 }

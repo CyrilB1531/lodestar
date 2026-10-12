@@ -112,7 +112,7 @@ public static class ShapiroWilk
         if (n == 3)
         {
             // AS R94 fixes n = 3 at sqrt(1/2) and a zero middle weight: rescaling the
-            // middle Blom score, exactly -0.0, divided by a zero scale and gave NaN (#863).
+            // middle Blom score, exactly zero, divided by a zero scale and gave NaN (#863).
             weights[0] = -Math.Sqrt(0.5);
             weights[2] = Math.Sqrt(0.5);
             return weights;
