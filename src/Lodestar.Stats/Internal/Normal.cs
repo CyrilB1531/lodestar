@@ -46,8 +46,8 @@ internal static class Normal
             return 2.0 - Erfc(-x);
         }
 
-        // Exact sentinel: erfc(0) = 1 is the definition, and it keeps Sf(0) the exact one half
-        // Quantile's own sentinel states, rather than the interpolant's value there.
+        // Exact sentinel: erfc(0) = 1 is the definition, and it keeps Sf(0) the exact one half rather than
+        // the interpolant's value there.
 #pragma warning disable S1244
         if (x == 0.0)
 #pragma warning restore S1244
@@ -68,36 +68,6 @@ internal static class Normal
 
     /// <summary>The standard normal's upper tail: P(Z &gt; z).</summary>
     internal static double Sf(double z) => 0.5 * Erfc(z / Math.Sqrt(2.0));
-
-    /// <summary>The z with <c>P(Z &gt; z) = p</c>: the inverse of <see cref="Sf"/>.</summary>
-    /// <remarks>
-    /// The root of <see cref="Sf"/> itself, which <see cref="TailInversion"/> reaches from
-    /// <see cref="RationalUpperQuantile"/>: the rational approximation only chooses where Newton
-    /// starts, so there is still one approximation to keep right instead of two that must agree.
-    /// </remarks>
-    internal static double Quantile(double p)
-    {
-        if (double.IsNaN(p) || p <= 0.0 || p >= 1.0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(p), p, "The tail probability must lie strictly inside (0, 1).");
-        }
-
-        // S1244: an exact half is the distribution's own symmetric point, not a
-        // value that drifted there by rounding -- Sf(0) is exactly 0.5.
-#pragma warning disable S1244
-        if (p == 0.5)
-#pragma warning restore S1244
-        {
-            return 0.0;
-        }
-
-        // Symmetric about zero: p > 1/2 reduces to its mirror 1 - p < 1/2, exact there by
-        // Sterbenz, and the side on which the inversion's lower bound of zero holds.
-        return p > 0.5
-            ? -TailInversion.InvertUpperTail(default(UpperTail), 1.0 - p, RationalUpperQuantile(1.0 - p))
-            : TailInversion.InvertUpperTail(default(UpperTail), p, RationalUpperQuantile(p));
-    }
 
     // x lies in [0, Cutoff]; y = 4/(4+x) then lies in [LowestY, 1], and each interval's
     // polynomial is in u = 2t - 1, t being y's position inside it.
@@ -234,8 +204,8 @@ internal static class Normal
     /// <remarks>
     /// Wichura, M. J. (1988), "Algorithm AS 241: The percentage points of the normal
     /// distribution", <em>Applied Statistics</em> 37(3), 477-484: the paper's three rational
-    /// functions and coefficients, about 1e-16 relative. The seed for both quantiles here, and
-    /// Fligner-Killeen's normal scores on its own, where a statistic compared at 1e-9 needs no Newton step.
+    /// functions and coefficients, about 1e-16 relative: the seed Student's quantile starts its Newton steps
+    /// from, and Fligner-Killeen's scores on their own, where ndtri's second logarithm cost the test 15% (#1684).
     /// </remarks>
     internal static double RationalUpperQuantile(double p)
     {
@@ -311,15 +281,4 @@ internal static class Normal
         7.86869131145613259100e-4, 1.84631831751005468180e-5, 1.42151175831644588870e-7,
         2.04426310338993978564e-15,
     ];
-
-    /// <summary>The standard normal tail as <see cref="TailInversion"/> reads it.</summary>
-    private readonly struct UpperTail : IUpperTail
-    {
-        // log(sqrt(2 pi)), the standard normal density's normalizing constant.
-        private const double LogSqrtTwoPi = 0.91893853320467274178;
-
-        public double Survival(double x) => Sf(x);
-
-        public double LogDensity(double x) => (-0.5 * x * x) - LogSqrtTwoPi;
-    }
 }

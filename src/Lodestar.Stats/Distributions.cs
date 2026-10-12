@@ -119,17 +119,14 @@ public static class Distributions
     /// <remarks>
     /// The multiplier a large-sample confidence interval takes, where a Student one would
     /// need degrees of freedom it does not have: <c>NormalQuantile(0.975)</c> is 1.959963…
-    /// <strong>This is the quantile, not the inverse survival function</strong> — the
-    /// internal helper solves <c>P(Z &gt; z) = p</c> and carries the opposite sign, so the
-    /// negation below is the distribution's symmetry rather than a correction, exactly as
-    /// <see cref="StudentQuantile"/> does. Published under decision 0003.
+    /// It is <c>scipy.special.ndtri</c>'s Cephes approximation ported statement for statement, so the
+    /// value is scipy's to the last bit where .NET's logarithm is glibc's, as on Linux, and to 1e-14
+    /// relative elsewhere (#1684). Published under decision 0003.
     /// </remarks>
     public static double NormalQuantile(double p)
     {
         RequireProbability(p, nameof(p));
-        // The + 0.0 is not redundant: the internal helper answers exactly zero at the
-        // median, and negating it would hand a caller -0 from a published method.
-        return Endpoint(p, double.NegativeInfinity, double.PositiveInfinity) ?? (-Normal.Quantile(p) + 0.0);
+        return Endpoint(p, double.NegativeInfinity, double.PositiveInfinity) ?? Ndtri.Of(p);
     }
 
     /// <summary>The standard normal density.</summary>
@@ -154,7 +151,8 @@ public static class Distributions
     public static double NormalIsf(double p)
     {
         RequireProbability(p, nameof(p));
-        return Endpoint(p, double.PositiveInfinity, double.NegativeInfinity) ?? (Normal.Quantile(p) + 0.0);
+        // scipy's norm.isf is -ndtri(p); the + 0.0 turns the median's -0 into the +0 scipy returns.
+        return Endpoint(p, double.PositiveInfinity, double.NegativeInfinity) ?? (-Ndtri.Of(p) + 0.0);
     }
 
     /// <summary>Student's <em>t</em> density.</summary>

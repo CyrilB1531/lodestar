@@ -72,9 +72,9 @@ public sealed class NormalTests
     [InlineData(0.05, 1.6448536269514722)]
     [InlineData(0.975, -1.959963984540054)]
     [InlineData(1e-10, 6.361340902404056)]
-    public void Quantile_inverts_the_upper_tail(double p, double expected)
+    public void Ndtri_negated_inverts_the_upper_tail(double p, double expected)
     {
-        Assert.Equal(expected, Normal.Quantile(p), 1e-9);
+        Assert.Equal(expected, -Ndtri.Of(p) + 0.0, 1e-9);
     }
 
     [Theory]
@@ -83,27 +83,20 @@ public sealed class NormalTests
     [InlineData(1e-20, 9.262340089798409)]
     [InlineData(1e-100, 21.273453560965322)]
     [InlineData(1e-300, 37.0470962993612)]
-    public void Quantile_reaches_the_far_tail(double p, double expected)
+    public void Ndtri_reaches_the_far_tail(double p, double expected)
     {
-        Assert.Equal(1.0, Normal.Quantile(p) / expected, 1e-13);
+        Assert.Equal(1.0, -Ndtri.Of(p) / expected, 1e-13);
     }
 
     [Fact]
-    public void The_rational_seed_already_agrees_with_the_inverted_tail()
+    public void The_rational_seed_agrees_with_ndtri()
     {
-        // A mistyped AS 241 coefficient would still converge after Newton; this is what
+        // A mistyped AS 241 coefficient would still converge after Student's Newton steps; this is what
         // catches it, in each of the approximation's three regions.
         foreach (double p in new[] { 0.3, 0.075, 0.025, 1e-8, 1e-12, 1e-50, 1e-300 })
         {
-            Assert.Equal(1.0, Normal.RationalUpperQuantile(p) / Normal.Quantile(p), 1e-14);
+            Assert.Equal(1.0, Normal.RationalUpperQuantile(p) / -Ndtri.Of(p), 1e-14);
         }
-    }
-
-    [Fact]
-    public void Quantile_refuses_a_probability_outside_the_open_unit_interval()
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() => Normal.Quantile(0.0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => Normal.Quantile(1.0));
     }
 
     /// <summary>

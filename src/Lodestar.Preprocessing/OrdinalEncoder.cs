@@ -1,3 +1,4 @@
+using System.Globalization;
 using Lodestar.Preprocessing.Internal;
 
 namespace Lodestar.Preprocessing;
@@ -75,7 +76,7 @@ public sealed class OrdinalEncoder<T>
                 if (index < 0)
                 {
                     throw new ArgumentException(
-                        $"feature {feature} has no category {values[position]}. Fit saw "
+                        $"feature {feature} has no category {Convert.ToString(values[position], CultureInfo.InvariantCulture)}. Fit saw "
                         + $"{_categories[feature].Length} of them.",
                         nameof(values));
                 }

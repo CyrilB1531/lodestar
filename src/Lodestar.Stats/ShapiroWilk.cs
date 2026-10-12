@@ -98,10 +98,10 @@ public static class ShapiroWilk
         double sumSquares = 0.0;
         for (int i = 0; i < n; i++)
         {
-            // Blom's plotting position, through the *upper*-tail inverse, so the
-            // sign is negated to put the smallest score first.
+            // Blom's plotting position through scipy's ndtri, the smallest score first; swilk takes the lower
+            // half and mirrors it, so an upper score can part from scipy's in its last bit, within the 1e-9.
             double p = ((i + 1) - 0.375) / (n + 0.25);
-            blom[i] = -Normal.Quantile(p);
+            blom[i] = Ndtri.Of(p);
             sumSquares += blom[i] * blom[i];
         }
 

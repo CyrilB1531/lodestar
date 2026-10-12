@@ -1792,8 +1792,8 @@ belongs" table).
 separate out. `DistributionTailBenchmarks`, in the same project, times one published tail call per
 row and has no incumbent: `Distributions.ChiSquaredSf` at one, three, four, a hundred and a
 fractional 2.5 degrees of freedom (arguments from `tests/oracles/stats_distributions.json`, plus
-4.41 for the two without a corpus case), and `Distributions.NormalQuantile`, which inverts the
-normal tail. The
+4.41 for the two without a corpus case), and `Distributions.NormalQuantile`, scipy's `ndtri` since #1684,
+which evaluates no tail. The
 fractional row is the control: no closed form covers it, so it moves only when the iteration does.
 
 ```bash
@@ -2391,7 +2391,8 @@ The numbers, on a named machine and with the default job, are in
 
 `docs/guides/performance.md`
 replaced the bisection behind `Distributions.NormalQuantile` and `Distributions.StudentQuantile` with
-a safeguarded Newton inversion. `QuantileBenchmarks` times one call of each, so the cost is read
+a safeguarded Newton inversion; #1684 then replaced the normal one with scipy's `ndtri`, a rational
+approximation with no iteration. `QuantileBenchmarks` times one call of each, so the cost is read
 directly rather than subtracted out of a larger benchmark.
 
 ```bash
@@ -2402,12 +2403,14 @@ dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*Qu
 
 `NormalQuantile` and `StudentQuantile` are the arguments a caller actually passes: `0.975`, and
 `df = 95` for Student, the residual degrees of freedom of the 100-row fit in `OlsBenchmarks`.
-`NormalQuantileFarTail` (`p = 1e-300`) and `StudentQuantileCauchyFarTail` (`p = 1e-12`, `df = 1`)
-are where an iterative inverse is most likely to spend steps. None allocates.
+`StudentQuantileCauchyFarTail` (`p = 1e-12`, `df = 1`) is where the iterative Student inverse is most
+likely to spend steps; `NormalQuantileFarTail` (`p = 1e-300`) now times `ndtri`'s far-tail polynomial,
+two logarithms and no iteration. None allocates.
 
-**A quantile's cost follows its tail's.** Each call evaluates `Normal.Sf` or `StudentSf` one to four
-times, so a change to the incomplete gamma or beta underneath moves these rows as well — the tail
-is the thing to measure when they move.
+**Student's quantile follows its tail's cost; the normal one does not.** Each Student call evaluates
+`StudentSf` one to four times, so a change to the incomplete beta underneath moves those rows as well,
+and the tail is the thing to measure when they move. The normal quantile is scipy's `ndtri`, a
+rational approximation that evaluates no tail since #1684, so its rows move only with `Ndtri.cs`.
 
 ### Measuring the callers with it
 

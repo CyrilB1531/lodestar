@@ -181,7 +181,7 @@ public sealed class PreprocessingReviewFindingsTests
         Assert.StartsWith("Input contains NaN.", error.Message, StringComparison.Ordinal);
         Assert.Equal("matrix", error.ParamName);
         ArgumentException dense = Assert.Throws<ArgumentException>(() => Normalizer.Transform([double.PositiveInfinity, double.NaN], 2));
-        Assert.StartsWith(string.Create(CultureInfo.CurrentCulture, $"samples[0] is {double.PositiveInfinity}"), dense.Message, StringComparison.Ordinal);
+        Assert.StartsWith("samples[0] is Infinity", dense.Message, StringComparison.Ordinal);
         Assert.Equal("samples", dense.ParamName);
     }
 
@@ -524,7 +524,7 @@ public sealed class PreprocessingReviewFindingsTests
             () => Normalizer.Transform([double.PositiveInfinity, double.NaN], 1)).Message, StringComparison.Ordinal);
         ArgumentException power = Assert.Throws<ArgumentException>(() => PowerTransformer.Fit([double.NaN, 1.0, double.PositiveInfinity], 1));
         Assert.StartsWith("samples[0] is NaN", power.Message, StringComparison.Ordinal);
-        Assert.StartsWith(string.Create(CultureInfo.CurrentCulture, $"samples[0] is {double.PositiveInfinity}"), Assert.Throws<ArgumentException>(
+        Assert.StartsWith("samples[0] is Infinity", Assert.Throws<ArgumentException>(
             () => KBinsDiscretizer.Fit([double.PositiveInfinity, double.NaN, 1.0, 2.0], 1)).Message, StringComparison.Ordinal);
     }
 
@@ -653,6 +653,52 @@ public sealed class PreprocessingReviewFindingsTests
         }
 
         Assert.True(double.IsNegative(QuantileTransformer.Fit([-0.0, 1.0], 2).Quantiles[0][0]));
+    }
+
+    [Fact]
+    public void Refusals_print_their_value_in_the_invariant_culture()
+    {
+        // Under fr-FR the value read "2,5" and "∞", so a message changed with the machine's locale (#1683).
+        CultureInfo saved = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+        try
+        {
+            OrdinalEncoder<double> ordinal = Encoders.Ordinal<double>([1.5, 3.5], 1);
+            Assert.StartsWith("feature 0 has no category 2.5.", Assert.Throws<ArgumentException>(() => ordinal.Transform([2.5])).Message, StringComparison.Ordinal);
+            OneHotEncoder<double> oneHot = Encoders.OneHot<double>([1.5, 3.5], 1);
+            Assert.StartsWith("feature 0 has no category 2.5.", Assert.Throws<ArgumentException>(() => oneHot.Transform([2.5])).Message, StringComparison.Ordinal);
+            var boxCox = new PowerTransformerOptions { Method = PowerMethod.BoxCox };
+            Assert.StartsWith("Box-Cox needs strictly positive values; feature 0 holds -1.5.", Assert.Throws<ArgumentException>(() => PowerTransformer.Fit([-1.5, 2.0], 1, boxCox)).Message, StringComparison.Ordinal);
+            Assert.StartsWith("samples[0] is Infinity.", Assert.Throws<ArgumentException>(() => StandardScaler.Fit([double.PositiveInfinity], 1)).Message, StringComparison.Ordinal);
+            var sparse = new CsrMatrix(1, 1, [double.PositiveInfinity], [0], [0, 1]);
+            Assert.Contains("stores Infinity at position 0", Assert.Throws<ArgumentException>(() => StandardScaler.Fit(sparse)).Message, StringComparison.Ordinal);
+            Assert.Contains("(2.5, 1.5)", Assert.Throws<ArgumentOutOfRangeException>(
+                () => MinMaxScaler.Fit([1.0, 2.0], 1, new MinMaxScalerOptions { Low = 2.5, High = 1.5 })).Message, StringComparison.Ordinal);
+            Assert.Contains("(75.5, 25.5)", Assert.Throws<ArgumentOutOfRangeException>(
+                () => RobustScaler.Fit([1.0, 2.0], 1, new RobustScalerOptions { LowerPercentile = 75.5, UpperPercentile = 25.5 })).Message, StringComparison.Ordinal);
+            Assert.StartsWith("samples[0] is Infinity.", Assert.Throws<ArgumentException>(() => SimpleImputer.Fit([double.PositiveInfinity], 1)).Message, StringComparison.Ordinal);
+            PowerTransformer fitted = PowerTransformer.Fit([1.5, 2.0], 1, boxCox);
+            Assert.StartsWith("Box-Cox needs strictly positive values; feature 0 holds -1.5.", Assert.Throws<ArgumentException>(() => fitted.Transform([-1.5])).Message, StringComparison.Ordinal);
+
+            // Swedish writes a negative integer with U+2212, so the order's offending row was culture-bound too.
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("sv-SE");
+            Assert.StartsWith("order[0] is -1,", Assert.Throws<ArgumentException>(() => Splitters.KFold(2, 2, [-1, 0])).Message, StringComparison.Ordinal);
+            Assert.Contains("a gap of -5 leave", Assert.Throws<ArgumentException>(() => Splitters.TimeSeries(10, 2, testSize: 100, gap: -5)).Message, StringComparison.Ordinal);
+            Assert.Contains("the -5 rows there are", Assert.Throws<ArgumentOutOfRangeException>(() => Splitters.TimeSeries(-5, 2)).Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = saved;
+        }
+    }
+
+    [Fact]
+    public void A_time_series_split_count_at_int_max_is_refused_not_wrapped()
+    {
+        // Adding one to the split count wrapped to int.MinValue and skipped the refusal, then the fold array failed
+        // to allocate, where scikit-learn refuses too many folds for ten samples.
+        ArgumentOutOfRangeException error = Assert.Throws<ArgumentOutOfRangeException>(() => Splitters.TimeSeries(10, int.MaxValue));
+        Assert.Contains("2147483648 blocks is more than the 10 rows there are.", error.Message, StringComparison.Ordinal);
     }
 
     private static void ListNames(int[] indices, int position, int from, int features, List<string> names)

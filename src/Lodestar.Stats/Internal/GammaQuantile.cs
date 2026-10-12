@@ -166,8 +166,8 @@ internal static class GammaQuantile
             }
         }
 
-        // The standard-normal quantile of the lower-tail probability, from the upper-tail helper.
-        double z = problem.Upper ? Normal.Quantile(problem.Target) : -Normal.Quantile(problem.Target);
+        // The standard-normal quantile of the lower-tail probability: scipy's ndtri, negated from an upper tail.
+        double z = problem.Upper ? -Ndtri.Of(problem.Target) : Ndtri.Of(problem.Target);
         double c = 1.0 / (9.0 * a);
         double cube = 1.0 - c + (z * Math.Sqrt(c));
         double wilsonHilferty = a * cube * cube * cube;

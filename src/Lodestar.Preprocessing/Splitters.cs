@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Lodestar.Preprocessing;
 
 /// <summary>Cross-validation and train/test splits, at <c>sklearn.model_selection</c> parity where it is deterministic.</summary>
@@ -138,7 +140,7 @@ public static partial class Splitters
         if (testCount >= sampleCount)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(testFraction), testFraction, $"holding out {testCount} of {sampleCount} rows leaves nothing to fit on.");
+                nameof(testFraction), testFraction, $"holding out {Convert.ToString(testCount, CultureInfo.InvariantCulture)} of {Convert.ToString(sampleCount, CultureInfo.InvariantCulture)} rows leaves nothing to fit on.");
         }
 
         var train = new int[sampleCount - testCount];
@@ -239,7 +241,7 @@ public static partial class Splitters
         if (foldCount > sampleCount)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(foldCount), foldCount, $"{foldCount} folds is more than the {sampleCount} rows there are to cut.");
+                nameof(foldCount), foldCount, $"{Convert.ToString(foldCount, CultureInfo.InvariantCulture)} folds is more than the {Convert.ToString(sampleCount, CultureInfo.InvariantCulture)} rows there are to cut.");
         }
     }
 
@@ -270,7 +272,7 @@ public static partial class Splitters
             if (row < 0 || row >= sampleCount || seen[row])
             {
                 throw new ArgumentException(
-                    $"order[{i}] is {row}, and an order is a permutation of 0..{sampleCount - 1} with no repeats.",
+                    $"order[{i}] is {Convert.ToString(row, CultureInfo.InvariantCulture)}, and an order is a permutation of 0..{sampleCount - 1} with no repeats.",
                     nameof(order));
             }
 

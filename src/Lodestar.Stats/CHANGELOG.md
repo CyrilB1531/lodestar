@@ -12,7 +12,8 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Changed
 
-- `log1p` and `expm1` come from the one implementation `Lodestar.Preprocessing`, `Lodestar.Stats`, `Lodestar.Survival` and `Lodestar.Metrics` share, which can move a value by an ulp. ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230))
+- `log1p` comes from the one implementation `Lodestar.Preprocessing`, `Lodestar.Stats`, `Lodestar.Survival` and `Lodestar.Metrics` share, which can move a value by an ulp. ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230))
+- `Distributions.NormalQuantile` and `NormalIsf` are scipy's `ndtri`, Cephes' rational approximations ported statement for statement, so they match `norm.ppf` and `norm.isf` to the last bit on Linux, and to `1e-14` relative elsewhere, where inverting the tail by Newton strayed up to 5.5e-13 near one half, and `ShapiroWilk.Test`'s Blom scores and the chi-squared quantiles' starting point take it too, which can move their last bits. ([#1684](https://github.com/CyrilB1531/lodestar/issues/1684))
 - `Distributions.StudentQuantile` and `NormalQuantile` answer `0` and `1` with the support's ends, as scipy's `ppf` does, where they refused them. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))
 - `TTestResult.Df` and `Chi2ContingencyResult.Dof` are `DegreesOfFreedom`, `ChiSquare` and `Chi2ContingencyResult` are `ChiSquared` and `ChiSquaredContingencyResult`, and the F law's `Distributions.Fisher*` members are `FisherSnedecor*`, one spelling each before 1.0. ([#1217](https://github.com/CyrilB1531/lodestar/issues/1217))
 

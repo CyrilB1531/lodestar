@@ -29,7 +29,7 @@ QuantileTransformer normal = QuantileTransformer.Fit(
     skew, 1, new QuantileTransformerOptions { Output = QuantileOutput.Normal });
 
 double middleUniform = uniform.Transform([8.0])[0];   // => 0.5555555555555556
-double middleNormal = normal.Transform([8.0])[0];     // => 0.13971029888186234
+double middleNormal = normal.Transform([8.0])[0];     // => 0.13971029888186212
 ```
 
 **Remarks — a value outside the fitted range is clamped.** Anything below the smallest fitted

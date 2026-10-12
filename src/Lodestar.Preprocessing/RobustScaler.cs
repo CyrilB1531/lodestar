@@ -1,3 +1,4 @@
+using System.Globalization;
 using Lodestar.Abstractions;
 using Lodestar.Preprocessing.Internal;
 using Lodestar.Stats;
@@ -189,7 +190,7 @@ public sealed class RobustScaler
         {
             throw new ArgumentOutOfRangeException(
                 nameof(options),
-                $"({options.LowerPercentile}, {options.UpperPercentile})",
+                $"({Convert.ToString(options.LowerPercentile, CultureInfo.InvariantCulture)}, {Convert.ToString(options.UpperPercentile, CultureInfo.InvariantCulture)})",
                 "A percentile range satisfies 0 <= lower <= upper <= 100, as the reference requires.");
         }
     }
@@ -207,7 +208,7 @@ public sealed class RobustScaler
         {
             throw new ArgumentOutOfRangeException(
                 nameof(options),
-                $"({options.LowerPercentile}, {options.UpperPercentile})",
+                $"({Convert.ToString(options.LowerPercentile, CultureInfo.InvariantCulture)}, {Convert.ToString(options.UpperPercentile, CultureInfo.InvariantCulture)})",
                 "Unit variance divides by the normal quantiles of the percentile range, and 0 and 100 "
                 + "have none. Narrow the range, or leave UnitVariance off.");
         }

@@ -31,11 +31,11 @@ RobustScaler uncentred = RobustScaler.Fit(
 
 bool noMedian = uncentred.Centre is null;  // => True
 
-// 1.3489795 is the normal quantile gap at the quartiles, so a range of 8 becomes 5.93.
+// 1.3489795 is the normal quantile gap at the quartiles, so the quartile range of 5 becomes 3.7065.
 RobustScaler unit = RobustScaler.Fit(
     samples, 1, new RobustScalerOptions { UnitVariance = true });
 
-double standardised = unit.Scale![0];  // => 3.706505546264003
+double standardised = unit.Scale![0];  // => 3.706505546264005
 ```
 
 **Remarks** — **each switch decides exactly one statistic**, which is worth stating because
@@ -45,9 +45,9 @@ still fits a mean. Here, `WithCentring = false` leaves `Centre` null and nothing
 A wider percentile range makes the scale larger and the scaled values smaller; the reference offers
 it for the same reason it offers the quartiles, and refuses anything outside `0 ≤ lower ≤ upper ≤ 100`.
 
-The last digit is worth a word: `scipy` reports `3.706505546264005` for the same column, two units in
-the last place away, because its normal quantile and this one are different implementations of the
-same function. The corpus compares at `1e-9` relative, which is four orders of magnitude wider.
+The last digit is scipy's, `3.706505546264005`: the normal quantile is `scipy.special.ndtri` ported
+statement for statement ([#1684](https://github.com/CyrilB1531/lodestar/issues/1684)), where an
+inversion of the tail landed two units in the last place away.
 
 **`UnitVariance` divides the range after the near-constant floor, not before**, which is the
 reference's order and is visible only on a constant feature: it lands on `1/1.3489795`, not on 1.

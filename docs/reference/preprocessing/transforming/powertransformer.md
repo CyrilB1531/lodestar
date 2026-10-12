@@ -53,6 +53,12 @@ others, move where either optimiser stops. Measured against scikit-learn 1.9.1
 on 100 columns of `1e10` plus noise, 66 Yeo-Johnson and 29 Box-Cox exponents differed by more than
 `1e-5` relative, and their transformed values with them.
 
+**Two rows are the extreme of it.** Their optimum sits at `λ ≈ 0`, scikit-learn's exponents ranging
+from `1e-7` to `1e-4`, so each optimiser stops on its rounding noise: on 150 random two-row columns,
+72 Yeo-Johnson and 101 Box-Cox transforms part from scikit-learn's by more than `1e-5`, where three
+to ten rows part on at most five in 150
+([#1680](https://github.com/CyrilB1531/lodestar/issues/1680)).
+
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`PowerTransformerOptions`](powertransformeroptions.md),

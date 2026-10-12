@@ -1,3 +1,4 @@
+using System.Globalization;
 using Lodestar.Preprocessing.Internal;
 
 namespace Lodestar.Preprocessing;
@@ -166,7 +167,7 @@ public sealed class PowerTransformer
                 if (_method == PowerMethod.BoxCox && value <= 0.0)
                 {
                     throw new ArgumentException(
-                        $"Box-Cox needs strictly positive values; feature {feature} holds {value}.",
+                        $"Box-Cox needs strictly positive values; feature {feature} holds {Convert.ToString(value, CultureInfo.InvariantCulture)}.",
                         nameof(samples));
                 }
 
@@ -205,7 +206,7 @@ public sealed class PowerTransformer
                     // CA2208, S3928: the previous release named its own column parameter, and a refusal it made keeps it.
 #pragma warning disable CA2208, S3928
                     throw new ArgumentException(
-                        $"Box-Cox needs strictly positive values; feature {feature} holds {value}.", "column");
+                        $"Box-Cox needs strictly positive values; feature {feature} holds {Convert.ToString(value, CultureInfo.InvariantCulture)}.", "column");
 #pragma warning restore CA2208, S3928
                 }
             }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Lodestar.Preprocessing.Internal;
 
 namespace Lodestar.Preprocessing;
@@ -221,7 +222,7 @@ public sealed class SimpleImputer
             if (double.IsInfinity(samples[i]))
             {
                 throw new ArgumentException(
-                    $"samples[{i}] is {samples[i]}. NaN marks a missing value here; an infinity marks nothing "
+                    $"samples[{i}] is {Convert.ToString(samples[i], CultureInfo.InvariantCulture)}. NaN marks a missing value here; an infinity marks nothing "
                     + "and would carry into every statistic.",
                     nameof(samples));
             }
