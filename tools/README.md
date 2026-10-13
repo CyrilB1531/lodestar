@@ -214,6 +214,20 @@ given:
   run that never happened cannot silently narrow the next one. Takes
   `--since <commit>` with an optional `--head`, or `--all`, and `--harnesses`
   for the Python comparison harnesses the same diff selects.
+- `nightly_outcomes.py` is what `run_bounded.py` and `run_comparisons.py` share: a run bounded by
+  a deadline that kills its process group, and the one rule settling each name as ran, owed, cut or
+  failed (#1687). It is imported, not run.
+- `run_bounded.py` runs one nightly class for at most a number of seconds and kills its whole
+  process group when cut, since uutils' `timeout` kills the direct child alone. It builds the
+  BenchmarkDotNet command itself from a class the map names and a known project, settles the class
+  through `nightly_outcomes.py`'s rule, and appends its name to `classes-run.txt`, `owed.txt`,
+  `cut.txt` or `failed.txt`, telling a cut by the clock, never by an exit code (#1687).
+- `run_comparisons.py` runs the nightly's comparisons in `harnesses.txt` against Python inside the
+  job's time: none starts past `--start-by` minutes from the job's start, one still running at
+  `--stop-by` is cut, and what does not fit is appended to `owed.txt`, which the next night asks for
+  first (#1687). What it cut also goes to `cut.txt`; one the previous night also cut
+  (`--cut-before`), or one that fails, goes to `failed.txt` instead and the run goes on. Each corpus
+  and Python side runs once a night, when first needed, and one that fails is not run again.
 - `render_nightly.py` renders the page the nightly run publishes to the wiki,
   from the BenchmarkDotNet reports and `bench/compare.py` output the job left on
   disk. It carries the baseline commit the *next* run reads, which is why the
