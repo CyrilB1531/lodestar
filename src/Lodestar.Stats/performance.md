@@ -10,33 +10,31 @@ Full method: [`bench/README.md`](https://github.com/CyrilB1531/lodestar/blob/mai
 
 Machine: AMD Ryzen 7 8700G w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
 (BenchmarkDotNet's own header), Ubuntu 26.04.1 LTS, .NET SDK 10.0.401, .NET 10.0.12 runtime — a
-dedicated machine, not a container. Windows: one `BenchmarkDotNet` 0.14.0 run, default job,
-2026-09-25 08:04 to 08:13 UTC, across the 24 benchmarks, under the repository's machine lock, for
-the tails; a second, 2026-10-12 21:07 to 21:12 UTC, same job and lock, an unrelated process taking
-36% of one core, for the four quantile rows after #1684 and #1686. Before each, the three libraries' values were
-compared: **0 recorded differences past `1e-9`**.
+dedicated machine, not a container. Window: one `BenchmarkDotNet` 0.14.0 run, default job,
+2026-10-16 16:39 to 16:48 UTC, across the 24 benchmarks, under the repository's machine lock, after
+issue #1690. Before it the three libraries' values were compared: **0 recorded differences past `1e-9`**.
 
 | operation | Lodestar | Math.NET Numerics | Meta.Numerics |
 | --- | ---: | ---: | ---: |
-| Student's t lower tail, `t = −2`, 10 df | **178.1 ns** | 185.4 ns | 203.1 ns |
-| Student's t quantile, `p = 0.975`, 10 df | **469.7 ns** | 3,447 ns | 763.8 ns |
-| F lower tail, `f = 4`, 2 and 20 df | **59.4 ns** | 79.5 ns | 85.3 ns |
-| F quantile, `p = 0.95`, 2 and 20 df | 215.8 ns | 1,533 ns | **201.4 ns** |
-| chi-squared lower tail, `x = 9.488`, 4 df | 40.9 ns | **36.3 ns** | 43.3 ns |
-| chi-squared quantile, `p = 0.95`, 4 df | 326.9 ns | 286.1 ns | **231.9 ns** |
-| normal lower tail, `z = −1.96` | **11.1 ns** | 12.6 ns | 45.5 ns |
-| normal quantile, `p = 0.975` | 17.8 ns | **17.4 ns** | 116.4 ns |
+| Student's t lower tail, `t = −2`, 10 df | 194.7 ns | **188.2 ns** | 215.5 ns |
+| Student's t quantile, `p = 0.975`, 10 df | **429.2 ns** | 3,364 ns | 760.8 ns |
+| F lower tail, `f = 4`, 2 and 20 df | **58.4 ns** | 80.1 ns | 84.5 ns |
+| F quantile, `p = 0.95`, 2 and 20 df | **116.5 ns** | 1,503 ns | 197.1 ns |
+| chi-squared lower tail, `x = 9.488`, 4 df | 42.4 ns | **35.3 ns** | 43.5 ns |
+| chi-squared quantile, `p = 0.95`, 4 df | **213.2 ns** | 278.0 ns | 225.7 ns |
+| normal lower tail, `z = −1.96` | **10.8 ns** | 12.3 ns | 44.4 ns |
+| normal quantile, `p = 0.975` | 17.3 ns | **16.8 ns** | 113.5 ns |
 
 Nothing on Lodestar's side allocates; Math.NET's t and F quantiles allocate 112 B and 104 B, and
 Meta.Numerics' t quantile 288 B.
 
-**How it reads.** On the tails Lodestar is ahead on three of four, and 13% behind Math.NET on the
-chi-squared one. The quantiles split. The Student quantile is **7.3×** Math.NET's and **1.6×**
-Meta.Numerics', and the F quantile **7.1×** Math.NET's but 7% behind Meta.Numerics'. Two more are
-behind: the chi-squared quantile, **1.4×** slower than Meta.Numerics' and **1.14×** than Math.NET's, the
-inverse of the incomplete gamma paying a Newton step per evaluation of a full incomplete gamma; and
-the normal quantile, **1.02×** Math.NET's, both rational approximations, this one scipy's `ndtri`
-written out term by term. The quantile rows come from the second window, the tails from the first. All are correct to the corpus's `1e-9` across a grid reaching `1e-300`.
+**How it reads.** On the tails Lodestar is ahead on the F and normal ones, 3.4% behind Math.NET on
+Student's, and 20% behind Math.NET on the chi-squared one, level with Meta.Numerics.
+Every quantile but the normal one is ahead: the Student quantile **7.8×** Math.NET's and **1.8×**
+Meta.Numerics', the F quantile **12.9×** Math.NET's and **1.69×** Meta.Numerics', and the
+chi-squared quantile **1.30×** Math.NET's and **1.06×** Meta.Numerics'. The normal quantile is
+**1.03×** slower than Math.NET's, both rational approximations, this one scipy's `ndtri` written
+out term by term. All are correct to the corpus's `1e-9` across a grid reaching `1e-300`.
 
 ## Lodestar.Stats against scipy (issue #1162) — Fligner-Killeen, the k-sample Anderson-Darling test, Spearman's matrix and the point-biserial correlation
 

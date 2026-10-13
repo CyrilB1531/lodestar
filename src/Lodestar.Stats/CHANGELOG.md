@@ -12,6 +12,9 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Changed
 
+- `Distributions.StudentQuantile` and `StudentIsf` take `log B(df/2, ½)` once per quantile rather than once per Newton step. ([#1686](https://github.com/CyrilB1531/lodestar/issues/1686))
+- `Distributions.ChiSquaredQuantile`, `ChiSquaredIsf`, `FisherSnedecorQuantile` and `FisherSnedecorIsf` settle on a converged root instead of restarting their bracket's search. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `Distributions.StudentQuantile` and `StudentIsf` take the density's constant from the cached `log B`, which can move a quantile by a few ulps. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
 - `log1p` comes from the one implementation `Lodestar.Preprocessing`, `Lodestar.Stats`, `Lodestar.Survival` and `Lodestar.Metrics` share, which can move a value by an ulp. ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230))
 - `Distributions.NormalQuantile` and `NormalIsf` are scipy's `ndtri`, Cephes' rational approximations ported statement for statement, so they match `norm.ppf` and `norm.isf` to the last bit on Linux, and to `1e-14` relative elsewhere, where inverting the tail by Newton strayed up to 5.5e-13 near one half, and `ShapiroWilk.Test`'s Blom scores and the chi-squared quantiles' starting point take it too, which can move their last bits. ([#1684](https://github.com/CyrilB1531/lodestar/issues/1684))
 - `Distributions.StudentQuantile` and `NormalQuantile` answer `0` and `1` with the support's ends, as scipy's `ppf` does, where they refused them. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))
@@ -19,6 +22,30 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- `TTest.Independent`, its confidence interval and every internal Student tail read an infinite df as the normal law, where they threw. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- The Student members take the normal law from df `1e20` and Student's first order in df to df `1e-12`, and answer `±∞` where a root lies past the largest double. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `Distributions.StudentQuantile` and `StudentIsf` hold `scipy.stats.t` from df `1e16` up. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `Distributions.StudentSf` and `StudentCdf` never read a tail above one half at a positive `t`. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `Distributions.StudentQuantile(0.5, df)` answers `+0`, as `scipy.stats.t.ppf` does. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `Distributions.StudentPdf` answers at a subnormal df and past an overflowing `t²/df`, and is the normal density from df `1e20`. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- The F tails and every incomplete beta behind them stay inside `[0, 1]` and keep their digits below a shape of `0.1`. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- The chi-squared tails and density keep their digits below a shape of `0.1`. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- The F members take the tail, density and root from a half's limit where that half of `d₁f / (d₁f + d₂)` is below the smallest normal double. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `Distributions.FisherSnedecorQuantile` and `FisherSnedecorIsf` answer `0` or `+∞` where the root lies outside the doubles. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `Distributions.FisherSnedecorQuantile` and `FisherSnedecorIsf` answer a finite root at a denominator df from `1e200`, where they answered `+∞`. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- The F members hold their symmetry and density at subnormal shapes. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- The chi-squared and F members refuse a df of `5e-324`, whose half is not a double, under their own parameter name. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `Distributions.ChiSquaredIsf` and `ChiSquaredQuantile` answer `0` where the root lies below the smallest double. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `TTestResult.ConfidenceInterval` answers the estimate on both bounds for a zero standard error at a df whose quantile is infinite. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- The F tails take Temme's uniform expansion once both shapes reach `1e5`, where the continued fraction ran out of terms. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- The incomplete beta past shapes of 10 takes its prefactor against the exact mean `a/(a+b)`. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- The F and chi-squared quantiles hold their root at a huge df. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `Distributions.ChiSquaredIsf` and `ChiSquaredQuantile` answer the root at a tiny df and a far tail, where they answered a non-root. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- The F tail and quantile with a tiny df beside a huge one answer the tail and the root, where they answered a wrong tail and `0`. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `Distributions.FisherSnedecorSf(1, df, df)` is exactly one half at a huge df. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- The F tails with one df past `1e154` answer their tail, where they answered `NaN`. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `Distributions.NormalSf` and Student's tail from df `1e20` stay at or below one half at a tiny positive argument. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `Distributions.NormalSf`, `NormalCdf` and Student's tail from df `1e20` keep the exponent of the normal far tail exact. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
 - `Spearman.Matrix` refuses a variable count whose square is more cells than one array holds, before splitting out the columns and after a raised NaN, where the product wrapped or failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - `FisherExact.Test` counts a table as extreme within scipy's `1 + 1e-14` margin rather than `binomtest`'s `1 + 1e-7`, which gave `[[20, 38], [40, 106]]` a p-value of 0.394 where scipy has 0.314. ([#1243](https://github.com/CyrilB1531/lodestar/issues/1243))
 - `OneWayAnova.Test` recognises constant groups by their values, as scipy does, so three copies of `0.1` against themselves answer `(NaN, NaN)` rather than `F = 16`, and groups each constant answer `(+∞, 0)`. ([#1244](https://github.com/CyrilB1531/lodestar/issues/1244))

@@ -1,0 +1,78 @@
+namespace Lodestar.Internal;
+
+/// <summary>The rounding left by a product, for formulas that subtract it from a number it nearly equals.</summary>
+internal static class ExactProduct
+{
+#if !NET
+    // Veltkamp's splitting constant, 2^27 + 1: it halves a double's 53 bits into two of 26.
+    private const double Splitter = 134217729.0;
+
+    // Past this an operand's product by Splitter overflows; it is scaled by 2^-600 first, exactly.
+    private const double SplitLimit = 1e290;
+
+    // Below this a product's error terms, about 2^-106 of it, fall under the smallest normal double.
+    private const double TinyProduct = 1e-275;
+    private const double Scale = 2.409919865102884e-181;
+    private const double Unscale = 4.149515568880993e+180;
+#endif
+
+    /// <summary><c>minuend − left·right</c>, exact where the product rounds to a neighbour of <paramref name="minuend"/>.</summary>
+    /// <remarks>
+    /// A fused multiply-add on net10.0; on netstandard2.0, which has none, Dekker's product splits <paramref name="left"/>
+    /// and <paramref name="right"/> into halves whose products a double holds exactly (Dekker, 1971). The two agree but
+    /// where the residual is subnormal: rescaled from a product near the subnormals it rounds twice, and can differ in its
+    /// last bit, as Residual(7.5e-294, 11.84, 6.34e-295) does (#1690's review).
+    /// </remarks>
+    internal static double Residual(double minuend, double left, double right)
+    {
+#if NET
+        return Math.FusedMultiplyAdd(-left, right, minuend);
+#else
+        // A product past the largest double over a finite pair may still leave a finite residual: scaled down with the
+        // minuend, the result the fused multiply-add gives.
+        double product = left * right;
+        if (double.IsInfinity(product) && !double.IsInfinity(left) && !double.IsInfinity(right))
+        {
+            return Residual(minuend * Scale, left * Scale, right) * Unscale;
+        }
+        // Infinite or NaN operands, or a product under half the smallest double, leave nothing a split can add.
+#pragma warning disable S1244
+        if (double.IsNaN(product) || double.IsInfinity(product) || product == 0.0)
+#pragma warning restore S1244
+        {
+            return minuend - product;
+        }
+        // An operand that would overflow its split trades 2^600 with the other, which is then below 1e19, so the product
+        // and the minuend stay as they are: scaling the minuend with it underflowed a small one to zero (#1690's review).
+        if (Math.Abs(left) > SplitLimit)
+        {
+            return Residual(minuend, left * Scale, right * Unscale);
+        }
+        if (Math.Abs(right) > SplitLimit)
+        {
+            return Residual(minuend, left * Unscale, right * Scale);
+        }
+        // A product near the subnormals loses its error terms there: the smaller operand is scaled up, with a minuend as
+        // small, the one whose difference those terms decide.
+        if (Math.Abs(product) < TinyProduct && Math.Abs(minuend) < TinyProduct)
+        {
+            return Math.Abs(left) <= Math.Abs(right)
+                ? Residual(minuend * Unscale, left * Unscale, right) * Scale
+                : Residual(minuend * Unscale, left, right * Unscale) * Scale;
+        }
+        (double leftHigh, double leftLow) = Split(left);
+        (double rightHigh, double rightLow) = Split(right);
+        double error = (((leftHigh * rightHigh) - product) + (leftHigh * rightLow) + (leftLow * rightHigh)) + (leftLow * rightLow);
+        return (minuend - product) - error;
+#endif
+    }
+
+#if !NET
+    private static (double High, double Low) Split(double value)
+    {
+        double scaled = Splitter * value;
+        double high = scaled - (scaled - value);
+        return (high, value - high);
+    }
+#endif
+}

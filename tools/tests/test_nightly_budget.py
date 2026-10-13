@@ -538,6 +538,7 @@ def test_a_comparison_that_raises_fails_alone_and_the_others_are_recorded_as_the
     assert (outcomes.ran, outcomes.failed) == (["fine", "after"], ["boom"])
     assert recorded == [(["fine"], []), ([], ["boom"]), (["after"], [])]
 
+
 def test_the_page_steps_carry_runs_over_the_files_the_measuring_steps_write(monkeypatch, tmp_path):
     """The call the page step makes, end to end: a mistyped file name would owe what ran."""
     import nightly_outcomes

@@ -5,6 +5,7 @@
 
   <PropertyGroup>
     <LodestarIncludesNearZero>true</LodestarIncludesNearZero>
+    <LodestarIncludesExactProduct>true</LodestarIncludesExactProduct>
     <Version>$(LodestarStatsVersion)</Version>
     <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
     <RootNamespace>Lodestar.Stats</RootNamespace>

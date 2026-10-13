@@ -54,7 +54,11 @@ public sealed record TTestResult(double Statistic, double PValue, double Degrees
         // A one-sided test spends its whole error budget on one side, so the tail
         // is 1 - level rather than half of it, and the other bound is infinite.
         double tail = Alternative == Alternative.TwoSided ? (1.0 - level) / 2.0 : 1.0 - level;
-        double half = Internal.Beta.StudentQuantile(tail, DegreesOfFreedom) * StandardError;
+        // S1244: a zero standard error spans nothing, even where the quantile is past every double (#1690's review),
+        // and scipy's finite quantile there gives the estimate as both bounds.
+#pragma warning disable S1244
+        double half = StandardError == 0.0 ? 0.0 : Internal.Beta.StudentQuantile(tail, DegreesOfFreedom) * StandardError;
+#pragma warning restore S1244
 
         // The open bound is scipy's estimate plus an infinite quantile times the standard error, NaN where that is zero.
         double open = double.PositiveInfinity * StandardError;

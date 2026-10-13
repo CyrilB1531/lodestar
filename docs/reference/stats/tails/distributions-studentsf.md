@@ -10,7 +10,7 @@ public static double StudentSf(double t, double df)
 
 **Parameters** — `t` is the statistic. `df` is the degrees of freedom, which must be positive; `+∞` is the standard normal law, as scipy's is.
 
-**Returns** — `scipy.stats.t.sf(t, df)`.
+**Returns** — `scipy.stats.t.sf(t, df)`; from df `1e20` the normal tail, and to df `1e-12` its first order, `½ − (df/2) asinh(t/√df)`, within `1.3e-19` of the law and one half at every finite `t` to df `1e-20`, where scipy's reads `0` at `t = 1e300` (#1690).
 
 **Exceptions** — `ArgumentOutOfRangeException` when `df` is not positive, `NaN` included.
 

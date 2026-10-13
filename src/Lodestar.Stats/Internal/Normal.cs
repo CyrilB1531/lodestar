@@ -21,6 +21,16 @@ internal static class Normal
 
     private const double LowestY = 4.0 / (4.0 + Cutoff);
 
+    // Below this erfc is erf's series, six terms. The interpolant swings within 20 ulps of erfc and is 8 below it here,
+    // so the switch steps down, as erfc does; at 0.01 it stepped up 4 ulps and NormalSf rose (#1690's review).
+    private const double SeriesLimit = 0.04;
+
+    internal const double TwoOverSqrtPi = 1.1283791670955126;
+
+    // From here z/sqrt 2's rounding costs the tail more than the interpolant's 7e-15, z^2 eps; below it Sf keeps its
+    // one division, the 1.96 a 95% interval reads costing 14% more through the exact exponent (#1690's review).
+    private const double ExactExponentFrom = 6.0;
+
     private const double IntervalsPerY = Intervals / (1.0 - LowestY);
 
     private static readonly double[] Table = SampleScaledErfc();
@@ -46,15 +56,10 @@ internal static class Normal
             return 2.0 - Erfc(-x);
         }
 
-        // Exact sentinel: erfc(0) = 1 is the definition, and it keeps Sf(0) the exact one half rather than
-        // the interpolant's value there.
-#pragma warning disable S1244
-        if (x == 0.0)
-#pragma warning restore S1244
+        if (x < SeriesLimit)
         {
-            return 1.0;
+            return SmallErfc(x);
         }
-
         return x > Cutoff ? 0.0 : ScaledErfc(x) * Math.Exp(-x * x);
     }
 
@@ -63,11 +68,45 @@ internal static class Normal
     /// Taking s rather than its root keeps the exponent exact: squaring sqrt(s) back would
     /// round, and in the far tail e^(-s) turns that rounding into a relative error.
     /// </remarks>
-    internal static double ErfcOfSquareRoot(double s) =>
-        s > Cutoff * Cutoff ? 0.0 : ScaledErfc(Math.Sqrt(s)) * Math.Exp(-s);
+    internal static double ErfcOfSquareRoot(double s)
+    {
+        if (s < SeriesLimit * SeriesLimit)
+        {
+            return SmallErfc(Math.Sqrt(s));
+        }
+        return s > Cutoff * Cutoff ? 0.0 : ScaledErfc(Math.Sqrt(s)) * Math.Exp(-s);
+    }
+
+    /// <summary>erfc(x) below SeriesLimit, as one less erf's Maclaurin series, exactly one at zero.</summary>
+    /// <remarks>
+    /// The interpolant reads 1 + 1.6e-15 near zero, so a tail at a tiny positive argument read above one half:
+    /// Normal.Sf(1e-17), and with it StudentSf(1e-17, 1e21), was 0.5000000000000008 (#1690's review). At x = 0.04 the
+    /// first term dropped, x^12/9360 of the sum, is 2e-21 of it.
+    /// </remarks>
+    private static double SmallErfc(double x)
+    {
+        double square = x * x;
+        double inner = (1.0 / 42.0) - (square * ((1.0 / 216.0) - (square / 1320.0)));
+        double series = 1.0 - (square * ((1.0 / 3.0) - (square * ((1.0 / 10.0) - (square * inner)))));
+        return 1.0 - (TwoOverSqrtPi * x * series);
+    }
 
     /// <summary>The standard normal's upper tail: P(Z &gt; z).</summary>
-    internal static double Sf(double z) => 0.5 * Erfc(z / Math.Sqrt(2.0));
+    /// <remarks>
+    /// Past z = 6 by ErfcOfSquareRoot(z²/2) with z²'s rounding restored as a factor <c>1 + excess/2</c>: through z/√2
+    /// the exponent took that quotient's rounding twice, 1.1e-13 of Sf(37), 200 times Student's error just below df 1e20,
+    /// where Student's tail becomes this one (#1690's review).
+    /// </remarks>
+    internal static double Sf(double z)
+    {
+        if (!(z > ExactExponentFrom && z < Cutoff * Math.Sqrt(2.0)))
+        {
+            return 0.5 * Erfc(z / Math.Sqrt(2.0));
+        }
+        double square = z * z;
+        double excess = ExactProduct.Residual(square, z, z);
+        return 0.5 * ErfcOfSquareRoot(0.5 * square) * (1.0 + (0.5 * excess));
+    }
 
     // x lies in [0, Cutoff]; y = 4/(4+x) then lies in [LowestY, 1], and each interval's
     // polynomial is in u = 2t - 1, t being y's position inside it.

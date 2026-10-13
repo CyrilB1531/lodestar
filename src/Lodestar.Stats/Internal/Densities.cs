@@ -13,6 +13,9 @@ internal static class Densities
     // Gamma.LogStirlingCorrection holds 3e-17 from here, the same threshold Gamma.Prefactor uses.
     private const double StirlingShape = 10.0;
 
+    // log(2 pi) / 2.
+    private const double HalfLogTwoPi = 0.9189385332046728;
+
     /// <summary>Student's t density at <paramref name="t"/> with <paramref name="df"/> degrees of freedom.</summary>
     internal static double Student(double t, double df)
     {
@@ -21,10 +24,20 @@ internal static class Densities
             return double.NaN;
         }
 
+        // The two limits StudentSf takes (#1690's review): the normal law, and below Beta.SmallShape the constant
+        // from log(a B), since df/2 of a subnormal df rounds to zero and LogGammaHalfStep threw on it.
+        if (df >= Beta.NormalLimitDf)
+        {
+            return Distributions.NormalPdf(t);
+        }
         double half = df / 2.0;
-        double logRatio = LogGammaHalfStep(half);
-        double logDensity = logRatio - (0.5 * Math.Log(df * Math.PI))
-            - ((df + 1.0) / 2.0 * NearZero.Log1P(t / df * t));
+        // Two log-gammas, not the inversion's -log B - log(df)/2: through Beta.LogBeta StudentPdf took 1.3 to 2 times as
+        // long, 54 to 71 ns at df 5.5 (Stopwatch; the #1690 spec has the run).
+        double logNormalizer = half < Beta.SmallShape
+            ? Beta.SmallStudentLogNormalizer(df)
+            : LogNormalizer(half, df);
+        // t^2/df overflowed past 1e308 and the density read 0, as scipy's t.pdf does: StudentPdf(1e140, 1e-30) for 5e-171.
+        double logDensity = logNormalizer - ((df + 1.0) / 2.0 * Beta.StudentLogOnePlusSquare(t, df));
         return Math.Exp(logDensity);
     }
 
@@ -45,7 +58,9 @@ internal static class Densities
 #pragma warning disable S1244
         if (f == 0.0)
         {
-            return AtOrigin(a, Math.Exp(-Beta.LogBeta(a, b)) * dfn / dfd);
+            // AtOrigin reads its second value at a = 1 only, where B(1, b) = 1/b makes it b dfn/dfd = 1 exactly: through
+            // log B it was 5e-14 off at dfd 1e-310 (#1690's review).
+            return AtOrigin(a, 1.0);
         }
 #pragma warning restore S1244
 
@@ -57,7 +72,13 @@ internal static class Densities
         // The beta density of y times dy/df reduces to y^a (1-y)^b / (B(a, b) f), and Beta.Front forms
         // that numerator from Stirling past shapes of ten, so no log-gamma of order n log n cancels.
         (double y, double oneMinusY) = Beta.FisherSplit(f, dfn, dfd);
-        return Beta.Front(a, b, y, oneMinusY) / f;
+        if (Beta.TakesLimit(y, oneMinusY))
+        {
+            return Beta.FisherDensityFromLimit(f, dfn, dfd, y);
+        }
+        // Against the exact mean from f - 1, as the tail takes it: at shapes past 1e30 y's rounding is the law's width.
+        double deviation = Beta.FisherDeviation(f, dfn, dfd, y);
+        return (double.IsNaN(deviation) ? Beta.Front(a, b, y, oneMinusY) : Beta.StirlingFront(a, b, y, oneMinusY, deviation)) / f;
     }
 
     /// <summary>The chi-squared density at <paramref name="x"/>: the gamma prefactor over <c>x</c>.</summary>
@@ -88,18 +109,18 @@ internal static class Densities
         return Gamma.Prefactor(a, x / 2.0) / x;
     }
 
-    /// <summary><c>log Γ(h + ½) − log Γ(h)</c>, exact of cancellation for large <c>h</c>.</summary>
+    /// <summary><c>log Γ(h + ½) − log Γ(h) − ½ log(2h π)</c>, h = df/2, with the two <c>½ log h</c> cancelled by hand from a shape of 10.</summary>
     /// <remarks>
-    /// With Stirling, <c>log Γ(z) = (z − ½) log z − z + ½ log 2π + c(z)</c>, the difference is
-    /// <c>h log1p(1/(2h)) + ½ log h − ½ + c(h + ½) − c(h)</c>: no term of order <c>h log h</c> remains.
+    /// Formed as a difference they were 23 each at df 1e19, and the density stepped 1.4e-15 crossing df 1e20, where it
+    /// becomes the normal one (#1690's review).
     /// </remarks>
-    private static double LogGammaHalfStep(double half)
+    private static double LogNormalizer(double half, double df)
     {
         if (half < StirlingShape)
         {
-            return Gamma.LogGamma(half + 0.5) - Gamma.LogGamma(half);
+            return Gamma.LogGamma(half + 0.5) - Gamma.LogGamma(half) - (0.5 * Math.Log(df * Math.PI));
         }
-        return (half * NearZero.Log1P(0.5 / half)) + (0.5 * Math.Log(half)) - 0.5
+        return (half * NearZero.Log1P(0.5 / half)) - 0.5 - HalfLogTwoPi
             + Gamma.LogStirlingCorrection(half + 0.5) - Gamma.LogStirlingCorrection(half);
     }
 

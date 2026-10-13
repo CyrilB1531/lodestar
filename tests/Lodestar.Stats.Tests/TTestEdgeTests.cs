@@ -113,4 +113,27 @@ public sealed class TTestEdgeTests
 
         Assert.Equal(2.0, result.DegreesOfFreedom);
     }
+
+    /// <summary>Welch's df overflows to +∞ when the squared variance terms underflow; scipy reads it as the normal law.</summary>
+    [Fact]
+    public void An_infinite_Welch_df_is_the_normal_law()
+    {
+        double[] a = new double[101];
+        double[] b = new double[101];
+        for (int i = 0; i < a.Length; i++)
+        {
+            a[i] = i % 2 == 0 ? 1e-80 : -1e-80;
+            b[i] = 1e-79 + a[i];
+        }
+
+        TTestResult result = TTest.Independent(a, b);
+        (double low, double high) = result.ConfidenceInterval();
+
+        // scipy 1.18.1's ttest_ind(a, b, equal_var=False) and its confidence_interval(0.95).
+        Assert.True(double.IsPositiveInfinity(result.DegreesOfFreedom));
+        Assert.Equal(-70.71414424341452, result.Statistic, 1e-12);
+        Assert.Equal(0.0, result.PValue);
+        Assert.Equal(-1.0277167178576525e-79, low, 1e-92);
+        Assert.Equal(-9.722832821423478e-80, high, 1e-92);
+    }
 }

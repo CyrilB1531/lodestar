@@ -12,7 +12,7 @@ public static double ChiSquaredQuantile(double p, double df)
 
 **Returns** — `scipy.stats.chi2.ppf(p, df)`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `p` is outside `[0, 1]`, `NaN` included, or when `df` is not positive.
+**Exceptions** — `ArgumentOutOfRangeException` when `p` is outside `[0, 1]`, `NaN` included, or when `df` is not positive. A df of `5e-324`, whose half is not a double, is refused too (#1690).
 
 **Example** — the 95% point on one degree of freedom, and the lower bound of a variance interval.
 

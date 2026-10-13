@@ -12,7 +12,7 @@ public static double ChiSquaredPdf(double x, double df)
 
 **Returns** — `scipy.stats.chi2.pdf(x, df)`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `df` is not positive, `NaN` included.
+**Exceptions** — `ArgumentOutOfRangeException` when `df` is not positive, `NaN` included. A df of `5e-324`, whose half is not a double, is refused too (#1690).
 
 **Example** — the density at two, on four degrees of freedom.
 

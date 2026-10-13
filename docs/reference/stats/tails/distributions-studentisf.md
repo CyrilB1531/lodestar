@@ -10,7 +10,7 @@ public static double StudentIsf(double p, double df)
 
 **Parameters** — `p` is a probability in `[0, 1]`; `0` answers `+∞` and `1` answers `−∞`. `df` is the degrees of freedom, which must be positive; `+∞` is the standard normal law, as scipy's is.
 
-**Returns** — `scipy.stats.t.isf(p, df)`.
+**Returns** — `scipy.stats.t.isf(p, df)`, except where the root lies past the largest double, at a df below `1.05` and `p` near one half or tiny: `±∞` there, where scipy answers finite values that are roots of no tail (`t.isf(0.4, 1e-300)` is `6703.9`), and every `p` but one half from df `1e-20` down (#1690).
 
 **Exceptions** — `ArgumentOutOfRangeException` when `p` is outside `[0, 1]`, `NaN` included, or when `df` is not positive.
 

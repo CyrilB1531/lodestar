@@ -2389,8 +2389,7 @@ The numbers, on a named machine and with the default job, are in
 
 ## 31. The two published quantiles, and what they cost their callers (issue #709)
 
-`docs/guides/performance.md`
-replaced the bisection behind `Distributions.NormalQuantile` and `Distributions.StudentQuantile` with
+Issue #709 replaced the bisection behind `Distributions.NormalQuantile` and `Distributions.StudentQuantile` with
 a safeguarded Newton inversion; #1684 then replaced the normal one with scipy's `ndtri`, a rational
 approximation with no iteration. `QuantileBenchmarks` times one call of each, so the cost is read
 directly rather than subtracted out of a larger benchmark.

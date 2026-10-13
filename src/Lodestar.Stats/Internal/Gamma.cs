@@ -42,11 +42,23 @@ internal static class Gamma
     private const double MaxClosedFormTwiceA = 100.0;
     private const double MaxClosedFormX = 700.0;
 
-    private const double TwoOverSqrtPi = 1.1283791670955126;
-
     // cephes igam's region for 20 < a < 200, kept for every larger a: why is in Temme's remarks.
     private const double TemmeMinimumShape = 20.0;
     private const double TemmeMaximumDeviation = 0.3;
+
+    // Below this shape log Gamma(1 + a) is LogGammaOnePlus's series, the prefactor keeps a outside its exponential,
+    // and Q is P's series taken whole rather than 1 - P (#1690's review).
+    internal const double SmallShape = 0.1;
+
+    // (-1)^k zeta(k) / k from k = 1 (-Euler's gamma), the Taylor series of log Gamma(1 + s): to s^20, 0.1^21 / 21 short.
+    private static readonly double[] LogGammaOnePlusCoefficients =
+    [
+        -0.5772156649015329, 0.8224670334241132, -0.40068563438653143, 0.27058080842778454,
+        -0.20738555102867398, 0.1695571769974082, -0.1440498967688461, 0.12550966952474304,
+        -0.11133426586956469, 0.1000994575127818, -0.09095401714582904, 0.083353840546109,
+        -0.0769325164113522, 0.07143294629536133, -0.06666870588242046, 0.06250095514121304,
+        -0.058823978658684585, 0.055555767627403614, -0.05263167937961666, 0.05000004769810169,
+    ];
 
     // Stirling's correction is within 3e-17 of log Gamma*(a) from here, while the Lanczos
     // prefactor a log x - x - log Gamma(a) cancels a digit per decade of a log a.
@@ -140,6 +152,13 @@ internal static class Gamma
                 nameof(x), x, "The log-gamma function is defined here for x > 0 only.");
         }
 
+        // Gamma(x) = Gamma(1 + x) / x below SmallShape, by LogGammaOnePlus's series: the reflection's pi / sin(pi x)
+        // overflowed below 1.75e-308, and a subnormal shape read log B infinite or NaN (#1690's review).
+        if (x < SmallShape)
+        {
+            return LogGammaOnePlus(x) - Math.Log(x);
+        }
+
         // Reflection: Gamma(x)Gamma(1-x) = pi / sin(pi x). Below 0.5 the Lanczos
         // sum loses precision, and above it the reflection would.
         if (x < 0.5)
@@ -156,6 +175,17 @@ internal static class Gamma
 
         double t = z + LanczosG + 0.5;
         return (0.5 * Math.Log(2.0 * Math.PI)) + ((z + 0.5) * Math.Log(t)) - t + Math.Log(series);
+    }
+
+    /// <summary><c>log Γ(1 + s)</c> for <c>s</c> below SmallShape, by its Taylor series.</summary>
+    internal static double LogGammaOnePlus(double s)
+    {
+        double sum = 0.0;
+        for (int k = LogGammaOnePlusCoefficients.Length - 1; k >= 0; k--)
+        {
+            sum = (sum + LogGammaOnePlusCoefficients[k]) * s;
+        }
+        return sum;
     }
 
     internal static double RegularizedP(double a, double x)
@@ -183,7 +213,11 @@ internal static class Gamma
             return Temme(a, x, upper: false);
         }
 
-        return x < a + 1.0 ? SeriesP(a, x) : 1.0 - ContinuedFractionQ(a, x);
+        if (x >= a + 1.0)
+        {
+            return 1.0 - ContinuedFractionQ(a, x);
+        }
+        return a < SmallShape ? SmallShapeTail(a, x, upper: false) : SeriesP(a, x);
     }
 
     internal static double RegularizedQ(double a, double x)
@@ -215,7 +249,37 @@ internal static class Gamma
             return Temme(a, x, upper: true);
         }
 
-        return x < a + 1.0 ? 1.0 - SeriesP(a, x) : ContinuedFractionQ(a, x);
+        if (x >= a + 1.0)
+        {
+            return ContinuedFractionQ(a, x);
+        }
+        return a < SmallShape ? SmallShapeTail(a, x, upper: true) : 1.0 - SeriesP(a, x);
+    }
+
+    /// <summary>Q(a, x), or P when not <paramref name="upper"/>, below SmallShape and below <c>x = a + 1</c>, where <c>1 − P</c> cancels.</summary>
+    /// <remarks>
+    /// <c>P = x^a / Γ(1 + a) · (1 + a T)</c>, <c>T = Σ (−x)^n / ((a + n) n!)</c> from <c>n = 1</c>, so with
+    /// <c>u = a log x − log Γ(1 + a)</c>, <c>Q = −expm1(u) − a T e^u</c>. Below 1.1 <c>T</c>'s alternating terms cancel
+    /// by at most a factor of four. <c>ChiSquaredSf(1, 2e-300)</c> read <c>−2e-14</c> for <c>6e-301</c> (#1690's review).
+    /// </remarks>
+    private static double SmallShapeTail(double a, double x, bool upper)
+    {
+        double u = (a * Math.Log(x)) - LogGammaOnePlus(a);
+        double power = 1.0;
+        double sum = 0.0;
+        for (int n = 1; n <= MaxIterations; n++)
+        {
+            power *= -x / n;
+            double term = power / (a + n);
+            sum += term;
+            if (Math.Abs(term) <= Epsilon * Math.Abs(sum))
+            {
+                break;
+            }
+        }
+        // P = e^u (1 + a T) the same way, where SeriesSum began at 1/a, which overflowed below a = 5.6e-309 and read
+        // ChiSquaredCdf(1, 1e-310) +inf (#1690's review).
+        return upper ? -NearZero.Expm1(u) - (a * sum * Math.Exp(u)) : Math.Exp(u) * (1.0 + (a * sum));
     }
 
     // S1244: 2a landing on an integer exactly is what a chi-squared tail's a = dof/2
@@ -257,7 +321,7 @@ internal static class Gamma
             }
 
             // x^(1/2) e^-x / Gamma(3/2), taking Q(1/2, x) to Q(3/2, x).
-            term = TwoOverSqrtPi * Math.Sqrt(x) * Math.Exp(-x);
+            term = Normal.TwoOverSqrtPi * Math.Sqrt(x) * Math.Exp(-x);
             sum += term;
             b = 1.5;
             increments = ((twiceA - 1) / 2) - 1;
@@ -326,10 +390,19 @@ internal static class Gamma
     internal static double LogStirlingCorrection(double z)
     {
         double w = 1.0 / (z * z);
-        double series = (1.0 / 12.0) - (w * ((1.0 / 360.0) - (w * ((1.0 / 1260.0) - (w * ((1.0 / 1680.0)
-            - (w * ((1.0 / 1188.0) - (w * ((691.0 / 360360.0) - (w / 156.0)))))))))));
+        double series = Stirling1 + (w * (Stirling2 + (w * (Stirling3 + (w * (Stirling4 + (w * (Stirling5
+            + (w * (Stirling6 + (w * Stirling7)))))))))));
         return series / z;
     }
+
+    // B_2n / (2n (2n - 1)) for n = 1 to 7, the series above; Beta.LogGammaIncrement takes it term by term.
+    internal const double Stirling1 = 1.0 / 12.0;
+    internal const double Stirling2 = -1.0 / 360.0;
+    internal const double Stirling3 = 1.0 / 1260.0;
+    internal const double Stirling4 = -1.0 / 1680.0;
+    internal const double Stirling5 = 1.0 / 1188.0;
+    internal const double Stirling6 = -691.0 / 360360.0;
+    internal const double Stirling7 = 1.0 / 156.0;
 
     private static bool IsTemmeRegion(double a, double x) =>
         a > TemmeMinimumShape && Math.Abs(x - a) < TemmeMaximumDeviation * a;
@@ -391,14 +464,29 @@ internal static class Gamma
     // chi-squared density is this over x (#1158).
     internal static double Prefactor(double a, double x)
     {
+        // a x^a e^-x / Gamma(1 + a) below SmallShape: log Gamma(a), about -log a, rounded by |log a| ulps.
+        if (a < SmallShape)
+        {
+            return a * Math.Exp((a * Math.Log(x)) - x - LogGammaOnePlus(a));
+        }
         if (a < StirlingMinimumShape)
         {
             return Math.Exp((a * Math.Log(x)) - x - LogGamma(a));
         }
 
-        double exponent = (a * LogOnePlusMinus((x - a) / a, x / a)) - LogStirlingCorrection(a);
-        return Math.Exp(exponent) * Math.Sqrt(a / (2.0 * Math.PI));
+        return Math.Exp(StirlingExponent(a, x)) * Math.Sqrt(a / (2.0 * Math.PI));
     }
+
+    /// <summary>The logarithm of <see cref="Prefactor"/> from a shape of 10, with no term of order <c>a log a</c> formed.</summary>
+    /// <remarks>
+    /// <c>a log x − x − log Γ(a)</c> cancels terms of order <c>a log a</c>: at a = 1e15 its rounding reaches a nat, and the
+    /// chi-squared quantile's Newton steps came out short by that factor (#1690's review).
+    /// </remarks>
+    internal static double LogStirlingPrefactor(double a, double x) =>
+        StirlingExponent(a, x) + (0.5 * Math.Log(a / (2.0 * Math.PI)));
+
+    private static double StirlingExponent(double a, double x) =>
+        (a * LogOnePlusMinus((x - a) / a, x / a)) - LogStirlingCorrection(a);
 
     /// <summary>P(a, x), or Q(a, x) when <paramref name="upper"/>, with the prefactor x^a e^-x / Gamma(a).</summary>
     /// <remarks>
@@ -420,6 +508,10 @@ internal static class Gamma
 
         if (x < a + 1.0)
         {
+            if (a < SmallShape)
+            {
+                return SmallShapeTail(a, x, upper);
+            }
             double lower = prefactor * SeriesSum(a, x);
             return upper ? 1.0 - lower : lower;
         }

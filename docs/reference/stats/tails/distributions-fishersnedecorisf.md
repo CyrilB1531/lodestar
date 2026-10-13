@@ -12,7 +12,7 @@ public static double FisherSnedecorIsf(double p, double numeratorDf, double deno
 
 **Returns** — `scipy.stats.f.isf(p, dfn, dfd)`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `p` is outside `[0, 1]`, `NaN` included, or when either degrees of freedom is not positive.
+**Exceptions** — `ArgumentOutOfRangeException` when `p` is outside `[0, 1]`, `NaN` included, or when either degrees of freedom is not positive. A df of `5e-324`, whose half is not a double, is refused too (#1690).
 
 **Example** — the same 5% critical value, read from the upper tail.
 
