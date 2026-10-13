@@ -38,9 +38,12 @@ jobs:
     timeout-minutes: 240
     # Four hours, not two: at two this job was killed two seconds after its last step on
     # 2026-09-16, having measured 27 of the 53 classes -- every one of them from the first
-    # project the loop walks, so Stats, Survival and Gpu had not started. A full sweep costs
-    # about 191 minutes, and "Run them" below carries the breakdown and the deadline that
-    # keeps the job inside this number rather than trusting it.
+    # project the loop walks, so Stats, Survival and Gpu had not started. A full sweep is longer
+    # than this window -- the classes spent their whole 150-minute budget on 2026-10-12, owing 49,
+    # and 21 comparisons needed about 110 --
+    # so the classes start until BUDGET_MINUTES and are cut at CLASS_STOP_BY_MINUTES, the
+    # comparisons start until their own deadline and are cut at STOP_BY_MINUTES, and what a
+    # night does not reach is asked for first the next.
     #
     # Per job rather than on the workflow, because the two jobs are not the same risk.
     # This one runs the measured branch's own code -- dotnet on bench/, the corpus
@@ -48,10 +51,22 @@ jobs:
     # publish the wiki: no pull-requests, and above all no workflows (#464).
     permissions:
       contents: write
+    env:
+      # When a comparison still running is cut, counted from the job's start: it leaves the steps
+      # after it twelve minutes under timeout-minutes, where 2026-09-25's run spent about one on
+      # all of them; the pull request is the separate publish job (#1687).
+      STOP_BY_MINUTES: 228
     outputs:
-      selected: ${{ steps.select.outputs.selected }}
+      selected: ${{ steps.run.outputs.ran }}
+      handed: ${{ steps.handed.outcome == 'success' }}
+      compared: ${{ steps.compare.outputs.ran }}
       moved: ${{ steps.moved.outputs.moved }}
     steps:
+      # The clock the comparisons' deadline counts from: the job's own start, so the whole of
+      # timeout-minutes is accounted for, not just the steps that happen to carry a budget (#1687).
+      - name: Note when the job started
+        run: echo "JOB_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0   # the baseline commit is read from the previous page
@@ -80,6 +95,7 @@ jobs:
         run: |
           set -euo pipefail
           owed=""
+          cut=""
           if [ "$TARGET_REF" = "main" ]; then
             page=docs/guides/nightly_run.md
             sha=""
@@ -89,6 +105,8 @@ jobs:
               # advances to the commit that was measured, so without this those classes
               # are never asked for again -- nothing changed since (#650).
               owed=$(sed -n 's/.*<!-- nightly-owed: \([^>]*\) -->.*/\1/p' "$page" | head -1)
+              # What it cut, among those: one cut again tonight is failed, not owed a third night.
+              cut=$(sed -n 's/.*<!-- nightly-cut: \([^>]*\) -->.*/\1/p' "$page" | head -1)
             fi
           else
             git fetch origin main --quiet
@@ -96,28 +114,37 @@ jobs:
           fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "owed=$owed" >> "$GITHUB_OUTPUT"
+          echo "cut=$cut" >> "$GITHUB_OUTPUT"
           echo "baseline: ${sha:-none}"
           echo "owed by the previous run: ${owed:-none}"
 
       - name: Which classes and comparisons that makes worth re-running
         id: select
+        # Through the environment, not interpolated into the script: the owed and cut lists are read
+        # from a page file, and a quote in one would otherwise be shell code.
+        env:
+          ALL: ${{ inputs.all }}
+          SINCE: ${{ steps.baseline.outputs.sha }}
+          OWED: ${{ steps.baseline.outputs.owed }}
+          CUT: ${{ steps.baseline.outputs.cut }}
         run: |
           set -euo pipefail
-          if [ "${{ inputs.all }}" = "true" ] || [ -z "${{ steps.baseline.outputs.sha }}" ]; then
-            python tools/select_benchmarks.py --all > selected.txt
-            python tools/select_benchmarks.py --all --harnesses > harnesses.txt
+          if [ "$ALL" = "true" ] || [ -z "$SINCE" ]; then
+            since=(--all)
           else
-            since="${{ steps.baseline.outputs.sha }}"
-            owed="${{ steps.baseline.outputs.owed }}"
-            python tools/select_benchmarks.py --since "$since" --owed "$owed" > selected.txt
-            python tools/select_benchmarks.py --since "$since" --harnesses > harnesses.txt
+            since=(--since "$SINCE")
           fi
+          # Everything selected or not, what is owed goes first, and what was cut ahead of that: the
+          # cut-again rule fails one cut twice, so it must have had the front of the window (#1687).
+          # A comparison the previous night did not reach is owed like a class.
+          python tools/select_benchmarks.py "${since[@]}" --owed "$OWED" --cut "$CUT" > selected.txt
+          python tools/select_benchmarks.py "${since[@]}" --owed "$OWED" --cut "$CUT" --harnesses \
+            > harnesses.txt
           count=$(wc -l < selected.txt | tr -d ' ')
           harnesses=$(wc -l < harnesses.txt | tr -d ' ')
           echo "count=$count" >> "$GITHUB_OUTPUT"
           echo "harnesses=$harnesses" >> "$GITHUB_OUTPUT"
           echo "total=$((count + harnesses))" >> "$GITHUB_OUTPUT"
-          echo "selected=$(tr '\n' ' ' < selected.txt)" >> "$GITHUB_OUTPUT"
           echo "$count class(es):"; cat selected.txt
           echo "$harnesses comparison(s):"; cat harnesses.txt
 
@@ -138,47 +165,21 @@ jobs:
         if: steps.select.outputs.total != '0'
         run: python bench/corpus/generate_vocabs.py
 
-      # The comparisons need corpora of their own, and which ones is in the map rather than
-      # here: bench/corpus/metrics is 112 MB and takes 19 s, so it is generated when a
-      # comparison asks for it and not otherwise.
-      # The comparisons need corpora of their own, and which ones is in the map rather than
-      # here: bench/corpus/metrics is 112 MB and takes 19 s, so it is generated when a
-      # comparison asks for it and not otherwise. Deduplicated, since two may share one.
-      - name: Generate the corpora the comparisons read
-        if: steps.select.outputs.harnesses != '0'
-        run: |
-          set -euo pipefail
-          python - <<'PY' > generators.txt
-          import json
-          harnesses = json.load(open("bench/bench-map.json"))["harnesses"]
-          wanted, seen = [n.strip() for n in open("harnesses.txt") if n.strip()], []
-          for name in wanted:
-              for script in harnesses[name].get("generate", []):
-                  if script not in seen:
-                      seen.append(script)
-          print("\n".join(seen))
-          PY
-          while read -r script; do
-            [ -n "$script" ] || continue
-            echo "generating $script"
-            python "$script"
-          done < generators.txt
-
       - name: Run them
+        id: run
         if: steps.select.outputs.count != '0'
         env:
-          # The deadline is when the last class may *start*, never when the step must end --
-          # a class already running is not interrupted, because a half-measured benchmark is
-          # worse than an unmeasured one. So the margin under timeout-minutes: 240 has to
-          # hold the whole tail plus one class: about two minutes of setup before this step,
-          # sixty for the comparisons and nine for the page, wiki clone and pull request
-          # after it, and a GPU class on a runner with no GPU, which is the longest thing
-          # here by far.
+          # The deadline is when the last class may *start*. One still running at
+          # CLASS_STOP_BY_MINUTES is cut and owed rather than left to run on: a cut class writes no
+          # report, which is better than a page the job never writes. Both are counted from the
+          # job's start, as the comparisons' are, so the setup's minutes are in them (#1687).
           #
-          # This number is the one that decides what gets measured, not timeout-minutes:
-          # raising the job's window alone would have changed nothing on 2026-09-16, because
-          # the step stopped itself at 61 minutes exactly as it was told to.
+          # The cut is also the comparisons' share: they start from it at the latest, so they have
+          # at least until their own deadline below whatever the classes do. On 2026-10-12 the
+          # classes spent their whole budget, and with no bound on them the comparisons got none.
           BUDGET_MINUTES: 150
+          CLASS_STOP_BY_MINUTES: 165
+          CUT_BEFORE: ${{ steps.baseline.outputs.cut }}
         run: |
           set -euo pipefail
           # One run per project that can declare a [Benchmark] class, not just the one
@@ -200,13 +201,13 @@ jobs:
           # by hand -- bench/README.md's GPU gate has the protocol, and the benchmark prints which
           # accelerator produced each figure.
           # One class at a time, against a deadline. Measured on 2026-09-16, a class costs
-          # 2.3 minutes on average, so the four projects below are about 71, 35, 5 and 12
-          # minutes -- 122 for the 53 classes, plus 58 for the seven comparisons and 11 for
-          # the setup and the pages: 191 minutes against timeout-minutes: 240.
+          # 2.3 minutes on average; the map now names 114, about 260 minutes, so a night measures
+          # what the budget holds and owes the rest.
           #
-          # The order matters more than the total, because the budget is spent in it: the
-          # first project holds 31 of the 53 classes, so a budget that covers only it leaves
-          # Stats, Survival and Gpu unmeasured every night rather than a fair share of each.
+          # The order matters more than the total, because the budget is spent in it: classes go
+          # in the selection's order, the owed ones first whichever project holds them, so the
+          # tail a short night drops is not the tail it dropped before (#1687). Walking project by
+          # project, the first one's 31 of 53 classes kept the others behind every night.
           #
           # A killed job is what this avoids, and it is worse than a short one: it writes no
           # page, so the baseline never advances and the next night selects the same classes
@@ -214,17 +215,36 @@ jobs:
           #
           # Stopping deliberately is what makes that impossible. The cost is one `dotnet run`
           # per class rather than per project -- seconds each, against hours of exposure.
-          deadline=$(( $(date +%s) + BUDGET_MINUTES * 60 ))
+          deadline=$(( JOB_STARTED + BUDGET_MINUTES * 60 ))
+          stop=$(( JOB_STARTED + CLASS_STOP_BY_MINUTES * 60 ))
           : > owed.txt
-          for project in bench/Lodestar.Text.Benchmarks bench/Lodestar.Stats.Benchmarks bench/Lodestar.Survival.Benchmarks bench/Lodestar.Gpu.Benchmarks; do
-            while read -r name; do
-              [ -n "$name" ] || continue
-              grep -q "public class $name" "$project"/*.cs 2>/dev/null || continue
-              if [ "$(date +%s)" -ge "$deadline" ]; then
-                echo "$name" >> owed.txt
-                continue
+          : > failed.txt
+          : > classes-run.txt
+          : > cut.txt
+          while read -r name; do
+            [ -n "$name" ] || continue
+            # The whole name, so FooBenchmarks is not found as the start of FooBenchmarksX.
+            found=""
+            for project in bench/Lodestar.Text.Benchmarks bench/Lodestar.Stats.Benchmarks bench/Lodestar.Survival.Benchmarks bench/Lodestar.Gpu.Benchmarks; do
+              if grep -qwE "class $name" "$project"/*.cs 2>/dev/null; then
+                found="$project"
+                break
               fi
-              filters="*$name*"
+            done
+            if [ -z "$found" ]; then
+              echo "::error::$name is in bench/bench-map.json and in no benchmark project"
+              echo "$name" >> failed.txt
+              continue
+            fi
+            project="$found"
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "$name" >> owed.txt
+              continue
+            fi
+            left=$(( stop - $(date +%s) ))
+            # The class and no other: "*Name*" also matched every class whose name contains it,
+            # MetricsBenchmarks running RankingMetricsBenchmarks and two more on its budget.
+            filters="*.$name.*"
             echo "::group::$project -- $filters"
             # --job short: a hosted runner cannot support the default job's iteration count
             # inside a nightly window, and the ratio it reports is what this page publishes.
@@ -233,11 +253,19 @@ jobs:
             # writes BenchmarkDotNet.Artifacts/ under the working directory, and
             # render_nightly.py reads exactly one such directory at the root. Both
             # projects' reports have to land in it.
-            dotnet run -c Release --project "$project" -- \
-              --filter $filters --job short --exporters github
+            #
+            # Cut at the class stop with its whole process group, which `timeout` no longer
+            # promises: uutils' sends its kill to the direct child, and the benchmark `dotnet run`
+            # starts outlived it. A class started just inside the budget -- a GPU class on this
+            # GPU-less runner the longest -- would otherwise eat the comparisons' minutes (#1687).
+            # It settles the class as the comparisons are settled: ran, owed, cut or failed. A
+            # failing class is reported and the run goes on: stopping here would cost the page.
+            # It builds the command itself, `--filter "*.$name.*" --job short`, and writes to fixed
+            # files: nothing it runs or writes comes from its command line.
+            python tools/run_bounded.py --name "$name" --project "$project" --seconds "$left" \
+              --cut-before "$CUT_BEFORE"
             echo "::endgroup::"
-            done < selected.txt
-          done
+          done < selected.txt
 
           if [ -s owed.txt ]; then
             echo "::warning::out of budget with $(wc -l < owed.txt) class(es) unmeasured; \
@@ -245,30 +273,36 @@ jobs:
             sort -u owed.txt -o owed.txt
             cat owed.txt
           fi
+          echo "ran=$(tr '\n' ' ' < classes-run.txt)" >> "$GITHUB_OUTPUT"
 
       # The claim this project makes -- faster than rapidfuzz -- lives here and nowhere
       # else: a BenchmarkDotNet class measures us against ourselves. Both sides run in
       # the same job, on the same VM, in the same minutes, which is what makes the ratio
       # readable where the absolutes are not.
       - name: Compare against Python
+        id: compare
         if: steps.select.outputs.harnesses != '0'
+        env:
+          # Counted from the job's start. From 2026-09-26 the comparisons grew to 21, about 110
+          # minutes, and with no deadline of their own every night ran into timeout-minutes: 240,
+          # was killed, wrote no page and re-selected everything (#1687). None starts past 210
+          # minutes; one still running at STOP_BY_MINUTES is cut with its process group and owed.
+          COMPARISON_START_BY_MINUTES: 210
+          CUT_BEFORE: ${{ steps.baseline.outputs.cut }}
+          # The groups this prints have to wrap the commands' own output, which a buffered stdout
+          # would print after them.
+          PYTHONUNBUFFERED: '1'
         run: |
           set -euo pipefail
-          mkdir -p bench/results
-          while read -r name; do
-            [ -n "$name" ] || continue
-            subcommand=$(python -c "import json;print(json.load(open('bench/bench-map.json'))['harnesses']['$name']['subcommand'])")
-            script=$(python -c "import json;print(json.load(open('bench/bench-map.json'))['harnesses']['$name']['python'])")
-            mode=$(python -c "import json;print(json.load(open('bench/bench-map.json'))['harnesses']['$name']['compare'])")
-            echo "::group::$name"
-            python "$script"
-            dotnet run -c Release --project bench/Lodestar.Text.Benchmarks -- "$subcommand"
-            python bench/compare.py $mode | tee "bench/results/compare-$name.txt"
-            # Same numbers, rendered as a real markdown table for the page that shows one --
-            # the .txt file above stays exactly what a human reads in this log and locally.
-            python bench/compare.py $mode --format=gfm > "bench/results/compare-$name.md"
-            echo "::endgroup::"
-          done < harnesses.txt
+          touch owed.txt failed.txt cut.txt
+          # It reads harnesses.txt and writes harnesses-run.txt, owed.txt, failed.txt and cut.txt.
+          python tools/run_comparisons.py \
+            --started "$JOB_STARTED" \
+            --start-by "$COMPARISON_START_BY_MINUTES" \
+            --stop-by "$STOP_BY_MINUTES" \
+            --generated bench/corpus/generate_vocabs.py \
+            --cut-before "$CUT_BEFORE"
+          echo "ran=$(tr '\n' ' ' < harnesses-run.txt)" >> "$GITHUB_OUTPUT"
 
       # The marker this writes is what the *next* run reads (render_nightly.py's own docstring).
       # On main that must advance to tonight's tip, so a scheduled run partitions cleanly against
@@ -301,9 +335,11 @@ jobs:
             --commit "${{ github.sha }}" \
             --baseline "$baseline_for_page" \
             --runner "${{ runner.os }} / ${{ runner.arch }} (GitHub hosted)" \
-            --selected $(cat selected.txt | tr '\n' ' ') \
-            --harnesses $(cat harnesses.txt | tr '\n' ' ') \
-            --owed $(cat owed.txt 2>/dev/null | tr '\n' ' ') \
+            --selected $(cat classes-run.txt 2>/dev/null | tr '\n' ' ') \
+            --harnesses $(cat harnesses-run.txt 2>/dev/null | tr '\n' ' ') \
+            --owed $(sort -u owed.txt 2>/dev/null | tr '\n' ' ') \
+            --failed $(sort -u failed.txt 2>/dev/null | tr '\n' ' ') \
+            --cut $(sort -u cut.txt 2>/dev/null | tr '\n' ' ') \
             $branch_flag
 
       # Cloned here, ahead of "Open the pull request", so the aggregate below can read
@@ -397,6 +433,7 @@ jobs:
       # job's tree: that job holds `workflows: write` and must not run anything this
       # branch could have written (#464).
       - name: Hand the pages to the publish job
+        id: handed
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: nightly-pages
@@ -418,6 +455,17 @@ jobs:
             selected.txt
           retention-days: 7
 
+      # Last, after the page, the wiki and the hand-off: a failure is reported on the page and the
+      # run goes on, but a run that ends green hides it once the next page drops it, since a failure
+      # is not owed (#1687). The publish job still opens the pull request.
+      - name: Fail on what failed tonight
+        run: |
+          set -euo pipefail
+          if [ -s failed.txt ]; then
+            echo "::error::$(sort -u failed.txt | wc -l) class(es) or comparison(s) failed: $(sort -u failed.txt | tr '\n' ' ')"
+            exit 1
+          fi
+
   # Split out of `measure` because this is the job that pushes and opens the pull
   # request, and it must not run the measured branch's code: every step here is a
   # pinned action, git or gh. `workflows` is NOT among GitHub's permission scopes, and no
@@ -426,6 +474,9 @@ jobs:
   publish:
     name: Open the pull request
     needs: measure
+    # Also when measure failed only on its last step, which turns a reported failure red: the pages
+    # were handed over before it, and the run's numbers still deserve their pull request.
+    if: ${{ !cancelled() && needs.measure.outputs.handed == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -446,6 +497,7 @@ jobs:
           # docs give for every github.* value a workflow turns into a command.
           TARGET_REF: ${{ github.ref_name }}
           SELECTED: ${{ needs.measure.outputs.selected }}
+          COMPARED: ${{ needs.measure.outputs.compared }}
           MOVED: ${{ needs.measure.outputs.moved }}
         run: |
           set -euo pipefail
@@ -506,5 +558,5 @@ jobs:
           fi
           gh pr create --head "$branch" --base "$TARGET_REF" \
             --title "Nightly benchmark run for $(date -u +%Y-%m-%d)" \
-            --body "Generated by \`.github/workflows/bench-nightly.yml\`. Ratios only — see the page for why a hosted runner's absolutes are not comparable. Classes re-run: $SELECTED. Ratios that moved (see the page's last section): ${MOVED:-not compared}." \
+            --body "Generated by \`.github/workflows/bench-nightly.yml\`. Ratios only — see the page for why a hosted runner's absolutes are not comparable. Classes re-run: ${SELECTED:-none}. Comparisons run: ${COMPARED:-none}. Ratios that moved (see the page's last section): ${MOVED:-not compared}." \
             || gh pr edit "$branch" --title "Nightly benchmark run for $(date -u +%Y-%m-%d)"

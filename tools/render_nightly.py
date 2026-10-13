@@ -20,8 +20,11 @@ Usage:  python tools/render_nightly.py --commit <sha> --baseline <sha> \\
 from __future__ import annotations
 
 import argparse
+import json
 import pathlib
 import sys
+
+import select_benchmarks
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -50,6 +53,10 @@ MARKER = "<!-- nightly-baseline: {sha} -->"
 # What the run selected and did not reach. The baseline above advances to the commit that
 # was measured, so without this a truncated night loses the classes it skipped (#650).
 OWED = "<!-- nightly-owed: {classes} -->"
+
+# Among those, what was cut while running rather than never started: one cut on two nights running
+# does not fit the window and is failed, which a night that only skipped it must not count (#1687).
+CUT = "<!-- nightly-cut: {names} -->"
 
 # By file name, not the wiki's flat name: build_wiki.py rewrites it for the wiki, and github.com and
 # the documentation site resolve it as written (#1180).
@@ -149,13 +156,13 @@ def render(args: argparse.Namespace,
            reports: list[pathlib.Path],
            comparisons: list[pathlib.Path] | None = None) -> str:
     lines = [HEADER, "", MARKER.format(sha=args.baseline or "none"),
-             OWED.format(classes=" ".join(args.owed)), ""]
+             OWED.format(classes=" ".join(args.owed)), CUT.format(names=" ".join(args.cut)), ""]
     lines.append(PREAMBLE.format(performance=PERFORMANCE).strip())
     lines += ["", "## This run", "", f"- Commit: `{args.commit}`",
               f"- Previous run: `{args.baseline or 'none — every entry was selected'}`",
               f"- Runner: {args.runner}", ""]
 
-    if not args.selected and not args.harnesses:
+    if not args.selected and not args.harnesses and not args.owed and not args.failed:
         return collapse(lines + nothing_ran(args.reason))
 
     if args.selected:
@@ -172,15 +179,50 @@ def render(args: argparse.Namespace,
             "where the absolutes are not.", args.harnesses)
         lines += included_reports(comparisons or [])
 
-    if args.owed:
+    lines += owed_sections(args)
+
+    if args.failed:
         lines += listing(
-            "Selected, and not reached tonight",
-            "The run stops starting classes when the budget left cannot hold one, so these "
-            "were carried to the next run rather than measured badly or killed mid-flight. "
-            "They are selected again tomorrow whether or not anything else changes.",
-            args.owed)
+            "Failed tonight",
+            "These exited with an error, were cut on two nights running, or are named by the map and "
+            "declared by no project; the log's annotation on each says which. The run went on, so the "
+            "rest are on this page. A failure is not owed: it is selected again only when something it "
+            "reads changes.",
+            args.failed)
 
     return collapse(lines)
+
+
+def owed_sections(args: argparse.Namespace) -> list[str]:
+    """What is carried to tomorrow: classes and comparisons not reached, and apart, what was cut."""
+    lines: list[str] = []
+    if not args.owed:
+        return lines
+    comparisons_owed = set(harness_names())
+    cut = set(args.cut)
+    classes = [name for name in args.owed if name not in comparisons_owed and name not in cut]
+    owed_comparisons = [name for name in args.owed if name in comparisons_owed and name not in cut]
+    reason = ("The run stops starting them when the time left cannot hold one, so these were "
+              "carried to the next run rather than measured badly or killed mid-flight. "
+              "They are asked for first tomorrow whether or not anything else changes.")
+    if classes:
+        lines += listing("Classes selected, and not reached tonight", reason, classes)
+    if owed_comparisons:
+        lines += listing("Comparisons selected, and not reached tonight", reason, owed_comparisons)
+    if args.cut:
+        lines += listing(
+            "Cut at the stop",
+            "These were still running when their phase's time ran out and were killed with their "
+            "process group. They are asked for first tomorrow; cut again, they are failed as too "
+            "long for the window.", args.cut)
+    return lines
+
+
+def harness_names() -> list[str]:
+    """The comparisons the map knows, to tell an owed comparison from an owed class (#1687)."""
+    if not select_benchmarks.MAP.exists():
+        return []
+    return list(json.loads(select_benchmarks.MAP.read_text(encoding="utf-8")).get("harnesses", {}))
 
 
 def collapse(lines: list[str]) -> str:
@@ -201,7 +243,11 @@ def main() -> None:
     parser.add_argument("--selected", nargs="*", default=[])
     parser.add_argument("--harnesses", nargs="*", default=[])
     parser.add_argument("--owed", nargs="*", default=[],
-                        help="classes selected and not reached, carried to the next run")
+                        help="classes and comparisons selected and not reached, carried to the next run")
+    parser.add_argument("--failed", nargs="*", default=[],
+                        help="classes and comparisons that exited with an error")
+    parser.add_argument("--cut", nargs="*", default=[],
+                        help="among the owed, those cut while running rather than never started")
     parser.add_argument("--reason", default="")
     parser.add_argument("--branch", action="store_true",
                         help="write BRANCH_PAGE instead of PAGE (a workflow_dispatch off main)")
@@ -217,9 +263,10 @@ def main() -> None:
 
     target = BRANCH_PAGE if args.branch else PAGE
 
-    # Nothing selected, or everything selected produced no result: leaving the file
-    # untouched is what "Open the pull request" and the wiki's own push already skip.
-    if not has_content(reports) and not has_content(comparisons):
+    # Untouched only when nothing was selected: the markers travel through the page alone, and a
+    # stale cut marker would fail a name the night between had run (#1687).
+    if (not has_content(reports) and not has_content(comparisons)
+            and not (args.selected or args.harnesses or args.owed or args.failed)):
         print(f"nothing worth publishing; {target.relative_to(ROOT)} left unchanged")
         return
 

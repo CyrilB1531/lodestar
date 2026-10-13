@@ -70,12 +70,6 @@ def changed_files(since: str, head: str) -> list[str]:
     return [line for line in out.stdout.splitlines() if line]
 
 
-def print_all(data: dict, kind: str) -> None:
-    """Every mapped entry of one kind, one per line -- the safe default in two places."""
-    for name in sorted(data.get(kind, {})):
-        print(name)
-
-
 def matches(path: str, glob: str) -> bool:
     """A '**' glob matches the directory's whole subtree, which fnmatch alone does not."""
     if glob.endswith("/**"):
@@ -165,20 +159,34 @@ def select(data: dict, files: list[str], kind: str = "benchmarks",
             if any(matches(path, glob) for glob in globs(name) for path in files)]
 
 
-def with_owed(data: dict, kind: str, owed: str, selected) -> list[str]:
-    """The selection, plus what a previous run was selected for and did not reach.
+def with_owed(data: dict, kind: str, owed: str, selected, cut: str = "") -> list[str]:
+    """The selection, plus what a previous run was selected for and did not reach, owed first.
 
     #650: the baseline marker advances to the commit that was measured, so a class a
     truncated run skipped would otherwise be forgotten -- nothing changed since, so
     nothing selects it again. Carried here instead, and only names the map still knows,
     so a class deleted between two nights drops out rather than being asked for forever.
 
-    Returned in the map's own order, not the concatenation's, so two nights that owe the
-    same set ask for it the same way.
+    Owed names come first: a run stops at a deadline, so the tail of the order is what a short
+    night drops, and a tail that was also owed would be dropped again every night -- 14 of 21
+    comparisons on 2026-10-12 (#1687). Those the previous run cut come before the rest of the
+    owed: a second cut fails them, which is fair only to one given the front of the window. Each
+    group keeps the map's own order, so two nights that owe the same set ask for it the same way.
     """
     mapped = data.get(kind, {})
-    wanted = set(selected) | {name for name in owed.split() if name in mapped}
-    return [name for name in mapped if name in wanted]
+    first = set(cut.split())
+    carried = {name for name in owed.split() if name in mapped} | (first & set(mapped))
+    chosen = set(selected)
+    return ([name for name in mapped if name in first]
+            + [name for name in mapped if name in carried and name not in first]
+            + [name for name in mapped if name in chosen and name not in carried])
+
+
+def print_selection(data: dict, kind: str, args: argparse.Namespace, selected) -> None:
+    """One name a line, in the order a night spends its budget: everything selected included, what
+    is owed still goes first, or the deadline's cut falls on it again (#1687)."""
+    for name in with_owed(data, kind, args.owed, selected, args.cut):
+        print(name)
 
 
 def main() -> int:
@@ -187,7 +195,9 @@ def main() -> int:
     parser.add_argument("--head", default="HEAD")
     parser.add_argument("--all", action="store_true", help="select every mapped entry")
     parser.add_argument("--owed", default="",
-                        help="space-separated classes a previous run did not reach")
+                        help="space-separated classes or comparisons a previous run did not reach")
+    parser.add_argument("--cut", default="",
+                        help="space-separated names, among those owed, the previous run cut; put first")
     parser.add_argument("--harnesses", action="store_true",
                         help="the cross-language pairs instead of the BenchmarkDotNet classes")
     args = parser.parse_args()
@@ -202,21 +212,18 @@ def main() -> int:
     # reading of not knowing is to measure everything.
     kind = "harnesses" if args.harnesses else "benchmarks"
     if args.all or not args.since:
-        print_all(data, kind)
+        print_selection(data, kind, args, data.get(kind, {}))
         return 0
 
     # Same ignorance, wrongly read as the opposite before this: a rebase can
     # orphan the SHA the page recorded, and an empty diff looked like none (#354).
     if REVISION.match(args.since) and not resolves(args.since):
         print(f"baseline {args.since!r} does not resolve; measuring everything", file=sys.stderr)
-        print_all(data, kind)
+        print_selection(data, kind, args, data.get(kind, {}))
         return 0
 
-    for name in with_owed(
-            data, kind, args.owed,
-            select(data, changed_files(args.since, args.head), kind,
-                   since=args.since, head=args.head)):
-        print(name)
+    print_selection(data, kind, args, select(data, changed_files(args.since, args.head), kind,
+                                             since=args.since, head=args.head))
     return 0
 
 
