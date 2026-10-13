@@ -7,6 +7,7 @@ loop, which writes the page.
 
 from __future__ import annotations
 
+import argparse
 import dataclasses
 import os
 import pathlib
@@ -72,30 +73,70 @@ class Outcomes:
     failed: list[str] = dataclasses.field(default_factory=list)
     cut: list[str] = dataclasses.field(default_factory=list)
 
-    def settle(self, name: str, outcome: str, cut_before: Sequence[str] = ()) -> None:
-        """``late`` never started and is owed. ``cut`` is owed and noted as cut, unless the previous
-        night cut it too: owed goes first, so one that never fits would be cut first every night
-        ahead of the rest, and is failed as too long for the window instead. A night that only
-        skipped it does not count, since it never had the window. ``failed`` is failed: owed, it
-        would be asked for first every night and crowd out the rest; fatal, it would stop the page
-        as a timeout did."""
+    def settle(self, name: str, outcome: str) -> None:
+        """``late`` never started and is owed. ``cut`` is owed and noted as cut, which the next night
+        asks for last rather than first (select_benchmarks.with_owed), so one that never fits uses
+        only what the window has left (#1694). ``failed`` is failed: owed, it would be asked for first
+        every night and crowd out the rest; fatal, it would stop the page as a timeout did."""
         if outcome == "ran":
             self.ran.append(name)
         elif outcome == "late":
             self.owed.append(name)
-        elif outcome == "cut" and name not in cut_before:
+        elif outcome == "cut":
             print(f"::warning::{name} was still running at the stop; it is carried to the next run",
                   flush=True)
             self.owed.append(name)
             self.cut.append(name)
-        elif outcome == "cut":
-            annotate(f"{name} was cut on two nights running; it does not fit the window")
-            self.failed.append(name)
         else:
             self.failed.append(name)
+
+    def extend(self, other: Outcomes) -> None:
+        for field in dataclasses.fields(self):
+            getattr(self, field.name).extend(getattr(other, field.name))
 
     def append_to(self, ran: pathlib.Path, directory: pathlib.Path = pathlib.Path()) -> None:
         """Appends each list to its file under ``directory``; ``ran`` is the caller's own."""
         for path, names in ((ran, self.ran), (OWED, self.owed), (FAILED, self.failed), (CUT, self.cut)):
             with (directory / path).open("a", encoding=ENCODING) as sink:
                 sink.writelines(f"{name}\n" for name in names)
+
+
+def carry(selected: list[str], settled: set[str], owed: set[str], cut: set[str],
+          cut_before: list[str]) -> tuple[list[str], list[str]]:
+    """What the page step adds to owed.txt and cut.txt (#1694, #1695).
+
+    A name the night selected and a dying step left unsettled is owed, as the baseline advances past
+    it (#650), and asked for last, so one that kills its step every night cannot starve the rest. A
+    name cut on an earlier night and still owed stays last until it runs; otherwise it would go
+    first every other night.
+    """
+    unsettled = sorted(set(selected) - settled)
+    kept = sorted((set(cut_before) & (owed | set(unsettled))) - cut - set(unsettled))
+    return unsettled, unsettled + kept
+
+
+def read_names(path: pathlib.Path) -> list[str]:
+    """One name a line, as every step writes them; the one reader of those files."""
+    return path.read_text(encoding=ENCODING).split() if path.exists() else []
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """`carry`: settle what tonight left unsettled, from the fixed files the measuring steps wrote."""
+    parser = argparse.ArgumentParser(description=main.__doc__)
+    parser.add_argument("command", choices=["carry"])
+    parser.add_argument("--cut-before", default="", help="what the previous page cut, space-separated")
+    args = parser.parse_args(argv)
+
+    selected = read_names(pathlib.Path("selected.txt")) + read_names(pathlib.Path("harnesses.txt"))
+    owed = read_names(OWED)
+    settled = {name for path in (pathlib.Path("classes-run.txt"), pathlib.Path("harnesses-run.txt"), FAILED)
+               for name in read_names(path)} | set(owed)
+    owed_add, cut_add = carry(selected, settled, set(owed), set(read_names(CUT)), args.cut_before.split())
+    for path, names in ((OWED, owed_add), (CUT, cut_add)):
+        with path.open("a", encoding=ENCODING) as sink:
+            sink.writelines(f"{name}\n" for name in names)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

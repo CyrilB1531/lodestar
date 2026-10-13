@@ -13,14 +13,17 @@ figures are not comparable to that table nor, strictly, to last night's. What
 survives is the ratio inside one run -- a baseline and its comparands measured in
 the same minute on the same VM -- which is what this page is for.
 
-Usage:  python tools/render_nightly.py --commit <sha> --baseline <sha> \\
-            --runner <label> [--selected Class ...] [--reason text] [--branch] [--stdout]
+Usage:  python tools/render_nightly.py --commit <sha> --baseline <sha> --runner <label> \\
+            [--selected Class ...] [--harnesses Name ...] [--owed Name ...] [--cut Name ...] \\
+            [--failed Name ...] [--reason text] [--branch] [--stdout]
+        python tools/render_nightly.py --markers
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import pathlib
 import sys
 
@@ -54,9 +57,11 @@ MARKER = "<!-- nightly-baseline: {sha} -->"
 # was measured, so without this a truncated night loses the classes it skipped (#650).
 OWED = "<!-- nightly-owed: {classes} -->"
 
-# Among those, what was cut while running rather than never started: one cut on two nights running
-# does not fit the window and is failed, which a night that only skipped it must not count (#1687).
+# Among those, what the next night asks for last: cut at a stop and not run since, or left unsettled
+# by a step that died, so one that does not fit the window takes only what the rest leave (#1694).
 CUT = "<!-- nightly-cut: {names} -->"
+
+REVISION = re.compile(r"[0-9a-f]{7,40}")
 
 # By file name, not the wiki's flat name: build_wiki.py rewrites it for the wiki, and github.com and
 # the documentation site resolve it as written (#1180).
@@ -169,7 +174,7 @@ def render(args: argparse.Namespace,
         lines += listing(
             "Classes re-run",
             "Selected by `tools/select_benchmarks.py` from the sources that changed since "
-            "the previous run:", args.selected)
+            "the previous run, and what earlier nights owed:", args.selected)
         lines += included_reports(reports)
 
     if args.harnesses:
@@ -184,8 +189,9 @@ def render(args: argparse.Namespace,
     if args.failed:
         lines += listing(
             "Failed tonight",
-            "These exited with an error, were cut on two nights running, or are named by the map and "
-            "declared by no project; the log's annotation on each says which. The run went on, so the "
+            "These exited with an error, raised, shared a script that failed tonight, or are named by "
+            "the map and declared by no project; the log's annotation on each says which. The run "
+            "went on, so the "
             "rest are on this page. A failure is not owed: it is selected again only when something it "
             "reads changes.",
             args.failed)
@@ -211,10 +217,10 @@ def owed_sections(args: argparse.Namespace) -> list[str]:
         lines += listing("Comparisons selected, and not reached tonight", reason, owed_comparisons)
     if args.cut:
         lines += listing(
-            "Cut at the stop",
-            "These were still running when their phase's time ran out and were killed with their "
-            "process group. They are asked for first tomorrow; cut again, they are failed as too "
-            "long for the window.", args.cut)
+            "Asked for last",
+            "Each was cut at its phase's stop, tonight or on an earlier night and not run since, or "
+            "left unsettled by a step that died. They are asked for after everything else, so one that "
+            "does not fit the window takes only what the rest leave.", args.cut)
     return lines
 
 
@@ -235,9 +241,27 @@ def collapse(lines: list[str]) -> str:
     return "\n".join(out).strip() + "\n"
 
 
+def marker(text: str, template: str) -> str | None:
+    """A marker's value as the page holds it, or None when the page has no such marker."""
+    head, tail = template.split("{", 1)[0], template.split("}", 1)[1]
+    for line in text.splitlines():
+        if line.startswith(head) and line.endswith(tail):
+            return line[len(head):len(line) - len(tail)].strip()
+    return None
+
+
+def markers(text: str) -> list[str]:
+    """The three values the next night reads, as GITHUB_OUTPUT lines, through one parser."""
+    sha = marker(text, MARKER) or ""
+    return [f"sha={sha if REVISION.fullmatch(sha) else ''}",
+            f"owed={' '.join((marker(text, OWED) or '').split())}",
+            f"cut={' '.join((marker(text, CUT) or '').split())}"]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--commit", required=True)
+    flag = "store_true"
+    parser.add_argument("--commit")
     parser.add_argument("--baseline", default="")
     parser.add_argument("--runner", default="ubuntu-latest")
     parser.add_argument("--selected", nargs="*", default=[])
@@ -245,14 +269,23 @@ def main() -> None:
     parser.add_argument("--owed", nargs="*", default=[],
                         help="classes and comparisons selected and not reached, carried to the next run")
     parser.add_argument("--failed", nargs="*", default=[],
-                        help="classes and comparisons that exited with an error")
+                        help="classes and comparisons that exited with an error, raised, or name no project")
     parser.add_argument("--cut", nargs="*", default=[],
-                        help="among the owed, those cut while running rather than never started")
+                        help="among the owed, those asked for last: cut, or left by a step that died")
     parser.add_argument("--reason", default="")
-    parser.add_argument("--branch", action="store_true",
+    parser.add_argument("--branch", action=flag,
                         help="write BRANCH_PAGE instead of PAGE (a workflow_dispatch off main)")
-    parser.add_argument("--stdout", action="store_true", help="print instead of writing")
+    parser.add_argument("--stdout", action=flag, help="print instead of writing")
+    parser.add_argument("--markers", action=flag,
+                        help="print the page's baseline, owed and cut as GITHUB_OUTPUT lines")
     args = parser.parse_args()
+
+    if args.markers:
+        # An unreadable byte costs that marker, not the night: an unknown baseline measures everything.
+        print("\n".join(markers(PAGE.read_text(encoding="utf-8", errors="replace") if PAGE.exists() else "")))
+        return
+    if not args.commit:
+        parser.error("--commit is required to render the page")
 
     reports = sorted(ARTIFACTS.glob("*-report-github.md")) if ARTIFACTS.is_dir() else []
     comparisons = sorted(COMPARISONS.glob("compare-*.md")) if COMPARISONS.is_dir() else []
@@ -263,8 +296,8 @@ def main() -> None:
 
     target = BRANCH_PAGE if args.branch else PAGE
 
-    # Untouched only when nothing was selected: the markers travel through the page alone, and a
-    # stale cut marker would fail a name the night between had run (#1687).
+    # Untouched only when nothing was selected: the markers travel through the page alone, and one
+    # left from an earlier night would ask for what tonight settled (#1687).
     if (not has_content(reports) and not has_content(comparisons)
             and not (args.selected or args.harnesses or args.owed or args.failed)):
         print(f"nothing worth publishing; {target.relative_to(ROOT)} left unchanged")

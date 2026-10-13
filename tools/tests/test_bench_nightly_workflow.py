@@ -102,23 +102,15 @@ def test_the_publish_stands_down_when_the_workflows_differ(workflow):
     assert "GITHUB_STEP_SUMMARY" in scripts
 
 
-def test_run_them_measures_every_project_that_can_declare_a_benchmark(workflow):
-    # #586: it ran Text.Benchmarks alone, so StatsBenchmarks matched nothing and exited 0
-    # while the page still listed it. CLASS_DIRS is the set that has to be run.
+def test_run_them_measures_every_project_that_can_declare_a_benchmark():
+    # #586: it ran Text.Benchmarks alone, so StatsBenchmarks matched nothing and exited 0 while the
+    # page still listed it. run_bounded finds each class's project among the ones the gate scans.
     sys.path.insert(0, str(WORKFLOWS.parents[1] / "tools"))
     import check_bench_map  # noqa: PLC0415
+    import run_bounded  # noqa: PLC0415
 
-    step = next(
-        s for s in workflow["jobs"]["measure"]["steps"] if s.get("name") == "Run them"
-    )
-    loop = check_bench_map.RUN_LOOP.search(step["run"])
-    assert loop, "`Run them` no longer iterates a project list"
-
-    measured = set(loop.group(1).split())
-    expected = {
-        d.relative_to(WORKFLOWS.parents[1]).as_posix() for d in check_bench_map.CLASS_DIRS
-    }
-    assert expected <= measured, f"never measured: {sorted(expected - measured)}"
+    assert run_bounded.project_of("StatsBenchmarks") == "bench/Lodestar.Stats.Benchmarks"
+    assert check_bench_map.declared_classes()["StatsBenchmarks"].parent.name == "Lodestar.Stats.Benchmarks"
 
 
 def test_the_measurement_job_cannot_open_a_pull_request(workflow):

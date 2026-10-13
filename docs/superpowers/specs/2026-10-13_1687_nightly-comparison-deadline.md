@@ -40,7 +40,7 @@ comparisons.
   the owed; only a second
   cut fails it. One owed because the deadline passed before it started never had the window, so a
   first cut owes it again. The class loop and the comparisons settle each name through one rule,
-  `run_comparisons.Outcomes.settle`, and tell a cut by the clock rather than by an exit code a
+  `nightly_outcomes.Outcomes.settle`, and tell a cut by the clock rather than by an exit code a
   command may return of its own. Every selection path, `--all` included, puts the owed first.
 - **The page's lists reach the scripts through the environment.** The owed and cut lists are read
   from a page file, and a quote in one interpolated into a `run:` script would be shell code.

@@ -21,7 +21,8 @@ deadline ran the job into its timeout every night from 2026-09-26 (#1687).
 So three things have to stay true, and none is visible from reading one line:
   * every phase -- classes, comparisons -- has a start deadline and a cut on the job's clock,
     each cut before the next phase's last start, the last one before the page's minutes
-  * what a night does not reach is written down, carried, and asked for first
+  * what a night does not reach is written down, carried, and asked for first, save what it cut,
+    which goes last
   * a failure is reported and the run goes on, since a step that stops costs the page
 """
 
@@ -92,7 +93,7 @@ def test_what_the_run_did_not_reach_is_written_down():
     assert "owed.txt" in run, "Run them reaches no budget and records nothing"
     # One `dotnet run` per class, not per project: a deadline checked between projects
     # cannot stop Gpu, which alone is longer than the whole budget.
-    assert re.search(r'filters="\*\.\$name\.\*"', run), (
+    assert 'tools/run_bounded.py --name "$name"' in run and "while read -r name" in run, (
         "Run them still batches a project's classes into one invocation, so its deadline "
         "can only be checked before an hour of work rather than before each class."
     )
@@ -201,7 +202,7 @@ def test_the_comparisons_stop_on_the_job_clock_and_leave_the_page_its_minutes():
 def test_the_comparisons_selection_is_handed_what_is_owed():
     select = steps()["Which classes and comparisons that makes worth re-running"]["run"]
 
-    assert re.search(r'--owed "\$OWED" --cut "\$CUT" --harnesses', select), (
+    assert re.search(r'--owed="\$OWED" --cut="\$CUT" --harnesses', select), (
         "the comparisons' selection is not handed the owed list, so a comparison a short night "
         "skipped is never asked for again")
 
@@ -306,21 +307,20 @@ def test_the_bounded_runner_kills_the_group_and_settles_the_class(tmp_path):
 
     files = {"ran": "classes-run.txt", "owed": "owed.txt", "failed": "failed.txt", "cut": "cut.txt"}
 
-    def bounded(name, seconds, *command, cut_before=""):
-        run_bounded.settle_class(name, seconds, cut_before.split(), list(command), directory=tmp_path)
+    def bounded(name, seconds, *command):
+        run_bounded.settle_class(name, seconds, list(command), directory=tmp_path)
 
     def read(kind):
         path = tmp_path / files[kind]
         return path.read_text(encoding="utf-8").split() if path.exists() else []
 
     started = time.time()
-    bounded("slow", 1, "bash", "-c", "sleep 30 & sleep 30")
+    bounded("slow", 1, "bash", "-c", "sleep 31.69 & sleep 31.69")
     assert time.time() - started < 10
-    left = subprocess.run(["pgrep", "-x", "-f", "sleep 30"], capture_output=True, text=True).stdout
+    left = subprocess.run(["pgrep", "-x", "-f", "sleep 31.69"], capture_output=True, text=True).stdout
     assert left.strip() == "", "a grandchild outlived the cut"
     # Exit 124 of its own is a failure, not a cut: the outcome is never read from the exit code.
     bounded("own124", 5, sys.executable, "-c", "raise SystemExit(124)")
-    bounded("again", 1, "sleep", "30", cut_before="again")
     bounded("fine", 5, sys.executable, "-c", "pass")
     bounded("late", 0, sys.executable, "-c", "pass")
     # stdin is the loop's list of names; a child must not swallow it.
@@ -329,21 +329,28 @@ def test_the_bounded_runner_kills_the_group_and_settles_the_class(tmp_path):
     assert read("ran") == ["fine", "reader"]
     assert read("owed") == ["slow", "late"]
     assert read("cut") == ["slow"]
-    assert read("failed") == ["own124", "again"]
+    assert read("failed") == ["own124"]
 
 
-def test_the_bounded_runner_builds_its_command_and_refuses_what_it_does_not_know():
+def test_the_bounded_runner_builds_its_command_and_refuses_what_it_does_not_know(monkeypatch, tmp_path):
     """Nothing from its command line is run: the class comes from the map, the project from a list."""
-    import check_bench_map
     import run_bounded
 
-    assert list(run_bounded.PROJECTS) == [d.relative_to(check_bench_map.ROOT).as_posix()
-                                          for d in check_bench_map.CLASS_DIRS]
     assert run_bounded.command_for("XBenchmarks", "bench/Lodestar.Text.Benchmarks")[-6:] == [
         "--filter", "*.XBenchmarks.*", "--job", "short", "--exporters", "github"]
-    assert run_bounded.main(["--name", "NotAClass; rm -rf /", "--project", run_bounded.PROJECTS[0],
-                             "--seconds", "1"]) == 2
-    assert run_bounded.main(["--name", "x", "--project", "/etc", "--seconds", "1"]) == 2
+    assert run_bounded.main(["--name", "NotAClass; rm -rf /", "--seconds", "1"]) == 2
+
+    # A mention in a comment is not a declaration: the class's own project is the one found.
+    project = tmp_path / "bench" / "P"
+    project.mkdir(parents=True)
+    (project / "A.cs").write_text("// see class FooBenchmarks\n", encoding="utf-8")
+    (project / "B.cs").write_text("namespace X;\npublic class FooBenchmarks {\n    [Benchmark] public void A() {}\n}\n",
+                                  encoding="utf-8")
+    monkeypatch.setattr(run_bounded, "ROOT", tmp_path)
+    monkeypatch.setattr(run_bounded, "PROJECTS", ("bench/P",))
+    assert run_bounded.project_of("FooBenchmarks") == "bench/P"
+    (project / "B.cs").unlink()
+    assert run_bounded.project_of("FooBenchmarks") is None
 
 
 def test_a_shared_python_side_runs_once_a_night(tmp_path):
@@ -359,40 +366,6 @@ def test_a_shared_python_side_runs_once_a_night(tmp_path):
                         results=tmp_path, clock=lambda: 0.0, runner=runner)
 
     assert commands.count(("python", harnesses["stats"]["python"])) == 1
-
-
-def test_a_comparison_cut_again_while_owed_is_failed_not_owed_forever(tmp_path):
-    """Owed goes first, so one that never fits would be cut first every night and starve the rest."""
-    now = [0.0]
-
-    def runner(command, limit, output):
-        if command[0] == "dotnet":
-            now[0] = 600.0
-            return False
-        return True
-
-    outcomes = run_comparisons.run(
-        ["long", "short"], _harnesses("long", "short"), started=0.0, start_by=500.0, stop_by=600.0,
-        results=tmp_path, clock=lambda: now[0], runner=runner, cut_before=["long"])
-
-    assert (outcomes.ran, outcomes.owed, outcomes.failed) == ([], ["short"], ["long"])
-
-
-def test_one_only_skipped_the_night_before_is_owed_on_its_first_cut(tmp_path):
-    """Owed because the deadline passed before it started is not a cut: it never had the window."""
-    now = [0.0]
-
-    def runner(command, limit, output):
-        if command[0] == "dotnet":
-            now[0] = 600.0
-            return False
-        return True
-
-    outcomes = run_comparisons.run(
-        ["skipped"], _harnesses("skipped"), started=0.0, start_by=500.0, stop_by=600.0,
-        results=tmp_path, clock=lambda: now[0], runner=runner, cut_before=[])
-
-    assert (outcomes.owed, outcomes.cut, outcomes.failed) == (["skipped"], ["skipped"], [])
 
 
 def test_a_broken_shared_side_fails_its_sharers_without_running_again(tmp_path):
@@ -415,17 +388,17 @@ def test_a_broken_shared_side_fails_its_sharers_without_running_again(tmp_path):
     assert outcomes.failed == ["stats", "ols"]
 
 
-def test_cut_names_go_ahead_of_the_rest_of_the_owed():
-    """A second cut fails them, which is fair only to one given the front of the window."""
+def test_cut_names_go_after_everything_else():
+    """#1694: owed first, one that does not fit would be cut first every night ahead of the rest."""
     data = {"benchmarks": {"A": [], "B": [], "C": [], "D": []}}
 
-    order = select_benchmarks.with_owed(data, "benchmarks", "A C", ["B", "D"], cut="C")
+    order = select_benchmarks.with_owed(data, "benchmarks", "A C", ["B", "C", "D"], cut="C")
 
-    assert order == ["C", "A", "B", "D"]
+    assert order == ["A", "B", "D", "C"]
 
 
 def test_everything_selected_still_asks_for_the_owed_first(capsys):
-    """--all after a short night: in map order the owed tail met the cut again and was failed."""
+    """--all after a short night: in map order the owed tail met the deadline again and was dropped."""
     import argparse
 
     data = {"harnesses": {"a": {}, "b": {}, "c": {}}}
@@ -450,7 +423,7 @@ def test_the_page_derived_lists_reach_no_script_by_interpolation():
 
 
 def test_a_comparison_is_late_past_the_stop_whatever_the_start_deadline_says(tmp_path):
-    """Started past the stop it would be "cut" before it ran, and a second cut fails it."""
+    """Started past the stop it would be "cut" before it ran, and asked for last though it never had the window."""
     outcomes = run_comparisons.run(
         ["a"], _harnesses("a"), started=0.0, start_by=900.0, stop_by=600.0, results=tmp_path,
         clock=lambda: 700.0, runner=lambda command, limit, output: True)
@@ -463,7 +436,7 @@ def test_the_page_names_what_was_cut_apart_from_what_was_not_reached():
         _args(commit="a", baseline="b", owed=["XBenchmarks", "YBenchmarks"], cut=["YBenchmarks"]),
         reports=[])
     not_reached = page.split("## Classes selected, and not reached tonight")[1].split("##")[0]
-    cut = page.split("## Cut at the stop")[1]
+    cut = page.split("## Asked for last")[1]
 
     assert "XBenchmarks" in not_reached and "YBenchmarks" not in not_reached
     assert "YBenchmarks" in cut
@@ -480,3 +453,121 @@ def test_a_failure_turns_the_run_red_after_the_pages_are_handed_over():
     assert "failed.txt" in measure["steps"][-1]["run"]
     assert "!cancelled()" in data["jobs"]["publish"]["if"], (
         "measure failing on its last step would skip the pull request for numbers it measured")
+
+
+def test_the_workflow_reads_every_marker_through_one_parser():
+    baseline = steps()["The commit the previous run stopped at"]["run"]
+
+    assert "python tools/render_nightly.py --markers" in baseline
+    assert "sed " not in baseline, "two parsers read one page"
+    page = render_nightly.render(_args(commit="a", baseline="b" * 40, owed=["Beta"], cut=["Beta"]), reports=[])
+    assert render_nightly.markers(page) == ["sha=" + "b" * 40, "owed=Beta", "cut=Beta"]
+    assert render_nightly.markers("") == ["sha=", "owed=", "cut="]
+
+
+def test_a_name_left_unsettled_is_owed_last_and_a_cut_name_stays_last_until_it_runs():
+    """#1694/#1695: owed first, a name that kills its step or never fits would starve the rest."""
+    import nightly_outcomes
+
+    # B was selected and never settled; X was cut last night and is late tonight; A was cut and ran.
+    owed_add, cut_add = nightly_outcomes.carry(
+        selected=["A", "B", "C", "h1", "X"], settled={"A", "C", "h1", "X"}, owed={"X"}, cut=set(),
+        cut_before=["X", "A", "-v", "*"])
+
+    assert owed_add == ["B"]
+    assert cut_add == ["B", "X"], "a name taken from the page reached a list it was not in"
+
+
+def test_the_page_step_carries_through_the_tested_rule():
+    run = steps()["Write the page"]["run"]
+
+    assert 'python tools/nightly_outcomes.py carry --cut-before="$CUT_BEFORE"' in run
+    assert "for name in $CUT_BEFORE" not in run, "the rule is back in shell, where no test runs it"
+
+
+def test_the_class_loop_fails_a_class_its_runner_left_unsettled(tmp_path):
+    """The `||` handler, run: failed unless run_bounded settled the class before it fell over."""
+    import subprocess
+    import sys
+
+    if sys.platform == "win32":
+        pytest.skip("the step runs on ubuntu-latest")
+    run = steps()["Run them"]["run"]
+    handler = run[run.index("python tools/run_bounded.py"):run.index("}", run.index("|| {")) + 1]
+    stub = tmp_path / "bin"
+    stub.mkdir()
+    (stub / "python").write_text("#!/bin/sh\n[ -n \"$SETTLE\" ] && echo \"$3\" >> \"$SETTLE\"\nexit 3\n",
+                                 encoding="utf-8")
+    (stub / "python").chmod(0o755)
+    for settle, failed in (("", ["Lost"]), ("owed.txt", [])):
+        for name in ("classes-run.txt", "owed.txt", "failed.txt"):
+            (tmp_path / name).write_text("", encoding="utf-8")
+        script = f"set -euo pipefail\nname=Lost\nleft=10\n{handler}\n"
+        out = subprocess.run(["bash", "-c", script], cwd=tmp_path, check=True, capture_output=True, text=True,
+                             env={"PATH": f"{stub}:/usr/bin:/bin", "SETTLE": settle}).stdout
+        assert "exited 3" in out
+        assert (tmp_path / "failed.txt").read_text(encoding="utf-8").split() == failed
+
+
+def test_the_page_is_written_after_a_failed_step():
+    """#1695: a measuring step that raised cost the page, which is the run's product."""
+    for name in ("Run them", "Compare against Python"):
+        assert steps()[name].get("continue-on-error") is True, name
+    fail = steps()["Fail on what failed tonight"]
+    assert "steps.run.outcome" in str(fail["env"]) and "steps.compare.outcome" in str(fail["env"]), (
+        "a raised measuring step leaves the run green")
+    for name in ("Push what changed", "Hand the pages to the publish job", "Write the page"):
+        assert "cancelled" not in str(steps()[name].get("if", "")), (
+            f"{name} runs after a failed step it depends on")
+
+
+def test_a_comparison_that_raises_fails_alone_and_the_others_are_recorded_as_they_settle(tmp_path):
+    """#1695: settled only at the end, a raise lost every result and the page owed them all."""
+    recorded = []
+
+    def runner(command, limit, output):
+        if command[0] == "dotnet" and "compare-boom" in command:
+            raise FileNotFoundError("dotnet")
+        return True
+
+    harnesses = _harnesses("fine", "boom", "after")
+    outcomes = run_comparisons.run(["fine", "boom", "after"], harnesses, started=0.0, start_by=900.0,
+                                   stop_by=999.0, results=tmp_path, clock=lambda: 0.0, runner=runner,
+                                   record=lambda one: recorded.append((one.ran, one.failed)))
+
+    assert (outcomes.ran, outcomes.failed) == (["fine", "after"], ["boom"])
+    assert recorded == [(["fine"], []), ([], ["boom"]), (["after"], [])]
+
+def test_the_page_steps_carry_runs_over_the_files_the_measuring_steps_write(monkeypatch, tmp_path):
+    """The call the page step makes, end to end: a mistyped file name would owe what ran."""
+    import nightly_outcomes
+
+    files = {"selected.txt": "A\nB\n", "harnesses.txt": "h1\nh2\n", "classes-run.txt": "A\n",
+             "harnesses-run.txt": "h1\n", "failed.txt": "", "owed.txt": "X\n", "cut.txt": ""}
+    for name, text in files.items():
+        (tmp_path / name).write_text(text, encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    assert nightly_outcomes.main(["carry", "--cut-before", "X A"]) == 0
+    assert (tmp_path / "owed.txt").read_text(encoding="utf-8").split() == ["X", "B", "h2"]
+    assert (tmp_path / "cut.txt").read_text(encoding="utf-8").split() == ["B", "h2", "X"]
+
+
+def test_markers_read_a_missing_or_unreadable_page_as_unknown(monkeypatch, tmp_path, capsys):
+    page = tmp_path / "nightly_run.md"
+    monkeypatch.setattr(render_nightly, "PAGE", page)
+    monkeypatch.setattr(render_nightly.sys, "argv", ["render_nightly.py", "--markers"])
+
+    render_nightly.main()
+    assert capsys.readouterr().out.split() == ["sha=", "owed=", "cut="]
+    page.write_bytes(b"\xff\xfe<!-- nightly-baseline: abcdef1 -->\n")
+    render_nightly.main()
+    assert capsys.readouterr().out.split()[0] == "sha="
+
+
+def test_a_page_value_that_looks_like_an_option_is_still_a_value(monkeypatch, tmp_path):
+    """The step passes `--cut-before=...`: a marker of "-v" must not read as an option."""
+    import nightly_outcomes
+
+    monkeypatch.chdir(tmp_path)
+    assert nightly_outcomes.main(["carry", "--cut-before=-v"]) == 0

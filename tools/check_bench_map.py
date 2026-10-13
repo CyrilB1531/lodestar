@@ -35,42 +35,51 @@ import pathlib
 import re
 import sys
 
+import run_bounded
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MAP = ROOT / "bench" / "bench-map.json"
 BENCH_DIR = ROOT / "bench" / "Lodestar.Text.Benchmarks"
 PROGRAM = BENCH_DIR / "Program.cs"
 PYTHON_DIR = ROOT / "bench" / "python"
 WORKFLOWS = ROOT / ".github" / "workflows"
-NIGHTLY = WORKFLOWS / "bench-nightly.yml"
 SOLUTION = ROOT / "Lodestar.slnx"
 # Three findings say a file this gate reads is not there, and S1192 counts the third.
 MISSING = ": missing"
 # Every finding here names a workflow by its repository-relative path, and S1192
 # fires on the third spelling of one literal. `label(path)` is that one spelling.
 WORKFLOW_DIR = ".github/workflows"
-# Directories a [Benchmark] class can live in. Lodestar.NetStandard.Benchmarks is absent:
-# it links Lodestar.Text.Benchmarks' own .cs files rather than declaring classes of its own.
-CLASS_DIRS = [
-    BENCH_DIR,
-    ROOT / "bench" / "Lodestar.Stats.Benchmarks",
-    ROOT / "bench" / "Lodestar.Survival.Benchmarks",
-    ROOT / "bench" / "Lodestar.Gpu.Benchmarks",
-]
 
-CLASS = re.compile(r"^\s*public\s+class\s+(\w+)", re.MULTILINE)
-# Program.cs dispatches with `case "name":`. It used a chain of `args[0] == "name"` until
-# the ninth subcommand took that past the analyser's cognitive-complexity bar.
-SUBCOMMAND = re.compile(r'case "(compare[a-z-]*)"')
-ANY_SUBCOMMAND = re.compile(r'case "([a-z][a-z-]*)"')
+# Program.cs dispatches with `case "name":` arms, each starting its line, so one in a comment
+# does not count; a chain of `args[0] == "name"` passed the analyser's complexity bar at nine.
+SUBCOMMAND = re.compile(r'^\s*case "(compare[a-z-]*)"', re.MULTILINE)
+ANY_SUBCOMMAND = re.compile(r'^\s*case "([a-z][a-z-]*)"', re.MULTILINE)
 # `dotnet run --project ... -- <first>`: the space before the bare `--` is what tells it
 # apart from `--project`, whose dashes are not followed by one.
 INVOCATION = re.compile(r"dotnet run\b.*?\s--\s+(\S+)")
 CONTINUATION = re.compile(r"\\\n\s*")
 # Whether Program.cs's default arm lets an option through to BenchmarkSwitcher (#478).
 FORWARDS_OPTIONS = re.compile(r"StartsWith\('-'\)")
-# The projects `Run them` iterates. The list itself, not a mention of a path anywhere in
-# the file: the comment above the loop names both, and matching that proves nothing (#586).
-RUN_LOOP = re.compile(r"for project in ([^\n;]+); do")
+FILE_NAMESPACE = re.compile(r"^\s*namespace\s+[\w.]+\s*;", re.MULTILINE)
+# What run_comparisons.plan reads from every harness, as strings; a missing one raises mid-night (#1695).
+HARNESS_FIELDS = ("python", "subcommand")
+HARNESSES = "harnesses"
+SOURCE = run_bounded.SOURCE
+TEXT_PROJECT = BENCH_DIR.relative_to(ROOT).as_posix()
+# The globs select_benchmarks reads on every harness.
+SOURCES = "sources"
+# The corpus generators a harness may run first, optional.
+GENERATE = "generate"
+# The optional mode run_comparisons.plan hands bench/compare.py.
+MODE = "compare"
+# The one statement a Program.cs other than Lodestar.Text.Benchmarks' may hold, and its using directives.
+SWITCHER_ONLY = re.compile(r"\s*BenchmarkSwitcher\s*\.\s*FromAssembly\s*\((?:[^;()]|\([^;()]*\))*\)"
+                           r"\s*\.\s*Run\s*\(\s*args\s*\)\s*;\s*")
+# What else a Program.cs may hold: using directives and whole-line comments.
+USINGS = re.compile(r"^\s*(?:using\s+[\w.]+\s*;|//.*)$", re.MULTILINE)
+COMMENT_LINE = re.compile(r"^\s*//.*$", re.MULTILINE)
+BENCHMARKS = "benchmarks"
+MAP_HARNESS = "bench/bench-map.json: harness"
 
 
 def label(path: pathlib.Path) -> str:
@@ -79,28 +88,19 @@ def label(path: pathlib.Path) -> str:
 
 
 def declared_classes() -> dict[str, pathlib.Path]:
-    """Every class in a benchmark project carrying at least one [Benchmark]."""
-    found: dict[str, pathlib.Path] = {}
-    for directory in CLASS_DIRS:
-        for path in sorted(directory.glob("*.cs")):
-            text = path.read_text(encoding="utf-8")
-            if "[Benchmark" not in text:
-                continue
-            match = CLASS.search(text)
-            if match:
-                found[match.group(1)] = path
-    return found
+    """Every benchmark class, as run_bounded.declarations finds them: the gate and the runner count
+    the same classes, one a file, and a helper declared beside one is not one."""
+    return {match.group(2): path for match, path, _ in run_bounded.declarations()}
 
 
-def declared_harnesses() -> set[str]:
+def declared_harnesses(program: str) -> set[str]:
     """Every cross-language subcommand Program.cs dispatches, and every bench_*.py."""
-    program = PROGRAM.read_text(encoding="utf-8") if PROGRAM.exists() else ""
     found = set(SUBCOMMAND.findall(program))
     found |= {path.name for path in PYTHON_DIR.glob("bench_*.py")}
     return found
 
 
-def diagnostic_findings(diagnostics: list) -> list[str]:
+def diagnostic_findings(diagnostics: list, program: str | None = None) -> list[str]:
     """A diagnostic is exempt from the nightly, not from existing.
 
     roc-parallel, save-phases and heap-warmth answer a question a lot asks once, so no
@@ -108,9 +108,7 @@ def diagnostic_findings(diagnostics: list) -> list[str]:
     deliberate is a renamed subcommand or a deleted script leaving an entry pointing at
     nothing, which is the same rot the harness rules catch.
     """
-    program = PROGRAM.read_text(encoding="utf-8") if PROGRAM.exists() else ""
-    dispatched = set(ANY_SUBCOMMAND.findall(program))
-
+    dispatched = set(ANY_SUBCOMMAND.findall(program_text() if program is None else program))
     findings = [
         f"bench/bench-map.json: diagnostic '{entry['subcommand']}' is not dispatched by "
         f"bench/Lodestar.Text.Benchmarks/Program.cs"
@@ -120,20 +118,42 @@ def diagnostic_findings(diagnostics: list) -> list[str]:
         f"bench/bench-map.json: diagnostic '{entry['subcommand']}' names {entry['python']}, "
         f"which does not exist"
         for entry in diagnostics
-        if "python" in entry and not (ROOT / entry["python"]).exists()
+        if "python" in entry and not (ROOT / entry["python"]).is_file()
     ]
     return findings
 
 
-def harness_findings(harnesses: dict, diagnostics: list) -> list[str]:
-    """A comparison the map does not carry is one the nightly never runs."""
-    mapped_subcommands = {entry.get("subcommand") for entry in harnesses.values()}
-    mapped_python = {pathlib.Path(entry.get("python", "")).name for entry in harnesses.values()}
-    # A diagnostic's Python half is named here rather than by a harness, on purpose.
-    mapped_python |= {
-        pathlib.Path(entry["python"]).name for entry in diagnostics if "python" in entry
-    }
-    declared = declared_harnesses()
+def partition_diagnostics(diagnostics) -> tuple[list[str], list[dict], list[dict]]:
+    """The shape findings, the well-formed diagnostics every other rule judges -- an object with a
+    `subcommand` string and, if it names one, a `python` script given as a relative path -- and every
+    diagnostic object, which still names its script when a field is malformed."""
+    if not isinstance(diagnostics, list):
+        return ["bench/bench-map.json: 'diagnostics' is not a list"], [], []
+    findings: list[str] = []
+    good = []
+    for entry in diagnostics:
+        if (isinstance(entry, dict) and isinstance(entry.get("subcommand"), str)
+                and ("python" not in entry or (isinstance(entry["python"], str) and relative(entry["python"])))):
+            good.append(entry)
+        else:
+            findings.append(f"bench/bench-map.json: diagnostic {entry!r} is not an object with a 'subcommand' "
+                            f"string and, if any, a relative 'python' path")
+    return findings, good, [entry for entry in diagnostics if isinstance(entry, dict)]
+
+
+def harness_findings(named: dict, named_diagnostics: list, program: str) -> list[str]:
+    """A comparison the map does not carry is one the nightly never runs. ``named`` and
+    ``named_diagnostics`` are every harness and diagnostic object, malformed ones included, since an
+    entry with a bad field still names its scripts; the well-formed ones are judged elsewhere."""
+    mapped_subcommands = {entry["subcommand"] for entry in named.values()
+                          if isinstance(entry.get("subcommand"), str)}
+    mapped_python = {pathlib.Path(entry["python"]).name for entry in named.values()
+                     if isinstance(entry.get("python"), str)}
+    # A diagnostic's Python half is named here rather than by a harness, on purpose; a malformed
+    # diagnostic still names its script, as a malformed harness does.
+    mapped_python |= {pathlib.Path(entry["python"]).name for entry in named_diagnostics
+                      if isinstance(entry.get("python"), str)}
+    declared = declared_harnesses(program)
 
     findings = [
         f"bench/Lodestar.Text.Benchmarks/Program.cs: '{name}' is dispatched and no harness in "
@@ -145,17 +165,65 @@ def harness_findings(harnesses: dict, diagnostics: list) -> list[str]:
         f"bench/python/{name}: no harness in bench/bench-map.json names it"
         for name in sorted(n for n in declared if n.endswith(".py")) if name not in mapped_python
     ]
-    findings += [
-        f"bench/bench-map.json: harness '{key}' names {entry['python']}, which does not exist"
+    return findings
+
+
+def script_findings(harnesses: dict) -> list[str]:
+    """A well-formed harness whose Python side or corpus generator is not a file."""
+    findings = [
+        f"{MAP_HARNESS} '{key}' names {entry['python']}, which does not exist"
         for key, entry in sorted(harnesses.items())
-        if not (ROOT / entry.get("python", "")).exists()
+        if not (ROOT / entry["python"]).is_file()
     ]
     findings += [
-        f"bench/bench-map.json: harness '{key}' generates with {script}, which does not exist"
+        f"{MAP_HARNESS} '{key}' generates with {script}, which does not exist"
         for key, entry in sorted(harnesses.items())
-        for script in entry.get("generate", []) if not (ROOT / script).exists()
+        for script in entry.get(GENERATE, []) if not (ROOT / script).is_file()
     ]
     return findings
+
+
+def shape_of(key: str, entry) -> list[str]:
+    """What is wrong with one harness's shape: the gate's rules and run_comparisons read every field."""
+    if not isinstance(entry, dict):
+        return [f"{MAP_HARNESS} '{key}' is not an object"]
+    findings = [f"{MAP_HARNESS} '{key}' has no '{field}' string, which tools/run_comparisons.py reads"
+                for field in HARNESS_FIELDS if not isinstance(entry.get(field), str)]
+    if isinstance(entry.get("python"), str) and not relative(entry["python"]):
+        findings.append(f"{MAP_HARNESS} '{key}' has a 'python' that is not a relative path")
+    if MODE in entry and not isinstance(entry[MODE], str):
+        findings.append(f"{MAP_HARNESS} '{key}' has a '{MODE}' that is not a string")
+    # select_benchmarks reads `sources` on every harness; `generate` is optional.
+    fields = [SOURCES] + ([GENERATE] if GENERATE in entry else [])
+    findings += [f"{MAP_HARNESS} '{key}' has a '{field}' that is not a list of relative paths"
+                 for field in fields if not relative_paths(entry.get(field))]
+    return findings
+
+
+def relative_paths(value) -> bool:
+    """A list of non-empty relative paths or globs, which pathlib's glob and ROOT / path both take."""
+    return isinstance(value, list) and all(isinstance(x, str) and relative(x) for x in value)
+
+
+def relative(path: str) -> bool:
+    """Below the repository root and spelled the POSIX way, so it reads the same on every machine."""
+    parts = pathlib.PurePosixPath(path).parts
+    return bool(parts) and parts[0] != "/" and ".." not in parts and not any(c in path for c in "\\:")
+
+
+def partition(harnesses) -> tuple[list[str], dict, dict]:
+    """The shape findings, the well-formed harnesses every other rule judges, and every harness
+    object, which still names its scripts when a field is malformed."""
+    if not isinstance(harnesses, dict):
+        return ["bench/bench-map.json: 'harnesses' is not an object"], {}, {}
+    findings: list[str] = []
+    good = {}
+    for key, entry in sorted(harnesses.items()):
+        problems = shape_of(key, entry)
+        findings += problems
+        if not problems:
+            good[key] = entry
+    return findings, good, {key: entry for key, entry in harnesses.items() if isinstance(entry, dict)}
 
 
 def coverage_findings(mapped: dict, declared: dict) -> list[str]:
@@ -176,13 +244,13 @@ def glob_findings(data: dict) -> list[str]:
     """A glob matching nothing is a rename nobody carried through."""
     findings = [
         f"bench/bench-map.json: {name}'s '{glob}' matches nothing"
-        for name, globs in sorted(data.get("benchmarks", {}).items())
+        for name, globs in sorted(data.get(BENCHMARKS, {}).items())
         for glob in globs if not any(ROOT.glob(glob))
     ]
     findings += [
         f"bench/bench-map.json: harness {key}'s '{glob}' matches nothing"
-        for key, entry in sorted(data.get("harnesses", {}).items())
-        for glob in entry.get("sources", []) if not any(ROOT.glob(glob))
+        for key, entry in sorted(data.get(HARNESSES, {}).items())
+        for glob in entry.get(SOURCES, []) if not any(ROOT.glob(glob))
     ]
     findings += [
         f"bench/bench-map.json: 'always' entry '{glob}' matches nothing"
@@ -220,7 +288,7 @@ def dispatch_only_findings(data: dict) -> list[str]:
     return findings
 
 
-def invocation_findings() -> list[str]:
+def invocation_findings(program: str) -> list[str]:
     """A workflow's own arguments, against what Program.cs accepts.
 
     #478: the refusal added for a mistyped subcommand also caught `--filter`, which is
@@ -235,10 +303,6 @@ def invocation_findings() -> list[str]:
     nightly is green having measured nothing. Verified, not assumed -- `--nonsense-option`
     exits 0 here.
     """
-    program = PROGRAM.read_text(encoding="utf-8") if PROGRAM.exists() else ""
-    dispatched = set(ANY_SUBCOMMAND.findall(program))
-    forwards_options = bool(FORWARDS_OPTIONS.search(program))
-
     findings = []
     for path in sorted(WORKFLOWS.glob("*.yml")):
         text = CONTINUATION.sub(" ", path.read_text(encoding="utf-8"))
@@ -246,57 +310,110 @@ def invocation_findings() -> list[str]:
             token = first.strip('"\'')
             if "$" in token:
                 continue  # A subcommand read from bench-map.json; the map rules check it.
-            if token.startswith("-"):
-                if not forwards_options:
-                    findings.append(
-                        f"{label(path)}: passes '{token}' first, which "
-                        f"bench/Lodestar.Text.Benchmarks/Program.cs refuses as an unknown "
-                        f"subcommand rather than forwarding to BenchmarkDotNet")
-            elif token not in dispatched:
-                findings.append(
-                    f"{label(path)}: passes '{token}' first, which "
-                    f"bench/Lodestar.Text.Benchmarks/Program.cs does not dispatch")
+            findings += judge_first(label(path), token, program)
     return findings
 
 
-def measured_project_findings() -> list[str]:
-    """Every directory a [Benchmark] class can live in, against the nightly that runs them.
+def program_text() -> str:
+    """Program.cs without its whole-line comments, so neither a `case` arm nor the option check
+    is found in one."""
+    text = PROGRAM.read_text(encoding=SOURCE) if PROGRAM.exists() else ""
+    return COMMENT_LINE.sub("", text)
 
-    #586: `Run them` named bench/Lodestar.Text.Benchmarks and nothing else, so
-    `*StatsBenchmarks*` -- a class declared in bench/Lodestar.Stats.Benchmarks -- was
-    passed as a filter to a project that does not contain it. BenchmarkDotNet matches
-    nothing and exits 0 for that, and render_nightly.py lists the selection rather than
-    the reports, so the published page said a class had been re-measured on a night it
-    had not. Measured: run 34198050949 selected it, named it under "Classes re-run", and
-    carried no report for it.
 
-    CLASS_DIRS is the set this file already scans for classes, which makes it the set the
-    nightly has to run. A third benchmark project then fails here, on the commit that adds
-    it, instead of going quiet until somebody reads a page closely.
+def judge_first(where: str, token: str, program: str, project: str = TEXT_PROJECT) -> list[str]:
+    """One command's first argument after `--`, against the Program.cs of the project it runs.
 
-    The list the loop iterates, not the file's text: the paragraph above `Run them` names
-    both projects in prose, and a substring test over the whole file is satisfied by that
-    comment alone -- it passed with the loop emptied, which is the exact bug.
+    Only Lodestar.Text.Benchmarks dispatches subcommands; the other projects hand every argument
+    to BenchmarkSwitcher, which takes an option and refuses nothing.
     """
-    if not NIGHTLY.exists():
-        return [f"{label(NIGHTLY)}{MISSING}"]
+    if project != TEXT_PROJECT:
+        return forwarding_findings(where, project)
+    if token.startswith("-"):
+        if FORWARDS_OPTIONS.search(program):
+            return []
+        return [f"{where}: passes '{token}' first, which bench/Lodestar.Text.Benchmarks/Program.cs "
+                f"refuses as an unknown subcommand rather than forwarding to BenchmarkDotNet"]
+    if token in set(ANY_SUBCOMMAND.findall(program)):
+        return []
+    return [f"{where}: passes '{token}' first, which bench/Lodestar.Text.Benchmarks/Program.cs "
+            f"does not dispatch"]
 
-    text = NIGHTLY.read_text(encoding="utf-8")
-    match = RUN_LOOP.search(text)
-    if not match:
-        return [
-            f"{label(NIGHTLY)}: no `for project in ...; do` loop in "
-            f"`Run them`, so this file cannot tell which projects the nightly measures"
-        ]
 
-    measured = set(match.group(1).split())
-    return [
-        f"{label(NIGHTLY)}: `Run them` never runs {relative}, so a "
-        f"[Benchmark] class declared there is selected, published as re-run, "
-        f"and never measured"
-        for relative in (d.relative_to(ROOT).as_posix() for d in CLASS_DIRS)
-        if relative not in measured
-    ]
+def forwarding_findings(where: str, project: str) -> list[str]:
+    """A project other than Lodestar.Text.Benchmarks has to hand its arguments to BenchmarkSwitcher
+    untouched: one dispatching its own first argument would refuse `--filter`, as #478's did. Its
+    Program.cs is held to the one statement all three are, using directives and whole-line comments
+    aside; any other shape is a finding, and widening this rule is the change reviewed with it."""
+    program = ROOT / project / "Program.cs"
+    code = program.read_text(encoding=SOURCE) if program.exists() else ""
+    if SWITCHER_ONLY.fullmatch(USINGS.sub("", code)):
+        return []
+    return [f"{where}: {project}/Program.cs is not the one statement "
+            f"BenchmarkSwitcher.FromAssembly(...).Run(args), so the nightly's leading --filter may be refused"]
+
+
+def first_after_separator(command: list[str]) -> str:
+    """What `dotnet run ... -- <first>` hands the program first."""
+    return command[command.index("--") + 1]
+
+
+def project_arg(command: list[str]) -> str:
+    return command[command.index("--project") + 1]
+
+
+def nightly_command_findings(harnesses: dict, program: str) -> list[str]:
+    """The commands the nightly builds in tools/, judged as the workflow's own once were (#1695);
+    ``harnesses`` are the well-formed ones, as main hands them over.
+
+    #1689 moved them out of bench-nightly.yml into run_bounded.command_for and run_comparisons.plan,
+    where `invocation_findings`' scan of the workflows no longer reaches; #478's refusal would have
+    failed every class again and no pull request would have said so.
+    """
+    import run_comparisons
+
+    findings = []
+    for project in run_bounded.PROJECTS:
+        command = run_bounded.command_for("AnyBenchmarks", project)
+        findings += judge_first("tools/run_bounded.py", first_after_separator(command), program,
+                                project_arg(command))
+    comparisons = set(SUBCOMMAND.findall(program))
+    for key, entry in sorted(harnesses.items()):
+        for command, _ in run_comparisons.plan(entry, key, ROOT):
+            token = first_after_separator(command) if command[0] == "dotnet" else None
+            # A comparison's first argument is its subcommand, never an option BenchmarkDotNet would take.
+            if token is not None and token not in comparisons:
+                findings.append(f"tools/run_comparisons.py, harness '{key}': runs '{token}', which "
+                                f"bench/Lodestar.Text.Benchmarks/Program.cs does not dispatch as a comparison")
+    return findings
+
+
+def class_shape_findings(mapped) -> list[str]:
+    """A mapped class the nightly's `--filter "*.Name.*"` cannot match (#1695).
+
+    BenchmarkDotNet matches the filter against Namespace.Type.Method: a class outside a namespace
+    has no leading segment, and a generic one is named Name<T>. Either matches nothing, and
+    BenchmarkDotNet exits 0, so the class settles as run with no report -- #586's symptom. Every
+    benchmark file declares a file-scoped namespace, and that convention is what is held: proving a
+    block namespace encloses a class needs a C# parser.
+    """
+    wanted = set(mapped)
+    findings = []
+    for match, path, text in run_bounded.declarations():
+        modifiers, name = match.group(1).split(), match.group(2)
+        if name not in wanted:
+            continue
+        where = path.relative_to(ROOT).as_posix()
+        unmatched = f"so the nightly's --filter \"*.{name}.*\" matches none of its benchmarks"
+        if match.group(3):
+            findings.append(f"{where}: {name} is generic, {unmatched}")
+        if not FILE_NAMESPACE.search(text):
+            findings.append(f"{where}: {name} is in no file-scoped namespace, {unmatched}")
+        # BenchmarkDotNet runs public types only, and none sealed, abstract or static.
+        if "public" not in modifiers or {"sealed", "abstract", "static"} & set(modifiers):
+            findings.append(f"{where}: {name} is not a plain public class, which BenchmarkDotNet "
+                            f"runs, {unmatched}")
+    return findings
 
 
 def solution_findings() -> list[str]:
@@ -335,12 +452,19 @@ def main() -> int:
         return 1
 
     data = json.loads(MAP.read_text(encoding="utf-8"))
-    diagnostics = data.get("diagnostics", [])
-    findings = coverage_findings(data.get("benchmarks", {}), declared_classes())
-    findings += harness_findings(data.get("harnesses", {}), diagnostics)
-    findings += diagnostic_findings(diagnostics)
-    findings += invocation_findings()
-    findings += measured_project_findings()
+    program = program_text()
+    findings = coverage_findings(data.get(BENCHMARKS, {}), declared_classes())
+    findings += class_shape_findings(data.get(BENCHMARKS, {}))
+    # Every rule after the shapes judges well-formed entries alone; the malformed are named, and
+    # still count as naming their scripts.
+    shape, data[HARNESSES], named = partition(data.get(HARNESSES, {}))
+    diagnostic_shape, diagnostics, named_diagnostics = partition_diagnostics(data.get("diagnostics", []))
+    findings += shape + diagnostic_shape
+    findings += harness_findings(named, named_diagnostics, program)
+    findings += script_findings(data[HARNESSES])
+    findings += diagnostic_findings(diagnostics, program)
+    findings += invocation_findings(program)
+    findings += nightly_command_findings(data.get(HARNESSES, {}), program)
     findings += solution_findings()
     findings += glob_findings(data)
     findings += dispatch_only_findings(data)

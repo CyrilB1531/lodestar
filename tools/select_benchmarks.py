@@ -169,17 +169,18 @@ def with_owed(data: dict, kind: str, owed: str, selected, cut: str = "") -> list
 
     Owed names come first: a run stops at a deadline, so the tail of the order is what a short
     night drops, and a tail that was also owed would be dropped again every night -- 14 of 21
-    comparisons on 2026-10-12 (#1687). Those the previous run cut come before the rest of the
-    owed: a second cut fails them, which is fair only to one given the front of the window. Each
-    group keeps the map's own order, so two nights that owe the same set ask for it the same way.
+    comparisons on 2026-10-12 (#1687). Those the previous run cut come last instead: one that does
+    not fit the window would otherwise be cut first every night ahead of the rest, so it gets what
+    is left (#1694). Each group keeps the map's own order, so two nights that owe the same set ask
+    for it the same way.
     """
     mapped = data.get(kind, {})
-    first = set(cut.split())
-    carried = {name for name in owed.split() if name in mapped} | (first & set(mapped))
-    chosen = set(selected)
-    return ([name for name in mapped if name in first]
-            + [name for name in mapped if name in carried and name not in first]
-            + [name for name in mapped if name in chosen and name not in carried])
+    last = set(cut.split()) & set(mapped)
+    carried = {name for name in owed.split() if name in mapped} - last
+    chosen = set(selected) - last
+    return ([name for name in mapped if name in carried]
+            + [name for name in mapped if name in chosen and name not in carried]
+            + [name for name in mapped if name in last])
 
 
 def print_selection(data: dict, kind: str, args: argparse.Namespace, selected) -> None:
@@ -197,7 +198,7 @@ def main() -> int:
     parser.add_argument("--owed", default="",
                         help="space-separated classes or comparisons a previous run did not reach")
     parser.add_argument("--cut", default="",
-                        help="space-separated names, among those owed, the previous run cut; put first")
+                        help="space-separated names, among those owed, the previous page asks for last")
     parser.add_argument("--harnesses", action="store_true",
                         help="the cross-language pairs instead of the BenchmarkDotNet classes")
     args = parser.parse_args()
