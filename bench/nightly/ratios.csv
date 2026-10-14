@@ -6935,3 +6935,15 @@ date,commit,cpu,class,parameters,method,ratio
 2026-09-25,eba6ece0df93976b598aa7f203ae077e6acda030,AMD EPYC 7763,VectorizerIncumbentBenchmarks,Documents=200,MlNet,10.0
 2026-09-25,eba6ece0df93976b598aa7f203ae077e6acda030,AMD EPYC 7763,VectorizerIncumbentBenchmarks,Documents=1000,Lodestar,1.0
 2026-09-25,eba6ece0df93976b598aa7f203ae077e6acda030,AMD EPYC 7763,VectorizerIncumbentBenchmarks,Documents=1000,MlNet,21.46
+2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=1000, DistinctPercent=4",KaplanMeierEstimate,1.0
+2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=1000, DistinctPercent=4",NelsonAalenEstimate,0.93
+2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=1000, DistinctPercent=4",LogRankTest,1.32
+2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=1000, DistinctPercent=100",KaplanMeierEstimate,1.0
+2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=1000, DistinctPercent=100",NelsonAalenEstimate,0.39
+2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=1000, DistinctPercent=100",LogRankTest,0.82
+2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=100000, DistinctPercent=4",KaplanMeierEstimate,1.0
+2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=100000, DistinctPercent=4",NelsonAalenEstimate,0.98
+2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=100000, DistinctPercent=4",LogRankTest,1.15
+2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=100000, DistinctPercent=100",KaplanMeierEstimate,1.0
+2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=100000, DistinctPercent=100",NelsonAalenEstimate,0.82
+2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=100000, DistinctPercent=100",LogRankTest,1.02
