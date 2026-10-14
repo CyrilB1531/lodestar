@@ -116,6 +116,11 @@ given:
   `bench/*/*.csproj` that `Lodestar.slnx` does not list, which is the same
   silence one layer down: `bench/Lodestar.Gpu.Benchmarks` was outside the
   solution, so no build reached it and raising the analyser broke it unseen.
+  Since #1695 it also judges the commands the nightly builds in `run_bounded.py` and
+  `run_comparisons.py` as it judges a workflow's. It holds every other project's `Program.cs` to
+  the one statement `BenchmarkSwitcher.FromAssembly(...).Run(args);`, and every mapped class to a
+  file-scoped namespace and a plain `public class` declaration that `--filter "*.Name.*"` can match. It also
+  holds every harness to the shape the runner reads.
 - `classify_change.py` answers two questions from a change's file paths, and keeps them
   apart: **ships** is `src/<Package>/` only, which decides the milestone because a milestone
   names a release; **about** also counts `tests/`, `bench/` and the documentation pages
@@ -213,21 +218,27 @@ given:
   and nothing goes red when it does. An absent baseline selects everything, so a
   run that never happened cannot silently narrow the next one. Takes
   `--since <commit>` with an optional `--head`, or `--all`, and `--harnesses`
-  for the Python comparison harnesses the same diff selects.
+  for the Python comparison harnesses the same diff selects. `--owed` adds what the
+  previous night did not reach and `--cut` what it cut, and the order is the night's:
+  the rest of the owed first, then the newly selected, then what was cut, so one that does not fit
+  the window takes only what the rest leave (#1687, #1694).
 - `nightly_outcomes.py` is what `run_bounded.py` and `run_comparisons.py` share: a run bounded by
   a deadline that kills its process group, and the one rule settling each name as ran, owed, cut or
-  failed (#1687). It is imported, not run.
+  failed (#1687). Run as `nightly_outcomes.py carry`, the page step's one call, it owes what a dying
+  step left unsettled and keeps what was cut last until it runs (#1694, #1695).
 - `run_bounded.py` runs one nightly class for at most a number of seconds and kills its whole
   process group when cut, since uutils' `timeout` kills the direct child alone. It builds the
-  BenchmarkDotNet command itself from a class the map names and a known project, settles the class
+  BenchmarkDotNet command itself from a class the map names and the project in its `PROJECTS`
+  whose sources declare it, the one list of benchmark projects, settles the class
   through `nightly_outcomes.py`'s rule, and appends its name to `classes-run.txt`, `owed.txt`,
   `cut.txt` or `failed.txt`, telling a cut by the clock, never by an exit code (#1687).
 - `run_comparisons.py` runs the nightly's comparisons in `harnesses.txt` against Python inside the
   job's time: none starts past `--start-by` minutes from the job's start, one still running at
   `--stop-by` is cut, and what does not fit is appended to `owed.txt`, which the next night asks for
-  first (#1687). What it cut also goes to `cut.txt`; one the previous night also cut
-  (`--cut-before`), or one that fails, goes to `failed.txt` instead and the run goes on. Each corpus
-  and Python side runs once a night, when first needed, and one that fails is not run again.
+  first, save what it cut, which also goes to `cut.txt` and is asked for last (#1687, #1694). One
+  that fails goes to `failed.txt` instead
+  and the run goes on. Each corpus and Python side runs once a night, when first needed, and one
+  that fails is not run again.
 - `render_nightly.py` renders the page the nightly run publishes to the wiki,
   from the BenchmarkDotNet reports and `bench/compare.py` output the job left on
   disk. It carries the baseline commit the *next* run reads, which is why the
@@ -237,7 +248,9 @@ given:
   runner is a shared VM whose hardware differs between runs, so what survives
   here is the ratio inside one run, never the absolute figure. Takes `--commit`
   and `--baseline` with the run's two shas, `--runner` for the label, and
-  `--selected`/`--harnesses` for what the night measured; `--branch` writes the
+  `--selected`/`--harnesses` for what the night measured, `--owed`, `--cut` and
+  `--failed` for what it carries or reports; `--markers` prints the page's baseline, owed list and
+  cut as `GITHUB_OUTPUT` lines (#1694). `--branch` writes the
   copy under `docs/guides/branch/` instead, which is what a
   `workflow_dispatch` off another ref uses so its numbers never touch the page a
   merge into `main` could carry along
