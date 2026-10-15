@@ -6947,3 +6947,519 @@ date,commit,cpu,class,parameters,method,ratio
 2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=100000, DistinctPercent=100",KaplanMeierEstimate,1.0
 2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=100000, DistinctPercent=100",NelsonAalenEstimate,0.82
 2026-10-14,7c23e46a8c3f9158c938fc49d51d64513e47d5fa,AMD EPYC 7763,SurvivalBenchmarks,"SampleSize=100000, DistinctPercent=100",LogRankTest,1.02
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=100,Lodestar_Pearson,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=100,MetaNumerics_Pearson,0.8
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=100,Lodestar_Spearman,2.74
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=100,MetaNumerics_Spearman,3.31
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=100,Lodestar_KendallTau,4.92
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=100,MetaNumerics_KendallTau,9.4
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=100,Lodestar_KendallTau_Asymptotic,4.83
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=10000,Lodestar_Pearson,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=10000,MetaNumerics_Pearson,0.63
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=10000,Lodestar_Spearman,11.23
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=10000,MetaNumerics_Spearman,21.61
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=10000,Lodestar_KendallTau,23.2
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=10000,MetaNumerics_KendallTau,3049.4
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CorrelationBenchmarks,PairCount=10000,Lodestar_KendallTau_Asymptotic,23.25
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KsAutoBenchmarks,SampleSize=1000,Before_Asymptotic,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KsAutoBenchmarks,SampleSize=1000,After_Auto,1.12
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KsAutoBenchmarks,SampleSize=10000,Before_Asymptotic,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KsAutoBenchmarks,SampleSize=10000,After_Auto,0.76
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,Lodestar_StudentT,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,MetaNumerics_StudentT,2.29
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,Lodestar_MannWhitney,2.49
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,MetaNumerics_MannWhitney,3.54
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,Lodestar_KruskalWallis,6.41
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,MetaNumerics_KruskalWallis,8.63
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,Lodestar_KolmogorovSmirnov,2.44
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,MetaNumerics_KolmogorovSmirnov,3.6
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,Lodestar_OneWayAnova,0.94
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,MetaNumerics_OneWayAnova,3.24
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,Lodestar_Wilcoxon,0.98
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,MetaNumerics_Wilcoxon,0.96
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,Lodestar_FisherExact,0.41
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,MetaNumerics_FisherExact,1.41
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,Lodestar_ChiSquare,0.11
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=100,MetaNumerics_ChiSquare,0.62
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,Lodestar_StudentT,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,MetaNumerics_StudentT,3.001
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,Lodestar_MannWhitney,6.976
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,MetaNumerics_MannWhitney,34.669
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,Lodestar_KruskalWallis,17.565
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,MetaNumerics_KruskalWallis,59.601
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,Lodestar_KolmogorovSmirnov,24.323
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,MetaNumerics_KolmogorovSmirnov,38.781
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,Lodestar_OneWayAnova,1.398
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,MetaNumerics_OneWayAnova,4.51
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,Lodestar_Wilcoxon,2.687
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,MetaNumerics_Wilcoxon,3.181
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,Lodestar_FisherExact,0.006
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,MetaNumerics_FisherExact,0.023
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,Lodestar_ChiSquare,0.002
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsStatsBenchmarks,SampleSize=10000,MetaNumerics_ChiSquare,0.01
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=100,Lodestar_Levene,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=100,Accord_Levene,1.91
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=100,Lodestar_Bartlett,0.31
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=100,Accord_Bartlett,0.6
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=100,Lodestar_Binomial,0.37
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=100,Accord_Binomial,2.11
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=100,Lodestar_AndersonDarling,3.93
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=100,Accord_AndersonDarling,3.09
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=100,Lodestar_ClopperPearson,2.23
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=10000,Lodestar_Levene,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=10000,Accord_Levene,10.89
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=10000,Lodestar_Bartlett,0.439
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=10000,Accord_Bartlett,0.876
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=10000,Lodestar_Binomial,0.007
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=10000,Accord_Binomial,6.146
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=10000,Lodestar_AndersonDarling,10.159
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VarianceAndFitBenchmarks,GroupSize=10000,Lodestar_ClopperPearson,0.255
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=500, Method=average",Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=500, Method=average",Aglomera_GetClustering,48.24
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=500, Method=complete",Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=500, Method=complete",Aglomera_GetClustering,54.39
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=500, Method=single",Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=500, Method=single",Aglomera_GetClustering,199.25
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=500, Method=ward",Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=500, Method=ward",Aglomera_GetClustering,39.35
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=1500, Method=average",Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=1500, Method=average",Aglomera_GetClustering,131.45
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=1500, Method=complete",Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=1500, Method=complete",Aglomera_GetClustering,134.7
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=1500, Method=single",Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=1500, Method=single",Aglomera_GetClustering,614.95
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=1500, Method=ward",Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,AgglomerativeIncumbentBenchmarks,"Rows=1500, Method=ward",Aglomera_GetClustering,101.8
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BatchEmbeddingBenchmarks,CorpusSize=1,UnitLoop,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BatchEmbeddingBenchmarks,CorpusSize=1,EmbedBatch,1.05
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BatchEmbeddingBenchmarks,CorpusSize=1,EmbedBatchBucketed,1.04
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BatchEmbeddingBenchmarks,CorpusSize=8,UnitLoop,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BatchEmbeddingBenchmarks,CorpusSize=8,EmbedBatch,0.39
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BatchEmbeddingBenchmarks,CorpusSize=8,EmbedBatchBucketed,0.39
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BatchEmbeddingBenchmarks,CorpusSize=32,UnitLoop,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BatchEmbeddingBenchmarks,CorpusSize=32,EmbedBatch,0.38
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BatchEmbeddingBenchmarks,CorpusSize=32,EmbedBatchBucketed,0.33
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BatchEmbeddingBenchmarks,CorpusSize=128,UnitLoop,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BatchEmbeddingBenchmarks,CorpusSize=128,EmbedBatch,0.38
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BatchEmbeddingBenchmarks,CorpusSize=128,EmbedBatchBucketed,0.31
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=1, Shape=clustered",LengthFilteredScan,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=1, Shape=clustered",TreeWithinDistance,0.51
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=1, Shape=uniform",LengthFilteredScan,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=1, Shape=uniform",TreeWithinDistance,0.43
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=2, Shape=clustered",LengthFilteredScan,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=2, Shape=clustered",TreeWithinDistance,1.26
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=2, Shape=uniform",LengthFilteredScan,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=2, Shape=uniform",TreeWithinDistance,1.07
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=3, Shape=clustered",LengthFilteredScan,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=3, Shape=clustered",TreeWithinDistance,1.38
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=3, Shape=uniform",LengthFilteredScan,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=3, Shape=uniform",TreeWithinDistance,1.28
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=4, Shape=clustered",LengthFilteredScan,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=4, Shape=clustered",TreeWithinDistance,1.37
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=4, Shape=uniform",LengthFilteredScan,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BkTreeBenchmarks,"Radius=4, Shape=uniform",TreeWithinDistance,1.35
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,Bm25Benchmarks,Documents=1000,LodestarQuery,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,Bm25Benchmarks,Documents=1000,LodestarQueryMultiTerm,1.53
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,Bm25Benchmarks,Documents=1000,LuceneQuery,1.8
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,Bm25Benchmarks,Documents=1000,LodestarFromText,2171.98
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,Bm25Benchmarks,Documents=1000,LuceneFromText,4111.81
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,Bm25Benchmarks,Documents=20000,LodestarQuery,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,Bm25Benchmarks,Documents=20000,LodestarQueryMultiTerm,1.47
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,Bm25Benchmarks,Documents=20000,LuceneQuery,0.65
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,Bm25Benchmarks,Documents=20000,LodestarFromText,2421.92
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,Bm25Benchmarks,Documents=20000,LuceneFromText,5326.83
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BpeBenchmarks,,Unigram,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,BpeBenchmarks,,Bpe,3.12
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=0, Widths=False",Lodestar_Cdist_Bounded,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=0, Widths=False",Lodestar_Cdist_EveryPair,1.03
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=0, Widths=True",Lodestar_Cdist_Bounded,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=0, Widths=True",Lodestar_Cdist_EveryPair,1.06
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=60, Widths=False",Lodestar_Cdist_Bounded,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=60, Widths=False",Lodestar_Cdist_EveryPair,1.09
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=60, Widths=True",Lodestar_Cdist_Bounded,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=60, Widths=True",Lodestar_Cdist_EveryPair,1.42
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=80, Widths=False",Lodestar_Cdist_Bounded,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=80, Widths=False",Lodestar_Cdist_EveryPair,1.09
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=80, Widths=True",Lodestar_Cdist_Bounded,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=80, Widths=True",Lodestar_Cdist_EveryPair,2.14
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=90, Widths=False",Lodestar_Cdist_Bounded,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=90, Widths=False",Lodestar_Cdist_EveryPair,1.44
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=90, Widths=True",Lodestar_Cdist_Bounded,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistCutoffBenchmarks,"Cutoff=90, Widths=True",Lodestar_Cdist_EveryPair,3.73
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistIncumbentBenchmarks,Size=50,Lodestar_Cdist,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistIncumbentBenchmarks,Size=50,Lodestar_HandWrittenLoop,0.94
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistIncumbentBenchmarks,Size=50,FuzzySharp_ExtractAllPerQuery,2.8
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistIncumbentBenchmarks,Size=200,Lodestar_Cdist,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistIncumbentBenchmarks,Size=200,Lodestar_HandWrittenLoop,0.97
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,CdistIncumbentBenchmarks,Size=200,FuzzySharp_ExtractAllPerQuery,2.3
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DbscanDimensionBenchmarks,Shape=10000x8x8,Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DbscanDimensionBenchmarks,Shape=10000x8x8,NumFlat_Fit,14.71
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DbscanDimensionBenchmarks,Shape=5000x16x8,Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DbscanDimensionBenchmarks,Shape=5000x16x8,NumFlat_Fit,15.03
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DbscanIncumbentBenchmarks,Shape=20000x2x10,Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DbscanIncumbentBenchmarks,Shape=20000x2x10,NumFlat_Fit,44.21
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DbscanIncumbentBenchmarks,Shape=20000x2x10,Dbscan_CalculateClusters,25.01
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DbscanIncumbentBenchmarks,Shape=5000x2x5,Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DbscanIncumbentBenchmarks,Shape=5000x2x5,NumFlat_Fit,28.35
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DbscanIncumbentBenchmarks,Shape=5000x2x5,Dbscan_CalculateClusters,14.25
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DecompositionBenchmarks,,TruncatedSvd_Rank20,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DecompositionBenchmarks,,Nmf_Rank20,7.66
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DecompositionBenchmarks,,Nmf_Transform,0.26
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,DecompositionBenchmarks,,MlNet_ProjectToPrincipalComponents_Rank20,1.87
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzBenchmarks,,Ratio,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzBenchmarks,,PartialRatio,7.41
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzBenchmarks,,TokenSortRatio,8.7
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzBenchmarks,,TokenSetRatio,8.67
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzBenchmarks,,WRatio,11.4
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzCodePointBenchmarks,,Ratio_RepeatedEmoji,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzCodePointBenchmarks,,TokenSortRatio_EmojiWords,0.304
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzCodePointBenchmarks,,WRatio_ProseAndOneEmoji,0.565
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzCodePointBenchmarks,,Ratio_DistinctAstral,36.416
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzCodePointBenchmarks,,WRatio_EmptyOperand,0.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzIncumbentBenchmarks,Operation=Ratio,Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzIncumbentBenchmarks,Operation=Ratio,FuzzySharp,2.11
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzIncumbentBenchmarks,Operation=PartialRatio,Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzIncumbentBenchmarks,Operation=PartialRatio,FuzzySharp,12.72
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzIncumbentBenchmarks,Operation=TokenSetRatio,Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzIncumbentBenchmarks,Operation=TokenSetRatio,FuzzySharp,2.11
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzIncumbentBenchmarks,Operation=WRatio,Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,FuzzIncumbentBenchmarks,Operation=WRatio,FuzzySharp,4.11
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=8,Distance_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=8,Distance_CodePoint,1.23
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=8,NormalizedSimilarity_Utf16,1.06
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=8,SubsequenceLength_Utf16,0.96
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=12,Distance_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=12,Distance_CodePoint,1.13
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=12,NormalizedSimilarity_Utf16,0.97
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=12,SubsequenceLength_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=16,Distance_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=16,Distance_CodePoint,1.19
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=16,NormalizedSimilarity_Utf16,1.07
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=16,SubsequenceLength_Utf16,0.96
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=20,Distance_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=20,Distance_CodePoint,1.18
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=20,NormalizedSimilarity_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=20,SubsequenceLength_Utf16,0.9
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=24,Distance_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=24,Distance_CodePoint,1.18
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=24,NormalizedSimilarity_Utf16,0.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=24,SubsequenceLength_Utf16,0.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=32,Distance_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=32,Distance_CodePoint,1.06
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=32,NormalizedSimilarity_Utf16,1.08
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=32,SubsequenceLength_Utf16,0.96
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=128,Distance_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=128,Distance_CodePoint,1.04
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=128,NormalizedSimilarity_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=128,SubsequenceLength_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=512,Distance_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=512,Distance_CodePoint,0.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=512,NormalizedSimilarity_Utf16,0.96
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelBenchmarks,Length=512,SubsequenceLength_Utf16,0.97
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelCodePointBenchmarks,Length=20,Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelCodePointBenchmarks,Length=20,Distance_Utf16,0.48
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelCodePointBenchmarks,Length=128,Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelCodePointBenchmarks,Length=128,Distance_Utf16,1.33
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelCodePointBenchmarks,Length=512,Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelCodePointBenchmarks,Length=512,Distance_Utf16,2.3
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=beyondTable, Length=4",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=beyondTable, Length=4",Lodestar_HeldPattern,1.01
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=beyondTable, Length=4",FuzzySharp_PerText,1.51
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=beyondTable, Length=16",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=beyondTable, Length=16",Lodestar_HeldPattern,0.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=beyondTable, Length=16",FuzzySharp_PerText,1.55
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=beyondTable, Length=32",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=beyondTable, Length=32",Lodestar_HeldPattern,0.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=beyondTable, Length=32",FuzzySharp_PerText,1.55
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=longAffix, Length=4",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=longAffix, Length=4",Lodestar_HeldPattern,1.15
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=longAffix, Length=4",FuzzySharp_PerText,1.69
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=longAffix, Length=16",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=longAffix, Length=16",Lodestar_HeldPattern,1.1
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=longAffix, Length=16",FuzzySharp_PerText,1.72
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=longAffix, Length=32",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=longAffix, Length=32",Lodestar_HeldPattern,1.07
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=longAffix, Length=32",FuzzySharp_PerText,1.79
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=oneWordAffix, Length=4",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=oneWordAffix, Length=4",Lodestar_HeldPattern,1.08
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=oneWordAffix, Length=4",FuzzySharp_PerText,1.95
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=oneWordAffix, Length=16",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=oneWordAffix, Length=16",Lodestar_HeldPattern,1.08
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=oneWordAffix, Length=16",FuzzySharp_PerText,1.91
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=oneWordAffix, Length=32",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=oneWordAffix, Length=32",Lodestar_HeldPattern,1.02
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=oneWordAffix, Length=32",FuzzySharp_PerText,1.9
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=sharing24, Length=4",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=sharing24, Length=4",Lodestar_HeldPattern,0.86
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=sharing24, Length=4",FuzzySharp_PerText,2.43
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=sharing24, Length=16",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=sharing24, Length=16",Lodestar_HeldPattern,0.72
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=sharing24, Length=16",FuzzySharp_PerText,2.42
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=sharing24, Length=32",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=sharing24, Length=32",Lodestar_HeldPattern,0.59
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=sharing24, Length=32",FuzzySharp_PerText,2.11
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=suffixOnly, Length=4",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=suffixOnly, Length=4",Lodestar_HeldPattern,0.91
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=suffixOnly, Length=4",FuzzySharp_PerText,2.04
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=suffixOnly, Length=16",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=suffixOnly, Length=16",Lodestar_HeldPattern,0.78
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=suffixOnly, Length=16",FuzzySharp_PerText,1.9
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=suffixOnly, Length=32",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=suffixOnly, Length=32",Lodestar_HeldPattern,0.95
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=suffixOnly, Length=32",FuzzySharp_PerText,1.81
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=unrelated, Length=4",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=unrelated, Length=4",Lodestar_HeldPattern,0.46
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=unrelated, Length=4",FuzzySharp_PerText,3.95
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=unrelated, Length=16",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=unrelated, Length=16",Lodestar_HeldPattern,0.46
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=unrelated, Length=16",FuzzySharp_PerText,2.72
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=unrelated, Length=32",Lodestar_Pairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=unrelated, Length=32",Lodestar_HeldPattern,0.44
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,IndelPatternBenchmarks,"Corpus=unrelated, Length=32",FuzzySharp_PerText,2.35
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansFitIncumbentBenchmarks,Shape=10000x16x16,Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansFitIncumbentBenchmarks,Shape=10000x16x16,NumFlat_Fit,7.06
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansFitIncumbentBenchmarks,Shape=10000x16x16,MetaNumerics_Fit,17.85
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansFitIncumbentBenchmarks,Shape=10000x2x8,Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansFitIncumbentBenchmarks,Shape=10000x2x8,NumFlat_Fit,6.33
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansFitIncumbentBenchmarks,Shape=10000x2x8,MetaNumerics_Fit,3.33
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansFitIncumbentBenchmarks,Shape=50000x8x32,Lodestar_Fit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansFitIncumbentBenchmarks,Shape=50000x8x32,NumFlat_Fit,17.73
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansFitIncumbentBenchmarks,Shape=50000x8x32,MetaNumerics_Fit,28.27
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansLloydIncumbentBenchmarks,Shape=10000x16x16,Lodestar_Lloyd,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansLloydIncumbentBenchmarks,Shape=10000x16x16,NumFlat_Lloyd,3.44
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansLloydIncumbentBenchmarks,Shape=10000x2x8,Lodestar_Lloyd,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansLloydIncumbentBenchmarks,Shape=10000x2x8,NumFlat_Lloyd,4.94
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansLloydIncumbentBenchmarks,Shape=50000x8x32,Lodestar_Lloyd,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,KMeansLloydIncumbentBenchmarks,Shape=50000x8x32,NumFlat_Lloyd,4.75
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=8,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=8,Kernel,0.47
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=8,Dp_Cjk,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=8,Kernel_Cjk,0.86
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=12,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=12,Kernel,0.32
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=12,Dp_Cjk,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=12,Kernel_Cjk,0.54
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=14,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=14,Kernel,0.24
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=14,Dp_Cjk,0.93
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=14,Kernel_Cjk,0.4
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=16,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=16,Kernel,0.23
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=16,Dp_Cjk,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=16,Kernel_Cjk,0.38
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=18,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=18,Kernel,0.13
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=18,Dp_Cjk,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=18,Kernel_Cjk,0.24
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=20,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=20,Kernel,0.11
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=20,Dp_Cjk,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=20,Kernel_Cjk,0.18
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=24,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=24,Kernel,0.1
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=24,Dp_Cjk,0.98
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=24,Kernel_Cjk,0.15
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=32,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=32,Kernel,0.07
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=32,Dp_Cjk,1.04
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=32,Kernel_Cjk,0.11
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=48,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=48,Kernel,0.04
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=48,Dp_Cjk,1.22
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=48,Kernel_Cjk,0.08
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=64,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=64,Kernel,0.03
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=64,Dp_Cjk,0.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=64,Kernel_Cjk,0.06
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=96,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=96,Kernel,0.03
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=96,Dp_Cjk,1.04
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LcsGateBenchmarks,Band=96,Kernel_Cjk,0.09
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=8,Distance_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=8,Distance_Utf16_Cjk,1.05
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=8,Distance_CodePoint,4.63
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=8,NormalizedSimilarity_Utf16,1.04
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=64,Distance_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=64,Distance_Utf16_Cjk,1.29
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=64,Distance_CodePoint,2.25
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=64,NormalizedSimilarity_Utf16,0.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=128,Distance_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=128,Distance_Utf16_Cjk,2.03
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=128,Distance_CodePoint,1.69
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=128,NormalizedSimilarity_Utf16,1.03
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=512,Distance_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=512,Distance_Utf16_Cjk,1.49
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=512,Distance_CodePoint,1.19
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinBenchmarks,Length=512,NormalizedSimilarity_Utf16,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=16, Distinct=32",Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=16, Distinct=32",Distance_Utf16,0.72
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=16, Distinct=512",Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=16, Distinct=512",Distance_Utf16,0.73
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=24, Distinct=32",Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=24, Distinct=32",Distance_Utf16,0.77
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=24, Distinct=512",Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=24, Distinct=512",Distance_Utf16,0.79
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=32, Distinct=32",Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=32, Distinct=32",Distance_Utf16,0.83
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=32, Distinct=512",Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=32, Distinct=512",Distance_Utf16,0.83
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=40, Distinct=32",Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=40, Distinct=32",Distance_Utf16,2.19
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=40, Distinct=512",Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=40, Distinct=512",Distance_Utf16,2.08
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=128, Distinct=32",Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=128, Distinct=32",Distance_Utf16,2.9
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=128, Distinct=512",Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=128, Distinct=512",Distance_Utf16,2.84
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=512, Distinct=32",Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=512, Distinct=32",Distance_Utf16,3.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=512, Distinct=512",Distance_CodePoint,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinCodePointBenchmarks,"Length=512, Distinct=512",Distance_Utf16,0.16
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinIncumbentBenchmarks,Length=8,Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinIncumbentBenchmarks,Length=8,Fastenshtein,3.18
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinIncumbentBenchmarks,Length=8,Quickenshtein,2.98
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinIncumbentBenchmarks,Length=8,F23_StringSimilarity,5.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinIncumbentBenchmarks,Length=64,Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinIncumbentBenchmarks,Length=64,Fastenshtein,18.5
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinIncumbentBenchmarks,Length=64,Quickenshtein,4.07
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinIncumbentBenchmarks,Length=64,F23_StringSimilarity,31.69
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinIncumbentBenchmarks,Length=512,Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinIncumbentBenchmarks,Length=512,Fastenshtein,38.59
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinIncumbentBenchmarks,Length=512,Quickenshtein,2.79
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,LevenshteinIncumbentBenchmarks,Length=512,F23_StringSimilarity,60.09
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsPcaBenchmarks,Shape=2000x10,Lodestar_ExplainedVarianceRatio,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsPcaBenchmarks,Shape=2000x10,MetaNumerics_VarianceFraction,748.71
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsPcaBenchmarks,Shape=2000x50,Lodestar_ExplainedVarianceRatio,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsPcaBenchmarks,Shape=2000x50,MetaNumerics_VarianceFraction,166.89
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsPcaBenchmarks,Shape=200x10,Lodestar_ExplainedVarianceRatio,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetaNumericsPcaBenchmarks,Shape=200x10,MetaNumerics_VarianceFraction,37.78
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetricsIncumbentBenchmarks,"Samples=100000, Request=Bundle",Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetricsIncumbentBenchmarks,"Samples=100000, Request=Bundle",MlNet,4.27
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetricsIncumbentBenchmarks,"Samples=100000, Request=AccuracyAlone",Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetricsIncumbentBenchmarks,"Samples=100000, Request=AccuracyAlone",MlNet,3161.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetricsIncumbentBenchmarks,"Samples=1000000, Request=Bundle",Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetricsIncumbentBenchmarks,"Samples=1000000, Request=Bundle",MlNet,1.91
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetricsIncumbentBenchmarks,"Samples=1000000, Request=AccuracyAlone",Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MetricsIncumbentBenchmarks,"Samples=1000000, Request=AccuracyAlone",MlNet,2070.79
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=4,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=4,Kernel,0.96
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=4,Dp_Cjk,0.98
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=4,Kernel_Cjk,0.98
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=6,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=6,Kernel,0.72
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=6,Dp_Cjk,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=6,Kernel_Cjk,1.21
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=8,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=8,Kernel,0.64
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=8,Dp_Cjk,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=8,Kernel_Cjk,1.21
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=10,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=10,Kernel,0.53
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=10,Dp_Cjk,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=10,Kernel_Cjk,0.85
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=12,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=12,Kernel,0.44
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=12,Dp_Cjk,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=12,Kernel_Cjk,0.67
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=16,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=16,Kernel,0.33
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=16,Dp_Cjk,0.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=16,Kernel_Cjk,0.48
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=24,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=24,Kernel,0.21
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=24,Dp_Cjk,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=24,Kernel_Cjk,0.28
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=32,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=32,Kernel,0.15
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=32,Dp_Cjk,1.07
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=32,Kernel_Cjk,0.2
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=48,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=48,Kernel,0.09
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=48,Dp_Cjk,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=48,Kernel_Cjk,0.12
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=64,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=64,Kernel,0.06
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=64,Dp_Cjk,0.95
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=64,Kernel_Cjk,0.08
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=96,Dp,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=96,Kernel,0.06
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=96,Dp_Cjk,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,MyersGateBenchmarks,Band=96,Kernel_Cjk,0.13
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=10000, BatchCount=10",WholeFit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=10000, BatchCount=10",BatchedFit,0.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=10000, BatchCount=10",SparseFit,0.25
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=10000, BatchCount=10",DenseFitOfTheSameData,0.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=10000, BatchCount=100",WholeFit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=10000, BatchCount=100",BatchedFit,1.09
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=10000, BatchCount=100",SparseFit,0.25
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=10000, BatchCount=100",DenseFitOfTheSameData,0.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=100000, BatchCount=10",WholeFit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=100000, BatchCount=10",BatchedFit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=100000, BatchCount=10",SparseFit,0.52
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=100000, BatchCount=10",DenseFitOfTheSameData,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=100000, BatchCount=100",WholeFit,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=100000, BatchCount=100",BatchedFit,1.01
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=100000, BatchCount=100",SparseFit,0.52
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PartialFitBenchmarks,"RowCount=100000, BatchCount=100",DenseFitOfTheSameData,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PrincipalComponentVarianceBenchmarks,Shape=100x200,Lodestar_ExplainedVariance,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PrincipalComponentVarianceBenchmarks,Shape=100x200,NumFlat_Pca,1.63
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PrincipalComponentVarianceBenchmarks,Shape=2000x10,Lodestar_ExplainedVariance,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PrincipalComponentVarianceBenchmarks,Shape=2000x10,NumFlat_Pca,1.35
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PrincipalComponentVarianceBenchmarks,Shape=2000x50,Lodestar_ExplainedVariance,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PrincipalComponentVarianceBenchmarks,Shape=2000x50,NumFlat_Pca,0.93
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PrincipalComponentVarianceBenchmarks,Shape=200x10,Lodestar_ExplainedVariance,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,PrincipalComponentVarianceBenchmarks,Shape=200x10,NumFlat_Pca,1.11
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=500, Permutations=64",ExactPairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=500, Permutations=64",SketchThenVerify,0.23
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=500, Permutations=64",SignaturesOnly,0.18
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=500, Permutations=64",AffineSignaturesOnly,0.12
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=500, Permutations=64",FingerprintsOnly,0.22
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=500, Permutations=128",ExactPairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=500, Permutations=128",SketchThenVerify,0.26
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=500, Permutations=128",SignaturesOnly,0.22
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=500, Permutations=128",AffineSignaturesOnly,0.15
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=500, Permutations=128",FingerprintsOnly,0.19
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=2000, Permutations=64",ExactPairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=2000, Permutations=64",SketchThenVerify,0.05
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=2000, Permutations=64",SignaturesOnly,0.04
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=2000, Permutations=64",AffineSignaturesOnly,0.03
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=2000, Permutations=64",FingerprintsOnly,0.04
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=2000, Permutations=128",ExactPairwise,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=2000, Permutations=128",SketchThenVerify,0.07
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=2000, Permutations=128",SignaturesOnly,0.05
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=2000, Permutations=128",AffineSignaturesOnly,0.03
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,SimilaritySketchBenchmarks,"Documents=2000, Permutations=128",FingerprintsOnly,0.04
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,StopWordBenchmarks,Documents=200,Count,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,StopWordBenchmarks,Documents=200,CountWithStopWords,0.74
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,StopWordBenchmarks,Documents=200,Hashing,1.05
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,StopWordBenchmarks,Documents=200,HashingWithStopWords,0.87
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,StopWordBenchmarks,Documents=1000,Count,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,StopWordBenchmarks,Documents=1000,CountWithStopWords,0.81
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,StopWordBenchmarks,Documents=1000,Hashing,1.11
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,StopWordBenchmarks,Documents=1000,HashingWithStopWords,0.98
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,TokenizerIncumbentBenchmarks,Model=WordPiece,Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,TokenizerIncumbentBenchmarks,Model=WordPiece,MlTokenizers,2.54
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,TokenizerIncumbentBenchmarks,Model=SentencePiece,Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,TokenizerIncumbentBenchmarks,Model=SentencePiece,MlTokenizers,1.16
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,TokenizerIncumbentBenchmarks,Model=ByteLevelBpe,Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,TokenizerIncumbentBenchmarks,Model=ByteLevelBpe,MlTokenizers,3.02
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorMathBenchmarks,Dim=384,Dot,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorMathBenchmarks,Dim=384,L2Norm,0.97
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorMathBenchmarks,Dim=768,Dot,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorMathBenchmarks,Dim=768,L2Norm,0.92
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorMathBenchmarks,Dim=1024,Dot,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorMathBenchmarks,Dim=1024,L2Norm,0.94
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerBenchmarks,Documents=200,Count,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerBenchmarks,Documents=200,Tfidf,1.11
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerBenchmarks,Documents=200,CountBigrams,3.56
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerBenchmarks,Documents=200,CountCharWordBoundary,11.27
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerBenchmarks,Documents=200,Hashing,0.99
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerBenchmarks,Documents=1000,Count,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerBenchmarks,Documents=1000,Tfidf,1.1
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerBenchmarks,Documents=1000,CountBigrams,2.43
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerBenchmarks,Documents=1000,CountCharWordBoundary,8.55
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerBenchmarks,Documents=1000,Hashing,1.05
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerIncumbentBenchmarks,Documents=200,Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerIncumbentBenchmarks,Documents=200,MlNet,14.95
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerIncumbentBenchmarks,Documents=1000,Lodestar,1.0
+2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerIncumbentBenchmarks,Documents=1000,MlNet,22.9
