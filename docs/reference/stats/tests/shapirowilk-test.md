@@ -8,14 +8,18 @@ Tests whether a sample could have come from a normal distribution.
 public static TestResult Test(ReadOnlySpan<double> sample, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
-**Parameters** — `sample` is the data, between 3 and 5000 values, not all equal; the span is
+**Parameters** — `sample` is the data, at least 3 values; the span is
 read, never modified. `nanPolicy` says what to do with a `NaN`; scipy's `nan_policy`, defaulting
 to [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TestResult`: Royston's W statistic, and its p-value.
 
-**Exceptions** — `ArgumentException` when `sample` holds fewer than 3 or more than 5000 values,
-or every value is identical.
+**Exceptions** — `ArgumentException` when `sample` holds fewer than 3 values or its range is below
+`1e-19`, a constant sample included, the two cases Royston's AS R94 refuses (its first and sixth
+faults). AS R94 divides by the range throughout; here the sums run on values divided by the range
+past a range of `1e100`, where a square would overflow, W being unchanged by the scale. A NaN or infinite range answers
+`NaN` for both, a case the algorithm leaves undefined
+([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md)). `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — a symmetric sample against a heavily right-skewed one of the same size.
 
@@ -37,10 +41,9 @@ double skewedP = Math.Round(notNormal.PValue, 6);             // => 0.000608
 below `1` it falls.** `symmetric`'s `W` of `0.9958` carries a p-value over `0.999` — nothing here
 argues against normality; `skewed`'s `0.7088` is a p-value of `0.0006`, decisively against it.
 
-**The 3-to-5000 bound is a property of the fitted transform, not an arbitrary guard.** Royston's
-polynomials that turn `W` into a p-value are fitted over that range; outside it there is no
-p-value the fit actually covers, so this refuses instead of extrapolating a number that would
-look precise and mean nothing:
+**The 3-value floor is Royston's, and so is the 5000-value warning.** AS R94 refuses fewer than three
+values, and past 5000 computes with a warning that its fitted transform is extrapolated; this does
+the same, without the warning:
 
 ```csharp
 using Lodestar.Stats;
@@ -55,14 +58,14 @@ catch (ArgumentException error)
     message = error.Message;
 }
 
-string what = message;   // => Royston's approximation covers 3 to 5000 values…
+string what = message;   // => Royston's algorithm needs at least 3 values…
 ```
 
-scipy warns on the same input and answers anyway; this package treats the fitted range as a hard
-boundary instead.
+scipy answers `NaN` for two values where the algorithm refuses them, and computes past 5000 as the
+algorithm does.
 
 Omission runs before this test's own requirements, which are unchanged by it — a sample left too
-short, or a pool left fully tied, is refused exactly as it would be if passed directly.
+short, or left with a range below `1e-19`, is refused exactly as it would be if passed directly.
 
 **Applies to** — net10.0, netstandard2.0.
 

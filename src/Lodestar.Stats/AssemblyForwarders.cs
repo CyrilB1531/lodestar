@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 
-// The thirteen data types this package declared until 0.4.x live in Lodestar.Abstractions under the
-// same names (decision 0003, #1142); code built against 0.4.x still binds through these forwarders.
+// Fifteen types in Lodestar.Abstractions (decision 0003, #1142): thirteen once declared here, eight of which the 0.4.0
+// binary binds to except where #1217 renamed them (Chi2ContingencyResult), and two #1162 declared there that never shipped here.
 
 [assembly: TypeForwardedTo(typeof(Lodestar.Stats.Alternative))]
 [assembly: TypeForwardedTo(typeof(Lodestar.Stats.Center))]

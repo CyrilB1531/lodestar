@@ -10,9 +10,8 @@ A degenerate input where every group is internally constant **and** the groups s
 constant computes `0.0 / 0.0` and returns a `NaN` statistic and p-value, propagated rather than
 guarded against — this matches scipy's own `f_oneway` on the same input, and a `NaN` here is an
 honest answer: an F statistic genuinely has no value when both its numerator and its denominator
-vanish. This is deliberately unlike [`KruskalWallis`](kruskalwallis.md), whose analogous
-degenerate input (every pooled value tied) throws instead, because there the ranks the statistic
-is built from are provably meaningless rather than merely indeterminate.
+vanish. [`KruskalWallis`](kruskalwallis.md) answers its analogous degenerate input, every pooled value
+tied, with `NaN` too.
 
 ## Members
 

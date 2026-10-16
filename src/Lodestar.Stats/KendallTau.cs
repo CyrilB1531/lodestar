@@ -34,6 +34,7 @@ public static class KendallTau
     /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/> and the null distribution's
     /// table would exceed twenty million cells; its cost is proportional to that count. Pass
     /// <see cref="ExactMethod.Asymptotic"/> instead.
+    /// Or an option is outside its enumeration.
     /// </exception>
     public static TestResult Test(
         ReadOnlySpan<double> x,
@@ -42,6 +43,23 @@ public static class KendallTau
         KendallVariant variant = KendallVariant.TauB,
         ExactMethod method = ExactMethod.Auto,
         NanPolicy nanPolicy = NanPolicy.Propagate)
+    {
+        // Options last, once the input has met its own refusals; alternative was never read on the exact path (#1712's Review A).
+        TestResult result = TestCore(x, y, alternative, variant, method, nanPolicy);
+        Options.Require(alternative);
+        Options.Require(variant);
+        Options.Require(method);
+        Options.Require(nanPolicy);
+        return result;
+    }
+
+    private static TestResult TestCore(
+        ReadOnlySpan<double> x,
+        ReadOnlySpan<double> y,
+        Alternative alternative,
+        KendallVariant variant,
+        ExactMethod method,
+        NanPolicy nanPolicy)
     {
         PairedSamples.Align(
             x, y, nanPolicy, nameof(x), nameof(y),

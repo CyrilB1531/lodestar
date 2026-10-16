@@ -15,7 +15,8 @@ interval to compute, defaulting to [`ProportionInterval.Exact`](proportioninterv
 **Returns** — `(double Low, double High)`: the interval around the observed proportion. A
 one-sided test's interval is half-open, and the far bound is the proportion's own limit, `0` or
 `1`, rather than a wider number — a proportion cannot leave that range. So is a two-sided
-interval's bound when every trial succeeded or none did.
+interval's bound when every trial succeeded or none did. With no trial both bounds are `NaN`, but
+for the limit a one-sided interval fixes, as scipy's are.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `level` is `NaN` or outside `(0, 1)`, or
 `method` is not one of the three.

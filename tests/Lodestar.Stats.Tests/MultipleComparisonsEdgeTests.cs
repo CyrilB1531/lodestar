@@ -6,11 +6,12 @@ namespace Lodestar.Stats.Tests;
 public sealed class MultipleComparisonsEdgeTests
 {
     [Fact]
-    public void All_three_refuse_an_empty_family()
+    public void All_three_adjust_an_empty_family_to_an_empty_one()
     {
-        Assert.Throws<ArgumentException>(() => MultipleComparisons.Bonferroni([]));
-        Assert.Throws<ArgumentException>(() => MultipleComparisons.BenjaminiHochberg([]));
-        Assert.Throws<ArgumentException>(() => MultipleComparisons.BenjaminiYekutieli([]));
+        // As false_discovery_control([]) does: an empty family is not undefined, where all three refused it (#1704's Review A).
+        Assert.Empty(MultipleComparisons.Bonferroni([]));
+        Assert.Empty(MultipleComparisons.BenjaminiHochberg([]));
+        Assert.Empty(MultipleComparisons.BenjaminiYekutieli([]));
     }
 
     [Fact]

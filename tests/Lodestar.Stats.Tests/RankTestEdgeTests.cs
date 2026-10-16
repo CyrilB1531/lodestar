@@ -7,10 +7,13 @@ namespace Lodestar.Stats.Tests;
 public sealed class RankTestEdgeTests
 {
     [Fact]
-    public void MannWhitney_refuses_an_empty_sample()
+    public void MannWhitney_answers_NaN_for_an_empty_sample()
     {
-        Assert.Throws<ArgumentException>(() => MannWhitney.Test([], [1.0, 2.0]));
-        Assert.Throws<ArgumentException>(() => MannWhitney.Test([1.0, 2.0], []));
+        // U of nothing is undefined (decision 0010).
+        foreach (TestResult result in new[] { MannWhitney.Test([], [1.0, 2.0]), MannWhitney.Test([1.0, 2.0], []) })
+        {
+            Assert.True(double.IsNaN(result.Statistic) && double.IsNaN(result.PValue));
+        }
     }
 
     [Fact]
@@ -111,7 +114,7 @@ public sealed class RankTestEdgeTests
         // sized (m+1) x (n*m+1), or throwing the way an explicit Exact would.
         // The +0.05 offset is load-bearing: without it every large[i] at
         // i=10,40,70,... lands exactly on a small[] value (10*0.1 == 1.0),
-        // Ranks.HasTies(pooled) is true, and wantsExact is already false
+        // ReferenceRanks.HasTies(pooled) is true, and wantsExact is already false
         // through the ties clause -- the tableTooLarge guard is never
         // consulted and this test cannot fail regardless of its state
         // (verified by deletion in commit c0957a4b).
@@ -166,9 +169,21 @@ public sealed class RankTestEdgeTests
     }
 
     [Fact]
-    public void Wilcoxon_refuses_an_empty_sample()
+    public void Wilcoxon_refuses_an_undefined_option_even_on_an_empty_sample()
     {
-        Assert.Throws<ArgumentException>(() => Wilcoxon.OneSample([]));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Wilcoxon.OneSample([], alternative: (Alternative)42));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Wilcoxon.OneSample([double.NaN], zeroMethod: (ZeroMethod)42));
+    }
+
+    [Fact]
+    public void Wilcoxon_answers_NaN_for_an_empty_sample_as_scipy_does()
+    {
+        foreach (TestResult result in new[] { Wilcoxon.OneSample([]), Wilcoxon.Paired([], []),
+                     Wilcoxon.Paired([double.NaN], [1.0], nanPolicy: NanPolicy.Omit) })
+        {
+            Assert.True(double.IsNaN(result.Statistic));
+            Assert.True(double.IsNaN(result.PValue));
+        }
     }
 
     [Fact]

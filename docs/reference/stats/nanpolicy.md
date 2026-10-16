@@ -35,8 +35,9 @@ on no others: `chi2_contingency`, `fisher_exact` and `false_discovery_control` d
 sample independently would silently change what a paired test is testing.
 
 Omission is a filter, not a second policy: a family's own guards run afterwards on what survives,
-so `ShapiroWilk.Test` still refuses fewer than three observations and `KruskalWallis.Test` still
-refuses a fully tied pool. Decision 0007 has the reasoning.
+so `ShapiroWilk.Test` still refuses fewer than three observations, as Royston's algorithm does, and
+`KruskalWallis.Test` answers a fully tied pool with `NaN`, as it would one passed directly.
+Decisions 0007 and 0010 have the reasoning.
 
 **Applies to** — net10.0, netstandard2.0.
 

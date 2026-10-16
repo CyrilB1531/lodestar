@@ -18,7 +18,7 @@ leaves the correlation undefined and both numbers are `NaN`; so is the p-value a
 two pairs, where the Student distribution has no degrees of freedom left.
 
 **Exceptions** — `ArgumentException` when the samples differ in length, or when `nanPolicy` is
-[`NanPolicy.Raise`](../nanpolicy.md) and either sample holds a `NaN`.
+[`NanPolicy.Raise`](../nanpolicy.md) and either sample holds a `NaN`. `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — the same eight tasting panels [`Pearson.Test`](pearson-test.md) measures.
 

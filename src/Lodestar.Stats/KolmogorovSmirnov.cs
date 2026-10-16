@@ -5,9 +5,9 @@ namespace Lodestar.Stats;
 /// <summary>The two-sample Kolmogorov-Smirnov test.</summary>
 /// <remarks>
 /// <b>Two-sample only.</b> The one-sample test compares a sample against a named
-/// distribution, which means passing a cumulative distribution function; this
-/// package has no distributions namespace to pass one from, and inventing one to
-/// serve a single test is a second package's worth of surface.
+/// distribution, which means passing a cumulative distribution function;
+/// <see cref="Distributions"/> publishes four laws' tails, not the catalogue that
+/// takes, and building one to serve a single test is a second package's worth of surface.
 /// </remarks>
 public static class KolmogorovSmirnov
 {
@@ -29,23 +29,24 @@ public static class KolmogorovSmirnov
     private const long MaxExactProduct = 1_000_000;
 
     /// <summary>Compares two samples by the largest gap between their empirical distributions.</summary>
-    /// <param name="a">The first sample; at least one value.</param>
-    /// <param name="b">The second sample; at least one value.</param>
+    /// <param name="a">The first sample; an empty one answers <c>NaN</c> (decision 0010).</param>
+    /// <param name="b">The second sample; an empty one answers <c>NaN</c> (decision 0010).</param>
     /// <param name="alternative">
     /// <see cref="Alternative.TwoSided"/> takes the largest gap in either
     /// direction; the one-sided values take the largest gap in one.
     /// </param>
     /// <param name="method">Exact, asymptotic, or chosen by the sample sizes.</param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
-    /// <returns>The distance, the p-value, where the distance was reached and its sign.</returns>
+    /// <returns>The distance, the p-value, where the distance was reached and its sign; <c>NaN</c> where a sample is empty (decision 0010).</returns>
     /// <exception cref="ArgumentException">
-    /// Either sample is empty. When <paramref name="nanPolicy"/> is
+    /// When <paramref name="nanPolicy"/> is
     /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/>, <c>a.Length * b.Length</c>
     /// exceeds 1,000,000, and the samples differ in size or the alternative is one-sided: the
     /// lattice-path recurrence costs O(n · m) time. Pass <see cref="ExactMethod.Asymptotic"/> instead.
+    /// Or an option is outside its enumeration.
     /// </exception>
     public static KsResult TwoSample(
         ReadOnlySpan<double> a,
@@ -54,25 +55,27 @@ public static class KolmogorovSmirnov
         ExactMethod method = ExactMethod.Auto,
         NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        ReadOnlySpan<double> left = nanPolicy == NanPolicy.Propagate
-            ? a
-            : NanFilter.Apply(a, nanPolicy, nameof(a));
-        ReadOnlySpan<double> right = nanPolicy == NanPolicy.Propagate
-            ? b
-            : NanFilter.Apply(b, nanPolicy, nameof(b));
+        // An option outside its enumeration is refused last, once the input has met every refusal of its own (#1704's Review A).
+        KsResult result = TwoSampleCore(a, b, alternative, method, nanPolicy);
+        Options.Require(alternative);
+        Options.Require(method);
+        Options.Require(nanPolicy);
+        return result;
+    }
 
-        if (left.Length == 0)
-        {
-            throw new ArgumentException("The first sample is empty.", nameof(a));
-        }
-        if (right.Length == 0)
-        {
-            throw new ArgumentException("The second sample is empty.", nameof(b));
-        }
+    private static KsResult TwoSampleCore(
+        ReadOnlySpan<double> a,
+        ReadOnlySpan<double> b,
+        Alternative alternative,
+        ExactMethod method,
+        NanPolicy nanPolicy)
+    {
+        ReadOnlySpan<double> left = NanFilter.Apply(a, nanPolicy, nameof(a));
+        ReadOnlySpan<double> right = NanFilter.Apply(b, nanPolicy, nameof(b));
 
-        // Checked before sorting: sorted[index] == value is false for NaN, which
-        // never advances AdvancePast and spins Walk forever otherwise.
-        if (Ranks.HasNaN(left) || Ranks.HasNaN(right))
+        // An empty sample has no empirical distribution, so the statistic is undefined: NaN (decision 0010). A NaN is checked
+        // before sorting too: sorted[index] == value is false for it, and Walk would spin forever.
+        if (left.Length == 0 || right.Length == 0 || Ranks.HasNaN(left) || Ranks.HasNaN(right))
         {
             return new KsResult(double.NaN, double.NaN, double.NaN, 0);
         }

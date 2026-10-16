@@ -24,9 +24,9 @@ requires. `nanPolicy` says what to do with a `NaN`; scipy's `nan_policy`, defaul
 
 **Returns** — `TestResult`: the Q statistic, and the upper-tail p-value.
 
-**Exceptions** — `ArgumentException` when there are fewer than three treatments, a treatment is
-empty, the treatments have different lengths, or `nanPolicy` is
-[`NanPolicy.Raise`](../nanpolicy.md) and a measurement is `NaN`.
+**Exceptions** — `ArgumentException` when there are fewer than three treatments, the treatments
+have different lengths, or `nanPolicy` is [`NanPolicy.Raise`](../nanpolicy.md) and a measurement
+is `NaN`. No block, given or left by omission, answers `NaN` for both ([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md)). `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example — six wines scored by three judges, and what pairing buys.** Each judge is harsh or
 generous in their own way, and ranking within a wine removes that before the treatments are
@@ -55,10 +55,9 @@ p-value are both `NaN`, because a `NaN` sorted into a ranking would otherwise ta
 like any other value.
 
 **Treatments that agree exactly on every block answer `NaN`.** Every rank is then tied, the tie
-correction is exactly zero, and the statistic is `0/0`. scipy answers `NaN` there, where
-[`KruskalWallis.Test`](kruskalwallis-test.md) refuses its analogous input with an exception — the
-two references disagree, and each is matched rather than reconciled. The
-[Python equivalence table](../../../equivalence.md) carries both rows.
+correction is exactly zero, and the statistic is `0/0`, which Friedman's paper leaves undefined:
+`NaN`, as scipy answers and as [`KruskalWallis.Test`](kruskalwallis-test.md) answers its analogous
+input ([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md)). So does no block at all, given or left by omission.
 
 **Applies to** — net10.0, netstandard2.0.
 

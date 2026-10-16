@@ -14,7 +14,7 @@ namespace Lodestar.Stats;
 public static class Pearson
 {
     /// <summary>Correlates two paired samples.</summary>
-    /// <param name="x">The first sample; at least two values.</param>
+    /// <param name="x">The first sample; fewer than two pairs answer <c>NaN</c> for both (decision 0010).</param>
     /// <param name="y">The second sample; the same length as <paramref name="x"/>.</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
     /// <param name="nanPolicy">
@@ -27,10 +27,11 @@ public static class Pearson
     /// A sample that is constant has no correlation defined, and both numbers are <c>NaN</c>.
     /// </returns>
     /// <exception cref="ArgumentException">
-    /// The samples differ in length, or hold fewer than two values. When
+    /// The samples differ in length. When
     /// <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and either sample holds a
     /// <c>NaN</c>.
     /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">An option is outside its enumeration.</exception>
     public static PearsonResult Test(
         ReadOnlySpan<double> x,
         ReadOnlySpan<double> y,
@@ -40,13 +41,16 @@ public static class Pearson
         PairedSamples.Align(
             x, y, nanPolicy, nameof(x), nameof(y),
             out ReadOnlySpan<double> left, out ReadOnlySpan<double> right);
-        if (left.Length < 2)
-        {
-            throw new ArgumentException(
-                $"A correlation needs at least two pairs; got {left.Length}.", nameof(x));
-        }
-
+        Options.Require(alternative);
+        Options.Require(nanPolicy);
         int n = left.Length;
+
+        // Fewer than two pairs leave r undefined, which Pearson's definition does not cover: NaN, as Spearman and Kendall
+        // answer, where this threw (decision 0010).
+        if (n < 2)
+        {
+            return new PearsonResult(double.NaN, double.NaN) { N = n, Alternative = alternative };
+        }
         if (Ranks.HasNaN(left) || Ranks.HasNaN(right))
         {
             return new PearsonResult(double.NaN, double.NaN) { N = n, Alternative = alternative };

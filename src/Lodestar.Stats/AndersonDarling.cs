@@ -4,9 +4,9 @@ namespace Lodestar.Stats;
 
 /// <summary>The Anderson-Darling test: could this sample be normal?</summary>
 /// <remarks>
-/// The other normality test beside <see cref="ShapiroWilk"/>, and the one that keeps working
-/// where Shapiro-Wilk's own reference stops: Royston's approximation is fitted over
-/// <c>3 ≤ n ≤ 5000</c>, where this statistic has no upper bound at all. It weighs the tails more
+/// The other normality test beside <see cref="ShapiroWilk"/>, and the one whose reference holds at
+/// any size: Royston's approximation is fitted over <c>3 ≤ n ≤ 5000</c> and only extrapolated past
+/// it, where this statistic has no upper bound at all. It weighs the tails more
 /// heavily than the centre, which is usually where a departure from normality matters and is the
 /// reason the two disagree on the same sample often enough to be worth running both.
 /// </remarks>
@@ -19,13 +19,12 @@ public static partial class AndersonDarling
     private static readonly double[] Levels = [15.0, 10.0, 5.0, 2.5, 1.0];
 
     /// <summary>Tests a sample against the normal distribution, fitting its mean and spread.</summary>
-    /// <param name="x">The sample; at least one value. One value or a constant sample has no spread, and answers NaN as scipy's.</param>
+    /// <param name="x">The sample. Empty, one value or constant, it has no spread, and answers NaN (decision 0010).</param>
     /// <returns>
     /// The A² statistic, the p-value interpolated from the table, and the table itself — the
     /// critical values for this sample size, and the significance levels they belong to. The statistic and the
     /// p-value are NaN when the sample holds a NaN or an infinity, as scipy's are.
     /// </returns>
-    /// <exception cref="ArgumentException">The sample is empty.</exception>
     /// <remarks>
     /// The distribution is fitted rather than given, which is what makes the critical values
     /// depend on the sample size: they are Stephens' constants divided by
@@ -33,9 +32,12 @@ public static partial class AndersonDarling
     /// </remarks>
     public static AndersonResult Test(ReadOnlySpan<double> x)
     {
+        // An empty sample fits no normal, which Anderson and Darling leave undefined: NaN, the table's critical values NaN in
+        // step with its levels, since they scale with n (decision 0010).
         if (x.Length < 1)
         {
-            throw new ArgumentException("Anderson-Darling needs at least one value.", nameof(x));
+            double[] undefined = [.. Levels.Select(_ => double.NaN)];
+            return new AndersonResult(double.NaN, double.NaN, undefined, (double[])Levels.Clone());
         }
 
         int n = x.Length;

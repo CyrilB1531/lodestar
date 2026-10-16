@@ -239,8 +239,7 @@ public static class SerialCorrelation
         {
             throw new ArgumentException(
                 $"every value is {series[0].ToString(CultureInfo.InvariantCulture)}, so the lag-zero autocovariance is zero and every "
-                + "correlation would be 0/0. The reference answers NaN; this refuses, as "
-                + "KruskalWallis.Test refuses a fully tied sample.", nameof(series));
+                + "correlation would be 0/0. The reference answers NaN; this refuses.", nameof(series));
         }
 
         if (lagCount < 1)

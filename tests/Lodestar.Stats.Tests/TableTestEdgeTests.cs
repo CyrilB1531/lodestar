@@ -25,18 +25,26 @@ public sealed class TableTestEdgeTests
     }
 
     [Fact]
-    public void GoodnessOfFit_refuses_a_zero_expectation()
+    public void GoodnessOfFit_reads_a_zero_expectation_as_scipy_and_refuses_a_negative_one()
     {
-        Assert.Throws<ArgumentException>(
-            () => ChiSquared.GoodnessOfFit([10.0, 10.0], [20.0, 0.0]));
+        // A count over a zero expectation is +inf with p 0, as scipy's; 0/0 is undefined (decision 0010); NaN propagates.
+        TestResult met = ChiSquared.GoodnessOfFit([10.0, 10.0], [20.0, 0.0]);
+        Assert.Equal((double.PositiveInfinity, 0.0), (met.Statistic, met.PValue));
+        TestResult unmet = ChiSquared.GoodnessOfFit([20.0, 0.0], [20.0, 0.0]);
+        Assert.True(double.IsNaN(unmet.Statistic) && double.IsNaN(unmet.PValue));
+        Assert.True(double.IsNaN(ChiSquared.GoodnessOfFit([1.0, 2.0, 3.0], [2.0, double.NaN, 4.0]).PValue));
+        Assert.Throws<ArgumentException>(() => ChiSquared.GoodnessOfFit([10.0, 10.0], [30.0, -10.0]));
     }
 
     [Fact]
-    public void GoodnessOfFit_refuses_mismatched_lengths_and_answers_one_category_as_scipy()
+    public void GoodnessOfFit_refuses_mismatched_lengths_and_answers_none_or_one_category_as_scipy()
     {
         Assert.Throws<ArgumentException>(
             () => ChiSquared.GoodnessOfFit([10.0, 10.0], [20.0]));
-        Assert.Throws<ArgumentException>(() => ChiSquared.GoodnessOfFit([]));
+        // No category is an empty sum on -1 degrees of freedom: (0, NaN), as scipy's chisquare([]) (decision 0010).
+        TestResult none = ChiSquared.GoodnessOfFit([]);
+        Assert.Equal(0.0, none.Statistic);
+        Assert.True(double.IsNaN(none.PValue));
 
         // scipy's chisquare([5]) is (0, nan): one category leaves no degree of freedom (#1217).
         TestResult one = ChiSquared.GoodnessOfFit([10.0]);
@@ -107,13 +115,17 @@ public sealed class TableTestEdgeTests
     }
 
     [Fact]
-    public void Contingency_refuses_a_ragged_table_and_a_zero_marginal()
+    public void Contingency_refuses_a_ragged_table_and_answers_NaN_for_a_zero_marginal()
     {
         double[][] ragged = [[1.0, 2.0], [3.0]];
         double[][] emptyRow = [[0.0, 0.0], [3.0, 4.0]];
 
         Assert.Throws<ArgumentException>(() => ChiSquared.Contingency(ragged));
-        Assert.Throws<ArgumentException>(() => ChiSquared.Contingency(emptyRow));
+        // A zero marginal makes an expectation zero, which the statistic divides by (decision 0010).
+        ChiSquaredContingencyResult zero = ChiSquared.Contingency(emptyRow);
+        Assert.True(double.IsNaN(zero.Statistic) && double.IsNaN(zero.PValue));
+        Assert.Equal(1, zero.DegreesOfFreedom);
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChiSquared.Contingency([[1.0, 2.0], [3.0, 4.0]], (Continuity)9));
     }
 
     [Fact]

@@ -15,7 +15,7 @@ public static TestResult Test(int[][] table, Alternative alternative = Alternati
 diagonal is zero, `NaN` when both diagonals are — and the p-value.
 
 **Exceptions** — `ArgumentException` when `table` is not 2x2. `ArgumentOutOfRangeException` when
-a count is negative, or the table's total exceeds 1,000,000.
+a count is negative, or the table's total exceeds 1,000,000. `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — Fisher's own tea-tasting table: four cups poured each way, and the taster placed
 three of each correctly.

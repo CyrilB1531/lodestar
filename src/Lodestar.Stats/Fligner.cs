@@ -29,14 +29,32 @@ public static class Fligner
     /// <param name="nanPolicy">What to do with a <c>NaN</c>; scipy's <c>nan_policy</c>.</param>
     /// <param name="groups">Two or more groups of observations.</param>
     /// <returns>
-    /// The χ² statistic and its p-value; both <c>NaN</c> where a group is empty, a <c>NaN</c> propagates, or every
-    /// deviation ties, as scipy answers.
+    /// The χ² statistic and its p-value; both <c>NaN</c> where a group is empty or a <c>NaN</c> propagates, as scipy answers,
+    /// and where every deviation ties, 0/0, where scipy's rounding answers NaN or a finite value by the groups.
     /// </returns>
     /// <exception cref="ArgumentException">Fewer than two groups, or a <c>NaN</c> under <see cref="NanPolicy.Raise"/>.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="proportionToCut"/> is NaN under <see cref="Center.Trimmed"/>, or cuts a count below zero or past a group's middle, as scipy refuses them; one that trims a group to nothing answers NaN, as scipy's does.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="proportionToCut"/> is NaN under <see cref="Center.Trimmed"/>, as an undefined option is; or, where a
+    /// centre is taken, cuts a count below zero or past a group's middle, as scipy refuses them. An empty group or a
+    /// propagated NaN answers NaN before that, and so does a trim that leaves a group nothing. Or an option is outside
+    /// its enumeration.
+    /// </exception>
 #pragma warning disable S2368
     public static TestResult Test(Center center, double proportionToCut, NanPolicy nanPolicy, params double[][] groups)
 #pragma warning restore S2368
+    {
+        // An option outside its enumeration is refused last, once the input has met every refusal of its own (#1704's Review A).
+        TestResult result = TestCore(center, proportionToCut, nanPolicy, groups);
+        Options.Require(center);
+        Options.Require(nanPolicy);
+        return result;
+    }
+
+    private static TestResult TestCore(
+        Center center,
+        double proportionToCut,
+        NanPolicy nanPolicy,
+        double[][] groups)
     {
         Guard.NotNull(groups);
         GroupSpread.RequireProportion(center, proportionToCut);
@@ -45,8 +63,8 @@ public static class Fligner
             throw new ArgumentException($"The Fligner-Killeen test needs at least two groups; got {groups.Length}.", nameof(groups));
         }
 
-        double[][] samples = nanPolicy == NanPolicy.Propagate ? groups : NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups));
-        if (Array.Exists(samples, group => group is not { Length: > 0 } || Ranks.HasNaN(group)))
+        double[][] samples = NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups));
+        if (Groups.AnyEmpty(samples) || Array.Exists(samples, group => Ranks.HasNaN(group)))
         {
             return new TestResult(double.NaN, double.NaN);
         }
@@ -63,20 +81,24 @@ public static class Fligner
         // Every centre first, so a trim refused in a later group is refused as scipy refuses it.
         double[] centres = [.. samples.Select(group => GroupSpread.Centre(group, center, proportionToCut))];
 
-        // A group trimmed to nothing has no centre, and scipy's test answers NaN; ranking NaN deviations would not.
-        if (Array.Exists(centres, double.IsNaN))
-        {
-            return new TestResult(double.NaN, double.NaN);
-        }
-
+        // A group trimmed to nothing has a NaN centre, and an infinite value at an infinite one an inf - inf deviation: scipy
+        // answers NaN for both, where ranking the second answered finite values (#1707). Infinite deviations it ranks too.
+        bool anyNaN = false;
         for (int g = 0; g < samples.Length; g++)
         {
             double[] group = samples[g];
             double centre = centres[g];
             foreach (double value in group)
             {
-                deviations[at++] = Math.Abs(value - centre);
+                double deviation = Math.Abs(value - centre);
+                anyNaN |= double.IsNaN(deviation);
+                deviations[at++] = deviation;
             }
+        }
+        // Every deviation tied leaves the scores no variance, 0/0 (decision 0010): rounding read 15 here, and NaN or 12 in scipy.
+        if (anyNaN || !(deviations.Min() < deviations.Max()))
+        {
+            return new TestResult(double.NaN, double.NaN);
         }
 
         // The normal scores of the pooled ranks: Φ⁻¹(r / (2(N + 1)) + 1/2), from Wichura's AS 241 alone, about 1e-16
@@ -116,11 +138,6 @@ public static class Fligner
         }
 
         double statistic = between / variance;
-        if (double.IsNaN(statistic))
-        {
-            // Every deviation tied, so the scores have no variance: scipy answers (nan, nan).
-            return new TestResult(double.NaN, double.NaN);
-        }
 
         return double.IsPositiveInfinity(statistic)
             ? new TestResult(statistic, 0.0)

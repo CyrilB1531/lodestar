@@ -41,7 +41,7 @@ internal static class Beta
     // log(MaxValue^2), with which StudentQuantile bounds the tail at double.MaxValue before evaluating it.
     private const double LogSquaredMaxValue = 1419.565425786768;
 
-    private const double Ln2 = 0.6931471805599453;
+    internal const double Ln2 = 0.6931471805599453;
 
     // The terms FisherTailFromLimit's first form drops are of order z = o y; below this they are below a double's precision.
     private const double LimitBound = 1e-17;
@@ -399,9 +399,7 @@ internal static class Beta
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static double SmallLogPower(double a, double b, double x, double y)
     {
-        double logX = x <= 0.5 ? Math.Log(x) : Gamma.LogOnePlusMinus(-y, x) - y;
-        double logY = y <= 0.5 ? Math.Log(y) : Gamma.LogOnePlusMinus(-x, y) - x;
-        return (a * logX) + (b * logY);
+        return (a * LogComplement(y, x)) + (b * LogComplement(x, y));
     }
 
     /// <summary>Front past both shapes of 10, at <paramref name="deviation"/> from the exact mean, or NaN to take it from x.</summary>
@@ -413,8 +411,23 @@ internal static class Beta
     /// <c>a log x + b log y − log B</c> cancels terms of order <c>a log a</c>: at shapes 1e15 it lost 5 nats, and the beta
     /// inversion's Newton steps, 150 times short, stopped 14 standard deviations from the root (#1690's review).
     /// </remarks>
-    internal static double LogStirlingFront(double a, double b, double x, double y) =>
-        StirlingExponent(a, b, x, y, double.NaN) + (0.5 * Math.Log(a / (a + b) * b / (2.0 * Math.PI)));
+    internal static double LogStirlingFront(double a, double b, double x, double y) => LogStirlingFront(a, b, x, y, double.NaN);
+
+    /// <summary>The same at <paramref name="deviation"/> from the exact mean, or NaN to take it from x.</summary>
+    internal static double LogStirlingFront(double a, double b, double x, double y, double deviation) =>
+        StirlingExponent(a, b, x, y, deviation) + (0.5 * Math.Log(a / (a + b) * b / (2.0 * Math.PI)));
+
+    /// <summary>The logarithm of Front or of StirlingFront at <paramref name="deviation"/>, as the shapes choose between them.</summary>
+    /// <remarks>For a density whose front underflows before its division by the argument, as F's did at 1e-33 and shapes 20 (#1708).</remarks>
+    internal static double LogFront(double a, double b, double x, double y, double deviation) =>
+        a < StirlingMinimumShape || b < StirlingMinimumShape
+            ? SmallLogPower(a, b, x, y) - LogBeta(a, b)
+            : LogStirlingFront(a, b, x, y, deviation);
+
+    /// <summary><c>log(1 − value)</c> given both <paramref name="value"/> and its <paramref name="complement"/>, on the side where it keeps its digits.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal static double LogComplement(double value, double complement) =>
+        complement <= 0.5 ? Math.Log(complement) : Gamma.LogOnePlusMinus(-value, complement) - value;
 
     /// <summary>Front's exponent past a shape of 10: <see cref="ShapeExponent"/> and the Stirling corrections.</summary>
     private static double StirlingExponent(double a, double b, double x, double y, double deviation) =>
@@ -588,8 +601,13 @@ internal static class Beta
         {
             return 1.0;
         }
+        // The support's end: through the small half's limit, shapes of 8.5e307 made log B NaN there.
+        if (double.IsPositiveInfinity(f))
+        {
+            return 0.0;
+        }
 
-        // Both halves by division, as in StudentSf; at f = inf the upper half is 0, and TakesLimit answers there.
+        // Both halves by division, as in StudentSf.
         (double lower, double upper) = FisherSplit(f, dfn, dfd);
         return TakesLimit(lower, upper)
             ? FisherTailFromLimit(f, dfn, dfd, lower, upperTail: true)
@@ -606,6 +624,10 @@ internal static class Beta
         if (f <= 0.0)
         {
             return 0.0;
+        }
+        if (double.IsPositiveInfinity(f))
+        {
+            return 1.0;
         }
         // Both halves exact: y can round to one while 1 - y still holds its digits, as at shapes
         // (1e10, 1), and the incomplete beta reads the side that keeps them.
@@ -682,8 +704,8 @@ internal static class Beta
             z = own <= complement ? GammaQuantile.Invert(own, s, upper: false) : GammaQuantile.Invert(complement, s, upper: true);
             f = isLower ? 2.0 * z / dfn : dfd / (2.0 * z);
         }
-        // An f that over- or underflowed is no root: at dfs (1e189, 5e-207) the lower half's f underflowed to 0, whose half
-        // is 0 too, and the F quantile read 9e-73, a tail of 7e-205, for a root of 1.17e44 (#1690's review).
+        // An f that over- or underflowed is no root: at dfs (9.98e188, 4.56e-207) the lower half's f underflowed to 0, whose
+        // half is 0 too, and the F quantile read 9e-73, a tail of 7e-205, for a root of 1.17e44 (#1690's review).
         (double lower, double upper) = FisherSplit(f, dfn, dfd);
         double half = isLower ? lower : upper;
         return f > 0.0 && f < double.PositiveInfinity && half < NearZero.SmallestNormal ? f : double.NaN;
@@ -837,7 +859,13 @@ internal static class Beta
         {
             return (scaled / denominator, dfd / denominator);
         }
+        // In the other order where dfd / dfn alone overflows, to inf or, at f = +inf, inf / inf: (1e308, 0.5, 1.5e308) read
+        // (0, NaN). The sum overflowing, the ratio is at most about 1e308 / (dfn f), so one of the two orders is a number.
         double ratio = dfd / dfn / f;
+        if (!(ratio < double.PositiveInfinity))
+        {
+            ratio = dfd / f / dfn;
+        }
         return (1.0 / (1.0 + ratio), ratio / (1.0 + ratio));
     }
 

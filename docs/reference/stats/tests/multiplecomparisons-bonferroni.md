@@ -8,13 +8,12 @@ Multiplies each p-value by the family size, clamped at one.
 public static double[] Bonferroni(ReadOnlySpan<double> pValues)
 ```
 
-**Parameters** — `pValues` is the family, at least one value, each in `[0, 1]`; the span is
-read, never modified.
+**Parameters** — `pValues` is the family, each value in `[0, 1]`, an empty one adjusting to an empty one
+as `false_discovery_control([])` does; the span is read, never modified.
 
 **Returns** — `double[]`: the adjusted p-values, in the input's own order.
 
-**Exceptions** — `ArgumentException` when `pValues` is empty. `ArgumentOutOfRangeException` when
-a value is `NaN` or outside `[0, 1]`.
+**Exceptions** — `ArgumentOutOfRangeException` when a value is `NaN` or outside `[0, 1]`.
 
 **Example** — five p-values from five tests run together.
 
