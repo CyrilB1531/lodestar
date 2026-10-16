@@ -300,7 +300,7 @@ public sealed class DistributionsEdgeTests
     [InlineData(1e-300, 19, 0xC35502298BE600AD)]
     [InlineData(0.025, 19, 0xC000BE83653B666F)]
     [InlineData(0.975, 20, 0x4000B00D9A954439)]
-    [InlineData(1e-20, 20, 0xC043AEA949D929CF)]
+    [InlineData(1e-20, 20, 0xC043AEA949D929D0)]
     [InlineData(0.025, 1999.9, 0xBFFF60DFC03A83A4)]
     [InlineData(1e-300, 1999.9, 0xC04635CBDBB49B91)]
     [InlineData(0.975, 2000, 0x3FFF60DFB049ED6E)]
@@ -310,8 +310,8 @@ public sealed class DistributionsEdgeTests
     [InlineData(5e-324, 2000, 0xC04768CC558ABEBC)]
     public void Student_quantiles_keep_their_bits_across_the_cached_log_beta(double p, double df, ulong bits)
     {
-        // main's values before #1686 cached log B(df/2, 1/2): either side of 20, where LogBeta turns to Stirling, and of
-        // 2000, where the cache stops; (5e-324, 2000) ends past t^2 > df, where Front takes it afresh. Linux's libm.
+        // Either side of 20, where LogBeta turns to Stirling, and of 2000, where the large-shape expansion starts. #1690's
+        // normalizer moved (1e-20, 20) one ulp, Newton stopping elsewhere inside its tolerance; the rest are pre-#1686.
         double expected = BitConverter.Int64BitsToDouble(unchecked((long)bits));
         if (OperatingSystem.IsLinux())
         {
@@ -320,5 +320,780 @@ public sealed class DistributionsEdgeTests
         }
 
         Assert.Equal(expected, Distributions.StudentQuantile(p, df), 1e-12 * Math.Abs(expected));
+    }
+
+    [Theory]
+    [InlineData(1.0)]
+    [InlineData(5.0)]
+    [InlineData(37.0)]
+    public void At_df_1e20_the_normal_limit_continues_Students_law(double t)
+    {
+        // Just below 1e20 the general path; above, Normal.Sf, whose rounding of z / sqrt 2 costs 1.1e-13 relative at
+        // t = 37, more than the laws' own (t^4 - 2t^2 - 1)/4df. Past 1e305 t^2 / (df + t^2) went subnormal (#1690's review).
+        const double below = 9.999999999999998e19;
+        double tail = Distributions.StudentSf(t, below);
+        Assert.Equal(tail, Distributions.StudentSf(t, 1e20), 2e-13 * tail);
+        Assert.Equal(Distributions.StudentIsf(tail, below), Distributions.StudentIsf(tail, 1e20), 1e-14 * t);
+        Assert.Equal(Distributions.StudentSf(t, double.PositiveInfinity), Distributions.StudentSf(t, 1e308));
+        Assert.Equal(Distributions.StudentIsf(tail, double.PositiveInfinity), Distributions.StudentIsf(tail, 1e308));
+    }
+
+    [Theory]
+    [InlineData(1e-20)]
+    [InlineData(1e-305)]
+    [InlineData(1e-310)]
+    [InlineData(5e-324)]
+    public void To_df_1e_minus_20_the_Student_tail_is_one_half_and_every_quantile_infinite(double df)
+    {
+        // The tail is one half less (df/4)(|log x| + 2 log 2), which rounds away below df 1e-20 at every finite t; a
+        // subnormal df read 0, and 5e-324 threw from a private parameter (#1690's review); scipy reads 0 at 1e300: 0007.
+        Assert.Equal(0.5, Distributions.StudentSf(1.0, df));
+        Assert.Equal(0.5, Distributions.StudentSf(-1e300, df));
+        Assert.Equal(0.5, Distributions.StudentCdf(1e300, df));
+        Assert.Equal(0.0, Distributions.StudentSf(double.PositiveInfinity, df));
+        Assert.Equal(double.PositiveInfinity, Distributions.StudentIsf(0.4, df));
+        Assert.Equal(double.NegativeInfinity, Distributions.StudentIsf(0.6, df));
+        Assert.Equal(double.PositiveInfinity, 1.0 / Distributions.StudentQuantile(0.5, df));
+    }
+
+    [Theory]
+    [InlineData(2e-20)]
+    [InlineData(1e-19)]
+    [InlineData(1e-17)]
+    [InlineData(1e-15)]
+    public void Above_df_1e_minus_20_the_Student_tail_stays_under_one_half_on_its_leading_term(double df)
+    {
+        // 0.5 - (df/4)(|log x| + 2 log 2) from t = 1, whose next terms are below 1e-22. log B, about -log(df/2), rounded
+        // by 40 ulps of the tail, which read above one half for df 1e-19 and near t = sqrt(df) (#1690's review).
+        for (double t = 1e-15; t < 1e300; t *= 1.3)
+        {
+            double tail = Distributions.StudentSf(t, df);
+            Assert.True(tail <= 0.5, $"t = {t}");
+            if (t >= 1.0)
+            {
+                double logX = Math.Log(df) - (2.0 * Math.Log(t));
+                Assert.Equal(0.5 - (df / 4.0 * (-logX + (2.0 * Math.Log(2.0)))), tail, 2.5e-16);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(2e-20)]
+    [InlineData(1.1319478155211762e-18)]
+    [InlineData(1e-17)]
+    [InlineData(1e-15)]
+    [InlineData(1e-12)]
+    [InlineData(1e-10)]
+    public void Near_one_half_a_tiny_df_quantile_is_a_root_or_past_the_largest_double(double df)
+    {
+        // Newton settled on non-roots such as 1e-25 at p = 0.49999999999999917, df 1.13e-18 (#1690's review).
+        for (int ulps = 1; ulps < 1e7; ulps = (ulps * 5 / 4) + 1)
+        {
+            double p = 0.5 - (ulps * 5.551115123125783e-17);
+            double t = Distributions.StudentIsf(p, df);
+            if (double.IsPositiveInfinity(t))
+            {
+                Assert.True(Distributions.StudentSf(double.MaxValue, df) >= p, $"p = {p}");
+            }
+            else
+            {
+                Assert.Equal(p, Distributions.StudentSf(t, df), 4.5e-16);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("sf", 0.5, 1e-300, 5.0, 3.458988703428305e-298)]
+    [InlineData("sf", 0.5, 1e-12, 5.0, 1.4326616951585553e-11)]
+    [InlineData("sf", 0.5, 1e-08, 5.0, 9.721446295860417e-08)]
+    [InlineData("sf", 10.0, 0.001999, 0.5, 0.006844795660804509)]
+    [InlineData("sf", 10.0, 0.199, 5.0, 0.04003121171781387)]
+    [InlineData("sf", 10.0, 0.201, 5.0, 0.04001490761240753)]
+    [InlineData("sf", 1000000.0, 1e-05, 50.0, 1.0762591106912994e-08)]
+    [InlineData("sf", 0.01, 0.01, 1.0, 0.05156554867142635)]
+    [InlineData("sf", 0.5, 1e-06, 1e-06, 0.5000001732866716)]
+    [InlineData("cdf", 10.0, 5.0, 1e-12, 1.5131335907790648e-11)]
+    [InlineData("cdf", 1.0, 1.0, 1e-19, 2.256770556400338e-18)]
+    [InlineData("cdf", 0.01, 5.0, 0.001999, 0.002033024785919047)]
+    [InlineData("cdf", 10.0, 50.0, 0.199, 0.3375142864476618)]
+    [InlineData("cdf", 10.0, 50.0, 0.201, 0.3396406807734091)]
+    [InlineData("t", 1.0, 1e-12, 0, 0.4999999999927457)]
+    [InlineData("t", 100000.0, 1e-06, 0, 0.4999904431775774)]
+    [InlineData("t", 1e+60, 0.199, 0, 4.3199993936142057e-13)]
+    [InlineData("t", 1e+60, 0.201, 0, 3.271402342968299e-13)]
+    [InlineData("t", 0.001, 0.1, 0, 0.49985190814779157)]
+    public void A_shape_below_one_tenth_holds_scipy(string tail, double x, double first, double second, double expected)
+    {
+        // scipy 1.18.1's f.sf, f.cdf and t.sf, which a 400-digit series matched to 9e-16. Below a shape of 0.1, log B
+        // cancelled and the reflection took 1 - I: 1.7e-8 off at (0.5, 1e-8, 5) on main, zero at 1e-300 (#1690's review).
+        double actual = tail switch
+        {
+            "sf" => Distributions.FisherSnedecorSf(x, first, second),
+            "cdf" => Distributions.FisherSnedecorCdf(x, first, second),
+            _ => Distributions.StudentSf(x, first),
+        };
+        Assert.Equal(expected, actual, 5e-15 * expected);
+    }
+
+    [Theory]
+    [InlineData(5e-321, 0.05, 1e-100)]
+    [InlineData(1e-310, 0.09, 1e-200)]
+    [InlineData(5e-324, 0.09, 1e-50)]
+    [InlineData(1e-300, 0.09, 1e-300)]
+    public void A_tiny_first_shape_past_the_mode_is_one(double a, double b, double y)
+    {
+        // delta = log(b B) - b log y passes 745 there, and e^(-delta) times expm1(delta) was 0 times infinity: NaN,
+        // which the clamp let through (#1690's review). I_x(a, b) is 1 less about a |log y|, which rounds away.
+        Assert.Equal(1.0, Lodestar.Stats.Internal.Beta.RegularizedIncomplete(a, b, 1.0 - y, y));
+    }
+
+    [Theory]
+    [InlineData(1e140, 1e-30, 5e-171, 1e-13)]
+    [InlineData(1e160, 0.5, 1.6035048770711146e-241, 5e-13)]
+    [InlineData(1e7, 1e-6, 4.999881406417969e-14, 1e-13)]
+    [InlineData(3.0, 0.05, 0.007055910272617936, 1e-14)]
+    public void A_Student_density_past_an_overflowing_square_is_the_density(double t, double df, double expected, double relative)
+    {
+        // A 400-digit evaluation. t^2/df overflowed and the density read 0, as scipy's t.pdf does: decision 0007.
+        Assert.Equal(expected, Distributions.StudentPdf(t, df), relative * expected);
+    }
+
+    [Theory]
+    [InlineData(2000.0)]
+    [InlineData(1e6)]
+    [InlineData(1e12)]
+    public void A_large_shape_Student_tail_stays_under_one_half(double df)
+    {
+        // The large-shape expansion's 1 - direct sits outside the clamp ByFraction had alone (#1690's review).
+        for (double t = 1e-300; t < 1.0; t *= 1e10)
+        {
+            Assert.True(Distributions.StudentSf(t, df) <= 0.5, $"t = {t}");
+            Assert.True(Distributions.StudentSf(-t, df) >= 0.5, $"t = -{t}");
+        }
+    }
+
+    [Theory]
+    [InlineData(1e-300, 1e-300, 6.901983122333122e-298, 1.0, 1.0)]
+    [InlineData(1e-300, 0.5, 5.597735947761608e-301, 1.0, 1.2130613194252669e-300)]
+    [InlineData(1e-20, 1.0, 2.1938393439552025e-21, 1.0, 3.678794411714423e-21)]
+    [InlineData(1e-08, 1e-10, 2.2448632753657656e-07, 0.9999997755136725, 99.99997754136724)]
+    [InlineData(0.001, 1.1, 0.00018619450885552083, 0.9998138054911445, 0.0003028134087025569)]
+    [InlineData(0.049, 0.5, 0.02809612816787003, 0.97190387183213, 0.05898939770271939)]
+    [InlineData(0.099, 2.0, 0.005609141080636667, 0.9943908589193633, 0.007538643131636822)]
+    [InlineData(0.001, 50.0, 3.800356221932517e-27, 1.0, 3.8748526761816144e-27)]
+    [InlineData(0.051, 1e-300, 0.9999999999999994, 5.150839529164645e-16, 2.6269281598739684e+283)]
+    public void A_chi_squared_shape_below_one_tenth_holds_a_400_digit_series(double a, double x, double upper, double lower, double gammaDensity)
+    {
+        // Q(a, x), P and the gamma density by a 400-digit series, as chi-squared at df 2a and 2x. Q was 1 - P and the
+        // prefactor took log Gamma(a): ChiSquaredSf(1, 2e-300) read -2e-14 for 6e-301 (#1690's review).
+        Assert.Equal(upper, Distributions.ChiSquaredSf(2.0 * x, 2.0 * a), 1e-14 * upper);
+        Assert.Equal(lower, Distributions.ChiSquaredCdf(2.0 * x, 2.0 * a), 1e-14 * lower);
+        Assert.Equal(gammaDensity / 2.0, Distributions.ChiSquaredPdf(2.0 * x, 2.0 * a), 1e-14 * gammaDensity);
+    }
+
+    [Theory]
+    [InlineData(0.7, 30.0, 1e-8)]
+    [InlineData(0.99, 10000.0, 1e-8)]
+    [InlineData(0.01, 1e-8, 0.19)]
+    [InlineData(0.3, 1e-8, 0.19)]
+    [InlineData(0.01, 1e-8, 0.1)]
+    [InlineData(0.021647385556131934, 2.5440350370286e-06, 123.8433417464437)]
+    [InlineData(0.6549709050497334, 736.2281227264558, 2.3549411408444595e-06)]
+    public void An_F_inverse_tail_at_a_tiny_shape_is_a_root_or_an_end(double p, double numerator, double denominator)
+    {
+        // A step under tolerance that rounded onto the bracket was taken for a root, and near x = 1 the slope makes any
+        // step that small: Isf(0.7, 30, 1e-8) read 1.2e307, whose tail is 0.9999964 (#1690's review).
+        double f = Distributions.FisherSnedecorIsf(p, numerator, denominator);
+        if (double.IsPositiveInfinity(f))
+        {
+            Assert.True(Distributions.FisherSnedecorSf(double.MaxValue, numerator, denominator) >= p);
+        }
+        else if (f == 0.0)
+        {
+            Assert.True(Distributions.FisherSnedecorSf(double.Epsilon, numerator, denominator) <= p);
+        }
+        else
+        {
+            Assert.Equal(p, Distributions.FisherSnedecorSf(f, numerator, denominator), 1e-12);
+        }
+    }
+
+    [Theory]
+    [InlineData(1e-6, 1e-10)]
+    [InlineData(0.3, 1e-6)]
+    public void A_chi_squared_inverse_tail_past_the_smallest_double_is_zero(double p, double df)
+    {
+        // The tail at twice the smallest double, Q(a, epsilon), is already below p, so the root underflows; the upper
+        // solve walked down by eighths until its iterations ran out, at 2e-258 for (1e-6, 1e-10) (#1690's review).
+        Assert.True(Distributions.ChiSquaredSf(2.0 * double.Epsilon, df) < p);
+        Assert.Equal(0.0, Distributions.ChiSquaredIsf(p, df));
+        Assert.Equal(0.0, Distributions.ChiSquaredQuantile(1.0 - p, df));
+    }
+
+    [Theory]
+    [InlineData(1e-320, 1e-8, 1.0, 3.7831639237564217e-06, 0.9999962168360762, 1e-14)]
+    [InlineData(1e-320, 0.5, 2.0, 1.0, 7.071048131556767e-81, 1e-13)]
+    [InlineData(1e300, 3.0, 1e-8, 0.9999964516007191, 3.548399280885026e-06, 1e-14)]
+    [InlineData(5e-324, 2.0, 0.3, 1.0, 5e-324, 1e-14)]
+    [InlineData(3.726465e-318, 0.004192269944532122, 36.34816911177705, 0.7864445782406513, 0.2135554217593487, 1e-14)]
+    [InlineData(1e-310, 0.5, 3.0, 1.0, 2.3117518927483304e-78, 1e-13)]
+    [InlineData(1e300, 7.0, 0.05, 2.9135022061959573e-08, 0.9999999708649779, 1e-14)]
+    public void An_F_tail_past_an_underflowing_split_holds_a_400_digit_series(
+        double f, double numerator, double denominator, double upper, double lower, double relative)
+    {
+        // One half of FisherSplit underflowed to zero and read as the support's end: Sf(1e-320, 1e-8, 1) was 1 (#1690's
+        // review). 7e-81 is e^-184, whose exponent's rounding costs about 184 ulps.
+        Assert.Equal(upper, Distributions.FisherSnedecorSf(f, numerator, denominator), relative * upper);
+        Assert.Equal(lower, Distributions.FisherSnedecorCdf(f, numerator, denominator), relative * lower);
+    }
+
+    [Theory]
+    [InlineData(1e-320, 0.5, 2.0, 1.767781713280062e+239)]
+    [InlineData(1e300, 3.0, 1e-8, 4.999982258003597e-309)]
+    public void An_F_density_past_an_underflowing_split_holds_a_400_digit_series(double f, double numerator, double denominator, double expected)
+    {
+        // The density's y^a read zero there; the second value is subnormal, so held to its own few ulps (#1690's review).
+        Assert.Equal(expected, Distributions.FisherSnedecorPdf(f, numerator, denominator), 1e-12 * expected);
+    }
+
+    [Fact]
+    public void Chi_squared_and_F_refuse_a_df_whose_half_is_not_a_double_by_its_own_name()
+    {
+        // Half of 5e-324 rounds to zero, which the shapes refused as "a", "b" or "x" (#1690's review); the
+        // positivity checks still come first, in main's order.
+        Assert.Equal("df", Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.ChiSquaredSf(1.0, 5e-324)).ParamName);
+        Assert.Equal("df", Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.ChiSquaredPdf(1.0, 5e-324)).ParamName);
+        Assert.Equal("numeratorDf", Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSnedecorSf(1.0, 5e-324, 1.0)).ParamName);
+        Assert.Equal("denominatorDf", Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSnedecorPdf(1.0, 1.0, 5e-324)).ParamName);
+        Assert.Equal("denominatorDf", Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSnedecorQuantile(0.5, 5e-324, -1.0)).ParamName);
+        Assert.Equal(0.0, Distributions.ChiSquaredSf(1.0, 1e-323), 1e-322);
+    }
+
+    [Fact]
+    public void An_F_tail_at_a_df_near_the_largest_double_keeps_its_correction()
+    {
+        // scipy 1.18.1, and main: the closed form for an underflowing half dropped (1 - y)^other, about e^-(other y), which
+        // is not one when the other df is 1e308: Sf read 0.202 and the density 0.399. scipy's f.pdf is NaN there: 0007.
+        Assert.Equal(0.31731050786291415, Distributions.FisherSnedecorSf(1.0, 1.0, 1e308), 1e-14);
+        Assert.Equal(0.6826894921370862, Distributions.FisherSnedecorCdf(1.0, 1.0, 1e308), 1e-14);
+        Assert.Equal(0.6826894921370862, Distributions.FisherSnedecorSf(1.0, 1e308, 1.0), 1e-14);
+        Assert.Equal(0.24197072451913446, Distributions.FisherSnedecorPdf(1.0, 1.0, 1e308), 1e-14);
+    }
+
+    [Theory]
+    [InlineData(1e200)]
+    [InlineData(1e300)]
+    [InlineData(1.7e308)]
+    public void An_F_inverse_tail_at_a_huge_denominator_df_is_the_chi_squared_one(double denominator)
+    {
+        // scipy 1.18.1's f.isf(0.3173, 1, 1e200). Three log-gammas cancelled in the seed, which then sat on the bracket's
+        // end, and the fallback walked down by eighths: +inf on main, 2675 before the fallback moved the exponent.
+        Assert.Equal(1.0000434271174663, Distributions.FisherSnedecorIsf(0.3173, 1.0, denominator), 1e-14);
+        Assert.Equal(1.0000434271174663, Distributions.FisherSnedecorQuantile(0.6827, 1.0, denominator), 1e-14);
+    }
+
+    [Theory]
+    [InlineData(20.0, 4e6, 5.576151949164811e-88)]
+    [InlineData(30.0, 9e6, 1.5071013473771083e-196)]
+    public void A_Student_density_at_a_large_df_keeps_its_digits(double t, double df, double expected)
+    {
+        // scipy 1.18.1's t.pdf. A series and log(1 + r^2), shared with the inversion for a while, lost 5e-11 here.
+        Assert.Equal(expected, Distributions.StudentPdf(t, df), 1e-14 * expected);
+    }
+
+    [Fact]
+    public void An_F_lower_quantile_judges_its_end_on_the_lower_tail()
+    {
+        // Past the smallest f the root is zero, judged against the lower tail p keeps whole rather than 1 - p, where the
+        // check read a rounded one (#1690's review).
+        double atEnd = Distributions.FisherSnedecorCdf(double.Epsilon, 0.1, 5.0);
+        Assert.Equal(0.0, Distributions.FisherSnedecorQuantile(atEnd / 2.0, 0.1, 5.0));
+        Assert.True(Distributions.FisherSnedecorQuantile(atEnd * 4.0, 0.1, 5.0) > 0.0);
+    }
+
+    [Fact]
+    public void Equal_tiny_F_shapes_keep_their_symmetry()
+    {
+        // log(x + s) - log x cancelled at x and s near 1e-300, and 0 times an overflowing slope sent the inversion to the
+        // smallest double: Sf read 0.5000000000000293 and the median 0 for 1 (#1690's review).
+        Assert.Equal(0.5, Distributions.FisherSnedecorSf(1.0, 1e-300, 1e-300));
+        Assert.True(Distributions.FisherSnedecorCdf(double.Epsilon, 1e-310, 1e-310) <= 0.5);
+        Assert.Equal(1.0, Distributions.FisherSnedecorQuantile(0.5, 1e-310, 1e-310), 1e-12);
+        Assert.Equal(1.0, Distributions.FisherSnedecorIsf(0.5, 1e-310, 1e-310), 1e-12);
+    }
+
+    [Fact]
+    public void An_F_density_at_a_subnormal_shape_holds_a_400_digit_series()
+    {
+        // log Gamma's reflection overflowed below 1.75e-308, and log B with it (#1690's review). The origin at a numerator
+        // df of 2 is 1 for every denominator df, which log B had left 5e-14 off.
+        Assert.Equal(4.999999999749985e-11, Distributions.FisherSnedecorPdf(1e-300, 3.0, 1e-310), 1e-12 * 5e-11);
+        Assert.Equal(1.0, Distributions.FisherSnedecorPdf(0.0, 2.0, 1e-310));
+        Assert.Equal(2.5e-311, Distributions.FisherSnedecorPdf(1.0, 1e-310, 1e-310), 1e-9 * 2.5e-311);
+        Assert.Equal(4.2493681901736886e-308, Distributions.FisherSnedecorSf(1e308, 1e-308, 0.2), 1e-12 * 4.25e-308);
+    }
+
+    [Fact]
+    public void An_F_tail_whose_half_underflows_beside_a_huge_df_is_the_chi_squared_limit()
+    {
+        // A 400-digit series. The half underflows while the other df times it is not small, and the first form, dropping
+        // terms of that order, was left to the incomplete beta, which read the zero as the support's end (#1690's review).
+        Assert.Equal(7.978845608028653e-09, Distributions.FisherSnedecorCdf(1e-16, 1.0, 1e308), 1e-14 * 7.98e-9);
+        Assert.Equal(39894228.04014327, Distributions.FisherSnedecorPdf(1e-16, 1.0, 1e308), 1e-14 * 3.99e7);
+        Assert.Equal(7.97884560802864e-08, Distributions.FisherSnedecorCdf(1e-14, 1.0, 1e308), 1e-14 * 7.98e-8);
+        Assert.Equal(7.978845608027324e-07, Distributions.FisherSnedecorCdf(1e-12, 1.0, 1e307), 1e-14 * 7.98e-7);
+        Assert.Equal(1e-16, Distributions.FisherSnedecorQuantile(7.978845608028653e-09, 1.0, 1e308), 1e-13 * 1e-16);
+    }
+
+    [Theory]
+    [InlineData(1.0, 1e-308)]
+    [InlineData(1.0, 1e-310)]
+    [InlineData(1.0, 1e-323)]
+    [InlineData(1e-300, 1e-308)]
+    public void A_chi_squared_lower_tail_at_a_subnormal_shape_is_one(double x, double df)
+    {
+        // P's series began at 1/a, which overflowed below a = 5.6e-309: ChiSquaredCdf read +inf (#1690's review). The
+        // upper tail is about a |log x|, below 1e-305, so the lower one is one to rounding.
+        Assert.Equal(1.0, Distributions.ChiSquaredCdf(x, df));
+    }
+
+    [Fact]
+    public void An_F_tail_on_a_subnormal_half_reads_its_chi_squared_limit_of_one()
+    {
+        // The half's chi-squared limit runs P's series at a = 5e-311, which began at 1/a and overflowed (#1690's review).
+        Assert.Equal(1.0, Distributions.FisherSnedecorCdf(1e300, 1e-310, 1e308));
+        Assert.Equal(1.0, Distributions.FisherSnedecorSf(1e-300, 1e308, 1e-310));
+    }
+
+    [Fact]
+    public void A_zero_standard_error_spans_the_estimate_even_past_every_double()
+    {
+        // Student's quantile at df 0.001 is past the largest double, and infinity times zero was NaN (#1690's review).
+        var result = new TTestResult(1.0, 0.5, 0.001) { Estimate = 2.0 };
+        Assert.Equal((2.0, 2.0), result.ConfidenceInterval());
+    }
+
+    [Theory]
+    [InlineData(5e-324)]
+    [InlineData(1e-310)]
+    [InlineData(1e-20)]
+    public void A_subnormal_df_has_a_Student_density(double df)
+    {
+        // df/2 rounds to zero at 5e-324, and the density threw from a private parameter (#1690's review).
+        double density = Distributions.StudentPdf(0.0, df);
+        Assert.True(density > 0.0 && density < 1e-5);
+        Assert.Equal(0.0, Distributions.StudentPdf(1.0, 5e-324));
+    }
+
+    [Fact]
+    public void From_df_1e20_the_Student_density_is_the_normal_one()
+    {
+        // The tail took the normal law from 1e20 and the density did not: 3.7e-14 apart at df 1e308 (#1690's review).
+        Assert.Equal(Distributions.NormalPdf(1.0), Distributions.StudentPdf(1.0, 1e308));
+        Assert.Equal(Distributions.NormalPdf(1.0), Distributions.StudentPdf(1.0, 1e20));
+    }
+
+    [Theory]
+    [InlineData(3.0)]
+    [InlineData(1e30)]
+    [InlineData(double.PositiveInfinity)]
+    public void The_Student_median_is_positive_zero(double df)
+    {
+        // scipy's t.ppf(0.5, df) and NormalQuantile(0.5) are +0; the quantile's negation made it -0 (#1690's review).
+        Assert.Equal(double.PositiveInfinity, 1.0 / Distributions.StudentQuantile(0.5, df));
+        Assert.Equal(double.PositiveInfinity, 1.0 / Distributions.StudentIsf(0.5, df));
+    }
+
+    [Theory]
+    [InlineData(1e308, 0.1)]
+    [InlineData(1e308, 0.01)]
+    [InlineData(1.5e308, 0.5)]
+    public void A_root_in_the_top_binade_comes_back_finite(double root, double df)
+    {
+        // The density's r = x / sqrt(df) overflowed for df < 1 and the bisection's midpoint with it (#1690's review).
+        double p = Distributions.StudentSf(root, df);
+        Assert.Equal(root, Distributions.StudentIsf(p, df), 1e-12 * root);
+    }
+
+    [Theory]
+    [InlineData(0.4, 1e-19)]
+    [InlineData(0.4, 1e-10)]
+    [InlineData(1e-300, 1e-10)]
+    [InlineData(1e-3, 1e-3)]
+    public void A_Student_quantile_past_the_largest_double_is_infinite(double p, double df)
+    {
+        // The tail at double.MaxValue still exceeds p, so the root lies beyond it: before #1690's review Newton settled
+        // on one finite value for every p at a small df. scipy answers finite values here, roots of no tail: decision 0007.
+        Assert.True(Distributions.StudentSf(double.MaxValue, df) > p);
+        Assert.Equal(double.PositiveInfinity, Distributions.StudentIsf(p, df));
+        Assert.Equal(double.NegativeInfinity, Distributions.StudentQuantile(p, df));
+    }
+
+    [Theory]
+    [InlineData(0.025, 1e16, 1.9599639845400545)]
+    [InlineData(1e-12, 1e16, 7.03448382530114)]
+    [InlineData(1e-12, 1e17, 7.034483825301132)]
+    [InlineData(1e-12, 1e20, 7.034483825301133)]
+    [InlineData(0.4, 1e300, 0.2533471031357998)]
+    public void Student_quantiles_at_a_huge_df_match_scipy(double p, double df, double isf)
+    {
+        // scipy 1.18.1's t.isf. Before #1690 the density's constant, a difference of two log-gammas, lost its
+        // digits here, and Newton's last step carried the error: 7e-9 relative at (0.025, 1e16).
+        Assert.Equal(isf, Distributions.StudentIsf(p, df), 1e-14 * isf);
+        Assert.Equal(-isf, Distributions.StudentQuantile(p, df), 1e-14 * isf);
+    }
+
+    [Theory]
+    [InlineData(1e7, 1e10, 0.0009993167532229563, 0.15865509257696825, false)]
+    [InlineData(1e7, 1e10, 0.001000579769424803, 2.904256303818219e-07, false)]
+    [InlineData(1e7, 1e10, 0.0010068948495245422, 1.5676759713545634e-137, false)]
+    [InlineData(1e10, 1e7, 0.9990000517391309, 0.0013536346733890132, true)]
+    [InlineData(1e10, 1e7, 0.9989978414605503, 8.463138029587699e-24, true)]
+    [InlineData(1e6, 1e7, 0.09099576932658238, 0.15865522345530073, false)]
+    [InlineData(1e5, 1e5, 0.4888196601123127, 7.525193473332948e-24, true)]
+    public void The_incomplete_beta_at_large_shapes_holds_a_sixty_digit_fraction(
+        double a, double b, double x, double smallerTail, bool lowerIsSmaller)
+    {
+        // The continued fraction in 60-digit Decimal; x is on a 2^-40 grid, so 1 - x is exact. The fraction in doubles
+        // drifted to 6e-11 at shapes (1e7, 1e10), where Temme's uniform expansion holds 2e-13 (#1690's review).
+
+        // The upper tail is I_(1-x)(b, a), read with the shapes and points exchanged.
+        (double first, double second, double point) = lowerIsSmaller ? (a, b, x) : (b, a, 1.0 - x);
+        double got = Lodestar.Stats.Internal.Beta.RegularizedIncomplete(first, second, point, 1.0 - point);
+        Assert.Equal(smallerTail, got, 1e-12 * smallerTail);
+    }
+
+    [Theory]
+    [InlineData(1e6)]
+    [InlineData(1e18)]
+    [InlineData(1e155)]
+    [InlineData(1e300)]
+    public void An_F_with_equal_huge_dfs_has_its_median_at_one(double df)
+    {
+        // F and 1/F share a law when the dfs are equal. Past a shape of 1e10 the fraction stopped short of the terms it
+        // needs and read 0.70 at 1e18, and 1e155 read NaN (#1690's review).
+        Assert.Equal(0.5, Distributions.FisherSnedecorSf(1.0, df, df));
+        Assert.Equal(1.0, Distributions.FisherSnedecorQuantile(0.5, df, df), 4e-16);
+    }
+
+    [Theory]
+    [InlineData(0.3, 2e15)]
+    [InlineData(1e-3, 1e15)]
+    [InlineData(0.3, 1e18)]
+    public void An_F_quantile_at_equal_huge_dfs_sits_on_the_normal_limit(double p, double df)
+    {
+        // log F is symmetric with variance 4/df + O(1/df^2). Newton's density, a log x against a log B of 1.4e15, lost 5
+        // nats, and the median at 2e15 read 0.99999938, 14 standard deviations off (#1690's review).
+        double expected = Math.Exp(2.0 * Distributions.NormalQuantile(p) / Math.Sqrt(df));
+        double quantile = Distributions.FisherSnedecorQuantile(p, df, df);
+        Assert.Equal(expected - 1.0, quantile - 1.0, 1e-6 * Math.Abs(expected - 1.0));
+    }
+
+    [Theory]
+    [InlineData(0.3, 2e15)]
+    [InlineData(1e-30, 1e15)]
+    [InlineData(0.3, 1e26)]
+    [InlineData(1e-3, 1e28)]
+    [InlineData(1e-3, 1e30)]
+    public void A_chi_squared_quantile_at_a_huge_df_sits_on_the_normal_limit(double p, double df)
+    {
+        // k + z sqrt(2k) to O(1). Newton's slope cancelled log Gamma(a) against a log x: (0.3, 2e15) was 1.2e-10 off on main.
+        // With that slope exact and a step tolerance of 1e-13, (1e-3, 1e30) read 5.9 deviations for 3.1 (#1690's review).
+        double z = Distributions.NormalQuantile(p);
+        double sd = Math.Sqrt(2.0 * df);
+        double quantile = Distributions.ChiSquaredQuantile(p, df);
+        double ulp = Math.BitIncrement(df) - df;
+        Assert.Equal(z, (quantile - df) / sd, (1e-6 * Math.Abs(z)) + (2.0 * ulp / sd) + (4.0 * z * z / sd));
+    }
+
+    [Fact]
+    public void The_large_shape_expansion_keeps_a_tiny_second_shape_s_tail()
+    {
+        // I_x(a, b) = -b (log y + psi(a) + gamma) to O(b) and O(a y), in 50-digit Decimal. P(b, a y) was 1 - 9e-50 here, and
+        // the expansion's 1 - P read 0 (#1690's review).
+        const double a = 4.0767483345523385e106;
+        const double b = 4.228949954003074e-52;
+        const double y = 1e-200;
+        Assert.Equal(9.069426513367587e-50, Lodestar.Stats.Internal.Beta.RegularizedIncomplete(a, b, 1.0 - y, y), 1e-14 * 9.07e-50);
+    }
+
+    [Fact]
+    public void Quantiles_at_a_tiny_df_hold_the_chi_squared_limit()
+    {
+        // Q(s, z) = 1 - z^s / Gamma(1 + s), so z = exp(-p/s - gamma) in Decimal, and F's lower tail is Q at z = d2/2f. F's
+        // limit underflowed to f = 0, and the gamma residual, logs near -469 apart, rounded to zero (#1690's review).
+
+        // s = d2/2, the chi-squared variable 2z, and the F root d2/2z.
+        const double dfn = 9.98383125204385e188;
+        const double dfd = 4.564566025500491e-207;
+        const double p = 1.3162053657560206e-204;
+        Assert.Equal(3.8930866907117e-251, Distributions.ChiSquaredIsf(p, dfd), 1e-13 * 3.9e-251);
+        Assert.Equal(1.1724799338249612e44, Distributions.FisherSnedecorQuantile(p, dfn, dfd), 1e-13 * 1.17e44);
+    }
+
+    [Fact]
+    public void An_F_tail_at_huge_dfs_falls_as_f_rises()
+    {
+        // The sum a + b rounds by up to 4e16 here, and that rounding times 1 - p - q left the exponent positive near the
+        // mean: the tail read 0 at f = 1 + 2^-52 and 0.25 six ulps later (#1690's review).
+        const double dfn = 1.0283281608782226e30;
+        const double dfd = 6.620009498500643e32;
+        double f = 1.0;
+        double previous = 1.0;
+        for (int i = 0; i < 24; i++)
+        {
+            double sf = Distributions.FisherSnedecorSf(f, dfn, dfd);
+            Assert.True(sf <= previous, $"Sf rose at f = {f:R}");
+            Assert.Equal(1.0, sf + Distributions.FisherSnedecorCdf(f, dfn, dfd), 1e-15);
+            previous = sf;
+            f = Math.BitIncrement(f);
+        }
+    }
+
+    [Theory]
+    [InlineData(1.1277557074706777e-143, 6.038970661339348e183, 1.4321314062996377e181)]
+    [InlineData(0.35348411060566276, 1.7511286951227086e105, 1.2038327676983933e105)]
+    [InlineData(0.5681692271345151, 3.5631496432313466e108, 9.51108179576824e106)]
+    public void An_F_quantile_narrower_than_an_ulp_brackets_its_probability(double p, double dfn, double dfd)
+    {
+        // log F is narrower than an ulp, so its tail steps from 0 to 1 within a few. One minus the beta's root lost 114 ulps
+        // of f on a side of 0.002, and the tail at the quantile read 1 for 1e-143 (#1690's review).
+        double quantile = Distributions.FisherSnedecorQuantile(p, dfn, dfd);
+        double below = quantile;
+        double above = quantile;
+        for (int i = 0; i < 8; i++)
+        {
+            below = Math.BitDecrement(below);
+            above = Math.BitIncrement(above);
+        }
+        Assert.InRange(p, Distributions.FisherSnedecorCdf(below, dfn, dfd), Distributions.FisherSnedecorCdf(above, dfn, dfd));
+    }
+
+    [Fact]
+    public void A_chi_squared_inverse_tail_at_a_tiny_df_grows_to_its_root()
+    {
+        // Q(a, z) = a E1(z) to O(a), a = df/2, solved for z in 60-digit Decimal. From the seed a = 2.6e-228, growth by four
+        // per step stopped at 1.35e-107 after all 200 iterations, a tail of 6e-226 for 1.6e-284 (#1690's review).
+        Assert.Equal(249.2172786318603, Distributions.ChiSquaredIsf(1.5953428163057874e-284, 5.24470273781178e-228), 1e-12 * 249.2);
+    }
+
+    [Theory]
+    [InlineData(1e-300)]
+    [InlineData(1e-17)]
+    [InlineData(1e-10)]
+    public void A_tail_at_a_tiny_positive_argument_stays_at_or_below_one_half(double t)
+    {
+        // erfc's interpolant read 1 + 1.6e-15 near zero, so NormalSf(1e-17) and StudentSf(1e-17, 1e21), the normal law
+        // from df 1e20, read 0.5000000000000008, and Welch's p-value passed one (#1690's review). 0.5 - phi(0) t below.
+        double expected = 0.5 - (t * 0.3989422804014327);
+        Assert.Equal(expected, Distributions.NormalSf(t), 1e-16);
+        Assert.Equal(expected, Distributions.StudentSf(t, 1e21), 1e-16);
+        Assert.True(Distributions.StudentSf(t, 1e21) <= 0.5);
+    }
+
+    [Theory]
+    [InlineData(1e-200, 1e180, 294.0, false)]
+    [InlineData(1e-170, 1e160, 1.0, false)]
+    [InlineData(1.479e176, 5781.0, 4.21e179, true)]
+    public void An_F_tail_with_one_df_past_1e154_reads_zero_rather_than_nan(double f, double dfn, double dfd, bool upper)
+    {
+        // Each tail is under 1e-300 here: the other df's chi-squared would have to pass 1e170. The fraction's (a + m)(a + b + m)
+        // overflowed into inf / inf and the tail read NaN, on main too (#1690's review).
+        double tail = upper ? Distributions.FisherSnedecorSf(f, dfn, dfd) : Distributions.FisherSnedecorCdf(f, dfn, dfd);
+        Assert.Equal(0.0, tail);
+    }
+
+    [Theory]
+    [InlineData(0.95, 2e10, 2e10, true)]
+    [InlineData(0.4, 2e12, 2e12, false)]
+    [InlineData(0.05, 2e12, 2e12, false)]
+    [InlineData(0.95, 1.99999e10, 2e10, true)]
+    public void An_F_quantile_at_near_equal_huge_dfs_holds_its_tail(double p, double dfn, double dfd, bool lower)
+    {
+        // Solving the side whose mean is under one half, capped at one half, clamped every root past it: the quantile at
+        // (0.95, 2e10, 2e10) read 1, whose tail is 0.5, for scipy's 1.0000232620136307 (#1690's review).
+        double quantile = lower ? Distributions.FisherSnedecorQuantile(p, dfn, dfd) : Distributions.FisherSnedecorIsf(p, dfn, dfd);
+        double tail = lower ? Distributions.FisherSnedecorCdf(quantile, dfn, dfd) : Distributions.FisherSnedecorSf(quantile, dfn, dfd);
+        Assert.Equal(p, tail, 1e-6 * p);
+    }
+
+    [Fact]
+    public void NormalSf_falls_across_its_series_switch()
+    {
+        // erfc switches from erf's series to its interpolant at 0.04, z = 0.04 sqrt 2; at 0.01 the interpolant sat 4 ulps
+        // above the series and the tail rose there (#1690's review).
+        double z = 0.04 * Math.Sqrt(2.0);
+        for (int i = 0; i < 40; i++)
+        {
+            z = Math.BitDecrement(z);
+        }
+        double previous = Distributions.NormalSf(z);
+        for (int i = 0; i < 80; i++)
+        {
+            z = Math.BitIncrement(z);
+            double sf = Distributions.NormalSf(z);
+            Assert.True(sf <= previous, $"NormalSf rose at z = {z:R}");
+            previous = sf;
+        }
+    }
+
+    [Theory]
+    [InlineData(7.592162500738105e-132, 1.8773808009983036e306, 5.027725952387203e232, 1.0)]
+    [InlineData(1.4845305106783903e282, 6.217165131235991e135, 2.1546100837393183e306, 0.0)]
+    public void An_F_tail_far_from_a_huge_law_reads_its_limit(double f, double dfn, double dfd, double sf)
+    {
+        // The uniform expansion's 2 exponent / s overflowed past an exponent of 9e307, and the tail read NaN (#1690's review).
+        Assert.Equal(sf, Distributions.FisherSnedecorSf(f, dfn, dfd));
+        Assert.Equal(1.0 - sf, Distributions.FisherSnedecorCdf(f, dfn, dfd));
+    }
+
+    [Theory]
+    [InlineData(0.14382288099444607, 4.700992327819855e118, 4.540995160565704e282)]
+    [InlineData(0.9702011686610995, 2.9965212002435175e235, 3.0339052669960465e139)]
+    [InlineData(8.246471346778289e-291, 8.9e29, 3.37e27)]
+    public void An_F_quantile_at_a_narrow_law_sits_where_its_own_tail_crosses(double p, double dfn, double dfd)
+    {
+        // f = d2 y / (d1 (1 - y)) rounds three times, up to four ulps, which a law narrower than 1e-12 turns into its
+        // tail: the first read 0.9999999999999998, whose lower tail is 0 for 0.144 (#1690's review).
+        double quantile = Distributions.FisherSnedecorQuantile(p, dfn, dfd);
+        Assert.True(Distributions.FisherSnedecorCdf(quantile, dfn, dfd) >= p * (1 - 1e-9), "the tail at the quantile is short of p");
+        Assert.True(Distributions.FisherSnedecorCdf(Math.BitDecrement(quantile), dfn, dfd) <= p * (1 + 1e-9), "the tail an ulp below already reaches p");
+    }
+
+    [Theory]
+    [InlineData(1e100, 1e60, 0.5)]
+    [InlineData(1e60, 1e100, 0.5)]
+    [InlineData(1e40, 1e20, 0.5000000000188063)]
+    public void An_F_tail_at_one_with_dfs_past_1e30_holds_its_centre(double dfn, double dfd, double sf)
+    {
+        // F's split rounds x through the same sum as the mean; measured against the exact mean, that rounding sat thousands
+        // of standard deviations off and the tail read 0 at (1e100, 1e60) (#1690's review). The last is chi2.cdf(1e20, 1e20).
+        Assert.Equal(sf, Distributions.FisherSnedecorSf(1.0, dfn, dfd), 1e-12);
+        double deviation = Math.Sqrt((2.0 / dfn) + (2.0 / dfd));
+        double density = 1.0 / (deviation * Math.Sqrt(2.0 * Math.PI));
+        Assert.Equal(density, Distributions.FisherSnedecorPdf(1.0, dfn, dfd), 1e-9 * density);
+    }
+
+    [Theory]
+    [InlineData(1.466863520350374e-55, 3.3163652308324555e35, true)]
+    [InlineData(4.2089e-20, 6.557955543789673e33, true)]
+    [InlineData(1.4227e-158, 3.7505959269482657e36, false)]
+    public void A_chi_squared_quantile_narrower_than_an_ulp_sits_at_its_crossing(double p, double df, bool upper)
+    {
+        // A step tolerance floored at two ulps accepted unevaluated steps four ulps past the crossing (#1690's review).
+        double quantile = upper ? Distributions.ChiSquaredIsf(p, df) : Distributions.ChiSquaredQuantile(p, df);
+        double below = Math.BitDecrement(quantile);
+        if (upper)
+        {
+            Assert.True(Distributions.ChiSquaredSf(quantile, df) <= p * (1 + 1e-9) && Distributions.ChiSquaredSf(below, df) >= p * (1 - 1e-9));
+        }
+        else
+        {
+            Assert.True(Distributions.ChiSquaredCdf(quantile, df) >= p * (1 - 1e-9) && Distributions.ChiSquaredCdf(below, df) <= p * (1 + 1e-9));
+        }
+    }
+
+    [Theory]
+    [InlineData(1e308)]
+    [InlineData(double.MaxValue)]
+    public void An_F_law_at_dfs_whose_sum_overflows_is_still_a_step_at_one(double df)
+    {
+        // d1 + d2 overflowed in the deviation from the mean, which read 0, and every tail read one half (#1690's review).
+        Assert.Equal(1.0, Distributions.FisherSnedecorSf(0.5, df, df));
+        Assert.Equal(0.0, Distributions.FisherSnedecorSf(2.0, df, df));
+        Assert.Equal(0.0, Distributions.FisherSnedecorCdf(0.5, df, df));
+        Assert.Equal(1.0, Distributions.FisherSnedecorCdf(2.0, df, df));
+        Assert.Equal(1.0, Distributions.FisherSnedecorQuantile(0.3, df, df), 4e-16);
+    }
+
+    [Theory]
+    [InlineData(1.1543e-271, 1.44e24, 5.39e23)]
+    [InlineData(2.04e-239, 1.9e17, 3.55e23)]
+    [InlineData(2.0920843844945383e-55, 1515294954052.0522, 9.552327752561384e204)]
+    public void An_F_inverse_tail_at_a_law_of_width_1e_9_sits_where_its_own_tail_crosses(double p, double dfn, double dfd)
+    {
+        // The walk to F's own crossing began at a log-F width of 1e-12, and the first read a tail 0.6% past p (#1690's review).
+        double quantile = Distributions.FisherSnedecorIsf(p, dfn, dfd);
+        Assert.True(Distributions.FisherSnedecorSf(quantile, dfn, dfd) <= p * (1 + 1e-9), "the tail at the quantile is past p");
+        Assert.True(Distributions.FisherSnedecorSf(Math.BitDecrement(quantile), dfn, dfd) >= p * (1 - 1e-9), "an ulp below already holds p");
+    }
+
+    [Fact]
+    public void The_uniform_expansion_answers_nan_for_a_nan_complement()
+    {
+        // Math.Sign threw on the NaN deviation a NaN y left, where the fraction answered NaN (#1690's review).
+        Assert.True(double.IsNaN(Lodestar.Stats.Internal.Beta.RegularizedIncomplete(2e5, 2e5, 0.7, double.NaN)));
+    }
+
+    [Theory]
+    [InlineData(1e60, 0.05)]
+    [InlineData(1e80, 0.15)]
+    public void A_Student_far_tail_below_df_0_2_round_trips_through_its_inverse(double t, double df)
+    {
+        // The far tail took log(a B) by the ten-step increment, the inversion's cache by three log-gammas, so the quantile
+        // solved a tail ulps from the one StudentSf answers (#1690's review).
+        double p = Distributions.StudentSf(t, df);
+        Assert.Equal(p, Distributions.StudentSf(Distributions.StudentIsf(p, df), df), 1e-14 * p);
+    }
+
+    [Theory]
+    [InlineData(0.3, 0.1, 1.0)]
+    [InlineData(1e-3, 0.05, 2.0)]
+    public void An_F_quantile_with_a_tiny_numerator_df_round_trips_through_its_tail(double p, double dfn, double dfd)
+    {
+        // ShapeLogs cached log(a B) in one form and the forward tail took another, ulps apart (#1690's review).
+        Assert.Equal(p, Distributions.FisherSnedecorCdf(Distributions.FisherSnedecorQuantile(p, dfn, dfd), dfn, dfd), 1e-13 * p);
+    }
+
+    [Theory]
+    [InlineData(1.1e-20)]
+    [InlineData(1e-18)]
+    [InlineData(1e-14)]
+    public void Student_s_tail_at_a_tiny_df_falls_with_t(double df)
+    {
+        // The general path's last ulp sat on either side of one half: at df 1.1e-20 the tail read 0.49999999999999994 at
+        // t = 2e-8 and 0.5 at 6e-8 (#1690's review). Below df 1e-12 it is 1/2 - (df/2) asinh(t / sqrt df).
+        double previous = 0.5;
+        for (double t = 1e-12; t < 1e300; t *= 1.37)
+        {
+            double sf = Distributions.StudentSf(t, df);
+            Assert.True(sf <= previous, $"StudentSf rose at t = {t:R}");
+            double z = t / Math.Sqrt(df);
+            double asinh = z > 1e150 ? Math.Log(2.0) + Math.Log(t) - (0.5 * Math.Log(df)) : Math.Asinh(z);
+            Assert.Equal(0.5 - (0.5 * df * asinh), sf, 1e-16);
+            previous = sf;
+        }
+    }
+
+    [Fact]
+    public void A_first_order_Student_root_near_1e302_is_finite()
+    {
+        // sinh(w) overflowed before sqrt(df) scaled it, past w = 709.8, and the root read +inf (#1690's review). An ulp of p
+        // near one half is 1e-4 of t here, so the root is judged by its tail.
+        const double df = 1e-12;
+        double p = Distributions.StudentSf(1.117e302, df);
+        double root = Distributions.StudentIsf(p, df);
+        Assert.True(double.IsFinite(root));
+        Assert.Equal(p, Distributions.StudentSf(root, df), 1.2e-16);
+    }
+
+    [Theory]
+    [InlineData(30.0, 4.906713927148187e-198)]
+    [InlineData(37.0, 5.72557122252457682e-300)]
+    public void The_normal_far_tail_holds_its_exponent(double z, double sf)
+    {
+        // Q(z) to 20 digits. Through z / sqrt 2 the exponent took that quotient's rounding twice, 1.1e-13 of Q(37), and
+        // Student's tail jumped by that much crossing df 1e20, where it becomes this one (#1690's review).
+        Assert.Equal(sf, Distributions.NormalSf(z), 2e-15 * sf);
+        Assert.Equal(sf, Distributions.StudentSf(z, 1e20), 2e-15 * sf);
+    }
+
+    [Fact]
+    public void Student_s_density_is_continuous_where_it_becomes_the_normal_one()
+    {
+        // Two half log h of 23 each cancelled in the constant, and the density stepped 1.4e-15 crossing df 1e20 (#1690's review).
+        double normal = 1.0 / Math.Sqrt(2.0 * Math.PI);
+        Assert.Equal(normal, Distributions.StudentPdf(0.0, 9.999999999999998e19), 2e-16);
+        Assert.Equal(normal, Distributions.StudentPdf(0.0, 1e20), 2e-16);
     }
 }

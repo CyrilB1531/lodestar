@@ -10,7 +10,7 @@ public static double StudentQuantile(double p, double df)
 
 **Parameters** — `p` is a probability in `[0, 1]`; `0` answers `−∞` and `1` answers `+∞`. `df` is the degrees of freedom, which must be positive; `+∞` is the standard normal law, as scipy's is.
 
-**Returns** — `scipy.stats.t.ppf(p, df)`.
+**Returns** — `scipy.stats.t.ppf(p, df)`, except where the root lies past the largest double: `±∞` there, as [`StudentIsf`](distributions-studentisf.md) says (#1690).
 
 **Exceptions** — `ArgumentOutOfRangeException` when `p` is outside `[0, 1]`, or when `df` is not
 positive. `NaN` is refused on both.

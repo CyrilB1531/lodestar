@@ -17,6 +17,18 @@ internal static class GammaQuantile
     // A step in log x is a relative move; 1e-13 leaves far more than the 1e-9 the corpus asks.
     private const double StepTolerance = 1e-13;
 
+    // The midpoint's anchor while the lower bound is zero, as a fraction of the upper: StepRule has why.
+    private const double RelativeFloor = 1e-8;
+
+    // Past a = 1e10 the step is held to this fraction of the law's relative width, 1/sqrt(a): with the Stirling slope and a
+    // fixed 1e-13, ChiSquaredQuantile(1e-3, 1e30) read 5.9 standard deviations below the mean for 3.1 (#1690's review).
+    private const double WidthTolerance = 1e-8;
+    private const double WidthShape = 1e10;
+
+    // From here the slope's log-gamma is Stirling's: a log x - x - log Gamma(a) cancels, a nat at a = 1e15 (#1690's
+    // review); below, that rounding is under 1e-9 of a nat and the plain form saves the series.
+    private const double StirlingSlopeShape = 1e5;
+
     // log(double.Epsilon): a root below it is no double, and zero says so.
     private const double LogSmallestDenormal = -744.44;
 
@@ -56,6 +68,13 @@ internal static class GammaQuantile
 
     private static double Solve(double target, double a, bool upper)
     {
+        // The upper tail at the smallest double already under the target puts the root below every double, as Seed
+        // finds for the lower tail (#1690's review). Past Gamma.SmallShape that tail is within e^-74 of one.
+        if (upper && a < Gamma.SmallShape && Gamma.RegularizedQ(a, double.Epsilon) < target)
+        {
+            return 0.0;
+        }
+
         var problem = new Problem(a, target, upper);
         double x = Seed(problem);
 
@@ -85,10 +104,10 @@ internal static class GammaQuantile
                 high = x;
             }
 
-            double next = Advance(x, value, problem, low, high, out double logStep);
-            if (TryFinish(x, next, logStep, low, high, out double settled))
+            double logStep = NewtonLogStep(x, value, problem, out double logResidual);
+            if (TailInversion.Finish(x, logStep, logResidual, low, high, problem.Rule, out double next))
             {
-                return settled;
+                return next;
             }
 
             x = next;
@@ -97,49 +116,20 @@ internal static class GammaQuantile
         return x;
     }
 
-    /// <summary>One Newton step on <c>log T</c> against <c>log x</c>, or the bracket's fallback.</summary>
+    /// <summary>The Newton step on <c>log T</c> against <c>log x</c>, with the log residual it divides.</summary>
     /// <remarks>
     /// <c>d log P / d log x = x f(x) / P</c> with <c>f</c> the gamma density, and the negative of
     /// the same over <c>Q</c> for the upper tail; <c>log(x f(x)) = a log x − x − log Γ(a)</c>.
     /// </remarks>
-    private static double Advance(
-        double x, double value, in Problem problem, double low, double high, out double logStep)
+    private static double NewtonLogStep(double x, double value, in Problem problem, out double logResidual)
     {
-        double logXDensity = (problem.A * Math.Log(x)) - x - problem.LogGammaA;
-        double slope = Math.Exp(logXDensity - Math.Log(value)) * (problem.Upper ? -1.0 : 1.0);
-        logStep = (problem.LogTarget - Math.Log(value)) / slope;
-        double next = x * Math.Exp(logStep);
-
-        if (next > low && next < high && !double.IsNaN(next) && !double.IsInfinity(logStep))
-        {
-            return next;
-        }
-
-        logStep = double.NaN;
-        return Fallback(x, low, high);
-    }
-
-    /// <summary>Says whether the bracket has nothing left to give, and what to answer if so.</summary>
-    private static bool TryFinish(
-        double x, double next, double logStep, double low, double high, out double settled)
-    {
-        settled = x;
-
-        // S1244: the bracket's own fixed point, where the fallback stops moving on a bound.
-#pragma warning disable S1244
-        if (next == low || next == high)
-        {
-            return true;
-        }
-#pragma warning restore S1244
-
-        if (Math.Abs(logStep) <= StepTolerance)
-        {
-            settled = next;
-            return true;
-        }
-
-        return false;
+        double logXDensity = problem.A >= StirlingSlopeShape
+            ? Gamma.LogStirlingPrefactor(problem.A, x)
+            : (problem.A * Math.Log(x)) - x - problem.LogGammaA;
+        double logValue = Math.Log(value);
+        double inverseSlope = 1.0 / (Math.Exp(logXDensity - logValue) * (problem.Upper ? -1.0 : 1.0));
+        logResidual = TailInversion.LogResidual(problem.Target, problem.LogTarget, value, logValue, inverseSlope);
+        return TailInversion.NewtonStep(logResidual, inverseSlope);
     }
 
     /// <summary>A first guess: the small-x leading term in the lower tail, Wilson-Hilferty otherwise.</summary>
@@ -152,7 +142,9 @@ internal static class GammaQuantile
     private static double Seed(in Problem problem)
     {
         double a = problem.A;
-        if (!problem.Upper)
+        // The leading term drops e^-x, so from StirlingSlopeShape it seeds near a / e, where the tail underflows, and growth
+        // squared past the root: ChiSquaredQuantile(0.3, 1e100) took 30 evaluations (#1690's review). Wilson-Hilferty holds there.
+        if (!problem.Upper && a < StirlingSlopeShape)
         {
             double logSmall = (problem.LogTarget + Gamma.LogGamma(a + 1.0)) / a;
             if (logSmall < LogSmallestDenormal)
@@ -175,26 +167,6 @@ internal static class GammaQuantile
         return wilsonHilferty > 0.0 && !double.IsInfinity(wilsonHilferty) ? wilsonHilferty : a;
     }
 
-    // Growth while no evaluation has bounded the root from above; then geometric while the bounds
-    // are orders apart, and arithmetic once they are close.
-    private static double Fallback(double x, double low, double high)
-    {
-        if (double.IsPositiveInfinity(high))
-        {
-            return Math.Max(x, low) * 4.0;
-        }
-
-        // S1244: zero is the initial lower bound exactly, before any evaluation replaced it.
-#pragma warning disable S1244
-        if (low == 0.0)
-#pragma warning restore S1244
-        {
-            return high * 0.125;
-        }
-
-        return high > 4.0 * low ? Math.Sqrt(low) * Math.Sqrt(high) : 0.5 * (low + high);
-    }
-
     /// <summary>The shape, the tail solved and the target, carried together through the step.</summary>
     private readonly struct Problem
     {
@@ -204,7 +176,11 @@ internal static class GammaQuantile
             Target = target;
             LogTarget = Math.Log(target);
             Upper = upper;
-            LogGammaA = Gamma.LogGamma(a);
+            // Read only below StirlingSlopeShape, by the slope; past it the slope is Stirling's.
+            LogGammaA = a < StirlingSlopeShape ? Gamma.LogGamma(a) : double.NaN;
+            // WidthTolerance / sqrt(a) passes StepTolerance at a = 1e10, and below it the root is not taken.
+            // The midpoint anchors at the smallest double while the lower bound is zero.
+            Rule = new StepRule(a > WidthShape ? WidthTolerance / Math.Sqrt(a) : StepTolerance, double.Epsilon, double.PositiveInfinity, RelativeFloor);
         }
 
         internal double A { get; }
@@ -216,5 +192,8 @@ internal static class GammaQuantile
         internal bool Upper { get; }
 
         internal double LogGammaA { get; }
+
+        /// <summary>The step in <c>log x</c> below which the root is settled, and the midpoint's anchor.</summary>
+        internal StepRule Rule { get; }
     }
 }

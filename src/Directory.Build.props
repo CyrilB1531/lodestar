@@ -129,6 +129,13 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shared/NearZero.cs" Link="Internal/NearZero.cs" />
   </ItemGroup>
 
+  <!-- A product's exact rounding, a fused multiply-add on net10.0 and Dekker's split product on
+       netstandard2.0: Lodestar.Stats' incomplete beta takes its shape exponent with it, and its normal
+       tail the exact exponent past z = 6 (#1690). -->
+  <ItemGroup Condition="'$(LodestarIncludesExactProduct)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/ExactProduct.cs" Link="Internal/ExactProduct.cs" />
+  </ItemGroup>
+
   <!-- Persistence plumbing, compiled only into the libraries that ship artifacts
        (Lodestar.Text, Lodestar.Embeddings). It needs System.Text.Json, which those
        two opt into individually — Lodestar.Fuzzy stays dependency-free.
