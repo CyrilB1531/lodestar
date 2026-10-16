@@ -7463,3 +7463,39 @@ date,commit,cpu,class,parameters,method,ratio
 2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerIncumbentBenchmarks,Documents=200,MlNet,14.95
 2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerIncumbentBenchmarks,Documents=1000,Lodestar,1.0
 2026-10-15,fd2e93693d2ef2d4f90ea338ac7f08615c02f6c5,AMD EPYC 9V74,VectorizerIncumbentBenchmarks,Documents=1000,MlNet,22.9
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,BitParallelEditDistanceBenchmarks,"Texts=10000, TextLength=32, Device=CPUAc(...) GPU) [26]",CpuBaseline,1.0
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,BitParallelEditDistanceBenchmarks,"Texts=10000, TextLength=32, Device=CPUAc(...) GPU) [26]",GpuResident,1.94
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,BitParallelEditDistanceBenchmarks,"Texts=10000, TextLength=32, Device=CPUAc(...) GPU) [26]",GpuFromHost,2.15
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,BitParallelEditDistanceBenchmarks,"Texts=10000, TextLength=256, Device=CPUAc(...) GPU) [26]",CpuBaseline,1.0
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,BitParallelEditDistanceBenchmarks,"Texts=10000, TextLength=256, Device=CPUAc(...) GPU) [26]",GpuResident,0.77
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,BitParallelEditDistanceBenchmarks,"Texts=10000, TextLength=256, Device=CPUAc(...) GPU) [26]",GpuFromHost,0.95
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,BitParallelEditDistanceBenchmarks,"Texts=200000, TextLength=32, Device=CPUAc(...) GPU) [26]",CpuBaseline,1.0
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,BitParallelEditDistanceBenchmarks,"Texts=200000, TextLength=32, Device=CPUAc(...) GPU) [26]",GpuResident,0.83
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,BitParallelEditDistanceBenchmarks,"Texts=200000, TextLength=32, Device=CPUAc(...) GPU) [26]",GpuFromHost,1.18
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,BitParallelEditDistanceBenchmarks,"Texts=200000, TextLength=256, Device=CPUAc(...) GPU) [26]",CpuBaseline,1.0
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,BitParallelEditDistanceBenchmarks,"Texts=200000, TextLength=256, Device=CPUAc(...) GPU) [26]",GpuResident,0.58
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,BitParallelEditDistanceBenchmarks,"Texts=200000, TextLength=256, Device=CPUAc(...) GPU) [26]",GpuFromHost,0.81
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,ChainedProductBenchmarks,"Rows=2000, Width=32, Device=CPUAc(...) GPU) [26]",RoundTripped,1.0
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,ChainedProductBenchmarks,"Rows=2000, Width=32, Device=CPUAc(...) GPU) [26]",Chained,0.974
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,ChainedProductBenchmarks,"Rows=2000, Width=32, Device=CPUAc(...) GPU) [26]",CpuBaseline,0.001
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,ChainedProductBenchmarks,"Rows=2000, Width=128, Device=CPUAc(...) GPU) [26]",RoundTripped,1.0
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,ChainedProductBenchmarks,"Rows=2000, Width=128, Device=CPUAc(...) GPU) [26]",Chained,1.016
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,ChainedProductBenchmarks,"Rows=2000, Width=128, Device=CPUAc(...) GPU) [26]",CpuBaseline,0.001
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,ChainedProductBenchmarks,"Rows=20000, Width=32, Device=CPUAc(...) GPU) [26]",RoundTripped,1.0
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,ChainedProductBenchmarks,"Rows=20000, Width=32, Device=CPUAc(...) GPU) [26]",Chained,0.991
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,ChainedProductBenchmarks,"Rows=20000, Width=32, Device=CPUAc(...) GPU) [26]",CpuBaseline,0.001
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,ChainedProductBenchmarks,"Rows=20000, Width=128, Device=CPUAc(...) GPU) [26]",RoundTripped,1.0
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,ChainedProductBenchmarks,"Rows=20000, Width=128, Device=CPUAc(...) GPU) [26]",Chained,1.005
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,ChainedProductBenchmarks,"Rows=20000, Width=128, Device=CPUAc(...) GPU) [26]",CpuBaseline,0.001
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,TiledSparseDenseProductBenchmarks,"Documents=5000, Width=64, Device=CPUAc(...) GPU) [26]",CpuBaseline,1.0
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,TiledSparseDenseProductBenchmarks,"Documents=5000, Width=64, Device=CPUAc(...) GPU) [26]",GpuResident,1675.93
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,TiledSparseDenseProductBenchmarks,"Documents=5000, Width=64, Device=CPUAc(...) GPU) [26]",GpuFromHost,1601.47
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,TiledSparseDenseProductBenchmarks,"Documents=5000, Width=256, Device=CPUAc(...) GPU) [26]",CpuBaseline,1.0
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,TiledSparseDenseProductBenchmarks,"Documents=5000, Width=256, Device=CPUAc(...) GPU) [26]",GpuResident,1948.06
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,TiledSparseDenseProductBenchmarks,"Documents=5000, Width=256, Device=CPUAc(...) GPU) [26]",GpuFromHost,1936.26
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,TiledSparseDenseProductBenchmarks,"Documents=50000, Width=64, Device=CPUAc(...) GPU) [26]",CpuBaseline,1.0
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,TiledSparseDenseProductBenchmarks,"Documents=50000, Width=64, Device=CPUAc(...) GPU) [26]",GpuResident,1593.68
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,TiledSparseDenseProductBenchmarks,"Documents=50000, Width=64, Device=CPUAc(...) GPU) [26]",GpuFromHost,1599.3
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,TiledSparseDenseProductBenchmarks,"Documents=50000, Width=256, Device=CPUAc(...) GPU) [26]",CpuBaseline,1.0
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,TiledSparseDenseProductBenchmarks,"Documents=50000, Width=256, Device=CPUAc(...) GPU) [26]",GpuResident,1836.01
+2026-10-16,724c791262e7139428ab02fd4e70a6e05305bac7,AMD EPYC 7763,TiledSparseDenseProductBenchmarks,"Documents=50000, Width=256, Device=CPUAc(...) GPU) [26]",GpuFromHost,1805.33
