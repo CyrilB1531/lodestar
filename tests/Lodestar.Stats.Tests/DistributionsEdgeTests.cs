@@ -231,11 +231,11 @@ public sealed class DistributionsEdgeTests
     {
         Assert.Equal(1.0, Distributions.FisherSnedecorCdf(double.PositiveInfinity, 2.0, 20.0));
         Assert.Equal(0.0, Distributions.FisherSnedecorSf(double.PositiveInfinity, 2.0, 20.0));
-        // At +∞ scipy's pdf is zero up to two degrees of freedom (the numerator's for F) and NaN past them (#1217).
+        // At +∞ the densities' limit is zero at every df; scipy's NaN past two is its formula forming ∞/∞ (decision 0010).
         Assert.Equal(0.0, Distributions.FisherSnedecorPdf(double.PositiveInfinity, 2.0, 20.0));
-        Assert.True(double.IsNaN(Distributions.FisherSnedecorPdf(double.PositiveInfinity, 3.0, 20.0)));
+        Assert.Equal(0.0, Distributions.FisherSnedecorPdf(double.PositiveInfinity, 3.0, 20.0));
         Assert.Equal(0.0, Distributions.ChiSquaredPdf(double.PositiveInfinity, 2.0));
-        Assert.True(double.IsNaN(Distributions.ChiSquaredPdf(double.PositiveInfinity, 3.0)));
+        Assert.Equal(0.0, Distributions.ChiSquaredPdf(double.PositiveInfinity, 3.0));
         Assert.Equal(1.0, Distributions.FisherSnedecorCdf(1e308, 10.0, 5.0));
         double density = Distributions.FisherSnedecorPdf(1e308, 10.0, 5.0);
         Assert.True(density >= 0.0 && !double.IsNaN(density), $"a density, got {density}");
@@ -1095,5 +1095,131 @@ public sealed class DistributionsEdgeTests
         double normal = 1.0 / Math.Sqrt(2.0 * Math.PI);
         Assert.Equal(normal, Distributions.StudentPdf(0.0, 9.999999999999998e19), 2e-16);
         Assert.Equal(normal, Distributions.StudentPdf(0.0, 1e20), 2e-16);
+    }
+
+    [Theory]
+    [InlineData(1e-300, 1e9)]
+    [InlineData(1e-12, 1e300)]
+    [InlineData(1e-323, 0.5)]
+    [InlineData(1.7e308, 1.7e308)]
+    public void The_F_tails_at_an_infinite_f_are_the_support_s_end_where_dfd_over_dfn_overflows(double dfn, double dfd)
+    {
+        // dfd / dfn / f was inf / inf and the tails threw (#1705), as scipy's f.sf and f.cdf do not.
+        Assert.Equal(0.0, Distributions.FisherSnedecorSf(double.PositiveInfinity, dfn, dfd));
+        Assert.Equal(1.0, Distributions.FisherSnedecorCdf(double.PositiveInfinity, dfn, dfd));
+    }
+
+    [Theory]
+    [InlineData(5e-324, 1e-323, 0.5)]
+    [InlineData(1e-310, 1e-310, 1e300)]
+    public void An_F_inverse_tail_past_the_largest_double_is_infinite_at_a_subnormal_numerator_df(double p, double dfn, double dfd)
+    {
+        // The tail at the largest double still exceeds p, so the root lies past it; the check of the infinite answer threw (#1704).
+        Assert.True(Distributions.FisherSnedecorSf(double.MaxValue, dfn, dfd) > p);
+        Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorIsf(p, dfn, dfd));
+    }
+
+    [Theory]
+    [InlineData(1e-70, 10.0, 1.3020833333333333e-283)]
+    [InlineData(1e-62, 10.0, 1.3020833333333335e-251)]
+    [InlineData(1e-210, 3.0, 3.9894228040143267e-106)]
+    [InlineData(1e-300, 2.0, 0.5)]
+    [InlineData(5e-324, 1.0, 1.7948069285245253e161)]
+    [InlineData(1e-20, 4.0, 2.4999999999999999e-21)]
+    [InlineData(1e-19, 4.0, 2.4999999999999999e-20)]
+    [InlineData(5e-324, 0.1, 6.862545259797682e305)]
+    [InlineData(1.5e-323, 0.1, 2.4166849068059488e305)]
+    public void The_chi_squared_density_holds_its_digits_at_a_tiny_x(double x, double df, double density)
+    {
+        // x^a underflowed before the division by x, 0 at 1e-70, and its exponent cost 2e-13 at 1e-62 (#1708); 50-digit sums.
+        // Left: Gamma(a) through its log, 1.6e-15 at a shape of 5, and below a shape of 0.1 an exponent of -74, 1.2e-14.
+        Assert.Equal(density, Distributions.ChiSquaredPdf(x, df), (df < 0.2 ? 1.5e-14 : 2e-15) * density);
+    }
+
+    [Theory]
+    [InlineData(1e-300, 3.0, 1.0, 3.3079733725307523e-150)]
+    [InlineData(1e-70, 10.0, 5.0, 1.876875e-277)]
+    [InlineData(1e-300, 3.0, 20.0, 2.149585981371381e-150)]
+    [InlineData(1e-300, 3.0, 0.19, 6.2993316913547444e-150)]
+    [InlineData(1e-300, 3.0, 100.0, 2.0884669337873489e-150)]
+    [InlineData(1e-33, 20.0, 20.0, 9.237800000000005e-292)]
+    public void The_F_density_holds_its_digits_at_a_tiny_f(double f, double dfn, double dfd, double density)
+    {
+        // log B(10, 10), -14, takes the last of them: 5.4e-15 at shapes of 20.
+        double tolerance = dfn >= 20.0 ? 6e-15 : 2e-15;
+        // y^a underflowed before the division by f, and FisherSnedecorPdf(1e-300, 3, 1) read 0 (#1708), as did the last three
+        // under a first fix; 80-digit sums, against which scipy's f.pdf is 4e-14 off there.
+        Assert.Equal(density, Distributions.FisherSnedecorPdf(f, dfn, dfd), tolerance * density);
+    }
+
+    [Theory]
+    [InlineData(1.0, 1.0, 1e14, 0.24197072451914214)]
+    [InlineData(1.0, 19.9, 1e14, 1.247916480195731)]
+    [InlineData(2.0, 3.0, 1e12, 0.14595651998903386)]
+    [InlineData(0.5, 1.0, 1e7, 0.4393912702443541)]
+    public void The_F_density_at_a_huge_denominator_df_keeps_one_minus_y_on_its_log1p_side(double f, double dfn, double dfd, double density)
+    {
+        // A first fix for #1708 took log(1 - y) after 1 - y had rounded, and read the first 4e-4 off; 90-digit sums, and what
+        // main's own front holds there, 2.4e-14 at a first shape of 10 against a second of 5e13.
+        Assert.Equal(density, Distributions.FisherSnedecorPdf(f, dfn, dfd), 3e-14 * density);
+    }
+
+    [Theory]
+    [InlineData(1.9999, 300.0, 4.7935748211820564e-262)]
+    [InlineData(2.0, 300.0, 4.8291797467471066e-262)]
+    public void The_chi_squared_density_is_continuous_at_x_two_from_a_shape_of_ten(double x, double df, double density)
+    {
+        // A first fix for #1708 took a branch of its own below x = 2 at every shape; 90-digit sums, and the 2.2e-14 main's
+        // own Stirling prefactor holds at 1.9999, an exponent of -600.
+        Assert.Equal(density, Distributions.ChiSquaredPdf(x, df), 2.5e-14 * density);
+    }
+
+    [Theory]
+    [InlineData(1e-33, 20.0, 10000.0, 2.78062961778363e-293, 1e-13)]
+    [InlineData(1e-33, 21.0, 200.0, 2.387125026815725e-309, 1e-12)]
+    [InlineData(1e-33, 21.0, 20.0, 6.93878708310438e-308, 1e-13)]
+    [InlineData(1.0533, 2e6, 2e6, 4.887097733893733e-291, 1e-9)]
+    [InlineData(1.00052, 2e10, 2e10, 1.0463893054737687e-289, 1e-9)]
+    [InlineData(0.1, 1e14, 200.0, 5.43894222487651e-290, 1e-13)]
+    [InlineData(0.1, 1e12, 200.0, 5.438946585827567e-290, 1e-13)]
+    [InlineData(0.1, 1e10, 200.0, 5.439382698530586e-290, 2e-13)]
+    [InlineData(0.1, 1e8, 200.0, 5.483170414762349e-290, 2e-13)]
+    [InlineData(0.01445, 1e6, 21.0, 2.984536606183596e-290, 1e-13)]
+    public void The_F_density_keeps_its_digits_where_its_power_or_its_front_leaves_the_normal_doubles(
+        double f, double dfn, double dfd, double density, double tolerance)
+    {
+        // A subnormal power read the first 3.6e-3 off, and a fallback from fronts of 1e-290 the sixth 8e-5, in the Review A
+        // of the fix for #1708. Against these 90-digit sums main's own front, kept where normal, holds 1.6e-13 at the ninth.
+        Assert.Equal(density, Distributions.FisherSnedecorPdf(f, dfn, dfd), tolerance * density);
+    }
+
+    [Theory]
+    [InlineData(1500.0, 19.0, 2.185326408261663e-307)]
+    [InlineData(1490.0, 9.0, 1.36925296e-315)]
+    [InlineData(1450.0, 10.0, 7.881545898871309e-306)]
+    [InlineData(1e100, 10.0, 0.0)]
+    [InlineData(1e200, 6.0, 0.0)]
+    public void The_chi_squared_upper_tail_density_keeps_main_s_form(double x, double df, double density)
+    {
+        // A fallback keyed on a small prefactor took the upper tail too: inf * 0 read NaN at 1e100, and 0 at 1500 (#1708's
+        // Review A); scipy's chi2.pdf, the subnormal one to its own granularity.
+        Assert.Equal(density, Distributions.ChiSquaredPdf(x, df), Math.Max(1e-13 * density, 1e-322));
+    }
+
+    [Fact]
+    public void A_huge_finite_f_splits_its_halves_where_dfd_over_dfn_overflows()
+    {
+        // dfd / dfn / f was inf / 1e308: the split read (0, NaN), where y = d1 f / (d1 f + d2) is a quarter.
+        (double lower, double upper) = Lodestar.Stats.Internal.Beta.FisherSplit(1e308, 0.5, 1.5e308);
+        Assert.Equal(0.25, lower, 1e-15);
+        Assert.Equal(0.75, upper, 1e-15);
+    }
+
+    [Fact]
+    public void The_chi_squared_density_at_a_subnormal_shape_divides_before_it_rounds()
+    {
+        // a e^(...) rounded to a subnormal before the division by x, 3.4e-9 off (#1708's Review A); e^(...) is one here.
+        const double df = 2.0000000000123e-315;
+        Assert.Equal(df / 2.0 / 1e-300, Distributions.ChiSquaredPdf(1e-300, df), 1e-15 * 1e-15);
     }
 }

@@ -7,7 +7,7 @@ namespace Lodestar.Stats.Internal;
 /// Neither the pooled sample nor its ranks are materialised: each sample is sorted on its
 /// own and the two are merged, since a tie group's midrank times its members from the first
 /// sample is all the rank sum needs. The totals equal <see cref="Ranks.Average"/> and
-/// <see cref="Ranks.TieCorrection"/> bit for bit: every partial rank sum is a half-integer
+/// a second sort's tie term bit for bit: every partial rank sum is a half-integer
 /// below 2^53, and the tie term visits the same groups in the same order
 /// (TwoSampleRanksTests replays one against the other).
 /// </remarks>

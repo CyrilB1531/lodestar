@@ -18,7 +18,10 @@ the degrees of freedom — one less than the number of pairs actually tested. Th
 `a.Length - 1` under the default [`NanPolicy.Propagate`](../nanpolicy.md), and one less than the
 aligned-filtered pair count under [`NanPolicy.Omit`](../nanpolicy.md).
 
-**Exceptions** — `ArgumentException` when the two samples differ in length, hold no pair, or `nanPolicy` is `NanPolicy.Raise` and either sample holds a `NaN`.
+**Exceptions** — `ArgumentException` when the two samples differ in length, or `nanPolicy` is
+`NanPolicy.Raise` and either sample holds a `NaN`. Samples holding no pair, given or left by
+omission, answer `NaN` for the statistic and the p-value
+([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md)). `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — the same seven machines, measured before and after a configuration change.
 

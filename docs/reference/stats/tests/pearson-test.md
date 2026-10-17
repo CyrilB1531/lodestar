@@ -8,7 +8,8 @@ Correlates two paired samples.
 public static PearsonResult Test(ReadOnlySpan<double> x, ReadOnlySpan<double> y, Alternative alternative = Alternative.TwoSided, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
-**Parameters** — `x` and `y` are the two samples, of the same length and at least two values;
+**Parameters** — `x` and `y` are the two samples, of the same length; fewer than two pairs answer
+`NaN` for both ([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md));
 both spans are read, never modified. `alternative` says which tail the p-value covers.
 `nanPolicy` says what to do with a `NaN`, defaulting to [`NanPolicy.Propagate`](../nanpolicy.md);
 [`NanPolicy.Omit`](../nanpolicy.md) drops the pair, not the value, so the two samples stay
@@ -20,9 +21,8 @@ afterwards. A sample that is constant has no correlation defined, and both numbe
 Constant means every value equal to the first, as scipy tests it, and not a zero deviation from the
 mean: six copies of `0.1` average to `0.10000000000000002`.
 
-**Exceptions** — `ArgumentException` when the samples differ in length, when either holds fewer
-than two values, or when `nanPolicy` is [`NanPolicy.Raise`](../nanpolicy.md) and either sample
-holds a `NaN`.
+**Exceptions** — `ArgumentException` when the samples differ in length, or when `nanPolicy` is [`NanPolicy.Raise`](../nanpolicy.md) and either sample
+holds a `NaN`. `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — eight tasting panels: how much sugar the recipe carried, against the sweetness
 score the panel gave it.

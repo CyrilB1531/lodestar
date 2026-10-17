@@ -13,10 +13,12 @@ public sealed class GroupTestEdgeTests
     }
 
     [Fact]
-    public void Anova_refuses_an_empty_group()
+    public void Anova_answers_NaN_for_an_empty_group_as_f_oneway_does()
     {
-        Assert.Throws<ArgumentException>(
-            () => OneWayAnova.Test([1.0, 2.0], [], [3.0, 4.0]));
+        TestResult result = OneWayAnova.Test([1.0, 2.0], [], [3.0, 4.0]);
+
+        Assert.True(double.IsNaN(result.Statistic));
+        Assert.True(double.IsNaN(result.PValue));
     }
 
     [Fact]
@@ -75,20 +77,47 @@ public sealed class GroupTestEdgeTests
     }
 
     [Fact]
-    public void Kruskal_refuses_fewer_than_two_groups_and_an_empty_group()
+    public void Kruskal_refuses_fewer_than_two_groups()
     {
         Assert.Throws<ArgumentException>(() => KruskalWallis.Test([1.0, 2.0, 3.0]));
-        Assert.Throws<ArgumentException>(
-            () => KruskalWallis.Test([1.0, 2.0], [], [3.0, 4.0]));
     }
 
-    // Deleting KruskalWallis's tieCorrection<=0 guard still throws, but the wrong thing --
-    // Gamma.Validate's ArgumentOutOfRangeException on NaN, since h becomes 0.0/0.0.
     [Fact]
-    public void Kruskal_refuses_a_pooled_sample_where_every_value_is_tied()
+    public void Every_k_sample_test_answers_NaN_for_a_null_or_empty_group_as_scipy_does()
     {
-        Assert.Throws<ArgumentException>(
-            () => KruskalWallis.Test([5.0, 5.0], [5.0, 5.0]));
+        // scipy 1.18.1's kruskal, levene, bartlett, fligner and f_oneway answer (nan, nan) for an empty group, given or left
+        // by omission, under every policy; three of these threw, so the five disagreed (#1712's Review A).
+        double[] first = [1.0, 2.0, 3.0];
+        double[] last = [4.0, 5.0, 6.0];
+        foreach (double[]? middle in new double[]?[] { [], null })
+        {
+            foreach (NanPolicy policy in new[] { NanPolicy.Propagate, NanPolicy.Omit, NanPolicy.Raise })
+            {
+                AssertNaN(KruskalWallis.Test(policy, first, middle!, last));
+                AssertNaN(Levene.Test(Center.Median, 0.05, policy, first, middle!, last));
+                AssertNaN(Bartlett.Test(policy, first, middle!, last));
+                AssertNaN(Fligner.Test(Center.Median, 0.05, policy, first, middle!, last));
+                AssertNaN(OneWayAnova.Test(policy, first, middle!, last));
+            }
+        }
+        AssertNaN(KruskalWallis.Test(NanPolicy.Omit, first, [double.NaN], last));
+        AssertNaN(Bartlett.Test(NanPolicy.Omit, first, [double.NaN], last));
+
+        static void AssertNaN(TestResult result)
+        {
+            Assert.True(double.IsNaN(result.Statistic));
+            Assert.True(double.IsNaN(result.PValue));
+        }
+    }
+
+    // Deleting KruskalWallis's tieCorrection<=0 guard throws Gamma.Validate's ArgumentOutOfRangeException on NaN, since h
+    // becomes 0.0/0.0, which Kruskal and Wallis leave undefined: NaN (decision 0010).
+    [Fact]
+    public void Kruskal_answers_NaN_for_a_pooled_sample_where_every_value_is_tied()
+    {
+        TestResult result = KruskalWallis.Test([5.0, 5.0], [5.0, 5.0]);
+        Assert.True(double.IsNaN(result.Statistic));
+        Assert.True(double.IsNaN(result.PValue));
     }
 
     [Fact]
@@ -103,9 +132,12 @@ public sealed class GroupTestEdgeTests
     }
 
     [Fact]
-    public void Ks_refuses_an_empty_sample()
+    public void Ks_answers_NaN_for_an_empty_sample()
     {
-        Assert.Throws<ArgumentException>(() => KolmogorovSmirnov.TwoSample([], [1.0, 2.0]));
+        // No empirical distribution, so the statistic is undefined (decision 0010).
+        KsResult result = KolmogorovSmirnov.TwoSample([], [1.0, 2.0]);
+        Assert.True(double.IsNaN(result.Statistic));
+        Assert.True(double.IsNaN(result.PValue));
     }
 
     [Fact]

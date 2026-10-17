@@ -15,7 +15,7 @@ public static TestResult Test(ReadOnlySpan<bool> x, ReadOnlySpan<double> y, NanP
 side is constant or fewer than two pairs remain, where scipy answers rather than raises.
 
 **Exceptions** — `ArgumentException` when the samples differ in length, or when a `NaN` meets
-[`NanPolicy.Raise`](../nanpolicy.md).
+[`NanPolicy.Raise`](../nanpolicy.md). `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — whether the students who passed studied longer.
 

@@ -52,12 +52,14 @@ public sealed class CorrelationEdgeTests
     }
 
     [Fact]
-    public void Pearson_refuses_a_sample_shorter_than_two_pairs()
+    public void Pearson_answers_NaN_below_two_pairs_as_Spearman_and_Kendall_do()
     {
-        ArgumentException error = Assert.Throws<ArgumentException>(
-            () => Pearson.Test([1.0], [2.0]));
-
-        Assert.Contains("at least two pairs", error.Message, StringComparison.Ordinal);
+        // r is undefined there (decision 0010), where this threw.
+        foreach (PearsonResult result in new[] { Pearson.Test([1.0], [2.0]), Pearson.Test([], []) })
+        {
+            Assert.True(double.IsNaN(result.Statistic) && double.IsNaN(result.PValue));
+        }
+        Assert.Throws<ArgumentOutOfRangeException>(() => Pearson.Test([1.0, 1.0, 1.0], [1.0, 2.0, 3.0], (Alternative)99));
     }
 
     /// <summary>
@@ -220,6 +222,38 @@ public sealed class CorrelationEdgeTests
 
         Assert.Equal(expectedBound, alternative == Alternative.Less ? low : high, 12);
     }
+
+    [Fact]
+    public void Spearman_s_matrix_under_omit_answers_each_complete_pair_as_its_own_test()
+    {
+        // From one NaN every pair was re-ranked, 42 to 403 ms at 300 variables (#1717); the complete pairs now reuse their
+        // columns' ranks, and must answer what the pair's own test does, bit for bit.
+        const int variables = 6;
+        const int rows = 40;
+        var random = new Random(1717);
+        var data = new double[variables * rows];
+        for (int i = 0; i < data.Length; i++)
+        {
+            data[i] = Math.Round(random.NextDouble() * 10.0);
+        }
+        data[(3 * variables) + 1] = double.NaN;
+
+        CorrelationMatrix matrix = Spearman.Matrix(data, variables, Alternative.Less, NanPolicy.Omit);
+        for (int a = 0; a < variables; a++)
+        {
+            for (int b = a + 1; b < variables; b++)
+            {
+                double[] left = [.. Enumerable.Range(0, rows).Select(r => data[(r * variables) + a])];
+                double[] right = [.. Enumerable.Range(0, rows).Select(r => data[(r * variables) + b])];
+                TestResult pair = Spearman.Test(left, right, Alternative.Less, NanPolicy.Omit);
+                Assert.Equal(pair.Statistic, matrix.Statistics[(a * variables) + b]);
+                Assert.Equal(pair.PValue, matrix.PValues[(a * variables) + b]);
+            }
+            Assert.Equal(1.0, matrix.Statistics[(a * variables) + a]);
+            Assert.Equal(0.0, matrix.PValues[(a * variables) + a]);
+        }
+    }
+
 }
 
 #pragma warning restore S2245, CA5394

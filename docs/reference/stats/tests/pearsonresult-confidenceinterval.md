@@ -42,7 +42,11 @@ above it.
 
 **Below four pairs the interval is the whole range.** The standard error is `1 / sqrt(n - 3)`,
 which has nothing to say at three pairs or fewer, so `(-1, 1)` is returned rather than a `NaN` —
-the same answer scipy gives there, and an honest one: the data constrains nothing.
+the same answer scipy gives there, and an honest one: the data constrains nothing. Below two
+pairs there is no correlation at all, and both bounds are `NaN` — the computed ones; a one-sided
+interval keeps its fixed bound
+([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md)). A record
+built by its constructor carries no pair count, and answers the whole range.
 
 ```csharp
 using Lodestar.Stats;

@@ -53,12 +53,12 @@ public static class Wilcoxon
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
     /// <returns>The smaller rank sum two-sided, the positive one one-sided (as scipy), and the p-value.</returns>
     /// <exception cref="ArgumentException">
-    /// The samples differ in length, or are empty. When <paramref name="nanPolicy"/> is
+    /// The samples differ in length. When <paramref name="nanPolicy"/> is
     /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/> and the ranked sample
-    /// exceeds 500 values. Pass <see cref="ExactMethod.Asymptotic"/> instead.
+    /// exceeds 500 values. Pass <see cref="ExactMethod.Asymptotic"/> instead. Also an option outside its enumeration.
     /// </exception>
     public static TestResult Paired(
         ReadOnlySpan<double> x,
@@ -69,13 +69,26 @@ public static class Wilcoxon
         ExactMethod method = ExactMethod.Auto,
         NanPolicy nanPolicy = NanPolicy.Propagate)
     {
+        // An option outside its enumeration is refused last, once the input has met every refusal of its own (#1704's Review A).
+        TestResult result = PairedCore(x, y, zeroMethod, alternative, continuity, method, nanPolicy);
+        RequireOptions(zeroMethod, alternative, continuity, method, nanPolicy);
+        return result;
+    }
+
+    private static TestResult PairedCore(
+        ReadOnlySpan<double> x,
+        ReadOnlySpan<double> y,
+        ZeroMethod zeroMethod,
+        Alternative alternative,
+        Continuity continuity,
+        ExactMethod method,
+        NanPolicy nanPolicy)
+    {
         ReadOnlySpan<double> left = x;
         ReadOnlySpan<double> right = y;
         if (nanPolicy != NanPolicy.Propagate)
         {
-            (double[] l, double[] rr) = NanFilter.ApplyAligned(x, y, nanPolicy, nameof(x), nameof(y));
-            left = l;
-            right = rr;
+            NanFilter.ApplyAligned(x, y, nanPolicy, nameof(x), nameof(y), out left, out right);
         }
 
         if (left.Length != right.Length)
@@ -91,11 +104,11 @@ public static class Wilcoxon
             differences[i] = left[i] - right[i];
         }
 
-        return OneSample(differences, zeroMethod, alternative, continuity, method);
+        return OneSampleCore(differences, zeroMethod, alternative, continuity, method, NanPolicy.Propagate);
     }
 
     /// <summary>Compares a sample of differences against a median of zero.</summary>
-    /// <param name="differences">The differences; at least one value.</param>
+    /// <param name="differences">The differences. Empty, given or left by omission, they answer <c>NaN</c> for both, as scipy's do.</param>
     /// <param name="zeroMethod">What to do with differences that are exactly zero.</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
     /// <param name="continuity">Whether the normal approximation gets the half-unit correction.</param>
@@ -107,13 +120,12 @@ public static class Wilcoxon
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in the sample.</param>
     /// <returns>The smaller rank sum two-sided, the positive one one-sided (as scipy), and the p-value.</returns>
     /// <exception cref="ArgumentException">
-    /// <paramref name="differences"/> is empty. When <paramref name="nanPolicy"/> is
-    /// <see cref="NanPolicy.Raise"/> and the sample holds a <c>NaN</c>.
+    /// <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and the sample holds a <c>NaN</c>.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/> and the zero-method-processed
     /// sample exceeds 500 values -- <c>2^n</c> overflows past <c>n = 1023</c>, silently zeroing
-    /// every p-value it divides. Pass <see cref="ExactMethod.Asymptotic"/> instead.
+    /// every p-value it divides. Pass <see cref="ExactMethod.Asymptotic"/> instead. Also an option outside its enumeration.
     /// </exception>
     public static TestResult OneSample(
         ReadOnlySpan<double> differences,
@@ -123,18 +135,35 @@ public static class Wilcoxon
         ExactMethod method = ExactMethod.Auto,
         NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        ReadOnlySpan<double> values = nanPolicy == NanPolicy.Propagate
-            ? differences
-            : NanFilter.Apply(differences, nanPolicy, nameof(differences));
+        // Options last, as in Paired.
+        TestResult result = OneSampleCore(differences, zeroMethod, alternative, continuity, method, nanPolicy);
+        RequireOptions(zeroMethod, alternative, continuity, method, nanPolicy);
+        return result;
+    }
 
-        if (values.Length == 0)
-        {
-            throw new ArgumentException("The sample is empty.", nameof(differences));
-        }
+    private static void RequireOptions(
+        ZeroMethod zeroMethod, Alternative alternative, Continuity continuity, ExactMethod method, NanPolicy nanPolicy)
+    {
+        Options.Require(alternative);
+        Options.Require(zeroMethod);
+        Options.Require(continuity);
+        Options.Require(method);
+        Options.Require(nanPolicy);
+    }
 
-        // Checked before the zero-drop below: a NaN difference is neither > 0,
-        // < 0 nor == 0, so ComputeRankSums would fold it into the zero group.
-        if (Ranks.HasNaN(values))
+    private static TestResult OneSampleCore(
+        ReadOnlySpan<double> differences,
+        ZeroMethod zeroMethod,
+        Alternative alternative,
+        Continuity continuity,
+        ExactMethod method,
+        NanPolicy nanPolicy)
+    {
+        ReadOnlySpan<double> values = NanFilter.Apply(differences, nanPolicy, nameof(differences));
+
+        // No difference to rank, from the start or once omitted, answers NaN (decision 0010), where this threw; a NaN
+        // difference too, checked before the zero-drop folds it into the zeros.
+        if (values.Length == 0 || Ranks.HasNaN(values))
         {
             return new TestResult(double.NaN, double.NaN);
         }
@@ -157,9 +186,7 @@ public static class Wilcoxon
 
         if (ranked.Length == 0)
         {
-            // Every difference was zero: there is no evidence either way, and
-            // scipy answers with a statistic of zero and a p-value of one.
-            return new TestResult(0.0, 1.0);
+            return AllZero(method, values.Length);
         }
 
         double[] magnitudes = new double[ranked.Length];
@@ -309,6 +336,11 @@ public static class Wilcoxon
         return kept;
     }
 #pragma warning restore S1244
+
+    /// <summary>Every difference zero and dropped: the exact and permutation nulls put all their mass on 0, a p of one.</summary>
+    /// <remarks>The normal approximation has no variance there and reads 0/0, NaN, as scipy's does (#1704's Review A).</remarks>
+    private static TestResult AllZero(ExactMethod method, int sampleLength) =>
+        new(0.0, ChooseDistribution(method, sampleLength, ties: false, sampleLength) == NullDistribution.Asymptotic ? double.NaN : 1.0);
 
     // long-comment: this is the one place all three constants above meet, and
     // the four-way branch reads as arbitrary without the rule that orders it.
@@ -463,9 +495,10 @@ public static class Wilcoxon
         ReadOnlySpan<double> values, ZeroMethod zeroMethod, Alternative alternative, Continuity continuity)
     {
         bool rankZeros = zeroMethod != ZeroMethod.Wilcox;
+        // Every difference dropped leaves no variance, and the normal approximation reads 0/0, as scipy's (#1704's Review A).
         if (!rankZeros && CountZeros(values) == values.Length)
         {
-            return new TestResult(0.0, 1.0);
+            return new TestResult(0.0, double.NaN);
         }
 
         SignedRanks.Sums sums = SignedRanks.Compute(values, rankZeros);
@@ -512,6 +545,12 @@ public static class Wilcoxon
         double variance = squares / 4.0;
         double deviation = positive - mean;
         double correction = continuity == Continuity.Applied ? 0.5 : 0.0;
+        // No rank carries a sign, every difference zero and dropped or Pratt's: scipy's z is 0/0 before its correction, so NaN
+        // on every side, where the correction alone read 1 (#1704's Review A).
+        if (!(variance > 0.0))
+        {
+            return double.NaN;
+        }
 
         double z = alternative switch
         {

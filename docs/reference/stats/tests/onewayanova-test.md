@@ -17,15 +17,15 @@ public static TestResult Test(NanPolicy nanPolicy, double[][] groups)
 The policy comes first because the groups are a `params` array and C# allows no parameter after
 one — the shape `string.Join` uses, for the same reason.
 
-**Parameters** — `groups` are the samples to compare, at least two, each holding at least one
-value, and at least one holding more than one — `scipy.stats.f_oneway` takes its samples the same
+**Parameters** — `groups` are the samples to compare, at least two — `scipy.stats.f_oneway` takes its samples the same
 way, one array per group, which `groups` is `params` for. `nanPolicy` says what to do with a
 `NaN`; scipy's `nan_policy`, defaulting to [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TestResult`: the F statistic, and the upper-tail p-value.
 
-**Exceptions** — `ArgumentException` when there are fewer than two groups, a group is empty, or
-every group holds exactly one value.
+**Exceptions** — `ArgumentException` when there are fewer than two groups. An empty group, given
+or left by omission, and groups of one value each, answer `NaN` for both, as scipy's do, and so
+does a null group here. `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — three shifts, fifteen measurements in all.
 
@@ -58,10 +58,9 @@ bool alsoNaN = double.IsNaN(OneWayAnova.Test([0.1, 0.1, 0.1], [0.1, 0.1, 0.1]).S
 ```
 
 No variation within and none between has no ratio, and scipy's own `f_oneway` returns the same
-`NaN` on the same input — the honest answer, not a guard this package chose to skip. Compare
-[`KruskalWallis.Test`](kruskalwallis-test.md), which *throws* on the analogous all-tied input: an
-ANOVA on constants is a well-formed question with an undefined answer, where the rank-based
-statistic's inputs there are provably meaningless rather than merely indeterminate.
+`NaN` on the same input — the honest answer, not a guard this package chose to skip.
+[`KruskalWallis.Test`](kruskalwallis-test.md) answers its analogous all-tied input the same way
+([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md)).
 
 Groups each constant at *different* values are a perfect separation: the statistic is
 `PositiveInfinity` and the p-value an exact `0`, as scipy's.

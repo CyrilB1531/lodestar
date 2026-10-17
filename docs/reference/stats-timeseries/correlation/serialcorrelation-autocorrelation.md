@@ -48,9 +48,10 @@ how the same sum is accumulated, not a definitional one. The oracle corpus itsel
 either figure, so nothing here is masked by a looser tolerance than the one that would catch a
 real disagreement.
 
-**A constant series is refused.** The reference answers `NaN` with a warning; this throws, as
-[`KruskalWallis.Test`](../../stats/tests/kruskalwallis-test.md) already refuses a fully tied pooled sample
-for the same reason — `avf[0]` is zero, so every ratio would be `0/0`.
+**A constant series is refused.** The reference answers `NaN` with a warning; this throws, because
+`avf[0]` is zero and every ratio would be `0/0`. [Decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md) rules
+`NaN` for such a case where the defining document is silent; this package takes it up at its own
+review.
 
 ```csharp
 using Lodestar.Stats.TimeSeries;

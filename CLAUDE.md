@@ -135,7 +135,7 @@ script's `EXPECTED` edge map.
 | `Lodestar.Decomposition` | core | truncated SVD and NMF over a `CsrMatrix`, the Householder QR, and the variance principal components explain, with the dense kernels written here. |
 | `Lodestar.Cluster` | core | k-means by Lloyd's algorithm over a row-major span, at scikit-learn parity. |
 | `Lodestar.Preprocessing` | core | feature scaling, encoding, imputation and the cross-validation splitters, fitted on arrays or a `CsrMatrix` and applied to spans, at scikit-learn parity. |
-| `Lodestar.Stats` | core | classical hypothesis tests at scipy parity, plus the four tail members decision 0003 publishes for its neighbours. |
+| `Lodestar.Stats` | core | classical hypothesis tests at scipy parity, plus the normal, Student, chi-squared and F distributions — tails, densities and quantiles, the tails and quantiles its neighbours call among them. |
 | `Lodestar.Stats.Regression` | core | ordinary, weighted and generalized least squares with the whole inference table, at statsmodels parity, and instrumental variables and panel regression at linearmodels parity. |
 | `Lodestar.Stats.TimeSeries` | core | the autocorrelation functions, Ljung-Box, the augmented Dickey-Fuller test, KPSS and seasonal decomposition, at statsmodels parity. |
 | `Lodestar.Survival` | core | Kaplan-Meier, Nelson-Aalen, the log-rank family, Cox and Aalen regression and the parametric and AFT models at lifelines parity, right-, left- and interval-censored. |
@@ -264,8 +264,11 @@ generated from the frontmatter by `tools/regen_adr_index.py`, carries each recor
 which says the decision changed, and `applied_by`, which says it was used again unchanged. Follow
 both edges before citing a record that has them.
 
-Where behaviour deliberately diverges from the Python reference, it goes in
-[`docs/decisions/`](docs/decisions/README.md), the fastest way to understand why
+Behaviour follows each algorithm's defining document — its paper or published algorithm — and the
+Python library is the numeric oracle where it implements that document; where the document is
+silent and the statistic undefined, the answer is `NaN`
+([decision 0010](docs/decisions/0010-each-algorithm-follows-its-defining-document.md)). The
+[`docs/decisions/`](docs/decisions/README.md) records are the fastest way to understand why
 something looks wrong. `docs/equivalence.md` maps each Python call to its C#
 counterpart; **a row lands in the same commit as the function**, not afterwards.
 

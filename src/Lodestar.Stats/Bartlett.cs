@@ -12,9 +12,9 @@ namespace Lodestar.Stats;
 public static class Bartlett
 {
     /// <summary>Compares the variances of two or more groups.</summary>
-    /// <param name="groups">The groups; at least two, each holding at least two values.</param>
+    /// <param name="groups">The groups; at least two. A null or empty one, or one of a single value, answers <c>NaN</c> for both.</param>
     /// <returns>The T statistic and the upper-tail p-value.</returns>
-    /// <exception cref="ArgumentException">Fewer than two groups, or a group holding one value or none.</exception>
+    /// <exception cref="ArgumentException">Fewer than two groups.</exception>
     // S2368: groups mirrors scipy.stats.bartlett's own one-array-per-group shape.
 #pragma warning disable S2368
     public static TestResult Test(params double[][] groups)
@@ -26,17 +26,15 @@ public static class Bartlett
     /// <param name="groups">Two or more groups of observations.</param>
     /// <returns>The T statistic and its p-value.</returns>
     /// <exception cref="ArgumentException">
-    /// Fewer than two groups, a group holding fewer than two values, or a <c>NaN</c> under
-    /// <see cref="NanPolicy.Raise"/>.
+    /// Fewer than two groups, or a <c>NaN</c> under <see cref="NanPolicy.Raise"/>.
     /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">An option is outside its enumeration.</exception>
 #pragma warning disable S2368
     public static TestResult Test(NanPolicy nanPolicy, params double[][] groups)
 #pragma warning restore S2368
     {
         Guard.NotNull(groups);
-        double[][] samples = nanPolicy == NanPolicy.Propagate
-            ? groups
-            : NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups));
+        double[][] samples = NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups));
 
         if (samples.Length < 2)
         {
@@ -44,18 +42,21 @@ public static class Bartlett
                 $"Bartlett's test needs at least two groups; got {samples.Length}.", nameof(groups));
         }
 
+        // After the input's own refusals, which keep their order (#1712's Review A).
+        Options.Require(nanPolicy);
+
+        // An empty or null group, or one of a single value, has no variance at ddof = 1, which Bartlett (1937)
+        // leaves undefined: NaN, as decision 0010 rules, where both threw.
+        if (Array.Exists(samples, group => group is not { Length: > 1 }))
+        {
+            return new TestResult(double.NaN, double.NaN);
+        }
+
         int k = samples.Length;
         int total = 0;
         double[] variances = new double[k];
         for (int g = 0; g < k; g++)
         {
-            // A group of one has no variance at ddof = 1, and the logarithm below would read it.
-            if (samples[g] is not { Length: > 1 })
-            {
-                throw new ArgumentException(
-                    $"Group {g} holds fewer than two values, so it has no variance.", nameof(groups));
-            }
-
             variances[g] = Variance(samples[g]);
             total += samples[g].Length;
         }

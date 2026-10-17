@@ -78,7 +78,7 @@ public sealed class KSampleRanksTests
 
         int total = pooled.Length;
         double h = (12.0 / (total * (total + 1.0)) * weighted) - (3.0 * (total + 1.0));
-        h /= 1.0 - (Ranks.TieCorrection(pooled) / (((double)total * total * total) - total));
+        h /= 1.0 - (ReferenceRanks.TieCorrection(pooled) / (((double)total * total * total) - total));
 
         Assert.Equal(BitConverter.DoubleToInt64Bits(h), BitConverter.DoubleToInt64Bits(KruskalWallis.Test(groups).Statistic));
     }
@@ -122,6 +122,6 @@ public sealed class KSampleRanksTests
             Assert.Equal(BitConverter.DoubleToInt64Bits(expected[g]), BitConverter.DoubleToInt64Bits(sums[g]));
         }
 
-        Assert.Equal(BitConverter.DoubleToInt64Bits(Ranks.TieCorrection(pooled)), BitConverter.DoubleToInt64Bits(tieCorrection));
+        Assert.Equal(BitConverter.DoubleToInt64Bits(ReferenceRanks.TieCorrection(pooled)), BitConverter.DoubleToInt64Bits(tieCorrection));
     }
 }

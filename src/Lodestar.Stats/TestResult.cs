@@ -85,19 +85,18 @@ public sealed record TTestResult(double Statistic, double PValue, double Degrees
 /// <param name="PValue">The p-value on the requested tail.</param>
 public sealed record PearsonResult(double Statistic, double PValue)
 {
-    /// <summary>The number of pairs the correlation was computed over.</summary>
-    internal int N { get; init; }
+    /// <summary>The number of pairs the correlation was computed over; -1 on a record a caller built, which carries none.</summary>
+    internal int N { get; init; } = -1;
 
     /// <summary>Which tail was tested, which decides whether an interval is half-open.</summary>
     internal Alternative Alternative { get; init; }
 
     /// <summary>The confidence interval for the correlation, through the Fisher z transform.</summary>
     /// <remarks>
-    /// A method rather than a property because it takes a level, as
-    /// <c>scipy.stats.pearsonr(...).confidence_interval()</c> does. A one-sided interval is
-    /// half-open, its far bound the correlation's own limit of <c>-1</c> or <c>1</c>. Below
-    /// four pairs <c>1 / sqrt(n - 3)</c> is undefined and the whole range is returned, as
-    /// scipy returns it.
+    /// A method rather than a property because it takes a level, as <c>scipy.stats.pearsonr(...).confidence_interval()</c>
+    /// does. A one-sided interval is half-open, its far bound the correlation's own limit of <c>-1</c> or <c>1</c>. Below
+    /// four pairs <c>1 / sqrt(n - 3)</c> is undefined and the whole range is returned, as scipy returns it; below two
+    /// there is no correlation to bound, the computed bound is <c>NaN</c>, and a one-sided interval keeps its fixed one.
     /// </remarks>
     /// <param name="level">The confidence level, strictly between 0 and 1.</param>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -111,8 +110,18 @@ public sealed record PearsonResult(double Statistic, double PValue)
                 nameof(level), level, "The confidence level must lie strictly inside (0, 1).");
         }
 
-        // Below four pairs there is no standard error, and scipy answers the whole range --
-        // a constant input included. Past that a NaN reaches the computed bound alone.
+        // Below two pairs there is no correlation to bound, NaN as decision 0010 rules; from two to three, or a record built
+        // without a count, no standard error, and the whole range as scipy answers it. Past that a NaN reaches the bound alone.
+        if (N is 0 or 1)
+        {
+            // The fixed bound of a one-sided interval is still true of no correlation, as it is of a NaN one below.
+            return Alternative switch
+            {
+                Alternative.Less => (-1.0, double.NaN),
+                Alternative.Greater => (double.NaN, 1.0),
+                _ => (double.NaN, double.NaN),
+            };
+        }
         if (N <= 3)
         {
             return (-1.0, 1.0);
@@ -179,10 +188,18 @@ public sealed record BinomialResult(double Statistic, double PValue)
                 nameof(level), level, "The confidence level must lie strictly inside (0, 1).");
         }
 
-        // No trial bounds no proportion, as scipy's interval is NaN at both ends.
+        // Refused before the answer at no trial, which would otherwise never read it, as scipy's refuses it there.
+        Internal.Options.Require(method);
+
+        // No trial bounds no proportion: NaN, but for the limit a one-sided interval fixes, as scipy's keeps it.
         if (Trials == 0)
         {
-            return (double.NaN, double.NaN);
+            return Alternative switch
+            {
+                Alternative.Less => (0.0, double.NaN),
+                Alternative.Greater => (double.NaN, 1.0),
+                _ => (double.NaN, double.NaN),
+            };
         }
 
         // A one-sided interval spends its whole error budget on one side, so the tail is

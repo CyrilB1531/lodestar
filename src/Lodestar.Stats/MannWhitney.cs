@@ -29,8 +29,8 @@ public static class MannWhitney
     private const long MaxExactProduct = 20_000;
 
     /// <summary>Compares two independent samples by their ranks.</summary>
-    /// <param name="x">The first sample; at least one value.</param>
-    /// <param name="y">The second sample; at least one value.</param>
+    /// <param name="x">The first sample; an empty one answers <c>NaN</c> (decision 0010).</param>
+    /// <param name="y">The second sample; an empty one answers <c>NaN</c> (decision 0010).</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
     /// <param name="continuity">Whether the normal approximation gets the half-unit
     /// correction, ignored on the exact branch.</param>
@@ -40,15 +40,15 @@ public static class MannWhitney
     /// falls back to asymptotic rather than building the table -- it never throws.
     /// </param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
-    /// <returns>U for the first sample, and the p-value.</returns>
+    /// <returns>U for the first sample, and the p-value; <c>NaN</c> for both where a sample is empty (decision 0010).</returns>
     /// <exception cref="ArgumentException">
-    /// Either sample is empty. When <paramref name="nanPolicy"/> is
+    /// When <paramref name="nanPolicy"/> is
     /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="method"/> is <see cref="ExactMethod.Exact"/> and
     /// <c>x.Length * y.Length</c> exceeds 20,000; the table's build cost is quadratic
-    /// in that product. Pass <see cref="ExactMethod.Asymptotic"/> instead.
+    /// in that product. Pass <see cref="ExactMethod.Asymptotic"/> instead. Also an option outside its enumeration.
     /// </exception>
     public static TestResult Test(
         ReadOnlySpan<double> x,
@@ -58,20 +58,30 @@ public static class MannWhitney
         ExactMethod method = ExactMethod.Auto,
         NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        ReadOnlySpan<double> left = nanPolicy == NanPolicy.Propagate
-            ? x
-            : NanFilter.Apply(x, nanPolicy, nameof(x));
-        ReadOnlySpan<double> right = nanPolicy == NanPolicy.Propagate
-            ? y
-            : NanFilter.Apply(y, nanPolicy, nameof(y));
+        // An option outside its enumeration is refused last, once the input has met every refusal of its own (#1704's Review A).
+        TestResult result = TestCore(x, y, alternative, continuity, method, nanPolicy);
+        Options.Require(alternative);
+        Options.Require(continuity);
+        Options.Require(method);
+        Options.Require(nanPolicy);
+        return result;
+    }
 
-        if (left.Length == 0)
+    private static TestResult TestCore(
+        ReadOnlySpan<double> x,
+        ReadOnlySpan<double> y,
+        Alternative alternative,
+        Continuity continuity,
+        ExactMethod method,
+        NanPolicy nanPolicy)
+    {
+        ReadOnlySpan<double> left = NanFilter.Apply(x, nanPolicy, nameof(x));
+        ReadOnlySpan<double> right = NanFilter.Apply(y, nanPolicy, nameof(y));
+
+        // An empty sample leaves U undefined, which Mann and Whitney's paper does not cover: NaN, as decision 0010 rules.
+        if (left.Length == 0 || right.Length == 0)
         {
-            throw new ArgumentException("The first sample is empty.", nameof(x));
-        }
-        if (right.Length == 0)
-        {
-            throw new ArgumentException("The second sample is empty.", nameof(y));
+            return new TestResult(double.NaN, double.NaN);
         }
 
         int n = left.Length;
@@ -187,7 +197,8 @@ public static class MannWhitney
         {
             Alternative.Less => (deviation + correction) / Math.Sqrt(variance),
             Alternative.Greater => (deviation - correction) / Math.Sqrt(variance),
-            Alternative.TwoSided => (Math.Abs(deviation) - correction) / Math.Sqrt(variance),
+            // scipy's sign(deviation) correction: none at a deviation of zero, so a zero variance reads 0/0, NaN (#1704's Review A).
+            Alternative.TwoSided => (Math.Abs(deviation) > 0.0 ? Math.Abs(deviation) - correction : 0.0) / Math.Sqrt(variance),
             _ => throw new ArgumentOutOfRangeException(nameof(alternative), alternative, null),
         };
 

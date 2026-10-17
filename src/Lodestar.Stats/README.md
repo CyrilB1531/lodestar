@@ -5,8 +5,9 @@ U, Wilcoxon signed-rank, chi-square and its contingency form, Fisher exact, Kolm
 Shapiro-Wilk, Anderson-Darling and its k-sample form, one-way ANOVA, Kruskal-Wallis, Levene,
 Bartlett, Fligner-Killeen, Friedman, the binomial test, and the correlation tests, Spearman's
 matrix and the point-biserial included. Each returns its statistic and p-value, with scipy's
-alternatives and `nan_policy`. It also publishes the four distribution tails its neighbours
-need.
+alternatives and `nan_policy`. It also publishes the normal, Student, chi-squared and F
+distributions' tails, densities and quantiles, the tails and quantiles its neighbours call among
+them.
 
 ## Install
 

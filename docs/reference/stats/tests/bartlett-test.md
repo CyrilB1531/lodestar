@@ -17,15 +17,15 @@ public static TestResult Test(NanPolicy nanPolicy, double[][] groups)
 The policy comes first because the groups are a `params` array and C# allows no parameter after
 one.
 
-**Parameters** — `groups` are the samples to compare, at least two, each holding at least two
-values, one array per group as `scipy.stats.bartlett` takes them. `nanPolicy` says what to do with
+**Parameters** — `groups` are the samples to compare, at least two, one array per group as `scipy.stats.bartlett` takes them. `nanPolicy` says what to do with
 a `NaN`; scipy's `nan_policy`, defaulting to [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TestResult`: the T statistic, and the upper-tail p-value.
 
-**Exceptions** — `ArgumentException` when there are fewer than two groups, a group holds fewer
-than two values — it would have no variance for the statistic's logarithm to read — or
-`nanPolicy` is [`NanPolicy.Raise`](../nanpolicy.md) and a group holds a `NaN`.
+**Exceptions** — `ArgumentException` when there are fewer than two groups, or `nanPolicy` is
+[`NanPolicy.Raise`](../nanpolicy.md) and a group holds a `NaN`. A null or empty group, or one of a
+single value, given or left by omission, has no variance for the statistic's logarithm to read,
+which Bartlett (1937) leaves undefined, and answers `NaN` for both ([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md)). `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — the same three machines [`Levene.Test`](levene-test.md) measures.
 

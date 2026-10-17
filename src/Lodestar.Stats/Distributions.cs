@@ -210,14 +210,15 @@ public static class Distributions
     /// <param name="f">The point; below the support the density is zero, and <c>NaN</c> answers <c>NaN</c>.</param>
     /// <param name="numeratorDf">Numerator degrees of freedom; must be positive and finite.</param>
     /// <param name="denominatorDf">Denominator degrees of freedom; must be positive and finite.</param>
-    /// <returns><c>scipy.stats.f.pdf(f, dfn, dfd)</c>.</returns>
+    /// <returns><c>scipy.stats.f.pdf(f, dfn, dfd)</c>, and zero at <c>+∞</c>, the density's limit (decision 0010).</returns>
     /// <exception cref="ArgumentOutOfRangeException">Either degrees-of-freedom argument is not positive, or is 5e-324, whose half is not a double.</exception>
     public static double FisherSnedecorPdf(double f, double numeratorDf, double denominatorDf)
     {
         RequireShapeDfs(numeratorDf, denominatorDf);
 
-        // At +∞ scipy's pdf is zero up to a numerator of two and NaN past it, where its formula forms ∞/∞.
-        return double.IsPositiveInfinity(f) && numeratorDf > 2.0 ? double.NaN : Densities.Fisher(f, numeratorDf, denominatorDf);
+        // At +∞ the density's limit is zero at every df; scipy's NaN past a numerator of two is its formula forming ∞/∞
+        // (decision 0010).
+        return Densities.Fisher(f, numeratorDf, denominatorDf);
     }
 
     /// <summary>The <em>F</em> lower tail: <c>P(F ≤ f)</c>.</summary>
@@ -263,14 +264,14 @@ public static class Distributions
     /// <summary>The chi-squared density.</summary>
     /// <param name="x">The point; below the support the density is zero, and <c>NaN</c> answers <c>NaN</c>.</param>
     /// <param name="df">Degrees of freedom; must be positive and finite.</param>
-    /// <returns><c>scipy.stats.chi2.pdf(x, df)</c>.</returns>
+    /// <returns><c>scipy.stats.chi2.pdf(x, df)</c>, and zero at <c>+∞</c>, the density's limit (decision 0010).</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="df"/> is not positive, or is 5e-324, whose half is not a double.</exception>
     public static double ChiSquaredPdf(double x, double df)
     {
         RequireShapeDf(df);
 
-        // At +∞ scipy's pdf is zero up to two degrees of freedom and NaN past them, where its formula forms ∞/∞.
-        return double.IsPositiveInfinity(x) && df > 2.0 ? double.NaN : Densities.ChiSquared(x, df);
+        // At +∞ the density's limit is zero at every df; scipy's NaN past two is its formula forming ∞/∞ (decision 0010).
+        return Densities.ChiSquared(x, df);
     }
 
     /// <summary>The chi-squared lower tail: <c>P(X ≤ x)</c>.</summary>

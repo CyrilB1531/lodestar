@@ -10,9 +10,8 @@ namespace Lodestar.Stats;
 public static class MultipleComparisons
 {
     /// <summary>Multiplies each p-value by the family size, clamped at one.</summary>
-    /// <param name="pValues">The family; at least one value, each in <c>[0, 1]</c>.</param>
+    /// <param name="pValues">The family, each value in <c>[0, 1]</c>; an empty one adjusts to an empty one, as the Benjamini rules do.</param>
     /// <returns>The adjusted p-values, in the input's order.</returns>
-    /// <exception cref="ArgumentException"><paramref name="pValues"/> is empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException">A value is NaN or outside <c>[0, 1]</c>.</exception>
     public static double[] Bonferroni(ReadOnlySpan<double> pValues)
     {
@@ -28,12 +27,14 @@ public static class MultipleComparisons
     }
 
     /// <summary>The Benjamini-Hochberg step-up procedure.</summary>
-    /// <param name="pValues">The family; at least one value, each in <c>[0, 1]</c>.</param>
+    /// <param name="pValues">The family, each value in <c>[0, 1]</c>; an empty one adjusts to an empty one, as scipy's does.</param>
     /// <returns>The adjusted p-values, in the input's order.</returns>
-    /// <exception cref="ArgumentException"><paramref name="pValues"/> is empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException">A value is NaN or outside <c>[0, 1]</c>.</exception>
-    public static double[] BenjaminiHochberg(ReadOnlySpan<double> pValues) =>
-        StepUp(pValues, factor: 1.0);
+    public static double[] BenjaminiHochberg(ReadOnlySpan<double> pValues)
+    {
+        Validate(pValues);
+        return StepUp(pValues, factor: 1.0);
+    }
 
     /// <summary>The Benjamini-Yekutieli procedure, valid under any dependence.</summary>
     /// <remarks>
@@ -41,9 +42,8 @@ public static class MultipleComparisons
     /// dependent. Yekutieli's correction drops that assumption at the price of a
     /// harmonic-sum factor, so its adjusted values are never smaller.
     /// </remarks>
-    /// <param name="pValues">The family; at least one value, each in <c>[0, 1]</c>.</param>
+    /// <param name="pValues">The family, each value in <c>[0, 1]</c>; an empty one adjusts to an empty one, as scipy's does.</param>
     /// <returns>The adjusted p-values, in the input's order.</returns>
-    /// <exception cref="ArgumentException"><paramref name="pValues"/> is empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException">A value is NaN or outside <c>[0, 1]</c>.</exception>
     public static double[] BenjaminiYekutieli(ReadOnlySpan<double> pValues)
     {
@@ -58,10 +58,9 @@ public static class MultipleComparisons
         return StepUp(pValues, harmonic);
     }
 
+    /// <summary>The step-up adjustment of a family its caller has validated.</summary>
     private static double[] StepUp(ReadOnlySpan<double> pValues, double factor)
     {
-        Validate(pValues);
-
         int n = pValues.Length;
         int[] order = new int[n];
         double[] sorted = new double[n];
@@ -90,11 +89,6 @@ public static class MultipleComparisons
 
     private static void Validate(ReadOnlySpan<double> pValues)
     {
-        if (pValues.Length == 0)
-        {
-            throw new ArgumentException("The family of p-values is empty.", nameof(pValues));
-        }
-
         for (int i = 0; i < pValues.Length; i++)
         {
             if (double.IsNaN(pValues[i]) || pValues[i] < 0.0 || pValues[i] > 1.0)

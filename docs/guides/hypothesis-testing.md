@@ -153,10 +153,13 @@ bool stillSignificant = adjusted[0] < 0.05;   // => True
 Welch's test; `scipy.stats.ttest_ind` defaults to Student's. Pooling the two
 variances is only correct when the populations really share one, which is an
 assumption most callers have not checked. Pass `Variance.Equal` for scipy's
-default. Everything else in this package matches `scipy.stats` 1.18.0 exactly,
-and the [equivalence table](../equivalence.md) is the row-by-row map, including
-the handful of places one call refuses rather than answering — a NaN, a
-warning, or a number a caller did not ask for.
+default. Everything else follows each test's defining document, with
+`scipy.stats` 1.18.1 as the numeric oracle wherever it implements that document
+([decision 0010](../decisions/0010-each-algorithm-follows-its-defining-document.md)):
+where the document leaves a statistic undefined the answer is `NaN`, even where
+scipy raises, and where it refuses — Shapiro-Wilk below three values or at a
+range under `1e-19` — so does this. The [equivalence table](../equivalence.md)
+is the row-by-row map, each such place included.
 
 ## Exact and asymptotic
 

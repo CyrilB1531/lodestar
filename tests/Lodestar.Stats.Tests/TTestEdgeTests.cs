@@ -31,9 +31,13 @@ public sealed class TTestEdgeTests
     }
 
     [Fact]
-    public void Independent_refuses_an_empty_sample_and_answers_one_value_as_scipy()
+    public void Independent_answers_NaN_for_an_empty_sample_and_one_value_as_scipy()
     {
-        Assert.Throws<ArgumentException>(() => TTest.Independent([], [1.0, 2.0]));
+        // A mean of nothing is undefined (decision 0010), in every form of the test.
+        foreach (TTestResult empty in new[] { TTest.Independent([], [1.0, 2.0]), TTest.OneSample([], 0.0), TTest.Paired([], []) })
+        {
+            Assert.True(double.IsNaN(empty.Statistic) && double.IsNaN(empty.PValue) && double.IsNaN(empty.DegreesOfFreedom));
+        }
 
         // scipy's ttest_ind([1,2,3],[0]): pooled t = 1.7320508, p = 0.2254033, df = 2; Welch nan with df 1 (#1217).
         TTestResult pooled = TTest.Independent([1.0, 2.0, 3.0], [0.0], Alternative.TwoSided, Variance.Equal);

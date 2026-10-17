@@ -20,9 +20,10 @@ what to do with a `NaN`; scipy's `nan_policy`, defaulting to
 smaller of the two rank sums; under [`Alternative.Less`](alternative.md) or [`Alternative.Greater`](alternative.md) it is the sum of the
 positive ranks, which can be the larger one — scipy's `wilcoxon` reports the same.
 
-**Exceptions** — `ArgumentException` when the two samples differ in length, are empty, or
-`nanPolicy` is `NanPolicy.Raise` and either sample holds a `NaN`. `ArgumentOutOfRangeException`
-when `method` is `ExactMethod.Exact` and the ranked sample exceeds 500 values.
+**Exceptions** — `ArgumentException` when the two samples differ in length, or `nanPolicy` is
+`NanPolicy.Raise` and either sample holds a `NaN`. Empty samples, given or left by omission, answer
+`NaN` for both, as scipy's do. `ArgumentOutOfRangeException`
+when `method` is `ExactMethod.Exact` and the ranked sample exceeds 500 values. `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — seven pairs, two of them unchanged: what the three zero methods disagree about.
 
