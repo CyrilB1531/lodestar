@@ -64,7 +64,8 @@ public static class Fligner
         }
 
         double[][] samples = NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups));
-        if (Groups.AnyEmpty(samples) || Array.Exists(samples, group => Ranks.HasNaN(group)))
+        // Only Propagate can keep a NaN: omission dropped it and Raise refused it, so the scan runs there alone (#1724).
+        if (Groups.AnyEmpty(samples) || (nanPolicy == NanPolicy.Propagate && Array.Exists(samples, group => Ranks.HasNaN(group))))
         {
             return new TestResult(double.NaN, double.NaN);
         }
@@ -82,28 +83,32 @@ public static class Fligner
         double[] centres = [.. samples.Select(group => GroupSpread.Centre(group, center, proportionToCut))];
 
         // A group trimmed to nothing has a NaN centre, and an infinite value at an infinite one an inf - inf deviation: scipy
-        // answers NaN for both, where ranking the second answered finite values (#1707). Infinite deviations it ranks too.
-        bool anyNaN = false;
-        for (int g = 0; g < samples.Length; g++)
-        {
-            double[] group = samples[g];
-            double centre = centres[g];
-            foreach (double value in group)
-            {
-                double deviation = Math.Abs(value - centre);
-                anyNaN |= double.IsNaN(deviation);
-                deviations[at++] = deviation;
-            }
-        }
-        // Every deviation tied leaves the scores no variance, 0/0 (decision 0010): rounding read 15 here, and NaN or 12 in scipy.
-        if (anyNaN || !(deviations.Min() < deviations.Max()))
+        // answers NaN for both, where ranking the second answered finite values (#1707). Read off the k centres (#1724).
+        if (AnyUndefinedDeviation(samples, centres))
         {
             return new TestResult(double.NaN, double.NaN);
+        }
+        for (int g = 0; g < samples.Length; g++)
+        {
+            double centre = centres[g];
+            foreach (double value in samples[g])
+            {
+                deviations[at++] = Math.Abs(value - centre);
+            }
         }
 
         // The normal scores of the pooled ranks: Φ⁻¹(r / (2(N + 1)) + 1/2), from Wichura's AS 241 alone, about 1e-16
         // relative: the published quantile, scipy's ndtri, took the test from 8.34 to 9.59 ms at 100,000 rows (#1684).
-        double[] ranks = Ranks.Average(deviations);
+        double[] ranks = Ranks.AverageWithTies(deviations, out double tieCorrection, out _);
+        // Every deviation tied, one group of all N: the scores have no variance, 0/0 (decision 0010), where rounding read 15
+        // and scipy NaN or 12. Read off the tie term the ranking already summed, not a pass of its own (#1724).
+        // S1244: Ranks forms each group's t³ − t by these same operations, and two or more groups sum at least about 3N² below.
+#pragma warning disable S1244
+        if (tieCorrection == ((double)total * total * total) - total)
+#pragma warning restore S1244
+        {
+            return new TestResult(double.NaN, double.NaN);
+        }
         var scores = new double[total];
         double sum = 0.0;
         for (int i = 0; i < total; i++)
@@ -142,5 +147,19 @@ public static class Fligner
         return double.IsPositiveInfinity(statistic)
             ? new TestResult(statistic, 0.0)
             : new TestResult(statistic, Distributions.ChiSquaredSf(statistic, k - 1.0));
+    }
+
+    /// <summary>Whether a centre is NaN, or infinite beside a value equal to it, either of which makes a deviation NaN.</summary>
+    private static bool AnyUndefinedDeviation(double[][] samples, double[] centres)
+    {
+        for (int g = 0; g < samples.Length; g++)
+        {
+            double centre = centres[g];
+            if (double.IsNaN(centre) || (double.IsInfinity(centre) && Array.IndexOf(samples[g], centre) >= 0))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

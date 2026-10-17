@@ -30,6 +30,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `Distributions.StudentQuantile` and `StudentIsf` take `log B(df/2, ½)` once per quantile rather than once per Newton step. ([#1686](https://github.com/CyrilB1531/lodestar/issues/1686))
 - `Distributions.ChiSquaredQuantile`, `ChiSquaredIsf`, `FisherSnedecorQuantile` and `FisherSnedecorIsf` settle on a converged root instead of restarting their bracket's search. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
 - `Distributions.StudentQuantile` and `StudentIsf` take the density's constant from the cached `log B`, which can move a quantile by a few ulps. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
+- `Distributions.FisherSnedecorQuantile`, `FisherSnedecorIsf` and `BinomialResult.ProportionConfidenceInterval` take `log(1 − x)` from one helper, which can move a value by up to about 60 ulps. ([#1725](https://github.com/CyrilB1531/lodestar/issues/1725))
 - `log1p` comes from the one implementation `Lodestar.Preprocessing`, `Lodestar.Stats`, `Lodestar.Survival` and `Lodestar.Metrics` share, which can move a value by an ulp. ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230))
 - `Distributions.NormalQuantile` and `NormalIsf` are scipy's `ndtri`, Cephes' rational approximations ported statement for statement, so they match `norm.ppf` and `norm.isf` to the last bit on Linux, and to `1e-14` relative elsewhere, where inverting the tail by Newton strayed up to 5.5e-13 near one half, and `ShapiroWilk.Test`'s Blom scores and the chi-squared quantiles' starting point take it too, which can move their last bits. ([#1684](https://github.com/CyrilB1531/lodestar/issues/1684))
 - `Distributions.StudentQuantile` and `NormalQuantile` answer `0` and `1` with the support's ends, as scipy's `ppf` does, where they refused them. ([#1158](https://github.com/CyrilB1531/lodestar/issues/1158))
@@ -37,6 +38,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- The F law takes y from `numeratorDf · f / denominatorDf` where `numeratorDf · f` is subnormal, so `Distributions.FisherSnedecorPdf`, `FisherSnedecorCdf` and `FisherSnedecorSf` keep their digits there, where they lost them. ([#1725](https://github.com/CyrilB1531/lodestar/issues/1725))
 - `Distributions.FisherSnedecorIsf` answers `+∞` at a subnormal numerator df where the root lies past the largest double, where it threw. ([#1704](https://github.com/CyrilB1531/lodestar/issues/1704))
 - `Distributions.FisherSnedecorSf` and `FisherSnedecorCdf` answer `0` and `1` at an infinite `f` where `denominatorDf / numeratorDf` overflows, where they threw. ([#1705](https://github.com/CyrilB1531/lodestar/issues/1705))
 - `ShapiroWilk.Test` shifts the sample by the value at its middle position as scipy's `shapiro` does, so a near-constant sample keeps its digits and a constant one whose mean rounded is refused, where it answered `W = 0`. ([#1706](https://github.com/CyrilB1531/lodestar/issues/1706))

@@ -221,7 +221,7 @@ internal static class Normal
         // Sf(z) = 1 - Sf(-z) with Sf(-z) small, so the logarithm is taken of the complement
         // rather than of a sum that has already rounded to one.
         double opposite = Sf(-z);
-        return Gamma.LogOnePlusMinus(-opposite, 1.0 - opposite) - opposite;
+        return Beta.LogComplement(opposite, 1.0 - opposite);
     }
 
     /// <summary>Mills' ratio asymptotically: the density's logarithm, corrected by an alternating series.</summary>

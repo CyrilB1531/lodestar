@@ -298,9 +298,9 @@ internal static class BetaQuantile
     {
         double a = problem.A;
         double b = problem.B;
-        // log(1 - x) through Gamma's series rather than Math.Log(1 - x): the root is often small
-        // here, and 1 - x rounds its own leading digits away.
-        double logOneMinusX = Gamma.LogOnePlusMinus(-x, 1.0 - x) - x;
+        // log(1 - x) through Gamma's series where x is small rather than Math.Log(1 - x): the root
+        // often is here, and 1 - x rounds its own leading digits away.
+        double logOneMinusX = Beta.LogComplement(x, 1.0 - x);
         // Where both shapes reach the uniform expansion, a log x against log B cancels, as LogStirlingFront has why.
         double logDensity = UniformBeta.Holds(a, b)
             ? Beta.LogStirlingFront(a, b, x, 1.0 - x) - Math.Log(x) - logOneMinusX
