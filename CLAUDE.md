@@ -33,7 +33,7 @@ it.
 | `CLAUDE.md` | what a session has found, hand-maintained | what a session needs to be productive, and the traps that cost time |
 | `docs/equivalence.md` | the oracle corpora in `tests/oracles/*.json`, replayed against the C# they compare | the Python call to C# counterpart mapping, with each divergence |
 | `docs/migration/` | the .NET package chosen for each need | what is delegated to another .NET library, and why |
-| `docs/reference/` | the exported types and public methods of the namespaces `docs/wiki-map.json` covers, replayed against both target frameworks' assemblies — net10.0's alone on a pull request that skips the build, which runs on the binaries `main` staged for its base commit ([#1059](https://github.com/CyrilB1531/lodestar/issues/1059)) | what each function is for: declaration, parameters, returns, example, remarks |
+| `docs/reference/` | the exported types and public methods of the namespaces `docs/wiki-map.json` covers, replayed against both target frameworks' assemblies | what each function is for: declaration, parameters, returns, example, remarks |
 | `docs/wiki-map.json` | the packages and the pages that ship with each, hand-maintained | which page belongs to which package, and which namespaces the reference gate enforces |
 | `docs/wiki/home.md` | the guides and namespace pages it links, hand-maintained | the published wiki's front page: what Lodestar is, and where each task starts |
 | `src/<Package>/CHANGELOG.md` | the merged pull requests, per release | what changed in that package, per release |
@@ -58,20 +58,13 @@ Neither `python` nor `python3` is safe to assume on both platforms: Ubuntu 24.04
 Python.Python.3.12`, which wraps it) ships `python.exe` and no `python3.exe` — and a `python3` that
 does resolve there is often the Microsoft Store alias, which opens the Store instead of running.
 
-```bash
-# POSIX (bash/zsh)
-python3 tools/check_version_floor.py      # offline, instant; catches the three version numbers drifting apart
-python3 tools/check_machine_paths.py      # catches a tracked file holding a path under someone's home directory
-python3 tools/check_sample_culture.py     # catches a sample number printed in the contributor's culture
-python3 tools/check_repeated_literals.py --base origin/main   # catches a literal this branch pushed past S1192
-```
+Every guard is a `tools/check_*.py`. `git config core.hooksPath .githooks` runs the offline ones
+before each commit; CONTRIBUTING.md's
+[*Before committing*](CONTRIBUTING.md#before-committing-the-guards-one-command-earlier) lists them
+and the five left to CI, among them the one that needs the pull request's base:
 
-```powershell
-# PowerShell
-python tools/check_version_floor.py
-python tools/check_machine_paths.py
-python tools/check_sample_culture.py
-python tools/check_repeated_literals.py --base origin/main
+```bash
+python3 tools/check_repeated_literals.py --base origin/main   # catches a literal this branch pushed past S1192
 ```
 
 A single test, or one area:
@@ -91,32 +84,6 @@ count out of the `-xml` result ([#1054](https://github.com/CyrilB1531/lodestar/i
 count is also what catches a whole *suite* going missing, which has no exit code at all:
 `dotnet test Lodestar.slnx -c Release` must report **36 assemblies**, eighteen suites and their
 eighteen mirrors.
-
-Oracle corpora (see *Oracle validation* below), run from outside the repository:
-
-```bash
-# POSIX (bash/zsh)
-cd /tmp && PYTHONSAFEPATH=1 <repo>/.venv-oracles/bin/python <repo>/tools/generate_oracles.py
-```
-
-```powershell
-# PowerShell
-cd $env:TEMP
-$env:PYTHONSAFEPATH = '1'
-<repo>\.venv-oracles\Scripts\python.exe <repo>\tools\generate_oracles.py
-Remove-Item Env:PYTHONSAFEPATH   # POSIX sets it only for this one command; PowerShell must clear it back out
-```
-
-Both need a neutral directory because `nltk` refuses to import under the repository (see *Oracle
-validation* below). Neutral means **not an ancestor of the checkout**, which is why `/tmp` is the
-wrong answer in a hosted session: those put the worktree under `/tmp`, so the guard fires anyway.
-Check where the repository is first — `/var/tmp` serves when `/tmp` cannot.
-
-**`.venv-oracles` is built on 3.12 or later, never on the platform `python3`** — 3.10 on Ubuntu
-22.04, 3.11 on the hosted session image. Below the floor the generators stop with a sentence naming
-both versions; before #486 they died with a `SyntaxError` in `seeded_random.py`, which a `| tail`
-reported as success. CONTRIBUTING.md's [*Oracle validation*](CONTRIBUTING.md#oracle-validation)
-step 2 has the creation command, and `tools/python_floor.py` holds the floor — the CI interpreter.
 
 Guide snippets, benchmarks, packaging (see the `python`/`python3` split above):
 
@@ -212,9 +179,6 @@ compile-verified and never executed. A new test file is picked up by both automa
 `Lodestar.*` package the library depends on, transitive ones included, with its own
 `ProjectReference`** — a `PackageReference` leaks the pin, because `SetTargetFramework` does not
 travel across one and NuGet resolves package assets against the *mirror's* framework, net10.0.
-`Lodestar.Text` and `Lodestar.Decomposition` ran 832 tests against the net10.0
-`Lodestar.Abstractions` that way, all green
-([#529](https://github.com/CyrilB1531/lodestar/issues/529)).
 `python3 tools/check_netstandard_guards.py` enforces both halves.
 
 The one deliberate behavioural split is `VectorMath.Dot` — `Vector<T>` SIMD on
@@ -252,39 +216,53 @@ jellyfish, textdistance, difflib, scikit-learn, nltk, HuggingFace `tokenizers`, 
 numpy, ONNX Runtime) into `tests/oracles/*.json`, compared at `1e-9` for floats and exactly for
 strings. Python is a **development dependency only**.
 
-Three traps, each already worth a session:
+Regenerate the corpora from outside the repository:
 
-- **Run the generator from a neutral working directory** — CONTRIBUTING.md's
-  [*Oracle validation*](CONTRIBUTING.md#oracle-validation) has why and the exact
-  error `nltk` raises otherwise.
+```bash
+# POSIX (bash/zsh)
+cd /tmp && PYTHONSAFEPATH=1 <repo>/.venv-oracles/bin/python <repo>/tools/generate_oracles.py
+```
+
+```powershell
+# PowerShell
+cd $env:TEMP
+$env:PYTHONSAFEPATH = '1'
+<repo>\.venv-oracles\Scripts\python.exe <repo>\tools\generate_oracles.py
+Remove-Item Env:PYTHONSAFEPATH   # POSIX sets it only for this one command; PowerShell must clear it back out
+```
+
+Both need a neutral directory because `nltk` refuses to import under the repository —
+CONTRIBUTING.md's [*Oracle validation*](CONTRIBUTING.md#oracle-validation) has the exact error.
+Neutral means **not an ancestor of the checkout**, which is why `/tmp` is the
+wrong answer in a hosted session: those put the worktree under `/tmp`, so the guard fires anyway.
+Check where the repository is first — `/var/tmp` serves when `/tmp` cannot.
+
+**`.venv-oracles` is built on 3.12 or later, never on the platform `python3`** — 3.10 on Ubuntu
+22.04, 3.11 on the hosted session image. Below the floor the generators stop with a sentence naming
+both versions. *Oracle validation* step 2 has the creation command, and
+`tools/python_floor.py` holds the floor — the CI interpreter.
+
 - **Read the generator's own exit code**, never a pipeline's. `python … | tail`
   reports `tail`'s status, so a failed generation looks successful — and the
   comparison that follows then proves nothing, because nothing was regenerated.
 - **The `Oracles are reproducible` job compares numbers, not bytes** — it copies the committed
   corpora aside, regenerates, and runs `tools/compare_oracles.py` over the two: floats at the same
-  `1e-9` the suites use — relative for `stats_iv.json` and `decomposition_qr_numpy.json`, whose suites compare relatively — everything
-  else exactly. It used to `git diff` them, which failed on the
-  last digits of a BLAS-reduced value and read as flaky. A red here means a corpus moved by more
-  than any assertion tolerates, so believe it. On failure the job uploads the regenerated corpora
-  as an artefact, so the comparison can be made off the runner.
+  `1e-9` the suites use — relative for `stats_iv.json` and `decomposition_qr_numpy.json`, whose
+  suites compare relatively — everything else exactly. A red here means a corpus moved by more
+  than any assertion tolerates, so believe it.
 
-**Seven records, one per axis, an eighth amending the fourth, a ninth amending the fifth and the
-seventh, and a number names a different record than it did before 2026-09-20** — [#1103](https://github.com/CyrilB1531/lodestar/issues/1103) restarted the numbering
-after merging the 75 records that stated an axis and deleting the 72 that stated a mechanism. Read
-an older citation against the tree it was written in: `git show 53af23c2:docs/decisions/<file>`.
-**`0003` changed text on 2026-09-24**, when the numbering entered epoch 3: its rule for
-`Lodestar.Abstractions` went from the types packages exchange to the public data types, with no
-code. Its epoch-2 text reads at `9f9406c5`.
-[`docs/decisions/index.yaml`](docs/decisions/index.yaml) carries each record's `supersedes`,
+A decision number names a different record than it did before 2026-09-20
+([#1103](https://github.com/CyrilB1531/lodestar/issues/1103) restarted the numbering): read an
+older citation against the tree it was written in, `git show 53af23c2:docs/decisions/<file>`, and a
+citation inside a retrospective spec uses the numbering of its own date. **`0003` changed text on
+2026-09-24**, when the numbering entered epoch 3; its epoch-2 text reads at `9f9406c5`. An
+amendment is a new record, because **a record is never edited and may only be deleted**, and
+`tools/check_adr_immutable.py` enforces exactly that — the one exception being a diff that raises
+`docs/decisions/.numbering-epoch`. [`docs/decisions/index.yaml`](docs/decisions/index.yaml),
+generated from the frontmatter by `tools/regen_adr_index.py`, carries each record's `supersedes`,
 `amends` and `applies` together with the reverses a record cannot state for itself — `amended_by`,
-which says the decision changed, and `applied_by`, which says it was used again unchanged —
-generated from the frontmatter by `tools/regen_adr_index.py`. Three edges exist — `0008` amends
-`0004`, numpy's generator now written here, and `0009` amends `0005` and `0007`, the phonetic
-encoders now following jellyfish on every input — because **a record is never edited and may only be
-deleted**: an amendment is a new record,
-and `tools/check_adr_immutable.py` enforces exactly that — the one exception being a diff that raises
-`docs/decisions/.numbering-epoch`, which is how `0003` was rewritten. Follow both edges before citing
-a record that has them.
+which says the decision changed, and `applied_by`, which says it was used again unchanged. Follow
+both edges before citing a record that has them.
 
 Where behaviour deliberately diverges from the Python reference, it goes in
 [`docs/decisions/`](docs/decisions/README.md), the fastest way to understand why
@@ -307,7 +285,7 @@ The analyzer version is pinned once as `$(LodestarSonarAnalyzerVersion)` in the 
 - **Do not reach for `.editorconfig` or `.vscode/settings.json`** for SonarLint rules. It ignores
   the first, and `sonarlint.rules` is application-scope, so VS Code drops it from a workspace file.
 - **When suppressed code moves, the suppression stays behind.** Extracting a method into a new file
-  leaves the `#pragma` in the old one and the rule reappears. Twice here.
+  leaves the `#pragma` in the old one and the rule reappears.
 
 `dotnet build Lodestar.slnx` does **not** reach `samples/` — they are outside the
 solution. Duplication and coverage are visible only to SonarCloud, so a green
@@ -366,35 +344,17 @@ Design specs live in `docs/superpowers/specs/`, named
 `<date>_<issue id padded to 4>_<slug>.md` — the repository's naming, which overrides the skills'
 default; a second spec on one issue takes a letter (`0122b`). A plan is written to the same shape
 and **is not committed**: it lives beside the work, in the session's scratch directory or under a
-path `.git/info/exclude` keeps out, the way the `.superpowers/` workspace already does. The skills that write them are vendored under
-[`.claude/skills/`](.claude/skills/README.md) rather than installed, so a hosted session reaches
-them; read `writing-plans` and `brainstorming` first. **Do not reproduce the format by copying a
-neighbouring file.** Two plans written that way failed `writing-plans`' own self-review
-([#454](https://github.com/CyrilB1531/lodestar/issues/454)), most visibly its **No Placeholders**
-rule: a step that says what to do without showing how is a plan failure, and code steps carry code.
+path `.git/info/exclude` keeps out, the way the `.superpowers/` workspace already does. The skills
+that write them are vendored under [`.claude/skills/`](.claude/skills/README.md) rather than
+installed, so a hosted session reaches them; read `writing-plans` and `brainstorming` rather than
+copying a neighbouring file. A step that says what to do without showing how is a plan failure,
+and code steps carry code. **A spec may be written after the fact; a plan may not.**
 
-**A spec may be written after the fact; a plan may not.** A spec records measured facts and rejected
-options, and is still a record when written late — issues #202 to #446 were backfilled from the
-commits that closed them. A plan is an instrument for work that has not started, with checkbox steps
-and a `Branch:` line, so one written for merged work is checkboxes nobody may tick on a branch that
-no longer exists. That is why the plan is not tracked: 116 of them, 88,745 lines, were, and no file
-outside `docs/superpowers/` cited one — against 88 citations into `specs/`
-([#1104](https://github.com/CyrilB1531/lodestar/issues/1104) deleted them).
-
-**Every spec opens its `**Status:**` with one of three clauses, and nothing else:**
-
-| clause | what it says |
-| --- | --- |
-| `written before the work` | the spec led; the work followed it |
-| `written with the work` | spec and work moved together, in one commit |
-| `**retrospective**` | the work merged first; the spec caught up |
-
-Anything after that clause is free text — the date it was written, an amendment, a note that the
-work was never done. **Date a backfilled spec by the work, not by the day it was written**, or the
-directory loses its ordering; the status line is the only place saying the file arrived late, and
-carries the writing date instead. `tools/check_spec_status.py` enforces the clause, the file name
-and the empty `plans/`. A citation inside a retrospective spec uses the numbering of its own date,
-which for a decision record before 2026-09-20 is not today's.
+Every spec opens its `**Status:**` with one of three clauses, and nothing else:
+`written before the work`, `written with the work` or `**retrospective**` — CONTRIBUTING.md's
+[*Specs and plans*](CONTRIBUTING.md#specs-and-plans) says what each means. **Date a backfilled spec
+by the work, not by the day it was written**; the status line carries the writing date instead.
+`tools/check_spec_status.py` enforces the clause, the file name and the empty `plans/`.
 
 ### SonarQube MCP server
 
