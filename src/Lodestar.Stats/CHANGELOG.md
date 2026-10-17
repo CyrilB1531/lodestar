@@ -12,6 +12,21 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Changed
 
+- `OneWayAnova.Test` answers `NaN` for groups of one value each and for a null or empty group, where it threw. ([#1712](https://github.com/CyrilB1531/lodestar/issues/1712))
+- `KruskalWallis.Test`, `Levene.Test` and `Bartlett.Test` answer `NaN` for a null or empty group, given or left by omission, where they threw. ([#1712](https://github.com/CyrilB1531/lodestar/issues/1712))
+- `KruskalWallis.Test` answers `NaN` for a fully tied pooled sample, and `TTest`, `MannWhitney.Test` and `KolmogorovSmirnov.TwoSample` for an empty sample, where they threw (decision 0010). ([#1712](https://github.com/CyrilB1531/lodestar/issues/1712))
+- `Bartlett.Test` answers `NaN` for a group of one value, `Friedman.Test` for no block and `ChiSquared.GoodnessOfFit` a `NaN` p-value for no category, given or left by omission, where they threw (decision 0010). ([#1712](https://github.com/CyrilB1531/lodestar/issues/1712))
+- Every test refuses an option outside its enumeration — a `NanPolicy`, `Alternative`, `Variance`, `Continuity`, `ExactMethod`, `ZeroMethod`, `KendallVariant`, `Center` or `ProportionInterval` — on every input, once the input has met its own refusals, where some computed with it as another value and others let an empty or `NaN` sample answer for it. ([#1712](https://github.com/CyrilB1531/lodestar/issues/1712))
+- `Pearson.Test` answers `NaN` below two pairs, `AndersonDarling.Test` for an empty sample, `AndersonDarling.KSample` for an empty sample or a pool of one distinct value, `ChiSquared.Contingency` for a zero marginal, where they threw, and `ChiSquared.GoodnessOfFit` reads a zero expectation as scipy does, `+∞` where a count meets it and `NaN` at `0/0`, where it threw (decision 0010). ([#1712](https://github.com/CyrilB1531/lodestar/issues/1712))
+- `Wilcoxon.Paired` and `Wilcoxon.OneSample` answer `NaN` for empty samples, given or left by omission, where they threw. ([#1712](https://github.com/CyrilB1531/lodestar/issues/1712))
+- `MannWhitney.Test` and `Wilcoxon` answer a `NaN` p-value where their normal approximation has no variance — a pool tied throughout, two-sided with the continuity correction, for Mann-Whitney; every difference zero under Wilcox's or Pratt's zero method, on any side, for Wilcoxon — as scipy's do, where with the continuity correction, or every Wilcox difference zero, they answered 1. ([#1704](https://github.com/CyrilB1531/lodestar/issues/1704))
+- `Levene.Test` answers `NaN` for a propagated `NaN` whatever the trim's size, where an out-of-range trim was refused, and `Fligner.Test` for deviations that all tie, where it answered a rounding error. ([#1704](https://github.com/CyrilB1531/lodestar/issues/1704))
+- `MultipleComparisons` adjusts an empty family to an empty one, where it threw. ([#1704](https://github.com/CyrilB1531/lodestar/issues/1704))
+- `KolmogorovSmirnov.TwoSample` answers a `NaN` p-value for one value against one, two-sided and asymptotic, as scipy's `kstwo` does, where it answered `0` or `1`. ([#1704](https://github.com/CyrilB1531/lodestar/issues/1704))
+- `ChiSquared.Contingency` answers a table of one row or one column with no zero total with a statistic of `0` and a p-value of `1` on no degree of freedom, where it threw. ([#1704](https://github.com/CyrilB1531/lodestar/issues/1704))
+- `Binomial.Test` answers a two-sided p-value of `0` for a count impossible at `int.MaxValue` trials, where an overflow read 1, and its interval at zero trials keeps the limit a one-sided test fixes. ([#1704](https://github.com/CyrilB1531/lodestar/issues/1704))
+- `Spearman.Matrix` under `NanPolicy.Omit` re-ranks only the pairs holding a `NaN`. ([#1717](https://github.com/CyrilB1531/lodestar/issues/1717))
+- `Friedman.Test` ranks every block in one set of scratch arrays. ([#1718](https://github.com/CyrilB1531/lodestar/issues/1718))
 - `Distributions.StudentQuantile` and `StudentIsf` take `log B(df/2, ½)` once per quantile rather than once per Newton step. ([#1686](https://github.com/CyrilB1531/lodestar/issues/1686))
 - `Distributions.ChiSquaredQuantile`, `ChiSquaredIsf`, `FisherSnedecorQuantile` and `FisherSnedecorIsf` settle on a converged root instead of restarting their bracket's search. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
 - `Distributions.StudentQuantile` and `StudentIsf` take the density's constant from the cached `log B`, which can move a quantile by a few ulps. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
@@ -22,6 +37,17 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- `Distributions.FisherSnedecorIsf` answers `+∞` at a subnormal numerator df where the root lies past the largest double, where it threw. ([#1704](https://github.com/CyrilB1531/lodestar/issues/1704))
+- `Distributions.FisherSnedecorSf` and `FisherSnedecorCdf` answer `0` and `1` at an infinite `f` where `denominatorDf / numeratorDf` overflows, where they threw. ([#1705](https://github.com/CyrilB1531/lodestar/issues/1705))
+- `ShapiroWilk.Test` shifts the sample by the value at its middle position as scipy's `shapiro` does, so a near-constant sample keeps its digits and a constant one whose mean rounded is refused, where it answered `W = 0`. ([#1706](https://github.com/CyrilB1531/lodestar/issues/1706))
+- `ShapiroWilk.Test` follows Royston's AS R94: it refuses a range below `1e-19`, divides by an extreme range so no square overflows, computes past 5000 values, where it refused, and answers `NaN` for a NaN or infinite range. ([#1706](https://github.com/CyrilB1531/lodestar/issues/1706))
+- `ShapiroWilk.Test` at three values clips W to its bound of `3/4`, as scipy does, and takes its p-value as scipy writes it, `1 − 6/π acos(√W)`, where 15-digit constants read `[0, 1e-8, 1]` `2.8e-7` off and `[0, 0, 1]` as `0`. ([#1706](https://github.com/CyrilB1531/lodestar/issues/1706))
+- `Fligner.Test` answers `NaN` where an infinite value meets an infinite centre, as scipy's does. ([#1707](https://github.com/CyrilB1531/lodestar/issues/1707))
+- `Distributions.ChiSquaredPdf` and `FisherSnedecorPdf` keep their digits at a tiny argument, where they read `0`. ([#1708](https://github.com/CyrilB1531/lodestar/issues/1708))
+- `Distributions.ChiSquaredPdf` and `FisherSnedecorPdf` answer zero at `+∞` at every df, the density's limit, where they answered `NaN` past two (decision 0010). ([#1708](https://github.com/CyrilB1531/lodestar/issues/1708))
+- `ChiSquared.GoodnessOfFit` answers a `NaN` p-value for a negative statistic, which negative counts can give, where it threw. ([#1709](https://github.com/CyrilB1531/lodestar/issues/1709))
+- `ChiSquared.Contingency` answers `NaN` where finite cells of two rows and two columns or more overflow the marginals, where it threw. ([#1710](https://github.com/CyrilB1531/lodestar/issues/1710))
+- The Pearson confidence interval holds its digits on netstandard2.0 near `r = 0`, where its Fisher transform was `8e-8` off. ([#1711](https://github.com/CyrilB1531/lodestar/issues/1711))
 - `TTest.Independent`, its confidence interval and every internal Student tail read an infinite df as the normal law, where they threw. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
 - The Student members take the normal law from df `1e20` and Student's first order in df to df `1e-12`, and answer `±∞` where a root lies past the largest double. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))
 - `Distributions.StudentQuantile` and `StudentIsf` hold `scipy.stats.t` from df `1e16` up. ([#1690](https://github.com/CyrilB1531/lodestar/issues/1690))

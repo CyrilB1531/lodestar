@@ -12,7 +12,7 @@ public static class ChiSquared
     private const double SumTolerance = 1.4901161193847656e-8;
 
     /// <summary>Tests observed counts against an expected distribution.</summary>
-    /// <param name="observed">The observed counts; at least one category, one alone giving a NaN p-value as scipy's.</param>
+    /// <param name="observed">The observed counts. None, or one alone, gives a NaN p-value, as scipy's does.</param>
     /// <param name="expected">
     /// The expected counts, which must sum to the observed total; omit them for a uniform
     /// expectation, matching <c>scipy.stats.chisquare</c> with <c>f_exp=None</c>.
@@ -20,13 +20,14 @@ public static class ChiSquared
     /// <param name="nanPolicy">What to do with a <c>NaN</c>; scipy's <c>nan_policy</c>.</param>
     /// <returns>The statistic and the upper-tail p-value.</returns>
     /// <exception cref="ArgumentException">
-    /// No category, mismatched lengths, a non-positive expectation, or
+    /// Mismatched lengths, a negative expectation (a zero one reads +∞ where a count meets it, <c>NaN</c> once any is 0/0), or
     /// expectations that do not sum to the observations. An explicit <paramref
     /// name="expected"/> is filtered together with <paramref name="observed"/>, so omission
     /// usually raises here -- it drops matched pairs and so breaks the sum-agreement check
     /// by construction (decision 0007). When <paramref name="nanPolicy"/> is
     /// <see cref="NanPolicy.Raise"/> and either span holds a <c>NaN</c>.
     /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">An option is outside its enumeration.</exception>
     public static TestResult GoodnessOfFit(
         ReadOnlySpan<double> observed,
         ReadOnlySpan<double> expected = default,
@@ -42,16 +43,22 @@ public static class ChiSquared
             }
             else
             {
-                (double[] o, double[] e) = NanFilter.ApplyAligned(
-                    observed, expected, nanPolicy, nameof(observed), nameof(expected));
-                counts = o;
-                expectation = e;
+                NanFilter.ApplyAligned(
+                    observed, expected, nanPolicy, nameof(observed), nameof(expected), out counts, out expectation);
             }
         }
 
+        // No category, given or left by omission: an empty sum of 0 on -1 degrees of freedom, whose tail Pearson's test leaves
+        // undefined, so a NaN p-value, as decision 0010 rules, where this threw; expectations of another length still refused.
         if (counts.Length < 1)
         {
-            throw new ArgumentException("A goodness-of-fit test needs at least one category.", nameof(observed));
+            if (!expectation.IsEmpty)
+            {
+                throw new ArgumentException(
+                    $"There are 0 observations and {expectation.Length} expectations.", nameof(expected));
+            }
+            Options.Require(nanPolicy);
+            return new TestResult(0.0, double.NaN);
         }
 
         double observedTotal = 0.0;
@@ -63,7 +70,11 @@ public static class ChiSquared
         double[] target = expectation.IsEmpty
             ? UniformExpectation(counts.Length, observedTotal)
             : ExplicitExpectation(counts.Length, expectation, observedTotal);
+        // After the input's own refusals, which keep their order (#1712's Review A).
+        Options.Require(nanPolicy);
 
+        // A zero expectation reads +inf where a count meets it, a p of 0 as scipy's, and 0/0, undefined, where none does: NaN
+        // (decision 0010), which wins over any +inf. The arithmetic below gives both.
         double statistic = 0.0;
         for (int i = 0; i < counts.Length; i++)
         {
@@ -73,14 +84,19 @@ public static class ChiSquared
 
         int dof = counts.Length - 1;
 
-        // A NaN or infinite observation has made the statistic NaN, which RegularizedQ would refuse, and one
-        // category leaves no degree of freedom: scipy's p-value is NaN for both.
-        double pValue = double.IsNaN(statistic) || dof < 1
-            ? double.NaN
-            : Gamma.RegularizedQ(dof / 2.0, statistic / 2.0);
+        // One category leaves no degree of freedom, and scipy's p-value is NaN.
+        double pValue = dof < 1 ? double.NaN : UpperTail(statistic, dof);
 
         return new TestResult(statistic, pValue);
     }
+
+    /// <summary>The chi-squared upper tail of <paramref name="statistic"/>, or NaN where it is NaN or negative.</summary>
+    /// <remarks>
+    /// A NaN or infinite count makes the statistic NaN, finite cells whose marginals overflow too (#1710), and negative counts
+    /// can make it negative (#1709): RegularizedQ refused each under its own "x", where scipy's p-value is NaN.
+    /// </remarks>
+    private static double UpperTail(double statistic, int dof) =>
+        statistic >= 0.0 ? Gamma.RegularizedQ(dof / 2.0, statistic / 2.0) : double.NaN;
 
     private static double[] UniformExpectation(int categories, double observedTotal)
     {
@@ -108,10 +124,11 @@ public static class ChiSquared
         double expectedTotal = 0.0;
         for (int i = 0; i < expected.Length; i++)
         {
-            if (expected[i] <= 0.0)
+            // A negative expectation is no distribution; a zero one is, its cells reading +inf, or NaN at 0/0, and NaN propagates.
+            if (expected[i] < 0.0)
             {
                 throw new ArgumentException(
-                    $"Expectation {i} is {expected[i]}; the statistic divides by it.",
+                    $"Expectation {i} is {expected[i]}; an expectation cannot be negative.",
                     nameof(expected));
             }
 
@@ -140,9 +157,11 @@ public static class ChiSquared
     /// </param>
     /// <returns>The statistic, the p-value, the degrees of freedom and the expected table.</returns>
     /// <exception cref="ArgumentException">
-    /// The table is empty, ragged, holds a negative, infinite or NaN count, or has a zero row
-    /// or column total.
+    /// The table is empty, ragged, or holds a negative, infinite or NaN count. A zero row or column
+    /// total answers <c>NaN</c> (decision 0010), before one row or one column, which otherwise answers a statistic of 0 and a
+    /// p-value of 1.
     /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">An option is outside its enumeration.</exception>
     // S2368: the table arrives from the caller already in this shape -- that is
     // how scipy.stats.chi2_contingency takes it, and how ChiSquaredContingencyResult
     // hands the expected table back. Wrapping one side and not the other buys
@@ -155,10 +174,9 @@ public static class ChiSquared
     {
         Guard.NotNull(table);
 
-        if (table.Length < 2 || table[0] is null || table[0].Length < 2)
+        if (table.Length < 1 || table[0] is null || table[0].Length < 1)
         {
-            throw new ArgumentException(
-                "A contingency table needs at least two rows and two columns.", nameof(table));
+            throw new ArgumentException("A contingency table needs at least one row and one column.", nameof(table));
         }
 
         int rows = table.Length;
@@ -170,14 +188,24 @@ public static class ChiSquared
         Span<double> columnTotals =
             columns <= MaxStackMarginal ? stackalloc double[columns] : new double[columns];
         double total = ComputeMarginals(table, rowTotals, columnTotals);
-        ValidateMarginals(table, rowTotals, columnTotals);
-
+        // Read only as Applied or not before, so (Continuity)9 ran as None; refused after the cells, as the table's own refusals are.
+        Options.Require(continuity);
         double[][] expected = ComputeExpected(rowTotals, columnTotals, total, rows, columns);
+        int dof = (rows - 1) * (columns - 1);
+        if (AnyZeroMarginal(rowTotals, columnTotals))
+        {
+            return new ChiSquaredContingencyResult(double.NaN, double.NaN, dof, expected);
+        }
+        // One row or one column leaves no degree of freedom: (0, 1), as scipy's where no expectation reads zero.
+        if (dof == 0)
+        {
+            return new ChiSquaredContingencyResult(0.0, 1.0, dof, expected);
+        }
+
         bool yates = continuity == Continuity.Applied && rows == 2 && columns == 2;
         double statistic = ComputeStatistic(table, expected, rows, columns, yates);
 
-        int dof = (rows - 1) * (columns - 1);
-        double pValue = Gamma.RegularizedQ(dof / 2.0, statistic / 2.0);
+        double pValue = UpperTail(statistic, dof);
 
         return new ChiSquaredContingencyResult(statistic, pValue, dof, expected);
     }
@@ -200,8 +228,8 @@ public static class ChiSquared
             {
                 double value = table[i][j];
 
-                // Un-guarded, an infinite cell makes the statistic NaN and reaches
-                // Gamma.RegularizedQ's Validate, leaking that helper's own ParamName ("x").
+                // Cells are counts, so a negative, NaN or infinite one is refused under the table rather than propagated: the
+                // reference page and equivalence.md's nan_policy row say why.
                 if (value < 0.0 || double.IsNaN(value) || double.IsPositiveInfinity(value))
                 {
                     throw new ArgumentException(
@@ -218,35 +246,28 @@ public static class ChiSquared
         return total;
     }
 
-    // A zero marginal makes the expectation zero, which the statistic divides
-    // by: the factor has a level nothing was observed at, and the table needs
-    // that level dropped before the test means anything. S1244: a marginal
-    // that is exactly zero is the sentinel the guard exists for, not a value
-    // with a tolerance band -- summing only non-negative cells, it cannot land
-    // near zero without landing on it. S1172: table is read only through the
-    // nameof calls below, so the thrown exception names the public parameter
-    // the caller actually passed rather than one of this helper's own.
-#pragma warning disable S1244, S1172
-    private static void ValidateMarginals(
-        double[][] table, ReadOnlySpan<double> rowTotals, ReadOnlySpan<double> columnTotals)
+    // A zero marginal makes an expectation zero, which the statistic divides by: Pearson leaves it undefined, so the test
+    // answers NaN (decision 0010), where it threw. S1244: a sum of non-negative cells is zero only where every cell is.
+#pragma warning disable S1244
+    private static bool AnyZeroMarginal(ReadOnlySpan<double> rowTotals, ReadOnlySpan<double> columnTotals)
     {
-        for (int i = 0; i < rowTotals.Length; i++)
+        foreach (double total in rowTotals)
         {
-            if (rowTotals[i] == 0.0)
+            if (total == 0.0)
             {
-                throw new ArgumentException($"Row {i} totals zero.", nameof(table));
+                return true;
             }
         }
-
-        for (int j = 0; j < columnTotals.Length; j++)
+        foreach (double total in columnTotals)
         {
-            if (columnTotals[j] == 0.0)
+            if (total == 0.0)
             {
-                throw new ArgumentException($"Column {j} totals zero.", nameof(table));
+                return true;
             }
         }
+        return false;
     }
-#pragma warning restore S1244, S1172
+#pragma warning restore S1244
 
     private static double[][] ComputeExpected(
         ReadOnlySpan<double> rowTotals, ReadOnlySpan<double> columnTotals, double total,

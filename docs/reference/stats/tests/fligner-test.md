@@ -23,13 +23,16 @@ deviations are measured from, [`Center.Median`](center.md) by default as scipy's
 `nanPolicy` is scipy's `nan_policy`, [`NanPolicy.Propagate`](../nanpolicy.md) by default.
 
 **Returns** — `TestResult`: the χ² statistic and its upper-tail p-value on `k − 1` degrees of
-freedom. Both are `NaN` where a group is empty, a `NaN` propagates, or every deviation ties, as
-scipy answers.
+freedom. Both are `NaN` where a group is empty, whatever the trim's size, an infinite value meets an
+infinite centre, or a `NaN` propagates, as scipy answers; and where every deviation ties, which
+leaves the scores no variance — 0/0, where scipy's rounding answers `NaN` or a finite value by
+the groups ([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md)).
 
 **Exceptions** — `ArgumentException` when there are fewer than two groups, or `nanPolicy` is
 [`NanPolicy.Raise`](../nanpolicy.md) and a group holds a `NaN`. `ArgumentOutOfRangeException`
-when `proportionToCut` is `NaN` under [`Center.Trimmed`](center.md), or cuts a count below zero or
-past a group's middle, as scipy refuses them; one that trims a group to nothing answers NaN.
+when `proportionToCut` is `NaN` under [`Center.Trimmed`](center.md), beside an empty group too, as an
+option outside its enumeration is, where scipy answers `NaN` there; and, where a centre is taken,
+when it cuts a count below zero or past a group's middle, as scipy refuses them; one that trims a group to nothing answers NaN. `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — the three bottling machines [`Levene.Test`](levene-test.md) compares, by ranks.
 

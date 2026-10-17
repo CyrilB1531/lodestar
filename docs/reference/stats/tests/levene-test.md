@@ -18,8 +18,7 @@ The centre and the policy come first because the groups are a `params` array and
 parameter after one — the shape [`OneWayAnova.Test`](onewayanova-test.md) uses, for the same
 reason.
 
-**Parameters** — `groups` are the samples to compare, at least two, each holding at least one
-value; `scipy.stats.levene` takes its samples the same way, one array per group, which `groups`
+**Parameters** — `groups` are the samples to compare, at least two; `scipy.stats.levene` takes its samples the same way, one array per group, which `groups`
 is `params` for. `center` says which centre each group's deviations are measured from, defaulting
 to [`Center.Median`](center.md) as scipy's does. `proportionToCut` is how much of each end
 [`Center.Trimmed`](center.md) drops — scipy's `proportiontocut`, `0.05` by default and ignored by
@@ -28,11 +27,14 @@ to [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TestResult`: the W statistic, and the upper-tail p-value.
 
-**Exceptions** — `ArgumentException` when there are fewer than two groups, a group is empty, or
-`nanPolicy` is [`NanPolicy.Raise`](../nanpolicy.md) and a group holds a `NaN`.
+**Exceptions** — `ArgumentException` when there are fewer than two groups, or `nanPolicy` is
+[`NanPolicy.Raise`](../nanpolicy.md) and a group holds a `NaN`. An empty group, given or left by
+omission, or a propagated `NaN` answers `NaN` for both whatever the trim's size, as scipy's does, and
+so does a null group here.
 `ArgumentOutOfRangeException` when `proportionToCut` is `NaN` under [`Center.Trimmed`](center.md),
-or cuts a count below zero or past a group's middle, as scipy refuses them. One that trims a group
-to nothing answers NaN, as scipy's does.
+beside an empty group too, as an option outside its enumeration is, where scipy answers `NaN` there;
+and, where a centre is taken, when it cuts a count below zero or past a group's middle, as scipy
+refuses them. One that trims a group to nothing answers NaN, as scipy's does. `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example — three machines filling the same bottle, and the reason this test exists.** One-way
 ANOVA says their means are indistinguishable. It is entitled to say that only if their variances

@@ -5,15 +5,19 @@ namespace Lodestar.Stats;
 /// <summary>The Shapiro-Wilk test for normality, by Royston's AS R94.</summary>
 /// <remarks>
 /// Written from Royston's 1995 published description and its polynomial constants (Applied
-/// Statistics 44:547-551), not from any implementation of it (ADR 0002). The transform that
-/// turns the statistic into a p-value is fitted for <c>3 &lt;= n &lt;= 5000</c>; outside that
-/// range this refuses rather than extrapolating a number a reader would take at face value --
-/// scipy warns and answers anyway.
+/// Statistics 44:547-551), not from any implementation of it (ADR 0002). It follows the algorithm's
+/// faults: fewer than three values and a range below 1e-19 are refused, and past 5000 values, where
+/// the fitted transform is extrapolated, it computes, as AS R94 does with a warning (decision 0010).
 /// </remarks>
 public static class ShapiroWilk
 {
     private const int MinimumSample = 3;
-    private const int MaximumSample = 5000;
+
+    // AS R94's SMALL: a range below it is the algorithm's sixth fault.
+    private const double SmallRange = 1e-19;
+
+    // Above it a square of the values could overflow, so the values are divided by the range.
+    private const double ScaleAbove = 1e100;
 
     // Royston's polynomial coefficients, ascending. The first two correct the
     // last two Blom weights; the rest carry the normalising transform.
@@ -29,34 +33,64 @@ public static class ShapiroWilk
     private static readonly double[] LargeSigma = [-0.4803, -0.082676, 0.0030302];
 
     /// <summary>Tests whether a sample could have come from a normal distribution.</summary>
-    /// <param name="sample">The sample; between 3 and 5000 values, not all equal.</param>
+    /// <param name="sample">The sample; at least 3 values, as Royston's AS R94 requires, and past 5000 its fitted transform extrapolated.</param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c>; scipy's <c>nan_policy</c>.</param>
-    /// <returns>Royston's W statistic and its p-value.</returns>
+    /// <returns>Royston's W statistic and its p-value; <c>NaN</c> for both where a NaN or infinite range, an overflowing one included, makes them undefined.</returns>
     /// <exception cref="ArgumentException">
-    /// Fewer than 3 or more than 5000 values, or every value identical -- both checked after
-    /// <paramref name="nanPolicy"/> has run, so omission that drops the sample below three
-    /// values still raises rather than answering with a warning the way scipy does
-    /// (decision 0007). When <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and
-    /// the sample holds a <c>NaN</c>.
+    /// Fewer than 3 values, or a range below 1e-19, the two cases AS R94 refuses (ifault 1 and 6) -- checked after
+    /// <paramref name="nanPolicy"/> has run, so omission that leaves either still raises (decisions 0007 and 0010). When
+    /// <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and the sample holds a <c>NaN</c>.
     /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">An option is outside its enumeration.</exception>
     public static TestResult Test(
         ReadOnlySpan<double> sample,
         NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        ReadOnlySpan<double> values = nanPolicy == NanPolicy.Propagate
-            ? sample
-            : NanFilter.Apply(sample, nanPolicy, nameof(sample));
+        ReadOnlySpan<double> values = NanFilter.Apply(sample, nanPolicy, nameof(sample));
 
+        // Royston's AS R94 refuses fewer than three values (ifault 1), and past 5000 only warns (ifault 2) that its fitted
+        // transform is extrapolated: it computes, and so does this, where it refused (decision 0010).
         int n = values.Length;
-        if (n < MinimumSample || n > MaximumSample)
+        if (n < MinimumSample)
         {
             throw new ArgumentException(
-                $"Royston's approximation covers {MinimumSample} to {MaximumSample} values; got {n}.",
+                $"Royston's algorithm needs at least {MinimumSample} values; got {n}.",
                 nameof(sample));
         }
 
-        double[] sorted = values.ToArray();
+        // Shifted by the value at the middle position, as scipy's shapiro is (gh-15777): a constant sample then has a range of
+        // exactly zero, and near-constant ones keep their digits, where [0.1, 0.1, 0.1 + 1.4e-17] read W = 0 (#1706).
+        double shift = values[n / 2];
+        double[] sorted = new double[n];
+        for (int i = 0; i < n; i++)
+        {
+            sorted[i] = values[i] - shift;
+        }
         Array.Sort(sorted);
+
+        // AS R94 refuses a range below 1e-19, its sixth fault, and divides by the range, so no square overflows at 1e200
+        // (#1706's Review A); a NaN or infinite range, which it does not cover, answers NaN.
+        double range = sorted[n - 1] - sorted[0];
+        if (range < SmallRange)
+        {
+            throw new ArgumentException(
+                "The sample's range is below 1e-19, which Royston's algorithm refuses, so there is no shape to test.",
+                nameof(sample));
+        }
+        Options.Require(nanPolicy);
+        if (!(range < double.PositiveInfinity))
+        {
+            return new TestResult(double.NaN, double.NaN);
+        }
+        // W is scale-free, so the division matters only where a square would overflow; always taken it cost 8% at 500. A range
+        // small enough for squares to fade is already refused above.
+        if (range > ScaleAbove)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                sorted[i] /= range;
+            }
+        }
 
         double[] weights = Weights(n);
 
@@ -76,16 +110,14 @@ public static class ShapiroWilk
             denominator += deviation * deviation;
         }
 
-        if (denominator <= 0.0)
-        {
-            throw new ArgumentException(
-                "Every value in the sample is identical, so there is no shape to test.",
-                nameof(sample));
-        }
-
         // Rounding can lift a perfectly linear sample past 1 ([1, 2, 3] gives 1 + 2^-52), where
         // asin and log(1 - w) are undefined; scipy reports W = 1 and p = 1 there (#863).
         double w = Math.Min(1.0, numerator * numerator / denominator);
+        // Three values bound W below by 3/4 (Shapiro and Wilk's Corollary 4), which scipy clips to and rounding fell under.
+        if (n == 3)
+        {
+            w = Math.Max(0.75, w);
+        }
 
         return new TestResult(w, PValue(w, n));
     }
@@ -155,9 +187,9 @@ public static class ShapiroWilk
     {
         if (n == 3)
         {
-            // Royston's closed form, no fitted transform; 6/pi and pi/3 at 15 digits, since the
-            // 7-digit pair missed scipy's p at [1, 2, 4] by about 1e-6 relative (#863).
-            double p = 1.90985931710274 * (Math.Asin(Math.Sqrt(w)) - 1.04719755119660);
+            // Royston's closed form as scipy writes it, 1 - 6/pi acos(sqrt W): 15-digit constants for 6/pi and pi/3, pi/3 being
+            // 2.4e-15 high, read [0, 1e-8, 1] 2.8e-7 off and a W of 3/4 as 0 for 3.3e-16 (#1706's Review A).
+            double p = 1.0 - (6.0 / Math.PI * Math.Acos(Math.Sqrt(w)));
             return Math.Min(1.0, Math.Max(0.0, p));
         }
 

@@ -11,10 +11,10 @@ namespace Lodestar.Stats;
 public static class KruskalWallis
 {
     /// <summary>Compares two or more groups by their ranks in the pooled sample.</summary>
-    /// <param name="groups">The groups; at least two, each holding at least one value.</param>
+    /// <param name="groups">The groups; at least two. A null or empty one, or a fully tied pool, answers <c>NaN</c> for both.</param>
     /// <returns>The H statistic and the upper-tail p-value.</returns>
     /// <exception cref="ArgumentException">
-    /// Fewer than two groups, an empty group, or a pooled sample in which every value is tied.
+    /// Fewer than two groups.
     /// </exception>
     // S2368: same reasoning as OneWayAnova.Test -- groups mirrors
     // scipy.stats.kruskal's own one-array-per-group shape.
@@ -30,7 +30,13 @@ public static class KruskalWallis
                 $"Kruskal-Wallis needs at least two groups; got {groups.Length}.", nameof(groups));
         }
 
-        int total = ValidatedTotal(groups);
+        // An empty group, given or left by omission: scipy's kruskal answers NaN, where this threw, and so does a null one here.
+        if (Groups.AnyEmpty(groups))
+        {
+            return new TestResult(double.NaN, double.NaN);
+        }
+
+        int total = groups.Sum(group => group.Length);
         // Under the default NanPolicy.Propagate a NaN anywhere propagates rather
         // than taking a false finite rank (Ranks.HasNaN's remark).
         if (Array.Exists(groups, group => Ranks.HasNaN(group)))
@@ -45,11 +51,10 @@ public static class KruskalWallis
         // sample), 1 - (t^3-t)/(n^3-n) is exactly 0, not merely close to it.
         double tieCorrection = 1.0 - (tieTerm / (((double)total * total * total) - total));
 
+        // H is then 0/0, which Kruskal and Wallis leave undefined: NaN, as decision 0010 rules, where this threw.
         if (tieCorrection <= 0.0)
         {
-            throw new ArgumentException(
-                "Every value in the pooled sample is tied, so the ranks carry no information.",
-                nameof(groups));
+            return new TestResult(double.NaN, double.NaN);
         }
 
         h /= tieCorrection;
@@ -68,35 +73,21 @@ public static class KruskalWallis
     /// <returns>The H statistic and its p-value.</returns>
     /// <exception cref="ArgumentException">
     /// When <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and a group holds a
-    /// <c>NaN</c>, or when the filtered groups fail this test's own requirements — a pooled
-    /// sample left fully tied by omission is still refused (decision 0007).
+    /// <c>NaN</c>. A pooled sample left fully tied, or a group left empty, by omission answers
+    /// <c>NaN</c> as it would if passed directly (decision 0010).
     /// </exception>
     /// <remarks>
     /// The policy comes first because the groups are a <c>params</c> array and C# allows no
     /// parameter after one — the shape <c>string.Join</c> uses, for the same reason.
     /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">An option is outside its enumeration.</exception>
     public static TestResult Test(NanPolicy nanPolicy, params double[][] groups)
     {
         Guard.NotNull(groups);
-        return nanPolicy == NanPolicy.Propagate
-            ? Test(groups)
-            : Test(NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups)));
-    }
-
-    private static int ValidatedTotal(double[][] groups)
-    {
-        int total = 0;
-        for (int g = 0; g < groups.Length; g++)
-        {
-            if (groups[g] is not { Length: > 0 })
-            {
-                throw new ArgumentException($"Group {g} is empty.", nameof(groups));
-            }
-
-            total += groups[g].Length;
-        }
-
-        return total;
+        // The policy is refused last, once the groups have met the test's own refusals (#1712's and #1704's Review A).
+        TestResult result = Test(NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups)));
+        Options.Require(nanPolicy);
+        return result;
     }
 
     private static double[] Pool(double[][] groups, int total)

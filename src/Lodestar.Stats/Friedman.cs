@@ -19,7 +19,7 @@ public static class Friedman
     /// </param>
     /// <returns>The Q statistic and the upper-tail p-value.</returns>
     /// <exception cref="ArgumentException">
-    /// Fewer than three treatments, an empty treatment, or treatments of different lengths.
+    /// Fewer than three treatments, or treatments of different lengths. No block answers <c>NaN</c> (decision 0010).
     /// </exception>
     // S2368: treatments mirrors scipy.stats.friedmanchisquare's own one-array-per-treatment shape.
 #pragma warning disable S2368
@@ -32,14 +32,15 @@ public static class Friedman
     /// <param name="treatments">Three or more treatments, all the same length.</param>
     /// <returns>The Q statistic and its p-value.</returns>
     /// <exception cref="ArgumentException">
-    /// Fewer than three treatments, an empty or ragged treatment, or a <c>NaN</c> under
-    /// <see cref="NanPolicy.Raise"/>.
+    /// Fewer than three treatments, a ragged treatment, or a <c>NaN</c> under <see cref="NanPolicy.Raise"/>. No block, given
+    /// or left by omission, answers <c>NaN</c> (decision 0010).
     /// </exception>
     /// <remarks>
     /// The measurements are paired across treatments, so <see cref="NanPolicy.Omit"/> drops the
     /// whole block rather than one measurement of it: a block missing one treatment can no longer
     /// be ranked, and ranking the rest would compare treatments on different subjects.
     /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">An option is outside its enumeration.</exception>
 #pragma warning disable S2368
     public static TestResult Test(NanPolicy nanPolicy, params double[][] treatments)
 #pragma warning restore S2368
@@ -54,16 +55,23 @@ public static class Friedman
         }
 
         int k = treatments.Length;
+        // No block given, null treatments included, answers before omission reads a treatment; one left none below.
         int blocks = Validated(treatments);
+        Options.Require(nanPolicy);
+        if (blocks == 0)
+        {
+            return new TestResult(double.NaN, double.NaN);
+        }
+
         double[][] kept = nanPolicy == NanPolicy.Propagate
             ? treatments
             : BlocksWithoutNaN(treatments, blocks, nanPolicy);
         blocks = kept[0].Length;
 
+        // No block, given or left by omission, leaves the statistic undefined: NaN, as decision 0010 rules, where this threw.
         if (blocks == 0)
         {
-            throw new ArgumentException(
-                "Every block holds a NaN, so nothing is left to rank.", nameof(treatments));
+            return new TestResult(double.NaN, double.NaN);
         }
 
         // A NaN must not take a false finite rank: Array.Sort puts it first and it would rank
@@ -87,7 +95,7 @@ public static class Friedman
             / correction;
 
         // Treatments agreeing on every block leave every rank tied, the correction zero and the
-        // statistic 0/0. scipy answers NaN where KruskalWallis.Test refuses; each is matched.
+        // statistic 0/0, which Friedman leaves undefined: NaN, as scipy and KruskalWallis.Test answer (decision 0010).
         return double.IsNaN(statistic)
             ? new TestResult(double.NaN, double.NaN)
             : new TestResult(statistic, Distributions.ChiSquaredSf(statistic, k - 1.0));
@@ -99,6 +107,10 @@ public static class Friedman
     {
         double[] rankSums = new double[k];
         double[] block = new double[k];
+        // One set of scratch arrays for every block, where each took three of its own (#1718).
+        int[] order = new int[k];
+        double[] sorted = new double[k];
+        double[] ranks = new double[k];
         double tieTerm = 0.0;
 
         for (int b = 0; b < blocks; b++)
@@ -108,7 +120,7 @@ public static class Friedman
                 block[t] = treatments[t][b];
             }
 
-            double[] ranks = Ranks.AverageWithTies(block, out double tieCorrection, out _);
+            Ranks.AverageWithTies(block, order, sorted, ranks, out double tieCorrection, out _);
             tieTerm += tieCorrection;
             for (int t = 0; t < k; t++)
             {
@@ -121,15 +133,11 @@ public static class Friedman
 
     private static int Validated(double[][] treatments)
     {
-        if (treatments[0] is not { Length: > 0 })
-        {
-            throw new ArgumentException("Treatment 0 is empty.", nameof(treatments));
-        }
-
-        int blocks = treatments[0].Length;
+        // No block at all answers NaN in the caller; treatments of different lengths are still refused.
+        int blocks = treatments[0]?.Length ?? 0;
         for (int t = 1; t < treatments.Length; t++)
         {
-            if (treatments[t] is not { } treatment || treatment.Length != blocks)
+            if ((treatments[t]?.Length ?? 0) != blocks)
             {
                 throw new ArgumentException(
                     $"Treatment {t} holds {treatments[t]?.Length ?? 0} measurements where treatment 0 holds "

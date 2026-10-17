@@ -8,7 +8,7 @@ Compares two samples by the largest gap between their empirical distributions.
 public static KsResult TwoSample(ReadOnlySpan<double> a, ReadOnlySpan<double> b, Alternative alternative = Alternative.TwoSided, ExactMethod method = ExactMethod.Auto, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
-**Parameters** — `a` and `b` are the two samples, each at least one value; both spans are read,
+**Parameters** — `a` and `b` are the two samples, an empty one answering `NaN`; both spans are read,
 never modified. `alternative` says which direction of gap counts: `Alternative.TwoSided` takes
 the largest gap in either direction, the one-sided values take the largest gap in one.
 `method` chooses the exact null distribution, its asymptotic approximation, or a choice between
@@ -18,10 +18,11 @@ defaulting to [`NanPolicy.Propagate`](../nanpolicy.md).
 **Returns** — `KsResult`: the distance, the p-value, where that supremum is attained, and its
 sign.
 
-**Exceptions** — `ArgumentException` when either sample is empty, or `nanPolicy` is
+**Exceptions** — `ArgumentException` when `nanPolicy` is
 `NanPolicy.Raise` and either sample holds a `NaN`. `ArgumentOutOfRangeException` when `method`
 is `ExactMethod.Exact`, `a.Length * b.Length` exceeds 1,000,000, and the samples differ in size
-or the alternative is one-sided.
+or the alternative is one-sided. An empty sample, given or left by omission, answers `NaN` for the statistic and the p-value
+([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md)). `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — two samples of the same size, shifted apart.
 

@@ -10,18 +10,28 @@ internal static class Ranks
 {
     internal static double[] Average(ReadOnlySpan<double> values) => AverageWithTies(values, out _, out _);
 
-    /// <summary>The mid-ranks, with <see cref="TieCorrection"/> and <see cref="HasTies"/> read off the same tie groups.</summary>
+    /// <summary>The mid-ranks, with the tie-correction term <c>Σ (t³ − t)</c> and whether any tie exists, read off the same tie groups.</summary>
     /// <remarks>The groups are walked in the order a second sort would walk them, so both terms are bit for bit its own.</remarks>
     internal static double[] AverageWithTies(ReadOnlySpan<double> values, out double tieCorrection, out bool hasTies)
     {
-        if (values.Length == 0)
-        {
-            throw new ArgumentException("Cannot rank an empty sample.", nameof(values));
-        }
-
+        // An empty sample is refused by the overload below, which needs one value as its scratch does.
         int n = values.Length;
-        int[] order = new int[n];
-        double[] sorted = new double[n];
+        double[] ranks = new double[n];
+        AverageWithTies(values, new int[n], new double[n], ranks, out tieCorrection, out hasTies);
+        return ranks;
+    }
+
+    /// <summary>The same into <paramref name="ranks"/>, with <paramref name="order"/> and <paramref name="sorted"/> as scratch, each as long as the values.</summary>
+    /// <remarks>A caller ranking many short samples reuses the three: Friedman's three arrays a block took 136 MB at 3 × 1e6 (#1718).</remarks>
+    internal static void AverageWithTies(
+        ReadOnlySpan<double> values, int[] order, double[] sorted, double[] ranks, out double tieCorrection, out bool hasTies)
+    {
+        int n = values.Length;
+        // A longer reused buffer would sort its stale tail into the ranks, and an empty sample has none.
+        if (n == 0 || order.Length != n || sorted.Length != n || ranks.Length != n)
+        {
+            throw new ArgumentException("Cannot rank an empty sample, or into scratch arrays of another length.", nameof(values));
+        }
         for (int i = 0; i < n; i++)
         {
             order[i] = i;
@@ -37,7 +47,6 @@ internal static class Ranks
             Array.Sort(sorted, order);
         }
 
-        double[] ranks = new double[n];
         tieCorrection = 0.0;
         hasTies = false;
         int start = 0;
@@ -69,66 +78,6 @@ internal static class Ranks
 
             start = end + 1;
         }
-
-        return ranks;
-    }
-
-    internal static double TieCorrection(ReadOnlySpan<double> values)
-    {
-        if (values.Length == 0)
-        {
-            return 0.0;
-        }
-
-        double[] sorted = values.ToArray();
-        Array.Sort(sorted);
-
-        double correction = 0.0;
-        int start = 0;
-        while (start < sorted.Length)
-        {
-            int end = start;
-
-            // S1244: same reasoning as Average -- a tie group is defined by
-            // literally equal input values.
-#pragma warning disable S1244
-            while (end + 1 < sorted.Length && sorted[end + 1] == sorted[start])
-#pragma warning restore S1244
-            {
-                end++;
-            }
-
-            double t = end - start + 1;
-            correction += (t * t * t) - t;
-            start = end + 1;
-        }
-
-        return correction;
-    }
-
-    internal static bool HasTies(ReadOnlySpan<double> values)
-    {
-        if (values.Length < 2)
-        {
-            return false;
-        }
-
-        double[] sorted = values.ToArray();
-        Array.Sort(sorted);
-
-        // S1244: same reasoning as Average -- a tie is defined by literally
-        // equal input values.
-#pragma warning disable S1244
-        for (int i = 1; i < sorted.Length; i++)
-        {
-            if (sorted[i] == sorted[i - 1])
-            {
-                return true;
-            }
-        }
-#pragma warning restore S1244
-
-        return false;
     }
 
     // Checked ahead of Average, never inside it: NaN sorts to the front under

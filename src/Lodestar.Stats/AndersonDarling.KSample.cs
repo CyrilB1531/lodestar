@@ -15,7 +15,7 @@ public static partial class AndersonDarling
     private static readonly double[] B2 = [-0.105, -0.305, -0.362, -0.391, -0.396, -0.345, -0.154];
 
     /// <summary>Tests whether several samples come from one distribution, by the mid-rank statistic.</summary>
-    /// <param name="samples">The samples; at least two, none empty.</param>
+    /// <param name="samples">The samples; at least two. An empty one answers <c>NaN</c> (decision 0010).</param>
     /// <returns>As <see cref="KSample(AndersonKSampleVariant, double[][])"/>.</returns>
     /// <exception cref="ArgumentException">As <see cref="KSample(AndersonKSampleVariant, double[][])"/>.</exception>
     // S2368: samples mirrors scipy's list of one array per sample, as Levene.Test does.
@@ -26,13 +26,14 @@ public static partial class AndersonDarling
 
     /// <summary>Tests whether several samples come from one distribution — scipy's <c>anderson_ksamp</c>.</summary>
     /// <param name="variant">Which form of the statistic; scipy's <c>variant</c>.</param>
-    /// <param name="samples">The samples; at least two, none empty, with at least two distinct values between them.</param>
+    /// <param name="samples">The samples; at least two. An empty one, or a pool of one distinct value, answers <c>NaN</c>.</param>
     /// <returns>
     /// The normalised statistic, the p-value interpolated from Scholz and Stephens' table and clamped to
     /// <c>[0.001, 0.25]</c> as scipy clamps it, and the critical values at 25 %, 10 %, 5 %, 2.5 %, 1 %, 0.5 % and 0.1 %.
     /// </returns>
     /// <exception cref="ArgumentException">
-    /// Fewer than two samples, an empty one, a <c>NaN</c>, or fewer than two distinct values, where scipy raises.
+    /// Fewer than two samples, or a <c>NaN</c>. An empty or null sample, or fewer than two distinct values, answers
+    /// <c>NaN</c> (decision 0010), where scipy raises.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="variant"/> is not a declared value.</exception>
     /// <remarks>
@@ -44,18 +45,23 @@ public static partial class AndersonDarling
 #pragma warning restore S2368
     {
         Guard.NotNull(samples);
-        if (variant is < AndersonKSampleVariant.Midrank or > AndersonKSampleVariant.Continuous)
-        {
-            throw new ArgumentOutOfRangeException(nameof(variant), variant, "Not a declared k-sample variant.");
-        }
+        Options.Require(variant);
 
         CheckSamples(samples);
         int k = samples.Length;
+        double[] critical = KSampleCritical(k);
+
+        // An empty sample, or a pool of one distinct value, leaves the statistic 0/0, which Scholz and Stephens leave
+        // undefined: NaN, where this threw (decision 0010).
+        if (Groups.AnyEmpty(samples))
+        {
+            return new AndersonResult(double.NaN, double.NaN, critical, [.. KSampleLevels]);
+        }
         double[] pooled = Sorted(samples.SelectMany(sample => sample).ToArray());
         (double[] distinct, int[] tied) = Runs(pooled);
         if (distinct.Length < 2)
         {
-            throw new ArgumentException("The k-sample test needs more than one distinct observation.", nameof(samples));
+            return new AndersonResult(double.NaN, double.NaN, critical, [.. KSampleLevels]);
         }
 
         int total = pooled.Length;
@@ -67,15 +73,20 @@ public static partial class AndersonDarling
             _ => KSampleContinuous(sorted, pooled),
         };
 
+        double statistic = (raw - (k - 1.0)) / Math.Sqrt(KSampleVariance(samples, total, k));
+        return new AndersonResult(statistic, KSamplePValue(statistic, critical), critical, [.. KSampleLevels]);
+    }
+
+    /// <summary>Scholz and Stephens' critical values for <paramref name="k"/> samples, which depend on k alone.</summary>
+    private static double[] KSampleCritical(int k)
+    {
         double m = k - 1.0;
-        double statistic = (raw - m) / Math.Sqrt(KSampleVariance(samples, total, k));
         var critical = new double[B0.Length];
         for (int i = 0; i < critical.Length; i++)
         {
             critical[i] = B0[i] + (B1[i] / Math.Sqrt(m)) + (B2[i] / m);
         }
-
-        return new AndersonResult(statistic, KSamplePValue(statistic, critical), critical, [.. KSampleLevels]);
+        return critical;
     }
 
     private static void CheckSamples(double[][] samples)
@@ -87,12 +98,7 @@ public static partial class AndersonDarling
 
         for (int i = 0; i < samples.Length; i++)
         {
-            if (samples[i] is not { Length: > 0 })
-            {
-                throw new ArgumentException($"Sample {i} has no observations.", nameof(samples));
-            }
-
-            if (Ranks.HasNaN(samples[i]))
+            if (samples[i] is { } sample && Ranks.HasNaN(sample))
             {
                 throw new ArgumentException($"Sample {i} holds a NaN, which has no place in the pooled order.", nameof(samples));
             }

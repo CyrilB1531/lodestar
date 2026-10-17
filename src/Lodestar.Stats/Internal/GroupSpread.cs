@@ -143,24 +143,29 @@ internal static class GroupSpread
     /// </remarks>
     internal static double TrimmedMean(double[] values, double proportionToCut)
     {
+        int cut = TrimCount(values.Length, proportionToCut);
         double[] sorted = (double[])values.Clone();
         Array.Sort(sorted);
+        int kept = sorted.Length - (2 * cut);
+        return kept == 0 ? double.NaN : Mean(sorted, cut, kept);
+    }
 
+    /// <summary>How many values a trim of <paramref name="proportionToCut"/> drops from each end of <paramref name="n"/>, or a refusal.</summary>
+    /// <remarks>Read only where a centre is taken: an empty group answers NaN before that, whatever the trim's size, as scipy's does.</remarks>
+    private static int TrimCount(int n, double proportionToCut)
+    {
         // In doubles, so an infinite or enormous proportion is refused on both targets rather than saturating one cast.
-        double scaled = Math.Truncate(sorted.Length * proportionToCut);
-        double left = sorted.Length - (2.0 * scaled);
+        double scaled = Math.Truncate(n * proportionToCut);
+        double left = n - (2.0 * scaled);
 
         // scipy's trimboth refuses a count below zero and one that crosses the middle, and averages nothing — NaN —
         // where the two ends meet exactly.
         if (!(scaled >= 0.0) || !(left >= 0.0))
         {
             throw new ArgumentOutOfRangeException(
-                nameof(proportionToCut), proportionToCut, $"Trimming {scaled} values from each end of {sorted.Length} is not a trim.");
+                nameof(proportionToCut), proportionToCut, $"Trimming {scaled} values from each end of {n} is not a trim.");
         }
-
-        int cut = (int)scaled;
-        int kept = sorted.Length - (2 * cut);
-        return kept == 0 ? double.NaN : Mean(sorted, cut, kept);
+        return (int)scaled;
     }
 
     private static double Mean(double[] values, int start, int length)

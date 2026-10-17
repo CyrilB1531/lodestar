@@ -28,6 +28,7 @@ public static class Binomial
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="trials"/> is negative, <paramref name="successes"/> lies outside
     /// <c>[0, trials]</c>, or <paramref name="probability"/> lies outside <c>[0, 1]</c>.
+    /// Or an option is outside its enumeration.
     /// </exception>
     public static BinomialResult Test(
         int successes,
@@ -51,7 +52,8 @@ public static class Binomial
                 nameof(probability), probability, "The probability must lie in [0, 1].");
         }
 
-        // No trial leaves nothing to test, and scipy's binomtest answers NaN throughout.
+        // No trial leaves nothing to test: scipy's binomtest answers a NaN p-value, and its interval keeps a one-sided limit.
+        Options.Require(alternative);
         if (trials == 0)
         {
             return new BinomialResult(double.NaN, double.NaN) { Trials = 0, Alternative = alternative };
@@ -95,8 +97,9 @@ public static class Binomial
 #pragma warning disable S1244
             int count = trials - index + (observed == BinomialTail.Mass(index, trials, probability) ? 1 : 0);
 #pragma warning restore S1244
+            // No outcome on the far side as unlikely: trials - count + 1 would overflow past int.MaxValue trials (#1704's Review A).
             pValue = BinomialTail.Cumulative(successes, trials, probability)
-                + BinomialTail.Survival(trials - count + 1, trials, probability);
+                + (count == 0 ? 0.0 : BinomialTail.Survival(trials - count + 1, trials, probability));
         }
         else
         {

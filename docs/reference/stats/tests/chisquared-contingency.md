@@ -8,20 +8,23 @@ Tests a contingency table for independence of its two factors.
 public static ChiSquaredContingencyResult Contingency(double[][] table, Continuity continuity = Continuity.Applied)
 ```
 
-**Parameters** — `table` is the observed counts, row-major and rectangular, at least two rows and
-two columns. `continuity` says whether to apply Yates's correction; it is defined for 2×2 tables
+**Parameters** — `table` is the observed counts, row-major and rectangular, at least one row and
+one column; one row or one column leaves no degree of freedom, a statistic of `0` and a p-value of
+`1` — unless a total is zero, which answers `NaN` first, as below. `continuity` says whether to apply Yates's correction; it is defined for 2×2 tables
 only, so asking for it on any other shape changes nothing — the same rule
 `scipy.stats.chi2_contingency` follows with `correction=True`.
 
 **Returns** — `ChiSquaredContingencyResult`: the statistic, the p-value, the degrees of freedom
 `(rows - 1) * (columns - 1)`, and the table independence would have produced.
 
-**Exceptions** — `ArgumentException` when `table` is empty, ragged, holds a negative, infinite or
-NaN count, or has a zero row or column total. Unlike every other family in this package, a NaN or
+**Exceptions** — `ArgumentException` when `table` is empty, ragged, or holds a negative, infinite
+or NaN count. A zero row or column total makes an expectation zero, which the statistic divides
+by: both numbers are `NaN` ([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md)). Unlike every other family in this package, a NaN or
 an infinite cell here is refused rather than propagated: a contingency table's cells are counts,
-not measurements, and the expected-frequency table divides by their marginals — a table that
-cannot produce a marginal has nothing for the test to run against. See the
-[Python equivalence table](../../../equivalence.md)'s `nan_policy` row.
+not measurements, and the expected-frequency table divides by their marginals. Finite cells whose marginals
+overflow answer `NaN` for both in a table of two rows and two columns or more, where scipy answers
+`(nan, nan)` or, when another expectation underflows to zero, raises. See the
+[Python equivalence table](../../../equivalence.md)'s `nan_policy` row. `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — a 2×2 preference table, with Yates's correction applied by default.
 

@@ -18,12 +18,14 @@ public sealed class NanPolicyEdgeTests
     }
 
     [Fact]
-    public void Omitting_into_a_fully_tied_pool_still_raises()
+    public void Omitting_into_a_fully_tied_pool_answers_NaN_as_the_pool_given_directly_does()
     {
         double[] a = [2.0, 2.0, double.NaN];
         double[] b = [2.0, 2.0, double.NaN];
 
-        Assert.Throws<ArgumentException>(() => KruskalWallis.Test(NanPolicy.Omit, a, b));
+        TestResult result = KruskalWallis.Test(NanPolicy.Omit, a, b);
+        Assert.True(double.IsNaN(result.Statistic));
+        Assert.True(double.IsNaN(result.PValue));
     }
 
     // CA1030: the leading word reads to the analyzer as the event-pattern verb; here it

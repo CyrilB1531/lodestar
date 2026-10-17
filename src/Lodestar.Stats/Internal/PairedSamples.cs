@@ -27,10 +27,7 @@ internal static class PairedSamples
         right = y;
         if (policy != NanPolicy.Propagate)
         {
-            (double[] filteredLeft, double[] filteredRight) =
-                NanFilter.ApplyAligned(x, y, policy, xName, yName);
-            left = filteredLeft;
-            right = filteredRight;
+            NanFilter.ApplyAligned(x, y, policy, xName, yName, out left, out right);
         }
 
         if (left.Length != right.Length)

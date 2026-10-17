@@ -26,12 +26,16 @@ public sealed class Issue1162EdgeTests
     }
 
     [Fact]
-    public void The_k_sample_test_refuses_what_scipy_refuses()
+    public void The_k_sample_test_refuses_a_single_sample_and_a_NaN_and_answers_NaN_where_it_is_undefined()
     {
         Assert.Throws<ArgumentException>(() => AndersonDarling.KSample(First));
-        Assert.Throws<ArgumentException>(() => AndersonDarling.KSample(First, []));
-        Assert.Throws<ArgumentException>(() => AndersonDarling.KSample([1.0, 1.0], [1.0, 1.0, 1.0]));
         Assert.Throws<ArgumentException>(() => AndersonDarling.KSample(First, [1.0, double.NaN]));
+        // An empty sample, or one distinct value in the pool, leaves the statistic 0/0 (decision 0010), where scipy raises.
+        foreach (AndersonResult result in new[] { AndersonDarling.KSample(First, []), AndersonDarling.KSample([1.0, 1.0], [1.0, 1.0, 1.0]) })
+        {
+            Assert.True(double.IsNaN(result.Statistic) && double.IsNaN(result.PValue));
+            Assert.Equal(7, result.CriticalValues.Length);
+        }
         Assert.Throws<ArgumentOutOfRangeException>(() => AndersonDarling.KSample((AndersonKSampleVariant)9, First, Second));
     }
 

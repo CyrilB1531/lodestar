@@ -8,7 +8,7 @@ Compares two independent samples by their ranks.
 public static TestResult Test(ReadOnlySpan<double> x, ReadOnlySpan<double> y, Alternative alternative = Alternative.TwoSided, Continuity continuity = Continuity.Applied, ExactMethod method = ExactMethod.Auto, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
-**Parameters** — `x` and `y` are the two samples, each at least one value; both spans are read,
+**Parameters** — `x` and `y` are the two samples, an empty one answering `NaN`; both spans are read,
 never modified. `alternative` says which tail the p-value covers. `continuity` says whether the
 normal approximation gets the half-unit correction; it is ignored on the exact branch, where
 there is nothing to approximate. `method` chooses the exact null distribution, its normal
@@ -17,9 +17,13 @@ a `NaN`; scipy's `nan_policy`, defaulting to [`NanPolicy.Propagate`](../nanpolic
 
 **Returns** — `TestResult`: *U* for `x`, and the p-value.
 
-**Exceptions** — `ArgumentException` when either sample is empty, or `nanPolicy` is
+**Exceptions** — `ArgumentException` when `nanPolicy` is
 `NanPolicy.Raise` and either sample holds a `NaN`. `ArgumentOutOfRangeException` when `method`
-is `ExactMethod.Exact` and `x.Length * y.Length` exceeds 20,000.
+is `ExactMethod.Exact` and `x.Length * y.Length` exceeds 20,000. An empty sample, given or left by omission, answers `NaN` for the statistic and the p-value
+([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md)), and so does
+the normal approximation's p-value on a pool tied throughout, which leaves it no variance — two-sided,
+or without the continuity correction; one-sided with it, the half-unit shift over a zero variance
+reads `1`, as scipy's does. `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — a control group and a treated group, one value tied across them.
 

@@ -30,6 +30,7 @@ public static partial class Spearman
     /// The samples differ in length. When <paramref name="nanPolicy"/> is
     /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
     /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">An option is outside its enumeration.</exception>
     public static TestResult Test(
         ReadOnlySpan<double> x,
         ReadOnlySpan<double> y,
@@ -39,9 +40,11 @@ public static partial class Spearman
         PairedSamples.Align(
             x, y, nanPolicy, nameof(x), nameof(y),
             out ReadOnlySpan<double> left, out ReadOnlySpan<double> right);
+        // Refused before an undefined correlation answers NaN, which let (Alternative)99 through (#1712's Review A).
+        Options.Require(alternative);
+        Options.Require(nanPolicy);
 
-        // scipy answers rather than refuses below two pairs, where pearsonr raises: the two
-        // disagree upstream, and each is matched rather than reconciled here.
+        // Below two pairs rho is undefined: NaN, as scipy's spearmanr answers and Pearson.Test does too (decision 0010).
         if (left.Length < 2 || Ranks.HasNaN(left) || Ranks.HasNaN(right))
         {
             return new TestResult(double.NaN, double.NaN);

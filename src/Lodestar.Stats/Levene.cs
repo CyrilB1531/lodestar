@@ -17,9 +17,9 @@ public static class Levene
     private const double DefaultProportionToCut = 0.05;
 
     /// <summary>Compares the spread of two or more groups, around each group's median.</summary>
-    /// <param name="groups">The groups; at least two, each holding at least one value.</param>
+    /// <param name="groups">The groups; at least two. An empty one answers <c>NaN</c> for both, as scipy's does, and so does a null one.</param>
     /// <returns>The W statistic and the upper-tail p-value.</returns>
-    /// <exception cref="ArgumentException">Fewer than two groups, or an empty group.</exception>
+    /// <exception cref="ArgumentException">Fewer than two groups.</exception>
     // S2368: groups mirrors scipy.stats.levene's own one-array-per-group shape, as
     // OneWayAnova.Test does.
 #pragma warning disable S2368
@@ -37,11 +37,13 @@ public static class Levene
     /// <param name="groups">Two or more groups of observations.</param>
     /// <returns>The W statistic and its p-value.</returns>
     /// <exception cref="ArgumentException">
-    /// Fewer than two groups, an empty group, or a <c>NaN</c> under <see cref="NanPolicy.Raise"/>.
+    /// Fewer than two groups, or a <c>NaN</c> under <see cref="NanPolicy.Raise"/>.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="proportionToCut"/> is NaN under <see cref="Center.Trimmed"/>, or cuts a count below zero or past
-    /// a group's middle, as scipy refuses them; one that trims a group to nothing answers NaN, as scipy's does.
+    /// <paramref name="proportionToCut"/> is NaN under <see cref="Center.Trimmed"/>, as an undefined option is; or, where a
+    /// centre is taken, cuts a count below zero or past a group's middle, as scipy refuses them. An empty group or a
+    /// propagated NaN answers NaN before that, and so does a trim that leaves a group nothing. Or an option is outside
+    /// its enumeration.
     /// </exception>
     /// <remarks>
     /// The centre and the policy come first because the groups are a <c>params</c> array and C#
@@ -52,11 +54,22 @@ public static class Levene
         Center center, double proportionToCut, NanPolicy nanPolicy, params double[][] groups)
 #pragma warning restore S2368
     {
+        // An option outside its enumeration is refused last, once the input has met every refusal of its own (#1704's Review A).
+        TestResult result = TestCore(center, proportionToCut, nanPolicy, groups);
+        Options.Require(center);
+        Options.Require(nanPolicy);
+        return result;
+    }
+
+    private static TestResult TestCore(
+        Center center,
+        double proportionToCut,
+        NanPolicy nanPolicy,
+        double[][] groups)
+    {
         Guard.NotNull(groups);
         GroupSpread.RequireProportion(center, proportionToCut);
-        double[][] samples = nanPolicy == NanPolicy.Propagate
-            ? groups
-            : NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups));
+        double[][] samples = NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups));
 
         if (samples.Length < 2)
         {
@@ -64,16 +77,14 @@ public static class Levene
                 $"Levene's test needs at least two groups; got {samples.Length}.", nameof(groups));
         }
 
-        int total = 0;
-        for (int g = 0; g < samples.Length; g++)
+        // An empty group, given or left by omission, where this threw, or a propagated NaN, where an out-of-range trim was
+        // refused: scipy's levene answers NaN whatever the trim's size, and so does a null group here (#1704's Review A).
+        if (Groups.AnyEmpty(samples) || Array.Exists(samples, group => Ranks.HasNaN(group)))
         {
-            if (samples[g] is not { Length: > 0 })
-            {
-                throw new ArgumentException($"Group {g} is empty.", nameof(groups));
-            }
-
-            total += samples[g].Length;
+            return new TestResult(double.NaN, double.NaN);
         }
+
+        int total = samples.Sum(group => group.Length);
 
         return Statistic(samples, center, proportionToCut, total);
     }

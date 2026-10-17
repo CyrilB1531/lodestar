@@ -8,17 +8,19 @@ Tests observed counts against an expected distribution.
 public static TestResult GoodnessOfFit(ReadOnlySpan<double> observed, ReadOnlySpan<double> expected = default, NanPolicy nanPolicy = NanPolicy.Propagate)
 ```
 
-**Parameters** — `observed` are the observed counts, at least one category, one alone leaving no
-degree of freedom and a NaN p-value as scipy's does; the span is read, never modified. `expected` are the expected counts, which must sum to the observed total; omit
+**Parameters** — `observed` are the observed counts; none, given or left by omission, answers a
+statistic of `0` and a NaN p-value ([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md)), and one alone leaves no
+degree of freedom and a NaN p-value as scipy's does, as does a negative statistic, which negative
+counts can give; the span is read, never modified. `expected` are the expected counts, which must sum to the observed total; omit
 them for a uniform expectation across every category, which is what `scipy.stats.chisquare` does
 with `f_exp=None`. `nanPolicy` says what to do with a `NaN`; scipy's `nan_policy`, defaulting to
 [`NanPolicy.Propagate`](../nanpolicy.md).
 
 **Returns** — `TestResult`: the statistic, and the upper-tail p-value.
 
-**Exceptions** — `ArgumentException` when there is no category, `observed` and
-`expected` differ in length, an expectation is not positive, or the expectations do not sum to
-the observations.
+**Exceptions** — `ArgumentException` when `observed` and `expected` differ in length, an expectation is negative — a zero one, which the statistic divides by, reads `(inf, 0)` where a
+count meets it and `NaN` for both once any zero expectation meets a zero count, 0/0, as scipy's does — or the expectations do not sum to
+the observations. `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — six faces of a die, rolled 88 times.
 

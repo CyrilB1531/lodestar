@@ -7,7 +7,7 @@ namespace Lodestar.Stats.Internal;
 /// <see cref="TwoSampleRanks"/>' merge over k sorted groups instead of two (#719): each tie group's
 /// midrank times its members from a group is all that group's rank sum needs. The sums equal adding
 /// <see cref="Ranks.Average"/>'s ranks, every partial sum being a half-integer below 2^53, and the tie
-/// term visits the groups <see cref="Ranks.TieCorrection"/> does in the same order (KSampleRanksTests).
+/// term visits the groups a second sort does in the same order (KSampleRanksTests).
 /// </remarks>
 internal static class KSampleRanks
 {

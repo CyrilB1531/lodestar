@@ -145,7 +145,10 @@ internal static class Kolmogorov
     /// </remarks>
     internal static double FiniteTwoSidedSf(double n, double d)
     {
-        if (double.IsNaN(d))
+        // One value against one is an effective size of 0.5, which rounds to a law of no observation: undefined, scipy's
+        // kstwo answers NaN at any d, where a size clamped to 1 read 1 and 0 (#1704's Review A).
+        int count = (int)Math.Round(n, MidpointRounding.ToEven);
+        if (double.IsNaN(d) || count < 1)
         {
             return double.NaN;
         }
@@ -157,8 +160,6 @@ internal static class Kolmogorov
         {
             return 0.0;
         }
-
-        int count = Math.Max(1, (int)Math.Round(n, MidpointRounding.ToEven));
 
         // Row 4 (see the dispatch table above): exact, since D_n+ >= d and
         // D_n- >= d cannot both hold once d >= 0.5.

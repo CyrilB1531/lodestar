@@ -102,7 +102,7 @@ public sealed class TwoSampleRanksTests
         (double rankSum, double tieCorrection, bool hasTies) = TwoSampleRanks.Compute(x, y);
 
         Assert.Equal(expectedRankSum, rankSum);
-        Assert.Equal(Ranks.TieCorrection(pooled), tieCorrection);
-        Assert.Equal(Ranks.HasTies(pooled), hasTies);
+        Assert.Equal(ReferenceRanks.TieCorrection(pooled), tieCorrection);
+        Assert.Equal(ReferenceRanks.HasTies(pooled), hasTies);
     }
 }

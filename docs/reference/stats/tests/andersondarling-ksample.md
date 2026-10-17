@@ -14,16 +14,15 @@ public static AndersonResult KSample(double[][] samples)
 public static AndersonResult KSample(AndersonKSampleVariant variant, double[][] samples)
 ```
 
-**Parameters** — `samples` are the samples, at least two, none empty, with at least two distinct
-values between them. `variant` is which form of the statistic, scipy's `variant`;
+**Parameters** — `samples` are the samples, at least two; an empty or null one, or a pool of one
+distinct value, answers a NaN statistic and p-value with the table ([decision 0010](../../../decisions/0010-each-algorithm-follows-its-defining-document.md)). `variant` is which form of the statistic, scipy's `variant`;
 [`AndersonKSampleVariant.Midrank`](andersonksamplevariant.md) by default.
 
 **Returns** — an [`AndersonResult`](andersonresult.md): the normalised statistic, the p-value
 interpolated from Scholz and Stephens' table and clamped to `[0.001, 0.25]`, and the critical
 values at `25, 10, 5, 2.5, 1, 0.5, 0.1` percent.
 
-**Exceptions** — `ArgumentException` when there are fewer than two samples, an empty one, a `NaN`,
-or fewer than two distinct values. `ArgumentOutOfRangeException` when `variant` is not declared.
+**Exceptions** — `ArgumentException` when there are fewer than two samples, or a `NaN`. `ArgumentOutOfRangeException` when `variant` is not declared.
 
 **Example** — three machines: the same centre, different spreads, so different distributions.
 

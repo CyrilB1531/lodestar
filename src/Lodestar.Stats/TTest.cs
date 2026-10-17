@@ -13,16 +13,17 @@ namespace Lodestar.Stats;
 public static class TTest
 {
     /// <summary>The two-sample t-test on independent samples.</summary>
-    /// <param name="a">The first sample; at least one value.</param>
-    /// <param name="b">The second sample; at least one value.</param>
+    /// <param name="a">The first sample; an empty one answers <c>NaN</c> (decision 0010).</param>
+    /// <param name="b">The second sample; an empty one answers <c>NaN</c> (decision 0010).</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
     /// <param name="variance">Whether to pool the two variances.</param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
-    /// <returns>The statistic, the p-value and the degrees of freedom.</returns>
+    /// <returns>The statistic, the p-value and the degrees of freedom; <c>NaN</c> for each with no value to read (decision 0010).</returns>
     /// <exception cref="ArgumentException">
-    /// Either sample is empty. When <paramref name="nanPolicy"/> is
+    /// When <paramref name="nanPolicy"/> is
     /// <see cref="NanPolicy.Raise"/> and either sample holds a <c>NaN</c>.
     /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">An option is outside its enumeration.</exception>
     public static TTestResult Independent(
         ReadOnlySpan<double> a,
         ReadOnlySpan<double> b,
@@ -30,15 +31,24 @@ public static class TTest
         Variance variance = Variance.Welch,
         NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        ReadOnlySpan<double> x = nanPolicy == NanPolicy.Propagate
-            ? a
-            : NanFilter.Apply(a, nanPolicy, nameof(a));
-        ReadOnlySpan<double> y = nanPolicy == NanPolicy.Propagate
-            ? b
-            : NanFilter.Apply(b, nanPolicy, nameof(b));
+        // An option outside its enumeration is refused last, once the input has met every refusal of its own (#1704's Review A).
+        TTestResult result = IndependentCore(a, b, alternative, variance, nanPolicy);
+        Options.Require(alternative);
+        Options.Require(variance);
+        Options.Require(nanPolicy);
+        return result;
+    }
 
-        RequireAtLeastOne(x, nameof(a));
-        RequireAtLeastOne(y, nameof(b));
+    private static TTestResult IndependentCore(
+        ReadOnlySpan<double> a, ReadOnlySpan<double> b, Alternative alternative, Variance variance, NanPolicy nanPolicy)
+    {
+        ReadOnlySpan<double> x = NanFilter.Apply(a, nanPolicy, nameof(a));
+        ReadOnlySpan<double> y = NanFilter.Apply(b, nanPolicy, nameof(b));
+
+        if (x.IsEmpty || y.IsEmpty)
+        {
+            return Undefined(alternative);
+        }
 
         (double meanA, double varianceA) = MeanAndVariance(x);
         (double meanB, double varianceB) = MeanAndVariance(y);
@@ -87,25 +97,33 @@ public static class TTest
     /// <param name="b">The second measurement of each pair, in the same order.</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in either sample.</param>
-    /// <returns>The statistic, the p-value and the degrees of freedom.</returns>
+    /// <returns>The statistic, the p-value and the degrees of freedom; <c>NaN</c> for each with no value to read (decision 0010).</returns>
     /// <exception cref="ArgumentException">
-    /// The samples differ in length, or hold no pair. When <paramref
+    /// The samples differ in length. When <paramref
     /// name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and either sample holds a
     /// <c>NaN</c>.
     /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">An option is outside its enumeration.</exception>
     public static TTestResult Paired(
         ReadOnlySpan<double> a,
         ReadOnlySpan<double> b,
         Alternative alternative = Alternative.TwoSided,
         NanPolicy nanPolicy = NanPolicy.Propagate)
     {
+        // Options last, as in Independent.
+        TTestResult result = PairedCore(a, b, alternative, nanPolicy);
+        Options.Require(alternative);
+        Options.Require(nanPolicy);
+        return result;
+    }
+
+    private static TTestResult PairedCore(ReadOnlySpan<double> a, ReadOnlySpan<double> b, Alternative alternative, NanPolicy nanPolicy)
+    {
         ReadOnlySpan<double> x = a;
         ReadOnlySpan<double> y = b;
         if (nanPolicy != NanPolicy.Propagate)
         {
-            (double[] left, double[] right) = NanFilter.ApplyAligned(a, b, nanPolicy, nameof(a), nameof(b));
-            x = left;
-            y = right;
+            NanFilter.ApplyAligned(a, b, nanPolicy, nameof(a), nameof(b), out x, out y);
         }
 
         if (x.Length != y.Length)
@@ -115,7 +133,10 @@ public static class TTest
                 nameof(b));
         }
 
-        RequireAtLeastOne(x, nameof(a));
+        if (x.IsEmpty)
+        {
+            return Undefined(alternative);
+        }
 
         double[] differences = new double[x.Length];
         for (int i = 0; i < x.Length; i++)
@@ -128,17 +149,18 @@ public static class TTest
     }
 
     /// <summary>The one-sample t-test against a stated population mean.</summary>
-    /// <param name="sample">The sample; at least one value.</param>
+    /// <param name="sample">The sample; an empty one answers <c>NaN</c> (decision 0010).</param>
     /// <param name="populationMean">The mean the null hypothesis states.</param>
     /// <param name="alternative">Which tail the p-value covers.</param>
     /// <param name="nanPolicy">What to do with a <c>NaN</c> in the sample.</param>
-    /// <returns>The statistic, the p-value and the degrees of freedom.</returns>
+    /// <returns>The statistic, the p-value and the degrees of freedom; <c>NaN</c> for each with no value to read (decision 0010).</returns>
     /// <exception cref="ArgumentException">
-    /// <paramref name="sample"/> is empty. When <paramref name="nanPolicy"/>
+    /// When <paramref name="nanPolicy"/>
     /// is <see cref="NanPolicy.Raise"/> and the sample holds a <c>NaN</c>.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="populationMean"/> is NaN or infinite.
+    /// Or an option is outside its enumeration.
     /// </exception>
     public static TTestResult OneSample(
         ReadOnlySpan<double> sample,
@@ -146,16 +168,27 @@ public static class TTest
         Alternative alternative = Alternative.TwoSided,
         NanPolicy nanPolicy = NanPolicy.Propagate)
     {
-        ReadOnlySpan<double> values = nanPolicy == NanPolicy.Propagate
-            ? sample
-            : NanFilter.Apply(sample, nanPolicy, nameof(sample));
+        // Options last, as in Independent.
+        TTestResult result = OneSampleCore(sample, populationMean, alternative, nanPolicy);
+        Options.Require(alternative);
+        Options.Require(nanPolicy);
+        return result;
+    }
 
-        RequireAtLeastOne(values, nameof(sample));
+    private static TTestResult OneSampleCore(
+        ReadOnlySpan<double> sample, double populationMean, Alternative alternative, NanPolicy nanPolicy)
+    {
+        ReadOnlySpan<double> values = NanFilter.Apply(sample, nanPolicy, nameof(sample));
 
         if (double.IsNaN(populationMean) || double.IsInfinity(populationMean))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(populationMean), populationMean, "The population mean must be finite.");
+        }
+
+        if (values.IsEmpty)
+        {
+            return Undefined(alternative);
         }
 
         return FromValues(values, populationMean, alternative, values.IndexOf(double.NaN) >= 0);
@@ -173,13 +206,9 @@ public static class TTest
         return Build(statistic, mean, standardError, nanKept ? double.NaN : values.Length - 1, alternative);
     }
 
-    private static void RequireAtLeastOne(ReadOnlySpan<double> values, string name)
-    {
-        if (values.IsEmpty)
-        {
-            throw new ArgumentException("A t-test needs at least one value.", name);
-        }
-    }
+    /// <summary>The result of a test with no value to read: a mean of nothing is undefined, NaN as decision 0010 rules.</summary>
+    private static TTestResult Undefined(Alternative alternative) =>
+        Build(double.NaN, double.NaN, double.NaN, double.NaN, alternative);
 
     // The sample variance, n-1 denominator, in two passes: the sum-of-squares
     // shortcut cancels catastrophically once the mean dominates the spread -- a real corpus case.

@@ -7,17 +7,16 @@ namespace Lodestar.Stats;
 /// The k-sample generalisation of <see cref="TTest.Independent"/> with <see cref="Variance.Equal"/>:
 /// on two groups F is the square of Student's t, and the two p-values agree. Groups each holding
 /// one repeated value answer an infinite statistic and a zero p-value, and a single value repeated
-/// across every group answers <c>NaN</c> for both -- matching scipy's own <c>f_oneway</c>, and
-/// unlike <see cref="KruskalWallis"/> (which throws on its analogous input, since the ranks there
-/// are provably meaningless rather than merely indeterminate).
+/// across every group, or groups of one value each, answer <c>NaN</c> for both -- matching scipy's
+/// own <c>f_oneway</c>, and <see cref="KruskalWallis"/> on its analogous all-tied input.
 /// </remarks>
 public static class OneWayAnova
 {
     /// <summary>Compares the means of two or more groups.</summary>
-    /// <param name="groups">The groups; at least two, each holding at least one value.</param>
+    /// <param name="groups">The groups; at least two. An empty one answers <c>NaN</c> for both, as scipy's does, and so does a null one.</param>
     /// <returns>The F statistic and the upper-tail p-value.</returns>
     /// <exception cref="ArgumentException">
-    /// Fewer than two groups, an empty group, or no group holding more than one value.
+    /// Fewer than two groups.
     /// </exception>
     // S2368: groups arrives from the caller already in this shape -- that is
     // how scipy.stats.f_oneway takes its samples, one array per group.
@@ -35,13 +34,17 @@ public static class OneWayAnova
                 nameof(groups));
         }
 
-        (int total, double grandSum) = ValidatedTotals(groups);
+        // A null or empty group, given or left by omission, and no within-group degree of freedom: scipy's f_oneway answers
+        // NaN for both, where this threw (#1712).
+        if (Groups.AnyEmpty(groups))
+        {
+            return new TestResult(double.NaN, double.NaN);
+        }
 
+        (int total, double grandSum) = Totals(groups);
         if (total <= groups.Length)
         {
-            throw new ArgumentException(
-                "The within-group degrees of freedom are zero: every group holds one value.",
-                nameof(groups));
+            return new TestResult(double.NaN, double.NaN);
         }
 
         double grandMean = grandSum / total;
@@ -67,21 +70,23 @@ public static class OneWayAnova
     /// <param name="groups">Two or more groups of observations.</param>
     /// <returns>The F statistic and its p-value.</returns>
     /// <exception cref="ArgumentException">
-    /// When <paramref name="nanPolicy"/> is <see cref="NanPolicy.Raise"/> and a group holds a
-    /// <c>NaN</c>, or when the filtered groups fail this test's own requirements.
+    /// Fewer than two groups, or a <c>NaN</c> under <see cref="NanPolicy.Raise"/>; a group omission
+    /// leaves empty, or groups it leaves of one value, answer <c>NaN</c> (decision 0010).
     /// </exception>
     /// <remarks>
     /// The policy comes first because the groups are a <c>params</c> array and C# allows no
     /// parameter after one — the shape <c>string.Join</c> uses, for the same reason. Omission is
-    /// per group and runs before this test's guards, so a group emptied by it is refused here
-    /// exactly as an empty group passed directly would be (decision 0007).
+    /// per group and runs before this test's guards, so a group emptied by it answers <c>NaN</c>
+    /// exactly as an empty group passed directly does (decisions 0007 and 0010).
     /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">An option is outside its enumeration.</exception>
     public static TestResult Test(NanPolicy nanPolicy, params double[][] groups)
     {
         Guard.NotNull(groups);
-        return nanPolicy == NanPolicy.Propagate
-            ? Test(groups)
-            : Test(NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups)));
+        // The policy is refused last, once the groups have met the test's own refusals (#1712's and #1704's Review A).
+        TestResult result = Test(NanFilter.ApplyGroups(groups, nanPolicy, nameof(groups)));
+        Options.Require(nanPolicy);
+        return result;
     }
 
     private enum GroupConstancy
@@ -124,17 +129,12 @@ public static class OneWayAnova
     }
 #pragma warning restore S1244
 
-    private static (int Total, double GrandSum) ValidatedTotals(double[][] groups)
+    private static (int Total, double GrandSum) Totals(double[][] groups)
     {
         int total = 0;
         double grandSum = 0.0;
         for (int g = 0; g < groups.Length; g++)
         {
-            if (groups[g] is not { Length: > 0 })
-            {
-                throw new ArgumentException($"Group {g} is empty.", nameof(groups));
-            }
-
             for (int i = 0; i < groups[g].Length; i++)
             {
                 grandSum += groups[g][i];

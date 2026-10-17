@@ -34,21 +34,24 @@ rational approximations, so the value is scipy's to the last bit on both tails a
 
 **Why this exists rather than a Student quantile at a large degrees of freedom.** Student converges
 on the normal, so the obvious substitute is `StudentQuantile(p, df)` with `df` very large. Measured
-against `scipy.stats.norm.ppf(0.975)`, that substitute stops improving at about **1e-8** relative:
+against `scipy.stats.norm.ppf(0.975)`, its relative error is the two laws' own distance, about
+`1.2 / df` until rounding takes over:
 
 | `df` | relative error |
 | --- | --- |
 | 1e6 | 1.2e-6 |
-| 1e7 | 1.2e-7 |
-| **1e8** | **1.2e-8** |
-| 1e9 | 1.5e-7 |
-| 1e12 | 3.3e-5 |
+| 1e8 | 1.2e-8 |
+| 1e9 | 1.2e-9 |
+| 1e12 | 1.2e-12 |
+| 1e16 | 1.1e-16 |
 
-Below the best point the convergence is incomplete; above it the Student tail being inverted loses ground. A
-Kaplan-Meier confidence bound is built on the log-log transform of the estimate, which amplifies
-that error into the seventh digit of a bound — past the `1e-9` its corpus compares at. This member
-answers to the last bit on Linux instead. [Decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md), as `docs/guides/performance.md` amended it,
-has the whole measurement.
+Past that rounding decides: one ulp off at `1e16`, two at `1e17` and at `9.9e19`, and exact from
+`df = 1e20`, where the Student law is the normal one. A Kaplan-Meier confidence bound is
+built on the log-log transform of the estimate, which amplifies a smaller `df`'s distance into the
+digits of a bound its corpus compares at `1e-9`. This member answers to the last bit on Linux
+instead. [Decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)
+publishes a member once another package names it, and `Lodestar.Survival`, `Lodestar.Preprocessing`,
+`Lodestar.Stats.Regression` and `Lodestar.Stats.TimeSeries` call this one.
 
 **Applies to** — net10.0, netstandard2.0.
 

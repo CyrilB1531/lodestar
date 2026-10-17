@@ -18,7 +18,7 @@ p-value covers.
 asked for afterwards.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `trials` is negative, `successes` lies
-outside `[0, trials]`, or `probability` lies outside `[0, 1]`.
+outside `[0, trials]`, or `probability` lies outside `[0, 1]`. `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — seven heads in twenty tosses of a coin assumed fair.
 

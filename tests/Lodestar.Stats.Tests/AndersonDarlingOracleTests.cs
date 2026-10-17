@@ -72,6 +72,10 @@ public sealed class AndersonDarlingOracleTests
             Assert.Equal(5, result.CriticalValues.Length);
         }
 
-        Assert.Throws<ArgumentException>(() => AndersonDarling.Test([]));
+        // An empty sample fits nothing: NaN, critical values NaN in step with the levels (decision 0010), where this threw.
+        AndersonResult empty = AndersonDarling.Test([]);
+        Assert.True(double.IsNaN(empty.Statistic) && double.IsNaN(empty.PValue));
+        Assert.Equal(empty.SignificanceLevels.Length, empty.CriticalValues.Length);
+        Assert.All(empty.CriticalValues, value => Assert.True(double.IsNaN(value)));
     }
 }

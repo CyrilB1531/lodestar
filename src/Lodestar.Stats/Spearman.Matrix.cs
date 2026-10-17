@@ -14,7 +14,7 @@ public static partial class Spearman
     /// <c>NaN</c> with <c>NaN</c> in its row and column, its own diagonal included, and every other pair computed.
     /// </param>
     /// <returns>The correlations and p-values, each <c>variableCount × variableCount</c> and row-major.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="variableCount"/> is below two.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="variableCount"/> is below two, or an option is outside its enumeration.</exception>
     /// <exception cref="ArgumentException">
     /// <paramref name="data"/> is not a whole number of rows, or holds a <c>NaN</c> under <see cref="NanPolicy.Raise"/>; or
     /// <paramref name="variableCount"/> squared is more cells than one array holds.
@@ -28,11 +28,14 @@ public static partial class Spearman
     {
         CheckShape(data, variableCount, nanPolicy);
         (double[][] columns, bool[] missing) = Columns(data, variableCount, nanPolicy);
-        // Each column ranked once, where a pair at a time would rank it once per partner (#1162's benchmark); only the
-        // pairwise omission of rows needs the pair's own ranks.
+        // After the input's own refusals, the raised NaN in Columns included (#1712's Review A).
+        Options.Require(alternative);
+        Options.Require(nanPolicy);
+        // Each column ranked once, where a pair at a time would rank it once per partner (#1162's benchmark). Only a pair
+        // with a NaN to omit needs its own ranks: re-ranking every pair once one NaN was present cost 42 to 403 ms (#1717).
         bool pairwise = nanPolicy == NanPolicy.Omit && Array.Exists(missing, flag => flag);
         var ranks = new double[]?[variableCount];
-        for (int j = 0; j < variableCount && !pairwise; j++)
+        for (int j = 0; j < variableCount; j++)
         {
             ranks[j] = missing[j] || columns[j].Length < 2 ? null : Ranks.Average(columns[j]);
         }
@@ -42,7 +45,9 @@ public static partial class Spearman
         {
             for (int b = a; b < variableCount; b++)
             {
-                TestResult pair = pairwise ? Pair(columns, missing, a, b, alternative, nanPolicy) : Ranked(ranks, a, b, alternative);
+                TestResult pair = pairwise && (a == b || missing[a] || missing[b])
+                    ? Pair(columns, a, b, alternative)
+                    : Ranked(ranks, a, b, alternative);
                 statistics[(a * variableCount) + b] = statistics[(b * variableCount) + a] = pair.Statistic;
                 pValues[(a * variableCount) + b] = pValues[(b * variableCount) + a] = pair.PValue;
             }
@@ -51,30 +56,13 @@ public static partial class Spearman
         return new CorrelationMatrix(variableCount, statistics, pValues);
     }
 
-    /// <summary>One entry of the matrix, as scipy's two paths compute it.</summary>
+    /// <summary>One entry under <c>omit</c> where the data hold a <c>NaN</c>: the pair's own test, the diagonal scipy's.</summary>
     /// <remarks>
-    /// Under <c>omit</c>, where the data hold a <c>NaN</c>, scipy takes <c>mstats</c>' path, which writes the diagonal
-    /// as <c>(1, 0)</c> whatever the alternative; otherwise it computes it, so a variable against itself reads <c>p = 1</c> under
-    /// <see cref="Alternative.Less"/> there. Each is replayed as it is.
+    /// There scipy takes <c>mstats</c>' path, which writes the diagonal as <c>(1, 0)</c> whatever the alternative; otherwise it
+    /// computes it, so a variable against itself reads <c>p = 1</c> under <see cref="Alternative.Less"/>. Each is replayed.
     /// </remarks>
-    private static TestResult Pair(
-        double[][] columns, bool[] missing, int a, int b, Alternative alternative, NanPolicy nanPolicy)
-    {
-        if (nanPolicy == NanPolicy.Propagate && (missing[a] || missing[b]))
-        {
-            return new TestResult(double.NaN, double.NaN);
-        }
-
-        if (a != b)
-        {
-            return Test(columns[a], columns[b], alternative, nanPolicy);
-        }
-
-        // mstats' path, and its fixed diagonal, is taken only where a NaN is there to omit.
-        return nanPolicy == NanPolicy.Omit && Array.Exists(missing, flag => flag)
-            ? new TestResult(1.0, 0.0)
-            : Diagonal(columns[a], alternative);
-    }
+    private static TestResult Pair(double[][] columns, int a, int b, Alternative alternative) =>
+        a == b ? new TestResult(1.0, 0.0) : Test(columns[a], columns[b], alternative, NanPolicy.Omit);
 
     /// <summary>A variable against itself as <c>numpy.corrcoef</c> computes it: <c>(d / √d) / √d</c>, clipped to 1.</summary>
     /// <remarks>
@@ -82,16 +70,6 @@ public static partial class Spearman
     /// measured case), so the quotient is taken in numpy's order. <c>d</c>, the ranks' squared deviations, is exact
     /// before the scaling for any sample this runs on: the ranks are halves and their mean a quarter.
     /// </remarks>
-    private static TestResult Diagonal(double[] column, Alternative alternative)
-    {
-        if (column.Length < 2)
-        {
-            return new TestResult(double.NaN, double.NaN);
-        }
-
-        return DiagonalOfRanks(Ranks.Average(column), alternative);
-    }
-
     private static TestResult DiagonalOfRanks(double[] ranks, Alternative alternative)
     {
         double mean = ranks.Average();

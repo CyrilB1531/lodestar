@@ -16,6 +16,7 @@ public static class PointBiserial
     /// remain, where scipy answers rather than raises.
     /// </returns>
     /// <exception cref="ArgumentException">The samples differ in length, or a <c>NaN</c> under <see cref="NanPolicy.Raise"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">An option is outside its enumeration.</exception>
     public static TestResult Test(ReadOnlySpan<bool> x, ReadOnlySpan<double> y, NanPolicy nanPolicy = NanPolicy.Propagate)
     {
         var coded = new double[x.Length];
@@ -24,19 +25,7 @@ public static class PointBiserial
             coded[i] = x[i] ? 1.0 : 0.0;
         }
 
-        int remaining = 0;
-        foreach (double value in y)
-        {
-            remaining += nanPolicy == NanPolicy.Omit && double.IsNaN(value) ? 0 : 1;
-        }
-
-        // scipy's wrapper answers (nan, nan) below two pairs before pearsonr could raise; a length mismatch or a
-        // refused NaN still reaches Pearson.Test, which raises as the reference does.
-        if (remaining < 2 && x.Length == y.Length && (nanPolicy != NanPolicy.Raise || !Internal.Ranks.HasNaN(y)))
-        {
-            return new TestResult(double.NaN, double.NaN);
-        }
-
+        // Below two pairs Pearson.Test answers NaN itself, after refusing a length mismatch or a raised NaN (decision 0010).
         PearsonResult result = Pearson.Test(coded, y, Alternative.TwoSided, nanPolicy);
         return new TestResult(result.Statistic, result.PValue);
     }

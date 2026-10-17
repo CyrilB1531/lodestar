@@ -61,14 +61,14 @@ public sealed class RanksTests
     [InlineData(new[] { 7.0, 7.0, 7.0, 2.0, 2.0, 9.0 }, 30.0)]
     public void TieCorrection_sums_t_cubed_minus_t_over_the_groups(double[] values, double expected)
     {
-        Assert.Equal(expected, Ranks.TieCorrection(values), 1e-12);
+        Assert.Equal(expected, ReferenceRanks.TieCorrection(values), 1e-12);
     }
 
     [Fact]
     public void HasTies_answers_the_question_the_exact_branch_asks()
     {
-        Assert.False(Ranks.HasTies([1.0, 2.0, 3.0]));
-        Assert.True(Ranks.HasTies([1.0, 2.0, 2.0]));
+        Assert.False(ReferenceRanks.HasTies([1.0, 2.0, 3.0]));
+        Assert.True(ReferenceRanks.HasTies([1.0, 2.0, 2.0]));
     }
 
     [Theory]
@@ -80,13 +80,33 @@ public sealed class RanksTests
         double[] ranks = Ranks.AverageWithTies(values, out double tieCorrection, out bool hasTies);
 
         Assert.Equal(Ranks.Average(values), ranks);
-        Assert.Equal(BitConverter.DoubleToInt64Bits(Ranks.TieCorrection(values)), BitConverter.DoubleToInt64Bits(tieCorrection));
-        Assert.Equal(Ranks.HasTies(values), hasTies);
+        Assert.Equal(BitConverter.DoubleToInt64Bits(ReferenceRanks.TieCorrection(values)), BitConverter.DoubleToInt64Bits(tieCorrection));
+        Assert.Equal(ReferenceRanks.HasTies(values), hasTies);
     }
 
     [Fact]
     public void Average_refuses_an_empty_sample()
     {
         Assert.Throws<ArgumentException>(() => Ranks.Average([]));
+    }
+
+    [Fact]
+    public void The_scratch_overload_refuses_buffers_of_another_length_and_reuses_its_own()
+    {
+        // A longer reused buffer would sort its stale tail into the ranks (#1718's Review A).
+        double[] ranks = new double[3];
+        Assert.Throws<ArgumentException>(() => Ranks.AverageWithTies([1.0, 2.0, 3.0], new int[4], new double[3], ranks, out _, out _));
+        Assert.Throws<ArgumentException>(() => Ranks.AverageWithTies([], [], [], [], out _, out _));
+
+        int[] order = [9, 9, 9];
+        double[] sorted = [-5.0, -5.0, -5.0];
+        Ranks.AverageWithTies([3.0, 1.0, 3.0], order, sorted, ranks, out double tie, out bool hasTies);
+        Assert.Equal([2.5, 1.0, 2.5], ranks);
+        Assert.Equal(6.0, tie);
+        Assert.True(hasTies);
+        Ranks.AverageWithTies([4.0, 5.0, 6.0], order, sorted, ranks, out tie, out hasTies);
+        Assert.Equal([1.0, 2.0, 3.0], ranks);
+        Assert.Equal(0.0, tie);
+        Assert.False(hasTies);
     }
 }

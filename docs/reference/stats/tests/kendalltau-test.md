@@ -22,7 +22,7 @@ every value is tied, leaves tau undefined and both numbers are `NaN`.
 [`ExactMethod.Exact`](exactmethod.md) and either sample holds a tie, or when `nanPolicy` is
 [`NanPolicy.Raise`](../nanpolicy.md) and either sample holds a `NaN`.
 `ArgumentOutOfRangeException` when `method` is [`ExactMethod.Exact`](exactmethod.md) and the null
-distribution's table would exceed twenty million cells.
+distribution's table would exceed twenty million cells. `ArgumentOutOfRangeException` when an option is outside its enumeration.
 
 **Example** — the same eight tasting panels the other two measure.
 
