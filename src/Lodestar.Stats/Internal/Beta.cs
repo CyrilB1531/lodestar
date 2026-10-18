@@ -854,6 +854,18 @@ internal static class Beta
     internal static (double Lower, double Upper) FisherSplit(double f, double dfn, double dfd)
     {
         double scaled = dfn * f;
+        // A subnormal d1 f quantises y: the density read 6.9% off at (5e-324, 3.7, 1e-300) and the lower tail 8% at (1e-323, 0.3,
+        // 1e-300). y/(1 − y) = d1 f/d2 instead, where it is normal; a d1 f underflowed to zero keeps y = 0 (#1725).
+        if (scaled < NearZero.SmallestNormal && scaled > 0.0)
+        {
+            // f/d2 can itself be subnormal and lose digits; there d1/d2 is far from overflowing (#1725's Review A).
+            double quotient = f / dfd;
+            double odds = quotient >= NearZero.SmallestNormal ? dfn * quotient : dfn / dfd * f;
+            if (odds >= NearZero.SmallestNormal && odds < double.PositiveInfinity)
+            {
+                return (odds / (1.0 + odds), 1.0 / (1.0 + odds));
+            }
+        }
         double denominator = dfd + scaled;
         if (!double.IsInfinity(denominator))
         {

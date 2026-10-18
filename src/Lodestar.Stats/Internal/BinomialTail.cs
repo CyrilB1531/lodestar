@@ -40,7 +40,7 @@ internal static class BinomialTail
 
         if (k == 0)
         {
-            return Math.Exp(n * LogComplement(p));
+            return Math.Exp(n * Beta.LogComplement(p, 1.0 - p));
         }
         if (k == n)
         {
@@ -59,9 +59,6 @@ internal static class BinomialTail
 
         return Math.Exp(logMass) * Math.Sqrt(n / (2.0 * Math.PI * k * (double)(n - k)));
     }
-
-    // log(1 - p) through the same series Gamma keeps for log(1 + t) - t, exact near p = 0.
-    private static double LogComplement(double p) => Gamma.LogOnePlusMinus(-p, 1.0 - p) - p;
 
     /// <summary><c>log(n!) - log(sqrt(2 pi n) (n/e)^n)</c>, what Stirling's formula leaves out.</summary>
     /// <remarks>

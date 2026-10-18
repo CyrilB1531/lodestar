@@ -78,8 +78,9 @@ public static class Levene
         }
 
         // An empty group, given or left by omission, where this threw, or a propagated NaN, where an out-of-range trim was
-        // refused: scipy's levene answers NaN whatever the trim's size, and so does a null group here (#1704's Review A).
-        if (Groups.AnyEmpty(samples) || Array.Exists(samples, group => Ranks.HasNaN(group)))
+        // refused: NaN, as scipy's levene answers. Only a trimmed centre reads the trim, so only there is the scan needed (#1723).
+        if (Groups.AnyEmpty(samples)
+            || (center == Center.Trimmed && nanPolicy == NanPolicy.Propagate && Array.Exists(samples, group => Ranks.HasNaN(group))))
         {
             return new TestResult(double.NaN, double.NaN);
         }

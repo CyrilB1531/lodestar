@@ -290,4 +290,24 @@ public sealed class DegenerateInputEdgeTests
         Assert.Equal("method", Assert.Throws<ArgumentOutOfRangeException>(
             () => Binomial.Test(0, 0).ProportionConfidenceInterval(0.95, (ProportionInterval)99)).ParamName);
     }
+
+    [Theory]
+    [InlineData(5e-324, 3.7, 1e-300, 8.706831748732146e-20)]
+    [InlineData(1e-323, 3.7, 1e-300, 1.5694072282839022e-19)]
+    [InlineData(5e-324, 1.5, 1e-300, 454561.11786671437)]
+    [InlineData(1e-323, 0.3, 1e-300, 1.4960487233718688e19)]
+    [InlineData(1e-323, 3.7, 1e-308, 9.902290171660264e-13)]
+    public void The_F_density_at_a_subnormal_scaled_f_keeps_its_digits(double f, double dfn, double dfd, double expected)
+    {
+        // A subnormal d1 f, quantised, carried into y: 3 to 8% off these 80-digit sums, and at d1/d2 past the largest double
+        // too, where the first cut divided first (#1725's Review A).
+        Assert.Equal(expected, Distributions.FisherSnedecorPdf(f, dfn, dfd), 1e-12 * expected);
+    }
+
+    [Fact]
+    public void The_F_lower_tail_at_a_subnormal_scaled_f_keeps_its_digits()
+    {
+        // The tail read the same quantised y, 8% off a 120-digit series (#1725's Review A).
+        Assert.Equal(9.855283716302596e-304, Distributions.FisherSnedecorCdf(1e-323, 0.3, 1e-300), 1e-12 * 9.855283716302596e-304);
+    }
 }
